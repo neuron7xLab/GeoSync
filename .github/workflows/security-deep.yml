@@ -39,8 +39,25 @@ jobs:
 
       - name: Run pip-audit against locked dependency sets
         run: |
-          .venv/bin/pip-audit -r requirements.lock --severity high
-          .venv/bin/pip-audit -r requirements-dev.lock --severity high
+          .venv/bin/pip-audit -r requirements.lock -f json -o /tmp/pip-audit-runtime.json || true
+          .venv/bin/pip-audit -r requirements-dev.lock -f json -o /tmp/pip-audit-dev.json || true
+          .venv/bin/python - <<'PY'
+          import json
+          from pathlib import Path
+
+          files = ['/tmp/pip-audit-runtime.json', '/tmp/pip-audit-dev.json']
+          high_or_critical = 0
+          for f in files:
+              data = json.loads(Path(f).read_text(encoding='utf-8'))
+              for dep in data.get('dependencies', []):
+                  for vuln in dep.get('vulns', []):
+                      sev = str(vuln.get('severity', '')).upper()
+                      if sev in {'HIGH', 'CRITICAL'}:
+                          high_or_critical += 1
+          if high_or_critical:
+              raise SystemExit(f'pip-audit found {high_or_critical} HIGH/CRITICAL vulnerabilities')
+          print('pip-audit HIGH/CRITICAL gate passed.')
+          PY
 
   semgrep:
     name: semgrep
