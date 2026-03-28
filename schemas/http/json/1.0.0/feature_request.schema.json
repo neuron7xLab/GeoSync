@@ -1,0 +1,145 @@
+{
+  "$defs": {
+    "MarketBar": {
+      "description": "Representation of a single OHLCV bar for online inference.",
+      "properties": {
+        "askVolume": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Ask-side queue volume for microstructure features.",
+          "title": "Askvolume"
+        },
+        "bidVolume": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bid-side queue volume for microstructure features.",
+          "title": "Bidvolume"
+        },
+        "close": {
+          "description": "Close price for the interval.",
+          "title": "Close",
+          "type": "number"
+        },
+        "high": {
+          "description": "High price for the interval.",
+          "title": "High",
+          "type": "number"
+        },
+        "low": {
+          "description": "Low price for the interval.",
+          "title": "Low",
+          "type": "number"
+        },
+        "open": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Opening price for the interval.",
+          "title": "Open"
+        },
+        "signedVolume": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Signed volume (buy-sell imbalance).",
+          "title": "Signedvolume"
+        },
+        "timestamp": {
+          "description": "Timestamp of the bar in ISO 8601 format.",
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "volume": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Traded volume for the bar. Optional for illiquid venues.",
+          "title": "Volume"
+        }
+      },
+      "required": [
+        "timestamp",
+        "high",
+        "low",
+        "close"
+      ],
+      "title": "MarketBar",
+      "type": "object"
+    }
+  },
+  "description": "Payload describing the series to transform into features.",
+  "examples": [
+    {
+      "bars": [
+        {
+          "askVolume": 9.0,
+          "bidVolume": 9.1,
+          "close": 42005.2,
+          "high": 42010.5,
+          "low": 41980.0,
+          "open": 42000.1,
+          "signedVolume": 0.25,
+          "timestamp": "2025-01-01T00:00:00Z",
+          "volume": 18.2
+        }
+      ],
+      "symbol": "BTC-USD"
+    }
+  ],
+  "properties": {
+    "bars": {
+      "description": "Ordered price bars.",
+      "items": {
+        "$ref": "#/$defs/MarketBar"
+      },
+      "minItems": 1,
+      "title": "Bars",
+      "type": "array"
+    },
+    "symbol": {
+      "description": "Instrument identifier.",
+      "minLength": 1,
+      "title": "Symbol",
+      "type": "string"
+    }
+  },
+  "required": [
+    "symbol",
+    "bars"
+  ],
+  "title": "FeatureRequest",
+  "type": "object"
+}

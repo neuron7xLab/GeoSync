@@ -1,0 +1,26 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: tradepulse-api
+spec:
+  minReplicas: 6
+  maxReplicas: 24
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 45
+      policies:
+        - type: Pods
+          value: 6
+          periodSeconds: 60
+        - type: Percent
+          value: 150
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 360
+      policies:
+        - type: Pods
+          value: 3
+          periodSeconds: 300
+        - type: Percent
+          value: 20
+          periodSeconds: 300

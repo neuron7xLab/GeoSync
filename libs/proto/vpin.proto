@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package tradepulse.vpin.v1;
+
+option go_package = "github.com/TradePulse/TradePulse/libs/proto/gen/go/vpin;vpinpb";
+
+import "google/protobuf/timestamp.proto";
+import "libs/proto/market_data.proto";
+
+message CalculateVPINRequest {
+  string symbol = 1;
+  repeated tradepulse.market.v1.Trade trades = 2;
+  VPINConfig config = 3;
+}
+
+message VPINConfig {
+  int32 bucket_volume = 1;
+  int32 num_buckets = 2;
+  string classification = 3;
+}
+
+message VPINResponse {
+  double vpin = 1;
+  double confidence = 2;
+  VPINMetadata metadata = 3;
+  google.protobuf.Timestamp calculated_at = 4;
+}
+
+message VPINMetadata {
+  int32 buckets_filled = 1;
+  double total_buy_volume = 2;
+  double total_sell_volume = 3;
+  double abs_imbalance = 4;
+}
+
+service VPINService {
+  rpc Calculate(CalculateVPINRequest) returns (VPINResponse);
+  rpc Stream(stream CalculateVPINRequest) returns (stream VPINResponse);
+}

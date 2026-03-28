@@ -1,0 +1,12 @@
+{
+  "notice": "Filesystem scan artifacts redacted to remove embedded secrets and internal metadata.",
+  "regenerate": "Produce fresh artifacts locally via documented security scanning scripts.",
+  "findings_summary": [
+    {
+      "id": "tls-dev-private-keys",
+      "status": "redacted",
+      "location": "configs/tls/dev/*.key.pem",
+      "reason": "private key contents removed from repository artifacts"
+    }
+  ]
+}

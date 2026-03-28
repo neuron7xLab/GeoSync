@@ -1,0 +1,538 @@
+{
+  "$schema": "../../../../schemas/localization/translation.schema.json",
+  "locale": "ja-JP",
+  "meta": {
+    "reviewerNotes": {
+      "header.subtitle": "トーン要注意：落ち着いた信頼感を維持してください。",
+      "views.orders.subtitle": "トーン要注意：即時性と透明性を丁寧語で伝えてください。",
+      "views.pnl.subtitle": "トーン要注意：定量的な裏付けを示しつつ過度な強調を避ける。",
+      "views.positions.subtitle": "トーン要注意：リスク管理の安心感を過不足なく伝える。"
+    }
+  },
+  "nav": {
+    "brand": "TradePulse",
+    "title": "TradePulse",
+    "badges": {
+      "live": "ライブ"
+    },
+    "accessibility": {
+      "skipLink": "メインコンテンツへスキップ"
+    },
+    "controls": {
+      "toggle": {
+        "label": "メニュー",
+        "open": "ナビゲーションを開く",
+        "close": "ナビゲーションを閉じる"
+      }
+    },
+    "sections": {
+      "overview": "概要",
+      "positions": "ポジション",
+      "orders": "注文",
+      "pnl": "PnLと気配値",
+      "signals": "シグナル",
+      "community": "コミュニティ",
+      "monitoring": "モニタリング"
+    },
+    "menu": {
+      "title": "Navigation menu",
+      "description": "Focus on the area you need by scanning grouped capabilities.",
+      "groups": {
+        "intelligence": {
+          "label": "Market intelligence",
+          "description": "Monitor profitability, risk, and top-level telemetry.",
+          "items": [
+            "overview",
+            "monitoring",
+            "pnl",
+            "positions"
+          ]
+        },
+        "execution": {
+          "label": "Execution oversight",
+          "description": "Track live orders and signal intent.",
+          "items": [
+            "orders",
+            "signals"
+          ]
+        },
+        "community": {
+          "label": "Community insights",
+          "description": "Stay aligned with shared learnings and releases.",
+          "items": [
+            "community"
+          ]
+        }
+      }
+    },
+    "toolbar": {
+      "title": "Workspace actions",
+      "description": "Operate this view without leaving the dashboard context.",
+      "actions": {
+        "refresh": {
+          "label": "Refresh data",
+          "hint": "Reload the latest telemetry for this route.",
+          "feedback": {
+            "success": "Refreshing…",
+            "complete": "Updated",
+            "error": "Refresh failed"
+          }
+        },
+        "export": {
+          "label": "Export report",
+          "hint": "Download a JSON snapshot for reviews.",
+          "feedback": {
+            "success": "Preparing…",
+            "complete": "Exported",
+            "error": "Export failed"
+          }
+        },
+        "share": {
+          "label": "Share link",
+          "hint": "Copy or share a deep link to this state.",
+          "feedback": {
+            "success": "Copying…",
+            "complete": "Link ready",
+            "error": "Share failed"
+          }
+        }
+      }
+    },
+    "breadcrumbs": {
+      "root": "Dashboard",
+      "ariaLabel": "Breadcrumb"
+    },
+    "locales": {
+      "title": "言語",
+      "helper": "ダッシュボードの言語を切り替えます。設定はブラウザーに保存されます。",
+      "items": {
+        "en-US": "英語 (米国)",
+        "uk-UA": "ウクライナ語",
+        "de-DE": "ドイツ語",
+        "ja-JP": "日本語",
+        "es-ES": "スペイン語 (スペイン)",
+        "fr-FR": "フランス語",
+        "pt-BR": "ポルトガル語 (ブラジル)",
+        "zh-CN": "簡体字中国語",
+        "it-IT": "イタリア語",
+        "hi-IN": "ヒンディー語",
+        "pl-PL": "ポーランド語",
+        "ar-SA": "アラビア語"
+      }
+    }
+  },
+  "onboarding": {
+    "title": "ダッシュボードを知る",
+    "progress": "ステップ {current} / {total}",
+    "cta": {
+      "skip": "ツアーをスキップ",
+      "next": "次へ",
+      "finish": "完了",
+      "previous": "戻る"
+    },
+    "steps": {
+      "navigation": {
+        "title": "ワークスペースをナビゲート",
+        "description": "主要なナビゲーションを使用して、概要、PnL、注文、シグナル、コミュニティインテリジェンスの間を移動します。"
+      },
+      "workspace": {
+        "title": "各ビューを理解する",
+        "description": "各セクションは、テレメトリのそのスライスの主要な目的とタグを強調する要約ヘッダーで開きます。"
+      },
+      "insights": {
+        "title": "ライブインサイトに飛び込む",
+        "description": "選択したルートに合わせたメトリック、チャート、データテーブルを探索するために、コンテキストパネルをスクロールします。"
+      }
+    }
+  },
+  "header": {
+    "title": "TradePulseモニタリングハブ",
+    "subtitle": "執行・リスク・テレメトリを一元管理。",
+    "tags": [
+      "マルチアセット",
+      "リアルタイム"
+    ]
+  },
+  "views": {
+    "orders": {
+      "title": "注文",
+      "heading": "注文ボード",
+      "subtitle": "約定進捗と実行テレメトリを備えたライブ注文フロー。",
+      "table": {
+        "columns": {
+          "order_id": "注文ID",
+          "symbol": "銘柄",
+          "side": "売買",
+          "order_type": "タイプ",
+          "quantity": "数量",
+          "filledQuantity": "約定数量",
+          "remaining": "残数量",
+          "progress": "進捗",
+          "limitPrice": "指値",
+          "avgFillPrice": "平均約定",
+          "status": "ステータス",
+          "lastFill": "最新約定"
+        },
+        "badges": {
+          "side": {
+            "buy": "買い",
+            "sell": "売り"
+          },
+          "status": {
+            "FILLED": "完了",
+            "WORKING": "受付中"
+          }
+        },
+        "empty": "—"
+      }
+    },
+    "pnl": {
+      "title": "PnLと気配値",
+      "heading": "PnL・気配値インサイト",
+      "subtitle": "最新の損益をストリーミング市場データと照合。",
+      "cards": {
+        "pnl": {
+          "title": "純PnL",
+          "delta": "Δ {value} ({percent})",
+          "runRate": "ランレート {value}/時"
+        },
+        "quotes": {
+          "title": "気配値",
+          "delta": "Δ {value} ({percent})"
+        }
+      }
+    },
+    "positions": {
+      "title": "ポジション",
+      "heading": "保有ポジション",
+      "subtitle": "最新約定にもとづくエクスポージャー集計。",
+      "table": {
+        "columns": {
+          "symbol": "銘柄",
+          "netQuantity": "純数量",
+          "avgPrice": "平均約定",
+          "marketPrice": "市場価格",
+          "exposure": "エクスポージャー",
+          "pnl": "含み損益",
+          "lastFill": "最新約定"
+        },
+        "badges": {
+          "pnl": {
+            "positive": "利益 {percent}",
+            "negative": "損失 {percent}"
+          }
+        }
+      }
+    },
+    "signals": {
+      "title": "シグナル",
+      "heading": "シグナルインテリジェンス",
+      "subtitle": "戦略シグナルの有効性と期限をリアルタイムで把握。",
+      "cards": {
+        "active": {
+          "title": "稼働中のシグナル",
+          "total": "{count} 件稼働中",
+          "updated": "最終更新 {time}",
+          "none": "シグナルはまだありません"
+        },
+        "bias": {
+          "title": "方向バランス",
+          "ratio": "買い {buy} / 売り {sell} / 中立 {flat}",
+          "netLong": "ロング優勢 {value}",
+          "netShort": "ショート優勢 {value}"
+        },
+        "conviction": {
+          "title": "コンフィデンス",
+          "average": "平均 {value}",
+          "peak": "最大 {value}"
+        }
+      },
+      "table": {
+        "columns": {
+          "timestamp": "タイムスタンプ",
+          "symbol": "銘柄",
+          "direction": "方向",
+          "strength": "強度",
+          "signal_type": "タイプ",
+          "ttl": "有効期限",
+          "status": "ステータス",
+          "metadata": "コンテキスト"
+        },
+        "badges": {
+          "direction": {
+            "buy": "買い",
+            "sell": "売り",
+            "flat": "中立"
+          },
+          "status": {
+            "active": "稼働中",
+            "expired": "期限切れ"
+          }
+        },
+        "empty": "表示できるシグナルがありません。"
+      }
+    },
+    "overview": {
+      "title": "概要",
+      "heading": "プロダクトパルス",
+      "subtitle": "Go-to-Marketとエンジニアリングの整合を支えるGitHubインサイト。",
+      "hero": {
+        "eyebrow": "GitHubインテリジェンス",
+        "title": "実行レベルの透明性",
+        "subtitle": "GitHubから直接、採用状況とリリース・カデンスをトラッキング。",
+        "cta": "GitHubリポジトリを開く"
+      },
+      "badges": {
+        "title": "コミュニティの牽引力",
+        "subtitle": "マネジメントレビュー向けに抽出した主要シグナル。",
+        "stars": {
+          "label": "スター",
+          "hint": "30日モメンタム {delta}"
+        },
+        "forks": {
+          "label": "フォーク",
+          "hint": "アクティブフォーク {count}件"
+        },
+        "watchers": {
+          "label": "ウォッチャー",
+          "hint": "成長率 {percent}"
+        },
+        "contributors": {
+          "label": "コントリビューター",
+          "hint": "30日で{new}名追加"
+        }
+      },
+      "panels": {
+        "release": {
+          "title": "リリース頻度",
+          "subtitle": "最新タグとマージ速度を可視化。",
+          "published": "公開",
+          "metrics": {
+            "commits": "コミット (30日)",
+            "merged": "マージ済みPR (30日)",
+            "open": "未処理PR"
+          }
+        },
+        "languages": {
+          "title": "言語構成",
+          "subtitle": "リポジトリ全体の配分。"
+        },
+        "workflows": {
+          "title": "CIヘルス",
+          "subtitle": "最新のGitHub Actionsバッジ。"
+        },
+        "community": {
+          "title": "オープンソースコミュニティ",
+          "subtitle": "貢献プログラムとエンゲージメント指標をリアルタイムで確認。",
+          "metrics": {
+            "goodFirstIssues": {
+              "label": "初心者向けIssue",
+              "hint": "オンボーディング用のIssue {count}件"
+            },
+            "mentorship": {
+              "label": "メンタープログラム枠",
+              "hint": "メンタリング枠 {count}席"
+            },
+            "response": {
+              "label": "中央値の応答時間",
+              "hint": "メンテナー応答中央値 {hours}時間"
+            },
+            "sponsors": {
+              "label": "スポンサー",
+              "hint": "{count}件のアクティブ支援者"
+            }
+          },
+          "programs": {
+            "title": "実施中のプログラム",
+            "fallback": "プログラム"
+          },
+          "resources": {
+            "title": "貢献者リソース",
+            "fallback": "リソース"
+          }
+        }
+      }
+    },
+    "community": {
+      "engagement": {
+        "title": "エンゲージメントタイムライン",
+        "subtitle": "貢献状況とリリース活動を月次で追跡します。",
+        "fallbackPeriod": "最新期間",
+        "labels": {
+          "contributions": "貢献数",
+          "newcomers": "新規コントリビューター",
+          "releases": "主要リリース",
+          "highlights": "ハイライト"
+        }
+      },
+      "hubs": {
+        "title": "地域ハブ",
+        "subtitle": "フォロー・ザ・サン体制とメンタリングを提供する地域コミュニティ。",
+        "fallbackTitle": "ハブ",
+        "cta": "ハブガイドを見る",
+        "leads": "{count} 名の地域リード"
+      },
+      "opportunities": {
+        "title": "コントリビューション機会",
+        "subtitle": "新たな参加者を募集中の高優先度イニシアチブ。",
+        "fallbackTitle": "機会",
+        "cta": "参加を申請"
+      },
+      "resources": {
+        "title": "貢献者リソース",
+        "subtitle": "標準とベストプラクティスを常に把握。",
+        "cta": "開く",
+        "fallbackTitle": "リソース",
+        "filters": {
+          "all": "すべて",
+          "label": "リソースを絞り込む",
+          "helper": "分野を選択してリソース一覧を絞り込みます。"
+        }
+      },
+      "title": "コミュニティ",
+      "heading": "コミュニティインパクトセンター",
+      "subtitle": "連携されたプログラムとライブメトリクスでオープンソースの勢いを高める。",
+      "hero": {
+        "eyebrow": "コミュニティエンゲージメント",
+        "title": "世界中のコントリビューターと勢いを築く",
+        "subtitle": "TradePulseエコシステムでメンタリング・スポンサーシップ・知識共有を調整。",
+        "cta": "貢献ガイドを開く",
+        "secondaryCta": "コミュニティチャットに参加",
+        "fallbackChannel": "コミュニティチャンネル"
+      },
+      "metrics": {
+        "title": "コミュニティ健全性メトリクス",
+        "subtitle": "コントリビューターエコシステム全体を継続的に測定。",
+        "maintainers": {
+          "label": "コアメンテナー",
+          "hint": "{count}名のメンテナーがリリースを統括"
+        },
+        "sponsors": {
+          "label": "スポンサー",
+          "hint": "{count}社が毎月{monthly}を支援"
+        },
+        "downloads": {
+          "label": "月次ダウンロード",
+          "hint": "月間{count}件のインストール"
+        },
+        "response": {
+          "label": "中央値の応答時間",
+          "hint": "メンテナー応答中央値 {hours}時間"
+        },
+        "goodFirstIssues": {
+          "label": "初心者向けIssue",
+          "hint": "スタータータスク {count}件"
+        },
+        "mentorship": {
+          "label": "メンター枠",
+          "hint": "オンボーディング席 {count}枠"
+        }
+      },
+      "programs": {
+        "title": "貢献者プログラム",
+        "subtitle": "新規・既存のコントリビューターを活性化するイニシアチブ。",
+        "cta": "詳細を見る",
+        "fallbackTitle": "プログラム"
+      },
+      "events": {
+        "title": "コミュニティイベント",
+        "subtitle": "今後のコール、タウンホール、地域イベント。",
+        "cta": "登録する",
+        "fallbackTitle": "イベント"
+      },
+      "champions": {
+        "title": "コミュニティチャンピオン",
+        "subtitle": "プロジェクトを推進する主要コントリビューターを称える。",
+        "cta": "プロフィールを見る",
+        "contributions": "{count}件のマージ済み貢献",
+        "fallbackTitle": "チャンピオン"
+      }
+    },
+    "monitoring": {
+      "title": "リスクモニタリング",
+      "heading": "リスクコントロールセンター",
+      "subtitle": "キルスイッチ、回路遮断、リミット負荷をひとつのビューで追跡します。",
+      "labels": {
+        "environment": "環境",
+        "killSwitch": "キルスイッチ",
+        "circuitBreaker": "回路遮断"
+      },
+      "cards": {
+        "exposure": {
+          "title": "総エクスポージャー",
+          "limit": "リミット {value}",
+          "trend": "Δ {value}"
+        },
+        "drawdown": {
+          "title": "日次ドローダウン",
+          "limit": "ガードレール {value}",
+          "trend": "Δ {value}"
+        },
+        "orders": {
+          "title": "オーダーフロー状況",
+          "open": "{count} 件のオープン注文",
+          "rejections": "{rate} 拒否率",
+          "trips": "{count} 回の作動 ({window})"
+        }
+      },
+      "sections": {
+        "controls": {
+          "title": "セーフティコントロール",
+          "killSwitch": {
+            "title": "キルスイッチ",
+            "status": {
+              "enabled": "有効",
+              "disabled": "無効"
+            },
+            "changed": "更新 {time}",
+            "actor": "{actor} が実行",
+            "reason": "理由: {reason}"
+          },
+          "circuitBreaker": {
+            "title": "回路遮断",
+            "status": {
+              "open": "オープン",
+              "half_open": "ハーフオープン",
+              "closed": "クローズ"
+            },
+            "trigger": "最新の作動 {time}",
+            "cooldown": "クールダウン {value}",
+            "reason": "理由: {reason}"
+          }
+        },
+        "trends": {
+          "title": "トレンドテレメトリ",
+          "exposure": {
+            "title": "エクスポージャータイムライン",
+            "empty": "エクスポージャーデータなし"
+          },
+          "drawdown": {
+            "title": "ドローダウンタイムライン",
+            "empty": "ドローダウンデータなし"
+          }
+        },
+        "alerts": {
+          "title": "アラートとオーバーライド",
+          "empty": "アクティブなアラートはありません",
+          "columns": {
+            "timestamp": "タイムスタンプ",
+            "severity": "重大度",
+            "message": "メッセージ"
+          }
+        }
+      },
+      "badges": {
+        "severity": {
+          "info": "情報",
+          "warning": "警告",
+          "critical": "重大"
+        }
+      }
+    }
+  },
+  "common": {
+    "time": {
+      "last_fill": "最新約定"
+    }
+  }
+}

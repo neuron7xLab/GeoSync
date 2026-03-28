@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: LicenseRef-TradePulse-Proprietary
+# Development Hydra profile.
+
+defaults:
+  - base
+
+name: dev
+db_uri: "sqlite:///dev.db"
+debug: true
+log_level: DEBUG
+random_seed: 42

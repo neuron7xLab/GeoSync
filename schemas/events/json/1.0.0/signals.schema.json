@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SignalEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Globally unique identifier for idempotency."
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Semantic version of the schema (major.minor.patch)."
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Trading symbol."
+    },
+    "timestamp": {
+      "type": "integer",
+      "format": "unix-time",
+      "description": "Signal emission timestamp."
+    },
+    "signal_type": {
+      "type": "string",
+      "description": "Type of signal (momentum, mean_reversion, etc)."
+    },
+    "strength": {
+      "type": "number",
+      "description": "Normalized confidence [-1,1]."
+    },
+    "direction": {
+      "$ref": "#/$defs/SignalDirection",
+      "description": "Directional intent."
+    },
+    "ttl_seconds": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Time-to-live for the signal."
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Arbitrary key/value metadata.",
+      "default": {}
+    }
+  },
+  "description": "Generated trading signal with metadata and routing hints.",
+  "$id": "tradepulse.events.signals.v1_0_0.SignalEvent",
+  "required": [
+    "event_id",
+    "schema_version",
+    "symbol",
+    "timestamp",
+    "signal_type",
+    "strength",
+    "direction"
+  ],
+  "$defs": {
+    "SignalDirection": {
+      "type": "string",
+      "enum": [
+        "BUY",
+        "SELL",
+        "FLAT"
+      ],
+      "title": "SignalDirection"
+    }
+  }
+}

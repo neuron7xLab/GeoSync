@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BarEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Globally unique identifier for idempotency."
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Semantic version of the schema (major.minor.patch)."
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Trading symbol."
+    },
+    "timestamp": {
+      "type": "integer",
+      "format": "unix-time",
+      "description": "Bar close timestamp."
+    },
+    "interval": {
+      "type": "string",
+      "description": "Bar interval identifier (e.g. 1m, 5m)."
+    },
+    "open": {
+      "type": "number",
+      "description": "Open price."
+    },
+    "high": {
+      "type": "number",
+      "description": "High price."
+    },
+    "low": {
+      "type": "number",
+      "description": "Low price."
+    },
+    "close": {
+      "type": "number",
+      "description": "Close price."
+    },
+    "volume": {
+      "type": "number",
+      "description": "Traded volume for the interval."
+    },
+    "vwap": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Volume weighted average price."
+    },
+    "trade_count": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Number of trades in the bar."
+    }
+  },
+  "description": "Aggregated OHLCV bar for a symbol and interval.",
+  "$id": "tradepulse.events.marketdata.v1_0_0.BarEvent",
+  "required": [
+    "event_id",
+    "schema_version",
+    "symbol",
+    "timestamp",
+    "interval",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+  ]
+}

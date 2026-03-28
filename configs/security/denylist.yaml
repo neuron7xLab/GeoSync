@@ -1,0 +1,15 @@
+# Known malicious or compromised packages that must never enter the dependency tree.
+# Each entry can optionally specify a version specifier, references, and CVE identifiers.
+compromised:
+  - name: "ctx"
+    reason: "Malicious typosquat of 'requests' that exfiltrates AWS keys and environment secrets."
+    references:
+      - "https://blog.phylum.io/malicious-pypi-package-ctx"
+  - name: "jeIlyfish"
+    reason: "Unicode homograph variant of 'jellyfish' delivering remote shell payloads."
+    references:
+      - "https://jfrog.com/blog/python-supply-chain-attack-using-unicode-homograph"
+  - name: "python3-dateutil"
+    reason: "Typosquat of 'python-dateutil' observed dropping clipboard hijacking malware."
+    references:
+      - "https://research.checkpoint.com/2023/python-package-typosquatting-campaign"

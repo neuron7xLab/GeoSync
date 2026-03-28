@@ -1,0 +1,17 @@
+# Allowlist defining dependency-specific compliance exceptions.
+#
+# Each entry may relax certain verification constraints:
+#   - ``allow_unpinned`` permits using non-pinned versions for the package.
+#   - ``allow_multiple_versions`` suppresses duplicate-version errors when
+#     multiple constrained releases must coexist.
+#   - ``specifier`` restricts the exception to a version range.
+#   - ``reason`` documents the business justification for audit trails.
+packages:
+  - name: "pip"
+    allow_unpinned: false
+    allow_multiple_versions: true
+    reason: "Permitted to appear twice (runtime and build tooling)."
+  - name: "setuptools"
+    allow_unpinned: false
+    allow_multiple_versions: true
+    reason: "Legacy air-gapped targets require both legacy and modern releases."

@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Globally unique identifier for idempotency."
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Semantic version of the schema (major.minor.patch)."
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Trading symbol."
+    },
+    "timestamp": {
+      "type": "integer",
+      "format": "unix-time",
+      "description": "Order creation timestamp."
+    },
+    "order_id": {
+      "type": "string",
+      "description": "Order identifier tracked across the lifecycle."
+    },
+    "side": {
+      "$ref": "#/$defs/OrderSide",
+      "description": "Side of the order."
+    },
+    "order_type": {
+      "$ref": "#/$defs/OrderType",
+      "description": "Order type."
+    },
+    "quantity": {
+      "type": "number",
+      "description": "Quantity to trade."
+    },
+    "price": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Limit/stop price when applicable."
+    },
+    "time_in_force": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TimeInForce"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Time-in-force instruction."
+    },
+    "routing": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Routing destination or venue."
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Auxiliary metadata for auditability.",
+      "default": {}
+    }
+  },
+  "description": "Order instruction emitted by the execution service.",
+  "$id": "tradepulse.events.execution.v1_0_0.OrderEvent",
+  "required": [
+    "event_id",
+    "schema_version",
+    "symbol",
+    "timestamp",
+    "order_id",
+    "side",
+    "order_type",
+    "quantity"
+  ],
+  "$defs": {
+    "TimeInForce": {
+      "type": "string",
+      "enum": [
+        "GTC",
+        "DAY",
+        "IOC",
+        "FOK"
+      ],
+      "title": "TimeInForce"
+    },
+    "OrderSide": {
+      "type": "string",
+      "enum": [
+        "BUY",
+        "SELL"
+      ],
+      "title": "OrderSide"
+    },
+    "OrderType": {
+      "type": "string",
+      "enum": [
+        "MARKET",
+        "LIMIT",
+        "STOP",
+        "STOP_LIMIT"
+      ],
+      "title": "OrderType"
+    }
+  }
+}

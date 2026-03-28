@@ -1,0 +1,17 @@
+STDOUT+STDERR:
+[report] ▶ load config
+[report] ✓ load config (0.00s)
+[report] ▶ generate markdown
+[report] ✓ generate markdown (0.00s)
+[report] ▶ persist markdown
+[report] • wrote <TMP>/report.md (sha256=<SHA>)
+[report] ✓ persist markdown (0.00s)
+[report] ▶ render html
+[report] • html sha256=<SHA>
+[report] ✓ render html (0.00s)
+[report] ▶ render pdf
+[report] • pdf sha256=<SHA>
+[report] ✓ render pdf (0.00s)
+[report] ▶ snapshot version
+[report] ✓ snapshot version (0.00s)
+[report] completed sections=2 sha256=<SHA>

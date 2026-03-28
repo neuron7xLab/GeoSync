@@ -1,0 +1,19 @@
+%% TradePulse end-to-end data flow
+flowchart TB
+    Raw[Raw Streams & Batch Drops]
+    Quality[Quality Gates & Validation]
+    Curated[Curated Feature Tables]
+    Registry[Feature & Model Registry]
+    Offline[Offline Analytics & Backtests]
+    Serving[Online Serving Layer]
+    Monitor[Observability & Compliance]
+
+    Raw --> Quality
+    Quality --> Curated
+    Curated --> Registry
+    Registry --> Offline
+    Registry --> Serving
+    Offline -->|Promote models| Registry
+    Serving --> Monitor
+    Monitor -->|Alerts & metrics| Quality
+    Monitor -->|Lineage| Registry

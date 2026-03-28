@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: tradepulse-staging
+
+resources:
+  - ../../namespaces/staging
+  - ../../addons/backups
+  - ../../addons/logging
+  - ../../base
+
+images:
+  - name: ghcr.io/neuron7x/tradepulse
+    newTag: staging
+
+patches:
+  - path: patches/deployment-resources.yaml
+  - path: patches/hpa-limits.yaml

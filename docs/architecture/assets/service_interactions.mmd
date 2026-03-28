@@ -1,0 +1,23 @@
+%% TradePulse service interaction diagram
+sequenceDiagram
+    autonumber
+    participant Src as Market Data Source
+    participant Conn as Connector Worker
+    participant Stream as Streaming ETL
+    participant Feat as Feature Store
+    participant Strat as Strategy Engine
+    participant Risk as Risk Engine
+    participant Exec as Execution Gateway
+    participant UI as Trader UI
+
+    Src->>Conn: Publish market tick
+    Conn->>Stream: Normalize payload
+    Stream->>Feat: Validate & upsert features
+    Strat->>Feat: Pull latest feature vector
+    Strat->>Risk: Request pre-trade checks
+    Risk-->>Strat: Risk limits & approvals
+    Strat->>Exec: Submit order intent
+    Exec-->>Strat: Order acknowledgement
+    Exec-->>UI: Update execution status
+    UI-->>Strat: Manual overrides / cancel
+    Strat->>Feat: Persist override context

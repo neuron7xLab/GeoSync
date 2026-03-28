@@ -1,0 +1,36 @@
+# License compatibility policy aligning with TradePulse's legal guardrails.
+# SPDX identifiers are preferred. Aliases map legacy classifier strings to
+# SPDX forms for consistent evaluation.
+allowed:
+  - Apache-2.0
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - ISC
+  - MIT
+  - MPL-2.0
+  - Python-2.0
+restricted:
+  - GPL-2.0-only
+  - GPL-2.0-or-later
+  - GPL-3.0-only
+  - GPL-3.0-or-later
+  - LGPL-2.1-only
+  - LGPL-2.1-or-later
+  - LGPL-3.0-only
+  - LGPL-3.0-or-later
+forbidden:
+  - AGPL-3.0
+  - SSPL-1.0
+aliases:
+  "Apache Software License": "Apache-2.0"
+  "BSD License": "BSD-3-Clause"
+  "GNU General Public License v3 (GPLv3)": "GPL-3.0-or-later"
+  "GNU Lesser General Public License v3 (LGPLv3)": "LGPL-3.0-or-later"
+  "GNU Lesser General Public License v2 (LGPLv2)": "LGPL-2.1-or-later"
+  "MIT License": "MIT"
+  "Mozilla Public License 2.0 (MPL 2.0)": "MPL-2.0"
+exceptions:
+  - package: "pyqt5"
+    license: "GPL-3.0-or-later"
+    reason: "Approved for internal research UI tooling while commercial licensing is finalised."
+    expires: "2025-12-31"

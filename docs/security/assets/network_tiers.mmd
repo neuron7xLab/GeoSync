@@ -1,0 +1,27 @@
+%% TradePulse production network segmentation
+flowchart LR
+    subgraph Edge[Edge Tier]
+        edge_lb[Global Load Balancer]
+        waf[Cloud WAF]
+    end
+
+    subgraph DMZ[DMZ Services]
+        ingress_gateway[Kubernetes Ingress Gateway]
+        ratelimit[Envoy Rate Limit Service]
+        auth_proxy[OAuth2 / OIDC Proxy]
+    end
+
+    subgraph Core[Core Services]
+        api[FastAPI Application Pods]
+        mesh[Service Mesh Sidecars]
+        data_plane[Kafka, Postgres, Redis]
+    end
+
+    Internet[Internet & Partner Clients] --> edge_lb
+    edge_lb --> waf
+    waf -->|mTLS terminated| ingress_gateway
+    ingress_gateway --> ratelimit
+    ratelimit --> auth_proxy
+    auth_proxy -->|JWT, mTLS enforced| api
+    api --> mesh
+    mesh --> data_plane

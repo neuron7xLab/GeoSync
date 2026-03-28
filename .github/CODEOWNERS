@@ -1,0 +1,15 @@
+# CODEOWNERS
+
+# This is a CODEOWNERS file that requires at least one code owner to approve changes.
+
+# Default ownership ensures at least one reviewer is requested for every change.
+* @neuron7x
+
+# Critical subsystems with explicit owners for faster routing.
+/core/ @neuron7x
+/execution/ @neuron7x
+/analytics/ @neuron7x
+/apps/ @neuron7x
+/ui/ @neuron7x
+/tests/ @neuron7x
+/docs/ @neuron7x

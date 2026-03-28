@@ -1,0 +1,16 @@
+name: sample_ingest_job
+description: Example ingest configuration
+tags:
+  - ingest
+metadata:
+  owner: data-team
+source:
+  kind: csv
+  path: data/sample.csv
+  timestamp_field: timestamp
+  value_field: price
+destination: data/processed/ingested.csv
+catalog:
+  path: data/feature_catalog.json
+versioning:
+  backend: none

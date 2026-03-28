@@ -1,0 +1,21 @@
+name: sample_feature_parity
+description: Example feature parity configuration
+tags:
+  - parity
+metadata:
+  owner: mlops-team
+offline:
+  path: data/features/offline_snapshot.csv
+  format: auto
+online_store: data/online_features
+mode: overwrite
+spec:
+  feature_view: market_features
+  entity_columns:
+    - entity_id
+  timestamp_column: ts
+  timestamp_granularity: 1min
+  numeric_tolerance: 0.0
+  max_clock_skew: 0s
+  allow_schema_evolution: false
+  value_columns: null

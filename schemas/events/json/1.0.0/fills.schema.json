@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FillEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Globally unique identifier for idempotency."
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Semantic version of the schema (major.minor.patch)."
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Trading symbol."
+    },
+    "timestamp": {
+      "type": "integer",
+      "format": "unix-time",
+      "description": "Fill timestamp."
+    },
+    "order_id": {
+      "type": "string",
+      "description": "Parent order identifier."
+    },
+    "fill_id": {
+      "type": "string",
+      "description": "Unique fill identifier."
+    },
+    "status": {
+      "$ref": "#/$defs/FillStatus",
+      "description": "Fill status."
+    },
+    "filled_qty": {
+      "type": "number",
+      "description": "Executed quantity."
+    },
+    "fill_price": {
+      "type": "number",
+      "description": "Execution price."
+    },
+    "fees": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Total fees for the fill."
+    },
+    "liquidity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FillLiquidity"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Liquidity flag."
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Auxiliary metadata.",
+      "default": {}
+    }
+  },
+  "description": "Execution fill acknowledgment for an order.",
+  "$id": "tradepulse.events.execution.v1_0_0.FillEvent",
+  "required": [
+    "event_id",
+    "schema_version",
+    "symbol",
+    "timestamp",
+    "order_id",
+    "fill_id",
+    "status",
+    "filled_qty",
+    "fill_price"
+  ],
+  "$defs": {
+    "FillLiquidity": {
+      "type": "string",
+      "enum": [
+        "MAKER",
+        "TAKER"
+      ],
+      "title": "FillLiquidity"
+    },
+    "FillStatus": {
+      "type": "string",
+      "enum": [
+        "PARTIAL",
+        "FILLED",
+        "CANCELLED"
+      ],
+      "title": "FillStatus"
+    }
+  }
+}

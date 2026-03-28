@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TickEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Globally unique identifier for idempotency."
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Semantic version of the schema (major.minor.patch)."
+    },
+    "symbol": {
+      "type": "string",
+      "description": "Trading symbol (e.g. EURUSD, AAPL)."
+    },
+    "timestamp": {
+      "type": "integer",
+      "format": "unix-time",
+      "description": "Event timestamp in microseconds since epoch."
+    },
+    "bid_price": {
+      "type": "number",
+      "description": "Best bid price."
+    },
+    "ask_price": {
+      "type": "number",
+      "description": "Best ask price."
+    },
+    "last_price": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Last traded price if available."
+    },
+    "volume": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Trade volume associated with the tick."
+    },
+    "microstructure": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TickMicrostructure"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional microstructure metadata."
+    }
+  },
+  "description": "Real-time market tick update for a single symbol.",
+  "$id": "tradepulse.events.marketdata.v1_0_0.TickEvent",
+  "required": [
+    "event_id",
+    "schema_version",
+    "symbol",
+    "timestamp",
+    "bid_price",
+    "ask_price"
+  ],
+  "$defs": {
+    "TickMicrostructure": {
+      "type": "object",
+      "properties": {
+        "bid_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Aggregated best bid size."
+        },
+        "ask_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Aggregated best ask size."
+        },
+        "trade_condition": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Venue-provided trade condition or quote qualifier."
+        }
+      },
+      "description": "Order book context captured alongside the tick.",
+      "title": "TickMicrostructure"
+    }
+  }
+}

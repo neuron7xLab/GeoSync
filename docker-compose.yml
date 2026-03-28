@@ -1,0 +1,115 @@
+# SPDX-License-Identifier: LicenseRef-TradePulse-Proprietary
+version: '3.9'
+services:
+  tradepulse:
+    build: .
+    env_file:
+      - .env
+    environment:
+      TRADEPULSE_AUDIT_SECRET: ${TRADEPULSE_AUDIT_SECRET?tradepulse audit secret must be set}
+      TRADEPULSE_RBAC_AUDIT_SECRET: ${TRADEPULSE_RBAC_AUDIT_SECRET?tradepulse RBAC audit secret must be set}
+      TRADEPULSE_API_SERVER_ALLOW_PLAINTEXT: "true"
+    ports:
+      - "${TRADEPULSE_HTTP_PORT:-8000}:8000"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5.0)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      - "co.elastic.logs/enabled=true"
+      - "co.elastic.logs/module=tradepulse"
+    depends_on:
+      - prometheus
+      - logstash
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "${TRADEPULSE_PROMETHEUS_PORT:-9090}:9090"
+  cortex:
+    build:
+      context: .
+      dockerfile: cortex_service/Dockerfile
+    environment:
+      CORTEX__DATABASE__URL: postgresql+psycopg://cortex@cortex-db:5432/cortex?sslmode=disable
+      CORTEX__SERVICE__LOG_LEVEL: INFO
+    volumes:
+      - ./cortex_service/config/service.yaml:/service/cortex_service/config/service.yaml:ro
+      - ./configs/tls/dev:/service/tls:ro
+    ports:
+      - "${TRADEPULSE_CORTEX_PORT:-8001}:8001"
+    depends_on:
+      cortex-db:
+        condition: service_healthy
+  cortex-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cortex
+      POSTGRES_USER: cortex
+      POSTGRES_PASSWORD: cortex
+    ports:
+      - "${TRADEPULSE_CORTEX_DB_PORT:-5433}:5432"
+    command: >
+      postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cortex -d cortex"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - cortex-db-data:/var/lib/postgresql/data
+      - ./configs/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./configs/tls/dev:/etc/postgresql/tls:ro
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "${TRADEPULSE_ELASTICSEARCH_PORT:-9200}:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.3
+    environment:
+      - xpack.monitoring.enabled=false
+    volumes:
+      - ./observability/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "${TRADEPULSE_LOGSTASH_PORT:-5044}:5044"
+    depends_on:
+      - elasticsearch
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.3
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "${TRADEPULSE_KIBANA_PORT:-5601}:5601"
+    depends_on:
+      - elasticsearch
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.3
+    user: root
+    command: ["filebeat", "-e", "-strict.perms=false", "-c", "/usr/share/filebeat/filebeat.yml"]
+    volumes:
+      - ./observability/logging/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - logstash
+
+volumes:
+  elasticsearch-data:
+  cortex-db-data:

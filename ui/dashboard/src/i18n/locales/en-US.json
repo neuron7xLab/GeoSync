@@ -1,0 +1,538 @@
+{
+  "$schema": "../../../../schemas/localization/translation.schema.json",
+  "locale": "en-US",
+  "meta": {
+    "reviewerNotes": {
+      "header.subtitle": "Tone-critical: Maintain confident yet calm positioning statement.",
+      "views.orders.subtitle": "Tone-critical: Reinforce live execution transparency without hype.",
+      "views.pnl.subtitle": "Tone-critical: Highlight analytical insight with controlled optimism.",
+      "views.positions.subtitle": "Tone-critical: Convey composure regarding exposure oversight."
+    }
+  },
+  "nav": {
+    "brand": "TradePulse",
+    "title": "TradePulse",
+    "badges": {
+      "live": "Live"
+    },
+    "accessibility": {
+      "skipLink": "Skip to main content"
+    },
+    "controls": {
+      "toggle": {
+        "label": "Menu",
+        "open": "Open navigation",
+        "close": "Close navigation"
+      }
+    },
+    "sections": {
+      "overview": "Overview",
+      "positions": "Positions",
+      "orders": "Orders",
+      "pnl": "PnL & Quotes",
+      "signals": "Signals",
+      "community": "Community",
+      "monitoring": "Monitoring"
+    },
+    "menu": {
+      "title": "Navigation menu",
+      "description": "Focus on the area you need by scanning grouped capabilities.",
+      "groups": {
+        "intelligence": {
+          "label": "Market intelligence",
+          "description": "Monitor profitability, risk, and top-level telemetry.",
+          "items": [
+            "overview",
+            "monitoring",
+            "pnl",
+            "positions"
+          ]
+        },
+        "execution": {
+          "label": "Execution oversight",
+          "description": "Track live orders and signal intent.",
+          "items": [
+            "orders",
+            "signals"
+          ]
+        },
+        "community": {
+          "label": "Community insights",
+          "description": "Stay aligned with shared learnings and releases.",
+          "items": [
+            "community"
+          ]
+        }
+      }
+    },
+    "toolbar": {
+      "title": "Workspace actions",
+      "description": "Operate this view without leaving the dashboard context.",
+      "actions": {
+        "refresh": {
+          "label": "Refresh data",
+          "hint": "Reload the latest telemetry for this route.",
+          "feedback": {
+            "success": "Refreshing…",
+            "complete": "Updated",
+            "error": "Refresh failed"
+          }
+        },
+        "export": {
+          "label": "Export report",
+          "hint": "Download a JSON snapshot for reviews.",
+          "feedback": {
+            "success": "Preparing…",
+            "complete": "Exported",
+            "error": "Export failed"
+          }
+        },
+        "share": {
+          "label": "Share link",
+          "hint": "Copy or share a deep link to this state.",
+          "feedback": {
+            "success": "Copying…",
+            "complete": "Link ready",
+            "error": "Share failed"
+          }
+        }
+      }
+    },
+    "breadcrumbs": {
+      "root": "Dashboard",
+      "ariaLabel": "Breadcrumb"
+    },
+    "locales": {
+      "title": "Language",
+      "helper": "Switch the dashboard locale. Stored in your browser preferences.",
+      "items": {
+        "en-US": "English (US)",
+        "uk-UA": "Українська",
+        "de-DE": "Deutsch",
+        "ja-JP": "日本語",
+        "es-ES": "Español (España)",
+        "fr-FR": "Français",
+        "pt-BR": "Português (Brasil)",
+        "zh-CN": "简体中文",
+        "it-IT": "Italiano",
+        "hi-IN": "हिन्दी",
+        "pl-PL": "Polski",
+        "ar-SA": "العربية"
+      }
+    }
+  },
+  "onboarding": {
+    "title": "Get to know the dashboard",
+    "progress": "Step {current} of {total}",
+    "cta": {
+      "skip": "Skip tour",
+      "next": "Next",
+      "finish": "Finish",
+      "previous": "Back"
+    },
+    "steps": {
+      "navigation": {
+        "title": "Navigate your workspace",
+        "description": "Use the primary navigation to move between overview, PnL, orders, signals, and community intelligence."
+      },
+      "workspace": {
+        "title": "Understand each view",
+        "description": "Every section opens with a summary header that calls out the key objective and tags for that slice of telemetry."
+      },
+      "insights": {
+        "title": "Dive into live insights",
+        "description": "Scroll through the contextual panels to explore metrics, charts, and data tables tailored to the selected route."
+      }
+    }
+  },
+  "header": {
+    "title": "TradePulse Monitoring Hub",
+    "subtitle": "Unified control over execution, risk, and telemetry.",
+    "tags": [
+      "multi-asset",
+      "real-time"
+    ]
+  },
+  "views": {
+    "orders": {
+      "title": "Orders",
+      "heading": "Order Blotter",
+      "subtitle": "Live order flow enriched with fill progress and execution telemetry.",
+      "table": {
+        "columns": {
+          "order_id": "Order ID",
+          "symbol": "Symbol",
+          "side": "Side",
+          "order_type": "Type",
+          "quantity": "Quantity",
+          "filledQuantity": "Filled",
+          "remaining": "Remaining",
+          "progress": "Progress",
+          "limitPrice": "Limit Price",
+          "avgFillPrice": "Avg Fill",
+          "status": "Status",
+          "lastFill": "Last Fill"
+        },
+        "badges": {
+          "side": {
+            "buy": "Buy",
+            "sell": "Sell"
+          },
+          "status": {
+            "FILLED": "Filled",
+            "WORKING": "Working"
+          }
+        },
+        "empty": "—"
+      }
+    },
+    "pnl": {
+      "title": "PnL & Quotes",
+      "heading": "PnL & Quotes Intelligence",
+      "subtitle": "Cross-reference live profitability against streaming market data.",
+      "cards": {
+        "pnl": {
+          "title": "Net PnL",
+          "delta": "Δ {value} ({percent})",
+          "runRate": "Run-rate {value}/h"
+        },
+        "quotes": {
+          "title": "Quotes",
+          "delta": "Δ {value} ({percent})"
+        }
+      }
+    },
+    "positions": {
+      "title": "Positions",
+      "heading": "Open Positions",
+      "subtitle": "Aggregated exposures derived from live fill events.",
+      "table": {
+        "columns": {
+          "symbol": "Symbol",
+          "netQuantity": "Net Quantity",
+          "avgPrice": "Avg Fill Price",
+          "marketPrice": "Market Price",
+          "exposure": "Exposure",
+          "pnl": "Unrealised PnL",
+          "lastFill": "Last Fill"
+        },
+        "badges": {
+          "pnl": {
+            "positive": "Gain {percent}",
+            "negative": "Loss {percent}"
+          }
+        }
+      }
+    },
+    "signals": {
+      "title": "Signals",
+      "heading": "Signal Intelligence",
+      "subtitle": "Surface live strategy directives with conviction and expiry context.",
+      "cards": {
+        "active": {
+          "title": "Active Signals",
+          "total": "{count} active",
+          "updated": "Latest {time}",
+          "none": "No signals yet"
+        },
+        "bias": {
+          "title": "Directional Bias",
+          "ratio": "Buy {buy} / Sell {sell} / Flat {flat}",
+          "netLong": "Net long {value}",
+          "netShort": "Net short {value}"
+        },
+        "conviction": {
+          "title": "Conviction",
+          "average": "Avg {value}",
+          "peak": "Peak {value}"
+        }
+      },
+      "table": {
+        "columns": {
+          "timestamp": "Timestamp",
+          "symbol": "Symbol",
+          "direction": "Direction",
+          "strength": "Strength",
+          "signal_type": "Type",
+          "ttl": "TTL",
+          "status": "Status",
+          "metadata": "Context"
+        },
+        "badges": {
+          "direction": {
+            "buy": "Buy",
+            "sell": "Sell",
+            "flat": "Flat"
+          },
+          "status": {
+            "active": "Active",
+            "expired": "Expired"
+          }
+        },
+        "empty": "No signals available."
+      }
+    },
+    "overview": {
+      "title": "Overview",
+      "heading": "Product Pulse",
+      "subtitle": "High-fidelity GitHub insights for go-to-market and engineering alignment.",
+      "hero": {
+        "eyebrow": "GitHub intelligence",
+        "title": "Execution-grade transparency",
+        "subtitle": "Monitor adoption, cadence, and release readiness directly from the source.",
+        "cta": "Open GitHub repository"
+      },
+      "badges": {
+        "title": "Community traction",
+        "subtitle": "Key health signals harvested from GitHub for quick readouts.",
+        "stars": {
+          "label": "Stars",
+          "hint": "30d momentum {delta}"
+        },
+        "forks": {
+          "label": "Forks",
+          "hint": "{count} active forks"
+        },
+        "watchers": {
+          "label": "Watchers",
+          "hint": "Growth {percent}"
+        },
+        "contributors": {
+          "label": "Contributors",
+          "hint": "{new} new contributors (30d)"
+        }
+      },
+      "panels": {
+        "release": {
+          "title": "Release cadence",
+          "subtitle": "Latest tagged milestone and merge velocity.",
+          "published": "Published",
+          "metrics": {
+            "commits": "Commits (30d)",
+            "merged": "Merged PRs (30d)",
+            "open": "Open PRs"
+          }
+        },
+        "languages": {
+          "title": "Language mix",
+          "subtitle": "Distribution across the repository."
+        },
+        "workflows": {
+          "title": "CI health",
+          "subtitle": "Latest GitHub Actions badges."
+        },
+        "community": {
+          "title": "Open-source community",
+          "subtitle": "Live contributor programs and enablement signals.",
+          "metrics": {
+            "goodFirstIssues": {
+              "label": "Good-first issues",
+              "hint": "{count} open tickets curated for onboarding"
+            },
+            "mentorship": {
+              "label": "Mentorship seats",
+              "hint": "{count} guided onboarding placements"
+            },
+            "response": {
+              "label": "Median response",
+              "hint": "{hours}h maintainer response median"
+            },
+            "sponsors": {
+              "label": "Sponsors",
+              "hint": "{count} active financial backers"
+            }
+          },
+          "programs": {
+            "title": "Active programs",
+            "fallback": "Program"
+          },
+          "resources": {
+            "title": "Contributor resources",
+            "fallback": "Resource"
+          }
+        }
+      }
+    },
+    "community": {
+      "title": "Community",
+      "heading": "Community Impact Center",
+      "subtitle": "Grow the open-source movement with curated enablement programs and real-time health metrics.",
+      "hero": {
+        "eyebrow": "Community enablement",
+        "title": "Build momentum with contributors worldwide",
+        "subtitle": "Coordinate mentorship, sponsorship, and knowledge sharing across the TradePulse ecosystem.",
+        "cta": "View contribution playbook",
+        "secondaryCta": "Join community chat",
+        "fallbackChannel": "Community channel"
+      },
+      "metrics": {
+        "title": "Community health metrics",
+        "subtitle": "Measured continuously across our contributor ecosystem.",
+        "maintainers": {
+          "label": "Core maintainers",
+          "hint": "{count} maintainers stewarding releases"
+        },
+        "sponsors": {
+          "label": "Sponsors",
+          "hint": "{count} partners funding {monthly} monthly"
+        },
+        "downloads": {
+          "label": "Monthly downloads",
+          "hint": "{count} installs across channels"
+        },
+        "response": {
+          "label": "Median response time",
+          "hint": "{hours}h median maintainer reply"
+        },
+        "goodFirstIssues": {
+          "label": "Good-first issues",
+          "hint": "{count} tickets curated for newcomers"
+        },
+        "mentorship": {
+          "label": "Mentorship seats",
+          "hint": "{count} guided onboarding seats"
+        }
+      },
+      "programs": {
+        "title": "Contributor programs",
+        "subtitle": "Initiatives designed to activate new and existing contributors.",
+        "cta": "View details",
+        "fallbackTitle": "Program"
+      },
+      "events": {
+        "title": "Community events",
+        "subtitle": "Upcoming syncs, town halls, and regional meetups.",
+        "cta": "Register",
+        "fallbackTitle": "Event"
+      },
+      "resources": {
+        "title": "Contributor resources",
+        "subtitle": "Stay aligned with our standards and best practices.",
+        "cta": "Open",
+        "fallbackTitle": "Resource",
+        "filters": {
+          "all": "All",
+          "label": "Filter resources",
+          "helper": "Select a focus area to refine the contributor resources."
+        }
+      },
+      "champions": {
+        "title": "Community champions",
+        "subtitle": "Recognising top contributors driving impact across the project.",
+        "cta": "View profile",
+        "contributions": "{count} merged contributions",
+        "fallbackTitle": "Champion"
+      },
+      "engagement": {
+        "title": "Engagement timeline",
+        "subtitle": "Track contributor momentum and release activity month over month.",
+        "fallbackPeriod": "Recent period",
+        "labels": {
+          "contributions": "Contributions",
+          "newcomers": "New contributors",
+          "releases": "Major releases",
+          "highlights": "Highlights"
+        }
+      },
+      "hubs": {
+        "title": "Regional hubs",
+        "subtitle": "Local workstreams offering follow-the-sun coverage and mentorship.",
+        "fallbackTitle": "Hub",
+        "cta": "View hub guide",
+        "leads": "{count} regional leads"
+      },
+      "opportunities": {
+        "title": "Contribution opportunities",
+        "subtitle": "High-impact efforts currently seeking new contributors.",
+        "fallbackTitle": "Opportunity",
+        "cta": "Express interest"
+      }
+    },
+    "monitoring": {
+      "title": "Risk Monitoring",
+      "heading": "Risk Control Center",
+      "subtitle": "Track kill switch readiness, circuit breakers, and limit pressure in one view.",
+      "labels": {
+        "environment": "Environment",
+        "killSwitch": "Kill switch",
+        "circuitBreaker": "Circuit"
+      },
+      "cards": {
+        "exposure": {
+          "title": "Gross exposure",
+          "limit": "Limit {value}",
+          "trend": "Δ {value}"
+        },
+        "drawdown": {
+          "title": "Daily drawdown",
+          "limit": "Guardrail {value}",
+          "trend": "Δ {value}"
+        },
+        "orders": {
+          "title": "Order flow health",
+          "open": "{count} open orders",
+          "rejections": "{rate} rejection rate",
+          "trips": "{count} trips ({window})"
+        }
+      },
+      "sections": {
+        "controls": {
+          "title": "Safety controls",
+          "killSwitch": {
+            "title": "Kill switch",
+            "status": {
+              "enabled": "Enabled",
+              "disabled": "Disabled"
+            },
+            "changed": "Updated {time}",
+            "actor": "By {actor}",
+            "reason": "Reason: {reason}"
+          },
+          "circuitBreaker": {
+            "title": "Circuit breaker",
+            "status": {
+              "open": "Open",
+              "half_open": "Half-open",
+              "closed": "Closed"
+            },
+            "trigger": "Last trip {time}",
+            "cooldown": "Cooldown {value}",
+            "reason": "Reason: {reason}"
+          }
+        },
+        "trends": {
+          "title": "Trend telemetry",
+          "exposure": {
+            "title": "Exposure timeline",
+            "empty": "No exposure samples"
+          },
+          "drawdown": {
+            "title": "Drawdown timeline",
+            "empty": "No drawdown samples"
+          }
+        },
+        "alerts": {
+          "title": "Alerts & overrides",
+          "empty": "No active alerts",
+          "columns": {
+            "timestamp": "Timestamp",
+            "severity": "Severity",
+            "message": "Message"
+          }
+        }
+      },
+      "badges": {
+        "severity": {
+          "info": "Info",
+          "warning": "Warning",
+          "critical": "Critical"
+        }
+      }
+    }
+  },
+  "common": {
+    "time": {
+      "last_fill": "Last Fill"
+    }
+  }
+}

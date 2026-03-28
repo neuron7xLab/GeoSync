@@ -1,0 +1,23 @@
+name: sample_backtest_job
+description: Example backtest configuration
+tags:
+  - backtest
+metadata:
+  owner: research
+data:
+  kind: csv
+  path: data/sample.csv
+  timestamp_field: timestamp
+  value_field: price
+strategy:
+  entrypoint: core.strategies.signals:moving_average_signal
+  parameters:
+    window: 3
+execution:
+  starting_cash: 100000
+  fee_bps: 0.0
+results_path: reports/backtest.json
+catalog:
+  path: data/feature_catalog.json
+versioning:
+  backend: none

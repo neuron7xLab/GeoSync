@@ -1,0 +1,8 @@
+-P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest
+--container-architecture linux/amd64
+
+[profile tests]
+-W .github/workflows/tests.yml
+--container-architecture linux/amd64
+--env-file .github/act/tests.env
+--secret-file .github/act/tests.secrets

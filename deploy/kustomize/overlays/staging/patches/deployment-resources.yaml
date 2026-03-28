@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tradepulse-api
+spec:
+  replicas: 3
+  template:
+    metadata:
+      annotations:
+        security.tradepulse.dev/log-level: "info"
+        security.tradepulse.dev/mtls-required: "true"
+      labels:
+        environment: staging
+    spec:
+      nodeSelector:
+        environment: staging
+      containers:
+        - name: tradepulse-api
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          env:
+            - name: TRADEPULSE_ENVIRONMENT
+              value: staging
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: tradepulse-api
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: tradepulse-api
+                topologyKey: topology.kubernetes.io/zone

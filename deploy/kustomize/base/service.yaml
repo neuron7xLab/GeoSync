@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tradepulse-api
+  labels:
+    app.kubernetes.io/name: tradepulse-api
+spec:
+  selector:
+    app.kubernetes.io/name: tradepulse-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: metrics
+      port: 8001
+      targetPort: metrics
+  type: ClusterIP

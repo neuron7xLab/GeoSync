@@ -1,0 +1,34 @@
+%% TradePulse feature store internal architecture
+flowchart LR
+    subgraph Stream[Streaming Materialisation]
+        Source[Streaming Source]
+        Buffer[Micro-batch Buffer]
+        Checkpoint[Checkpoint Log]
+        Dedup[Deterministic Dedup]
+    end
+
+    subgraph Workers[Materializer Workers]
+        Validate[Schema & Quality Checks]
+        Policy[Retention Policy Engine]
+        Upsert[Batch Upsert]
+    end
+
+    subgraph Online[Online Feature Store]
+        Redis[(Redis Cluster)]
+        SQLite[(SQLite Nodes)]
+    end
+
+    subgraph Offline[Offline Store]
+        Lakehouse[(Delta/Iceberg Tables)]
+        Validator[Offline Validator]
+    end
+
+    Source --> Buffer --> Dedup --> Validate
+    Dedup --> Checkpoint
+    Validate --> Policy --> Upsert
+    Upsert --> Redis
+    Upsert --> SQLite
+    Redis --> Validator
+    SQLite --> Validator
+    Lakehouse --> Validator
+    Validator --> Policy
