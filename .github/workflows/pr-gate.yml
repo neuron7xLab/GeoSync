@@ -226,6 +226,13 @@ jobs:
       - name: Verify pip executable
         run: .venv/bin/python -m pip --version
 
+      - name: Ensure dependency-audit tooling
+        run: |
+          set -euo pipefail
+          if ! .venv/bin/python -m pip show pip-audit >/dev/null 2>&1; then
+            .venv/bin/python -m pip install -c constraints/security.txt pip-audit
+          fi
+
       - name: Dependency review gate
         run: |
           set -euo pipefail
@@ -285,6 +292,17 @@ jobs:
 
       - name: Verify pip executable
         run: .venv/bin/python -m pip --version
+
+      - name: Ensure security tooling
+        run: |
+          set -euo pipefail
+          missing=()
+          .venv/bin/python -m pip show bandit >/dev/null 2>&1 || missing+=(bandit)
+          .venv/bin/python -m pip show pip-audit >/dev/null 2>&1 || missing+=(pip-audit)
+          .venv/bin/python -m pip show detect-secrets >/dev/null 2>&1 || missing+=(detect-secrets)
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            .venv/bin/python -m pip install -c constraints/security.txt "${missing[@]}"
+          fi
 
       - name: Collect changed files
         id: changed

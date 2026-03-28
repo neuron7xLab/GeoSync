@@ -30,6 +30,13 @@ jobs:
       - name: Verify pip executable
         run: .venv/bin/python -m pip --version
 
+      - name: Ensure pip-audit tooling
+        run: |
+          set -euo pipefail
+          if ! .venv/bin/python -m pip show pip-audit >/dev/null 2>&1; then
+            .venv/bin/python -m pip install -c constraints/security.txt pip-audit
+          fi
+
       - name: Run pip-audit against locked dependency sets
         run: |
           .venv/bin/pip-audit -r requirements.lock --severity high
