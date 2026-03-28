@@ -27,6 +27,9 @@ jobs:
           python-version: '3.11'
           cache-prefix: security-deep
 
+      - name: Verify pip executable
+        run: .venv/bin/python -m pip --version
+
       - name: Run pip-audit against locked dependency sets
         run: |
           .venv/bin/pip-audit -r requirements.lock --severity high

@@ -27,6 +27,9 @@ jobs:
           python-version: '3.11'
           cache-prefix: main-full-tests
 
+      - name: Verify pip executable
+        run: .venv/bin/python -m pip --version
+
       - name: Run broader post-merge validation suite
         run: |
           .venv/bin/pytest tests/ -m "not nightly and not flaky" \
@@ -55,6 +58,9 @@ jobs:
         with:
           python-version: '3.11'
           cache-prefix: main-package
+
+      - name: Verify pip executable
+        run: .venv/bin/python -m pip --version
 
       - name: Build Python package artifacts
         run: .venv/bin/python -m build --sdist --wheel --outdir dist

@@ -237,11 +237,33 @@ jobs:
             changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
           fi
 
-          if echo "$changed_files" | grep -Eq '^(requirements(\-dev)?\.(txt|lock)|constraints/security\.txt|pyproject\.toml|apps/web/package(-lock)?\.json)$'; then
-            echo "Dependency manifests changed; running HIGH/CRITICAL audits."
+          python_dep_changed=false
+          frontend_dep_changed=false
+
+          if echo "$changed_files" | grep -Eq '^(requirements(\-dev)?\.(txt|lock)|constraints/security\.txt|pyproject\.toml)$'; then
+            python_dep_changed=true
+          fi
+
+          if echo "$changed_files" | grep -Eq '^(apps/web/package(-lock)?\.json|package\.json|package-lock\.json)$'; then
+            frontend_dep_changed=true
+          fi
+
+          if [[ "$python_dep_changed" == "true" ]]; then
+            echo "Python dependency manifests changed; running HIGH/CRITICAL pip-audit."
             .venv/bin/pip-audit -r requirements.lock --severity high
             .venv/bin/pip-audit -r requirements-dev.lock --severity high
-          else
+          fi
+
+          if [[ "$frontend_dep_changed" == "true" ]]; then
+            echo "Frontend dependency manifests changed; running npm audit HIGH gate."
+            test -f apps/web/package-lock.json
+            pushd apps/web >/dev/null
+            npm ci
+            npm audit --audit-level=high --omit=dev
+            popd >/dev/null
+          fi
+
+          if [[ "$python_dep_changed" == "false" && "$frontend_dep_changed" == "false" ]]; then
             echo "No dependency-manifest changes detected; dependency-review passes."
           fi
 
