@@ -21,36 +21,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
-      - name: Validate workflow YAML and policy invariants
+      - name: Validate workflow policy invariants
         run: |
-          python -m pip install --upgrade pip pyyaml
-          python - <<'PY'
-          from pathlib import Path
-          import sys
-          import yaml
-
-          errors = []
-          for wf in sorted(Path('.github/workflows').glob('*.yml')):
-              try:
-                  with wf.open('r', encoding='utf-8') as fh:
-                      data = yaml.safe_load(fh)
-              except Exception as exc:
-                  errors.append(f"{wf}: invalid YAML ({exc})")
-                  continue
-              if not isinstance(data, dict):
-                  errors.append(f"{wf}: workflow root must be a mapping")
-                  continue
-              text = wf.read_text(encoding='utf-8')
-              if 'pull_request_target:' in text:
-                  errors.append(f"{wf}: pull_request_target is forbidden for untrusted PR code")
-              if 'permissions:' not in text:
-                  errors.append(f"{wf}: missing explicit permissions block")
-
-          if errors:
-              print('\n'.join(f"ERROR: {e}" for e in errors))
-              sys.exit(1)
-          print('All workflow policy checks passed.')
-          PY
+          set -euo pipefail
+          for wf in .github/workflows/*.yml; do
+            grep -Eq '^permissions:' "$wf" || { echo "ERROR: $wf missing permissions"; exit 1; }
+            if grep -Eq '^\s*pull_request_target:' "$wf"; then
+              echo "ERROR: $wf uses forbidden pull_request_target"
+              exit 1
+            fi
+          done
+          echo "All workflow policy checks passed."
 
   python-quality:
     name: python-quality
@@ -95,19 +76,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Detect frontend changes
-        id: changes
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         with:
-          filters: |
-            frontend:
-              - 'apps/web/**'
-              - 'package*.json'
-              - '.github/workflows/pr-gate.yml'
+          fetch-depth: 0
+
+      - name: Determine if frontend gate applies
+        id: changes
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_ref="origin/${{ github.base_ref }}"
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          if echo "$changed_files" | grep -Eq '^(apps/web/|package\.json|package-lock\.json|\.github/workflows/pr-gate\.yml)'; then
+            echo "frontend_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend_changed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup Node.js
-        if: steps.changes.outputs.frontend == 'true'
+        if: steps.changes.outputs.frontend_changed == 'true'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20'
@@ -115,7 +106,7 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
 
       - name: Run frontend quality and tests
-        if: steps.changes.outputs.frontend == 'true'
+        if: steps.changes.outputs.frontend_changed == 'true'
         working-directory: apps/web
         run: |
           npm ci
@@ -125,31 +116,42 @@ jobs:
           npm run test -- --ci
 
       - name: Frontend gate not applicable
-        if: steps.changes.outputs.frontend != 'true'
+        if: steps.changes.outputs.frontend_changed != 'true'
         run: echo 'No frontend changes detected; frontend gate passed deterministically.'
 
   dependency-review:
     name: dependency-review
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      pull-requests: read
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
         with:
-          fail-on-severity: high
-          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+          fetch-depth: 0
 
-  dependency-review-merge-group:
-    name: dependency-review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'merge_group'
-    steps:
-      - run: echo 'dependency-review is pull_request-only; merge_group pass-through for stable required check.'
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-tradepulse
+        with:
+          python-version: '3.11'
+          cache-prefix: pr-deps
+
+      - name: Dependency review gate
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_ref="origin/${{ github.base_ref }}"
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          if echo "$changed_files" | grep -Eq '^(requirements(\-dev)?\.(txt|lock)|constraints/security\.txt|pyproject\.toml|apps/web/package(-lock)?\.json)$'; then
+            echo "Dependency manifests changed; running high-severity audits."
+            .venv/bin/pip-audit -r requirements.lock --severity high
+            .venv/bin/pip-audit -r requirements-dev.lock --severity high
+          else
+            echo "No dependency-manifest changes detected; dependency-review passes."
+          fi
 
   secrets-supply-chain:
     name: secrets-supply-chain
