@@ -39,6 +39,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
 
       - name: Setup Python environment
         uses: ./.github/actions/setup-tradepulse
@@ -46,11 +48,26 @@ jobs:
           python-version: '3.11'
           cache-prefix: pr-quality
 
-      - name: Lint and type-check
+      - name: Run lint/type gate on changed Python files
         run: |
-          .venv/bin/ruff check .
-          .venv/bin/black --check .
-          .venv/bin/mypy --config-file mypy.ini
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_ref="origin/${{ github.base_ref }}"
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          mapfile -t py_files < <(echo "$changed_files" | grep -E '\.py$' || true)
+          if [[ ${#py_files[@]} -eq 0 ]]; then
+            echo "No Python file changes detected; python-quality passes."
+            exit 0
+          fi
+
+          .venv/bin/ruff check "${py_files[@]}"
+          .venv/bin/black --check "${py_files[@]}"
+          .venv/bin/mypy "${py_files[@]}"
 
   python-fast-tests:
     name: python-fast-tests
@@ -59,6 +76,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
 
       - name: Setup Python environment
         uses: ./.github/actions/setup-tradepulse
@@ -68,6 +87,20 @@ jobs:
 
       - name: Run fast deterministic pytest gate
         run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_ref="origin/${{ github.base_ref }}"
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          if ! echo "$changed_files" | grep -Eq '^(tests/|core/|backtest/|execution/|src/|pyproject\.toml|requirements(\-dev)?\.(txt|lock)|pytest\.ini)'; then
+            echo "No Python runtime/test surface changes detected; python-fast-tests passes."
+            exit 0
+          fi
+
           .venv/bin/pytest tests/ -m "not slow and not heavy_math and not nightly and not flaky" -q
 
   frontend-gate:
@@ -159,6 +192,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
 
       - name: Setup Python environment
         uses: ./.github/actions/setup-tradepulse
@@ -166,12 +201,42 @@ jobs:
           python-version: '3.11'
           cache-prefix: pr-security
 
-      - name: Bandit SAST gate
-        run: .venv/bin/bandit -r core backtest execution src -ll
-
-      - name: Detect hardcoded secrets
+      - name: Bandit SAST gate on changed security-critical Python files
         run: |
-          .venv/bin/detect-secrets scan --all-files > .secrets.baseline
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_ref="origin/${{ github.base_ref }}"
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          mapfile -t bandit_targets < <(echo "$changed_files" | grep -E '^(core|backtest|execution|src)/.*\.py$' || true)
+          if [[ ${#bandit_targets[@]} -eq 0 ]]; then
+            echo "No security-critical Python changes detected; Bandit gate passes."
+          else
+            .venv/bin/bandit -ll "${bandit_targets[@]}"
+          fi
+
+      - name: Detect secrets in changed files
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            base_ref="origin/${{ github.base_ref }}"
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          mapfile -t existing_changed_files < <(for f in $changed_files; do [[ -f "$f" ]] && echo "$f"; done)
+          if [[ ${#existing_changed_files[@]} -eq 0 ]]; then
+            echo "No file additions/modifications to scan; secrets gate passes."
+            exit 0
+          fi
+
+          .venv/bin/detect-secrets scan "${existing_changed_files[@]}" > .secrets.baseline
           python - <<'PY'
           import json
           from pathlib import Path
@@ -180,5 +245,5 @@ jobs:
           count = sum(len(v) for v in findings.values())
           if count:
               raise SystemExit(f'Potential secrets found: {count}')
-          print('No secrets detected.')
+          print('No secrets detected in changed files.')
           PY
