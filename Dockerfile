@@ -4,7 +4,7 @@
 # Stage 1: Lightweight scan stage (for security scanning only)
 # This stage excludes heavy GPU dependencies to reduce image size
 # =============================================================================
-FROM python:3.12.8-slim AS scan
+FROM python:3.14.3-slim AS scan
 
 WORKDIR /app
 
@@ -57,7 +57,7 @@ CMD ["python", "-m", "application.runtime.server"]
 # =============================================================================
 # Stage 2: Full runtime stage with GPU support (for production)
 # =============================================================================
-FROM python:3.11-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 WORKDIR /app
 
