@@ -54,8 +54,8 @@ runs:
       if: steps.venv-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        .venv/bin/pip install --upgrade pip setuptools wheel
-        .venv/bin/pip install -c constraints/security.txt -r requirements.lock
+        .venv/bin/python -m pip install --upgrade pip setuptools wheel
+        .venv/bin/python -m pip install -c constraints/security.txt -r requirements.lock
         if [ "${{ inputs.install-dev }}" = "true" ]; then
-          .venv/bin/pip install -c constraints/security.txt -r requirements-dev.lock
+          .venv/bin/python -m pip install -c constraints/security.txt -r requirements-dev.lock
         fi
