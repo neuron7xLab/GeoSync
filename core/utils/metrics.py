@@ -117,7 +117,7 @@ class MetricsCollector:
             try:
                 from prometheus_client import REGISTRY as _global_registry
                 registry = _global_registry
-            except Exception:  # pragma: no cover - defensive fallback
+            except ImportError:  # pragma: no cover - prometheus_client not installed
                 pass
         self.registry = registry
         if self.registry is not None:
@@ -2353,6 +2353,9 @@ _collector: Optional[MetricsCollector] = None
 _collector_cache: dict[int, "MetricsCollector"] = {}
 
 
+_NO_PROMETHEUS_KEY: int = -1  # Sentinel cache key when prometheus_client is absent
+
+
 def _registry_cache_key(registry: Optional[Any]) -> int:
     """Return a stable cache key for the effective registry.
 
@@ -2366,8 +2369,8 @@ def _registry_cache_key(registry: Optional[Any]) -> int:
     try:
         from prometheus_client import REGISTRY as _default_registry
         return id(_default_registry)
-    except Exception:  # pragma: no cover - prometheus_client not installed
-        return id(None)
+    except ImportError:  # pragma: no cover - prometheus_client not installed
+        return _NO_PROMETHEUS_KEY
 
 
 def get_metrics_collector(registry: Optional[Any] = None) -> MetricsCollector:
