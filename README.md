@@ -83,6 +83,20 @@ The engineering layer is built for institutional scale: event-driven order manag
 **Entropy Measures** — Information-theoretic market analysis  
 **Multi-Scale Analysis** — Fractal pattern recognition across timeframes  
 
+```
+  Ricci Curvature Regimes — κ on the Market Manifold
+
+   κ > 0  (convergent)       κ ≈ 0  (flat)        κ < 0  (divergent)
+   ┌──────────────┐          ─────────────         ╱──────────────╲
+  ╱  synchronized  ╲                              ╱  regime break   ╲
+ │    oscillators   │        neutral drift        │    divergence    │
+  ╲                ╱                               ╲                ╱
+   └──────────────┘                                 ╲──────────────╱
+  geodesics converge → ●    geodesics ──────→      geodesics ↗    ↘
+  Kuramoto R → 1            R ≈ const             R drops sharply
+```
+
+
 Code: [`core/indicators/`](core/indicators/)
 
 ### 📊 Backtesting & Simulation
@@ -419,6 +433,25 @@ The **order parameter** R(t) ∈ [0, 1] measures instantaneous synchronisation:
 - R ≈ 0 → oscillators are fully desynchronised
 - R ≈ 1 → oscillators are perfectly in phase
 
+```
+  Order Parameter Evolution  R(t)
+
+  1.0 ┤                                          ╭──────────
+      │                                    ╭─────╯
+  0.7 ┤ · · · · · · · · · · · · · · · · · · · · · · · · ·  ← sync threshold
+      │                              ╭─────╯
+  0.3 ┤                        ╭────╯
+      │           ╭────────────╯
+  0.0 ┤───────────╯
+      └───────────────────────────────────────────────────── t
+              K < K_c                        K > K_c
+          (desynchronised)               (synchronised)
+
+  θ-space snapshot:
+  t = 0  ·  ·    · ·   ·    ·   ·  ·    (phases scattered)
+  t = T  · · · · · · · · · · · · · · →  (phases locked)
+```
+
 ### Quick-start — Python API
 
 ```python
@@ -567,6 +600,18 @@ END
 - **Rest Potential**: 1.0 (stabilised baseline)
 - **Action Potential**: 1.35 (maximum tolerable stress before kill-switch)
 - **Monotonic Tolerance**: 5×10⁻³
+
+```
+  Free Energy Landscape  F(t) = U − T·S
+
+  F  1.35 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  ← action potential (kill-switch)
+          │                                   ╱▔▔▔╲
+  F  1.00 ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╮╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌  ← rest potential (stable baseline)
+          │            ╭────────╯              ↑
+          │       ╭────╯              override gate (dual approval)
+          │  ╭────╯   monotonic descent ↓
+     0.0  └──────────────────────────────────────────────── t
+```
 
 #### Protocol Hot-Swap
 
