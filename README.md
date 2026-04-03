@@ -1,1039 +1,637 @@
 <div align="center">
 
-# GeoSync
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset=".github/assets/banner-light.svg">
+  <img alt="GeoSync — Geometric Market Intelligence" src=".github/assets/banner-dark.svg" width="100%">
+</picture>
 
-*Institutional-Grade Quantitative Research Infrastructure — Geometric Market Intelligence Derived from Peer-Reviewed Science*
+<br><br>
+
+[![substrates-10](https://img.shields.io/badge/modules-10-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
+[![tests-681](https://img.shields.io/badge/tests-681-brightgreen?style=for-the-badge)](tests/)
+[![indicators-50+](https://img.shields.io/badge/indicators-50%2B-gold?style=for-the-badge)](core/indicators/)
+[![ADRs-19](https://img.shields.io/badge/ADRs-19-blue?style=for-the-badge)](docs/adr/)
+[![license-MIT](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)](LICENSE)
+
+<br>
+
+```
+Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynamics
+```
+
+*Institutional-grade quantitative research infrastructure.*
+*Every signal traces back to peer-reviewed science — no heuristics, no black boxes.*
 
 <br>
 
 [![Tests](https://github.com/neuron7xLab/GeoSync/actions/workflows/tests.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/tests.yml)
 [![CI](https://github.com/neuron7xLab/GeoSync/actions/workflows/ci.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](LICENSE)
-[![Python 3.11-3.12](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![Security](https://img.shields.io/badge/Security-NIST%20SP%20800--53-red?style=flat)](docs/security/)
-[![Architecture](https://img.shields.io/badge/ADRs-19%20Recorded-blue?style=flat)](docs/adr/)
-
-> **Status: Pre-Production Beta (v0.1.0) — Core Engine Stable · Institutional Evaluation Available**
-
-**GeoSync** is an advanced quantitative research and execution platform that distils validated mechanisms from computational neuroscience, differential geometry, thermodynamics, and synchronization theory into a rigorous, production-oriented algorithmic infrastructure.
-
-The platform's core signal generation is built on Kuramoto phase synchronization, Ricci curvature flow, and free-energy thermodynamic principles — mathematical frameworks with deep roots in peer-reviewed literature. These are not heuristics: each mechanism is sourced, cited, and independently testable. The result is a portfolio of geometric market indicators that surface regime transitions, synchrony breakdowns, and curvature anomalies that conventional factor models miss.
-
-The engineering layer is built for institutional scale: event-driven order management with microsecond-latency simulation, NIST SP 800-53–aligned security controls, Kubernetes-native deployment, Prometheus/OpenTelemetry observability, and a 681-test quality suite targeting 98 % branch coverage on critical paths.
-
-[Institutional Overview](INSTITUTIONAL_OVERVIEW.md) • [Quick Start](#-quick-start) • [Features](#-feature-highlights) • [Documentation](#-documentation)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Security](https://img.shields.io/badge/NIST%20SP%20800--53-aligned-red?style=flat)](docs/security/)
+[![Coverage](https://img.shields.io/badge/coverage-71%25%20→%2098%25-orange?style=flat)](docs/METRICS_CONTRACT.md)
 
 </div>
 
----
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
 
-## 📋 Table of Contents
+## The Signal
 
-- [Why GeoSync?](#-why-geosync)
-- [Feature Highlights](#-feature-highlights)
-- [System Architecture](#-system-architecture)
-- [Quick Start](#-quick-start)
-- [Usage Examples](#-usage-examples)
-- [Kuramoto ODE Simulation Engine](#-kuramoto-ode-simulation-engine)
-- [TACL: Thermodynamic Control Layer](#-tacl-thermodynamic-autonomic-control-layer)
-- [Testing & Quality](#-testing--quality)
-- [Performance](#-performance)
-- [Configuration](#-configuration)
-- [Deployment](#-deployment)
-- [Use Cases](#-use-cases)
-- [Project Status & Roadmap](#-project-status--roadmap)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Risk Disclosure](#-risk-disclosure)
+GeoSync distils validated mechanisms from **computational neuroscience**, **differential geometry**, **thermodynamics**, and **synchronization theory** into a rigorous, production-oriented algorithmic infrastructure.
 
----
+<table>
+<tr>
+<td width="50%" valign="top">
 
-## 🎯 Why GeoSync?
-
-### For Institutional Investors & Hedge Funds
-- **Proprietary Signal Architecture**: Kuramoto phase synchronization and Ricci curvature flow identify regime transitions and synchrony breakdowns that factor-based models systematically miss
-- **Mathematically Grounded Edge**: Every indicator traces back to peer-reviewed literature (see [BIBLIOGRAPHY.md](docs/BIBLIOGRAPHY.md)) — no black-box heuristics, full scientific lineage
-- **Portfolio-Level Risk Framework**: Pre-trade compliance checks, position-limit enforcement, drawdown circuit breakers, and thermodynamic-regime adaptive sizing — all configurable for institutional mandates
-- **Audit-Ready Infrastructure**: 400-day audit log retention, NIST SP 800-53–aligned controls, structured OpenTelemetry traces, and deterministic replay for post-trade forensics
-- **Institutional Evaluation Path**: Available for controlled evaluation under NDA; sandbox environment, paper-trading parity, and full telemetry provided
-
-### For Quantitative Researchers
-- **Geometric Market Indicators**: Kuramoto oscillators, Ricci flow, entropy measures for deep market analysis
-- **Research → Production Pipeline**: Seamless transition from research to live trading
-- **Advanced Backtesting**: Event-driven engine with walk-forward optimization and property-based testing
-
-### For Algorithmic Traders
-- **Multi-Exchange Support**: Binance, Coinbase, Kraken, Alpaca, and more via CCXT
-- **Live Trading**: Real-time signal generation and execution with built-in risk management
-- **Observability**: Prometheus metrics, OpenTelemetry tracing, and comprehensive logging
-
-### For Infrastructure Engineers
-- **Enterprise-Grade**: Security controls aligned with NIST SP 800-53 and ISO 27001 (design aligned, no external audit)
-- **Scalable Architecture**: Event-driven design, Kubernetes-ready (GPU acceleration planned)
-- **Comprehensive Testing**: CI pipeline spans unit, integration, property-based, and fuzz suites; coverage expansion is in progress (~71% overall) toward a 98% target on `core/`, `execution`, `runtime`, and `tacl`
-
----
-
-## ✨ Feature Highlights
-
-### 🧮 Geometric Market Intelligence
-
-**Kuramoto Oscillators** — Detect synchronization patterns in market dynamics  
-**Ricci Flow** — Measure geometric curvature for regime detection  
-**Entropy Measures** — Information-theoretic market analysis  
-**Multi-Scale Analysis** — Fractal pattern recognition across timeframes  
-
-Code: [`core/indicators/`](core/indicators/)
-
-### 📊 Backtesting & Simulation
-
-**Event-Driven Engine** — Microsecond-latency simulation architecture  
-**Portfolio Management** — Multi-asset portfolio optimization and rebalancing  
-**Risk Management** — Pre-trade checks, position limits, drawdown protection  
-**Walk-Forward Optimization** — Defense against overfitting  
-**Property-Based Tests** — Hypothesis-driven strategy validation  
-
-Code: [`backtest/`](backtest/), [`execution/`](execution/)
-
-### ⚡ Live Trading & Integration
-
-**Exchange Connectors** — CCXT, Alpaca, Polygon APIs  
-**Execution Layer** — REST and WebSocket execution adapters  
-**Runtime Layer** — Live trading orchestration and monitoring  
-**Paper Trading** — Safe testing before live deployment  
-**Kill Switch** — Emergency stop with secure admin API  
-
-Code: [`execution/`](execution/), [`runtime/`](runtime/), [`interfaces/live_runner.py`](interfaces/live_runner.py)
-
-### 🛡️ Observability & Safety
-
-**Metrics** — Prometheus exporters for real-time monitoring  
-**Tracing** — OpenTelemetry distributed tracing  
-**Circuit Breakers** — Auto trading halt after failures  
-**Audit Logging** — 400-day retention with compliance support  
-**Health Checks** — Kubernetes-ready liveness and readiness probes  
-**Reliability Testing** — 40+ tests validating graceful failure modes ([docs/RELIABILITY_SCENARIOS.md](docs/RELIABILITY_SCENARIOS.md))
-
-Code: [`observability/`](observability/), [`infra/`](infra/), [`tests/reliability/`](tests/reliability/)
-
-### 🔐 Enterprise Security
-
-**Security Framework** — Controls aligned with NIST SP 800-53 and ISO 27001 (design aligned; external audit planned pre-v1.0)  
-**Secrets Management** — HashiCorp Vault and AWS Secrets Manager integration  
-**Encrypted Storage** — AES-256 at rest, TLS 1.3 in transit  
-**MFA Support** — Multi-factor authentication for admin operations  
-**Compliance Controls** — GDPR, CCPA, SEC, FINRA patterns implemented (certification in scope for v1.0)  
-
-Code: [Security Documentation](docs/security/), [`SECURITY.md`](SECURITY.md)
-
-### 🚀 Extensibility
-
-**Strategy Plugins** — Easy integration of custom strategies  
-**Custom Indicators** — Add your own technical or geometric indicators  
-**Rust Accelerators** — High-performance compute kernels  
-**Neuro Modules** — Advanced neural trading components  
-
-All plugins implement the standard registry contracts in [`strategies/registry.py`](strategies/registry.py) and indicator interfaces in [`core/indicators/base.py`](core/indicators/base.py); RL/Neuro modules are exercised in a sandbox gate before any live test.
-
-Code: [`strategies/`](strategies/), [`rust/geosync-accel/`](rust/geosync-accel/), [`geosync_hydro/`](geosync_hydro/), [`rl/`](rl/)
-
----
-
-## 🏗️ System Architecture
-
-```mermaid
-graph TB
-    A[📥 Data Ingestion] --> B[📦 Feature Store]
-    B --> C[🧠 Strategy Engine]
-    C --> D[🛡️ Risk Manager]
-    D --> E[⚡ Execution Layer]
-    E --> F[🌐 Exchange APIs]
-    C --> G[📊 Analytics]
-    G --> H[📡 Observability]
-    
-    style A fill:#4a90e2,stroke:#357abd,color:#fff
-    style B fill:#9b59b6,stroke:#7d3c98,color:#fff
-    style C fill:#7ed321,stroke:#5fa319,color:#fff
-    style D fill:#e74c3c,stroke:#c0392b,color:#fff
-    style E fill:#f5a623,stroke:#c47d1a,color:#fff
-    style F fill:#1abc9c,stroke:#16a085,color:#fff
-    style G fill:#3498db,stroke:#2980b9,color:#fff
-    style H fill:#bd10e0,stroke:#8e0ca8,color:#fff
+```
+ Order Parameter R(t)
+ 1.0 ┤                    ╭──────
+     │                 ╭──╯
+ 0.8 ┤              ╭──╯
+     │           ╭──╯
+ 0.6 ┤        ╭──╯
+     │     ╭──╯
+ 0.4 ┤  ╭──╯
+     │╭─╯
+ 0.2 ┤╯
+     │
+ 0.0 ┼──────────────────────────
+     0    200   400   600   800  t
 ```
 
-### Key Modules
+</td>
+<td width="50%" valign="top">
 
-| Module | Path | Language | Purpose |
-|--------|------|----------|---------|
-| **Core Indicators** | `core/indicators/` | Python | Geometric and technical indicators |
-| **Backtest Engine** | `backtest/` | Python | Event-driven backtesting |
-| **Execution** | `execution/` | Python | Order execution and adapters |
-| **Runtime** | `runtime/` | Python | Live trading orchestration |
-| **Observability** | `observability/` | Python | Metrics, traces, dashboards |
-| **UI Dashboard** | `ui/dashboard/` | TypeScript | Interactive web interface |
-| **Rust Accelerators** | `rust/geosync-accel/` | Rust | High-performance compute |
-| **GeoSync Hydro v2** | `geosync_hydro/` | Python | Advanced neural components |
-| **RL Module** | `rl/` | Python | Reinforcement learning strategies |
-| **TACL** | `tacl/` | Python | Thermodynamic control layer |
+**The core question:** when do markets synchronize?
 
-📖 **Full Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-📦 **Independent Models Split**: [docs/architecture/independent_models.md](docs/architecture/independent_models.md)
+The **Kuramoto order parameter** `R(t)` quantifies instantaneous phase coherence across assets:
 
----
+- `R → 0` desynchronized, independent motion
+- `R → 1` full phase-lock, regime transition
 
-## 🚀 Quick Start
+When `R` crosses critical coupling `Kc`, the market undergoes a **phase transition** — the geometric signal that conventional factor models systematically miss.
 
-### Prerequisites
+```
+dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
+```
 
-- **Python** 3.11 or 3.12 ([Download](https://www.python.org/downloads/))
-- **Git** 2.30+ for version control
-- **Docker** (optional, for containerized deployment)
+</td>
+</tr>
+</table>
 
-### Installation
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
+
+## Architecture
+
+```
+                    ┌─────────────────────────────────────────────────────┐
+                    │                   G E O S Y N C                     │
+                    │          Geometric Market Intelligence               │
+                    └─────────────┬───────────────────┬───────────────────┘
+                                  │                   │
+              ┌───────────────────┼───────────────────┼───────────────────┐
+              │                   │                   │                   │
+     ┌────────▼────────┐ ┌───────▼────────┐ ┌────────▼────────┐ ┌───────▼────────┐
+     │  DATA INGESTION │ │ FEATURE  STORE │ │ STRATEGY ENGINE │ │  RISK MANAGER  │
+     │  CCXT · Alpaca  │ │ Redis · Feast  │ │ Policy  Router  │ │  TACL · Gates  │
+     │  Polygon · WS   │ │ Parquet · PG   │ │ Walk-Forward    │ │  Kill Switch   │
+     └────────┬────────┘ └───────┬────────┘ └────────┬────────┘ └───────┬────────┘
+              │                  │                    │                  │
+              └──────────────────┼────────────────────┼──────────────────┘
+                                 │                    │
+                    ┌────────────▼────────────────────▼────────────┐
+                    │            EXECUTION  FABRIC                  │
+                    │    OMS · Smart Routing · Capital Optimizer    │
+                    │    Paper Trading · Compliance · Audit Trail   │
+                    └──────────────────────┬───────────────────────┘
+                                           │
+                    ┌──────────────────────▼───────────────────────┐
+                    │          OBSERVABILITY  STACK                 │
+                    │  Prometheus · OpenTelemetry · 400-day Audit   │
+                    │  Reliability Tests · Deterministic Replay     │
+                    └──────────────────────────────────────────────┘
+```
+
+<table>
+<tr>
+<td align="center" width="10%"><b>Module</b></td>
+<td align="center" width="20%"><b>Path</b></td>
+<td align="center" width="8%"><b>Lang</b></td>
+<td align="center" width="62%"><b>Purpose</b></td>
+</tr>
+<tr><td><code>CORE</code></td><td><code>core/indicators/</code></td><td>Python</td><td>50+ geometric and technical indicators — Kuramoto, Ricci, entropy, fractal, Hurst</td></tr>
+<tr><td><code>KURAMOTO</code></td><td><code>core/kuramoto/</code></td><td>Python</td><td>RK4 · JAX/GPU · Sparse · Adaptive · Delayed · SecondOrder simulation engines</td></tr>
+<tr><td><code>BACKTEST</code></td><td><code>backtest/</code></td><td>Python</td><td>Event-driven engine, walk-forward, Monte Carlo, property-based validation</td></tr>
+<tr><td><code>EXECUTION</code></td><td><code>execution/</code></td><td>Python</td><td>OMS, smart routing, Kelly/MV sizing, compliance, paper trading</td></tr>
+<tr><td><code>RUNTIME</code></td><td><code>runtime/</code></td><td>Python</td><td>Live orchestration, kill switch, CNS stabilizer, recovery agent</td></tr>
+<tr><td><code>TACL</code></td><td><code>tacl/</code></td><td>Python</td><td>Thermodynamic autonomic control — free energy descent, protocol hot-swap</td></tr>
+<tr><td><code>NEURO</code></td><td><code>core/neuro/</code></td><td>Python</td><td>Dopamine TD-learning, serotonin stability, GABA inhibition gate</td></tr>
+<tr><td><code>OBSERVE</code></td><td><code>observability/</code></td><td>Python</td><td>Prometheus, OpenTelemetry, structured audit logging, dashboards</td></tr>
+<tr><td><code>ACCEL</code></td><td><code>rust/geosync-accel/</code></td><td>Rust</td><td>High-performance compute kernels for hot-path acceleration</td></tr>
+<tr><td><code>UI</code></td><td><code>ui/dashboard/</code></td><td>TypeScript</td><td>React web interface — canonical interactive dashboard</td></tr>
+</table>
+
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
+
+## Geometric Indicators
+
+<table>
+<tr>
+<td align="center" width="16%">
+
+```
+    ╭─╮
+   ╱ θ ╲
+  │phase│
+   ╲   ╱
+    ╰─╯
+```
+<b>Kuramoto</b><br>
+<sub>Phase synchrony</sub>
+
+</td>
+<td align="center" width="16%">
+
+```
+   ╭───╮
+  ╱ Ric ╲
+ │curva- │
+ │ ture  │
+  ╲     ╱
+   ╰───╯
+```
+<b>Ricci Flow</b><br>
+<sub>Regime geometry</sub>
+
+</td>
+<td align="center" width="16%">
+
+```
+   ┌───┐
+   │ H │
+   │ = │
+   │ Σ │
+   │-pln│
+   └───┘
+```
+<b>Entropy</b><br>
+<sub>Shannon / Tsallis</sub>
+
+</td>
+<td align="center" width="16%">
+
+```
+   ╱╲╱╲
+  ╱╲╱╲╱╲
+ ╱╲╱╲╱╲╱╲
+╱╲╱╲╱╲╱╲╱╲
+   fractal
+```
+<b>Fractal</b><br>
+<sub>Multi-scale self-similarity</sub>
+
+</td>
+<td align="center" width="16%">
+
+```
+   ┌─────┐
+   │ H(q)│
+   │  ↕  │
+   │0←→1 │
+   └─────┘
+```
+<b>Hurst</b><br>
+<sub>Long-range dependence</sub>
+
+</td>
+<td align="center" width="16%">
+
+```
+   t₁─┐
+   t₂─┤►Σ
+   t₃─┘
+  multi
+  scale
+```
+<b>Multi-Scale</b><br>
+<sub>Timeframe decomposition</sub>
+
+</td>
+</tr>
+</table>
+
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
+
+## TACL — Thermodynamic Autonomic Control
+
+The governing brain of system stability. Every autonomous change must respect **Monotonic Free Energy Descent**.
+
+```
+  Free Energy F = U − T·S
+
+  where   U = Σᵢ wᵢ · penalty(metricᵢ)       internal energy
+          T = 0.60                              control temperature
+          S = stability headroom                entropy term
+
+  Envelope:  F ≤ 1.35   (12% safety margin)
+  Rest:      F = 1.00   (stabilised baseline)
+  Kill:      F > 1.35   (emergency halt)
+```
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Monitored Metrics**
+
+| Metric | Threshold | Weight |
+|--------|-----------|--------|
+| `latency_p95` | 85 ms | 1.6 |
+| `latency_p99` | 120 ms | 1.9 |
+| `coherency_drift` | 0.08 | 1.2 |
+| `cpu_burn` | 0.75 | 0.9 |
+| `mem_cost` | 6.5 GiB | 0.8 |
+| `queue_depth` | 32 msg | 0.7 |
+| `packet_loss` | 0.005 | 1.4 |
+
+</td>
+<td width="50%" valign="top">
+
+**Safety State Machine**
+
+```
+              ┌──────────────┐
+              │   NOMINAL    │ F ≤ 1.00
+              └──────┬───────┘
+                     │ F ↑
+              ┌──────▼───────┐
+              │   STRESSED   │ 1.00 < F ≤ 1.35
+              └──────┬───────┘
+                     │ F > 1.35
+              ┌──────▼───────┐
+              │  KILL SWITCH │ dual-approval
+              │   ENGAGED    │ or auto-rollback
+              └──────────────┘
+```
+
+</td>
+</tr>
+</table>
+
+**Protocol Hot-Swap** — dynamic switching between RDMA, CRDT, gRPC, Shared Memory, Gossip with admissibility guards. Any swap that increases `F` beyond tolerance triggers automatic reversion within 30s.
+
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
+
+## Quick Start
 
 ```bash
-# Clone the repository
 git clone https://github.com/neuron7xLab/GeoSync.git
 cd GeoSync
-
-# Create and activate virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies (choose one):
-make install           # Runtime dependencies only
-make dev-install       # Full development environment
-
-# Configure environment variables
-cp .env.example .env
-# Edit .env with your settings (see SETUP.md for details)
+python -m venv .venv && source .venv/bin/activate
+make install
 ```
 
-**Alternative installation** (without Make):
-```bash
-pip install --upgrade pip setuptools wheel
-pip install -c constraints/security.txt -r requirements.lock          # Runtime only
-pip install -c constraints/security.txt -r requirements-dev.lock      # Add dev tools
-```
-
-📖 **Detailed Setup**: [SETUP.md](SETUP.md)  
-🔐 **Security**: All dependencies are pinned to exact versions with security constraints applied
-
-### Your First Analysis
-
-```bash
-# Run the quick start example
-PYTHONPATH=. python examples/quick_start.py
-```
-
-**Expected output:**
-```
-=== GeoSync Market Analysis ===
-----------------------------------------
-Market Phase:     transition
-Confidence:       0.893
-Entry Signal:     0.000
-----------------------------------------
-
-📊 Interpretation:
-  • Market is transitioning between regimes
-  • High confidence (89.3%) in current phase
-
-✅ Analysis complete!
-```
-
-> **Note:** Use `PYTHONPATH=.` to ensure Python can find the local modules. On Windows PowerShell: `$env:PYTHONPATH='.'; python examples/quick_start.py`
-
-### Run the control platform (canonical)
-
-```bash
-geosync-server --allow-plaintext --host 127.0.0.1 --port 8000
-```
-
-- Optional: `--config path/to/config.yaml` (precedence: CLI > ENV > YAML > defaults)
-- Logs include `effective_config_source=... controllers_loaded=[...]`
-- Fallback (non-canonical): `PYTHONPATH=. python -m application.runtime.server --allow-plaintext --host 127.0.0.1 --port 8000`
-
-### Canonical code root
-
-- Package root: `geosync` under `src/`
-- Import controllers from canonical paths, e.g.:
-  ```python
-  from geosync.core.neuro.serotonin.serotonin_controller import SerotoninController
-  ```
-- Legacy `core.*` imports are deprecated shims and will be removed in a future release; see `docs/ARCHITECTURE_MAP.md`.
-
-### Interactive Dashboard
-
-**Canonical — TypeScript dashboard (`ui/dashboard`)**
-
-```bash
-cd ui/dashboard
-npm ci
-npm test  # fast, headless smoke that exercises the canonical UI
-```
-
-> Optional preview: open `demo.html` in a local HTTP server for visual inspection.
-
-**Prototype — Streamlit dashboard (dev-only)**
-
-```bash
-PYTHONPATH=. streamlit run interfaces/dashboard_streamlit.py
-```
-
-> Prototype only; keep Streamlit installed separately (`pip install streamlit streamlit-authenticator`).
-
-📖 **Dashboard Guide**: [docs/ui_logical_structure.md](docs/ui_logical_structure.md)
-
-### Golden Path Workflow
-
-Demonstrate the complete GeoSync workflow from data to results:
-
-```bash
-# One-command demonstration of the full workflow
-make golden-path
-```
-
-**What it does:**
-1. **Data Generation** — Creates 500 bars of synthetic market data with deterministic seed
-2. **Market Analysis** — Detects regime using Kuramoto-Ricci indicators
-3. **Backtest Integration** — Validates strategy execution with PnL calculation
-4. **Results** — Produces validated output in <30 seconds
-
-**Expected output:**
-```
-🎯 GeoSync Golden Path Workflow
-====================================
-Step 1/3: Generating synthetic market data...
-✓ Generated 500 bars of synthetic data
-
-Step 2/3: Running market analysis...
-=== GeoSync Market Analysis ===
-Market Phase:     transition
-Confidence:       0.658
-Entry Signal:     0.000
-
-Step 3/3: Running backtest integration test...
-tests/integration/test_golden_path_backtest.py . [100%]
-1 passed in 0.84s
-
-✅ Golden Path Complete!
-```
-
-> **Note:** This is a demonstration workflow using synthetic data. For production use with real market data, see [DEPLOYMENT.md](DEPLOYMENT.md) and [docs/runbook_live_trading.md](docs/runbook_live_trading.md).
-
----
-
-## 💻 Usage Examples
-
-### Basic Market Analysis
+### First Analysis
 
 ```python
-import numpy as np
-import pandas as pd
 from core.indicators.kuramoto_ricci_composite import GeoSyncCompositeEngine
+import numpy as np, pandas as pd
 
-# Generate sample market data
-index = pd.date_range("2024-01-01", periods=720, freq="5min")
+index  = pd.date_range("2024-01-01", periods=720, freq="5min")
 prices = 100 + np.cumsum(np.random.normal(0, 0.6, 720))
 volume = np.random.lognormal(9.5, 0.35, 720)
-bars = pd.DataFrame({"close": prices, "volume": volume}, index=index)
+bars   = pd.DataFrame({"close": prices, "volume": volume}, index=index)
 
-# Analyze market regime
-engine = GeoSyncCompositeEngine()
+engine   = GeoSyncCompositeEngine()
 snapshot = engine.analyze_market(bars)
 
-print(f"📊 Phase: {snapshot.phase.value}")
-print(f"🎯 Confidence: {snapshot.confidence:.3f}")
-print(f"📈 Entry Signal: {snapshot.entry_signal:.3f}")
+print(f"Phase:      {snapshot.phase.value}")
+print(f"Confidence: {snapshot.confidence:.3f}")
+print(f"Entry:      {snapshot.entry_signal:.3f}")
 ```
 
-### Backtesting a Strategy
+```
+=== GeoSync Market Analysis ===
+Phase:      transition
+Confidence: 0.893
+Entry:      0.000
+```
+
+### Kuramoto Simulation
 
 ```python
-import numpy as np
+from core.kuramoto import KuramotoConfig, run_simulation
+
+cfg = KuramotoConfig(N=50, K=3.0, dt=0.01, steps=1000, seed=42)
+result = run_simulation(cfg)
+
+print(f"Trajectory: {result.phases.shape}")       # (1001, 50)
+print(f"Final R:    {result.order_parameter[-1]:.4f}")
+```
+
+### Backtest
+
+```python
 from backtest.event_driven import EventDrivenBacktestEngine
 from core.indicators import KuramotoIndicator
 
-# Generate price series
-rng = np.random.default_rng(seed=42)
-prices = 100 + np.cumsum(rng.normal(0, 1, 500))
-
-# Define indicator and signal function
 indicator = KuramotoIndicator(window=80, coupling=0.9)
+prices = 100 + np.cumsum(np.random.default_rng(42).normal(0, 1, 500))
 
-def kuramoto_signal(series: np.ndarray) -> np.ndarray:
+def signal(series):
     order = indicator.compute(series)
-    signal = np.where(order > 0.75, 1.0, np.where(order < 0.25, -1.0, 0.0))
-    warmup = min(indicator.window, signal.size)
-    signal[:warmup] = 0.0
-    return signal
+    s = np.where(order > 0.75, 1.0, np.where(order < 0.25, -1.0, 0.0))
+    s[:min(indicator.window, s.size)] = 0.0
+    return s
 
-# Run backtest
-engine = EventDrivenBacktestEngine()
-result = engine.run(
-    prices,
-    kuramoto_signal,
-    initial_capital=100_000,
-    strategy_name="kuramoto_demo",
-)
-
-print(f"💰 PnL: ${result.pnl:,.2f}")
-print(f"📉 Max Drawdown: {result.max_dd:.2%}")
-print(f"📊 Trades: {result.trades}")
+result = EventDrivenBacktestEngine().run(prices, signal, initial_capital=100_000)
 ```
 
-### CLI Analysis
+### CLI
 
 ```bash
-# Analyze CSV data
-python -m interfaces.cli analyze \
-    --csv data/sample.csv \
-    --window 200 \
-    --price-col close
-
-# Generate sample data
-python -m interfaces.cli generate \
-    --output data/synthetic.csv \
-    --bars 1000
-```
-
-📖 **CLI Reference**: [docs/geosync_cli_reference.md](docs/geosync_cli_reference.md)
-
----
-
-## 🔄 Kuramoto ODE Simulation Engine
-
-The **Kuramoto simulation engine** (`core/kuramoto/`) implements the canonical coupled-oscillator model from synchronisation theory as a production-ready component.
-
-### What it does
-
-It integrates the Kuramoto ODE using 4th-order Runge-Kutta:
-
-```
-dθᵢ/dt = ωᵢ + (K/N) · Σⱼ≠ᵢ sin(θⱼ − θᵢ)      # global (all-to-all) coupling
-dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)        # explicit weighted adjacency (diagonal ignored)
-```
-
-For exact no-self-coupling semantics, the implementation enforces a zero diagonal in both modes; equivalently, the global sum is over `j != i`.
-
-The **order parameter** R(t) ∈ [0, 1] measures instantaneous synchronisation:
-- R ≈ 0 → oscillators are fully desynchronised
-- R ≈ 1 → oscillators are perfectly in phase
-
-### Quick-start — Python API
-
-```python
-from core.kuramoto import KuramotoConfig, run_simulation
-
-# Configure (all parameters validated by Pydantic)
-cfg = KuramotoConfig(
-    N=50,        # number of oscillators
-    K=3.0,       # coupling strength (above critical = synchronises)
-    dt=0.01,     # RK4 integration step
-    steps=1000,  # number of time steps
-    seed=42,     # reproducible random draw of ω and θ₀
-)
-
-result = run_simulation(cfg)
-
-print(f"Phase trajectory shape : {result.phases.shape}")   # (1001, 50)
-print(f"Final R                : {result.order_parameter[-1]:.4f}")
-print(f"Mean  R                : {result.summary['mean_R']:.4f}")
-```
-
-**With explicit frequencies and adjacency matrix:**
-
-```python
-import numpy as np
-from core.kuramoto import KuramotoConfig, run_simulation
-
-N = 6
-# Custom natural frequencies (rad/s)
-omega = np.array([0.8, 1.0, 1.0, 1.2, 1.0, 0.9])
-
-# Ring-topology coupling matrix
-adj = np.zeros((N, N))
-for i in range(N):
-    adj[i, (i + 1) % N] = 1.0
-    adj[i, (i - 1) % N] = 1.0
-
-cfg = KuramotoConfig(N=N, K=2.0, dt=0.05, steps=500, omega=omega, adjacency=adj)
-result = run_simulation(cfg)
-```
-
-### Quick-start — CLI
-
-```bash
-# Default run (N=10, K=1.0, 1000 steps)
-tp-kuramoto simulate
-
-# Strongly coupled network with fixed seed
 tp-kuramoto simulate --N 50 --K 3.0 --steps 2000 --seed 42
-
-# Save full JSON output (includes order-parameter and phase trajectories)
-tp-kuramoto simulate --N 30 --K 2.5 --output result.json --export full
-
-# Pipe summary-only JSON to jq (schema_version + summary + config)
-tp-kuramoto simulate --N 100 --K 1.5 --quiet --export summary | jq .summary
-
-# Custom frequencies via CLI
-tp-kuramoto simulate --N 3 --omega "0.5,1.0,1.5" --K 2.0 --steps 500
-
-# Topology from matrix or edge-list
-tp-kuramoto simulate --N 50 --adjacency-file graph.json --output full.json
-tp-kuramoto simulate --N 50 --edge-list-file graph_edges.json --export summary --quiet
+geosync-server --allow-plaintext --host 127.0.0.1 --port 8000
 ```
 
-### Parameter reference
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `N` | int ≥ 2 | 10 | Number of coupled oscillators |
-| `K` | float | 1.0 | Global coupling strength |
-| `omega` | array(N) \| None | None | Natural frequencies (rad/time). Drawn from N(0,1) if omitted |
-| `dt` | float > 0 | 0.01 | RK4 integration time-step |
-| `steps` | int ≥ 1 | 1000 | Number of integration steps |
-| `adjacency` | array(N,N) \| None | None | Weighted coupling matrix (`K` is a global scale). Diagonal is ignored |
-| `theta0` | array(N) \| None | None | Initial phases (rad). Drawn from U(0, 2π) if omitted |
-| `seed` | int \| None | None | RNG seed for reproducible random draws when `omega`/`theta0` are omitted |
+## Kuramoto ODE Engine
 
-### Outputs
+Six specialized integrators for every scale:
 
-CLI JSON exports include a stable `schema_version` field (`1` for this contract).
-`schema_version` increments only when the JSON payload contract changes incompatibly.
-
-`--export summary` returns only:
-- `schema_version`
-- `summary`
-- `config`
-
-`--export full` additionally returns trajectories:
-- `order_parameter`
-- `time`
-- `phases`
-
-When `--quiet` and `--output` are both used, stdout and file payloads represent the same JSON object (same keys and values).
-
-| Field | Shape | Description |
-|-------|-------|-------------|
-| `result.phases` | `(steps+1, N)` | Phase trajectories in radians |
-| `result.order_parameter` | `(steps+1,)` | Kuramoto R(t) ∈ [0, 1] |
-| `result.time` | `(steps+1,)` | Time axis: `time[k] = k * dt` |
-| `result.summary` | dict | Scalar stats plus `coupling_mode` and run metadata (`seed`) |
-
-### Limitations and assumptions
-
-- The model assumes **identical oscillator mass** (no inertia term); the standard first-order Kuramoto ODE.
-- No general critical-coupling guarantee is encoded by this package. Synchronisation thresholds depend on frequency distribution, finite-size effects, and topology; evaluate empirically for your specific setup.
-- This implementation uses explicit RK4. Accuracy and stability are step-size dependent; there is no unconditional stability guarantee. Validate convergence by reducing `dt` and checking that observables (for example `R(t)`) remain consistent.
-- Phase values are **not wrapped** to [−π, π] during integration; analysis on `result.phases` may require `np.mod(phases, 2π)` depending on use-case.
-- For large N (> 10 000) consider chunked computation; the current vectorised implementation uses an O(N²) coupling sum per step.
-
----
-
-## 🌡️ TACL: Thermodynamic Autonomic Control Layer
-
-**TACL is the governing brain of system stability**, not a feature. It manages the GeoSync topology as a thermodynamic system where autonomous changes must respect **Monotonic Free Energy Descent**: no self-degrading change without explicit human approval.
-
-### Global Invariants
-
-TACL enforces five non-negotiable invariants across all autonomous operations:
-
-| Invariant | Description | Failure Consequence |
-|-----------|-------------|---------------------|
-| **Safety** | No uncontrolled degradation; explicit human approval for non-monotonic moves | Automated rollback triggered |
-| **Auditability** | 7-year retention for decisions, config, model/policy versions, regime switches | Compliance violation, incident response blocked |
-| **Resource Governance** | Latency, coherency, and resource cost are first-class (Free Energy F) | SLO breach, capacity exhaustion |
-| **Reproducibility** | Deterministic replay; versioned configs; testable interfaces | Debug/audit impossible |
-| **Event-based Sparsity** | Compute is sparse and triggered; avoid always-on overhead | Resource waste, latency degradation |
-
-### Core Mechanisms
-
-#### Free Energy Measurement
-
-Free Energy `F = U - T·S` where:
-- **U** (Internal Energy): Weighted penalties from latency, coherency, and resource metrics
-- **T** (Temperature): Control temperature (0.60) representing discount on available slack
-- **S** (Entropy): Stability term proportional to headroom relative to thresholds
-
-| Metric | Threshold | Weight | Unit |
-|--------|-----------|--------|------|
-| `latency_p95` | 85.0 | 1.6 | ms |
-| `latency_p99` | 120.0 | 1.9 | ms |
-| `coherency_drift` | 0.08 | 1.2 | ratio |
-| `cpu_burn` | 0.75 | 0.9 | ratio |
-| `mem_cost` | 6.5 | 0.8 | GiB |
-| `queue_depth` | 32.0 | 0.7 | messages |
-| `packet_loss` | 0.005 | 1.4 | ratio |
-
-**Energy Envelope**: Free energy ≤ 1.35 (12% safety margin from hot-path load tests)
-
-**Telemetry Discipline**: Latency, coherency, and cost signals are exported as OTLP traces and Prometheus time-series. Every controller state transition is logged for ≥400-day retention. RL/GA/LinkActivator actuators remain locked behind dual human approval plus CI safety gates—no autonomous refactors are permitted without the gate.
-
-#### Safety Model: Monotonic Free Energy Descent
+| Engine | Method | Use Case |
+|--------|--------|----------|
+| **Standard** | RK4 | General-purpose, N < 10K |
+| **JAX** | XLA-compiled | GPU/TPU acceleration |
+| **Sparse** | O(E) coupling | Large networks, sparse topology |
+| **Adaptive** | Dormand-Prince / LSODA | Error-controlled step size |
+| **Delayed** | DDE | Time-delayed coupling |
+| **SecondOrder** | Inertia + damping | Swing equations, power grids |
 
 ```
-IF F(t+1) > F(t) + tolerance THEN
-  IF has_dual_approval(operations, safety) THEN
-    log_override_with_approvals()
-    proceed()
-  ELSE
-    trigger_automated_rollback()
-    engage_kill_switch_authority()
-  END
-END
+Standard ODE:    dθᵢ/dt = ωᵢ + (K/N) · Σⱼ≠ᵢ sin(θⱼ − θᵢ)
+Adjacency ODE:   dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
+Order Parameter: R(t) = |1/N · Σⱼ exp(iθⱼ)| ∈ [0, 1]
 ```
 
-- **Rest Potential**: 1.0 (stabilised baseline)
-- **Action Potential**: 1.35 (maximum tolerable stress before kill-switch)
-- **Monotonic Tolerance**: 5×10⁻³
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `N` | 10 | Coupled oscillators (int >= 2) |
+| `K` | 1.0 | Global coupling strength |
+| `omega` | N(0,1) | Natural frequencies (rad/time) |
+| `dt` | 0.01 | RK4 integration step |
+| `steps` | 1000 | Integration steps |
+| `adjacency` | None | Weighted coupling matrix |
+| `theta0` | U(0, 2pi) | Initial phases |
+| `seed` | None | RNG seed for reproducibility |
 
-#### Protocol Hot-Swap
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
 
-Dynamic switching between communication protocols with admissibility guards:
+## Testing & Quality
 
-- **RDMA**: Low-latency, high-throughput (requires compatible hardware)
-- **CRDT**: Conflict-free replicated data types for eventual consistency
-- **gRPC**: Standard RPC with protobuf serialization
-- **Shared Memory**: Ultra-low latency for co-located services
-- **Gossip**: Epidemic protocol for distributed state synchronization
+```
+ 681 tests  ·  71% coverage (→ 98% target)  ·  6 test layers  ·  0 mypy errors
+```
 
-**Rollback Policy**: Any hot-swap that increases F beyond tolerance triggers automatic reversion within 30s.
-
-### Technical Classification
-
-| Aspect | Status | Verification |
-|--------|--------|--------------|
-| **TRL** | 7 (internal assessment, post-staging) | Staging load tests |
-| **Adaptation** | GA/RL with runtime monotonic gates | CI safety gates |
-| **Audit Trail** | 7-year retention (config present, production validation pending) | `.ci_artifacts/energy_validation.json` |
-| **Crisis Modes** | Adaptive recovery with severity escalation | `runtime/thermo_controller.py` |
-
-### Authorization for Exceptions
-
-Temporary exceptions to the energy budget require **dual approval**:
-
-1. **Thermodynamic Duty Officer** (rotating weekly)
-2. **Platform Staff Engineer** (responsible for affected cluster)
-
-Both approvals must be recorded in the release ticket with telemetry snapshots.
-
-📖 **TACL Documentation**: [docs/TACL.md](docs/TACL.md), [`tacl/`](tacl/), [`runtime/thermo_controller.py`](runtime/thermo_controller.py)
-
-📊 **Metrics Formalization**: [docs/thermodynamics/METRICS_FORMALIZATION.md](docs/thermodynamics/METRICS_FORMALIZATION.md)
-
-⚙️ **Operational Runbook**: [docs/thermodynamics/OPERATIONAL_RUNBOOK.md](docs/thermodynamics/OPERATIONAL_RUNBOOK.md)
-
----
-
-## 🧪 Testing & Quality
-
-> 📊 **Claims Registry**: All high-level quality, performance, and security claims are tracked in [docs/METRICS_CONTRACT.md](docs/METRICS_CONTRACT.md).
-
-GeoSync maintains multi-layer testing. Current coverage is ~71% (see [docs/project-status.md](docs/project-status.md)); CI is configured for a 98% critical-surface target that is still being activated while coverage expands. The testing strategies include:
-
-### Test Types
-
-- **Unit Tests**: Module-level validation (`tests/unit/`)
-- **Integration Tests**: End-to-end workflows (`tests/integration/`)
-- **Property-Based Tests**: Hypothesis-driven testing (`tests/property/`)
-- **Fuzz Tests**: Adversarial input testing (`tests/fuzz/`)
-- **Contract Tests**: API schema validation (`tests/contracts/`)
-- **Mutation Testing**: Test suite quality assurance
-
-### Running Tests
+<table>
+<tr>
+<td align="center" width="16%"><b>Unit</b><br><sub>tests/unit/</sub></td>
+<td align="center" width="16%"><b>Integration</b><br><sub>tests/integration/</sub></td>
+<td align="center" width="16%"><b>Property</b><br><sub>tests/property/</sub></td>
+<td align="center" width="16%"><b>Fuzz</b><br><sub>tests/fuzz/</sub></td>
+<td align="center" width="16%"><b>Contract</b><br><sub>tests/contracts/</sub></td>
+<td align="center" width="16%"><b>Mutation</b><br><sub>mutmut</sub></td>
+</tr>
+</table>
 
 ```bash
-# Run all tests
-pytest tests/
-
-# Fast feedback loop (skip slow tests)
-pytest tests/ -m "not slow"
-
-# With coverage report
-pytest tests/ --cov=core --cov=backtest --cov=execution --cov-report=html
-
-# Property-based tests only
-pytest tests/property/
-
-# Mutation testing
-mutmut run --use-coverage
-
-# UI dashboard smoke (canonical)
-cd ui/dashboard && npm test
+pytest tests/                          # full suite
+pytest tests/ -m "not slow"            # fast feedback
+pytest tests/property/                 # hypothesis-driven
+mutmut run --use-coverage              # mutation testing
+cd ui/dashboard && npm test            # UI smoke
 ```
 
-### CI/CD Merge Gates
+**CI Merge Gates**: ruff, mypy (strict), bandit, pip-audit, CodeQL, Semgrep, TruffleHog, CycloneDX SBOM generation.
 
-- **Test coverage**: CI configurations run `pytest -m "not flaky"` across unit, integration, property-based, fuzz, contracts, reliability, and e2e smoke suites. The critical-surface coverage target is 98%, but the enforcement gate is not yet active (current overall coverage ~71%).  
-- **Security & Quality**: Required workflows execute SAST (ruff, mypy, bandit, golangci-lint), dependency checks (`pip-audit` with `constraints/security.txt`), and SBOM generation/verification (CycloneDX) before merge.  
-- **Artifacts**: Coverage XML, mutation reports, and SBOMs are uploaded per run to document evidence for internal audits.
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
 
-### Coverage Status
+## Performance
 
-**Target Gate**: CI configuration sets a 98% line coverage goal on `core/`, `execution/`, `runtime/`, and `tacl/` using the critical-surface guardrail (`configs/quality/critical_surface.coveragerc` + `configs/quality/critical_surface.toml`), but enforcement is pending while coverage expands. Current snapshot: ~71% overall coverage (backtest ~74%, execution ~44%, core ~32%).  
-**Module Goals**: backtest (100%), execution (100%), core modules (90-95%) with branch coverage parity.
+> Design targets — NOT measured results. See [METRICS_CONTRACT.md](docs/METRICS_CONTRACT.md).
 
-To verify current coverage:
-```bash
-make test-coverage
-# View report: reports/coverage/index.html
+```
+  Backtesting throughput     1M+ bars/second
+  Order latency              < 5 ms (exchange-dependent)
+  Signal generation          < 1 ms (cached indicators)
+  Memory steady-state        ~ 200 MB live trading
+  Hot-path budget            > 30% → Rust accelerator fallback
 ```
 
-📊 **Full claims mapping**: [docs/METRICS_CONTRACT.md](docs/METRICS_CONTRACT.md)
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
 
----
+## Security
 
-## ⚡ Performance
+```
+  Framework       NIST SP 800-53  ·  ISO 27001  (design aligned)
+  Encryption      AES-256 at rest  ·  TLS 1.3 in transit
+  Secrets         HashiCorp Vault  ·  AWS Secrets Manager
+  Auth            JWT + MFA for admin operations
+  Compliance      GDPR · CCPA · SEC · FINRA patterns
+  Audit           400-day immutable append-only log
+  Supply chain    pinned SHA actions · dependency hash verification
+  CVE target      < 7-day remediation
+  Type safety     mypy strict · Pydantic 2.0 · 0 type errors
+```
 
-GeoSync is designed for low-latency, high-throughput trading operations.
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
 
-> ⚠️ **Design Targets Only**: Performance metrics below are architecture targets (status: `design_target`), NOT measured results.
-
-Instrumentation captures latency, memory, and compute budgets for data ingestion, execution, runtime orchestration, and dashboard queries via Prometheus/OpenTelemetry. Any code path consuming >30% of the hot-loop budget must ship (or fall back to) a Rust accelerator from [`rust/geosync-accel/`](rust/geosync-accel/).
-
-### Design Goals
-
-All claims below have status `design_target`. See [docs/METRICS_CONTRACT.md](docs/METRICS_CONTRACT.md) for definitions.
-
-- **Backtesting**: 1M+ bars/second throughput
-- **Live Trading**: Sub-5ms order latency (exchange dependent)
-- **Signal Generation**: Sub-1ms with cached indicators
-- **Memory**: ~200MB steady-state for live trading
-- **GPU Acceleration**: `planned` — CUDA kernels not implemented
-
-### Benchmarks
+## Deployment
 
 ```bash
-# Run performance benchmarks
-make perf
+# Docker Compose (dev/staging)
+cp .env.example .env && docker compose up -d
 
-# Run specific benchmark tests
-pytest tests/performance/test_indicator_benchmarks.py --benchmark-enable
+# Kubernetes (production)
+terraform -chdir=infra/terraform/eks apply -var-file=environments/production.tfvars
+kubectl apply -k deploy/kustomize/overlays/production
 ```
 
-📊 **Full claims mapping**: [docs/METRICS_CONTRACT.md](docs/METRICS_CONTRACT.md)
-
----
-
-## ⚙️ Configuration
-
-GeoSync uses **Hydra** for flexible, composable configuration management.
-
-📜 **Environment Charter**: Deterministic dependency/config/data rules live in [docs/ENVIRONMENT_CHARTER.md](docs/ENVIRONMENT_CHARTER.md).
-
-### Configuration Structure
-
-GeoSync uses three configuration directories, each with a specific purpose:
-
-- **`conf/`** — Hydra framework configs and experiment settings
-- **`config/`** — Core neuromodulator and thermodynamic system configs
-- **`configs/`** — Application and service-level configurations
-- **`envs/`** — Environment-specific settings
-- **`.env`** — Environment variables (not committed)
-
-For detailed information about each directory's purpose and usage, see [Configuration Structure Guide](docs/architecture/configuration_structure.md).
-
-### Example Configuration
-
-```yaml
-# config.yaml
-strategy:
-  name: momentum
-  capital: 100000
-
-data:
-  source: binance
-  symbols: [BTC/USDT, ETH/USDT]
-  timeframe: 1h
-
-execution:
-  slippage: 0.001
-  commission: 0.001
-
-risk:
-  max_position_pct: 0.2
-  stop_loss_pct: 0.02
-```
-
-### Command-Line Overrides
+**Configuration** via [Hydra](https://hydra.cc) — `conf/`, `config/`, `configs/`, `envs/`, `.env`. Override anything from CLI:
 
 ```bash
-# Override configuration from command line
 geosync run strategy.capital=200000 data.timeframe=4h
 ```
 
-📖 **Configuration Guide**: [docs/configuration.md](docs/configuration.md)
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
 
----
+## Technology Stack
 
-## 🚀 Deployment
+```
+  NUMERICAL       NumPy 2.3  ·  SciPy 1.16  ·  Pandas 2.3  ·  Numba 0.60
+  ML              PyTorch 2.1  ·  scikit-learn  ·  Optuna
+  GRAPH           NetworkX 3.5
+  API             FastAPI 0.120  ·  Strawberry GraphQL
+  DATABASE        PostgreSQL + SQLAlchemy 2.0  ·  Alembic
+  CACHE           Redis 7.0
+  MESSAGING       Apache Kafka (aiokafka)
+  OBSERVABILITY   Prometheus  ·  OpenTelemetry
+  CONFIGURATION   Hydra-core 1.3  ·  OmegaConf 2.3
+  VALIDATION      Pydantic 2.12  ·  Pandera 0.20
+  INFRASTRUCTURE  Docker  ·  Kubernetes  ·  Helm  ·  Terraform
+  ACCELERATION    Rust (geosync-accel)  ·  CuPy (GPU optional)
+  QUALITY         ruff · black · mypy · pytest · Hypothesis · mutmut
+```
 
-### Docker Compose (Development & Staging)
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
+
+## Project Status
+
+```
+  VERSION         v0.1.0   Pre-Production Beta
+  CORE ENGINE     stable   production-ready
+  INDICATORS      stable   50+ geometric + technical
+  BACKTESTING     stable   event-driven, walk-forward
+  LIVE TRADING    beta     active development
+  DASHBOARD       alpha    early preview
+  DOCUMENTATION   85%      170+ files
+```
+
+**Roadmap**
+
+```
+  Q1 2026         v1.0 production release
+  Q2 2026         options & derivatives support
+  Q3-Q4 2026      multi-asset portfolio optimization
+```
+
+**Path to v1.0**: 98% coverage gate activation, dashboard auth hardening, external security audit, P99 benchmark suite, SBOM publication.
+
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
+
+## Documentation
+
+<table>
+<tr>
+<td valign="top" width="50%">
+
+**Getting Started**
+- [Environment Setup](SETUP.md)
+- [Quickstart Guide](docs/quickstart.md)
+- [CLI Reference](docs/geosync_cli_reference.md)
+- [User Interaction Guide](docs/USER_INTERACTION_GUIDE.md)
+
+**Architecture**
+- [System Architecture](docs/ARCHITECTURE.md)
+- [Architecture Map](docs/ARCHITECTURE_MAP.md)
+- [ADR Records (19)](docs/adr/)
+- [Independent Models](docs/architecture/independent_models.md)
+
+</td>
+<td valign="top" width="50%">
+
+**Operations**
+- [Deployment Guide](DEPLOYMENT.md)
+- [Live Trading Runbook](docs/runbook_live_trading.md)
+- [Kill Switch Failover](docs/runbook_kill_switch_failover.md)
+- [Disaster Recovery](docs/runbook_disaster_recovery.md)
+
+**Research**
+- [Bibliography](docs/BIBLIOGRAPHY.md)
+- [Indicator Library](docs/indicators.md)
+- [TACL Documentation](docs/TACL.md)
+- [Metrics Contract](docs/METRICS_CONTRACT.md)
+
+</td>
+</tr>
+</table>
+
+[Institutional Overview](INSTITUTIONAL_OVERVIEW.md) | [Security Framework](docs/security/) | [Contributing](CONTRIBUTING.md) | [Full Documentation](docs/)
+
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
+
+## Contributing
 
 ```bash
-# Configure environment
-cp .env.example .env
-# Edit .env with your secrets
+git clone https://github.com/neuron7xLab/GeoSync.git && cd GeoSync
+python -m venv .venv && source .venv/bin/activate
+make dev-install
 
-# Start services
-docker compose up -d
-
-# Check status
-docker compose ps
-
-# View logs
-docker compose logs -f geosync
+make test          # core test suite
+make lint          # ruff + mypy + bandit
+make format        # black + isort
+make audit         # security audit
+make golden-path   # full workflow demo
+make help          # all commands
 ```
 
-### Kubernetes (Production)
+[Contributing Guide](CONTRIBUTING.md) | [Code of Conduct](CODE_OF_CONDUCT.md) | [Good First Issues](https://github.com/neuron7xLab/GeoSync/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
-```bash
-# Provision EKS cluster (Terraform)
-terraform -chdir=infra/terraform/eks init
-terraform -chdir=infra/terraform/eks workspace select production
-terraform -chdir=infra/terraform/eks apply -var-file=environments/production.tfvars
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
 
-# Deploy with Kustomize
-kubectl apply -k deploy/kustomize/overlays/production
-kubectl rollout status deployment/geosync-api -n geosync-production
-```
+## Risk Disclosure
 
-📖 **Deployment Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
+Trading financial instruments involves substantial risk of loss. GeoSync provides quantitative research infrastructure and execution tooling — it does not constitute investment advice, and no component guarantees profitable performance. Live trading modules are in pre-production beta. Backtested results do not guarantee future performance. Users bear full regulatory responsibility.
 
----
-
-## 🎯 Use Cases
-
-### Quantitative Researcher
-
-```python
-# Multi-scale indicator composition
-from geosync.indicators import MultiscaleKuramoto
-
-indicator = MultiscaleKuramoto(
-    scales=[5, 15, 60],  # Multi-timeframe analysis
-    coupling=0.7,
-)
-
-# Automatic feature versioning
-signals = indicator.compute(data, version="v2.1.0")
-```
-
-**Use for**: Strategy development, indicator research, pattern discovery, hypothesis testing
-
-### Algorithmic Trader
-
-```python
-# Real-time signal generation
-from geosync.live import LiveTrader
-
-trader = LiveTrader(
-    strategy=your_strategy,
-    exchange="binance",
-    mode="paper",  # Safe testing before live
-)
-trader.start()
-```
-
-**Use for**: Fast execution, real-time signals, live trading, mobile alerts
-
-### Infrastructure Engineer
-
-```python
-# Enterprise risk management
-from geosync.risk import RiskManager
-
-risk_manager = RiskManager(
-    max_position_size=100_000,
-    max_leverage=3.0,
-    stop_loss_pct=0.02,
-    compliance_checks=["mifid2", "position_limits"],
-)
-```
-
-**Use for**: Compliance, portfolio management, risk control, multi-strategy orchestration
-
----
-
-## 📈 Project Status & Roadmap
-
-### Current Version: v0.1.0
-
-**Status**: Pre-Production Beta — Core functionality stable, preparing for v1.0 release
-
-**Current Focus** (December 2025): Test coverage expansion, documentation finalization, dashboard hardening
-
-### Component Maturity
-
-| Component | Status | Stability |
-|-----------|--------|-----------|
-| **Core Engine** | ✅ Production Ready | Stable |
-| **Indicators (50+)** | ✅ Production Ready | Stable |
-| **Backtesting** | ✅ Production Ready | Stable |
-| **Live Trading** | 🔄 Beta | Active Development |
-| **Web Dashboard** | 🚧 Alpha | Early Preview |
-| **Documentation** | 🔄 In Progress | 85% Complete |
-
-### Development Roadmap
-
-- **Q4 2025 → Q1 2026**: Complete live trading module, finalize dashboard
-- **Q1 2026**: v1.0 production release preparation
-- **Q2 2026**: Options & derivatives support
-- **Q3-Q4 2026**: Multi-asset portfolio optimization and advanced features
-
-📖 **Full Roadmap**: [docs/roadmap.md](docs/roadmap.md)  
-📰 **Changelog**: [CHANGELOG.md](CHANGELOG.md)  
-📋 **Product Planning**: [PRODUCT_PAIN_SOLUTION.md](PRODUCT_PAIN_SOLUTION.md)
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Whether bug fixes, new features, or documentation improvements — every contribution matters.
-
-### Developer Workflow & Automation
-
-GeoSync provides standardized `make` commands for all development tasks:
-
-```bash
-# Setup development environment
-git clone https://github.com/neuron7xLab/GeoSync.git
-cd GeoSync
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Core commands
-make install       # Install all dependencies
-make test          # Run core test suite (fast, CI-safe)
-make lint          # Run all linters (Python + Go + shell)
-make format        # Auto-format code (black, isort, ruff)
-make audit         # Run security audits (bandit, pip-audit)
-make clean         # Remove cache and build artifacts
-
-# Extended commands
-make test-all      # Full test suite with coverage
-make test-fast     # Fast unit tests only
-make perf          # Performance benchmarks
-make e2e           # End-to-end smoke tests
-make docs          # Build documentation
-make release       # Local release build helper
-
-# View all available commands
-make help
-```
-
-**CI/CD Pipelines**:
-- 🧪 **tests.yml** — Comprehensive test suite for all PRs (lint, type-check, unit, integration, property tests)
-- 📊 **ci.yml** — Coverage tracking and mutation testing on main branch
-- 🔒 **security-policy-enforcement.yml** — Security scans for PRs
-- 🚀 **publish-python.yml** / **publish-image.yml** — Release automation on tagged versions
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
-
-### First-Time Contributors
-
-1. Browse [**good first issues**](https://github.com/neuron7xLab/GeoSync/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-2. Read the [**Contributing Guide**](CONTRIBUTING.md)
-3. Join our [**GitHub Discussions**](https://github.com/neuron7xLab/GeoSync/discussions)
-4. Submit your first PR!
-
-📖 **Contributing Guide**: [CONTRIBUTING.md](CONTRIBUTING.md)  
-🤝 **Code of Conduct**: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-
----
-
-## 📚 Documentation
-
-### Getting Started
-
-- [⚙️ Environment Setup](SETUP.md) — Development environment guide
-- [🚀 Quickstart Guide](docs/quickstart.md) — Step-by-step tutorials
-- [🖥️ User Interaction Guide](docs/USER_INTERACTION_GUIDE.md) — CLI, Dashboard, API
-
-### Technical Documentation
-
-- [🏗️ Architecture Overview](docs/ARCHITECTURE.md) — System design deep dive
-- [📡 API Reference](docs/api.md) — Complete API documentation
-- [📊 Indicator Library](docs/indicators.md) — Available indicators and usage
-- [🚀 Deployment Guide](DEPLOYMENT.md) — Production rollouts
-- [🧭 Requirements Traceability Matrix](docs/requirements/traceability_matrix.md) — Requirement-to-implementation mapping
-
-### Security & Operations
-
-- [🔐 Security Framework](docs/security/) — Comprehensive security documentation
-- [🛡️ Security Policy](SECURITY.md) — Vulnerability reporting
-- [⚙️ Operational Artifacts](docs/OPERATIONAL_ARTIFACTS_INDEX.md) — Production ops guide
-- [📋 Incident Playbooks](docs/incident_playbooks.md) — Response procedures
-
-📖 **Full Documentation**: [docs/](docs/)
-
----
-
-## 🌐 Community & Support
-
-### Documentation
-- [📖 User Guide](docs/quickstart.md)
-- [📡 API Reference](docs/api.md)
-- [❓ FAQ](docs/faq.md)
-- [🔧 Troubleshooting](docs/troubleshooting.md)
-
-### Community
-- [💬 GitHub Discussions](https://github.com/neuron7xLab/GeoSync/discussions) — Q&A, ideas, show & tell
-- [📚 Stack Overflow](https://stackoverflow.com/questions/tagged/geosync) — Tagged questions
-
-### Issues
-- [🐛 Bug Reports](https://github.com/neuron7xLab/GeoSync/issues/new?template=bug_report.md)
-- [✨ Feature Requests](https://github.com/neuron7xLab/GeoSync/issues/new?template=feature_request.md)
-- [🔒 Security Issues](SECURITY.md) — Private vulnerability reporting
-
----
-
-## 📜 License
-
-GeoSync is distributed under the **MIT License**.
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-
-📄 **Full License**: [LICENSE](LICENSE)
-
----
-
-## ⚠️ Risk Disclosure
-
-Trading financial instruments involves substantial risk of loss. GeoSync provides quantitative research infrastructure and execution tooling — it does not constitute investment advice, and no component of this platform guarantees profitable performance.
-
-- **Evaluation Mode**: Live trading modules are in pre-production beta. Institutional evaluation should begin in paper-trading mode to validate integration and signal behaviour before committing capital.
-- **No Performance Guarantee**: Backtested and simulated results do not guarantee future live performance. Walk-forward validation and out-of-sample testing are built into the platform to support rigorous evaluation.
-- **Due Diligence Required**: Institutions should perform independent technical review, compliance assessment, and strategy validation before any live deployment.
-- **Regulatory Responsibility**: Users are solely responsible for ensuring that use of this platform complies with all applicable securities laws and regulations in their jurisdiction.
-
-Past performance of simulated strategies does not guarantee future results.
-
-**For institutional licensing and evaluation terms, contact the GeoSync team.**
-
----
-
-## 🙏 Acknowledgments
-
-GeoSync is built with love using open source technology:
-
-**Core Stack**: Python, NumPy, pandas, FastAPI, Streamlit  
-**Analytics**: SciPy, scikit-learn, PyTorch, Numba  
-**Infrastructure**: Docker, Kubernetes, Prometheus, Redis  
-**Inspired by**: Zipline, Backtrader, QuantLib
-
-Special thanks to all [contributors](https://github.com/neuron7xLab/GeoSync/graphs/contributors) who have helped build GeoSync!
-
----
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
 
 <div align="center">
 
-**Made with precision by the GeoSync Team**
+```
+                            *       .        *       .       *
+                 .      *        .        *        .      *
+              *     .        *        .        *     .        *
+           .     *     .        *        .     *     .
+              *     .     *        .     *     .     *
+                 .     *     .     *     .     *
+                    *     .     *     .     *
+                       .     *     .     *
+                          *     .     *
+                             .     *
+                                *
+```
 
-[⬆️ Back to Top](#geosync)
+<br>
 
-© 2025 GeoSync Contributors. All rights reserved.
+**GeoSync** — Geometric Market Intelligence
+
+`neuron7xLab` · Poltava, Ukraine 🇺🇦
+
+[![MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat)](LICENSE)
+
+<sub>Built on peer-reviewed science. No heuristics. No black boxes.</sub>
 
 </div>
