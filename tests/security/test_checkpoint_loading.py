@@ -39,7 +39,7 @@ def test_build_model_prefers_safe_checkpoint_load(tmp_path: Path, monkeypatch) -
             calls["state"] = state
             calls["strict"] = strict
 
-    monkeypatch.setattr(geosync_unified, "GeoSync HydroV2", DummyModel)
+    monkeypatch.setattr(geosync_unified, "GeoSyncHydroV2", DummyModel)
 
     def fake_load(path, map_location=None, weights_only=None):  # type: ignore[override]
         calls["map_location"] = map_location

@@ -1,4 +1,4 @@
-"""Real-time monitoring utilities for GeoSync Hydro Unified System v2."""
+"""Real-time monitoring utilities for GeoSyncHydro Unified System v2."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 from .degradation import DegradationPolicy, apply_degradation
-from .model import GeoSync HydroV2
+from .model import GeoSyncHydroV2
 from .utils import AnomalyDetector, DataImputer, preprocess_window
 from .validator import GBStandardValidator
 
@@ -24,7 +24,7 @@ class RealTimeMonitor:
     ) -> None:
         self.cfg = cfg
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = GeoSync HydroV2(cfg, A_tensor).to(self.device).eval()
+        self.model = GeoSyncHydroV2(cfg, A_tensor).to(self.device).eval()
         if weights_path:
             obj = torch.load(
                 weights_path, map_location=self.device, weights_only=True

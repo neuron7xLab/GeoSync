@@ -1,4 +1,4 @@
-"""Utility helpers for GeoSync Hydro Unified System v2."""
+"""Utility helpers for GeoSyncHydro Unified System v2."""
 
 from __future__ import annotations
 

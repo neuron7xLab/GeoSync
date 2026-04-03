@@ -1,4 +1,4 @@
-"""Core model definition for GeoSync Hydro Unified System v2."""
+"""Core model definition for GeoSyncHydro Unified System v2."""
 
 from __future__ import annotations
 
@@ -120,7 +120,7 @@ class TemporalEncoder(nn.Module):
         return self.norm(a.squeeze(1))
 
 
-class GeoSync HydroV2(nn.Module):
+class GeoSyncHydroV2(nn.Module):
     """Unified spatial-temporal model with multi-head outputs."""
 
     def __init__(self, cfg: dict, A: torch.Tensor | None = None) -> None:
@@ -204,7 +204,7 @@ GEOSYNC_HYDRO_METADATA = register_model(
             "water_quality_mae": "pending",
         },
         model_type="spatiotemporal_gnn_tfm",
-        module="geosync_hydro.model.GeoSync HydroV2",
+        module="geosync_hydro.model.GeoSyncHydroV2",
         owners=("geosync_hydro", "risk-monitoring"),
         notes="Unified GNN+LSTM+Transformer backbone with flood/hydrology/quality heads.",
     )

@@ -1,4 +1,4 @@
-"""Synthetic dataset generation and loading utilities for GeoSync Hydro."""
+"""Synthetic dataset generation and loading utilities for GeoSyncHydro."""
 
 from __future__ import annotations
 

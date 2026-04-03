@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GeoSync Hydro Unified System v2 CLI, pipeline, and API entrypoints."""
+"""GeoSyncHydro Unified System v2 CLI, pipeline, and API entrypoints."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import yaml
 from torch import nn
 
 from geosync_hydro.data import generate_yangtze_npz, load_npz_dataset
-from geosync_hydro.model import GeoSync HydroV2
+from geosync_hydro.model import GeoSyncHydroV2
 from geosync_hydro.monitor import RealTimeMonitor
 from geosync_hydro.utils import save_checkpoint, setup_logging
 from geosync_hydro.validator import GBStandardValidator
@@ -27,8 +27,8 @@ def build_A(cfg: dict) -> torch.Tensor:
     return torch.tensor(adjacency, dtype=torch.float32)
 
 
-def build_model(cfg: dict, device: str, A_tensor: torch.Tensor) -> GeoSync HydroV2:
-    model = GeoSync HydroV2(cfg, A_tensor).to(device)
+def build_model(cfg: dict, device: str, A_tensor: torch.Tensor) -> GeoSyncHydroV2:
+    model = GeoSyncHydroV2(cfg, A_tensor).to(device)
     weights_path = cfg.get("weights")
     if weights_path and os.path.exists(weights_path):
         obj = torch.load(weights_path, map_location=device, weights_only=True)
@@ -37,7 +37,7 @@ def build_model(cfg: dict, device: str, A_tensor: torch.Tensor) -> GeoSync Hydro
     return model
 
 
-def make_optim(model: GeoSync HydroV2, cfg: dict):
+def make_optim(model: GeoSyncHydroV2, cfg: dict):
     opt = torch.optim.AdamW(
         model.parameters(),
         lr=cfg["training"]["lr"],
@@ -298,7 +298,7 @@ def serve(cfg_path: str) -> None:
         device=device,
     )
 
-    app = FastAPI(title="GeoSync Hydro Unified System v2")
+    app = FastAPI(title="GeoSyncHydro Unified System v2")
 
     class InferRequest(BaseModel):
         window: list
@@ -319,7 +319,7 @@ def preprocess_window(window: np.ndarray) -> torch.Tensor:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="GeoSync Hydro Unified System v2")
+    ap = argparse.ArgumentParser(description="GeoSyncHydro Unified System v2")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p_train = sub.add_parser("train")
     p_train.add_argument("--config", required=True)

@@ -1,4 +1,4 @@
-"""Standardized degradation handling for GeoSync Hydro v2 inference."""
+"""Standardized degradation handling for GeoSyncHydro v2 inference."""
 
 from __future__ import annotations
 

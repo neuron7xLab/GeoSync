@@ -27,7 +27,7 @@ def test_regulatory_validator_surfaces_black_swan_gaps(monkeypatch):
         "privacy_regulations": ["hipaa"],
         "iso_certifications": [],
         "nist_alignment": [],
-        "license": "MIT",
+        "license": "AGPL-3.0",
         "retention_policy_days": 0,
         "training_restrictions": ["market-data"],
         "intended_domains": ["mass_surveillance"],
@@ -42,7 +42,7 @@ def test_regulatory_validator_surfaces_black_swan_gaps(monkeypatch):
     errors = {issue.message for issue in report.issues if issue.severity == "error"}
     assert "Missing attestation for GDPR compliance" in errors
     assert "ISO alignment missing required certifications" in errors
-    assert "License MIT" in errors
+    assert "License AGPL-3.0 is restricted from use" in errors
 
     assert captured["events"][0][0] == "chaos.risk-compliance"
     attrs = captured["events"][0][1]

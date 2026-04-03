@@ -1,4 +1,4 @@
-"""Smoke tests for GeoSync HydroV2 output shapes."""
+"""Smoke tests for GeoSyncHydroV2 output shapes."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from geosync_hydro.model import GeoSync HydroV2  # noqa: E402 - after importorskip
+from geosync_hydro.model import GeoSyncHydroV2  # noqa: E402 - after importorskip
 
 
 def test_forward_shapes() -> None:
@@ -28,7 +28,7 @@ def test_forward_shapes() -> None:
         "training": {"dropout": 0.1},
     }
     A = torch.ones(4, 4)
-    model = GeoSync HydroV2(cfg, A)
+    model = GeoSyncHydroV2(cfg, A)
     X = torch.randn(2, 8, 4, 5)
     out = model(X)
     assert out["flood_logits"].shape == (2, 3)
