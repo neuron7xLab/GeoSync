@@ -50,6 +50,6 @@ streamlit>=1.31.0
 streamlit-authenticator>=0.3.1
 
 # Security: security-critical transitive dependencies are pinned via constraints/security.txt
-PyJWT[crypto]>=2.9.0
-cryptography>=46.0.3
+PyJWT[crypto]>=2.12.0
+cryptography>=46.0.6
 requests>=2.32.5

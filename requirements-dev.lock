@@ -6,7 +6,7 @@
 #
 aiodns==3.5.0
 aiohappyeyeballs==2.6.1
-aiohttp==3.13.0
+aiohttp==3.13.5
 aiokafka==0.12.0
 aiolimiter==1.2.1
 aiosignal==1.4.0
@@ -21,7 +21,7 @@ attrs==25.4.0
 bandit==1.8.6
 bashlex==0.18
 bcrypt==5.0.0
-black==25.9.0
+black==26.3.1
 blinker==1.9.0
 boolean-py==5.0
 bracex==2.6
@@ -39,7 +39,7 @@ cloudpickle==3.1.1
 colorama==0.4.6
 colorlog==6.10.1
 coverage==7.10.7
-cryptography==46.0.3
+cryptography==46.0.6
 cyclonedx-python-lib==9.1.0
 deap==1.4.3
 defusedxml==0.7.1
@@ -49,7 +49,7 @@ exchange-calendars==4.11.1
 execnet==2.1.1
 extra-streamlit-components==0.1.81
 fastapi==0.124.2
-filelock==3.20.1
+filelock==3.20.3
 flake8==7.1.1
 frozenlist==1.8.0
 fsspec==2025.12.0
@@ -138,7 +138,7 @@ pandas==2.3.3
 pandera==0.26.1
 patchelf==0.17.2.4
 pathspec==0.12.1
-pillow==11.3.0
+pillow==12.1.1
 pip-api==0.0.34
 pip-audit==2.9.0
 pip-requirements-parser==32.0.1
@@ -147,7 +147,7 @@ platformdirs==4.5.0
 pluggy==1.6.0
 prometheus-client==0.23.1
 propcache==0.4.1
-protobuf==6.32.1
+protobuf==6.33.5
 psutil==7.1.0
 psycopg==3.2.11
 psycopg-binary==3.2.11
@@ -165,7 +165,7 @@ pydeck==0.9.1
 pyelftools==0.32
 pyflakes==3.2.0
 pygments==2.19.2
-pyjwt==2.10.1
+pyjwt==2.12.0
 pyluach==2.3.0
 pyparsing==3.2.5
 pyproject-hooks==1.2.0
@@ -182,14 +182,14 @@ pytest-split==0.10.0
 pytest-xdist==3.8.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
-python-multipart==0.0.20
+python-multipart==0.0.22
 pytokens==0.1.10
 pytz==2025.2
 pyyaml==6.0.3
 readme-renderer==44.0
 redis==7.0.0
 referencing==0.37.0
-requests==2.32.5
+requests==2.33.0
 requests-toolbelt==1.0.0
 restnavigator==1.0.1
 rfc3986==2.0.0
@@ -212,7 +212,7 @@ sqlalchemy==2.0.44
 starlette==0.50.0
 stevedore==5.5.0
 strawberry-graphql==0.287.2
-streamlit==1.50.0
+streamlit==1.54.0
 streamlit-authenticator==0.4.2
 sympy==1.14.0
 tenacity==9.1.2
@@ -221,7 +221,7 @@ threadpoolctl==3.6.0
 toml==0.10.2
 toolz==1.0.0
 torch==2.9.1
-tornado==6.5.2
+tornado==6.5.5
 towncrier==25.8.0
 tqdm==4.67.1
 triton==3.5.1
@@ -234,7 +234,7 @@ tzdata==2025.2
 uc-micro-py==1.0.3
 unidecode==1.4.0
 uritemplate==4.2.0
-urllib3==2.6.0
+urllib3==2.6.3
 uvicorn==0.37.0
 watchdog==6.0.0
 websockets==15.0.1

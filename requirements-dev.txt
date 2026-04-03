@@ -1,7 +1,7 @@
 -r requirements.txt
 
 # Formatters & linters
-black==25.9.0
+black==26.3.1
 flake8==7.1.1
 isort==5.13.2
 ruff==0.14.0
@@ -38,7 +38,7 @@ pip>=25.2
 z3-solver>=4.13.0.0
 
 # Protocol buffers tooling
-protobuf==6.32.1
+protobuf==6.33.5
 
 # Packaging & release tooling
 build==1.3.0
