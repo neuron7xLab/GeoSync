@@ -93,9 +93,10 @@ class TestDeterminism:
     def test_explicit_omega_alone_ignores_seed(self) -> None:
         N = 5
         omega = np.linspace(-0.5, 0.5, N)
-        a = run_simulation(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=20, seed=1, omega=omega))
-        b = run_simulation(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=20, seed=9, omega=omega))
-        np.testing.assert_array_equal(a.order_parameter, b.order_parameter)
+        engine_a = KuramotoEngine(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=20, seed=1, omega=omega))
+        engine_b = KuramotoEngine(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=20, seed=9, omega=omega))
+        np.testing.assert_array_equal(engine_a._omega, engine_b._omega)
+        assert not np.array_equal(engine_a._theta0, engine_b._theta0)
 
     def test_explicit_theta0_alone_ignores_seed(self) -> None:
         N = 5
@@ -127,6 +128,8 @@ class TestValidation:
             KuramotoConfig(N=3, K=1.0, dt=0.01, steps=10, theta0=np.array([0.0, np.inf, 1.0]))
         with pytest.raises(ValueError, match="adjacency"):
             KuramotoConfig(N=4, K=1.0, dt=0.01, steps=10, adjacency=np.ones((3, 3)))
+        with pytest.raises(ValueError, match="adjacency"):
+            KuramotoConfig(N=3, K=1.0, dt=0.01, steps=10, adjacency=np.array([[0.0, 1.0, np.nan]] * 3))
 
     def test_seed_and_coupling_validation(self) -> None:
         with pytest.raises(ValueError, match="seed"):
@@ -235,6 +238,12 @@ class TestSummaryAndHelpers:
             KuramotoResult(phases=phases[:-1], order_parameter=order, time=time, config=default_cfg)
         with pytest.raises(ValueError, match="order_parameter"):
             KuramotoResult(phases=phases, order_parameter=order[:-1], time=time, config=default_cfg)
+        with pytest.raises(ValueError, match="time"):
+            KuramotoResult(phases=phases, order_parameter=order, time=time[:-1], config=default_cfg)
+        phases_bad = phases.copy()
+        phases_bad[0, 0] = np.nan
+        with pytest.raises(ValueError, match="non-finite"):
+            KuramotoResult(phases=phases_bad, order_parameter=order, time=time, config=default_cfg)
 
     def test_order_parameter_helper(self) -> None:
         assert _order_parameter(np.zeros(20)) == pytest.approx(1.0)

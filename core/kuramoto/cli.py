@@ -26,6 +26,10 @@ def cli() -> None:
     Coupling semantics:
       - Global topology (no adjacency input): K/N on all off-diagonal pairs.
       - Explicit adjacency topology: K scales the provided adjacency weights A_ij.
+
+    Seed semantics:
+      - Explicit --omega bypasses RNG for natural frequencies.
+      - Explicit --theta0 bypasses RNG for initial phases.
     """
 
 

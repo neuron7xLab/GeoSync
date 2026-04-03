@@ -21,6 +21,9 @@ def test_cli_quiet_summary_mode_contract() -> None:
         "summary": payload["summary"],
         "config": payload["config"],
     }
+    assert "order_parameter" not in payload
+    assert "time" not in payload
+    assert "phases" not in payload
 
 
 def test_cli_full_export_file_round_trip() -> None:
@@ -113,6 +116,16 @@ def test_cli_bad_omega_and_theta0_fail() -> None:
     assert "contains non-finite" in theta_result.output
 
 
+def test_cli_rejects_empty_list_entries_for_omega_and_theta0() -> None:
+    runner = CliRunner()
+    omega_result = runner.invoke(cli, ["simulate", "--omega", "1.0,,2.0"])
+    theta_result = runner.invoke(cli, ["simulate", "--theta0", "0.0, ,1.0"])
+    assert omega_result.exit_code != 0
+    assert theta_result.exit_code != 0
+    assert "contains an empty entry" in omega_result.output
+    assert "contains an empty entry" in theta_result.output
+
+
 def test_cli_adjacency_file_shape_mismatch_fails() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -153,3 +166,34 @@ def test_cli_edge_list_malformed_schema_and_weight_failures() -> None:
         assert "must contain an 'edges' array" in schema_result.output
         assert weight_result.exit_code != 0
         assert "non-finite weight" in weight_result.output
+
+
+def test_cli_edge_list_duplicate_edges_fail() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        with open("dup_edges.json", "w", encoding="utf-8") as handle:
+            json.dump(
+                {
+                    "edges": [
+                        {"source": 0, "target": 1, "weight": 0.3},
+                        {"source": 0, "target": 1, "weight": 0.7},
+                    ]
+                },
+                handle,
+            )
+        result = runner.invoke(
+            cli,
+            ["simulate", "--N", "2", "--edge-list-file", "dup_edges.json", "--quiet"],
+        )
+        assert result.exit_code != 0
+        assert "Duplicate edge" in result.output
+
+
+def test_cli_adjacency_file_malformed_json_fails() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        with open("bad.json", "w", encoding="utf-8") as handle:
+            handle.write('{"not": "valid"')
+        result = runner.invoke(cli, ["simulate", "--N", "2", "--adjacency-file", "bad.json", "--quiet"])
+        assert result.exit_code != 0
+        assert "Malformed JSON" in result.output
