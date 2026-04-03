@@ -513,22 +513,25 @@ CLI JSON exports include a stable `schema_version` field (`1` for this contract)
 - `time`
 - `phases`
 
-When `--quiet` and `--output` are both used, stdout and file payloads are byte-equivalent JSON serializations of the same object.
+When `--quiet` and `--output` are both used, stdout and file payloads represent the same JSON object (same keys and values).
 
 | Field | Shape | Description |
 |-------|-------|-------------|
 | `result.phases` | `(steps+1, N)` | Phase trajectories in radians |
 | `result.order_parameter` | `(steps+1,)` | Kuramoto R(t) ∈ [0, 1] |
 | `result.time` | `(steps+1,)` | Time axis: `time[k] = k * dt` |
-| `result.summary` | dict | Scalar stats plus `coupling_mode` and deterministic metadata (`seed`) |
+| `result.summary` | dict | Scalar stats plus `coupling_mode` and run metadata (`seed`) |
 
 ### Limitations and assumptions
 
 - The model assumes **identical oscillator mass** (no inertia term); the standard first-order Kuramoto ODE.
-- The **critical coupling** for all-to-all topology is K_c = 2·std(ω). Below K_c, the system remains desynchronised.
-- RK4 is unconditionally stable for small `dt` but may accumulate error for very large `dt`·`K` products. Keep `dt * K ≪ 1` for best accuracy.
+- No general critical-coupling guarantee is encoded by this package. Synchronisation thresholds depend on frequency distribution, finite-size effects, and topology; evaluate empirically for your specific setup.
+- This implementation uses explicit RK4. Accuracy and stability are step-size dependent; there is no unconditional stability guarantee. Validate convergence by reducing `dt` and checking that observables (for example `R(t)`) remain consistent.
 - Phase values are **not wrapped** to [−π, π] during integration; analysis on `result.phases` may require `np.mod(phases, 2π)` depending on use-case.
 - For large N (> 10 000) consider chunked computation; the current vectorised implementation uses an O(N²) coupling sum per step.
+- The current solver is **fixed-step first-order Kuramoto** only. Adaptive-step RK45/Dormand-Prince integration is not implemented in this package contract.
+- Time-delay coupling `τ_ij`, topology plasticity/evolving `A_ij`, second-order inertia terms (`m_i \ddot{θ}_i`), and automatic hysteresis/bifurcation scan modes are not part of the current public API.
+- Execution currently runs exactly the configured `steps`; there is no built-in early-stop criterion on `R(t)` variance in this subsystem.
 
 ---
 

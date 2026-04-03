@@ -26,6 +26,23 @@ def test_cli_quiet_summary_mode_contract() -> None:
     assert "phases" not in payload
 
 
+def test_cli_summary_stdout_file_parity() -> None:
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        out = "summary.json"
+        result = runner.invoke(
+            cli,
+            ["simulate", "--N", "4", "--steps", "5", "--quiet", "--export", "summary", "--seed", "7", "--output", out],
+        )
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        assert payload["summary"]["seed"] == 7
+        assert payload["summary"]["coupling_mode"] == "global"
+        with open(out, "r", encoding="utf-8") as handle:
+            file_payload = json.load(handle)
+        assert file_payload == payload
+
+
 def test_cli_full_export_file_round_trip() -> None:
     runner = CliRunner()
     with runner.isolated_filesystem():

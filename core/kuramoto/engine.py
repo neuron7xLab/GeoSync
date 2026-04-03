@@ -63,6 +63,9 @@ class KuramotoResult:
             raise ValueError("Result contains non-finite order_parameter values.")
         if not np.isfinite(self.time).all():
             raise ValueError("Result contains non-finite time values.")
+        tol = 1e-12
+        if np.any(self.order_parameter < -tol) or np.any(self.order_parameter > 1.0 + tol):
+            raise ValueError("Result order_parameter values must stay within [0, 1] (±1e-12 tolerance).")
 
     def _compute_summary(self) -> dict[str, Any]:
         R = self.order_parameter
