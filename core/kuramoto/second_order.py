@@ -39,6 +39,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .config import KuramotoConfig
+from .config import KuramotoConfig
 from .engine import KuramotoResult, _order_parameter
 
 __all__ = ["SecondOrderKuramotoEngine", "SecondOrderResult"]
@@ -46,24 +47,45 @@ __all__ = ["SecondOrderKuramotoEngine", "SecondOrderResult"]
 _logger = logging.getLogger(__name__)
 
 
-@dataclass(slots=True)
-class SecondOrderResult(KuramotoResult):
-    """Extended result with angular velocities (θ̇) and frequency metrics."""
+@dataclass
+class SecondOrderResult:
+    """Extended result wrapping KuramotoResult with velocity trajectories."""
 
-    velocities: NDArray[np.float64] = field(default_factory=lambda: np.empty(0))
+    base: KuramotoResult
+    velocities: NDArray[np.float64]
 
     def __post_init__(self) -> None:
-        super().__post_init__()
         if self.velocities.size > 0:
-            self.summary.update(self._compute_frequency_metrics())
+            self.base.summary.update(self._compute_frequency_metrics())
+
+    @property
+    def phases(self) -> NDArray[np.float64]:
+        return self.base.phases
+
+    @property
+    def order_parameter(self) -> NDArray[np.float64]:
+        return self.base.order_parameter
+
+    @property
+    def time(self) -> NDArray[np.float64]:
+        return self.base.time
+
+    @property
+    def config(self) -> KuramotoConfig:
+        return self.base.config
+
+    @property
+    def summary(self) -> dict[str, Any]:
+        return self.base.summary
 
     def _compute_frequency_metrics(self) -> dict[str, Any]:
         """Power-grid relevant metrics from velocity trajectories."""
         v = self.velocities
+        dt = self.base.config.dt
         return {
             "frequency_nadir": float(np.min(v)),
             "frequency_zenith": float(np.max(v)),
-            "max_rocof": float(np.max(np.abs(np.diff(v, axis=0) / self.config.dt))),
+            "max_rocof": float(np.max(np.abs(np.diff(v, axis=0) / dt))),
             "final_frequency_spread": float(np.std(v[-1])),
             "mean_frequency": float(np.mean(v[-1])),
             "settling_time_95pct": self._settling_time(v),
@@ -71,10 +93,11 @@ class SecondOrderResult(KuramotoResult):
 
     def _settling_time(self, v: NDArray[np.float64], threshold: float = 0.05) -> float:
         """Time for frequency spread to settle within threshold of final value."""
+        t = self.base.time
         final_spread = np.std(v[-1])
         for k in range(len(v) - 1, -1, -1):
             if np.std(v[k]) > final_spread + threshold:
-                return float(self.time[min(k + 1, len(self.time) - 1)])
+                return float(t[min(k + 1, len(t) - 1)])
         return 0.0
 
 
@@ -164,13 +187,13 @@ class SecondOrderKuramotoEngine:
             velocities[k + 1] = v
             R_arr[k + 1] = _order_parameter(theta)
 
-        return SecondOrderResult(
+        base = KuramotoResult(
             phases=phases,
             order_parameter=R_arr,
             time=time_arr,
             config=cfg,
-            velocities=velocities,
         )
+        return SecondOrderResult(base=base, velocities=velocities)
 
     def _coupling(self, theta: NDArray[np.float64]) -> NDArray[np.float64]:
         """Compute coupling forces Σ_j A_ij sin(θ_j - θ_i)."""
