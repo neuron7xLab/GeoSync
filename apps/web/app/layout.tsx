@@ -10,7 +10,7 @@ import { AuthProvider } from './auth/auth-provider'
 export const metadata: Metadata = {
   title: 'TradePulse Scenario Studio',
   description:
-    'Sanity-check strategy templates with guardrails before promoting them to production.',
+    'Validate and stress-test quantitative strategy scenarios with institutional guardrails before promoting to live execution.',
 }
 
 function LoadingFallback() {

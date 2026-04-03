@@ -46,7 +46,7 @@ function SignInFormFallback() {
 export const metadata: Metadata = {
   title: 'Sign in | TradePulse',
   description:
-    'Access the TradePulse Scenario Studio with secure token handling and refresh support.',
+    'Access TradePulse Scenario Studio — institutional quantitative research and scenario validation platform.',
 }
 
 export default function SignInPage() {
@@ -68,8 +68,8 @@ export default function SignInPage() {
               Welcome back
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Sign in to continue building resilient trading scenarios with guardrails and automatic
-              health insights.
+              Sign in to access TradePulse Scenario Studio — build, validate, and stress-test
+              quantitative strategies with institutional-grade guardrails.
             </Typography>
           </Stack>
           <SignInForm />
