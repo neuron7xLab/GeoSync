@@ -39,6 +39,9 @@ class Violation:
     reason: str
 
 
+_EXCLUDED_DIRS = frozenset({".venv", "venv", ".tox", "node_modules", "__pycache__"})
+
+
 def _discover_entrypoints(root: Path) -> set[Path]:
     discovered: set[Path] = set()
     for directory in ENTRYPOINT_DIRS:
@@ -47,6 +50,9 @@ def _discover_entrypoints(root: Path) -> set[Path]:
             for candidate in target.glob("*.py"):
                 discovered.add(candidate.resolve())
     for main_file in root.rglob("__main__.py"):
+        # Skip files inside excluded directories (e.g. .venv third-party packages)
+        if any(part in _EXCLUDED_DIRS for part in main_file.parts):
+            continue
         discovered.add(main_file.resolve())
     return discovered
 

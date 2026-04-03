@@ -1280,7 +1280,7 @@ class RiskManager(RiskController):
                 f"{new_position} > {self.limits.max_position}"
             )
             self._limit_violation_streak += 1
-            severe = abs(new_position) > (
+            severe = abs(new_position) >= (
                 self.limits.max_position * self.limits.kill_switch_limit_multiplier
             )
             if severe or (
@@ -1311,7 +1311,7 @@ class RiskManager(RiskController):
                 f"{projected_notional} > {self.limits.max_notional}"
             )
             self._limit_violation_streak += 1
-            severe = projected_notional > (
+            severe = projected_notional >= (
                 self.limits.max_notional * self.limits.kill_switch_limit_multiplier
             )
             if severe or (

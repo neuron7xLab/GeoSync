@@ -1234,6 +1234,37 @@
         "worker"
       ],
       "subsystem": "operations"
+    },
+    {
+      "name": "geosync_rl_modulation_scale",
+      "type": "gauge",
+      "description": "Effective modulation scale applied to RL updates",
+      "labels": [
+        "agent",
+        "component",
+        "signal"
+      ],
+      "subsystem": "rl"
+    },
+    {
+      "name": "geosync_rl_modulation_risk",
+      "type": "gauge",
+      "description": "Risk score derived for RL modulation controllers",
+      "labels": [
+        "agent",
+        "signal"
+      ],
+      "subsystem": "rl"
+    },
+    {
+      "name": "geosync_rl_modulation_arousal",
+      "type": "gauge",
+      "description": "Arousal boost component for RL modulation controllers",
+      "labels": [
+        "agent",
+        "signal"
+      ],
+      "subsystem": "rl"
     }
   ]
 }

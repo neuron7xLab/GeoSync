@@ -19,6 +19,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_ROOT = REPO_ROOT / "src" / "geosync"
 SHIM_PATHS = {REPO_ROOT / "geosync" / "__init__.py"}
 
+# Directories to skip during the broad ``__CANONICAL__`` flag scan so that
+# third-party packages (e.g. inside ``.venv``) are not inadvertently flagged.
+_EXCLUDED_DIRS = frozenset({".venv", "venv", ".tox", "node_modules", "__pycache__"})
+
 
 @dataclass(frozen=True)
 class Violation:
@@ -33,7 +37,7 @@ def _iter_canonical_inits(root: Path) -> Iterable[Path]:
 def _has_flag(path: Path, expected: bool) -> bool:
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, SyntaxError):
+    except (FileNotFoundError, SyntaxError, UnicodeDecodeError):
         return False
     for node in tree.body:
         if isinstance(node, ast.Assign):
@@ -75,6 +79,10 @@ def check_namespace_integrity(repo_root: Path = REPO_ROOT) -> list[Violation]:
             )
 
     for path in repo_root.rglob("*.py"):
+        # Skip third-party directories (e.g. .venv) – they must not declare
+        # __CANONICAL__ = True and we don't need to validate them.
+        if any(part in _EXCLUDED_DIRS for part in path.parts):
+            continue
         if path in SHIM_PATHS or path.is_relative_to(canonical_root):
             continue
         if _has_flag(path, True):
