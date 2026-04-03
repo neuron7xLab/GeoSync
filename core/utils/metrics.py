@@ -96,7 +96,11 @@ class MetricsCollector:
         """Initialize metrics collector.
 
         Args:
-            registry: Prometheus registry (uses default if None)
+            registry: Prometheus registry (uses default if None).  When None
+                and prometheus_client is available the implicit global
+                ``REGISTRY`` is resolved and stored so that subsequent
+                registry-identity checks (e.g. in the service factory) behave
+                correctly without attempting to re-register metrics.
         """
         if not PROMETHEUS_AVAILABLE:
             self._enabled = False
@@ -104,6 +108,17 @@ class MetricsCollector:
             return
 
         self._enabled = True
+        # Resolve the effective registry so self.registry is never None when
+        # prometheus_client is available.  This prevents service-layer checks
+        # (``if collector.registry is None:``) from incorrectly triggering a
+        # second MetricsCollector instantiation against the same global registry
+        # which would raise ``ValueError: Duplicated timeseries``.
+        if registry is None:
+            try:
+                from prometheus_client import REGISTRY as _global_registry
+                registry = _global_registry
+            except ImportError:  # pragma: no cover - prometheus_client not installed
+                pass
         self.registry = registry
         if self.registry is not None:
             multiprocess_dir = os.environ.get("PROMETHEUS_MULTIPROC_DIR")
@@ -2331,43 +2346,58 @@ class MetricsCollector:
         return candidate or default
 
 
-# Global metrics collector instance
+# Global metrics collector instance and per-registry cache.
+# The cache prevents duplicate metric registration when create_app() is called
+# multiple times (e.g. in different tests) with the same Prometheus registry.
 _collector: Optional[MetricsCollector] = None
+_collector_cache: dict[int, "MetricsCollector"] = {}
+
+
+_NO_PROMETHEUS_KEY: int = -1  # Sentinel cache key when prometheus_client is absent
+
+
+def _registry_cache_key(registry: Optional[Any]) -> int:
+    """Return a stable cache key for the effective registry.
+
+    When *registry* is ``None`` the prometheus_client default global
+    ``REGISTRY`` is used implicitly, so we resolve it here so that
+    ``get_metrics_collector(None)`` and
+    ``get_metrics_collector(REGISTRY)`` map to the same cache slot.
+    """
+    if registry is not None:
+        return id(registry)
+    try:
+        from prometheus_client import REGISTRY as _default_registry
+        return id(_default_registry)
+    except ImportError:  # pragma: no cover - prometheus_client not installed
+        return _NO_PROMETHEUS_KEY
 
 
 def get_metrics_collector(registry: Optional[Any] = None) -> MetricsCollector:
     """Get the global metrics collector instance.
 
+    Returns the same :class:`MetricsCollector` for a given Prometheus registry,
+    preventing duplicate metric registration when the factory is invoked
+    multiple times with the same (or equivalent) registry.
+
     Args:
-        registry: Prometheus registry (uses default if None)
+        registry: Prometheus registry (uses default global if None)
 
     Returns:
         MetricsCollector instance
     """
-    global _collector
-    if _collector is None:
-        _collector = MetricsCollector(registry)
-        return _collector
+    global _collector, _collector_cache
 
-    if registry is None:
-        return _collector
+    key = _registry_cache_key(registry)
+    cached = _collector_cache.get(key)
+    if cached is not None:
+        _collector = cached
+        return cached
 
-    try:  # pragma: no cover - optional dependency guard
-        from prometheus_client import REGISTRY as _default_registry
-    except Exception:  # pragma: no cover - defensive fallback
-        _default_registry = None
-
-    current_registry = _collector.registry
-    if registry is current_registry:
-        return _collector
-
-    # Treat a collector built with the implicit default registry as equivalent
-    # to the explicit global REGISTRY to avoid duplicate metric registration.
-    if current_registry is None and registry is _default_registry:
-        return _collector
-
-    _collector = MetricsCollector(registry)
-    return _collector
+    new_collector = MetricsCollector(registry)
+    _collector_cache[key] = new_collector
+    _collector = new_collector
+    return new_collector
 
 
 def start_metrics_server(port: int = 8000, addr: str = "") -> None:
