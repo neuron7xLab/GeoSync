@@ -411,9 +411,11 @@ The **Kuramoto simulation engine** (`core/kuramoto/`) implements the canonical c
 It integrates the Kuramoto ODE using 4th-order Runge-Kutta:
 
 ```
-dθᵢ/dt = ωᵢ + (K/N) · Σⱼ sin(θⱼ − θᵢ)       # global (all-to-all) coupling
+dθᵢ/dt = ωᵢ + (K/N) · Σⱼ≠ᵢ sin(θⱼ − θᵢ)      # global (all-to-all) coupling
 dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)        # explicit weighted adjacency (diagonal ignored)
 ```
+
+For exact no-self-coupling semantics, the implementation enforces a zero diagonal in both modes; equivalently, the global sum is over `j != i`.
 
 The **order parameter** R(t) ∈ [0, 1] measures instantaneous synchronisation:
 - R ≈ 0 → oscillators are fully desynchronised
@@ -494,11 +496,12 @@ tp-kuramoto simulate --N 50 --edge-list-file graph_edges.json --export summary -
 | `steps` | int ≥ 1 | 1000 | Number of integration steps |
 | `adjacency` | array(N,N) \| None | None | Weighted coupling matrix (`K` is a global scale). Diagonal is ignored |
 | `theta0` | array(N) \| None | None | Initial phases (rad). Drawn from U(0, 2π) if omitted |
-| `seed` | int \| None | None | RNG seed for reproducible random draws |
+| `seed` | int \| None | None | RNG seed for reproducible random draws when `omega`/`theta0` are omitted |
 
 ### Outputs
 
 CLI JSON exports include a stable `schema_version` field (`1` for this contract).
+`schema_version` increments only when the JSON payload contract changes incompatibly.
 
 `--export summary` returns only:
 - `schema_version`
@@ -509,6 +512,8 @@ CLI JSON exports include a stable `schema_version` field (`1` for this contract)
 - `order_parameter`
 - `time`
 - `phases`
+
+When `--quiet` and `--output` are both used, stdout and file payloads are byte-equivalent JSON serializations of the same object.
 
 | Field | Shape | Description |
 |-------|-------|-------------|

@@ -19,9 +19,16 @@ SCHEMA_VERSION = 1
 
 def parse_float_list(raw: str, *, option_name: str) -> NDArray[np.float64]:
     """Parse a comma-separated vector and reject empty/non-finite values."""
-    values = [chunk.strip() for chunk in raw.split(",") if chunk.strip()]
-    if not values:
+    chunks = raw.split(",")
+    if not chunks:
         raise ValueError(f"{option_name} must contain at least one numeric value.")
+    if any(not chunk.strip() for chunk in chunks):
+        raise ValueError(
+            f"{option_name} contains an empty entry. "
+            f"Use a strict comma-separated list such as '0.1,0.2,0.3'."
+        )
+
+    values = [chunk.strip() for chunk in chunks]
 
     try:
         vector = np.array([float(v) for v in values], dtype=np.float64)
@@ -39,6 +46,8 @@ def _load_json(path: Path) -> Any:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"Malformed JSON in {path}: {exc.msg}.") from exc
+    except OSError as exc:
+        raise ValueError(f"Failed to read JSON file {path}: {exc}.") from exc
 
 
 def load_adjacency_matrix(path: Path) -> NDArray[np.float64]:
@@ -47,9 +56,12 @@ def load_adjacency_matrix(path: Path) -> NDArray[np.float64]:
     if suffix == ".json":
         matrix = np.asarray(_load_json(path), dtype=np.float64)
     elif suffix in {".csv", ".txt"}:
-        matrix = np.loadtxt(path, delimiter=",", dtype=np.float64)
+        try:
+            matrix = np.loadtxt(path, delimiter=",", dtype=np.float64)
+        except ValueError as exc:
+            raise ValueError(f"Malformed delimited adjacency matrix in {path}: {exc}.") from exc
     elif suffix == ".npy":
-        matrix = np.load(path)
+        matrix = np.load(path, allow_pickle=False)
     else:
         raise ValueError(
             f"Unsupported adjacency file extension '{suffix}'. "
@@ -78,6 +90,7 @@ def load_edge_list(path: Path, n_oscillators: int) -> NDArray[np.float64]:
         raise ValueError("Edge-list JSON must contain an 'edges' array.")
 
     adj = np.zeros((n_oscillators, n_oscillators), dtype=np.float64)
+    seen_edges: set[tuple[int, int]] = set()
 
     for idx, edge in enumerate(edges):
         if not isinstance(edge, dict):
@@ -95,6 +108,9 @@ def load_edge_list(path: Path, n_oscillators: int) -> NDArray[np.float64]:
             raise ValueError(f"Edge ({source}, {target}) out of range for N={n_oscillators}.")
         if not np.isfinite(weight):
             raise ValueError(f"Edge ({source}, {target}) has non-finite weight.")
+        if (source, target) in seen_edges:
+            raise ValueError(f"Duplicate edge ({source}, {target}) is not allowed.")
+        seen_edges.add((source, target))
 
         adj[source, target] = weight
 
@@ -111,6 +127,20 @@ def export_payload(
     phases: NDArray[np.float64],
 ) -> dict[str, Any]:
     """Build deterministic JSON-safe payload for stdout and file export."""
+    if not np.isfinite(order_parameter).all() or not np.isfinite(time).all() or not np.isfinite(phases).all():
+        raise ValueError("Export payload requires finite trajectories.")
+    expected_steps = len(time)
+    if len(order_parameter) != expected_steps:
+        raise ValueError(
+            "Export payload shape mismatch: "
+            f"order_parameter has length {len(order_parameter)}, expected {expected_steps}."
+        )
+    if phases.ndim != 2 or phases.shape[0] != expected_steps:
+        raise ValueError(
+            "Export payload shape mismatch: "
+            f"phases has shape {phases.shape}, expected ({expected_steps}, N)."
+        )
+
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "summary": summary,
