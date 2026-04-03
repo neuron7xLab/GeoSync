@@ -32,6 +32,7 @@ The core approach: extract validated mechanisms from peer-reviewed sources (Kura
 - [System Architecture](#-system-architecture)
 - [Quick Start](#-quick-start)
 - [Usage Examples](#-usage-examples)
+- [Kuramoto ODE Simulation Engine](#-kuramoto-ode-simulation-engine)
 - [TACL: Thermodynamic Control Layer](#-tacl-thermodynamic-autonomic-control-layer)
 - [Testing & Quality](#-testing--quality)
 - [Performance](#-performance)
@@ -391,6 +392,115 @@ python -m interfaces.cli generate \
 ```
 
 📖 **CLI Reference**: [docs/tradepulse_cli_reference.md](docs/tradepulse_cli_reference.md)
+
+---
+
+## 🔄 Kuramoto ODE Simulation Engine
+
+The **Kuramoto simulation engine** (`core/kuramoto/`) implements the canonical coupled-oscillator model from synchronisation theory as a production-ready component.
+
+### What it does
+
+It integrates the Kuramoto ODE using 4th-order Runge-Kutta:
+
+```
+dθᵢ/dt = ωᵢ + (K/N) · Σⱼ sin(θⱼ − θᵢ)       # global (all-to-all) coupling
+dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)        # adjacency-matrix coupling
+```
+
+The **order parameter** R(t) ∈ [0, 1] measures instantaneous synchronisation:
+- R ≈ 0 → oscillators are fully desynchronised
+- R ≈ 1 → oscillators are perfectly in phase
+
+### Quick-start — Python API
+
+```python
+from core.kuramoto import KuramotoConfig, run_simulation
+
+# Configure (all parameters validated by Pydantic)
+cfg = KuramotoConfig(
+    N=50,        # number of oscillators
+    K=3.0,       # coupling strength (above critical = synchronises)
+    dt=0.01,     # RK4 integration step
+    steps=1000,  # number of time steps
+    seed=42,     # reproducible random draw of ω and θ₀
+)
+
+result = run_simulation(cfg)
+
+print(f"Phase trajectory shape : {result.phases.shape}")   # (1001, 50)
+print(f"Final R                : {result.order_parameter[-1]:.4f}")
+print(f"Mean  R                : {result.summary['mean_R']:.4f}")
+```
+
+**With explicit frequencies and adjacency matrix:**
+
+```python
+import numpy as np
+from core.kuramoto import KuramotoConfig, run_simulation
+
+N = 6
+# Custom natural frequencies (rad/s)
+omega = np.array([0.8, 1.0, 1.0, 1.2, 1.0, 0.9])
+
+# Ring-topology coupling matrix
+adj = np.zeros((N, N))
+for i in range(N):
+    adj[i, (i + 1) % N] = 1.0
+    adj[i, (i - 1) % N] = 1.0
+
+cfg = KuramotoConfig(N=N, K=2.0, dt=0.05, steps=500, omega=omega, adjacency=adj)
+result = run_simulation(cfg)
+```
+
+### Quick-start — CLI
+
+```bash
+# Default run (N=10, K=1.0, 1000 steps)
+tp-kuramoto simulate
+
+# Strongly coupled network with fixed seed
+tp-kuramoto simulate --N 50 --K 3.0 --steps 2000 --seed 42
+
+# Save full JSON output (includes order-parameter time-series)
+tp-kuramoto simulate --N 30 --K 2.5 --output result.json
+
+# Pipe summary JSON to jq
+tp-kuramoto simulate --N 100 --K 1.5 --quiet | jq .summary
+
+# Custom frequencies via CLI
+tp-kuramoto simulate --N 3 --omega "0.5,1.0,1.5" --K 2.0 --steps 500
+```
+
+### Parameter reference
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `N` | int ≥ 2 | 10 | Number of coupled oscillators |
+| `K` | float | 1.0 | Global coupling strength |
+| `omega` | array(N) \| None | None | Natural frequencies (rad/time). Drawn from N(0,1) if omitted |
+| `dt` | float > 0 | 0.01 | RK4 integration time-step |
+| `steps` | int ≥ 1 | 1000 | Number of integration steps |
+| `adjacency` | array(N,N) \| None | None | Weighted coupling matrix. Falls back to all-to-all if omitted |
+| `theta0` | array(N) \| None | None | Initial phases (rad). Drawn from U(0, 2π) if omitted |
+| `seed` | int \| None | None | RNG seed for reproducible random draws |
+
+### Outputs
+
+| Field | Shape | Description |
+|-------|-------|-------------|
+| `result.phases` | `(steps+1, N)` | Phase trajectories in radians |
+| `result.order_parameter` | `(steps+1,)` | Kuramoto R(t) ∈ [0, 1] |
+| `result.time` | `(steps+1,)` | Time axis: `time[k] = k * dt` |
+| `result.summary` | dict | Scalar stats: `final_R`, `mean_R`, `max_R`, `min_R`, `std_R` |
+
+### Limitations and assumptions
+
+- The model assumes **identical oscillator mass** (no inertia term); the standard first-order Kuramoto ODE.
+- The **critical coupling** for all-to-all topology is K_c = 2·std(ω). Below K_c, the system remains desynchronised.
+- RK4 is unconditionally stable for small `dt` but may accumulate error for very large `dt`·`K` products. Keep `dt * K ≪ 1` for best accuracy.
+- Phase values are **not wrapped** to [−π, π] during integration; analysis on `result.phases` may require `np.mod(phases, 2π)` depending on use-case.
+- For large N (> 10 000) consider chunked computation; the current vectorised implementation uses an O(N²) coupling sum per step.
 
 ---
 

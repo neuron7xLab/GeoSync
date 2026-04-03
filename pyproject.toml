@@ -135,6 +135,7 @@ gpu = [
 tradepulse-sync = "scripts.resilient_data_sync:main"
 tradepulse-db = "scripts.db_migrate:cli"
 tradepulse-server = "application.runtime.server:main"
+tp-kuramoto = "core.kuramoto.cli:main"
 
 [tool.setuptools.dynamic]
 readme = { file = "README.md", content-type = "text/markdown" }
