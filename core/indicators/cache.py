@@ -27,7 +27,7 @@ import os
 import pickle  # nosec B403 - guarded by restricted unpickler
 import shutil
 from dataclasses import dataclass, fields, is_dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path, PurePath
 from typing import TYPE_CHECKING, Any, Callable, Mapping, MutableMapping, Sequence
@@ -42,6 +42,7 @@ if TYPE_CHECKING:  # pragma: no cover - used only for type checking
     from .multiscale_kuramoto import TimeFrame
 
 _logger = get_logger(__name__)
+UTC = timezone.utc
 
 
 def _qualified_name(obj: type) -> str:
