@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package geosync.market.v1;
+
+option go_package = "github.com/GeoSync/GeoSync/libs/proto/gen/go/market;marketpb";
+
+import "google/protobuf/timestamp.proto";
+
+message Trade {
+  string symbol = 1;
+  double price = 2;
+  double quantity = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  bool is_buyer_maker = 5;
+  string trade_id = 6;
+}
+
+message OrderBookLevel {
+  double price = 1;
+  double quantity = 2;
+}
+
+message OrderBook {
+  string symbol = 1;
+  repeated OrderBookLevel bids = 2;
+  repeated OrderBookLevel asks = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  int64 last_update_id = 5;
+}
+
+message MarketFeatures {
+  string symbol = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  double vpin = 3;
+  double vpin_confidence = 4;
+  double obi = 5;
+  double obi_5_levels = 6;
+  double obi_10_levels = 7;
+  double toxicity_score = 8;
+  double adverse_selection = 9;
+  double volume_ratio = 10;
+  double buy_volume = 11;
+  double sell_volume = 12;
+  double realized_volatility = 13;
+  double parkinson_volatility = 14;
+}

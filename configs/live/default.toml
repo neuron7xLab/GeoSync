@@ -1,0 +1,76 @@
+# Default live trading configuration for GeoSync
+
+[loop]
+state_dir = "var/live_state"
+submission_interval = 0.25
+fill_poll_interval = 1.0
+heartbeat_interval = 10.0
+max_backoff = 60.0
+
+[risk]
+max_notional = 100000.0
+max_position = 10.0
+max_orders_per_interval = 120
+interval_seconds = 1.0
+kill_switch_limit_multiplier = 1.5
+kill_switch_violation_threshold = 3
+kill_switch_rate_limit_threshold = 3
+
+[metrics]
+port = 9000
+
+[[venues]]
+name = "binance"
+class = "execution.adapters.BinanceRESTConnector"
+sandbox = true
+
+  [venues.credentials]
+  env_prefix = "BINANCE"
+  required = ["API_KEY", "API_SECRET"]
+  optional = ["RECV_WINDOW"]
+
+    [venues.credentials.secret_backend]
+    adapter = "vault"
+    path_env = "BINANCE_VAULT_PATH"
+
+      [venues.credentials.secret_backend.field_mapping]
+      API_KEY = "api_key"
+      API_SECRET = "api_secret"
+      RECV_WINDOW = "recv_window"
+
+[[venues]]
+name = "coinbase"
+class = "execution.adapters.CoinbaseRESTConnector"
+sandbox = true
+
+  [venues.credentials]
+  env_prefix = "COINBASE"
+  required = ["API_KEY", "API_SECRET", "PASSPHRASE"]
+
+    [venues.credentials.secret_backend]
+    adapter = "kms"
+    path = "projects/sample/locations/global/keyRings/geosync/cryptoKeys/coinbase"
+
+      [venues.credentials.secret_backend.field_mapping]
+      API_KEY = "apiKey"
+      API_SECRET = "apiSecret"
+      PASSPHRASE = "passphrase"
+
+[[venues]]
+name = "kraken"
+class = "execution.adapters.KrakenRESTConnector"
+sandbox = true
+
+  [venues.credentials]
+  env_prefix = "KRAKEN"
+  required = ["API_KEY", "API_SECRET"]
+  optional = ["OTP"]
+
+    [venues.credentials.secret_backend]
+    adapter = "vault"
+    path_env = "KRAKEN_VAULT_PATH"
+
+      [venues.credentials.secret_backend.field_mapping]
+      API_KEY = "api_key"
+      API_SECRET = "api_secret"
+      OTP = "otp"

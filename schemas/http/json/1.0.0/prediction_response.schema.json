@@ -1,0 +1,257 @@
+{
+  "$defs": {
+    "PaginationMeta": {
+      "description": "Pagination envelope used by collection responses.",
+      "example": {
+        "cursor": null,
+        "limit": 50,
+        "next_cursor": "2025-01-01T00:00:00Z",
+        "returned": 50
+      },
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 0,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        },
+        "returned": {
+          "default": 0,
+          "title": "Returned",
+          "type": "integer"
+        }
+      },
+      "title": "PaginationMeta",
+      "type": "object"
+    },
+    "PredictionFilters": {
+      "description": "Echoed filter parameters for prediction responses.",
+      "example": {
+        "actions": [
+          "buy"
+        ],
+        "end_at": null,
+        "min_confidence": 0.6,
+        "start_at": "2025-01-01T00:00:00Z"
+      },
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/SignalAction"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "end_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End At"
+        },
+        "min_confidence": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Confidence"
+        },
+        "start_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start At"
+        }
+      },
+      "title": "PredictionFilters",
+      "type": "object"
+    },
+    "PredictionSnapshot": {
+      "description": "Snapshot of a derived signal at a point in time.",
+      "example": {
+        "score": 0.42,
+          "signal": {
+            "action": "buy",
+            "confidence": 0.78
+          },
+        "timestamp": "2025-01-01T00:00:30Z"
+      },
+      "properties": {
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "signal": {
+          "additionalProperties": true,
+          "title": "Signal",
+          "type": "object"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timestamp",
+        "score",
+        "signal"
+      ],
+      "title": "PredictionSnapshot",
+      "type": "object"
+    },
+    "SignalAction": {
+      "description": "Supported signal directives.",
+      "enum": [
+        "buy",
+        "sell",
+        "hold",
+        "exit"
+      ],
+      "title": "SignalAction",
+      "type": "string"
+    }
+  },
+  "description": "Response representing the generated trading signal.",
+  "examples": [
+    {
+      "filters": {
+        "actions": [
+          "buy"
+        ],
+        "end_at": null,
+        "min_confidence": 0.6,
+        "start_at": null
+      },
+      "generated_at": "2025-01-01T00:00:30Z",
+      "horizon_seconds": 900,
+      "items": [
+        {
+          "score": 0.42,
+          "signal": {
+            "action": "buy",
+            "confidence": 0.78
+          },
+          "timestamp": "2025-01-01T00:00:30Z"
+        }
+      ],
+      "pagination": {
+        "cursor": null,
+        "limit": 1,
+        "next_cursor": "2025-01-01T00:00:00Z",
+        "returned": 1
+      },
+      "score": 0.42,
+      "signal": {
+        "action": "buy",
+        "confidence": 0.78,
+        "rationale": "Composite heuristic weighting MACD trend..."
+      },
+      "symbol": "BTC-USD"
+    }
+  ],
+  "properties": {
+    "filters": {
+      "$ref": "#/$defs/PredictionFilters"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "horizon_seconds": {
+      "title": "Horizon Seconds",
+      "type": "integer"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/PredictionSnapshot"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "pagination": {
+      "$ref": "#/$defs/PaginationMeta"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Composite alpha score driving the primary action.",
+      "title": "Score"
+    },
+    "signal": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Primary trading signal at the head of the page.",
+      "title": "Signal"
+    },
+    "symbol": {
+      "title": "Symbol",
+      "type": "string"
+    }
+  },
+  "required": [
+    "symbol",
+    "horizon_seconds"
+  ],
+  "title": "PredictionResponse",
+  "type": "object"
+}

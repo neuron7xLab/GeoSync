@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "FillEvent",
+  "namespace": "geosync.events.execution.v1_0_0",
+  "doc": "Execution fill acknowledgment for an order.",
+  "fields": [
+    {"name": "event_id", "type": "string", "doc": "Globally unique identifier for idempotency."},
+    {"name": "schema_version", "type": "string", "doc": "Semantic version of the schema (major.minor.patch)."},
+    {"name": "symbol", "type": "string", "doc": "Trading symbol."},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-micros"}, "doc": "Fill timestamp."},
+    {"name": "order_id", "type": "string", "doc": "Parent order identifier."},
+    {"name": "fill_id", "type": "string", "doc": "Unique fill identifier."},
+    {"name": "status", "type": {"type": "enum", "name": "FillStatus", "symbols": ["PARTIAL", "FILLED", "CANCELLED"]}, "doc": "Fill status."},
+    {"name": "filled_qty", "type": "double", "doc": "Executed quantity."},
+    {"name": "fill_price", "type": "double", "doc": "Execution price."},
+    {"name": "fees", "type": ["null", "double"], "default": null, "doc": "Total fees for the fill."},
+    {"name": "liquidity", "type": ["null", {"type": "enum", "name": "FillLiquidity", "symbols": ["MAKER", "TAKER"]}], "default": null, "doc": "Liquidity flag."},
+    {"name": "metadata", "type": {"type": "map", "values": "string"}, "default": {}, "doc": "Auxiliary metadata."}
+  ]
+}

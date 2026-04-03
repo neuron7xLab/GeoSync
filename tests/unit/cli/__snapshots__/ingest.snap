@@ -1,0 +1,14 @@
+STDOUT+STDERR:
+[ingest] ▶ load config
+[ingest] ✓ load config (0.00s)
+[ingest] ▶ load source data
+[ingest] ✓ load source data (0.00s)
+[ingest] ▶ persist dataset
+[ingest] • wrote <TMP>/ingested.csv (sha256=<SHA>)
+[ingest] ✓ persist dataset (0.00s)
+[ingest] ▶ register catalog
+[ingest] • catalog checksum=442ea5f32acce99aa2b9b8c5f9a8fcf4f2d3428b872ef7cbfacbfbc27069b817
+[ingest] ✓ register catalog (0.00s)
+[ingest] ▶ snapshot version
+[ingest] ✓ snapshot version (0.00s)
+[ingest] completed records=6 dest=<TMP>/ingested.csv sha256=<SHA>

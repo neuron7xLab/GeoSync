@@ -1,0 +1,20 @@
+{
+  "geosync_api_requests_total": {
+    "type": "counter",
+    "monotonic": true,
+    "finite": true,
+    "min": 0.0
+  },
+  "geosync_api_request_latency_seconds": {
+    "type": "histogram",
+    "finite": true,
+    "min": 0.0,
+    "max": 100.0
+  },
+  "geosync_process_cpu_percent": {
+    "type": "gauge",
+    "finite": true,
+    "min": 0.0,
+    "max": 100.0
+  }
+}

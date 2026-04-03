@@ -1,0 +1,69 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+template: |
+  ## 🚀 Highlights
+  $CHANGES
+
+  ## 🔖 Release metadata
+  - Release: v$RESOLVED_VERSION
+  - Previous tag: $PREVIOUS_TAG
+  - Next semantic target: $NEXT_PATCH_VERSION / $NEXT_MINOR_VERSION / $NEXT_MAJOR_VERSION
+
+  ## 🙌 Contributors
+  $CONTRIBUTORS
+
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+  - title: '🐛 Fixes'
+    labels:
+      - 'bug'
+  - title: '🧹 Maintenance'
+    labels:
+      - 'chore'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+no-changes-template: 'No changes in this release.'
+latest: 'true'
+version-resolver:
+  major:
+    labels:
+      - 'breaking'
+      - 'semver:major'
+  minor:
+    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'semver:minor'
+  patch:
+    labels:
+      - 'bug'
+      - 'chore'
+      - 'semver:patch'
+      - 'documentation'
+  default: patch
+autolabeler:
+  - label: 'feature'
+    title:
+      - '/^feat/i'
+    branch:
+      - '/feature\//i'
+  - label: 'bug'
+    title:
+      - '/^fix/i'
+      - '/bug/i'
+    branch:
+      - '/hotfix\//i'
+  - label: 'chore'
+    title:
+      - '/^chore/i'
+      - '/^build/i'
+    files:
+      - 'docs/**'
+      - 'configs/**'
+      - '.github/**'
+max-prs: 200
+max-issues: 0
+sort-by: merged_at
+sort-direction: descending

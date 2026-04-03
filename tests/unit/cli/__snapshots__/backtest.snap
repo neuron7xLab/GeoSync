@@ -1,0 +1,14 @@
+STDOUT+STDERR:
+[backtest] ▶ load config
+[backtest] ✓ load config (0.00s)
+[backtest] ▶ run backtest
+[backtest] ✓ run backtest (0.00s)
+[backtest] ▶ persist results
+[backtest] • wrote <TMP>/backtest.json (sha256=<SHA>)
+[backtest] ✓ persist results (0.00s)
+[backtest] ▶ register catalog
+[backtest] • catalog checksum=6d42fdf34e851ec769a77c2051c93075d75a3cbf012babc1302f6e46df851c45
+[backtest] ✓ register catalog (0.00s)
+[backtest] ▶ snapshot version
+[backtest] ✓ snapshot version (0.00s)
+[backtest] completed stats={"max_drawdown": 0.0, "total_return": 0.07936686186557777, "trades": 3} sha256=<SHA>

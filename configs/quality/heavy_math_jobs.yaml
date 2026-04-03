@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: MIT
+jobs:
+  kuramoto_validation:
+    description: "Cross-check Kuramoto multi-scale outputs against golden dataset"
+    entrypoint: "python scripts/integrate_kuramoto_ricci.py --mode kuramoto --config configs/kuramoto_ricci_composite.yaml"
+    resources:
+      cpu: "4"
+      memory: "8Gi"
+      gpu: "optional"
+      timeout: "20m"
+    artifacts:
+      - reports/heavy_math/kuramoto/metrics.json
+      - reports/heavy_math/kuramoto/timeseries.parquet
+    blocking: true
+    markers:
+      - heavy_math
+      - ci
+  ricci_curvature_validation:
+    description: "Validate Ricci curvature integrator with stress dataset"
+    entrypoint: "python scripts/integrate_kuramoto_ricci.py --mode ricci --config configs/kuramoto_ricci_composite.yaml"
+    resources:
+      cpu: "6"
+      memory: "12Gi"
+      timeout: "25m"
+    artifacts:
+      - reports/heavy_math/ricci/metrics.json
+      - reports/heavy_math/ricci/timeseries.parquet
+    blocking: true
+    markers:
+      - heavy_math
+      - ci
+  hurst_long_memory_validation:
+    description: "Ensure Hurst exponent stability on long-memory sequences"
+    entrypoint: "python scripts/integrate_kuramoto_ricci.py --mode hurst --config configs/kuramoto_ricci_composite.yaml"
+    resources:
+      cpu: "4"
+      memory: "6Gi"
+      timeout: "15m"
+    artifacts:
+      - reports/heavy_math/hurst/metrics.json
+      - reports/heavy_math/hurst/timeseries.parquet
+    blocking: true
+    markers:
+      - heavy_math
+      - ci

@@ -1,0 +1,18 @@
+{
+  "notice": "Sensitive scan artifacts have been redacted to remove secrets, PII, and internal identifiers.",
+  "regenerate": "Regenerate locally using the repo guard scripts (e.g., `scripts/guards/key_material_guard.sh`) or follow the documented security scan workflow in audit/README.md.",
+  "findings_summary": [
+    {
+      "id": "tls-dev-private-keys",
+      "status": "redacted",
+      "location": "configs/tls/dev/*.key.pem",
+      "reason": "contained private key material"
+    },
+    {
+      "id": "sample-connection-strings",
+      "status": "redacted",
+      "location": "tests/*",
+      "reason": "contained placeholder database URIs; regenerate locally for scanning context"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+version: v2
+modules:
+  - path: libs/proto
+lint:
+  use: [DEFAULT]
+breaking:
+  use: [FILE]

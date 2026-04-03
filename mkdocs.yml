@@ -1,0 +1,169 @@
+# SPDX-License-Identifier: MIT
+site_name: GeoSync
+site_description: Advanced algorithmic trading framework with geometric market indicators
+site_author: GeoSync Contributors
+site_url: https://geosync.github.io
+
+repo_name: neuron7xLab/GeoSync
+repo_url: https://github.com/neuron7xLab/GeoSync
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - User Onboarding: onboarding.md
+      - Quick Start: quickstart.md
+      - Docker Quick Start: docker-quickstart.md
+      - Installation: quickstart.md
+      - FAQ: faq.md
+      - Troubleshooting: troubleshooting.md
+  - Core Concepts:
+      - Architecture:
+          - Architecture Blueprint: ARCHITECTURE.md
+          - Conceptual Architecture: architecture/CONCEPTUAL_ARCHITECTURE.md
+          - Conceptual Architecture (UA): CONCEPTUAL_ARCHITECTURE_UA.md
+          - System Diagrams: architecture/system_overview.md
+          - Feature Store: architecture/feature_store.md
+          - Architecture Review Program: architecture/architecture_review_program.md
+      - Indicators:
+          - Overview: indicators.md
+          - Adaptive Market Mind: indicators/amm.md
+      - Agent System: agent.md
+      - Backtesting: backtest.md
+      - Execution: execution.md
+      - FPM-A Framework: FPM-A.md
+      - NeuroEcon Package: neuroecon.md
+  - Developer Guides:
+      - Extending GeoSync: extending.md
+      - Integration API: integration-api.md
+      - Configuration: configuration.md
+      - Developer Productivity Program: developer_productivity_program.md
+      - GitHub Actions Automation: github_actions_automation.md
+      - Developer Scenarios:
+          - Overview: scenarios.md
+          - Scenario Template: scenario_template.md
+      - Technical Debt Playbook: technical-debt.md
+      - Testing Guide: ../TESTING.md
+      - Contributing: ../CONTRIBUTING.md
+      - CLI Reference: cli.md
+  - Cookbooks:
+      - Backtest to Live: cookbook_backtest_live.md
+  - Product Experience:
+      - UI Performance Playbook: performance.md
+      - Accessibility Playbook: accessibility.md
+      - What-If Exploration Mode: ui_what_if.md
+  - Operations:
+      - Monitoring: monitoring.md
+      - Scaling: scaling.md
+      - Chaos Testing (GameDay): resilience.md
+      - Reliability Targets: reliability.md
+      - Communication Strategy System: communication_strategy.md
+      - Zero-Downtime Schema Migrations: zero_downtime_schema_migrations.md
+      - Incident Playbooks: incident_playbooks.md
+      - Live Trading Runbook: runbook_live_trading.md
+      - Data Incident Runbook: runbook_data_incident.md
+      - Release Validation Runbook: runbook_release_validation.md
+      - Governance and Data Controls: governance.md
+      - Dataset Catalog: dataset_catalog.md
+      - Feature Catalog: feature_catalog.md
+      - Deployment: deployment.md
+      - MLOps Orchestration: devops/mlops-orchestration.md
+      - Canary Release Guardrails: canary_release_guardrails.md
+  - Security:
+      - Program Overview: ../SECURITY.md
+      - Production Security Architecture: security/architecture.md
+      - Identity and Access Management: security/iam.md
+      - Data Loss Prevention & Retention: security/dlp_and_retention.md
+      - Security Hardening Program: security/hardening.md
+      - Rate Limits & Host Protection: rate-limits-and-host-protection.md
+  - Governance Records:
+      - Architecture Decision Records: adr/index.md
+  - Reference:
+      - API Reference: integration-api.md
+      - Indicators Reference: indicators.md
+      - Examples: examples/
+  - Quality Management:
+      - DoR & DoD Checklist: quality-dor-dod.md
+      - Quality Gates: quality_gates.md
+      - Documentation Governance: documentation_governance.md
+      - Documentation Standardisation Playbook: documentation_standardisation_playbook.md
+      - Documentation Quality Metrics: documentation_quality_metrics.md
+      - Documentation Information Architecture: documentation_information_architecture.md
+
+markdown_extensions:
+  - admonition
+  - codehilite:
+      guess_lang: false
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - attr_list
+  - md_in_html
+  - def_list
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  - minify:
+      minify_html: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/neuron7xLab/GeoSync
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/geosync/
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/animations.js
+
+copyright: Copyright &copy; 2024 GeoSync Contributors

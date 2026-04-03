@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "FeatureResult",
+  "description": "Result from a feature/indicator transformation. Contains the computed value, metadata, and feature name.",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "value": {},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "name",
+    "value"
+  ]
+}

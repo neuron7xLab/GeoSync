@@ -1,0 +1,18 @@
+name: sample_exec_job
+description: Example execution configuration
+tags:
+  - exec
+data:
+  kind: csv
+  path: data/sample.csv
+  timestamp_field: timestamp
+  value_field: price
+strategy:
+  entrypoint: core.strategies.signals:threshold_signal
+  parameters:
+    threshold: 0.0
+results_path: reports/exec.json
+catalog:
+  path: data/feature_catalog.json
+versioning:
+  backend: none

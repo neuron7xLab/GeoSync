@@ -1,0 +1,26 @@
+{
+  "type": "record",
+  "name": "TickEvent",
+  "namespace": "geosync.events.marketdata.v1_0_0",
+  "doc": "Real-time market tick update for a single symbol.",
+  "fields": [
+    {"name": "event_id", "type": "string", "doc": "Globally unique identifier for idempotency."},
+    {"name": "schema_version", "type": "string", "doc": "Semantic version of the schema (major.minor.patch)."},
+    {"name": "symbol", "type": "string", "doc": "Trading symbol (e.g. EURUSD, AAPL)."},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-micros"}, "doc": "Event timestamp in microseconds since epoch."},
+    {"name": "bid_price", "type": "double", "doc": "Best bid price."},
+    {"name": "ask_price", "type": "double", "doc": "Best ask price."},
+    {"name": "last_price", "type": ["null", "double"], "default": null, "doc": "Last traded price if available."},
+    {"name": "volume", "type": ["null", "long"], "default": null, "doc": "Trade volume associated with the tick."},
+    {"name": "microstructure", "type": ["null", {
+      "type": "record",
+      "name": "TickMicrostructure",
+      "doc": "Order book context captured alongside the tick.",
+      "fields": [
+        {"name": "bid_size", "type": ["null", "long"], "default": null, "doc": "Aggregated best bid size."},
+        {"name": "ask_size", "type": ["null", "long"], "default": null, "doc": "Aggregated best ask size."},
+        {"name": "trade_condition", "type": ["null", "string"], "default": null, "doc": "Venue-provided trade condition or quote qualifier."}
+      ]
+    }], "default": null, "doc": "Optional microstructure metadata."}
+  ]
+}

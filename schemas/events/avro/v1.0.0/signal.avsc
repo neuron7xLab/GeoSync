@@ -1,0 +1,17 @@
+{
+  "type": "record",
+  "name": "SignalEvent",
+  "namespace": "geosync.events.signals.v1_0_0",
+  "doc": "Generated trading signal with metadata and routing hints.",
+  "fields": [
+    {"name": "event_id", "type": "string", "doc": "Globally unique identifier for idempotency."},
+    {"name": "schema_version", "type": "string", "doc": "Semantic version of the schema (major.minor.patch)."},
+    {"name": "symbol", "type": "string", "doc": "Trading symbol."},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-micros"}, "doc": "Signal emission timestamp."},
+    {"name": "signal_type", "type": "string", "doc": "Type of signal (momentum, mean_reversion, etc)."},
+    {"name": "strength", "type": "double", "doc": "Normalized confidence [-1,1]."},
+    {"name": "direction", "type": {"type": "enum", "name": "SignalDirection", "symbols": ["BUY", "SELL", "FLAT"]}, "doc": "Directional intent."},
+    {"name": "ttl_seconds", "type": ["null", "int"], "default": null, "doc": "Time-to-live for the signal."},
+    {"name": "metadata", "type": {"type": "map", "values": "string"}, "default": {}, "doc": "Arbitrary key/value metadata."}
+  ]
+}

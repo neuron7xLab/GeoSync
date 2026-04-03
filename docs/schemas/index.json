@@ -1,0 +1,9 @@
+{
+  "schemas": [
+    "FeatureResult",
+    "BacktestResult",
+    "Ticker"
+  ],
+  "version": "1.0.0",
+  "base_url": "/schemas/"
+}

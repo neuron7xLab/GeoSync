@@ -1,0 +1,10 @@
+{
+  "issues": [
+    {
+      "code": "missing",
+      "message": "metric missing from scrape",
+      "metric": "geosync_process_cpu_percent"
+    }
+  ],
+  "regression_baseline_errors": []
+}

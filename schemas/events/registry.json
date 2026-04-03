@@ -1,0 +1,79 @@
+{
+  "events": {
+    "ticks": {
+      "latest": "1.0.0",
+      "subject": "geosync.market.ticks.v1_0_0",
+      "namespace": "geosync.events.marketdata.v1_0_0",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "subject": "geosync.market.ticks.v1_0_0",
+          "namespace": "geosync.events.marketdata.v1_0_0",
+          "avro": "avro/v1.0.0/tick.avsc",
+          "json_schema": "json/1.0.0/ticks.schema.json",
+          "protobuf": "../../libs/proto/events.proto"
+        }
+      ]
+    },
+    "bars": {
+      "latest": "1.0.0",
+      "subject": "geosync.market.bars.v1_0_0",
+      "namespace": "geosync.events.marketdata.v1_0_0",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "subject": "geosync.market.bars.v1_0_0",
+          "namespace": "geosync.events.marketdata.v1_0_0",
+          "avro": "avro/v1.0.0/bar.avsc",
+          "json_schema": "json/1.0.0/bars.schema.json",
+          "protobuf": "../../libs/proto/events.proto"
+        }
+      ]
+    },
+    "signals": {
+      "latest": "1.0.0",
+      "subject": "geosync.signals.generated.v1_0_0",
+      "namespace": "geosync.events.signals.v1_0_0",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "subject": "geosync.signals.generated.v1_0_0",
+          "namespace": "geosync.events.signals.v1_0_0",
+          "avro": "avro/v1.0.0/signal.avsc",
+          "json_schema": "json/1.0.0/signals.schema.json",
+          "protobuf": "../../libs/proto/events.proto"
+        }
+      ]
+    },
+    "orders": {
+      "latest": "1.0.0",
+      "subject": "geosync.execution.orders.v1_0_0",
+      "namespace": "geosync.events.execution.v1_0_0",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "subject": "geosync.execution.orders.v1_0_0",
+          "namespace": "geosync.events.execution.v1_0_0",
+          "avro": "avro/v1.0.0/order.avsc",
+          "json_schema": "json/1.0.0/orders.schema.json",
+          "protobuf": "../../libs/proto/events.proto"
+        }
+      ]
+    },
+    "fills": {
+      "latest": "1.0.0",
+      "subject": "geosync.execution.fills.v1_0_0",
+      "namespace": "geosync.events.execution.v1_0_0",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "subject": "geosync.execution.fills.v1_0_0",
+          "namespace": "geosync.events.execution.v1_0_0",
+          "avro": "avro/v1.0.0/fill.avsc",
+          "json_schema": "json/1.0.0/fills.schema.json",
+          "protobuf": "../../libs/proto/events.proto"
+        }
+      ]
+    }
+  }
+}

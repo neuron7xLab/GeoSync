@@ -1,0 +1,24 @@
+defaults:
+  - experiment: dev
+  - desensitization: default
+  - nak: default
+  - _self_
+
+project:
+  name: "GeoSync"
+  description: "Unified Hydra configuration for GeoSync analytics experiments."
+
+reproducibility:
+  enforce_python_hash_seed: true
+  numpy_print_precision: 8
+
+hydra:
+  run:
+    dir: ${oc.env:HYDRA_RUN_DIR, outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}_${experiment.name}}
+  sweep:
+    dir: ${oc.env:HYDRA_SWEEP_DIR, multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}_${experiment.name}}
+    subdir: ${hydra.job.num}
+  job:
+    chdir: true
+    name: geosync_${experiment.name}
+  output_subdir: ${experiment.name}

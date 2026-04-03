@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package geosync.events;
+
+import "google/protobuf/wrappers.proto";
+
+option go_package = "github.com/geosync/gen/events";
+
+message TickEventV1 {
+  string event_id = 1;
+  string schema_version = 2;
+  string symbol = 3;
+  int64 timestamp = 4;
+  double bid_price = 5;
+  double ask_price = 6;
+  google.protobuf.DoubleValue last_price = 7;
+  google.protobuf.Int64Value volume = 8;
+  TickMicrostructure microstructure = 9;
+}
+
+message TickMicrostructure {
+  google.protobuf.Int64Value bid_size = 1;
+  google.protobuf.Int64Value ask_size = 2;
+  google.protobuf.StringValue trade_condition = 3;
+}
+
+message BarEventV1 {
+  string event_id = 1;
+  string schema_version = 2;
+  string symbol = 3;
+  int64 timestamp = 4;
+  string interval = 5;
+  double open = 6;
+  double high = 7;
+  double low = 8;
+  double close = 9;
+  double volume = 10;
+  google.protobuf.DoubleValue vwap = 11;
+  google.protobuf.Int64Value trade_count = 12;
+}
+
+enum SignalDirection {
+  SIGNAL_DIRECTION_BUY = 0;
+  SIGNAL_DIRECTION_SELL = 1;
+  SIGNAL_DIRECTION_FLAT = 2;
+}
+
+message SignalEventV1 {
+  string event_id = 1;
+  string schema_version = 2;
+  string symbol = 3;
+  int64 timestamp = 4;
+  string signal_type = 5;
+  double strength = 6;
+  SignalDirection direction = 7;
+  google.protobuf.Int32Value ttl_seconds = 8;
+  map<string, string> metadata = 9;
+}
+
+enum OrderSide {
+  ORDER_SIDE_BUY = 0;
+  ORDER_SIDE_SELL = 1;
+}
+
+enum OrderType {
+  ORDER_TYPE_MARKET = 0;
+  ORDER_TYPE_LIMIT = 1;
+  ORDER_TYPE_STOP = 2;
+  ORDER_TYPE_STOP_LIMIT = 3;
+}
+
+enum TimeInForce {
+  TIME_IN_FORCE_GTC = 0;
+  TIME_IN_FORCE_DAY = 1;
+  TIME_IN_FORCE_IOC = 2;
+  TIME_IN_FORCE_FOK = 3;
+}
+
+message OrderEventV1 {
+  string event_id = 1;
+  string schema_version = 2;
+  string symbol = 3;
+  int64 timestamp = 4;
+  string order_id = 5;
+  OrderSide side = 6;
+  OrderType order_type = 7;
+  double quantity = 8;
+  google.protobuf.DoubleValue price = 9;
+  TimeInForce time_in_force = 10;
+  google.protobuf.StringValue routing = 11;
+  map<string, string> metadata = 12;
+}
+
+enum FillStatus {
+  FILL_STATUS_PARTIAL = 0;
+  FILL_STATUS_FILLED = 1;
+  FILL_STATUS_CANCELLED = 2;
+}
+
+enum FillLiquidity {
+  FILL_LIQUIDITY_MAKER = 0;
+  FILL_LIQUIDITY_TAKER = 1;
+}
+
+message FillEventV1 {
+  string event_id = 1;
+  string schema_version = 2;
+  string symbol = 3;
+  int64 timestamp = 4;
+  string order_id = 5;
+  string fill_id = 6;
+  FillStatus status = 7;
+  double filled_qty = 8;
+  double fill_price = 9;
+  google.protobuf.DoubleValue fees = 10;
+  FillLiquidity liquidity = 11;
+  map<string, string> metadata = 12;
+}
+
+message EventEnvelope {
+  string event_type = 1;
+  string partition_key = 2;
+  string event_id = 3;
+  bytes payload = 4;
+  string content_type = 5;
+  string schema_version = 6;
+}

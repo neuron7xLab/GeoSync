@@ -1,0 +1,35 @@
+igs:
+  # window must be >= 3, satisfy (perm_emb_dim - 1) * perm_tau + 1, and 1 <= min_counts <= window
+  window: 600
+  # n_states must remain within the adaptation corridor defined by [k_min, k_max]
+  n_states: 7
+  min_counts: 50
+  # eps must be strictly positive to guard log/entropy calculations
+  eps: 1e-12
+  normalize_flux: true
+  detrend: false
+  # quantize_mode must be either "zscore" or "rank" ("sliding_rank" is accepted as an alias)
+  quantize_mode: "zscore"
+  perm_emb_dim: 5
+  perm_tau: 1
+  # adapt_method must be one of: off, entropy, external
+  adapt_method: "off"
+  k_min: 5
+  k_max: 15
+  adapt_threshold: 0.10
+  adapt_persist: 3
+  adapt_cooldown: 50
+  adapt_step: 1
+  instrument_label: null
+  prometheus_enabled: false
+  prometheus_async: true
+  max_update_ms: 0.0
+  # pi_method examples:
+  #   "empirical"  – normalise observed row counts (default).
+  #   "stationary" – solve pi = pi @ P for the stationary distribution.
+  pi_method: "empirical"
+  # regime_weights correspond to [log1p(EPR), |flux|, 1 - PE]; zero weight drops a component
+  regime_weights: [1.0, 1.0, 1.0]
+  # signal_epr_q must be strictly between 0 and 1; signal_flux_min >= 0
+  signal_epr_q: 0.7
+  signal_flux_min: 0.0

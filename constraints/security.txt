@@ -1,0 +1,92 @@
+# Pin vetted versions of security-critical dependencies.
+# This file MUST be used with pip install -c constraints/security.txt
+# Update via pip-audit guidance documented in DEPLOYMENT.md.
+#
+# CRITICAL: This file enforces exact versions for security-sensitive packages
+# to prevent vulnerable versions from being installed. All packages with known
+# CVEs or security implications MUST be pinned here with exact versions (==).
+
+# ============================================================================
+# HTTP Stack - Network security critical
+# ============================================================================
+# certifi: CA certificate bundle for SSL/TLS verification
+# PYSEC-2024-230: Removed GLOBALTRUST root certificates due to compliance issues
+# Version 2025.11.12 is the current secure version
+# NOTE: Using exact pin (==) for security-critical package to ensure consistent behavior
+certifi==2025.11.12
+charset-normalizer==3.4.4
+idna==3.11
+requests==2.32.5
+urllib3==2.6.0
+
+# ============================================================================
+# Cryptography & Authentication - CRITICAL security packages
+# ============================================================================
+# cryptography: Core crypto library, has critical CVEs in versions < 42.0.0
+# CVE-2023-50782, CVE-2024-26130, CVE-2024-0727 in older versions
+cryptography==46.0.3
+
+# PyJWT: Authentication token handling, critical for API security
+# CVE-2022-29217 (key confusion) fixed in 2.4.0
+PyJWT==2.10.1
+
+# ============================================================================
+# Template & Serialization - XSS and injection prevention
+# ============================================================================
+# Jinja2: Template engine, XSS vulnerabilities in older versions
+# CVE-2024-34064 (XSS) fixed in 3.1.4
+Jinja2==3.1.6
+
+# PyYAML: YAML parser, arbitrary code execution risks in older versions
+# CVE-2020-14343 (arbitrary code execution) fixed in 5.4
+PyYAML==6.0.3
+
+# ============================================================================
+# Data Validation & ORM - SQL injection and data integrity
+# ============================================================================
+# SQLAlchemy: ORM for SQL databases, SQL injection prevention
+# Multiple security fixes in 2.0 series
+SQLAlchemy==2.0.44
+
+# pydantic: Data validation, critical for API input validation
+# Security fixes for ReDoS and validation bypass
+pydantic==2.12.4
+pydantic-settings==2.12.0
+
+# pandera: DataFrame validation, data quality and security
+pandera==0.26.1
+
+# ============================================================================
+# System packages - Known vulnerability fixes
+# ============================================================================
+# configobj: Fix ReDoS vulnerability GHSA-c33w-24p9-8m24
+# Version 5.0.9 is the first version that fixes this vulnerability
+# NOTE: Exact pin (==) ensures transitive dependencies are upgraded to secure versions
+configobj==5.0.9
+
+# setuptools: Fix path traversal and RCE vulnerabilities PYSEC-2025-49, GHSA-cx63-2mw6-8hw5
+# Version 78.1.1+ fixes these vulnerabilities
+setuptools>=78.1.1
+
+# twisted: Fix XSS and request ordering vulnerabilities PYSEC-2024-75, GHSA-c8m8-j448-xjx7, CVE-2024-41671
+# CVE-2024-41671: HTTP request pipelining out-of-order processing vulnerability
+# Version 24.7.0 (non-RC) fixes these vulnerabilities
+# NOTE: Exact pin (==) ensures transitive dependencies are upgraded to secure versions
+twisted==24.7.0
+
+# ============================================================================
+# Web Framework - Security-critical for API endpoints
+# ============================================================================
+# starlette: ASGI framework, DoS vulnerability in FileResponse fixed in 0.50.0
+# CVE-2025-52316: DoS via crafted Range header in FileResponse
+# fastapi: Web framework built on starlette, requires compatible starlette version
+# Pin to ensure secure versions are used
+starlette>=0.50.0
+fastapi>=0.119.0,<1.0.0
+
+# ============================================================================
+# Additional Brotli encoding support - Required for urllib3 decompression
+# ============================================================================
+# Brotli: Compression algorithm support, required for secure decompression
+# Version 1.2.0+ required for urllib3 2.6.0 security fixes
+Brotli>=1.2.0

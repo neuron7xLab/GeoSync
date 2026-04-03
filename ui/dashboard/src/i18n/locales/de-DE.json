@@ -1,0 +1,538 @@
+{
+  "$schema": "../../../../schemas/localization/translation.schema.json",
+  "locale": "de-DE",
+  "meta": {
+    "reviewerNotes": {
+      "header.subtitle": "Tone-entscheidend: Präzise und vertrauensbildend formulieren.",
+      "views.orders.subtitle": "Tone-entscheidend: Transparenz betonen, ohne Übertreibungen.",
+      "views.pnl.subtitle": "Tone-entscheidend: Analytische Klarheit ohne spekulative Sprache.",
+      "views.positions.subtitle": "Tone-entscheidend: Souveräne Risikoaufsicht hervorheben."
+    }
+  },
+  "nav": {
+    "brand": "GeoSync",
+    "title": "GeoSync",
+    "badges": {
+      "live": "Live"
+    },
+    "accessibility": {
+      "skipLink": "Zum Hauptinhalt springen"
+    },
+    "controls": {
+      "toggle": {
+        "label": "Menü",
+        "open": "Navigation öffnen",
+        "close": "Navigation schließen"
+      }
+    },
+    "sections": {
+      "overview": "Übersicht",
+      "positions": "Positionen",
+      "orders": "Aufträge",
+      "pnl": "PnL & Kurse",
+      "signals": "Signale",
+      "community": "Community",
+      "monitoring": "Monitoring"
+    },
+    "menu": {
+      "title": "Navigation menu",
+      "description": "Focus on the area you need by scanning grouped capabilities.",
+      "groups": {
+        "intelligence": {
+          "label": "Market intelligence",
+          "description": "Monitor profitability, risk, and top-level telemetry.",
+          "items": [
+            "overview",
+            "monitoring",
+            "pnl",
+            "positions"
+          ]
+        },
+        "execution": {
+          "label": "Execution oversight",
+          "description": "Track live orders and signal intent.",
+          "items": [
+            "orders",
+            "signals"
+          ]
+        },
+        "community": {
+          "label": "Community insights",
+          "description": "Stay aligned with shared learnings and releases.",
+          "items": [
+            "community"
+          ]
+        }
+      }
+    },
+    "toolbar": {
+      "title": "Workspace actions",
+      "description": "Operate this view without leaving the dashboard context.",
+      "actions": {
+        "refresh": {
+          "label": "Refresh data",
+          "hint": "Reload the latest telemetry for this route.",
+          "feedback": {
+            "success": "Refreshing…",
+            "complete": "Updated",
+            "error": "Refresh failed"
+          }
+        },
+        "export": {
+          "label": "Export report",
+          "hint": "Download a JSON snapshot for reviews.",
+          "feedback": {
+            "success": "Preparing…",
+            "complete": "Exported",
+            "error": "Export failed"
+          }
+        },
+        "share": {
+          "label": "Share link",
+          "hint": "Copy or share a deep link to this state.",
+          "feedback": {
+            "success": "Copying…",
+            "complete": "Link ready",
+            "error": "Share failed"
+          }
+        }
+      }
+    },
+    "breadcrumbs": {
+      "root": "Dashboard",
+      "ariaLabel": "Breadcrumb"
+    },
+    "locales": {
+      "title": "Sprache",
+      "helper": "Wechseln Sie die Dashboard-Sprache. Einstellung wird im Browser gespeichert.",
+      "items": {
+        "en-US": "Englisch (USA)",
+        "uk-UA": "Ukrainisch",
+        "de-DE": "Deutsch",
+        "ja-JP": "Japanisch",
+        "es-ES": "Spanisch (Spanien)",
+        "fr-FR": "Französisch",
+        "pt-BR": "Portugiesisch (Brasilien)",
+        "zh-CN": "Vereinfachtes Chinesisch",
+        "it-IT": "Italienisch",
+        "hi-IN": "Hindi",
+        "pl-PL": "Polnisch",
+        "ar-SA": "Arabisch"
+      }
+    }
+  },
+  "onboarding": {
+    "title": "Lernen Sie das Dashboard kennen",
+    "progress": "Schritt {current} von {total}",
+    "cta": {
+      "skip": "Tour überspringen",
+      "next": "Weiter",
+      "finish": "Fertig",
+      "previous": "Zurück"
+    },
+    "steps": {
+      "navigation": {
+        "title": "Navigieren Sie durch Ihren Arbeitsbereich",
+        "description": "Verwenden Sie die Hauptnavigation, um zwischen Übersicht, PnL, Aufträgen, Signalen und Community-Intelligence zu wechseln."
+      },
+      "workspace": {
+        "title": "Verstehen Sie jede Ansicht",
+        "description": "Jeder Abschnitt öffnet sich mit einer Zusammenfassungskopfzeile, die das Hauptziel und die Tags für diesen Teil der Telemetrie hervorhebt."
+      },
+      "insights": {
+        "title": "Tauchen Sie in Live-Einblicke ein",
+        "description": "Scrollen Sie durch die kontextbezogenen Panels, um Metriken, Diagramme und Datentabellen zu erkunden, die auf die ausgewählte Route zugeschnitten sind."
+      }
+    }
+  },
+  "header": {
+    "title": "GeoSync Monitoring Hub",
+    "subtitle": "Zentrale Steuerung von Ausführung, Risiko und Telemetrie.",
+    "tags": [
+      "Multi-Asset",
+      "Echtzeit"
+    ]
+  },
+  "views": {
+    "orders": {
+      "title": "Aufträge",
+      "heading": "Order-Übersicht",
+      "subtitle": "Live-Orderfluss mit Ausführungsfortschritt und Telemetriedaten.",
+      "table": {
+        "columns": {
+          "order_id": "Order-ID",
+          "symbol": "Symbol",
+          "side": "Seite",
+          "order_type": "Typ",
+          "quantity": "Menge",
+          "filledQuantity": "Ausgeführt",
+          "remaining": "Rest",
+          "progress": "Fortschritt",
+          "limitPrice": "Limitpreis",
+          "avgFillPrice": "Durchschnittspreis",
+          "status": "Status",
+          "lastFill": "Letzte Ausführung"
+        },
+        "badges": {
+          "side": {
+            "buy": "Kauf",
+            "sell": "Verkauf"
+          },
+          "status": {
+            "FILLED": "Ausgeführt",
+            "WORKING": "Aktiv"
+          }
+        },
+        "empty": "—"
+      }
+    },
+    "pnl": {
+      "title": "PnL & Kurse",
+      "heading": "PnL- & Kursanalyse",
+      "subtitle": "Aktuelle Profitabilität mit laufenden Marktdaten abgleichen.",
+      "cards": {
+        "pnl": {
+          "title": "Netto-PnL",
+          "delta": "Δ {value} ({percent})",
+          "runRate": "Run-Rate {value}/h"
+        },
+        "quotes": {
+          "title": "Kurse",
+          "delta": "Δ {value} ({percent})"
+        }
+      }
+    },
+    "positions": {
+      "title": "Positionen",
+      "heading": "Offene Positionen",
+      "subtitle": "Aggregierte Exponierungen aus aktuellen Fills.",
+      "table": {
+        "columns": {
+          "symbol": "Symbol",
+          "netQuantity": "Netto-Menge",
+          "avgPrice": "Durchschnittspreis",
+          "marketPrice": "Marktpreis",
+          "exposure": "Exponierung",
+          "pnl": "Unrealisierter PnL",
+          "lastFill": "Letzte Ausführung"
+        },
+        "badges": {
+          "pnl": {
+            "positive": "Gewinn {percent}",
+            "negative": "Verlust {percent}"
+          }
+        }
+      }
+    },
+    "signals": {
+      "title": "Signale",
+      "heading": "Signal-Intelligenz",
+      "subtitle": "Aktive Handelsimpulse mit Überzeugung und Laufzeit im Blick behalten.",
+      "cards": {
+        "active": {
+          "title": "Aktive Signale",
+          "total": "{count} aktiv",
+          "updated": "Zuletzt {time}",
+          "none": "Noch keine Signale"
+        },
+        "bias": {
+          "title": "Richtungsbias",
+          "ratio": "Kauf {buy} / Verkauf {sell} / Neutral {flat}",
+          "netLong": "Long-Überhang {value}",
+          "netShort": "Short-Überhang {value}"
+        },
+        "conviction": {
+          "title": "Überzeugung",
+          "average": "Durchschnitt {value}",
+          "peak": "Maximum {value}"
+        }
+      },
+      "table": {
+        "columns": {
+          "timestamp": "Zeitstempel",
+          "symbol": "Symbol",
+          "direction": "Richtung",
+          "strength": "Stärke",
+          "signal_type": "Typ",
+          "ttl": "Laufzeit",
+          "status": "Status",
+          "metadata": "Kontext"
+        },
+        "badges": {
+          "direction": {
+            "buy": "Kauf",
+            "sell": "Verkauf",
+            "flat": "Neutral"
+          },
+          "status": {
+            "active": "Aktiv",
+            "expired": "Abgelaufen"
+          }
+        },
+        "empty": "Keine Signale verfügbar."
+      }
+    },
+    "overview": {
+      "title": "Übersicht",
+      "heading": "Produktpuls",
+      "subtitle": "Präzise GitHub-Insights für die Abstimmung zwischen Go-to-Market und Engineering.",
+      "hero": {
+        "eyebrow": "GitHub-Intelligenz",
+        "title": "Transparenz auf Ausführungsniveau",
+        "subtitle": "Behalten Sie Adoption, Release-Kadenz und Produktionsreife direkt an der Quelle im Blick.",
+        "cta": "GitHub-Repository öffnen"
+      },
+      "badges": {
+        "title": "Community-Traction",
+        "subtitle": "Wesentliche Gesundheitssignale aus GitHub für schnelle Management-Reviews.",
+        "stars": {
+          "label": "Stars",
+          "hint": "30-Tage-Momentum {delta}"
+        },
+        "forks": {
+          "label": "Forks",
+          "hint": "{count} aktive Forks"
+        },
+        "watchers": {
+          "label": "Watcher",
+          "hint": "Wachstum {percent}"
+        },
+        "contributors": {
+          "label": "Contributor",
+          "hint": "{new} neue in 30 Tagen"
+        }
+      },
+      "panels": {
+        "release": {
+          "title": "Release-Kadenz",
+          "subtitle": "Letztes Tagging und Merge-Geschwindigkeit.",
+          "published": "Veröffentlicht",
+          "metrics": {
+            "commits": "Commits (30 Tage)",
+            "merged": "Gemergte PRs (30 Tage)",
+            "open": "Offene PRs"
+          }
+        },
+        "languages": {
+          "title": "Sprachenmix",
+          "subtitle": "Verteilung im Repository."
+        },
+        "workflows": {
+          "title": "CI-Gesundheit",
+          "subtitle": "Aktuelle GitHub-Actions-Badges."
+        },
+        "community": {
+          "title": "Open-Source-Community",
+          "subtitle": "Aktive Förderprogramme und Engagement-Signale in Echtzeit.",
+          "metrics": {
+            "goodFirstIssues": {
+              "label": "Einstiegs-Issues",
+              "hint": "{count} offene Aufgaben für neue Beitragende"
+            },
+            "mentorship": {
+              "label": "Mentoring-Plätze",
+              "hint": "{count} verfügbare Mentoring-Slots"
+            },
+            "response": {
+              "label": "Median der Antwortzeit",
+              "hint": "Median {hours}h bis Maintainer-Antwort"
+            },
+            "sponsors": {
+              "label": "Sponsoren",
+              "hint": "{count} aktive Unterstützer"
+            }
+          },
+          "programs": {
+            "title": "Aktive Programme",
+            "fallback": "Programm"
+          },
+          "resources": {
+            "title": "Ressourcen für Beitragende",
+            "fallback": "Ressource"
+          }
+        }
+      }
+    },
+    "community": {
+      "title": "Community",
+      "heading": "Community Impact Hub",
+      "subtitle": "Skalieren Sie Open-Source durch koordinierte Programme und aktuelle Community-Kennzahlen.",
+      "hero": {
+        "eyebrow": "Unterstützung der Community",
+        "title": "Gemeinsam Momentum mit Beitragenden weltweit aufbauen",
+        "subtitle": "Koordinieren Sie Mentoring, Sponsoring und Wissensaustausch im GeoSync-Ökosystem.",
+        "cta": "Beitragsleitfaden öffnen",
+        "secondaryCta": "Community-Chat beitreten",
+        "fallbackChannel": "Community-Kanal"
+      },
+      "metrics": {
+        "title": "Kennzahlen zur Community-Gesundheit",
+        "subtitle": "Kontinuierlich gemessen über unser Contributor-Ökosystem.",
+        "maintainers": {
+          "label": "Core-Maintainer",
+          "hint": "{count} Maintainer verantworten Releases"
+        },
+        "sponsors": {
+          "label": "Sponsoren",
+          "hint": "{count} Partner finanzieren {monthly} monatlich"
+        },
+        "downloads": {
+          "label": "Monatliche Downloads",
+          "hint": "{count} Installationen über alle Kanäle"
+        },
+        "response": {
+          "label": "Median der Antwortzeit",
+          "hint": "{hours}h Median-Antwortzeit der Maintainer"
+        },
+        "goodFirstIssues": {
+          "label": "Einstiegs-Issues",
+          "hint": "{count} kuratierte Aufgaben für Neulinge"
+        },
+        "mentorship": {
+          "label": "Mentoring-Plätze",
+          "hint": "{count} verfügbare Mentoring-Slots"
+        }
+      },
+      "programs": {
+        "title": "Programme für Beitragende",
+        "subtitle": "Initiativen, die neue und bestehende Beitragende aktivieren.",
+        "cta": "Details ansehen",
+        "fallbackTitle": "Programm"
+      },
+      "events": {
+        "title": "Community-Events",
+        "subtitle": "Bevorstehende Calls, Townhalls und regionale Treffen.",
+        "cta": "Registrieren",
+        "fallbackTitle": "Event"
+      },
+      "resources": {
+        "title": "Ressourcen für Beitragende",
+        "subtitle": "Bleiben Sie im Einklang mit unseren Standards und Best Practices.",
+        "cta": "Öffnen",
+        "fallbackTitle": "Ressource",
+        "filters": {
+          "all": "Alle",
+          "label": "Ressourcen filtern",
+          "helper": "Wählen Sie einen Schwerpunkt, um die Ressourcenliste einzugrenzen."
+        }
+      },
+      "champions": {
+        "title": "Community-Champions",
+        "subtitle": "Wir würdigen führende Beitragende, die das Projekt voranbringen.",
+        "cta": "Profil ansehen",
+        "contributions": "{count} gemergte Beiträge",
+        "fallbackTitle": "Champion"
+      },
+      "engagement": {
+        "title": "Engagement-Zeitverlauf",
+        "subtitle": "Verfolgen Sie Beiträge und Release-Aktivitäten Monat für Monat.",
+        "fallbackPeriod": "Aktueller Zeitraum",
+        "labels": {
+          "contributions": "Beiträge",
+          "newcomers": "Neue Mitwirkende",
+          "releases": "Wichtige Releases",
+          "highlights": "Highlights"
+        }
+      },
+      "hubs": {
+        "title": "Regionale Hubs",
+        "subtitle": "Lokale Arbeitsgruppen mit Follow-the-Sun-Betreuung und Mentoring.",
+        "fallbackTitle": "Hub",
+        "cta": "Hub-Leitfaden anzeigen",
+        "leads": "{count} regionale Leads"
+      },
+      "opportunities": {
+        "title": "Beitragsmöglichkeiten",
+        "subtitle": "Priorisierte Initiativen, die aktiv Verstärkung suchen.",
+        "fallbackTitle": "Initiative",
+        "cta": "Interesse bekunden"
+      }
+    },
+    "monitoring": {
+      "title": "Risikomonitoring",
+      "heading": "Risiko-Kontrollzentrum",
+      "subtitle": "Überwachen Sie Kill Switch, Schutzschalter und Grenzbelastung in einer Ansicht.",
+      "labels": {
+        "environment": "Umgebung",
+        "killSwitch": "Not-Aus",
+        "circuitBreaker": "Schutzschalter"
+      },
+      "cards": {
+        "exposure": {
+          "title": "Brutto-Exposure",
+          "limit": "Limit {value}",
+          "trend": "Δ {value}"
+        },
+        "drawdown": {
+          "title": "Täglicher Drawdown",
+          "limit": "Schutzschwelle {value}",
+          "trend": "Δ {value}"
+        },
+        "orders": {
+          "title": "Order-Flow-Gesundheit",
+          "open": "{count} offene Orders",
+          "rejections": "{rate} Ablehnungsrate",
+          "trips": "{count} Auslösungen ({window})"
+        }
+      },
+      "sections": {
+        "controls": {
+          "title": "Sicherheitskontrollen",
+          "killSwitch": {
+            "title": "Not-Aus",
+            "status": {
+              "enabled": "Aktiv",
+              "disabled": "Deaktiviert"
+            },
+            "changed": "Aktualisiert {time}",
+            "actor": "Durch {actor}",
+            "reason": "Grund: {reason}"
+          },
+          "circuitBreaker": {
+            "title": "Schutzschalter",
+            "status": {
+              "open": "Offen",
+              "half_open": "Halboffen",
+              "closed": "Geschlossen"
+            },
+            "trigger": "Letzte Auslösung {time}",
+            "cooldown": "Abkühlzeit {value}",
+            "reason": "Grund: {reason}"
+          }
+        },
+        "trends": {
+          "title": "Trend-Telemetrie",
+          "exposure": {
+            "title": "Exposure-Zeitreihe",
+            "empty": "Keine Exposure-Daten"
+          },
+          "drawdown": {
+            "title": "Drawdown-Zeitreihe",
+            "empty": "Keine Drawdown-Daten"
+          }
+        },
+        "alerts": {
+          "title": "Alarme & Overrides",
+          "empty": "Keine aktiven Alarme",
+          "columns": {
+            "timestamp": "Zeitstempel",
+            "severity": "Schweregrad",
+            "message": "Nachricht"
+          }
+        }
+      },
+      "badges": {
+        "severity": {
+          "info": "Info",
+          "warning": "Warnung",
+          "critical": "Kritisch"
+        }
+      }
+    }
+  },
+  "common": {
+    "time": {
+      "last_fill": "Letzte Ausführung"
+    }
+  }
+}

@@ -1,0 +1,538 @@
+{
+  "$schema": "../../../../schemas/localization/translation.schema.json",
+  "locale": "hi-IN",
+  "meta": {
+    "reviewerNotes": {
+      "header.subtitle": "टोन संबंधी नोट: आत्मविश्वासी तथा संयत संदेश बनाए रखें.",
+      "views.orders.subtitle": "टोन संबंधी नोट: बिना अतिशयोक्ति के लाइव निष्पादन पारदर्शिता को रेखांकित करें.",
+      "views.pnl.subtitle": "टोन संबंधी नोट: नियंत्रित आशावाद के साथ विश्लेषणात्मक अंतर्दृष्टि दिखाएँ.",
+      "views.positions.subtitle": "टोन संबंधी नोट: एक्सपोज़र निगरानी पर शांत आश्वासन दें."
+    }
+  },
+  "nav": {
+    "brand": "GeoSync",
+    "title": "GeoSync",
+    "badges": {
+      "live": "लाइव"
+    },
+    "accessibility": {
+      "skipLink": "मुख्य सामग्री पर जाएँ"
+    },
+    "controls": {
+      "toggle": {
+        "label": "मेनू",
+        "open": "नेविगेशन खोलें",
+        "close": "नेविगेशन बंद करें"
+      }
+    },
+    "sections": {
+      "overview": "सारांश",
+      "positions": "पोज़िशन",
+      "orders": "ऑर्डर",
+      "pnl": "PnL एवं कोट्स",
+      "signals": "सिग्नल",
+      "community": "समुदाय",
+      "monitoring": "मॉनिटरिंग"
+    },
+    "menu": {
+      "title": "Navigation menu",
+      "description": "Focus on the area you need by scanning grouped capabilities.",
+      "groups": {
+        "intelligence": {
+          "label": "Market intelligence",
+          "description": "Monitor profitability, risk, and top-level telemetry.",
+          "items": [
+            "overview",
+            "monitoring",
+            "pnl",
+            "positions"
+          ]
+        },
+        "execution": {
+          "label": "Execution oversight",
+          "description": "Track live orders and signal intent.",
+          "items": [
+            "orders",
+            "signals"
+          ]
+        },
+        "community": {
+          "label": "Community insights",
+          "description": "Stay aligned with shared learnings and releases.",
+          "items": [
+            "community"
+          ]
+        }
+      }
+    },
+    "toolbar": {
+      "title": "Workspace actions",
+      "description": "Operate this view without leaving the dashboard context.",
+      "actions": {
+        "refresh": {
+          "label": "Refresh data",
+          "hint": "Reload the latest telemetry for this route.",
+          "feedback": {
+            "success": "Refreshing…",
+            "complete": "Updated",
+            "error": "Refresh failed"
+          }
+        },
+        "export": {
+          "label": "Export report",
+          "hint": "Download a JSON snapshot for reviews.",
+          "feedback": {
+            "success": "Preparing…",
+            "complete": "Exported",
+            "error": "Export failed"
+          }
+        },
+        "share": {
+          "label": "Share link",
+          "hint": "Copy or share a deep link to this state.",
+          "feedback": {
+            "success": "Copying…",
+            "complete": "Link ready",
+            "error": "Share failed"
+          }
+        }
+      }
+    },
+    "breadcrumbs": {
+      "root": "Dashboard",
+      "ariaLabel": "Breadcrumb"
+    },
+    "locales": {
+      "title": "भाषा",
+      "helper": "डैशबोर्ड की भाषा बदलें। पसंद आपके ब्राउज़र में सहेजी जाती है।",
+      "items": {
+        "en-US": "अंग्रेज़ी (US)",
+        "uk-UA": "यूक्रेनी",
+        "de-DE": "जर्मन",
+        "ja-JP": "जापानी",
+        "es-ES": "स्पैनिश (स्पेन)",
+        "fr-FR": "फ़्रेंच",
+        "pt-BR": "पुर्तगाली (ब्राज़ील)",
+        "zh-CN": "सरलीकृत चीनी",
+        "it-IT": "इतालवी",
+        "hi-IN": "हिन्दी",
+        "pl-PL": "पोलिश",
+        "ar-SA": "अरबी"
+      }
+    }
+  },
+  "onboarding": {
+    "title": "डैशबोर्ड से परिचित हों",
+    "progress": "चरण {current} का {total}",
+    "cta": {
+      "skip": "दौरा छोड़ें",
+      "next": "आगे",
+      "finish": "समाप्त",
+      "previous": "पीछे"
+    },
+    "steps": {
+      "navigation": {
+        "title": "अपने कार्यस्थान में नेविगेट करें",
+        "description": "अवलोकन, PnL, आदेश, संकेत और सामुदायिक बुद्धिमत्ता के बीच जाने के लिए प्राथमिक नेविगेशन का उपयोग करें।"
+      },
+      "workspace": {
+        "title": "प्रत्येक दृश्य को समझें",
+        "description": "प्रत्येक अनुभाग एक सारांश शीर्षक के साथ खुलता है जो टेलीमेट्री के उस हिस्से के लिए मुख्य उद्देश्य और टैग को उजागर करता है।"
+      },
+      "insights": {
+        "title": "लाइव अंतर्दृष्टि में गोता लगाएँ",
+        "description": "चयनित मार्ग के लिए अनुकूलित मेट्रिक्स, चार्ट और डेटा तालिकाओं का पता लगाने के लिए संदर्भात्मक पैनलों के माध्यम से स्क्रॉल करें।"
+      }
+    }
+  },
+  "header": {
+    "title": "GeoSync निगरानी हब",
+    "subtitle": "निष्पादन, जोखिम और टेलीमेट्री पर एकीकृत नियंत्रण।",
+    "tags": [
+      "मल्टी-एसेट",
+      "रीयल-टाइम"
+    ]
+  },
+  "views": {
+    "overview": {
+      "title": "सारांश",
+      "heading": "प्रोडक्ट पल्स",
+      "subtitle": "GitHub से प्राप्त सूक्ष्म अंतर्दृष्टियाँ जो गो-टू-मार्केट और इंजीनियरिंग संरेखण बनाये रखती हैं.",
+      "hero": {
+        "eyebrow": "GitHub इंटेलिजेंस",
+        "title": "एक्ज़िक्यूशन-स्तर की पारदर्शिता",
+        "subtitle": "स्वीकृति, रिलीज़ ताल और उत्पादन तैयारियों को सीधे स्रोत से मॉनिटर करें.",
+        "cta": "GitHub रिपॉज़िटरी खोलें"
+      },
+      "badges": {
+        "title": "समुदाय ट्रैक्शन",
+        "subtitle": "तेज़ प्रबंधन समीक्षा हेतु GitHub से प्रमुख स्वास्थ्य संकेत.",
+        "stars": {
+          "label": "स्टार",
+          "hint": "30-दिन की गति {delta}"
+        },
+        "forks": {
+          "label": "फ़ोर्क",
+          "hint": "{count} सक्रिय फ़ोर्क"
+        },
+        "watchers": {
+          "label": "वॉचर",
+          "hint": "वृद्धि {percent}"
+        },
+        "contributors": {
+          "label": "योगदानकर्ता",
+          "hint": "{new} नए योगदानकर्ता (30 दिन)"
+        }
+      },
+      "panels": {
+        "release": {
+          "title": "रिलीज़ ताल",
+          "subtitle": "हाल की टैग की गई रिलीज़ और मर्ज वेग.",
+          "published": "प्रकाशित",
+          "metrics": {
+            "commits": "कमिट (30 दिन)",
+            "merged": "मर्ज किए गए PR (30 दिन)",
+            "open": "खुले PR"
+          }
+        },
+        "languages": {
+          "title": "भाषा मिश्रण",
+          "subtitle": "रिपॉज़िटरी में वितरण."
+        },
+        "workflows": {
+          "title": "CI स्वास्थ्य",
+          "subtitle": "नवीनतम GitHub Actions बैज."
+        },
+        "community": {
+          "title": "ओपन-सोर्स समुदाय",
+          "subtitle": "रियल-टाइम में सक्रिय योगदान कार्यक्रम और एनेबलमेंट संकेत.",
+          "metrics": {
+            "goodFirstIssues": {
+              "label": "नए योगदान हेतु इश्यू",
+              "hint": "{count} ओपन टिकट ऑनबोर्डिंग के लिए"
+            },
+            "mentorship": {
+              "label": "मेंटॉरशिप सीटें",
+              "hint": "{count} मार्गदर्शित ऑनबोर्डिंग स्थान"
+            },
+            "response": {
+              "label": "माध्य प्रतिक्रिया",
+              "hint": "मेंटेनर प्रतिक्रिया माध्य {hours}घं"
+            },
+            "sponsors": {
+              "label": "स्पॉन्सर",
+              "hint": "{count} सक्रिय वित्तपोषक"
+            }
+          },
+          "programs": {
+            "title": "सक्रिय कार्यक्रम",
+            "fallback": "कार्यक्रम"
+          },
+          "resources": {
+            "title": "योगदानकर्ता संसाधन",
+            "fallback": "संसाधन"
+          }
+        }
+      }
+    },
+    "orders": {
+      "title": "ऑर्डर",
+      "heading": "ऑर्डर ब्लॉटर",
+      "subtitle": "फिल प्रगति और एक्ज़िक्यूशन टेलीमेट्री सहित लाइव ऑर्डर प्रवाह।",
+      "table": {
+        "columns": {
+          "order_id": "ऑर्डर ID",
+          "symbol": "सिंबल",
+          "side": "दिशा",
+          "order_type": "प्रकार",
+          "quantity": "मात्रा",
+          "filledQuantity": "भरा गया",
+          "remaining": "शेष",
+          "progress": "प्रगति",
+          "limitPrice": "सीमित मूल्य",
+          "avgFillPrice": "औसत फिल मूल्य",
+          "status": "स्थिति",
+          "lastFill": "अंतिम फिल"
+        },
+        "badges": {
+          "side": {
+            "buy": "खरीद",
+            "sell": "बिक्री"
+          },
+          "status": {
+            "FILLED": "पूरा",
+            "WORKING": "प्रगति में"
+          }
+        },
+        "empty": "—"
+      }
+    },
+    "pnl": {
+      "title": "PnL एवं कोट्स",
+      "heading": "PnL एवं कोट्स इंटेलिजेंस",
+      "subtitle": "स्ट्रीमिंग बाजार डेटा के साथ लाइव लाभप्रदता की तुलना करें।",
+      "cards": {
+        "pnl": {
+          "title": "नेट PnL",
+          "delta": "Δ {value} ({percent})",
+          "runRate": "रन-रेट {value}/घंटा"
+        },
+        "quotes": {
+          "title": "कोट्स",
+          "delta": "Δ {value} ({percent})"
+        }
+      }
+    },
+    "positions": {
+      "title": "पोज़िशन",
+      "heading": "ओपन पोज़िशन",
+      "subtitle": "लाइव फिल घटनाओं से प्राप्त समेकित एक्सपोज़र।",
+      "table": {
+        "columns": {
+          "symbol": "सिंबल",
+          "netQuantity": "नेट मात्रा",
+          "avgPrice": "औसत फिल मूल्य",
+          "marketPrice": "बाजार मूल्य",
+          "exposure": "एक्सपोज़र",
+          "pnl": "अनरीलाइज़्ड PnL",
+          "lastFill": "अंतिम फिल"
+        },
+        "badges": {
+          "pnl": {
+            "positive": "लाभ {percent}",
+            "negative": "हानि {percent}"
+          }
+        }
+      }
+    },
+    "signals": {
+      "title": "सिग्नल",
+      "heading": "सिग्नल इंटेलिजेंस",
+      "subtitle": "सक्रिय ट्रेड सिग्नलों को आत्मविश्वास और समाप्ति समय के साथ ट्रैक करें.",
+      "cards": {
+        "active": {
+          "title": "सक्रिय सिग्नल",
+          "total": "{count} सक्रिय",
+          "updated": "अंतिम {time}",
+          "none": "अभी कोई सिग्नल नहीं"
+        },
+        "bias": {
+          "title": "दिशात्मक पूर्वाग्रह",
+          "ratio": "खरीद {buy} / बिक्री {sell} / तटस्थ {flat}",
+          "netLong": "नेट लॉन्ग {value}",
+          "netShort": "नेट शॉर्ट {value}"
+        },
+        "conviction": {
+          "title": "विश्वास स्तर",
+          "average": "औसत {value}",
+          "peak": "अधिकतम {value}"
+        }
+      },
+      "table": {
+        "columns": {
+          "timestamp": "टाइमस्टैम्प",
+          "symbol": "सिंबल",
+          "direction": "दिशा",
+          "strength": "शक्ति",
+          "signal_type": "सिग्नल प्रकार",
+          "ttl": "मान्य अवधि",
+          "status": "स्थिति",
+          "metadata": "प्रसंग"
+        },
+        "badges": {
+          "direction": {
+            "buy": "खरीद",
+            "sell": "बिक्री",
+            "flat": "तटस्थ"
+          },
+          "status": {
+            "active": "सक्रिय",
+            "expired": "समाप्त"
+          }
+        },
+        "empty": "कोई सिग्नल उपलब्ध नहीं है।"
+      }
+    },
+    "community": {
+      "title": "समुदाय",
+      "heading": "समुदाय प्रभाव केंद्र",
+      "subtitle": "सक्षम कार्यक्रमों और रियल-टाइम स्वास्थ्य संकेतकों से ओपन-सोर्स को बढ़ाएँ।",
+      "hero": {
+        "eyebrow": "समुदाय सशक्तिकरण",
+        "title": "विश्वभर के योगदानकर्ताओं के साथ गति बनाएं",
+        "subtitle": "GeoSync पारिस्थितिकी तंत्र में mentorship, sponsorship और ज्ञान-साझा का समन्वय करें।",
+        "cta": "योगदान प्लेबुक देखें",
+        "secondaryCta": "समुदाय चैट से जुड़ें",
+        "fallbackChannel": "समुदाय चैनल"
+      },
+      "metrics": {
+        "title": "समुदाय स्वास्थ्य मेट्रिक्स",
+        "subtitle": "हमारे योगदानकर्ता नेटवर्क पर सतत मापन।",
+        "maintainers": {
+          "label": "मुख्य मेंटेनर",
+          "hint": "{count} मेंटेनर रिलीज़ मार्गदर्शन करते हैं"
+        },
+        "sponsors": {
+          "label": "स्पॉन्सर",
+          "hint": "{count} साझेदार {monthly} मासिक समर्थन देते हैं"
+        },
+        "downloads": {
+          "label": "मासिक डाउनलोड",
+          "hint": "{count} इंस्टॉल विभिन्न चैनलों पर"
+        },
+        "response": {
+          "label": "औसत प्रतिक्रिया समय",
+          "hint": "मेंटेनर प्रतिक्रिया की माध्यिका {hours}h"
+        },
+        "goodFirstIssues": {
+          "label": "नए योगदान हेतु इश्यू",
+          "hint": "{count} चयनित टिकट नए योगदानकर्ताओं के लिए"
+        },
+        "mentorship": {
+          "label": "मेंटॉरशिप सीटें",
+          "hint": "{count} निर्देशित ऑनबोर्डिंग सीटें"
+        }
+      },
+      "programs": {
+        "title": "योगदान कार्यक्रम",
+        "subtitle": "नई और सक्रिय दोनों प्रकार की भागीदारी को गति देने वाली पहलों का संग्रह।",
+        "cta": "विवरण देखें",
+        "fallbackTitle": "कार्यक्रम"
+      },
+      "events": {
+        "title": "समुदाय कार्यक्रम",
+        "subtitle": "आगामी सिंक, टाउन हॉल और क्षेत्रीय मीटअप।",
+        "cta": "पंजीकरण करें",
+        "fallbackTitle": "कार्यक्रम"
+      },
+      "resources": {
+        "title": "योगदानकर्ता संसाधन",
+        "subtitle": "हमारे मानकों और श्रेष्ठ प्रक्रियाओं के साथ समन्वयित रहें।",
+        "cta": "खोलें",
+        "fallbackTitle": "संसाधन",
+        "filters": {
+          "all": "सभी",
+          "label": "संसाधन फिल्टर करें",
+          "helper": "सूची सीमित करने हेतु किसी फोकस क्षेत्र का चयन करें।"
+        }
+      },
+      "champions": {
+        "title": "समुदाय चैंपियन",
+        "subtitle": "उन शीर्ष योगदानकर्ताओं को पहचानते हैं जो प्रभाव पैदा कर रहे हैं।",
+        "cta": "प्रोफ़ाइल देखें",
+        "contributions": "{count} मर्ज किए गए योगदान",
+        "fallbackTitle": "चैंपियन"
+      },
+      "engagement": {
+        "title": "एंगेजमेंट टाइमलाइन",
+        "subtitle": "महीने दर महीने योगदान गति और रिलीज़ गतिविधि देखें।",
+        "fallbackPeriod": "हालिया अवधि",
+        "labels": {
+          "contributions": "योगदान",
+          "newcomers": "नए योगदानकर्ता",
+          "releases": "मुख्य रिलीज़",
+          "highlights": "मुख्य बिंदु"
+        }
+      },
+      "hubs": {
+        "title": "क्षेत्रीय हब",
+        "subtitle": "फॉलो-द-सन समर्थन और mentorship देने वाली स्थानीय टीमें।",
+        "fallbackTitle": "हब",
+        "cta": "हब गाइड देखें",
+        "leads": "{count} क्षेत्रीय लीड"
+      },
+      "opportunities": {
+        "title": "योगदान अवसर",
+        "subtitle": "उच्च प्रभाव वाले कार्यक्षेत्र जिन्हें नए योगदानकर्ताओं की आवश्यकता है।",
+        "fallbackTitle": "अवसर",
+        "cta": "रुचि दर्ज करें"
+      }
+    },
+    "monitoring": {
+      "title": "जोखिम मॉनिटरिंग",
+      "heading": "जोखिम नियंत्रण केंद्र",
+      "subtitle": "एक ही दृश्य में किल स्विच, सर्किट ब्रेकर और सीमा दबाव पर नज़र रखें।",
+      "labels": {
+        "environment": "पर्यावरण",
+        "killSwitch": "किल स्विच",
+        "circuitBreaker": "सर्किट ब्रेकर"
+      },
+      "cards": {
+        "exposure": {
+          "title": "सकल जोखिम एक्सपोज़र",
+          "limit": "सीमा {value}",
+          "trend": "Δ {value}"
+        },
+        "drawdown": {
+          "title": "दैनिक ड्रॉडाउन",
+          "limit": "गार्डरेल {value}",
+          "trend": "Δ {value}"
+        },
+        "orders": {
+          "title": "ऑर्डर फ्लो की स्थिति",
+          "open": "{count} खुले ऑर्डर",
+          "rejections": "{rate} अस्वीकृति दर",
+          "trips": "{count} ट्रिप ({window})"
+        }
+      },
+      "sections": {
+        "controls": {
+          "title": "सुरक्षा नियंत्रण",
+          "killSwitch": {
+            "title": "किल स्विच",
+            "status": {
+              "enabled": "सक्रिय",
+              "disabled": "निष्क्रिय"
+            },
+            "changed": "अद्यतन {time}",
+            "actor": "{actor} द्वारा",
+            "reason": "कारण: {reason}"
+          },
+          "circuitBreaker": {
+            "title": "सर्किट ब्रेकर",
+            "status": {
+              "open": "खुला",
+              "half_open": "आधा खुला",
+              "closed": "बंद"
+            },
+            "trigger": "आखिरी ट्रिप {time}",
+            "cooldown": "कूलडाउन {value}",
+            "reason": "कारण: {reason}"
+          }
+        },
+        "trends": {
+          "title": "रुझान टेलीमेट्री",
+          "exposure": {
+            "title": "एक्सपोज़र टाइमलाइन",
+            "empty": "एक्सपोज़र डेटा उपलब्ध नहीं"
+          },
+          "drawdown": {
+            "title": "ड्रॉडाउन टाइमलाइन",
+            "empty": "ड्रॉडाउन डेटा उपलब्ध नहीं"
+          }
+        },
+        "alerts": {
+          "title": "अलर्ट और ओवरराइड",
+          "empty": "कोई सक्रिय अलर्ट नहीं",
+          "columns": {
+            "timestamp": "समय-मुहर",
+            "severity": "गंभीरता",
+            "message": "संदेश"
+          }
+        }
+      },
+      "badges": {
+        "severity": {
+          "info": "जानकारी",
+          "warning": "चेतावनी",
+          "critical": "गंभीर"
+        }
+      }
+    }
+  },
+  "common": {
+    "time": {
+      "last_fill": "अंतिम फिल"
+    }
+  }
+}

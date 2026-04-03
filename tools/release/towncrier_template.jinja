@@ -1,0 +1,22 @@
+{% if top_line %}{{ top_line }}
+
+{% endif -%}
+{% if versiondata.name -%}
+## {{ versiondata.name }} {{ versiondata.version }} ({{ versiondata.date }})
+{% else -%}
+## {{ versiondata.version }} ({{ versiondata.date }})
+{% endif %}
+
+{% set rendered = namespace(value=False) %}
+{% for section in sections if section.fragments %}
+{% set rendered.value = True %}
+### {{ section.name }}
+{% for fragment in section.fragments %}- {{ fragment }}
+{% endfor %}
+
+{% endfor %}
+{% if not rendered.value %}
+### 🔧 Other
+- No notable changes were recorded for this release.
+
+{% endif %}

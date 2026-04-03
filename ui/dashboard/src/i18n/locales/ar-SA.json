@@ -1,0 +1,538 @@
+{
+  "$schema": "../../../../schemas/localization/translation.schema.json",
+  "locale": "ar-SA",
+  "meta": {
+    "reviewerNotes": {
+      "header.subtitle": "ملاحظة لهجة: حافظ على رسالة واثقة وهادئة.",
+      "views.orders.subtitle": "ملاحظة لهجة: أبرز شفافية التنفيذ المباشر من دون مبالغة.",
+      "views.pnl.subtitle": "ملاحظة لهجة: شدّد على الدقة التحليلية مع تفاؤل مضبوط.",
+      "views.positions.subtitle": "ملاحظة لهجة: عبّر عن ثقة راسخة في مراقبة التعرض."
+    }
+  },
+  "nav": {
+    "brand": "GeoSync",
+    "title": "GeoSync",
+    "badges": {
+      "live": "مباشر"
+    },
+    "accessibility": {
+      "skipLink": "الانتقال إلى المحتوى الرئيسي"
+    },
+    "controls": {
+      "toggle": {
+        "label": "القائمة",
+        "open": "فتح التنقل",
+        "close": "إغلاق التنقل"
+      }
+    },
+    "sections": {
+      "overview": "نظرة عامة",
+      "positions": "المراكز",
+      "orders": "الطلبات",
+      "pnl": "الأرباح والخسائر والأسعار",
+      "signals": "الإشارات",
+      "community": "المجتمع",
+      "monitoring": "المراقبة"
+    },
+    "menu": {
+      "title": "Navigation menu",
+      "description": "Focus on the area you need by scanning grouped capabilities.",
+      "groups": {
+        "intelligence": {
+          "label": "Market intelligence",
+          "description": "Monitor profitability, risk, and top-level telemetry.",
+          "items": [
+            "overview",
+            "monitoring",
+            "pnl",
+            "positions"
+          ]
+        },
+        "execution": {
+          "label": "Execution oversight",
+          "description": "Track live orders and signal intent.",
+          "items": [
+            "orders",
+            "signals"
+          ]
+        },
+        "community": {
+          "label": "Community insights",
+          "description": "Stay aligned with shared learnings and releases.",
+          "items": [
+            "community"
+          ]
+        }
+      }
+    },
+    "toolbar": {
+      "title": "Workspace actions",
+      "description": "Operate this view without leaving the dashboard context.",
+      "actions": {
+        "refresh": {
+          "label": "Refresh data",
+          "hint": "Reload the latest telemetry for this route.",
+          "feedback": {
+            "success": "Refreshing…",
+            "complete": "Updated",
+            "error": "Refresh failed"
+          }
+        },
+        "export": {
+          "label": "Export report",
+          "hint": "Download a JSON snapshot for reviews.",
+          "feedback": {
+            "success": "Preparing…",
+            "complete": "Exported",
+            "error": "Export failed"
+          }
+        },
+        "share": {
+          "label": "Share link",
+          "hint": "Copy or share a deep link to this state.",
+          "feedback": {
+            "success": "Copying…",
+            "complete": "Link ready",
+            "error": "Share failed"
+          }
+        }
+      }
+    },
+    "breadcrumbs": {
+      "root": "Dashboard",
+      "ariaLabel": "Breadcrumb"
+    },
+    "locales": {
+      "title": "اللغة",
+      "helper": "بدّل لغة لوحة التحكم. يتم حفظ التفضيل في المتصفح.",
+      "items": {
+        "en-US": "الإنجليزية (الولايات المتحدة)",
+        "uk-UA": "الأوكرانية",
+        "de-DE": "الألمانية",
+        "ja-JP": "اليابانية",
+        "es-ES": "الإسبانية (إسبانيا)",
+        "fr-FR": "الفرنسية",
+        "pt-BR": "البرتغالية (البرازيل)",
+        "zh-CN": "الصينية المبسطة",
+        "it-IT": "الإيطالية",
+        "hi-IN": "الهندية",
+        "pl-PL": "البولندية",
+        "ar-SA": "العربية"
+      }
+    }
+  },
+  "onboarding": {
+    "title": "تعرف على لوحة المعلومات",
+    "progress": "الخطوة {current} من {total}",
+    "cta": {
+      "skip": "تخطي الجولة",
+      "next": "التالي",
+      "finish": "إنهاء",
+      "previous": "رجوع"
+    },
+    "steps": {
+      "navigation": {
+        "title": "التنقل في مساحة العمل الخاصة بك",
+        "description": "استخدم التنقل الأساسي للانتقال بين النظرة العامة والأرباح والخسائر والطلبات والإشارات وذكاء المجتمع."
+      },
+      "workspace": {
+        "title": "فهم كل عرض",
+        "description": "يفتح كل قسم برأس ملخص يشير إلى الهدف الرئيسي والعلامات لهذا الجزء من القياس عن بُعد."
+      },
+      "insights": {
+        "title": "الغوص في الرؤى الحية",
+        "description": "قم بالتمرير عبر اللوحات السياقية لاستكشاف المقاييس والرسوم البيانية وجداول البيانات المصممة للمسار المحدد."
+      }
+    }
+  },
+  "header": {
+    "title": "مركز مراقبة GeoSync",
+    "subtitle": "تحكم موحد في التنفيذ والمخاطر والتليمترية.",
+    "tags": [
+      "متعدد الأصول",
+      "في الوقت الفعلي"
+    ]
+  },
+  "views": {
+    "overview": {
+      "title": "نظرة عامة",
+      "heading": "نبض المنتج",
+      "subtitle": "رؤى GitHub دقيقة لمواءمة فرق التسويق والتنفيذ الهندسي.",
+      "hero": {
+        "eyebrow": "استخبارات GitHub",
+        "title": "شفافية بمستوى التنفيذ",
+        "subtitle": "راقب الاعتماد، وتيرة الإصدارات، وجاهزية الإنتاج مباشرة من المصدر.",
+        "cta": "فتح مستودع GitHub"
+      },
+      "badges": {
+        "title": "تفاعل المجتمع",
+        "subtitle": "مؤشرات الصحة الأساسية من GitHub لمراجعات إدارية سريعة.",
+        "stars": {
+          "label": "النجوم",
+          "hint": "زخم 30 يومًا {delta}"
+        },
+        "forks": {
+          "label": "التفريعات",
+          "hint": "{count} تفريع نشط"
+        },
+        "watchers": {
+          "label": "المتابعون",
+          "hint": "نمو {percent}"
+        },
+        "contributors": {
+          "label": "المساهمون",
+          "hint": "{new} مساهمين جدد خلال 30 يومًا"
+        }
+      },
+      "panels": {
+        "release": {
+          "title": "إيقاع الإصدارات",
+          "subtitle": "أحدث علامة إصدار وسرعة الدمج.",
+          "published": "تم النشر",
+          "metrics": {
+            "commits": "الكوميتات (30 يومًا)",
+            "merged": "طلبات الدمج المدمجة (30 يومًا)",
+            "open": "طلبات الدمج المفتوحة"
+          }
+        },
+        "languages": {
+          "title": "مزيج اللغات",
+          "subtitle": "التوزيع داخل المستودع."
+        },
+        "workflows": {
+          "title": "صحة CI",
+          "subtitle": "أحدث شارات GitHub Actions."
+        },
+        "community": {
+          "title": "مجتمع المصدر المفتوح",
+          "subtitle": "برامج تمكين المساهمين والإشارات الحيوية في الوقت الفعلي.",
+          "metrics": {
+            "goodFirstIssues": {
+              "label": "قضايا للمبتدئين",
+              "hint": "{count} تذاكر مفتوحة مهيأة للانضمام"
+            },
+            "mentorship": {
+              "label": "مقاعد الإرشاد",
+              "hint": "{count} مقاعد إرشاد موجهة"
+            },
+            "response": {
+              "label": "الاستجابة المتوسطة",
+              "hint": "متوسط رد المشرف {hours} ساعة"
+            },
+            "sponsors": {
+              "label": "الرعاة",
+              "hint": "{count} داعمين نشطين"
+            }
+          },
+          "programs": {
+            "title": "البرامج النشطة",
+            "fallback": "برنامج"
+          },
+          "resources": {
+            "title": "موارد المساهمين",
+            "fallback": "مورد"
+          }
+        }
+      }
+    },
+    "orders": {
+      "title": "الطلبات",
+      "heading": "دفتر الطلبات",
+      "subtitle": "تدفق الطلبات المباشر مع تقدم التنفيذ والتليمترية.",
+      "table": {
+        "columns": {
+          "order_id": "معرّف الطلب",
+          "symbol": "الرمز",
+          "side": "الاتجاه",
+          "order_type": "النوع",
+          "quantity": "الكمية",
+          "filledQuantity": "المنفّذ",
+          "remaining": "المتبقي",
+          "progress": "التقدم",
+          "limitPrice": "سعر الحد",
+          "avgFillPrice": "متوسط التنفيذ",
+          "status": "الحالة",
+          "lastFill": "آخر تنفيذ"
+        },
+        "badges": {
+          "side": {
+            "buy": "شراء",
+            "sell": "بيع"
+          },
+          "status": {
+            "FILLED": "مكتمل",
+            "WORKING": "قيد التنفيذ"
+          }
+        },
+        "empty": "—"
+      }
+    },
+    "pnl": {
+      "title": "الأرباح والخسائر والأسعار",
+      "heading": "استخبارات الأرباح والخسائر والأسعار",
+      "subtitle": "قارِن الربحية المباشرة ببيانات السوق المتدفقة.",
+      "cards": {
+        "pnl": {
+          "title": "صافي الأرباح والخسائر",
+          "delta": "Δ {value} ({percent})",
+          "runRate": "معدل التشغيل {value}/ساعة"
+        },
+        "quotes": {
+          "title": "الأسعار",
+          "delta": "Δ {value} ({percent})"
+        }
+      }
+    },
+    "positions": {
+      "title": "المراكز",
+      "heading": "المراكز المفتوحة",
+      "subtitle": "التعرّضات المجمّعة المستمدة من أحداث التنفيذ المباشرة.",
+      "table": {
+        "columns": {
+          "symbol": "الرمز",
+          "netQuantity": "الكمية الصافية",
+          "avgPrice": "متوسط سعر التنفيذ",
+          "marketPrice": "سعر السوق",
+          "exposure": "التعرّض",
+          "pnl": "الأرباح والخسائر غير المحققة",
+          "lastFill": "آخر تنفيذ"
+        },
+        "badges": {
+          "pnl": {
+            "positive": "ربح {percent}",
+            "negative": "خسارة {percent}"
+          }
+        }
+      }
+    },
+    "signals": {
+      "title": "الإشارات",
+      "heading": "استخبارات الإشارات",
+      "subtitle": "تابع محفزات التداول النشطة مع الثقة وفترات الصلاحية.",
+      "cards": {
+        "active": {
+          "title": "الإشارات النشطة",
+          "total": "{count} نشط",
+          "updated": "آخر تحديث {time}",
+          "none": "لا توجد إشارات بعد"
+        },
+        "bias": {
+          "title": "انحياز الاتجاه",
+          "ratio": "شراء {buy} / بيع {sell} / محايد {flat}",
+          "netLong": "صافي مركز شراء {value}",
+          "netShort": "صافي مركز بيع {value}"
+        },
+        "conviction": {
+          "title": "مستوى القناعة",
+          "average": "المتوسط {value}",
+          "peak": "الأعلى {value}"
+        }
+      },
+      "table": {
+        "columns": {
+          "timestamp": "الطابع الزمني",
+          "symbol": "الرمز",
+          "direction": "الاتجاه",
+          "strength": "القوة",
+          "signal_type": "نوع الإشارة",
+          "ttl": "مدة الصلاحية",
+          "status": "الحالة",
+          "metadata": "السياق"
+        },
+        "badges": {
+          "direction": {
+            "buy": "شراء",
+            "sell": "بيع",
+            "flat": "محايد"
+          },
+          "status": {
+            "active": "نشط",
+            "expired": "منتهي"
+          }
+        },
+        "empty": "لا توجد إشارات متاحة."
+      }
+    },
+    "community": {
+      "title": "المجتمع",
+      "heading": "مركز تأثير المجتمع",
+      "subtitle": "نمِّ الحركة مفتوحة المصدر عبر برامج تمكين ومؤشرات صحية آنية.",
+      "hero": {
+        "eyebrow": "تمكين المجتمع",
+        "title": "ابنِ الزخم مع المساهمين حول العالم",
+        "subtitle": "نسّق الإرشاد والرعاية ومشاركة المعرفة في منظومة GeoSync.",
+        "cta": "استعرض دليل المساهمة",
+        "secondaryCta": "انضم إلى دردشة المجتمع",
+        "fallbackChannel": "قناة المجتمع"
+      },
+      "metrics": {
+        "title": "مؤشرات صحة المجتمع",
+        "subtitle": "قياس مستمر عبر شبكة المساهمين لدينا.",
+        "maintainers": {
+          "label": "المشرفون الأساسيون",
+          "hint": "{count} مشرف يدير الإصدارات"
+        },
+        "sponsors": {
+          "label": "الرعاة",
+          "hint": "{count} شريك يمول {monthly} شهريًا"
+        },
+        "downloads": {
+          "label": "التنزيلات الشهرية",
+          "hint": "{count} تثبيتًا عبر القنوات"
+        },
+        "response": {
+          "label": "متوسط زمن الاستجابة",
+          "hint": "متوسط استجابة المشرفين {hours} ساعة"
+        },
+        "goodFirstIssues": {
+          "label": "قضايا للمبتدئين",
+          "hint": "{count} تذاكر مهيأة للقادمين الجدد"
+        },
+        "mentorship": {
+          "label": "مقاعد الإرشاد",
+          "hint": "{count} فرص إرشاد موجهة"
+        }
+      },
+      "programs": {
+        "title": "برامج المساهمين",
+        "subtitle": "مبادرات لتنشيط المساهمين الجدد والحاليين.",
+        "cta": "عرض التفاصيل",
+        "fallbackTitle": "برنامج"
+      },
+      "events": {
+        "title": "فعاليات المجتمع",
+        "subtitle": "الاجتماعات العامة واللقاءات الإقليمية القادمة.",
+        "cta": "سجّل الآن",
+        "fallbackTitle": "فعالية"
+      },
+      "resources": {
+        "title": "موارد المساهمين",
+        "subtitle": "التزم بالمعايير وأفضل الممارسات لدينا.",
+        "cta": "فتح",
+        "fallbackTitle": "مورد",
+        "filters": {
+          "all": "الكل",
+          "label": "تصفية الموارد",
+          "helper": "اختر مجال التركيز لتنقية قائمة الموارد."
+        }
+      },
+      "champions": {
+        "title": "أبطال المجتمع",
+        "subtitle": "نحتفي بالمساهمين الأكثر تأثيرًا في المشروع.",
+        "cta": "عرض الملف الشخصي",
+        "contributions": "{count} مساهمات مدمجة",
+        "fallbackTitle": "بطل"
+      },
+      "engagement": {
+        "title": "خط زمني للانخراط",
+        "subtitle": "راقب وتيرة المساهمات والإصدارات شهريًا.",
+        "fallbackPeriod": "الفترة الأخيرة",
+        "labels": {
+          "contributions": "المساهمات",
+          "newcomers": "المساهمون الجدد",
+          "releases": "الإصدارات الرئيسية",
+          "highlights": "أبرز النقاط"
+        }
+      },
+      "hubs": {
+        "title": "المراكز الإقليمية",
+        "subtitle": "فرق محلية تقدم دعمًا متتابعًا وإرشادًا.",
+        "fallbackTitle": "مركز",
+        "cta": "عرض دليل المركز",
+        "leads": "{count} قادة إقليميين"
+      },
+      "opportunities": {
+        "title": "فرص المساهمة",
+        "subtitle": "مبادرات عالية التأثير تبحث عن مساهمين جدد.",
+        "fallbackTitle": "فرصة",
+        "cta": "تسجيل الاهتمام"
+      }
+    },
+    "monitoring": {
+      "title": "مراقبة المخاطر",
+      "heading": "مركز التحكم في المخاطر",
+      "subtitle": "تابع حالة مفتاح الإيقاف، وقواطع الدائرة، وضغط الحدود في واجهة واحدة.",
+      "labels": {
+        "environment": "البيئة",
+        "killSwitch": "مفتاح الإيقاف",
+        "circuitBreaker": "قاطع الدائرة"
+      },
+      "cards": {
+        "exposure": {
+          "title": "التعرّض الإجمالي",
+          "limit": "الحد {value}",
+          "trend": "Δ {value}"
+        },
+        "drawdown": {
+          "title": "التراجع اليومي",
+          "limit": "حد الحماية {value}",
+          "trend": "Δ {value}"
+        },
+        "orders": {
+          "title": "صحة تدفق الأوامر",
+          "open": "{count} أوامر مفتوحة",
+          "rejections": "{rate} معدل الرفض",
+          "trips": "{count} عمليات فصل ({window})"
+        }
+      },
+      "sections": {
+        "controls": {
+          "title": "ضوابط الأمان",
+          "killSwitch": {
+            "title": "مفتاح الإيقاف",
+            "status": {
+              "enabled": "مفعل",
+              "disabled": "معطل"
+            },
+            "changed": "تم التحديث {time}",
+            "actor": "بواسطة {actor}",
+            "reason": "السبب: {reason}"
+          },
+          "circuitBreaker": {
+            "title": "قاطع الدائرة",
+            "status": {
+              "open": "مفتوح",
+              "half_open": "نصف مفتوح",
+              "closed": "مغلق"
+            },
+            "trigger": "آخر فصل {time}",
+            "cooldown": "مدة التعافي {value}",
+            "reason": "السبب: {reason}"
+          }
+        },
+        "trends": {
+          "title": "قياسات الاتجاه",
+          "exposure": {
+            "title": "الخط الزمني للتعرّض",
+            "empty": "لا توجد بيانات تعرّض"
+          },
+          "drawdown": {
+            "title": "الخط الزمني للتراجع",
+            "empty": "لا توجد بيانات تراجع"
+          }
+        },
+        "alerts": {
+          "title": "التنبيهات والتجاوزات",
+          "empty": "لا توجد تنبيهات نشطة",
+          "columns": {
+            "timestamp": "الطابع الزمني",
+            "severity": "الحدة",
+            "message": "الرسالة"
+          }
+        }
+      },
+      "badges": {
+        "severity": {
+          "info": "معلومة",
+          "warning": "تحذير",
+          "critical": "حرج"
+        }
+      }
+    }
+  },
+  "common": {
+    "time": {
+      "last_fill": "آخر تنفيذ"
+    }
+  }
+}

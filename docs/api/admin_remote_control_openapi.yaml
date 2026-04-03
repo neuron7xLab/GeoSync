@@ -1,0 +1,102 @@
+# SPDX-License-Identifier: MIT
+openapi: 3.1.0
+info:
+  title: GeoSync Admin Remote Control API
+  version: 1.1.0
+  description: >-
+    Administrative endpoints that allow authenticated operators to inspect,
+    engage, and reset the GeoSync risk kill-switch.
+  x-owner: Platform Engineering (platform@geosync.example)
+  x-last_reviewed: 2025-12-28
+servers:
+  - url: https://risk.geosync.example.com
+paths:
+  /admin/kill-switch:
+    get:
+      summary: Inspect the kill-switch state
+      operationId: getKillSwitchState
+      security:
+        - OAuth2Bearer: []
+      responses:
+        "200":
+          description: Current kill-switch status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillSwitchResponse'
+    post:
+      summary: Engage the kill-switch
+      operationId: engageKillSwitch
+      security:
+        - OAuth2Bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KillSwitchRequest'
+      responses:
+        "200":
+          description: Kill-switch engagement acknowledgement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillSwitchResponse'
+    delete:
+      summary: Reset the kill-switch
+      operationId: resetKillSwitch
+      security:
+        - OAuth2Bearer: []
+      responses:
+        "200":
+          description: Result of the reset operation (idempotent).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KillSwitchResponse'
+components:
+  securitySchemes:
+    OAuth2Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        OAuth2 access token with the GeoSync API audience. Mutual TLS is enforced
+        at the ingress layer using the configured client CA bundle.
+  schemas:
+    KillSwitchRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 256
+          description: Human readable justification for engaging the kill-switch.
+    KillSwitchResponse:
+      type: object
+      required:
+        - status
+        - kill_switch_engaged
+        - reason
+        - already_engaged
+      properties:
+        status:
+          type: string
+          description: Machine readable status of the operation result.
+          examples:
+            - engaged
+            - already-engaged
+            - disengaged
+            - reset
+            - already-clear
+        kill_switch_engaged:
+          type: boolean
+          description: Whether the risk kill-switch is currently engaged.
+        reason:
+          type: string
+          description: Reason associated with the current kill-switch state.
+        already_engaged:
+          type: boolean
+          description: Indicates whether the switch was already engaged when the operation executed.

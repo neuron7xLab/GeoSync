@@ -1,0 +1,220 @@
+{
+  "$defs": {
+    "FeatureFilters": {
+      "description": "Echoed filter parameters for feature responses.",
+      "example": {
+        "end_at": null,
+        "feature_keys": [
+          "macd",
+          "macd_signal"
+        ],
+        "feature_prefix": "macd",
+        "start_at": "2025-01-01T00:00:00Z"
+      },
+      "properties": {
+        "end_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End At"
+        },
+        "feature_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Feature Keys",
+          "type": "array"
+        },
+        "feature_prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Feature Prefix"
+        },
+        "start_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start At"
+        }
+      },
+      "title": "FeatureFilters",
+      "type": "object"
+    },
+    "FeatureSnapshot": {
+      "description": "Single feature vector at a specific timestamp.",
+      "example": {
+        "features": {
+          "macd": 0.42,
+          "macd_histogram": 0.05,
+          "macd_signal": 0.37
+        },
+        "timestamp": "2025-01-01T00:00:30Z"
+      },
+      "properties": {
+        "features": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Features",
+          "type": "object"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timestamp",
+        "features"
+      ],
+      "title": "FeatureSnapshot",
+      "type": "object"
+    },
+    "PaginationMeta": {
+      "description": "Pagination envelope used by collection responses.",
+      "example": {
+        "cursor": null,
+        "limit": 50,
+        "next_cursor": "2025-01-01T00:00:00Z",
+        "returned": 50
+      },
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cursor"
+        },
+        "limit": {
+          "default": 0,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        },
+        "returned": {
+          "default": 0,
+          "title": "Returned",
+          "type": "integer"
+        }
+      },
+      "title": "PaginationMeta",
+      "type": "object"
+    }
+  },
+  "description": "Response containing the most recent feature snapshot.",
+  "examples": [
+    {
+      "features": {
+        "macd": 0.42,
+        "macd_histogram": 0.05,
+        "macd_signal": 0.37,
+        "rsi": 61.2
+      },
+      "filters": {
+        "end_at": null,
+        "feature_keys": [
+          "macd",
+          "macd_signal"
+        ],
+        "feature_prefix": "macd",
+        "start_at": null
+      },
+      "generated_at": "2025-01-01T00:00:30Z",
+      "items": [
+        {
+          "features": {
+            "macd": 0.42,
+            "macd_histogram": 0.05,
+            "macd_signal": 0.37,
+            "rsi": 61.2
+          },
+          "timestamp": "2025-01-01T00:00:30Z"
+        }
+      ],
+      "pagination": {
+        "cursor": null,
+        "limit": 1,
+        "next_cursor": "2025-01-01T00:00:00Z",
+        "returned": 1
+      },
+      "symbol": "BTC-USD"
+    }
+  ],
+  "properties": {
+    "features": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Features",
+      "type": "object"
+    },
+    "filters": {
+      "$ref": "#/$defs/FeatureFilters"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/FeatureSnapshot"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "pagination": {
+      "$ref": "#/$defs/PaginationMeta"
+    },
+    "symbol": {
+      "title": "Symbol",
+      "type": "string"
+    }
+  },
+  "required": [
+    "symbol"
+  ],
+  "title": "FeatureResponse",
+  "type": "object"
+}

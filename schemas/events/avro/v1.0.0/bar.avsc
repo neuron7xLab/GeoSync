@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "BarEvent",
+  "namespace": "geosync.events.marketdata.v1_0_0",
+  "doc": "Aggregated OHLCV bar for a symbol and interval.",
+  "fields": [
+    {"name": "event_id", "type": "string", "doc": "Globally unique identifier for idempotency."},
+    {"name": "schema_version", "type": "string", "doc": "Semantic version of the schema (major.minor.patch)."},
+    {"name": "symbol", "type": "string", "doc": "Trading symbol."},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-micros"}, "doc": "Bar close timestamp."},
+    {"name": "interval", "type": "string", "doc": "Bar interval identifier (e.g. 1m, 5m)."},
+    {"name": "open", "type": "double", "doc": "Open price."},
+    {"name": "high", "type": "double", "doc": "High price."},
+    {"name": "low", "type": "double", "doc": "Low price."},
+    {"name": "close", "type": "double", "doc": "Close price."},
+    {"name": "volume", "type": "double", "doc": "Traded volume for the interval."},
+    {"name": "vwap", "type": ["null", "double"], "default": null, "doc": "Volume weighted average price."},
+    {"name": "trade_count", "type": ["null", "long"], "default": null, "doc": "Number of trades in the bar."}
+  ]
+}

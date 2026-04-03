@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: MIT
+data:
+  source: csv
+  path: data/sample.csv
+indicators:
+  window: 200
+  bins: 30
+  delta: 0.005
+execution:
+  risk: 0.01
+  slippage_bps: 5

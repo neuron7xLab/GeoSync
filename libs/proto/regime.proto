@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package geosync.regime.v1;
+
+option go_package = "github.com/GeoSync/GeoSync/libs/proto/gen/go/regime;regimepb";
+
+import "google/protobuf/timestamp.proto";
+import "libs/proto/market_data.proto";
+
+message DetectRequest {
+  string symbol = 1;
+  repeated geosync.market.v1.Trade trades = 2;
+  geosync.market.v1.OrderBook orderbook = 3;
+}
+
+message FeatureVector {
+  double volatility = 1;
+  double volume_ratio = 2;
+  double orderbook_slope = 3;
+  double vpin = 4;
+  double trend_strength = 5;
+}
+
+message RegimeState {
+  enum Regime {
+    UNKNOWN = 0;
+    TRENDING = 1;
+    RANGING = 2;
+    CRISIS = 3;
+  }
+
+  Regime current = 1;
+  double confidence = 2;
+  map<string, double> transition_probs = 3;
+  FeatureVector features = 4;
+  google.protobuf.Timestamp detected_at = 5;
+}
+
+message TrainingRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+}
+
+message TrainingResponse {
+  string model_id = 1;
+  double accuracy = 2;
+  string status = 3;
+}
+
+service RegimeDetector {
+  rpc Detect(DetectRequest) returns (RegimeState);
+  rpc Train(TrainingRequest) returns (TrainingResponse);
+}

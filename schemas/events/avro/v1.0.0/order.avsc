@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "OrderEvent",
+  "namespace": "geosync.events.execution.v1_0_0",
+  "doc": "Order instruction emitted by the execution service.",
+  "fields": [
+    {"name": "event_id", "type": "string", "doc": "Globally unique identifier for idempotency."},
+    {"name": "schema_version", "type": "string", "doc": "Semantic version of the schema (major.minor.patch)."},
+    {"name": "symbol", "type": "string", "doc": "Trading symbol."},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-micros"}, "doc": "Order creation timestamp."},
+    {"name": "order_id", "type": "string", "doc": "Order identifier tracked across the lifecycle."},
+    {"name": "side", "type": {"type": "enum", "name": "OrderSide", "symbols": ["BUY", "SELL"]}, "doc": "Side of the order."},
+    {"name": "order_type", "type": {"type": "enum", "name": "OrderType", "symbols": ["MARKET", "LIMIT", "STOP", "STOP_LIMIT"]}, "doc": "Order type."},
+    {"name": "quantity", "type": "double", "doc": "Quantity to trade."},
+    {"name": "price", "type": ["null", "double"], "default": null, "doc": "Limit/stop price when applicable."},
+    {"name": "time_in_force", "type": ["null", {"type": "enum", "name": "TimeInForce", "symbols": ["GTC", "DAY", "IOC", "FOK"]}], "default": null, "doc": "Time-in-force instruction."},
+    {"name": "routing", "type": ["null", "string"], "default": null, "doc": "Routing destination or venue."},
+    {"name": "metadata", "type": {"type": "map", "values": "string"}, "default": {}, "doc": "Auxiliary metadata for auditability."}
+  ]
+}

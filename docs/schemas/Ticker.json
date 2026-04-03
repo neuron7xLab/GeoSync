@@ -1,0 +1,99 @@
+{
+  "title": "Ticker",
+  "description": "Market data tick with instrument metadata, price and volume information.",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "$ref": "#/definitions/MarketMetadata"
+    },
+    "timestamp": {
+      "title": "Timestamp",
+      "type": "string",
+      "format": "date-time"
+    },
+    "kind": {
+      "default": "tick",
+      "allOf": [
+        {
+          "$ref": "#/definitions/DataKind"
+        }
+      ]
+    },
+    "price": {
+      "title": "Price",
+      "description": "Last traded price",
+      "type": "number"
+    },
+    "volume": {
+      "title": "Volume",
+      "description": "Trade volume at the tick",
+      "default": 0,
+      "type": "number"
+    },
+    "trade_id": {
+      "title": "Trade Id",
+      "description": "Exchange trade identifier",
+      "type": "string"
+    }
+  },
+  "required": [
+    "metadata",
+    "timestamp",
+    "price"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "InstrumentType": {
+      "title": "InstrumentType",
+      "description": "Enumerates the supported instrument categories.",
+      "enum": [
+        "spot",
+        "futures"
+      ],
+      "type": "string"
+    },
+    "MarketMetadata": {
+      "title": "MarketMetadata",
+      "description": "Common metadata shared by all market data payloads.",
+      "type": "object",
+      "properties": {
+        "symbol": {
+          "title": "Symbol",
+          "description": "Instrument symbol, e.g. BTCUSD",
+          "minLength": 1,
+          "type": "string"
+        },
+        "venue": {
+          "title": "Venue",
+          "description": "Market venue identifier",
+          "minLength": 1,
+          "type": "string"
+        },
+        "instrument_type": {
+          "description": "Instrument category (spot or futures)",
+          "default": "spot",
+          "allOf": [
+            {
+              "$ref": "#/definitions/InstrumentType"
+            }
+          ]
+        }
+      },
+      "required": [
+        "symbol",
+        "venue"
+      ],
+      "additionalProperties": false
+    },
+    "DataKind": {
+      "title": "DataKind",
+      "description": "Enumerates the supported market data granularities.",
+      "enum": [
+        "tick",
+        "ohlcv",
+        "aggregate"
+      ],
+      "type": "string"
+    }
+  }
+}

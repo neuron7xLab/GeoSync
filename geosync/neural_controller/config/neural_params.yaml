@@ -1,0 +1,67 @@
+schema_version: 1
+include: neuro_sensory.yaml
+
+model:
+  alpha: 0.1
+  beta: 0.05
+  gamma: 0.05
+  delta: 0.1
+  theta: 0.0
+  lambd: 0.2
+  mu: 0.05
+  phi: 0.6
+  omega: 0.4
+  kappa: 0.1
+  psi: 1.0
+  eps: 0.7
+  eta: 0.2
+  M0: 0.8
+  prediction_gain: 0.08
+  sensory_confidence_gain: 1.0
+
+ekf:
+  q: 0.001
+  r: 0.01
+
+policy:
+  temp: 1.0
+  tau_E_amber: 0.3
+
+policy_modes:
+  GREEN:
+    temp: 1.0
+    gating: 0.0
+  AMBER:
+    temp: 0.9
+    gating: 0.3
+  RED:
+    temp: 0.7
+    gating: 1.0
+
+risk:
+  cvar_alpha: 0.95
+  cvar_limit: 0.03
+  lookback: 50
+
+homeostasis:
+  M_target: 0.8
+  k_sigmoid: 5.0
+
+temporal_gating:
+  cadence: step
+  sensory_frequency: 1.0
+  predictive_frequency: 1.0
+  ema_alpha: 0.5
+
+tacl_bridge:
+  sync_threshold: 0.3
+  generations: 12
+  emit_predictive_state: false
+
+market_adapter:
+  max_drawdown_limit: 0.2
+  spread_threshold: 0.01
+  regime_threshold: 0.05
+  hist_max_vol: 1.0
+  risk_free: 0.02
+  eps: 1.0e-06

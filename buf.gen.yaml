@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: MIT
+version: v2
+plugins:
+  - plugin: buf.build/protocolbuffers/go
+    out: libs/proto/gen/go
+    opt: [paths=source_relative]
+  - plugin: buf.build/community/stephenh-ts-proto
+    out: libs/proto/gen/ts
+    opt:
+      - env=node
+      - forceLong=long
+      - useExactTypes=false
+      - outputServices=generic-definitions
+      - esModuleInterop=true
+  - plugin: buf.build/protocolbuffers/python
+    out: core/events/proto
+    opt: [paths=source_relative]

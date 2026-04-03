@@ -1,0 +1,28 @@
+name: sample_optimize_job
+description: Example optimization configuration
+tags:
+  - optimize
+metadata:
+  backtest:
+    name: optimize_backtest
+    data:
+      kind: csv
+      path: data/sample.csv
+      timestamp_field: timestamp
+      value_field: price
+    strategy:
+      entrypoint: core.strategies.signals:moving_average_signal
+      parameters:
+        window: 3
+    execution:
+      starting_cash: 100000
+      fee_bps: 0.0
+    results_path: reports/backtest.json
+objective: core.strategies.objectives:sharpe_ratio
+search_space:
+  window:
+    - 2
+    - 3
+results_path: reports/optimize.json
+versioning:
+  backend: none
