@@ -525,8 +525,8 @@ When `--quiet` and `--output` are both used, stdout and file payloads are byte-e
 ### Limitations and assumptions
 
 - The model assumes **identical oscillator mass** (no inertia term); the standard first-order Kuramoto ODE.
-- The **critical coupling** for all-to-all topology is K_c = 2·std(ω). Below K_c, the system remains desynchronised.
-- RK4 is unconditionally stable for small `dt` but may accumulate error for very large `dt`·`K` products. Keep `dt * K ≪ 1` for best accuracy.
+- No general critical-coupling guarantee is encoded by this package. Synchronisation thresholds depend on frequency distribution, finite-size effects, and topology; evaluate empirically for your specific setup.
+- This implementation uses explicit RK4. Accuracy and stability are step-size dependent; there is no unconditional stability guarantee. Validate convergence by reducing `dt` and checking that observables (for example `R(t)`) remain consistent.
 - Phase values are **not wrapped** to [−π, π] during integration; analysis on `result.phases` may require `np.mod(phases, 2π)` depending on use-case.
 - For large N (> 10 000) consider chunked computation; the current vectorised implementation uses an O(N²) coupling sum per step.
 

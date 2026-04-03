@@ -144,6 +144,24 @@ class TestValidation:
         assert payload["seed"] == 7
         assert payload["adjacency"] is None
 
+    def test_config_to_dict_adjacency_serialization_contract(self) -> None:
+        adj = np.array([[0.0, 0.2], [0.3, 0.0]])
+        cfg = KuramotoConfig(
+            N=2,
+            K=1.5,
+            dt=0.1,
+            steps=3,
+            seed=5,
+            omega=np.array([0.1, -0.2]),
+            theta0=np.array([0.0, 1.0]),
+            adjacency=adj,
+        )
+        payload = cfg.to_dict()
+        assert payload["coupling_mode"] == "adjacency"
+        assert payload["adjacency"] == adj.tolist()
+        assert payload["omega"] == [0.1, -0.2]
+        assert payload["theta0"] == [0.0, 1.0]
+
 
 class TestAdjacencySemantics:
     def test_global_and_equivalent_adjacency_match(self) -> None:
@@ -244,6 +262,10 @@ class TestSummaryAndHelpers:
         phases_bad[0, 0] = np.nan
         with pytest.raises(ValueError, match="non-finite"):
             KuramotoResult(phases=phases_bad, order_parameter=order, time=time, config=default_cfg)
+        order_bad = order.copy()
+        order_bad[0] = 1.0001
+        with pytest.raises(ValueError, match=r"\[0, 1\]"):
+            KuramotoResult(phases=phases, order_parameter=order_bad, time=time, config=default_cfg)
 
     def test_order_parameter_helper(self) -> None:
         assert _order_parameter(np.zeros(20)) == pytest.approx(1.0)
