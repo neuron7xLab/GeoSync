@@ -513,14 +513,14 @@ CLI JSON exports include a stable `schema_version` field (`1` for this contract)
 - `time`
 - `phases`
 
-When `--quiet` and `--output` are both used, stdout and file payloads are byte-equivalent JSON serializations of the same object.
+When `--quiet` and `--output` are both used, stdout and file payloads represent the same JSON object (same keys and values).
 
 | Field | Shape | Description |
 |-------|-------|-------------|
 | `result.phases` | `(steps+1, N)` | Phase trajectories in radians |
 | `result.order_parameter` | `(steps+1,)` | Kuramoto R(t) ∈ [0, 1] |
 | `result.time` | `(steps+1,)` | Time axis: `time[k] = k * dt` |
-| `result.summary` | dict | Scalar stats plus `coupling_mode` and deterministic metadata (`seed`) |
+| `result.summary` | dict | Scalar stats plus `coupling_mode` and run metadata (`seed`) |
 
 ### Limitations and assumptions
 

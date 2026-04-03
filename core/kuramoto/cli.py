@@ -82,7 +82,7 @@ def simulate(
     Export contract:
       - ``--export summary``: includes only ``schema_version``, ``summary``, ``config``.
       - ``--export full``: includes summary payload plus trajectories.
-      - ``--quiet`` prints JSON to stdout; ``--output`` writes identical JSON to file.
+      - ``--quiet`` prints JSON to stdout; ``--output`` writes an equivalent JSON payload to file.
     """
     if adjacency_file is not None and edge_list_file is not None:
         raise click.ClickException("Use only one topology source: --adjacency-file or --edge-list-file.")

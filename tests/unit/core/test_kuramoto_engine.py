@@ -267,6 +267,30 @@ class TestSummaryAndHelpers:
         with pytest.raises(ValueError, match=r"\[0, 1\]"):
             KuramotoResult(phases=phases, order_parameter=order_bad, time=time, config=default_cfg)
 
+    def test_result_constructor_order_parameter_tolerance_boundaries(self, default_cfg: KuramotoConfig) -> None:
+        phases = np.zeros((default_cfg.steps + 1, default_cfg.N))
+        time = np.arange(default_cfg.steps + 1, dtype=float) * default_cfg.dt
+        base = np.zeros(default_cfg.steps + 1)
+        base[0] = 0.0
+        base[1] = 1.0
+
+        # Accept boundary values and tiny floating noise (±1e-12).
+        order_within_tol = base.copy()
+        order_within_tol[2] = 1.0 + 5e-13
+        order_within_tol[3] = -5e-13
+        KuramotoResult(phases=phases, order_parameter=order_within_tol, time=time, config=default_cfg)
+
+        # Reject values clearly outside tolerance.
+        order_above = base.copy()
+        order_above[2] = 1.0 + 2e-12
+        with pytest.raises(ValueError, match=r"\[0, 1\]"):
+            KuramotoResult(phases=phases, order_parameter=order_above, time=time, config=default_cfg)
+
+        order_below = base.copy()
+        order_below[2] = -2e-12
+        with pytest.raises(ValueError, match=r"\[0, 1\]"):
+            KuramotoResult(phases=phases, order_parameter=order_below, time=time, config=default_cfg)
+
     def test_order_parameter_helper(self) -> None:
         assert _order_parameter(np.zeros(20)) == pytest.approx(1.0)
         assert _order_parameter(np.array([0.0] * 50 + [np.pi] * 50)) < 1e-9
