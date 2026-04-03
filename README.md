@@ -405,7 +405,7 @@ It integrates the Kuramoto ODE using 4th-order Runge-Kutta:
 
 ```
 dθᵢ/dt = ωᵢ + (K/N) · Σⱼ sin(θⱼ − θᵢ)       # global (all-to-all) coupling
-dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)        # adjacency-matrix coupling
+dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)        # explicit weighted adjacency (diagonal ignored)
 ```
 
 The **order parameter** R(t) ∈ [0, 1] measures instantaneous synchronisation:
@@ -462,14 +462,18 @@ tp-kuramoto simulate
 # Strongly coupled network with fixed seed
 tp-kuramoto simulate --N 50 --K 3.0 --steps 2000 --seed 42
 
-# Save full JSON output (includes order-parameter time-series)
-tp-kuramoto simulate --N 30 --K 2.5 --output result.json
+# Save full JSON output (includes order-parameter and phase trajectories)
+tp-kuramoto simulate --N 30 --K 2.5 --output result.json --export full
 
-# Pipe summary JSON to jq
-tp-kuramoto simulate --N 100 --K 1.5 --quiet | jq .summary
+# Pipe summary-only JSON to jq (schema_version + summary + config)
+tp-kuramoto simulate --N 100 --K 1.5 --quiet --export summary | jq .summary
 
 # Custom frequencies via CLI
 tp-kuramoto simulate --N 3 --omega "0.5,1.0,1.5" --K 2.0 --steps 500
+
+# Topology from matrix or edge-list
+tp-kuramoto simulate --N 50 --adjacency-file graph.json --output full.json
+tp-kuramoto simulate --N 50 --edge-list-file graph_edges.json --export summary --quiet
 ```
 
 ### Parameter reference
@@ -481,18 +485,30 @@ tp-kuramoto simulate --N 3 --omega "0.5,1.0,1.5" --K 2.0 --steps 500
 | `omega` | array(N) \| None | None | Natural frequencies (rad/time). Drawn from N(0,1) if omitted |
 | `dt` | float > 0 | 0.01 | RK4 integration time-step |
 | `steps` | int ≥ 1 | 1000 | Number of integration steps |
-| `adjacency` | array(N,N) \| None | None | Weighted coupling matrix. Falls back to all-to-all if omitted |
+| `adjacency` | array(N,N) \| None | None | Weighted coupling matrix (`K` is a global scale). Diagonal is ignored |
 | `theta0` | array(N) \| None | None | Initial phases (rad). Drawn from U(0, 2π) if omitted |
 | `seed` | int \| None | None | RNG seed for reproducible random draws |
 
 ### Outputs
+
+CLI JSON exports include a stable `schema_version` field (`1` for this contract).
+
+`--export summary` returns only:
+- `schema_version`
+- `summary`
+- `config`
+
+`--export full` additionally returns trajectories:
+- `order_parameter`
+- `time`
+- `phases`
 
 | Field | Shape | Description |
 |-------|-------|-------------|
 | `result.phases` | `(steps+1, N)` | Phase trajectories in radians |
 | `result.order_parameter` | `(steps+1,)` | Kuramoto R(t) ∈ [0, 1] |
 | `result.time` | `(steps+1,)` | Time axis: `time[k] = k * dt` |
-| `result.summary` | dict | Scalar stats: `final_R`, `mean_R`, `max_R`, `min_R`, `std_R` |
+| `result.summary` | dict | Scalar stats plus `coupling_mode` and deterministic metadata (`seed`) |
 
 ### Limitations and assumptions
 
