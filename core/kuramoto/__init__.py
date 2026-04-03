@@ -27,6 +27,7 @@ from .delayed import DelayedKuramotoEngine
 from .early_stopping import EarlyStoppingEngine
 from .engine import KuramotoEngine, KuramotoResult, run_simulation
 from .phase_transition import PhaseTransitionAnalyzer, PhaseTransitionReport
+from .ricci_flow_engine import KuramotoRicciFlowEngine, KuramotoRicciFlowResult
 from .second_order import SecondOrderKuramotoEngine, SecondOrderResult
 from .sparse import SparseKuramotoEngine
 
@@ -43,6 +44,8 @@ __all__ = [
     "SecondOrderKuramotoEngine",
     "SecondOrderResult",
     "EarlyStoppingEngine",
+    "KuramotoRicciFlowEngine",
+    "KuramotoRicciFlowResult",
     # Analysis
     "PhaseTransitionAnalyzer",
     "PhaseTransitionReport",

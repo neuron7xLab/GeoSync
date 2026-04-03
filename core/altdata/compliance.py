@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Iterable, Mapping
 
 from core.compliance import ComplianceIssue, ComplianceReport
+
+UTC = timezone.utc
 
 
 class AltDataComplianceChecker:
