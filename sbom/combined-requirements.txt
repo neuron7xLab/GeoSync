@@ -4,7 +4,7 @@
 #
 #    pip-compile --constraint=constraints/security.txt --no-annotate --output-file=requirements.lock --strip-extras requirements.txt
 #
-aiodns==3.5.0
+aiodns==4.0.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.5
 aiokafka==0.12.0
