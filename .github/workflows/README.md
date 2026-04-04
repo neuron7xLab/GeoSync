@@ -23,3 +23,5 @@ Python environment setup now follows a contract-based protocol:
 - bootstrap tooling is pinned in `.github/config/python-bootstrap.lock`,
 - runtime verification is centralized in `.github/scripts/verify_toolchain_contract.py`,
 - `pytest` version is reconciled against `requirements-dev.lock`.
+
+In short: CI enforces pinned `pip` and `pytest` versions to stay reproducible across runner updates.
