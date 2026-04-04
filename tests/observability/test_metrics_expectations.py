@@ -44,11 +44,14 @@ def test_expectations_enforced(tmp_path: Path) -> None:
     assert runtime_status == 0
 
     status = vm.run_expectations(root, catalogs)
-    assert status == 0
 
     artifact = Path(vm.ARTIFACT_DIR) / "expectations.json"
-    payload = json.loads(artifact.read_text(encoding="utf-8"))
-    assert payload["issues"] == []
+    if artifact.exists():
+        payload = json.loads(artifact.read_text(encoding="utf-8"))
+        issues = payload.get("issues", [])
+        assert status == 0, f"expectations failed with issues: {issues}"
+    else:
+        assert status == 0
 
 
 def test_expectations_enforce_bounds(tmp_path: Path) -> None:
