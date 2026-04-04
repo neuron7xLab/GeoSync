@@ -26,11 +26,22 @@ from .conservation import (
     compute_market_momentum,
 )
 from .constants import PhysicsConstants
+
+# Physics Engine v2 — T1-T7 modules
+from .coulomb import CoulombInteraction
+from .engine import GeoSyncPhysicsEngine, PhysicsEngineResult
+from .gravitational_coupling import GravitationalCouplingMatrix
 from .gravity import (
     compute_market_gravity,
     gravitational_force,
     gravitational_potential,
     market_gravity_center,
+)
+from .landauer import (
+    K_BOLTZMANN,
+    LANDAUER_ENERGY,
+    ROOM_TEMPERATURE,
+    LandauerInferenceProfiler,
 )
 from .maxwell import (
     compute_market_field_curl,
@@ -45,6 +56,8 @@ from .newton import (
     compute_price_acceleration,
     compute_price_velocity,
 )
+from .newtonian_dynamics import FreeEnergyGate, NewtonianPriceDynamics
+from .portfolio_conservation import PortfolioEnergyConservation
 from .relativity import (
     compute_relative_time,
     lorentz_factor,
@@ -53,6 +66,7 @@ from .relativity import (
     time_dilation_factor,
     velocity_addition,
 )
+from .thermodynamic_risk import ThermodynamicRiskGate
 from .thermodynamics import (
     boltzmann_entropy,
     compute_free_energy,
@@ -69,6 +83,7 @@ from .uncertainty import (
     optimal_measurement_tradeoff,
     position_momentum_uncertainty,
 )
+from .wave_propagation import GraphDiffusionEngine
 
 __all__ = [
     # Constants
@@ -115,4 +130,18 @@ __all__ = [
     "check_uncertainty_principle",
     "optimal_measurement_tradeoff",
     "information_limit",
+    # Physics Engine v2 — T1-T7
+    "GravitationalCouplingMatrix",
+    "NewtonianPriceDynamics",
+    "FreeEnergyGate",
+    "PortfolioEnergyConservation",
+    "ThermodynamicRiskGate",
+    "CoulombInteraction",
+    "GraphDiffusionEngine",
+    "LandauerInferenceProfiler",
+    "K_BOLTZMANN",
+    "ROOM_TEMPERATURE",
+    "LANDAUER_ENERGY",
+    "GeoSyncPhysicsEngine",
+    "PhysicsEngineResult",
 ]
