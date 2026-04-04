@@ -9,6 +9,9 @@ permissions:
   contents: read
   pull-requests: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 concurrency:
   group: pr-gate-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
@@ -57,6 +60,20 @@ jobs:
               print('\n'.join(violations))
               raise SystemExit(1)
           print('Pinned action policy passed.')
+          PY
+
+      - name: Validate CI toolchain contracts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          lock = Path('.github/config/python-bootstrap.lock')
+          required = {'pip', 'setuptools', 'wheel'}
+          present = {line.split('==', 1)[0].strip() for line in lock.read_text(encoding='utf-8').splitlines() if '==' in line}
+          missing = sorted(required - present)
+          if missing:
+              raise SystemExit(f'Missing required toolchain pins: {missing}')
+          print('CI toolchain contract shape validated.')
           PY
 
       - name: Actionlint validation
@@ -189,7 +206,7 @@ jobs:
         if: steps.changes.outputs.frontend_changed == 'true'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 

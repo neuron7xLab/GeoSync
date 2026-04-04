@@ -35,13 +35,14 @@ runs:
           requirements.lock
           requirements-dev.lock
           constraints/security.txt
+          .github/config/python-bootstrap.lock
           
     - name: Cache Python virtual environment
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       id: venv-cache
       with:
         path: .venv
-        key: ${{ inputs.cache-prefix }}-${{ runner.os }}-py${{ inputs.python-version }}-${{ hashFiles('requirements*.lock', 'constraints/security.txt') }}
+        key: ${{ inputs.cache-prefix }}-${{ runner.os }}-py${{ inputs.python-version }}-${{ hashFiles('requirements*.lock', 'constraints/security.txt', '.github/config/python-bootstrap.lock', '.github/scripts/verify_toolchain_contract.py', '.github/actions/setup-geosync/action.yml') }}
         restore-keys: |
           ${{ inputs.cache-prefix }}-${{ runner.os }}-py${{ inputs.python-version }}-
           
@@ -54,8 +55,17 @@ runs:
       if: steps.venv-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        .venv/bin/python -m pip install --upgrade pip setuptools wheel
+        .venv/bin/python -m pip install -r .github/config/python-bootstrap.lock
         .venv/bin/python -m pip install -c constraints/security.txt -r requirements.lock
         if [ "${{ inputs.install-dev }}" = "true" ]; then
           .venv/bin/python -m pip install -c constraints/security.txt -r requirements-dev.lock
         fi
+
+    - name: Verify toolchain contract
+      shell: bash
+      run: |
+        verify_flags=()
+        if "${{ inputs.install-dev }}" == "true":
+          verify_flags+=(--require-pytest)
+        fi
+        .venv/bin/python .github/scripts/verify_toolchain_contract.py "${verify_flags[@]}"
