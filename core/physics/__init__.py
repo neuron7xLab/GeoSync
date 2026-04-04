@@ -26,12 +26,32 @@ from .conservation import (
     compute_market_momentum,
 )
 from .constants import PhysicsConstants
+
+# Physics Engine v2 — T1-T7 modules
+from .coulomb import CoulombInteraction
+
+# Research modules — T1-T7 v2
+from .diffusion_predictor import BacktestResult as DiffusionBacktestResult
+from .diffusion_predictor import DiffusionVolatilityPredictor, VolatilityFrontPrediction
+from .engine import GeoSyncPhysicsEngine, PhysicsEngineResult
+from .explosive_sync import ESCircuitBreaker, ESProximityResult, ExplosiveSyncDetector
+from .forman_ricci import DualTrackRicciMonitor, FormanRicciCurvature, FormanRicciResult
+from .free_energy_trading_gate import FreeEnergyTradeDecision, FreeEnergyTradingGate, GateStatistics
+from .gravitational_coupling import GravitationalCouplingMatrix
 from .gravity import (
     compute_market_gravity,
     gravitational_force,
     gravitational_potential,
     market_gravity_center,
 )
+from .higher_order_kuramoto import HigherOrderKuramotoEngine, HigherOrderKuramotoResult
+from .landauer import (
+    K_BOLTZMANN,
+    LANDAUER_ENERGY,
+    ROOM_TEMPERATURE,
+    LandauerInferenceProfiler,
+)
+from .liquidity_coupling import CouplingBenchmarkResult, LiquidityCouplingMatrix
 from .maxwell import (
     compute_market_field_curl,
     compute_market_field_divergence,
@@ -45,6 +65,8 @@ from .newton import (
     compute_price_acceleration,
     compute_price_velocity,
 )
+from .newtonian_dynamics import FreeEnergyGate, NewtonianPriceDynamics
+from .portfolio_conservation import PortfolioEnergyConservation
 from .relativity import (
     compute_relative_time,
     lorentz_factor,
@@ -53,6 +75,7 @@ from .relativity import (
     time_dilation_factor,
     velocity_addition,
 )
+from .thermodynamic_risk import ThermodynamicRiskGate
 from .thermodynamics import (
     boltzmann_entropy,
     compute_free_energy,
@@ -61,6 +84,7 @@ from .thermodynamics import (
     is_thermodynamic_equilibrium,
     thermal_equilibrium_distance,
 )
+from .tsallis_gate import TsallisGateResult, TsallisRegime, TsallisRiskGate
 from .uncertainty import (
     check_uncertainty_principle,
     heisenberg_uncertainty,
@@ -69,6 +93,7 @@ from .uncertainty import (
     optimal_measurement_tradeoff,
     position_momentum_uncertainty,
 )
+from .wave_propagation import GraphDiffusionEngine
 
 __all__ = [
     # Constants
@@ -115,4 +140,38 @@ __all__ = [
     "check_uncertainty_principle",
     "optimal_measurement_tradeoff",
     "information_limit",
+    # Physics Engine v2 — T1-T7
+    "GravitationalCouplingMatrix",
+    "NewtonianPriceDynamics",
+    "FreeEnergyGate",
+    "PortfolioEnergyConservation",
+    "ThermodynamicRiskGate",
+    "CoulombInteraction",
+    "GraphDiffusionEngine",
+    "LandauerInferenceProfiler",
+    "K_BOLTZMANN",
+    "ROOM_TEMPERATURE",
+    "LANDAUER_ENERGY",
+    "GeoSyncPhysicsEngine",
+    "PhysicsEngineResult",
+    # Research modules — T1-T7 v2
+    "FormanRicciCurvature",
+    "FormanRicciResult",
+    "DualTrackRicciMonitor",
+    "LiquidityCouplingMatrix",
+    "CouplingBenchmarkResult",
+    "ExplosiveSyncDetector",
+    "ESProximityResult",
+    "ESCircuitBreaker",
+    "TsallisRiskGate",
+    "TsallisGateResult",
+    "TsallisRegime",
+    "FreeEnergyTradingGate",
+    "FreeEnergyTradeDecision",
+    "GateStatistics",
+    "HigherOrderKuramotoEngine",
+    "HigherOrderKuramotoResult",
+    "DiffusionVolatilityPredictor",
+    "VolatilityFrontPrediction",
+    "DiffusionBacktestResult",
 ]
