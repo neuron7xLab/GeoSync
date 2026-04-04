@@ -32,13 +32,12 @@ Usage::
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 
-from .config import KuramotoConfig
 from .config import KuramotoConfig
 from .engine import KuramotoResult, _order_parameter
 

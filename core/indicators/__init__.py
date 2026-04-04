@@ -28,9 +28,9 @@ from .kuramoto import (
     multi_asset_kuramoto,
 )
 from .kuramoto_ricci_composite import (
+    GeoSyncCompositeEngine,
     KuramotoRicciComposite,
     MarketPhase,
-    GeoSyncCompositeEngine,
 )
 from .multiscale_kuramoto import (
     KuramotoResult,

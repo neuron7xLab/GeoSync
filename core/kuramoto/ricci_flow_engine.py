@@ -36,9 +36,9 @@ References
 
 from __future__ import annotations
 
+import heapq
 import logging
 from dataclasses import dataclass, field
-import heapq
 from typing import Any
 
 import numpy as np

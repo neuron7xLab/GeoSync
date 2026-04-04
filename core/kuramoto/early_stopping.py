@@ -18,8 +18,6 @@ Usage::
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -80,7 +78,6 @@ class EarlyStoppingEngine:
     def run(self) -> KuramotoResult:
         """Integrate with early stopping on R(t) convergence."""
         cfg = self._cfg
-        N = cfg.N
         max_steps = cfg.steps
         dt = cfg.dt
 

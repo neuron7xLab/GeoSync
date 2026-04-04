@@ -19,13 +19,13 @@ The seven fundamental laws integrated are:
 - Heisenberg's Uncertainty Principle (position-momentum tradeoff)
 """
 
-from .constants import PhysicsConstants
 from .conservation import (
     check_energy_conservation,
     check_momentum_conservation,
     compute_market_energy,
     compute_market_momentum,
 )
+from .constants import PhysicsConstants
 from .gravity import (
     compute_market_gravity,
     gravitational_force,

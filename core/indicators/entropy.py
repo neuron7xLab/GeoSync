@@ -106,10 +106,10 @@ def entropy(
     Implementation:
         1. Normalize input x(t) to interval [-1, 1] for numerical stability:
            x̃(t) = x(t) / max|x(t)|
-        
+
         2. Discretize into B bins via histogram to approximate probability mass:
            pᵢ = count(bin i) / N,  where N = total count
-        
+
         3. Compute entropy (with 0·log(0) := 0 convention):
            H = -∑ᵢ₌₁ᴮ pᵢ · log(pᵢ)
 

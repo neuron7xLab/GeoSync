@@ -100,7 +100,7 @@ def _kuramoto_order_jit(cos_vals: np.ndarray, sin_vals: np.ndarray) -> float:
         sin_vals: Precomputed sin(θⱼ) array of shape (N,).
 
     Returns:
-        float: Order parameter R ∈ [0, 1] with machine epsilon threshold 
+        float: Order parameter R ∈ [0, 1] with machine epsilon threshold
         applied to eliminate denormals (values < 10⁻⁸ → 0).
 
     Numerical Stability:
@@ -111,7 +111,7 @@ def _kuramoto_order_jit(cos_vals: np.ndarray, sin_vals: np.ndarray) -> float:
     Complexity:
         Time: O(N) for N oscillators
         Space: O(1) auxiliary memory
-        
+
     Note:
         JIT compilation via Numba reduces per-call latency from ~50μs to <1μs
         for N ~ 1000 oscillators, enabling HFT-grade tick processing.
@@ -267,9 +267,9 @@ def compute_phase(
     Implementation Strategy:
         1. If SciPy available: Use scipy.signal.hilbert() with FFT acceleration
         2. Fallback: Real FFT-based Hilbert via frequency domain multiplication:
-           
+
            ℋ{x}(t) = IFFT{-i·sgn(f)·FFT{x}(t)}
-           
+
            where sgn(f) = {1 for f > 0, -1 for f < 0, 0 for f = 0}
 
     Numerical Stability:
@@ -314,7 +314,7 @@ def compute_phase(
 
     References:
         - Gabor, D. (1946). Theory of communication. Journal of the IEE, 93(26).
-        - Boashash, B. (1992). Estimating and interpreting the instantaneous 
+        - Boashash, B. (1992). Estimating and interpreting the instantaneous
           frequency of a signal. Proceedings of the IEEE, 80(4), 520-538.
     """
     context_manager = (

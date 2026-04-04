@@ -76,7 +76,7 @@ def dfa_alpha(
 
         4. Perform log-log regression to estimate scaling exponent:
            log F(s) ~ α · log s
-           
+
            where α is extracted as the slope.
 
     Statistical Properties:

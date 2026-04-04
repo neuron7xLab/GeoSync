@@ -15,10 +15,8 @@ Usage::
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import numpy as np
-from numpy.typing import NDArray
 
 try:
     import jax
@@ -30,7 +28,7 @@ except ImportError:  # pragma: no cover
     JAX_AVAILABLE = False
 
 from .config import KuramotoConfig
-from .engine import KuramotoResult, _order_parameter
+from .engine import KuramotoResult
 
 __all__ = ["JaxKuramotoEngine", "JAX_AVAILABLE"]
 

@@ -54,7 +54,7 @@ def box_counting_dim(signal: np.ndarray, eps_list: np.ndarray | None = None) -> 
 
         2. Perform log-log linear regression:
            log N(ε) ~ -D · log ε + const
-           
+
            where D is the fractal dimension (extracted as slope).
 
     Args:

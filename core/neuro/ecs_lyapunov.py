@@ -10,10 +10,6 @@ SPDX-License-Identifier: MIT
 
 from __future__ import annotations
 
-from typing import Optional
-
-import numpy as np
-
 from core.neuro.signal_bus import NeuroSignalBus
 
 
