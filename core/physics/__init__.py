@@ -29,7 +29,14 @@ from .constants import PhysicsConstants
 
 # Physics Engine v2 — T1-T7 modules
 from .coulomb import CoulombInteraction
+
+# Research modules — T1-T7 v2
+from .diffusion_predictor import BacktestResult as DiffusionBacktestResult
+from .diffusion_predictor import DiffusionVolatilityPredictor, VolatilityFrontPrediction
 from .engine import GeoSyncPhysicsEngine, PhysicsEngineResult
+from .explosive_sync import ESCircuitBreaker, ESProximityResult, ExplosiveSyncDetector
+from .forman_ricci import DualTrackRicciMonitor, FormanRicciCurvature, FormanRicciResult
+from .free_energy_trading_gate import FreeEnergyTradeDecision, FreeEnergyTradingGate, GateStatistics
 from .gravitational_coupling import GravitationalCouplingMatrix
 from .gravity import (
     compute_market_gravity,
@@ -37,12 +44,14 @@ from .gravity import (
     gravitational_potential,
     market_gravity_center,
 )
+from .higher_order_kuramoto import HigherOrderKuramotoEngine, HigherOrderKuramotoResult
 from .landauer import (
     K_BOLTZMANN,
     LANDAUER_ENERGY,
     ROOM_TEMPERATURE,
     LandauerInferenceProfiler,
 )
+from .liquidity_coupling import CouplingBenchmarkResult, LiquidityCouplingMatrix
 from .maxwell import (
     compute_market_field_curl,
     compute_market_field_divergence,
@@ -75,6 +84,7 @@ from .thermodynamics import (
     is_thermodynamic_equilibrium,
     thermal_equilibrium_distance,
 )
+from .tsallis_gate import TsallisGateResult, TsallisRegime, TsallisRiskGate
 from .uncertainty import (
     check_uncertainty_principle,
     heisenberg_uncertainty,
@@ -144,4 +154,24 @@ __all__ = [
     "LANDAUER_ENERGY",
     "GeoSyncPhysicsEngine",
     "PhysicsEngineResult",
+    # Research modules — T1-T7 v2
+    "FormanRicciCurvature",
+    "FormanRicciResult",
+    "DualTrackRicciMonitor",
+    "LiquidityCouplingMatrix",
+    "CouplingBenchmarkResult",
+    "ExplosiveSyncDetector",
+    "ESProximityResult",
+    "ESCircuitBreaker",
+    "TsallisRiskGate",
+    "TsallisGateResult",
+    "TsallisRegime",
+    "FreeEnergyTradingGate",
+    "FreeEnergyTradeDecision",
+    "GateStatistics",
+    "HigherOrderKuramotoEngine",
+    "HigherOrderKuramotoResult",
+    "DiffusionVolatilityPredictor",
+    "VolatilityFrontPrediction",
+    "DiffusionBacktestResult",
 ]
