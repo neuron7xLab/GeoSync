@@ -41,7 +41,7 @@ runs:
       id: venv-cache
       with:
         path: .venv
-        key: ${{ inputs.cache-prefix }}-${{ runner.os }}-py${{ inputs.python-version }}-${{ hashFiles('requirements*.lock', 'constraints/security.txt') }}
+        key: ${{ inputs.cache-prefix }}-${{ runner.os }}-py${{ inputs.python-version }}-${{ hashFiles('requirements*.lock', 'constraints/security.txt', '.github/actions/setup-geosync/action.yml') }}
         restore-keys: |
           ${{ inputs.cache-prefix }}-${{ runner.os }}-py${{ inputs.python-version }}-
           
@@ -54,8 +54,37 @@ runs:
       if: steps.venv-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        .venv/bin/python -m pip install --upgrade pip setuptools wheel
+        .venv/bin/python -m pip install pip==25.0.1 setuptools==75.8.0 wheel==0.45.1
         .venv/bin/python -m pip install -c constraints/security.txt -r requirements.lock
         if [ "${{ inputs.install-dev }}" = "true" ]; then
           .venv/bin/python -m pip install -c constraints/security.txt -r requirements-dev.lock
         fi
+
+    - name: Verify pinned pip and pytest versions
+      shell: bash
+      run: |
+        .venv/bin/python - <<'PY'
+        from pathlib import Path
+        import importlib.metadata as metadata
+
+        expected_pip = "25.0.1"
+        pip_version = metadata.version("pip")
+        if pip_version != expected_pip:
+            raise SystemExit(f"pip version mismatch: {pip_version} != {expected_pip}")
+
+        if "${{ inputs.install-dev }}" == "true":
+            expected_pytest = None
+            for line in Path("requirements-dev.lock").read_text(encoding="utf-8").splitlines():
+                if line.startswith("pytest=="):
+                    expected_pytest = line.split("==", 1)[1].strip()
+                    break
+            if expected_pytest is None:
+                raise SystemExit("pytest pin not found in requirements-dev.lock")
+            pytest_version = metadata.version("pytest")
+            if pytest_version != expected_pytest:
+                raise SystemExit(
+                    f"pytest version mismatch: {pytest_version} != {expected_pytest}"
+                )
+            print(f"pytest pinned: {pytest_version}")
+        print(f"pip pinned: {pip_version}")
+        PY

@@ -10,3 +10,13 @@ Only these workflows are active:
    - Scheduled/manual deep security scans.
 
 If a proposed workflow does not define a distinct decision boundary, do not add it.
+
+## Runtime hardening note
+
+All canonical workflows opt into GitHub's Node.js 24 runtime for JavaScript-based actions via:
+
+`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'`
+
+Frontend workflows also pin `actions/setup-node` to `node-version: '24'` to avoid mixed runtime drift.
+
+Python environment setup enforces pinned toolchain versions for `pip` and `pytest` (from `requirements-dev.lock`) to keep CI reproducible.
