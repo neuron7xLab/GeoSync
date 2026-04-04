@@ -9,7 +9,7 @@
 <br><br>
 
 [![substrates-10](https://img.shields.io/badge/modules-10-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
-[![tests-681](https://img.shields.io/badge/tests-681-brightgreen?style=for-the-badge)](tests/)
+[![tests-8687](https://img.shields.io/badge/tests-8687-brightgreen?style=for-the-badge)](tests/)
 [![indicators-50+](https://img.shields.io/badge/indicators-50%2B-gold?style=for-the-badge)](core/indicators/)
 [![ADRs-19](https://img.shields.io/badge/ADRs-19-blue?style=for-the-badge)](docs/adr/)
 [![license-MIT](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -25,11 +25,10 @@ Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynami
 
 <br>
 
-[![Tests](https://github.com/neuron7xLab/GeoSync/actions/workflows/tests.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/tests.yml)
-[![CI](https://github.com/neuron7xLab/GeoSync/actions/workflows/ci.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/ci.yml)
+[![Main Validation](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Security](https://img.shields.io/badge/NIST%20SP%20800--53-aligned-red?style=flat)](docs/security/)
-[![Coverage](https://img.shields.io/badge/coverage-71%25%20→%2098%25-orange?style=flat)](docs/METRICS_CONTRACT.md)
+[![Coverage](https://img.shields.io/badge/coverage-79%25-yellow?style=flat)](CANONICAL_OBJECT.md)
 
 </div>
 
