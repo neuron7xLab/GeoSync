@@ -1762,8 +1762,12 @@ def create_app(
     async def _stop_metrics_sampler() -> None:
         await metrics_sampler.stop()
 
-    app.router.on_startup.append(_start_metrics_sampler)
-    app.router.on_shutdown.append(_stop_metrics_sampler)
+    if hasattr(app, "add_event_handler"):
+        app.add_event_handler("startup", _start_metrics_sampler)
+        app.add_event_handler("shutdown", _stop_metrics_sampler)
+    else:
+        app.router.on_startup.append(_start_metrics_sampler)
+        app.router.on_shutdown.append(_stop_metrics_sampler)
     if runtime_settings.debug and runtime_settings.log_variables_on_startup:
         debug_logger = logging.getLogger("geosync.debug")
 
@@ -2540,7 +2544,10 @@ def create_app(
                         exc_info=True,
                     )
 
-    app.router.on_shutdown.append(_shutdown_app)
+    if hasattr(app, "add_event_handler"):
+        app.add_event_handler("shutdown", _shutdown_app)
+    else:
+        app.router.on_shutdown.append(_shutdown_app)
 
     register_exception_handlers(app)
 
