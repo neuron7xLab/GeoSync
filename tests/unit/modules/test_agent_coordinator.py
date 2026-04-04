@@ -254,6 +254,81 @@ class TestAgentCoordinator:
         assert "system_health" in summary
         assert summary["registered_agents"] == 1
 
+    def test_process_task_uses_handler_process_method(self):
+        """Task processing should call handler.process when available."""
+        coordinator = AgentCoordinator(max_concurrent_tasks=1)
+        handler = MockAgentHandler("exec_agent")
+
+        coordinator.register_agent(
+            "agent_1", AgentType.TRADING, "Agent 1", "Desc", handler
+        )
+        coordinator.submit_task("agent_1", "execute", {"symbol": "ETHUSD"})
+
+        processed = coordinator.process_tasks()
+
+        assert len(processed) == 1
+        assert handler.call_count == 1
+        assert coordinator._completed_tasks[0].result["handler"] == "exec_agent"
+
+    def test_protocol_inversion_of_control(self):
+        """Registered protocol should execute instead of direct handler invocation."""
+        coordinator = AgentCoordinator(max_concurrent_tasks=1)
+        handler = MockAgentHandler("fallback_agent")
+        coordinator.register_agent(
+            "agent_1", AgentType.STRATEGY, "Strategy Agent", "Desc", handler
+        )
+
+        coordinator.register_protocol(
+            "shared_protocol",
+            lambda payload: {"status": "protocol_ok", "payload": payload["value"]},
+        )
+        coordinator.submit_task(
+            "agent_1",
+            "sync",
+            {"protocol": "shared_protocol", "value": 42},
+            Priority.HIGH,
+        )
+
+        coordinator.process_tasks()
+        result = coordinator._completed_tasks[0].result
+        assert result["status"] == "protocol_ok"
+        assert result["payload"] == 42
+        assert handler.call_count == 0
+
+    def test_deterministic_synthesis_cycle_detects_and_recovers(self):
+        """Deterministic synthesis cycle should isolate conflicts and recover errored agents."""
+        coordinator = AgentCoordinator()
+        handler = MockAgentHandler("test_agent")
+
+        coordinator.register_agent(
+            "dependency_agent",
+            AgentType.RISK_MANAGER,
+            "Dependency",
+            "Desc",
+            handler,
+        )
+        coordinator.update_agent_status("dependency_agent", AgentStatus.ERROR)
+        coordinator.register_agent(
+            "agent_1",
+            AgentType.TRADING,
+            "Trading Agent",
+            "Desc",
+            handler,
+            dependencies={"dependency_agent"},
+        )
+        coordinator.update_agent_status("agent_1", AgentStatus.ERROR)
+
+        report = coordinator.run_deterministic_synthesis_cycle()
+
+        assert report.cycle_id.startswith("cycle_")
+        assert any(
+            conflict.conflict_type == "error_dependency"
+            for conflict in report.decomposed_conflicts
+        )
+        assert "agent_1" in report.recovered_agents
+        assert coordinator._agents["agent_1"].status == AgentStatus.PAUSED
+        assert 0.0 <= report.coherence_score <= 1.0
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

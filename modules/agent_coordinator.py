@@ -99,6 +99,32 @@ class CoordinationDecision:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class ConflictDescriptor:
+    """Опис ізольованого протиріччя в системі."""
+
+    conflict_id: str
+    agent_id: str
+    conflict_type: str
+    severity: Priority
+    function_expression: str
+    details: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class SynthesisCycleReport:
+    """Звіт детермінованого циклу синтезу."""
+
+    cycle_id: str
+    started_at: datetime
+    completed_at: datetime
+    decomposed_conflicts: List[ConflictDescriptor]
+    synchronized_agents: List[str]
+    verification_results: Dict[str, bool]
+    recovered_agents: List[str]
+    coherence_score: float
+
+
 class AgentCoordinator:
     """
     Координатор агентів
@@ -138,6 +164,11 @@ class AgentCoordinator:
 
         # Лічильники
         self._task_id_counter = 0
+        self._synthesis_cycle_counter = 0
+
+        # IoC рівень: протоколи та валідація
+        self._protocol_handlers: Dict[str, Callable[[Dict[str, Any]], Any]] = {}
+        self._validators: Dict[str, Callable[["AgentCoordinator"], bool]] = {}
 
     def register_agent(
         self,
@@ -254,6 +285,22 @@ class AgentCoordinator:
 
         return task_id
 
+    def register_protocol(
+        self, protocol_name: str, handler: Callable[[Dict[str, Any]], Any]
+    ) -> None:
+        """
+        Реєструє універсальний протокол взаємодії (IoC).
+        """
+        self._protocol_handlers[protocol_name] = handler
+
+    def register_validator(
+        self, validator_name: str, validator: Callable[["AgentCoordinator"], bool]
+    ) -> None:
+        """
+        Реєструє валідатор для рекурсивної верифікації системи.
+        """
+        self._validators[validator_name] = validator
+
     def process_tasks(self) -> List[str]:
         """
         Обробка задач з черги
@@ -351,9 +398,19 @@ class AgentCoordinator:
         Returns:
             Результат виконання
         """
-        # В реальній імплементації тут буде виклик методів handler
-        # На основі task_type та payload
-        return {"status": "completed", "task_id": task.task_id}
+        protocol = task.payload.get("protocol")
+        if protocol and protocol in self._protocol_handlers:
+            return self._protocol_handlers[protocol](task.payload)
+
+        if hasattr(handler, "process") and callable(handler.process):
+            return handler.process(task)
+
+        # Базовий fallback для простих/тестових handler-об'єктів
+        return {
+            "status": "completed",
+            "task_id": task.task_id,
+            "task_type": task.task_type,
+        }
 
     def make_decision(
         self, decision_type: str, context: Dict[str, Any]
@@ -535,3 +592,144 @@ class AgentCoordinator:
             "decisions_made": len(self._decisions),
             "system_health": self.get_system_health(),
         }
+
+    def run_deterministic_synthesis_cycle(self) -> SynthesisCycleReport:
+        """
+        Детермінований цикл синтезу:
+        1) Декомпозиція ентропії
+        2) Алгоритмічна синхронізація
+        3) Рекурсивна верифікація та самовідновлення
+        """
+        started_at = datetime.now()
+        self._synthesis_cycle_counter += 1
+        cycle_id = f"cycle_{self._synthesis_cycle_counter}"
+
+        conflicts = self._decompose_entropy()
+        synchronized_agents = self._synchronize_dependencies()
+        verification = self._recursive_verify()
+        recovered_agents = self._recover_from_conflicts(conflicts)
+        coherence_score = self._calculate_coherence_score(conflicts, verification)
+
+        completed_at = datetime.now()
+        return SynthesisCycleReport(
+            cycle_id=cycle_id,
+            started_at=started_at,
+            completed_at=completed_at,
+            decomposed_conflicts=conflicts,
+            synchronized_agents=synchronized_agents,
+            verification_results=verification,
+            recovered_agents=recovered_agents,
+            coherence_score=coherence_score,
+        )
+
+    def _decompose_entropy(self) -> List[ConflictDescriptor]:
+        """Ізолює та формалізує точки конфлікту як функції."""
+        conflicts: List[ConflictDescriptor] = []
+
+        for agent_id, agent in self._agents.items():
+            for dep_id in agent.dependencies:
+                if dep_id not in self._agents:
+                    conflicts.append(
+                        ConflictDescriptor(
+                            conflict_id=f"missing_dep:{agent_id}:{dep_id}",
+                            agent_id=agent_id,
+                            conflict_type="missing_dependency",
+                            severity=Priority.HIGH,
+                            function_expression=(
+                                f"f_missing_dep({agent_id},{dep_id})=1"
+                            ),
+                            details={"dependency": dep_id},
+                        )
+                    )
+                    continue
+
+                dep_agent = self._agents[dep_id]
+                if dep_agent.status == AgentStatus.ERROR:
+                    conflicts.append(
+                        ConflictDescriptor(
+                            conflict_id=f"error_dep:{agent_id}:{dep_id}",
+                            agent_id=agent_id,
+                            conflict_type="error_dependency",
+                            severity=Priority.CRITICAL,
+                            function_expression=f"f_error_dep({agent_id},{dep_id})=1",
+                            details={"dependency": dep_id},
+                        )
+                    )
+
+        if self.max_concurrent_tasks > 0:
+            queue_pressure = len(self._task_queue) / self.max_concurrent_tasks
+            if queue_pressure > 1.0:
+                conflicts.append(
+                    ConflictDescriptor(
+                        conflict_id="queue_pressure",
+                        agent_id="system",
+                        conflict_type="throughput_pressure",
+                        severity=Priority.HIGH,
+                        function_expression=(
+                            "f_queue=max(0, queued/max_concurrent_tasks - 1)"
+                        ),
+                        details={"queue_pressure": queue_pressure},
+                    )
+                )
+        return conflicts
+
+    def _synchronize_dependencies(self) -> List[str]:
+        """Синхронізує залежності та виконує перерозподіл ресурсів."""
+        synchronized: List[str] = []
+        self._rebalance_resources()
+
+        for agent_id, agent in self._agents.items():
+            if self._check_dependencies(agent) and agent.status in {
+                AgentStatus.IDLE,
+                AgentStatus.ACTIVE,
+            }:
+                synchronized.append(agent_id)
+        return synchronized
+
+    def _recursive_verify(self) -> Dict[str, bool]:
+        """Запускає рекурсивні валідатори; за відсутності - вбудовані перевірки."""
+        results: Dict[str, bool] = {}
+
+        if not self._validators:
+            results["dependency_integrity"] = all(
+                self._check_dependencies(agent) for agent in self._agents.values()
+            )
+            results["health_above_floor"] = (
+                float(self.get_system_health()["health_score"]) >= 50.0
+            )
+            return results
+
+        for validator_name, validator in self._validators.items():
+            try:
+                results[validator_name] = bool(validator(self))
+            except Exception:
+                results[validator_name] = False
+        return results
+
+    def _recover_from_conflicts(
+        self, conflicts: List[ConflictDescriptor]
+    ) -> List[str]:
+        """Самовідновлення: переводить конфліктні агенти в PAUSED для контрольованого деградування."""
+        recovered: List[str] = []
+        conflicted_agents = {
+            c.agent_id for c in conflicts if c.agent_id != "system" and c.agent_id in self._agents
+        }
+
+        for agent_id in conflicted_agents:
+            agent = self._agents[agent_id]
+            if agent.status == AgentStatus.ERROR:
+                agent.status = AgentStatus.PAUSED
+                recovered.append(agent_id)
+        return recovered
+
+    def _calculate_coherence_score(
+        self, conflicts: List[ConflictDescriptor], verification_results: Dict[str, bool]
+    ) -> float:
+        """Оцінює когерентність системи в діапазоні [0, 1]."""
+        base = 1.0
+        conflict_penalty = min(len(conflicts) * 0.15, 0.7)
+        failed_verifications = sum(not ok for ok in verification_results.values())
+        verification_penalty = min(failed_verifications * 0.2, 0.6)
+
+        score = base - conflict_penalty - verification_penalty
+        return max(0.0, min(1.0, score))
