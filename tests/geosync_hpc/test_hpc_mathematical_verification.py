@@ -21,6 +21,12 @@ except ImportError:
     SYMPY_AVAILABLE = False
 
 
+@pytest.fixture(autouse=True)
+def _force_cpu(monkeypatch):
+    """Math verification tests create raw tensors on CPU; keep model on CPU too."""
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+
+
 @pytest.fixture
 def small_model():
     """Create a small model for testing."""

@@ -28,6 +28,7 @@ def test_instrument_engine_metrics_records_queries(
     registry = CollectorRegistry()
     collector = MetricsCollector(registry)
     monkeypatch.setattr(metrics_module, "_collector", collector, raising=False)
+    monkeypatch.setattr(db_monitoring, "get_metrics_collector", lambda: collector)
 
     engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
     try:
@@ -76,6 +77,7 @@ def test_database_monitor_collects_sqlite_size(
     registry = CollectorRegistry()
     collector = MetricsCollector(registry)
     monkeypatch.setattr(metrics_module, "_collector", collector, raising=False)
+    monkeypatch.setattr(db_monitoring, "get_metrics_collector", lambda: collector)
 
     db_path = tmp_path / "geosync.sqlite"
     engine = create_engine(f"sqlite+pysqlite:///{db_path}", future=True)

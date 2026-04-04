@@ -110,6 +110,7 @@ def _run_git_command(args: list[str], cwd: Path | None = None) -> str | None:
             text=True,
             check=True,
             timeout=10,
+            encoding="utf-8",
         )
         return result.stdout.strip()
     except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):

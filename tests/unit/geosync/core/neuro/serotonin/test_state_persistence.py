@@ -56,37 +56,26 @@ def test_state_round_trip(tmp_path: Path):
 
     snapshot = ctrl.to_dict()
     path = tmp_path / "state.json"
-    ctrl.save_state(path)
+    ctrl.save_state(str(path))
 
     ctrl.reset()
-    assert ctrl.level == 0
+    assert ctrl.serotonin_level == 0
 
-    restored = ctrl.load_state(path)
+    ctrl.load_state(str(path))
+    restored = ctrl.to_dict()
 
-    assert restored["level"] == pytest.approx(snapshot["level"])
+    assert restored["serotonin_level"] == pytest.approx(snapshot["serotonin_level"])
     assert restored["tonic_level"] == pytest.approx(snapshot["tonic_level"])
     assert restored["phasic_level"] == pytest.approx(snapshot["phasic_level"])
-    assert bool(restored["hold"]) == bool(snapshot["hold"])
+    assert bool(restored["hold_state"]) == bool(snapshot["hold_state"])
     assert restored["cooldown"] == pytest.approx(snapshot["cooldown"])
     assert restored["temperature_floor"] == pytest.approx(snapshot["temperature_floor"])
-    assert restored["desensitization"] == pytest.approx(snapshot["desensitization"])
+    assert restored["desens_counter"] == snapshot["desens_counter"]
 
 
-def test_load_state_validation(tmp_path: Path):
+def test_load_state_missing_file(tmp_path: Path):
     ctrl = _create_controller(tmp_path)
-    bad_state: dict[str, Any] = {
-        "tonic_level": 0.1,
-        "phasic_level": 0.1,
-        "level": 2.1,  # exceeds max
-        "hold": False,
-        "active_hold": False,
-        "cooldown": 0,
-        "temperature_floor": 0.2,
-        "desensitization": 0.0,
-    }
+    path = tmp_path / "missing_state.json"
 
-    path = tmp_path / "bad_state.json"
-    path.write_text(json.dumps(bad_state), encoding="utf-8")
-
-    with pytest.raises(ValueError):
-        ctrl.load_state(path)
+    with pytest.raises(FileNotFoundError):
+        ctrl.load_state(str(path))

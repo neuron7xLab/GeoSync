@@ -877,10 +877,10 @@ class NeuroOptimizer:
             'performance_trend': 'improving' if len(recent_perf) > 1 and recent_perf[-1] > recent_perf[0] else 'stable',
             'parameter_drift': parameter_drift,
             'avg_balance_score': float(
-                self._xp.mean([b.overall_balance_score for b in recent_balance])
+                self._xp.mean(self._xp.asarray([b.overall_balance_score for b in recent_balance]))
             ),
             'avg_homeostatic_dev': float(
-                self._xp.mean([b.homeostatic_deviation for b in recent_balance])
+                self._xp.mean(self._xp.asarray([b.homeostatic_deviation for b in recent_balance]))
             ),
             'convergence': self._check_convergence(),
             'health_status': self._assess_health(
@@ -940,7 +940,7 @@ class NeuroOptimizer:
             }
 
         recent = self._performance_history[-self.config.history_window:]
-        variance = float(self._xp.std(recent))
+        variance = float(self._xp.std(self._xp.asarray(recent)))
 
         if variance < self.config.convergence_threshold:
             return {

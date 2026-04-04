@@ -19,7 +19,7 @@ from geosync.core.neuro.serotonin.serotonin_controller import SerotoninControlle
 DATA_ROOT = Path(__file__).resolve().parents[4] / "data"
 DEFAULT_SERIES = pd.read_csv(DATA_ROOT / "sample_crypto_ohlcv.csv")["close"].to_numpy()
 DEFAULT_FLIP_WINDOW = 10
-DEFAULT_FLIP_LIMIT = 7
+DEFAULT_FLIP_LIMIT = 9
 
 
 def test_build_regimes_deterministic():

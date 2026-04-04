@@ -124,7 +124,7 @@ def test_validator_detects_broad_failures() -> None:
             "confidentiality": "Top Secret",
             "retention_policy_days": 0,
             "training_restrictions": [],
-            "license": "MIT",
+            "license": "proprietary",
             "intended_domains": ["mass_surveillance"],
             "user_request_sla_hours": 200,
             "consent_logging": "disabled",
@@ -146,7 +146,7 @@ def test_validator_detects_broad_failures() -> None:
     assert "Retention policy does not specify a positive duration" in messages
     assert any("Retention policy lacks" in message for message in messages)
     assert "Training restrictions are incomplete or missing" in messages
-    assert any("License MIT" in message for message in messages)
+    assert any("License proprietary" in message for message in messages)
     assert any("forbidden areas" in message for message in messages)
     assert "Process for user data requests is undefined" in messages
     assert any("User request SLA exceeds one week" in message for message in messages)

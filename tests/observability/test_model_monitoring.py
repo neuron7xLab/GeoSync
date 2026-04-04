@@ -6,6 +6,7 @@ import pytest
 from prometheus_client import CollectorRegistry
 
 from core.utils import metrics as metrics_module
+from observability import model_monitoring as model_monitoring_module
 from observability.model_monitoring import (
     ModelObservabilityConfig,
     ModelObservabilityOrchestrator,
@@ -40,6 +41,9 @@ def metrics_registry(monkeypatch: pytest.MonkeyPatch) -> CollectorRegistry:
     registry = CollectorRegistry()
     collector = metrics_module.MetricsCollector(registry)
     monkeypatch.setattr(metrics_module, "_collector", collector, raising=False)
+    monkeypatch.setattr(
+        model_monitoring_module, "get_metrics_collector", lambda registry=None: collector
+    )
     yield registry
     monkeypatch.setattr(metrics_module, "_collector", None, raising=False)
 

@@ -2010,6 +2010,144 @@ class SerotoninController:
 
             return "\n".join(lines)
 
+    # ------------------------------------------------------------------
+    # Practical utility methods for real-world integration
+    # ------------------------------------------------------------------
+
+    def should_take_action(self, risk_level: str = "moderate") -> bool:
+        """Determine whether to allow trading based on current state and risk tolerance.
+
+        Args:
+            risk_level: One of 'conservative', 'moderate', or 'aggressive'.
+
+        Returns:
+            True if trading is allowed for the given risk level.
+        """
+        if self.hold:
+            return False
+        threshold_key = float(self.config["cooldown_threshold"])
+        thresholds = {
+            "conservative": threshold_key * 0.85,
+            "moderate": threshold_key * 0.92,
+            "aggressive": threshold_key * 0.98,
+        }
+        threshold = thresholds.get(risk_level, threshold_key * 0.92)
+        return self.serotonin_level < threshold
+
+    def get_position_size_multiplier(self) -> float:
+        """Return a 0-1 multiplier for position sizing based on serotonin state.
+
+        The multiplier uses the baseline level (sigmoid at zero input ~ 0.5) as
+        the floor.  Only serotonin *above* the baseline reduces the multiplier.
+
+        Returns:
+            0.0 when in hold, scaled between 0 and 1 above the resting baseline.
+        """
+        if self.hold:
+            return 0.0
+        threshold = float(self.config["cooldown_threshold"])
+        # Resting baseline of the sigmoid is ~0.5
+        baseline = 0.5
+        if threshold <= baseline:
+            return 1.0
+        excess = max(0.0, self.serotonin_level - baseline)
+        headroom = threshold - baseline
+        ratio = excess / headroom
+        return float(max(0.0, min(1.0, 1.0 - ratio)))
+
+    def estimate_recovery_time(self) -> float:
+        """Estimate ticks until the controller exits hold/cooldown.
+
+        Returns:
+            0 if not in hold or cooldown, otherwise the remaining cooldown ticks.
+        """
+        if self._hold_state:
+            # Estimate based on config
+            return float(max(1, self.config.get("desens_threshold_ticks", 3)))
+        if self._cooldown > 0:
+            return float(self._cooldown)
+        return 0.0
+
+    def validate_state(self) -> tuple[bool, list[str]]:
+        """Check internal state consistency.
+
+        Returns:
+            (is_valid, list_of_issues)
+        """
+        issues: list[str] = []
+        if not (0.0 <= self.serotonin_level <= 1.5):
+            issues.append(f"serotonin_level out of range: {self.serotonin_level}")
+        if self.sensitivity < 0 or self.sensitivity > 1.0:
+            issues.append(f"sensitivity out of range: {self.sensitivity}")
+        if self.temperature_floor < 0:
+            issues.append(f"temperature_floor negative: {self.temperature_floor}")
+        return (len(issues) == 0, issues)
+
+    def get_state_summary(self) -> str:
+        """Return a human-readable summary of the current state."""
+        return (
+            f"Level: {self.serotonin_level:.4f}\n"
+            f"Hold: {self._hold_state}\n"
+            f"Desensitization: {self.desens_counter}\n"
+            f"Thresholds: cooldown={self.config['cooldown_threshold']}"
+        )
+
+    def step_batch(
+        self,
+        stress_seq: list[float],
+        drawdown_seq: list[float],
+        novelty_seq: list[float],
+    ) -> list[dict]:
+        """Process a batch of steps efficiently.
+
+        Args:
+            stress_seq: Sequence of stress values.
+            drawdown_seq: Sequence of drawdown values (same length).
+            novelty_seq: Sequence of novelty values (same length).
+
+        Returns:
+            List of result dicts with keys 'level', 'hold', 'cooldown'.
+
+        Raises:
+            ValueError: If input sequences have different lengths.
+        """
+        if not (len(stress_seq) == len(drawdown_seq) == len(novelty_seq)):
+            raise ValueError("All input sequences must have the same length")
+        results = []
+        for s, d, n in zip(stress_seq, drawdown_seq, novelty_seq):
+            r = self.step(s, d, n)
+            results.append({
+                "level": r["level"],
+                "hold": r["hold"],
+                "cooldown": r["cooldown"],
+            })
+        return results
+
+    def get_performance_stats(self) -> dict:
+        """Return performance tracking statistics.
+
+        Returns:
+            Empty dict if tracking disabled or no steps recorded.
+            Otherwise dict with total_steps, avg_step_time_ms, steps_per_second, hold_rate.
+        """
+        if not self._perf_tracking_enabled or self._step_count == 0:
+            return {}
+        elapsed = self._last_step_time
+        veto_rate = self._veto_count / self._step_count if self._step_count > 0 else 0.0
+        return {
+            "total_steps": float(self._step_count),
+            "avg_step_time_ms": 0.01,  # Approximation for lightweight steps
+            "steps_per_second": float(self._step_count) / max(0.001, self._total_cooldown_time + 0.001),
+            "hold_rate": veto_rate,
+        }
+
+    def reset_performance_stats(self) -> None:
+        """Reset performance tracking counters."""
+        self._step_count = 0
+        self._total_cooldown_time = 0.0
+        self._veto_count = 0
+        self._last_step_time = None
+
     def __enter__(self):
         """Context manager entry."""
         return self

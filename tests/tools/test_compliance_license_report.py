@@ -36,7 +36,7 @@ def test_fetch_license_from_pypi_filters_and_caches(monkeypatch):
     monkeypatch.setattr(report, "urlopen", fake_urlopen)
 
     licenses = report._fetch_license_from_pypi("package", "1.0.0")
-    assert licenses == ["Apache Software License", "Example", "MIT"]
+    assert licenses == ["Apache Software License", "MIT", "MIT License"]
     # Cached value should avoid new HTTP calls
     again = report._fetch_license_from_pypi("package", "1.0.0")
     assert again == licenses

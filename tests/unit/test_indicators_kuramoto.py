@@ -98,7 +98,12 @@ def test_compute_phase_gpu_fallback_matches_cpu() -> None:
     data = np.sin(np.linspace(0, 2 * np.pi, 64, endpoint=False))
     cpu = compute_phase(data)
     gpu = compute_phase_gpu(data)
-    np.testing.assert_allclose(cpu, gpu, atol=1e-6)
+    # Compare modulo 2*pi to handle phase wrapping at the +pi/-pi boundary
+    # (GPU uses float32, CPU uses float64, so small differences near boundaries
+    # can cause a 2*pi wrap difference)
+    diff = np.abs(cpu - gpu)
+    diff = np.minimum(diff, 2 * np.pi - diff)
+    np.testing.assert_allclose(diff, 0.0, atol=1e-5)
 
 
 def test_compute_phase_handles_odd_length_series() -> None:

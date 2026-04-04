@@ -10,7 +10,7 @@ import pytest
 
 HYPOTHESIS_AVAILABLE = importlib.util.find_spec("hypothesis") is not None
 if HYPOTHESIS_AVAILABLE:  # pragma: no branch
-    from hypothesis import given, settings
+    from hypothesis import HealthCheck, given, settings
     from hypothesis import strategies as st
 
 from geosync.core.neuro.neuro_optimizer import (
@@ -421,7 +421,7 @@ class TestNeuroOptimizer:
 
     if HYPOTHESIS_AVAILABLE:
 
-        @settings(max_examples=50, deadline=None)
+        @settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
         @given(
             dopamine=st.floats(
                 min_value=0.01, max_value=3.0, allow_nan=False, allow_infinity=False

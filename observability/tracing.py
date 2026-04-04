@@ -388,7 +388,10 @@ if _TRACE_AVAILABLE:
 
         def _is_hot(self, name: str, attributes: Mapping[str, Any] | None) -> bool:
             lowered_name = name.lower()
-            if "failover" in lowered_name:
+            # Match names that end with a failover segment (e.g. "stage.failover")
+            # but not names that merely contain "failover" as a prefix/base component.
+            _name_parts = lowered_name.replace("-", ".").split(".")
+            if _name_parts and _name_parts[-1] == "failover":
                 return True
 
             if attributes:

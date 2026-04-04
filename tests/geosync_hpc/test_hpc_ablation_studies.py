@@ -9,6 +9,8 @@ Measures impact on PWPE, Sharpe ratio, and action diversity.
 Includes statistical significance tests (t-test).
 """
 
+import gc
+
 import numpy as np
 import pytest
 import torch
@@ -22,6 +24,22 @@ from geosync_hpc.hpc_validation import (
 )
 
 
+def _cpu_model(**kwargs):
+    """Create model on CPU to avoid GPU OOM with multiple models."""
+    m = HPCActiveInferenceModuleV4(**kwargs)
+    m.device = torch.device("cpu")
+    m.to(m.device)
+    return m
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_gpu():
+    yield
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
 class TestAblationStudies:
     """Ablation studies to measure component contributions."""
 
@@ -31,10 +49,10 @@ class TestAblationStudies:
         Expected: Higher action diversity, potentially lower Sharpe in high uncertainty.
         """
         # Model with gate (baseline)
-        model_with_gate = HPCActiveInferenceModuleV4(state_dim=64)
+        model_with_gate = _cpu_model(state_dim=64)
 
         # Model without gate (mock by always returning False)
-        model_no_gate = HPCActiveInferenceModuleV4(state_dim=64)
+        model_no_gate = _cpu_model(state_dim=64)
 
         # Generate high volatility data (high uncertainty scenario)
         data = generate_synthetic_data(n_days=500, volatility=3.0, seed=42)
@@ -88,10 +106,10 @@ class TestAblationStudies:
         Expected: More stable but less adaptive learning.
         """
         # Model with blending (baseline)
-        model_blend = HPCActiveInferenceModuleV4(state_dim=64)
+        model_blend = _cpu_model(state_dim=64)
 
         # Model with expert-only rewards (alpha=0)
-        model_expert = HPCActiveInferenceModuleV4(state_dim=64)
+        model_expert = _cpu_model(state_dim=64)
         with torch.no_grad():
             model_expert.blending_alpha.fill_(0.0)
 
@@ -132,10 +150,10 @@ class TestAblationStudies:
         Expected: More adaptive but potentially unstable.
         """
         # Model with blending (baseline)
-        model_blend = HPCActiveInferenceModuleV4(state_dim=64)
+        model_blend = _cpu_model(state_dim=64)
 
         # Model with predicted-only rewards (alpha=1)
-        model_pred = HPCActiveInferenceModuleV4(state_dim=64)
+        model_pred = _cpu_model(state_dim=64)
         with torch.no_grad():
             model_pred.blending_alpha.fill_(1.0)
 
@@ -157,10 +175,10 @@ class TestAblationStudies:
         Measure cumulative impact on performance.
         """
         # Baseline: full model
-        model_full = HPCActiveInferenceModuleV4(state_dim=64)
+        model_full = _cpu_model(state_dim=64)
 
         # Ablated: no gate + expert-only
-        model_ablated = HPCActiveInferenceModuleV4(state_dim=64)
+        model_ablated = _cpu_model(state_dim=64)
         with torch.no_grad():
             model_ablated.blending_alpha.fill_(0.0)
         model_ablated.metastable_transition_gate = lambda pwpe, d_pwpe: False
@@ -194,8 +212,8 @@ class TestStatisticalSignificance:
         Test if PWPE differs significantly with/without gate.
         H0: mean(PWPE_with_gate) = mean(PWPE_without_gate)
         """
-        model_with = HPCActiveInferenceModuleV4(state_dim=64)
-        model_without = HPCActiveInferenceModuleV4(state_dim=64)
+        model_with = _cpu_model(state_dim=64)
+        model_without = _cpu_model(state_dim=64)
         model_without.metastable_transition_gate = lambda pwpe, d_pwpe: False
 
         data = generate_synthetic_data(n_days=200, volatility=2.0, seed=42)
@@ -230,8 +248,8 @@ class TestStatisticalSignificance:
         sharpes_expert = []
 
         for trial in range(n_trials):
-            model_blend = HPCActiveInferenceModuleV4(state_dim=32)
-            model_expert = HPCActiveInferenceModuleV4(state_dim=32)
+            model_blend = _cpu_model(state_dim=32)
+            model_expert = _cpu_model(state_dim=32)
             with torch.no_grad():
                 model_expert.blending_alpha.fill_(0.0)
 
@@ -268,8 +286,8 @@ class TestComponentContributions:
         Measure if metastable gate reduces maximum drawdown.
         Expected: Gate should reduce drawdown in volatile markets.
         """
-        model_with = HPCActiveInferenceModuleV4(state_dim=64)
-        model_without = HPCActiveInferenceModuleV4(state_dim=64)
+        model_with = _cpu_model(state_dim=64)
+        model_without = _cpu_model(state_dim=64)
         model_without.metastable_transition_gate = lambda pwpe, d_pwpe: False
 
         # High volatility data
@@ -298,8 +316,8 @@ class TestComponentContributions:
         variances_expert = []
 
         for run in range(n_runs):
-            model_blend = HPCActiveInferenceModuleV4(state_dim=32)
-            model_expert = HPCActiveInferenceModuleV4(state_dim=32)
+            model_blend = _cpu_model(state_dim=32)
+            model_expert = _cpu_model(state_dim=32)
             with torch.no_grad():
                 model_expert.blending_alpha.fill_(0.0)
 

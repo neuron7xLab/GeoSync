@@ -77,6 +77,8 @@ def test_rbac_require_allows_only_permitted_roles() -> None:
 def test_audit_logger_writes_json(tmp_path: Path) -> None:
     log_path = tmp_path / "audit.log"
     logger = AuditLogger(log_path=log_path)
+    logger.logger.propagate = False
+    logger.logger.disabled = False
     logger.log(
         event="trade_executed",
         user="alice",

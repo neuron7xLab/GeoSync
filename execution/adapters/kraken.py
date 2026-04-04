@@ -253,7 +253,7 @@ class KrakenRESTConnector(RESTWebSocketConnector):
         if isinstance(result, Mapping):
             for asset, value in result.items():
                 qty = _coerce_optional_float(value) or 0.0
-                if qty <= 0:
+                if not (qty > 0):  # handles NaN and <= 0
                     continue
                 symbol = str(asset).strip().upper()
                 if not symbol:

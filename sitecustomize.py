@@ -15,6 +15,19 @@ import tarfile
 from typing import TYPE_CHECKING
 
 os.environ.setdefault("GEOSYNC_LIGHT_IMPORT", "1")
+
+# ── Compute maximization ──────────────────────��──────────────────────
+# Expose all CPU cores to OpenMP/MKL/torch threading backends.
+_cpu_count = str(os.cpu_count() or 4)
+os.environ.setdefault("OMP_NUM_THREADS", _cpu_count)
+os.environ.setdefault("MKL_NUM_THREADS", _cpu_count)
+os.environ.setdefault("OPENBLAS_NUM_THREADS", _cpu_count)
+os.environ.setdefault("NUMEXPR_MAX_THREADS", _cpu_count)
+# Enable CUDA TF32 for RTX 30xx+ (2x throughput on matmuls with negligible accuracy loss)
+os.environ.setdefault("NVIDIA_TF32_OVERRIDE", "1")
+os.environ.setdefault("TORCH_ALLOW_TF32_CUBLAS_OVERRIDE", "1")
+# cuDNN auto-tuner: benchmark kernels to find fastest for fixed-size inputs
+os.environ.setdefault("CUDNN_BENCHMARK", "1")
 # Ensure local and CI test environments have a benign default for the
 # administrative two-factor secret so that importing ``geosync.sdk`` (which
 # bootstraps the FastAPI stack) does not raise configuration errors when the

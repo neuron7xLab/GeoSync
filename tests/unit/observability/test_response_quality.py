@@ -8,6 +8,7 @@ import pytest
 from prometheus_client import CollectorRegistry
 
 from core.utils import metrics as metrics_module
+from observability import response_quality as response_quality_module
 from observability.response_quality import (
     GoldenDataset,
     GoldenRecord,
@@ -46,6 +47,9 @@ def metrics_registry(monkeypatch: pytest.MonkeyPatch) -> CollectorRegistry:
     registry = CollectorRegistry()
     collector = metrics_module.MetricsCollector(registry)
     monkeypatch.setattr(metrics_module, "_collector", collector, raising=False)
+    monkeypatch.setattr(
+        response_quality_module, "get_metrics_collector", lambda: collector
+    )
     yield registry
     monkeypatch.setattr(metrics_module, "_collector", None, raising=False)
 

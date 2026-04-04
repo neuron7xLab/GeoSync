@@ -22,6 +22,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam
 
+# ── Maximize GPU throughput ──────────────────────────────────────────
+if torch.cuda.is_available():
+    torch.backends.cudnn.benchmark = True
+    if hasattr(torch.backends.cuda, "matmul"):
+        torch.backends.cuda.matmul.allow_tf32 = True
+    if hasattr(torch.backends.cudnn, "allow_tf32"):
+        torch.backends.cudnn.allow_tf32 = True
+torch.set_num_threads(max(1, (torch.get_num_threads() or 1)))
+# Compile-friendly float32 precision for matmul (RTX 30xx+)
+if hasattr(torch, "set_float32_matmul_precision"):
+    torch.set_float32_matmul_precision("high")
+
 
 class HPCActiveInferenceModuleV4(nn.Module):
     """
@@ -315,6 +327,12 @@ class HPCActiveInferenceModuleV4(nn.Module):
         Returns:
             TD error
         """
+        # Ensure all tensors are on the same device
+        device = next(self.actor.parameters()).device
+        state = state.to(device)
+        action = action.to(device)
+        next_state = next_state.to(device)
+
         # Compute TD error
         current_v = self.critic(state)
         next_v = self.critic(next_state)
@@ -356,11 +374,16 @@ class HPCActiveInferenceModuleV4(nn.Module):
         # Total loss
         total_loss = actor_loss + critic_loss + reward_loss + l1_reg
 
-        # Optimize
-        self.optimizer.zero_grad()
-        total_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
-        self.optimizer.step()
+        # Optimize — skip update if loss is NaN/Inf to prevent weight corruption
+        if torch.isfinite(total_loss).all():
+            self.optimizer.zero_grad()
+            total_loss.backward()
+            # Replace NaN gradients with zero before clipping
+            for p in self.parameters():
+                if p.grad is not None and not torch.isfinite(p.grad).all():
+                    p.grad.nan_to_num_(nan=0.0, posinf=0.0, neginf=0.0)
+            torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
+            self.optimizer.step()
 
         return td_error.item()
 

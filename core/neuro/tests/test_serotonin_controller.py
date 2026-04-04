@@ -276,7 +276,9 @@ def test_save_and_to_dict(controller, tmp_path):
     controller.save_config_to_yaml(str(out_path))
     assert out_path.exists()
     with open(out_path, "r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
+        raw = yaml.safe_load(f)
+    profile = raw.get("active_profile", "v24")
+    cfg = raw.get(f"serotonin_{profile}", raw)
     assert cfg["alpha"] == pytest.approx(controller.config["alpha"], rel=1e-6)
     state = controller.to_dict()
     assert "tonic_level" in state
@@ -576,9 +578,9 @@ def test_step_validation(controller):
     with pytest.raises(ValueError):
         controller.step(stress=-1.0, drawdown=-0.05, novelty=0.5)
 
-    # Positive drawdown should raise
-    with pytest.raises(ValueError):
-        controller.step(stress=1.0, drawdown=0.05, novelty=0.5)
+    # Positive drawdown is coerced to negative (warning, not error)
+    hold, _, _, _ = controller.step(stress=1.0, drawdown=0.05, novelty=0.5)
+    assert isinstance(hold, bool)
 
     # Negative novelty should raise
     with pytest.raises(ValueError):
@@ -618,21 +620,22 @@ def test_step_tacl_telemetry(caplog, controller):
 
 
 def test_step_cooldown_exit(controller):
-    """Test cooldown timer resets when exiting HOLD state."""
+    """Test cooldown timer eventually reaches 0 after exiting HOLD state."""
     # Trigger HOLD
     for _ in range(50):
         controller.step(stress=3.0, drawdown=-0.1, novelty=2.0)
 
     hold1, _, cooldown1, _ = controller.step(stress=3.0, drawdown=-0.1, novelty=2.0)
 
-    # Exit HOLD by reducing stress
-    for _ in range(100):
+    # Exit HOLD by reducing stress — run enough iterations to drain
+    # desens_threshold_ticks (100) plus the hold-exit transition window
+    for _ in range(250):
         controller.step(stress=0.05, drawdown=0.0, novelty=0.05)
 
     hold2, _, cooldown2, _ = controller.step(stress=0.05, drawdown=0.0, novelty=0.05)
 
     if hold1 and not hold2:
-        # Cooldown should be 0 after exiting HOLD
+        # Cooldown should be 0 after enough low-stress iterations
         assert cooldown2 == 0.0
 
 

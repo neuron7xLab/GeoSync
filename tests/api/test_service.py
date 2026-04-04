@@ -972,7 +972,7 @@ class _DummyWebSocket:
 @pytest.mark.asyncio
 async def test_shutdown_hook_marks_app_unhealthy_and_closes_streams() -> None:
     app = create_app(settings=AdminApiSettings(audit_secret="unit-audit-secret"))
-    await app.router.startup()
+    await app.router._startup()
     shutdown_executed = False
     transport = httpx.ASGITransport(app=app)
 
@@ -988,11 +988,11 @@ async def test_shutdown_hook_marks_app_unhealthy_and_closes_streams() -> None:
             stream_manager._connections.add(dummy_socket)  # type: ignore[attr-defined]
 
         try:
-            await app.router.shutdown()
+            await app.router._shutdown()
             shutdown_executed = True
         finally:
             if not shutdown_executed:
-                await app.router.shutdown()
+                await app.router._shutdown()
 
         assert getattr(app.state, "shutting_down", False) is True
         assert dummy_socket.closed_codes == [status.WS_1012_SERVICE_RESTART]

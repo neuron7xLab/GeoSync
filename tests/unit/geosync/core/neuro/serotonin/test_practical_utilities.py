@@ -94,7 +94,7 @@ def test_should_take_action():
     moderate = ctrl.should_take_action("moderate")
     aggressive = ctrl.should_take_action("aggressive")
 
-    print(f"✓ Medium stress (level={ctrl.level:.3f}):")
+    print(f"✓ Medium stress (level={ctrl.serotonin_level:.3f}):")
     print(
         f"  Conservative: {conservative}, Moderate: {moderate}, Aggressive: {aggressive}"
     )
@@ -120,12 +120,12 @@ def test_position_size_multiplier():
 
     ctrl = create_controller()
 
-    # At zero stress - full size
+    # At zero stress - near full size (v24 sigmoid resting baseline ~ 0.5)
     ctrl.reset()
     ctrl.step(0.0, 0.0, 0.0)
     multiplier = ctrl.get_position_size_multiplier()
-    assert multiplier == 1.0, f"Should be 1.0 at zero stress, got {multiplier}"
-    print(f"✓ Zero stress: multiplier = {multiplier:.2f} (full size)")
+    assert multiplier > 0.9, f"Should be near 1.0 at zero stress, got {multiplier}"
+    print(f"✓ Zero stress: multiplier = {multiplier:.2f} (near full size)")
 
     # At threshold - should be zero
     ctrl.reset()

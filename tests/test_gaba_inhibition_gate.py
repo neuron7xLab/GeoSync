@@ -14,9 +14,9 @@ from modules.gaba_inhibition_gate import (
 def base_state(vix=20.0, vol=0.1, ret=0.01, pos=1.0, rpe=0.0, dt_ms=20.0):
     return {
         "vix": torch.tensor(vix),
-        "vol": torch.tensor(vol),
-        "ret": torch.tensor(ret),
-        "pos": torch.tensor(pos),
+        "volatility": torch.tensor(vol),
+        "return": torch.tensor(ret),
+        "position": torch.tensor(pos),
         "rpe": torch.tensor(rpe),
         "delta_t_ms": torch.tensor(dt_ms),
     }
@@ -205,10 +205,10 @@ def test_market_state_nan_validation():
     with pytest.raises(ValueError, match="vix contains NaN or Inf"):
         gate(state_with_nan, torch.tensor([1.0]))
 
-    # Test Inf in vol
+    # Test Inf in volatility
     state_with_inf = base_state()
-    state_with_inf["vol"] = torch.tensor(float("inf"))
-    with pytest.raises(ValueError, match="vol contains NaN or Inf"):
+    state_with_inf["volatility"] = torch.tensor(float("inf"))
+    with pytest.raises(ValueError, match="volatility contains NaN or Inf"):
         gate(state_with_inf, torch.tensor([1.0]))
 
 

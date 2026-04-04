@@ -13,7 +13,7 @@ CANONICAL_MODULE = "geosync.core.neuro.serotonin.serotonin_controller"
 NON_CANONICAL_MODULE = "core.neuro.serotonin.serotonin_controller"
 CANONICAL_PATH = REPO_ROOT / "src/geosync/core/neuro/serotonin/serotonin_controller.py"
 NON_CANONICAL_PATH = REPO_ROOT / "core/neuro/serotonin/serotonin_controller.py"
-ALLOWED_ASSIGNMENTS = {"__CANONICAL__", "__all__"}
+ALLOWED_ASSIGNMENTS = {"__CANONICAL__", "__all__", "_generate_config_table"}
 EXCLUDED_DIRS = {
     "tests",
     ".git",
