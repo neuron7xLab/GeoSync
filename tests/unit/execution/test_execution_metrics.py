@@ -96,8 +96,10 @@ class TestRiskMetricsDisabled:
 
 class TestGetRiskMetrics:
     def test_returns_same_instance(self):
-        a = get_risk_metrics()
-        b = get_risk_metrics()
+        from prometheus_client import CollectorRegistry
+        reg = CollectorRegistry()
+        a = get_risk_metrics(registry=reg)
+        b = get_risk_metrics(registry=reg)
         assert a is b
 
     def test_accepts_registry(self):
@@ -161,8 +163,10 @@ class TestTradingModeMetricsDisabled:
 
 class TestGetTradingModeMetrics:
     def test_returns_same_instance(self):
-        a = get_trading_mode_metrics()
-        b = get_trading_mode_metrics()
+        from prometheus_client import CollectorRegistry
+        reg = CollectorRegistry()
+        a = get_trading_mode_metrics(registry=reg)
+        b = get_trading_mode_metrics(registry=reg)
         assert a is b
 
     def test_accepts_registry(self):

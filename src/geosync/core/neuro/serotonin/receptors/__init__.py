@@ -1,5 +1,3 @@
-__CANONICAL__ = True
-
 """Lightweight receptor-based safety modulators for SerotoninController.
 
 Each receptor implements two functions:
@@ -11,6 +9,8 @@ The bank orchestrates receptor evaluation and aggregation.
 
 from .bank import ReceptorBank
 from .types import ParamDeltas, ReceptorActivation, ReceptorContext, ReceptorState
+
+__CANONICAL__ = True
 
 __all__ = [
     "ReceptorActivation",
