@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 
 from backtest.event_driven import EventDrivenBacktestEngine
-from strategies.neuro_trade_pulse import NeuroGeoSyncStrategy
 from core.utils.determinism import DEFAULT_SEED
+from strategies.neuro_geosync import NeuroGeoSyncStrategy
 
 
 def to_bars(prices: np.ndarray) -> pd.DataFrame:
@@ -34,7 +34,7 @@ if __name__ == "__main__":
         prices,
         strategy_fn,
         initial_capital=100_000,
-        strategy_name="neuro_trade_pulse_demo",
+        strategy_name="neuro_geosync_demo",
     )
 
     print("Sharpe:", getattr(result.performance, "sharpe_ratio", None))

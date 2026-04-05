@@ -99,8 +99,8 @@ examples:
     seed: n/a
     dependencies: []
 
-  - path: examples/neuro_trade_pulse_backtest.py
-    description: NeuroTrade PRO backtest walkthrough.
+  - path: examples/neuro_geosync_backtest.py
+    description: GeoSync HPC backtest walkthrough.
     seed:
       - 42
       - 17
@@ -108,7 +108,7 @@ examples:
       - numpy==2.3.3
       - pandas==2.3.3
 
-  - path: examples/neuro_trade_pulse_snapshot.py
+  - path: examples/neuro_geosync_snapshot.py
     description: Market regime snapshot generation.
     seed: 42
     dependencies:

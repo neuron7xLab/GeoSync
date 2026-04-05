@@ -1,4 +1,4 @@
-"""Calibration hook CLI for NeuroTrade Pro."""
+"""Calibration hook CLI for GeoSync Pro."""
 
 from __future__ import annotations
 

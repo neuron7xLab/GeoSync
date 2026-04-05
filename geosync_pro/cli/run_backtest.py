@@ -1,4 +1,4 @@
-"""CLI backtest wrapper for NeuroTrade Pro."""
+"""CLI backtest wrapper for GeoSync Pro."""
 
 from __future__ import annotations
 

@@ -21,7 +21,7 @@
 | Regime | `analytics/regime/` | `geosync-regime` | Багатовимірний аналіз режимів ринку, EWS і consensus routing. |
 | Order Book | `markets/orderbook/` | `geosync-orderbook` | Симуляція LOB, інжест снапшотів/діфів і мікроструктурні події. |
 | NaK Controller | `nak_controller/` | `geosync-nak` | Нейроенергетичний лімітер для risk/exposure/frequency control. |
-| NeuroTrade Pro | `geosync_pro/` | `geosync-pro` | EMH-inspired state-space controller з EKF, MPC і CVaR gate. |
+| GeoSync Pro | `geosync_pro/` | `geosync-pro` | EMH-inspired state-space controller з EKF, MPC і CVaR gate. |
 
 ## Правила меж
 
@@ -44,7 +44,7 @@
 - Уже мав локальний `pyproject.toml` і майже повну автономність.
 - Залишається окремою моделлю контролю, яку можна підключати через hook.
 
-### 5. NeuroTrade Pro
+### 5. GeoSync Pro
 - Має завершений внутрішній цикл: модель → оцінювання → policy → risk → validate.
 - Додано локальний `pyproject.toml` для повністю автономного пакування.
 

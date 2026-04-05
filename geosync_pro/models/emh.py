@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
+
+if TYPE_CHECKING:
+    from geosync_pro.estimation.belief import VolBelief
 
 
 def clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
@@ -74,9 +77,9 @@ class EMHSSM:
     def __init__(self, p: Params, s: Optional[State] = None) -> None:
         self.p = p
         self.s = s or State()
-        self.belief = None  # optional VolBelief instance
+        self.belief: Optional["VolBelief"] = None
 
-    def step(self, obs: Dict[str, float]) -> Dict[str, float]:
+    def step(self, obs: Dict[str, float]) -> Dict[str, Any]:
         """Advance one simulation step and return the updated snapshot."""
 
         dd = clamp(obs.get("dd", 0.0))

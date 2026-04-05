@@ -1,4 +1,4 @@
-"""CLI entry point to run the NeuroTrade Pro validation."""
+"""CLI entry point to run the GeoSync Pro validation."""
 
 from __future__ import annotations
 

@@ -4,22 +4,22 @@ from __future__ import annotations
 
 from typing import Any, Dict, Tuple
 
-from .neuro_trade_pulse import NeuroGeoSyncConfig, NeuroGeoSyncStrategy
+from .neuro_geosync import NeuroGeoSyncConfig, NeuroGeoSyncStrategy
 from .registry import (
-    StrategyRegistry,
-    StrategySpec,
-    UnknownStrategyError,
-    StrategyRoutingPolicy,
-    StrategyRouter,
-    StrategyStateInput,
     MarketRegime,
     RiskLevel,
+    StrategyRegistry,
+    StrategyRouter,
+    StrategyRoutingPolicy,
+    StrategySpec,
+    StrategyStateInput,
     SystemStress,
+    UnknownStrategyError,
     default_routing_policy,
-    route_strategy,
     global_router,
     register_strategy,
     resolve_strategy,
+    route_strategy,
 )
 from .registry import (
     available_strategies as _available_strategies,
@@ -52,9 +52,15 @@ register_strategy(
     description="Hybrid LSTM/Transformer model with risk-managed backtesting.",
 )
 register_strategy(
-    "neuro_trade",
-    "strategies.neuro_trade_pulse:get_strategy",
+    "neuro_geosync",
+    "strategies.neuro_geosync:get_strategy",
     description="Composite signal + motivation engine for cautious regimes.",
+)
+# Backwards-compatible alias kept for consumers that still use the legacy name.
+register_strategy(
+    "neuro_trade",
+    "strategies.neuro_geosync:get_strategy",
+    description="Deprecated alias of ``neuro_geosync`` — kept for backwards compatibility.",
 )
 
 

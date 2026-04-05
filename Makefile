@@ -297,7 +297,7 @@ golden-path:
 	@echo ""
 	@echo "📖 Next steps:"
 	@echo "  • Try your own data: python examples/quick_start.py --csv your_data.csv"
-	@echo "  • Run full backtest: python examples/neuro_trade_pulse_backtest.py"
+	@echo "  • Run full backtest: python examples/neuro_geosync_backtest.py"
 	@echo "  • View integration tests: pytest tests/integration/test_golden_path_backtest.py -v"
 	@echo ""
 

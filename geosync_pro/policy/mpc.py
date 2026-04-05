@@ -1,10 +1,10 @@
-"""Action selection policy for NeuroTrade Pro."""
+"""Action selection policy for GeoSync Pro."""
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple
 
 from ..models.emh import clamp
 
@@ -25,7 +25,7 @@ class Controller:
 
     def decide(
         self, state: Dict[str, float], mode: str, D: float
-    ) -> Tuple[str, Dict[str, float]]:
+    ) -> Tuple[str, Dict[str, Any]]:
         _H = state["H"]  # noqa: F841 - extracted for state completeness
         M = state["M"]
         E = state["E"]

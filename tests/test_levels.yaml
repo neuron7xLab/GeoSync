@@ -51,6 +51,7 @@ levels:
       - tests/analytics/**
       - tests/core/**
       - core/**/tests/**
+      - tools/**/tests/**
       - tests/data/**
       - tests/generated/**
       - tests/property/**

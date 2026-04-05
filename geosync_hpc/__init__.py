@@ -1,3 +1,3 @@
-"""NeuroTrade PRO integrations package."""
+"""GeoSync HPC integrations package."""
 
 __all__ = []

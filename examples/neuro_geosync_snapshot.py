@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from strategies.neuro_trade_pulse import NeuroGeoSyncConfig, NeuroGeoSyncStrategy
 from core.utils.determinism import DEFAULT_SEED
+from strategies.neuro_geosync import NeuroGeoSyncConfig, NeuroGeoSyncStrategy
 
 
 def sample_df(n=1500, seed=DEFAULT_SEED) -> pd.DataFrame:

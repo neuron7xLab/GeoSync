@@ -1,4 +1,4 @@
-"""Validation pipeline for NeuroTrade Pro."""
+"""Validation pipeline for GeoSync Pro."""
 
 from __future__ import annotations
 

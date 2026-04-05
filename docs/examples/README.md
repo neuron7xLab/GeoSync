@@ -18,8 +18,8 @@ dependency is pinned there and compatible with the current lockfile.
 | Use-case | Quickstart | Dependencies (version lock) |
 | --- | --- | --- |
 | Market regime snapshot (core indicators) | `python examples/quick_start.py --seed 7 --num-points 400` | `numpy==2.3.3`, `pandas==2.3.3` |
-| Strategy backtest (NeuroTrade PRO) | `python examples/neuro_trade_pulse_backtest.py` | `numpy==2.3.3`, `pandas==2.3.3` |
-| Real-time style snapshot (signal generation) | `python examples/neuro_trade_pulse_snapshot.py` | `numpy==2.3.3`, `pandas==2.3.3` |
+| Strategy backtest (GeoSync HPC) | `python examples/neuro_geosync_backtest.py` | `numpy==2.3.3`, `pandas==2.3.3` |
+| Real-time style snapshot (signal generation) | `python examples/neuro_geosync_snapshot.py` | `numpy==2.3.3`, `pandas==2.3.3` |
 | Integrated risk management pipeline | `python examples/integrated_risk_management_example.py` | `numpy==2.3.3` |
 
 These same quickstarts are used for CI smoke tests so compatibility with

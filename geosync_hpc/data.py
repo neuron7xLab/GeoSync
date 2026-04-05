@@ -1,4 +1,4 @@
-"""Data loading utilities for NeuroTrade PRO demos."""
+"""Data loading utilities for GeoSync HPC demos."""
 
 from __future__ import annotations
 
