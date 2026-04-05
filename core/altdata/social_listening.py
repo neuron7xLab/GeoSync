@@ -14,12 +14,13 @@ import math
 import re
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Iterable, Mapping, Sequence
 
 import pandas as pd
 
 from .sentiment import SentimentFeatureBuilder, SentimentSignal
+UTC = timezone.utc
 
 _TOKEN_PATTERN = re.compile(r"[A-Za-z]+")
 _CASHTAG_PATTERN = re.compile(r"\$([A-Z]{1,6})(?=\b)")

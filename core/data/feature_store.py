@@ -11,7 +11,7 @@ import shutil
 import sqlite3
 import ssl
 from dataclasses import dataclass, field
-from datetime import UTC
+from datetime import timezone
 from decimal import Decimal, InvalidOperation
 from io import StringIO
 from pathlib import Path
@@ -30,6 +30,8 @@ from core.utils.dataframe_io import (
     read_dataframe,
     write_dataframe,
 )
+
+UTC = timezone.utc
 
 try:  # pragma: no cover - optional dependency shim for real Redis connections
     import redis

@@ -25,7 +25,7 @@ import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import UTC
+from datetime import timezone
 from queue import Empty, PriorityQueue
 from typing import Iterator, List, MutableMapping, Optional
 
@@ -33,6 +33,7 @@ import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
 from core.data.timeutils import normalize_timestamp
+UTC = timezone.utc
 
 
 @dataclass(frozen=True)

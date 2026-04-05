@@ -6,7 +6,7 @@ import asyncio
 import contextlib
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import AsyncIterator, Callable, Mapping, Protocol, Sequence
 
 import pandas as pd
@@ -18,6 +18,7 @@ from core.altdata.social_listening import (
 )
 
 from .event_bus import BrokerMessage, MessageBroker, NullMessageBroker
+UTC = timezone.utc
 
 
 class SocialStreamClient(Protocol):

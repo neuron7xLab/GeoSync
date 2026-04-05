@@ -12,9 +12,13 @@ from __future__ import annotations
 import os
 import shutil
 import tarfile
+import datetime as _dt
 from typing import TYPE_CHECKING
 
 os.environ.setdefault("GEOSYNC_LIGHT_IMPORT", "1")
+
+if not hasattr(_dt, "UTC"):  # pragma: no cover - Python < 3.11 compatibility
+    _dt.UTC = _dt.timezone.utc  # type: ignore[attr-defined]
 
 # ── Compute maximization ──────────────────────��──────────────────────
 # Expose all CPU cores to OpenMP/MKL/torch threading backends.

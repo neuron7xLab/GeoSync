@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Iterable, Mapping
 
 import pandas as pd
@@ -18,6 +18,7 @@ from ..etl.stores import (
 from .clients import MacroDataClient
 from .feature_engineering import MacroFeatureBuilder
 from .models import MacroDataSet, MacroIndicatorConfig
+UTC = timezone.utc
 
 __all__ = ["MacroSignalPipeline", "MacroPipelineContext"]
 

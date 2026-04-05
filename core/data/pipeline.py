@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from datetime import UTC
+from datetime import timezone
 from hashlib import blake2b
 from time import perf_counter
 from typing import Any, Callable, Mapping, MutableMapping, Protocol
@@ -54,6 +54,7 @@ from core.data.quality_control import (
 )
 from core.data.validation import TimeSeriesValidationConfig, validate_timeseries_frame
 from observability.drift import DriftDetector, FeatureDriftSummary, FeatureSnapshot
+UTC = timezone.utc
 
 # ---------------------------------------------------------------------------
 # Configuration dataclasses

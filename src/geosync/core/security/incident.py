@@ -5,9 +5,10 @@ from __future__ import annotations
 import logging
 import os
 import smtplib
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from typing import Any, Callable
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 

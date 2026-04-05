@@ -8,11 +8,13 @@ import json
 import sys
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, Set
 
 import yaml
 from jsonschema import Draft202012Validator
+UTC = timezone.utc
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_LOCALES_YAML = REPO_ROOT / "configs" / "localization" / "locales.yaml"
@@ -298,8 +300,6 @@ def main(argv: Iterable[str]) -> int:
 
     write_translations(translations, args.translations_dir, check=False)
     dump_json(args.metadata_output, metadata_payload)
-    from datetime import UTC, datetime
-
     coverage["generatedAt"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     dump_json(args.coverage_report, coverage)
 

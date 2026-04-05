@@ -10,7 +10,7 @@ aggregator.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Callable, Iterable, Sequence
 
 import numpy as np
@@ -29,6 +29,7 @@ from core.data.models import InstrumentType, PriceTick
 from core.data.timeutils import get_market_calendar, normalize_timestamp
 
 from .ingestion_service import DataIngestionCacheService
+UTC = timezone.utc
 
 TickPayload = Iterable[PriceTick] | pd.DataFrame | None
 GapFetcher = Callable[[datetime, datetime], TickPayload]
