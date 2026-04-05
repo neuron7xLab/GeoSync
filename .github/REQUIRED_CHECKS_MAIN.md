@@ -1,14 +1,24 @@
 # Required Checks for `main`
 
-Single source of truth for branch protection/ruleset required checks.
+Machine-readable single source of truth for scripts, Renovate, and automation
+that need the canonical list of required status checks for the `main` branch.
 
-## Pull Request Required Checks
+Human-readable context and the full branch-protection ruleset live in
+[`BRANCH_PROTECTION_MAIN.md`](./BRANCH_PROTECTION_MAIN.md).
 
-1. `repo-policy`
-2. `python-quality`
-3. `python-fast-tests`
-4. `frontend-gate`
-5. `dependency-review`
-6. `secrets-supply-chain`
+## Required status checks
 
-These checks are emitted by `.github/workflows/pr-gate.yml` for both `pull_request` (to `main`) and `merge_group` compatibility.
+```yaml
+required_checks:
+  - repo-policy
+  - python-quality
+  - python-fast-tests
+  - frontend-gate
+  - dependency-review
+  - secrets-supply-chain
+```
+
+Every name above must exactly match a job name in
+[`workflows/pr-gate.yml`](./workflows/pr-gate.yml). The `repo-policy` job
+enforces the pin/permissions invariants that protect this contract from
+silent drift.

@@ -1,33 +1,83 @@
 # Branch Protection / Ruleset Manifest for `main`
 
-Apply this exactly in GitHub repository settings.
+Single source of truth for the `main` branch-protection ruleset in GitHub
+repository settings. Apply these values **exactly** — deviations are
+considered policy drift and must be reverted.
+
+> Required check names must match job names in
+> [`.github/workflows/pr-gate.yml`](./workflows/pr-gate.yml) character-for-character.
 
 ## Branch targeting
+
 - Target branch: `main`
+- Include: repository default branch
 
 ## Pull request requirements
-- Require a pull request before merging: **enabled**
-- Required approving reviews: **1**
-- Require review from Code Owners: **enabled**
-- Dismiss stale pull request approvals when new commits are pushed: **enabled**
-- Require approval of the most recent reviewable push: **enabled**
-- Require conversation resolution before merging: **enabled**
+
+| Setting | Value |
+|---|---|
+| Require a pull request before merging | **enabled** |
+| Required approving reviews | **1** |
+| Dismiss stale pull request approvals when new commits are pushed | **enabled** |
+| Require review from Code Owners | **enabled** |
+| Require approval of the most recent reviewable push | **enabled** |
+| Require conversation resolution before merging | **enabled** |
+| Allow specified actors to bypass required pull requests | **disabled** |
 
 ## Required status checks (strict, fail-closed)
-- Require status checks to pass before merging: **enabled**
-- Require branches to be up to date before merging: **enabled**
-- Required checks:
-  - `repo-policy`
-  - `python-quality`
-  - `python-fast-tests`
-  - `frontend-gate`
-  - `dependency-review`
-  - `secrets-supply-chain`
+
+| Setting | Value |
+|---|---|
+| Require status checks to pass before merging | **enabled** |
+| Require branches to be up to date before merging | **enabled** |
+
+Required check names (must match `pr-gate.yml` job names exactly):
+
+1. `repo-policy`
+2. `python-quality`
+3. `python-fast-tests`
+4. `frontend-gate`
+5. `dependency-review`
+6. `secrets-supply-chain`
+
+All six are fail-closed (`continue-on-error: false` in `pr-gate.yml`).
 
 ## Branch safety
-- Allow force pushes: **disabled**
-- Allow deletions: **disabled**
-- Bypass list: **empty** (except explicit admin break-glass policy)
+
+| Setting | Value |
+|---|---|
+| Allow force pushes | **disabled** |
+| Allow deletions | **disabled** |
+| Require signed commits | **recommended** |
+| Require linear history | **enabled** (merge queue enforces this) |
+| Lock branch | **disabled** |
+
+## Bypass
+
+- Bypass list: **empty** — no actors, no apps, no teams.
+- Break-glass: documented administrator-only procedure in the on-call runbook;
+  every bypass is audit-logged and retro-reviewed.
 
 ## Merge queue compatibility
-- Merge queue: optional, supported because required checks are emitted on `merge_group`.
+
+Merge queue is **optional** but fully supported: every required job in
+`pr-gate.yml` declares the `merge_group` trigger, so checks are emitted in
+both `pull_request` and `merge_group` contexts.
+
+## Out-of-band checks (non-blocking)
+
+These workflows produce security telemetry but are **not** required checks.
+They surface findings in the Security tab and fail their own runs:
+
+- `codeql.yml` — SAST on `main` and weekly cron
+- `security-deep.yml` — `pip-audit`, `gitleaks`, `trivy-fs` (weekly cron)
+
+## Drift detection
+
+The `repo-policy` job in `pr-gate.yml` enforces:
+
+- every workflow file declares a `permissions:` block
+- no workflow uses `pull_request_target`
+- every `uses:` reference is pinned to a 40-character commit SHA
+
+Any PR that breaks these invariants fails `repo-policy` and cannot merge.

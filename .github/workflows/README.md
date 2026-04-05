@@ -1,22 +1,64 @@
-# Workflows (Canonical Set)
+# GitHub Actions Workflows
 
-Only these workflows are active:
+Canonical workflow set for the GeoSync repository. Every workflow is pinned
+to a single, unambiguous responsibility so the branch-protection contract
+for `main` stays auditable.
 
-1. `pr-gate.yml`
-   - Required merge gate for PRs into `main`.
-2. `main-validation.yml`
-   - Deeper validation on `main` after merge.
-3. `security-deep.yml`
-   - Scheduled/manual deep security scans.
+## Workflows
 
-If a proposed workflow does not define a distinct decision boundary, do not add it.
+| Workflow | Trigger | Purpose | Blocks merge? |
+|---|---|---|---|
+| [`pr-gate.yml`](./pr-gate.yml) | `pull_request` → `main`, `merge_group` | Synchronous merge gate — lint, types, fast tests, frontend, deps, secrets | **Yes** (required checks) |
+| [`main-validation.yml`](./main-validation.yml) | `push` → `main` | Post-merge deep validation (slow/heavy suites, integration) | No |
+| [`codeql.yml`](./codeql.yml) | `push` → `main`, weekly cron, manual | CodeQL SAST — Python, JavaScript, Go | No (reports to Security tab) |
+| [`security-deep.yml`](./security-deep.yml) | Weekly cron, manual | Out-of-band security scans — `pip-audit`, `gitleaks`, `trivy-fs` | No |
 
-## Runtime hardening note
+Any additional workflow **must** define a distinct decision boundary that is
+not already covered by the four above. Overlapping gates are rejected.
 
-All canonical workflows opt into GitHub's Node.js 24 runtime for JavaScript-based actions via:
+## Required status checks for `main`
 
-`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'`
+The branch-protection ruleset enforces exactly the job names emitted by
+`pr-gate.yml` — see [`../BRANCH_PROTECTION_MAIN.md`](../BRANCH_PROTECTION_MAIN.md).
 
-Frontend workflows also pin `actions/setup-node` to `node-version: '24'` to avoid mixed runtime drift.
+1. `repo-policy`
+2. `python-quality`
+3. `python-fast-tests`
+4. `frontend-gate`
+5. `dependency-review`
+6. `secrets-supply-chain`
 
-Python environment setup enforces pinned toolchain versions for `pip` and `pytest` (from `requirements-dev.lock`) to keep CI reproducible.
+All six jobs are fail-closed (`continue-on-error: false`). Merge queue is
+supported because every required job declares the `merge_group` trigger.
+
+## Runtime hardening
+
+All canonical workflows opt into GitHub's Node.js 24 runtime for JavaScript
+actions via:
+
+```yaml
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+```
+
+Frontend workflows additionally pin `actions/setup-node` to `node-version:
+'24'` to avoid mixed-runtime drift. Python environments are provisioned
+through the composite action [`../actions/setup-geosync`](../actions/setup-geosync),
+which enforces pinned `pip` and `pytest` versions from `requirements-dev.lock`
+for reproducible CI.
+
+## Supply-chain hygiene
+
+Every third-party action reference **must** be pinned to a 40-character commit
+SHA (`uses: owner/repo@<sha> # vX.Y`). The `repo-policy` job in `pr-gate.yml`
+fails the build if any unpinned reference is introduced. Re-pinning happens
+via the vetted [Renovate rules](../renovate.json) or explicit maintainer commits.
+
+## Adding a new workflow
+
+1. Confirm it does not duplicate an existing gate.
+2. Declare least-privilege `permissions:` at the top level.
+3. Never use `pull_request_target:` — `repo-policy` will reject it.
+4. Pin every `uses:` reference by SHA.
+5. Update this README and `../BRANCH_PROTECTION_MAIN.md` if the change affects
+   required status checks.

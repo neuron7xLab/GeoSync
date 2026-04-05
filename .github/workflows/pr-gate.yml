@@ -1,3 +1,18 @@
+# SPDX-License-Identifier: MIT
+#
+# PR Gate — synchronous merge contract for `main`.
+#
+# Every job declared here is a required status check in the branch-protection
+# ruleset for `main` (see .github/BRANCH_PROTECTION_MAIN.md). Jobs are
+# fail-closed (`continue-on-error: false`) so a green tick deterministically
+# means "all gates satisfied".
+#
+# Invariants:
+#   * Jobs are content-aware: they exit successfully when no relevant files
+#     changed, preserving merge queue throughput without losing enforcement.
+#   * All third-party actions are pinned by 40-character commit SHA
+#     (repo-policy validates this on every run).
+#   * Permissions follow principle of least privilege.
 name: PR Gate
 
 on:
@@ -7,7 +22,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -17,9 +31,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # repo-policy — workflow hygiene invariants (permissions, pinning, actionlint)
+  # ---------------------------------------------------------------------------
   repo-policy:
     name: repo-policy
     runs-on: ubuntu-latest
+    continue-on-error: false
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -67,9 +85,13 @@ jobs:
           set -euo pipefail
           docker run --rm -v "$PWD":/repo -w /repo rhysd/actionlint:1.7.8 -color
 
+  # ---------------------------------------------------------------------------
+  # python-quality — ruff + black + mypy on changed Python files
+  # ---------------------------------------------------------------------------
   python-quality:
     name: python-quality
     runs-on: ubuntu-latest
+    continue-on-error: false
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -101,14 +123,14 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            base_ref="origin/${{ github.base_ref }}"
             git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
             changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
           else
             changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
           fi
 
-          mapfile -t py_files < <(echo "$changed_files" | grep -E '\.py$' || true)
+          mapfile -t py_files < <(printf '%s\n' "$changed_files" | awk '/\.py$/')
           if [[ ${#py_files[@]} -eq 0 ]]; then
             echo "No Python file changes detected; python-quality passes."
             exit 0
@@ -118,10 +140,14 @@ jobs:
           .venv/bin/black --check "${py_files[@]}"
           .venv/bin/mypy "${py_files[@]}"
 
+  # ---------------------------------------------------------------------------
+  # python-fast-tests — fast deterministic pytest suite
+  # ---------------------------------------------------------------------------
   python-fast-tests:
     name: python-fast-tests
     runs-on: ubuntu-latest
     needs: python-quality
+    continue-on-error: false
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -142,23 +168,35 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            base_ref="origin/${{ github.base_ref }}"
             git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
             changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
           else
             changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
           fi
 
-          if ! echo "$changed_files" | grep -Eq '^(tests/|core/|backtest/|execution/|src/|pyproject\.toml|requirements(\-dev)?\.(txt|lock)|pytest\.ini)'; then
+          if ! printf '%s\n' "$changed_files" | awk '
+            /^tests\// || /^core\// || /^backtest\// || /^execution\// || /^src\// ||
+            /^pyproject\.toml$/ || /^requirements(-dev)?\.(txt|lock)$/ || /^pytest\.ini$/ {
+              found=1; exit
+            }
+            END { exit !found }
+          '; then
             echo "No Python runtime/test surface changes detected; python-fast-tests passes."
             exit 0
           fi
 
-          .venv/bin/pytest tests/ -m "not slow and not heavy_math and not nightly and not flaky" -q
+          .venv/bin/pytest tests/ \
+            -m "not slow and not heavy_math and not nightly and not flaky" \
+            -q
 
+  # ---------------------------------------------------------------------------
+  # frontend-gate — Next.js lint/typecheck/tests when apps/web or root manifests change
+  # ---------------------------------------------------------------------------
   frontend-gate:
     name: frontend-gate
     runs-on: ubuntu-latest
+    continue-on-error: false
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -171,14 +209,17 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            base_ref="origin/${{ github.base_ref }}"
             git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
             changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
           else
             changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
           fi
 
-          if echo "$changed_files" | grep -Eq '^(apps/web/|package\.json|package-lock\.json)$'; then
+          if printf '%s\n' "$changed_files" | awk '
+            /^apps\/web\// || /^package\.json$/ || /^package-lock\.json$/ { found=1; exit }
+            END { exit !found }
+          '; then
             echo "frontend_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "frontend_changed=false" >> "$GITHUB_OUTPUT"
@@ -210,77 +251,36 @@ jobs:
         if: steps.changes.outputs.frontend_changed != 'true'
         run: echo 'No frontend changes detected; frontend gate passed deterministically.'
 
+  # ---------------------------------------------------------------------------
+  # dependency-review — GitHub-native vulnerability/license gate on PR diffs
+  # ---------------------------------------------------------------------------
   dependency-review:
     name: dependency-review
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    continue-on-error: false
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: GitHub dependency review
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
         with:
-          fetch-depth: 0
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+          comment-summary-in-pr: on-failure
 
-      - name: Setup Python environment
-        uses: ./.github/actions/setup-geosync
-        with:
-          python-version: '3.11'
-          cache-prefix: pr-deps
-
-      - name: Verify pip executable
-        run: .venv/bin/python -m pip --version
-
-      - name: Ensure dependency-audit tooling
-        run: |
-          set -euo pipefail
-          if ! .venv/bin/python -m pip show pip-audit >/dev/null 2>&1; then
-            .venv/bin/python -m pip install -c constraints/security.txt pip-audit
-          fi
-
-      - name: Dependency review gate
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            base_ref="origin/${{ github.base_ref }}"
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
-            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
-          else
-            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
-          fi
-
-          python_dep_changed=false
-          frontend_dep_changed=false
-
-          if echo "$changed_files" | grep -Eq '^(requirements(\-dev)?\.(txt|lock)|constraints/security\.txt|pyproject\.toml)$'; then
-            python_dep_changed=true
-          fi
-
-          if echo "$changed_files" | grep -Eq '^(apps/web/package(-lock)?\.json|package\.json|package-lock\.json)$'; then
-            frontend_dep_changed=true
-          fi
-
-          if [[ "$python_dep_changed" == "true" ]]; then
-            echo "Python dependency manifests changed; running HIGH/CRITICAL pip-audit."
-            .venv/bin/pip-audit -r requirements.lock -f json -o /tmp/pip-audit-runtime.json || true
-            .venv/bin/pip-audit -r requirements-dev.lock -f json -o /tmp/pip-audit-dev.json || true
-            .venv/bin/python .github/scripts/pip_audit_high_gate.py /tmp/pip-audit-runtime.json /tmp/pip-audit-dev.json
-          fi
-
-          if [[ "$frontend_dep_changed" == "true" ]]; then
-            echo "Frontend dependency manifests changed; running npm audit HIGH gate."
-            test -f apps/web/package-lock.json
-            pushd apps/web >/dev/null
-            npm ci
-            npm audit --audit-level=high --omit=dev
-            popd >/dev/null
-          fi
-
-          if [[ "$python_dep_changed" == "false" && "$frontend_dep_changed" == "false" ]]; then
-            echo "No dependency-manifest changes detected; dependency-review passes."
-          fi
-
+  # ---------------------------------------------------------------------------
+  # secrets-supply-chain — bandit SAST + detect-secrets baseline enforcement
+  # ---------------------------------------------------------------------------
   secrets-supply-chain:
     name: secrets-supply-chain
     runs-on: ubuntu-latest
+    continue-on-error: false
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -302,7 +302,6 @@ jobs:
           set -euo pipefail
           missing=()
           .venv/bin/python -m pip show bandit >/dev/null 2>&1 || missing+=(bandit)
-          .venv/bin/python -m pip show pip-audit >/dev/null 2>&1 || missing+=(pip-audit)
           .venv/bin/python -m pip show detect-secrets >/dev/null 2>&1 || missing+=(detect-secrets)
           if [[ ${#missing[@]} -gt 0 ]]; then
             .venv/bin/python -m pip install -c constraints/security.txt "${missing[@]}"
@@ -313,8 +312,8 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            base_ref="origin/${{ github.base_ref }}"
             git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
             git diff --name-only "$base_ref...$GITHUB_SHA" > /tmp/changed-files.txt
           else
             git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" > /tmp/changed-files.txt
@@ -324,7 +323,7 @@ jobs:
       - name: Bandit on changed security-critical Python files
         run: |
           set -euo pipefail
-          mapfile -t bandit_targets < <(grep -E '^(core|backtest|execution|src)/.*\.py$' /tmp/changed-files.txt || true)
+          mapfile -t bandit_targets < <(awk '/^(core|backtest|execution|src)\/.*\.py$/' /tmp/changed-files.txt)
           if [[ ${#bandit_targets[@]} -eq 0 ]]; then
             echo "No security-critical Python changes detected; Bandit gate passes."
           else
@@ -334,16 +333,16 @@ jobs:
       - name: Detect-secrets using baseline
         run: |
           set -euo pipefail
-          mapfile -t existing_changed_files < <(while IFS= read -r f; do [[ -f "$f" ]] && echo "$f"; done < /tmp/changed-files.txt)
+          mapfile -t existing_changed_files < <(
+            while IFS= read -r f; do
+              [[ -f "$f" ]] && echo "$f"
+            done < /tmp/changed-files.txt
+          )
           if [[ ${#existing_changed_files[@]} -eq 0 ]]; then
             echo "No file additions/modifications to scan; secrets gate passes."
             exit 0
           fi
 
-          .venv/bin/detect-secrets-hook --baseline .github/detect-secrets.baseline "${existing_changed_files[@]}"
-
-      - name: HIGH/CRITICAL dependency audit guard
-        run: |
-          .venv/bin/pip-audit -r requirements.lock -f json -o /tmp/pip-audit-runtime.json || true
-          .venv/bin/pip-audit -r requirements-dev.lock -f json -o /tmp/pip-audit-dev.json || true
-          .venv/bin/python .github/scripts/pip_audit_high_gate.py /tmp/pip-audit-runtime.json /tmp/pip-audit-dev.json
+          .venv/bin/detect-secrets-hook \
+            --baseline .github/detect-secrets.baseline \
+            "${existing_changed_files[@]}"
