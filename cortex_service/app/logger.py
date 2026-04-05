@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from typing import Any
+from datetime import datetime, timezone
+from ipaddress import ip_address as parse_ip_address
+from typing import IO, Any
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -52,4 +54,50 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
 
 
-__all__ = ["configure_logging", "get_logger", "JsonLogFormatter"]
+class StructuredAuditLogger:
+    """Production audit adapter that emits JSON audit events.
+
+    The ``trace_id`` field is mandatory and must be present in ``details``.
+    """
+
+    def __init__(self, *, stream: IO[str] | None = None) -> None:
+        self._stream = stream or sys.stderr
+
+    def log_event(
+        self,
+        *,
+        event_type: str,
+        actor: str,
+        ip_address: str,
+        details: dict[str, object],
+    ) -> dict[str, object]:
+        trace_id = details.get("trace_id")
+        if not isinstance(trace_id, str) or not trace_id.strip():
+            raise ValueError("StructuredAuditLogger requires non-empty details['trace_id']")
+        try:
+            parse_ip_address(ip_address)
+        except ValueError as exc:
+            raise ValueError(f"Invalid ip_address: {ip_address}") from exc
+
+        payload: dict[str, object] = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "event_type": event_type,
+            "actor": actor,
+            "ip_address": ip_address,
+            "trace_id": trace_id,
+            "details": details,
+        }
+        try:
+            self._stream.write(json.dumps(payload, separators=(",", ":")) + "\n")
+            self._stream.flush()
+        except OSError as exc:
+            raise RuntimeError("Failed to write audit payload to stream") from exc
+        return payload
+
+
+__all__ = [
+    "configure_logging",
+    "get_logger",
+    "JsonLogFormatter",
+    "StructuredAuditLogger",
+]

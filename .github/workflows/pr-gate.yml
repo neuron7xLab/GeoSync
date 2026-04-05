@@ -190,6 +190,53 @@ jobs:
             -m "not slow and not heavy_math and not nightly and not flaky" \
             -q
 
+      - name: Run formal verification gate
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          if ! printf '%s\n' "$changed_files" | awk '
+            /^formal\// || /^cortex_service\// || /^src\// || /^tests\// ||
+            /^Makefile$/ || /^requirements(-dev)?\.(txt|lock)$/ {
+              found=1; exit
+            }
+            END { exit !found }
+          '; then
+            echo "No formal-sensitive changes detected; skipping formal-verify."
+            exit 0
+          fi
+
+          make formal-verify
+
+      - name: Run heavy invariant gate
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          if ! printf '%s\n' "$changed_files" | awk '
+            /^formal\// || /^cortex_service\// || /^src\// || /^tests\// || /^Makefile$/ {
+              found=1; exit
+            }
+            END { exit !found }
+          '; then
+            echo "No heavy-test-sensitive changes detected; skipping test-heavy."
+            exit 0
+          fi
+
+          make test-heavy
+
   # ---------------------------------------------------------------------------
   # frontend-gate — Next.js lint/typecheck/tests when apps/web or root manifests change
   # ---------------------------------------------------------------------------

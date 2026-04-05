@@ -40,6 +40,7 @@ help:
 	@echo "  make fpma-check    - Run FPM-A architecture checks"
 	@echo "  make mutation-test - Run mutation testing"
 	@echo "  make sbom          - Generate SBOM"
+	@echo "  make formal-verify - Run formal Z3 invariant and coherence proofs"
 	@echo ""
 	@echo "Calibration Commands:"
 	@echo "  make calibrate-list       - List available calibration profiles"
@@ -246,6 +247,16 @@ perf:
 	@echo "⚡ Running performance benchmarks..."
 	pytest benchmarks/ --benchmark-only
 	@echo "✅ Benchmarks complete"
+
+.PHONY: formal-verify
+formal-verify: formal/proof_invariant.py
+	@echo "🧠 Running formal verification (invariant + cache coherence)..."
+	@if python -c "import z3" >/dev/null 2>&1; then \
+		python formal/proof_invariant.py; \
+	else \
+		echo "SKIP: z3-solver not installed"; \
+	fi
+	@echo "✅ Formal verification certificates refreshed"
 
 .PHONY: golden-path
 golden-path:

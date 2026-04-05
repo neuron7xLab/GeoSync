@@ -11,6 +11,9 @@ from hypothesis import strategies as st  # noqa: E402
 from formal.proof_invariant import (  # noqa: E402
     ProofConfig,
     recovery_mean,
+    run_cache_coherence_proof,
+    run_cache_liveness_proof,
+    run_hlc_monotonicity_proof,
     run_proof,
     tolerance_budget,
 )
@@ -37,6 +40,38 @@ def test_proof_turns_sat_when_recovery_guard_removed() -> None:
 
     assert not result.is_safe
     assert "SAT" in result.certificate
+
+
+def test_cache_coherence_proof_unsat_for_both_invariants(tmp_path: Path) -> None:
+    cert_path = tmp_path / "coherence_cert.txt"
+    result = run_cache_coherence_proof(
+        output_path=cert_path, steps=3, max_action_age_ms=250
+    )
+
+    assert result.cache_db_alignment_safe
+    assert result.action_freshness_safe
+    assert result.version_regress_safe
+    assert "Invariant I: UNSAT" in result.certificate
+    assert "Invariant II: UNSAT" in cert_path.read_text(encoding="utf-8")
+    assert "Invariant III: UNSAT" in cert_path.read_text(encoding="utf-8")
+
+
+def test_cache_liveness_proof_unsat(tmp_path: Path) -> None:
+    cert_path = tmp_path / "liveness_cert.txt"
+    result = run_cache_liveness_proof(output_path=cert_path, steps=5)
+
+    assert result.eventually_coherent
+    assert "Invariant IV: UNSAT" in result.certificate
+    assert "Invariant IV: UNSAT" in cert_path.read_text(encoding="utf-8")
+
+
+def test_hlc_monotonicity_proof_unsat(tmp_path: Path) -> None:
+    cert_path = tmp_path / "hlc_cert.txt"
+    result = run_hlc_monotonicity_proof(output_path=cert_path)
+
+    assert result.monotonic
+    assert "Invariant V: UNSAT" in result.certificate
+    assert "Invariant V: UNSAT" in cert_path.read_text(encoding="utf-8")
 
 
 @given(
