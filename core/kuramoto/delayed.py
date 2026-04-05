@@ -80,7 +80,9 @@ class DelayedKuramotoEngine:
 
         _logger.info(
             "DelayedKuramotoEngine: N=%d, max_τ=%.4f, buffer=%d steps",
-            config.N, self._max_tau, self._buffer_len,
+            config.N,
+            self._max_tau,
+            self._buffer_len,
         )
 
     def run(self) -> KuramotoResult:
@@ -119,7 +121,9 @@ class DelayedKuramotoEngine:
             phases[k + 1] = theta
             R_arr[k + 1] = _order_parameter(theta)
 
-        return KuramotoResult(phases=phases, order_parameter=R_arr, time=time_arr, config=cfg)
+        return KuramotoResult(
+            phases=phases, order_parameter=R_arr, time=time_arr, config=cfg
+        )
 
     def _lookup_delayed(
         self,
@@ -180,15 +184,23 @@ class DelayedKuramotoEngine:
     ) -> NDArray[np.float64]:
         """RK4 step for DDE system."""
         k1 = self._dde_dtheta_dt(theta, t, buffer, buf_ptr, dt)
-        k2 = self._dde_dtheta_dt(theta + 0.5 * dt * k1, t + 0.5 * dt, buffer, buf_ptr, dt)
-        k3 = self._dde_dtheta_dt(theta + 0.5 * dt * k2, t + 0.5 * dt, buffer, buf_ptr, dt)
+        k2 = self._dde_dtheta_dt(
+            theta + 0.5 * dt * k1, t + 0.5 * dt, buffer, buf_ptr, dt
+        )
+        k3 = self._dde_dtheta_dt(
+            theta + 0.5 * dt * k2, t + 0.5 * dt, buffer, buf_ptr, dt
+        )
         k4 = self._dde_dtheta_dt(theta + dt * k3, t + dt, buffer, buf_ptr, dt)
         return theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
     @staticmethod
     def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray, NDArray]:
         rng = np.random.default_rng(cfg.seed)
-        omega = cfg.omega.astype(np.float64, copy=False) if cfg.omega is not None else rng.standard_normal(cfg.N)
+        omega = (
+            cfg.omega.astype(np.float64, copy=False)
+            if cfg.omega is not None
+            else rng.standard_normal(cfg.N)
+        )
         theta0 = (
             cfg.theta0.astype(np.float64, copy=False)
             if cfg.theta0 is not None

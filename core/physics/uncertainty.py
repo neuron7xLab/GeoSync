@@ -203,7 +203,7 @@ def information_limit(
     # Energy-time uncertainty relation: ΔEΔt ≥ ℏ/2
     # Converts to position-momentum form
     if measurement_time <= 0:
-        return float('inf')
+        return float("inf")
 
     return minimum_uncertainty_product(hbar) / measurement_time
 

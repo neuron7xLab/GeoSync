@@ -41,9 +41,9 @@ from numpy.typing import NDArray
 class HigherOrderKuramotoResult:
     """Result of higher-order Kuramoto simulation."""
 
-    phases: NDArray[np.float64]        # (steps+1, N)
+    phases: NDArray[np.float64]  # (steps+1, N)
     order_parameter: NDArray[np.float64]  # (steps+1,)
-    time: NDArray[np.float64]          # (steps+1,)
+    time: NDArray[np.float64]  # (steps+1,)
     n_triangles: int
     triadic_contribution: NDArray[np.float64]  # (steps+1,) magnitude of σ₂ term
 
@@ -168,7 +168,7 @@ class HigherOrderKuramotoEngine:
                 triadic[i] += np.sin(2 * theta[j] - theta[k] - theta[i])
         triadic *= self._sigma2
 
-        triadic_mag = float(np.sqrt(np.sum(triadic ** 2)))
+        triadic_mag = float(np.sqrt(np.sum(triadic**2)))
 
         return omega + pairwise + triadic, triadic_mag
 

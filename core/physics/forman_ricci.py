@@ -102,9 +102,7 @@ class FormanRicciCurvature:
                     triangles[(i, j)] = int(A2[i, j])
         return triangles
 
-    def compute_from_correlation(
-        self, corr: NDArray[np.float64]
-    ) -> FormanRicciResult:
+    def compute_from_correlation(self, corr: NDArray[np.float64]) -> FormanRicciResult:
         """Compute Forman-Ricci from correlation matrix.
 
         Parameters

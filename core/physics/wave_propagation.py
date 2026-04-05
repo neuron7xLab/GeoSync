@@ -164,9 +164,7 @@ class GraphDiffusionEngine:
             return [asset_names[i] for i in indices]
         return indices.tolist()
 
-    def laplacian_eigenvalues(
-        self, L: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
+    def laplacian_eigenvalues(self, L: NDArray[np.float64]) -> NDArray[np.float64]:
         """Compute eigenvalues of graph Laplacian.
 
         For valid Laplacians:
