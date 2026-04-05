@@ -1,8 +1,9 @@
 """Tests for core.physics modules."""
+
 from __future__ import annotations
+
 import numpy as np
 import pytest
-from unittest.mock import MagicMock, patch
 
 try:
     from core.physics.engine import GeoSyncPhysicsEngine, PhysicsEngineResult
@@ -10,7 +11,10 @@ except ImportError:
     GeoSyncPhysicsEngine = None
 
 try:
-    from core.physics.diffusion_predictor import DiffusionVolatilityPredictor, VolatilityFrontPrediction
+    from core.physics.diffusion_predictor import (
+        DiffusionVolatilityPredictor,
+        VolatilityFrontPrediction,
+    )
 except ImportError:
     DiffusionVolatilityPredictor = None
 
@@ -31,7 +35,9 @@ def _volumes(T=50, N=4, seed=8):
 
 
 class TestGeoSyncPhysicsEngine:
-    pytestmark = pytest.mark.skipif(GeoSyncPhysicsEngine is None, reason="engine not importable")
+    pytestmark = pytest.mark.skipif(
+        GeoSyncPhysicsEngine is None, reason="engine not importable"
+    )
 
     def test_default_init(self):
         e = GeoSyncPhysicsEngine()
@@ -91,13 +97,19 @@ class TestGeoSyncPhysicsEngine:
     @pytest.mark.parametrize("n_assets", [2, 5, 8])
     def test_various_asset_counts(self, n_assets):
         e = GeoSyncPhysicsEngine()
-        result = e.run(_prices(50, n_assets), _volumes(50, n_assets),
-                       np.ones(n_assets), np.zeros(n_assets))
+        result = e.run(
+            _prices(50, n_assets),
+            _volumes(50, n_assets),
+            np.ones(n_assets),
+            np.zeros(n_assets),
+        )
         assert result.adjacency.shape == (n_assets, n_assets)
 
 
 class TestDiffusionVolatilityPredictor:
-    pytestmark = pytest.mark.skipif(DiffusionVolatilityPredictor is None, reason="predictor not importable")
+    pytestmark = pytest.mark.skipif(
+        DiffusionVolatilityPredictor is None, reason="predictor not importable"
+    )
 
     def test_default_init(self):
         p = DiffusionVolatilityPredictor()

@@ -1,9 +1,10 @@
 """Tests for core.compliance modules."""
+
 from __future__ import annotations
+
 import json
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+
 import pytest
 
 try:
@@ -18,21 +19,27 @@ except ImportError:
 
 try:
     from core.compliance.mifid2 import (
-        ComplianceSnapshot, ExecutionQuality, MarketAbuseSignal,
-        MiFID2Reporter, MiFID2RetentionPolicy, OrderAuditTrail,
+        ComplianceSnapshot,
+        MiFID2Reporter,
+        MiFID2RetentionPolicy,
+        OrderAuditTrail,
         TransactionReport,
     )
 except ImportError:
     MiFID2Reporter = None
 
 pytestmark = pytest.mark.skipif(
-    ComplianceIssue is None and RegulatoryComplianceValidator is None and MiFID2Reporter is None,
+    ComplianceIssue is None
+    and RegulatoryComplianceValidator is None
+    and MiFID2Reporter is None,
     reason="compliance modules not importable",
 )
 
 
 class TestComplianceModels:
-    pytestmark = pytest.mark.skipif(ComplianceIssue is None, reason="models not importable")
+    pytestmark = pytest.mark.skipif(
+        ComplianceIssue is None, reason="models not importable"
+    )
 
     def test_issue_creation(self):
         i = ComplianceIssue(severity="error", message="bad")
@@ -61,7 +68,9 @@ class TestComplianceModels:
 
 
 class TestRegulatoryComplianceValidator:
-    pytestmark = pytest.mark.skipif(RegulatoryComplianceValidator is None, reason="regulatory not importable")
+    pytestmark = pytest.mark.skipif(
+        RegulatoryComplianceValidator is None, reason="regulatory not importable"
+    )
 
     def test_validate_type_error(self):
         v = RegulatoryComplianceValidator()
@@ -86,11 +95,13 @@ class TestRegulatoryComplianceValidator:
 
     def test_validate_with_privacy_frameworks(self):
         v = RegulatoryComplianceValidator()
-        report = v.validate({
-            "privacy": {"frameworks": {"gdpr": True, "ccpa": True}},
-            "iso_compliance": {"iso27001": True, "iso27701": True},
-            "nist_compliance": {"nist-csf": True, "nist-800-53": True},
-        })
+        report = v.validate(
+            {
+                "privacy": {"frameworks": {"gdpr": True, "ccpa": True}},
+                "iso_compliance": {"iso27001": True, "iso27701": True},
+                "nist_compliance": {"nist-csf": True, "nist-800-53": True},
+            }
+        )
         assert isinstance(report, ComplianceReport)
 
     def test_custom_regimes(self):
@@ -102,12 +113,18 @@ class TestRegulatoryComplianceValidator:
     def test_normalise_bool_truthy(self, bool_str):
         v = RegulatoryComplianceValidator()
         report = v.validate({"gdpr_compliant": bool_str})
-        gdpr_errors = [i for i in report.issues if "gdpr" in i.message.lower() and "non-compliant" in i.message.lower()]
+        gdpr_errors = [
+            i
+            for i in report.issues
+            if "gdpr" in i.message.lower() and "non-compliant" in i.message.lower()
+        ]
         assert gdpr_errors == []
 
 
 class TestMiFID2Reporter:
-    pytestmark = pytest.mark.skipif(MiFID2Reporter is None, reason="mifid2 not importable")
+    pytestmark = pytest.mark.skipif(
+        MiFID2Reporter is None, reason="mifid2 not importable"
+    )
 
     @pytest.fixture
     def reporter(self, tmp_path):
@@ -115,45 +132,65 @@ class TestMiFID2Reporter:
 
     def test_record_order(self, reporter):
         reporter.record_order(
-            order_id="O1", payload={"action": "buy", "size": 100},
-            venue="NYSE", actor="trader1",
+            order_id="O1",
+            payload={"action": "buy", "size": 100},
+            venue="NYSE",
+            actor="trader1",
         )
         assert len(reporter._audit_trail) == 1
 
     def test_record_execution(self, reporter):
         reporter.record_execution(
-            order_id="O1", instrument="AAPL", quantity=100, price=150.0,
-            side="buy", buyer="B", seller="S", venue="NYSE",
-            benchmark_price=149.5, latency_ms=5.0,
+            order_id="O1",
+            instrument="AAPL",
+            quantity=100,
+            price=150.0,
+            side="buy",
+            buyer="B",
+            seller="S",
+            venue="NYSE",
+            benchmark_price=149.5,
+            latency_ms=5.0,
         )
         assert len(reporter._reports) == 1
         assert len(reporter._execution_quality) == 1
 
     def test_best_execution_breaches(self, reporter):
         reporter.record_execution(
-            order_id="O1", instrument="AAPL", quantity=100, price=200.0,
-            side="buy", buyer="B", seller="S", venue="NYSE",
-            benchmark_price=100.0, latency_ms=5.0,
+            order_id="O1",
+            instrument="AAPL",
+            quantity=100,
+            price=200.0,
+            side="buy",
+            buyer="B",
+            seller="S",
+            venue="NYSE",
+            benchmark_price=100.0,
+            latency_ms=5.0,
         )
         breaches = reporter.best_execution_breaches(threshold_bps=5.0)
         assert len(breaches) >= 1
 
     def test_position_limit_breaches(self, reporter):
         breaches = reporter.position_limit_breaches(
-            positions={"AAPL": 200.0}, limits={"AAPL": 100.0},
+            positions={"AAPL": 200.0},
+            limits={"AAPL": 100.0},
         )
         assert "AAPL" in breaches
 
     def test_position_limit_no_breach(self, reporter):
         breaches = reporter.position_limit_breaches(
-            positions={"AAPL": 50.0}, limits={"AAPL": 100.0},
+            positions={"AAPL": 50.0},
+            limits={"AAPL": 100.0},
         )
         assert breaches == {}
 
     def test_market_abuse_large_cancel(self, reporter):
         reporter.record_order(
-            order_id="O2", payload={"action": "cancel", "size": 2_000_000},
-            venue="NYSE", actor="trader1",
+            order_id="O2",
+            payload={"action": "cancel", "size": 2_000_000},
+            venue="NYSE",
+            actor="trader1",
         )
         signals = reporter.market_abuse_signals()
         assert len(signals) >= 1
@@ -161,8 +198,10 @@ class TestMiFID2Reporter:
 
     def test_market_abuse_small_cancel_ok(self, reporter):
         reporter.record_order(
-            order_id="O3", payload={"action": "cancel", "size": 100},
-            venue="NYSE", actor="trader1",
+            order_id="O3",
+            payload={"action": "cancel", "size": 100},
+            venue="NYSE",
+            actor="trader1",
         )
         assert reporter.market_abuse_signals() == []
 
@@ -176,7 +215,7 @@ class TestMiFID2Reporter:
         assert isinstance(snap, ComplianceSnapshot)
 
     def test_export(self, reporter):
-        reporter.record_order(order_id="O1", payload={"size":10}, venue="V", actor="A")
+        reporter.record_order(order_id="O1", payload={"size": 10}, venue="V", actor="A")
         path = reporter.export()
         assert path.exists()
         data = json.loads(path.read_text())
@@ -192,17 +231,25 @@ class TestMiFID2Reporter:
 
     def test_order_audit_trail_to_dict(self):
         t = OrderAuditTrail(
-            order_id="O1", timestamp=datetime.now(UTC),
-            payload={"k": "v"}, venue="V", actor="A",
+            order_id="O1",
+            timestamp=datetime.now(UTC),
+            payload={"k": "v"},
+            venue="V",
+            actor="A",
         )
         d = t.to_dict()
         assert d["order_id"] == "O1"
 
     def test_transaction_report_to_dict(self):
         r = TransactionReport(
-            order_id="O1", instrument="AAPL", quantity=100.0,
-            price=150.0, side="buy", execution_time=datetime.now(UTC),
-            buyer="B", seller="S",
+            order_id="O1",
+            instrument="AAPL",
+            quantity=100.0,
+            price=150.0,
+            side="buy",
+            execution_time=datetime.now(UTC),
+            buyer="B",
+            seller="S",
         )
         d = r.to_dict()
         assert d["instrument"] == "AAPL"

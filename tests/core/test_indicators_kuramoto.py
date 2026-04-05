@@ -7,8 +7,8 @@ import pytest
 
 from core.indicators.kuramoto import (
     _broadcast_weights,
-    _kuramoto_order_jit,
     _kuramoto_order_2d_jit,
+    _kuramoto_order_jit,
     compute_phase,
 )
 

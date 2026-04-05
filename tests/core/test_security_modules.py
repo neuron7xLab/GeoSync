@@ -1,22 +1,28 @@
 """Tests for core.security modules."""
+
 from __future__ import annotations
+
 import hashlib
-import re
 from decimal import Decimal
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-import numpy as np
+
 import pytest
 
 try:
-    from core.security.integrity import IntegrityVerifier, IntegrityError, ChecksumManifest
+    from core.security.integrity import (
+        IntegrityError,
+        IntegrityVerifier,
+    )
 except ImportError:
     IntegrityVerifier = None
 
 try:
     from core.security.validation import (
-        TradingSymbolValidator, NumericRangeValidator, PathValidator,
-        CommandValidator, ValidationError,
+        CommandValidator,
+        NumericRangeValidator,
+        PathValidator,
+        TradingSymbolValidator,
+        ValidationError,
     )
 except ImportError:
     TradingSymbolValidator = None
@@ -28,7 +34,9 @@ except ImportError:
 
 
 class TestIntegrityVerifier:
-    pytestmark = pytest.mark.skipif(IntegrityVerifier is None, reason="integrity not importable")
+    pytestmark = pytest.mark.skipif(
+        IntegrityVerifier is None, reason="integrity not importable"
+    )
 
     def test_compute_file_checksum(self, tmp_path):
         f = tmp_path / "test.bin"
@@ -90,7 +98,9 @@ class TestIntegrityVerifier:
 
 
 class TestTradingSymbolValidator:
-    pytestmark = pytest.mark.skipif(TradingSymbolValidator is None, reason="validation not importable")
+    pytestmark = pytest.mark.skipif(
+        TradingSymbolValidator is None, reason="validation not importable"
+    )
 
     def test_valid_symbol(self):
         v = TradingSymbolValidator(symbol="AAPL")
@@ -114,7 +124,9 @@ class TestTradingSymbolValidator:
 
 
 class TestNumericRangeValidator:
-    pytestmark = pytest.mark.skipif(TradingSymbolValidator is None, reason="validation not importable")
+    pytestmark = pytest.mark.skipif(
+        TradingSymbolValidator is None, reason="validation not importable"
+    )
 
     def test_valid_price(self):
         result = NumericRangeValidator.validate_price(100.50)
@@ -149,7 +161,9 @@ class TestNumericRangeValidator:
 
 
 class TestPathValidator:
-    pytestmark = pytest.mark.skipif(TradingSymbolValidator is None, reason="validation not importable")
+    pytestmark = pytest.mark.skipif(
+        TradingSymbolValidator is None, reason="validation not importable"
+    )
 
     def test_safe_path(self):
         result = PathValidator.validate_safe_path("/data/models/model.bin")
@@ -165,7 +179,9 @@ class TestPathValidator:
 
 
 class TestCommandValidator:
-    pytestmark = pytest.mark.skipif(TradingSymbolValidator is None, reason="validation not importable")
+    pytestmark = pytest.mark.skipif(
+        TradingSymbolValidator is None, reason="validation not importable"
+    )
 
     def test_valid_command(self):
         result = CommandValidator.validate_command("git status")
@@ -185,7 +201,9 @@ class TestCommandValidator:
 
 
 class TestSecureRandom:
-    pytestmark = pytest.mark.skipif(SecureRandom is None, reason="random not importable")
+    pytestmark = pytest.mark.skipif(
+        SecureRandom is None, reason="random not importable"
+    )
 
     def test_randint_range(self):
         for _ in range(50):

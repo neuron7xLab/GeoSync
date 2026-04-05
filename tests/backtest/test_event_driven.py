@@ -14,8 +14,7 @@ from backtest.event_driven import (
     Strategy,
     VectorisedStrategy,
 )
-from backtest.events import MarketEvent, SignalEvent
-
+from backtest.events import MarketEvent
 
 # ---------------------------------------------------------------------------
 # ArrayDataHandler
@@ -110,19 +109,28 @@ class TestVectorisedStrategy:
 
     def test_from_signal_function(self):
         prices = np.array([100.0, 101.0, 99.0, 105.0])
-        fn = lambda p: np.where(np.diff(p, prepend=p[0]) > 0, 1.0, -1.0)
+
+        def fn(p):
+            return np.where(np.diff(p, prepend=p[0]) > 0, 1.0, -1.0)
+
         strat = VectorisedStrategy.from_signal_function(prices, fn)
         assert strat._signals.shape == prices.shape
 
     def test_from_signal_function_shape_mismatch(self):
         prices = np.array([100.0, 101.0, 99.0])
-        fn = lambda p: np.array([1.0, 2.0])
+
+        def fn(p):
+            return np.array([1.0, 2.0])
+
         with pytest.raises(ValueError, match="same length"):
             VectorisedStrategy.from_signal_function(prices, fn)
 
     def test_signals_clipped(self):
         prices = np.array([1.0, 2.0, 3.0])
-        fn = lambda p: np.array([5.0, -5.0, 0.0])
+
+        def fn(p):
+            return np.array([5.0, -5.0, 0.0])
+
         strat = VectorisedStrategy.from_signal_function(prices, fn)
         assert np.all(strat._signals <= 1.0)
         assert np.all(strat._signals >= -1.0)

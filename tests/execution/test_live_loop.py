@@ -2,11 +2,6 @@
 """Tests for execution.live_loop module."""
 from __future__ import annotations
 
-import random
-import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from execution.live_loop import Signal, _full_jitter_backoff, _snapshot_timestamp

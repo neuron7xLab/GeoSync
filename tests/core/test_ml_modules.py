@@ -1,24 +1,34 @@
 """Tests for core.ml modules (pipeline + quantization)."""
+
 from __future__ import annotations
-import logging
-import statistics
-from collections import deque
+
 from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
 
 try:
     from core.ml.pipeline import (
-        ABTestManager, FeatureEngineeringDAG, FeatureNode, MLExperimentManager,
-        MLPipeline, MockTrial, ModelDriftDetector, OptunaTuner, PipelineContext,
-        PipelineResult, detect_model_drift, record_online_learning_event,
+        ABTestManager,
+        FeatureEngineeringDAG,
+        FeatureNode,
+        MLExperimentManager,
+        MockTrial,
+        ModelDriftDetector,
+        OptunaTuner,
+        PipelineContext,
+        detect_model_drift,
+        record_online_learning_event,
         shadow_mode_inference,
     )
 except ImportError:
     pytest.skip("core.ml.pipeline not importable", allow_module_level=True)
 
 try:
-    from core.ml.quantization import QuantizationConfig, QuantizationResult, UniformAffineQuantizer
+    from core.ml.quantization import (
+        QuantizationConfig,
+        UniformAffineQuantizer,
+    )
 except ImportError:
     UniformAffineQuantizer = None
 
@@ -40,8 +50,16 @@ class TestFeatureEngineeringDAG:
     def test_dependency_order(self):
         order = []
         dag = FeatureEngineeringDAG()
-        dag.register(FeatureNode(name="b", compute=lambda c: (order.append("b"), {})[1], dependencies=("a",)))
-        dag.register(FeatureNode(name="a", compute=lambda c: (order.append("a"), {})[1]))
+        dag.register(
+            FeatureNode(
+                name="b",
+                compute=lambda c: (order.append("b"), {})[1],
+                dependencies=("a",),
+            )
+        )
+        dag.register(
+            FeatureNode(name="a", compute=lambda c: (order.append("a"), {})[1])
+        )
         dag.run(PipelineContext(training_frame=None))
         assert order == ["a", "b"]
 
@@ -144,7 +162,9 @@ class TestOptunaTuner:
 
 
 class TestQuantization:
-    pytestmark = pytest.mark.skipif(UniformAffineQuantizer is None, reason="quantization not importable")
+    pytestmark = pytest.mark.skipif(
+        UniformAffineQuantizer is None, reason="quantization not importable"
+    )
 
     def test_default_config(self):
         cfg = QuantizationConfig()
@@ -173,7 +193,9 @@ class TestQuantization:
         assert result.quantized.dtype == np.float16
 
     def test_fallback_on_degenerate(self):
-        q = UniformAffineQuantizer(QuantizationConfig(target_dtype="int8", allow_fallback=True))
+        q = UniformAffineQuantizer(
+            QuantizationConfig(target_dtype="int8", allow_fallback=True)
+        )
         arr = np.zeros(10, dtype=np.float32)
         result = q.quantize(arr)
         assert result.fallback_used is True
@@ -191,7 +213,9 @@ class TestQuantization:
             q.calibrate(np.array([], dtype=np.float32))
 
     def test_no_fallback_raises(self):
-        q = UniformAffineQuantizer(QuantizationConfig(target_dtype="int8", allow_fallback=False))
+        q = UniformAffineQuantizer(
+            QuantizationConfig(target_dtype="int8", allow_fallback=False)
+        )
         with pytest.raises(RuntimeError):
             q.quantize(np.zeros(10, dtype=np.float32))
 

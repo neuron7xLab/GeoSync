@@ -1,23 +1,16 @@
 """Tests for core.neuro.training module."""
+
 from __future__ import annotations
 
-import copy
-import json
 import pickle
-import threading
-from pathlib import Path
-from typing import Any, Mapping
-from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
 try:
     from core.neuro.training import (
-        AsyncDataLoader,
         CheckpointManager,
         MixedPrecisionContext,
-        ProfileSnapshot,
         TrainingBatch,
         TrainingComponent,
         TrainingConfig,
@@ -25,7 +18,6 @@ try:
         TrainingProfiler,
         TrainingSample,
         TrainingStepResult,
-        TrainingSummary,
         _determine_precision_dtype,
         _normalise_sample,
     )
@@ -60,7 +52,9 @@ class TestTrainingBatch:
         assert casted.targets.dtype == np.float16
 
     def test_cast_preserves_int(self):
-        b = TrainingBatch(inputs=np.array([1, 2], dtype=np.int32), targets=np.array([3]))
+        b = TrainingBatch(
+            inputs=np.array([1, 2], dtype=np.int32), targets=np.array([3])
+        )
         casted = b.cast(np.float16)
         assert casted.inputs.dtype == np.int32
 
@@ -71,14 +65,17 @@ class TestTrainingConfig:
         assert cfg.epochs == 1
         assert cfg.batch_size == 32
 
-    @pytest.mark.parametrize("field,bad_value", [
-        ("epochs", 0),
-        ("epochs", -1),
-        ("batch_size", 0),
-        ("gradient_accumulation_steps", 0),
-        ("keep_last_checkpoints", 0),
-        ("prefetch_batches", -1),
-    ])
+    @pytest.mark.parametrize(
+        "field,bad_value",
+        [
+            ("epochs", 0),
+            ("epochs", -1),
+            ("batch_size", 0),
+            ("gradient_accumulation_steps", 0),
+            ("keep_last_checkpoints", 0),
+            ("prefetch_batches", -1),
+        ],
+    )
     def test_invalid_values_raise(self, field, bad_value):
         with pytest.raises(ValueError):
             TrainingConfig(**{field: bad_value})
@@ -103,13 +100,17 @@ class TestMixedPrecisionContext:
         assert ctx.cast(arr) is arr
 
     def test_cast_enabled(self):
-        ctx = MixedPrecisionContext(enabled=True, target_dtype=np.float16, loss_scale=1024.0)
+        ctx = MixedPrecisionContext(
+            enabled=True, target_dtype=np.float16, loss_scale=1024.0
+        )
         arr = np.array([1.0, 2.0], dtype=np.float64)
         result = ctx.cast(arr)
         assert result.dtype == np.float16
 
     def test_cast_int_unchanged(self):
-        ctx = MixedPrecisionContext(enabled=True, target_dtype=np.float16, loss_scale=1024.0)
+        ctx = MixedPrecisionContext(
+            enabled=True, target_dtype=np.float16, loss_scale=1024.0
+        )
         arr = np.array([1, 2], dtype=np.int32)
         result = ctx.cast(arr)
         assert result.dtype == np.int32
@@ -117,11 +118,15 @@ class TestMixedPrecisionContext:
 
 class TestTrainingProfiler:
     def test_empty_report(self):
-        p = TrainingProfiler(profile_memory=False, profile_compute=False, profile_io=False)
+        p = TrainingProfiler(
+            profile_memory=False, profile_compute=False, profile_io=False
+        )
         assert p.report() == {"steps": 0}
 
     def test_measure_step(self):
-        p = TrainingProfiler(profile_memory=False, profile_compute=True, profile_io=True)
+        p = TrainingProfiler(
+            profile_memory=False, profile_compute=True, profile_io=True
+        )
         with p.measure_step(1, io_time=0.01):
             pass
         report = p.report()
@@ -213,8 +218,14 @@ class _DummyComponent(TrainingComponent):
 class TestTrainingEngine:
     def test_fit_basic(self):
         comp = _DummyComponent()
-        cfg = TrainingConfig(epochs=1, batch_size=2, profile_memory=False,
-                             cache_dataset=False, prefetch_batches=0, reuse_dataloader=False)
+        cfg = TrainingConfig(
+            epochs=1,
+            batch_size=2,
+            profile_memory=False,
+            cache_dataset=False,
+            prefetch_batches=0,
+            reuse_dataloader=False,
+        )
         engine = TrainingEngine(comp, cfg)
         dataset = [TrainingSample(inputs=np.zeros(4), target=0) for _ in range(6)]
         summary = engine.fit(dataset)
@@ -225,10 +236,14 @@ class TestTrainingEngine:
     def test_fit_with_checkpoint(self, tmp_path):
         comp = _DummyComponent()
         cfg = TrainingConfig(
-            epochs=1, batch_size=1, checkpoint_interval=2,
+            epochs=1,
+            batch_size=1,
+            checkpoint_interval=2,
             checkpoint_directory=tmp_path / "ckpt",
-            profile_memory=False, cache_dataset=False,
-            prefetch_batches=0, reuse_dataloader=False,
+            profile_memory=False,
+            cache_dataset=False,
+            prefetch_batches=0,
+            reuse_dataloader=False,
         )
         engine = TrainingEngine(comp, cfg)
         dataset = [TrainingSample(inputs=np.zeros(2), target=0) for _ in range(4)]
@@ -238,9 +253,13 @@ class TestTrainingEngine:
     def test_fit_gradient_accumulation(self):
         comp = _DummyComponent()
         cfg = TrainingConfig(
-            epochs=1, batch_size=1, gradient_accumulation_steps=2,
-            profile_memory=False, cache_dataset=False,
-            prefetch_batches=0, reuse_dataloader=False,
+            epochs=1,
+            batch_size=1,
+            gradient_accumulation_steps=2,
+            profile_memory=False,
+            cache_dataset=False,
+            prefetch_batches=0,
+            reuse_dataloader=False,
         )
         engine = TrainingEngine(comp, cfg)
         dataset = [TrainingSample(inputs=np.zeros(2), target=0) for _ in range(4)]

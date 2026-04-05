@@ -2,8 +2,6 @@
 """Tests for execution.risk.core module."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 try:

@@ -1,10 +1,9 @@
 """Tests for core.neuro.advanced.integrated module."""
+
 from __future__ import annotations
 
-import asyncio
-import sys
 from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -12,13 +11,14 @@ import pytest
 try:
     from core.neuro.advanced.integrated import (
         CandidateGenerator,
-        EnhancedFractalNeuroeconomicCore,
         MultiscaleFractalAnalyzer,
         NeuroDecisionIntegrator,
         NeuroRiskManager,
     )
 except ImportError:
-    pytest.skip("core.neuro.advanced.integrated not importable", allow_module_level=True)
+    pytest.skip(
+        "core.neuro.advanced.integrated not importable", allow_module_level=True
+    )
 
 
 def _random_prices(n: int = 100, base: float = 100.0, seed: int = 42) -> np.ndarray:
@@ -52,8 +52,16 @@ class TestMultiscaleFractalAnalyzer:
     async def test_analyze_returns_expected_keys(self):
         prices = _random_prices(100)
         result = await self.analyzer.analyze(prices)
-        for key in ("volatility", "trend_strength", "hurst", "fractal_dim",
-                     "regime", "n", "dynamics", "persistence_index"):
+        for key in (
+            "volatility",
+            "trend_strength",
+            "hurst",
+            "fractal_dim",
+            "regime",
+            "n",
+            "dynamics",
+            "persistence_index",
+        ):
             assert key in result
 
     @pytest.mark.asyncio
@@ -142,13 +150,18 @@ class TestCandidateGenerator:
         agg["fractal_stability"] = 0.7
         candidates = self.gen.generate({"AAPL": _make_features()}, agg)
         assert len(candidates) == 2
-        assert {c["strategy"] for c in candidates} == {"fractal_momentum", "fractal_mean_reversion"}
+        assert {c["strategy"] for c in candidates} == {
+            "fractal_momentum",
+            "fractal_mean_reversion",
+        }
 
     def test_generate_single_strategy(self):
         agg = _make_features()
         agg["fractal_scaling"] = 0.5
         agg["fractal_stability"] = 0.5
-        cands = self.gen.generate({"BTC": _make_features()}, agg, base_strategies=["fractal_momentum"])
+        cands = self.gen.generate(
+            {"BTC": _make_features()}, agg, base_strategies=["fractal_momentum"]
+        )
         assert len(cands) == 1
 
     def test_positive_trend_long(self):
@@ -195,7 +208,8 @@ class TestNeuroRiskManager:
         mgr = NeuroRiskManager(mock_config)
         result = await mgr.apply(
             {"position_size": 2.0, "risk_level": 1.0, "asset": "AAPL"},
-            {"overall_confidence": 0.8}, {"volatility": 0.02},
+            {"overall_confidence": 0.8},
+            {"volatility": 0.02},
         )
         assert result["position_size"] <= 2.0
 
@@ -204,7 +218,8 @@ class TestNeuroRiskManager:
         mgr = NeuroRiskManager(mock_config)
         result = await mgr.apply(
             {"position_size": 1.0, "risk_level": 1.0},
-            {"overall_confidence": 0.7}, {"volatility": 0.01},
+            {"overall_confidence": 0.7},
+            {"volatility": 0.01},
         )
         assert "sl_dist" in result["risk_params"]
         assert "tp_dist" in result["risk_params"]
@@ -214,7 +229,8 @@ class TestNeuroRiskManager:
         mgr = NeuroRiskManager(mock_config)
         result = await mgr.apply(
             {"position_size": 2.0, "risk_level": 1.0},
-            {"overall_confidence": 0.3}, {"volatility": 0.05},
+            {"overall_confidence": 0.3},
+            {"volatility": 0.05},
         )
         assert result["position_size"] < 1.0
 
@@ -223,7 +239,8 @@ class TestNeuroRiskManager:
         mgr = NeuroRiskManager(mock_config)
         result = await mgr.apply(
             {"position_size": 1.0, "risk_level": 10.0},
-            {"overall_confidence": 0.7}, {"volatility": 0.01},
+            {"overall_confidence": 0.7},
+            {"volatility": 0.01},
         )
         assert result["risk_level"] <= 3.0
 
@@ -246,10 +263,20 @@ class TestNeuroDecisionIntegrator:
     @pytest.mark.asyncio
     async def test_integrate_selects_best(self, integrator):
         decisions = [
-            {"strategy": "a", "expected_edge": 0.01, "position_size": 1.0,
-             "risk_level": 1.0, "confidence": 0.6},
-            {"strategy": "b", "expected_edge": 0.05, "position_size": 1.0,
-             "risk_level": 1.0, "confidence": 0.9},
+            {
+                "strategy": "a",
+                "expected_edge": 0.01,
+                "position_size": 1.0,
+                "risk_level": 1.0,
+                "confidence": 0.6,
+            },
+            {
+                "strategy": "b",
+                "expected_edge": 0.05,
+                "position_size": 1.0,
+                "risk_level": 1.0,
+                "confidence": 0.9,
+            },
         ]
         result = await integrator.integrate(decisions, {}, {})
         assert result["strategy"] == "b"

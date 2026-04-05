@@ -2,12 +2,9 @@
 """Tests for execution.order_lifecycle module."""
 from __future__ import annotations
 
-import hashlib
-import json
 import sqlite3
-import time
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -16,12 +13,10 @@ from execution.order_lifecycle import (
     OrderEvent,
     OrderLifecycle,
     OrderLifecycleStore,
-    OrderTransition,
     _parse_timestamp,
     _quote_identifier,
     make_idempotency_key,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

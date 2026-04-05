@@ -2,8 +2,8 @@
 """Tests for core.data.feature_store module."""
 from __future__ import annotations
 
-import pytest
 import pandas as pd
+import pytest
 
 from core.data.feature_store import (
     FeatureStoreConfigurationError,

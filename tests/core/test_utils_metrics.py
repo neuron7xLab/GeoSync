@@ -2,9 +2,6 @@
 """Tests for core.utils.metrics module."""
 from __future__ import annotations
 
-import math
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from core.utils.metrics import (
