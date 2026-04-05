@@ -1,13 +1,22 @@
+# SPDX-License-Identifier: MIT
+#
+# Security Deep Validation — scheduled out-of-band security scans.
+#
+# Runs weekly and on-demand. Results are informational for the security team
+# and do not block PR merges (that contract lives in pr-gate.yml).
+#
+# CodeQL lives in its own workflow (codeql.yml) because SARIF upload
+# infrastructure has different concurrency semantics and permissions.
 name: Security Deep Validation
 
 on:
   schedule:
+    # Every Monday at 03:00 UTC — weekly cadence aligned with release rhythm.
     - cron: '0 3 * * 1'
   workflow_dispatch:
 
 permissions:
   contents: read
-  security-events: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
@@ -17,9 +26,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # dependency-audit — pip-audit against locked requirements (HIGH/CRITICAL)
+  # ---------------------------------------------------------------------------
   dependency-audit:
     name: dependency-audit
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -42,43 +55,63 @@ jobs:
 
       - name: Run pip-audit against locked dependency sets
         run: |
-          .venv/bin/pip-audit -r requirements.lock -f json -o /tmp/pip-audit-runtime.json || true
-          .venv/bin/pip-audit -r requirements-dev.lock -f json -o /tmp/pip-audit-dev.json || true
-          .venv/bin/python .github/scripts/pip_audit_high_gate.py /tmp/pip-audit-runtime.json /tmp/pip-audit-dev.json
+          set +e
+          .venv/bin/pip-audit -r requirements.lock -f json -o /tmp/pip-audit-runtime.json
+          runtime_rc=$?
+          .venv/bin/pip-audit -r requirements-dev.lock -f json -o /tmp/pip-audit-dev.json
+          dev_rc=$?
+          set -e
 
-  semgrep:
-    name: semgrep
+          # pip-audit exit codes:
+          #   0 — no vulnerabilities
+          #   1 — vulnerabilities found (handled by our downstream gate script)
+          #   >1 — infrastructure error (fail fast)
+          if [[ "$runtime_rc" -gt 1 || "$dev_rc" -gt 1 ]]; then
+            echo "pip-audit execution error (runtime_rc=$runtime_rc, dev_rc=$dev_rc)."
+            exit 1
+          fi
+
+          .venv/bin/python .github/scripts/pip_audit_high_gate.py \
+            /tmp/pip-audit-runtime.json /tmp/pip-audit-dev.json
+
+  # ---------------------------------------------------------------------------
+  # gitleaks — full-history secret scan (catches what detect-secrets may miss)
+  # ---------------------------------------------------------------------------
+  gitleaks:
+    name: gitleaks
     runs-on: ubuntu-latest
-    container:
-      image: semgrep/semgrep:1.120.0
+    timeout-minutes: 15
     steps:
-      - name: Checkout
+      - name: Checkout full history
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Run Semgrep
-        run: semgrep scan --config auto --error
-
-  codeql:
-    name: codeql
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [python, javascript, go]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@45c373516f557556c15d420e3f5e0aa3d64366bc # v3
         with:
-          languages: ${{ matrix.language }}
+          fetch-depth: 0
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@45c373516f557556c15d420e3f5e0aa3d64366bc # v3
+      - name: Run gitleaks repository scan
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD":/repo -w /repo \
+            zricethezav/gitleaks:v8.24.2 \
+            detect --source . --redact --no-banner
 
-      - name: Analyze
-        uses: github/codeql-action/analyze@45c373516f557556c15d420e3f5e0aa3d64366bc # v3
+  # ---------------------------------------------------------------------------
+  # trivy-fs — filesystem vulnerability scan (HIGH/CRITICAL, fail-closed)
+  # ---------------------------------------------------------------------------
+  trivy-fs:
+    name: trivy-fs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Run Trivy filesystem scan (HIGH/CRITICAL)
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD":/repo -w /repo \
+            aquasec/trivy:0.64.1 fs \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --no-progress \
+            --scanners vuln,secret,misconfig \
+            .
