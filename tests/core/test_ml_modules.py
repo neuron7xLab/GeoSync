@@ -30,7 +30,7 @@ try:
         UniformAffineQuantizer,
     )
 except ImportError:
-    UniformAffineQuantizer = None
+    pytest.skip("module dependencies not available", allow_module_level=True)
 
 
 class TestFeatureEngineeringDAG:

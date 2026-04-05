@@ -175,7 +175,7 @@ class GraphDiffusionEngine:
         - Second smallest = algebraic connectivity (Fiedler value)
         """
         eigenvalues = np.linalg.eigvalsh(L)
-        return eigenvalues
+        return eigenvalues.astype(np.float64)
 
 
 __all__ = ["GraphDiffusionEngine"]

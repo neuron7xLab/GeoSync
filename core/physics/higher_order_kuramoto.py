@@ -210,29 +210,35 @@ class HigherOrderKuramotoEngine:
         -------
         HigherOrderKuramotoResult.
         """
-        corr = np.asarray(corr, dtype=np.float64)
-        n = corr.shape[0]
+        corr_arr: NDArray[np.float64] = np.asarray(corr, dtype=np.float64)
+        n = corr_arr.shape[0]
 
         rng = np.random.default_rng(seed)
-        if omega is None:
-            omega = rng.standard_normal(n)
-        if theta0 is None:
-            theta0 = rng.uniform(0, 2 * np.pi, n)
+        omega_arr: NDArray[np.float64] = (
+            np.asarray(rng.standard_normal(n), dtype=np.float64)
+            if omega is None
+            else np.asarray(omega, dtype=np.float64)
+        )
+        theta0_arr: NDArray[np.float64] = (
+            np.asarray(rng.uniform(0, 2 * np.pi, n), dtype=np.float64)
+            if theta0 is None
+            else np.asarray(theta0, dtype=np.float64)
+        )
 
-        adj, triangles, tri_index = self._build_structures(corr)
+        adj, triangles, tri_index = self._build_structures(corr_arr)
 
         phases = np.empty((self._steps + 1, n), dtype=np.float64)
         R_arr = np.empty(self._steps + 1, dtype=np.float64)
         triadic_arr = np.empty(self._steps + 1, dtype=np.float64)
         time_arr = np.arange(self._steps + 1, dtype=np.float64) * self._dt
 
-        theta = theta0.copy()
+        theta = theta0_arr.copy()
         phases[0] = theta
         R_arr[0] = self._order_parameter(theta)
         triadic_arr[0] = 0.0
 
         for k in range(self._steps):
-            theta, tri_mag = self._rk4_step(theta, omega, adj, tri_index)
+            theta, tri_mag = self._rk4_step(theta, omega_arr, adj, tri_index)
             phases[k + 1] = theta
             R_arr[k + 1] = self._order_parameter(theta)
             triadic_arr[k + 1] = tri_mag
@@ -264,9 +270,11 @@ class HigherOrderKuramotoEngine:
 
         with np.errstate(invalid="ignore"):
             corr = np.corrcoef(tail, rowvar=False)
-        corr = np.nan_to_num(corr, nan=0.0)
+        corr_arr: NDArray[np.float64] = np.asarray(
+            np.nan_to_num(corr, nan=0.0), dtype=np.float64
+        )
 
-        return self.run(corr, seed=seed)
+        return self.run(corr_arr, seed=seed)
 
 
 __all__ = [

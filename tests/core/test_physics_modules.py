@@ -8,7 +8,7 @@ import pytest
 try:
     from core.physics.engine import GeoSyncPhysicsEngine, PhysicsEngineResult
 except ImportError:
-    GeoSyncPhysicsEngine = None
+    pytest.skip("module dependencies not available", allow_module_level=True)
 
 try:
     from core.physics.diffusion_predictor import (
@@ -16,7 +16,7 @@ try:
         VolatilityFrontPrediction,
     )
 except ImportError:
-    DiffusionVolatilityPredictor = None
+    pytest.skip("module dependencies not available", allow_module_level=True)
 
 pytestmark = pytest.mark.skipif(
     GeoSyncPhysicsEngine is None and DiffusionVolatilityPredictor is None,

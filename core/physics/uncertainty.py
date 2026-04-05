@@ -104,7 +104,7 @@ def position_momentum_uncertainty(
     delta_p = max(delta_p, PhysicsConstants.MIN_MOMENTUM_UNCERTAINTY)
 
     # Compute product
-    product = heisenberg_uncertainty(delta_x, delta_p)
+    product = float(heisenberg_uncertainty(delta_x, delta_p))
 
     return delta_x, delta_p, product
 
@@ -134,14 +134,14 @@ def check_uncertainty_principle(
     product = heisenberg_uncertainty(position_uncertainty, momentum_uncertainty, hbar)
     min_product = minimum_uncertainty_product(hbar)
 
-    is_valid = product >= min_product
+    is_valid = bool(product >= min_product)
 
     if min_product > 0:
-        violation_factor = product / min_product
+        violation_factor = float(product / min_product)
     else:
-        violation_factor = float('inf')
+        violation_factor = float("inf")
 
-    return is_valid, float(violation_factor)
+    return is_valid, violation_factor
 
 
 def optimal_measurement_tradeoff(

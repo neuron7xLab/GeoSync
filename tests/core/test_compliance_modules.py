@@ -10,12 +10,12 @@ import pytest
 try:
     from core.compliance.models import ComplianceIssue, ComplianceReport
 except ImportError:
-    ComplianceIssue = None
+    pytest.skip("module dependencies not available", allow_module_level=True)
 
 try:
     from core.compliance.regulatory import RegulatoryComplianceValidator
 except ImportError:
-    RegulatoryComplianceValidator = None
+    pytest.skip("module dependencies not available", allow_module_level=True)
 
 try:
     from core.compliance.mifid2 import (
@@ -26,7 +26,7 @@ try:
         TransactionReport,
     )
 except ImportError:
-    MiFID2Reporter = None
+    pytest.skip("module dependencies not available", allow_module_level=True)
 
 pytestmark = pytest.mark.skipif(
     ComplianceIssue is None

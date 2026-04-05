@@ -24,7 +24,7 @@ Usage::
 from __future__ import annotations
 
 import logging
-from typing import Union
+from typing import Callable, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -56,7 +56,7 @@ class DelayedKuramotoEngine:
         self,
         config: KuramotoConfig,
         tau: Union[float, NDArray[np.float64]] = 0.1,
-        history_fn: callable | None = None,
+        history_fn: Callable[[float], NDArray[np.float64]] | None = None,
     ) -> None:
         self._cfg = config
         self._omega, self._theta0 = self._resolve_ic(config)
@@ -64,8 +64,11 @@ class DelayedKuramotoEngine:
 
         # Process delay
         if np.isscalar(tau):
-            self._tau_matrix = np.full((config.N, config.N), float(tau), dtype=np.float64)
-            self._max_tau = float(tau)
+            tau_scalar = float(tau)  # type: ignore[arg-type]
+            self._tau_matrix = np.full(
+                (config.N, config.N), tau_scalar, dtype=np.float64
+            )
+            self._max_tau = tau_scalar
         else:
             self._tau_matrix = np.asarray(tau, dtype=np.float64)
             self._max_tau = float(np.max(self._tau_matrix))

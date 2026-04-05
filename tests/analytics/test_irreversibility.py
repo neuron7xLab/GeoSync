@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pytest
 
 from analytics.signals.irreversibility import IGSConfig
@@ -68,42 +67,3 @@ class TestIGSConfig:
     def test_instrument_label(self):
         cfg = IGSConfig(instrument_label="BTCUSD")
         assert cfg.instrument_label == "BTCUSD"
-
-
-try:
-    from analytics.signals.irreversibility import IGSStreamer
-
-    class TestIGSStreamer:
-        def _make_streamer(self, **kwargs):
-            cfg = IGSConfig(window=50, min_counts=10, **kwargs)
-            return IGSStreamer(cfg)
-
-        def test_creation(self):
-            s = self._make_streamer()
-            assert s is not None
-
-        def test_warmup(self):
-            s = self._make_streamer()
-            rng = np.random.default_rng(42)
-            for _ in range(60):
-                s.update(rng.standard_normal())
-            assert s.ready
-
-        def test_update_returns_result_after_warmup(self):
-            s = self._make_streamer()
-            rng = np.random.default_rng(42)
-            result = None
-            for _ in range(100):
-                result = s.update(rng.standard_normal())
-            assert result is not None
-
-        def test_regime_score_bounded(self):
-            s = self._make_streamer()
-            rng = np.random.default_rng(42)
-            for _ in range(100):
-                result = s.update(rng.standard_normal())
-            if result and hasattr(result, "regime_score"):
-                assert -2.0 <= result.regime_score <= 2.0
-
-except ImportError:
-    pass

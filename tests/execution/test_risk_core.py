@@ -8,8 +8,7 @@ import pytest
 try:
     from execution.risk.core import RiskError
 except ImportError:
-    pytestmark = pytest.mark.skip("execution.risk.core not importable")
-    RiskError = None
+    pytest.skip("module not importable", allow_module_level=True)
 
 
 class TestRiskError:

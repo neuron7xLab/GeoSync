@@ -97,11 +97,10 @@ class LiquidityCouplingMatrix:
     ) -> NDArray[np.float64]:
         """Rolling return correlation matrix. Shape: (N, N)."""
         returns = np.diff(prices, axis=0) / np.maximum(np.abs(prices[:-1]), 1e-12)
-        tail = returns[-self._corr_window:]
+        tail = returns[-self._corr_window :]
         with np.errstate(invalid="ignore"):
             corr = np.corrcoef(tail, rowvar=False)
-        corr = np.nan_to_num(corr, nan=0.0)
-        return corr
+        return np.asarray(np.nan_to_num(corr, nan=0.0), dtype=np.float64)
 
     def compute(
         self,

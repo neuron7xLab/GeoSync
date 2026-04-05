@@ -173,8 +173,10 @@ class FormanRicciCurvature:
 
         with np.errstate(invalid="ignore"):
             corr = np.corrcoef(tail, rowvar=False)
-        corr = np.nan_to_num(corr, nan=0.0)
-        return self.compute_from_correlation(corr)
+        corr_arr: NDArray[np.float64] = np.asarray(
+            np.nan_to_num(corr, nan=0.0), dtype=np.float64
+        )
+        return self.compute_from_correlation(corr_arr)
 
 
 class DualTrackRicciMonitor:

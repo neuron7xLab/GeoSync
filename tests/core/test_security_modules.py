@@ -14,7 +14,7 @@ try:
         IntegrityVerifier,
     )
 except ImportError:
-    IntegrityVerifier = None
+    pytest.skip("module dependencies not available", allow_module_level=True)
 
 try:
     from core.security.validation import (
@@ -25,12 +25,12 @@ try:
         ValidationError,
     )
 except ImportError:
-    TradingSymbolValidator = None
+    pytest.skip("module dependencies not available", allow_module_level=True)
 
 try:
     from core.security.random import SecureRandom
 except ImportError:
-    SecureRandom = None
+    pytest.skip("module dependencies not available", allow_module_level=True)
 
 
 class TestIntegrityVerifier:

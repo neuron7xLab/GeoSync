@@ -50,8 +50,8 @@ from .engine import KuramotoResult, _order_parameter, _rk4_step
 try:  # optional in minimal environments
     from ..indicators.temporal_ricci import LightGraph, OllivierRicciCurvatureLite
 except Exception:  # pragma: no cover
-    LightGraph = None  # type: ignore[assignment]
-    OllivierRicciCurvatureLite = None  # type: ignore[assignment]
+    LightGraph = None  # type: ignore[assignment,misc]
+    OllivierRicciCurvatureLite = None  # type: ignore[assignment,misc]
 
 
 class _LocalOllivierRicciCurvatureLite:
@@ -222,7 +222,7 @@ class KuramotoRicciFlowEngine:
         self.damping = float(np.clip(damping, 0.0, 1.0))
         self.coupling_history_enabled = bool(coupling_history_enabled)
         if OllivierRicciCurvatureLite is not None:
-            self._lite_ricci = OllivierRicciCurvatureLite(alpha=0.5)
+            self._lite_ricci: Any = OllivierRicciCurvatureLite(alpha=0.5)
         else:
             self._lite_ricci = _LocalOllivierRicciCurvatureLite(alpha=0.5)
 
@@ -379,6 +379,7 @@ class KuramotoRicciFlowEngine:
 
     @staticmethod
     def _to_light_graph(graph: Any) -> Any:
+        lite: Any
         if LightGraph is None:
             lite = _SimpleUndirectedGraph(int(graph.number_of_nodes()))
         else:
