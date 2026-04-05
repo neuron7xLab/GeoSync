@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for core.data.feature_store module."""
+
 from __future__ import annotations
 
 import pandas as pd

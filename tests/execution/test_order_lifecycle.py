@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for execution.order_lifecycle module."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -21,6 +22,7 @@ from execution.order_lifecycle import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 class _SQLiteDAL:
     """Minimal DAL for testing with SQLite."""
@@ -44,8 +46,10 @@ class _SQLiteDAL:
     class _TxCtx:
         def __init__(self, conn):
             self._conn = conn
+
         def __enter__(self):
             return self._conn
+
         def __exit__(self, *a):
             self._conn.commit()
 
@@ -55,7 +59,9 @@ class _SQLiteDAL:
 
 def _make_store():
     dal = _SQLiteDAL()
-    store = OrderLifecycleStore(dal, schema=None, table="order_journal", dialect="sqlite")
+    store = OrderLifecycleStore(
+        dal, schema=None, table="order_journal", dialect="sqlite"
+    )
     store.ensure_schema()
     return store, dal
 
@@ -63,6 +69,7 @@ def _make_store():
 # ---------------------------------------------------------------------------
 # _parse_timestamp
 # ---------------------------------------------------------------------------
+
 
 class TestParseTimestamp:
     def test_datetime_with_tz(self):
@@ -105,6 +112,7 @@ class TestParseTimestamp:
 # _quote_identifier
 # ---------------------------------------------------------------------------
 
+
 class TestQuoteIdentifier:
     def test_valid(self):
         assert _quote_identifier("orders") == '"orders"'
@@ -121,6 +129,7 @@ class TestQuoteIdentifier:
 # OrderEvent
 # ---------------------------------------------------------------------------
 
+
 class TestOrderEvent:
     def test_values(self):
         assert OrderEvent.SUBMIT.value == "submit"
@@ -134,6 +143,7 @@ class TestOrderEvent:
 # ---------------------------------------------------------------------------
 # make_idempotency_key
 # ---------------------------------------------------------------------------
+
 
 class TestMakeIdempotencyKey:
     def test_with_correlation_id(self):
@@ -163,8 +173,10 @@ class TestMakeIdempotencyKey:
 # TERMINAL_STATUSES
 # ---------------------------------------------------------------------------
 
+
 def test_terminal_statuses():
     from domain import OrderStatus
+
     assert OrderStatus.FILLED in TERMINAL_STATUSES
     assert OrderStatus.CANCELLED in TERMINAL_STATUSES
     assert OrderStatus.REJECTED in TERMINAL_STATUSES
@@ -175,6 +187,7 @@ def test_terminal_statuses():
 # ---------------------------------------------------------------------------
 # OrderLifecycleStore (SQLite)
 # ---------------------------------------------------------------------------
+
 
 class TestOrderLifecycleStore:
     def test_create_sqlite_store(self):
@@ -188,10 +201,14 @@ class TestOrderLifecycleStore:
 
     def test_append_and_get(self):
         from domain import OrderStatus
+
         store, _ = _make_store()
         t = store.append(
-            "order-1", "corr-1", OrderEvent.SUBMIT,
-            from_status=OrderStatus.PENDING, to_status=OrderStatus.PENDING,
+            "order-1",
+            "corr-1",
+            OrderEvent.SUBMIT,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.PENDING,
         )
         assert t.order_id == "order-1"
         assert t.event == OrderEvent.SUBMIT
@@ -202,46 +219,91 @@ class TestOrderLifecycleStore:
 
     def test_idempotent_append(self):
         from domain import OrderStatus
+
         store, _ = _make_store()
         t1 = store.append(
-            "order-1", "corr-1", OrderEvent.SUBMIT,
-            from_status=OrderStatus.PENDING, to_status=OrderStatus.PENDING,
+            "order-1",
+            "corr-1",
+            OrderEvent.SUBMIT,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.PENDING,
         )
         t2 = store.append(
-            "order-1", "corr-1", OrderEvent.SUBMIT,
-            from_status=OrderStatus.PENDING, to_status=OrderStatus.PENDING,
+            "order-1",
+            "corr-1",
+            OrderEvent.SUBMIT,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.PENDING,
         )
         assert t1.sequence == t2.sequence
 
     def test_history(self):
         from domain import OrderStatus
+
         store, _ = _make_store()
-        store.append("order-1", "corr-1", OrderEvent.SUBMIT,
-                     from_status=OrderStatus.PENDING, to_status=OrderStatus.PENDING)
-        store.append("order-1", "corr-2", OrderEvent.ACK,
-                     from_status=OrderStatus.PENDING, to_status=OrderStatus.OPEN)
+        store.append(
+            "order-1",
+            "corr-1",
+            OrderEvent.SUBMIT,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.PENDING,
+        )
+        store.append(
+            "order-1",
+            "corr-2",
+            OrderEvent.ACK,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.OPEN,
+        )
         h = store.history("order-1")
         assert len(h) == 2
 
     def test_last_transition(self):
         from domain import OrderStatus
+
         store, _ = _make_store()
-        store.append("order-1", "corr-1", OrderEvent.SUBMIT,
-                     from_status=OrderStatus.PENDING, to_status=OrderStatus.PENDING)
-        store.append("order-1", "corr-2", OrderEvent.ACK,
-                     from_status=OrderStatus.PENDING, to_status=OrderStatus.OPEN)
+        store.append(
+            "order-1",
+            "corr-1",
+            OrderEvent.SUBMIT,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.PENDING,
+        )
+        store.append(
+            "order-1",
+            "corr-2",
+            OrderEvent.ACK,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.OPEN,
+        )
         last = store.last_transition("order-1")
         assert last.event == OrderEvent.ACK
 
     def test_active_orders(self):
         from domain import OrderStatus
+
         store, _ = _make_store()
-        store.append("order-1", "corr-1", OrderEvent.SUBMIT,
-                     from_status=OrderStatus.PENDING, to_status=OrderStatus.PENDING)
-        store.append("order-2", "corr-2", OrderEvent.SUBMIT,
-                     from_status=OrderStatus.PENDING, to_status=OrderStatus.PENDING)
-        store.append("order-2", "corr-3", OrderEvent.REJECT,
-                     from_status=OrderStatus.PENDING, to_status=OrderStatus.REJECTED)
+        store.append(
+            "order-1",
+            "corr-1",
+            OrderEvent.SUBMIT,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.PENDING,
+        )
+        store.append(
+            "order-2",
+            "corr-2",
+            OrderEvent.SUBMIT,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.PENDING,
+        )
+        store.append(
+            "order-2",
+            "corr-3",
+            OrderEvent.REJECT,
+            from_status=OrderStatus.PENDING,
+            to_status=OrderStatus.REJECTED,
+        )
         active = store.active_orders()
         assert "order-1" in active
         assert "order-2" not in active
@@ -259,6 +321,7 @@ class TestOrderLifecycleStore:
 # OrderLifecycle state machine
 # ---------------------------------------------------------------------------
 
+
 class TestOrderLifecycle:
     def _make_lifecycle(self):
         store, _ = _make_store()
@@ -266,6 +329,7 @@ class TestOrderLifecycle:
 
     def test_submit_ack_fill(self):
         from domain import OrderStatus
+
         lc = self._make_lifecycle()
         t1 = lc.apply("o1", OrderEvent.SUBMIT, correlation_id="c1")
         assert t1.to_status == OrderStatus.PENDING
@@ -278,6 +342,7 @@ class TestOrderLifecycle:
 
     def test_submit_reject(self):
         from domain import OrderStatus
+
         lc = self._make_lifecycle()
         lc.apply("o1", OrderEvent.SUBMIT, correlation_id="c1")
         t = lc.apply("o1", OrderEvent.REJECT, correlation_id="c2")
@@ -285,6 +350,7 @@ class TestOrderLifecycle:
 
     def test_partial_fill_flow(self):
         from domain import OrderStatus
+
         lc = self._make_lifecycle()
         lc.apply("o1", OrderEvent.SUBMIT, correlation_id="c1")
         lc.apply("o1", OrderEvent.ACK, correlation_id="c2")
@@ -311,11 +377,13 @@ class TestOrderLifecycle:
 
     def test_get_state_initial(self):
         from domain import OrderStatus
+
         lc = self._make_lifecycle()
         assert lc.get_state("nonexistent") == OrderStatus.PENDING
 
     def test_get_state_after_transitions(self):
         from domain import OrderStatus
+
         lc = self._make_lifecycle()
         lc.apply("o1", OrderEvent.SUBMIT, correlation_id="c1")
         lc.apply("o1", OrderEvent.ACK, correlation_id="c2")
@@ -345,6 +413,7 @@ class TestOrderLifecycle:
 
     def test_cancel_from_open(self):
         from domain import OrderStatus
+
         lc = self._make_lifecycle()
         lc.apply("o1", OrderEvent.SUBMIT, correlation_id="c1")
         lc.apply("o1", OrderEvent.ACK, correlation_id="c2")

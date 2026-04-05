@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for execution.live_loop LiveLoopConfig."""
+
 from __future__ import annotations
 
 import pytest
@@ -70,9 +71,7 @@ class TestLiveLoopConfig:
         assert ld.exists()
 
     def test_ledger_dir_string(self, tmp_path):
-        cfg = LiveLoopConfig(
-            state_dir=tmp_path / "s", ledger_dir=str(tmp_path / "led")
-        )
+        cfg = LiveLoopConfig(state_dir=tmp_path / "s", ledger_dir=str(tmp_path / "led"))
         from pathlib import Path
 
         assert isinstance(cfg.ledger_dir, Path)

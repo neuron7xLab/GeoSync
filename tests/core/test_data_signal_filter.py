@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for core.data.signal_filter module."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -25,22 +26,28 @@ class TestFilterStrategy:
 class TestFilterResult:
     def test_removal_ratio_empty(self):
         r = FilterResult(
-            data=np.array([]), removed_count=0,
-            removed_indices=np.array([], dtype=np.intp), original_count=0,
+            data=np.array([]),
+            removed_count=0,
+            removed_indices=np.array([], dtype=np.intp),
+            original_count=0,
         )
         assert r.removal_ratio == 0.0
 
     def test_removal_ratio(self):
         r = FilterResult(
-            data=np.array([1.0, 3.0]), removed_count=1,
-            removed_indices=np.array([1], dtype=np.intp), original_count=3,
+            data=np.array([1.0, 3.0]),
+            removed_count=1,
+            removed_indices=np.array([1], dtype=np.intp),
+            original_count=3,
         )
         assert r.removal_ratio == pytest.approx(1 / 3)
 
     def test_retained_count(self):
         r = FilterResult(
-            data=np.array([1.0]), removed_count=2,
-            removed_indices=np.array([0, 2], dtype=np.intp), original_count=3,
+            data=np.array([1.0]),
+            removed_count=2,
+            removed_indices=np.array([0, 2], dtype=np.intp),
+            original_count=3,
         )
         assert r.retained_count == 1
 
@@ -82,8 +89,10 @@ class TestSignalFilterConfig:
 
     def test_valid_config(self):
         cfg = SignalFilterConfig(
-            min_value=0.0, max_value=100.0,
-            zscore_threshold=3.0, zscore_window=50,
+            min_value=0.0,
+            max_value=100.0,
+            zscore_threshold=3.0,
+            zscore_window=50,
         )
         assert cfg.min_value == 0.0
 

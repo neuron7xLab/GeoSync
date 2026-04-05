@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for backtest.engine module."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -24,7 +25,9 @@ class TestLatencyConfig:
         assert cfg.execution_to_fill == 0
 
     def test_total_delay(self):
-        cfg = LatencyConfig(signal_to_order=1, order_to_execution=2, execution_to_fill=3)
+        cfg = LatencyConfig(
+            signal_to_order=1, order_to_execution=2, execution_to_fill=3
+        )
         assert cfg.total_delay == 6
 
     def test_total_delay_zero(self):
@@ -36,7 +39,9 @@ class TestLatencyConfig:
         [(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (2, 3, 4, 9)],
     )
     def test_various_delays(self, s, o, e, expected):
-        cfg = LatencyConfig(signal_to_order=s, order_to_execution=o, execution_to_fill=e)
+        cfg = LatencyConfig(
+            signal_to_order=s, order_to_execution=o, execution_to_fill=e
+        )
         assert cfg.total_delay == expected
 
 
@@ -48,7 +53,9 @@ class TestOrderBookConfig:
         assert len(cfg.depth_profile) == 3
 
     def test_custom(self):
-        cfg = OrderBookConfig(spread_bps=10.0, depth_profile=(1.0, 0.5), infinite_depth=False)
+        cfg = OrderBookConfig(
+            spread_bps=10.0, depth_profile=(1.0, 0.5), infinite_depth=False
+        )
         assert cfg.spread_bps == 10.0
         assert cfg.infinite_depth is False
 
@@ -120,9 +127,14 @@ class TestResult:
 
     def test_all_cost_fields(self):
         r = Result(
-            pnl=50.0, max_dd=-5.0, trades=10,
-            latency_steps=2, slippage_cost=1.5,
-            commission_cost=3.0, spread_cost=2.0, financing_cost=0.5,
+            pnl=50.0,
+            max_dd=-5.0,
+            trades=10,
+            latency_steps=2,
+            slippage_cost=1.5,
+            commission_cost=3.0,
+            spread_cost=2.0,
+            financing_cost=0.5,
         )
         assert r.slippage_cost == 1.5
         assert r.commission_cost == 3.0

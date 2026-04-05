@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for core.indicators.kuramoto module."""
+
 from __future__ import annotations
 
 import numpy as np

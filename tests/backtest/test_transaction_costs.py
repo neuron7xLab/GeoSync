@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for backtest.transaction_costs module."""
+
 from __future__ import annotations
 
 import math

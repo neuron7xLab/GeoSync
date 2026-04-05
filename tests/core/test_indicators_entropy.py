@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for core.indicators.entropy module."""
+
 from __future__ import annotations
 
 import numpy as np

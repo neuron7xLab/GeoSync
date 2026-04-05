@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for core.events.sourcing module."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

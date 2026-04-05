@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for execution.oms module."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -69,6 +70,8 @@ class TestQueuedOrder:
 
     def test_with_attempts(self):
         order = MagicMock()
-        q = QueuedOrder(correlation_id="c1", order=order, attempts=3, last_error="timeout")
+        q = QueuedOrder(
+            correlation_id="c1", order=order, attempts=3, last_error="timeout"
+        )
         assert q.attempts == 3
         assert q.last_error == "timeout"

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for core.data.quality_control — RangeCheck and TemporalContract."""
+
 from __future__ import annotations
 
 import pandas as pd
@@ -39,8 +40,11 @@ class TestRangeCheck:
 
     def test_exclusive_bounds(self):
         rc = RangeCheck(
-            column="p", min_value=0.0, max_value=100.0,
-            inclusive_min=False, inclusive_max=False,
+            column="p",
+            min_value=0.0,
+            max_value=100.0,
+            inclusive_min=False,
+            inclusive_max=False,
         )
         assert rc.inclusive_min is False
         assert rc.inclusive_max is False

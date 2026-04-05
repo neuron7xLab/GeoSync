@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for backtest.event_driven module."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -19,6 +20,7 @@ from backtest.events import MarketEvent
 # ---------------------------------------------------------------------------
 # ArrayDataHandler
 # ---------------------------------------------------------------------------
+
 
 class TestArrayDataHandler:
     def test_empty_prices(self):
@@ -68,6 +70,7 @@ class TestArrayDataHandler:
 # MarketDataHandler
 # ---------------------------------------------------------------------------
 
+
 class TestMarketDataHandler:
     def test_stream_not_implemented(self):
         handler = MarketDataHandler()
@@ -78,6 +81,7 @@ class TestMarketDataHandler:
 # ---------------------------------------------------------------------------
 # Strategy
 # ---------------------------------------------------------------------------
+
 
 class TestStrategy:
     def test_base_not_implemented(self):
@@ -90,6 +94,7 @@ class TestStrategy:
 # ---------------------------------------------------------------------------
 # VectorisedStrategy
 # ---------------------------------------------------------------------------
+
 
 class TestVectorisedStrategy:
     def test_emits_signals(self):
@@ -139,6 +144,7 @@ class TestVectorisedStrategy:
 # ---------------------------------------------------------------------------
 # Portfolio
 # ---------------------------------------------------------------------------
+
 
 class TestPortfolio:
     def test_initial_state(self):

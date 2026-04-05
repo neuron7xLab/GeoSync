@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for execution.risk.core module."""
+
 from __future__ import annotations
 
 import pytest

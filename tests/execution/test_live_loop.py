@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for execution.live_loop module."""
+
 from __future__ import annotations
 
 import pytest

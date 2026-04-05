@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for analytics.signals.irreversibility module."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -28,8 +29,11 @@ class TestIGSConfig:
 
     def test_adapt_params(self):
         cfg = IGSConfig(
-            adapt_method="entropy", k_min=3, k_max=15,
-            adapt_threshold=0.05, adapt_persist=5
+            adapt_method="entropy",
+            k_min=3,
+            k_max=15,
+            adapt_threshold=0.05,
+            adapt_persist=5,
         )
         assert cfg.adapt_method == "entropy"
         assert cfg.k_min == 3
@@ -98,7 +102,7 @@ try:
             rng = np.random.default_rng(42)
             for _ in range(100):
                 result = s.update(rng.standard_normal())
-            if result and hasattr(result, 'regime_score'):
+            if result and hasattr(result, "regime_score"):
                 assert -2.0 <= result.regime_score <= 2.0
 
 except ImportError:

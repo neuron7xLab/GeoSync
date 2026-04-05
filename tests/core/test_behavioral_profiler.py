@@ -1,4 +1,5 @@
 """Tests for core.neuro.serotonin.profiler.behavioral_profiler module."""
+
 from __future__ import annotations
 
 import json
@@ -23,31 +24,50 @@ except ImportError:
 
 def _sample_tonic_phasic():
     return TonicPhasicCharacteristics(
-        tonic_baseline=0.3, tonic_peak=0.8, tonic_rise_time=10.0,
-        tonic_decay_time=20.0, phasic_activation_threshold=1.5,
-        phasic_peak_amplitude=0.6, phasic_burst_frequency=0.02,
-        phasic_gate_transition_width=5.0, sensitivity_floor=0.4,
-        sensitivity_recovery_rate=0.001, desensitization_onset_time=100.0,
+        tonic_baseline=0.3,
+        tonic_peak=0.8,
+        tonic_rise_time=10.0,
+        tonic_decay_time=20.0,
+        phasic_activation_threshold=1.5,
+        phasic_peak_amplitude=0.6,
+        phasic_burst_frequency=0.02,
+        phasic_gate_transition_width=5.0,
+        sensitivity_floor=0.4,
+        sensitivity_recovery_rate=0.001,
+        desensitization_onset_time=100.0,
     )
 
 
 def _sample_veto_cooldown():
     return VetoCooldownCharacteristics(
-        veto_threshold=0.7, veto_activation_latency=5.0,
-        veto_deactivation_latency=10.0, cooldown_mean_duration=3.0,
-        cooldown_max_duration=8.0, cooldown_frequency=2.5,
-        hysteresis_width=0.1, recovery_threshold=0.5,
-        gate_veto_contribution=40.0, phasic_veto_contribution=35.0,
+        veto_threshold=0.7,
+        veto_activation_latency=5.0,
+        veto_deactivation_latency=10.0,
+        cooldown_mean_duration=3.0,
+        cooldown_max_duration=8.0,
+        cooldown_frequency=2.5,
+        hysteresis_width=0.1,
+        recovery_threshold=0.5,
+        gate_veto_contribution=40.0,
+        phasic_veto_contribution=35.0,
         tonic_veto_contribution=25.0,
     )
 
 
 def _sample_stats():
     return ProfileStatistics(
-        total_steps=500, total_vetos=50, veto_rate=0.1,
-        stress_mean=1.0, stress_std=0.5, stress_max=3.0,
-        serotonin_mean=0.4, serotonin_std=0.2, serotonin_max=0.9,
-        tonic_mean=0.3, phasic_mean=0.1, gate_mean=0.5,
+        total_steps=500,
+        total_vetos=50,
+        veto_rate=0.1,
+        stress_mean=1.0,
+        stress_std=0.5,
+        stress_max=3.0,
+        serotonin_mean=0.4,
+        serotonin_std=0.2,
+        serotonin_max=0.9,
+        tonic_mean=0.3,
+        phasic_mean=0.1,
+        gate_mean=0.5,
     )
 
 
@@ -65,6 +85,7 @@ def _sample_profile():
 # TonicPhasicCharacteristics
 # ===================================================================
 
+
 class TestTonicPhasicCharacteristics:
     def test_to_dict(self):
         tp = _sample_tonic_phasic()
@@ -74,17 +95,26 @@ class TestTonicPhasicCharacteristics:
 
     def test_all_fields_present(self):
         d = _sample_tonic_phasic().to_dict()
-        expected = {"tonic_baseline", "tonic_peak", "tonic_rise_time", "tonic_decay_time",
-                    "phasic_activation_threshold", "phasic_peak_amplitude",
-                    "phasic_burst_frequency", "phasic_gate_transition_width",
-                    "sensitivity_floor", "sensitivity_recovery_rate",
-                    "desensitization_onset_time"}
+        expected = {
+            "tonic_baseline",
+            "tonic_peak",
+            "tonic_rise_time",
+            "tonic_decay_time",
+            "phasic_activation_threshold",
+            "phasic_peak_amplitude",
+            "phasic_burst_frequency",
+            "phasic_gate_transition_width",
+            "sensitivity_floor",
+            "sensitivity_recovery_rate",
+            "desensitization_onset_time",
+        }
         assert expected == set(d.keys())
 
 
 # ===================================================================
 # VetoCooldownCharacteristics
 # ===================================================================
+
 
 class TestVetoCooldownCharacteristics:
     def test_to_dict(self):
@@ -102,6 +132,7 @@ class TestVetoCooldownCharacteristics:
 # ProfileStatistics
 # ===================================================================
 
+
 class TestProfileStatistics:
     def test_to_dict(self):
         s = _sample_stats()
@@ -118,6 +149,7 @@ class TestProfileStatistics:
 # ===================================================================
 # BehavioralProfile
 # ===================================================================
+
 
 class TestBehavioralProfile:
     def test_to_dict(self):
@@ -165,6 +197,7 @@ class TestBehavioralProfile:
 # SerotoninProfiler (with mocked controller)
 # ===================================================================
 
+
 def _make_mock_controller():
     ctrl = MagicMock()
     ctrl.tonic_level = 0.3
@@ -197,7 +230,8 @@ class TestSerotoninProfiler:
         ctrl = _make_mock_controller()
         profiler = SerotoninProfiler(ctrl)
         profile = profiler.profile_stress_response(
-            stress_levels=[0.5, 1.0, 2.0], steps_per_level=10,
+            stress_levels=[0.5, 1.0, 2.0],
+            steps_per_level=10,
         )
         assert isinstance(profile, BehavioralProfile)
         assert profile.statistics.total_steps == 30
@@ -213,7 +247,9 @@ class TestSerotoninProfiler:
         ctrl = _make_mock_controller()
         profiler = SerotoninProfiler(ctrl)
         profile = profiler.profile_stress_pulse(
-            num_pulses=2, pulse_duration=10, recovery_duration=10,
+            num_pulses=2,
+            pulse_duration=10,
+            recovery_duration=10,
         )
         assert profile.statistics.total_steps == 40
 
