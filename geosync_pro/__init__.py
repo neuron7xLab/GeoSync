@@ -1,4 +1,4 @@
-"""NeuroTrade Pro package."""
+"""GeoSync Pro package."""
 
 from .version import __version__
 

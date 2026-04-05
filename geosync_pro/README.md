@@ -1,4 +1,4 @@
-# NeuroTrade Pro — EMH-Inspired Neuroeconomic Controller (Production-Ready)
+# GeoSync Pro — EMH-Inspired Neuroeconomic Controller (Production-Ready)
 
 This package provides a fully formalized, validated, and runnable implementation of an extramedullary-hematopoiesis-inspired controller for trading systems:
 - State-space model (SSM) with bounded states

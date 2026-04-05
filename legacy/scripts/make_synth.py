@@ -1,4 +1,4 @@
-"""CLI for generating synthetic tick data used in NeuroTrade PRO demos."""
+"""CLI for generating synthetic tick data used in GeoSync HPC demos."""
 
 from __future__ import annotations
 

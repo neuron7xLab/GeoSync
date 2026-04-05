@@ -1,4 +1,4 @@
-"""Synthetic data generation utilities for NeuroTrade PRO demos."""
+"""Synthetic data generation utilities for GeoSync HPC demos."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def generate_demo_ticks(
 
     The generated CSV mirrors the previous repository fixture while avoiding the
     need to store ~4 MB of static data in git. The schema matches the
-    expectations baked into ``configs/demo.yaml`` and downstream NeuroPRO
+    expectations baked into ``configs/demo.yaml`` and downstream GeoSync HPC
     pipelines.
     """
 

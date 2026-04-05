@@ -14,7 +14,7 @@
 - **Thermo / TACL:** `runtime/` (API + controller), bridged through canonical runtime entrypoint
 - **TACL Behavior Contracts:** `tacl/` (unchanged)
 - **NAK controller:** `nak_controller/`
-- **Neurotrade / Cortex:** `cortex_service/` and `geosync/neural_controller/` (shimmed via canonical root)
+- **Neural Controller / Cortex:** `cortex_service/` and `geosync/neural_controller/` (shimmed via canonical root)
 - **Risk/Execution:** `application/`, `execution/`, `runtime/`
 - **Observability:** `observability/`
 - **Experimental/Sandbox:** `sandbox/`, `examples/`

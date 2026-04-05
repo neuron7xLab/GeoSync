@@ -32,8 +32,8 @@ smoke tests.
 | Use-case | Quickstart | Dependencies (version lock) |
 | --- | --- | --- |
 | Market regime snapshot (core indicators) | `python examples/quick_start.py --seed 7 --num-points 400` | `numpy==2.3.3`, `pandas==2.3.3` |
-| Strategy backtest (NeuroTrade PRO) | `python examples/neuro_trade_pulse_backtest.py` | `numpy==2.3.3`, `pandas==2.3.3` |
-| Real-time style snapshot (signal generation) | `python examples/neuro_trade_pulse_snapshot.py` | `numpy==2.3.3`, `pandas==2.3.3` |
+| Strategy backtest (GeoSync HPC) | `python examples/neuro_geosync_backtest.py` | `numpy==2.3.3`, `pandas==2.3.3` |
+| Real-time style snapshot (signal generation) | `python examples/neuro_geosync_snapshot.py` | `numpy==2.3.3`, `pandas==2.3.3` |
 | Integrated risk management pipeline | `python examples/integrated_risk_management_example.py` | `numpy==2.3.3` |
 
 ## Example Catalog (Seeds + Dependencies)
@@ -46,8 +46,8 @@ including deterministic seeds and pinned dependency versions.
 
 ### 🎯 Backtesting & Strategies
 
-#### `neuro_trade_pulse_backtest.py`
-Advanced backtesting with the NeuroTrade PRO framework.
+#### `neuro_geosync_backtest.py`
+Advanced backtesting with the GeoSync HPC framework.
 
 **Features**:
 - Regime-sensitive decision making
@@ -57,7 +57,7 @@ Advanced backtesting with the NeuroTrade PRO framework.
 
 **Run it**:
 ```bash
-python examples/neuro_trade_pulse_backtest.py --config configs/demo.yaml
+python examples/neuro_geosync_backtest.py --config configs/demo.yaml
 ```
 
 #### `performance_demo.py`
@@ -76,7 +76,7 @@ python examples/performance_demo.py
 
 ### 📊 Market Analysis
 
-#### `neuro_trade_pulse_snapshot.py`
+#### `neuro_geosync_snapshot.py`
 Real-time market regime analysis and snapshot generation.
 
 **Features**:
@@ -87,7 +87,7 @@ Real-time market regime analysis and snapshot generation.
 
 **Run it**:
 ```bash
-python examples/neuro_trade_pulse_snapshot.py
+python examples/neuro_geosync_snapshot.py
 ```
 
 ### 🧠 Advanced Features

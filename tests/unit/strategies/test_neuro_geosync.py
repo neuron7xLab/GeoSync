@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from strategies.neuro_trade_pulse import NeuroGeoSyncConfig, NeuroGeoSyncStrategy
+from strategies.neuro_geosync import NeuroGeoSyncConfig, NeuroGeoSyncStrategy
 
 
 def _sample_bars(n: int = 200, seed: int = 42) -> pd.DataFrame:

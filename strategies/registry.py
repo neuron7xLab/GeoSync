@@ -20,11 +20,13 @@ can instantiate isolated registries when needed.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from importlib import import_module
-import logging
-from typing import Any, Callable, Dict, Mapping, MutableMapping, Tuple
+from typing import Any, Callable, Dict, Mapping, MutableMapping, Tuple, TypeVar
+
+_E = TypeVar("_E", bound=Enum)
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +51,7 @@ class RiskLevel(Enum):
     HIGH = "HIGH"
 
 
-def _coerce_enum(value: Any, enum_cls: type[Enum], field_name: str) -> Enum:
+def _coerce_enum(value: Any, enum_cls: type[_E], field_name: str) -> _E:
     if isinstance(value, enum_cls):
         return value
     if isinstance(value, str):
@@ -195,9 +197,7 @@ class StrategyRoutingPolicy:
 
     def validate(self, registry: StrategyRegistry) -> None:
         missing = [
-            name
-            for name in self.policy_map.values()
-            if not registry.contains(name)
+            name for name in self.policy_map.values() if not registry.contains(name)
         ]
         if not registry.contains(self.default_strategy):
             missing.append(self.default_strategy)
@@ -275,10 +275,22 @@ def default_routing_policy() -> StrategyRoutingPolicy:
             (MarketRegime.KILL, SystemStress.CRITICAL, RiskLevel.HIGH): "neuro_trade",
             (MarketRegime.KILL, SystemStress.HIGH, RiskLevel.HIGH): "neuro_trade",
             (MarketRegime.CAUTION, SystemStress.HIGH, RiskLevel.MEDIUM): "neuro_trade",
-            (MarketRegime.CAUTION, SystemStress.ELEVATED, RiskLevel.HIGH): "neuro_trade",
+            (
+                MarketRegime.CAUTION,
+                SystemStress.ELEVATED,
+                RiskLevel.HIGH,
+            ): "neuro_trade",
             (MarketRegime.EMERGENT, SystemStress.LOW, RiskLevel.LOW): "quantum_neural",
-            (MarketRegime.EMERGENT, SystemStress.LOW, RiskLevel.MEDIUM): "quantum_neural",
-            (MarketRegime.CAUTION, SystemStress.ELEVATED, RiskLevel.MEDIUM): "quantum_neural",
+            (
+                MarketRegime.EMERGENT,
+                SystemStress.LOW,
+                RiskLevel.MEDIUM,
+            ): "quantum_neural",
+            (
+                MarketRegime.CAUTION,
+                SystemStress.ELEVATED,
+                RiskLevel.MEDIUM,
+            ): "quantum_neural",
         },
         default_strategy="quantum_neural",
     )

@@ -1,4 +1,4 @@
-"""Test suite for NeuroTrade Pro."""
+"""Test suite for GeoSync Pro."""
 
 from __future__ import annotations
 

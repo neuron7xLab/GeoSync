@@ -1,4 +1,4 @@
-"""Tests for the NeuroPRO synthetic data helpers."""
+"""Tests for the GeoSync HPC synthetic data helpers."""
 
 from __future__ import annotations
 

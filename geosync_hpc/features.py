@@ -1,4 +1,4 @@
-"""Feature engineering for NeuroTrade PRO synthetic datasets."""
+"""Feature engineering for GeoSync HPC synthetic datasets."""
 
 from __future__ import annotations
 
