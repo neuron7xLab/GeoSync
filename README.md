@@ -574,7 +574,7 @@ geosync run strategy.capital=200000 data.timeframe=4h
 </tr>
 </table>
 
-[Institutional Overview](INSTITUTIONAL_OVERVIEW.md) | [Security Framework](docs/security/) | [Contributing](CONTRIBUTING.md) | [Full Documentation](docs/)
+[Institutional Overview](INSTITUTIONAL_OVERVIEW.md) | [Roadmap](ROADMAP.md) | [Security Framework](docs/security/) | [Contributing](CONTRIBUTING.md) | [Full Documentation](docs/)
 
 <p align="center">
   <img src=".github/assets/divider.svg" width="100%">
