@@ -1,5 +1,13 @@
 # SPDX-License-Identifier: MIT
 
+# ----------------------------------------------------------------------------
+# Tool resolution — prefer the project venv when it exists so CI and local
+# developers invoke the same interpreter/pytest. Fall back to bare ``python`` /
+# ``pytest`` on PATH when the venv is absent (fresh clones, nix shells, etc.).
+# ----------------------------------------------------------------------------
+PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
+PYTEST := $(shell if [ -x .venv/bin/pytest ]; then echo .venv/bin/pytest; else echo pytest; fi)
+
 # ============================================================================
 # Standard Entry Points - Use these commands for development
 # ============================================================================
@@ -239,7 +247,7 @@ test-fast:
 .PHONY: test-heavy
 test-heavy:
 	@echo "🧪 Running heavy tests..."
-	pytest tests/ -m "slow or heavy_math or nightly"
+	$(PYTEST) tests/ -m "slow or heavy_math or nightly"
 	@echo "✅ Heavy tests passed"
 
 .PHONY: perf
