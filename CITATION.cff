@@ -1,0 +1,95 @@
+# CITATION.cff — Citation metadata for academic / professional reference
+# https://citation-file-format.github.io/
+cff-version: 1.2.0
+message: >-
+  If you use GeoSync in academic research, industry reports, or derivative
+  work, please cite it using the metadata below.
+title: "GeoSync: Geometric Market Intelligence Platform"
+abstract: >-
+  GeoSync is a production-grade quantitative research infrastructure that
+  applies differential geometry, synchronization theory, and non-equilibrium
+  thermodynamics to financial market analysis. The platform implements
+  Kuramoto phase synchronization, Ollivier-Ricci curvature flow, fractal
+  dynamics, and free-energy-minimizing neuro-symbolic control, exposed
+  through a deterministic event-driven backtester, a governance-aligned
+  execution fabric, and a comprehensive observability stack.
+type: software
+authors:
+  - family-names: Vasylenko
+    given-names: Yaroslav
+    affiliation: "neuron7xLab"
+repository-code: "https://github.com/neuron7xLab/GeoSync"
+url: "https://github.com/neuron7xLab/GeoSync"
+license: MIT
+version: 1.0.0
+date-released: "2026-04-04"
+keywords:
+  - quantitative-finance
+  - algorithmic-trading
+  - kuramoto-synchronization
+  - ricci-curvature
+  - differential-geometry
+  - fractal-analysis
+  - market-microstructure
+  - signal-processing
+  - machine-learning
+  - python
+  - fastapi
+  - nextjs
+  - real-time-analytics
+preferred-citation:
+  type: software
+  title: "GeoSync: Geometric Market Intelligence Platform"
+  authors:
+    - family-names: Vasylenko
+      given-names: Yaroslav
+  year: 2026
+  version: "1.0.0"
+  url: "https://github.com/neuron7xLab/GeoSync"
+  license: MIT
+references:
+  - type: article
+    title: "From Kuramoto to Crawford: exploring the onset of synchronization in populations of coupled oscillators"
+    authors:
+      - family-names: Strogatz
+        given-names: Steven H.
+    journal: "Physica D: Nonlinear Phenomena"
+    volume: 143
+    issue: 1-4
+    year: 2000
+    doi: 10.1016/S0167-2789(00)00094-4
+  - type: article
+    title: "Ricci curvature of the internet topology"
+    authors:
+      - family-names: Ni
+        given-names: Chien-Chun
+      - family-names: Lin
+        given-names: Yu-Yao
+      - family-names: Gao
+        given-names: Jie
+      - family-names: Gu
+        given-names: Xianfeng David
+      - family-names: Saucan
+        given-names: Emil
+    year: 2015
+    doi: 10.1109/INFOCOM.2015.7218668
+  - type: article
+    title: "A mathematical theory of communication"
+    authors:
+      - family-names: Shannon
+        given-names: Claude E.
+    journal: "Bell System Technical Journal"
+    volume: 27
+    issue: 3
+    year: 1948
+    doi: 10.1002/j.1538-7305.1948.tb01338.x
+  - type: article
+    title: "The free-energy principle: a unified brain theory?"
+    authors:
+      - family-names: Friston
+        given-names: Karl
+    journal: "Nature Reviews Neuroscience"
+    volume: 11
+    issue: 2
+    year: 2010
+    doi: 10.1038/nrn2787
