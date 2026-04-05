@@ -66,9 +66,13 @@ class LiquidityCouplingMatrix:
         if volume_window < 1:
             raise ValueError(f"volume_window must be ≥ 1, got {volume_window}")
         if correlation_window < 2:
-            raise ValueError(f"correlation_window must be ≥ 2, got {correlation_window}")
+            raise ValueError(
+                f"correlation_window must be ≥ 2, got {correlation_window}"
+            )
         if not 0 <= min_correlation < 1:
-            raise ValueError(f"min_correlation must be in [0, 1), got {min_correlation}")
+            raise ValueError(
+                f"min_correlation must be in [0, 1), got {min_correlation}"
+            )
         self._vol_window = volume_window
         self._corr_window = correlation_window
         self._min_corr = min_correlation
@@ -88,20 +92,17 @@ class LiquidityCouplingMatrix:
     ) -> NDArray[np.float64]:
         """Rolling dollar volume mass. Shape: (N,)."""
         dv = prices * volumes
-        tail = dv[-self._vol_window:]
+        tail = dv[-self._vol_window :]
         mass = np.mean(tail, axis=0)
         return np.maximum(mass, 1e-12)
 
-    def _compute_correlation(
-        self, prices: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
+    def _compute_correlation(self, prices: NDArray[np.float64]) -> NDArray[np.float64]:
         """Rolling return correlation matrix. Shape: (N, N)."""
         returns = np.diff(prices, axis=0) / np.maximum(np.abs(prices[:-1]), 1e-12)
-        tail = returns[-self._corr_window:]
+        tail = returns[-self._corr_window :]
         with np.errstate(invalid="ignore"):
             corr = np.corrcoef(tail, rowvar=False)
-        corr = np.nan_to_num(corr, nan=0.0)
-        return corr
+        return np.asarray(np.nan_to_num(corr, nan=0.0), dtype=np.float64)
 
     def compute(
         self,
@@ -195,12 +196,14 @@ class LiquidityCouplingMatrix:
         liquidity_Rs = []
 
         for t in range(n_windows):
-            p_win = prices[t:t + window]
-            v_win = volumes[t:t + window]
+            p_win = prices[t : t + window]
+            v_win = volumes[t : t + window]
 
             # Liquidity coupling
             A_liq = self.compute(p_win, v_win)
-            cfg = KuramotoConfig(N=n, K=K, adjacency=A_liq, dt=0.01, steps=steps, seed=42)
+            cfg = KuramotoConfig(
+                N=n, K=K, adjacency=A_liq, dt=0.01, steps=steps, seed=42
+            )
             R_liq = KuramotoEngine(cfg).run().order_parameter[-1]
             liquidity_Rs.append(R_liq)
 
@@ -213,7 +216,7 @@ class LiquidityCouplingMatrix:
         liquidity_R = np.array(liquidity_Rs)
 
         # Regime detection accuracy
-        labels = regime_labels[window:window + n_windows]
+        labels = regime_labels[window : window + n_windows]
         if len(labels) < n_windows:
             labels = np.pad(labels, (0, n_windows - len(labels)))
 
@@ -221,11 +224,11 @@ class LiquidityCouplingMatrix:
         liquidity_pred = (liquidity_R > regime_threshold).astype(int)
 
         uniform_acc = float(np.mean(uniform_pred == labels)) if labels.size > 0 else 0.0
-        liquidity_acc = float(np.mean(liquidity_pred == labels)) if labels.size > 0 else 0.0
-
-        improvement = (
-            (liquidity_acc - uniform_acc) / max(uniform_acc, 1e-12) * 100
+        liquidity_acc = (
+            float(np.mean(liquidity_pred == labels)) if labels.size > 0 else 0.0
         )
+
+        improvement = (liquidity_acc - uniform_acc) / max(uniform_acc, 1e-12) * 100
 
         return CouplingBenchmarkResult(
             uniform_R_trajectory=uniform_R,

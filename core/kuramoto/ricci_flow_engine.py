@@ -50,8 +50,8 @@ from .engine import KuramotoResult, _order_parameter, _rk4_step
 try:  # optional in minimal environments
     from ..indicators.temporal_ricci import LightGraph, OllivierRicciCurvatureLite
 except Exception:  # pragma: no cover
-    LightGraph = None  # type: ignore[assignment]
-    OllivierRicciCurvatureLite = None  # type: ignore[assignment]
+    LightGraph = None  # type: ignore[assignment,misc]
+    OllivierRicciCurvatureLite = None  # type: ignore[assignment,misc]
 
 
 class _LocalOllivierRicciCurvatureLite:
@@ -81,11 +81,14 @@ class _LocalOllivierRicciCurvatureLite:
         mu_x = self._lazy_rw(graph, x)
         mu_y = self._lazy_rw(graph, y)
         keys = set(mu_x) | set(mu_y)
-        total_variation = 0.5 * sum(abs(mu_x.get(k, 0.0) - mu_y.get(k, 0.0)) for k in keys)
+        total_variation = 0.5 * sum(
+            abs(mu_x.get(k, 0.0) - mu_y.get(k, 0.0)) for k in keys
+        )
         d_xy = 1.0 if y in graph.neighbors(x) else float("inf")
         if d_xy <= 0.0 or not np.isfinite(d_xy):
             return 0.0
         return float(1.0 - total_variation / d_xy)
+
 
 __all__ = ["KuramotoRicciFlowEngine", "KuramotoRicciFlowResult"]
 
@@ -114,7 +117,9 @@ class _SimpleUndirectedGraph:
     def neighbors(self, i: int) -> tuple[int, ...]:
         return tuple(self._adj.get(int(i), {}).keys())
 
-    def get_edge_data(self, i: int, j: int, default: dict[str, float] | None = None) -> dict[str, float] | None:
+    def get_edge_data(
+        self, i: int, j: int, default: dict[str, float] | None = None
+    ) -> dict[str, float] | None:
         val = self._adj.get(int(i), {}).get(int(j))
         if val is None:
             return default
@@ -134,7 +139,9 @@ class _SimpleUndirectedGraph:
     def nodes(self) -> tuple[int, ...]:
         return tuple(self._adj.keys())
 
-    def shortest_path_length(self, source: int, target: int, weight: str | None = None) -> float:
+    def shortest_path_length(
+        self, source: int, target: int, weight: str | None = None
+    ) -> float:
         if source == target:
             return 0.0
         use_weight = weight is not None
@@ -159,15 +166,31 @@ class _SimpleUndirectedGraph:
 class KuramotoRicciFlowResult(KuramotoResult):
     """Extended Kuramoto result with curvature/coupling diagnostics."""
 
-    coupling_matrix_history: NDArray[np.float64] = field(default_factory=lambda: np.zeros((0, 0, 0), dtype=np.float64))
-    curvature_history: NDArray[np.float64] = field(default_factory=lambda: np.zeros((0, 0), dtype=np.float64))
-    curvature_timestamps: NDArray[np.int64] = field(default_factory=lambda: np.zeros(0, dtype=np.int64))
-    mean_curvature_trajectory: NDArray[np.float64] = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
+    coupling_matrix_history: NDArray[np.float64] = field(
+        default_factory=lambda: np.zeros((0, 0, 0), dtype=np.float64)
+    )
+    curvature_history: NDArray[np.float64] = field(
+        default_factory=lambda: np.zeros((0, 0), dtype=np.float64)
+    )
+    curvature_timestamps: NDArray[np.int64] = field(
+        default_factory=lambda: np.zeros(0, dtype=np.int64)
+    )
+    mean_curvature_trajectory: NDArray[np.float64] = field(
+        default_factory=lambda: np.zeros(0, dtype=np.float64)
+    )
     geometric_phase_transitions: list[int] = field(default_factory=list)
-    herding_index: NDArray[np.float64] = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
-    fragility_index: NDArray[np.float64] = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
-    geometric_momentum: NDArray[np.float64] = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
-    coupling_entropy: NDArray[np.float64] = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
+    herding_index: NDArray[np.float64] = field(
+        default_factory=lambda: np.zeros(0, dtype=np.float64)
+    )
+    fragility_index: NDArray[np.float64] = field(
+        default_factory=lambda: np.zeros(0, dtype=np.float64)
+    )
+    geometric_momentum: NDArray[np.float64] = field(
+        default_factory=lambda: np.zeros(0, dtype=np.float64)
+    )
+    coupling_entropy: NDArray[np.float64] = field(
+        default_factory=lambda: np.zeros(0, dtype=np.float64)
+    )
 
     def __post_init__(self) -> None:
         KuramotoResult.__post_init__(self)
@@ -175,11 +198,18 @@ class KuramotoRicciFlowResult(KuramotoResult):
         if self.coupling_matrix_history.ndim != 3:
             raise ValueError("coupling_matrix_history must be rank-3.")
         if self.coupling_matrix_history.shape[:1] not in {(n_updates,), (0,)}:
-            raise ValueError("coupling_matrix_history first dimension must match curvature updates.")
-        if self.coupling_matrix_history.shape[1:] != (self.config.N, self.config.N) and n_updates != 0:
+            raise ValueError(
+                "coupling_matrix_history first dimension must match curvature updates."
+            )
+        if (
+            self.coupling_matrix_history.shape[1:] != (self.config.N, self.config.N)
+            and n_updates != 0
+        ):
             raise ValueError("coupling_matrix_history has invalid matrix shape.")
         if self.mean_curvature_trajectory.shape != (n_updates,):
-            raise ValueError("mean_curvature_trajectory length must match curvature updates.")
+            raise ValueError(
+                "mean_curvature_trajectory length must match curvature updates."
+            )
         for arr_name, arr in (
             ("herding_index", self.herding_index),
             ("fragility_index", self.fragility_index),
@@ -222,7 +252,7 @@ class KuramotoRicciFlowEngine:
         self.damping = float(np.clip(damping, 0.0, 1.0))
         self.coupling_history_enabled = bool(coupling_history_enabled)
         if OllivierRicciCurvatureLite is not None:
-            self._lite_ricci = OllivierRicciCurvatureLite(alpha=0.5)
+            self._lite_ricci: Any = OllivierRicciCurvatureLite(alpha=0.5)
         else:
             self._lite_ricci = _LocalOllivierRicciCurvatureLite(alpha=0.5)
 
@@ -273,22 +303,30 @@ class KuramotoRicciFlowEngine:
 
                 mk = float(np.mean(kappa_vec)) if kappa_vec.size else 0.0
                 mean_kappa.append(mk)
-                herding.append(float(np.mean(kappa_vec > 0.0)) if kappa_vec.size else 0.0)
+                herding.append(
+                    float(np.mean(kappa_vec > 0.0)) if kappa_vec.size else 0.0
+                )
                 fragility.append(float(-mk))
                 if len(mean_kappa) < 2:
                     momentum.append(0.0)
                 else:
                     delta_steps = max(1, timestamps[-1] - timestamps[-2])
-                    momentum.append(float((mean_kappa[-1] - mean_kappa[-2]) / delta_steps))
+                    momentum.append(
+                        float((mean_kappa[-1] - mean_kappa[-2]) / delta_steps)
+                    )
                 entropy.append(self._coupling_entropy(coupling))
 
             theta = _rk4_step(theta, self._omega, coupling, dt)
             if not np.isfinite(theta).all():
-                raise FloatingPointError(f"Non-finite phase values encountered at step={k + 1}.")
+                raise FloatingPointError(
+                    f"Non-finite phase values encountered at step={k + 1}."
+                )
             phases[k + 1] = theta
             order[k + 1] = _order_parameter(theta)
             if not (0.0 <= order[k + 1] <= 1.0):
-                raise ValueError(f"Order parameter invariant violated at step={k + 1}: {order[k + 1]:.6f}")
+                raise ValueError(
+                    f"Order parameter invariant violated at step={k + 1}: {order[k + 1]:.6f}"
+                )
 
             corr_buffer.append(theta.copy())
             if len(corr_buffer) > self.correlation_window:
@@ -338,7 +376,9 @@ class KuramotoRicciFlowEngine:
             self._validate_coupling(coupling)
             return coupling, curvatures
         except Exception as exc:
-            _logger.warning("Ricci computation failed; falling back to baseline coupling: %s", exc)
+            _logger.warning(
+                "Ricci computation failed; falling back to baseline coupling: %s", exc
+            )
             fallback = self._baseline_coupling(n)
             self._validate_coupling(fallback)
             return fallback, np.zeros(0, dtype=np.float64)
@@ -354,31 +394,44 @@ class KuramotoRicciFlowEngine:
 
         if method == "forman":
             lite = self._to_light_graph(graph)
-            return {edge: float(self._lite_ricci.compute_edge_curvature(lite, edge)) for edge in edges}
+            return {
+                edge: float(self._lite_ricci.compute_edge_curvature(lite, edge))
+                for edge in edges
+            }
 
         try:
             from ..indicators.ricci import RicciCurvature  # type: ignore[attr-defined]
 
             rc = RicciCurvature()
             return {
-                edge: float(rc.compute_edge_curvature(graph, edge))
-                for edge in edges
+                edge: float(rc.compute_edge_curvature(graph, edge)) for edge in edges
             }
         except Exception:
             try:
-                from ..indicators.ricci import compute_node_distributions, ricci_curvature_edge
+                from ..indicators.ricci import (
+                    compute_node_distributions,
+                    ricci_curvature_edge,
+                )
 
                 distributions = compute_node_distributions(graph)
                 return {
-                    edge: float(ricci_curvature_edge(graph, edge[0], edge[1], distributions=distributions))
+                    edge: float(
+                        ricci_curvature_edge(
+                            graph, edge[0], edge[1], distributions=distributions
+                        )
+                    )
                     for edge in edges
                 }
             except Exception:
                 lite = self._to_light_graph(graph)
-                return {edge: float(self._lite_ricci.compute_edge_curvature(lite, edge)) for edge in edges}
+                return {
+                    edge: float(self._lite_ricci.compute_edge_curvature(lite, edge))
+                    for edge in edges
+                }
 
     @staticmethod
     def _to_light_graph(graph: Any) -> Any:
+        lite: Any
         if LightGraph is None:
             lite = _SimpleUndirectedGraph(int(graph.number_of_nodes()))
         else:
@@ -389,9 +442,15 @@ class KuramotoRicciFlowEngine:
         return lite
 
     @staticmethod
-    def _resolve_initial_conditions(cfg: KuramotoConfig) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    def _resolve_initial_conditions(
+        cfg: KuramotoConfig,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         rng = np.random.default_rng(cfg.seed)
-        omega = cfg.omega.astype(np.float64, copy=False) if cfg.omega is not None else rng.standard_normal(cfg.N)
+        omega = (
+            cfg.omega.astype(np.float64, copy=False)
+            if cfg.omega is not None
+            else rng.standard_normal(cfg.N)
+        )
         theta0 = (
             cfg.theta0.astype(np.float64, copy=False)
             if cfg.theta0 is not None
@@ -408,7 +467,9 @@ class KuramotoRicciFlowEngine:
     def _phi(self, kappa: float) -> float:
         return float(self.sigma * (1.0 + np.tanh(self.alpha * kappa)) / 2.0)
 
-    def _correlation_matrix(self, buffer: list[NDArray[np.float64]], n: int) -> NDArray[np.float64]:
+    def _correlation_matrix(
+        self, buffer: list[NDArray[np.float64]], n: int
+    ) -> NDArray[np.float64]:
         if len(buffer) < 2:
             return np.eye(n, dtype=np.float64)
         mat = np.vstack(buffer)
@@ -417,11 +478,15 @@ class KuramotoRicciFlowEngine:
         corr = np.nan_to_num(corr, nan=0.0, posinf=0.0, neginf=0.0)
         corr = np.clip(corr, 0.0, 1.0)
         if corr.shape != (n, n):
-            raise ValueError(f"Correlation shape invariant violated: expected {(n, n)} got {corr.shape}")
+            raise ValueError(
+                f"Correlation shape invariant violated: expected {(n, n)} got {corr.shape}"
+            )
         np.fill_diagonal(corr, 1.0)
         return corr
 
-    def _build_correlation_graph(self, corr: NDArray[np.float64]) -> tuple[Any, list[tuple[int, int]]]:
+    def _build_correlation_graph(
+        self, corr: NDArray[np.float64]
+    ) -> tuple[Any, list[tuple[int, int]]]:
         n = corr.shape[0]
         graph = _SimpleUndirectedGraph(n)
         graph.add_nodes_from(range(n))
@@ -438,7 +503,9 @@ class KuramotoRicciFlowEngine:
         if not np.isfinite(coupling).all():
             raise ValueError("K_ij invariant violated: non-finite coupling values.")
         if not np.allclose(coupling, coupling.T, atol=1e-12):
-            raise ValueError("K_ij invariant violated: coupling matrix must be symmetric.")
+            raise ValueError(
+                "K_ij invariant violated: coupling matrix must be symmetric."
+            )
         if not np.allclose(np.diag(coupling), 0.0, atol=1e-12):
             raise ValueError("K_ii invariant violated: self-coupling must remain zero.")
         if np.any(coupling < -1e-12) or np.any(coupling > self._K_max + 1e-12):
@@ -457,7 +524,9 @@ class KuramotoRicciFlowEngine:
         return float(-np.sum(p * np.log(p + 1e-16)))
 
     @staticmethod
-    def _detect_transitions(mean_kappa: list[float], timestamps: list[int]) -> list[int]:
+    def _detect_transitions(
+        mean_kappa: list[float], timestamps: list[int]
+    ) -> list[int]:
         if len(mean_kappa) < 3:
             return []
         arr = np.asarray(mean_kappa, dtype=np.float64)
@@ -465,7 +534,11 @@ class KuramotoRicciFlowEngine:
         signs = np.sign(diff)
         out: list[int] = []
         for idx in range(1, len(signs)):
-            if signs[idx] != 0.0 and signs[idx - 1] != 0.0 and signs[idx] != signs[idx - 1]:
+            if (
+                signs[idx] != 0.0
+                and signs[idx - 1] != 0.0
+                and signs[idx] != signs[idx - 1]
+            ):
                 out.append(int(timestamps[idx]))
         return out
 

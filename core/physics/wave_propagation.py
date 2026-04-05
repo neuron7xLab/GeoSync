@@ -164,9 +164,7 @@ class GraphDiffusionEngine:
             return [asset_names[i] for i in indices]
         return indices.tolist()
 
-    def laplacian_eigenvalues(
-        self, L: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
+    def laplacian_eigenvalues(self, L: NDArray[np.float64]) -> NDArray[np.float64]:
         """Compute eigenvalues of graph Laplacian.
 
         For valid Laplacians:
@@ -175,7 +173,7 @@ class GraphDiffusionEngine:
         - Second smallest = algebraic connectivity (Fiedler value)
         """
         eigenvalues = np.linalg.eigvalsh(L)
-        return eigenvalues
+        return eigenvalues.astype(np.float64)
 
 
 __all__ = ["GraphDiffusionEngine"]
