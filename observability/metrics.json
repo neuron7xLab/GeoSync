@@ -20,6 +20,47 @@
       "subsystem": "error"
     },
     {
+      "name": "cortex_regime_cache_age_seconds",
+      "type": "histogram",
+      "description": "Age of cached regime state at read time",
+      "labels": [],
+      "subsystem": "cache"
+    },
+    {
+      "name": "cortex_regime_cache_coherence_entropy",
+      "type": "histogram",
+      "description": "Bayesian divergence entropy of cache coherence state",
+      "labels": [],
+      "subsystem": "cache"
+    },
+    {
+      "name": "cortex_regime_cache_events_total",
+      "type": "counter",
+      "description": "Cache lifecycle events for deterministic coherence",
+      "labels": [
+        "event"
+      ],
+      "subsystem": "cache"
+    },
+    {
+      "name": "cortex_regime_cache_shadow_reads_total",
+      "type": "counter",
+      "description": "Outcome of probabilistic cache shadow reads",
+      "labels": [
+        "result"
+      ],
+      "subsystem": "cache"
+    },
+    {
+      "name": "cortex_regime_cache_stale_hits_total",
+      "type": "counter",
+      "description": "Number of stale cache detections",
+      "labels": [
+        "reason"
+      ],
+      "subsystem": "cache"
+    },
+    {
       "name": "cortex_regime_transition_total",
       "type": "counter",
       "description": "Number of regime transitions",
@@ -765,54 +806,6 @@
       "subsystem": "observability"
     },
     {
-      "name": "geosync_rl_grad_norm",
-      "type": "gauge",
-      "description": "Gradient norm observed during RL updates",
-      "labels": [
-        "agent",
-        "component"
-      ],
-      "subsystem": "rl"
-    },
-    {
-      "name": "geosync_rl_policy_drift",
-      "type": "gauge",
-      "description": "Relative parameter drift from the last stable checkpoint",
-      "labels": [
-        "agent"
-      ],
-      "subsystem": "rl"
-    },
-    {
-      "name": "geosync_rl_policy_kl",
-      "type": "gauge",
-      "description": "Observed KL divergence between successive policy updates",
-      "labels": [
-        "agent"
-      ],
-      "subsystem": "rl"
-    },
-    {
-      "name": "geosync_rl_rollback_total",
-      "type": "counter",
-      "description": "Total number of RL policy rollbacks",
-      "labels": [
-        "agent",
-        "reason"
-      ],
-      "subsystem": "rl"
-    },
-    {
-      "name": "geosync_rl_update_scale",
-      "type": "gauge",
-      "description": "Applied scaling factor for RL parameter updates",
-      "labels": [
-        "agent",
-        "component"
-      ],
-      "subsystem": "rl"
-    },
-    {
       "name": "geosync_model_triage_total",
       "type": "counter",
       "description": "Number of automated triage workflows launched for model incidents",
@@ -1101,6 +1094,85 @@
       "subsystem": "risk"
     },
     {
+      "name": "geosync_rl_grad_norm",
+      "type": "gauge",
+      "description": "Gradient norm observed during RL updates",
+      "labels": [
+        "agent",
+        "component"
+      ],
+      "subsystem": "rl"
+    },
+    {
+      "name": "geosync_rl_modulation_arousal",
+      "type": "gauge",
+      "description": "Arousal boost component for RL modulation controllers",
+      "labels": [
+        "agent",
+        "signal"
+      ],
+      "subsystem": "rl"
+    },
+    {
+      "name": "geosync_rl_modulation_risk",
+      "type": "gauge",
+      "description": "Risk score derived for RL modulation controllers",
+      "labels": [
+        "agent",
+        "signal"
+      ],
+      "subsystem": "rl"
+    },
+    {
+      "name": "geosync_rl_modulation_scale",
+      "type": "gauge",
+      "description": "Effective modulation scale applied to RL updates",
+      "labels": [
+        "agent",
+        "component",
+        "signal"
+      ],
+      "subsystem": "rl"
+    },
+    {
+      "name": "geosync_rl_policy_drift",
+      "type": "gauge",
+      "description": "Relative parameter drift from the last stable checkpoint",
+      "labels": [
+        "agent"
+      ],
+      "subsystem": "rl"
+    },
+    {
+      "name": "geosync_rl_policy_kl",
+      "type": "gauge",
+      "description": "Observed KL divergence between successive policy updates",
+      "labels": [
+        "agent"
+      ],
+      "subsystem": "rl"
+    },
+    {
+      "name": "geosync_rl_rollback_total",
+      "type": "counter",
+      "description": "Total number of RL policy rollbacks",
+      "labels": [
+        "agent",
+        "reason"
+      ],
+      "subsystem": "rl"
+    },
+    {
+      "name": "geosync_rl_update_scale",
+      "type": "gauge",
+      "description": "Applied scaling factor for RL parameter updates",
+      "labels": [
+        "agent",
+        "component"
+      ],
+      "subsystem": "rl"
+    },
+    {
       "name": "geosync_runbook_executions_total",
       "type": "counter",
       "description": "Runbook executions grouped by outcome",
@@ -1234,37 +1306,6 @@
         "worker"
       ],
       "subsystem": "operations"
-    },
-    {
-      "name": "geosync_rl_modulation_scale",
-      "type": "gauge",
-      "description": "Effective modulation scale applied to RL updates",
-      "labels": [
-        "agent",
-        "component",
-        "signal"
-      ],
-      "subsystem": "rl"
-    },
-    {
-      "name": "geosync_rl_modulation_risk",
-      "type": "gauge",
-      "description": "Risk score derived for RL modulation controllers",
-      "labels": [
-        "agent",
-        "signal"
-      ],
-      "subsystem": "rl"
-    },
-    {
-      "name": "geosync_rl_modulation_arousal",
-      "type": "gauge",
-      "description": "Arousal boost component for RL modulation controllers",
-      "labels": [
-        "agent",
-        "signal"
-      ],
-      "subsystem": "rl"
     }
   ]
 }
