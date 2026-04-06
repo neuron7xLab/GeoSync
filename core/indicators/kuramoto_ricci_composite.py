@@ -105,27 +105,35 @@ class KuramotoRicciComposite:
         dist = min(abs(R - self.Rs), abs(R - self.Rp))
         if dist < 0.1:
             conf *= 0.8
-        return float(np.clip(conf, 0.0, 1.0))  # INV-K1: confidence score bounded to [0,1] as probability
+        return float(
+            np.clip(conf, 0.0, 1.0)
+        )  # INV-K1: confidence score bounded to [0,1] as probability
 
     def _entry(self, phase: MarketPhase, R: float, kt: float, conf: float) -> float:
         if conf < self.min_conf:
             return 0.0
         s = 0.0
         if phase == MarketPhase.STRONG_EMERGENT:
-            s = np.clip(-kt, 0.0, 1.0)  # more negative -> stronger long  # INV-RC1: curvature signal clipped to [0,1] for directional strength
+            s = np.clip(
+                -kt, 0.0, 1.0
+            )  # more negative -> stronger long  # INV-RC1: curvature signal clipped to [0,1] for directional strength
         elif phase == MarketPhase.PROTO_EMERGENT:
             s = 0.5 * R
         elif phase == MarketPhase.POST_EMERGENT:
             s = -0.3
         else:
             s = 0.0
-        return float(np.clip(s * conf, -1.0, 1.0))  # INV-K1: composite signal bounded to [-1,1]
+        return float(
+            np.clip(s * conf, -1.0, 1.0)
+        )  # INV-K1: composite signal bounded to [-1,1]
 
     def _exit(self, phase: MarketPhase, trans: float, R: float) -> float:
         if phase == MarketPhase.POST_EMERGENT:
             return 0.7
         if phase == MarketPhase.TRANSITION:
-            return float(np.clip(trans, 0.0, 1.0))  # INV-RC1: transition probability bounded to [0,1]
+            return float(
+                np.clip(trans, 0.0, 1.0)
+            )  # INV-RC1: transition probability bounded to [0,1]
         if phase == MarketPhase.CHAOTIC:
             return 0.5
         if phase == MarketPhase.STRONG_EMERGENT:
@@ -142,7 +150,9 @@ class KuramotoRicciComposite:
             base = 0.3
         elif phase == MarketPhase.POST_EMERGENT:
             base = 0.2
-        return float(np.clip(base * coh, 0.1, 2.0))  # bounds: position-scaling multiplier clamped to [0.1, 2.0] operating range
+        return float(
+            np.clip(base * coh, 0.1, 2.0)
+        )  # bounds: position-scaling multiplier clamped to [0.1, 2.0] operating range
 
     def analyze(
         self,

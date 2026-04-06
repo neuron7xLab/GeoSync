@@ -223,9 +223,7 @@ class TestUpdateInhibition:
 class TestSTDPPlasticity:
     """Negative RPE increases inhibition sensitivity (learn from pain)."""
 
-    def test_repeated_negative_rpe_increases_w_rpe(
-        self, bus: NeuroSignalBus
-    ) -> None:
+    def test_repeated_negative_rpe_increases_w_rpe(self, bus: NeuroSignalBus) -> None:
         gate = GABAPositionGate(bus, plasticity_rate=0.1)
         initial_w = gate.w_rpe
 
@@ -235,9 +233,7 @@ class TestSTDPPlasticity:
 
         assert gate.w_rpe > initial_w, "w_rpe should grow after negative RPE"
 
-    def test_positive_rpe_does_not_change_w_rpe(
-        self, bus: NeuroSignalBus
-    ) -> None:
+    def test_positive_rpe_does_not_change_w_rpe(self, bus: NeuroSignalBus) -> None:
         gate = GABAPositionGate(bus, plasticity_rate=0.1)
         initial_w = gate.w_rpe
 

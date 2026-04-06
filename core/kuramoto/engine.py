@@ -66,7 +66,9 @@ class KuramotoResult:
         if not np.isfinite(self.time).all():
             raise ValueError("Result contains non-finite time values.")
         tol = 1e-12
-        if np.any(self.order_parameter < -tol) or np.any(self.order_parameter > 1.0 + tol):
+        if np.any(self.order_parameter < -tol) or np.any(
+            self.order_parameter > 1.0 + tol
+        ):
             raise ValueError(
                 "Result order_parameter values must stay within [0, 1] (±1e-12 tolerance)."
             )
@@ -128,11 +130,15 @@ class KuramotoEngine:
         for k in range(steps):
             theta = _rk4_step(theta, omega, adj, dt)
             if not np.isfinite(theta).all():
-                raise FloatingPointError(f"Non-finite phase values encountered at step={k + 1}.")
+                raise FloatingPointError(
+                    f"Non-finite phase values encountered at step={k + 1}."
+                )
             phases[k + 1] = theta
             R_arr[k + 1] = _order_parameter(theta)
 
-        return KuramotoResult(phases=phases, order_parameter=R_arr, time=time_arr, config=cfg)
+        return KuramotoResult(
+            phases=phases, order_parameter=R_arr, time=time_arr, config=cfg
+        )
 
     @staticmethod
     def _resolve_initial_conditions(
@@ -173,11 +179,15 @@ class KuramotoEngine:
         adj: NDArray[np.float64],
     ) -> None:
         if omega.ndim != 1 or theta0.ndim != 1 or omega.shape != theta0.shape:
-            raise ValueError("Runtime vectors omega and theta0 must be 1-D and same shape.")
+            raise ValueError(
+                "Runtime vectors omega and theta0 must be 1-D and same shape."
+            )
 
         n = omega.shape[0]
         if adj.shape != (n, n):
-            raise ValueError(f"Runtime adjacency shape must be {(n, n)}, got {adj.shape}.")
+            raise ValueError(
+                f"Runtime adjacency shape must be {(n, n)}, got {adj.shape}."
+            )
 
         if (
             not np.isfinite(omega).all()
@@ -198,7 +208,9 @@ def _dtheta_dt(
     coupling = (adj * sin_diff).sum(axis=1)
     out: NDArray[np.float64] = omega + coupling
     if not np.isfinite(out).all():
-        raise FloatingPointError("Non-finite derivative values produced by Kuramoto RHS.")
+        raise FloatingPointError(
+            "Non-finite derivative values produced by Kuramoto RHS."
+        )
     return out
 
 

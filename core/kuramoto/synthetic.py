@@ -114,7 +114,9 @@ class SyntheticConfig:
         if self.N < 2:
             raise ValueError("N must be ≥ 2")
         if self.T < self.burn_in + 100:
-            raise ValueError(f"T={self.T} too small; need T ≥ burn_in + 100 = {self.burn_in + 100}")
+            raise ValueError(
+                f"T={self.T} too small; need T ≥ burn_in + 100 = {self.burn_in + 100}"
+            )
         if self.dt <= 0:
             raise ValueError("dt must be > 0")
         if not 0.0 <= self.K_sparsity <= 1.0:
@@ -124,7 +126,9 @@ class SyntheticConfig:
         if self.tau_max < 0:
             raise ValueError("tau_max must be ≥ 0")
         if self.burn_in < 5 * self.tau_max:
-            raise ValueError(f"burn_in={self.burn_in} must be ≥ 5·tau_max={5 * self.tau_max}")
+            raise ValueError(
+                f"burn_in={self.burn_in} must be ≥ 5·tau_max={5 * self.tau_max}"
+            )
         if not 0.0 <= self.alpha_max <= np.pi:
             raise ValueError("alpha_max must lie in [0, π]")
         if self.sigma_noise < 0:

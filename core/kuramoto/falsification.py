@@ -292,7 +292,9 @@ def _simulate_and_score(
     return float(np.mean(R))
 
 
-def counterfactual_hub_removal(state: NetworkState, *, top_k: int = 5) -> SurrogateResult:
+def counterfactual_hub_removal(
+    state: NetworkState, *, top_k: int = 5
+) -> SurrogateResult:
     """Remove the ``top_k`` highest-degree nodes and compare ``R̄``.
 
     Returns a :class:`SurrogateResult` whose ``null_distribution``

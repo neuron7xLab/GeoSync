@@ -147,7 +147,9 @@ def _has_negative_slice(node: ast.AST) -> bool:
             lower = n.slice.lower
             if isinstance(lower, ast.UnaryOp) and isinstance(lower.op, ast.USub):
                 return True
-            if isinstance(lower, ast.Constant) and isinstance(lower.value, (int, float)):
+            if isinstance(lower, ast.Constant) and isinstance(
+                lower.value, (int, float)
+            ):
                 if lower.value < 0:
                     return True
     return False
@@ -240,7 +242,15 @@ def _check_statistical(func: ast.FunctionDef) -> tuple[bool, str]:
         return True, ""
     if _has_for_loop(func):
         names = _collect_names(func)
-        if names & {"seed", "seeds", "trial", "trials", "realization", "realizations", "n_trials"}:
+        if names & {
+            "seed",
+            "seeds",
+            "trial",
+            "trials",
+            "realization",
+            "realizations",
+            "n_trials",
+        }:
             return True, ""
     if any(isinstance(n, ast.ListComp) for n in ast.walk(func)):
         return True, ""
@@ -434,7 +444,9 @@ def _check_error_msg_quality(msg_source: str) -> list[str]:
 
     has_params = bool(
         re.search(
-            r"[NK]=\d|seed=|steps=|at\s+\w+=|with\s+\w+=|gamma=|K_c=", msg_source, re.IGNORECASE
+            r"[NK]=\d|seed=|steps=|at\s+\w+=|with\s+\w+=|gamma=|K_c=",
+            msg_source,
+            re.IGNORECASE,
         )
     )
     if not has_params:
@@ -499,7 +511,12 @@ def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list
                 ok, reason = checker_fn(node)
                 if not ok:
                     issues.append(
-                        Issue("L3", node.lineno, node.name, f"{inv_id} has {label}. {reason}")
+                        Issue(
+                            "L3",
+                            node.lineno,
+                            node.name,
+                            f"{inv_id} has {label}. {reason}",
+                        )
                     )
 
         # ── L4: Error message quality ──
@@ -514,7 +531,8 @@ def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list
                 has_any_msg = True
                 assert_start = child.lineno - 1
                 assert_end = min(
-                    getattr(child.msg, "end_lineno", child.msg.lineno) or child.msg.lineno,
+                    getattr(child.msg, "end_lineno", child.msg.lineno)
+                    or child.msg.lineno,
                     len(source_lines),
                 )
                 msg_source = "\n".join(source_lines[assert_start:assert_end])
@@ -669,7 +687,9 @@ def main() -> None:
         print("  python validate_tests.py <path>              # validate physics tests")
         print("  python validate_tests.py <path> --summary    # summary only")
         print("  python validate_tests.py <path> --audit-code # audit production code")
-        print("  python validate_tests.py --self-check        # verify kernel integrity")
+        print(
+            "  python validate_tests.py --self-check        # verify kernel integrity"
+        )
         sys.exit(1)
 
     if "--self-check" in args:
@@ -802,7 +822,9 @@ def _run_audit_code(files: list[Path], summary_mode: bool) -> None:
     if total == 0:
         print("\n✅ No silent invariant repairs detected.")
     else:
-        print("\nThese clamps may hide physics violations. Add logging or INV-* comment.")
+        print(
+            "\nThese clamps may hide physics violations. Add logging or INV-* comment."
+        )
         sys.exit(1)
 
 

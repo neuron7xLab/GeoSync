@@ -110,7 +110,9 @@ class ECSLyapunovRegulator:
             si + 0.5 * dt * k2[2],
             stress,
         )
-        k4 = self._derivatives(fe + dt * k3[0], cf + dt * k3[1], si + dt * k3[2], stress)
+        k4 = self._derivatives(
+            fe + dt * k3[0], cf + dt * k3[1], si + dt * k3[2], stress
+        )
 
         new_fe = fe + (dt / 6.0) * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0])
         new_cf = cf + (dt / 6.0) * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1])
@@ -134,7 +136,9 @@ class ECSLyapunovRegulator:
         dict
             free_energy, compensatory_factor, lyapunov_V, dV_dt, stable
         """
-        V_before = self._lyapunov(self.free_energy, self.compensatory_factor, self.stress_integral)
+        V_before = self._lyapunov(
+            self.free_energy, self.compensatory_factor, self.stress_integral
+        )
 
         new_fe, new_cf, new_si = self._rk4_step(
             self.free_energy,
@@ -154,8 +158,12 @@ class ECSLyapunovRegulator:
             alpha = 0.5
             for _ in range(20):
                 mixed_fe = self.free_energy + alpha * (new_fe - self.free_energy)
-                mixed_cf = self.compensatory_factor + alpha * (new_cf - self.compensatory_factor)
-                mixed_si = self.stress_integral + alpha * (new_si - self.stress_integral)
+                mixed_cf = self.compensatory_factor + alpha * (
+                    new_cf - self.compensatory_factor
+                )
+                mixed_si = self.stress_integral + alpha * (
+                    new_si - self.stress_integral
+                )
                 V_mixed = self._lyapunov(mixed_fe, mixed_cf, mixed_si)
                 if V_mixed < V_before:
                     break
@@ -165,7 +173,9 @@ class ECSLyapunovRegulator:
                 alpha = 0.0
 
             new_fe = self.free_energy + alpha * (new_fe - self.free_energy)
-            new_cf = self.compensatory_factor + alpha * (new_cf - self.compensatory_factor)
+            new_cf = self.compensatory_factor + alpha * (
+                new_cf - self.compensatory_factor
+            )
             new_si = self.stress_integral + alpha * (new_si - self.stress_integral)
             V_after = self._lyapunov(new_fe, new_cf, new_si)
             dV = V_after - V_before

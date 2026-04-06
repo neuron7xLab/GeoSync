@@ -127,7 +127,9 @@ class TsallisRiskGate:
         kurtosis = float(np.mean(standardized**4) - 3.0)
 
         # Clamp kurtosis to avoid q < 1 or q → ∞
-        kurtosis = max(kurtosis, -2.5)  # INV-FE2: kurtosis lower bound keeps q real-valued
+        kurtosis = max(
+            kurtosis, -2.5
+        )  # INV-FE2: kurtosis lower bound keeps q real-valued
         kurtosis = min(kurtosis, 50.0)  # bounds: kurtosis cap prevents q divergence
 
         q = (5.0 + 3.0 * kurtosis) / (3.0 + kurtosis)

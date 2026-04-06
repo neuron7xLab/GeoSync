@@ -450,8 +450,12 @@ def main(argv: list[str] | None = None) -> int:
         for lid, law in catalog.items()
         if law.is_blocking() and not report.witnesses_by_law.get(lid)
     ]
-    witness_errors = [f for f in report.findings if f.kind in {"unknown_law", "magic_literal"}]
-    orphan_fail = args.fail_on_orphans and any(f.kind == "orphan_test" for f in report.findings)
+    witness_errors = [
+        f for f in report.findings if f.kind in {"unknown_law", "magic_literal"}
+    ]
+    orphan_fail = args.fail_on_orphans and any(
+        f.kind == "orphan_test" for f in report.findings
+    )
 
     if blocking_missing or witness_errors or orphan_fail:
         return 1

@@ -149,7 +149,9 @@ class JaxKuramotoEngine:
         phases = np.asarray(phases_jax, dtype=np.float64)
         R_arr = np.asarray(R_jax, dtype=np.float64)
         time_arr = np.arange(cfg.steps + 1, dtype=np.float64) * cfg.dt
-        return KuramotoResult(phases=phases, order_parameter=R_arr, time=time_arr, config=cfg)
+        return KuramotoResult(
+            phases=phases, order_parameter=R_arr, time=time_arr, config=cfg
+        )
 
     @staticmethod
     def batch(
@@ -196,9 +198,13 @@ class JaxKuramotoEngine:
             adj = adj.at[jnp.diag_indices(N)].set(0.0)
 
         _logger.info(
-            "Launching vmap batch: %d simulations on %s", len(seeds), jax.default_backend()
+            "Launching vmap batch: %d simulations on %s",
+            len(seeds),
+            jax.default_backend(),
         )
-        all_phases, all_R = _jax_batch_simulate(theta0_jax, omega, adj, config.dt, config.steps)
+        all_phases, all_R = _jax_batch_simulate(
+            theta0_jax, omega, adj, config.dt, config.steps
+        )
 
         results = []
         time_arr = np.arange(config.steps + 1, dtype=np.float64) * config.dt
@@ -221,7 +227,11 @@ class JaxKuramotoEngine:
         """Convert config arrays to JAX device arrays."""
         rng = np.random.default_rng(cfg.seed)
         omega_np = cfg.omega if cfg.omega is not None else rng.standard_normal(cfg.N)
-        theta0_np = cfg.theta0 if cfg.theta0 is not None else rng.uniform(0.0, 2.0 * np.pi, cfg.N)
+        theta0_np = (
+            cfg.theta0
+            if cfg.theta0 is not None
+            else rng.uniform(0.0, 2.0 * np.pi, cfg.N)
+        )
 
         N, K = cfg.N, cfg.K
         if cfg.adjacency is not None:
