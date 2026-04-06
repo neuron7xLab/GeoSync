@@ -5,11 +5,15 @@
 __CANONICAL__ = True
 
 from .causal import CausalGuard, CausalResult
+from .emergent_dynamics import EmergentDynamicsOrchestrator, EmergentState, NetworkRegime
 from .kuramoto import KuramotoResult, KuramotoSynchrony
 from .ricci import RicciCurvatureGraph, RicciResult
 from .topo import TopoResult, TopoSentinel
 
 __all__ = [
+    "EmergentDynamicsOrchestrator",
+    "EmergentState",
+    "NetworkRegime",
     "KuramotoSynchrony",
     "KuramotoResult",
     "RicciCurvatureGraph",

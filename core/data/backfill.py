@@ -227,6 +227,28 @@ def detect_gaps(
     return gaps
 
 
+def compute_signals_on_window(
+    tick_data: pd.DataFrame,
+    *,
+    instrument: str,
+    window_size: int = 300,
+    step: int = 60,
+) -> list[dict]:
+    """Compute GeoSync coherence signals on rolling tick windows.
+
+    Delegates to the coherence bridge implementation so live and backfill
+    execution paths share the same kernel wiring.
+    """
+    from coherence_bridge.backfill import compute_signals_on_window as _compute
+
+    return _compute(
+        tick_data=tick_data,
+        instrument=instrument,
+        window_size=window_size,
+        step=step,
+    )
+
+
 @dataclass
 class BackfillPlan:
     """Description of the windows that need to be requested."""

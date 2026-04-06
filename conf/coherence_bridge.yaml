@@ -1,0 +1,5 @@
+instruments:
+  - EURUSD
+  - GBPUSD
+window_size: 300
+cycle_step: 60
