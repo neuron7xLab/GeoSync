@@ -596,3 +596,39 @@ spectral_gap:
     test_type: property_test
     falsification: "λ₂ > 0 for a disconnected graph, or λ₂ = 0 for a connected graph"
     priority: P0
+
+# ═══════════════════════════════════════════════════
+# OTT-ANTONSEN REDUCTION — Exact Mean-Field Dynamics
+# Physics: Ott & Antonsen (2008) dimensionality reduction.
+# Source: core/kuramoto/ott_antonsen.py
+# ═══════════════════════════════════════════════════
+
+ott_antonsen:
+  order_parameter_bounded:
+    id: INV-OA1
+    type: universal
+    statement: "|z(t)| ≤ 1 for every step of the Ott-Antonsen trajectory"
+    test_type: property_test
+    falsification: "OttAntonsenEngine.integrate returns |z| > 1 at any step"
+    priority: P0
+
+  supercritical_steady_state:
+    id: INV-OA2
+    type: algebraic
+    statement: "K > 2Δ ⟹ R_∞ = √(1 − 2Δ/K) matches ODE integration to < 1e-3"
+    test_type: property_test
+    parameters:
+      formula: "R_∞ = sqrt(1 - K_c/K) where K_c = 2Δ"
+      cross_validation: "N-body Kuramoto with Lorentzian ω matches within 3/√N"
+    falsification: "|R_numerical - R_analytical| > 1e-3 after T=100"
+    priority: P0
+
+  subcritical_decay:
+    id: INV-OA3
+    type: asymptotic
+    statement: "K < 2Δ ⟹ R → 0 exponentially (rate ∝ K_c − K)"
+    test_type: convergence_test
+    parameters:
+      critical_slowing: "at K → K_c, decay rate → 0 (excluded from test at K=0.99)"
+    falsification: "R stays above 1e-4 after T=100 with K ≤ 0.8·K_c"
+    priority: P0
