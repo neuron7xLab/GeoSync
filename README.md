@@ -21,7 +21,7 @@
 Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynamics  ·  Cryptobiosis
 ```
 
-*Physics-first quantitative infrastructure with 53 machine-checkable invariants.*
+*Physics-first quantitative infrastructure with 57 machine-checkable invariants.*
 *Every signal traces back to peer-reviewed science. Every clamp traces back to a law.*
 
 <br>
@@ -144,11 +144,11 @@ dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
 
 ## Physics Kernel
 
-GeoSync is a **verified physical system**, not a test-coverage theatre. The physics kernel (`.claude/physics/`) defines **53 machine-checkable invariants** across 13 modules. Every test is a *mathematical witness* of a specific physical law, not a line-coverage artefact.
+GeoSync is a **verified physical system**, not a test-coverage theatre. The physics kernel (`.claude/physics/`) defines **57 machine-checkable invariants** across 15 modules. Every test is a *mathematical witness* of a specific physical law, not a line-coverage artefact.
 
 ```
                      ┌──────────────────────────────────────┐
-                     │   53 INVARIANTS  ·  13 MODULES       │
+                     │   57 INVARIANTS  ·  15 MODULES       │
                      │   Every assert derives its tolerance  │
                      │   from the law's formula, not from    │
                      │   a magic literal.                    │
@@ -456,7 +456,7 @@ Order Parameter: R(t) = |1/N · Σⱼ exp(iθⱼ)| ∈ [0, 1]
 ## Testing & Quality
 
 ```
- 10,051 collected  ·  681 passing  ·  71% line coverage  ·  53 physics invariants  ·  44 witnesses  ·  0 mypy errors
+ 10,051 collected  ·  681 passing  ·  71% line coverage  ·  57 physics invariants  ·  67 witnesses  ·  0 mypy errors
 ```
 
 <table>
@@ -702,6 +702,6 @@ Trading financial instruments involves substantial risk of loss. GeoSync provide
 
 [![MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat)](LICENSE)
 
-<sub>Built on peer-reviewed science. Physics-first, 53 invariants, every clamp documented.</sub>
+<sub>Built on peer-reviewed science. Physics-first, 57 invariants, every clamp documented.</sub>
 
 </div>

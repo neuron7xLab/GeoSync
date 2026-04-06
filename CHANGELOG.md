@@ -12,8 +12,8 @@ Add change fragments to `newsfragments/` for each Pull Request.
 ## [Unreleased]
 
 ### 🔬 Physics Kernel
-- **53 machine-checkable invariants** across 13 modules (PR #138, #139)
-- **44 mathematical witness tests** with INV-* references and 5-field error messages
+- **57 machine-checkable invariants** across 15 modules (PR #138, #139)
+- **67 mathematical witness tests** with INV-* references and 5-field error messages
 - **Physics Kernel CI Gate**: self-check + L1-L5 validation + C1/C2 code audit
 - **C1/C2 code audit**: 69 → 5 silent clamps (0 physics), 0 undocumented bounds
 - **3 physics-law corrections**: RC1, FE2, OMS1 falsified and corrected by witnesses

@@ -311,7 +311,7 @@ pytest tests/core/neuro/dopamine/test_invariants.py -v
 
 **Current:** 54 tests passing
 - 20 controller tests
-- 34 invariants tests
+- 57 invariants tests
 - Property tests in progress
 
 **Target:** ≥95% line/branch coverage

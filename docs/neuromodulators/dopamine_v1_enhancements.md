@@ -124,7 +124,7 @@ self._cache_temp_k
 ### 6. Testing Infrastructure
 
 **Test Coverage:**
-- 54 tests passing (20 controller + 34 invariants)
+- 54+ tests passing
 - Property-based tests using Hypothesis
 - Edge case coverage (NaN/Inf, boundaries, monotonic violations)
 

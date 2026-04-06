@@ -6,7 +6,7 @@ validator actually sees.
 
 ## 0. TL;DR
 
-- **Physics kernel is real.** `.claude/physics/` contains **45 invariants**
+- **Physics kernel is real.** `.claude/physics/` contains **57 invariants**
   (after this migration extended it by 11 modules — Kelly / OMS / SignalBus
   / HPC + refined RC1→RC1+RC3, FE2, OMS1), 5 theory files, a 780-line
   validator with 7 levels (L1–L5 + C1–C2), and a self-check that passes.
@@ -76,7 +76,7 @@ Ricci). This PR adds **10 invariants across 4 new modules**:
 | SignalBus   | `INV-SB1`, `INV-SB2`               | universal / universal                  |
 | HPC         | `INV-HPC1`, `INV-HPC2`             | universal / universal                  |
 
-After extension: **44 invariants, self-check green, every invariant type
+After extension: **57 invariants, self-check green, every invariant type
 has a matching L3 checker.**
 
 ### 3.2 Migrated test files (full L1–L5 clean, tracked by CI)
@@ -197,7 +197,7 @@ The kernel validator and CI gate do the rest.
 
 ## 6. Adversarial Physics Audit (2026-04-06)
 
-Full adversarial falsification battery across all 13 modules.
+Full adversarial falsification battery across all 15 modules.
 Every module probed with extreme/pathological inputs.
 
 ### Results: 0 violations, 4 precision insights

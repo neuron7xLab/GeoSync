@@ -4,7 +4,7 @@ Creator -> Critic -> Auditor -> Verifier
 Human = central decision node. No agent has autonomous authority.
 
 Physics Kernel (CLAUDE.md + .claude/physics/) = embedded Critic.
-53 invariants. Every test references INV-*. Every threshold derived from theory.
+57 invariants. Every test references INV-*. Every threshold derived from theory.
 
 ## Validation layers
 

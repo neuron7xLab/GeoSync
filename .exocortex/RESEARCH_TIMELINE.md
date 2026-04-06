@@ -21,7 +21,7 @@
 ## 2025
 - NeoSynaptex: 232 tests, 13 scientific gaps closed, Protocol 7X
 - GeoSync: HPC Active Inference v4, 9759+ tests
-- Physics Kernel: 53 invariants, AST-based 7-level validator
+- Physics Kernel: 57 invariants, AST-based 7-level validator
 
 ## 2026-Q2
 - Cryptobiosis module (tardigrade-inspired phase-transition survival)

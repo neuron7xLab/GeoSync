@@ -48,7 +48,7 @@ GeoSync is a quantitative trading platform with neuroscience-inspired risk manag
 
 ---
 
-## INVARIANT REGISTRY — 53 invariants, 13 modules
+## INVARIANT REGISTRY — 57 invariants, 15 modules
 
 ### Kuramoto Synchronization
 

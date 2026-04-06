@@ -23,7 +23,7 @@ CLAUDE.md                               (project root, auto-loaded)
 ├── hooks/
 │   └── pre-commit-physics              Git pre-commit hook
 └── physics/
-    ├── INVARIANTS.yaml                 34 invariants, 8 modules
+    ├── INVARIANTS.yaml                 57 invariants, 15 modules
     ├── KURAMOTO_THEORY.md              K_c, R, finite-size, Lyapunov
     ├── SEROTONIN_THEORY.md             5-HT ODE, sigmoid, desensitization
     ├── DOPAMINE_THEORY.md              TD-error: δ = r + γV' - V
