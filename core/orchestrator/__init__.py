@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Core orchestration primitives.
 
 This module exposes the public entry points used by the trading runtime

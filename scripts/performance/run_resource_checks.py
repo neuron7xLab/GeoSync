@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Collect runtime resource metrics for performance regression analysis.
 
 This utility mirrors critical scenarios from ``tests/performance`` so the CI

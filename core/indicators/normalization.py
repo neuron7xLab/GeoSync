@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Normalization utilities for technical indicator time series.
 
 The divergence detection routines operate on both price and indicator series.

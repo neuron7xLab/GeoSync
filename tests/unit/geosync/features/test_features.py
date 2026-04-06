@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests for Ricci curvature and topological features."""
 
 # Import directly from module files to avoid package __init__

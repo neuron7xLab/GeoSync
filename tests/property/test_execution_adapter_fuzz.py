@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Property-based regression tests for execution adapter parsing helpers."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Local model and experiment registry utilities.
 
 This module provides a small, file-backed registry for experiment runs.  The

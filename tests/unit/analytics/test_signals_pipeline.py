@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Unit tests for analytics.signal pipelines and model selection."""
 
 from __future__ import annotations

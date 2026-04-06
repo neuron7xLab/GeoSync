@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Lifecycle management for system components.
 
 This module provides lifecycle coordination for components, ensuring proper

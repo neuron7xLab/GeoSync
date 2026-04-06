@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """NA/ACh neuromodulation package.
 
 This package implements noradrenaline (NA) and acetylcholine (ACh)

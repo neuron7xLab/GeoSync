@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Prometheus metrics instrumentation for Adaptive Market Mind (AMM).
 
 This module provides production-grade observability for the AMM prediction system

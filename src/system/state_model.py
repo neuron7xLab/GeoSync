@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Formalized system lifecycle model with explicit transitions and invariants."""
 
 from __future__ import annotations

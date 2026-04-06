@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """High-assurance data pipeline orchestration primitives.
 
 The goal of this module is to provide an opinionated yet extensible

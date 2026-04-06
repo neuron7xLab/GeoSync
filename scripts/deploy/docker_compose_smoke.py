@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Run a docker-compose smoke test for GeoSync deployments."""
 
 from __future__ import annotations

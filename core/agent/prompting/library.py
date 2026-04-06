@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Prompt template library with experiment and rollback capabilities."""
 
 from __future__ import annotations

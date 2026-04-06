@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Chaos engineering experiment definitions.
 
 This module provides a flexible abstraction for describing chaos experiments that

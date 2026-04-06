@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """MiFID II compliance helpers for GeoSync."""
 
 from __future__ import annotations

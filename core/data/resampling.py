@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Precise resampling utilities for tick/L2/L1/OHLCV alignments."""
 
 from __future__ import annotations

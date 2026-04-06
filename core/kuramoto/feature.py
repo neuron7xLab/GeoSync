@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """NetworkKuramotoFeature — trading-pipeline adapter (protocol M3.4).
 

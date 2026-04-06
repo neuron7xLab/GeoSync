@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Time-series utilities for OHLCV data resampling.
 
 This module provides proper OHLCV aggregation that respects the semantics of

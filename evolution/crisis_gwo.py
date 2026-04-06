@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Chaotic fractal Grey Wolf Optimiser used for crisis adaptation."""
 
 from __future__ import annotations  # noqa: E402 - after module docstring

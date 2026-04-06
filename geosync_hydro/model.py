@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Core model definition for GeoSyncHydro Unified System v2."""
 
 from __future__ import annotations

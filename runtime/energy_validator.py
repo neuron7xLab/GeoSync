@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Energy Validator Module for TACL
 
 This module implements the thermodynamic energy validation described in docs/TACL.md.

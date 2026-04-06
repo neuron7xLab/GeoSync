@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utilities for computing fractal statistics on time-series signals.
 
 The helpers in this module intentionally avoid metaphorical language and focus

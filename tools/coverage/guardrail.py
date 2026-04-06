@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Enforce coverage guardrails for reliability-critical modules."""
 
 from __future__ import annotations

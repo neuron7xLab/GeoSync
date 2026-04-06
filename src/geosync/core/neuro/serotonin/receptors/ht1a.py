@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 from __future__ import annotations
 
 from .dynamics import bounded_sigmoid, clamp, low_pass

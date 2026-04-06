@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Unit tests for DopamineController neuromodulator system.
 
 This module validates the dopamine-based reinforcement learning controller

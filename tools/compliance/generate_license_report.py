@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Generate third-party license report from CycloneDX SBOM."""
 
 from __future__ import annotations

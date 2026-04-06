@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """SQLAlchemy ORM models used by the shared data access layer."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Standardized degradation handling for GeoSyncHydro v2 inference."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Neuro-inspired adaptive controllers for core decision loops.
 
 This package implements biologically-inspired neuromodulator controllers

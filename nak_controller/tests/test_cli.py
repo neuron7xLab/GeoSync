@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests for NaK controller CLI interfaces.
 
 Security note: subprocess usage is acceptable here as we're running

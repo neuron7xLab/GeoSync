@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Public data contracts for the MLSDM SDK.
 
 This module defines the data structures used by the MLSDM public API.

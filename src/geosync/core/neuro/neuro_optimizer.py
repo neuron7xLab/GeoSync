@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Cross-Neuromodulator Optimization Loop.
 
 This module implements a holistic optimization system that coordinates multiple

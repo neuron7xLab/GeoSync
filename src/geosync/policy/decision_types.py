@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Policy decision types for MLSdM governance.
 
 This module defines the formal decision types and their priority ordering

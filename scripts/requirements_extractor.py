@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Requirement extraction utility for GeoSync.
 
 This script parses a markdown specification (default: ``docs/requirements/product_specification.md``) and

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """ECS Free Energy Regulator with Lyapunov Stability Guarantee.
 
 Implements a homeostatic free-energy regulator inspired by the

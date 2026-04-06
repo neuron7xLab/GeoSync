@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Shadow deployment controller for live strategy experimentation.
 
 This module implements a traffic mirroring pipeline that evaluates candidate

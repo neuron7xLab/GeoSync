@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """EEP-FPPA Fractal Energy Regulator for adaptive control and crisis handling.
 
 This module implements the EEPFractalRegulator, a fractal-driven state

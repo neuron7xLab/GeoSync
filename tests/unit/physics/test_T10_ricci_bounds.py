@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """T10 — Ollivier–Ricci curvature bound witnesses for INV-RC1 and INV-RC3.
 

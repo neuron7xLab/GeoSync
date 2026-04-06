@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Security primitives shared across GeoSync services.
 
 This module provides comprehensive security controls aligned with:

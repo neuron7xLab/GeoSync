@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """High level prompt management orchestrating rendering and experiments."""
 
 from __future__ import annotations

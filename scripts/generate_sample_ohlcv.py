@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Generate comprehensive OHLCV sample data for testing and development.
 
 This script creates realistic OHLCV (Open, High, Low, Close, Volume) time series

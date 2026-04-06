@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Operational pipeline utilities for running the FETE strategy.
 
 This module adapts the user-provided production trading scaffold to the

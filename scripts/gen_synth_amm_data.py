@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Generate synthetic AMM (Automated Market Maker) data for testing and development.
 
 This script creates synthetic time series data with configurable regime changes,

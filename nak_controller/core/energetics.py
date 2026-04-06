@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Neuronal energetics model for adaptive trading system regulation.
 
 This module implements a biologically-inspired energy and load tracking system

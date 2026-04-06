@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utility helpers to render embeddable HTML widgets."""
 
 from __future__ import annotations

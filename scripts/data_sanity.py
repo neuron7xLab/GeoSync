@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Quick data quality sanity checks for CSV files.
 
 This module started life as a small ad-hoc script but has since been tidied up

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Behavioral contract enforcement for the TACL energy model.
 
 The controller driving GeoSync automation must never drift outside of the

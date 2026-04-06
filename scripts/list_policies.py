@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utility to enumerate policy classes defined across the repository.
 
 This script performs a static analysis pass over Python sources in the

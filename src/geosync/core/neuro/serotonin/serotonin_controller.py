@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Serotonin-inspired risk inhibition controller for trading systems.
 
 This module implements a sophisticated risk management system inspired by the

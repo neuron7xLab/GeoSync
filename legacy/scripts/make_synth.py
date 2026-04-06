@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """CLI for generating synthetic tick data used in GeoSync HPC demos."""
 
 from __future__ import annotations

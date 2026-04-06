@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Comprehensive data annotation workflow utilities.
 
 This module provides the building blocks necessary to run high quality

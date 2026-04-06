@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Additional unit tests for indicator cache module to improve coverage."""
 from __future__ import annotations

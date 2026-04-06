@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Hydra-powered experiment runner for GeoSync analytics."""
 from __future__ import annotations

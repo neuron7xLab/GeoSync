@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Caching layer for thermodynamics computations to improve performance.
 
 This module provides intelligent caching for expensive thermodynamic calculations,

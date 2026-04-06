@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Thermodynamic energy calculations for system optimization.
 
 This module provides thermodynamic energy functions used by the TACL

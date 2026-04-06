@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Actor-critic agent specialised for coupling with the FHMC controller."""
 
 from __future__ import annotations

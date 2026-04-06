@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Composable automation helpers for multi-step maintenance workflows."""
 
 from __future__ import annotations

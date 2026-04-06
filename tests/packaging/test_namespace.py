@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests to verify canonical namespace behavior.
 
 The canonical public namespace for GeoSync is `geosync.*`.

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Comprehensive tests for formal cryptographic proof verification.
 
 This test module validates the mathematical proofs for cryptographic

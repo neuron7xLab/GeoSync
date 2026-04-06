@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Demonstration of the Architecture Integrator.
 
 This example shows how to use the Architecture Integrator to manage

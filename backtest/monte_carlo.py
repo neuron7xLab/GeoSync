@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Monte Carlo scenario generation utilities for backtesting."""
 
 from __future__ import annotations

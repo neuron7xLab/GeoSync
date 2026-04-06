@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Early Warning System aggregator for GeoSync Neuro-Architecture.
 
 This module implements the EWS logic that aggregates sensor outputs

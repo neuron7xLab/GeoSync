@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Unit tests for Jensen–Shannon divergence helpers."""
 
 from __future__ import annotations

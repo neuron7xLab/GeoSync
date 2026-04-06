@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Lightweight health check HTTP server for GeoSync services."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Automated production readiness validation gates.
 
 This module provides a lightweight framework for evaluating production

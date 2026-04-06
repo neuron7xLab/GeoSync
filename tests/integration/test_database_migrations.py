@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Integration tests ensuring database migrations remain safe and repeatable."""
 
 from __future__ import annotations

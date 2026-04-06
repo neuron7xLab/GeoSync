@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Neuro-inspired desensitization primitives for stable trading behavior."""
 
 __CANONICAL__ = True

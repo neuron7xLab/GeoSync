@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Contract tests for the centralized logging Kubernetes manifests.
 
 The tests in this module validate that the Kubernetes resources and

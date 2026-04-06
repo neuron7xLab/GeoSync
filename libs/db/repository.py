@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Repository abstractions built on top of SQLAlchemy sessions."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Energy validation primitives used by Thermodynamic Validation workflows.
 
 The original post-merge regression was traced to an incorrect aggregation of

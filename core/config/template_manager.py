@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utility helpers for loading and rendering CLI configuration templates."""
 
 from __future__ import annotations

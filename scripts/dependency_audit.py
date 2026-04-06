@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utility to run pip-audit with consistent settings and provide actionable summaries."""
 
 from __future__ import annotations

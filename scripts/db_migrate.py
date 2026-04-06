@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Command-line helpers for managing GeoSync database migrations."""
 
 from __future__ import annotations

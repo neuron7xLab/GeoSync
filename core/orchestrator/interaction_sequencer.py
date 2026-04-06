@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Module interaction sequencer for orchestrating execution flow.
 
 This module provides a unified orchestration mechanism that manages the

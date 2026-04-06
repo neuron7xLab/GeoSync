@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Example integration of ECS Regulator with FractalMotivationController.
 
 This demonstrates how to combine the ECS-Inspired Regulator with GeoSync's

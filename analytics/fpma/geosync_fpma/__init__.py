@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Standalone public API for the GeoSync FPMA model."""
 
 from src.adapters.local import (

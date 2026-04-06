@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Generate strongly-typed models and JSON Schema documents from Avro schemas."""
 
 from __future__ import annotations

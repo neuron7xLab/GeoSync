@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Aggregation utilities for AAR (Acceptor of Action Result).
 
 This module provides aggregation mechanisms for error signals:

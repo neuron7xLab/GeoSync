@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """CLI entry point to run the GeoSync Pro validation."""
 
 from __future__ import annotations

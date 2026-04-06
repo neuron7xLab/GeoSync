@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Neuro-inspired CNS stabiliser for the TACL control loop."""
 
 from __future__ import annotations

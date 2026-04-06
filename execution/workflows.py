@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Composite execution workflows wiring risk and compliance controls."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utility to build a registry of AI related assets in the GeoSync codebase.
 
 The script scans one or more repository roots for trained model artefacts,

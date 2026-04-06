@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Progressive blue/green rollout controller with canary guardrails.
 
 The orchestrator coordinates staged traffic shifting between the incumbent

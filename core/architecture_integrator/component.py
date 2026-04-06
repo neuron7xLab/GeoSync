@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Component abstraction for architecture integration.
 
 This module defines the core component model used by the Architecture Integrator

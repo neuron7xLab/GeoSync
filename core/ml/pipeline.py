@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """End-to-end machine learning pipeline orchestration for GeoSync."""
 
 from __future__ import annotations

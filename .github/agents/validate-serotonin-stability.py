@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Validation script for Serotonin Stability Controller agent configuration.
 
 This script validates the agent configuration file to ensure:

@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """T6 — dF/dt ≤ 0 trading gate with order-book temperature calibration.
 

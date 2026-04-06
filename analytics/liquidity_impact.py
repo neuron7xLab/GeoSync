@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Liquidity impact and slippage forecasting utilities.
 
 This module bundles together a light–weight quantitative model that estimates

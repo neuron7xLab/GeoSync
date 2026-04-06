@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Kuramoto-Kelly Adaptive Position Sizing.
 
 Maps the Kuramoto order parameter R (phase synchrony of market returns)

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Strategy execution engine with modular contracts and risk-aware routing."""
 
 from __future__ import annotations

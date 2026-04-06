@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests for circuit breaker integration in exchange adapters."""
 
 from __future__ import annotations

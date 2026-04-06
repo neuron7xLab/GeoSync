@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Fractal–Kuramoto early warning detector.
 
 This module implements the FK-Detector described in the product brief.  It

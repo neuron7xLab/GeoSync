@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Advanced risk controls for GeoSync execution.
 
 This module layers portfolio-level controls on top of the baseline

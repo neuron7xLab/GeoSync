@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Architecture scanning utilities for GeoSync.
 
 This module inspects the Python source tree and builds a dependency graph that

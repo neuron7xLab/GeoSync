@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Experiment tracking utilities providing reproducibility and reporting."""
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Runtime Link Activator.
 
 This module maps thermodynamic bond abstractions to concrete

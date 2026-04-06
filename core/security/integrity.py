@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Cryptographic integrity verification for artifacts and AI models.
 
 This module implements cryptographic controls aligned with:

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Property-style coverage for :mod:`core.orchestrator.mode_orchestrator`."""
 
 from __future__ import annotations

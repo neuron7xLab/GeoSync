@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Orchestrated observability bootstrap utilities.
 
 This module centralises the steps required to prepare the GeoSync

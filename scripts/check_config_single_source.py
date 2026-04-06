@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Guardrail: ensure a single canonical config source per subsystem.
 
 We currently bless the ``config/`` directory as canonical. Known subsystems and

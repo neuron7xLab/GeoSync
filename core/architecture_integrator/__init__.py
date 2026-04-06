@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Architecture Integrator for GeoSync.
 
 This module provides centralized coordination and integration of architectural

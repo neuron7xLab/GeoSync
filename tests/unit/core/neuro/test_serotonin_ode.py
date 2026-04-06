@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests for SerotoninODE — 5-HT dynamics with Lyapunov stability.
 
 SPDX-License-Identifier: MIT

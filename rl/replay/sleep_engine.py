@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Sleep-inspired replay buffer with novelty-aware prioritisation."""
 
 from __future__ import annotations

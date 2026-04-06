@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Ensemble divergence utilities for cross-indicator confirmation.
 
 The module aggregates divergence signals produced by heterogeneous technical

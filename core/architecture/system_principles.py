@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """System Architecture Principles for GeoSync.
 
 This module defines the seven core architectural principles that govern the design

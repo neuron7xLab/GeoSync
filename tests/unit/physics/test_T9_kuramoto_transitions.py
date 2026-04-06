@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """T9 — Kuramoto sub/supercritical witnesses for INV-K2 and INV-K3.
 

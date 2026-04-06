@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Service for regime modulation business logic with deterministic cache coherence."""
 
 from __future__ import annotations

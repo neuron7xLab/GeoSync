@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """GABA neuromodulation package.
 
 This package implements GABAergic inhibition mechanisms that moderate

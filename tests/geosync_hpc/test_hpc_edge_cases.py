@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """
 Extended edge case tests for HPC-AI v4 to achieve 98% coverage.
 

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Causal guard using Transfer Entropy for GeoSync Neuro-Architecture.
 
 This module implements Transfer Entropy calculation for detecting causal

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Core analytics exports."""
 
 from .causal_guard import CausalGuard, CausalGuardConfig, CausalGuardResult

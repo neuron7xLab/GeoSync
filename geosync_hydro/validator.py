@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Validation helpers for GB hydrology and water quality standards."""
 
 from __future__ import annotations

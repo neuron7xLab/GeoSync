@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Example: Using thermodynamics optimizations in GeoSync.
 
 This example demonstrates how to integrate the new optimization modules

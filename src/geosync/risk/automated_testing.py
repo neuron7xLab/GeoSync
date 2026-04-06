@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Automated Risk Testing Module for GeoSync.
 
 This module provides comprehensive automated testing capabilities for risk management,

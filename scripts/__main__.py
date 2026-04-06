@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Entry point to allow ``python -m scripts`` execution."""
 
 from __future__ import annotations

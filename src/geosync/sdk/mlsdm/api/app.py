@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """FastAPI application for MLSDM HTTP API.
 
 This module provides a REST API for interacting with MLSDM components

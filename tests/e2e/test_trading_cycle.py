@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """E2E tests covering the trading lifecycle from data to execution."""
 
 from __future__ import annotations

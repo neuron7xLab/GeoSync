@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utilities for generating and validating time-based one-time passwords (TOTP)."""
 
 from __future__ import annotations

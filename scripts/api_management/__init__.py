@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """High-level utilities for governing GeoSync API contracts."""
 
 from .config import ApiRegistry, load_registry

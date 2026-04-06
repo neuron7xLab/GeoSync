@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Enhanced test orchestration and reporting for PR testing workflows.
 
 This module provides comprehensive test orchestration, including:

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Compatibility shims for a minimal subset of scikit-learn.
 
 The original GeoSync analytics stack depends on a handful of utilities from

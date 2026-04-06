@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Validate that dependency declarations stay aligned across manifests."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Comprehensive performance profiling and bottleneck detection tests.
 
 This module implements systematic profiling to identify performance bottlenecks

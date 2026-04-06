@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """
 Practical Integration Examples for Serotonin Controller
 

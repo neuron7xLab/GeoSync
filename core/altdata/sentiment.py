@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Sentiment stream aggregation for alternative datasets."""
 
 from __future__ import annotations

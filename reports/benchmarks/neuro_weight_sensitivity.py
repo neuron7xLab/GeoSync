@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Weight sensitivity analysis for the neuro optimizer objective.
 
 This script performs a grid sweep across balance/performance/stability weights,

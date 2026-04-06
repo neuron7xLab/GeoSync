@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Mode orchestration state machine with hysteresis.
 
 The orchestrator coordinates trading modes between *Action*, *Cooldown*,

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Toy market environments exercising FHMC biomarker plumbing."""
 
 from __future__ import annotations

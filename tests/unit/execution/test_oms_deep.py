@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Deep coverage tests for execution.oms — order placement, fills, cancellation,
 idempotency, error paths, state transitions, persistence and recovery."""
 

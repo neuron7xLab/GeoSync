@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Helpers to load NeuroOptimizer without importing the entire package."""
 
 from __future__ import annotations

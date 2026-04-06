@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """High-performance real-time feature store built on Redis Streams and TimescaleDB.
 
 The implementation focuses on the key requirements for the trading platform:

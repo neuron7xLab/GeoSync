@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Configuration classes for the MLSDM SDK.
 
 This module provides validated configuration objects for all MLSDM

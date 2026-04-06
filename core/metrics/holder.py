@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Hölder exponent estimation via wavelet coefficients for multifractal analysis.
 
 Mathematical Foundation:

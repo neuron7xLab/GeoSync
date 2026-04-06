@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Neural pathway integrity validation for neuroscience-inspired trading components.
 
 This module provides validators that ensure coherence and integrity of neural

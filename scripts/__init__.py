@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utility scripts bundled with the GeoSync repository.
 
 This package is imported in a variety of contexts ranging from lightweight

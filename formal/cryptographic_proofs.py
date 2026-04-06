@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Formal verification of cryptographic security properties using SMT solving.
 
 This module provides mathematically rigorous proofs for cryptographic primitives

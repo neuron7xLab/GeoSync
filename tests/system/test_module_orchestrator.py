@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests covering orchestration invariants and neural decision normalisation."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Topology sentinel adapter for GeoSync Neuro-Architecture.
 
 This module provides topological data analysis features for market anomaly

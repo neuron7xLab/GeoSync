@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """T20 — Miscellaneous P1 invariants: TH1, TH2, KELLY3, ES2, CB5.
 

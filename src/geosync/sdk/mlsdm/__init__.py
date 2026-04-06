@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """MLSDM (Multi-Level Stochastic Decision Model) public SDK.
 
 This module provides a clean, user-friendly API for integrating MLSDM

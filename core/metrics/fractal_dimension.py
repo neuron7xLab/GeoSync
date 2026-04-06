@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Fractal dimension estimators for self-similarity and complexity analysis.
 
 Mathematical Foundation:

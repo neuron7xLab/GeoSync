@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Enhanced performance monitoring system for production environments.
 
 This module provides comprehensive performance monitoring including real-time

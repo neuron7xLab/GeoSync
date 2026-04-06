@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Public SDK for integrating with the GeoSync core.
 
 This module provides a clean, user-friendly API for integrating GeoSync

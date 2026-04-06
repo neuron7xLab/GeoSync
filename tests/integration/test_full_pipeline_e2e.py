@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """End-to-end integration test: the complete GeoSync pipeline as one organism.
 
 This test exercises the FULL signal path:

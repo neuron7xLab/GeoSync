@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Thin wrappers around the existing FPM-A integration tooling."""
 
 from __future__ import annotations

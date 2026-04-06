@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utilities that implement the GitHub Actions orchestrated MLOps pipeline.
 
 This module previously synthesised pseudo-random model weights to mimic a

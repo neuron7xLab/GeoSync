@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Statistical resampling utilities for backtest performance metrics."""
 
 from __future__ import annotations

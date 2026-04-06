@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Access control primitives for sensitive GeoSync operations."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Quantum Neural Strategy module for GeoSync.
 
 This standalone module provides a ready-to-train deep learning strategy that

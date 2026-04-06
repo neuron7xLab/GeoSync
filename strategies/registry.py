@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utilities for registering and resolving trading strategies.
 
 The :mod:`strategies` package historically exposed a single ``get_strategy``

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utilities for distributed tracing and correlation ID propagation.
 
 This module wraps the OpenTelemetry SDK to expose a consistent

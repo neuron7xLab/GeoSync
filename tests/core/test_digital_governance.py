@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests for Digital Governance Framework.
 
 Tests all 20 requirements of the digital transformation mandate.

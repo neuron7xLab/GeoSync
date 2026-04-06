@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Centralised configuration and secret management primitives.
 
 This module orchestrates secure access to configuration secrets, templates, and

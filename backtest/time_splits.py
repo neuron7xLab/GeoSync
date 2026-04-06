@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utility classes for time-aware cross-validation with leakage control.
 
 This module implements walk-forward validation and purged k-fold cross-validation

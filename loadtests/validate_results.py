@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Validate Locust CSV output against throughput and error-rate thresholds."""
 
 from __future__ import annotations

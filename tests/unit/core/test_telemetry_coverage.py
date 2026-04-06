@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Full coverage tests for core.telemetry — sampling, backends, client,
 timer context manager, global singletons."""
 

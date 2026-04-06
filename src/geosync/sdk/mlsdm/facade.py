@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """MLSDM facade providing simplified entry-points to core components.
 
 This module is the primary interface for users integrating MLSDM

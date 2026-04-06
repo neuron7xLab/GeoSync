@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Formal verification of cryptographic protocol security.
 
 This module provides formal verification for cryptographic protocols used
