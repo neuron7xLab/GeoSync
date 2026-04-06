@@ -200,6 +200,15 @@ def _config_strategy(draw):
 @settings(max_examples=25)
 @given(cfg=_config_strategy())
 def test_dopamine_invariants_property(cfg: dict) -> None:
+    """INV-DA3: discount γ ∈ (0, 1] and all other dopamine config bounds
+    hold for every hypothesis-sampled configuration.
+
+    This is the property-test umbrella for INV-DA3 (discount bounds
+    universal). The test bundles 54 configuration invariants checked
+    on every hypothesis example; INV-DA3 is one of them (discount_gamma
+    in (0, 1]). A violation of any of the 54 checks is a configuration
+    contract breach, surfaced through the aggregate assert below.
+    """
     invariants = [
         ("discount_gamma_range", 0.0 < cfg["discount_gamma"] <= 1.0),
         ("learning_rate_v_range", 0.0 < cfg["learning_rate_v"] <= 1.0),
@@ -282,5 +291,22 @@ def test_dopamine_invariants_property(cfg: dict) -> None:
         ),
     ]
 
-    assert len(invariants) == 54
-    assert all(check for _, check in invariants)
+    assert len(invariants) == 54, (
+        f"INV-DA3 umbrella drift: expected 54 config invariants, got {len(invariants)}. "
+        f"Observed at hypothesis sample (seed=hypothesis). "
+        f"Parameters: discount_gamma={cfg.get('discount_gamma')}, "
+        f"base_temperature={cfg.get('base_temperature')}. "
+        f"Physical reasoning: any drift in the invariant list must be reflected "
+        f"in INVARIANTS.yaml — never silently resize the contract."
+    )
+    failed = [name for name, check in invariants if not check]
+    assert not failed, (
+        f"INV-DA3 VIOLATED: {len(failed)} dopamine config invariants violated: {failed}. "
+        f"Expected every bound in the 54-check umbrella to hold (including γ ∈ (0, 1]). "
+        f"Observed at hypothesis sample with discount_gamma={cfg['discount_gamma']}, "
+        f"learning_rate_v={cfg['learning_rate_v']}, "
+        f"base_temperature={cfg['base_temperature']}. "
+        f"Physical reasoning: violating any config bound means the sampled "
+        f"configuration would be rejected at runtime — the generator is drifting "
+        f"outside the valid manifold."
+    )

@@ -77,15 +77,62 @@ class TestHigherOrderDynamics:
         assert result.time.shape == (201,)
 
     def test_R_bounded(self, engine, complete_corr_4):
+        """INV-K1: R(t) ∈ [0, 1] for every step of the higher-order Kuramoto run.
+
+        The order parameter is the modulus of a mean of unit-modulus
+        complex numbers, so it is bounded in [0, 1] by definition. A
+        violation here is not a numerical artefact — it means the
+        triadic integrator corrupted the phase representation.
+        """
         result = engine.run(complete_corr_4, seed=42)
-        assert np.all(result.order_parameter >= 0)
-        assert np.all(result.order_parameter <= 1)
+        r_min = float(np.min(result.order_parameter))
+        r_max = float(np.max(result.order_parameter))
+
+        assert np.all(result.order_parameter >= 0), (
+            f"INV-K1 VIOLATED: min R = {r_min:.6f} < 0. "
+            f"Expected R ≥ 0 by definition (R = |mean(e^{{iθ}})|). "
+            f"Observed at N=4, seed=42 with K_c-independent triadic σ₂=0.5. "
+            f"Physical reasoning: modulus of a complex mean cannot be negative."
+        )
+        assert np.all(result.order_parameter <= 1), (
+            f"INV-K1 VIOLATED: max R = {r_max:.6f} > 1. "
+            f"Expected R ≤ 1 by Cauchy-Schwarz on unit phasors. "
+            f"Observed at N=4, seed=42 with σ₁=1.0, σ₂=0.5. "
+            f"Physical reasoning: |mean(z_i)| ≤ max|z_i| = 1 for unit |z_i|."
+        )
 
     def test_finite_outputs(self, engine, complete_corr_4):
+        """INV-HPC2: kernel produces finite outputs for finite bounded inputs.
+
+        The correlation matrix is bounded in [-1, 1] and dt/σ are finite;
+        any NaN/Inf in the output is a numerical-stability regression in
+        the higher-order Kuramoto integrator (runaway phase or under/
+        overflow in the triadic term).
+        """
         result = engine.run(complete_corr_4, seed=42)
-        assert np.all(np.isfinite(result.phases))
-        assert np.all(np.isfinite(result.order_parameter))
-        assert np.all(np.isfinite(result.triadic_contribution))
+        n_bad_phases = int(np.sum(~np.isfinite(result.phases)))
+        n_bad_r = int(np.sum(~np.isfinite(result.order_parameter)))
+        n_bad_tri = int(np.sum(~np.isfinite(result.triadic_contribution)))
+
+        assert np.all(np.isfinite(result.phases)), (
+            f"INV-HPC2 VIOLATED: {n_bad_phases} non-finite phase entries. "
+            f"Expected every phase finite for bounded correlation input. "
+            f"Observed at N=4, seed=42, steps=200, dt=0.01. "
+            f"Physical reasoning: Euler step on sin() of bounded phase "
+            f"cannot diverge unless σ·dt destabilises the integrator."
+        )
+        assert np.all(np.isfinite(result.order_parameter)), (
+            f"INV-HPC2 VIOLATED: {n_bad_r} non-finite R entries. "
+            f"Expected finite R as mean of finite phasors. "
+            f"Observed at N=4, seed=42, steps=200. "
+            f"Physical reasoning: NaN in R means NaN already in phases upstream."
+        )
+        assert np.all(np.isfinite(result.triadic_contribution)), (
+            f"INV-HPC2 VIOLATED: {n_bad_tri} non-finite triadic entries. "
+            f"Expected finite σ₂ contribution for K4 (4 triangles, all weights 0.8). "
+            f"Observed at N=4, seed=42, steps=200. "
+            f"Physical reasoning: triadic term = σ₂ · Σ sin(θ_j + θ_k − 2θ_i), bounded."
+        )
 
     def test_triangles_detected(self, engine, complete_corr_4):
         result = engine.run(complete_corr_4, seed=42)
@@ -138,9 +185,25 @@ class TestFromPrices:
 
 class TestDeterminism:
     def test_deterministic(self, engine, complete_corr_4):
-        r1 = engine.run(complete_corr_4, seed=42)
-        r2 = engine.run(complete_corr_4, seed=42)
-        np.testing.assert_array_equal(r1.phases, r2.phases)
+        """INV-HPC1: bit-for-bit reproducibility under identical seed.
+
+        Runs the same (seed, input, dtype) triple three times and asserts
+        every pair of runs is bit-identical. Any divergence means
+        non-determinism leaked into the integrator (uninitialised
+        memory, hash-random ordering, or a non-seeded RNG branch).
+        """
+        n_runs = 3
+        phase_runs = [engine.run(complete_corr_4, seed=42).phases for _ in range(n_runs)]
+        baseline = phase_runs[0]
+        for run_idx, other in enumerate(phase_runs[1:], start=1):
+            max_ulp_diff = float(np.max(np.abs(other - baseline)))
+            assert np.array_equal(other, baseline), (
+                f"INV-HPC1 VIOLATED: run {run_idx} differs from run 0 "
+                f"by up to {max_ulp_diff:.3e}. "
+                f"Expected bit-identical phases under fixed seed=42. "
+                f"Observed at N=4, steps=200, dt=0.01. "
+                f"Physical reasoning: deterministic ODE + seeded RNG must replay identically."
+            )
 
 
 class TestInputValidation:
