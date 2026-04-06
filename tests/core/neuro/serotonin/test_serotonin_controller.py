@@ -6,14 +6,16 @@ import importlib.util
 import json
 import math
 import sys
+import types
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 import yaml
 
 
-def _load_serotonin_module() -> tuple[object, object]:
+def _load_serotonin_module() -> tuple[types.ModuleType, Any]:
     module_path = (
         Path(__file__).resolve().parents[4]
         / "core"
@@ -24,6 +26,7 @@ def _load_serotonin_module() -> tuple[object, object]:
     spec = importlib.util.spec_from_file_location(
         "serotonin_controller_test_module", module_path
     )
+    assert spec is not None
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     assert spec.loader is not None
@@ -32,18 +35,20 @@ def _load_serotonin_module() -> tuple[object, object]:
 
 
 @pytest.fixture(scope="module")
-def serotonin_module_and_cls():
+def serotonin_module_and_cls() -> tuple[types.ModuleType, Any]:
     return _load_serotonin_module()
 
 
 @pytest.fixture()
-def serotonin_module(serotonin_module_and_cls):
+def serotonin_module(
+    serotonin_module_and_cls: tuple[types.ModuleType, Any],
+) -> types.ModuleType:
     module, _ = serotonin_module_and_cls
     return module
 
 
 @pytest.fixture()
-def serotonin_cls(serotonin_module_and_cls):
+def serotonin_cls(serotonin_module_and_cls: tuple[types.ModuleType, Any]) -> Any:
     _, cls = serotonin_module_and_cls
     return cls
 
@@ -66,18 +71,20 @@ def serotonin_config_path(tmp_path: Path) -> Path:
 
 
 @pytest.fixture()
-def serotonin_controller(serotonin_cls, serotonin_config_path):
+def serotonin_controller(serotonin_cls: Any, serotonin_config_path: Path) -> Any:
     return serotonin_cls(str(serotonin_config_path))
 
 
-def test_resolve_config_path_direct_file(serotonin_cls, serotonin_config_path):
+def test_resolve_config_path_direct_file(
+    serotonin_cls: Any, serotonin_config_path: Path
+) -> None:
     resolved = serotonin_cls._resolve_config_path(str(serotonin_config_path))
     assert resolved == serotonin_config_path
 
 
 def test_resolve_config_path_prefers_env_dir(
-    monkeypatch, serotonin_cls, tmp_path: Path
-):
+    monkeypatch: pytest.MonkeyPatch, serotonin_cls: Any, tmp_path: Path
+) -> None:
     env_dir = tmp_path / "env"
     env_dir.mkdir()
     alt_cfg = env_dir / "serotonin.yaml"
@@ -94,13 +101,15 @@ def test_resolve_config_path_prefers_env_dir(
     assert resolved == alt_cfg
 
 
-def test_resolve_config_path_missing(monkeypatch, serotonin_cls, tmp_path: Path):
+def test_resolve_config_path_missing(
+    monkeypatch: pytest.MonkeyPatch, serotonin_cls: Any, tmp_path: Path
+) -> None:
     monkeypatch.delenv("GEOSYNC_CONFIG_DIR", raising=False)
     with pytest.raises(FileNotFoundError):
         serotonin_cls._resolve_config_path(str(tmp_path / "missing.yaml"))
 
 
-def test_config_profile_mismatch_rejected(serotonin_cls, tmp_path: Path):
+def test_config_profile_mismatch_rejected(serotonin_cls: Any, tmp_path: Path) -> None:
     cfg = {
         "active_profile": "legacy",
         "serotonin_legacy": {"tonic_beta": 0.1},
@@ -112,29 +121,34 @@ def test_config_profile_mismatch_rejected(serotonin_cls, tmp_path: Path):
         serotonin_cls(str(cfg_path))
 
 
-def test_config_unknown_root_rejected(serotonin_cls, tmp_path: Path):
-    cfg = {"active_profile": "v24", "serotonin_v24": {}, "unexpected": 1}
+def test_config_unknown_root_rejected(serotonin_cls: Any, tmp_path: Path) -> None:
+    cfg: dict[str, Any] = {
+        "active_profile": "v24",
+        "serotonin_v24": {},
+        "unexpected": 1,
+    }
     cfg_path = tmp_path / "serotonin.yaml"
     cfg_path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
     with pytest.raises(ValueError):
         serotonin_cls(str(cfg_path))
 
 
-def test_config_missing_profile_section(serotonin_cls, tmp_path: Path):
+def test_config_missing_profile_section(serotonin_cls: Any, tmp_path: Path) -> None:
     cfg_path = tmp_path / "serotonin.yaml"
     cfg_path.write_text(yaml.safe_dump({"active_profile": "v24"}), encoding="utf-8")
     with pytest.raises(ValueError):
         serotonin_cls(str(cfg_path))
 
 
-def test_multi_document_config_rejected(serotonin_cls, tmp_path: Path):
+def test_multi_document_config_rejected(serotonin_cls: Any, tmp_path: Path) -> None:
     cfg_path = tmp_path / "serotonin.yaml"
     cfg_path.write_text("---\nactive_profile: v24\n---\n{}", encoding="utf-8")
     with pytest.raises(ValueError):
         serotonin_cls(str(cfg_path))
 
 
-def test_estimate_aversive_state_matches_formula(serotonin_controller):
+def test_estimate_aversive_state_matches_formula(serotonin_controller: Any) -> None:
+    """INV-5HT3: higher stress -> higher serotonin; verify aversive-state formula."""
     ctrl = serotonin_controller
     cfg = ctrl.config
     market_vol = 4.0
@@ -155,7 +169,10 @@ def test_estimate_aversive_state_matches_formula(serotonin_controller):
     assert math.isclose(result, expected, rel_tol=1e-6)
 
 
-def test_estimate_aversive_state_with_override_weights(serotonin_controller):
+def test_estimate_aversive_state_with_override_weights(
+    serotonin_controller: Any,
+) -> None:
+    """INV-5HT3: higher stress -> higher serotonin; overridden alpha amplifies response."""
     ctrl = serotonin_controller
     overrides = {"alpha": ctrl.config["alpha"] * 2}
 
@@ -165,7 +182,10 @@ def test_estimate_aversive_state_with_override_weights(serotonin_controller):
     assert overridden > baseline
 
 
-def test_estimate_aversive_state_rejects_negative_inputs(serotonin_controller):
+def test_estimate_aversive_state_rejects_negative_inputs(
+    serotonin_controller: Any,
+) -> None:
+    """INV-5HT3: aversive-state inputs must be non-negative to preserve monotone mapping."""
     ctrl = serotonin_controller
     with pytest.raises(ValueError):
         ctrl.estimate_aversive_state(-0.1, 0.2, 0.3, 0.0)
@@ -175,7 +195,8 @@ def test_estimate_aversive_state_rejects_negative_inputs(serotonin_controller):
         ctrl.estimate_aversive_state(0.1, 0.2, -0.3, 0.0)
 
 
-def test_compute_serotonin_signal_updates_floor(serotonin_controller):
+def test_compute_serotonin_signal_updates_floor(serotonin_controller: Any) -> None:
+    """INV-5HT2, INV-5HT5: signal in [0,1] and temperature_floor bounded."""
     ctrl = serotonin_controller
     cfg = ctrl.config
 
@@ -192,13 +213,15 @@ def test_compute_serotonin_signal_updates_floor(serotonin_controller):
     assert floor_high >= floor_low
 
 
-def test_compute_serotonin_signal_rejects_negative(serotonin_controller):
+def test_compute_serotonin_signal_rejects_negative(serotonin_controller: Any) -> None:
+    """INV-5HT2: serotonin signal domain guard — negative input rejected."""
     ctrl = serotonin_controller
     with pytest.raises(ValueError):
         ctrl.compute_serotonin_signal(-0.5)
 
 
-def test_modulate_action_prob_applies_inhibition(serotonin_controller):
+def test_modulate_action_prob_applies_inhibition(serotonin_controller: Any) -> None:
+    """INV-5HT2: modulated probability stays in [0,1]."""
     ctrl = serotonin_controller
     ctrl.serotonin_level = 0.6
     result = ctrl.modulate_action_prob(0.8)
@@ -213,13 +236,17 @@ def test_modulate_action_prob_applies_inhibition(serotonin_controller):
     assert math.isclose(result, expected, rel_tol=1e-6)
 
 
-def test_modulate_action_prob_rejects_invalid_probability(serotonin_controller):
+def test_modulate_action_prob_rejects_invalid_probability(
+    serotonin_controller: Any,
+) -> None:
+    """INV-5HT2: probability input must be in [0,1]."""
     ctrl = serotonin_controller
     with pytest.raises(ValueError):
         ctrl.modulate_action_prob(1.5)
 
 
-def test_apply_internal_shift_tempering(serotonin_controller):
+def test_apply_internal_shift_tempering(serotonin_controller: Any) -> None:
+    """INV-5HT1: Lyapunov V non-increasing; higher signal tempers more."""
     ctrl = serotonin_controller
     ctrl.serotonin_level = 0.7
     baseline = ctrl.apply_internal_shift(1.0, serotonin_signal=0.2)
@@ -229,13 +256,17 @@ def test_apply_internal_shift_tempering(serotonin_controller):
     assert tempered >= 0.0
 
 
-def test_apply_internal_shift_requires_non_negative_gradient(serotonin_controller):
+def test_apply_internal_shift_requires_non_negative_gradient(
+    serotonin_controller: Any,
+) -> None:
+    """INV-5HT1: gradient input must be non-negative for Lyapunov stability."""
     ctrl = serotonin_controller
     with pytest.raises(ValueError):
         ctrl.apply_internal_shift(-0.1)
 
 
-def test_check_cooldown_hysteresis(serotonin_controller):
+def test_check_cooldown_hysteresis(serotonin_controller: Any) -> None:
+    """INV-5HT7: cooldown hysteresis band prevents oscillation near threshold."""
     ctrl = serotonin_controller
     margin = 0.05
     threshold = ctrl.config["cooldown_threshold"]
@@ -251,13 +282,16 @@ def test_check_cooldown_hysteresis(serotonin_controller):
     assert not ctrl.check_cooldown(threshold * (1.0 - margin) - 1e-6)
 
 
-def test_check_cooldown_guard_can_block(monkeypatch, serotonin_controller):
+def test_check_cooldown_guard_can_block(
+    monkeypatch: pytest.MonkeyPatch, serotonin_controller: Any
+) -> None:
+    """INV-5HT7: TACL guard can veto cooldown activation."""
     ctrl = serotonin_controller
     ctrl._hold_state = False
     ctrl.phasic_level = ctrl.config["phasic_veto"] * 2
-    block_calls = []
+    block_calls: list[tuple[str, dict[str, Any]]] = []
 
-    def guard(name: str, payload: dict) -> bool:
+    def guard(name: str, payload: dict[str, Any]) -> bool:
         block_calls.append((name, payload))
         return False
 
@@ -267,24 +301,32 @@ def test_check_cooldown_guard_can_block(monkeypatch, serotonin_controller):
     assert block_calls and block_calls[0][0] == "serotonin_cooldown"
 
 
-def test_step_validates_inputs(serotonin_controller, caplog):
+def test_step_validates_inputs(
+    serotonin_controller: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    """INV-5HT3: step rejects negative stress; coerces positive drawdown."""
     ctrl = serotonin_controller
     with pytest.raises(ValueError):
         ctrl.step(stress=-0.1, drawdown=-0.01, novelty=0.2)
     with caplog.at_level("WARNING"):
         ctrl.step(stress=0.1, drawdown=0.01, novelty=0.2)
-        assert any("coercing to negative" in record.message for record in caplog.records)
+        assert any(
+            "coercing to negative" in record.message for record in caplog.records
+        )
     with pytest.raises(ValueError):
         ctrl.step(stress=0.1, drawdown=-0.01, novelty=-0.2)
 
 
 def test_step_returns_cooldown_tuple(
-    monkeypatch, serotonin_module, serotonin_controller
-):
+    monkeypatch: pytest.MonkeyPatch,
+    serotonin_module: types.ModuleType,
+    serotonin_controller: Any,
+) -> None:
+    """INV-5HT2, INV-5HT7: step returns (hold, veto, cooldown, level) with level in [0,1]."""
     ctrl = serotonin_controller
     times = [1000.0, 1000.1, 1000.2, 1000.3]
 
-    def fake_time():
+    def fake_time() -> float:
         return times.pop(0)
 
     monkeypatch.setattr(serotonin_module, "time", fake_time)
@@ -298,15 +340,19 @@ def test_step_returns_cooldown_tuple(
 
 
 def test_to_dict_reports_current_state(
-    monkeypatch, serotonin_module, serotonin_controller, tmp_path: Path
-):
+    monkeypatch: pytest.MonkeyPatch,
+    serotonin_module: types.ModuleType,
+    serotonin_controller: Any,
+    tmp_path: Path,
+) -> None:
+    """INV-5HT5: snapshot includes temperature_floor within configured bounds."""
     ctrl = serotonin_controller
     ctrl._hold_state = True
     ctrl._cooldown_start_time = 50.0
 
     times = [60.0]
 
-    def fake_time():
+    def fake_time() -> float:
         return times[0]
 
     monkeypatch.setattr(serotonin_module, "time", fake_time)
@@ -319,14 +365,17 @@ def test_to_dict_reports_current_state(
 
 
 def test_save_state_persists_json(
-    monkeypatch, serotonin_module, serotonin_controller, tmp_path: Path
-):
+    monkeypatch: pytest.MonkeyPatch,
+    serotonin_module: types.ModuleType,
+    serotonin_controller: Any,
+    tmp_path: Path,
+) -> None:
     ctrl = serotonin_controller
     target = tmp_path / "state.json"
 
     times = [100.0, 100.0]
 
-    def fake_time():
+    def fake_time() -> float:
         return times[0]
 
     monkeypatch.setattr(serotonin_module, "time", fake_time)
@@ -338,11 +387,11 @@ def test_save_state_persists_json(
     assert "serotonin_level" in data
 
 
-def test_config_rejects_extra_fields(serotonin_cls, tmp_path: Path):
+def test_config_rejects_extra_fields(serotonin_cls: Any, tmp_path: Path) -> None:
     """Test that SerotoninConfig rejects unexpected fields."""
     config_with_extra = tmp_path / "config_extra.yaml"
 
-    base_cfg = {
+    base_cfg: dict[str, Any] = {
         "alpha": 0.5,
         "beta": 0.3,
         "gamma": 0.4,
@@ -380,7 +429,7 @@ def test_config_rejects_extra_fields(serotonin_cls, tmp_path: Path):
         serotonin_cls(str(config_with_extra))
 
 
-def test_config_validates_required_fields(serotonin_cls, tmp_path: Path):
+def test_config_validates_required_fields(serotonin_cls: Any, tmp_path: Path) -> None:
     """Test that SerotoninConfig still requires all necessary fields."""
     incomplete_config = tmp_path / "incomplete.yaml"
 
@@ -406,9 +455,9 @@ beta: 0.3
 
 
 def test_dual_compatibility_config_loads_successfully(
-    serotonin_cls, serotonin_config_path
-):
-    """Test that the strict v2.4.0 config loads correctly."""
+    serotonin_cls: Any, serotonin_config_path: Path
+) -> None:
+    """INV-5HT6, INV-5HT4: tonic_level starts at 0 (finite, >=0); sensitivity starts at 1.0."""
     ctrl = serotonin_cls(str(serotonin_config_path))
 
     # Verify all required v2.4.0 fields are present and loaded
@@ -433,12 +482,12 @@ def test_dual_compatibility_config_loads_successfully(
     assert result >= 0.0
 
 
-def test_config_field_types_are_validated(serotonin_cls, tmp_path: Path):
+def test_config_field_types_are_validated(serotonin_cls: Any, tmp_path: Path) -> None:
     """Test that config field types are properly validated by Pydantic."""
     invalid_config = tmp_path / "invalid_types.yaml"
 
     # Config with invalid type for numeric field
-    invalid_body = {
+    invalid_body: dict[str, Any] = {
         "alpha": "not_a_number",
         "beta": 0.3,
         "gamma": 0.4,
@@ -478,12 +527,12 @@ def test_config_field_types_are_validated(serotonin_cls, tmp_path: Path):
         serotonin_cls(str(invalid_config))
 
 
-def test_config_constraints_are_enforced(serotonin_cls, tmp_path: Path):
+def test_config_constraints_are_enforced(serotonin_cls: Any, tmp_path: Path) -> None:
     """Test that config field constraints (ge, le, gt) are enforced."""
     invalid_config = tmp_path / "invalid_constraints.yaml"
 
     # Config with value outside allowed range (alpha should be >= 0.0)
-    invalid_body = {
+    invalid_body: dict[str, Any] = {
         "alpha": -1.0,
         "beta": 0.3,
         "gamma": 0.4,
@@ -520,7 +569,8 @@ def test_config_constraints_are_enforced(serotonin_cls, tmp_path: Path):
         serotonin_cls(str(invalid_config))
 
 
-def test_risk_budget_monotone_in_stress(serotonin_controller):
+def test_risk_budget_monotone_in_stress(serotonin_controller: Any) -> None:
+    """INV-5HT3: higher stress -> lower risk budget (monotone decreasing)."""
     budgets: list[float] = []
     for stress in (0.0, 0.5, 1.0, 2.0):
         budget, _ = serotonin_controller._derive_risk_budget(
@@ -530,7 +580,8 @@ def test_risk_budget_monotone_in_stress(serotonin_controller):
     assert budgets == sorted(budgets, reverse=True)
 
 
-def test_serotonin_signal_stays_bounded(serotonin_controller):
+def test_serotonin_signal_stays_bounded(serotonin_controller: Any) -> None:
+    """INV-5HT2: s(t) in [0,1] even for extreme input."""
     val = serotonin_controller.compute_serotonin_signal(1e6)
     assert 0.0 <= val <= 1.0
     assert math.isfinite(val)

@@ -45,7 +45,7 @@ def adapt_ddm_parameters(
         raise ValueError("base_drift must be positive and finite")
     if not math.isfinite(base_boundary) or base_boundary <= 0.0:
         raise ValueError("base_boundary must be positive and finite")
-    dopamine_level = min(1.0, max(0.0, dopamine_level))
+    dopamine_level = min(1.0, max(0.0, dopamine_level))  # INV-DA3: DA ∈ [0,1]
 
     centred = dopamine_level - 0.5
     drift = base_drift * (1.0 + drift_gain * centred * 2.0)
@@ -97,9 +97,9 @@ def ddm_thresholds(
     no_go_threshold = 0.5 - threshold_gain * (coherence + boundary_delta)
     hold_threshold = 0.5 + hold_gain * hold_drive
 
-    go_threshold = min(1.0, max(0.0, go_threshold))
-    no_go_threshold = min(1.0, max(0.0, no_go_threshold))
-    hold_threshold = min(1.0, max(0.0, hold_threshold))
+    go_threshold = min(1.0, max(0.0, go_threshold))  # INV-DA3: threshold ∈ [0,1]
+    no_go_threshold = min(1.0, max(0.0, no_go_threshold))  # INV-DA3: threshold ∈ [0,1]
+    hold_threshold = min(1.0, max(0.0, hold_threshold))  # INV-DA3: threshold ∈ [0,1]
 
     if go_threshold < no_go_threshold:
         mid = (go_threshold + no_go_threshold) / 2.0

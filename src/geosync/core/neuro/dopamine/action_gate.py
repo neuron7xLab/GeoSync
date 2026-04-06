@@ -73,9 +73,7 @@ class ActionGate:
         try:
             self._logger(name, float(value))
         except Exception as exc:  # pragma: no cover - defensive
-            logging.getLogger(__name__).debug(
-                "ActionGate logger failed for %s: %s", name, exc
-            )
+            logging.getLogger(__name__).debug("ActionGate logger failed for %s: %s", name, exc)
 
     def evaluate(
         self,
@@ -85,11 +83,11 @@ class ActionGate:
         gaba: Optional[GABASnapshot] = None,
         na_ach: Optional[NAACHSnapshot] = None,
     ) -> GateEvaluation:
-        da = float(min(1.0, max(0.0, dopamine.level)))
+        da = float(min(1.0, max(0.0, dopamine.level)))  # INV-DA3: DA ∈ [0,1]
         temperature = float(max(STABILITY_EPSILON, dopamine.temperature))
-        go_threshold = min(1.0, max(0.0, dopamine.go_threshold))
-        no_go_threshold = min(1.0, max(0.0, dopamine.no_go_threshold))
-        hold_threshold = min(1.0, max(0.0, dopamine.hold_threshold))
+        go_threshold = min(1.0, max(0.0, dopamine.go_threshold))  # INV-DA3: threshold ∈ [0,1]
+        no_go_threshold = min(1.0, max(0.0, dopamine.no_go_threshold))  # INV-DA3: threshold ∈ [0,1]
+        hold_threshold = min(1.0, max(0.0, dopamine.hold_threshold))  # INV-DA3: threshold ∈ [0,1]
 
         hold = not dopamine.release_gate_open or da < hold_threshold
         serotonin_floor = 0.0
@@ -100,7 +98,7 @@ class ActionGate:
         inhibition = 0.0
         stdp_dw = 0.0
         if gaba is not None:
-            inhibition = min(0.99, max(0.0, gaba.inhibition))
+            inhibition = min(0.99, max(0.0, gaba.inhibition))  # INV-GABA1: gate ∈ [0,1]
             stdp_dw = float(gaba.stdp_dw)
             if inhibition >= 0.8:
                 hold = True
@@ -108,12 +106,16 @@ class ActionGate:
         attention = 1.0
         temp_scale = 1.0
         if na_ach is not None:
-            attention = min(2.0, max(0.2, na_ach.attention))
-            temp_scale = min(3.0, max(0.2, na_ach.temperature_scale))
+            attention = min(
+                2.0, max(0.2, na_ach.attention)
+            )  # bounds: NA/ACh attention gain ∈ [0.2, 2.0]
+            temp_scale = min(
+                3.0, max(0.2, na_ach.temperature_scale)
+            )  # bounds: temperature scale ∈ [0.2, 3.0]
 
         score = da * (1.0 - inhibition)
         score *= attention
-        score = min(1.0, max(0.0, score))
+        score = min(1.0, max(0.0, score))  # INV-DA3: composite score ∈ [0,1]
 
         go = score > go_threshold and not hold
         no_go = hold or score < no_go_threshold

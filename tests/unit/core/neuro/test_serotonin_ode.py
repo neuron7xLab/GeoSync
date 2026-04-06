@@ -7,8 +7,6 @@ SPDX-License-Identifier: MIT
 
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from core.neuro.serotonin_ode import SerotoninODE, SerotoninODEParams
@@ -32,12 +30,14 @@ class TestSteadyState:
     """Under zero stress, level should converge to baseline."""
 
     def test_converges_to_baseline(self, params: SerotoninODEParams) -> None:
+        """INV-5HT1: zero-stress trajectory converges to baseline (Lyapunov stability)."""
         ode = SerotoninODE(params, level=0.8, desensitization=0.0)
         for _ in range(5000):
             ode.step(stress=0.0, dt=0.1)
         assert ode.level == pytest.approx(params.baseline, abs=0.02)
 
     def test_low_start_converges_up(self, params: SerotoninODEParams) -> None:
+        """INV-5HT1: low initial level converges up to baseline under zero stress."""
         ode = SerotoninODE(params, level=0.05, desensitization=0.0)
         for _ in range(5000):
             ode.step(stress=0.0, dt=0.1)
@@ -52,6 +52,7 @@ class TestStressResponse:
     """High stress input should increase 5-HT level."""
 
     def test_stress_raises_level(self, params: SerotoninODEParams) -> None:
+        """INV-5HT3: higher stress input produces higher serotonin level."""
         ode = SerotoninODE(params, level=params.baseline)
         for _ in range(100):
             ode.step(stress=1.0, dt=0.1)
@@ -68,6 +69,7 @@ class TestDesensitisation:
     def test_sustained_stress_increases_desens(
         self, params: SerotoninODEParams
     ) -> None:
+        """INV-5HT4: sustained stress builds receptor desensitisation."""
         ode = SerotoninODE(params, level=params.baseline)
         # Drive level above threshold with stress
         for _ in range(500):
@@ -133,9 +135,9 @@ class TestRK4Accuracy:
 
         rk4_err = abs(rk4.level - ref_level)
         euler_err = abs(euler.level - ref_level)
-        assert rk4_err < euler_err, (
-            f"RK4 error {rk4_err:.6e} should be < Euler error {euler_err:.6e}"
-        )
+        assert (
+            rk4_err < euler_err
+        ), f"RK4 error {rk4_err:.6e} should be < Euler error {euler_err:.6e}"
 
 
 # ── Lyapunov stability ──────────────────────────────────────────────
@@ -148,6 +150,7 @@ class TestLyapunovStability:
     def test_verify_lyapunov_normal_trajectory(
         self, params: SerotoninODEParams
     ) -> None:
+        """INV-5HT1: Lyapunov function V non-increasing along zero-stress trajectory."""
         # Use params without desensitisation coupling for clean Lyapunov
         # (desens introduces cross-term that can cause small V bumps)
         clean_params = SerotoninODEParams(eta=0.0, delta=0.0)
@@ -159,6 +162,7 @@ class TestLyapunovStability:
         assert ode.verify_lyapunov(trajectory)
 
     def test_lyapunov_monotonicity(self, params: SerotoninODEParams) -> None:
+        """INV-5HT1: V(t+1) ≤ V(t) + eps for every step of the trajectory."""
         # Use params without desensitisation for monotonic V decrease
         clean_params = SerotoninODEParams(eta=0.0, delta=0.0)
         ode = SerotoninODE(clean_params, level=0.8, desensitization=0.0)
@@ -186,12 +190,14 @@ class TestBoundedness:
 
     @pytest.mark.parametrize("stress", [0.0, 0.5, 1.0, 2.0, 5.0])
     def test_level_bounded(self, params: SerotoninODEParams, stress: float) -> None:
+        """INV-5HT2: s(t) ∈ [0, 1] for every step under varied stress."""
         ode = SerotoninODE(params, level=0.5)
         for _ in range(1000):
             ode.step(stress=stress, dt=0.1)
             assert 0.0 <= ode.level <= 1.0, f"Level {ode.level} out of [0,1]"
 
     def test_desens_non_negative(self, params: SerotoninODEParams) -> None:
+        """INV-5HT6: desensitisation non-negative under all conditions."""
         ode = SerotoninODE(params, level=0.1, desensitization=0.0)
         for _ in range(500):
             ode.step(stress=0.0, dt=0.1)
