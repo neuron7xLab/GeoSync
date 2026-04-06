@@ -352,6 +352,7 @@ kelly:
       small_edge_regime: "|μ/σ²| well inside (0, 1) so finite-sample MC argmax is stable"
     falsification: "computed f* deviates from μ/σ² by more than one grid step on analytic inputs"
     common_mistake: "Picking μ/σ² ≈ 1 puts f* at the grid boundary where the negative return tail biases the MC estimator low. Stay interior (e.g. μ=0.01, σ≈0.17 → f*≈0.33)."
+    scope_note: "INV-KELLY1 describes the THEORETICAL optimum f* = μ/σ². The production KuramotoKellyAdapter does NOT compute raw Kelly — it computes kelly_base * scale(R) where scale is a coherence-adjusted multiplier ∈ [floor, ceil]. The theoretical formula is witnessed on synthetic distributions (test_T8, test_T20). The adapter's output is bounded by INV-KELLY2 (fraction cap). These are two layers: theory (INV-KELLY1) + implementation (INV-KELLY2)."
     priority: P0
 
   fraction_cap:

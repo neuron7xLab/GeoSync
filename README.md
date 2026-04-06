@@ -8,8 +8,8 @@
 
 <br><br>
 
-[![modules-13](https://img.shields.io/badge/modules-13-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
-[![invariants-53](https://img.shields.io/badge/invariants-53-critical?style=for-the-badge)](CLAUDE.md)
+[![modules-15](https://img.shields.io/badge/modules-15-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
+[![invariants-57](https://img.shields.io/badge/invariants-57-critical?style=for-the-badge)](CLAUDE.md)
 [![tests-10051](https://img.shields.io/badge/tests-10%2C051-brightgreen?style=for-the-badge)](tests/)
 [![indicators-46](https://img.shields.io/badge/indicators-46-gold?style=for-the-badge)](core/indicators/)
 [![ADRs-16](https://img.shields.io/badge/ADRs-16-blue?style=for-the-badge)](docs/adr/)
