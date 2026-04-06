@@ -54,7 +54,6 @@ sys.path.insert(0, str(_REPO_ROOT))
 
 from physics_contracts import Law, load_catalog  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # AST inspection
 # ---------------------------------------------------------------------------
@@ -157,8 +156,8 @@ def _read_inline_comments(source: str) -> dict[int, str]:
     comments away, so we do this out-of-band.
     """
 
-    import tokenize
     import io
+    import tokenize
 
     comments: dict[int, str] = {}
     try:
@@ -292,7 +291,7 @@ def analyse_file(path: Path, catalog: dict[str, Law], report: Report) -> None:
                     law_id=law_id,
                     line=node.lineno,
                     kind="unknown_law",
-                    detail=f"law id not in catalog.yaml",
+                    detail="law id not in catalog.yaml",
                 )
             )
             continue
@@ -371,11 +370,13 @@ def _format_text_report(report: Report, catalog: dict[str, Law]) -> str:
     lines.append("")
 
     blocking_missing = sorted(
-        lid for lid, law in catalog.items()
+        lid
+        for lid, law in catalog.items()
         if law.is_blocking() and not report.witnesses_by_law.get(lid)
     )
     warn_missing = sorted(
-        lid for lid, law in catalog.items()
+        lid
+        for lid, law in catalog.items()
         if not law.is_blocking() and not report.witnesses_by_law.get(lid)
     )
     if blocking_missing:
@@ -410,11 +411,14 @@ def main(argv: list[str] | None = None) -> int:
         help="test roots to audit (default: the three pytest testpaths)",
     )
     parser.add_argument(
-        "--json", dest="json_out", default=None,
+        "--json",
+        dest="json_out",
+        default=None,
         help="write machine-readable report to this path",
     )
     parser.add_argument(
-        "--fail-on-orphans", action="store_true",
+        "--fail-on-orphans",
+        action="store_true",
         help="treat orphan tests as errors (off during baseline migration)",
     )
     args = parser.parse_args(argv)
@@ -442,7 +446,8 @@ def main(argv: list[str] | None = None) -> int:
         Path(args.json_out).write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     blocking_missing = [
-        lid for lid, law in catalog.items()
+        lid
+        for lid, law in catalog.items()
         if law.is_blocking() and not report.witnesses_by_law.get(lid)
     ]
     witness_errors = [f for f in report.findings if f.kind in {"unknown_law", "magic_literal"}]

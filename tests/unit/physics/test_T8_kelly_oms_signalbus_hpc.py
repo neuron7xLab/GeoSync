@@ -19,11 +19,9 @@ from __future__ import annotations
 import math
 
 import numpy as np
-import pytest
 
 from core.neuro.kuramoto_kelly import KuramotoKellyAdapter
 from core.neuro.signal_bus import NeuroSignalBus
-
 
 # ═════════════════════════════════════════════════════════════════════
 # INV-HPC1: seeded reproducibility of Kuramoto order parameter kernel
@@ -182,9 +180,9 @@ def test_kelly_optimal_fraction_matches_mu_over_sigma_squared():
     """
     # (mu, half_width, expected_f_star_interior_flag)
     scenarios = [
-        (0.01, 0.30),   # f* ≈ 0.333
+        (0.01, 0.30),  # f* ≈ 0.333
         (0.005, 0.25),  # f* ≈ 0.24
-        (0.02, 0.40),   # f* ≈ 0.375
+        (0.02, 0.40),  # f* ≈ 0.375
     ]
     grid_step = 1.0 / 200.0
     tolerance_epsilon = 2.0 * grid_step  # law-derived: grid + MC combined budget
