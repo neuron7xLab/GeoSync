@@ -135,12 +135,12 @@ def get_law(law_id: str) -> Law:
         return _CATALOG_CACHE[law_id]
     except KeyError as exc:
         known = ", ".join(sorted(_CATALOG_CACHE))
-        raise KeyError(
-            f"unknown law_id={law_id!r}. Known: {known}"
-        ) from exc
+        raise KeyError(f"unknown law_id={law_id!r}. Known: {known}") from exc
 
 
-def law(law_id: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def law(
+    law_id: str, **kwargs: Any
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator: bind a pytest function to a physical law.
 
     Usage::
@@ -207,9 +207,7 @@ def coverage_report(catalog: dict[str, Law] | None = None) -> dict[str, Any]:
     cat = catalog or load_catalog()
     witnessed = {lid for lid in WITNESS_REGISTRY if WITNESS_REGISTRY[lid]}
     unwitnessed = sorted(set(cat) - witnessed)
-    blocking_missing = sorted(
-        lid for lid in unwitnessed if cat[lid].is_blocking()
-    )
+    blocking_missing = sorted(lid for lid in unwitnessed if cat[lid].is_blocking())
     return {
         "laws_total": len(cat),
         "laws_witnessed": len(witnessed & set(cat)),

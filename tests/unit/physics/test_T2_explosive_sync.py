@@ -14,8 +14,11 @@ from core.physics.explosive_sync import (
 @pytest.fixture
 def detector() -> ExplosiveSyncDetector:
     return ExplosiveSyncDetector(
-        K_range=(0.5, 4.0), n_K_steps=10, kuramoto_steps=100,
-        R_threshold=0.5, hysteresis_threshold=0.3,
+        K_range=(0.5, 4.0),
+        n_K_steps=10,
+        kuramoto_steps=100,
+        R_threshold=0.5,
+        hysteresis_threshold=0.3,
     )
 
 
@@ -97,7 +100,9 @@ class TestHysteresisDetection:
         reproducibility contract of the circuit breaker.
         """
         n_runs = 3
-        runs = [detector.measure_proximity(N=5, seed=42).R_forward for _ in range(n_runs)]
+        runs = [
+            detector.measure_proximity(N=5, seed=42).R_forward for _ in range(n_runs)
+        ]
         baseline = runs[0]
         for run_idx, other in enumerate(runs[1:], start=1):
             max_diff = float(np.max(np.abs(other - baseline)))
@@ -110,13 +115,16 @@ class TestHysteresisDetection:
 
     def test_with_adjacency(self, detector):
         """Custom adjacency should work."""
-        adj = np.array([
-            [0, 1, 0, 0, 0],
-            [1, 0, 1, 0, 0],
-            [0, 1, 0, 1, 0],
-            [0, 0, 1, 0, 1],
-            [0, 0, 0, 1, 0],
-        ], dtype=float)
+        adj = np.array(
+            [
+                [0, 1, 0, 0, 0],
+                [1, 0, 1, 0, 0],
+                [0, 1, 0, 1, 0],
+                [0, 0, 1, 0, 1],
+                [0, 0, 0, 1, 0],
+            ],
+            dtype=float,
+        )
         result = detector.measure_proximity(adjacency=adj, N=5, seed=42)
         assert isinstance(result, ESProximityResult)
 
