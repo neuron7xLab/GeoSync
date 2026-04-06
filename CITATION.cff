@@ -22,7 +22,7 @@ authors:
 repository-code: "https://github.com/neuron7xLab/GeoSync"
 url: "https://github.com/neuron7xLab/GeoSync"
 license: MIT
-version: 1.0.0
+version: 1.1.0
 date-released: "2026-04-06"
 keywords:
   - quantitative-finance
@@ -51,7 +51,7 @@ preferred-citation:
     - family-names: Vasylenko
       given-names: Yaroslav
   year: 2026
-  version: "1.0.0"
+  version: "1.1.0"
   url: "https://github.com/neuron7xLab/GeoSync"
   license: MIT
 references:
@@ -126,3 +126,38 @@ references:
     issue: 5306
     year: 1997
     doi: 10.1126/science.275.5306.1593
+  - type: article
+    title: "A practical method for calculating largest Lyapunov exponents from small data sets"
+    authors:
+      - family-names: Rosenstein
+        given-names: Michael T.
+      - family-names: Collins
+        given-names: James J.
+      - family-names: De Luca
+        given-names: Carlo J.
+    journal: "Physica D: Nonlinear Phenomena"
+    volume: 65
+    issue: 1-2
+    year: 1993
+    doi: 10.1016/0167-2789(93)90009-P
+  - type: article
+    title: "Ricci curvature of Markov chains on metric spaces"
+    authors:
+      - family-names: Ollivier
+        given-names: Yann
+    journal: "Journal of Functional Analysis"
+    volume: 256
+    issue: 3
+    year: 2009
+    doi: 10.1016/j.jfa.2008.11.001
+  - type: article
+    title: "Optimal gambling systems for favorable games"
+    authors:
+      - family-names: Kelly
+        given-names: John L.
+        suffix: Jr.
+    journal: "Bell System Technical Journal"
+    volume: 35
+    issue: 4
+    year: 1956
+    doi: 10.1002/j.1538-7305.1956.tb03809.x
