@@ -14,12 +14,12 @@ try:
 except ImportError:
     HAS_HYPOTHESIS = False
 
-    def given(*args, **kwargs):
+    def given(*args: object, **kwargs: object) -> object:  # type: ignore[no-redef]
         return lambda f: pytest.mark.skip(reason="hypothesis not installed")(f)
 
-    class st:  # type: ignore
+    class st:  # type: ignore[no-redef]
         @staticmethod
-        def floats(*args, **kwargs):
+        def floats(*args: object, **kwargs: object) -> None:
             return None
 
 
@@ -27,7 +27,7 @@ from geosync.core.neuro.dopamine.dopamine_controller import _ALLOWED_NOVELTY_MOD
 
 
 @st.composite
-def _config_strategy(draw):
+def _config_strategy(draw):  # type: ignore[no-untyped-def]
     base_temperature = draw(
         st.floats(min_value=0.05, max_value=5.0, allow_nan=False, allow_infinity=False)
     )
@@ -267,7 +267,7 @@ def _config_strategy(draw):
 @pytest.mark.skipif(not HAS_HYPOTHESIS, reason="hypothesis not installed")
 @settings(max_examples=25)
 @given(cfg=_config_strategy())
-def test_dopamine_invariants_property(cfg: dict) -> None:
+def test_dopamine_invariants_property(cfg: dict) -> None:  # type: ignore[type-arg]
     """INV-DA3: discount γ ∈ (0, 1] and all other dopamine config bounds
     hold for every hypothesis-sampled configuration.
 
