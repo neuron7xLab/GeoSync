@@ -1,0 +1,471 @@
+# GeoSync Physics Invariants Registry
+# ====================================
+# This file defines HARD physics constraints that code MUST satisfy.
+# Claude Code: read this before writing or modifying ANY test.
+# Format: each invariant has type, condition, falsification criteria.
+
+# ═══════════════════════════════════════════════════
+# KURAMOTO SYNCHRONIZATION
+# ═══════════════════════════════════════════════════
+
+kuramoto:
+  order_parameter_bounds:
+    id: INV-K1
+    type: universal  # holds always, no exceptions
+    statement: "0 ≤ R(t) ≤ 1 for all t"
+    test_type: property_test  # hypothesis/fuzzing
+    falsification: "R outside [0,1] for ANY input"
+    priority: P0  # block release
+
+  subcritical_decay:
+    id: INV-K2
+    type: asymptotic  # holds in limit t→∞
+    statement: "K < K_c ⟹ R(t→∞) → 0"
+    test_type: convergence_test
+    parameters:
+      K_c_formula: "2 / (π · g(0))"
+      finite_size_correction: "R_incoherent ~ O(1/√N)"
+      epsilon: "C / √N where C ∈ [2, 3]"
+    falsification: "R stays above 3/√N after 10⁴ steps with K = 0.1·K_c and N > 100"
+    common_mistake: "Testing R < 0.01 for N=10. Fluctuations are O(0.32). Use ε = 3/√N."
+    priority: P0
+
+  supercritical_order:
+    id: INV-K3
+    type: asymptotic
+    statement: "K > K_c ⟹ R(t→∞) = R_∞ > 0"
+    test_type: convergence_test
+    parameters:
+      near_transition: "R_∞ ∝ √(K - K_c)"
+    falsification: "R → 0 with K = 2·K_c after sufficient time"
+    priority: P0
+
+  monotonicity_in_K:
+    id: INV-K4
+    type: conditional  # holds for standard model ONLY
+    statement: "R_∞(K₁) ≤ R_∞(K₂) if K₁ < K₂"
+    condition: "Standard Kuramoto (no frequency-degree correlation)"
+    does_NOT_hold: "Higher-order Kuramoto, explosive sync"
+    test_type: sweep_test
+    priority: P1
+
+  finite_size_scaling:
+    id: INV-K5
+    type: statistical  # holds in expectation over ensemble
+    statement: "⟨R⟩ ≈ O(1/√N) in incoherent regime"
+    test_type: ensemble_test
+    parameters:
+      n_realizations: "≥ 50 for statistical power"
+      confidence: "95%"
+    priority: P1
+
+  phase_uniformity:
+    id: INV-K6
+    type: distributional
+    statement: "K < K_c ⟹ phases uniform on [-π, π]"
+    test_type: statistical_test
+    parameters:
+      test_method: "Rayleigh test for circular uniformity"
+    priority: P2
+
+  lyapunov_energy:
+    id: INV-K7
+    type: monotonic  # Lyapunov function
+    statement: "V = -(K·N/2)·R² is non-increasing (zero-frequency case)"
+    test_type: trajectory_test
+    condition: "All ω_i = 0 (identical frequencies)"
+    priority: P1
+
+# ═══════════════════════════════════════════════════
+# EXPLOSIVE SYNCHRONIZATION
+# ═══════════════════════════════════════════════════
+
+explosive_sync:
+  hysteresis_non_negative:
+    id: INV-ES1
+    type: universal
+    statement: "K_c^↑ - K_c^↓ ≥ 0 (forward threshold ≥ backward)"
+    test_type: property_test
+    falsification: "Negative hysteresis width"
+    priority: P0
+
+  discontinuous_transition:
+    id: INV-ES2
+    type: qualitative
+    statement: "With frequency-degree correlation, transition is discontinuous"
+    test_type: sweep_test
+    falsification: "R grows continuously through transition with ES-prone topology"
+    priority: P1
+
+# ═══════════════════════════════════════════════════
+# SEROTONIN ODE
+# ═══════════════════════════════════════════════════
+
+serotonin:
+  lyapunov_stability:
+    id: INV-5HT1
+    type: monotonic
+    statement: "Lyapunov function V(s) is non-increasing along trajectories"
+    test_type: trajectory_test
+    falsification: "V(t+dt) > V(t) + numerical_tolerance"
+    priority: P0
+
+  bounded_output:
+    id: INV-5HT2
+    type: universal
+    statement: "Serotonin level s(t) ∈ [0, s_max] for all t"
+    test_type: property_test
+    priority: P0
+
+  patience_response:
+    id: INV-5HT3
+    type: qualitative
+    statement: "Increasing stress → increasing serotonin (aversive wait signal)"
+    test_type: monotonicity_test
+    priority: P1
+
+  desensitization_bounds:
+    id: INV-5HT4
+    type: universal
+    statement: "sensitivity ∈ [0.1, 1.0] always"
+    test_type: property_test
+    falsification: "sensitivity outside [0.1, 1.0] after any step sequence"
+    priority: P0
+
+  temperature_floor_bounds:
+    id: INV-5HT5
+    type: universal
+    statement: "temperature_floor ∈ [floor_min, floor_max] always"
+    test_type: property_test
+    priority: P1
+
+  tonic_stability:
+    id: INV-5HT6
+    type: universal
+    statement: "tonic_level remains finite and non-negative under bounded inputs"
+    test_type: property_test
+    falsification: "tonic_level → ∞ or NaN under finite inputs"
+    priority: P0
+
+  hard_veto:
+    id: INV-5HT7
+    type: conditional
+    statement: "stress ≥ 1.0 OR |drawdown| ≥ 0.5 → veto = True"
+    test_type: property_test
+    falsification: "veto = False when stress ≥ 1.0 or |drawdown| ≥ 0.5"
+    priority: P0
+
+# ═══════════════════════════════════════════════════
+# DOPAMINE TD-ERROR
+# ═══════════════════════════════════════════════════
+
+dopamine:
+  td_error_sign:
+    id: INV-DA1
+    type: conditional
+    statement: "δ = r + γ·V(s') - V(s). Sign of δ reflects surprise direction."
+    test_type: property_test
+    parameters:
+      better_than_expected: "δ > 0"
+      worse_than_expected: "δ < 0"
+      as_expected: "δ ≈ 0"
+    priority: P0
+
+  convergence:
+    id: INV-DA2
+    type: asymptotic
+    statement: "Under standard conditions, V → V* (optimal value function)"
+    test_type: convergence_test
+    priority: P1
+
+  discount_bounds:
+    id: INV-DA3
+    type: universal
+    statement: "γ ∈ (0, 1]. γ ≤ 0 or γ > 1 must raise ValueError."
+    test_type: property_test
+    falsification: "γ outside (0,1] accepted without error"
+    scope_note: "Enforced in geosync.core.neuro.dopamine.dopamine_controller.DopamineController.compute_rpe (line 766). NOT enforced in rl/core/reward_prediction_error.py which accepts any float gamma. Witnesses must target DopamineController."
+    priority: P0
+
+  value_convergence:
+    id: INV-DA4
+    type: asymptotic
+    statement: "V stabilizes within bounds after many updates with fixed reward"
+    test_type: convergence_test
+    priority: P1
+
+  rpe_zero_at_equilibrium:
+    id: INV-DA5
+    type: statistical
+    statement: "When V ≈ V*, E[δ] ≈ 0"
+    test_type: ensemble_test
+    priority: P1
+
+  learning_rate_tradeoff:
+    id: INV-DA6
+    type: qualitative
+    statement: "Larger α → faster adaptation but more variance"
+    test_type: sweep_test
+    priority: P2
+
+  rpe_linear_in_reward:
+    id: INV-DA7
+    type: algebraic
+    statement: "∂δ/∂r = 1 (RPE linear in reward, exact) on the raw TD formula δ = r + γV' − V"
+    test_type: property_test
+    falsification: "δ(r₂) - δ(r₁) ≠ r₂ - r₁ for fixed V, V', γ"
+    scope_note: "Holds for DopamineController.compute_rpe (raw TD, no normalisation). Does NOT hold for DopamineExecutionAdapter.compute_rpe which applies tanh(scale * raw_rpe) — that path has ∂δ/∂r = sech²(·) ≠ 1. Witnesses must target the controller, not the adapter."
+    priority: P0
+
+# ═══════════════════════════════════════════════════
+# GABA INHIBITION GATE
+# ═══════════════════════════════════════════════════
+
+gaba:
+  gate_bounds:
+    id: INV-GABA1
+    type: universal
+    statement: "Inhibition gate output ∈ [0, 1]"
+    test_type: property_test
+    priority: P0
+
+  high_volatility_inhibits:
+    id: INV-GABA2
+    type: qualitative
+    statement: "Higher VIX/volatility → stronger inhibition (closer to 1)"
+    test_type: monotonicity_test
+    priority: P0
+
+  position_reduction:
+    id: INV-GABA3
+    type: universal
+    statement: "effective_position ≤ raw_position (inhibition only reduces)"
+    test_type: property_test
+    falsification: "effective_position > raw_position for any volatility"
+    priority: P0
+
+  zero_vol_limit:
+    id: INV-GABA4
+    type: asymptotic
+    statement: "vol → 0 implies inhibition → σ(-k·θ) ≈ 0 for typical θ > 0"
+    test_type: convergence_test
+    priority: P1
+
+  extreme_vol_limit:
+    id: INV-GABA5
+    type: asymptotic
+    statement: "vol → ∞ implies inhibition → 1"
+    test_type: convergence_test
+    priority: P1
+
+# ═══════════════════════════════════════════════════
+# FREE ENERGY / ECS
+# ═══════════════════════════════════════════════════
+
+free_energy:
+  lyapunov_monotonicity:
+    id: INV-FE1
+    type: monotonic
+    statement: "Free energy F(t) is non-increasing under active inference update"
+    test_type: trajectory_test
+    falsification: "F(t+1) > F(t) + ε where ε accounts for numerical precision"
+    priority: P0
+
+  components_non_negative:
+    id: INV-FE2
+    type: universal
+    statement: "Each free-energy component is non-negative: U ≥ 0, T ≥ 0, S ≥ 0 (Tsallis q>1). F = U − T·S itself can be either sign."
+    test_type: property_test
+    parameters:
+      rationale: "The original statement 'F ≥ 0' is physically incorrect — Helmholtz free energy is unbounded below (high-entropy systems at high temperature routinely have F < 0). What must hold is the non-negativity of the individual building blocks: the risk-exposure U = Σ|pos|·|ret|, the order-book temperature T_LOB, and the Tsallis entropy S_q for q > 1. A negative value in any of these indicates a bug in the corresponding subroutine, not a physics fluctuation."
+    falsification: "core.physics.free_energy_trading_gate.FreeEnergyTradingGate.check returns U_before or U_after < 0, or T_LOB < 0, or S_q_before or S_q_after < 0 on any valid input"
+    priority: P0
+
+# ═══════════════════════════════════════════════════
+# THERMODYNAMIC CONSTRAINTS
+# ═══════════════════════════════════════════════════
+
+thermodynamics:
+  energy_conservation:
+    id: INV-TH1
+    type: conservation
+    statement: "Total system energy change = work done + heat dissipated"
+    test_type: balance_test
+    priority: P1
+
+  second_law:
+    id: INV-TH2
+    type: universal
+    statement: "Entropy production ≥ 0 in irreversible processes"
+    test_type: property_test
+    priority: P1
+
+# ═══════════════════════════════════════════════════
+# RICCI CURVATURE
+# ═══════════════════════════════════════════════════
+
+ricci:
+  curvature_bounds:
+    id: INV-RC1
+    type: universal
+    statement: "Ollivier-Ricci curvature κ(i,j) ≤ 1 for every edge of every connected graph"
+    test_type: property_test
+    parameters:
+      rationale: "κ = 1 − W₁(m_x, m_y)/d(x,y) and W₁ ≥ 0 always, so κ ≤ 1 is a definitional upper bound independent of graph topology or walk laziness"
+      lower_bound_note: "The lower bound κ ≥ −1 holds only for lazy random walks (α ≥ 1/2) on a combinatorial metric. The implementation in core/indicators/ricci.py uses 1-D positional embedding (offset/scale from graph attrs) and α = 1/(deg+1), so κ can descend below −1 for non-price-graph topologies with large positional spread (e.g. cycle_12 gives κ=−2 on adjacent nodes separated by 9 in the integer embedding). Price graphs built via build_price_graph() produce adjacent integer node IDs and do satisfy κ ∈ [−1, 1]; that tighter bound is tracked as INV-RC3."
+    falsification: "ricci_curvature_edge returns κ > 1 for any edge of any connected graph"
+    priority: P0
+
+  positive_curvature_clustering:
+    id: INV-RC2
+    type: qualitative
+    statement: "κ > 0 indicates clustering / community structure"
+    test_type: correlation_test
+    priority: P2
+
+  price_graph_bounds:
+    id: INV-RC3
+    type: universal
+    statement: "κ(i,j) ∈ [−1, 1] for every edge of a price graph built via core.indicators.ricci.build_price_graph"
+    test_type: property_test
+    parameters:
+      scope: "build_price_graph output only — adjacent integer price-level nodes with unit delta in the 1D embedding"
+      tighter_than_RC1: "This is the tightened Ollivier bound that requires (a) consecutive integer node IDs and (b) lazy random walk with α = 1/(deg+1), both guaranteed by the price-graph constructor"
+    falsification: "κ outside [−1, 1] on any edge of a build_price_graph() output with a finite, bounded price series"
+    priority: P1
+
+# ═══════════════════════════════════════════════════
+# KELLY SIZING
+# Physics: log-optimal betting in the small-edge continuous limit.
+# Source: Kelly 1956; Thorp 2006; core/neuro/kuramoto_kelly.py
+# ═══════════════════════════════════════════════════
+
+kelly:
+  optimal_fraction_formula:
+    id: INV-KELLY1
+    type: algebraic
+    statement: "f* = μ / σ² for log-optimal betting in the small-edge continuous limit"
+    test_type: property_test
+    parameters:
+      mu: "expected excess return"
+      sigma: "return volatility (std)"
+      small_edge_regime: "|μ/σ²| well inside (0, 1) so finite-sample MC argmax is stable"
+    falsification: "computed f* deviates from μ/σ² by more than one grid step on analytic inputs"
+    common_mistake: "Picking μ/σ² ≈ 1 puts f* at the grid boundary where the negative return tail biases the MC estimator low. Stay interior (e.g. μ=0.01, σ≈0.17 → f*≈0.33)."
+    priority: P0
+
+  fraction_cap:
+    id: INV-KELLY2
+    type: universal
+    statement: "The applied Kelly fraction is never larger than the configured drawdown cap"
+    test_type: property_test
+    parameters:
+      f_max: "configured cap from risk policy (half-Kelly typical, 0.25–0.5)"
+    falsification: "engine returns f_applied > f_max for any input"
+    priority: P0
+
+  log_growth_optimality:
+    id: INV-KELLY3
+    type: statistical
+    statement: "E[log(1 + f*·X)] ≥ E[log(1 + f'·X)] for any f' ≠ f* on bounded returns"
+    test_type: ensemble_test
+    parameters:
+      n_trials: "≥ 1e5 samples from a bounded distribution (Uniform, truncated Normal)"
+      grid_step: "1/200 over f ∈ [0, 1]"
+      boundedness: "|X| < 1/f_max so log1p(f·X) stays real for every tested f"
+    falsification: "argmax of empirical E[log(1+fX)] differs from μ/σ² by more than grid_step + one MC sigma"
+    common_mistake: "Using unbounded returns (Gaussian with large σ) yields log(negative) and corrupts the argmax — always truncate or use bounded distributions."
+    priority: P1
+
+# ═══════════════════════════════════════════════════
+# ORDER MANAGEMENT SYSTEM (OMS)
+# Physics: accounting conservation, idempotency, causal ordering.
+# Source: execution/oms.py; core/physics/portfolio_conservation.py
+# ═══════════════════════════════════════════════════
+
+oms:
+  portfolio_energy_conservation:
+    id: INV-OMS1
+    type: universal
+    statement: "Portfolio kinetic energy E_kinetic = ½·Σ|pos|·ret² ≥ 0 for every portfolio state"
+    test_type: property_test
+    parameters:
+      module: "core.physics.portfolio_conservation.PortfolioEnergyConservation"
+      scope: "Energy-level conservation check; per-fill accounting (Σ Δpos·price + Δcash = 0) still awaits a full OMS + book fixture and is tracked as future work."
+      rationale: "The universal conservation primitive the platform actually exposes today is the kinetic-energy non-negativity in PortfolioEnergyConservation. E_kinetic is a sum of non-negative products, so any negative return from compute_kinetic is a bug in the absolute-value path."
+    falsification: "PortfolioEnergyConservation.compute_kinetic returns a negative value on any (positions, returns) pair"
+    priority: P0
+
+  idempotency:
+    id: INV-OMS2
+    type: universal
+    statement: "apply(order) ≡ apply(order, order, ..., order) — same client_order_id produces at most one state change"
+    test_type: property_test
+    parameters:
+      n_replays: "≥ 5 submissions of the identical order"
+    falsification: "second submission of the same client_order_id changes book state"
+    priority: P0
+
+  causal_order:
+    id: INV-OMS3
+    type: universal
+    statement: "Lifecycle event timestamps are monotonically non-decreasing per order_id"
+    test_type: property_test
+    falsification: "t_{k+1} < t_k observed in lifecycle.history(order_id) sequence"
+    scope_note: "Monotonicity relies on the clock callable passed to OrderLifecycle (default: time.time() which is monotonic on Linux). The OMS itself does not validate timestamp ordering — it is a consequence of single-threaded synchronous event recording under RLock."
+    priority: P0
+
+# ═══════════════════════════════════════════════════
+# SIGNAL BUS
+# Physics: DAG structure per tick, deterministic replay under fixed seed.
+# Source: core/neuro/signal_bus.py
+# ═══════════════════════════════════════════════════
+
+signalbus:
+  acyclic_fanout:
+    id: INV-SB1
+    type: universal
+    statement: "The NeuroSignalBus supports DAG fanout: a linear chain of subscriber callbacks fires each node exactly once per root publish"
+    test_type: property_test
+    falsification: "any subscriber in a DAG-wired chain fires zero or more than once on a single root publish"
+    scope_note: "The bus is a flat pub/sub (signal_bus.py) with no built-in cycle detector or topological sort. Cyclic subscriptions (A→B→A) cause Python RecursionError, not a clean rejection. The invariant asserts correct DAG traversal when the subscription graph IS acyclic — it does not claim the bus prevents cycles."
+    priority: P0
+
+  deterministic_replay:
+    id: INV-SB2
+    type: universal
+    statement: "Publishing an identical sequence of values into fresh NeuroSignalBus instances produces bit-identical snapshots"
+    test_type: property_test
+    parameters:
+      n_runs: "≥ 3 fresh-bus replays of the same publish sequence"
+    falsification: "two fresh bus instances receiving the same publish sequence yield different snapshot values"
+    scope_note: "The bus is deterministic by construction — it is a pure latch with no RNG, no hash-dependent ordering, and no concurrency (all publishes happen under RLock). No explicit replay() method or seed parameter is needed; determinism is a structural property of the latch design."
+    priority: P0
+
+# ═══════════════════════════════════════════════════
+# HPC KERNELS
+# Physics: numerical reproducibility and stability.
+# Source: geosync_hpc/*.py
+# ═══════════════════════════════════════════════════
+
+hpc:
+  seeded_reproducibility:
+    id: INV-HPC1
+    type: universal
+    statement: "kernel(seed, x, dtype) == kernel(seed, x, dtype) bit-for-bit on fixed hardware"
+    test_type: property_test
+    parameters:
+      n_runs: "≥ 3"
+      tolerance_cross_isa: "1 ULP across different CPU/GPU ISAs; 0 ULP on identical hardware"
+    falsification: "two identical invocations on the same hardware differ by any ULP"
+    priority: P0
+
+  numerical_stability:
+    id: INV-HPC2
+    type: universal
+    statement: "Finite inputs within documented range produce finite outputs (no NaN/Inf propagation)"
+    test_type: property_test
+    parameters:
+      kappa_max: "condition-number ceiling configured per kernel"
+    falsification: "any finite input within spec yields NaN/Inf or cond(A) > kappa_max"
+    priority: P0

@@ -263,7 +263,9 @@ def _proximal_gradient_row(
         z = beta - step * grad
         beta_new = _apply_prox(z, lam, step, penalty, gamma)
         diff = float(np.max(np.abs(beta_new - beta)))
-        scale = max(1.0, float(np.max(np.abs(beta))))
+        scale = max(
+            1.0, float(np.max(np.abs(beta)))
+        )  # bounds: normalisation floor avoids division by near-zero beta
         beta = beta_new
         if diff < tol * scale:
             break

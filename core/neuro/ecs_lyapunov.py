@@ -80,7 +80,7 @@ class ECSLyapunovRegulator:
     # ── Lyapunov function ─────────────────────────────────────────────
 
     def _lyapunov(self, fe: float, cf: float, si: float) -> float:
-        return 0.5 * fe ** 2 + self._lambda * cf ** 2 + self._mu * si ** 2
+        return 0.5 * fe**2 + self._lambda * cf**2 + self._mu * si**2
 
     # ── ODE right-hand side ───────────────────────────────────────────
 
@@ -158,8 +158,12 @@ class ECSLyapunovRegulator:
             alpha = 0.5
             for _ in range(20):
                 mixed_fe = self.free_energy + alpha * (new_fe - self.free_energy)
-                mixed_cf = self.compensatory_factor + alpha * (new_cf - self.compensatory_factor)
-                mixed_si = self.stress_integral + alpha * (new_si - self.stress_integral)
+                mixed_cf = self.compensatory_factor + alpha * (
+                    new_cf - self.compensatory_factor
+                )
+                mixed_si = self.stress_integral + alpha * (
+                    new_si - self.stress_integral
+                )
                 V_mixed = self._lyapunov(mixed_fe, mixed_cf, mixed_si)
                 if V_mixed < V_before:
                     break
@@ -169,7 +173,9 @@ class ECSLyapunovRegulator:
                 alpha = 0.0
 
             new_fe = self.free_energy + alpha * (new_fe - self.free_energy)
-            new_cf = self.compensatory_factor + alpha * (new_cf - self.compensatory_factor)
+            new_cf = self.compensatory_factor + alpha * (
+                new_cf - self.compensatory_factor
+            )
             new_si = self.stress_integral + alpha * (new_si - self.stress_integral)
             V_after = self._lyapunov(new_fe, new_cf, new_si)
             dV = V_after - V_before
@@ -199,4 +205,6 @@ class ECSLyapunovRegulator:
         # Sigmoid-like mapping: multiplier = 1 / (1 + |FE|)
         # Clipped to [0.1, 1.0]
         raw = 1.0 / (1.0 + abs(self.free_energy))
-        return max(0.1, min(1.0, raw))
+        return max(
+            0.1, min(1.0, raw)
+        )  # INV-FE2: multiplier ∈ [0.1, 1.0] — sigmoid output clamped to valid operating range

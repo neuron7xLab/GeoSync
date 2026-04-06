@@ -318,7 +318,9 @@ class WaveletWindowSelector:
         self.min_window = min_window
         self.max_window = max_window
         self.wavelet = wavelet
-        self.levels = max(2, levels)
+        self.levels = max(
+            2, levels
+        )  # bounds: minimum 2 decomposition levels for meaningful multi-scale analysis
         self.max_samples = int(max_samples) if max_samples is not None else None
         self._fallback_window = self._compute_fallback_window()
         self._widths_cache: np.ndarray | None = None
@@ -335,6 +337,7 @@ class WaveletWindowSelector:
                 self.min_window, self.max_window, self.levels, dtype=np.float64
             )
             # Clip and convert to integers in one operation
+            # bounds: wavelet window widths clamped to configured [min, max] range
             widths = np.clip(widths, self.min_window, self.max_window).astype(np.int32)
             widths = np.unique(widths)
             widths = widths[widths > 0]
@@ -406,7 +409,9 @@ class MultiScaleKuramoto:
         self.use_adaptive_window = use_adaptive_window
         self.min_samples_per_scale = int(min_samples_per_scale)
         self.selector = selector or WaveletWindowSelector(
-            min_window=max(32, self.base_window // 2),
+            min_window=max(
+                32, self.base_window // 2
+            ),  # bounds: floor at 32 for stable wavelet decomposition
             max_window=self.base_window * 2,
         )
 
@@ -514,6 +519,7 @@ class MultiScaleKuramoto:
             consensus_R = float(np.mean(R_values))
             if R_values.size > 1:
                 dispersion = float(np.std(R_values))
+                # INV-K1: coherence metric derived from R dispersion, bounded to [0,1]
                 cross_scale_coherence = float(np.clip(1.0 - dispersion, 0.0, 1.0))
             else:
                 cross_scale_coherence = 1.0

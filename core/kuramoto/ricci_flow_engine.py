@@ -63,7 +63,9 @@ class _LocalOllivierRicciCurvatureLite:
     """
 
     def __init__(self, alpha: float = 0.5) -> None:
-        self.alpha = float(np.clip(alpha, 0.0, 1.0))
+        self.alpha = float(
+            np.clip(alpha, 0.0, 1.0)
+        )  # INV-RC1: Ricci flow step-size alpha ∈ [0,1]
 
     def _lazy_rw(self, graph: Any, node: int) -> dict[int, float]:
         neighbors = list(graph.neighbors(node))
@@ -248,8 +250,12 @@ class KuramotoRicciFlowEngine:
         self.ricci_update_interval = int(max(1, ricci_update_interval))
         self.correlation_window = int(max(4, correlation_window))
         self.curvature_method = str(curvature_method).lower()
-        self.graph_threshold = float(np.clip(graph_threshold, 0.0, 1.0))
-        self.damping = float(np.clip(damping, 0.0, 1.0))
+        self.graph_threshold = float(
+            np.clip(graph_threshold, 0.0, 1.0)
+        )  # bounds: graph threshold normalized to [0,1]
+        self.damping = float(
+            np.clip(damping, 0.0, 1.0)
+        )  # bounds: damping coefficient ∈ [0,1]
         self.coupling_history_enabled = bool(coupling_history_enabled)
         if OllivierRicciCurvatureLite is not None:
             self._lite_ricci: Any = OllivierRicciCurvatureLite(alpha=0.5)
@@ -310,7 +316,9 @@ class KuramotoRicciFlowEngine:
                 if len(mean_kappa) < 2:
                     momentum.append(0.0)
                 else:
-                    delta_steps = max(1, timestamps[-1] - timestamps[-2])
+                    delta_steps = max(
+                        1, timestamps[-1] - timestamps[-2]
+                    )  # bounds: minimum 1 step between timestamps
                     momentum.append(
                         float((mean_kappa[-1] - mean_kappa[-2]) / delta_steps)
                     )
@@ -476,7 +484,9 @@ class KuramotoRicciFlowEngine:
         diff = mat[:, :, np.newaxis] - mat[:, np.newaxis, :]
         corr = np.abs(np.mean(np.exp(1j * diff), axis=0)).astype(np.float64)
         corr = np.nan_to_num(corr, nan=0.0, posinf=0.0, neginf=0.0)
-        corr = np.clip(corr, 0.0, 1.0)
+        corr = np.clip(
+            corr, 0.0, 1.0
+        )  # INV-RC1: correlation clipped to [0,1] for valid graph weights
         if corr.shape != (n, n):
             raise ValueError(
                 f"Correlation shape invariant violated: expected {(n, n)} got {corr.shape}"

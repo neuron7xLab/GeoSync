@@ -148,9 +148,7 @@ def _kuramoto_order_jit(cos_vals: np.ndarray, sin_vals: np.ndarray) -> float:
 
 
 @njit(cache=True, fastmath=True)
-def _kuramoto_order_2d_jit(
-    cos_vals: np.ndarray, sin_vals: np.ndarray
-) -> np.ndarray:
+def _kuramoto_order_2d_jit(cos_vals: np.ndarray, sin_vals: np.ndarray) -> np.ndarray:
     """JIT-compiled Kuramoto order for 2D phase matrices (N oscillators × T timesteps).
 
     Mathematical Definition:
@@ -238,6 +236,7 @@ def _broadcast_weights(
     weight_array = np.nan_to_num(
         weight_array, nan=0.0, posinf=0.0, neginf=0.0, copy=False
     )
+    # INV-HPC2: coupling weights must be non-negative
     np.clip(weight_array, 0.0, None, out=weight_array)
     return weight_array
 
@@ -557,6 +556,7 @@ def kuramoto_order(
             )
             values = np.where(magnitude <= zero_tolerance, 0.0, values)
 
+    # INV-K1: order parameter R ∈ [0,1]
     clipped = np.clip(values, 0.0, 1.0)
     clipped[clipped < 1e-8] = 0.0
     if squeeze_output:

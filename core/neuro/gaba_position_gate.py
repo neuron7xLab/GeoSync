@@ -82,7 +82,9 @@ class GABAPositionGate:
         inhibition = self._bus.snapshot().gaba_inhibition
         scale = self._bus._config.inhibition_position_scale
         effective = base_size * (1.0 - inhibition * scale)
-        return max(0.0, min(base_size, effective))
+        return max(
+            0.0, min(base_size, effective)
+        )  # INV-GABA3: effective ≤ raw and effective ≥ 0
 
     # ── Inhibition update from market state ──────────────────────────
 

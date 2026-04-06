@@ -42,7 +42,7 @@ class LightGraph:
     __slots__ = ("n", "_adj", "_edges_cache", "_edge_count")
 
     def __init__(self, n: int) -> None:
-        self.n = int(max(n, 0))
+        self.n = int(max(n, 0))  # bounds: node count must be non-negative
         # Use a single dict per node for adjacency - slightly more memory
         # efficient than list of dicts for sparse graphs
         self._adj: List[Dict[int, float]] = [{} for _ in range(self.n)]
@@ -53,7 +53,7 @@ class LightGraph:
         if i == j:
             return
         a, b = int(i), int(j)
-        w = float(max(weight, 0.0))
+        w = float(max(weight, 0.0))  # INV-HPC2: edge weight must be non-negative
         # Track if this is a new edge for edge count
         is_new = b not in self._adj[a]
         self._adj[a][b] = w
@@ -159,7 +159,9 @@ class OllivierRicciCurvatureLite:
     __slots__ = ("alpha", "_one_minus_alpha", "_dist_cache")
 
     def __init__(self, alpha: float = 0.5) -> None:
-        self.alpha = float(np.clip(alpha, 0.0, 1.0))
+        self.alpha = float(
+            np.clip(alpha, 0.0, 1.0)  # INV-RC1: lazy-walk alpha parameter ∈ [0,1]
+        )  # bounds: configuration parameter normalized to [0,1]
         # Pre-compute (1 - alpha) to avoid repeated subtraction
         self._one_minus_alpha = 1.0 - self.alpha
         # Cache for lazy random walk distributions keyed by (graph_id, node)
@@ -256,8 +258,14 @@ class PriceLevelGraph:
     ) -> None:
         if volume_mode not in _VOLUME_MODES:
             raise ValueError(f"Unsupported volume_mode '{volume_mode}'")
-        self.n_levels = int(max(n_levels, 1))
-        self.connection_threshold = float(np.clip(connection_threshold, 0.0, 1.0))
+        self.n_levels = int(
+            max(n_levels, 1)
+        )  # bounds: at least one price level required
+        self.connection_threshold = float(
+            np.clip(
+                connection_threshold, 0.0, 1.0
+            )  # bounds: connection threshold normalized to [0,1]
+        )  # bounds: configuration parameter normalized to [0,1]
         self.volume_mode = volume_mode
         self.volume_floor = float(max(volume_floor, 0.0))
 
@@ -277,7 +285,9 @@ class PriceLevelGraph:
 
         # Use digitize for consistent binning behavior with the original implementation
         levels = np.linspace(price_array.min(), price_array.max() + 1e-6, self.n_levels)
-        indices = np.clip(np.digitize(price_array, levels) - 1, 0, self.n_levels - 1)
+        indices = np.clip(
+            np.digitize(price_array, levels) - 1, 0, self.n_levels - 1
+        )  # bounds: index clamping to valid level range
 
         graph = LightGraph(self.n_levels)
         if indices.size < 2:
@@ -298,7 +308,7 @@ class PriceLevelGraph:
 
             # In-place operations for memory efficiency
             np.nan_to_num(vol, nan=0.0, posinf=0.0, neginf=0.0, copy=False)
-            np.clip(vol, 0.0, None, out=vol)
+            np.clip(vol, 0.0, None, out=vol)  # INV-HPC2: non-negative volatility
 
             if self.volume_floor > 0.0:
                 vol[vol < self.volume_floor] = 0.0
@@ -464,7 +474,9 @@ class TemporalRicciAnalyzer:
             [snap.avg_curvature for snap in self.history], dtype=float
         )
         curvature_component = (
-            float(np.clip(np.std(np.diff(curvatures)), 0.0, 1.0))
+            float(
+                np.clip(np.std(np.diff(curvatures)), 0.0, 1.0)
+            )  # INV-RC1: output bounded by κ ≤ 1 contract
             if curvatures.size >= 2
             else 0.0
         )
@@ -481,18 +493,24 @@ class TemporalRicciAnalyzer:
             else:
                 baseline = float(volatility_series[0])
                 recent = float(volatility_series[-1])
-            vol_diff = float(np.clip(recent - baseline, 0.0, 1.0))
+            vol_diff = float(
+                np.clip(recent - baseline, 0.0, 1.0)
+            )  # INV-HPC2: non-negative volatility
         else:
             vol_diff = 0.0
 
         midpoint = self.transition_midpoint
         beta = self.shock_sensitivity
         if beta <= 0.0:
-            transition = float(np.clip(0.5 + 0.5 * (base_score - midpoint), 0.0, 1.0))
+            transition = float(
+                np.clip(0.5 + 0.5 * (base_score - midpoint), 0.0, 1.0)
+            )  # INV-RC1: output bounded by κ ≤ 1 contract
         else:
             transition = float(1.0 / (1.0 + np.exp(-beta * (base_score - midpoint))))
         return float(
-            np.clip(transition + 0.2 * curvature_component + 0.2 * vol_diff, 0.0, 1.0)
+            np.clip(
+                transition + 0.2 * curvature_component + 0.2 * vol_diff, 0.0, 1.0
+            )  # INV-RC1: output bounded by κ ≤ 1 contract
         )
 
     def _stability(self) -> float:
@@ -585,7 +603,9 @@ class TemporalRicciAnalyzer:
             if self.n_snapshots <= 1:
                 step = window
             else:
-                step = max(1, (series_length - window) // (self.n_snapshots - 1))
+                step = max(
+                    1, (series_length - window) // (self.n_snapshots - 1)
+                )  # bounds: step size ≥ 1 for valid stride over time series
 
             attempts = 0
             snapshots_built = 0

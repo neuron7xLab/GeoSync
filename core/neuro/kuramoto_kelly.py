@@ -67,7 +67,7 @@ class KuramotoKellyAdapter:
         R = self.compute_order_parameter(returns)
         self._bus.publish_kuramoto(R)
 
-        R_norm = np.clip(
+        R_norm = np.clip(  # INV-KELLY2: applied fraction capped by risk policy
             (R - self._R_low) / (self._R_high - self._R_low), 0.0, 1.0
         )
         scale = self._floor + (self._ceil - self._floor) * R_norm

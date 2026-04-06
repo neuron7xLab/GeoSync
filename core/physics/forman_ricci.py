@@ -243,6 +243,7 @@ class DualTrackRicciMonitor:
                 return self._margin_base
             result = self._history[-1]
 
+        # bounds: shift κ_min into non-negative range for margin scaling (κ_F ≥ -2 typical)
         kappa_shifted = max(0.0, result.kappa_min + 2.0)
         return self._margin_base * max(
             1.0, 1.0 + self._margin_sensitivity * kappa_shifted

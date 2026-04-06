@@ -161,7 +161,9 @@ def simulate_forward(
         # Build a joint buffer of history (pre-0) + simulated phases.
         combined = np.concatenate([history, theta[:t]], axis=0)
         t_idx = combined.shape[0] - 1  # index of theta[t-1]
-        t_del = np.clip(t_idx - tau, 0, t_idx)
+        t_del = np.clip(
+            t_idx - tau, 0, t_idx
+        )  # bounds: delay index clamped to valid combined-buffer range
         theta_d = combined[t_del, col_idx]
         phase_diff = theta_d - theta[t - 1][:, np.newaxis] - alpha
         coupling = np.sum(np.where(active, K * np.sin(phase_diff), 0.0), axis=1)

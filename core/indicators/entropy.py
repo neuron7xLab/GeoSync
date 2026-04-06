@@ -15,6 +15,7 @@ References:
     - Shannon, C. E. (1948). A mathematical theory of communication.
       Bell System Technical Journal, 27(3), 379-423.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -560,7 +561,9 @@ def delta_entropy(series: np.ndarray, window: int = 100, bins_range=(10, 50)) ->
     a, b = x[-window * 2 : -window], x[-window:]
 
     # Adaptive bin selection
-    bins = int(np.clip(window // 3, bins_range[0], bins_range[1]))
+    bins = int(
+        np.clip(window // 3, bins_range[0], bins_range[1])
+    )  # bounds: histogram bin count clamped to configured [min, max] range
 
     # Compute entropy difference
     return float(entropy(b, bins) - entropy(a, bins))

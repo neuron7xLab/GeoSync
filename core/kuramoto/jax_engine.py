@@ -41,7 +41,7 @@ _logger = logging.getLogger(__name__)
 
 if JAX_AVAILABLE:
 
-    @jit
+    @jit  # type: ignore[misc]
     def _jax_dtheta_dt(
         theta: jnp.ndarray,
         omega: jnp.ndarray,
@@ -52,7 +52,7 @@ if JAX_AVAILABLE:
         coupling = (adj * jnp.sin(diff)).sum(axis=1)
         return omega + coupling
 
-    @jit
+    @jit  # type: ignore[misc]
     def _jax_rk4_step(
         theta: jnp.ndarray,
         omega: jnp.ndarray,
@@ -66,10 +66,11 @@ if JAX_AVAILABLE:
         k4 = _jax_dtheta_dt(theta + dt * k3, omega, adj)
         return theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
-    @jit
+    @jit  # type: ignore[misc]
     def _jax_order_parameter(theta: jnp.ndarray) -> jnp.ndarray:
         """Order parameter R — vectorised, no Python loop."""
         z = jnp.exp(1j * theta).mean()
+        # INV-K1: R ∈ [0,1] — JAX mirror of engine.py _order_parameter
         return jnp.clip(jnp.abs(z), 0.0, 1.0)
 
     def _jax_simulate_trajectory(
@@ -81,7 +82,10 @@ if JAX_AVAILABLE:
     ) -> tuple[jnp.ndarray, jnp.ndarray]:
         """Run full trajectory via jax.lax.scan (no Python loop)."""
 
-        def scan_fn(theta, _):
+        def scan_fn(
+            theta: jnp.ndarray,
+            _: None,
+        ) -> tuple[jnp.ndarray, tuple[jnp.ndarray, jnp.ndarray]]:
             theta_next = _jax_rk4_step(theta, omega, adj, dt)
             R = _jax_order_parameter(theta_next)
             return theta_next, (theta_next, R)
@@ -102,10 +106,12 @@ if JAX_AVAILABLE:
     ) -> tuple[jnp.ndarray, jnp.ndarray]:
         """Batch simulate via vmap — one GPU kernel for thousands of runs."""
 
-        def single_sim(theta0):
+        def single_sim(
+            theta0: jnp.ndarray,
+        ) -> tuple[jnp.ndarray, jnp.ndarray]:
             return _jax_simulate_trajectory(theta0, omega, adj, dt, steps)
 
-        return vmap(single_sim)(theta0_batch)
+        return vmap(single_sim)(theta0_batch)  # type: ignore[no-any-return]
 
 
 class JaxKuramotoEngine:
@@ -133,13 +139,19 @@ class JaxKuramotoEngine:
         """Run single JIT-compiled simulation."""
         cfg = self._cfg
         phases_jax, R_jax = _jax_simulate_trajectory(
-            self._theta0, self._omega, self._adj, cfg.dt, cfg.steps,
+            self._theta0,
+            self._omega,
+            self._adj,
+            cfg.dt,
+            cfg.steps,
         )
         # Convert back to NumPy for KuramotoResult validation
         phases = np.asarray(phases_jax, dtype=np.float64)
         R_arr = np.asarray(R_jax, dtype=np.float64)
         time_arr = np.arange(cfg.steps + 1, dtype=np.float64) * cfg.dt
-        return KuramotoResult(phases=phases, order_parameter=R_arr, time=time_arr, config=cfg)
+        return KuramotoResult(
+            phases=phases, order_parameter=R_arr, time=time_arr, config=cfg
+        )
 
     @staticmethod
     def batch(
@@ -185,8 +197,14 @@ class JaxKuramotoEngine:
             adj = jnp.full((N, N), K / N, dtype=jnp.float64)
             adj = adj.at[jnp.diag_indices(N)].set(0.0)
 
-        _logger.info("Launching vmap batch: %d simulations on %s", len(seeds), jax.default_backend())
-        all_phases, all_R = _jax_batch_simulate(theta0_jax, omega, adj, config.dt, config.steps)
+        _logger.info(
+            "Launching vmap batch: %d simulations on %s",
+            len(seeds),
+            jax.default_backend(),
+        )
+        all_phases, all_R = _jax_batch_simulate(
+            theta0_jax, omega, adj, config.dt, config.steps
+        )
 
         results = []
         time_arr = np.arange(config.steps + 1, dtype=np.float64) * config.dt
@@ -209,7 +227,11 @@ class JaxKuramotoEngine:
         """Convert config arrays to JAX device arrays."""
         rng = np.random.default_rng(cfg.seed)
         omega_np = cfg.omega if cfg.omega is not None else rng.standard_normal(cfg.N)
-        theta0_np = cfg.theta0 if cfg.theta0 is not None else rng.uniform(0.0, 2.0 * np.pi, cfg.N)
+        theta0_np = (
+            cfg.theta0
+            if cfg.theta0 is not None
+            else rng.uniform(0.0, 2.0 * np.pi, cfg.N)
+        )
 
         N, K = cfg.N, cfg.K
         if cfg.adjacency is not None:

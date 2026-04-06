@@ -51,14 +51,32 @@ TRACE_SCHEMA_VERSION = "1.0"
 TRACE_EMPTY_HASH = "0" * 64
 
 # Audit-grade trace schema fields (for consistency between implementation and tests)
-TRACE_SCHEMA_FIELDS = frozenset({
-    "timestamp_utc", "schema_version", "decision_id", "prev_hash",
-    "mode", "stress_level", "chronic_counter", "free_energy_proxy",
-    "raw_signal", "filtered_signal", "adjusted_signal",
-    "conformal_q", "prediction_interval_low", "prediction_interval_high",
-    "conformal_ready", "action", "confidence_gate_pass", "reason_codes",
-    "params_snapshot", "mode_context", "stress_level_context", "event_hash",
-})
+TRACE_SCHEMA_FIELDS = frozenset(
+    {
+        "timestamp_utc",
+        "schema_version",
+        "decision_id",
+        "prev_hash",
+        "mode",
+        "stress_level",
+        "chronic_counter",
+        "free_energy_proxy",
+        "raw_signal",
+        "filtered_signal",
+        "adjusted_signal",
+        "conformal_q",
+        "prediction_interval_low",
+        "prediction_interval_high",
+        "conformal_ready",
+        "action",
+        "confidence_gate_pass",
+        "reason_codes",
+        "params_snapshot",
+        "mode_context",
+        "stress_level_context",
+        "event_hash",
+    }
+)
 
 
 class StressMode(str, Enum):
@@ -387,7 +405,7 @@ class ECSInspiredRegulator:
 
         self._monotonicity_violations += 1
 
-        corrected_fe = max(0.0, allowed_fe)
+        corrected_fe = max(0.0, allowed_fe)  # INV-FE2: free energy ≥ 0
 
         self.log_action(
             "Monotonicity correction",
@@ -429,23 +447,29 @@ class ECSInspiredRegulator:
         # Adaptive gain adjustment based on regime
         regime = self._compute_volatility_regime(self._current_volatility)
         if regime in ["high", "extreme"]:
-            self._feedback_gain = min(0.3, self._feedback_gain * 1.1)
+            self._feedback_gain = min(
+                0.3, self._feedback_gain * 1.1
+            )  # bounds: feedback gain capped to valid operating range
         else:
-            self._feedback_gain = max(0.05, self._feedback_gain * 0.95)
+            self._feedback_gain = max(
+                0.05, self._feedback_gain * 0.95
+            )  # bounds: feedback gain floor for controller stability
 
         # Apply integral feedback to stress threshold
         if vol_error > 0:
             # Volatility increasing: lower stress threshold for earlier detection
             adjustment = self._feedback_gain * vol_error
-            self.stress_threshold = max(
-                0.01, self.stress_threshold - adjustment
+            self.stress_threshold = (
+                max(  # bounds: stress threshold floor for detection sensitivity
+                    0.01, self.stress_threshold - adjustment
+                )
             )
         else:
             # Volatility decreasing: can relax threshold slightly
             adjustment = self._feedback_gain * abs(vol_error) * 0.5
             self.stress_threshold = min(
                 0.2, self.stress_threshold + adjustment
-            )
+            )  # INV-FE1: stress threshold upper-bounded for stable free-energy descent
 
     def _update_stress_mode(self) -> None:
         """Update the stress mode based on current stress level."""
@@ -483,7 +507,7 @@ class ECSInspiredRegulator:
             return float("nan")
 
         raw_q = float(np.quantile(self._calibration_scores, 1 - self.alpha))
-        q = max(0.0, raw_q)
+        q = max(0.0, raw_q)  # INV-FE2: Tsallis q parameter non-negative
         if stress_scaled:
             q *= self._stress_multiplier_factor()
         return float(q)
@@ -576,7 +600,9 @@ class ECSInspiredRegulator:
 
         # Bound the stress update gradient
         stress_gradient = self._compute_bounded_gradient(new_stress, old_stress)
-        self.stress_level = max(0.0, old_stress + stress_gradient)
+        self.stress_level = max(
+            0.0, old_stress + stress_gradient
+        )  # INV-FE2: stress level non-negative (concentration proxy)
 
         # Map to TACL free energy proxy
         raw_fe = self.stress_level * self.fe_scaling
@@ -609,7 +635,9 @@ class ECSInspiredRegulator:
         if self.stress_level > self.stress_threshold:
             self.chronic_counter += 1
         else:
-            self.chronic_counter = max(0, self.chronic_counter - 1)
+            self.chronic_counter = max(
+                0, self.chronic_counter - 1
+            )  # bounds: chronic counter non-negative (discrete accumulator)
 
         # Log the update with extended metrics
         self.log_action(
@@ -673,7 +701,9 @@ class ECSInspiredRegulator:
                     new_threshold = self.risk_threshold + max_change
 
             # Ensure minimum threshold for safety
-            self.risk_threshold = max(0.001, new_threshold)
+            self.risk_threshold = max(
+                0.001, new_threshold
+            )  # INV-FE2: risk threshold floored at 0.001 to avoid division by zero
 
             # Compensatory upregulation (2-AG-inspired)
             # Reduced compensation during high volatility for safety
@@ -719,17 +749,22 @@ class ECSInspiredRegulator:
 
             recovery_target = self._initial_action_threshold
             if self.research_mode:
-                recovery_target = min(self._initial_action_threshold, self.risk_threshold)
+                recovery_target = min(
+                    self._initial_action_threshold, self.risk_threshold
+                )
 
             # Gradually move threshold toward initial (recovery_target).
             # Higher recovery_rate slows recovery; RECOVERY_SMOOTHING_FACTOR
             # controls the base smoothing (higher = slower convergence).
             self.risk_threshold = max(
                 0.001,
-                self.risk_threshold + (recovery_target - self.risk_threshold)
+                self.risk_threshold
+                + (recovery_target - self.risk_threshold)
                 / (recovery_rate * RECOVERY_SMOOTHING_FACTOR),
             )
-            self.compensatory_factor = max(1.0, self.compensatory_factor * 0.98)
+            self.compensatory_factor = max(
+                1.0, self.compensatory_factor * 0.98
+            )  # INV-FE1: compensatory factor ≥ 1.0 for monotone free-energy response
 
             self.log_action(
                 "Recovery adaptation",
@@ -889,7 +924,9 @@ class ECSInspiredRegulator:
         if not confidence_gate_pass:
             assert action == 0, "Action must be HOLD when confidence gate fails"
         if not conformal_ready and self.conformal_gate_enabled:
-            assert action == 0, "Action must be HOLD when conformal calibration is not ready"
+            assert (
+                action == 0
+            ), "Action must be HOLD when conformal calibration is not ready"
 
         self._last_conformal_q = float(q)
         self._last_prediction_interval = interval
@@ -919,7 +956,9 @@ class ECSInspiredRegulator:
         return action
 
     def _canonical_json(self, payload: dict) -> str:
-        return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return json.dumps(
+            payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
 
     def _next_timestamp(self) -> str:
         timestamp = self._time_provider()
@@ -952,7 +991,9 @@ class ECSInspiredRegulator:
         }
 
         conformal_q = float(details.get("conformal_q", self._last_conformal_q))
-        prediction_interval = details.get("prediction_interval", self._last_prediction_interval)
+        prediction_interval = details.get(
+            "prediction_interval", self._last_prediction_interval
+        )
         prediction_interval_low = (
             float(prediction_interval[0]) if prediction_interval else float("nan")
         )
@@ -975,7 +1016,9 @@ class ECSInspiredRegulator:
             "conformal_q": float(conformal_q),
             "prediction_interval_low": prediction_interval_low,
             "prediction_interval_high": prediction_interval_high,
-            "conformal_ready": bool(details.get("conformal_ready", self._last_conformal_ready)),
+            "conformal_ready": bool(
+                details.get("conformal_ready", self._last_conformal_ready)
+            ),
             "action": int(details.get("action", 0)),
             "confidence_gate_pass": bool(
                 details.get("confidence_gate_pass", self._last_confidence_gate_pass)
@@ -983,7 +1026,9 @@ class ECSInspiredRegulator:
             "reason_codes": list(details.get("reason_codes", [])) + [action_type],
             "params_snapshot": params_snapshot,
             "mode_context": details.get("mode", self.stress_mode.value),
-            "stress_level_context": float(details.get("stress_level", self.stress_level)),
+            "stress_level_context": float(
+                details.get("stress_level", self.stress_level)
+            ),
         }
 
         event_json = self._canonical_json(event_without_hash)

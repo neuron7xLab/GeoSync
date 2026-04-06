@@ -236,7 +236,7 @@ def _simulate_sdde(
     # Shape (N, N) -> broadcast per timestep
     for t in range(1, T):
         # For every (i, j), delayed time index, clamped to ≥ 0
-        t_delayed = np.clip(t - 1 - tau, 0, t - 1)  # (N, N)
+        t_delayed = np.clip(t - 1 - tau, 0, t - 1)  # bounds: delay index ∈ [0, t-1]
         # theta_j(t - τ_{ij}): gather along axis 0 using j-column index
         # theta shape (T, N); we need theta[t_delayed[i,j], j]
         col_idx = np.broadcast_to(np.arange(N)[np.newaxis, :], (N, N))

@@ -1,0 +1,289 @@
+# GeoSync Physical Contracts — catalog of laws that the 10 core modules must obey.
+#
+# Each law is a first-class object. Tests become "mathematical witnesses" — they
+# prove that code respects a law. Test asserts MUST derive their numeric
+# tolerances from a law's formula/parameters, not from magic literals.
+#
+# Schema per entry:
+#   id              dotted stable identifier (module.short_name)
+#   module          one of the 10 core modules
+#   statement       one-line human-readable law
+#   formula         mathematical expression (LaTeX-lite, ASCII OK)
+#   variables       {name: description}
+#   tolerance       how strict a witness must be; expression may reference variables
+#   validity        preconditions under which the law holds
+#   source          paper / ADR / docstring location justifying the law
+#   severity        block | warn  (block = CI red, warn = report-only)
+---
+version: 1
+laws:
+
+  # ───────────────────────── Kuramoto ─────────────────────────
+  - id: kuramoto.order_parameter_bounds
+    module: kuramoto
+    statement: "The Kuramoto order parameter r is bounded in [0, 1] for every t."
+    formula: "r(t) = |(1/N) Σ_j exp(i θ_j(t))|  ⇒  0 ≤ r(t) ≤ 1"
+    variables: {N: oscillator count, theta_j: phase of oscillator j, r: order parameter}
+    tolerance: "strict — violation of either bound is a bug, not a numerical artefact"
+    validity: "all K, all N ≥ 1, real phases"
+    source: "Kuramoto (1975); core/kuramoto/metrics.py"
+    severity: block
+
+  - id: kuramoto.subcritical_finite_size
+    module: kuramoto
+    statement: "Below the critical coupling, the order parameter scales as 1/√N (finite-size noise floor)."
+    formula: "K < K_c  ⇒  ⟨r⟩ ≈ c / √N  with c ≈ √(π/2) for Lorentzian ω"
+    variables: {K: coupling, K_c: critical coupling, N: oscillator count}
+    tolerance: "witness must assert r < 3 / √N with p ≥ 0.99 over M ≥ 200 trials"
+    validity: "K ≤ 0.8·K_c, N ≥ 256, equilibration time t > 20/γ (γ = Lorentzian half-width)"
+    source: "Strogatz 2000; Daido 1990; Hong et al. PRE 2007"
+    severity: block
+
+  - id: kuramoto.critical_scaling
+    module: kuramoto
+    statement: "Near the transition, the order parameter follows mean-field critical scaling with exponent β = 1/2."
+    formula: "r ∝ sqrt((K − K_c) / K)  for K → K_c⁺"
+    variables: {K: coupling, K_c: critical coupling, beta: critical exponent = 0.5}
+    tolerance: "log-log fit slope within 0.5 ± 0.05 over K ∈ [K_c, 1.3·K_c]"
+    validity: "thermodynamic-limit proxy (N ≥ 1024), unimodal symmetric ω distribution"
+    source: "Kuramoto 1984; Strogatz Physica D 2000 §2.3"
+    severity: block
+
+  - id: kuramoto.frequency_entrainment
+    module: kuramoto
+    statement: "Above K_c a macroscopic cluster locks to a common mean frequency Ω."
+    formula: "K > K_c  ⇒  ∃ Ω : |⟨dθ_j/dt⟩_t − Ω| → 0 for j in locked set"
+    variables: {Omega: collective mean frequency, K_c: critical coupling}
+    tolerance: "std(locked frequencies) ≤ 0.05·⟨|ω_j|⟩ for K ≥ 1.5·K_c"
+    validity: "N ≥ 256, integration time > 50/γ"
+    source: "Acebrón et al., Rev. Mod. Phys. 77 (2005)"
+    severity: block
+
+  # ─────────────────────────── Ricci ───────────────────────────
+  - id: ricci.ollivier_bounds
+    module: ricci
+    statement: "Ollivier–Ricci curvature of any edge lies in [−1, 1]."
+    formula: "κ(x,y) = 1 − W_1(m_x, m_y) / d(x,y)  ⇒  −1 ≤ κ ≤ 1"
+    variables: {W_1: Wasserstein-1 distance, m_x: 1-step lazy random walk from x, d: graph distance}
+    tolerance: "strict"
+    validity: "connected graph, positive edge weights"
+    source: "Ollivier J. Funct. Anal. 2009; core/physics/forman_ricci.py docstring"
+    severity: block
+
+  - id: ricci.flow_monotonicity
+    module: ricci
+    statement: "Under discrete Ricci flow, ∫R² dV is monotonically non-increasing (Perelman F-functional analogue)."
+    formula: "dF/dt ≤ 0  where  F = Σ_e κ_e² · w_e"
+    variables: {kappa_e: edge curvature, w_e: edge weight, F: Perelman-like functional}
+    tolerance: "F(t+1) ≤ F(t) · (1 + 1e-9) — numerical slack only"
+    validity: "closed graph, no external rewiring during the flow step"
+    source: "Perelman 2002; Ni–Lin–Luo 2019"
+    severity: block
+
+  # ────────────────────── Thermodynamics / ECS ──────────────────────
+  - id: thermo.second_law_closed
+    module: ecs
+    statement: "Entropy of a closed subsystem is non-decreasing."
+    formula: "dS/dt ≥ 0  for a closed subsystem with no external work"
+    variables: {S: Shannon/Boltzmann entropy, t: time}
+    tolerance: "S(t+1) − S(t) ≥ −1e-12 — bit-level numerical slack only"
+    validity: "isolated subsystem, ergodic assumption, coarse-graining scale fixed"
+    source: "Clausius; core/physics/thermodynamics.py; ECS regulator ADR"
+    severity: block
+
+  - id: thermo.free_energy_descent
+    module: ecs
+    statement: "Without external forcing, the free energy of the trading gate is non-increasing."
+    formula: "dF/dt ≤ 0   where  F = U − T·S"
+    variables: {F: free energy, U: internal energy, T: temperature proxy, S: entropy}
+    tolerance: "monotone within 1e-10 relative"
+    validity: "no exogenous regime shift within window; constant T"
+    source: "core/physics/free_energy_trading_gate.py"
+    severity: block
+
+  - id: thermo.landauer_bound
+    module: ecs
+    statement: "Erasing one bit of information costs ≥ kT ln 2 of free energy."
+    formula: "ΔF_erase ≥ k_B · T · ln 2"
+    variables: {k_B: Boltzmann constant, T: temperature proxy}
+    tolerance: "strict (physical lower bound)"
+    validity: "quasi-static erasure, thermalised reservoir"
+    source: "Landauer 1961; core/physics/landauer.py"
+    severity: block
+
+  - id: ecs.lyapunov_descent
+    module: ecs
+    statement: "The ECS regulator admits a Lyapunov function V(x) with dV/dt ≤ 0 along trajectories."
+    formula: "dV/dt = ∂V/∂x · f(x)  ≤  0  for all x in the operating set"
+    variables: {V: Lyapunov candidate, x: regulator state, f: vector field}
+    tolerance: "V(x_{t+1}) ≤ V(x_t) + ε, ε bounded by integrator order (O(Δt²) for RK4)"
+    validity: "no exogenous shocks; bounded input"
+    source: "core/neuro/ecs_lyapunov.py"
+    severity: block
+
+  # ───────────────────────── Serotonin ─────────────────────────
+  - id: serotonin.level_bounds
+    module: serotonin
+    statement: "5-HT level stays in the biologically-valid range [0, 1] for every t."
+    formula: "0 ≤ level(t) ≤ 1"
+    variables: {level: 5-HT concentration}
+    tolerance: "strict; integrator must clip or prove invariance"
+    validity: "all inputs, all t ≥ 0"
+    source: "core/neuro/serotonin_ode.py docstring"
+    severity: block
+
+  - id: serotonin.lyapunov_stability
+    module: serotonin
+    statement: "The serotonin ODE is Lyapunov-stable about (level=target, desens=0)."
+    formula: "V(l,d) = ½(l − target)² + λ d²;  dV/dt ≤ 0  with zero input"
+    variables: {l: level, d: desensitisation, target: baseline set-point, lambda: weighting}
+    tolerance: "V(t+1) − V(t) ≤ 1e-9 with stress=0 input"
+    validity: "zero exogenous stress, bounded initial state"
+    source: "core/neuro/serotonin_ode.py"
+    severity: block
+
+  # ───────────────────────── Dopamine ─────────────────────────
+  - id: dopamine.rpe_zero_steady_state
+    module: dopamine
+    statement: "Expected reward-prediction error converges to zero in a stationary reward environment."
+    formula: "E[δ_t] → 0  where  δ_t = r_t − V(s_t)"
+    variables: {delta: RPE, r: reward, V: value estimate, s: state}
+    tolerance: "|mean(δ) over last N/4 steps| ≤ 0.02 after N ≥ 500 updates"
+    validity: "stationary reward distribution, learning rate α satisfying Robbins–Monro"
+    source: "Schultz Dayan Montague 1997; core/neuro/dopamine_execution_adapter.py"
+    severity: block
+
+  - id: dopamine.bounded_signal
+    module: dopamine
+    statement: "The emitted dopamine signal is bounded per spec."
+    formula: "|DA(t)| ≤ DA_max"
+    variables: {DA: dopamine signal, DA_max: saturation cap}
+    tolerance: "strict"
+    validity: "all inputs"
+    source: "core/neuro/dopamine_execution_adapter.py"
+    severity: block
+
+  # ─────────────────────────── GABA ───────────────────────────
+  - id: gaba.gate_bounds
+    module: gaba
+    statement: "The GABA position gate multiplier lies in [0, 1]."
+    formula: "0 ≤ gate(inhibition) ≤ 1"
+    variables: {gate: multiplier, inhibition: GABA signal}
+    tolerance: "strict"
+    validity: "all inhibition ∈ [0, ∞)"
+    source: "core/neuro/gaba_position_gate.py"
+    severity: block
+
+  - id: gaba.monotone_inhibition
+    module: gaba
+    statement: "The gate is monotonically non-increasing in inhibition (more inhibition → smaller size)."
+    formula: "gate(i_1) ≥ gate(i_2)  ∀ i_1 ≤ i_2"
+    variables: {i: inhibition level}
+    tolerance: "strict"
+    validity: "held-fixed other inputs"
+    source: "Mink 1996; core/neuro/gaba_position_gate.py"
+    severity: block
+
+  # ───────────────────────── Kelly ─────────────────────────
+  - id: kelly.optimal_fraction_formula
+    module: kelly
+    statement: "The log-optimal betting fraction equals mean / variance for small-edge continuous returns."
+    formula: "f* = μ / σ²"
+    variables: {mu: expected excess return, sigma: volatility}
+    tolerance: "|f_computed − μ/σ²| ≤ 1e-8 on synthetic inputs with known μ, σ"
+    validity: "i.i.d. returns, no leverage cap binding, small-edge limit"
+    source: "Kelly 1956; Thorp 2006; core/neuro/kuramoto_kelly.py"
+    severity: block
+
+  - id: kelly.fraction_cap
+    module: kelly
+    statement: "Applied fraction never exceeds configured drawdown cap."
+    formula: "f_applied = min(f*, f_max)"
+    variables: {f_max: configured cap, f*: theoretical Kelly fraction}
+    tolerance: "strict"
+    validity: "all inputs"
+    source: "half-Kelly literature; internal risk ADR"
+    severity: block
+
+  - id: kelly.log_growth_optimality
+    module: kelly
+    statement: "Empirical log-growth at f* ≥ log-growth at any f' ≠ f* (Monte-Carlo)."
+    formula: "E[log(1 + f*·X)] ≥ E[log(1 + f'·X)]  ∀ f' ∈ [0,1]"
+    variables: {X: random return, f: fraction}
+    tolerance: "witness MC with ≥ 1e5 samples, gap > 3·SE"
+    validity: "bounded returns, f' sampled on a grid"
+    source: "Kelly 1956; Thorp 2006"
+    severity: warn
+
+  # ───────────────────────── OMS ─────────────────────────
+  - id: oms.position_conservation
+    module: oms
+    statement: "Total book value is conserved by every fill — no synthesis of positions or cash."
+    formula: "Σ_i (Δpos_i · price_i) + Δcash = 0  per fill, modulo fees"
+    variables: {Δpos_i: position change of instrument i, Δcash: cash change}
+    tolerance: "|residual − fees| ≤ 1e-8 · notional"
+    validity: "single fill event, accounting currency fixed"
+    source: "execution/oms.py; core/physics/portfolio_conservation.py"
+    severity: block
+
+  - id: oms.idempotency
+    module: oms
+    statement: "Submitting the same client_order_id twice produces the same side effect exactly once."
+    formula: "apply(order, order) ≡ apply(order)"
+    variables: {order: fully-qualified order with client_order_id}
+    tolerance: "state equality after N replays, N ≥ 5"
+    validity: "same client_order_id, deterministic clock"
+    source: "execution/oms.py"
+    severity: block
+
+  - id: oms.causal_order
+    module: oms
+    statement: "Per-instrument event timestamps are monotonically non-decreasing."
+    formula: "t_{k+1} ≥ t_k  per (instrument, venue)"
+    variables: {t_k: event timestamp k}
+    tolerance: "strict"
+    validity: "single venue; clock skew handled upstream"
+    source: "execution/oms.py"
+    severity: block
+
+  # ───────────────────────── SignalBus ─────────────────────────
+  - id: signalbus.acyclic_fanout
+    module: signalbus
+    statement: "Within a single tick the signal dependency graph is a DAG."
+    formula: "∄ cycle in (nodes=signals, edges=produces→consumes)  per tick"
+    variables: {tick: scheduler frame}
+    tolerance: "strict"
+    validity: "single tick; cross-tick feedback allowed and tracked separately"
+    source: "core/neuro/signal_bus.py"
+    severity: block
+
+  - id: signalbus.deterministic_fanout
+    module: signalbus
+    statement: "Under a fixed seed and identical input sequence, fanout order and emitted signals are bit-identical."
+    formula: "replay(seed, inputs) == replay(seed, inputs)"
+    variables: {seed: RNG seed, inputs: ordered input sequence}
+    tolerance: "bit-for-bit equality of emitted event hashes"
+    validity: "all subscribers pure or seeded"
+    source: "core/neuro/signal_bus.py"
+    severity: block
+
+  # ───────────────────────── HPC ─────────────────────────
+  - id: hpc.seeded_reproducibility
+    module: hpc
+    statement: "HPC kernels are bit-for-bit reproducible under identical seed and dtype."
+    formula: "kernel(seed, x, dtype) == kernel(seed, x, dtype)"
+    variables: {seed: RNG seed, x: input tensor, dtype: numeric dtype}
+    tolerance: "bit-for-bit on fixed hardware; 1 ULP across ISA"
+    validity: "same CPU/GPU ISA; no nondet reductions enabled"
+    source: "geosync_hpc/*.py"
+    severity: block
+
+  - id: hpc.numerical_stability
+    module: hpc
+    statement: "HPC kernels never propagate NaN/Inf from finite inputs, and condition numbers stay bounded."
+    formula: "x finite  ⇒  kernel(x) finite;  cond(A) ≤ κ_max"
+    variables: {kappa_max: configured condition-number ceiling}
+    tolerance: "no NaN, no Inf; κ(A) ≤ κ_max"
+    validity: "inputs within documented range"
+    source: "geosync_hpc/*.py"
+    severity: block

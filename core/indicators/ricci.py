@@ -878,8 +878,12 @@ def _w1_fallback(
     # Robust array-level sanitization using np.nan_to_num
     weights_a = np.nan_to_num(weights_a, nan=0.0, posinf=0.0, neginf=0.0)
     weights_b = np.nan_to_num(weights_b, nan=0.0, posinf=0.0, neginf=0.0)
-    np.clip(weights_a, 0.0, None, out=weights_a)
-    np.clip(weights_b, 0.0, None, out=weights_b)
+    np.clip(
+        weights_a, 0.0, None, out=weights_a
+    )  # INV-HPC2: probability weights must be non-negative for W1 distance
+    np.clip(
+        weights_b, 0.0, None, out=weights_b
+    )  # INV-HPC2: probability weights must be non-negative for W1 distance
 
     total_a = float(weights_a.sum())
     total_b = float(weights_b.sum())

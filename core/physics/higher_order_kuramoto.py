@@ -128,9 +128,11 @@ class HigherOrderKuramotoEngine:
         self._steps = steps
         self._corr_thresh = correlation_threshold
 
-    def _build_structures(
-        self, corr: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], list[tuple[int, int, int]], dict]:
+    def _build_structures(self, corr: NDArray[np.float64]) -> tuple[
+        NDArray[np.float64],
+        list[tuple[int, int, int]],
+        dict[int, list[tuple[int, int]]],
+    ]:
         """Build adjacency and triangle structures from correlation."""
         adj_bool = np.abs(corr) > self._corr_thresh
         np.fill_diagonal(adj_bool, False)
@@ -177,7 +179,7 @@ class HigherOrderKuramotoEngine:
         theta: NDArray[np.float64],
         omega: NDArray[np.float64],
         adj: NDArray[np.float64],
-        tri_index: dict,
+        tri_index: dict[int, list[tuple[int, int]]],
     ) -> tuple[NDArray[np.float64], float]:
         """RK4 step with triadic coupling."""
         dt = self._dt
@@ -255,7 +257,9 @@ class HigherOrderKuramotoEngine:
     def _order_parameter(theta: NDArray[np.float64]) -> float:
         """R = |mean(exp(iθ))|."""
         z = np.exp(1j * theta).mean()
-        return float(np.clip(np.abs(z), 0.0, 1.0))
+        return float(
+            np.clip(np.abs(z), 0.0, 1.0)
+        )  # INV-K1: R = |mean(exp(iθ))| ∈ [0,1]
 
     def run_from_prices(
         self,

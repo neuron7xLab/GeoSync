@@ -94,7 +94,10 @@ class LiquidityCouplingMatrix:
         dv = prices * volumes
         tail = dv[-self._vol_window :]
         mass = np.mean(tail, axis=0)
-        return np.maximum(mass, 1e-12)
+        result: NDArray[np.float64] = np.maximum(
+            mass, 1e-12
+        )  # INV-FE2: liquidity mass non-negative — prevents division by zero in coupling
+        return result
 
     def _compute_correlation(self, prices: NDArray[np.float64]) -> NDArray[np.float64]:
         """Rolling return correlation matrix. Shape: (N, N)."""
@@ -149,7 +152,9 @@ class LiquidityCouplingMatrix:
         np.fill_diagonal(A, 0.0)
 
         # Clip to [0, 1]
-        A = np.clip(A, 0.0, 1.0)
+        A = np.clip(
+            A, 0.0, 1.0
+        )  # INV-K1: adjacency weights bounded to [0,1] — coupling strength normalisation
 
         return A
 
