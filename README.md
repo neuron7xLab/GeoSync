@@ -455,7 +455,7 @@ Order Parameter: R(t) = |1/N · Σⱼ exp(iθⱼ)| ∈ [0, 1]
 ## Testing & Quality
 
 ```
- 681 tests  ·  71% coverage (→ 98% target)  ·  6 test layers  ·  0 mypy errors
+ 10,051 collected  ·  681 passing  ·  71% line coverage  ·  53 physics invariants  ·  44 witnesses  ·  0 mypy errors
 ```
 
 <table>
@@ -701,6 +701,6 @@ Trading financial instruments involves substantial risk of loss. GeoSync provide
 
 [![MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat)](LICENSE)
 
-<sub>Built on peer-reviewed science. No heuristics. No black boxes.</sub>
+<sub>Built on peer-reviewed science. Physics-first, 53 invariants, every clamp documented.</sub>
 
 </div>
