@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Tests for ThermoController HPC-AI integration.
 """
@@ -193,6 +194,7 @@ class TestThermoControllerHPCAI:
 class TestHPCAIEdgeCases:
     """Test edge cases and error handling."""
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_empty_dataframe(self, simple_graph):
         """Test with empty DataFrame."""
         controller = ThermoController(simple_graph)

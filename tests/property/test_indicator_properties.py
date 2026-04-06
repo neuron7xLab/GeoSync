@@ -74,7 +74,7 @@ def test_temporal_ricci_resilient_to_non_finite(
     window: int, raw_prices: list[float]
 ) -> None:
     length = len(raw_prices)
-    index = pd.date_range("2023-01-01", periods=length, freq="T")
+    index = pd.date_range("2023-01-01", periods=length, freq="min")
     prices = np.asarray(raw_prices, dtype=float)
     volumes = np.linspace(1.0, 2.0, length)
     df = pd.DataFrame({"close": prices, "volume": volumes}, index=index)
@@ -138,7 +138,7 @@ def _kuramoto_reference(phases: np.ndarray) -> float | np.ndarray:
     )
     clipped = np.clip(values, 0.0, 1.0)
     clipped = np.where(clipped < dtype.type(1e-12), dtype.type(0.0), clipped)
-    return clipped.astype(float)
+    return clipped.astype(float)  # type: ignore[no-any-return]
 
 
 def _hurst_reference(ts: np.ndarray, min_lag: int, max_lag: int) -> float:

@@ -133,10 +133,14 @@ def test_temporal_transition_score_reacts_to_regime_change() -> None:
     dates_vol = pd.date_range("2024-01-01", periods=volatile_prices.size, freq="1min")
     volatile_df = pd.DataFrame({"close": volatile_prices}, index=dates_vol)
 
-    analyzer = TemporalRicciAnalyzer(window_size=48, n_snapshots=4, n_levels=8)
+    # Use separate analyzers to avoid non-monotonic timestamp warning
+    # (both DataFrames start from 2024-01-01, so reusing one analyzer
+    # triggers a legitimate reset-on-overlap warning).
+    steady_analyzer = TemporalRicciAnalyzer(window_size=48, n_snapshots=4, n_levels=8)
+    volatile_analyzer = TemporalRicciAnalyzer(window_size=48, n_snapshots=4, n_levels=8)
 
-    steady_result = analyzer.analyze(steady_df)
-    volatile_result = analyzer.analyze(volatile_df)
+    steady_result = steady_analyzer.analyze(steady_df)
+    volatile_result = volatile_analyzer.analyze(volatile_df)
 
     assert (
         volatile_result.topological_transition_score

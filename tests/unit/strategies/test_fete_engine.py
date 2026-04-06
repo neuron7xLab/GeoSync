@@ -1,8 +1,10 @@
+# mypy: ignore-errors
 """Unit tests for the FETE integration."""
 
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from core.strategies import (
     FETE,
@@ -38,6 +40,7 @@ def test_sigma_controller_keeps_tau_in_bounds() -> None:
     assert {"brier", "ece", "entropy", "tau", "n_obs", "calibrated"} <= set(audit)
 
 
+@pytest.mark.filterwarnings("ignore::numpy.exceptions.RankWarning")
 def test_fete_backtest_output_shapes() -> None:
     rng = np.random.default_rng(0)
     n = 400

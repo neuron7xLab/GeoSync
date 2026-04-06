@@ -400,7 +400,9 @@ def _normalized_neighbor_weights(
         return np.array([int(node)], dtype=int), np.array([1.0], dtype=float)
 
     w_arr = np.nan_to_num(w_arr, nan=0.0, posinf=0.0, neginf=0.0)
-    total = float(w_arr.sum())
+    # INV-HPC2: extreme weights can overflow sum(); catch and fallback to uniform
+    with np.errstate(over="ignore", invalid="ignore"):
+        total = float(w_arr.sum())
     if not np.isfinite(total) or total <= 0.0:
         w_arr = np.full_like(w_arr, 1.0 / len(w_arr))
     else:
@@ -484,7 +486,12 @@ def build_price_graph(prices: np.ndarray, delta: float = 0.005) -> nx.Graph:
     scale = float(abs(base))
     if not np.isfinite(scale) or scale == 0.0:
         scale = 1.0
-    levels = np.round((p - base) / (scale * delta)).astype(int)
+    # INV-HPC2: clamp before int cast to prevent overflow on extreme price deltas
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        raw_levels = np.round((p - base) / (scale * delta))
+    raw_levels = np.nan_to_num(raw_levels, nan=0.0, posinf=0.0, neginf=0.0)
+    max_int = np.iinfo(np.int64).max // 2
+    levels = np.clip(raw_levels, -max_int, max_int).astype(int)
     G = nx.Graph()
     for i, lv in enumerate(levels):
         G.add_node(int(lv))

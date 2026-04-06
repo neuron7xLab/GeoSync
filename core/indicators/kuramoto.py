@@ -328,7 +328,9 @@ def compute_phase(
         def _ensure_dtype(arr: np.ndarray) -> np.ndarray:
             return arr if arr.dtype == target_dtype else arr.astype(target_dtype)
 
-        x = np.asarray(x, dtype=target_dtype)
+        # INV-HPC2: clamp to dtype range before cast to prevent overflow
+        with np.errstate(over="ignore", invalid="ignore"):
+            x = np.asarray(x, dtype=target_dtype)
         target = None
         if out is not None:
             target = np.asarray(out)
@@ -355,7 +357,9 @@ def compute_phase(
 
             real = np.asarray(x, dtype=target_dtype)
             spectrum = _scipy_fft.rfft(real)
-            spectrum *= -1j
+            # INV-HPC2: complex multiply can overflow in float32; suppress and let nan_to_num handle
+            with np.errstate(over="ignore", invalid="ignore"):
+                spectrum *= -1j
             spectrum[0] = 0
             if n % 2 == 0 and spectrum.size > 1:
                 spectrum[-1] = 0

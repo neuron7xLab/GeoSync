@@ -551,7 +551,12 @@ class TemporalRicciAnalyzer:
         if df.empty or price_col not in df.columns:
             raise ValueError("DataFrame must contain a 'close' column and not be empty")
 
-        with _metrics.measure_indicator_compute("temporal_ricci") as ctx:
+        # INV-HPC2: extreme price values can overflow numpy reductions;
+        # suppress and let nan_to_num guards downstream handle the result.
+        with (
+            np.errstate(over="ignore", invalid="ignore"),
+            _metrics.measure_indicator_compute("temporal_ricci") as ctx,
+        ):
             diagnostics: dict[str, float | dict[str, float]] = {
                 "sample_size": float(len(df)),
                 "window": float(self.window_size),
