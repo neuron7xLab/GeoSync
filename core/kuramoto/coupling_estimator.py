@@ -118,9 +118,7 @@ class CouplingEstimationConfig:
     stability_threshold: float = 0.6
     random_state: int | None = None
 
-    _ALLOWED_PENALTIES: tuple[str, ...] = field(
-        default=("mcp", "scad", "lasso"), repr=False
-    )
+    _ALLOWED_PENALTIES: tuple[str, ...] = field(default=("mcp", "scad", "lasso"), repr=False)
 
     def __post_init__(self) -> None:
         if self.penalty not in self._ALLOWED_PENALTIES:
@@ -200,9 +198,7 @@ def scad_prox(z: np.ndarray, lam: float, gamma: float, step: float) -> np.ndarra
         soft_threshold(z, step * lam),
         np.where(
             abs_z <= gamma * lam,
-            sign_z
-            * (abs_z - step * gamma * lam / (gamma - 1.0))
-            / (1.0 - step / (gamma - 1.0)),
+            sign_z * (abs_z - step * gamma * lam / (gamma - 1.0)) / (1.0 - step / (gamma - 1.0)),
             z,
         ),
     )
@@ -214,9 +210,7 @@ def scad_prox(z: np.ndarray, lam: float, gamma: float, step: float) -> np.ndarra
 # ---------------------------------------------------------------------------
 
 
-def _apply_prox(
-    z: np.ndarray, lam: float, step: float, penalty: str, gamma: float
-) -> np.ndarray:
+def _apply_prox(z: np.ndarray, lam: float, step: float, penalty: str, gamma: float) -> np.ndarray:
     if penalty == "lasso":
         return soft_threshold(z, step * lam)
     if penalty == "mcp":
@@ -263,7 +257,9 @@ def _proximal_gradient_row(
         z = beta - step * grad
         beta_new = _apply_prox(z, lam, step, penalty, gamma)
         diff = float(np.max(np.abs(beta_new - beta)))
-        scale = max(1.0, float(np.max(np.abs(beta))))
+        scale = max(
+            1.0, float(np.max(np.abs(beta)))
+        )  # bounds: normalisation floor avoids division by near-zero beta
         beta = beta_new
         if diff < tol * scale:
             break
@@ -414,9 +410,7 @@ def complementary_pairs_stability(
 
     half = int(cfg.subsample_fraction * T)
     if half < 10:
-        raise ValueError(
-            f"Subsample half size {half} too small; increase T or subsample_fraction"
-        )
+        raise ValueError(f"Subsample half size {half} too small; increase T or subsample_fraction")
 
     selection_count = np.zeros((len(lam_grid), N, N), dtype=np.int64)
     weight_sum = np.zeros((N, N), dtype=np.float64)

@@ -161,7 +161,9 @@ def simulate_forward(
         # Build a joint buffer of history (pre-0) + simulated phases.
         combined = np.concatenate([history, theta[:t]], axis=0)
         t_idx = combined.shape[0] - 1  # index of theta[t-1]
-        t_del = np.clip(t_idx - tau, 0, t_idx)
+        t_del = np.clip(
+            t_idx - tau, 0, t_idx
+        )  # bounds: delay index clamped to valid combined-buffer range
         theta_d = combined[t_del, col_idx]
         phase_diff = theta_d - theta[t - 1][:, np.newaxis] - alpha
         coupling = np.sum(np.where(active, K * np.sin(phase_diff), 0.0), axis=1)
@@ -348,12 +350,8 @@ def evaluate_oos(
     R_val_pred = order_parameter(val_theta_pred)
     R_test_obs = order_parameter(test_theta_obs)
     R_test_pred = order_parameter(test_theta_pred)
-    R_corr_val = float(
-        np.corrcoef(R_val_pred, R_val_obs)[0, 1] if R_val_obs.size > 1 else 0.0
-    )
-    R_corr_test = float(
-        np.corrcoef(R_test_pred, R_test_obs)[0, 1] if R_test_obs.size > 1 else 0.0
-    )
+    R_corr_val = float(np.corrcoef(R_val_pred, R_val_obs)[0, 1] if R_val_obs.size > 1 else 0.0)
+    R_corr_test = float(np.corrcoef(R_test_pred, R_test_obs)[0, 1] if R_test_obs.size > 1 else 0.0)
 
     # Baselines against which DM/SPA are computed on R(t) residuals
     model_errs = R_test_pred - R_test_obs
@@ -399,9 +397,7 @@ def evaluate_oos(
     )
 
 
-def _ar1_forecast_errors(
-    train_series: np.ndarray, test_series: np.ndarray
-) -> np.ndarray:
+def _ar1_forecast_errors(train_series: np.ndarray, test_series: np.ndarray) -> np.ndarray:
     """Fit AR(1) on ``train_series`` and forecast errors on ``test_series``."""
     if train_series.size < 2:
         return np.zeros_like(test_series)

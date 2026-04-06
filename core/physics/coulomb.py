@@ -54,9 +54,7 @@ class CoulombInteraction:
     def alpha(self) -> float:
         return self._alpha
 
-    def compute_charges(
-        self, ofi_matrix: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
+    def compute_charges(self, ofi_matrix: NDArray[np.float64]) -> NDArray[np.float64]:
         """Normalised charges q_i = OFI_i / σ(OFI_i).
 
         Parameters
@@ -72,11 +70,12 @@ class CoulombInteraction:
         if ofi.ndim != 2:
             raise ValueError(f"Expected 2-D array (T, N), got ndim={ofi.ndim}")
 
-        tail = ofi[-self._lookback:]
+        tail = ofi[-self._lookback :]
         current = ofi[-1]
         sigma = np.std(tail, axis=0)
         sigma = np.maximum(sigma, 1e-12)
-        return current / sigma
+        result: NDArray[np.float64] = current / sigma
+        return result
 
     @staticmethod
     def compute_forces(
@@ -97,13 +96,13 @@ class CoulombInteraction:
         n = charges.shape[0]
 
         if distances.shape != (n, n):
-            raise ValueError(
-                f"distances must be ({n}, {n}), got {distances.shape}"
-            )
+            raise ValueError(f"distances must be ({n}, {n}), got {distances.shape}")
 
         charge_product = np.outer(charges, charges)
-        dist_safe = np.maximum(distances, 1e-6)
-        F_coulomb = charge_product / (dist_safe ** 2)
+        dist_safe = np.maximum(
+            distances, 1e-6
+        )  # INV-FE2: distance floor prevents Coulomb singularity at r→0
+        F_coulomb = charge_product / (dist_safe**2)
 
         # Flip sign: same-direction OFI = market attraction
         F_market = -F_coulomb
@@ -114,7 +113,8 @@ class CoulombInteraction:
         if max_abs > 0:
             F_market = F_market / max_abs
 
-        return F_market
+        result: NDArray[np.float64] = F_market
+        return result
 
     def update_adjacency(
         self,
@@ -138,12 +138,12 @@ class CoulombInteraction:
         forces = np.asarray(forces, dtype=np.float64)
 
         if A.shape != forces.shape:
-            raise ValueError(
-                f"A and forces must match: {A.shape} vs {forces.shape}"
-            )
+            raise ValueError(f"A and forces must match: {A.shape} vs {forces.shape}")
 
         A_new = A + self._alpha * forces
-        A_new = np.clip(A_new, 0.0, 1.0)
+        A_new = np.clip(
+            A_new, 0.0, 1.0
+        )  # INV-K1: adjacency ∈ [0,1] — bounded coupling after force update
         np.fill_diagonal(A_new, 0.0)
         return A_new
 

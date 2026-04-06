@@ -10,7 +10,7 @@ Empirical thresholds (from literature):
     q ≥ 1.55         →  CRISIS regime
 
 Position sizing gate:
-    f(q) = max(0, 1 - (q - 1.35) / 0.20)
+    f(q) = max(0, 1 - (q - 1.35) / 0.20)  # INV-FE2: gate output non-negative by Tsallis entropy contract
 
     q = 1.35 → f = 1.0 (full position)
     q = 1.45 → f = 0.5 (half position)
@@ -42,9 +42,9 @@ from numpy.typing import NDArray
 class TsallisRegime(str, Enum):
     """Market regime based on Tsallis q parameter."""
 
-    NORMAL = "normal"       # q < 1.35
-    ELEVATED = "elevated"   # 1.35 ≤ q < 1.55
-    CRISIS = "crisis"       # q ≥ 1.55
+    NORMAL = "normal"  # q < 1.35
+    ELEVATED = "elevated"  # 1.35 ≤ q < 1.55
+    CRISIS = "crisis"  # q ≥ 1.55
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,11 +124,11 @@ class TsallisRiskGate:
             return 1.0  # no variance
 
         standardized = (returns - mean) / std
-        kurtosis = float(np.mean(standardized ** 4) - 3.0)
+        kurtosis = float(np.mean(standardized**4) - 3.0)
 
         # Clamp kurtosis to avoid q < 1 or q → ∞
-        kurtosis = max(kurtosis, -2.5)  # q stays real
-        kurtosis = min(kurtosis, 50.0)  # q stays reasonable
+        kurtosis = max(kurtosis, -2.5)  # INV-FE2: kurtosis lower bound keeps q real-valued
+        kurtosis = min(kurtosis, 50.0)  # bounds: kurtosis cap prevents q divergence
 
         q = (5.0 + 3.0 * kurtosis) / (3.0 + kurtosis)
         return max(q, 1.0)  # q ≥ 1 for fat tails
@@ -145,7 +145,7 @@ class TsallisRiskGate:
     def position_multiplier(self, q: float) -> float:
         """Compute position size multiplier from q.
 
-        f(q) = max(0, 1 - (q - q_normal) / (q_crisis - q_normal))
+        f(q) = max(0, 1 - (q - q_normal) / (q_crisis - q_normal))  # INV-FE2: gate output non-negative by Tsallis entropy contract
 
         Linear ramp from 1.0 at q_normal to 0.0 at q_crisis.
         """
@@ -172,7 +172,7 @@ class TsallisRiskGate:
             # Use cross-sectional returns for portfolio-level q
             returns = returns.ravel()
 
-        tail = returns[-self._window:]
+        tail = returns[-self._window :]
         n_obs = tail.size
 
         if n_obs < self._min_obs:

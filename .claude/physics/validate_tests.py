@@ -36,15 +36,33 @@ INVARIANTS_PATH = SCRIPT_DIR / "INVARIANTS.yaml"
 INV_PATTERN = re.compile(r"INV-[A-Z0-9]+")
 
 PHYSICS_KEYWORDS = {
-    "physics", "kuramoto", "serotonin", "dopamine", "gaba", "energy",
-    "thermo", "sync", "lyapunov", "ricci", "regime", "conservation",
-    "entropy", "free_energy", "order_param", "inhibit",
+    "physics",
+    "kuramoto",
+    "serotonin",
+    "dopamine",
+    "gaba",
+    "energy",
+    "thermo",
+    "sync",
+    "lyapunov",
+    "ricci",
+    "regime",
+    "conservation",
+    "entropy",
+    "free_energy",
+    "order_param",
+    "inhibit",
     # Fix #3: ECS/HPC/active inference modules
-    "ecs", "hpc", "pwpe", "active_inference", "freeenergy",
+    "ecs",
+    "hpc",
+    "pwpe",
+    "active_inference",
+    "freeenergy",
 }
 
 
 # ── Load invariant registry ──────────────────────────────────────
+
 
 def load_invariants() -> dict[str, dict[str, Any]]:
     """Parse INVARIANTS.yaml into {INV-ID: {type, test_type, priority, ...}}."""
@@ -69,9 +87,9 @@ def load_invariants() -> dict[str, dict[str, Any]]:
         if current_id:
             kv_match = re.match(r"\s+(\w+):\s+(.+)", line)
             if kv_match:
-                key, val = kv_match.group(1), kv_match.group(2).strip().strip('"\'')
+                key, val = kv_match.group(1), kv_match.group(2).strip().strip("\"'")
                 if "#" in val:
-                    val = val[:val.index("#")].strip()
+                    val = val[: val.index("#")].strip()
                 current_block[key] = val
 
             if line.strip() == "" or re.match(r"\S", line):
@@ -88,6 +106,7 @@ def load_invariants() -> dict[str, dict[str, Any]]:
 
 
 # ── AST helpers ──────────────────────────────────────────────────
+
 
 def _collect_names(node: ast.AST) -> set[str]:
     return {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
@@ -155,6 +174,7 @@ def _has_large_int(node: ast.AST, threshold: int = 100) -> bool:
 
 # ── L3 structural checkers per invariant type ────────────────────
 
+
 def _check_universal(func: ast.FunctionDef) -> tuple[bool, str]:
     calls = _collect_call_names(func)
     if _has_decorator(func, "given"):
@@ -176,8 +196,17 @@ def _check_asymptotic(func: ast.FunctionDef) -> tuple[bool, str]:
     names = _collect_names(func)
     if _has_negative_slice(func):
         return True, ""
-    trajectory_names = {"final", "steady", "late", "converged", "R_final",
-                        "R_late", "R_steady", "trajectory", "steps"}
+    trajectory_names = {
+        "final",
+        "steady",
+        "late",
+        "converged",
+        "R_final",
+        "R_late",
+        "R_steady",
+        "trajectory",
+        "steps",
+    }
     if names & trajectory_names:
         return True, ""
     if calls & {"simulate", "run", "evolve", "integrate", "trajectory"}:
@@ -260,8 +289,18 @@ def _check_conservation(func: ast.FunctionDef) -> tuple[bool, str]:
 # Fix #6: distributional type was missing — silent L3 skip
 def _check_distributional(func: ast.FunctionDef) -> tuple[bool, str]:
     calls = _collect_call_names(func)
-    stat_calls = {"rayleigh", "kstest", "ks_2samp", "chisquare", "anderson",
-                  "shapiro", "normaltest", "histogram", "hist", "np.histogram"}
+    stat_calls = {
+        "rayleigh",
+        "kstest",
+        "ks_2samp",
+        "chisquare",
+        "anderson",
+        "shapiro",
+        "normaltest",
+        "histogram",
+        "hist",
+        "np.histogram",
+    }
     if calls & stat_calls:
         return True, ""
     if calls & {"mean", "np.mean", "std", "np.std"}:
@@ -278,28 +317,28 @@ def _check_distributional(func: ast.FunctionDef) -> tuple[bool, str]:
 
 # Dispatch by invariant `type` field
 TYPE_CHECKERS: dict[str, Any] = {
-    "universal":      _check_universal,
-    "asymptotic":     _check_asymptotic,
-    "monotonic":      _check_monotonic,
-    "statistical":    _check_statistical,
-    "algebraic":      _check_algebraic,
-    "qualitative":    _check_qualitative,
-    "conservation":   _check_conservation,
-    "conditional":    _check_qualitative,
+    "universal": _check_universal,
+    "asymptotic": _check_asymptotic,
+    "monotonic": _check_monotonic,
+    "statistical": _check_statistical,
+    "algebraic": _check_algebraic,
+    "qualitative": _check_qualitative,
+    "conservation": _check_conservation,
+    "conditional": _check_qualitative,
     "distributional": _check_distributional,
 }
 
 # Fix #1: Dispatch by YAML `test_type` field (takes priority over `type`)
 TEST_TYPE_CHECKERS: dict[str, Any] = {
-    "property_test":     _check_universal,
-    "convergence_test":  _check_asymptotic,
-    "trajectory_test":   _check_monotonic,
-    "sweep_test":        _check_qualitative,
-    "ensemble_test":     _check_statistical,
+    "property_test": _check_universal,
+    "convergence_test": _check_asymptotic,
+    "trajectory_test": _check_monotonic,
+    "sweep_test": _check_qualitative,
+    "ensemble_test": _check_statistical,
     "monotonicity_test": _check_monotonic,
-    "balance_test":      _check_conservation,
-    "statistical_test":  _check_statistical,
-    "correlation_test":  _check_statistical,
+    "balance_test": _check_conservation,
+    "statistical_test": _check_statistical,
+    "correlation_test": _check_statistical,
 }
 
 
@@ -324,6 +363,7 @@ def resolve_l3_checker(inv_data: dict[str, str]) -> tuple[Any | None, str]:
 
 # ── Issue class ──────────────────────────────────────────────────
 
+
 class Issue:
     def __init__(self, level: str, line: int, func: str, msg: str):
         self.level = level
@@ -336,6 +376,7 @@ class Issue:
 
 
 # ── File classification ──────────────────────────────────────────
+
 
 def is_physics_test(filepath: Path) -> bool:
     name = filepath.stem.lower()
@@ -355,6 +396,7 @@ def is_physics_source(filepath: Path) -> bool:
 # ── L4: Error message quality checker ────────────────────────────
 # Fix #2: Check for 5 required fields, not just INV-* presence
 
+
 def _check_error_msg_quality(msg_source: str) -> list[str]:
     """Check assert error message for required physics debug fields.
 
@@ -370,24 +412,31 @@ def _check_error_msg_quality(msg_source: str) -> list[str]:
     if not INV_PATTERN.search(msg_source):
         missing.append("INV-* ID")
 
-    has_observed = bool(re.search(
-        r"[=:]\s*[-+]?\d|actual|observed|got|result|R=|R_final|delta=|level=",
-        msg_source, re.IGNORECASE
-    ))
+    has_observed = bool(
+        re.search(
+            r"[=:]\s*[-+]?\d|actual|observed|got|result|R=|R_final|delta=|level=",
+            msg_source,
+            re.IGNORECASE,
+        )
+    )
     if not has_observed:
         missing.append("observed value")
 
-    has_expected = bool(re.search(
-        r"expect|should|must|theory|predicted|required|outside|violat",
-        msg_source, re.IGNORECASE
-    ))
+    has_expected = bool(
+        re.search(
+            r"expect|should|must|theory|predicted|required|outside|violat",
+            msg_source,
+            re.IGNORECASE,
+        )
+    )
     if not has_expected:
         missing.append("expected behavior")
 
-    has_params = bool(re.search(
-        r"[NK]=\d|seed=|steps=|at\s+\w+=|with\s+\w+=|gamma=|K_c=",
-        msg_source, re.IGNORECASE
-    ))
+    has_params = bool(
+        re.search(
+            r"[NK]=\d|seed=|steps=|at\s+\w+=|with\s+\w+=|gamma=|K_c=", msg_source, re.IGNORECASE
+        )
+    )
     if not has_params:
         missing.append("parameters")
 
@@ -396,7 +445,8 @@ def _check_error_msg_quality(msg_source: str) -> list[str]:
 
 # ── Test file validation (L1-L5) ────────────────────────────────
 
-def check_test_file(filepath: Path, registry: dict[str, dict]) -> list[Issue]:
+
+def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list[Issue]:
     issues: list[Issue] = []
     source = filepath.read_text()
     source_lines = source.splitlines()
@@ -417,19 +467,27 @@ def check_test_file(filepath: Path, registry: dict[str, dict]) -> list[Issue]:
 
         # ── L1: INV-* presence ──
         if not inv_refs:
-            issues.append(Issue(
-                "L1", node.lineno, node.name,
-                "No INV-* reference in docstring. Which physics invariant does this test?"
-            ))
+            issues.append(
+                Issue(
+                    "L1",
+                    node.lineno,
+                    node.name,
+                    "No INV-* reference in docstring. Which physics invariant does this test?",
+                )
+            )
             continue
 
         # ── L2: INV-* validity ──
         for inv_id in inv_refs:
             if registry and inv_id not in registry:
-                issues.append(Issue(
-                    "L2", node.lineno, node.name,
-                    f"{inv_id} not found in INVARIANTS.yaml. Typo or missing entry?"
-                ))
+                issues.append(
+                    Issue(
+                        "L2",
+                        node.lineno,
+                        node.name,
+                        f"{inv_id} not found in INVARIANTS.yaml. Typo or missing entry?",
+                    )
+                )
 
         # ── L3: Test type vs invariant type ──
         # Fix #1: uses test_type with priority over type
@@ -440,10 +498,9 @@ def check_test_file(filepath: Path, registry: dict[str, dict]) -> list[Issue]:
             if checker_fn is not None:
                 ok, reason = checker_fn(node)
                 if not ok:
-                    issues.append(Issue(
-                        "L3", node.lineno, node.name,
-                        f"{inv_id} has {label}. {reason}"
-                    ))
+                    issues.append(
+                        Issue("L3", node.lineno, node.name, f"{inv_id} has {label}. {reason}")
+                    )
 
         # ── L4: Error message quality ──
         # Fix #2: check 5 fields not just INV-* presence
@@ -463,20 +520,28 @@ def check_test_file(filepath: Path, registry: dict[str, dict]) -> list[Issue]:
                 msg_source = "\n".join(source_lines[assert_start:assert_end])
                 missing = _check_error_msg_quality(msg_source)
                 if missing:
-                    issues.append(Issue(
-                        "L4", child.lineno, node.name,
-                        f"Assert message missing: {', '.join(missing)}. "
-                        f"Contract requires: INV-ID, expected, observed, reasoning, params."
-                    ))
+                    issues.append(
+                        Issue(
+                            "L4",
+                            child.lineno,
+                            node.name,
+                            f"Assert message missing: {', '.join(missing)}. "
+                            f"Contract requires: INV-ID, expected, observed, reasoning, params.",
+                        )
+                    )
             else:
                 has_no_msg = True
 
         if has_no_msg and not has_any_msg:
-            issues.append(Issue(
-                "L4", node.lineno, node.name,
-                "All assertions lack error messages. "
-                "On failure, there's no context about what went wrong or why."
-            ))
+            issues.append(
+                Issue(
+                    "L4",
+                    node.lineno,
+                    node.name,
+                    "All assertions lack error messages. "
+                    "On failure, there's no context about what went wrong or why.",
+                )
+            )
 
         # ── L5: Magic number detection ──
         for child in ast.walk(node):
@@ -488,22 +553,33 @@ def check_test_file(filepath: Path, registry: dict[str, dict]) -> list[Issue]:
             if not re.search(r"assert.*[<>=]\s*0\.\d+", line):
                 continue
             theory_patterns = [
-                "sqrt", "np.sqrt", "math.sqrt",
-                "1/np", "1/math",
-                "k_c", "kc",
-                "pi", "np.pi",
-                "epsilon", "eps",
-                "tolerance", "tol",
+                "sqrt",
+                "np.sqrt",
+                "math.sqrt",
+                "1/np",
+                "1/math",
+                "k_c",
+                "kc",
+                "pi",
+                "np.pi",
+                "epsilon",
+                "eps",
+                "tolerance",
+                "tol",
             ]
             context_start = max(0, child.lineno - 4)
             context_end = min(len(source_lines), child.lineno)
             context = "\n".join(source_lines[context_start:context_end]).lower()
             if not any(pat in context for pat in theory_patterns):
-                issues.append(Issue(
-                    "L5", child.lineno, node.name,
-                    f"Possible magic number threshold. "
-                    f"Is this derived from theory? Line: {line[:80]}"
-                ))
+                issues.append(
+                    Issue(
+                        "L5",
+                        child.lineno,
+                        node.name,
+                        f"Possible magic number threshold. "
+                        f"Is this derived from theory? Line: {line[:80]}",
+                    )
+                )
 
     return issues
 
@@ -528,6 +604,7 @@ LOG_PATTERNS = [
     re.compile(r"emit\s*\("),
     re.compile(r"telemetry"),
     re.compile(r"tacl\."),
+    re.compile(r"#\s*bounds:"),  # documented non-physics justification for clamp
 ]
 
 
@@ -556,24 +633,33 @@ def audit_code_file(filepath: Path) -> list[Issue]:
         has_inv_ref = bool(INV_PATTERN.search(context))
 
         if not has_log and not has_inv_ref:
-            issues.append(Issue(
-                "C1", i, filepath.stem,
-                f"Silent clamp/clip without logging or INV-* comment. "
-                f"This may hide a physics violation. Line: {stripped[:80]}"
-            ))
+            issues.append(
+                Issue(
+                    "C1",
+                    i,
+                    filepath.stem,
+                    f"Silent clamp/clip without logging or INV-* comment. "
+                    f"This may hide a physics violation. Line: {stripped[:80]}",
+                )
+            )
 
         if re.search(r"clip\s*\(\s*\w+\s*,\s*[\d.]+\s*,\s*[\d.]+", stripped):
-            if not has_inv_ref:
-                issues.append(Issue(
-                    "C2", i, filepath.stem,
-                    f"Numeric bounds in clip without INV-* comment. "
-                    f"Which invariant justifies these bounds? Line: {stripped[:80]}"
-                ))
+            if not has_inv_ref and not has_log:
+                issues.append(
+                    Issue(
+                        "C2",
+                        i,
+                        filepath.stem,
+                        f"Numeric bounds in clip without INV-* comment. "
+                        f"Which invariant justifies these bounds? Line: {stripped[:80]}",
+                    )
+                )
 
     return issues
 
 
 # ── Main ─────────────────────────────────────────────────────────
+
 
 def main() -> None:
     args = sys.argv[1:]
@@ -612,7 +698,9 @@ def main() -> None:
         _run_test_validation(files, registry, summary_mode)
 
 
-def _run_test_validation(files: list[Path], registry: dict, summary_mode: bool) -> None:
+def _run_test_validation(
+    files: list[Path], registry: dict[str, dict[str, str]], summary_mode: bool
+) -> None:
     total_issues: dict[str, int] = {}
     physics_files = 0
     total_tests = 0
@@ -628,7 +716,8 @@ def _run_test_validation(files: list[Path], registry: dict, summary_mode: bool) 
         try:
             tree = ast.parse(f.read_text())
             file_tests = sum(
-                1 for node in ast.walk(tree)
+                1
+                for node in ast.walk(tree)
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
                 and node.name.startswith("test_")
             )
@@ -645,9 +734,9 @@ def _run_test_validation(files: list[Path], registry: dict, summary_mode: bool) 
                 total_issues[issue.level] = total_issues.get(issue.level, 0) + 1
 
     # Report
-    print(f"\n{'='*64}")
+    print(f"\n{'=' * 64}")
     print("Physics Test Validation Report")
-    print(f"{'='*64}")
+    print(f"{'=' * 64}")
     print(f"Files scanned:    {physics_files}")
     print(f"Test functions:   {total_tests}")
     print()
@@ -662,9 +751,9 @@ def _run_test_validation(files: list[Path], registry: dict, summary_mode: bool) 
     print("Issues by level:")
     for lv in levels:
         count = total_issues.get(lv, 0)
-        print(f"  [{lv}] {labels[lv]+':':<36s} {count}")
+        print(f"  [{lv}] {labels[lv] + ':':<36s} {count}")
     total = sum(total_issues.get(lv, 0) for lv in levels)
-    print(f"  {'─'*44}")
+    print(f"  {'─' * 44}")
     print(f"  {'Total:':<40s} {total}")
 
     if total == 0:
@@ -674,7 +763,7 @@ def _run_test_validation(files: list[Path], registry: dict, summary_mode: bool) 
         grounded = max(0, total_tests - l1)
         pct = (grounded / total_tests * 100) if total_tests > 0 else 0
         print(f"\nPhysics grounding: {grounded}/{total_tests} tests ({pct:.0f}%)")
-        print(f"\nFix priority: L1 -> L4 -> L3 -> L5 -> L2")
+        print("\nFix priority: L1 -> L4 -> L3 -> L5 -> L2")
         sys.exit(1)
 
 
@@ -698,26 +787,27 @@ def _run_audit_code(files: list[Path], summary_mode: bool) -> None:
             for issue in issues:
                 total_issues[issue.level] = total_issues.get(issue.level, 0) + 1
 
-    print(f"\n{'='*64}")
+    print(f"\n{'=' * 64}")
     print("Production Code Audit Report")
-    print(f"{'='*64}")
+    print(f"{'=' * 64}")
     print(f"Files scanned:  {scanned}")
     c1 = total_issues.get("C1", 0)
     c2 = total_issues.get("C2", 0)
     print(f"  [C1] Silent clamp/clip (no logging):  {c1}")
     print(f"  [C2] Undocumented numeric bounds:      {c2}")
     total = c1 + c2
-    print(f"  {'─'*44}")
+    print(f"  {'─' * 44}")
     print(f"  Total:                                 {total}")
 
     if total == 0:
         print("\n✅ No silent invariant repairs detected.")
     else:
-        print(f"\nThese clamps may hide physics violations. Add logging or INV-* comment.")
+        print("\nThese clamps may hide physics violations. Add logging or INV-* comment.")
         sys.exit(1)
 
 
 # ── Self-check ───────────────────────────────────────────────────
+
 
 def _self_check() -> None:
     """Verify physics kernel internal consistency."""
@@ -734,7 +824,9 @@ def _self_check() -> None:
     for inv_id, data in reg.items():
         checker, label = resolve_l3_checker(data)
         if checker is None:
-            errors.append(f"   {inv_id}: type='{data.get('type')}' test_type='{data.get('test_type')}' has no L3 checker")
+            errors.append(
+                f"   {inv_id}: type='{data.get('type')}' test_type='{data.get('test_type')}' has no L3 checker"
+            )
     if errors:
         print(f"2. FAIL: {len(errors)} types without checker")
         for e in errors:
@@ -743,8 +835,16 @@ def _self_check() -> None:
         print("2. All invariant types have L3 checkers")
 
     # 3. Regex matches all ID formats
-    test_ids = ["INV-K1", "INV-5HT7", "INV-DA3", "INV-GABA5", "INV-ES1",
-                "INV-FE2", "INV-RC1", "INV-TH2"]
+    test_ids = [
+        "INV-K1",
+        "INV-5HT7",
+        "INV-DA3",
+        "INV-GABA5",
+        "INV-ES1",
+        "INV-FE2",
+        "INV-RC1",
+        "INV-TH2",
+    ]
     bad = [tid for tid in test_ids if not INV_PATTERN.match(tid)]
     if bad:
         print(f"3. FAIL: regex doesn't match: {bad}")

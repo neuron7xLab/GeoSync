@@ -15,6 +15,7 @@ References:
     - Shannon, C. E. (1948). A mathematical theory of communication.
       Bell System Technical Journal, 27(3), 379-423.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -249,13 +250,9 @@ def entropy(
 
         # Chunked processing for large arrays
         if chunk_size is not None and x.size > chunk_size:
-            chunks = [
-                x[i : min(i + chunk_size, x.size)] for i in range(0, x.size, chunk_size)
-            ]
+            chunks = [x[i : min(i + chunk_size, x.size)] for i in range(0, x.size, chunk_size)]
             tasks = [
-                (chunk, bins, dtype, global_scale, hist_range)
-                for chunk in chunks
-                if chunk.size > 0
+                (chunk, bins, dtype, global_scale, hist_range) for chunk in chunks if chunk.size > 0
             ]
             if not tasks:
                 _LAST_ENTROPY_BACKEND = "cpu"
@@ -395,9 +392,7 @@ def _entropy_gpu(
         device_hist = cuda.to_device(np.zeros(bins, dtype=np.int32))
         threads = 256
         blocks = (int(data.size) + threads - 1) // threads
-        _entropy_histogram_kernel[blocks, threads](
-            device_data, device_hist, min_v, max_v
-        )
+        _entropy_histogram_kernel[blocks, threads](device_data, device_hist, min_v, max_v)
         cuda.synchronize()
         counts = device_hist.copy_to_host().astype(np.float32)
         total = counts.sum(dtype=np.float32)
@@ -425,9 +420,7 @@ def _entropy_chunk_worker(
 
 
 def _run_entropy_process(
-    tasks: Sequence[
-        tuple[np.ndarray, int, np.dtype, float | None, tuple[float, float] | None]
-    ],
+    tasks: Sequence[tuple[np.ndarray, int, np.dtype, float | None, tuple[float, float] | None]],
     max_workers: int | None,
 ) -> list[tuple[np.ndarray, int]]:
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -435,9 +428,7 @@ def _run_entropy_process(
 
 
 def _run_entropy_async(
-    tasks: Sequence[
-        tuple[np.ndarray, int, np.dtype, float | None, tuple[float, float] | None]
-    ],
+    tasks: Sequence[tuple[np.ndarray, int, np.dtype, float | None, tuple[float, float] | None]],
     max_workers: int | None,
 ) -> list[tuple[np.ndarray, int]]:
     async def _runner() -> list[tuple[np.ndarray, int]]:
@@ -447,8 +438,7 @@ def _run_entropy_async(
             if max_workers is not None:
                 executor = ThreadPoolExecutor(max_workers=max_workers)
             futures = [
-                loop.run_in_executor(executor, _entropy_chunk_worker, task)
-                for task in tasks
+                loop.run_in_executor(executor, _entropy_chunk_worker, task) for task in tasks
             ]
             return await asyncio.gather(*futures)
         finally:
@@ -460,10 +450,7 @@ def _run_entropy_async(
         return asyncio.run(coro)
     except RuntimeError as exc:
         message = str(exc)
-        if (
-            "event loop is running" not in message
-            and "running event loop" not in message
-        ):
+        if "event loop is running" not in message and "running event loop" not in message:
             coro.close()
             raise
         coro.close()
@@ -560,7 +547,9 @@ def delta_entropy(series: np.ndarray, window: int = 100, bins_range=(10, 50)) ->
     a, b = x[-window * 2 : -window], x[-window:]
 
     # Adaptive bin selection
-    bins = int(np.clip(window // 3, bins_range[0], bins_range[1]))
+    bins = int(
+        np.clip(window // 3, bins_range[0], bins_range[1])
+    )  # bounds: histogram bin count clamped to configured [min, max] range
 
     # Compute entropy difference
     return float(entropy(b, bins) - entropy(a, bins))

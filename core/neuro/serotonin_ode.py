@@ -28,16 +28,16 @@ from dataclasses import dataclass
 class SerotoninODEParams:
     """Default parameters for the serotonin ODE system."""
 
-    alpha: float = 0.1       # 5-HT decay rate
-    beta: float = 0.3        # stress → 5-HT production rate
-    gamma: float = 0.05      # homeostatic pull toward baseline
-    delta: float = 0.02      # desensitisation → suppression of 5-HT
-    eta: float = 0.01        # 5-HT above threshold → desensitisation
-    mu: float = 0.005        # desensitisation recovery rate
-    baseline: float = 0.3    # homeostatic target for 5-HT level
-    threshold: float = 0.5   # level above which desens increases
-    target: float = 0.3      # Lyapunov target level
-    lambda_: float = 0.5     # Lyapunov weight on desens term
+    alpha: float = 0.1  # 5-HT decay rate
+    beta: float = 0.3  # stress → 5-HT production rate
+    gamma: float = 0.05  # homeostatic pull toward baseline
+    delta: float = 0.02  # desensitisation → suppression of 5-HT
+    eta: float = 0.01  # 5-HT above threshold → desensitisation
+    mu: float = 0.005  # desensitisation recovery rate
+    baseline: float = 0.3  # homeostatic target for 5-HT level
+    threshold: float = 0.5  # level above which desens increases
+    target: float = 0.3  # Lyapunov target level
+    lambda_: float = 0.5  # Lyapunov weight on desens term
 
 
 class SerotoninODE:
@@ -82,15 +82,8 @@ class SerotoninODE:
                           - delta * desens
         """
         p = self.p
-        d_level = (
-            -(p.alpha + p.gamma) * (level - p.baseline)
-            + p.beta * stress
-            - p.delta * desens
-        )
-        d_desens = (
-            p.eta * max(0.0, level - p.threshold)
-            - p.mu * desens
-        )
+        d_level = -(p.alpha + p.gamma) * (level - p.baseline) + p.beta * stress - p.delta * desens
+        d_desens = p.eta * max(0.0, level - p.threshold) - p.mu * desens
         return d_level, d_desens
 
     # ── RK4 integration step ─────────────────────────────────────────
@@ -113,23 +106,21 @@ class SerotoninODE:
         y1, y2 = self.level, self.desensitization
 
         k1a, k1b = self._derivatives(y1, y2, stress)
-        k2a, k2b = self._derivatives(
-            y1 + 0.5 * dt * k1a, y2 + 0.5 * dt * k1b, stress
-        )
-        k3a, k3b = self._derivatives(
-            y1 + 0.5 * dt * k2a, y2 + 0.5 * dt * k2b, stress
-        )
-        k4a, k4b = self._derivatives(
-            y1 + dt * k3a, y2 + dt * k3b, stress
-        )
+        k2a, k2b = self._derivatives(y1 + 0.5 * dt * k1a, y2 + 0.5 * dt * k1b, stress)
+        k3a, k3b = self._derivatives(y1 + 0.5 * dt * k2a, y2 + 0.5 * dt * k2b, stress)
+        k4a, k4b = self._derivatives(y1 + dt * k3a, y2 + dt * k3b, stress)
 
         self.level = y1 + (dt / 6.0) * (k1a + 2 * k2a + 2 * k3a + k4a)
         self.desensitization = y2 + (dt / 6.0) * (k1b + 2 * k2b + 2 * k3b + k4b)
 
         # Clamp level to [0, 1] for biological plausibility
-        self.level = max(0.0, min(1.0, self.level))
+        self.level = max(
+            0.0, min(1.0, self.level)
+        )  # INV-5HT2: s(t) ∈ [0,1] — biological 5-HT range
         # Desensitization is non-negative
-        self.desensitization = max(0.0, self.desensitization)
+        self.desensitization = max(
+            0.0, self.desensitization
+        )  # INV-5HT4: desensitization non-negative — receptor density lower bound
 
         return self.level, self.desensitization
 
@@ -138,7 +129,7 @@ class SerotoninODE:
     def _lyapunov(self, level: float, desens: float) -> float:
         """Compute Lyapunov function V(level, desens)."""
         p = self.p
-        return 0.5 * (level - p.target) ** 2 + p.lambda_ * desens ** 2
+        return 0.5 * (level - p.target) ** 2 + p.lambda_ * desens**2
 
     def verify_lyapunov(
         self,

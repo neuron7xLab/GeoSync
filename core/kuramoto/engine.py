@@ -55,7 +55,9 @@ class KuramotoResult:
                 f"expected {(expected_steps,)}, got {self.order_parameter.shape}."
             )
         if self.time.shape != (expected_steps,):
-            raise ValueError(f"Result time shape mismatch: expected {(expected_steps,)}, got {self.time.shape}.")
+            raise ValueError(
+                f"Result time shape mismatch: expected {(expected_steps,)}, got {self.time.shape}."
+            )
 
         if not np.isfinite(self.phases).all():
             raise ValueError("Result contains non-finite phase values.")
@@ -65,7 +67,9 @@ class KuramotoResult:
             raise ValueError("Result contains non-finite time values.")
         tol = 1e-12
         if np.any(self.order_parameter < -tol) or np.any(self.order_parameter > 1.0 + tol):
-            raise ValueError("Result order_parameter values must stay within [0, 1] (±1e-12 tolerance).")
+            raise ValueError(
+                "Result order_parameter values must stay within [0, 1] (±1e-12 tolerance)."
+            )
 
     def _compute_summary(self) -> dict[str, Any]:
         R = self.order_parameter
@@ -136,7 +140,11 @@ class KuramotoEngine:
     ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         rng = np.random.default_rng(cfg.seed)
 
-        omega = cfg.omega.astype(np.float64, copy=False) if cfg.omega is not None else rng.standard_normal(cfg.N)
+        omega = (
+            cfg.omega.astype(np.float64, copy=False)
+            if cfg.omega is not None
+            else rng.standard_normal(cfg.N)
+        )
         theta0 = (
             cfg.theta0.astype(np.float64, copy=False)
             if cfg.theta0 is not None
@@ -171,7 +179,11 @@ class KuramotoEngine:
         if adj.shape != (n, n):
             raise ValueError(f"Runtime adjacency shape must be {(n, n)}, got {adj.shape}.")
 
-        if not np.isfinite(omega).all() or not np.isfinite(theta0).all() or not np.isfinite(adj).all():
+        if (
+            not np.isfinite(omega).all()
+            or not np.isfinite(theta0).all()
+            or not np.isfinite(adj).all()
+        ):
             raise ValueError("Runtime inputs must all be finite.")
 
 
@@ -184,7 +196,7 @@ def _dtheta_dt(
     diff = theta[np.newaxis, :] - theta[:, np.newaxis]
     sin_diff = np.sin(diff)
     coupling = (adj * sin_diff).sum(axis=1)
-    out = omega + coupling
+    out: NDArray[np.float64] = omega + coupling
     if not np.isfinite(out).all():
         raise FloatingPointError("Non-finite derivative values produced by Kuramoto RHS.")
     return out
@@ -207,6 +219,7 @@ def _rk4_step(
 def _order_parameter(theta: NDArray[np.float64]) -> float:
     """Compute Kuramoto order parameter ``R = |mean(exp(iθ))|``."""
     z = np.exp(1j * theta).mean()
+    # INV-K1: R = |mean(exp(iθ))| ∈ [0,1] by Cauchy-Schwarz
     return float(np.clip(np.abs(z), 0.0, 1.0))
 
 

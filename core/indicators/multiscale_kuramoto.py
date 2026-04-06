@@ -106,9 +106,7 @@ class FractalResampler:
     """
 
     series: pd.Series
-    _cache: MutableMapping[TimeFrame, pd.Series] = field(
-        default_factory=dict, init=False
-    )
+    _cache: MutableMapping[TimeFrame, pd.Series] = field(default_factory=dict, init=False)
     _cache_hits: int = field(default=0, init=False)
     _direct_resamples: int = field(default=0, init=False)
 
@@ -182,11 +180,7 @@ class FractalResampler:
                     raise
                 continue
 
-        return {
-            timeframe: results[timeframe]
-            for timeframe in unique_order
-            if timeframe in results
-        }
+        return {timeframe: results[timeframe] for timeframe in unique_order if timeframe in results}
 
     def stats(self) -> Mapping[str, float]:
         """Expose cache utilisation metrics for energy profiling."""
@@ -318,7 +312,9 @@ class WaveletWindowSelector:
         self.min_window = min_window
         self.max_window = max_window
         self.wavelet = wavelet
-        self.levels = max(2, levels)
+        self.levels = max(
+            2, levels
+        )  # bounds: minimum 2 decomposition levels for meaningful multi-scale analysis
         self.max_samples = int(max_samples) if max_samples is not None else None
         self._fallback_window = self._compute_fallback_window()
         self._widths_cache: np.ndarray | None = None
@@ -331,10 +327,9 @@ class WaveletWindowSelector:
 
     def _candidate_widths(self) -> np.ndarray:
         if self._widths_cache is None:
-            widths = np.linspace(
-                self.min_window, self.max_window, self.levels, dtype=np.float64
-            )
+            widths = np.linspace(self.min_window, self.max_window, self.levels, dtype=np.float64)
             # Clip and convert to integers in one operation
+            # bounds: wavelet window widths clamped to configured [min, max] range
             widths = np.clip(widths, self.min_window, self.max_window).astype(np.int32)
             widths = np.unique(widths)
             widths = widths[widths > 0]
@@ -345,9 +340,7 @@ class WaveletWindowSelector:
 
     def select_window(self, prices: Sequence[float]) -> int:
         if self.max_window > 1_048_576:
-            raise ValueError(
-                "max_window is excessively large for efficient wavelet analysis"
-            )
+            raise ValueError("max_window is excessively large for efficient wavelet analysis")
         if self.levels > 8192:
             raise ValueError(
                 "levels is excessively large and could exhaust memory during wavelet selection"
@@ -406,7 +399,9 @@ class MultiScaleKuramoto:
         self.use_adaptive_window = use_adaptive_window
         self.min_samples_per_scale = int(min_samples_per_scale)
         self.selector = selector or WaveletWindowSelector(
-            min_window=max(32, self.base_window // 2),
+            min_window=max(
+                32, self.base_window // 2
+            ),  # bounds: floor at 32 for stable wavelet decomposition
             max_window=self.base_window * 2,
         )
 
@@ -424,9 +419,7 @@ class MultiScaleKuramoto:
             return int(self.selector.select_window(values))
         return self.base_window
 
-    def analyze(
-        self, df: pd.DataFrame, *, price_col: str = "close"
-    ) -> MultiScaleResult:
+    def analyze(self, df: pd.DataFrame, *, price_col: str = "close") -> MultiScaleResult:
         if price_col not in df.columns:
             raise KeyError(f"column '{price_col}' not found in dataframe")
         series = df[price_col]
@@ -473,9 +466,7 @@ class MultiScaleKuramoto:
             R, psi = self._kuramoto_order_parameter(phases[-window:])
             record.update(
                 {
-                    "result": KuramotoResult(
-                        order_parameter=R, mean_phase=psi, window=window
-                    ),
+                    "result": KuramotoResult(order_parameter=R, mean_phase=psi, window=window),
                     "endpoint": sampled.index[-1],
                     "samples": int(sampled.size),
                     "series": sampled,
@@ -514,6 +505,7 @@ class MultiScaleKuramoto:
             consensus_R = float(np.mean(R_values))
             if R_values.size > 1:
                 dispersion = float(np.std(R_values))
+                # INV-K1: coherence metric derived from R dispersion, bounded to [0,1]
                 cross_scale_coherence = float(np.clip(1.0 - dispersion, 0.0, 1.0))
             else:
                 cross_scale_coherence = 1.0
@@ -527,9 +519,7 @@ class MultiScaleKuramoto:
             dominant_scale = None
 
         adaptive_window = (
-            int(np.median(windows))
-            if windows and self.use_adaptive_window
-            else self.base_window
+            int(np.median(windows)) if windows and self.use_adaptive_window else self.base_window
         )
 
         energy_profile = {
@@ -692,9 +682,7 @@ class MultiScaleKuramotoFeature(BaseFeature):
             result = cached_result
 
         metadata = self._metadata_from_result(result)
-        feature = FeatureResult(
-            name=self.name, value=result.consensus_R, metadata=metadata
-        )
+        feature = FeatureResult(name=self.name, value=result.consensus_R, metadata=metadata)
 
         if self.cache is not None and cached_result is None and not df.empty:
             target = df[[price_col]] if price_col in df.columns else df

@@ -77,9 +77,7 @@ class FormanRicciCurvature:
         return self._threshold
 
     @staticmethod
-    def _correlation_to_adjacency(
-        corr: NDArray[np.float64], threshold: float
-    ) -> NDArray[np.bool_]:
+    def _correlation_to_adjacency(corr: NDArray[np.float64], threshold: float) -> NDArray[np.bool_]:
         """Threshold absolute correlation into binary adjacency."""
         adj = np.abs(corr) > threshold
         np.fill_diagonal(adj, False)
@@ -171,9 +169,7 @@ class FormanRicciCurvature:
 
         with np.errstate(invalid="ignore"):
             corr = np.corrcoef(tail, rowvar=False)
-        corr_arr: NDArray[np.float64] = np.asarray(
-            np.nan_to_num(corr, nan=0.0), dtype=np.float64
-        )
+        corr_arr: NDArray[np.float64] = np.asarray(np.nan_to_num(corr, nan=0.0), dtype=np.float64)
         return self.compute_from_correlation(corr_arr)
 
 
@@ -243,10 +239,9 @@ class DualTrackRicciMonitor:
                 return self._margin_base
             result = self._history[-1]
 
+        # bounds: shift κ_min into non-negative range for margin scaling (κ_F ≥ -2 typical)
         kappa_shifted = max(0.0, result.kappa_min + 2.0)
-        return self._margin_base * max(
-            1.0, 1.0 + self._margin_sensitivity * kappa_shifted
-        )
+        return self._margin_base * max(1.0, 1.0 + self._margin_sensitivity * kappa_shifted)
 
     def is_herding(self, result: FormanRicciResult | None = None) -> bool:
         """Detect herding: κ_min approaching 0 or positive."""

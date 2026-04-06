@@ -80,7 +80,7 @@ class ECSLyapunovRegulator:
     # ── Lyapunov function ─────────────────────────────────────────────
 
     def _lyapunov(self, fe: float, cf: float, si: float) -> float:
-        return 0.5 * fe ** 2 + self._lambda * cf ** 2 + self._mu * si ** 2
+        return 0.5 * fe**2 + self._lambda * cf**2 + self._mu * si**2
 
     # ── ODE right-hand side ───────────────────────────────────────────
 
@@ -110,9 +110,7 @@ class ECSLyapunovRegulator:
             si + 0.5 * dt * k2[2],
             stress,
         )
-        k4 = self._derivatives(
-            fe + dt * k3[0], cf + dt * k3[1], si + dt * k3[2], stress
-        )
+        k4 = self._derivatives(fe + dt * k3[0], cf + dt * k3[1], si + dt * k3[2], stress)
 
         new_fe = fe + (dt / 6.0) * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0])
         new_cf = cf + (dt / 6.0) * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1])
@@ -136,9 +134,7 @@ class ECSLyapunovRegulator:
         dict
             free_energy, compensatory_factor, lyapunov_V, dV_dt, stable
         """
-        V_before = self._lyapunov(
-            self.free_energy, self.compensatory_factor, self.stress_integral
-        )
+        V_before = self._lyapunov(self.free_energy, self.compensatory_factor, self.stress_integral)
 
         new_fe, new_cf, new_si = self._rk4_step(
             self.free_energy,
@@ -199,4 +195,6 @@ class ECSLyapunovRegulator:
         # Sigmoid-like mapping: multiplier = 1 / (1 + |FE|)
         # Clipped to [0.1, 1.0]
         raw = 1.0 / (1.0 + abs(self.free_energy))
-        return max(0.1, min(1.0, raw))
+        return max(
+            0.1, min(1.0, raw)
+        )  # INV-FE2: multiplier ∈ [0.1, 1.0] — sigmoid output clamped to valid operating range

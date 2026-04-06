@@ -279,7 +279,9 @@ def _simulate_and_score(
     theta[0] = theta_obs[0]
     active = K != 0.0
     for t in range(1, T):
-        t_del = np.clip(t - 1 - tau, 0, t - 1)
+        t_del = np.clip(
+            t - 1 - tau, 0, t - 1
+        )  # bounds: delay index clamped to valid time range [0, t-1]
         col = np.broadcast_to(np.arange(N)[np.newaxis, :], (N, N))
         theta_d = theta[t_del, col]
         pd = theta_d - theta[t - 1][:, np.newaxis] - alpha
@@ -290,9 +292,7 @@ def _simulate_and_score(
     return float(np.mean(R))
 
 
-def counterfactual_hub_removal(
-    state: NetworkState, *, top_k: int = 5
-) -> SurrogateResult:
+def counterfactual_hub_removal(state: NetworkState, *, top_k: int = 5) -> SurrogateResult:
     """Remove the ``top_k`` highest-degree nodes and compare ``R̄``.
 
     Returns a :class:`SurrogateResult` whose ``null_distribution``

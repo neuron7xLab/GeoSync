@@ -148,9 +148,7 @@ def _kuramoto_order_jit(cos_vals: np.ndarray, sin_vals: np.ndarray) -> float:
 
 
 @njit(cache=True, fastmath=True)
-def _kuramoto_order_2d_jit(
-    cos_vals: np.ndarray, sin_vals: np.ndarray
-) -> np.ndarray:
+def _kuramoto_order_2d_jit(cos_vals: np.ndarray, sin_vals: np.ndarray) -> np.ndarray:
     """JIT-compiled Kuramoto order for 2D phase matrices (N oscillators × T timesteps).
 
     Mathematical Definition:
@@ -213,9 +211,7 @@ def _kuramoto_order_2d_jit(
     return result
 
 
-def _broadcast_weights(
-    weights: np.ndarray | Sequence[float], shape: tuple[int, int]
-) -> np.ndarray:
+def _broadcast_weights(weights: np.ndarray | Sequence[float], shape: tuple[int, int]) -> np.ndarray:
     """Broadcast weight vectors to match the phase matrix shape."""
 
     weight_array = np.array(weights, dtype=float, copy=True)
@@ -235,9 +231,8 @@ def _broadcast_weights(
     else:
         raise ValueError("weights must be one- or two-dimensional")
 
-    weight_array = np.nan_to_num(
-        weight_array, nan=0.0, posinf=0.0, neginf=0.0, copy=False
-    )
+    weight_array = np.nan_to_num(weight_array, nan=0.0, posinf=0.0, neginf=0.0, copy=False)
+    # INV-HPC2: coupling weights must be non-negative
     np.clip(weight_array, 0.0, None, out=weight_array)
     return weight_array
 
@@ -341,13 +336,9 @@ def compute_phase(
             raise ValueError("compute_phase expects 1D array")
         if not np.all(np.isfinite(x)):
             x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
-        hilbert_module = (
-            getattr(hilbert, "__module__", "") if hilbert is not None else ""
-        )
+        hilbert_module = getattr(hilbert, "__module__", "") if hilbert is not None else ""
         use_scipy_fastpath = (
-            _scipy_fft is not None
-            and hilbert is not None
-            and hilbert_module.startswith("scipy.")
+            _scipy_fft is not None and hilbert is not None and hilbert_module.startswith("scipy.")
         )
         if use_scipy_fastpath:
             n = x.size
@@ -557,6 +548,7 @@ def kuramoto_order(
             )
             values = np.where(magnitude <= zero_tolerance, 0.0, values)
 
+    # INV-K1: order parameter R ∈ [0,1]
     clipped = np.clip(values, 0.0, 1.0)
     clipped[clipped < 1e-8] = 0.0
     if squeeze_output:
@@ -638,9 +630,7 @@ def compute_phase_gpu(x):
         computation defaults to ``float32`` to minimise device-host transfer
         overhead.
     """
-    with _logger.operation(
-        "compute_phase_gpu", data_size=len(x), has_cupy=cp is not None
-    ):
+    with _logger.operation("compute_phase_gpu", data_size=len(x), has_cupy=cp is not None):
         if cp is None:
             _logger.info("CuPy not available, falling back to CPU compute_phase")
             return compute_phase(np.asarray(x))
