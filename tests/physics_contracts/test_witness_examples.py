@@ -22,7 +22,6 @@ import numpy as np
 
 from physics_contracts import law
 
-
 # ---------------------------------------------------------------------------
 # Kuramoto — order parameter is bounded in [0, 1] for any phase configuration.
 # ---------------------------------------------------------------------------
@@ -41,7 +40,7 @@ def _order_parameter(phases: np.ndarray) -> float:
 
 
 @law("kuramoto.order_parameter_bounds", n_random_configs=1000, n_oscillators=512)
-def test_order_parameter_is_bounded():
+def test_order_parameter_is_bounded() -> None:
     rng = np.random.default_rng(seed=0)
     n_configs = 1000
     n_oscillators = 512
@@ -109,7 +108,7 @@ def _mini_kuramoto_subcritical(
     coupling_fraction_of_Kc=0.4,
     trials=20,
 )
-def test_subcritical_order_parameter_scales_as_inverse_sqrt_n():
+def test_subcritical_order_parameter_scales_as_inverse_sqrt_n() -> None:
     rng = np.random.default_rng(seed=1)
     n_oscillators = 512
     # K_c = 2·γ / π for Lorentzian ω with half-width γ; with γ=0.5, K_c ≈ 0.318.
@@ -167,14 +166,12 @@ def _numerical_log_optimal_fraction(
 
     returns = rng.uniform(mu - half_width, mu + half_width, size=n_samples)
     fractions = np.linspace(0.0, 1.0, 201)
-    growth = np.array(
-        [float(np.mean(np.log1p(f * returns))) for f in fractions]
-    )
+    growth = np.array([float(np.mean(np.log1p(f * returns))) for f in fractions])
     return float(fractions[int(np.argmax(growth))])
 
 
 @law("kelly.optimal_fraction_formula", mu=0.01, half_width=0.3, n_samples=500_000)
-def test_kelly_optimal_fraction_matches_mu_over_sigma_squared():
+def test_kelly_optimal_fraction_matches_mu_over_sigma_squared() -> None:
     # Small-edge regime with a *bounded* return distribution so the log-growth
     # integrand is finite for every f ∈ [0, 1]. For X ~ Uniform(μ−a, μ+a),
     # σ² = a²/3 and the continuous-limit Kelly formula is f* = μ/σ² = 3μ/a².
@@ -182,7 +179,6 @@ def test_kelly_optimal_fraction_matches_mu_over_sigma_squared():
     mu = 0.01  # law: μ in the law formula f* = μ/σ²
     half_width = 0.3
     sigma_squared = (half_width * half_width) / 3.0  # law: σ² of Uniform(μ±a) = a²/3
-    sigma = math.sqrt(sigma_squared)  # law: σ in the law formula f* = μ/σ²
     rng = np.random.default_rng(seed=2)
 
     theoretical = mu / sigma_squared  # law: derived from formula f* = μ/σ²

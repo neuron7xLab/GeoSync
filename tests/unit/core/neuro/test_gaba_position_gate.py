@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from core.neuro.signal_bus import NeuroSignalBus
 from core.neuro.gaba_position_gate import GABAPositionGate
+from core.neuro.signal_bus import NeuroSignalBus
 
 
 @pytest.fixture

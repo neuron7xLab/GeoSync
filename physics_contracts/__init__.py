@@ -21,9 +21,9 @@ The decorator and registry live in ``physics_contracts.law`` to keep
 from __future__ import annotations
 
 from .law import (
+    WITNESS_REGISTRY,
     Law,
     LawViolationError,
-    WITNESS_REGISTRY,
     get_law,
     law,
     load_catalog,

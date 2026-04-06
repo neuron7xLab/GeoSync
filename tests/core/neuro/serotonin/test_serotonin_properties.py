@@ -5,8 +5,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from geosync.core.neuro.serotonin.certify import (
     run_basal_ganglia_integration,
@@ -14,7 +14,6 @@ from geosync.core.neuro.serotonin.certify import (
 )
 from geosync.core.neuro.serotonin.regimes import build_regimes
 from geosync.core.neuro.serotonin.serotonin_controller import SerotoninController
-
 
 DATA_ROOT = Path(__file__).resolve().parents[4] / "data"
 DEFAULT_SERIES = pd.read_csv(DATA_ROOT / "sample_crypto_ohlcv.csv")["close"].to_numpy()
