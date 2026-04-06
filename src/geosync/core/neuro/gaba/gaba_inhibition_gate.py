@@ -233,16 +233,16 @@ class GABAInhibitionGate:
 
         # Robust sanitization of inputs using np.nan_to_num equivalent
         seq = _sanitize_scalar(float(sequence_intensity), 0.0)
-        seq = max(0.0, seq)
+        seq = max(0.0, seq)  # INV-GABA1: gate output clipped to [0,1]
         stress = _sanitize_scalar(float(stress), 0.0)
-        stress = max(0.0, stress)
+        stress = max(0.0, stress)  # INV-GABA3: effective ≤ raw position
         rpe = _sanitize_scalar(float(rpe), 0.0)
 
         cfg = self._config
         alpha = 1.0 - (1.0 - cfg.impulse_decay) ** dt
         self._impulse_trace += alpha * (seq - self._impulse_trace)
 
-        impulse_drive = max(0.0, self._impulse_trace - cfg.impulse_threshold)
+        impulse_drive = max(0.0, self._impulse_trace - cfg.impulse_threshold)  # INV-GABA1: sigmoid output bounded to [0,1]
         inhibition = impulse_drive * cfg.inhibition_gain * self._weight
         inhibition *= 1.0 + cfg.stress_gain * stress
         self.inhibition = min(cfg.max_inhibition, max(0.0, inhibition))

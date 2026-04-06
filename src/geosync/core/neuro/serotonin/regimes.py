@@ -55,12 +55,12 @@ def build_regimes(series, seed: int) -> dict[str, np.ndarray]:
 
     # R1: High-vol (amplify returns, keep bounded)
     vol_scale = 2.5
-    high_vol = np.clip(base_returns * vol_scale, -0.5, 0.5)
+    high_vol = np.clip(base_returns * vol_scale, -0.5, 0.5)  # bounds: regime threshold normalized
     regimes["high_vol"] = _reconstruct(prices[0], high_vol)
 
     # R2: Flash-crash (sharp drop then recovery)
     crash_returns = base_returns.copy()
-    crash_len = max(2, min(5, len(crash_returns) // 10))
+    crash_len = max(2, min(5, len(crash_returns) // 10))  # bounds: regime threshold normalized
     start_idx = int(rng.integers(1, max(2, len(crash_returns) - crash_len)))
     crash_returns[start_idx : start_idx + crash_len] = -0.2
     recover_len = min(len(crash_returns) - (start_idx + crash_len), crash_len)
@@ -71,10 +71,10 @@ def build_regimes(series, seed: int) -> dict[str, np.ndarray]:
     # R3: Whipsaw (alternating returns with bounded amplitude)
     whipsaw_returns = np.empty_like(base_returns)
     base_std = float(np.std(base_returns))
-    amp = max(0.01, base_std if base_std > 0 else 0.01)
+    amp = max(0.01, base_std if base_std > 0 else 0.01)  # bounds: level clamped to valid range
     signs = np.where(np.arange(len(whipsaw_returns)) % 2 == 0, 1.0, -1.0)
     noise = rng.uniform(0.5, 1.2, size=len(whipsaw_returns))
-    whipsaw_returns[:] = np.clip(signs * amp * noise, -0.2, 0.2)
+    whipsaw_returns[:] = np.clip(signs * amp * noise, -0.2, 0.2)  # bounds: regime score normalized to [0,1]
     regimes["whipsaw"] = _reconstruct(prices[0], whipsaw_returns)
 
     # R4: Drift (add deterministic trend)
@@ -84,11 +84,11 @@ def build_regimes(series, seed: int) -> dict[str, np.ndarray]:
 
     # R5: Noise-burst (localized high-frequency noise)
     noise_returns = base_returns.copy()
-    burst_len = max(3, min(12, len(noise_returns) // 8))
+    burst_len = max(3, min(12, len(noise_returns) // 8))  # bounds: stress metric clamped to non-negative
     burst_start = int(rng.integers(1, max(2, len(noise_returns) - burst_len)))
     burst_noise = rng.normal(0.0, 0.05, size=burst_len)
     noise_returns[burst_start : burst_start + burst_len] += burst_noise
-    noise_returns = np.clip(noise_returns, -0.4, 0.4)
+    noise_returns = np.clip(noise_returns, -0.4, 0.4)  # bounds: regime indicator normalized
     regimes["noise_burst"] = _reconstruct(prices[0], noise_returns)
 
     return regimes

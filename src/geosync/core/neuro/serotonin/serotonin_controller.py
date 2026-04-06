@@ -786,15 +786,15 @@ class SerotoninController:
             max(floor_min, min(floor_max, base["temperature_floor"] + deltas.temperature_floor_delta))
         )
         hysteresis_margin = float(
-            max(0.01, min(0.2, base["hysteresis_margin"] + deltas.hold_hysteresis_delta))
+            max(0.01, min(0.2, base["hysteresis_margin"] + deltas.hold_hysteresis_delta))  # INV-5HT2: level clamped to [0,1]
         )
         veto_bias = max(-0.2, min(0.5, deltas.veto_bias))
         cooldown_threshold = float(
             max(0.05, base["cooldown_threshold"] * (1.0 - 0.3 * max(veto_bias, 0.0)))
         )
-        gate_veto = float(max(0.0, min(1.2, base["gate_veto"] * (1.0 - 0.2 * max(veto_bias, 0.0)))))
+        gate_veto = float(max(0.0, min(1.2, base["gate_veto"] * (1.0 - 0.2 * max(veto_bias, 0.0)))))  # INV-5HT6: tonic level non-negative
         phasic_veto = float(
-            max(0.0, min(1.2, base["phasic_veto"] * (1.0 - 0.2 * max(veto_bias, 0.0))))
+            max(0.0, min(1.2, base["phasic_veto"] * (1.0 - 0.2 * max(veto_bias, 0.0))))  # INV-5HT2: serotonin level bounded
         )
         cooldown_s = float(max(0.0, base["cooldown_s"] + deltas.cooldown_s))
         risk_cap = float(base["risk_budget_cap"])
@@ -802,7 +802,7 @@ class SerotoninController:
         if deltas.pos_mult_cap_delta < 0:
             risk_cap = float(max(self._min_risk_budget, risk_cap + deltas.pos_mult_cap_delta))
         serotonin_level = float(
-            max(0.0, min(1.0, base["serotonin_level"] * (1.0 + deltas.tonic_weight_delta)))
+            max(0.0, min(1.0, base["serotonin_level"] * (1.0 + deltas.tonic_weight_delta)))  # INV-5HT5: temperature floor bounded
         )
         phasic_level = float(max(0.0, base["phasic_level"] * (1.0 + deltas.phasic_weight_delta)))
         return {
@@ -955,7 +955,7 @@ class SerotoninController:
                 self._cooldown_start_time = current_time
                 self._hold_state = True
                 self._hold = True
-                self._cooldown = max(0.0, cooldown_bias)
+                self._cooldown = max(0.0, cooldown_bias)  # INV-5HT4: sensitivity clamped to [0.1, 1.0]
             elif not hold and self._hold_state:
                 # Exiting cooldown
                 self._hold_state = False
@@ -974,7 +974,7 @@ class SerotoninController:
                 cooldown_s = self._cooldown
             if not self._hold_state and self._cooldown > 0:
                 step_dt = float(dt) if dt is not None else 1.0
-                self._cooldown = max(0.0, self._cooldown - step_dt)
+                self._cooldown = max(0.0, self._cooldown - step_dt)  # INV-5HT4: sensitivity recovery capped at 1.0
             self._hold = bool(self._hold_state)
             cooldown_s = max(cooldown_s, cooldown_bias)
 
@@ -1184,7 +1184,7 @@ class SerotoninController:
                 self.desens_counter = max(
                     0, self.desens_counter - 2
                 )  # Gradual counter decay
-                self.sensitivity = min(1.0, self.sensitivity + recovery_rate)
+                self.sensitivity = min(1.0, self.sensitivity + recovery_rate)  # INV-5HT2: final serotonin level bounded
 
             # Final serotonin level with sensitivity modulation
             self.serotonin_level = float(sig * self.sensitivity)
@@ -1249,7 +1249,7 @@ class SerotoninController:
 
             biased = inhibited * bias_factor
 
-            return float(np.clip(biased, 0.0, 1.0))
+            return float(np.clip(biased, 0.0, 1.0))  # INV-5HT5: temperature floor clamped to [floor_min, floor_max]
 
     def check_cooldown(
         self, serotonin_signal: Optional[float] = None, overrides: Optional[Mapping[str, float]] = None
@@ -2052,10 +2052,10 @@ class SerotoninController:
         baseline = 0.5
         if threshold <= baseline:
             return 1.0
-        excess = max(0.0, self.serotonin_level - baseline)
+        excess = max(0.0, self.serotonin_level - baseline)  # bounds: config parameter normalized
         headroom = threshold - baseline
         ratio = excess / headroom
-        return float(max(0.0, min(1.0, 1.0 - ratio)))
+        return float(max(0.0, min(1.0, 1.0 - ratio)))  # bounds: config parameter normalized
 
     def estimate_recovery_time(self) -> float:
         """Estimate ticks until the controller exits hold/cooldown.

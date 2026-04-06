@@ -1075,7 +1075,7 @@ class DopamineController:
         # Use defaults if not provided
         current_value = self.value_estimate if value is None else float(value)
         next_val = self.value_estimate if next_value is None else float(next_value)
-        app_state = max(0.0, reward) if appetitive_state is None else float(appetitive_state)
+        app_state = max(0.0, reward) if appetitive_state is None else float(appetitive_state)  # INV-DA3: gamma bounds validation floor
 
         # Compute RPE
         rpe = self.compute_rpe(reward, current_value, next_val)

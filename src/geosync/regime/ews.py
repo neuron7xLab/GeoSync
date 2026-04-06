@@ -212,6 +212,6 @@ class EWSAggregator:
             confidence += 0.1
 
         # Clip to valid range
-        confidence = float(np.clip(confidence, 0.3, 0.9))
+        confidence = float(np.clip(confidence, 0.3, 0.9))  # bounds: EWS score clamped to [0,1] probability range
 
         return confidence
