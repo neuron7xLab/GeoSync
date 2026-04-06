@@ -469,3 +469,79 @@ hpc:
       kappa_max: "condition-number ceiling configured per kernel"
     falsification: "any finite input within spec yields NaN/Inf or cond(A) > kappa_max"
     priority: P0
+
+# ═══════════════════════════════════════════════════
+# CRYPTOBIOSIS — Phase-Transition Survival
+# Physics: tardigrade-inspired state machine. System exits threat space
+# rather than resisting. DORMANT = zero metabolism = zero computation.
+# Source: core/neuro/cryptobiosis.py
+# ═══════════════════════════════════════════════════
+
+cryptobiosis:
+  dormant_zero_multiplier:
+    id: INV-CB1
+    type: universal
+    statement: "DORMANT state produces multiplier == 0.0 EXACTLY (not approximately)"
+    test_type: property_test
+    falsification: "CryptobiosisController in DORMANT state returns multiplier != 0.0"
+    priority: P0
+
+  vitrification_o1:
+    id: INV-CB2
+    type: universal
+    statement: "Vitrification (ACTIVE → DORMANT) completes in O(1) ticks — no iterative wind-down"
+    test_type: property_test
+    parameters:
+      max_ticks: "2 (one tick VITRIFYING, next tick DORMANT)"
+    falsification: "System remains in VITRIFYING for more than 1 tick after entry"
+    priority: P0
+
+  snapshot_sufficiency:
+    id: INV-CB3
+    type: universal
+    statement: "The snapshot captured at vitrification contains all data required for recovery"
+    test_type: property_test
+    falsification: "snapshot is None while in DORMANT state"
+    priority: P1
+
+  rehydration_monotone:
+    id: INV-CB4
+    type: monotonic
+    statement: "Rehydration stages are non-decreasing: stage(t+1) ≥ stage(t) while T < entry"
+    test_type: trajectory_test
+    falsification: "rehydration_stage decreases between consecutive ticks with T < entry_threshold"
+    priority: P0
+
+  entry_above_modules:
+    id: INV-CB5
+    type: conditional
+    statement: "Cryptobiosis entry threshold exceeds individual module distress thresholds"
+    test_type: property_test
+    parameters:
+      rationale: "Cryptobiosis is a last resort — individual modules (GABA, Serotonin veto) should fire first"
+    falsification: "entry_threshold ≤ any individual module's crisis threshold"
+    priority: P1
+
+  distress_bounded:
+    id: INV-CB6
+    type: universal
+    statement: "Combined distress score T ∈ [0, 1] for every input"
+    test_type: property_test
+    falsification: "T outside [0, 1] after any update call"
+    priority: P0
+
+  hysteresis:
+    id: INV-CB7
+    type: universal
+    statement: "exit_threshold < entry_threshold (hysteresis prevents oscillation)"
+    test_type: property_test
+    falsification: "CryptobiosisConfig accepts exit >= entry without raising ValueError"
+    priority: P0
+
+  rehydration_abort:
+    id: INV-CB8
+    type: conditional
+    statement: "T ≥ entry_threshold during REHYDRATING → immediate return to DORMANT"
+    test_type: property_test
+    falsification: "System stays in REHYDRATING after receiving T ≥ entry_threshold"
+    priority: P0
