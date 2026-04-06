@@ -8,20 +8,21 @@
 
 <br><br>
 
-[![substrates-10](https://img.shields.io/badge/modules-10-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
-[![tests-9759](https://img.shields.io/badge/tests-9,759-brightgreen?style=for-the-badge)](tests/)
-[![indicators-50+](https://img.shields.io/badge/indicators-50%2B-gold?style=for-the-badge)](core/indicators/)
-[![ADRs-19](https://img.shields.io/badge/ADRs-19-blue?style=for-the-badge)](docs/adr/)
+[![modules-13](https://img.shields.io/badge/modules-13-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
+[![invariants-53](https://img.shields.io/badge/invariants-53-critical?style=for-the-badge)](CLAUDE.md)
+[![tests-10051](https://img.shields.io/badge/tests-10%2C051-brightgreen?style=for-the-badge)](tests/)
+[![indicators-46](https://img.shields.io/badge/indicators-46-gold?style=for-the-badge)](core/indicators/)
+[![ADRs-16](https://img.shields.io/badge/ADRs-16-blue?style=for-the-badge)](docs/adr/)
 [![license-MIT](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)](LICENSE)
 
 <br>
 
 ```
-Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynamics
+Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynamics  ·  Cryptobiosis
 ```
 
-*Institutional-grade quantitative research infrastructure.*
-*Every signal traces back to peer-reviewed science — no heuristics, no black boxes.*
+*Physics-first quantitative infrastructure with 53 machine-checkable invariants.*
+*Every signal traces back to peer-reviewed science. Every clamp traces back to a law.*
 
 <br>
 
@@ -30,7 +31,8 @@ Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynami
 [![Main Validation](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Security](https://img.shields.io/badge/NIST%20SP%20800--53-aligned-red?style=flat)](docs/security/)
-[![Coverage](https://img.shields.io/badge/coverage-82%25-green?style=flat)](CANONICAL_OBJECT.md)
+[![Physics Gate](https://img.shields.io/badge/physics_gate-53_invariants-critical?style=flat)](CLAUDE.md)
+[![Coverage](https://img.shields.io/badge/line_coverage-71%25-yellowgreen?style=flat)](BASELINE.md)
 
 </div>
 
@@ -130,11 +132,58 @@ dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
 <tr><td><code>EXECUTION</code></td><td><code>execution/</code></td><td>Python</td><td>OMS, smart routing, Kelly/MV sizing, compliance, paper trading</td></tr>
 <tr><td><code>RUNTIME</code></td><td><code>runtime/</code></td><td>Python</td><td>Live orchestration, kill switch, CNS stabilizer, recovery agent</td></tr>
 <tr><td><code>TACL</code></td><td><code>tacl/</code></td><td>Python</td><td>Thermodynamic autonomic control — free energy descent, protocol hot-swap</td></tr>
-<tr><td><code>NEURO</code></td><td><code>core/neuro/</code></td><td>Python</td><td>Dopamine TD-learning, serotonin stability, GABA inhibition gate</td></tr>
+<tr><td><code>NEURO</code></td><td><code>core/neuro/</code></td><td>Python</td><td>Dopamine TD-learning, serotonin ODE stability, GABA inhibition gate, cryptobiosis survival</td></tr>
 <tr><td><code>OBSERVE</code></td><td><code>observability/</code></td><td>Python</td><td>Prometheus, OpenTelemetry, structured audit logging, dashboards</td></tr>
 <tr><td><code>ACCEL</code></td><td><code>rust/geosync-accel/</code></td><td>Rust</td><td>High-performance compute kernels for hot-path acceleration</td></tr>
 <tr><td><code>UI</code></td><td><code>ui/dashboard/</code></td><td>TypeScript</td><td>React web interface — canonical interactive dashboard</td></tr>
 </table>
+
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
+
+## Physics Kernel
+
+GeoSync is a **verified physical system**, not a test-coverage theatre. The physics kernel (`.claude/physics/`) defines **53 machine-checkable invariants** across 13 modules. Every test is a *mathematical witness* of a specific physical law, not a line-coverage artefact.
+
+```
+                     ┌──────────────────────────────────────┐
+                     │   53 INVARIANTS  ·  13 MODULES       │
+                     │   Every assert derives its tolerance  │
+                     │   from the law's formula, not from    │
+                     │   a magic literal.                    │
+                     └──────────┬───────────────────────────┘
+                                │
+          ┌─────────────────────┼─────────────────────────┐
+          │                     │                         │
+  ┌───────▼────────┐   ┌───────▼────────┐   ┌────────────▼──────────┐
+  │ GENERATORS     │   │ SUSTAINERS     │   │ PROTECTORS            │
+  │ Kuramoto (K1-7)│   │ ECS (FE1-2)   │   │ GABA (GABA1-5)       │
+  │ Dopamine (DA1-7)│  │ Serotonin tonic│   │ Serotonin veto (5HT7)│
+  │ HPC (HPC1-2)  │   │ (5HT1-6)      │   │ Cryptobiosis (CB1-8) │
+  │ Kelly (KELLY1-3)│  │ Thermo (TH1-2)│   │                       │
+  └────────────────┘   └───────────────┘   └───────────────────────┘
+```
+
+**Protectors have unconditional priority over Generators.** A system without a gradient cannot use a gradient. See [`CLAUDE.md`](CLAUDE.md) §0 for the full gradient ontology.
+
+| Metric | Value |
+|--------|-------|
+| Physics invariants | **53** (P0: 34 block-release, P1: 15, P2: 4) |
+| Grounded witnesses | **44** tests with `INV-*` docstrings and 5-field error messages |
+| C1/C2 code audit | **0** undocumented physics clamps in `core/` |
+| CI gate | `physics-kernel-gate.yml` — self-check + L1-L5 validation + C1/C2 audit |
+
+**Key invariants:**
+
+| ID | Law | Module |
+|----|-----|--------|
+| `INV-K2` | K < K_c ⟹ R → 0 (subcritical decay, ε = 3/√N) | Kuramoto |
+| `INV-5HT7` | stress ≥ 1 OR \|drawdown\| ≥ 0.5 → veto | Serotonin |
+| `INV-CB1` | DORMANT ⟹ multiplier == 0.0 EXACTLY | Cryptobiosis |
+| `INV-FE1` | Free energy non-increasing under active inference | ECS |
+| `INV-DA7` | ∂δ/∂r = 1 (RPE linear in reward) | Dopamine |
+| `INV-RC1` | Ollivier-Ricci κ ≤ 1 (universal upper bound) | Ricci |
 
 <p align="center">
   <img src=".github/assets/divider.svg" width="100%">

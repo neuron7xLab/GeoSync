@@ -11,6 +11,18 @@ Add change fragments to `newsfragments/` for each Pull Request.
 
 ## [Unreleased]
 
+### 🔬 Physics Kernel
+- **53 machine-checkable invariants** across 13 modules (PR #138, #139)
+- **44 mathematical witness tests** with INV-* references and 5-field error messages
+- **Physics Kernel CI Gate**: self-check + L1-L5 validation + C1/C2 code audit
+- **C1/C2 code audit**: 69 → 5 silent clamps (0 physics), 0 undocumented bounds
+- **3 physics-law corrections**: RC1, FE2, OMS1 falsified and corrected by witnesses
+- **Gradient Constitution** (CLAUDE.md §0): maintenance hierarchy, INV-YV1
+
+### 🧬 New Modules
+- **Cryptobiosis** (`core/neuro/cryptobiosis.py`): phase-transition survival, 8 invariants (CB1-CB8)
+- **physics_contracts/**: parallel law-catalog with `@law()` decorator and AST validator
+
 ### 🚀 Features
 - DOC PR COPILOT v2: LLM-based documentation agent for automated documentation review and patch generation in Pull Requests.
 - Agent configuration system in `.github/agents/` with system prompts, integration guides, and examples.
