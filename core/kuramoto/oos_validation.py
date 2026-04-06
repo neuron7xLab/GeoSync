@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Out-of-sample validation for the NetworkKuramotoEngine (protocol M3.3).
 

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Integrated neuro trading system built on top of DPA/AIC/NRE."""
 
 from __future__ import annotations

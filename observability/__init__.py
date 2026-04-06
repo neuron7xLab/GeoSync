@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Observability helpers for GeoSync."""
 
 from .auto_triage import (  # noqa: F401

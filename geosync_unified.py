@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """GeoSyncHydro Unified System v2 CLI, pipeline, and API entrypoints."""
 
 from __future__ import annotations

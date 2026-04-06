@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """CLI command orchestrating pg_dump backups and archival cleanup."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Domain event sourcing infrastructure for GeoSync.
 
 This module provides a minimal yet production-ready implementation of an

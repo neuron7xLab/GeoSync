@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Event abstractions used by the event-driven backtest engine."""
 
 from __future__ import annotations

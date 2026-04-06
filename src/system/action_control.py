@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Action safety controls enforcing TACL stability and mandate policies."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """ClickHouse integration helpers for market data time-series."""
 
 from __future__ import annotations

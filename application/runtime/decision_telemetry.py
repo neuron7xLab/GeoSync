@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Semantic telemetry helpers for control-gate decisions."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """T18 — P1 Kuramoto invariants: monotone R(K), incoherent scaling, Lyapunov.
 

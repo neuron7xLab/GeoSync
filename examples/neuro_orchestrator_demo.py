@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Demo script for the Neuro-Orchestrator Agent.
 
 This script demonstrates how to use the NeuroOrchestrator to generate

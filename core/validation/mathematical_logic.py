@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Mathematical logic validation for data integrity and formal constraints.
 
 This module provides validators that enforce mathematical constraints on trading

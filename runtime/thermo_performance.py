@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Performance monitoring and optimization tools for thermodynamics system.
 
 This module provides comprehensive performance profiling, benchmarking,

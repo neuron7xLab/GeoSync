@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """
 Additional tests to achieve 98% coverage for HPC-AI v4.
 Targets specific uncovered lines in afferent_synthesis.

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Risk homeostasis module with VaR/ES and Kelly fraction sizing.
 
 This module implements tail risk measurement (VaR/ES) and Kelly criterion

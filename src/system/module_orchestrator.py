@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Module orchestration utilities for coordinating GeoSync components."""
 
 from __future__ import annotations

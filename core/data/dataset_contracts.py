@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Shared dataset governance contracts for repository-managed assets.
 
 The contracts defined here act as the single source of truth for provenance,

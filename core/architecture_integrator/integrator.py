@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Main Architecture Integrator implementation.
 
 This module provides the primary ArchitectureIntegrator class that coordinates

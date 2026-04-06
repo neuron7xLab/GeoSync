@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Runtime guards to keep Streamlit usage confined to development contexts."""
 
 from __future__ import annotations

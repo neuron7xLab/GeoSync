@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Shared utilities for position sizing across execution components.
 
 This module provides the core position sizing calculation used throughout

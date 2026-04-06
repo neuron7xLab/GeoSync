@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 import os
 
 os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "test-secret-placeholder")

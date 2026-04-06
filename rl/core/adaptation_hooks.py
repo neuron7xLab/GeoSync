@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Catalog of adaptation hooks used by the RL stack."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Microbenchmarks for indicator hot loops with cold/warm profiles."""
 
 from __future__ import annotations

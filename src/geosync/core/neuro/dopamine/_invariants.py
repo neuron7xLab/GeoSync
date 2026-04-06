@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Numerical invariants and safety checks for dopamine module."""
 
 from __future__ import annotations

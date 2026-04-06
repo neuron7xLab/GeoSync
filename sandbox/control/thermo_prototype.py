@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Synthetic thermodynamic prototype used for empirical validation.
 
 This module mirrors the experimental setup described in the research notes

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Generic inductive proof engine backed by Z3.
 
 This module centralizes mathematical induction checks so that individual

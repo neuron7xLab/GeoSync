@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Guardrail enforcing minimum mutation kill rates in CI."""
 
 from __future__ import annotations

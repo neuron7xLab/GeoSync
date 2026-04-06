@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Signal feature pipelines and walk-forward model selection utilities."""
 
 from __future__ import annotations

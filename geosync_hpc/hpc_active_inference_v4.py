@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """
 Hierarchical Predictive Coding with Active Inference for Adaptive Trading (HPC-AI v4)
 

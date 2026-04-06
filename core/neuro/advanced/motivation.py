@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Motivation controller built on fractal market statistics and UCB1."""
 
 from __future__ import annotations

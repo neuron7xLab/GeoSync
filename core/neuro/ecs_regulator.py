@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """ECS-Inspired Regulator for Adaptive Trading Control.
 
 This module implements the ECSInspiredRegulator, a biologically-inspired

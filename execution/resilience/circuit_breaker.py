@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Resilience primitives for exchange connectors.
 
 This module provides Hystrix-style resilience patterns adapted for GeoSync's

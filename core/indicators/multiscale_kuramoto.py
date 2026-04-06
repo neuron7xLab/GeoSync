@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Multi-scale Kuramoto synchronization analyzer for market microstructure.
 
 This module implements a hierarchical Kuramoto oscillator model that analyzes market

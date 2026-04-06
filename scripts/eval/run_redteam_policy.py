@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Red-Team Policy Evaluation Harness.
 
 Offline evaluation of policy decisions against adversarial test cases.

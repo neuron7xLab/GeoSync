@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """TLS-enabled runtime bootstrap for the cortex microservice."""
 
 from __future__ import annotations

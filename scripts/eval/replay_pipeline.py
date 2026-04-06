@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Replay pipeline harness for offline regression testing.
 
 This script runs recorded test cases through the MLSDM pipeline

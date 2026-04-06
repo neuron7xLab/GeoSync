@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Position sizing functions for neuro-adaptive trading systems.
 
 This module implements volatility-targeted position sizing with dual modulation

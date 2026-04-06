@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Serotonin ODE System with Lyapunov Stability.
 
 Implements a biologically-grounded two-state ODE for serotonin (5-HT)

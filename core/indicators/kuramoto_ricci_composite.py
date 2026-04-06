@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Kuramoto-Ricci composite market phase analyzer.
 
 This module provides a sophisticated market regime classification system that combines

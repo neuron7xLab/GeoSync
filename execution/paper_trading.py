@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Paper trading engine with latency simulation and telemetry analysis."""
 
 from __future__ import annotations

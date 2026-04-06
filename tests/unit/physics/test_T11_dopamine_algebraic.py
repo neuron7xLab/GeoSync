@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """T11 — Dopamine TD-error witnesses for INV-DA1 and INV-DA7.
 

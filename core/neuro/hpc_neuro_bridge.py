@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """HPC-Neuro Integration Bridge.
 
 Connects the HPC Active Inference subsystem with core neuro controllers

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 r"""Core Div/Conv protocol building blocks.
 
 The implementation favours numerical stability and explicit contracts so

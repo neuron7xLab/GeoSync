@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests for canonical request and cache key computation.
 
 These tests verify deterministic behavior of the canonicalization

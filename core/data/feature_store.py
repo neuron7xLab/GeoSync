@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Online feature store helpers with integrity and retention utilities."""
 
 from __future__ import annotations

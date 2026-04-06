@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Composable building blocks for the GeoSync smoke E2E pipeline."""
 
 from __future__ import annotations

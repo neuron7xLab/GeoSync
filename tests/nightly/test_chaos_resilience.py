@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Chaos engineering regression tests covering resilience guardrails.
 
 These tests orchestrate a deterministic sequence of failure injections against

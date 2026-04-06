@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Physics-based validation for thermodynamic system constraints.
 
 This module provides validators that enforce thermodynamic laws and energy

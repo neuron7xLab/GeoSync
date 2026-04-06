@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Thermodynamic energy model for impulse-driven trading graphs.
 
 This module provides a lightweight abstraction that maps GeoSync's

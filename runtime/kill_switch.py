@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Global kill-switch used by safety-critical components.
 
 This module provides enterprise-grade kill switch functionality with:

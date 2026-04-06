@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Fractal motivation controllers and monitoring utilities.
 
 The module integrates biologically inspired reward modulation into

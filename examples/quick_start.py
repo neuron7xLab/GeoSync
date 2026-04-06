@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Quick start example demonstrating GeoSync's core market analysis capabilities.
 
 This script shows how to:

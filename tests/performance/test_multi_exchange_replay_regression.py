@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Regression tests for multi-exchange replay with performance budgets.
 
 This test suite exercises multi-exchange replay recordings and validates

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Digital Governance Framework for GeoSync.
 
 This module implements the comprehensive digital transformation requirements

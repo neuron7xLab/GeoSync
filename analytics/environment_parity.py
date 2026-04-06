@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Parity coordination utilities across backtest, paper, and live runs.
 
 The helpers defined here provide a structured way to compare strategy results

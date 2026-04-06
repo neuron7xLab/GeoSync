@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Risk-sensitive QR-DQN trading agent with CVaR, PER, conformal coverage, and OOD checks."""
 
 from __future__ import annotations

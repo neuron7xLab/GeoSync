@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Portfolio attribution and factor analytics module.
 
 This module provides portfolio performance decomposition utilities that

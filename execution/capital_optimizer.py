@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Capital allocation optimiser considering portfolio risk interactions."""
 
 from __future__ import annotations

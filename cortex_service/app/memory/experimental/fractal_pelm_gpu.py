@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Experimental GPU/CPU backend for phase-aware vector retrieval.
 
 This module provides FractalPELMGPU, an EXPERIMENTAL memory backend

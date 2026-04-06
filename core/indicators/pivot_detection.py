@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Pivot-based divergence detection utilities.
 
 The module implements a lightweight pivot detection algorithm inspired by

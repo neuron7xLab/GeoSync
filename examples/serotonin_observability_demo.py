@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Demonstration of Serotonin Controller with SRE Observability.
 
 This example shows how to use the serotonin controller with:

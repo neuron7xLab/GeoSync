@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Kafka ingestion tooling with best-effort exactly-once guarantees and hot symbol caching.
 
 The service coordinates Kafka transactions with an idempotency store to avoid

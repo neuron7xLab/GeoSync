@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests for OHLCV data generation and validation utilities.
 
 This module tests the scripts/generate_sample_ohlcv.py module and validates

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """High-efficiency training utilities for GeoSync models.
 
 This module implements a flexible training loop that focuses on

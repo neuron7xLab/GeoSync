@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Detrended fluctuation analysis utilities for long-range correlation detection.
 
 This module implements Detrended Fluctuation Analysis (DFA) for estimating

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Adaptive Neuromodulator Calibration System.
 
 This module implements an adaptive calibration system that optimizes neuromodulator

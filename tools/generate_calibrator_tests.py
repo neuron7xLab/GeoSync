@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Utility for auto-generating calibrator unit tests with explanations.
 
 This script inspects the neuro calibration module and renders a deterministic

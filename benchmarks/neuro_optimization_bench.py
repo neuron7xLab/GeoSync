@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Benchmark for neuro-optimization system performance.
 
 This benchmark measures the performance characteristics of the adaptive

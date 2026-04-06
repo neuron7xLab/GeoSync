@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests for core.data.fingerprint and core.kuramoto.phase_transition."""
 
 from __future__ import annotations

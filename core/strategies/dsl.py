@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Declarative DSL for composing strategy pipelines.
 
 This module enables strategy research teams to describe complex evaluation

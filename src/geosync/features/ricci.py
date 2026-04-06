@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Ricci curvature graph adapter for GeoSync Neuro-Architecture.
 
 This module provides an adapter for computing Ollivier-Ricci curvature

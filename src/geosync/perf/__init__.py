@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Performance benchmarking and metrics collection for GeoSync.
 
 This module provides standardized performance measurement capabilities for

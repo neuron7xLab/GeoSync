@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """NeuroSignalBus — Centralized neuromodulator coordination layer.
 
 Implements a typed pub/sub signal bus that connects all neuroscience-inspired

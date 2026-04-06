@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Parquet ingestion adapter with async + fault tolerance support."""
 
 from __future__ import annotations

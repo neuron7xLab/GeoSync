@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Trading calendar utilities for deterministic backtests.
 
 The calendar tracks regular trading hours, exchange holidays, and ad-hoc

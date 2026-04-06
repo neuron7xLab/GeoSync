@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Financial news sentiment analysis pipeline.
 
 This module implements a maintainable pipeline for collecting financial news,

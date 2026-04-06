@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Unified System Integration for GeoSync.
 
 This module provides a unified integration layer that combines all GeoSync

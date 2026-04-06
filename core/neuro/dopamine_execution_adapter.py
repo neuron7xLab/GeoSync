@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Dopamine ↔ Execution Feedback Adapter.
 
 Bridges real execution outcomes (realized P&L, slippage) to dopamine

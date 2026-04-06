@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Практичні приклади оптимізацій для GeoSync.
 
 Цей модуль демонструє конкретні оптимізації, описані в SYSTEM_OPTIMIZATION_ANALYSIS_UA.md.

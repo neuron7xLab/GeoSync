@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Locust scenarios exercising HTTP and gRPC facades under sustained load."""
 
 from __future__ import annotations

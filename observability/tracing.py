@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """OpenTelemetry tracing utilities for GeoSync pipelines.
 
 This module centralises the configuration of OpenTelemetry tracing and provides

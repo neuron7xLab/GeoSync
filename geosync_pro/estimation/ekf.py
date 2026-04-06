@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Extended Kalman Filter for the EMH latent state."""
 
 from __future__ import annotations

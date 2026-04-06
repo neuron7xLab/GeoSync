@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Adaptive Market Mind (AMM) - precision-weighted prediction error analyzer.
 
 This module implements a neurobiologically-inspired market prediction system that

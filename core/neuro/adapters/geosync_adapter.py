@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Adapter that bridges the legacy AMM module with the advanced neuro system."""
 
 from __future__ import annotations

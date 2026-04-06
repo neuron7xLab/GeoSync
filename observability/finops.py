@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """FinOps cost control utilities for GeoSync.
 
 The module provides primitives to monitor infrastructure usage, evaluate budget

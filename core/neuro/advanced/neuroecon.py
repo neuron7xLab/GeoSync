@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Neuroeconomic decision core with graph-based reinforcement learning primitives.
 
 This module exposes :class:`AdvancedNeuroEconCore`, a controllable actor-critic

@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """T17 — Cryptobiosis state-machine witnesses for INV-CB1 through INV-CB8.
 

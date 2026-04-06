@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Encrypted secret vault with fine-grained access controls and rotation support."""
 
 from __future__ import annotations

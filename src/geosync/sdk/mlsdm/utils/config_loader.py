@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Configuration loading utilities for MLSDM.
 
 This module provides utilities for loading YAML configuration files

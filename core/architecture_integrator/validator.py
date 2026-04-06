@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Architecture validation and compliance checking.
 
 This module provides validation utilities to ensure architectural constraints

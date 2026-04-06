@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Legacy mirror for serotonin API; canonical lives in core.neuro.serotonin.*"""
 
 __CANONICAL__ = True

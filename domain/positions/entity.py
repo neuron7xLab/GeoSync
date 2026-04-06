@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Aggregate tracking exposure and profit-and-loss."""
 
 from __future__ import annotations

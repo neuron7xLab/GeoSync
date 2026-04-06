@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """T12 — Serotonin stability witnesses for INV-5HT1, INV-5HT4 and INV-5HT6.
 

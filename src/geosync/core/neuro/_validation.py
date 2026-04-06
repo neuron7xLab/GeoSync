@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Shared validation utilities for neuro controller modules.
 
 This module provides common validation functions used across dopamine,

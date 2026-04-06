@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Noradrenaline (NA) and acetylcholine (ACh) neuromodulation utilities.
 
 This module implements NA/ACh neuromodulator controllers that model arousal

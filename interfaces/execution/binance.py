@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Binance execution connector with authenticated REST and user-stream support."""
 
 from __future__ import annotations

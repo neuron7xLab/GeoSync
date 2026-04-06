@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Canonicalization and cache key utilities for MLSDM pipeline.
 
 This module provides deterministic request fingerprinting through:

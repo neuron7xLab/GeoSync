@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Unified system validation integrator for GeoSync.
 
 This module provides a comprehensive system-level validator that integrates

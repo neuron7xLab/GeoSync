@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Causal early-warning pipeline adapted from the GeoSync v2.1 prototype.
 
 This module restructures the single-file research prototype provided by the

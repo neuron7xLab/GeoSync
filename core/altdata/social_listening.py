@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Streaming sentiment integration for social media data sources.
 
 This module provides lightweight primitives for consuming alternative data

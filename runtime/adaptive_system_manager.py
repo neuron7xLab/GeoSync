@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Adaptive system manager for self-diagnosis and automatic optimization.
 
 This module implements autonomous adaptation capabilities including self-diagnosis,

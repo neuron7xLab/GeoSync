@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Run Neuro-Optimization with 100 Iterations.
 
 This script performs necessary optimizations with 100 iterations as requested.

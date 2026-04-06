@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Streaming feature extractors for neurobiologically-inspired market analysis.
 
 This module provides efficient, numerically stable implementations of common

@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Level 2 order book ingestion exports."""
 from .consistency import ConsistencyError, ConsistencyValidator

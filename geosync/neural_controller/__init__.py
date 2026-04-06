@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 from .core.emh_model import EMHSSM
 from .core.params import (
     EKFConfig,

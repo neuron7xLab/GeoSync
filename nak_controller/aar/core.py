@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Core error computation for AAR (Acceptor of Action Result).
 
 This module provides functions to compute error signals from predictions

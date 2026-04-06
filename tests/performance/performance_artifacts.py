@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Performance artifact generation for CI/CD pipelines.
 
 This module generates JSON reports, visualizations, and GitHub issue templates

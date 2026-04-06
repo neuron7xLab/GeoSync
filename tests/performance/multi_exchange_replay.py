@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Multi-exchange replay data loader with performance metrics collection.
 
 This module provides utilities to load and replay recorded exchange data from

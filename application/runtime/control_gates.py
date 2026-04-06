@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Canonical control-gate pipeline combining serotonin and thermo controllers."""
 
 from __future__ import annotations

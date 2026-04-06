@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Performance tests for golden path backtest workflow.
 
 This module validates that the performance measurement system works correctly

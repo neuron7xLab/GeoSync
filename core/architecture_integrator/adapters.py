@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Adapters for integrating with existing GeoSync orchestration systems.
 
 This module provides adapter classes that bridge the Architecture Integrator

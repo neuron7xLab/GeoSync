@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Post-training and dynamic quantization utilities.
 
 The module provides light-weight utilities to quantize numpy arrays or

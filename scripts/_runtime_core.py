@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Core runtime helpers shared across the ``scripts`` package."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Prompt Quality Filter + Prompt State Control System (PQF-PSCS).
 
 The evaluator consumes an input payload (see problem statement) and produces

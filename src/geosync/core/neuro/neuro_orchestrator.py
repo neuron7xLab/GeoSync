@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Neuro-Orchestrator Agent for GeoSync.
 
 This module implements the biologically-inspired control architecture orchestrator

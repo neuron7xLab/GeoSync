@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """GABAergic inhibition gate moderating impulsive Go drives.
 
 This module implements GABA-inspired inhibition mechanisms that dampen

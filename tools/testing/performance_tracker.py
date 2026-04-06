@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Test performance tracking and analysis.
 
 Tracks test execution times and identifies performance regressions.

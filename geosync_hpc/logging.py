@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Lightweight logger wrapper for optional MLflow/W&B usage."""
 
 from __future__ import annotations

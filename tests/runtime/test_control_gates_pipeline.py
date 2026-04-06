@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 from application.runtime.control_gates import Decision
 from application.runtime.init_control_platform import initialize_control_platform
 from core.neuro.serotonin.serotonin_controller import ControllerOutput

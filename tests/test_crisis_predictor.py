@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Comprehensive tests for ML crisis predictor validation and falsifiability.
 
 This test suite validates the crisis detection system's ability to correctly

@@ -1,3 +1,4 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Fuzz tests for data ingestion with malformed, edge case, and corrupted data."""
 from __future__ import annotations

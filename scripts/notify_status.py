@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Send consolidated pipeline status notifications to Slack and Teams."""
 
 from __future__ import annotations

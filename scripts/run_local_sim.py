@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Offline safe-mode simulation runner for GeoSync.
 
 This module assembles a minimal-yet-representative trading loop that can be

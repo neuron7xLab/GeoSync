@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """SRE Observability utilities for Serotonin Controller.
 
 This module provides SLI/SLO definitions, metrics collection,

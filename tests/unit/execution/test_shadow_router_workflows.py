@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Unit tests for execution/shadow.py, execution/router.py, execution/workflows.py.
 
 Covers the 0 % and low-coverage modules:

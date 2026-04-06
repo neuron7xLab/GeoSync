@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Fractal cascade utilities for FHMC integration.
 
 These helpers power the fracto-hypothalamic meta-controller by sampling

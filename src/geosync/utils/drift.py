@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Statistical drift utilities used across GeoSync analytics.
 
 The module focuses on providing numerically stable implementations of the

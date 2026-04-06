@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Decision trace for policy audit trail.
 
 This module provides structured decision tracing with scrubbing

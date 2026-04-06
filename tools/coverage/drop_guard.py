@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Enforce coverage regression guardrails against a stored baseline."""
 
 from __future__ import annotations

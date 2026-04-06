@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Optuna-powered hyperparameter search orchestrator for trading strategies.
 
 This module provides a battle-tested orchestration layer around Optuna that is

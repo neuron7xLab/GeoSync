@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Synthetic scenario generation for stress-testing trading strategies.
 
 This module provides deterministic, parameterised scenario generation that models

@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """HashiCorp Vault integration primitives.
 
 This module provides a battle-tested interface for interacting with

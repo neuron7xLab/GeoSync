@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Golden Path Performance Benchmark.
 
 This module provides the canonical performance measurement for the GeoSync

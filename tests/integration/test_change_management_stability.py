@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Tests for change management and deployment stability.
 
 This module tests controlled deployment mechanisms including canary releases,

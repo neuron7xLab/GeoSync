@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Demo script for the Automated Risk Testing Module.
 
 This script demonstrates how to use the automated risk testing module

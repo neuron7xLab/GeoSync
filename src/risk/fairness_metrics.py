@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Fairness metrics used for compliance reporting and guardrail enforcement."""
 
 from __future__ import annotations

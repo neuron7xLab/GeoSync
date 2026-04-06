@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Execute the nightly regression battery including backtests and E2E flows."""
 
 from __future__ import annotations

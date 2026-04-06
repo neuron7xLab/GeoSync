@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Coordinate idempotent operations within the lifetime of a process.
 
 The coordinator keeps idempotency metadata in memory, providing restart-

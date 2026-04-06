@@ -1,3 +1,5 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 """Aggregate neuromodulator signals into a Go/No-Go/Hold decision."""
 
 from __future__ import annotations
