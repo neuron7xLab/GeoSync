@@ -545,3 +545,53 @@ cryptobiosis:
     test_type: property_test
     falsification: "System stays in REHYDRATING after receiving T ≥ entry_threshold"
     priority: P0
+
+# ═══════════════════════════════════════════════════
+# LYAPUNOV EXPONENT — Chaos/Order Detection
+# Physics: Rosenstein (1993) MLE from scalar time series.
+# Source: core/physics/lyapunov_exponent.py
+# ═══════════════════════════════════════════════════
+
+lyapunov_exponent:
+  mle_finite:
+    id: INV-LE1
+    type: universal
+    statement: "MLE is finite for any finite bounded input series"
+    test_type: property_test
+    falsification: "maximal_lyapunov_exponent returns NaN/Inf on finite input"
+    priority: P0
+
+  mle_sign_semantics:
+    id: INV-LE2
+    type: qualitative
+    statement: "MLE(white noise) ≈ 0; MLE(damped oscillator) < 0; MLE(logistic map r=4) > 0"
+    test_type: sweep_test
+    parameters:
+      noise: "iid Gaussian → λ ≈ 0 (no predictable structure)"
+      stable: "damped sine → λ < 0 (converging trajectory)"
+      chaotic: "logistic map x_{n+1} = 4x(1-x) → λ = ln(2) ≈ 0.693"
+    falsification: "sign of MLE disagrees with known dynamical regime"
+    priority: P0
+
+# ═══════════════════════════════════════════════════
+# SPECTRAL GAP — Algebraic Connectivity
+# Physics: Fiedler eigenvalue λ₂ of graph Laplacian.
+# Source: core/physics/lyapunov_exponent.py (spectral_gap function)
+# ═══════════════════════════════════════════════════
+
+spectral_gap:
+  lambda2_non_negative:
+    id: INV-SG1
+    type: universal
+    statement: "λ₂ ≥ 0 always (Laplacian is positive semi-definite)"
+    test_type: property_test
+    falsification: "spectral_gap returns negative value on any adjacency matrix"
+    priority: P0
+
+  lambda2_connectivity:
+    id: INV-SG2
+    type: conditional
+    statement: "λ₂ > 0 ⟺ graph is connected; λ₂ = 0 ⟺ graph is disconnected"
+    test_type: property_test
+    falsification: "λ₂ > 0 for a disconnected graph, or λ₂ = 0 for a connected graph"
+    priority: P0
