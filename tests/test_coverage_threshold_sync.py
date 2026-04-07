@@ -18,24 +18,24 @@ from pathlib import Path
 def test_coverage_threshold_sync():
     """Verify all coverage thresholds are synchronized."""
     repo_root = Path(__file__).parent.parent
-    
+
     # Read pyproject.toml
     pyproject_path = repo_root / "pyproject.toml"
     with open(pyproject_path, encoding="utf-8") as f:
         pyproject_content = f.read()
-    
-    match = re.search(r'fail_under\s*=\s*(\d+)', pyproject_content)
+
+    match = re.search(r"fail_under\s*=\s*(\d+)", pyproject_content)
     if not match:
         print("❌ Could not find fail_under in pyproject.toml")
         return False
     pyproject_threshold = int(match.group(1))
-    
+
     # Read coverage_baseline.json
     baseline_path = repo_root / "configs" / "quality" / "coverage_baseline.json"
     with open(baseline_path, encoding="utf-8") as f:
         baseline = json.load(f)
     baseline_threshold = int(baseline["line_rate"])
-    
+
     # Read workflow file (may have been renamed from tests.yml)
     workflow_threshold = None
     for candidate in ("tests.yml", "main-validation.yml"):
@@ -63,9 +63,9 @@ def test_coverage_threshold_sync():
         return True
     else:
         print(f"❌ Coverage thresholds are NOT synchronized: {thresholds}")
-        assert pyproject_threshold == baseline_threshold, (
-            f"Coverage thresholds are NOT synchronized: {thresholds}"
-        )
+        assert (
+            pyproject_threshold == baseline_threshold
+        ), f"Coverage thresholds are NOT synchronized: {thresholds}"
 
 
 if __name__ == "__main__":
