@@ -28,8 +28,8 @@ from ..core.params import (
     SensoryConfig,
     TemporalGatingConfig,
 )
+from ..core.sensory_schema import SCHEMA_VERSION, SensorySchema
 from ..core.state import EMHState
-from ..core.sensory_schema import SCHEMA_VERSION
 from ..estimation.belief import VolBelief
 from ..estimation.ekf import EMHEKF
 from ..homeostasis.homeo import HomeostaticModule
@@ -221,8 +221,7 @@ class NeuralMarketController:
         schema_version = cfg.get("schema_version")
         if schema_version != SCHEMA_VERSION:
             raise ValueError(
-                "Unsupported sensory schema version "
-                f"{schema_version!r}; expected {SCHEMA_VERSION}."
+                f"Unsupported sensory schema version {schema_version!r}; expected {SCHEMA_VERSION}."
             )
         params = Params(**cfg["model"])
         ekf = EKFConfig(**cfg["ekf"])
@@ -249,9 +248,7 @@ class NeuralMarketController:
             temporal_gating=temporal_gating,
         )
         bridge_cfg = cfg.get("tacl_bridge", {}) or {}
-        inst.sync_threshold = float(
-            bridge_cfg.get("sync_threshold", inst.sync_threshold)
-        )
+        inst.sync_threshold = float(bridge_cfg.get("sync_threshold", inst.sync_threshold))
         inst.generations = int(bridge_cfg.get("generations", inst.generations))
         inst.emit_predictive_state = bool(
             bridge_cfg.get("emit_predictive_state", inst.emit_predictive_state)
@@ -373,9 +370,7 @@ class NeuralTACLBridge:
         *,
         include_prediction_snapshot: bool = False,
     ) -> Dict[str, Any]:
-        decision = self.neural.decide(
-            obs, include_prediction_snapshot=include_prediction_snapshot
-        )
+        decision = self.neural.decide(obs, include_prediction_snapshot=include_prediction_snapshot)
         temperature = self._action_to_temp(decision["action"])
         coupling = self._mode_to_coupling(decision["mode"])
 

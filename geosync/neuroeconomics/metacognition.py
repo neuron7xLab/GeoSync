@@ -87,14 +87,10 @@ class PredictionErrorMonitor:
         self._overconfident_count: int = 0
         self._total_count: int = 0
 
-    def record_prediction(
-        self, instrument: str, predicted_next: str, confidence: float
-    ) -> None:
+    def record_prediction(self, instrument: str, predicted_next: str, confidence: float) -> None:
         self._pending[instrument] = (predicted_next, confidence)
 
-    def observe_outcome(
-        self, instrument: str, actual_regime: str
-    ) -> PredictionError | None:
+    def observe_outcome(self, instrument: str, actual_regime: str) -> PredictionError | None:
         if instrument not in self._pending:
             return None
 

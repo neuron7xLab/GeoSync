@@ -6,7 +6,6 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Callable, Dict, Mapping, TypeVar
 
-
 T = TypeVar("T")
 
 
@@ -46,7 +45,9 @@ class TemporalGater:
     def _clone(self, value: T) -> T:
         return deepcopy(value)
 
-    def _blend_mapping(self, prev: Mapping[str, float], new: Mapping[str, float]) -> Dict[str, float]:
+    def _blend_mapping(
+        self, prev: Mapping[str, float], new: Mapping[str, float]
+    ) -> Dict[str, float]:
         return {
             key: prev.get(key, 0.0) + self.ema_alpha * (float(value) - prev.get(key, 0.0))
             for key, value in new.items()

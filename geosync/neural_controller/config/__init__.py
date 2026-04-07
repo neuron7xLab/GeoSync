@@ -49,9 +49,7 @@ def _safe_merge(
         if key in override:
             override_value = override[key]
             if isinstance(base_value, Mapping) and isinstance(override_value, Mapping):
-                merged[key] = _safe_merge(
-                    base_value, override_value, path=(*path, str(key))
-                )
+                merged[key] = _safe_merge(base_value, override_value, path=(*path, str(key)))
             else:
                 merged[key] = override_value
         else:

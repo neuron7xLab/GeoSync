@@ -90,21 +90,11 @@ class DecisionMetricsExporter:
             ),
             "avg_alloc_scale": self._ratio(self._alloc_scale_sum, self._decisions),
             "rpe_mean": self._ratio(self._rpe_sum, self._decisions),
-            "prediction_error": self._ratio(
-                self._prediction_error_sum, self._decisions
-            ),
-            "timing_sensory_ms": self._ratio(
-                self._timing_sensory_ms_sum, self._decisions
-            ),
-            "timing_predictive_ms": self._ratio(
-                self._timing_predictive_ms_sum, self._decisions
-            ),
-            "timing_model_step_ms": self._ratio(
-                self._timing_model_step_ms_sum, self._decisions
-            ),
-            "timing_ctrl_decide_ms": self._ratio(
-                self._timing_ctrl_decide_ms_sum, self._decisions
-            ),
+            "prediction_error": self._ratio(self._prediction_error_sum, self._decisions),
+            "timing_sensory_ms": self._ratio(self._timing_sensory_ms_sum, self._decisions),
+            "timing_predictive_ms": self._ratio(self._timing_predictive_ms_sum, self._decisions),
+            "timing_model_step_ms": self._ratio(self._timing_model_step_ms_sum, self._decisions),
+            "timing_ctrl_decide_ms": self._ratio(self._timing_ctrl_decide_ms_sum, self._decisions),
         }
         return metrics
 

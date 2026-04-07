@@ -289,9 +289,7 @@ def _compute_drawdown(
             recovery_idx = max_dd_idx + int(np.argmax(recovery_mask))
 
     duration = (recovery_idx - peak_idx) if recovery_idx is not None else None
-    recovery_duration = (
-        (recovery_idx - max_dd_idx) if recovery_idx is not None else None
-    )
+    recovery_duration = (recovery_idx - max_dd_idx) if recovery_idx is not None else None
 
     info = DrawdownInfo(
         start_idx=peak_idx,

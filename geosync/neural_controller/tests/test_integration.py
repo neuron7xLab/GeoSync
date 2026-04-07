@@ -34,10 +34,10 @@ from ..core.params import (
     PolicyConfig,
     RiskConfig,
 )
+from ..core.sensory_schema import SCHEMA_VERSION
 from ..core.state import EMHState
 from ..estimation.belief import VolBelief
 from ..estimation.ekf import EMHEKF
-from ..core.sensory_schema import SCHEMA_VERSION
 from ..integration.adapter import MarketDataAdapter
 from ..integration.bridge import (
     KuramotoSync,
@@ -115,10 +115,7 @@ def test_go_no_go_red_property() -> None:
 def test_go_no_go_amber_requires_energy() -> None:
     ctrl = BasalGangliaController(temp=0.8, tau_E_amber=0.4)
     energetic_state = {"H": 0.6, "M": 0.7, "E": 0.5, "S": 0.5}
-    assert (
-        ctrl.decide(energetic_state, "AMBER", 0.2)[1]["action_probs"]["increase_risk"]
-        > 0.0
-    )
+    assert ctrl.decide(energetic_state, "AMBER", 0.2)[1]["action_probs"]["increase_risk"] > 0.0
     for energy in np.linspace(0.0, 0.39, num=8):
         probs = ctrl.decide({**energetic_state, "E": float(energy)}, "AMBER", 0.2)[1][
             "action_probs"
@@ -163,10 +160,7 @@ def test_yaml_with_extra_keys_does_not_break(tmp_path: Path, caplog) -> None:
         controller = NeuralMarketController.from_yaml(str(config_path))
 
     assert controller is not None
-    assert any(
-        "Ignoring unknown config key" in record.getMessage()
-        for record in caplog.records
-    )
+    assert any("Ignoring unknown config key" in record.getMessage() for record in caplog.records)
 
 
 def test_cvar_monotonic() -> None:
@@ -182,12 +176,8 @@ def test_cvar_monotonic() -> None:
 
 
 def test_bridge_flow(controller: NeuralMarketController) -> None:
-    bridge = NeuralTACLBridge(
-        controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3
-    )
-    obs = dict(
-        dd=0.2, liq=0.3, reg=0.4, vol=0.6, reward=0.01, var_breach=False, m_proxy=0.6
-    )
+    bridge = NeuralTACLBridge(controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3)
+    obs = dict(dd=0.2, liq=0.3, reg=0.4, vol=0.6, reward=0.01, var_breach=False, m_proxy=0.6)
     out = bridge.step(obs)
     assert out["desync_throttle_applied"] is True
     assert out["alloc_main"] == pytest.approx(out["allocs"]["main"])
@@ -204,15 +194,11 @@ def test_sensory_confidence_modulates_decision() -> None:
     controller_missing = NeuralMarketController(
         params, EKFConfig(), PolicyConfig(), RiskConfig(), HomeoConfig()
     )
-    baseline = dict(
-        dd=0.0, liq=0.0, reg=0.0, vol=0.0, reward=0.0, var_breach=False, m_proxy=0.6
-    )
+    baseline = dict(dd=0.0, liq=0.0, reg=0.0, vol=0.0, reward=0.0, var_breach=False, m_proxy=0.6)
     controller_full.decide(dict(baseline))
     controller_missing.decide(dict(baseline))
 
-    updated = dict(
-        dd=0.0, liq=0.6, reg=0.4, vol=0.2, reward=0.0, var_breach=False, m_proxy=0.6
-    )
+    updated = dict(dd=0.0, liq=0.6, reg=0.4, vol=0.2, reward=0.0, var_breach=False, m_proxy=0.6)
     decision_full = controller_full.decide(dict(updated))
     updated.pop("dd")
     decision_missing = controller_missing.decide(dict(updated))
@@ -230,12 +216,8 @@ def test_bridge_emits_predictive_state_from_config() -> None:
         HomeoConfig(),
         emit_predictive_state=True,
     )
-    bridge = NeuralTACLBridge(
-        controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3
-    )
-    obs = dict(
-        dd=0.2, liq=0.3, reg=0.4, vol=0.6, reward=0.01, var_breach=False, m_proxy=0.6
-    )
+    bridge = NeuralTACLBridge(controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3)
+    obs = dict(dd=0.2, liq=0.3, reg=0.4, vol=0.6, reward=0.01, var_breach=False, m_proxy=0.6)
     decision = bridge.step(obs)
     assert "prediction_mu" in decision
     assert "prediction_error_channels" in decision
@@ -244,9 +226,7 @@ def test_bridge_emits_predictive_state_from_config() -> None:
 
 
 def test_toy_stream_invariants(controller: NeuralMarketController) -> None:
-    bridge = NeuralTACLBridge(
-        controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3
-    )
+    bridge = NeuralTACLBridge(controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3)
     for obs in toy_stream(steps=32):
         obs["m_proxy"] = 0.5
         decision = bridge.step(obs)
@@ -323,9 +303,7 @@ def test_schema_version_mismatch_blocks_pipeline(controller: NeuralMarketControl
         {"bid_ask_spread": 0.02, "regime_deviation": 0.1, "realized_vol_20": 0.2},
         {"current_drawdown": 0.1, "return": 0.01, "loss": 0.02},
     )
-    bridge = NeuralTACLBridge(
-        controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3
-    )
+    bridge = NeuralTACLBridge(controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3)
     with pytest.raises(ValueError, match="schema version"):
         bridge.step(obs)
 
@@ -362,12 +340,8 @@ def test_metrics_exporter_tracks_tail() -> None:
 
 
 def test_controller_performance(controller: NeuralMarketController) -> None:
-    bridge = NeuralTACLBridge(
-        controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3
-    )
-    obs = dict(
-        dd=0.1, liq=0.2, reg=0.3, vol=0.4, reward=0.01, var_breach=False, m_proxy=0.5
-    )
+    bridge = NeuralTACLBridge(controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3)
+    obs = dict(dd=0.1, liq=0.2, reg=0.3, vol=0.4, reward=0.01, var_breach=False, m_proxy=0.5)
     warmup = bridge.step(obs)
     assert warmup["allocs"]
     start = time.perf_counter()
@@ -382,18 +356,12 @@ def test_decision_logging_contains_required_fields(
     controller: NeuralMarketController, caplog: pytest.LogCaptureFixture
 ) -> None:
     setup_logger()
-    bridge = NeuralTACLBridge(
-        controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3
-    )
-    obs = dict(
-        dd=0.2, liq=0.3, reg=0.4, vol=0.6, reward=0.01, var_breach=False, m_proxy=0.6
-    )
+    bridge = NeuralTACLBridge(controller, DummyTACL(), DummyKuramoto(), sync_threshold=0.3)
+    obs = dict(dd=0.2, liq=0.3, reg=0.4, vol=0.6, reward=0.01, var_breach=False, m_proxy=0.6)
     with caplog.at_level(logging.INFO, logger="geosync.neural_controller.decision"):
         bridge.step(obs)
     records = [
-        record
-        for record in caplog.records
-        if record.name == "geosync.neural_controller.decision"
+        record for record in caplog.records if record.name == "geosync.neural_controller.decision"
     ]
     assert records, "expected at least one decision log record"
     payload = json.loads(records[-1].message)

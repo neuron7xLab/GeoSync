@@ -21,9 +21,7 @@ class BasalGangliaController:
         self.temp = float(temp)
         self.tau_E_amber = float(tau_E_amber)
         self._mode_configs = (
-            {mode.upper(): cfg for mode, cfg in mode_configs.items()}
-            if mode_configs
-            else {}
+            {mode.upper(): cfg for mode, cfg in mode_configs.items()} if mode_configs else {}
         )
 
     def _resolve_mode_config(self, mode: str) -> PolicyModeConfig:
@@ -46,10 +44,7 @@ class BasalGangliaController:
         S = float(state.get("S", state.get("S_est", 0.0)))
 
         Q = {
-            "increase_risk": S
-            + 0.2 * M
-            - 0.3 * (mode_key == "AMBER")
-            - 0.8 * (mode_key == "RED"),
+            "increase_risk": S + 0.2 * M - 0.3 * (mode_key == "AMBER") - 0.8 * (mode_key == "RED"),
             "decrease_risk": 0.4 * (mode_key == "AMBER")
             + 0.9 * (mode_key == "RED")
             + 0.1 * (1 - S),

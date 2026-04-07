@@ -77,9 +77,9 @@ class DislocationDetector:
         order_r: float,
     ) -> DislocationState:
         """Ingest one signal tick, return dislocation assessment."""
-        kappa = kappa if math.isfinite(kappa) else 0.0
-        gamma = gamma if math.isfinite(gamma) else 1.0
-        order_r = max(0.0, min(1.0, order_r if math.isfinite(order_r) else 0.0))
+        kappa = _sanitize(kappa, 0.0)
+        gamma = _sanitize(gamma, 1.0)
+        order_r = max(0.0, min(1.0, _sanitize(order_r, 0.0)))
 
         self._kappa_history.append(kappa)
         self._gamma_history.append(gamma)
@@ -142,6 +142,11 @@ def _velocity(history: deque[float]) -> float:
         return 0.0
     vals = list(history)
     return (vals[-1] - vals[-3]) / 2.0
+
+
+def _sanitize(value: float, fallback: float) -> float:
+    """Ensure finite input for physics pipeline."""
+    return value if math.isfinite(value) else fallback
 
 
 def _acceleration(history: deque[float]) -> float:
