@@ -1,7 +1,7 @@
 grpcio==1.68.0
 grpcio-tools==1.68.0
-fastapi==0.115.0
-uvicorn==0.32.0
+fastapi>=0.115.12
+uvicorn>=0.32.0
 questdb==4.1.0
 kafka-python>=2.0.2
 numpy>=1.26.0
