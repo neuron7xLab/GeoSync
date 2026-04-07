@@ -49,9 +49,7 @@ class AugmentedFormanRicci:
 
         # Adaptive threshold: high vol → raise to avoid false edges
         vol = float(np.std(returns, axis=0).mean())
-        eff_thresh = float(
-            np.clip(self._base_threshold * (1.0 + vol * 2.0), 0.15, 0.60)
-        )
+        eff_thresh = float(np.clip(self._base_threshold * (1.0 + vol * 2.0), 0.15, 0.60))
 
         # Correlation → adjacency
         corr = np.corrcoef(returns.T)
