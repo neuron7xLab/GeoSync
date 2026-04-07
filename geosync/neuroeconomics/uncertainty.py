@@ -23,7 +23,7 @@ class UncertaintyType(enum.Enum):
     UNEXPECTED = "UNEXPECTED"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class UncertaintyState:
     sigma_risk: float
     sigma_ambiguity: float
@@ -32,6 +32,16 @@ class UncertaintyState:
     omega: float
     alpha: float
     uncertainty_type: UncertaintyType
+
+    @property
+    def epistemic(self) -> float:
+        """Compat: sigma_ambiguity as epistemic uncertainty proxy."""
+        return min(1.0, self.sigma_ambiguity * 5.0)
+
+    @property
+    def ambiguity_index(self) -> float:
+        """Compat: ratio of 2nd-order to 1st-order uncertainty."""
+        return self.sigma_ambiguity / max(self.sigma_eu, 1e-6)
 
 
 class _WelfordAccumulator:
@@ -100,9 +110,21 @@ class UncertaintyController:
         self._outcome_acc = _WelfordAccumulator(window)
         self._abs_delta_acc = _WelfordAccumulator(window)
 
-    def update(self, delta_t: float, outcome: float = 0.0) -> UncertaintyState:
-        """O(1) per tick. No loops."""
-        delta = delta_t if math.isfinite(delta_t) else 0.0
+    def update(self, delta_t: float | dict[str, object], outcome: float = 0.0) -> UncertaintyState:  # type: ignore[override]
+        """O(1) per tick. Accepts float (flow_controller) or dict (epistemic_action)."""
+        if isinstance(delta_t, dict):
+            # Signal-dict API: extract delta proxy from signal
+            risk = delta_t.get("risk_scalar", 0)
+            delta_t = (
+                float(risk)
+                if isinstance(risk, (int, float)) and math.isfinite(float(risk))
+                else 0.0
+            )
+        delta = (
+            delta_t
+            if isinstance(delta_t, (int, float)) and math.isfinite(delta_t)
+            else 0.0
+        )
         out = outcome if math.isfinite(outcome) else 0.0
 
         self._delta_acc.push(delta)
@@ -150,6 +172,15 @@ class UncertaintyController:
             alpha=alpha,
             uncertainty_type=utype,
         )
+
+    def kelly_discount(self, estimate: UncertaintyState) -> float:
+        """Compat: discount factor for Kelly fraction [0.1, 1.0]."""
+        total = max(estimate.epistemic, estimate.sigma_risk)
+        return max(0.1, 1.0 - 0.9 * min(1.0, total))
+
+    def is_ambiguity_zone(self, estimate: UncertaintyState) -> bool:
+        """Compat: True if 2nd-order uncertainty dominates."""
+        return estimate.ambiguity_index > 1.0
 
 
 def _sigmoid(x: float) -> float:

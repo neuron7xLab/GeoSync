@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from coherence_bridge.uncertainty_compat import UncertaintyEstimator
 from geosync.neuroeconomics.epistemic_action import (
     DecisionOutput,
     EpistemicActionModule,
@@ -26,6 +25,7 @@ from geosync.neuroeconomics.homeostatic_stabilizer import (
     NeuroHomeostaticStabilizer,
 )
 from geosync.neuroeconomics.regime_memory import RegimeMemory
+from geosync.neuroeconomics.uncertainty import UncertaintyEstimator
 
 if TYPE_CHECKING:
     from coherence_bridge.engine_interface import SignalEngine
@@ -53,7 +53,7 @@ class GeoSyncDecisionEngine:
         self._nhs = NeuroHomeostaticStabilizer(
             dissociation_threshold=ei_dissociation,
         )
-        self._uncertainty = UncertaintyEstimator(window_size=uncertainty_window)
+        self._uncertainty = UncertaintyEstimator(window=uncertainty_window)
         self._memory = RegimeMemory(prior_count=1.0)
         self._epistemic = EpistemicActionModule(
             uncertainty_estimator=self._uncertainty,
@@ -133,7 +133,9 @@ class GeoSyncDecisionEngine:
         nhs = self._last_nhs
         return {
             "expected_next_regime": self._memory.get_expected_next(instrument),
-            "uncertainty_window": self._uncertainty.window_size,
+            "uncertainty_window": getattr(self._uncertainty, "_delta_acc", None)
+            and self._uncertainty._delta_acc._maxn
+            or 50,
             "nhs_regime": nhs.regime if nhs else "UNKNOWN",
             "nhs_ei_ratio": nhs.ei_ratio if nhs else 0.0,
             "nhs_kelly_mult": nhs.kelly_multiplier if nhs else 0.0,
