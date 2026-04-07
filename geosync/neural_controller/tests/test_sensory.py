@@ -28,9 +28,7 @@ def test_sensory_schema_nan_inf_behavior() -> None:
 
 
 def test_sensory_schema_out_of_range_clip() -> None:
-    schema = SensorySchema(
-        channels=(SensoryChannel(name="dd", min=0.0, max=1.0, clip=True),)
-    )
+    schema = SensorySchema(channels=(SensoryChannel(name="dd", min=0.0, max=1.0, clip=True),))
     result = schema.validate({"dd": 1.5})
     assert result.normalized["dd"] == 1.0
     assert "out_of_range" in result.quality_flags["dd"]

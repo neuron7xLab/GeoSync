@@ -126,9 +126,7 @@ class RosensteinLyapunov:
         return LyapunovEstimate(
             lambda_max=round(lambda_max, 6),
             is_chaotic=is_chaotic,
-            doubling_time=(
-                round(doubling_time, 2) if math.isfinite(doubling_time) else math.inf
-            ),
+            doubling_time=(round(doubling_time, 2) if math.isfinite(doubling_time) else math.inf),
             divergence_rate=round(divergence_rate, 4),
             is_valid=True,
         )

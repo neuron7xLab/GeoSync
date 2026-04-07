@@ -9,6 +9,7 @@ from .neuro_params import SensoryConfig
 from .sensory_schema import SensorySchemaResult
 from .state import clamp
 
+
 @dataclass
 class SensorySnapshot:
     filtered: Dict[str, float]

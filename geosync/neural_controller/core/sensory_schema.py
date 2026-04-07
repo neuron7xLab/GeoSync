@@ -117,9 +117,7 @@ class SensorySchema:
                 self._last_values[channel.name] = value
 
         sensory_confidence = (
-            clamp(sum(confidence_scores) / len(confidence_scores))
-            if confidence_scores
-            else 0.0
+            clamp(sum(confidence_scores) / len(confidence_scores)) if confidence_scores else 0.0
         )
         return SensorySchemaResult(
             normalized=normalized,
@@ -127,9 +125,7 @@ class SensorySchema:
             sensory_confidence=sensory_confidence,
         )
 
-    def _coerce_value(
-        self, channel: SensoryChannel, raw: Any, flags: List[str]
-    ) -> float | None:
+    def _coerce_value(self, channel: SensoryChannel, raw: Any, flags: List[str]) -> float | None:
         if raw is None:
             return None
         try:
@@ -158,14 +154,13 @@ class SensorySchema:
             return value < 0.0 or value > channel.scale
         return value < channel.min or value > channel.max
 
-    def _channel_confidence(
-        self, channel: SensoryChannel, flags: Iterable[str]
-    ) -> float:
+    def _channel_confidence(self, channel: SensoryChannel, flags: Iterable[str]) -> float:
         if "missing" in flags or "nan" in flags:
             return channel.confidence_floor
         confidence = channel.confidence
         if "out_of_range" in flags:
             confidence *= 0.5
         return max(channel.confidence_floor, confidence)
+
 
 __all__ = ["SCHEMA_VERSION", "SensoryChannel", "SensorySchema", "SensorySchemaResult"]

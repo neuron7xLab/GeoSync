@@ -63,9 +63,7 @@ class EnvironmentMode(str, Enum):
             if mode.value == normalized:
                 return mode
         valid_modes = ", ".join(m.value for m in cls)
-        raise ValueError(
-            f"Invalid environment mode '{value}'. Valid modes: {valid_modes}"
-        )
+        raise ValueError(f"Invalid environment mode '{value}'. Valid modes: {valid_modes}")
 
 
 @dataclass(slots=True, frozen=True)
@@ -193,9 +191,7 @@ def validate_environment(
         errors.append(f"{mode.value.upper()} mode requires API keys to be configured")
 
     if config.require_risk_engine and not risk_engine_enabled:
-        errors.append(
-            f"{mode.value.upper()} mode requires the risk engine to be enabled"
-        )
+        errors.append(f"{mode.value.upper()} mode requires the risk engine to be enabled")
 
     return len(errors) == 0, errors
 

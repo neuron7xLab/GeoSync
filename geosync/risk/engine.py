@@ -263,7 +263,7 @@ class CentralRiskEngine:
         self,
         order: OrderContext,
         portfolio_state: PortfolioState,
-        market_state: MarketState,
+        market_state: MarketState,  # noqa: ARG002 — reserved for regime-aware risk
     ) -> RiskDecision:
         """Assess whether an order should be allowed.
 
@@ -273,7 +273,7 @@ class CentralRiskEngine:
         Args:
             order: Order context to assess.
             portfolio_state: Current portfolio state.
-            market_state: Current market state.
+            market_state: Current market state (reserved for regime-aware risk).
 
         Returns:
             RiskDecision indicating whether the order is allowed.
@@ -295,9 +295,7 @@ class CentralRiskEngine:
                     status=RiskStatus.HALTED,
                     message=f"Kill-switch active: {self._safety.state.kill_switch_reason}",
                     order=order,
-                    metadata={
-                        "kill_switch_reason": self._safety.state.kill_switch_reason
-                    },
+                    metadata={"kill_switch_reason": self._safety.state.kill_switch_reason},
                 )
 
             # 2. Check if risk checks are enabled
@@ -322,10 +320,7 @@ class CentralRiskEngine:
                 )
 
             # 3. Check environment constraints
-            if (
-                not env_config.allow_real_orders
-                and env_mode != EnvironmentMode.BACKTEST
-            ):
+            if not env_config.allow_real_orders and env_mode != EnvironmentMode.BACKTEST:
                 # Paper mode - allow but note it's simulated
                 metadata["simulated"] = True
 
@@ -426,9 +421,7 @@ class CentralRiskEngine:
                 status=status,
                 message=message,
                 order=order,
-                adjusted_quantity=(
-                    adjusted_quantity if position_multiplier < 1.0 else None
-                ),
+                adjusted_quantity=(adjusted_quantity if position_multiplier < 1.0 else None),
                 metadata=metadata,
             )
 
@@ -460,15 +453,9 @@ class CentralRiskEngine:
             drawdown = portfolio_state.get_drawdown()
             if self._safety.is_kill_switch_active():
                 return RiskStatus.HALTED
-            elif (
-                drawdown
-                > self._config.max_daily_loss_percent * CRITICAL_THRESHOLD_FACTOR
-            ):
+            elif drawdown > self._config.max_daily_loss_percent * CRITICAL_THRESHOLD_FACTOR:
                 return RiskStatus.CRITICAL
-            elif (
-                drawdown
-                > self._config.max_daily_loss_percent * WARNING_THRESHOLD_FACTOR
-            ):
+            elif drawdown > self._config.max_daily_loss_percent * WARNING_THRESHOLD_FACTOR:
                 return RiskStatus.WARNING
             return RiskStatus.OK
 
@@ -572,9 +559,7 @@ class CentralRiskEngine:
             return
 
         drawdown = portfolio_state.get_drawdown()
-        warning_threshold = (
-            self._config.max_daily_loss_percent * SAFE_MODE_TRIGGER_FACTOR
-        )
+        warning_threshold = self._config.max_daily_loss_percent * SAFE_MODE_TRIGGER_FACTOR
 
         if drawdown > warning_threshold:
             self._safety.activate_safe_mode(

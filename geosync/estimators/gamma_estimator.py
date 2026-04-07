@@ -106,9 +106,7 @@ class PSDGammaEstimator:
         nperseg: int,
         f_hi: float,
     ) -> tuple[float, float]:
-        f, pxx = welch(
-            x, fs=self.fs, nperseg=nperseg, detrend="linear", scaling="density"
-        )
+        f, pxx = welch(x, fs=self.fs, nperseg=nperseg, detrend="linear", scaling="density")
         mask = (f >= self.f_lo) & (f <= f_hi) & (pxx > 0.0) & np.isfinite(pxx)
         if int(mask.sum()) < 8:
             return 0.0, 0.0

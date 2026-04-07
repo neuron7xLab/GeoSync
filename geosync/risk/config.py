@@ -147,12 +147,8 @@ class RiskEngineConfig:
                 symbol_limits[symbol] = limits
 
         return cls(
-            max_position_size_default=float(
-                data.get("max_position_size_default", float("inf"))
-            ),
-            max_notional_per_order=float(
-                data.get("max_notional_per_order", float("inf"))
-            ),
+            max_position_size_default=float(data.get("max_position_size_default", float("inf"))),
+            max_notional_per_order=float(data.get("max_notional_per_order", float("inf"))),
             max_daily_loss=float(data.get("max_daily_loss", float("inf"))),
             max_daily_loss_percent=float(data.get("max_daily_loss_percent", 1.0)),
             max_total_exposure=float(data.get("max_total_exposure", float("inf"))),
@@ -160,13 +156,9 @@ class RiskEngineConfig:
             max_orders_per_minute=int(data.get("max_orders_per_minute", 60)),
             max_orders_per_hour=int(data.get("max_orders_per_hour", 1000)),
             symbol_limits=symbol_limits,
-            kill_switch_loss_threshold=float(
-                data.get("kill_switch_loss_threshold", float("inf"))
-            ),
+            kill_switch_loss_threshold=float(data.get("kill_switch_loss_threshold", float("inf"))),
             kill_switch_loss_streak=int(data.get("kill_switch_loss_streak", 10)),
-            safe_mode_position_multiplier=float(
-                data.get("safe_mode_position_multiplier", 0.5)
-            ),
+            safe_mode_position_multiplier=float(data.get("safe_mode_position_multiplier", 0.5)),
             enable_risk_checks=bool(data.get("enable_risk_checks", True)),
         )
 

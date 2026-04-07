@@ -5,8 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Mapping
 
-from .neuro_params import OBSERVATION_KEYS, PredictiveConfig, SensoryConfig
-
 
 @dataclass(frozen=True)
 class Params:
@@ -55,9 +53,7 @@ class PolicyConfig:
             elif isinstance(raw, Mapping):
                 normalized[key] = PolicyModeConfig(**raw)
             else:
-                raise TypeError(
-                    "policy_modes values must be PolicyModeConfig or mapping"
-                )
+                raise TypeError("policy_modes values must be PolicyModeConfig or mapping")
         object.__setattr__(self, "policy_modes", normalized)
 
 
@@ -97,9 +93,7 @@ class TemporalGatingConfig:
         if self.sensory_period is not None:
             if self.sensory_period <= 0:
                 raise ValueError("sensory_period must be positive")
-            object.__setattr__(
-                self, "sensory_frequency", 1.0 / float(self.sensory_period)
-            )
+            object.__setattr__(self, "sensory_frequency", 1.0 / float(self.sensory_period))
         if self.predictive_period is not None:
             if self.predictive_period <= 0:
                 raise ValueError("predictive_period must be positive")
