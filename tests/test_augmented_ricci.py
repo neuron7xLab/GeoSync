@@ -71,12 +71,8 @@ def test_threshold_affects_graph_density() -> None:
             np.diff(base + 0.1 * np.random.randn(200)),
         ]
     )
-    k_low = AugmentedFormanRicci(correlation_threshold=0.1).compute_mean(
-        returns, ["A", "B", "C"]
-    )
-    k_high = AugmentedFormanRicci(correlation_threshold=0.9).compute_mean(
-        returns, ["A", "B", "C"]
-    )
+    k_low = AugmentedFormanRicci(correlation_threshold=0.1).compute_mean(returns, ["A", "B", "C"])
+    k_high = AugmentedFormanRicci(correlation_threshold=0.9).compute_mean(returns, ["A", "B", "C"])
     # Higher threshold may prune edges → different curvature
     # (not necessarily lower — depends on which edges survive)
     assert isinstance(k_low, float)

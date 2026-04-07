@@ -92,9 +92,7 @@ def test_decision_distribution_balanced() -> None:
 def test_dissociation_on_extreme_signal() -> None:
     fc = FlowController(weights=FlowWeights(ei_dissociation=1.5))
     # Force extreme excitatory
-    out = fc.process(
-        _sig(risk_scalar=0.99, regime_confidence=0.99, signal_strength=0.99)
-    )
+    out = fc.process(_sig(risk_scalar=0.99, regime_confidence=0.99, signal_strength=0.99))
     if out.decision == FlowDecision.DISSOCIATED:
         assert out.adjusted_size == 0.0
         assert out.kelly_mult == 0.0

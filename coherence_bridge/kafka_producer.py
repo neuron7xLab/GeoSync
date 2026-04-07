@@ -95,15 +95,9 @@ class KafkaSignalProducer:
                 str(signal.get("regime", "UNKNOWN")),
                 self._regime_map["UNKNOWN"],
             ),
-            regime_confidence=float(
-                cast("int | float", signal.get("regime_confidence", 0.0))
-            ),
-            regime_duration_s=float(
-                cast("int | float", signal.get("regime_duration_s", 0.0))
-            ),
-            signal_strength=float(
-                cast("int | float", signal.get("signal_strength", 0.0))
-            ),
+            regime_confidence=float(cast("int | float", signal.get("regime_confidence", 0.0))),
+            regime_duration_s=float(cast("int | float", signal.get("regime_duration_s", 0.0))),
+            signal_strength=float(cast("int | float", signal.get("signal_strength", 0.0))),
             risk_scalar=float(cast("int | float", signal.get("risk_scalar", 0.0))),
             sequence_number=int(cast("int | float", signal.get("sequence_number", 0))),
         )

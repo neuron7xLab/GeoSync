@@ -13,9 +13,7 @@ def test_attribution_tracks_regime_pnl() -> None:
     attr = PnLAttributor()
     attr.record(regime="METASTABLE", decision="TRADE", pnl=0.01, size=0.8)
     attr.record(regime="METASTABLE", decision="TRADE", pnl=-0.005, size=0.8)
-    attr.record(
-        regime="CRITICAL", decision="ABORT", pnl=0.0, size=0.0, hypothetical_pnl=-0.05
-    )
+    attr.record(regime="CRITICAL", decision="ABORT", pnl=0.0, size=0.0, hypothetical_pnl=-0.05)
 
     r = attr.report()
     assert r.by_regime["METASTABLE"].count == 2

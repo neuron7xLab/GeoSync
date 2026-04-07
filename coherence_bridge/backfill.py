@@ -110,9 +110,7 @@ def compute_signals_on_window(
 
         # gamma — DERIVED from PSD
         raw_slope = aperiodic_slope(returns, fs=1.0, f_lo=0.001, f_hi=0.5)
-        gamma = (
-            abs(raw_slope) if (math.isfinite(raw_slope) and raw_slope != 0.0) else 1.0
-        )
+        gamma = abs(raw_slope) if (math.isfinite(raw_slope) and raw_slope != 0.0) else 1.0
 
         # Forman-Ricci
         n_lags = min(5, len(returns) // 10)
@@ -121,9 +119,7 @@ def compute_signals_on_window(
                 [returns[i : len(returns) - n_lags + i + 1] for i in range(n_lags)]
             )
             try:
-                ricci_result = forman.compute_from_prices(
-                    lagged, window=min(30, len(lagged))
-                )
+                ricci_result = forman.compute_from_prices(lagged, window=min(30, len(lagged)))
                 ricci_curvature = ricci_result.kappa_mean
             except Exception:
                 ricci_curvature = composite.static_ricci
@@ -177,9 +173,7 @@ def main() -> None:
     parser.add_argument("--instruments", nargs="+", default=["EURUSD"])
     parser.add_argument("--start", required=True, help="Start date YYYY-MM-DD")
     parser.add_argument("--end", required=True, help="End date YYYY-MM-DD")
-    parser.add_argument(
-        "--output", default="backfill.parquet", help="Output Parquet path"
-    )
+    parser.add_argument("--output", default="backfill.parquet", help="Output Parquet path")
     parser.add_argument("--questdb-host", default=None)
     parser.add_argument("--questdb-port", type=int, default=9000)
     args = parser.parse_args()

@@ -101,9 +101,9 @@ class PriorIntegrator:
         drift_bias = self.beta_prior * float(self._prior.max())
 
         # C21: Attention gate — independent of expectation
-        self._attention = self.salience_decay * self._attention + (
-            1.0 - self.salience_decay
-        ) * max(0.0, min(1.0, salience))
+        self._attention = self.salience_decay * self._attention + (1.0 - self.salience_decay) * max(
+            0.0, min(1.0, salience)
+        )
 
         # Prior entropy for control_value
         prior_entropy = _entropy(self._prior)

@@ -292,25 +292,17 @@ class FlowController:
         kelly_mult = max(w.kelly_min, 1.0 - ei_distance * 0.5)
 
         # ── 8. Pragmatic vs epistemic ──
-        pragmatic = (
-            risk * conf * (w.pragmatic_base + (1.0 - w.pragmatic_base) * strength)
-        )
+        pragmatic = risk * conf * (w.pragmatic_base + (1.0 - w.pragmatic_base) * strength)
         surprise_norm = min(1.0, unc.surprise / w.surprise_normalization)
         # Epistemic: only dominates when genuinely uncertain
         # omega scaled by sigmoid to [0,1], not linear ×10
         omega_signal = min(1.0, unc.omega / max(unc.sigma_eu + 0.01, 0.01))
-        ambiguity_flag = (
-            1.0 if unc.uncertainty_type == UncertaintyType.AMBIGUITY else 0.0
-        )
-        unexpected_flag = (
-            1.0 if unc.uncertainty_type == UncertaintyType.UNEXPECTED else 0.0
-        )
+        ambiguity_flag = 1.0 if unc.uncertainty_type == UncertaintyType.AMBIGUITY else 0.0
+        unexpected_flag = 1.0 if unc.uncertainty_type == UncertaintyType.UNEXPECTED else 0.0
         epistemic = (
             w.epistemic_uncertainty_w * omega_signal
             + w.epistemic_surprise_w * surprise_norm
-            + w.epistemic_ambiguity_w
-            * ambiguity_flag
-            * 0.5  # half weight: ambiguity is common
+            + w.epistemic_ambiguity_w * ambiguity_flag * 0.5  # half weight: ambiguity is common
             + unexpected_flag * 0.3  # unexpected gets full boost
         )
         epistemic = min(1.0, epistemic)

@@ -42,9 +42,7 @@ def test_homeostatic_regime_at_moderate_signal() -> None:
     """Moderate signal (risk=0.5, conf=0.5) → HOMEOSTATIC."""
     nhs = NeuroHomeostaticStabilizer()
     for _ in range(15):
-        state = nhs.update(
-            _sig(risk_scalar=0.7, regime_confidence=0.6, signal_strength=0.2)
-        )
+        state = nhs.update(_sig(risk_scalar=0.7, regime_confidence=0.6, signal_strength=0.2))
     assert state.regime == "HOMEOSTATIC"
     assert 0.7 <= state.ei_ratio <= 1.3
 
@@ -53,9 +51,7 @@ def test_excitatory_regime_on_high_confidence() -> None:
     """High risk + confidence → EXCITATORY (not yet dissociated)."""
     nhs = NeuroHomeostaticStabilizer()
     for _ in range(15):
-        state = nhs.update(
-            _sig(risk_scalar=0.8, regime_confidence=0.8, signal_strength=0.3)
-        )
+        state = nhs.update(_sig(risk_scalar=0.8, regime_confidence=0.8, signal_strength=0.3))
     assert state.regime == "EXCITATORY"
     assert state.ei_ratio > 1.3
 
@@ -64,9 +60,7 @@ def test_inhibitory_regime_on_low_confidence() -> None:
     """Low risk + low confidence → INHIBITORY."""
     nhs = NeuroHomeostaticStabilizer()
     for _ in range(15):
-        state = nhs.update(
-            _sig(risk_scalar=0.1, regime_confidence=0.2, signal_strength=0.0)
-        )
+        state = nhs.update(_sig(risk_scalar=0.1, regime_confidence=0.2, signal_strength=0.0))
     assert state.regime == "INHIBITORY"
     assert state.ei_ratio < 0.7
 
@@ -127,9 +121,7 @@ def test_dissociation_recovery() -> None:
 
     # Feed balanced signals
     for _ in range(20):
-        state = nhs.update(
-            _sig(risk_scalar=0.5, regime_confidence=0.5, signal_strength=0.0)
-        )
+        state = nhs.update(_sig(risk_scalar=0.5, regime_confidence=0.5, signal_strength=0.0))
 
     # Should eventually recover
     assert not nhs.is_dissociated or state.regime != "DISSOCIATED"

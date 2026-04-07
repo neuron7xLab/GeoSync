@@ -120,11 +120,7 @@ class UncertaintyController:
                 if isinstance(risk, (int, float)) and math.isfinite(float(risk))
                 else 0.0
             )
-        delta = (
-            delta_t
-            if isinstance(delta_t, (int, float)) and math.isfinite(delta_t)
-            else 0.0
-        )
+        delta = delta_t if isinstance(delta_t, (int, float)) and math.isfinite(delta_t) else 0.0
         out = outcome if math.isfinite(outcome) else 0.0
 
         self._delta_acc.push(delta)
@@ -149,9 +145,7 @@ class UncertaintyController:
         sigma_risk = self._outcome_acc.std if self._outcome_acc.count >= 3 else 0.0
 
         # C06: Ambiguity = variance of |deltas| — O(1)
-        sigma_ambiguity = (
-            self._abs_delta_acc.variance if self._abs_delta_acc.count >= 5 else 0.0
-        )
+        sigma_ambiguity = self._abs_delta_acc.variance if self._abs_delta_acc.count >= 5 else 0.0
 
         # Classification
         if surprise > 2.0:

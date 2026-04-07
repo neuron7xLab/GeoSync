@@ -41,14 +41,10 @@ def test_gamma_is_not_assigned() -> None:
     )
     # Ricci must be used (core or augmented)
     assert (
-        "forman_ricci" in source
-        or "augmented_ricci" in source
-        or "compute_from_prices" in source
+        "forman_ricci" in source or "augmented_ricci" in source or "compute_from_prices" in source
     ), "ricci_curvature must come from FormanRicciCurvature"
     # Lyapunov must be used
-    assert (
-        "lyapunov" in source.lower()
-    ), "lyapunov_max must come from maximal_lyapunov_exponent"
+    assert "lyapunov" in source.lower(), "lyapunov_max must come from maximal_lyapunov_exponent"
 
 
 def test_adapter_returns_all_12_fields() -> None:
@@ -75,9 +71,7 @@ def test_adapter_returns_all_12_fields() -> None:
         "sequence_number",
     ]
     for field in required_fields:
-        assert (
-            f'"{field}"' in source
-        ), f"Field '{field}' not found in _compute_signal return dict"
+        assert f'"{field}"' in source, f"Field '{field}' not found in _compute_signal return dict"
 
 
 def test_phase_to_regime_mapping_covers_all_phases() -> None:
@@ -121,9 +115,7 @@ def test_thread_safety_has_lock() -> None:
     ), "GeoSyncAdapter must use Lock for thread safety"
     # Verify lock is used in get_signal
     get_signal_src = inspect.getsource(GeoSyncAdapter.get_signal)
-    assert (
-        "self._lock" in get_signal_src
-    ), "get_signal must acquire _lock for thread-safe reads"
+    assert "self._lock" in get_signal_src, "get_signal must acquire _lock for thread-safe reads"
 
 
 def test_risk_scalar_uses_compute_risk_scalar() -> None:

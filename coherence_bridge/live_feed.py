@@ -103,9 +103,7 @@ class LiveFeedLoop:
         sigma = 0.001  # intraday vol
         mu = 0.0
         dw = self._rng.standard_normal()
-        new_price = price * np.exp(
-            (mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * dw
-        )
+        new_price = price * np.exp((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * dw)
 
         # OHLCV bar
         high = max(price, new_price) * (1 + abs(dw) * 0.0001)

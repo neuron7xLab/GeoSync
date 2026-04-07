@@ -188,11 +188,7 @@ def serve(
     from coherence_bridge.questdb_writer import QuestDBSignalWriter
 
     writer = QuestDBSignalWriter(host=questdb_host, port=questdb_port)
-    kafka = (
-        KafkaSignalProducer(bootstrap_servers=kafka_bootstrap)
-        if kafka_bootstrap
-        else None
-    )
+    kafka = KafkaSignalProducer(bootstrap_servers=kafka_bootstrap) if kafka_bootstrap else None
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=10),
         options=[

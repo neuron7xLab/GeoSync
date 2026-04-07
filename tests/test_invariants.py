@@ -103,6 +103,5 @@ def test_mock_engine_signals_pass_all_theorems() -> None:
                 results = verify_signal(sig, raise_on_failure=False)
                 for r in results:
                     assert r.passed, (
-                        f"MockEngine {inst} violates {r.theorem}: {r.message} "
-                        f"signal={sig}"
+                        f"MockEngine {inst} violates {r.theorem}: {r.message} " f"signal={sig}"
                     )

@@ -80,9 +80,7 @@ class ContextMemory:
         eff_alpha = self.alpha_loss if outcome < 0 else self.alpha_gain
 
         # C30: History dependence — EWA with decay
-        self._history_score = (
-            self.decay * self._history_score + (1.0 - self.decay) * outcome
-        )
+        self._history_score = self.decay * self._history_score + (1.0 - self.decay) * outcome
 
         # C15: Experience weight
         exp_weight = _sigmoid(self.beta_exp * self._history_score)

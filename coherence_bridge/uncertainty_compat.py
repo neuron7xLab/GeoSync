@@ -67,13 +67,9 @@ class UncertaintyEstimator:
             return UncertaintyEstimate(1.0, 1.0, 1.0, 1.0, 2.0, True)
 
         regime_risks = [
-            r
-            for r, reg in zip(self._risk_history, self._regime_history)
-            if reg == regime
+            r for r, reg in zip(self._risk_history, self._regime_history) if reg == regime
         ]
-        aleatoric = (
-            min(1.0, _std(regime_risks) * 3.0) if len(regime_risks) >= 3 else 0.5
-        )
+        aleatoric = min(1.0, _std(regime_risks) * 3.0) if len(regime_risks) >= 3 else 0.5
 
         gamma_vote = max(0.0, min(1.0, 1.0 - abs(gamma - 1.0)))
         r_vote = max(0.0, min(1.0, r_val))
@@ -83,10 +79,7 @@ class UncertaintyEstimator:
         sigma_1 = 1.0 - _to_float(signal.get("regime_confidence"))
         gamma_list = list(self._gamma_history)
         if len(gamma_list) >= 3:
-            diffs = [
-                abs(gamma_list[i] - gamma_list[i - 1])
-                for i in range(1, len(gamma_list))
-            ]
+            diffs = [abs(gamma_list[i] - gamma_list[i - 1]) for i in range(1, len(gamma_list))]
             mean_gamma = sum(gamma_list) / len(gamma_list)
             sigma_2 = _std(diffs) / (abs(mean_gamma) + 1e-6)
         else:

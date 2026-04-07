@@ -51,9 +51,7 @@ def test_geosync_never_imports_coherence_bridge() -> None:
     for f in _py_files(GEOSYNC_DIR):
         if "coherence_bridge" in _get_imports(f):
             violations.append(str(f.relative_to(REPO_ROOT)))
-    assert (
-        violations == []
-    ), "INV-ARCH-1 VIOLATED: geosync imports coherence_bridge:\n" + "\n".join(
+    assert violations == [], "INV-ARCH-1 VIOLATED: geosync imports coherence_bridge:\n" + "\n".join(
         violations
     )
 
@@ -65,9 +63,9 @@ def test_geosync_never_imports_transport() -> None:
         bad = [m for m in _get_imports(f) if m in TRANSPORT_MODULES]
         if bad:
             violations.append(f"{f.relative_to(REPO_ROOT)}: {bad}")
-    assert (
-        violations == []
-    ), "INV-ARCH-3 VIOLATED: geosync imports transport:\n" + "\n".join(violations)
+    assert violations == [], "INV-ARCH-3 VIOLATED: geosync imports transport:\n" + "\n".join(
+        violations
+    )
 
 
 def test_coherence_bridge_no_otp_internals() -> None:
@@ -80,6 +78,4 @@ def test_coherence_bridge_no_otp_internals() -> None:
         bad = [m for m in _get_imports(f) if m in otp]
         if bad:
             violations.append(f"{f.relative_to(REPO_ROOT)}: {bad}")
-    assert violations == [], "coherence_bridge imports OTP internals:\n" + "\n".join(
-        violations
-    )
+    assert violations == [], "coherence_bridge imports OTP internals:\n" + "\n".join(violations)

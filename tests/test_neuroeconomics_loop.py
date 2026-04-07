@@ -257,9 +257,7 @@ def test_v_net_bounded() -> None:
             signal_strength=float(np.random.uniform(-2, 2)),
             outcome=float(np.random.uniform(-3, 3)),
             alpha=float(np.random.uniform(0, 1)),
-            regime=np.random.choice(
-                ["COHERENT", "METASTABLE", "DECOHERENT", "CRITICAL"]
-            ),
+            regime=np.random.choice(["COHERENT", "METASTABLE", "DECOHERENT", "CRITICAL"]),
             policy_delta=float(np.random.uniform(-1, 1)),
             drift_bias=float(np.random.uniform(-1, 1)),
         )

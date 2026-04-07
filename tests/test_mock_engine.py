@@ -93,12 +93,8 @@ def test_regime_physics_plausibility(engine: MockEngine) -> None:
 
     # METASTABLE: gamma near 1.0
     if by_regime["METASTABLE"]:
-        avg_gamma = sum(s["gamma"] for s in by_regime["METASTABLE"]) / len(
-            by_regime["METASTABLE"]
-        )
-        assert (
-            0.8 < avg_gamma < 1.2
-        ), f"METASTABLE gamma should be ~1.0, got {avg_gamma}"
+        avg_gamma = sum(s["gamma"] for s in by_regime["METASTABLE"]) / len(by_regime["METASTABLE"])
+        assert 0.8 < avg_gamma < 1.2, f"METASTABLE gamma should be ~1.0, got {avg_gamma}"
 
     # COHERENT: high R, negative Lyapunov (stable)
     if by_regime["COHERENT"]:

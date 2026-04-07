@@ -15,9 +15,7 @@ from geosync.neuroeconomics.metacognition import (
 )
 
 
-def _sig(
-    regime: str = "METASTABLE", gamma: float = 1.0, confidence: float = 0.8
-) -> dict:
+def _sig(regime: str = "METASTABLE", gamma: float = 1.0, confidence: float = 0.8) -> dict:
     return {
         "instrument": "EURUSD",
         "regime": regime,
@@ -188,9 +186,7 @@ def test_meta_features_keys() -> None:
 def test_witness_fires_on_all_observe() -> None:
     meta = MetaCognitionLayer()
     for _ in range(250):
-        state = meta.observe(
-            _sig(regime="DECOHERENT"), _dec("OBSERVE"), _rm("DECOHERENT")
-        )
+        state = meta.observe(_sig(regime="DECOHERENT"), _dec("OBSERVE"), _rm("DECOHERENT"))
     assert state.calibration.is_paralyzed or state.witness_alert
 
 

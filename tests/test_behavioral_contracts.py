@@ -65,9 +65,7 @@ def test_signal_never_all_zero() -> None:
 # ═══════════════════════════════════════════════════════════════════
 
 
-@given(
-    gamma=st.floats(min_value=-2, max_value=4, allow_nan=False, allow_infinity=False)
-)
+@given(gamma=st.floats(min_value=-2, max_value=4, allow_nan=False, allow_infinity=False))
 def test_risk_scalar_consistent_everywhere(gamma: float) -> None:
     """risk_scalar computed in risk.py must match risk_gate, feature_exporter.
 
@@ -160,9 +158,7 @@ def test_epistemic_observe_never_produces_trade() -> None:
         sig = me.get_signal("EURUSD")
         out = engine.process(sig, intended_size=1.0)
         if out.decision == EpistemicDecision.OBSERVE:
-            assert (
-                out.adjusted_size == 0.0
-            ), f"OBSERVE with size={out.adjusted_size} > 0"
+            assert out.adjusted_size == 0.0, f"OBSERVE with size={out.adjusted_size} > 0"
         if out.decision == EpistemicDecision.ABORT:
             assert out.adjusted_size == 0.0, f"ABORT with size={out.adjusted_size} > 0"
 
@@ -186,9 +182,7 @@ def test_decision_distribution_is_nondegenerate() -> None:
     # At least 10% of each (allowing for regime cycling)
     for decision in ("TRADE", "OBSERVE"):
         rate = counts[decision] / total
-        assert (
-            rate > 0.05
-        ), f"{decision} rate = {rate:.1%} < 5%. Distribution: {dict(counts)}"
+        assert rate > 0.05, f"{decision} rate = {rate:.1%} < 5%. Distribution: {dict(counts)}"
 
 
 # ═══════════════════════════════════════════════════════════════════

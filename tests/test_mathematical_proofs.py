@@ -67,22 +67,14 @@ class TestRiskScalarAlgebra:
       P8. Derivative: ∂risk/∂γ ∈ {-1, 0, +1}
     """
 
-    @given(
-        gamma=st.floats(
-            min_value=-10, max_value=10, allow_nan=False, allow_infinity=False
-        )
-    )
+    @given(gamma=st.floats(min_value=-10, max_value=10, allow_nan=False, allow_infinity=False))
     def test_P1_exact_formula_identity(self, gamma: float) -> None:
         """∀γ ∈ R: risk(γ) ≡ max(0, min(1, 1 - |γ - 1|))"""
         result = compute_risk_scalar(gamma)
         expected = max(0.0, min(1.0, 1.0 - abs(gamma - 1.0)))
         assert result == expected, f"P1 violated: risk({gamma}) = {result} ≠ {expected}"
 
-    @given(
-        delta=st.floats(
-            min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False
-        )
-    )
+    @given(delta=st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False))
     def test_P2_reflection_symmetry(self, delta: float) -> None:
         """∀δ ≥ 0: risk(1-δ) = risk(1+δ)  (within 1 ULP).
 
@@ -173,11 +165,7 @@ class TestRiskScalarAlgebra:
         for g in [2.0, 2.001, 3.0, 100.0]:
             assert compute_risk_scalar(g) == 0.0
 
-    @given(
-        gamma=st.floats(
-            min_value=0.01, max_value=1.99, allow_nan=False, allow_infinity=False
-        )
-    )
+    @given(gamma=st.floats(min_value=0.01, max_value=1.99, allow_nan=False, allow_infinity=False))
     def test_P8_derivative_magnitude(self, gamma: float) -> None:
         """On the support (0,2), |∂risk/∂γ| = 1 almost everywhere.
 
@@ -186,12 +174,8 @@ class TestRiskScalarAlgebra:
         h = 1e-8
         if gamma - h <= 0 or gamma + h >= 2 or abs(gamma - 1.0) < 1e-6:
             return  # boundary or vertex — derivative undefined at cusp
-        deriv = (compute_risk_scalar(gamma + h) - compute_risk_scalar(gamma - h)) / (
-            2 * h
-        )
-        assert (
-            abs(abs(deriv) - 1.0) < 1e-4
-        ), f"|∂risk/∂γ| at γ={gamma} = {abs(deriv):.6f} ≠ 1"
+        deriv = (compute_risk_scalar(gamma + h) - compute_risk_scalar(gamma - h)) / (2 * h)
+        assert abs(abs(deriv) - 1.0) < 1e-4, f"|∂risk/∂γ| at γ={gamma} = {abs(deriv):.6f} ≠ 1"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -479,10 +463,7 @@ class TestTopology:
                 # [0, 1]
                 assert 0.0 <= sig["risk_scalar"] <= 1.0
                 # Z≥0
-                assert (
-                    isinstance(sig["sequence_number"], int)
-                    and sig["sequence_number"] >= 0
-                )
+                assert isinstance(sig["sequence_number"], int) and sig["sequence_number"] >= 0
 
     def test_sanitize_is_continuous(self) -> None:
         """sanitize is continuous: small perturbation in input → small change in output.
@@ -513,9 +494,7 @@ class TestTopology:
             s1 = _sanitize_signal(perturbed)
 
             delta_risk = abs(s1["risk_scalar"] - s0["risk_scalar"])
-            assert (
-                delta_risk <= eps + 1e-15
-            ), f"Continuity violated: Δγ={eps}, Δrisk={delta_risk}"
+            assert delta_risk <= eps + 1e-15, f"Continuity violated: Δγ={eps}, Δrisk={delta_risk}"
 
     def test_regime_map_is_surjective(self) -> None:
         """The MarketPhase → RegimeType mapping is surjective.
@@ -630,9 +609,7 @@ class TestPipelineIntegrity:
             wire = proto.SerializeToString()
             restored = pb.RegimeSignal()
             restored.ParseFromString(wire)
-            assert (
-                restored.gamma == v
-            ), f"float64 precision lost: {v} → {restored.gamma}"
+            assert restored.gamma == v, f"float64 precision lost: {v} → {restored.gamma}"
 
 
 # ═══════════════════════════════════════════════════════════════════════

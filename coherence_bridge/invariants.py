@@ -38,9 +38,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-VALID_REGIMES = frozenset(
-    {"COHERENT", "METASTABLE", "DECOHERENT", "CRITICAL", "UNKNOWN"}
-)
+VALID_REGIMES = frozenset({"COHERENT", "METASTABLE", "DECOHERENT", "CRITICAL", "UNKNOWN"})
 MIN_TIMESTAMP_NS = 1_577_836_800_000_000_000  # 2020-01-01 UTC
 
 
@@ -97,9 +95,7 @@ def verify_T4(sig: dict[str, object]) -> VerificationResult:
     if not isinstance(R, (int, float)):
         return VerificationResult("T4", False, f"R={R} not numeric")
     if not (0.0 <= R <= 1.0):
-        return VerificationResult(
-            "T4", False, f"INV-K1 VIOLATED: R={R:.6f} outside [0,1]"
-        )
+        return VerificationResult("T4", False, f"INV-K1 VIOLATED: R={R:.6f} outside [0,1]")
     return VerificationResult("T4", True, "OK")
 
 
@@ -123,9 +119,7 @@ def verify_T7(sig: dict[str, object]) -> VerificationResult:
     """T7 (P0): regime ∈ valid set"""
     regime = sig.get("regime")
     if regime not in VALID_REGIMES:
-        return VerificationResult(
-            "T7", False, f"regime={regime!r} not in {VALID_REGIMES}"
-        )
+        return VerificationResult("T7", False, f"regime={regime!r} not in {VALID_REGIMES}")
     return VerificationResult("T7", True, "OK")
 
 
@@ -133,9 +127,7 @@ def verify_T8(sig: dict[str, object]) -> VerificationResult:
     """T8 (P0): regime_confidence ∈ [0, 1]"""
     conf = sig.get("regime_confidence")
     if not isinstance(conf, (int, float)) or not (0.0 <= conf <= 1.0):
-        return VerificationResult(
-            "T8", False, f"regime_confidence={conf} outside [0,1]"
-        )
+        return VerificationResult("T8", False, f"regime_confidence={conf} outside [0,1]")
     return VerificationResult("T8", True, "OK")
 
 

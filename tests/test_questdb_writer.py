@@ -37,9 +37,7 @@ def _make_signal(**overrides) -> dict:
 @patch("coherence_bridge.questdb_writer.Sender")
 def test_write_signal_calls_sender(mock_sender_cls):
     mock_sender = MagicMock()
-    mock_sender_cls.from_conf.return_value.__enter__ = MagicMock(
-        return_value=mock_sender
-    )
+    mock_sender_cls.from_conf.return_value.__enter__ = MagicMock(return_value=mock_sender)
     mock_sender_cls.from_conf.return_value.__exit__ = MagicMock(return_value=False)
 
     writer = QuestDBSignalWriter(host="localhost", port=9000)
@@ -59,9 +57,7 @@ def test_write_signal_calls_sender(mock_sender_cls):
 @patch("coherence_bridge.questdb_writer.Sender")
 def test_write_batch(mock_sender_cls):
     mock_sender = MagicMock()
-    mock_sender_cls.from_conf.return_value.__enter__ = MagicMock(
-        return_value=mock_sender
-    )
+    mock_sender_cls.from_conf.return_value.__enter__ = MagicMock(return_value=mock_sender)
     mock_sender_cls.from_conf.return_value.__exit__ = MagicMock(return_value=False)
 
     writer = QuestDBSignalWriter()
@@ -91,9 +87,7 @@ def test_write_dataframe(mock_sender_cls):
     import pandas as pd
 
     mock_sender = MagicMock()
-    mock_sender_cls.from_conf.return_value.__enter__ = MagicMock(
-        return_value=mock_sender
-    )
+    mock_sender_cls.from_conf.return_value.__enter__ = MagicMock(return_value=mock_sender)
     mock_sender_cls.from_conf.return_value.__exit__ = MagicMock(return_value=False)
 
     writer = QuestDBSignalWriter()

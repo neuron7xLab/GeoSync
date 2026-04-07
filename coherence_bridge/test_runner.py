@@ -73,9 +73,7 @@ class TestRunner:
                 self.results.append(PhaseResult(phase._phase_name, True, detail, dur))
             except Exception as exc:
                 dur = (time.perf_counter() - t0) * 1000
-                self.results.append(
-                    PhaseResult(phase._phase_name, False, str(exc)[:120], dur)
-                )
+                self.results.append(PhaseResult(phase._phase_name, False, str(exc)[:120], dur))
                 all_pass = False
 
         self._print_report()
@@ -117,11 +115,7 @@ class TestRunner:
             except SyntaxError:
                 continue
             for n in ast.walk(tree):
-                if (
-                    isinstance(n, ast.ImportFrom)
-                    and n.module
-                    and "coherence_bridge" in n.module
-                ):
+                if isinstance(n, ast.ImportFrom) and n.module and "coherence_bridge" in n.module:
                     raise AssertionError(f"{f} imports coherence_bridge")
         return "0 violations"
 
@@ -145,9 +139,7 @@ class TestRunner:
             [f"A{i}" for i in range(5)],
         )
         assert 0 <= r.fragile_fraction <= 1
-        return (
-            f"κ={r.mean_kappa:.3f} edges={r.n_edges} fragile={r.fragile_fraction:.0%}"
-        )
+        return f"κ={r.mean_kappa:.3f} edges={r.n_edges} fragile={r.fragile_fraction:.0%}"
 
     @_phase("Lyapunov exponent (chaos)")
     def _lyapunov(self):
@@ -304,9 +296,7 @@ class TestRunner:
             f, pxx = welch(w, fs=1.0, nperseg=64)
             mask = (f > 0.001) & (f < 0.5) & (pxx > 0)
             gamma = (
-                abs(
-                    np.polyfit(np.log(f[mask] + 1e-12), np.log(pxx[mask] + 1e-12), 1)[0]
-                )
+                abs(np.polyfit(np.log(f[mask] + 1e-12), np.log(pxx[mask] + 1e-12), 1)[0])
                 if mask.sum() >= 4
                 else 1.0
             )

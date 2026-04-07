@@ -69,9 +69,7 @@ class RegimeFeatureExporter:
             "r_coherence": _safe(signal.get("order_parameter_R", 0.0)),
             "ricci_sign": float(_sign(ricci)),
             "lyapunov_sign": float(_sign(lyap)),
-            "regime_encoded": float(
-                _REGIME_ENCODING.get(str(signal.get("regime", "UNKNOWN")), -1)
-            ),
+            "regime_encoded": float(_REGIME_ENCODING.get(str(signal.get("regime", "UNKNOWN")), -1)),
             "regime_confidence": _safe(signal.get("regime_confidence", 0.0)),
             "risk_scalar": _safe(signal.get("risk_scalar", 0.0)),
         }
@@ -86,9 +84,7 @@ class RegimeFeatureExporter:
             "alpha_t": flow.alpha_t,
             "surprise": min(1.0, flow.surprise / 4.0),  # normalized to [0,1]
             "effort_gate": flow.effort_gate,
-            "uncertainty_encoded": float(
-                _UNCERTAINTY_ENCODING.get(flow.uncertainty_type, 0)
-            ),
+            "uncertainty_encoded": float(_UNCERTAINTY_ENCODING.get(flow.uncertainty_type, 0)),
         }
 
     @staticmethod
@@ -143,14 +139,10 @@ class RegimeFeatureExporter:
         rows: list[dict[str, object]] = []
         for i, sig in enumerate(signals):
             if flows is not None and i < len(flows):
-                row: dict[str, object] = dict(
-                    RegimeFeatureExporter.to_full_features(sig, flows[i])
-                )
+                row: dict[str, object] = dict(RegimeFeatureExporter.to_full_features(sig, flows[i]))
             else:
                 row = dict(RegimeFeatureExporter.to_ml_features(sig))
-            row["timestamp"] = pd.Timestamp(
-                sig.get("timestamp_ns", 0), unit="ns", tz="UTC"
-            )
+            row["timestamp"] = pd.Timestamp(sig.get("timestamp_ns", 0), unit="ns", tz="UTC")
             row["instrument"] = sig.get("instrument", "")
             rows.append(row)
         return pd.DataFrame(rows)
