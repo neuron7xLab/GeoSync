@@ -29,10 +29,7 @@ from coherence_bridge.risk import compute_risk_scalar
 
 logger = logging.getLogger("coherence_bridge.backfill")
 
-GEOSYNC_PATH = os.getenv(
-    "GEOSYNC_PATH",
-    "/home/neuro7/Desktop/Торгова систа легенда/GeoSync-main (4)/GeoSync-main",
-)
+GEOSYNC_PATH = os.getenv("GEOSYNC_PATH", "")
 
 _PHASE_TO_REGIME: dict[str, str] = {
     "CHAOTIC": "DECOHERENT",
