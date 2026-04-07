@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 from core.indicators.kuramoto_ricci_composite import (
-    MarketPhase,
     GeoSyncCompositeEngine,
+    MarketPhase,
 )
 
 

@@ -24,7 +24,6 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from coherence_bridge.decision_engine import GeoSyncDecisionEngine
-from geosync.neuroeconomics.epistemic_action import EpistemicDecision
 from coherence_bridge.feature_exporter import RegimeFeatureExporter
 from coherence_bridge.invariants import verify_signal
 from coherence_bridge.mock_engine import MockEngine
@@ -33,6 +32,7 @@ from coherence_bridge.risk_gate import CoherenceRiskGate
 from coherence_bridge.server import _sanitize_signal
 from coherence_bridge.signal import Regime, RegimeSignal
 from coherence_bridge.uncertainty_compat import UncertaintyEstimator
+from geosync.neuroeconomics.epistemic_action import EpistemicDecision
 
 # ═══════════════════════════════════════════════════════════════════
 # LAYER 0: Signal existence — gradient must be positive

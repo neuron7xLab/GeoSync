@@ -10,14 +10,14 @@ import math
 import time
 
 from coherence_bridge.decision_engine import GeoSyncDecisionEngine
-from geosync.neuroeconomics.epistemic_action import EpistemicDecision
 from coherence_bridge.feature_exporter import RegimeFeatureExporter
-from geosync.neuroeconomics.homeostatic_stabilizer import NeuroHomeostaticStabilizer
 from coherence_bridge.mock_engine import MockEngine
-from geosync.neuroeconomics.regime_memory import RegimeMemory
 from coherence_bridge.risk_gate import CoherenceRiskGate
 from coherence_bridge.server import _sanitize_signal
 from coherence_bridge.uncertainty_compat import UncertaintyEstimator
+from geosync.neuroeconomics.epistemic_action import EpistemicDecision
+from geosync.neuroeconomics.homeostatic_stabilizer import NeuroHomeostaticStabilizer
+from geosync.neuroeconomics.regime_memory import RegimeMemory
 
 
 def _poison_signal(**overrides: object) -> dict[str, object]:

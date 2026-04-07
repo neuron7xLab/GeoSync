@@ -6,11 +6,11 @@ from __future__ import annotations
 import time
 
 from coherence_bridge.decision_engine import GeoSyncDecisionEngine
+from coherence_bridge.mock_engine import MockEngine
 from geosync.neuroeconomics.epistemic_action import EpistemicDecision
 from geosync.neuroeconomics.homeostatic_stabilizer import (
     NeuroHomeostaticStabilizer,
 )
-from coherence_bridge.mock_engine import MockEngine
 
 
 def _sig(
