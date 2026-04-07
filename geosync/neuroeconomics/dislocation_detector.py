@@ -103,14 +103,17 @@ class DislocationDetector:
         ra = _acceleration(self._r_history)
 
         # Dislocation score: weighted composite
-        # κ falling = topology fragmenting (weight 0.4)
-        kappa_signal = max(0.0, -kv / max(abs(self._kappa_threshold), 1e-9))
+        # Normalize by recent range for adaptive sensitivity
+        kappa_range = max(self._kappa_history) - min(self._kappa_history) + 1e-9
+        kappa_signal = max(0.0, -kv / kappa_range * 2.0)
 
-        # γ drifting from 1.0 = spectral instability (weight 0.3)
-        gamma_signal = max(0.0, abs(gv) / max(self._gamma_threshold, 1e-9))
+        # γ drifting = spectral instability (weight 0.3)
+        gamma_range = max(self._gamma_history) - min(self._gamma_history) + 1e-9
+        gamma_signal = max(0.0, abs(gv) / gamma_range * 2.0)
 
         # R accelerating = herding onset (weight 0.3)
-        r_signal = max(0.0, ra / max(self._r_threshold, 1e-9))
+        r_range = max(self._r_history) - min(self._r_history) + 1e-9
+        r_signal = max(0.0, ra / r_range * 2.0)
 
         score = min(1.0, 0.4 * kappa_signal + 0.3 * gamma_signal + 0.3 * r_signal)
 

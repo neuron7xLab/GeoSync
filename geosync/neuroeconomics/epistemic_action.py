@@ -109,7 +109,14 @@ class EpistemicActionModule:
         epistemic = min(1.0, epistemic)
 
         # 5. Decision
-        if unc.ambiguity_index > self.ABORT_THRESHOLD:
+        # ABORT: ambiguity too high OR unexpected surprise spike
+        is_unexpected = getattr(unc, "uncertainty_type", None)
+        unexpected_abort = (
+            hasattr(is_unexpected, "value")
+            and is_unexpected.value == "UNEXPECTED"
+            and unc.surprise > 3.0
+        )
+        if unc.ambiguity_index > self.ABORT_THRESHOLD or unexpected_abort:
             return DecisionOutput(
                 decision=EpistemicDecision.ABORT,
                 pragmatic_value=round(pragmatic, 4),

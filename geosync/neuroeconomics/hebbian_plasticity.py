@@ -142,9 +142,9 @@ class HebbianPlasticity:
         self._total_ltd: int = 0
 
         # Running Sharpe for consolidation decision
-        self._pnl_sum: float = 0.0
-        self._pnl_sq_sum: float = 0.0
-        self._pnl_count: int = 0
+        from collections import deque
+
+        self._pnl_window: deque[float] = deque(maxlen=consolidation_interval)
 
     @property
     def weights(self) -> PlasticWeights:
@@ -174,10 +174,8 @@ class HebbianPlasticity:
         """
         pnl = pnl if math.isfinite(pnl) else 0.0
 
-        # Track running Sharpe
-        self._pnl_sum += pnl
-        self._pnl_sq_sum += pnl * pnl
-        self._pnl_count += 1
+        # Track rolling Sharpe window
+        self._pnl_window.append(pnl)
 
         # Auto eligibility: which weights were "active" for this decision
         if eligibility is None:
@@ -260,11 +258,12 @@ class HebbianPlasticity:
         return e
 
     def _consolidate(self) -> None:
-        """Snapshot best weights if current Sharpe > historical best."""
-        if self._pnl_count < 10:
+        """Snapshot best weights if current rolling Sharpe > historical best."""
+        if len(self._pnl_window) < 20:
             return
-        avg = self._pnl_sum / self._pnl_count
-        var = self._pnl_sq_sum / self._pnl_count - avg * avg
+        pnls = list(self._pnl_window)
+        avg = sum(pnls) / len(pnls)
+        var = sum((p - avg) ** 2 for p in pnls) / (len(pnls) - 1)
         std = math.sqrt(max(0.0, var))
         sharpe = avg / std * math.sqrt(252) if std > 1e-12 else 0.0
 
