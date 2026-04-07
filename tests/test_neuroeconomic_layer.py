@@ -6,10 +6,10 @@ from __future__ import annotations
 import time
 
 from coherence_bridge.decision_engine import GeoSyncDecisionEngine
-from coherence_bridge.epistemic_action import EpistemicDecision
+from geosync.neuroeconomics.epistemic_action import EpistemicDecision
 from coherence_bridge.mock_engine import MockEngine
-from coherence_bridge.regime_memory import RegimeMemory
-from coherence_bridge.uncertainty import UncertaintyEstimator
+from geosync.neuroeconomics.regime_memory import RegimeMemory
+from coherence_bridge.uncertainty_compat import UncertaintyEstimator
 
 
 def _signal(

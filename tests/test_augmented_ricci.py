@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from coherence_bridge.augmented_ricci import AugmentedFormanRicci
+from geosync.estimators.augmented_ricci import AugmentedFormanRicci
 
 
 def test_correlated_assets_positive_curvature() -> None:

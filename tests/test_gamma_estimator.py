@@ -7,7 +7,7 @@ import numpy as np
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from coherence_bridge.gamma_estimator import PSDGammaEstimator
+from geosync.estimators.gamma_estimator import PSDGammaEstimator
 
 
 def test_white_noise_gamma_near_zero() -> None:

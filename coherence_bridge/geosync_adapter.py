@@ -31,8 +31,8 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from coherence_bridge.augmented_ricci import AugmentedFormanRicci
-from coherence_bridge.gamma_estimator import PSDGammaEstimator
+from geosync.estimators.augmented_ricci import AugmentedFormanRicci
+from geosync.estimators.gamma_estimator import PSDGammaEstimator
 from coherence_bridge.risk import compute_risk_scalar
 
 if TYPE_CHECKING:

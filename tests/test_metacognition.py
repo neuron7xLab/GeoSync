@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from coherence_bridge.metacognition import (
+from geosync.neuroeconomics.metacognition import (
     CalibrationDriftDetector,
     IndependentWitness,
     MetaCognitionLayer,
