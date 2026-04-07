@@ -10,7 +10,7 @@ Dislocation = rapid topology degradation:
   + γ diverging from 1.0 (spectral structure breaking)
   + R spiking (herding = everyone running the same direction)
 
-Topology fragility signal — lead time requires empirical calibration.
+Topology fragility signal — temporal relationship requires empirical calibration.
 This is the function that converts topology into capital.
 """
 
@@ -30,7 +30,7 @@ class DislocationState:
     r_acceleration: float  # d²R/dt²: sync acceleration (herding onset)
     dislocation_score: float  # composite [0, 1]: 0=stable, 1=tearing
     is_pre_dislocation: bool  # True if topology degrading but price hasn't moved
-    lead_bars: int  # estimated bars of lead time before price impact
+    lead_bars: int  # estimated bars until topology impact (uncalibrated)
 
 
 class DislocationDetector:
@@ -38,7 +38,7 @@ class DislocationDetector:
 
     Tracks velocity and acceleration of κ, γ, R to identify
     the moment when network structure begins to tear — typically
-    Lead time pending calibration on real tick data.
+    Temporal offset pending calibration on real tick data.
 
     Parameters
     ----------
@@ -120,7 +120,7 @@ class DislocationDetector:
         # Pre-dislocation: topology degrading but not yet critical
         is_pre = score > 0.3 and kv < self._kappa_threshold
 
-        # Lead time estimate: based on how fast κ is falling
+        # Topology degradation horizon: based on κ velocity (uncalibrated)
         if kv < -0.01:
             lead = min(15, max(3, int(abs(kappa) / abs(kv))))
         else:

@@ -6,7 +6,7 @@
 κ < 0 → fragile bottleneck (single point of failure)
 
 Neckpinch: rapid transition from κ>0 to κ<0 = topology tearing.
-Lead time pending calibration (see ricci_calibrator.py).
+Empirical calibration required (see ricci_calibrator.py).
 """
 
 from __future__ import annotations

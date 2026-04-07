@@ -1,8 +1,8 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Ricci lead-time calibrator — honest empirical measurement.
+"""Ricci temporal calibrator — honest empirical measurement.
 
-Measures actual κ → dislocation lead time from data.
+Measures actual κ → dislocation temporal offset from data.
 No post-hoc claims. If not predictive, says so explicitly.
 """
 
@@ -15,11 +15,11 @@ import numpy as np
 
 @dataclass(frozen=True)
 class CalibrationResult:
-    """Empirical κ → dislocation lead time measurement."""
+    """Empirical κ → dislocation temporal offset measurement."""
 
-    lead_time_bars: float  # median (negative = lagging)
-    lead_time_p5: float  # 5th percentile
-    lead_time_p95: float  # 95th percentile
+    offset_bars: float  # median (negative = lagging)
+    offset_p5: float  # 5th percentile
+    offset_p95: float  # 95th percentile
     is_predictive: bool  # p-value < 0.05 on lead > 0
     p_value: float
     n_events: int
@@ -27,14 +27,14 @@ class CalibrationResult:
     honest_statement: str
 
 
-class RicciLeadTimeCalibrator:
-    """Empirical calibration of κ → dislocation lead time.
+class RicciTemporalCalibrator:
+    """Empirical calibration of κ → dislocation temporal offset.
 
     Method:
       1. Find κ < threshold events
       2. For each: find next |returns| > dislocation_sigma × σ
-      3. Measure lead time distribution
-      4. Test if median lead > 0 (one-sided sign test)
+      3. Measure temporal offset distribution
+      4. Test if median offset > 0 (one-sided sign test)
     """
 
     def calibrate(
@@ -45,7 +45,7 @@ class RicciLeadTimeCalibrator:
         dislocation_sigma: float = 2.0,
         max_horizon_bars: int = 30,
     ) -> CalibrationResult:
-        """Calibrate lead time from κ and returns series."""
+        """Calibrate temporal offset from κ and returns series."""
         kappa = np.asarray(kappa_series, dtype=np.float64)
         returns = np.asarray(returns_series, dtype=np.float64)
 
@@ -67,29 +67,29 @@ class RicciLeadTimeCalibrator:
         if len(kappa_events) == 0:
             return self._no_data()
 
-        # Measure lead times
-        lead_times: list[float] = []
+        # Measure temporal offsets
+        offsets: list[float] = []
         for idx in kappa_events:
             # Search forward for dislocation
             found = False
             for horizon in range(1, min(max_horizon_bars + 1, n - idx)):
                 if abs(returns[idx + horizon]) > dis_thresh:
-                    lead_times.append(float(horizon))
+                    offsets.append(float(horizon))
                     found = True
                     break
             if not found:
-                lead_times.append(float(max_horizon_bars))  # censored
+                offsets.append(float(max_horizon_bars))  # censored
 
-        if len(lead_times) < 3:
+        if len(offsets) < 3:
             return self._no_data()
 
-        lt = np.array(lead_times)
+        lt = np.array(offsets)
         median_lt = float(np.median(lt))
         p5 = float(np.percentile(lt, 5))
         p95 = float(np.percentile(lt, 95))
 
         # One-sided sign test: H0: median ≤ 0, H1: median > 0
-        # Since lead times are always > 0 by construction,
+        # Since offsets are always > 0 by construction,
         # test if significantly below max_horizon (not censored)
         n_events = len(lt)
         n_uncensored = int(np.sum(lt < max_horizon_bars))
@@ -140,10 +140,10 @@ class RicciLeadTimeCalibrator:
             ci_half = (p95 - p5) / 2
             recommendation = "USE"
             honest = (
-                f"κ<{kappa_threshold} precedes dislocation by "
-                f"{median_lt:.1f}±{ci_half:.1f} bars "
+                f"κ<{kappa_threshold} empirically associated with dislocation "
+                f"within {median_lt:.1f}±{ci_half:.1f} bars "
                 f"(n={n_events}, p={p_value:.3f}). "
-                "Calibrated on provided data."
+                "Calibrated on provided data — revalidate on live instrument."
             )
         elif n_uncensored > n_events * 0.3:
             recommendation = "CAUTION"
@@ -156,14 +156,14 @@ class RicciLeadTimeCalibrator:
             recommendation = "REMOVE_CLAIM"
             honest = (
                 "κ<0 indicates concurrent topology fragility. "
-                "Predictive lead time NOT established on available data. "
+                "Predictive temporal offset NOT established on available data. "
                 "Calibrate on real Askar EURUSD tick data before claiming edge."
             )
 
         return CalibrationResult(
-            lead_time_bars=round(median_lt, 1),
-            lead_time_p5=round(p5, 1),
-            lead_time_p95=round(p95, 1),
+            offset_bars=round(median_lt, 1),
+            offset_p5=round(p5, 1),
+            offset_p95=round(p95, 1),
             is_predictive=is_predictive,
             p_value=round(p_value, 4),
             n_events=n_events,
@@ -173,16 +173,16 @@ class RicciLeadTimeCalibrator:
 
     def _no_data(self) -> CalibrationResult:
         return CalibrationResult(
-            lead_time_bars=0.0,
-            lead_time_p5=0.0,
-            lead_time_p95=0.0,
+            offset_bars=0.0,
+            offset_p5=0.0,
+            offset_p95=0.0,
             is_predictive=False,
             p_value=1.0,
             n_events=0,
             recommendation="REMOVE_CLAIM",
             honest_statement=(
                 "κ<0 indicates concurrent topology fragility. "
-                "Predictive lead time NOT established on available data. "
+                "Predictive temporal offset NOT established on available data. "
                 "Calibrate on real Askar EURUSD tick data before claiming edge."
             ),
         )
