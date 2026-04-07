@@ -10,7 +10,7 @@ Dislocation = rapid topology degradation:
   + γ diverging from 1.0 (spectral structure breaking)
   + R spiking (herding = everyone running the same direction)
 
-The edge: dislocation is measurable 3-15 bars BEFORE price dislocation.
+Topology fragility signal — lead time requires empirical calibration.
 This is the function that converts topology into capital.
 """
 
@@ -38,7 +38,7 @@ class DislocationDetector:
 
     Tracks velocity and acceleration of κ, γ, R to identify
     the moment when network structure begins to tear — typically
-    3-15 bars before price reflects the damage.
+    Lead time pending calibration on real tick data.
 
     Parameters
     ----------
