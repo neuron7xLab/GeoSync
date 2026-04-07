@@ -160,7 +160,11 @@ def test_epistemic_trade_when_clear() -> None:
         intended_size=1.0,
     )
     assert out.adjusted_size <= 1.0
-    assert out.decision in (EpistemicDecision.TRADE, EpistemicDecision.OBSERVE, EpistemicDecision.ABORT)
+    assert out.decision in (
+        EpistemicDecision.TRADE,
+        EpistemicDecision.OBSERVE,
+        EpistemicDecision.ABORT,
+    )
 
 
 def test_epistemic_abort_on_extreme_ambiguity() -> None:
