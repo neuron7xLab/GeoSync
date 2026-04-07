@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Unified flow controller — single deterministic decision pipeline.
 
-Merges coherence_bridge decision stack and neuroeconomics 5-module loop
+Merges decision stack and neuroeconomics 5-module loop
 into one pipeline with explicit, traceable weights at every junction.
 
 Architecture:

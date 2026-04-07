@@ -185,6 +185,6 @@ def _sigmoid(x: float) -> float:
     return 1.0 / (1.0 + math.exp(-x))
 
 
-# Aliases for coherence_bridge compat
+# Aliases for bridge layer compat
 UncertaintyEstimator = UncertaintyController
 UncertaintyEstimate = UncertaintyState

@@ -75,8 +75,9 @@ class MockEngine(SignalEngine):
         "CRITICAL": -0.8,
     }
 
-    def __init__(self) -> None:
+    def __init__(self, seed: int | None = None) -> None:
         self._start = time.time()
+        self._seed = seed
         self._seq: dict[str, int] = {}
 
     @property

@@ -60,6 +60,11 @@ class GeoSyncDecisionEngine:
             regime_memory=self._memory,
             abort_threshold=abort_threshold,
         )
+        from geosync.neuroeconomics.ergodicity_correction import (  # noqa: PLC0415
+            ErgodicityCorrection,
+        )
+
+        self._ergodicity = ErgodicityCorrection()
         self._last_nhs: HomeostaticState | None = None
 
     def process(
@@ -77,6 +82,15 @@ class GeoSyncDecisionEngine:
         # Step 1: Homeostatic balance
         nhs_state = self._nhs.update(signal)
         self._last_nhs = nhs_state
+
+        # Step 1b: Ergodicity correction (Peters SDE)
+        returns_window = signal.get("returns_window")
+        if returns_window is not None:
+            import numpy as np  # noqa: PLC0415
+
+            erg = self._ergodicity.update(np.asarray(returns_window))
+            if not erg.is_ergodic:
+                intended_size = intended_size * erg.pragmatic_corrected
 
         # Step 2: Dissociative shield override
         if nhs_state.regime == "DISSOCIATED":
