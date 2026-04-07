@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from coherence_bridge.uncertainty_compat import UncertaintyEstimator
 from geosync.neuroeconomics.epistemic_action import (
     DecisionOutput,
     EpistemicActionModule,
@@ -25,7 +26,6 @@ from geosync.neuroeconomics.homeostatic_stabilizer import (
     NeuroHomeostaticStabilizer,
 )
 from geosync.neuroeconomics.regime_memory import RegimeMemory
-from coherence_bridge.uncertainty_compat import UncertaintyEstimator
 
 if TYPE_CHECKING:
     from coherence_bridge.engine_interface import SignalEngine
