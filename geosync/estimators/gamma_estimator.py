@@ -87,7 +87,7 @@ class PSDGammaEstimator:
         ci_low, ci_high = self._bootstrap_ci(x, f_hi)
 
         gamma = float(np.clip(gamma, -5.0, 5.0))
-        hurst = float(np.clip(gamma / 2.0, 0.0, 1.0))
+        hurst = float(np.clip((gamma - 1.0) / 2.0, 0.0, 1.0))
 
         return GammaEstimate(
             value=gamma,
