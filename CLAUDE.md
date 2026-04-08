@@ -180,6 +180,41 @@ INV-CB7 | universal   | exit < entry (hysteresis)                     | P0
 INV-CB8 | conditional | T ≥ entry during rehydration → DORMANT        | P0
 ```
 
+### Adaptive Criticality (Membrane Isolation)
+
+κ_critical determines when a node's topology is too fragile to participate
+in ensemble computation. Derived from DFA Hurst exponent, not assigned.
+
+```
+INV-AC1-rev | universal | κ(node) ≥ κ_critical OR node ISOLATED         | P0
+
+  Formula:
+    κ_critical = -ln(ΔH_max / ε) / (λ_local + δ)
+
+  Parameters:
+    λ_local  = DFAGammaEstimator.hurst_exponent (per node, derived)
+    ε        = 0.05  (SNR tolerance, configurable via env KAPPA_EPSILON)
+    δ        = 1e-4  (singularity floor)
+    ΔH_max   = rolling max of |ΔH| over last N steps (window=256)
+
+  Gate:
+    if κ(node) < κ_critical → ISOLATE node → log fragmentation event
+
+  Source: geosync/estimators/dfa_gamma_estimator.py → hurst_exponent
+
+  Derivation:
+    Original INV-AC1 (κ_critical = -dH/dt · τ) rejected:
+    - dH/dt ≠ λ_max in non-ergodic systems (Pesin identity fails)
+    - Reactive not proactive on FX jump-diffusion
+    - Linear τ collapses at boundaries
+    Adversarial audit: Gemini (2026-04-08). Numerical verification: verified.
+
+  Behavior:
+    λ_local → 0 (stable):  κ_critical → -∞  (never isolate)
+    λ_local → 0.5 (chaotic): κ_critical ≈ -5.99 (active gate)
+    λ_local → 1.0 (persistent): κ_critical ≈ -3.00 (tight gate)
+```
+
 ---
 
 ## TEST TAXONOMY
@@ -252,6 +287,7 @@ assert result.order > 0      # no INV, no context
 | `*signal_bus*`, `*signalbus*` | INV-SB1..2 |
 | `*hpc*`, `*kernel*` | INV-HPC1..2 |
 | `*cryptobiosis*`, `*dormant*` | INV-CB1..8 |
+| `*dfa*`, `*hurst*`, `*criticality*` | INV-AC1-rev |
 | `application/`, `cli/`, `ui/` | No physics |
 
 ---
