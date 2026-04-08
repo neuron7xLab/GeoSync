@@ -177,3 +177,13 @@ updates:
       - dependencies
       - docker
     open-pull-requests-limit: 5
+
+  - package-ecosystem: "gomod"
+    directory: "/examples/go-client"
+    schedule:
+      interval: "weekly"
+    labels:
+      - dependencies
+      - go
+    open-pull-requests-limit: 5
+
