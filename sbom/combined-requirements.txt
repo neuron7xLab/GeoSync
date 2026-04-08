@@ -103,7 +103,7 @@ pycares==4.11.0
 pycparser==2.23
 pydantic==2.12.4
 pydantic-core==2.41.5
-pydantic-settings==2.12.0
+pydantic-settings==2.13.1
 pydeck==0.9.1
 pyjwt==2.12.0
 pyluach==2.3.0
