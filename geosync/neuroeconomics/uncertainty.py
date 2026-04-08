@@ -40,8 +40,10 @@ class UncertaintyState:
 
     @property
     def ambiguity_index(self) -> float:
-        """Compat: ratio of 2nd-order to 1st-order uncertainty."""
-        return self.sigma_ambiguity / max(self.sigma_eu, 1e-6)
+        """Compat: log-space ratio to avoid singularity near sigma_eu -> 0."""
+        return math.exp(
+            math.log1p(max(0.0, self.sigma_ambiguity)) - math.log1p(max(0.0, self.sigma_eu))
+        )
 
 
 class _WelfordAccumulator:
