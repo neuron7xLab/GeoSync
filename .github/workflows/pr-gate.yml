@@ -413,7 +413,7 @@ jobs:
           else
             changed=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
           fi
-          printf '%s\n' "$changed" | grep -qE '(go\.work|go\.mod|go\.sum)' \
+          printf '%s\n' "$changed" | grep -qE '(go\.work|go\.mod|go\.sum|\.go$)' \
             && echo "applicable=true" >> "$GITHUB_OUTPUT" \
             || echo "applicable=false" >> "$GITHUB_OUTPUT"
 
@@ -429,11 +429,30 @@ jobs:
         run: |
           set -euo pipefail
           go work sync
-          git diff --exit-code go.work || (echo "go.work out of sync — run 'go work sync'" && exit 1)
+          git diff --exit-code go.work || {
+            echo "go.work out of sync — run 'go work sync' locally"
+            exit 1
+          }
 
-      - name: go build
+      - name: go vet + build (workspace modules only)
         if: steps.go-changes.outputs.applicable == 'true'
-        run: go build ./...
+        run: |
+          set -euo pipefail
+          cd examples/go-client
+          go mod tidy
+          git diff --exit-code go.mod || {
+            echo "go.mod out of sync — run 'cd examples/go-client && go mod tidy' locally"
+            exit 1
+          }
+          go vet ./...
+          go build ./...
+
+      - name: go test (workspace modules only)
+        if: steps.go-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          cd examples/go-client
+          go test -race -count=1 ./...
 
       - name: Skip (no Go changes)
         if: steps.go-changes.outputs.applicable != 'true'
