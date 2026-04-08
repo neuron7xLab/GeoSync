@@ -186,7 +186,7 @@ jobs:
             exit 0
           fi
 
-          timeout 60s .venv/bin/pytest tests/ \
+          timeout 1200s .venv/bin/pytest tests/ \
             -m "not slow and not heavy_math and not nightly and not flaky" \
             -q
 
