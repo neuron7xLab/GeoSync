@@ -14,6 +14,8 @@
 [![mypy](https://img.shields.io/badge/mypy-strict-success?style=for-the-badge)]()
 [![Physics](https://img.shields.io/badge/Invariants-T1--T13_verified-9B59B6?style=for-the-badge)]()
 [![Active Inference](https://img.shields.io/badge/Active_Inference-45%%_TRADE-blueviolet?style=for-the-badge)]()
+[![PR Gate](https://github.com/neuron7xLab/GeoSync/actions/workflows/pr-gate.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/pr-gate.yml)
+[![Physics Invariants](https://github.com/neuron7xLab/GeoSync/actions/workflows/physics-invariants.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/physics-invariants.yml)
 
 ## Architecture
 
