@@ -118,6 +118,7 @@ dev = [
     "cibuildwheel>=3.2.1",
     "towncrier>=25.8.0",
     "z3-solver>=4.13.0.0",
+    "types-PyYAML>=6.0.12",
 ]
 docs = [
     "mkdocs>=1.6.1",
@@ -213,6 +214,10 @@ fail_under = 98
 show_missing = true
 skip_covered = false
 
+[tool.black]
+target-version = ["py311"]
+line-length = 100
+
 [tool.ruff]
 line-length = 100
 extend-exclude = ["docs/notebooks"]
@@ -229,6 +234,8 @@ ignore = ["E203", "E501"]
 "tests/core/agent/test_pqf_pscs.py" = ["E402"]
 "tests/scripts/test_calibrate_controllers.py" = ["E402"]
 "tests/sdk/mlsdm/test_replay_harness.py" = ["E402"]
+"coherence_bridge/generated/*.py" = ["ALL"]
+"coherence_bridge/*.py" = ["N802", "N806", "N818", "TC001", "TC002", "TC003", "PLC0415"]
 
 [tool.isort]
 profile = "black"

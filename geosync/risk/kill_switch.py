@@ -91,9 +91,7 @@ class SafetyState:
             "kill_switch_active": self.kill_switch_active,
             "kill_switch_reason": self.kill_switch_reason,
             "kill_switch_timestamp": (
-                self.kill_switch_timestamp.isoformat()
-                if self.kill_switch_timestamp
-                else None
+                self.kill_switch_timestamp.isoformat() if self.kill_switch_timestamp else None
             ),
             "safe_mode_active": self.safe_mode_active,
             "safe_mode_reason": self.safe_mode_reason,
@@ -296,9 +294,7 @@ class SafetyController:
             )
             self._state.force_paper_trading = self._state.safe_mode_active
 
-            self._record_audit(
-                "kill_switch_deactivated", source, reason, previous_state
-            )
+            self._record_audit("kill_switch_deactivated", source, reason, previous_state)
             self._persist()
             self._notify_callbacks()
 

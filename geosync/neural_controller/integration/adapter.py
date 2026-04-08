@@ -70,9 +70,7 @@ class MarketDataAdapter:
             )
         return normalized
 
-    def transform(
-        self, candles: Dict[str, Any], portfolio: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def transform(self, candles: Dict[str, Any], portfolio: Dict[str, Any]) -> Dict[str, Any]:
         """Return a normalized observation dictionary safe for controller ingestion."""
 
         dd_raw = _safe_float(portfolio.get("current_drawdown"))
@@ -89,33 +87,21 @@ class MarketDataAdapter:
         reg_norm = reg_raw / max(self.reg_thr, self.eps)
         vol_norm = vol_obs / max(self.hist_max_vol, self.eps)
 
-        reward = float(
-            np.tanh((reward_obs - self.risk_free) / max(abs(vol_obs), self.eps))
-        )
+        reward = float(np.tanh((reward_obs - self.risk_free) / max(abs(vol_obs), self.eps)))
 
         var_breach = bool(loss > var_limit)
 
         payload: Dict[str, float | bool] = {
             "dd": _clamp_unit(np.nan_to_num(dd_norm, nan=0.0, posinf=1.0, neginf=0.0)),
-            "liq": _clamp_unit(
-                np.nan_to_num(liq_norm, nan=0.0, posinf=1.0, neginf=0.0)
-            ),
-            "reg": _clamp_unit(
-                np.nan_to_num(reg_norm, nan=0.0, posinf=1.0, neginf=0.0)
-            ),
-            "vol": _clamp_unit(
-                np.nan_to_num(vol_norm, nan=0.0, posinf=1.0, neginf=0.0)
-            ),
+            "liq": _clamp_unit(np.nan_to_num(liq_norm, nan=0.0, posinf=1.0, neginf=0.0)),
+            "reg": _clamp_unit(np.nan_to_num(reg_norm, nan=0.0, posinf=1.0, neginf=0.0)),
+            "vol": _clamp_unit(np.nan_to_num(vol_norm, nan=0.0, posinf=1.0, neginf=0.0)),
             "reward": reward,
             "var_breach": var_breach,
-            "m_proxy": _clamp_unit(
-                np.nan_to_num(m_proxy, nan=0.5, posinf=1.0, neginf=0.0)
-            ),
+            "m_proxy": _clamp_unit(np.nan_to_num(m_proxy, nan=0.5, posinf=1.0, neginf=0.0)),
         }
 
-        numeric_values = [
-            value for value in payload.values() if isinstance(value, float)
-        ]
+        numeric_values = [value for value in payload.values() if isinstance(value, float)]
         if any(np.isnan(value) or np.isinf(value) for value in numeric_values):
             log.warning(
                 "adapter produced invalid payload",  # noqa: TRY400 - structured logging

@@ -134,11 +134,7 @@ class RegimeMemory:
             return None
 
         # Entry setup: desync → metastable → coherent (3-step pattern)
-        if (
-            hist[-3] == "DECOHERENT"
-            and hist[-2] == "METASTABLE"
-            and hist[-1] == "COHERENT"
-        ):
+        if hist[-3] == "DECOHERENT" and hist[-2] == "METASTABLE" and hist[-1] == "COHERENT":
             return "ENTRY_SETUP"
 
         return None

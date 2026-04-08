@@ -165,9 +165,7 @@ class ValidationConfig:
     expected_timestep_seconds: float | None = None
     timestep_tolerance_pct: float = 10.0
     price_columns: Sequence[str] = ("open", "high", "low", "close")
-    ohlc_columns: Mapping[str, str] = field(
-        default_factory=lambda: dict(_DEFAULT_OHLC_COLUMNS)
-    )
+    ohlc_columns: Mapping[str, str] = field(default_factory=lambda: dict(_DEFAULT_OHLC_COLUMNS))
 
 
 def _detect_gaps(

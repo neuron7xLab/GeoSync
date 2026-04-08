@@ -13,13 +13,9 @@ def load_s_modulators() -> list[SModulator]:
     modulators: list[SModulator] = []
     for module_info in _iter_modules():
         module = importlib.import_module(f"{__name__}.{module_info}")
-        modulator = getattr(module, "modulator", None) or getattr(
-            module, "MODULATOR", None
-        )
+        modulator = getattr(module, "modulator", None) or getattr(module, "MODULATOR", None)
         if modulator is None:
-            raise AttributeError(
-                f"S modulator module '{module.__name__}' must define 'modulator'"
-            )
+            raise AttributeError(f"S modulator module '{module.__name__}' must define 'modulator'")
         modulators.append(modulator)
     return modulators
 

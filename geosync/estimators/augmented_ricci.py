@@ -6,7 +6,7 @@
 κ < 0 → fragile bottleneck (single point of failure)
 
 Neckpinch: rapid transition from κ>0 to κ<0 = topology tearing.
-Precedes market dislocation by 3-15 bars.
+Empirical calibration required (see ricci_calibrator.py).
 """
 
 from __future__ import annotations
@@ -49,9 +49,7 @@ class AugmentedFormanRicci:
 
         # Adaptive threshold: high vol → raise to avoid false edges
         vol = float(np.std(returns, axis=0).mean())
-        eff_thresh = float(
-            np.clip(self._base_threshold * (1.0 + vol * 2.0), 0.15, 0.60)
-        )
+        eff_thresh = float(np.clip(self._base_threshold * (1.0 + vol * 2.0), 0.15, 0.60))
 
         # Correlation → adjacency
         corr = np.corrcoef(returns.T)
