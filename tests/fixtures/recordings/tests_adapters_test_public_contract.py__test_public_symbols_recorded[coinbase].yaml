@@ -1,0 +1,78 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate, br
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.33.0
+    method: GET
+    uri: https://api.coinbase.com/api/v3/brokerage/market/products?limit=250
+  response:
+    body:
+      string: 'Unauthorized
+
+        '
+    headers:
+      CF-RAY:
+      - 9e9026320e920282-WAW
+      Cache-Control:
+      - no-store
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '13'
+      Content-Type:
+      - text/plain; charset=utf-8
+      Date:
+      - Wed, 08 Apr 2026 09:12:14 GMT
+      Nel:
+      - '{"report_to":"cf-nel","success_fraction":0.01,"max_age":604800}'
+      Report-To:
+      - '{"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=uIb7MoUuNu6gthgX80d5Jrx0KXFu%2BzpFwyZsrNXtokRY3G5eiKl%2FOnJxAJB494J1wJ80gbEVVgAmyl1%2BuAV9rdhQgToCzUNm%2Bd1UV2RXTezaHNPBvyHfTglJA1VH6GovTuE%3D"}]}'
+      Server:
+      - cloudflare
+      access-control-allow-headers:
+      - Authorization, Content-Type, Accept, Second-Factor-Proof-Token, Client-Id,
+        Access-Token, X-Cb-Project-Name, X-Cb-Is-Logged-In, X-Cb-Platform, X-Cb-Session-Uuid,
+        X-Cb-Pagekey, X-Cb-UJS, Fingerprint-Tokens, X-Cb-Device-Id, X-Cb-Version-Name
+      access-control-allow-methods:
+      - GET,POST,DELETE,PUT
+      access-control-allow-private-network:
+      - 'true'
+      access-control-expose-headers:
+      - ''
+      access-control-max-age:
+      - '7200'
+      cf-cache-status:
+      - DYNAMIC
+      set-cookie:
+      - __cf_bm=vODl5uO34G5egXIeA5uorjvNRxfzajcTFje6XXKRwpA-1775639534.4074867-1.0.1.1-jUW7qqgvdOGOPvu.ChFVnpV0HKmUrtwxuLjMQPe018L9K9YpAi0BDOi7vEsn7JES94SvVILg8tBPvgTVtV9F_cX5x.kM_Td8ui9wJopK4QBXYiiEFP5ibyykwL_XOqWY;
+        HttpOnly; Secure; Path=/; Domain=coinbase.com; Expires=Wed, 08 Apr 2026 09:42:14
+        GMT
+      - _cfuvid=2S9h6o_n5mWGehhrOPAjmzhT2No3GMDUi0zSVQtmEXU-1775639534.4074867-1.0.1.1-pAeEPGKgpMHTqH6qCxDrvRmer_E9QdJvflJ1QysjyU0;
+        HttpOnly; SameSite=None; Secure; Path=/; Domain=coinbase.com
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains; preload
+      trace-id:
+      - '3700313465969614358'
+      vary:
+      - Origin
+      x-content-type-options:
+      - nosniff
+      x-dns-prefetch-control:
+      - 'off'
+      x-download-options:
+      - noopen
+      x-frame-options:
+      - SAMEORIGIN
+      x-xss-protection:
+      - 1; mode=block
+    status:
+      code: 401
+      message: Unauthorized
+version: 1
