@@ -16,7 +16,7 @@ import json
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import (
     Any,
     ClassVar,
@@ -54,6 +54,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from domain.order import OrderSide, OrderStatus, OrderType
 
 LOGGER = logging.getLogger(__name__)
+UTC = timezone.utc
 
 __all__ = [
     "AggregateRoot",

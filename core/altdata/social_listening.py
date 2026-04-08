@@ -16,7 +16,9 @@ import math
 import re
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+UTC = timezone.utc
 from typing import Iterable, Mapping, Sequence
 
 import pandas as pd

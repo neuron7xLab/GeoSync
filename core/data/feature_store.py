@@ -13,7 +13,7 @@ import shutil
 import sqlite3
 import ssl
 from dataclasses import dataclass, field
-from datetime import UTC
+from datetime import timezone
 from decimal import Decimal, InvalidOperation
 from io import StringIO
 from pathlib import Path
@@ -24,6 +24,7 @@ import pandas as pd
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pandas.api import types as pd_types
 
+UTC = timezone.utc
 if not hasattr(pd, "_pandas_datetime_CAPI"):  # pragma: no cover - runtime shim
     pd._pandas_datetime_CAPI = None
 

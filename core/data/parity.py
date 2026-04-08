@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC
+from datetime import timezone
 from typing import Iterable, Sequence
 
 import pandas as pd
@@ -14,6 +14,7 @@ from pandas.api import types as pd_types
 from core.data.feature_store import IntegrityReport, OnlineFeatureStore
 
 
+UTC = timezone.utc
 class FeatureParityError(RuntimeError):
     """Base error for offline/online parity coordination."""
 

@@ -27,7 +27,9 @@ import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import UTC
+from datetime import timezone
+
+UTC = timezone.utc
 from queue import Empty, PriorityQueue
 from typing import Iterator, List, MutableMapping, Optional
 

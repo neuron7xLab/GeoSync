@@ -7,11 +7,12 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field, fields
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
 LOGGER = logging.getLogger(__name__)
+UTC = timezone.utc
 
 
 def _slots_to_dict(obj: Any) -> dict[str, Any]:

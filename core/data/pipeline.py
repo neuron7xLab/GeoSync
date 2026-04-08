@@ -36,7 +36,9 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from datetime import UTC
+from datetime import timezone
+
+UTC = timezone.utc
 from hashlib import blake2b
 from time import perf_counter
 from typing import Any, Callable, Mapping, MutableMapping, Protocol
