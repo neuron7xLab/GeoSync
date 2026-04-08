@@ -102,6 +102,8 @@ cryptography==46.0.6
     #   pyjwt
     #   secretstorage
     #   streamlit-authenticator
+    #   types-pyopenssl
+    #   types-redis
 deap==1.4.3
     # via geosync (pyproject.toml)
 dependency-groups==1.3.1
@@ -269,6 +271,7 @@ numpy==2.3.3
     #   numba
     #   optuna
     #   pandas
+    #   pandas-stubs
     #   pydeck
     #   scalene
     #   scikit-learn
@@ -371,6 +374,8 @@ pandas==2.3.3
     #   exchange-calendars
     #   geosync (pyproject.toml)
     #   streamlit
+pandas-stubs==3.0.0.260204
+    # via geosync (pyproject.toml)
 pandera==0.26.1
     # via geosync (pyproject.toml)
 patchelf==0.17.2.4
@@ -612,8 +617,18 @@ twine==6.2.0
     # via geosync (pyproject.toml)
 typeguard==4.4.4
     # via pandera
+types-cffi==2.0.0.20260408
+    # via types-pyopenssl
+types-pyopenssl==24.1.0.20240722
+    # via types-redis
 types-pyyaml==6.0.12.20260408
     # via geosync (pyproject.toml)
+types-redis==4.6.0.20241004
+    # via geosync (pyproject.toml)
+types-requests==2.33.0.20260408
+    # via geosync (pyproject.toml)
+types-setuptools==82.0.0.20260408
+    # via types-cffi
 typing-extensions==4.15.0
     # via
     #   aiokafka
@@ -662,6 +677,7 @@ urllib3==2.6.3
     # via
     #   requests
     #   twine
+    #   types-requests
 uvicorn==0.37.0
     # via geosync (pyproject.toml)
 watchdog==6.0.0

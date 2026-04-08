@@ -119,6 +119,9 @@ dev = [
     "towncrier>=25.8.0",
     "z3-solver>=4.13.0.0",
     "types-PyYAML>=6.0.12",
+    "types-redis>=4.6.0",
+    "types-requests>=2.32.0",
+    "pandas-stubs>=2.2.0",
 ]
 docs = [
     "mkdocs>=1.6.1",
@@ -246,9 +249,29 @@ max-line-length = 100
 extend-ignore = ["E203", "W503"]
 
 [tool.mypy]
-ignore_missing_imports = true
 explicit_package_bases = true
 plugins = ["numpy.typing.mypy_plugin"]
+
+[[tool.mypy.overrides]]
+module = [
+    "ccxt.*",
+    "deap.*",
+    "gudhi.*",
+    "POT.*",
+    "scalene.*",
+    "py_spy.*",
+    "efinance.*",
+    "exfinance.*",
+    "questdb.*",
+    "kafka.*",
+    "pactman.*",
+    "grpc.*",
+    "google.protobuf.*",
+    "scipy.*",
+    "statsmodels.*",
+    "pywt.*",
+]
+ignore_missing_imports = true
 
 [tool.towncrier]
 directory = "newsfragments"
