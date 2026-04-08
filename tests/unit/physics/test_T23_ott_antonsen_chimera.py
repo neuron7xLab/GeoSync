@@ -15,6 +15,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+import pytest
 
 from core.kuramoto.ott_antonsen import (
     OttAntonsenEngine,
@@ -100,6 +101,7 @@ def test_ott_antonsen_subcritical_decay() -> None:
         )
 
 
+@pytest.mark.heavy_math
 def test_ott_antonsen_matches_n_body_kuramoto() -> None:
     """INV-OA2 cross-validation: Ott-Antonsen R_∞ matches N-body simulation.
 
