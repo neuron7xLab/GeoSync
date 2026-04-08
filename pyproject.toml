@@ -118,6 +118,7 @@ dev = [
     "cibuildwheel>=3.2.1",
     "towncrier>=25.8.0",
     "z3-solver>=4.13.0.0",
+    "types-PyYAML>=6.0.12",
 ]
 docs = [
     "mkdocs>=1.6.1",
