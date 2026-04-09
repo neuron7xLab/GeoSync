@@ -68,6 +68,7 @@ class _LevelConfig:
     overrides: dict[Path, str]
     rules: tuple[_LevelRule, ...]
     fallback_level: str | None
+    fallback_roots: tuple[str, ...]
 
 
 _CONFIG_PATH = Path(__file__).with_name("test_levels.yaml")
@@ -96,6 +97,14 @@ def _load_level_config(root: Path) -> _LevelConfig:
     fallback_level = raw.get("fallback_level")
     if fallback_level is not None:
         fallback_level = _ensure_level(str(fallback_level))
+    fallback_roots_raw = raw.get("fallback_roots", ["tests"])
+    if not isinstance(fallback_roots_raw, Sequence) or isinstance(fallback_roots_raw, (str, bytes)):
+        raise pytest.UsageError(f"fallback_roots in {_CONFIG_PATH} must be a sequence of paths.")
+    fallback_roots = tuple(
+        PurePosixPath(str(root).strip()).as_posix().strip("/")
+        for root in fallback_roots_raw
+        if str(root).strip()
+    )
 
     rules: list[_LevelRule] = []
     for entry in raw.get("levels", []):
@@ -131,7 +140,12 @@ def _load_level_config(root: Path) -> _LevelConfig:
         level = _ensure_level(str(level_name))
         overrides[_normalize(root / location)] = level
 
-    return _LevelConfig(overrides=overrides, rules=tuple(rules), fallback_level=fallback_level)
+    return _LevelConfig(
+        overrides=overrides,
+        rules=tuple(rules),
+        fallback_level=fallback_level,
+        fallback_roots=fallback_roots,
+    )
 
 
 @lru_cache(maxsize=1)
@@ -164,8 +178,13 @@ def _determine_level(root: Path, path: Path) -> str:
     if matched_level is not None:
         return matched_level
 
-    if config.fallback_level is not None and relative.parts and relative.parts[0] == "tests":
-        return config.fallback_level
+    if config.fallback_level is not None:
+        relative_posix = relative.as_posix()
+        if any(
+            relative_posix == root or relative_posix.startswith(f"{root}/")
+            for root in config.fallback_roots
+        ):
+            return config.fallback_level
 
     raise pytest.UsageError(
         "Unable to classify test {path} with GeoSync level. "

@@ -177,6 +177,14 @@ jobs:
       - name: Verify pip executable
         run: .venv/bin/python -m pip --version
 
+      - name: Verify test-level classification (fail-fast)
+        run: |
+          set -euo pipefail
+          .venv/bin/pytest --collect-only -q \
+            tests/connectors/test_fail_closed_connectors.py \
+            tests/connectors/test_polygon_adapter_reproducible.py \
+            scripts/tests/test_generate_stakeholder_assets.py
+
       - name: Run fast deterministic pytest gate
         run: |
           set -euo pipefail
