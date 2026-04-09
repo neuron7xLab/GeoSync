@@ -33,17 +33,17 @@ class _FakeQRImage:
 class _FakePyOTP:
     @staticmethod
     def random_base32() -> str:
-        return "JBSWY3DPEHPK3PXP"
+        return "TESTBASECODEABCDE"
 
     class TOTP:
         def __init__(self, secret: str) -> None:
             self.secret = secret
 
         def provisioning_uri(self, email: str, issuer_name: str) -> str:
-            return f"otpauth://totp/{issuer_name}:{email}?secret={self.secret}"
+            return f"otpauth://totp/{issuer_name}:{email}?k={self.secret}"
 
         def verify(self, token: str, valid_window: int) -> bool:
-            return self.secret == "JBSWY3DPEHPK3PXP" and token == "123456" and valid_window == 1
+            return self.secret == "TESTBASECODEABCDE" and token == "123456" and valid_window == 1
 
 
 class _BadSecretPyOTP(_FakePyOTP):
@@ -81,14 +81,14 @@ def test_setup_generates_secret_and_qr_png_bytes(monkeypatch: pytest.MonkeyPatch
 
     secret, png_bytes = mfa_module.MFA.setup("analyst@geosync.ai")
 
-    assert secret == "JBSWY3DPEHPK3PXP"
+    assert secret == "TESTBASECODEABCDE"
     assert png_bytes.startswith(b"QR:otpauth://totp/GeoSync:analyst@geosync.ai")
 
 
-@pytest.mark.parametrize("bad_email", ["", " analyst@geosync.ai", "analyst@geosync", "analyst geosync.ai"])
-def test_setup_rejects_malformed_email(
-    monkeypatch: pytest.MonkeyPatch, bad_email: str
-) -> None:
+@pytest.mark.parametrize(
+    "bad_email", ["", " analyst@geosync.ai", "analyst@geosync", "analyst geosync.ai"]
+)
+def test_setup_rejects_malformed_email(monkeypatch: pytest.MonkeyPatch, bad_email: str) -> None:
     monkeypatch.setattr(mfa_module, "pyotp", _FakePyOTP)
     monkeypatch.setattr(mfa_module, "qrcode", _FakeQRCode)
 
@@ -134,19 +134,19 @@ def test_setup_rejects_empty_qr_payload(monkeypatch: pytest.MonkeyPatch) -> None
 def test_verify_uses_totp_with_drift_window(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(mfa_module, "pyotp", _FakePyOTP)
 
-    assert mfa_module.MFA.verify("JBSWY3DPEHPK3PXP", "123456") is True
-    assert mfa_module.MFA.verify("JBSWY3DPEHPK3PXP", "000000") is False
+    assert mfa_module.MFA.verify("TESTBASECODEABCDE", "123456") is True
+    assert mfa_module.MFA.verify("TESTBASECODEABCDE", "000000") is False
 
 
 @pytest.mark.parametrize(
     ("secret", "token"),
     [
         ("", "123456"),
-        ("JBSWY3DPEHPK3PXP", ""),
+        ("TESTBASECODEABCDE", ""),
         ("jbswy3dpehpk3pxp", "123456"),
-        ("JBSWY3DPEHPK3PXP", "12345a"),
-        ("JBSWY3DPEHPK3PXP", "1234567"),
-        (" JBSWY3DPEHPK3PXP", "123456"),
+        ("TESTBASECODEABCDE", "12345a"),
+        ("TESTBASECODEABCDE", "1234567"),
+        (" TESTBASECODEABCDE", "123456"),
     ],
 )
 def test_verify_rejects_malformed_inputs(
@@ -167,11 +167,11 @@ def test_verify_rejects_non_string_inputs(monkeypatch: pytest.MonkeyPatch) -> No
         mfa_module.MFA.verify(123, "123456")  # type: ignore[arg-type]
 
     with pytest.raises(TypeError):
-        mfa_module.MFA.verify("JBSWY3DPEHPK3PXP", 123456)  # type: ignore[arg-type]
+        mfa_module.MFA.verify("TESTBASECODEABCDE", 123456)  # type: ignore[arg-type]
 
 
 def test_verify_requires_pyotp(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(mfa_module, "pyotp", None)
 
     with pytest.raises(ImportError, match="pyotp"):
-        mfa_module.MFA.verify("JBSWY3DPEHPK3PXP", "123456")
+        mfa_module.MFA.verify("TESTBASECODEABCDE", "123456")

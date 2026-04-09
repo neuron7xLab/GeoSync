@@ -36,7 +36,9 @@ class MFA:
         if not isinstance(value, str):
             raise TypeError(f"{field} must be a string")
         if value != value.strip() or not value:
-            raise ValueError(f"{field} must be non-empty and must not contain surrounding whitespace")
+            raise ValueError(
+                f"{field} must be non-empty and must not contain surrounding whitespace"
+            )
         return value
 
     @staticmethod
