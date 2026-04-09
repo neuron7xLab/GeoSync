@@ -5,7 +5,11 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import subprocess
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -79,6 +83,31 @@ def test_ingestion_config_rest_source_still_supported() -> None:
         rest_source=RestSourceConfig(url="https://example.com/feed"),
     )
     assert cfg.get_source_config().url == "https://example.com/feed"
+
+
+def test_connector_imports_do_not_pull_hydra_stack() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    src_root = repo_root / "src"
+    env = dict(os.environ)
+    pythonpath = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = f"{src_root}:{pythonpath}" if pythonpath else str(src_root)
+    probe = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys;"
+                "import mycelium_fractal_net.connectors.config;"
+                "import mycelium_fractal_net.connectors.runner;"
+                "sys.exit(0 if 'core.config.hydra_profiles' not in sys.modules and "
+                "'omegaconf' not in sys.modules else 1)"
+            ),
+        ],
+        check=False,
+        cwd=repo_root,
+        env=env,
+    )
+    assert probe.returncode == 0
 
 
 @pytest.mark.parametrize(

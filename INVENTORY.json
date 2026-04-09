@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "fd85f9d11f9aa2f2819e539e0463fa3fdd4ea709e0e09d53e54c7f8202a3ae26"
+      "sha256": "ec24f34f7605b8149eaddbd410a71f713b4f68064642f1e10924bae93c47fa7c"
     },
     {
       "path": "scripts/ci/check_central_files_touched.py",
@@ -91,7 +91,7 @@
     },
     {
       "path": "tests/connectors/test_fail_closed_connectors.py",
-      "sha256": "4fc41799d2ee5877fca360ea23c949e291114a82ece78d0100ed792cb4264388"
+      "sha256": "5b5d7422480b03eef742f77641ab5ab2ae83c570d9be0f7e5f080e4cd162e3c6"
     },
     {
       "path": "tests/connectors/test_file_feed.py",
