@@ -180,7 +180,11 @@ jobs:
       - name: Verify test-level classification (fail-fast)
         run: |
           set -euo pipefail
-          .venv/bin/pytest --collect-only -q \
+          PYTEST_BIN=".venv/bin/pytest"
+          if [[ ! -x "$PYTEST_BIN" ]]; then
+            PYTEST_BIN="$(command -v pytest)"
+          fi
+          "$PYTEST_BIN" --collect-only -q \
             tests/connectors/test_fail_closed_connectors.py \
             tests/connectors/test_polygon_adapter_reproducible.py \
             scripts/tests/test_generate_stakeholder_assets.py
@@ -208,7 +212,11 @@ jobs:
             exit 0
           fi
 
-          timeout 1200s .venv/bin/pytest tests/ \
+          PYTEST_BIN=".venv/bin/pytest"
+          if [[ ! -x "$PYTEST_BIN" ]]; then
+            PYTEST_BIN="$(command -v pytest)"
+          fi
+          timeout 1200s "$PYTEST_BIN" tests/ \
             -m "not slow and not heavy_math and not nightly and not flaky" \
             --maxfail=1 \
             -q
@@ -216,7 +224,11 @@ jobs:
       - name: Run mandatory connector hygiene tests
         run: |
           set -euo pipefail
-          timeout 300s .venv/bin/pytest \
+          PYTEST_BIN=".venv/bin/pytest"
+          if [[ ! -x "$PYTEST_BIN" ]]; then
+            PYTEST_BIN="$(command -v pytest)"
+          fi
+          timeout 300s "$PYTEST_BIN" \
             tests/connectors/test_fail_closed_connectors.py \
             tests/connectors/test_polygon_adapter_reproducible.py \
             scripts/tests/test_generate_stakeholder_assets.py \
