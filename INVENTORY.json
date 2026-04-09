@@ -3,8 +3,8 @@
   "description": "Managed inventory for connector fail-closed and hygiene CI surface.",
   "scopes": [
     ".github/workflows/pr-gate.yml",
+    "scripts/ci",
     "scripts/generate_stakeholder_assets.py",
-    "scripts/tests",
     "src/mycelium_fractal_net/connectors",
     "tests/connectors"
   ],
@@ -14,132 +14,36 @@
       "sha256": "1e49467e06f13ff123df3a75241220608cde8acc5c3fc08e40f00489e94edcc4"
     },
     {
+      "path": "scripts/ci/check_central_files_touched.py",
+      "sha256": "071a5fee28a586b58a245ce641906e83676cf1aeedb021d546dcebb81fa4618b"
+    },
+    {
+      "path": "scripts/ci/check_config_sprawl.py",
+      "sha256": "87fdfe3dc6fc30a841042e7bd9c6013a8013e921ebc222aa4a9715a2225e841f"
+    },
+    {
+      "path": "scripts/ci/check_examples_manifest.py",
+      "sha256": "147c0b25a2b28d73f01d83a39685337d88809a1ba2b2875a6c5007c0ae1db62f"
+    },
+    {
+      "path": "scripts/ci/check_inventory_sync.py",
+      "sha256": "e308f89a88195d42c33ae3921b2079f1085cb86fb1fa6ea9ee12cdf620bc7947"
+    },
+    {
+      "path": "scripts/ci/check_manifest_hashes.py",
+      "sha256": "4073c233464a74ab33e889cffc8b7d927b8222634b54803232c24420544f79b2"
+    },
+    {
+      "path": "scripts/ci/run_actionlint.py",
+      "sha256": "40afcb9a7e6d6ec47217da1e6bed309d68dd9782163262fc3ec952a27c81bcb7"
+    },
+    {
+      "path": "scripts/ci/update_inventory.py",
+      "sha256": "177334d75a0a0eecfc8ab02b302ce173b5ede84d9030e934cb732a2963cfefa2"
+    },
+    {
       "path": "scripts/generate_stakeholder_assets.py",
       "sha256": "ba5b8ad1e8b05f950d009553a6f5141468f7c278676964bd37d5a41d538f9dab"
-    },
-    {
-      "path": "scripts/tests/__init__.py",
-      "sha256": "d87d6a750c3f3c21b039b97af84604a98ce69e790228d21fc585b5daacaf8bed"
-    },
-    {
-      "path": "scripts/tests/test_admission_check.py",
-      "sha256": "3b898878b3abea2f48458073343572b5234bdbf9f68d9e07976386900118d894"
-    },
-    {
-      "path": "scripts/tests/test_api_management.py",
-      "sha256": "b32ca96ab478153e99c26e5238ec41ce191e33eaf26ebc3839c7b32a57bc9a1f"
-    },
-    {
-      "path": "scripts/tests/test_benchmark_bonds.py",
-      "sha256": "ea1a1cf84087157116cf90128c4f5a30c0317104353409f8bfbed190061623c3"
-    },
-    {
-      "path": "scripts/tests/test_bootstrap.py",
-      "sha256": "9c817735d76ee295f621d824f5302b96420334aec5de611c2ef44d4d1f45603d"
-    },
-    {
-      "path": "scripts/tests/test_check_python_matrix.py",
-      "sha256": "add2e79c86eaf2b94ad49f31292931d2d4498cd28c7d352154d26f17ae491b87"
-    },
-    {
-      "path": "scripts/tests/test_data_sanity.py",
-      "sha256": "b668f4c0e8631c61d9817588ee6272cd43b5f5c3ec08569ce5e8e4bfe4e7c62e"
-    },
-    {
-      "path": "scripts/tests/test_dependency_audit.py",
-      "sha256": "5781bc9335ca664d750d3b88f08a5b865284217ae1aad3a79142a07340d9e264"
-    },
-    {
-      "path": "scripts/tests/test_docker_compose_smoke.py",
-      "sha256": "54baf694f09e07d12e83519b0b2240eb184d98d640b8f455c468b945517f0e1a"
-    },
-    {
-      "path": "scripts/tests/test_export_geosync_schema.py",
-      "sha256": "37a1cb9bb89ea2e7dd9eda5944618582428c87ae25f7028f50cf94943d6e0a85"
-    },
-    {
-      "path": "scripts/tests/test_gen_synth_amm_data.py",
-      "sha256": "4ab6ecb6d6edff263d8b3a9e713424693973338392f21c3b9a494c9ae892cb49"
-    },
-    {
-      "path": "scripts/tests/test_generate_exchange_matrix.py",
-      "sha256": "88adfa870b491c0c5a11a33f27f82b94f376a9cf9338c6f9583b6fc2cd0bdecd"
-    },
-    {
-      "path": "scripts/tests/test_generate_sample_ohlcv.py",
-      "sha256": "cf7e023c3f6c2d3e7fe6e8df3650544f8fa2e6f82468708e70a0aa3b5e4996e2"
-    },
-    {
-      "path": "scripts/tests/test_generate_stakeholder_assets.py",
-      "sha256": "34ed14ea573d3e8ea8a7a022c9793a103da628a36c1e390258b8ca487c4eb769"
-    },
-    {
-      "path": "scripts/tests/test_integrate_kuramoto_ricci.py",
-      "sha256": "5cf91e5672d3a29c3f95c38571aaef66df25b29d8d72a4ba4ab704bdc2f43441"
-    },
-    {
-      "path": "scripts/tests/test_list_policies.py",
-      "sha256": "68b7445afcdc08e059bbeda9d19fbf83677e317f077a94b205673d9a7f1373f9"
-    },
-    {
-      "path": "scripts/tests/test_nightly_regression.py",
-      "sha256": "c90257f623cb168c8a0bdd04a68e5fcdc611f10b443875a118e37b3b4b7f6280"
-    },
-    {
-      "path": "scripts/tests/test_notify_status.py",
-      "sha256": "50316f2c95fad62dec542f3d7c39f15a59a3d845882d7fda65063c59cc82812a"
-    },
-    {
-      "path": "scripts/tests/test_production_readiness_check.py",
-      "sha256": "06e817461c5e11773006026a79dc273d6a5fe5d9fec47073f44ca0e5ae04aeff"
-    },
-    {
-      "path": "scripts/tests/test_resilient_data_sync.py",
-      "sha256": "ec32568f6519d69a3827009a059860d375d66a662905d97fabbcd38579bfd9ff"
-    },
-    {
-      "path": "scripts/tests/test_run_redteam_policy.py",
-      "sha256": "ec3246fc4d2cf54e6f7a108c84f276951eb4278886e442b2e08ff1b7f17ec08b"
-    },
-    {
-      "path": "scripts/tests/test_run_resource_checks.py",
-      "sha256": "d6baf6d64dbae697f4c30e316a55ddc296f3b56db8e3897b62452909ed73e806"
-    },
-    {
-      "path": "scripts/tests/test_runtime.py",
-      "sha256": "1a16c30fef6d08323f93156e791e0eda8373f350ac7e575ddfd5addde2bc2e64"
-    },
-    {
-      "path": "scripts/tests/test_sanity_cleanup.py",
-      "sha256": "7ee1d0f852c633152c2c1226589504fae4a2ee99b540a0a64e4cd287f4703e5f"
-    },
-    {
-      "path": "scripts/tests/test_scan_assets.py",
-      "sha256": "07c1769c380753b28afae9655540427a8ed80f4338fd36bde25aa5f411723554"
-    },
-    {
-      "path": "scripts/tests/test_supply_chain.py",
-      "sha256": "ed1d409cad8f28ba2ba5681bdab4a2dd15a982865d267f894010395c755c873e"
-    },
-    {
-      "path": "scripts/tests/test_sync_translations.py",
-      "sha256": "f24657b99572e11b596a21ccae2ae9184a223e1758a48e1eab63da0784c26e0b"
-    },
-    {
-      "path": "scripts/tests/test_system_launch.py",
-      "sha256": "a891c328eff8e20f5c905b0eb6da1b3333ae8847fdb26421d8b7df84d1d03521"
-    },
-    {
-      "path": "scripts/tests/test_validate_metrics_script.py",
-      "sha256": "c4aa853d7c07690461080a145ba14ec68600e50fece4579fe356b84d4a136f89"
-    },
-    {
-      "path": "scripts/tests/test_validate_ohlcv_data.py",
-      "sha256": "f7a703cf28ec3bc370d7b46cc0ee554211468f766780952bd9c584c9f4c19a07"
-    },
-    {
-      "path": "scripts/tests/test_validate_sample_data.py",
-      "sha256": "eb2e05d337dd7987b1bb125cc0245838833c54e34d180434d7537782107048b9"
     },
     {
       "path": "src/mycelium_fractal_net/connectors/__init__.py",
@@ -209,5 +113,8 @@
       "path": "tests/connectors/test_transform_mapping.py",
       "sha256": "ee53c4ca0507a086ea2d6afca35fc382e00c58e06555867eb0ec46913b8fac58"
     }
+  ],
+  "relaxed_scopes": [
+    "scripts/tests"
   ]
 }

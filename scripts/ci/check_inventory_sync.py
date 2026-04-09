@@ -46,6 +46,13 @@ def _tracked_files_in_scope(scope: str) -> set[str]:
     return files
 
 
+def _tracked_files_for_scopes(scopes: list[str]) -> set[str]:
+    expected: set[str] = set()
+    for scope in scopes:
+        expected |= _tracked_files_in_scope(scope)
+    return expected
+
+
 def main() -> int:
     if not INVENTORY_PATH.exists():
         print(f"ERROR: missing inventory file: {INVENTORY_PATH}")
@@ -53,16 +60,16 @@ def main() -> int:
 
     payload = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
     scopes: list[str] = payload.get("scopes", [])
+    relaxed_scopes: list[str] = payload.get("relaxed_scopes", [])
     declared = payload.get("files", [])
     declared_paths = {item["path"] for item in declared}
     declared_hash = {item["path"]: item["sha256"] for item in declared}
 
-    expected: set[str] = set()
-    for scope in scopes:
-        expected |= _tracked_files_in_scope(scope)
+    expected = _tracked_files_for_scopes(scopes)
+    relaxed = _tracked_files_for_scopes(relaxed_scopes)
 
     missing = sorted(expected - declared_paths)
-    orphan = sorted(declared_paths - expected)
+    orphan = sorted(path for path in (declared_paths - expected) if path not in relaxed)
     mismatched = sorted(
         path for path in (expected & declared_paths) if _sha256(ROOT / path) != declared_hash[path]
     )

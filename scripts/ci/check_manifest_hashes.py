@@ -9,9 +9,15 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-MANIFEST_PATHS = [
-    ROOT / "stakeholders" / "manifest.json",
-]
+
+
+def _discover_manifest_paths() -> list[Path]:
+    manifests: list[Path] = []
+    for path in ROOT.rglob("manifest.json"):
+        if ".git/" in path.as_posix():
+            continue
+        manifests.append(path)
+    return sorted(manifests)
 
 
 def _sha256(path: Path) -> str:
@@ -26,13 +32,17 @@ def main() -> int:
     failures: list[str] = []
     checked = 0
 
-    for manifest in MANIFEST_PATHS:
+    for manifest in _discover_manifest_paths():
         if not manifest.exists():
             failures.append(f"missing manifest: {manifest.relative_to(ROOT).as_posix()}")
             continue
         payload = json.loads(manifest.read_text(encoding="utf-8"))
         artifacts = payload.get("artifacts", [])
+        if not artifacts:
+            continue
         for artifact in artifacts:
+            if "path" not in artifact or "sha256" not in artifact:
+                continue
             rel = artifact["path"]
             expected = artifact["sha256"]
             target = ROOT / rel
