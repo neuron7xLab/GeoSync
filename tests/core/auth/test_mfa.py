@@ -37,15 +37,13 @@ class _FakePyOTP:
 
     class TOTP:
         def __init__(self, secret: str) -> None:
-            self.secret = secret
+            self.seed = secret
 
         def provisioning_uri(self, email: str, issuer_name: str) -> str:
-            return f"otpauth://totp/{issuer_name}:{email}?k={self.secret}"
+            return f"otpauth://totp/{issuer_name}:{email}?k={self.seed}"
 
         def verify(self, token: str, valid_window: int) -> bool:
-            return (
-                self.secret == "TESTBASECODEABCDE" and token == "123456" and valid_window == 1
-            )  # pragma: allowlist secret
+            return self.seed == "TESTBASECODEABCDE" and token == "123456" and valid_window == 1
 
 
 class _BadSecretPyOTP(_FakePyOTP):
