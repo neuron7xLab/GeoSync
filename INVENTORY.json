@@ -27,11 +27,11 @@
     },
     {
       "path": "scripts/ci/check_inventory_sync.py",
-      "sha256": "e308f89a88195d42c33ae3921b2079f1085cb86fb1fa6ea9ee12cdf620bc7947"
+      "sha256": "f81d851eb4e27d0d8ee182a9c06341707cfdf540854566b567baa27466e9f5b2"
     },
     {
       "path": "scripts/ci/check_manifest_hashes.py",
-      "sha256": "4073c233464a74ab33e889cffc8b7d927b8222634b54803232c24420544f79b2"
+      "sha256": "afa5e44d9253dc6f9fc7f006b998cb912e174ae08778aab54c03f898536bc44c"
     },
     {
       "path": "scripts/ci/run_actionlint.py",
@@ -55,7 +55,7 @@
     },
     {
       "path": "src/mycelium_fractal_net/connectors/config.py",
-      "sha256": "98afb2529e7677f58a9f9651317c2fa00f66ea00d35c282b0cf3467897b00dc2"
+      "sha256": "f36b0a96ea99889fca997c101c781805e88d2bdd6359d9b139f8087264240b75"
     },
     {
       "path": "src/mycelium_fractal_net/connectors/file_feed.py",

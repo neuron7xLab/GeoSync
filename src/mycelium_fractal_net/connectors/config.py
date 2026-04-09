@@ -128,6 +128,12 @@ class BackendConfig(BaseModel):
     def _validate_supported_protocol(self) -> "BackendConfig":
         if self.protocol != "rest":
             raise ValueError(_UNSUPPORTED_GRPC_MESSAGE)
+        if self.type == "remote" and not self.endpoint:
+            raise ValueError("backend.endpoint is required when backend.type='remote'.")
+        if self.type == "local" and self.endpoint:
+            raise ValueError("backend.endpoint must be omitted when backend.type='local'.")
+        if self.type == "local" and self.api_key:
+            raise ValueError("backend.api_key must be omitted when backend.type='local'.")
         return self
 
 

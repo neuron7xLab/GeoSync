@@ -6,11 +6,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 INVENTORY_PATH = ROOT / "INVENTORY.json"
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _sha256(path: Path) -> str:
@@ -62,6 +64,17 @@ def main() -> int:
     scopes: list[str] = payload.get("scopes", [])
     relaxed_scopes: list[str] = payload.get("relaxed_scopes", [])
     declared = payload.get("files", [])
+    invalid_entries = [
+        item
+        for item in declared
+        if not isinstance(item.get("path"), str)
+        or not isinstance(item.get("sha256"), str)
+        or not SHA256_RE.fullmatch(item["sha256"])
+    ]
+    if invalid_entries:
+        print("ERROR: INVENTORY contains invalid file entries (path/sha256).")
+        return 1
+
     declared_paths = {item["path"] for item in declared}
     declared_hash = {item["path"]: item["sha256"] for item in declared}
 
