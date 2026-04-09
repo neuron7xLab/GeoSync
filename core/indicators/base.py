@@ -14,10 +14,10 @@ import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, MutableSequence, Sequence
 from concurrent.futures import ProcessPoolExecutor
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Callable, Literal
-from contextlib import nullcontext
 
 from core.utils.metrics import get_metrics_collector
 

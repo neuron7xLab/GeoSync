@@ -3,26 +3,7 @@
 """Public indicator exports for convenient access in tests and notebooks."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
-
-
-@dataclass(frozen=True)
-class _MissingOptionalDependency:
-    symbol: str
-    reason: str
-
-    def _raise(self) -> None:
-        raise ImportError(
-            f"{self.symbol} is unavailable because an optional dependency failed "
-            f"to import: {self.reason}"
-        )
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        self._raise()
-
-    def __getattr__(self, _name: str) -> Any:
-        self._raise()
+from core.utils.optional_dependency import MissingOptionalDependency
 
 from .cache import (
     BackfillState,
@@ -46,10 +27,10 @@ try:  # optional chain may pull heavy data stack in slim runtimes
         compute_hierarchical_features,
     )
 except Exception as exc:  # pragma: no cover - optional dependency chain
-    FeatureBufferCache = _MissingOptionalDependency("FeatureBufferCache", str(exc))  # type: ignore[assignment]
-    HierarchicalFeatureResult = _MissingOptionalDependency("HierarchicalFeatureResult", str(exc))  # type: ignore[assignment]
-    TimeFrameSpec = _MissingOptionalDependency("TimeFrameSpec", str(exc))  # type: ignore[assignment]
-    compute_hierarchical_features = _MissingOptionalDependency("compute_hierarchical_features", str(exc))  # type: ignore[assignment]
+    FeatureBufferCache = MissingOptionalDependency("FeatureBufferCache", str(exc))  # type: ignore[assignment]
+    HierarchicalFeatureResult = MissingOptionalDependency("HierarchicalFeatureResult", str(exc))  # type: ignore[assignment]
+    TimeFrameSpec = MissingOptionalDependency("TimeFrameSpec", str(exc))  # type: ignore[assignment]
+    compute_hierarchical_features = MissingOptionalDependency("compute_hierarchical_features", str(exc))  # type: ignore[assignment]
 
 from .kuramoto import (
     KuramotoOrderFeature,
