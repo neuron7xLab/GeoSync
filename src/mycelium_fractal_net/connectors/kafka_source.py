@@ -60,4 +60,4 @@ class KafkaIngestor(BaseIngestor):
         yield  # pragma: no cover
 
     async def close(self) -> None:
-        return None
+        raise KafkaConnectorUnavailableError(_KAFKA_UNAVAILABLE_MESSAGE)

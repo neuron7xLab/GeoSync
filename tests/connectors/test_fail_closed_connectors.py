@@ -51,6 +51,16 @@ def test_kafka_ingestor_is_explicitly_unavailable() -> None:
         KafkaIngestor(bootstrap_servers="localhost:9092", topic="ticks")
 
 
+def test_kafka_ingestor_methods_also_fail_closed() -> None:
+    ingestor = object.__new__(KafkaIngestor)
+
+    with pytest.raises(KafkaConnectorUnavailableError, match="Kafka ingestion is disabled"):
+        asyncio.run(ingestor.connect())
+
+    with pytest.raises(KafkaConnectorUnavailableError, match="Kafka ingestion is disabled"):
+        asyncio.run(ingestor.close())
+
+
 def test_backend_config_rejects_grpc_protocol() -> None:
     with pytest.raises(ValidationError, match="Input should be 'rest'"):
         BackendConfig(protocol="grpc")
