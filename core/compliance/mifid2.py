@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 LOGGER = logging.getLogger(__name__)
+UTC = timezone.utc
 
 
 def _slots_to_dict(obj: Any) -> dict[str, Any]:
