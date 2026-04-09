@@ -12,7 +12,7 @@ Components:
 - MFNRequest: Adapter to MFN core request structures
 - RestIngestor: HTTP polling connector
 - FileFeedIngestor: JSONL/CSV file connector
-- KafkaIngestor: Kafka consumer stub
+- KafkaIngestor: explicit fail-closed error for unsupported Kafka ingestion
 - IngestionRunner: Orchestrator for ingestion pipelines
 
 Example:
@@ -29,7 +29,6 @@ from .config import (
     BackendConfig,
     FileSourceConfig,
     IngestionConfig,
-    KafkaSourceConfig,
     RestSourceConfig,
 )
 from .file_feed import FileFeedIngestor
@@ -68,7 +67,6 @@ __all__ = [
     "IngestionConfig",
     "RestSourceConfig",
     "FileSourceConfig",
-    "KafkaSourceConfig",
     "BackendConfig",
     # Metrics
     "IngestionMetrics",

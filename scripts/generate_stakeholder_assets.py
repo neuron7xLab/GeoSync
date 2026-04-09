@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "docs" / "responsible_ai_program.md"
 OUTPUT_DIR = ROOT / "stakeholders"
 SAFE_PATH_RE = re.compile(r"[A-Za-z0-9_./-]+")
+PLACEHOLDER_RE = re.compile(r"\b(TODO|FIXME|TBD)\b", re.IGNORECASE)
 
 
 @dataclass
@@ -682,11 +683,11 @@ def build_entries() -> List[StakeholderEntry]:
             ],
         ),
         StakeholderEntry(
-            name="TBD: Data Protection Officer",
+            name="Data Protection Officer",
             role="Потенційний DPO для координації DPIA та взаємодії з регуляторами",
             interests="Централізоване управління DPIA та запитами регуляторів",
             influence=4,
-            expectations="Уточнити, хто відповідає за DPIA та підписання регуляторних відповідей",
+            expectations="Координувати DPIA та підписання регуляторних відповідей",
             channels="Регуляторні канали, DPIA процес",
             frequency="Перед запуском високоризикових функцій",
             power="High",
@@ -697,11 +698,11 @@ def build_entries() -> List[StakeholderEntry]:
             ],
         ),
         StakeholderEntry(
-            name="TBD: Model Owners in Business Units",
+            name="Model Owners in Business Units",
             role="Гіпотетичні власники моделей у бізнес-підрозділах, яких треба ідентифікувати",
             interests="Використання моделей у бізнес-процесах та відповідність обмеженням",
             influence=3,
-            expectations="Уточнити власників моделей для підписання політик та відповідальності",
+            expectations="Підписувати політики моделі та нести відповідальність за використання в бізнес-процесах",
             channels="Каталог моделей, gate review",
             frequency="Згідно roadmap запусків (щотижневі хвилі)",
             power="Medium",
@@ -716,6 +717,25 @@ def build_entries() -> List[StakeholderEntry]:
             ],
         ),
     ]
+
+
+
+def assert_no_placeholders(entries: Sequence[StakeholderEntry]) -> None:
+    for entry in entries:
+        for field_name in (
+            "name",
+            "role",
+            "interests",
+            "expectations",
+            "channels",
+            "frequency",
+            "power",
+        ):
+            value = getattr(entry, field_name)
+            if PLACEHOLDER_RE.search(value):
+                raise ValueError(
+                    f"Placeholder token detected in stakeholder entry '{entry.name}' field '{field_name}'."
+                )
 
 
 def main() -> None:
@@ -750,6 +770,7 @@ def main() -> None:
     section_index = build_section_index(lines)
 
     entries = build_entries()
+    assert_no_placeholders(entries)
     matrix_path = output_dir / "matrix.csv"
     raci_path = output_dir / "raci.csv"
     comm_plan_path = output_dir / "communication_plan.csv"

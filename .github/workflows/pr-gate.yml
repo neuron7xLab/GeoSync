@@ -190,6 +190,15 @@ jobs:
             -m "not slow and not heavy_math and not nightly and not flaky" \
             -q
 
+      - name: Run mandatory connector hygiene tests
+        run: |
+          set -euo pipefail
+          .venv/bin/pytest \
+            tests/connectors/test_fail_closed_connectors.py \
+            tests/connectors/test_polygon_adapter_reproducible.py \
+            scripts/tests/test_generate_stakeholder_assets.py \
+            -q
+
       - name: Run formal verification gate
         run: |
           set -euo pipefail
@@ -459,4 +468,3 @@ jobs:
       - name: Skip (no Go changes)
         if: steps.go-changes.outputs.applicable != 'true'
         run: echo "No Go manifest changes — go-workspace-integrity passes."
-

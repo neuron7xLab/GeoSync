@@ -19,16 +19,21 @@ import os
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
     "RestSourceConfig",
     "FileSourceConfig",
-    "KafkaSourceConfig",
     "BackendConfig",
     "IngestionConfig",
 ]
+
+
+_UNSUPPORTED_GRPC_MESSAGE = (
+    "backend.protocol='grpc' is not supported by mycelium_fractal_net.connectors. "
+    "Use backend.protocol='rest'."
+)
 
 
 class RestSourceConfig(BaseModel):
@@ -109,53 +114,13 @@ class FileSourceConfig(BaseModel):
         return value
 
 
-class KafkaSourceConfig(BaseModel):
-    """Configuration for Kafka message source.
-
-    Attributes:
-        bootstrap_servers: Kafka broker addresses
-        topic: Topic to consume
-        group_id: Consumer group identifier
-        auto_offset_reset: Offset reset policy
-        batch_size: Messages per batch
-        security_protocol: Security protocol
-        sasl_mechanism: SASL mechanism
-        sasl_username: SASL username
-        sasl_password: SASL password
-    """
-
-    model_config = ConfigDict(
-        frozen=True,
-        extra="forbid",
-    )
-
-    bootstrap_servers: str = Field(..., min_length=1, description="Kafka brokers")
-    topic: str = Field(..., min_length=1, description="Topic to consume")
-    group_id: str = Field(default="mfn-consumer", description="Consumer group")
-    auto_offset_reset: Literal["earliest", "latest"] = Field(
-        default="latest", description="Offset reset policy"
-    )
-    batch_size: int = Field(
-        default=100, ge=1, le=10000, description="Messages per batch"
-    )
-    source_name: str | None = Field(
-        default=None, description="Source identifier override"
-    )
-    security_protocol: Literal["PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"] = (
-        Field(default="PLAINTEXT", description="Security protocol")
-    )
-    sasl_mechanism: str | None = Field(default=None, description="SASL mechanism")
-    sasl_username: str | None = Field(default=None, description="SASL username")
-    sasl_password: str | None = Field(default=None, description="SASL password")
-
-
 class BackendConfig(BaseModel):
     """Configuration for MFN backend connection.
 
     Attributes:
         type: Backend type ('local' or 'remote')
         endpoint: Remote endpoint URL (for remote type)
-        protocol: Remote protocol ('grpc' or 'rest')
+        protocol: Remote protocol ('rest')
         api_key: Authentication key
         timeout: Request timeout
     """
@@ -169,13 +134,19 @@ class BackendConfig(BaseModel):
         default="local", description="Backend type"
     )
     endpoint: str | None = Field(default=None, description="Remote endpoint URL")
-    protocol: Literal["grpc", "rest"] = Field(
+    protocol: Literal["rest"] = Field(
         default="rest", description="Remote protocol"
     )
     api_key: str | None = Field(default=None, description="API key for authentication")
     timeout: float = Field(
         default=30.0, ge=1.0, le=300.0, description="Request timeout"
     )
+
+    @model_validator(mode="after")
+    def _validate_supported_protocol(self) -> "BackendConfig":
+        if self.protocol != "rest":
+            raise ValueError(_UNSUPPORTED_GRPC_MESSAGE)
+        return self
 
 
 class IngestionConfig(BaseSettings):
@@ -187,15 +158,13 @@ class IngestionConfig(BaseSettings):
     - Direct instantiation
 
     Environment Variables:
-        MFN_SOURCE_TYPE: Source type (rest, file, kafka)
+        MFN_SOURCE_TYPE: Source type (rest, file)
         MFN_MODE: Processing mode (feature, simulation)
         MFN_BATCH_SIZE: Batch size for processing
         MFN_MAX_QUEUE_SIZE: Maximum queue depth
         MFN_WORKERS: Number of worker tasks
         MFN_REST_URL: REST source URL
         MFN_FILE_PATH: File source path
-        MFN_KAFKA_SERVERS: Kafka bootstrap servers
-        MFN_KAFKA_TOPIC: Kafka topic
         MFN_BACKEND_TYPE: Backend type
         MFN_BACKEND_ENDPOINT: Remote backend endpoint
         MFN_BACKEND_API_KEY: Backend API key
@@ -208,7 +177,7 @@ class IngestionConfig(BaseSettings):
     )
 
     # Source configuration
-    source_type: Literal["rest", "file", "kafka"] = Field(
+    source_type: Literal["rest", "file"] = Field(
         default="rest", description="Data source type"
     )
     rest_source: RestSourceConfig | None = Field(
@@ -217,10 +186,6 @@ class IngestionConfig(BaseSettings):
     file_source: FileSourceConfig | None = Field(
         default=None, description="File source config"
     )
-    kafka_source: KafkaSourceConfig | None = Field(
-        default=None, description="Kafka source config"
-    )
-
     # Backend configuration
     backend: BackendConfig = Field(
         default_factory=BackendConfig, description="Backend config"
@@ -256,12 +221,8 @@ class IngestionConfig(BaseSettings):
         # Build source configs from individual env vars
         rest_url = os.environ.get("MFN_REST_URL")
         file_path = os.environ.get("MFN_FILE_PATH")
-        kafka_servers = os.environ.get("MFN_KAFKA_SERVERS")
-        kafka_topic = os.environ.get("MFN_KAFKA_TOPIC")
-
         rest_source = None
         file_source = None
-        kafka_source = None
 
         if rest_url:
             rest_source = RestSourceConfig(
@@ -280,22 +241,13 @@ class IngestionConfig(BaseSettings):
                     format=file_format,
                 )
 
-        if kafka_servers and kafka_topic:
-            kafka_source = KafkaSourceConfig(
-                bootstrap_servers=kafka_servers,
-                topic=kafka_topic,
-                group_id=os.environ.get("MFN_KAFKA_GROUP", "mfn-consumer"),
-            )
-
         # Build backend config
         backend_type = os.environ.get("MFN_BACKEND_TYPE", "local")
         backend_protocol = os.environ.get("MFN_BACKEND_PROTOCOL", "rest")
         backend = BackendConfig(
             type=backend_type if backend_type in ("local", "remote") else "local",
             endpoint=os.environ.get("MFN_BACKEND_ENDPOINT"),
-            protocol=(
-                backend_protocol if backend_protocol in ("grpc", "rest") else "rest"
-            ),
+            protocol=(backend_protocol if backend_protocol in ("rest",) else "rest"),
             api_key=os.environ.get("MFN_BACKEND_API_KEY"),
         )
 
@@ -304,12 +256,11 @@ class IngestionConfig(BaseSettings):
         return cls(
             source_type=(
                 source_type_env
-                if source_type_env in ("rest", "file", "kafka")
+                if source_type_env in ("rest", "file")
                 else "rest"
             ),
             rest_source=rest_source,
             file_source=file_source,
-            kafka_source=kafka_source,
             backend=backend,
             mode=mode_env if mode_env in ("feature", "simulation") else "feature",
             batch_size=int(os.environ.get("MFN_BATCH_SIZE", "10")),
@@ -342,7 +293,7 @@ class IngestionConfig(BaseSettings):
 
     def get_source_config(
         self,
-    ) -> RestSourceConfig | FileSourceConfig | KafkaSourceConfig:
+    ) -> RestSourceConfig | FileSourceConfig:
         """Get the active source configuration.
 
         Returns:
@@ -359,12 +310,7 @@ class IngestionConfig(BaseSettings):
             if self.file_source is None:
                 raise ValueError("File source config not set")
             return self.file_source
-        elif self.source_type == "kafka":
-            if self.kafka_source is None:
-                raise ValueError("Kafka source config not set")
-            return self.kafka_source
-        else:
-            raise ValueError(f"Unknown source type: {self.source_type}")
+        raise ValueError(f"Unknown source type: {self.source_type}")
 
     def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary.
