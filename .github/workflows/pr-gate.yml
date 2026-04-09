@@ -283,7 +283,8 @@ jobs:
           fi
 
           if ! printf '%s\n' "$changed_files" | awk '
-            /^formal\// || /^cortex_service\// || /^src\// || /^tests\// || /^Makefile$/ {
+            /^formal\// || /^cortex_service\// || /^src\// || /^tests\// ||
+            /^scripts\// || /^Makefile$/ || /^core\// {
               found=1; exit
             }
             END { exit !found }
@@ -292,7 +293,11 @@ jobs:
             exit 0
           fi
 
-          make test-heavy
+          [[ -x .venv/bin/pytest ]] || { echo ".venv/bin/pytest missing"; exit 1; }
+          timeout 1200s .venv/bin/pytest tests/ \
+            -m "slow or heavy_math or nightly" \
+            --maxfail=3 \
+            -q
 
   # ---------------------------------------------------------------------------
   # frontend-gate — Next.js lint/typecheck/tests when apps/web or root manifests change
