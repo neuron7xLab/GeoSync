@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 _SUPPORTED_REMOTE_PROTOCOL = "rest"
 _REMOTE_PROTOCOL_ERROR = (
-    "RemoteBackend protocol '{protocol}' is not supported. " "Use protocol='rest'."
+    "RemoteBackend protocol '{protocol}' is not supported. Use protocol='rest'."
 )
 
 

@@ -75,7 +75,7 @@
     },
     {
       "path": "src/mycelium_fractal_net/connectors/runner.py",
-      "sha256": "5d4af63956f4a212c77e00fbe3b7c5f79201458891a3e2b483f9a1587328a459"
+      "sha256": "d067339b3d3c689e1d49813e263cbacda42695aeb78433c3c9e536e061eb4ac9"
     },
     {
       "path": "src/mycelium_fractal_net/connectors/transform.py",
