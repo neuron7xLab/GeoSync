@@ -9,36 +9,39 @@ import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
-from typing import Iterable, Sequence
+from typing import Iterable, Iterator, Sequence
 
 import pandas as pd
 import pytest
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 if not hasattr(pd, "_pandas_datetime_CAPI"):  # pragma: no cover - import-time guard
     pd._pandas_datetime_CAPI = None
 
-from observability.audit.trail import (
-    get_access_audit_trail,
-    get_system_audit_trail,
+_audit_trail_path = Path("observability/audit/trail.py")
+_audit_spec = importlib.util.spec_from_file_location(
+    "geosync_observability_audit_trail", _audit_trail_path
 )
+if _audit_spec is None or _audit_spec.loader is None:
+    raise ImportError(f"Unable to load audit trail module from {_audit_trail_path}")
+_audit_module = importlib.util.module_from_spec(_audit_spec)
+sys.modules[_audit_spec.name] = _audit_module
+_audit_spec.loader.exec_module(_audit_module)
+get_access_audit_trail = _audit_module.get_access_audit_trail
+get_system_audit_trail = _audit_module.get_system_audit_trail
 
 os.environ.setdefault("GEOSYNC_TWO_FACTOR_SECRET", "JBSWY3DPEHPK3PXP")
 os.environ.setdefault("THERMO_DUAL_SECRET", "test-secret")
 
 _fixture_path = Path(__file__).parent / "fixtures" / "conftest.py"
-spec = importlib.util.spec_from_file_location(
-    "geosync_tests_fixtures", _fixture_path
-)
+spec = importlib.util.spec_from_file_location("geosync_tests_fixtures", _fixture_path)
 if spec is None or spec.loader is None:
     raise ImportError(f"Unable to load fixtures from {_fixture_path}")
 module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
-globals().update(
-    {name: getattr(module, name) for name in dir(module) if not name.startswith("__")}
-)
+globals().update({name: getattr(module, name) for name in dir(module) if not name.startswith("__")})
 
 
 _LEVEL_DESCRIPTIONS: dict[str, str] = {
@@ -65,6 +68,7 @@ class _LevelConfig:
     overrides: dict[Path, str]
     rules: tuple[_LevelRule, ...]
     fallback_level: str | None
+    fallback_roots: tuple[str, ...]
 
 
 _CONFIG_PATH = Path(__file__).with_name("test_levels.yaml")
@@ -87,14 +91,20 @@ def _load_level_config(root: Path) -> _LevelConfig:
 
     def _ensure_level(name: str) -> str:
         if name not in _LEVEL_DESCRIPTIONS:
-            raise pytest.UsageError(
-                f"Unknown GeoSync level '{name}' referenced in {_CONFIG_PATH}."
-            )
+            raise pytest.UsageError(f"Unknown GeoSync level '{name}' referenced in {_CONFIG_PATH}.")
         return name
 
     fallback_level = raw.get("fallback_level")
     if fallback_level is not None:
         fallback_level = _ensure_level(str(fallback_level))
+    fallback_roots_raw = raw.get("fallback_roots", ["tests"])
+    if not isinstance(fallback_roots_raw, Sequence) or isinstance(fallback_roots_raw, (str, bytes)):
+        raise pytest.UsageError(f"fallback_roots in {_CONFIG_PATH} must be a sequence of paths.")
+    fallback_roots = tuple(
+        PurePosixPath(str(root).strip()).as_posix().strip("/")
+        for root in fallback_roots_raw
+        if str(root).strip()
+    )
 
     rules: list[_LevelRule] = []
     for entry in raw.get("levels", []):
@@ -131,7 +141,10 @@ def _load_level_config(root: Path) -> _LevelConfig:
         overrides[_normalize(root / location)] = level
 
     return _LevelConfig(
-        overrides=overrides, rules=tuple(rules), fallback_level=fallback_level
+        overrides=overrides,
+        rules=tuple(rules),
+        fallback_level=fallback_level,
+        fallback_roots=fallback_roots,
     )
 
 
@@ -165,12 +178,13 @@ def _determine_level(root: Path, path: Path) -> str:
     if matched_level is not None:
         return matched_level
 
-    if (
-        config.fallback_level is not None
-        and relative.parts
-        and relative.parts[0] == "tests"
-    ):
-        return config.fallback_level
+    if config.fallback_level is not None:
+        relative_posix = relative.as_posix()
+        if any(
+            relative_posix == root or relative_posix.startswith(f"{root}/")
+            for root in config.fallback_roots
+        ):
+            return config.fallback_level
 
     raise pytest.UsageError(
         "Unable to classify test {path} with GeoSync level. "
@@ -186,7 +200,7 @@ def pytest_configure(config: pytest.Config) -> None:  # type: ignore[override]
 
 
 @pytest.fixture(scope="session", autouse=True)
-def configure_audit_trails(tmp_path_factory: pytest.TempPathFactory) -> None:
+def configure_audit_trails(tmp_path_factory: pytest.TempPathFactory) -> Iterator[None]:
     """Isolate audit log files during the test run."""
 
     tmp_dir = tmp_path_factory.mktemp("audit_trails")
@@ -198,7 +212,7 @@ def configure_audit_trails(tmp_path_factory: pytest.TempPathFactory) -> None:
 
 
 @pytest.fixture(autouse=True)
-def _ensure_logging_propagation() -> None:
+def _ensure_logging_propagation() -> Iterator[None]:
     """Ensure loggers propagate to root for caplog capture.
 
     Some tests rely on caplog to capture log messages, but the StructuredLogger
@@ -218,7 +232,7 @@ def _ensure_logging_propagation() -> None:
 
 
 @pytest.fixture(autouse=True)
-def _reset_kill_switch() -> None:
+def _reset_kill_switch() -> Iterator[None]:
     """Reset kill switch singleton before each test.
 
     This ensures that tests don't interfere with each other through
@@ -237,9 +251,7 @@ def pytest_collection_modifyitems(  # type: ignore[override]
     root = _normalize(Path(config.rootpath))
     for item in items:
         existing_levels = [
-            mark.name
-            for mark in item.iter_markers()
-            if mark.name in _LEVEL_DESCRIPTIONS
+            mark.name for mark in item.iter_markers() if mark.name in _LEVEL_DESCRIPTIONS
         ]
 
         level_from_config = _determine_level(root, Path(item.fspath))
@@ -331,10 +343,7 @@ def scrub_response(response):
 def _vcr_adapter_tests(request):
     """Auto-apply VCR to adapter tests."""
     # Only apply VCR to tests in tests/adapters directory
-    if (
-        request.fspath.strpath.endswith(".py")
-        and "tests/adapters" in request.fspath.strpath
-    ):
+    if request.fspath.strpath.endswith(".py") and "tests/adapters" in request.fspath.strpath:
         try:
             import vcr
         except ImportError:
@@ -350,8 +359,7 @@ def _vcr_adapter_tests(request):
         )
 
         cassette_name = (
-            request.node.nodeid.replace("::", "__").replace("/", "_").replace("\\", "_")
-            + ".yaml"
+            request.node.nodeid.replace("::", "__").replace("/", "_").replace("\\", "_") + ".yaml"
         )
         with vcr_default.use_cassette(cassette_name):
             yield

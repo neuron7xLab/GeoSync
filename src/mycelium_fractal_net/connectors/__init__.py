@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: MIT
 """MFN-UPSTREAM-CONNECTOR: Unified data ingestion layer for Mycelium Fractal Net.
 
-This module provides a standardized ingestion layer for connecting external data
-sources (REST APIs, file feeds, message queues) to the MFN core engine.
+This module exposes only the supported ingestion surfaces:
+- REST API polling
+- file feeds
+
+Kafka remains importable only as an explicit fail-closed compatibility error.
 
 Components:
 - BaseIngestor: Abstract interface for all data connectors
@@ -12,7 +15,7 @@ Components:
 - MFNRequest: Adapter to MFN core request structures
 - RestIngestor: HTTP polling connector
 - FileFeedIngestor: JSONL/CSV file connector
-- KafkaIngestor: Kafka consumer stub
+- KafkaIngestor: explicit fail-closed compatibility error (unsupported)
 - IngestionRunner: Orchestrator for ingestion pipelines
 
 Example:
@@ -29,7 +32,6 @@ from .config import (
     BackendConfig,
     FileSourceConfig,
     IngestionConfig,
-    KafkaSourceConfig,
     RestSourceConfig,
 )
 from .file_feed import FileFeedIngestor
@@ -68,7 +70,6 @@ __all__ = [
     "IngestionConfig",
     "RestSourceConfig",
     "FileSourceConfig",
-    "KafkaSourceConfig",
     "BackendConfig",
     # Metrics
     "IngestionMetrics",

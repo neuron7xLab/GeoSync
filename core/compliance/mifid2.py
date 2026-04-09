@@ -7,11 +7,12 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field, fields
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
 LOGGER = logging.getLogger(__name__)
+UTC = timezone.utc
 
 
 def _slots_to_dict(obj: Any) -> dict[str, Any]:
@@ -29,9 +30,7 @@ def _slots_to_dict(obj: Any) -> dict[str, Any]:
     try:
         return {f.name: getattr(obj, f.name) for f in fields(obj)}
     except TypeError as exc:
-        raise TypeError(
-            f"Expected a dataclass instance, got {type(obj).__name__}"
-        ) from exc
+        raise TypeError(f"Expected a dataclass instance, got {type(obj).__name__}") from exc
 
 
 @dataclass(slots=True)
@@ -182,9 +181,7 @@ class MiFID2Reporter:
         self._synchronised_at = datetime.now(UTC)
         LOGGER.info("Clock synchronised with offset %.3f ms", ntp_offset_ms)
 
-    def best_execution_breaches(
-        self, threshold_bps: float = 5.0
-    ) -> list[ExecutionQuality]:
+    def best_execution_breaches(self, threshold_bps: float = 5.0) -> list[ExecutionQuality]:
         breaches = [
             quality
             for quality in self._execution_quality
@@ -240,13 +237,10 @@ class MiFID2Reporter:
             "execution_quality": [
                 _slots_to_dict(quality) for quality in snapshot.execution_quality
             ],
-            "market_abuse_signals": [
-                _slots_to_dict(signal) for signal in self._abuse_signals
-            ],
+            "market_abuse_signals": [_slots_to_dict(signal) for signal in self._abuse_signals],
         }
         target = (
-            self._storage_path
-            / f"{prefix}-{snapshot.generated_at.strftime('%Y%m%dT%H%M%SZ')}.json"
+            self._storage_path / f"{prefix}-{snapshot.generated_at.strftime('%Y%m%dT%H%M%SZ')}.json"
         )
         target.write_text(json.dumps(payload, indent=2))
         self._apply_retention()
@@ -285,9 +279,7 @@ class MiFID2Reporter:
             "best_execution_breaches": [
                 _slots_to_dict(quality) for quality in self.best_execution_breaches()
             ],
-            "market_abuse_signals": [
-                _slots_to_dict(signal) for signal in self._abuse_signals
-            ],
+            "market_abuse_signals": [_slots_to_dict(signal) for signal in self._abuse_signals],
         }
 
 
@@ -300,3 +292,4 @@ __all__ = [
     "OrderAuditTrail",
     "TransactionReport",
 ]
+UTC = timezone.utc
