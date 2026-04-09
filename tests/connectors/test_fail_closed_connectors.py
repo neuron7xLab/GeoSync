@@ -71,6 +71,32 @@ def test_ingestion_config_rest_source_still_supported() -> None:
     assert cfg.get_source_config().url == "https://example.com/feed"
 
 
+@pytest.mark.parametrize(
+    ("env_key", "env_value", "expected"),
+    [
+        ("MFN_BACKEND_PROTOCOL", "grpc", "MFN_BACKEND_PROTOCOL"),
+        ("MFN_SOURCE_TYPE", "kafka", "MFN_SOURCE_TYPE"),
+        ("MFN_BACKEND_TYPE", "edge", "MFN_BACKEND_TYPE"),
+        ("MFN_FILE_FORMAT", "xml", "MFN_FILE_FORMAT"),
+        ("MFN_MODE", "batch", "MFN_MODE"),
+    ],
+)
+def test_ingestion_config_from_env_rejects_unsupported_values(
+    monkeypatch: pytest.MonkeyPatch,
+    env_key: str,
+    env_value: str,
+    expected: str,
+) -> None:
+    monkeypatch.setenv(env_key, env_value)
+    if env_key != "MFN_FILE_FORMAT":
+        monkeypatch.delenv("MFN_FILE_PATH", raising=False)
+    else:
+        monkeypatch.setenv("MFN_FILE_PATH", "/tmp/input.jsonl")
+
+    with pytest.raises(ValueError, match=expected):
+        IngestionConfig.from_env()
+
+
 def test_remote_backend_rejects_grpc_protocol() -> None:
     with pytest.raises(ValueError, match="protocol 'grpc' is not supported"):
         RemoteBackend(endpoint="https://mfn.internal", protocol="grpc")

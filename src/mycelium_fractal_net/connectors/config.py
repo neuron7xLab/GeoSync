@@ -186,6 +186,14 @@ class IngestionConfig(BaseSettings):
         Returns:
             IngestionConfig populated from MFN_* environment variables
         """
+
+        def _require_choice(env_key: str, allowed: tuple[str, ...], default: str) -> str:
+            value = os.environ.get(env_key, default)
+            if value not in allowed:
+                allowed_str = "', '".join(allowed)
+                raise ValueError(f"{env_key} must be one of '{allowed_str}', got '{value}'.")
+            return value
+
         # Build source configs from individual env vars
         rest_url = os.environ.get("MFN_REST_URL")
         file_path = os.environ.get("MFN_FILE_PATH")
@@ -200,31 +208,30 @@ class IngestionConfig(BaseSettings):
             )
 
         if file_path:
-            file_format = os.environ.get("MFN_FILE_FORMAT", "jsonl")
-            if file_format in ("jsonl", "csv"):
-                file_source = FileSourceConfig(
-                    path=file_path,
-                    format=file_format,
-                )
+            file_format = _require_choice("MFN_FILE_FORMAT", ("jsonl", "csv"), "jsonl")
+            file_source = FileSourceConfig(
+                path=file_path,
+                format=file_format,
+            )
 
         # Build backend config
-        backend_type = os.environ.get("MFN_BACKEND_TYPE", "local")
-        backend_protocol = os.environ.get("MFN_BACKEND_PROTOCOL", "rest")
+        backend_type = _require_choice("MFN_BACKEND_TYPE", ("local", "remote"), "local")
+        backend_protocol = _require_choice("MFN_BACKEND_PROTOCOL", ("rest",), "rest")
         backend = BackendConfig(
-            type=backend_type if backend_type in ("local", "remote") else "local",
+            type=backend_type,
             endpoint=os.environ.get("MFN_BACKEND_ENDPOINT"),
-            protocol=(backend_protocol if backend_protocol in ("rest",) else "rest"),
+            protocol=backend_protocol,
             api_key=os.environ.get("MFN_BACKEND_API_KEY"),
         )
 
-        source_type_env = os.environ.get("MFN_SOURCE_TYPE", "rest")
-        mode_env = os.environ.get("MFN_MODE", "feature")
+        source_type_env = _require_choice("MFN_SOURCE_TYPE", ("rest", "file"), "rest")
+        mode_env = _require_choice("MFN_MODE", ("feature", "simulation"), "feature")
         return cls(
-            source_type=(source_type_env if source_type_env in ("rest", "file") else "rest"),
+            source_type=source_type_env,
             rest_source=rest_source,
             file_source=file_source,
             backend=backend,
-            mode=mode_env if mode_env in ("feature", "simulation") else "feature",
+            mode=mode_env,
             batch_size=int(os.environ.get("MFN_BATCH_SIZE", "10")),
             max_queue_size=int(os.environ.get("MFN_MAX_QUEUE_SIZE", "1000")),
             workers=int(os.environ.get("MFN_WORKERS", "1")),
