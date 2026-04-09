@@ -81,7 +81,7 @@ def test_setup_generates_secret_and_qr_png_bytes(monkeypatch: pytest.MonkeyPatch
 
     secret, png_bytes = mfa_module.MFA.setup("analyst@geosync.ai")
 
-    assert secret == "TESTBASECODEABCDE"
+    assert secret == "TESTBASECODEABCDE"  # pragma: allowlist secret
     assert png_bytes.startswith(b"QR:otpauth://totp/GeoSync:analyst@geosync.ai")
 
 
