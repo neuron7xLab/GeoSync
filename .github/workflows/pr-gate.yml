@@ -85,6 +85,12 @@ jobs:
           set -euo pipefail
           docker run --rm -v "$PWD":/repo -w /repo rhysd/actionlint:1.7.8 -color
 
+      - name: Inventory and manifest integrity checks
+        run: |
+          set -euo pipefail
+          python scripts/ci/check_inventory_sync.py
+          python scripts/ci/check_manifest_hashes.py
+
   # ---------------------------------------------------------------------------
   # python-quality — ruff + black + mypy on changed Python files
   # ---------------------------------------------------------------------------
@@ -109,6 +115,7 @@ jobs:
         run: |
           set -euo pipefail
           .venv/bin/python -m pip --version
+          .venv/bin/python -m pip check
           .venv/bin/python - <<'PY'
           import tomllib
           from pathlib import Path
@@ -130,7 +137,13 @@ jobs:
             changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
           fi
 
-          mapfile -t py_files < <(printf '%s\n' "$changed_files" | awk '/\.py$/')
+          mapfile -t py_files < <(
+            printf '%s\n' "$changed_files" \
+            | awk '/\.py$/' \
+            | while IFS= read -r f; do
+                [[ -f "$f" ]] && printf '%s\n' "$f"
+              done
+          )
           if [[ ${#py_files[@]} -eq 0 ]]; then
             echo "No Python file changes detected; python-quality passes."
             exit 0
@@ -177,7 +190,8 @@ jobs:
 
           if ! printf '%s\n' "$changed_files" | awk '
             /^tests\// || /^core\// || /^backtest\// || /^execution\// || /^src\// ||
-            /^pyproject\.toml$/ || /^requirements(-dev)?\.(txt|lock)$/ || /^pytest\.ini$/ {
+            /^scripts\// || /^pyproject\.toml$/ || /^requirements(-dev)?\.(txt|lock)$/ ||
+            /^pytest\.ini$/ || /^\.github\/workflows\/pr-gate\.yml$/ || /^\.pre-commit-config\.yaml$/ {
               found=1; exit
             }
             END { exit !found }
@@ -188,6 +202,17 @@ jobs:
 
           timeout 1200s .venv/bin/pytest tests/ \
             -m "not slow and not heavy_math and not nightly and not flaky" \
+            --maxfail=1 \
+            -q
+
+      - name: Run mandatory connector hygiene tests
+        run: |
+          set -euo pipefail
+          timeout 300s .venv/bin/pytest \
+            tests/connectors/test_fail_closed_connectors.py \
+            tests/connectors/test_polygon_adapter_reproducible.py \
+            scripts/tests/test_generate_stakeholder_assets.py \
+            --maxfail=1 \
             -q
 
       - name: Run formal verification gate
@@ -213,6 +238,27 @@ jobs:
           fi
 
           make formal-verify
+
+  # ---------------------------------------------------------------------------
+  # python-heavy-tests — heavy compute test lane
+  # ---------------------------------------------------------------------------
+  python-heavy-tests:
+    name: python-heavy-tests
+    runs-on: ubuntu-latest
+    needs: python-fast-tests
+    continue-on-error: false
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-geosync
+        with:
+          python-version: '3.11'
+          cache-prefix: pr-heavy-tests
 
       - name: Run heavy invariant gate
         run: |
@@ -392,6 +438,7 @@ jobs:
 
           .venv/bin/detect-secrets-hook \
             --baseline .github/detect-secrets.baseline \
+            --exclude-files '^(INVENTORY\.json|stakeholders/manifest\.json)$' \
             "${existing_changed_files[@]}"
 
   go-workspace-integrity:
@@ -459,4 +506,3 @@ jobs:
       - name: Skip (no Go changes)
         if: steps.go-changes.outputs.applicable != 'true'
         run: echo "No Go manifest changes — go-workspace-integrity passes."
-

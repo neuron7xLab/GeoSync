@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "description": "Managed inventory for connector fail-closed and hygiene CI surface.",
+  "scopes": [
+    ".github/workflows/pr-gate.yml",
+    "scripts/ci",
+    "scripts/generate_stakeholder_assets.py",
+    "src/mycelium_fractal_net/connectors",
+    "tests/connectors"
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/pr-gate.yml",
+      "sha256": "7c1529ce510b5e07eba5e0510360c2c4e5661a50f1aaa33e81949199fb66e738"
+    },
+    {
+      "path": "scripts/ci/check_central_files_touched.py",
+      "sha256": "071a5fee28a586b58a245ce641906e83676cf1aeedb021d546dcebb81fa4618b"
+    },
+    {
+      "path": "scripts/ci/check_config_sprawl.py",
+      "sha256": "87fdfe3dc6fc30a841042e7bd9c6013a8013e921ebc222aa4a9715a2225e841f"
+    },
+    {
+      "path": "scripts/ci/check_examples_manifest.py",
+      "sha256": "147c0b25a2b28d73f01d83a39685337d88809a1ba2b2875a6c5007c0ae1db62f"
+    },
+    {
+      "path": "scripts/ci/check_inventory_sync.py",
+      "sha256": "f81d851eb4e27d0d8ee182a9c06341707cfdf540854566b567baa27466e9f5b2"
+    },
+    {
+      "path": "scripts/ci/check_manifest_hashes.py",
+      "sha256": "afa5e44d9253dc6f9fc7f006b998cb912e174ae08778aab54c03f898536bc44c"
+    },
+    {
+      "path": "scripts/ci/run_actionlint.py",
+      "sha256": "a21ae0beda169a249063bf76ad48578fb22b91d73d49aced82dfd50accb1663c"
+    },
+    {
+      "path": "scripts/ci/update_inventory.py",
+      "sha256": "177334d75a0a0eecfc8ab02b302ce173b5ede84d9030e934cb732a2963cfefa2"
+    },
+    {
+      "path": "scripts/generate_stakeholder_assets.py",
+      "sha256": "ba5b8ad1e8b05f950d009553a6f5141468f7c278676964bd37d5a41d538f9dab"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/__init__.py",
+      "sha256": "2f50d6965a50c3877cb06ad9ffc567d2dd8d5cebc5322aaa4d61e0f4a6a95cff"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/base.py",
+      "sha256": "d101e3f81e5924e35cab4b4b3a991fa0753abe476633d37070acca5c8d859675"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/config.py",
+      "sha256": "f36b0a96ea99889fca997c101c781805e88d2bdd6359d9b139f8087264240b75"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/file_feed.py",
+      "sha256": "70f620be960ef85654d035a2b6dad0dba30ce7d72e6efd0896237310f630e886"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/kafka_source.py",
+      "sha256": "7c797b76e2d1b22e905481b6918b5630064a942796919c79b3a915bfa13fe6f5"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/metrics.py",
+      "sha256": "8f6fd8549473efb207d0ce32a509d8a7f7232205a7af7fed1670922573a78baf"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/rest_source.py",
+      "sha256": "92755d1598bb464e6cb29f8a69e4392d622c529fb1dc92d7e6b3406af05ac300"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/runner.py",
+      "sha256": "5d4af63956f4a212c77e00fbe3b7c5f79201458891a3e2b483f9a1587328a459"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/transform.py",
+      "sha256": "412f30b5d572fb316ef50a3be53825520bb182c24a07bf928b2d3cee47fbfa31"
+    },
+    {
+      "path": "tests/connectors/__init__.py",
+      "sha256": "7a05869ac8f30dc24c9c46e20293c4b4786e431da6bcbb66cb39e9702364a2cc"
+    },
+    {
+      "path": "tests/connectors/test_base_interface.py",
+      "sha256": "2adaceaac94ac9ae43d364c0b3efd64dd0ebcb0068da4d4c0656ac03b8a24efb"
+    },
+    {
+      "path": "tests/connectors/test_fail_closed_connectors.py",
+      "sha256": "4fc41799d2ee5877fca360ea23c949e291114a82ece78d0100ed792cb4264388"
+    },
+    {
+      "path": "tests/connectors/test_file_feed.py",
+      "sha256": "cb2638f8b5b448c7fa23d500950a1e5cddc855b287c02bc5e4f87c76350d9d32"
+    },
+    {
+      "path": "tests/connectors/test_polygon_adapter_reproducible.py",
+      "sha256": "d9c42cb198e52cd5f2045b61553b90fb49d83835ce70d443cdc7e5c27407ae93"
+    },
+    {
+      "path": "tests/connectors/test_rest_source.py",
+      "sha256": "5ae7fb32706757fb68a302e9f5b85731f49ffb270cf889f03fc3359c81c09e86"
+    },
+    {
+      "path": "tests/connectors/test_runner_backend_local.py",
+      "sha256": "bd51df1de21cb76b4f7c9406fb69f365e46d3e7923858626976d3dd5ec46b800"
+    },
+    {
+      "path": "tests/connectors/test_transform_mapping.py",
+      "sha256": "ee53c4ca0507a086ea2d6afca35fc382e00c58e06555867eb0ec46913b8fac58"
+    }
+  ],
+  "relaxed_scopes": [
+    "scripts/tests"
+  ]
+}
