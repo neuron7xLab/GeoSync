@@ -43,7 +43,9 @@ class _FakePyOTP:
             return f"otpauth://totp/{issuer_name}:{email}?k={self.secret}"
 
         def verify(self, token: str, valid_window: int) -> bool:
-            return self.secret == "TESTBASECODEABCDE" and token == "123456" and valid_window == 1
+            return (
+                self.secret == "TESTBASECODEABCDE" and token == "123456" and valid_window == 1
+            )  # pragma: allowlist secret
 
 
 class _BadSecretPyOTP(_FakePyOTP):
