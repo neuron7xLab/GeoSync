@@ -73,6 +73,7 @@ class KuramotoRicciComposite:
         temporal_ricci_threshold: float = -0.2,
         transition_threshold: float = 0.7,
         min_confidence: float = 0.5,
+        transition_entry_scale: float = 0.35,
     ):
         self.Rs = R_strong_emergent
         self.Rp = R_proto_emergent
@@ -81,6 +82,7 @@ class KuramotoRicciComposite:
         self.kt_thr = temporal_ricci_threshold
         self.trans_thr = transition_threshold
         self.min_conf = min_confidence
+        self.transition_entry_scale = float(np.clip(transition_entry_scale, 0.0, 1.0))
 
     def _phase(self, R: float, kt: float, trans: float, k_static: float) -> MarketPhase:
         if R > self.Rs and k_static < self.kneg and kt < self.kt_thr and trans < 0.5:
@@ -121,6 +123,20 @@ class KuramotoRicciComposite:
             )  # more negative -> stronger long  # INV-RC1: curvature signal clipped to [0,1] for directional strength
         elif phase == MarketPhase.PROTO_EMERGENT:
             s = 0.5 * R
+        elif phase == MarketPhase.TRANSITION:
+            # Transitional regimes can still contain directional structure when
+            # synchronization is meaningful and temporal curvature remains
+            # contractive. This keeps fail-closed behavior while avoiding a
+            # hard zero-entry dead-zone on real markets that spend long periods
+            # in transition. `transition_entry_scale` only scales signal
+            # amplitude in [0,1], so it cannot amplify beyond clipped R/|kt|
+            # components; tuning is safe in [0,1] and stays fail-closed.
+            if R > self.Rp and kt < 0.0:
+                s = (
+                    self.transition_entry_scale
+                    * np.clip(R, 0.0, 1.0)
+                    * np.clip(-kt, 0.0, 1.0)
+                )
         elif phase == MarketPhase.POST_EMERGENT:
             s = -0.3
         else:

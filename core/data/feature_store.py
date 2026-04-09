@@ -13,7 +13,12 @@ import shutil
 import sqlite3
 import ssl
 from dataclasses import dataclass, field
-from datetime import UTC
+try:
+    from datetime import UTC
+except ImportError:  # pragma: no cover - Python < 3.11
+    from datetime import timezone
+
+    UTC = timezone.utc
 from decimal import Decimal, InvalidOperation
 from io import StringIO
 from pathlib import Path

@@ -17,9 +17,15 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Callable, Literal
+from contextlib import nullcontext
 
 from core.utils.metrics import get_metrics_collector
-from observability.tracing import pipeline_span
+
+try:
+    from observability.tracing import pipeline_span
+except Exception:  # pragma: no cover - optional observability stack
+    def pipeline_span(*_args: Any, **_kwargs: Any):
+        return nullcontext()
 
 FeatureInput = Any
 
