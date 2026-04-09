@@ -98,11 +98,7 @@ def _download_prices(cfg: LiveConfig) -> pd.DataFrame:
             f"No data downloaded for {cfg.ticker} {cfg.interval} {cfg.start}->{cfg.end}"
         )
 
-    close_col = (
-        ("Close", cfg.ticker)
-        if isinstance(raw.columns, pd.MultiIndex)
-        else "Close"
-    )
+    close_col = ("Close", cfg.ticker) if isinstance(raw.columns, pd.MultiIndex) else "Close"
     close = raw[close_col].rename("close").astype(float).dropna()
     df = close.to_frame()
     df["volume"] = 1_000.0
@@ -141,7 +137,9 @@ def _build_signal_series(market_df: pd.DataFrame, cfg: LiveConfig) -> pd.DataFra
             and snap.entry_signal > cfg.min_entry_signal
             and snap.confidence >= cfg.min_confidence
         )
-        exit_ready = snap.kuramoto_R <= cfg.r_flat_threshold or snap.exit_signal > cfg.exit_threshold
+        exit_ready = (
+            snap.kuramoto_R <= cfg.r_flat_threshold or snap.exit_signal > cfg.exit_threshold
+        )
 
         if entry_ready:
             signal[i] = float(np.clip(snap.risk_multiplier, 0.0, 1.0))
@@ -348,9 +346,7 @@ def main() -> int:
 
     market_df = _download_prices(cfg)
     if len(market_df) <= cfg.window:
-        raise ValueError(
-            f"Not enough data: bars={len(market_df)} must be > window={cfg.window}"
-        )
+        raise ValueError(f"Not enough data: bars={len(market_df)} must be > window={cfg.window}")
 
     signal_df = _build_signal_series(market_df, cfg)
     result = _run_backtest(signal_df, cfg)

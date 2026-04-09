@@ -95,9 +95,7 @@ class KuramotoRicciComposite:
             return MarketPhase.POST_EMERGENT
         return MarketPhase.CHAOTIC
 
-    def _confidence(
-        self, phase: MarketPhase, coherence: float, trans: float, R: float
-    ) -> float:
+    def _confidence(self, phase: MarketPhase, coherence: float, trans: float, R: float) -> float:
         conf = coherence
         if phase == MarketPhase.STRONG_EMERGENT:
             conf *= 1.0 + R
@@ -132,18 +130,12 @@ class KuramotoRicciComposite:
             # amplitude in [0,1], so it cannot amplify beyond clipped R/|kt|
             # components; tuning is safe in [0,1] and stays fail-closed.
             if R > self.Rp and kt < 0.0:
-                s = (
-                    self.transition_entry_scale
-                    * np.clip(R, 0.0, 1.0)
-                    * np.clip(-kt, 0.0, 1.0)
-                )
+                s = self.transition_entry_scale * np.clip(R, 0.0, 1.0) * np.clip(-kt, 0.0, 1.0)
         elif phase == MarketPhase.POST_EMERGENT:
             s = -0.3
         else:
             s = 0.0
-        return float(
-            np.clip(s * conf, -1.0, 1.0)
-        )  # INV-K1: composite signal bounded to [-1,1]
+        return float(np.clip(s * conf, -1.0, 1.0))  # INV-K1: composite signal bounded to [-1,1]
 
     def _exit(self, phase: MarketPhase, trans: float, R: float) -> float:
         if phase == MarketPhase.POST_EMERGENT:
@@ -200,9 +192,7 @@ class KuramotoRicciComposite:
             entry_signal=entry,
             exit_signal=exit_u,
             risk_multiplier=risk,
-            dominant_timeframe_sec=(
-                kres.dominant_scale.seconds if kres.dominant_scale else None
-            ),
+            dominant_timeframe_sec=(kres.dominant_scale.seconds if kres.dominant_scale else None),
             timestamp=ts,
             skipped_timeframes=[str(tf) for tf in kres.skipped_timeframes],
         )
@@ -250,9 +240,7 @@ class KuramotoRicciComposite:
     ) -> float:
         return self._entry(phase, R, temporal_ricci, confidence)
 
-    def _generate_exit_signal(
-        self, phase: MarketPhase, transition_score: float, R: float
-    ) -> float:
+    def _generate_exit_signal(self, phase: MarketPhase, transition_score: float, R: float) -> float:
         return self._exit(phase, transition_score, R)
 
     def _compute_risk_multiplier(
@@ -290,9 +278,7 @@ class GeoSyncCompositeEngine:
             sanitized = sanitized[~sanitized.index.duplicated(keep="last")]
 
         if sanitized.empty:
-            raise ValueError(
-                "DataFrame must contain at least one row after sanitisation"
-            )
+            raise ValueError("DataFrame must contain at least one row after sanitisation")
 
         latest_ts = sanitized.index[-1]
         last_signal: CompositeSignal | None = self.history[-1] if self.history else None
@@ -317,9 +303,7 @@ class GeoSyncCompositeEngine:
             volume_col=volume_col,
             reset_history=reset_temporal,
         )
-        static_ricci = (
-            rres.graph_snapshots[-1].avg_curvature if rres.graph_snapshots else 0.0
-        )
+        static_ricci = rres.graph_snapshots[-1].avg_curvature if rres.graph_snapshots else 0.0
         sig = self.c.analyze(kres, rres, static_ricci, sanitized.index[-1])
         if should_reset_history:
             self._clear_history()
