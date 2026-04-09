@@ -35,7 +35,7 @@
     },
     {
       "path": "scripts/ci/run_actionlint.py",
-      "sha256": "40afcb9a7e6d6ec47217da1e6bed309d68dd9782163262fc3ec952a27c81bcb7"
+      "sha256": "a21ae0beda169a249063bf76ad48578fb22b91d73d49aced82dfd50accb1663c"
     },
     {
       "path": "scripts/ci/update_inventory.py",
