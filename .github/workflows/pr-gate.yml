@@ -130,7 +130,13 @@ jobs:
             changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
           fi
 
-          mapfile -t py_files < <(printf '%s\n' "$changed_files" | awk '/\.py$/')
+          mapfile -t py_files < <(
+            printf '%s\n' "$changed_files" \
+            | awk '/\.py$/' \
+            | while IFS= read -r f; do
+                [[ -f "$f" ]] && printf '%s\n' "$f"
+              done
+          )
           if [[ ${#py_files[@]} -eq 0 ]]; then
             echo "No Python file changes detected; python-quality passes."
             exit 0

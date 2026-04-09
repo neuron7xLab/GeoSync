@@ -178,7 +178,7 @@ def test_polygon_fetch_retries_on_transient_error_isolated_import() -> None:
 
     async def _run():
         adapter = PolygonIngestionAdapter(
-            api_key="test",
+            api_key="test",  # pragma: allowlist secret
             client=client,
         )
         attempts = {"count": 0}
