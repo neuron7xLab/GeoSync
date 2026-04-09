@@ -79,6 +79,7 @@ def test_remote_backend_rejects_grpc_protocol() -> None:
 def test_remote_backend_rest_extract_features_calls_rest_endpoint() -> None:
     backend = RemoteBackend(endpoint="https://mfn.internal", protocol="rest")
     client = _DummyClient(payload={"features": [1.0, 2.0]})
+
     async def _fake_get_client() -> _DummyClient:
         return client
 
@@ -101,6 +102,7 @@ def test_remote_backend_rest_extract_features_calls_rest_endpoint() -> None:
 def test_remote_backend_rest_run_simulation_calls_rest_endpoint() -> None:
     backend = RemoteBackend(endpoint="https://mfn.internal", protocol="rest")
     client = _DummyClient(payload={"status": "ok"})
+
     async def _fake_get_client() -> _DummyClient:
         return client
 

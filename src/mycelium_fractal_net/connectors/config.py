@@ -59,18 +59,12 @@ class RestSourceConfig(BaseModel):
     poll_interval_seconds: float = Field(
         default=60.0, ge=1.0, le=3600.0, description="Poll interval"
     )
-    batch_size: int = Field(
-        default=100, ge=1, le=10000, description="Max records per poll"
-    )
+    batch_size: int = Field(default=100, ge=1, le=10000, description="Max records per poll")
     max_retries: int = Field(default=3, ge=0, le=10, description="Retry attempts")
-    timeout: float = Field(
-        default=30.0, ge=1.0, le=300.0, description="Request timeout"
-    )
+    timeout: float = Field(default=30.0, ge=1.0, le=300.0, description="Request timeout")
     headers: dict[str, str] = Field(default_factory=dict, description="HTTP headers")
     params: dict[str, str] = Field(default_factory=dict, description="Query parameters")
-    source_name: str | None = Field(
-        default=None, description="Source identifier override"
-    )
+    source_name: str | None = Field(default=None, description="Source identifier override")
 
 
 class FileSourceConfig(BaseModel):
@@ -92,18 +86,12 @@ class FileSourceConfig(BaseModel):
 
     path: str = Field(..., min_length=1, description="Path to data file")
     format: Literal["jsonl", "csv"] = Field(default="jsonl", description="File format")
-    batch_size: int = Field(
-        default=100, ge=1, le=10000, description="Records per batch"
-    )
+    batch_size: int = Field(default=100, ge=1, le=10000, description="Records per batch")
     field_mapping: dict[str, str] = Field(
         default_factory=dict, description="Column to field mapping"
     )
-    source_name: str | None = Field(
-        default=None, description="Source identifier override"
-    )
-    timestamp_field: str | None = Field(
-        default=None, description="Timestamp field name"
-    )
+    source_name: str | None = Field(default=None, description="Source identifier override")
+    timestamp_field: str | None = Field(default=None, description="Timestamp field name")
 
     @field_validator("path")
     @classmethod
@@ -130,17 +118,11 @@ class BackendConfig(BaseModel):
         extra="forbid",
     )
 
-    type: Literal["local", "remote"] = Field(
-        default="local", description="Backend type"
-    )
+    type: Literal["local", "remote"] = Field(default="local", description="Backend type")
     endpoint: str | None = Field(default=None, description="Remote endpoint URL")
-    protocol: Literal["rest"] = Field(
-        default="rest", description="Remote protocol"
-    )
+    protocol: Literal["rest"] = Field(default="rest", description="Remote protocol")
     api_key: str | None = Field(default=None, description="API key for authentication")
-    timeout: float = Field(
-        default=30.0, ge=1.0, le=300.0, description="Request timeout"
-    )
+    timeout: float = Field(default=30.0, ge=1.0, le=300.0, description="Request timeout")
 
     @model_validator(mode="after")
     def _validate_supported_protocol(self) -> "BackendConfig":
@@ -177,28 +159,16 @@ class IngestionConfig(BaseSettings):
     )
 
     # Source configuration
-    source_type: Literal["rest", "file"] = Field(
-        default="rest", description="Data source type"
-    )
-    rest_source: RestSourceConfig | None = Field(
-        default=None, description="REST source config"
-    )
-    file_source: FileSourceConfig | None = Field(
-        default=None, description="File source config"
-    )
+    source_type: Literal["rest", "file"] = Field(default="rest", description="Data source type")
+    rest_source: RestSourceConfig | None = Field(default=None, description="REST source config")
+    file_source: FileSourceConfig | None = Field(default=None, description="File source config")
     # Backend configuration
-    backend: BackendConfig = Field(
-        default_factory=BackendConfig, description="Backend config"
-    )
+    backend: BackendConfig = Field(default_factory=BackendConfig, description="Backend config")
 
     # Processing configuration
-    mode: Literal["feature", "simulation"] = Field(
-        default="feature", description="Processing mode"
-    )
+    mode: Literal["feature", "simulation"] = Field(default="feature", description="Processing mode")
     batch_size: int = Field(default=10, ge=1, le=1000, description="Events per batch")
-    max_queue_size: int = Field(
-        default=1000, ge=10, le=100000, description="Max queue depth"
-    )
+    max_queue_size: int = Field(default=1000, ge=10, le=100000, description="Max queue depth")
     workers: int = Field(default=1, ge=1, le=32, description="Worker task count")
 
     # Transform configuration
@@ -207,9 +177,7 @@ class IngestionConfig(BaseSettings):
         description="Fields to extract seeds from",
     )
     grid_field: str = Field(default="grid_size", description="Grid size field")
-    param_fields: list[str] = Field(
-        default_factory=list, description="Fields to include in params"
-    )
+    param_fields: list[str] = Field(default_factory=list, description="Fields to include in params")
 
     @classmethod
     def from_env(cls) -> "IngestionConfig":
@@ -227,9 +195,7 @@ class IngestionConfig(BaseSettings):
         if rest_url:
             rest_source = RestSourceConfig(
                 url=rest_url,
-                poll_interval_seconds=float(
-                    os.environ.get("MFN_REST_POLL_INTERVAL", "60")
-                ),
+                poll_interval_seconds=float(os.environ.get("MFN_REST_POLL_INTERVAL", "60")),
                 timeout=float(os.environ.get("MFN_REST_TIMEOUT", "30")),
             )
 
@@ -254,11 +220,7 @@ class IngestionConfig(BaseSettings):
         source_type_env = os.environ.get("MFN_SOURCE_TYPE", "rest")
         mode_env = os.environ.get("MFN_MODE", "feature")
         return cls(
-            source_type=(
-                source_type_env
-                if source_type_env in ("rest", "file")
-                else "rest"
-            ),
+            source_type=(source_type_env if source_type_env in ("rest", "file") else "rest"),
             rest_source=rest_source,
             file_source=file_source,
             backend=backend,

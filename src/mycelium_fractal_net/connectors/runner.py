@@ -43,8 +43,7 @@ logger = logging.getLogger(__name__)
 
 _SUPPORTED_REMOTE_PROTOCOL = "rest"
 _REMOTE_PROTOCOL_ERROR = (
-    "RemoteBackend protocol '{protocol}' is not supported. "
-    "Use protocol='rest'."
+    "RemoteBackend protocol '{protocol}' is not supported. " "Use protocol='rest'."
 )
 
 
@@ -148,9 +147,7 @@ class LocalBackend(MFNBackend):
 
             latency = (datetime.now(timezone.utc) - start).total_seconds() * 1000
 
-            logger.debug(
-                f"Feature extraction complete: {request.request_id} ({latency:.2f}ms)"
-            )
+            logger.debug(f"Feature extraction complete: {request.request_id} ({latency:.2f}ms)")
 
             return BackendResult(
                 success=True,
@@ -460,9 +457,7 @@ class IngestionRunner:
         self._running = True
         self._stats = IngestionStats()
 
-        logger.info(
-            f"Starting ingestion: mode={self.mode}, batch_size={self.batch_size}"
-        )
+        logger.info(f"Starting ingestion: mode={self.mode}, batch_size={self.batch_size}")
 
         try:
             await self.ingestor.connect()

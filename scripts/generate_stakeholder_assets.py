@@ -213,9 +213,7 @@ def _validate_repo_path(
     try:
         path.relative_to(ROOT)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError(
-            f"Path must be inside repository root ({ROOT})."
-        ) from exc
+        raise argparse.ArgumentTypeError(f"Path must be inside repository root ({ROOT}).") from exc
     if must_exist and not path.exists():
         raise argparse.ArgumentTypeError(f"Path does not exist: {path}")
     if expect_file and path.exists() and not path.is_file():
@@ -386,17 +384,13 @@ def compute_sha256(path: Path) -> str:
 
 def describe_repo_state(root: Path) -> dict[str, str]:
     try:
-        rev = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=root, text=True
-        ).strip()
+        rev = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
     except Exception:
         rev = "unknown"
     return {"git_rev": rev}
 
 
-def dump_manifest(
-    manifest_path: Path, files: Sequence[Path], extras: dict[str, str]
-) -> None:
+def dump_manifest(manifest_path: Path, files: Sequence[Path], extras: dict[str, str]) -> None:
     records = []
     for file_path in files:
         records.append(
@@ -430,9 +424,7 @@ def build_entries() -> List[StakeholderEntry]:
                 SourceRef("Створити Раду з відповідального ШІ", "council formation"),
                 SourceRef("Затвердити мандат", "mandate"),
                 SourceRef("Назначити власників робочих потоків", "workstream owners"),
-                SourceRef(
-                    "ретроспективи ради Responsible AI", "continuous improvement"
-                ),
+                SourceRef("ретроспективи ради Responsible AI", "continuous improvement"),
             ],
         ),
         StakeholderEntry(
@@ -512,9 +504,7 @@ def build_entries() -> List[StakeholderEntry]:
             sources=[
                 SourceRef("юристів", "council composition"),
                 SourceRef("правові перегляди", "legal reviews"),
-                SourceRef(
-                    "Узгодити процес комунікації з регуляторами", "regulator comms"
-                ),
+                SourceRef("Узгодити процес комунікації з регуляторами", "regulator comms"),
             ],
         ),
         StakeholderEntry(
@@ -573,9 +563,7 @@ def build_entries() -> List[StakeholderEntry]:
             interest_level=5,
             sources=[
                 SourceRef("внутрішній/зовнішній клієнт", "usage contexts"),
-                SourceRef(
-                    "клієнт, служба підтримки, регулятор", "explainability audiences"
-                ),
+                SourceRef("клієнт, служба підтримки, регулятор", "explainability audiences"),
                 SourceRef("Публікувати щоквартальні звіти", "transparency reports"),
             ],
         ),
@@ -677,9 +665,7 @@ def build_entries() -> List[StakeholderEntry]:
             interest_level=5,
             sources=[
                 SourceRef("red team", "red team"),
-                SourceRef(
-                    "симульовані атаки щонайменше щоквартально", "red team cadence"
-                ),
+                SourceRef("симульовані атаки щонайменше щоквартально", "red team cadence"),
             ],
         ),
         StakeholderEntry(
@@ -708,16 +694,11 @@ def build_entries() -> List[StakeholderEntry]:
             power="Medium",
             interest_level=5,
             sources=[
-                SourceRef(
-                    "Задокументувати зв’язок між продуктами й моделями", "catalogue"
-                ),
-                SourceRef(
-                    "gate review перед запуском критичних функцій", "product governance"
-                ),
+                SourceRef("Задокументувати зв’язок між продуктами й моделями", "catalogue"),
+                SourceRef("gate review перед запуском критичних функцій", "product governance"),
             ],
         ),
     ]
-
 
 
 def assert_no_placeholders(entries: Sequence[StakeholderEntry]) -> None:
@@ -781,9 +762,7 @@ def main() -> None:
 
     extras = describe_repo_state(ROOT)
     extras["source_sha256"] = compute_sha256(source_path)
-    dump_manifest(
-        manifest_path, [matrix_path, raci_path, comm_plan_path, source_path], extras
-    )
+    dump_manifest(manifest_path, [matrix_path, raci_path, comm_plan_path, source_path], extras)
 
     print(f"Generated {matrix_path.relative_to(ROOT)}")
     print(f"Generated {raci_path.relative_to(ROOT)}")
