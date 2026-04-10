@@ -120,13 +120,17 @@ def load_universe(
     # Session asynchrony fix: asset sessions don't overlap perfectly
     # (e.g. China_A50 closes before US ETFs open), so a strict inner-join
     # .dropna() kills multi-day blocks whenever any single asset has a
-    # session gap. We forward-fill each column up to 36 hours — covers
-    # long holidays and Asian→US session handoffs without ever looking
-    # into the future — then anchor the panel on the target (USA_500)
-    # rows where USA_500 is live and every other asset has a carried
-    # (or live) price.
-    prices_hourly_ff = prices_hourly_raw.ffill(limit=36)
-    anchor_mask = prices_hourly_ff[TARGET_FILENAME].notna()
+    # session gap. Every non-target column is forward-filled up to 36
+    # hours — covers long holidays and Asian→US session handoffs without
+    # ever looking into the future — while the target column is left
+    # UNTOUCHED. We then anchor the panel on the *raw* target timestamps
+    # (where USA_500 was genuinely live) so no bar is kept just because
+    # the anchor was stale-filled; only those timestamps that still have
+    # every non-target asset present (live or carried) survive .dropna().
+    non_target_cols = [f for f, _ in UNIVERSE if f != TARGET_FILENAME]
+    prices_hourly_ff = prices_hourly_raw.copy()
+    prices_hourly_ff[non_target_cols] = prices_hourly_ff[non_target_cols].ffill(limit=36)
+    anchor_mask = prices_hourly_raw[TARGET_FILENAME].notna()
     prices_hourly = prices_hourly_ff.loc[anchor_mask].dropna()
 
     assert (
@@ -141,17 +145,23 @@ def load_universe(
 
     # Daily resample — use last close of day, then drop any remaining NaN rows.
     prices_daily = prices_hourly.resample("1D").last().dropna()
-    # Gap filter: remove daily rows produced after a break > 5 calendar days.
-    # Such rows always follow a data hole (holiday stack, dataset gap) and
-    # their "log-return" blends multiple market moves into one bar — exactly
-    # the kind of outlier that poisons the rolling z-score.
-    day_gap = pd.Series(prices_daily.index).diff().dt.days
-    keep = (day_gap.isna() | (day_gap <= 5)).to_numpy()
-    prices_daily = prices_daily.loc[keep]
+
+    # Compute daily log-returns on the *unfiltered* price frame so every
+    # return connects genuinely adjacent daily closes. Then drop the
+    # returns whose underlying timestamp gap exceeds 5 calendar days —
+    # those rows are the ones that blend multiple sessions into one bar
+    # and poison the rolling z-score. Applying the filter to returns (not
+    # to prices) means the filtered return is physically removed rather
+    # than being re-created by bridging shift(1) over the discarded row.
     log_arr_d = np.log((prices_daily / prices_daily.shift(1)).to_numpy())
-    returns_daily = pd.DataFrame(
+    returns_daily_all = pd.DataFrame(
         log_arr_d, index=prices_daily.index, columns=prices_daily.columns
     ).dropna()
+    ret_gap_days = pd.Series(returns_daily_all.index).diff().dt.days.to_numpy()
+    # First return has NaN gap (no previous row); keep it — it's not
+    # bridging a hole, it's just the start of the sample.
+    keep_returns = np.array([True if (g != g) else bool(g <= 5) for g in ret_gap_days], dtype=bool)
+    returns_daily = returns_daily_all.loc[keep_returns]
 
     print(
         f"Universe: {returns_hourly.shape[1]} assets | "
