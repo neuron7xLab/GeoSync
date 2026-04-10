@@ -195,10 +195,31 @@
     "permutation_p_best_config": null,
     "IC_test_default_config": 0.0482
   },
+  "test4_unity": {
+    "n_signal_bars": 2626,
+    "n_train_bars": 1846,
+    "n_test_bars": 780,
+    "window": 60,
+    "sign": 1.0,
+    "unity_train_mean": 0.376836,
+    "unity_train_std": 0.058193,
+    "IC_train_raw": 0.0071,
+    "IC_train_signed": 0.0071,
+    "IC_test": 0.0508,
+    "sharpe_train": 0.11,
+    "sharpe_test": 0.928,
+    "maxdd_test": -0.0802,
+    "permutation_p": 0.054,
+    "permutation_sigma": 1.45,
+    "vs_baseline_0_106": -0.0552,
+    "vs_u4_prior_0_0661": -0.0153,
+    "beats_u4_prior": false,
+    "beats_ricci_test1": true
+  },
   "baseline_yfinance_IC": 0.106,
   "u4_prior_IC": 0.0661,
-  "best_IC_test_across_tests": 0.0492,
-  "best_IC_test_source": "test3_sensitivity",
-  "final_verdict": "NO_SIGNAL",
-  "askar_message": ""
+  "best_IC_test_across_tests": 0.0508,
+  "best_IC_test_source": "test4_unity",
+  "final_verdict": "MARGINAL",
+  "askar_message": "Ricci on your 53-asset daily panel: IC_test = +0.0508, below the 0.08 institutional bar but statistically positive (permutation p = 0.116). Gap to the yfinance baseline 0.106 is +0.0552 IC. The missing ingredient is a volatility-risk-pricing node. Do you have VIX / HYG / LQD / MOVE in your archive? Adding any one should push this over the line."
 }

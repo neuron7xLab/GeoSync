@@ -33,9 +33,11 @@ from research.askar.daily_53_experiment import (
     THRESHOLD_GRID,
     WINDOW_GRID,
     DailyPanel,
+    compute_unity_series,
     load_daily_panel,
     run_test_2,
     run_test_3,
+    run_test_4,
 )
 from research.askar.optimal_universe import (
     compute_signal,
@@ -46,12 +48,31 @@ REQUIRED_TOP_KEYS = {
     "test1_53assets",
     "test2_momentum_stack",
     "test3_sensitivity",
+    "test4_unity",
     "baseline_yfinance_IC",
     "u4_prior_IC",
     "best_IC_test_across_tests",
     "best_IC_test_source",
     "final_verdict",
     "askar_message",
+}
+
+REQUIRED_TEST4_KEYS = {
+    "n_signal_bars",
+    "window",
+    "sign",
+    "unity_train_mean",
+    "unity_train_std",
+    "IC_train_raw",
+    "IC_train_signed",
+    "IC_test",
+    "sharpe_test",
+    "maxdd_test",
+    "permutation_p",
+    "vs_baseline_0_106",
+    "vs_u4_prior_0_0661",
+    "beats_u4_prior",
+    "beats_ricci_test1",
 }
 
 REQUIRED_TEST1_KEYS = {
@@ -260,7 +281,67 @@ def test_output_schema_complete() -> None:
     missing_3 = REQUIRED_TEST3_KEYS - set(t3.keys())
     assert not missing_3, f"test3 missing: {missing_3}"
 
+    t4 = report["test4_unity"]
+    missing_4 = REQUIRED_TEST4_KEYS - set(t4.keys())
+    assert not missing_4, f"test4 missing: {missing_4}"
+    # Unity sign must be exactly +1 or -1 (train-selected).
+    assert float(t4["sign"]) in {1.0, -1.0}
+    # vs_baseline algebra must hold for the Unity block as well.
+    ic_test_4 = float(t4["IC_test"])
+    assert abs(float(t4["vs_baseline_0_106"]) - (ic_test_4 - report["baseline_yfinance_IC"])) < 1e-6
+
     assert report["final_verdict"] in {"SIGNAL_FOUND", "MARGINAL", "NO_SIGNAL"}
     # Sign of vs_baseline must match IC algebra.
     ic_test = float(t1["IC_test"])
     assert abs(float(t1["vs_baseline_0_106"]) - (ic_test - report["baseline_yfinance_IC"])) < 1e-6
+
+
+# ---------------------------------------------------------------- #
+# 7. Unity = λ₁/N — bounds, no-lookahead sign, train-only stats
+# ---------------------------------------------------------------- #
+
+
+def test_unity_signal_bounds_and_train_only() -> None:
+    rng = np.random.default_rng(42)
+    n, k = 400, 8
+    idx = pd.date_range("2020-01-01", periods=n, freq="D")
+    returns = pd.DataFrame(
+        rng.normal(size=(n, k)) * 0.01,
+        index=idx,
+        columns=[f"A{i}" for i in range(k)],
+    )
+    df = compute_unity_series(returns, window=60)
+    assert "unity" in df.columns and "delta_unity" in df.columns
+    # Unity ∈ [1/k, 1] for a correlation matrix on k variables
+    u = df["unity"].to_numpy()
+    assert np.all(
+        (u >= 1.0 / k - 1e-9) & (u <= 1.0 + 1e-9)
+    ), f"unity out of [1/k, 1] range: min={u.min():.4f}, max={u.max():.4f}"
+
+    # Train-only stats via run_test_4: poisoning the test slice must leave
+    # train mean, std, sign, and train IC bit-identical.
+    panel = DailyPanel(
+        prices=returns.copy(),
+        returns=returns,
+        target="A0",
+        n_assets=k,
+    )
+    rep1, _strat1, _sig1 = run_test_4(panel)
+
+    poisoned_returns = returns.copy()
+    poisoned_returns.loc[poisoned_returns.index >= SPLIT_DATE] += 1e6
+    panel2 = DailyPanel(
+        prices=poisoned_returns.copy(),
+        returns=poisoned_returns,
+        target="A0",
+        n_assets=k,
+    )
+    rep2, _strat2, _sig2 = run_test_4(panel2)
+
+    # Short synthetic series may trigger the "signal_too_short" early exit;
+    # only compare frozen fields when both runs actually produced a signal.
+    if "IC_train_raw" in rep1 and "IC_train_raw" in rep2:
+        assert rep1["unity_train_mean"] == pytest.approx(rep2["unity_train_mean"], abs=1e-9)
+        assert rep1["unity_train_std"] == pytest.approx(rep2["unity_train_std"], abs=1e-9)
+        assert rep1["IC_train_raw"] == pytest.approx(rep2["IC_train_raw"], abs=1e-9)
+        assert rep1["sign"] == rep2["sign"]

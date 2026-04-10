@@ -400,6 +400,138 @@ def run_test_3(
 
 
 # -------------------------------------------------------------------- #
+# TEST 4 — Unity = λ₁ / N standalone signal
+# -------------------------------------------------------------------- #
+
+
+def compute_unity_series(
+    returns: pd.DataFrame,
+    window: int = WINDOW_DEFAULT,
+) -> pd.DataFrame:
+    """Rolling spectral unity of the correlation matrix.
+
+    For each bar we compute the correlation matrix of the trailing
+    ``window`` returns, take its top eigenvalue λ₁, and divide by the
+    universe size N. The result lives in [1/N, 1] and is a systemic-risk
+    / market-integration scalar (Billio/Getmansky/Lo/Pelizzon 2012):
+        unity → 1   all assets move together (absorbed by the top mode)
+        unity → 1/N uncorrelated (eigenvalues all ~ 1)
+
+    We return a DataFrame aligned to ``returns.index[window:]`` with the
+    unity series, its first difference and the target's forward return,
+    so the rest of the pipeline can reuse the same backtest plumbing.
+    """
+    arr = returns.to_numpy()
+    n, k = arr.shape
+    unity_vals: list[float] = []
+    delta_vals: list[float] = []
+    prev: float | None = None
+    for i in range(window, n):
+        w = arr[i - window : i]
+        corr = np.corrcoef(w.T)
+        if not np.isfinite(corr).all():
+            unity_vals.append(float("nan"))
+            delta_vals.append(0.0)
+            prev = None
+            continue
+        eigs = np.linalg.eigvalsh(corr)
+        lam1 = float(eigs[-1])  # eigvalsh returns ascending
+        unity = lam1 / float(k)
+        unity_vals.append(unity)
+        delta_vals.append(0.0 if prev is None else unity - prev)
+        prev = unity
+
+    idx = returns.index[window:n]
+    df = pd.DataFrame(
+        {
+            "unity": unity_vals,
+            "delta_unity": delta_vals,
+            "fwd_return": arr[window:n, 0],
+        },
+        index=idx,
+    )
+    return df.dropna()
+
+
+def run_test_4(panel: DailyPanel) -> tuple[dict[str, Any], pd.Series, pd.Series]:
+    """Unity = λ₁/N as a standalone directional signal.
+
+    Same walk-forward split as tests 1–3. We don't know a priori whether
+    the sign is long-high-unity or long-low-unity; pick whichever gives
+    the higher absolute train IC (decision frozen on TRAIN only) and
+    apply the chosen sign to test without refit.
+    """
+    df = compute_unity_series(panel.returns, window=WINDOW_DEFAULT)
+    if len(df) < 200:
+        return (
+            {"reason": "signal_too_short", "n_signal_bars": int(len(df))},
+            pd.Series(dtype=float),
+            pd.Series(dtype=float),
+        )
+
+    train = df[df.index < SPLIT_DATE]
+    # Train-frozen z-score (so test uses the same scale as train).
+    mu = float(train["unity"].mean())
+    sd = float(train["unity"].std()) + 1e-8
+    z_unity = (df["unity"] - mu) / sd
+
+    ic_train_raw = _ic(z_unity[df.index < SPLIT_DATE], train["fwd_return"])
+    # Sign selection on train only.
+    sign = 1.0 if ic_train_raw >= 0.0 else -1.0
+    signal = sign * z_unity
+
+    # Full-sample backtest via the same expanding-quintile + vol-gate path
+    # used elsewhere. We build a minimal df_sig DataFrame so we can route
+    # through backtest() without duplicating the machinery.
+    bt_df = pd.DataFrame(
+        {
+            "combo": signal,
+            "baseline": signal,  # required by backtest()'s IC diagnostics
+            "fwd_return": df["fwd_return"],
+        },
+        index=df.index,
+    )
+    block, strat = backtest(
+        bt_df,
+        SPLIT_DATE,
+        cost_bps=COST_BPS_DAILY,
+        bars_per_year=BARS_PER_YEAR_DAILY,
+        vol_condition=True,
+    )
+    # Raw-signal permutation test on the test slice
+    test_slice = bt_df[bt_df.index >= SPLIT_DATE]
+    _ic_perm, p_val, sigma_val = permutation_test(
+        test_slice["combo"],
+        test_slice["fwd_return"],
+        n=N_PERMUTATIONS,
+        seed=13,
+    )
+
+    report = {
+        "n_signal_bars": int(len(df)),
+        "n_train_bars": int(block["n_train"]),
+        "n_test_bars": int(block["n_test"]),
+        "window": WINDOW_DEFAULT,
+        "sign": float(sign),
+        "unity_train_mean": round(mu, 6),
+        "unity_train_std": round(sd, 6),
+        "IC_train_raw": round(float(ic_train_raw), 4),
+        "IC_train_signed": round(float(block["IC_train"]), 4),
+        "IC_test": round(float(block["IC_test"]), 4),
+        "sharpe_train": round(float(block["sharpe_train"]), 3),
+        "sharpe_test": round(float(block["sharpe_test"]), 3),
+        "maxdd_test": round(float(block["maxdd_test"]), 4),
+        "permutation_p": round(float(p_val), 4),
+        "permutation_sigma": round(float(sigma_val), 2),
+        "vs_baseline_0_106": round(float(block["IC_test"]) - BASELINE_YFINANCE_IC, 4),
+        "vs_u4_prior_0_0661": round(float(block["IC_test"]) - U4_PRIOR_IC, 4),
+        "beats_u4_prior": bool(block["IC_test"] > U4_PRIOR_IC),
+        "beats_ricci_test1": bool(block["IC_test"] > 0.0482),
+    }
+    return report, strat, signal
+
+
+# -------------------------------------------------------------------- #
 # Plot + orchestration
 # -------------------------------------------------------------------- #
 
@@ -470,6 +602,16 @@ def run() -> dict[str, Any]:
             f"IC_train={bt['IC_train']:+.4f} | IC_test_best={test3['IC_test_best_config']}"
         )
 
+    print("[TEST 4] Unity = λ₁/N standalone")
+    test4, strat4, _unity_series = run_test_4(panel)
+    print(
+        f"[TEST 4] sign={test4.get('sign')}  "
+        f"IC_train={test4.get('IC_train_signed')}  "
+        f"IC_test={test4.get('IC_test')}  "
+        f"Sharpe={test4.get('sharpe_test')}  "
+        f"perm_p={test4.get('permutation_p')}"
+    )
+
     # -------- Final verdict --------
     # A Ricci "signal" must carry real Ricci weight. The TEST 2 ensemble is
     # only eligible for the verdict if the train-fit blend gives Ricci at
@@ -491,6 +633,8 @@ def run() -> dict[str, Any]:
         test_ics.append(("test2_momentum_stack", float(test2["IC_test_ensemble"])))
     if test3.get("IC_test_best_config") is not None:
         test_ics.append(("test3_sensitivity", float(test3["IC_test_best_config"])))
+    if test4.get("IC_test") is not None:
+        test_ics.append(("test4_unity", float(test4["IC_test"])))
 
     best_ic = max((v for _, v in test_ics), default=float("nan"))
     best_source = next(
@@ -541,6 +685,7 @@ def run() -> dict[str, Any]:
         "test1_53assets": test1,
         "test2_momentum_stack": test2,
         "test3_sensitivity": test3,
+        "test4_unity": test4,
         "baseline_yfinance_IC": BASELINE_YFINANCE_IC,
         "u4_prior_IC": U4_PRIOR_IC,
         "best_IC_test_across_tests": (round(float(best_ic), 4) if np.isfinite(best_ic) else None),
@@ -550,35 +695,40 @@ def run() -> dict[str, Any]:
     }
 
     # -------- Plot --------
-    plot_equities(
-        [
+    plot_runs: list[tuple[str, pd.Series]] = [
+        (
+            f"T1 53-asset IC={test1['IC_test']:+.4f}",
+            strat1[strat1.index >= SPLIT_DATE],
+        ),
+        (
+            f"T2 stack   IC={test2['IC_test_ensemble']:+.4f}",
+            strat2[strat2.index >= SPLIT_DATE],
+        ),
+    ]
+    if strat3 is not None and test3.get("IC_test_best_config") is not None:
+        plot_runs.append(
             (
-                f"T1 53-asset IC={test1['IC_test']:+.4f}",
-                strat1[strat1.index >= SPLIT_DATE],
-            ),
-            (
-                f"T2 stack   IC={test2['IC_test_ensemble']:+.4f}",
-                strat2[strat2.index >= SPLIT_DATE],
-            ),
-        ]
-        + (
-            [
-                (
-                    f"T3 best   IC={test3['IC_test_best_config']:+.4f}",
-                    strat3[strat3.index >= SPLIT_DATE],
-                )
-            ]
-            if strat3 is not None and test3.get("IC_test_best_config") is not None
-            else []
+                f"T3 best   IC={test3['IC_test_best_config']:+.4f}",
+                strat3[strat3.index >= SPLIT_DATE],
+            )
         )
-        + [
+    if len(strat4) and test4.get("IC_test") is not None:
+        plot_runs.append(
             (
-                "USA_500 buy&hold",
-                panel.returns[panel.target][panel.returns.index >= SPLIT_DATE].fillna(0.0),
-            ),
-        ],
+                f"T4 unity  IC={test4['IC_test']:+.4f}",
+                strat4[strat4.index >= SPLIT_DATE],
+            )
+        )
+    plot_runs.append(
+        (
+            "USA_500 buy&hold",
+            panel.returns[panel.target][panel.returns.index >= SPLIT_DATE].fillna(0.0),
+        )
+    )
+    plot_equities(
+        plot_runs,
         RESULTS_DIR / "askar_53asset_daily_equity.png",
-        "Askar 53-asset daily — Ricci / momentum / sensitivity (test period)",
+        "Askar 53-asset daily — Ricci / momentum / unity (test period)",
     )
 
     RESULTS_DIR.mkdir(exist_ok=True, parents=True)
@@ -603,7 +753,9 @@ def run() -> dict[str, Any]:
         "test3_best_train": test3.get("best_train_config"),
         "test3_IC_test_best": test3.get("IC_test_best_config"),
         "test3_IC_test_default": test3.get("IC_test_default_config"),
+        "test4_unity": test4,
         "best_IC_across_tests": report["best_IC_test_across_tests"],
+        "best_IC_test_source": best_source,
         "final_verdict": verdict,
     }
     print(json.dumps(_to_json_safe(printable), indent=2))
