@@ -65,11 +65,14 @@
   "daily": {
     "IC_train": -0.0162,
     "IC_test": 0.0407,
-    "sharpe_train": -0.338,
-    "sharpe_test": -0.765,
-    "maxdd_test": -0.2571,
-    "crisis_2022": -0.1031,
-    "overfit_ratio": 2.263,
+    "sharpe_train": -0.217,
+    "sharpe_test": -0.555,
+    "maxdd_test": -0.1689,
+    "crisis_2022": -0.0943,
+    "overfit_ratio": 2.558,
+    "vol_conditioned": true,
+    "mean_vol_weight_train": 0.717,
+    "mean_vol_weight_test": 0.643,
     "n_train": 1497,
     "n_test": 765,
     "permutation_p": 0.152,
@@ -82,10 +85,10 @@
   "hourly": {
     "IC_train": 0.0114,
     "IC_test": 0.0035,
-    "sharpe_test": -0.404,
+    "sharpe_test": -0.246,
     "permutation_p": 0.336,
     "permutation_sigma": 0.44,
-    "crisis_2022": 0.0119,
+    "crisis_2022": 0.0192,
     "n_train": 30714,
     "n_test": 15276
   },
@@ -95,7 +98,8 @@
       "test_start": "2019-08-26 00:00:00",
       "test_end": "2020-12-11 00:00:00",
       "IC": -0.1141,
-      "sharpe": 0.253,
+      "sharpe": 0.384,
+      "mean_vol_weight": 0.867,
       "n_test": 377
     },
     {
@@ -103,7 +107,8 @@
       "test_start": "2020-12-14 00:00:00",
       "test_end": "2022-04-05 00:00:00",
       "IC": -0.0359,
-      "sharpe": -0.36,
+      "sharpe": -0.31,
+      "mean_vol_weight": 0.704,
       "n_test": 377
     },
     {
@@ -111,7 +116,8 @@
       "test_start": "2022-04-06 00:00:00",
       "test_end": "2023-07-13 00:00:00",
       "IC": 0.0555,
-      "sharpe": 0.241,
+      "sharpe": 0.153,
+      "mean_vol_weight": 0.843,
       "n_test": 377
     },
     {
@@ -119,7 +125,8 @@
       "test_start": "2023-07-14 00:00:00",
       "test_end": "2024-10-22 00:00:00",
       "IC": 0.0371,
-      "sharpe": -0.559,
+      "sharpe": -0.728,
+      "mean_vol_weight": 0.632,
       "n_test": 377
     },
     {
@@ -127,7 +134,8 @@
       "test_start": "2024-10-23 00:00:00",
       "test_end": "2026-02-20 00:00:00",
       "IC": 0.0456,
-      "sharpe": -0.009,
+      "sharpe": 0.086,
+      "mean_vol_weight": 0.696,
       "n_test": 377
     }
   ],

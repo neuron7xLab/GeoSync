@@ -261,11 +261,49 @@ def expanding_quintile(combo: pd.Series, min_history: int = 50) -> pd.Series:
     return pos
 
 
+VOL_WINDOW = 20
+
+
+def vol_weight(
+    target_returns: pd.Series,
+    split_date: pd.Timestamp,
+    window: int = VOL_WINDOW,
+) -> pd.Series:
+    """Regime-aware position multiplier ∈ [0, 1].
+
+    The Ricci-delta signal is known to be quiet in low-vol/DISPERSED
+    regimes and active in high-vol/TENSION regimes. We therefore scale
+    every quintile position by a smooth function of realised volatility:
+
+        vol_weight(t) = tanh( realised_vol_20(t) / median_vol_train )
+
+    * Shift by one bar to avoid using the current bar's own return.
+    * `median_vol_train` is a scalar **computed on train only** — this is
+      critical to preserve no-lookahead. The denominator is frozen before
+      the test window begins.
+    * In low-vol (vol ≪ median) → weight → 0, the strategy goes flat and
+      does not bleed cost + variance into the equity curve.
+    * In high-vol (vol ≫ median) → weight → 1, the strategy takes full
+      quintile exposure.
+    """
+    # Use the absolute log-return's rolling std; shift(1) so the weight
+    # at bar t depends only on data up to t-1.
+    realised = target_returns.rolling(window).std().shift(1)
+    train_median = float(realised.loc[realised.index < split_date].median())
+    if not np.isfinite(train_median) or train_median <= 0.0:
+        # Degenerate train slice — fall back to a neutral multiplier.
+        return pd.Series(1.0, index=target_returns.index, dtype=float)
+    weight_arr = np.tanh(realised.to_numpy() / train_median)
+    weight = pd.Series(weight_arr, index=realised.index, dtype=float)
+    return weight.fillna(0.0)
+
+
 def backtest(
     df_sig: pd.DataFrame,
     split_date: pd.Timestamp,
     cost_bps: float,
     bars_per_year: float,
+    vol_condition: bool = True,
 ) -> tuple[dict[str, Any], pd.Series]:
     train_mask = df_sig.index < split_date
     test_mask = df_sig.index >= split_date
@@ -282,7 +320,14 @@ def backtest(
     ic_train = _ic(train["combo"], train["fwd_return"])
     ic_test = _ic(test["combo"], test["fwd_return"])
 
-    pos = expanding_quintile(df_sig["combo"])
+    quintile = expanding_quintile(df_sig["combo"])
+    if vol_condition:
+        w = vol_weight(df_sig["fwd_return"], split_date, VOL_WINDOW)
+        w = w.reindex(df_sig.index).fillna(0.0)
+        pos = quintile * w
+    else:
+        pos = quintile
+
     cost = pos.diff().abs().fillna(0.0) * cost_bps / 10_000.0
     ret = pos.shift(1) * df_sig["fwd_return"] - cost
     ret = ret.fillna(0.0)
@@ -307,6 +352,18 @@ def backtest(
         round(float(sharpe_test / (sharpe_train + 1e-8)), 3) if sharpe_train != 0 else float("nan")
     )
 
+    # Vol-weight diagnostics — mean multiplier on train vs test shows
+    # how much the regime gate actually suppressed positions where Ricci
+    # was supposed to stay silent. With vol_condition off we report 1.0
+    # so downstream consumers can still rely on the key being present.
+    if vol_condition:
+        diag_weight = vol_weight(df_sig["fwd_return"], split_date, VOL_WINDOW)
+        mean_w_train = float(diag_weight[train_mask].mean())
+        mean_w_test = float(diag_weight[test_mask].mean())
+    else:
+        mean_w_train = 1.0
+        mean_w_test = 1.0
+
     block = {
         "IC_train": round(ic_train, 4),
         "IC_test": round(ic_test, 4),
@@ -315,6 +372,9 @@ def backtest(
         "maxdd_test": round(maxdd, 4),
         "crisis_2022": round(crisis_return, 4),
         "overfit_ratio": overfit_ratio,
+        "vol_conditioned": bool(vol_condition),
+        "mean_vol_weight_train": round(mean_w_train, 3),
+        "mean_vol_weight_test": round(mean_w_test, 3),
         "n_train": int(train_mask.sum()),
         "n_test": int(test_mask.sum()),
     }
@@ -366,13 +426,23 @@ def orthogonality(df_sig: pd.DataFrame, target_returns: pd.Series) -> dict[str, 
     }
 
 
-def walkforward_5fold(df_sig: pd.DataFrame, bars_per_year: float) -> list[dict[str, Any]]:
-    """Split combo into 5 expanding-window test blocks and report IC/Sharpe."""
+def walkforward_5fold(
+    df_sig: pd.DataFrame,
+    bars_per_year: float,
+    vol_condition: bool = True,
+) -> list[dict[str, Any]]:
+    """Split combo into 5 expanding-window test blocks and report IC/Sharpe.
+
+    Per-fold positions use the same expanding-quintile rule as the
+    main backtest, and (when ``vol_condition=True``) are multiplied by
+    the same ``tanh(vol / median_train)`` regime gate, with the
+    ``median_train`` frozen from each fold's own training window — no
+    lookahead across folds.
+    """
     n = len(df_sig)
     fold_size = n // (N_WALKFORWARD_FOLDS + 1)
     folds: list[dict[str, Any]] = []
-    pos_full = expanding_quintile(df_sig["combo"])
-    strat_full = (pos_full.shift(1) * df_sig["fwd_return"]).fillna(0.0)
+    quintile = expanding_quintile(df_sig["combo"])
     for k in range(N_WALKFORWARD_FOLDS):
         test_start = fold_size * (k + 1)
         test_end = min(n, fold_size * (k + 2))
@@ -383,6 +453,17 @@ def walkforward_5fold(df_sig: pd.DataFrame, bars_per_year: float) -> list[dict[s
         if mask_te.sum() < 20:
             continue
         ic_te, _ = spearmanr(test.loc[mask_te, "combo"], test.loc[mask_te, "fwd_return"])
+        fold_split = df_sig.index[test_start]
+        if vol_condition:
+            w = vol_weight(df_sig["fwd_return"], fold_split, VOL_WINDOW)
+            fold_pos = quintile * w.reindex(df_sig.index).fillna(0.0)
+            fold_mean_w_test = float(
+                w.iloc[test_start:test_end].mean() if test_end > test_start else 0.0
+            )
+        else:
+            fold_pos = quintile
+            fold_mean_w_test = 1.0
+        strat_full = (fold_pos.shift(1) * df_sig["fwd_return"]).fillna(0.0)
         test_ret = strat_full.iloc[test_start:test_end]
         sharpe_val = (
             float(test_ret.mean() / (test_ret.std() + 1e-8) * np.sqrt(bars_per_year))
@@ -396,6 +477,7 @@ def walkforward_5fold(df_sig: pd.DataFrame, bars_per_year: float) -> list[dict[s
                 "test_end": str(test.index[-1]),
                 "IC": round(float(ic_te), 4),
                 "sharpe": round(sharpe_val, 3),
+                "mean_vol_weight": round(fold_mean_w_test, 3),
                 "n_test": int(test_end - test_start),
             }
         )
