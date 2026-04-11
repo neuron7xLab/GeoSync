@@ -311,4 +311,6 @@ def test_golden_flow_metrics_payload_hash_is_pinned() -> None:
 # by a deliberate update of this literal in the same commit as the math
 # change. A silent drift in either indicator breaks this test loudly
 # with a diff-friendly error message.
-_GOLDEN_HASH = "91b2bd5945826653637a383ff367b64599b07bbaf04bf9a2516e84d6d86ff04f"
+_GOLDEN_HASH = (
+    "91b2bd5945826653637a383ff367b64599b07bbaf04bf9a2516e84d6d86ff04f"  # pragma: allowlist secret
+)
