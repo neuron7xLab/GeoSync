@@ -73,6 +73,15 @@ from .trading import (
     TradingStrategy,
     register_strategies,
 )
+from .trading_composer import (
+    DEFAULT_TRADING_COMPOSER_CONFIG,
+    CompositeDecision,
+    CompositeSignal,
+    TradingComposer,
+    TradingComposerConfig,
+    TradingSnapshot,
+    compose_decision,
+)
 
 __all__ = [
     "moving_average_signal",
@@ -135,4 +144,11 @@ __all__ = [
     "BTCSignal",
     "DEFAULT_BTC_RULE_CONFIG",
     "evaluate_btc_rules",
+    "CompositeDecision",
+    "CompositeSignal",
+    "TradingComposer",
+    "TradingComposerConfig",
+    "TradingSnapshot",
+    "DEFAULT_TRADING_COMPOSER_CONFIG",
+    "compose_decision",
 ]

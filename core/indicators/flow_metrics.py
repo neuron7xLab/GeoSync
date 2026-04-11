@@ -213,14 +213,23 @@ def compute_fmn(
     cvd = np.cumsum(dv)
 
     # Rolling max-abs scaler: at index t, scale = max(|CVD_{t-w+1..t}|).
-    # Purely numpy, O(n * w) but w is small; acceptable for typical use.
+    # Implementation uses ``sliding_window_view`` so the inner loop is
+    # gone — the whole thing vectorises to a single ``max`` reduction
+    # over a shape (n - w + 1, w) strided view. For t < w - 1 we fall
+    # back to an expanding-window ``np.maximum.accumulate`` so the
+    # early tail is still bounded without allocating a padded array.
     w1, w2 = weights
-    scale = np.empty(n, dtype=np.float64)
-    for t in range(n):
-        lo = max(0, t - cvd_window + 1)
-        window_abs = np.abs(cvd[lo : t + 1])
-        max_abs = float(window_abs.max()) if window_abs.size > 0 else 0.0
-        scale[t] = max_abs if max_abs > eps else 1.0
+    abs_cvd = np.abs(cvd)
+    # Expanding max for the warm-up region [0 .. cvd_window - 2].
+    expanding_max = np.maximum.accumulate(abs_cvd)
+    scale = expanding_max.copy()
+    if n >= cvd_window:
+        # Tail [cvd_window - 1 .. n - 1] uses the true rolling window.
+        windows = np.lib.stride_tricks.sliding_window_view(abs_cvd, cvd_window)
+        rolling_max = windows.max(axis=1)
+        scale[cvd_window - 1 :] = rolling_max
+    # Guard against zero scale → fall back to 1.0 so tanh arg stays finite.
+    scale = np.where(scale > eps, scale, 1.0)
 
     cvd_scaled = cvd / scale
     arg = w1 * ob_imbalance + w2 * cvd_scaled
