@@ -318,3 +318,30 @@ When adding clamp/clip (`np.clip`, `max(0, x)`, `min(1, x)`):
 - "Fix test" → INV-* referenced? → physics wrong or test wrong? → NEVER loosen bound without WHY
 - When in doubt: physics wins. Always.
 - Gradient first. Processing second. INV-YV1.
+
+---
+
+## Microstructure Kernel Registry (v1)
+
+| Kernel | File | Input | Output |
+|--------|------|-------|--------|
+| OFI Unity | research/kernels/ofi_unity_live.py | bid/ask CSV | IC verdict |
+| Ricci on Spread | research/kernels/ricci_on_spread.py | bid/ask CSV | IC verdict |
+| PLV Market-Spread | research/kernels/plv_market_spread.py | bid/ask CSV | PLV verdict |
+| Spread Stress | research/kernels/spread_stress_detector.py | bid/ask CSV | IC + lead_capture |
+| Ricci Regime | research/kernels/ricci_regime_conditioned.py | bid/ask CSV | regime_lift |
+| Horizon Sweep | research/kernels/horizon_sweep.py | bid/ask CSV | IC by horizon |
+| Signal Combiner | research/kernels/signal_combiner.py | bid/ask CSV | combined IC |
+| neurophase Bridge | research/kernels/neurophase_bridge.py | bid/ask CSV | R(t) gate history |
+| Closing Report | research/askar/closing_report.py | results/ dir | FINAL_REPORT.json |
+| Full Cycle | scripts/run_microstructure_cycle.py | — | RUN_MANIFEST.json |
+
+## One-command run
+
+```
+PYTHONPATH=. python scripts/run_microstructure_cycle.py
+```
+
+Determinism contract: seed=42, IC>=0.08 for SIGNAL_READY, NaN→ABORT,
+OHLC_ONLY→DORMANT, replay_hash over sort_keys=True JSON payload.
+

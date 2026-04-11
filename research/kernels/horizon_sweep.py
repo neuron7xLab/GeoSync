@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -17,17 +18,18 @@ HORIZONS = [1, 2, 4, 8, 12, 24, 48]
 
 
 def _scorr(a: pd.Series, b: pd.Series) -> float:
-    df = pd.concat([a, b], axis=1).dropna()
+    df = pd.concat([a, b], axis=1, sort=False).dropna()
     if len(df) < 30:
         return 0.0
     return float(spearmanr(df.iloc[:, 0], df.iloc[:, 1]).statistic)
 
 
 def _pval(a: pd.Series, b: pd.Series, n: int = 200, seed: int = 42) -> float:
-    df = pd.concat([a, b], axis=1).dropna()
+    df = pd.concat([a, b], axis=1, sort=False).dropna()
     if len(df) < 30:
         return 1.0
-    x = df.iloc[:, 0].to_numpy(); y = df.iloc[:, 1].to_numpy()
+    x = df.iloc[:, 0].to_numpy()
+    y = df.iloc[:, 1].to_numpy()
     obs = abs(float(spearmanr(x, y).statistic))
     rng = np.random.default_rng(seed)
     c = 0
@@ -37,7 +39,7 @@ def _pval(a: pd.Series, b: pd.Series, n: int = 200, seed: int = 42) -> float:
     return float((c + 1) / (n + 1))
 
 
-def run(input_csv: Path, output_json: Path) -> dict:
+def run(input_csv: Path, output_json: Path) -> dict[str, Any]:
     feat, kappa = compute_ricci_features(input_csv)
     _, _, spread_z = compute_spread_z(input_csv)
     mid_r = feat["mid_r"]
@@ -49,7 +51,9 @@ def run(input_csv: Path, output_json: Path) -> dict:
         ic_r = _scorr(kappa.reindex(target.index), target)
         p_s = _pval(spread_z.reindex(target.index), target)
         p_r = _pval(kappa.reindex(target.index), target)
-        rows.append({"horizon": h, "IC_spread": ic_s, "IC_ricci": ic_r, "p_spread": p_s, "p_ricci": p_r})
+        rows.append(
+            {"horizon": h, "IC_spread": ic_s, "IC_ricci": ic_r, "p_spread": p_s, "p_ricci": p_r}
+        )
 
     tbl = pd.DataFrame(rows)
     best_spread = tbl.iloc[tbl["IC_spread"].idxmax()]

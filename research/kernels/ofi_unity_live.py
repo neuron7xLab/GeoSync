@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import json
 import warnings
 from dataclasses import dataclass
@@ -35,7 +34,9 @@ class SourceResult:
 
 def ofi_unity_kernel(l2_df: pd.DataFrame, window: int = WINDOW) -> pd.Series:
     bid_cols = sorted([c for c in l2_df.columns if "bid" in str(c).lower()])
-    ask_cols = [c.replace("bid", "ask") for c in bid_cols if c.replace("bid", "ask") in l2_df.columns]
+    ask_cols = [
+        c.replace("bid", "ask") for c in bid_cols if c.replace("bid", "ask") in l2_df.columns
+    ]
     if not bid_cols or len(ask_cols) != len(bid_cols):
         raise ValueError("Bid/ask columns are required for OFI unity kernel")
     if l2_df[bid_cols + ask_cols].isna().any().any():
@@ -74,7 +75,7 @@ def _safe_spearman(x: np.ndarray | pd.Series, y: np.ndarray | pd.Series) -> floa
 
 
 def validate_unity(unity: pd.Series, target: pd.Series) -> dict[str, Any]:
-    df = pd.concat([unity.rename("u"), target.rename("y")], axis=1).dropna()
+    df = pd.concat([unity.rename("u"), target.rename("y")], axis=1, sort=False).dropna()
     if len(df) < 50:
         return {
             "IC": 0.0,
@@ -122,9 +123,15 @@ def validate_unity(unity: pd.Series, target: pd.Series) -> dict[str, Any]:
         "DETECT": "PASS" if ic >= 0.08 else "FAIL",
         "DISCRIMINATE": "PASS" if abs(corr_m) < 0.15 and abs(corr_v) < 0.15 else "FAIL",
         "DELIVER": "PASS" if lead_capture >= 0.60 else "FAIL",
-        "FINAL": "SIGNAL_READY"
-        if ic >= 0.08 and p_val < 0.10 and abs(corr_m) < 0.15 and abs(corr_v) < 0.15 and lead_capture >= 0.60
-        else "REJECT",
+        "FINAL": (
+            "SIGNAL_READY"
+            if ic >= 0.08
+            and p_val < 0.10
+            and abs(corr_m) < 0.15
+            and abs(corr_v) < 0.15
+            and lead_capture >= 0.60
+            else "REJECT"
+        ),
     }
 
 

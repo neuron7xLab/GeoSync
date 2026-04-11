@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -12,16 +13,18 @@ from scipy.stats import spearmanr
 
 from core.physics.forman_ricci import FormanRicciCurvature
 
+_RUN_RESULT_T = dict[str, Any]
+
 
 def _scorr(a: pd.Series, b: pd.Series) -> float:
-    df = pd.concat([a, b], axis=1).dropna()
+    df = pd.concat([a, b], axis=1, sort=False).dropna()
     if len(df) < 30:
         return 0.0
     return float(spearmanr(df.iloc[:, 0], df.iloc[:, 1]).statistic)
 
 
 def _perm_pvalue(x: pd.Series, y: pd.Series, n: int = 500, seed: int = 42) -> float:
-    df = pd.concat([x, y], axis=1).dropna()
+    df = pd.concat([x, y], axis=1, sort=False).dropna()
     if len(df) < 30:
         return 1.0
     xv = df.iloc[:, 0].to_numpy()
@@ -36,21 +39,27 @@ def _perm_pvalue(x: pd.Series, y: pd.Series, n: int = 500, seed: int = 42) -> fl
     return float((count + 1) / (n + 1))
 
 
-def compute_ricci_features(input_csv: Path, window: int = 60, threshold: float = 0.30) -> tuple[pd.DataFrame, pd.Series]:
+def compute_ricci_features(
+    input_csv: Path, window: int = 60, threshold: float = 0.30
+) -> tuple[pd.DataFrame, pd.Series]:
     df = pd.read_csv(input_csv)
     df["ts"] = pd.to_datetime(df["ts"], utc=True)
     df = df.sort_values("ts").set_index("ts")
 
     spread = (df["ask_close"] - df["bid_close"]).rename("spread")
-    feat = pd.DataFrame(
-        {
-            "bid_r": np.log(df["bid_close"] / df["bid_close"].shift(1)),
-            "ask_r": np.log(df["ask_close"] / df["ask_close"].shift(1)),
-            "spread": spread,
-            "mid_r": df["mid_returns"],
-            "dspread": spread.diff(),
-        }
-    ).replace([np.inf, -np.inf], np.nan).dropna()
+    feat = (
+        pd.DataFrame(
+            {
+                "bid_r": np.log(df["bid_close"] / df["bid_close"].shift(1)),
+                "ask_r": np.log(df["ask_close"] / df["ask_close"].shift(1)),
+                "spread": spread,
+                "mid_r": df["mid_returns"],
+                "dspread": spread.diff(),
+            }
+        )
+        .replace([np.inf, -np.inf], np.nan)
+        .dropna()
+    )
 
     ricci = FormanRicciCurvature(threshold=threshold)
     vals = feat.to_numpy(dtype=float)
@@ -64,7 +73,12 @@ def compute_ricci_features(input_csv: Path, window: int = 60, threshold: float =
     return feat, kappa
 
 
-def run(input_csv: Path, output_json: Path, window: int = 60, threshold: float = 0.30) -> dict:
+def run(
+    input_csv: Path,
+    output_json: Path,
+    window: int = 60,
+    threshold: float = 0.30,
+) -> _RUN_RESULT_T:
     feat, kappa = compute_ricci_features(input_csv, window=window, threshold=threshold)
     target = feat["mid_r"].shift(-1)
     ic = _scorr(kappa, target)

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
+
 import numpy as np
 import pandas as pd
 
-from research.kernels.ricci_regime_conditioned import run as run_regime
-from research.kernels.horizon_sweep import run as run_horizon
-from research.kernels.signal_combiner import run as run_combiner
 from research.askar.closing_report import run as run_report
+from research.kernels.horizon_sweep import run as run_horizon
+from research.kernels.ricci_regime_conditioned import run as run_regime
+from research.kernels.signal_combiner import run as run_combiner
 
 
 def _sample_csv(tmp_path):
@@ -33,10 +34,16 @@ def test_advanced_kernels_and_report(tmp_path):
 
     results_dir = tmp_path / "results"
     results_dir.mkdir()
-    (results_dir / "ofi_unity_dukascopy_verdict.json").write_text(json.dumps({"FINAL": "REJECT", "IC": 0.0}))
-    (results_dir / "ricci_on_spread_verdict.json").write_text(json.dumps({"FINAL": "REJECT", "IC": 0.01}))
+    (results_dir / "ofi_unity_dukascopy_verdict.json").write_text(
+        json.dumps({"FINAL": "REJECT", "IC": 0.0})
+    )
+    (results_dir / "ricci_on_spread_verdict.json").write_text(
+        json.dumps({"FINAL": "REJECT", "IC": 0.01})
+    )
     (results_dir / "plv_spread_market_verdict.json").write_text(json.dumps({"FINAL": "REJECT"}))
-    (results_dir / "spread_stress_verdict.json").write_text(json.dumps({"FINAL": "REJECT", "IC": 0.02}))
+    (results_dir / "spread_stress_verdict.json").write_text(
+        json.dumps({"FINAL": "REJECT", "IC": 0.02})
+    )
     (results_dir / "ricci_regime_verdict.json").write_text(json.dumps(r1))
     (results_dir / "horizon_sweep_verdict.json").write_text(json.dumps(r2))
     (results_dir / "signal_combiner_verdict.json").write_text(json.dumps(r3))

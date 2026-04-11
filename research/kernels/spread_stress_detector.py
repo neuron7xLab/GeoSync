@@ -5,14 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
-import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 
 
 def _scorr(a: pd.Series, b: pd.Series) -> float:
-    df = pd.concat([a, b], axis=1).dropna()
+    df = pd.concat([a, b], axis=1, sort=False).dropna()
     if len(df) < 30:
         return 0.0
     return float(spearmanr(df.iloc[:, 0], df.iloc[:, 1]).statistic)
@@ -31,7 +31,7 @@ def compute_spread_z(input_csv: Path) -> tuple[pd.DataFrame, pd.Series, pd.Serie
     return df, spread, spread_z
 
 
-def run(input_csv: Path, output_json: Path) -> dict:
+def run(input_csv: Path, output_json: Path) -> dict[str, Any]:
     df, _, spread_z = compute_spread_z(input_csv)
     q90 = spread_z.expanding().quantile(0.90)
     alert = (spread_z > q90).astype(bool)
@@ -63,9 +63,11 @@ def run(input_csv: Path, output_json: Path) -> dict:
         "corr_momentum": round(cm, 4),
         "corr_vol": round(cv, 4),
         "lead_capture": round(lead_capture, 4),
-        "FINAL": "SIGNAL_READY"
-        if ic >= 0.08 and abs(cm) < 0.15 and abs(cv) < 0.15 and lead_capture >= 0.60
-        else "REJECT",
+        "FINAL": (
+            "SIGNAL_READY"
+            if ic >= 0.08 and abs(cm) < 0.15 and abs(cv) < 0.15 and lead_capture >= 0.60
+            else "REJECT"
+        ),
     }
 
     output_json.parent.mkdir(parents=True, exist_ok=True)

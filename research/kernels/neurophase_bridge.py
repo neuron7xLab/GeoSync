@@ -16,7 +16,9 @@ def _order_parameter(phases: np.ndarray) -> float:
     return float(abs(np.mean(np.exp(1j * phases))))
 
 
-def run(input_csv: Path, output_csv: Path, window: int = 256, threshold: float = 0.65) -> pd.DataFrame:
+def run(
+    input_csv: Path, output_csv: Path, window: int = 256, threshold: float = 0.65
+) -> pd.DataFrame:
     df = pd.read_csv(input_csv)
     df["ts"] = pd.to_datetime(df["ts"], utc=True)
     df = df.sort_values("ts").dropna(subset=["mid", "mid_returns"]).reset_index(drop=True)
@@ -68,8 +70,12 @@ def run(input_csv: Path, output_csv: Path, window: int = 256, threshold: float =
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run neurophase bridge")
-    parser.add_argument("--input-csv", type=Path, default=Path("data/dukascopy/xauusd_l2_hourly.csv"))
-    parser.add_argument("--output-csv", type=Path, default=Path("results/neurophase_gate_history.csv"))
+    parser.add_argument(
+        "--input-csv", type=Path, default=Path("data/dukascopy/xauusd_l2_hourly.csv")
+    )
+    parser.add_argument(
+        "--output-csv", type=Path, default=Path("results/neurophase_gate_history.csv")
+    )
     parser.add_argument("--window", type=int, default=256)
     parser.add_argument("--threshold", type=float, default=0.65)
     args = parser.parse_args()

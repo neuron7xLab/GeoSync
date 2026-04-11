@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -15,18 +16,22 @@ from research.kernels.spread_stress_detector import compute_spread_z
 
 
 def _scorr(a: pd.Series, b: pd.Series) -> float:
-    df = pd.concat([a, b], axis=1).dropna()
+    df = pd.concat([a, b], axis=1, sort=False).dropna()
     if len(df) < 30:
         return 0.0
     return float(spearmanr(df.iloc[:, 0], df.iloc[:, 1]).statistic)
 
 
-def run(input_csv: Path, output_json: Path) -> dict:
+def run(input_csv: Path, output_json: Path) -> dict[str, Any]:
     feat, kappa = compute_ricci_features(input_csv)
     _, _, spread_z = compute_spread_z(input_csv)
     target = feat["mid_r"].shift(-1)
 
-    frame = pd.concat([spread_z.rename("s"), kappa.rename("k"), target.rename("y")], axis=1).dropna()
+    frame = pd.concat(
+        [spread_z.rename("s"), kappa.rename("k"), target.rename("y")],
+        axis=1,
+        sort=False,
+    ).dropna()
     split = int(0.7 * len(frame))
     tr, te = frame.iloc[:split], frame.iloc[split:]
 

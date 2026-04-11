@@ -5,24 +5,32 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from scipy.signal import hilbert
 
 
-def _phase(arr: np.ndarray) -> np.ndarray:
+def _phase(arr: NDArray[np.float64]) -> NDArray[np.float64]:
     centered = arr - np.mean(arr)
-    return np.angle(hilbert(centered))
+    result: NDArray[np.float64] = np.angle(hilbert(centered))
+    return result
 
 
-def _plv(phi1: np.ndarray, phi2: np.ndarray) -> float:
+def _plv(phi1: NDArray[np.float64], phi2: NDArray[np.float64]) -> float:
     return float(abs(np.mean(np.exp(1j * (phi1 - phi2)))))
 
 
-def run(input_csv: Path, output_json: Path, n: int = 1000, seed: int = 42) -> dict:
+def run(input_csv: Path, output_json: Path, n: int = 1000, seed: int = 42) -> dict[str, Any]:
     df = pd.read_csv(input_csv)
-    midr = pd.Series(df["mid_returns"]).replace([np.inf, -np.inf], np.nan).dropna().to_numpy(dtype=float)
+    midr = (
+        pd.Series(df["mid_returns"])
+        .replace([np.inf, -np.inf], np.nan)
+        .dropna()
+        .to_numpy(dtype=float)
+    )
     spr = pd.Series(df["spread"]).replace([np.inf, -np.inf], np.nan).dropna().to_numpy(dtype=float)
     m = min(len(midr), len(spr))
     midr, spr = midr[:m], spr[:m]
@@ -54,7 +62,9 @@ def run(input_csv: Path, output_json: Path, n: int = 1000, seed: int = 42) -> di
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--input-csv", type=Path, default=Path("data/dukascopy/xauusd_l2_hourly.csv"))
-    p.add_argument("--output-json", type=Path, default=Path("results/plv_spread_market_verdict.json"))
+    p.add_argument(
+        "--output-json", type=Path, default=Path("results/plv_spread_market_verdict.json")
+    )
     args = p.parse_args()
     run(args.input_csv, args.output_json)
     return 0
