@@ -2,6 +2,15 @@
 # SPDX-License-Identifier: MIT
 """Strategy helpers exposed for CLI integrations."""
 
+from .btc_intel import (
+    DEFAULT_BTC_RULE_CONFIG,
+    BTCMarketSnapshot,
+    BTCRule,
+    BTCRuleConfig,
+    BTCRuleResult,
+    BTCSignal,
+    evaluate_btc_rules,
+)
 from .dsl import (
     ComponentParameters,
     ParameterField,
@@ -119,4 +128,11 @@ __all__ = [
     "AcceptAllRiskPolicy",
     "IOContract",
     "InvalidModeTransition",
+    "BTCMarketSnapshot",
+    "BTCRule",
+    "BTCRuleConfig",
+    "BTCRuleResult",
+    "BTCSignal",
+    "DEFAULT_BTC_RULE_CONFIG",
+    "evaluate_btc_rules",
 ]
