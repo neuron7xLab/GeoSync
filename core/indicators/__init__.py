@@ -15,6 +15,12 @@ from .ensemble_divergence import (
     IndicatorDivergenceSignal,
     compute_ensemble_divergence,
 )
+from .flow_metrics import (
+    FMN_DEFAULT_WEIGHTS,
+    QILM_DEFAULT_EPS,
+    compute_fmn,
+    compute_qilm,
+)
 from .hierarchical_features import (
     FeatureBufferCache,
     HierarchicalFeatureResult,
@@ -48,6 +54,14 @@ from .normalization import (
     NormalizationMode,
     normalize_indicator_series,
     resolve_indicator_normalizer,
+)
+from .phase_entry_gate import (
+    DEFAULT_PHASE_ENTRY_CONFIG,
+    GateConditions,
+    GateReading,
+    PhaseEntryGate,
+    PhaseEntryGateConfig,
+    Signal,
 )
 from .pipeline import IndicatorPipeline, PipelineResult
 from .pivot_detection import (
@@ -107,4 +121,14 @@ __all__ = [
     "DivergenceKind",
     "detect_pivots",
     "detect_pivot_divergences",
+    "compute_qilm",
+    "compute_fmn",
+    "QILM_DEFAULT_EPS",
+    "FMN_DEFAULT_WEIGHTS",
+    "PhaseEntryGate",
+    "PhaseEntryGateConfig",
+    "DEFAULT_PHASE_ENTRY_CONFIG",
+    "GateConditions",
+    "GateReading",
+    "Signal",
 ]
