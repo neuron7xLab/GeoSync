@@ -10,11 +10,12 @@ import hashlib
 import importlib
 import json
 import os
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 from core.io.parquet_compat import read_parquet_compat
+
 
 @dataclass
 class StepResult:
@@ -54,7 +55,9 @@ def run(base_dir: Path) -> dict[str, Any]:
     if failed_imports:
         results.append(StepResult("PHASE_1", "import_check", "FAIL", "; ".join(failed_imports)))
     else:
-        results.append(StepResult("PHASE_1", "import_check", "PASS", "All required imports resolved"))
+        results.append(
+            StepResult("PHASE_1", "import_check", "PASS", "All required imports resolved")
+        )
 
     # Phase 1.2 dirs
     required_dirs = [
@@ -76,7 +79,15 @@ def run(base_dir: Path) -> dict[str, Any]:
     )
 
     # Phase 1.3 env
-    env_count = _count_env_keys(["DUKASCOPY_DOWNLOAD_DIR", "DATABENTO_API_KEY", "OANDA_API_TOKEN", "POLYGON_API_KEY", "AGENT_SEED"])
+    env_count = _count_env_keys(
+        [
+            "DUKASCOPY_DOWNLOAD_DIR",
+            "DATABENTO_API_KEY",
+            "OANDA_API_TOKEN",
+            "POLYGON_API_KEY",
+            "AGENT_SEED",
+        ]
+    )
     results.append(
         StepResult(
             "PHASE_1",
@@ -88,20 +99,25 @@ def run(base_dir: Path) -> dict[str, Any]:
 
     # Phase 2+3+4+5+6 rely on parquet and provider connectivity; run only if dependencies exist
     try:
-        import pandas as pd
         import numpy as np
         from scipy.stats import spearmanr
     except Exception as exc:
         results.append(StepResult("PHASE_2_6", "runtime_deps", "FAIL", str(exc)))
-        verdict = {
+        verdict: dict[str, Any] = {
             "FINAL": "REJECT",
             "reason": "runtime_dependency_failure",
             "steps": [asdict(r) for r in results],
         }
         _write_json(base_dir / "results" / "prod" / "validation_verdict.json", verdict)
-        _write_json(base_dir / "results" / "prod" / "action_intent.json", {
-            "state": "REPORT", "action": "DORMANT", "admissible": True, "why": ["runtime_dependency_failure"]
-        })
+        _write_json(
+            base_dir / "results" / "prod" / "action_intent.json",
+            {
+                "state": "REPORT",
+                "action": "DORMANT",
+                "admissible": True,
+                "why": ["runtime_dependency_failure"],
+            },
+        )
         digest = hashlib.sha256(json.dumps(verdict, sort_keys=True).encode()).hexdigest()
         (base_dir / "audit" / "prod").mkdir(parents=True, exist_ok=True)
         (base_dir / "audit" / "prod" / "run_hash.sha256").write_text(digest, encoding="utf-8")
@@ -110,16 +126,24 @@ def run(base_dir: Path) -> dict[str, Any]:
     # Try to load existing enriched panel if present; do not fabricate market data.
     panel_enriched = base_dir / "data" / "cache" / "panel_enriched.parquet"
     if not panel_enriched.exists():
-        results.append(StepResult("PHASE_2", "data_ingestion", "FAIL", "panel_enriched.parquet missing"))
+        results.append(
+            StepResult("PHASE_2", "data_ingestion", "FAIL", "panel_enriched.parquet missing")
+        )
         verdict = {
             "FINAL": "REJECT",
             "reason": "missing_enriched_panel",
             "steps": [asdict(r) for r in results],
         }
         _write_json(base_dir / "results" / "prod" / "validation_verdict.json", verdict)
-        _write_json(base_dir / "results" / "prod" / "action_intent.json", {
-            "state": "REPORT", "action": "DORMANT", "admissible": True, "why": ["missing_enriched_panel"]
-        })
+        _write_json(
+            base_dir / "results" / "prod" / "action_intent.json",
+            {
+                "state": "REPORT",
+                "action": "DORMANT",
+                "admissible": True,
+                "why": ["missing_enriched_panel"],
+            },
+        )
         digest = hashlib.sha256(json.dumps(verdict, sort_keys=True).encode()).hexdigest()
         (base_dir / "audit" / "prod" / "run_hash.sha256").write_text(digest, encoding="utf-8")
         return verdict
@@ -134,13 +158,23 @@ def run(base_dir: Path) -> dict[str, Any]:
             "steps": [asdict(r) for r in results],
         }
         _write_json(base_dir / "results" / "prod" / "validation_verdict.json", verdict)
-        _write_json(base_dir / "results" / "prod" / "action_intent.json", {
-            "state": "REPORT", "action": "DORMANT", "admissible": True, "why": ["parquet_read_failure"]
-        })
+        _write_json(
+            base_dir / "results" / "prod" / "action_intent.json",
+            {
+                "state": "REPORT",
+                "action": "DORMANT",
+                "admissible": True,
+                "why": ["parquet_read_failure"],
+            },
+        )
         digest = hashlib.sha256(json.dumps(verdict, sort_keys=True).encode()).hexdigest()
         (base_dir / "audit" / "prod" / "run_hash.sha256").write_text(digest, encoding="utf-8")
         return verdict
 
+    ic: float
+    p: float
+    cm: float
+    cv: float
     if "mid_returns" not in df.columns:
         results.append(StepResult("PHASE_2", "schema_check", "FAIL", "mid_returns missing"))
         final = "REJECT"
@@ -157,7 +191,9 @@ def run(base_dir: Path) -> dict[str, Any]:
             target = s.shift(-1).reindex(unity.index)
             valid = unity.notna() & target.notna()
             if int(valid.sum()) < 50:
-                results.append(StepResult("PHASE_4", "three_d", "FAIL", "insufficient valid observations"))
+                results.append(
+                    StepResult("PHASE_4", "three_d", "FAIL", "insufficient valid observations")
+                )
                 final = "REJECT"
                 ic = p = cm = cv = 0.0
             else:
@@ -176,8 +212,19 @@ def run(base_dir: Path) -> dict[str, Any]:
                 vol = s.rolling(10).std().reindex(unity.index)
                 cm = float(spearmanr(unity[valid], mom[valid]).statistic)
                 cv = float(spearmanr(unity[valid], vol[valid]).statistic)
-                final = "SIGNAL_READY" if (ic >= 0.08 and p < 0.10 and abs(cm) < 0.15 and abs(cv) < 0.15) else "REJECT"
-                results.append(StepResult("PHASE_4", "three_d", "PASS", f"IC={ic:.4f}, p={p:.4f}, cm={cm:.4f}, cv={cv:.4f}"))
+                final = (
+                    "SIGNAL_READY"
+                    if (ic >= 0.08 and p < 0.10 and abs(cm) < 0.15 and abs(cv) < 0.15)
+                    else "REJECT"
+                )
+                results.append(
+                    StepResult(
+                        "PHASE_4",
+                        "three_d",
+                        "PASS",
+                        f"IC={ic:.4f}, p={p:.4f}, cm={cm:.4f}, cv={cv:.4f}",
+                    )
+                )
 
     verdict = {
         "IC": round(ic, 4),

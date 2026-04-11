@@ -454,7 +454,7 @@ jobs:
 
           .venv/bin/detect-secrets-hook \
             --baseline .github/detect-secrets.baseline \
-            --exclude-files '^(INVENTORY\.json|stakeholders/manifest\.json)$' \
+            --exclude-files '^(INVENTORY\.json|stakeholders/manifest\.json|\.github/detect-secrets\.baseline)$' \
             "${existing_changed_files[@]}"
 
   go-workspace-integrity:

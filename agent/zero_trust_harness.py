@@ -45,7 +45,9 @@ class ZeroTrustOracle:
 
     def ofi_unity(self, df: pd.DataFrame) -> pd.Series:
         cols = [c.lower() for c in df.columns]
-        assert any("bid" in c for c in cols) and any("ask" in c for c in cols), "INV-OFI-001 violated"
+        assert any("bid" in c for c in cols) and any(
+            "ask" in c for c in cols
+        ), "INV-OFI-001 violated"
         assert not df.isna().any().any(), "INV-NAN-001 violated"
         unity = ofi_unity_kernel(df)
         assert unity.index.is_monotonic_increasing, "Index contract failed"
@@ -63,4 +65,6 @@ class ZeroTrustOracle:
 
     def export_audit(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self.audit_log.entries, indent=2, sort_keys=True), encoding="utf-8")
+        path.write_text(
+            json.dumps(self.audit_log.entries, indent=2, sort_keys=True), encoding="utf-8"
+        )

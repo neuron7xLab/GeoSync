@@ -60,6 +60,8 @@ def test_ohlc_dead_substrate() -> None:
 
 def test_microstructure_go() -> None:
     ts = pd.date_range(_now() - timedelta(minutes=10), periods=2, freq="h")
-    df = pd.DataFrame({"x_bid_close": [1.0, 1.1], "x_ask_close": [1.1, 1.2], "ofi": [0.1, 0.2]}, index=ts)
+    df = pd.DataFrame(
+        {"x_bid_close": [1.0, 1.1], "x_ask_close": [1.1, 1.2], "ofi": [0.1, 0.2]}, index=ts
+    )
     out = evaluate_substrate(df, now_utc=_now())
     assert out.reason_code == "SUBSTRATE_LIVE"

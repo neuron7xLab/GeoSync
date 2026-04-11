@@ -27,7 +27,9 @@ class TruthOracle:
         purity = audit_determinism()
         proofs = [
             TheoremResult("OFIUnityBounded", purity.checks[0].passed, purity.checks[0].details),
-            TheoremResult("SpearmanDeterministic", purity.checks[1].passed, purity.checks[1].details),
+            TheoremResult(
+                "SpearmanDeterministic", purity.checks[1].passed, purity.checks[1].details
+            ),
             TheoremResult("HashDeterministic", purity.checks[2].passed, purity.checks[2].details),
             TheoremResult("NumericStable", purity.checks[3].passed, purity.checks[3].details),
         ]

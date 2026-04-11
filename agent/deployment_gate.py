@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import hashlib
 import json
+from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from agent.self_audit import SelfAuditingModule
 
@@ -27,7 +27,9 @@ class DeploymentGate:
 
     def can_deploy(self) -> bool:
         cert = self._auditor.compliance_certificate
-        return bool(cert["determinism_verified"] and cert["invariants_checked"] == cert["invariants_passed"])
+        return bool(
+            cert["determinism_verified"] and cert["invariants_checked"] == cert["invariants_passed"]
+        )
 
     def deploy(self) -> DeploymentCertificate:
         if not self.can_deploy():

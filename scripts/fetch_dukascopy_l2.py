@@ -20,7 +20,9 @@ def main() -> int:
     rng = np.random.default_rng(SEED)
 
     if importlib.util.find_spec("dukascopy_python") is None:
-        print("[warn] dukascopy_python is not installed; generating deterministic synthetic proxy dataset.")
+        print(
+            "[warn] dukascopy_python is not installed; generating deterministic synthetic proxy dataset."
+        )
         idx = pd.date_range(start=start, end=end, freq="h", tz="UTC")
         base = 1800 + np.cumsum(rng.normal(0, 0.35, len(idx)))
         spread_sim = np.maximum(0.03, 0.05 + 0.02 * rng.standard_normal(len(idx)))
@@ -36,7 +38,11 @@ def main() -> int:
         if not isinstance(frame.index, pd.DatetimeIndex):
             frame.index = pd.to_datetime(frame.index, utc=True)
         else:
-            frame.index = frame.index.tz_convert("UTC") if frame.index.tz is not None else frame.index.tz_localize("UTC")
+            frame.index = (
+                frame.index.tz_convert("UTC")
+                if frame.index.tz is not None
+                else frame.index.tz_localize("UTC")
+            )
 
     merged = pd.DataFrame({"bid_close": bid["close"], "ask_close": ask["close"]}).dropna()
 

@@ -16,21 +16,21 @@ Hard invariants:
 
 from __future__ import annotations
 
-import json
-import os
 import importlib
 import importlib.util
+import json
+import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
-from datetime import datetime, timezone
 
-from core.physics.forman_ricci import FormanRicciCurvature
 from core.io.parquet_compat import ParquetEngineUnavailable, read_parquet_compat
+from core.physics.forman_ricci import FormanRicciCurvature
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PANEL_PATH = REPO_ROOT / "data" / "askar_full" / "panel_hourly_extended.parquet"
@@ -71,7 +71,11 @@ def _parse_args() -> tuple[Path, Path, bool]:
 
 
 def _abort_on_nan(frame_or_series: pd.DataFrame | pd.Series, name: str) -> None:
-    if bool(frame_or_series.isna().any().any() if isinstance(frame_or_series, pd.DataFrame) else frame_or_series.isna().any()):
+    if bool(
+        frame_or_series.isna().any().any()
+        if isinstance(frame_or_series, pd.DataFrame)
+        else frame_or_series.isna().any()
+    ):
         raise SystemExit(f"NaN invariant violated: {name} contains NaN")
 
 
@@ -82,7 +86,9 @@ def _spearman(a: pd.Series, b: pd.Series) -> float:
     return float(spearmanr(df.iloc[:, 0], df.iloc[:, 1]).statistic)
 
 
-def _permutation_pvalue(signal: pd.Series, target: pd.Series, n: int = 500, seed: int = SEED) -> float:
+def _permutation_pvalue(
+    signal: pd.Series, target: pd.Series, n: int = 500, seed: int = SEED
+) -> float:
     df = pd.concat([signal, target], axis=1).dropna()
     if len(df) < 30:
         return 1.0
@@ -90,7 +96,9 @@ def _permutation_pvalue(signal: pd.Series, target: pd.Series, n: int = 500, seed
     y = df.iloc[:, 1].to_numpy(dtype=float)
     obs = abs(float(spearmanr(x, y).statistic))
     rng = np.random.default_rng(seed)
-    count = sum(1 for _ in range(n) if abs(float(spearmanr(x, rng.permutation(y)).statistic)) >= obs)
+    count = sum(
+        1 for _ in range(n) if abs(float(spearmanr(x, rng.permutation(y)).statistic)) >= obs
+    )
     return float((count + 1) / (n + 1))
 
 
@@ -141,7 +149,11 @@ def reddit_sentiment_proxy() -> pd.Series:
 
 
 def build_sentiment_node(returns: pd.DataFrame, use_reddit: bool) -> SentimentNodeBuild:
-    sentiment = reddit_sentiment_proxy().reindex(returns.index) if use_reddit else vix_sentiment_proxy(returns)
+    sentiment = (
+        reddit_sentiment_proxy().reindex(returns.index)
+        if use_reddit
+        else vix_sentiment_proxy(returns)
+    )
     sentiment = sentiment.dropna()
     _abort_on_nan(sentiment, "raw sentiment")
 
@@ -193,7 +205,9 @@ def compute_kappa(panel: pd.DataFrame) -> pd.Series:
     return kappa
 
 
-def evaluate(build: SentimentNodeBuild, corr_sent_mom: float, corr_sent_vol: float) -> dict[str, Any]:
+def evaluate(
+    build: SentimentNodeBuild, corr_sent_mom: float, corr_sent_vol: float
+) -> dict[str, Any]:
     returns_with_sentiment = build.returns_with_sentiment
     returns = build.returns
 
@@ -208,7 +222,11 @@ def evaluate(build: SentimentNodeBuild, corr_sent_mom: float, corr_sent_vol: flo
     corr_m = _spearman(kappa, mom20)
     corr_v = _spearman(kappa, vol10)
 
-    alerts = (kappa < kappa.expanding().quantile(0.10)).reindex(returns_with_sentiment.index).fillna(False)
+    alerts = (
+        (kappa < kappa.expanding().quantile(0.10))
+        .reindex(returns_with_sentiment.index)
+        .fillna(False)
+    )
     fwd20 = returns_with_sentiment[TARGET_COL].rolling(20).sum().shift(-20)
     events = fwd20[fwd20 < -0.05]
 
@@ -237,7 +255,9 @@ def evaluate(build: SentimentNodeBuild, corr_sent_mom: float, corr_sent_vol: flo
         "corr_vol": corr_v,
         "lead_capture": lead_capture,
         "DETECT": "PASS" if ic >= 0.08 else "FAIL",
-        "DISCRIMINATE": "PASS" if abs(corr_m) < ORTHO_STRICT and abs(corr_v) < ORTHO_STRICT else "FAIL",
+        "DISCRIMINATE": (
+            "PASS" if abs(corr_m) < ORTHO_STRICT and abs(corr_v) < ORTHO_STRICT else "FAIL"
+        ),
         "DELIVER": "PASS" if lead_capture >= 0.60 else "FAIL",
         "FINAL": (
             "SIGNAL_READY"

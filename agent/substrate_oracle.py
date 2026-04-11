@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
 from core.io.parquet_compat import ParquetEngineUnavailable, read_parquet_compat
 
 
@@ -169,7 +170,9 @@ def _make_action_intent(decision: OracleDecision) -> dict[str, Any]:
         "target": "trading_desk",
         "why": decision.reasons,
         "blocking_conditions": [] if decision.status == "GO" else [decision.reason_code],
-        "next_required_artifact": "validation_verdict.json" if decision.status == "GO" else "abort_log.json",
+        "next_required_artifact": (
+            "validation_verdict.json" if decision.status == "GO" else "abort_log.json"
+        ),
         "admissible": True,
         "decision": decision.to_dict(),
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),

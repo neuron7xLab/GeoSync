@@ -61,31 +61,80 @@ def main() -> int:
         ),
         (
             "task11_ricci_spread",
-            [py, "research/kernels/ricci_on_spread.py", "--input-csv", "data/dukascopy/xauusd_l2_hourly.csv", "--output-json", "results/ricci_on_spread_verdict.json"],
+            [
+                py,
+                "research/kernels/ricci_on_spread.py",
+                "--input-csv",
+                "data/dukascopy/xauusd_l2_hourly.csv",
+                "--output-json",
+                "results/ricci_on_spread_verdict.json",
+            ],
         ),
         (
             "task12_plv",
-            [py, "research/kernels/plv_market_spread.py", "--input-csv", "data/dukascopy/xauusd_l2_hourly.csv", "--output-json", "results/plv_spread_market_verdict.json"],
+            [
+                py,
+                "research/kernels/plv_market_spread.py",
+                "--input-csv",
+                "data/dukascopy/xauusd_l2_hourly.csv",
+                "--output-json",
+                "results/plv_spread_market_verdict.json",
+            ],
         ),
         (
             "task13_stress",
-            [py, "research/kernels/spread_stress_detector.py", "--input-csv", "data/dukascopy/xauusd_l2_hourly.csv", "--output-json", "results/spread_stress_verdict.json"],
+            [
+                py,
+                "research/kernels/spread_stress_detector.py",
+                "--input-csv",
+                "data/dukascopy/xauusd_l2_hourly.csv",
+                "--output-json",
+                "results/spread_stress_verdict.json",
+            ],
         ),
         (
             "task14_regime",
-            [py, "research/kernels/ricci_regime_conditioned.py", "--input-csv", "data/dukascopy/xauusd_l2_hourly.csv", "--output-json", "results/ricci_regime_verdict.json"],
+            [
+                py,
+                "research/kernels/ricci_regime_conditioned.py",
+                "--input-csv",
+                "data/dukascopy/xauusd_l2_hourly.csv",
+                "--output-json",
+                "results/ricci_regime_verdict.json",
+            ],
         ),
         (
             "task15_horizon",
-            [py, "research/kernels/horizon_sweep.py", "--input-csv", "data/dukascopy/xauusd_l2_hourly.csv", "--output-json", "results/horizon_sweep_verdict.json"],
+            [
+                py,
+                "research/kernels/horizon_sweep.py",
+                "--input-csv",
+                "data/dukascopy/xauusd_l2_hourly.csv",
+                "--output-json",
+                "results/horizon_sweep_verdict.json",
+            ],
         ),
         (
             "task16_combiner",
-            [py, "research/kernels/signal_combiner.py", "--input-csv", "data/dukascopy/xauusd_l2_hourly.csv", "--output-json", "results/signal_combiner_verdict.json"],
+            [
+                py,
+                "research/kernels/signal_combiner.py",
+                "--input-csv",
+                "data/dukascopy/xauusd_l2_hourly.csv",
+                "--output-json",
+                "results/signal_combiner_verdict.json",
+            ],
         ),
         (
             "task17_final",
-            [py, "research/askar/closing_report.py", "--results-dir", "results", "--output-json", "results/FINAL_REPORT.json"],
+            [
+                py,
+                "research/askar/closing_report.py",
+                "--results-dir",
+                "results",
+                "--output-json",
+                "results/FINAL_REPORT.json",
+            ],
         ),
     ]
 
