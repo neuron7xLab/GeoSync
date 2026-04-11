@@ -1,0 +1,17 @@
+{
+  "DELIVER": "FAIL",
+  "DETECT": "FAIL",
+  "DISCRIMINATE": "FAIL",
+  "FINAL": "REJECT",
+  "IC": 0.0,
+  "corr_momentum": 0.0,
+  "corr_vol": 0.0,
+  "lead_capture": 0.0,
+  "lineage": {
+    "source": "dukascopy",
+    "timestamp_utc": "2026-04-11T07:34:05.703121+00:00"
+  },
+  "p_value": 1.0,
+  "reason": "input_csv not provided",
+  "replay_hash": "78324a35cbec254200199c75774b80a85f70704d142d9df91e5e18af742b0807"
+}
