@@ -122,7 +122,7 @@ dev = [
 ]
 docs = [
     "mkdocs>=1.6.1",
-    "mkdocs-material>=9.6.21",
+    "mkdocs-material>=9.7.6",
     "mkdocs-minify-plugin>=0.8.0",
     "pymdown-extensions>=10.16.1",
     "mike>=2.1.3",
