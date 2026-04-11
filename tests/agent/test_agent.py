@@ -417,9 +417,80 @@ def test_filesystem_adapter_refuses_writes() -> None:
 def test_filesystem_adapter_handles_missing_panel() -> None:
     adapter = FileSystemSubstrateAdapter(Path("/tmp/definitely_missing.parquet"))
     health = adapter.get_health()
-    # Empty panel → asset_coverage 0, schema incomplete, status DEAD (stale=inf)
+    # Empty panel → asset_coverage 0, schema incomplete, status DEAD
+    # (freshness uses DEAD_FRESHNESS_SENTINEL — finite, JSON-safe)
     assert health.asset_coverage == 0
     assert health.status == SubstrateStatus.DEAD
+
+
+# ---------------------------------------------------------------- #
+# Codex P1 — hard-stop invariants short-circuit BEFORE any rule
+# ---------------------------------------------------------------- #
+
+
+def test_policy_hard_stops_on_nan_invariant_without_verdict() -> None:
+    """INV_004 (nan_rate > 0) must DORMANT the agent even with no verdict
+    and otherwise-healthy substrate, sources, and microstructure schemas."""
+    nan_health = dataclasses.replace(_healthy_substrate(), nan_rate=0.001)
+    intent = select_action(
+        sources=[_configured_source()],
+        health=nan_health,
+        schemas=_microstructure_schemas(),
+        verdict=None,
+    )
+    assert intent.action == ActionKind.DORMANT
+    assert intent.admissible is False
+    assert intent.priority == Priority.P0
+    assert any("INV_004" in w for w in intent.why)
+
+
+def test_policy_hard_stops_on_missing_audit_artifact() -> None:
+    """INV_010 (missing audit artefacts) must DORMANT regardless of verdict."""
+    intent = select_action(
+        sources=[_configured_source()],
+        health=_healthy_substrate(),
+        schemas=_microstructure_schemas(),
+        verdict=None,
+        missing_artifacts=["validation_verdict.json"],
+    )
+    assert intent.action == ActionKind.DORMANT
+    assert intent.admissible is False
+    assert "INV_010" in " ".join(intent.why)
+
+
+def test_policy_does_not_hard_stop_when_only_verdict_invariants_fail() -> None:
+    """Verdict-only invariants (006/007/008/009) must NOT trigger the
+    hard-stop pre-check when verdict is None — they only matter inside
+    the verdict-handling branch."""
+    intent = select_action(
+        sources=[_configured_source()],
+        health=_healthy_substrate(),
+        schemas=_microstructure_schemas(),
+        verdict=None,
+    )
+    # No hard stop → policy advances to BUILD_FEATURES (RULE_08).
+    assert intent.action == ActionKind.BUILD_FEATURES
+    assert intent.admissible is True
+
+
+# ---------------------------------------------------------------- #
+# Codex P2 — JSON-safe freshness sentinel (no float('inf'))
+# ---------------------------------------------------------------- #
+
+
+def test_empty_panel_freshness_is_json_safe() -> None:
+    """compute_health on an empty panel must NOT produce float('inf')."""
+    empty = pd.DataFrame()
+    health = feed_sentinel.compute_health(empty)
+    assert np.isfinite(health.freshness_minutes)
+    assert health.freshness_minutes > 0
+    assert health.status == SubstrateStatus.DEAD
+    # Round-trip through stdlib json: would raise on Infinity if present.
+    payload = health.to_dict()
+    encoded = json.dumps(payload, allow_nan=False)
+    decoded = json.loads(encoded)
+    assert decoded["status"] == "DEAD"
+    assert np.isfinite(decoded["freshness_minutes"])
 
 
 # ---------------------------------------------------------------- #

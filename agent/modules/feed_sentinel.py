@@ -7,6 +7,11 @@ not the file mtime — a panel that was built years ago but contains
 fresh data would still be stale, and a panel that was rebuilt today
 from ancient data should also register as stale. The physics is the
 age of the *content*, not the file.
+
+Empty / missing panels report ``freshness_minutes = DEAD_FRESHNESS_SENTINEL``
+(100 years in minutes) — a large finite number that round-trips through
+RFC-compliant JSON. Using ``float("inf")`` here would emit ``Infinity``
+into the audit artefacts and break non-Python consumers in CI/ops.
 """
 
 from __future__ import annotations
@@ -19,6 +24,13 @@ import pandas as pd
 from agent.models import SubstrateHealth, SubstrateLabel, SubstrateStatus
 from agent.modules.schema_auditor import audit_panel, is_ohlc_close_only
 
+#: Large finite sentinel for "no data / definitely dead" — JSON-safe
+#: replacement for ``float("inf")``. 100 years in minutes ≈ 5.26e7.
+DEAD_FRESHNESS_SENTINEL: float = 100.0 * 365.0 * 24.0 * 60.0
+
+#: Anything older than 30 days is treated as DEAD regardless of schema.
+DEAD_AGE_MINUTES: float = 30.0 * 24.0 * 60.0
+
 
 def compute_health(
     panel: pd.DataFrame,
@@ -27,8 +39,11 @@ def compute_health(
     now = wall_clock_now or datetime.now(tz=timezone.utc)
 
     # --- freshness ---
+    # Empty panel → DEAD_FRESHNESS_SENTINEL, NOT float('inf'). Infinity
+    # is not RFC-compliant JSON and would corrupt every downstream
+    # audit artefact (the CodeRabbit P2 fix).
     if len(panel) == 0:
-        freshness_minutes = float("inf")
+        freshness_minutes = DEAD_FRESHNESS_SENTINEL
         last_ts = None
     else:
         idx = pd.DatetimeIndex(panel.index)
@@ -94,8 +109,9 @@ def compute_health(
     else:
         status = SubstrateStatus.LIVE
 
-    # Freshness override: inf-stale panel → DEAD regardless of schema.
-    if not np.isfinite(freshness_minutes) or freshness_minutes > 24 * 60 * 30:
+    # Freshness override: any panel older than 30 days → DEAD regardless of
+    # schema. Sentinel-old empty panels (100 years) trip this trivially.
+    if not np.isfinite(freshness_minutes) or freshness_minutes > DEAD_AGE_MINUTES:
         status = SubstrateStatus.DEAD
 
     feed_live = status != SubstrateStatus.DEAD

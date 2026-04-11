@@ -2,7 +2,7 @@
   "asset_coverage": 53,
   "duplicate_rate": 0.0,
   "feed_live": false,
-  "freshness_minutes": 67940.6011682,
+  "freshness_minutes": 67977.27010368333,
   "gap_count": 10,
   "heartbeat_ok": false,
   "nan_rate": 0.0,
@@ -11,5 +11,5 @@
   "schema_complete": false,
   "status": "DEAD",
   "substrate_label": "LATE_GEOMETRY_ONLY",
-  "ts": "2026-04-11T04:20:36.070092+00:00"
+  "ts": "2026-04-11T04:57:16.206221+00:00"
 }

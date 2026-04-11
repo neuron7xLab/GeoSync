@@ -53,6 +53,20 @@ def _derivable_fields_missing(schemas: list[AssetSchemaReport]) -> bool:
     )
 
 
+#: Invariants whose failure must hard-stop the agent BEFORE any rule
+#: fires, regardless of verdict state. These are the truly fail-closed
+#: invariants from §6 — "abort current pipeline" / "INVALID" classes.
+#: Other invariants (INV_001/002/003/005/011) are already covered by
+#: rule-level transitions; INV_006..009 only apply once a verdict
+#: exists and are evaluated in the verdict-handling branch.
+HARD_STOP_INVARIANTS: frozenset[str] = frozenset(
+    {
+        "INV_004_nan_policy",
+        "INV_010_audit_artifact_present",
+    }
+)
+
+
 def select_action(
     *,
     sources: list[SourceDescriptor],
@@ -72,6 +86,30 @@ def select_action(
     inv_summary: dict[str, Any] = {
         r.name: {"passed": r.passed, "reason": r.reason} for r in inv_results
     }
+
+    # ---- Hard-stop pre-check: any HARD_STOP_INVARIANTS failure forces ----
+    # ---- DORMANT BEFORE any rule fires, regardless of verdict state.   ----
+    # The honesty contract: invariants in this set are non-negotiable
+    # and cannot be bypassed by emitting BUILD_FEATURES / VALIDATE on
+    # invalid substrate. The CodeRabbit P1 fix.
+    hard_failures = [r for r in failing if r.name in HARD_STOP_INVARIANTS]
+    if hard_failures:
+        return ActionIntent(
+            state=AgentState.DORMANT,
+            substrate_status=SubstrateStatus.DEGRADED,
+            action=ActionKind.DORMANT,
+            priority=Priority.P0,
+            target="system",
+            why=tuple(f"hard invariant violated: {r.name}" for r in hard_failures),
+            blocking_conditions=tuple(r.reason for r in hard_failures),
+            next_required_artifact="agent/reports/invariant_violation.json",
+            admissible=False,
+            diagnostics={
+                "invariants": inv_summary,
+                "hard_stop_set": sorted(HARD_STOP_INVARIANTS),
+                "fired": [r.name for r in hard_failures],
+            },
+        )
 
     # -------- RULE_01: no source configured → DISCOVER_SOURCES -------- #
     if not sources or not _any_configured_source(sources):
