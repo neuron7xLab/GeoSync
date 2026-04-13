@@ -14,7 +14,7 @@ alembic==1.18.4
 altair==5.5.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
-antlr4-python3-runtime==4.9.3
+antlr4-python3-runtime==4.13.2
 anyio==4.11.0
 async-timeout==5.0.1
 attrs==25.4.0
