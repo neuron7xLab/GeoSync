@@ -86,7 +86,7 @@ ecs = [
     "pyarrow>=21.0.0",
 ]
 neuro_advanced = [
-    "gudhi>=3.10.0",
+    "gudhi>=3.12.0",
     "POT>=0.9.5",
     "statsmodels>=0.14.0",
     "PyWavelets>=1.4.0",
