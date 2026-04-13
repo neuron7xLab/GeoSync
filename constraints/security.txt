@@ -90,3 +90,12 @@ fastapi>=0.119.0,<1.0.0
 # Brotli: Compression algorithm support, required for secure decompression
 # Version 1.2.0+ required for urllib3 2.6.0 security fixes
 Brotli>=1.2.0
+
+# ============================================================================
+# Image processing - Memory-safety critical (transitive)
+# ============================================================================
+# pillow: GHSA-whj4-6x5x-4v2j — FITS GZIP decompression bomb
+# Vulnerable: >= 10.3.0, < 12.2.0. Pillow enters the install tree via
+# scientific/ML extras (e.g. torchvision-adjacent paths). Pin the floor
+# here so transitive resolution cannot regress below the fix line.
+pillow>=12.2.0
