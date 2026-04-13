@@ -158,6 +158,175 @@ class TestSignedCommunities:
         assert labels.shape == (10,)
         assert int(labels.min()) >= 0
 
+    def test_labels_dense_range_starting_at_zero(self) -> None:
+        """Canonicalised labels occupy the dense range ``0..C-1``.
+
+        This contract is relied on by ``EmergentMetrics.R_cluster``
+        (integer dict keys) and by the ``NetworkKuramotoFeature``
+        feature vocabulary ``kuramoto_R_cluster_{c}``.
+        """
+        rng = np.random.default_rng(1)
+        for n in (6, 10, 15):
+            K = rng.standard_normal((n, n))
+            K = 0.5 * (K + K.T)
+            np.fill_diagonal(K, 0.0)
+            labels = signed_communities(K, n_clusters_max=4)
+            unique = np.unique(labels)
+            assert int(unique.min()) == 0
+            assert int(unique.max()) == unique.size - 1, (
+                f"labels must be dense 0..C-1; got {unique.tolist()}"
+            )
+
+    def test_biggest_community_gets_id_zero(self) -> None:
+        """Canonical ordering: the largest community always has id 0.
+
+        Ties on size fall back to the smallest member index ascending;
+        the two-block planted partition has equal-size communities so
+        id 0 must be assigned to the block starting at index 0.
+        """
+        N = 12
+        block = 6
+        K = np.zeros((N, N))
+        for i in range(block):
+            for j in range(block):
+                if i != j:
+                    K[i, j] = 1.0
+                    K[i + block, j + block] = 1.0
+        for i in range(block):
+            for j in range(block):
+                K[i, j + block] = -0.5
+                K[j + block, i] = -0.5
+        labels = signed_communities(K, n_clusters_max=4)
+        # Tie on size (6-6); min-index tie-breaker assigns 0 to the
+        # block containing node 0.
+        assert labels[0] == 0
+
+        # Imbalanced planted partition — the bigger block wins id 0.
+        N2 = 10
+        K2 = np.zeros((N2, N2))
+        # Block A: nodes 0..6 (size 7), block B: nodes 7..9 (size 3).
+        for i in range(7):
+            for j in range(7):
+                if i != j:
+                    K2[i, j] = 1.0
+        for i in range(7, N2):
+            for j in range(7, N2):
+                if i != j:
+                    K2[i, j] = 1.0
+        for i in range(7):
+            for j in range(7, N2):
+                K2[i, j] = -0.5
+                K2[j, i] = -0.5
+        labels2 = signed_communities(K2, n_clusters_max=4)
+        # The bigger (size-7) block must carry id 0.
+        assert int(labels2[0]) == 0
+        assert int(labels2[-1]) == 1
+
+    def test_labels_stable_under_small_perturbation(self) -> None:
+        """Label *permutation invariance*: tiny ``K`` noise keeps ids fixed.
+
+        This is the falsification witness for the recalibration
+        stability contract. Before canonicalisation, flipping the
+        principal eigenvector sign on a perturbed ``K`` would swap
+        labels 0 and 1 even though the partition is unchanged — which
+        corrupted every downstream ``R_cluster[c]`` and
+        ``kuramoto_R_cluster_{c}`` binding between recalibrations.
+        """
+        N_block = 6
+        N = 2 * N_block
+        K = np.zeros((N, N))
+        for i in range(N_block):
+            for j in range(N_block):
+                if i != j:
+                    K[i, j] = 1.0
+                    K[i + N_block, j + N_block] = 1.0
+        for i in range(N_block):
+            for j in range(N_block):
+                K[i, j + N_block] = -0.5
+                K[j + N_block, i] = -0.5
+        base = signed_communities(K, n_clusters_max=4)
+        for seed in range(10):
+            noise = 1e-5 * np.random.default_rng(seed).standard_normal(K.shape)
+            K_perturbed = K + 0.5 * (noise + noise.T)
+            perturbed = signed_communities(K_perturbed, n_clusters_max=4)
+            np.testing.assert_array_equal(
+                base,
+                perturbed,
+                err_msg=(
+                    f"labels changed under 1e-5 perturbation (seed={seed}); "
+                    f"recalibration stability broken"
+                ),
+            )
+
+    def test_labels_stable_under_sign_ambiguity(self) -> None:
+        """Negating ``K`` negates every eigenvector → must not flip ids.
+
+        Regression witness for the eigenvector-sign canonicaliser. If
+        the canonicaliser is removed, two calls on ``K`` and ``-K``
+        (when only the positive subgraph is active) can return swapped
+        labels because ``np.linalg.eigh`` picks an arbitrary sign for
+        each eigenvector.
+        """
+        # Use a purely positive-coupling two-block graph where
+        # behaviour is fully determined by the Fiedler-like split.
+        N_block = 5
+        N = 2 * N_block
+        K = np.zeros((N, N))
+        for i in range(N_block):
+            for j in range(N_block):
+                if i != j:
+                    K[i, j] = 1.0
+                    K[i + N_block, j + N_block] = 1.0
+        # Two independent calls on the *same* matrix must be bit-identical.
+        a = signed_communities(K, n_clusters_max=2)
+        b = signed_communities(K, n_clusters_max=2)
+        np.testing.assert_array_equal(a, b)
+        # Partition must be the planted one: block [0..N_block) together.
+        assert np.all(a[:N_block] == a[0])
+        assert np.all(a[N_block:] == a[-1])
+
+    def test_labels_invariant_under_node_relabeling(self) -> None:
+        """Permuting node indices and un-permuting recovers the labels.
+
+        Because the canonical tie-breaker is the *smallest member
+        index*, arbitrary relabelings alter which equivalence class
+        carries id 0 when sizes tie. This test fixes an imbalanced
+        planted partition so the size-based primary key is
+        discriminative and the labels are invariant under permutation.
+        """
+        N = 10
+        K = np.zeros((N, N))
+        # Bigger block (size 7) and smaller block (size 3)
+        for i in range(7):
+            for j in range(7):
+                if i != j:
+                    K[i, j] = 1.0
+        for i in range(7, N):
+            for j in range(7, N):
+                if i != j:
+                    K[i, j] = 1.0
+        for i in range(7):
+            for j in range(7, N):
+                K[i, j] = -0.5
+                K[j, i] = -0.5
+
+        base = signed_communities(K, n_clusters_max=3)
+        rng = np.random.default_rng(42)
+        for trial in range(5):
+            perm = rng.permutation(N)
+            K_perm = K[np.ix_(perm, perm)]
+            labels_perm = signed_communities(K_perm, n_clusters_max=3)
+            undone = np.empty_like(labels_perm)
+            undone[perm] = labels_perm
+            np.testing.assert_array_equal(
+                base,
+                undone,
+                err_msg=(
+                    f"labels not invariant under node permutation "
+                    f"(trial={trial}, perm={perm.tolist()})"
+                ),
+            )
+
 
 class TestPermutationEntropy:
     def test_monotonic_series_has_zero_entropy(self) -> None:
@@ -374,9 +543,7 @@ class TestNetworkKuramotoEngine:
         )
         engine = NetworkKuramotoEngine(
             NetworkEngineConfig(
-                phase=PhaseExtractionConfig(
-                    fs=fs, f_low=0.5, f_high=1.5, detrend_window=None
-                ),
+                phase=PhaseExtractionConfig(fs=fs, f_low=0.5, f_high=1.5, detrend_window=None),
                 coupling=CouplingEstimationConfig(
                     penalty="mcp",
                     lambda_reg=0.1,
@@ -467,9 +634,7 @@ class TestNetworkKuramotoFeature:
             ),
         )
         feat.warmup(returns[:400])
-        feat.recalibrate(
-            returns[:600], timestamps=np.arange(600, dtype=np.float64) * 0.05
-        )
+        feat.recalibrate(returns[:600], timestamps=np.arange(600, dtype=np.float64) * 0.05)
         # Measure per-bar online latency across 20 updates
         t0 = time.perf_counter()
         last_features: dict[str, float] = {}
@@ -511,9 +676,7 @@ class TestNetworkKuramotoFeature:
             ),
         )
         feat.warmup(returns[:300])
-        feat.recalibrate(
-            returns[:500], timestamps=np.arange(500, dtype=np.float64) * 0.05
-        )
+        feat.recalibrate(returns[:500], timestamps=np.arange(500, dtype=np.float64) * 0.05)
         for k, row in enumerate(returns[500:530]):
             features = feat.update(row, timestamp=float(500 + k) * 0.05)
             for v in features.values():

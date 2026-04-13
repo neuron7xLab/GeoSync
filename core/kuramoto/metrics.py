@@ -176,6 +176,64 @@ def rolling_csd(R: np.ndarray, window: int) -> tuple[np.ndarray, np.ndarray]:
 # ---------------------------------------------------------------------------
 
 
+def _canonical_eigvec_sign(v: np.ndarray) -> np.ndarray:
+    """Return ``v`` with a deterministic sign convention.
+
+    ``np.linalg.eigh`` returns eigenvectors with arbitrary sign: ``v``
+    and ``-v`` are both valid principal eigenvectors. When the downstream
+    split rule is ``v >= 0`` this ambiguity permutes the two halves of
+    the bipartition. We fix the sign by requiring the coordinate of
+    largest magnitude to be non-negative; tie-breaks on magnitude fall
+    to the smallest index, so the convention is deterministic for every
+    non-zero ``v``.
+
+    The zero vector is returned unchanged — the caller must handle the
+    degenerate split separately because both halves are empty by
+    construction.
+    """
+    if v.size == 0:
+        return v
+    idx = int(np.argmax(np.abs(v)))
+    pivot = float(v[idx])
+    if pivot < 0.0:
+        return -v
+    return v
+
+
+def _canonicalize_labels(labels: np.ndarray) -> np.ndarray:
+    """Rewrite community ids so the ordering is permutation-invariant.
+
+    The primary sort key is community *size*, descending: the biggest
+    community always receives id ``0``. Ties break on the *smallest
+    member index* ascending, so two communities of equal size fall
+    into a stable order determined only by node identity. This removes
+    two sources of label instability:
+
+    1. **Eigenvector sign ambiguity** — when the recursive splitter
+       flips which half receives ``new_id = max + 1`` the raw labels
+       permute; after canonicalisation the partition is unchanged.
+    2. **Split-order dependence** — recursive splits of different
+       sub-communities can interleave in different orders on perturbed
+       inputs; the size-then-min-index ordering is invariant under
+       those interleavings.
+
+    The partition (the equivalence classes on nodes) is preserved
+    exactly — only the integer ids are rewritten. The returned labels
+    are a dense ``0..C-1`` range where ``C`` is the number of
+    communities.
+    """
+    labels = np.ascontiguousarray(labels, dtype=np.int64)
+    unique, first_occurrence = np.unique(labels, return_index=True)
+    sizes = np.array([int((labels == u).sum()) for u in unique], dtype=np.int64)
+    # Sort by (-size, first_occurrence) so the biggest community wins;
+    # ties break on the smallest node index.
+    order = np.lexsort((first_occurrence, -sizes))
+    remap = np.empty(unique.max() + 1, dtype=np.int64)
+    for new_id, old_pos in enumerate(order):
+        remap[unique[old_pos]] = new_id
+    return np.asarray(remap[labels], dtype=np.int64)
+
+
 def _signed_modularity(W: np.ndarray, labels: np.ndarray) -> float:
     """Signed modularity ``Q⁺ − Q⁻`` (Gómez, Jensen & Arenas, 2009).
 
@@ -234,6 +292,19 @@ def signed_communities(
     graphs that avoids bringing in ``leidenalg`` as a dependency; on
     planted-partition benchmarks it recovers the ground-truth
     communities with NMI ≥ 0.9 for typical sparsity levels.
+
+    Label canonicalisation
+    ----------------------
+    The returned labels form a dense ``0..C-1`` range canonicalised
+    so that the biggest community always has id ``0``; ties on size
+    break on the smallest member index ascending. Together with the
+    eigenvector-sign canonicalisation applied during every recursive
+    split this makes the output *permutation-invariant* under small
+    perturbations of ``K``: if two inputs produce the same partition
+    they produce the same labels bit-for-bit. Downstream callers
+    (``EmergentMetrics.R_cluster``, ``NetworkKuramotoFeature``) bind
+    to these ids across batch recalibrations, so stability is a
+    correctness invariant, not a cosmetic.
     """
     N = K.shape[0]
     W = 0.5 * (K + K.T)
@@ -259,8 +330,12 @@ def signed_communities(
             eigvals, eigvecs = np.linalg.eigh(sub_sym)
             # Fiedler-like split: use the eigenvector corresponding
             # to the largest eigenvalue (maximises intra-cluster
-            # positive weight)
-            v = eigvecs[:, -1]
+            # positive weight). ``eigh`` returns eigenvectors with
+            # arbitrary sign; canonicalise so ``v >= 0`` has a
+            # deterministic meaning (otherwise ``sub_a`` / ``sub_b``
+            # permute under numerical perturbation and the new-id
+            # assignment swaps cluster labels between calls).
+            v = _canonical_eigvec_sign(eigvecs[:, -1])
             sub_a = v >= 0
             sub_b = ~sub_a
             if sub_a.sum() < min_community_size or sub_b.sum() < min_community_size:
@@ -280,7 +355,12 @@ def signed_communities(
         _, labels = best_split
         current_q = current_q + best_gain
 
-    return labels
+    # Canonicalise labels: biggest community first, ties broken by the
+    # smallest member index. Without this, two runs on tiny
+    # perturbations of the same ``K`` return the same partition but
+    # with permuted ids — which breaks ``R_cluster`` dict keys and
+    # downstream ``kuramoto_R_cluster_{c}`` feature vocabulary.
+    return _canonicalize_labels(labels)
 
 
 # ---------------------------------------------------------------------------
