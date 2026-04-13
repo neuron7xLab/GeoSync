@@ -22,13 +22,13 @@
   "dependencies": {
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@mui/icons-material": "^6.1.2",
-    "@mui/lab": "^6.0.0-beta.17",
-    "@mui/material": "^6.1.2",
+    "@mui/icons-material": "^9.0.0",
+    "@mui/lab": "^9.0.0-beta.2",
+    "@mui/material": "^9.0.0",
     "@mui/material-nextjs": "^9.0.0",
-    "next": "^15.5.15",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "next": "^16.2.3",
+    "react": "19.2.5",
+    "react-dom": "19.2.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
@@ -39,8 +39,8 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.2.3",
-    "@types/react": "^18.2.79",
-    "@types/react-dom": "^18.2.25",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.46.3",
     "eslint": "^8.57.1",

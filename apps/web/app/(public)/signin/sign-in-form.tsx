@@ -84,8 +84,10 @@ export function SignInForm() {
             required
             fullWidth
             helperText="Enter your GeoSync work email address"
-            inputProps={{
-              'aria-label': 'Work email',
+            slotProps={{
+              htmlInput: {
+                'aria-label': 'Work email',
+              },
             }}
           />
           <TextField
@@ -99,8 +101,10 @@ export function SignInForm() {
             required
             fullWidth
             helperText="Enter your account password"
-            inputProps={{
-              'aria-label': 'Password',
+            slotProps={{
+              htmlInput: {
+                'aria-label': 'Password',
+              },
             }}
           />
           {error ? (

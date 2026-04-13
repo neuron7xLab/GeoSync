@@ -63,8 +63,8 @@ export default function SignInPage() {
     >
       <Container maxWidth="sm">
         <Stack spacing={{ xs: 3, md: 4 }}>
-          <Stack spacing={2} textAlign="center">
-            <Typography component="h1" variant="h3" fontWeight={700}>
+          <Stack spacing={2} sx={{ textAlign: 'center' }}>
+            <Typography component="h1" variant="h3" sx={{ fontWeight: 700 }}>
               Welcome back
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -73,7 +73,7 @@ export default function SignInPage() {
             </Typography>
           </Stack>
           <SignInForm />
-          <Typography variant="body2" color="text.secondary" textAlign="center">
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
             Need access?{' '}
             <Link href="mailto:support@geosync.ai" style={{ fontWeight: 600 }}>
               Contact the GeoSync team
