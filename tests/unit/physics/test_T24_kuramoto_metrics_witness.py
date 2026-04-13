@@ -372,9 +372,9 @@ def test_rolling_csd_rejects_window_outside_range() -> None:
 
     # Legal edge: window = 2 must succeed and yield finite output.
     var, ac1 = rolling_csd(R, window=2)
-    assert var.shape == (T,), (
-        f"INV-HPC2 VIOLATED: var shape={var.shape}, expected ({T},). Observed at T={T}, window=2."
-    )
+    assert var.shape == (
+        T,
+    ), f"INV-HPC2 VIOLATED: var shape={var.shape}, expected ({T},). Observed at T={T}, window=2."
     assert np.all(np.isfinite(var)), (
         "INV-HPC2 VIOLATED: rolling_csd var contains NaN/Inf at window=2. "
         f"Observed at T={T}. "

@@ -147,9 +147,9 @@ def test_landauer_ratio_is_finite_on_standard_config() -> None:
     prof = LandauerInferenceProfiler(T=300.0, gpu_energy_per_op=1e-12)
     n = 1000
     ratio = prof.landauer_ratio(n)
-    assert math.isfinite(ratio), (
-        f"INV-HPC2 VIOLATED: landauer_ratio non-finite at n={n}. Observed={ratio}."
-    )
+    assert math.isfinite(
+        ratio
+    ), f"INV-HPC2 VIOLATED: landauer_ratio non-finite at n={n}. Observed={ratio}."
     assert 1e8 < ratio < 1e10, (
         f"INV-HPC2 VIOLATED: ratio={ratio:.2e} outside expected band "
         f"[1e8, 1e10] with N={n}, seed=none, T=300 K, "
