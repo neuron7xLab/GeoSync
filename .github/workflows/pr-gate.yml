@@ -130,7 +130,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            git fetch --no-tags origin "${{ github.base_ref }}"
             base_ref="origin/${{ github.base_ref }}"
             changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
           else
@@ -190,7 +190,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            git fetch --no-tags origin "${{ github.base_ref }}"
             base_ref="origin/${{ github.base_ref }}"
             changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
           else
@@ -230,7 +230,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            git fetch --no-tags origin "${{ github.base_ref }}"
             base_ref="origin/${{ github.base_ref }}"
             changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
           else
@@ -275,7 +275,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            git fetch --no-tags origin "${{ github.base_ref }}"
             base_ref="origin/${{ github.base_ref }}"
             changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
           else
@@ -318,7 +318,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            git fetch --no-tags origin "${{ github.base_ref }}"
             base_ref="origin/${{ github.base_ref }}"
             changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
           else
@@ -421,7 +421,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            git fetch --no-tags origin "${{ github.base_ref }}"
             base_ref="origin/${{ github.base_ref }}"
             git diff --name-only "$base_ref...$GITHUB_SHA" > /tmp/changed-files.txt
           else
@@ -473,7 +473,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+            git fetch --no-tags origin "${{ github.base_ref }}"
             changed=$(git diff --name-only "origin/${{ github.base_ref }}...$GITHUB_SHA")
           else
             changed=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
