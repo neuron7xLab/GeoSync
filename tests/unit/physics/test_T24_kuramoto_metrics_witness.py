@@ -55,6 +55,7 @@ from core.kuramoto.metrics import (
     order_parameter,
     permutation_entropy,
     rolling_csd,
+    signed_communities,
 )
 
 # ---------------------------------------------------------------------------
@@ -448,3 +449,122 @@ def test_permutation_entropy_max_entropy_formula() -> None:
     )
     # Sanity: entropy must be a finite real in [0, 1].
     assert math.isfinite(h)
+
+
+# ---------------------------------------------------------------------------
+# INV-K-CLUSTER — signed_communities label canonicalisation
+# ---------------------------------------------------------------------------
+
+
+@given(
+    arrays(
+        dtype=np.float64,
+        shape=st.tuples(
+            st.integers(min_value=6, max_value=14),
+            st.integers(min_value=6, max_value=14),
+        ).filter(lambda s: s[0] == s[1]),
+        elements=st.floats(min_value=-5.0, max_value=5.0, allow_nan=False, allow_infinity=False),
+    ),
+    st.floats(min_value=0.0, max_value=1e-4, allow_nan=False, allow_infinity=False),
+)
+@settings(max_examples=40, deadline=None)
+def test_signed_communities_label_stability_under_noise(
+    K_raw: np.ndarray, noise_scale: float
+) -> None:
+    """INV-K-CLUSTER: tiny ``K`` noise preserves labels bit-for-bit.
+
+    The inverse-problem stack feeds ``signed_communities`` a coupling
+    matrix that carries estimator noise. Under the recalibration
+    stability contract, label identifiers are part of the public
+    feature vocabulary (``EmergentMetrics.R_cluster`` keys,
+    ``NetworkKuramotoFeature`` ``kuramoto_R_cluster_{c}``). If the
+    partition is unchanged under a tiny perturbation then the labels
+    must be unchanged too — otherwise downstream consumers that bind
+    to ``R_cluster[0]`` see their semantics swap across recalibrations.
+
+    Falsification design: draw an arbitrary ``K`` in ``[-5, 5]``
+    (symmetrise) and a perturbation of magnitude ``≤ 1e-4``. Run
+    ``signed_communities`` on both. When the two calls yield the same
+    *partition* (equivalence relation on nodes) the integer labels
+    themselves must also match exactly.
+
+    Tolerance: the canonicaliser is a pure function of the partition,
+    so the expected tolerance on label equality is 0. We only compare
+    labels when the partitions are equivalent — otherwise the noise
+    has crossed a modularity boundary and the partitions genuinely
+    differ (outside this witness's scope).
+    """
+    # Symmetrise (signed_communities symmetrises internally but the
+    # noise we add must match the symmetric structure to keep the
+    # perturbation small in operator norm).
+    K = 0.5 * (K_raw + K_raw.T)
+    np.fill_diagonal(K, 0.0)
+
+    rng = np.random.default_rng(seed=0)
+    noise = noise_scale * rng.standard_normal(K.shape)
+    noise = 0.5 * (noise + noise.T)
+    K_pert = K + noise
+
+    base = signed_communities(K, n_clusters_max=4)
+    pert = signed_communities(K_pert, n_clusters_max=4)
+
+    # Partition equivalence: same equivalence relation on nodes?
+    same_partition = np.array_equal(base[:, None] == base[None, :], pert[:, None] == pert[None, :])
+    if same_partition:
+        # epsilon: canonicalisation is structural, tolerance = 0.
+        assert np.array_equal(base, pert), (
+            f"INV-K-CLUSTER VIOLATED: identical partition gave different "
+            f"labels {base.tolist()} vs {pert.tolist()} under noise "
+            f"scale={noise_scale:.3e}. "
+            f"Expected bit-for-bit label equality under the "
+            f"size-then-min-index canonicalisation contract."
+        )
+
+    # Contract on label range: labels must form a dense 0..C-1 range.
+    unique = np.unique(base)
+    assert (
+        int(unique.min()) == 0
+    ), f"INV-K-CLUSTER VIOLATED: labels must start at 0; got min={int(unique.min())}."
+    assert (
+        int(unique.max()) == unique.size - 1
+    ), f"INV-K-CLUSTER VIOLATED: labels must be dense 0..C-1; got unique={unique.tolist()}."
+
+
+def test_signed_communities_biggest_first_ordering() -> None:
+    """INV-K-CLUSTER: cluster id 0 is always the largest community.
+
+    The canonical ordering is: primary key = community size descending,
+    secondary key = smallest member index ascending. We exercise the
+    primary key with an imbalanced planted partition where the sizes
+    are strictly different (7 vs 3) so the size ordering is
+    discriminative.
+
+    Tolerance: exact — the canonicaliser returns a deterministic
+    integer mapping, tolerance = 0.
+    """
+    N = 10
+    K = np.zeros((N, N))
+    # Block A: 7 nodes, block B: 3 nodes.
+    for i in range(7):
+        for j in range(7):
+            if i != j:
+                K[i, j] = 1.0
+    for i in range(7, N):
+        for j in range(7, N):
+            if i != j:
+                K[i, j] = 1.0
+    for i in range(7):
+        for j in range(7, N):
+            K[i, j] = -0.5
+            K[j, i] = -0.5
+
+    labels = signed_communities(K, n_clusters_max=4)
+    sizes = np.bincount(labels)
+    # Community id 0 must be the biggest (size 7, not 3).
+    assert int(sizes[0]) == 7, (
+        f"INV-K-CLUSTER VIOLATED: community 0 has size {int(sizes[0])}, "
+        f"expected 7 (biggest first). Sizes={sizes.tolist()}."
+    )
+    # Node 0 (biggest block) carries id 0; node N-1 (smaller block) does not.
+    assert int(labels[0]) == 0
+    assert int(labels[-1]) != 0
