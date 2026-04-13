@@ -173,9 +173,9 @@ class TestSignedCommunities:
             labels = signed_communities(K, n_clusters_max=4)
             unique = np.unique(labels)
             assert int(unique.min()) == 0
-            assert int(unique.max()) == unique.size - 1, (
-                f"labels must be dense 0..C-1; got {unique.tolist()}"
-            )
+            assert (
+                int(unique.max()) == unique.size - 1
+            ), f"labels must be dense 0..C-1; got {unique.tolist()}"
 
     def test_biggest_community_gets_id_zero(self) -> None:
         """Canonical ordering: the largest community always has id 0.

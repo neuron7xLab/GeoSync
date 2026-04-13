@@ -373,9 +373,9 @@ def test_rolling_csd_rejects_window_outside_range() -> None:
 
     # Legal edge: window = 2 must succeed and yield finite output.
     var, ac1 = rolling_csd(R, window=2)
-    assert var.shape == (T,), (
-        f"INV-HPC2 VIOLATED: var shape={var.shape}, expected ({T},). Observed at T={T}, window=2."
-    )
+    assert var.shape == (
+        T,
+    ), f"INV-HPC2 VIOLATED: var shape={var.shape}, expected ({T},). Observed at T={T}, window=2."
     assert np.all(np.isfinite(var)), (
         "INV-HPC2 VIOLATED: rolling_csd var contains NaN/Inf at window=2. "
         f"Observed at T={T}. "
@@ -522,12 +522,12 @@ def test_signed_communities_label_stability_under_noise(
 
     # Contract on label range: labels must form a dense 0..C-1 range.
     unique = np.unique(base)
-    assert int(unique.min()) == 0, (
-        f"INV-K-CLUSTER VIOLATED: labels must start at 0; got min={int(unique.min())}."
-    )
-    assert int(unique.max()) == unique.size - 1, (
-        f"INV-K-CLUSTER VIOLATED: labels must be dense 0..C-1; got unique={unique.tolist()}."
-    )
+    assert (
+        int(unique.min()) == 0
+    ), f"INV-K-CLUSTER VIOLATED: labels must start at 0; got min={int(unique.min())}."
+    assert (
+        int(unique.max()) == unique.size - 1
+    ), f"INV-K-CLUSTER VIOLATED: labels must be dense 0..C-1; got unique={unique.tolist()}."
 
 
 def test_signed_communities_biggest_first_ordering() -> None:
