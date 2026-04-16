@@ -285,7 +285,7 @@ pandera==0.26.1
     # via
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
-pillow==12.1.1
+pillow==12.2.0
     # via
     #   captcha
     #   streamlit
