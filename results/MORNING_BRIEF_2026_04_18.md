@@ -144,16 +144,61 @@ The regime filter is not just a predictor enhancement — it
 
 ---
 
-## Session 2 (in progress)
+## Session 2 (in progress) — EARLY SIGNAL CHECK
 
 Fresh 8h L2 collection in `data/binance_l2_perp_v2/`, started
-2026-04-18 00:00 local. ETA finish 08:00 local. Cross-session
-OOS (threshold from session-1 applied to session-2) will be the
-single strongest generalization test. If uplift holds across
-sessions: regime filter is production-ready. If not: threshold was
-session-specific and needs per-session recalibration.
+2026-04-18 00:00 local. ETA finish 08:00 local.
 
-**[Placeholder — filled on v2 completion]**
+**Pilot cross-session on first 0.9 h of Session 2 data** (subject to
+revision at full-session completion):
+
+```
+Session 1  (5h14m, daytime): unconditional IC = +0.1223  p < 0.01
+Session 2  (  0.9h, overnight): unconditional IC = -0.2174  p < 0.01
+                                 → signal POLARITY INVERTED
+```
+
+**RV-decile analysis on Session 1** (`scripts/l2_rv_decile_analysis.py`)
+reveals a non-monotonic U-shape:
+
+```
+bucket   rv_upper   frac    IC       p_perm   verdict
+D1       6.7e-5     9.8%   +0.3236   0.002    PROCEED   ← lowest-RV decile
+D2       7.4e-5     9.8%   -0.0815   0.200    KILL
+D3       8.1e-5     9.8%   -0.0226   0.728    KILL
+D4       8.8e-5     9.8%   +0.0100   0.880    KILL
+D5       9.7e-5     9.8%   +0.0276   0.639    KILL
+D6       1.1e-4     9.8%   +0.1210   0.038    KILL    ← borderline
+D7       1.2e-4     9.8%   +0.0562   0.323    KILL
+D8       1.5e-4     9.8%   +0.1298   0.038    KILL    ← borderline
+D9       2.1e-4     9.8%   +0.1646   0.010    PROCEED
+D10      3.7e-4     9.8%   +0.4009   0.002    PROCEED ← highest-RV decile
+```
+
+D1 AND D10 both strongly positive; middle deciles dead. The naive
+"higher RV → higher IC" story (Spearman ρ=+0.35) hid this U-shape.
+
+Session 2's RV range sits entirely inside Session 1's D1–D5 band
+(quieter even than D1). Yet Session 2 shows **strongly negative** IC.
+This suggests the regime axis is **NOT purely RV magnitude** — there is
+also a diurnal / liquidity-schedule component. Session 2 being overnight
+(Friday 00:00 local onward) may be in a fundamentally different
+microstructure regime that inverts the sign of the edge.
+
+**Revised (preliminary) architectural hypothesis:**
+
+```
+Overnight/quiet regime:  Ricci predicts mean reversion → trade OPPOSITE
+Daytime/active regime:   Ricci predicts continuation  → trade WITH signal
+Middle regime:           no tradeable polarity
+```
+
+If this hypothesis holds as Session 2 accumulates more data, the
+architecture evolves from "filter on RV" to **"sign-flip on regime"**,
+potentially doubling the effective coverage (use edge in both modes
+instead of filtering one out).
+
+**[Revised when v2 reaches ≥ 4 h of data]**
 
 ---
 
