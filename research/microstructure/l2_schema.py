@@ -54,5 +54,5 @@ DEFAULT_SYMBOLS: Final[tuple[str, ...]] = (
     "AVAXUSDT",
     "LINKUSDT",
     "DOTUSDT",
-    "MATICUSDT",
+    "POLUSDT",
 )
