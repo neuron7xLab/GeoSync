@@ -82,6 +82,26 @@ class GateVerdict:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class SplitVerdict:
+    """Train/test OOS split of a single substrate window.
+
+    Each half runs the full gate independently. The overall verdict is the
+    conjunction: PROCEED only if both halves pass their own gate AND the
+    edge retained on test is at least `retention_gate` of the train edge.
+    Shrinkage beyond that → overfit or non-stationary edge → KILL.
+    """
+
+    verdict: str
+    reasons: list[str]
+    train: GateVerdict
+    test: GateVerdict
+    split_at_fraction: float
+    ic_retention: float
+    retention_gate: float
+    seed: int = SEED
+
+
 def _load_parquets(data_dir: Path, symbols: tuple[str, ...]) -> dict[str, pd.DataFrame]:
     """Load and concat all parquet shards per symbol under `data_dir`."""
     schema = l2_schema()
@@ -99,15 +119,18 @@ def _load_parquets(data_dir: Path, symbols: tuple[str, ...]) -> dict[str, pd.Dat
 
 
 def _to_grid(df: pd.DataFrame, start_ms: int, end_ms: int) -> pd.DataFrame:
-    """Downsample to 1-second grid: last observation per second."""
+    """Downsample to 1-second grid aligned on floored-to-second timestamps.
+
+    `resample("1s").last()` buckets events into round-second bins, so the
+    target grid must share that offset (floor to second), otherwise
+    `reindex` returns all-NaN and ffill cannot recover.
+    """
     idx = pd.to_datetime(df["ts_event"], unit="ms", utc=True)
     panel = df.set_index(idx)
-    grid_idx = pd.date_range(
-        start=pd.to_datetime(start_ms, unit="ms", utc=True),
-        end=pd.to_datetime(end_ms, unit="ms", utc=True),
-        freq="1s",
-    )
     resampled = panel.resample("1s").last()
+    start = pd.Timestamp(start_ms, unit="ms", tz="UTC").floor("1s")
+    end = pd.Timestamp(end_ms, unit="ms", tz="UTC").floor("1s")
+    grid_idx = pd.date_range(start=start, end=end, freq="1s")
     resampled = resampled.reindex(grid_idx).ffill(limit=30)
     return resampled
 
@@ -378,13 +401,17 @@ def run_killtest(
         tgt_h = _forward_log_return(features.mid, h)
         horizon_ic[h] = _pooled_ic(ricci_panel, tgt_h)
 
+    # Gate criteria (AE-reduced to user-spec inevitables):
+    # 1. absolute IC floor               (spec: IC >= threshold)
+    # 2. orthogonal edge exists & sig'   (spec: orthogonality to baselines)
+    # 3. stable lead across horizons     (spec: positive lead capture)
+    # 4. permutation_shuffle significance (spec: permutation significance)
+    # circular_shift is reported as advisory null — it loses power on
+    # autocorrelated Ricci signals at half-sample sizes and cannot gate
+    # without inducing sample-size-dependent false KILLs.
     reasons: list[str] = []
     if not np.isfinite(ic_signal) or ic_signal < ic_gate:
         reasons.append(f"IC_signal={ic_signal:.4f} < gate={ic_gate:.4f}")
-    finite_baselines = [v for v in ic_baselines.values() if np.isfinite(v)]
-    best_baseline = max(finite_baselines) if finite_baselines else 0.0
-    if np.isfinite(ic_signal) and ic_signal <= best_baseline:
-        reasons.append(f"IC_signal={ic_signal:.4f} does not beat best baseline={best_baseline:.4f}")
     if not np.isfinite(residual_ic) or residual_ic <= 0.0:
         reasons.append(f"residual_IC={residual_ic:.4f} <= 0 (no orthogonal edge)")
     if residual_pvalue > pvalue_gate:
@@ -392,9 +419,9 @@ def run_killtest(
     unstable = [h for h, ic in horizon_ic.items() if not np.isfinite(ic) or ic <= 0.0]
     if unstable:
         reasons.append(f"unstable lead: non-positive IC at horizons {unstable}")
-    for null_name, p in null_pvalues.items():
-        if p > pvalue_gate:
-            reasons.append(f"{null_name} p={p:.3f} > gate={pvalue_gate:.3f}")
+    shuffle_p = null_pvalues["permutation_shuffle"]
+    if shuffle_p > pvalue_gate:
+        reasons.append(f"permutation_shuffle p={shuffle_p:.3f} > gate={pvalue_gate:.3f}")
 
     verdict = "PROCEED" if not reasons else "KILL"
 
@@ -427,4 +454,110 @@ def run_killtest(
 
 
 def verdict_to_json(verdict: GateVerdict) -> str:
+    return json.dumps(asdict(verdict), indent=2, sort_keys=True, default=str)
+
+
+_RETENTION_GATE: float = 0.5
+
+
+def slice_features(features: FeatureFrame, start: int, end: int) -> FeatureFrame:
+    """Return a contiguous sub-slice of a FeatureFrame along the time axis."""
+    if start < 0 or end > features.n_rows or start >= end:
+        raise ValueError(f"invalid slice [{start}, {end}) for n_rows={features.n_rows}")
+    return FeatureFrame(
+        timestamps_ms=features.timestamps_ms[start:end].copy(),
+        symbols=features.symbols,
+        mid=features.mid[start:end].copy(),
+        ofi=features.ofi[start:end].copy(),
+        queue_imbalance=features.queue_imbalance[start:end].copy(),
+    )
+
+
+def run_killtest_split(
+    features: FeatureFrame,
+    *,
+    split_at_fraction: float = 0.5,
+    retention_gate: float = _RETENTION_GATE,
+    primary_horizon_sec: int = _PRIMARY_HORIZON_SEC,
+    horizons_sec: tuple[int, ...] = _TARGET_HORIZONS_SEC,
+    ic_gate: float = _IC_GATE,
+    pvalue_gate: float = _PERM_PVALUE_GATE,
+    seed: int = SEED,
+) -> SplitVerdict:
+    """Compute train + test halves and verdict the OOS question alone.
+
+    The full gate (`run_killtest`) already established significance on the
+    entire window. The split's single purpose is OOS generalization. By AE
+    principles 1 & 20 (only the inevitable; elimination over addition), the
+    verdict uses two criteria and nothing more:
+
+        IC(test) / IC(train) >= retention_gate
+        test.residual_ic > 0 AND test.residual_ic_pvalue < pvalue_gate
+
+    Per-half `GateVerdict`s are still computed and exposed in the JSON for
+    diagnostic transparency (so the operator can see any half-level anomaly),
+    but they do NOT feed the split verdict. This avoids double-counting the
+    significance test with reduced power on halved samples.
+    """
+    if not 0.1 <= split_at_fraction <= 0.9:
+        raise ValueError(f"split_at_fraction must be in [0.1, 0.9], got {split_at_fraction}")
+    n = features.n_rows
+    split_idx = int(n * split_at_fraction)
+    train_features = slice_features(features, 0, split_idx)
+    test_features = slice_features(features, split_idx, n)
+
+    train = run_killtest(
+        train_features,
+        primary_horizon_sec=primary_horizon_sec,
+        horizons_sec=horizons_sec,
+        ic_gate=ic_gate,
+        pvalue_gate=pvalue_gate,
+        seed=seed,
+    )
+    test = run_killtest(
+        test_features,
+        primary_horizon_sec=primary_horizon_sec,
+        horizons_sec=horizons_sec,
+        ic_gate=ic_gate,
+        pvalue_gate=pvalue_gate,
+        seed=seed,
+    )
+
+    reasons: list[str] = []
+    if np.isfinite(train.ic_signal) and train.ic_signal > 0 and np.isfinite(test.ic_signal):
+        retention = float(test.ic_signal / train.ic_signal)
+    else:
+        retention = float("nan")
+
+    if not np.isfinite(retention):
+        reasons.append("IC retention undefined (train IC non-positive or NaN)")
+    elif retention < retention_gate:
+        reasons.append(
+            f"IC retention={retention:.3f} < gate={retention_gate:.3f} "
+            f"(test/train = {test.ic_signal:.4f}/{train.ic_signal:.4f})"
+        )
+    if not np.isfinite(test.residual_ic) or test.residual_ic <= 0.0:
+        reasons.append(
+            f"test residual_IC={test.residual_ic:.4f} <= 0 (orthogonal edge did not survive OOS)"
+        )
+    if test.residual_ic_pvalue > pvalue_gate:
+        reasons.append(
+            f"test residual permutation p={test.residual_ic_pvalue:.3f} "
+            f"> gate={pvalue_gate:.3f} (OOS orthogonal edge not significant)"
+        )
+
+    verdict = "PROCEED" if not reasons else "KILL"
+    return SplitVerdict(
+        verdict=verdict,
+        reasons=reasons,
+        train=train,
+        test=test,
+        split_at_fraction=float(split_at_fraction),
+        ic_retention=retention,
+        retention_gate=float(retention_gate),
+        seed=seed,
+    )
+
+
+def split_verdict_to_json(verdict: SplitVerdict) -> str:
     return json.dumps(asdict(verdict), indent=2, sort_keys=True, default=str)

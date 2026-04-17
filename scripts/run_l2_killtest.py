@@ -22,6 +22,8 @@ from research.microstructure.killtest import (
 from research.microstructure.killtest import (
     build_feature_frame,
     run_killtest,
+    run_killtest_split,
+    split_verdict_to_json,
     verdict_to_json,
 )
 from research.microstructure.l2_schema import DEFAULT_SYMBOLS
@@ -47,6 +49,18 @@ def main() -> int:
         type=Path,
         default=Path("results/L2_KILLTEST_VERDICT.json"),
         help="Path to write verdict JSON",
+    )
+    parser.add_argument(
+        "--split",
+        type=float,
+        default=None,
+        help="If set (e.g. 0.5), run train/test split OOS gate instead of single-window gate",
+    )
+    parser.add_argument(
+        "--retention-gate",
+        type=float,
+        default=0.5,
+        help="Minimum IC(test)/IC(train) ratio for split PROCEED (default 0.5)",
     )
     parser.add_argument(
         "--log-level",
@@ -82,6 +96,25 @@ def main() -> int:
         features.n_rows,
         features.n_symbols,
     )
+
+    if args.split is not None:
+        split_verdict = run_killtest_split(
+            features,
+            split_at_fraction=float(args.split),
+            retention_gate=float(args.retention_gate),
+        )
+        json_body = split_verdict_to_json(split_verdict)
+        out_path = Path(args.output)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json_body, encoding="utf-8")
+        print(json_body)
+        _log.info(
+            "split verdict: %s — retention=%.3f — reasons: %s",
+            split_verdict.verdict,
+            split_verdict.ic_retention,
+            split_verdict.reasons or "none",
+        )
+        return 0
 
     verdict = run_killtest(features)
     json_body = verdict_to_json(verdict)
