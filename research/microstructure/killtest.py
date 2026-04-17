@@ -355,12 +355,30 @@ def run_killtest(
     horizons_sec: tuple[int, ...] = _TARGET_HORIZONS_SEC,
     ic_gate: float = _IC_GATE,
     pvalue_gate: float = _PERM_PVALUE_GATE,
+    regime_mask: NDArray[np.bool_] | None = None,
     seed: int = SEED,
 ) -> GateVerdict:
-    """Execute the full fail-fast gate and emit a binary verdict."""
+    """Execute the full fail-fast gate and emit a binary verdict.
+
+    When `regime_mask` is provided (shape (n_rows,)), IC and null-test
+    computations count only rows where the mask is True. The Ricci signal
+    is still computed on the full contiguous time series (its rolling
+    cross-sectional correlation needs consecutive rows) — the filter acts
+    at scoring time, not feature-construction time.
+    """
     ricci_signal_1d = cross_sectional_ricci_signal(features.ofi)
     ricci_panel = np.repeat(ricci_signal_1d[:, None], features.n_symbols, axis=1)
     target = _forward_log_return(features.mid, primary_horizon_sec)
+
+    if regime_mask is not None:
+        if regime_mask.shape != (features.n_rows,):
+            raise ValueError(
+                f"regime_mask shape {regime_mask.shape} must equal ({features.n_rows},)"
+            )
+        # broadcast row-mask to panel shape
+        panel_mask = np.broadcast_to(regime_mask[:, None], ricci_panel.shape)
+        ricci_panel = np.where(panel_mask, ricci_panel, np.nan)
+        target = np.where(panel_mask, target, np.nan)
 
     ic_signal = _pooled_ic(ricci_panel, target)
 
