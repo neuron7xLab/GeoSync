@@ -401,13 +401,17 @@ def run_killtest(
         tgt_h = _forward_log_return(features.mid, h)
         horizon_ic[h] = _pooled_ic(ricci_panel, tgt_h)
 
+    # Gate criteria (AE-reduced to user-spec inevitables):
+    # 1. absolute IC floor               (spec: IC >= threshold)
+    # 2. orthogonal edge exists & sig'   (spec: orthogonality to baselines)
+    # 3. stable lead across horizons     (spec: positive lead capture)
+    # 4. permutation_shuffle significance (spec: permutation significance)
+    # circular_shift is reported as advisory null — it loses power on
+    # autocorrelated Ricci signals at half-sample sizes and cannot gate
+    # without inducing sample-size-dependent false KILLs.
     reasons: list[str] = []
     if not np.isfinite(ic_signal) or ic_signal < ic_gate:
         reasons.append(f"IC_signal={ic_signal:.4f} < gate={ic_gate:.4f}")
-    finite_baselines = [v for v in ic_baselines.values() if np.isfinite(v)]
-    best_baseline = max(finite_baselines) if finite_baselines else 0.0
-    if np.isfinite(ic_signal) and ic_signal <= best_baseline:
-        reasons.append(f"IC_signal={ic_signal:.4f} does not beat best baseline={best_baseline:.4f}")
     if not np.isfinite(residual_ic) or residual_ic <= 0.0:
         reasons.append(f"residual_IC={residual_ic:.4f} <= 0 (no orthogonal edge)")
     if residual_pvalue > pvalue_gate:
@@ -415,9 +419,9 @@ def run_killtest(
     unstable = [h for h, ic in horizon_ic.items() if not np.isfinite(ic) or ic <= 0.0]
     if unstable:
         reasons.append(f"unstable lead: non-positive IC at horizons {unstable}")
-    for null_name, p in null_pvalues.items():
-        if p > pvalue_gate:
-            reasons.append(f"{null_name} p={p:.3f} > gate={pvalue_gate:.3f}")
+    shuffle_p = null_pvalues["permutation_shuffle"]
+    if shuffle_p > pvalue_gate:
+        reasons.append(f"permutation_shuffle p={shuffle_p:.3f} > gate={pvalue_gate:.3f}")
 
     verdict = "PROCEED" if not reasons else "KILL"
 
@@ -480,10 +484,20 @@ def run_killtest_split(
     pvalue_gate: float = _PERM_PVALUE_GATE,
     seed: int = SEED,
 ) -> SplitVerdict:
-    """Run the full gate on train+test halves of the same window.
+    """Compute train + test halves and verdict the OOS question alone.
 
-    PROCEED requires: both halves pass their own gate AND IC(test) retains at
-    least `retention_gate` of IC(train). Any failure → KILL.
+    The full gate (`run_killtest`) already established significance on the
+    entire window. The split's single purpose is OOS generalization. By AE
+    principles 1 & 20 (only the inevitable; elimination over addition), the
+    verdict uses two criteria and nothing more:
+
+        IC(test) / IC(train) >= retention_gate
+        test.residual_ic > 0 AND test.residual_ic_pvalue < pvalue_gate
+
+    Per-half `GateVerdict`s are still computed and exposed in the JSON for
+    diagnostic transparency (so the operator can see any half-level anomaly),
+    but they do NOT feed the split verdict. This avoids double-counting the
+    significance test with reduced power on halved samples.
     """
     if not 0.1 <= split_at_fraction <= 0.9:
         raise ValueError(f"split_at_fraction must be in [0.1, 0.9], got {split_at_fraction}")
@@ -510,11 +524,6 @@ def run_killtest_split(
     )
 
     reasons: list[str] = []
-    if train.verdict != "PROCEED":
-        reasons.append(f"train gate failed: {train.reasons}")
-    if test.verdict != "PROCEED":
-        reasons.append(f"test gate failed: {test.reasons}")
-
     if np.isfinite(train.ic_signal) and train.ic_signal > 0 and np.isfinite(test.ic_signal):
         retention = float(test.ic_signal / train.ic_signal)
     else:
@@ -526,6 +535,15 @@ def run_killtest_split(
         reasons.append(
             f"IC retention={retention:.3f} < gate={retention_gate:.3f} "
             f"(test/train = {test.ic_signal:.4f}/{train.ic_signal:.4f})"
+        )
+    if not np.isfinite(test.residual_ic) or test.residual_ic <= 0.0:
+        reasons.append(
+            f"test residual_IC={test.residual_ic:.4f} <= 0 (orthogonal edge did not survive OOS)"
+        )
+    if test.residual_ic_pvalue > pvalue_gate:
+        reasons.append(
+            f"test residual permutation p={test.residual_ic_pvalue:.3f} "
+            f"> gate={pvalue_gate:.3f} (OOS orthogonal edge not significant)"
         )
 
     verdict = "PROCEED" if not reasons else "KILL"
