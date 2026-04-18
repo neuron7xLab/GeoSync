@@ -81,8 +81,12 @@ get_system_audit_trail = _audit_module.get_system_audit_trail
 # end of the session. The plain ``setdefault`` form used prior to Sprint 3
 # leaked state into any subsequent in-process pytest invocation.
 _TEST_ENV_DEFAULTS: dict[str, str] = {
-    "GEOSYNC_TWO_FACTOR_SECRET": "JBSWY3DPEHPK3PXP",
-    "THERMO_DUAL_SECRET": "test-secret",
+    # Non-production placeholders — the real secrets come from the
+    # environment in CI and from a developer's local .env otherwise.
+    # ``pragma: allowlist secret`` keeps detect-secrets from treating
+    # the well-known test-vector value as a leaked credential.
+    "GEOSYNC_TWO_FACTOR_SECRET": "JBSWY3DPEHPK3PXP",  # pragma: allowlist secret
+    "THERMO_DUAL_SECRET": "test-secret",  # pragma: allowlist secret
 }
 
 # Surface the shared fixtures from ``tests/fixtures/conftest.py`` at this

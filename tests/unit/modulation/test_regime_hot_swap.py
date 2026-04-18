@@ -175,9 +175,9 @@ class TestHotSwap:
         # Every observation must match exactly one of the two policies.
         allowed = {(0.1, 0.3), (0.9, 0.9)}
         observed_pairs = {(r.valence, r.confidence) for r in results}
-        assert observed_pairs.issubset(allowed), (
-            f"partial policy state leaked: {observed_pairs - allowed}"
-        )
+        assert observed_pairs.issubset(
+            allowed
+        ), f"partial policy state leaked: {observed_pairs - allowed}"
 
 
 class TestModulationPolicyProtocol:
