@@ -1,14 +1,16 @@
 const next = require('eslint-config-next')
 const prettierFlat = require('eslint-config-prettier/flat')
 const prettierPlugin = require('eslint-plugin-prettier')
-const tseslint = require('@typescript-eslint/eslint-plugin')
 
 module.exports = [
   ...next,
   prettierFlat,
   {
     files: ['**/*.ts', '**/*.tsx'],
-    plugins: { prettier: prettierPlugin, '@typescript-eslint': tseslint },
+    // `@typescript-eslint` is already registered by eslint-config-next; the
+    // 8.58.2 plugin rejects re-registration with
+    // "Cannot redefine plugin" so we only add our local overrides here.
+    plugins: { prettier: prettierPlugin },
     rules: {
       'prettier/prettier': 'error',
       '@typescript-eslint/no-unused-vars': [
