@@ -69,7 +69,7 @@ def test_add_common_args_accepts_overrides(tmp_path: Path) -> None:
 def test_setup_logging_accepts_string_level() -> None:
     setup_logging("WARNING")
     setup_logging("INFO")
-    setup_logging("DEBUG")  # noqa: no exception expected
+    setup_logging("DEBUG")
 
 
 def test_load_substrate_missing_dir_raises() -> None:
