@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from datetime import datetime, timezone
 from ipaddress import ip_address as parse_ip_address
 from typing import IO, Any
 
@@ -15,9 +14,7 @@ from typing import IO, Any
 class JsonLogFormatter(logging.Formatter):
     """Serialize log records to JSON for ingestion by observability stacks."""
 
-    def format(
-        self, record: logging.LogRecord
-    ) -> str:  # noqa: D401 - documented at class level
+    def format(self, record: logging.LogRecord) -> str:  # noqa: D401 - documented at class level
         payload: dict[str, Any] = {
             "level": record.levelname,
             "message": record.getMessage(),
@@ -81,8 +78,12 @@ class StructuredAuditLogger:
         except ValueError as exc:
             raise ValueError(f"Invalid ip_address: {ip_address}") from exc
 
+        # Audit-event timestamp routed through ``default_clock()`` so a
+        # FrozenClock keeps cortex logs deterministic in replay tests.
+        from geosync.core.compat import default_clock, safe_isoformat
+
         payload: dict[str, object] = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": safe_isoformat(default_clock().now()),
             "event_type": event_type,
             "actor": actor,
             "ip_address": ip_address,

@@ -64,13 +64,30 @@ _audit_spec = importlib.util.spec_from_file_location(
 if _audit_spec is None or _audit_spec.loader is None:
     raise ImportError(f"Unable to load audit trail module from {_audit_trail_path}")
 _audit_module = importlib.util.module_from_spec(_audit_spec)
-sys.modules[_audit_spec.name] = _audit_module
+# ``_audit_spec.name`` must be registered in ``sys.modules`` before exec_module
+# so that the loader can honour ``__package__``. This mutation happens exactly
+# once at collection time; the session-scoped ``_sys_modules_registrations``
+# fixture below records the original value (if any) and restores it so that a
+# test run does not leak the shim into a subsequent in-process session.
+_AUDIT_MODULE_NAME = _audit_spec.name
+_PRE_AUDIT_MODULE = sys.modules.get(_AUDIT_MODULE_NAME)
+sys.modules[_AUDIT_MODULE_NAME] = _audit_module
 _audit_spec.loader.exec_module(_audit_module)
 get_access_audit_trail = _audit_module.get_access_audit_trail
 get_system_audit_trail = _audit_module.get_system_audit_trail
 
-os.environ.setdefault("GEOSYNC_TWO_FACTOR_SECRET", "JBSWY3DPEHPK3PXP")
-os.environ.setdefault("THERMO_DUAL_SECRET", "test-secret")
+# Production-like environment variables are injected through the ``_test_env``
+# session-scoped autouse fixture below so that the change is restored at the
+# end of the session. The plain ``setdefault`` form used prior to Sprint 3
+# leaked state into any subsequent in-process pytest invocation.
+_TEST_ENV_DEFAULTS: dict[str, str] = {
+    # Non-production placeholders — the real secrets come from the
+    # environment in CI and from a developer's local .env otherwise.
+    # ``pragma: allowlist secret`` keeps detect-secrets from treating
+    # the well-known test-vector value as a leaked credential.
+    "GEOSYNC_TWO_FACTOR_SECRET": "JBSWY3DPEHPK3PXP",  # pragma: allowlist secret
+    "THERMO_DUAL_SECRET": "test-secret",  # pragma: allowlist secret
+}
 
 # Surface the shared fixtures from ``tests/fixtures/conftest.py`` at this
 # higher-level conftest so ``autouse=True`` fixtures (e.g. ``_set_seed``)
@@ -81,13 +98,16 @@ os.environ.setdefault("THERMO_DUAL_SECRET", "test-secret")
 # ``tests/fixtures/``, and registering it a second time via ``pytest_plugins``
 # triggers pluggy's ``Plugin already registered under a different name`` error.
 # The importlib.util load-by-path below mirrors the auto-discovery behaviour
-# without double registration.
+# without double registration. The ``sys.modules`` write is recorded for
+# restoration by ``_sys_modules_registrations``.
 _fixture_path = Path(__file__).parent / "fixtures" / "conftest.py"
 _fixture_spec = importlib.util.spec_from_file_location("geosync_tests_fixtures", _fixture_path)
 if _fixture_spec is None or _fixture_spec.loader is None:
     raise ImportError(f"Unable to load fixtures from {_fixture_path}")
 _fixture_module = importlib.util.module_from_spec(_fixture_spec)
-sys.modules[_fixture_spec.name] = _fixture_module
+_FIXTURE_MODULE_NAME = _fixture_spec.name
+_PRE_FIXTURE_MODULE = sys.modules.get(_FIXTURE_MODULE_NAME)
+sys.modules[_FIXTURE_MODULE_NAME] = _fixture_module
 _fixture_spec.loader.exec_module(_fixture_module)
 globals().update(
     {
@@ -96,6 +116,52 @@ globals().update(
         if not name.startswith("__")
     }
 )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _test_env() -> Iterator[None]:
+    """Apply production-like env defaults for the session and restore after.
+
+    Sprint 3 remediation: the previous ``os.environ.setdefault(...)`` lived
+    at import time and never restored itself, so a second in-process
+    pytest run (e.g. ``pytest-xdist``'s master + worker) inherited the
+    test values. A session-scoped autouse fixture records originals and
+    undoes the change on teardown, eliminating that leak.
+    """
+    previous: dict[str, str | None] = {k: os.environ.get(k) for k in _TEST_ENV_DEFAULTS}
+    for key, value in _TEST_ENV_DEFAULTS.items():
+        os.environ.setdefault(key, value)
+    try:
+        yield
+    finally:
+        for key, original in previous.items():
+            if original is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = original
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _sys_modules_registrations() -> Iterator[None]:
+    """Restore ``sys.modules`` entries created at collection time.
+
+    The two ``sys.modules[...] = ...`` writes earlier in this file are
+    required at import time (before any test collects), so they cannot
+    move inside a fixture. What we *can* do is remember the previous
+    values and restore them at session teardown, which makes the
+    conftest's global footprint zero after the run.
+    """
+    try:
+        yield
+    finally:
+        for name, previous in (
+            (_AUDIT_MODULE_NAME, _PRE_AUDIT_MODULE),
+            (_FIXTURE_MODULE_NAME, _PRE_FIXTURE_MODULE),
+        ):
+            if previous is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = previous
 
 
 _LEVEL_DESCRIPTIONS: dict[str, str] = {
