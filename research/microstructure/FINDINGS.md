@@ -221,6 +221,34 @@ breaks even; production Binance perp maker rate for post-only orders
 with basic smart-routing sits at 40-70% fill depending on aggression.
 Edge is economically realizable.
 
+### 4.1 Hyperparameter ablation — honest sensitivity
+
+The canonical f* = 0.23167 at (regime_quantile = 0.75, window = 300 s) is
+one point in a 3 × 3 hyperparameter grid. Sweeping regime_quantile ∈
+{0.70, 0.75, 0.80} × regime_window_sec ∈ {180, 300, 450} gives:
+
+| Metric | Value |
+|---|---|
+| Cells evaluated | 9 |
+| Cells bracketed (break-even exists) | **9 / 9** |
+| f* range across grid | **[0.138, 0.372]** |
+| f* median / mean / std | 0.304 / 0.279 / 0.078 |
+| Max relative drift from canonical | 60.4% |
+| **Ablation verdict** | **SENSITIVE** |
+
+**Honest interpretation:** the precise value f* = 0.232 is not robust under
+hyperparameter perturbation — it drifts ±60% across reasonable choices.
+However, every cell of the grid produces a break-even **below the realistic
+production maker fill rate (0.40–0.70)**. The strategic claim ("edge is
+economically realizable") survives every ablation cell; the specific
+numerical gate is a point estimate, not a robust invariant.
+
+The ±60% drift does not flip any verdict — even the worst cell (f* = 0.372)
+sits below the 0.70 production ceiling with headroom. Read f* = 0.232 as
+**"likely achievable"**, not **"precisely calibrated"**.
+
+Artifact: `results/L2_ABLATION_SENSITIVITY.json`
+
 ---
 
 ## 5 · Diurnal sign-flip (SIGN_FLIP_CONFIRMED)
