@@ -9,7 +9,7 @@
   "ic_baselines": {
     "plain_ofi": 0.01916584098843665,
     "plain_return": 0.006981633710105293,
-    "realized_vol": -0.011935788591543508
+    "realized_vol": -0.01193748669023651
   },
   "ic_signal": 0.12229471858695447,
   "metadata": {
@@ -28,7 +28,7 @@
     "permutation_shuffle": 0.001996007984031936
   },
   "reasons": [],
-  "residual_ic": 0.11300370773454081,
+  "residual_ic": 0.11300370962166714,
   "residual_ic_pvalue": 0.001996007984031936,
   "seed": 42,
   "verdict": "PROCEED"
