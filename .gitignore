@@ -165,3 +165,7 @@ tests/unit/core/test_ml_quantization.py
 tests/unit/execution/test_live_loop.py
 tests/unit/execution/test_order_ledger_deep.py
 tests/unit/execution/test_order_lifecycle_deep.py
+
+# L2 killtest substrate (NARROW — prevent-regen only; result JSONs tracked explicitly)
+data/
+logs/
