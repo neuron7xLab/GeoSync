@@ -115,17 +115,31 @@ def simulate_gross_trades(
     hold_rows: int,
     median_window_rows: int,
     regime_mask: NDArray[np.bool_] | None = None,
+    direction_override: NDArray[np.int64] | None = None,
     name: str = "BASKET_SIGN",
 ) -> GrossTrades:
     """Basket-sign strategy, pre-cost.
 
-    At each decision index i:
-        * position_sign = +1 if signal_1d[i] > rolling_median(signal) else -1
+    Default rule (no direction_override):
+        At each decision index i:
+            * position_sign = +1 if signal_1d[i] > rolling_median(signal) else -1
+
+    With direction_override (shape (n_rows,), values in {-1, 0, +1}):
+        * position_sign = direction_override[i]
+        * if direction_override[i] == 0 → skip as gated-out
+
+    Common filters (both apply before direction is resolved):
         * if regime_mask[i] is False → skip (gated-out)
+        * if signal or median non-finite → skip
         * realized_ret_per_symbol = log(mid[i+hold]) - log(mid[i])
         * gross_bp = sign * mean_across_symbols(realized_ret) * 1e4
     """
     n_rows = int(signal_1d.shape[0])
+    if direction_override is not None and direction_override.shape != (n_rows,):
+        raise ValueError(
+            f"direction_override shape {direction_override.shape} must equal ({n_rows},)"
+        )
+
     rolling_median = np.full(n_rows, np.nan, dtype=np.float64)
     w = median_window_rows
     for t in range(w, n_rows):
@@ -148,7 +162,14 @@ def simulate_gross_trades(
         if regime_mask is not None and not bool(regime_mask[i]):
             gated += 1
             continue
-        sign = 1.0 if sig_now > med else -1.0
+        if direction_override is not None:
+            override = int(direction_override[i])
+            if override == 0:
+                gated += 1
+                continue
+            sign = float(override)
+        else:
+            sign = 1.0 if sig_now > med else -1.0
         realized = float((log_mid[i + hold_rows] - log_mid[i]).mean())
         gross.append(sign * realized * 1.0e4)
     return GrossTrades(name=name, gross_bp=gross, n_gated_out=gated)

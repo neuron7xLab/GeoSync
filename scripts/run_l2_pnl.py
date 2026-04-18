@@ -70,6 +70,24 @@ def main() -> int:
     parser.add_argument("--regime-filter", action="store_true")
     parser.add_argument("--regime-quantile", type=float, default=0.75)
     parser.add_argument("--regime-window-sec", type=int, default=300)
+    parser.add_argument(
+        "--diurnal-filter",
+        type=Path,
+        default=None,
+        help="Path to L2_DIURNAL_PROFILE.json; enables per-row sign-aware filter",
+    )
+    parser.add_argument(
+        "--diurnal-ic-gate",
+        type=float,
+        default=0.03,
+        help="Min |hourly_IC| for diurnal direction (default 0.03)",
+    )
+    parser.add_argument(
+        "--diurnal-p-gate",
+        type=float,
+        default=0.05,
+        help="Max hourly permutation p for direction (default 0.05)",
+    )
     parser.add_argument("--cost-sweep", action="store_true")
     parser.add_argument(
         "--emit-gate-value",
@@ -110,6 +128,32 @@ def main() -> int:
         rv_score = rolling_rv_regime(features, window_rows=args.regime_window_sec)
         regime_mask = regime_mask_from_quantile(rv_score, quantile=args.regime_quantile)
 
+    direction_override = None
+    if args.diurnal_filter is not None:
+        from research.microstructure.diurnal import session_start_ms_from_frames
+        from research.microstructure.diurnal_filter import (
+            direction_per_row,
+            load_hourly_direction_map,
+            summarize_map,
+        )
+
+        hourly_map = load_hourly_direction_map(
+            Path(args.diurnal_filter),
+            ic_gate=float(args.diurnal_ic_gate),
+            pvalue_gate=float(args.diurnal_p_gate),
+        )
+        start_ms = session_start_ms_from_frames(frames)
+        direction_override = direction_per_row(
+            hourly_map, start_ms=start_ms, n_rows=features.n_rows
+        )
+        strategy_name = f"{strategy_name}+DIURNAL"
+        _log.info("diurnal filter map: %s", summarize_map(hourly_map))
+        _log.info(
+            "diurnal rows with direction != 0: %d / %d",
+            int(np.count_nonzero(direction_override)),
+            features.n_rows,
+        )
+
     trades = simulate_gross_trades(
         signal,
         features.mid,
@@ -117,6 +161,7 @@ def main() -> int:
         hold_rows=DEFAULT_HOLD_SEC,
         median_window_rows=DEFAULT_MEDIAN_WINDOW_SEC,
         regime_mask=regime_mask,
+        direction_override=direction_override,
         name=strategy_name,
     )
 
