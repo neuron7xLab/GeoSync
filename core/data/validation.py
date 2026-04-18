@@ -39,12 +39,15 @@ from core.data.timeutils import get_timezone
 
 try:  # pragma: no cover - exercised when pandera is installed
     import pandera.pandas as pa
-    from pandera.errors import SchemaError
+    from pandera.errors import SchemaError, SchemaErrors
 except ModuleNotFoundError:  # pragma: no cover - fallback used in lightweight test envs
     pa = None  # type: ignore[assignment]
 
     class SchemaError(ValueError):
         """Lightweight substitute for ``pandera.errors.SchemaError``."""
+
+    class SchemaErrors(ValueError):
+        """Lightweight substitute for ``pandera.errors.SchemaErrors`` (lazy mode)."""
 
     class Check:
         def __init__(self, func, error: str | None = None):
@@ -58,9 +61,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback used in lightweight t
             return bool(result)
 
     class Column:
-        def __init__(
-            self, dtype, nullable: bool = False, unique: bool = False, checks=None
-        ):
+        def __init__(self, dtype, nullable: bool = False, unique: bool = False, checks=None):
             self.dtype = dtype
             self.nullable = nullable
             self.unique = unique
@@ -87,9 +88,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback used in lightweight t
                     raise SchemaError(f"{name} contains duplicate values")
                 for check in column.checks:
                     if not check(series):
-                        raise SchemaError(
-                            getattr(check, "error", f"Check failed for {name}")
-                        )
+                        raise SchemaError(getattr(check, "error", f"Check failed for {name}"))
             return frame
 
 else:  # pragma: no cover - alias for typing convenience when pandera is present
@@ -215,9 +214,7 @@ def validate_ohlcv(
         nan_ratio = nan_count / len(df)
         if nan_ratio > 0.05:
             result.valid = False
-            result.issues.append(
-                f"{nan_count} NaN values in {price_col} ({nan_ratio:.1%})"
-            )
+            result.issues.append(f"{nan_count} NaN values in {price_col} ({nan_ratio:.1%})")
         else:
             result.warnings.append(f"{nan_count} NaN values in {price_col}")
 
@@ -242,9 +239,7 @@ def validate_ohlcv(
         (low_col, "low"),
         (price_col, "close"),
     ]
-    available_cols = {
-        name: label for name, label in ohlc_cols if name and name in df.columns
-    }
+    available_cols = {name: label for name, label in ohlc_cols if name and name in df.columns}
 
     if len(available_cols) == 4 and high_col and low_col:
         # Check high >= low
@@ -292,9 +287,7 @@ class ValueColumnConfig(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, strict=True)
 
-    name: StrictStr = Field(
-        ..., min_length=1, description="Column name in the dataframe"
-    )
+    name: StrictStr = Field(..., min_length=1, description="Column name in the dataframe")
     dtype: Optional[StrictStr] = Field(
         default=None,
         description="Optional pandas-compatible dtype string enforced by pandera.",
@@ -476,8 +469,7 @@ def build_timeseries_schema(config: TimeSeriesValidationConfig) -> DataFrameSche
         Check(
             _check_timezone,
             error=(
-                f"expected series '{config.timestamp_column}' to be timezone-aware "
-                f"({timezone_key})"
+                f"expected series '{config.timestamp_column}' to be timezone-aware ({timezone_key})"
             ),
         )
     )
@@ -517,9 +509,7 @@ def validate_timeseries_frame(
 
     timestamp_col = config.timestamp_column
     if timestamp_col not in frame.columns:
-        raise TimeSeriesValidationError(
-            f"expected series '{timestamp_col}' to exist in payload"
-        )
+        raise TimeSeriesValidationError(f"expected series '{timestamp_col}' to exist in payload")
 
     raw_series = frame[timestamp_col]
     if not pd.api.types.is_datetime64_any_dtype(raw_series):
@@ -547,5 +537,8 @@ def validate_timeseries_frame(
     schema = build_timeseries_schema(config)
     try:
         return schema.validate(normalized, lazy=False)
-    except SchemaError as exc:  # pragma: no cover - exercised in unit tests
+    except (SchemaError, SchemaErrors) as exc:  # pragma: no cover - exercised in unit tests
+        # pandera 0.31+ raises SchemaErrors (plural) for strict-mode extra-column
+        # violations even when lazy=False; the older SchemaError is preserved
+        # for backward compatibility with 0.26.x.
         raise TimeSeriesValidationError(str(exc)) from exc
