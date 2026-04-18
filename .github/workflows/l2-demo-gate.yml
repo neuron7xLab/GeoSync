@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: MIT
+#
+# L2 Demo Gate — protect the canonical 10-axis Ricci edge stack.
+#
+# Runs on PRs that touch the L2 research surface. Verifies:
+#   * 300+ L2 unit/integration tests pass
+#   * demo-smoke gate still validates every artifact + figure exists
+#   * Makefile target set + CHANGELOG stay consistent
+#
+# Jobs are path-filtered: unrelated PRs exit immediately with a skip.
+name: L2 Demo Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/microstructure/**"
+      - "scripts/run_l2_*.py"
+      - "scripts/render_l2_*.py"
+      - "tests/test_l2_*.py"
+      - "Makefile"
+      - ".github/workflows/l2-demo-gate.yml"
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: l2-demo-gate-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  l2-test:
+    name: l2-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run full L2 test suite
+        run: make l2-test
+        env:
+          NO_COLOR: "1"
+
+  l2-smoke:
+    name: l2-smoke (demo-readiness gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
+
+      - name: Demo-readiness smoke gate
+        run: make l2-smoke
+        env:
+          NO_COLOR: "1"
+
+  l2-makefile-audit:
+    name: l2-makefile-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install pytest
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Makefile + CHANGELOG integrity tests
+        run: python -m pytest tests/test_l2_makefile_targets.py -q
+        env:
+          NO_COLOR: "1"
