@@ -43,6 +43,7 @@ __all__ = [
     "UTC",
     "Clock",
     "FrozenClock",
+    "HybridLogicalTimeSource",
     "SystemClock",
     "default_clock",
     "epoch_ns",
@@ -265,3 +266,79 @@ def frozen_clock(
     clock = FrozenClock(instant=instant) if instant is not None else FrozenClock()
     with use_clock(clock):
         yield clock
+
+
+# ---------------------------------------------------------------------------
+# Hybrid Logical Clock (HLC) adapter
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class HybridLogicalTimeSource:
+    """Hybrid Logical Clock — wall time plus a monotone logical counter.
+
+    HLC combines two pieces of information into each tick:
+
+    * ``physical_ns`` — the backing wall-clock reading (from ``base`` Clock),
+      floored so that two adjacent events with indistinguishable wall time
+      still strictly order.
+    * ``logical`` — monotone counter advanced whenever the physical side
+      would otherwise produce equality.
+
+    Guarantees (valid across multi-writer deployments where each writer
+    holds its own instance seeded from a shared wall clock):
+
+    * **Monotone**: ``tick`` values returned from one instance are
+      strictly increasing.
+    * **Causal**: ``observe(remote_ns, remote_logical)`` adopts the max
+      of the local and remote readings, so an event seen on this node
+      after it was observed elsewhere never orders before its cause.
+    * **Deterministic under a FrozenClock**: the same ``(base, update
+      sequence)`` yields the same ``tick`` sequence, which is what
+      event-store replay needs.
+
+    This is the primitive callers reach for when ordering across
+    distributed writers matters (eg. cross-service event correlation).
+    Local single-writer persistence continues to use ``Clock.epoch_ns``.
+    """
+
+    base: Clock = field(default_factory=SystemClock)
+    _physical_ns: int = field(default=0, init=False, repr=False)
+    _logical: int = field(default=0, init=False, repr=False)
+    _lock: Lock = field(default_factory=Lock, init=False, repr=False, compare=False)
+
+    def tick(self) -> tuple[int, int]:
+        """Generate the next HLC reading: ``(physical_ns, logical)``."""
+        with self._lock:
+            wall = self.base.epoch_ns()
+            if wall > self._physical_ns:
+                self._physical_ns = wall
+                self._logical = 0
+            else:
+                self._logical += 1
+            return self._physical_ns, self._logical
+
+    def observe(self, remote_physical_ns: int, remote_logical: int) -> tuple[int, int]:
+        """Merge a remote HLC reading into the local clock and emit the next tick.
+
+        Preserves causality: a tick emitted after ``observe`` strictly
+        dominates both the local and remote readings that preceded it.
+        """
+        with self._lock:
+            wall = self.base.epoch_ns()
+            max_physical = max(wall, self._physical_ns, remote_physical_ns)
+            if max_physical == self._physical_ns == remote_physical_ns:
+                self._logical = max(self._logical, remote_logical) + 1
+            elif max_physical == self._physical_ns:
+                self._logical += 1
+            elif max_physical == remote_physical_ns:
+                self._logical = remote_logical + 1
+            else:  # wall dominates
+                self._logical = 0
+            self._physical_ns = max_physical
+            return self._physical_ns, self._logical
+
+    def snapshot(self) -> tuple[int, int]:
+        """Return the current ``(physical_ns, logical)`` without advancing."""
+        with self._lock:
+            return self._physical_ns, self._logical

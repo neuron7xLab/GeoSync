@@ -27,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from threading import Lock
-from typing import Protocol, runtime_checkable
+from typing import Callable, Protocol, runtime_checkable
 
 from ..config import RegimeSettings
 from ..constants import (
@@ -182,9 +182,70 @@ class RegimeModulator:
         )
 
 
+class PolicyRegistry:
+    """Process-wide lookup so an event-driven update path can resolve a
+    policy by name without coupling to concrete classes.
+
+    A runtime reconfiguration flow looks like:
+
+        1. controller emits ``PolicyChanged(policy_name="trendless_linear")``
+        2. service handler fetches the policy via ``registry.resolve(name)``
+        3. handler calls ``modulator.swap_policy(resolved)``
+
+    The registry is plain Python and intentionally synchronous —
+    concurrency on reload is handled by ``RegimeModulator.swap_policy``
+    itself (Sprint-4 lock).
+    """
+
+    def __init__(self) -> None:
+        self._factories: dict[str, "Callable[[], ModulationPolicy]"] = {}
+
+    def register(self, name: str, factory: "Callable[[], ModulationPolicy]") -> None:
+        if not name:
+            raise ValueError("policy name must be non-empty")
+        if name in self._factories:
+            raise ValueError(f"policy {name!r} already registered")
+        self._factories[name] = factory
+
+    def resolve(self, name: str) -> ModulationPolicy:
+        try:
+            factory = self._factories[name]
+        except KeyError as exc:
+            raise KeyError(
+                f"unknown policy {name!r}; registered: " + ", ".join(sorted(self._factories))
+            ) from exc
+        policy = factory()
+        if not isinstance(policy, ModulationPolicy):
+            raise TypeError(
+                f"factory for {name!r} produced {type(policy)!r}, "
+                "which does not implement ModulationPolicy"
+            )
+        return policy
+
+    def known(self) -> tuple[str, ...]:
+        return tuple(sorted(self._factories))
+
+
+def apply_policy_change(
+    modulator: RegimeModulator,
+    registry: PolicyRegistry,
+    policy_name: str,
+) -> ModulationPolicy:
+    """Runtime reconfiguration path — resolve by name, swap atomically.
+
+    Returns the previous policy so the caller can log / audit the
+    change. Never raises on a failed swap: if ``resolve`` raises, the
+    modulator is untouched and the exception propagates.
+    """
+    new_policy = registry.resolve(policy_name)
+    return modulator.swap_policy(new_policy)
+
+
 __all__ = [
     "ExponentialDecayPolicy",
     "ModulationPolicy",
+    "PolicyRegistry",
     "RegimeModulator",
     "RegimeState",
+    "apply_policy_change",
 ]
