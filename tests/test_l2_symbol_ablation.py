@@ -2,22 +2,16 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
 import pytest
 
-_ARTIFACT = Path("results/L2_SYMBOL_ABLATION.json")
+from tests.l2_artifacts import load_results_artifact
 
 
 @pytest.fixture(scope="module")
 def ablation() -> dict[str, Any]:
-    if not _ARTIFACT.exists():
-        pytest.skip("symbol-ablation artifact not present")
-    with _ARTIFACT.open("r", encoding="utf-8") as f:
-        data: dict[str, Any] = json.load(f)
-    return data
+    return load_results_artifact("L2_SYMBOL_ABLATION.json")
 
 
 def test_cells_cover_entire_symbol_universe(ablation: dict[str, Any]) -> None:
@@ -56,8 +50,7 @@ def test_verdict_is_one_of_canonical(ablation: dict[str, Any]) -> None:
 
 def test_baseline_ic_matches_killtest_within_tolerance(ablation: dict[str, Any]) -> None:
     """Baseline IC computed here should match the killtest canonical value to 3dp."""
-    with Path("results/L2_KILLTEST_VERDICT.json").open("r", encoding="utf-8") as f:
-        killtest: dict[str, Any] = json.load(f)
+    killtest = load_results_artifact("L2_KILLTEST_VERDICT.json")
     baseline = float(ablation["baseline_ic"])
     canonical = float(killtest["ic_signal"])
     assert abs(baseline - canonical) < 1e-3

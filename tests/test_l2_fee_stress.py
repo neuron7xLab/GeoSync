@@ -2,23 +2,17 @@
 
 from __future__ import annotations
 
-import json
 from itertools import pairwise
-from pathlib import Path
 from typing import Any
 
 import pytest
 
-_ARTIFACT = Path("results/L2_FEE_STRESS.json")
+from tests.l2_artifacts import load_results_artifact
 
 
 @pytest.fixture(scope="module")
 def stress() -> dict[str, Any]:
-    if not _ARTIFACT.exists():
-        pytest.skip("fee stress artifact not present")
-    with _ARTIFACT.open("r", encoding="utf-8") as f:
-        data: dict[str, Any] = json.load(f)
-    return data
+    return load_results_artifact("L2_FEE_STRESS.json")
 
 
 def test_canonical_4bp_cell_matches_gate(stress: dict[str, Any]) -> None:

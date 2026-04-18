@@ -2,22 +2,16 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
 import pytest
 
-_ARTIFACT = Path("results/L2_REGIME_CONDITIONAL_IC.json")
+from tests.l2_artifacts import load_results_artifact
 
 
 @pytest.fixture(scope="module")
 def cond() -> dict[str, Any]:
-    if not _ARTIFACT.exists():
-        pytest.skip("regime-conditional IC artifact not present")
-    with _ARTIFACT.open("r", encoding="utf-8") as f:
-        data: dict[str, Any] = json.load(f)
-    return data
+    return load_results_artifact("L2_REGIME_CONDITIONAL_IC.json")
 
 
 def test_two_cells_cover_full_universe(cond: dict[str, Any]) -> None:
@@ -46,8 +40,7 @@ def test_high_vol_quantile_mask_approximately_sized(cond: dict[str, Any]) -> Non
 
 def test_baseline_ic_matches_pooled_killtest(cond: dict[str, Any]) -> None:
     """Pooled IC in cond artifact must match the kill-test canonical value."""
-    with Path("results/L2_KILLTEST_VERDICT.json").open("r", encoding="utf-8") as f:
-        killtest: dict[str, Any] = json.load(f)
+    killtest = load_results_artifact("L2_KILLTEST_VERDICT.json")
     baseline = float(cond["baseline_ic_pooled"])
     canonical = float(killtest["ic_signal"])
     assert abs(baseline - canonical) < 1e-3
