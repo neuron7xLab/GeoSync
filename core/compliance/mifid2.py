@@ -7,12 +7,13 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field, fields
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Mapping
 
+from core.compat import UTC, utc_now
+
 LOGGER = logging.getLogger(__name__)
-UTC = timezone.utc
 
 
 def _slots_to_dict(obj: Any) -> dict[str, Any]:
@@ -98,7 +99,7 @@ class ComplianceSnapshot:
     reports: list[TransactionReport] = field(default_factory=list)
     audit_trail: list[OrderAuditTrail] = field(default_factory=list)
     execution_quality: list[ExecutionQuality] = field(default_factory=list)
-    generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    generated_at: datetime = field(default_factory=lambda: utc_now())
 
 
 @dataclass(slots=True)
@@ -131,7 +132,7 @@ class MiFID2Reporter:
     ) -> None:
         entry = OrderAuditTrail(
             order_id=order_id,
-            timestamp=datetime.now(UTC),
+            timestamp=utc_now(),
             payload=payload,
             venue=venue,
             actor=actor,
@@ -154,7 +155,7 @@ class MiFID2Reporter:
         benchmark_price: float,
         latency_ms: float,
     ) -> None:
-        execution_time = datetime.now(UTC)
+        execution_time = utc_now()
         report = TransactionReport(
             order_id=order_id,
             instrument=instrument,
@@ -178,7 +179,7 @@ class MiFID2Reporter:
         LOGGER.debug("Recorded execution for %s@%s", order_id, venue)
 
     def synchronise_clock(self, ntp_offset_ms: float) -> None:
-        self._synchronised_at = datetime.now(UTC)
+        self._synchronised_at = utc_now()
         LOGGER.info("Clock synchronised with offset %.3f ms", ntp_offset_ms)
 
     def best_execution_breaches(self, threshold_bps: float = 5.0) -> list[ExecutionQuality]:
@@ -247,7 +248,7 @@ class MiFID2Reporter:
         return target
 
     def _apply_retention(self) -> None:
-        cutoff = datetime.now(UTC) - self._retention.retention_delta()
+        cutoff = utc_now() - self._retention.retention_delta()
         for artefact in list(self._storage_path.glob("*.json")):
             try:
                 timestamp = datetime.strptime(
@@ -292,4 +293,3 @@ __all__ = [
     "OrderAuditTrail",
     "TransactionReport",
 ]
-UTC = timezone.utc

@@ -15,7 +15,7 @@ import statistics
 import time
 from collections import Counter, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import (
     Callable,
@@ -28,13 +28,13 @@ from typing import (
     Tuple,
 )
 
+from core.compat import utc_now
 from core.utils.metrics import get_metrics_collector
 
 from .incidents import IncidentManager
 from .model_monitoring import DegradationSignal
 
 LOGGER = logging.getLogger(__name__)
-UTC = timezone.utc
 
 
 @dataclass(slots=True, frozen=True)
@@ -111,9 +111,7 @@ class QualityContract:
         Sequence[QualityContractViolation] | QualityContractViolation | None,
     ]
 
-    def validate(
-        self, response: Mapping[str, object]
-    ) -> Tuple[QualityContractViolation, ...]:
+    def validate(self, response: Mapping[str, object]) -> Tuple[QualityContractViolation, ...]:
         result = self.validator(response)
         if result is None:
             return ()
@@ -167,7 +165,7 @@ class ReviewTicket:
     reason: str
     details: Mapping[str, object]
     status: str = "pending"
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: utc_now())
     resolved_at: datetime | None = None
     reviewer: str | None = None
     notes: str | None = None
@@ -178,7 +176,7 @@ class ReviewTicket:
         object.__setattr__(self, "status", status)
         object.__setattr__(self, "reviewer", reviewer)
         object.__setattr__(self, "notes", notes)
-        object.__setattr__(self, "resolved_at", datetime.now(UTC))
+        object.__setattr__(self, "resolved_at", utc_now())
         return self
 
 
@@ -191,7 +189,7 @@ class ComplaintRecord:
     message: str
     route: str
     metadata: Mapping[str, object]
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: utc_now())
 
 
 @dataclass(slots=True, frozen=True)
@@ -203,7 +201,7 @@ class ActiveSample:
     response: Mapping[str, object]
     score: float
     source: str
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: utc_now())
 
 
 @dataclass(slots=True, frozen=True)
@@ -215,7 +213,7 @@ class ImprovementLog:
     owner: str | None
     status: str
     metadata: Mapping[str, object]
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: utc_now())
 
 
 @dataclass(slots=True, frozen=True)
@@ -226,7 +224,7 @@ class DatasetBaseline:
     score: float
     tolerance: float
     version: str
-    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: utc_now())
 
 
 @dataclass(slots=True)
@@ -278,7 +276,7 @@ class ResponseQualityOrchestrator:
         self._responder = responder
         self._metrics = get_metrics_collector()
         self._monotonic = monotonic or time.monotonic
-        self._now = now or (lambda: datetime.now(UTC))
+        self._now = now or (lambda: utc_now())
 
         if incident_manager is not None:
             self._incident_manager = incident_manager
@@ -301,9 +299,7 @@ class ResponseQualityOrchestrator:
         ] = {}
         self._complaints: Deque[ComplaintRecord] = deque(maxlen=512)
         self._reason_map: Counter[str] = Counter()
-        self._active_samples: Deque[ActiveSample] = deque(
-            maxlen=config.max_active_samples
-        )
+        self._active_samples: Deque[ActiveSample] = deque(maxlen=config.max_active_samples)
         self._improvements: Dict[str, ImprovementLog] = {}
 
         self._ticket_counter = 0
@@ -345,9 +341,7 @@ class ResponseQualityOrchestrator:
     ) -> None:
         """Configure the baseline expectations for ``dataset``."""
 
-        tolerance_value = (
-            self._config.baseline_tolerance if tolerance is None else tolerance
-        )
+        tolerance_value = self._config.baseline_tolerance if tolerance is None else tolerance
         if tolerance_value < 0.0:
             raise ValueError("tolerance cannot be negative")
         baseline = DatasetBaseline(
@@ -397,9 +391,7 @@ class ResponseQualityOrchestrator:
     ) -> Dict[str, QualityRunSummary]:
         """Execute golden dataset checks, optionally filtered by ``tags``."""
 
-        dataset_names = (
-            list(datasets) if datasets is not None else sorted(self._datasets)
-        )
+        dataset_names = list(datasets) if datasets is not None else sorted(self._datasets)
         tag_set = {str(tag) for tag in (tags or ())}
         summaries: Dict[str, QualityRunSummary] = {}
         for name in dataset_names:
@@ -529,9 +521,7 @@ class ResponseQualityOrchestrator:
         request_payload = _normalise_payload(request)
         response_payload = _normalise_payload(response)
         score = float(
-            confidence
-            if confidence is not None
-            else response_payload.get("confidence", 1.0)
+            confidence if confidence is not None else response_payload.get("confidence", 1.0)
         )
         if score >= self._config.active_sampling_threshold:
             return None
@@ -708,9 +698,7 @@ class ResponseQualityOrchestrator:
         for contract in self._contracts.values():
             try:
                 failures = contract.validate(response)
-            except (
-                Exception
-            ) as exc:  # pragma: no cover - contract errors should be surfaced
+            except Exception as exc:  # pragma: no cover - contract errors should be surfaced
                 LOGGER.exception("Contract '%s' validation failed", contract.name)
                 failure = QualityContractViolation(
                     contract=contract.name,
