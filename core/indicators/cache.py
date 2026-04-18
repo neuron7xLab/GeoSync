@@ -28,7 +28,7 @@ import os
 import pickle  # nosec B403 - guarded by restricted unpickler
 import shutil
 from dataclasses import dataclass, fields, is_dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path, PurePath
 from typing import TYPE_CHECKING, Any, Callable, Mapping, MutableMapping, Sequence
@@ -36,6 +36,7 @@ from typing import TYPE_CHECKING, Any, Callable, Mapping, MutableMapping, Sequen
 import numpy as np
 import pandas as pd
 
+from core.compat import utc_now
 from core.utils.dataframe_io import read_dataframe, write_dataframe
 from core.utils.logging import get_logger
 
@@ -43,7 +44,6 @@ if TYPE_CHECKING:  # pragma: no cover - used only for type checking
     from .multiscale_kuramoto import TimeFrame
 
 _logger = get_logger(__name__)
-UTC = timezone.utc
 
 
 def _qualified_name(obj: type) -> str:
@@ -74,8 +74,7 @@ def _encode_structure(value: Any) -> Any:
             "__type__": "dataclass",
             "cls": _qualified_name(type(value)),
             "fields": {
-                field.name: _encode_structure(getattr(value, field.name))
-                for field in fields(value)
+                field.name: _encode_structure(getattr(value, field.name)) for field in fields(value)
             },
         }
     if isinstance(value, enum.Enum):
@@ -86,8 +85,7 @@ def _encode_structure(value: Any) -> Any:
         }
     if isinstance(value, Mapping):
         encoded_items = [
-            (_encode_structure(key), _encode_structure(val))
-            for key, val in value.items()
+            (_encode_structure(key), _encode_structure(val)) for key, val in value.items()
         ]
         encoded_items.sort(key=lambda item: _sorted_json(item[0]))
         return {
@@ -137,17 +135,14 @@ def _decode_structure(payload: Any) -> Any:
         return Path(payload["value"])
     if marker == "dataclass":
         cls = _locate(payload["cls"])
-        field_values = {
-            key: _decode_structure(val) for key, val in payload["fields"].items()
-        }
+        field_values = {key: _decode_structure(val) for key, val in payload["fields"].items()}
         return cls(**field_values)
     if marker == "enum":
         cls = _locate(payload["cls"])
         return getattr(cls, payload["name"])
     if marker == "mapping":
         return {
-            _decode_structure(key): _decode_structure(val)
-            for key, val in payload.get("items", [])
+            _decode_structure(key): _decode_structure(val) for key, val in payload.get("items", [])
         }
     if marker == "sequence":
         kind = payload.get("kind")
@@ -309,9 +304,7 @@ class FileSystemIndicatorCache:
 
         # pandas structures
         if isinstance(value, pd.DataFrame):
-            stored_path = write_dataframe(
-                value, data_path, index=True, allow_json_fallback=True
-            )
+            stored_path = write_dataframe(value, data_path, index=True, allow_json_fallback=True)
             if stored_path.suffix == ".json":
                 _write_dtypes(
                     stored_path.with_suffix(".dtypes.json"),
@@ -321,9 +314,7 @@ class FileSystemIndicatorCache:
             return stored_path.name, fmt, self._file_digest(stored_path)
         if isinstance(value, pd.Series):
             frame = value.to_frame(name=value.name)
-            stored_path = write_dataframe(
-                frame, data_path, index=True, allow_json_fallback=True
-            )
+            stored_path = write_dataframe(frame, data_path, index=True, allow_json_fallback=True)
             if stored_path.suffix == ".json":
                 _write_dtypes(
                     stored_path.with_suffix(".dtypes.json"),
@@ -481,16 +472,14 @@ class FileSystemIndicatorCache:
             "data_file": data_file,
             "data_format": data_format,
             "data_integrity": data_integrity,
-            "stored_at": datetime.now(UTC).isoformat(),
+            "stored_at": utc_now().isoformat(),
             "coverage_start": (
                 coverage_start.isoformat()
                 if isinstance(coverage_start, datetime)
                 else coverage_start
             ),
             "coverage_end": (
-                coverage_end.isoformat()
-                if isinstance(coverage_end, datetime)
-                else coverage_end
+                coverage_end.isoformat() if isinstance(coverage_end, datetime) else coverage_end
             ),
             "metadata": _encode_structure(metadata or {}),
         }
@@ -539,9 +528,7 @@ class FileSystemIndicatorCache:
 
         expected_integrity = meta.get("data_integrity")
         actual_integrity = self._file_digest(data_path)
-        if expected_integrity and not hmac.compare_digest(
-            expected_integrity, actual_integrity
-        ):
+        if expected_integrity and not hmac.compare_digest(expected_integrity, actual_integrity):
             _logger.warning(
                 "indicator_cache_integrity_mismatch",
                 path=str(data_path),
@@ -553,14 +540,10 @@ class FileSystemIndicatorCache:
         value = self._deserialize(data_path, meta["data_format"])
 
         coverage_start = (
-            datetime.fromisoformat(meta["coverage_start"])
-            if meta.get("coverage_start")
-            else None
+            datetime.fromisoformat(meta["coverage_start"]) if meta.get("coverage_start") else None
         )
         coverage_end = (
-            datetime.fromisoformat(meta["coverage_end"])
-            if meta.get("coverage_end")
-            else None
+            datetime.fromisoformat(meta["coverage_end"]) if meta.get("coverage_end") else None
         )
         stored_at = datetime.fromisoformat(meta["stored_at"])
 
@@ -614,7 +597,7 @@ class FileSystemIndicatorCache:
             "timeframe": self._timeframe_key(timeframe),
             "last_timestamp": timestamp,
             "fingerprint": fingerprint,
-            "updated_at": datetime.now(UTC).isoformat(),
+            "updated_at": utc_now().isoformat(),
             "extras": _encode_structure(extras or {}),
         }
         path = self._backfill_path(timeframe)
@@ -645,14 +628,10 @@ def cache_indicator(
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             params = params_fn(*args, **kwargs) if params_fn else kwargs
             data = (
-                data_fn(*args, **kwargs)
-                if data_fn
-                else (args[0] if args else kwargs.get("data"))
+                data_fn(*args, **kwargs) if data_fn else (args[0] if args else kwargs.get("data"))
             )
             if data is None:
-                raise ValueError(
-                    "cache_indicator requires data argument to compute fingerprint"
-                )
+                raise ValueError("cache_indicator requires data argument to compute fingerprint")
 
             data_hash = hash_input_data(data)
             record = cache.load(

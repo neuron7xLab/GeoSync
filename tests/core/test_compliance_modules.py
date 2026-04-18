@@ -5,11 +5,11 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 
-from core.compat import UTC
+from core.compat import utc_now
 
 try:
     from core.compliance.models import ComplianceIssue, ComplianceReport
@@ -230,7 +230,7 @@ class TestMiFID2Reporter:
     def test_order_audit_trail_to_dict(self):
         t = OrderAuditTrail(
             order_id="O1",
-            timestamp=datetime.now(UTC),
+            timestamp=utc_now(),
             payload={"k": "v"},
             venue="V",
             actor="A",
@@ -245,7 +245,7 @@ class TestMiFID2Reporter:
             quantity=100.0,
             price=150.0,
             side="buy",
-            execution_time=datetime.now(UTC),
+            execution_time=utc_now(),
             buyer="B",
             seller="S",
         )

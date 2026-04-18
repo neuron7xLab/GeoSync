@@ -207,3 +207,53 @@ def test_safe_isoformat_always_ends_in_z(
     formatted = safe_isoformat(ts)
     assert formatted.endswith("Z")
     assert "+" not in formatted
+
+
+@given(
+    year=st.integers(min_value=2000, max_value=2099),
+    month=st.integers(min_value=1, max_value=12),
+    day=st.integers(min_value=1, max_value=28),
+    hour=st.integers(min_value=0, max_value=23),
+    minute=st.integers(min_value=0, max_value=59),
+    second=st.integers(min_value=0, max_value=59),
+    micro=st.integers(min_value=0, max_value=999_999),
+)
+def test_safe_isoformat_round_trip(
+    year: int,
+    month: int,
+    day: int,
+    hour: int,
+    minute: int,
+    second: int,
+    micro: int,
+) -> None:
+    """``safe_isoformat`` output parses back to the original instant."""
+    ts = datetime(year, month, day, hour, minute, second, micro, tzinfo=UTC)
+    formatted = safe_isoformat(ts)
+    # fromisoformat needs "+00:00" not "Z" — swap it back for the parse.
+    parsed = datetime.fromisoformat(formatted.replace("Z", "+00:00"))
+    assert parsed == ts
+
+
+def test_frozen_clock_advance_by_zero_is_identity() -> None:
+    """advance(0) must not mutate the wall instant."""
+    clock = FrozenClock()
+    before = clock.now()
+    clock.advance(seconds=0, nanoseconds=0)
+    assert clock.now() == before
+
+
+def test_system_clock_never_goes_backwards_in_short_loop() -> None:
+    """Two successive SystemClock reads are monotonic in practice."""
+    clock = SystemClock()
+    samples = [clock.now() for _ in range(256)]
+    assert all(b >= a for a, b in zip(samples, samples[1:]))
+
+
+@given(
+    n=st.integers(min_value=1, max_value=1000),
+)
+def test_monotonic_ns_strictly_nondecreasing_under_load(n: int) -> None:
+    """``monotonic_ns`` never reports a value smaller than a prior one."""
+    samples = [monotonic_ns() for _ in range(n)]
+    assert all(b >= a for a, b in zip(samples, samples[1:]))

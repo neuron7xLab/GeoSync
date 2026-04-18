@@ -4,12 +4,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from hypothesis import given
 from hypothesis import strategies as st
 
-from core.compat import UTC
+from core.compat import utc_now
 from cortex_service.app.config import SignalSettings
 from cortex_service.app.core.signals import FeatureObservation, compute_signal
 from cortex_service.app.modulation.regime import RegimeModulator, RegimeSettings
@@ -85,7 +83,7 @@ def test_regime_valence_always_clipped(valence, min_valence, max_valence):
     )
     modulator = RegimeModulator(settings)
 
-    state = modulator.update(None, valence, 0.1, datetime.now(UTC))
+    state = modulator.update(None, valence, 0.1, utc_now())
     assert min_valence <= state.valence <= max_valence
 
 
@@ -105,7 +103,7 @@ def test_regime_confidence_bounds(feedback, volatility, decay):
     )
     modulator = RegimeModulator(settings)
 
-    state = modulator.update(None, feedback, volatility, datetime.now(UTC))
+    state = modulator.update(None, feedback, volatility, utc_now())
     assert confidence_floor <= state.confidence <= 1.0
 
 

@@ -11,7 +11,7 @@ from typing import Any, cast
 
 import pytest
 
-from core.compat import UTC
+from core.compat import UTC, utc_now
 from core.compliance.mifid2 import (
     ComplianceSnapshot,
     ExecutionQuality,
@@ -28,7 +28,7 @@ class TestOrderAuditTrail:
 
     def test_order_audit_trail_creation(self) -> None:
         """Verify OrderAuditTrail can be created."""
-        ts = datetime.now(UTC)
+        ts = utc_now()
         trail = OrderAuditTrail(
             order_id="order-123",
             timestamp=ts,
@@ -86,7 +86,7 @@ class TestTransactionReport:
 
     def test_transaction_report_creation(self) -> None:
         """Verify TransactionReport can be created."""
-        ts = datetime.now(UTC)
+        ts = utc_now()
         report = TransactionReport(
             order_id="order-123",
             instrument="AAPL",
@@ -163,7 +163,7 @@ class TestComplianceSnapshot:
 
     def test_compliance_snapshot_with_data(self) -> None:
         """Verify ComplianceSnapshot with data."""
-        ts = datetime.now(UTC)
+        ts = utc_now()
         report = TransactionReport(
             order_id="order-1",
             instrument="AAPL",
