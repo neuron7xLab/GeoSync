@@ -190,7 +190,12 @@ def main() -> int:
         "--duration-sec",
         type=float,
         default=6 * 3600.0,
-        help="Run duration in seconds (default 6h)",
+        help="Run duration in seconds (default 6h). Ignored if --unbounded.",
+    )
+    parser.add_argument(
+        "--unbounded",
+        action="store_true",
+        help="Run indefinitely until SIGTERM/SIGINT (systemd-managed lifetime).",
     )
     parser.add_argument(
         "--log-level",
@@ -220,12 +225,16 @@ def main() -> int:
         loop.add_signal_handler(signal.SIGTERM, _handle_sigterm)
         loop.add_signal_handler(signal.SIGINT, _handle_sigterm)
 
+    effective_duration_sec = float("inf") if bool(args.unbounded) else float(args.duration_sec)
+    if bool(args.unbounded):
+        _log.info("unbounded mode — running until SIGTERM/SIGINT")
+
     try:
         total = loop.run_until_complete(
             _run_collector(
                 symbols=symbols,
                 out_dir=Path(args.out),
-                duration_sec=float(args.duration_sec),
+                duration_sec=effective_duration_sec,
                 stop_event=stop_event,
             )
         )
