@@ -17,9 +17,16 @@ JSON. Example:
     python scripts/l2_regime_oos.py --data-dir data/binance_l2_perp
     diff <new_output> results/L2_REGIME_OOS.json
 
-## Contents
+## Contents — orchestrator scripts (5)
 - l2_killtest_recursive.py     — bisection tree + K=8 cyclic
 - l2_regime_analysis.py        — per-block regime features
 - l2_regime_conditional.py     — in-sample regime-conditional IC
 - l2_regime_oos.py             — 50/50 train/test OOS (GATE 1 source)
 - l2_regime_cross_session.py   — cross-session scaffold
+
+## Contents — historical derivation scripts (5)
+- l2_walk_forward.py                     — 56 rolling windows, regime ρ=+0.352
+- l2_regime_walkforward_calibration.py   — rolling cal+eval, ≥2h-cal requirement
+- l2_per_symbol_ic.py                    — per-symbol decomposition, 10/10 positive
+- l2_horizon_sweep.py                    — characteristic τ=180s, inverts past 900s
+- l2_rv_decile_analysis.py               — U-shape finding
