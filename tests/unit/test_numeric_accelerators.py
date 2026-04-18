@@ -109,6 +109,37 @@ def test_backend_availability_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
     assert numeric.rust_available() is False
 
 
+def test_strict_backend_raises_on_rust_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    import core.accelerators.numeric as numeric
+
+    data = np.linspace(0.0, 1.0, 8)
+    kernel = np.array([1.0, -1.0], dtype=float)
+
+    monkeypatch.setattr(numeric, "_RUST_ACCEL_AVAILABLE", True)
+    monkeypatch.setattr(
+        numeric,
+        "_rust_sliding_windows",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("ffi boom")),
+    )
+    monkeypatch.setattr(
+        numeric,
+        "_rust_quantiles",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("ffi boom")),
+    )
+    monkeypatch.setattr(
+        numeric,
+        "_rust_convolve",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("ffi boom")),
+    )
+
+    with pytest.raises(RuntimeError, match="strict_backend=True"):
+        numeric.sliding_windows(data, window=3, step=1, use_rust=True, strict_backend=True)
+    with pytest.raises(RuntimeError, match="strict_backend=True"):
+        numeric.quantiles(data, (0.5,), use_rust=True, strict_backend=True)
+    with pytest.raises(RuntimeError, match="strict_backend=True"):
+        numeric.convolve(data, kernel, use_rust=True, strict_backend=True)
+
+
 @pytest.mark.parametrize("func_name", ["sliding_windows", "quantiles", "convolve"])
 def test_rust_extension_matches_numpy_when_available(func_name: str) -> None:
     accel = pytest.importorskip("geosync_accel")

@@ -141,6 +141,7 @@ def sliding_windows(
     step: int = 1,
     *,
     use_rust: bool = True,
+    strict_backend: bool = False,
 ) -> np.ndarray:
     """Return a matrix of sliding windows over ``data``.
 
@@ -149,6 +150,8 @@ def sliding_windows(
         window: Size of each window (must be > 0).
         step: Step between windows (default: 1).
         use_rust: Attempt to dispatch to the Rust accelerator (default: True).
+        strict_backend: Raise if Rust dispatch fails while ``use_rust`` is
+            enabled (default: False).
 
     Returns:
         ``(n_windows, window)`` matrix of float64 windows.
@@ -160,6 +163,10 @@ def sliding_windows(
             try:
                 return _rust_sliding_windows(arr, int(window), int(step))
             except Exception as exc:  # pragma: no cover - defensive fallback
+                if strict_backend:
+                    raise RuntimeError(
+                        "Rust sliding_windows backend failed with strict_backend=True"
+                    ) from exc
                 _logger.warning(
                     "Rust sliding_windows failed (%s); falling back to NumPy.",
                     exc,
@@ -249,6 +256,7 @@ def quantiles(
     probabilities: Sequence[float] | np.ndarray,
     *,
     use_rust: bool = True,
+    strict_backend: bool = False,
 ) -> np.ndarray:
     """Compute quantiles for ``data`` at the given probabilities."""
 
@@ -259,6 +267,10 @@ def quantiles(
                 result = _rust_quantiles(arr, list(float(p) for p in probabilities))
                 return np.asarray(result, dtype=np.float64)
             except Exception as exc:  # pragma: no cover - defensive fallback
+                if strict_backend:
+                    raise RuntimeError(
+                        "Rust quantiles backend failed with strict_backend=True"
+                    ) from exc
                 _logger.warning(
                     "Rust quantiles failed (%s); falling back to NumPy.",
                     exc,
@@ -373,6 +385,7 @@ def convolve(
     *,
     mode: str = "full",
     use_rust: bool = True,
+    strict_backend: bool = False,
 ) -> np.ndarray:
     """Convolve ``signal`` with ``kernel`` using the requested mode."""
 
@@ -383,6 +396,10 @@ def convolve(
             try:
                 return _rust_convolve(signal_arr, kernel_arr, mode)
             except Exception as exc:  # pragma: no cover - defensive fallback
+                if strict_backend:
+                    raise RuntimeError(
+                        "Rust convolve backend failed with strict_backend=True"
+                    ) from exc
                 _logger.warning(
                     "Rust convolve failed (%s); falling back to NumPy.",
                     exc,
