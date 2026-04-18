@@ -332,9 +332,24 @@ viable band under realistic conditions.
 
 Artifact: `results/L2_SLIPPAGE_STRESS.json`
 
----
+### 4.5 Taker-fee tier stress
 
-## 5 · Diurnal sign-flip (SIGN_FLIP_CONFIRMED)
+Binance USDT-M perp taker fee varies by 30-day volume VIP tier (3-6 bp).
+Sweep taker_fee ∈ {3, 4, 5, 6} bp keeping maker rebate at −2 bp:
+
+| taker fee | RTC at f=0 | mean net bp at f=0 | f* | status |
+|---|---|---|---|---|
+| 3 bp (VIP 3+) | 7.80 bp | −0.78 bp | 0.0780 | BRACKET |
+| 4 bp (canonical) | 9.80 bp | −2.78 bp | 0.2317 | BRACKET |
+| 5 bp (VIP 0-1) | 11.80 bp | −4.78 bp | 0.3414 | BRACKET |
+| 6 bp (retail) | 13.80 bp | −6.78 bp | 0.4237 | BRACKET |
+
+**Verdict: RESILIENT.** Every realistic taker-fee tier produces a
+break-even maker fraction below 0.50. At the VIP-3+ tier (3 bp) the
+strategy is nearly taker-only profitable (f* = 0.078). At retail-worst
+(6 bp) f* = 0.424 — still comfortably below production fill ceilings.
+
+Artifact: `results/L2_FEE_STRESS.json`
 
 Hour-of-day permutation test across UTC hours 0–23: 5 hours show
 significant positive IC (p < 0.05), 5 hours show significant negative IC
