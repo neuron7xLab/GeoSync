@@ -46,6 +46,7 @@ def test_cli_help_exits_zero(script: str) -> None:
         cwd=_REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         env={"PYTHONPATH": str(_REPO_ROOT), "PATH": ""},
         timeout=30,
     )
@@ -74,6 +75,7 @@ def test_cli_exposes_data_dir_flag(script: str) -> None:
         cwd=_REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         env={"PYTHONPATH": str(_REPO_ROOT), "PATH": ""},
         timeout=30,
     )
@@ -101,6 +103,7 @@ def test_cli_exposes_output_flag(script: str) -> None:
         cwd=_REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         env={"PYTHONPATH": str(_REPO_ROOT), "PATH": ""},
         timeout=30,
     )
