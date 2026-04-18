@@ -419,6 +419,44 @@ geosync-server --allow-plaintext --host 127.0.0.1 --port 8000
   <img src=".github/assets/divider.svg" width="100%">
 </p>
 
+## L2 Microstructure — Ricci cross-sectional edge
+
+Nine-axis empirical validation of a cross-sectional curvature edge on
+Binance USDT-M perp L2 depth streams. One-command reproduction:
+
+```bash
+PYTHONPATH=. python scripts/run_l2_full_cycle.py
+```
+
+Runs all 9 iterations end-to-end in ~80 s on Session 1 substrate, renders
+three canonical demo figures, and emits
+`results/L2_FULL_CYCLE_MANIFEST.json` with SHA-256 replay hashes.
+
+| Axis | Finding | Artifact |
+|---|---|---|
+| 1. Kill test | IC = 0.122 at p = 0.002 | `L2_KILLTEST_VERDICT.json` |
+| 2. Bootstrap CI | 95% CI [0.029, 0.210] excludes 0 | `L2_ROBUSTNESS.json` |
+| 3. Deflated Sharpe | DSR = 15.1, Pr(real) = 1.0 | `L2_ROBUSTNESS.json` |
+| 4. Purged K-fold CV | 5/5 folds positive, mean = 0.122 | `L2_PURGED_CV.json` |
+| 5. Mutual information | 0.078 nats concordant with Spearman | `L2_ROBUSTNESS.json` |
+| 6. Spectral β | β = 1.80 RED regime | `L2_SPECTRAL.json` |
+| 7. DFA Hurst | H = 1.014, R² = 0.982, STRONG_PERSISTENT | `L2_HURST.json` |
+| 8. Transfer entropy | 45/45 pairs BIDIRECTIONAL, p < 0.05 | `L2_TRANSFER_ENTROPY.json` |
+| 9. Conditional TE | 33/36 PRIVATE_FLOW after BTC-conditioning | `L2_CONDITIONAL_TE.json` |
+
+See [`research/microstructure/FINDINGS.md`](research/microstructure/FINDINGS.md)
+for the full synthesis and honest-limitations section.
+
+Generated figures (`results/figures/`):
+
+- `fig1_signal_validation.png` — signal existence + statistical robustness
+- `fig2_dynamics.png` — spectral · DFA · diurnal · autocorrelation
+- `fig3_coupling.png` — TE · CTE · regime Markov · break-even
+
+<p align="center">
+  <img src=".github/assets/divider.svg" width="100%">
+</p>
+
 ## Kuramoto ODE Engine
 
 Six specialized integrators for every scale:
