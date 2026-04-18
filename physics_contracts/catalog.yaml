@@ -287,3 +287,54 @@ laws:
     validity: "inputs within documented range"
     source: "geosync_hpc/*.py"
     severity: block
+
+  # ───────────────────────── DRO-ARA ─────────────────────────
+  - id: dro_ara.gamma_derivation
+    module: dro_ara
+    statement: "γ is derived from H, never assigned independently."
+    formula: "γ = 2·H + 1"
+    variables: {H: DFA-1 Hurst exponent on log-returns, gamma: derived scalar}
+    tolerance: "|γ − (2·H + 1)| < 1e-5 for all admissible inputs"
+    validity: "1-D finite non-constant price array, length ≥ window+step"
+    source: "Peng et al. 1994; core/dro_ara/engine.py::derive_gamma"
+    severity: block
+
+  - id: dro_ara.risk_scalar_bounds
+    module: dro_ara
+    statement: "The risk scalar is bounded in [0, 1] and Lipschitz-1 in γ."
+    formula: "rs(γ) = max(0, 1 − |γ − 1|)"
+    variables: {gamma: derived scaling exponent, rs: risk scalar ∈ [0, 1]}
+    tolerance: "strict; violation is a bug, not a numerical artefact"
+    validity: "all real γ"
+    source: "core/dro_ara/engine.py::risk_scalar"
+    severity: block
+
+  - id: dro_ara.invalid_regime_gate
+    module: dro_ara
+    statement: "INVALID is declared iff the series fails ADF OR R² of the DFA fit is below R2_MIN."
+    formula: "regime == INVALID ⇔ (!stationary ∨ r2 < R2_MIN)"
+    variables: {stationary: ADF rejection of unit root, r2: DFA linear-fit R², R2_MIN: 0.90}
+    tolerance: "strict; no tolerance relaxation"
+    validity: "admissible non-constant finite 1-D input"
+    source: "Dickey-Fuller 1979; Ng-Perron 2001; core/dro_ara/engine.py::classify"
+    severity: block
+
+  - id: dro_ara.long_signal_gate
+    module: dro_ara
+    statement: "A LONG signal requires CRITICAL regime, rs above threshold, and a converging/stable trend."
+    formula: "signal == LONG  ⇒  regime == CRITICAL ∧ rs > RS_LONG_THRESH ∧ trend ∈ {CONVERGING, STABLE}"
+    variables: {RS_LONG_THRESH: 0.33, trend: ARA trajectory classification}
+    tolerance: "strict logical conjunction; all three must hold"
+    validity: "geosync_observe output dict"
+    source: "core/dro_ara/engine.py::geosync_observe"
+    severity: block
+
+  - id: dro_ara.fail_closed_input
+    module: dro_ara
+    statement: "Degenerate input raises ValueError; no silent repair."
+    formula: "NaN ∨ Inf ∨ constant ∨ rank != 1 ∨ len < window+step  ⇒  raise ValueError"
+    variables: {price: input array, window: DFA window, step: ARA stride}
+    tolerance: "exact exception type; no fall-through to numeric path"
+    validity: "all inputs to geosync_observe"
+    source: "core/dro_ara/engine.py::_validate"
+    severity: block

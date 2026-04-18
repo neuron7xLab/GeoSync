@@ -215,6 +215,22 @@ INV-AC1-rev | universal | κ(node) ≥ κ_critical OR node ISOLATED         | P0
     λ_local → 1.0 (persistent): κ_critical ≈ -3.00 (tight gate)
 ```
 
+### DRO-ARA Regime Observer (Hurst + ADF + ARA loop)
+
+```
+INV-DRO1 | algebraic    | γ = 2·H + 1 to float precision                | P0
+         H = DFA-1 on diff(log(price)); tolerance |γ−(2H+1)| < 1e-5.
+         Source: Peng et al. 1994; core/dro_ara/engine.py::derive_gamma.
+INV-DRO2 | universal    | rs = max(0, 1 − |γ − 1|) ∈ [0, 1]              | P0
+         Lipschitz-1 in γ. Fail-closed on all regimes ≠ CRITICAL/TRANS.
+INV-DRO3 | conditional  | regime == INVALID iff (!stationary ∨ r2<0.90) | P0
+         ADF with AIC lag selection (max 4 lags). R2_MIN = 0.90.
+INV-DRO4 | conditional  | signal == LONG ⇒ CRITICAL ∧ rs > 0.33          | P0
+                        ∧ trend ∈ {CONVERGING, STABLE}
+INV-DRO5 | universal    | NaN/Inf/constant/rank/short input → ValueError | P0
+         Fail-closed; no silent numeric repair.
+```
+
 ---
 
 ## TEST TAXONOMY
@@ -288,6 +304,7 @@ assert result.order > 0      # no INV, no context
 | `*hpc*`, `*kernel*` | INV-HPC1..2 |
 | `*cryptobiosis*`, `*dormant*` | INV-CB1..8 |
 | `*dfa*`, `*hurst*`, `*criticality*` | INV-AC1-rev |
+| `*dro_ara*`, `*regime_observer*` | INV-DRO1..5 |
 | `application/`, `cli/`, `ui/` | No physics |
 
 ---
