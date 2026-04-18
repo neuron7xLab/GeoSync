@@ -4,6 +4,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
+from core.compat import UTC
+
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -82,8 +86,6 @@ def test_regime_valence_always_clipped(valence, min_valence, max_valence):
     )
     modulator = RegimeModulator(settings)
 
-    from datetime import UTC, datetime
-
     state = modulator.update(None, valence, 0.1, datetime.now(UTC))
     assert min_valence <= state.valence <= max_valence
 
@@ -103,8 +105,6 @@ def test_regime_confidence_bounds(feedback, volatility, decay):
         confidence_floor=confidence_floor,
     )
     modulator = RegimeModulator(settings)
-
-    from datetime import UTC, datetime
 
     state = modulator.update(None, feedback, volatility, datetime.now(UTC))
     assert confidence_floor <= state.confidence <= 1.0

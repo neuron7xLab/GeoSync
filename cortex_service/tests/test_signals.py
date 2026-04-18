@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime
+from datetime import datetime
+
+from core.compat import UTC
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

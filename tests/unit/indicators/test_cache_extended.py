@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import tempfile
-from datetime import UTC, datetime
+from datetime import datetime
+
+from core.compat import UTC
 from pathlib import Path
 
 import numpy as np

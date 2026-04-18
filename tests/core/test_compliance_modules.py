@@ -5,7 +5,9 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
+
+from core.compat import UTC
 
 import pytest
 

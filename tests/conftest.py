@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import importlib.metadata
 import logging
 import os
 import sys
@@ -11,12 +12,22 @@ from functools import lru_cache
 from pathlib import Path, PurePosixPath
 from typing import Iterable, Iterator, Sequence
 
-import pandas as pd
 import pytest
 import yaml  # type: ignore[import-untyped]
 
-if not hasattr(pd, "_pandas_datetime_CAPI"):  # pragma: no cover - import-time guard
-    pd._pandas_datetime_CAPI = None
+LOGGER = logging.getLogger("tests.bootstrap")
+
+try:
+    import pandas as pd
+    pd.Timestamp.now(tz="UTC")
+    pandas_version = importlib.metadata.version("pandas")
+    LOGGER.info("Pandas compatibility gate passed (pandas=%s)", pandas_version)
+except Exception as exc:  # pragma: no cover - environment compatibility gate
+    LOGGER.exception("Pandas compatibility gate failed")
+    raise pytest.UsageError(
+        "Pandas compatibility gate failed. "
+        "Install/repair a compatible pandas build before running tests."
+    ) from exc
 
 _audit_trail_path = Path("observability/audit/trail.py")
 _audit_spec = importlib.util.spec_from_file_location(
@@ -33,15 +44,7 @@ get_system_audit_trail = _audit_module.get_system_audit_trail
 os.environ.setdefault("GEOSYNC_TWO_FACTOR_SECRET", "JBSWY3DPEHPK3PXP")
 os.environ.setdefault("THERMO_DUAL_SECRET", "test-secret")
 
-_fixture_path = Path(__file__).parent / "fixtures" / "conftest.py"
-spec = importlib.util.spec_from_file_location("geosync_tests_fixtures", _fixture_path)
-if spec is None or spec.loader is None:
-    raise ImportError(f"Unable to load fixtures from {_fixture_path}")
-module = importlib.util.module_from_spec(spec)
-sys.modules[spec.name] = module
-spec.loader.exec_module(module)
-
-globals().update({name: getattr(module, name) for name in dir(module) if not name.startswith("__")})
+pytest_plugins = ("tests.fixtures.conftest",)
 
 
 _LEVEL_DESCRIPTIONS: dict[str, str] = {

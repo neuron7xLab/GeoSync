@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import csv
-from datetime import UTC
+from core.compat import UTC
 from pathlib import Path
 
 import numpy as np

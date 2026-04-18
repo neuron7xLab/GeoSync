@@ -16,7 +16,7 @@ import json
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import (
     Any,
     ClassVar,
@@ -51,6 +51,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from core.compat import UTC, utc_now
 from domain.order import OrderSide, OrderStatus, OrderType
 
 LOGGER = logging.getLogger(__name__)
@@ -103,7 +104,7 @@ class DomainEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     event_id: UUID = Field(default_factory=uuid4)
-    occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    occurred_at: datetime = Field(default_factory=utc_now)
     # ``stream_version`` is injected during hydration and excluded from persistence.
     stream_version: int | None = Field(default=None, exclude=True)
 
@@ -1131,7 +1132,7 @@ def take_snapshot(aggregate: AggregateRoot) -> AggregateSnapshot:
         aggregate_type=aggregate.aggregate_type,
         version=aggregate.version,
         state=dict(aggregate.snapshot_state()),
-        taken_at=datetime.now(UTC),
+        taken_at=utc_now(),
     )
 
 

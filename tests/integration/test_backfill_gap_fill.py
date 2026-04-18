@@ -1,6 +1,6 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-from datetime import UTC
+from core.compat import UTC
 
 import pandas as pd
 

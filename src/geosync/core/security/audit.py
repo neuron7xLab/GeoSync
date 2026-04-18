@@ -6,10 +6,10 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from src.geosync.core.compat import utc_now
 
 class AuditLogger:
     """Simple JSON audit logger."""
@@ -40,7 +40,7 @@ class AuditLogger:
         **kwargs: Any,
     ) -> None:
         entry = {
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": utc_now().isoformat(),
             "event": event,
             "user": user,
             "resource": resource,
