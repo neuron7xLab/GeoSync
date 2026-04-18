@@ -91,7 +91,7 @@ def main() -> int:
     parser.add_argument("--cost-sweep", action="store_true")
     parser.add_argument(
         "--emit-gate-value",
-        choices=["breakeven_q75"],
+        choices=["breakeven_q75", "breakeven_q75_diurnal"],
         default=None,
     )
     parser.add_argument("--log-level", default="INFO")
@@ -204,6 +204,27 @@ def main() -> int:
         be_uncond = breakeven_maker_fraction(rows_uncond)
         be_q75 = breakeven_maker_fraction(rows_q75)
 
+        rows_q75_diurnal = None
+        be_q75_diurnal = None
+        if direction_override is not None:
+            trades_q75_diurnal = simulate_gross_trades(
+                signal,
+                features.mid,
+                decision_idx=decision_idx,
+                hold_rows=DEFAULT_HOLD_SEC,
+                median_window_rows=DEFAULT_MEDIAN_WINDOW_SEC,
+                regime_mask=mask_q75,
+                direction_override=direction_override,
+                name="REGIME_Q75+DIURNAL",
+            )
+            rows_q75_diurnal = sweep_maker_fractions(
+                trades_q75_diurnal,
+                symbols=features.symbols,
+                cost_model=cost_model,
+                maker_fractions=DEFAULT_MAKER_FRACTIONS,
+            )
+            be_q75_diurnal = breakeven_maker_fraction(rows_q75_diurnal)
+
         if args.emit_gate_value == "breakeven_q75":
             if be_q75 is None:
                 _log.error("break-even maker fraction not bracketed in sweep")
@@ -220,13 +241,36 @@ def main() -> int:
             )
             return 0
 
+        if args.emit_gate_value == "breakeven_q75_diurnal":
+            if be_q75_diurnal is None:
+                _log.error(
+                    "breakeven_q75_diurnal requires --diurnal-filter and a "
+                    "zero-crossing bracket; none found"
+                )
+                return 2
+            print(
+                json.dumps(
+                    {
+                        "gate": "breakeven_q75_diurnal",
+                        "value": float(be_q75_diurnal),
+                        "tolerance": 1.0e-3,
+                    },
+                    indent=2,
+                )
+            )
+            return 0
+
         payload: dict[str, Any] = {
             "mode": "cost_sweep",
             "maker_fractions": list(DEFAULT_MAKER_FRACTIONS),
             "breakeven_uncond": be_uncond,
             "breakeven_regime_q75": be_q75,
+            "breakeven_regime_q75_diurnal": be_q75_diurnal,
             "rows_uncond": [asdict(r) for r in rows_uncond],
             "rows_regime_q75": [asdict(r) for r in rows_q75],
+            "rows_regime_q75_diurnal": (
+                [asdict(r) for r in rows_q75_diurnal] if rows_q75_diurnal is not None else None
+            ),
         }
         Path(args.output).parent.mkdir(parents=True, exist_ok=True)
         Path(args.output).write_text(
