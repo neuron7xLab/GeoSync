@@ -52,7 +52,7 @@ def main() -> int:
     deciles = [float(np.quantile(finite, q)) for q in np.arange(0.1, 1.0, 0.1)]
     edges = [float(finite.min())] + deciles + [float(finite.max()) + 1e-9]
 
-    results: list[dict[str, float | int | str]] = []
+    results: list[dict[str, object]] = []
     header = f"{'bucket':<8} {'rv<':<10} {'frac':>6} {'IC':>9} {'p_perm':>8} {'verdict':<8}"
     print(header)
     print("-" * len(header))
