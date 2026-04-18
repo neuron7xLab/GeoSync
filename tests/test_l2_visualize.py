@@ -34,16 +34,18 @@ def _fixtures_present() -> bool:
         "L2_CONDITIONAL_TE.json",
         "L2_REGIME_MARKOV.json",
         "L2_EXEC_COST_SWEEP.json",
+        "L2_WALK_FORWARD.json",
+        "L2_WALK_FORWARD_SUMMARY.json",
     ]
     results = Path("results")
     return all((results / name).exists() for name in required)
 
 
 @pytest.mark.skipif(not _fixtures_present(), reason="results fixtures unavailable")
-def test_render_all_produces_three_nonempty_pngs(tmp_path: Path) -> None:
+def test_render_all_produces_four_nonempty_pngs(tmp_path: Path) -> None:
     paths = render_all(Path("results"), tmp_path)
     assert isinstance(paths, FigurePaths)
-    for p in (paths.signal_validation, paths.dynamics, paths.coupling):
+    for p in (paths.signal_validation, paths.dynamics, paths.coupling, paths.stability):
         assert p.exists(), f"expected figure missing: {p}"
         size = p.stat().st_size
         assert size > 10 * 1024, f"{p} is suspiciously small ({size} bytes)"

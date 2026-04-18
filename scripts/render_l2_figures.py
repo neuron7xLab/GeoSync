@@ -49,6 +49,7 @@ def main() -> int:
     _log.info("fig1 → %s", paths.signal_validation)
     _log.info("fig2 → %s", paths.dynamics)
     _log.info("fig3 → %s", paths.coupling)
+    _log.info("fig4 → %s", paths.stability)
     return 0
 
 
