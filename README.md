@@ -434,6 +434,14 @@ emits `results/L2_FULL_CYCLE_MANIFEST.json` with SHA-256 replay hashes,
 and generates a self-contained HTML dashboard at
 `results/figures/index.html`.
 
+Downstream-friendly flat metrics:
+`results/L2_HEADLINE_METRICS.json` — 44 primitive keys covering every
+axis + ablation + verdict. Ingestion-ready for dashboards and
+warehouses without parsing variable-structure artifacts.
+
+Protection: `.github/workflows/l2-demo-gate.yml` runs full test suite
++ demo-smoke gate on every PR that touches the L2 surface.
+
 | Axis | Finding | Artifact |
 |---|---|---|
 | 1. Kill test | IC = 0.122 at p = 0.002 | `L2_KILLTEST_VERDICT.json` |
