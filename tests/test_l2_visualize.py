@@ -16,7 +16,9 @@ from pathlib import Path
 
 import pytest
 
-from research.microstructure.visualize import FigurePaths, render_all
+pytest.importorskip("matplotlib")
+
+from research.microstructure.visualize import FigurePaths, render_all  # noqa: E402
 
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 

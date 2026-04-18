@@ -31,12 +31,28 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import matplotlib
 import numpy as np
 from numpy.typing import NDArray
 
-matplotlib.use("Agg")  # headless
-import matplotlib.pyplot as plt  # noqa: E402
+try:
+    import matplotlib
+
+    matplotlib.use("Agg")  # headless
+    import matplotlib.pyplot as plt
+
+    _MATPLOTLIB_AVAILABLE = True
+except ImportError:  # pragma: no cover — optional runtime dep
+    matplotlib = None  # type: ignore[assignment]
+    plt = None  # type: ignore[assignment]
+    _MATPLOTLIB_AVAILABLE = False
+
+
+def _require_matplotlib() -> None:
+    if not _MATPLOTLIB_AVAILABLE:
+        raise ImportError(
+            "matplotlib is required for figure rendering; install with `pip install matplotlib`."
+        )
+
 
 _PALETTE_SIGNAL = "tab:blue"
 _PALETTE_FIT = "tab:orange"
@@ -251,11 +267,11 @@ def _panel_walk_forward_timeseries(
         dtype=np.float64,
     )
     colors = [
-        _PALETTE_FIT
-        if np.isfinite(p) and p < 0.05 and ic > 0
-        else _PALETTE_NULL
-        if np.isfinite(p) and p < 0.05 and ic < 0
-        else _PALETTE_REF
+        (
+            _PALETTE_FIT
+            if np.isfinite(p) and p < 0.05 and ic > 0
+            else _PALETTE_NULL if np.isfinite(p) and p < 0.05 and ic < 0 else _PALETTE_REF
+        )
         for ic, p in zip(ics, perms, strict=True)
     ]
     # Offset to minutes-from-start for readability
