@@ -278,6 +278,33 @@ is driven by the interaction, not by any one concentrated source.
 
 Artifact: `results/L2_SYMBOL_ABLATION.json`
 
+### 4.3 Hold-time ablation
+
+Sweep execution horizon hold_sec ∈ {60, 90, 180, 300, 600} keeping
+regime_q = 0.75, window = 300 s, diurnal filter on. Tests whether the
+canonical 180-s hold is specifically tuned.
+
+| hold_sec | status | f* or mean_bp at f=0 |
+|---|---|---|
+| 60s | BRACKET | f* = 0.2364 |
+| 90s | **ALREADY_PROFITABLE** | +0.72 bp / trade at f=0 |
+| 180s | BRACKET (canonical) | f* = 0.2317 |
+| 300s | **ALREADY_PROFITABLE** | +5.43 bp / trade at f=0 |
+| 600s | **ALREADY_PROFITABLE** | +10.14 bp / trade at f=0 |
+
+**Verdict: ROBUST.** At 90-s, 300-s, and 600-s holds the strategy is
+already profitable under pure-taker execution — no maker-fraction
+bracket needed because mean net bp per trade is positive at f = 0. At
+60-s and 180-s holds the round-trip cost exceeds the per-trade gross,
+so a maker-fraction bracket is required; both resolve at f* ≈ 0.23.
+
+The canonical 180-s hold is **not specially tuned** — the edge
+transfers to longer holds with strictly monotonic improvement in
+per-trade economics (larger drift captured per trade). The shorter
+60-s hold shows the cost-SLA is most demanding there.
+
+Artifact: `results/L2_HOLD_ABLATION.json`
+
 ---
 
 ## 5 · Diurnal sign-flip (SIGN_FLIP_CONFIRMED)
