@@ -45,6 +45,7 @@ __all__ = [
     "FrozenClock",
     "SystemClock",
     "default_clock",
+    "epoch_ns",
     "frozen_clock",
     "monotonic_ns",
     "safe_isoformat",
@@ -99,9 +100,17 @@ def safe_isoformat(ts: datetime) -> str:
 class Clock(Protocol):
     """Minimal clock protocol.
 
-    Any object providing ``now()`` and ``monotonic_ns()`` can stand in for
-    the system clock. This decouples event sourcing, audit logging, incident
-    response, and cortex regime modulation from direct wall-time access.
+    Any object providing ``now()``, ``monotonic_ns()`` and ``epoch_ns()``
+    can stand in for the system clock. This decouples event sourcing,
+    audit logging, incident response, and cortex regime modulation from
+    direct wall-time access.
+
+    ``now()`` is a tz-aware ``datetime`` (human-readable, microsecond
+    resolution). ``monotonic_ns()`` is a monotonic counter safe for
+    latency measurement but meaningless in absolute terms. ``epoch_ns()``
+    is a wall-clock Unix timestamp in nanoseconds — machine-orderable
+    across processes, immune to timezone / microsecond quantisation, and
+    the canonical persistence format for event-store ordering.
     """
 
     def now(self) -> datetime:
@@ -112,9 +121,25 @@ class Clock(Protocol):
         """Return a nanosecond monotonic counter."""
         ...
 
+    def epoch_ns(self) -> int:
+        """Return the current wall-clock time as a Unix-epoch nanosecond integer."""
+        ...
+
+
+def epoch_ns() -> int:
+    """Module-level default for :meth:`Clock.epoch_ns`.
+
+    Equivalent to :func:`time.time_ns` on CPython. Use this only when
+    the caller is explicitly outside the DI boundary; production code
+    should route through an injected :class:`Clock` so that tests can
+    freeze the value.
+    """
+
+    return time.time_ns()
+
 
 class SystemClock:
-    """Production :class:`Clock` backed by :func:`utc_now` / :func:`monotonic_ns`."""
+    """Production :class:`Clock` backed by :func:`utc_now`, :func:`monotonic_ns`, :func:`epoch_ns`."""
 
     __slots__ = ()
 
@@ -123,6 +148,9 @@ class SystemClock:
 
     def monotonic_ns(self) -> int:
         return monotonic_ns()
+
+    def epoch_ns(self) -> int:
+        return epoch_ns()
 
 
 @dataclass
@@ -155,6 +183,18 @@ class FrozenClock:
         with self._lock:
             self._mono_ns += 1
             return self._mono_ns
+
+    def epoch_ns(self) -> int:
+        """Return the current ``instant`` as a Unix-epoch nanosecond integer.
+
+        This is wall-clock (advances with :meth:`advance` / :meth:`set`) and
+        therefore distinct from :meth:`monotonic_ns`. Two FrozenClocks pinned
+        to the same ``instant`` return the same value; that is the property
+        tests rely on when comparing persisted events across replays.
+        """
+
+        with self._lock:
+            return int(self.instant.timestamp() * 1_000_000_000)
 
     def advance(self, *, seconds: float = 0.0, nanoseconds: int = 0) -> datetime:
         """Move the wall-clock forward. Negative deltas are rejected."""

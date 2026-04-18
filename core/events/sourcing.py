@@ -51,7 +51,8 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from core.compat import default_clock
+from core.compat import Clock, default_clock
+from core.events.validation import DomainValidationError, EventValidator
 from domain.order import OrderSide, OrderStatus, OrderType
 
 LOGGER = logging.getLogger(__name__)
@@ -147,6 +148,14 @@ class EventEnvelope:
     correlation_id: str | None
     causation_id: str | None
     stored_at: datetime
+    epoch_ns: int | None = None
+    """Wall-clock time at append in Unix-epoch nanoseconds.
+
+    Present on any event written after the Sprint-1 Clock migration.
+    ``None`` for historical rows persisted before the column was added
+    (rolling-forward migration: the ``epoch_ns`` column is nullable so
+    that existing tables can be upgraded without a backfill).
+    """
 
 
 @dataclass(slots=True)
@@ -697,7 +706,12 @@ class PostgresEventStore:
     """Event store persisting events and snapshots in PostgreSQL."""
 
     def __init__(
-        self, engine: Engine, *, schema: str = "public", table_prefix: str = "es_"
+        self,
+        engine: Engine,
+        *,
+        schema: str = "public",
+        table_prefix: str = "es_",
+        clock: Clock | None = None,
     ) -> None:
         self._engine = engine
         self._schema = schema
@@ -705,6 +719,10 @@ class PostgresEventStore:
         self._events = self._create_events_table(table_prefix)
         self._snapshots = self._create_snapshots_table(table_prefix)
         self._session_factory = sessionmaker(bind=engine, expire_on_commit=False, future=True)
+        # Dependency-injected clock — falls back to the process-wide default so
+        # that existing integrations keep working without code changes. Tests
+        # pass a FrozenClock to get byte-identical ``epoch_ns`` across replays.
+        self._clock: Clock = clock if clock is not None else default_clock()
 
     # Table definitions ---------------------------------------------------------
 
@@ -729,6 +747,12 @@ class PostgresEventStore:
                 nullable=False,
                 server_default=func.now(),
             ),
+            # ``epoch_ns`` is wall-clock Unix time in nanoseconds at the moment
+            # the store wrote the row. It is nullable so that existing
+            # deployments can be migrated with a simple ADD COLUMN (the back-
+            # fill is optional — TIMESTAMPTZ still provides ordering for
+            # historical rows). New rows always carry a non-null value.
+            Column("epoch_ns", BigInteger, nullable=True),
             UniqueConstraint(
                 "aggregate_id",
                 "aggregate_type",
@@ -736,6 +760,7 @@ class PostgresEventStore:
                 name="uq_event_stream_version",
             ),
             Index("ix_event_store_stream", "aggregate_type", "aggregate_id"),
+            Index("ix_event_store_epoch_ns", "epoch_ns"),
         )
 
     def _create_snapshots_table(self, prefix: str) -> Table:
@@ -788,10 +813,20 @@ class PostgresEventStore:
         metadata: Mapping[str, Any] | None = None,
         correlation_id: str | None = None,
         causation_id: str | None = None,
+        validator: EventValidator | None = None,
     ) -> int:
-        """Persist events for an aggregate applying optimistic concurrency."""
+        """Persist events for an aggregate applying optimistic concurrency.
+
+        A validator, if supplied, is called once per event before insert
+        and raises :class:`DomainValidationError` to abort the whole
+        batch. The caller is responsible for choosing the policy —
+        passing ``None`` preserves the legacy behaviour.
+        """
 
         metadata_payload = dict(metadata or {})
+        # Materialise events up front so both the validator and the
+        # insert loop observe the same sequence (generators are one-shot).
+        events_list: list[DomainEvent] = list(events)
         with self._session() as session:
             current_version = self._current_stream_version(
                 session, aggregate.id, aggregate.aggregate_type
@@ -801,8 +836,16 @@ class PostgresEventStore:
                     f"Expected version {expected_version} but stream is at {current_version}"
                 )
 
+            if validator is not None:
+                for event in events_list:
+                    result = validator.validate(event, aggregate)
+                    if not result.valid:
+                        raise DomainValidationError(
+                            f"Event {type(event).__name__} rejected: {result.reason}"
+                        )
+
             version = current_version
-            for event in events:
+            for event in events_list:
                 version += 1
                 payload = event.to_dict()
                 event_name = event.event_name
@@ -817,6 +860,7 @@ class PostgresEventStore:
                     metadata=metadata_payload,
                     payload=payload,
                     occurred_at=event.occurred_at,
+                    epoch_ns=self._clock.epoch_ns(),
                 )
                 try:
                     session.execute(insert_stmt)
@@ -861,6 +905,7 @@ class PostgresEventStore:
                     correlation_id=row.correlation_id,
                     causation_id=row.causation_id,
                     stored_at=row.recorded_at,
+                    epoch_ns=row.epoch_ns,
                 )
             )
         return envelopes
