@@ -249,3 +249,122 @@ def test_run_killtest_survives_injected_edge() -> None:
     assert np.isfinite(verdict.ic_baselines["plain_ofi"])
     for h in (60, 120, 180, 240, 300):
         assert h in verdict.horizon_ic
+
+
+# ---------------------------------------------------------------------------
+# CLI helpers (introduced in C1 of PR #238)
+# ---------------------------------------------------------------------------
+
+import importlib.util as _iu  # noqa: E402
+from pathlib import Path as _Path  # noqa: E402
+
+import pytest as _pytest  # noqa: E402
+
+
+def _load_cli_module() -> object:
+    """Dynamic-import `scripts/run_l2_killtest.py` as a module object.
+
+    The script lives at repo root / scripts / and uses a hyphenated filename
+    that argparse hosts CLI-side; direct `from scripts.run_l2_killtest` works
+    only because scripts/ is on sys.path in some configs. Importing by file
+    path is robust.
+    """
+    repo_root = _Path(__file__).resolve().parents[1]
+    path = repo_root / "scripts" / "run_l2_killtest.py"
+    spec = _iu.spec_from_file_location("run_l2_killtest_cli", path)
+    assert spec is not None and spec.loader is not None
+    module = _iu.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _synthetic_cli_features(n_rows: int, n_sym: int, seed: int) -> FeatureFrame:
+    rng = np.random.default_rng(seed)
+    mid = np.zeros((n_rows, n_sym), dtype=np.float64)
+    for k in range(n_sym):
+        mid[:, k] = 100.0 + (k + 1) + rng.normal(0.0, 0.03, size=n_rows).cumsum()
+    return FeatureFrame(
+        timestamps_ms=np.arange(n_rows, dtype=np.int64) * 1000,
+        symbols=tuple(f"SYM{k}" for k in range(n_sym)),
+        mid=mid,
+        ofi=rng.normal(0.0, 1.0, size=(n_rows, n_sym)),
+        queue_imbalance=rng.uniform(-1.0, 1.0, size=(n_rows, n_sym)),
+    )
+
+
+def test_cli_regime_score_dispatch_rv() -> None:
+    """_regime_score('rv', ...) must equal rolling_rv_regime directly."""
+    from research.microstructure.regime import rolling_rv_regime
+
+    cli = _load_cli_module()
+    features = _synthetic_cli_features(800, 5, seed=42)
+    via_cli = cli._regime_score("rv", features, window_rows=200)  # type: ignore[attr-defined]
+    via_fn = rolling_rv_regime(features, window_rows=200)
+    # Element-wise equal where both finite, both NaN where neither finite
+    mask = np.isfinite(via_cli) & np.isfinite(via_fn)
+    assert mask.sum() > 0
+    assert np.allclose(via_cli[mask], via_fn[mask])
+
+
+def test_cli_regime_score_dispatch_corr() -> None:
+    """_regime_score('corr', ...) must equal rolling_corr_regime directly."""
+    from research.microstructure.regime import rolling_corr_regime
+
+    cli = _load_cli_module()
+    features = _synthetic_cli_features(800, 5, seed=42)
+    via_cli = cli._regime_score("corr", features, window_rows=200)  # type: ignore[attr-defined]
+    via_fn = rolling_corr_regime(features, window_rows=200)
+    mask = np.isfinite(via_cli) & np.isfinite(via_fn)
+    assert mask.sum() > 0
+    assert np.allclose(via_cli[mask], via_fn[mask])
+
+
+def test_cli_regime_score_rejects_unknown_name() -> None:
+    cli = _load_cli_module()
+    features = _synthetic_cli_features(400, 4, seed=0)
+    with _pytest.raises(ValueError):
+        cli._regime_score("bogus", features, window_rows=200)  # type: ignore[attr-defined]
+
+
+def test_cli_train_threshold_mask_shape_and_dtype() -> None:
+    """Mask must be bool dtype and match test.n_rows in length."""
+    cli = _load_cli_module()
+    features = _synthetic_cli_features(1600, 5, seed=42)
+    mid = features.n_rows // 2
+    train = slice_features(features, 0, mid)
+    test = slice_features(features, mid, features.n_rows)
+    mask = cli._train_threshold_mask(  # type: ignore[attr-defined]
+        train, test, regime_name="rv", quantile=0.5, window_rows=200
+    )
+    assert mask.dtype == bool
+    assert mask.shape == (test.n_rows,)
+
+
+def test_cli_train_threshold_mask_monotone_in_quantile() -> None:
+    """Higher quantile threshold keeps no more True cells than lower quantile."""
+    cli = _load_cli_module()
+    features = _synthetic_cli_features(1600, 5, seed=42)
+    mid = features.n_rows // 2
+    train = slice_features(features, 0, mid)
+    test = slice_features(features, mid, features.n_rows)
+    mask_q25 = cli._train_threshold_mask(  # type: ignore[attr-defined]
+        train, test, regime_name="rv", quantile=0.25, window_rows=200
+    )
+    mask_q75 = cli._train_threshold_mask(  # type: ignore[attr-defined]
+        train, test, regime_name="rv", quantile=0.75, window_rows=200
+    )
+    assert int(mask_q75.sum()) <= int(mask_q25.sum())
+
+
+def test_cli_train_threshold_mask_rejects_all_nan_train() -> None:
+    """If train regime score is all-NaN, CLI raises ValueError explicitly."""
+    cli = _load_cli_module()
+    n_rows, n_sym = 100, 4  # below rolling_rv_regime._MIN_WINDOW_ROWS=60... so use window > n_rows
+    features = _synthetic_cli_features(n_rows, n_sym, seed=0)
+    train = slice_features(features, 0, 50)
+    test = slice_features(features, 50, 100)
+    # window_rows exceeds train.n_rows → rolling_rv_regime yields all-NaN → CLI rejects
+    with _pytest.raises(ValueError):
+        cli._train_threshold_mask(  # type: ignore[attr-defined]
+            train, test, regime_name="rv", quantile=0.5, window_rows=60
+        )
