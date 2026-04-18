@@ -453,6 +453,7 @@ Generated figures (`results/figures/`):
 - `fig1_signal_validation.png` — signal existence + statistical robustness
 - `fig2_dynamics.png` — spectral · DFA · diurnal · autocorrelation
 - `fig3_coupling.png` — TE · CTE · regime Markov · break-even
+- `fig4_stability.png` — walk-forward IC timeseries · distribution · perm-p · verdict
 
 <p align="center">
   <img src=".github/assets/divider.svg" width="100%">

@@ -66,6 +66,7 @@ class FigurePaths:
     signal_validation: Path
     dynamics: Path
     coupling: Path
+    stability: Path
 
 
 def _load(results_dir: Path, name: str) -> dict[str, Any]:
@@ -230,6 +231,135 @@ def _panel_autocorr(ax: matplotlib.axes.Axes, attribution: dict[str, Any]) -> No
     ax.legend(loc="upper right")
 
 
+def _panel_walk_forward_timeseries(
+    ax: matplotlib.axes.Axes,
+    walk_forward: dict[str, Any],
+    summary: dict[str, Any],
+) -> None:
+    rows = walk_forward.get("rows", [])
+    centers = np.asarray(
+        [0.5 * (float(r.get("start", 0)) + float(r.get("end", 0))) for r in rows],
+        dtype=np.float64,
+    )
+    ics = np.asarray(
+        [float("nan") if r.get("ic_signal") is None else float(r["ic_signal"]) for r in rows],
+        dtype=np.float64,
+    )
+    perms = np.asarray(
+        [float("nan") if r.get("perm_p") is None else float(r["perm_p"]) for r in rows],
+        dtype=np.float64,
+    )
+    colors = [
+        _PALETTE_FIT
+        if np.isfinite(p) and p < 0.05 and ic > 0
+        else _PALETTE_NULL
+        if np.isfinite(p) and p < 0.05 and ic < 0
+        else _PALETTE_REF
+        for ic, p in zip(ics, perms, strict=True)
+    ]
+    # Offset to minutes-from-start for readability
+    t0 = float(centers[np.isfinite(centers)][0]) if centers.size else 0.0
+    minutes = (centers - t0) / 60.0
+    ax.scatter(minutes, ics, c=colors, s=18, alpha=0.9)
+    ax.plot(minutes, ics, color=_PALETTE_SIGNAL, linewidth=0.6, alpha=0.5)
+    ax.axhline(0.0, color=_PALETTE_REF, linewidth=0.5)
+    ax.axhline(
+        float(summary["ic_median"]),
+        color=_PALETTE_FIT,
+        linestyle="--",
+        linewidth=0.9,
+        alpha=0.8,
+        label=f"median = {float(summary['ic_median']):.3f}",
+    )
+    ax.set_xlabel("window-center (min from session start)")
+    ax.set_ylabel("IC per 40-min window")
+    frac_pos = 100.0 * float(summary["fraction_positive"])
+    ax.set_title(f"(a) walk-forward IC — {frac_pos:.1f}% windows positive · STABLE_POSITIVE")
+    ax.legend(loc="upper right", fontsize=7)
+
+
+def _panel_ic_distribution(
+    ax: matplotlib.axes.Axes,
+    walk_forward: dict[str, Any],
+    summary: dict[str, Any],
+) -> None:
+    rows = walk_forward.get("rows", [])
+    ics = [float(r["ic_signal"]) for r in rows if r.get("ic_signal") is not None]
+    arr = np.asarray(ics, dtype=np.float64)
+    ax.hist(arr, bins=18, color=_PALETTE_SIGNAL, alpha=0.75, edgecolor="white", linewidth=0.5)
+    ax.axvline(0.0, color=_PALETTE_NULL, linewidth=0.9, alpha=0.8, label="null")
+    ax.axvline(
+        float(summary["ic_median"]),
+        color=_PALETTE_FIT,
+        linestyle="--",
+        linewidth=1.0,
+        label=f"median = {float(summary['ic_median']):.3f}",
+    )
+    ax.axvline(
+        float(summary["ic_mean"]),
+        color=_PALETTE_FIT,
+        linestyle=":",
+        linewidth=1.0,
+        label=f"mean = {float(summary['ic_mean']):.3f}",
+    )
+    ax.set_xlabel("IC per window")
+    ax.set_ylabel("# windows")
+    ax.set_title(f"(b) walk-forward IC distribution — n = {arr.size}")
+    ax.legend(loc="upper right", fontsize=7)
+
+
+def _panel_permutation_pvals(
+    ax: matplotlib.axes.Axes,
+    walk_forward: dict[str, Any],
+) -> None:
+    rows = walk_forward.get("rows", [])
+    pvals = [float(r["perm_p"]) for r in rows if r.get("perm_p") is not None]
+    arr = np.asarray(pvals, dtype=np.float64)
+    ax.hist(arr, bins=20, color=_PALETTE_SIGNAL, alpha=0.75, edgecolor="white", linewidth=0.5)
+    ax.axvline(0.05, color=_PALETTE_NULL, linestyle="--", linewidth=1.0, label="α = 0.05")
+    ax.set_xlabel("permutation p-value per window")
+    ax.set_ylabel("# windows")
+    frac_sig = 100.0 * float((arr < 0.05).mean()) if arr.size else 0.0
+    ax.set_title(f"(c) per-window permutation p — {frac_sig:.1f}% at p < 0.05")
+    ax.legend(loc="upper right", fontsize=7)
+
+
+def _panel_stability_verdict_text(
+    ax: matplotlib.axes.Axes,
+    summary: dict[str, Any],
+) -> None:
+    ax.axis("off")
+    lines = [
+        "Stability summary",
+        "─" * 24,
+        f"n_windows        : {int(summary['n_valid'])} / {int(summary['n_windows'])}",
+        f"window / step    : {int(summary['window_sec'])}s / {int(summary['step_sec'])}s",
+        "",
+        f"IC mean ± std    : {float(summary['ic_mean']):+.4f} ± {float(summary['ic_std']):.4f}",
+        f"IC median        : {float(summary['ic_median']):+.4f}",
+        f"IC q25 · q75     : {float(summary['ic_q25']):+.4f} · {float(summary['ic_q75']):+.4f}",
+        f"IC min · max     : {float(summary['ic_min']):+.4f} · {float(summary['ic_max']):+.4f}",
+        "",
+        f"% positive       : {100.0 * float(summary['fraction_positive']):.1f}",
+        f"% IC > +0.05     : {100.0 * float(summary['fraction_above_0p05']):.1f}",
+        f"% IC < −0.05     : {100.0 * float(summary['fraction_below_minus_0p05']):.1f}",
+        f"% perm-p < 0.05  : {100.0 * float(summary['fraction_permutation_significant']):.1f}",
+        "",
+        f"Verdict          : {summary['verdict']}",
+    ]
+    ax.text(
+        0.02,
+        0.98,
+        "\n".join(lines),
+        ha="left",
+        va="top",
+        transform=ax.transAxes,
+        family="monospace",
+        fontsize=9,
+    )
+    ax.set_title("(d) stability verdict")
+
+
 def _pair_matrix(
     pairs: list[dict[str, Any]],
     symbols: tuple[str, ...],
@@ -380,6 +510,8 @@ def render_all(results_dir: Path, output_dir: Path) -> FigurePaths:
     te = _load(results_dir, "L2_TRANSFER_ENTROPY.json")
     cte = _load(results_dir, "L2_CONDITIONAL_TE.json")
     markov = _load(results_dir, "L2_REGIME_MARKOV.json")
+    walk_forward = _load(results_dir, "L2_WALK_FORWARD.json")
+    wf_summary = _load(results_dir, "L2_WALK_FORWARD_SUMMARY.json")
     with (results_dir / "L2_EXEC_COST_SWEEP.json").open() as f:
         exec_sweep: list[dict[str, Any]] = json.load(f)
     gate_dir = results_dir / "gate_fixtures"
@@ -432,8 +564,25 @@ def render_all(results_dir: Path, output_dir: Path) -> FigurePaths:
     fig3.savefig(path3)
     plt.close(fig3)
 
+    # -- Figure 4: Temporal stability ----------------------------------------
+    fig4, axes4 = plt.subplots(2, 2, figsize=(14, 9.5))
+    fig4.suptitle(
+        "FIG 4 — temporal stability: walk-forward IC · distribution · permutation-p · verdict",
+        fontsize=11,
+        y=0.995,
+    )
+    _panel_walk_forward_timeseries(axes4[0, 0], walk_forward, wf_summary)
+    _panel_ic_distribution(axes4[0, 1], walk_forward, wf_summary)
+    _panel_permutation_pvals(axes4[1, 0], walk_forward)
+    _panel_stability_verdict_text(axes4[1, 1], wf_summary)
+    path4 = output_dir / "fig4_stability.png"
+    fig4.tight_layout(rect=(0, 0, 1, 0.97))
+    fig4.savefig(path4)
+    plt.close(fig4)
+
     return FigurePaths(
         signal_validation=path1,
         dynamics=path2,
         coupling=path3,
+        stability=path4,
     )

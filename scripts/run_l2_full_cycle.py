@@ -183,6 +183,7 @@ def main() -> int:
             ("signal_validation", fig_paths.signal_validation),
             ("dynamics", fig_paths.dynamics),
             ("coupling", fig_paths.coupling),
+            ("stability", fig_paths.stability),
         ):
             figures[label] = _sha256_file(path)
 
