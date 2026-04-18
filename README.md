@@ -421,7 +421,7 @@ geosync-server --allow-plaintext --host 127.0.0.1 --port 8000
 
 ## L2 Microstructure — Ricci cross-sectional edge
 
-Nine-axis empirical validation of a cross-sectional curvature edge on
+Ten-axis empirical validation of a cross-sectional curvature edge on
 Binance USDT-M perp L2 depth streams. One-command reproduction:
 
 ```bash
@@ -443,6 +443,7 @@ three canonical demo figures, and emits
 | 7. DFA Hurst | H = 1.014, R² = 0.982, STRONG_PERSISTENT | `L2_HURST.json` |
 | 8. Transfer entropy | 45/45 pairs BIDIRECTIONAL, p < 0.05 | `L2_TRANSFER_ENTROPY.json` |
 | 9. Conditional TE | 33/36 PRIVATE_FLOW after BTC-conditioning | `L2_CONDITIONAL_TE.json` |
+| 10. Walk-forward stability | 82% of 40-min windows positive, STABLE_POSITIVE | `L2_WALK_FORWARD_SUMMARY.json` |
 
 See [`research/microstructure/FINDINGS.md`](research/microstructure/FINDINGS.md)
 for the full synthesis and honest-limitations section.
