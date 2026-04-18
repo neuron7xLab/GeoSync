@@ -632,3 +632,56 @@ ott_antonsen:
       critical_slowing: "at K → K_c, decay rate → 0 (excluded from test at K=0.99)"
     falsification: "R stays above 1e-4 after T=100 with K ≤ 0.8·K_c"
     priority: P0
+
+# ═══════════════════════════════════════════════════
+# DRO-ARA REGIME OBSERVER (Hurst + ADF + ARA loop)
+# Scope: core/dro_ara/*.py
+# ═══════════════════════════════════════════════════
+
+dro_ara:
+  gamma_derivation:
+    id: INV-DRO1
+    type: algebraic
+    statement: "γ = 2·H + 1 to floating-point precision for every admissible input"
+    test_type: property_test
+    parameters:
+      tolerance: "|γ − (2·H + 1)| < 1e-5"
+      source: "core/dro_ara/engine.py::derive_gamma"
+    falsification: "derive_gamma returns γ, H with |γ − (2·H + 1)| ≥ 1e-5"
+    priority: P0
+
+  risk_scalar_bounds:
+    id: INV-DRO2
+    type: universal
+    statement: "risk_scalar(γ) = max(0, 1 − |γ − 1|) ∈ [0, 1] for all γ ∈ ℝ"
+    test_type: property_test
+    parameters:
+      lipschitz_constant: "|rs(a) − rs(b)| ≤ |a − b|"
+    falsification: "risk_scalar returns value < 0 or > 1 for any γ"
+    priority: P0
+
+  invalid_regime_gate:
+    id: INV-DRO3
+    type: conditional
+    statement: "regime == INVALID iff (!stationary ∨ r2 < R2_MIN)"
+    condition: "R2_MIN = 0.90 (core/dro_ara/engine.py:R2_MIN)"
+    test_type: property_test
+    falsification: "classify(gamma, r2<0.90, stationary=True) != INVALID, or classify(gamma, r2, False) != INVALID"
+    priority: P0
+
+  long_signal_gate:
+    id: INV-DRO4
+    type: conditional
+    statement: "signal == LONG ⟹ regime == CRITICAL ∧ rs > RS_LONG_THRESH ∧ trend ∈ {CONVERGING, STABLE}"
+    condition: "RS_LONG_THRESH = 0.33"
+    test_type: property_test
+    falsification: "geosync_observe emits LONG with any of the three conjuncts false"
+    priority: P0
+
+  fail_closed_input:
+    id: INV-DRO5
+    type: universal
+    statement: "NaN ∨ Inf ∨ constant ∨ rank != 1 ∨ len < window+step ⟹ ValueError"
+    test_type: property_test
+    falsification: "geosync_observe returns silently on any degenerate input above"
+    priority: P0
