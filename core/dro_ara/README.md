@@ -103,8 +103,8 @@ panel.
 
 Measured on Python 3.12.3, NumPy 2.4.3, Linux x86-64 (lowlatency kernel),
 10 repeats + 2 warmup per window, seed 42 OU input of length `window + step`
-with `step = 64`. Full artifact: `results/dro_ara_bench.json` (includes
-replay hash).
+with `step = 64`. Artifact is regenerable offline (not committed to avoid
+detect-secrets FPs on high-entropy replay hashes).
 
 | Window | Length | p50 (µs) | p95 (µs) |
 | -----: | -----: | -------: | -------: |
@@ -118,8 +118,7 @@ Reproduce:
 python3 -m pytest tests/benchmarks/test_bench_dro_ara.py -q
 ```
 
-The emitted JSON records `p50`, `p95`, `mean`, `min`, `max` per window along
-with a canonical `replay_hash` over the sorted payload.
+The emitted payload records `p50`, `p95`, `mean`, `min`, `max` per window.
 
 ## References
 
