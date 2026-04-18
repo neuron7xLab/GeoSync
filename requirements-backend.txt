@@ -2,6 +2,6 @@
 # Keep versions in sync with requirements.lock and security guidance.
 opentelemetry-api==1.38.0
 opentelemetry-sdk==1.38.0
-opentelemetry-exporter-otlp==1.38.0
+opentelemetry-exporter-otlp==1.41.0
 prometheus-client==0.25.0
 PyJWT[crypto]==2.12.0
