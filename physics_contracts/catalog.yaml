@@ -303,7 +303,9 @@ laws:
     module: dro_ara
     statement: "The risk scalar is bounded in [0, 1] and Lipschitz-1 in γ."
     formula: "rs(γ) = max(0, 1 − |γ − 1|)"
-    variables: {gamma: derived scaling exponent, rs: risk scalar ∈ [0, 1]}
+    variables:
+      gamma: "derived scaling exponent"
+      rs: "risk scalar in [0, 1]"
     tolerance: "strict; violation is a bug, not a numerical artefact"
     validity: "all real γ"
     source: "core/dro_ara/engine.py::risk_scalar"
@@ -322,8 +324,10 @@ laws:
   - id: dro_ara.long_signal_gate
     module: dro_ara
     statement: "A LONG signal requires CRITICAL regime, rs above threshold, and a converging/stable trend."
-    formula: "signal == LONG  ⇒  regime == CRITICAL ∧ rs > RS_LONG_THRESH ∧ trend ∈ {CONVERGING, STABLE}"
-    variables: {RS_LONG_THRESH: 0.33, trend: ARA trajectory classification}
+    formula: "signal == LONG  =>  regime == CRITICAL AND rs > RS_LONG_THRESH AND trend in (CONVERGING, STABLE)"
+    variables:
+      RS_LONG_THRESH: 0.33
+      trend: "ARA trajectory classification"
     tolerance: "strict logical conjunction; all three must hold"
     validity: "geosync_observe output dict"
     source: "core/dro_ara/engine.py::geosync_observe"
