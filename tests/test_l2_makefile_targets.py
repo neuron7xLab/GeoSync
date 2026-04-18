@@ -124,6 +124,13 @@ def test_changelog_lists_all_nineteen_session_prs() -> None:
         "#297",
         "#298",
         "#300",
+        "#301",
+        "#303",
+        "#304",
+        "#306",
+        "#308",
+        "#309",
+        "#312",
     }
     missing = [pr for pr in expected_prs if pr not in text]
     assert not missing, f"CHANGELOG missing PR refs: {missing}"

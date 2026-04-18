@@ -64,15 +64,33 @@ demo-shippable package.
 - **PR #288** · `test(property-based)` — Hypothesis coverage for
   DFA Hurst, TE, CTE, walk-forward
 
+### Additional polish PRs
+
+- **PR #297** · `feat(demo)` — HTML dashboard (7.5 KB self-contained)
+- **PR #298** · `feat(stress)` — taker-fee tier sensitivity → RESILIENT
+- **PR #300** · `feat(make)` — pro-max ergonomic Makefile targets
+- **PR #301** · `docs(l2)` — CHANGELOG + Makefile integrity tests
+- **PR #303** · `feat(dashboard)` — fee-tier row in ablations section
+- **PR #304** · `feat(make)` — `l2-open` + frozen SESSION_STATE.md
+- **PR #306** · `ci(l2-demo)` — dedicated GitHub Actions gate
+- **PR #308** · `test(fail-closed)` — 17 adversarial input tests
+- **PR #309** · `feat(regime-cond)` — VOL_DRIVEN (3.16× high/low ratio)
+- **PR #312** · `feat(metrics)` — flat headline metrics JSON (44 keys)
+
 ### Final state
 
 - **10 validation axes**, all green on Session 1
 - **5 ablation / stress axes** with honest verdicts (SENSITIVE / MIXED /
   ROBUST / BOUND / RESILIENT)
-- **5 canonical figures** + HTML dashboard
+- **1 regime-conditional decomposition** (VOL_DRIVEN, 3.16× high/low)
+- **5 canonical figures** + self-contained HTML dashboard
 - **1 one-command runner** + SHA-256 manifest (81 s end-to-end)
-- **300+ L2 tests** passing
+- **1 flat headline metrics JSON** for downstream ingestion (44 keys)
+- **345+ L2 tests** passing (coherence + property-based + fail-closed)
 - **Deterministic replay** confirmed bit-exact across two runs
+- **CI gate workflow** protects canonical state under branch-protection
 
 Canonical entry point: `make l2-demo`
 Synthesis document: `research/microstructure/FINDINGS.md`
+Demo landing page: `results/figures/index.html`
+Headline metrics: `results/L2_HEADLINE_METRICS.json`

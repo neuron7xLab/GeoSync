@@ -13,10 +13,13 @@
 | Edge verdict | **PROCEED** |
 | Validation axes passed | **10 / 10** |
 | Ablation / stress axes | **5 / 5** bounded and documented |
-| Test base | **317 passed, 1 opt-in skip** |
+| Regime-conditional decomposition | **VOL_DRIVEN** (3.16× high/low) |
+| Test base | **345 passed, 1 opt-in skip** |
 | Deterministic replay | confirmed bit-exact across two runs |
+| CI protection | `.github/workflows/l2-demo-gate.yml` |
 | One-command demo | `make l2-demo` (~85 s) |
 | Dashboard | `results/figures/index.html` (self-contained 7.5 KB) |
+| Flat headline metrics | `results/L2_HEADLINE_METRICS.json` (44 keys) |
 
 ---
 
@@ -80,6 +83,9 @@ make l2-deterministic   # bit-identical replay audit (~170 s)
 make l2-ablations       # run all 5 ablation axes
 make l2-test            # every tests/test_l2_*.py
 ```
+
+Protection: `.github/workflows/l2-demo-gate.yml` runs `l2-test` +
+`l2-smoke` + Makefile audit on every PR touching the L2 surface.
 
 Override substrate: `L2_DATA_DIR=/path/to/parquets make l2-demo`
 
