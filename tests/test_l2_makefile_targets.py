@@ -20,6 +20,7 @@ _EXPECTED_TARGETS: frozenset[str] = frozenset(
     {
         "l2-help",
         "l2-demo",
+        "l2-open",
         "l2-figures",
         "l2-dashboard",
         "l2-smoke",
