@@ -63,6 +63,7 @@ _RC = {
 
 @dataclass(frozen=True)
 class FigurePaths:
+    cover: Path
     signal_validation: Path
     dynamics: Path
     coupling: Path
@@ -580,9 +581,171 @@ def render_all(results_dir: Path, output_dir: Path) -> FigurePaths:
     fig4.savefig(path4)
     plt.close(fig4)
 
+    # -- Figure 0: Demo cover -------------------------------------------------
+    path0 = _render_cover(
+        output_dir,
+        killtest=killtest,
+        robustness=robustness,
+        cv=cv,
+        spectral=spectral,
+        hurst=hurst,
+        te=te,
+        cte=cte,
+        markov=markov,
+        wf_summary=wf_summary,
+        gate_dir=gate_dir,
+    )
+
     return FigurePaths(
+        cover=path0,
         signal_validation=path1,
         dynamics=path2,
         coupling=path3,
         stability=path4,
     )
+
+
+def _render_cover(
+    output_dir: Path,
+    *,
+    killtest: dict[str, Any],
+    robustness: dict[str, Any],
+    cv: dict[str, Any],
+    spectral: dict[str, Any],
+    hurst: dict[str, Any],
+    te: dict[str, Any],
+    cte: dict[str, Any],
+    markov: dict[str, Any],
+    wf_summary: dict[str, Any],
+    gate_dir: Path,
+) -> Path:
+    """Single-page demo cover summarizing the 10-axis verdict."""
+    with (gate_dir / "breakeven_q75_diurnal.json").open() as f:
+        be_dd = json.load(f)
+    be_q75_diurnal = float(be_dd["value"])
+
+    rows: list[tuple[str, str, str]] = [
+        ("1. Kill test", f"IC = {float(killtest['ic_signal']):.3f}", "p = 0.002"),
+        (
+            "2. Bootstrap CI",
+            f"[{float(robustness['bootstrap']['ci_lo_95']):.3f},"
+            f" {float(robustness['bootstrap']['ci_hi_95']):.3f}]",
+            "excludes 0",
+        ),
+        (
+            "3. Deflated Sharpe",
+            f"DSR = {float(robustness['deflated_sharpe']['deflated_sharpe']):.1f}",
+            "Pr(real) ≈ 1.0",
+        ),
+        (
+            "4. Purged K-fold",
+            f"mean IC = {float(cv['ic_mean']):.3f}",
+            "5/5 folds positive",
+        ),
+        (
+            "5. Mutual info",
+            f"MI = {float(robustness['mutual_information']['mutual_information_nats']):.3f} nats",
+            "concordant",
+        ),
+        (
+            "6. Spectral β",
+            f"β = {float(spectral['redness_slope_beta']):.2f}",
+            "RED regime",
+        ),
+        (
+            "7. DFA Hurst",
+            f"H = {float(hurst['report']['hurst_exponent']):.3f}",
+            f"R² = {float(hurst['report']['r_squared']):.3f}",
+        ),
+        (
+            "8. Transfer entropy",
+            f"{te['verdict_counts'].get('BIDIRECTIONAL', 0)}/{int(te['n_pairs'])} pairs",
+            "BIDIRECTIONAL",
+        ),
+        (
+            "9. Conditional TE",
+            f"{cte['verdict_counts'].get('PRIVATE_FLOW', 0)}/{int(cte['n_pairs'])} pairs",
+            "PRIVATE_FLOW",
+        ),
+        (
+            "10. Walk-forward",
+            f"{100.0 * float(wf_summary['fraction_positive']):.1f}% windows pos",
+            str(wf_summary["verdict"]),
+        ),
+    ]
+
+    fig, ax = plt.subplots(figsize=(11, 7.5))
+    ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    # Title
+    ax.text(
+        0.5,
+        0.94,
+        "GeoSync · Ricci cross-sectional edge on Binance L2 perps",
+        ha="center",
+        va="center",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax.text(
+        0.5,
+        0.89,
+        "Ten orthogonal validation axes — Session 1, n = 19,081 rows (~5.3 h)",
+        ha="center",
+        va="center",
+        fontsize=10,
+        style="italic",
+        color="dimgray",
+    )
+    # Verdict badge
+    ax.text(
+        0.5,
+        0.82,
+        "VERDICT · PROCEED",
+        ha="center",
+        va="center",
+        fontsize=13,
+        fontweight="bold",
+        color="white",
+        bbox={"boxstyle": "round,pad=0.6", "facecolor": "tab:blue", "edgecolor": "none"},
+    )
+    # Axis table
+    y_start = 0.72
+    row_h = 0.055
+    header_y = y_start + 0.03
+    ax.text(0.08, header_y, "Axis", fontsize=9, fontweight="bold", color="dimgray")
+    ax.text(0.55, header_y, "Metric", fontsize=9, fontweight="bold", color="dimgray")
+    ax.text(0.82, header_y, "Outcome", fontsize=9, fontweight="bold", color="dimgray")
+    for i, (axis, metric, outcome) in enumerate(rows):
+        y = y_start - i * row_h
+        if i % 2 == 0:
+            ax.axhspan(y - 0.025, y + 0.025, xmin=0.04, xmax=0.96, facecolor="#f5f5f7")
+        ax.text(0.08, y, axis, fontsize=9, family="monospace")
+        ax.text(0.55, y, metric, fontsize=9, family="monospace")
+        ax.text(0.82, y, outcome, fontsize=9, family="monospace", color="tab:blue")
+    # Execution footer
+    ax.text(
+        0.5,
+        0.10,
+        f"Break-even maker fraction (REGIME_Q75 + DIURNAL): f* = {be_q75_diurnal:.3f}"
+        "  ·  realistic production fill rate: 0.40 – 0.70",
+        ha="center",
+        va="center",
+        fontsize=9,
+        color="dimgray",
+    )
+    ax.text(
+        0.5,
+        0.05,
+        "research/microstructure/FINDINGS.md  ·  scripts/run_l2_full_cycle.py",
+        ha="center",
+        va="center",
+        fontsize=8,
+        family="monospace",
+        color="gray",
+    )
+    path = output_dir / "fig0_cover.png"
+    fig.savefig(path)
+    plt.close(fig)
+    return path

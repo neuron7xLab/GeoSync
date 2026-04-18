@@ -180,6 +180,7 @@ def main() -> int:
         _log.info("[run ] figures")
         fig_paths = render_all(results_dir, results_dir / "figures")
         for label, path in (
+            ("cover", fig_paths.cover),
             ("signal_validation", fig_paths.signal_validation),
             ("dynamics", fig_paths.dynamics),
             ("coupling", fig_paths.coupling),

@@ -42,10 +42,16 @@ def _fixtures_present() -> bool:
 
 
 @pytest.mark.skipif(not _fixtures_present(), reason="results fixtures unavailable")
-def test_render_all_produces_four_nonempty_pngs(tmp_path: Path) -> None:
+def test_render_all_produces_five_nonempty_pngs(tmp_path: Path) -> None:
     paths = render_all(Path("results"), tmp_path)
     assert isinstance(paths, FigurePaths)
-    for p in (paths.signal_validation, paths.dynamics, paths.coupling, paths.stability):
+    for p in (
+        paths.cover,
+        paths.signal_validation,
+        paths.dynamics,
+        paths.coupling,
+        paths.stability,
+    ):
         assert p.exists(), f"expected figure missing: {p}"
         size = p.stat().st_size
         assert size > 10 * 1024, f"{p} is suspiciously small ({size} bytes)"
