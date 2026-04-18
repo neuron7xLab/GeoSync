@@ -46,6 +46,7 @@ def main() -> int:
         _log.error("artifact missing: %s", exc)
         return 2
 
+    _log.info("fig0 → %s", paths.cover)
     _log.info("fig1 → %s", paths.signal_validation)
     _log.info("fig2 → %s", paths.dynamics)
     _log.info("fig3 → %s", paths.coupling)

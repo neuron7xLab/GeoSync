@@ -450,6 +450,7 @@ for the full synthesis and honest-limitations section.
 
 Generated figures (`results/figures/`):
 
+- `fig0_cover.png` — single-page demo cover: 10-axis verdict + PROCEED badge
 - `fig1_signal_validation.png` — signal existence + statistical robustness
 - `fig2_dynamics.png` — spectral · DFA · diurnal · autocorrelation
 - `fig3_coupling.png` — TE · CTE · regime Markov · break-even
