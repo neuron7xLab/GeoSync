@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -51,7 +52,7 @@ class TestOrderAuditTrail:
             venue="XNYS",
             actor="trader-1",
         )
-        result = trail.to_dict()
+        result: dict[str, Any] = cast("dict[str, Any]", trail.to_dict())
         assert result["order_id"] == "order-123"
         assert result["timestamp"] == "2024-01-15T10:30:00+00:00"
         assert result["payload"]["action"] == "submit"
@@ -457,4 +458,4 @@ class TestMiFID2Reporter:
         assert "health" in report
         assert "best_execution_breaches" in report
         assert "market_abuse_signals" in report
-        assert len(report["market_abuse_signals"]) == 1
+        assert len(cast("list[Any]", report["market_abuse_signals"])) == 1

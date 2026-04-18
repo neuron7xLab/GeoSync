@@ -7,14 +7,15 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import DefaultDict
 
 
 class IDS:
     """Lightweight rate limiting and brute-force detection."""
 
     def __init__(self) -> None:
-        self.failed_attempts = defaultdict(list)
-        self.rate_limits = defaultdict(list)
+        self.failed_attempts: DefaultDict[str, list[datetime]] = defaultdict(list)
+        self.rate_limits: DefaultDict[str, list[datetime]] = defaultdict(list)
         self.logger = logging.getLogger("security.ids")
 
     @staticmethod

@@ -11,7 +11,7 @@ from typing import Any
 try:  # Optional dependency
     import hvac
 except ImportError:  # pragma: no cover - handled at runtime
-    hvac = None
+    hvac = None  # type: ignore[assignment]
 
 
 class Secrets:
@@ -29,28 +29,34 @@ class Secrets:
             )
 
     @lru_cache(maxsize=128)
-    def get(self, path: str) -> dict:
+    def get(self, path: str) -> dict[str, Any]:
         """Retrieve a KV secret version."""
 
-        return self.vault.secrets.kv.v2.read_secret_version(path=path)["data"]["data"]
+        data: dict[str, Any] = self.vault.secrets.kv.v2.read_secret_version(path=path)["data"][
+            "data"
+        ]
+        return data
 
     def encrypt(self, data: str) -> str:
         """Encrypt plaintext using the transit engine."""
 
-        return self.vault.secrets.transit.encrypt_data(
+        ciphertext: str = self.vault.secrets.transit.encrypt_data(
             name="geosync-master",
             plaintext=data,
         )["data"]["ciphertext"]
+        return ciphertext
 
     def decrypt(self, cipher: str) -> str:
         """Decrypt a transit ciphertext."""
 
-        return self.vault.secrets.transit.decrypt_data(
+        plaintext: str = self.vault.secrets.transit.decrypt_data(
             name="geosync-master",
             ciphertext=cipher,
         )["data"]["plaintext"]
+        return plaintext
 
 
+secrets: Secrets | None
 try:
     secrets = Secrets()
 except (ImportError, ValueError):
