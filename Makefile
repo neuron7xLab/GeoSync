@@ -497,7 +497,7 @@ define L2_CHECK_SUBSTRATE
 	fi
 endef
 
-.PHONY: l2-help l2-demo l2-figures l2-dashboard l2-smoke l2-deterministic l2-ablations l2-test
+.PHONY: l2-help l2-demo l2-open l2-figures l2-dashboard l2-smoke l2-deterministic l2-ablations l2-test
 
 ## l2-help: list L2 targets with one-liners
 l2-help:
@@ -515,6 +515,18 @@ l2-demo:
 	@$(L2_PY) scripts/render_l2_dashboard.py --log-level WARNING
 	@printf "\n  $(L2_GREEN)✓$(L2_RESET) demo dashboard ready: $(L2_BOLD)$(L2_DASHBOARD)$(L2_RESET)\n"
 	@printf "    open with: $(L2_DIM)xdg-open $(L2_DASHBOARD)$(L2_RESET)\n\n"
+
+## l2-open: open the HTML demo dashboard in the default browser (no substrate needed)
+l2-open:
+	$(call L2_BANNER,l2-open,open $(L2_DASHBOARD) in browser)
+	@if [ ! -f "$(L2_DASHBOARD)" ]; then \
+	    printf "$(L2_YELLOW)[!]$(L2_RESET) dashboard missing — run $(L2_BOLD)make l2-dashboard$(L2_RESET) first.\n"; \
+	    exit 2; \
+	fi
+	@if command -v xdg-open >/dev/null 2>&1; then xdg-open "$(L2_DASHBOARD)"; \
+	elif command -v open >/dev/null 2>&1;     then open "$(L2_DASHBOARD)"; \
+	else printf "  $(L2_DIM)no browser-opener found; path is: $(L2_DASHBOARD)$(L2_RESET)\n"; fi
+	@printf "  $(L2_GREEN)✓$(L2_RESET) dashboard at $(L2_BOLD)$(L2_DASHBOARD)$(L2_RESET)\n\n"
 
 ## l2-figures: re-render fig0-4 from existing results/L2_*.json (fast, no substrate needed)
 l2-figures:
