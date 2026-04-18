@@ -3,7 +3,7 @@
 **Date:** 2026-04-18
 **Substrate:** Binance USDT-M perp, depth5@100ms WebSocket stream, 10 symbols
 **Session:** n_rows = 19,081 (1-second grid, ~5.3 hours)
-**Verdict:** **PROCEED** — edge is real, robust across 7 independent methodologies, and economically viable under REGIME_Q75+DIURNAL at maker_fraction ≥ 0.232.
+**Verdict:** **PROCEED** — edge is real, robust across **9 independent methodologies**, and economically viable under REGIME_Q75+DIURNAL at maker_fraction ≥ 0.232.
 
 ---
 
@@ -152,6 +152,27 @@ The Ricci κ_min signal is not a re-expression of contemporaneous
 correlation — it sits atop a dense bidirectional flow web. Curvature
 compresses a genuine dynamical coupling structure.
 
+### 3.5 Conditional Transfer Entropy — common-factor control
+
+Addresses the most honest critique of §3.4: could the 45/45
+BIDIRECTIONAL result be an artifact of every symbol responding to a
+common market-wide factor (BTC beta)? Conditional TE removes that path:
+
+    TE(Y → X | Z) = I(X_{t+1} ; Y_t | X_t, Z_t)
+
+where Z = BTCUSDT OFI. Tests whether Y_past adds information about
+X_future **beyond** what is already explained by (X_past, Z_past).
+
+| Verdict | Count |
+|---|---|
+| **PRIVATE_FLOW** (CTE significant after Z-conditioning) | **33 / 36** |
+| COMMON_FACTOR (CTE collapses to noise) | 3 / 36 |
+| PARTIAL / NO_FLOW | 0 / 0 |
+
+**92% of non-BTC pairs retain private coupling after removing BTC
+beta.** The κ_min signal is not a re-expression of BTC drift — it
+compresses a genuinely private pairwise information-flow topology.
+
 ---
 
 ## 4 · Execution reality — break-even analysis
@@ -210,9 +231,10 @@ it flips).
 | Not re-expression of past | Lag-peak at −30s | IC(−30s) = 0.131 | ✅ |
 | Memory, not rhythm | β ≈ 2, H > 1 | spectral + DFA | ✅ |
 | Genuine coupling | TE all pairs BIDIRECTIONAL | 45/45 at p < 0.05 | ✅ |
+| Not common-factor artifact | CTE private flow ≫ BTC beta | 33/36 PRIVATE_FLOW | ✅ |
 | Economically realizable | Break-even maker ≤ realistic rate | 0.232 ≤ 0.40-0.70 | ✅ |
 
-Eight orthogonal validations, all concordant. The null hypothesis
+Nine orthogonal validations, all concordant. The null hypothesis
 (κ_min carries no predictive information) is rejected across every axis
 on which it can be tested with Session 1 data.
 
@@ -253,6 +275,7 @@ PYTHONPATH=. python scripts/run_l2_purged_cv.py
 PYTHONPATH=. python scripts/run_l2_spectral.py
 PYTHONPATH=. python scripts/run_l2_hurst.py
 PYTHONPATH=. python scripts/run_l2_transfer_entropy.py
+PYTHONPATH=. python scripts/run_l2_conditional_te.py --conditioner BTCUSDT
 PYTHONPATH=. python scripts/run_l2_diurnal_profile.py
 PYTHONPATH=. python scripts/run_l2_pnl.py --cost-sweep \
     --diurnal-filter results/L2_DIURNAL_PROFILE.json

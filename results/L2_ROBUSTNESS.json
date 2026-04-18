@@ -1,10 +1,10 @@
 {
   "adf": {
-    "lag_used": 1,
+    "lag_used": 0,
     "n_obs_used": 18780,
-    "pvalue": 0.05,
-    "statistic": -11.88976387288283,
-    "verdict": "INCONCLUSIVE"
+    "pvalue": 5.906428760277774e-22,
+    "statistic": -11.889763872977428,
+    "verdict": "STATIONARY"
   },
   "bootstrap": {
     "block_size": 3000,
