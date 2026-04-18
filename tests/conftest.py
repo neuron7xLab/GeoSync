@@ -14,7 +14,7 @@ from typing import Any, Iterable, Iterator, Sequence
 
 import pandas as pd
 import pytest
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 _BOOTSTRAP_LOGGER = logging.getLogger("tests.bootstrap")
 
@@ -44,8 +44,10 @@ if not hasattr(pd, "_pandas_datetime_CAPI"):  # pragma: no cover - environment g
     # Preserve the historical workaround verbatim: a subset of our extension
     # dependencies read this attribute on import. Removing the shim silently
     # regresses test collection on fresh venvs, so we keep it until pandas
-    # itself exposes the symbol again.
-    pd._pandas_datetime_CAPI = None  # type: ignore[attr-defined]
+    # itself exposes the symbol again. ``setattr`` sidesteps the
+    # ``attr-defined`` complaint on pandas builds that no longer expose the
+    # sentinel statically while keeping the runtime effect identical.
+    setattr(pd, "_pandas_datetime_CAPI", None)
 try:
     pd.Timestamp.now(tz="UTC")
 except Exception as exc:  # pragma: no cover - environment smoke test
@@ -70,10 +72,30 @@ get_system_audit_trail = _audit_module.get_system_audit_trail
 os.environ.setdefault("GEOSYNC_TWO_FACTOR_SECRET", "JBSWY3DPEHPK3PXP")
 os.environ.setdefault("THERMO_DUAL_SECRET", "test-secret")
 
-# Load shared fixtures via the canonical pytest plugin mechanism instead of
-# hand-rolled importlib.util glue. ``tests.fixtures.conftest`` exposes the
-# ``_set_seed`` autouse fixture and any future project-wide helpers.
-pytest_plugins = ("tests.fixtures.conftest",)
+# Surface the shared fixtures from ``tests/fixtures/conftest.py`` at this
+# higher-level conftest so ``autouse=True`` fixtures (e.g. ``_set_seed``)
+# propagate to every test module.
+#
+# We deliberately do *not* use ``pytest_plugins = ("tests.fixtures.conftest",)``
+# here: pytest already auto-loads that file as a conftest for tests under
+# ``tests/fixtures/``, and registering it a second time via ``pytest_plugins``
+# triggers pluggy's ``Plugin already registered under a different name`` error.
+# The importlib.util load-by-path below mirrors the auto-discovery behaviour
+# without double registration.
+_fixture_path = Path(__file__).parent / "fixtures" / "conftest.py"
+_fixture_spec = importlib.util.spec_from_file_location("geosync_tests_fixtures", _fixture_path)
+if _fixture_spec is None or _fixture_spec.loader is None:
+    raise ImportError(f"Unable to load fixtures from {_fixture_path}")
+_fixture_module = importlib.util.module_from_spec(_fixture_spec)
+sys.modules[_fixture_spec.name] = _fixture_module
+_fixture_spec.loader.exec_module(_fixture_module)
+globals().update(
+    {
+        name: getattr(_fixture_module, name)
+        for name in dir(_fixture_module)
+        if not name.startswith("__")
+    }
+)
 
 
 _LEVEL_DESCRIPTIONS: dict[str, str] = {
