@@ -2,7 +2,7 @@
 
 Downstream tooling (dashboards, warehouses, external review) needs one
 ingestion-friendly JSON file with every key number from the 10-axis +
-6-ablation/stress stack — not 16 variable-structure artifacts.
+5-ablation/stress stack — not 16 variable-structure artifacts.
 
 This module reads the existing results/L2_*.json files and emits a
 single flat dictionary with snake_case keys. Every top-level key is

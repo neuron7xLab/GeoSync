@@ -118,3 +118,27 @@ def test_readme_purged_cv_mean_and_5of5() -> None:
     assert f"{mean_ic:.3f}" == "0.122"
     assert positive_count == 5
     assert "5/5 folds positive" in section
+
+
+def test_findings_ablation_count_consistency() -> None:
+    """FINDINGS.md, SESSION_STATE.md, CHANGELOG.L2.md must agree on axis counts."""
+    findings = Path("research/microstructure/FINDINGS.md").read_text(encoding="utf-8")
+    session = Path("research/microstructure/SESSION_STATE.md")
+    changelog = Path("research/microstructure/CHANGELOG.L2.md")
+    # Axis count — 10
+    assert "10 independent methodologies" in findings
+    # Ablation count — 5
+    if session.exists():
+        assert "10-axis + 5-ablation" in session.read_text(encoding="utf-8")
+    if changelog.exists():
+        assert "10-axis + 5-ablation" in changelog.read_text(encoding="utf-8")
+
+
+def test_findings_regime_conditional_numbers_match() -> None:
+    """FINDINGS §4.3b numbers must match L2_REGIME_CONDITIONAL_IC.json."""
+    findings = Path("research/microstructure/FINDINGS.md").read_text(encoding="utf-8")
+    cond = _load("L2_REGIME_CONDITIONAL_IC.json")
+    ratio = float(cond["abs_ratio_high_over_low"])
+    verdict = str(cond["verdict"])
+    assert f"{ratio:.2f}×" in findings or f"{ratio:.2f} ×" in findings
+    assert verdict in findings
