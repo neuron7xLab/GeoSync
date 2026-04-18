@@ -159,6 +159,14 @@ def sliding_windows(
 
     if _NUMPY_AVAILABLE and np is not None:
         arr = _ensure_vector_numpy(data)
+        if (
+            use_rust
+            and strict_backend
+            and (not _RUST_ACCEL_AVAILABLE or _rust_sliding_windows is None)
+        ):
+            raise RuntimeError(
+                "Rust sliding_windows backend unavailable with strict_backend=True"
+            )
         if use_rust and _RUST_ACCEL_AVAILABLE and _rust_sliding_windows is not None:
             try:
                 return _rust_sliding_windows(arr, int(window), int(step))
@@ -172,6 +180,11 @@ def sliding_windows(
                     exc,
                 )
         return _sliding_windows_numpy(arr, int(window), int(step))
+    if use_rust and strict_backend:
+        raise RuntimeError(
+            "Rust sliding_windows backend requires NumPy and compiled extension "
+            "when strict_backend=True"
+        )
     arr_list = _ensure_vector_python(data)
     return _sliding_windows_python(arr_list, int(window), int(step))
 
@@ -262,6 +275,10 @@ def quantiles(
 
     if _NUMPY_AVAILABLE and np is not None:
         arr = _ensure_vector_numpy(data)
+        if use_rust and strict_backend and (not _RUST_ACCEL_AVAILABLE or _rust_quantiles is None):
+            raise RuntimeError(
+                "Rust quantiles backend unavailable with strict_backend=True"
+            )
         if use_rust and _RUST_ACCEL_AVAILABLE and _rust_quantiles is not None:
             try:
                 result = _rust_quantiles(arr, list(float(p) for p in probabilities))
@@ -276,6 +293,11 @@ def quantiles(
                     exc,
                 )
         return _quantiles_numpy(arr, probabilities)
+    if use_rust and strict_backend:
+        raise RuntimeError(
+            "Rust quantiles backend requires NumPy and compiled extension "
+            "when strict_backend=True"
+        )
     arr_list = _ensure_vector_python(data)
     return _quantiles_python(arr_list, probabilities)
 
@@ -392,6 +414,10 @@ def convolve(
     if _NUMPY_AVAILABLE and np is not None:
         signal_arr = _ensure_vector_numpy(signal)
         kernel_arr = _ensure_vector_numpy(kernel)
+        if use_rust and strict_backend and (not _RUST_ACCEL_AVAILABLE or _rust_convolve is None):
+            raise RuntimeError(
+                "Rust convolve backend unavailable with strict_backend=True"
+            )
         if use_rust and _RUST_ACCEL_AVAILABLE and _rust_convolve is not None:
             try:
                 return _rust_convolve(signal_arr, kernel_arr, mode)
@@ -405,6 +431,11 @@ def convolve(
                     exc,
                 )
         return _convolve_numpy(signal_arr, kernel_arr, mode=mode)
+    if use_rust and strict_backend:
+        raise RuntimeError(
+            "Rust convolve backend requires NumPy and compiled extension "
+            "when strict_backend=True"
+        )
 
     signal_list = _ensure_vector_python(signal)
     kernel_list = _ensure_vector_python(kernel)

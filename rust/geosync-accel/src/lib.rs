@@ -316,6 +316,23 @@ mod core_tests {
     }
 
     #[test]
+    fn convolve_core_same_and_valid_match_full_slices() {
+        let signal = [1.0, -2.0, 0.5, 4.0, -1.5];
+        let kernel = [0.25, -0.5, 0.75, 1.25];
+        let full = convolve_core(&signal, &kernel, ConvolutionMode::Full).unwrap();
+
+        let same = convolve_core(&signal, &kernel, ConvolutionMode::Same).unwrap();
+        let target = signal.len().max(kernel.len());
+        let same_start = (full.len() - target) / 2;
+        assert_eq!(same, full[same_start..same_start + target].to_vec());
+
+        let valid = convolve_core(&signal, &kernel, ConvolutionMode::Valid).unwrap();
+        let valid_len = signal.len().max(kernel.len()) - signal.len().min(kernel.len()) + 1;
+        let valid_start = signal.len().min(kernel.len()) - 1;
+        assert_eq!(valid, full[valid_start..valid_start + valid_len].to_vec());
+    }
+
+    #[test]
     fn quantiles_core_sorts_with_total_order() {
         let data = [3.0, f64::NAN, 1.0];
         let probabilities = [0.0, 0.5, 1.0];
