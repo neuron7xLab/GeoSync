@@ -160,6 +160,28 @@ def test_strict_backend_requires_rust_availability(
         numeric.convolve(data, kernel, use_rust=True, strict_backend=True)
 
 
+def test_quantiles_entrypoints_are_independently_reachable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import core.accelerators.numeric as numeric
+
+    calls = {"count": 0}
+
+    def _fake_quantiles(_data: np.ndarray, _probabilities: list[float]) -> list[float]:
+        calls["count"] += 1
+        return [0.42]
+
+    monkeypatch.setattr(numeric, "_RUST_ACCEL_AVAILABLE", True)
+    monkeypatch.setattr(numeric, "_rust_quantiles", _fake_quantiles)
+
+    direct = numeric.quantiles_rust_backend(np.array([1.0, 2.0]), [0.5])
+    dispatched = numeric.quantiles(np.array([1.0, 2.0]), [0.5], use_rust=True)
+
+    np.testing.assert_allclose(direct, np.array([0.42]))
+    np.testing.assert_allclose(dispatched, np.array([0.42]))
+    assert calls["count"] == 2
+
+
 @pytest.mark.parametrize("func_name", ["sliding_windows", "quantiles", "convolve"])
 def test_rust_extension_matches_numpy_when_available(func_name: str) -> None:
     accel = pytest.importorskip("geosync_accel")
