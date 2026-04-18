@@ -148,8 +148,9 @@ Using `Kc = 4` as criticality threshold, module (1) exceeds `Kc` and is crystall
    - Failure mode: backend integrity regressions become observability-invisible substrate swaps.
    - Class: fail-open compute substrate gate.
 
-3. `core/accelerators/numeric.py`: duplicate `return` in quantiles path indicates dead branch residue.
-   - Failure mode: audit noise and unreachable code reducing proof clarity (low severity, high entropy).
+3. `core/accelerators/numeric.py`: quantile entry points `quantiles_rust_backend(...)` and
+   `quantiles(...)` are independent, reachable dispatch paths (no dead-branch residue).
+   - Integrity note: prior dead-branch claim has been withdrawn as factually incorrect.
 
 ## 6. Hardware-Substrate Alignment: `maturin` vs raw C-FFI
 

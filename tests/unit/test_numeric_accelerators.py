@@ -7,6 +7,7 @@ import pytest
 
 from core.accelerators import convolve, quantiles, sliding_windows
 from core.accelerators.numeric import (
+    BackendSynchronizationError,
     convolve_numpy_backend,
     convolve_python_backend,
     numpy_available,
@@ -67,9 +68,7 @@ def test_python_backends_match_public_api() -> None:
     expected_convolve = convolve(data, [1.0, -1.0], mode="full", use_rust=False)
 
     np.testing.assert_allclose(np.asarray(windows_py, dtype=float), expected_windows)
-    np.testing.assert_allclose(
-        np.asarray(quantiles_py, dtype=float), expected_quantiles
-    )
+    np.testing.assert_allclose(np.asarray(quantiles_py, dtype=float), expected_quantiles)
     np.testing.assert_allclose(np.asarray(conv_py, dtype=float), expected_convolve)
 
 
@@ -132,11 +131,11 @@ def test_strict_backend_raises_on_rust_failure(monkeypatch: pytest.MonkeyPatch) 
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("ffi boom")),
     )
 
-    with pytest.raises(RuntimeError, match="strict_backend=True"):
+    with pytest.raises(BackendSynchronizationError, match="strict_backend=True"):
         numeric.sliding_windows(data, window=3, step=1, use_rust=True, strict_backend=True)
-    with pytest.raises(RuntimeError, match="strict_backend=True"):
+    with pytest.raises(BackendSynchronizationError, match="strict_backend=True"):
         numeric.quantiles(data, (0.5,), use_rust=True, strict_backend=True)
-    with pytest.raises(RuntimeError, match="strict_backend=True"):
+    with pytest.raises(BackendSynchronizationError, match="strict_backend=True"):
         numeric.convolve(data, kernel, use_rust=True, strict_backend=True)
 
 
@@ -153,11 +152,11 @@ def test_strict_backend_requires_rust_availability(
     monkeypatch.setattr(numeric, "_rust_quantiles", None)
     monkeypatch.setattr(numeric, "_rust_convolve", None)
 
-    with pytest.raises(RuntimeError, match="backend unavailable"):
+    with pytest.raises(BackendSynchronizationError, match="backend unavailable"):
         numeric.sliding_windows(data, window=3, step=1, use_rust=True, strict_backend=True)
-    with pytest.raises(RuntimeError, match="backend unavailable"):
+    with pytest.raises(BackendSynchronizationError, match="backend unavailable"):
         numeric.quantiles(data, (0.5,), use_rust=True, strict_backend=True)
-    with pytest.raises(RuntimeError, match="backend unavailable"):
+    with pytest.raises(BackendSynchronizationError, match="backend unavailable"):
         numeric.convolve(data, kernel, use_rust=True, strict_backend=True)
 
 

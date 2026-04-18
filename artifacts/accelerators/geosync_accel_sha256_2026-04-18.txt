@@ -1,0 +1,7 @@
+# SHA256 validation for rust/geosync-accel release binary
+# Generated: 2026-04-18 UTC
+# Command:
+# cargo build --release --manifest-path rust/geosync-accel/Cargo.toml
+# sha256sum rust/geosync-accel/target/release/libgeosync_accel.so
+
+e9c4852d4d6321213d33120f3341ed3bf529081d34e88cf96808158285772006  rust/geosync-accel/target/release/libgeosync_accel.so

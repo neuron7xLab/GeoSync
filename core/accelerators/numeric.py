@@ -18,6 +18,11 @@ else:  # pragma: no cover - default execution path when numpy is present
 
 _logger = logging.getLogger(__name__)
 
+
+class BackendSynchronizationError(RuntimeError):
+    """Raised when strict backend synchronization cannot be maintained."""
+
+
 try:  # pragma: no cover - optional acceleration module
     if _NUMPY_AVAILABLE:
         from geosync_accel import (
@@ -99,9 +104,7 @@ def sliding_windows_rust_backend(
 ) -> "np.ndarray":
     """Rust-accelerated implementation of :func:`sliding_windows`."""
 
-    if not (
-        numpy_available() and rust_available() and _rust_sliding_windows is not None
-    ):
+    if not (numpy_available() and rust_available() and _rust_sliding_windows is not None):
         raise RuntimeError("Rust backend requested but the extension is not available")
     arr = _ensure_vector_numpy(data)
     return _rust_sliding_windows(arr, int(window), int(step))
@@ -120,9 +123,7 @@ def _sliding_windows_numpy(arr: "np.ndarray", window: int, step: int) -> "np.nda
     return np.array(view, copy=True)
 
 
-def _sliding_windows_python(
-    arr: list[float], window: int, step: int
-) -> list[list[float]]:
+def _sliding_windows_python(arr: list[float], window: int, step: int) -> list[list[float]]:
     if window <= 0:
         raise ValueError("window must be greater than zero")
     if step <= 0:
@@ -164,7 +165,7 @@ def sliding_windows(
             and strict_backend
             and (not _RUST_ACCEL_AVAILABLE or _rust_sliding_windows is None)
         ):
-            raise RuntimeError(
+            raise BackendSynchronizationError(
                 "Rust sliding_windows backend unavailable with strict_backend=True"
             )
         if use_rust and _RUST_ACCEL_AVAILABLE and _rust_sliding_windows is not None:
@@ -172,7 +173,7 @@ def sliding_windows(
                 return _rust_sliding_windows(arr, int(window), int(step))
             except Exception as exc:  # pragma: no cover - defensive fallback
                 if strict_backend:
-                    raise RuntimeError(
+                    raise BackendSynchronizationError(
                         "Rust sliding_windows backend failed with strict_backend=True"
                     ) from exc
                 _logger.warning(
@@ -181,7 +182,7 @@ def sliding_windows(
                 )
         return _sliding_windows_numpy(arr, int(window), int(step))
     if use_rust and strict_backend:
-        raise RuntimeError(
+        raise BackendSynchronizationError(
             "Rust sliding_windows backend requires NumPy and compiled extension "
             "when strict_backend=True"
         )
@@ -276,7 +277,7 @@ def quantiles(
     if _NUMPY_AVAILABLE and np is not None:
         arr = _ensure_vector_numpy(data)
         if use_rust and strict_backend and (not _RUST_ACCEL_AVAILABLE or _rust_quantiles is None):
-            raise RuntimeError(
+            raise BackendSynchronizationError(
                 "Rust quantiles backend unavailable with strict_backend=True"
             )
         if use_rust and _RUST_ACCEL_AVAILABLE and _rust_quantiles is not None:
@@ -285,7 +286,7 @@ def quantiles(
                 return np.asarray(result, dtype=np.float64)
             except Exception as exc:  # pragma: no cover - defensive fallback
                 if strict_backend:
-                    raise RuntimeError(
+                    raise BackendSynchronizationError(
                         "Rust quantiles backend failed with strict_backend=True"
                     ) from exc
                 _logger.warning(
@@ -294,7 +295,7 @@ def quantiles(
                 )
         return _quantiles_numpy(arr, probabilities)
     if use_rust and strict_backend:
-        raise RuntimeError(
+        raise BackendSynchronizationError(
             "Rust quantiles backend requires NumPy and compiled extension "
             "when strict_backend=True"
         )
@@ -323,15 +324,9 @@ def _convolve_python(
         raise ValueError("convolution signal must not be empty")
     if not kernel:
         raise ValueError("convolution kernel must not be empty")
-    if any(
-        isinstance(v, Sequence) and not isinstance(v, (str, bytes, bytearray))
-        for v in signal
-    ):
+    if any(isinstance(v, Sequence) and not isinstance(v, (str, bytes, bytearray)) for v in signal):
         raise ValueError("convolution inputs must be 1-dimensional")
-    if any(
-        isinstance(v, Sequence) and not isinstance(v, (str, bytes, bytearray))
-        for v in kernel
-    ):
+    if any(isinstance(v, Sequence) and not isinstance(v, (str, bytes, bytearray)) for v in kernel):
         raise ValueError("convolution inputs must be 1-dimensional")
     n = len(signal)
     m = len(kernel)
@@ -415,7 +410,7 @@ def convolve(
         signal_arr = _ensure_vector_numpy(signal)
         kernel_arr = _ensure_vector_numpy(kernel)
         if use_rust and strict_backend and (not _RUST_ACCEL_AVAILABLE or _rust_convolve is None):
-            raise RuntimeError(
+            raise BackendSynchronizationError(
                 "Rust convolve backend unavailable with strict_backend=True"
             )
         if use_rust and _RUST_ACCEL_AVAILABLE and _rust_convolve is not None:
@@ -423,7 +418,7 @@ def convolve(
                 return _rust_convolve(signal_arr, kernel_arr, mode)
             except Exception as exc:  # pragma: no cover - defensive fallback
                 if strict_backend:
-                    raise RuntimeError(
+                    raise BackendSynchronizationError(
                         "Rust convolve backend failed with strict_backend=True"
                     ) from exc
                 _logger.warning(
@@ -432,7 +427,7 @@ def convolve(
                 )
         return _convolve_numpy(signal_arr, kernel_arr, mode=mode)
     if use_rust and strict_backend:
-        raise RuntimeError(
+        raise BackendSynchronizationError(
             "Rust convolve backend requires NumPy and compiled extension "
             "when strict_backend=True"
         )
@@ -443,6 +438,7 @@ def convolve(
 
 
 __all__ = [
+    "BackendSynchronizationError",
     "sliding_windows",
     "quantiles",
     "convolve",
