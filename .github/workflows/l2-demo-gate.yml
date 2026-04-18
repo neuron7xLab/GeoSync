@@ -101,10 +101,13 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install pytest
+      - name: Install pytest + conftest deps
+        # tests/conftest.py imports pandas (which pulls numpy), so the minimal
+        # audit env must have both installed even though the targeted test
+        # itself only uses subprocess/make.
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest
+          python -m pip install pytest numpy pandas
 
       - name: Makefile + CHANGELOG integrity tests
         run: python -m pytest tests/test_l2_makefile_targets.py -q
