@@ -305,6 +305,26 @@ per-trade economics (larger drift captured per trade). The shorter
 
 Artifact: `results/L2_HOLD_ABLATION.json`
 
+### 4.3b Regime-conditional IC decomposition
+
+The canonical IC = 0.122 is pooled across all regime states. Splitting
+by rv-q75 mask reveals where the edge actually lives:
+
+| Regime | n_rows | IC |
+|---|---|---|
+| **HIGH_VOL** (top-quartile rv) | 4,696 (24.6 %) | **+0.226** |
+| LOW_VOL (remaining 75 %) | 14,385 | +0.072 |
+| |HIGH| / |LOW| ratio | — | **3.16 ×** |
+
+**Verdict: VOL_DRIVEN.** The edge concentrates in volatile windows
+3× more strongly than in quiet ones. This explains why the
+REGIME_Q75 gate fixture (f* = 0.407) is economically viable while
+the UNCONDITIONAL sweep fails to bracket. The decision to filter by
+volatility is not a hyperparameter choice — it is where the signal
+actually lives.
+
+Artifact: `results/L2_REGIME_CONDITIONAL_IC.json`
+
 ### 4.4 Slippage stress test
 
 The canonical cost model assumes half-spread 0.5 bp (BTC/ETH) / 1.0 bp
