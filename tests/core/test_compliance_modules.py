@@ -5,9 +5,11 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 import pytest
+
+from core.compat import UTC
 
 try:
     from core.compliance.models import ComplianceIssue, ComplianceReport
@@ -31,17 +33,13 @@ except ImportError:
     pytest.skip("module dependencies not available", allow_module_level=True)
 
 pytestmark = pytest.mark.skipif(
-    ComplianceIssue is None
-    and RegulatoryComplianceValidator is None
-    and MiFID2Reporter is None,
+    ComplianceIssue is None and RegulatoryComplianceValidator is None and MiFID2Reporter is None,
     reason="compliance modules not importable",
 )
 
 
 class TestComplianceModels:
-    pytestmark = pytest.mark.skipif(
-        ComplianceIssue is None, reason="models not importable"
-    )
+    pytestmark = pytest.mark.skipif(ComplianceIssue is None, reason="models not importable")
 
     def test_issue_creation(self):
         i = ComplianceIssue(severity="error", message="bad")
@@ -124,9 +122,7 @@ class TestRegulatoryComplianceValidator:
 
 
 class TestMiFID2Reporter:
-    pytestmark = pytest.mark.skipif(
-        MiFID2Reporter is None, reason="mifid2 not importable"
-    )
+    pytestmark = pytest.mark.skipif(MiFID2Reporter is None, reason="mifid2 not importable")
 
     @pytest.fixture
     def reporter(self, tmp_path):

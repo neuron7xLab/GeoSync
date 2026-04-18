@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
 
+import importlib.metadata
 import importlib.util
 import logging
 import os
@@ -9,14 +10,50 @@ import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
-from typing import Iterable, Iterator, Sequence
+from typing import Any, Iterable, Iterator, Sequence
 
 import pandas as pd
 import pytest
-import yaml  # type: ignore[import-untyped]
+import yaml
 
-if not hasattr(pd, "_pandas_datetime_CAPI"):  # pragma: no cover - import-time guard
-    pd._pandas_datetime_CAPI = None
+_BOOTSTRAP_LOGGER = logging.getLogger("tests.bootstrap")
+
+# ---------------------------------------------------------------------------
+# Pandas compatibility gate
+# ---------------------------------------------------------------------------
+# GeoSync pins ``pandas>=2.3.3``. Older builds missing the private
+# ``_pandas_datetime_CAPI`` sentinel trigger an import-time AttributeError in
+# some third-party extensions we still rely on; we keep a targeted guard
+# rather than suppressing the error globally. We also assert that
+# ``pd.Timestamp.now(tz=...)`` works end-to-end so that the test session
+# aborts with a clear message instead of failing deep inside a fixture.
+_PANDAS_MIN = (2, 3, 0)
+_PANDAS_RAW = importlib.metadata.version("pandas")
+try:
+    _PANDAS_VERSION: tuple[int, ...] = tuple(
+        int(part) for part in _PANDAS_RAW.split(".")[:3] if part.isdigit()
+    )
+except ValueError as exc:  # pragma: no cover - defensive: malformed pandas version
+    raise pytest.UsageError(f"Unable to parse installed pandas version {_PANDAS_RAW!r}") from exc
+if _PANDAS_VERSION < _PANDAS_MIN:
+    raise pytest.UsageError(
+        f"GeoSync test suite requires pandas >= {'.'.join(map(str, _PANDAS_MIN))}, "
+        f"got {_PANDAS_RAW}"
+    )
+if not hasattr(pd, "_pandas_datetime_CAPI"):  # pragma: no cover - environment guard
+    # Preserve the historical workaround verbatim: a subset of our extension
+    # dependencies read this attribute on import. Removing the shim silently
+    # regresses test collection on fresh venvs, so we keep it until pandas
+    # itself exposes the symbol again.
+    pd._pandas_datetime_CAPI = None  # type: ignore[attr-defined]
+try:
+    pd.Timestamp.now(tz="UTC")
+except Exception as exc:  # pragma: no cover - environment smoke test
+    raise pytest.UsageError(
+        "pandas Timestamp smoke-test failed — tz-aware timestamp cannot be "
+        f"constructed with pandas {_PANDAS_RAW}. Reinstall a clean build."
+    ) from exc
+_BOOTSTRAP_LOGGER.info("pandas compatibility gate passed (pandas=%s)", _PANDAS_RAW)
 
 _audit_trail_path = Path("observability/audit/trail.py")
 _audit_spec = importlib.util.spec_from_file_location(
@@ -33,15 +70,10 @@ get_system_audit_trail = _audit_module.get_system_audit_trail
 os.environ.setdefault("GEOSYNC_TWO_FACTOR_SECRET", "JBSWY3DPEHPK3PXP")
 os.environ.setdefault("THERMO_DUAL_SECRET", "test-secret")
 
-_fixture_path = Path(__file__).parent / "fixtures" / "conftest.py"
-spec = importlib.util.spec_from_file_location("geosync_tests_fixtures", _fixture_path)
-if spec is None or spec.loader is None:
-    raise ImportError(f"Unable to load fixtures from {_fixture_path}")
-module = importlib.util.module_from_spec(spec)
-sys.modules[spec.name] = module
-spec.loader.exec_module(module)
-
-globals().update({name: getattr(module, name) for name in dir(module) if not name.startswith("__")})
+# Load shared fixtures via the canonical pytest plugin mechanism instead of
+# hand-rolled importlib.util glue. ``tests.fixtures.conftest`` exposes the
+# ``_set_seed`` autouse fixture and any future project-wide helpers.
+pytest_plugins = ("tests.fixtures.conftest",)
 
 
 _LEVEL_DESCRIPTIONS: dict[str, str] = {
@@ -194,7 +226,7 @@ def _determine_level(root: Path, path: Path) -> str:
     )
 
 
-def pytest_configure(config: pytest.Config) -> None:  # type: ignore[override]
+def pytest_configure(config: pytest.Config) -> None:
     for marker, description in _LEVEL_DESCRIPTIONS.items():
         config.addinivalue_line("markers", f"{marker}: {description}")
 
@@ -245,9 +277,7 @@ def _reset_kill_switch() -> Iterator[None]:
     KillSwitchManager.reset_instance()
 
 
-def pytest_collection_modifyitems(  # type: ignore[override]
-    config: pytest.Config, items: list[pytest.Item]
-) -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     root = _normalize(Path(config.rootpath))
     for item in items:
         existing_levels = [
@@ -297,7 +327,7 @@ sensitive_query = ["timestamp", "signature", "recvWindow"]
 sensitive_body_keys = ["apiKey", "secret", "signature", "passphrase"]
 
 
-def scrub_request(request):
+def scrub_request(request: Any) -> Any:
     from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
     u = urlsplit(request.uri)
@@ -314,7 +344,7 @@ def scrub_request(request):
     return request
 
 
-def scrub_response(response):
+def scrub_response(response: Any) -> Any:
     import json
 
     ctype = response["headers"].get("Content-Type", [""])[0]
@@ -322,7 +352,7 @@ def scrub_response(response):
         try:
             data = json.loads(response["body"]["string"])
 
-            def cleanse(obj):
+            def cleanse(obj: Any) -> Any:
                 if isinstance(obj, dict):
                     return {
                         k: ("REDACTED" if k in sensitive_body_keys else cleanse(v))
@@ -340,10 +370,10 @@ def scrub_response(response):
 
 
 @pytest.fixture(autouse=True)
-def _vcr_adapter_tests(request):
+def _vcr_adapter_tests(request: pytest.FixtureRequest) -> Iterator[None]:
     """Auto-apply VCR to adapter tests."""
     # Only apply VCR to tests in tests/adapters directory
-    if request.fspath.strpath.endswith(".py") and "tests/adapters" in request.fspath.strpath:
+    if request.path.suffix == ".py" and "tests/adapters" in request.path.as_posix():
         try:
             import vcr
         except ImportError:

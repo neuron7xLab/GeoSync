@@ -16,7 +16,7 @@ import json
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import (
     Any,
     ClassVar,
@@ -51,6 +51,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from core.compat import utc_now
 from domain.order import OrderSide, OrderStatus, OrderType
 
 LOGGER = logging.getLogger(__name__)
@@ -103,7 +104,7 @@ class DomainEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     event_id: UUID = Field(default_factory=uuid4)
-    occurred_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    occurred_at: datetime = Field(default_factory=utc_now)
     # ``stream_version`` is injected during hydration and excluded from persistence.
     stream_version: int | None = Field(default=None, exclude=True)
 
@@ -118,9 +119,7 @@ class DomainEvent(BaseModel):
         super().__init_subclass__(**kwargs)
         cls.event_name = getattr(cls, "event_name", cls.__name__)
         if cls.event_name in _EVENT_REGISTRY:
-            raise ValueError(
-                f"Duplicate domain event name registered: {cls.event_name}"
-            )
+            raise ValueError(f"Duplicate domain event name registered: {cls.event_name}")
         _EVENT_REGISTRY[cls.event_name] = cls
 
     @classmethod
@@ -241,9 +240,7 @@ class AggregateRoot:
             self.version += 1
         else:
             # For historic events the version is managed externally by the store.
-            self.version = max(
-                self.version, getattr(event, "stream_version", self.version)
-            )
+            self.version = max(self.version, getattr(event, "stream_version", self.version))
 
 
 # ---------------------------------------------------------------------------
@@ -329,9 +326,7 @@ class OrderAggregate(AggregateRoot):
     def mark_submitted(self, venue_order_id: str) -> None:
         if self.status not in {OrderStatus.PENDING, OrderStatus.OPEN}:
             raise ValueError(f"Cannot submit order in status {self.status}")
-        self._raise_event(
-            OrderSubmitted(order_id=self.id, venue_order_id=venue_order_id)
-        )
+        self._raise_event(OrderSubmitted(order_id=self.id, venue_order_id=venue_order_id))
 
     def record_fill(self, *, quantity: float, price: float) -> None:
         if quantity <= 0:
@@ -345,9 +340,7 @@ class OrderAggregate(AggregateRoot):
         if self.average_price is None:
             avg_price = price
         else:
-            avg_price = (
-                self.average_price * self.filled_quantity + price * quantity
-            ) / new_total
+            avg_price = (self.average_price * self.filled_quantity + price * quantity) / new_total
 
         status = (
             OrderStatus.FILLED
@@ -422,9 +415,7 @@ class OrderAggregate(AggregateRoot):
         self.side = OrderSide(state["side"]) if state.get("side") else None
         self.quantity = float(state.get("quantity", 0.0))
         self.price = state.get("price")
-        self.order_type = (
-            OrderType(state["order_type"]) if state.get("order_type") else None
-        )
+        self.order_type = OrderType(state["order_type"]) if state.get("order_type") else None
         self.status = OrderStatus(state.get("status", OrderStatus.PENDING.value))
         self.average_price = state.get("average_price")
         self.filled_quantity = float(state.get("filled_quantity", 0.0))
@@ -645,15 +636,11 @@ class PortfolioAggregate(AggregateRoot):
 
     def realise_pnl(self, position_id: str, realised_pnl: float) -> None:
         self._raise_event(
-            PnLRealized(
-                portfolio_id=self.id, position_id=position_id, realised_pnl=realised_pnl
-            )
+            PnLRealized(portfolio_id=self.id, position_id=position_id, realised_pnl=realised_pnl)
         )
 
     def update_exposure(self, exposures: Mapping[str, float]) -> None:
-        self._raise_event(
-            ExposureUpdated(portfolio_id=self.id, exposures=dict(exposures))
-        )
+        self._raise_event(ExposureUpdated(portfolio_id=self.id, exposures=dict(exposures)))
 
     # Event handlers -------------------------------------------------------------
 
@@ -717,9 +704,7 @@ class PostgresEventStore:
         self._metadata = MetaData(schema=schema)
         self._events = self._create_events_table(table_prefix)
         self._snapshots = self._create_snapshots_table(table_prefix)
-        self._session_factory = sessionmaker(
-            bind=engine, expire_on_commit=False, future=True
-        )
+        self._session_factory = sessionmaker(bind=engine, expire_on_commit=False, future=True)
 
     # Table definitions ---------------------------------------------------------
 
@@ -735,9 +720,7 @@ class PostgresEventStore:
             Column("event_type", String(128), nullable=False),
             Column("correlation_id", String(64), nullable=True),
             Column("causation_id", String(64), nullable=True),
-            Column(
-                "metadata", JSONB, nullable=False, server_default=text("'{}'::jsonb")
-            ),
+            Column("metadata", JSONB, nullable=False, server_default=text("'{}'::jsonb")),
             Column("payload", JSONB, nullable=False),
             Column("occurred_at", DateTime(timezone=True), nullable=False),
             Column(
@@ -770,9 +753,7 @@ class PostgresEventStore:
                 nullable=False,
                 server_default=func.now(),
             ),
-            UniqueConstraint(
-                "aggregate_id", "aggregate_type", name="uq_snapshot_latest"
-            ),
+            UniqueConstraint("aggregate_id", "aggregate_type", name="uq_snapshot_latest"),
             CheckConstraint("version >= 0", name="ck_snapshot_version_non_negative"),
         )
 
@@ -884,9 +865,7 @@ class PostgresEventStore:
             )
         return envelopes
 
-    def iterate_all_events(
-        self, *, chunk_size: int = 1000
-    ) -> Iterator[list[EventEnvelope]]:
+    def iterate_all_events(self, *, chunk_size: int = 1000) -> Iterator[list[EventEnvelope]]:
         """Yield envelopes for all events in batches for projection rebuilds."""
 
         with self._session() as session:
@@ -933,14 +912,10 @@ class PostgresEventStore:
         version = session.execute(stmt).scalar_one_or_none()
         return int(version or 0)
 
-    def _hydrate_event(
-        self, payload: Mapping[str, Any], event_type: str
-    ) -> DomainEvent:
+    def _hydrate_event(self, payload: Mapping[str, Any], event_type: str) -> DomainEvent:
         model_cls = _EVENT_REGISTRY.get(event_type)
         if model_cls is None:
-            raise KeyError(
-                f"Unknown event type '{event_type}' encountered during hydration"
-            )
+            raise KeyError(f"Unknown event type '{event_type}' encountered during hydration")
         return model_cls.from_dict(payload)
 
     # Snapshot support -----------------------------------------------------------
@@ -1010,9 +985,7 @@ class EventReplay:
     def __init__(self, store: PostgresEventStore) -> None:
         self._store = store
 
-    def rehydrate(
-        self, aggregate_cls: type[AggregateRoot], aggregate_id: str
-    ) -> AggregateRoot:
+    def rehydrate(self, aggregate_cls: type[AggregateRoot], aggregate_id: str) -> AggregateRoot:
         aggregate = aggregate_cls(aggregate_id)
         snapshot = self._store.load_latest_snapshot(
             aggregate_id=aggregate_id, aggregate_type=aggregate.aggregate_type
@@ -1031,9 +1004,7 @@ class EventReplay:
         aggregate.load_from_history([envelope.payload for envelope in envelopes])
         return aggregate
 
-    def print_timeline(
-        self, aggregate_cls: type[AggregateRoot], aggregate_id: str
-    ) -> list[str]:
+    def print_timeline(self, aggregate_cls: type[AggregateRoot], aggregate_id: str) -> list[str]:
         aggregate = aggregate_cls(aggregate_id)
         envelopes = self._store.load_stream(
             aggregate_id=aggregate_id,
@@ -1099,10 +1070,12 @@ class MaterializedViewManager:
     def ensure_exists(self, view: MaterializedView) -> None:
         """Create the materialized view if it is absent."""
 
-        create_sql = "CREATE MATERIALIZED VIEW IF NOT EXISTS {name} AS {definition} {with_data}".format(
-            name=view.name,
-            definition=view.definition_sql,
-            with_data="WITH DATA" if view.with_data else "WITH NO DATA",
+        create_sql = (
+            "CREATE MATERIALIZED VIEW IF NOT EXISTS {name} AS {definition} {with_data}".format(
+                name=view.name,
+                definition=view.definition_sql,
+                with_data="WITH DATA" if view.with_data else "WITH NO DATA",
+            )
         )
         with self._engine.begin() as connection:
             connection.execute(text(create_sql))
@@ -1131,7 +1104,7 @@ def take_snapshot(aggregate: AggregateRoot) -> AggregateSnapshot:
         aggregate_type=aggregate.aggregate_type,
         version=aggregate.version,
         state=dict(aggregate.snapshot_state()),
-        taken_at=datetime.now(UTC),
+        taken_at=utc_now(),
     )
 
 

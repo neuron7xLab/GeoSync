@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-from datetime import UTC
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +16,7 @@ from analytics.signals.pipeline import (
     make_default_candidates,
 )
 from backtest.time_splits import WalkForwardSplitter
+from core.compat import UTC
 from core.data.ingestion import DataIngestor
 
 

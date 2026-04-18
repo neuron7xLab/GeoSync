@@ -7,9 +7,10 @@ from __future__ import annotations
 import logging
 import os
 import smtplib
-from datetime import UTC, datetime
 from email.mime.text import MIMEText
 from typing import Any, Callable
+
+from geosync.core.compat import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class IncidentResponse:
             raise ValueError(f"Unknown severity '{severity}'")
         incident = {
             "id": self._next_id,
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": utc_now().isoformat(),
             "severity": severity,
             "event": event,
             "details": details,
