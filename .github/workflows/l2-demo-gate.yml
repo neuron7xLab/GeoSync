@@ -18,6 +18,9 @@ on:
       - "scripts/run_l2_*.py"
       - "scripts/render_l2_*.py"
       - "tests/test_l2_*.py"
+      - "tests/l2_artifacts.py"
+      - "results/gate_fixtures/**"
+      - "README.md"
       - "Makefile"
       - ".github/workflows/l2-demo-gate.yml"
   merge_group:
