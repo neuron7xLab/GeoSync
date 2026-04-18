@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from core.events.admission import (
@@ -23,6 +25,9 @@ from core.events.sourcing import (
 )
 from core.events.validation import OrderEventValidator, PortfolioEventValidator
 from domain.order import OrderSide, OrderStatus, OrderType
+
+if TYPE_CHECKING:  # pragma: no cover
+    from core.events.sourcing import AggregateRoot
 
 # ---- Helpers ------------------------------------------------------------
 
@@ -102,15 +107,25 @@ class TestRegistry:
 
     def test_predicate_rejection_is_also_B2(self) -> None:
         reg = AggregateTransitionRegistry()
+
+        def _not_terminal(agg: "AggregateRoot") -> bool:
+            # Predicate sees AggregateRoot in the signature; narrow
+            # back to OrderAggregate to consult ``status``.
+            if not isinstance(agg, OrderAggregate):
+                return True
+            return agg.status not in {
+                OrderStatus.FILLED,
+                OrderStatus.CANCELLED,
+                OrderStatus.REJECTED,
+            }
+
         reg.register(
             aggregate_type="order",
             event_type="OrderSubmitted",
             invariant_id="ORDER_CANNOT_SUBMIT_TERMINAL",
-            predicate=lambda agg: agg.status
-            not in {OrderStatus.FILLED, OrderStatus.CANCELLED, OrderStatus.REJECTED},
+            predicate=_not_terminal,
         )
         agg = _fresh_order()
-        # Force a terminal state by hand so the predicate fires.
         agg.status = OrderStatus.CANCELLED
         v = reg.verify("order", "OrderSubmitted", agg)
         assert not v.accepted

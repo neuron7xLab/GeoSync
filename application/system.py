@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from time import perf_counter
 from typing import (
@@ -82,16 +82,13 @@ class GeoSyncSystemConfig:
     """Bundle settings required to assemble a :class:`GeoSyncSystem`."""
 
     venues: Sequence[ExchangeAdapterConfig]
-    feature_pipeline: FeaturePipelineConfig = field(
-        default_factory=FeaturePipelineConfig
-    )
+    feature_pipeline: FeaturePipelineConfig = field(default_factory=FeaturePipelineConfig)
     risk_limits: RiskLimits = field(default_factory=RiskLimits)
     live_settings: LiveLoopSettings = field(default_factory=LiveLoopSettings)
     allowed_data_roots: Iterable[str | Path] | None = None
     max_csv_bytes: int | None = None
     market_data_connectors: (
-        Mapping[str, BaseMarketDataConnector | Callable[[], BaseMarketDataConnector]]
-        | None
+        Mapping[str, BaseMarketDataConnector | Callable[[], BaseMarketDataConnector]] | None
     ) = None
 
 
@@ -124,7 +121,12 @@ class GeoSyncSystem:
         self._risk_manager = risk_manager or RiskManager(config.risk_limits)
         self._metrics = get_metrics_collector()
         self._access_controller = access_controller
-        self._clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
+        # Clock indirection through the canonical ``default_clock()`` —
+        # a FrozenClock installed via ``use_clock`` now drives the
+        # application-level timestamp without a separate patch.
+        from geosync.core.compat import default_clock as _default_clock
+
+        self._clock: Callable[[], datetime] = lambda: _default_clock().now()
 
         connectors: MutableMapping[str, ExecutionConnector] = {}
         credentials: MutableMapping[str, Mapping[str, str]] = {}
@@ -315,9 +317,7 @@ class GeoSyncSystem:
         self._last_ingestion_duration_seconds = duration
         self._metrics.record_tick_processed("csv", symbol, len(records))
         if duration > 0:
-            self._metrics.set_ingestion_throughput(
-                "csv", symbol, len(records) / duration
-            )
+            self._metrics.set_ingestion_throughput("csv", symbol, len(records) / duration)
         self._last_symbol = symbol
         self._last_venue = venue
         return frame
@@ -380,9 +380,7 @@ class GeoSyncSystem:
         strategy_name = getattr(strategy, "__name__", strategy.__class__.__name__)
         resolved_symbol = symbol or self._last_symbol
         if resolved_symbol is None:
-            raise ValueError(
-                "symbol must be provided when no ingestion has been performed"
-            )
+            raise ValueError("symbol must be provided when no ingestion has been performed")
 
         price_col = self._pipeline.config.price_col
         if price_col not in feature_frame.columns:
@@ -398,9 +396,7 @@ class GeoSyncSystem:
             try:
                 raw_scores = np.asarray(strategy(prices), dtype=float)
                 if raw_scores.shape[0] != aligned.shape[0]:
-                    raise ValueError(
-                        "Strategy output length must match feature frame rows"
-                    )
+                    raise ValueError("Strategy output length must match feature frame rows")
 
                 valid_mask = np.isfinite(raw_scores)
                 if not valid_mask.all():
@@ -460,9 +456,7 @@ class GeoSyncSystem:
         if self._live_loop is None:
             credentials = self._credentials or None
             config = self._config.live_settings.build_config(credentials=credentials)
-            self._live_loop = LiveExecutionLoop(
-                self._connectors, self._risk_manager, config=config
-            )
+            self._live_loop = LiveExecutionLoop(self._connectors, self._risk_manager, config=config)
         return self._live_loop
 
     @property
@@ -511,13 +505,10 @@ class GeoSyncSystem:
 
         loop = self.ensure_live_loop()
         derived_correlation = (
-            correlation_id
-            or f"{signal.symbol}-{int(signal.timestamp.timestamp() * 1e9)}"
+            correlation_id or f"{signal.symbol}-{int(signal.timestamp.timestamp() * 1e9)}"
         )
         try:
-            submitted = loop.submit_order(
-                venue_key, order, correlation_id=derived_correlation
-            )
+            submitted = loop.submit_order(venue_key, order, correlation_id=derived_correlation)
         except Exception as exc:
             self._last_execution_error = str(exc)
             raise

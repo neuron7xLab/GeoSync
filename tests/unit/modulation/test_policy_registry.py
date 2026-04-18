@@ -66,7 +66,12 @@ class TestRegistryBasics:
 
     def test_factory_must_produce_modulation_policy(self) -> None:
         reg = PolicyRegistry()
-        reg.register("bad", lambda: object())
+        # ``object()`` deliberately does not satisfy ModulationPolicy — we
+        # want the registry to reject it on resolve rather than let a
+        # non-policy land inside the modulator. ``type: ignore`` is the
+        # correct surface: the bug we test is *runtime*, and mypy would
+        # otherwise (correctly) stop the attack at compile time.
+        reg.register("bad", lambda: object())  # type: ignore[arg-type,return-value]
         with pytest.raises(TypeError, match="ModulationPolicy"):
             reg.resolve("bad")
 

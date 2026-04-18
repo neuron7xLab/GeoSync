@@ -46,12 +46,14 @@ from sqlalchemy import (
     select,
     text,
 )
+from sqlalchemy import inspect as sql_inspect
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from core.compat import Clock, default_clock
+from core.events.admission import AdmissionGate
 from core.events.validation import DomainValidationError, EventValidator
 from domain.order import OrderSide, OrderStatus, OrderType
 
@@ -723,8 +725,33 @@ class PostgresEventStore:
         # that existing integrations keep working without code changes. Tests
         # pass a FrozenClock to get byte-identical ``epoch_ns`` across replays.
         self._clock: Clock = clock if clock is not None else default_clock()
+        # Rolling-forward migration guard: ``epoch_ns`` is a Sprint-1
+        # column. On a deployment upgraded by code-deploy but not yet
+        # by a DB migration, the column is absent in the live table.
+        # We detect that once at construction and elide the column
+        # from ``INSERT`` statements when missing so the deploy order
+        # (code-first, migration-second) does not break writes.
+        self._epoch_ns_available: bool = self._inspect_epoch_ns_available()
 
     # Table definitions ---------------------------------------------------------
+
+    def _inspect_epoch_ns_available(self) -> bool:
+        """Return True when the live events table already carries
+        ``epoch_ns``. On a fresh install (``create_schema`` has not
+        run yet), or on a dialect whose inspector cannot see the
+        table, we optimistically assume the column is available — the
+        subsequent ``create_all()`` will place it."""
+        try:
+            inspector = sql_inspect(self._engine)
+            table_name = self._events.name
+            if not inspector.has_table(table_name, schema=self._schema):
+                return True
+            columns = {
+                col["name"] for col in inspector.get_columns(table_name, schema=self._schema)
+            }
+            return "epoch_ns" in columns
+        except Exception:  # pragma: no cover — inspector quirks
+            return True
 
     def _create_events_table(self, prefix: str) -> Table:
         return Table(
@@ -814,18 +841,25 @@ class PostgresEventStore:
         correlation_id: str | None = None,
         causation_id: str | None = None,
         validator: EventValidator | None = None,
+        admission_gate: AdmissionGate | None = None,
     ) -> int:
         """Persist events for an aggregate applying optimistic concurrency.
 
-        A validator, if supplied, is called once per event before insert
-        and raises :class:`DomainValidationError` to abort the whole
-        batch. The caller is responsible for choosing the policy —
-        passing ``None`` preserves the legacy behaviour.
+        Two complementary admission surfaces are available:
+
+        * ``validator`` — the Sprint-2 single-barrier surface. Legacy
+          callers migrating a single invariant should use this.
+        * ``admission_gate`` — the Phase-2 four-barrier surface
+          (structural → causal → state → invariant). A rejection from
+          the gate carries a structured ``RejectCode`` and
+          ``invariant_id`` in the raised :class:`DomainValidationError`
+          so incident response can file the failure without parsing
+          free-form text.
+
+        Passing neither preserves the pre-remediation behaviour.
         """
 
         metadata_payload = dict(metadata or {})
-        # Materialise events up front so both the validator and the
-        # insert loop observe the same sequence (generators are one-shot).
         events_list: list[DomainEvent] = list(events)
         with self._session() as session:
             current_version = self._current_stream_version(
@@ -836,34 +870,67 @@ class PostgresEventStore:
                     f"Expected version {expected_version} but stream is at {current_version}"
                 )
 
-            if validator is not None:
+            if validator is not None or admission_gate is not None:
+                # Aggregate arriving here already has the pending events
+                # applied (``_raise_event`` eagerly folds them in). For
+                # the validator to see the PRE-event state we replay a
+                # shadow from the store's committed history and advance
+                # it event-by-event inside the loop. This makes the
+                # semantics match what the contract promises — "given
+                # state S and event E, is E admissible?"
+                shadow = type(aggregate)(aggregate.id)
+                committed = self._load_committed_history(
+                    session, aggregate.id, aggregate.aggregate_type
+                )
+                if committed:
+                    shadow.load_from_history(committed)
                 for event in events_list:
-                    result = validator.validate(event, aggregate)
-                    if not result.valid:
-                        raise DomainValidationError(
-                            f"Event {type(event).__name__} rejected: {result.reason}"
-                        )
+                    if validator is not None:
+                        result = validator.validate(event, shadow)
+                        if not result.valid:
+                            raise DomainValidationError(
+                                f"Event {type(event).__name__} rejected: {result.reason}"
+                            )
+                    if admission_gate is not None:
+                        verdict = admission_gate.verdict(event, shadow)
+                        if not verdict.accepted:
+                            raise DomainValidationError(
+                                f"{verdict.code.value if verdict.code else 'REJECTED'} "
+                                f"[{verdict.barrier.value if verdict.barrier else '?'} "
+                                f"@ {verdict.invariant_id}]: {verdict.reason}"
+                            )
+                    # Advance shadow so the next event validates against
+                    # the state that includes this event's effects.
+                    # ``_apply(is_new=True)`` increments version without
+                    # touching the event's stream_version (which is None
+                    # for uncommitted events).
+                    shadow._apply(event, is_new=True)
 
             version = current_version
             for event in events_list:
                 version += 1
                 payload = event.to_dict()
                 event_name = event.event_name
-                insert_stmt = self._events.insert().values(
-                    event_id=str(event.event_id),
-                    aggregate_id=aggregate.id,
-                    aggregate_type=aggregate.aggregate_type,
-                    version=version,
-                    event_type=event_name,
-                    correlation_id=correlation_id,
-                    causation_id=causation_id,
-                    metadata=metadata_payload,
-                    payload=payload,
-                    occurred_at=event.occurred_at,
-                    epoch_ns=self._clock.epoch_ns(),
-                )
+                values: dict[str, Any] = {
+                    "event_id": str(event.event_id),
+                    "aggregate_id": aggregate.id,
+                    "aggregate_type": aggregate.aggregate_type,
+                    "version": version,
+                    "event_type": event_name,
+                    "correlation_id": correlation_id,
+                    "causation_id": causation_id,
+                    "metadata": metadata_payload,
+                    "payload": payload,
+                    "occurred_at": event.occurred_at,
+                }
+                # Only include epoch_ns when the live table already
+                # carries the column. A deployment that has shipped the
+                # Sprint-1 code but not yet the ALTER TABLE migration
+                # keeps writing — the column is back-fill-free.
+                if self._epoch_ns_available:
+                    values["epoch_ns"] = self._clock.epoch_ns()
                 try:
-                    session.execute(insert_stmt)
+                    session.execute(self._events.insert().values(**values))
                 except IntegrityError as exc:  # pragma: no cover - requires DB
                     raise ConcurrencyError("Event insert violated constraints") from exc
             return version
@@ -944,6 +1011,33 @@ class PostgresEventStore:
                     )
                     last_id = row.id
                 yield envelopes
+
+    def _load_committed_history(
+        self, session: Session, aggregate_id: str, aggregate_type: str
+    ) -> list[DomainEvent]:
+        """Load the committed events for a stream within the given session.
+
+        Used by the admission pipeline to reconstruct a pre-batch shadow
+        aggregate so that validators see the state *before* the new
+        events are applied. Returns an empty list for new aggregates.
+        """
+        stmt = (
+            select(self._events)
+            .where(
+                and_(
+                    self._events.c.aggregate_id == aggregate_id,
+                    self._events.c.aggregate_type == aggregate_type,
+                )
+            )
+            .order_by(self._events.c.version.asc())
+        )
+        rows = session.execute(stmt).all()
+        events: list[DomainEvent] = []
+        for row in rows:
+            payload = self._hydrate_event(row.payload, row.event_type)
+            payload.stream_version = row.version
+            events.append(payload)
+        return events
 
     def _current_stream_version(
         self, session: Session, aggregate_id: str, aggregate_type: str
