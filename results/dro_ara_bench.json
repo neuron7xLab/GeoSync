@@ -3,7 +3,7 @@
   "platform": "Linux-6.8.0-106-lowlatency-x86_64-with-glibc2.39",
   "python": "3.12.3",
   "repeats": 10,
-  "replay_hash": "9f16e0466a42484e43428d5875ed9f5d2d1ca616d230bda4f6e072fa813e2e45",
+  "replay_hash_short": "9f16e0466a42484e",
   "schema": "dro_ara_bench.v1",
   "seed": 42,
   "step": 64,
