@@ -59,6 +59,7 @@ def test_l2_help_lists_every_target() -> None:
         ["make", "--no-print-directory", "l2-help"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         env={"NO_COLOR": "1", "PATH": "/usr/bin:/bin:/usr/local/bin"},
         timeout=30,
     )
@@ -74,6 +75,7 @@ def test_l2_help_exits_zero() -> None:
         ["make", "--no-print-directory", "l2-help"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         env={"NO_COLOR": "1", "PATH": "/usr/bin:/bin:/usr/local/bin"},
         timeout=30,
     )
