@@ -249,6 +249,35 @@ sits below the 0.70 production ceiling with headroom. Read f* = 0.232 as
 
 Artifact: `results/L2_ABLATION_SENSITIVITY.json`
 
+### 4.2 Leave-one-symbol-out ablation
+
+Addresses BTC-concentration risk: is the cross-sectional edge driven
+by one dominant symbol, or does it survive removing any single member
+of the 10-symbol universe?
+
+| Removed | IC | drop vs baseline |
+|---|---|---|
+| BTCUSDT | +0.070 | **+42.9%** (worst) |
+| LINKUSDT | +0.096 | +21.3% |
+| ETHUSDT | +0.098 | +19.7% |
+| ADAUSDT | +0.109 | +10.6% |
+| POLUSDT | +0.120 | +2.3% |
+| XRPUSDT | +0.139 | −13.8% |
+| DOTUSDT | +0.148 | −20.8% |
+| SOLUSDT | +0.151 | −23.4% |
+| AVAXUSDT | +0.166 | −35.7% |
+| BNBUSDT | +0.182 | **−48.7%** (removing this IMPROVES IC) |
+
+**Verdict: MIXED.** Every leave-one-out cell retains **positive IC > 0.07**
+at p ≪ 0.05 — the edge does not depend on any single symbol. BTC
+carries the most information (removing it drops IC most), but removing
+BTC does not collapse the edge. Conversely, BNB / AVAX / SOL actively
+dilute the signal — removing them *improves* IC. The cross-sectional
+claim is honest: Ricci κ_min summarizes all 10 symbols, and its quality
+is driven by the interaction, not by any one concentrated source.
+
+Artifact: `results/L2_SYMBOL_ABLATION.json`
+
 ---
 
 ## 5 · Diurnal sign-flip (SIGN_FLIP_CONFIRMED)
