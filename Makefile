@@ -469,3 +469,89 @@ security-audit:
 security-test:
 	python -m tools.security.sast --fail-on-severity MEDIUM
 	python -m tools.security.dast_probe
+
+# ============================================================================
+# L2 Ricci cross-sectional edge — demo entry points
+# ============================================================================
+# ANSI colour helpers (no-op when NO_COLOR is set)
+L2_BOLD    := $(shell test -z "$$NO_COLOR" && printf '\033[1m')
+L2_DIM     := $(shell test -z "$$NO_COLOR" && printf '\033[2m')
+L2_BLUE    := $(shell test -z "$$NO_COLOR" && printf '\033[34m')
+L2_GREEN   := $(shell test -z "$$NO_COLOR" && printf '\033[32m')
+L2_YELLOW  := $(shell test -z "$$NO_COLOR" && printf '\033[33m')
+L2_RESET   := $(shell test -z "$$NO_COLOR" && printf '\033[0m')
+
+L2_DATA_DIR ?= data/binance_l2_perp
+L2_PY       := PYTHONPATH=. python
+L2_DASHBOARD := results/figures/index.html
+
+define L2_BANNER
+	@printf "\n$(L2_BOLD)$(L2_BLUE)==> %s$(L2_RESET)\n$(L2_DIM)%s$(L2_RESET)\n\n" "$(1)" "$(2)"
+endef
+
+define L2_CHECK_SUBSTRATE
+	@if [ ! -d "$(L2_DATA_DIR)" ]; then \
+	    printf "$(L2_YELLOW)[!]$(L2_RESET) L2 substrate missing at $(L2_BOLD)$(L2_DATA_DIR)$(L2_RESET)\n"; \
+	    printf "    Override with $(L2_BOLD)L2_DATA_DIR=/path/to/parquets$(L2_RESET) or collect one first.\n"; \
+	    exit 2; \
+	fi
+endef
+
+.PHONY: l2-help l2-demo l2-figures l2-dashboard l2-smoke l2-deterministic l2-ablations l2-test
+
+## l2-help: list L2 targets with one-liners
+l2-help:
+	@printf "$(L2_BOLD)L2 Ricci edge — demo targets$(L2_RESET)\n\n"
+	@awk '/^## l2-/ {sub(/^## /, ""); split($$0, p, ":"); printf "  $(L2_GREEN)%-18s$(L2_RESET) %s\n", p[1], substr($$0, length(p[1])+3)}' $(MAKEFILE_LIST)
+	@printf "\n  Override substrate path: $(L2_BOLD)L2_DATA_DIR=/path/to/parquets make l2-demo$(L2_RESET)\n"
+	@printf "  Disable colours:         $(L2_BOLD)NO_COLOR=1 make l2-demo$(L2_RESET)\n\n"
+
+## l2-demo: full pipeline (9 stages) + 5 figures + HTML dashboard (~85 s)
+l2-demo:
+	$(call L2_BANNER,l2-demo,full 9-stage pipeline + figures + HTML dashboard)
+	$(L2_CHECK_SUBSTRATE)
+	@$(L2_PY) scripts/run_l2_full_cycle.py --data-dir $(L2_DATA_DIR) --log-level WARNING
+	@$(L2_PY) scripts/render_l2_figures.py --log-level WARNING
+	@$(L2_PY) scripts/render_l2_dashboard.py --log-level WARNING
+	@printf "\n  $(L2_GREEN)✓$(L2_RESET) demo dashboard ready: $(L2_BOLD)$(L2_DASHBOARD)$(L2_RESET)\n"
+	@printf "    open with: $(L2_DIM)xdg-open $(L2_DASHBOARD)$(L2_RESET)\n\n"
+
+## l2-figures: re-render fig0-4 from existing results/L2_*.json (fast, no substrate needed)
+l2-figures:
+	$(call L2_BANNER,l2-figures,re-render fig0-4 from existing results/L2_*.json)
+	@$(L2_PY) scripts/render_l2_figures.py --log-level WARNING
+	@printf "  $(L2_GREEN)✓$(L2_RESET) results/figures/fig{0..4}_*.png refreshed\n\n"
+
+## l2-dashboard: regenerate the self-contained HTML demo landing page
+l2-dashboard:
+	$(call L2_BANNER,l2-dashboard,regenerate $(L2_DASHBOARD))
+	@$(L2_PY) scripts/render_l2_dashboard.py --log-level WARNING
+	@printf "  $(L2_GREEN)✓$(L2_RESET) $(L2_DASHBOARD) refreshed\n\n"
+
+## l2-smoke: single-gate check that the demo is shippable right now
+l2-smoke:
+	$(call L2_BANNER,l2-smoke,end-to-end demo-readiness gate tests)
+	@python -m pytest tests/test_l2_coherence_demo_smoke.py -q
+
+## l2-deterministic: two independent full-cycle runs must be bit-identical
+l2-deterministic:
+	$(call L2_BANNER,l2-deterministic,bit-identical manifest across two cycle runs)
+	$(L2_CHECK_SUBSTRATE)
+	@L2_DETERMINISTIC_REPLAY=1 python -m pytest \
+	    tests/test_l2_coherence_deterministic_replay.py -q
+
+## l2-ablations: run all 5 ablation / stress axes (hyperparam, symbol, hold, slippage, fee)
+l2-ablations:
+	$(call L2_BANNER,l2-ablations,5 ablation / stress axes)
+	$(L2_CHECK_SUBSTRATE)
+	@$(L2_PY) scripts/run_l2_ablation_sensitivity.py --data-dir $(L2_DATA_DIR) --log-level WARNING
+	@$(L2_PY) scripts/run_l2_symbol_ablation.py      --data-dir $(L2_DATA_DIR) --log-level WARNING
+	@$(L2_PY) scripts/run_l2_hold_ablation.py        --data-dir $(L2_DATA_DIR) --log-level WARNING
+	@$(L2_PY) scripts/run_l2_slippage_stress.py      --data-dir $(L2_DATA_DIR) --log-level WARNING
+	@$(L2_PY) scripts/run_l2_fee_stress.py           --data-dir $(L2_DATA_DIR) --log-level WARNING
+	@printf "\n  $(L2_GREEN)✓$(L2_RESET) all 5 ablation artifacts under results/\n\n"
+
+## l2-test: run every L2 test suite (~40 s, includes ablation + coherence gates)
+l2-test:
+	$(call L2_BANNER,l2-test,every tests/test_l2_*.py file)
+	@python -m pytest tests/test_l2_*.py -q --timeout=60
