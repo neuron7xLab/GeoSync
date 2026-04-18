@@ -30,13 +30,14 @@ import numpy as np
 from research.microstructure.killtest import (
     _forward_log_return,
     _pooled_ic,
-    build_feature_frame,
     cross_sectional_ricci_signal,
 )
-from research.microstructure.killtest import (
-    _load_parquets as load_parquets,
+from research.microstructure.l2_cli import (
+    SubstrateError,
+    add_common_args,
+    load_substrate,
+    setup_logging,
 )
-from research.microstructure.l2_schema import DEFAULT_SYMBOLS
 from research.microstructure.regime import (
     regime_mask_from_quantile,
     rolling_rv_regime,
@@ -54,38 +55,20 @@ class RegimeICCell:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", type=Path, default=Path("data/binance_l2_perp"))
-    parser.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS))
-    parser.add_argument(
-        "--output",
-        type=Path,
-        default=Path("results/L2_REGIME_CONDITIONAL_IC.json"),
-    )
+    add_common_args(parser, output_default=Path("results/L2_REGIME_CONDITIONAL_IC.json"))
     parser.add_argument("--horizon-sec", type=int, default=180)
     parser.add_argument("--regime-quantile", type=float, default=0.75)
     parser.add_argument("--regime-window-sec", type=int, default=300)
-    parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=getattr(logging, str(args.log_level).upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
+    setup_logging(str(args.log_level))
 
-    symbols = tuple(s.strip().upper() for s in str(args.symbols).split(",") if s.strip())
-    data_dir = Path(args.data_dir)
-    if not data_dir.exists():
-        _log.error("data dir does not exist: %s", data_dir)
-        return 2
-    frames = load_parquets(data_dir, symbols)
-    if not frames:
-        _log.error("no parquet shards in %s", data_dir)
-        return 2
     try:
-        features = build_feature_frame(frames, symbols)
-    except ValueError as exc:
-        _log.error("insufficient overlap: %s", exc)
+        loaded = load_substrate(Path(args.data_dir), str(args.symbols))
+    except SubstrateError as exc:
+        _log.error("%s", exc)
         return 2
+    features = loaded.features
 
     signal = cross_sectional_ricci_signal(features.ofi)
     target = _forward_log_return(features.mid, int(args.horizon_sec))

@@ -30,20 +30,19 @@ from pathlib import Path
 from typing import Any, Final
 
 import numpy as np
+from research.microstructure.l2_cli import (
+    SubstrateError,
+    add_common_args,
+    load_substrate,
+    setup_logging,
+)
 
 from research.microstructure.diurnal import session_start_ms_from_frames
 from research.microstructure.diurnal_filter import (
     direction_per_row,
     load_hourly_direction_map,
 )
-from research.microstructure.killtest import (
-    _load_parquets as load_parquets,
-)
-from research.microstructure.killtest import (
-    build_feature_frame,
-    cross_sectional_ricci_signal,
-)
-from research.microstructure.l2_schema import DEFAULT_SYMBOLS
+from research.microstructure.killtest import cross_sectional_ricci_signal
 from research.microstructure.pnl import (
     DEFAULT_DECISION_SEC,
     DEFAULT_HOLD_SEC,
@@ -76,8 +75,7 @@ class AblationCell:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", type=Path, default=Path("data/binance_l2_perp"))
-    parser.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS))
+    add_common_args(parser, output_default=Path("results/L2_ABLATION_SENSITIVITY.json"))
     parser.add_argument(
         "--diurnal-filter",
         type=Path,
@@ -85,11 +83,6 @@ def main() -> int:
     )
     parser.add_argument("--diurnal-ic-gate", type=float, default=0.03)
     parser.add_argument("--diurnal-p-gate", type=float, default=0.05)
-    parser.add_argument(
-        "--output",
-        type=Path,
-        default=Path("results/L2_ABLATION_SENSITIVITY.json"),
-    )
     parser.add_argument(
         "--regime-quantiles",
         default="0.70,0.75,0.80",
@@ -100,28 +93,17 @@ def main() -> int:
         default="180,300,450",
         help="comma-separated window grid",
     )
-    parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=getattr(logging, str(args.log_level).upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
+    setup_logging(str(args.log_level))
 
-    symbols = tuple(s.strip().upper() for s in str(args.symbols).split(",") if s.strip())
-    data_dir = Path(args.data_dir)
-    if not data_dir.exists():
-        _log.error("data dir does not exist: %s", data_dir)
-        return 2
-    frames = load_parquets(data_dir, symbols)
-    if not frames:
-        _log.error("no parquet shards in %s", data_dir)
-        return 2
     try:
-        features = build_feature_frame(frames, symbols)
-    except ValueError as exc:
-        _log.error("insufficient overlap: %s", exc)
+        loaded = load_substrate(Path(args.data_dir), str(args.symbols))
+    except SubstrateError as exc:
+        _log.error("%s", exc)
         return 2
+    features = loaded.features
+    frames = loaded.frames
 
     signal = cross_sectional_ricci_signal(features.ofi)
     decision_idx = np.arange(0, features.n_rows, DEFAULT_DECISION_SEC, dtype=np.int64)

@@ -9,14 +9,13 @@ import logging
 import sys
 from pathlib import Path
 
-from research.microstructure.killtest import (
-    _load_parquets as load_parquets,
+from research.microstructure.killtest import cross_sectional_ricci_signal
+from research.microstructure.l2_cli import (
+    SubstrateError,
+    add_common_args,
+    load_substrate,
+    setup_logging,
 )
-from research.microstructure.killtest import (
-    build_feature_frame,
-    cross_sectional_ricci_signal,
-)
-from research.microstructure.l2_schema import DEFAULT_SYMBOLS
 from research.microstructure.spectral import (
     DEFAULT_SEGMENT_SEC,
     spectral_report,
@@ -27,37 +26,19 @@ _log = logging.getLogger("l2_spectral")
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", type=Path, default=Path("data/binance_l2_perp"))
-    parser.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS))
-    parser.add_argument(
-        "--output",
-        type=Path,
-        default=Path("results/L2_SPECTRAL.json"),
-    )
+    add_common_args(parser, output_default=Path("results/L2_SPECTRAL.json"))
     parser.add_argument("--segment-sec", type=int, default=DEFAULT_SEGMENT_SEC)
     parser.add_argument("--fs-hz", type=float, default=1.0)
-    parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=getattr(logging, str(args.log_level).upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
+    setup_logging(str(args.log_level))
 
-    symbols = tuple(s.strip().upper() for s in str(args.symbols).split(",") if s.strip())
-    data_dir = Path(args.data_dir)
-    if not data_dir.exists():
-        _log.error("data dir does not exist: %s", data_dir)
-        return 2
-    frames = load_parquets(data_dir, symbols)
-    if not frames:
-        _log.error("no parquet shards in %s", data_dir)
-        return 2
     try:
-        features = build_feature_frame(frames, symbols)
-    except ValueError as exc:
-        _log.error("insufficient overlap: %s", exc)
+        loaded = load_substrate(Path(args.data_dir), str(args.symbols))
+    except SubstrateError as exc:
+        _log.error("%s", exc)
         return 2
+    features = loaded.features
 
     signal = cross_sectional_ricci_signal(features.ofi)
     report = spectral_report(
@@ -66,8 +47,7 @@ def main() -> int:
         segment_sec=int(args.segment_sec),
     )
 
-    # Trim the stored PSD arrays to avoid a mega-json; expose top-N
-    # highest-power bins plus the summary.
+    # Trim stored PSD arrays to avoid a mega-json; expose top-N highest-power bins.
     psd_arr = list(report.psd)
     freq_arr = list(report.frequencies_hz)
     top_n = min(32, len(psd_arr))
@@ -92,8 +72,6 @@ def main() -> int:
         "regime_verdict": report.regime_verdict,
         "top_power_bins": top_bins,
         "n_psd_bins": len(psd_arr),
-        # Full arrays omitted from the tracked JSON — too large. Recomputable
-        # by re-running this CLI against the same substrate.
     }
 
     body = json.dumps(payload, indent=2, sort_keys=True, default=str)
