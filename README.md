@@ -425,12 +425,14 @@ Ten-axis empirical validation of a cross-sectional curvature edge on
 Binance USDT-M perp L2 depth streams. One-command reproduction:
 
 ```bash
-PYTHONPATH=. python scripts/run_l2_full_cycle.py
+make l2-demo           # full pipeline + figures + HTML dashboard (~85 s)
+make l2-help           # list all L2 targets
 ```
 
-Runs all 9 iterations end-to-end in ~80 s on Session 1 substrate, renders
-three canonical demo figures, and emits
-`results/L2_FULL_CYCLE_MANIFEST.json` with SHA-256 replay hashes.
+Runs all 9 iterations end-to-end, renders five canonical demo figures,
+emits `results/L2_FULL_CYCLE_MANIFEST.json` with SHA-256 replay hashes,
+and generates a self-contained HTML dashboard at
+`results/figures/index.html`.
 
 | Axis | Finding | Artifact |
 |---|---|---|
