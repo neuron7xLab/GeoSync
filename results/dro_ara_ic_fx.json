@@ -1,0 +1,217 @@
+{
+  "spike_name": "dro_ara_ic_fx",
+  "timestamp_utc": "2026-04-18T16:56:24.643571+00:00",
+  "seed": 42,
+  "n_boot": 1000,
+  "ic_gate": 0.08,
+  "horizons": [
+    1,
+    4,
+    24
+  ],
+  "symbols": [
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY",
+    "AUDUSD",
+    "USDCAD"
+  ],
+  "window": 512,
+  "step": 64,
+  "max_bars": 26000,
+  "panel": "data/askar_full/panel_hourly.parquet",
+  "bars_used_per_symbol": {
+    "EURUSD": 26000,
+    "GBPUSD": 26000,
+    "USDJPY": 26000,
+    "AUDUSD": 26000,
+    "USDCAD": 26000
+  },
+  "measurement": {
+    "per_symbol": {
+      "EURUSD": {
+        "n_signals": 397,
+        "horizons": {
+          "h1": {
+            "n": 397,
+            "ic_point": 0.03623753904774605,
+            "ic_boot_median": 0.0381381001842962,
+            "ic_ci95_low": -0.06243380834301694,
+            "ic_ci95_high": 0.12835754959092271,
+            "passes_gate": false
+          },
+          "h4": {
+            "n": 397,
+            "ic_point": 0.07118167704791692,
+            "ic_boot_median": 0.07480332593919432,
+            "ic_ci95_low": -0.031740509336767364,
+            "ic_ci95_high": 0.15881817288312416,
+            "passes_gate": false
+          },
+          "h24": {
+            "n": 397,
+            "ic_point": 0.020110452608909167,
+            "ic_boot_median": 0.01986308871386372,
+            "ic_ci95_low": -0.08233400957612785,
+            "ic_ci95_high": 0.12611234753058564,
+            "passes_gate": false
+          }
+        }
+      },
+      "GBPUSD": {
+        "n_signals": 397,
+        "horizons": {
+          "h1": {
+            "n": 397,
+            "ic_point": 0.033108879167523135,
+            "ic_boot_median": 0.03247771145906056,
+            "ic_ci95_low": -0.007806114812533505,
+            "ic_ci95_high": 0.07815031791078433,
+            "passes_gate": false
+          },
+          "h4": {
+            "n": 397,
+            "ic_point": 0.040076509492525766,
+            "ic_boot_median": 0.041624953898639426,
+            "ic_ci95_low": -0.05754199975289353,
+            "ic_ci95_high": 0.122410682354644,
+            "passes_gate": false
+          },
+          "h24": {
+            "n": 397,
+            "ic_point": 0.05995973618678691,
+            "ic_boot_median": 0.06450473140623166,
+            "ic_ci95_low": -0.06499296329138844,
+            "ic_ci95_high": 0.16058910728360457,
+            "passes_gate": false
+          }
+        }
+      },
+      "USDJPY": {
+        "n_signals": 397,
+        "horizons": {
+          "h1": {
+            "n": 397,
+            "ic_point": -0.11221912905828764,
+            "ic_boot_median": -0.11304143891301188,
+            "ic_ci95_low": -0.20284392621956948,
+            "ic_ci95_high": -0.007570291895319347,
+            "passes_gate": true
+          },
+          "h4": {
+            "n": 397,
+            "ic_point": -0.05344417754253357,
+            "ic_boot_median": -0.05222071104811482,
+            "ic_ci95_low": -0.14559111438439323,
+            "ic_ci95_high": 0.04490121148042852,
+            "passes_gate": false
+          },
+          "h24": {
+            "n": 397,
+            "ic_point": -0.007330137525524925,
+            "ic_boot_median": -0.006914018237123163,
+            "ic_ci95_low": -0.09803257671562518,
+            "ic_ci95_high": 0.08264735022109286,
+            "passes_gate": false
+          }
+        }
+      },
+      "AUDUSD": {
+        "n_signals": 397,
+        "horizons": {
+          "h1": {
+            "n": 397,
+            "ic_point": 0.05021428719849713,
+            "ic_boot_median": 0.0498098033518818,
+            "ic_ci95_low": -0.07265542195508881,
+            "ic_ci95_high": 0.1628085381829542,
+            "passes_gate": false
+          },
+          "h4": {
+            "n": 397,
+            "ic_point": 0.06235983881652242,
+            "ic_boot_median": 0.0645437433110816,
+            "ic_ci95_low": -0.04854470983992035,
+            "ic_ci95_high": 0.16136202419439977,
+            "passes_gate": false
+          },
+          "h24": {
+            "n": 397,
+            "ic_point": 0.026000778925666657,
+            "ic_boot_median": 0.026682123669632313,
+            "ic_ci95_low": -0.08007939776489426,
+            "ic_ci95_high": 0.1336495200507153,
+            "passes_gate": false
+          }
+        }
+      },
+      "USDCAD": {
+        "n_signals": 397,
+        "horizons": {
+          "h1": {
+            "n": 397,
+            "ic_point": -0.050339273949268716,
+            "ic_boot_median": -0.04781688801839534,
+            "ic_ci95_low": -0.12891620834410258,
+            "ic_ci95_high": 0.043389241029072635,
+            "passes_gate": false
+          },
+          "h4": {
+            "n": 397,
+            "ic_point": 0.0396397849993848,
+            "ic_boot_median": 0.04451716568806216,
+            "ic_ci95_low": -0.07587453157822857,
+            "ic_ci95_high": 0.14293181138666886,
+            "passes_gate": false
+          },
+          "h24": {
+            "n": 397,
+            "ic_point": 0.051347583896865334,
+            "ic_boot_median": 0.05177342111764813,
+            "ic_ci95_low": -0.03568886995537945,
+            "ic_ci95_high": 0.12340043218071595,
+            "passes_gate": false
+          }
+        }
+      }
+    },
+    "pooled": {
+      "h1": {
+        "n": 1985,
+        "ic_point": -0.011926248383244248,
+        "ic_boot_median": -0.011337310871716926,
+        "ic_ci95_low": -0.05814735334293266,
+        "ic_ci95_high": 0.030961919903754322,
+        "passes_gate": false
+      },
+      "h4": {
+        "n": 1985,
+        "ic_point": 0.03128176501530694,
+        "ic_boot_median": 0.03201152934460658,
+        "ic_ci95_low": -0.014819405037538277,
+        "ic_ci95_high": 0.07443191185733872,
+        "passes_gate": false
+      },
+      "h24": {
+        "n": 1985,
+        "ic_point": 0.0261967375356342,
+        "ic_boot_median": 0.02806689851544584,
+        "ic_ci95_low": -0.020094935772322207,
+        "ic_ci95_high": 0.06843985396508508,
+        "passes_gate": false
+      }
+    }
+  },
+  "verdict": "HEADROOM_ONLY",
+  "reason": "Pooled best IC at h4: +0.0320 [-0.0148, +0.0744] n=1985; gate=0.08 \u2192 FAIL.",
+  "best": {
+    "best_horizon": "h4",
+    "n": 1985,
+    "ic_point": 0.03128176501530694,
+    "ic_boot_median": 0.03201152934460658,
+    "ic_ci95_low": -0.014819405037538277,
+    "ic_ci95_high": 0.07443191185733872,
+    "passes_gate": false
+  },
+  "replay_hash": "bf60b8901ecd761f09a28f803b810f4bd900adcbc04f6c8cae2247a01fb4b7ff"
+}
