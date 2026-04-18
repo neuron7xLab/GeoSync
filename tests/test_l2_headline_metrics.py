@@ -2,24 +2,18 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from research.microstructure.headline_metrics import build_headline_metrics
-
-_ARTIFACT = Path("results/L2_HEADLINE_METRICS.json")
+from tests.l2_artifacts import load_results_artifact
 
 
 @pytest.fixture(scope="module")
 def metrics() -> dict[str, Any]:
-    if not _ARTIFACT.exists():
-        pytest.skip("headline metrics artifact not present")
-    with _ARTIFACT.open("r", encoding="utf-8") as f:
-        data: dict[str, Any] = json.load(f)
-    return data
+    return load_results_artifact("L2_HEADLINE_METRICS.json")
 
 
 # Flat-schema contract keys — downstream promises
@@ -87,14 +81,12 @@ def test_schema_values_are_primitive(metrics: dict[str, Any]) -> None:
 
 
 def test_headline_ic_matches_killtest(metrics: dict[str, Any]) -> None:
-    with Path("results/L2_KILLTEST_VERDICT.json").open("r", encoding="utf-8") as f:
-        killtest: dict[str, Any] = json.load(f)
+    killtest = load_results_artifact("L2_KILLTEST_VERDICT.json")
     assert abs(float(metrics["ic_pooled"]) - float(killtest["ic_signal"])) < 1e-12
 
 
 def test_headline_beta_matches_spectral(metrics: dict[str, Any]) -> None:
-    with Path("results/L2_SPECTRAL.json").open("r", encoding="utf-8") as f:
-        spectral: dict[str, Any] = json.load(f)
+    spectral = load_results_artifact("L2_SPECTRAL.json")
     assert abs(float(metrics["spectral_beta"]) - float(spectral["redness_slope_beta"])) < 1e-12
 
 

@@ -2,22 +2,16 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
 import pytest
 
-_ARTIFACT = Path("results/L2_HOLD_ABLATION.json")
+from tests.l2_artifacts import load_results_artifact
 
 
 @pytest.fixture(scope="module")
 def ablation() -> dict[str, Any]:
-    if not _ARTIFACT.exists():
-        pytest.skip("hold-ablation artifact not present")
-    with _ARTIFACT.open("r", encoding="utf-8") as f:
-        data: dict[str, Any] = json.load(f)
-    return data
+    return load_results_artifact("L2_HOLD_ABLATION.json")
 
 
 def test_canonical_hold_in_grid(ablation: dict[str, Any]) -> None:
