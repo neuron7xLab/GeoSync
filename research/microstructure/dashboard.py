@@ -144,6 +144,7 @@ class DashboardInputs:
     hyperparam_ablation: dict[str, Any] | None
     symbol_ablation: dict[str, Any] | None
     slippage_stress: dict[str, Any] | None
+    fee_stress: dict[str, Any] | None
     manifest: dict[str, Any] | None
 
 
@@ -305,6 +306,7 @@ def render_dashboard(results_dir: Path, output_path: Path) -> Path:
         hyperparam_ablation=_load_optional(results_dir / "L2_ABLATION_SENSITIVITY.json"),
         symbol_ablation=_load_optional(results_dir / "L2_SYMBOL_ABLATION.json"),
         slippage_stress=_load_optional(results_dir / "L2_SLIPPAGE_STRESS.json"),
+        fee_stress=_load_optional(results_dir / "L2_FEE_STRESS.json"),
         manifest=_load_optional(results_dir / "L2_FULL_CYCLE_MANIFEST.json"),
     )
 
@@ -351,6 +353,16 @@ def render_dashboard(results_dir: Path, output_path: Path) -> Path:
                 f"max viable +"
                 f"{float(inputs.slippage_stress['max_slippage_still_viable_bp']):.1f} "
                 f"bp/side slippage",
+            )
+        )
+    if inputs.fee_stress is not None:
+        ablation_rows.append(
+            (
+                "Taker-fee tier (3–6 bp)",
+                str(inputs.fee_stress["verdict"]),
+                f"max viable fee {float(inputs.fee_stress['max_viable_taker_fee_bp']):.1f} bp, "
+                f"{int(inputs.fee_stress['n_cells'])}/"
+                f"{int(inputs.fee_stress['n_cells'])} tiers bracket below 0.50",
             )
         )
 
