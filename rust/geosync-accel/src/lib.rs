@@ -12,6 +12,15 @@
 //! Keeping the algorithms and the bindings in the same crate makes it easy to
 //! share benchmarks and guarantees that the behaviour is identical between the
 //! Rust and Python entry points.
+//!
+//! Current accelerator surface:
+//! - `sliding_windows` / `sliding_windows_core`
+//! - `quantiles` / `quantiles_core`
+//! - `convolve` / `convolve_core`
+//!
+//! These building blocks are used by higher-level analytics code. Domain-
+//! specific kernels (for example graph curvature metrics or PSD-derived
+//! statistics) are intentionally not implemented in this crate yet.
 
 use numpy::ndarray::Array2;
 use numpy::{PyArray1, PyArray2, PyReadonlyArray1};
@@ -319,7 +328,7 @@ fn sliding_windows<'py>(
     let (rows, values) = sliding_windows_core(slice, window, step)?;
     let array = Array2::from_shape_vec((rows, window), values)
         .map_err(|err| PyValueError::new_err(err.to_string()))?;
-    Ok(PyArray2::from_owned_array_bound(py, array))
+    Ok(PyArray2::from_owned_array(py, array))
 }
 
 #[pyfunction]
@@ -333,7 +342,7 @@ fn quantiles<'py>(
 ) -> PyResult<Bound<'py, PyArray1<f64>>> {
     let slice = data.as_slice()?;
     let result = quantiles_core(slice, &probabilities)?;
-    Ok(PyArray1::from_vec_bound(py, result))
+    Ok(PyArray1::from_vec(py, result))
 }
 
 #[pyfunction]
@@ -349,7 +358,7 @@ fn convolve<'py>(
     let kernel_slice = kernel.as_slice()?;
     let mode = ConvolutionMode::try_from(mode)?;
     let result = convolve_core(signal_slice, kernel_slice, mode)?;
-    Ok(PyArray1::from_vec_bound(py, result))
+    Ok(PyArray1::from_vec(py, result))
 }
 
 #[pymodule]
