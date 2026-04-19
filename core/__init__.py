@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import sys
 from importlib import import_module
+from typing import Any
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Forward known duplicate symbols to the canonical geosync.core."""
 
     try:

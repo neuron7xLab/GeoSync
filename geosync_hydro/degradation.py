@@ -5,7 +5,8 @@
 from __future__ import annotations
 
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
@@ -62,9 +63,7 @@ def apply_degradation(
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(func, *args, **kwargs)
             result = (
-                future.result(timeout=timeout_s)
-                if timeout_s and timeout_s > 0
-                else future.result()
+                future.result(timeout=timeout_s) if timeout_s and timeout_s > 0 else future.result()
             )
         elapsed_ms = (time.monotonic() - start) * 1000.0
         return dict(result), DegradationReport(
