@@ -4,10 +4,13 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import torch
 import torch.nn as nn
 
 from runtime.model_registry import ModelMetadata, register_model
+
 
 # --- Graph backend (minimal, dependency free) ---
 def _normalize_adjacency(A: torch.Tensor, add_self_loops: bool = True) -> torch.Tensor:
@@ -29,7 +32,7 @@ class _GraphLayer(nn.Module):
     def forward(self, X: torch.Tensor, A_hat: torch.Tensor) -> torch.Tensor:
         HX = self.lin(X)  # (B,S,F')
         out = torch.matmul(A_hat, HX)  # (S,S) @ (B,S,F') -> (B,S,F')
-        return self.act(out)
+        return cast(torch.Tensor, self.act(out))
 
 
 class SpatialEncoderMinimal(nn.Module):
@@ -65,15 +68,15 @@ class PositionalEncoding(nn.Module):
         pe = torch.zeros(max_len, d_model)
         pos = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div = torch.exp(
-            torch.arange(0, d_model, 2).float()
-            * (-torch.log(torch.tensor(10000.0)) / d_model)
+            torch.arange(0, d_model, 2).float() * (-torch.log(torch.tensor(10000.0)) / d_model)
         )
         pe[:, 0::2] = torch.sin(pos * div)
         pe[:, 1::2] = torch.cos(pos * div)
         self.register_buffer("pe", pe.unsqueeze(0))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x + self.pe[:, : x.size(1), :]
+        pe = cast(torch.Tensor, self.pe)
+        return x + pe[:, : x.size(1), :]
 
 
 class TemporalEncoder(nn.Module):
@@ -119,13 +122,13 @@ class TemporalEncoder(nn.Module):
         Zf = self.tfm(Zp)
         q = Zf[:, -1:, :]
         a, _ = self.attn(q, Zf, Zf)
-        return self.norm(a.squeeze(1))
+        return cast(torch.Tensor, self.norm(a.squeeze(1)))
 
 
 class GeoSyncHydroV2(nn.Module):
     """Unified spatial-temporal model with multi-head outputs."""
 
-    def __init__(self, cfg: dict, A: torch.Tensor | None = None) -> None:
+    def __init__(self, cfg: dict[str, Any], A: torch.Tensor | None = None) -> None:
         super().__init__()
         m, tr = cfg["model"], cfg.get("training", {})
         self.pool = m.get("pool", "mean")
@@ -133,9 +136,7 @@ class GeoSyncHydroV2(nn.Module):
         gnn_hidden = m.get("gnn_hidden", 128)
         gnn_layers = m.get("gnn_layers", 2)
 
-        self.spatial = SpatialEncoderMinimal(
-            in_feats, gnn_hidden, gnn_layers, self.pool
-        )
+        self.spatial = SpatialEncoderMinimal(in_feats, gnn_hidden, gnn_layers, self.pool)
 
         hs_in = gnn_hidden if self.pool in ("mean", "max") else 2 * gnn_hidden
         self.temporal = TemporalEncoder(
