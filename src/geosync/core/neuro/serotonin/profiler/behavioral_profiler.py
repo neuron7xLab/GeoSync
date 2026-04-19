@@ -29,9 +29,9 @@ _spec = _importlib_util.spec_from_file_location(
     "_geosync_behavioral_profiler_canonical",
     _canonical_path,
 )
-assert _spec is not None and _spec.loader is not None, (
-    f"cannot locate canonical behavioral_profiler.py at {_canonical_path}"
-)
+assert (
+    _spec is not None and _spec.loader is not None
+), f"cannot locate canonical behavioral_profiler.py at {_canonical_path}"
 _canonical_module = _importlib_util.module_from_spec(_spec)
 _sys.modules[_spec.name] = _canonical_module
 _spec.loader.exec_module(_canonical_module)
