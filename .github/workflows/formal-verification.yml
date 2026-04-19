@@ -1,0 +1,61 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
+#
+# Runs the TLA+ TLC model checker against the admission-gate spec and
+# verifies the reproducibility manifest sha256s on every PR that
+# touches the formal surface.
+name: formal-verification
+
+on:
+  pull_request:
+    paths:
+      - "formal/**"
+      - "reproducibility/**"
+      - "core/events/admission.py"
+      - ".github/workflows/formal-verification.yml"
+  push:
+    branches: [main]
+    paths:
+      - "formal/**"
+      - "reproducibility/**"
+      - "core/events/admission.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tlc:
+    name: TLC admission-gate model check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install JRE
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends default-jre-headless
+
+      - name: Fetch TLA+ tools
+        run: |
+          curl -fsSL -o /tmp/tla2tools.jar \
+            https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar
+          test -s /tmp/tla2tools.jar
+
+      - name: Run TLC
+        working-directory: formal/tla
+        run: |
+          OUTPUT="$(java -cp /tmp/tla2tools.jar tlc2.TLC -config MC.cfg AdmissionGate.tla 2>&1)"
+          echo "$OUTPUT"
+          echo "$OUTPUT" | grep -q "Model checking completed. No error has been found" \
+            || (echo "::error::TLC did not report clean completion"; exit 1)
+          echo "$OUTPUT" | grep -q "853 states generated, 547 distinct states found" \
+            || (echo "::error::TLC state-space diverged from pinned expectation (853/547)"; exit 1)
+
+  manifest:
+    name: reproducibility sha256 manifest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verify manifest
+        run: sha256sum --check --strict reproducibility/manifest.sha256
