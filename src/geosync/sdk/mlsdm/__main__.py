@@ -64,8 +64,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--host",
         type=str,
-        default="0.0.0.0",
-        help="Host for API server (used only with --api).",
+        default="127.0.0.1",
+        help="Host for API server (used only with --api). Default is loopback; pass 0.0.0.0 explicitly to expose.",
     )
     parser.add_argument(
         "--port",

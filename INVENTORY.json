@@ -15,15 +15,15 @@
     },
     {
       "path": "scripts/ci/check_central_files_touched.py",
-      "sha256": "071a5fee28a586b58a245ce641906e83676cf1aeedb021d546dcebb81fa4618b"
+      "sha256": "c5506dbb167eaa14a97f4f8b96aebc9365d4d54e2cbba9f96aeb6f404a20f5b8"
     },
     {
       "path": "scripts/ci/check_config_sprawl.py",
-      "sha256": "87fdfe3dc6fc30a841042e7bd9c6013a8013e921ebc222aa4a9715a2225e841f"
+      "sha256": "0da684ef26189993918c8ef0611dc305e2a2ab5de7997b9ffa48d259e2fa93c5"
     },
     {
       "path": "scripts/ci/check_examples_manifest.py",
-      "sha256": "147c0b25a2b28d73f01d83a39685337d88809a1ba2b2875a6c5007c0ae1db62f"
+      "sha256": "a0e4a2d58f0d7ec3020436e654fd3397769a15c8165ec32c53eba5f1f162f187"
     },
     {
       "path": "scripts/ci/check_inventory_sync.py",
@@ -51,7 +51,7 @@
     },
     {
       "path": "src/mycelium_fractal_net/connectors/base.py",
-      "sha256": "d101e3f81e5924e35cab4b4b3a991fa0753abe476633d37070acca5c8d859675"
+      "sha256": "4558c679e660e5f5776b8c3ebb78816dae61e78acc954be3fdaedf1be4179d2a"
     },
     {
       "path": "src/mycelium_fractal_net/connectors/config.py",
@@ -59,7 +59,7 @@
     },
     {
       "path": "src/mycelium_fractal_net/connectors/file_feed.py",
-      "sha256": "70f620be960ef85654d035a2b6dad0dba30ce7d72e6efd0896237310f630e886"
+      "sha256": "4fa5576ded0b1a21642d3a55d5507e73edc54d1eb14cf77f6e5ca59fbf8b0a19"
     },
     {
       "path": "src/mycelium_fractal_net/connectors/kafka_source.py",
@@ -71,7 +71,7 @@
     },
     {
       "path": "src/mycelium_fractal_net/connectors/rest_source.py",
-      "sha256": "92755d1598bb464e6cb29f8a69e4392d622c529fb1dc92d7e6b3406af05ac300"
+      "sha256": "26ddedba40e564c703f07cf675a282b2d11c4e42b07add7400d8a68849af4910"
     },
     {
       "path": "src/mycelium_fractal_net/connectors/runner.py",
@@ -79,7 +79,7 @@
     },
     {
       "path": "src/mycelium_fractal_net/connectors/transform.py",
-      "sha256": "412f30b5d572fb316ef50a3be53825520bb182c24a07bf928b2d3cee47fbfa31"
+      "sha256": "dcaee54248cea8e314a37707d32e71f6f698c0dc134c40154059f4f2e5d0c765"
     },
     {
       "path": "tests/connectors/__init__.py",
@@ -95,7 +95,7 @@
     },
     {
       "path": "tests/connectors/test_file_feed.py",
-      "sha256": "cb2638f8b5b448c7fa23d500950a1e5cddc855b287c02bc5e4f87c76350d9d32"
+      "sha256": "4d1df307e2296b6564a7ff53ddef196cb9bbe07482787d58d7d6b97fd2f0493d"
     },
     {
       "path": "tests/connectors/test_polygon_adapter_reproducible.py",
@@ -103,7 +103,7 @@
     },
     {
       "path": "tests/connectors/test_rest_source.py",
-      "sha256": "5ae7fb32706757fb68a302e9f5b85731f49ffb270cf889f03fc3359c81c09e86"
+      "sha256": "02aec7d139bc9cb2985e0c1445f40277382736693ed4157490bc3d246fcf0591"
     },
     {
       "path": "tests/connectors/test_runner_backend_local.py",
