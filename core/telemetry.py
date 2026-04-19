@@ -179,9 +179,11 @@ class PrometheusBackend:
             registry: Prometheus registry (uses default if None)
         """
         self._registry = registry
-        self._counters: dict[str, Any] = {}
-        self._gauges: dict[str, Any] = {}
-        self._histograms: dict[str, Any] = {}
+        # Metric key = (metric_name, sorted label names) so the same logical
+        # metric with different label-schemas does not collide.
+        self._counters: dict[tuple[str, tuple[str, ...]], Any] = {}
+        self._gauges: dict[tuple[str, tuple[str, ...]], Any] = {}
+        self._histograms: dict[tuple[str, tuple[str, ...]], Any] = {}
         self._prometheus_available = self._check_prometheus()
 
     def _check_prometheus(self) -> bool:

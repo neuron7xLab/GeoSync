@@ -99,3 +99,8 @@ Brotli>=1.2.0
 # scientific/ML extras (e.g. torchvision-adjacent paths). Pin the floor
 # here so transitive resolution cannot regress below the fix line.
 pillow>=12.2.0
+
+# detect-secrets: supply-chain scanner used by pr-gate's secrets-supply-chain.
+# Pin to ensure local==CI baseline semantics (hook behavior drifts between
+# minor versions; version drift caused PR #338 CI "baseline updated" exit-3).
+detect-secrets==1.5.0
