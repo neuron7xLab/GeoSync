@@ -5,6 +5,7 @@ from dataclasses import FrozenInstanceError
 from datetime import timezone
 from threading import Event, Thread
 from types import MappingProxyType
+from typing import Any, Mapping, cast
 
 import pytest
 
@@ -30,7 +31,7 @@ def _priors() -> dict[str, float]:
 
 
 def _apply_sink(target: list[dict[str, float]]):
-    def _cb(weights: dict[str, float]) -> bool:
+    def _cb(weights: Mapping[str, float]) -> bool:
         target.append(dict(weights))
         return True
 
@@ -50,8 +51,6 @@ def _activate(
         apply_attenuated_priors=_apply_sink(attenuated_applied),
         apply_restored_priors=_apply_sink(restored_applied),
     )
-
-
 
 
 # INV-DMT-1 witness
@@ -182,7 +181,6 @@ def test_inv_dmt_4_duration_forces_reintegration_at_threshold_and_closes_step() 
         gate.step(0.1, 0.95)
 
 
-
 # INV-DMT-10 witness
 def test_inv_dmt_10_attenuation_scales_values_exactly_and_preserves_keys() -> None:
     gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.25))
@@ -253,6 +251,7 @@ def test_inv_dmt_5_gate_never_becomes_inactive_without_terminal_call() -> None:
     assert ok is True
     assert gate.snapshot().phase == ExplorationPhase.INACTIVE
 
+
 def test_activation_requires_both_callbacks() -> None:
     gate = PriorAttenuationGate()
     with pytest.raises(ExplorationContractError):
@@ -295,7 +294,7 @@ def test_activate_rejects_non_real_prior_values() -> None:
 def test_activation_is_atomic_and_fails_closed_when_apply_fails() -> None:
     gate = PriorAttenuationGate()
 
-    def bad_apply(_: dict[str, float]) -> bool:
+    def bad_apply(_: Mapping[str, float]) -> bool:
         return False
 
     with pytest.raises(ExplorationContractError):
@@ -315,7 +314,7 @@ def test_activation_is_atomic_and_fails_closed_when_apply_fails() -> None:
 def test_activation_apply_exception_is_deterministic() -> None:
     gate = PriorAttenuationGate()
 
-    def boom(_: dict[str, float]) -> bool:
+    def boom(_: Mapping[str, float]) -> bool:
         raise RuntimeError("boom")
 
     with pytest.raises(ExplorationContractError):
@@ -379,7 +378,7 @@ def test_entropy_model_is_instantaneous_ceiling_only() -> None:
 def test_no_false_terminal_event_when_restore_returns_false() -> None:
     gate = PriorAttenuationGate()
 
-    def bad_restore(_: dict[str, float]) -> bool:
+    def bad_restore(_: Mapping[str, float]) -> bool:
         return False
 
     gate.activate(
@@ -407,7 +406,7 @@ def test_no_false_terminal_event_when_restore_returns_false() -> None:
 def test_no_false_terminal_event_when_restore_raises() -> None:
     gate = PriorAttenuationGate()
 
-    def boom(_: dict[str, float]) -> bool:
+    def boom(_: Mapping[str, float]) -> bool:
         raise RuntimeError("restore fail")
 
     gate.activate(
@@ -502,12 +501,12 @@ def test_snapshot_and_audit_payload_are_immutable_and_utc() -> None:
 
     snap = gate.snapshot()
     with pytest.raises(FrozenInstanceError):
-        snap.phase = ExplorationPhase.INACTIVE
+        snap.phase = ExplorationPhase.INACTIVE  # type: ignore[misc]
 
     event = gate.audit_log()[0]
     assert isinstance(event.details, MappingProxyType)
     with pytest.raises(TypeError):
-        event.details["x"] = 1
+        event.details["x"] = 1  # type: ignore[index]
     assert event.ts.tzinfo is not None
     assert event.ts.tzinfo.utcoffset(event.ts) == timezone.utc.utcoffset(event.ts)
 
@@ -562,11 +561,10 @@ def test_reintegrate_rejects_non_real_coherence_and_no_terminal_event() -> None:
     assert gate.snapshot().phase == ExplorationPhase.REINTEGRATION
 
 
-
 def test_emergency_exit_no_false_terminal_event_when_restore_returns_false() -> None:
     gate = PriorAttenuationGate()
 
-    def bad_restore(_: dict[str, float]) -> bool:
+    def bad_restore(_: Mapping[str, float]) -> bool:
         return False
 
     gate.activate(
@@ -590,7 +588,7 @@ def test_emergency_exit_no_false_terminal_event_when_restore_returns_false() -> 
 def test_emergency_exit_no_false_terminal_event_when_restore_raises() -> None:
     gate = PriorAttenuationGate()
 
-    def boom(_: dict[str, float]) -> bool:
+    def boom(_: Mapping[str, float]) -> bool:
         raise RuntimeError("restore fail")
 
     gate.activate(
@@ -610,15 +608,17 @@ def test_emergency_exit_no_false_terminal_event_when_restore_raises() -> None:
     assert events[-1] == "restore_apply_failed"
     assert gate.snapshot().phase == ExplorationPhase.REINTEGRATION
 
+
 def test_protocol_descriptor_truth_and_registration() -> None:
     descriptor = build_protocol()
     schema = protocol_schema_keys()
     assert tuple(descriptor.keys()) == schema["root"]
-    assert tuple(descriptor["safety"].keys()) == schema["safety"]
-    assert descriptor["safety"]["kill_switch_forces_emergency_exit"] is True
-    assert descriptor["safety"]["stressed_state_forces_emergency_exit"] is True
-    assert descriptor["safety"]["attenuated_apply_confirmation_required"] is True
-    assert descriptor["safety"]["restore_apply_confirmation_required"] is True
+    safety = cast(dict[str, object], descriptor["safety"])
+    assert tuple(safety.keys()) == schema["safety"]
+    assert safety["kill_switch_forces_emergency_exit"] is True
+    assert safety["stressed_state_forces_emergency_exit"] is True
+    assert safety["attenuated_apply_confirmation_required"] is True
+    assert safety["restore_apply_confirmation_required"] is True
 
     clear_registered_protocols()
     registration = register_protocol()
@@ -626,7 +626,7 @@ def test_protocol_descriptor_truth_and_registration() -> None:
     assert loaded is not None
     assert loaded.name == registration.name == DMT_PROTOCOL_NAME
 
-    gate = loaded.descriptor["gate"]
+    gate = cast(PriorAttenuationGate, loaded.descriptor["gate"])
     assert isinstance(gate, PriorAttenuationGate)
     gate.activate(
         "cycle-1",
@@ -636,5 +636,11 @@ def test_protocol_descriptor_truth_and_registration() -> None:
         apply_attenuated_priors=_apply_sink([]),
         apply_restored_priors=_apply_sink([]),
     )
-    restored = apply_external_controller(gate, kill_switch_active=False, stressed_state=True)
-    assert restored == _priors()
+    restored = cast(
+        Mapping[str, Any],
+        apply_external_controller(gate, kill_switch_active=False, stressed_state=True),
+    )
+    assert set(restored.keys()) == set(_priors().keys())
+    assert restored["p1"] == _priors()["p1"]
+    assert restored["p2"] == _priors()["p2"]
+    assert restored["p3"] == _priors()["p3"]

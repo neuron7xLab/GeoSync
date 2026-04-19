@@ -302,9 +302,7 @@ class PriorAttenuationGate:
     def reintegrate(self, coherence: float) -> tuple[bool, dict[str, float]]:
         with self._lock:
             if self._phase != ExplorationPhase.REINTEGRATION:
-                raise ExplorationContractError(
-                    "reintegrate denied: phase must be reintegration"
-                )
+                raise ExplorationContractError("reintegrate denied: phase must be reintegration")
             if self._prior_weights_backup is None:
                 raise ExplorationContractError("reintegrate denied: no prior backup")
             coherence_value = self._require_finite_real(
@@ -315,9 +313,7 @@ class PriorAttenuationGate:
 
             restored = dict(self._prior_weights_backup)
             self._reintegration_coherence = coherence_value
-            success = (
-                coherence_value >= self._config.reintegration_coherence_threshold
-            )
+            success = coherence_value >= self._config.reintegration_coherence_threshold
             terminal_event = "reintegration_success" if success else "reintegration_failed"
             terminal_reason = "threshold_met" if success else "coherence_below_threshold"
 
