@@ -6,10 +6,13 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import threading
 import time
 from collections import Counter
-from typing import Any, Iterable, Sequence
+from contextlib import contextmanager
+from dataclasses import dataclass
+from typing import Any, Iterable, Iterator, Sequence
 
 try:  # pragma: no cover - optional dependency in some deployments
     import numpy as np
@@ -144,6 +147,146 @@ def _raise_sync_error(
     )
 
 
+# ---------------------------------------------------------------------------
+# Process-wide strict-backend default — ``GEOSYNC_STRICT_BACKEND`` env flip.
+# ---------------------------------------------------------------------------
+
+_STRICT_BACKEND_ENV = "GEOSYNC_STRICT_BACKEND"
+
+
+def _default_strict_backend() -> bool:
+    """Return the process-wide default for ``strict_backend``.
+
+    Resolution order (first hit wins):
+
+    * Environment variable ``GEOSYNC_STRICT_BACKEND`` set to a truthy
+      value (``"1"``, ``"true"``, ``"yes"``, ``"on"`` — case-insensitive)
+      flips the default to ``True``. Production deployments set this
+      once to make fail-closed the default without touching call
+      sites.
+    * Otherwise the legacy ``False`` default — fail-open fallback —
+      keeps every existing caller working unchanged.
+    """
+    raw = os.environ.get(_STRICT_BACKEND_ENV, "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _resolve_strict(explicit: bool | None) -> bool:
+    """Resolve the effective ``strict_backend`` for a call.
+
+    A caller's explicit ``True`` / ``False`` always wins; ``None``
+    means "use process default", which consults the env flag above.
+    """
+    if explicit is None:
+        return _default_strict_backend()
+    return bool(explicit)
+
+
+# ---------------------------------------------------------------------------
+# BackendHealth — scoped observability span, Prometheus-free.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class BackendHealthReport:
+    """Frozen snapshot of a ``BackendHealth`` span's observations."""
+
+    label: str
+    wall_duration_s: float
+    downgrades: dict[tuple[str, str, str], int]
+    last_healthy_epoch_ns: dict[str, int | None]
+
+    @property
+    def n_downgrades(self) -> int:
+        return sum(self.downgrades.values())
+
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-serialisable form for audit ledgers."""
+        return {
+            "label": self.label,
+            "wall_duration_s": self.wall_duration_s,
+            "n_downgrades": self.n_downgrades,
+            "downgrades": {
+                f"{frm}->{to}:{reason}": count
+                for (frm, to, reason), count in self.downgrades.items()
+            },
+            "last_healthy_epoch_ns": dict(self.last_healthy_epoch_ns),
+        }
+
+
+@contextmanager
+def BackendHealth(label: str) -> Iterator["_HealthSpan"]:  # noqa: N802 — context manager
+    """Scoped observability span over an accelerator-using block.
+
+    Usage::
+
+        with BackendHealth("ingest-batch") as span:
+            for frame in batch:
+                sliding_windows(frame, 32, 8)
+            report = span.report()
+            emit_audit(report.to_dict())
+
+    The span records:
+
+    * wall-clock duration of the block,
+    * downgrade delta (snapshot diff between enter / exit),
+    * last-healthy-epoch per backend at exit.
+
+    The caller reads the report explicitly — the span never writes to
+    a global registry, so two spans can nest without contaminating
+    each other.
+    """
+    span = _HealthSpan(label=label, started_ns=time.time_ns())
+    span._enter_snapshot = downgrade_counts()
+    try:
+        yield span
+    finally:
+        span._exit_snapshot = downgrade_counts()
+        span._wall_duration_s = (time.time_ns() - span.started_ns) / 1_000_000_000
+        span._last_healthy = {
+            backend: _get_last_healthy(backend) for backend in _LAST_HEALTHY_EPOCH_NS.keys()
+        }
+
+
+@dataclass
+class _HealthSpan:
+    """Mutable mid-span state that ``BackendHealth`` fills in on exit."""
+
+    label: str
+    started_ns: int
+    _enter_snapshot: dict[tuple[str, str, str], int] | None = None
+    _exit_snapshot: dict[tuple[str, str, str], int] | None = None
+    _wall_duration_s: float = 0.0
+    _last_healthy: dict[str, int | None] | None = None
+
+    def report(self) -> BackendHealthReport:
+        """Return the immutable observation snapshot.
+
+        Must be called after the ``with`` block exits; calling during
+        the block returns a zeroed report and ``_exit_snapshot is None``.
+        """
+        if self._exit_snapshot is None:
+            # Span still in flight — return a zero-delta report.
+            return BackendHealthReport(
+                label=self.label,
+                wall_duration_s=0.0,
+                downgrades={},
+                last_healthy_epoch_ns={},
+            )
+        entry = self._enter_snapshot or {}
+        delta: dict[tuple[str, str, str], int] = {}
+        for key, count in self._exit_snapshot.items():
+            diff = count - entry.get(key, 0)
+            if diff > 0:
+                delta[key] = diff
+        return BackendHealthReport(
+            label=self.label,
+            wall_duration_s=self._wall_duration_s,
+            downgrades=delta,
+            last_healthy_epoch_ns=self._last_healthy or {},
+        )
+
+
 try:  # pragma: no cover - optional acceleration module
     if _NUMPY_AVAILABLE:
         from geosync_accel import (
@@ -263,7 +406,7 @@ def sliding_windows(
     step: int = 1,
     *,
     use_rust: bool = True,
-    strict_backend: bool = False,
+    strict_backend: bool | None = None,
 ) -> np.ndarray:
     """Return a matrix of sliding windows over ``data``.
 
@@ -273,12 +416,15 @@ def sliding_windows(
         step: Step between windows (default: 1).
         use_rust: Attempt to dispatch to the Rust accelerator (default: True).
         strict_backend: Raise if Rust dispatch fails while ``use_rust`` is
-            enabled (default: False).
+            enabled. ``None`` (default) delegates to
+            ``_default_strict_backend()`` which consults the
+            ``GEOSYNC_STRICT_BACKEND`` env var.
 
     Returns:
         ``(n_windows, window)`` matrix of float64 windows.
     """
 
+    strict_backend = _resolve_strict(strict_backend)
     if _NUMPY_AVAILABLE and np is not None:
         arr = _ensure_vector_numpy(data)
         if (
@@ -404,10 +550,14 @@ def quantiles(
     probabilities: Sequence[float] | np.ndarray,
     *,
     use_rust: bool = True,
-    strict_backend: bool = False,
+    strict_backend: bool | None = None,
 ) -> np.ndarray:
-    """Compute quantiles for ``data`` at the given probabilities."""
+    """Compute quantiles for ``data`` at the given probabilities.
 
+    ``strict_backend=None`` delegates to ``GEOSYNC_STRICT_BACKEND`` env.
+    """
+
+    strict_backend = _resolve_strict(strict_backend)
     if _NUMPY_AVAILABLE and np is not None:
         arr = _ensure_vector_numpy(data)
         if use_rust and strict_backend and (not _RUST_ACCEL_AVAILABLE or _rust_quantiles is None):
@@ -548,10 +698,14 @@ def convolve(
     *,
     mode: str = "full",
     use_rust: bool = True,
-    strict_backend: bool = False,
+    strict_backend: bool | None = None,
 ) -> np.ndarray:
-    """Convolve ``signal`` with ``kernel`` using the requested mode."""
+    """Convolve ``signal`` with ``kernel`` using the requested mode.
 
+    ``strict_backend=None`` delegates to ``GEOSYNC_STRICT_BACKEND`` env.
+    """
+
+    strict_backend = _resolve_strict(strict_backend)
     if _NUMPY_AVAILABLE and np is not None:
         signal_arr = _ensure_vector_numpy(signal)
         kernel_arr = _ensure_vector_numpy(kernel)
@@ -596,6 +750,8 @@ def convolve(
 
 
 __all__ = [
+    "BackendHealth",
+    "BackendHealthReport",
     "BackendSynchronizationError",
     "convolve",
     "convolve_numpy_backend",
