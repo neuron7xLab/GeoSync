@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from .degradation import DegradationPolicy, apply_degradation
+from .degradation import DegradationPolicy, DegradationReport, apply_degradation
 from .model import GeoSyncHydroV2
 from .utils import AnomalyDetector, DataImputer, preprocess_window
 from .validator import GBStandardValidator
@@ -19,7 +19,7 @@ from .validator import GBStandardValidator
 class RealTimeMonitor:
     def __init__(
         self,
-        cfg: dict,
+        cfg: dict[str, Any],
         A_tensor: torch.Tensor,
         weights_path: str | None = None,
         device: str | None = None,
@@ -28,12 +28,8 @@ class RealTimeMonitor:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model = GeoSyncHydroV2(cfg, A_tensor).to(self.device).eval()
         if weights_path:
-            obj = torch.load(
-                weights_path, map_location=self.device, weights_only=True
-            )
-            self.model.load_state_dict(
-                obj["model"] if "model" in obj else obj, strict=False
-            )
+            obj = torch.load(weights_path, map_location=self.device, weights_only=True)
+            self.model.load_state_dict(obj["model"] if "model" in obj else obj, strict=False)
             logging.info("Weights loaded from %s", weights_path)
         self.validator = GBStandardValidator()
         self.imputer = DataImputer()
@@ -45,9 +41,7 @@ class RealTimeMonitor:
         window_np = self.imputer.impute(window_np)
         z = self.anom.zscore(window_np)
         if z > self.th["sensor_anomaly_z"]:
-            logging.warning(
-                "Sensor anomaly: z=%.2f > %.2f", z, self.th["sensor_anomaly_z"]
-            )
+            logging.warning("Sensor anomaly: z=%.2f > %.2f", z, self.th["sensor_anomaly_z"])
         X = preprocess_window(window_np).to(self.device)
         out = self.model(X)
         probs = torch.softmax(out["flood_logits"], dim=-1)
