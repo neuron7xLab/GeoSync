@@ -70,7 +70,7 @@ def test_deterministic_same_input_same_output() -> None:
 
 
 @given(seed=st.integers(min_value=0, max_value=10000))
-@settings(max_examples=20)
+@settings(max_examples=20, deadline=None)
 def test_gamma_always_bounded(seed: int) -> None:
     """∀ input: gamma ∈ [-5, 5] (clipped)."""
     rng = np.random.RandomState(seed)

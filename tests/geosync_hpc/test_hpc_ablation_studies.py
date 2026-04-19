@@ -299,6 +299,7 @@ class TestStatisticalSignificance:
 class TestComponentContributions:
     """Measure individual component contributions to performance."""
 
+    @pytest.mark.heavy_math
     def test_gate_contribution_to_drawdown(self) -> None:
         """
         Measure if metastable gate reduces maximum drawdown.

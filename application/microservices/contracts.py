@@ -21,7 +21,10 @@ os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "contract-tests-placeholder")
 _audit_logger = logging.getLogger("geosync.audit")
 if not _audit_logger.handlers:
     _audit_logger.addHandler(logging.NullHandler())
-_audit_logger.propagate = False
+# Propagation stays enabled by default so observability pipelines (stdout, SIEM,
+# pytest caplog) can capture audit events through the root logger. Production
+# deployments that want to silence the root handler chain should configure that
+# explicitly via logging.config — not as an import-time side effect.
 
 from application.api.service import (  # noqa: E402 - must follow env setup
     FeatureRequest,
@@ -467,21 +470,15 @@ class IntegrationContractRegistry:
     # Introspection --------------------------------------------------------
     def snapshot(self) -> dict[str, Any]:
         return {
-            "api": {
-                name: self._api_metadata(contract)
-                for name, contract in self._api.items()
-            },
+            "api": {name: self._api_metadata(contract) for name, contract in self._api.items()},
             "events": {
-                name: self._event_metadata(contract)
-                for name, contract in self._events.items()
+                name: self._event_metadata(contract) for name, contract in self._events.items()
             },
             "queues": {
-                name: self._queue_metadata(contract)
-                for name, contract in self._queues.items()
+                name: self._queue_metadata(contract) for name, contract in self._queues.items()
             },
             "services": {
-                name: self._service_metadata(contract)
-                for name, contract in self._services.items()
+                name: self._service_metadata(contract) for name, contract in self._services.items()
             },
         }
 
@@ -594,9 +591,7 @@ def default_contract_registry() -> IntegrationContractRegistry:
         path="/api/v1/features",
         request_model=FeatureRequest,
         response_model=FeatureResponse,
-        versioning=VersioningPolicy(
-            scheme="semver", current="1.2.0", compatible_since="1.0.0"
-        ),
+        versioning=VersioningPolicy(scheme="semver", current="1.2.0", compatible_since="1.0.0"),
         authorization=service_jwt,
         idempotency=api_idempotency,
         retry_policy=api_retry,
@@ -621,9 +616,7 @@ def default_contract_registry() -> IntegrationContractRegistry:
         path="/api/v1/predictions",
         request_model=PredictionRequest,
         response_model=PredictionResponse,
-        versioning=VersioningPolicy(
-            scheme="semver", current="1.2.0", compatible_since="1.0.0"
-        ),
+        versioning=VersioningPolicy(scheme="semver", current="1.2.0", compatible_since="1.0.0"),
         authorization=service_jwt,
         idempotency=api_idempotency,
         retry_policy=api_retry,
@@ -772,9 +765,7 @@ def default_contract_registry() -> IntegrationContractRegistry:
         ServiceInteractionContract(
             name="geosync.service.market-data.ingest",
             operation="ingest",
-            versioning=VersioningPolicy(
-                scheme="semver", current="1.1.0", compatible_since="1.0.0"
-            ),
+            versioning=VersioningPolicy(scheme="semver", current="1.1.0", compatible_since="1.0.0"),
             authorization=internal_service,
             retry_policy=RetryPolicy(
                 max_attempts=3, initial_interval_seconds=0.5, max_interval_seconds=4.0
@@ -843,9 +834,7 @@ def default_contract_registry() -> IntegrationContractRegistry:
         ServiceInteractionContract(
             name="geosync.service.execution.submit",
             operation="submit",
-            versioning=VersioningPolicy(
-                scheme="semver", current="1.1.0", compatible_since="1.0.0"
-            ),
+            versioning=VersioningPolicy(scheme="semver", current="1.1.0", compatible_since="1.0.0"),
             authorization=internal_service,
             idempotency=IdempotencyPolicy(key="idempotency_key", ttl_seconds=3600),
             retry_policy=RetryPolicy(

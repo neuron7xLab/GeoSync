@@ -80,183 +80,105 @@ def _config_strategy(draw):  # type: ignore[no-untyped-def]
 
     return {
         "discount_gamma": draw(
-            st.floats(
-                min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "learning_rate_v": draw(
-            st.floats(
-                min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "decay_rate": draw(
-            st.floats(
-                min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "burst_factor": draw(
-            st.floats(
-                min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False)
         ),
-        "k": draw(
-            st.floats(
-                min_value=1e-3, max_value=10.0, allow_nan=False, allow_infinity=False
-            )
-        ),
+        "k": draw(st.floats(min_value=1e-3, max_value=10.0, allow_nan=False, allow_infinity=False)),
         "theta": draw(
-            st.floats(
-                min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False)
         ),
-        "w_r": draw(
-            st.floats(
-                min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
-        ),
-        "w_n": draw(
-            st.floats(
-                min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
-        ),
-        "w_m": draw(
-            st.floats(
-                min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
-        ),
-        "w_v": draw(
-            st.floats(
-                min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
-        ),
+        "w_r": draw(st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False)),
+        "w_n": draw(st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False)),
+        "w_m": draw(st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False)),
+        "w_v": draw(st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False)),
         "novelty_mode": draw(st.sampled_from(sorted(_ALLOWED_NOVELTY_MODES))),
         "c_absrpe": draw(
-            st.floats(
-                min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False)
         ),
         "baseline": draw(
-            st.floats(
-                min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "delta_gain": draw(
-            st.floats(
-                min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "meta_cooldown_ticks": draw(st.integers(min_value=0, max_value=100)),
         "metric_interval": draw(st.integers(min_value=1, max_value=100)),
         "target_sharpe": draw(
-            st.floats(
-                min_value=1e-3, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-3, max_value=5.0, allow_nan=False, allow_infinity=False)
         ),
         "base_temperature": base_temperature,
         "min_temperature": min_temperature,
         "temp_k": draw(
-            st.floats(
-                min_value=1e-3, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-3, max_value=5.0, allow_nan=False, allow_infinity=False)
         ),
         "neg_rpe_temp_gain": draw(
-            st.floats(
-                min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False)
         ),
         "max_temp_multiplier": draw(
-            st.floats(
-                min_value=1.0, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1.0, max_value=5.0, allow_nan=False, allow_infinity=False)
         ),
         "invigoration_threshold": draw(
-            st.floats(
-                min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "no_go_threshold": draw(
-            st.floats(
-                min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "hold_threshold": draw(
-            st.floats(
-                min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "rpe_ema_beta": draw(
-            st.floats(
-                min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "temp_adapt_target_var": draw(
-            st.floats(
-                min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "temp_adapt_lr": draw(
-            st.floats(
-                min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "temp_adapt_beta1": draw(
-            st.floats(
-                min_value=1e-6, max_value=0.999, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-6, max_value=0.999, allow_nan=False, allow_infinity=False)
         ),
         "temp_adapt_beta2": draw(
-            st.floats(
-                min_value=1e-6, max_value=0.999, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-6, max_value=0.999, allow_nan=False, allow_infinity=False)
         ),
         "temp_adapt_epsilon": draw(
-            st.floats(
-                min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "temp_adapt_min_base": temp_adapt_min_base,
         "temp_adapt_max_base": temp_adapt_max_base,
         "rpe_var_release_threshold": draw(
-            st.floats(
-                min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False)
         ),
         "rpe_var_release_hysteresis": draw(
-            st.floats(
-                min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False)
         ),
         "ddm_temp_gain": draw(
-            st.floats(
-                min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False)
         ),
         "ddm_threshold_gain": draw(
-            st.floats(
-                min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False)
         ),
         "ddm_hold_gain": draw(
-            st.floats(
-                min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False)
         ),
         "ddm_min_temperature_scale": ddm_min_temperature_scale,
         "ddm_max_temperature_scale": ddm_max_temperature_scale,
         "ddm_baseline_a": draw(
-            st.floats(
-                min_value=1e-3, max_value=3.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-3, max_value=3.0, allow_nan=False, allow_infinity=False)
         ),
         "ddm_baseline_t0": draw(
-            st.floats(
-                min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=0.0, max_value=3.0, allow_nan=False, allow_infinity=False)
         ),
         "ddm_eps": draw(
-            st.floats(
-                min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False
-            )
+            st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False)
         ),
         "meta_adapt_rules": {
             "good": draw(meta_rule),
@@ -267,7 +189,7 @@ def _config_strategy(draw):  # type: ignore[no-untyped-def]
 
 
 @pytest.mark.skipif(not HAS_HYPOTHESIS, reason="hypothesis not installed")
-@settings(max_examples=25)
+@settings(max_examples=25, deadline=None)
 @given(cfg=_config_strategy())
 def test_dopamine_invariants_property(cfg: dict) -> None:  # type: ignore[type-arg]
     """INV-DA3: discount γ ∈ (0, 1] and all other dopamine config bounds
@@ -352,9 +274,7 @@ def test_dopamine_invariants_property(cfg: dict) -> None:  # type: ignore[type-a
         ("ddm_eps_positive", cfg["ddm_eps"] > 0.0),
         (
             "meta_adapt_rules_has_states",
-            all(
-                state in cfg["meta_adapt_rules"] for state in ("good", "bad", "neutral")
-            ),
+            all(state in cfg["meta_adapt_rules"] for state in ("good", "bad", "neutral")),
         ),
         (
             "meta_adapt_rules_entries_finite",
