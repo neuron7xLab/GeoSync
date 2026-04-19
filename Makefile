@@ -114,6 +114,7 @@ lint-python:
 	python -m flake8
 	python scripts/check_namespace_policy.py
 	python scripts/check_serotonin_namespace.py
+	python scripts/check_cns_ontology_usage.py
 	python -m mypy --config-file=mypy.ini
 
 .PHONY: lint-go

@@ -78,6 +78,11 @@ project:
 
 ---
 
+## Strategic Addendum
+
+For CNS-aligned, witness-first architectural priorities derived from the project
+owner's doctrine, see [`docs/CNS_ALIGNMENT_DEEP_TASKS.md`](docs/CNS_ALIGNMENT_DEEP_TASKS.md).
+
 ## How to Influence the Roadmap
 
 1. Open a **feature request** issue using the structured YAML form.
