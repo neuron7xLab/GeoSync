@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "415a311120234dbb9338c83205b589f034bec76b043ff62484c5c169d4c30ab6"
+      "sha256": "8a10e60f2229523e8f86a92e6add36a7d7398c05733bc8bd910d112c4a279144"
     },
     {
       "path": "scripts/ci/check_central_files_touched.py",

@@ -10,8 +10,8 @@
 
 [![modules-15](https://img.shields.io/badge/modules-15-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
 [![invariants-57](https://img.shields.io/badge/invariants-57-critical?style=for-the-badge)](CLAUDE.md)
-[![tests-10051](https://img.shields.io/badge/tests-10%2C051-brightgreen?style=for-the-badge)](tests/)
-[![indicators-46](https://img.shields.io/badge/indicators-46-gold?style=for-the-badge)](core/indicators/)
+[![tests-9505](https://img.shields.io/badge/tests-9%2C505-brightgreen?style=for-the-badge)](tests/)
+[![indicators-17](https://img.shields.io/badge/indicators-17-gold?style=for-the-badge)](core/indicators/)
 [![ADRs-16](https://img.shields.io/badge/ADRs-16-blue?style=for-the-badge)](docs/adr/)
 [![license-MIT](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)](LICENSE)
 
@@ -126,7 +126,7 @@ dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
 <td align="center" width="8%"><b>Lang</b></td>
 <td align="center" width="62%"><b>Purpose</b></td>
 </tr>
-<tr><td><code>CORE</code></td><td><code>core/indicators/</code></td><td>Python</td><td>50+ geometric and technical indicators — Kuramoto, Ricci, entropy, fractal, Hurst</td></tr>
+<tr><td><code>CORE</code></td><td><code>core/indicators/</code></td><td>Python</td><td>17 geometric and technical indicators — Kuramoto, Ricci, entropy, fractal, Hurst</td></tr>
 <tr><td><code>KURAMOTO</code></td><td><code>core/kuramoto/</code></td><td>Python</td><td>RK4 · JAX/GPU · Sparse · Adaptive · Delayed · SecondOrder simulation engines</td></tr>
 <tr><td><code>BACKTEST</code></td><td><code>backtest/</code></td><td>Python</td><td>Event-driven engine, walk-forward, Monte Carlo, property-based validation</td></tr>
 <tr><td><code>EXECUTION</code></td><td><code>execution/</code></td><td>Python</td><td>OMS, smart routing, Kelly/MV sizing, compliance, paper trading</td></tr>
@@ -670,6 +670,11 @@ geosync run strategy.capital=200000 data.timeframe=4h
 - [Indicator Library](docs/indicators.md)
 - [TACL Documentation](docs/TACL.md)
 - [Metrics Contract](docs/METRICS_CONTRACT.md)
+
+**Honesty set** — read before you trust a number
+- [Known Limitations](docs/KNOWN_LIMITATIONS.md)
+- [Performance Ledger](docs/PERFORMANCE_LEDGER.md)
+- [Baseline](BASELINE.md)
 
 </td>
 </tr>
