@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from enum import Enum
 from math import isfinite
+from numbers import Real
 from threading import RLock
 from types import MappingProxyType
 from typing import Callable, Mapping
@@ -141,12 +142,16 @@ class PriorAttenuationGate:
 
     def can_activate(self, parent_nominal: bool, current_coherence: float) -> bool:
         with self._lock:
+            coherence_value = self._require_finite_real(
+                name="current_coherence",
+                value=current_coherence,
+                message="activation denied: coherence must be a finite real number",
+            )
             return (
                 parent_nominal
                 and self._phase == ExplorationPhase.INACTIVE
                 and self._prior_weights_backup is None
-                and isfinite(current_coherence)
-                and current_coherence >= self._config.activation_coherence_threshold
+                and coherence_value >= self._config.activation_coherence_threshold
             )
 
     def activate(
@@ -179,11 +184,12 @@ class PriorAttenuationGate:
 
             attenuated: dict[str, float] = {}
             for key, value in prior_weights.items():
-                if not isfinite(value):
-                    raise ExplorationContractError(
-                        f"activation denied: non-finite prior value for key={key!r}"
-                    )
-                attenuated[key] = value * self._config.attenuation_factor
+                finite_value = self._require_finite_real(
+                    name=f"prior_weights[{key!r}]",
+                    value=value,
+                    message=f"activation denied: prior value for key={key!r} must be a finite real number",
+                )
+                attenuated[key] = finite_value * self._config.attenuation_factor
 
             self._apply_callback_or_raise(
                 apply_attenuated_priors,
@@ -224,25 +230,31 @@ class PriorAttenuationGate:
                 raise ExplorationContractError(
                     "step denied: reintegration pending; call reintegrate() or emergency_exit()"
                 )
-            if not isfinite(current_entropy):
-                raise ExplorationContractError("step denied: entropy must be finite")
-            if not isfinite(coherence):
-                raise ExplorationContractError("step denied: coherence must be finite")
+            entropy_value = self._require_finite_real(
+                name="current_entropy",
+                value=current_entropy,
+                message="step denied: entropy must be a finite real number",
+            )
+            coherence_value = self._require_finite_real(
+                name="coherence",
+                value=coherence,
+                message="step denied: coherence must be a finite real number",
+            )
 
             self._bars_elapsed += 1
-            peak_entropy = max(self._entropy_budget.peak_entropy, current_entropy)
+            peak_entropy = max(self._entropy_budget.peak_entropy, entropy_value)
             self._entropy_budget = replace(
                 self._entropy_budget,
-                current_entropy=current_entropy,
+                current_entropy=entropy_value,
                 peak_entropy=peak_entropy,
             )
 
             prev_phase = self._phase
             forced_reason: str | None = None
 
-            if coherence < self._config.reintegration_coherence_threshold:
+            if coherence_value < self._config.reintegration_coherence_threshold:
                 forced_reason = "coherence_below_reintegration_threshold"
-            elif current_entropy > self._entropy_budget.max_entropy:
+            elif entropy_value > self._entropy_budget.max_entropy:
                 forced_reason = "entropy_ceiling_exceeded"
             elif self._bars_elapsed >= self._config.max_duration_bars:
                 forced_reason = "max_duration_reached"
@@ -255,9 +267,9 @@ class PriorAttenuationGate:
                     "forced_reintegration",
                     {
                         "reason": forced_reason,
-                        "entropy": current_entropy,
+                        "entropy": entropy_value,
                         "peak_entropy": peak_entropy,
-                        "coherence": coherence,
+                        "coherence": coherence_value,
                         "cross_module_openings": self._cross_module_openings,
                     },
                 )
@@ -279,9 +291,9 @@ class PriorAttenuationGate:
                     {
                         "from_phase": prev_phase.value,
                         "to_phase": self._phase.value,
-                        "entropy": current_entropy,
+                        "entropy": entropy_value,
                         "peak_entropy": peak_entropy,
-                        "coherence": coherence,
+                        "coherence": coherence_value,
                         "cross_module_openings": self._cross_module_openings,
                     },
                 )
@@ -295,12 +307,17 @@ class PriorAttenuationGate:
                 )
             if self._prior_weights_backup is None:
                 raise ExplorationContractError("reintegrate denied: no prior backup")
-            if not isfinite(coherence):
-                raise ExplorationContractError("reintegrate denied: coherence must be finite")
+            coherence_value = self._require_finite_real(
+                name="coherence",
+                value=coherence,
+                message="reintegrate denied: coherence must be a finite real number",
+            )
 
             restored = dict(self._prior_weights_backup)
-            self._reintegration_coherence = coherence
-            success = coherence >= self._config.reintegration_coherence_threshold
+            self._reintegration_coherence = coherence_value
+            success = (
+                coherence_value >= self._config.reintegration_coherence_threshold
+            )
             terminal_event = "reintegration_success" if success else "reintegration_failed"
             terminal_reason = "threshold_met" if success else "coherence_below_threshold"
 
@@ -312,7 +329,7 @@ class PriorAttenuationGate:
             self._append_event(
                 terminal_event,
                 {
-                    "coherence": coherence,
+                    "coherence": coherence_value,
                     "restored_key_count": len(restored),
                     "reason": terminal_reason,
                 },
@@ -442,6 +459,22 @@ class PriorAttenuationGate:
                 details["attempted_terminal_event"] = attempted_terminal_event
             self._append_event(failure_event, details)
             raise ExplorationContractError("callback apply did not confirm")
+
+    def _require_finite_real(
+        self,
+        *,
+        name: str,
+        value: object,
+        message: str,
+    ) -> float:
+        if isinstance(value, bool) or not isinstance(value, Real):
+            raise ExplorationContractError(message)
+        try:
+            if not isfinite(value):
+                raise ExplorationContractError(message)
+        except (TypeError, ValueError) as exc:
+            raise ExplorationContractError(message) from exc
+        return float(value)
 
     def _validate_config(self, config: PriorAttenuationConfig) -> None:
         if not (0.0 < config.attenuation_factor <= 1.0):

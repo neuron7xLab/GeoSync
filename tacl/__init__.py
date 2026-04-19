@@ -8,6 +8,7 @@ from .behavioral_contract import (
     BehavioralContractViolation,
     ContractBreach,
 )
+from .degradation import DegradationPolicy, DegradationReport, apply_degradation
 from .energy_model import (
     DEFAULT_THRESHOLDS,
     DEFAULT_WEIGHTS,
@@ -17,15 +18,6 @@ from .energy_model import (
     EnergyValidationResult,
     EnergyValidator,
 )
-from .degradation import DegradationPolicy, DegradationReport, apply_degradation
-from .risk_gating import (
-    PreActionContext,
-    PreActionDecision,
-    PreActionFilter,
-    RiskGatingConfig,
-    RiskGatingEngine,
-)
-from .validate import load_scenarios
 from .prior_attenuation_protocol import (
     DMT_PROTOCOL_NAME,
     apply_external_controller,
@@ -35,6 +27,14 @@ from .prior_attenuation_protocol import (
     protocol_schema_keys,
     register_protocol,
 )
+from .risk_gating import (
+    PreActionContext,
+    PreActionDecision,
+    PreActionFilter,
+    RiskGatingConfig,
+    RiskGatingEngine,
+)
+from .validate import load_scenarios
 
 __all__ = [
     "DEFAULT_THRESHOLDS",

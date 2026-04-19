@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import math
 from dataclasses import FrozenInstanceError
 from datetime import timezone
-import math
 from threading import Event, Thread
 from types import MappingProxyType
 
@@ -106,6 +106,27 @@ def test_inv_dmt_1_activation_denied_when_coherence_below_threshold() -> None:
         apply_restored_priors=_apply_sink([]),
     )
     assert gate.snapshot().phase == ExplorationPhase.ATTENUATION
+
+
+# INV-DMT-1 witness (non-real boundary)
+@pytest.mark.parametrize("bad_coherence", [None, "0.9", True])
+def test_inv_dmt_1_activation_rejects_non_real_coherence(
+    bad_coherence: object,
+) -> None:
+    gate = PriorAttenuationGate()
+
+    with pytest.raises(ExplorationContractError):
+        gate.activate(
+            "cycle-1",
+            _priors(),
+            parent_nominal=True,
+            current_coherence=bad_coherence,  # type: ignore[arg-type]
+            apply_attenuated_priors=_apply_sink([]),
+            apply_restored_priors=_apply_sink([]),
+        )
+
+    assert gate.snapshot().phase == ExplorationPhase.INACTIVE
+    assert not any(e.event == "activated" for e in gate.audit_log())
 
 
 # INV-DMT-2 witness
@@ -252,6 +273,23 @@ def test_activation_requires_both_callbacks() -> None:
             apply_attenuated_priors=_apply_sink([]),
             apply_restored_priors=None,  # type: ignore[arg-type]
         )
+
+
+def test_activate_rejects_non_real_prior_values() -> None:
+    gate = PriorAttenuationGate()
+
+    for bad_priors in ({"p1": None}, {"p1": "1.0"}, {"p1": True}):
+        with pytest.raises(ExplorationContractError):
+            gate.activate(
+                "cycle-1",
+                bad_priors,  # type: ignore[arg-type]
+                parent_nominal=True,
+                current_coherence=0.9,
+                apply_attenuated_priors=_apply_sink([]),
+                apply_restored_priors=_apply_sink([]),
+            )
+        assert gate.snapshot().phase == ExplorationPhase.INACTIVE
+        assert not any(e.event == "activated" for e in gate.audit_log())
 
 
 def test_activation_is_atomic_and_fails_closed_when_apply_fails() -> None:
@@ -481,6 +519,47 @@ def test_non_finite_inputs_raise() -> None:
         gate.step(current_entropy=math.nan, coherence=0.9)
     with pytest.raises(ExplorationContractError):
         gate.step(current_entropy=0.1, coherence=math.inf)
+
+
+def test_step_rejects_non_real_entropy_and_coherence_without_mutation() -> None:
+    gate = PriorAttenuationGate()
+    _activate(gate, [], [])
+    before = gate.snapshot()
+    before_audit = len(gate.audit_log())
+
+    bad_inputs = [
+        (None, 0.9),
+        ("0.1", 0.9),
+        (0.1, None),
+        (0.1, "0.9"),
+        (True, 0.9),
+        (0.1, True),
+    ]
+    for entropy, coherence in bad_inputs:
+        with pytest.raises(ExplorationContractError):
+            gate.step(entropy, coherence)  # type: ignore[arg-type]
+
+    after = gate.snapshot()
+    assert after.phase == before.phase
+    assert after.bars_elapsed == before.bars_elapsed
+    assert len(gate.audit_log()) == before_audit
+
+
+def test_reintegrate_rejects_non_real_coherence_and_no_terminal_event() -> None:
+    gate = PriorAttenuationGate()
+    _activate(gate, [], [])
+    gate.step(0.1, 0.95)
+    gate.step(0.1, 0.95)
+    gate.step(0.1, 0.95)
+
+    for bad in (None, "0.8", True):
+        with pytest.raises(ExplorationContractError):
+            gate.reintegrate(bad)  # type: ignore[arg-type]
+
+    events = [e.event for e in gate.audit_log()]
+    assert "reintegration_success" not in events
+    assert "reintegration_failed" not in events
+    assert gate.snapshot().phase == ExplorationPhase.REINTEGRATION
 
 
 

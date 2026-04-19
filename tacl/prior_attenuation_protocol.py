@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
 from runtime.dmt_mode import PriorAttenuationConfig, PriorAttenuationGate
 
 DMT_PROTOCOL_NAME = "prior_attenuation_v1"
