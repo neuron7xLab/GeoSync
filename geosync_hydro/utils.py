@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import torch
@@ -40,7 +40,7 @@ def save_checkpoint(
     if optimizer:
         obj["optimizer"] = optimizer.state_dict()
     if scheduler:
-        obj["scheduler"] = cast(dict[str, Any], scheduler.state_dict())  # type: ignore[no-untyped-call]
+        obj["scheduler"] = scheduler.state_dict()  # type: ignore[no-untyped-call]
     if extra:
         obj["extra"] = extra
     path = os.path.join(save_dir, name)
@@ -55,14 +55,14 @@ def load_checkpoint(
     optimizer: torch.optim.Optimizer | None = None,
     scheduler: torch.optim.lr_scheduler._LRScheduler | None = None,
 ) -> dict[str, Any]:
-    obj = torch.load(path, map_location="cpu", weights_only=True)
+    obj: dict[str, Any] = torch.load(path, map_location="cpu", weights_only=True)
     if model:
         model.load_state_dict(obj["model"], strict=False)
     if optimizer and "optimizer" in obj:
         optimizer.load_state_dict(obj["optimizer"])
     if scheduler and "scheduler" in obj:
         scheduler.load_state_dict(obj["scheduler"])
-    return cast(dict[str, Any], obj)
+    return obj
 
 
 class DataImputer:
