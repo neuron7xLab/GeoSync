@@ -9,7 +9,7 @@
 <br><br>
 
 [![modules-15](https://img.shields.io/badge/modules-15-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
-[![invariants-57](https://img.shields.io/badge/invariants-57-critical?style=for-the-badge)](CLAUDE.md)
+[![invariants-67](https://img.shields.io/badge/invariants-67-critical?style=for-the-badge)](CLAUDE.md)
 [![tests-11446](https://img.shields.io/badge/tests-11%2C446-brightgreen?style=for-the-badge)](tests/)
 [![indicators-17](https://img.shields.io/badge/indicators-17-gold?style=for-the-badge)](core/indicators/)
 [![ADRs-16](https://img.shields.io/badge/ADRs-16-blue?style=for-the-badge)](docs/adr/)
@@ -21,7 +21,7 @@
 Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynamics  ·  Cryptobiosis
 ```
 
-*Physics-first quantitative infrastructure with 57 machine-checkable invariants.*
+*Physics-first quantitative infrastructure with 67 machine-checkable invariants.*
 *Every signal traces back to peer-reviewed science. Every clamp traces back to a law.*
 
 <br>
@@ -29,9 +29,10 @@ Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynami
 [![PR Gate](https://github.com/neuron7xLab/GeoSync/actions/workflows/pr-gate.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/pr-gate.yml)
 [![CodeQL](https://github.com/neuron7xLab/GeoSync/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/codeql.yml)
 [![Main Validation](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml)
+[![Formal Verification](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Security](https://img.shields.io/badge/NIST%20SP%20800--53-aligned-red?style=flat)](docs/security/)
-[![Physics Gate](https://img.shields.io/badge/physics_gate-53_invariants-critical?style=flat)](CLAUDE.md)
+[![Physics Gate](https://img.shields.io/badge/physics_gate-67_invariants-critical?style=flat)](CLAUDE.md)
 [![Coverage](https://img.shields.io/badge/line_coverage-71%25-yellowgreen?style=flat)](BASELINE.md)
 
 </div>
@@ -144,11 +145,13 @@ dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
 
 ## Physics Kernel
 
-GeoSync is a **verified physical system**, not a test-coverage theatre. The physics kernel (`.claude/physics/`) defines **57 machine-checkable invariants** across 15 modules. Every test is a *mathematical witness* of a specific physical law, not a line-coverage artefact.
+GeoSync is a **verified physical system**, not a test-coverage theatre. The physics kernel (`.claude/physics/`) defines **67 machine-checkable invariants** across 15 modules. Every test is a *mathematical witness* of a specific physical law, not a line-coverage artefact.
+
+Control-plane safety properties are additionally **model-checked in TLA⁺** — see [`formal/tla/AdmissionGate.tla`](formal/tla/AdmissionGate.tla) for the four-barrier admission gate with three TLC-checkable invariants (`TypeOK`, `SafeFirstRejectionWins`, `RejectCodeMatchesBarrier`). CI runs TLC on every PR via [`formal-verification.yml`](.github/workflows/formal-verification.yml).
 
 ```
                      ┌──────────────────────────────────────┐
-                     │   57 INVARIANTS  ·  15 MODULES       │
+                     │   67 INVARIANTS  ·  15 MODULES       │
                      │   Every assert derives its tolerance  │
                      │   from the law's formula, not from    │
                      │   a magic literal.                    │
@@ -522,7 +525,7 @@ Order Parameter: R(t) = |1/N · Σⱼ exp(iθⱼ)| ∈ [0, 1]
 ## Testing & Quality
 
 ```
- 11,446 collected  ·  ≥99.9% fast-tier passing  ·  71% line coverage  ·  57 physics invariants  ·  67 witnesses  ·  0 mypy errors
+ 11,446 collected  ·  ≥99.9% fast-tier passing  ·  71% line coverage  ·  67 physics invariants  ·  0 mypy errors
 ```
 
 <table>

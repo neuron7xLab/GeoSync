@@ -56,7 +56,18 @@ GeoSync is a quantitative trading platform with neuroscience-inspired risk manag
 
 ---
 
-## INVARIANT REGISTRY — 66 invariants loaded by kernel self-check
+## INVARIANT REGISTRY — 67 invariants loaded by kernel self-check
+
+### Yaroslav's Gradient Ontology (root axiom)
+
+```
+INV-YV1 | universal   | ΔV > 0 ∧ dΔV/dt ≠ 0                            | P0
+         Root axiom from Section 0. A static gradient is a capacitor,
+         a living gradient is a process. Intelligence requires the
+         second. Tested via maintenance-hierarchy integration test
+         in tests/integration/test_neurostack_integration.py.
+         Source: core/neuro/gradient_vital_signs.py
+```
 
 ### Kuramoto Synchronization
 
@@ -78,6 +89,37 @@ INV-K7 | monotonic     | V = -(K·N/2)·R² non-increasing (ω_i = 0)      | P1
 ```
 INV-ES1 | universal    | Hysteresis width ≥ 0                           | P0
 INV-ES2 | qualitative  | Freq-degree correlation → discontinuous        | P1
+```
+
+### Ott-Antonsen Reduction (low-dimensional Kuramoto manifold)
+
+```
+INV-OA1 | universal   | |z(t)| ≤ 1 always (order parameter on unit disk) | P0
+INV-OA2 | algebraic   | K > 2Δ ⟹ R_∞ = √(1 − 2Δ/K) (exact steady state) | P0
+         Lorentzian width Δ. Analytical — CAN test to float precision.
+INV-OA3 | asymptotic  | K < 2Δ ⟹ R(t→∞) → 0 (matches INV-K2 subcritical) | P0
+         Source: core/kuramoto/ott_antonsen.py
+         Tests:  tests/unit/physics/test_T23_ott_antonsen_chimera.py
+```
+
+### Lyapunov Exponent (maximum + spectral)
+
+```
+INV-LE1 | universal   | MLE is finite for any bounded finite input series | P0
+INV-LE2 | qualitative | MLE(noise)≈0, MLE(stable)<0, MLE(chaos)>0       | P1
+         Source: core/physics/lyapunov_exponent.py
+         Tests:  tests/unit/physics/test_T22_lyapunov_spectral.py
+```
+
+### Spectral Graph (coupling Laplacian λ₂)
+
+```
+INV-SG1 | universal   | λ₂ ≥ 0 always (Laplacian positive semi-definite) | P0
+INV-SG2 | conditional | λ₂ > 0 ⟺ graph is connected                      | P0
+         Algebraic connectivity (Fiedler eigenvalue) on the coupling
+         graph of a Kuramoto ensemble.
+         Source: core/physics/lyapunov_exponent.py
+         Tests:  tests/unit/physics/test_T22_lyapunov_spectral.py
 ```
 
 ### Serotonin ODE
@@ -298,8 +340,12 @@ assert result.order > 0      # no INV, no context
 
 | Files matching... | Invariants |
 |---|---|
+| `*gradient_vital_signs*`, `*maintenance_hierarchy*` | INV-YV1 |
 | `*kuramoto*`, `*sync*`, `*phase*` | INV-K1..K7 |
 | `*explosive*`, `*hysteresis*` | INV-ES1..2 |
+| `*ott_antonsen*`, `*chimera*` | INV-OA1..3 |
+| `*lyapunov_exponent*`, `*mle*` | INV-LE1..2 |
+| `*spectral_graph*`, `*laplacian*`, `*fiedler*` | INV-SG1..2 |
 | `*serotonin*`, `*5ht*` | INV-5HT1..7 |
 | `*dopamine*`, `*rpe*`, `*td_error*` | INV-DA1..7 |
 | `*gaba*`, `*inhibit*` | INV-GABA1..5 |
