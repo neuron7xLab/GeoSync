@@ -1,11 +1,11 @@
 version: 1
 source_of_truth: .claude/physics/INVARIANTS.yaml
-module: runtime.prior_attenuation_gate
+module: runtime.rebus_gate
 invariant_ids:
-  - INV-PA-1
-  - INV-PA-3
-  - INV-PA-4
-  - INV-PA-5
-  - INV-PA-6
-  - INV-PA-7
-note: "Derived runtime scope index of canonical laws only (INV-PA-1/3/4/5/6/7). Supporting contract/integration/performance tests are intentionally tracked outside this canonical list."
+  - INV-REBUS-1
+  - INV-REBUS-3
+  - INV-REBUS-4
+  - INV-REBUS-5
+  - INV-REBUS-6
+  - INV-REBUS-7
+note: "Derived runtime scope index of canonical laws only (INV-REBUS-1/3/4/5/6/7). Supporting contract/integration/performance tests are intentionally tracked outside this canonical list."

@@ -42,7 +42,7 @@ class EntropyBudget:
 
 
 @dataclass(frozen=True)
-class PriorAttenuationConfig:
+class RebusConfig:
     attenuation_factor: float = 0.4
     max_duration_bars: int = 20
     diversity_multiplier: float = 1.6
@@ -60,7 +60,7 @@ class ExplorationControl:
 
 
 @dataclass(frozen=True)
-class PriorAttenuationSnapshot:
+class RebusSnapshot:
     phase: ExplorationPhase
     activated_at: datetime | None
     bars_elapsed: int
@@ -74,7 +74,7 @@ class PriorAttenuationSnapshot:
 
 
 @dataclass(frozen=True)
-class PriorAttenuationAuditEvent:
+class RebusAuditEvent:
     ts: datetime
     event: str
     cycle_id: str | None
@@ -87,10 +87,10 @@ class ExplorationContractError(RuntimeError):
     """Raised when exploration contract or invariants are violated."""
 
 
-class PriorAttenuationGate:
-    def __init__(self, config: PriorAttenuationConfig | None = None) -> None:
+class RebusGate:
+    def __init__(self, config: RebusConfig | None = None) -> None:
         self._lock = RLock()
-        self._config = config or PriorAttenuationConfig()
+        self._config = config or RebusConfig()
         self._validate_config(self._config)
 
         self._phase = ExplorationPhase.INACTIVE
@@ -103,15 +103,13 @@ class PriorAttenuationGate:
         self._cycle_id: str | None = None
         self._prior_weights_backup: dict[str, float] | None = None
         self._restore_callback: Callable[[Mapping[str, float]], bool] | None = None
-        self._audit_log: deque[PriorAttenuationAuditEvent] = deque(
-            maxlen=self._config.max_audit_events
-        )
+        self._audit_log: deque[RebusAuditEvent] = deque(maxlen=self._config.max_audit_events)
         self._cross_module_openings = 0
         self._diversity_gain = 1.0
 
-    def snapshot(self) -> PriorAttenuationSnapshot:
+    def snapshot(self) -> RebusSnapshot:
         with self._lock:
-            return PriorAttenuationSnapshot(
+            return RebusSnapshot(
                 phase=self._phase,
                 activated_at=self._activated_at,
                 bars_elapsed=self._bars_elapsed,
@@ -387,10 +385,10 @@ class PriorAttenuationGate:
                 return self.emergency_exit("stressed_escalation")
             return None
 
-    def audit_log(self) -> list[PriorAttenuationAuditEvent]:
+    def audit_log(self) -> list[RebusAuditEvent]:
         with self._lock:
             return [
-                PriorAttenuationAuditEvent(
+                RebusAuditEvent(
                     ts=event.ts,
                     event=event.event,
                     cycle_id=event.cycle_id,
@@ -416,7 +414,7 @@ class PriorAttenuationGate:
     def _append_event(self, event: str, details: Mapping[str, object]) -> None:
         frozen_details = MappingProxyType(deepcopy(dict(details)))
         self._audit_log.append(
-            PriorAttenuationAuditEvent(
+            RebusAuditEvent(
                 ts=utc_now(),
                 event=event,
                 cycle_id=self._cycle_id,
@@ -489,7 +487,7 @@ class PriorAttenuationGate:
             raise ExplorationContractError(message) from exc
         return float(value)
 
-    def _validate_config(self, config: PriorAttenuationConfig) -> None:
+    def _validate_config(self, config: RebusConfig) -> None:
         if not (0.0 < config.attenuation_factor <= 1.0):
             raise ValueError("attenuation_factor must be in (0, 1]")
         if config.max_duration_bars < 1:

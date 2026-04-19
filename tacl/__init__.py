@@ -18,8 +18,8 @@ from .energy_model import (
     EnergyValidationResult,
     EnergyValidator,
 )
-from .prior_attenuation_protocol import (
-    PRIOR_ATTENUATION_PROTOCOL_NAME,
+from .rebus_protocol import (
+    REBUS_PROTOCOL_NAME,
     apply_external_controller,
     build_protocol,
     clear_registered_protocols,
@@ -57,7 +57,7 @@ __all__ = [
     "RiskGatingConfig",
     "RiskGatingEngine",
     "load_scenarios",
-    "PRIOR_ATTENUATION_PROTOCOL_NAME",
+    "REBUS_PROTOCOL_NAME",
     "build_protocol",
     "register_protocol",
     "get_registered_protocol",

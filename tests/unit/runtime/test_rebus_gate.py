@@ -10,14 +10,14 @@ from typing import Any, Mapping, cast
 import numpy as np
 import pytest
 
-from runtime.prior_attenuation_gate import (
+from runtime.rebus_gate import (
     ExplorationContractError,
     ExplorationPhase,
-    PriorAttenuationConfig,
-    PriorAttenuationGate,
+    RebusConfig,
+    RebusGate,
 )
-from tacl.prior_attenuation_protocol import (
-    PRIOR_ATTENUATION_PROTOCOL_NAME,
+from tacl.rebus_protocol import (
+    REBUS_PROTOCOL_NAME,
     apply_external_controller,
     build_protocol,
     clear_registered_protocols,
@@ -40,7 +40,7 @@ def _apply_sink(target: list[dict[str, float]]):
 
 
 def _activate(
-    gate: PriorAttenuationGate,
+    gate: RebusGate,
     attenuated_applied: list[dict[str, float]],
     restored_applied: list[dict[str, float]],
 ) -> None:
@@ -54,9 +54,9 @@ def _activate(
     )
 
 
-# INV-PA-1 witness
-def test_inv_pa_1_activation_denied_when_parent_not_nominal() -> None:
-    gate = PriorAttenuationGate()
+# INV-REBUS-1 witness
+def test_inv_rebus_1_activation_denied_when_parent_not_nominal() -> None:
+    gate = RebusGate()
 
     with pytest.raises(ExplorationContractError):
         gate.activate(
@@ -81,9 +81,9 @@ def test_inv_pa_1_activation_denied_when_parent_not_nominal() -> None:
     assert gate.snapshot().phase == ExplorationPhase.ATTENUATION
 
 
-# INV-PA-1 witness
-def test_inv_pa_1_activation_denied_when_coherence_below_threshold() -> None:
-    gate = PriorAttenuationGate()
+# INV-REBUS-1 witness
+def test_inv_rebus_1_activation_denied_when_coherence_below_threshold() -> None:
+    gate = RebusGate()
 
     with pytest.raises(ExplorationContractError):
         gate.activate(
@@ -108,12 +108,12 @@ def test_inv_pa_1_activation_denied_when_coherence_below_threshold() -> None:
     assert gate.snapshot().phase == ExplorationPhase.ATTENUATION
 
 
-# INV-PA-1 witness (non-real boundary)
+# INV-REBUS-1 witness (non-real boundary)
 @pytest.mark.parametrize("bad_coherence", [None, "0.9", True])
-def test_inv_pa_1_activation_rejects_non_real_coherence(
+def test_inv_rebus_1_activation_rejects_non_real_coherence(
     bad_coherence: object,
 ) -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
 
     with pytest.raises(ExplorationContractError):
         gate.activate(
@@ -132,7 +132,7 @@ def test_inv_pa_1_activation_rejects_non_real_coherence(
 # activation single-instance witness
 # supporting contract test (non-canonical)
 def test_support_single_instance_second_activation_rejected_without_state_corruption() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     first_cycle = "cycle-1"
     first_priors = _priors()
     gate.activate(
@@ -168,9 +168,9 @@ def test_support_single_instance_second_activation_rejected_without_state_corrup
     assert activated_after == activated_before
 
 
-# INV-PA-3 witness
-def test_inv_pa_3_entropy_ceiling_forces_reintegration_and_blocks_progression() -> None:
-    gate = PriorAttenuationGate()
+# INV-REBUS-3 witness
+def test_inv_rebus_3_entropy_ceiling_forces_reintegration_and_blocks_progression() -> None:
+    gate = RebusGate()
     _activate(gate, [], [])
 
     assert gate.step(0.36, 0.95) == ExplorationPhase.REINTEGRATION
@@ -181,9 +181,9 @@ def test_inv_pa_3_entropy_ceiling_forces_reintegration_and_blocks_progression() 
         gate.step(0.1, 0.95)
 
 
-# INV-PA-4 witness
-def test_inv_pa_4_duration_forces_reintegration_at_threshold_and_closes_step() -> None:
-    gate = PriorAttenuationGate(PriorAttenuationConfig(max_duration_bars=2))
+# INV-REBUS-4 witness
+def test_inv_rebus_4_duration_forces_reintegration_at_threshold_and_closes_step() -> None:
+    gate = RebusGate(RebusConfig(max_duration_bars=2))
     _activate(gate, [], [])
 
     assert gate.step(0.1, 0.95) == ExplorationPhase.DESEGREGATION
@@ -199,7 +199,7 @@ def test_inv_pa_4_duration_forces_reintegration_at_threshold_and_closes_step() -
 # attenuation key-preservation witness
 # supporting algebraic test (non-canonical)
 def test_support_attenuation_scales_values_exactly_and_preserves_keys() -> None:
-    gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.25))
+    gate = RebusGate(RebusConfig(attenuation_factor=0.25))
     priors = {"a": 1.25, "b": -2.0, "c": 0.0}
     applied: list[dict[str, float]] = []
 
@@ -218,9 +218,9 @@ def test_support_attenuation_scales_values_exactly_and_preserves_keys() -> None:
     assert applied == [attenuated]
 
 
-# INV-PA-6 witness
-def test_inv_pa_6_failed_reintegration_restores_exact_backup() -> None:
-    gate = PriorAttenuationGate()
+# INV-REBUS-6 witness
+def test_inv_rebus_6_failed_reintegration_restores_exact_backup() -> None:
+    gate = RebusGate()
     restored_applied: list[dict[str, float]] = []
     original = _priors()
 
@@ -245,9 +245,9 @@ def test_inv_pa_6_failed_reintegration_restores_exact_backup() -> None:
     assert gate.snapshot().phase == ExplorationPhase.INACTIVE
 
 
-# INV-PA-7 witness
-def test_inv_pa_7_safety_preemption_forces_emergency_exit() -> None:
-    gate = PriorAttenuationGate()
+# INV-REBUS-7 witness
+def test_inv_rebus_7_safety_preemption_forces_emergency_exit() -> None:
+    gate = RebusGate()
     restored_applied: list[dict[str, float]] = []
     _activate(gate, [], restored_applied)
 
@@ -258,9 +258,9 @@ def test_inv_pa_7_safety_preemption_forces_emergency_exit() -> None:
     assert gate.snapshot().phase == ExplorationPhase.INACTIVE
 
 
-# INV-PA-5 witness
-def test_inv_pa_5_gate_never_becomes_inactive_without_terminal_call() -> None:
-    gate = PriorAttenuationGate()
+# INV-REBUS-5 witness
+def test_inv_rebus_5_gate_never_becomes_inactive_without_terminal_call() -> None:
+    gate = RebusGate()
     _activate(gate, [], [])
 
     assert gate.snapshot().phase == ExplorationPhase.ATTENUATION
@@ -282,14 +282,14 @@ def test_inv_pa_5_gate_never_becomes_inactive_without_terminal_call() -> None:
 
 
 def test_can_activate_rejects_non_real_coherence() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     for bad in (None, "0.9", True):
         with pytest.raises(ExplorationContractError):
             gate.can_activate(parent_nominal=True, current_coherence=bad)  # type: ignore[arg-type]
 
 
 def test_activation_requires_both_callbacks() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     with pytest.raises(ExplorationContractError):
         gate.activate(
             "cycle-1",
@@ -311,7 +311,7 @@ def test_activation_requires_both_callbacks() -> None:
 
 
 def test_activate_rejects_non_real_prior_values() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
 
     for bad_priors in ({"p1": None}, {"p1": "1.0"}, {"p1": True}):
         with pytest.raises(ExplorationContractError):
@@ -328,7 +328,7 @@ def test_activate_rejects_non_real_prior_values() -> None:
 
 
 def test_activate_rejects_non_mapping_prior_weights() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     with pytest.raises(ExplorationContractError):
         gate.activate(
             "cycle-1",
@@ -359,7 +359,7 @@ def test_activate_malformed_mapping_items_fails_closed() -> None:
         def items(self):  # type: ignore[override]
             return [("p1", 1.0, 2.0)]
 
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     with pytest.raises(ExplorationContractError):
         gate.activate(
             "cycle-1",
@@ -375,7 +375,7 @@ def test_activate_malformed_mapping_items_fails_closed() -> None:
 
 
 def test_activation_is_atomic_and_fails_closed_when_apply_fails() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
 
     def bad_apply(_: Mapping[str, float]) -> bool:
         return False
@@ -395,7 +395,7 @@ def test_activation_is_atomic_and_fails_closed_when_apply_fails() -> None:
 
 
 def test_activation_apply_exception_is_deterministic() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
 
     def boom(_: Mapping[str, float]) -> bool:
         raise RuntimeError("boom")
@@ -415,7 +415,7 @@ def test_activation_apply_exception_is_deterministic() -> None:
 
 
 def test_step_in_inactive_and_reintegration_raises() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     with pytest.raises(ExplorationContractError):
         gate.step(current_entropy=0.1, coherence=0.9)
 
@@ -432,7 +432,7 @@ def test_step_in_inactive_and_reintegration_raises() -> None:
 
 
 def test_normal_progression_and_terminal_restore() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     attenuated_applied: list[dict[str, float]] = []
     restored_applied: list[dict[str, float]] = []
     _activate(gate, attenuated_applied, restored_applied)
@@ -450,7 +450,7 @@ def test_normal_progression_and_terminal_restore() -> None:
 
 
 def test_entropy_model_is_instantaneous_ceiling_only() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     _activate(gate, [], [])
 
     phase = gate.step(current_entropy=0.36, coherence=0.9)
@@ -459,7 +459,7 @@ def test_entropy_model_is_instantaneous_ceiling_only() -> None:
 
 
 def test_no_false_terminal_event_when_restore_returns_false() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
 
     def bad_restore(_: Mapping[str, float]) -> bool:
         return False
@@ -487,7 +487,7 @@ def test_no_false_terminal_event_when_restore_returns_false() -> None:
 
 
 def test_no_false_terminal_event_when_restore_raises() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
 
     def boom(_: Mapping[str, float]) -> bool:
         raise RuntimeError("restore fail")
@@ -513,7 +513,7 @@ def test_no_false_terminal_event_when_restore_raises() -> None:
 
 
 def test_external_safety_signal_applies_restore() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     restored_applied: list[dict[str, float]] = []
     _activate(gate, [], restored_applied)
 
@@ -525,7 +525,7 @@ def test_external_safety_signal_applies_restore() -> None:
 
 # audit retention witness
 def test_audit_retention_bounded_and_terminal_visible() -> None:
-    gate = PriorAttenuationGate(PriorAttenuationConfig(max_audit_events=10))
+    gate = RebusGate(RebusConfig(max_audit_events=10))
 
     for idx in range(6):
         gate.activate(
@@ -548,13 +548,13 @@ def test_audit_retention_bounded_and_terminal_visible() -> None:
 
 def test_config_validation_guards_bounds() -> None:
     with pytest.raises(ValueError):
-        PriorAttenuationGate(PriorAttenuationConfig(max_audit_events=0))
+        RebusGate(RebusConfig(max_audit_events=0))
     with pytest.raises(ValueError):
-        PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.0))
+        RebusGate(RebusConfig(attenuation_factor=0.0))
 
 
 def test_control_vector_reads_under_lock_contract() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     _activate(gate, [], [])
 
     # smoke check under concurrent readers + one writer; should not throw / tear
@@ -580,7 +580,7 @@ def test_control_vector_reads_under_lock_contract() -> None:
 
 
 def test_snapshot_and_audit_payload_are_immutable_and_utc() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     _activate(gate, [], [])
 
     snap = gate.snapshot()
@@ -596,8 +596,8 @@ def test_snapshot_and_audit_payload_are_immutable_and_utc() -> None:
 
 
 # audit UTC witness
-def test_inv_pa_8_all_audit_timestamps_are_utc() -> None:
-    gate = PriorAttenuationGate()
+def test_inv_rebus_8_all_audit_timestamps_are_utc() -> None:
+    gate = RebusGate()
     _activate(gate, [], [])
     gate.step(0.1, 0.9)
     gate.step(0.1, 0.9)
@@ -609,7 +609,7 @@ def test_inv_pa_8_all_audit_timestamps_are_utc() -> None:
 
 
 def test_non_finite_inputs_raise() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     _activate(gate, [], [])
     with pytest.raises(ExplorationContractError):
         gate.step(current_entropy=math.nan, coherence=0.9)
@@ -618,7 +618,7 @@ def test_non_finite_inputs_raise() -> None:
 
 
 def test_step_rejects_non_real_entropy_and_coherence_without_mutation() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     _activate(gate, [], [])
     before = gate.snapshot()
     before_audit = len(gate.audit_log())
@@ -642,7 +642,7 @@ def test_step_rejects_non_real_entropy_and_coherence_without_mutation() -> None:
 
 
 def test_reintegrate_rejects_non_real_coherence_and_no_terminal_event() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     _activate(gate, [], [])
     gate.step(0.1, 0.95)
     gate.step(0.1, 0.95)
@@ -659,7 +659,7 @@ def test_reintegrate_rejects_non_real_coherence_and_no_terminal_event() -> None:
 
 
 def test_emergency_exit_no_false_terminal_event_when_restore_returns_false() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
 
     def bad_restore(_: Mapping[str, float]) -> bool:
         return False
@@ -683,7 +683,7 @@ def test_emergency_exit_no_false_terminal_event_when_restore_returns_false() -> 
 
 
 def test_emergency_exit_no_false_terminal_event_when_restore_raises() -> None:
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
 
     def boom(_: Mapping[str, float]) -> bool:
         raise RuntimeError("restore fail")
@@ -721,10 +721,10 @@ def test_protocol_descriptor_truth_and_registration() -> None:
     registration = register_protocol()
     loaded = get_registered_protocol()
     assert loaded is not None
-    assert loaded.name == registration.name == PRIOR_ATTENUATION_PROTOCOL_NAME
+    assert loaded.name == registration.name == REBUS_PROTOCOL_NAME
 
-    gate = cast(PriorAttenuationGate, loaded.descriptor["gate"])
-    assert isinstance(gate, PriorAttenuationGate)
+    gate = cast(RebusGate, loaded.descriptor["gate"])
+    assert isinstance(gate, RebusGate)
     gate.activate(
         "cycle-1",
         _priors(),
@@ -748,7 +748,7 @@ def test_integration_activation_reduces_kuramoto_order_parameter() -> None:
     pytest.importorskip("omegaconf")
     from core.indicators.kuramoto import kuramoto_order
 
-    gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.4))
+    gate = RebusGate(RebusConfig(attenuation_factor=0.4))
     priors = {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 1.0}
 
     baseline_phases = np.array([priors["p1"], priors["p2"], priors["p3"], priors["p4"]])
@@ -775,7 +775,7 @@ def test_integration_activation_increases_entropy_proxy_for_free_energy_descent_
     pytest.importorskip("omegaconf")
     from core.indicators.entropy import entropy
 
-    gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.4))
+    gate = RebusGate(RebusConfig(attenuation_factor=0.4))
     priors = {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 1.0}
 
     baseline_signal = np.array([priors["p1"]] * 64)

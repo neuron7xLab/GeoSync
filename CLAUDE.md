@@ -32,9 +32,9 @@ Layer 4: Gradient utilized      (Kuramoto + Dopamine + Kelly: computation)
 
 Layers 0–3 = Maintenance (40%). Layer 4 = Processing (60%). If any of 0–3 fails, Layer 4 computes noise. This is not metaphor — it is thermodynamic law.
 
-### PriorAttenuationGate (Layer 2–3)
+### RebusGate (Layer 2–3)
 
-`runtime.prior_attenuation_gate.PriorAttenuationGate` is a bounded exploration primitive mapped to maintenance layers:
+`runtime.rebus_gate.RebusGate` is a bounded exploration primitive mapped to maintenance layers:
 
 - **Layer 2**: activation is fail-closed and allowed only under nominal parent state and coherence threshold.
 - **Layer 3**: terminal reintegration/emergency paths must confirm restore apply before reset to `INACTIVE`.

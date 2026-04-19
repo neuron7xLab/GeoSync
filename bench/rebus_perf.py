@@ -25,10 +25,10 @@ def _apply_ok(_: Mapping[str, float]) -> bool:
 
 
 def run_benchmark(steps: int = 10_000) -> PerfResult:
-    import runtime.prior_attenuation_gate as pag
-    from runtime.prior_attenuation_gate import PriorAttenuationGate
+    import runtime.rebus_gate as pag
+    from runtime.rebus_gate import RebusGate
 
-    gate = PriorAttenuationGate()
+    gate = RebusGate()
     priors = {"p1": 1.0, "p2": 0.7, "p3": 1.3}
 
     deepcopy_counter = {"count": 0}

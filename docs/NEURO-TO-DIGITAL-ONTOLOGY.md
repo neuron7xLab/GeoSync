@@ -8,9 +8,9 @@
 
 | Механізм ЦНС | Цифровий аналог | Інваріант | Математична форма |
 |---|---|---|---|
-| Зменшення впливу priors | PriorAttenuationGate activation guard | INV-PA-1 | coherence ≥ activation_threshold |
-| Ентропійний сплеск | Entropy ceiling forced reintegration | INV-PA-3 | entropy > max_entropy → phase=REINTEGRATION |
-| Тривалість вікна дослідження обмежена | Duration cap reintegration | INV-PA-4 | bars_elapsed ≥ max_duration_bars |
-| Закриті terminal paths | reintegrate()/emergency_exit only | INV-PA-5 | phase=INACTIVE iff terminal_apply_confirmed |
-| Точне відновлення priors | restore from backup | INV-PA-6 | restored_weights == prior_backup |
-| Safety preemption | kill-switch / stressed_state | INV-PA-7 | safety_signal=True → emergency_exit |
+| Зменшення впливу priors | RebusGate activation guard | INV-REBUS-1 | coherence ≥ activation_threshold |
+| Ентропійний сплеск | Entropy ceiling forced reintegration | INV-REBUS-3 | entropy > max_entropy → phase=REINTEGRATION |
+| Тривалість вікна дослідження обмежена | Duration cap reintegration | INV-REBUS-4 | bars_elapsed ≥ max_duration_bars |
+| Закриті terminal paths | reintegrate()/emergency_exit only | INV-REBUS-5 | phase=INACTIVE iff terminal_apply_confirmed |
+| Точне відновлення priors | restore from backup | INV-REBUS-6 | restored_weights == prior_backup |
+| Safety preemption | kill-switch / stressed_state | INV-REBUS-7 | safety_signal=True → emergency_exit |

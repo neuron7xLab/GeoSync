@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from runtime.prior_attenuation_gate import PriorAttenuationConfig, PriorAttenuationGate
+from runtime.rebus_gate import RebusConfig, RebusGate
 
-PRIOR_ATTENUATION_PROTOCOL_NAME = "prior_attenuation_v1"
+REBUS_PROTOCOL_NAME = "rebus_v1"
 
 
 @dataclass(frozen=True)
@@ -17,11 +17,11 @@ class ProtocolRegistration:
 _PROTOCOL_REGISTRY: dict[str, ProtocolRegistration] = {}
 
 
-def build_protocol(config: PriorAttenuationConfig | None = None) -> dict[str, object]:
-    resolved_config = config or PriorAttenuationConfig()
-    gate = PriorAttenuationGate(config=resolved_config)
+def build_protocol(config: RebusConfig | None = None) -> dict[str, object]:
+    resolved_config = config or RebusConfig()
+    gate = RebusGate(config=resolved_config)
     return {
-        "name": PRIOR_ATTENUATION_PROTOCOL_NAME,
+        "name": REBUS_PROTOCOL_NAME,
         "version": "1.0",
         "gate": gate,
         "activation_conditions": {
@@ -41,7 +41,7 @@ def build_protocol(config: PriorAttenuationConfig | None = None) -> dict[str, ob
     }
 
 
-def register_protocol(config: PriorAttenuationConfig | None = None) -> ProtocolRegistration:
+def register_protocol(config: RebusConfig | None = None) -> ProtocolRegistration:
     descriptor = build_protocol(config)
     registration = ProtocolRegistration(
         name=str(descriptor["name"]),
@@ -53,7 +53,7 @@ def register_protocol(config: PriorAttenuationConfig | None = None) -> ProtocolR
 
 
 def get_registered_protocol(
-    name: str = PRIOR_ATTENUATION_PROTOCOL_NAME,
+    name: str = REBUS_PROTOCOL_NAME,
 ) -> ProtocolRegistration | None:
     return _PROTOCOL_REGISTRY.get(name)
 
@@ -63,7 +63,7 @@ def clear_registered_protocols() -> None:
 
 
 def apply_external_controller(
-    gate: PriorAttenuationGate,
+    gate: RebusGate,
     *,
     kill_switch_active: bool,
     stressed_state: bool,

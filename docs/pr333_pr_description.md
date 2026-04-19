@@ -1,21 +1,21 @@
-# PR #333 — PriorAttenuationGate Finalization
+# PR #333 — RebusGate Finalization
 
 ## Short description
-PriorAttenuationGate is finalized as a fail-closed Layer 2–3 exploration primitive with deterministic activation/terminal contracts, reduced canonical invariants, mandatory indicator integration witnesses, and reproducible validation artifacts.
+RebusGate is finalized as a fail-closed Layer 2–3 exploration primitive with deterministic activation/terminal contracts, reduced canonical invariants, mandatory indicator integration witnesses, and reproducible validation artifacts.
 
 ## Detailed description
 
 ### Scope
-- Runtime primitive: `runtime/prior_attenuation_gate.py`
-- Protocol wrapper/export surface: `tacl/prior_attenuation_protocol.py`, `tacl/__init__.py`
+- Runtime primitive: `runtime/rebus_gate.py`
+- Protocol wrapper/export surface: `tacl/rebus_protocol.py`, `tacl/__init__.py`
 - Canonical invariants: `.claude/physics/INVARIANTS.yaml`, `runtime/INVARIANTS.yaml`
-- Tests and validation: `tests/unit/runtime/test_prior_attenuation_gate.py`, `bench/prior_attenuation_perf.py`, `docs/prior_attenuation_ci_validation.md`
+- Tests and validation: `tests/unit/runtime/test_rebus_gate.py`, `bench/rebus_perf.py`, `docs/rebus_ci_validation.md`
 - Architecture/docs: `README.md`, `CLAUDE.md`, `docs/NEURO-TO-DIGITAL-ONTOLOGY.md`
 
 ### What was completed
-1. PriorAttenuation naming and runtime/protocol surface alignment completed.
+1. REBUS naming and runtime/protocol surface alignment completed.
 2. Canonical invariant set reduced to six enforceable invariants:
-   - `INV-PA-1`, `INV-PA-3`, `INV-PA-4`, `INV-PA-5`, `INV-PA-6`, `INV-PA-7`.
+   - `INV-REBUS-1`, `INV-REBUS-3`, `INV-REBUS-4`, `INV-REBUS-5`, `INV-REBUS-6`, `INV-REBUS-7`.
 3. Supporting proof surface (non-canonical invariants) is explicitly separated:
    - contract-safety tests (non-canonical)
    - integration witnesses (Kuramoto/entropy)
