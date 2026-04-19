@@ -10,7 +10,7 @@
 
 [![modules-15](https://img.shields.io/badge/modules-15-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
 [![invariants-57](https://img.shields.io/badge/invariants-57-critical?style=for-the-badge)](CLAUDE.md)
-[![tests-9505](https://img.shields.io/badge/tests-9%2C505-brightgreen?style=for-the-badge)](tests/)
+[![tests-11446](https://img.shields.io/badge/tests-11%2C446-brightgreen?style=for-the-badge)](tests/)
 [![indicators-17](https://img.shields.io/badge/indicators-17-gold?style=for-the-badge)](core/indicators/)
 [![ADRs-16](https://img.shields.io/badge/ADRs-16-blue?style=for-the-badge)](docs/adr/)
 [![license-MIT](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -507,7 +507,7 @@ Order Parameter: R(t) = |1/N · Σⱼ exp(iθⱼ)| ∈ [0, 1]
 ## Testing & Quality
 
 ```
- 10,051 collected  ·  681 passing  ·  71% line coverage  ·  57 physics invariants  ·  67 witnesses  ·  0 mypy errors
+ 11,446 collected  ·  ≥99.9% fast-tier passing  ·  71% line coverage  ·  57 physics invariants  ·  67 witnesses  ·  0 mypy errors
 ```
 
 <table>
