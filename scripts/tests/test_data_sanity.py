@@ -114,9 +114,7 @@ def test_summarize_timestamp_gaps_empty_series() -> None:
 
 def test_summarize_timestamp_gaps_with_monotonic_violations() -> None:
     """Test that _summarize_timestamp_gaps tracks monotonic violations."""
-    series = pd.Series(
-        pd.to_datetime(["2024-01-01", "2024-01-03", "2024-01-02", "2024-01-04"])
-    )
+    series = pd.Series(pd.to_datetime(["2024-01-01", "2024-01-03", "2024-01-02", "2024-01-04"]))
     result = data_sanity._summarize_timestamp_gaps(series)
 
     assert result is not None

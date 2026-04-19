@@ -86,7 +86,12 @@ class AdaptiveKuramotoEngine:
 
         _logger.info(
             "AdaptiveKuramotoEngine: N=%d, K=%.4f, method=%s, rtol=%.0e, atol=%.0e, T=%.4f",
-            N, cfg.K, self._method, self._rtol, self._atol, t_end,
+            N,
+            cfg.K,
+            self._method,
+            self._rtol,
+            self._atol,
+            t_end,
         )
 
         sol = solve_ivp(
@@ -119,7 +124,11 @@ class AdaptiveKuramotoEngine:
     @staticmethod
     def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray, NDArray]:
         rng = np.random.default_rng(cfg.seed)
-        omega = cfg.omega.astype(np.float64, copy=False) if cfg.omega is not None else rng.standard_normal(cfg.N)
+        omega = (
+            cfg.omega.astype(np.float64, copy=False)
+            if cfg.omega is not None
+            else rng.standard_normal(cfg.N)
+        )
         theta0 = (
             cfg.theta0.astype(np.float64, copy=False)
             if cfg.theta0 is not None

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for HPC-Neuro integration bridge."""
 
-import numpy as np
 import pytest
 
 from core.neuro.hpc_neuro_bridge import HPCNeuroBridge
@@ -124,7 +123,7 @@ class TestFullPipeline:
 
     def test_hpc_to_decision_pipeline(self, bus, bridge):
         # 1. HPC produces output
-        hpc_result = bridge.process_hpc_output(pwpe=1.5, action=2, state_entropy=0.3)
+        bridge.process_hpc_output(pwpe=1.5, action=2, state_entropy=0.3)
 
         # 2. Check bus state
         snapshot = bus.snapshot()

@@ -27,7 +27,9 @@ class TestOutputShapes:
         assert result_default.order_parameter.shape == (default_cfg.steps + 1,)
         assert result_default.time.shape == (default_cfg.steps + 1,)
 
-    def test_time_axis_values(self, default_cfg: KuramotoConfig, result_default: KuramotoResult) -> None:
+    def test_time_axis_values(
+        self, default_cfg: KuramotoConfig, result_default: KuramotoResult
+    ) -> None:
         assert result_default.time[0] == pytest.approx(0.0)
         assert result_default.time[-1] == pytest.approx(default_cfg.steps * default_cfg.dt)
 
@@ -38,7 +40,9 @@ class TestOutputShapes:
 
 class TestCorrectness:
     def test_order_parameter_bounds(self, result_default: KuramotoResult) -> None:
-        assert np.all((0.0 <= result_default.order_parameter) & (result_default.order_parameter <= 1.0))
+        assert np.all(
+            (0.0 <= result_default.order_parameter) & (result_default.order_parameter <= 1.0)
+        )
 
     def test_finite_outputs(self, result_default: KuramotoResult) -> None:
         assert np.isfinite(result_default.phases).all()
@@ -66,7 +70,9 @@ class TestCorrectness:
         theta0 = np.array([0.0, 1.0, -1.0, 0.4])
         cfg = KuramotoConfig(N=N, K=0.0, dt=dt, steps=steps, omega=omega, theta0=theta0)
         result = run_simulation(cfg)
-        expected = theta0[np.newaxis, :] + np.arange(steps + 1)[:, np.newaxis] * dt * omega[np.newaxis, :]
+        expected = (
+            theta0[np.newaxis, :] + np.arange(steps + 1)[:, np.newaxis] * dt * omega[np.newaxis, :]
+        )
         np.testing.assert_allclose(result.phases, expected, atol=1e-10, rtol=1e-10)
 
 
@@ -87,15 +93,23 @@ class TestDeterminism:
         N = 6
         omega = np.linspace(-1.0, 1.0, N)
         theta0 = np.linspace(0, np.pi, N)
-        r0 = run_simulation(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=50, seed=0, omega=omega, theta0=theta0))
-        r1 = run_simulation(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=50, seed=1, omega=omega, theta0=theta0))
+        r0 = run_simulation(
+            KuramotoConfig(N=N, K=1.0, dt=0.01, steps=50, seed=0, omega=omega, theta0=theta0)
+        )
+        r1 = run_simulation(
+            KuramotoConfig(N=N, K=1.0, dt=0.01, steps=50, seed=1, omega=omega, theta0=theta0)
+        )
         np.testing.assert_array_equal(r0.phases, r1.phases)
 
     def test_explicit_omega_alone_ignores_seed(self) -> None:
         N = 5
         omega = np.linspace(-0.5, 0.5, N)
-        engine_a = KuramotoEngine(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=20, seed=1, omega=omega))
-        engine_b = KuramotoEngine(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=20, seed=9, omega=omega))
+        engine_a = KuramotoEngine(
+            KuramotoConfig(N=N, K=1.0, dt=0.01, steps=20, seed=1, omega=omega)
+        )
+        engine_b = KuramotoEngine(
+            KuramotoConfig(N=N, K=1.0, dt=0.01, steps=20, seed=9, omega=omega)
+        )
         np.testing.assert_array_equal(engine_a._omega, engine_b._omega)
         assert not np.array_equal(engine_a._theta0, engine_b._theta0)
 
@@ -130,7 +144,9 @@ class TestValidation:
         with pytest.raises(ValueError, match="adjacency"):
             KuramotoConfig(N=4, K=1.0, dt=0.01, steps=10, adjacency=np.ones((3, 3)))
         with pytest.raises(ValueError, match="adjacency"):
-            KuramotoConfig(N=3, K=1.0, dt=0.01, steps=10, adjacency=np.array([[0.0, 1.0, np.nan]] * 3))
+            KuramotoConfig(
+                N=3, K=1.0, dt=0.01, steps=10, adjacency=np.array([[0.0, 1.0, np.nan]] * 3)
+            )
 
     def test_seed_and_coupling_validation(self) -> None:
         with pytest.raises(ValueError, match="seed"):
@@ -172,7 +188,9 @@ class TestAdjacencySemantics:
         adj = np.ones((N, N))
         np.fill_diagonal(adj, 0.0)
         adj /= N
-        global_result = run_simulation(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=50, omega=omega, theta0=theta0))
+        global_result = run_simulation(
+            KuramotoConfig(N=N, K=1.0, dt=0.01, steps=50, omega=omega, theta0=theta0)
+        )
         adj_result = run_simulation(
             KuramotoConfig(N=N, K=1.0, dt=0.01, steps=50, omega=omega, theta0=theta0, adjacency=adj)
         )
@@ -187,9 +205,13 @@ class TestAdjacencySemantics:
         adj_zero_diag = adj.copy()
         np.fill_diagonal(adj_zero_diag, 0.0)
 
-        with_diag = run_simulation(KuramotoConfig(N=N, K=1.0, dt=0.01, steps=40, omega=omega, theta0=theta0, adjacency=adj))
+        with_diag = run_simulation(
+            KuramotoConfig(N=N, K=1.0, dt=0.01, steps=40, omega=omega, theta0=theta0, adjacency=adj)
+        )
         zero_diag = run_simulation(
-            KuramotoConfig(N=N, K=1.0, dt=0.01, steps=40, omega=omega, theta0=theta0, adjacency=adj_zero_diag)
+            KuramotoConfig(
+                N=N, K=1.0, dt=0.01, steps=40, omega=omega, theta0=theta0, adjacency=adj_zero_diag
+            )
         )
         np.testing.assert_allclose(with_diag.phases, zero_diag.phases, atol=1e-12)
 
@@ -197,7 +219,9 @@ class TestAdjacencySemantics:
         N = 4
         omega = np.array([1.0, 2.0, 3.0, 4.0])
         theta0 = np.zeros(N)
-        cfg = KuramotoConfig(N=N, K=5.0, dt=0.1, steps=5, omega=omega, theta0=theta0, adjacency=np.zeros((N, N)))
+        cfg = KuramotoConfig(
+            N=N, K=5.0, dt=0.1, steps=5, omega=omega, theta0=theta0, adjacency=np.zeros((N, N))
+        )
         result = run_simulation(cfg)
         np.testing.assert_allclose(result.phases[-1], theta0 + omega * 0.5, rtol=1e-5, atol=1e-5)
 
@@ -206,7 +230,9 @@ class TestAdjacencySemantics:
         omega = np.linspace(-1.0, 1.0, N)
         theta0 = np.linspace(0.2, 1.5, N)
         perm = np.array([2, 5, 1, 6, 0, 4, 3])
-        base = run_simulation(KuramotoConfig(N=N, K=1.7, dt=0.02, steps=80, omega=omega, theta0=theta0))
+        base = run_simulation(
+            KuramotoConfig(N=N, K=1.7, dt=0.02, steps=80, omega=omega, theta0=theta0)
+        )
         permuted = run_simulation(
             KuramotoConfig(N=N, K=1.7, dt=0.02, steps=80, omega=omega[perm], theta0=theta0[perm])
         )
@@ -245,7 +271,9 @@ class TestSummaryAndHelpers:
             "seed",
         }
         assert required.issubset(result_default.summary)
-        assert result_default.summary["final_R"] == pytest.approx(result_default.order_parameter[-1])
+        assert result_default.summary["final_R"] == pytest.approx(
+            result_default.order_parameter[-1]
+        )
         assert result_default.summary["coupling_mode"] == result_default.config.coupling_mode
 
     def test_result_constructor_validation(self, default_cfg: KuramotoConfig) -> None:
@@ -268,7 +296,9 @@ class TestSummaryAndHelpers:
         with pytest.raises(ValueError, match=r"\[0, 1\]"):
             KuramotoResult(phases=phases, order_parameter=order_bad, time=time, config=default_cfg)
 
-    def test_result_constructor_order_parameter_tolerance_boundaries(self, default_cfg: KuramotoConfig) -> None:
+    def test_result_constructor_order_parameter_tolerance_boundaries(
+        self, default_cfg: KuramotoConfig
+    ) -> None:
         phases = np.zeros((default_cfg.steps + 1, default_cfg.N))
         time = np.arange(default_cfg.steps + 1, dtype=float) * default_cfg.dt
         base = np.zeros(default_cfg.steps + 1)
@@ -279,18 +309,24 @@ class TestSummaryAndHelpers:
         order_within_tol = base.copy()
         order_within_tol[2] = 1.0 + 5e-13
         order_within_tol[3] = -5e-13
-        KuramotoResult(phases=phases, order_parameter=order_within_tol, time=time, config=default_cfg)
+        KuramotoResult(
+            phases=phases, order_parameter=order_within_tol, time=time, config=default_cfg
+        )
 
         # Reject values clearly outside tolerance.
         order_above = base.copy()
         order_above[2] = 1.0 + 2e-12
         with pytest.raises(ValueError, match=r"\[0, 1\]"):
-            KuramotoResult(phases=phases, order_parameter=order_above, time=time, config=default_cfg)
+            KuramotoResult(
+                phases=phases, order_parameter=order_above, time=time, config=default_cfg
+            )
 
         order_below = base.copy()
         order_below[2] = -2e-12
         with pytest.raises(ValueError, match=r"\[0, 1\]"):
-            KuramotoResult(phases=phases, order_parameter=order_below, time=time, config=default_cfg)
+            KuramotoResult(
+                phases=phases, order_parameter=order_below, time=time, config=default_cfg
+            )
 
     def test_order_parameter_helper(self) -> None:
         assert _order_parameter(np.zeros(20)) == pytest.approx(1.0)

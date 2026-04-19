@@ -4,7 +4,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from modules.gaba_inhibition_gate import GABAInhibitionGate
+from modules.gaba_inhibition_gate import GABAInhibitionGate  # noqa: E402
 
 
 def test_gaba_inhibition_gate_smoke():

@@ -32,11 +32,7 @@ def test_run_generates_report(tmp_path: Path, monkeypatch) -> None:
     engine = types.SimpleNamespace(strict_mode=False)
 
     def _evaluate(text: str, stage: str | None = None):
-        decision = (
-            redteam.DecisionType.BLOCK
-            if "ignore" in text
-            else redteam.DecisionType.ALLOW
-        )
+        decision = redteam.DecisionType.BLOCK if "ignore" in text else redteam.DecisionType.ALLOW
         result = types.SimpleNamespace(decision=decision, reasons=["stub"])
         trace = types.SimpleNamespace(trace_id="t-1")
         return result, trace

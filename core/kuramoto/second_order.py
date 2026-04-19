@@ -137,16 +137,16 @@ class SecondOrderKuramotoEngine:
         if np.any(self._damping < 0):
             raise ValueError("Damping must be non-negative for all oscillators.")
 
-        self._v0 = (
-            velocity0.copy() if velocity0 is not None
-            else np.zeros(N, dtype=np.float64)
-        )
+        self._v0 = velocity0.copy() if velocity0 is not None else np.zeros(N, dtype=np.float64)
 
         _logger.info(
             "SecondOrderKuramotoEngine: N=%d, K=%.4f, m=[%.3f, %.3f], d=[%.3f, %.3f]",
-            N, config.K,
-            float(np.min(self._mass)), float(np.max(self._mass)),
-            float(np.min(self._damping)), float(np.max(self._damping)),
+            N,
+            config.K,
+            float(np.min(self._mass)),
+            float(np.max(self._mass)),
+            float(np.min(self._damping)),
+            float(np.max(self._damping)),
         )
 
     def run(self) -> SecondOrderResult:
@@ -203,7 +203,11 @@ class SecondOrderKuramotoEngine:
     @staticmethod
     def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray, NDArray]:
         rng = np.random.default_rng(cfg.seed)
-        omega = cfg.omega.astype(np.float64, copy=False) if cfg.omega is not None else rng.standard_normal(cfg.N)
+        omega = (
+            cfg.omega.astype(np.float64, copy=False)
+            if cfg.omega is not None
+            else rng.standard_normal(cfg.N)
+        )
         theta0 = (
             cfg.theta0.astype(np.float64, copy=False)
             if cfg.theta0 is not None

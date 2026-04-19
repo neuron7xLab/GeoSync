@@ -59,9 +59,7 @@ class BacktestingService(Microservice):
         from application.microservices.market_data import MarketDataService
 
         if self._market_data_service is None:
-            self._market_data_service = MarketDataService(
-                self._system, contracts=self._contracts
-            )
+            self._market_data_service = MarketDataService(self._system, contracts=self._contracts)
             if self.state is not ServiceState.STOPPED:
                 self._market_data_service.start()
         return self._market_data_service
@@ -111,9 +109,7 @@ class BacktestingService(Microservice):
             signals=signals,
             payloads=payloads,
         )
-        self._last_result = BacktestResult(
-            source=source, strategy_name=strategy_name, run=run
-        )
+        self._last_result = BacktestResult(source=source, strategy_name=strategy_name, run=run)
         self._mark_healthy()
         return run
 

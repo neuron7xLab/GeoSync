@@ -14,7 +14,10 @@ from core.kuramoto.io import SCHEMA_VERSION
 
 def test_cli_quiet_summary_mode_contract() -> None:
     runner = CliRunner()
-    result = runner.invoke(cli, ["simulate", "--N", "4", "--steps", "5", "--quiet", "--export", "summary", "--seed", "7"])
+    result = runner.invoke(
+        cli,
+        ["simulate", "--N", "4", "--steps", "5", "--quiet", "--export", "summary", "--seed", "7"],
+    )
     assert result.exit_code == 0
     payload = json.loads(result.output)
     assert payload == {
@@ -33,7 +36,20 @@ def test_cli_summary_stdout_file_parity() -> None:
         out = "summary.json"
         result = runner.invoke(
             cli,
-            ["simulate", "--N", "4", "--steps", "5", "--quiet", "--export", "summary", "--seed", "7", "--output", out],
+            [
+                "simulate",
+                "--N",
+                "4",
+                "--steps",
+                "5",
+                "--quiet",
+                "--export",
+                "summary",
+                "--seed",
+                "7",
+                "--output",
+                out,
+            ],
         )
         assert result.exit_code == 0
         payload = json.loads(result.output)
@@ -50,7 +66,20 @@ def test_cli_full_export_file_round_trip() -> None:
         out = "run.json"
         result = runner.invoke(
             cli,
-            ["simulate", "--N", "3", "--steps", "8", "--seed", "3", "--output", out, "--quiet", "--export", "full"],
+            [
+                "simulate",
+                "--N",
+                "3",
+                "--steps",
+                "8",
+                "--seed",
+                "3",
+                "--output",
+                out,
+                "--quiet",
+                "--export",
+                "full",
+            ],
         )
         assert result.exit_code == 0
         payload = json.loads(result.output)
@@ -80,7 +109,18 @@ def test_cli_adjacency_matrix_file() -> None:
 
         result = runner.invoke(
             cli,
-            ["simulate", "--N", "2", "--steps", "5", "--adjacency-file", "adj.json", "--quiet", "--seed", "1"],
+            [
+                "simulate",
+                "--N",
+                "2",
+                "--steps",
+                "5",
+                "--adjacency-file",
+                "adj.json",
+                "--quiet",
+                "--seed",
+                "1",
+            ],
         )
         assert result.exit_code == 0
         payload = json.loads(result.output)
@@ -149,7 +189,9 @@ def test_cli_adjacency_file_shape_mismatch_fails() -> None:
     with runner.isolated_filesystem():
         with open("bad.csv", "w", encoding="utf-8") as handle:
             handle.write("1,2,3\n")
-        result = runner.invoke(cli, ["simulate", "--adjacency-file", "bad.csv", "--N", "3", "--quiet"])
+        result = runner.invoke(
+            cli, ["simulate", "--adjacency-file", "bad.csv", "--N", "3", "--quiet"]
+        )
         assert result.exit_code != 0
         assert "Adjacency matrix must be 2-dimensional" in result.output
 
@@ -212,6 +254,8 @@ def test_cli_adjacency_file_malformed_json_fails() -> None:
     with runner.isolated_filesystem():
         with open("bad.json", "w", encoding="utf-8") as handle:
             handle.write('{"not": "valid"')
-        result = runner.invoke(cli, ["simulate", "--N", "2", "--adjacency-file", "bad.json", "--quiet"])
+        result = runner.invoke(
+            cli, ["simulate", "--N", "2", "--adjacency-file", "bad.json", "--quiet"]
+        )
         assert result.exit_code != 0
         assert "Malformed JSON" in result.output

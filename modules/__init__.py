@@ -46,9 +46,9 @@ from modules.market_regime_analyzer import MarketRegimeAnalyzer
 from modules.order_validator import OrderValidator
 from modules.performance_tracker import PerformanceTracker
 from modules.portfolio_optimizer import PortfolioOptimizer
-from modules.types import MarketState
 
 # Import new engineering modules
 from modules.signal_strategy_registry import SignalStrategyRegistry
 from modules.strategy_scheduler import StrategyScheduler
 from modules.system_health_dashboard import SystemHealthDashboard
+from modules.types import MarketState

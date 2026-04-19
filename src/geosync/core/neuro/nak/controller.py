@@ -49,9 +49,7 @@ class NaKControllerV4_2:
         self.lambda_ = 0.05
         self._p_hist: deque[float] = deque(maxlen=50)
         self._refr_ticks = 0
-        self.sensory = (
-            SensoryHabituation() if self.cfg.enable_sens_habituation else None
-        )
+        self.sensory = SensoryHabituation() if self.cfg.enable_sens_habituation else None
         self.desens = DesensitizationModule()
         self._sens = 1.0
         self.r_mode = 1.0
@@ -89,9 +87,7 @@ class NaKControllerV4_2:
         p_exp = (
             p_exp_for_stim
             if p_exp_for_stim is not None
-            else (
-                float(np.mean(self._p_hist)) if self._p_hist else self.cfg.p_exp_default
-            )
+            else (float(np.mean(self._p_hist)) if self._p_hist else self.cfg.p_exp_default)
         )
         self._p_hist.append(p)
 
@@ -109,9 +105,7 @@ class NaKControllerV4_2:
 
         err = p_exp - p
         pi_p = kp_eff * self._act(err / max(STABILITY_EPSILON, self.scale))
-        pi_i = self.cfg.K_i * self._act(
-            self.I_integral / max(STABILITY_EPSILON, self.cfg.I_scale)
-        )
+        pi_i = self.cfg.K_i * self._act(self.I_integral / max(STABILITY_EPSILON, self.cfg.I_scale))
         u = pi_p + pi_i
         self.I_integral += err
 

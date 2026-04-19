@@ -13,10 +13,10 @@ from core.errors import (
     DataQualityError,
     EngineError,
     ErrorContext,
+    GeoSyncError,
     IntegrityError,
     PipelineError,
     ResourceBudgetError,
-    GeoSyncError,
     ValidationError,
 )
 

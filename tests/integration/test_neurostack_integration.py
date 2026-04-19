@@ -281,9 +281,7 @@ def test_maintenance_hierarchy_layers_fire_in_order() -> None:
     # Find first tick where multiplier < 0.05 (severe collapse)
     # At VIX=10 with GABA bias from vol=0.1, mult is already ~0.14,
     # so we look for a deeper collapse that requires GABA to be very high.
-    mult_threshold_tick = next(
-        (i for i, m in enumerate(multipliers) if m < 0.05), len(multipliers)
-    )
+    mult_threshold_tick = next((i for i, m in enumerate(multipliers) if m < 0.05), len(multipliers))
 
     # GABA threshold should occur at same time or before mult collapse
     # (they are causally linked: GABA → gate → multiplier)
@@ -299,9 +297,7 @@ def test_maintenance_hierarchy_layers_fire_in_order() -> None:
     # Verify the multiplier at max stress is near zero
     # tolerance: regime_scale=0.5 (default for unknown regime), GABA near 1
     min_mult = min(multipliers)
-    assert (
-        min_mult < 0.15
-    ), (  # epsilon: with GABA≈1 and regime scale, mult should be very small
+    assert min_mult < 0.15, (  # epsilon: with GABA≈1 and regime scale, mult should be very small
         f"INV-GABA3 integration: min multiplier={min_mult:.4f} ≥ 0.15 at VIX=100. "
         f"Expected near-zero position at extreme stress. "
         f"Observed at VIX=100, R=0.5 fixed. "

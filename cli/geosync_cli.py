@@ -118,9 +118,7 @@ def _existing_digest(path: Path) -> str | None:
     return _hash_bytes(path.read_bytes())
 
 
-def _write_bytes(
-    destination: Path, payload: bytes, *, command: str
-) -> Tuple[str, bool]:
+def _write_bytes(destination: Path, payload: bytes, *, command: str) -> Tuple[str, bool]:
     existing = _existing_digest(destination)
     digest = _hash_bytes(payload)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -145,9 +143,7 @@ def _resolve_kubectl_binary(base: Path, target: Path | str) -> Path:
         return candidate
 
     target_str = str(target)
-    has_dir_component = any(
-        sep and sep in target_str for sep in (os.sep, os.path.altsep)
-    )
+    has_dir_component = any(sep and sep in target_str for sep in (os.sep, os.path.altsep))
     if has_dir_component:
         return (base / candidate).resolve()
 
@@ -201,9 +197,7 @@ def _run_kubectl(
     except FileNotFoundError as exc:
         raise ComputeError(f"kubectl binary '{binary}' not found") from exc
     except subprocess.CalledProcessError as exc:
-        raise ComputeError(
-            f"kubectl command failed with exit code {exc.returncode}"
-        ) from exc
+        raise ComputeError(f"kubectl command failed with exit code {exc.returncode}") from exc
 
 
 def _load_callable(entrypoint: str) -> Callable[..., Any]:
@@ -314,11 +308,7 @@ def _load_fete_inputs(
     else:
         rng = np.random.default_rng(42)
         time_index = np.arange(prices.size)
-        probs = (
-            0.5
-            + 0.15 * np.sin(time_index / 50.0)
-            + rng.normal(0.0, 0.08, size=prices.size)
-        )
+        probs = 0.5 + 0.15 * np.sin(time_index / 50.0) + rng.normal(0.0, 0.08, size=prices.size)
     probs = np.clip(probs, 0.0, 1.0)
     return prices, probs
 
@@ -332,9 +322,7 @@ def _build_parity_spec(spec_cfg: FeatureParitySpecConfig) -> FeatureParitySpec:
         numeric_tolerance=spec_cfg.numeric_tolerance,
         max_clock_skew=spec_cfg.max_clock_skew,
         allow_schema_evolution=spec_cfg.allow_schema_evolution,
-        value_columns=(
-            None if spec_cfg.value_columns is None else tuple(spec_cfg.value_columns)
-        ),
+        value_columns=(None if spec_cfg.value_columns is None else tuple(spec_cfg.value_columns)),
     )
 
 
@@ -350,9 +338,7 @@ def _resolve_strategy(
     return _wrapped
 
 
-def _write_frame(
-    frame: pd.DataFrame, destination: Path, *, command: str = "cli"
-) -> str:
+def _write_frame(frame: pd.DataFrame, destination: Path, *, command: str = "cli") -> str:
     suffix = destination.suffix.lower()
     if suffix in {".csv", ""}:
         payload = frame.to_csv(index=False).encode("utf-8")
@@ -406,9 +392,7 @@ def _load_feature_dataset(path: Path) -> v21.StrictCausalFeatures:
     if "y" not in frame.columns:
         raise ComputeError("Features CSV must contain a 'y' label column.")
     feature_cols = [
-        c
-        for c in ("dr", "ricci_mean", "topo_intensity", "causal_strength")
-        if c in frame.columns
+        c for c in ("dr", "ricci_mean", "topo_intensity", "causal_strength") if c in frame.columns
     ]
     if len(feature_cols) != 4:
         raise ComputeError(
@@ -419,8 +403,7 @@ def _load_feature_dataset(path: Path) -> v21.StrictCausalFeatures:
     return v21.StrictCausalFeatures(features=features, labels=labels)
 
 
-@click.group(
-    epilog="""
+@click.group(epilog="""
 Examples:
   # Generate a configuration template
   geosync_cli ingest --generate-config --template-output ingest.yaml
@@ -435,8 +418,7 @@ Examples:
   geosync_cli completion bash
 
 For more information, visit: https://github.com/neuron7xLab/GeoSync
-"""
-)
+""")
 @click.option(
     "--templates-dir",
     type=click.Path(file_okay=False, path_type=Path),
@@ -543,7 +525,9 @@ def ingest(
             )
         manager.render("ingest", template_output)
         click.echo(f"[{command}] ✓ Template written to {template_output}")
-        click.echo(f"[{command}] ℹ Edit the template and run: geosync_cli ingest --config {template_output}")
+        click.echo(
+            f"[{command}] ℹ Edit the template and run: geosync_cli ingest --config {template_output}"
+        )
         return
     if config is None:
         raise click.UsageError(
@@ -578,9 +562,7 @@ def ingest(
                 click.echo(f"[{command}] • catalog checksum={entry.checksum}")
             with step_logger(command, "snapshot version"):
                 version_mgr = DataVersionManager(cfg.versioning)
-                version_mgr.snapshot(
-                    cfg.destination, metadata={"records": record_count}
-                )
+                version_mgr.snapshot(cfg.destination, metadata={"records": record_count})
 
             result.clear()
             result.update(
@@ -605,9 +587,7 @@ def ingest(
             if not stop_event.is_set():
                 stop_event.wait()
 
-    with Watchdog(
-        name="ingest-cli", monitor_interval=0.25, health_url=None
-    ) as watchdog:
+    with Watchdog(name="ingest-cli", monitor_interval=0.25, health_url=None) as watchdog:
         watchdog.register("ingest-worker", _ingest_worker, args=(watchdog.stop_event,))
 
         while True:
@@ -615,11 +595,7 @@ def ingest(
                 break
             if fatal_event.is_set():
                 watchdog.stop()
-                exc = (
-                    fatal_error[0]
-                    if fatal_error
-                    else RuntimeError("ingest worker failed")
-                )
+                exc = fatal_error[0] if fatal_error else RuntimeError("ingest worker failed")
                 raise exc
 
     if not result:
@@ -746,7 +722,9 @@ def backtest(
             )
         manager.render("backtest", template_output)
         click.echo(f"[{command}] ✓ Template written to {template_output}")
-        click.echo(f"[{command}] ℹ Edit the template and run: geosync_cli backtest --config {template_output}")
+        click.echo(
+            f"[{command}] ℹ Edit the template and run: geosync_cli backtest --config {template_output}"
+        )
         return
     if config is None:
         raise click.UsageError(
@@ -810,9 +788,7 @@ def _emit_optimize_output(
     if output_format == "jsonl":
         click.echo(json.dumps({"metric": "best_score", "value": payload["best_score"]}))
         if payload["best_params"]:
-            click.echo(
-                json.dumps({"metric": "best_params", "value": payload["best_params"]})
-            )
+            click.echo(json.dumps({"metric": "best_params", "value": payload["best_params"]}))
         for trial in payload["trials"]:
             click.echo(json.dumps({"metric": "trial", "value": trial}))
         return
@@ -884,7 +860,9 @@ def optimize(
             )
         manager.render("optimize", template_output)
         click.echo(f"[{command}] ✓ Template written to {template_output}")
-        click.echo(f"[{command}] ℹ Edit the template and run: geosync_cli optimize --config {template_output}")
+        click.echo(
+            f"[{command}] ℹ Edit the template and run: geosync_cli optimize --config {template_output}"
+        )
         return
     if config is None:
         raise click.UsageError(
@@ -914,9 +892,7 @@ def optimize(
             trial_result = _run_backtest(trial_cfg)
             returns = np.asarray(trial_result["returns"], dtype=float)
             score = float(objective_fn(returns))
-            trials.append(
-                {"params": params, "score": score, "stats": trial_result["stats"]}
-            )
+            trials.append({"params": params, "score": score, "stats": trial_result["stats"]})
             if score > best_score:
                 best_score = score
                 best_params = params
@@ -1022,7 +998,9 @@ def exec(  # noqa: A001
             )
         manager.render("exec", template_output)
         click.echo(f"[{command}] ✓ Template written to {template_output}")
-        click.echo(f"[{command}] ℹ Edit the template and run: geosync_cli exec --config {template_output}")
+        click.echo(
+            f"[{command}] ℹ Edit the template and run: geosync_cli exec --config {template_output}"
+        )
         return
     if config is None:
         raise click.UsageError(
@@ -1078,9 +1056,7 @@ def _emit_report_output(
     if output_format == "jsonl":
         for idx, path in enumerate(cfg.inputs, start=1):
             click.echo(json.dumps({"section": idx, "source": str(path)}))
-        click.echo(
-            json.dumps({"metric": "line_count", "value": len(report_text.splitlines())})
-        )
+        click.echo(json.dumps({"metric": "line_count", "value": len(report_text.splitlines())}))
         return
     if output_format == "parquet":
         frame = pd.DataFrame(
@@ -1109,10 +1085,7 @@ def _emit_parity_summary(report: FeatureParityReport, *, command: str) -> None:
     if report.max_value_drift is not None:
         click.echo(f"[{command}] • max_value_drift={report.max_value_drift:.6g}")
     if report.clock_skew is not None:
-        click.echo(
-            f"[{command}] • clock_skew={report.clock_skew} "
-            f"abs={report.clock_skew_abs}"
-        )
+        click.echo(f"[{command}] • clock_skew={report.clock_skew} abs={report.clock_skew_abs}")
     if report.columns_added:
         click.echo(f"[{command}] • columns_added={', '.join(report.columns_added)}")
     if report.columns_removed:
@@ -1182,7 +1155,9 @@ def report(
             )
         manager.render("report", template_output)
         click.echo(f"[{command}] ✓ Template written to {template_output}")
-        click.echo(f"[{command}] ℹ Edit the template and run: geosync_cli report --config {template_output}")
+        click.echo(
+            f"[{command}] ℹ Edit the template and run: geosync_cli report --config {template_output}"
+        )
         return
     if config is None:
         raise click.UsageError(
@@ -1277,7 +1252,9 @@ def deploy(
             )
         manager.render("deploy", template_output)
         click.echo(f"[{command}] ✓ Template written to {template_output}")
-        click.echo(f"[{command}] ℹ Edit the template and run: geosync_cli deploy --config {template_output}")
+        click.echo(
+            f"[{command}] ℹ Edit the template and run: geosync_cli deploy --config {template_output}"
+        )
         return
     if config is None:
         raise click.UsageError(
@@ -1368,9 +1345,7 @@ def deploy(
             "annotations": dict(sorted(annotations.items())),
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         }
-        summary_path.write_text(
-            json.dumps(summary_payload, indent=2) + "\n", encoding="utf-8"
-        )
+        summary_path.write_text(json.dumps(summary_payload, indent=2) + "\n", encoding="utf-8")
         click.echo(f"[{command}] • wrote deployment summary to {summary_path}")
 
     click.echo(
@@ -1438,7 +1413,9 @@ def parity(
             )
         manager.render("parity", template_output)
         click.echo(f"[{command}] ✓ Template written to {template_output}")
-        click.echo(f"[{command}] ℹ Edit the template and run: geosync_cli parity --config {template_output}")
+        click.echo(
+            f"[{command}] ℹ Edit the template and run: geosync_cli parity --config {template_output}"
+        )
         return
     if config is None:
         raise click.UsageError(
@@ -1548,9 +1525,7 @@ def fete_backtest(
     if report.risk_events:
         click.echo("Risk events:")
         for event in report.risk_events[-5:]:
-            click.echo(
-                f"  {event.timestamp.isoformat()} • {event.code} • {event.message}"
-            )
+            click.echo(f"  {event.timestamp.isoformat()} • {event.code} • {event.message}")
 
     if out_path is not None:
         curve = pd.DataFrame(

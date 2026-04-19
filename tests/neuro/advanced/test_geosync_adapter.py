@@ -7,7 +7,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from core.neuro.adapters.geosync_adapter import MarketPulse, GeoSyncNeuroAdapter
+from core.neuro.adapters.geosync_adapter import GeoSyncNeuroAdapter, MarketPulse
 
 
 @pytest.mark.asyncio

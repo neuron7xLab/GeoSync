@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
 
-from pathlib import Path
-
 import json
+from pathlib import Path
 
 import scripts.localization.sync_translations as sync
 

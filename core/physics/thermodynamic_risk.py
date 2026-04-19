@@ -95,7 +95,7 @@ class ThermodynamicRiskGate:
         if total < 1e-12:
             return 0.0
         w = w / total
-        return (1.0 - float(np.sum(w ** self._q))) / (self._q - 1.0)
+        return (1.0 - float(np.sum(w**self._q))) / (self._q - 1.0)
 
     def ricci_temperature(self, kappa_min: float) -> float:
         """T_eff = T_base · exp(-κ_min).

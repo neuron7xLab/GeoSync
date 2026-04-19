@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import threading
 import time
-from unittest.mock import patch
 
 import pytest
 
@@ -19,17 +18,16 @@ from execution.resilience.circuit_breaker import (
     CircuitBreakerState,
     DegradedModeFallback,
     ExchangeResilienceManager,
-    ExchangeResilienceProfile,
     HealthMetrics,
     LeakyBucketRateLimiter,
     TokenBucketRateLimiter,
     default_resilience_profile,
 )
 
-
 # ---------------------------------------------------------------------------
 # CircuitBreaker core
 # ---------------------------------------------------------------------------
+
 
 class TestCircuitBreakerStates:
     def test_starts_closed(self):
@@ -79,9 +77,9 @@ class TestCircuitBreakerStates:
         assert cb.state is CircuitBreakerState.OPEN
 
     def test_half_open_max_calls_limit(self):
-        cb = CircuitBreaker(CircuitBreakerConfig(
-            failure_threshold=1, recovery_timeout=0.01, half_open_max_calls=2
-        ))
+        cb = CircuitBreaker(
+            CircuitBreakerConfig(failure_threshold=1, recovery_timeout=0.01, half_open_max_calls=2)
+        )
         cb.record_failure()
         time.sleep(0.02)
         assert cb.allow_request() is True  # call 1
@@ -200,6 +198,7 @@ class TestCircuitBreakerConcurrency:
 # TokenBucketRateLimiter
 # ---------------------------------------------------------------------------
 
+
 class TestTokenBucket:
     def test_allows_within_capacity(self):
         tb = TokenBucketRateLimiter(capacity=10, refill_rate_per_sec=100)
@@ -235,6 +234,7 @@ class TestTokenBucket:
 # LeakyBucketRateLimiter
 # ---------------------------------------------------------------------------
 
+
 class TestLeakyBucket:
     def test_allows_within_capacity(self):
         lb = LeakyBucketRateLimiter(capacity=5, leak_rate_per_sec=100)
@@ -269,6 +269,7 @@ class TestLeakyBucket:
 # ---------------------------------------------------------------------------
 # AdaptiveThrottler
 # ---------------------------------------------------------------------------
+
 
 class TestAdaptiveThrottler:
     def test_default_multiplier(self):
@@ -306,6 +307,7 @@ class TestAdaptiveThrottler:
 # CachedDataFallback / DegradedModeFallback
 # ---------------------------------------------------------------------------
 
+
 class TestFallbacks:
     def test_cached_fallback_returns_data(self):
         fb = CachedDataFallback(cache_provider=lambda ex, op: {"cached": True})
@@ -327,6 +329,7 @@ class TestFallbacks:
 # HealthMetrics
 # ---------------------------------------------------------------------------
 
+
 class TestHealthMetrics:
     def test_snapshot(self):
         hm = HealthMetrics(total_requests=10, failures=2, successful_requests=8)
@@ -338,6 +341,7 @@ class TestHealthMetrics:
 # ---------------------------------------------------------------------------
 # Bulkhead
 # ---------------------------------------------------------------------------
+
 
 class TestBulkhead:
     def test_acquire_and_release(self):
@@ -369,6 +373,7 @@ class TestBulkhead:
 # ---------------------------------------------------------------------------
 # ExchangeResilienceProfile
 # ---------------------------------------------------------------------------
+
 
 class TestExchangeResilienceProfile:
     def _make_profile(self, **kwargs):
@@ -423,6 +428,7 @@ class TestExchangeResilienceProfile:
 # ExchangeResilienceManager
 # ---------------------------------------------------------------------------
 
+
 class TestExchangeResilienceManager:
     def test_get_profile_and_health_report(self):
         p = default_resilience_profile()
@@ -440,6 +446,7 @@ class TestExchangeResilienceManager:
 # ---------------------------------------------------------------------------
 # default_resilience_profile factory
 # ---------------------------------------------------------------------------
+
 
 class TestDefaultResilienceProfile:
     def test_no_fallbacks(self):

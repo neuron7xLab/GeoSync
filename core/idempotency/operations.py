@@ -34,9 +34,7 @@ class IdempotencyError(RuntimeError):
 
     status_code: int = 500
 
-    def __init__(
-        self, message: str, *, detail: Mapping[str, Any] | None = None
-    ) -> None:
+    def __init__(self, message: str, *, detail: Mapping[str, Any] | None = None) -> None:
         super().__init__(message)
         self.detail = dict(detail or {})
 
@@ -175,8 +173,7 @@ class IdempotencyCoordinator(Generic[T]):
             self._append_audit(record, "duplicate", metadata)
             if record.status is OperationStatus.FAILED:
                 raise IdempotencyInputError(
-                    record.failure_reason
-                    or "Previous attempt failed and cannot be retried.",
+                    record.failure_reason or "Previous attempt failed and cannot be retried.",
                     detail={
                         "operation_id": key.operation_id,
                         "request_id": key.request_id,
@@ -368,9 +365,7 @@ class IdempotencyCoordinator(Generic[T]):
     def _purge_locked(self, now: float) -> None:
         cutoff = now - self._record_ttl
         expired = [
-            op_id
-            for op_id, record in self._records.items()
-            if record.last_seen_monotonic < cutoff
+            op_id for op_id, record in self._records.items() if record.last_seen_monotonic < cutoff
         ]
         for op_id in expired:
             del self._records[op_id]

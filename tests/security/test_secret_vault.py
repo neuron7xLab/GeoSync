@@ -29,9 +29,7 @@ class _InMemoryAuditLogger:
     def __init__(self) -> None:
         self.events: list[_RecordedEvent] = []
 
-    def log_event(
-        self, *, event_type: str, actor: str, ip_address: str, details: dict
-    ) -> None:
+    def log_event(self, *, event_type: str, actor: str, ip_address: str, details: dict) -> None:
         self.events.append(_RecordedEvent(event_type, actor, dict(details)))
 
 
@@ -115,9 +113,7 @@ def test_secret_rotator_performs_rotation(tmp_path: Path) -> None:
     )
     clock.advance(timedelta(hours=1))
     rotated_metadata = rotator.evaluate()
-    assert (
-        rotated_metadata and rotated_metadata[0].version == metadata_before.version + 1
-    )
+    assert rotated_metadata and rotated_metadata[0].version == metadata_before.version + 1
 
 
 def test_secret_manager_resolves_vault_secret(tmp_path: Path) -> None:

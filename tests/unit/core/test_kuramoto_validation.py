@@ -65,9 +65,7 @@ class TestLagGrangerCausality:
             extraction_method="hilbert",
             frequency_band=(0.01, 1.0),
         )
-        report = lag_granger_causality(
-            pm, config=CausalValidationConfig(max_lag=4, alpha=0.01)
-        )
+        report = lag_granger_causality(pm, config=CausalValidationConfig(max_lag=4, alpha=0.01))
         assert isinstance(report, CausalValidationReport)
         # driven receives from driver
         assert bool(report.causal_graph[1, 0])
@@ -125,9 +123,7 @@ class TestLagGrangerCausality:
         metrics = compare_to_coupling(report, coupling)
         # Intersection = 2 (both true edges detected); union = 3
         assert metrics["jaccard"] == pytest.approx(2 / 3)
-        assert metrics["precision"] == pytest.approx(
-            2 / 2
-        )  # coupling ∩ causal / coupling
+        assert metrics["precision"] == pytest.approx(2 / 2)  # coupling ∩ causal / coupling
         assert metrics["recall"] == pytest.approx(2 / 3)  # coupling ∩ causal / causal
 
     def test_config_validation(self) -> None:
@@ -194,9 +190,7 @@ class TestSPATest:
             "noisy2": rng.standard_normal(n) * 1.2,
             "noisy3": rng.standard_normal(n) * 0.8,
         }
-        p = spa_test(
-            model_err, baselines, n_bootstrap=200, block_length=10, random_state=0
-        )
+        p = spa_test(model_err, baselines, n_bootstrap=200, block_length=10, random_state=0)
         assert p < 0.05
 
     def test_weak_model_fails_to_reject(self) -> None:
@@ -208,9 +202,7 @@ class TestSPATest:
             "a": rng.standard_normal(n),
             "b": rng.standard_normal(n),
         }
-        p = spa_test(
-            model_err, baselines, n_bootstrap=200, block_length=10, random_state=0
-        )
+        p = spa_test(model_err, baselines, n_bootstrap=200, block_length=10, random_state=0)
         assert p >= 0.05
 
 
@@ -221,12 +213,8 @@ class TestSPATest:
 
 class TestTemporalSplit:
     def test_slices_are_contiguous_and_disjoint(self) -> None:
-        gt = generate_sakaguchi_kuramoto(
-            SyntheticConfig(N=3, T=500, burn_in=50, seed=1)
-        )
-        train, val, test = temporal_split(
-            gt.generated_phases, train_frac=0.6, val_frac=0.2
-        )
+        gt = generate_sakaguchi_kuramoto(SyntheticConfig(N=3, T=500, burn_in=50, seed=1))
+        train, val, test = temporal_split(gt.generated_phases, train_frac=0.6, val_frac=0.2)
         T = gt.generated_phases.theta.shape[0]
         assert train.start == 0
         assert train.stop == val.start

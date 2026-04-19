@@ -272,9 +272,7 @@ class TACLMetricsCollector:
         if not math.isfinite(free_energy):
             violations.append("Free energy is non-finite")
         elif free_energy > free_energy_max:
-            violations.append(
-                f"Free energy {free_energy:.3f} exceeds max {free_energy_max}"
-            )
+            violations.append(f"Free energy {free_energy:.3f} exceeds max {free_energy_max}")
 
         rpe = self._metrics.get("dopamine_rpe", 0.0)
         if not math.isfinite(rpe):
@@ -286,9 +284,7 @@ class TACLMetricsCollector:
         if not math.isfinite(latency):
             violations.append("Latency P99 is non-finite")
         elif latency > latency_p99_max_ms:
-            violations.append(
-                f"Latency P99 {latency:.1f}ms exceeds max {latency_p99_max_ms}ms"
-            )
+            violations.append(f"Latency P99 {latency:.1f}ms exceeds max {latency_p99_max_ms}ms")
 
         return violations
 
@@ -700,13 +696,7 @@ class DigitalGovernanceFramework:
             "tacl_metrics": self.tacl_metrics.get_metrics(),
             "tacl_counters": self.tacl_metrics.get_counters(),
             "total_violations": len(self._violations),
-            "critical_violations": sum(
-                1 for v in self._violations if v.severity == "CRITICAL"
-            ),
-            "error_violations": sum(
-                1 for v in self._violations if v.severity == "ERROR"
-            ),
-            "warning_violations": sum(
-                1 for v in self._violations if v.severity == "WARNING"
-            ),
+            "critical_violations": sum(1 for v in self._violations if v.severity == "CRITICAL"),
+            "error_violations": sum(1 for v in self._violations if v.severity == "ERROR"),
+            "warning_violations": sum(1 for v in self._violations if v.severity == "WARNING"),
         }

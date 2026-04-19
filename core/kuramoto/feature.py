@@ -219,14 +219,10 @@ class NetworkKuramotoFeature:
             for c in np.unique(cluster_assignments):
                 mask = cluster_assignments == c
                 if mask.any():
-                    R_clusters[int(c)] = float(
-                        np.abs(np.mean(np.exp(1j * latest_theta[mask])))
-                    )
+                    R_clusters[int(c)] = float(np.abs(np.mean(np.exp(1j * latest_theta[mask]))))
 
         # Chimera: variance of cluster-level R at this bar
-        chimera = (
-            float(np.var(list(R_clusters.values()))) if len(R_clusters) >= 2 else 0.0
-        )
+        chimera = float(np.var(list(R_clusters.values()))) if len(R_clusters) >= 2 else 0.0
 
         # CSD from rolling R history
         R_hist = np.array(self._R_history, dtype=np.float64)
@@ -241,9 +237,7 @@ class NetworkKuramotoFeature:
             csd_var = 0.0
             csd_ac = 0.0
 
-        R_deriv = (
-            R_global - float(self._R_history[-2]) if len(self._R_history) >= 2 else 0.0
-        )
+        R_deriv = R_global - float(self._R_history[-2]) if len(self._R_history) >= 2 else 0.0
 
         out: dict[str, float] = {
             "kuramoto_R_global": R_global,
@@ -256,9 +250,7 @@ class NetworkKuramotoFeature:
             "kuramoto_csd_autocorr": csd_ac,
             "kuramoto_coupling_density": 1.0 - float(self._state.coupling.sparsity),
             "kuramoto_inhibition_ratio": float(np.mean(self._state.coupling.K < 0.0)),
-            "kuramoto_calibration_age_bars": float(
-                self._bar_count - self._last_calibration_bar
-            ),
+            "kuramoto_calibration_age_bars": float(self._bar_count - self._last_calibration_bar),
         }
         for c, r in R_clusters.items():
             out[f"kuramoto_R_cluster_{c}"] = r

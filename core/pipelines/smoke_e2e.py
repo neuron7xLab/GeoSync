@@ -23,9 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 AnalyzeRunner = Callable[[Path, int], Mapping[str, Any]]
 IngestRunner = Callable[[Path], Sequence[Ticker]]
 SignalBuilder = Callable[[Mapping[str, Any], int], Callable[[np.ndarray], np.ndarray]]
-BacktestRunner = Callable[
-    [np.ndarray, Callable[[np.ndarray], np.ndarray], float], Result
-]
+BacktestRunner = Callable[[np.ndarray, Callable[[np.ndarray], np.ndarray], float], Result]
 ArtifactWriter = Callable[[Mapping[str, Any], Path], Path]
 
 
@@ -72,9 +70,7 @@ def run_cli_analyze(csv_path: Path, seed: int) -> dict[str, Any]:
             env=env,
         )
     except FileNotFoundError as exc:  # pragma: no cover - defensive guard
-        raise RuntimeError(
-            "Python executable not found while running CLI analyze"
-        ) from exc
+        raise RuntimeError("Python executable not found while running CLI analyze") from exc
     output = result.stdout.strip()
     if not output:
         raise RuntimeError("CLI analyze produced no output")

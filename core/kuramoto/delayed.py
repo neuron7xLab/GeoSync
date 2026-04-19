@@ -66,9 +66,7 @@ class DelayedKuramotoEngine:
         # Process delay
         if np.isscalar(tau):
             tau_scalar = float(tau)  # type: ignore[arg-type]
-            self._tau_matrix = np.full(
-                (config.N, config.N), tau_scalar, dtype=np.float64
-            )
+            self._tau_matrix = np.full((config.N, config.N), tau_scalar, dtype=np.float64)
             self._max_tau = tau_scalar
         else:
             self._tau_matrix = np.asarray(tau, dtype=np.float64)
@@ -122,9 +120,7 @@ class DelayedKuramotoEngine:
             phases[k + 1] = theta
             R_arr[k + 1] = _order_parameter(theta)
 
-        return KuramotoResult(
-            phases=phases, order_parameter=R_arr, time=time_arr, config=cfg
-        )
+        return KuramotoResult(phases=phases, order_parameter=R_arr, time=time_arr, config=cfg)
 
     def _lookup_delayed(
         self,
@@ -185,12 +181,8 @@ class DelayedKuramotoEngine:
     ) -> NDArray[np.float64]:
         """RK4 step for DDE system."""
         k1 = self._dde_dtheta_dt(theta, t, buffer, buf_ptr, dt)
-        k2 = self._dde_dtheta_dt(
-            theta + 0.5 * dt * k1, t + 0.5 * dt, buffer, buf_ptr, dt
-        )
-        k3 = self._dde_dtheta_dt(
-            theta + 0.5 * dt * k2, t + 0.5 * dt, buffer, buf_ptr, dt
-        )
+        k2 = self._dde_dtheta_dt(theta + 0.5 * dt * k1, t + 0.5 * dt, buffer, buf_ptr, dt)
+        k3 = self._dde_dtheta_dt(theta + 0.5 * dt * k2, t + 0.5 * dt, buffer, buf_ptr, dt)
         k4 = self._dde_dtheta_dt(theta + dt * k3, t + dt, buffer, buf_ptr, dt)
         return theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 

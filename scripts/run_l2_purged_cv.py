@@ -16,12 +16,6 @@ from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
-from research.microstructure.l2_cli import (
-    SubstrateError,
-    add_common_args,
-    load_substrate,
-    setup_logging,
-)
 
 from research.microstructure.cv import (
     DEFAULT_EMBARGO_SEC,
@@ -31,6 +25,12 @@ from research.microstructure.cv import (
 from research.microstructure.killtest import (
     _forward_log_return,
     cross_sectional_ricci_signal,
+)
+from research.microstructure.l2_cli import (
+    SubstrateError,
+    add_common_args,
+    load_substrate,
+    setup_logging,
 )
 
 _log = logging.getLogger("l2_purged_cv")

@@ -54,9 +54,7 @@ class TestTrainingBatch:
         assert casted.targets.dtype == np.float16
 
     def test_cast_preserves_int(self):
-        b = TrainingBatch(
-            inputs=np.array([1, 2], dtype=np.int32), targets=np.array([3])
-        )
+        b = TrainingBatch(inputs=np.array([1, 2], dtype=np.int32), targets=np.array([3]))
         casted = b.cast(np.float16)
         assert casted.inputs.dtype == np.int32
 
@@ -102,17 +100,13 @@ class TestMixedPrecisionContext:
         assert ctx.cast(arr) is arr
 
     def test_cast_enabled(self):
-        ctx = MixedPrecisionContext(
-            enabled=True, target_dtype=np.float16, loss_scale=1024.0
-        )
+        ctx = MixedPrecisionContext(enabled=True, target_dtype=np.float16, loss_scale=1024.0)
         arr = np.array([1.0, 2.0], dtype=np.float64)
         result = ctx.cast(arr)
         assert result.dtype == np.float16
 
     def test_cast_int_unchanged(self):
-        ctx = MixedPrecisionContext(
-            enabled=True, target_dtype=np.float16, loss_scale=1024.0
-        )
+        ctx = MixedPrecisionContext(enabled=True, target_dtype=np.float16, loss_scale=1024.0)
         arr = np.array([1, 2], dtype=np.int32)
         result = ctx.cast(arr)
         assert result.dtype == np.int32
@@ -120,15 +114,11 @@ class TestMixedPrecisionContext:
 
 class TestTrainingProfiler:
     def test_empty_report(self):
-        p = TrainingProfiler(
-            profile_memory=False, profile_compute=False, profile_io=False
-        )
+        p = TrainingProfiler(profile_memory=False, profile_compute=False, profile_io=False)
         assert p.report() == {"steps": 0}
 
     def test_measure_step(self):
-        p = TrainingProfiler(
-            profile_memory=False, profile_compute=True, profile_io=True
-        )
+        p = TrainingProfiler(profile_memory=False, profile_compute=True, profile_io=True)
         with p.measure_step(1, io_time=0.01):
             pass
         report = p.report()

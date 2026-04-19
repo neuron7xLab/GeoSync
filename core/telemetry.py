@@ -194,9 +194,7 @@ class PrometheusBackend:
             LOGGER.warning("prometheus_client not installed, metrics disabled")
             return False
 
-    def _get_or_create_counter(
-        self, name: str, tags: Mapping[str, str] | None
-    ) -> Any:
+    def _get_or_create_counter(self, name: str, tags: Mapping[str, str] | None) -> Any:
         """Get or create a counter metric."""
         if not self._prometheus_available:
             return None
@@ -215,9 +213,7 @@ class PrometheusBackend:
             )
         return self._counters[key]
 
-    def _get_or_create_gauge(
-        self, name: str, tags: Mapping[str, str] | None
-    ) -> Any:
+    def _get_or_create_gauge(self, name: str, tags: Mapping[str, str] | None) -> Any:
         """Get or create a gauge metric."""
         if not self._prometheus_available:
             return None
@@ -236,9 +232,7 @@ class PrometheusBackend:
             )
         return self._gauges[key]
 
-    def _get_or_create_histogram(
-        self, name: str, tags: Mapping[str, str] | None
-    ) -> Any:
+    def _get_or_create_histogram(self, name: str, tags: Mapping[str, str] | None) -> Any:
         """Get or create a histogram metric."""
         if not self._prometheus_available:
             return None

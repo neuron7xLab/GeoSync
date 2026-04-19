@@ -28,14 +28,10 @@ from src.risk import evaluate_fairness, write_fairness_report
         ),
     ],
 )
-def test_evaluate_fairness_outputs_expected_metrics(
-    y_true, y_pred, groups, expected
-) -> None:
+def test_evaluate_fairness_outputs_expected_metrics(y_true, y_pred, groups, expected) -> None:
     evaluation = evaluate_fairness(y_true, y_pred, groups)
 
-    assert evaluation.demographic_parity == pytest.approx(
-        expected["demographic_parity"]
-    )
+    assert evaluation.demographic_parity == pytest.approx(expected["demographic_parity"])
     assert evaluation.equal_opportunity == pytest.approx(expected["equal_opportunity"])
 
 

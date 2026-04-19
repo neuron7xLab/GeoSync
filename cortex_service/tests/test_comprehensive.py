@@ -62,9 +62,7 @@ def _test_settings() -> CortexSettings:
             var_confidence=0.95,
             stress_scenarios=(0.8, 0.5),
         ),
-        regime=RegimeSettings(
-            decay=0.2, min_valence=-1.0, max_valence=1.0, confidence_floor=0.1
-        ),
+        regime=RegimeSettings(decay=0.2, min_valence=-1.0, max_valence=1.0, confidence_floor=0.1),
     )
 
 

@@ -38,9 +38,7 @@ class _FakeBroker:
 
 
 class _CapturingKafkaService:
-    def __init__(
-        self, config: KafkaIngestionConfig, *, tick_handler, lag_handler=None
-    ) -> None:
+    def __init__(self, config: KafkaIngestionConfig, *, tick_handler, lag_handler=None) -> None:
         self.config = config
         self.tick_handler = tick_handler
         self.lag_handler = lag_handler
@@ -222,10 +220,7 @@ class _FakeConnection:
 
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
         normalized = " ".join(query.strip().split()).lower()
-        if (
-            "from feature_values" in normalized
-            and "order by event_ts desc" in normalized
-        ):
+        if "from feature_values" in normalized and "order by event_ts desc" in normalized:
             name, version, entity_id = args[:3]
             cutoff: datetime | None = None
             if "event_ts <= $4" in normalized:
@@ -238,9 +233,7 @@ class _FakeConnection:
                 and record.entity_id == entity_id
             ]
             if cutoff is not None:
-                candidates = [
-                    record for record in candidates if record.event_ts <= cutoff
-                ]
+                candidates = [record for record in candidates if record.event_ts <= cutoff]
             if not candidates:
                 return None
             latest = max(candidates, key=lambda record: record.event_ts)
@@ -402,10 +395,7 @@ async def test_polygon_adapter_fetches_data_with_authorised_requests() -> None:
 
     assert requests
     request = requests[0]
-    assert (
-        request.url.path
-        == "/v2/aggs/ticker/BTCUSD/range/1/minute/2024-01-01/2024-01-02"
-    )
+    assert request.url.path == "/v2/aggs/ticker/BTCUSD/range/1/minute/2024-01-01/2024-01-02"
     assert len(ticks) == 1
     tick = ticks[0]
     assert isinstance(tick, PriceTick)

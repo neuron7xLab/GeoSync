@@ -1,6 +1,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Unit tests for core.validation.neuro_integrity module."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -248,9 +249,7 @@ class TestValidateState:
         )
         report = validator.validate_state(state)
         assert not report.is_valid
-        assert any(
-            "E/I ratio" in v and "excitation dominant" in v for v in report.violations
-        )
+        assert any("E/I ratio" in v and "excitation dominant" in v for v in report.violations)
 
     def test_low_ei_imbalance(self) -> None:
         config = NeuroIntegrityConfig(max_ei_imbalance=3.0)
@@ -346,12 +345,8 @@ class TestValidateTransition:
 
     def test_invalid_dt(self) -> None:
         validator = NeuroIntegrity()
-        state_before = PathwayState(
-            dopamine=0.5, serotonin=0.5, excitation=0.5, inhibition=0.5
-        )
-        state_after = PathwayState(
-            dopamine=0.6, serotonin=0.5, excitation=0.5, inhibition=0.5
-        )
+        state_before = PathwayState(dopamine=0.5, serotonin=0.5, excitation=0.5, inhibition=0.5)
+        state_after = PathwayState(dopamine=0.6, serotonin=0.5, excitation=0.5, inhibition=0.5)
         with pytest.raises(ValueError, match="must be positive"):
             validator.validate_transition(state_before, state_after, dt=0)
 
@@ -395,12 +390,8 @@ class TestValidateTransition:
 
     def test_transition_metrics(self) -> None:
         validator = NeuroIntegrity()
-        state_before = PathwayState(
-            dopamine=0.5, serotonin=0.5, excitation=0.5, inhibition=0.5
-        )
-        state_after = PathwayState(
-            dopamine=0.6, serotonin=0.4, excitation=0.5, inhibition=0.5
-        )
+        state_before = PathwayState(dopamine=0.5, serotonin=0.5, excitation=0.5, inhibition=0.5)
+        state_after = PathwayState(dopamine=0.6, serotonin=0.4, excitation=0.5, inhibition=0.5)
         report = validator.validate_transition(state_before, state_after, dt=0.5)
         assert report.metrics["dt"] == 0.5
         assert report.metrics["dopamine_delta"] == pytest.approx(0.1)
@@ -415,9 +406,7 @@ class TestValidateTransition:
             inhibition=0.5,
             coherence=0.05,  # Below minimum
         )
-        state_after = PathwayState(
-            dopamine=0.5, serotonin=0.5, excitation=0.5, inhibition=0.5
-        )
+        state_after = PathwayState(dopamine=0.5, serotonin=0.5, excitation=0.5, inhibition=0.5)
         report = validator.validate_transition(state_before, state_after, dt=1.0)
         assert any("Initial:" in v for v in report.violations)
 
@@ -432,9 +421,7 @@ class TestValidateTrajectory:
 
     def test_single_state_trajectory(self) -> None:
         validator = NeuroIntegrity()
-        state = PathwayState(
-            dopamine=0.5, serotonin=0.5, excitation=0.5, inhibition=0.5
-        )
+        state = PathwayState(dopamine=0.5, serotonin=0.5, excitation=0.5, inhibition=0.5)
         report = validator.validate_trajectory([state])
         assert report.is_valid
 

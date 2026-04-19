@@ -20,14 +20,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 ROOT = Path(__file__).resolve().parents[2]
 SAFE_PATH_RE = re.compile(r"[A-Za-z0-9_./-]+")
 
-from tests.performance.multi_exchange_replay import (
+from tests.performance.multi_exchange_replay import (  # noqa: E402
     PerformanceBudget,
     check_regression,
     compute_performance_metrics,
     discover_recordings,
     load_replay_recording,
 )
-from tests.performance.performance_artifacts import (
+from tests.performance.performance_artifacts import (  # noqa: E402
     PerformanceArtifactGenerator,
     PerformanceReport,
     PerformanceRun,
@@ -43,9 +43,7 @@ def get_git_info() -> dict[str, str]:
 
     try:
         commit = (
-            subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
-            )
+            subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL)
             .decode()
             .strip()
         )
@@ -103,9 +101,7 @@ def _validate_repo_dir(value: str, *, must_exist: bool) -> Path:
     try:
         path.relative_to(ROOT)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError(
-            f"Path must be inside repository root ({ROOT})."
-        ) from exc
+        raise argparse.ArgumentTypeError(f"Path must be inside repository root ({ROOT}).") from exc
     if must_exist and not path.exists():
         raise argparse.ArgumentTypeError(f"Directory does not exist: {path}")
     if path.exists() and not path.is_dir():
@@ -208,15 +204,9 @@ def main() -> int:
     args.latency_median_ms = _validate_non_negative_float(str(args.latency_median_ms))
     args.latency_p95_ms = _validate_non_negative_float(str(args.latency_p95_ms))
     args.latency_max_ms = _validate_non_negative_float(str(args.latency_max_ms))
-    args.throughput_min_tps = _validate_non_negative_float(
-        str(args.throughput_min_tps)
-    )
-    args.slippage_median_bps = _validate_non_negative_float(
-        str(args.slippage_median_bps)
-    )
-    args.slippage_p95_bps = _validate_non_negative_float(
-        str(args.slippage_p95_bps)
-    )
+    args.throughput_min_tps = _validate_non_negative_float(str(args.throughput_min_tps))
+    args.slippage_median_bps = _validate_non_negative_float(str(args.slippage_median_bps))
+    args.slippage_p95_bps = _validate_non_negative_float(str(args.slippage_p95_bps))
 
     # Ensure output directory exists
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -298,11 +288,7 @@ def main() -> int:
     report.summary = {
         "total_runs": len(report.runs),
         "passed": len(
-            [
-                r
-                for r in report.runs
-                if r.regression_result and r.regression_result.passed
-            ]
+            [r for r in report.runs if r.regression_result and r.regression_result.passed]
         ),
         "failed": len(failed_runs),
         "git_commit": git_info["commit"][:8],
@@ -331,7 +317,7 @@ def main() -> int:
                 print(f"  Issue template: {issue_path}")
 
     # Summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Summary: {report.summary['passed']}/{report.summary['total_runs']} passed")
 
     if failed_runs:

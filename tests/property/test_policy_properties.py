@@ -27,16 +27,20 @@ try:
     HAS_HYPOTHESIS = True
 except ImportError:
     HAS_HYPOTHESIS = False
+
     # Define no-op decorators for when hypothesis is not available
     # These preserve basic function metadata by returning the skipped function
     def _skip_decorator(*args, **kwargs):
         def decorator(f):
             return pytest.mark.skip(reason="hypothesis not installed")(f)
+
         return decorator
 
     given = _skip_decorator
+
     def settings(*args, **kwargs):
         return lambda f: f
+
     st = None
 
 
@@ -82,9 +86,9 @@ class TestInjectionPatterns:
         result, trace = engine.evaluate(content)
 
         # Should not be ALLOW
-        assert result.decision != DecisionType.ALLOW, (
-            f"Injection pattern '{pattern}' was incorrectly ALLOWED in: {content}"
-        )
+        assert (
+            result.decision != DecisionType.ALLOW
+        ), f"Injection pattern '{pattern}' was incorrectly ALLOWED in: {content}"
 
 
 # Token-like patterns that should be scrubbed
@@ -123,9 +127,7 @@ class TestTraceScrubber:
         result = scrubber.scrub(content)
 
         # The full token should not appear in the result
-        assert token not in result, (
-            f"Token '{token}' was not scrubbed from output: {result}"
-        )
+        assert token not in result, f"Token '{token}' was not scrubbed from output: {result}"
         # But the replacement should be present
         assert "[TOKEN_REDACTED]" in result or prefix not in result
 
@@ -151,9 +153,7 @@ class TestTraceScrubber:
         result = scrubber.scrub(content)
 
         # Email should not appear in clear text
-        assert email not in result, (
-            f"Email '{email}' was not scrubbed from output: {result}"
-        )
+        assert email not in result, f"Email '{email}' was not scrubbed from output: {result}"
 
     @given(
         area=st.integers(min_value=100, max_value=999),
@@ -170,9 +170,7 @@ class TestTraceScrubber:
         result = scrubber.scrub(content)
 
         # Phone should not appear in result
-        assert phone not in result, (
-            f"Phone '{phone}' was not scrubbed from output: {result}"
-        )
+        assert phone not in result, f"Phone '{phone}' was not scrubbed from output: {result}"
 
 
 @pytest.mark.skipif(not HAS_HYPOTHESIS, reason="hypothesis not installed")
@@ -208,12 +206,14 @@ class TestDecisionResolution:
 
     @given(
         other_decisions=st.lists(
-            st.sampled_from([
-                DecisionType.ALLOW,
-                DecisionType.REWRITE,
-                DecisionType.REDACT,
-                DecisionType.ESCALATE,
-            ]),
+            st.sampled_from(
+                [
+                    DecisionType.ALLOW,
+                    DecisionType.REWRITE,
+                    DecisionType.REDACT,
+                    DecisionType.ESCALATE,
+                ]
+            ),
             min_size=0,
             max_size=5,
         ),

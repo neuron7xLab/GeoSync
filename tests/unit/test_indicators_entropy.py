@@ -14,6 +14,7 @@ Tests verify:
 - Edge cases like empty arrays and extreme values are handled properly
 - Performance optimizations don't change core behavior significantly
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -35,9 +36,7 @@ def test_entropy_uniform_distribution_matches_log_bins(
     bins = 20
     result = entropy(uniform_series, bins=bins)
     expected = np.log(bins)
-    assert (
-        abs(result - expected) < 0.15
-    ), f"Entropy {result} deviates from log(bins) {expected}"
+    assert abs(result - expected) < 0.15, f"Entropy {result} deviates from log(bins) {expected}"
 
 
 def test_entropy_degenerate_distribution_near_zero() -> None:
@@ -212,9 +211,7 @@ def test_entropy_feature_chunk_size_behavior() -> None:
     assert np.isfinite(result_chunked.value)
 
     # Chunking aggregates histograms and should match the single-pass result
-    assert result_unchunked.value == pytest.approx(
-        result_chunked.value, rel=1e-9, abs=1e-12
-    )
+    assert result_unchunked.value == pytest.approx(result_chunked.value, rel=1e-9, abs=1e-12)
 
     # Metadata should reflect the difference
     assert "chunk_size" not in result_unchunked.metadata
@@ -281,9 +278,7 @@ def test_entropy_process_executor_stub(monkeypatch: pytest.MonkeyPatch) -> None:
     import core.indicators.entropy as entropy_module
 
     class DummyExecutor:
-        def __init__(
-            self, *args, **kwargs
-        ) -> None:  # noqa: D401 - signature compatibility
+        def __init__(self, *args, **kwargs) -> None:  # noqa: D401 - signature compatibility
             self.args = args
             self.kwargs = kwargs
 

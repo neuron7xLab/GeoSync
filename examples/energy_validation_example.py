@@ -130,7 +130,7 @@ def example_time_series_validation():
         status = "PASS ✓" if result.passed else "FAIL ✗"
 
         print(
-            f"{i+1:<6} {result.free_energy:<10.6f} {result.internal_energy:<10.6f} "
+            f"{i + 1:<6} {result.free_energy:<10.6f} {result.internal_energy:<10.6f} "
             f"{result.stability:<10.6f} {status:<10}"
         )
 

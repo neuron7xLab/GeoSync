@@ -86,9 +86,7 @@ class GraphDiffusionEngine:
         if curvature is not None:
             kappa = np.asarray(curvature, dtype=np.float64)
             if kappa.shape != (n, n):
-                raise ValueError(
-                    f"curvature must match adjacency: {kappa.shape} vs {A.shape}"
-                )
+                raise ValueError(f"curvature must match adjacency: {kappa.shape} vs {A.shape}")
             W = A * self._D_0 * np.exp(kappa)
         else:
             W = A * self._D_0

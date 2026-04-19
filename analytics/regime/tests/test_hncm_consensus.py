@@ -18,9 +18,7 @@ from domain.signals import SignalAction
 
 
 class DummyEWS:
-    def __init__(
-        self, probability: float | None = None, ews_score: float | None = None
-    ):
+    def __init__(self, probability: float | None = None, ews_score: float | None = None):
         self.probability = probability
         self.ews_score = ews_score
 
@@ -95,9 +93,7 @@ def test_ews_to_vote_probability():
 
 
 def test_ews_to_vote_score():
-    v = ews_to_vote(
-        "ews", DummyEWS(probability=None, ews_score=-0.7), use_probability=True
-    )
+    v = ews_to_vote("ews", DummyEWS(probability=None, ews_score=-0.7), use_probability=True)
     assert v.score == -0.7
 
 

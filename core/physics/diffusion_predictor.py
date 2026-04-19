@@ -42,9 +42,9 @@ from scipy.linalg import expm
 class VolatilityFrontPrediction:
     """Prediction of volatility front propagation."""
 
-    predicted_front: list[int]        # asset indices predicted to spike
-    density_t1: NDArray[np.float64]   # propagated density at t+1
-    density_t3: NDArray[np.float64]   # propagated density at t+3
+    predicted_front: list[int]  # asset indices predicted to spike
+    density_t1: NDArray[np.float64]  # propagated density at t+1
+    density_t3: NDArray[np.float64]  # propagated density at t+3
     initial_density: NDArray[np.float64]
     threshold: float
 
@@ -197,17 +197,19 @@ class DiffusionVolatilityPredictor:
         prices = np.asarray(prices, dtype=np.float64)
         T, N = prices.shape
 
-        returns = np.abs(
-            np.diff(prices, axis=0) / np.maximum(np.abs(prices[:-1]), 1e-12)
-        )
+        returns = np.abs(np.diff(prices, axis=0) / np.maximum(np.abs(prices[:-1]), 1e-12))
 
         start = max(vol_window, correlation_window)
         n_windows = T - start - 3  # need 3 steps ahead
 
         if n_windows < 5:
             return BacktestResult(
-                n_windows=0, roc_auc_t1=0.5, roc_auc_t3=0.5,
-                precision_t1=0.0, recall_t1=0.0, mean_lead_time=0.0,
+                n_windows=0,
+                roc_auc_t1=0.5,
+                roc_auc_t3=0.5,
+                precision_t1=0.0,
+                recall_t1=0.0,
+                mean_lead_time=0.0,
             )
 
         predictions_t1 = []
@@ -219,13 +221,13 @@ class DiffusionVolatilityPredictor:
             idx = start + t
 
             # Realised vol
-            vol = np.std(returns[idx - vol_window:idx], axis=0)
+            vol = np.std(returns[idx - vol_window : idx], axis=0)
 
             # Build adjacency from correlation
             if adjacency_series is not None and t < len(adjacency_series):
                 adj = adjacency_series[t]
             else:
-                ret_window = returns[idx - correlation_window:idx]
+                ret_window = returns[idx - correlation_window : idx]
                 with np.errstate(invalid="ignore"):
                     corr = np.corrcoef(ret_window, rowvar=False)
                 corr = np.nan_to_num(corr, nan=0.0)
@@ -252,7 +254,7 @@ class DiffusionVolatilityPredictor:
                 actuals_t1.append(actual_spike_t1)
 
             if idx + 3 < returns.shape[0]:
-                actual_vol_t3 = np.max(returns[idx:idx + 3], axis=0)
+                actual_vol_t3 = np.max(returns[idx : idx + 3], axis=0)
                 spike_thresh_3 = np.quantile(actual_vol_t3, spike_threshold_quantile)
                 actual_spike_t3 = (actual_vol_t3 > spike_thresh_3).astype(float)
                 pred_score_t3 = pred.density_t3

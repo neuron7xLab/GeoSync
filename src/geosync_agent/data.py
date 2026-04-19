@@ -36,9 +36,7 @@ class AgentDataLoader:
         resolved = config.resolve_path()
         frame = pd.read_csv(resolved)
         if config.timestamp_field not in frame.columns:
-            raise KeyError(
-                f"Timestamp field '{config.timestamp_field}' missing from {resolved}"
-            )
+            raise KeyError(f"Timestamp field '{config.timestamp_field}' missing from {resolved}")
 
         timestamp_series = pd.to_datetime(
             frame[config.timestamp_field], unit=config.timestamp_unit, utc=True
@@ -59,9 +57,7 @@ class AgentDataLoader:
         ]
         if all_nan_columns:
             problematic_required = [
-                col
-                for col in all_nan_columns
-                if col in required_set or col == config.price_field
+                col for col in all_nan_columns if col in required_set or col == config.price_field
             ]
             if problematic_required:
                 raise ValueError(
@@ -77,9 +73,7 @@ class AgentDataLoader:
             raise ValueError("No valid rows remain after cleaning market data")
 
         if self._price_column not in market.columns:
-            market.rename(
-                columns={config.price_field: self._price_column}, inplace=True
-            )
+            market.rename(columns={config.price_field: self._price_column}, inplace=True)
         return market
 
     def build_feature_frame(self, market_frame: pd.DataFrame) -> pd.DataFrame:

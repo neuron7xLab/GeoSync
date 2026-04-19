@@ -74,7 +74,9 @@ def build_regimes(series, seed: int) -> dict[str, np.ndarray]:
     amp = max(0.01, base_std if base_std > 0 else 0.01)  # bounds: level clamped to valid range
     signs = np.where(np.arange(len(whipsaw_returns)) % 2 == 0, 1.0, -1.0)
     noise = rng.uniform(0.5, 1.2, size=len(whipsaw_returns))
-    whipsaw_returns[:] = np.clip(signs * amp * noise, -0.2, 0.2)  # bounds: regime score normalized to [0,1]
+    whipsaw_returns[:] = np.clip(
+        signs * amp * noise, -0.2, 0.2
+    )  # bounds: regime score normalized to [0,1]
     regimes["whipsaw"] = _reconstruct(prices[0], whipsaw_returns)
 
     # R4: Drift (add deterministic trend)
@@ -84,7 +86,9 @@ def build_regimes(series, seed: int) -> dict[str, np.ndarray]:
 
     # R5: Noise-burst (localized high-frequency noise)
     noise_returns = base_returns.copy()
-    burst_len = max(3, min(12, len(noise_returns) // 8))  # bounds: stress metric clamped to non-negative
+    burst_len = max(
+        3, min(12, len(noise_returns) // 8)
+    )  # bounds: stress metric clamped to non-negative
     burst_start = int(rng.integers(1, max(2, len(noise_returns) - burst_len)))
     burst_noise = rng.normal(0.0, 0.05, size=burst_len)
     noise_returns[burst_start : burst_start + burst_len] += burst_noise

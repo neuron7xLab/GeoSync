@@ -81,22 +81,22 @@ class CalibrationMetrics:
         """
         if weights is None:
             weights = {
-                'sharpe': 0.30,
-                'drawdown': 0.25,
-                'win_rate': 0.15,
-                'stability': 0.15,
-                'stress': 0.10,
-                'arousal': 0.05,
+                "sharpe": 0.30,
+                "drawdown": 0.25,
+                "win_rate": 0.15,
+                "stability": 0.15,
+                "stress": 0.10,
+                "arousal": 0.05,
             }
 
         # Normalize and combine metrics
         score = (
-            weights['sharpe'] * np.clip(self.sharpe_ratio / 3.0, 0, 1)
-            + weights['drawdown'] * (1 - self.max_drawdown)
-            + weights['win_rate'] * self.win_rate
-            + weights['stability'] * (1 - np.clip(self.dopamine_stability / 0.5, 0, 1))
-            + weights['stress'] * (1 - self.serotonin_stress)
-            + weights['arousal'] * np.clip(self.na_ach_arousal / 2.0, 0, 1)
+            weights["sharpe"] * np.clip(self.sharpe_ratio / 3.0, 0, 1)
+            + weights["drawdown"] * (1 - self.max_drawdown)
+            + weights["win_rate"] * self.win_rate
+            + weights["stability"] * (1 - np.clip(self.dopamine_stability / 0.5, 0, 1))
+            + weights["stress"] * (1 - self.serotonin_stress)
+            + weights["arousal"] * np.clip(self.na_ach_arousal / 2.0, 0, 1)
         )
         return score
 
@@ -193,7 +193,7 @@ class AdaptiveCalibrator:
 
     def _validate_params(self, params: Dict[str, Any]) -> None:
         """Validate parameter structure."""
-        required_keys = {'dopamine', 'serotonin', 'gaba', 'na_ach'}
+        required_keys = {"dopamine", "serotonin", "gaba", "na_ach"}
         if not required_keys.issubset(params.keys()):
             missing = required_keys - set(params.keys())
             raise ValueError(f"Missing required neuromodulator configs: {missing}")
@@ -207,30 +207,30 @@ class AdaptiveCalibrator:
             Nested dictionary of (min, max) bounds for each parameter
         """
         return {
-            'dopamine': {
-                'discount_gamma': (0.90, 0.999),
-                'learning_rate': (0.001, 0.05),
-                'burst_factor': (1.0, 3.0),
-                'base_temperature': (0.3, 2.0),
-                'invigoration_threshold': (0.4, 0.8),
+            "dopamine": {
+                "discount_gamma": (0.90, 0.999),
+                "learning_rate": (0.001, 0.05),
+                "burst_factor": (1.0, 3.0),
+                "base_temperature": (0.3, 2.0),
+                "invigoration_threshold": (0.4, 0.8),
             },
-            'serotonin': {
-                'stress_threshold': (0.1, 0.3),
-                'release_threshold': (0.05, 0.2),
-                'desensitization_rate': (0.001, 0.02),
-                'floor_min': (0.1, 0.5),
+            "serotonin": {
+                "stress_threshold": (0.1, 0.3),
+                "release_threshold": (0.05, 0.2),
+                "desensitization_rate": (0.001, 0.02),
+                "floor_min": (0.1, 0.5),
             },
-            'gaba': {
-                'k_inhibit': (0.2, 0.8),
-                'impulse_threshold': (0.3, 0.7),
-                'stdp_lr': (0.001, 0.02),
-                'max_inhibition': (0.5, 0.95),
+            "gaba": {
+                "k_inhibit": (0.2, 0.8),
+                "impulse_threshold": (0.3, 0.7),
+                "stdp_lr": (0.001, 0.02),
+                "max_inhibition": (0.5, 0.95),
             },
-            'na_ach': {
-                'arousal_gain': (0.8, 2.0),
-                'attention_gain': (0.5, 1.5),
-                'risk_min': (0.3, 0.7),
-                'risk_max': (1.2, 2.0),
+            "na_ach": {
+                "arousal_gain": (0.8, 2.0),
+                "attention_gain": (0.5, 1.5),
+                "risk_min": (0.3, 0.7),
+                "risk_max": (1.2, 2.0),
             },
         }
 
@@ -276,8 +276,7 @@ class AdaptiveCalibrator:
 
         # Decay temperature
         self.state.temperature = max(
-            self.min_temperature,
-            self.state.temperature * self.temperature_decay
+            self.min_temperature, self.state.temperature * self.temperature_decay
         )
 
         self.state.iteration += 1
@@ -386,27 +385,27 @@ class AdaptiveCalibrator:
         """
         if not self.state.metrics_history:
             return {
-                'status': 'no_data',
-                'message': 'No calibration data available yet',
+                "status": "no_data",
+                "message": "No calibration data available yet",
             }
 
         recent_metrics = self.state.metrics_history[-10:]
 
         return {
-            'status': 'active',
-            'iteration': self.state.iteration,
-            'best_score': self.state.best_score,
-            'current_temperature': self.state.temperature,
-            'iterations_since_improvement': self.state.iteration - self.state.last_improvement,
-            'best_params': self.state.best_params,
-            'recent_performance': {
-                'avg_sharpe': np.mean([m.sharpe_ratio for m in recent_metrics]),
-                'avg_drawdown': np.mean([m.max_drawdown for m in recent_metrics]),
-                'avg_win_rate': np.mean([m.win_rate for m in recent_metrics]),
-                'dopamine_stability': np.mean([m.dopamine_stability for m in recent_metrics]),
+            "status": "active",
+            "iteration": self.state.iteration,
+            "best_score": self.state.best_score,
+            "current_temperature": self.state.temperature,
+            "iterations_since_improvement": self.state.iteration - self.state.last_improvement,
+            "best_params": self.state.best_params,
+            "recent_performance": {
+                "avg_sharpe": np.mean([m.sharpe_ratio for m in recent_metrics]),
+                "avg_drawdown": np.mean([m.max_drawdown for m in recent_metrics]),
+                "avg_win_rate": np.mean([m.win_rate for m in recent_metrics]),
+                "dopamine_stability": np.mean([m.dopamine_stability for m in recent_metrics]),
             },
-            'exploration_state': 'exploring' if self.state.temperature > 0.5 else 'exploiting',
-            'recommendations': self._generate_recommendations(),
+            "exploration_state": "exploring" if self.state.temperature > 0.5 else "exploiting",
+            "recommendations": self._generate_recommendations(),
         }
 
     def _generate_recommendations(self) -> List[str]:
@@ -420,7 +419,7 @@ class AdaptiveCalibrator:
         recommendations = []
 
         if not self.state.metrics_history:
-            return ['Collect more performance data before generating recommendations']
+            return ["Collect more performance data before generating recommendations"]
 
         recent = self.state.metrics_history[-1]
 
@@ -459,9 +458,11 @@ class AdaptiveCalibrator:
                 "Maintain current configuration and monitor for regime changes."
             )
 
-        return recommendations if recommendations else [
-            "Performance is within acceptable ranges. Continue monitoring."
-        ]
+        return (
+            recommendations
+            if recommendations
+            else ["Performance is within acceptable ranges. Continue monitoring."]
+        )
 
     def export_state(self) -> Dict[str, Any]:
         """Export complete calibration state for persistence.
@@ -472,19 +473,19 @@ class AdaptiveCalibrator:
             Serializable state dictionary
         """
         return {
-            'current_params': self.state.current_params,
-            'best_params': self.state.best_params,
-            'best_score': self.state.best_score,
-            'iteration': self.state.iteration,
-            'temperature': self.state.temperature,
-            'last_improvement': self.state.last_improvement,
-            'metrics_history': [asdict(m) for m in self.state.metrics_history],
-            'config': {
-                'temperature_initial': self.temperature_initial,
-                'temperature_decay': self.temperature_decay,
-                'min_temperature': self.min_temperature,
-                'patience': self.patience,
-                'perturbation_scale': self.perturbation_scale,
+            "current_params": self.state.current_params,
+            "best_params": self.state.best_params,
+            "best_score": self.state.best_score,
+            "iteration": self.state.iteration,
+            "temperature": self.state.temperature,
+            "last_improvement": self.state.last_improvement,
+            "metrics_history": [asdict(m) for m in self.state.metrics_history],
+            "config": {
+                "temperature_initial": self.temperature_initial,
+                "temperature_decay": self.temperature_decay,
+                "min_temperature": self.min_temperature,
+                "patience": self.patience,
+                "perturbation_scale": self.perturbation_scale,
             },
         }
 
@@ -502,24 +503,24 @@ class AdaptiveCalibrator:
         AdaptiveCalibrator
             Restored calibrator instance
         """
-        config = state_dict['config']
+        config = state_dict["config"]
         calibrator = cls(
-            initial_params=state_dict['current_params'],
-            temperature_initial=config['temperature_initial'],
-            temperature_decay=config['temperature_decay'],
-            min_temperature=config['min_temperature'],
-            patience=config['patience'],
-            perturbation_scale=config['perturbation_scale'],
+            initial_params=state_dict["current_params"],
+            temperature_initial=config["temperature_initial"],
+            temperature_decay=config["temperature_decay"],
+            min_temperature=config["min_temperature"],
+            patience=config["patience"],
+            perturbation_scale=config["perturbation_scale"],
         )
 
         # Restore internal state
-        calibrator.state.best_params = state_dict['best_params']
-        calibrator.state.best_score = state_dict['best_score']
-        calibrator.state.iteration = state_dict['iteration']
-        calibrator.state.temperature = state_dict['temperature']
-        calibrator.state.last_improvement = state_dict['last_improvement']
+        calibrator.state.best_params = state_dict["best_params"]
+        calibrator.state.best_score = state_dict["best_score"]
+        calibrator.state.iteration = state_dict["iteration"]
+        calibrator.state.temperature = state_dict["temperature"]
+        calibrator.state.last_improvement = state_dict["last_improvement"]
         calibrator.state.metrics_history = [
-            CalibrationMetrics(**m) for m in state_dict['metrics_history']
+            CalibrationMetrics(**m) for m in state_dict["metrics_history"]
         ]
 
         return calibrator

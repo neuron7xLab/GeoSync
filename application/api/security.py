@@ -64,9 +64,7 @@ class _JWKSResolver:
             now = datetime.now(timezone.utc)
             if entry is None or entry.expires_at <= now:
                 keys = await self._fetch(jwks_uri)
-                self._entries[jwks_uri] = _JWKSCacheEntry(
-                    expires_at=now + self._ttl, keys=keys
-                )
+                self._entries[jwks_uri] = _JWKSCacheEntry(expires_at=now + self._ttl, keys=keys)
                 return keys
             return entry.keys
 
@@ -454,9 +452,7 @@ def require_two_factor(
     return _dependency
 
 
-def verify_optional_request_identity(
-    *, require_client_certificate: bool = False
-) -> Callable[
+def verify_optional_request_identity(*, require_client_certificate: bool = False) -> Callable[
     [Request, HTTPAuthorizationCredentials | None, ApiSecuritySettings],
     Awaitable[AdminIdentity | None],
 ]:

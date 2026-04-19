@@ -5,7 +5,7 @@ formatting, to_dict, and edge cases for uncovered lines."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 
@@ -21,10 +21,10 @@ from core.errors import (
     ValidationError,
 )
 
-
 # ---------------------------------------------------------------------------
 # ErrorContext
 # ---------------------------------------------------------------------------
+
 
 class TestErrorContext:
     def test_defaults(self):
@@ -59,6 +59,7 @@ class TestErrorContext:
 # ---------------------------------------------------------------------------
 # GeoSyncError (base)
 # ---------------------------------------------------------------------------
+
 
 class TestGeoSyncError:
     def test_basic(self):
@@ -100,6 +101,7 @@ class TestGeoSyncError:
 # ---------------------------------------------------------------------------
 # ValidationError
 # ---------------------------------------------------------------------------
+
 
 class TestValidationError:
     def test_defaults(self):
@@ -143,6 +145,7 @@ class TestValidationError:
 # ConfigError
 # ---------------------------------------------------------------------------
 
+
 class TestConfigError:
     def test_defaults(self):
         err = ConfigError("bad config")
@@ -183,6 +186,7 @@ class TestConfigError:
 # ---------------------------------------------------------------------------
 # IntegrityError (covers lines 219-228)
 # ---------------------------------------------------------------------------
+
 
 class TestIntegrityError:
     def test_defaults(self):
@@ -230,6 +234,7 @@ class TestIntegrityError:
 # ---------------------------------------------------------------------------
 # ResourceBudgetError (covers lines 286, 288 and overage_percent)
 # ---------------------------------------------------------------------------
+
 
 class TestResourceBudgetError:
     def test_defaults(self):
@@ -303,6 +308,7 @@ class TestResourceBudgetError:
 # EngineError (covers lines 327-334)
 # ---------------------------------------------------------------------------
 
+
 class TestEngineError:
     def test_defaults(self):
         err = EngineError("engine fail")
@@ -312,9 +318,7 @@ class TestEngineError:
         assert err.cycle_number is None
 
     def test_with_all_fields(self):
-        err = EngineError(
-            "fail", stage="signal", run_id="r1", cycle_number=42
-        )
+        err = EngineError("fail", stage="signal", run_id="r1", cycle_number=42)
         assert err.stage == "signal"
         assert err.run_id == "r1"
         assert err.cycle_number == 42
@@ -342,6 +346,7 @@ class TestEngineError:
 # ---------------------------------------------------------------------------
 # PipelineError
 # ---------------------------------------------------------------------------
+
 
 class TestPipelineError:
     def test_defaults(self):
@@ -389,6 +394,7 @@ class TestPipelineError:
 # DataQualityError
 # ---------------------------------------------------------------------------
 
+
 class TestDataQualityError:
     def test_defaults(self):
         err = DataQualityError("quality fail")
@@ -411,9 +417,7 @@ class TestDataQualityError:
         assert err.field == "col_a"
 
     def test_to_dict_full(self):
-        err = DataQualityError(
-            "fail", quality_check="qc", threshold=0.1, actual_value=0.2
-        )
+        err = DataQualityError("fail", quality_check="qc", threshold=0.1, actual_value=0.2)
         d = err.to_dict()
         assert d["quality_check"] == "qc"
         assert d["threshold"] == 0.1
@@ -448,16 +452,20 @@ class TestDataQualityError:
 # Hierarchy and isinstance checks
 # ---------------------------------------------------------------------------
 
+
 class TestErrorHierarchy:
-    @pytest.mark.parametrize("cls", [
-        ValidationError,
-        ConfigError,
-        IntegrityError,
-        ResourceBudgetError,
-        EngineError,
-        PipelineError,
-        DataQualityError,
-    ])
+    @pytest.mark.parametrize(
+        "cls",
+        [
+            ValidationError,
+            ConfigError,
+            IntegrityError,
+            ResourceBudgetError,
+            EngineError,
+            PipelineError,
+            DataQualityError,
+        ],
+    )
     def test_all_inherit_from_geosync_error(self, cls):
         # Just construct with minimal args
         if cls is DataQualityError:

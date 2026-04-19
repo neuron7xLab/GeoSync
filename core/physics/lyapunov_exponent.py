@@ -166,9 +166,7 @@ def maximal_lyapunov_exponent(
         for step in range(max_divergence_steps):
             if i + step >= n_points or j + step >= n_points:
                 break
-            pair_dist = float(
-                np.sqrt(np.sum((embedded[i + step] - embedded[j + step]) ** 2))
-            )
+            pair_dist = float(np.sqrt(np.sum((embedded[i + step] - embedded[j + step]) ** 2)))
             if pair_dist > 0:
                 if np.isnan(divergence_log[step]):
                     divergence_log[step] = 0.0

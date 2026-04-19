@@ -122,9 +122,7 @@ def check_alignment(requirements_file: Path, pyproject_file: Path) -> int:
         issues["Only in pyproject"].extend(unexpected)
 
     if not issues:
-        print(
-            "✅ Dependency declarations in requirements.txt and pyproject.toml are aligned."
-        )
+        print("✅ Dependency declarations in requirements.txt and pyproject.toml are aligned.")
         return 0
 
     print("❌ Dependency alignment issues detected:")

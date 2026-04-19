@@ -16,9 +16,7 @@ def requirements_path() -> pathlib.Path:
 
 
 def test_requirements_document_exists(requirements_path: pathlib.Path) -> None:
-    assert (
-        requirements_path.is_file()
-    ), "Trading agent requirements document is missing."
+    assert requirements_path.is_file(), "Trading agent requirements document is missing."
 
 
 @pytest.mark.parametrize(
@@ -41,6 +39,4 @@ def test_requirements_document_contains_sections(
     requirements_path: pathlib.Path, heading: str
 ) -> None:
     content = requirements_path.read_text(encoding="utf-8")
-    assert (
-        heading in content
-    ), f"Heading '{heading}' missing from requirements document."
+    assert heading in content, f"Heading '{heading}' missing from requirements document."

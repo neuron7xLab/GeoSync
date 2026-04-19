@@ -307,9 +307,7 @@ class MLSDM:
                 config=config.agent,
             )
 
-        replay_engine = create_replay_engine(
-            dgr_ratio=config.fhmc.sleep.get("dgr_ratio", 0.25)
-        )
+        replay_engine = create_replay_engine(dgr_ratio=config.fhmc.sleep.get("dgr_ratio", 0.25))
 
         return cls(fhmc=fhmc, agent=agent, replay_engine=replay_engine)
 
@@ -407,9 +405,7 @@ class MLSDM:
             RuntimeError: If agent was not initialized.
         """
         if self.agent is None:
-            raise RuntimeError(
-                "Agent not initialized. Create MLSDM with agent configuration."
-            )
+            raise RuntimeError("Agent not initialized. Create MLSDM with agent configuration.")
         return self.agent.act(state)
 
     def learn(
@@ -436,9 +432,7 @@ class MLSDM:
             RuntimeError: If agent was not initialized.
         """
         if self.agent is None:
-            raise RuntimeError(
-                "Agent not initialized. Create MLSDM with agent configuration."
-            )
+            raise RuntimeError("Agent not initialized. Create MLSDM with agent configuration.")
         self.agent.learn(state, action, reward, next_state, done)
 
         return TrainingStep(
@@ -542,9 +536,7 @@ class MLSDM:
         if config is None:
             config = OptimizerConfig(dim=dim, lb=lb, ub=ub)
 
-        optimizer = create_optimizer(
-            objective=objective, dim=dim, bounds=bounds, config=config
-        )
+        optimizer = create_optimizer(objective=objective, dim=dim, bounds=bounds, config=config)
         best_params, best_score = optimizer.optimize()
 
         return OptimizationResult(

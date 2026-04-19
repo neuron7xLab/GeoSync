@@ -243,9 +243,7 @@ def _ablation_table(ablations: list[tuple[str, str, str]]) -> str:
         verdict_color = (
             "#2e7d32"
             if verdict in {"ROBUST", "STABLE_POSITIVE", "RESILIENT"}
-            else "#b8860b"
-            if verdict in {"MIXED", "BOUND"}
-            else "#c0392b"
+            else "#b8860b" if verdict in {"MIXED", "BOUND"} else "#c0392b"
         )
         lines.append(
             "<tr>"

@@ -21,6 +21,7 @@ Example:
     >>> cvd = cumulative_volume_delta(buys, sells)
     >>> imb = imbalance(buys, sells)
 """
+
 from __future__ import annotations
 
 import numpy as np

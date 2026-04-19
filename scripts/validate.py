@@ -97,16 +97,12 @@ def main() -> None:
     y_true = test_df[y_col].iloc[: len(res)].values if len(res) > 0 else np.array([])
     L_hat = res["L"].values if len(res) > 0 else np.array([])
     U_hat = res["U"].values if len(res) > 0 else np.array([])
-    coverage = (
-        float(np.mean((y_true >= L_hat) & (y_true <= U_hat))) if len(res) > 0 else 0.0
-    )
+    coverage = float(np.mean((y_true >= L_hat) & (y_true <= U_hat))) if len(res) > 0 else 0.0
     coverage_info = {
         "empirical_coverage": coverage,
         "target_alpha0": cfg["conformal"]["alpha"],
     }
-    assert (
-        coverage >= 1.0 - cfg["conformal"]["alpha"] - 0.03
-    ), "Coverage below expected tolerance"
+    assert coverage >= 1.0 - cfg["conformal"]["alpha"] - 0.03, "Coverage below expected tolerance"
 
     exec_sim = Execution(
         cfg["execution"]["fee_bps"],
@@ -123,9 +119,7 @@ def main() -> None:
         low_b = res["L"].iloc[i]
         high_b = res["U"].iloc[i]
         width = max(1e-9, high_b - low_b)
-        target = (
-            np.sign(m_hat) * min(1.0, abs(m_hat) / width) if abs(m_hat) > 0 else 0.0
-        )
+        target = np.sign(m_hat) * min(1.0, abs(m_hat) / width) if abs(m_hat) > 0 else 0.0
         costs = exec_sim.costs(res["spread"].iloc[i], test_df["vol10"].iloc[i])
         fill_p = exec_sim.fill(mid, res["spread"].iloc[i], target, pos)
         nxt = res["mid"].iloc[i + 1]

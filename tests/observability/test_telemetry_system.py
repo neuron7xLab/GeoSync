@@ -131,9 +131,7 @@ class TestPerformanceMonitoring:
 
     def test_resource_utilization_tracking(self):
         """Test tracking of resource utilization metrics."""
-        pytest.importorskip(
-            "psutil", reason="psutil is required for resource tracking tests"
-        )
+        pytest.importorskip("psutil", reason="psutil is required for resource tracking tests")
         import psutil
 
         # Track CPU and memory
@@ -194,9 +192,7 @@ class TestAnomalyDetection:
 
         # Generate data with sudden rate change
         t = np.linspace(0, 10, 100)
-        data = np.concatenate(
-            [t[:50] * 0.1, 50 + (t[50:] - 5) * 2]  # Slow growth  # Rapid growth
-        )
+        data = np.concatenate([t[:50] * 0.1, 50 + (t[50:] - 5) * 2])  # Slow growth  # Rapid growth
 
         # Calculate rate of change
         rate = np.diff(data)

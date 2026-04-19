@@ -69,8 +69,10 @@ def check_single_entrypoint(repo_root: Path = REPO_ROOT) -> list[Violation]:
     if violations:
         return violations
 
-    canonical_paths = { (repo_root / p).resolve() for p in CANONICAL_ENTRYPOINTS.values() }
-    legacy_paths = { (repo_root / p).resolve() for p in LEGACY_ENTRYPOINTS if (repo_root / p).exists() }
+    canonical_paths = {(repo_root / p).resolve() for p in CANONICAL_ENTRYPOINTS.values()}
+    legacy_paths = {
+        (repo_root / p).resolve() for p in LEGACY_ENTRYPOINTS if (repo_root / p).exists()
+    }
     for extra in _discover_entrypoints(repo_root):
         if extra in canonical_paths or extra in legacy_paths:
             continue

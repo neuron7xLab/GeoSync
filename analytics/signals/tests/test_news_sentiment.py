@@ -25,9 +25,7 @@ class DummyCollector:
             since_ts = since_ts.tz_localize("UTC")
         else:
             since_ts = since_ts.tz_convert("UTC")
-        return [
-            article for article in self._articles if article.published_at >= since_ts
-        ]
+        return [article for article in self._articles if article.published_at >= since_ts]
 
 
 class DummyModel:

@@ -20,9 +20,7 @@ from starlette.requests import Request
 os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "test-audit-secret")
 os.environ.setdefault("GEOSYNC_OAUTH2_ISSUER", "https://issuer.geosync.test")
 os.environ.setdefault("GEOSYNC_OAUTH2_AUDIENCE", "geosync-api")
-os.environ.setdefault(
-    "GEOSYNC_OAUTH2_JWKS_URI", "https://issuer.geosync.test/jwks"
-)
+os.environ.setdefault("GEOSYNC_OAUTH2_JWKS_URI", "https://issuer.geosync.test/jwks")
 
 from application.api.security import (
     get_api_security_settings,
@@ -124,8 +122,7 @@ def _make_request(
     }
     if headers:
         scope["headers"] = [
-            (key.lower().encode("ascii"), value.encode("utf-8"))
-            for key, value in headers.items()
+            (key.lower().encode("ascii"), value.encode("utf-8")) for key, value in headers.items()
         ]
     if scope_cert is not None:
         scope["client_cert"] = scope_cert
@@ -446,10 +443,7 @@ async def test_key_type_mismatch_is_rejected(
         await dependency(request, credentials, oauth2_context.settings)
 
     assert exc.value.status_code == 401
-    assert (
-        exc.value.detail
-        == "Signing key type is incompatible with bearer token algorithm."
-    )
+    assert exc.value.detail == "Signing key type is incompatible with bearer token algorithm."
 
 
 @pytest.mark.anyio
@@ -567,9 +561,7 @@ async def test_tampered_signature_is_rejected(oauth2_context: OAuthContext) -> N
     )
     tampered_token = ".".join([header, payload, tampered_signature])
     request = _make_request()
-    credentials = HTTPAuthorizationCredentials(
-        scheme="Bearer", credentials=tampered_token
-    )
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=tampered_token)
 
     with pytest.raises(HTTPException) as exc:
         await dependency(request, credentials, oauth2_context.settings)
@@ -638,10 +630,7 @@ async def test_unsupported_signing_key_type_is_rejected(
         await dependency(request, credentials, oauth2_context.settings)
 
     assert exc.value.status_code == 401
-    assert (
-        exc.value.detail
-        == "Signing key type is incompatible with bearer token algorithm."
-    )
+    assert exc.value.detail == "Signing key type is incompatible with bearer token algorithm."
 
 
 @pytest.mark.anyio
@@ -683,9 +672,7 @@ async def test_two_factor_dependency_rejects_missing_code() -> None:
         await dependency(request, identity)
 
     assert exc.value.status_code == 401
-    assert (
-        exc.value.detail == "Two-factor authentication code required for this endpoint."
-    )
+    assert exc.value.detail == "Two-factor authentication code required for this endpoint."
 
 
 @pytest.mark.anyio

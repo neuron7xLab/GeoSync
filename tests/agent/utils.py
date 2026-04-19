@@ -11,9 +11,9 @@ import pandas as pd
 
 from application.system import (
     ExchangeAdapterConfig,
-    LiveLoopSettings,
     GeoSyncSystem,
     GeoSyncSystemConfig,
+    LiveLoopSettings,
 )
 from execution.connectors import BinanceConnector
 

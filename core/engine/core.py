@@ -217,19 +217,14 @@ class CoreEngine:
                 risk_timer = perf_counter()
                 decisions = self._collect_and_validate(
                     "RiskManager.assess",
-                    (
-                        self._risk_manager.assess(signal, context)
-                        for signal in generated_signals
-                    ),
+                    (self._risk_manager.assess(signal, context) for signal in generated_signals),
                     RiskDecision,
                 )
                 risk_latency_ms = (perf_counter() - risk_timer) * 1000.0
                 approved_count = sum(1 for decision in decisions if decision.approved)
                 rejected_count = received_count - approved_count
 
-                signal_decision_pairs = tuple(
-                    zip(generated_signals, decisions, strict=True)
-                )
+                signal_decision_pairs = tuple(zip(generated_signals, decisions, strict=True))
                 if self._config.drop_rejected_signals:
                     filtered_pairs = tuple(
                         (signal, decision)
@@ -288,9 +283,7 @@ class CoreEngine:
                             entry.context.setdefault("log_entries", metrics.log_entries)
                         else:  # pragma: no cover - defensive path for Mapping implementations
                             mutable_context = dict(entry.context)
-                            mutable_context.setdefault(
-                                "log_entries", metrics.log_entries
-                            )
+                            mutable_context.setdefault("log_entries", metrics.log_entries)
                             entry.context = mutable_context
 
                 yield EngineCycle(
@@ -331,9 +324,7 @@ class CoreEngine:
                 )
             yield item
 
-    def _yield_signals(
-        self, data: MarketData, context: EngineContext
-    ) -> Iterator[Signal]:
+    def _yield_signals(self, data: MarketData, context: EngineContext) -> Iterator[Signal]:
         generated = self._signal_generator.generate(data, context)
         if generated is None:
             return

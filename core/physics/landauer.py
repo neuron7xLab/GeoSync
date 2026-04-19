@@ -33,7 +33,7 @@ import numpy as np
 
 # Physical constants (SI units)
 K_BOLTZMANN: float = 1.380649e-23  # J/K (exact, 2019 SI redefinition)
-ROOM_TEMPERATURE: float = 300.0    # K
+ROOM_TEMPERATURE: float = 300.0  # K
 LANDAUER_ENERGY: float = K_BOLTZMANN * ROOM_TEMPERATURE * math.log(2)
 # ≈ 2.87 × 10⁻²¹ J per bit erased
 

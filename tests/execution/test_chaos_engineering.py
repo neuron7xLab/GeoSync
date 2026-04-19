@@ -122,9 +122,7 @@ def test_connector_recovers_from_layered_network_chaos(monkeypatch):
                     OSError("dns"), request=httpx.Request("GET", "https://chaos")
                 ),
             ),
-            _ChaosEvent(
-                "latency", response=httpx.Response(503, json={"error": "timeout"})
-            ),
+            _ChaosEvent("latency", response=httpx.Response(503, json={"error": "timeout"})),
             _ChaosEvent("success"),
         ]
     )
@@ -136,9 +134,7 @@ def test_connector_recovers_from_layered_network_chaos(monkeypatch):
         sleeper=clock.sleep,
     )
     breaker = CircuitBreaker(failure_threshold=3, recovery_timeout=0.5, clock=clock)
-    connector = _DeterministicConnector(
-        transport, backoff=backoff, circuit_breaker=breaker
-    )
+    connector = _DeterministicConnector(transport, backoff=backoff, circuit_breaker=breaker)
     connector.connect({"API_KEY": "key", "API_SECRET": "secret"})
 
     with chaos_span("rest-connector", disruption="network-delay"):
@@ -157,12 +153,8 @@ def test_circuit_breaker_opens_after_repeated_chaos_events(monkeypatch):
     clock = _FakeClock()
     events = deque(
         [
-            _ChaosEvent(
-                "outage", response=httpx.Response(500, json={"error": "outage"})
-            ),
-            _ChaosEvent(
-                "outage", response=httpx.Response(500, json={"error": "outage"})
-            ),
+            _ChaosEvent("outage", response=httpx.Response(500, json={"error": "outage"})),
+            _ChaosEvent("outage", response=httpx.Response(500, json={"error": "outage"})),
         ]
     )
     transport = _ChaosTransport(events, clock)

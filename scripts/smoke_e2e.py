@@ -2,6 +2,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Nightly smoke end-to-end pipeline for GeoSync."""
+
 from __future__ import annotations
 
 import argparse
@@ -22,9 +23,7 @@ from core.pipelines import SmokeE2EConfig, SmokeE2EPipeline  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Run the GeoSync smoke E2E pipeline."
-    )
+    parser = argparse.ArgumentParser(description="Run the GeoSync smoke E2E pipeline.")
     parser.add_argument(
         "--csv",
         type=Path,

@@ -147,9 +147,7 @@ class KellyCriterion:
         if optimal > 0 and optimal < 1:
             log_gain = np.log(np.clip(1 + optimal * b, eps, None))
             log_loss = np.log(np.clip(1 - optimal, eps, None))
-            growth_rate = (
-                p * log_gain + q * log_loss
-            )
+            growth_rate = p * log_gain + q * log_loss
         else:
             growth_rate = 0.0
 
@@ -329,9 +327,7 @@ class MultiAssetKelly:
             raise ValueError("Computed Kelly solution contains non-finite values")
 
         # Store full Kelly positions
-        full_kelly_dict = {
-            params.asset_names[i]: full_kelly[i] for i in range(n)
-        }
+        full_kelly_dict = {params.asset_names[i]: full_kelly[i] for i in range(n)}
 
         # Apply fractional Kelly
         scaled_kelly = full_kelly * params.fractional_kelly
@@ -401,11 +397,7 @@ class MultiAssetKelly:
         port_var = max(port_var, 0.0)
         port_std = np.sqrt(port_var) if port_var > 0 else 0.0
 
-        sharpe = (
-            (port_return - params.risk_free_rate) / port_std
-            if port_std > 0
-            else 0.0
-        )
+        sharpe = (port_return - params.risk_free_rate) / port_std if port_std > 0 else 0.0
 
         # Growth rate approximation
         if port_var > 0:
@@ -413,9 +405,7 @@ class MultiAssetKelly:
         else:
             growth_rate = port_return
 
-        optimal_dict = {
-            params.asset_names[i]: f_optimal[i] for i in range(n)
-        }
+        optimal_dict = {params.asset_names[i]: f_optimal[i] for i in range(n)}
 
         return MultiAssetKellyResult(
             optimal_positions=optimal_dict,

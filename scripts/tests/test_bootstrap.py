@@ -199,9 +199,7 @@ def test_execute_skips_virtualenv_when_present(
     assert all("venv" not in command for command in calls)
 
 
-def test_execute_runs_readiness_and_smoke(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_execute_runs_readiness_and_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     venv_path = tmp_path / ".venv"
     sample = tmp_path / "sample.csv"
     sample.write_text("timestamp,close\n2024-01-01,1\n", encoding="utf-8")

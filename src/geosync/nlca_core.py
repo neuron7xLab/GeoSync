@@ -35,9 +35,7 @@ except Exception:
     Input = Output = State = None
     go = None
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 class FiniteStateMachine:
@@ -94,9 +92,7 @@ class L2Collector:
 
 
 class BinanceFeed:
-    def __init__(
-        self, api_key, api_secret, symbol="BTCUSDT", tick_queue: queue.Queue = None
-    ):
+    def __init__(self, api_key, api_secret, symbol="BTCUSDT", tick_queue: queue.Queue = None):
         self.symbol = symbol.lower()
         self.tick_queue = tick_queue if tick_queue is not None else queue.Queue()
         self.running = False
@@ -179,9 +175,7 @@ class BinanceFeed:
         self.depth_key = self.bm.start_depth_socket(
             self.symbol, self.process_depth_message, depth=5
         )
-        self.trade_key = self.bm.start_trade_socket(
-            self.symbol, self.process_trade_message
-        )
+        self.trade_key = self.bm.start_trade_socket(self.symbol, self.process_trade_message)
         self.bm.start()
         self.running = True
         logging.info(f"Binance WebSocket started for {self.symbol}")
@@ -194,24 +188,18 @@ class BinanceFeed:
                 try:
                     self.bm.stop_socket(key)
                 except Exception:
-                    logging.exception(
-                        "Failed to stop Binance %s socket for %s", label, self.symbol
-                    )
+                    logging.exception("Failed to stop Binance %s socket for %s", label, self.symbol)
             try:
                 self.bm.close()
             except Exception:
-                logging.exception(
-                    "Failed to close Binance socket manager for %s", self.symbol
-                )
+                logging.exception("Failed to close Binance socket manager for %s", self.symbol)
         if self.client is not None:
             close_conn = getattr(self.client, "close_connection", None)
             if callable(close_conn):
                 try:
                     close_conn()
                 except Exception:
-                    logging.exception(
-                        "Failed to close Binance REST client for %s", self.symbol
-                    )
+                    logging.exception("Failed to close Binance REST client for %s", self.symbol)
         self.running = False
         self.depth_key = None
         self.trade_key = None
@@ -244,9 +232,7 @@ class MarketRecorder:
             "SVI": metrics.get("SVI"),
             "BRHL": metrics.get("BRHL"),
             "OTR": metrics.get("OTR"),
-            "date": time.strftime(
-                "%Y-%m-%d", time.gmtime(tick.get("timestamp", time.time()))
-            ),
+            "date": time.strftime("%Y-%m-%d", time.gmtime(tick.get("timestamp", time.time()))),
         }
         self.buffer.append(row)
         if len(self.buffer) >= self.flush_every:
@@ -258,21 +244,15 @@ class MarketRecorder:
         try:
             self.dataset_path.mkdir(parents=True, exist_ok=True)
         except OSError:
-            logging.exception(
-                "Failed to prepare dataset directory %s", self.dataset_path
-            )
+            logging.exception("Failed to prepare dataset directory %s", self.dataset_path)
             return
 
         df = pd.DataFrame(self.buffer)
         try:
             table = pa.Table.from_pandas(df, preserve_index=False)
-            pq.write_to_dataset(
-                table, root_path=str(self.dataset_path), partition_cols=["date"]
-            )
+            pq.write_to_dataset(table, root_path=str(self.dataset_path), partition_cols=["date"])
         except Exception:
-            logging.exception(
-                "Failed to persist market data batch to %s", self.dataset_path
-            )
+            logging.exception("Failed to persist market data batch to %s", self.dataset_path)
             return
         self.buffer.clear()
 
@@ -454,10 +434,7 @@ class NLCA:
 
         tau = 1
         while tau < len(S_hist):
-            if (
-                abs(S_hist[tau - 1] - S0) <= eps_S
-                and abs(D_hist[tau - 1] - D0) <= eps_D
-            ):
+            if abs(S_hist[tau - 1] - S0) <= eps_S and abs(D_hist[tau - 1] - D0) <= eps_D:
                 return float(tau)
             tau += 1
         return float(self.max_tau)
@@ -554,9 +531,7 @@ class NLCA:
     def risk_firewall(self, proposed_exposure: float) -> bool:
         new_exp = self.current_exposure + proposed_exposure
         if abs(new_exp) > self.exposure_limit:
-            reason = (
-                f"EXPOSURE LIMIT: cur={self.current_exposure}, prop={proposed_exposure}"
-            )
+            reason = f"EXPOSURE LIMIT: cur={self.current_exposure}, prop={proposed_exposure}"
             logging.error(reason)
             self.fsm.transition("S⊘", reason, force=True)
             return False
@@ -608,9 +583,7 @@ class NLCA:
         OFI_val = self.compute_OFI(tick_sync["events"])
 
         lam_val = self.compute_lambda_kyle()
-        OTR_val = self.compute_OTR(
-            tick_sync["messages"], tick_sync["trades"], delta_t=100
-        )
+        OTR_val = self.compute_OTR(tick_sync["messages"], tick_sync["trades"], delta_t=100)
         SVI_val = self.compute_SVI()
         BRHL_val = self.compute_BRHL(0)
 
@@ -666,9 +639,7 @@ class NLCA:
                     action = "STOP_RISK"
                     reason = "STN safety trigger"
                 else:
-                    allowed = self.BG_go_nogo(
-                        OFI_val, lam_val, SVI_val, EVC_val, OTR_val, BRHL_val
-                    )
+                    allowed = self.BG_go_nogo(OFI_val, lam_val, SVI_val, EVC_val, OTR_val, BRHL_val)
                     if not allowed:
                         self.fsm.transition("S⊘", "NO_GO_CONDITIONS", force=True)
                         action = "STOP_NO_GO"
@@ -749,9 +720,7 @@ class StateSimulator:
             results.append(out)
 
         states = [r["state"] for r in results]
-        transitions = sum(
-            1 for i in range(1, len(states)) if states[i] != states[i - 1]
-        )
+        transitions = sum(1 for i in range(1, len(states)) if states[i] != states[i - 1])
         logging.info(f"Sim states: {states}")
         logging.info(f"Transitions: {transitions}")
 
@@ -802,8 +771,7 @@ class MetricsDashboard:
             ts_arr = [x["timestamp"] for x in self.data_buffer]
             spread_arr = [x["p_a1"] - x["p_b1"] for x in self.data_buffer]
             depth_arr = [
-                float(np.sum(x["q_a"][:5]) + np.sum(x["q_b"][:5]))
-                for x in self.data_buffer
+                float(np.sum(x["q_a"][:5]) + np.sum(x["q_b"][:5])) for x in self.data_buffer
             ]
 
             spread_fig = go.Figure(
@@ -840,7 +808,5 @@ def load_runtime_config(path: str):
 
 def build_arg_parser():
     parser = argparse.ArgumentParser(description="GeoSync NLCA runtime")
-    parser.add_argument(
-        "--config", type=str, default="config.yaml", help="Path to YAML config"
-    )
+    parser.add_argument("--config", type=str, default="config.yaml", help="Path to YAML config")
     return parser

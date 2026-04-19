@@ -105,9 +105,7 @@ def profile_analytics_pipeline(
         meta["entropy"] = entropy_value
         meta["delta_entropy"] = delta_entropy_value
 
-    with collector.section(
-        "ricci-curvature", {"window": window, "delta": delta}
-    ) as meta:
+    with collector.section("ricci-curvature", {"window": window, "delta": delta}) as meta:
         graph = build_price_graph(window_prices, delta=delta)
         curvature = float(mean_ricci(graph))
         meta["mean_ricci"] = curvature

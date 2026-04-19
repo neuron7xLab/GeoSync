@@ -5,6 +5,7 @@
 This module provides instrumentation for all critical entrypoints and
 performance-sensitive operations.
 """
+
 from __future__ import annotations
 
 import math
@@ -53,9 +54,7 @@ except ImportError:
     PROMETHEUS_AVAILABLE = False
 
 
-def _fallback_quantiles(
-    values: list[float], quantiles: tuple[float, ...]
-) -> Dict[float, float]:
+def _fallback_quantiles(values: list[float], quantiles: tuple[float, ...]) -> Dict[float, float]:
     """Compute quantiles without numpy."""
 
     if not values:
@@ -117,6 +116,7 @@ class MetricsCollector:
         if registry is None:
             try:
                 from prometheus_client import REGISTRY as _global_registry
+
                 registry = _global_registry
             except ImportError:  # pragma: no cover - prometheus_client not installed
                 pass
@@ -164,9 +164,7 @@ class MetricsCollector:
                     # If collector registration fails we still expose custom metrics
                     # rather than breaking application startup.
                     pass
-        self._equity_curve_max_points = int(
-            os.getenv("GEOSYNC_METRICS_MAX_EQUITY_POINTS", "1024")
-        )
+        self._equity_curve_max_points = int(os.getenv("GEOSYNC_METRICS_MAX_EQUITY_POINTS", "1024"))
 
         # API/service metrics
         self.api_request_latency = Histogram(
@@ -919,24 +917,24 @@ class MetricsCollector:
         self._model_latency_samples: Dict[tuple[str, str], deque[float]] = defaultdict(
             lambda: deque(maxlen=512)
         )
-        self._ingestion_latency_samples: Dict[tuple[str, str], deque[float]] = (
-            defaultdict(lambda: deque(maxlen=256))
+        self._ingestion_latency_samples: Dict[tuple[str, str], deque[float]] = defaultdict(
+            lambda: deque(maxlen=256)
         )
         self._signal_latency_samples: Dict[str, deque[float]] = defaultdict(
             lambda: deque(maxlen=256)
         )
-        self._order_submission_latency_samples: Dict[tuple[str, str], deque[float]] = (
+        self._order_submission_latency_samples: Dict[tuple[str, str], deque[float]] = defaultdict(
+            lambda: deque(maxlen=256)
+        )
+        self._order_ack_latency_samples: Dict[tuple[str, str], deque[float]] = defaultdict(
+            lambda: deque(maxlen=256)
+        )
+        self._order_fill_latency_samples: Dict[tuple[str, str], deque[float]] = defaultdict(
+            lambda: deque(maxlen=256)
+        )
+        self._signal_to_fill_latency_samples: Dict[tuple[str, str, str], deque[float]] = (
             defaultdict(lambda: deque(maxlen=256))
         )
-        self._order_ack_latency_samples: Dict[tuple[str, str], deque[float]] = (
-            defaultdict(lambda: deque(maxlen=256))
-        )
-        self._order_fill_latency_samples: Dict[tuple[str, str], deque[float]] = (
-            defaultdict(lambda: deque(maxlen=256))
-        )
-        self._signal_to_fill_latency_samples: Dict[
-            tuple[str, str, str], deque[float]
-        ] = defaultdict(lambda: deque(maxlen=256))
         self._database_size_cache: Dict[tuple[str, str], float] = {}
 
         # Agent/optimization metrics
@@ -1010,9 +1008,7 @@ class MetricsCollector:
 
         route_label = self._normalise_label(route, default="unknown")
         method_label = self._normalise_label(method, default="other").upper()
-        gauge = self.api_requests_in_flight.labels(
-            route=route_label, method=method_label
-        )
+        gauge = self.api_requests_in_flight.labels(route=route_label, method=method_label)
         change = float(delta)
         if change > 0:
             gauge.inc(change)
@@ -1055,9 +1051,7 @@ class MetricsCollector:
         process_label = self._normalise_label(process_name, default="main")
 
         if cpu_percent is not None:
-            self.process_cpu_percent.labels(process=process_label).set(
-                max(0.0, float(cpu_percent))
-            )
+            self.process_cpu_percent.labels(process=process_label).set(max(0.0, float(cpu_percent)))
 
         if memory_bytes is not None:
             self.process_memory_bytes.labels(process=process_label).set(
@@ -1107,9 +1101,7 @@ class MetricsCollector:
             ).inc()
 
     @contextmanager
-    def measure_indicator_compute(
-        self, indicator_name: str
-    ) -> Iterator[Dict[str, Any]]:
+    def measure_indicator_compute(self, indicator_name: str) -> Iterator[Dict[str, Any]]:
         """Context manager for measuring indicator computations."""
 
         if not self._enabled:
@@ -1127,12 +1119,8 @@ class MetricsCollector:
             raise
         finally:
             duration = time.time() - start_time
-            self.indicator_compute_duration.labels(
-                indicator_name=indicator_name
-            ).observe(duration)
-            self.indicator_compute_total.labels(
-                indicator_name=indicator_name, status=status
-            ).inc()
+            self.indicator_compute_duration.labels(indicator_name=indicator_name).observe(duration)
+            self.indicator_compute_total.labels(indicator_name=indicator_name, status=status).inc()
             if status == "success":
                 value = ctx.get("value")
                 if value is not None:
@@ -1141,9 +1129,7 @@ class MetricsCollector:
                     except (TypeError, ValueError):
                         numeric = None
                     if numeric is not None and math.isfinite(numeric):
-                        self.indicator_value.labels(indicator_name=indicator_name).set(
-                            numeric
-                        )
+                        self.indicator_value.labels(indicator_name=indicator_name).set(numeric)
                 diagnostics = ctx.get("diagnostics")
                 if diagnostics:
                     self.record_indicator_diagnostics(indicator_name, diagnostics)
@@ -1188,9 +1174,7 @@ class MetricsCollector:
                 if "pnl" in ctx:
                     self.backtest_pnl.labels(strategy=strategy).set(ctx["pnl"])
                 if "max_dd" in ctx:
-                    self.backtest_max_drawdown.labels(strategy=strategy).set(
-                        abs(ctx["max_dd"])
-                    )
+                    self.backtest_max_drawdown.labels(strategy=strategy).set(abs(ctx["max_dd"]))
                 if "trades" in ctx:
                     self.backtest_trades.labels(strategy=strategy).set(ctx["trades"])
 
@@ -1234,16 +1218,12 @@ class MetricsCollector:
         sample_size = diagnostics.get("sample_size") or diagnostics.get("samples")
         numeric_sample = _as_float(sample_size) if sample_size is not None else None
         if numeric_sample is not None and numeric_sample >= 0.0:
-            self.indicator_sample_size.labels(indicator_name=indicator_name).set(
-                numeric_sample
-            )
+            self.indicator_sample_size.labels(indicator_name=indicator_name).set(numeric_sample)
 
         window = diagnostics.get("window") or diagnostics.get("span")
         numeric_window = _as_float(window) if window is not None else None
         if numeric_window is not None and numeric_window >= 0.0:
-            self.indicator_window_size.labels(indicator_name=indicator_name).set(
-                numeric_window
-            )
+            self.indicator_window_size.labels(indicator_name=indicator_name).set(numeric_window)
 
         ratios: Dict[str, float] = {}
         ratio_container = diagnostics.get("ratios") or diagnostics.get("quality")
@@ -1289,8 +1269,7 @@ class MetricsCollector:
                 return
             accelerated = _accelerated_quantiles(arr, quantiles)
             quantile_values = {
-                q: float(value)
-                for q, value in zip(quantiles, accelerated, strict=False)
+                q: float(value) for q, value in zip(quantiles, accelerated, strict=False)
             }
         else:
             quantile_values = _fallback_quantiles(values, quantiles)
@@ -1313,9 +1292,9 @@ class MetricsCollector:
             return
 
         bounded_duration = max(0.0, float(duration))
-        self.model_inference_latency.labels(
-            model_name=model_name, deployment=deployment
-        ).observe(bounded_duration)
+        self.model_inference_latency.labels(model_name=model_name, deployment=deployment).observe(
+            bounded_duration
+        )
 
         samples = self._model_latency_samples[(model_name, deployment)]
         samples.append(bounded_duration)
@@ -1344,9 +1323,9 @@ class MetricsCollector:
 
         if not self._enabled:
             return
-        self.model_inference_throughput.labels(
-            model_name=model_name, deployment=deployment
-        ).set(max(0.0, float(throughput)))
+        self.model_inference_throughput.labels(model_name=model_name, deployment=deployment).set(
+            max(0.0, float(throughput))
+        )
 
     def set_model_inference_error_ratio(
         self, model_name: str, deployment: str, error_ratio: float
@@ -1356,21 +1335,17 @@ class MetricsCollector:
         if not self._enabled:
             return
         bounded = max(0.0, min(1.0, float(error_ratio)))
-        self.model_inference_error_ratio.labels(
-            model_name=model_name, deployment=deployment
-        ).set(bounded)
+        self.model_inference_error_ratio.labels(model_name=model_name, deployment=deployment).set(
+            bounded
+        )
 
-    def set_model_saturation(
-        self, model_name: str, deployment: str, saturation: float
-    ) -> None:
+    def set_model_saturation(self, model_name: str, deployment: str, saturation: float) -> None:
         """Record the saturation level of the serving infrastructure."""
 
         if not self._enabled:
             return
         bounded = max(0.0, min(1.0, float(saturation)))
-        self.model_saturation.labels(model_name=model_name, deployment=deployment).set(
-            bounded
-        )
+        self.model_saturation.labels(model_name=model_name, deployment=deployment).set(bounded)
 
     def set_model_resource_usage(
         self,
@@ -1388,22 +1363,22 @@ class MetricsCollector:
             return
 
         if cpu_percent is not None:
-            self.model_cpu_percent.labels(
-                model_name=model_name, deployment=deployment
-            ).set(max(0.0, float(cpu_percent)))
+            self.model_cpu_percent.labels(model_name=model_name, deployment=deployment).set(
+                max(0.0, float(cpu_percent))
+            )
         if gpu_percent is not None:
-            self.model_gpu_percent.labels(
-                model_name=model_name, deployment=deployment
-            ).set(max(0.0, float(gpu_percent)))
+            self.model_gpu_percent.labels(model_name=model_name, deployment=deployment).set(
+                max(0.0, float(gpu_percent))
+            )
         if memory_bytes is not None:
-            self.model_memory_bytes.labels(
-                model_name=model_name, deployment=deployment
-            ).set(max(0.0, float(memory_bytes)))
+            self.model_memory_bytes.labels(model_name=model_name, deployment=deployment).set(
+                max(0.0, float(memory_bytes))
+            )
         if memory_percent is not None:
             bounded = max(0.0, min(100.0, float(memory_percent)))
-            self.model_memory_percent.labels(
-                model_name=model_name, deployment=deployment
-            ).set(bounded)
+            self.model_memory_percent.labels(model_name=model_name, deployment=deployment).set(
+                bounded
+            )
 
     def set_model_cache_metrics(
         self,
@@ -1625,9 +1600,7 @@ class MetricsCollector:
             route=route,
         ).inc()
 
-    def record_response_quality_reason(
-        self, model_name: str, deployment: str, reason: str
-    ) -> None:
+    def record_response_quality_reason(self, model_name: str, deployment: str, reason: str) -> None:
         """Track reason map statistics for response quality operations."""
 
         if not self._enabled:
@@ -1665,9 +1638,7 @@ class MetricsCollector:
                 {"strategy": strategy},
                 samples,
             )
-            self.signal_generation_total.labels(
-                strategy=strategy, status=final_status
-            ).inc()
+            self.signal_generation_total.labels(strategy=strategy, status=final_status).inc()
 
     @contextmanager
     def measure_data_ingestion(
@@ -1717,9 +1688,7 @@ class MetricsCollector:
                 status=final_status,
             ).inc()
 
-    def set_ingestion_throughput(
-        self, source: str, symbol: str, throughput: float
-    ) -> None:
+    def set_ingestion_throughput(self, source: str, symbol: str, throughput: float) -> None:
         """Record instantaneous ingestion throughput."""
 
         if not self._enabled:
@@ -1835,13 +1804,9 @@ class MetricsCollector:
 
         severity_label = self._normalise_label(severity, default="unknown")
         bounded_duration = max(0.0, float(duration))
-        self.incident_ack_latency.labels(severity=severity_label).observe(
-            bounded_duration
-        )
+        self.incident_ack_latency.labels(severity=severity_label).observe(bounded_duration)
 
-    def observe_incident_resolution_latency(
-        self, severity: str, duration: float
-    ) -> None:
+    def observe_incident_resolution_latency(self, severity: str, duration: float) -> None:
         """Observe the resolution latency for an incident."""
 
         if not self._enabled:
@@ -1849,13 +1814,9 @@ class MetricsCollector:
 
         severity_label = self._normalise_label(severity, default="unknown")
         bounded_duration = max(0.0, float(duration))
-        self.incident_resolution_latency.labels(severity=severity_label).observe(
-            bounded_duration
-        )
+        self.incident_resolution_latency.labels(severity=severity_label).observe(bounded_duration)
 
-    def record_runbook_execution(
-        self, runbook: str, outcome: str, count: float = 1.0
-    ) -> None:
+    def record_runbook_execution(self, runbook: str, outcome: str, count: float = 1.0) -> None:
         """Record the execution of a production runbook."""
 
         if not self._enabled:
@@ -1866,9 +1827,9 @@ class MetricsCollector:
 
         runbook_label = self._normalise_label(runbook, default="unknown")
         outcome_label = self._normalise_label(outcome, default="unknown")
-        self.runbook_executions_total.labels(
-            runbook=runbook_label, outcome=outcome_label
-        ).inc(float(count))
+        self.runbook_executions_total.labels(runbook=runbook_label, outcome=outcome_label).inc(
+            float(count)
+        )
 
     def set_lifecycle_phase_state(self, phase: str, state: str) -> None:
         """Update lifecycle phase state gauges."""
@@ -1888,13 +1849,9 @@ class MetricsCollector:
         )
         for candidate in known_states:
             value = 1.0 if candidate == state_label else 0.0
-            self.lifecycle_phase_state.labels(phase=phase_label, state=candidate).set(
-                value
-            )
+            self.lifecycle_phase_state.labels(phase=phase_label, state=candidate).set(value)
         if state_label not in known_states:
-            self.lifecycle_phase_state.labels(phase=phase_label, state=state_label).set(
-                1.0
-            )
+            self.lifecycle_phase_state.labels(phase=phase_label, state=state_label).set(1.0)
 
     def set_lifecycle_checkpoint_status(self, checkpoint: str, status: str) -> None:
         """Update lifecycle checkpoint status gauges."""
@@ -1930,9 +1887,7 @@ class MetricsCollector:
             from_phase=from_label, to_phase=to_label, outcome=outcome_label
         ).inc()
 
-    def record_order_fill_latency(
-        self, exchange: str, symbol: str, duration: float
-    ) -> None:
+    def record_order_fill_latency(self, exchange: str, symbol: str, duration: float) -> None:
         """Observe latency from order submission to fill."""
 
         if not self._enabled:
@@ -1945,9 +1900,7 @@ class MetricsCollector:
             samples,
         )
 
-    def record_order_ack_latency(
-        self, exchange: str, symbol: str, duration: float
-    ) -> None:
+    def record_order_ack_latency(self, exchange: str, symbol: str, duration: float) -> None:
         """Observe latency between order submission and venue acknowledgement."""
 
         if not self._enabled:
@@ -2003,9 +1956,7 @@ class MetricsCollector:
         for name, value in metrics.items():
             if value is None:
                 continue
-            self.regression_metrics.labels(model=model, metric=str(name)).set(
-                float(value)
-            )
+            self.regression_metrics.labels(model=model, metric=str(name)).set(float(value))
 
     def record_equity_point(self, strategy: str, step: int, value: float) -> None:
         """Record a sample on the equity curve gauge."""
@@ -2063,9 +2014,7 @@ class MetricsCollector:
         self._clear_equity_curve(strategy)
 
         for step_label, value in zip(sampled_steps, sampled_values, strict=True):
-            self.backtest_equity_curve.labels(strategy=strategy, step=step_label).set(
-                float(value)
-            )
+            self.backtest_equity_curve.labels(strategy=strategy, step=step_label).set(float(value))
 
         self._equity_curve_cache[strategy] = sampled_steps
 
@@ -2108,9 +2057,7 @@ class MetricsCollector:
         if not self._enabled:
             return ""
 
-        payload_bytes = (
-            generate_latest(self.registry) if self.registry else generate_latest()
-        )
+        payload_bytes = generate_latest(self.registry) if self.registry else generate_latest()
         payload = payload_bytes.decode("utf-8")
         if "process_cpu_seconds_total" not in payload:
             cpu_seconds = time.process_time()
@@ -2181,13 +2128,9 @@ class MetricsCollector:
 
         if not self._enabled:
             return
-        self.watchdog_live_probe_status.labels(watchdog=watchdog).set(
-            1.0 if healthy else 0.0
-        )
+        self.watchdog_live_probe_status.labels(watchdog=watchdog).set(1.0 if healthy else 0.0)
 
-    def set_watchdog_heartbeat(
-        self, watchdog: str, timestamp: float | None = None
-    ) -> None:
+    def set_watchdog_heartbeat(self, watchdog: str, timestamp: float | None = None) -> None:
         """Record the timestamp associated with the latest watchdog heartbeat."""
 
         if not self._enabled:
@@ -2202,9 +2145,7 @@ class MetricsCollector:
         if not self._enabled:
             return
 
-        self.health_check_latency.labels(check_name=check_name).observe(
-            max(0.0, float(duration))
-        )
+        self.health_check_latency.labels(check_name=check_name).observe(max(0.0, float(duration)))
 
     def set_health_check_status(self, check_name: str, healthy: bool) -> None:
         """Update the status gauge tracking the latest health probe outcome."""
@@ -2212,9 +2153,7 @@ class MetricsCollector:
         if not self._enabled:
             return
 
-        self.health_check_status.labels(check_name=check_name).set(
-            1.0 if healthy else 0.0
-        )
+        self.health_check_status.labels(check_name=check_name).set(1.0 if healthy else 0.0)
 
     def observe_database_size(
         self,
@@ -2282,9 +2221,9 @@ class MetricsCollector:
         if not self._enabled:
             return
 
-        self.cache_warmup_duration.labels(
-            cache_name=cache_name, strategy=strategy
-        ).observe(max(0.0, float(duration)))
+        self.cache_warmup_duration.labels(cache_name=cache_name, strategy=strategy).observe(
+            max(0.0, float(duration))
+        )
 
         if rows is not None:
             self.cache_warmup_rows.labels(cache_name=cache_name, strategy=strategy).set(
@@ -2297,9 +2236,7 @@ class MetricsCollector:
         if not self._enabled:
             return
 
-        self.cache_readiness_status.labels(cache_name=cache_name).set(
-            1.0 if ready else 0.0
-        )
+        self.cache_readiness_status.labels(cache_name=cache_name).set(1.0 if ready else 0.0)
 
     def update_cache_hit_rate(self, cache_name: str, hit_rate: float) -> None:
         """Observe the current hit rate of a cache."""
@@ -2316,9 +2253,7 @@ class MetricsCollector:
         if not self._enabled:
             return
 
-        self.cache_cold_latency.labels(cache_name=cache_name).observe(
-            max(0.0, float(latency))
-        )
+        self.cache_cold_latency.labels(cache_name=cache_name).observe(max(0.0, float(latency)))
 
     def increment_cache_cold_request(self, cache_name: str, outcome: str) -> None:
         """Increment counters describing cold cache request outcomes."""
@@ -2369,6 +2304,7 @@ def _registry_cache_key(registry: Optional[Any]) -> int:
         return id(registry)
     try:
         from prometheus_client import REGISTRY as _default_registry
+
         return id(_default_registry)
     except ImportError:  # pragma: no cover - prometheus_client not installed
         return _NO_PROMETHEUS_KEY
@@ -2413,9 +2349,7 @@ def start_metrics_server(port: int = 8000, addr: str = "") -> None:
     start_http_server(port, addr)
 
 
-def start_metrics_exporter_process(
-    port: int = 8000, addr: str = ""
-) -> multiprocessing.Process:
+def start_metrics_exporter_process(port: int = 8000, addr: str = "") -> multiprocessing.Process:
     """Spawn a Prometheus exporter in a dedicated process."""
 
     if not PROMETHEUS_AVAILABLE:

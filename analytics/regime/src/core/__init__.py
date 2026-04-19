@@ -11,23 +11,12 @@ from .fk_detector import (
     FKDetectorResult,
     estimate_hurst_rs,
 )
-from .main import (
-    CorrelationRegime,
-    DetectorConfig,
-    LiquidityRegime,
-    MarketRegimeSnapshot,
-    RegimeDetector,
-    StrategyAdjustments,
-    TrendRegime,
-    VolatilityRegime,
-)
-from .ricci_flow import RicciFlowConfig, RicciFlowRebalancer, RicciFlowResult
-from .topo_sentinel import TopoSentinel, TopoSentinelConfig, TopoSentinelResult
 from .geosync_v21 import (
     BacktestConfig,
     BacktestSummary,
     EnsembleConfig,
     FeatureBuilderConfig,
+    GeoSyncV21Pipeline,
     LogisticIsotonicTrainer,
     LogisticModelArtifacts,
     ModelPerformance,
@@ -40,9 +29,20 @@ from .geosync_v21 import (
     StressTestSummary,
     StrictCausalFeatureBuilder,
     StrictCausalFeatures,
-    GeoSyncV21Pipeline,
     result_to_json,
 )
+from .main import (
+    CorrelationRegime,
+    DetectorConfig,
+    LiquidityRegime,
+    MarketRegimeSnapshot,
+    RegimeDetector,
+    StrategyAdjustments,
+    TrendRegime,
+    VolatilityRegime,
+)
+from .ricci_flow import RicciFlowConfig, RicciFlowRebalancer, RicciFlowResult
+from .topo_sentinel import TopoSentinel, TopoSentinelConfig, TopoSentinelResult
 
 __all__ = [
     "CausalGuard",

@@ -18,8 +18,7 @@ def _validate_keys(label: str, keys: tuple[str, ...]) -> None:
     if unexpected:
         allowed = ", ".join(OBSERVATION_KEYS)
         raise ValueError(
-            f"{label} keys contain unexpected values {sorted(unexpected)}. "
-            f"Allowed keys: {allowed}."
+            f"{label} keys contain unexpected values {sorted(unexpected)}. Allowed keys: {allowed}."
         )
 
 

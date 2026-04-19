@@ -173,6 +173,7 @@ class TestFailSafeControllerBasic:
 
     def test_callback_exception_handled(self) -> None:
         """Test that callback exceptions are handled gracefully."""
+
         def bad_callback(state: FailSafeState) -> None:
             raise ValueError("Callback error")
 

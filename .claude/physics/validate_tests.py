@@ -149,9 +149,7 @@ def _has_negative_slice(node: ast.AST) -> bool:
             lower = n.slice.lower
             if isinstance(lower, ast.UnaryOp) and isinstance(lower.op, ast.USub):
                 return True
-            if isinstance(lower, ast.Constant) and isinstance(
-                lower.value, (int, float)
-            ):
+            if isinstance(lower, ast.Constant) and isinstance(lower.value, (int, float)):
                 if lower.value < 0:
                     return True
     return False
@@ -533,8 +531,7 @@ def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list
                 has_any_msg = True
                 assert_start = child.lineno - 1
                 assert_end = min(
-                    getattr(child.msg, "end_lineno", child.msg.lineno)
-                    or child.msg.lineno,
+                    getattr(child.msg, "end_lineno", child.msg.lineno) or child.msg.lineno,
                     len(source_lines),
                 )
                 msg_source = "\n".join(source_lines[assert_start:assert_end])
@@ -689,9 +686,7 @@ def main() -> None:
         print("  python validate_tests.py <path>              # validate physics tests")
         print("  python validate_tests.py <path> --summary    # summary only")
         print("  python validate_tests.py <path> --audit-code # audit production code")
-        print(
-            "  python validate_tests.py --self-check        # verify kernel integrity"
-        )
+        print("  python validate_tests.py --self-check        # verify kernel integrity")
         sys.exit(1)
 
     if "--self-check" in args:
@@ -824,9 +819,7 @@ def _run_audit_code(files: list[Path], summary_mode: bool) -> None:
     if total == 0:
         print("\n✅ No silent invariant repairs detected.")
     else:
-        print(
-            "\nThese clamps may hide physics violations. Add logging or INV-* comment."
-        )
+        print("\nThese clamps may hide physics violations. Add logging or INV-* comment.")
         sys.exit(1)
 
 

@@ -5,7 +5,8 @@
 from __future__ import annotations
 
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field, replace
 
 from .risk_gating import PreActionDecision, PreActionFilter
@@ -37,9 +38,7 @@ class DegradationReport:
     timeout_s: float | None
 
 
-def _fallback_with_reason(
-    fallback: PreActionDecision, reason: str
-) -> PreActionDecision:
+def _fallback_with_reason(fallback: PreActionDecision, reason: str) -> PreActionDecision:
     reasons = (reason,) + tuple(r for r in fallback.reasons if r != reason)
     return replace(fallback, reasons=reasons)
 
@@ -60,9 +59,7 @@ def apply_degradation(
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(gate.check, context)
             decision = (
-                future.result(timeout=timeout_s)
-                if timeout_s and timeout_s > 0
-                else future.result()
+                future.result(timeout=timeout_s) if timeout_s and timeout_s > 0 else future.result()
             )
         elapsed_ms = (time.monotonic() - start) * 1000.0
         return decision, DegradationReport(

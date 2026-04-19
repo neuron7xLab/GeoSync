@@ -144,9 +144,7 @@ def test_aws_resolver_parses_json_secret() -> None:
             assert SecretId == "app/demo"
             return {"SecretString": json.dumps({"apiKey": "value", "retries": 2})}
 
-    resolver = build_aws_secrets_manager_resolver(
-        config, client_factory=lambda _: _DummyClient()
-    )
+    resolver = build_aws_secrets_manager_resolver(config, client_factory=lambda _: _DummyClient())
 
     payload = resolver("app/demo")
 
@@ -163,9 +161,7 @@ def test_aws_resolver_decodes_binary_secret() -> None:
             encoded = base64.b64encode(b"binary-secret").decode("ascii")
             return {"SecretBinary": encoded}
 
-    resolver = build_aws_secrets_manager_resolver(
-        config, client_factory=lambda _: _DummyClient()
-    )
+    resolver = build_aws_secrets_manager_resolver(config, client_factory=lambda _: _DummyClient())
 
     payload = resolver("app/binary")
 
@@ -180,9 +176,7 @@ def test_aws_resolver_errors_when_payload_missing() -> None:
             assert SecretId == "app/invalid"
             return {}
 
-    resolver = build_aws_secrets_manager_resolver(
-        config, client_factory=lambda _: _DummyClient()
-    )
+    resolver = build_aws_secrets_manager_resolver(config, client_factory=lambda _: _DummyClient())
 
     with pytest.raises(SecretBackendError):
         resolver("app/invalid")

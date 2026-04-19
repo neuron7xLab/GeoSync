@@ -1,6 +1,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Experiment tracking utilities providing reproducibility and reporting."""
+
 from __future__ import annotations
 
 import hashlib
@@ -57,9 +58,7 @@ class ExperimentDeviationError(RuntimeError):
 class NullExperimentTracker:
     """No-op tracker used when experiment tracking is disabled."""
 
-    def log_configuration(
-        self, cfg: DictConfig, safe_yaml: str | None
-    ) -> None:  # noqa: D401
+    def log_configuration(self, cfg: DictConfig, safe_yaml: str | None) -> None:  # noqa: D401
         return
 
     def log_data_version(self, data_path: Path) -> None:  # noqa: D401
@@ -171,11 +170,7 @@ class ExperimentTracker:
 
         if not self._tracking.auto_log_metadata:
             return
-        payload = (
-            asdict(metadata)
-            if hasattr(metadata, "__dataclass_fields__")
-            else dict(metadata)
-        )
+        payload = asdict(metadata) if hasattr(metadata, "__dataclass_fields__") else dict(metadata)
         payload["recorded_at"] = datetime.now(timezone.utc).isoformat()
         path = self._artifacts_dir / "metadata.json"
         path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
@@ -262,9 +257,7 @@ class ExperimentTracker:
                 delta = abs((observed - baseline_val) / baseline_val)
             else:
                 delta = abs(observed - baseline_val)
-            threshold = float(
-                baseline_cfg.metric_tolerances.get(metric, default_tolerance)
-            )
+            threshold = float(baseline_cfg.metric_tolerances.get(metric, default_tolerance))
             if delta > threshold:
                 deviations.append(
                     BaselineDeviation(
@@ -297,9 +290,7 @@ class ExperimentTracker:
                 deviation.baseline,
             )
 
-    def record_status(
-        self, status: str, payload: Mapping[str, Any] | None = None
-    ) -> None:
+    def record_status(self, status: str, payload: Mapping[str, Any] | None = None) -> None:
         """Append a structured status entry for CI dashboards."""
 
         entry = {
@@ -360,11 +351,7 @@ class ExperimentTracker:
         self, results: Mapping[str, Any] | None, error: BaseException | None
     ) -> str:
         metadata_block = json.dumps(
-            (
-                asdict(self._metadata)
-                if hasattr(self._metadata, "__dataclass_fields__")
-                else {}
-            ),
+            (asdict(self._metadata) if hasattr(self._metadata, "__dataclass_fields__") else {}),
             indent=2,
             default=str,
         )
@@ -376,8 +363,7 @@ class ExperimentTracker:
         status_block = json.dumps(self._status_log, indent=2, default=str)
         error_block = str(error) if error else "None"
 
-        return textwrap.dedent(
-            f"""
+        return textwrap.dedent(f"""
             # Experiment Report — {self._experiment.name}
 
             ## Metadata
@@ -412,8 +398,7 @@ class ExperimentTracker:
 
             ## Error
             {error_block}
-            """
-        ).strip()
+            """).strip()
 
     def _write_ci_summary(
         self, results: Mapping[str, Any] | None, error: BaseException | None
@@ -433,9 +418,7 @@ class ExperimentTracker:
         if hasattr(self._metadata, "__dataclass_fields__"):
             payload["metadata"] = asdict(self._metadata)
         summary_path = self._reports_dir / "ci_summary.json"
-        summary_path.write_text(
-            json.dumps(payload, indent=2, default=str), encoding="utf-8"
-        )
+        summary_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
 
     def _archive_run_dir(self) -> None:
         """Archive the Hydra run directory for long-term storage."""

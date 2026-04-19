@@ -5,14 +5,13 @@ timer context manager, global singletons."""
 
 from __future__ import annotations
 
-import time
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from core.telemetry import (
-    MetricType,
     MetricsBackend,
+    MetricType,
     NoOpBackend,
     PrometheusBackend,
     Sampler,
@@ -22,10 +21,10 @@ from core.telemetry import (
     get_telemetry,
 )
 
-
 # ---------------------------------------------------------------------------
 # MetricType enum
 # ---------------------------------------------------------------------------
+
 
 class TestMetricType:
     def test_values(self):
@@ -38,6 +37,7 @@ class TestMetricType:
 # ---------------------------------------------------------------------------
 # SamplingConfig
 # ---------------------------------------------------------------------------
+
 
 class TestSamplingConfig:
     def test_defaults(self):
@@ -71,6 +71,7 @@ class TestSamplingConfig:
 # Sampler
 # ---------------------------------------------------------------------------
 
+
 class TestSampler:
     def test_always_sample_at_rate_1(self):
         s = Sampler(SamplingConfig(default_rate=1.0))
@@ -91,9 +92,7 @@ class TestSampler:
         assert results1 == results2
 
     def test_per_metric_override(self):
-        cfg = SamplingConfig(
-            default_rate=1.0, per_metric_rates={"rare": 0.0}, seed=1
-        )
+        cfg = SamplingConfig(default_rate=1.0, per_metric_rates={"rare": 0.0}, seed=1)
         s = Sampler(cfg)
         assert s.should_sample("rare") is False
         assert s.should_sample("common") is True
@@ -106,6 +105,7 @@ class TestSampler:
 # ---------------------------------------------------------------------------
 # NoOpBackend
 # ---------------------------------------------------------------------------
+
 
 class TestNoOpBackend:
     def test_all_methods_are_noop(self):
@@ -123,6 +123,7 @@ class TestNoOpBackend:
 # ---------------------------------------------------------------------------
 # PrometheusBackend (mocked — prometheus_client may not be installed)
 # ---------------------------------------------------------------------------
+
 
 class TestPrometheusBackend:
     def test_without_prometheus_client(self):
@@ -169,6 +170,7 @@ class TestPrometheusBackend:
 # TelemetryClient
 # ---------------------------------------------------------------------------
 
+
 class TestTelemetryClient:
     def test_default_backend_is_noop(self):
         tc = TelemetryClient()
@@ -189,9 +191,7 @@ class TestTelemetryClient:
         backend = MagicMock()
         tc = TelemetryClient(backend=backend, prefix="test")
         tc.increment("counter", 2.0, tags={"k": "v"})
-        backend.increment_counter.assert_called_once_with(
-            "test.counter", 2.0, {"k": "v"}
-        )
+        backend.increment_counter.assert_called_once_with("test.counter", 2.0, {"k": "v"})
 
     def test_gauge_calls_backend(self):
         backend = MagicMock()
@@ -203,9 +203,7 @@ class TestTelemetryClient:
         backend = MagicMock()
         tc = TelemetryClient(backend=backend, prefix="test")
         tc.histogram("latency", 1.5, tags={"k": "v"})
-        backend.observe_histogram.assert_called_once_with(
-            "test.latency", 1.5, {"k": "v"}
-        )
+        backend.observe_histogram.assert_called_once_with("test.latency", 1.5, {"k": "v"})
 
     def test_disabled_skips_increment(self):
         backend = MagicMock()
@@ -260,6 +258,7 @@ class TestTelemetryClient:
 # Timer context manager
 # ---------------------------------------------------------------------------
 
+
 class TestTelemetryTimer:
     def test_timer_records_on_success(self):
         backend = MagicMock()
@@ -277,7 +276,7 @@ class TestTelemetryTimer:
         backend = MagicMock()
         tc = TelemetryClient(backend=backend, prefix="t")
         with pytest.raises(ValueError):
-            with tc.timer("op") as ctx:
+            with tc.timer("op"):
                 raise ValueError("boom")
         backend.observe_histogram.assert_called_once()
         tags = backend.observe_histogram.call_args[0][2]
@@ -304,9 +303,11 @@ class TestTelemetryTimer:
 # Global singletons
 # ---------------------------------------------------------------------------
 
+
 class TestGlobalTelemetry:
     def test_get_telemetry_creates_singleton(self):
         import core.telemetry as mod
+
         old = mod._telemetry
         try:
             mod._telemetry = None
@@ -319,6 +320,7 @@ class TestGlobalTelemetry:
 
     def test_configure_telemetry_replaces(self):
         import core.telemetry as mod
+
         old = mod._telemetry
         try:
             t1 = configure_telemetry(prefix="a")
@@ -330,6 +332,7 @@ class TestGlobalTelemetry:
 
     def test_configure_with_backend(self):
         import core.telemetry as mod
+
         old = mod._telemetry
         try:
             backend = MagicMock()
@@ -340,6 +343,7 @@ class TestGlobalTelemetry:
 
     def test_get_telemetry_with_params(self):
         import core.telemetry as mod
+
         old = mod._telemetry
         try:
             mod._telemetry = None

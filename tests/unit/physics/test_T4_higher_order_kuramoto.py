@@ -175,9 +175,7 @@ class TestPairwiseVsHigherOrder:
         r_both = e_both.run(corr, seed=42)
 
         # Dynamics should differ
-        assert not np.allclose(
-            r_pair.order_parameter, r_both.order_parameter, atol=0.01
-        )
+        assert not np.allclose(r_pair.order_parameter, r_both.order_parameter, atol=0.01)
 
 
 class TestFromPrices:
@@ -199,9 +197,7 @@ class TestDeterminism:
         memory, hash-random ordering, or a non-seeded RNG branch).
         """
         n_runs = 3
-        phase_runs = [
-            engine.run(complete_corr_4, seed=42).phases for _ in range(n_runs)
-        ]
+        phase_runs = [engine.run(complete_corr_4, seed=42).phases for _ in range(n_runs)]
         baseline = phase_runs[0]
         for run_idx, other in enumerate(phase_runs[1:], start=1):
             max_ulp_diff = float(np.max(np.abs(other - baseline)))

@@ -57,9 +57,7 @@ def serotonin_controller(tmp_path: Path, serotonin_module: ModuleType) -> Any:
     return SerotoninController(str(cfg_path))
 
 
-def _obs(
-    stress: float = 0.4, drawdown: float = -0.02, novelty: float = 0.3
-) -> dict[str, float]:
+def _obs(stress: float = 0.4, drawdown: float = -0.02, novelty: float = 0.3) -> dict[str, float]:
     return {"stress": stress, "drawdown": drawdown, "novelty": novelty}
 
 

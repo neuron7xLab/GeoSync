@@ -73,7 +73,7 @@ class PortfolioEnergyConservation:
             raise ValueError(
                 f"positions and returns must match: {positions.shape} vs {returns.shape}"
             )
-        return 0.5 * float(np.sum(np.abs(positions) * returns ** 2))
+        return 0.5 * float(np.sum(np.abs(positions) * returns**2))
 
     @staticmethod
     def compute_potential(

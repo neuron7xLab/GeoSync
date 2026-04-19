@@ -131,9 +131,7 @@ def test_full_cli_flow(tmp_path: Path, sample_prices: Path) -> None:
     manager.render("optimize", optimize_cfg_path)
     optimize_cfg = _load_yaml(optimize_cfg_path)
     optimize_cfg["metadata"]["backtest"]["data"]["path"] = str(sample_prices)
-    optimize_cfg["metadata"]["backtest"]["results_path"] = str(
-        tmp_path / "opt_backtest.json"
-    )
+    optimize_cfg["metadata"]["backtest"]["results_path"] = str(tmp_path / "opt_backtest.json")
     optimize_cfg["results_path"] = str(tmp_path / "optimize.json")
     optimize_cfg["versioning"] = {"backend": "dvc", "repo_path": str(repo_path)}
     _write_yaml(optimize_cfg_path, optimize_cfg)
@@ -222,13 +220,8 @@ with open(log, "a", encoding="utf-8") as handle:
     assert summary["artifact"] == config_data["artifact"]
     assert summary["strategy"] == config_data["strategy"]
     assert summary["environment"] == config_data["environment"]
-    assert (
-        summary["annotations"]["geosync.dev/artifact-digest"]
-        == config_data["artifact"]
-    )
-    assert (
-        summary["annotations"]["geosync.dev/strategy-id"] == config_data["strategy"]
-    )
+    assert summary["annotations"]["geosync.dev/artifact-digest"] == config_data["artifact"]
+    assert summary["annotations"]["geosync.dev/strategy-id"] == config_data["strategy"]
 
 
 def test_parity_cli_synchronizes_store(tmp_path: Path) -> None:

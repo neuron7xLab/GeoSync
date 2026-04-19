@@ -244,8 +244,7 @@ class TestComplianceManager:
         )
 
         success = manager.resolve_violation(
-            violation.violation_id,
-            "Trade limit increased after review"
+            violation.violation_id, "Trade limit increased after review"
         )
 
         assert success is True
@@ -256,10 +255,7 @@ class TestComplianceManager:
         """Test resolving non-existent violation returns False."""
         manager = ComplianceManager(storage_path=tmp_path)
 
-        success = manager.resolve_violation(
-            "VIO-999999",
-            "This should not work"
-        )
+        success = manager.resolve_violation("VIO-999999", "This should not work")
 
         assert success is False
 

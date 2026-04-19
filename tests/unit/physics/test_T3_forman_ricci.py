@@ -87,25 +87,41 @@ class TestDualTrackMonitor:
         monitor = DualTrackRicciMonitor(margin_sensitivity=3.0)
         # Simulate herding result
         herding = FormanRicciResult(
-            edge_curvatures={(0, 1): 1.0}, kappa_min=0.5,
-            kappa_mean=0.5, kappa_max=0.5, herding_index=1.0,
+            edge_curvatures={(0, 1): 1.0},
+            kappa_min=0.5,
+            kappa_mean=0.5,
+            kappa_max=0.5,
+            herding_index=1.0,
         )
         normal = FormanRicciResult(
-            edge_curvatures={(0, 1): -3.0}, kappa_min=-3.0,
-            kappa_mean=-3.0, kappa_max=-3.0, herding_index=0.0,
+            edge_curvatures={(0, 1): -3.0},
+            kappa_min=-3.0,
+            kappa_mean=-3.0,
+            kappa_max=-3.0,
+            herding_index=0.0,
         )
         assert monitor.margin_multiplier(herding) > monitor.margin_multiplier(normal)
 
     def test_is_herding(self):
         monitor = DualTrackRicciMonitor()
-        assert monitor.is_herding(FormanRicciResult(
-            edge_curvatures={}, kappa_min=0.0,
-            kappa_mean=0.0, kappa_max=0.0, herding_index=0.0,
-        ))
-        assert not monitor.is_herding(FormanRicciResult(
-            edge_curvatures={}, kappa_min=-5.0,
-            kappa_mean=-5.0, kappa_max=-5.0, herding_index=0.0,
-        ))
+        assert monitor.is_herding(
+            FormanRicciResult(
+                edge_curvatures={},
+                kappa_min=0.0,
+                kappa_mean=0.0,
+                kappa_max=0.0,
+                herding_index=0.0,
+            )
+        )
+        assert not monitor.is_herding(
+            FormanRicciResult(
+                edge_curvatures={},
+                kappa_min=-5.0,
+                kappa_mean=-5.0,
+                kappa_max=-5.0,
+                herding_index=0.0,
+            )
+        )
 
     def test_fragility_trend(self):
         monitor = DualTrackRicciMonitor(forman_threshold=0.3, correlation_window=10)

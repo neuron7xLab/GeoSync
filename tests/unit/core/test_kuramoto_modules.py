@@ -18,17 +18,18 @@ import numpy as np
 import pytest
 from scipy import sparse
 
+from core.kuramoto.adaptive import AdaptiveKuramotoEngine
 from core.kuramoto.config import KuramotoConfig
 from core.kuramoto.delayed import DelayedKuramotoEngine
 from core.kuramoto.early_stopping import EarlyStoppingEngine
-from core.kuramoto.sparse import SparseKuramotoEngine
 from core.kuramoto.second_order import SecondOrderKuramotoEngine
-from core.kuramoto.adaptive import AdaptiveKuramotoEngine
+from core.kuramoto.sparse import SparseKuramotoEngine
 
 # Level auto-assigned by conftest from tests/test_levels.yaml
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
+
 
 def _synced_config(N: int = 10, K: float = 5.0, steps: int = 500, seed: int = 42) -> KuramotoConfig:
     """Config with strong coupling that should synchronize."""
@@ -49,8 +50,8 @@ def _minimal_config(seed: int = 0) -> KuramotoConfig:
 # DelayedKuramotoEngine
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestDelayedKuramotoEngine:
 
+class TestDelayedKuramotoEngine:
     def test_order_parameter_bounded(self):
         cfg = _synced_config(N=8, steps=300)
         result = DelayedKuramotoEngine(cfg, tau=0.05).run()
@@ -86,9 +87,7 @@ class TestDelayedKuramotoEngine:
 
     def test_custom_history_function(self):
         cfg = _synced_config(N=3, steps=100)
-        result = DelayedKuramotoEngine(
-            cfg, tau=0.05, history_fn=lambda t: np.zeros(3)
-        ).run()
+        result = DelayedKuramotoEngine(cfg, tau=0.05, history_fn=lambda t: np.zeros(3)).run()
         assert np.all(np.isfinite(result.phases))
 
     def test_two_oscillators(self):
@@ -102,8 +101,8 @@ class TestDelayedKuramotoEngine:
 # EarlyStoppingEngine
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestEarlyStoppingEngine:
 
+class TestEarlyStoppingEngine:
     def test_order_parameter_bounded(self):
         cfg = _synced_config(steps=2000)
         result = EarlyStoppingEngine(cfg, epsilon=1e-4, patience=50, min_steps=50).run()
@@ -113,9 +112,9 @@ class TestEarlyStoppingEngine:
     def test_early_stop_happens_under_strong_coupling(self):
         cfg = _synced_config(N=10, K=8.0, steps=5000)
         result = EarlyStoppingEngine(cfg, epsilon=1e-4, patience=100, min_steps=50).run()
-        assert result.summary.get("early_stopped", False), (
-            "Strong coupling should converge and trigger early stopping"
-        )
+        assert result.summary.get(
+            "early_stopped", False
+        ), "Strong coupling should converge and trigger early stopping"
         assert result.summary["converged_at_step"] < 5000
 
     def test_phases_finite(self):
@@ -137,10 +136,12 @@ class TestEarlyStoppingEngine:
         assert result.order_parameter.shape[0] > 0
 
     def test_two_oscillators(self):
-        cfg = _minimal_config()
+        _minimal_config()
         result = EarlyStoppingEngine(
             KuramotoConfig(N=2, K=5.0, dt=0.01, steps=1000, seed=0),
-            epsilon=1e-4, patience=50, min_steps=20,
+            epsilon=1e-4,
+            patience=50,
+            min_steps=20,
         ).run()
         assert np.all(result.order_parameter >= 0.0)
 
@@ -149,8 +150,8 @@ class TestEarlyStoppingEngine:
 # SparseKuramotoEngine
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestSparseKuramotoEngine:
 
+class TestSparseKuramotoEngine:
     def test_order_parameter_bounded(self):
         cfg = _synced_config(N=20, steps=300)
         result = SparseKuramotoEngine(cfg).run()
@@ -200,8 +201,8 @@ class TestSparseKuramotoEngine:
 # SecondOrderKuramotoEngine
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestSecondOrderKuramotoEngine:
 
+class TestSecondOrderKuramotoEngine:
     def test_order_parameter_bounded(self):
         cfg = _synced_config(N=8, K=5.0, steps=500)
         result = SecondOrderKuramotoEngine(cfg, mass=1.0, damping=0.5).run()
@@ -224,8 +225,13 @@ class TestSecondOrderKuramotoEngine:
     def test_summary_has_frequency_metrics(self):
         cfg = _synced_config(N=5, steps=200)
         result = SecondOrderKuramotoEngine(cfg, mass=1.0, damping=0.2).run()
-        for key in ("frequency_nadir", "frequency_zenith", "max_rocof",
-                     "final_frequency_spread", "mean_frequency"):
+        for key in (
+            "frequency_nadir",
+            "frequency_zenith",
+            "max_rocof",
+            "final_frequency_spread",
+            "mean_frequency",
+        ):
             assert key in result.summary, f"Missing summary key: {key}"
 
     def test_heterogeneous_mass_and_damping(self):
@@ -262,8 +268,8 @@ class TestSecondOrderKuramotoEngine:
 # AdaptiveKuramotoEngine
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestAdaptiveKuramotoEngine:
 
+class TestAdaptiveKuramotoEngine:
     def test_order_parameter_bounded(self):
         cfg = _synced_config(N=8, steps=300)
         result = AdaptiveKuramotoEngine(cfg, method="RK45").run()
@@ -304,8 +310,8 @@ class TestAdaptiveKuramotoEngine:
 # Cross-module: mathematical properties
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestCrossModuleMathProperties:
 
+class TestCrossModuleMathProperties:
     def test_identical_phases_give_R_one(self):
         """When all oscillators start in phase with zero frequency, R should stay at 1."""
         N = 5

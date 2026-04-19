@@ -12,8 +12,7 @@ import numpy as np
 # First load risk_core
 risk_core_spec = importlib.util.spec_from_file_location(
     "risk_core",
-    Path(__file__).parent.parent.parent.parent.parent
-    / "src/geosync/risk/risk_core.py",
+    Path(__file__).parent.parent.parent.parent.parent / "src/geosync/risk/risk_core.py",
 )
 risk_core_module = importlib.util.module_from_spec(risk_core_spec)
 sys.modules["geosync.risk.risk_core"] = risk_core_module
@@ -22,8 +21,7 @@ risk_core_spec.loader.exec_module(risk_core_module)
 # Then load automated_testing
 auto_test_spec = importlib.util.spec_from_file_location(
     "geosync.risk.automated_testing",
-    Path(__file__).parent.parent.parent.parent.parent
-    / "src/geosync/risk/automated_testing.py",
+    Path(__file__).parent.parent.parent.parent.parent / "src/geosync/risk/automated_testing.py",
 )
 auto_test_module = importlib.util.module_from_spec(auto_test_spec)
 sys.modules["geosync.risk.automated_testing"] = auto_test_module
@@ -34,9 +32,7 @@ MonteCarloConfig = auto_test_module.MonteCarloConfig
 RiskScenario = auto_test_module.RiskScenario
 ScenarioType = auto_test_module.ScenarioType
 generate_flash_crash_scenarios = auto_test_module.generate_flash_crash_scenarios
-generate_liquidity_crisis_scenarios = (
-    auto_test_module.generate_liquidity_crisis_scenarios
-)
+generate_liquidity_crisis_scenarios = auto_test_module.generate_liquidity_crisis_scenarios
 generate_market_stress_scenarios = auto_test_module.generate_market_stress_scenarios
 validate_risk_metrics = auto_test_module.validate_risk_metrics
 
@@ -305,9 +301,7 @@ class TestScenarioGenerators:
 
     def test_generate_flash_crash_scenarios(self):
         """Test flash crash scenario generation."""
-        scenarios = generate_flash_crash_scenarios(
-            num_days=100, crash_magnitude=0.15, seed=42
-        )
+        scenarios = generate_flash_crash_scenarios(num_days=100, crash_magnitude=0.15, seed=42)
 
         assert len(scenarios) > 0
         assert all(isinstance(s, RiskScenario) for s in scenarios)

@@ -210,9 +210,7 @@ class PortfolioRebalancer:
         # Transaction costs (default to 0.001 = 10 bps)
         default_cost = 0.001
         if request.transaction_costs:
-            costs = np.array(
-                [request.transaction_costs.get(a, default_cost) for a in all_assets]
-            )
+            costs = np.array([request.transaction_costs.get(a, default_cost) for a in all_assets])
         else:
             costs = np.full(n, default_cost)
 
@@ -306,9 +304,7 @@ class PortfolioRebalancer:
         # Total turnover constraint
         A_turnover = np.zeros((1, 2 * n))
         A_turnover[0, n:] = 0.5  # Each t_i counts half (buy + sell = full turnover)
-        constraints_list.append(
-            LinearConstraint(A_turnover, 0.0, self._constraints.max_turnover)
-        )
+        constraints_list.append(LinearConstraint(A_turnover, 0.0, self._constraints.max_turnover))
 
         # Solve
         result = minimize(
@@ -404,10 +400,7 @@ def compute_minimum_variance_trades(
 
     # Compute variance change from full rebalance
     # Var(w + delta) - Var(w) = delta^T Sigma delta + 2 * w^T Sigma delta
-    full_var_change = (
-        delta @ covariance_matrix @ delta +
-        2 * w_current @ covariance_matrix @ delta
-    )
+    full_var_change = delta @ covariance_matrix @ delta + 2 * w_current @ covariance_matrix @ delta
 
     if abs(full_var_change) <= risk_budget:
         # Full rebalance is within budget

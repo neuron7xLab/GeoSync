@@ -233,14 +233,8 @@ class PolicyEngine:
                 all_reasons.append("allow_without_explicit_reasons")
 
         # Compute average confidence
-        confidences = [
-            r.confidence
-            for _, r in module_results
-            if r.confidence is not None
-        ]
-        avg_confidence = (
-            sum(confidences) / len(confidences) if confidences else None
-        )
+        confidences = [r.confidence for _, r in module_results if r.confidence is not None]
+        avg_confidence = sum(confidences) / len(confidences) if confidences else None
 
         # Build final result
         final_result = PolicyResult(

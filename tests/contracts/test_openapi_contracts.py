@@ -8,9 +8,7 @@ import pytest
 
 os.environ.setdefault("GEOSYNC_OAUTH2_ISSUER", "https://issuer.geosync.test")
 os.environ.setdefault("GEOSYNC_OAUTH2_AUDIENCE", "geosync-api")
-os.environ.setdefault(
-    "GEOSYNC_OAUTH2_JWKS_URI", "https://issuer.geosync.test/jwks"
-)
+os.environ.setdefault("GEOSYNC_OAUTH2_JWKS_URI", "https://issuer.geosync.test/jwks")
 os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "import-audit-secret")
 os.environ.setdefault("GEOSYNC_RBAC_AUDIT_SECRET", "import-rbac-secret")
 

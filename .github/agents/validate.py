@@ -82,9 +82,7 @@ def validate_schema(schema_file: Path) -> tuple[bool, list[str]]:
     return len(errors) == 0, errors
 
 
-def validate_documentation(
-    doc_file: Path, required_sections: list[str]
-) -> tuple[bool, list[str]]:
+def validate_documentation(doc_file: Path, required_sections: list[str]) -> tuple[bool, list[str]]:
     """Validate that documentation contains required sections."""
     errors = []
 

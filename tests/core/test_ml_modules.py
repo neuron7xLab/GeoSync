@@ -59,9 +59,7 @@ class TestFeatureEngineeringDAG:
                 dependencies=("a",),
             )
         )
-        dag.register(
-            FeatureNode(name="a", compute=lambda c: (order.append("a"), {})[1])
-        )
+        dag.register(FeatureNode(name="a", compute=lambda c: (order.append("a"), {})[1]))
         dag.run(PipelineContext(training_frame=None))
         assert order == ["a", "b"]
 
@@ -195,9 +193,7 @@ class TestQuantization:
         assert result.quantized.dtype == np.float16
 
     def test_fallback_on_degenerate(self):
-        q = UniformAffineQuantizer(
-            QuantizationConfig(target_dtype="int8", allow_fallback=True)
-        )
+        q = UniformAffineQuantizer(QuantizationConfig(target_dtype="int8", allow_fallback=True))
         arr = np.zeros(10, dtype=np.float32)
         result = q.quantize(arr)
         assert result.fallback_used is True
@@ -215,9 +211,7 @@ class TestQuantization:
             q.calibrate(np.array([], dtype=np.float32))
 
     def test_no_fallback_raises(self):
-        q = UniformAffineQuantizer(
-            QuantizationConfig(target_dtype="int8", allow_fallback=False)
-        )
+        q = UniformAffineQuantizer(QuantizationConfig(target_dtype="int8", allow_fallback=False))
         with pytest.raises(RuntimeError):
             q.quantize(np.zeros(10, dtype=np.float32))
 

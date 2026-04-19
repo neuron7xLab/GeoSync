@@ -21,11 +21,13 @@ def engine() -> GraphDiffusionEngine:
 @pytest.fixture
 def simple_adjacency():
     """3-node path graph: 0—1—2."""
-    return np.array([
-        [0.0, 1.0, 0.0],
-        [1.0, 0.0, 1.0],
-        [0.0, 1.0, 0.0],
-    ])
+    return np.array(
+        [
+            [0.0, 1.0, 0.0],
+            [1.0, 0.0, 1.0],
+            [0.0, 1.0, 0.0],
+        ]
+    )
 
 
 class TestDiffusionUniformForZeroCurvature:

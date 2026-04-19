@@ -211,9 +211,7 @@ class ReplayPipeline:
 
         # Load directly from file
         script_dir = Path(__file__).parent.parent.parent
-        canonical_path = (
-            script_dir / "src" / "geosync" / "sdk" / "mlsdm" / "core" / "canonical.py"
-        )
+        canonical_path = script_dir / "src" / "geosync" / "sdk" / "mlsdm" / "core" / "canonical.py"
         if canonical_path.exists():
             ReplayPipeline._canonical_module = _load_module_directly(
                 "mlsdm_core_canonical", str(canonical_path)
@@ -239,13 +237,7 @@ class ReplayPipeline:
         # Load directly from file
         script_dir = Path(__file__).parent.parent.parent
         result_path = (
-            script_dir
-            / "src"
-            / "geosync"
-            / "sdk"
-            / "mlsdm"
-            / "core"
-            / "pipeline_result.py"
+            script_dir / "src" / "geosync" / "sdk" / "mlsdm" / "core" / "pipeline_result.py"
         )
         if result_path.exists():
             ReplayPipeline._pipeline_result_module = _load_module_directly(
@@ -297,9 +289,7 @@ class ReplayPipeline:
         if decision == Decision.BLOCK:
             output_text = "[BLOCKED]"
         elif decision == Decision.REDACT:
-            output_text = self._redact_output(
-                self.llm.generate(case.input_text)
-            )
+            output_text = self._redact_output(self.llm.generate(case.input_text))
         else:
             output_text = self.llm.generate(case.input_text)
 
@@ -314,9 +304,7 @@ class ReplayPipeline:
 
         return result.to_dict()
 
-    def _apply_policy(
-        self, text: str
-    ) -> tuple[Any, list[str], list[str]]:
+    def _apply_policy(self, text: str) -> tuple[Any, list[str], list[str]]:
         """Apply policy checks to input.
 
         Args:
@@ -464,17 +452,14 @@ def run_replay(
         try:
             output = pipeline.process(case)
             actual_decision = output["decision"]
-            actual_output_hash = hashlib.sha256(
-                output["output_text"].encode()
-            ).hexdigest()
+            actual_output_hash = hashlib.sha256(output["output_text"].encode()).hexdigest()
             cache_key = output["cache_key"]
             trace_id = output["trace_id"]
 
             # Check decision match
             if actual_decision != case.expected_decision:
                 errors.append(
-                    f"Decision mismatch: expected {case.expected_decision}, "
-                    f"got {actual_decision}"
+                    f"Decision mismatch: expected {case.expected_decision}, got {actual_decision}"
                 )
 
             # Check output hash if expected
@@ -524,9 +509,9 @@ def run_replay(
         results=results,
         summary={
             "pass_rate": passed / len(cases) if cases else 0.0,
-            "avg_duration_ms": sum(r.duration_ms for r in results) / len(results)
-            if results
-            else 0.0,
+            "avg_duration_ms": (
+                sum(r.duration_ms for r in results) / len(results) if results else 0.0
+            ),
         },
     )
 
@@ -603,9 +588,7 @@ def main() -> int:
     Returns:
         Exit code (0 for success, 1 for failures).
     """
-    parser = argparse.ArgumentParser(
-        description="Run offline replay tests for MLSDM pipeline"
-    )
+    parser = argparse.ArgumentParser(description="Run offline replay tests for MLSDM pipeline")
     parser.add_argument(
         "--fixtures-dir",
         type=Path,

@@ -58,11 +58,7 @@ def evaluate_threshold(points: list[Point], threshold: float) -> tuple[float, in
 
     lead_times: list[int] = []
     for transition in transitions:
-        candidates = [
-            p.step
-            for p in points
-            if p.step < transition and p.lyapunov >= threshold
-        ]
+        candidates = [p.step for p in points if p.step < transition and p.lyapunov >= threshold]
         if not candidates:
             continue
         lead_times.append(transition - max(candidates))
@@ -95,9 +91,7 @@ def main() -> None:
             best_coverage = covered
         threshold += args.step_size
 
-    print(
-        f"best_threshold={best_threshold:.3f} coverage={best_coverage} score={best_score:.3f}"
-    )
+    print(f"best_threshold={best_threshold:.3f} coverage={best_coverage} score={best_score:.3f}")
 
 
 if __name__ == "__main__":

@@ -21,9 +21,7 @@ __all__ = [
 class DatabasePoolConfig(BaseModel):
     """Connection pool tuning knobs shared by writer and reader engines."""
 
-    size: PositiveInt = Field(
-        10, description="Base amount of connections to keep open."
-    )
+    size: PositiveInt = Field(10, description="Base amount of connections to keep open.")
     max_overflow: int = Field(
         10,
         ge=0,

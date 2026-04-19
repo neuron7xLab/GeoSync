@@ -46,9 +46,7 @@ def test_proof_turns_sat_when_recovery_guard_removed() -> None:
 
 def test_cache_coherence_proof_unsat_for_both_invariants(tmp_path: Path) -> None:
     cert_path = tmp_path / "coherence_cert.txt"
-    result = run_cache_coherence_proof(
-        output_path=cert_path, steps=3, max_action_age_ms=250
-    )
+    result = run_cache_coherence_proof(output_path=cert_path, steps=3, max_action_age_ms=250)
 
     assert result.cache_db_alignment_safe
     assert result.action_freshness_safe
@@ -81,7 +79,9 @@ def test_hlc_monotonicity_proof_unsat(tmp_path: Path) -> None:
     F_prev=st.floats(min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False),
     eps=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
 )
-def test_tolerance_budget_is_clamped_and_monotone(baseline: float, F_prev: float, eps: float) -> None:
+def test_tolerance_budget_is_clamped_and_monotone(
+    baseline: float, F_prev: float, eps: float
+) -> None:
     cfg = ProofConfig()
     tol = tolerance_budget(baseline, F_prev, eps, cfg)
     assert tol >= cfg.tolerance_floor

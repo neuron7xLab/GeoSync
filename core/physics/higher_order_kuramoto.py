@@ -258,9 +258,7 @@ class HigherOrderKuramotoEngine:
     def _order_parameter(theta: NDArray[np.float64]) -> float:
         """R = |mean(exp(iθ))|."""
         z = np.exp(1j * theta).mean()
-        return float(
-            np.clip(np.abs(z), 0.0, 1.0)
-        )  # INV-K1: R = |mean(exp(iθ))| ∈ [0,1]
+        return float(np.clip(np.abs(z), 0.0, 1.0))  # INV-K1: R = |mean(exp(iθ))| ∈ [0,1]
 
     def run_from_prices(
         self,
@@ -275,9 +273,7 @@ class HigherOrderKuramotoEngine:
 
         with np.errstate(invalid="ignore"):
             corr = np.corrcoef(tail, rowvar=False)
-        corr_arr: NDArray[np.float64] = np.asarray(
-            np.nan_to_num(corr, nan=0.0), dtype=np.float64
-        )
+        corr_arr: NDArray[np.float64] = np.asarray(np.nan_to_num(corr, nan=0.0), dtype=np.float64)
 
         return self.run(corr_arr, seed=seed)
 

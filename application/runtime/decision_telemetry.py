@@ -262,7 +262,11 @@ def get_controller_health(
         last_update = getattr(ctrl, "last_update", None)
         if flags & set(_SEROTONIN_PROXY_FLAGS):
             notes.append("proxy_inputs_active")
-        metrics_snapshot = telemetry.get(_SEROTONIN_KEY, {}).get("metrics", {}) if isinstance(telemetry, Mapping) else {}
+        metrics_snapshot = (
+            telemetry.get(_SEROTONIN_KEY, {}).get("metrics", {})
+            if isinstance(telemetry, Mapping)
+            else {}
+        )
         if metrics_snapshot and metrics_snapshot.get("cooldown_s", 0) and not cooldown:
             cooldown = metrics_snapshot.get("cooldown_s")
         status = "degraded" if notes else "ok"
@@ -289,7 +293,12 @@ def get_controller_health(
         if flags & set(_THERMO_PROXY_FLAGS):
             notes.append("proxy_inputs_active")
         status = "degraded" if notes else "ok"
-        return {"status": status, "free_energy": _safe(free_energy), "budget": _safe(budget), "notes": notes}
+        return {
+            "status": status,
+            "free_energy": _safe(free_energy),
+            "budget": _safe(budget),
+            "notes": notes,
+        }
 
     serotonin_state = _status_for_serotonin(controllers.get(_SEROTONIN_KEY))
     thermo_state = _status_for_thermo(controllers.get(_THERMO_KEY))

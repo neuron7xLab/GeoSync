@@ -72,9 +72,7 @@ class NeuroGeoSyncStrategy:
             dtype=float,
         )
 
-    def _hidden_states(
-        self, state_vec: np.ndarray, prev: np.ndarray | None
-    ) -> np.ndarray:
+    def _hidden_states(self, state_vec: np.ndarray, prev: np.ndarray | None) -> np.ndarray:
         # Build a tiny set of contextual vectors for motivation coherence/fractal metrics
         if prev is None:
             delta = np.zeros_like(state_vec)
@@ -92,9 +90,7 @@ class NeuroGeoSyncStrategy:
         self, sig: CompositeSignal, state_vec: np.ndarray, hidden: np.ndarray
     ) -> float:
         # Base decision from composite
-        base = (
-            float(np.sign(sig.entry_signal)) if np.isfinite(sig.entry_signal) else 0.0
-        )
+        base = float(np.sign(sig.entry_signal)) if np.isfinite(sig.entry_signal) else 0.0
 
         # Confidence gate
         if sig.confidence < self.cfg.min_confidence:
@@ -120,11 +116,7 @@ class NeuroGeoSyncStrategy:
         if abs(m) < self.cfg.motivation_threshold:
             return 0.0
 
-        return (
-            float(np.sign(base * (1.0 + self.cfg.motivation_scale * m)))
-            if base != 0.0
-            else 0.0
-        )
+        return float(np.sign(base * (1.0 + self.cfg.motivation_scale * m))) if base != 0.0 else 0.0
 
     def generate_signals(
         self, bars: pd.DataFrame, price_col: str = "close", volume_col: str = "volume"
@@ -138,9 +130,7 @@ class NeuroGeoSyncStrategy:
         if not isinstance(bars.index, pd.DatetimeIndex):
             raise ValueError("bars must have a DatetimeIndex")
         if price_col not in bars or volume_col not in bars:
-            raise ValueError(
-                f"bars must include '{price_col}' and '{volume_col}' columns"
-            )
+            raise ValueError(f"bars must include '{price_col}' and '{volume_col}' columns")
 
         actions: list[float] = []
         self._prev_state_vec = None

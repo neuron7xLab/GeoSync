@@ -37,9 +37,7 @@ def _volumes(T=50, N=4, seed=8):
 
 
 class TestGeoSyncPhysicsEngine:
-    pytestmark = pytest.mark.skipif(
-        GeoSyncPhysicsEngine is None, reason="engine not importable"
-    )
+    pytestmark = pytest.mark.skipif(GeoSyncPhysicsEngine is None, reason="engine not importable")
 
     def test_default_init(self):
         e = GeoSyncPhysicsEngine()

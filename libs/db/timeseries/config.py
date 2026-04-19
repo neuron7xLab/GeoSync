@@ -191,9 +191,7 @@ class RollupMaterialization:
             raise ValueError("At least one aggregation must be provided")
         if self.materialized_view_name is not None:
             if not self.materialized_view_name:
-                raise ValueError(
-                    "materialized_view_name must be a non-empty string when provided"
-                )
+                raise ValueError("materialized_view_name must be a non-empty string when provided")
             _ensure_identifier(
                 self.materialized_view_name,
                 label="materialized view name",

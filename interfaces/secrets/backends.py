@@ -106,9 +106,7 @@ class HashicorpVaultBackendConfig:
         token_file = os.getenv(f"{prefix}TOKEN_FILE")
         namespace = os.getenv(f"{prefix}NAMESPACE")
         verify = _parse_verify_setting(os.getenv(f"{prefix}VERIFY"))
-        timeout_value = os.getenv(f"{prefix}TIMEOUT") or os.getenv(
-            f"{prefix}HTTP_TIMEOUT"
-        )
+        timeout_value = os.getenv(f"{prefix}TIMEOUT") or os.getenv(f"{prefix}HTTP_TIMEOUT")
         default_mount = os.getenv(f"{prefix}MOUNT")
         kv_version_value = os.getenv(f"{prefix}KV_VERSION")
         audit_actor = os.getenv(f"{prefix}AUDIT_ACTOR") or "live-runner"
@@ -185,9 +183,7 @@ def _normalise_vault_path(path: str, default_mount: str | None) -> tuple[str, st
     if key_segments and key_segments[0] in {"data", "metadata"}:
         key_segments = key_segments[1:]
     if not key_segments:
-        raise SecretBackendError(
-            f"Vault secret path '{path}' does not include a key segment"
-        )
+        raise SecretBackendError(f"Vault secret path '{path}' does not include a key segment")
     secret_path = "/".join(key_segments)
     return mount, secret_path
 
@@ -195,9 +191,7 @@ def _normalise_vault_path(path: str, default_mount: str | None) -> tuple[str, st
 def build_hashicorp_vault_resolver(
     config: HashicorpVaultBackendConfig,
     *,
-    client_factory: (
-        Callable[[HashicorpVaultBackendConfig], _VaultKeyValueClient] | None
-    ) = None,
+    client_factory: Callable[[HashicorpVaultBackendConfig], _VaultKeyValueClient] | None = None,
     context_provider: Callable[[], Mapping[str, str]] | None = None,
 ) -> VaultResolver:
     """Return a resolver that fetches secrets from HashiCorp Vault."""
@@ -225,13 +219,9 @@ def build_hashicorp_vault_resolver(
                     ip_address=ip_address,
                 )
             except VaultRequestError as exc:
-                raise SecretBackendError(
-                    f"Failed to read Vault secret at '{path}': {exc}"
-                ) from exc
+                raise SecretBackendError(f"Failed to read Vault secret at '{path}': {exc}") from exc
         if not isinstance(payload, Mapping):
-            raise SecretBackendError(
-                f"Vault secret at '{path}' did not return a mapping"
-            )
+            raise SecretBackendError(f"Vault secret at '{path}' did not return a mapping")
         return {str(key): str(value) for key, value in payload.items()}
 
     return _resolver
@@ -317,12 +307,8 @@ def build_aws_secrets_manager_resolver(
             if config.endpoint_url:
                 client_kwargs["endpoint_url"] = config.endpoint_url
             client = session.client("secretsmanager", **client_kwargs)
-        except (
-            BotoCoreError
-        ) as exc:  # pragma: no cover - relies on boto3 runtime errors
-            raise SecretBackendError(
-                f"Failed to create AWS Secrets Manager client: {exc}"
-            ) from exc
+        except BotoCoreError as exc:  # pragma: no cover - relies on boto3 runtime errors
+            raise SecretBackendError(f"Failed to create AWS Secrets Manager client: {exc}") from exc
 
     lock = threading.RLock()
 

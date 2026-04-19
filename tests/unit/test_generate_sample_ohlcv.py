@@ -168,9 +168,7 @@ class TestGenerateMultiAssetData:
 
     def test_multi_asset_generation(self):
         """Test multi-asset data generation."""
-        df = generate_multi_asset_data(
-            symbols=["BTC", "ETH"], days=1, timeframe="1h", seed=42
-        )
+        df = generate_multi_asset_data(symbols=["BTC", "ETH"], days=1, timeframe="1h", seed=42)
 
         # Should have data for both symbols
         assert set(df["symbol"].unique()) == {"BTC", "ETH"}

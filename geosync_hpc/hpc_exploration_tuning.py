@@ -218,10 +218,7 @@ def analyze_results(results: Dict[str, List[ExplorationResult]]):
         f"  Best Diversity: τ={best_diversity.temperature:.1f} "
         f"(diversity={best_diversity.action_diversity:.2%})"
     )
-    print(
-        f"  Best Sharpe: τ={best_sharpe.temperature:.1f} "
-        f"(Sharpe={best_sharpe.sharpe_proxy:.2f})"
-    )
+    print(f"  Best Sharpe: τ={best_sharpe.temperature:.1f} (Sharpe={best_sharpe.sharpe_proxy:.2f})")
     print(
         f"  Best Stability: τ={best_stability.temperature:.1f} "
         f"(PWPE std={best_stability.std_pwpe:.2f})"

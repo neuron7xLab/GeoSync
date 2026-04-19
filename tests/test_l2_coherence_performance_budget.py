@@ -35,9 +35,9 @@ def _load_manifest() -> dict[str, Any]:
 def test_full_cycle_duration_within_budget() -> None:
     manifest = _load_manifest()
     dur = float(manifest["cycle_duration_sec"])
-    assert dur <= _FULL_CYCLE_BUDGET_SEC, (
-        f"full cycle took {dur:.1f}s, budget {_FULL_CYCLE_BUDGET_SEC}s"
-    )
+    assert (
+        dur <= _FULL_CYCLE_BUDGET_SEC
+    ), f"full cycle took {dur:.1f}s, budget {_FULL_CYCLE_BUDGET_SEC}s"
 
 
 def test_every_stage_within_per_stage_budget() -> None:

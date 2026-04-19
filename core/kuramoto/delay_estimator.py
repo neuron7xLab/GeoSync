@@ -107,9 +107,7 @@ class DelayEstimationConfig:
         if self.n_passes < 1:
             raise ValueError("n_passes must be ≥ 1")
         if self.method not in self._ALLOWED_METHODS:
-            raise ValueError(
-                f"method must be one of {self._ALLOWED_METHODS}; got {self.method!r}"
-            )
+            raise ValueError(f"method must be one of {self._ALLOWED_METHODS}; got {self.method!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -117,9 +115,7 @@ class DelayEstimationConfig:
 # ---------------------------------------------------------------------------
 
 
-def xcorr_delay(
-    x: np.ndarray, y: np.ndarray, max_lag: int, n_candidates: int = 1
-) -> list[int]:
+def xcorr_delay(x: np.ndarray, y: np.ndarray, max_lag: int, n_candidates: int = 1) -> list[int]:
     """Return the top ``n_candidates`` integer lags by |cross-correlation|.
 
     Positive lag means ``y`` leads ``x`` (i.e. ``x`` lags behind ``y``)
@@ -128,9 +124,7 @@ def xcorr_delay(
     the output is invariant under constant offsets.
     """
     if x.shape != y.shape or x.ndim != 1:
-        raise ValueError(
-            f"x and y must be 1-D with matching shapes; got {x.shape}, {y.shape}"
-        )
+        raise ValueError(f"x and y must be 1-D with matching shapes; got {x.shape}, {y.shape}")
     x_c = x - x.mean()
     y_c = y - y.mean()
     corr = correlate(x_c, y_c, mode="full")
@@ -209,9 +203,7 @@ def profile_likelihood_delay(
 # ---------------------------------------------------------------------------
 
 
-def _single_edge_xcorr(
-    theta: np.ndarray, i: int, j: int, cfg: DelayEstimationConfig
-) -> int:
+def _single_edge_xcorr(theta: np.ndarray, i: int, j: int, cfg: DelayEstimationConfig) -> int:
     """``sin(θ)`` cross-correlation delay for a single edge."""
     sin_i = np.sin(theta[:, i])
     sin_j = np.sin(theta[:, j])
@@ -286,9 +278,7 @@ def _rss(X: np.ndarray, y: np.ndarray) -> float:
     return float(np.dot(residual, residual))
 
 
-def _xcorr_warm_start(
-    theta: np.ndarray, i: int, active_js: list[int], max_lag: int
-) -> np.ndarray:
+def _xcorr_warm_start(theta: np.ndarray, i: int, active_js: list[int], max_lag: int) -> np.ndarray:
     """Initialise lags via single-edge ``sin(θ)`` cross-correlation.
 
     This gives the joint coordinate descent a good starting point, which
@@ -435,9 +425,7 @@ class DelayEstimator:
                 active_js = [j for j in range(N) if j != i and active[i, j]]
                 if not active_js:
                     continue
-                row_taus = joint_row_delay(
-                    theta, i, active_js, cfg.max_lag, n_passes=cfg.n_passes
-                )
+                row_taus = joint_row_delay(theta, i, active_js, cfg.max_lag, n_passes=cfg.n_passes)
                 for col, j in enumerate(active_js):
                     tau[i, j] = int(row_taus[col])
             method_name = "profile_likelihood"

@@ -46,7 +46,9 @@ def test_serotonin_inhibits_gate_throttle_or_deny():
     )
     signals = {"risk_score": 5.0, "drawdown": -0.2, "free_energy": 1.5}
 
-    result = init_result.gate_pipeline(init_result.runtime_settings, init_result.controllers, signals)
+    result = init_result.gate_pipeline(
+        init_result.runtime_settings, init_result.controllers, signals
+    )
 
     assert result.gate.decision in (Decision.THROTTLE, Decision.DENY)
     assert "SEROTONIN_INHIBIT" in result.gate.reasons
@@ -61,7 +63,9 @@ def test_thermo_budget_exceeded_throttles():
     )
     signals = {"free_energy": 1.0, "risk_score": 0.1, "drawdown": -0.01}
 
-    result = init_result.gate_pipeline(init_result.runtime_settings, init_result.controllers, signals)
+    result = init_result.gate_pipeline(
+        init_result.runtime_settings, init_result.controllers, signals
+    )
 
     assert result.gate.decision in (Decision.THROTTLE, Decision.DENY)
     assert any(reason == "THERMO_BUDGET_EXCEEDED" for reason in result.gate.reasons)

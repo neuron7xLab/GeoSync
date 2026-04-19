@@ -83,11 +83,14 @@ class SparseKuramotoEngine:
         self._adj_csr = self._resolve_sparse_adj(config, sparse_adjacency)
 
         nnz = self._adj_csr.nnz
-        density = nnz / (config.N ** 2) if config.N > 0 else 0
+        density = nnz / (config.N**2) if config.N > 0 else 0
         _logger.info(
             "SparseKuramotoEngine: N=%d, edges=%d, density=%.6f, memory=%.1f MB",
-            config.N, nnz, density,
-            (self._adj_csr.data.nbytes + self._adj_csr.indices.nbytes + self._adj_csr.indptr.nbytes) / 1e6,
+            config.N,
+            nnz,
+            density,
+            (self._adj_csr.data.nbytes + self._adj_csr.indices.nbytes + self._adj_csr.indptr.nbytes)
+            / 1e6,
         )
 
     def run(self) -> KuramotoResult:
@@ -115,7 +118,11 @@ class SparseKuramotoEngine:
     @staticmethod
     def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray, NDArray]:
         rng = np.random.default_rng(cfg.seed)
-        omega = cfg.omega.astype(np.float64, copy=False) if cfg.omega is not None else rng.standard_normal(cfg.N)
+        omega = (
+            cfg.omega.astype(np.float64, copy=False)
+            if cfg.omega is not None
+            else rng.standard_normal(cfg.N)
+        )
         theta0 = (
             cfg.theta0.astype(np.float64, copy=False)
             if cfg.theta0 is not None

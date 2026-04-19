@@ -233,9 +233,7 @@ class _OperationStats:
     replays: int = 0
     last_error: str | None = None
 
-    def record(
-        self, duration: float, success: bool, *, error: Exception | None
-    ) -> None:
+    def record(self, duration: float, success: bool, *, error: Exception | None) -> None:
         self.latencies.append(duration)
         if success:
             self.successes += 1

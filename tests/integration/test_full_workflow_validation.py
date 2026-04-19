@@ -103,9 +103,7 @@ class TestIndicatorPipeline:
 class TestCompositeEngine:
     """Test the GeoSync composite analysis engine."""
 
-    def test_analyze_market_returns_valid_snapshot(
-        self, synthetic_market_data: pd.DataFrame
-    ):
+    def test_analyze_market_returns_valid_snapshot(self, synthetic_market_data: pd.DataFrame):
         """Composite engine should return valid market snapshot."""
         engine = GeoSyncCompositeEngine()
         snapshot = engine.analyze_market(synthetic_market_data)
@@ -248,9 +246,7 @@ class TestDataPersistence:
 class TestEndToEndWorkflow:
     """Test complete end-to-end trading workflow."""
 
-    def test_full_analysis_to_backtest_pipeline(
-        self, synthetic_market_data: pd.DataFrame
-    ):
+    def test_full_analysis_to_backtest_pipeline(self, synthetic_market_data: pd.DataFrame):
         """Full workflow from analysis through backtesting."""
         # Step 1: Analyze market regime
         engine = GeoSyncCompositeEngine()

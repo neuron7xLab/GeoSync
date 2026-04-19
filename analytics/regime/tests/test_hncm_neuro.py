@@ -6,9 +6,7 @@ from analytics.regime.src.consensus.hncm_neuro import AgentVote, NeuroConsensusA
 
 
 class DummyEWS:
-    def __init__(
-        self, probability: float | None = None, ews_score: float | None = None
-    ):
+    def __init__(self, probability: float | None = None, ews_score: float | None = None):
         self.probability = probability
         self.ews_score = ews_score
 
@@ -37,7 +35,5 @@ def test_energy_budget_limits_delta():
     # large change requested via rewards
     adapter.state.s["reward_ema"] = {"a": 1.0, "b": -1.0}
     new_w = adapter.update_feedback(realized=1.0, agent_scores={"a": 1.0, "b": -1.0})
-    delta = sum(
-        abs(new_w[k] - adapter.state.s["last_weights"].get(k, 0.0)) for k in new_w
-    )
+    delta = sum(abs(new_w[k] - adapter.state.s["last_weights"].get(k, 0.0)) for k in new_w)
     assert delta <= 0.1000001

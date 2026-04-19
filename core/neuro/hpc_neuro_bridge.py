@@ -50,9 +50,7 @@ class HPCNeuroBridge:
 
     # ── Public API ────────────────────────────────────────────────────
 
-    def process_hpc_output(
-        self, pwpe: float, action: int, state_entropy: float
-    ) -> dict:
+    def process_hpc_output(self, pwpe: float, action: int, state_entropy: float) -> dict:
         """Process HPC Active Inference output into neuro bus signals.
 
         Parameters
@@ -119,9 +117,7 @@ class HPCNeuroBridge:
             "gaba_inhibition": snapshot.gaba_inhibition,
         }
 
-    def compute_adaptive_threshold(
-        self, pwpe_history: List[float], quantile: float = 0.9
-    ) -> float:
+    def compute_adaptive_threshold(self, pwpe_history: List[float], quantile: float = 0.9) -> float:
         """Compute adaptive PWPE threshold for metastable transition detection.
 
         Parameters

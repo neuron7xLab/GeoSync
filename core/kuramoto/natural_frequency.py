@@ -114,6 +114,4 @@ def estimate_natural_frequencies(
         if ts.shape[0] < 2:
             raise ValueError("Need at least two timestamps to infer dt")
         dt = float(ts[1] - ts[0])
-    return estimate_natural_frequencies_from_theta(
-        phases.theta, dt=dt, method=method, trim=trim
-    )
+    return estimate_natural_frequencies_from_theta(phases.theta, dt=dt, method=method, trim=trim)

@@ -346,9 +346,7 @@ class SystemIntegrator:
                 blocking = validation.get_blocking_issues()
                 if blocking:
                     error_msgs = [issue.message for issue in blocking]
-                    raise RuntimeError(
-                        f"Architecture validation failed: {'; '.join(error_msgs)}"
-                    )
+                    raise RuntimeError(f"Architecture validation failed: {'; '.join(error_msgs)}")
 
             # Initialize all components
             initialized = self._arch_integrator.initialize_all()
@@ -445,12 +443,10 @@ class SystemIntegrator:
         total_components = len(health_map)
         healthy_components = sum(1 for h in health_map.values() if h.healthy)
         degraded_components = sum(
-            1 for h in health_map.values()
-            if h.status == ComponentStatus.DEGRADED
+            1 for h in health_map.values() if h.status == ComponentStatus.DEGRADED
         )
         failed_components = sum(
-            1 for h in health_map.values()
-            if h.status == ComponentStatus.FAILED
+            1 for h in health_map.values() if h.status == ComponentStatus.FAILED
         )
 
         # Calculate overall health score (0-100)
@@ -672,9 +668,7 @@ class SystemIntegratorBuilder:
         self._system = system
         return self
 
-    def with_orchestrator(
-        self, orchestrator: GeoSyncOrchestrator
-    ) -> SystemIntegratorBuilder:
+    def with_orchestrator(self, orchestrator: GeoSyncOrchestrator) -> SystemIntegratorBuilder:
         """Set the GeoSync orchestrator.
 
         Args:
@@ -686,9 +680,7 @@ class SystemIntegratorBuilder:
         self._orchestrator = orchestrator
         return self
 
-    def with_service_registry(
-        self, registry: ServiceRegistry
-    ) -> SystemIntegratorBuilder:
+    def with_service_registry(self, registry: ServiceRegistry) -> SystemIntegratorBuilder:
         """Set the service registry.
 
         Args:
@@ -700,9 +692,7 @@ class SystemIntegratorBuilder:
         self._service_registry = registry
         return self
 
-    def with_agent_coordinator(
-        self, coordinator: AgentCoordinator
-    ) -> SystemIntegratorBuilder:
+    def with_agent_coordinator(self, coordinator: AgentCoordinator) -> SystemIntegratorBuilder:
         """Set the agent coordinator.
 
         Args:
@@ -759,11 +749,13 @@ class SystemIntegratorBuilder:
         Returns:
             Self for method chaining
         """
-        self._custom_components.append({
-            "name": name,
-            "instance": instance,
-            **kwargs,
-        })
+        self._custom_components.append(
+            {
+                "name": name,
+                "instance": instance,
+                **kwargs,
+            }
+        )
         return self
 
     def build(self) -> SystemIntegrator:

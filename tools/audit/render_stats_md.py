@@ -34,12 +34,8 @@ def main() -> None:
     serotonin_data = _load_stats(generated_dir / "serotonin_stats.json")
     thermo_data = _load_stats(generated_dir / "thermo_stats.json")
 
-    _render_markdown(
-        "Serotonin Test Stats", serotonin_data, generated_dir / "serotonin_stats.md"
-    )
-    _render_markdown(
-        "Thermo Test Stats", thermo_data, generated_dir / "thermo_stats.md"
-    )
+    _render_markdown("Serotonin Test Stats", serotonin_data, generated_dir / "serotonin_stats.md")
+    _render_markdown("Thermo Test Stats", thermo_data, generated_dir / "thermo_stats.md")
 
 
 if __name__ == "__main__":

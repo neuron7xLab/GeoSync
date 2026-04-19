@@ -64,9 +64,7 @@ class _LocalOllivierRicciCurvatureLite:
     """
 
     def __init__(self, alpha: float = 0.5) -> None:
-        self.alpha = float(
-            np.clip(alpha, 0.0, 1.0)
-        )  # INV-RC1: Ricci flow step-size alpha ∈ [0,1]
+        self.alpha = float(np.clip(alpha, 0.0, 1.0))  # INV-RC1: Ricci flow step-size alpha ∈ [0,1]
 
     def _lazy_rw(self, graph: Any, node: int) -> dict[int, float]:
         neighbors = list(graph.neighbors(node))
@@ -84,9 +82,7 @@ class _LocalOllivierRicciCurvatureLite:
         mu_x = self._lazy_rw(graph, x)
         mu_y = self._lazy_rw(graph, y)
         keys = set(mu_x) | set(mu_y)
-        total_variation = 0.5 * sum(
-            abs(mu_x.get(k, 0.0) - mu_y.get(k, 0.0)) for k in keys
-        )
+        total_variation = 0.5 * sum(abs(mu_x.get(k, 0.0) - mu_y.get(k, 0.0)) for k in keys)
         d_xy = 1.0 if y in graph.neighbors(x) else float("inf")
         if d_xy <= 0.0 or not np.isfinite(d_xy):
             return 0.0
@@ -142,9 +138,7 @@ class _SimpleUndirectedGraph:
     def nodes(self) -> tuple[int, ...]:
         return tuple(self._adj.keys())
 
-    def shortest_path_length(
-        self, source: int, target: int, weight: str | None = None
-    ) -> float:
+    def shortest_path_length(self, source: int, target: int, weight: str | None = None) -> float:
         if source == target:
             return 0.0
         use_weight = weight is not None
@@ -210,9 +204,7 @@ class KuramotoRicciFlowResult(KuramotoResult):
         ):
             raise ValueError("coupling_matrix_history has invalid matrix shape.")
         if self.mean_curvature_trajectory.shape != (n_updates,):
-            raise ValueError(
-                "mean_curvature_trajectory length must match curvature updates."
-            )
+            raise ValueError("mean_curvature_trajectory length must match curvature updates.")
         for arr_name, arr in (
             ("herding_index", self.herding_index),
             ("fragility_index", self.fragility_index),
@@ -254,9 +246,7 @@ class KuramotoRicciFlowEngine:
         self.graph_threshold = float(
             np.clip(graph_threshold, 0.0, 1.0)
         )  # bounds: graph threshold normalized to [0,1]
-        self.damping = float(
-            np.clip(damping, 0.0, 1.0)
-        )  # bounds: damping coefficient ∈ [0,1]
+        self.damping = float(np.clip(damping, 0.0, 1.0))  # bounds: damping coefficient ∈ [0,1]
         self.coupling_history_enabled = bool(coupling_history_enabled)
         if OllivierRicciCurvatureLite is not None:
             self._lite_ricci: Any = OllivierRicciCurvatureLite(alpha=0.5)
@@ -310,9 +300,7 @@ class KuramotoRicciFlowEngine:
 
                 mk = float(np.mean(kappa_vec)) if kappa_vec.size else 0.0
                 mean_kappa.append(mk)
-                herding.append(
-                    float(np.mean(kappa_vec > 0.0)) if kappa_vec.size else 0.0
-                )
+                herding.append(float(np.mean(kappa_vec > 0.0)) if kappa_vec.size else 0.0)
                 fragility.append(float(-mk))
                 if len(mean_kappa) < 2:
                     momentum.append(0.0)
@@ -320,16 +308,12 @@ class KuramotoRicciFlowEngine:
                     delta_steps = max(
                         1, timestamps[-1] - timestamps[-2]
                     )  # bounds: minimum 1 step between timestamps
-                    momentum.append(
-                        float((mean_kappa[-1] - mean_kappa[-2]) / delta_steps)
-                    )
+                    momentum.append(float((mean_kappa[-1] - mean_kappa[-2]) / delta_steps))
                 entropy.append(self._coupling_entropy(coupling))
 
             theta = _rk4_step(theta, self._omega, coupling, dt)
             if not np.isfinite(theta).all():
-                raise FloatingPointError(
-                    f"Non-finite phase values encountered at step={k + 1}."
-                )
+                raise FloatingPointError(f"Non-finite phase values encountered at step={k + 1}.")
             phases[k + 1] = theta
             order[k + 1] = _order_parameter(theta)
             if not (0.0 <= order[k + 1] <= 1.0):
@@ -385,9 +369,7 @@ class KuramotoRicciFlowEngine:
             self._validate_coupling(coupling)
             return coupling, curvatures
         except Exception as exc:
-            _logger.warning(
-                "Ricci computation failed; falling back to baseline coupling: %s", exc
-            )
+            _logger.warning("Ricci computation failed; falling back to baseline coupling: %s", exc)
             fallback = self._baseline_coupling(n)
             self._validate_coupling(fallback)
             return fallback, np.zeros(0, dtype=np.float64)
@@ -404,17 +386,14 @@ class KuramotoRicciFlowEngine:
         if method == "forman":
             lite = self._to_light_graph(graph)
             return {
-                edge: float(self._lite_ricci.compute_edge_curvature(lite, edge))
-                for edge in edges
+                edge: float(self._lite_ricci.compute_edge_curvature(lite, edge)) for edge in edges
             }
 
         try:
             from ..indicators.ricci import RicciCurvature  # type: ignore[attr-defined]
 
             rc = RicciCurvature()
-            return {
-                edge: float(rc.compute_edge_curvature(graph, edge)) for edge in edges
-            }
+            return {edge: float(rc.compute_edge_curvature(graph, edge)) for edge in edges}
         except Exception:
             try:
                 from ..indicators.ricci import (
@@ -425,9 +404,7 @@ class KuramotoRicciFlowEngine:
                 distributions = compute_node_distributions(graph)
                 return {
                     edge: float(
-                        ricci_curvature_edge(
-                            graph, edge[0], edge[1], distributions=distributions
-                        )
+                        ricci_curvature_edge(graph, edge[0], edge[1], distributions=distributions)
                     )
                     for edge in edges
                 }
@@ -476,9 +453,7 @@ class KuramotoRicciFlowEngine:
     def _phi(self, kappa: float) -> float:
         return float(self.sigma * (1.0 + np.tanh(self.alpha * kappa)) / 2.0)
 
-    def _correlation_matrix(
-        self, buffer: list[NDArray[np.float64]], n: int
-    ) -> NDArray[np.float64]:
+    def _correlation_matrix(self, buffer: list[NDArray[np.float64]], n: int) -> NDArray[np.float64]:
         if len(buffer) < 2:
             return np.eye(n, dtype=np.float64)
         mat = np.vstack(buffer)
@@ -514,9 +489,7 @@ class KuramotoRicciFlowEngine:
         if not np.isfinite(coupling).all():
             raise ValueError("K_ij invariant violated: non-finite coupling values.")
         if not np.allclose(coupling, coupling.T, atol=1e-12):
-            raise ValueError(
-                "K_ij invariant violated: coupling matrix must be symmetric."
-            )
+            raise ValueError("K_ij invariant violated: coupling matrix must be symmetric.")
         if not np.allclose(np.diag(coupling), 0.0, atol=1e-12):
             raise ValueError("K_ii invariant violated: self-coupling must remain zero.")
         if np.any(coupling < -1e-12) or np.any(coupling > self._K_max + 1e-12):
@@ -535,9 +508,7 @@ class KuramotoRicciFlowEngine:
         return float(-np.sum(p * np.log(p + 1e-16)))
 
     @staticmethod
-    def _detect_transitions(
-        mean_kappa: list[float], timestamps: list[int]
-    ) -> list[int]:
+    def _detect_transitions(mean_kappa: list[float], timestamps: list[int]) -> list[int]:
         if len(mean_kappa) < 3:
             return []
         arr = np.asarray(mean_kappa, dtype=np.float64)
@@ -545,11 +516,7 @@ class KuramotoRicciFlowEngine:
         signs = np.sign(diff)
         out: list[int] = []
         for idx in range(1, len(signs)):
-            if (
-                signs[idx] != 0.0
-                and signs[idx - 1] != 0.0
-                and signs[idx] != signs[idx - 1]
-            ):
+            if signs[idx] != 0.0 and signs[idx - 1] != 0.0 and signs[idx] != signs[idx - 1]:
                 out.append(int(timestamps[idx]))
         return out
 

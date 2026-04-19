@@ -57,9 +57,7 @@ def load_points_from_rows(rows: list[dict[str, object]]):
 def test_transition_steps_empty_single_multiple() -> None:
     assert transition_steps([]) == []
     assert (
-        transition_steps(
-            load_points_from_rows([{"step": 1, "lyapunov": 0.1, "regime_label": "n"}])
-        )
+        transition_steps(load_points_from_rows([{"step": 1, "lyapunov": 0.1, "regime_label": "n"}]))
         == []
     )
     pts = load_points_from_rows(

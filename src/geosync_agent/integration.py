@@ -12,10 +12,10 @@ import numpy as np
 from domain import Signal, SignalAction
 from geosync.sdk import (
     ExecutionResult,
+    GeoSyncSDK,
     MarketState,
     RiskCheckResult,
     SuggestedOrder,
-    GeoSyncSDK,
 )
 from geosync.sdk.engine import _SymbolContext
 
@@ -82,13 +82,9 @@ class AgentTradeOrchestrator:
 
         target_position = observation.position
         if action is AgentAction.BUY:
-            target_position = min(
-                observation.position + cfg.position_increment, cfg.max_position
-            )
+            target_position = min(observation.position + cfg.position_increment, cfg.max_position)
         elif action is AgentAction.SELL:
-            target_position = max(
-                observation.position - cfg.position_increment, -cfg.max_position
-            )
+            target_position = max(observation.position - cfg.position_increment, -cfg.max_position)
 
         quantity = abs(target_position - observation.position)
         if quantity <= cfg.flatten_threshold and not cfg.execute_hold:
@@ -145,8 +141,6 @@ class AgentTradeOrchestrator:
             delta = abs(float(price_series.iloc[-1] - price_series.iloc[-2]))
         else:
             delta = 0.0
-        scaled = fraction + cfg.confidence_scale * delta / max(
-            float(price_series.iloc[-1]), 1e-9
-        )
+        scaled = fraction + cfg.confidence_scale * delta / max(float(price_series.iloc[-1]), 1e-9)
         confidence = max(cfg.min_confidence, min(1.0, scaled))
         return float(confidence)

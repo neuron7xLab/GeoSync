@@ -5,11 +5,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from domain import Order, OrderSide
+from domain import Order
 from execution.compliance import (
     ComplianceMonitor,
     ComplianceReport,
@@ -19,33 +19,45 @@ from execution.compliance import (
     RiskDecision,
 )
 from execution.metrics import RiskMetrics
-from execution.normalization import NormalizationError, SymbolNormalizer, SymbolSpecification
-
+from execution.normalization import SymbolNormalizer, SymbolSpecification
 
 # ── ComplianceReport ────────────────────────────────────────────────
+
 
 class TestComplianceReport:
     def test_is_clean_no_violations(self):
         r = ComplianceReport(
-            symbol="BTC", requested_quantity=1.0, requested_price=100.0,
-            normalized_quantity=1.0, normalized_price=100.0,
-            violations=(), blocked=False,
+            symbol="BTC",
+            requested_quantity=1.0,
+            requested_price=100.0,
+            normalized_quantity=1.0,
+            normalized_price=100.0,
+            violations=(),
+            blocked=False,
         )
         assert r.is_clean() is True
 
     def test_is_clean_with_violations(self):
         r = ComplianceReport(
-            symbol="BTC", requested_quantity=1.0, requested_price=100.0,
-            normalized_quantity=1.0, normalized_price=100.0,
-            violations=("too small",), blocked=True,
+            symbol="BTC",
+            requested_quantity=1.0,
+            requested_price=100.0,
+            normalized_quantity=1.0,
+            normalized_price=100.0,
+            violations=("too small",),
+            blocked=True,
         )
         assert r.is_clean() is False
 
     def test_to_dict(self):
         r = ComplianceReport(
-            symbol="BTC", requested_quantity=1.0, requested_price=None,
-            normalized_quantity=1.0, normalized_price=None,
-            violations=("oops",), blocked=False,
+            symbol="BTC",
+            requested_quantity=1.0,
+            requested_price=None,
+            normalized_quantity=1.0,
+            normalized_price=None,
+            violations=("oops",),
+            blocked=False,
         )
         d = r.to_dict()
         assert d["symbol"] == "BTC"
@@ -55,12 +67,17 @@ class TestComplianceReport:
 
 # ── ComplianceViolation ─────────────────────────────────────────────
 
+
 class TestComplianceViolation:
     def test_has_report(self):
         report = ComplianceReport(
-            symbol="X", requested_quantity=0.5, requested_price=10.0,
-            normalized_quantity=0.5, normalized_price=10.0,
-            violations=("bad",), blocked=True,
+            symbol="X",
+            requested_quantity=0.5,
+            requested_price=10.0,
+            normalized_quantity=0.5,
+            normalized_price=10.0,
+            violations=("bad",),
+            blocked=True,
         )
         exc = ComplianceViolation("fail", report=report)
         assert exc.report is report
@@ -68,13 +85,17 @@ class TestComplianceViolation:
 
 # ── ComplianceMonitor ───────────────────────────────────────────────
 
+
 class TestComplianceMonitor:
     @pytest.fixture()
     def normalizer(self):
         specs = {
             "BTCUSDT": SymbolSpecification(
-                symbol="BTCUSDT", min_qty=0.001, min_notional=10.0,
-                step_size=0.001, tick_size=0.01,
+                symbol="BTCUSDT",
+                min_qty=0.001,
+                min_notional=10.0,
+                step_size=0.001,
+                tick_size=0.01,
             ),
         }
         return SymbolNormalizer(specifications=specs)
@@ -108,10 +129,14 @@ class TestComplianceMonitor:
 
 # ── RiskDecision ────────────────────────────────────────────────────
 
+
 class TestRiskDecision:
     def test_to_dict(self):
         rd = RiskDecision(
-            allowed=True, reasons=(), breached_limits={}, next_reset_at=None,
+            allowed=True,
+            reasons=(),
+            breached_limits={},
+            next_reset_at=None,
         )
         d = rd.to_dict()
         assert d["allowed"] is True
@@ -120,7 +145,9 @@ class TestRiskDecision:
     def test_to_dict_with_reset(self):
         ts = datetime(2025, 6, 1, tzinfo=timezone.utc)
         rd = RiskDecision(
-            allowed=False, reasons=("kill",), breached_limits={"kill": 1.0},
+            allowed=False,
+            reasons=("kill",),
+            breached_limits={"kill": 1.0},
             next_reset_at=ts,
         )
         d = rd.to_dict()
@@ -128,6 +155,7 @@ class TestRiskDecision:
 
 
 # ── RiskConfig ──────────────────────────────────────────────────────
+
 
 class TestRiskConfig:
     def test_defaults(self):
@@ -141,6 +169,7 @@ class TestRiskConfig:
 
 
 # ── RiskCompliance ──────────────────────────────────────────────────
+
 
 def _make_order(symbol="BTC", side="buy", quantity=1.0, price=100.0):
     return Order(symbol=symbol, side=side, quantity=quantity, price=price)
@@ -333,7 +362,12 @@ class TestRiskCompliance:
         cfg = RiskConfig()
         rc = RiskCompliance(cfg, metrics=mock_metrics)
         order = _make_order()
-        portfolio = {"positions": "not_a_dict", "gross_exposure": 0, "equity": 10000, "peak_equity": 10000}
+        portfolio = {
+            "positions": "not_a_dict",
+            "gross_exposure": 0,
+            "equity": 10000,
+            "peak_equity": 10000,
+        }
         decision = rc.check_order(order, {"price": 100}, portfolio)
         assert isinstance(decision, RiskDecision)
 

@@ -71,9 +71,7 @@ class LinkActivator:
         self.enable_rdma = enable_rdma
         self.enable_crdt = enable_crdt
         self._activation_history: List[Dict[str, Any]] = []
-        logger.debug(
-            "LinkActivator initialised with RDMA=%s, CRDT=%s", enable_rdma, enable_crdt
-        )
+        logger.debug("LinkActivator initialised with RDMA=%s, CRDT=%s", enable_rdma, enable_crdt)
 
     # Public API ---------------------------------------------------------
     def apply(
@@ -140,9 +138,7 @@ class LinkActivator:
     def get_total_cost(self) -> float:
         """Return the cumulative protocol cost."""
 
-        return sum(
-            entry["cost"] for entry in self._activation_history if entry["success"]
-        )
+        return sum(entry["cost"] for entry in self._activation_history if entry["success"])
 
     # Internal helpers ---------------------------------------------------
     def _record_history(
@@ -244,9 +240,7 @@ class LinkActivator:
             metadata=metadata,
         )
 
-    def _gossip(
-        self, src: str, dst: str, *, priority: str = "normal"
-    ) -> ActivationResult:
+    def _gossip(self, src: str, dst: str, *, priority: str = "normal") -> ActivationResult:
         metadata = {"channel": f"gossip::{src}->{dst}", "priority": priority}
         return ActivationResult(
             success=True,

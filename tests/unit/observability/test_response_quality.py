@@ -23,9 +23,7 @@ from observability.response_quality import (
 UTC = timezone.utc
 
 
-def _sample(
-    registry: CollectorRegistry, name: str, labels: Mapping[str, str]
-) -> float | None:
+def _sample(registry: CollectorRegistry, name: str, labels: Mapping[str, str]) -> float | None:
     return registry.get_sample_value(name, labels)
 
 
@@ -49,9 +47,7 @@ def metrics_registry(monkeypatch: pytest.MonkeyPatch) -> CollectorRegistry:
     registry = CollectorRegistry()
     collector = metrics_module.MetricsCollector(registry)
     monkeypatch.setattr(metrics_module, "_collector", collector, raising=False)
-    monkeypatch.setattr(
-        response_quality_module, "get_metrics_collector", lambda: collector
-    )
+    monkeypatch.setattr(response_quality_module, "get_metrics_collector", lambda: collector)
     yield registry
     monkeypatch.setattr(metrics_module, "_collector", None, raising=False)
 
@@ -263,9 +259,7 @@ def test_active_sampling_complaints_and_improvements(
         now=clock.now,
     )
 
-    orchestrator.record_live_response(
-        {"feature": 1}, {"prediction": 0.2, "confidence": 0.8}
-    )
+    orchestrator.record_live_response({"feature": 1}, {"prediction": 0.2, "confidence": 0.8})
     sample = orchestrator.record_live_response(
         {"feature": 2},
         {"prediction": 0.1, "confidence": 0.05},
@@ -275,9 +269,7 @@ def test_active_sampling_complaints_and_improvements(
     assert next_sample is not None and next_sample.identifier == sample.identifier
 
     orchestrator.register_complaint_route("bias", lambda category, metadata: "ethics")
-    complaint = orchestrator.route_complaint(
-        "bias", "potential drift", metadata={"ticket": 42}
-    )
+    complaint = orchestrator.route_complaint("bias", "potential drift", metadata={"ticket": 42})
     assert complaint.route == "ethics"
     assert complaint in orchestrator.complaints()
 

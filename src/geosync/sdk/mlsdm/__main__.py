@@ -116,9 +116,7 @@ def main() -> None:
             if not path:
                 logger.error("Override path must be non-empty: %s", override)
                 raise SystemExit(1)
-            cli_overrides[path] = ConfigLoader._parse_override_value(
-                raw_value, source=path
-            )
+            cli_overrides[path] = ConfigLoader._parse_override_value(raw_value, source=path)
 
         config = ConfigLoader.load_config_with_defaults(
             args.config, env_prefix="MLSDM__", overrides=cli_overrides

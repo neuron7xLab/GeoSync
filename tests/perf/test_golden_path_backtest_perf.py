@@ -14,6 +14,7 @@ import pytest
 try:
     from geosync.perf.golden_path import run_golden_path_bench
     from geosync.perf.io import format_summary, write_perf_report
+
     PERF_MODULE_AVAILABLE = True
 except ImportError:
     PERF_MODULE_AVAILABLE = False
@@ -85,7 +86,8 @@ def test_write_perf_report_creates_json(tmp_path):
 
     # Verify file can be read back
     import json
-    with open(output_path, 'r') as f:
+
+    with open(output_path, "r") as f:
         loaded = json.load(f)
 
     # Verify structure preserved

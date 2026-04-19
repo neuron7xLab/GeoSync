@@ -2,9 +2,7 @@
 # SPDX-License-Identifier: MIT
 """State persistence coverage for the serotonin controller."""
 
-import json
 from pathlib import Path
-from typing import Any
 
 import pytest
 import yaml

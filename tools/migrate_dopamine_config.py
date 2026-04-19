@@ -8,6 +8,7 @@ Usage:
 
 If output is not specified, prints to stdout.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -82,9 +83,7 @@ def migrate_config(config: Dict[str, Any]) -> Dict[str, Any]:
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Migrate dopamine configuration to latest version"
-    )
+    parser = argparse.ArgumentParser(description="Migrate dopamine configuration to latest version")
     parser.add_argument(
         "input",
         type=Path,

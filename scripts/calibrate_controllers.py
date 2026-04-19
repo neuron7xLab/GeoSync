@@ -17,13 +17,13 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import os
 import yaml
 
 # Import calibration_constants module
@@ -31,6 +31,8 @@ import yaml
 # For development, use: pip install -e .
 try:
     os.environ.setdefault("GEOSYNC_LIGHT_DATA_IMPORT", "1")
+    from core.data.dataset_contracts import contract_by_path
+    from core.data.fingerprint import record_run_fingerprint
     from core.neuro.calibration_constants import (
         DopamineParameterRanges,
         NAKParameterRanges,
@@ -39,11 +41,11 @@ try:
         SerotoninParameterRanges,
         validate_parameter_invariants,
     )
-    from core.data.dataset_contracts import contract_by_path
-    from core.data.fingerprint import record_run_fingerprint
 except ImportError:
     # Fallback for when running directly from scripts directory
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from core.data.dataset_contracts import contract_by_path  # noqa: F401
+    from core.data.fingerprint import record_run_fingerprint  # noqa: F401
     from core.neuro.calibration_constants import (  # noqa: F401
         DopamineParameterRanges,
         NAKParameterRanges,
@@ -52,8 +54,6 @@ except ImportError:
         SerotoninParameterRanges,
         validate_parameter_invariants,
     )
-    from core.data.dataset_contracts import contract_by_path  # noqa: F401
-    from core.data.fingerprint import record_run_fingerprint  # noqa: F401
 
 # Configure logging
 logging.basicConfig(
@@ -292,7 +292,7 @@ def list_profiles() -> None:
     for profile_name, profile_data in CALIBRATION_PROFILES.items():
         print(f"{profile_name.upper()}")
         print(f"  Description: {profile_data['description']}")
-        controllers = [k for k in profile_data if k != 'description']
+        controllers = [k for k in profile_data if k != "description"]
         print(f"  Controllers: {', '.join(controllers)}")
         print()
 
@@ -309,8 +309,16 @@ def validate_nak_config(nak: dict[str, Any], config_path: Path) -> tuple[bool, l
     """
     # Check for required parameters
     required_params = [
-        "EI_low", "EI_high", "EI_crit", "vol_amber", "vol_red",
-        "dd_amber", "dd_red", "delta_r_limit", "r_min", "r_max"
+        "EI_low",
+        "EI_high",
+        "EI_crit",
+        "vol_amber",
+        "vol_red",
+        "dd_amber",
+        "dd_red",
+        "delta_r_limit",
+        "r_min",
+        "r_max",
     ]
     missing = [p for p in required_params if p not in nak]
     if missing:
@@ -383,7 +391,9 @@ def validate_serotonin_config(config: dict[str, Any], config_path: Path) -> tupl
     return is_valid, errors
 
 
-def validate_risk_engine_config(config: dict[str, Any], config_path: Path) -> tuple[bool, list[str]]:
+def validate_risk_engine_config(
+    config: dict[str, Any], config_path: Path
+) -> tuple[bool, list[str]]:
     """Validate Risk Engine configuration.
 
     Args:
@@ -406,7 +416,9 @@ def validate_risk_engine_config(config: dict[str, Any], config_path: Path) -> tu
     return is_valid, errors
 
 
-def validate_regime_adaptive_config(config: dict[str, Any], config_path: Path) -> tuple[bool, list[str]]:
+def validate_regime_adaptive_config(
+    config: dict[str, Any], config_path: Path
+) -> tuple[bool, list[str]]:
     """Validate Regime Adaptive Guard configuration.
 
     Args:
@@ -455,7 +467,11 @@ def validate_config(config_path: Path) -> bool:
     elif "discount_gamma" in config or "learning_rate_v" in config:
         print(f"\n=== Validating Dopamine Configuration: {config_path} ===\n")
         is_valid, errors = validate_dopamine_config(config, config_path)
-    elif "kill_switch_loss_streak" in config or "max_leverage" in config or "max_daily_loss_percent" in config:
+    elif (
+        "kill_switch_loss_streak" in config
+        or "max_leverage" in config
+        or "max_daily_loss_percent" in config
+    ):
         print(f"\n=== Validating Risk Engine Configuration: {config_path} ===\n")
         is_valid, errors = validate_risk_engine_config(config, config_path)
     elif "calm_threshold" in config and "critical_threshold" in config:
@@ -481,9 +497,7 @@ def validate_config(config_path: Path) -> bool:
 
 
 def apply_calibration_profile(
-    controller: str,
-    profile: str,
-    output_path: Path | None = None
+    controller: str, profile: str, output_path: Path | None = None
 ) -> None:
     """Apply a calibration profile to a controller configuration.
 
@@ -508,7 +522,7 @@ def apply_calibration_profile(
         error_msg = f"Profile '{profile}' does not contain settings for '{controller}'"
         logger.error(error_msg)
         print(f"Error: {error_msg}")
-        available = [k for k in profile_data if k != 'description']
+        available = [k for k in profile_data if k != "description"]
         print(f"Available controllers in '{profile}' profile: {', '.join(available)}")
         sys.exit(1)
 

@@ -36,18 +36,12 @@ class RiskConfig:
         f_max: float | None = None,
     ):
         self.es_limit = (
-            float(os.getenv("TP_ES_LIMIT", "0.03"))
-            if es_limit is None
-            else float(es_limit)
+            float(os.getenv("TP_ES_LIMIT", "0.03")) if es_limit is None else float(es_limit)
         )
         self.var_alpha = (
-            float(os.getenv("TP_VAR_ALPHA", "0.975"))
-            if var_alpha is None
-            else float(var_alpha)
+            float(os.getenv("TP_VAR_ALPHA", "0.975")) if var_alpha is None else float(var_alpha)
         )
-        self.f_max = (
-            float(os.getenv("TP_FMAX", "1.0")) if f_max is None else float(f_max)
-        )
+        self.f_max = float(os.getenv("TP_FMAX", "1.0")) if f_max is None else float(f_max)
 
 
 def var_es(returns: np.ndarray, alpha: float = 0.975) -> tuple[float, float]:

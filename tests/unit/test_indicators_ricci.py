@@ -14,6 +14,7 @@ Tests verify:
 - Optional metadata fields appear only when parameters are enabled
 - Performance optimizations preserve accuracy
 """
+
 from __future__ import annotations
 
 import asyncio

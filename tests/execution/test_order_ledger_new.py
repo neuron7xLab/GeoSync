@@ -66,9 +66,7 @@ class TestCoerce:
         assert _coerce(Custom()) == "Custom()"
 
     def test_nested_mapping(self):
-        result = _coerce(
-            {"outer": {"inner": datetime(2024, 1, 1, tzinfo=timezone.utc)}}
-        )
+        result = _coerce({"outer": {"inner": datetime(2024, 1, 1, tzinfo=timezone.utc)}})
         assert "2024-01-01" in result["outer"]["inner"]
 
 

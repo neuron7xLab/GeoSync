@@ -238,11 +238,7 @@ def _clean_config(config: Mapping[str, Any]) -> dict[str, Any]:
 
     def clean_recursive(obj: Any) -> Any:
         if isinstance(obj, dict):
-            return {
-                k: clean_recursive(v)
-                for k, v in sorted(obj.items())
-                if not is_excluded(k)
-            }
+            return {k: clean_recursive(v) for k, v in sorted(obj.items()) if not is_excluded(k)}
         if isinstance(obj, (list, tuple)):
             return [clean_recursive(item) for item in obj]
         return obj

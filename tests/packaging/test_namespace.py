@@ -32,9 +32,9 @@ class TestCanonicalNamespace:
         geosync = importlib.import_module("geosync")
         geosync_path = Path(geosync.__file__).resolve()
         # Should NOT be under src/geosync
-        assert "src/geosync" not in str(geosync_path), (
-            f"geosync should not resolve to src/geosync, got {geosync_path}"
-        )
+        assert "src/geosync" not in str(
+            geosync_path
+        ), f"geosync should not resolve to src/geosync, got {geosync_path}"
 
     def test_geosync_risk_submodule(self):
         """Verify `geosync.risk` is importable."""
@@ -109,6 +109,6 @@ class TestPackagingIntegrity:
         content = pyproject_path.read_text()
 
         # Check that src is in exclude list
-        assert '"src"' in content or "'src'" in content, (
-            "pyproject.toml should exclude 'src' from packages"
-        )
+        assert (
+            '"src"' in content or "'src'" in content
+        ), "pyproject.toml should exclude 'src' from packages"

@@ -57,9 +57,7 @@ def _tls_from_env() -> PostgresTLSConfig | None:
 def _load_database_settings() -> DatabaseSettings:
     writer_dsn = os.getenv("GEOSYNC_DB_WRITER_DSN")
     if not writer_dsn:
-        raise RuntimeError(
-            "GEOSYNC_DB_WRITER_DSN must be set for Alembic migrations"
-        )
+        raise RuntimeError("GEOSYNC_DB_WRITER_DSN must be set for Alembic migrations")
     ensure_secure_postgres_uri(writer_dsn)
     reader_dsns = _reader_dsns_from_env()
     tls = _tls_from_env()

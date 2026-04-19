@@ -96,9 +96,7 @@ def test_filter_helpers(coordinator: MarketCalendarCoordinator) -> None:
     ]
 
     assert coordinator.filter_timestamps(timestamps, mode="union") == timestamps[:2]
-    assert coordinator.filter_timestamps(timestamps, mode="intersection") == [
-        timestamps[1]
-    ]
+    assert coordinator.filter_timestamps(timestamps, mode="intersection") == [timestamps[1]]
 
     @dataclass
     class Signal:

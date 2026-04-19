@@ -35,19 +35,13 @@ def write_perf_report(results: Dict[str, Any], path: Path) -> None:
     required_keys = ["env", "latency_ms", "throughput", "config"]
     missing_keys = [key for key in required_keys if key not in results]
     if missing_keys:
-        raise ValueError(
-            f"Performance results missing required keys: {missing_keys}"
-        )
+        raise ValueError(f"Performance results missing required keys: {missing_keys}")
 
     # Validate latency_ms structure
     latency_required = ["p50", "p95", "p99", "mean"]
-    latency_missing = [
-        key for key in latency_required if key not in results.get("latency_ms", {})
-    ]
+    latency_missing = [key for key in latency_required if key not in results.get("latency_ms", {})]
     if latency_missing:
-        raise ValueError(
-            f"Latency metrics missing required keys: {latency_missing}"
-        )
+        raise ValueError(f"Latency metrics missing required keys: {latency_missing}")
 
     # Validate throughput structure
     throughput_required = ["bars_per_second"]
@@ -55,16 +49,14 @@ def write_perf_report(results: Dict[str, Any], path: Path) -> None:
         key for key in throughput_required if key not in results.get("throughput", {})
     ]
     if throughput_missing:
-        raise ValueError(
-            f"Throughput metrics missing required keys: {throughput_missing}"
-        )
+        raise ValueError(f"Throughput metrics missing required keys: {throughput_missing}")
 
     # Create parent directory if needed
     path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write JSON with formatting
     try:
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(results, f, indent=2, sort_keys=False)
     except Exception as e:
         raise OSError(f"Failed to write performance report to {path}: {e}")
@@ -93,7 +85,7 @@ def read_perf_report(path: Path) -> Dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Performance report not found: {path}")
 
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         return json.load(f)
 
 

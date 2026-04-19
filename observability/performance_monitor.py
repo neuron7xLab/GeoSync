@@ -138,9 +138,7 @@ class PerformanceMonitor:
                 }
             )
 
-    def get_recent_metrics(
-        self, window_seconds: float = 60.0
-    ) -> List[PerformanceMetrics]:
+    def get_recent_metrics(self, window_seconds: float = 60.0) -> List[PerformanceMetrics]:
         """Get metrics from recent time window.
 
         Args:
@@ -206,17 +204,14 @@ class PerformanceMonitor:
             / self.baseline.p95_latency_ms
             > threshold,
             "throughput_regression": (
-                (self.baseline.avg_throughput - avg_throughput)
-                / self.baseline.avg_throughput
+                (self.baseline.avg_throughput - avg_throughput) / self.baseline.avg_throughput
                 > threshold
                 if avg_throughput > 0
                 else False
             ),
         }
 
-    def get_bottlenecks(
-        self, severity: Optional[str] = None, limit: int = 10
-    ) -> List[Dict]:
+    def get_bottlenecks(self, severity: Optional[str] = None, limit: int = 10) -> List[Dict]:
         """Get detected bottlenecks.
 
         Args:

@@ -828,9 +828,7 @@ class ControllablePrinciple(ArchitecturePrinciple):
         violations: List[PrincipleViolation] = []
 
         # Check kill switch availability
-        if self._kill_switch_enabled and not context.get(
-            "kill_switch_available", False
-        ):
+        if self._kill_switch_enabled and not context.get("kill_switch_available", False):
             violations.append(
                 PrincipleViolation(
                     principle_name=self.name,
@@ -940,9 +938,7 @@ class AutonomousPrinciple(ArchitecturePrinciple):
         violations: List[PrincipleViolation] = []
 
         # Check self-healing capability
-        if self._self_healing_enabled and not context.get(
-            "self_healing_available", False
-        ):
+        if self._self_healing_enabled and not context.get("self_healing_available", False):
             violations.append(
                 PrincipleViolation(
                     principle_name=self.name,
@@ -1045,9 +1041,7 @@ class SystemArchitecture:
         """Get a specific principle by name."""
         return self._principles.get(name)
 
-    def validate_all(
-        self, context: Mapping[str, Any]
-    ) -> Dict[str, List[PrincipleViolation]]:
+    def validate_all(self, context: Mapping[str, Any]) -> Dict[str, List[PrincipleViolation]]:
         """Validate all principles against given context.
 
         Parameters
@@ -1060,10 +1054,7 @@ class SystemArchitecture:
         Dict[str, List[PrincipleViolation]]
             Dictionary mapping principle names to their violations
         """
-        return {
-            name: principle.validate(context)
-            for name, principle in self._principles.items()
-        }
+        return {name: principle.validate(context) for name, principle in self._principles.items()}
 
     def configure_all(self, settings: Mapping[str, Mapping[str, Any]]) -> None:
         """Configure all principles from settings.

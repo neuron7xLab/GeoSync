@@ -59,9 +59,7 @@ def http_endpoint() -> str:
 
 def test_logging_setup_applies_tags(monkeypatch) -> None:
     payloads: list[dict[str, object]] = []
-    setup = LoggingSetup(
-        tags={"service": "test", "environment": "qa"}, sink=payloads.append
-    )
+    setup = LoggingSetup(tags={"service": "test", "environment": "qa"}, sink=payloads.append)
     setup.apply()
 
     logger = logging.getLogger("observability.test")
@@ -101,10 +99,7 @@ def test_metrics_setup_reports_missing_tags(tmp_path: Path) -> None:
     report = setup.validate()
     assert report.has_issues
     assert any("missing required tags" in issue.message for issue in report.issues)
-    assert any(
-        "lacks a configured cardinality limit" in issue.message
-        for issue in report.issues
-    )
+    assert any("lacks a configured cardinality limit" in issue.message for issue in report.issues)
 
 
 def test_alert_noise_guard_flags_short_hold(tmp_path: Path) -> None:

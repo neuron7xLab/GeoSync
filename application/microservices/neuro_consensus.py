@@ -20,9 +20,7 @@ def ews_to_vote(agent_name: str, ews_result: object) -> AgentVote:
         score = max(-1.0, min(1.0, 2.0 * float(ews_result.probability) - 1.0))
     elif hasattr(ews_result, "ews_score"):
         score = max(-1.0, min(1.0, float(ews_result.ews_score)))
-    return AgentVote(
-        agent=agent_name, score=score, confidence=1.0, rationale="EWS meta-signal"
-    )
+    return AgentVote(agent=agent_name, score=score, confidence=1.0, rationale="EWS meta-signal")
 
 
 def build_signal_with_neuro_consensus(
@@ -47,8 +45,7 @@ def build_signal_with_neuro_consensus(
     metadata = {
         "weights": dict(decision.weights),
         "votes": [
-            {"agent": v.agent, "score": v.score, "confidence": v.confidence}
-            for v in decision.votes
+            {"agent": v.agent, "score": v.score, "confidence": v.confidence} for v in decision.votes
         ],
         "neuro": {"tau": adapter.tau},
     }

@@ -65,8 +65,7 @@ def load_adjacency_matrix(path: Path) -> NDArray[np.float64]:
         matrix = np.load(path, allow_pickle=False)
     else:
         raise ValueError(
-            f"Unsupported adjacency file extension '{suffix}'. "
-            "Supported: .json, .csv, .txt, .npy"
+            f"Unsupported adjacency file extension '{suffix}'. Supported: .json, .csv, .txt, .npy"
         )
 
     if matrix.ndim != 2:
@@ -128,7 +127,11 @@ def export_payload(
     phases: NDArray[np.float64],
 ) -> dict[str, Any]:
     """Build deterministic JSON-safe payload for stdout and file export."""
-    if not np.isfinite(order_parameter).all() or not np.isfinite(time).all() or not np.isfinite(phases).all():
+    if (
+        not np.isfinite(order_parameter).all()
+        or not np.isfinite(time).all()
+        or not np.isfinite(phases).all()
+    ):
         raise ValueError("Export payload requires finite trajectories.")
     expected_steps = len(time)
     if len(order_parameter) != expected_steps:

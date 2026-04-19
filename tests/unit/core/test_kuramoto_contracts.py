@@ -119,9 +119,7 @@ class TestPhaseMatrix:
         with pytest.raises(ValueError):
             phase_matrix.theta[0, 0] = 0.0
 
-    def test_frozen_attribute_reassignment_blocked(
-        self, phase_matrix: PhaseMatrix
-    ) -> None:
+    def test_frozen_attribute_reassignment_blocked(self, phase_matrix: PhaseMatrix) -> None:
         with pytest.raises(dataclasses.FrozenInstanceError):
             phase_matrix.extraction_method = "ssq_cwt"  # type: ignore[misc]
 

@@ -28,7 +28,6 @@ from research.microstructure.l2_cli import (
     load_substrate,
     setup_logging,
 )
-
 from research.microstructure.transfer_entropy import (
     DEFAULT_LAG_ROWS,
     DEFAULT_N_BINS,

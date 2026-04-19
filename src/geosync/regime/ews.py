@@ -37,9 +37,7 @@ class EWSConfig:
     ):
         # Load from environment or use defaults
         self.dr_threshold = (
-            float(os.getenv("TP_EWS_DR_THRESHOLD", "0.1"))
-            if dr_threshold is None
-            else dr_threshold
+            float(os.getenv("TP_EWS_DR_THRESHOLD", "0.1")) if dr_threshold is None else dr_threshold
         )
         self.topo_threshold = (
             float(os.getenv("TP_EWS_TOPO_THRESHOLD", "0.15"))
@@ -177,9 +175,7 @@ class EWSAggregator:
 
         # Otherwise, CAUTION (default state)
         # Compute confidence based on distance from boundaries
-        caution_confidence = self._compute_caution_confidence(
-            R, dR, kappa_min, topo_score, te_pass
-        )
+        caution_confidence = self._compute_caution_confidence(R, dR, kappa_min, topo_score, te_pass)
 
         return "CAUTION", caution_confidence
 
@@ -212,6 +208,8 @@ class EWSAggregator:
             confidence += 0.1
 
         # Clip to valid range
-        confidence = float(np.clip(confidence, 0.3, 0.9))  # bounds: EWS score clamped to [0,1] probability range
+        confidence = float(
+            np.clip(confidence, 0.3, 0.9)
+        )  # bounds: EWS score clamped to [0,1] probability range
 
         return confidence

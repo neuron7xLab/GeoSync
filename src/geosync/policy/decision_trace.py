@@ -115,17 +115,13 @@ class TraceScrubber:
         r"(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}"
     )
     SSN_PATTERN: Final[re.Pattern[str]] = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
-    CARD_PATTERN: Final[re.Pattern[str]] = re.compile(
-        r"\b(?:\d{4}[-\s]?){3}\d{4}\b"
-    )
+    CARD_PATTERN: Final[re.Pattern[str]] = re.compile(r"\b(?:\d{4}[-\s]?){3}\d{4}\b")
     TOKEN_PATTERN: Final[re.Pattern[str]] = re.compile(
         r"\b(?:sk_live_|sk_test_|pk_live_|pk_test_|Bearer\s+|"
         r"api[_-]?key[=:]\s*|token[=:]\s*)[A-Za-z0-9_-]{10,}\b",
         re.IGNORECASE,
     )
-    API_KEY_PATTERN: Final[re.Pattern[str]] = re.compile(
-        r"\b[A-Za-z0-9]{32,64}\b"
-    )
+    API_KEY_PATTERN: Final[re.Pattern[str]] = re.compile(r"\b[A-Za-z0-9]{32,64}\b")
 
     REPLACEMENTS: Final[dict[str, str]] = {
         "email": "[EMAIL_REDACTED]",
@@ -171,9 +167,7 @@ class TraceScrubber:
             elif isinstance(value, dict):
                 result[key] = self.scrub_dict(value)
             elif isinstance(value, list):
-                result[key] = [
-                    self.scrub(v) if isinstance(v, str) else v for v in value
-                ]
+                result[key] = [self.scrub(v) if isinstance(v, str) else v for v in value]
             else:
                 result[key] = value
         return result

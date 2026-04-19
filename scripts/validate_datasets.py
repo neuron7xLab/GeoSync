@@ -23,8 +23,11 @@ if str(ROOT) not in sys.path:
 
 os.environ.setdefault("GEOSYNC_LIGHT_DATA_IMPORT", "1")
 
-from core.data.dataset_contracts import DatasetContract, iter_contracts
-from core.data.fingerprint import compute_dataset_fingerprint, write_fingerprint_artifact
+from core.data.dataset_contracts import DatasetContract, iter_contracts  # noqa: E402
+from core.data.fingerprint import (  # noqa: E402
+    compute_dataset_fingerprint,
+    write_fingerprint_artifact,
+)
 
 REQUIRED_FIELDS = {
     "dataset_id",

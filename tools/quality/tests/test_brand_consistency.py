@@ -126,9 +126,7 @@ class TestScanRepo:
         # before read)
         assert not any(v.path == "huge.txt" for v in report.violations)
 
-    def test_substring_matching_catches_compound_snake_case(
-        self, fake_repo: Path
-    ) -> None:
+    def test_substring_matching_catches_compound_snake_case(self, fake_repo: Path) -> None:
         """``trade_pulse`` must match inside ``legacy_trade_pulse_runner``.
 
         Word-boundary regex would miss compound snake_case because
@@ -191,9 +189,7 @@ class TestAllowlist:
             encoding="utf-8",
         )
         entries = load_allowlist(path)
-        assert entries == [
-            AllowlistEntry(path="X.md", token="TradePulse", reason="historical")
-        ]
+        assert entries == [AllowlistEntry(path="X.md", token="TradePulse", reason="historical")]
 
     def test_rejects_missing_fields(self, tmp_path: Path) -> None:
         path = tmp_path / "bad.toml"
@@ -310,15 +306,11 @@ class TestRepoClean:
         else:  # pragma: no cover — test layout changed
             pytest.skip("repo root not found (tests run outside git worktree)")
 
-        allowlist = load_allowlist(
-            repo_root / "configs" / "quality" / "brand_allowlist.toml"
-        )
+        allowlist = load_allowlist(repo_root / "configs" / "quality" / "brand_allowlist.toml")
         report = scan_repo(repo_root, allowlist=allowlist)
         if not report.clean:
             details = "\n".join(
                 f"  {v.path}:{v.line}:{v.column} [{v.kind}] {v.token!r} — {v.context}"
                 for v in report.violations[:20]
             )
-            pytest.fail(
-                f"Repo has {len(report.violations)} legacy brand token(s):\n{details}"
-            )
+            pytest.fail(f"Repo has {len(report.violations)} legacy brand token(s):\n{details}")

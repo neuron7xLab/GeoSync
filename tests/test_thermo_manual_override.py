@@ -42,12 +42,8 @@ def test_manual_override_resets_circuit_breaker(caplog):
     assert time.time() - controller.override_time < 5
     assert controller.controller_state == CrisisMode.NORMAL
 
-    override_records = [
-        r for r in caplog.records if getattr(r, "manual_override", False)
-    ]
-    assert (
-        override_records
-    ), "manual override should be logged with manual_override flag"
+    override_records = [r for r in caplog.records if getattr(r, "manual_override", False)]
+    assert override_records, "manual override should be logged with manual_override flag"
     assert override_records[0].code == "B1"
     assert "manually overridden" in override_records[0].message
 

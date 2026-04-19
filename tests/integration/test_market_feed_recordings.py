@@ -48,9 +48,7 @@ class TestMarketFeedRecordingsValidity:
 
     def test_stable_market_characteristics(self):
         """Test stable market recording has expected characteristics."""
-        recording = MarketFeedRecording.read_jsonl(
-            FIXTURES_DIR / "stable_btcusd_100ticks.jsonl"
-        )
+        recording = MarketFeedRecording.read_jsonl(FIXTURES_DIR / "stable_btcusd_100ticks.jsonl")
 
         assert len(recording) == 100
 
@@ -67,17 +65,14 @@ class TestMarketFeedRecordingsValidity:
 
     def test_volatile_market_characteristics(self):
         """Test volatile market recording has higher volatility."""
-        recording = MarketFeedRecording.read_jsonl(
-            FIXTURES_DIR / "volatile_btcusd_150ticks.jsonl"
-        )
+        recording = MarketFeedRecording.read_jsonl(FIXTURES_DIR / "volatile_btcusd_150ticks.jsonl")
 
         assert len(recording) == 150
 
         # Calculate price changes
         prices = [float(r.last) for r in recording.records]
         price_changes = [
-            abs(prices[i] - prices[i - 1]) / prices[i - 1]
-            for i in range(1, len(prices))
+            abs(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))
         ]
 
         avg_change = sum(price_changes) / len(price_changes)
@@ -87,9 +82,7 @@ class TestMarketFeedRecordingsValidity:
 
     def test_flash_crash_event_detected(self):
         """Test flash crash recording contains detectable crash event."""
-        recording = MarketFeedRecording.read_jsonl(
-            FIXTURES_DIR / "flash_crash_5pct_mid.jsonl"
-        )
+        recording = MarketFeedRecording.read_jsonl(FIXTURES_DIR / "flash_crash_5pct_mid.jsonl")
 
         assert len(recording) == 100
 
@@ -122,9 +115,7 @@ class TestDDMIntegration:
 
     def test_ddm_adapts_to_price_movements(self):
         """Test that DDM parameters adapt to price movements."""
-        recording = MarketFeedRecording.read_jsonl(
-            FIXTURES_DIR / "volatile_btcusd_150ticks.jsonl"
-        )
+        recording = MarketFeedRecording.read_jsonl(FIXTURES_DIR / "volatile_btcusd_150ticks.jsonl")
 
         # Simulate dopamine levels from price movements
         prices = [float(r.last) for r in recording.records]
@@ -195,12 +186,8 @@ class TestRecordingReproducibility:
 
     def test_recordings_are_reproducible(self):
         """Test that recordings can be read multiple times consistently."""
-        recording1 = MarketFeedRecording.read_jsonl(
-            FIXTURES_DIR / "stable_btcusd_100ticks.jsonl"
-        )
-        recording2 = MarketFeedRecording.read_jsonl(
-            FIXTURES_DIR / "stable_btcusd_100ticks.jsonl"
-        )
+        recording1 = MarketFeedRecording.read_jsonl(FIXTURES_DIR / "stable_btcusd_100ticks.jsonl")
+        recording2 = MarketFeedRecording.read_jsonl(FIXTURES_DIR / "stable_btcusd_100ticks.jsonl")
 
         assert len(recording1) == len(recording2)
 
@@ -240,9 +227,7 @@ class TestRecordingTimestamps:
 
     def test_timestamps_are_utc(self):
         """Test that all timestamps are UTC."""
-        recording = MarketFeedRecording.read_jsonl(
-            FIXTURES_DIR / "stable_btcusd_100ticks.jsonl"
-        )
+        recording = MarketFeedRecording.read_jsonl(FIXTURES_DIR / "stable_btcusd_100ticks.jsonl")
 
         for record in recording.records:
             assert record.exchange_ts.tzname() == "UTC"

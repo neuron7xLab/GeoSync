@@ -59,11 +59,7 @@ def _extract_imports(tree: ast.AST, module_name: str) -> set[str]:
             base_module = node.module or ""
             current_parts = module_name.split(".") if module_name else []
             if node.level:
-                prefix = (
-                    current_parts[: -node.level]
-                    if node.level <= len(current_parts)
-                    else []
-                )
+                prefix = current_parts[: -node.level] if node.level <= len(current_parts) else []
             else:
                 prefix = []
             base_parts = base_module.split(".") if base_module else []
@@ -100,9 +96,7 @@ def _extract_dataclasses(tree: ast.AST) -> dict[str, set[str]]:
             if "dataclass" in decorators:
                 fields: set[str] = set()
                 for stmt in node.body:
-                    if isinstance(stmt, ast.AnnAssign) and isinstance(
-                        stmt.target, ast.Name
-                    ):
+                    if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
                         fields.add(stmt.target.id)
                 dataclasses[node.name] = fields
     return dataclasses
@@ -113,16 +107,12 @@ def _extract_typeddicts(tree: ast.AST) -> dict[str, set[str]]:
     for node in tree.body if isinstance(tree, ast.Module) else []:
         if isinstance(node, ast.ClassDef):
             base_names = {
-                getattr(base, "id", None)
-                for base in node.bases
-                if isinstance(base, ast.Name)
+                getattr(base, "id", None) for base in node.bases if isinstance(base, ast.Name)
             }
             if "TypedDict" in base_names:
                 keys: set[str] = set()
                 for stmt in node.body:
-                    if isinstance(stmt, ast.AnnAssign) and isinstance(
-                        stmt.target, ast.Name
-                    ):
+                    if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
                         keys.add(stmt.target.id)
                 definitions[node.name] = keys
     return definitions
@@ -174,8 +164,7 @@ class ArchitectureReport:
                 for conf in self.conflicts
             ],
             "dangling_dependencies": {
-                module: sorted(deps)
-                for module, deps in self.dangling_dependencies.items()
+                module: sorted(deps) for module, deps in self.dangling_dependencies.items()
             },
         }
 
@@ -322,9 +311,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="Optional list of root directories to inspect (defaults to key project packages)",
     )
-    parser.add_argument(
-        "--output", "-o", type=Path, help="Write JSON report to the specified file"
-    )
+    parser.add_argument("--output", "-o", type=Path, help="Write JSON report to the specified file")
     args = parser.parse_args(argv)
 
     report = run_audit(args.paths) if args.paths else ArchitectureAudit().analyze()

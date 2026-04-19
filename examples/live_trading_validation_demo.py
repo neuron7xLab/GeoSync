@@ -181,9 +181,7 @@ class LiveTradingValidator:
             if max_position <= 0:
                 validations.append(("max_position_size", False, "Must be positive"))
             else:
-                validations.append(
-                    ("max_position_size", True, f"Set to {max_position}")
-                )
+                validations.append(("max_position_size", True, f"Set to {max_position}"))
         else:
             validations.append(("max_position_size", False, "Not configured"))
 
@@ -195,9 +193,7 @@ class LiveTradingValidator:
             else:
                 validations.append(("max_daily_loss", True, f"Set to {daily_loss}"))
         else:
-            validations.append(
-                ("max_daily_loss", False, "Not configured (recommended)")
-            )
+            validations.append(("max_daily_loss", False, "Not configured (recommended)"))
 
         # Check kill switch
         kill_switch = risk_config.get("kill_switch_enabled", True)
@@ -342,9 +338,7 @@ def preflight_checks() -> list[ValidationResult]:
     # Check Python version
     import sys
 
-    py_version = (
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-    )
+    py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     if sys.version_info >= (3, 11):
         results.append(
             ValidationResult(

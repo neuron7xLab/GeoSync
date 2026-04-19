@@ -116,7 +116,10 @@ class EarlyStoppingEngine:
                         _logger.info(
                             "Early stopping at step %d/%d: ΔR̄=%.2e < ε=%.2e "
                             "(patience=%d met), saved %.1f%% compute",
-                            converged_step, max_steps, delta, self._epsilon,
+                            converged_step,
+                            max_steps,
+                            delta,
+                            self._epsilon,
                             self._patience,
                             100.0 * (1.0 - converged_step / max_steps),
                         )

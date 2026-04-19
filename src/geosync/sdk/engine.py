@@ -76,9 +76,7 @@ class GeoSyncSDK:
             last_price = float(feature_frame[self._price_column].iloc[-1])
 
         venue_key = self._resolve_venue(market_state.symbol, market_state.venue)
-        self._contexts[market_state.symbol] = _SymbolContext(
-            venue=venue_key, last_price=last_price
-        )
+        self._contexts[market_state.symbol] = _SymbolContext(venue=venue_key, last_price=last_price)
         return signal
 
     def propose_trade(self, signal: Signal) -> SuggestedOrder:
@@ -93,9 +91,7 @@ class GeoSyncSDK:
             raise ValueError("Cannot propose trade for HOLD signals")
 
         try:
-            current_position = float(
-                self._system.risk_manager.current_position(signal.symbol)
-            )
+            current_position = float(self._system.risk_manager.current_position(signal.symbol))
         except (TypeError, ValueError) as exc:  # pragma: no cover - defensive
             raise ValueError(
                 f"Risk manager returned invalid position for symbol {signal.symbol!r}"
@@ -103,9 +99,7 @@ class GeoSyncSDK:
 
         if signal.action is SignalAction.EXIT:
             if isnan(current_position) or isclose(current_position, 0.0, abs_tol=1e-9):
-                raise ValueError(
-                    f"Cannot exit flat position for symbol {signal.symbol!r}"
-                )
+                raise ValueError(f"Cannot exit flat position for symbol {signal.symbol!r}")
             quantity = abs(current_position)
             side = OrderSide.SELL if current_position > 0 else OrderSide.BUY
         elif signal.action is SignalAction.SELL:
@@ -215,15 +209,11 @@ class GeoSyncSDK:
         if state.approved is None:
             result = self.risk_check(order)
             if not result.approved:
-                raise RuntimeError(
-                    "Order failed risk validation and cannot be executed"
-                )
+                raise RuntimeError("Order failed risk validation and cannot be executed")
             state = self._sessions[session_id]
 
         if state.approved is False:
-            raise RuntimeError(
-                "Order was rejected by risk checks and cannot be executed"
-            )
+            raise RuntimeError("Order was rejected by risk checks and cannot be executed")
 
         venue = state.venue or self._config.default_venue
         correlation_id = self._config.correlation_id_factory()
@@ -270,9 +260,7 @@ class GeoSyncSDK:
                 return key
         raise LookupError("Order is not managed by the GeoSync SDK")
 
-    def _record_event(
-        self, session_id: str, event: str, payload: Mapping[str, object]
-    ) -> None:
+    def _record_event(self, session_id: str, event: str, payload: Mapping[str, object]) -> None:
         timestamp = utc_now()
         entry = AuditEvent(
             session_id=session_id,

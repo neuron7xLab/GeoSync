@@ -26,11 +26,11 @@ from .protocol import (
 from .sdk import (
     AuditEvent,
     ExecutionResult,
+    GeoSyncSDK,
     MarketState,
     RiskCheckResult,
     SDKConfig,
     SuggestedOrder,
-    GeoSyncSDK,
 )
 
 __all__ = [

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Mapping
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -21,19 +21,14 @@ import pytest
 # ---------------------------------------------------------------------------
 from domain import Order, OrderSide, OrderStatus, OrderType
 from domain.signals import Signal, SignalAction
-
-# ---------------------------------------------------------------------------
-# Shadow
-# ---------------------------------------------------------------------------
-from execution.shadow import (
-    ShadowArchiveRecord,
-    ShadowDeploymentConfig,
-    ShadowDeploymentOrchestrator,
-    ShadowDecision,
-    ShadowMetrics,
-    SignalDeviation,
-    _action_to_numeric,
+from execution.compliance import ComplianceMonitor, ComplianceReport, ComplianceViolation
+from execution.connectors import TransientOrderError
+from execution.normalization import SymbolNormalizer, SymbolSpecification
+from execution.resilience.circuit_breaker import (
+    ExchangeResilienceProfile,
+    default_resilience_profile,
 )
+from execution.risk import RiskLimits, RiskManager
 
 # ---------------------------------------------------------------------------
 # Router
@@ -46,10 +41,17 @@ from execution.router import (
     ResilientExecutionRouter,
     SlippageModel,
 )
-from execution.connectors import OrderError, TransientOrderError
-from execution.resilience.circuit_breaker import (
-    ExchangeResilienceProfile,
-    default_resilience_profile,
+
+# ---------------------------------------------------------------------------
+# Shadow
+# ---------------------------------------------------------------------------
+from execution.shadow import (
+    ShadowArchiveRecord,
+    ShadowDecision,
+    ShadowDeploymentConfig,
+    ShadowDeploymentOrchestrator,
+    SignalDeviation,
+    _action_to_numeric,
 )
 
 # ---------------------------------------------------------------------------
@@ -61,10 +63,6 @@ from execution.workflows import (
     RiskComplianceWorkflow,
     WorkflowAssessment,
 )
-from execution.compliance import ComplianceMonitor, ComplianceReport, ComplianceViolation
-from execution.risk import LimitViolation, OrderRateExceeded, RiskLimits, RiskManager
-from execution.normalization import SymbolNormalizer, SymbolSpecification
-
 
 # ==========================================================================
 # Fixtures / helpers
@@ -452,9 +450,7 @@ class TestShadowDeploymentOrchestrator:
         assert decisions["c"].reason == "terminal"
 
     def test_multiple_candidates_tracked_independently(self):
-        config = ShadowDeploymentConfig(
-            window_size=50, min_samples=3, promotion_stable_observations=3
-        )
+        ShadowDeploymentConfig(window_size=50, min_samples=3, promotion_stable_observations=3)
         archive = _make_archive()
         good_sig = _make_signal("buy", 0.8)
         bad_sig = _make_signal("sell", 0.8)
@@ -930,8 +926,8 @@ class TestRiskComplianceWorkflow:
     def test_multiple_orders_mixed_outcomes(self):
         workflow = _make_workflow()
         orders = [
-            OrderRequest("BTC-USD", "buy", 0.1, 50_000.0),   # valid
-            OrderRequest("BTC-USD", "buy", 0.0, 50_000.0),   # invalid qty
+            OrderRequest("BTC-USD", "buy", 0.1, 50_000.0),  # valid
+            OrderRequest("BTC-USD", "buy", 0.0, 50_000.0),  # invalid qty
         ]
         result = workflow.evaluate(orders)
         assert len(result.accepted) == 1

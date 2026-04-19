@@ -23,10 +23,12 @@ def two_asset_data():
     """Minimal 2-asset system with known analytical properties."""
     rng = np.random.default_rng(42)
     T = 50
-    prices = np.column_stack([
-        100 + np.cumsum(rng.normal(0, 1, T)),
-        200 + np.cumsum(rng.normal(0, 1, T)),
-    ])
+    prices = np.column_stack(
+        [
+            100 + np.cumsum(rng.normal(0, 1, T)),
+            200 + np.cumsum(rng.normal(0, 1, T)),
+        ]
+    )
     volumes = rng.uniform(100, 1000, (T, 2))
     return prices, volumes
 
@@ -105,14 +107,18 @@ class TestKnownCase:
         T = 30
         rng = np.random.default_rng(99)
         # Asset 1: high volume, Asset 2: low volume
-        prices = np.column_stack([
-            100 + np.cumsum(rng.normal(0, 1, T)),
-            100 + np.cumsum(rng.normal(0, 1, T)),
-        ])
-        volumes = np.column_stack([
-            np.full(T, 1000.0),
-            np.full(T, 100.0),
-        ])
+        prices = np.column_stack(
+            [
+                100 + np.cumsum(rng.normal(0, 1, T)),
+                100 + np.cumsum(rng.normal(0, 1, T)),
+            ]
+        )
+        volumes = np.column_stack(
+            [
+                np.full(T, 1000.0),
+                np.full(T, 100.0),
+            ]
+        )
         A = gcm.compute(prices, volumes)
         # With asymmetric mass, after normalisation+symmetrisation
         # we still get a valid symmetric matrix

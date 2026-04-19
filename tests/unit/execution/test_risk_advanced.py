@@ -4,14 +4,12 @@
 
 from __future__ import annotations
 
-import math
 from datetime import datetime, timezone
 
 import pytest
 
 from execution.risk.advanced import (
     AdvancedRiskController,
-    AdvancedRiskState,
     CorrelationLimitGuard,
     DrawdownBreaker,
     KellyCriterionPositionSizer,
@@ -27,8 +25,8 @@ from execution.risk.advanced import (
     VolatilityRegime,
 )
 
-
 # ── RegimeAdaptiveExposureGuard ─────────────────────────────────────
+
 
 class TestRegimeAdaptiveExposureGuard:
     def test_init_validation(self):
@@ -81,7 +79,8 @@ class TestRegimeAdaptiveExposureGuard:
 
     def test_cooldown_prevents_downgrade(self):
         guard = RegimeAdaptiveExposureGuard(
-            min_samples=1, cooldown_seconds=100.0,
+            min_samples=1,
+            cooldown_seconds=100.0,
         )
         # Move to stressed
         for i in range(5):
@@ -93,7 +92,8 @@ class TestRegimeAdaptiveExposureGuard:
 
     def test_cooldown_expired_allows_downgrade(self):
         guard = RegimeAdaptiveExposureGuard(
-            min_samples=1, cooldown_seconds=5.0,
+            min_samples=1,
+            cooldown_seconds=5.0,
         )
         for i in range(5):
             guard.observe("BTC", 0.03, timestamp=float(i))
@@ -109,6 +109,7 @@ class TestRegimeAdaptiveExposureGuard:
 
 
 # ── MarketCondition ─────────────────────────────────────────────────
+
 
 class TestMarketCondition:
     def test_valid(self):
@@ -136,12 +137,16 @@ class TestMarketCondition:
 
 # ── KellyCriterionPositionSizer ─────────────────────────────────────
 
+
 class TestKelly:
     def test_fraction_positive_edge(self):
         sizer = KellyCriterionPositionSizer(max_leverage=3.0, drawdown_buffer=0.5)
         mc = MarketCondition(
-            symbol="BTC", price=100, volatility=0.2,
-            win_probability=0.6, payoff_ratio=2.0,
+            symbol="BTC",
+            price=100,
+            volatility=0.2,
+            win_probability=0.6,
+            payoff_ratio=2.0,
         )
         f = sizer.fraction(mc)
         assert 0.0 <= f <= 3.0
@@ -149,8 +154,11 @@ class TestKelly:
     def test_fraction_negative_edge(self):
         sizer = KellyCriterionPositionSizer()
         mc = MarketCondition(
-            symbol="BTC", price=100, volatility=0.2,
-            win_probability=0.3, payoff_ratio=1.0,
+            symbol="BTC",
+            price=100,
+            volatility=0.2,
+            win_probability=0.3,
+            payoff_ratio=1.0,
         )
         assert sizer.fraction(mc) == 0.0
 
@@ -163,13 +171,17 @@ class TestKelly:
     def test_max_leverage_clamped(self):
         sizer = KellyCriterionPositionSizer(max_leverage=0.5, drawdown_buffer=1.0)
         mc = MarketCondition(
-            symbol="BTC", price=100, volatility=0.2,
-            win_probability=0.9, payoff_ratio=3.0,
+            symbol="BTC",
+            price=100,
+            volatility=0.2,
+            win_probability=0.9,
+            payoff_ratio=3.0,
         )
         assert sizer.fraction(mc) <= 1.0  # max_leverage clamped to 1.0
 
 
 # ── VolatilityAdjustedSizer ─────────────────────────────────────────
+
 
 class TestVolSizer:
     def test_zero_vol_returns_ceiling(self):
@@ -194,6 +206,7 @@ class TestVolSizer:
 
 # ── RiskMetricsCalculator ──────────────────────────────────────────
 
+
 class TestRiskMetrics:
     def test_var_empty_returns_zero(self):
         calc = RiskMetricsCalculator()
@@ -212,16 +225,51 @@ class TestRiskMetrics:
         assert calc.conditional_value_at_risk([0.01, 0.02, 0.03]) == 0.0
 
     def test_var_with_losses(self):
-        returns = [-0.05, -0.03, -0.01, 0.02, 0.04, -0.02, 0.01, -0.04,
-                   0.03, 0.05, -0.06, 0.02, -0.01, 0.04, -0.03, 0.01,
-                   -0.02, 0.03, -0.05, 0.01]
+        returns = [
+            -0.05,
+            -0.03,
+            -0.01,
+            0.02,
+            0.04,
+            -0.02,
+            0.01,
+            -0.04,
+            0.03,
+            0.05,
+            -0.06,
+            0.02,
+            -0.01,
+            0.04,
+            -0.03,
+            0.01,
+            -0.02,
+            0.03,
+            -0.05,
+            0.01,
+        ]
         calc = RiskMetricsCalculator(confidence=0.95)
         var = calc.value_at_risk(returns)
         assert var > 0
 
     def test_cvar_with_losses(self):
-        returns = [-0.05, -0.03, -0.01, 0.02, 0.04, -0.02, 0.01, -0.04,
-                   0.03, 0.05, -0.06, 0.02, -0.01, 0.04, -0.03, 0.01]
+        returns = [
+            -0.05,
+            -0.03,
+            -0.01,
+            0.02,
+            0.04,
+            -0.02,
+            0.01,
+            -0.04,
+            0.03,
+            0.05,
+            -0.06,
+            0.02,
+            -0.01,
+            0.04,
+            -0.03,
+            0.01,
+        ]
         calc = RiskMetricsCalculator(confidence=0.95)
         cvar = calc.conditional_value_at_risk(returns)
         assert cvar > 0
@@ -241,6 +289,7 @@ class TestRiskMetrics:
 
 
 # ── MarginMonitor ───────────────────────────────────────────────────
+
 
 class TestMarginMonitor:
     def test_within_limit(self):
@@ -266,6 +315,7 @@ class TestMarginMonitor:
 
 # ── CorrelationLimitGuard ───────────────────────────────────────────
 
+
 class TestCorrelationGuard:
     def test_within_limits(self):
         corr = {("BTC", "ETH"): 0.5, ("ETH", "BTC"): 0.5}
@@ -285,6 +335,7 @@ class TestCorrelationGuard:
 
 
 # ── DrawdownBreaker ─────────────────────────────────────────────────
+
 
 class TestDrawdownBreaker:
     def test_no_drawdown_ok(self):
@@ -312,6 +363,7 @@ class TestDrawdownBreaker:
 
 # ── TimeWeightedExposureTracker ─────────────────────────────────────
 
+
 class TestExposureTracker:
     def test_first_update(self):
         tracker = TimeWeightedExposureTracker()
@@ -336,6 +388,7 @@ class TestExposureTracker:
 
 
 # ── RiskParityAllocator ────────────────────────────────────────────
+
 
 class TestRiskParity:
     def test_equal_vol(self):
@@ -362,27 +415,32 @@ class TestRiskParity:
 
 # ── LiquidationCascadePreventer ─────────────────────────────────────
 
+
 class TestLiquidationCascade:
     def test_valid(self):
         preventer = LiquidationCascadePreventer(
-            liquidity_provider=lambda s: 1000, max_fraction=0.1,
+            liquidity_provider=lambda s: 1000,
+            max_fraction=0.1,
         )
         assert preventer.validate({"BTC": 50}) is True
 
     def test_exceeds_fraction(self):
         preventer = LiquidationCascadePreventer(
-            liquidity_provider=lambda s: 100, max_fraction=0.1,
+            liquidity_provider=lambda s: 100,
+            max_fraction=0.1,
         )
         assert preventer.validate({"BTC": 50}) is False
 
     def test_zero_liquidity(self):
         preventer = LiquidationCascadePreventer(
-            liquidity_provider=lambda s: 0, max_fraction=0.1,
+            liquidity_provider=lambda s: 0,
+            max_fraction=0.1,
         )
         assert preventer.validate({"BTC": 10}) is False
 
 
 # ── AdvancedRiskController ──────────────────────────────────────────
+
 
 def _build_controller(*, with_regime: bool = False) -> AdvancedRiskController:
     regime = RegimeAdaptiveExposureGuard(min_samples=1) if with_regime else None
@@ -393,7 +451,8 @@ def _build_controller(*, with_regime: bool = False) -> AdvancedRiskController:
         drawdown_breaker=DrawdownBreaker(max_drawdown=0.2),
         exposure_tracker=TimeWeightedExposureTracker(),
         liquidation_guard=LiquidationCascadePreventer(
-            liquidity_provider=lambda s: 1_000_000, max_fraction=0.5,
+            liquidity_provider=lambda s: 1_000_000,
+            max_fraction=0.5,
         ),
         risk_metrics=RiskMetricsCalculator(),
         kelly_sizer=KellyCriterionPositionSizer(),
@@ -420,8 +479,11 @@ class TestAdvancedRiskController:
     def test_register_market_condition(self):
         ctrl = _build_controller()
         mc = MarketCondition(
-            symbol="BTC", price=50000, volatility=0.3,
-            win_probability=0.55, payoff_ratio=2.0,
+            symbol="BTC",
+            price=50000,
+            volatility=0.3,
+            win_probability=0.55,
+            payoff_ratio=2.0,
         )
         ctrl.register_market_condition(mc)
         assert ctrl.state.market_data["BTC"] is mc
@@ -429,8 +491,11 @@ class TestAdvancedRiskController:
     def test_evaluate_order_passes(self):
         ctrl = _build_controller()
         mc = MarketCondition(
-            symbol="BTC", price=50000, volatility=0.3,
-            win_probability=0.55, payoff_ratio=2.0,
+            symbol="BTC",
+            price=50000,
+            volatility=0.3,
+            win_probability=0.55,
+            payoff_ratio=2.0,
         )
         ctrl.register_market_condition(mc)
         req = PositionRequest(symbol="BTC", notional=100)
@@ -466,8 +531,9 @@ class TestAdvancedRiskController:
 
     def test_portfolio_var_and_cvar(self):
         ctrl = _build_controller()
-        ctrl.record_return("BTC", [-0.05, -0.03, 0.02, -0.01, -0.04,
-                                    0.03, -0.02, 0.01, -0.06, 0.04])
+        ctrl.record_return(
+            "BTC", [-0.05, -0.03, 0.02, -0.01, -0.04, 0.03, -0.02, 0.01, -0.06, 0.04]
+        )
         var = ctrl.portfolio_var("BTC")
         cvar = ctrl.portfolio_cvar("BTC")
         assert var >= 0
@@ -485,8 +551,11 @@ class TestAdvancedRiskController:
     def test_evaluate_order_with_regime(self):
         ctrl = _build_controller(with_regime=True)
         mc = MarketCondition(
-            symbol="BTC", price=50000, volatility=0.3,
-            win_probability=0.55, payoff_ratio=2.0,
+            symbol="BTC",
+            price=50000,
+            volatility=0.3,
+            win_probability=0.55,
+            payoff_ratio=2.0,
         )
         ctrl.register_market_condition(mc)
         for i in range(5):

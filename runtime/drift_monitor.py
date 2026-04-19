@@ -63,12 +63,8 @@ class DriftDetector:
             if len(history) < self.baseline_window + self.detection_window:
                 baseline_size = max(baseline_size, len(history))
                 continue
-            baseline = np.asarray(
-                list(history)[: self.baseline_window], dtype=float
-            )
-            detection = np.asarray(
-                list(history)[-self.detection_window :], dtype=float
-            )
+            baseline = np.asarray(list(history)[: self.baseline_window], dtype=float)
+            detection = np.asarray(list(history)[-self.detection_window :], dtype=float)
             baseline_size = max(baseline_size, len(baseline))
             base_mean = float(np.mean(baseline))
             base_std = float(np.std(baseline))

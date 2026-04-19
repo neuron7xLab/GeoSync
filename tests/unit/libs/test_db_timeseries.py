@@ -68,12 +68,8 @@ def rollup() -> RollupMaterialization:
         name="ticks_1h",
         interval=timedelta(hours=1),
         aggregations=(
-            RollupAggregation(
-                alias="avg_price", expression="avg(price)", data_type="Float64"
-            ),
-            RollupAggregation(
-                alias="total_volume", expression="sum(volume)", data_type="Float64"
-            ),
+            RollupAggregation(alias="avg_price", expression="avg(price)", data_type="Float64"),
+            RollupAggregation(alias="total_volume", expression="sum(volume)", data_type="Float64"),
         ),
         refresh_lag=timedelta(minutes=5),
     )
@@ -83,15 +79,11 @@ class FakeClickHouseClient:
     def __init__(self) -> None:
         self.calls: list[tuple[str, list[list[Any]], list[str]]] = []
 
-    def insert(
-        self, table: str, rows: list[list[Any]], column_names: list[str]
-    ) -> None:
+    def insert(self, table: str, rows: list[list[Any]], column_names: list[str]) -> None:
         self.calls.append((table, rows, column_names))
 
 
-def test_clickhouse_create_table(
-    schema: TimeSeriesSchema, retention: RetentionPolicy
-) -> None:
+def test_clickhouse_create_table(schema: TimeSeriesSchema, retention: RetentionPolicy) -> None:
     manager = ClickHouseSchemaManager(
         schema=schema,
         retention=retention,
@@ -122,9 +114,7 @@ def test_clickhouse_ingestion_connector(schema: TimeSeriesSchema) -> None:
     connector = ClickHouseIngestionConnector(
         client=client,
         schema=schema,
-        config=IngestionConnectorConfig(
-            batch_size=2, flush_interval=timedelta(seconds=1)
-        ),
+        config=IngestionConnectorConfig(batch_size=2, flush_interval=timedelta(seconds=1)),
     )
     records = [
         {
@@ -157,9 +147,7 @@ def test_clickhouse_ingestion_connector(schema: TimeSeriesSchema) -> None:
     assert len(client.calls) == 2
 
 
-def test_clickhouse_query_builder(
-    schema: TimeSeriesSchema, rollup: RollupMaterialization
-) -> None:
+def test_clickhouse_query_builder(schema: TimeSeriesSchema, rollup: RollupMaterialization) -> None:
     builder = ClickHouseQueryBuilder(schema)
     query = builder.ohlcv_query(filters={"symbol": "BTC"})
     assert "toStartOfInterval(timestamp" in query
@@ -183,10 +171,7 @@ def test_clickhouse_sla_metrics(schema: TimeSeriesSchema) -> None:
 
 def test_clickhouse_backup_plan(schema: TimeSeriesSchema) -> None:
     planner = ClickHouseBackupPlanner(schema=schema, retention_days=21)
-    assert (
-        "clickhouse-backup create --tables marketdata.ticks"
-        in planner.full_backup_command()
-    )
+    assert "clickhouse-backup create --tables marketdata.ticks" in planner.full_backup_command()
     assert "retain 21 days" == planner.retention_policy()
 
 
@@ -238,9 +223,7 @@ def test_timescale_ingestion_connector(schema: TimeSeriesSchema) -> None:
     connector = TimescaleIngestionConnector(
         connection=connection,
         schema=schema,
-        config=IngestionConnectorConfig(
-            batch_size=2, flush_interval=timedelta(seconds=1)
-        ),
+        config=IngestionConnectorConfig(batch_size=2, flush_interval=timedelta(seconds=1)),
     )
     rows = [
         {
@@ -266,9 +249,7 @@ def test_timescale_ingestion_connector(schema: TimeSeriesSchema) -> None:
     assert len(parameters) == 2
 
 
-def test_timescale_query_builder(
-    schema: TimeSeriesSchema, rollup: RollupMaterialization
-) -> None:
+def test_timescale_query_builder(schema: TimeSeriesSchema, rollup: RollupMaterialization) -> None:
     builder = TimescaleQueryBuilder(schema)
     query = builder.ohlcv_query(filters={"symbol": "BTC"})
     assert "time_bucket(" in query
@@ -312,9 +293,7 @@ def test_benchmark_runner(schema: TimeSeriesSchema) -> None:
         queries.append(dict(params))
 
     runner = BenchmarkRunner(schema, clock=clock)
-    metrics = runner.run(
-        workload=workload, ingestion_callable=ingest, query_callable=query
-    )
+    metrics = runner.run(workload=workload, ingestion_callable=ingest, query_callable=query)
 
     assert metrics.rows_ingested == 5
     assert len(ingested_batches) == 2

@@ -26,7 +26,7 @@ from ..physics.conservation import (
 @dataclass(frozen=True, slots=True)
 class PhysicsValidationResult:
     """Results from physics-based validation checks."""
-    
+
     energy_conserved: bool
     momentum_conserved: bool
     energy_violation: float
@@ -38,16 +38,16 @@ class PhysicsValidationResult:
 
 class PhysicsEnhancedValidator:
     """Enhanced validator combining TACL with physics conservation laws.
-    
+
     This validator extends the existing TACL thermodynamic validation with
     additional checks from conservation laws, providing stronger guarantees
     about system behavior.
-    
+
     Attributes:
         base_validator: Underlying TACL energy validator
         energy_tolerance: Tolerance for energy conservation (default: 5%)
         momentum_tolerance: Tolerance for momentum conservation (default: 5%)
-    
+
     Example:
         >>> validator = PhysicsEnhancedValidator()
         >>> # Check TACL metrics
@@ -59,7 +59,7 @@ class PhysicsEnhancedValidator:
         >>> if not physics_result.energy_conserved:
         ...     print("Warning: Energy conservation violated!")
     """
-    
+
     def __init__(
         self,
         *,
@@ -68,7 +68,7 @@ class PhysicsEnhancedValidator:
         tacl_validator: EnergyValidator | None = None,
     ) -> None:
         """Initialize enhanced validator.
-        
+
         Args:
             energy_tolerance: Relative tolerance for energy conservation
             momentum_tolerance: Relative tolerance for momentum conservation
@@ -77,18 +77,18 @@ class PhysicsEnhancedValidator:
         self.base_validator = tacl_validator or EnergyValidator()
         self.energy_tolerance = float(energy_tolerance)
         self.momentum_tolerance = float(momentum_tolerance)
-    
+
     def validate_tacl(self, metrics: EnergyMetrics) -> EnergyValidationResult:
         """Validate using existing TACL thermodynamic checks.
-        
+
         Args:
             metrics: TACL energy metrics
-            
+
         Returns:
             EnergyValidationResult from TACL validator
         """
         return self.base_validator.validate(metrics)
-    
+
     def validate_physics(
         self,
         prices_before: Iterable[float],
@@ -97,53 +97,47 @@ class PhysicsEnhancedValidator:
         volumes_after: Iterable[float] | None = None,
     ) -> PhysicsValidationResult:
         """Validate using physics conservation laws.
-        
+
         Checks both energy and momentum conservation between two states.
         Violations indicate external forces or regime changes.
-        
+
         Args:
             prices_before: Price array at time t
             prices_after: Price array at time t+1
             volumes_before: Optional volume array at time t
             volumes_after: Optional volume array at time t+1
-            
+
         Returns:
             PhysicsValidationResult with conservation status
         """
         import numpy as np
-        
+
         prices1 = np.asarray(list(prices_before), dtype=float)
         prices2 = np.asarray(list(prices_after), dtype=float)
-        
+
         vols1 = (
-            np.asarray(list(volumes_before), dtype=float)
-            if volumes_before is not None
-            else None
+            np.asarray(list(volumes_before), dtype=float) if volumes_before is not None else None
         )
-        vols2 = (
-            np.asarray(list(volumes_after), dtype=float)
-            if volumes_after is not None
-            else None
-        )
-        
+        vols2 = np.asarray(list(volumes_after), dtype=float) if volumes_after is not None else None
+
         # Compute energies
         energy1 = compute_market_energy(prices1, vols1)
         energy2 = compute_market_energy(prices2, vols2)
-        
+
         # Check energy conservation
         energy_conserved, energy_violation = check_energy_conservation(
             energy1, energy2, tolerance=self.energy_tolerance
         )
-        
+
         # Compute momenta
         momentum1 = compute_market_momentum(prices1, vols1)
         momentum2 = compute_market_momentum(prices2, vols2)
-        
+
         # Check momentum conservation
         momentum_conserved, momentum_violation = check_momentum_conservation(
             momentum1, momentum2, tolerance=self.momentum_tolerance
         )
-        
+
         # Build reason if violations detected
         reason = None
         if not energy_conserved or not momentum_conserved:
@@ -153,7 +147,7 @@ class PhysicsEnhancedValidator:
             if not momentum_conserved:
                 parts.append(f"Momentum violation: {momentum_violation:.2%}")
             reason = "; ".join(parts)
-        
+
         return PhysicsValidationResult(
             energy_conserved=energy_conserved,
             momentum_conserved=momentum_conserved,
@@ -163,7 +157,7 @@ class PhysicsEnhancedValidator:
             total_momentum=momentum2,
             reason=reason,
         )
-    
+
     def validate_combined(
         self,
         tacl_metrics: EnergyMetrics,
@@ -173,14 +167,14 @@ class PhysicsEnhancedValidator:
         volumes_after: Iterable[float] | None = None,
     ) -> tuple[EnergyValidationResult, PhysicsValidationResult]:
         """Perform both TACL and physics validation.
-        
+
         Args:
             tacl_metrics: TACL energy metrics
             prices_before: Price array at time t
             prices_after: Price array at time t+1
             volumes_before: Optional volume array at time t
             volumes_after: Optional volume array at time t+1
-            
+
         Returns:
             Tuple of (TACL result, Physics result)
         """
@@ -188,13 +182,13 @@ class PhysicsEnhancedValidator:
         physics_result = self.validate_physics(
             prices_before, prices_after, volumes_before, volumes_after
         )
-        
+
         return tacl_result, physics_result
 
 
 class PhysicsValidationError(RuntimeError):
     """Raised when physics validation fails."""
-    
+
     def __init__(self, message: str, result: PhysicsValidationResult) -> None:
         super().__init__(message)
         self.result = result

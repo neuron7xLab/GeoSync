@@ -184,6 +184,4 @@ class BlueGreenRolloutOrchestrator:
         if self._rollback_callback is not None:
             self._rollback_callback(decision.reason, metrics, decision)
         self._controller.reset()
-        raise RolloutAbortedError(
-            reason=decision.reason, decision=decision, metrics=metrics
-        )
+        raise RolloutAbortedError(reason=decision.reason, decision=decision, metrics=metrics)

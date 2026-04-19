@@ -62,7 +62,7 @@ def compute_market_energy(
         velocities_arr = np.asarray(velocities, dtype=float)
 
     # Kinetic energy: (1/2) * m * v²
-    kinetic_energy = 0.5 * np.sum(volumes_arr * velocities_arr ** 2)
+    kinetic_energy = 0.5 * np.sum(volumes_arr * velocities_arr**2)
 
     # Potential energy: m * g * h (height = distance from VWAP)
     vwap = np.average(prices_arr, weights=volumes_arr)

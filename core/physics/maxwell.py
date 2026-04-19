@@ -199,7 +199,7 @@ def wave_energy(
         >>> energy = wave_energy(amplitude=5.0, frequency=0.5, mass=1000.0)
     """
     omega = 2 * np.pi * frequency
-    return 0.5 * mass * (amplitude ** 2) * (omega ** 2)
+    return 0.5 * mass * (amplitude**2) * (omega**2)
 
 
 __all__ = [

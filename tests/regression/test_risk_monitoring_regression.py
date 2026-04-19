@@ -140,8 +140,7 @@ class TestComplianceRegressions:
 
         # Resolve with notes
         success = manager.resolve_violation(
-            violation.violation_id,
-            "Reduced position to comply with limits"
+            violation.violation_id, "Reduced position to comply with limits"
         )
 
         assert success is True
@@ -184,7 +183,7 @@ class TestAdvancedRiskManagerRegressions:
         # Pass NaN volatility
         assessment = manager.assess_risk(
             current_price=100.0,
-            volatility=float('nan'),
+            volatility=float("nan"),
             liquidity_metrics=liquidity,
         )
 

@@ -102,7 +102,9 @@ def _resolve_allowlist(root: Path, allowlist: set[Path] | None) -> set[Path]:
     return {(root / p).resolve() for p in entries}
 
 
-def find_namespace_violations(base_dir: Path, allowlist: set[Path] | None = None) -> list[Violation]:
+def find_namespace_violations(
+    base_dir: Path, allowlist: set[Path] | None = None
+) -> list[Violation]:
     root = base_dir.resolve()
     violations: list[Violation] = []
     normalized_allowlist = _resolve_allowlist(root, allowlist)

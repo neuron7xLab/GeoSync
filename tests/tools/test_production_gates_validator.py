@@ -17,12 +17,8 @@ def test_validate_all_maps_statuses() -> None:
         raise RuntimeError("boom")
 
     gates = [
-        Gate(
-            "pass_gate", "passes", lambda: True, severity=GateSeverity.CRITICAL, automated=True
-        ),
-        Gate(
-            "fail_gate", "fails", lambda: False, severity=GateSeverity.HIGH, automated=True
-        ),
+        Gate("pass_gate", "passes", lambda: True, severity=GateSeverity.CRITICAL, automated=True),
+        Gate("fail_gate", "fails", lambda: False, severity=GateSeverity.HIGH, automated=True),
         Gate(
             "pending_gate",
             "pending",
@@ -30,9 +26,7 @@ def test_validate_all_maps_statuses() -> None:
             severity=GateSeverity.MEDIUM,
             automated=False,
         ),
-        Gate(
-            "warning_gate", "warns", _raise, severity=GateSeverity.MEDIUM, automated=True
-        ),
+        Gate("warning_gate", "warns", _raise, severity=GateSeverity.MEDIUM, automated=True),
     ]
     validator = ProductionGateValidator(gates=gates)
 
@@ -47,12 +41,8 @@ def test_validate_all_maps_statuses() -> None:
 def test_generate_report_contains_summary() -> None:
     """Ensure generate_report produces a readable summary."""
     gates = [
-        Gate(
-            "pass_gate", "passes", lambda: True, severity=GateSeverity.CRITICAL, automated=True
-        ),
-        Gate(
-            "fail_gate", "fails", lambda: False, severity=GateSeverity.HIGH, automated=True
-        ),
+        Gate("pass_gate", "passes", lambda: True, severity=GateSeverity.CRITICAL, automated=True),
+        Gate("fail_gate", "fails", lambda: False, severity=GateSeverity.HIGH, automated=True),
     ]
     validator = ProductionGateValidator(gates=gates)
 

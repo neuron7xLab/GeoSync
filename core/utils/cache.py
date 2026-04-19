@@ -170,9 +170,7 @@ class EvictionPolicy(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def choose_eviction_candidates(
-        self, limit: int
-    ) -> list[str]:  # pragma: no cover - interface
+    def choose_eviction_candidates(self, limit: int) -> list[str]:  # pragma: no cover - interface
         raise NotImplementedError
 
     @abstractmethod
@@ -180,9 +178,7 @@ class EvictionPolicy(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def compact(
-        self, valid_keys: Iterable[str]
-    ) -> None:  # pragma: no cover - interface
+    def compact(self, valid_keys: Iterable[str]) -> None:  # pragma: no cover - interface
         raise NotImplementedError
 
 
@@ -298,9 +294,7 @@ class CacheMetrics:
 
     def region_hit_rate(self, region: str) -> float:
         hits = sum(count for (layer, reg), count in self.hits.items() if reg == region)
-        misses = sum(
-            count for (layer, reg), count in self.misses.items() if reg == region
-        )
+        misses = sum(count for (layer, reg), count in self.misses.items() if reg == region)
         total = hits + misses
         return hits / total if total else 1.0
 
@@ -317,23 +311,15 @@ class CacheMetrics:
                     hits = region_data[region]
                     misses = region_data.get(f"{region_name}_misses", 0.0)
                     total = hits + misses
-                    region_data[f"{region_name}_hit_rate"] = (
-                        hits / total if total else 1.0
-                    )
+                    region_data[f"{region_name}_hit_rate"] = hits / total if total else 1.0
         return stats
 
-    def identify_cold_regions(
-        self, *, threshold: float, min_requests: int
-    ) -> list[str]:
+    def identify_cold_regions(self, *, threshold: float, min_requests: int) -> list[str]:
         cold_regions: list[str] = []
         regions = {region for (_, region) in {**self.hits, **self.misses}}
         for region in regions:
-            hits = sum(
-                count for (layer, reg), count in self.hits.items() if reg == region
-            )
-            misses = sum(
-                count for (layer, reg), count in self.misses.items() if reg == region
-            )
+            hits = sum(count for (layer, reg), count in self.hits.items() if reg == region)
+            misses = sum(count for (layer, reg), count in self.misses.items() if reg == region)
             total = hits + misses
             if total < min_requests:
                 continue
@@ -386,9 +372,7 @@ class CacheLayer(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def warmup(
-        self, data: Iterable[tuple[Any, Any]]
-    ) -> None:  # pragma: no cover - interface
+    def warmup(self, data: Iterable[tuple[Any, Any]]) -> None:  # pragma: no cover - interface
         raise NotImplementedError
 
 
@@ -441,18 +425,14 @@ class InMemoryCacheLayer(CacheLayer):
             self.metrics.record_hit(self.name, self.region)
             return entry.value
 
-    def set(
-        self, key: Any, value: Any, *, metadata: Mapping[str, Any] | None = None
-    ) -> None:
+    def set(self, key: Any, value: Any, *, metadata: Mapping[str, Any] | None = None) -> None:
         normalized_key = CacheKeyNormalizer.normalize(key)
         with self._lock:
             existing_entry = self._store.get(normalized_key)
             context_metadata = {
                 "hits": existing_entry.hits if existing_entry else 0,
                 "seconds_since_last_access": (
-                    monotonic() - existing_entry.last_access_at
-                    if existing_entry
-                    else 0.0
+                    monotonic() - existing_entry.last_access_at if existing_entry else 0.0
                 ),
             }
             if metadata:
@@ -464,9 +444,7 @@ class InMemoryCacheLayer(CacheLayer):
                 metadata=context_metadata,
             )
             expires_at = monotonic() + ttl if ttl is not None else None
-            entry = CacheEntry(
-                value=value, expires_at=expires_at, metadata=dict(context_metadata)
-            )
+            entry = CacheEntry(value=value, expires_at=expires_at, metadata=dict(context_metadata))
             self._store[normalized_key] = entry
             if existing_entry is None:
                 self.eviction_policy.on_insert(normalized_key)
@@ -485,9 +463,7 @@ class InMemoryCacheLayer(CacheLayer):
     def compact(self) -> None:
         with self._lock:
             now = monotonic()
-            expired_keys = [
-                key for key, entry in self._store.items() if entry.is_expired(now)
-            ]
+            expired_keys = [key for key, entry in self._store.items() if entry.is_expired(now)]
             for key in expired_keys:
                 self._store.pop(key, None)
                 self.eviction_policy.on_remove(key)
@@ -644,9 +620,7 @@ class MultiTierCache:
         for layer in layers:
             if layer.region != name:
                 raise ValueError("Layer region mismatch")
-        config = CacheRegionConfig(
-            name=name, layers=layers, warmup_source=warmup_source
-        )
+        config = CacheRegionConfig(name=name, layers=layers, warmup_source=warmup_source)
         with self._lock:
             self._regions[name] = config
         if warmup_source is not None:

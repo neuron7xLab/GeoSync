@@ -22,9 +22,7 @@ pytestmark = pytest.mark.skipif(
 def _load_ci_workflow() -> Dict[str, Any]:
     raw = WORKFLOW_PATH.read_text(encoding="utf-8")
     loaded = yaml.safe_load(raw)
-    if not isinstance(
-        loaded, dict
-    ):  # pragma: no cover - defensive, should never happen.
+    if not isinstance(loaded, dict):  # pragma: no cover - defensive, should never happen.
         raise TypeError("CI workflow should deserialize into a mapping")
     return loaded
 
@@ -45,9 +43,7 @@ def _get_step(job: Dict[str, Any], *, uses: str) -> Dict[str, Any]:
         raise AssertionError("publish-containers job must define a steps list")
 
     matching = [
-        step
-        for step in steps
-        if isinstance(step, dict) and step.get("uses", "").startswith(uses)
+        step for step in steps if isinstance(step, dict) and step.get("uses", "").startswith(uses)
     ]
     if not matching:
         raise AssertionError(f"Expected a step using {uses!r}")

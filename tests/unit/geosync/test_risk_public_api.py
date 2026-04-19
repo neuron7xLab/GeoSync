@@ -227,9 +227,7 @@ class TestPortfolioHeat:
         """Test portfolio_heat with single position."""
         from geosync.risk import portfolio_heat
 
-        positions = [
-            {"qty": 1.0, "price": 50_000.0, "risk_weight": 1.0, "side": "long"}
-        ]
+        positions = [{"qty": 1.0, "price": 50_000.0, "risk_weight": 1.0, "side": "long"}]
         result = portfolio_heat(positions)
 
         assert result == 50_000.0

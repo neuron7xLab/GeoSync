@@ -331,7 +331,9 @@ def _binding_index(code_metrics: Mapping[str, CodeMetric]) -> dict[str, tuple[st
     return index
 
 
-def _match_binding(chain: str | None, index: Mapping[str, tuple[str, str]]) -> tuple[str, str] | None:
+def _match_binding(
+    chain: str | None, index: Mapping[str, tuple[str, str]]
+) -> tuple[str, str] | None:
     if chain is None:
         return None
     candidates = set()
@@ -347,7 +349,9 @@ def _match_binding(chain: str | None, index: Mapping[str, tuple[str, str]]) -> t
     return None
 
 
-def find_dead_metrics(root: Path, code_metrics: Mapping[str, CodeMetric]) -> list[dict[str, object]]:
+def find_dead_metrics(
+    root: Path, code_metrics: Mapping[str, CodeMetric]
+) -> list[dict[str, object]]:
     """Return metrics that are declared but never updated."""
 
     index = _binding_index(code_metrics)
@@ -394,7 +398,9 @@ def find_dead_metrics(root: Path, code_metrics: Mapping[str, CodeMetric]) -> lis
     return dead
 
 
-def _issue(metric: str, code: str, message: str, sources: Sequence[str] | None) -> dict[str, object]:
+def _issue(
+    metric: str, code: str, message: str, sources: Sequence[str] | None
+) -> dict[str, object]:
     return {
         "metric": metric,
         "metric_name": metric,
@@ -428,9 +434,7 @@ def structural_issues(
         for mismatch in type_mismatches:
             issues.append(_issue(name, "naming", mismatch, sources))
 
-        denylisted = [
-            label for label in metric.labels if label.lower() in _HIGH_CARDINALITY_LABELS
-        ]
+        denylisted = [label for label in metric.labels if label.lower() in _HIGH_CARDINALITY_LABELS]
         if denylisted:
             issues.append(
                 _issue(

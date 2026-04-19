@@ -230,8 +230,7 @@ def pcmci_causality(
         from .phase_extractor import OptionalDependencyError
 
         raise OptionalDependencyError(
-            "PCMCI backend requires the optional 'tigramite' package "
-            "(pip install tigramite)"
+            "PCMCI backend requires the optional 'tigramite' package (pip install tigramite)"
         ) from exc
 
     cfg = config or CausalValidationConfig(backend="pcmci")

@@ -17,9 +17,7 @@ from core.agent.strategy import Strategy
 
 
 class FakeClock:
-    def __init__(
-        self, start: float = 0.0, *, wall_start: datetime | None = None
-    ) -> None:
+    def __init__(self, start: float = 0.0, *, wall_start: datetime | None = None) -> None:
         self._now = float(start)
         self._wall_start = wall_start or datetime(2024, 1, 1, tzinfo=timezone.utc)
 
@@ -47,9 +45,7 @@ class DummyEvaluator:
         self.calls.append((tuple(strategies), data, raise_on_error))
         results: list[EvaluationResult] = []
         for strategy in strategies:
-            results.append(
-                EvaluationResult(strategy=strategy, score=1.0, duration=0.0, error=None)
-            )
+            results.append(EvaluationResult(strategy=strategy, score=1.0, duration=0.0, error=None))
         return results
 
 
@@ -83,9 +79,7 @@ class BlockingEvaluator:
         raise_on_error: bool = False,
     ) -> list[EvaluationResult]:
         self.started.set()
-        if not self.release.wait(
-            timeout=1.0
-        ):  # pragma: no cover - defensive timeout guard
+        if not self.release.wait(timeout=1.0):  # pragma: no cover - defensive timeout guard
             raise TimeoutError("BlockingEvaluator release was not signalled")
         return [
             EvaluationResult(strategy=strategy, score=1.0, duration=0.0, error=None)
@@ -93,9 +87,7 @@ class BlockingEvaluator:
         ]
 
 
-def _make_scheduler(
-    clock: FakeClock, evaluator: DummyEvaluator | None = None
-) -> StrategyScheduler:
+def _make_scheduler(clock: FakeClock, evaluator: DummyEvaluator | None = None) -> StrategyScheduler:
     evaluator = evaluator or DummyEvaluator()
     return StrategyScheduler(
         evaluator=evaluator,

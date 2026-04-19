@@ -53,17 +53,13 @@ class GeoSyncNeuroAdapter:
             market_pulse.curvature,
             market_pulse.entropy,
         )
-        neuro_response = await self._neuro.process_trading_cycle(
-            market_data, portfolio_state
-        )
+        neuro_response = await self._neuro.process_trading_cycle(market_data, portfolio_state)
         return {
             "amm": amm_snapshot,
             "neuro": neuro_response,
         }
 
-    async def update_after_execution(
-        self, execution_results: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def update_after_execution(self, execution_results: Dict[str, Any]) -> Dict[str, Any]:
         return await self._neuro.update_from_execution(execution_results)
 
     def save_state(self, path: str) -> bool:

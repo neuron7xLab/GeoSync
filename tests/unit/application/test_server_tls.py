@@ -59,9 +59,7 @@ def _generate_server_material(tmp_path: Path) -> tuple[Path, Path, Path]:
         .not_valid_before(now - timedelta(days=1))
         .not_valid_after(now + timedelta(days=90))
         .add_extension(
-            x509.SubjectAlternativeName(
-                [x509.DNSName("geosync.dev"), x509.DNSName("localhost")]
-            ),
+            x509.SubjectAlternativeName([x509.DNSName("geosync.dev"), x509.DNSName("localhost")]),
             critical=False,
         )
         .add_extension(

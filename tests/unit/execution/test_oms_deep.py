@@ -7,20 +7,19 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
-from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from domain import Order, OrderSide, OrderStatus, OrderType
+from domain import Order, OrderStatus
 from execution.connectors import ExecutionConnector, OrderError, TransientOrderError
 from execution.oms import OMSConfig, OrderManagementSystem, QueuedOrder
-
 
 # ---------------------------------------------------------------------------
 # Stubs
 # ---------------------------------------------------------------------------
+
 
 class StubRiskController:
     def validate_order(self, symbol, side, qty, price):
@@ -97,9 +96,11 @@ class FatalErrorConnector(ExecutionConnector):
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def tmp_oms(tmp_path):
     """Return a factory that creates OMS instances with temp state files."""
+
     def _make(connector=None, **config_kwargs):
         state_path = tmp_path / "oms-state.json"
         defaults = dict(
@@ -114,6 +115,7 @@ def tmp_oms(tmp_path):
         risk = StubRiskController()
         oms = OrderManagementSystem(conn, risk, config)
         return oms
+
     return _make
 
 
@@ -124,6 +126,7 @@ def _order(symbol="BTC/USDT", side="buy", qty=1.0, price=100.0, **kw):
 # ---------------------------------------------------------------------------
 # Tests — Order placement
 # ---------------------------------------------------------------------------
+
 
 class TestOrderPlacement:
     def test_submit_and_process_basic(self, tmp_oms):
@@ -159,6 +162,7 @@ class TestOrderPlacement:
 # Tests — Idempotency
 # ---------------------------------------------------------------------------
 
+
 class TestIdempotency:
     def test_duplicate_correlation_returns_existing_pending(self, tmp_oms):
         oms = tmp_oms()
@@ -187,6 +191,7 @@ class TestIdempotency:
 # ---------------------------------------------------------------------------
 # Tests — Fill handling
 # ---------------------------------------------------------------------------
+
 
 class TestFillHandling:
     def test_partial_fill(self, tmp_oms):
@@ -235,6 +240,7 @@ class TestFillHandling:
 # Tests — Cancellation
 # ---------------------------------------------------------------------------
 
+
 class TestCancellation:
     def test_cancel_existing_order(self, tmp_oms):
         oms = tmp_oms()
@@ -262,6 +268,7 @@ class TestCancellation:
 # ---------------------------------------------------------------------------
 # Tests — Retry and error paths
 # ---------------------------------------------------------------------------
+
 
 class TestRetryAndErrors:
     def test_transient_error_retries_then_succeeds(self, tmp_oms):
@@ -308,6 +315,7 @@ class TestRetryAndErrors:
 # Tests — State transitions
 # ---------------------------------------------------------------------------
 
+
 class TestStateTransitions:
     def test_outstanding_returns_active_orders(self, tmp_oms):
         oms = tmp_oms()
@@ -337,6 +345,7 @@ class TestStateTransitions:
 # Tests — Persistence and reload
 # ---------------------------------------------------------------------------
 
+
 class TestPersistence:
     def test_state_persisted_to_disk(self, tmp_oms, tmp_path):
         oms = tmp_oms()
@@ -358,7 +367,9 @@ class TestPersistence:
 
     def test_auto_persist_false_skips_write(self, tmp_path):
         state_path = tmp_path / "no-persist.json"
-        config = OMSConfig(state_path=state_path, auto_persist=False, ledger_path=None, pre_trade_timeout=None)
+        config = OMSConfig(
+            state_path=state_path, auto_persist=False, ledger_path=None, pre_trade_timeout=None
+        )
         conn = DeterministicConnector()
         risk = StubRiskController()
         oms = OrderManagementSystem(conn, risk, config)
@@ -369,6 +380,7 @@ class TestPersistence:
 # ---------------------------------------------------------------------------
 # Tests — sync_remote_state
 # ---------------------------------------------------------------------------
+
 
 class TestSyncRemoteState:
     def test_sync_cancelled(self, tmp_oms):
@@ -392,7 +404,9 @@ class TestSyncRemoteState:
         oms = tmp_oms()
         oms.submit(_order(qty=10.0), correlation_id="c1")
         processed = oms.process_next()
-        remote = replace(processed, status=OrderStatus.FILLED, filled_quantity=10.0, average_price=100.0)
+        remote = replace(
+            processed, status=OrderStatus.FILLED, filled_quantity=10.0, average_price=100.0
+        )
         synced = oms.sync_remote_state(remote)
         assert synced.status == OrderStatus.FILLED
         assert synced.filled_quantity == 10.0
@@ -413,6 +427,7 @@ class TestSyncRemoteState:
 # ---------------------------------------------------------------------------
 # Tests — Recovery helpers
 # ---------------------------------------------------------------------------
+
 
 class TestRecoveryHelpers:
     def test_correlation_for(self, tmp_oms):
@@ -476,6 +491,7 @@ class TestRecoveryHelpers:
 # Tests — OMSConfig validation
 # ---------------------------------------------------------------------------
 
+
 class TestOMSConfig:
     def test_max_retries_floor(self, tmp_path):
         config = OMSConfig(state_path=tmp_path / "s.json", max_retries=0, ledger_path=None)
@@ -502,6 +518,7 @@ class TestOMSConfig:
 # Tests — QueuedOrder dataclass
 # ---------------------------------------------------------------------------
 
+
 class TestQueuedOrder:
     def test_defaults(self):
         o = _order()
@@ -513,6 +530,7 @@ class TestQueuedOrder:
 # ---------------------------------------------------------------------------
 # Tests — Ledger helpers
 # ---------------------------------------------------------------------------
+
 
 class TestLedgerHelpers:
     def test_latest_ledger_sequence_no_ledger(self, tmp_oms):

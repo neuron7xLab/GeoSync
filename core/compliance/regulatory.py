@@ -129,18 +129,11 @@ class RegulatoryComplianceValidator:
         minimum_training_restrictions: int = 1,
         maximum_audit_interval_days: int = 365,
     ) -> None:
-        self._required_privacy = _to_lower_set(
-            required_privacy_regimes or {"gdpr", "ccpa"}
-        )
-        self._required_iso = _to_lower_set(
-            required_iso_controls or {"iso27001", "iso27701"}
-        )
-        self._required_nist = _to_lower_set(
-            required_nist_controls or {"nist-csf", "nist-800-53"}
-        )
+        self._required_privacy = _to_lower_set(required_privacy_regimes or {"gdpr", "ccpa"})
+        self._required_iso = _to_lower_set(required_iso_controls or {"iso27001", "iso27701"})
+        self._required_nist = _to_lower_set(required_nist_controls or {"nist-csf", "nist-800-53"})
         self._restricted_licenses = _to_lower_set(
-            restricted_licenses
-            or {"proprietary", "internal use only", "restricted", "unlicensed"}
+            restricted_licenses or {"proprietary", "internal use only", "restricted", "unlicensed"}
         )
         self._restricted_domains = _to_lower_set(
             restricted_domains
@@ -152,8 +145,7 @@ class RegulatoryComplianceValidator:
             }
         )
         self._allowed_confidentiality = _to_lower_set(
-            allowed_confidentiality_levels
-            or {"public", "internal", "confidential", "restricted"}
+            allowed_confidentiality_levels or {"public", "internal", "confidential", "restricted"}
         )
         self._minimum_training_restrictions = max(1, int(minimum_training_restrictions))
         self._maximum_audit_interval_days = max(1, int(maximum_audit_interval_days))
@@ -283,9 +275,7 @@ class RegulatoryComplianceValidator:
             )
         )
         if not confidentiality:
-            issues.append(
-                ComplianceIssue("error", "Confidentiality classification missing")
-            )
+            issues.append(ComplianceIssue("error", "Confidentiality classification missing"))
         elif confidentiality.strip().lower() not in self._allowed_confidentiality:
             issues.append(
                 ComplianceIssue(
@@ -384,9 +374,7 @@ class RegulatoryComplianceValidator:
                 ComplianceIssue(
                     "error",
                     "Intended domains include forbidden areas: "
-                    + ", ".join(
-                        sorted(domain.replace("_", " ") for domain in forbidden_domains)
-                    ),
+                    + ", ".join(sorted(domain.replace("_", " ") for domain in forbidden_domains)),
                 )
             )
 
@@ -459,8 +447,7 @@ class RegulatoryComplianceValidator:
                 audit_section.get("independent") or audit_section.get("enabled")
             )
             audit_frequency = _normalise_positive_int(
-                audit_section.get("frequency_days")
-                or audit_section.get("interval_days")
+                audit_section.get("frequency_days") or audit_section.get("interval_days")
             )
         else:
             audit_independent = _normalise_bool(audit_section)
@@ -499,8 +486,7 @@ class RegulatoryComplianceValidator:
         remediation_reference: str | None = None
         if isinstance(remediation_section, Mapping):
             remediation_aligned = _normalise_bool(
-                remediation_section.get("aligned")
-                or remediation_section.get("approved")
+                remediation_section.get("aligned") or remediation_section.get("approved")
             )
             remediation_reference = _normalise_string(
                 remediation_section.get("reference") or remediation_section.get("plan")
@@ -524,9 +510,7 @@ class RegulatoryComplianceValidator:
             )
 
         metadata_view = {
-            "privacy_regimes": ", ".join(
-                sorted(value.upper() for value in privacy_values)
-            ),
+            "privacy_regimes": ", ".join(sorted(value.upper() for value in privacy_values)),
             "iso_controls": ", ".join(sorted(value.upper() for value in iso_values)),
             "nist_controls": ", ".join(sorted(value.upper() for value in nist_values)),
             "license": license_name or "unspecified",

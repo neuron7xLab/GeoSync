@@ -259,9 +259,7 @@ class PriceLevelGraph:
     ) -> None:
         if volume_mode not in _VOLUME_MODES:
             raise ValueError(f"Unsupported volume_mode '{volume_mode}'")
-        self.n_levels = int(
-            max(n_levels, 1)
-        )  # bounds: at least one price level required
+        self.n_levels = int(max(n_levels, 1))  # bounds: at least one price level required
         self.connection_threshold = float(
             np.clip(
                 connection_threshold, 0.0, 1.0
@@ -270,9 +268,7 @@ class PriceLevelGraph:
         self.volume_mode = volume_mode
         self.volume_floor = float(max(volume_floor, 0.0))
 
-    def build(
-        self, prices: np.ndarray, volumes: Optional[np.ndarray] = None
-    ) -> LightGraph:
+    def build(self, prices: np.ndarray, volumes: Optional[np.ndarray] = None) -> LightGraph:
         price_array = np.asarray(prices, dtype=np.float64)
         if price_array.size == 0:
             return LightGraph(self.n_levels)
@@ -449,8 +445,7 @@ class TemporalRicciAnalyzer:
         metrics: List[List[float]] = []
         for snapshot in self.history:
             degrees = [
-                len(snapshot.graph.neighbors(i))
-                for i in range(snapshot.graph.number_of_nodes())
+                len(snapshot.graph.neighbors(i)) for i in range(snapshot.graph.number_of_nodes())
             ]
             active = [deg for deg in degrees if deg > 0]
             metrics.append(
@@ -471,9 +466,7 @@ class TemporalRicciAnalyzer:
         normalised = diffs / normaliser
         base_score = float(np.mean(normalised))
 
-        curvatures = np.array(
-            [snap.avg_curvature for snap in self.history], dtype=float
-        )
+        curvatures = np.array([snap.avg_curvature for snap in self.history], dtype=float)
         curvature_component = (
             float(
                 np.clip(np.std(np.diff(curvatures)), 0.0, 1.0)
@@ -578,9 +571,7 @@ class TemporalRicciAnalyzer:
             price_values = price_series.to_numpy()
             ratio_metrics: Dict[str, float] = {}
             if price_values.size:
-                ratio_metrics["input_finite"] = float(
-                    np.mean(np.isfinite(price_values))
-                )
+                ratio_metrics["input_finite"] = float(np.mean(np.isfinite(price_values)))
             else:
                 ratio_metrics["input_finite"] = 0.0
             diagnostics["ratios"] = ratio_metrics
@@ -591,9 +582,7 @@ class TemporalRicciAnalyzer:
             if series_length < self.window_size:
                 ctx["value"] = 0.0
                 _metrics.record_indicator_value("temporal_ricci.transition_score", 0.0)
-                _metrics.record_indicator_value(
-                    "temporal_ricci.structural_stability", 1.0
-                )
+                _metrics.record_indicator_value("temporal_ricci.structural_stability", 1.0)
                 _metrics.record_indicator_value("temporal_ricci.edge_persistence", 1.0)
                 ctx["diagnostics"] = diagnostics
                 return TemporalRicciResult(
@@ -637,9 +626,7 @@ class TemporalRicciAnalyzer:
                     vol_values = segment[volume_col].astype(float).to_numpy()
                     if vol_values.size:
                         volume_segments += 1
-                        volumes = np.nan_to_num(
-                            vol_values, nan=0.0, posinf=0.0, neginf=0.0
-                        )
+                        volumes = np.nan_to_num(vol_values, nan=0.0, posinf=0.0, neginf=0.0)
                         if np.any(volumes > 0.0):
                             positive_volume_segments += 1
 
@@ -653,30 +640,20 @@ class TemporalRicciAnalyzer:
             persistence = self._persistence()
 
             ctx["value"] = temporal_curvature
-            _metrics.record_indicator_value(
-                "temporal_ricci.transition_score", transition_score
-            )
-            _metrics.record_indicator_value(
-                "temporal_ricci.structural_stability", stability
-            )
-            _metrics.record_indicator_value(
-                "temporal_ricci.edge_persistence", persistence
-            )
+            _metrics.record_indicator_value("temporal_ricci.transition_score", transition_score)
+            _metrics.record_indicator_value("temporal_ricci.structural_stability", stability)
+            _metrics.record_indicator_value("temporal_ricci.edge_persistence", persistence)
             if self.history:
                 _metrics.record_indicator_value(
                     "temporal_ricci.avg_curvature", self.history[-1].avg_curvature
                 )
 
             if attempts:
-                ratio_metrics["snapshot_coverage"] = float(
-                    snapshots_built / max(1, attempts)
-                )
+                ratio_metrics["snapshot_coverage"] = float(snapshots_built / max(1, attempts))
             else:
                 ratio_metrics.setdefault("snapshot_coverage", 0.0)
             if volume_segments:
-                ratio_metrics["volume_coverage"] = float(
-                    positive_volume_segments / volume_segments
-                )
+                ratio_metrics["volume_coverage"] = float(positive_volume_segments / volume_segments)
             elif volume_col and volume_col in df.columns:
                 ratio_metrics.setdefault("volume_coverage", 0.0)
 

@@ -299,15 +299,12 @@ class ProductionGateValidator:
         for gate in self.gates:
             status = statuses.get(gate.name, GateStatus.PENDING)
             lines.append(
-                f"{status.value} **{gate.name}** "
-                f"({gate.severity.value}): {gate.description}"
+                f"{status.value} **{gate.name}** ({gate.severity.value}): {gate.description}"
             )
 
         total = len(self.gates)
         automated_statuses = [
-            statuses.get(gate.name, GateStatus.PENDING)
-            for gate in self.gates
-            if gate.automated
+            statuses.get(gate.name, GateStatus.PENDING) for gate in self.gates if gate.automated
         ]
         automated_total = len(automated_statuses)
         if automated_statuses:

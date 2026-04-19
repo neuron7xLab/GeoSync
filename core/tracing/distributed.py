@@ -63,9 +63,7 @@ def _default_correlation_id() -> str:
     return uuid4().hex
 
 
-_CORRELATION_ID_VAR: ContextVar[str | None] = ContextVar(
-    "geosync_correlation_id", default=None
-)
+_CORRELATION_ID_VAR: ContextVar[str | None] = ContextVar("geosync_correlation_id", default=None)
 
 _CORRELATION_ID_FACTORY: Callable[[], str] = _default_correlation_id
 
@@ -77,9 +75,7 @@ _BAGGAGE_HEADER_LOWER = _BAGGAGE_HEADER_NAME.lower()
 _DEFAULT_TRACER_NAME = "geosync.distributed"
 
 
-_LOCAL_BAGGAGE: ContextVar[Mapping[str, str]] = ContextVar(
-    "geosync_local_baggage", default={}
-)
+_LOCAL_BAGGAGE: ContextVar[Mapping[str, str]] = ContextVar("geosync_local_baggage", default={})
 
 
 if _TRACE_AVAILABLE:
@@ -405,9 +401,7 @@ def baggage_scope(
         current = otel_context.get_current()
         updated_context = current
         for key, value in updates.items():
-            updated_context = otel_baggage.set_baggage(
-                key, value, context=updated_context
-            )
+            updated_context = otel_baggage.set_baggage(key, value, context=updated_context)
         token = otel_context.attach(updated_context)
         try:
             yield current_baggage()
@@ -503,9 +497,7 @@ def start_distributed_span(
                 try:
                     span.set_attribute(_CORRELATION_ATTRIBUTE, correlation)
                 except Exception:  # pragma: no cover - defensive guard
-                    LOGGER.debug(
-                        "Failed to set correlation attribute on span", exc_info=True
-                    )
+                    LOGGER.debug("Failed to set correlation attribute on span", exc_info=True)
             if span and attributes:
                 try:
                     span.set_attributes(dict(attributes))

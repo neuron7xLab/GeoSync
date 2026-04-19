@@ -350,9 +350,7 @@ class TestMonotonicSafetyGuarantees:
         else:
             F_final = F_new
 
-        assert (
-            F_final == F_old
-        ), "Should reject change that violates monotonic constraint"
+        assert F_final == F_old, "Should reject change that violates monotonic constraint"
 
     def test_safety_gate_validation(self):
         """Test safety gate prevents unsafe changes."""
