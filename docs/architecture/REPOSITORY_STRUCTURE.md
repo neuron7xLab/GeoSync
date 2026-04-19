@@ -364,13 +364,6 @@ Build and runtime artifacts (gitignored, has `.gitkeep`):
 - `cns_stabilizer/` - CNS stabilizer event logs
 - `configs/` - Generated configuration templates
 
-### `backlog/` - Requirements Management
-Project requirements and backlog:
-- `requirements.json` - Structured requirements
-- `requirements.csv` - Spreadsheet format
-- `jira_import.csv` - Jira import format
-- `report.md` - Requirements analysis report
-
 ### `reports/` - Generated Reports
 Generated analysis reports (gitignored with exceptions):
 - `performance/` - Performance reports

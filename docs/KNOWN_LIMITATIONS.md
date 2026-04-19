@@ -88,11 +88,11 @@ risk / compliance analysis.
 
 Top-level layout before 2026-04 carried legacy subtrees (`legacy/`,
 `handoff/`, `patches/`, `scope/`, `archive/`) that accumulated over
-earlier iterations. They are consolidated under `archive/attic/` as
-part of the canonical-honesty release and preserved for historical
-reference. No production path imports from the attic; removing it
-entirely in a future release is an acceptable next step once a grace
-window has passed.
+earlier iterations. After the grace window elapsed and verification
+confirmed no production paths imported from them, the `archive/`,
+`backlog/`, `stakeholders/` and `money_proof/` top-level trees were
+removed as part of the repo-hygiene tier-1 cleanup. Git history
+preserves their contents for any historical reference.
 
 ---
 

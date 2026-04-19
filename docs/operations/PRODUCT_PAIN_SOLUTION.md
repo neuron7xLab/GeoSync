@@ -80,7 +80,6 @@ tp risk-guardian report --history=trades.csv
 ## 📊 Proof of Value
 
 Детальний proof-of-money знаходиться у:
-- `/money_proof/` — скрипти для репродюсабельного експерименту
 - `README.md` — секція "Does it actually make/save money?"
 
 ### Приклад результату:

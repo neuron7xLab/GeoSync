@@ -1432,7 +1432,6 @@ spec:
 ### B. References
 
 - [docs/requirements/product_specification.md](../../docs/requirements/product_specification.md) - Original requirements source
-- [backlog/requirements.json](../../backlog/requirements.json) - Structured requirements
 - [docs/ARCHITECTURE.md](../ARCHITECTURE.md) - System architecture
 - [MiFID II Regulation](https://www.esma.europa.eu/policy-rules/mifid-ii)
 - [ISO 27001](https://www.iso.org/isoiec-27001-information-security.html)

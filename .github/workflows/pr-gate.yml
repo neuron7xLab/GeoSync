@@ -137,15 +137,9 @@ jobs:
             changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
           fi
 
-          # ``archive/attic/`` is declared cold storage (see archive/attic/README.md)
-          # and is excluded from the quality gate on purpose — the files there
-          # are historical snapshots that the project has already retired, and
-          # formatting them would erode the audit trail. The same filter keeps
-          # vendored/generated trees out of the per-file loop.
           mapfile -t py_files < <(
             printf '%s\n' "$changed_files" \
             | awk '/\.py$/' \
-            | awk '!/^archive\/attic\//' \
             | while IFS= read -r f; do
                 [[ -f "$f" ]] && printf '%s\n' "$f"
               done
@@ -460,7 +454,7 @@ jobs:
 
           .venv/bin/detect-secrets-hook \
             --baseline .github/detect-secrets.baseline \
-            --exclude-files '^(INVENTORY\.json|stakeholders/manifest\.json|\.github/detect-secrets\.baseline)$' \
+            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline)$' \
             "${existing_changed_files[@]}"
 
   go-workspace-integrity:

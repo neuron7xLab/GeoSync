@@ -217,16 +217,10 @@ skip_covered = false
 [tool.black]
 target-version = ["py311"]
 line-length = 100
-# ``archive/attic/`` is declared cold storage (see archive/attic/README.md):
-# nothing inside is imported by production and a future release may drop the
-# tree wholesale. Excluding it from the formatter preserves historical
-# snapshots byte-for-byte and prevents the honesty-release PR from having to
-# reformat code the project has already retired.
-extend-exclude = "archive/attic/"
 
 [tool.ruff]
 line-length = 100
-extend-exclude = ["docs/notebooks", "archive/attic"]
+extend-exclude = ["docs/notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
