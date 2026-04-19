@@ -1,4 +1,0 @@
-Finished computing initial states: 1 distinct state generated at 2026-04-19 04:45:48.
-853 states generated, 547 distinct states found, 80 states left on queue.
-The depth of the complete state graph search is 9.
-Finished in 00s at (2026-04-19 04:45:49)
