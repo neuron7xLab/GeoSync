@@ -169,7 +169,7 @@ GeoSync is a **verified physical system**, not a test-coverage theatre. The phys
 
 | Metric | Value |
 |--------|-------|
-| Physics invariants | **57** across 15 modules (P0: 37, P1: 17, P2: 3) |
+| Physics invariants | **66 loaded by kernel self-check** (canonical + extended module laws; see `.claude/physics/INVARIANTS.yaml`) |
 | Grounded witnesses | **67** tests with `INV-*` docstrings and 5-field error messages |
 | C1/C2 code audit | **0** undocumented physics clamps in `core/` |
 | CI gate | `physics-kernel-gate.yml` — self-check + L1-L5 validation + C1/C2 audit |
@@ -185,6 +185,21 @@ GeoSync is a **verified physical system**, not a test-coverage theatre. The phys
 | `INV-FE1` | Free energy non-increasing under active inference | ECS |
 | `INV-DA7` | ∂δ/∂r = 1 (RPE linear in reward) | Dopamine |
 | `INV-RC1` | Ollivier-Ricci κ ≤ 1 (universal upper bound) | Ricci |
+
+### Neuro-primitive Catalog
+
+- **RebusGate** (`runtime.rebus_gate`) is a Layer 2–3 guardrail primitive:
+  - Layer 2 (protected gradient): bounded exploration with fail-closed activation.
+  - Layer 3 (preserved gradient): mandatory terminal restore before returning to inactive state.
+
+### RebusGate Contract (REBUS)
+
+`runtime.rebus_gate.RebusGate` is confirmation-gated on both boundaries:
+
+- **Activation boundary** requires `apply_attenuated_priors` confirmation before the gate is allowed to enter `ATTENUATION`.
+- **Contract input boundary** accepts only finite real numeric values for coherence/entropy checks and requires `prior_weights` to be a readable key/value mapping of finite real values (`bool` and numeric text are rejected; invalid boundary values raise `ExplorationContractError`).
+- **Terminal boundary** (`reintegrate` / `emergency_exit`) requires `apply_restored_priors` confirmation before terminal success/failure events are emitted and state resets to `INACTIVE`.
+- If either callback does not confirm apply (or raises), the gate remains fail-closed and emits a failure event instead of a false success claim.
 
 <p align="center">
   <img src=".github/assets/divider.svg" width="100%">
@@ -758,6 +773,6 @@ Trading financial instruments involves substantial risk of loss. GeoSync provide
 
 [![MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat)](LICENSE)
 
-<sub>Built on peer-reviewed science. Physics-first, 57 invariants, every clamp documented.</sub>
+<sub>Built on peer-reviewed science. Physics-first, 66 invariants loaded by kernel self-check, every clamp documented.</sub>
 
 </div>

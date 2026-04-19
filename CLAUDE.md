@@ -32,6 +32,14 @@ Layer 4: Gradient utilized      (Kuramoto + Dopamine + Kelly: computation)
 
 Layers 0–3 = Maintenance (40%). Layer 4 = Processing (60%). If any of 0–3 fails, Layer 4 computes noise. This is not metaphor — it is thermodynamic law.
 
+### RebusGate (Layer 2–3)
+
+`runtime.rebus_gate.RebusGate` is a bounded exploration primitive mapped to maintenance layers:
+
+- **Layer 2**: activation is fail-closed and allowed only under nominal parent state and coherence threshold.
+- **Layer 3**: terminal reintegration/emergency paths must confirm restore apply before reset to `INACTIVE`.
+- **Safety preemption**: `kill_switch_active` or `stressed_state` triggers `emergency_exit` restoration path.
+
 **The physics kernel below (invariants, theories, validator) IS the 40%.** It costs context window every session. Without it, Claude Code generates syntactically valid, physically meaningless output. Processing without Maintenance = discharged battery computing its own disappearance.
 
 ---
@@ -48,7 +56,7 @@ GeoSync is a quantitative trading platform with neuroscience-inspired risk manag
 
 ---
 
-## INVARIANT REGISTRY — 57 invariants, 15 modules
+## INVARIANT REGISTRY — 66 invariants loaded by kernel self-check
 
 ### Kuramoto Synchronization
 
@@ -361,4 +369,3 @@ PYTHONPATH=. python scripts/run_microstructure_cycle.py
 
 Determinism contract: seed=42, IC>=0.08 for SIGNAL_READY, NaN→ABORT,
 OHLC_ONLY→DORMANT, replay_hash over sort_keys=True JSON payload.
-

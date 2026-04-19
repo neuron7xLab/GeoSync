@@ -8,6 +8,7 @@ from .behavioral_contract import (
     BehavioralContractViolation,
     ContractBreach,
 )
+from .degradation import DegradationPolicy, DegradationReport, apply_degradation
 from .energy_model import (
     DEFAULT_THRESHOLDS,
     DEFAULT_WEIGHTS,
@@ -17,7 +18,15 @@ from .energy_model import (
     EnergyValidationResult,
     EnergyValidator,
 )
-from .degradation import DegradationPolicy, DegradationReport, apply_degradation
+from .rebus_protocol import (
+    REBUS_PROTOCOL_NAME,
+    apply_external_controller,
+    build_protocol,
+    clear_registered_protocols,
+    get_registered_protocol,
+    protocol_schema_keys,
+    register_protocol,
+)
 from .risk_gating import (
     PreActionContext,
     PreActionDecision,
@@ -48,4 +57,11 @@ __all__ = [
     "RiskGatingConfig",
     "RiskGatingEngine",
     "load_scenarios",
+    "REBUS_PROTOCOL_NAME",
+    "build_protocol",
+    "register_protocol",
+    "get_registered_protocol",
+    "clear_registered_protocols",
+    "apply_external_controller",
+    "protocol_schema_keys",
 ]
