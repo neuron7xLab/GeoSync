@@ -70,8 +70,15 @@ def test_inv_dmt_1_activation_denied_when_parent_not_nominal() -> None:
 
     assert gate.snapshot().phase == ExplorationPhase.INACTIVE
     assert not any(e.event == "activated" for e in gate.audit_log())
-    assert gate._prior_weights_backup is None
-    assert gate._restore_callback is None
+    gate.activate(
+        "cycle-after-denied",
+        _priors(),
+        parent_nominal=True,
+        current_coherence=0.95,
+        apply_attenuated_priors=_apply_sink([]),
+        apply_restored_priors=_apply_sink([]),
+    )
+    assert gate.snapshot().phase == ExplorationPhase.ATTENUATION
 
 
 # INV-DMT-1 witness
@@ -90,8 +97,15 @@ def test_inv_dmt_1_activation_denied_when_coherence_below_threshold() -> None:
 
     assert gate.snapshot().phase == ExplorationPhase.INACTIVE
     assert not any(e.event == "activated" for e in gate.audit_log())
-    assert gate._prior_weights_backup is None
-    assert gate._restore_callback is None
+    gate.activate(
+        "cycle-after-denied",
+        _priors(),
+        parent_nominal=True,
+        current_coherence=0.95,
+        apply_attenuated_priors=_apply_sink([]),
+        apply_restored_priors=_apply_sink([]),
+    )
+    assert gate.snapshot().phase == ExplorationPhase.ATTENUATION
 
 
 # INV-DMT-2 witness
@@ -122,7 +136,12 @@ def test_inv_dmt_2_second_activation_rejected_without_state_corruption() -> None
 
     snap = gate.snapshot()
     assert snap.cycle_id == first_cycle
-    assert gate._prior_weights_backup == first_priors
+    gate.step(0.1, 0.95)
+    gate.step(0.1, 0.95)
+    gate.step(0.1, 0.95)
+    ok, restored = gate.reintegrate(0.95)
+    assert ok is True
+    assert restored == first_priors
     activated_after = sum(1 for e in gate.audit_log() if e.event == "activated")
     assert activated_after == activated_before
 
@@ -145,7 +164,7 @@ def test_inv_dmt_4_duration_forces_reintegration_at_threshold_and_closes_step() 
 
 # INV-DMT-10 witness
 def test_inv_dmt_10_attenuation_scales_values_exactly_and_preserves_keys() -> None:
-    gate = PriorAttenuationGate()
+    gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.25))
     priors = {"a": 1.25, "b": -2.0, "c": 0.0}
     applied: list[dict[str, float]] = []
 
@@ -160,7 +179,7 @@ def test_inv_dmt_10_attenuation_scales_values_exactly_and_preserves_keys() -> No
 
     assert set(attenuated.keys()) == set(priors.keys())
     for key, value in priors.items():
-        assert attenuated[key] == value * gate._config.attenuation_factor
+        assert attenuated[key] == value * 0.25
     assert applied == [attenuated]
 
 
