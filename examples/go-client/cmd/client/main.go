@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"os"
 
 	goclient "github.com/neuron7xLab/GeoSync/examples/go-client"
@@ -20,5 +21,9 @@ func main() {
 		healthURL = "http://localhost:8080"
 	}
 
-	_ = goclient.Run(ctx, grpcTarget, healthURL, goclient.NewJSONLogger())
+	logger := goclient.NewJSONLogger()
+	if err := goclient.Run(ctx, grpcTarget, healthURL, logger); err != nil {
+		logger.Error("client terminated with error", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 }

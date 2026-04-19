@@ -211,27 +211,42 @@ pub fn convolve_core(
 ) -> Result<Vec<f64>, NumericError> {
     check_non_empty(signal, "signal")?;
     check_non_empty(kernel, "kernel")?;
-    let full = full_convolution(signal, kernel);
     let (n, m) = (signal.len(), kernel.len());
-    let full_len = full.len();
-    let result = match mode {
-        ConvolutionMode::Full => full,
+    match mode {
+        ConvolutionMode::Full => Ok(full_convolution(signal, kernel)),
         ConvolutionMode::Same => {
-            let target = n.max(m);
-            let pad = (full_len - target) / 2;
-            let start = pad;
-            let end = start + target;
-            full[start..end].to_vec()
+            let output_len = n.max(m);
+            let full_len = n + m - 1;
+            let start = (full_len - output_len) / 2;
+            Ok(convolve_range(signal, kernel, start, output_len))
         }
         ConvolutionMode::Valid => {
-            let (shorter, longer) = (n.min(m), n.max(m));
-            let length = longer - shorter + 1;
-            let start = shorter - 1;
-            let end = start + length;
-            full[start..end].to_vec()
+            let output_len = n.max(m) - n.min(m) + 1;
+            let start = n.min(m) - 1;
+            Ok(convolve_range(signal, kernel, start, output_len))
         }
-    };
-    Ok(result)
+    }
+}
+
+fn convolve_range(signal: &[f64], kernel: &[f64], start: usize, length: usize) -> Vec<f64> {
+    let mut output = vec![0.0; length];
+    let sig_len = signal.len();
+    let ker_len = kernel.len();
+
+    for (out_idx, slot) in output.iter_mut().enumerate() {
+        let full_idx = start + out_idx;
+        let signal_start = full_idx.saturating_sub(ker_len - 1);
+        let signal_end = full_idx.min(sig_len - 1);
+        let mut acc = 0.0f64;
+
+        for signal_idx in signal_start..=signal_end {
+            let kernel_idx = full_idx - signal_idx;
+            acc = signal[signal_idx].mul_add(kernel[kernel_idx], acc);
+        }
+        *slot = acc;
+    }
+
+    output
 }
 
 impl From<NumericError> for PyErr {
@@ -283,6 +298,38 @@ mod core_tests {
 
         let valid = convolve_core(&signal, &kernel, ConvolutionMode::Valid).unwrap();
         assert_eq!(valid, vec![1.5, 2.5]);
+    }
+
+    #[test]
+    fn convolve_core_respects_modes_with_longer_kernel() {
+        let signal = [1.0, 2.0];
+        let kernel = [0.5, 0.5, 0.5, 0.5];
+
+        let full = convolve_core(&signal, &kernel, ConvolutionMode::Full).unwrap();
+        assert_eq!(full, vec![0.5, 1.5, 1.5, 1.5, 1.0]);
+
+        let same = convolve_core(&signal, &kernel, ConvolutionMode::Same).unwrap();
+        assert_eq!(same, vec![0.5, 1.5, 1.5, 1.5]);
+
+        let valid = convolve_core(&signal, &kernel, ConvolutionMode::Valid).unwrap();
+        assert_eq!(valid, vec![1.5, 1.5, 1.5]);
+    }
+
+    #[test]
+    fn convolve_core_same_and_valid_match_full_slices() {
+        let signal = [1.0, -2.0, 0.5, 4.0, -1.5];
+        let kernel = [0.25, -0.5, 0.75, 1.25];
+        let full = convolve_core(&signal, &kernel, ConvolutionMode::Full).unwrap();
+
+        let same = convolve_core(&signal, &kernel, ConvolutionMode::Same).unwrap();
+        let target = signal.len().max(kernel.len());
+        let same_start = (full.len() - target) / 2;
+        assert_eq!(same, full[same_start..same_start + target].to_vec());
+
+        let valid = convolve_core(&signal, &kernel, ConvolutionMode::Valid).unwrap();
+        let valid_len = signal.len().max(kernel.len()) - signal.len().min(kernel.len()) + 1;
+        let valid_start = signal.len().min(kernel.len()) - 1;
+        assert_eq!(valid, full[valid_start..valid_start + valid_len].to_vec());
     }
 
     #[test]
