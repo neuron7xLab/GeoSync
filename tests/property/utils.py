@@ -22,9 +22,7 @@ import pandas as pd
 try:  # pragma: no cover - Hypothesis is optional in some environments
     from hypothesis import HealthCheck, Phase, note
 except ImportError as exc:  # pragma: no cover
-    raise RuntimeError(
-        "Hypothesis must be installed to use property utilities"
-    ) from exc
+    raise RuntimeError("Hypothesis must be installed to use property utilities") from exc
 
 _SEED_REGISTRY: dict[str, int] = {}
 
@@ -70,7 +68,7 @@ def property_seed(identifier: str) -> int:
 def _serialise_value(value: Any) -> Any:
     """Convert complex objects into JSON-serialisable forms for debugging."""
 
-    if is_dataclass(value):
+    if is_dataclass(value) and not isinstance(value, type):
         return _serialise_value(asdict(value))
     if isinstance(value, Mapping):
         return {str(key): _serialise_value(val) for key, val in value.items()}

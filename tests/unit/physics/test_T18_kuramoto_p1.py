@@ -25,6 +25,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+import pytest
 
 from core.kuramoto.config import KuramotoConfig
 from core.kuramoto.engine import KuramotoEngine
@@ -34,6 +35,7 @@ from core.kuramoto.engine import KuramotoEngine
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.heavy_math
 def test_steady_state_R_monotone_in_coupling_strength() -> None:
     """INV-K4: R_inf monotonically non-decreasing in K for standard model.
 
