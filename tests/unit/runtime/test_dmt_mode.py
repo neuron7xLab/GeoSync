@@ -166,6 +166,19 @@ def test_inv_dmt_2_second_activation_rejected_without_state_corruption() -> None
     assert activated_after == activated_before
 
 
+# INV-DMT-3 witness
+def test_inv_dmt_3_entropy_ceiling_forces_reintegration_and_blocks_progression() -> None:
+    gate = PriorAttenuationGate()
+    _activate(gate, [], [])
+
+    assert gate.step(0.36, 0.95) == ExplorationPhase.REINTEGRATION
+    snap = gate.snapshot()
+    assert snap.forced_halt_reason == "entropy_ceiling_exceeded"
+
+    with pytest.raises(ExplorationContractError):
+        gate.step(0.1, 0.95)
+
+
 # INV-DMT-4 witness
 def test_inv_dmt_4_duration_forces_reintegration_at_threshold_and_closes_step() -> None:
     gate = PriorAttenuationGate(PriorAttenuationConfig(max_duration_bars=2))
@@ -229,6 +242,19 @@ def test_inv_dmt_6_failed_reintegration_restores_exact_backup() -> None:
     assert gate.snapshot().phase == ExplorationPhase.INACTIVE
 
 
+# INV-DMT-7 witness
+def test_inv_dmt_7_safety_preemption_forces_emergency_exit() -> None:
+    gate = PriorAttenuationGate()
+    restored_applied: list[dict[str, float]] = []
+    _activate(gate, [], restored_applied)
+
+    restored = gate.apply_external_safety_signal(kill_switch_active=True, stressed_state=False)
+
+    assert restored == _priors()
+    assert restored_applied == [_priors()]
+    assert gate.snapshot().phase == ExplorationPhase.INACTIVE
+
+
 # INV-DMT-5 witness
 def test_inv_dmt_5_gate_never_becomes_inactive_without_terminal_call() -> None:
     gate = PriorAttenuationGate()
@@ -250,6 +276,13 @@ def test_inv_dmt_5_gate_never_becomes_inactive_without_terminal_call() -> None:
     ok, _ = gate.reintegrate(0.95)
     assert ok is True
     assert gate.snapshot().phase == ExplorationPhase.INACTIVE
+
+
+def test_can_activate_rejects_non_real_coherence() -> None:
+    gate = PriorAttenuationGate()
+    for bad in (None, "0.9", True):
+        with pytest.raises(ExplorationContractError):
+            gate.can_activate(parent_nominal=True, current_coherence=bad)  # type: ignore[arg-type]
 
 
 def test_activation_requires_both_callbacks() -> None:
@@ -440,6 +473,7 @@ def test_external_safety_signal_applies_restore() -> None:
     assert restored_applied == [_priors()]
 
 
+# INV-DMT-9 witness
 def test_audit_retention_bounded_and_terminal_visible() -> None:
     gate = PriorAttenuationGate(PriorAttenuationConfig(max_audit_events=10))
 
@@ -509,6 +543,19 @@ def test_snapshot_and_audit_payload_are_immutable_and_utc() -> None:
         event.details["x"] = 1  # type: ignore[index]
     assert event.ts.tzinfo is not None
     assert event.ts.tzinfo.utcoffset(event.ts) == timezone.utc.utcoffset(event.ts)
+
+
+# INV-DMT-8 witness
+def test_inv_dmt_8_all_audit_timestamps_are_utc() -> None:
+    gate = PriorAttenuationGate()
+    _activate(gate, [], [])
+    gate.step(0.1, 0.9)
+    gate.step(0.1, 0.9)
+    gate.step(0.1, 0.9)
+
+    for event in gate.audit_log():
+        assert event.ts.tzinfo is not None
+        assert event.ts.tzinfo.utcoffset(event.ts) == timezone.utc.utcoffset(event.ts)
 
 
 def test_non_finite_inputs_raise() -> None:
