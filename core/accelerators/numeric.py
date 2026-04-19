@@ -6,7 +6,10 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Iterable, Sequence
+import threading
+import time
+from collections import Counter
+from typing import Any, Iterable, Sequence
 
 try:  # pragma: no cover - optional dependency in some deployments
     import numpy as np
@@ -20,7 +23,125 @@ _logger = logging.getLogger(__name__)
 
 
 class BackendSynchronizationError(RuntimeError):
-    """Raised when strict backend synchronization cannot be maintained."""
+    """Raised when strict backend synchronization cannot be maintained.
+
+    The exception carries a structured forensic payload so that an audit
+    consumer can tell *why* the dispatch refused without parsing the
+    human-readable message:
+
+    * ``backend`` — name of the accelerator that failed (``"rust"`` /
+      ``"numpy"`` / ``"python"``).
+    * ``reason`` — machine-readable cause. Canonical values:
+      ``"unavailable"`` (extension not loaded), ``"runtime_error"``
+      (extension raised), ``"numpy_missing"`` (dependency absent).
+    * ``last_healthy_epoch_ns`` — wall-clock Unix-nanosecond timestamp
+      of the most recent successful dispatch, or ``None`` if none has
+      ever succeeded in this process.
+    * ``downgrade_count`` — number of Rust→fallback downgrades the
+      process has observed since start (or last counter reset).
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        backend: str = "rust",
+        reason: str = "unspecified",
+        last_healthy_epoch_ns: int | None = None,
+        downgrade_count: int = 0,
+    ) -> None:
+        super().__init__(message)
+        self.backend = backend
+        self.reason = reason
+        self.last_healthy_epoch_ns = last_healthy_epoch_ns
+        self.downgrade_count = downgrade_count
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-serialisable forensic snapshot of the failure."""
+        return {
+            "message": str(self),
+            "backend": self.backend,
+            "reason": self.reason,
+            "last_healthy_epoch_ns": self.last_healthy_epoch_ns,
+            "downgrade_count": self.downgrade_count,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Backend telemetry — lightweight, thread-safe, zero-dependency counters.
+# ---------------------------------------------------------------------------
+
+_DOWNGRADE_LOCK = threading.Lock()
+_DOWNGRADE_COUNTER: Counter[tuple[str, str, str]] = Counter()
+_LAST_HEALTHY_EPOCH_NS: dict[str, int] = {}
+
+
+def _record_healthy(backend: str) -> None:
+    """Mark ``backend`` as having produced a successful dispatch just now."""
+    with _DOWNGRADE_LOCK:
+        _LAST_HEALTHY_EPOCH_NS[backend] = time.time_ns()
+
+
+def _record_downgrade(from_backend: str, to_backend: str, reason: str) -> int:
+    """Increment and return the downgrade counter for this triple."""
+    key = (from_backend, to_backend, reason)
+    with _DOWNGRADE_LOCK:
+        _DOWNGRADE_COUNTER[key] += 1
+        return _DOWNGRADE_COUNTER[key]
+
+
+def _get_last_healthy(backend: str) -> int | None:
+    with _DOWNGRADE_LOCK:
+        return _LAST_HEALTHY_EPOCH_NS.get(backend)
+
+
+def _total_downgrades_from(backend: str) -> int:
+    """Return total downgrades originating at ``backend`` across every target."""
+    with _DOWNGRADE_LOCK:
+        return sum(
+            count for (frm, _to, _reason), count in _DOWNGRADE_COUNTER.items() if frm == backend
+        )
+
+
+def downgrade_counts() -> dict[tuple[str, str, str], int]:
+    """Return a snapshot of the downgrade counter.
+
+    External observers (Prometheus exporter, audit scraper) call this to
+    read-without-reset. Keys are ``(from_backend, to_backend, reason)``.
+    """
+    with _DOWNGRADE_LOCK:
+        return dict(_DOWNGRADE_COUNTER)
+
+
+def reset_downgrade_counter() -> None:
+    """Reset the downgrade counter and last-healthy registry.
+
+    Test-only helper; production processes should never need this.
+    """
+    with _DOWNGRADE_LOCK:
+        _DOWNGRADE_COUNTER.clear()
+        _LAST_HEALTHY_EPOCH_NS.clear()
+
+
+def _raise_sync_error(
+    message: str,
+    *,
+    backend: str,
+    reason: str,
+) -> "BackendSynchronizationError":
+    """Build a structured BackendSynchronizationError + record the downgrade.
+
+    Returns the exception instance so callers can ``raise _raise_sync_error(...)
+    from exc``.
+    """
+    count = _record_downgrade(backend, "abort", reason)
+    return BackendSynchronizationError(
+        message,
+        backend=backend,
+        reason=reason,
+        last_healthy_epoch_ns=_get_last_healthy(backend),
+        downgrade_count=count,
+    )
 
 
 try:  # pragma: no cover - optional acceleration module
@@ -165,27 +286,40 @@ def sliding_windows(
             and strict_backend
             and (not _RUST_ACCEL_AVAILABLE or _rust_sliding_windows is None)
         ):
-            raise BackendSynchronizationError(
-                "Rust sliding_windows backend unavailable with strict_backend=True"
+            raise _raise_sync_error(
+                "Rust sliding_windows backend unavailable with strict_backend=True",
+                backend="rust",
+                reason="unavailable",
             )
         if use_rust and _RUST_ACCEL_AVAILABLE and _rust_sliding_windows is not None:
             try:
-                return _rust_sliding_windows(arr, int(window), int(step))
+                result = _rust_sliding_windows(arr, int(window), int(step))
+                _record_healthy("rust")
+                return result
             except Exception as exc:  # pragma: no cover - defensive fallback
                 if strict_backend:
-                    raise BackendSynchronizationError(
-                        "Rust sliding_windows backend failed with strict_backend=True"
+                    raise _raise_sync_error(
+                        "Rust sliding_windows backend failed with strict_backend=True",
+                        backend="rust",
+                        reason="runtime_error",
                     ) from exc
+                _record_downgrade("rust", "numpy", "runtime_error")
                 _logger.warning(
                     "Rust sliding_windows failed (%s); falling back to NumPy.",
                     exc,
                 )
+        elif use_rust and not strict_backend and not _RUST_ACCEL_AVAILABLE:
+            _record_downgrade("rust", "numpy", "unavailable")
         return _sliding_windows_numpy(arr, int(window), int(step))
     if use_rust and strict_backend:
-        raise BackendSynchronizationError(
+        raise _raise_sync_error(
             "Rust sliding_windows backend requires NumPy and compiled extension "
-            "when strict_backend=True"
+            "when strict_backend=True",
+            backend="rust",
+            reason="numpy_missing",
         )
+    if use_rust and not strict_backend:
+        _record_downgrade("rust", "python", "numpy_missing")
     arr_list = _ensure_vector_python(data)
     return _sliding_windows_python(arr_list, int(window), int(step))
 
@@ -277,28 +411,40 @@ def quantiles(
     if _NUMPY_AVAILABLE and np is not None:
         arr = _ensure_vector_numpy(data)
         if use_rust and strict_backend and (not _RUST_ACCEL_AVAILABLE or _rust_quantiles is None):
-            raise BackendSynchronizationError(
-                "Rust quantiles backend unavailable with strict_backend=True"
+            raise _raise_sync_error(
+                "Rust quantiles backend unavailable with strict_backend=True",
+                backend="rust",
+                reason="unavailable",
             )
         if use_rust and _RUST_ACCEL_AVAILABLE and _rust_quantiles is not None:
             try:
                 result = _rust_quantiles(arr, list(float(p) for p in probabilities))
+                _record_healthy("rust")
                 return np.asarray(result, dtype=np.float64)
             except Exception as exc:  # pragma: no cover - defensive fallback
                 if strict_backend:
-                    raise BackendSynchronizationError(
-                        "Rust quantiles backend failed with strict_backend=True"
+                    raise _raise_sync_error(
+                        "Rust quantiles backend failed with strict_backend=True",
+                        backend="rust",
+                        reason="runtime_error",
                     ) from exc
+                _record_downgrade("rust", "numpy", "runtime_error")
                 _logger.warning(
                     "Rust quantiles failed (%s); falling back to NumPy.",
                     exc,
                 )
+        elif use_rust and not strict_backend and not _RUST_ACCEL_AVAILABLE:
+            _record_downgrade("rust", "numpy", "unavailable")
         return _quantiles_numpy(arr, probabilities)
     if use_rust and strict_backend:
-        raise BackendSynchronizationError(
+        raise _raise_sync_error(
             "Rust quantiles backend requires NumPy and compiled extension "
-            "when strict_backend=True"
+            "when strict_backend=True",
+            backend="rust",
+            reason="numpy_missing",
         )
+    if use_rust and not strict_backend:
+        _record_downgrade("rust", "python", "numpy_missing")
     arr_list = _ensure_vector_python(data)
     return _quantiles_python(arr_list, probabilities)
 
@@ -410,28 +556,40 @@ def convolve(
         signal_arr = _ensure_vector_numpy(signal)
         kernel_arr = _ensure_vector_numpy(kernel)
         if use_rust and strict_backend and (not _RUST_ACCEL_AVAILABLE or _rust_convolve is None):
-            raise BackendSynchronizationError(
-                "Rust convolve backend unavailable with strict_backend=True"
+            raise _raise_sync_error(
+                "Rust convolve backend unavailable with strict_backend=True",
+                backend="rust",
+                reason="unavailable",
             )
         if use_rust and _RUST_ACCEL_AVAILABLE and _rust_convolve is not None:
             try:
-                return _rust_convolve(signal_arr, kernel_arr, mode)
+                result = _rust_convolve(signal_arr, kernel_arr, mode)
+                _record_healthy("rust")
+                return result
             except Exception as exc:  # pragma: no cover - defensive fallback
                 if strict_backend:
-                    raise BackendSynchronizationError(
-                        "Rust convolve backend failed with strict_backend=True"
+                    raise _raise_sync_error(
+                        "Rust convolve backend failed with strict_backend=True",
+                        backend="rust",
+                        reason="runtime_error",
                     ) from exc
+                _record_downgrade("rust", "numpy", "runtime_error")
                 _logger.warning(
                     "Rust convolve failed (%s); falling back to NumPy.",
                     exc,
                 )
+        elif use_rust and not strict_backend and not _RUST_ACCEL_AVAILABLE:
+            _record_downgrade("rust", "numpy", "unavailable")
         return _convolve_numpy(signal_arr, kernel_arr, mode=mode)
     if use_rust and strict_backend:
-        raise BackendSynchronizationError(
+        raise _raise_sync_error(
             "Rust convolve backend requires NumPy and compiled extension "
-            "when strict_backend=True"
+            "when strict_backend=True",
+            backend="rust",
+            reason="numpy_missing",
         )
-
+    if use_rust and not strict_backend:
+        _record_downgrade("rust", "python", "numpy_missing")
     signal_list = _ensure_vector_python(signal)
     kernel_list = _ensure_vector_python(kernel)
     return _convolve_python(signal_list, kernel_list, mode=mode)
@@ -439,18 +597,20 @@ def convolve(
 
 __all__ = [
     "BackendSynchronizationError",
-    "sliding_windows",
-    "quantiles",
     "convolve",
-    "numpy_available",
-    "rust_available",
-    "sliding_windows_python_backend",
-    "sliding_windows_numpy_backend",
-    "sliding_windows_rust_backend",
-    "quantiles_python_backend",
-    "quantiles_numpy_backend",
-    "quantiles_rust_backend",
-    "convolve_python_backend",
     "convolve_numpy_backend",
+    "convolve_python_backend",
     "convolve_rust_backend",
+    "downgrade_counts",
+    "numpy_available",
+    "quantiles",
+    "quantiles_numpy_backend",
+    "quantiles_python_backend",
+    "quantiles_rust_backend",
+    "reset_downgrade_counter",
+    "rust_available",
+    "sliding_windows",
+    "sliding_windows_numpy_backend",
+    "sliding_windows_python_backend",
+    "sliding_windows_rust_backend",
 ]
