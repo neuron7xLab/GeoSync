@@ -11,7 +11,10 @@ Measures impact on PWPE, Sharpe ratio, and action diversity.
 Includes statistical significance tests (t-test).
 """
 
+from __future__ import annotations
+
 import gc
+from typing import Any, Iterator, cast
 
 import numpy as np
 import pytest
@@ -26,7 +29,7 @@ from geosync_hpc.hpc_validation import (
 )
 
 
-def _cpu_model(**kwargs):
+def _cpu_model(**kwargs: Any) -> HPCActiveInferenceModuleV4:
     """Create model on CPU to avoid GPU OOM with multiple models."""
     m = HPCActiveInferenceModuleV4(**kwargs)
     m.device = torch.device("cpu")
@@ -35,7 +38,7 @@ def _cpu_model(**kwargs):
 
 
 @pytest.fixture(autouse=True)
-def _cleanup_gpu():
+def _cleanup_gpu() -> Iterator[None]:
     yield
     gc.collect()
     if torch.cuda.is_available():
@@ -45,7 +48,7 @@ def _cleanup_gpu():
 class TestAblationStudies:
     """Ablation studies to measure component contributions."""
 
-    def test_ablation_no_metastable_gate(self):
+    def test_ablation_no_metastable_gate(self) -> None:
         """
         Ablation: Remove metastable gate.
         Expected: Higher action diversity, potentially lower Sharpe in high uncertainty.
@@ -60,8 +63,8 @@ class TestAblationStudies:
         data = generate_synthetic_data(n_days=500, volatility=3.0, seed=42)
 
         # Test with gate
-        actions_with_gate = []
-        pwpes_with_gate = []
+        actions_with_gate: list[int] = []
+        pwpes_with_gate: list[float] = []
         prev_pwpe = 0.0
 
         for i in range(20):
@@ -73,10 +76,14 @@ class TestAblationStudies:
             prev_pwpe = pwpe
 
         # Test without gate (override method to always return False)
-        model_no_gate.metastable_transition_gate = lambda pwpe, d_pwpe: False
+        setattr(  # noqa: B010
+            model_no_gate,
+            "metastable_transition_gate",
+            lambda pwpe, d_pwpe_dt: False,
+        )
 
-        actions_no_gate = []
-        pwpes_no_gate = []
+        actions_no_gate: list[int] = []
+        pwpes_no_gate: list[float] = []
         prev_pwpe = 0.0
 
         for i in range(20):
@@ -94,15 +101,12 @@ class TestAblationStudies:
         diversity_without = len(set(actions_no_gate)) / 3.0
 
         # Without gate should have more diversity (less conservative)
-        assert (
-            diversity_without >= diversity_with
-            or abs(diversity_without - diversity_with) < 0.2
-        )
+        assert diversity_without >= diversity_with or abs(diversity_without - diversity_with) < 0.2
 
         # PWPE should be similar (gate doesn't affect computation, only decisions)
         assert abs(np.mean(pwpes_with_gate) - np.mean(pwpes_no_gate)) < 5.0
 
-    def test_ablation_self_reward_expert_only(self):
+    def test_ablation_self_reward_expert_only(self) -> None:
         """
         Ablation: Use only expert rewards (alpha=0).
         Expected: More stable but less adaptive learning.
@@ -120,8 +124,8 @@ class TestAblationStudies:
         # Train both models
         expert_metrics = torch.tensor([1.0, 0.1, 0.2])
 
-        rewards_blend = []
-        rewards_expert = []
+        rewards_blend: list[float] = []
+        rewards_expert: list[float] = []
 
         for i in range(10):
             window = data.iloc[i * 25 : (i + 1) * 25 + 75]
@@ -146,7 +150,7 @@ class TestAblationStudies:
         assert not np.isnan(var_blend) and not np.isnan(var_expert)
         assert var_blend >= 0.0 and var_expert >= 0.0
 
-    def test_ablation_self_reward_predicted_only(self):
+    def test_ablation_self_reward_predicted_only(self) -> None:
         """
         Ablation: Use only predicted rewards (alpha=1).
         Expected: More adaptive but potentially unstable.
@@ -171,7 +175,8 @@ class TestAblationStudies:
         assert 0.0 <= metrics_blend.action_diversity <= 1.0
         assert 0.0 <= metrics_pred.action_diversity <= 1.0
 
-    def test_ablation_combined_effects(self):
+    @pytest.mark.heavy_math
+    def test_ablation_combined_effects(self) -> None:
         """
         Test combined ablation: no gate + expert-only rewards.
         Measure cumulative impact on performance.
@@ -183,7 +188,11 @@ class TestAblationStudies:
         model_ablated = _cpu_model(state_dim=64)
         with torch.no_grad():
             model_ablated.blending_alpha.fill_(0.0)
-        model_ablated.metastable_transition_gate = lambda pwpe, d_pwpe: False
+        setattr(  # noqa: B010
+            model_ablated,
+            "metastable_transition_gate",
+            lambda pwpe, d_pwpe_dt: False,
+        )
 
         data = generate_synthetic_data(n_days=500, volatility=2.0, seed=42)
 
@@ -197,9 +206,12 @@ class TestAblationStudies:
         assert "sharpe" in results_full
         assert "sharpe" in results_ablated
 
-        # Action distributions should differ
-        dist_full = results_full["action_distribution"]
-        dist_ablated = results_ablated["action_distribution"]
+        # Action distributions should differ — simple_backtest ships `Dict[str, float]`
+        # in its signature but actually returns a nested dict under `action_distribution`;
+        # narrow via cast so the structural access is mypy-clean until the upstream
+        # return annotation is tightened.
+        dist_full = cast(dict[str, float], results_full["action_distribution"])
+        dist_ablated = cast(dict[str, float], results_ablated["action_distribution"])
 
         # Check distributions are valid
         assert abs(sum(dist_full.values()) - 1.0) < 0.01
@@ -209,19 +221,23 @@ class TestAblationStudies:
 class TestStatisticalSignificance:
     """Test statistical significance of ablations."""
 
-    def test_pwpe_difference_significance(self):
+    def test_pwpe_difference_significance(self) -> None:
         """
         Test if PWPE differs significantly with/without gate.
         H0: mean(PWPE_with_gate) = mean(PWPE_without_gate)
         """
         model_with = _cpu_model(state_dim=64)
         model_without = _cpu_model(state_dim=64)
-        model_without.metastable_transition_gate = lambda pwpe, d_pwpe: False
+        setattr(  # noqa: B010
+            model_without,
+            "metastable_transition_gate",
+            lambda pwpe, d_pwpe_dt: False,
+        )
 
         data = generate_synthetic_data(n_days=200, volatility=2.0, seed=42)
 
-        pwpes_with = []
-        pwpes_without = []
+        pwpes_with: list[float] = []
+        pwpes_without: list[float] = []
 
         for i in range(15):
             window = data.iloc[i * 10 : (i + 1) * 10 + 50]
@@ -240,14 +256,14 @@ class TestStatisticalSignificance:
         assert not np.isnan(t_stat)
         assert 0.0 <= p_value <= 1.0
 
-    def test_sharpe_difference_significance(self):
+    def test_sharpe_difference_significance(self) -> None:
         """
         Test if Sharpe ratio differs significantly with/without blending.
         Run multiple trials and compute t-test.
         """
         n_trials = 5
-        sharpes_blend = []
-        sharpes_expert = []
+        sharpes_blend: list[float] = []
+        sharpes_expert: list[float] = []
 
         for trial in range(n_trials):
             model_blend = _cpu_model(state_dim=32)
@@ -283,14 +299,18 @@ class TestStatisticalSignificance:
 class TestComponentContributions:
     """Measure individual component contributions to performance."""
 
-    def test_gate_contribution_to_drawdown(self):
+    def test_gate_contribution_to_drawdown(self) -> None:
         """
         Measure if metastable gate reduces maximum drawdown.
         Expected: Gate should reduce drawdown in volatile markets.
         """
         model_with = _cpu_model(state_dim=64)
         model_without = _cpu_model(state_dim=64)
-        model_without.metastable_transition_gate = lambda pwpe, d_pwpe: False
+        setattr(  # noqa: B010
+            model_without,
+            "metastable_transition_gate",
+            lambda pwpe, d_pwpe_dt: False,
+        )
 
         # High volatility data
         data = generate_synthetic_data(n_days=300, volatility=4.0, seed=42)
@@ -308,14 +328,14 @@ class TestComponentContributions:
         assert 0.0 <= dd_with <= 1.0
         assert 0.0 <= dd_without <= 1.0
 
-    def test_blending_contribution_to_stability(self):
+    def test_blending_contribution_to_stability(self) -> None:
         """
         Measure if reward blending improves training stability.
         Expected: Blending should reduce reward variance.
         """
         n_runs = 3
-        variances_blend = []
-        variances_expert = []
+        variances_blend: list[float] = []
+        variances_expert: list[float] = []
 
         for run in range(n_runs):
             model_blend = _cpu_model(state_dim=32)
@@ -326,17 +346,15 @@ class TestComponentContributions:
             data = generate_synthetic_data(n_days=150, seed=42 + run)
             expert_metrics = torch.tensor([1.0, 0.1, 0.2])
 
-            rewards_blend = []
-            rewards_expert = []
+            rewards_blend: list[float] = []
+            rewards_expert: list[float] = []
 
             for i in range(10):
                 window = data.iloc[i * 10 : (i + 1) * 10 + 50]
 
                 state_b = model_blend.afferent_synthesis(window)
                 _, pwpe_b = model_blend.hpc_forward(state_b)
-                rewards_blend.append(
-                    model_blend.compute_self_reward(expert_metrics, pwpe_b.item())
-                )
+                rewards_blend.append(model_blend.compute_self_reward(expert_metrics, pwpe_b.item()))
 
                 state_e = model_expert.afferent_synthesis(window)
                 _, pwpe_e = model_expert.hpc_forward(state_e)
@@ -344,8 +362,8 @@ class TestComponentContributions:
                     model_expert.compute_self_reward(expert_metrics, pwpe_e.item())
                 )
 
-            variances_blend.append(np.var(rewards_blend))
-            variances_expert.append(np.var(rewards_expert))
+            variances_blend.append(float(np.var(rewards_blend)))
+            variances_expert.append(float(np.var(rewards_expert)))
 
         print(
             f"\nReward variance with blending: {np.mean(variances_blend):.6f} ± {np.std(variances_blend):.6f}"
