@@ -16,16 +16,21 @@ PriorAttenuationGate is finalized as a fail-closed Layer 2–3 exploration primi
 1. PriorAttenuation naming and runtime/protocol surface alignment completed.
 2. Canonical invariant set reduced to six enforceable invariants:
    - `INV-PA-1`, `INV-PA-3`, `INV-PA-4`, `INV-PA-5`, `INV-PA-6`, `INV-PA-7`.
-3. Integration witnesses are mandatory (no runtime skip path):
+3. Supporting proof surface (non-canonical invariants) is explicitly separated:
+   - contract-safety tests (non-canonical)
+   - integration witnesses (Kuramoto/entropy)
+   - benchmark/validation artifacts
+4. Integration witnesses are mandatory in CI-capable environments and remain supporting evidence, not canonical laws:
    - Kuramoto order parameter integration witness.
    - Entropy integration witness as free-energy descent proxy behavior.
-4. Physics kernel gate execution is recorded with a real run:
+5. Physics kernel gate execution is recorded with a real run:
    - `python .claude/physics/validate_tests.py --self-check`.
-5. Performance artifact provided:
+6. Performance artifact provided:
    - 10k-cycle benchmark script with avg step latency, memory peak, deepcopy count.
 
 ### Contract assurances
 - Activation is fail-closed and coherence/priors are strictly validated.
 - Reintegration and emergency paths remain restore-confirmed before reset.
 - Safety preemption remains deterministic (`kill_switch_active`, `stressed_state`).
-- Required six invariants each map to direct witness tests.
+- Required six canonical invariants each map to direct canonical witness tests.
+- Additional tests/artifacts are labeled and treated as supporting evidence.

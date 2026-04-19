@@ -10,8 +10,6 @@ from typing import Any, Mapping, cast
 import numpy as np
 import pytest
 
-from core.indicators.entropy import entropy
-from core.indicators.kuramoto import kuramoto_order
 from runtime.prior_attenuation_gate import (
     ExplorationContractError,
     ExplorationPhase,
@@ -132,7 +130,8 @@ def test_inv_pa_1_activation_rejects_non_real_coherence(
 
 
 # activation single-instance witness
-def test_inv_pa_2_second_activation_rejected_without_state_corruption() -> None:
+# supporting contract test (non-canonical)
+def test_support_single_instance_second_activation_rejected_without_state_corruption() -> None:
     gate = PriorAttenuationGate()
     first_cycle = "cycle-1"
     first_priors = _priors()
@@ -198,7 +197,8 @@ def test_inv_pa_4_duration_forces_reintegration_at_threshold_and_closes_step() -
 
 
 # attenuation key-preservation witness
-def test_inv_pa_10_attenuation_scales_values_exactly_and_preserves_keys() -> None:
+# supporting algebraic test (non-canonical)
+def test_support_attenuation_scales_values_exactly_and_preserves_keys() -> None:
     gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.25))
     priors = {"a": 1.25, "b": -2.0, "c": 0.0}
     applied: list[dict[str, float]] = []
@@ -745,6 +745,9 @@ def test_protocol_descriptor_truth_and_registration() -> None:
 
 def test_integration_activation_reduces_kuramoto_order_parameter() -> None:
     # core/indicators/kuramoto.py integration witness
+    pytest.importorskip("omegaconf")
+    from core.indicators.kuramoto import kuramoto_order
+
     gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.4))
     priors = {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 1.0}
 
@@ -769,6 +772,9 @@ def test_integration_activation_reduces_kuramoto_order_parameter() -> None:
 
 def test_integration_activation_increases_entropy_proxy_for_free_energy_descent_drop() -> None:
     # core/indicators/entropy.py integration witness
+    pytest.importorskip("omegaconf")
+    from core.indicators.entropy import entropy
+
     gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.4))
     priors = {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 1.0}
 

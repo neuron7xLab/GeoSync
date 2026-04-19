@@ -696,7 +696,7 @@ prior_attenuation:
     type: conditional
     statement: "Activation is allowed only from NOMINAL parent state with finite real coherence >= activation threshold and readable finite-real prior mapping"
     test_type: unit_test
-    falsification: "activate() or can_activate() accepts non-real coherence, bool coherence, malformed prior mapping entries, or succeeds when parent_nominal=False or coherence<threshold"
+    falsification: "can_activate() returns True for parent_nominal=False, non-real coherence, bool coherence, or coherence<threshold; OR activate() accepts unreadable/malformed prior mapping entries"
     priority: P0
 
   entropy_forces_reintegration:

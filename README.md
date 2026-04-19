@@ -169,7 +169,7 @@ GeoSync is a **verified physical system**, not a test-coverage theatre. The phys
 
 | Metric | Value |
 |--------|-------|
-| Physics invariants | **57** across 15 modules (P0: 37, P1: 17, P2: 3) |
+| Physics invariants | **66 loaded by kernel self-check** (canonical + extended module laws; see `.claude/physics/INVARIANTS.yaml`) |
 | Grounded witnesses | **67** tests with `INV-*` docstrings and 5-field error messages |
 | C1/C2 code audit | **0** undocumented physics clamps in `core/` |
 | CI gate | `physics-kernel-gate.yml` — self-check + L1-L5 validation + C1/C2 audit |
@@ -773,6 +773,6 @@ Trading financial instruments involves substantial risk of loss. GeoSync provide
 
 [![MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat)](LICENSE)
 
-<sub>Built on peer-reviewed science. Physics-first, 57 invariants, every clamp documented.</sub>
+<sub>Built on peer-reviewed science. Physics-first, 66 invariants loaded by kernel self-check, every clamp documented.</sub>
 
 </div>
