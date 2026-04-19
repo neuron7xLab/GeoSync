@@ -1,12 +1,8 @@
 from __future__ import annotations
 
-import importlib.util
 import math
-import sys
-import types
 from dataclasses import FrozenInstanceError
 from datetime import timezone
-from pathlib import Path
 from threading import Event, Thread
 from types import MappingProxyType
 from typing import Any, Mapping, cast
@@ -14,6 +10,8 @@ from typing import Any, Mapping, cast
 import numpy as np
 import pytest
 
+from core.indicators.entropy import entropy
+from core.indicators.kuramoto import kuramoto_order
 from runtime.prior_attenuation_gate import (
     ExplorationContractError,
     ExplorationPhase,
@@ -633,9 +631,9 @@ def test_step_rejects_non_real_entropy_and_coherence_without_mutation() -> None:
         (True, 0.9),
         (0.1, True),
     ]
-    for entropy, coherence in bad_inputs:
+    for entropy_value, coherence in bad_inputs:
         with pytest.raises(ExplorationContractError):
-            gate.step(entropy, coherence)  # type: ignore[arg-type]
+            gate.step(entropy_value, coherence)  # type: ignore[arg-type]
 
     after = gate.snapshot()
     assert after.phase == before.phase
@@ -745,89 +743,8 @@ def test_protocol_descriptor_truth_and_registration() -> None:
     assert restored["p3"] == _priors()["p3"]
 
 
-def _load_indicator_metric(module_file: str, function_name: str):
-    if "core" not in sys.modules:
-        core_pkg = types.ModuleType("core")
-        core_pkg.__path__ = [str(Path("core").resolve())]  # type: ignore[attr-defined]
-        sys.modules["core"] = core_pkg
-
-    if "core.indicators" not in sys.modules:
-        indicators_pkg = types.ModuleType("core.indicators")
-        indicators_pkg.__path__ = [str(Path("core/indicators").resolve())]  # type: ignore[attr-defined]
-        sys.modules["core.indicators"] = indicators_pkg
-
-    if "core.utils" not in sys.modules:
-        utils_pkg = types.ModuleType("core.utils")
-        utils_pkg.__path__ = [str(Path("core/utils").resolve())]  # type: ignore[attr-defined]
-        sys.modules["core.utils"] = utils_pkg
-
-    if "core.utils.logging" not in sys.modules:
-        logging_mod: Any = types.ModuleType("core.utils.logging")
-
-        class _Logger:
-            logger = None
-
-            @staticmethod
-            def operation(*_args, **_kwargs):
-                from contextlib import nullcontext
-
-                return nullcontext()
-
-            @staticmethod
-            def debug(*_args, **_kwargs) -> None:
-                return None
-
-            @staticmethod
-            def warning(*_args, **_kwargs) -> None:
-                return None
-
-        logging_mod.get_logger = lambda *_args, **_kwargs: _Logger()
-        sys.modules["core.utils.logging"] = logging_mod
-
-    if "core.utils.metrics" not in sys.modules:
-        metrics_mod: Any = types.ModuleType("core.utils.metrics")
-
-        class _Metrics:
-            @staticmethod
-            def measure_feature_transform(*_args, **_kwargs):
-                from contextlib import nullcontext
-
-                return nullcontext()
-
-        metrics_mod.get_metrics_collector = lambda: _Metrics()
-        sys.modules["core.utils.metrics"] = metrics_mod
-
-    if "core.indicators.base" not in sys.modules:
-        base_mod: Any = types.ModuleType("core.indicators.base")
-
-        class BaseFeature:
-            def __init__(self, name: str = "") -> None:
-                self.name = name
-
-        class FeatureResult:
-            def __init__(self, value: float, metadata: Mapping[str, object] | None = None) -> None:
-                self.value = value
-                self.metadata = metadata or {}
-
-        base_mod.BaseFeature = BaseFeature
-        base_mod.FeatureResult = FeatureResult
-        sys.modules["core.indicators.base"] = base_mod
-
-    module_path = Path("core/indicators") / module_file
-    spec = importlib.util.spec_from_file_location(
-        f"core.indicators._{module_file.replace('.py', '')}_direct",
-        module_path,
-    )
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return getattr(module, function_name)
-
-
 def test_integration_activation_reduces_kuramoto_order_parameter() -> None:
     # core/indicators/kuramoto.py integration witness
-    kuramoto_order = _load_indicator_metric("kuramoto.py", "kuramoto_order")
-
     gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.4))
     priors = {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 1.0}
 
@@ -852,8 +769,6 @@ def test_integration_activation_reduces_kuramoto_order_parameter() -> None:
 
 def test_integration_activation_increases_entropy_proxy_for_free_energy_descent_drop() -> None:
     # core/indicators/entropy.py integration witness
-    entropy = _load_indicator_metric("entropy.py", "entropy")
-
     gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.4))
     priors = {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 1.0}
 
