@@ -52,7 +52,9 @@ def register_protocol(config: PriorAttenuationConfig | None = None) -> ProtocolR
     return registration
 
 
-def get_registered_protocol(name: str = PRIOR_ATTENUATION_PROTOCOL_NAME) -> ProtocolRegistration | None:
+def get_registered_protocol(
+    name: str = PRIOR_ATTENUATION_PROTOCOL_NAME,
+) -> ProtocolRegistration | None:
     return _PROTOCOL_REGISTRY.get(name)
 
 

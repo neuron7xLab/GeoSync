@@ -103,7 +103,9 @@ class PriorAttenuationGate:
         self._cycle_id: str | None = None
         self._prior_weights_backup: dict[str, float] | None = None
         self._restore_callback: Callable[[Mapping[str, float]], bool] | None = None
-        self._audit_log: deque[PriorAttenuationAuditEvent] = deque(maxlen=self._config.max_audit_events)
+        self._audit_log: deque[PriorAttenuationAuditEvent] = deque(
+            maxlen=self._config.max_audit_events
+        )
         self._cross_module_openings = 0
         self._diversity_gain = 1.0
 
