@@ -10,7 +10,7 @@ import time
 from typing import Any, Mapping
 from urllib.parse import urlencode
 
-import requests
+import requests  # type: ignore[import-untyped,unused-ignore]
 
 DEFAULT_TIMEOUT = 15
 
