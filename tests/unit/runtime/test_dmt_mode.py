@@ -324,6 +324,53 @@ def test_activate_rejects_non_real_prior_values() -> None:
         assert not any(e.event == "activated" for e in gate.audit_log())
 
 
+def test_activate_rejects_non_mapping_prior_weights() -> None:
+    gate = PriorAttenuationGate()
+    with pytest.raises(ExplorationContractError):
+        gate.activate(
+            "cycle-1",
+            [("p1", 1.0)],  # type: ignore[arg-type]
+            parent_nominal=True,
+            current_coherence=0.9,
+            apply_attenuated_priors=_apply_sink([]),
+            apply_restored_priors=_apply_sink([]),
+        )
+
+    assert gate.snapshot().phase == ExplorationPhase.INACTIVE
+    assert not any(e.event == "activated" for e in gate.audit_log())
+
+
+def test_activate_malformed_mapping_items_fails_closed() -> None:
+    class BrokenPairsMapping(Mapping[str, float]):
+        def __getitem__(self, key: str) -> float:
+            if key == "p1":
+                return 1.0
+            raise KeyError(key)
+
+        def __iter__(self):
+            return iter(["p1"])
+
+        def __len__(self) -> int:
+            return 1
+
+        def items(self):  # type: ignore[override]
+            return [("p1", 1.0, 2.0)]
+
+    gate = PriorAttenuationGate()
+    with pytest.raises(ExplorationContractError):
+        gate.activate(
+            "cycle-1",
+            BrokenPairsMapping(),
+            parent_nominal=True,
+            current_coherence=0.9,
+            apply_attenuated_priors=_apply_sink([]),
+            apply_restored_priors=_apply_sink([]),
+        )
+
+    assert gate.snapshot().phase == ExplorationPhase.INACTIVE
+    assert not any(e.event == "activated" for e in gate.audit_log())
+
+
 def test_activation_is_atomic_and_fails_closed_when_apply_fails() -> None:
     gate = PriorAttenuationGate()
 

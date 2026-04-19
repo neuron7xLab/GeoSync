@@ -12,4 +12,4 @@ invariant_ids:
   - INV-DMT-8
   - INV-DMT-9
   - INV-DMT-10
-note: "Derived runtime scope index. Definitions are canonical in .claude/physics/INVARIANTS.yaml. Boundary inputs for activation/step/reintegrate are finite-real only (bool and numeric strings rejected), activation requires attenuated-apply confirmation, and terminal paths require restore-apply confirmation."
+note: "Derived runtime scope index. Definitions are canonical in .claude/physics/INVARIANTS.yaml. Boundary inputs for activation/step/reintegrate are finite-real only (bool and numeric strings rejected), activation requires readable finite-real prior mapping plus attenuated-apply confirmation, and terminal paths require restore-apply confirmation."

@@ -171,6 +171,10 @@ class PriorAttenuationGate:
                 )
             if not cycle_id:
                 raise ExplorationContractError("activation denied: cycle_id is required")
+            if not isinstance(prior_weights, Mapping):
+                raise ExplorationContractError(
+                    "activation denied: prior_weights must be a mapping of finite real values"
+                )
             if not prior_weights:
                 raise ExplorationContractError("activation denied: prior_weights must not be empty")
             if not callable(apply_attenuated_priors):
@@ -183,13 +187,24 @@ class PriorAttenuationGate:
                 )
 
             attenuated: dict[str, float] = {}
-            for key, value in prior_weights.items():
-                finite_value = self._require_finite_real(
-                    name=f"prior_weights[{key!r}]",
-                    value=value,
-                    message=f"activation denied: prior value for key={key!r} must be a finite real number",
-                )
-                attenuated[key] = finite_value * self._config.attenuation_factor
+            try:
+                prior_pairs = tuple(prior_weights.items())
+            except Exception as exc:  # noqa: BLE001 - fail-closed boundary
+                raise ExplorationContractError(
+                    "activation denied: prior_weights mapping could not be read"
+                ) from exc
+            try:
+                for key, value in prior_pairs:
+                    finite_value = self._require_finite_real(
+                        name=f"prior_weights[{key!r}]",
+                        value=value,
+                        message=f"activation denied: prior value for key={key!r} must be a finite real number",
+                    )
+                    attenuated[key] = finite_value * self._config.attenuation_factor
+            except (TypeError, ValueError) as exc:
+                raise ExplorationContractError(
+                    "activation denied: prior_weights entries must be key/value pairs"
+                ) from exc
 
             self._apply_callback_or_raise(
                 apply_attenuated_priors,

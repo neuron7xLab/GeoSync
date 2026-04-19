@@ -694,9 +694,9 @@ prior_attenuation:
   activation_guard:
     id: INV-DMT-1
     type: conditional
-    statement: "Activation is allowed only from NOMINAL parent state with finite real coherence >= activation threshold"
+    statement: "Activation is allowed only from NOMINAL parent state with finite real coherence >= activation threshold and readable finite-real prior mapping"
     test_type: unit_test
-    falsification: "activate() or can_activate() accepts non-real coherence, bool coherence, or succeeds when parent_nominal=False or coherence<threshold"
+    falsification: "activate() or can_activate() accepts non-real coherence, bool coherence, malformed prior mapping entries, or succeeds when parent_nominal=False or coherence<threshold"
     priority: P0
 
   single_instance_per_gate:

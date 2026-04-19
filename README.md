@@ -191,7 +191,7 @@ GeoSync is a **verified physical system**, not a test-coverage theatre. The phys
 `runtime.dmt_mode.PriorAttenuationGate` is confirmation-gated on both boundaries:
 
 - **Activation boundary** requires `apply_attenuated_priors` confirmation before the gate is allowed to enter `ATTENUATION`.
-- **Contract input boundary** accepts only finite real numeric values for coherence/entropy checks (`bool` and numeric text are rejected; invalid boundary values raise `ExplorationContractError`).
+- **Contract input boundary** accepts only finite real numeric values for coherence/entropy checks and requires `prior_weights` to be a readable key/value mapping of finite real values (`bool` and numeric text are rejected; invalid boundary values raise `ExplorationContractError`).
 - **Terminal boundary** (`reintegrate` / `emergency_exit`) requires `apply_restored_priors` confirmation before terminal success/failure events are emitted and state resets to `INACTIVE`.
 - If either callback does not confirm apply (or raises), the gate remains fail-closed and emits a failure event instead of a false success claim.
 
