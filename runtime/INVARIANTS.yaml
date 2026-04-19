@@ -1,15 +1,11 @@
 version: 1
 source_of_truth: .claude/physics/INVARIANTS.yaml
-module: runtime.dmt_mode
+module: runtime.prior_attenuation_gate
 invariant_ids:
-  - INV-DMT-1
-  - INV-DMT-2
-  - INV-DMT-3
-  - INV-DMT-4
-  - INV-DMT-5
-  - INV-DMT-6
-  - INV-DMT-7
-  - INV-DMT-8
-  - INV-DMT-9
-  - INV-DMT-10
+  - INV-PA-1
+  - INV-PA-3
+  - INV-PA-4
+  - INV-PA-5
+  - INV-PA-6
+  - INV-PA-7
 note: "Derived runtime scope index. Definitions are canonical in .claude/physics/INVARIANTS.yaml. Boundary inputs for activation/step/reintegrate are finite-real only (bool and numeric strings rejected), activation requires readable finite-real prior mapping plus attenuated-apply confirmation, and terminal paths require restore-apply confirmation."

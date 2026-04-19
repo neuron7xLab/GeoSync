@@ -7,16 +7,17 @@ from threading import Event, Thread
 from types import MappingProxyType
 from typing import Any, Mapping, cast
 
+import numpy as np
 import pytest
 
-from runtime.dmt_mode import (
+from runtime.prior_attenuation_gate import (
     ExplorationContractError,
     ExplorationPhase,
     PriorAttenuationConfig,
     PriorAttenuationGate,
 )
 from tacl.prior_attenuation_protocol import (
-    DMT_PROTOCOL_NAME,
+    PRIOR_ATTENUATION_PROTOCOL_NAME,
     apply_external_controller,
     build_protocol,
     clear_registered_protocols,
@@ -53,8 +54,8 @@ def _activate(
     )
 
 
-# INV-DMT-1 witness
-def test_inv_dmt_1_activation_denied_when_parent_not_nominal() -> None:
+# INV-PA-1 witness
+def test_inv_pa_1_activation_denied_when_parent_not_nominal() -> None:
     gate = PriorAttenuationGate()
 
     with pytest.raises(ExplorationContractError):
@@ -80,8 +81,8 @@ def test_inv_dmt_1_activation_denied_when_parent_not_nominal() -> None:
     assert gate.snapshot().phase == ExplorationPhase.ATTENUATION
 
 
-# INV-DMT-1 witness
-def test_inv_dmt_1_activation_denied_when_coherence_below_threshold() -> None:
+# INV-PA-1 witness
+def test_inv_pa_1_activation_denied_when_coherence_below_threshold() -> None:
     gate = PriorAttenuationGate()
 
     with pytest.raises(ExplorationContractError):
@@ -107,9 +108,9 @@ def test_inv_dmt_1_activation_denied_when_coherence_below_threshold() -> None:
     assert gate.snapshot().phase == ExplorationPhase.ATTENUATION
 
 
-# INV-DMT-1 witness (non-real boundary)
+# INV-PA-1 witness (non-real boundary)
 @pytest.mark.parametrize("bad_coherence", [None, "0.9", True])
-def test_inv_dmt_1_activation_rejects_non_real_coherence(
+def test_inv_pa_1_activation_rejects_non_real_coherence(
     bad_coherence: object,
 ) -> None:
     gate = PriorAttenuationGate()
@@ -128,8 +129,8 @@ def test_inv_dmt_1_activation_rejects_non_real_coherence(
     assert not any(e.event == "activated" for e in gate.audit_log())
 
 
-# INV-DMT-2 witness
-def test_inv_dmt_2_second_activation_rejected_without_state_corruption() -> None:
+# activation single-instance witness
+def test_inv_pa_2_second_activation_rejected_without_state_corruption() -> None:
     gate = PriorAttenuationGate()
     first_cycle = "cycle-1"
     first_priors = _priors()
@@ -166,8 +167,8 @@ def test_inv_dmt_2_second_activation_rejected_without_state_corruption() -> None
     assert activated_after == activated_before
 
 
-# INV-DMT-3 witness
-def test_inv_dmt_3_entropy_ceiling_forces_reintegration_and_blocks_progression() -> None:
+# INV-PA-3 witness
+def test_inv_pa_3_entropy_ceiling_forces_reintegration_and_blocks_progression() -> None:
     gate = PriorAttenuationGate()
     _activate(gate, [], [])
 
@@ -179,8 +180,8 @@ def test_inv_dmt_3_entropy_ceiling_forces_reintegration_and_blocks_progression()
         gate.step(0.1, 0.95)
 
 
-# INV-DMT-4 witness
-def test_inv_dmt_4_duration_forces_reintegration_at_threshold_and_closes_step() -> None:
+# INV-PA-4 witness
+def test_inv_pa_4_duration_forces_reintegration_at_threshold_and_closes_step() -> None:
     gate = PriorAttenuationGate(PriorAttenuationConfig(max_duration_bars=2))
     _activate(gate, [], [])
 
@@ -194,8 +195,8 @@ def test_inv_dmt_4_duration_forces_reintegration_at_threshold_and_closes_step() 
         gate.step(0.1, 0.95)
 
 
-# INV-DMT-10 witness
-def test_inv_dmt_10_attenuation_scales_values_exactly_and_preserves_keys() -> None:
+# attenuation key-preservation witness
+def test_inv_pa_10_attenuation_scales_values_exactly_and_preserves_keys() -> None:
     gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.25))
     priors = {"a": 1.25, "b": -2.0, "c": 0.0}
     applied: list[dict[str, float]] = []
@@ -215,8 +216,8 @@ def test_inv_dmt_10_attenuation_scales_values_exactly_and_preserves_keys() -> No
     assert applied == [attenuated]
 
 
-# INV-DMT-6 witness
-def test_inv_dmt_6_failed_reintegration_restores_exact_backup() -> None:
+# INV-PA-6 witness
+def test_inv_pa_6_failed_reintegration_restores_exact_backup() -> None:
     gate = PriorAttenuationGate()
     restored_applied: list[dict[str, float]] = []
     original = _priors()
@@ -242,8 +243,8 @@ def test_inv_dmt_6_failed_reintegration_restores_exact_backup() -> None:
     assert gate.snapshot().phase == ExplorationPhase.INACTIVE
 
 
-# INV-DMT-7 witness
-def test_inv_dmt_7_safety_preemption_forces_emergency_exit() -> None:
+# INV-PA-7 witness
+def test_inv_pa_7_safety_preemption_forces_emergency_exit() -> None:
     gate = PriorAttenuationGate()
     restored_applied: list[dict[str, float]] = []
     _activate(gate, [], restored_applied)
@@ -255,8 +256,8 @@ def test_inv_dmt_7_safety_preemption_forces_emergency_exit() -> None:
     assert gate.snapshot().phase == ExplorationPhase.INACTIVE
 
 
-# INV-DMT-5 witness
-def test_inv_dmt_5_gate_never_becomes_inactive_without_terminal_call() -> None:
+# INV-PA-5 witness
+def test_inv_pa_5_gate_never_becomes_inactive_without_terminal_call() -> None:
     gate = PriorAttenuationGate()
     _activate(gate, [], [])
 
@@ -520,7 +521,7 @@ def test_external_safety_signal_applies_restore() -> None:
     assert restored_applied == [_priors()]
 
 
-# INV-DMT-9 witness
+# audit retention witness
 def test_audit_retention_bounded_and_terminal_visible() -> None:
     gate = PriorAttenuationGate(PriorAttenuationConfig(max_audit_events=10))
 
@@ -592,8 +593,8 @@ def test_snapshot_and_audit_payload_are_immutable_and_utc() -> None:
     assert event.ts.tzinfo.utcoffset(event.ts) == timezone.utc.utcoffset(event.ts)
 
 
-# INV-DMT-8 witness
-def test_inv_dmt_8_all_audit_timestamps_are_utc() -> None:
+# audit UTC witness
+def test_inv_pa_8_all_audit_timestamps_are_utc() -> None:
     gate = PriorAttenuationGate()
     _activate(gate, [], [])
     gate.step(0.1, 0.9)
@@ -718,7 +719,7 @@ def test_protocol_descriptor_truth_and_registration() -> None:
     registration = register_protocol()
     loaded = get_registered_protocol()
     assert loaded is not None
-    assert loaded.name == registration.name == DMT_PROTOCOL_NAME
+    assert loaded.name == registration.name == PRIOR_ATTENUATION_PROTOCOL_NAME
 
     gate = cast(PriorAttenuationGate, loaded.descriptor["gate"])
     assert isinstance(gate, PriorAttenuationGate)
@@ -738,3 +739,55 @@ def test_protocol_descriptor_truth_and_registration() -> None:
     assert restored["p1"] == _priors()["p1"]
     assert restored["p2"] == _priors()["p2"]
     assert restored["p3"] == _priors()["p3"]
+
+
+def test_integration_activation_reduces_kuramoto_order_parameter() -> None:
+    # core/indicators/kuramoto.py integration witness
+    pytest.importorskip("omegaconf")
+    from core.indicators.kuramoto import kuramoto_order
+
+    gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.4))
+    priors = {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 1.0}
+
+    baseline_phases = np.array([priors["p1"], priors["p2"], priors["p3"], priors["p4"]])
+    baseline_r = float(kuramoto_order(baseline_phases))
+
+    attenuated = gate.activate(
+        "cycle-1",
+        priors,
+        parent_nominal=True,
+        current_coherence=0.95,
+        apply_attenuated_priors=_apply_sink([]),
+        apply_restored_priors=_apply_sink([]),
+    )
+    attenuated_phases = np.array(
+        [attenuated["p1"], attenuated["p2"], attenuated["p3"], attenuated["p4"]]
+    )
+    attenuated_r = float(kuramoto_order(attenuated_phases))
+
+    assert attenuated_r <= baseline_r
+
+
+def test_integration_activation_increases_entropy_proxy_for_free_energy_descent_drop() -> None:
+    # core/indicators/entropy.py integration witness
+    pytest.importorskip("omegaconf")
+    from core.indicators.entropy import entropy
+
+    gate = PriorAttenuationGate(PriorAttenuationConfig(attenuation_factor=0.4))
+    priors = {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 1.0}
+
+    baseline_signal = np.array([priors["p1"]] * 64)
+    baseline_entropy = float(entropy(baseline_signal))
+
+    attenuated = gate.activate(
+        "cycle-1",
+        priors,
+        parent_nominal=True,
+        current_coherence=0.95,
+        apply_attenuated_priors=_apply_sink([]),
+        apply_restored_priors=_apply_sink([]),
+    )
+    mixed_signal = np.array([priors["p1"], attenuated["p1"]] * 32)
+    attenuated_entropy = float(entropy(mixed_signal))
+
+    assert attenuated_entropy >= baseline_entropy

@@ -19,7 +19,7 @@ from .energy_model import (
     EnergyValidator,
 )
 from .prior_attenuation_protocol import (
-    DMT_PROTOCOL_NAME,
+    PRIOR_ATTENUATION_PROTOCOL_NAME,
     apply_external_controller,
     build_protocol,
     clear_registered_protocols,
@@ -57,7 +57,7 @@ __all__ = [
     "RiskGatingConfig",
     "RiskGatingEngine",
     "load_scenarios",
-    "DMT_PROTOCOL_NAME",
+    "PRIOR_ATTENUATION_PROTOCOL_NAME",
     "build_protocol",
     "register_protocol",
     "get_registered_protocol",

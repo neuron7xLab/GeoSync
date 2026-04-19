@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from runtime.dmt_mode import PriorAttenuationConfig, PriorAttenuationGate
+from runtime.prior_attenuation_gate import PriorAttenuationConfig, PriorAttenuationGate
 
-DMT_PROTOCOL_NAME = "prior_attenuation_v1"
+PRIOR_ATTENUATION_PROTOCOL_NAME = "prior_attenuation_v1"
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ def build_protocol(config: PriorAttenuationConfig | None = None) -> dict[str, ob
     resolved_config = config or PriorAttenuationConfig()
     gate = PriorAttenuationGate(config=resolved_config)
     return {
-        "name": DMT_PROTOCOL_NAME,
+        "name": PRIOR_ATTENUATION_PROTOCOL_NAME,
         "version": "1.0",
         "gate": gate,
         "activation_conditions": {
@@ -52,7 +52,7 @@ def register_protocol(config: PriorAttenuationConfig | None = None) -> ProtocolR
     return registration
 
 
-def get_registered_protocol(name: str = DMT_PROTOCOL_NAME) -> ProtocolRegistration | None:
+def get_registered_protocol(name: str = PRIOR_ATTENUATION_PROTOCOL_NAME) -> ProtocolRegistration | None:
     return _PROTOCOL_REGISTRY.get(name)
 
 

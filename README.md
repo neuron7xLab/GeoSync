@@ -186,9 +186,15 @@ GeoSync is a **verified physical system**, not a test-coverage theatre. The phys
 | `INV-DA7` | ∂δ/∂r = 1 (RPE linear in reward) | Dopamine |
 | `INV-RC1` | Ollivier-Ricci κ ≤ 1 (universal upper bound) | Ricci |
 
-### PriorAttenuationGate Contract (DMT)
+### Neuro-primitive Catalog
 
-`runtime.dmt_mode.PriorAttenuationGate` is confirmation-gated on both boundaries:
+- **PriorAttenuationGate** (`runtime.prior_attenuation_gate`) is a Layer 2–3 guardrail primitive:
+  - Layer 2 (protected gradient): bounded exploration with fail-closed activation.
+  - Layer 3 (preserved gradient): mandatory terminal restore before returning to inactive state.
+
+### PriorAttenuationGate Contract (PriorAttenuation)
+
+`runtime.prior_attenuation_gate.PriorAttenuationGate` is confirmation-gated on both boundaries:
 
 - **Activation boundary** requires `apply_attenuated_priors` confirmation before the gate is allowed to enter `ATTENUATION`.
 - **Contract input boundary** accepts only finite real numeric values for coherence/entropy checks and requires `prior_weights` to be a readable key/value mapping of finite real values (`bool` and numeric text are rejected; invalid boundary values raise `ExplorationContractError`).

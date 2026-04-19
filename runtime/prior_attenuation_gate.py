@@ -60,7 +60,7 @@ class ExplorationControl:
 
 
 @dataclass(frozen=True)
-class DMTModeSnapshot:
+class PriorAttenuationSnapshot:
     phase: ExplorationPhase
     activated_at: datetime | None
     bars_elapsed: int
@@ -74,7 +74,7 @@ class DMTModeSnapshot:
 
 
 @dataclass(frozen=True)
-class DMTAuditEvent:
+class PriorAttenuationAuditEvent:
     ts: datetime
     event: str
     cycle_id: str | None
@@ -103,13 +103,13 @@ class PriorAttenuationGate:
         self._cycle_id: str | None = None
         self._prior_weights_backup: dict[str, float] | None = None
         self._restore_callback: Callable[[Mapping[str, float]], bool] | None = None
-        self._audit_log: deque[DMTAuditEvent] = deque(maxlen=self._config.max_audit_events)
+        self._audit_log: deque[PriorAttenuationAuditEvent] = deque(maxlen=self._config.max_audit_events)
         self._cross_module_openings = 0
         self._diversity_gain = 1.0
 
-    def snapshot(self) -> DMTModeSnapshot:
+    def snapshot(self) -> PriorAttenuationSnapshot:
         with self._lock:
-            return DMTModeSnapshot(
+            return PriorAttenuationSnapshot(
                 phase=self._phase,
                 activated_at=self._activated_at,
                 bars_elapsed=self._bars_elapsed,
@@ -385,10 +385,10 @@ class PriorAttenuationGate:
                 return self.emergency_exit("stressed_escalation")
             return None
 
-    def audit_log(self) -> list[DMTAuditEvent]:
+    def audit_log(self) -> list[PriorAttenuationAuditEvent]:
         with self._lock:
             return [
-                DMTAuditEvent(
+                PriorAttenuationAuditEvent(
                     ts=event.ts,
                     event=event.event,
                     cycle_id=event.cycle_id,
@@ -414,7 +414,7 @@ class PriorAttenuationGate:
     def _append_event(self, event: str, details: Mapping[str, object]) -> None:
         frozen_details = MappingProxyType(deepcopy(dict(details)))
         self._audit_log.append(
-            DMTAuditEvent(
+            PriorAttenuationAuditEvent(
                 ts=utc_now(),
                 event=event,
                 cycle_id=self._cycle_id,
