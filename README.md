@@ -29,6 +29,7 @@ Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynami
 [![PR Gate](https://github.com/neuron7xLab/GeoSync/actions/workflows/pr-gate.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/pr-gate.yml)
 [![CodeQL](https://github.com/neuron7xLab/GeoSync/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/codeql.yml)
 [![Main Validation](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml)
+[![Formal Verification](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Security](https://img.shields.io/badge/NIST%20SP%20800--53-aligned-red?style=flat)](docs/security/)
 [![Physics Gate](https://img.shields.io/badge/physics_gate-53_invariants-critical?style=flat)](CLAUDE.md)
@@ -145,6 +146,8 @@ dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
 ## Physics Kernel
 
 GeoSync is a **verified physical system**, not a test-coverage theatre. The physics kernel (`.claude/physics/`) defines **57 machine-checkable invariants** across 15 modules. Every test is a *mathematical witness* of a specific physical law, not a line-coverage artefact.
+
+Control-plane safety properties are additionally **model-checked in TLA⁺** — see [`formal/tla/AdmissionGate.tla`](formal/tla/AdmissionGate.tla) for the four-barrier admission gate with three TLC-checkable invariants (`TypeOK`, `SafeFirstRejectionWins`, `RejectCodeMatchesBarrier`). CI runs TLC on every PR via [`formal-verification.yml`](.github/workflows/formal-verification.yml).
 
 ```
                      ┌──────────────────────────────────────┐
