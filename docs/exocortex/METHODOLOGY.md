@@ -14,8 +14,8 @@ the human contributor is the central decision node and the only signer.
 | **Verifier** | Confirms the artifact is reproducible bit-for-bit | `MANIFEST.sha256` diff + signed tag |
 
 The Critic role is partially **embedded in the repository**, not in the
-contributor's head: [`CLAUDE.md`](../CLAUDE.md) and the documents under
-[`.claude/physics/`](../.claude/physics/) state the rules a Critic must apply,
+contributor's head: [`CLAUDE.md`](../../CLAUDE.md) and the documents under
+[`.claude/physics/`](../../.claude/physics/) state the rules a Critic must apply,
 so any reviewer (human or automated) reaches the same verdict.
 
 ## The five validation gates
