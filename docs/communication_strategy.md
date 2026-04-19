@@ -106,7 +106,6 @@ This playbook defines a phased, system-level communication strategy for GeoSync.
 | Status Page | Customers | Real time | Web status page, JSON feed | SRE | `observability/status/` service |
 | Incident Confidential Channel | Incident response team | On demand | Encrypted chat + hotline | Security Incident Commander | `security/incident_comms/` playbook |
 | Knowledge Base | Internal | Continuous | MkDocs site | Documentation Guild | `docs/` repository |
-| Stakeholder Briefings | Executives, regulators | Monthly | Slide deck + talking points | Chief of Staff | `stakeholders/briefings/` |
 | Public Release Notes Digest | Public | Monthly | Blog post | Marketing | `newsfragments/` aggregate |
 
 ## Mandatory Formats & Governance

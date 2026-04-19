@@ -175,7 +175,7 @@ links:
 | PROD_WALK_FORWARD | product | Walk-forward optimization | N/A | backtest/ | partial | Documented capability |
 | PROD_PROPERTY_TESTS | product | Property-based testing with Hypothesis | `pytest tests/property/` | tests/property/ | proven | Tests exist and run in CI |
 | PROD_FUZZ_TESTS | product | Fuzz testing | `pytest tests/fuzz/` | tests/fuzz/ | proven | Tests exist and run in CI |
-| PROD_RISK_GUARDIAN | product | Risk Guardian drawdown protection | `tp risk-guardian simulate` | money_proof/ | partial | Scripts present, no production data |
+| PROD_RISK_GUARDIAN | product | Risk Guardian drawdown protection | `tp risk-guardian simulate` | execution/risk/ | partial | Scripts present, no production data |
 
 ### Other Claims
 

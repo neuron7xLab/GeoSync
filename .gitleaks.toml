@@ -5,7 +5,6 @@ useDefault = true
 description = "Allow deterministic checksum fields in managed manifests."
 paths = [
   '''^INVENTORY\.json$''',
-  '''^stakeholders/manifest\.json$''',
 ]
 regexes = [
   '''"sha256"\s*:\s*"[0-9a-f]{64}"''',

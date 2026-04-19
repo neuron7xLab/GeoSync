@@ -76,7 +76,7 @@ repos:
             "--baseline",
             ".secrets.baseline",
             "--exclude-files",
-            "^(INVENTORY\\.json|stakeholders/manifest\\.json)$",
+            "^INVENTORY\\.json$",
           ]
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.22.1
