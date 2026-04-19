@@ -1,0 +1,15 @@
+version: 1
+source_of_truth: .claude/physics/INVARIANTS.yaml
+module: runtime.dmt_mode
+invariant_ids:
+  - INV-DMT-1
+  - INV-DMT-2
+  - INV-DMT-3
+  - INV-DMT-4
+  - INV-DMT-5
+  - INV-DMT-6
+  - INV-DMT-7
+  - INV-DMT-8
+  - INV-DMT-9
+  - INV-DMT-10
+note: "Derived runtime scope index. Definitions are canonical in .claude/physics/INVARIANTS.yaml. Activation requires attenuated-apply confirmation and terminal paths require restore-apply confirmation."

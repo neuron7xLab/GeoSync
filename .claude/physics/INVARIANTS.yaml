@@ -685,3 +685,88 @@ dro_ara:
     test_type: property_test
     falsification: "geosync_observe returns silently on any degenerate input above"
     priority: P0
+
+# ═══════════════════════════════════════════════════
+# PRIOR ATTENUATION EXPLORATION MODE
+# ═══════════════════════════════════════════════════
+
+prior_attenuation:
+  activation_guard:
+    id: INV-DMT-1
+    type: conditional
+    statement: "Activation is allowed only from NOMINAL parent state with coherence >= activation threshold"
+    test_type: unit_test
+    falsification: "activate() succeeds when parent_nominal=False or coherence<threshold"
+    priority: P0
+
+  single_instance_per_gate:
+    id: INV-DMT-2
+    type: universal
+    statement: "A PriorAttenuationGate instance cannot hold more than one active exploration cycle"
+    test_type: unit_test
+    falsification: "second activate() succeeds while gate is already active"
+    priority: P0
+
+  entropy_forces_reintegration:
+    id: INV-DMT-3
+    type: universal
+    statement: "If current_entropy exceeds max_entropy, phase must become REINTEGRATION immediately and step() must reject further progression"
+    test_type: unit_test
+    falsification: "entropy ceiling breach does not set REINTEGRATION or step() continues afterward"
+    priority: P0
+
+  duration_forces_reintegration:
+    id: INV-DMT-4
+    type: universal
+    statement: "If bars_elapsed reaches max_duration_bars, phase must become REINTEGRATION and progression is blocked until terminal restore"
+    test_type: unit_test
+    falsification: "duration cap reached but phase remains non-REINTEGRATION"
+    priority: P0
+
+  terminal_paths_are_closed:
+    id: INV-DMT-5
+    type: universal
+    statement: "Only reintegrate(success/fail) or emergency_exit may terminate an active exploration cycle"
+    test_type: unit_test
+    falsification: "gate transitions to INACTIVE without reintegrate() or emergency_exit()"
+    priority: P0
+
+  exact_prior_restore:
+    id: INV-DMT-6
+    type: universal
+    statement: "All terminal paths restore prior weights exactly from backup"
+    test_type: unit_test
+    falsification: "terminal callback applies priors that differ from stored backup"
+    priority: P0
+
+  safety_preemption:
+    id: INV-DMT-7
+    type: conditional
+    statement: "kill_switch_active or stressed_state must preempt exploration via emergency_exit"
+    test_type: integration_test
+    falsification: "external safety signal leaves gate active"
+    priority: P0
+
+  utc_timestamps:
+    id: INV-DMT-8
+    type: universal
+    statement: "All audit timestamps emitted by the gate are timezone-aware UTC datetimes"
+    test_type: unit_test
+    falsification: "any audit event has naive timestamp or non-UTC offset"
+    priority: P1
+
+  immutable_audit_payload:
+    id: INV-DMT-9
+    type: universal
+    statement: "Audit payloads returned to callers are immutable and in-memory retention is bounded"
+    test_type: unit_test
+    falsification: "audit payload mutation succeeds OR audit length exceeds configured max_audit_events"
+    priority: P0
+
+  attenuation_key_preservation:
+    id: INV-DMT-10
+    type: algebraic
+    statement: "Attenuated priors preserve key set exactly; only values are scaled"
+    test_type: unit_test
+    falsification: "attenuated key set differs from input prior key set"
+    priority: P0

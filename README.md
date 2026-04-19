@@ -186,6 +186,14 @@ GeoSync is a **verified physical system**, not a test-coverage theatre. The phys
 | `INV-DA7` | ∂δ/∂r = 1 (RPE linear in reward) | Dopamine |
 | `INV-RC1` | Ollivier-Ricci κ ≤ 1 (universal upper bound) | Ricci |
 
+### PriorAttenuationGate Contract (DMT)
+
+`runtime.dmt_mode.PriorAttenuationGate` is confirmation-gated on both boundaries:
+
+- **Activation boundary** requires `apply_attenuated_priors` confirmation before the gate is allowed to enter `ATTENUATION`.
+- **Terminal boundary** (`reintegrate` / `emergency_exit`) requires `apply_restored_priors` confirmation before terminal success/failure events are emitted and state resets to `INACTIVE`.
+- If either callback does not confirm apply (or raises), the gate remains fail-closed and emits a failure event instead of a false success claim.
+
 <p align="center">
   <img src=".github/assets/divider.svg" width="100%">
 </p>

@@ -26,6 +26,15 @@ from .risk_gating import (
     RiskGatingEngine,
 )
 from .validate import load_scenarios
+from .prior_attenuation_protocol import (
+    DMT_PROTOCOL_NAME,
+    apply_external_controller,
+    build_protocol,
+    clear_registered_protocols,
+    get_registered_protocol,
+    protocol_schema_keys,
+    register_protocol,
+)
 
 __all__ = [
     "DEFAULT_THRESHOLDS",
@@ -48,4 +57,11 @@ __all__ = [
     "RiskGatingConfig",
     "RiskGatingEngine",
     "load_scenarios",
+    "DMT_PROTOCOL_NAME",
+    "build_protocol",
+    "register_protocol",
+    "get_registered_protocol",
+    "clear_registered_protocols",
+    "apply_external_controller",
+    "protocol_schema_keys",
 ]
