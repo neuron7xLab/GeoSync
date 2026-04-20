@@ -37,9 +37,12 @@ if TYPE_CHECKING:
     pass
 
 # Type variables for generic interfaces
+# DataT / EventT use variance markers to satisfy Protocol position rules:
+# DataT is covariant (appears only in return positions, e.g. Iterable[DataT] from DataSource.fetch).
+# EventT is contravariant (appears only in input positions, e.g. payload: EventT on EventBus.publish).
 T = TypeVar("T")
-EventT = TypeVar("EventT")
-DataT = TypeVar("DataT")
+EventT = TypeVar("EventT", contravariant=True)
+DataT = TypeVar("DataT", covariant=True)
 FeatureT = TypeVar("FeatureT")
 
 

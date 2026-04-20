@@ -5,8 +5,11 @@ from __future__ import annotations
 import importlib.util
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal, cast
 
 import pandas as pd
+
+ParquetEngine = Literal["auto", "pyarrow", "fastparquet"]
 
 
 class ParquetEngineUnavailable(RuntimeError):
@@ -36,7 +39,7 @@ def read_parquet_compat(path: Path) -> pd.DataFrame:
     last_err: Exception | None = None
     for engine in engines:
         try:
-            return pd.read_parquet(path, engine=engine)
+            return pd.read_parquet(path, engine=cast(ParquetEngine, engine))
         except Exception as exc:  # pragma: no cover - backend-specific
             last_err = exc
 
