@@ -415,3 +415,11 @@ PYTHONPATH=. python scripts/run_microstructure_cycle.py
 
 Determinism contract: seed=42, IC>=0.08 for SIGNAL_READY, NaN→ABORT,
 OHLC_ONLY→DORMANT, replay_hash over sort_keys=True JSON payload.
+
+
+---
+
+## UI Contract
+Every frontend artifact MUST conform to ./DESIGN.md.
+Load tokens before writing any CSS/JSX.
+Deviation = reject the diff.
