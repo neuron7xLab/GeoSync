@@ -7,10 +7,12 @@ import { renderSignalsView } from '../views/signals.js';
 import { renderCommunityView } from '../views/community.js';
 import { renderMonitoringView } from '../views/monitoring.js';
 import { escapeHtml, serializeForScript } from './formatters.js';
+import { NEURON7X_TOKENS } from '../styles/tokens.css.js';
 import { BASE_STYLES } from '../styles/base.css.js';
 import { TABLE_STYLES } from '../styles/table.css.js';
 import { CHART_STYLES } from '../styles/chart.css.js';
 import { ONBOARDING_STYLES } from '../styles/onboarding.css.js';
+import { NEURON7X_OVERRIDES } from '../styles/neuron7x_overrides.css.js';
 import { getMessage, t, getLocale, getLocaleConfig } from '../i18n/index.js';
 import { renderOnboarding } from './onboarding.js';
 import { supportedLocales, localeMetadata } from '../i18n/config.js';
@@ -21,7 +23,14 @@ import { supportedLocales, localeMetadata } from '../i18n/config.js';
  * @typedef {import('../types/api').DashboardCommunityPayload} DashboardCommunityPayload
  */
 
-export const DASHBOARD_STYLES = [BASE_STYLES, TABLE_STYLES, CHART_STYLES, ONBOARDING_STYLES].join('\n');
+export const DASHBOARD_STYLES = [
+  NEURON7X_TOKENS,
+  BASE_STYLES,
+  TABLE_STYLES,
+  CHART_STYLES,
+  ONBOARDING_STYLES,
+  NEURON7X_OVERRIDES,
+].join('\n');
 
 const FALLBACK_MENU_GROUPS = [
   {
