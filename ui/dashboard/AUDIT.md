@@ -1,5 +1,36 @@
 # GeoSync Dashboard — neuron7x.md (cream editorial) Audit
 
+## Update — truth-mode (PR #2)
+
+Every physics-originating number is now read live from a real engine
+(`ui/dashboard/live_server.py` → `/api/state`). No panel fabricates values;
+on engine failure the UI collapses to `—` and the footer surfaces the reason.
+
+Live under truth-mode:
+
+- `metrics.sharpe / ic / alpha / max_dd` — causal annualised Sharpe
+  (pnl[t] = pos[t-1]·ret[t]), Spearman-rank IC, ann. alpha vs the raw
+  spread-return, max drawdown of the cumulative PnL.
+- `dro_ara.{state, H, gamma, r_s, r2, trend, signal, stationary}` — direct
+  `core.dro_ara.engine.geosync_observe` output. INV-DRO1 / INV-DRO2 asserted
+  live in the UI rules list.
+- `kuramoto.{r_t, k_kc, N, gate}` — local RK4 trajectory on N=128 Lorentzian
+  natural frequencies, K/K_c = 1.42. INV-K1 / INV-K3 asserted in watch list.
+- `kelly.{f_star, applied, cap}` — f* = μ/σ² from the realised return stream;
+  INV-KELLY2 asserted.
+- `gamma_regime` — γ = 2H derived from DRO-ARA, state mapped per §2.5.
+- `pnl.{total, realised, unrealised, fees, pct, run_rate, turnover}` —
+  cumulative execution of the z-score mean-reversion overlay on the
+  DRO-ARA regime gate (`pos = engagement · (−tanh(z))`). Strategy string
+  returned in `origin.strategy`.
+
+Price source: a seed-deterministic Ornstein–Uhlenbeck spread
+(θ=0.18, μ=0, σ=0.9, seed=42), labelled in `origin.price_source`. A raw
+BTC/ETH price has a unit root by construction and maps to INVALID per the
+engine; DRO-ARA is for *spreads*, so the dashboard is fed a spread.
+
+## Original PR #1 contract audit follows
+
 Contract: `./DESIGN.md` at repo root (= `./neuron7x.md`, warm-minimalism research-paper aesthetic).
 Previous Linear contract archived at `./DESIGN.md.linear.bak`.
 Scope: `ui/dashboard/` — vanilla-JS trading dashboard (`*.css.js` style modules + `demo.html`).
