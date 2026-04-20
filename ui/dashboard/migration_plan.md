@@ -3,9 +3,48 @@
 **Contract**: `./DESIGN.md` == `./neuron7x.md` (cream editorial, IBM Plex, warm minimalism).
 **Previous Linear contract**: archived at `./DESIGN.md.linear.bak` (context only, not load-bearing).
 **Entry date**: 2026-04-20.
-**Scope this PR**: token layer + override cascade + cream editorial `demo.html` with full neuron7xLab signature set. No view HTML changes.
 
-## Shipped in this PR
+## Shipped in PR #2 — truth-mode
+
+- `ui/dashboard/live_server.py` (new) — stdlib HTTP server that exposes
+  `/api/state` powered by **real** physics: `core.dro_ara.engine.geosync_observe`
+  (H via DFA-1, γ = 2H + 1 INV-DRO1, r_s INV-DRO2, regime, signal), local RK4
+  Kuramoto N = 128 (R(t), K/K_c), in-sample Kelly f* = μ/σ², ann. Sharpe,
+  rank IC, max-drawdown, invariants watch list. Fail-closed: returns
+  `{"engine":"offline","origin":{...reason}}` when any physics call fails.
+- `ui/dashboard/demo.html` — replaces the prior random-walk simulation with
+  `fetch('/api/state')` each second. Every panel originating from physics
+  renders `—` until the engine delivers; no fabricated numbers anywhere.
+  Origin line in footer names the exact module
+  (`core.dro_ara.engine.geosync_observe` + `local RK4 N=128 γ=0.5 K/K_c=1.420`).
+  The price source itself is a **synthetic Ornstein–Uhlenbeck spread**
+  (θ = 0.06, μ = 0, σ = 0.9, seed = 42) — stationary by construction so
+  DRO-ARA legitimately enters CRITICAL. A raw BTC/ETH price has a unit root
+  and always maps to INVALID per the engine contract; we disclose this and
+  do not fake around it.
+
+### Truth-mode scope (load-bearing live)
+
+- Sharpe / IC / alpha / Max DD — live or `—` (guarded: alpha requires ≥ 64 bars, Sharpe/IC require ≥ 32).
+- Live PnL headline, run-rate, pct, realised/unrealised/fees/turnover.
+- DRO-ARA state / H / γ / r_s / R² / trend / signal — **INV-DRO1/2 checked in UI**.
+- Kuramoto R(t) / K/K_c / gate — **INV-K1/K3 checked in UI**.
+- Kelly f* / applied / cap / sign — **INV-KELLY2 checked in UI**.
+- γ-indicator (§7.2) — derived from H via §2.5 mapping, live.
+- Invariants watch panel — live list (K1, K3, KELLY2, DRO1).
+- Equity curve sparkline — redrawn from real cumulative PnL each tick.
+- Engine badge in footer — `engine: live · <modules>` or `engine: offline · <reason>`.
+
+### Explicit static labels (not truth-mode yet)
+
+- Signal stream rows, Position ledger rows — require OMS/order-book state wiring; Phase 5.
+- Slippage p50 / p95 — constants; to be replaced by real execution telemetry; Phase 4.
+
+## Shipped in PR #1 — contract swap
+
+| # | Change | File |
+|---|---|---|
+| 1 | Import contract at repo root | `neuron7x.md` (new, 415 lines) |
 
 | # | Change | File |
 |---|---|---|
