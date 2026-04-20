@@ -90,6 +90,32 @@
     .tick-fade { transition: opacity var(--motion-tick); }
     .tick-fade.n7-blink { opacity: 0.35; }
 
+    /* §T3 LocaleToggle — UA · EN pill, left of γ indicator */
+    .n7x-locale-toggle {
+      display: inline-flex; align-items: stretch; height: 20px;
+      border: 1px solid var(--rule-hairline);
+      border-radius: var(--r-sm);
+      overflow: hidden;
+      background: var(--bg-elevated);
+      font-family: var(--font-mono);
+    }
+    .n7x-locale-toggle button {
+      background: transparent; border: 0;
+      padding: 0 8px;
+      font: 500 var(--t-caption)/1 var(--font-mono);
+      color: var(--ink-tertiary);
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: color var(--motion-base), background var(--motion-base);
+    }
+    .n7x-locale-toggle button + button { border-left: 1px solid var(--rule-hairline); }
+    .n7x-locale-toggle button:hover { color: var(--ink-primary); }
+    .n7x-locale-toggle button.is-active {
+      color: var(--ink-primary);
+      background: var(--bg-overlay);
+    }
+    .n7x-locale-toggle button:focus-visible { outline: 2px solid var(--ink-primary); outline-offset: 2px; }
+
     :focus-visible { outline: 2px solid var(--ink-primary); outline-offset: 2px; border-radius: var(--r-sm); }
 
     /* Primitives */
@@ -652,32 +678,32 @@
   <nav class="side" aria-label="Primary">
     <div class="brand">
       <span class="mark">⊛</span>
-      <span>neuron7xLab</span>
-      <span class="sub">GeoSync</span>
+      <span data-i18n="brand.label">neuron7xLab</span>
+      <span class="sub" data-i18n="brand.sublabel">GeoSync</span>
     </div>
-    <div class="group-label">Execution</div>
+    <div class="group-label" data-i18n="navGroup.execution">Execution</div>
     <ul>
-      <li><a class="active" href="#">Overview</a></li>
-      <li><a href="#">Live PnL</a></li>
-      <li><a href="#">Positions</a></li>
-      <li><a href="#">Signals</a></li>
-      <li><a href="#">Orders</a></li>
+      <li><a class="active" href="#" data-i18n="nav.overview">Overview</a></li>
+      <li><a href="#" data-i18n="nav.livePnl">Live PnL</a></li>
+      <li><a href="#" data-i18n="nav.positions">Positions</a></li>
+      <li><a href="#" data-i18n="nav.signals">Signals</a></li>
+      <li><a href="#" data-i18n="nav.orders">Orders</a></li>
     </ul>
-    <div class="group-label">Regime</div>
+    <div class="group-label" data-i18n="navGroup.regime">Regime</div>
     <ul>
-      <li><a href="#">DRO-ARA</a></li>
-      <li><a href="#">Crisis-alpha</a></li>
-      <li><a href="#">Monitoring</a></li>
+      <li><a href="#" data-i18n="nav.droAra">DRO-ARA</a></li>
+      <li><a href="#" data-i18n="nav.crisisAlpha">Crisis-alpha</a></li>
+      <li><a href="#" data-i18n="nav.monitoring">Monitoring</a></li>
     </ul>
-    <div class="group-label">Research</div>
+    <div class="group-label" data-i18n="navGroup.research">Research</div>
     <ul>
-      <li><a href="#">Invariants</a></li>
-      <li><a href="#">Notebooks</a></li>
+      <li><a href="#" data-i18n="nav.invariants">Invariants</a></li>
+      <li><a href="#" data-i18n="nav.notebooks">Notebooks</a></li>
     </ul>
     <!-- §7.3 Version & context line (bottom-left) -->
     <div class="version">
-      neuron7xLab · CANON·2026<br />
-      build 291aac9
+      <span data-i18n="footer.versionLine">neuron7xLab · CANON·2026 · Publication Protocol v1.0</span><br />
+      <span data-i18n="footer.build">build</span> 291aac9
     </div>
   </nav>
 
@@ -685,23 +711,25 @@
     <!-- §9.1 Hero row -->
     <header class="topbar">
       <div style="display:flex; align-items:center; gap:var(--s-3);">
-        <button class="nav-toggle" type="button" data-action="toggle-nav" aria-label="Toggle navigation">≡ menu</button>
-        <h1>Overview · combo_v1 · BTCUSDT · 1m</h1>
+        <button class="nav-toggle" type="button" data-action="toggle-nav" data-i18n="topbar.menuToggle" aria-label="Toggle navigation">≡ menu</button>
+        <h1><span data-i18n="topbar.overviewWord">Overview</span> · combo_v1 · BTCUSDT · 1m</h1>
       </div>
       <div class="meta" role="status" aria-live="polite" aria-atomic="false">
-        <span><span class="dot"></span> live</span>
-        <span>tick <span id="tick" class="num tick-fade">12</span><span class="unit">ms</span></span>
-        <span>slip <span id="slip" class="num tick-fade">0.8</span><span class="unit">bp</span></span>
+        <span><span class="dot"></span> <span data-i18n="topbar.live">live</span></span>
+        <span><span data-i18n="topbar.tick">tick</span> <span id="tick" class="num tick-fade">12</span><span class="unit">ms</span></span>
+        <span><span data-i18n="topbar.slip">slip</span> <span id="slip" class="num tick-fade">0.8</span><span class="unit">bp</span></span>
         <span id="clock" class="num tick-fade">2026-04-20 18:27:41 UTC</span>
+        <!-- i18n toggle + command palette -->
+        <span id="locale-toggle-host"></span>
         <button class="cmd-chip" type="button" data-action="open-palette" aria-label="Open command palette">
           <kbd>⌘</kbd><kbd>K</kbd>
-          <span>search</span>
+          <span data-i18n="topbar.search">search</span>
         </button>
         <!-- §7.2 γ-indicator, persistent top-right -->
         <span class="gamma-indicator" id="gamma-indicator" aria-label="Gamma regime indicator">
           <span class="k">γ</span>
           <span class="v num tick-fade" id="gamma-value">1.02</span>
-          <span class="s" id="gamma-state">stable</span>
+          <span class="s" id="gamma-state" data-i18n="gamma.stable">stable</span>
         </span>
       </div>
     </header>
@@ -709,24 +737,24 @@
     <!-- §9.2 Primary metrics row — exactly 4 cards -->
     <section class="metrics" aria-label="Primary metrics">
       <div class="metric hero">
-        <span class="eyebrow">SHARPE · in-sample</span>
+        <span class="eyebrow" data-i18n="metrics.sharpeTitle">SHARPE · in-sample</span>
         <span class="value tick-fade" id="m-sharpe">—</span>
-        <span class="sub">target ≥ 1.50 · <span class="mut" id="m-sharpe-sub">awaiting engine</span></span>
+        <span class="sub" data-i18n="metrics.sharpeSub">target ≥ 1.50 · awaiting engine</span>
       </div>
       <div class="metric">
-        <span class="eyebrow">IC · rank</span>
+        <span class="eyebrow" data-i18n="metrics.icTitle">IC · rank</span>
         <span class="value tick-fade" id="m-ic">—</span>
-        <span class="sub">gate ≥ 0.08 · <span class="mut" id="m-ic-sub">awaiting engine</span></span>
+        <span class="sub" data-i18n="metrics.icSub">gate ≥ 0.08 · awaiting engine</span>
       </div>
       <div class="metric">
-        <span class="eyebrow">alpha · ann.</span>
+        <span class="eyebrow" data-i18n="metrics.alphaTitle">alpha · ann.</span>
         <span class="value tick-fade" id="m-alpha">—</span>
-        <span class="sub">vs BTC · <span class="mut" id="m-alpha-sub">awaiting engine</span></span>
+        <span class="sub" data-i18n="metrics.alphaSub">vs BTC · awaiting engine</span>
       </div>
       <div class="metric">
-        <span class="eyebrow">Max DD</span>
+        <span class="eyebrow" data-i18n="metrics.maxDdTitle">Max DD</span>
         <span class="value tick-fade" id="m-maxdd">—</span>
-        <span class="sub">crisis-alpha 2022 · <span class="mut num">+47.6%</span></span>
+        <span class="sub" data-i18n="metrics.ddSub">crisis-alpha 2022 · +47.6%</span>
       </div>
     </section>
 
@@ -734,19 +762,19 @@
     <div class="grid-2">
       <section class="panel" aria-label="Live PnL feed">
         <header>
-          <h2>Live PnL · equity curve</h2>
+          <h2 data-i18n="pnl.title">Live PnL · equity curve</h2>
           <div class="tools">
             <span>1d</span><span class="dim">· 1w ·</span><span class="dim">30d ·</span><span class="dim">YTD</span>
-            <span>age <span id="pnl-age" class="num tick-fade">240</span><span class="unit">ms</span></span>
+            <span><span data-i18n="pnl.age">age</span> <span id="pnl-age" class="num tick-fade">240</span><span class="unit">ms</span></span>
           </div>
         </header>
         <div class="pnl-body">
           <div class="pnl-headline">
             <div>
               <div class="big num tick-fade" id="pnl-headline">+12,847.02 <span class="unit">USD</span></div>
-              <div class="sub">Δ since open · <span class="pos" id="pnl-pct">+1.42%</span> · run-rate <span class="pos" id="pnl-rate">+517.88 USD/h</span></div>
+              <div class="sub"><span data-i18n="pnl.sinceOpen">Δ since open</span> · <span class="pos" id="pnl-pct">+1.42%</span> · <span data-i18n="pnl.runRate">run-rate</span> <span class="pos" id="pnl-rate">+517.88 USD/h</span></div>
             </div>
-            <span class="pill ok">unrealised</span>
+            <span class="pill ok" data-i18n="pnl.unrealisedPill">unrealised</span>
           </div>
           <div class="spark-wrap">
           <svg id="sparkline" class="sparkline" viewBox="0 0 600 112" preserveAspectRatio="none" aria-label="Equity curve sparkline">
@@ -756,7 +784,7 @@
             <line class="grid" x1="0"   y1="84"  x2="600" y2="84"  />
             <!-- crisis-alpha 2022 reference line at +47.6% projected -->
             <line class="ref" x1="0" y1="18" x2="600" y2="18" />
-            <text class="reflabel" x="8" y="14">crisis-alpha 2022 · +47.6%</text>
+            <text class="reflabel" x="8" y="14" data-i18n="pnl.crisisRefLabel">crisis-alpha 2022 · +47.6%</text>
             <!-- above-water fill -->
             <path class="area-pos" d="M0,72 L30,70 L60,68 L90,64 L120,66 L150,60 L180,58 L210,55 L240,52 L270,48 L300,46 L330,42 L360,40 L390,38 L420,34 L450,36 L480,30 L510,28 L540,26 L570,22 L600,24 L600,72 L0,72 Z" />
             <path id="spark-line" class="line" d="M0,72 L30,70 L60,68 L90,64 L120,66 L150,60 L180,58 L210,55 L240,52 L270,48 L300,46 L330,42 L360,40 L390,38 L420,34 L450,36 L480,30 L510,28 L540,26 L570,22 L600,24" />
@@ -775,23 +803,23 @@
           <div id="spark-tooltip" class="spark-tooltip" role="tooltip">—</div>
           </div>
           <div class="pnl-stats">
-            <div><span class="k">realised</span><span class="v pos">+8,220.14</span></div>
-            <div><span class="k">unrealised</span><span class="v pos">+4,626.88</span></div>
-            <div><span class="k">fees</span><span class="v neg">-184.22</span></div>
-            <div><span class="k">turnover</span><span class="v">2,412,880</span></div>
+            <div><span class="k" data-i18n="pnl.realised">realised</span><span class="v pos">+8,220.14</span></div>
+            <div><span class="k" data-i18n="pnl.unrealised">unrealised</span><span class="v pos">+4,626.88</span></div>
+            <div><span class="k" data-i18n="pnl.fees">fees</span><span class="v neg">-184.22</span></div>
+            <div><span class="k" data-i18n="pnl.turnover">turnover</span><span class="v">2,412,880</span></div>
           </div>
         </div>
       </section>
 
       <section class="panel" aria-label="DRO-ARA regime gate">
         <header>
-          <h2>DRO-ARA · regime gate</h2>
-          <div class="tools"><span>Δwindow 2048</span></div>
+          <h2 data-i18n="dro.title">DRO-ARA · regime gate</h2>
+          <div class="tools"><span data-i18n="dro.deltaWindow">Δwindow 2048</span></div>
         </header>
         <div class="dro-body">
           <div class="dro-gate gate-STABLE" id="dro-gate">
             <span class="sdot"></span>
-            <span class="lbl">state</span>
+            <span class="lbl" data-i18n="dro.state">state</span>
             <span class="state" id="dro-state">—</span>
           </div>
           <div class="dro-grid">
@@ -801,15 +829,15 @@
             <div class="kv"><span class="k">R²</span><span class="v tick-fade" id="dro-r2">—</span></div>
           </div>
           <div class="dro-rules">
-            <div class="rule"><span>γ = 2H + 1 · INV-DRO1</span><span id="dro-inv1">—</span></div>
-            <div class="rule"><span>r_s ∈ [0, 1] · INV-DRO2</span><span id="dro-inv2">—</span></div>
-            <div class="rule"><span>stationary · ADF</span><span id="dro-stationary">—</span></div>
-            <div class="rule"><span>trend</span><span id="dro-trend">—</span></div>
+            <div class="rule"><span data-i18n="dro.rule1">γ = 2H + 1 · INV-DRO1</span><span id="dro-inv1">—</span></div>
+            <div class="rule"><span data-i18n="dro.rule2">r_s ∈ [0, 1] · INV-DRO2</span><span id="dro-inv2">—</span></div>
+            <div class="rule"><span data-i18n="dro.ruleStationary">stationary · ADF</span><span id="dro-stationary">—</span></div>
+            <div class="rule"><span data-i18n="dro.trend">trend</span><span id="dro-trend">—</span></div>
           </div>
         </div>
         <div class="footnote">
-          LONG gate requires <span class="num">CRITICAL ∧ r_s&gt;0.33 ∧ trend∈{CONVERGING, STABLE}</span>.
-          Signal: <span id="dro-signal" class="mut">—</span>.
+          <span data-i18n="dro.footerLeft">LONG gate requires</span> <span class="num" data-i18n="dro.footerRule">CRITICAL ∧ r_s&gt;0.33 ∧ trend∈{CONVERGING, STABLE}</span>.
+          <span data-i18n="dro.signalLabel">Signal:</span> <span id="dro-signal" class="mut">—</span>.
         </div>
       </section>
     </div>
@@ -818,30 +846,30 @@
     <div class="grid-2 pos">
       <section class="panel" aria-label="combo_v1 signal stream">
         <header>
-          <h2>combo_v1 · signal stream</h2>
+          <h2 data-i18n="signal.title">combo_v1 · signal stream</h2>
           <div class="tools">
-            <span class="pill acc">IC 0.124</span>
-            <span>age <span id="signal-age" class="num tick-fade">120</span><span class="unit">ms</span></span>
+            <span class="pill acc" data-i18n="signal.icPill">IC 0.124</span>
+            <span><span data-i18n="signal.age">age</span> <span id="signal-age" class="num tick-fade">120</span><span class="unit">ms</span></span>
           </div>
         </header>
         <table>
           <thead>
             <tr>
-              <th>time · UTC</th>
-              <th>symbol</th>
-              <th>side</th>
-              <th class="r">strength</th>
-              <th class="r">TTL</th>
-              <th class="r">status</th>
+              <th data-i18n="signal.colTime">time · UTC</th>
+              <th data-i18n="signal.colSymbol">symbol</th>
+              <th data-i18n="signal.colSide">side</th>
+              <th class="r" data-i18n="signal.colStrength">strength</th>
+              <th class="r" data-i18n="signal.colTtl">TTL</th>
+              <th class="r" data-i18n="signal.colStatus">status</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td class="mono">18:27:14</td><td>BTCUSDT</td><td><span class="pill ok">BUY</span></td><td class="r mono"><span class="strength-bar" style="--w:84%"></span>0.84</td><td class="r mono">4m 20s</td><td class="r"><span class="pill ok">active</span></td></tr>
-            <tr><td class="mono">18:26:02</td><td>ETHUSDT</td><td><span class="pill ok">BUY</span></td><td class="r mono"><span class="strength-bar" style="--w:62%"></span>0.62</td><td class="r mono">2m 48s</td><td class="r"><span class="pill ok">active</span></td></tr>
-            <tr><td class="mono">18:24:41</td><td>SOLUSDT</td><td><span class="pill neg">SELL</span></td><td class="r mono"><span class="strength-bar" style="--w:71%"></span>0.71</td><td class="r mono">1m 09s</td><td class="r"><span class="pill ok">active</span></td></tr>
-            <tr><td class="mono">18:22:17</td><td>BTCUSDT</td><td><span class="pill flat">FLAT</span></td><td class="r mono"><span class="strength-bar" style="--w:18%"></span>0.18</td><td class="r mono">—</td><td class="r"><span class="pill neg">expired</span></td></tr>
-            <tr><td class="mono">18:19:50</td><td>ETHUSDT</td><td><span class="pill ok">BUY</span></td><td class="r mono"><span class="strength-bar" style="--w:55%"></span>0.55</td><td class="r mono">—</td><td class="r"><span class="pill neg">expired</span></td></tr>
-            <tr><td class="mono">18:15:33</td><td>BNBUSDT</td><td><span class="pill neg">SELL</span></td><td class="r mono"><span class="strength-bar" style="--w:43%"></span>0.43</td><td class="r mono">—</td><td class="r"><span class="pill neg">expired</span></td></tr>
+            <tr><td class="mono">18:27:14</td><td>BTCUSDT</td><td><span class="pill ok" data-i18n="signal.buy">BUY</span></td><td class="r mono"><span class="strength-bar" style="--w:84%"></span>0.84</td><td class="r mono">4m 20s</td><td class="r"><span class="pill ok" data-i18n="signal.active">active</span></td></tr>
+            <tr><td class="mono">18:26:02</td><td>ETHUSDT</td><td><span class="pill ok" data-i18n="signal.buy">BUY</span></td><td class="r mono"><span class="strength-bar" style="--w:62%"></span>0.62</td><td class="r mono">2m 48s</td><td class="r"><span class="pill ok" data-i18n="signal.active">active</span></td></tr>
+            <tr><td class="mono">18:24:41</td><td>SOLUSDT</td><td><span class="pill neg" data-i18n="signal.sell">SELL</span></td><td class="r mono"><span class="strength-bar" style="--w:71%"></span>0.71</td><td class="r mono">1m 09s</td><td class="r"><span class="pill ok" data-i18n="signal.active">active</span></td></tr>
+            <tr><td class="mono">18:22:17</td><td>BTCUSDT</td><td><span class="pill flat" data-i18n="signal.flat">FLAT</span></td><td class="r mono"><span class="strength-bar" style="--w:18%"></span>0.18</td><td class="r mono">—</td><td class="r"><span class="pill neg" data-i18n="signal.expired">expired</span></td></tr>
+            <tr><td class="mono">18:19:50</td><td>ETHUSDT</td><td><span class="pill ok" data-i18n="signal.buy">BUY</span></td><td class="r mono"><span class="strength-bar" style="--w:55%"></span>0.55</td><td class="r mono">—</td><td class="r"><span class="pill neg" data-i18n="signal.expired">expired</span></td></tr>
+            <tr><td class="mono">18:15:33</td><td>BNBUSDT</td><td><span class="pill neg" data-i18n="signal.sell">SELL</span></td><td class="r mono"><span class="strength-bar" style="--w:43%"></span>0.43</td><td class="r mono">—</td><td class="r"><span class="pill neg" data-i18n="signal.expired">expired</span></td></tr>
           </tbody>
         </table>
       </section>
@@ -849,18 +877,18 @@
       <!-- §9.5 Position table: 6 cols max -->
       <section class="panel" aria-label="Positions">
         <header>
-          <h2>positions · open</h2>
-          <div class="tools"><span>6 rows</span></div>
+          <h2 data-i18n="positions.title">positions · open</h2>
+          <div class="tools"><span data-i18n="positions.rows">6 rows</span></div>
         </header>
         <table>
           <thead>
             <tr>
-              <th>symbol</th>
-              <th class="r">qty</th>
-              <th class="r">avg</th>
-              <th class="r">mark</th>
-              <th class="r">uPnL</th>
-              <th class="r">age</th>
+              <th data-i18n="positions.colSymbol">symbol</th>
+              <th class="r" data-i18n="positions.colQty">qty</th>
+              <th class="r" data-i18n="positions.colAvg">avg</th>
+              <th class="r" data-i18n="positions.colMark">mark</th>
+              <th class="r" data-i18n="positions.colUpnl">uPnL</th>
+              <th class="r" data-i18n="positions.colAge">age</th>
             </tr>
           </thead>
           <tbody>
@@ -872,43 +900,43 @@
             <tr><td><strong>ARBUSDT</strong></td><td class="r mono">+920.00</td><td class="r mono">0.6140</td><td class="r mono">0.6212</td><td class="r mono pos">+6.62</td><td class="r aged">7m</td></tr>
           </tbody>
         </table>
-        <div class="footnote">net exposure <span class="num">181,402 USD</span> · gross <span class="num">243,118 USD</span></div>
+        <div class="footnote"><span data-i18n="positions.netExposure">net exposure</span> <span class="num">181,402 USD</span> · <span data-i18n="positions.gross">gross</span> <span class="num">243,118 USD</span></div>
       </section>
     </div>
 
     <!-- Execution / risk / phase / invariant quadlet -->
     <div class="grid-quad">
       <section class="panel">
-        <header><h2>execution</h2></header>
+        <header><h2 data-i18n="execution.title">execution</h2></header>
         <div class="kv-grid">
-          <div><span class="k">fills · 1h</span><span class="v tick-fade" id="ex-fills">—</span></div>
-          <div><span class="k">reject</span><span class="v tick-fade" id="ex-reject">—</span></div>
-          <div><span class="k">slip p50</span><span class="v tick-fade" id="ex-p50">—</span></div>
-          <div><span class="k">slip p95</span><span class="v tick-fade" id="ex-p95">—</span></div>
+          <div><span class="k" data-i18n="execution.fills1h">fills · 1h</span><span class="v tick-fade" id="ex-fills">—</span></div>
+          <div><span class="k" data-i18n="execution.reject">reject</span><span class="v tick-fade" id="ex-reject">—</span></div>
+          <div><span class="k" data-i18n="execution.slipP50">slip p50</span><span class="v tick-fade" id="ex-p50">—</span></div>
+          <div><span class="k" data-i18n="execution.slipP95">slip p95</span><span class="v tick-fade" id="ex-p95">—</span></div>
         </div>
       </section>
       <section class="panel">
-        <header><h2>risk · Kelly</h2></header>
+        <header><h2 data-i18n="kelly.title">risk · Kelly</h2></header>
         <div class="kv-grid">
           <div><span class="k">f*</span><span class="v tick-fade" id="kelly-fstar">—</span></div>
-          <div><span class="k">applied</span><span class="v tick-fade" id="kelly-applied">—</span></div>
-          <div><span class="k">cap</span><span class="v tick-fade" id="kelly-cap">—</span></div>
-          <div><span class="k">sign</span><span class="v tick-fade" id="kelly-sign">—</span></div>
+          <div><span class="k" data-i18n="kelly.applied">applied</span><span class="v tick-fade" id="kelly-applied">—</span></div>
+          <div><span class="k" data-i18n="kelly.cap">cap</span><span class="v tick-fade" id="kelly-cap">—</span></div>
+          <div><span class="k" data-i18n="kelly.sign">sign</span><span class="v tick-fade" id="kelly-sign">—</span></div>
         </div>
       </section>
       <section class="panel">
-        <header><h2>phase · Kuramoto</h2></header>
+        <header><h2 data-i18n="kuramoto.title">phase · Kuramoto</h2></header>
         <div class="kv-grid">
           <div><span class="k">R(t)</span><span class="v tick-fade" id="ku-r">—</span></div>
           <div><span class="k">K/K_c</span><span class="v tick-fade" id="ku-kkc">—</span></div>
           <div><span class="k">N</span><span class="v tick-fade" id="ku-n">—</span></div>
-          <div><span class="k">gate</span><span class="v tick-fade" id="ku-gate">—</span></div>
+          <div><span class="k" data-i18n="kuramoto.gate">gate</span><span class="v tick-fade" id="ku-gate">—</span></div>
         </div>
       </section>
       <section class="panel invalid" aria-label="Invariant watch">
-        <header><h2>invariants · watch</h2><div class="tools"><span class="pill ok" id="inv-summary">—</span></div></header>
+        <header><h2 data-i18n="invariants.title">invariants · watch</h2><div class="tools"><span class="pill ok" id="inv-summary">—</span></div></header>
         <div class="invalid-body" id="inv-body">
-          <div class="line"><span class="tag ok">…</span><span>awaiting engine</span></div>
+          <div class="line"><span class="tag ok">…</span><span data-i18n="invariants.waiting">awaiting engine</span></div>
         </div>
       </section>
     </div>
@@ -916,16 +944,16 @@
     <!-- §7.1 Footer glyph — right-aligned. §7.3 version — left-aligned. -->
     <footer class="page">
       <div class="left">
-        <span>neuron7xLab · CANON·2026 · build 291aac9</span>
+        <span><span data-i18n="footer.versionLine">neuron7xLab · CANON·2026 · Publication Protocol v1.0</span> · <span data-i18n="footer.build">build</span> 291aac9</span>
         <span class="kbd-hints">
-          <span><kbd>⌘</kbd><kbd>K</kbd> search</span>
-          <span><kbd>?</kbd> help</span>
-          <span><kbd>R</kbd> refresh</span>
+          <span><kbd>⌘</kbd><kbd>K</kbd> <span data-i18n="footer.kbdSearch">search</span></span>
+          <span><kbd>?</kbd> <span data-i18n="footer.kbdHelp">help</span></span>
+          <span><kbd>R</kbd> <span data-i18n="footer.kbdRefresh">refresh</span></span>
         </span>
       </div>
       <div class="right" id="engine-badge">
-        <span id="engine-origin" class="mut">engine: …</span>
-        <span class="glyph">⊛</span> neuron7xLab
+        <span id="engine-origin" class="mut" data-i18n="footer.engineAwait">engine: …</span>
+        <span class="glyph">⊛</span> <span data-i18n="brand.label">neuron7xLab</span>
       </div>
     </footer>
   </main>
@@ -934,16 +962,61 @@
 <!-- ⌘K command palette -->
 <div class="palette-backdrop" id="palette" role="dialog" aria-modal="true" aria-label="Command palette">
   <div class="palette">
-    <input id="palette-input" type="text" placeholder="jump to view · run command · search symbols…" autocomplete="off" spellcheck="false" />
+    <input id="palette-input" type="text" placeholder="jump to view · run command · search symbols…" data-i18n-placeholder="palette.placeholder" autocomplete="off" spellcheck="false" />
     <ul id="palette-list" role="listbox"></ul>
   </div>
 </div>
 
-<script>
+<!-- ⊛ i18n runtime — must run BEFORE the IIFE below so that t() and format.* are
+     globally available by the time the legacy script mounts. -->
+<script type="module">
+  import { t, getLocale, setLocale, onLocaleChange, mountLocaleToggle, format } from './src/i18n/demo_t.js';
+  import { strings } from './src/i18n/demo_strings.js';
+
+  // Walk the DOM once and bind every [data-i18n] / [data-i18n-placeholder] node.
+  function applyI18n(root = document) {
+    root.querySelectorAll('[data-i18n]').forEach((el) => {
+      const key = el.getAttribute('data-i18n');
+      const value = t(key);
+      if (value && value !== key) el.textContent = value;
+    });
+    root.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      const value = t(key);
+      if (value && value !== key) el.setAttribute('placeholder', value);
+    });
+  }
+
+  // Expose the subset the legacy IIFE needs.
+  window.__n7x = Object.freeze({ t, getLocale, setLocale, onLocaleChange, format, applyI18n, strings });
+
+  const host = document.getElementById('locale-toggle-host');
+  if (host) mountLocaleToggle(host);
+  applyI18n();
+  onLocaleChange(() => applyI18n());
+</script>
+
+<script defer>
 (function () {
   'use strict';
   const $ = (id) => document.getElementById(id);
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Block first render until the i18n module publishes its surface, so that
+  // N7X.t(...) never falls back to returning the raw key on the first tick.
+  function waitForN7X(fn) {
+    if (window.__n7x) return fn();
+    const iv = setInterval(() => {
+      if (window.__n7x) { clearInterval(iv); fn(); }
+    }, 10);
+  }
+
+  const N7X = window.__n7x || {
+    t: (k) => k,
+    format: { pnl: (n) => String(n), number: (n) => String(n), percent: (n) => String(n), timeUTC: (d) => String(d) },
+    onLocaleChange: () => () => undefined,
+    getLocale: () => 'en',
+  };
 
   // ——— Live clock (ISO-8601 UTC) + synthetic tick/slip/age per §8
   const clock = $('clock');
@@ -1002,10 +1075,10 @@
     const badge = $('engine-origin');
     if (!badge) return;
     if (engine === 'live') {
-      badge.textContent = `engine: live · ${origin?.dro_ara || ''} · ${origin?.kuramoto || ''}`;
+      badge.textContent = `${N7X.t('footer.engineLive')} · ${origin?.dro_ara || ''} · ${origin?.kuramoto || ''}`;
       badge.style.color = 'var(--sig-positive)';
     } else {
-      badge.textContent = `engine: offline · ${origin?.reason || 'no data'}`;
+      badge.textContent = `${N7X.t('footer.engineOffline')} · ${origin?.reason || N7X.t('invariants.offlineMessage')}`;
       badge.style.color = 'var(--sig-negative)';
     }
   }
@@ -1021,7 +1094,7 @@
     ids.forEach(id => setText(id, EM_DASH));
     fadeHtml(pnlHead, `${EM_DASH} <span class="unit">USD</span>`);
     const inv = $('inv-body');
-    if (inv) inv.innerHTML = `<div class="line"><span class="tag">OFF</span><span>engine offline — no data</span></div>`;
+    if (inv) inv.innerHTML = `<div class="line"><span class="tag">${N7X.t('invariants.tagOff')}</span><span>${N7X.t('invariants.offlineMessage')}</span></div>`;
     const summary = $('inv-summary'); if (summary) summary.textContent = 'offline';
   }
 
@@ -1041,7 +1114,9 @@
     setText('gamma-value', g.value.toFixed(2));
     const gstate = $('gamma-state');
     if (gstate) {
-      gstate.textContent = g.state;
+      const gKey = `gamma.${g.state}`;
+      const label = N7X.t(gKey);
+      gstate.textContent = label && label !== gKey ? label : g.state;
       gstate.style.color = g.state === 'stable' ? 'var(--sig-positive)'
                          : g.state === 'drift'  ? 'var(--sig-caution)'
                          : 'var(--sig-negative)';
@@ -1080,13 +1155,17 @@
     if (gate) {
       gate.className = 'dro-gate gate-' + dro.state;
     }
-    setText('dro-state', dro.state);
+    const droStateKey = `droState.${dro.state}`;
+    const droStateLabel = N7X.t(droStateKey);
+    setText('dro-state', droStateLabel !== droStateKey ? droStateLabel : dro.state);
     setText('dro-H',     dro.H.toFixed(4));
     setText('dro-gamma', dro.gamma.toFixed(4));
     setText('dro-rs',    dro.r_s.toFixed(4));
     setText('dro-r2',    dro.r2.toFixed(4));
     setText('dro-trend', dro.trend || EM_DASH);
-    setText('dro-signal', dro.signal);
+    const sigKey = `droSignal.${dro.signal}`;
+    const sigLabel = N7X.t(sigKey);
+    setText('dro-signal', sigLabel !== sigKey ? sigLabel : dro.signal);
     // Invariant flags on DRO rules
     const inv1 = $('dro-inv1');
     const inv2 = $('dro-inv2');
@@ -1106,27 +1185,33 @@
     setText('kelly-fstar',   k.f_star == null ? EM_DASH : k.f_star.toFixed(3));
     setText('kelly-applied', k.applied.toFixed(3));
     setText('kelly-cap',     k.cap.toFixed(3));
-    setText('kelly-sign',    k.applied > 0 ? 'long' : k.applied < 0 ? 'short' : 'flat');
+    const kellySignKey = k.applied > 0 ? 'kelly.long' : k.applied < 0 ? 'kelly.short' : 'kelly.flat';
+    const kellySignLabel = N7X.t(kellySignKey);
+    setText('kelly-sign', kellySignLabel !== kellySignKey ? kellySignLabel : kellySignKey.split('.')[1]);
 
     // Kuramoto
     const ku = s.kuramoto;
     setText('ku-r',    ku.r_t.toFixed(4));
     setText('ku-kkc',  ku.k_kc.toFixed(2));
     setText('ku-n',    String(ku.N));
-    setText('ku-gate', ku.gate);
+    const gateKey = `kuramoto.${ku.gate}`;
+    const gateLabel = N7X.t(gateKey);
+    setText('ku-gate', gateLabel !== gateKey ? gateLabel : ku.gate);
     const gateEl = $('ku-gate');
     if (gateEl) gateEl.style.color = ku.gate === 'open' ? 'var(--sig-positive)' : 'var(--sig-negative)';
 
     // Invariants watch
     const invBody = $('inv-body');
     if (invBody) {
-      invBody.innerHTML = (s.invariants || []).map(i =>
-        `<div class="line"><span class="tag ${i.tag === 'OK' ? 'ok' : ''}">${i.tag}</span><span>${i.name} · ${i.text}</span></div>`
+      invBody.innerHTML = (s.invariants || []).map(i => {
+        const tagLabel = i.tag === 'OK' ? N7X.t('invariants.tagOk') : i.tag === 'FLAG' ? N7X.t('invariants.tagFlag') : i.tag;
+        return `<div class="line"><span class="tag ${i.tag === 'OK' ? 'ok' : ''}">${tagLabel}</span><span>${i.name} · ${i.text}</span></div>`;
+      }
       ).join('');
       const flags = (s.invariants || []).filter(i => i.tag !== 'OK').length;
       const summary = $('inv-summary');
       if (summary) {
-        summary.textContent = flags === 0 ? 'all ok' : `${flags} flagged`;
+        summary.textContent = flags === 0 ? N7X.t('invariants.allOk') : N7X.t('invariants.flagged', { count: flags });
         summary.style.color = flags === 0 ? 'var(--sig-positive)' : 'var(--sig-caution)';
       }
     }
@@ -1164,9 +1249,16 @@
       renderOffline();
     }
   }
-  pullState();
-  if (!reduceMotion) setInterval(pullState, 1000);
-  function step() { pullState(); }
+  waitForN7X(() => {
+    // Refresh N7X ref now that module is live, then start the poll loop.
+    Object.assign(N7X, window.__n7x);
+    pullState();
+    if (!reduceMotion) setInterval(pullState, 1000);
+    // Re-run applyState bindings when locale flips so enum labels (CRITICAL,
+    // LONG, open, etc.) re-translate immediately.
+    N7X.onLocaleChange(() => pullState());
+  });
+  function step() { if (window.__n7x) pullState(); }
 
   // ——— Sparkline crosshair + tooltip
   const sparkline = $('sparkline');
@@ -1228,33 +1320,42 @@
   const backdrop = $('palette');
   const input = $('palette-input');
   const list = $('palette-list');
-  const commands = [
-    { cat: 'nav',     label: 'Overview',        hint: 'g o' },
-    { cat: 'nav',     label: 'Live PnL',        hint: 'g p' },
-    { cat: 'nav',     label: 'Positions',       hint: 'g t' },
-    { cat: 'nav',     label: 'Signals',         hint: 'g s' },
-    { cat: 'nav',     label: 'Orders',          hint: 'g r' },
-    { cat: 'nav',     label: 'DRO-ARA regime',  hint: 'g d' },
-    { cat: 'nav',     label: 'Crisis-alpha',    hint: 'g c' },
-    { cat: 'action',  label: 'Refresh feed',    hint: 'r' },
-    { cat: 'action',  label: 'Export report',   hint: 'x' },
-    { cat: 'action',  label: 'Copy state hash', hint: 'h' },
-    { cat: 'symbol',  label: 'BTCUSDT',         hint: '↵' },
-    { cat: 'symbol',  label: 'ETHUSDT',         hint: '↵' },
-    { cat: 'symbol',  label: 'SOLUSDT',         hint: '↵' },
-    { cat: 'invariant', label: 'INV-DRO1 · γ = 2H + 1', hint: '↵' },
-    { cat: 'invariant', label: 'INV-K2 · K < K_c ⟹ R → 0', hint: '↵' },
-  ];
+  // Commands pull labels from i18n; canon names (DRO-ARA, BTCUSDT, INV-*) stay raw.
+  function buildCommands() {
+    const catN = N7X.t('palette.catNav');
+    const catA = N7X.t('palette.catAction');
+    const catS = N7X.t('palette.catSymbol');
+    const catI = N7X.t('palette.catInvariant');
+    return [
+      { cat: catN, label: N7X.t('nav.overview'),    hint: 'g o' },
+      { cat: catN, label: N7X.t('nav.livePnl'),     hint: 'g p' },
+      { cat: catN, label: N7X.t('nav.positions'),   hint: 'g t' },
+      { cat: catN, label: N7X.t('nav.signals'),     hint: 'g s' },
+      { cat: catN, label: N7X.t('nav.orders'),      hint: 'g r' },
+      { cat: catN, label: N7X.t('nav.droAra'),      hint: 'g d' },
+      { cat: catN, label: N7X.t('nav.crisisAlpha'), hint: 'g c' },
+      { cat: catA, label: N7X.t('palette.actionRefresh'), hint: 'r' },
+      { cat: catA, label: N7X.t('palette.actionExport'),  hint: 'x' },
+      { cat: catA, label: N7X.t('palette.actionCopy'),    hint: 'h' },
+      { cat: catS, label: 'BTCUSDT',                      hint: '↵' },
+      { cat: catS, label: 'ETHUSDT',                      hint: '↵' },
+      { cat: catS, label: 'SOLUSDT',                      hint: '↵' },
+      { cat: catI, label: 'INV-DRO1 · γ = 2H + 1',        hint: '↵' },
+      { cat: catI, label: 'INV-K2 · K < K_c ⟹ R → 0',    hint: '↵' },
+    ];
+  }
+  let commands = buildCommands();
+  N7X.onLocaleChange(() => { commands = buildCommands(); if (backdrop.classList.contains('on')) render(input.value); });
   let active = 0;
   function render(filter) {
     const f = (filter || '').trim().toLowerCase();
-    const rows = commands.filter(c => !f || c.label.toLowerCase().includes(f) || c.cat.includes(f));
+    const rows = commands.filter(c => !f || c.label.toLowerCase().includes(f) || c.cat.toLowerCase().includes(f));
     list.innerHTML = rows.map((c, i) => `
       <li class="${i === active ? 'active' : ''}" data-idx="${i}" role="option">
         <span><span class="cat">${c.cat}</span>${c.label}</span>
         <span class="hint">${c.hint}</span>
       </li>
-    `).join('') || `<li class="dim" style="color:var(--ink-tertiary);">no match</li>`;
+    `).join('') || `<li class="dim" style="color:var(--ink-tertiary);">${N7X.t('palette.empty')}</li>`;
   }
   function openPalette() {
     active = 0;
