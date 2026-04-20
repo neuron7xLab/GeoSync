@@ -709,24 +709,24 @@
     <!-- §9.2 Primary metrics row — exactly 4 cards -->
     <section class="metrics" aria-label="Primary metrics">
       <div class="metric hero">
-        <span class="eyebrow">SHARPE · YTD</span>
-        <span class="value">2.41</span>
-        <span class="sub">target ≥ 1.50 · <span class="pos num">+0.91</span></span>
+        <span class="eyebrow">SHARPE · in-sample</span>
+        <span class="value tick-fade" id="m-sharpe">—</span>
+        <span class="sub">target ≥ 1.50 · <span class="mut" id="m-sharpe-sub">awaiting engine</span></span>
       </div>
       <div class="metric">
-        <span class="eyebrow">IC · 30d</span>
-        <span class="value">0.124</span>
-        <span class="sub">gate ≥ 0.08 · <span class="pos num">+0.044</span></span>
+        <span class="eyebrow">IC · rank</span>
+        <span class="value tick-fade" id="m-ic">—</span>
+        <span class="sub">gate ≥ 0.08 · <span class="mut" id="m-ic-sub">awaiting engine</span></span>
       </div>
       <div class="metric">
         <span class="eyebrow">alpha · ann.</span>
-        <span class="value">+18.7%</span>
-        <span class="sub">vs BTC · <span class="pos num">+6.2%</span></span>
+        <span class="value tick-fade" id="m-alpha">—</span>
+        <span class="sub">vs BTC · <span class="mut" id="m-alpha-sub">awaiting engine</span></span>
       </div>
       <div class="metric">
         <span class="eyebrow">Max DD</span>
-        <span class="value">-7.3%</span>
-        <span class="sub">crisis-alpha 2022 · <span class="pos num">+47.6%</span></span>
+        <span class="value tick-fade" id="m-maxdd">—</span>
+        <span class="sub">crisis-alpha 2022 · <span class="mut num">+47.6%</span></span>
       </div>
     </section>
 
@@ -789,27 +789,27 @@
           <div class="tools"><span>Δwindow 2048</span></div>
         </header>
         <div class="dro-body">
-          <div class="dro-gate gate-CRITICAL">
+          <div class="dro-gate gate-STABLE" id="dro-gate">
             <span class="sdot"></span>
             <span class="lbl">state</span>
-            <span class="state">CRITICAL</span>
+            <span class="state" id="dro-state">—</span>
           </div>
           <div class="dro-grid">
-            <div class="kv"><span class="k">H</span><span class="v">0.514</span></div>
-            <div class="kv"><span class="k">γ</span><span class="v">2.028</span></div>
-            <div class="kv"><span class="k">r_s</span><span class="v">0.972</span></div>
-            <div class="kv"><span class="k">R²</span><span class="v">0.946</span></div>
+            <div class="kv"><span class="k">H</span><span class="v tick-fade" id="dro-H">—</span></div>
+            <div class="kv"><span class="k">γ</span><span class="v tick-fade" id="dro-gamma">—</span></div>
+            <div class="kv"><span class="k">r_s</span><span class="v tick-fade" id="dro-rs">—</span></div>
+            <div class="kv"><span class="k">R²</span><span class="v tick-fade" id="dro-r2">—</span></div>
           </div>
           <div class="dro-rules">
-            <div class="rule"><span>γ = 2H + 1 · INV-DRO1</span><span class="ok">ok</span></div>
-            <div class="rule"><span>r_s ∈ [0, 1] · INV-DRO2</span><span class="ok">ok</span></div>
-            <div class="rule"><span>stationary · ADF p = 0.003</span><span class="ok">ok</span></div>
-            <div class="rule"><span>trend</span><span>CONVERGING</span></div>
+            <div class="rule"><span>γ = 2H + 1 · INV-DRO1</span><span id="dro-inv1">—</span></div>
+            <div class="rule"><span>r_s ∈ [0, 1] · INV-DRO2</span><span id="dro-inv2">—</span></div>
+            <div class="rule"><span>stationary · ADF</span><span id="dro-stationary">—</span></div>
+            <div class="rule"><span>trend</span><span id="dro-trend">—</span></div>
           </div>
         </div>
         <div class="footnote">
           LONG gate requires <span class="num">CRITICAL ∧ r_s&gt;0.33 ∧ trend∈{CONVERGING, STABLE}</span>.
-          Current: <span class="pos">eligible</span>.
+          Signal: <span id="dro-signal" class="mut">—</span>.
         </div>
       </section>
     </div>
@@ -881,37 +881,34 @@
       <section class="panel">
         <header><h2>execution</h2></header>
         <div class="kv-grid">
-          <div><span class="k">fills · 1h</span><span class="v">48</span></div>
-          <div><span class="k">reject</span><span class="v">0</span></div>
-          <div><span class="k">slip p50</span><span class="v">0.6 bp</span></div>
-          <div><span class="k">slip p95</span><span class="v">2.1 bp</span></div>
+          <div><span class="k">fills · 1h</span><span class="v tick-fade" id="ex-fills">—</span></div>
+          <div><span class="k">reject</span><span class="v tick-fade" id="ex-reject">—</span></div>
+          <div><span class="k">slip p50</span><span class="v tick-fade" id="ex-p50">—</span></div>
+          <div><span class="k">slip p95</span><span class="v tick-fade" id="ex-p95">—</span></div>
         </div>
       </section>
       <section class="panel">
         <header><h2>risk · Kelly</h2></header>
         <div class="kv-grid">
-          <div><span class="k">f*</span><span class="v">0.184</span></div>
-          <div><span class="k">applied</span><span class="v">0.100</span></div>
-          <div><span class="k">GABA</span><span class="v">0.22</span></div>
-          <div><span class="k">5HT</span><span class="v">0.61</span></div>
+          <div><span class="k">f*</span><span class="v tick-fade" id="kelly-fstar">—</span></div>
+          <div><span class="k">applied</span><span class="v tick-fade" id="kelly-applied">—</span></div>
+          <div><span class="k">cap</span><span class="v tick-fade" id="kelly-cap">—</span></div>
+          <div><span class="k">sign</span><span class="v tick-fade" id="kelly-sign">—</span></div>
         </div>
       </section>
       <section class="panel">
         <header><h2>phase · Kuramoto</h2></header>
         <div class="kv-grid">
-          <div><span class="k">R(t)</span><span class="v">0.814</span></div>
-          <div><span class="k">K/K_c</span><span class="v">1.42</span></div>
-          <div><span class="k">N</span><span class="v">128</span></div>
-          <div><span class="k">gate</span><span class="v pos">open</span></div>
+          <div><span class="k">R(t)</span><span class="v tick-fade" id="ku-r">—</span></div>
+          <div><span class="k">K/K_c</span><span class="v tick-fade" id="ku-kkc">—</span></div>
+          <div><span class="k">N</span><span class="v tick-fade" id="ku-n">—</span></div>
+          <div><span class="k">gate</span><span class="v tick-fade" id="ku-gate">—</span></div>
         </div>
       </section>
       <section class="panel invalid" aria-label="Invariant watch">
-        <header><h2>invariants · watch</h2><div class="tools"><span class="pill ok">1 flagged</span></div></header>
-        <div class="invalid-body">
-          <div class="line"><span class="tag">FLAG</span><span>ETHUSDT · tick age 1.8 s &gt; p95 2.0 s — stale feed suspected.</span></div>
-          <div class="line"><span class="tag ok">OK</span><span>INV-K2 · R = 0.814 &gt; 3/√128 = 0.265 (supercritical).</span></div>
-          <div class="line"><span class="tag ok">OK</span><span>INV-DA3 · γ_TD = 0.97 ∈ (0, 1].</span></div>
-          <div class="line"><span class="tag ok">OK</span><span>INV-KELLY2 · applied 0.100 ≤ cap 0.150.</span></div>
+        <header><h2>invariants · watch</h2><div class="tools"><span class="pill ok" id="inv-summary">—</span></div></header>
+        <div class="invalid-body" id="inv-body">
+          <div class="line"><span class="tag ok">…</span><span>awaiting engine</span></div>
         </div>
       </section>
     </div>
@@ -926,7 +923,8 @@
           <span><kbd>R</kbd> refresh</span>
         </span>
       </div>
-      <div class="right">
+      <div class="right" id="engine-badge">
+        <span id="engine-origin" class="mut">engine: …</span>
         <span class="glyph">⊛</span> neuron7xLab
       </div>
     </footer>
@@ -984,38 +982,191 @@
     }, 120);
   }
 
-  // Simulation: random-walk PnL around base, gaussian-ish jitter on tick/slip
-  let pnl = 12847.02;
-  let pnlInitial = 12670.16;
-  function step() {
-    const now = new Date();
-    clock.textContent = iso(now);
-    fade(tick, String(8 + Math.floor(Math.random() * 14)));
-    fade(slip, (0.5 + Math.random() * 1.4).toFixed(1));
-    fade(pnlAge, String(160 + Math.floor(Math.random() * 180)));
-    fade(sigAge, String(90 + Math.floor(Math.random() * 140)));
-    pnl += (Math.random() - 0.45) * 24;
-    const delta = pnl - pnlInitial;
-    const pct = delta / pnlInitial * 100;
-    const runRate = (delta / ((now.getTime() - new Date(now).setUTCHours(9,0,0,0)) / 3_600_000)) || 0;
-    fadeHtml(pnlHead, `${pnl >= 0 ? '+' : ''}${fmt(pnl, 2)} <span class="unit">USD</span>`);
-    pnlPct.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
-    pnlRate.textContent = `${runRate >= 0 ? '+' : ''}${fmt(runRate, 2)} USD/h`;
+  // ——— Truth-mode: numbers come from the physics engine via /api/state.
+  //     No random walks. Fail-closed: on fetch failure or engine=offline,
+  //     every cell collapses to "—" and the footer surfaces the reason.
+  const EM_DASH = '—';
+  const fmtOrDash = (v, digits = 2, prefix = '') =>
+    v == null || !Number.isFinite(v) ? EM_DASH
+    : `${prefix}${(v >= 0 && prefix === '+') ? '+' : ''}${fmt(v, digits)}`.replace('++', '+');
+  const fmtPct = (v, digits = 2) =>
+    v == null || !Number.isFinite(v) ? EM_DASH
+    : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(digits)}%`;
+  const fmtRatio = (v, digits = 3) =>
+    v == null || !Number.isFinite(v) ? EM_DASH
+    : `${v >= 0 ? '+' : ''}${v.toFixed(digits)}`;
 
-    // γ drift, state per §2.5
-    const g = 1.02 + (Math.random() - 0.5) * 0.08;
-    fade(gamma, g.toFixed(2));
-    const state = (g >= 0.95 && g <= 1.05) ? 'stable'
-               : (g >= 0.85 && g <= 1.15) ? 'drift'
-               : 'broken';
-    const color = state === 'stable' ? 'var(--sig-positive)'
-                : state === 'drift'  ? 'var(--sig-caution)'
-                : 'var(--sig-negative)';
-    gState.textContent = state;
-    gState.style.color = color;
+  function setText(id, value) { const el = $(id); if (el) fade(el, value); }
+
+  function renderEngineBadge(engine, origin) {
+    const badge = $('engine-origin');
+    if (!badge) return;
+    if (engine === 'live') {
+      badge.textContent = `engine: live · ${origin?.dro_ara || ''} · ${origin?.kuramoto || ''}`;
+      badge.style.color = 'var(--sig-positive)';
+    } else {
+      badge.textContent = `engine: offline · ${origin?.reason || 'no data'}`;
+      badge.style.color = 'var(--sig-negative)';
+    }
   }
-  step();
-  if (!reduceMotion) setInterval(step, 1000);
+
+  function renderOffline() {
+    const ids = ['tick','slip','pnl-age','signal-age','pnl-pct','pnl-rate',
+      'm-sharpe','m-ic','m-alpha','m-maxdd',
+      'dro-H','dro-gamma','dro-rs','dro-r2','dro-state','dro-trend','dro-stationary','dro-inv1','dro-inv2','dro-signal',
+      'ex-fills','ex-reject','ex-p50','ex-p95',
+      'kelly-fstar','kelly-applied','kelly-cap','kelly-sign',
+      'ku-r','ku-kkc','ku-n','ku-gate',
+      'gamma-value','gamma-state'];
+    ids.forEach(id => setText(id, EM_DASH));
+    fadeHtml(pnlHead, `${EM_DASH} <span class="unit">USD</span>`);
+    const inv = $('inv-body');
+    if (inv) inv.innerHTML = `<div class="line"><span class="tag">OFF</span><span>engine offline — no data</span></div>`;
+    const summary = $('inv-summary'); if (summary) summary.textContent = 'offline';
+  }
+
+  function applyState(s) {
+    renderEngineBadge(s.engine, s.origin);
+    if (s.engine !== 'live') { renderOffline(); return; }
+
+    // Topbar
+    setText('clock', s.ts);
+    setText('tick',  String(s.tick_ms));
+    setText('slip',  s.slip_bp.toFixed(1));
+    setText('pnl-age', String(s.age_ms));
+    setText('signal-age', String(Math.max(80, s.age_ms - 80)));
+
+    // γ indicator per §7.2
+    const g = s.gamma_regime;
+    setText('gamma-value', g.value.toFixed(2));
+    const gstate = $('gamma-state');
+    if (gstate) {
+      gstate.textContent = g.state;
+      gstate.style.color = g.state === 'stable' ? 'var(--sig-positive)'
+                         : g.state === 'drift'  ? 'var(--sig-caution)'
+                         : 'var(--sig-negative)';
+    }
+
+    // PnL headline
+    fadeHtml(pnlHead, `${s.pnl.total >= 0 ? '+' : ''}${fmt(s.pnl.total, 2)} <span class="unit">USD</span>`);
+    pnlPct.textContent = `${s.pnl.pct >= 0 ? '+' : ''}${s.pnl.pct.toFixed(3)}%`;
+    pnlRate.textContent = `${s.pnl.run_rate >= 0 ? '+' : ''}${fmt(s.pnl.run_rate, 2)} USD/h`;
+    // Headline colour by sign
+    pnlHead.style.color = s.pnl.total >= 0 ? 'var(--sig-positive)' : 'var(--sig-negative)';
+
+    // Bottom PnL stats row
+    const stat = (sel, val, cls='') => {
+      const rows = document.querySelectorAll('.pnl-stats .v');
+      if (!rows.length) return;
+      rows.forEach((el, i) => {
+        const label = el.parentElement.querySelector('.k')?.textContent?.trim();
+        if (label === 'realised'   && sel === 'realised')   el.textContent = fmtOrDash(s.pnl.realised, 2);
+        if (label === 'unrealised' && sel === 'unrealised') el.textContent = fmtOrDash(s.pnl.unrealised, 2);
+        if (label === 'fees'       && sel === 'fees')       el.textContent = fmtOrDash(s.pnl.fees, 2);
+        if (label === 'turnover'   && sel === 'turnover')   el.textContent = fmtOrDash(s.pnl.turnover, 0);
+      });
+    };
+    stat('realised'); stat('unrealised'); stat('fees'); stat('turnover');
+
+    // Metrics row — §9.2
+    setText('m-sharpe', s.metrics.sharpe == null ? EM_DASH : s.metrics.sharpe.toFixed(2));
+    setText('m-ic',     s.metrics.ic     == null ? EM_DASH : s.metrics.ic.toFixed(3));
+    setText('m-alpha',  s.metrics.alpha  == null ? EM_DASH : `${s.metrics.alpha >= 0 ? '+' : ''}${(s.metrics.alpha * 100).toFixed(1)}%`);
+    setText('m-maxdd',  s.metrics.max_dd == null ? EM_DASH : `${(s.metrics.max_dd * 100).toFixed(1)}%`);
+
+    // DRO-ARA — §9.3
+    const dro = s.dro_ara;
+    const gate = $('dro-gate');
+    if (gate) {
+      gate.className = 'dro-gate gate-' + dro.state;
+    }
+    setText('dro-state', dro.state);
+    setText('dro-H',     dro.H.toFixed(4));
+    setText('dro-gamma', dro.gamma.toFixed(4));
+    setText('dro-rs',    dro.r_s.toFixed(4));
+    setText('dro-r2',    dro.r2.toFixed(4));
+    setText('dro-trend', dro.trend || EM_DASH);
+    setText('dro-signal', dro.signal);
+    // Invariant flags on DRO rules
+    const inv1 = $('dro-inv1');
+    const inv2 = $('dro-inv2');
+    const stn  = $('dro-stationary');
+    if (inv1) { inv1.textContent = Math.abs(dro.gamma - (2*dro.H + 1)) < 1e-5 ? 'ok' : 'FAIL'; inv1.style.color = inv1.textContent === 'ok' ? 'var(--sig-positive)' : 'var(--sig-negative)'; }
+    if (inv2) { inv2.textContent = (dro.r_s >= 0 && dro.r_s <= 1) ? 'ok' : 'FAIL'; inv2.style.color = inv2.textContent === 'ok' ? 'var(--sig-positive)' : 'var(--sig-negative)'; }
+    if (stn)  { stn.textContent = dro.stationary ? 'ok' : 'NO'; stn.style.color = dro.stationary ? 'var(--sig-positive)' : 'var(--sig-caution)'; }
+
+    // Execution
+    setText('ex-fills',  String(s.execution.fills_1h));
+    setText('ex-reject', String(s.execution.reject));
+    setText('ex-p50',    `${s.execution.slip_p50.toFixed(1)} bp`);
+    setText('ex-p95',    `${s.execution.slip_p95.toFixed(1)} bp`);
+
+    // Kelly
+    const k = s.kelly;
+    setText('kelly-fstar',   k.f_star == null ? EM_DASH : k.f_star.toFixed(3));
+    setText('kelly-applied', k.applied.toFixed(3));
+    setText('kelly-cap',     k.cap.toFixed(3));
+    setText('kelly-sign',    k.applied > 0 ? 'long' : k.applied < 0 ? 'short' : 'flat');
+
+    // Kuramoto
+    const ku = s.kuramoto;
+    setText('ku-r',    ku.r_t.toFixed(4));
+    setText('ku-kkc',  ku.k_kc.toFixed(2));
+    setText('ku-n',    String(ku.N));
+    setText('ku-gate', ku.gate);
+    const gateEl = $('ku-gate');
+    if (gateEl) gateEl.style.color = ku.gate === 'open' ? 'var(--sig-positive)' : 'var(--sig-negative)';
+
+    // Invariants watch
+    const invBody = $('inv-body');
+    if (invBody) {
+      invBody.innerHTML = (s.invariants || []).map(i =>
+        `<div class="line"><span class="tag ${i.tag === 'OK' ? 'ok' : ''}">${i.tag}</span><span>${i.name} · ${i.text}</span></div>`
+      ).join('');
+      const flags = (s.invariants || []).filter(i => i.tag !== 'OK').length;
+      const summary = $('inv-summary');
+      if (summary) {
+        summary.textContent = flags === 0 ? 'all ok' : `${flags} flagged`;
+        summary.style.color = flags === 0 ? 'var(--sig-positive)' : 'var(--sig-caution)';
+      }
+    }
+
+    // Sparkline — replot from equity_curve when available
+    const lp = $('spark-line');
+    if (Array.isArray(s.equity_curve) && s.equity_curve.length >= 4 && lp) {
+      const pts = s.equity_curve;
+      const ys = pts.map(p => p[1]);
+      const yMin = Math.min(...ys);
+      const yMax = Math.max(...ys);
+      const yRange = (yMax - yMin) || 1;
+      const coords = pts.map((p, i) => {
+        const x = (i / (pts.length - 1)) * 600;
+        const y = 95 - ((p[1] - yMin) / yRange) * 80;
+        return [x, y];
+      });
+      const d = coords.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+      lp.setAttribute('d', d);
+      const area = document.querySelector('.sparkline .area-pos');
+      if (area) area.setAttribute('d', `${d} L600,95 L0,95 Z`);
+      // update cached pts for crosshair
+      window.__equity_pts = coords;
+    }
+  }
+
+  async function pullState() {
+    try {
+      const r = await fetch('/api/state', { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const s = await r.json();
+      applyState(s);
+    } catch (e) {
+      renderEngineBadge('offline', { reason: String(e) });
+      renderOffline();
+    }
+  }
+  pullState();
+  if (!reduceMotion) setInterval(pullState, 1000);
+  function step() { pullState(); }
 
   // ——— Sparkline crosshair + tooltip
   const sparkline = $('sparkline');
