@@ -71,11 +71,24 @@ def test_backtest_symbol_schema() -> None:
     assert np.all(np.isfinite(bt["pnl_net"]))
 
 
-def test_backtest_on_gbm_yields_flat_positions() -> None:
+def test_backtest_on_gbm_has_flat_and_active_bars_mix() -> None:
+    """GBM with drift: filter admits TRANSITION/CRITICAL, zeroes DRIFT.
+
+    Post-PR #345 RFC: ADF on returns, so GBM is no longer uniformly INVALID.
+    Finite-sample H on GBM-drift clusters near 0.5 → regime distribution
+    lands in {TRANSITION ≈ 67 %, CRITICAL ≈ 17 %, DRIFT ≈ 17 %, INVALID ≈ 0 %}.
+    The filter still protects by zeroing DRIFT/INVALID (~17 % of windows),
+    producing an expected flat-bar fraction > 10 % on the active timeline.
+    """
     price = _gbm(SEED, 2000)
     positions = build_positions(price, window=512, step=64, momentum_lag=24)
-    non_flat = int(np.sum(np.abs(positions) > 0))
-    assert non_flat <= 16, f"GBM should filter to ≈flat, got {non_flat} active bars"
+    active_timeline = positions[512 + 64 :]
+    flat_bars = int(np.sum(active_timeline == 0))
+    flat_frac = flat_bars / max(len(active_timeline), 1)
+    assert flat_frac >= 0.10, (
+        f"Filter must zero some GBM bars (DRIFT path), got flat_frac={flat_frac:.3f}"
+    )
+    assert set(np.unique(positions).tolist()) <= {-1, 0, 1}
 
 
 def test_walk_forward_on_synthetic_panel() -> None:

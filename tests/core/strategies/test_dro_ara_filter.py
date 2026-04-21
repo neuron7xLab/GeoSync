@@ -77,13 +77,41 @@ def test_apply_on_ou_yields_nonzero_multiplier() -> None:
     assert filtered == pytest.approx(mult)  # raw == 1.0
 
 
-def test_apply_on_gbm_drifts_to_zero() -> None:
-    price = _gbm(seed=2)
-    filtered, obs = apply_regime_filter(raw_signal=1.0, price_window=price)
-    mult = float(obs["regime_multiplier"])  # type: ignore[arg-type]
-    assert obs["regime"] in {"INVALID", "DRIFT"}
-    assert mult == 0.0
-    assert filtered == 0.0
+def test_apply_on_gbm_is_systematically_reduced() -> None:
+    """GBM with drift: filter systematically reduces signal on average.
+
+    Post-PR #345 RFC: ADF runs on log-returns, so GBM is no longer forced
+    to INVALID — returns are stationary. Finite-sample Hurst clusters
+    around 0.5, so most seeds land in TRANSITION/DRIFT, and the trend
+    path further halves CRITICAL cases when DIVERGING is detected.
+
+    Aggregate invariant across a seed ensemble:
+      - Mean multiplier ≤ 0.55 (≥ 45 % reduction on average)
+      - ≥ 80 % of seeds have multiplier < 1.0 (not full pass-through)
+
+    These bounds are statistical, not per-seed: on any single GBM draw the
+    filter may still fully pass, but over an ensemble the filter must
+    demonstrate systematic reduction.
+    """
+    mults: list[float] = []
+    reduced = 0
+    for seed in range(30):
+        price = _gbm(seed=seed)
+        _, obs = apply_regime_filter(raw_signal=1.0, price_window=price)
+        mult = float(obs["regime_multiplier"])  # type: ignore[arg-type]
+        mults.append(mult)
+        if mult < MULTIPLIER_CRITICAL:
+            reduced += 1
+    mean_mult = float(np.mean(mults))
+    reduced_rate = reduced / len(mults)
+    assert mean_mult <= 0.55, (
+        f"GBM filter must reduce on average: mean multiplier = {mean_mult:.3f}, "
+        f"expected ≤ 0.55 across 30 seeds"
+    )
+    assert reduced_rate >= 0.80, (
+        f"GBM filter must not full-pass on most seeds: reduced_rate = "
+        f"{reduced_rate:.2f}, expected ≥ 0.80 across 30 seeds"
+    )
 
 
 def test_apply_preserves_raw_sign_on_critical() -> None:
