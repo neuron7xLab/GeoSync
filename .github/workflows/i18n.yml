@@ -5,14 +5,16 @@ on:
     paths:
       - "ui/dashboard/demo.html"
       - "ui/dashboard/src/i18n/**"
-      - "ui/dashboard/scripts/validate_i18n.js"
+      - "ui/dashboard/scripts/**"
+      - "ui/dashboard/tests/html_strip.test.js"
       - ".github/workflows/i18n.yml"
   push:
     branches: [main]
     paths:
       - "ui/dashboard/demo.html"
       - "ui/dashboard/src/i18n/**"
-      - "ui/dashboard/scripts/validate_i18n.js"
+      - "ui/dashboard/scripts/**"
+      - "ui/dashboard/tests/html_strip.test.js"
 
 permissions:
   contents: read
@@ -27,5 +29,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+      - name: HTML-strip sanitizer unit tests
+        run: node --test ui/dashboard/tests/html_strip.test.js
       - name: Validate i18n
         run: node ui/dashboard/scripts/validate_i18n.js

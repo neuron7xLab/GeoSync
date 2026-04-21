@@ -20,6 +20,8 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { dangerousLexemesIn, stripHtmlBlocks } from "./html_strip.js";
+
 const __here = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__here, "..");
 
@@ -94,11 +96,16 @@ try {
 // Strip <script>, <style>, comments, AND every element carrying data-i18n /
 // data-i18n-placeholder — the fallback text inside such elements is bound at
 // page load and therefore not a hard-coded literal.
-const stripped = (demoRaw || "")
-  .replace(/<script[\s\S]*?<\/script>/gi, "")
-  .replace(/<style[\s\S]*?<\/style>/gi, "")
-  .replace(/<!--[\s\S]*?-->/g, "")
-  .replace(/<([A-Za-z][A-Za-z0-9]*)[^>]*\sdata-i18n(?:-placeholder)?="[^"]*"[^>]*>[\s\S]*?<\/\1>/g, "");
+//
+// Sanitizer + fail-closed barrier live in ./html_strip.js. See CodeQL alerts
+// #702–#705 for the bypass vectors the previous inline regex missed.
+const stripped = stripHtmlBlocks(demoRaw);
+for (const lexeme of dangerousLexemesIn(stripped)) {
+  errors.push(
+    `[C] strip regex bypass: stripped HTML still contains "${lexeme}" — ` +
+      `fix ui/dashboard/scripts/html_strip.js before proceeding.`,
+  );
+}
 
 // Words on canon list OR inline-approved (numbers, symbols, units).
 const allowlist = new Set([
