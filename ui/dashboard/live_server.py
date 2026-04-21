@@ -40,6 +40,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Lock
 from typing import Any, Final
+from urllib.parse import unquote, urlsplit
 
 # Enable imports of ``core.*`` from repo root when launched from anywhere.
 _HERE = Path(__file__).resolve()
@@ -50,6 +51,72 @@ if str(_REPO_ROOT) not in sys.path:
 import numpy as np  # noqa: E402 — deliberate: sys.path mutated above
 
 _LOG = logging.getLogger("geosync.dashboard")
+
+# Web-root for static-asset serving. Resolved once at import so the sanitizer
+# compares against a fixed, canonical parent. strict=True ⟹ import fails if
+# the dashboard directory is missing (fail-closed).
+_WEBROOT: Final[Path] = _HERE.parent.resolve(strict=True)
+
+# Allow-list of extensions served by the dev dashboard. Anything else — even
+# if it lives inside _WEBROOT — returns 404. Keeps the surface narrow.
+_STATIC_SUFFIXES: Final[frozenset[str]] = frozenset(
+    {
+        ".html",
+        ".css",
+        ".js",
+        ".mjs",
+        ".map",
+        ".json",
+        ".svg",
+        ".png",
+        ".ico",
+        ".webp",
+        ".woff",
+        ".woff2",
+        ".wasm",
+    }
+)
+
+
+def _resolve_static(request_path: str) -> Path | None:
+    """Resolve an HTTP request path to a file inside _WEBROOT.
+
+    Returns the validated, web-root-contained path on success, or ``None`` for
+    every rejection. Fail-closed against:
+
+    * query string / fragment injection   (``urlsplit().path``)
+    * null-byte truncation                (``"\\x00" in``)
+    * percent-encoded traversal           (``unquote`` before component check)
+    * absolute paths                      (``Path.is_absolute()``)
+    * ``..`` or empty components          (explicit rejection)
+    * symlink escape from _WEBROOT        (``resolve(strict=True) + is_relative_to``)
+    * non-regular-file targets            (``is_file()``)
+    * disallowed content types            (``suffix in _STATIC_SUFFIXES``)
+
+    The ``is_relative_to(_WEBROOT)`` call is the CodeQL-recognized sanitizer
+    barrier for ``py/path-injection``.
+    """
+    raw = urlsplit(request_path).path
+    if not raw or "\x00" in raw:
+        return None
+    rel_str = unquote(raw).lstrip("/")
+    if not rel_str:
+        return None
+    candidate = Path(rel_str)
+    if candidate.is_absolute() or any(part in ("", "..") for part in candidate.parts):
+        return None
+    try:
+        target = (_WEBROOT / candidate).resolve(strict=True)
+    except (OSError, ValueError):
+        return None
+    if not target.is_relative_to(_WEBROOT):
+        return None
+    if not target.is_file():
+        return None
+    if target.suffix.lower() not in _STATIC_SUFFIXES:
+        return None
+    return target
+
 
 # ---------------------------------------------------------------------------
 # Physics imports (guarded — fail-closed if anything is missing)
@@ -552,16 +619,16 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json(_snapshot())
             return
         if self.path in ("/", "/index.html", "/demo.html"):
-            self._send_file(_HERE.parent / "demo.html", "text/html; charset=utf-8")
+            # Literal-path sink — no user data flows into the Path.
+            self._send_file(_WEBROOT / "demo.html", "text/html; charset=utf-8")
             return
-        # static passthrough (CSS/JS/images under ui/dashboard/)
-        target = (_HERE.parent / self.path.lstrip("/")).resolve()
-        if _HERE.parent in target.parents and target.is_file():
-            ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
-            self._send_file(target, ctype)
+        target = _resolve_static(self.path)
+        if target is None:
+            self.send_response(404)
+            self.end_headers()
             return
-        self.send_response(404)
-        self.end_headers()
+        ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+        self._send_file(target, ctype)
 
     def _send_json(self, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, allow_nan=False, default=str).encode("utf-8")
@@ -574,6 +641,14 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _send_file(self, path: Path, ctype: str) -> None:
+        # Belt-and-braces: CodeQL-recognized sanitizer barrier at the I/O sink.
+        # Every call site must pass a path already confined to _WEBROOT; this
+        # re-check ensures a future refactor cannot silently introduce an
+        # unsanitized path.
+        if not path.is_relative_to(_WEBROOT):
+            self.send_response(403)
+            self.end_headers()
+            return
         data = path.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", ctype)
