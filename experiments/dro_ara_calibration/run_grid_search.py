@@ -122,9 +122,14 @@ def combo_v1_signal(prices: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 def hurst_on_train(train_prices: NDArray[np.float64]) -> tuple[float, float, bool]:
-    """DFA-1 Hurst + ADF stationarity on train window only."""
+    """DFA-1 Hurst + ADF stationarity on train window only.
 
-    stat = _adf_stationary(train_prices)
+    Mirrors State.from_window semantics (PR #349): ADF runs on log-returns,
+    not raw prices, to match the DFA transform.
+    """
+
+    log_returns = np.diff(np.log(np.abs(train_prices) + 1e-12))
+    stat = _adf_stationary(log_returns)
     H, r2 = _hurst_dfa(train_prices)
     _, _, _ = derive_gamma(train_prices)  # invariant self-check path
     return float(H), float(r2), bool(stat)
@@ -319,7 +324,15 @@ def write_report(
     meta: dict[str, Any],
     out_path: Path,
 ) -> None:
-    top5 = agg.sort_values("mean_sharpe", ascending=False).head(5)
+    # Rank: prefer cells with ≥ 1 active fold; fall back to fully-degenerate
+    # cells only when the grid is uniformly inactive. Without this filter, a
+    # 0-Sharpe-because-0-folds cell would outrank a (-0.01)-Sharpe cell that
+    # actually executed trades — misleading for calibration.
+    active = agg[agg["gate_on_folds"] > 0]
+    ranked = (active if len(active) else agg).sort_values(
+        ["mean_sharpe", "gate_on_folds"], ascending=[False, False]
+    )
+    top5 = ranked.head(5)
     opt = top5.iloc[0]
     H_opt = float(opt["H"])
     rs_opt = float(opt["rs"])
@@ -388,25 +401,43 @@ def write_report(
             )
     lines.append("")
     lines.append("## Recommendation\n")
-    total_active_folds = int(agg["gate_on_folds"].max()) if len(agg) else 0
-    max_mean_sharpe = float(agg["mean_sharpe"].max()) if len(agg) else 0.0
-    if total_active_folds == 0 or max_mean_sharpe == 0.0:
+    active_cells = agg[agg["gate_on_folds"] > 0]
+    total_active = len(active_cells)
+    max_mean_sharpe = float(active_cells["mean_sharpe"].max()) if total_active else 0.0
+    top_passes = bool(opt["passes_filters"])
+    if total_active == 0:
         verdict = (
-            "**NO_SIGNAL / REJECT** — across the entire H × rs grid, no "
-            "(H_threshold, rs_threshold) pair produced any gate-on fold with "
-            "a non-zero Sharpe. The upstream ADF stationarity filter "
-            "(INV-DRO3) dominates on this asset: stationary train windows are "
-            "rare, and among those, train-derived rs rarely exceeds the "
-            "grid's minimum rs_threshold. The binding constraint is therefore "
-            "**not** H_CRITICAL or RS_LONG_THRESH but the engine's upstream "
-            "regime filter. Operator action: DO NOT modify thresholds based "
-            "on this run; escalate as an engine-design question (stationarity "
-            "convention: ADF on prices vs log-returns) rather than a "
-            "parameter tune."
+            "**NO_ACTIVITY / REJECT** — across the entire H × rs grid, no "
+            "(H_threshold, rs_threshold) pair produced any gate-on fold. "
+            "The combo_v1 × DRO-ARA composition does not activate on this "
+            "asset over the tested window. No threshold change justified."
+        )
+    elif max_mean_sharpe <= 0.0:
+        verdict = (
+            f"**STRATEGY_UNPROFITABLE / REJECT** — {total_active} (H, rs) "
+            f"pairs activated the gate, but the best mean OOS Sharpe across "
+            f"all active cells is {max_mean_sharpe:.3f} (≤ 0). The "
+            f"combo_v1 × DRO-ARA pipeline does not produce a profitable edge "
+            f"on this asset at this bar granularity. Threshold tuning cannot "
+            f"fix a non-existent signal. Operator action: DO NOT modify "
+            f"engine constants. Consider: (a) higher-frequency data, "
+            f"(b) richer R/κ feature proxies than constants, or "
+            f"(c) a different asset class for combo_v1 deployment."
+        )
+    elif delta_H > 0.20 or delta_rs > 0.30:
+        verdict = (
+            f"**HALT / ESCALATE RE-SPECIFICATION** — deltas "
+            f"(ΔH={delta_H:.2f}, Δrs={delta_rs:.2f}) exceed safety bounds "
+            f"(0.20 / 0.30). This is an engine-design mismatch, not a "
+            f"parameter tune. Do not modify engine.py."
         )
     elif delta_H > 0.10 or delta_rs > 0.10:
-        verdict = "**HALT / AWAIT OPERATOR** — delta exceeds 0.10 on at least one axis."
-    elif not bool(opt["passes_filters"]):
+        verdict = (
+            f"**HALT / AWAIT OPERATOR** — deltas (ΔH={delta_H:.2f}, "
+            f"Δrs={delta_rs:.2f}) exceed 0.10 threshold on ≥1 axis. "
+            f"Report captured; no engine changes applied."
+        )
+    elif not top_passes:
         verdict = (
             "**REJECT** — top pair fails rejection filters "
             "(Sharpe ≥ 0.80, worst_dd ≤ 0.25, mean_trades ≥ 20)."
@@ -453,7 +484,11 @@ def main(data_path: Path = DEFAULT_DATA) -> dict[str, Any]:
     grid_df.to_csv(grid_csv, index=False)
 
     agg = apply_filters(grid_df)
-    top5 = agg.sort_values("mean_sharpe", ascending=False).head(5)
+    active = agg[agg["gate_on_folds"] > 0]
+    ranked = (active if len(active) else agg).sort_values(
+        ["mean_sharpe", "gate_on_folds"], ascending=[False, False]
+    )
+    top5 = ranked.head(5)
     summary = {
         "top5": top5.to_dict(orient="records"),
         "current": {"H": H_CRITICAL, "rs": RS_LONG_THRESH},
