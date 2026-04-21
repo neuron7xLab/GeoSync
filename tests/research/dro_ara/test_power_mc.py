@@ -76,9 +76,9 @@ def test_gbm_drift_not_classified_as_critical_majority() -> None:
     total = sum(gbm.values())
     assert total > 0
     non_critical_rate = (total - gbm["CRITICAL"]) / total
-    assert non_critical_rate >= 0.60, (
-        f"GBM should land in non-CRITICAL regimes majority: {non_critical_rate:.3f}"
-    )
+    assert (
+        non_critical_rate >= 0.60
+    ), f"GBM should land in non-CRITICAL regimes majority: {non_critical_rate:.3f}"
 
 
 def test_bootstrap_rate_valid_range() -> None:

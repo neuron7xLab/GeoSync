@@ -85,9 +85,9 @@ def test_backtest_on_gbm_has_flat_and_active_bars_mix() -> None:
     active_timeline = positions[512 + 64 :]
     flat_bars = int(np.sum(active_timeline == 0))
     flat_frac = flat_bars / max(len(active_timeline), 1)
-    assert flat_frac >= 0.10, (
-        f"Filter must zero some GBM bars (DRIFT path), got flat_frac={flat_frac:.3f}"
-    )
+    assert (
+        flat_frac >= 0.10
+    ), f"Filter must zero some GBM bars (DRIFT path), got flat_frac={flat_frac:.3f}"
     assert set(np.unique(positions).tolist()) <= {-1, 0, 1}
 
 
