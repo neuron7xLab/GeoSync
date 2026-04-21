@@ -3,9 +3,10 @@
 """DRO-ARA v7 — Deterministic Recursive Observer + Action Result Acceptor.
 
 Measures statistical regime of a price series via Hurst (H) on log-returns (DFA-1),
-confirms stationarity via lag-augmented ADF (AIC lag selection, Ng & Perron 2001),
-and emits a deterministic regime + trading signal through a bounded ARA feedback
-loop.
+confirms stationarity via lag-augmented ADF on log-returns (AIC lag selection,
+Ng & Perron 2001), and emits a deterministic regime + trading signal through a
+bounded ARA feedback loop. Both statistical tests operate on the same transform
+(∆ log price) — the convention was aligned in PR #345 (RFC-stationarity).
 
 Public invariants (never relaxed):
 
@@ -213,7 +214,11 @@ class State:
     @classmethod
     def from_window(cls, x: NDArray[np.float64] | np.ndarray) -> "State":
         arr: NDArray[np.float64] = np.asarray(x, dtype=np.float64)
-        stat = _adf_stationary(arr)
+        # INV-DRO3 convention fix (PR #345 RFC): ADF runs on log-returns, not
+        # raw prices. Aligns with DFA input (engine.py:138) — was a
+        # near-tautology on I(1) asset prices when tested on levels.
+        log_returns = np.diff(np.log(np.abs(arr) + 1e-12))
+        stat = _adf_stationary(log_returns)
         g, H, r2 = derive_gamma(arr)
         reg = classify(g, r2, stat)
         rs = risk_scalar(g) if reg != Regime.INVALID else 0.0

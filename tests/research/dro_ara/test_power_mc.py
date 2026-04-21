@@ -55,13 +55,30 @@ def test_ou_classifies_as_critical_majority() -> None:
     assert rate >= 0.5, f"OU P(CRITICAL) too low: {rate:.3f}"
 
 
-def test_gbm_drift_classifies_as_invalid_majority() -> None:
+def test_gbm_drift_not_classified_as_critical_majority() -> None:
+    """GBM with drift: low false-positive rate for CRITICAL classification.
+
+    Post-PR #345 RFC: ADF on returns, so GBM is no longer uniformly INVALID
+    (INV-DRO3 now encodes true unit root in returns, and GBM returns are
+    i.i.d. Gaussian). The surviving false-positive invariant: GBM must not
+    be classified CRITICAL in the majority — CRITICAL is reserved for
+    genuinely anti-persistent H < 0.45, which GBM-drift does not satisfy
+    in expectation. Empirically on seed=42, n=30: CRITICAL rate ≈ 17 %.
+
+    Contract: p_critical(GBM) ≤ 0.40 (well below OU's ≥ 0.50 threshold).
+    This is the complementary check to ``test_ou_classifies_as_critical_majority``.
+    """
     mc = run_mc(n_samples=30, length=1536, window=512, step=64, seed=42)
+    rate = mc["p_critical"]["gbm_drift"]["p_critical_boot_median"]
+    assert rate <= 0.40, f"GBM CRITICAL false-positive rate too high: {rate:.3f}, expected ≤ 0.40"
+
     gbm = mc["confusion_matrix"]["gbm_drift"]
     total = sum(gbm.values())
     assert total > 0
-    invalid_rate = gbm["INVALID"] / total
-    assert invalid_rate >= 0.8, f"GBM→INVALID rate too low: {invalid_rate:.3f}"
+    non_critical_rate = (total - gbm["CRITICAL"]) / total
+    assert (
+        non_critical_rate >= 0.60
+    ), f"GBM should land in non-CRITICAL regimes majority: {non_critical_rate:.3f}"
 
 
 def test_bootstrap_rate_valid_range() -> None:

@@ -104,3 +104,35 @@ def test_observe_deterministic() -> None:
     a = geosync_observe(price)
     b = geosync_observe(price)
     assert a == b
+
+
+def test_inv_dro3_tightening_post_rfc_ou_stationary_rate() -> None:
+    """INV-DRO3 semantic tightening (PR #345 RFC): ADF on log-returns.
+
+    Before the RFC, ADF ran on raw prices → near-tautology that declared
+    virtually every I(1) asset non-stationary. After the RFC, stationarity
+    is a non-trivial property of returns. For a *true* stationary process
+    (Ornstein–Uhlenbeck), INV-DRO3 must be satisfied on the vast majority
+    of seeds: > 50 % stationary rate across independent draws.
+
+    If this test regresses, the convention has likely been reverted.
+    """
+    rng_seeds = list(range(30))
+    stationary_count = 0
+    for seed in rng_seeds:
+        r = np.random.default_rng(seed)
+        n = 1024
+        mu, theta, sigma = 100.0, 0.08, 0.6
+        x = np.empty(n, dtype=np.float64)
+        x[0] = mu
+        for t in range(1, n):
+            x[t] = x[t - 1] + theta * (mu - x[t - 1]) + sigma * r.normal()
+        out = geosync_observe(x)
+        if out["stationary"] is True:
+            stationary_count += 1
+    rate = stationary_count / len(rng_seeds)
+    assert rate > 0.50, (
+        f"INV-DRO3 tightening regressed: OU stationary rate = {rate:.2f} "
+        f"({stationary_count}/{len(rng_seeds)}), expected > 0.50. "
+        f"Convention may have been reverted to ADF-on-raw-prices."
+    )
