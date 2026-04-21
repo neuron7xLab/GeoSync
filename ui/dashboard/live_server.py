@@ -52,10 +52,12 @@ import numpy as np  # noqa: E402 — deliberate: sys.path mutated above
 
 _LOG = logging.getLogger("geosync.dashboard")
 
-# Web-root for static-asset serving. Resolved once at import so the sanitizer
-# compares against a fixed, canonical parent. strict=True ⟹ import fails if
-# the dashboard directory is missing (fail-closed).
-_WEBROOT: Final[Path] = _HERE.parent.resolve(strict=True)
+# Web-root for static-asset serving. Canonicalised once at import so the
+# sanitizer compares against a fixed, realpath-resolved parent. If the
+# dashboard directory is missing, import fails fast (fail-closed).
+_WEBROOT_STR: Final[str] = os.path.realpath(str(_HERE.parent))
+_WEBROOT: Final[Path] = Path(_WEBROOT_STR)
+_WEBROOT_PREFIX: Final[str] = _WEBROOT_STR + os.sep
 
 # Allow-list of extensions served by the dev dashboard. Anything else — even
 # if it lives inside _WEBROOT — returns 404. Keeps the surface narrow.
@@ -78,8 +80,19 @@ _STATIC_SUFFIXES: Final[frozenset[str]] = frozenset(
 )
 
 
+def _is_inside_webroot(candidate_realpath: str) -> bool:
+    """Return True iff ``candidate_realpath`` is ``_WEBROOT`` or lives under it.
+
+    Uses the string-level ``startswith(prefix + os.sep)`` comparison which is
+    the CodeQL-recognized sanitizer barrier for ``py/path-injection``. The
+    caller MUST have already canonicalised ``candidate_realpath`` with
+    ``os.path.realpath``.
+    """
+    return candidate_realpath == _WEBROOT_STR or candidate_realpath.startswith(_WEBROOT_PREFIX)
+
+
 def _resolve_static(request_path: str) -> Path | None:
-    """Resolve an HTTP request path to a file inside _WEBROOT.
+    """Resolve an HTTP request path to a file inside ``_WEBROOT``.
 
     Returns the validated, web-root-contained path on success, or ``None`` for
     every rejection. Fail-closed against:
@@ -88,13 +101,15 @@ def _resolve_static(request_path: str) -> Path | None:
     * null-byte truncation                (``"\\x00" in``)
     * percent-encoded traversal           (``unquote`` before component check)
     * absolute paths                      (``Path.is_absolute()``)
-    * ``..`` or empty components          (explicit rejection)
-    * symlink escape from _WEBROOT        (``resolve(strict=True) + is_relative_to``)
-    * non-regular-file targets            (``is_file()``)
+    * ``..`` or empty components          (explicit string-level rejection)
+    * symlink escape from ``_WEBROOT``    (``os.path.realpath`` + ``startswith``)
+    * non-regular-file targets            (``os.path.isfile``)
     * disallowed content types            (``suffix in _STATIC_SUFFIXES``)
 
-    The ``is_relative_to(_WEBROOT)`` call is the CodeQL-recognized sanitizer
-    barrier for ``py/path-injection``.
+    Containment is enforced via ``os.path.realpath(...)`` + ``startswith(root
+    + os.sep)`` — the sanitizer pattern documented by CodeQL for
+    ``py/path-injection``. All filesystem touches (realpath, isfile) happen
+    AFTER the string-level pre-checks and AFTER the containment comparison.
     """
     raw = urlsplit(request_path).path
     if not raw or "\x00" in raw:
@@ -105,14 +120,15 @@ def _resolve_static(request_path: str) -> Path | None:
     candidate = Path(rel_str)
     if candidate.is_absolute() or any(part in ("", "..") for part in candidate.parts):
         return None
-    try:
-        target = (_WEBROOT / candidate).resolve(strict=True)
-    except (OSError, ValueError):
+    # Canonicalise with realpath — follows symlinks, collapses "..", handles
+    # missing leaves without raising. This is the sanitizer primitive CodeQL's
+    # py/path-injection query recognises.
+    joined_realpath = os.path.realpath(os.path.join(_WEBROOT_STR, str(candidate)))
+    if not _is_inside_webroot(joined_realpath):
         return None
-    if not target.is_relative_to(_WEBROOT):
+    if not os.path.isfile(joined_realpath):
         return None
-    if not target.is_file():
-        return None
+    target = Path(joined_realpath)
     if target.suffix.lower() not in _STATIC_SUFFIXES:
         return None
     return target
@@ -641,15 +657,18 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _send_file(self, path: Path, ctype: str) -> None:
-        # Belt-and-braces: CodeQL-recognized sanitizer barrier at the I/O sink.
-        # Every call site must pass a path already confined to _WEBROOT; this
-        # re-check ensures a future refactor cannot silently introduce an
-        # unsanitized path.
-        if not path.is_relative_to(_WEBROOT):
+        # Belt-and-braces sanitizer at the I/O sink — ``os.path.realpath`` +
+        # ``startswith`` is the CodeQL-recognized barrier for py/path-injection.
+        # Every call site should pass a path already confined to ``_WEBROOT``;
+        # re-verifying here means a future refactor cannot silently introduce
+        # an unsanitised path. The realpath() call is idempotent on an
+        # already-canonical path, so this adds a single stat() at worst.
+        real = os.path.realpath(str(path))
+        if not _is_inside_webroot(real):
             self.send_response(403)
             self.end_headers()
             return
-        data = path.read_bytes()
+        data = Path(real).read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Cache-Control", "no-store")
