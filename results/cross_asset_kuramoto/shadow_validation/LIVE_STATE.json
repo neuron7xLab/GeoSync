@@ -1,0 +1,12 @@
+{
+  "last_eval_utc": "2026-04-21T23:57:34Z",
+  "live_bars": 6,
+  "cumulative_net_return": 0.011896,
+  "sharpe_live": 7.9267,
+  "max_dd_live": 0.002441,
+  "predictive_envelope_quantile": "p25_p75",
+  "status_label": "OPERATIONALLY_UNSAFE",
+  "gate_decision": "ESCALATE_REVIEW",
+  "operationally_unsafe": true,
+  "any_invariant_fail": false
+}
