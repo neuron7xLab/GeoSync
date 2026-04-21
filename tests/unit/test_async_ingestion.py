@@ -400,13 +400,12 @@ class TestBinanceWebSocketStream:
         from urllib.parse import urlparse
 
         assert stream.symbol == "BTCUSDT"
-        assert "btcusdt@trade" in stream.url
-        # Use urlparse for exact hostname — closes CodeQL
-        # py/incomplete-url-substring-sanitization while allowing
-        # any port (e.g. :9443) or path.
+        # Use urlparse — closes CodeQL py/incomplete-url-substring-sanitization
+        # (substring checks on URLs are unsafe; exact hostname comparison is not).
         parsed = urlparse(stream.url)
         assert parsed.scheme == "wss"
         assert parsed.hostname == "stream.binance.com"
+        assert parsed.path.endswith("btcusdt@trade")
         assert not stream._running
 
     def test_initialization_custom_url(self) -> None:

@@ -142,7 +142,7 @@ class TestBuildArgParser:
         assert args.config == "config/default_config.yaml"
         assert args.steps == 100
         assert args.api is False
-        assert args.host == "0.0.0.0"
+        assert args.host == "127.0.0.1"  # safe-by-default loopback (Bandit B104)
         assert args.port == 8000
 
     def test_parser_custom_config(self) -> None:
@@ -177,13 +177,19 @@ class TestBuildArgParser:
     def test_parser_all_args(self) -> None:
         """Test parser with all arguments."""
         parser = build_arg_parser()
-        args = parser.parse_args([
-            "--config", "test.yaml",
-            "--steps", "200",
-            "--api",
-            "--host", "localhost",
-            "--port", "3000",
-        ])
+        args = parser.parse_args(
+            [
+                "--config",
+                "test.yaml",
+                "--steps",
+                "200",
+                "--api",
+                "--host",
+                "localhost",
+                "--port",
+                "3000",
+            ]
+        )
 
         assert args.config == "test.yaml"
         assert args.steps == 200
