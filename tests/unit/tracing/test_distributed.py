@@ -1193,7 +1193,7 @@ class TestSecurityEventLogging:
     """Reject events must emit a structured WARNING log so operators see them."""
 
     def test_reject_crlf_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
-        caplog.set_level("WARNING", logger="core.tracing.distributed")
+        caplog.set_level("WARNING")
         with pytest.raises(ValueError):
             _reject_crlf("bad\r\nInjected")
         records = [r for r in caplog.records if r.getMessage() == "tracing.reject_header_value"]
@@ -1203,7 +1203,7 @@ class TestSecurityEventLogging:
         assert getattr(record, "character_ordinal", None) == ord("\r")
 
     def test_reject_invalid_baggage_key_logs(self, caplog: pytest.LogCaptureFixture) -> None:
-        caplog.set_level("WARNING", logger="core.tracing.distributed")
+        caplog.set_level("WARNING")
         with pytest.raises(ValueError):
             _validate_baggage_key("bad=key")
         records = [r for r in caplog.records if r.getMessage() == "tracing.reject_baggage_key"]
@@ -1215,7 +1215,7 @@ class TestSecurityEventLogging:
         caplog: pytest.LogCaptureFixture,
         local_baggage_only: None,
     ) -> None:
-        caplog.set_level("WARNING", logger="core.tracing.distributed")
+        caplog.set_level("WARNING")
         carrier: Dict[str, str] = {}
         huge = {f"k{i}": "v" for i in range(BAGGAGE_MAX_MEMBERS + 1)}
         with baggage_scope(huge):
