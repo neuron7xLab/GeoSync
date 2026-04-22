@@ -1,0 +1,80 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
+"""Tests for the three Kuramoto-bound suites against frozen evidence."""
+
+from __future__ import annotations
+
+import pytest
+
+from research.robustness.protocols.kuramoto_contract import KuramotoRobustnessContract
+from research.robustness.protocols.kuramoto_cpcv_suite import (
+    PBO_PASS_THRESHOLD,
+    run_kuramoto_cpcv_suite,
+)
+from research.robustness.protocols.kuramoto_jitter_executor import EVALUATOR_MODE
+from research.robustness.protocols.kuramoto_jitter_suite import run_kuramoto_jitter_suite
+from research.robustness.protocols.kuramoto_null_suite import run_kuramoto_null_suite
+
+
+@pytest.fixture(scope="module")
+def contract() -> KuramotoRobustnessContract:
+    return KuramotoRobustnessContract.from_frozen_artifacts()
+
+
+class TestCPCVSuite:
+    def test_pbo_in_unit_interval(self, contract: KuramotoRobustnessContract) -> None:
+        r = run_kuramoto_cpcv_suite(contract)
+        assert 0.0 <= r.pbo <= 1.0
+        assert r.pbo_pass == (r.pbo < PBO_PASS_THRESHOLD)
+
+    def test_fold_count_matches_frozen_bundle(self, contract: KuramotoRobustnessContract) -> None:
+        r = run_kuramoto_cpcv_suite(contract)
+        assert r.n_folds == len(contract.fold_metrics)
+        assert r.n_bars == len(contract.equity_curve) - 1
+
+
+class TestNullSuite:
+    def test_two_families_returned_and_bounded(self, contract: KuramotoRobustnessContract) -> None:
+        r = run_kuramoto_null_suite(contract, n_bootstrap=64)
+        assert len(r.families) == 2
+        names = {f.family for f in r.families}
+        assert names == {"iid_permutation", "stationary_bootstrap"}
+        for f in r.families:
+            assert 0.0 < f.p_value <= 1.0
+            assert f.n_bootstrap == 64
+
+    def test_deterministic_seed(self, contract: KuramotoRobustnessContract) -> None:
+        a = run_kuramoto_null_suite(contract, n_bootstrap=32, seed=7)
+        b = run_kuramoto_null_suite(contract, n_bootstrap=32, seed=7)
+        for fa, fb in zip(a.families, b.families, strict=True):
+            assert fa.p_value == fb.p_value
+
+    def test_invalid_bootstrap_raises(self, contract: KuramotoRobustnessContract) -> None:
+        with pytest.raises(ValueError):
+            run_kuramoto_null_suite(contract, n_bootstrap=0)
+
+
+class TestJitterSuite:
+    def test_executor_mode_is_placeholder(self, contract: KuramotoRobustnessContract) -> None:
+        r = run_kuramoto_jitter_suite(contract, n_candidates=16)
+        assert r.evaluator_mode == EVALUATOR_MODE == "PLACEHOLDER_APPROXIMATION"
+
+    def test_anchor_sharpe_matches_risk_metrics(self, contract: KuramotoRobustnessContract) -> None:
+        r = run_kuramoto_jitter_suite(contract, n_candidates=8)
+        assert r.stability.anchor_sharpe == pytest.approx(
+            float(contract.risk_metrics["sharpe"].iloc[0])
+        )
+
+    def test_forbidden_jitter_name_rejected(self, contract: KuramotoRobustnessContract) -> None:
+        with pytest.raises(Exception, match="forbidden"):
+            run_kuramoto_jitter_suite(
+                contract,
+                jitter_fractions={"seed_extra": 0.1, "cost_bps": 0.2},
+                n_candidates=4,
+            )
+
+    def test_placeholder_quadratic_monotonicity(self, contract: KuramotoRobustnessContract) -> None:
+        # Increasing candidate count should not produce a perturbed
+        # Sharpe that exceeds the anchor by construction.
+        r = run_kuramoto_jitter_suite(contract, n_candidates=64)
+        assert max(r.stability.perturbed_sharpes) <= r.stability.anchor_sharpe
