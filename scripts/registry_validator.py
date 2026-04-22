@@ -49,7 +49,7 @@ class RegistryLine:
 
 
 def load_registry(path: str | Path) -> dict[str, Any]:
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
     if data is None or "lines" not in data:
         raise ValueError(f"registry at {path} is empty or malformed (no 'lines' key)")
