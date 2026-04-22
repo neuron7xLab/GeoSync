@@ -137,15 +137,34 @@ def _fail_closed(run_dir: Path, msg: str, code: int) -> None:
 
 
 def _target_run_date(data_dir: Path, assets: list[str]) -> pd.Timestamp:
-    """Latest common business-day timestamp across the regime universe."""
+    """Latest common business-day timestamp across the regime universe.
+
+    On a missing asset the exit code is 2 and an operational incident
+    row is appended — so the failure is auditable from the ledger
+    rather than only the process-exit-status.
+    """
     from core.cross_asset_kuramoto.signal import load_asset_close
 
     last_ts: list[pd.Timestamp] = []
     for a in assets:
         try:
             s = load_asset_close(a, data_dir)
-        except CAKInvariantError:
-            raise SystemExit(2)  # missing asset
+        except CAKInvariantError as exc:
+            _append_incident(
+                {
+                    "incident_ts": _now_utc(),
+                    "incident_type": "missing_asset",
+                    "severity": "CRITICAL",
+                    "affected_run_date": "",
+                    "description": (
+                        f"load_asset_close failed for asset {a!r} at data_dir={data_dir}: {exc}"
+                    ),
+                    "resolved_yes_no": "no",
+                    "resolution_ts": "",
+                    "changed_artifacts_yes_no": "no",
+                }
+            )
+            raise SystemExit(2) from exc
         last_ts.append(s.index.max())
     return min(last_ts).normalize()
 

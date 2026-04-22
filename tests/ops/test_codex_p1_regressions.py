@@ -21,6 +21,7 @@ from __future__ import annotations
 import importlib.util
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
 
@@ -120,14 +121,10 @@ def test_runner_quarantines_partial_daily_dir(
     # The function under test lives *between* `_already_written` and the
     # final `mkdir(exist_ok=False)`. We replicate its contract in-place
     # without running the full pipeline (which needs spike data).
-    import pandas as _pd
-
-    run_date = _pd.Timestamp(partial_day)
+    run_date = pd.Timestamp(partial_day)
     assert not runner._already_written(run_date)
 
     # Simulate the logic path the runner takes on retry:
-    from datetime import datetime, timezone
-
     ts_suffix = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     quarantine = partial_dir.with_name(f"{partial_dir.name}.incomplete.{ts_suffix}")
     partial_dir.rename(quarantine)
@@ -140,6 +137,33 @@ def test_runner_quarantines_partial_daily_dir(
     assert (quarantine / "run_log.txt").read_text().startswith("[2026-04-11T22:00:00Z] FAIL-CLOSED")
     # No content from the partial run leaked into the fresh dir.
     assert list(partial_dir.iterdir()) == []
+
+
+def test_missing_asset_logs_incident_before_exit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Audit gap closed: a missing regime-panel asset must leave a
+    row in operational_incidents.csv before the runner exits 2.
+    Without this, the operator has only the exit status to debug."""
+    runner = _load_module(RUNNER_SCRIPT, "shadow_runner_missing_asset")
+
+    incidents = tmp_path / "operational_incidents.csv"
+    monkeypatch.setattr(runner, "INCIDENTS", incidents)
+
+    missing_data_dir = tmp_path / "definitely_not_a_data_bundle"
+    with pytest.raises(SystemExit) as exc_info:
+        runner._target_run_date(missing_data_dir, ["BTC"])
+
+    assert exc_info.value.code == 2
+    assert incidents.is_file(), "incident ledger must exist after missing-asset exit"
+    rows = pd.read_csv(incidents)
+    assert len(rows) >= 1
+    # Find our row (may coexist with earlier test pollution)
+    ours = rows[rows["incident_type"] == "missing_asset"]
+    assert len(ours) >= 1
+    latest = ours.iloc[-1]
+    assert latest["severity"] == "CRITICAL"
+    assert "BTC" in str(latest["description"])
 
 
 def test_runner_retry_logic_matches_source_flow() -> None:
