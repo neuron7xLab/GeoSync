@@ -110,7 +110,7 @@ def _render_markdown(
         f"*{cpcv_dict['pbo_interpretation']}*) | "
         f"{cpcv_dict['pbo']:.4f} | "
         f"{'✓' if cpcv_dict['pbo_pass'] else '✗'} |",
-        f"| CPCV | PSR (daily) | {cpcv_dict['psr_daily']:.4f} | "
+        f"| CPCV | PSR (daily, no HAC) | {cpcv_dict['psr_daily']:.4f} | "
         f"{'✓' if cpcv_dict['psr_pass'] else '✗'} |",
         f"| CPCV | Annualised Sharpe (daily) | {cpcv_dict['annualised_sharpe']:.4f} | n/a |",
     ]
@@ -189,6 +189,15 @@ def _render_markdown(
             "- Jitter row shows `N/A` while the evaluator is "
             "`PLACEHOLDER_APPROXIMATION`; a live rebuild is required to "
             "replace the row with a real ✓ / ✗.",
+            "- PSR column is *not* HAC-adjusted. Under positive serial "
+            "correlation — typical of regime-following strategies — the "
+            "effective sample size is smaller than the nominal T, and "
+            "`psr_daily = 1.0000` is inflated. See "
+            "`ROBUSTNESS_LIMITATIONS.md` § 1 for the forward-improvement "
+            "path (Newey–West kernel).",
+            "- Decision thresholds (α = 0.05, pbo_max = 0.50, "
+            "psr_min = 0.95, jitter_floor = 0.80) are documented "
+            "verbatim in `ROBUSTNESS_PROTOCOL.md` § 3.",
             "",
         ]
     )

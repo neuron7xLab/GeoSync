@@ -57,14 +57,27 @@ information content beyond short-horizon autocorrelation.
 Both families share a seeded `np.random.default_rng` and emit a
 Davison–Hinkley +1 continuity-corrected upper-tail p-value.
 
-## 3. Decision thresholds
+## 3. Statistical thresholds
 
-See `ROBUSTNESS_PROTOCOL.md § Statistical thresholds` (populated by
-Task 4) for the canonical `alpha`, `pbo_max`, `psr_min`, and
-jitter-tolerance values. All thresholds are encoded as module-level
-constants in `research/robustness/protocols/*_suite.py` and
-`backtest/robustness_gates.py`; the documentation mirrors the constants,
-never the other way round.
+All thresholds are encoded as module-level constants; this section
+mirrors the constants, never the other way round. Drift between code
+and this section is a bug in the documentation.
+
+| Threshold | Value | Where set | Semantics |
+|---|---:|---|---|
+| `null_alpha` | 0.05 | `kuramoto_null_suite.NULL_PASS_P_THRESHOLD` | Upper-tail α for either null family |
+| `pbo_max` | 0.50 | `kuramoto_cpcv_suite.PBO_PASS_THRESHOLD` | Fold-mirror PBO must be below this |
+| `loo_pbo_max` | 0.50 | `kuramoto_cpcv_suite.LOO_PBO_PASS_THRESHOLD` | LOO-grid PBO must be below this |
+| `psr_min` | 0.95 | `kuramoto_cpcv_suite.PSR_PASS_THRESHOLD` | Probabilistic Sharpe must exceed this |
+| `jitter_floor_ratio` | 0.80 | `kuramoto_jitter_suite.run_kuramoto_jitter_suite` default `fraction_within_tol_pass` | Fraction of jitter candidates within `sharpe_tolerance` (live evaluator only) |
+| `sharpe_tolerance` | 0.20 | `kuramoto_jitter_suite.DEFAULT_SHARPE_TOLERANCE` | Absolute |ΔSharpe| band for jitter evaluator |
+| `pbo_tautological_n` | 3 | `kuramoto_cpcv_suite.PBO_TAUTOLOGICAL_CUTOFF` | Below this candidate count, PBO is tautological |
+| `pbo_weak_n` | 5 | `kuramoto_cpcv_suite.PBO_WEAK_CUTOFF` | Below this candidate count, PBO is weak |
+| `null_convergence_tol` | 0.02 | `analysis_null_convergence.CONVERGENCE_TOLERANCE` | Max \|Δp\| across adjacent trial counts for CONVERGED |
+
+Threshold semantics are one-sided unless stated otherwise.
+Null-family tests are upper-tail: reject H₀ when *observed* Sharpe is
+in the upper α tail of the bootstrap distribution.
 
 ## 4. Artefacts written
 
