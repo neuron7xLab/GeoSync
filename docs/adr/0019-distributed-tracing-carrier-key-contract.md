@@ -126,7 +126,37 @@ pass. The new contract is a strict superset of the old one on the read
 side, and a strict subset (reject CR/LF) on the write side. Downstream
 consumers that were already well-formed observe no behaviour change.
 
-## Amendment (same PR): W3C Baggage fallback is now spec-compliant
+## Amendment 2 (follow-up PR): drop-truncate-log philosophy
+
+ADR-0019 originally enforced W3C Baggage via raise-on-bad. In practice
+a tracing layer that raises into application code is a reliability
+liability: one bad baggage member from a legacy service can take down
+the whole request. Revised philosophy:
+
+* Unsafe members are **silently dropped** at inject time; safe members
+  survive. Caller is never surprised by a runtime exception from the
+  tracing layer.
+* W3C § 4.3 size limits (180 members / 8192 bytes) are enforced by
+  **truncation**: excess trailing members are dropped until the payload
+  fits. Every truncation emits a structured
+  ``LOGGER.warning('tracing.baggage_truncated', extra={reason, ...})``
+  so operators have full observability without the application path
+  raising.
+* If truncation leaves zero members, the header is not written at all.
+
+Removed primitives: ``_reject_crlf``, ``_validate_baggage_key``,
+``_encode_baggage_value``, ``_decode_baggage_value``. Replaced by
+``_is_safe_header_text``, ``_normalize_correlation_value``,
+``_normalize_baggage_header_value``, ``_normalize_baggage_member``.
+
+Trade-off: values with ``,`` / ``;`` / CR / LF / NUL cannot round-trip
+through the local fallback (they are dropped at inject). This is
+consistent with the W3C spec — those characters are list-member / property
+delimiters or control bytes, not legal in plain baggage values. Callers
+that need to carry such values must use OpenTelemetry's
+``BaggagePropagator`` (percent-encoding) by installing OTel on the host.
+
+## Amendment 1 (original PR #357): W3C Baggage fallback is now spec-compliant
 
 The initial carrier-key fix uncovered that the *local* baggage fallback
 (used when OpenTelemetry is not installed) emitted unvalidated
