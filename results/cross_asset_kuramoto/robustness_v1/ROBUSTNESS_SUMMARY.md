@@ -25,14 +25,14 @@ combines evidence into `PASS` / `FAIL` / `INSUFFICIENT_EVIDENCE`.
 
 | Gate | Value | Threshold | Status |
 |---|---:|---:|:-:|
-| iid_bootstrap null p-value | 0.5045 | ≤ 0.05 | ✗ |
-| stationary_bootstrap null p-value | 0.5235 | ≤ 0.05 | ✗ |
+| iid_bootstrap null p-value | 0.0829 | ≤ 0.05 | ✗ |
+| stationary_bootstrap null p-value | 0.1029 | ≤ 0.05 | ✗ |
 
-Both nulls are with-replacement resamples of the realised daily log-
-return stream. `p ≈ 0.50` means the observed Sharpe (0.483) is
-statistically indistinguishable from bootstrap resamples of its own
-marginal distribution. Consistent with `SEPARATION_FINDING.md`:
-most realised alpha lives in the narrow HIGH_SYNC regime.
+Both nulls are *demeaned* bootstrap resamples — the canonical test of
+H₀ that the true mean is zero. Observed Sharpe (0.483) sits at the
+8–10 % upper-tail of the null distribution: suggestive but below the
+strict α = 0.05 bar. Consistent with `SEPARATION_FINDING.md`: most
+realised alpha lives in the narrow HIGH_SYNC regime.
 
 ## What is placeholder
 

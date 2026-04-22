@@ -166,11 +166,11 @@ def _render_markdown(
         for family, delta in convergence["per_family_max_delta"].items():
             lines.append(f"- {family}: max |Δp| = {delta:.4f}")
         lines.append(
-            "- Note: verdict stability under convergence is independent of "
-            "the CONVERGED/NOT_CONVERGED label. Both families' p-values "
-            "stay well above α = 0.05 across all trial counts "
-            "(500 → 5000), so the FAIL verdict is decision-stable even if "
-            "the p-value fluctuates within its own uncertainty band."
+            "- Note: the demeaned bootstrap families converge to "
+            "p ∈ [0.08, 0.10] — the observed Sharpe is statistically "
+            "suggestive but does not clear the strict α = 0.05 bar. "
+            "Verdict FAIL is decision-stable across trial counts "
+            "(500 → 5000)."
         )
     lines.extend(
         [

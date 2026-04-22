@@ -10,8 +10,8 @@ Terminal decision: **FAIL**
 | CPCV | PSR (daily, no HAC) | 1.0000 | ✓ |
 | CPCV | Annualised Sharpe (daily) | 0.4832 | n/a |
 | CPCV | PBO (LOO grid, n=13, *admissible*) | 0.2000 | ✓ |
-| Null | iid_bootstrap p-value | 0.5045 | ✗ |
-| Null | stationary_bootstrap p-value | 0.5235 | ✗ |
+| Null | iid_bootstrap p-value | 0.0829 | ✗ |
+| Null | stationary_bootstrap p-value | 0.1029 | ✗ |
 | Jitter | fraction_within_tol | 1.0000 | N/A |
 | Jitter | evaluator_mode | `PLACEHOLDER_APPROXIMATION` (not decision-grade; live evaluator required to flip this row to ✓ / ✗) | n/a |
 
@@ -22,11 +22,11 @@ Terminal decision: **FAIL**
 
 ## Null p-value convergence
 
-- overall status: **NOT_CONVERGED**
-- overall max |Δp|: 0.0285 (tolerance 0.0200)
-- iid_bootstrap: max |Δp| = 0.0115
-- stationary_bootstrap: max |Δp| = 0.0285
-- Note: verdict stability under convergence is independent of the CONVERGED/NOT_CONVERGED label. Both families' p-values stay well above α = 0.05 across all trial counts (500 → 5000), so the FAIL verdict is decision-stable even if the p-value fluctuates within its own uncertainty band.
+- overall status: **CONVERGED**
+- overall max |Δp|: 0.0071 (tolerance 0.0200)
+- iid_bootstrap: max |Δp| = 0.0029
+- stationary_bootstrap: max |Δp| = 0.0071
+- Note: the demeaned bootstrap families converge to p ∈ [0.08, 0.10] — the observed Sharpe is statistically suggestive but does not clear the strict α = 0.05 bar. Verdict FAIL is decision-stable across trial counts (500 → 5000).
 
 ## Notes
 
