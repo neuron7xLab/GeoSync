@@ -211,22 +211,27 @@ def _load_pipeline_status_for_latest() -> dict[str, Any]:
 
 
 def _compute_live_metrics(live: pd.DataFrame) -> dict[str, Any]:
+    empty_metrics: dict[str, Any] = {
+        "live_bars_completed": 0,
+        "cumulative_net_return": 0.0,
+        "annualized_return_live": float("nan"),
+        "annualized_vol_live": float("nan"),
+        "sharpe_live": float("nan"),
+        "max_dd_live": float("nan"),
+        "turnover_ann_live": float("nan"),
+        "hit_rate_live": float("nan"),
+        "avg_win_live": float("nan"),
+        "avg_loss_live": float("nan"),
+        "cost_drag_bps_live": float("nan"),
+    }
+    # Guard against an empty or schema-less ledger (paper-state absent on
+    # CI runners, or the spike has not yet written its first tick).
+    if live.empty or "net_ret" not in live.columns:
+        return empty_metrics
     r = live["net_ret"].astype(float).to_numpy()
     n = int(len(r))
     if n == 0:
-        return {
-            "live_bars_completed": 0,
-            "cumulative_net_return": 0.0,
-            "annualized_return_live": float("nan"),
-            "annualized_vol_live": float("nan"),
-            "sharpe_live": float("nan"),
-            "max_dd_live": float("nan"),
-            "turnover_ann_live": float("nan"),
-            "hit_rate_live": float("nan"),
-            "avg_win_live": float("nan"),
-            "avg_loss_live": float("nan"),
-            "cost_drag_bps_live": float("nan"),
-        }
+        return empty_metrics
     ann_ret = float(np.mean(r) * BARS_PER_YEAR)
     ann_vol = float(np.std(r, ddof=1) * np.sqrt(BARS_PER_YEAR)) if n > 1 else float("nan")
     sharpe = ann_ret / ann_vol if ann_vol and ann_vol > 0 else float("nan")
