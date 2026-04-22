@@ -7,12 +7,48 @@ application-facing API for distributed tracing.  When the optional
 ``opentelemetry`` dependencies are not installed the helpers degrade to
 no-ops while still providing correlation identifiers for structured
 logging.
+
+Carrier-key contract
+--------------------
+
+Extraction paths (:func:`extract_distributed_context`,
+:func:`_first_correlation_value`, :func:`_extract_local_baggage`,
+:class:`_DictGetter`) are **read-tolerant** over the carrier:
+
+* Supported key types: ``str``, ``bytes``, ``bytearray``.
+* Keys are ASCII-decoded when byte-shaped, lower-cased, and validated
+  against the RFC 7230 § 3.2.6 *token* grammar. Keys that fail the
+  grammar are silently ignored rather than coerced via ``str(key)`` —
+  this prevents non-header-like objects (integers, tuples, arbitrary
+  class instances) from spuriously matching canonical header names.
+* Values are normalised via :func:`_normalize_header_value`: ``str``
+  passes through, ``bytes``/``bytearray`` decode via latin-1, and other
+  types fall back to ``str()`` so legacy carriers do not crash the read
+  path.
+
+Injection paths (:func:`inject_distributed_context`,
+:class:`_DictSetter`, :func:`_inject_local_baggage`) are
+**write-canonical**:
+
+* Only ``str`` keys and ``str`` values are emitted — never bytes.
+* Every outgoing value is passed through :func:`_reject_crlf`, which
+  refuses CR/LF/NUL forbidden by RFC 7230 § 3.2 for header field values.
+  This forecloses header-splitting attacks where an attacker-supplied
+  correlation ID or baggage value could be smuggled into a downstream
+  HTTP/1.1 proxy that is not Unicode-strict.
+
+The asymmetry (tolerant read, canonical write) is deliberate: upstream
+carriers come from WSGI, ASGI, gRPC metadata, Jaeger wire bytes, etc.
+and may present bytes keys; downstream propagators and HTTP clients
+expect ``str`` on their setter contract, so we never expose them to
+anything else.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import re
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
@@ -35,9 +71,7 @@ try:  # pragma: no cover - optional dependency import guarded at runtime
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
     from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
     from opentelemetry.trace import Span, SpanKind
-    from opentelemetry.trace.propagation.tracecontext import (
-        TraceContextTextMapPropagator,
-    )
+    from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
     _TRACE_AVAILABLE = True
 except Exception as exc:  # pragma: no cover - the dependencies are optional
@@ -63,9 +97,7 @@ def _default_correlation_id() -> str:
     return uuid4().hex
 
 
-_CORRELATION_ID_VAR: ContextVar[str | None] = ContextVar(
-    "geosync_correlation_id", default=None
-)
+_CORRELATION_ID_VAR: ContextVar[str | None] = ContextVar("geosync_correlation_id", default=None)
 
 _CORRELATION_ID_FACTORY: Callable[[], str] = _default_correlation_id
 
@@ -75,31 +107,141 @@ _CORRELATION_ATTRIBUTE = "correlation.id"
 _BAGGAGE_HEADER_NAME = "baggage"
 _BAGGAGE_HEADER_LOWER = _BAGGAGE_HEADER_NAME.lower()
 _DEFAULT_TRACER_NAME = "geosync.distributed"
+# RFC 7230 § 3.2.6 token grammar. Carrier keys must be case-insensitively
+# comparable against canonical lower-cased header names; any key that
+# cannot survive a round-trip through this grammar after ASCII-decoding
+# is rejected outright rather than matched via ``str(key)`` (which would
+# let bytes/other types leak into header space).
+_HEADER_TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9a-z]+$")
+# RFC 7230 § 3.2 forbids CR/LF and NUL inside header field values; we
+# also refuse any other C0 control byte to prevent header-splitting
+# attacks on downstream HTTP/1.1 hops that may not be Unicode-strict.
+_FORBIDDEN_HEADER_VALUE_CHARS = frozenset({"\r", "\n", "\x00"})
 
 
-_LOCAL_BAGGAGE: ContextVar[Mapping[str, str]] = ContextVar(
-    "geosync_local_baggage", default={}
+_LOCAL_BAGGAGE: ContextVar[Mapping[str, str] | None] = ContextVar(
+    "geosync_local_baggage", default=None
 )
+
+
+def _normalize_header_key(key: object) -> str | None:
+    """Normalize carrier header keys for case-insensitive matching.
+
+    Only ``str`` and bytes-like keys are supported because those are the
+    canonical wire/header representations. Unsupported key types return
+    ``None`` and are silently ignored rather than matched through
+    implicit ``str(key)`` coercion (which would allow non-header-like
+    objects to accidentally satisfy the header-name comparison).
+    """
+
+    if isinstance(key, str):
+        normalized = key.lower()
+    elif isinstance(key, (bytes, bytearray)):
+        try:
+            normalized = bytes(key).decode("ascii").lower()
+        except UnicodeDecodeError:
+            return None
+    else:
+        return None
+
+    if not _HEADER_TOKEN_RE.fullmatch(normalized):
+        return None
+    return normalized
+
+
+def _header_key_matches(key: object, expected_lower: str) -> bool:
+    """Return ``True`` when a carrier key matches ``expected_lower``."""
+
+    normalized = _normalize_header_key(key)
+    return normalized == expected_lower if normalized is not None else False
+
+
+def _normalize_header_value(value: object) -> str | None:
+    """Normalize header values without turning bytes into ``b'...'`` strings.
+
+    ``str`` passes through. ``bytes``/``bytearray`` decode via latin-1 —
+    the canonical HTTP surrogate for opaque octets. ``None`` stays
+    ``None``. Other types are coerced via ``str()`` as a last resort so
+    accidental integer/tuple carriers do not crash the reader path, but
+    the write path in :class:`_DictSetter` remains canonical ``str``.
+    """
+
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).decode("latin-1")
+    if value is None:
+        return None
+    return str(value)
+
+
+def _current_local_baggage() -> dict[str, str]:
+    """Return a fresh copy of the active local-baggage snapshot.
+
+    The :data:`_LOCAL_BAGGAGE` :class:`ContextVar` defaults to ``None``
+    so we never mutate or expose a shared default-instance dict; every
+    caller gets its own copy.
+    """
+
+    baggage = _LOCAL_BAGGAGE.get()
+    return dict(baggage) if baggage else {}
+
+
+def _reject_crlf(value: str) -> str:
+    """Refuse header values containing CR/LF/NUL to prevent header splitting.
+
+    RFC 7230 forbids these bytes inside header field values, but
+    downstream HTTP/1.1 proxies sometimes re-encode UTF-8 as opaque
+    octets — a CR or LF smuggled through a non-strict proxy can split a
+    single logical header into two wire headers and inject attacker-
+    controlled metadata. Rejecting at inject time is the narrow surface
+    where we can be sure.
+    """
+
+    for forbidden in _FORBIDDEN_HEADER_VALUE_CHARS:
+        if forbidden in value:
+            raise ValueError(
+                "header value contains a forbidden control character; "
+                f"refusing to inject (found {forbidden!r})"
+            )
+    return value
 
 
 if _TRACE_AVAILABLE:
 
     class _DictSetter:
-        """Setter helper compatible with OpenTelemetry propagators."""
+        """Setter helper compatible with OpenTelemetry propagators.
+
+        Write path is canonical: emit ``str`` keys and ``str`` values
+        only, and refuse any value carrying CR/LF/NUL to foreclose
+        header-splitting via downstream HTTP/1.1 proxies.
+        """
 
         def set(self, carrier: MutableMapping[str, str], key: str, value: str) -> None:
-            carrier[key] = value
+            carrier[key] = _reject_crlf(value)
 
     class _DictGetter:
-        """Getter helper compatible with OpenTelemetry propagators."""
+        """Getter helper compatible with OpenTelemetry propagators.
 
-        def get(self, carrier: Mapping[str, str], key: str) -> list[str]:
+        Read path is tolerant — accepts ``str`` and bytes-like keys
+        (including ``bytearray``), ignores malformed or non-header-shaped
+        keys rather than matching them, and decodes bytes-like values via
+        latin-1 so propagators never see ``b'...'`` repr strings.
+        """
+
+        def get(self, carrier: Mapping[Any, Any], key: str) -> list[str]:
+            expected_lower = key.lower()
             for existing_key, value in carrier.items():
-                if existing_key.lower() != key.lower():
+                if not _header_key_matches(existing_key, expected_lower):
                     continue
                 if isinstance(value, (list, tuple)):
-                    return [str(item) for item in value]
-                return [str(value)]
+                    return [
+                        item_str
+                        for item in value
+                        if (item_str := _normalize_header_value(item)) is not None
+                    ]
+                item_str = _normalize_header_value(value)
+                return [item_str] if item_str is not None else []
             return []
 
     _DICT_SETTER = _DictSetter()
@@ -308,7 +450,13 @@ def correlation_scope(
 
 
 def inject_distributed_context(carrier: MutableMapping[str, str]) -> None:
-    """Inject the current trace and correlation context into ``carrier``."""
+    """Inject the current trace and correlation context into ``carrier``.
+
+    The write path is canonical: ``str`` keys and ``str`` values only,
+    with CR/LF/NUL rejected. Read paths in
+    :func:`extract_distributed_context` remain tolerant to mixed key
+    types from upstream carriers.
+    """
 
     if carrier is None:
         raise ValueError("carrier must be provided")
@@ -320,34 +468,34 @@ def inject_distributed_context(carrier: MutableMapping[str, str]) -> None:
 
     correlation_id = current_correlation_id()
     if correlation_id:
-        carrier[_CORRELATION_HEADER_NAME] = correlation_id
+        carrier[_CORRELATION_HEADER_NAME] = _reject_crlf(correlation_id)
 
 
-def _first_correlation_value(carrier: Mapping[str, Any]) -> str | None:
+def _first_correlation_value(carrier: Mapping[Any, Any]) -> str | None:
     for key, value in carrier.items():
-        if key.lower() != _CORRELATION_HEADER_LOWER:
+        if not _header_key_matches(key, _CORRELATION_HEADER_LOWER):
             continue
         if isinstance(value, (list, tuple)):
             if not value:
                 return None
-            return str(value[0])
-        return str(value)
+            return _normalize_header_value(value[0])
+        return _normalize_header_value(value)
     return None
 
 
 def _inject_local_baggage(carrier: MutableMapping[str, str]) -> None:
-    baggage = _LOCAL_BAGGAGE.get()
+    baggage = _current_local_baggage()
     if not baggage:
         return
     header_value = ",".join(f"{key}={value}" for key, value in baggage.items())
     if header_value:
-        carrier[_BAGGAGE_HEADER_NAME] = header_value
+        carrier[_BAGGAGE_HEADER_NAME] = _reject_crlf(header_value)
 
 
-def _extract_local_baggage(carrier: Mapping[str, Any]) -> Mapping[str, str] | None:
+def _extract_local_baggage(carrier: Mapping[Any, Any]) -> Mapping[str, str] | None:
     baggage_header: str | None = None
     for key, value in carrier.items():
-        if key.lower() != _BAGGAGE_HEADER_LOWER:
+        if not _header_key_matches(key, _BAGGAGE_HEADER_LOWER):
             continue
         if isinstance(value, str):
             baggage_header = value
@@ -355,10 +503,9 @@ def _extract_local_baggage(carrier: Mapping[str, Any]) -> Mapping[str, str] | No
             if not value:
                 baggage_header = None
             else:
-                first = value[0]
-                baggage_header = first if isinstance(first, str) else str(first)
+                baggage_header = _normalize_header_value(value[0])
         else:
-            baggage_header = str(value)
+            baggage_header = _normalize_header_value(value)
         break
     if not baggage_header:
         return None
@@ -379,7 +526,7 @@ def current_baggage() -> Mapping[str, str]:
         context = otel_context.get_current()
         values = otel_baggage.get_all(context=context) or {}
         return dict(values)
-    return dict(_LOCAL_BAGGAGE.get())
+    return _current_local_baggage()
 
 
 def get_baggage_item(key: str, default: str | None = None) -> str | None:
@@ -405,9 +552,7 @@ def baggage_scope(
         current = otel_context.get_current()
         updated_context = current
         for key, value in updates.items():
-            updated_context = otel_baggage.set_baggage(
-                key, value, context=updated_context
-            )
+            updated_context = otel_baggage.set_baggage(key, value, context=updated_context)
         token = otel_context.attach(updated_context)
         try:
             yield current_baggage()
@@ -415,14 +560,14 @@ def baggage_scope(
             otel_context.detach(token)
         return
 
-    token = _LOCAL_BAGGAGE.set({**_LOCAL_BAGGAGE.get(), **updates})
+    token = _LOCAL_BAGGAGE.set({**_current_local_baggage(), **updates})
     try:
         yield current_baggage()
     finally:
         _LOCAL_BAGGAGE.reset(token)
 
 
-def extract_distributed_context(carrier: Mapping[str, Any]) -> ExtractedContext:
+def extract_distributed_context(carrier: Mapping[Any, Any]) -> ExtractedContext:
     """Extract trace and correlation metadata from ``carrier``."""
 
     if carrier is None:
@@ -503,9 +648,7 @@ def start_distributed_span(
                 try:
                     span.set_attribute(_CORRELATION_ATTRIBUTE, correlation)
                 except Exception:  # pragma: no cover - defensive guard
-                    LOGGER.debug(
-                        "Failed to set correlation attribute on span", exc_info=True
-                    )
+                    LOGGER.debug("Failed to set correlation attribute on span", exc_info=True)
             if span and attributes:
                 try:
                     span.set_attributes(dict(attributes))

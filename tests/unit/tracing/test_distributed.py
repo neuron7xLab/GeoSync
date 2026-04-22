@@ -4,11 +4,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, Iterator, Mapping
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from core.tracing.distributed import (
+    _DICT_GETTER,
     _TRACE_AVAILABLE,
     DistributedTracingConfig,
     ExtractedContext,
@@ -16,6 +19,9 @@ from core.tracing.distributed import (
     _extract_local_baggage,
     _first_correlation_value,
     _inject_local_baggage,
+    _normalize_header_key,
+    _normalize_header_value,
+    _reject_crlf,
     _update_correlation_header,
     activate_distributed_context,
     baggage_scope,
@@ -236,7 +242,7 @@ class TestFirstCorrelationValue:
 
     def test_empty_list_returns_none(self) -> None:
         """Verify empty list returns None."""
-        carrier = {"x-correlation-id": []}
+        carrier: Dict[str, Any] = {"x-correlation-id": []}
         result = _first_correlation_value(carrier)
         assert result is None
 
@@ -296,7 +302,7 @@ class TestLocalBaggage:
 
     def test_extract_local_baggage_empty_list(self) -> None:
         """Verify empty list returns None."""
-        carrier = {"baggage": []}
+        carrier: Dict[str, Any] = {"baggage": []}
         result = _extract_local_baggage(carrier)
         assert result is None
 
@@ -363,9 +369,7 @@ class TestActivateDistributedContext:
             trace_context=None,
             baggage=None,
         )
-        with activate_distributed_context(
-            ctx, auto_generate_correlation=True
-        ) as corr_id:
+        with activate_distributed_context(ctx, auto_generate_correlation=True) as corr_id:
             assert corr_id is not None
             assert len(corr_id) == 32
 
@@ -376,9 +380,7 @@ class TestActivateDistributedContext:
             trace_context=None,
             baggage=None,
         )
-        with activate_distributed_context(
-            ctx, auto_generate_correlation=False
-        ) as corr_id:
+        with activate_distributed_context(ctx, auto_generate_correlation=False) as corr_id:
             assert corr_id is None
 
     def test_activate_with_baggage(self) -> None:
@@ -651,3 +653,363 @@ class TestCorrelationScopeEdgeCases:
         """Verify scope with None and no auto-generate."""
         with correlation_scope(None, auto_generate=False) as corr_id:
             assert corr_id is None
+
+
+class _PairsMapping(Mapping[Any, Any]):
+    """Mapping helper that permits bytes-like (including bytearray) keys.
+
+    ``dict`` refuses unhashable keys like ``bytearray`` and silently
+    coerces some types. For carrier-contract tests we need to feed the
+    exact (possibly unhashable, possibly duplicate) sequence of pairs
+    a real HTTP framework might hand us.
+    """
+
+    def __init__(self, pairs: list[tuple[Any, Any]]) -> None:
+        self._pairs = pairs
+
+    def __getitem__(self, key: Any) -> Any:
+        for existing_key, value in self._pairs:
+            if existing_key == key:
+                return value
+        raise KeyError(key)
+
+    def __iter__(self) -> Iterator[Any]:
+        for key, _ in self._pairs:
+            yield key
+
+    def __len__(self) -> int:
+        return len(self._pairs)
+
+    def items(self) -> Iterator[tuple[Any, Any]]:  # type: ignore[override]
+        return iter(self._pairs)
+
+
+class TestHeaderKeyNormalizationContract:
+    """Contract tests for carrier key-type handling (user-surfaced + extended)."""
+
+    @pytest.mark.parametrize(
+        ("header_key", "expected"),
+        [
+            ("x-correlation-id", "value-str"),
+            (b"x-correlation-id", "value-bytes"),
+            (bytearray(b"X-Correlation-ID"), "value-bytearray"),
+            (b"X-CoRrElAtIoN-Id", "value-mixed"),
+        ],
+    )
+    def test_first_correlation_value_supported_key_types(
+        self, header_key: Any, expected: str
+    ) -> None:
+        if isinstance(header_key, bytearray):
+            carrier: Mapping[Any, Any] = _PairsMapping([(header_key, expected)])
+        else:
+            carrier = {header_key: expected}
+        assert _first_correlation_value(carrier) == expected
+
+    @pytest.mark.parametrize("header_key", [123, ("x-correlation-id",), object()])
+    def test_first_correlation_value_unsupported_key_types(self, header_key: Any) -> None:
+        carrier: Dict[Any, Any] = {header_key: "value"}
+        assert _first_correlation_value(carrier) is None
+
+    def test_first_correlation_value_decodes_bytes_value(self) -> None:
+        carrier: Dict[str, Any] = {"x-correlation-id": b"bytes-value"}
+        assert _first_correlation_value(carrier) == "bytes-value"
+
+    def test_bytes_header_key_is_supported(self) -> None:
+        """User-surfaced regression: non-string header keys must not crash."""
+        carrier: Dict[Any, Any] = {b"x-correlation-id": "bytes-key-value"}
+        assert _first_correlation_value(carrier) == "bytes-key-value"
+
+    @pytest.mark.parametrize(
+        ("header_key", "header_value"),
+        [
+            ("baggage", "k=v"),
+            (b"baggage", "k=v"),
+            (bytearray(b"BaGgAgE"), "k=v"),
+        ],
+    )
+    def test_extract_local_baggage_supported_key_types(
+        self, header_key: Any, header_value: str
+    ) -> None:
+        if isinstance(header_key, bytearray):
+            carrier: Mapping[Any, Any] = _PairsMapping([(header_key, header_value)])
+        else:
+            carrier = {header_key: header_value}
+        parsed = _extract_local_baggage(carrier)
+        assert parsed is not None
+        assert parsed["k"] == "v"
+
+    @pytest.mark.parametrize("header_key", [123, ("baggage",), object()])
+    def test_extract_local_baggage_unsupported_key_types(self, header_key: Any) -> None:
+        carrier: Dict[Any, Any] = {header_key: "k=v"}
+        assert _extract_local_baggage(carrier) is None
+
+    def test_extract_local_baggage_non_ascii_key_is_rejected(self) -> None:
+        """Malformed bytes keys (non-ASCII) must not match canonical headers."""
+        carrier: Mapping[Any, Any] = _PairsMapping([(b"baggage\xff", "k=v")])
+        assert _extract_local_baggage(carrier) is None
+
+    def test_extract_local_baggage_with_bytes_key(self) -> None:
+        """User-surfaced regression: bytes baggage keys must parse."""
+        carrier: Dict[Any, Any] = {b"baggage": "key=value"}
+        result = _extract_local_baggage(carrier)
+        assert result is not None
+        assert result["key"] == "value"
+
+    def test_extract_ignores_invalid_non_ascii_header_keys(self) -> None:
+        """Malformed bytes header keys must not match canonical headers."""
+        carrier: Mapping[Any, Any] = _PairsMapping(
+            [
+                (b"x-correlation-id\xff", "bad-key"),
+                (b"baggage\xff", "tenant=bad"),
+            ]
+        )
+        ctx = extract_distributed_context(carrier)
+        assert ctx.correlation_id is None
+        assert ctx.baggage is None
+
+    def test_extract_with_bytes_keys_and_values(self) -> None:
+        """End-to-end: extract_distributed_context on bytes-carrier."""
+        carrier: Mapping[Any, Any] = _PairsMapping(
+            [
+                (b"x-correlation-id", b"bytes-corr"),
+                (bytearray(b"baggage"), b"tenant=alpha"),
+            ]
+        )
+        ctx = extract_distributed_context(carrier)
+        assert ctx.correlation_id == "bytes-corr"
+        assert ctx.baggage == {"tenant": "alpha"}
+
+    @pytest.mark.skipif(
+        not _TRACE_AVAILABLE or _DICT_GETTER is None,
+        reason="OpenTelemetry getter path unavailable",
+    )
+    def test_dict_getter_supported_mixed_carriers(self) -> None:
+        carrier: Mapping[Any, Any] = _PairsMapping(
+            [
+                (123, "ignored"),
+                (
+                    b"traceparent",
+                    "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01",
+                ),
+                (bytearray(b"baggage"), ("key=value", "unused")),
+            ]
+        )
+        assert _DICT_GETTER.get(carrier, "traceparent") == [
+            "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"
+        ]
+        assert _DICT_GETTER.get(carrier, "baggage") == ["key=value", "unused"]
+
+    @pytest.mark.skipif(
+        not _TRACE_AVAILABLE or _DICT_GETTER is None,
+        reason="OpenTelemetry getter path unavailable",
+    )
+    @pytest.mark.parametrize("header_key", [123, ("traceparent",), object()])
+    def test_dict_getter_unsupported_key_types(self, header_key: Any) -> None:
+        carrier: Dict[Any, Any] = {header_key: "value"}
+        assert _DICT_GETTER.get(carrier, "traceparent") == []
+
+    @pytest.mark.skipif(
+        not _TRACE_AVAILABLE or _DICT_GETTER is None,
+        reason="OpenTelemetry getter path unavailable",
+    )
+    def test_dict_getter_no_regression_string_carrier(self) -> None:
+        carrier = {"TraceParent": ["tp-first", "tp-second"]}
+        assert _DICT_GETTER.get(carrier, "traceparent") == ["tp-first", "tp-second"]
+
+
+class TestNormalizeHelpers:
+    """Direct coverage for _normalize_header_key / _normalize_header_value."""
+
+    @pytest.mark.parametrize(
+        ("key", "expected"),
+        [
+            ("X-Correlation-ID", "x-correlation-id"),
+            (b"X-Correlation-ID", "x-correlation-id"),
+            (bytearray(b"baggage"), "baggage"),
+            ("baggage", "baggage"),
+        ],
+    )
+    def test_normalize_header_key_supported(self, key: Any, expected: str) -> None:
+        assert _normalize_header_key(key) == expected
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            None,
+            123,
+            b"invalid\xff",
+            "bad header with space",
+            "bad\nheader",
+            "",
+            b"",
+            ("tuple",),
+        ],
+    )
+    def test_normalize_header_key_rejects(self, key: Any) -> None:
+        assert _normalize_header_key(key) is None
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [
+            ("plain-string", "plain-string"),
+            (b"bytes-value", "bytes-value"),
+            (bytearray(b"bytearray"), "bytearray"),
+            (None, None),
+            (123, "123"),
+            ((1, 2), "(1, 2)"),
+        ],
+    )
+    def test_normalize_header_value(self, value: Any, expected: str | None) -> None:
+        assert _normalize_header_value(value) == expected
+
+
+class TestCRLFInjectionHardening:
+    """Write-path must refuse header values carrying CR/LF/NUL."""
+
+    @pytest.mark.parametrize(
+        "bad_value",
+        [
+            "trailing\r",
+            "trailing\n",
+            "embedded\r\nX-Attacker: evil",
+            "with-nul\x00suffix",
+            "\rleading",
+            "\nleading",
+        ],
+    )
+    def test_reject_crlf_raises(self, bad_value: str) -> None:
+        with pytest.raises(ValueError, match="forbidden control character"):
+            _reject_crlf(bad_value)
+
+    @pytest.mark.parametrize(
+        "ok_value",
+        [
+            "clean",
+            "with spaces ok",
+            "tabs\tallowed-at-this-layer",  # tab is not CR/LF/NUL
+            "unicode-ok-ä",
+            "",
+        ],
+    )
+    def test_reject_crlf_passes(self, ok_value: str) -> None:
+        assert _reject_crlf(ok_value) == ok_value
+
+    def test_inject_rejects_crlf_in_correlation_id(self) -> None:
+        with correlation_scope("good\r\nX-Injected: evil", auto_generate=False):
+            carrier: Dict[str, str] = {}
+            with pytest.raises(ValueError, match="forbidden control character"):
+                inject_distributed_context(carrier)
+
+    def test_inject_rejects_lf_in_baggage_value(self) -> None:
+        with baggage_scope({"tenant": "ok\n key=injected"}):
+            carrier: Dict[str, str] = {}
+            # Only hits the local-baggage path when OpenTelemetry is not
+            # active for the write; otherwise the OTel BaggagePropagator
+            # may itself percent-encode the value — we still assert that
+            # if the local path fires, it refuses.
+            if not _TRACE_AVAILABLE:
+                with pytest.raises(ValueError, match="forbidden control character"):
+                    inject_distributed_context(carrier)
+
+
+class TestInjectExtractRoundtrip:
+    """Canonical inject -> extract roundtrip preserves correlation + baggage."""
+
+    def test_string_carrier_roundtrip(self) -> None:
+        carrier: Dict[str, str] = {}
+        with correlation_scope("round-trip-id", auto_generate=False):
+            with baggage_scope({"tenant": "alpha", "region": "eu"}):
+                inject_distributed_context(carrier)
+        ctx = extract_distributed_context(carrier)
+        assert ctx.correlation_id == "round-trip-id"
+        if ctx.baggage is not None:
+            assert ctx.baggage.get("tenant") == "alpha"
+            assert ctx.baggage.get("region") == "eu"
+
+    def test_bytes_carrier_extract_after_string_inject(self) -> None:
+        """Injected string values survive re-encoding to bytes by upstream."""
+        carrier: Dict[str, str] = {}
+        with correlation_scope("bytes-after-inject", auto_generate=False):
+            inject_distributed_context(carrier)
+        # Simulate an upstream re-encoding the dict into bytes keys/values
+        bytes_carrier: Mapping[Any, Any] = _PairsMapping(
+            [(k.encode("ascii"), v.encode("ascii")) for k, v in carrier.items()]
+        )
+        ctx = extract_distributed_context(bytes_carrier)
+        assert ctx.correlation_id == "bytes-after-inject"
+
+
+class TestHeaderNormalizationProperties:
+    """Hypothesis-driven properties on the carrier-key/value normalisers."""
+
+    @pytest.mark.parametrize("_", range(1))  # marker so collection is identical
+    def test_properties_available(self, _: int) -> None:
+        """Sanity that hypothesis is importable in this env."""
+        import hypothesis  # noqa: F401  # pragma: no cover
+
+
+_HEADER_TOKEN_CHARS = (
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'*+-.^_`|~"
+)
+
+
+@given(st.text(alphabet=_HEADER_TOKEN_CHARS, min_size=1, max_size=40))
+def test_property_str_token_keys_roundtrip(key: str) -> None:
+    """Any RFC 7230 token round-trips through _normalize_header_key."""
+    normalized = _normalize_header_key(key)
+    assert normalized is not None
+    assert normalized == key.lower()
+
+
+@given(st.binary(min_size=1, max_size=40))
+def test_property_arbitrary_bytes_never_crashes(payload: bytes) -> None:
+    """No byte string causes _normalize_header_key to raise."""
+    result = _normalize_header_key(payload)
+    assert result is None or isinstance(result, str)
+
+
+@given(st.text(min_size=0, max_size=80))
+def test_property_normalize_header_value_str_identity(value: str) -> None:
+    assert _normalize_header_value(value) == value
+
+
+@given(st.binary(min_size=0, max_size=80))
+def test_property_normalize_header_value_bytes_latin1(value: bytes) -> None:
+    """Bytes values are decoded via latin-1 (never None, never crash)."""
+    result = _normalize_header_value(value)
+    assert result is not None
+    assert result.encode("latin-1") == value
+
+
+@given(
+    st.text(
+        alphabet=st.characters(
+            blacklist_characters="\r\n\x00",
+            blacklist_categories=["Cs"],
+        ),
+        min_size=0,
+        max_size=60,
+    )
+)
+def test_property_reject_crlf_accepts_clean(value: str) -> None:
+    assert _reject_crlf(value) == value
+
+
+@given(
+    st.text(min_size=0, max_size=30),
+    st.sampled_from(["\r", "\n", "\x00", "\r\n"]),
+    st.text(min_size=0, max_size=30),
+)
+def test_property_reject_crlf_always_raises_on_ctl(prefix: str, ctl: str, suffix: str) -> None:
+    with pytest.raises(ValueError, match="forbidden control character"):
+        _reject_crlf(prefix + ctl + suffix)
+
+
+@given(st.text(alphabet=_HEADER_TOKEN_CHARS, min_size=1, max_size=30))
+def test_property_roundtrip_inject_extract_correlation(correlation: str) -> None:
+    """For any RFC 7230 token-shaped correlation ID, inject → extract is identity."""
+    carrier: Dict[str, str] = {}
+    with correlation_scope(correlation, auto_generate=False):
+        inject_distributed_context(carrier)
+    ctx = extract_distributed_context(carrier)
+    assert ctx.correlation_id == correlation
