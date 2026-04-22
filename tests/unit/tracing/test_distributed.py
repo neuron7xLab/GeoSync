@@ -1190,41 +1190,60 @@ class TestBaggageInjectSpecCompliance:
 
 
 class TestSecurityEventLogging:
-    """Reject events must emit a structured WARNING log so operators see them."""
+    """Reject events must emit a structured WARNING log so operators see them.
 
-    def test_reject_crlf_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
-        caplog.set_level("WARNING")
-        with pytest.raises(ValueError):
-            _reject_crlf("bad\r\nInjected")
-        records = [r for r in caplog.records if r.getMessage() == "tracing.reject_header_value"]
-        assert records, "expected a structured reject-event log line"
-        record = records[-1]
-        assert getattr(record, "reason", None) == "forbidden_control_character"
-        assert getattr(record, "character_ordinal", None) == ord("\r")
+    Uses :mod:`unittest.mock` to spy on the module logger directly instead of
+    pytest's ``caplog`` fixture, because some CI environments install
+    structured loggers that set ``propagate = False`` on the ``core.*``
+    family and the caplog root handler never sees the record. Patching
+    ``LOGGER.warning`` in-place bypasses the propagation chain entirely.
+    """
 
-    def test_reject_invalid_baggage_key_logs(self, caplog: pytest.LogCaptureFixture) -> None:
-        caplog.set_level("WARNING")
-        with pytest.raises(ValueError):
-            _validate_baggage_key("bad=key")
-        records = [r for r in caplog.records if r.getMessage() == "tracing.reject_baggage_key"]
-        assert records
-        assert getattr(records[-1], "reason", None) == "non_token_key"
+    def test_reject_crlf_logs_warning(self) -> None:
+        from unittest.mock import patch
 
-    def test_reject_too_many_members_logs(
-        self,
-        caplog: pytest.LogCaptureFixture,
-        local_baggage_only: None,
-    ) -> None:
-        caplog.set_level("WARNING")
+        import core.tracing.distributed as dist_mod
+
+        with patch.object(dist_mod.LOGGER, "warning") as warn:
+            with pytest.raises(ValueError):
+                _reject_crlf("bad\r\nInjected")
+        warn.assert_called()
+        args, kwargs = warn.call_args
+        assert args[0] == "tracing.reject_header_value"
+        extra = kwargs.get("extra", {})
+        assert extra.get("reason") == "forbidden_control_character"
+        assert extra.get("character_ordinal") == ord("\r")
+
+    def test_reject_invalid_baggage_key_logs(self) -> None:
+        from unittest.mock import patch
+
+        import core.tracing.distributed as dist_mod
+
+        with patch.object(dist_mod.LOGGER, "warning") as warn:
+            with pytest.raises(ValueError):
+                _validate_baggage_key("bad=key")
+        warn.assert_called()
+        args, kwargs = warn.call_args
+        assert args[0] == "tracing.reject_baggage_key"
+        assert kwargs.get("extra", {}).get("reason") == "non_token_key"
+
+    def test_reject_too_many_members_logs(self, local_baggage_only: None) -> None:
+        from unittest.mock import patch
+
+        import core.tracing.distributed as dist_mod
+
         carrier: Dict[str, str] = {}
         huge = {f"k{i}": "v" for i in range(BAGGAGE_MAX_MEMBERS + 1)}
-        with baggage_scope(huge):
-            with pytest.raises(ValueError):
-                inject_distributed_context(carrier)
-        records = [
-            r
-            for r in caplog.records
-            if r.getMessage() == "tracing.reject_baggage"
-            and getattr(r, "reason", None) == "too_many_members"
+        with patch.object(dist_mod.LOGGER, "warning") as warn:
+            with baggage_scope(huge):
+                with pytest.raises(ValueError):
+                    inject_distributed_context(carrier)
+        # At least one warning with reason=too_many_members must fire.
+        matching = [
+            call
+            for call in warn.call_args_list
+            if call.args
+            and call.args[0] == "tracing.reject_baggage"
+            and call.kwargs.get("extra", {}).get("reason") == "too_many_members"
         ]
-        assert records
+        assert matching

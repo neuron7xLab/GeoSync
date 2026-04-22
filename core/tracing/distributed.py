@@ -143,7 +143,7 @@ _BAGGAGE_TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
 # RFC 7230 § 3.2 forbids CR/LF and NUL inside header field values; we
 # also refuse any other C0 control byte to prevent header-splitting
 # attacks on downstream HTTP/1.1 hops that may not be Unicode-strict.
-_FORBIDDEN_HEADER_VALUE_CHARS = frozenset({"\r", "\n", "\x00"})
+_FORBIDDEN_HEADER_VALUE_CHARS: Final[tuple[str, ...]] = ("\r", "\n", "\x00")
 # W3C Baggage (https://www.w3.org/TR/baggage/, § 4.3) hard limits on the
 # wire representation of the `baggage` header. We enforce BEFORE emission
 # — a baggage header that would exceed either bound is rejected at
