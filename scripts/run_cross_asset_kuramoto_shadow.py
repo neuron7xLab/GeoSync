@@ -316,7 +316,31 @@ def _run_once(args: argparse.Namespace) -> int:
         )
         return 0
 
-    run_dir.mkdir(parents=True, exist_ok=False)  # S8: never overwrite
+    # Partial/failed prior attempt may have created run_dir via _fail_closed
+    # but not populated the full required-file set (see _already_written).
+    # Preserve its evidence under a quarantine name so the fresh run can
+    # proceed without clobbering it. Logs an incident for audit trail.
+    if run_dir.exists():
+        ts_suffix = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        quarantine = run_dir.with_name(f"{run_dir.name}.incomplete.{ts_suffix}")
+        run_dir.rename(quarantine)
+        _append_incident(
+            {
+                "incident_ts": _now_utc(),
+                "incident_type": "incomplete_dir_retry",
+                "severity": "LOW",
+                "affected_run_date": run_date.strftime("%Y-%m-%d"),
+                "description": (
+                    f"Prior attempt left partial evidence in {run_dir.name}; "
+                    f"quarantined as {quarantine.name} and retrying clean."
+                ),
+                "resolved_yes_no": "yes",
+                "resolution_ts": _now_utc(),
+                "changed_artifacts_yes_no": f"yes (renamed to {quarantine.name})",
+            }
+        )
+
+    run_dir.mkdir(parents=True, exist_ok=False)  # S8: never overwrite a complete dir
 
     # Build panel + run frozen pipeline
     try:
