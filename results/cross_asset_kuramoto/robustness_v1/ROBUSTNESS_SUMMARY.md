@@ -6,12 +6,10 @@ under `results/cross_asset_kuramoto/robustness_v1/`.
 
 ## What was tested
 
-Three read-only statistical suites against the frozen offline-
-robustness bundle (28 hash-verified artefacts plus the inline-hash-
-verified LOO grid): CPCV+PBO+PSR on the equity stream and the
-walk-forward folds, a two-family single-stream null audit on daily
-log returns, and a parameter-jitter stability suite. Decision layer
-combines evidence into `PASS` / `FAIL` / `INSUFFICIENT_EVIDENCE`.
+Three read-only suites over the frozen bundle (28 hash-verified
+artefacts + inline-hash-verified LOO grid): CPCV+PBO+PSR, two-family
+demeaned null on daily log returns, parameter-jitter stability.
+Decision layer → `PASS` / `FAIL` / `INSUFFICIENT_EVIDENCE`.
 
 ## What passed
 
@@ -33,6 +31,10 @@ H₀ that the true mean is zero. Observed Sharpe (0.483) sits at the
 8–10 % upper-tail of the null distribution: suggestive but below the
 strict α = 0.05 bar. Consistent with `SEPARATION_FINDING.md`: most
 realised alpha lives in the narrow HIGH_SYNC regime.
+
+Null suite evolved through three implementation states during review;
+final demeaned bootstrap is the only honest one (PR #356:
+`iid_permutation` → `iid_bootstrap` → demeaned).
 
 ## What is placeholder
 
