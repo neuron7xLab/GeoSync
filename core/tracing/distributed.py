@@ -43,27 +43,30 @@ and may present bytes keys; downstream propagators and HTTP clients
 expect ``str`` on their setter contract, so we never expose them to
 anything else.
 
-W3C Baggage compliance (fallback path)
---------------------------------------
+W3C Baggage fallback (drop-truncate-log)
+----------------------------------------
 
 When OpenTelemetry is not installed, :func:`_inject_local_baggage` is
 the W3C-Baggage emitter and :func:`_extract_local_baggage` is its
-reader. Both are spec-compliant:
+reader. Philosophy: **drop-truncate-log**, not raise.
 
-* Keys are validated against the RFC 7230 token grammar via
-  :func:`_validate_baggage_key`.
-* Values are percent-encoded per RFC 3986 § 2.3 unreserved-set via
-  :func:`_encode_baggage_value` (``,`` ``;`` ``=`` whitespace and every
-  non-ASCII byte round-trip through ``%xx`` triplets).
-* Member count is capped at :data:`BAGGAGE_MAX_MEMBERS` (180); encoded
-  byte length is capped at :data:`BAGGAGE_MAX_BYTES` (8192). Both
-  caps are from W3C Baggage § 4.3 and raise :class:`ValueError` on
-  violation — silent truncation is never performed.
+* Unsafe members (non-token key, CR/LF/NUL in value, ``,`` or ``;``
+  in value) are silently dropped via
+  :func:`_normalize_baggage_member`. Callers never see a runtime
+  exception from the tracing layer because of a bad baggage entry.
+* W3C § 4.3 size limits are enforced by truncation:
+  :data:`BAGGAGE_MAX_MEMBERS` (180) caps the member count; the tail
+  is dropped if more are present. :data:`BAGGAGE_MAX_BYTES` (8192)
+  caps the encoded payload; trailing members are dropped iteratively
+  until the remaining payload fits. If no members survive, no header
+  is written at all.
+* Every truncation emits
+  ``LOGGER.warning('tracing.baggage_truncated', extra={reason, ...})``
+  so operators can alert on the event without the inject path raising.
 
-Every rejection (CR/LF in a value, non-token key, over-limit baggage)
-emits a structured :data:`LOGGER` warning with an ``event`` /
-``reason`` pair so the reject stream is observable from operational
-dashboards.
+The correlation write path follows the same philosophy: unsafe
+correlation values (CR/LF/NUL) are dropped at inject via
+:func:`_normalize_correlation_value`, never injected on the wire.
 """
 
 from __future__ import annotations
@@ -75,8 +78,6 @@ from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Final, Iterator, Mapping, MutableMapping
-from urllib.parse import quote as _percent_encode
-from urllib.parse import unquote as _percent_decode
 from uuid import uuid4
 
 LOGGER = logging.getLogger(__name__)
@@ -226,89 +227,73 @@ def _current_local_baggage() -> dict[str, str]:
     return dict(baggage) if baggage else {}
 
 
-def _reject_crlf(value: str) -> str:
-    """Refuse header values containing CR/LF/NUL to prevent header splitting.
+def _is_safe_header_text(value: str) -> bool:
+    """Return ``True`` when header text has no CR/LF/NUL separators."""
 
-    RFC 7230 forbids these bytes inside header field values, but
-    downstream HTTP/1.1 proxies sometimes re-encode UTF-8 as opaque
-    octets — a CR or LF smuggled through a non-strict proxy can split a
-    single logical header into two wire headers and inject attacker-
-    controlled metadata. Rejecting at inject time is the narrow surface
-    where we can be sure.
+    return all(char not in value for char in _FORBIDDEN_HEADER_VALUE_CHARS)
+
+
+def _normalize_correlation_value(value: object) -> str | None:
+    """Normalize a transport value for correlation-id extraction.
+
+    ``str`` is trimmed; ``bytes``/``bytearray`` decode via latin-1; other
+    types are ignored. Values that carry CR/LF/NUL are dropped so a
+    corrupted upstream cannot turn into a header-split vector when the
+    value is re-injected downstream.
     """
 
-    for forbidden in _FORBIDDEN_HEADER_VALUE_CHARS:
-        if forbidden in value:
-            LOGGER.warning(
-                "tracing.reject_header_value",
-                extra={
-                    "event": "tracing.reject_header_value",
-                    "reason": "forbidden_control_character",
-                    "character_ordinal": ord(forbidden),
-                    "value_length": len(value),
-                },
-            )
-            raise ValueError(
-                "header value contains a forbidden control character; "
-                f"refusing to inject (found {forbidden!r})"
-            )
-    return value
+    normalized = _normalize_header_value(value)
+    if normalized is None:
+        return None
+    if not _is_safe_header_text(normalized):
+        return None
+    stripped = normalized.strip()
+    return stripped or None
 
 
-def _validate_baggage_key(key: str) -> str:
-    """Verify a baggage key obeys the W3C Baggage token grammar.
+def _normalize_baggage_header_value(value: object) -> str | None:
+    """Normalize the raw `baggage` header value for extraction.
 
-    W3C Baggage § 3.2.1.1 pins keys to RFC 7230 ``token``. A key with
-    ``=``, ``,``, ``;``, whitespace, or non-ASCII will confuse every
-    downstream parser. Rejecting at inject time is the narrow surface
-    where the producer still has context to fix the caller.
+    Same tolerance profile as :func:`_normalize_correlation_value`
+    without the strip — list-member whitespace is handled by the
+    downstream parser.
+    """
+
+    normalized = _normalize_header_value(value)
+    if normalized is None:
+        return None
+    if not _is_safe_header_text(normalized):
+        return None
+    return normalized
+
+
+def _normalize_baggage_member(key: object, value: object) -> tuple[str, str] | None:
+    """Normalize a single baggage (key, value) pair.
+
+    W3C Baggage § 3.2.1.1 pins keys to RFC 7230 tokens. Values that
+    carry list/member delimiters (``,`` or ``;``) cannot be emitted
+    unambiguously as plain list-members, so they are silently dropped.
+    Control bytes (CR/LF/NUL) are dropped for header-splitting safety.
+    The function returns ``None`` for any unsafe pair, which the inject
+    path treats as "skip this member".
     """
 
     if not isinstance(key, str):
-        raise TypeError(f"baggage key must be str, got {type(key).__name__}")
-    if not _BAGGAGE_TOKEN_RE.fullmatch(key):
-        LOGGER.warning(
-            "tracing.reject_baggage_key",
-            extra={
-                "event": "tracing.reject_baggage_key",
-                "reason": "non_token_key",
-                "key_length": len(key),
-            },
-        )
-        raise ValueError(f"baggage key {key!r} violates W3C Baggage § 3.2.1.1 token grammar")
-    return key
-
-
-def _encode_baggage_value(value: str) -> str:
-    """Percent-encode a baggage value per W3C Baggage § 3.2.1.1 / RFC 3986.
-
-    Everything outside the RFC 3986 ``unreserved`` set (ALPHA / DIGIT /
-    ``-`` / ``.`` / ``_`` / ``~``) is percent-encoded — including ``=``,
-    ``,``, ``;``, whitespace, and every non-ASCII byte. The resulting
-    octets are always US-ASCII so the wire format survives every HTTP
-    transport without re-encoding.
-    """
-
+        key = str(key)
     if not isinstance(value, str):
-        raise TypeError(f"baggage value must be str, got {type(value).__name__}")
-    # ``safe=""`` makes :func:`urllib.parse.quote` encode everything
-    # outside ``unreserved``; ``encoding="utf-8"`` pins the byte
-    # representation so Unicode values round-trip deterministically.
-    return _percent_encode(value, safe=_BAGGAGE_VALUE_SAFE, encoding="utf-8")
+        value = str(value)
 
-
-def _decode_baggage_value(raw: str) -> str:
-    """Percent-decode a baggage value. Mirror of :func:`_encode_baggage_value`.
-
-    Falls back to the raw string on decode failure so a corrupted value
-    never crashes the extractor — the bad entry simply surfaces unchanged
-    to the caller for inspection.
-    """
-
-    try:
-        return _percent_decode(raw, encoding="utf-8", errors="strict")
-    except (UnicodeDecodeError, ValueError):
-        return raw
+    normalized_key = key.strip().lower()
+    normalized_value = value.strip()
+    if not normalized_key or not normalized_value:
+        return None
+    if not _BAGGAGE_TOKEN_RE.fullmatch(normalized_key):
+        return None
+    if not _is_safe_header_text(normalized_value):
+        return None
+    if any(sep in normalized_value for sep in (",", ";")):
+        return None
+    return normalized_key, normalized_value
 
 
 if _TRACE_AVAILABLE:
@@ -317,12 +302,13 @@ if _TRACE_AVAILABLE:
         """Setter helper compatible with OpenTelemetry propagators.
 
         Write path is canonical: emit ``str`` keys and ``str`` values
-        only, and refuse any value carrying CR/LF/NUL to foreclose
-        header-splitting via downstream HTTP/1.1 proxies.
+        only. Values here come from OpenTelemetry's own tracecontext /
+        baggage propagators which already produce safe ASCII payloads,
+        so we do not re-validate on the setter side.
         """
 
         def set(self, carrier: MutableMapping[str, str], key: str, value: str) -> None:
-            carrier[key] = _reject_crlf(value)
+            carrier[key] = value
 
     class _DictGetter:
         """Getter helper compatible with OpenTelemetry propagators.
@@ -556,10 +542,10 @@ def correlation_scope(
 def inject_distributed_context(carrier: MutableMapping[str, str]) -> None:
     """Inject the current trace and correlation context into ``carrier``.
 
-    The write path is canonical: ``str`` keys and ``str`` values only,
-    with CR/LF/NUL rejected. Read paths in
-    :func:`extract_distributed_context` remain tolerant to mixed key
-    types from upstream carriers.
+    The write path is canonical: ``str`` keys/values only. Unsafe
+    correlation values (CR/LF/NUL) are silently dropped rather than
+    injected — aligned with the drop-and-continue philosophy of
+    :func:`_inject_local_baggage`.
     """
 
     if carrier is None:
@@ -571,8 +557,11 @@ def inject_distributed_context(carrier: MutableMapping[str, str]) -> None:
         _inject_local_baggage(carrier)
 
     correlation_id = current_correlation_id()
-    if correlation_id:
-        carrier[_CORRELATION_HEADER_NAME] = _reject_crlf(correlation_id)
+    normalized_correlation = (
+        _normalize_correlation_value(correlation_id) if correlation_id else None
+    )
+    if normalized_correlation:
+        carrier[_CORRELATION_HEADER_NAME] = normalized_correlation
 
 
 def _first_correlation_value(carrier: Mapping[Any, Any]) -> str | None:
@@ -582,83 +571,108 @@ def _first_correlation_value(carrier: Mapping[Any, Any]) -> str | None:
         if isinstance(value, (list, tuple)):
             if not value:
                 return None
-            return _normalize_header_value(value[0])
-        return _normalize_header_value(value)
+            return _normalize_correlation_value(value[0])
+        return _normalize_correlation_value(value)
     return None
 
 
 def _inject_local_baggage(carrier: MutableMapping[str, str]) -> None:
-    """Emit W3C Baggage-compliant header when OpenTelemetry is unavailable.
+    """Emit a W3C Baggage-compliant header when OpenTelemetry is unavailable.
 
-    * Keys are validated against the RFC 7230 token grammar.
-    * Values are percent-encoded per RFC 3986 ``unreserved``; any ``=``,
-      ``,``, ``;``, whitespace, or non-ASCII in a value is escaped so
-      list-member and key/value boundaries on the wire are unambiguous.
-    * Member count is capped at :data:`BAGGAGE_MAX_MEMBERS` (180).
-    * Total encoded length is capped at :data:`BAGGAGE_MAX_BYTES` (8192).
+    Philosophy: **drop + truncate + log**. Unsafe members are silently
+    dropped; oversized membership lists or header payloads are truncated
+    at the W3C § 4.3 limits; every truncation emits a structured
+    ``LOGGER.warning('tracing.baggage_truncated', ...)`` so operators can
+    alert on the event without the inject path raising at runtime.
 
-    Both limits raise :class:`ValueError`; silent truncation is not an
-    option because it would hide that a contract with the downstream
-    reader has been broken.
+    * Keys and values that fail :func:`_normalize_baggage_member`
+      (non-token keys, control bytes, delimiter chars in values) are
+      dropped before the member list is assembled.
+    * Member count is capped at :data:`BAGGAGE_MAX_MEMBERS` (180): if
+      more than 180 safe members are present, the tail is dropped.
+    * Total wire-encoded length is capped at :data:`BAGGAGE_MAX_BYTES`
+      (8192): trailing members are dropped one by one until the
+      remaining payload fits.
+    * If zero members survive truncation, no header is set.
     """
 
     baggage = _current_local_baggage()
     if not baggage:
         return
-    if len(baggage) > BAGGAGE_MAX_MEMBERS:
+
+    safe_items: list[tuple[str, str]] = []
+    for key, value in baggage.items():
+        normalized = _normalize_baggage_member(key, value)
+        if normalized is not None:
+            safe_items.append(normalized)
+    if not safe_items:
+        return
+
+    # W3C § 4.3 member-count ceiling.
+    if len(safe_items) > BAGGAGE_MAX_MEMBERS:
         LOGGER.warning(
-            "tracing.reject_baggage",
+            "tracing.baggage_truncated",
             extra={
-                "event": "tracing.reject_baggage",
+                "event": "tracing.baggage_truncated",
                 "reason": "too_many_members",
-                "members": len(baggage),
+                "original_members": len(safe_items),
+                "kept_members": BAGGAGE_MAX_MEMBERS,
                 "limit": BAGGAGE_MAX_MEMBERS,
             },
         )
-        raise ValueError(
-            f"baggage has {len(baggage)} members; "
-            f"W3C Baggage caps at {BAGGAGE_MAX_MEMBERS} (see § 4.3)"
-        )
-    parts: list[str] = []
-    for key, value in baggage.items():
-        safe_key = _validate_baggage_key(key)
-        safe_value = _encode_baggage_value(value)
-        parts.append(f"{safe_key}={safe_value}")
-    header_value = ",".join(parts)
-    if not header_value:
-        return
-    encoded_len = len(header_value.encode("ascii"))
-    if encoded_len > BAGGAGE_MAX_BYTES:
+        safe_items = safe_items[:BAGGAGE_MAX_MEMBERS]
+
+    # W3C § 4.3 byte-length ceiling; drop tail members until the payload fits.
+    header_value = ",".join(f"{k}={v}" for k, v in safe_items)
+    original_byte_len = len(header_value.encode("ascii"))
+    if original_byte_len > BAGGAGE_MAX_BYTES:
+        original_members = len(safe_items)
+        while safe_items:
+            header_value = ",".join(f"{k}={v}" for k, v in safe_items)
+            if len(header_value.encode("ascii")) <= BAGGAGE_MAX_BYTES:
+                break
+            safe_items = safe_items[:-1]
+        else:
+            header_value = ""
         LOGGER.warning(
-            "tracing.reject_baggage",
+            "tracing.baggage_truncated",
             extra={
-                "event": "tracing.reject_baggage",
+                "event": "tracing.baggage_truncated",
                 "reason": "header_too_large",
-                "encoded_bytes": encoded_len,
+                "original_bytes": original_byte_len,
+                "kept_bytes": len(header_value.encode("ascii")),
+                "original_members": original_members,
+                "kept_members": len(safe_items),
                 "limit": BAGGAGE_MAX_BYTES,
             },
         )
-        raise ValueError(
-            f"encoded baggage header is {encoded_len} bytes; "
-            f"W3C Baggage caps at {BAGGAGE_MAX_BYTES} (see § 4.3)"
-        )
-    carrier[_BAGGAGE_HEADER_NAME] = _reject_crlf(header_value)
+
+    if not header_value:
+        return
+    carrier[_BAGGAGE_HEADER_NAME] = header_value
 
 
 def _extract_local_baggage(carrier: Mapping[Any, Any]) -> Mapping[str, str] | None:
+    """Parse the `baggage` header from a carrier using the drop-philosophy.
+
+    An unsafe baggage header (CR/LF/NUL anywhere in the payload) is
+    rejected wholesale so a single injected split cannot leak partial
+    state to the caller. Individual malformed members — those that fail
+    :func:`_normalize_baggage_member` — are dropped; the remaining safe
+    members are returned.
+    """
+
     baggage_header: str | None = None
     for key, value in carrier.items():
         if not _header_key_matches(key, _BAGGAGE_HEADER_LOWER):
             continue
-        if isinstance(value, str):
-            baggage_header = value
-        elif isinstance(value, (list, tuple)):
+        if isinstance(value, (list, tuple)):
             if not value:
                 baggage_header = None
             else:
-                baggage_header = _normalize_header_value(value[0])
+                baggage_header = _normalize_baggage_header_value(value[0])
         else:
-            baggage_header = _normalize_header_value(value)
+            baggage_header = _normalize_baggage_header_value(value)
         break
     if not baggage_header:
         return None
@@ -667,12 +681,15 @@ def _extract_local_baggage(carrier: Mapping[Any, Any]) -> Mapping[str, str] | No
         part = part.strip()
         if not part or "=" not in part:
             continue
-        key, value = part.split("=", 1)
+        raw_key, raw_value = part.split("=", 1)
         # W3C Baggage § 3.2.1.1: members may carry ``;property`` segments
-        # after the value. We keep only the canonical key=value pair and
-        # drop the properties to match the simplified local model.
-        value_bare = value.split(";", 1)[0].strip()
-        parsed[key.strip()] = _decode_baggage_value(value_bare)
+        # after the value. Drop them for the simplified local model.
+        value_bare = raw_value.split(";", 1)[0].strip()
+        normalized = _normalize_baggage_member(raw_key, value_bare)
+        if normalized is None:
+            continue
+        safe_key, safe_value = normalized
+        parsed[safe_key] = safe_value
     return parsed or None
 
 
