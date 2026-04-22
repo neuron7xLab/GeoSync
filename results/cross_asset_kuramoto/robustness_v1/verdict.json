@@ -1,0 +1,12 @@
+{
+  "contract_manifest_generated_utc": "2026-04-21T23:59:35Z",
+  "contract_manifest_regenerated_utc": "2026-04-22T06:08:01Z",
+  "cpcv_pass": true,
+  "jitter_is_placeholder": true,
+  "jitter_pass": true,
+  "label": "FAIL",
+  "null_pass": false,
+  "reasons": [
+    "null: one or more families failed"
+  ]
+}

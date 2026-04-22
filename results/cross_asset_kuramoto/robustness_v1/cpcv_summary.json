@@ -1,0 +1,16 @@
+{
+  "annualised_sharpe": 0.5774518839494874,
+  "fold_sharpes": [
+    2.5823,
+    1.0107,
+    -1.1464,
+    0.942,
+    0.8507
+  ],
+  "n_bars": 2166,
+  "n_folds": 5,
+  "pbo": 0.0,
+  "pbo_pass": true,
+  "psr_daily": 1.0,
+  "psr_pass": true
+}
