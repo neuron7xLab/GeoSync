@@ -9,11 +9,8 @@ from .dopamine_td import (
     run_vectorized_dopamine_td,
 )
 from .engine import LatencyConfig, OrderBookConfig
-from .performance import (
-    PerformanceReport,
-    compute_performance_metrics,
-    export_performance_report,
-)
+from .performance import PerformanceReport, compute_performance_metrics, export_performance_report
+from .robustness_gates import DecisionLabel, RobustnessGateResult, evaluate_robustness_gates
 from .synthetic import (
     ControlledExperiment,
     LiquidityShock,
@@ -47,4 +44,7 @@ __all__ = [
     "dopamine_td_signal",
     "run_dopamine_backtest",
     "run_vectorized_dopamine_td",
+    "DecisionLabel",
+    "RobustnessGateResult",
+    "evaluate_robustness_gates",
 ]
