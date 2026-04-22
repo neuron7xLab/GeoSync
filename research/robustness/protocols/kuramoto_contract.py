@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
+import numpy as np
 import pandas as pd
 
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[3]
@@ -187,15 +188,31 @@ class KuramotoRobustnessContract:
                 )
 
     def daily_strategy_returns(self) -> pd.Series:
-        """Strategy daily returns from ``strategy_cumret`` (pct_change)."""
-        s = self.equity_curve["strategy_cumret"].astype(float).pct_change().dropna()
+        """Strategy daily log-returns from ``strategy_cumret``.
+
+        Computed as ``diff(log(strategy_cumret))``: this is the canonical
+        time-additive representation of a multiplicative equity curve and
+        is *mathematically exact* for the hypothetical raw ``net_ret``
+        series that produced the wealth trajectory (no approximation).
+
+        Log returns are chosen over simple ``pct_change`` because they
+        are the honest input to stationary bootstraps and Sharpe-ratio
+        nulls: they are time-additive, symmetric under sign inversion,
+        and preserve independence under permutation.
+        """
+        eq = self.equity_curve["strategy_cumret"].astype(float).to_numpy()
+        log_ret = np.log(eq[1:]) - np.log(eq[:-1])
+        s = pd.Series(log_ret, name="strategy_log_ret")
         s.index = self.equity_curve["date"].iloc[1:].to_numpy()
-        s.name = "strategy_ret"
         return s
 
     def daily_benchmark_returns(self) -> pd.Series:
-        """Benchmark daily returns from ``benchmark_cumret``."""
-        s = self.equity_curve["benchmark_cumret"].astype(float).pct_change().dropna()
+        """Benchmark daily log-returns from ``benchmark_cumret``.
+
+        Same derivation as :meth:`daily_strategy_returns` for symmetry.
+        """
+        eq = self.equity_curve["benchmark_cumret"].astype(float).to_numpy()
+        log_ret = np.log(eq[1:]) - np.log(eq[:-1])
+        s = pd.Series(log_ret, name="benchmark_log_ret")
         s.index = self.equity_curve["date"].iloc[1:].to_numpy()
-        s.name = "benchmark_ret"
         return s

@@ -56,7 +56,7 @@ class TestNullSuite:
         r = run_kuramoto_null_suite(contract, n_bootstrap=64)
         assert len(r.families) == 2
         names = {f.family for f in r.families}
-        assert names == {"iid_permutation", "stationary_bootstrap"}
+        assert names == {"iid_bootstrap", "stationary_bootstrap"}
         for f in r.families:
             assert 0.0 < f.p_value <= 1.0
             assert f.n_bootstrap == 64

@@ -8,10 +8,10 @@ Terminal decision: **FAIL**
 |---|---|---:|:-:|
 | CPCV | PBO (fold mirror) | 0.0000 | ✓ |
 | CPCV | PSR (daily) | 1.0000 | ✓ |
-| CPCV | Annualised Sharpe (daily) | 0.5775 | n/a |
+| CPCV | Annualised Sharpe (daily) | 0.4832 | n/a |
 | CPCV | PBO (LOO grid, n=13) | 0.2000 | ✓ |
-| Null | iid_permutation p-value | 0.0878 | ✗ |
-| Null | stationary_bootstrap p-value | 0.5170 | ✗ |
+| Null | iid_bootstrap p-value | 0.5045 | ✗ |
+| Null | stationary_bootstrap p-value | 0.5235 | ✗ |
 | Jitter | fraction_within_tol | 1.0000 | ✓ |
 | Jitter | evaluator_mode | `PLACEHOLDER_APPROXIMATION` | n/a |
 

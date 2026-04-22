@@ -10,8 +10,14 @@ so the generic primitive's three "signal-side" families degenerate.
 This suite implements the two null families that are meaningful given
 only a realised return stream:
 
-1. **iid_permutation** — reshuffle the returns i.i.d.; tests for any
-   deterministic information encoded in time order.
+1. **iid_bootstrap** — sample the returns with replacement, i.i.d.
+   from the empirical marginal distribution; tests for information
+   beyond the first-moment/second-moment marginal distribution.
+   (Plain permutation would be a *degenerate* null here: Sharpe is
+   order-invariant as a function of the vector, so permutation
+   preserves it up to floating-point noise. With-replacement sampling
+   changes the realised mean and std of each draw and is the proper
+   iid null for a Sharpe statistic on a single return stream.)
 2. **stationary_bootstrap** — Politis & Romano block bootstrap with
    geometric block length (mean = 21 bars); tests information beyond
    short-horizon autocorrelation.
@@ -31,7 +37,7 @@ from numpy.typing import NDArray
 
 from .kuramoto_contract import KuramotoRobustnessContract
 
-FrozenNullFamily = Literal["iid_permutation", "stationary_bootstrap"]
+FrozenNullFamily = Literal["iid_bootstrap", "stationary_bootstrap"]
 NULL_PASS_P_THRESHOLD: Final[float] = 0.05
 
 
@@ -117,17 +123,18 @@ def run_kuramoto_null_suite(
 
     null_iid = np.empty(n_bootstrap, dtype=np.float64)
     for b in range(n_bootstrap):
-        null_iid[b] = _sharpe(rng.permutation(returns), periods_per_year)
+        idx = rng.integers(0, returns.size, size=returns.size)
+        null_iid[b] = _sharpe(returns[idx], periods_per_year)
 
     null_sb = np.empty(n_bootstrap, dtype=np.float64)
     for b in range(n_bootstrap):
-        idx = _stationary_bootstrap_indices(returns.size, mean_block, rng)
-        null_sb[b] = _sharpe(returns[idx], periods_per_year)
+        sb_idx = _stationary_bootstrap_indices(returns.size, mean_block, rng)
+        null_sb[b] = _sharpe(returns[sb_idx], periods_per_year)
 
     families: list[FrozenNullResult] = []
     family_name: FrozenNullFamily
     for family_name, null_dist in (
-        ("iid_permutation", null_iid),
+        ("iid_bootstrap", null_iid),
         ("stationary_bootstrap", null_sb),
     ):
         p = _p_value(observed, null_dist)

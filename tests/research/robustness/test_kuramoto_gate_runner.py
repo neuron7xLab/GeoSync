@@ -166,6 +166,6 @@ def test_cli_writes_expected_artifacts(tmp_path: Path) -> None:
         "cpcv_summary.json",
         "null_summary.json",
         "jitter_summary.json",
-        "ROBUSTNESS_v1.md",
+        "ROBUSTNESS_RESULTS.md",
     ):
         assert (cwd_out / name).is_file()

@@ -10,7 +10,7 @@ Read-only on every frozen input. Writes strictly under
 - ``cpcv_summary.json``     — PBO, PSR, fold sharpes
 - ``null_summary.json``     — two null families + p-values
 - ``jitter_summary.json``   — placeholder evaluator output
-- ``ROBUSTNESS_v1.md``      — 1-page human-readable report
+- ``ROBUSTNESS_RESULTS.md`` — 1-page human-readable report
 
 A hash-mismatch on any frozen artifact exits 2 with a ``FAIL`` verdict
 file already written to disk.
@@ -186,11 +186,17 @@ def main(argv: list[str] | None = None) -> int:
             "jitter_pass": decision.jitter_pass,
             "jitter_is_placeholder": decision.jitter_is_placeholder,
             "reasons": list(decision.reasons),
+            "input_source": "daily_log_returns",
+            "label_qualifier": (
+                "FAIL_ON_DAILY_RETURNS"
+                if decision.label is DecisionLabel.FAIL
+                else decision.label.value
+            ),
             "contract_manifest_generated_utc": contract.manifest.generated_utc,
             "contract_manifest_regenerated_utc": contract.manifest.regenerated_utc,
         },
     )
-    (args.out_dir / "ROBUSTNESS_v1.md").write_text(
+    (args.out_dir / "ROBUSTNESS_RESULTS.md").write_text(
         _render_markdown(
             verdict_label=decision.label.value,
             cpcv_dict=cpcv_dict,
