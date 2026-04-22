@@ -20,6 +20,14 @@ Terminal decision: **FAIL**
 - null: one or more families failed
 - jitter: placeholder evaluator — abstains from live ✓/✗
 
+## Null p-value convergence
+
+- overall status: **NOT_CONVERGED**
+- overall max |Δp|: 0.0285 (tolerance 0.0200)
+- iid_bootstrap: max |Δp| = 0.0115
+- stationary_bootstrap: max |Δp| = 0.0285
+- Note: verdict stability under convergence is independent of the CONVERGED/NOT_CONVERGED label. Both families' p-values stay well above α = 0.05 across all trial counts (500 → 5000), so the FAIL verdict is decision-stable even if the p-value fluctuates within its own uncertainty band.
+
 ## Notes
 
 - Evidence is derived from the frozen `offline_robustness/SOURCE_HASHES.json` bundle; 28 artifacts hash-verified.
