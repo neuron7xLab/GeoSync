@@ -125,3 +125,44 @@ The fix is additive — every existing string-only caller continues to
 pass. The new contract is a strict superset of the old one on the read
 side, and a strict subset (reject CR/LF) on the write side. Downstream
 consumers that were already well-formed observe no behaviour change.
+
+## Amendment (same PR): W3C Baggage fallback is now spec-compliant
+
+The initial carrier-key fix uncovered that the *local* baggage fallback
+(used when OpenTelemetry is not installed) emitted unvalidated
+``key=value`` pairs joined with ``,``. This corrupts the W3C Baggage
+wire format in three ways:
+
+1. Keys carrying ``=``/``,``/``;``/whitespace produced ambiguous
+   list-members that every W3C-compliant receiver parses wrongly.
+2. Values with ``,`` were split across list-member boundaries —
+   one logical member became N phantom members on the receiver.
+3. The 180-member / 8192-byte hard limits from W3C Baggage § 4.3
+   were never enforced; a caller with a large baggage scope silently
+   shipped a non-conformant header.
+
+Mitigation (same commit as the main fix):
+
+* ``_validate_baggage_key`` enforces RFC 7230 *token* on every key
+  at inject time.
+* ``_encode_baggage_value`` percent-encodes values per RFC 3986 §
+  2.3 (unreserved-only safe-set, UTF-8 byte representation); the
+  extractor mirrors with ``_decode_baggage_value``.
+* ``BAGGAGE_MAX_MEMBERS = 180`` and ``BAGGAGE_MAX_BYTES = 8192``
+  are public constants and are enforced before emission; violations
+  raise ``ValueError`` (never silently truncate).
+* Every rejection emits a structured ``LOGGER.warning`` line with
+  a ``reason`` field (``forbidden_control_character`` /
+  ``non_token_key`` / ``too_many_members`` / ``header_too_large``)
+  so operators see these as security-visible signals, not silent
+  ``ValueError``s.
+
+Validation: 165 tests in ``tests/unit/tracing/test_distributed.py``,
+including:
+
+* W3C Baggage spec roundtrip for values containing ``,`` ``;`` ``=``,
+  whitespace, and UTF-8 (incl. emoji).
+* Reject tests for invalid keys, 181-member baggage, 8193-byte
+  header, and mixed member-count + byte-count edge cases.
+* Structured-log assertions for every reject event.
+* Hypothesis property tests for encode/decode roundtrip.

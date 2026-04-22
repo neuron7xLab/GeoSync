@@ -13,9 +13,13 @@ from hypothesis import strategies as st
 from core.tracing.distributed import (
     _DICT_GETTER,
     _TRACE_AVAILABLE,
+    BAGGAGE_MAX_BYTES,
+    BAGGAGE_MAX_MEMBERS,
     DistributedTracingConfig,
     ExtractedContext,
+    _decode_baggage_value,
     _default_correlation_id,
+    _encode_baggage_value,
     _extract_local_baggage,
     _first_correlation_value,
     _inject_local_baggage,
@@ -23,6 +27,7 @@ from core.tracing.distributed import (
     _normalize_header_value,
     _reject_crlf,
     _update_correlation_header,
+    _validate_baggage_key,
     activate_distributed_context,
     baggage_scope,
     configure_distributed_tracing,
@@ -900,16 +905,33 @@ class TestCRLFInjectionHardening:
             with pytest.raises(ValueError, match="forbidden control character"):
                 inject_distributed_context(carrier)
 
-    def test_inject_rejects_lf_in_baggage_value(self) -> None:
+    def test_lf_in_baggage_value_survives_via_percent_encoding(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """W3C-compliant local fallback percent-encodes every control byte in
+        baggage values — LF never appears on the wire, and the value still
+        roundtrips cleanly. This replaces the old 'reject' test because the
+        W3C encoding is a strictly stronger defence than CRLF rejection."""
+        import core.tracing.distributed as dist
+
+        monkeypatch.setattr(dist, "_TRACE_AVAILABLE", False)
+        monkeypatch.setattr(dist, "_GLOBAL_PROPAGATOR", None)
+        monkeypatch.setattr(dist, "_DICT_SETTER", None)
+        monkeypatch.setattr(dist, "otel_baggage", None)
+        monkeypatch.setattr(dist, "otel_context", None)
+
+        carrier: Dict[str, str] = {}
         with baggage_scope({"tenant": "ok\n key=injected"}):
-            carrier: Dict[str, str] = {}
-            # Only hits the local-baggage path when OpenTelemetry is not
-            # active for the write; otherwise the OTel BaggagePropagator
-            # may itself percent-encode the value — we still assert that
-            # if the local path fires, it refuses.
-            if not _TRACE_AVAILABLE:
-                with pytest.raises(ValueError, match="forbidden control character"):
-                    inject_distributed_context(carrier)
+            inject_distributed_context(carrier)
+        header = carrier["baggage"]
+        # Control byte never lands in the wire header.
+        assert "\n" not in header
+        assert "\r" not in header
+        # Percent-encoded triplet is there instead.
+        assert "%0A" in header
+        # Full roundtrip.
+        ctx = extract_distributed_context(carrier)
+        assert ctx.baggage == {"tenant": "ok\n key=injected"}
 
 
 class TestInjectExtractRoundtrip:
@@ -1013,3 +1035,196 @@ def test_property_roundtrip_inject_extract_correlation(correlation: str) -> None
         inject_distributed_context(carrier)
     ctx = extract_distributed_context(carrier)
     assert ctx.correlation_id == correlation
+
+
+# --------------------------------------------------------------------- #
+# W3C Baggage § 3.2.1.1 / § 4.3 compliance of the local fallback path.
+# These tests force _TRACE_AVAILABLE = False so the fallback injector
+# and extractor run even on machines that have OpenTelemetry installed.
+# --------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def local_baggage_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Force the W3C-compliant local fallback path even under OTel."""
+    import core.tracing.distributed as dist
+
+    monkeypatch.setattr(dist, "_TRACE_AVAILABLE", False)
+    monkeypatch.setattr(dist, "_GLOBAL_PROPAGATOR", None)
+    monkeypatch.setattr(dist, "_DICT_SETTER", None)
+    monkeypatch.setattr(dist, "otel_baggage", None)
+    monkeypatch.setattr(dist, "otel_context", None)
+
+
+class TestBaggageKeyValidation:
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "tenant",
+            "TENANT",
+            "tenant-id",
+            "trace.flags",
+            "x-request-id",
+            "my_key",
+            "abc123",
+        ],
+    )
+    def test_valid_token_keys(self, key: str) -> None:
+        assert _validate_baggage_key(key) == key
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "bad=key",
+            "bad,key",
+            "bad;key",
+            "bad key",
+            "bad\tkey",
+            "",
+            "unicodeключ",
+            "emoji🙂",
+        ],
+    )
+    def test_invalid_keys_rejected(self, key: str) -> None:
+        with pytest.raises(ValueError, match="W3C Baggage"):
+            _validate_baggage_key(key)
+
+    def test_non_string_key_raises_type_error(self) -> None:
+        with pytest.raises(TypeError):
+            _validate_baggage_key(123)  # type: ignore[arg-type]
+
+
+class TestBaggageValueEncoding:
+    @pytest.mark.parametrize(
+        ("raw", "encoded"),
+        [
+            ("plain", "plain"),
+            ("a=b", "a%3Db"),
+            ("a,b,c", "a%2Cb%2Cc"),
+            ("a;b", "a%3Bb"),
+            ("has space", "has%20space"),
+            ("", ""),
+        ],
+    )
+    def test_encode_baggage_value_spec_conformance(self, raw: str, encoded: str) -> None:
+        assert _encode_baggage_value(raw) == encoded
+
+    @given(st.text(min_size=0, max_size=40))
+    def test_encode_decode_roundtrip(self, raw: str) -> None:
+        assert _decode_baggage_value(_encode_baggage_value(raw)) == raw
+
+    def test_non_string_value_raises_type_error(self) -> None:
+        with pytest.raises(TypeError):
+            _encode_baggage_value(42)  # type: ignore[arg-type]
+
+    def test_decode_tolerates_malformed_percent_triplet(self) -> None:
+        # Plain string unchanged; malformed %-sequence falls back to
+        # the raw input rather than crashing the extractor.
+        assert _decode_baggage_value("%ZZ") == "%ZZ"
+
+
+class TestBaggageInjectSpecCompliance:
+    def test_roundtrip_value_with_comma(self, local_baggage_only: None) -> None:
+        carrier: Dict[str, str] = {}
+        with baggage_scope({"tenant": "a,b,c"}):
+            inject_distributed_context(carrier)
+        # On the wire the value MUST be percent-encoded.
+        assert carrier["baggage"] == "tenant=a%2Cb%2Cc"
+        ctx = extract_distributed_context(carrier)
+        assert ctx.baggage == {"tenant": "a,b,c"}
+
+    def test_roundtrip_value_with_semicolon_and_equals(self, local_baggage_only: None) -> None:
+        carrier: Dict[str, str] = {}
+        with baggage_scope({"tenant": "k=v; prop=1"}):
+            inject_distributed_context(carrier)
+        ctx = extract_distributed_context(carrier)
+        assert ctx.baggage == {"tenant": "k=v; prop=1"}
+
+    def test_roundtrip_unicode_value(self, local_baggage_only: None) -> None:
+        carrier: Dict[str, str] = {}
+        with baggage_scope({"tenant": "Україна 🇺🇦"}):
+            inject_distributed_context(carrier)
+        ctx = extract_distributed_context(carrier)
+        assert ctx.baggage == {"tenant": "Україна 🇺🇦"}
+
+    def test_invalid_key_rejected_at_inject(self, local_baggage_only: None) -> None:
+        carrier: Dict[str, str] = {}
+        with baggage_scope({"bad=key": "value"}):
+            with pytest.raises(ValueError, match="W3C Baggage"):
+                inject_distributed_context(carrier)
+
+    def test_too_many_members_rejected(self, local_baggage_only: None) -> None:
+        carrier: Dict[str, str] = {}
+        huge = {f"k{i}": "v" for i in range(BAGGAGE_MAX_MEMBERS + 1)}
+        with baggage_scope(huge):
+            with pytest.raises(ValueError, match="W3C Baggage caps at"):
+                inject_distributed_context(carrier)
+
+    def test_encoded_header_too_large_rejected(self, local_baggage_only: None) -> None:
+        """Valid keys, reasonable count, but total encoded size > 8192."""
+        carrier: Dict[str, str] = {}
+        # Each entry ~= 110 bytes encoded, 100 entries → ~11K on the wire.
+        huge = {f"k{i}": "x" * 100 for i in range(100)}
+        with baggage_scope(huge):
+            with pytest.raises(ValueError, match="W3C Baggage caps at"):
+                inject_distributed_context(carrier)
+
+    def test_at_limit_members_passes(self, local_baggage_only: None) -> None:
+        """Exactly BAGGAGE_MAX_MEMBERS entries, each short enough, must pass."""
+        carrier: Dict[str, str] = {}
+        # Use tiny values so we stay under BAGGAGE_MAX_BYTES too.
+        small = {f"k{i}": str(i) for i in range(BAGGAGE_MAX_MEMBERS)}
+        with baggage_scope(small):
+            inject_distributed_context(carrier)  # must not raise
+        assert len(carrier["baggage"].encode("ascii")) <= BAGGAGE_MAX_BYTES
+        ctx = extract_distributed_context(carrier)
+        assert ctx.baggage is not None
+        assert len(ctx.baggage) == BAGGAGE_MAX_MEMBERS
+
+    def test_extract_strips_w3c_property_segment(self, local_baggage_only: None) -> None:
+        """W3C Baggage allows ``key=value;prop=x`` members. Our simplified
+        local model drops properties but still returns the canonical value."""
+        carrier = {"baggage": "tenant=alpha;kind=service"}
+        ctx = extract_distributed_context(carrier)
+        assert ctx.baggage == {"tenant": "alpha"}
+
+
+class TestSecurityEventLogging:
+    """Reject events must emit a structured WARNING log so operators see them."""
+
+    def test_reject_crlf_logs_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+        caplog.set_level("WARNING", logger="core.tracing.distributed")
+        with pytest.raises(ValueError):
+            _reject_crlf("bad\r\nInjected")
+        records = [r for r in caplog.records if r.getMessage() == "tracing.reject_header_value"]
+        assert records, "expected a structured reject-event log line"
+        record = records[-1]
+        assert getattr(record, "reason", None) == "forbidden_control_character"
+        assert getattr(record, "character_ordinal", None) == ord("\r")
+
+    def test_reject_invalid_baggage_key_logs(self, caplog: pytest.LogCaptureFixture) -> None:
+        caplog.set_level("WARNING", logger="core.tracing.distributed")
+        with pytest.raises(ValueError):
+            _validate_baggage_key("bad=key")
+        records = [r for r in caplog.records if r.getMessage() == "tracing.reject_baggage_key"]
+        assert records
+        assert getattr(records[-1], "reason", None) == "non_token_key"
+
+    def test_reject_too_many_members_logs(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        local_baggage_only: None,
+    ) -> None:
+        caplog.set_level("WARNING", logger="core.tracing.distributed")
+        carrier: Dict[str, str] = {}
+        huge = {f"k{i}": "v" for i in range(BAGGAGE_MAX_MEMBERS + 1)}
+        with baggage_scope(huge):
+            with pytest.raises(ValueError):
+                inject_distributed_context(carrier)
+        records = [
+            r
+            for r in caplog.records
+            if r.getMessage() == "tracing.reject_baggage"
+            and getattr(r, "reason", None) == "too_many_members"
+        ]
+        assert records

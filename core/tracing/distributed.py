@@ -42,6 +42,28 @@ carriers come from WSGI, ASGI, gRPC metadata, Jaeger wire bytes, etc.
 and may present bytes keys; downstream propagators and HTTP clients
 expect ``str`` on their setter contract, so we never expose them to
 anything else.
+
+W3C Baggage compliance (fallback path)
+--------------------------------------
+
+When OpenTelemetry is not installed, :func:`_inject_local_baggage` is
+the W3C-Baggage emitter and :func:`_extract_local_baggage` is its
+reader. Both are spec-compliant:
+
+* Keys are validated against the RFC 7230 token grammar via
+  :func:`_validate_baggage_key`.
+* Values are percent-encoded per RFC 3986 § 2.3 unreserved-set via
+  :func:`_encode_baggage_value` (``,`` ``;`` ``=`` whitespace and every
+  non-ASCII byte round-trip through ``%xx`` triplets).
+* Member count is capped at :data:`BAGGAGE_MAX_MEMBERS` (180); encoded
+  byte length is capped at :data:`BAGGAGE_MAX_BYTES` (8192). Both
+  caps are from W3C Baggage § 4.3 and raise :class:`ValueError` on
+  violation — silent truncation is never performed.
+
+Every rejection (CR/LF in a value, non-token key, over-limit baggage)
+emits a structured :data:`LOGGER` warning with an ``event`` /
+``reason`` pair so the reject stream is observable from operational
+dashboards.
 """
 
 from __future__ import annotations
@@ -52,7 +74,9 @@ import re
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterator, Mapping, MutableMapping
+from typing import Any, Callable, Dict, Final, Iterator, Mapping, MutableMapping
+from urllib.parse import quote as _percent_encode
+from urllib.parse import unquote as _percent_decode
 from uuid import uuid4
 
 LOGGER = logging.getLogger(__name__)
@@ -113,10 +137,25 @@ _DEFAULT_TRACER_NAME = "geosync.distributed"
 # is rejected outright rather than matched via ``str(key)`` (which would
 # let bytes/other types leak into header space).
 _HEADER_TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9a-z]+$")
+# Same grammar, case-preserving, for validating *baggage* keys on the
+# write path — W3C Baggage § 3.2.1.1 pins keys to RFC 7230 tokens.
+_BAGGAGE_TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
 # RFC 7230 § 3.2 forbids CR/LF and NUL inside header field values; we
 # also refuse any other C0 control byte to prevent header-splitting
 # attacks on downstream HTTP/1.1 hops that may not be Unicode-strict.
 _FORBIDDEN_HEADER_VALUE_CHARS = frozenset({"\r", "\n", "\x00"})
+# W3C Baggage (https://www.w3.org/TR/baggage/, § 4.3) hard limits on the
+# wire representation of the `baggage` header. We enforce BEFORE emission
+# — a baggage header that would exceed either bound is rejected at
+# inject time with a clear ValueError, never silently truncated.
+BAGGAGE_MAX_MEMBERS: Final[int] = 180
+BAGGAGE_MAX_BYTES: Final[int] = 8192
+# Percent-encoding safe-set for baggage VALUES. W3C Baggage defers to
+# RFC 3986 § 2.3 `unreserved` (ALPHA / DIGIT / "-" / "." / "_" / "~").
+# Everything else — including "=" "," ";" space and non-ASCII — must be
+# percent-encoded on the wire so the CSV/list-member parser cannot be
+# confused by values that happen to contain delimiter characters.
+_BAGGAGE_VALUE_SAFE = ""  # empty => quote everything outside unreserved
 
 
 _LOCAL_BAGGAGE: ContextVar[Mapping[str, str] | None] = ContextVar(
@@ -200,11 +239,76 @@ def _reject_crlf(value: str) -> str:
 
     for forbidden in _FORBIDDEN_HEADER_VALUE_CHARS:
         if forbidden in value:
+            LOGGER.warning(
+                "tracing.reject_header_value",
+                extra={
+                    "event": "tracing.reject_header_value",
+                    "reason": "forbidden_control_character",
+                    "character_ordinal": ord(forbidden),
+                    "value_length": len(value),
+                },
+            )
             raise ValueError(
                 "header value contains a forbidden control character; "
                 f"refusing to inject (found {forbidden!r})"
             )
     return value
+
+
+def _validate_baggage_key(key: str) -> str:
+    """Verify a baggage key obeys the W3C Baggage token grammar.
+
+    W3C Baggage § 3.2.1.1 pins keys to RFC 7230 ``token``. A key with
+    ``=``, ``,``, ``;``, whitespace, or non-ASCII will confuse every
+    downstream parser. Rejecting at inject time is the narrow surface
+    where the producer still has context to fix the caller.
+    """
+
+    if not isinstance(key, str):
+        raise TypeError(f"baggage key must be str, got {type(key).__name__}")
+    if not _BAGGAGE_TOKEN_RE.fullmatch(key):
+        LOGGER.warning(
+            "tracing.reject_baggage_key",
+            extra={
+                "event": "tracing.reject_baggage_key",
+                "reason": "non_token_key",
+                "key_length": len(key),
+            },
+        )
+        raise ValueError(f"baggage key {key!r} violates W3C Baggage § 3.2.1.1 token grammar")
+    return key
+
+
+def _encode_baggage_value(value: str) -> str:
+    """Percent-encode a baggage value per W3C Baggage § 3.2.1.1 / RFC 3986.
+
+    Everything outside the RFC 3986 ``unreserved`` set (ALPHA / DIGIT /
+    ``-`` / ``.`` / ``_`` / ``~``) is percent-encoded — including ``=``,
+    ``,``, ``;``, whitespace, and every non-ASCII byte. The resulting
+    octets are always US-ASCII so the wire format survives every HTTP
+    transport without re-encoding.
+    """
+
+    if not isinstance(value, str):
+        raise TypeError(f"baggage value must be str, got {type(value).__name__}")
+    # ``safe=""`` makes :func:`urllib.parse.quote` encode everything
+    # outside ``unreserved``; ``encoding="utf-8"`` pins the byte
+    # representation so Unicode values round-trip deterministically.
+    return _percent_encode(value, safe=_BAGGAGE_VALUE_SAFE, encoding="utf-8")
+
+
+def _decode_baggage_value(raw: str) -> str:
+    """Percent-decode a baggage value. Mirror of :func:`_encode_baggage_value`.
+
+    Falls back to the raw string on decode failure so a corrupted value
+    never crashes the extractor — the bad entry simply surfaces unchanged
+    to the caller for inspection.
+    """
+
+    try:
+        return _percent_decode(raw, encoding="utf-8", errors="strict")
+    except (UnicodeDecodeError, ValueError):
+        return raw
 
 
 if _TRACE_AVAILABLE:
@@ -484,12 +588,61 @@ def _first_correlation_value(carrier: Mapping[Any, Any]) -> str | None:
 
 
 def _inject_local_baggage(carrier: MutableMapping[str, str]) -> None:
+    """Emit W3C Baggage-compliant header when OpenTelemetry is unavailable.
+
+    * Keys are validated against the RFC 7230 token grammar.
+    * Values are percent-encoded per RFC 3986 ``unreserved``; any ``=``,
+      ``,``, ``;``, whitespace, or non-ASCII in a value is escaped so
+      list-member and key/value boundaries on the wire are unambiguous.
+    * Member count is capped at :data:`BAGGAGE_MAX_MEMBERS` (180).
+    * Total encoded length is capped at :data:`BAGGAGE_MAX_BYTES` (8192).
+
+    Both limits raise :class:`ValueError`; silent truncation is not an
+    option because it would hide that a contract with the downstream
+    reader has been broken.
+    """
+
     baggage = _current_local_baggage()
     if not baggage:
         return
-    header_value = ",".join(f"{key}={value}" for key, value in baggage.items())
-    if header_value:
-        carrier[_BAGGAGE_HEADER_NAME] = _reject_crlf(header_value)
+    if len(baggage) > BAGGAGE_MAX_MEMBERS:
+        LOGGER.warning(
+            "tracing.reject_baggage",
+            extra={
+                "event": "tracing.reject_baggage",
+                "reason": "too_many_members",
+                "members": len(baggage),
+                "limit": BAGGAGE_MAX_MEMBERS,
+            },
+        )
+        raise ValueError(
+            f"baggage has {len(baggage)} members; "
+            f"W3C Baggage caps at {BAGGAGE_MAX_MEMBERS} (see § 4.3)"
+        )
+    parts: list[str] = []
+    for key, value in baggage.items():
+        safe_key = _validate_baggage_key(key)
+        safe_value = _encode_baggage_value(value)
+        parts.append(f"{safe_key}={safe_value}")
+    header_value = ",".join(parts)
+    if not header_value:
+        return
+    encoded_len = len(header_value.encode("ascii"))
+    if encoded_len > BAGGAGE_MAX_BYTES:
+        LOGGER.warning(
+            "tracing.reject_baggage",
+            extra={
+                "event": "tracing.reject_baggage",
+                "reason": "header_too_large",
+                "encoded_bytes": encoded_len,
+                "limit": BAGGAGE_MAX_BYTES,
+            },
+        )
+        raise ValueError(
+            f"encoded baggage header is {encoded_len} bytes; "
+            f"W3C Baggage caps at {BAGGAGE_MAX_BYTES} (see § 4.3)"
+        )
+    carrier[_BAGGAGE_HEADER_NAME] = _reject_crlf(header_value)
 
 
 def _extract_local_baggage(carrier: Mapping[Any, Any]) -> Mapping[str, str] | None:
@@ -515,7 +668,11 @@ def _extract_local_baggage(carrier: Mapping[Any, Any]) -> Mapping[str, str] | No
         if not part or "=" not in part:
             continue
         key, value = part.split("=", 1)
-        parsed[key.strip()] = value.strip()
+        # W3C Baggage § 3.2.1.1: members may carry ``;property`` segments
+        # after the value. We keep only the canonical key=value pair and
+        # drop the properties to match the simplified local model.
+        value_bare = value.split(";", 1)[0].strip()
+        parsed[key.strip()] = _decode_baggage_value(value_bare)
     return parsed or None
 
 
