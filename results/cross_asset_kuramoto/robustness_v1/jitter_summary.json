@@ -1,6 +1,6 @@
 {
   "evaluator_mode": "PLACEHOLDER_APPROXIMATION",
-  "fraction_within_tol_pass": true,
+  "fraction_within_tol_pass": false,
   "pass_threshold": 0.8,
   "stability": {
     "anchor_sharpe": 1.2619,

@@ -20,6 +20,24 @@ PSR_PASS_THRESHOLD: Final[float] = 0.95
 LOO_PBO_PASS_THRESHOLD: Final[float] = 0.50
 
 
+PBO_TAUTOLOGICAL_CUTOFF: Final[int] = 3
+PBO_WEAK_CUTOFF: Final[int] = 5
+
+
+def _pbo_interpretation(n_candidates: int) -> str:
+    """Label a PBO measurement by its candidate count.
+
+    Fewer than 3 strategies: 'tautological' (best-IS is trivially best).
+    Fewer than 5 strategies: 'weak' (low statistical power).
+    5 or more: 'admissible'.
+    """
+    if n_candidates < PBO_TAUTOLOGICAL_CUTOFF:
+        return "tautological"
+    if n_candidates < PBO_WEAK_CUTOFF:
+        return "weak"
+    return "admissible"
+
+
 @dataclass(frozen=True)
 class KuramotoCPCVResult:
     """Aggregate of the CPCV/PBO/PSR suite on frozen evidence."""
@@ -27,6 +45,8 @@ class KuramotoCPCVResult:
     fold_sharpes: tuple[float, ...]
     pbo: float
     pbo_pass: bool
+    pbo_candidate_count: int
+    pbo_interpretation: str
     psr_daily: float
     psr_pass: bool
     annualised_sharpe: float
@@ -35,6 +55,7 @@ class KuramotoCPCVResult:
     loo_pbo: float | None
     loo_pbo_pass: bool
     loo_n_strategies: int
+    loo_pbo_interpretation: str
 
 
 def _fold_oos_matrix(fold_sharpes: tuple[float, ...]) -> NDArray[np.float64]:
@@ -105,10 +126,17 @@ def run_kuramoto_cpcv_suite(
             loo_pbo = estimate_pbo(loo_oos)
             loo_pbo_pass = loo_pbo < LOO_PBO_PASS_THRESHOLD
 
+    # The fold-mirror PBO uses exactly 2 "strategies" (anchor + median-
+    # shifted mirror); by construction this is below PBO_TAUTOLOGICAL_CUTOFF
+    # and the interpretation is always 'tautological'. It is retained as
+    # a sanity-check baseline; the LOO-grid PBO is the decision-grade one.
+    fold_mirror_candidate_count = 2
     return KuramotoCPCVResult(
         fold_sharpes=fold_sharpes,
         pbo=pbo,
         pbo_pass=pbo < PBO_PASS_THRESHOLD,
+        pbo_candidate_count=fold_mirror_candidate_count,
+        pbo_interpretation=_pbo_interpretation(fold_mirror_candidate_count),
         psr_daily=psr,
         psr_pass=(psr >= PSR_PASS_THRESHOLD) if np.isfinite(psr) else False,
         annualised_sharpe=sr,
@@ -117,4 +145,5 @@ def run_kuramoto_cpcv_suite(
         loo_pbo=loo_pbo,
         loo_pbo_pass=loo_pbo_pass,
         loo_n_strategies=loo_n_strategies,
+        loo_pbo_interpretation=_pbo_interpretation(loo_n_strategies),
     )

@@ -50,6 +50,17 @@ class TestCPCVSuite:
         assert r.loo_pbo is not None
         assert abs(r.loo_pbo - 0.20) < 1e-9
 
+    def test_pbo_candidate_count_and_interpretation(
+        self, contract: KuramotoRobustnessContract
+    ) -> None:
+        """Fold-mirror PBO must always be flagged tautological (n=2);
+        LOO-grid PBO with n=13 must be flagged admissible."""
+        r = run_kuramoto_cpcv_suite(contract)
+        assert r.pbo_candidate_count == 2
+        assert r.pbo_interpretation == "tautological"
+        assert r.loo_n_strategies == 13
+        assert r.loo_pbo_interpretation == "admissible"
+
 
 class TestNullSuite:
     def test_two_families_returned_and_bounded(self, contract: KuramotoRobustnessContract) -> None:
@@ -96,3 +107,14 @@ class TestJitterSuite:
         # Sharpe that exceeds the anchor by construction.
         r = run_kuramoto_jitter_suite(contract, n_candidates=64)
         assert max(r.stability.perturbed_sharpes) <= r.stability.anchor_sharpe
+
+    def test_placeholder_forces_pass_false(self, contract: KuramotoRobustnessContract) -> None:
+        """Task 2: placeholder evaluator MUST force fraction_within_tol_pass
+        to False, regardless of the observed fraction. The decision layer
+        carries evaluator_mode separately and uses it to route to
+        INSUFFICIENT_EVIDENCE when require_live_jitter=True."""
+        r = run_kuramoto_jitter_suite(contract, n_candidates=32)
+        assert r.evaluator_mode == "PLACEHOLDER_APPROXIMATION"
+        assert r.fraction_within_tol_pass is False
+        # Sanity: the raw fraction is still reported honestly on stability.
+        assert 0.0 <= r.stability.fraction_within_tol <= 1.0

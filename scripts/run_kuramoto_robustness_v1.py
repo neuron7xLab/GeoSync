@@ -61,14 +61,19 @@ def _render_markdown(
         "",
         "| Suite | Metric | Value | Pass |",
         "|---|---|---:|:-:|",
-        f"| CPCV | PBO (fold mirror) | {cpcv_dict['pbo']:.4f} | {'✓' if cpcv_dict['pbo_pass'] else '✗'} |",
-        f"| CPCV | PSR (daily) | {cpcv_dict['psr_daily']:.4f} | {'✓' if cpcv_dict['psr_pass'] else '✗'} |",
+        f"| CPCV | PBO (fold mirror, n={cpcv_dict['pbo_candidate_count']}, "
+        f"*{cpcv_dict['pbo_interpretation']}*) | "
+        f"{cpcv_dict['pbo']:.4f} | "
+        f"{'✓' if cpcv_dict['pbo_pass'] else '✗'} |",
+        f"| CPCV | PSR (daily) | {cpcv_dict['psr_daily']:.4f} | "
+        f"{'✓' if cpcv_dict['psr_pass'] else '✗'} |",
         f"| CPCV | Annualised Sharpe (daily) | {cpcv_dict['annualised_sharpe']:.4f} | n/a |",
     ]
     loo_pbo = cpcv_dict.get("loo_pbo")
     if loo_pbo is not None:
         lines.append(
-            f"| CPCV | PBO (LOO grid, n={cpcv_dict['loo_n_strategies']}) | "
+            f"| CPCV | PBO (LOO grid, n={cpcv_dict['loo_n_strategies']}, "
+            f"*{cpcv_dict['loo_pbo_interpretation']}*) | "
             f"{loo_pbo:.4f} | "
             f"{'✓' if cpcv_dict['loo_pbo_pass'] else '✗'} |"
         )
@@ -78,12 +83,22 @@ def _render_markdown(
             f"{family['p_value']:.4f} | "
             f"{'✓' if family['p_value_pass'] else '✗'} |"
         )
+    jitter_is_placeholder = jitter_dict["evaluator_mode"] != "LIVE"
+    if jitter_is_placeholder:
+        jitter_pass_cell = "N/A"
+        jitter_note = (
+            "`PLACEHOLDER_APPROXIMATION` (not decision-grade; live evaluator "
+            "required to flip this row to ✓ / ✗)"
+        )
+    else:
+        jitter_pass_cell = "✓" if jitter_dict["fraction_within_tol_pass"] else "✗"
+        jitter_note = f"`{jitter_dict['evaluator_mode']}`"
     lines.extend(
         [
             f"| Jitter | fraction_within_tol | "
             f"{jitter_dict['stability']['fraction_within_tol']:.4f} | "
-            f"{'✓' if jitter_dict['fraction_within_tol_pass'] else '✗'} |",
-            f"| Jitter | evaluator_mode | `{jitter_dict['evaluator_mode']}` | n/a |",
+            f"{jitter_pass_cell} |",
+            f"| Jitter | evaluator_mode | {jitter_note} | n/a |",
             "",
             "## Reasons",
             "",
@@ -100,12 +115,16 @@ def _render_markdown(
             "",
             "- Evidence is derived from the frozen `offline_robustness/"
             "SOURCE_HASHES.json` bundle; 28 artifacts hash-verified.",
-            "- Null suite uses cumulative-return pct_change as a return proxy;"
-            " raw `net_ret` is not in the frozen demo bundle, which limits"
-            " statistical power relative to the published headline Sharpe"
-            " (`risk_metrics.csv::sharpe = 1.2619`).",
-            "- Jitter evaluator is PLACEHOLDER_APPROXIMATION: rebuild under"
-            " perturbed parameters requires the raw asset panel.",
+            "- Null suite uses mathematically exact daily log-returns "
+            "(`diff(log(strategy_cumret))`) — no approximation. See "
+            "`ROBUSTNESS_PROTOCOL.md` § 1 for the derivation contract.",
+            "- PBO interpretation: fewer than 3 candidates is `tautological`, "
+            "fewer than 5 is `weak`, 5+ is `admissible`. The fold-mirror PBO "
+            "is always tautological by construction and is kept only as a "
+            "sanity baseline; the LOO-grid PBO is the decision-grade one.",
+            "- Jitter row shows `N/A` while the evaluator is "
+            "`PLACEHOLDER_APPROXIMATION`; a live rebuild is required to "
+            "replace the row with a real ✓ / ✗.",
             "",
         ]
     )

@@ -113,7 +113,10 @@ def evaluate_robustness_gates(
     jitter_pass = bool(evidence.jitter.fraction_within_tol_pass)
     jitter_is_placeholder = evidence.jitter.evaluator_mode != "LIVE"
     if not jitter_pass:
-        reasons.append("jitter: fraction-within-tol below threshold")
+        if jitter_is_placeholder:
+            reasons.append("jitter: placeholder evaluator — abstains from live ✓/✗")
+        else:
+            reasons.append("jitter: fraction-within-tol below threshold")
 
     if evidence.cpcv.n_folds < 2:
         reasons.append("cpcv: fewer than 2 folds available")

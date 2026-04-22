@@ -9,10 +9,13 @@
   ],
   "loo_n_strategies": 13,
   "loo_pbo": 0.2,
+  "loo_pbo_interpretation": "admissible",
   "loo_pbo_pass": true,
   "n_bars": 2166,
   "n_folds": 5,
   "pbo": 0.0,
+  "pbo_candidate_count": 2,
+  "pbo_interpretation": "tautological",
   "pbo_pass": true,
   "psr_daily": 1.0,
   "psr_pass": true

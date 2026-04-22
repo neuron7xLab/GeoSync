@@ -4,11 +4,12 @@
   "cpcv_pass": true,
   "input_source": "daily_log_returns",
   "jitter_is_placeholder": true,
-  "jitter_pass": true,
+  "jitter_pass": false,
   "label": "FAIL",
   "label_qualifier": "FAIL_ON_DAILY_RETURNS",
   "null_pass": false,
   "reasons": [
-    "null: one or more families failed"
+    "null: one or more families failed",
+    "jitter: placeholder evaluator \u2014 abstains from live \u2713/\u2717"
   ]
 }

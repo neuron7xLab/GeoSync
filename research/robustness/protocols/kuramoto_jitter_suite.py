@@ -89,9 +89,17 @@ def run_kuramoto_jitter_suite(
         sharpe_tolerance=sharpe_tolerance,
         seed=seed,
     )
+    # When the evaluator is the placeholder, jitter evidence is NOT
+    # decision-grade — force the pass boolean to False regardless of the
+    # observed fraction-within-tol. The decision layer carries a separate
+    # 'jitter_is_placeholder' flag that routes to INSUFFICIENT_EVIDENCE
+    # when require_live_jitter is True; otherwise placeholder-with-False
+    # simply abstains from asserting a live pass.
+    is_placeholder = EVALUATOR_MODE != "LIVE"
+    raw_pass = stability.fraction_within_tol >= fraction_within_tol_pass
     return KuramotoJitterSuiteResult(
         stability=stability,
         evaluator_mode=EVALUATOR_MODE,
-        fraction_within_tol_pass=(stability.fraction_within_tol >= fraction_within_tol_pass),
+        fraction_within_tol_pass=False if is_placeholder else raw_pass,
         pass_threshold=fraction_within_tol_pass,
     )
