@@ -32,6 +32,24 @@ class TestCPCVSuite:
         assert r.n_folds == len(contract.fold_metrics)
         assert r.n_bars == len(contract.equity_curve) - 1
 
+    def test_loo_pbo_present_and_bounded(self, contract: KuramotoRobustnessContract) -> None:
+        """When the LOO grid ships with the contract, the second PBO
+        is computed on a (folds × LOO-perturbations) OOS matrix."""
+        r = run_kuramoto_cpcv_suite(contract)
+        assert contract.loo_grid is not None
+        assert r.loo_pbo is not None
+        assert 0.0 <= r.loo_pbo <= 1.0
+        # 14 rows minus the baseline.
+        assert r.loo_n_strategies == 13
+
+    def test_loo_pbo_matches_hand_computed(self, contract: KuramotoRobustnessContract) -> None:
+        """Regression-pin: on the frozen LOO grid Bailey PBO = 0.20.
+        A drift here signals either the grid has been tampered with
+        (will also trip the sha256 gate) or the PBO logic has regressed."""
+        r = run_kuramoto_cpcv_suite(contract)
+        assert r.loo_pbo is not None
+        assert abs(r.loo_pbo - 0.20) < 1e-9
+
 
 class TestNullSuite:
     def test_two_families_returned_and_bounded(self, contract: KuramotoRobustnessContract) -> None:

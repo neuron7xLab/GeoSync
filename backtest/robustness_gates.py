@@ -38,6 +38,8 @@ class _CPCVEvidence(Protocol):
     def annualised_sharpe(self) -> float: ...
     @property
     def n_folds(self) -> int: ...
+    @property
+    def loo_pbo_pass(self) -> bool: ...
 
 
 @runtime_checkable
@@ -94,11 +96,15 @@ def evaluate_robustness_gates(
       passing, or placeholder with ``require_live_jitter`` False.
     """
     reasons: list[str] = []
-    cpcv_pass = bool(evidence.cpcv.pbo_pass and evidence.cpcv.psr_pass)
+    cpcv_pass = bool(
+        evidence.cpcv.pbo_pass and evidence.cpcv.psr_pass and evidence.cpcv.loo_pbo_pass
+    )
     if not evidence.cpcv.pbo_pass:
         reasons.append("cpcv: PBO above threshold")
     if not evidence.cpcv.psr_pass:
         reasons.append("cpcv: PSR below threshold")
+    if not evidence.cpcv.loo_pbo_pass:
+        reasons.append("cpcv: LOO-grid PBO above threshold")
 
     null_pass = bool(evidence.null.all_families_pass)
     if not null_pass:

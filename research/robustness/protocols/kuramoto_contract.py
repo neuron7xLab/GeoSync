@@ -31,9 +31,32 @@ DEMO_FOLDS_REL: Final[str] = "results/cross_asset_kuramoto/demo/fold_metrics.csv
 DEMO_RISK_REL: Final[str] = "results/cross_asset_kuramoto/demo/risk_metrics.csv"
 PARAM_LOCK_REL: Final[str] = "results/cross_asset_kuramoto/PARAMETER_LOCK.json"
 
+# Extension manifest: hash-verified auxiliary artifacts that are *outside*
+# the original 28-artifact SOURCE_HASHES.json contract. Adding a new
+# auxiliary input requires appending here AND in the inline hash constant
+# below — both must move together, so drift is caught at load time.
+LOO_GRID_REL: Final[str] = "results/cross_asset_kuramoto/offline_robustness/leave_one_asset_out.csv"
+LOO_GRID_SHA256: Final[str] = "9fdb19129630bddcda7499cd6a1ec20b68b34715d8c52c72bd286676e8156a61"
+
 
 class FrozenArtifactMismatch(RuntimeError):
     """Raised when a frozen artifact fails sha256 verification or is missing."""
+
+
+def _load_loo_grid_if_present(repo_root: Path) -> pd.DataFrame | None:
+    """Load + hash-verify the LOO grid; return None if the file is absent.
+
+    A present-but-mismatched file is fail-closed (raises
+    :class:`FrozenArtifactMismatch`); a missing file is tolerated so the
+    framework can run on a minimal frozen bundle.
+    """
+    path = repo_root / LOO_GRID_REL
+    if not path.is_file():
+        return None
+    sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    if sha != LOO_GRID_SHA256:
+        raise FrozenArtifactMismatch(f"{LOO_GRID_REL}: got {sha}, expected {LOO_GRID_SHA256}")
+    return pd.read_csv(path)
 
 
 @dataclass(frozen=True)
@@ -91,6 +114,7 @@ class KuramotoRobustnessContract:
     fold_metrics: pd.DataFrame
     risk_metrics: pd.DataFrame
     parameter_lock: dict[str, object]
+    loo_grid: pd.DataFrame | None = None
 
     @classmethod
     def from_frozen_artifacts(
@@ -98,7 +122,14 @@ class KuramotoRobustnessContract:
         manifest_path: Path = DEFAULT_MANIFEST,
         repo_root: Path = REPO_ROOT,
     ) -> KuramotoRobustnessContract:
-        """Load contract and verify hashes in one fail-closed step."""
+        """Load contract and verify hashes in one fail-closed step.
+
+        Also loads the optional leave-one-asset-out grid when the file
+        is present on disk; its sha256 is verified against the inline
+        :data:`LOO_GRID_SHA256` constant. A missing LOO file is tolerated
+        (``loo_grid`` stays None); a present-but-mismatched file is a
+        fail-closed error.
+        """
         manifest = FrozenArtifactManifest.load(manifest_path, repo_root)
         manifest.verify_all()
 
@@ -112,12 +143,14 @@ class KuramotoRobustnessContract:
         )
         risk = pd.read_csv(repo_root / DEMO_RISK_REL)
         param_lock = json.loads((repo_root / PARAM_LOCK_REL).read_text(encoding="utf-8"))
+        loo_grid = _load_loo_grid_if_present(repo_root)
         contract = cls(
             manifest=manifest,
             equity_curve=equity,
             fold_metrics=folds,
             risk_metrics=risk,
             parameter_lock=param_lock,
+            loo_grid=loo_grid,
         )
         contract.assert_frozen_consistency()
         return contract
@@ -136,6 +169,22 @@ class KuramotoRobustnessContract:
             raise FrozenArtifactMismatch(
                 f"fold_metrics.csv needs at least 2 folds, has {len(self.fold_metrics)}"
             )
+        if self.loo_grid is not None:
+            required_loo = {
+                "loo_type",
+                "omitted_asset",
+                "oos_sharpe",
+                "fold1",
+                "fold2",
+                "fold3",
+                "fold4",
+                "fold5",
+            }
+            missing = required_loo - set(self.loo_grid.columns)
+            if missing:
+                raise FrozenArtifactMismatch(
+                    f"leave_one_asset_out.csv missing columns: {sorted(missing)}"
+                )
 
     def daily_strategy_returns(self) -> pd.Series:
         """Strategy daily returns from ``strategy_cumret`` (pct_change)."""

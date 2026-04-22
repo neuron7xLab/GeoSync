@@ -18,6 +18,7 @@ class _FakeCPCV:
     psr_pass: bool
     annualised_sharpe: float
     n_folds: int
+    loo_pbo_pass: bool = True
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,7 @@ class TestDecisionLayer:
         null_pass: bool = True,
         jitter_mode: str = "LIVE",
         jitter_pass: bool = True,
+        loo_pbo_pass: bool = True,
     ) -> _FakeEvidence:
         return _FakeEvidence(
             cpcv=_FakeCPCV(
@@ -56,6 +58,7 @@ class TestDecisionLayer:
                 psr_pass=psr_pass,
                 annualised_sharpe=annualised_sharpe,
                 n_folds=n_folds,
+                loo_pbo_pass=loo_pbo_pass,
             ),
             null=_FakeNull(all_families_pass=null_pass),
             jitter=_FakeJitter(
@@ -82,6 +85,11 @@ class TestDecisionLayer:
     def test_null_red_gives_fail(self) -> None:
         r = evaluate_robustness_gates(self._ev(null_pass=False))
         assert r.label is DecisionLabel.FAIL
+
+    def test_loo_pbo_red_gives_fail(self) -> None:
+        r = evaluate_robustness_gates(self._ev(loo_pbo_pass=False))
+        assert r.label is DecisionLabel.FAIL
+        assert any("LOO" in reason for reason in r.reasons)
 
     def test_placeholder_jitter_with_require_live_demotes_to_insufficient(
         self,

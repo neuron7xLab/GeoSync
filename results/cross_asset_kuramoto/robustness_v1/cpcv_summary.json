@@ -7,6 +7,9 @@
     0.942,
     0.8507
   ],
+  "loo_n_strategies": 13,
+  "loo_pbo": 0.2,
+  "loo_pbo_pass": true,
   "n_bars": 2166,
   "n_folds": 5,
   "pbo": 0.0,

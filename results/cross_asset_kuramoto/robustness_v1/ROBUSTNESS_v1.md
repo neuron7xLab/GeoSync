@@ -6,11 +6,12 @@ Terminal decision: **FAIL**
 
 | Suite | Metric | Value | Pass |
 |---|---|---:|:-:|
-| CPCV | PBO | 0.0000 | ✓ |
+| CPCV | PBO (fold mirror) | 0.0000 | ✓ |
 | CPCV | PSR (daily) | 1.0000 | ✓ |
 | CPCV | Annualised Sharpe (daily) | 0.5775 | n/a |
-| Null | iid_permutation p-value | 0.1095 | ✗ |
-| Null | stationary_bootstrap p-value | 0.4677 | ✗ |
+| CPCV | PBO (LOO grid, n=13) | 0.2000 | ✓ |
+| Null | iid_permutation p-value | 0.0878 | ✗ |
+| Null | stationary_bootstrap p-value | 0.5170 | ✗ |
 | Jitter | fraction_within_tol | 1.0000 | ✓ |
 | Jitter | evaluator_mode | `PLACEHOLDER_APPROXIMATION` | n/a |
 

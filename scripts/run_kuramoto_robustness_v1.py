@@ -61,10 +61,17 @@ def _render_markdown(
         "",
         "| Suite | Metric | Value | Pass |",
         "|---|---|---:|:-:|",
-        f"| CPCV | PBO | {cpcv_dict['pbo']:.4f} | {'✓' if cpcv_dict['pbo_pass'] else '✗'} |",
+        f"| CPCV | PBO (fold mirror) | {cpcv_dict['pbo']:.4f} | {'✓' if cpcv_dict['pbo_pass'] else '✗'} |",
         f"| CPCV | PSR (daily) | {cpcv_dict['psr_daily']:.4f} | {'✓' if cpcv_dict['psr_pass'] else '✗'} |",
         f"| CPCV | Annualised Sharpe (daily) | {cpcv_dict['annualised_sharpe']:.4f} | n/a |",
     ]
+    loo_pbo = cpcv_dict.get("loo_pbo")
+    if loo_pbo is not None:
+        lines.append(
+            f"| CPCV | PBO (LOO grid, n={cpcv_dict['loo_n_strategies']}) | "
+            f"{loo_pbo:.4f} | "
+            f"{'✓' if cpcv_dict['loo_pbo_pass'] else '✗'} |"
+        )
     for family in null_dict["families"]:
         lines.append(
             f"| Null | {family['family']} p-value | "

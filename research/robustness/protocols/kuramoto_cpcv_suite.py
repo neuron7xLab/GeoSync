@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from typing import Final
 
 import numpy as np
+import pandas as pd
+from numpy.typing import NDArray
 
 from research.robustness.cpcv import estimate_pbo, probabilistic_sharpe_ratio
 
@@ -15,6 +17,7 @@ from .kuramoto_contract import KuramotoRobustnessContract
 
 PBO_PASS_THRESHOLD: Final[float] = 0.50
 PSR_PASS_THRESHOLD: Final[float] = 0.95
+LOO_PBO_PASS_THRESHOLD: Final[float] = 0.50
 
 
 @dataclass(frozen=True)
@@ -29,9 +32,12 @@ class KuramotoCPCVResult:
     annualised_sharpe: float
     n_bars: int
     n_folds: int
+    loo_pbo: float | None
+    loo_pbo_pass: bool
+    loo_n_strategies: int
 
 
-def _fold_oos_matrix(fold_sharpes: tuple[float, ...]) -> np.ndarray:
+def _fold_oos_matrix(fold_sharpes: tuple[float, ...]) -> NDArray[np.float64]:
     """Build an OOS matrix from per-fold Sharpe values for PBO estimation.
 
     The frozen evidence bundle ships one Sharpe per walk-forward fold
@@ -45,6 +51,23 @@ def _fold_oos_matrix(fold_sharpes: tuple[float, ...]) -> np.ndarray:
     return np.column_stack([arr, mirror])
 
 
+def _loo_oos_matrix(loo_grid: pd.DataFrame) -> NDArray[np.float64]:
+    """Build an OOS matrix of (folds × strategies) from the LOO grid.
+
+    Each non-baseline LOO row is one strategy variant whose per-fold
+    Sharpes live in columns ``fold1..fold5``. We transpose so rows are
+    CPCV paths (folds) and columns are strategies, matching
+    :func:`research.robustness.cpcv.estimate_pbo` shape expectations.
+    The baseline row is excluded: including it would guarantee best-IS
+    capture every time and trivialise the PBO.
+    """
+    perturbations = loo_grid[loo_grid["loo_type"] != "baseline_full"]
+    folds = perturbations[["fold1", "fold2", "fold3", "fold4", "fold5"]].to_numpy(dtype=np.float64)
+    # folds shape is (n_strategies, n_folds); transpose to (n_folds, n_strategies)
+    out: NDArray[np.float64] = folds.T
+    return out
+
+
 def run_kuramoto_cpcv_suite(
     contract: KuramotoRobustnessContract,
 ) -> KuramotoCPCVResult:
@@ -55,6 +78,10 @@ def run_kuramoto_cpcv_suite(
     pre-computed fold sharpes for PBO and the daily return stream for
     PSR. No re-simulation is performed — this suite is *read-only* on
     frozen artifacts by design.
+
+    When the contract carries the optional LOO grid, a *second* PBO is
+    computed on the real (folds × LOO-perturbations) OOS matrix — this
+    is the honest Bailey et al. PBO and is non-trivial by construction.
     """
     daily = contract.daily_strategy_returns().to_numpy(dtype=np.float64)
     fold_sharpes = tuple(float(s) for s in contract.fold_metrics["sharpe"].to_numpy())
@@ -67,6 +94,17 @@ def run_kuramoto_cpcv_suite(
     pbo = estimate_pbo(oos)
     std = float(np.std(daily, ddof=1))
     sr = float(np.mean(daily) / std * np.sqrt(252)) if std > 0 and np.isfinite(std) else 0.0
+
+    loo_pbo: float | None = None
+    loo_pbo_pass = True
+    loo_n_strategies = 0
+    if contract.loo_grid is not None:
+        loo_oos = _loo_oos_matrix(contract.loo_grid)
+        loo_n_strategies = int(loo_oos.shape[1])
+        if loo_oos.shape[0] >= 2 and loo_n_strategies >= 2:
+            loo_pbo = estimate_pbo(loo_oos)
+            loo_pbo_pass = loo_pbo < LOO_PBO_PASS_THRESHOLD
+
     return KuramotoCPCVResult(
         fold_sharpes=fold_sharpes,
         pbo=pbo,
@@ -76,4 +114,7 @@ def run_kuramoto_cpcv_suite(
         annualised_sharpe=sr,
         n_bars=int(daily.size),
         n_folds=len(fold_sharpes),
+        loo_pbo=loo_pbo,
+        loo_pbo_pass=loo_pbo_pass,
+        loo_n_strategies=loo_n_strategies,
     )
