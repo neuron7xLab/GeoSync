@@ -18,6 +18,7 @@ EVAL_SCRIPT = REPO / "scripts" / "evaluate_cross_asset_kuramoto_shadow.py"
 
 def _load(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None, "spec_from_file_location returned None"
     mod = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(mod)

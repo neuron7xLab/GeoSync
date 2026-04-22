@@ -62,7 +62,9 @@ PAPER_STATE = Path.home() / "spikes" / "cross_asset_sync_regime" / "paper_state"
 LOCK_AUDIT = SHADOW_DIR / "LOCK_AUDIT.md"
 
 # Hash pinned at demo-ready commit 7beea0d; checked at each run.
-EXPECTED_PARAM_LOCK_SHA256 = "1afd9058f7b5e1512d0a58c7b760da4e75389602d0155b0d83f1a84e567e5132"
+EXPECTED_PARAM_LOCK_SHA256 = (
+    "1afd9058f7b5e1512d0a58c7b760da4e75389602d0155b0d83f1a84e567e5132"  # pragma: allowlist secret
+)
 
 INCIDENT_COLUMNS = (
     "incident_ts",

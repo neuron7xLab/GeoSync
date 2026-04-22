@@ -16,6 +16,7 @@ SCRIPT = REPO / "scripts" / "analysis_cak_leave_one_out.py"
 
 def _load():
     spec = importlib.util.spec_from_file_location("loo_mod", SCRIPT)
+    assert spec is not None, "spec_from_file_location returned None"
     mod = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(mod)

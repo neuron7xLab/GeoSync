@@ -23,11 +23,12 @@
     "core/cross_asset_kuramoto/engine.py": "2f1dc1c976e7c8f3a2e57c9e521541083fa568a0dc7b63e5aa40395ef9d8c59d",
     "core/cross_asset_kuramoto/invariants.py": "f5627c2ed1d25bab11f816c00f3af74bd23380725b1c01344f3b250e016e035e",
     "scripts/demo_cross_asset_kuramoto.py": "36041afa804e5ad46189eaa9166e064a0714aa6f47a6a16e4556054bc03deb79",
-    "scripts/run_cross_asset_kuramoto_shadow.py": "3c29fc7cd050bf587da463ce3298f2775610438beaee92fcb137ab0850bef20e",
+    "scripts/run_cross_asset_kuramoto_shadow.py": "f760e17b2caea33ae1cd962ac191590c3832c4e325a839c8a7db5009d899938b",
     "scripts/evaluate_cross_asset_kuramoto_shadow.py": "8c4fd4f80a366b5eb991e9c09683890e879ba11f1698a10854962e869e94949d",
     "scripts/render_cross_asset_kuramoto_shadow_report.py": "b12b35a6989d61e7dbf1dadd08247f16fb0ab2a07659683eacf9553cf0425dbf",
     "scripts/push_shadow_evidence.sh": "33b91955c0ec61bd274e34d309421079b06dccd3026aa3109aaa8632614b442d",
     "ops/systemd/cross_asset_kuramoto_shadow.service": "673905e2206bacce78707a669d86f29b4a2f73eeb87a5fdfe820ae5460d54a44",
     "ops/systemd/cross_asset_kuramoto_shadow.timer": "b87272d9adb3ddd967d1b92e07301168d71a1fb1787ce396656103a197553015"
-  }
+  },
+  "regenerated_utc": "2026-04-22T00:21:18Z"
 }
