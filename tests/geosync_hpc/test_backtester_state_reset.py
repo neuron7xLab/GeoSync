@@ -4,7 +4,8 @@
 
 from __future__ import annotations
 
-from geosync_hpc.backtest import BacktesterCAL
+import pytest
+
 from geosync_hpc.data import read_ticks_csv
 from geosync_hpc.synthetic import generate_demo_ticks
 
@@ -46,6 +47,9 @@ def _cfg() -> dict:
 
 
 def test_backtester_repeated_runs_are_deterministic(tmp_path) -> None:
+    pytest.importorskip("sklearn")
+    from geosync_hpc.backtest import BacktesterCAL
+
     csv_path = generate_demo_ticks(tmp_path / "ticks.csv", n=1800, seed=11)
     df = read_ticks_csv(csv_path)
     feat_cols = ["ret1", "ret5", "ret20", "vol10", "vol50", "spread"]
