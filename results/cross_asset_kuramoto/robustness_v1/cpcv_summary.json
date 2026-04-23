@@ -18,5 +18,8 @@
   "pbo_interpretation": "tautological",
   "pbo_pass": true,
   "psr_daily": 1.0,
+  "psr_hac_daily": 1.0,
+  "psr_hac_lag": 7,
+  "psr_hac_pass": true,
   "psr_pass": true
 }

@@ -179,6 +179,148 @@ def probabilistic_sharpe_ratio(
     return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
 
 
+def _newey_west_effective_size(
+    returns: NDArray[np.float64],
+    lag: int,
+) -> float:
+    """Effective sample size under Newey–West HAC correction.
+
+    Given residuals ``r`` of length ``T``, the Bartlett-kernel Newey–West
+    variance estimator inflates the naive variance by
+
+        c(L) = 1 + 2 · Σ_{k=1..L}  w_k · ρ_k       with  w_k = 1 − k/(L+1),
+
+    where ρ_k is the lag-k autocorrelation of ``r``. The "effective sample
+    size" is then ``T / max(c(L), 1e-12)`` — under positive serial
+    correlation this is materially smaller than ``T``; under
+    over-differencing (negative autocorrelation) it is larger.
+
+    References: Newey & West (1987) *Econometrica* 55; Newey & West (1994)
+    *Review of Economic Studies* 61.
+    """
+    n = returns.size
+    if lag < 0:
+        raise ValueError(f"lag must be >= 0, got {lag}")
+    if n < 2 or lag == 0:
+        return float(n)
+    centered = returns - returns.mean()
+    gamma0 = float((centered * centered).mean())
+    if gamma0 <= 0:
+        return float(n)
+    max_lag = min(lag, n - 1)
+    correction = 1.0
+    for k in range(1, max_lag + 1):
+        gamma_k = float((centered[:-k] * centered[k:]).mean())
+        rho_k = gamma_k / gamma0
+        weight = 1.0 - k / (max_lag + 1)
+        correction += 2.0 * weight * rho_k
+    # Fail-closed against pathological inputs: keep effective_n positive,
+    # strictly less than 2T, and finite. Correction ≤ 0 is degenerate.
+    correction = max(correction, 1e-12)
+    return float(n) / correction
+
+
+def _newey_west_auto_lag(n: int) -> int:
+    """Newey–West (1994) automatic bandwidth rule.
+
+    L* = floor(4 · (T/100)^(2/9)).
+    Returns 0 for n < 4 (no HAC correction possible); the caller should
+    treat that as "fallback to vanilla PSR".
+    """
+    if n < 4:
+        return 0
+    return int(math.floor(4.0 * (n / 100.0) ** (2.0 / 9.0)))
+
+
+def probabilistic_sharpe_ratio_hac(
+    returns: NDArray[np.float64],
+    sr_benchmark: float = 0.0,
+    periods_per_year: int = 252,
+    lag: int | None = None,
+) -> float:
+    """HAC-adjusted Probabilistic Sharpe Ratio (Newey–West, Bartlett kernel).
+
+    The vanilla PSR denominator uses the naive ``√(T − 1)`` sample-size
+    scaling, which *inflates* the confidence statement under positive
+    serial correlation. This function replaces ``T`` with the
+    Newey–West effective sample size before applying Lopez de Prado's
+    skew/kurt correction:
+
+        PSR_HAC = Φ( (SR − SR*) · √(T_eff − 1) / √(1 − γ₃·SR + (γ₄−1)/4·SR²) )
+
+    with ``T_eff = T / (1 + 2·Σ_{k≤L} w_k ρ_k)`` and Bartlett weights
+    ``w_k = 1 − k/(L+1)``.
+
+    Parameters
+    ----------
+    returns
+        1-D array of periodic (daily/weekly/…) returns of the strategy.
+    sr_benchmark
+        Null-hypothesis Sharpe ratio (annualised, same units as the
+        ``periods_per_year`` scaling). Default 0.
+    periods_per_year
+        Number of ``returns`` observations per year. 252 for daily
+        business-day returns.
+    lag
+        Explicit Newey–West truncation lag ``L``. If ``None``, the
+        Newey–West (1994) automatic bandwidth ``L* = floor(4·(T/100)^(2/9))``
+        is used.
+
+    Returns
+    -------
+    float
+        Probability in [0, 1] that the true Sharpe exceeds
+        ``sr_benchmark`` under the HAC-adjusted sampling distribution.
+        Degenerate inputs (n ≤ 2, zero variance, non-finite) return NaN.
+
+    Notes
+    -----
+    White-noise returns yield ``PSR_HAC ≈ PSR`` because all ``ρ_k → 0``.
+    Positive first-order autocorrelation (regime-following strategies)
+    collapses the effective sample and drives ``PSR_HAC < PSR``. Negative
+    autocorrelation (mean-reverting noise) pushes ``PSR_HAC > PSR``.
+
+    References
+    ----------
+    Newey & West (1987), *Econometrica* 55(3): 703–708.
+    Lopez de Prado (2018), *Advances in Financial ML*, Ch. 14.
+    """
+    r = np.asarray(returns, dtype=np.float64)
+    if r.ndim != 1:
+        raise ValueError(f"returns must be 1-D, got shape {r.shape}")
+    n = r.size
+    if n < 2 or not np.all(np.isfinite(r)):
+        return math.nan
+    std = r.std(ddof=1)
+    if std <= 0:
+        return math.nan
+
+    mean = r.mean()
+    sr = mean / std * math.sqrt(periods_per_year)
+    sr_star = float(sr_benchmark)
+
+    centered = r - mean
+    m2 = float((centered**2).mean())
+    if m2 <= 0:
+        return math.nan
+    m3 = float((centered**3).mean())
+    m4 = float((centered**4).mean())
+    skew = m3 / (m2**1.5)
+    kurt = m4 / (m2**2)
+
+    denom_sq = 1.0 - skew * sr + (kurt - 1.0) / 4.0 * sr**2
+    if denom_sq <= 0 or not math.isfinite(denom_sq):
+        return math.nan
+
+    effective_lag = _newey_west_auto_lag(n) if lag is None else int(lag)
+    n_eff = _newey_west_effective_size(r, effective_lag)
+    if n_eff < 2 or not math.isfinite(n_eff):
+        return math.nan
+
+    z = (sr - sr_star) * math.sqrt(n_eff - 1.0) / math.sqrt(denom_sq)
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+
 def rolling_probabilistic_sharpe(
     returns: NDArray[np.float64],
     window: int,

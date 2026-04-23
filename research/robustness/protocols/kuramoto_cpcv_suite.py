@@ -11,7 +11,12 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 
-from research.robustness.cpcv import estimate_pbo, probabilistic_sharpe_ratio
+from research.robustness.cpcv import (
+    _newey_west_auto_lag,
+    estimate_pbo,
+    probabilistic_sharpe_ratio,
+    probabilistic_sharpe_ratio_hac,
+)
 
 from .kuramoto_contract import KuramotoRobustnessContract
 
@@ -49,6 +54,9 @@ class KuramotoCPCVResult:
     pbo_interpretation: str
     psr_daily: float
     psr_pass: bool
+    psr_hac_daily: float
+    psr_hac_pass: bool
+    psr_hac_lag: int
     annualised_sharpe: float
     n_bars: int
     n_folds: int
@@ -111,6 +119,13 @@ def run_kuramoto_cpcv_suite(
         sr_benchmark=0.0,
         periods_per_year=252,
     )
+    psr_hac_lag = _newey_west_auto_lag(int(daily.size))
+    psr_hac = probabilistic_sharpe_ratio_hac(
+        daily,
+        sr_benchmark=0.0,
+        periods_per_year=252,
+        lag=psr_hac_lag,
+    )
     oos = _fold_oos_matrix(fold_sharpes)
     pbo = estimate_pbo(oos)
     std = float(np.std(daily, ddof=1))
@@ -139,6 +154,9 @@ def run_kuramoto_cpcv_suite(
         pbo_interpretation=_pbo_interpretation(fold_mirror_candidate_count),
         psr_daily=psr,
         psr_pass=(psr >= PSR_PASS_THRESHOLD) if np.isfinite(psr) else False,
+        psr_hac_daily=psr_hac,
+        psr_hac_pass=(psr_hac >= PSR_PASS_THRESHOLD) if np.isfinite(psr_hac) else False,
+        psr_hac_lag=psr_hac_lag,
         annualised_sharpe=sr,
         n_bars=int(daily.size),
         n_folds=len(fold_sharpes),

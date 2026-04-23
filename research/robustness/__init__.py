@@ -21,6 +21,7 @@ from .cpcv import (
     cpcv_splits,
     estimate_pbo,
     probabilistic_sharpe_ratio,
+    probabilistic_sharpe_ratio_hac,
     rolling_probabilistic_sharpe,
 )
 from .null_audit import NullAuditResult, run_null_falsification_audit
@@ -33,6 +34,7 @@ __all__ = [
     "estimate_pbo",
     "parameter_jitter_stability",
     "probabilistic_sharpe_ratio",
+    "probabilistic_sharpe_ratio_hac",
     "rolling_probabilistic_sharpe",
     "run_null_falsification_audit",
 ]

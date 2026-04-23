@@ -112,6 +112,9 @@ def _render_markdown(
         f"{'✓' if cpcv_dict['pbo_pass'] else '✗'} |",
         f"| CPCV | PSR (daily, no HAC) | {cpcv_dict['psr_daily']:.4f} | "
         f"{'✓' if cpcv_dict['psr_pass'] else '✗'} |",
+        f"| CPCV | PSR (daily, HAC Newey–West L={cpcv_dict['psr_hac_lag']}) | "
+        f"{cpcv_dict['psr_hac_daily']:.4f} | "
+        f"{'✓' if cpcv_dict['psr_hac_pass'] else '✗'} |",
         f"| CPCV | Annualised Sharpe (daily) | {cpcv_dict['annualised_sharpe']:.4f} | n/a |",
     ]
     loo_pbo = cpcv_dict.get("loo_pbo")
@@ -189,12 +192,13 @@ def _render_markdown(
             "- Jitter row shows `N/A` while the evaluator is "
             "`PLACEHOLDER_APPROXIMATION`; a live rebuild is required to "
             "replace the row with a real ✓ / ✗.",
-            "- PSR column is *not* HAC-adjusted. Under positive serial "
-            "correlation — typical of regime-following strategies — the "
-            "effective sample size is smaller than the nominal T, and "
-            "`psr_daily = 1.0000` is inflated. See "
-            "`ROBUSTNESS_LIMITATIONS.md` § 1 for the forward-improvement "
-            "path (Newey–West kernel).",
+            "- PSR is now reported in two flavours: naive `psr_daily` and "
+            "HAC-adjusted `psr_hac_daily` (Newey–West Bartlett kernel, "
+            "auto-bandwidth `L = floor(4 · (T/100)^(2/9))`). Under positive "
+            "serial correlation the HAC number is the decision-grade one; "
+            "the naive PSR is retained for comparability with the v1 bundle. "
+            "Derivation: `research/robustness/cpcv.py::"
+            "probabilistic_sharpe_ratio_hac`.",
             "- Decision thresholds (α = 0.05, pbo_max = 0.50, "
             "psr_min = 0.95, jitter_floor = 0.80) are documented "
             "verbatim in `ROBUSTNESS_PROTOCOL.md` § 3.",
