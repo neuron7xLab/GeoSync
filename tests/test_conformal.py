@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from geosync_hpc.conformal import ConformalCQR
 
@@ -49,3 +50,9 @@ def test_cqr_empty_calibration_replaces_stale_baseline() -> None:
 
     assert cqr.qhat == 0.0
     assert tuple(cqr._resid) == tuple()
+
+
+def test_cqr_fit_calibrate_rejects_mismatched_lengths() -> None:
+    cqr = ConformalCQR()
+    with pytest.raises(ValueError, match="same length"):
+        cqr.fit_calibrate(np.array([0.0, 1.0]), np.array([1.0]), np.array([0.3, 0.4]))

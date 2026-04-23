@@ -61,6 +61,10 @@ class BacktesterCAL:
         self.horizon = int(cfg.get("target", {}).get("horizon", 0))
         self.online_update = bool(cfg["conformal"].get("online_update", False))
         self._ret_hist: Deque[float] = deque(maxlen=int(2 * self.policy.cvar_window))
+        self._logger_params = {"impact_model": cfg["execution"].get("impact_model", "square_root")}
+
+    def _init_logger(self) -> None:
+        self.logger = Logger(params=self._logger_params)
 
     def _reset_runtime_state(self) -> None:
         """Reset mutable streaming state before each independent run."""
@@ -70,6 +74,29 @@ class BacktesterCAL:
         self.guard.reset()
         self.exec.reset()
         self.cqr.reset()
+        self._init_logger()
+
+    def _validate_inputs(
+        self, df: pd.DataFrame, feat_cols: list[str], y_col: str, spread_col: str, vol_col: str
+    ) -> None:
+        required = {
+            "mid",
+            "bid",
+            "ask",
+            "bid_size",
+            "ask_size",
+            "last",
+            "last_size",
+            y_col,
+            spread_col,
+            vol_col,
+        }
+        required.update(feat_cols)
+        missing = sorted(col for col in required if col not in df.columns)
+        if missing:
+            raise ValueError(f"Missing required columns for backtest: {missing}")
+        if len(df) < 2:
+            raise ValueError("Backtest requires at least 2 rows of data.")
 
     def fit_quantiles(self, X_fit: pd.DataFrame, y_fit: pd.Series) -> None:
         self.qm.fit(X_fit, y_fit)
@@ -92,6 +119,7 @@ class BacktesterCAL:
         vol_col: str = "vol10",
         save_csv: str | None = None,
     ) -> pd.DataFrame:
+        self._validate_inputs(df, feat_cols, y_col, spread_col, vol_col)
         self._reset_runtime_state()
         pos = 0.0
         eq = 0.0
@@ -100,6 +128,7 @@ class BacktesterCAL:
         vola_hist: list[float] = []
         rows: list[dict[str, float]] = []
         covered = 0.0
+        cov_count = 0
         rv_ref = max(1e-9, df[vol_col].iloc[: max(10, len(df) // 5)].mean())
         L_pred_hist: List[float] = []
         U_pred_hist: List[float] = []
@@ -133,7 +162,8 @@ class BacktesterCAL:
                 yt = float(row[y_col])
                 if Lc <= yt <= Uc:
                     covered += 1.0
-                cov = covered / (i + 1)
+                cov_count += 1
+                cov = covered / cov_count
                 self.logger.log_metric("coverage", cov, step=i)
             except Exception:
                 pass

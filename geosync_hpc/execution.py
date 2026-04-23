@@ -19,7 +19,7 @@ class Execution:
         self.fee = fee_bps * 1e-4
         self.impact_coeff = impact_coeff
         self.impact_model = impact_model
-        self.queue_fill_p = queue_fill_p
+        self.queue_fill_p = float(np.clip(queue_fill_p, 0.0, 1.0))
         self._seed = seed
         # Використовуємо генератор випадкових чисел з фіксованим seed для відтворюваності
         self._rng = np.random.default_rng(self._seed)

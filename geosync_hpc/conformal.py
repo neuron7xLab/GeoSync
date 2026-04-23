@@ -42,6 +42,8 @@ class ConformalCQR:
         L_arr = np.asarray(L_cal, dtype=float)
         U_arr = np.asarray(U_cal, dtype=float)
         y_arr = np.asarray(y_cal, dtype=float)
+        if not (len(L_arr) == len(U_arr) == len(y_arr)):
+            raise ValueError("L_cal, U_cal, and y_cal must have the same length.")
         if len(y_arr) > self.window:
             L_arr = L_arr[-self.window :]
             U_arr = U_arr[-self.window :]

@@ -38,10 +38,13 @@ class Guardrails:
             }
         eq = float(equity_curve[-1])
         self.peak = max(self.peak, eq)
-        dd = (self.peak - eq) / (1e-9 + self.peak)
+        if self.peak <= 1e-9:
+            dd = 0.0
+        else:
+            dd = (self.peak - eq) / self.peak
         halt = dd > self.dd_limit or loss_streak >= self.cooldown_streak
         throttle = 0.5 if vola > self.vola_mult * max(1e-9, vola_avg) else 1.0
-        if halt:
+        if halt and self.cooldown == 0:
             self.cooldown = 60
         if self.cooldown > 0:
             self.cooldown -= 1
