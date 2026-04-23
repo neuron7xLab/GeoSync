@@ -49,7 +49,13 @@ class ConformalCQR:
         s = np.maximum(L_arr - y_arr, y_arr - U_arr)
         n = len(s)
         if n == 0:
+            self.alpha = self.alpha0
             self.qhat = 0.0
+            self._qhat_alpha = self.alpha0
+            self._resid.clear()
+            self._baseline_qhat = self.qhat
+            self._baseline_qhat_alpha = self._qhat_alpha
+            self._baseline_resid = tuple()
             return self
         w = self._weights(n)
         order = np.argsort(s)
