@@ -25,6 +25,10 @@ class FeatureStore:
         """Append the latest microstructure snapshot."""
         self.buf.append(row)
 
+    def reset(self) -> None:
+        """Clear streaming state between independent backtest runs."""
+        self.buf.clear()
+
     def _fracdiff(
         self, x: np.ndarray | list[float], d: float = 0.4, window: int = 200
     ) -> float:

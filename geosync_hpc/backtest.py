@@ -64,6 +64,14 @@ class BacktesterCAL:
         self.online_update = bool(cfg["conformal"].get("online_update", False))
         self._ret_hist: Deque[float] = deque(maxlen=int(2 * self.policy.cvar_window))
 
+    def _reset_runtime_state(self) -> None:
+        """Reset mutable streaming state before each independent run."""
+        self._ret_hist.clear()
+        self.fs.reset()
+        self.reg.reset()
+        self.guard.reset()
+        self.exec.reset()
+
     def fit_quantiles(self, X_fit: pd.DataFrame, y_fit: pd.Series) -> None:
         self.qm.fit(X_fit, y_fit)
 
@@ -85,7 +93,7 @@ class BacktesterCAL:
         vol_col: str = "vol10",
         save_csv: str | None = None,
     ) -> pd.DataFrame:
-        self._ret_hist.clear()
+        self._reset_runtime_state()
         pos = 0.0
         eq = 0.0
         equity = [0.0]

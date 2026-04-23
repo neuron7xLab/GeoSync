@@ -22,3 +22,7 @@ class RegimeModel:
         probs = [0.0, 0.0, 0.0]
         probs[g] = 1.0
         return {"regime": g, "probs": probs}
+
+    def reset(self) -> None:
+        """Reset to the neutral starting regime for a new run."""
+        self.state = 0

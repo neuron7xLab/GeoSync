@@ -48,3 +48,8 @@ class Guardrails:
             throttle = 0.0
         pos_cap = float(np.clip(proposed_pos, -self.exposure_cap, self.exposure_cap))
         return {"halt": halt, "throttle": throttle, "pos_cap": pos_cap}
+
+    def reset(self) -> None:
+        """Reset drawdown/cooldown memory for an independent backtest."""
+        self.peak = 0.0
+        self.cooldown = 0

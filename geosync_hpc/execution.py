@@ -20,8 +20,9 @@ class Execution:
         self.impact_coeff = impact_coeff
         self.impact_model = impact_model
         self.queue_fill_p = queue_fill_p
+        self._seed = seed
         # Використовуємо генератор випадкових чисел з фіксованим seed для відтворюваності
-        self._rng = np.random.default_rng(seed)
+        self._rng = np.random.default_rng(self._seed)
 
     def costs(
         self, spread_frac: float, vol_proxy: float, notional_frac: float = 1.0
@@ -49,3 +50,7 @@ class Execution:
         adj = (-0.25 * spread_frac * mid) if improve else 0.0
         fill_price = mid + side * slip + side * adj
         return float(fill_price)
+
+    def reset(self) -> None:
+        """Re-create RNG so independent runs remain reproducible."""
+        self._rng = np.random.default_rng(self._seed)
