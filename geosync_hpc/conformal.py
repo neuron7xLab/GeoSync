@@ -28,6 +28,9 @@ class ConformalCQR:
         self._qhat_alpha: float = alpha
         self.online_window = int(online_window)
         self._resid: deque[float] = deque(maxlen=self.online_window)
+        self._baseline_qhat: float | None = None
+        self._baseline_qhat_alpha: float = alpha
+        self._baseline_resid: tuple[float, ...] = tuple()
 
     def _weights(self, n: int) -> np.ndarray:
         idx = np.arange(n)
@@ -35,9 +38,7 @@ class ConformalCQR:
         w /= w.sum()
         return w
 
-    def fit_calibrate(
-        self, L_cal: Iterable[float], U_cal: Iterable[float], y_cal: Iterable[float]
-    ):
+    def fit_calibrate(self, L_cal: Iterable[float], U_cal: Iterable[float], y_cal: Iterable[float]):
         L_arr = np.asarray(L_cal, dtype=float)
         U_arr = np.asarray(U_cal, dtype=float)
         y_arr = np.asarray(y_cal, dtype=float)
@@ -61,6 +62,9 @@ class ConformalCQR:
         self._qhat_alpha = self.alpha0
         self._resid.clear()
         self._resid.extend(float(val) for val in s[max(0, n - self.online_window) :])
+        self._baseline_qhat = self.qhat
+        self._baseline_qhat_alpha = self._qhat_alpha
+        self._baseline_resid = tuple(self._resid)
         return self
 
     def dynamic_alpha(
@@ -103,3 +107,11 @@ class ConformalCQR:
             scale = float(np.sqrt(alpha_ref / alpha_eff))
         q = float(self.qhat * scale)
         return L_pred - q, U_pred + q
+
+    def reset(self) -> None:
+        """Restore conformal runtime state to the calibrated baseline."""
+        self.alpha = self.alpha0
+        self.qhat = self._baseline_qhat
+        self._qhat_alpha = self._baseline_qhat_alpha
+        self._resid.clear()
+        self._resid.extend(self._baseline_resid)

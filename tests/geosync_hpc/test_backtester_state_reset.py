@@ -20,7 +20,7 @@ def _cfg() -> dict:
             "decay": 0.005,
             "window": 400,
             "online_window": 200,
-            "online_update": False,
+            "online_update": True,
         },
         "policy": {
             "max_pos": 1.0,
@@ -55,9 +55,7 @@ def test_backtester_repeated_runs_are_deterministic(tmp_path) -> None:
 
     bt = BacktesterCAL(_cfg())
     bt.fit_quantiles(df[feat_cols].iloc[:fit_end], df["y"].iloc[:fit_end])
-    bt.calibrate_conformal(
-        df[feat_cols].iloc[fit_end:cal_end], df["y"].iloc[fit_end:cal_end]
-    )
+    bt.calibrate_conformal(df[feat_cols].iloc[fit_end:cal_end], df["y"].iloc[fit_end:cal_end])
 
     eval_df = df.iloc[cal_end:]
     first = bt.run(eval_df, feat_cols=feat_cols, y_col="y")
