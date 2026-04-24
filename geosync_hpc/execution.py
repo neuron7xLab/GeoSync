@@ -50,3 +50,11 @@ class Execution:
     def reset(self) -> None:
         """Re-create RNG so independent runs remain reproducible."""
         self._rng = np.random.default_rng(self._seed)
+
+    def get_state(self) -> dict:
+        """Return serializable RNG state for exact replay/debug."""
+        return dict(self._rng.bit_generator.state)
+
+    def set_state(self, state: dict) -> None:
+        """Restore RNG state captured by ``get_state``."""
+        self._rng.bit_generator.state = state

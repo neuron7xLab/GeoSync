@@ -51,6 +51,16 @@ def test_execution_reset_restores_deterministic_fill_sequence() -> None:
     assert seq1 == seq2
 
 
+def test_execution_state_snapshot_roundtrip_is_exact() -> None:
+    exe = Execution(queue_fill_p=0.5, seed=99)
+    _ = [exe.fill(mid=100.0, spread_frac=0.001, target_pos=1.0, cur_pos=0.0) for _ in range(3)]
+    state = exe.get_state()
+    seq1 = [exe.fill(mid=100.0, spread_frac=0.001, target_pos=1.0, cur_pos=0.0) for _ in range(4)]
+    exe.set_state(state)
+    seq2 = [exe.fill(mid=100.0, spread_frac=0.001, target_pos=1.0, cur_pos=0.0) for _ in range(4)]
+    assert seq1 == seq2
+
+
 def test_guardrails_reset_clears_state() -> None:
     guard = Guardrails(intraday_dd_limit=0.01, loss_streak_cooldown=1)
     guard.check(equity_curve=[1.0], vola=0.1, vola_avg=0.1, loss_streak=1, proposed_pos=0.5)

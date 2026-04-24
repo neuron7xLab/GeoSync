@@ -56,3 +56,15 @@ def test_cqr_fit_calibrate_rejects_mismatched_lengths() -> None:
     cqr = ConformalCQR()
     with pytest.raises(ValueError, match="same length"):
         cqr.fit_calibrate(np.array([0.0, 1.0]), np.array([1.0]), np.array([0.3, 0.4]))
+
+
+def test_cqr_fit_calibrate_is_idempotent_for_same_inputs() -> None:
+    cqr = ConformalCQR(alpha=0.1, decay=0.01, window=100, online_window=20)
+    lower = np.array([-0.01] * 50)
+    upper = np.array([0.01] * 50)
+    targets = np.random.normal(0.0, 0.004, size=50)
+    cqr.fit_calibrate(lower, upper, targets)
+    snapshot_1 = (cqr.qhat, tuple(cqr._resid), cqr._baseline_qhat, tuple(cqr._baseline_resid))
+    cqr.fit_calibrate(lower, upper, targets)
+    snapshot_2 = (cqr.qhat, tuple(cqr._resid), cqr._baseline_qhat, tuple(cqr._baseline_resid))
+    assert snapshot_1 == snapshot_2

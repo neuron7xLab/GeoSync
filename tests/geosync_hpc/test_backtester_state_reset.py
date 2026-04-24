@@ -64,9 +64,11 @@ def test_backtester_repeated_runs_are_deterministic(tmp_path) -> None:
     eval_df = df.iloc[cal_end:]
     first = bt.run(eval_df, feat_cols=feat_cols, y_col="y")
     second = bt.run(eval_df, feat_cols=feat_cols, y_col="y")
+    third = bt.run(eval_df, feat_cols=feat_cols, y_col="y")
 
     assert len(first) > 0
     assert first["eq"].to_list() == second["eq"].to_list()
+    assert second["eq"].to_list() == third["eq"].to_list()
 
 
 def test_backtester_step_invariant_rejects_non_finite_values() -> None:
