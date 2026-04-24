@@ -22,6 +22,17 @@ class Guardrails:
         self.peak = 0.0
         self.cooldown = 0
 
+    def reset_runtime_state(self) -> None:
+        """Zero the drawdown peak and cooldown counter.
+
+        ``dd_limit``, ``cooldown_streak``, ``vola_mult`` and
+        ``exposure_cap`` are static thresholds; ``peak`` and ``cooldown``
+        are accumulated state from the prior run's equity curve and must
+        not leak into a fresh invocation.
+        """
+        self.peak = 0.0
+        self.cooldown = 0
+
     def check(
         self,
         equity_curve: list[float],

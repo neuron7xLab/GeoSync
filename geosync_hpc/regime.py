@@ -12,6 +12,16 @@ class RegimeModel:
         self.bins = bins
         self.state = 0
 
+    def reset_runtime_state(self) -> None:
+        """Re-anchor the last-seen regime label to 0.
+
+        ``bins`` is static config; ``state`` is the cached digitised regime
+        from the most recent ``update`` and must be cleared between runs so
+        that a run starting before any volatility reading does not inherit
+        a label from a previous invocation.
+        """
+        self.state = 0
+
     def update(self, feats: dict[str, float]) -> dict[str, int | list[float]]:
         rv = feats.get("rv", np.nan)
         if np.isnan(rv):

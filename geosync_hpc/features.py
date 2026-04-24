@@ -25,9 +25,17 @@ class FeatureStore:
         """Append the latest microstructure snapshot."""
         self.buf.append(row)
 
-    def _fracdiff(
-        self, x: np.ndarray | list[float], d: float = 0.4, window: int = 200
-    ) -> float:
+    def reset_runtime_state(self) -> None:
+        """Drop the streaming buffer without touching static config.
+
+        ``fracdiff_d`` and ``ofi_window`` are construction-time parameters,
+        not runtime state. Only ``buf`` accumulates across ``update`` calls
+        and therefore must be cleared to make repeated runs on the same
+        instance produce identical features.
+        """
+        self.buf.clear()
+
+    def _fracdiff(self, x: np.ndarray | list[float], d: float = 0.4, window: int = 200) -> float:
         w, k = [1.0], 1
         while True:
             w_ = -w[-1] * (d - k + 1) / k
