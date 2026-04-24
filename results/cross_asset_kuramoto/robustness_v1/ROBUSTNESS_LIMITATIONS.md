@@ -5,27 +5,51 @@ Nothing below is a bug: every entry is a known statistical or data-
 access limitation that a reader MUST account for when interpreting
 `verdict.json`, `null_summary.json`, or `ROBUSTNESS_RESULTS.md`.
 
-## 1. PSR has no autocorrelation adjustment
+## 1. PSR has no autocorrelation adjustment — **RESOLVED (v1.1, 2026-04-23)**
 
 `research.robustness.cpcv.probabilistic_sharpe_ratio` implements the
 Lopez de Prado (2018) Eq. 14.1 PSR. The formula corrects for skewness
 (γ₃) and kurtosis (γ₄) of the sample distribution but **does not**
-correct for serial correlation in the return stream.
+correct for serial correlation in the return stream. Positive first-
+order autocorrelation — typical of regime-following strategies —
+inflates the effective sample size used in the Sharpe-variance
+denominator.
 
-Strategy returns that exhibit positive first-order autocorrelation —
-which is typical of regime-following strategies — inflate the
-effective sample size used in the Sharpe-variance denominator.
-Consequences:
+**Resolution.** Implemented HAC-adjusted PSR using the Newey–West
+(1987) Bartlett kernel with the Newey–West (1994) automatic bandwidth
+`L = floor(4·(T/100)^(2/9))`:
 
-- The reported `psr_daily = 1.0000` on the frozen bundle should
-  **not** be read as definitive statistical significance.
-- Under HAC (heteroscedasticity- and autocorrelation-consistent)
-  adjustment (Newey–West, Andrews–Monahan kernel), the effective
-  sample size shrinks and the PSR would be materially lower.
+```python
+research.robustness.cpcv.probabilistic_sharpe_ratio_hac(
+    returns, sr_benchmark=0.0, periods_per_year=252, lag=None,
+)
+```
 
-Implementing HAC-adjusted PSR is a forward improvement and is
-out of scope for v1. The caveat is cross-linked from
-`ROBUSTNESS_RESULTS.md` under the CPCV row.
+Exported from `research.robustness`. Auto-bandwidth helper
+`_newey_west_auto_lag(T)` and effective-sample-size helper
+`_newey_west_effective_size(r, lag)` are available for
+caller-controlled diagnostics.
+
+Empirical result on the frozen v1 bundle (T = 2166 daily log-returns,
+auto-lag `L = 7`):
+
+| Estimator | Value | Interpretation |
+|-----------|------:|----------------|
+| `psr_daily` (naive) | 1.0000 | Saturates Φ from above |
+| `psr_hac_daily` (Newey–West) | 1.0000 | Saturation is **not** an artefact of HAC inflation |
+
+The theoretical concern that "HAC would materially lower the PSR"
+does not materialise on this strategy's daily returns: the
+autocorrelation structure is sufficiently mild that the Newey–West
+sum is a small multiplicative correction, well inside the Φ-saturation
+plateau. The cpcv_summary.json now carries `psr_hac_daily`,
+`psr_hac_pass`, and `psr_hac_lag` alongside the naive fields;
+ROBUSTNESS_RESULTS.md prints both rows.
+
+Decision rule is unchanged (`psr_min = 0.95`). Both estimators clear
+the threshold; the naive value is retained for comparability with the
+v1 bundle, and the HAC value is the decision-grade one under positive
+serial correlation.
 
 ## 2. Jitter evaluator is `PLACEHOLDER_APPROXIMATION`
 
