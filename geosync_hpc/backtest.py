@@ -225,6 +225,11 @@ class BacktestSession:
             L_pred_hist: List[float] = []
             U_pred_hist: List[float] = []
         else:
+            expected_idx = int(getattr(self, "_next_index", start_idx))
+            if start_idx != expected_idx:
+                raise ValueError(
+                    f"Resume start_idx mismatch: expected {expected_idx}, got {start_idx}."
+                )
             pos = float(getattr(self, "_pos", 0.0))
             eq = float(getattr(self, "_eq", 0.0))
             equity = list(getattr(self, "_equity", [eq]))

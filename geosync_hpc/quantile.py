@@ -4,22 +4,46 @@
 
 from __future__ import annotations
 
+import importlib.util
+
 import numpy as np
-from sklearn.ensemble import GradientBoostingRegressor
+
+_HAS_SKLEARN = importlib.util.find_spec("sklearn") is not None
+if _HAS_SKLEARN:
+    from sklearn.ensemble import GradientBoostingRegressor
+
+
+class _ConstantQuantileRegressor:
+    """Deterministic fallback when sklearn is unavailable."""
+
+    def __init__(self, alpha: float) -> None:
+        self.alpha = float(alpha)
+        self._q = 0.0
+
+    def fit(self, X, y) -> "_ConstantQuantileRegressor":
+        del X
+        y_arr = np.asarray(y, dtype=float)
+        if y_arr.size == 0:
+            self._q = 0.0
+        else:
+            self._q = float(np.quantile(y_arr, self.alpha))
+        return self
+
+    def predict(self, X) -> np.ndarray:
+        n = len(X)
+        return np.full(shape=(n,), fill_value=self._q, dtype=float)
 
 
 class QuantileModels:
     def __init__(self, low_q: float = 0.2, high_q: float = 0.8, seed: int = 7) -> None:
-        self.low = GradientBoostingRegressor(
-            loss="quantile", alpha=low_q, random_state=seed
-        )
-        # Використовуємо 0.5-квантиль для медіани задля узгодженості з CQR
-        self.med = GradientBoostingRegressor(
-            loss="quantile", alpha=0.5, random_state=seed
-        )
-        self.high = GradientBoostingRegressor(
-            loss="quantile", alpha=high_q, random_state=seed
-        )
+        if _HAS_SKLEARN:
+            self.low = GradientBoostingRegressor(loss="quantile", alpha=low_q, random_state=seed)
+            self.med = GradientBoostingRegressor(loss="quantile", alpha=0.5, random_state=seed)
+            self.high = GradientBoostingRegressor(loss="quantile", alpha=high_q, random_state=seed)
+        else:
+            self.low = _ConstantQuantileRegressor(low_q)
+            self.med = _ConstantQuantileRegressor(0.5)
+            self.high = _ConstantQuantileRegressor(high_q)
         self.cols: list[str] | None = None
         self.fitted = False
 

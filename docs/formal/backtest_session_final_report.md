@@ -9,6 +9,7 @@
 - Perf harness: `src/geosync/perf/golden_path.py`, `tests/perf/test_golden_path_backtest_perf.py`
 - Governance: `docs/governance/claim_status_applied.md`, `docs/governance/tag_changelog_policy.md`, `docs/adr/0020-backtest-session-deterministic-architecture.md`
 - State diagram: `docs/architecture/backtest_session_state_diagram.md`
+- Deterministic no-sklearn fallback: `geosync_hpc/quantile.py`
 
 ## claim_status_applied
 applied

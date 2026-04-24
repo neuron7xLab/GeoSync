@@ -48,8 +48,7 @@ def _cfg() -> dict:
 
 
 def test_backtester_repeated_runs_are_deterministic(tmp_path) -> None:
-    pytest.importorskip("sklearn")
-    from geosync_hpc.backtest import BacktesterCAL
+    from geosync_hpc.backtest import BacktestSession
 
     csv_path = generate_demo_ticks(tmp_path / "ticks.csv", n=1800, seed=11)
     df = read_ticks_csv(csv_path)
@@ -58,7 +57,7 @@ def test_backtester_repeated_runs_are_deterministic(tmp_path) -> None:
     fit_end = 700
     cal_end = 1200
 
-    bt = BacktesterCAL(_cfg())
+    bt = BacktestSession(_cfg())
     bt.fit_quantiles(df[feat_cols].iloc[:fit_end], df["y"].iloc[:fit_end])
     bt.calibrate_conformal(df[feat_cols].iloc[fit_end:cal_end], df["y"].iloc[fit_end:cal_end])
 
@@ -113,12 +112,11 @@ def test_trade_step_invariant_rejects_negative_costs() -> None:
 
 
 def test_calibrate_conformal_rejects_non_finite_inputs() -> None:
-    pytest.importorskip("sklearn")
     import pandas as pd
 
-    from geosync_hpc.backtest import BacktesterCAL
+    from geosync_hpc.backtest import BacktestSession
 
-    bt = BacktesterCAL(_cfg())
+    bt = BacktestSession(_cfg())
     x = pd.DataFrame(
         {
             "ret1": [0.1],
@@ -135,7 +133,6 @@ def test_calibrate_conformal_rejects_non_finite_inputs() -> None:
 
 
 def test_session_full_determinism_and_safety(tmp_path) -> None:
-    pytest.importorskip("sklearn")
     from geosync_hpc.backtest import BacktestSession
 
     csv_path = generate_demo_ticks(tmp_path / "ticks_full.csv", n=1500, seed=21)
@@ -158,7 +155,6 @@ def test_session_full_determinism_and_safety(tmp_path) -> None:
 
 
 def test_state_roundtrip_restores_guard_session_started_flag() -> None:
-    pytest.importorskip("sklearn")
     from geosync_hpc.backtest import BacktestSession
 
     bt = BacktestSession(_cfg())
@@ -171,7 +167,6 @@ def test_state_roundtrip_restores_guard_session_started_flag() -> None:
 
 
 def test_mid_run_resume_produces_bitwise_identical_equity(tmp_path) -> None:
-    pytest.importorskip("sklearn")
     from geosync_hpc.backtest import BacktestSession
 
     csv_path = generate_demo_ticks(tmp_path / "ticks_resume.csv", n=1600, seed=31)
@@ -211,7 +206,6 @@ def test_mid_run_resume_produces_bitwise_identical_equity(tmp_path) -> None:
 
 
 def test_run_save_csv_surfaces_permission_error(tmp_path, monkeypatch) -> None:
-    pytest.importorskip("sklearn")
     import pandas as pd
 
     from geosync_hpc.backtest import BacktestSession
@@ -233,7 +227,6 @@ def test_run_save_csv_surfaces_permission_error(tmp_path, monkeypatch) -> None:
 
 
 def test_run_save_csv_surfaces_disk_full_error(tmp_path, monkeypatch) -> None:
-    pytest.importorskip("sklearn")
     import pandas as pd
 
     from geosync_hpc.backtest import BacktestSession
@@ -252,3 +245,22 @@ def test_run_save_csv_surfaces_disk_full_error(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(pd.DataFrame, "to_csv", _raise_enospc, raising=True)
     with pytest.raises(OSError, match="no space left on device"):
         bt.run(eval_df, feat_cols=feat_cols, y_col="y", save_csv=str(tmp_path / "out.csv"))
+
+
+def test_resume_requires_exact_next_index(tmp_path) -> None:
+    from geosync_hpc.backtest import BacktestSession
+
+    csv_path = generate_demo_ticks(tmp_path / "ticks_resume_mismatch.csv", n=1300, seed=23)
+    df = read_ticks_csv(csv_path)
+    feat_cols = ["ret1", "ret5", "ret20", "vol10", "vol50", "spread"]
+    fit_end = 500
+    cal_end = 900
+    eval_df = df.iloc[cal_end:]
+
+    bt = BacktestSession(_cfg())
+    bt.fit_quantiles(df[feat_cols].iloc[:fit_end], df["y"].iloc[:fit_end])
+    bt.calibrate_conformal(df[feat_cols].iloc[fit_end:cal_end], df["y"].iloc[fit_end:cal_end])
+    bt.run(eval_df, feat_cols=feat_cols, y_col="y", start_idx=0, end_idx=40)
+
+    with pytest.raises(ValueError, match="Resume start_idx mismatch"):
+        bt.run(eval_df, feat_cols=feat_cols, y_col="y", start_idx=10, reset_state=False)
