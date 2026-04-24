@@ -44,11 +44,11 @@ rolling correlation graph on per-symbol order-flow imbalance (OFI) predicts
 forward log-returns in cryptocurrency perpetual futures. On a
 $\sim\!5.3$\,hour, 10-symbol, 1-second Binance USDT-M book-depth stream
 ($n = 19{,}081$), we subject the $\kappa_{\min}$-to-180\,s-return
-relationship to ten mutually orthogonal validation axes: permutation kill
-test, block-bootstrap CI, deflated Sharpe adjustment, purged and embargoed
-$K$-fold CV, mutual information, lag attribution, spectral redness, DFA
-Hurst, pairwise and conditional transfer entropy, and rolling walk-forward
-stability. Each axis falsifies a distinct failure mode (spurious
+relationship to eleven mutually orthogonal validation axes: permutation
+kill test, block-bootstrap CI, deflated Sharpe adjustment, purged and
+embargoed $K$-fold CV, mutual information, lag attribution, spectral
+redness, DFA Hurst, pairwise transfer entropy, conditional transfer
+entropy (BTC-partialled), and rolling walk-forward stability. Each axis falsifies a distinct failure mode (spurious
 correlation, multiple-testing inflation, look-ahead leakage, common-factor
 confounding, single-window overfitting). All axes concord:
 $\mathrm{IC}=0.122$ at permutation $p=0.002$; 95\,\% block-bootstrap CI
@@ -142,9 +142,9 @@ and hashed into \texttt{MANIFEST.sha256}.
 \section{Methodology}
 \label{sec:methods}
 
-The empirical core is a ten-axis falsification battery. For each axis we
-state the failure mode it attacks, the test statistic, the decision rule,
-and the verdict.
+The empirical core is an eleven-axis falsification battery. For each axis
+we state the failure mode it attacks, the test statistic, the decision
+rule, and the verdict.
 
 \begin{enumerate}
   \item \textbf{Primary kill test.} IC computed on raw
@@ -182,9 +182,16 @@ and the verdict.
   cross-check of the spectral result. We require $H$ and $\beta$ to
   concord on the persistence regime.
 
-  \item \textbf{Pairwise and conditional transfer entropy}
-  \citep{schreiber2000te} with a 100-surrogate time-shuffled null; we
-  condition on BTCUSDT OFI to remove the obvious common-factor artefact.
+  \item \textbf{Pairwise transfer entropy} \citep{schreiber2000te} with
+  a 100-surrogate time-shuffled null at 1-second lag on all 45 ordered
+  symbol pairs; attacks the failure mode that the curvature signal is
+  a re-expression of contemporaneous correlation rather than a
+  compression of genuine dynamical coupling.
+
+  \item \textbf{Conditional transfer entropy} with BTCUSDT OFI as the
+  conditioning channel $Z$; attacks the orthogonal failure mode that
+  the pairwise bidirectional flow of axis~9 could itself be an artefact
+  of every symbol responding to a common market-wide factor.
 
   \item \textbf{Rolling walk-forward stability}: 56 non-overlapping
   40-minute windows stepped every 5 minutes; each window independently
