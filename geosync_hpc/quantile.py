@@ -35,7 +35,18 @@ class _ConstantQuantileRegressor:
 
 
 class QuantileModels:
-    def __init__(self, low_q: float = 0.2, high_q: float = 0.8, seed: int = 7) -> None:
+    def __init__(
+        self,
+        low_q: float = 0.2,
+        high_q: float = 0.8,
+        seed: int = 7,
+        allow_fallback: bool = False,
+    ) -> None:
+        if not _HAS_SKLEARN and not allow_fallback:
+            raise RuntimeError(
+                "scikit-learn is required for QuantileModels in production mode. "
+                "Set allow_fallback=True only for constrained test/smoke environments."
+            )
         if _HAS_SKLEARN:
             self.low = GradientBoostingRegressor(loss="quantile", alpha=low_q, random_state=seed)
             self.med = GradientBoostingRegressor(loss="quantile", alpha=0.5, random_state=seed)

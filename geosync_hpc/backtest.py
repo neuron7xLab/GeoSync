@@ -57,7 +57,11 @@ class BacktestSession:
         self.lookbacks = cfg["features"]["lookbacks"]
         self.fs = FeatureStore(cfg["features"]["fracdiff_d"], cfg["features"].get("ofi_window", 20))
         self.reg = RegimeModel(tuple(cfg["regime"]["bins"]))
-        self.qm = QuantileModels(cfg["quantile"]["low_q"], cfg["quantile"]["high_q"])
+        self.qm = QuantileModels(
+            cfg["quantile"]["low_q"],
+            cfg["quantile"]["high_q"],
+            allow_fallback=bool(cfg["quantile"].get("allow_fallback_no_sklearn", False)),
+        )
         self.cqr = ConformalCQR(
             cfg["conformal"]["alpha"],
             cfg["conformal"]["decay"],

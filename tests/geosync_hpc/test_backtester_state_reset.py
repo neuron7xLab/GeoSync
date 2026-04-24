@@ -16,7 +16,7 @@ def _cfg() -> dict:
         "seed": 7,
         "features": {"lookbacks": [5, 20], "fracdiff_d": 0.4, "ofi_window": 20},
         "regime": {"bins": [0.0, 0.5, 1.5, 5.0]},
-        "quantile": {"low_q": 0.2, "high_q": 0.8},
+        "quantile": {"low_q": 0.2, "high_q": 0.8, "allow_fallback_no_sklearn": True},
         "conformal": {
             "alpha": 0.1,
             "decay": 0.005,
@@ -45,6 +45,20 @@ def _cfg() -> dict:
         },
         "target": {"horizon": 10},
     }
+
+
+def test_backtest_session_requires_explicit_quantile_fallback_opt_in() -> None:
+    from geosync_hpc.quantile import _HAS_SKLEARN
+
+    if _HAS_SKLEARN:
+        return
+
+    from geosync_hpc.backtest import BacktestSession
+
+    cfg = _cfg()
+    cfg["quantile"] = {"low_q": 0.2, "high_q": 0.8}
+    with pytest.raises(RuntimeError, match="scikit-learn is required"):
+        BacktestSession(cfg)
 
 
 def test_backtester_repeated_runs_are_deterministic(tmp_path) -> None:

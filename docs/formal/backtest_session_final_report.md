@@ -13,3 +13,7 @@
 
 ## claim_status_applied
 applied
+
+## Critical contradiction resolved
+Silent no-sklearn degradation was converted to explicit contract: quantile fallback now requires
+`quantile.allow_fallback_no_sklearn=true`, otherwise initialization fails fast.
