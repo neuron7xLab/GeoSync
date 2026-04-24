@@ -28,6 +28,13 @@ class ConformalCQR:
         self._qhat_alpha: float = alpha
         self.online_window = int(online_window)
         self._resid: deque[float] = deque(maxlen=self.online_window)
+        # Calibration snapshot — rehydrated by reset_runtime_state so the
+        # instance returns to its post-calibration baseline without a
+        # re-fit. None/empty before fit_calibrate; written at the end of
+        # fit_calibrate on every (re-)calibration.
+        self._calibrated_qhat: float | None = None
+        self._calibrated_qhat_alpha: float = alpha
+        self._calibrated_resid: list[float] = []
 
     def _weights(self, n: int) -> np.ndarray:
         idx = np.arange(n)
@@ -35,9 +42,7 @@ class ConformalCQR:
         w /= w.sum()
         return w
 
-    def fit_calibrate(
-        self, L_cal: Iterable[float], U_cal: Iterable[float], y_cal: Iterable[float]
-    ):
+    def fit_calibrate(self, L_cal: Iterable[float], U_cal: Iterable[float], y_cal: Iterable[float]):
         L_arr = np.asarray(L_cal, dtype=float)
         U_arr = np.asarray(U_cal, dtype=float)
         y_arr = np.asarray(y_cal, dtype=float)
@@ -61,7 +66,29 @@ class ConformalCQR:
         self._qhat_alpha = self.alpha0
         self._resid.clear()
         self._resid.extend(float(val) for val in s[max(0, n - self.online_window) :])
+        # Snapshot the calibration result so reset_runtime_state can
+        # rewind any online drift (update_online / dynamic_alpha) to
+        # this exact baseline.
+        self._calibrated_qhat = self.qhat
+        self._calibrated_qhat_alpha = self._qhat_alpha
+        self._calibrated_resid = list(self._resid)
         return self
+
+    def reset_runtime_state(self) -> None:
+        """Rewind dynamic alpha and online buffer to post-calibration.
+
+        ``alpha0``, ``decay``, ``window``, ``online_window`` are static
+        config. ``alpha`` drifts every bar via ``dynamic_alpha``; ``qhat``,
+        ``_qhat_alpha`` and ``_resid`` drift every call to
+        ``update_online``. The three latter are rehydrated from the
+        calibration snapshot written at the end of ``fit_calibrate``; if
+        the instance has not been calibrated, ``qhat`` stays ``None``.
+        """
+        self.alpha = self.alpha0
+        self.qhat = self._calibrated_qhat
+        self._qhat_alpha = self._calibrated_qhat_alpha
+        self._resid.clear()
+        self._resid.extend(self._calibrated_resid)
 
     def dynamic_alpha(
         self, rv: float, rv_ref: float, min_alpha: float = 0.02, max_alpha: float = 0.2
