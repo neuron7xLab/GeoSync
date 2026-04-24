@@ -8,6 +8,7 @@ from collections import deque
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Deque, Iterator, List, Protocol
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,8 @@ from .policy import Policy
 from .quantile import QuantileModels
 from .regime import RegimeModel
 from .risk import Guardrails
+from .state import RuntimeState, TradeStep
+from .validation import ValidationService
 
 
 class Resettable(Protocol):
@@ -44,41 +47,9 @@ class DequeState:
         self.history.clear()
 
 
-@dataclass
-class LoggerState:
-    params: dict[str, str]
-    logger: Logger | None = None
-
-    def reset(self) -> None:
-        if self.logger is not None:
-            try:
-                self.logger.end()
-            except Exception:
-                pass
-        self.logger = Logger(params=self.params)
-
-
-@dataclass(frozen=True)
-class TradeStep:
-    mid: float
-    spread_frac: float
-    costs: float
-    target: float
-    cur_pos: float
-    fill_price: float
-    pnl: float
-
-
-@dataclass(frozen=True)
-class RuntimeState:
-    ret_hist: tuple[float, ...]
-    exec_state: dict
-    cqr_state: dict
-    guard_peak: float | None
-    guard_cooldown: int
-
-
 class BacktestSession:
+    """Deterministic, fully resettable, contract-enforced backtesting session."""
+
     _BASE_REQUIRED_COLUMNS = ("mid", "bid", "ask", "bid_size", "ask_size", "last", "last_size")
 
     def __init__(self, cfg: dict) -> None:
@@ -121,7 +92,6 @@ class BacktestSession:
         self.online_update = bool(cfg["conformal"].get("online_update", False))
         self._ret_hist: Deque[float] = deque(maxlen=int(2 * self.policy.cvar_window))
         self._logger_params = {"impact_model": cfg["execution"].get("impact_model", "square_root")}
-        self._logger_state = LoggerState(params=self._logger_params, logger=self.logger)
         self._ret_hist_state = DequeState(history=self._ret_hist)
         self._max_position_jump_mult = float(cfg["risk"].get("max_position_jump_mult", 2.0))
         self._state_manager = RuntimeStateManager(
@@ -132,36 +102,22 @@ class BacktestSession:
                 self.exec,
                 self.cqr,
                 self._ret_hist_state,
-                self._logger_state,
             )
         )
 
     def _reset_runtime_state(self) -> None:
         """Reset mutable streaming state before each independent run."""
         self._state_manager.reset_all()
-        self.logger = self._logger_state.logger or Logger(params=self._logger_params)
-
-    @staticmethod
-    def _validate_finite_frame(df: pd.DataFrame, cols: list[str], label: str) -> None:
-        subset = df[cols]
-        finite_mask = np.isfinite(subset.to_numpy(dtype=float))
-        if not finite_mask.all():
-            raise ValueError(f"Non-finite values detected in {label}: {cols}")
-
-    @staticmethod
-    def validate_finite(label: str, **values: float) -> None:
-        bad = [k for k, v in values.items() if not np.isfinite(v)]
-        if bad:
-            raise ValueError(f"Non-finite values detected in {label}: {bad}")
+        self.logger = Logger(params=self._logger_params)
 
     @contextmanager
     def logger_context(self) -> Iterator[Logger]:
-        self._logger_state.reset()
-        self.logger = self._logger_state.logger or Logger(params=self._logger_params)
+        logger = Logger(params=self._logger_params)
+        self.logger = logger
         try:
-            yield self.logger
+            yield logger
         finally:
-            self.logger.end()
+            logger.end()
 
     def get_state(self) -> RuntimeState:
         return RuntimeState(
@@ -170,6 +126,13 @@ class BacktestSession:
             cqr_state=self.cqr.get_state(),
             guard_peak=self.guard.peak,
             guard_cooldown=self.guard.cooldown,
+            l_pred_hist=tuple(getattr(self, "_l_pred_hist", tuple())),
+            u_pred_hist=tuple(getattr(self, "_u_pred_hist", tuple())),
+            equity=tuple(getattr(self, "_equity", tuple())),
+            vola_hist=tuple(getattr(self, "_vola_hist", tuple())),
+            loss_streak=int(getattr(self, "_loss_streak", 0)),
+            pos=float(getattr(self, "_pos", 0.0)),
+            eq=float(getattr(self, "_eq", 0.0)),
         )
 
     def set_state(self, state: RuntimeState) -> None:
@@ -179,6 +142,13 @@ class BacktestSession:
         self.cqr.set_state(state.cqr_state)
         self.guard.peak = state.guard_peak
         self.guard.cooldown = state.guard_cooldown
+        self._l_pred_hist = list(state.l_pred_hist)
+        self._u_pred_hist = list(state.u_pred_hist)
+        self._equity = list(state.equity)
+        self._vola_hist = list(state.vola_hist)
+        self._loss_streak = state.loss_streak
+        self._pos = state.pos
+        self._eq = state.eq
 
     def _validate_inputs(
         self, df: pd.DataFrame, feat_cols: list[str], y_col: str, spread_col: str, vol_col: str
@@ -222,13 +192,13 @@ class BacktestSession:
             )
 
     def fit_quantiles(self, X_fit: pd.DataFrame, y_fit: pd.Series) -> None:
-        self._validate_finite_frame(X_fit, list(X_fit.columns), "fit_quantiles.X_fit")
+        ValidationService.finite_frame(X_fit, list(X_fit.columns), "fit_quantiles.X_fit")
         if not np.isfinite(y_fit.to_numpy(dtype=float)).all():
             raise ValueError("Non-finite values detected in fit_quantiles.y_fit")
         self.qm.fit(X_fit, y_fit)
 
     def calibrate_conformal(self, X_cal: pd.DataFrame, y_cal: pd.Series) -> None:
-        self._validate_finite_frame(X_cal, list(X_cal.columns), "calibrate_conformal.X_cal")
+        ValidationService.finite_frame(X_cal, list(X_cal.columns), "calibrate_conformal.X_cal")
         if not np.isfinite(y_cal.to_numpy(dtype=float)).all():
             raise ValueError("Non-finite values detected in calibrate_conformal.y_cal")
         Lc, Uc = [], []
@@ -266,6 +236,13 @@ class BacktestSession:
         rv_ref = max(1e-9, df[vol_col].iloc[: max(10, len(df) // 5)].mean())
         L_pred_hist: List[float] = []
         U_pred_hist: List[float] = []
+        self._l_pred_hist = L_pred_hist
+        self._u_pred_hist = U_pred_hist
+        self._equity = equity
+        self._vola_hist = vola_hist
+        self._loss_streak = loss_streak
+        self._pos = pos
+        self._eq = eq
 
         with self.logger_context():
             for i in range(len(df) - 1):
@@ -287,16 +264,16 @@ class BacktestSession:
 
                 xrow = dict(zip(feat_cols, df[feat_cols].iloc[i].values))
                 L, M, U = self.qm.predict_all(xrow)
-                self.validate_finite("quantile_predictions", L=L, M=M, U=U)
+                ValidationService.finite_values("quantile_predictions", L=L, M=M, U=U)
                 L_pred_hist.append(L)
                 U_pred_hist.append(U)
 
                 rv_t = float(df[vol_col].iloc[i])
-                self.validate_finite("volatility_input", rv_t=rv_t)
+                ValidationService.finite_values("volatility_input", rv_t=rv_t)
                 self.cqr.dynamic_alpha(rv_t, rv_ref)
                 Lc, Uc = self.cqr.interval(L, U)
                 yt = float(row[y_col])
-                self.validate_finite("coverage_inputs", yt=yt, Lc=Lc, Uc=Uc)
+                ValidationService.finite_values("coverage_inputs", yt=yt, Lc=Lc, Uc=Uc)
                 if Lc <= yt <= Uc:
                     covered += 1.0
                 cov_count += 1
@@ -323,7 +300,7 @@ class BacktestSession:
                 pnl = (target - pos) * (df["mid"].iloc[i + 1] - fill_price) - abs(target - pos) * (
                     costs * feats["mid"]
                 )
-                self._assert_step_invariants(
+                ValidationService.trade_step(
                     TradeStep(
                         mid=feats["mid"],
                         spread_frac=df[spread_col].iloc[i],
@@ -332,12 +309,17 @@ class BacktestSession:
                         cur_pos=pos,
                         fill_price=fill_price,
                         pnl=pnl,
-                    )
+                    ),
+                    exposure_cap=float(self.guard.exposure_cap),
+                    max_position_jump_mult=self._max_position_jump_mult,
                 )
                 pos = target
                 eq += pnl
                 equity.append(eq)
                 loss_streak = (loss_streak + 1) if pnl < 0 else 0
+                self._loss_streak = loss_streak
+                self._pos = pos
+                self._eq = eq
                 vola_hist.append(feats.get("rv", 0.0))
                 ret_norm = pnl / max(1e-9, feats["mid"])
                 self._ret_hist.append(ret_norm)
@@ -373,7 +355,7 @@ class BacktestSession:
                         y_true = float(df[y_col].iloc[idx])
                         L_hist = float(L_pred_hist[idx])
                         U_hist = float(U_pred_hist[idx])
-                        self.validate_finite(
+                        ValidationService.finite_values(
                             "online_update_inputs", y_true=y_true, L_hist=L_hist, U_hist=U_hist
                         )
                         self.cqr.update_online(L_hist, U_hist, y_true)
@@ -393,3 +375,11 @@ class BacktestSession:
 
 class BacktesterCAL(BacktestSession):
     """Backward-compatible alias for legacy API usage."""
+
+    def __init__(self, cfg: dict) -> None:
+        warnings.warn(
+            "BacktesterCAL is deprecated; use BacktestSession instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(cfg)

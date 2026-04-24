@@ -21,6 +21,7 @@ class Execution:
         self.impact_model = impact_model
         self.queue_fill_p = float(np.clip(queue_fill_p, 0.0, 1.0))
         self._seed = seed
+        self._fill_calls = 0
         # Використовуємо генератор випадкових чисел з фіксованим seed для відтворюваності
         self._rng = np.random.default_rng(self._seed)
 
@@ -43,6 +44,7 @@ class Execution:
         side = np.sign(target_pos - cur_pos)
         slip = 0.5 * spread_frac * mid
         improve = self._rng.random() < self.queue_fill_p
+        self._fill_calls += 1
         adj = (-0.25 * spread_frac * mid) if improve else 0.0
         fill_price = mid + side * slip + side * adj
         return float(fill_price)
@@ -50,11 +52,17 @@ class Execution:
     def reset(self) -> None:
         """Re-create RNG so independent runs remain reproducible."""
         self._rng = np.random.default_rng(self._seed)
+        self._fill_calls = 0
 
     def get_state(self) -> dict:
-        """Return serializable RNG state for exact replay/debug."""
-        return dict(self._rng.bit_generator.state)
+        """Return portable deterministic execution state."""
+        return {"seed": self._seed, "fill_calls": self._fill_calls}
 
     def set_state(self, state: dict) -> None:
-        """Restore RNG state captured by ``get_state``."""
-        self._rng.bit_generator.state = state
+        """Restore state captured by ``get_state``."""
+        self._seed = state["seed"]
+        self._fill_calls = int(state["fill_calls"])
+        self._rng = np.random.default_rng(self._seed)
+        # Advance one RNG draw per past fill call to reconstruct sequence position.
+        for _ in range(self._fill_calls):
+            self._rng.random()

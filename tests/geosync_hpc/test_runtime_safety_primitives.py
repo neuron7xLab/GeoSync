@@ -8,18 +8,20 @@ from geosync_hpc.execution import Execution
 from geosync_hpc.risk import Guardrails
 
 
-def test_guardrails_do_not_trigger_drawdown_halt_when_peak_nonpositive() -> None:
+def test_guardrails_triggers_drawdown_halt_from_session_baseline() -> None:
     guard = Guardrails(intraday_dd_limit=0.01, loss_streak_cooldown=10)
-    # Negative equity without a positive peak should not create synthetic DD halts.
+    guard.start_session(0.0)
+    # Large loss relative to session baseline should trigger DD halt.
     out = guard.check(
         equity_curve=[-100.0], vola=0.1, vola_avg=0.1, loss_streak=0, proposed_pos=0.5
     )
-    assert out["halt"] is False
-    assert out["throttle"] == 1.0
+    assert out["halt"] is True
+    assert out["throttle"] == 0.0
 
 
 def test_guardrails_cooldown_counts_down_without_being_rearmed_every_step() -> None:
     guard = Guardrails(intraday_dd_limit=0.01, loss_streak_cooldown=1)
+    guard.start_session(1.0)
     # Trigger cooldown once.
     guard.check(equity_curve=[1.0], vola=0.1, vola_avg=0.1, loss_streak=1, proposed_pos=0.5)
     # During cooldown, no fresh halt trigger should occur.
@@ -63,11 +65,12 @@ def test_execution_state_snapshot_roundtrip_is_exact() -> None:
 
 def test_guardrails_reset_clears_state() -> None:
     guard = Guardrails(intraday_dd_limit=0.01, loss_streak_cooldown=1)
+    guard.start_session(1.0)
     guard.check(equity_curve=[1.0], vola=0.1, vola_avg=0.1, loss_streak=1, proposed_pos=0.5)
     assert guard.cooldown > 0
     guard.reset()
     assert guard.cooldown == 0
-    assert guard.peak is None
+    assert guard.peak == 0.0
 
 
 def test_guardrails_start_session_sets_peak_baseline() -> None:

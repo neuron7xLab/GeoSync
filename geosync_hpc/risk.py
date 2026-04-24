@@ -19,7 +19,8 @@ class Guardrails:
         self.cooldown_streak = loss_streak_cooldown
         self.vola_mult = vola_spike_mult
         self.exposure_cap = exposure_cap
-        self.peak: float | None = None
+        self.peak = 0.0
+        self._session_started = False
         self.cooldown = 0
 
     def check(
@@ -36,8 +37,9 @@ class Guardrails:
                 "throttle": 1.0,
                 "pos_cap": np.clip(proposed_pos, -self.exposure_cap, self.exposure_cap),
             }
+        assert self._session_started, "Guardrails.start_session() must be called before check()."
         eq = float(equity_curve[-1])
-        self.peak = eq if self.peak is None else max(self.peak, eq)
+        self.peak = max(self.peak, eq)
         denom = max(abs(self.peak), 1e-9)
         dd = max(0.0, (self.peak - eq) / denom)
         halt = dd > self.dd_limit or loss_streak >= self.cooldown_streak
@@ -53,9 +55,11 @@ class Guardrails:
     def start_session(self, starting_equity: float) -> None:
         """Initialize run-local drawdown baseline."""
         self.peak = float(starting_equity)
+        self._session_started = True
         self.cooldown = 0
 
     def reset(self) -> None:
         """Reset drawdown/cooldown memory for an independent backtest."""
-        self.peak = None
+        self.peak = 0.0
+        self._session_started = False
         self.cooldown = 0
