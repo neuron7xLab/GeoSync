@@ -32,3 +32,4 @@ class RuntimeState:
     cqr_state: dict
     guard_peak: float
     guard_cooldown: int
+    guard_session_started: bool

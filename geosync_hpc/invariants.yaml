@@ -1,0 +1,35 @@
+version: 1
+artifact: geosync_hpc.backtest.BacktestSession
+owner: neuron7xLab
+last_updated_utc: "2026-04-23T00:00:00Z"
+invariants:
+  - id: BT-INPUT-001
+    scope: input_dataframe
+    rule: "All required columns must exist and input length must be >= 2."
+    enforced_by:
+      - "BacktestSession._validate_inputs"
+  - id: BT-FINITE-002
+    scope: data_boundaries
+    rule: "Quantile predictions, conformal bounds, volatility inputs, and online-update triplets must be finite."
+    enforced_by:
+      - "ValidationService.finite_values"
+      - "ValidationService.finite_frame"
+  - id: BT-STEP-003
+    scope: per_step_runtime
+    rule: "Costs are non-negative, exposure is capped, position jump is bounded, and fill prices stay in the spread envelope."
+    enforced_by:
+      - "ValidationService.trade_step"
+  - id: BT-RESET-004
+    scope: independent_runs
+    rule: "Every run starts from a clean runtime state for features/regime/guardrails/execution/conformal/history buffers."
+    enforced_by:
+      - "RuntimeStateManager.reset_all"
+      - "BacktestSession._reset_runtime_state"
+  - id: BT-STATE-005
+    scope: serialization
+    rule: "get_state()/set_state() roundtrip restores runtime state without drift."
+    enforced_by:
+      - "BacktestSession.get_state"
+      - "BacktestSession.set_state"
+      - "ConformalCQR.get_state/set_state"
+      - "Execution.get_state/set_state"

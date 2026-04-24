@@ -71,13 +71,12 @@ def test_backtester_repeated_runs_are_deterministic(tmp_path) -> None:
     assert second["eq"].to_list() == third["eq"].to_list()
 
 
-def test_backtester_step_invariant_rejects_non_finite_values() -> None:
-    pytest.importorskip("sklearn")
-    from geosync_hpc.backtest import BacktesterCAL, TradeStep
+def test_trade_step_invariant_rejects_non_finite_values() -> None:
+    from geosync_hpc.state import TradeStep
+    from geosync_hpc.validation import ValidationService
 
-    bt = BacktesterCAL(_cfg())
-    with pytest.raises(ValueError, match="Non-finite runtime values"):
-        bt._assert_step_invariants(
+    with pytest.raises(ValueError, match="Non-finite"):
+        ValidationService.trade_step(
             TradeStep(
                 mid=100.0,
                 spread_frac=0.001,
@@ -86,17 +85,18 @@ def test_backtester_step_invariant_rejects_non_finite_values() -> None:
                 cur_pos=0.0,
                 fill_price=100.1,
                 pnl=0.0,
-            )
+            ),
+            exposure_cap=1.0,
+            max_position_jump_mult=2.0,
         )
 
 
-def test_backtester_step_invariant_rejects_negative_costs() -> None:
-    pytest.importorskip("sklearn")
-    from geosync_hpc.backtest import BacktesterCAL, TradeStep
+def test_trade_step_invariant_rejects_negative_costs() -> None:
+    from geosync_hpc.state import TradeStep
+    from geosync_hpc.validation import ValidationService
 
-    bt = BacktesterCAL(_cfg())
     with pytest.raises(ValueError, match="Negative costs"):
-        bt._assert_step_invariants(
+        ValidationService.trade_step(
             TradeStep(
                 mid=100.0,
                 spread_frac=0.001,
@@ -105,7 +105,9 @@ def test_backtester_step_invariant_rejects_negative_costs() -> None:
                 cur_pos=0.0,
                 fill_price=100.05,
                 pnl=0.0,
-            )
+            ),
+            exposure_cap=1.0,
+            max_position_jump_mult=2.0,
         )
 
 
@@ -152,3 +154,16 @@ def test_session_full_determinism_and_safety(tmp_path) -> None:
     state = bt.get_state()
     bt.set_state(state)
     assert bt.get_state() == state
+
+
+def test_state_roundtrip_restores_guard_session_started_flag() -> None:
+    pytest.importorskip("sklearn")
+    from geosync_hpc.backtest import BacktestSession
+
+    bt = BacktestSession(_cfg())
+    bt.guard.start_session(0.0)
+    snapshot = bt.get_state()
+    bt.guard.reset()
+
+    bt.set_state(snapshot)
+    assert bt.guard._session_started is True

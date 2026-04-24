@@ -126,6 +126,7 @@ class BacktestSession:
             cqr_state=self.cqr.get_state(),
             guard_peak=self.guard.peak,
             guard_cooldown=self.guard.cooldown,
+            guard_session_started=bool(getattr(self.guard, "_session_started", False)),
             l_pred_hist=tuple(getattr(self, "_l_pred_hist", tuple())),
             u_pred_hist=tuple(getattr(self, "_u_pred_hist", tuple())),
             equity=tuple(getattr(self, "_equity", tuple())),
@@ -142,6 +143,7 @@ class BacktestSession:
         self.cqr.set_state(state.cqr_state)
         self.guard.peak = state.guard_peak
         self.guard.cooldown = state.guard_cooldown
+        self.guard._session_started = state.guard_session_started
         self._l_pred_hist = list(state.l_pred_hist)
         self._u_pred_hist = list(state.u_pred_hist)
         self._equity = list(state.equity)
@@ -161,35 +163,6 @@ class BacktestSession:
             raise ValueError(f"Missing required columns for backtest: {missing}")
         if len(df) < 2:
             raise ValueError("Backtest requires at least 2 rows of data.")
-
-    def _assert_step_invariants(self, step: TradeStep) -> None:
-        vals = {
-            "mid": step.mid,
-            "spread_frac": step.spread_frac,
-            "costs": step.costs,
-            "target": step.target,
-            "cur_pos": step.cur_pos,
-            "fill_price": step.fill_price,
-            "pnl": step.pnl,
-        }
-        bad = [k for k, v in vals.items() if not np.isfinite(v)]
-        if bad:
-            raise ValueError(f"Non-finite runtime values detected: {bad}")
-        cap = float(self.guard.exposure_cap)
-        if abs(step.target) > cap + 1e-12:
-            raise ValueError(f"Target position {step.target} exceeds exposure cap {cap}.")
-        if step.costs < 0.0:
-            raise ValueError(f"Negative costs detected: {step.costs}")
-        max_jump = self._max_position_jump_mult * cap
-        if abs(step.target - step.cur_pos) > max_jump + 1e-12:
-            raise ValueError(
-                f"Non-physical position jump detected: {step.cur_pos} -> {step.target}"
-            )
-        slip_bound = abs(step.spread_frac) * abs(step.mid)
-        if abs(step.fill_price - step.mid) > slip_bound + 1e-9:
-            raise ValueError(
-                f"Fill price deviation {step.fill_price - step.mid} exceeds expected spread-bound {slip_bound}."
-            )
 
     def fit_quantiles(self, X_fit: pd.DataFrame, y_fit: pd.Series) -> None:
         ValidationService.finite_frame(X_fit, list(X_fit.columns), "fit_quantiles.X_fit")
@@ -362,11 +335,8 @@ class BacktestSession:
 
         res = pd.DataFrame(rows)
         if save_csv and not res.empty:
-            try:
-                res.to_csv(save_csv, index=False)
-                self.logger.log_artifact(save_csv)
-            except Exception:
-                pass
+            res.to_csv(save_csv, index=False)
+            self.logger.log_artifact(save_csv)
         r = res["pnl"].values if not res.empty else np.array([])
         self.logger.log_metric("sharpe", sharpe(r))
         self.logger.log_metric("cvar95", cvar(r, 0.95))
