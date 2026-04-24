@@ -35,6 +35,39 @@ class RuntimeStateManager:
             component.reset()
 
 
+@dataclass
+class DequeState:
+    history: Deque[float]
+
+    def reset(self) -> None:
+        self.history.clear()
+
+
+@dataclass
+class LoggerState:
+    params: dict[str, str]
+    logger: Logger | None = None
+
+    def reset(self) -> None:
+        if self.logger is not None:
+            try:
+                self.logger.end()
+            except Exception:
+                pass
+        self.logger = Logger(params=self.params)
+
+
+@dataclass(frozen=True)
+class TradeStep:
+    mid: float
+    spread_frac: float
+    costs: float
+    target: float
+    cur_pos: float
+    fill_price: float
+    pnl: float
+
+
 class BacktesterCAL:
     _BASE_REQUIRED_COLUMNS = ("mid", "bid", "ask", "bid_size", "ask_size", "last", "last_size")
 
@@ -78,22 +111,32 @@ class BacktesterCAL:
         self.online_update = bool(cfg["conformal"].get("online_update", False))
         self._ret_hist: Deque[float] = deque(maxlen=int(2 * self.policy.cvar_window))
         self._logger_params = {"impact_model": cfg["execution"].get("impact_model", "square_root")}
+        self._logger_state = LoggerState(params=self._logger_params, logger=self.logger)
+        self._ret_hist_state = DequeState(history=self._ret_hist)
+        self._max_position_jump_mult = float(cfg["risk"].get("max_position_jump_mult", 2.0))
         self._state_manager = RuntimeStateManager(
-            components=(self.fs, self.reg, self.guard, self.exec, self.cqr)
+            components=(
+                self.fs,
+                self.reg,
+                self.guard,
+                self.exec,
+                self.cqr,
+                self._ret_hist_state,
+                self._logger_state,
+            )
         )
-
-    def _init_logger(self) -> None:
-        try:
-            self.logger.end()
-        except Exception:
-            pass
-        self.logger = Logger(params=self._logger_params)
 
     def _reset_runtime_state(self) -> None:
         """Reset mutable streaming state before each independent run."""
-        self._ret_hist.clear()
         self._state_manager.reset_all()
-        self._init_logger()
+        self.logger = self._logger_state.logger or Logger(params=self._logger_params)
+
+    @staticmethod
+    def _validate_finite_frame(df: pd.DataFrame, cols: list[str], label: str) -> None:
+        subset = df[cols]
+        finite_mask = np.isfinite(subset.to_numpy(dtype=float))
+        if not finite_mask.all():
+            raise ValueError(f"Non-finite values detected in {label}: {cols}")
 
     def _validate_inputs(
         self, df: pd.DataFrame, feat_cols: list[str], y_col: str, spread_col: str, vol_col: str
@@ -107,52 +150,56 @@ class BacktesterCAL:
         if len(df) < 2:
             raise ValueError("Backtest requires at least 2 rows of data.")
 
-    def _assert_step_invariants(
-        self,
-        mid: float,
-        spread_frac: float,
-        costs: float,
-        target: float,
-        cur_pos: float,
-        fill_price: float,
-        pnl: float,
-    ) -> None:
+    def _assert_step_invariants(self, step: TradeStep) -> None:
         vals = {
-            "mid": mid,
-            "spread_frac": spread_frac,
-            "costs": costs,
-            "target": target,
-            "cur_pos": cur_pos,
-            "fill_price": fill_price,
-            "pnl": pnl,
+            "mid": step.mid,
+            "spread_frac": step.spread_frac,
+            "costs": step.costs,
+            "target": step.target,
+            "cur_pos": step.cur_pos,
+            "fill_price": step.fill_price,
+            "pnl": step.pnl,
         }
         bad = [k for k, v in vals.items() if not np.isfinite(v)]
         if bad:
             raise ValueError(f"Non-finite runtime values detected: {bad}")
         cap = float(self.guard.exposure_cap)
-        if abs(target) > cap + 1e-12:
-            raise ValueError(f"Target position {target} exceeds exposure cap {cap}.")
-        if costs < 0.0:
-            raise ValueError(f"Negative costs detected: {costs}")
-        if abs(target - cur_pos) > 2.0 * cap + 1e-12:
-            raise ValueError(f"Non-physical position jump detected: {cur_pos} -> {target}")
-        slip_bound = abs(spread_frac) * abs(mid)
-        if abs(fill_price - mid) > slip_bound + 1e-9:
+        if abs(step.target) > cap + 1e-12:
+            raise ValueError(f"Target position {step.target} exceeds exposure cap {cap}.")
+        if step.costs < 0.0:
+            raise ValueError(f"Negative costs detected: {step.costs}")
+        max_jump = self._max_position_jump_mult * cap
+        if abs(step.target - step.cur_pos) > max_jump + 1e-12:
             raise ValueError(
-                f"Fill price deviation {fill_price - mid} exceeds expected spread-bound {slip_bound}."
+                f"Non-physical position jump detected: {step.cur_pos} -> {step.target}"
+            )
+        slip_bound = abs(step.spread_frac) * abs(step.mid)
+        if abs(step.fill_price - step.mid) > slip_bound + 1e-9:
+            raise ValueError(
+                f"Fill price deviation {step.fill_price - step.mid} exceeds expected spread-bound {slip_bound}."
             )
 
     def fit_quantiles(self, X_fit: pd.DataFrame, y_fit: pd.Series) -> None:
+        self._validate_finite_frame(X_fit, list(X_fit.columns), "fit_quantiles.X_fit")
+        if not np.isfinite(y_fit.to_numpy(dtype=float)).all():
+            raise ValueError("Non-finite values detected in fit_quantiles.y_fit")
         self.qm.fit(X_fit, y_fit)
 
     def calibrate_conformal(self, X_cal: pd.DataFrame, y_cal: pd.Series) -> None:
+        self._validate_finite_frame(X_cal, list(X_cal.columns), "calibrate_conformal.X_cal")
+        if not np.isfinite(y_cal.to_numpy(dtype=float)).all():
+            raise ValueError("Non-finite values detected in calibrate_conformal.y_cal")
         Lc, Uc = [], []
         for i in range(len(X_cal)):
             x_dict = dict(zip(self.qm.cols or [], X_cal.iloc[i].values))
             L, M, U = self.qm.predict_all(x_dict)
             Lc.append(L)
             Uc.append(U)
-        self.cqr.fit_calibrate(np.array(Lc), np.array(Uc), y_cal.values)
+        l_arr = np.asarray(Lc, dtype=float)
+        u_arr = np.asarray(Uc, dtype=float)
+        y_arr = y_cal.to_numpy(dtype=float)
+        mask = np.isfinite(l_arr) & np.isfinite(u_arr) & np.isfinite(y_arr)
+        self.cqr.fit_calibrate(l_arr[mask], u_arr[mask], y_arr[mask])
 
     def run(
         self,
@@ -232,13 +279,15 @@ class BacktesterCAL:
                 costs * feats["mid"]
             )
             self._assert_step_invariants(
-                mid=feats["mid"],
-                spread_frac=df[spread_col].iloc[i],
-                costs=costs,
-                target=target,
-                cur_pos=pos,
-                fill_price=fill_price,
-                pnl=pnl,
+                TradeStep(
+                    mid=feats["mid"],
+                    spread_frac=df[spread_col].iloc[i],
+                    costs=costs,
+                    target=target,
+                    cur_pos=pos,
+                    fill_price=fill_price,
+                    pnl=pnl,
+                )
             )
             pos = target
             eq += pnl

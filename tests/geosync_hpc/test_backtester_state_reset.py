@@ -71,33 +71,59 @@ def test_backtester_repeated_runs_are_deterministic(tmp_path) -> None:
 
 def test_backtester_step_invariant_rejects_non_finite_values() -> None:
     pytest.importorskip("sklearn")
-    from geosync_hpc.backtest import BacktesterCAL
+    from geosync_hpc.backtest import BacktesterCAL, TradeStep
 
     bt = BacktesterCAL(_cfg())
     with pytest.raises(ValueError, match="Non-finite runtime values"):
         bt._assert_step_invariants(
-            mid=100.0,
-            spread_frac=0.001,
-            costs=float("nan"),
-            target=0.2,
-            cur_pos=0.0,
-            fill_price=100.1,
-            pnl=0.0,
+            TradeStep(
+                mid=100.0,
+                spread_frac=0.001,
+                costs=float("nan"),
+                target=0.2,
+                cur_pos=0.0,
+                fill_price=100.1,
+                pnl=0.0,
+            )
         )
 
 
 def test_backtester_step_invariant_rejects_negative_costs() -> None:
     pytest.importorskip("sklearn")
-    from geosync_hpc.backtest import BacktesterCAL
+    from geosync_hpc.backtest import BacktesterCAL, TradeStep
 
     bt = BacktesterCAL(_cfg())
     with pytest.raises(ValueError, match="Negative costs"):
         bt._assert_step_invariants(
-            mid=100.0,
-            spread_frac=0.001,
-            costs=-0.1,
-            target=0.2,
-            cur_pos=0.0,
-            fill_price=100.05,
-            pnl=0.0,
+            TradeStep(
+                mid=100.0,
+                spread_frac=0.001,
+                costs=-0.1,
+                target=0.2,
+                cur_pos=0.0,
+                fill_price=100.05,
+                pnl=0.0,
+            )
         )
+
+
+def test_calibrate_conformal_rejects_non_finite_inputs() -> None:
+    pytest.importorskip("sklearn")
+    import pandas as pd
+
+    from geosync_hpc.backtest import BacktesterCAL
+
+    bt = BacktesterCAL(_cfg())
+    x = pd.DataFrame(
+        {
+            "ret1": [0.1],
+            "ret5": [0.1],
+            "ret20": [0.1],
+            "vol10": [0.1],
+            "vol50": [0.1],
+            "spread": [0.1],
+        }
+    )
+    y = pd.Series([float("nan")])
+    with pytest.raises(ValueError, match="Non-finite"):
+        bt.calibrate_conformal(x, y)
