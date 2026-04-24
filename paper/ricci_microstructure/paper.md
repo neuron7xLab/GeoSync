@@ -15,11 +15,12 @@ We test whether the minimum Ollivier--Ricci curvature $\kappa_{\min}$ of a
 rolling correlation graph on per-symbol order-flow imbalance (OFI) predicts
 forward log-returns in cryptocurrency perpetual futures. On a $\sim 5.3$-hour,
 10-symbol, 1-second Binance USDT-M book-depth stream ($n = 19{,}081$), we
-subject the $\kappa_{\min}$-to-180s-return relationship to ten mutually
+subject the $\kappa_{\min}$-to-180s-return relationship to eleven mutually
 orthogonal validation axes: permutation kill test, block-bootstrap CI,
 deflated Sharpe adjustment, purged and embargoed $K$-fold CV, mutual
-information, lag attribution, spectral redness, DFA Hurst, pairwise and
-conditional transfer entropy, and rolling walk-forward stability. Each axis
+information, lag attribution, spectral redness, DFA Hurst, pairwise
+transfer entropy, conditional transfer entropy (BTC-partialled), and
+rolling walk-forward stability. Each axis
 falsifies a distinct failure mode (spurious correlation, multiple-testing
 inflation, look-ahead leakage, common-factor confounding, single-window
 overfitting). All axes concord: IC $= 0.122$ at permutation $p = 0.002$;
@@ -61,7 +62,7 @@ order-flow correlation graphs and treat $\kappa_{\min}$ as a real-time
 feature rather than a regime label.
 
 Our contribution is methodological as much as empirical. We do not merely
-report that the signal works: we construct ten falsification axes, each
+report that the signal works: we construct eleven falsification axes, each
 targeting a distinct plausible failure mode, and show that a single
 observation fails to break through any of them. We release the frozen
 per-fold and per-session gate fixtures, the full pipeline scripts, and a
@@ -69,7 +70,7 @@ CI-level integrity test suite so that the claim is auditable without
 privileged access to the substrate.
 
 The design philosophy is deliberately asymmetric: the burden of evidence
-sits on the signal, not on the reviewer. A signal that survives ten
+sits on the signal, not on the reviewer. A signal that survives eleven
 orthogonal falsification attempts is not thereby *true*, but it is now a
 hypothesis with respect to which the engineering and statistical apparatus
 has been exhausted at this sample size.
@@ -100,8 +101,8 @@ and hashed into \texttt{MANIFEST.sha256}.
 
 ## 3. Methodology
 
-The empirical core is a ten-axis falsification battery. For each axis we
-state the failure mode it attacks, the test statistic, the decision rule,
+The empirical core is an eleven-axis falsification battery. For each axis
+we state the failure mode it attacks, the test statistic, the decision rule,
 and the verdict.
 
 1. **Primary kill test.** IC computed on raw $(\kappa_{\min}, r_{+180})$
@@ -130,10 +131,16 @@ and the verdict.
 8. **Hurst exponent via DFA-1** \citep{peng1994dfa}; scale-free cross-check
    of the spectral result. We require $H$ and $\beta$ to concord on the
    persistence regime.
-9. **Pairwise and conditional transfer entropy} \citep{schreiber2000te}
-   with a 100-surrogate time-shuffled null; we condition on BTCUSDT OFI to
-   remove the obvious common-factor artefact.
-10. **Rolling walk-forward stability}: 56 non-overlapping 40-minute windows
+9. **Pairwise transfer entropy** \citep{schreiber2000te} with a
+   100-surrogate time-shuffled null at 1-second lag on all 45 ordered
+   symbol pairs; attacks the failure mode that the curvature signal is a
+   re-expression of contemporaneous correlation rather than a compression
+   of genuine dynamical coupling.
+10. **Conditional transfer entropy** with BTCUSDT OFI as the conditioning
+    channel $Z$; attacks the orthogonal failure mode that the pairwise
+    bidirectional flow of axis 9 could itself be an artefact of every
+    symbol responding to a common market-wide factor.
+11. **Rolling walk-forward stability**: 56 non-overlapping 40-minute windows
     stepped every 5 minutes; each window independently estimates IC and a
     permutation $p$-value; we report the fraction of positive windows and
     the fraction passing $p < 0.05$.
