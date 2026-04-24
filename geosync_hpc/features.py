@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import Deque
+from typing import Deque, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -28,6 +28,19 @@ class FeatureStore:
     def reset(self) -> None:
         """Clear streaming state between independent backtest runs."""
         self.buf.clear()
+
+    def get_state(self) -> dict[str, object]:
+        """Return serializable streaming state for deterministic resume."""
+        return {"buf": tuple(dict(row) for row in self.buf)}
+
+    def set_state(self, state: dict[str, object]) -> None:
+        """Restore state captured by ``get_state``."""
+        self.buf.clear()
+        rows = state.get("buf", ())
+        if isinstance(rows, Iterable):
+            for row in rows:
+                if isinstance(row, Mapping):
+                    self.buf.append(dict(row))
 
     def _fracdiff(self, x: np.ndarray | list[float], d: float = 0.4, window: int = 200) -> float:
         w, k = [1.0], 1

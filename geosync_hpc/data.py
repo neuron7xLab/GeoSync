@@ -28,6 +28,9 @@ def read_ticks_csv(path: str | Path, time_col: str = "timestamp") -> pd.DataFram
     if not csv_path.exists():
         raise FileNotFoundError(f"Tick dataset not found at {csv_path}")
 
-    df = pd.read_csv(csv_path, parse_dates=[time_col])
+    df = pd.read_csv(csv_path)
+    if time_col not in df.columns:
+        raise ValueError(f"Expected time column '{time_col}' in {csv_path}")
+    df[time_col] = pd.to_datetime(df[time_col], errors="raise")
     df = df.set_index(time_col).sort_index()
     return df

@@ -123,6 +123,8 @@ class BacktestSession:
         return RuntimeState(
             ret_hist=tuple(self._ret_hist),
             exec_state=self.exec.get_state(),
+            feature_state=self.fs.get_state(),
+            regime_state=self.reg.get_state(),
             cqr_state=self.cqr.get_state(),
             guard_peak=self.guard.peak,
             guard_cooldown=self.guard.cooldown,
@@ -134,12 +136,15 @@ class BacktestSession:
             loss_streak=int(getattr(self, "_loss_streak", 0)),
             pos=float(getattr(self, "_pos", 0.0)),
             eq=float(getattr(self, "_eq", 0.0)),
+            next_index=int(getattr(self, "_next_index", 0)),
         )
 
     def set_state(self, state: RuntimeState) -> None:
         self._ret_hist.clear()
         self._ret_hist.extend(state.ret_hist)
         self.exec.set_state(state.exec_state)
+        self.fs.set_state(state.feature_state)
+        self.reg.set_state(state.regime_state)
         self.cqr.set_state(state.cqr_state)
         self.guard.peak = state.guard_peak
         self.guard.cooldown = state.guard_cooldown
@@ -151,6 +156,7 @@ class BacktestSession:
         self._loss_streak = state.loss_streak
         self._pos = state.pos
         self._eq = state.eq
+        self._next_index = state.next_index
 
     def _validate_inputs(
         self, df: pd.DataFrame, feat_cols: list[str], y_col: str, spread_col: str, vol_col: str
@@ -194,21 +200,46 @@ class BacktestSession:
         spread_col: str = "spread",
         vol_col: str = "vol10",
         save_csv: str | None = None,
+        start_idx: int = 0,
+        end_idx: int | None = None,
+        reset_state: bool = True,
     ) -> pd.DataFrame:
         self._validate_inputs(df, feat_cols, y_col, spread_col, vol_col)
-        self._reset_runtime_state()
-        pos = 0.0
-        eq = 0.0
-        equity = [0.0]
-        self.guard.start_session(equity[0])
-        loss_streak = 0
-        vola_hist: list[float] = []
+        if end_idx is None:
+            end_idx = len(df) - 1
+        if not (0 <= start_idx < len(df)):
+            raise ValueError(f"start_idx out of range: {start_idx}")
+        if not (start_idx < end_idx <= len(df) - 1):
+            raise ValueError(
+                f"Invalid segment boundaries: start_idx={start_idx}, end_idx={end_idx}"
+            )
+
+        if reset_state:
+            self._reset_runtime_state()
+            pos = 0.0
+            eq = 0.0
+            equity = [0.0]
+            self.guard.start_session(equity[0])
+            loss_streak = 0
+            vola_hist: list[float] = []
+            L_pred_hist: List[float] = []
+            U_pred_hist: List[float] = []
+        else:
+            pos = float(getattr(self, "_pos", 0.0))
+            eq = float(getattr(self, "_eq", 0.0))
+            equity = list(getattr(self, "_equity", [eq]))
+            loss_streak = int(getattr(self, "_loss_streak", 0))
+            vola_hist = list(getattr(self, "_vola_hist", []))
+            L_pred_hist = list(getattr(self, "_l_pred_hist", []))
+            U_pred_hist = list(getattr(self, "_u_pred_hist", []))
+            if not getattr(self.guard, "_session_started", False):
+                baseline = equity[0] if equity else eq
+                self.guard.start_session(baseline)
+
         rows: list[dict[str, float]] = []
         covered = 0.0
         cov_count = 0
         rv_ref = max(1e-9, df[vol_col].iloc[: max(10, len(df) // 5)].mean())
-        L_pred_hist: List[float] = []
-        U_pred_hist: List[float] = []
         self._l_pred_hist = L_pred_hist
         self._u_pred_hist = U_pred_hist
         self._equity = equity
@@ -216,9 +247,10 @@ class BacktestSession:
         self._loss_streak = loss_streak
         self._pos = pos
         self._eq = eq
+        self._next_index = start_idx
 
         with self.logger_context():
-            for i in range(len(df) - 1):
+            for i in range(start_idx, end_idx):
                 row = df.iloc[i]
                 snap_row = {
                     "mid": row["mid"],
@@ -293,6 +325,7 @@ class BacktestSession:
                 self._loss_streak = loss_streak
                 self._pos = pos
                 self._eq = eq
+                self._next_index = i + 1
                 vola_hist.append(feats.get("rv", 0.0))
                 ret_norm = pnl / max(1e-9, feats["mid"])
                 self._ret_hist.append(ret_norm)

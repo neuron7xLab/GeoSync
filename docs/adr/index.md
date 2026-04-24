@@ -20,6 +20,7 @@ This directory captures significant technical and governance decisions for GeoSy
 - [ADR 0001: Security, Compliance, and Documentation Automation](0001-security-compliance-automation.md)
 - [ADR 0002: Serotonin Controller - Hysteretic Hold Logic with SRE Observability](0002-serotonin-controller-architecture.md)
 - [ADR 0003: Principal System Architect Security Framework](0003-principal-architect-security-framework.md)
+- [ADR 0020: Deterministic BacktestSession Architecture](0020-backtest-session-deterministic-architecture.md)
 
 ## Contributing
 

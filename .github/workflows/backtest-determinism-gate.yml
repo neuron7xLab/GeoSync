@@ -1,0 +1,55 @@
+name: Backtest Determinism Gate
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  backtest-determinism:
+    name: backtest-determinism (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+
+      - name: Setup Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install locked dependencies
+        run: |
+          set -euo pipefail
+          python -m venv .venv
+          .venv/bin/python -m pip install pip==25.0.1 setuptools==75.8.0 wheel==0.45.1
+          .venv/bin/python -m pip install -c constraints/security.txt -r requirements.lock
+          .venv/bin/python -m pip install -c constraints/security.txt -r requirements-dev.lock
+
+      - name: Determinism + state suite
+        run: |
+          set -euo pipefail
+          .venv/bin/pytest -q \
+            tests/test_conformal.py \
+            tests/geosync_hpc/test_runtime_safety_primitives.py \
+            tests/geosync_hpc/test_backtester_state_reset.py
+
+      - name: Property suite (backtest)
+        run: |
+          set -euo pipefail
+          .venv/bin/pytest -q tests/property/test_backtest_properties.py
+
+      - name: Perf harness smoke
+        run: |
+          set -euo pipefail
+          .venv/bin/pytest -q tests/perf/test_golden_path_backtest_perf.py

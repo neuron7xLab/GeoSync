@@ -26,3 +26,11 @@ class RegimeModel:
     def reset(self) -> None:
         """Reset to the neutral starting regime for a new run."""
         self.state = 0
+
+    def get_state(self) -> dict[str, int]:
+        """Return serializable regime state."""
+        return {"state": int(self.state)}
+
+    def set_state(self, state: dict[str, int]) -> None:
+        """Restore state captured by ``get_state``."""
+        self.state = int(state["state"])

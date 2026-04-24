@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import errno
 import pytest
 
 from geosync_hpc.data import read_ticks_csv
@@ -167,3 +168,87 @@ def test_state_roundtrip_restores_guard_session_started_flag() -> None:
 
     bt.set_state(snapshot)
     assert bt.guard._session_started is True
+
+
+def test_mid_run_resume_produces_bitwise_identical_equity(tmp_path) -> None:
+    pytest.importorskip("sklearn")
+    from geosync_hpc.backtest import BacktestSession
+
+    csv_path = generate_demo_ticks(tmp_path / "ticks_resume.csv", n=1600, seed=31)
+    df = read_ticks_csv(csv_path)
+    feat_cols = ["ret1", "ret5", "ret20", "vol10", "vol50", "spread"]
+
+    fit_end = 650
+    cal_end = 1100
+    eval_df = df.iloc[cal_end:]
+
+    full = BacktestSession(_cfg())
+    full.fit_quantiles(df[feat_cols].iloc[:fit_end], df["y"].iloc[:fit_end])
+    full.calibrate_conformal(df[feat_cols].iloc[fit_end:cal_end], df["y"].iloc[fit_end:cal_end])
+    full_res = full.run(eval_df, feat_cols=feat_cols, y_col="y")
+
+    midpoint = max(1, (len(eval_df) - 1) // 2)
+    staged = BacktestSession(_cfg())
+    staged.fit_quantiles(df[feat_cols].iloc[:fit_end], df["y"].iloc[:fit_end])
+    staged.calibrate_conformal(df[feat_cols].iloc[fit_end:cal_end], df["y"].iloc[fit_end:cal_end])
+    first_half = staged.run(eval_df, feat_cols=feat_cols, y_col="y", start_idx=0, end_idx=midpoint)
+    checkpoint = staged.get_state()
+
+    resumed = BacktestSession(_cfg())
+    resumed.fit_quantiles(df[feat_cols].iloc[:fit_end], df["y"].iloc[:fit_end])
+    resumed.calibrate_conformal(df[feat_cols].iloc[fit_end:cal_end], df["y"].iloc[fit_end:cal_end])
+    resumed.set_state(checkpoint)
+    second_half = resumed.run(
+        eval_df,
+        feat_cols=feat_cols,
+        y_col="y",
+        start_idx=midpoint,
+        reset_state=False,
+    )
+
+    eq_joined = first_half["eq"].to_list() + second_half["eq"].to_list()
+    assert eq_joined == full_res["eq"].to_list()
+
+
+def test_run_save_csv_surfaces_permission_error(tmp_path, monkeypatch) -> None:
+    pytest.importorskip("sklearn")
+    import pandas as pd
+
+    from geosync_hpc.backtest import BacktestSession
+
+    csv_path = generate_demo_ticks(tmp_path / "ticks_io_perm.csv", n=1400, seed=17)
+    df = read_ticks_csv(csv_path)
+    feat_cols = ["ret1", "ret5", "ret20", "vol10", "vol50", "spread"]
+    bt = BacktestSession(_cfg())
+    bt.fit_quantiles(df[feat_cols].iloc[:550], df["y"].iloc[:550])
+    bt.calibrate_conformal(df[feat_cols].iloc[550:950], df["y"].iloc[550:950])
+    eval_df = df.iloc[950:]
+
+    def _raise_eacces(self, *_args, **_kwargs):
+        raise PermissionError(errno.EACCES, "permission denied")
+
+    monkeypatch.setattr(pd.DataFrame, "to_csv", _raise_eacces, raising=True)
+    with pytest.raises(PermissionError):
+        bt.run(eval_df, feat_cols=feat_cols, y_col="y", save_csv=str(tmp_path / "out.csv"))
+
+
+def test_run_save_csv_surfaces_disk_full_error(tmp_path, monkeypatch) -> None:
+    pytest.importorskip("sklearn")
+    import pandas as pd
+
+    from geosync_hpc.backtest import BacktestSession
+
+    csv_path = generate_demo_ticks(tmp_path / "ticks_io_enospc.csv", n=1400, seed=19)
+    df = read_ticks_csv(csv_path)
+    feat_cols = ["ret1", "ret5", "ret20", "vol10", "vol50", "spread"]
+    bt = BacktestSession(_cfg())
+    bt.fit_quantiles(df[feat_cols].iloc[:550], df["y"].iloc[:550])
+    bt.calibrate_conformal(df[feat_cols].iloc[550:950], df["y"].iloc[550:950])
+    eval_df = df.iloc[950:]
+
+    def _raise_enospc(self, *_args, **_kwargs):
+        raise OSError(errno.ENOSPC, "no space left on device")
+
+    monkeypatch.setattr(pd.DataFrame, "to_csv", _raise_enospc, raising=True)
+    with pytest.raises(OSError, match="no space left on device"):
+        bt.run(eval_df, feat_cols=feat_cols, y_col="y", save_csv=str(tmp_path / "out.csv"))

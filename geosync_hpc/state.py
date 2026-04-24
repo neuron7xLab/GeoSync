@@ -29,7 +29,10 @@ class RuntimeState:
     pos: float
     eq: float
     exec_state: dict
+    feature_state: dict
+    regime_state: dict
     cqr_state: dict
     guard_peak: float
     guard_cooldown: int
     guard_session_started: bool
+    next_index: int
