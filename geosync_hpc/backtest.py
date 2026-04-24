@@ -22,6 +22,8 @@ from .risk import Guardrails
 
 
 class BacktesterCAL:
+    _BASE_REQUIRED_COLUMNS = ("mid", "bid", "ask", "bid_size", "ask_size", "last", "last_size")
+
     def __init__(self, cfg: dict) -> None:
         self.cfg = cfg
         self.lookbacks = cfg["features"]["lookbacks"]
@@ -64,6 +66,10 @@ class BacktesterCAL:
         self._logger_params = {"impact_model": cfg["execution"].get("impact_model", "square_root")}
 
     def _init_logger(self) -> None:
+        try:
+            self.logger.end()
+        except Exception:
+            pass
         self.logger = Logger(params=self._logger_params)
 
     def _reset_runtime_state(self) -> None:
@@ -79,18 +85,8 @@ class BacktesterCAL:
     def _validate_inputs(
         self, df: pd.DataFrame, feat_cols: list[str], y_col: str, spread_col: str, vol_col: str
     ) -> None:
-        required = {
-            "mid",
-            "bid",
-            "ask",
-            "bid_size",
-            "ask_size",
-            "last",
-            "last_size",
-            y_col,
-            spread_col,
-            vol_col,
-        }
+        required = set(self._BASE_REQUIRED_COLUMNS)
+        required.update({y_col, spread_col, vol_col})
         required.update(feat_cols)
         missing = sorted(col for col in required if col not in df.columns)
         if missing:
@@ -158,15 +154,13 @@ class BacktesterCAL:
             rv_t = df[vol_col].iloc[i]
             self.cqr.dynamic_alpha(rv_t, rv_ref)
             Lc, Uc = self.cqr.interval(L, U)
-            try:
-                yt = float(row[y_col])
+            yt = float(row[y_col])
+            if np.isfinite(yt) and np.isfinite(Lc) and np.isfinite(Uc):
                 if Lc <= yt <= Uc:
                     covered += 1.0
                 cov_count += 1
                 cov = covered / cov_count
                 self.logger.log_metric("coverage", cov, step=i)
-            except Exception:
-                pass
             self.logger.log_metric("alpha_eff", self.cqr.alpha, step=i)
 
             notional_frac = min(1.0, abs(1.0 - pos))
@@ -221,11 +215,10 @@ class BacktesterCAL:
 
             if self.online_update and self.horizon > 0 and i >= self.horizon:
                 idx = i - self.horizon
-                try:
+                if idx < len(L_pred_hist) and idx < len(U_pred_hist):
                     y_true = float(df[y_col].iloc[idx])
-                    self.cqr.update_online(L_pred_hist[idx], U_pred_hist[idx], y_true)
-                except Exception:
-                    pass
+                    if np.isfinite(y_true):
+                        self.cqr.update_online(L_pred_hist[idx], U_pred_hist[idx], y_true)
 
         res = pd.DataFrame(rows)
         if save_csv and not res.empty:
