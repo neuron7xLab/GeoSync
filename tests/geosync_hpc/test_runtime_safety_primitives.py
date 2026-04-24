@@ -68,3 +68,10 @@ def test_guardrails_reset_clears_state() -> None:
     guard.reset()
     assert guard.cooldown == 0
     assert guard.peak is None
+
+
+def test_guardrails_start_session_sets_peak_baseline() -> None:
+    guard = Guardrails()
+    guard.start_session(5.0)
+    assert guard.peak == 5.0
+    assert guard.cooldown == 0

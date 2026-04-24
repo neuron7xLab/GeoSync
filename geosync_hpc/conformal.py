@@ -123,3 +123,26 @@ class ConformalCQR:
         self._qhat_alpha = self._baseline_qhat_alpha
         self._resid.clear()
         self._resid.extend(self._baseline_resid)
+
+    def get_state(self) -> dict:
+        """Return serializable runtime + baseline conformal state."""
+        return {
+            "alpha": self.alpha,
+            "qhat": self.qhat,
+            "_qhat_alpha": self._qhat_alpha,
+            "_resid": tuple(self._resid),
+            "_baseline_qhat": self._baseline_qhat,
+            "_baseline_qhat_alpha": self._baseline_qhat_alpha,
+            "_baseline_resid": tuple(self._baseline_resid),
+        }
+
+    def set_state(self, state: dict) -> None:
+        """Restore state captured by ``get_state``."""
+        self.alpha = float(state["alpha"])
+        self.qhat = state["qhat"]
+        self._qhat_alpha = float(state["_qhat_alpha"])
+        self._resid.clear()
+        self._resid.extend(float(v) for v in state["_resid"])
+        self._baseline_qhat = state["_baseline_qhat"]
+        self._baseline_qhat_alpha = float(state["_baseline_qhat_alpha"])
+        self._baseline_resid = tuple(float(v) for v in state["_baseline_resid"])

@@ -129,3 +129,26 @@ def test_calibrate_conformal_rejects_non_finite_inputs() -> None:
     y = pd.Series([float("nan")])
     with pytest.raises(ValueError, match="Non-finite"):
         bt.calibrate_conformal(x, y)
+
+
+def test_session_full_determinism_and_safety(tmp_path) -> None:
+    pytest.importorskip("sklearn")
+    from geosync_hpc.backtest import BacktestSession
+
+    csv_path = generate_demo_ticks(tmp_path / "ticks_full.csv", n=1500, seed=21)
+    df = read_ticks_csv(csv_path)
+    feat_cols = ["ret1", "ret5", "ret20", "vol10", "vol50", "spread"]
+
+    bt = BacktestSession(_cfg())
+    bt.fit_quantiles(df[feat_cols].iloc[:600], df["y"].iloc[:600])
+    bt.calibrate_conformal(df[feat_cols].iloc[600:1000], df["y"].iloc[600:1000])
+
+    eval_df = df.iloc[1000:]
+    r1 = bt.run(eval_df, feat_cols=feat_cols, y_col="y")
+    r2 = bt.run(eval_df, feat_cols=feat_cols, y_col="y")
+    r3 = bt.run(eval_df, feat_cols=feat_cols, y_col="y")
+    assert r1["eq"].to_list() == r2["eq"].to_list() == r3["eq"].to_list()
+
+    state = bt.get_state()
+    bt.set_state(state)
+    assert bt.get_state() == state

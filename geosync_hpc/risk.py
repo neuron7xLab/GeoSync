@@ -50,6 +50,11 @@ class Guardrails:
         pos_cap = float(np.clip(proposed_pos, -self.exposure_cap, self.exposure_cap))
         return {"halt": halt, "throttle": throttle, "pos_cap": pos_cap}
 
+    def start_session(self, starting_equity: float) -> None:
+        """Initialize run-local drawdown baseline."""
+        self.peak = float(starting_equity)
+        self.cooldown = 0
+
     def reset(self) -> None:
         """Reset drawdown/cooldown memory for an independent backtest."""
         self.peak = None

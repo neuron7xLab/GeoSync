@@ -5,8 +5,9 @@
 from __future__ import annotations
 
 from collections import deque
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Deque, List, Protocol
+from typing import Deque, Iterator, List, Protocol
 
 import numpy as np
 import pandas as pd
@@ -68,7 +69,16 @@ class TradeStep:
     pnl: float
 
 
-class BacktesterCAL:
+@dataclass(frozen=True)
+class RuntimeState:
+    ret_hist: tuple[float, ...]
+    exec_state: dict
+    cqr_state: dict
+    guard_peak: float | None
+    guard_cooldown: int
+
+
+class BacktestSession:
     _BASE_REQUIRED_COLUMNS = ("mid", "bid", "ask", "bid_size", "ask_size", "last", "last_size")
 
     def __init__(self, cfg: dict) -> None:
@@ -137,6 +147,38 @@ class BacktesterCAL:
         finite_mask = np.isfinite(subset.to_numpy(dtype=float))
         if not finite_mask.all():
             raise ValueError(f"Non-finite values detected in {label}: {cols}")
+
+    @staticmethod
+    def validate_finite(label: str, **values: float) -> None:
+        bad = [k for k, v in values.items() if not np.isfinite(v)]
+        if bad:
+            raise ValueError(f"Non-finite values detected in {label}: {bad}")
+
+    @contextmanager
+    def logger_context(self) -> Iterator[Logger]:
+        self._logger_state.reset()
+        self.logger = self._logger_state.logger or Logger(params=self._logger_params)
+        try:
+            yield self.logger
+        finally:
+            self.logger.end()
+
+    def get_state(self) -> RuntimeState:
+        return RuntimeState(
+            ret_hist=tuple(self._ret_hist),
+            exec_state=self.exec.get_state(),
+            cqr_state=self.cqr.get_state(),
+            guard_peak=self.guard.peak,
+            guard_cooldown=self.guard.cooldown,
+        )
+
+    def set_state(self, state: RuntimeState) -> None:
+        self._ret_hist.clear()
+        self._ret_hist.extend(state.ret_hist)
+        self.exec.set_state(state.exec_state)
+        self.cqr.set_state(state.cqr_state)
+        self.guard.peak = state.guard_peak
+        self.guard.cooldown = state.guard_cooldown
 
     def _validate_inputs(
         self, df: pd.DataFrame, feat_cols: list[str], y_col: str, spread_col: str, vol_col: str
@@ -215,6 +257,7 @@ class BacktesterCAL:
         pos = 0.0
         eq = 0.0
         equity = [0.0]
+        self.guard.start_session(equity[0])
         loss_streak = 0
         vola_hist: list[float] = []
         rows: list[dict[str, float]] = []
@@ -224,109 +267,115 @@ class BacktesterCAL:
         L_pred_hist: List[float] = []
         U_pred_hist: List[float] = []
 
-        for i in range(len(df) - 1):
-            row = df.iloc[i]
-            snap_row = {
-                "mid": row["mid"],
-                "bid": row["bid"],
-                "ask": row["ask"],
-                "bid_size": row["bid_size"],
-                "ask_size": row["ask_size"],
-                "last": row["last"],
-                "last_size": row["last_size"],
-            }
-            self.fs.update(snap_row)
-            feats = self.fs.snapshot(self.lookbacks)
-            if feats is None:
-                continue
-            reg = self.reg.update(feats)
+        with self.logger_context():
+            for i in range(len(df) - 1):
+                row = df.iloc[i]
+                snap_row = {
+                    "mid": row["mid"],
+                    "bid": row["bid"],
+                    "ask": row["ask"],
+                    "bid_size": row["bid_size"],
+                    "ask_size": row["ask_size"],
+                    "last": row["last"],
+                    "last_size": row["last_size"],
+                }
+                self.fs.update(snap_row)
+                feats = self.fs.snapshot(self.lookbacks)
+                if feats is None:
+                    continue
+                reg = self.reg.update(feats)
 
-            xrow = dict(zip(feat_cols, df[feat_cols].iloc[i].values))
-            L, M, U = self.qm.predict_all(xrow)
-            if np.isfinite(L) and np.isfinite(U):
+                xrow = dict(zip(feat_cols, df[feat_cols].iloc[i].values))
+                L, M, U = self.qm.predict_all(xrow)
+                self.validate_finite("quantile_predictions", L=L, M=M, U=U)
                 L_pred_hist.append(L)
                 U_pred_hist.append(U)
 
-            rv_t = df[vol_col].iloc[i]
-            self.cqr.dynamic_alpha(rv_t, rv_ref)
-            Lc, Uc = self.cqr.interval(L, U)
-            yt = float(row[y_col])
-            if np.isfinite(yt) and np.isfinite(Lc) and np.isfinite(Uc):
+                rv_t = float(df[vol_col].iloc[i])
+                self.validate_finite("volatility_input", rv_t=rv_t)
+                self.cqr.dynamic_alpha(rv_t, rv_ref)
+                Lc, Uc = self.cqr.interval(L, U)
+                yt = float(row[y_col])
+                self.validate_finite("coverage_inputs", yt=yt, Lc=Lc, Uc=Uc)
                 if Lc <= yt <= Uc:
                     covered += 1.0
                 cov_count += 1
                 cov = covered / cov_count
                 self.logger.log_metric("coverage", cov, step=i)
-            self.logger.log_metric("alpha_eff", self.cqr.alpha, step=i)
+                self.logger.log_metric("alpha_eff", self.cqr.alpha, step=i)
 
-            notional_frac = min(1.0, abs(1.0 - pos))
-            costs = self.exec.costs(df[spread_col].iloc[i], rv_t, notional_frac=notional_frac)
-            self.logger.log_metric("qhat", self.cqr.qhat or 0.0, step=i)
-            self.logger.log_metric("costs", costs, step=i)
+                notional_frac = min(1.0, abs(1.0 - pos))
+                costs = self.exec.costs(df[spread_col].iloc[i], rv_t, notional_frac=notional_frac)
+                self.logger.log_metric("qhat", self.cqr.qhat or 0.0, step=i)
+                self.logger.log_metric("costs", costs, step=i)
 
-            proposed = self.policy.decide(Lc, M, Uc, costs, self.buffer_frac, self._ret_hist)
-            checks = self.guard.check(
-                equity,
-                feats.get("rv", 0.0),
-                float(np.mean(vola_hist[-200:])) if vola_hist else 0.0,
-                loss_streak,
-                proposed,
-            )
-            target = checks["throttle"] * checks["pos_cap"]
-            fill_price = self.exec.fill(feats["mid"], df[spread_col].iloc[i], target, pos)
-
-            pnl = (target - pos) * (df["mid"].iloc[i + 1] - fill_price) - abs(target - pos) * (
-                costs * feats["mid"]
-            )
-            self._assert_step_invariants(
-                TradeStep(
-                    mid=feats["mid"],
-                    spread_frac=df[spread_col].iloc[i],
-                    costs=costs,
-                    target=target,
-                    cur_pos=pos,
-                    fill_price=fill_price,
-                    pnl=pnl,
+                proposed = self.policy.decide(Lc, M, Uc, costs, self.buffer_frac, self._ret_hist)
+                checks = self.guard.check(
+                    equity,
+                    feats.get("rv", 0.0),
+                    float(np.mean(vola_hist[-200:])) if vola_hist else 0.0,
+                    loss_streak,
+                    proposed,
                 )
-            )
-            pos = target
-            eq += pnl
-            equity.append(eq)
-            loss_streak = (loss_streak + 1) if pnl < 0 else 0
-            vola_hist.append(feats.get("rv", 0.0))
-            ret_norm = pnl / max(1e-9, feats["mid"])
-            self._ret_hist.append(ret_norm)
+                target = checks["throttle"] * checks["pos_cap"]
+                fill_price = self.exec.fill(feats["mid"], df[spread_col].iloc[i], target, pos)
 
-            rows.append(
-                {
-                    "ts": df.index[i],
-                    "mid": feats["mid"],
-                    "pos": pos,
-                    "pnl": pnl,
-                    "eq": eq,
-                    "L": Lc,
-                    "M": M,
-                    "U": Uc,
-                    "costs": costs,
-                    "regime": reg["regime"],
-                    "spread": feats["spread"],
-                    "eff_spread": feats.get("eff_spread", np.nan),
-                    "ofi": feats.get("ofi_sh", np.nan),
-                    "lambda": feats.get("kyle_lambda", np.nan),
-                }
-            )
+                pnl = (target - pos) * (df["mid"].iloc[i + 1] - fill_price) - abs(target - pos) * (
+                    costs * feats["mid"]
+                )
+                self._assert_step_invariants(
+                    TradeStep(
+                        mid=feats["mid"],
+                        spread_frac=df[spread_col].iloc[i],
+                        costs=costs,
+                        target=target,
+                        cur_pos=pos,
+                        fill_price=fill_price,
+                        pnl=pnl,
+                    )
+                )
+                pos = target
+                eq += pnl
+                equity.append(eq)
+                loss_streak = (loss_streak + 1) if pnl < 0 else 0
+                vola_hist.append(feats.get("rv", 0.0))
+                ret_norm = pnl / max(1e-9, feats["mid"])
+                self._ret_hist.append(ret_norm)
 
-            if i % 500 == 0 and i > 0:
-                self.logger.log_metric("equity", eq, step=i)
-                self.logger.log_metric("sharpe_partial", sharpe(np.diff(np.array(equity))), step=i)
+                rows.append(
+                    {
+                        "ts": df.index[i],
+                        "mid": feats["mid"],
+                        "pos": pos,
+                        "pnl": pnl,
+                        "eq": eq,
+                        "L": Lc,
+                        "M": M,
+                        "U": Uc,
+                        "costs": costs,
+                        "regime": reg["regime"],
+                        "spread": feats["spread"],
+                        "eff_spread": feats.get("eff_spread", np.nan),
+                        "ofi": feats.get("ofi_sh", np.nan),
+                        "lambda": feats.get("kyle_lambda", np.nan),
+                    }
+                )
 
-            if self.online_update and self.horizon > 0 and i >= self.horizon:
-                idx = i - self.horizon
-                if idx < len(L_pred_hist) and idx < len(U_pred_hist):
-                    y_true = float(df[y_col].iloc[idx])
-                    L_hist = float(L_pred_hist[idx])
-                    U_hist = float(U_pred_hist[idx])
-                    if np.isfinite(y_true) and np.isfinite(L_hist) and np.isfinite(U_hist):
+                if i % 500 == 0 and i > 0:
+                    self.logger.log_metric("equity", eq, step=i)
+                    self.logger.log_metric(
+                        "sharpe_partial", sharpe(np.diff(np.array(equity))), step=i
+                    )
+
+                if self.online_update and self.horizon > 0 and i >= self.horizon:
+                    idx = i - self.horizon
+                    if idx < len(L_pred_hist) and idx < len(U_pred_hist):
+                        y_true = float(df[y_col].iloc[idx])
+                        L_hist = float(L_pred_hist[idx])
+                        U_hist = float(U_pred_hist[idx])
+                        self.validate_finite(
+                            "online_update_inputs", y_true=y_true, L_hist=L_hist, U_hist=U_hist
+                        )
                         self.cqr.update_online(L_hist, U_hist, y_true)
 
         res = pd.DataFrame(rows)
@@ -339,5 +388,8 @@ class BacktesterCAL:
         r = res["pnl"].values if not res.empty else np.array([])
         self.logger.log_metric("sharpe", sharpe(r))
         self.logger.log_metric("cvar95", cvar(r, 0.95))
-        self.logger.end()
         return res
+
+
+class BacktesterCAL(BacktestSession):
+    """Backward-compatible alias for legacy API usage."""
