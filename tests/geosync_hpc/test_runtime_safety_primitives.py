@@ -57,4 +57,4 @@ def test_guardrails_reset_clears_state() -> None:
     assert guard.cooldown > 0
     guard.reset()
     assert guard.cooldown == 0
-    assert guard.peak == 0.0
+    assert guard.peak is None

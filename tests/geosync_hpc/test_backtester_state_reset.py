@@ -76,5 +76,28 @@ def test_backtester_step_invariant_rejects_non_finite_values() -> None:
     bt = BacktesterCAL(_cfg())
     with pytest.raises(ValueError, match="Non-finite runtime values"):
         bt._assert_step_invariants(
-            mid=100.0, costs=float("nan"), target=0.2, fill_price=100.1, pnl=0.0
+            mid=100.0,
+            spread_frac=0.001,
+            costs=float("nan"),
+            target=0.2,
+            cur_pos=0.0,
+            fill_price=100.1,
+            pnl=0.0,
+        )
+
+
+def test_backtester_step_invariant_rejects_negative_costs() -> None:
+    pytest.importorskip("sklearn")
+    from geosync_hpc.backtest import BacktesterCAL
+
+    bt = BacktesterCAL(_cfg())
+    with pytest.raises(ValueError, match="Negative costs"):
+        bt._assert_step_invariants(
+            mid=100.0,
+            spread_frac=0.001,
+            costs=-0.1,
+            target=0.2,
+            cur_pos=0.0,
+            fill_price=100.05,
+            pnl=0.0,
         )

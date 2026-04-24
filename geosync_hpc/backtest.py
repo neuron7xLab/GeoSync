@@ -5,7 +5,8 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import Deque, List
+from dataclasses import dataclass
+from typing import Deque, List, Protocol
 
 import numpy as np
 import pandas as pd
@@ -19,6 +20,19 @@ from .policy import Policy
 from .quantile import QuantileModels
 from .regime import RegimeModel
 from .risk import Guardrails
+
+
+class Resettable(Protocol):
+    def reset(self) -> None: ...
+
+
+@dataclass
+class RuntimeStateManager:
+    components: tuple[Resettable, ...]
+
+    def reset_all(self) -> None:
+        for component in self.components:
+            component.reset()
 
 
 class BacktesterCAL:
@@ -64,6 +78,9 @@ class BacktesterCAL:
         self.online_update = bool(cfg["conformal"].get("online_update", False))
         self._ret_hist: Deque[float] = deque(maxlen=int(2 * self.policy.cvar_window))
         self._logger_params = {"impact_model": cfg["execution"].get("impact_model", "square_root")}
+        self._state_manager = RuntimeStateManager(
+            components=(self.fs, self.reg, self.guard, self.exec, self.cqr)
+        )
 
     def _init_logger(self) -> None:
         try:
@@ -75,11 +92,7 @@ class BacktesterCAL:
     def _reset_runtime_state(self) -> None:
         """Reset mutable streaming state before each independent run."""
         self._ret_hist.clear()
-        self.fs.reset()
-        self.reg.reset()
-        self.guard.reset()
-        self.exec.reset()
-        self.cqr.reset()
+        self._state_manager.reset_all()
         self._init_logger()
 
     def _validate_inputs(
@@ -95,12 +108,21 @@ class BacktesterCAL:
             raise ValueError("Backtest requires at least 2 rows of data.")
 
     def _assert_step_invariants(
-        self, mid: float, costs: float, target: float, fill_price: float, pnl: float
+        self,
+        mid: float,
+        spread_frac: float,
+        costs: float,
+        target: float,
+        cur_pos: float,
+        fill_price: float,
+        pnl: float,
     ) -> None:
         vals = {
             "mid": mid,
+            "spread_frac": spread_frac,
             "costs": costs,
             "target": target,
+            "cur_pos": cur_pos,
             "fill_price": fill_price,
             "pnl": pnl,
         }
@@ -110,6 +132,15 @@ class BacktesterCAL:
         cap = float(self.guard.exposure_cap)
         if abs(target) > cap + 1e-12:
             raise ValueError(f"Target position {target} exceeds exposure cap {cap}.")
+        if costs < 0.0:
+            raise ValueError(f"Negative costs detected: {costs}")
+        if abs(target - cur_pos) > 2.0 * cap + 1e-12:
+            raise ValueError(f"Non-physical position jump detected: {cur_pos} -> {target}")
+        slip_bound = abs(spread_frac) * abs(mid)
+        if abs(fill_price - mid) > slip_bound + 1e-9:
+            raise ValueError(
+                f"Fill price deviation {fill_price - mid} exceeds expected spread-bound {slip_bound}."
+            )
 
     def fit_quantiles(self, X_fit: pd.DataFrame, y_fit: pd.Series) -> None:
         self.qm.fit(X_fit, y_fit)
@@ -165,8 +196,9 @@ class BacktesterCAL:
 
             xrow = dict(zip(feat_cols, df[feat_cols].iloc[i].values))
             L, M, U = self.qm.predict_all(xrow)
-            L_pred_hist.append(L)
-            U_pred_hist.append(U)
+            if np.isfinite(L) and np.isfinite(U):
+                L_pred_hist.append(L)
+                U_pred_hist.append(U)
 
             rv_t = df[vol_col].iloc[i]
             self.cqr.dynamic_alpha(rv_t, rv_ref)
@@ -199,7 +231,15 @@ class BacktesterCAL:
             pnl = (target - pos) * (df["mid"].iloc[i + 1] - fill_price) - abs(target - pos) * (
                 costs * feats["mid"]
             )
-            self._assert_step_invariants(feats["mid"], costs, target, fill_price, pnl)
+            self._assert_step_invariants(
+                mid=feats["mid"],
+                spread_frac=df[spread_col].iloc[i],
+                costs=costs,
+                target=target,
+                cur_pos=pos,
+                fill_price=fill_price,
+                pnl=pnl,
+            )
             pos = target
             eq += pnl
             equity.append(eq)
@@ -235,8 +275,10 @@ class BacktesterCAL:
                 idx = i - self.horizon
                 if idx < len(L_pred_hist) and idx < len(U_pred_hist):
                     y_true = float(df[y_col].iloc[idx])
-                    if np.isfinite(y_true):
-                        self.cqr.update_online(L_pred_hist[idx], U_pred_hist[idx], y_true)
+                    L_hist = float(L_pred_hist[idx])
+                    U_hist = float(U_pred_hist[idx])
+                    if np.isfinite(y_true) and np.isfinite(L_hist) and np.isfinite(U_hist):
+                        self.cqr.update_online(L_hist, U_hist, y_true)
 
         res = pd.DataFrame(rows)
         if save_csv and not res.empty:
