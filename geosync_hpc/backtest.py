@@ -94,6 +94,23 @@ class BacktesterCAL:
         if len(df) < 2:
             raise ValueError("Backtest requires at least 2 rows of data.")
 
+    def _assert_step_invariants(
+        self, mid: float, costs: float, target: float, fill_price: float, pnl: float
+    ) -> None:
+        vals = {
+            "mid": mid,
+            "costs": costs,
+            "target": target,
+            "fill_price": fill_price,
+            "pnl": pnl,
+        }
+        bad = [k for k, v in vals.items() if not np.isfinite(v)]
+        if bad:
+            raise ValueError(f"Non-finite runtime values detected: {bad}")
+        cap = float(self.guard.exposure_cap)
+        if abs(target) > cap + 1e-12:
+            raise ValueError(f"Target position {target} exceeds exposure cap {cap}.")
+
     def fit_quantiles(self, X_fit: pd.DataFrame, y_fit: pd.Series) -> None:
         self.qm.fit(X_fit, y_fit)
 
@@ -182,6 +199,7 @@ class BacktesterCAL:
             pnl = (target - pos) * (df["mid"].iloc[i + 1] - fill_price) - abs(target - pos) * (
                 costs * feats["mid"]
             )
+            self._assert_step_invariants(feats["mid"], costs, target, fill_price, pnl)
             pos = target
             eq += pnl
             equity.append(eq)

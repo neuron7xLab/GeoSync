@@ -67,3 +67,14 @@ def test_backtester_repeated_runs_are_deterministic(tmp_path) -> None:
 
     assert len(first) > 0
     assert first["eq"].to_list() == second["eq"].to_list()
+
+
+def test_backtester_step_invariant_rejects_non_finite_values() -> None:
+    pytest.importorskip("sklearn")
+    from geosync_hpc.backtest import BacktesterCAL
+
+    bt = BacktesterCAL(_cfg())
+    with pytest.raises(ValueError, match="Non-finite runtime values"):
+        bt._assert_step_invariants(
+            mid=100.0, costs=float("nan"), target=0.2, fill_price=100.1, pnl=0.0
+        )

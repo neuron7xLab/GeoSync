@@ -41,3 +41,20 @@ def test_execution_clamps_queue_fill_probability_to_valid_range() -> None:
     e_low = Execution(queue_fill_p=-2.0, seed=1)
     assert e_high.queue_fill_p == 1.0
     assert e_low.queue_fill_p == 0.0
+
+
+def test_execution_reset_restores_deterministic_fill_sequence() -> None:
+    exe = Execution(queue_fill_p=0.5, seed=123)
+    seq1 = [exe.fill(mid=100.0, spread_frac=0.001, target_pos=1.0, cur_pos=0.0) for _ in range(5)]
+    exe.reset()
+    seq2 = [exe.fill(mid=100.0, spread_frac=0.001, target_pos=1.0, cur_pos=0.0) for _ in range(5)]
+    assert seq1 == seq2
+
+
+def test_guardrails_reset_clears_state() -> None:
+    guard = Guardrails(intraday_dd_limit=0.01, loss_streak_cooldown=1)
+    guard.check(equity_curve=[1.0], vola=0.1, vola_avg=0.1, loss_streak=1, proposed_pos=0.5)
+    assert guard.cooldown > 0
+    guard.reset()
+    assert guard.cooldown == 0
+    assert guard.peak == 0.0
