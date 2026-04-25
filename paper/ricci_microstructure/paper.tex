@@ -92,15 +92,15 @@ correlation graphs and treat $\kappa_{\min}$ as a real-time feature rather
 than a regime label.
 
 Our contribution is methodological as much as empirical. We do not merely
-report that the signal works: we construct ten falsification axes, each
-targeting a distinct plausible failure mode, and show that a single
+report that the signal works: we construct eleven falsification axes,
+each targeting a distinct plausible failure mode, and show that a single
 observation fails to break through any of them. We release the frozen
 per-fold and per-session gate fixtures, the full pipeline scripts, and a
 CI-level integrity test suite so that the claim is auditable without
 privileged access to the substrate.
 
 The design philosophy is deliberately asymmetric: the burden of evidence
-sits on the signal, not on the reviewer. A signal that survives ten
+sits on the signal, not on the reviewer. A signal that survives eleven
 orthogonal falsification attempts is not thereby \emph{true}, but it is now
 a hypothesis with respect to which the engineering and statistical
 apparatus has been exhausted at this sample size.
@@ -215,8 +215,8 @@ consolidated verdict is summarised in Table~\ref{tab:verdicts}.
 
 \begin{table}[t]
 \centering
-\caption{Consolidated verdict across the ten orthogonal axes. Every axis
-falsifies a distinct failure mode; each is evaluated on the frozen
+\caption{Consolidated verdict across the eleven orthogonal axes. Every
+axis falsifies a distinct failure mode; each is evaluated on the frozen
 Session~1 substrate.}
 \label{tab:verdicts}
 \begin{tabular}{@{}lll@{}}
