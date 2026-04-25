@@ -29,6 +29,7 @@ LEGACY_ENTRYPOINTS = {
     Path("scripts/__main__.py"),
     Path("tacl/__main__.py"),
     Path("tools/vendor/fpma/__main__.py"),
+    Path("tools/synthetic_l2/__main__.py"),
     Path("src/geosync/sdk/mlsdm/__main__.py"),
 }
 
@@ -69,8 +70,10 @@ def check_single_entrypoint(repo_root: Path = REPO_ROOT) -> list[Violation]:
     if violations:
         return violations
 
-    canonical_paths = { (repo_root / p).resolve() for p in CANONICAL_ENTRYPOINTS.values() }
-    legacy_paths = { (repo_root / p).resolve() for p in LEGACY_ENTRYPOINTS if (repo_root / p).exists() }
+    canonical_paths = {(repo_root / p).resolve() for p in CANONICAL_ENTRYPOINTS.values()}
+    legacy_paths = {
+        (repo_root / p).resolve() for p in LEGACY_ENTRYPOINTS if (repo_root / p).exists()
+    }
     for extra in _discover_entrypoints(repo_root):
         if extra in canonical_paths or extra in legacy_paths:
             continue
