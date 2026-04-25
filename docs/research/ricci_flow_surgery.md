@@ -62,3 +62,45 @@ This is a geometric primitive. No claim of trading edge or out-of-sample perform
 
 ## Source anchor
 arXiv:2510.15942 — Ollivier-Ricci flow with neckpinch surgery on NASDAQ-100.
+
+## Iterated-Step Semantics (Known API Gap)
+
+**Single-step contract (INV-RC-FLOW):** `ricci_flow_with_surgery` preserves finite/symmetric/non-negative
+weights, mass (when enabled), and connectedness (when enabled). This contract was empirically
+verified by the falsification battery (`falsify_ricci_surgery.py`): 6/7 PASS, single-step axes all
+machine-precision.
+
+**Iterated-step gap (NOT covered by INV-RC-FLOW):** repeated application of `ricci_flow_with_surgery`
+on the same graph state with `preserve_total_edge_mass=True` and `preserve_connectedness=True`
+DOES NOT preserve total edge mass or connectedness across iterations.
+
+Empirical evidence (100 sequential steps, 20 ER graphs, N=10, eps_weight=1e-8):
+- 8 / 20 final graphs disconnected (40%)
+- max mass drift: ~100% (full mass leakage in worst case)
+- median final edge count: 3
+
+**Mechanism:** surgery clamps bridge candidates to `eps_weight` rather than removing them.
+On the next iteration these clamped edges are re-flagged by `detect_neckpinch_candidates` (which
+admits `0 < w ≤ eps_weight`). Once all incident edges of a node become clamped, the active-subgraph
+definition shifts between `w > 0` (admits) and `w > eps_weight` (rejects), and `preserve_total_edge_mass`
+re-normalizes mass away from these stub edges.
+
+### Recommended Practice
+
+- For **single-step research use**: the function works as documented. Use freely.
+- For **multi-step iteration**: do NOT loop `ricci_flow_with_surgery` directly with default config.
+  Use one of:
+  1. Set `eps_weight=0.0` to make `detect_neckpinch_candidates` non-degenerate across iterations
+     (at cost of: bridge candidates being fully removed instead of clamped, which can disconnect
+     graphs faster — different trade-off, not better).
+  2. Use the explicit `iterated_ricci_flow_with_surgery(weights, n_steps, cfg)` wrapper (added in
+     this PR) which records mass-drift and connectedness state per step and aborts if invariants
+     would be broken.
+  3. Implement your own outer loop that re-asserts mass/connectedness manually between steps.
+
+### Status
+
+- 2026-04-25 — gap surfaced by falsification battery
+- 2026-04-25 — documented as INV-RC-FLOW-ITER (P1, statistical) for future enforcement
+- Open question: should this be promoted to a P0 universal invariant once the wrapper is in place?
+
