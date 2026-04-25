@@ -9,6 +9,9 @@ connectedness when ``preserve_connectedness=True``.
 
 from __future__ import annotations
 
+import time
+
+import networkx as nx
 import numpy as np
 import pytest
 from numpy.typing import NDArray
@@ -289,3 +292,172 @@ def test_neckpinch_event_dataclass_immutable() -> None:
     )
     with pytest.raises((AttributeError, TypeError)):
         e.old_weight = 2.0  # type: ignore[misc]
+
+
+def test_surgery_bridge_detection_is_O_E_not_E_squared() -> None:
+    """INV-RC-FLOW perf contract: bridge detection is O(V+E) per surgery step.
+
+    Regression guard for the ``ricci_flow.py`` per-candidate ``_is_bridge``
+    hot-path: the historical implementation called ``nx.bridges`` once per
+    candidate, giving total :math:`O(E^2)` cost on dense Erdős–Rényi inputs
+    where most edges enter the singular-curvature tail. PR #381's
+    microbench had to skip ``bench_ricci_flow.py @ N=1024`` under the
+    ``wall_time_budget_exceeded=600s`` gate, empirically confirming the
+    bottleneck.
+
+    The fix caches ``frozenset(nx.bridges(graph))`` and only invalidates
+    after an actual ``graph.remove_edge`` call. Clamps preserve topology
+    and so preserve the cache. With the linear-chain / dense ER inputs
+    used here every candidate is non-bridge or every candidate is a
+    bridge — either way the recompute count is bounded by the number of
+    actual removals (capped by ``max_surgery_fraction``), not by the
+    number of candidates.
+
+    Bound rationale: at ``N=200`` and ``p≈0.05`` the active edge count is
+    ``~995`` and a single ``nx.bridges`` is microseconds-scale; the
+    tightest legitimate run on modern hardware is ``≪50 ms``. The
+    pre-fix :math:`O(E^2)` form was ``≫1 s`` at this size. We use 500 ms
+    as a generous flake-resistant ceiling: a pre-fix regression would
+    blow well past it; a transient CI scheduling hiccup will not.
+    """
+    rng = np.random.default_rng(20260425)
+    n = 200
+    adj = (rng.random((n, n)) < 0.05).astype(bool)
+    adj |= adj.T
+    np.fill_diagonal(adj, False)
+    weights = rng.random((n, n)) * adj
+    weights = 0.5 * (weights + weights.T)
+    np.fill_diagonal(weights, 0.0)
+
+    iu, ju = np.where(np.triu(adj, k=1))
+    curvature: dict[tuple[int, int], float] = {
+        (int(i), int(j)): float(rng.uniform(-1.0, 1.0)) for i, j in zip(iu, ju, strict=True)
+    }
+
+    # eps_weight=0.5 forces a large fraction of edges into the
+    # weight-tail candidate set so the surgery loop visits many edges.
+    cfg = RicciFlowConfig(
+        eta=0.05,
+        eps_weight=0.5,
+        eps_neck=1e-3,
+        preserve_connectedness=True,
+        max_surgery_fraction=0.05,
+    )
+
+    candidates = detect_neckpinch_candidates(weights, curvature, cfg)
+    assert len(candidates) > 100, (
+        "INV-RC-FLOW VIOLATED (test setup): regression guard requires "
+        f"a many-candidate workload; observed |candidates|={len(candidates)}, "
+        "expected >100 to exercise the per-candidate hot-path."
+    )
+
+    t0_ns = time.perf_counter_ns()
+    apply_neckpinch_surgery(weights, curvature, cfg)
+    elapsed_ns = time.perf_counter_ns() - t0_ns
+
+    elapsed_ms = elapsed_ns / 1e6
+    # 500 ms ceiling: O(V+E) target is ≪50 ms; legacy O(E²) at this size
+    # was ≫1000 ms. The bound is wide enough to absorb shared-CI noise
+    # but tight enough to fail a regression to per-candidate nx.bridges.
+    assert elapsed_ns < 500_000_000, (
+        "INV-RC-FLOW perf-contract VIOLATED: apply_neckpinch_surgery "
+        f"took {elapsed_ms:.1f} ms; expected <500 ms (O(V+E) bridge cache). "
+        "Regression to per-candidate nx.bridges (O(E²)) suspected. "
+        f"Context: N=200, p≈0.05, |candidates|={len(candidates)}, "
+        "max_surgery_fraction=0.05, preserve_connectedness=True."
+    )
+
+
+def test_surgery_uf_guard_prevents_disconnect_when_all_cycle_edges_candidate() -> None:
+    """INV-RC-FLOW: union-find guard preserves connectivity on full-cycle candidates.
+
+    Adversarial scenario: a 4-cycle ``0-1-2-3-0`` where every edge is in
+    the singular curvature tail. The pre-surgery snapshot contains zero
+    bridges (every edge is on a cycle), so a naive snapshot-only fix
+    would classify all four candidates non-bridge and remove them — the
+    graph would disconnect and the post-step connectivity assertion
+    would raise ``RuntimeError``.
+
+    The union-find guard prevents that: each candidate is only marked
+    ``"removed"`` if its endpoints are connected through non-candidate
+    or already-clamped edges. As candidates get clamped (kept alive at
+    ``eps_weight``), their endpoints union into the UF; later candidates
+    can then see those clamped paths. The post-surgery active subgraph
+    is always connected — the contract is preserved without ever
+    disconnecting. The exact number of removals depends on lex order
+    and how quickly clamped edges form a connected backbone, but the
+    invariant under test is: **no removal that would disconnect occurs**.
+    """
+    n = 4
+    W = np.zeros((n, n), dtype=np.float64)
+    for a, b in [(0, 1), (1, 2), (2, 3), (3, 0)]:
+        W[a, b] = 1.0
+        W[b, a] = 1.0
+    # All four cycle edges in singular tail.
+    kappa = {(0, 1): -0.999, (0, 3): -0.999, (1, 2): -0.999, (2, 3): -0.999}
+    cfg = RicciFlowConfig(
+        eta=0.05,
+        eps_neck=1e-3,
+        max_surgery_fraction=1.0,  # no cap — only the UF guard limits removal
+        preserve_connectedness=True,
+    )
+    new_w, events = apply_neckpinch_surgery(W, kappa, cfg)
+
+    # Connectivity check: rebuild the active graph from new_w and verify it
+    # is still connected over the original active node set. This is the
+    # core safety property the UF guard must enforce.
+    active_after = nx.Graph()
+    active_after.add_nodes_from(range(n))
+    for i in range(n):
+        for j in range(i + 1, n):
+            if new_w[i, j] > 0.0:
+                active_after.add_edge(i, j)
+    assert nx.is_connected(active_after), (
+        "INV-RC-FLOW VIOLATED: surgery disconnected a 4-cycle with all-candidate "
+        "edges; UF safety net failed. "
+        f"observed components={list(nx.connected_components(active_after))}, "
+        "expected single component on {0,1,2,3}, with N=4 cycle, all edges candidate."
+    )
+    # Every edge that was clamped must have weight ≥ eps_weight.
+    for ev in events:
+        if ev.action == "clamped":
+            i, j = ev.edge
+            assert new_w[i, j] >= cfg.eps_weight, (
+                "INV-RC-FLOW VIOLATED: clamped edge weight must be ≥ eps_weight "
+                "after UF-guarded surgery; "
+                f"observed w({i},{j})={new_w[i, j]:.3e}, "
+                f"expected ≥ {cfg.eps_weight}, with N=4 cycle."
+            )
+
+
+def test_surgery_uf_guard_allows_removal_when_alternate_path_exists() -> None:
+    """INV-RC-FLOW: union-find permits removals that preserve connectivity.
+
+    Counterpart to the cycle-disconnect test: K4 (complete on 4 nodes)
+    with a single singular-tail candidate ``(0, 1)``. The other five
+    edges are non-candidates, so the UF starts fully connected. Removing
+    ``(0, 1)`` is safe — the post-removal graph (K4 minus one edge)
+    remains connected.
+    """
+    n = 4
+    W = np.ones((n, n), dtype=np.float64) - np.eye(n)
+    kappa: dict[tuple[int, int], float] = {(0, 1): -0.999}
+    cfg = RicciFlowConfig(
+        eta=0.05,
+        eps_neck=1e-3,
+        max_surgery_fraction=1.0,
+        preserve_connectedness=True,
+    )
+    new_w, events = apply_neckpinch_surgery(W, kappa, cfg)
+
+    actions_by_edge = {e.edge: e.action for e in events}
+    assert actions_by_edge[(0, 1)] == "removed", (
+        "INV-RC-FLOW VIOLATED: candidate with non-candidate alternate path "
+        "must be removable; "
+        f"observed action={actions_by_edge[(0, 1)]}, expected 'removed', "
+        "with K4 and only (0,1) in singular tail."
+    )
+    assert new_w[0, 1] == 0.0, (
+        "INV-RC-FLOW VIOLATED: removed edge weight must be exactly 0.0; "
+        f"observed w(0,1)={new_w[0, 1]}, expected 0.0."
+    )
