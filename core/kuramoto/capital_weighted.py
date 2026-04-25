@@ -145,6 +145,22 @@ class CapitalWeightedCouplingResult:
         was returned unchanged.
     reason:
         Human-readable explanation when ``used_fallback`` is ``True`` (else "").
+    floor_engaged:
+        ``True`` if a ``cfg.r_floor`` event was detected during ratio
+        construction — either because ``median(depth_mass)`` fell below the
+        floor (and was clamped to keep the division finite) or because at
+        least one per-node ratio :math:`r_i` is at or below the floor (e.g.
+        a zero-depth node). The coupling matrix remains a valid
+        ``INV-KBETA`` object (finite, symmetric, zero diagonal); the flag is
+        informational so callers can log or fail-loud as desired. Closes
+        ⊛-audit AP-#5 (silent fallback) — see ``floor_diagnostic`` for the
+        human-readable reason. Note: per-node ``r_i`` is **not** clamped
+        (absolute clamps would break scale invariance ``INV-KBETA``); only
+        the median is clamped, and only when needed for finite division.
+    floor_diagnostic:
+        Empty string when ``floor_engaged`` is ``False``. Otherwise a short
+        token describing which event engaged: ``"median_clamped"``,
+        ``"r_below_floor"``, or ``"median_clamped+r_below_floor"``.
     """
 
     coupling: NDArray[np.float64]
@@ -153,6 +169,8 @@ class CapitalWeightedCouplingResult:
     depth_mass: NDArray[np.float64]
     used_fallback: bool
     reason: str
+    floor_engaged: bool = False
+    floor_diagnostic: str = ""
 
 
 def _validate_snapshot(snapshot: L2DepthSnapshot) -> None:
@@ -253,25 +271,70 @@ def compute_capital_ratio(
     depth_mass: NDArray[np.float64],
     *,
     floor: float,
-) -> NDArray[np.float64]:
+) -> tuple[NDArray[np.float64], bool, str]:
     """Per-node capital ratio ``r_i = depth_mass_i / median(depth_mass)``.
 
     The median is floored by ``floor`` so the ratio is finite even for
-    degenerate depth vectors. Output is non-negative.
+    degenerate depth vectors. Per-node ratios that land at or below ``floor``
+    are detected and surfaced via the ``floor_engaged`` flag, but **not
+    clamped**. Clamping per element would be an absolute (not scale-free)
+    modification that breaks ``INV-KBETA`` scale invariance, so we preserve
+    the raw ratio (including legitimate zeros for empty-depth nodes) and
+    expose the event for caller-side handling.
+
+    Returns
+    -------
+    r:
+        ``(N,)`` non-negative ratio vector.
+    floor_engaged:
+        ``True`` if either the median was clamped to ``floor`` or any
+        per-node :math:`r_i` is below ``floor`` (e.g. zero-depth node).
+        Closes ⊛-audit AP-#5 (silent fallback) by making the floor event
+        observable to callers.
+    floor_diagnostic:
+        Empty string when ``floor_engaged`` is ``False``. Otherwise a short
+        token: ``"median_clamped"``, ``"r_below_floor"``, or
+        ``"median_clamped+r_below_floor"``.
+
+    Raises
+    ------
+    ValueError
+        If ``floor <= 0`` or ``depth_mass`` contains non-finite / negative
+        entries.
     """
     if floor <= 0.0:
         raise ValueError("floor must be > 0.")
     if depth_mass.size == 0:
-        return np.zeros(0, dtype=np.float64)
+        return np.zeros(0, dtype=np.float64), False, ""
     if not np.isfinite(depth_mass).all() or (depth_mass < 0.0).any():
         raise ValueError("depth_mass must be finite and non-negative.")
     med = float(np.median(depth_mass))
-    if med < floor:
+    median_clamped = med < floor
+    if median_clamped:
+        # bounds: median floor for numerical stability — observable via
+        # floor_engaged in CapitalWeightedCouplingResult (⊛-audit AP-#5).
         med = floor
     r: NDArray[np.float64] = (depth_mass / med).astype(np.float64, copy=False)
+    # Observability-only: detect that some per-node ratios are at or below the
+    # floor (e.g. a node with zero depth while the rest of the book is
+    # healthy). We DO NOT clamp r here — clamping would be an absolute (not
+    # scale-free) modification and would break the scale-invariance invariant
+    # tested in test_uniform_scale_invariance / test_scale_invariance_under_
+    # uniform_depth_scaling. The flag is purely informational so callers can
+    # log or fail-loud when zero-depth nodes appear (closes ⊛-audit AP-#5).
+    r_below_floor = bool(np.any(r < floor))
     if not np.isfinite(r).all():
         raise ValueError("capital ratio became non-finite.")
-    return r
+    floor_engaged = median_clamped or r_below_floor
+    if median_clamped and r_below_floor:
+        diagnostic = "median_clamped+r_below_floor"
+    elif median_clamped:
+        diagnostic = "median_clamped"
+    elif r_below_floor:
+        diagnostic = "r_below_floor"
+    else:
+        diagnostic = ""
+    return r, floor_engaged, diagnostic
 
 
 def compute_k_beta(
@@ -337,7 +400,12 @@ def build_capital_weighted_adjacency(
 
     Returns
     -------
-    :class:`CapitalWeightedCouplingResult`.
+    :class:`CapitalWeightedCouplingResult`. The result carries
+    ``floor_engaged`` (and a short ``floor_diagnostic`` token) so the caller
+    can detect when ``cfg.r_floor`` was applied to the median or any
+    per-node ratio — the silent-fallback gap closed by ⊛-audit AP-#5. The
+    coupling matrix remains valid (finite, symmetric, zero-diagonal,
+    non-negative) regardless of the flag.
     """
     _validate_baseline_adj(baseline_adj)
     n = baseline_adj.shape[0]
@@ -364,7 +432,7 @@ def build_capital_weighted_adjacency(
         )
 
     depth_mass = compute_l2_depth_mass(snapshot)
-    r_node = compute_capital_ratio(depth_mass, floor=cfg.r_floor)
+    r_node, floor_engaged, floor_diagnostic = compute_capital_ratio(depth_mass, floor=cfg.r_floor)
     beta = estimate_scalar_beta(depth_mass, beta_min=cfg.beta_min, beta_max=cfg.beta_max)
 
     # Edgewise ratio r_ij = sqrt(r_i * r_j); zero diagonal preserved.
@@ -393,4 +461,6 @@ def build_capital_weighted_adjacency(
         depth_mass=depth_mass,
         used_fallback=False,
         reason="",
+        floor_engaged=floor_engaged,
+        floor_diagnostic=floor_diagnostic,
     )

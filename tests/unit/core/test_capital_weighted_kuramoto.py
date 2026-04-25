@@ -230,7 +230,111 @@ def test_non_positive_mid_rejected() -> None:
 
 
 def test_capital_ratio_floor() -> None:
-    """compute_capital_ratio uses the floor when median is degenerate."""
+    """compute_capital_ratio uses the floor when median is degenerate.
+
+    INV-KBETA: r is finite and non-negative even when median == 0 (the
+    median is clamped up to ``floor`` so the division stays finite). The
+    floor_engaged flag MUST be ``True`` so the caller can observe the
+    event (closes ⊛-audit AP-#5).
+    """
     m = np.zeros(5, dtype=np.float64)
-    r = compute_capital_ratio(m, floor=1e-12)
-    assert np.all(r == 0.0)
+    r, floor_engaged, diagnostic = compute_capital_ratio(m, floor=1e-12)
+    assert np.all(np.isfinite(r)), (
+        "INV-KBETA VIOLATED: r must be finite even on zero depth_mass; "
+        f"observed r={r}, with depth_mass=zeros(5), floor=1e-12."
+    )
+    # All depths are zero -> r = 0 / clamped_median = 0; non-negativity holds.
+    assert np.all(r >= 0.0), f"INV-KBETA VIOLATED: r must be non-negative; observed r={r}."
+    assert floor_engaged is True, (
+        "INV-KBETA VIOLATED: floor_engaged must be True when median(depth_mass)=0; "
+        f"observed floor_engaged={floor_engaged}, expected True (closes ⊛-audit AP-#5), "
+        f"with depth_mass=zeros(5), floor=1e-12."
+    )
+    assert "median_clamped" in diagnostic, (
+        f"INV-KBETA VIOLATED: diagnostic must mention median_clamped; "
+        f"observed diagnostic='{diagnostic}', expected substring 'median_clamped'."
+    )
+
+
+def test_floor_engaged_false_for_healthy_distribution() -> None:
+    """INV-KBETA: floor flag is OFF when depth distribution is well-conditioned.
+
+    A uniform-ish, strictly-positive depth book has a strictly-positive
+    median and all r_i = m_i / median in a well-conditioned range — no
+    floor clamp should fire and floor_engaged must therefore be ``False``.
+    """
+    rng = np.random.default_rng(20260425)
+    n, lvl = 16, 5
+    snap = L2DepthSnapshot(
+        timestamp_ns=1_000_000_000_000,
+        bid_sizes=rng.uniform(1.0, 10.0, (n, lvl)).astype(np.float64),
+        ask_sizes=rng.uniform(1.0, 10.0, (n, lvl)).astype(np.float64),
+        mid_prices=rng.uniform(50.0, 100.0, (n,)).astype(np.float64),
+    )
+    cfg = CapitalWeightedCouplingConfig()
+    baseline = np.ones((n, n), dtype=np.float64) - np.eye(n, dtype=np.float64)
+    result = build_capital_weighted_adjacency(
+        baseline, snap, signal_timestamp_ns=snap.timestamp_ns, cfg=cfg
+    )
+    assert result.floor_engaged is False, (
+        "INV-KBETA VIOLATED: floor_engaged must be False on well-conditioned book; "
+        f"observed floor_engaged={result.floor_engaged}, diagnostic='{result.floor_diagnostic}', "
+        f"r_min={result.r.min():.6e}, r_max={result.r.max():.6e}, "
+        f"with N={n}, levels={lvl}, r_floor={cfg.r_floor}."
+    )
+    assert result.floor_diagnostic == "", (
+        f"INV-KBETA VIOLATED: floor_diagnostic must be empty when not engaged; "
+        f"observed='{result.floor_diagnostic}'."
+    )
+
+
+def test_floor_engaged_true_for_zero_depth_node() -> None:
+    """INV-KBETA: floor flag is ON when one node has zero depth.
+
+    Zeroing out one node's bid+ask drives that node's depth_mass to 0; the
+    median is still positive so r_i = 0 / median = 0 < r_floor and the
+    per-element below-floor detector fires. The flag must surface (the
+    raw r_i is preserved — clamping would break scale invariance), and
+    INV-KBETA (finite, symmetric, zero-diag) must still hold on the
+    resulting coupling.
+    """
+    rng = np.random.default_rng(20260425)
+    n, lvl = 16, 5
+    bid = rng.uniform(1.0, 10.0, (n, lvl)).astype(np.float64)
+    bid[0, :] = 0.0
+    ask = rng.uniform(1.0, 10.0, (n, lvl)).astype(np.float64)
+    ask[0, :] = 0.0
+    snap = L2DepthSnapshot(
+        timestamp_ns=1_000_000_000_000,
+        bid_sizes=bid,
+        ask_sizes=ask,
+        mid_prices=rng.uniform(50.0, 100.0, (n,)).astype(np.float64),
+    )
+    cfg = CapitalWeightedCouplingConfig()
+    baseline = np.ones((n, n), dtype=np.float64) - np.eye(n, dtype=np.float64)
+    result = build_capital_weighted_adjacency(
+        baseline, snap, signal_timestamp_ns=snap.timestamp_ns, cfg=cfg
+    )
+    assert result.floor_engaged is True, (
+        "INV-KBETA VIOLATED: floor_engaged must be True when a node has zero depth; "
+        f"observed floor_engaged={result.floor_engaged}, "
+        f"r_min={result.r.min():.6e}, r_floor={cfg.r_floor}, "
+        f"depth_mass[0]={result.depth_mass[0]:.6e}."
+    )
+    assert "r_below_floor" in result.floor_diagnostic, (
+        f"INV-KBETA VIOLATED: diagnostic must mention r_below_floor on zero-depth node; "
+        f"observed diagnostic='{result.floor_diagnostic}'."
+    )
+    # INV-KBETA preservation: coupling stays finite, symmetric, zero-diagonal.
+    invariant_violations: list[str] = []
+    if not np.all(np.isfinite(result.coupling)):
+        invariant_violations.append("non-finite coupling")
+    if not np.allclose(result.coupling, result.coupling.T, atol=1e-10):
+        invariant_violations.append("asymmetric coupling")
+    if not np.allclose(np.diag(result.coupling), 0.0, atol=1e-12):
+        invariant_violations.append("non-zero diagonal")
+    assert not invariant_violations, (
+        "INV-KBETA VIOLATED on zero-depth-node case despite floor engagement; "
+        f"violations={invariant_violations}, with N={n}, levels={lvl}, "
+        f"r_floor={cfg.r_floor}."
+    )
