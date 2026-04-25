@@ -738,3 +738,43 @@ rebus:
     test_type: unit_test
     falsification: "external safety signal leaves gate active"
     priority: P0
+
+# ═══════════════════════════════════════════════════
+# RESEARCH EXTENSIONS (opt-in, experimental, no alpha claim)
+# ═══════════════════════════════════════════════════
+
+capital_weighted_kuramoto:
+  kbeta_bounds:
+    id: INV-KBETA
+    type: universal
+    statement: "K_ij^β finite, non-negative, symmetric, zero on diagonal; β ∈ [beta_min, beta_max]; K_ij invariant under uniform multiplicative depth scaling"
+    test_type: property_test
+    falsification: "K_ij contains NaN/Inf, becomes negative, loses symmetry, has nonzero diagonal, β leaves [beta_min, beta_max], or differs after multiplying all bid/ask sizes by c>0"
+    priority: P0
+
+ricci_flow:
+  flow_surgery_safety:
+    id: INV-RC-FLOW
+    type: universal
+    statement: "Discrete Ricci flow w_ij <- w_ij - eta·kappa·w_ij followed by neckpinch surgery preserves finiteness, non-negativity, symmetry, zero diagonal; with preserve_total_edge_mass=True total mass is conserved; with preserve_connectedness=True bridge edges are clamped not removed; surgery removes at most floor(max_surgery_fraction · n_active_edges) edges"
+    test_type: property_test
+    falsification: "Post-step weights are non-finite, negative, asymmetric, have nonzero diagonal; bridge edge removed under preserve_connectedness=True; surgery removes more than the cap"
+    priority: P0
+
+robust_free_energy:
+  robust_dominates_nominal:
+    id: INV-FE-ROBUST
+    type: universal
+    statement: "F_robust(metrics, ambiguity) ≥ F_nominal(metrics) for any non-negative box ambiguity set; equality holds when all radii are zero; F_robust is monotone non-decreasing in any single radius; unknown metrics and negative radii are rejected fail-closed; the base EnergyModel state is never mutated"
+    test_type: property_test
+    falsification: "F_robust < F_nominal; nonzero ambiguity yields F_robust = F_nominal trivially; increasing a radius decreases F_robust; unknown/negative radii silently accepted; base model output changes after a DR-FREE call"
+    priority: P0
+
+higher_order_kuramoto:
+  sparse_triadic_safety:
+    id: INV-HO-SPARSE
+    type: universal
+    statement: "Sparse triadic kernel preserves R(t) ∈ [0,1] over the trajectory, reduces to pairwise dynamics when sigma2=0, agrees with the dense reference engine in triangle count on small complete graphs, is deterministic under fixed inputs, and never allocates O(N^3) auxiliary tensors when dense_debug=False"
+    test_type: property_test
+    falsification: "R outside [0,1]; sigma2=0 produces nonzero triadic RHS; sparse triangle count differs from dense; identical inputs produce different outputs; peak heap exceeds the c·n_triangles ceiling for sparse graphs"
+    priority: P0
