@@ -258,9 +258,7 @@ class HigherOrderKuramotoEngine:
     def _order_parameter(theta: NDArray[np.float64]) -> float:
         """R = |mean(exp(iθ))|."""
         z = np.exp(1j * theta).mean()
-        return float(
-            np.clip(np.abs(z), 0.0, 1.0)
-        )  # INV-K1: R = |mean(exp(iθ))| ∈ [0,1]
+        return float(np.clip(np.abs(z), 0.0, 1.0))  # INV-K1: R = |mean(exp(iθ))| ∈ [0,1]
 
     def run_from_prices(
         self,
@@ -275,9 +273,7 @@ class HigherOrderKuramotoEngine:
 
         with np.errstate(invalid="ignore"):
             corr = np.corrcoef(tail, rowvar=False)
-        corr_arr: NDArray[np.float64] = np.asarray(
-            np.nan_to_num(corr, nan=0.0), dtype=np.float64
-        )
+        corr_arr: NDArray[np.float64] = np.asarray(np.nan_to_num(corr, nan=0.0), dtype=np.float64)
 
         return self.run(corr_arr, seed=seed)
 
@@ -287,4 +283,284 @@ __all__ = [
     "HigherOrderKuramotoResult",
     "find_triangles",
     "build_triangle_index",
+    "SparseTriangleIndex",
+    "HigherOrderSparseConfig",
+    "build_sparse_triangle_index",
+    "validate_sparse_triangle_index",
+    "triadic_rhs_sparse",
+    "run_sparse_higher_order",
 ]
+
+
+# ── Sparse simplicial higher-order Kuramoto (opt-in, additive) ────────────
+
+
+@dataclass(frozen=True, slots=True)
+class SparseTriangleIndex:
+    """Compressed triangle list for the 2-simplex skeleton.
+
+    All three index arrays share length ``T`` (number of triangles).
+    Each row ``(i[t], j[t], k[t])`` satisfies ``i < j < k`` and the index
+    is sorted lexicographically with no duplicates.
+
+    Attributes
+    ----------
+    i, j, k:
+        ``int64`` arrays of triangle vertex indices.
+    n_nodes:
+        Total number of nodes in the underlying graph.
+    """
+
+    i: NDArray[np.int64]
+    j: NDArray[np.int64]
+    k: NDArray[np.int64]
+    n_nodes: int
+
+    def __post_init__(self) -> None:
+        if not (self.i.shape == self.j.shape == self.k.shape):
+            raise ValueError("SparseTriangleIndex i/j/k must share shape.")
+        if self.i.ndim != 1:
+            raise ValueError("SparseTriangleIndex arrays must be 1D.")
+        if self.n_nodes <= 0:
+            raise ValueError("n_nodes must be > 0.")
+
+    @property
+    def n_triangles(self) -> int:
+        return int(self.i.size)
+
+
+@dataclass(frozen=True, slots=True)
+class HigherOrderSparseConfig:
+    """Hyperparameters for the sparse triadic kernel.
+
+    Attributes
+    ----------
+    sigma1:
+        Pairwise coupling strength.
+    sigma2:
+        Triadic coupling strength.
+    max_triangles:
+        Hard upper bound on triangle count; exceeding this triggers
+        :class:`ValueError`. ``None`` disables the cap.
+    dense_debug:
+        When True, the build path may allocate auxiliary ``O(N^2)``
+        tensors for cross-validation against
+        :class:`HigherOrderKuramotoEngine`. False forbids any allocation
+        whose size would exceed ``c * n_triangles`` (see
+        :func:`triadic_rhs_sparse`).
+    """
+
+    sigma1: float = 1.0
+    sigma2: float = 0.5
+    max_triangles: int | None = None
+    dense_debug: bool = False
+
+    def __post_init__(self) -> None:
+        if not np.isfinite([self.sigma1, self.sigma2]).all():
+            raise ValueError("sigma1/sigma2 must be finite.")
+        if self.max_triangles is not None and self.max_triangles < 0:
+            raise ValueError("max_triangles must be >= 0 or None.")
+
+
+def validate_sparse_triangle_index(index: SparseTriangleIndex) -> None:
+    """Verify ``i<j<k``, in-bounds, deduped, lex-sorted.
+
+    Raises :class:`ValueError` on any violation.
+    """
+    if index.i.dtype != np.int64 or index.j.dtype != np.int64 or index.k.dtype != np.int64:
+        raise ValueError("SparseTriangleIndex arrays must be int64.")
+    if index.n_triangles == 0:
+        return
+    if (index.i < 0).any() or (index.k >= index.n_nodes).any():
+        raise ValueError("SparseTriangleIndex contains out-of-range indices.")
+    if not (index.i < index.j).all() or not (index.j < index.k).all():
+        raise ValueError("SparseTriangleIndex rows must satisfy i<j<k.")
+    rows = np.stack([index.i, index.j, index.k], axis=1)
+    # Lexicographic sort check (rows must be strictly increasing).
+    diffs = np.diff(rows, axis=0)
+    if rows.shape[0] > 1:
+        # First non-zero element of each diff row determines order.
+        nonzero = np.where(diffs != 0)
+        if nonzero[0].size > 0:
+            first_idx = np.minimum.reduceat(
+                nonzero[1],
+                np.unique(nonzero[0], return_index=True)[1],
+            )
+            unique_rows, first_pos = np.unique(nonzero[0], return_index=True)
+            for row_idx, col_idx in zip(unique_rows.tolist(), first_idx.tolist(), strict=True):
+                if diffs[row_idx, col_idx] < 0:
+                    raise ValueError("SparseTriangleIndex must be lexicographically sorted.")
+        # Any diff row that is all zero indicates a duplicate triangle.
+        zero_rows = (diffs == 0).all(axis=1)
+        if zero_rows.any():
+            raise ValueError("SparseTriangleIndex contains duplicate triangles.")
+
+
+def build_sparse_triangle_index(
+    adj: NDArray[np.bool_],
+    *,
+    max_triangles: int | None = None,
+) -> SparseTriangleIndex:
+    """Construct a :class:`SparseTriangleIndex` from a boolean adjacency.
+
+    Iterates only over the upper triangle. Raises :class:`ValueError` if
+    the discovered triangle count exceeds ``max_triangles``.
+    """
+    if adj.ndim != 2 or adj.shape[0] != adj.shape[1]:
+        raise ValueError("adj must be a square matrix.")
+    n = int(adj.shape[0])
+    A = np.asarray(adj, dtype=bool, order="C")
+    np.fill_diagonal(A, False)
+    if not np.array_equal(A, A.T):
+        raise ValueError("adj must be symmetric.")
+
+    rows_i: list[int] = []
+    rows_j: list[int] = []
+    rows_k: list[int] = []
+    for i in range(n):
+        nb_i = np.flatnonzero(A[i])
+        nb_i = nb_i[nb_i > i]
+        for j in nb_i.tolist():
+            common = np.flatnonzero(A[i] & A[j])
+            common = common[common > j]
+            for k in common.tolist():
+                rows_i.append(i)
+                rows_j.append(j)
+                rows_k.append(k)
+                if max_triangles is not None and len(rows_i) > max_triangles:
+                    raise ValueError(f"triangle count exceeds max_triangles={max_triangles}.")
+
+    idx = SparseTriangleIndex(
+        i=np.asarray(rows_i, dtype=np.int64),
+        j=np.asarray(rows_j, dtype=np.int64),
+        k=np.asarray(rows_k, dtype=np.int64),
+        n_nodes=n,
+    )
+    validate_sparse_triangle_index(idx)
+    return idx
+
+
+def triadic_rhs_sparse(
+    theta: NDArray[np.float64],
+    index: SparseTriangleIndex,
+    sigma2: float,
+) -> NDArray[np.float64]:
+    """Sparse triadic RHS contribution for higher-order Kuramoto.
+
+    For each triangle ``(i, j, k)`` we accumulate three deterministic
+    terms via :func:`numpy.add.at`:
+
+    .. math::
+
+        \\Delta\\dot\\theta_i &+\\!= \\sin(2\\theta_j - \\theta_k - \\theta_i)\\\\
+        \\Delta\\dot\\theta_j &+\\!= \\sin(2\\theta_i - \\theta_k - \\theta_j)\\\\
+        \\Delta\\dot\\theta_k &+\\!= \\sin(2\\theta_i - \\theta_j - \\theta_k)
+
+    The output is multiplied by ``sigma2``. No ``O(N^2)`` or ``O(N^3)``
+    auxiliary buffer is allocated — total work is ``O(T)`` where ``T``
+    is the triangle count.
+    """
+    validate_sparse_triangle_index(index)
+    n = index.n_nodes
+    if theta.shape != (n,):
+        raise ValueError(f"theta shape {theta.shape} != ({n},).")
+
+    out = np.zeros(n, dtype=np.float64)
+    if index.n_triangles == 0 or sigma2 == 0.0:
+        return out
+
+    ti = theta[index.i]
+    tj = theta[index.j]
+    tk = theta[index.k]
+
+    term_i = np.sin(2.0 * tj - tk - ti)
+    term_j = np.sin(2.0 * ti - tk - tj)
+    term_k = np.sin(2.0 * ti - tj - tk)
+
+    np.add.at(out, index.i, term_i)
+    np.add.at(out, index.j, term_j)
+    np.add.at(out, index.k, term_k)
+
+    out *= float(sigma2)
+    return out
+
+
+def _order_parameter_sparse(theta: NDArray[np.float64]) -> float:
+    z = np.exp(1j * theta).mean()
+    # INV-K1: R = |mean(exp(iθ))| ∈ [0,1].
+    return float(np.clip(np.abs(z), 0.0, 1.0))
+
+
+def run_sparse_higher_order(
+    adj: NDArray[np.bool_],
+    omega: NDArray[np.float64],
+    theta0: NDArray[np.float64],
+    *,
+    cfg: HigherOrderSparseConfig,
+    dt: float,
+    steps: int,
+) -> HigherOrderKuramotoResult:
+    """Integrate the sparse higher-order Kuramoto ODE with RK4.
+
+    Parameters
+    ----------
+    adj:
+        ``(N, N)`` boolean adjacency matrix.
+    omega, theta0:
+        ``(N,)`` natural frequencies and initial phases.
+    cfg:
+        :class:`HigherOrderSparseConfig`.
+    dt, steps:
+        Integration step and total step count.
+
+    Returns
+    -------
+    :class:`HigherOrderKuramotoResult`.
+    """
+    if dt <= 0.0:
+        raise ValueError("dt must be > 0.")
+    if steps < 1:
+        raise ValueError("steps must be >= 1.")
+
+    n = int(adj.shape[0])
+    if omega.shape != (n,) or theta0.shape != (n,):
+        raise ValueError("omega/theta0 shape must match adj.")
+
+    triangle_index = build_sparse_triangle_index(adj, max_triangles=cfg.max_triangles)
+    weighted_adj = adj.astype(np.float64)
+    np.fill_diagonal(weighted_adj, 0.0)
+
+    def rhs(t_state: NDArray[np.float64]) -> tuple[NDArray[np.float64], float]:
+        diff = t_state[np.newaxis, :] - t_state[:, np.newaxis]
+        pairwise = cfg.sigma1 * (weighted_adj * np.sin(diff)).sum(axis=1)
+        triadic = triadic_rhs_sparse(t_state, triangle_index, cfg.sigma2)
+        magnitude = float(np.sqrt(np.sum(triadic**2)))
+        return omega + pairwise + triadic, magnitude
+
+    phases = np.empty((steps + 1, n), dtype=np.float64)
+    R_arr = np.empty(steps + 1, dtype=np.float64)
+    triadic_arr = np.empty(steps + 1, dtype=np.float64)
+    time_arr = np.arange(steps + 1, dtype=np.float64) * dt
+
+    theta = theta0.astype(np.float64, copy=True)
+    phases[0] = theta
+    R_arr[0] = _order_parameter_sparse(theta)
+    triadic_arr[0] = 0.0
+
+    for s in range(steps):
+        k1, m1 = rhs(theta)
+        k2, m2 = rhs(theta + 0.5 * dt * k1)
+        k3, m3 = rhs(theta + 0.5 * dt * k2)
+        k4, m4 = rhs(theta + dt * k3)
+        theta = theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+        phases[s + 1] = theta
+        R_arr[s + 1] = _order_parameter_sparse(theta)
+        triadic_arr[s + 1] = (m1 + m2 + m3 + m4) / 4.0
+
+    return HigherOrderKuramotoResult(
+        phases=phases,
+        order_parameter=R_arr,
+        time=time_arr,
+        n_triangles=triangle_index.n_triangles,
+        triadic_contribution=triadic_arr,
+    )

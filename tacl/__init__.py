@@ -9,6 +9,12 @@ from .behavioral_contract import (
     ContractBreach,
 )
 from .degradation import DegradationPolicy, DegradationReport, apply_degradation
+from .dr_free import (
+    AmbiguitySet,
+    DRFreeEnergyModel,
+    DRFreeResult,
+    robust_energy_state,
+)
 from .energy_model import (
     DEFAULT_THRESHOLDS,
     DEFAULT_WEIGHTS,
@@ -64,4 +70,8 @@ __all__ = [
     "clear_registered_protocols",
     "apply_external_controller",
     "protocol_schema_keys",
+    "AmbiguitySet",
+    "DRFreeEnergyModel",
+    "DRFreeResult",
+    "robust_energy_state",
 ]
