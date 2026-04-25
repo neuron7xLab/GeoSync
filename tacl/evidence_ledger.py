@@ -58,10 +58,18 @@ from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal
+
+# INV-CRITICALITY: substrate decision signals tracked alongside evidence.
+# Mirrors tacl/dr_free.robust_energy_state and tacl/physics_native_kernel
+# KernelDecision.state. Kept as Literal (not Enum) for cross-module type
+# unification.
+DecisionSignalKind = Literal["NORMAL", "WARNING", "DORMANT"]
+_VALID_SIGNAL_VALUES: Final[frozenset[str]] = frozenset({"NORMAL", "WARNING", "DORMANT"})
 
 __all__ = [
     "BioClaimViolation",
+    "DecisionSignalKind",
     "EvidenceClaim",
     "EvidenceLedger",
     "EvidenceRegistry",
@@ -130,6 +138,13 @@ class EvidenceClaim:
     registered_at_ns: int
     pre_registered: bool
     notes: str | None = None
+    # INV-CRITICALITY (Bak 1996; Langton 1990; Mora-Bialek 2011; Beggs-Plenz 2003).
+    # γ = 2·H + 1 (DFA-1 Hurst). Substrate is intelligence-capable iff
+    # γ ∈ [1−ε, 1+ε]. Outside the metastable window any non-DORMANT signal
+    # is rejected (fail-closed). None ⇒ legacy claim, criticality bypassed.
+    substrate_criticality_at_decision: float | None = None
+    criticality_window_confirmed: bool = False
+    signal: DecisionSignalKind = "NORMAL"
 
 
 @dataclass(frozen=True, slots=True)
@@ -255,6 +270,25 @@ def validate_claim(
 
     if claim.baseline_n < 1 or claim.intervention_n < 1:
         return False, "n < 1 not permitted"
+
+    # INV-CRITICALITY: when γ is recorded, it must be a finite positive
+    # number, and a non-confirmed window forces the claim's signal to
+    # DORMANT (fail-closed). γ is None ⇒ legacy claim, no check.
+    gamma = claim.substrate_criticality_at_decision
+    if gamma is not None:
+        if not math.isfinite(gamma):
+            return False, f"non-finite substrate_criticality_at_decision: {gamma!r}"
+        if gamma <= 0.0:
+            return False, f"substrate_criticality_at_decision must be > 0 (γ > 0), got {gamma}"
+        if claim.signal not in _VALID_SIGNAL_VALUES:
+            return False, f"signal={claim.signal!r} not in {sorted(_VALID_SIGNAL_VALUES)}"
+        if not claim.criticality_window_confirmed and claim.signal != "DORMANT":
+            return (
+                False,
+                "INV-CRITICALITY: criticality_window_confirmed=False with "
+                f"signal={claim.signal!r}; non-DORMANT signals require an "
+                "explicitly confirmed criticality window",
+            )
 
     return True, None
 
@@ -520,6 +554,19 @@ def _claim_from_dict(raw: dict[str, object]) -> EvidenceClaim:
     notes_raw = raw.get("notes")
     if notes_raw is not None and not isinstance(notes_raw, str):
         raise ValueError("notes must be str or null")
+    # INV-CRITICALITY backward-compat: legacy JSON without these fields
+    # deserializes with default sentinels; γ=None ⇒ legacy claim.
+    sub_crit = _optional_float(raw, "substrate_criticality_at_decision")
+    crit_confirmed_raw = raw.get("criticality_window_confirmed", False)
+    if not isinstance(crit_confirmed_raw, bool):
+        raise ValueError(
+            f"criticality_window_confirmed must be bool, got {type(crit_confirmed_raw).__name__}"
+        )
+    signal_raw = raw.get("signal", "NORMAL")
+    if not isinstance(signal_raw, str) or signal_raw not in _VALID_SIGNAL_VALUES:
+        raise ValueError(
+            f"signal must be one of {sorted(_VALID_SIGNAL_VALUES)}, got {signal_raw!r}"
+        )
     return EvidenceClaim(
         hypothesis=hypothesis,
         baseline_mean=_require_float(raw, "baseline_mean"),
@@ -535,6 +582,9 @@ def _claim_from_dict(raw: dict[str, object]) -> EvidenceClaim:
         registered_at_ns=_require_int(raw, "registered_at_ns"),
         pre_registered=_require_bool(raw, "pre_registered"),
         notes=notes_raw,
+        substrate_criticality_at_decision=sub_crit,
+        criticality_window_confirmed=crit_confirmed_raw,
+        signal=signal_raw,  # type: ignore[arg-type]
     )
 
 
