@@ -32,6 +32,8 @@ AUDIT NOTE on complexity:
 
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
 from numpy.typing import NDArray
 from scipy.linalg import expm
@@ -86,9 +88,7 @@ class GraphDiffusionEngine:
         if curvature is not None:
             kappa = np.asarray(curvature, dtype=np.float64)
             if kappa.shape != (n, n):
-                raise ValueError(
-                    f"curvature must match adjacency: {kappa.shape} vs {A.shape}"
-                )
+                raise ValueError(f"curvature must match adjacency: {kappa.shape} vs {A.shape}")
             W = A * self._D_0 * np.exp(kappa)
         else:
             W = A * self._D_0
@@ -136,7 +136,7 @@ class GraphDiffusionEngine:
         total = rho_t.sum()
         if total > 0:
             rho_t = rho_t / total
-        return rho_t
+        return cast(NDArray[np.float64], rho_t)
 
     @staticmethod
     def volatility_front(
@@ -163,7 +163,7 @@ class GraphDiffusionEngine:
         indices = np.where(rho > threshold)[0]
         if asset_names is not None:
             return [asset_names[i] for i in indices]
-        return indices.tolist()
+        return [int(i) for i in indices]
 
     def laplacian_eigenvalues(self, L: NDArray[np.float64]) -> NDArray[np.float64]:
         """Compute eigenvalues of graph Laplacian.

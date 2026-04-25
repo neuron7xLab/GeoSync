@@ -41,7 +41,7 @@ def lorentz_factor(
     v_ratio = velocity / c
 
     # Clip to prevent numerical issues
-    v_ratio_sq = np.minimum(v_ratio ** 2, 0.9999)
+    v_ratio_sq = np.minimum(v_ratio**2, 0.9999)
 
     gamma = 1.0 / np.sqrt(1.0 - v_ratio_sq)
 
@@ -80,7 +80,7 @@ def lorentz_transform(
 
     # Lorentz transformation
     x_prime = gamma * (position - velocity * time)
-    t_prime = gamma * (time - velocity * position / (c ** 2))
+    t_prime = gamma * (time - velocity * position / (c**2))
 
     return x_prime, t_prime
 
@@ -171,7 +171,7 @@ def velocity_addition(
         >>> # v_total < c (information speed limit preserved)
     """
     numerator = v1 + v2
-    denominator = 1.0 + (v1 * v2) / (c ** 2)
+    denominator = 1.0 + (v1 * v2) / (c**2)
 
     # Handle division by zero
     if abs(denominator) < 1e-10:
@@ -180,7 +180,7 @@ def velocity_addition(
     v_combined = numerator / denominator
 
     # Ensure doesn't exceed speed of information
-    return min(abs(v_combined), c) * np.sign(v_combined)
+    return float(min(abs(v_combined), c) * np.sign(v_combined))
 
 
 def time_dilation_factor(

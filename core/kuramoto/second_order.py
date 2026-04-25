@@ -137,16 +137,16 @@ class SecondOrderKuramotoEngine:
         if np.any(self._damping < 0):
             raise ValueError("Damping must be non-negative for all oscillators.")
 
-        self._v0 = (
-            velocity0.copy() if velocity0 is not None
-            else np.zeros(N, dtype=np.float64)
-        )
+        self._v0 = velocity0.copy() if velocity0 is not None else np.zeros(N, dtype=np.float64)
 
         _logger.info(
             "SecondOrderKuramotoEngine: N=%d, K=%.4f, m=[%.3f, %.3f], d=[%.3f, %.3f]",
-            N, config.K,
-            float(np.min(self._mass)), float(np.max(self._mass)),
-            float(np.min(self._damping)), float(np.max(self._damping)),
+            N,
+            config.K,
+            float(np.min(self._mass)),
+            float(np.max(self._mass)),
+            float(np.min(self._damping)),
+            float(np.max(self._damping)),
         )
 
     def run(self) -> SecondOrderResult:
@@ -198,12 +198,17 @@ class SecondOrderKuramotoEngine:
     def _coupling(self, theta: NDArray[np.float64]) -> NDArray[np.float64]:
         """Compute coupling forces Σ_j A_ij sin(θ_j - θ_i)."""
         diff = theta[np.newaxis, :] - theta[:, np.newaxis]
-        return (self._adj * np.sin(diff)).sum(axis=1)
+        result: NDArray[np.float64] = (self._adj * np.sin(diff)).sum(axis=1)
+        return result
 
     @staticmethod
-    def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray, NDArray]:
+    def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         rng = np.random.default_rng(cfg.seed)
-        omega = cfg.omega.astype(np.float64, copy=False) if cfg.omega is not None else rng.standard_normal(cfg.N)
+        omega = (
+            cfg.omega.astype(np.float64, copy=False)
+            if cfg.omega is not None
+            else rng.standard_normal(cfg.N)
+        )
         theta0 = (
             cfg.theta0.astype(np.float64, copy=False)
             if cfg.theta0 is not None
@@ -212,7 +217,7 @@ class SecondOrderKuramotoEngine:
         return omega, theta0
 
     @staticmethod
-    def _resolve_adj(cfg: KuramotoConfig) -> NDArray:
+    def _resolve_adj(cfg: KuramotoConfig) -> NDArray[np.float64]:
         N, K = cfg.N, cfg.K
         if cfg.adjacency is not None:
             adj = K * cfg.adjacency.astype(np.float64, copy=True)

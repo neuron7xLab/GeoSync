@@ -39,7 +39,7 @@ class PhysicsEngineResult:
     energy_conserved: bool
     energy_delta: float
     risk_gate_allowed: bool
-    risk_gate_details: dict
+    risk_gate_details: dict[str, float | bool]
     volatility_front: list[int | str]
     diffusion_density: NDArray[np.float64]
     landauer_efficiency: float
