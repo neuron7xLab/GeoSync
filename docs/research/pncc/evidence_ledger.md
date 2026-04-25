@@ -201,8 +201,11 @@ Skip rules (in order):
 
 ## Source anchors
 
-See [`CANONS.md`](./CANONS.md) §5 for the full citation list:
-Landauer 2025/2026 review, CN101 (Bennett 1973), Mpemba arXiv (Lapolla
-& Godec 2019), Vaire / Ice River reversible-hardware notes, plus the
-pre-registration / effect-size / CI methodology references (COS,
-Cohen 1988, Lakens 2013, APA 7 §3.7).
+See [`CANONS.md`](./CANONS.md) §5 for the canonical citation list.
+Foundational anchors only: Landauer 1961 (*IBM J. Res. Dev.* 5, 183),
+Bennett 1973 (*IBM J. Res. Dev.* 17, 525) on reversible computing,
+Friston 2010 (*Nat. Rev. Neurosci.* 11, 127) on the free energy
+principle, plus the pre-registration / effect-size / CI methodology
+references (COS, Cohen 1988, Lakens 2013, APA 7 §3.7). A 2026-04-25
+audit struck five unverified 2025/2026 anchors; see CANONS.md §5 for
+the audit note.

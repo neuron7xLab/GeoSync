@@ -20,9 +20,9 @@ end of this document.
 These canons govern *every* PNCC artefact. They are non-negotiable.
 
 1. **Physics-first, not biology-first.** PNCC primitives are
-   thermodynamic / information-theoretic (Landauer bound, Mpemba
-   relaxation, reversible computation, free energy). Biological
-   analogies, if any, are descriptive only and never load-bearing.
+   thermodynamic / information-theoretic (Landauer bound, reversible
+   computation, free energy). Biological analogies, if any, are
+   descriptive only and never load-bearing.
 2. **No claim without evidence.** No cognitive-performance,
    productivity, or latency claim is valid without a registered
    `EvidenceClaim` (baseline, intervention, n ≥ 30 per arm, 95% CI,
@@ -66,37 +66,37 @@ two-sample stat test, 95% CI, and effect size in the registered
 
 ---
 
-## 3. The 6 INVARIANTS
+## 3. The 5 INVARIANTS
 
 Each invariant has a statement, a falsification axis, and a test
 pointer. P0 = blocking; P1 = high-priority; P2 = nice-to-have.
+
+> **Historical note.** A sixth invariant tied to the proposed PNCC-B
+> initializer was struck during 2026-04-25 citation cleanup: the
+> empirical anchor we had on file was an unverified arXiv ID, and the
+> module was never built. Any future proposal for that primitive must
+> arrive with a verifiable peer-reviewed reference and re-enter via a
+> new pre-registered hypothesis row.
 
 ### INV-LANDAUER-PROXY (P1, conservation)
 
 **Statement.** Any reversible-or-erasure-aware kernel reports a
 non-negative information-erasure energy ≥ k·T·ln 2 per logical bit
-erased (Landauer 2025/2026 review).
+erased (Landauer 1961, *IBM J. Res. Dev.* 5, 183).
 **Falsification axis.** A single ledgered measurement of erasure
 energy below the Landauer bound, with CI excluding the bound.
-**Test pointer.** `core/physics/thermodynamic_budget.py` (sibling PR).
+**Test pointer.** `core/physics/thermodynamic_budget.py` (PNCC-A,
+merged: PR #378).
 
 ### INV-REVERSIBLE-GATE (P0, universal)
 
 **Statement.** Every reversible-gate primitive has zero net
 information erasure on its forward+inverse composition; its energy
-ledger is bit-balanced.
+ledger is bit-balanced (Bennett 1973, *IBM J. Res. Dev.* 17, 525).
 **Falsification axis.** A reversible composition with non-zero net
 erasure energy at p < 0.01 over n ≥ 30 invocations.
-**Test pointer.** `core/physics/reversible_gate.py` (sibling PR).
-
-### INV-MPEMPA-INIT (P1, asymptotic)
-
-**Statement.** Mpemba-style initialization reaches a target relaxed
-state in fewer steps than ambient initialization, evaluated under
-ledgered baseline / intervention with CI95 excluding parity.
-**Falsification axis.** A registered claim with effect_size ≤ 0 and
-CI95 excluding any positive value.
-**Test pointer.** `core/physics/mpemba_initializer.py` (sibling PR).
+**Test pointer.** `core/physics/reversible_gate.py` (PNCC-C, merged:
+PR #380).
 
 ### INV-FREE-ENERGY (P0, monotonic)
 
@@ -114,7 +114,10 @@ action whose composite distress T ≥ entry threshold (matches
 GeoSync `INV-CB8` cryptobiosis safety).
 **Falsification axis.** A ledgered session with T ≥ entry that
 nevertheless dispatched.
-**Test pointer.** `tacl/cns_proxy_adapter.py` (sibling PR).
+**Test pointer.** Inherits from GeoSync `INV-CB8` cryptobiosis safety
+test suite; a dedicated CNS-proxy adapter is not yet implemented and
+does not block the canon — the cryptobiosis layer already enforces
+the underlying T ≥ entry refusal.
 
 ### INV-NO-BIO-CLAIM (P0, universal)
 
@@ -159,15 +162,24 @@ the canonical disclaimer markers.
 
 ## 5. Source anchors
 
-- **Landauer bound.** R. Landauer, *IBM J. Res. Dev.* 5 (1961) 183;
-  modern review: 2025/2026 IEEE Trans. Inf. Theory and refs.
-- **CN101 reversible computing.** Bennett, *IBM J. Res. Dev.* 17
-  (1973) 525; CN101 design notes.
-- **Mpemba effect (information-theoretic).**
-  Lapolla & Godec, arXiv:1907.05799 (information-Mpemba); follow-on
-  works on relaxation-time anomalies in non-equilibrium systems.
-- **Reversible computing hardware.** Vaire Computing white papers;
-  Ice River Lab notes (cryogenic reversible logic).
+Only foundational, peer-reviewed, decades-stable references are kept
+here. A 2026-04-25 audit removed five unverified 2025/2026
+references that could not be located in any indexable venue;
+engineering claims that previously rested on those references have
+been restructured to depend only on the foundational anchors below.
+
+- **Landauer's principle.** R. Landauer, *IBM J. Res. Dev.* 5 (1961)
+  183 — minimum energy of irreversible bit erasure ≥ k·T·ln 2.
+- **Reversible computing.** C. H. Bennett, *IBM J. Res. Dev.* 17
+  (1973) 525 ("Logical reversibility of computation"); Bennett,
+  *Int. J. Theor. Phys.* 21 (1982) 905 (thermodynamics of
+  computation).
+- **Free energy principle.** K. Friston, *Nat. Rev. Neurosci.* 11
+  (2010) 127 ("The free-energy principle: a unified brain theory?")
+  — variational free energy minimization in active inference.
+- **Distributionally Robust Optimization.** Generic theoretical
+  reference for the DR-FREE-style worst-case formulation; no
+  specific 2025/2026 paper is asserted here.
 - **Pre-registration practice.** COS Open Science Framework
   guidelines; Lakens (2013) on effect sizes; APA 7 §3.7 on CI
   reporting.

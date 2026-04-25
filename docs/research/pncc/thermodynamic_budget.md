@@ -162,16 +162,17 @@ NaN / Inf / negative inputs raise `ValueError`.
 
 ## Source anchor
 
-Landauer's principle (1961) bounds the minimum energy of irreversible
-information erasure at `kT · ln(2)` per bit. Recent quantum many-body
-experiments have probed this bound directly:
+R. Landauer, *"Irreversibility and heat generation in the computing
+process"*, IBM J. Res. Dev. 5 (1961) 183. The principle establishes
+that the minimum energy dissipated by erasing one bit of classical
+information is bounded below by `kT · ln(2)`.
 
-> *Probing Landauer's principle in quantum many-body systems*,
-> Nature Physics, 2025.
-
-This module is a **proxy** that tracks budget over orchestration steps;
-it does **not** claim to compute physical work. The use of `ln(2)` is
-the dimensionless mapping `1 bit erased ↔ ln(2) units of proxy work`.
+This module is a **proxy** that tracks budget over orchestration
+steps; it does **not** claim to compute physical work. The use of
+`ln(2)` is the dimensionless mapping
+`1 bit erased ↔ ln(2) units of proxy work`. No claim is made about
+the empirical attainability of the Landauer bound on any specific
+hardware platform.
 
 ---
 

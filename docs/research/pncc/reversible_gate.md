@@ -26,12 +26,14 @@ addresses, never object identity / memory address based**.
 * C. H. Bennett, *"Logical reversibility of computation"*, IBM J. Res. Dev.
   17(6):525–532 (1973). The principle that logically reversible computation
   can in principle be carried out at arbitrarily low energy cost.
-* **Vaire / Ice River** CMOS energy-recovery proof-point (EE Times, 2026):
-  industrial demonstration that adiabatic / reversible logic can recover a
-  meaningful fraction of dissipated energy in real silicon. Treated here as
-  an *engineering anchor* for the Bennett principle, not as a claim that the
-  PNCC gate operates at the physical reversibility limit — it operates at
-  the **system-level audit-trail** layer.
+* C. H. Bennett, *"The thermodynamics of computation — a review"*,
+  Int. J. Theor. Phys. 21:905–940 (1982). Establishes the
+  thermodynamic equivalence of logical and physical reversibility.
+
+The PNCC reversible gate operates at the **system-level audit-trail**
+layer; it does not claim to operate at the physical reversibility
+limit and does not depend on any specific reversible-silicon
+demonstration.
 
 ## 3. 7 CANONS reference
 

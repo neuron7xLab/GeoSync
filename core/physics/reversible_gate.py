@@ -25,7 +25,8 @@ Contract (universal):
 References:
     * C. H. Bennett, "Logical reversibility of computation",
       IBM J. Res. Dev. 17(6):525-532 (1973).
-    * Vaire / Ice River CMOS energy-recovery proof-point (EE Times, 2026).
+    * C. H. Bennett, "The thermodynamics of computation - a review",
+      Int. J. Theor. Phys. 21:905-940 (1982).
 
 No-bio claim:
     This module audits **system-level** decision reversibility. It makes no

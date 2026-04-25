@@ -55,9 +55,11 @@ INV-HPC2 (universal):
 
 Source anchor
 -------------
-Landauer's principle has been probed at the quantum many-body scale
-(Nature Physics, 2025). This module is a *proxy* tracking budget over
-orchestration steps; it does not claim to compute physical work.
+R. Landauer, "Irreversibility and heat generation in the computing
+process", IBM J. Res. Dev. 5 (1961) 183. This module is a *proxy*
+tracking budget over orchestration steps; it does not claim to
+compute physical work, and makes no claim of empirical attainment of
+the Landauer bound on any specific hardware.
 """
 
 from __future__ import annotations
