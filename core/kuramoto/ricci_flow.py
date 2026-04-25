@@ -267,10 +267,26 @@ def detect_neckpinch_candidates(
 # ── Surgery ────────────────────────────────────────────────────────────────
 
 
-def _is_bridge(graph: nx.Graph, edge: tuple[int, int]) -> bool:
-    if not graph.has_edge(*edge):
-        return False
-    return edge in set(nx.bridges(graph)) or (edge[1], edge[0]) in set(nx.bridges(graph))
+def _canonical_edge(edge: tuple[int, int]) -> tuple[int, int]:
+    """Return ``(i, j)`` with ``i < j`` for safe frozenset membership.
+
+    ``nx.bridges`` may emit either orientation; the surgery candidate list
+    is always lexicographic with ``i < j``. Canonicalising both sides lets
+    us use a single :class:`frozenset` lookup instead of an ``or`` over
+    both orientations (the original ``_is_bridge`` form).
+    """
+    i, j = edge
+    return (i, j) if i < j else (j, i)
+
+
+def _bridge_set(graph: nx.Graph) -> frozenset[tuple[int, int]]:
+    """Snapshot the bridge set of ``graph`` as a canonical frozenset.
+
+    Complexity is :math:`O(V + E)` (Tarjan's bridge algorithm via
+    ``networkx``). The returned frozenset gives :math:`O(1)` membership
+    queries against canonical ``(min, max)`` edge tuples.
+    """
+    return frozenset(_canonical_edge((int(u), int(v))) for u, v in nx.bridges(graph))
 
 
 def apply_neckpinch_surgery(
@@ -284,6 +300,26 @@ def apply_neckpinch_surgery(
     ``floor(max_surgery_fraction * n_active_edges)``; remaining
     candidates are clamped to ``cfg.eps_weight`` (``"clamped"``) or
     skipped (``"skipped_bridge"``).
+
+    Performance contract
+    --------------------
+    Bridge detection runs **once per surgery step** as a snapshot of the
+    pre-surgery graph (Tarjan's :math:`O(V + E)` chain decomposition via
+    ``networkx``). Connectivity safety in the snapshot regime is enforced
+    by an incremental union-find over the **post-step** active graph: a
+    candidate is only marked ``"removed"`` if its endpoints remain
+    connected in :math:`G \\setminus \\{e_1, \\ldots, e_k\\}` after the
+    earlier removals; otherwise it is demoted to ``"clamped"``. Total
+    cost is :math:`O((V + E) \\cdot \\alpha(V))`, replacing the
+    historical per-candidate ``nx.bridges`` invocation that produced an
+    :math:`O(E^2)` regression on the surgery hot-path (PR #381 microbench
+    skipped at ``N=1024``).
+
+    The snapshot contract — "clamp the bridges that exist *now*, remove
+    the rest subject to the cap" — matches the documented behavior in
+    the module docstring. The post-step connectivity assertion at the
+    end of the function continues to fail-closed if the union-find
+    safety net is ever broken.
     """
     _validate_weights(weights)
     new_w = weights.astype(np.float64, copy=True)
@@ -305,21 +341,61 @@ def apply_neckpinch_surgery(
     for i, j in active_edges:
         graph.add_edge(i, j, weight=float(new_w[i, j]))
 
+    # Snapshot bridges of the pre-surgery graph — single O(V+E) pass.
+    bridge_snapshot: frozenset[tuple[int, int]] = (
+        _bridge_set(graph) if cfg.preserve_connectedness else frozenset()
+    )
+
+    # Union-find over **non-candidate** edges only. A candidate edge is
+    # safe to remove iff its endpoints are connected in this UF — i.e.
+    # removing it does not disconnect because an alternate path of
+    # non-candidate edges exists. As candidates get clamped (kept alive)
+    # we union their endpoints incrementally so subsequent candidates
+    # see the updated reachability.
+    candidate_set: frozenset[tuple[int, int]] = frozenset(candidates)
+    parent: list[int] = list(range(n))
+    rank: list[int] = [0] * n
+
+    def _find(x: int) -> int:
+        # Iterative path-halving for O(α(V)) per query without recursion.
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def _union(a: int, b: int) -> None:
+        ra, rb = _find(a), _find(b)
+        if ra == rb:
+            return
+        if rank[ra] < rank[rb]:
+            ra, rb = rb, ra
+        parent[rb] = ra
+        if rank[ra] == rank[rb]:
+            rank[ra] += 1
+
+    for i, j in active_edges:
+        if (i, j) not in candidate_set:
+            _union(i, j)
+
     events: list[NeckpinchEvent] = []
     removed_count = 0
 
     for edge in candidates:
         i, j = edge
+        canon = _canonical_edge(edge)
         old = float(new_w[i, j])
         kappa = float(curvature.get(edge, curvature.get((j, i), 0.0)))
 
-        is_bridge = cfg.preserve_connectedness and _is_bridge(graph, edge)
+        is_snapshot_bridge = cfg.preserve_connectedness and canon in bridge_snapshot
 
-        if is_bridge:
+        if is_snapshot_bridge:
             new_val = max(cfg.eps_weight, _FLOAT_TOL)
             new_w[i, j] = new_val
             new_w[j, i] = new_val
             graph[i][j]["weight"] = new_val
+            # Clamp keeps the edge active — union the endpoints so
+            # subsequent candidates can rely on this path.
+            _union(i, j)
             events.append(
                 NeckpinchEvent(
                     edge=edge,
@@ -331,7 +407,14 @@ def apply_neckpinch_surgery(
             )
             continue
 
-        if removed_count < max_remove:
+        # Connectivity guard via union-find: when preserve_connectedness
+        # is on, remove only if the endpoints are already connected
+        # through non-candidate / already-clamped edges. This catches
+        # the case where two candidates were both non-bridges in the
+        # snapshot but removing both would disconnect.
+        endpoints_connected = (not cfg.preserve_connectedness) or (_find(i) == _find(j))
+
+        if removed_count < max_remove and endpoints_connected:
             new_w[i, j] = 0.0
             new_w[j, i] = 0.0
             if graph.has_edge(i, j):
@@ -351,6 +434,9 @@ def apply_neckpinch_surgery(
             new_w[j, i] = cfg.eps_weight
             if graph.has_edge(i, j):
                 graph[i][j]["weight"] = cfg.eps_weight
+            # Clamp keeps the edge active — make it visible to the UF so
+            # later candidates can still see this path.
+            _union(i, j)
             events.append(
                 NeckpinchEvent(
                     edge=edge,
