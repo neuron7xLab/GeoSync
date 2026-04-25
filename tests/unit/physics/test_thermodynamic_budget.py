@@ -22,7 +22,10 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from core.physics.thermodynamic_budget import (
+    BEKENSTEIN_BIT_COEFF,
+    HBAR_J_S,
     LANDAUER_LN2,
+    SPEED_OF_LIGHT_M_S,
     BudgetEntry,
     BudgetLedger,
     EntropyCost,
@@ -31,6 +34,7 @@ from core.physics.thermodynamic_budget import (
     ThermodynamicBudgetConfig,
     TokenCost,
     aggregate_entry,
+    bekenstein_cognitive_ceiling,
     compute_entropy_cost,
     compute_irreversibility_cost,
     compute_latency_cost,
@@ -468,3 +472,127 @@ def test_dataclasses_are_frozen() -> None:
     ic = IrreversibleActionCost(is_irreversible=False, irreversibility_score=0.0, proxy_cost=0.0)
     with pytest.raises(AttributeError):
         ic.proxy_cost = 1.0  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# INV-BEKENSTEIN-COGNITIVE — universal upper bound on information per region.
+# Bekenstein 1981 (Phys. Rev. D 23, 287); 't Hooft 1993; Susskind 1995.
+# ---------------------------------------------------------------------------
+
+
+def test_bekenstein_coefficient_matches_closed_form() -> None:
+    """BEKENSTEIN_BIT_COEFF = 2π / (ℏ · c · ln 2) within 1 ULP."""
+    expected = (2.0 * math.pi) / (HBAR_J_S * SPEED_OF_LIGHT_M_S * LANDAUER_LN2)
+    assert math.isfinite(expected)
+    assert math.isclose(BEKENSTEIN_BIT_COEFF, expected, rel_tol=1e-15)
+
+
+def test_bekenstein_zero_radius_returns_zero_bits() -> None:
+    """Degenerate region: R = 0 ⇒ 0 bits (point has no information capacity)."""
+    assert bekenstein_cognitive_ceiling(0.0, 1.0) == 0.0
+
+
+def test_bekenstein_zero_energy_returns_zero_bits() -> None:
+    """Degenerate region: E = 0 ⇒ 0 bits (vacuum carries no payload)."""
+    assert bekenstein_cognitive_ceiling(1.0, 0.0) == 0.0
+
+
+def test_bekenstein_negative_radius_raises() -> None:
+    """Fail-closed: negative radius is unphysical (no silent abs)."""
+    with pytest.raises(ValueError):
+        bekenstein_cognitive_ceiling(-1.0, 1.0)
+
+
+def test_bekenstein_negative_energy_raises() -> None:
+    """Fail-closed: negative energy is unphysical for bound systems."""
+    with pytest.raises(ValueError):
+        bekenstein_cognitive_ceiling(1.0, -1.0)
+
+
+def test_bekenstein_non_finite_inputs_raise() -> None:
+    """INV-HPC2: NaN / Inf in either argument → ValueError, no silent repair."""
+    for bad in (float("nan"), float("inf"), -float("inf")):
+        with pytest.raises(ValueError):
+            bekenstein_cognitive_ceiling(bad, 1.0)
+        with pytest.raises(ValueError):
+            bekenstein_cognitive_ceiling(1.0, bad)
+
+
+def test_bekenstein_returns_finite_positive_for_valid_inputs() -> None:
+    """Universal: finite positive (R, E) ⇒ finite positive bits."""
+    bits = bekenstein_cognitive_ceiling(1.0, 1.0)
+    assert math.isfinite(bits)
+    assert bits > 0.0
+
+
+def test_bekenstein_monotone_in_energy() -> None:
+    """Qualitative: I_max strictly increasing in E for fixed R > 0."""
+    r = 1.0
+    energies = [1e-3, 1.0, 1e3, 1e10, 1e20]
+    bits = [bekenstein_cognitive_ceiling(r, e) for e in energies]
+    assert all(bits[i] < bits[i + 1] for i in range(len(bits) - 1))
+
+
+def test_bekenstein_monotone_in_radius() -> None:
+    """Qualitative: I_max strictly increasing in R for fixed E > 0."""
+    e = 1.0
+    radii = [1e-15, 1e-9, 1e-3, 1.0, 1e6]
+    bits = [bekenstein_cognitive_ceiling(r, e) for r in radii]
+    assert all(bits[i] < bits[i + 1] for i in range(len(bits) - 1))
+
+
+def test_bekenstein_linear_in_E_times_R() -> None:
+    """Algebraic: I_max(R, E) = COEFF · E · R (no hidden non-linearity)."""
+    r, e = 0.07, 1.26e17  # arbitrary positive scales (brain order)
+    direct = BEKENSTEIN_BIT_COEFF * e * r
+    out = bekenstein_cognitive_ceiling(r, e)
+    assert math.isclose(out, direct, rel_tol=1e-12)
+
+
+def test_bekenstein_brain_scale_order_of_magnitude() -> None:
+    """Sanity: ~1.4 kg brain in ~7 cm radius → I_max ~ 10^42 bits.
+
+    Reference order: Bekenstein 1981 §V; widely cited brain-bound estimates
+    sit between 10^41 and 10^43 bits depending on choice of R (head vs.
+    cortex). We assert the exponent within ±1.
+    """
+    mass_kg = 1.4
+    radius_m = 0.07
+    energy_J = mass_kg * SPEED_OF_LIGHT_M_S**2  # E = m c^2
+    bits = bekenstein_cognitive_ceiling(radius_m, energy_J)
+    log10_bits = math.log10(bits)
+    assert 41.0 <= log10_bits <= 43.0, (
+        f"brain-scale Bekenstein bound off-magnitude: log10(bits)={log10_bits:.2f}, "
+        f"expected ∈ [41, 43] for m={mass_kg} kg, R={radius_m} m"
+    )
+
+
+def test_bekenstein_solar_mass_horizon_order_of_magnitude() -> None:
+    """Sanity: 1 M_sun BH at its Schwarzschild radius → I_max ~ 10^77 bits.
+
+    Bekenstein-Hawking: A/(4·ℓ_p²·ln 2). For 1 M_sun BH,
+    R_s ≈ 2954 m, A ≈ 1.10e8 m², ℓ_p² ≈ 2.61e-70 m² → I ≈ 1.5e77 bits.
+    """
+    mass_kg = 1.989e30
+    schwarzschild_m = 2954.0
+    energy_J = mass_kg * SPEED_OF_LIGHT_M_S**2
+    bits = bekenstein_cognitive_ceiling(schwarzschild_m, energy_J)
+    log10_bits = math.log10(bits)
+    assert 76.0 <= log10_bits <= 78.0, (
+        f"solar-mass BH Bekenstein bound off-magnitude: log10(bits)={log10_bits:.2f}, "
+        f"expected ∈ [76, 78]"
+    )
+
+
+@given(
+    radius_m=st.floats(min_value=1e-15, max_value=1e9, allow_nan=False, allow_infinity=False),
+    energy_J=st.floats(min_value=1e-20, max_value=1e30, allow_nan=False, allow_infinity=False),
+)
+@settings(max_examples=200)
+def test_bekenstein_property_finite_non_negative(radius_m: float, energy_J: float) -> None:
+    """Property: any finite non-negative (R, E) within float64 range yields
+    a finite non-negative bit count satisfying the closed-form."""
+    bits = bekenstein_cognitive_ceiling(radius_m, energy_J)
+    assert math.isfinite(bits)
+    assert bits >= 0.0
+    assert math.isclose(bits, BEKENSTEIN_BIT_COEFF * energy_J * radius_m, rel_tol=1e-10)
