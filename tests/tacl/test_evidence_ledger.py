@@ -23,11 +23,14 @@ from pathlib import Path
 from typing import Final
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from tacl.evidence_ledger import (
     DEFAULT_DISCLAIMER_PHRASES,
     DEFAULT_FORBIDDEN_PATTERNS,
     BioClaimViolation,
+    DecisionSignalKind,
     EvidenceClaim,
     EvidenceRegistry,
     HypothesisId,
@@ -65,6 +68,9 @@ def _claim(
     registered_at_ns: int = _FIXED_TS,
     pre_registered: bool = True,
     notes: str | None = None,
+    substrate_criticality_at_decision: float | None = None,
+    criticality_window_confirmed: bool = False,
+    signal: DecisionSignalKind = "NORMAL",
 ) -> EvidenceClaim:
     return EvidenceClaim(
         hypothesis=hypothesis,
@@ -81,6 +87,9 @@ def _claim(
         registered_at_ns=registered_at_ns,
         pre_registered=pre_registered,
         notes=notes,
+        substrate_criticality_at_decision=substrate_criticality_at_decision,
+        criticality_window_confirmed=criticality_window_confirmed,
+        signal=signal,
     )
 
 
@@ -454,3 +463,152 @@ def test_self_scan_evidence_ledger_module_clean() -> None:
         "INV-NO-BIO-CLAIM VIOLATED in evidence_ledger.py: "
         f"{len(violations)} naked claims: {violations}"
     )
+
+
+# ---------------------------------------------------------------------------
+# INV-CRITICALITY (P0, universal)
+# γ = 2H+1 (DFA-1). Substrate intelligence-capable iff γ ∈ [1−ε, 1+ε].
+# Outside the metastable window any non-DORMANT signal is rejected.
+# Refs: Bak 1996; Langton 1990; Mora-Bialek 2011; Beggs-Plenz 2003.
+# ---------------------------------------------------------------------------
+
+
+def test_legacy_claim_without_criticality_field_validates() -> None:
+    """Legacy: γ=None ⇒ INV-CRITICALITY bypassed; pre-existing claims still valid."""
+    claim = _claim()
+    ok, reason = validate_claim(claim)
+    assert ok is True, reason
+    assert claim.substrate_criticality_at_decision is None
+    assert claim.criticality_window_confirmed is False
+    assert claim.signal == "NORMAL"
+
+
+def test_criticality_confirmed_with_normal_signal_valid() -> None:
+    """γ in window AND confirmed=True ⇒ NORMAL signal is admissible."""
+    claim = _claim(
+        substrate_criticality_at_decision=1.0,
+        criticality_window_confirmed=True,
+        signal="NORMAL",
+    )
+    ok, reason = validate_claim(claim)
+    assert ok is True, reason
+
+
+def test_criticality_not_confirmed_dormant_signal_valid() -> None:
+    """Outside-window claim is admissible iff signal=DORMANT (fail-closed exit)."""
+    claim = _claim(
+        substrate_criticality_at_decision=1.7,
+        criticality_window_confirmed=False,
+        signal="DORMANT",
+    )
+    ok, reason = validate_claim(claim)
+    assert ok is True, reason
+
+
+def test_criticality_not_confirmed_non_dormant_signal_rejected() -> None:
+    """INV-CRITICALITY VIOLATED: confirmed=False with NORMAL signal ⇒ rejected."""
+    claim = _claim(
+        substrate_criticality_at_decision=1.7,
+        criticality_window_confirmed=False,
+        signal="NORMAL",
+    )
+    ok, reason = validate_claim(claim)
+    assert ok is False
+    assert reason is not None and "INV-CRITICALITY" in reason
+
+
+def test_criticality_warning_signal_also_rejected_when_unconfirmed() -> None:
+    """Only DORMANT is admissible when window is unconfirmed; WARNING is not."""
+    claim = _claim(
+        substrate_criticality_at_decision=1.7,
+        criticality_window_confirmed=False,
+        signal="WARNING",
+    )
+    ok, reason = validate_claim(claim)
+    assert ok is False
+    assert reason is not None and "INV-CRITICALITY" in reason
+
+
+def test_criticality_nan_or_non_positive_rejected() -> None:
+    """γ must be finite and strictly positive (γ = 2H+1 with H >= 0)."""
+    for bad in (float("nan"), float("inf"), -1.0, 0.0):
+        claim = _claim(
+            substrate_criticality_at_decision=bad,
+            criticality_window_confirmed=True,
+            signal="NORMAL",
+        )
+        ok, reason = validate_claim(claim)
+        assert ok is False, f"γ={bad!r} should have been rejected"
+        assert reason is not None
+
+
+@given(
+    gamma=st.floats(
+        min_value=0.01,
+        max_value=10.0,
+        allow_nan=False,
+        allow_infinity=False,
+    ),
+    confirmed=st.booleans(),
+    signal=st.sampled_from(("NORMAL", "WARNING", "DORMANT")),
+)
+def test_inv_criticality_property_random(
+    gamma: float, confirmed: bool, signal: DecisionSignalKind
+) -> None:
+    """Property: validate accepts iff (confirmed) OR (signal == DORMANT)."""
+    claim = _claim(
+        substrate_criticality_at_decision=gamma,
+        criticality_window_confirmed=confirmed,
+        signal=signal,
+    )
+    ok, _reason = validate_claim(claim)
+    expected = confirmed or signal == "DORMANT"
+    assert ok is expected, (
+        f"INV-CRITICALITY mismatch at γ={gamma}, confirmed={confirmed}, "
+        f"signal={signal!r}: validate={ok}, expected={expected}"
+    )
+
+
+def test_serialization_round_trip_preserves_criticality_fields() -> None:
+    """Round-trip via to_json/from_json preserves all three INV-CRITICALITY fields."""
+    reg = EvidenceRegistry()
+    reg.register(
+        _claim(
+            substrate_criticality_at_decision=1.0,
+            criticality_window_confirmed=True,
+            signal="NORMAL",
+        )
+    )
+    payload = reg.to_json()
+    reg2 = EvidenceRegistry.from_json(payload)
+    [entry] = list(reg2.query(HypothesisId.HYP_1_DECISION_LATENCY))
+    assert entry.claim.substrate_criticality_at_decision == 1.0
+    assert entry.claim.criticality_window_confirmed is True
+    assert entry.claim.signal == "NORMAL"
+
+
+def test_in_memory_claim_omitting_criticality_fields_uses_defaults() -> None:
+    """100% backward compat: constructing EvidenceClaim without the new fields
+    yields defaults (γ=None, confirmed=False, signal=NORMAL); hash and
+    validation work unchanged from the legacy schema's behaviour."""
+    legacy_shape = EvidenceClaim(
+        hypothesis=HypothesisId.HYP_1_DECISION_LATENCY,
+        baseline_mean=100.0,
+        baseline_std=12.0,
+        baseline_n=32,
+        intervention_mean=92.0,
+        intervention_std=11.0,
+        intervention_n=33,
+        effect_size=-0.7,
+        ci_95_low=-1.1,
+        ci_95_high=-0.3,
+        stat_test=_stat_test(),
+        registered_at_ns=_FIXED_TS,
+        pre_registered=True,
+    )
+    assert legacy_shape.substrate_criticality_at_decision is None
+    assert legacy_shape.criticality_window_confirmed is False
+    assert legacy_shape.signal == "NORMAL"
+    ok, reason = validate_claim(legacy_shape)
+    assert ok is True, reason
+    assert isinstance(claim_hash(legacy_shape), str)

@@ -825,3 +825,19 @@ pncc:
     priority: P0
     source: tacl/evidence_ledger.py
     tests: tests/tacl/test_evidence_ledger.py
+
+  criticality:
+    id: INV-CRITICALITY
+    type: universal
+    statement: "Substrate is intelligence-capable iff γ ∈ [1−ε, 1+ε] where γ = 2·H + 1 (DFA-1 Hurst). Outside the metastable window, decisions must fail-closed to DORMANT. ε = cfg.criticality_epsilon."
+    test_type: property_test
+    falsification: "Any non-DORMANT decision registered with substrate_criticality_at_decision outside [1−ε, 1+ε] AND criticality_window_confirmed=False"
+    priority: P0
+    source: tacl/evidence_ledger.py
+    tests: tests/tacl/test_evidence_ledger.py
+    references:
+      - "Bak, P. (1996). How Nature Works: The Science of Self-Organized Criticality."
+      - "Langton, C. G. (1990). Computation at the edge of chaos. Physica D 42, 12."
+      - "Mora, T. & Bialek, W. (2011). Are biological systems poised at criticality? J. Stat. Phys. 144, 268."
+      - "Beggs, J. M. & Plenz, D. (2003). Neuronal avalanches in neocortical circuits. J. Neurosci. 23, 11167."
+    related: [INV-DRO1, INV-DRO2, INV-DRO4, INV-YV1]
