@@ -78,15 +78,21 @@ pointer. P0 = blocking; P1 = high-priority; P2 = nice-to-have.
 > arrive with a verifiable peer-reviewed reference and re-enter via a
 > new pre-registered hypothesis row.
 
-### INV-LANDAUER-PROXY (P1, conservation)
+### INV-LANDAUER-PROXY (P0, universal)
 
-**Statement.** Any reversible-or-erasure-aware kernel reports a
-non-negative information-erasure energy ≥ k·T·ln 2 per logical bit
-erased (Landauer 1961, *IBM J. Res. Dev.* 5, 183).
-**Falsification axis.** A single ledgered measurement of erasure
-energy below the Landauer bound, with CI excluding the bound.
-**Test pointer.** `core/physics/thermodynamic_budget.py` (PNCC-A,
-merged: PR #378).
+**Statement.** For any pair of actions with identical
+(token, latency, entropy) components, the irreversible-action proxy
+cost dominates the reversible-alternative cost: C_irr ≥ C_rev,
+with strict > whenever irreversibility_score > 0
+(Landauer 1961, *IBM J. Res. Dev.* 5, 183).
+**Falsification axis.** Any (irrev, rev) pair with identical
+(token, latency, entropy) components where C_irr < C_rev.
+**Test pointer.** `tests/unit/physics/test_thermodynamic_budget.py`
+(11 functions, 1000-pair sweep).
+**Source.** `core/physics/thermodynamic_budget.py` (PNCC-A, merged: PR #378).
+**Registry.** `.claude/physics/INVARIANTS.yaml::pncc.landauer_proxy`,
+`physics_contracts/catalog.yaml::pncc.landauer_proxy_dominance`
+(Wave 1.5, PR #383).
 
 ### INV-REVERSIBLE-GATE (P0, universal)
 
