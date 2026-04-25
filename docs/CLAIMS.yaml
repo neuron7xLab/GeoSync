@@ -1,0 +1,135 @@
+# Claim/evidence registry — fail-closed gate for canonical claims.
+#
+# Each claim is a public assertion the repository makes about itself
+# ("the cross-asset Kuramoto strategy survives 5 walk-forward folds",
+# "the BacktesterCAL session is bit-identical across repeated runs",
+# "the executable ledger is overflow-safe").
+#
+# A claim is admitted to canonical state only when every path listed
+# under `evidence_paths` exists and is tracked. CI enforces this via
+# `scripts/ci/check_claims.py`; missing evidence on a P0 / P1 claim
+# fails the build.
+#
+# Schema (per claim entry):
+#
+#   id              : str   — unique identifier (kebab-case).
+#   priority        : str   — one of {P0, P1, P2}. P0/P1 are gated.
+#   description     : str   — one-sentence statement of the claim.
+#   evidence_paths  : list  — repo-relative paths required to exist.
+#                              Source files, tests, frozen artefacts.
+#   added_utc       : str   — ISO 8601 UTC date claim was registered.
+#
+# Adding a claim: append an entry, ensure every evidence_path is
+# present, run `python scripts/ci/check_claims.py` locally before push.
+# Promoting a P2 → P1 / P0 is a *contract change* and should be
+# reviewed as carefully as a public API rename.
+
+schema_version: 1
+
+claims:
+
+  - id: hpc-runtime-state-seal-bit-identical
+    priority: P0
+    description: >
+      BacktesterCAL.run produces bit-identical output on repeated calls
+      against the same calibrated instance — every streaming component
+      (FeatureStore, RegimeModel, Guardrails, Execution, ConformalCQR)
+      rewinds to its post-calibration baseline.
+    evidence_paths:
+      - geosync_hpc/backtest.py
+      - geosync_hpc/features.py
+      - geosync_hpc/regime.py
+      - geosync_hpc/risk.py
+      - geosync_hpc/conformal.py
+      - geosync_hpc/execution.py
+      - tests/geosync_hpc/test_backtest_runtime_reset.py
+    added_utc: "2026-04-25"
+
+  - id: hpc-fixed-point-ledger-conservation
+    priority: P0
+    description: >
+      The fixed-point execution ledger preserves the conservation
+      identity (cash + position*mark = const, modulo trade cost) to
+      the cent on every (fill, qty, fee, mark) tuple in the int64
+      safety envelope — verified across 300 Hypothesis-random fills.
+    evidence_paths:
+      - geosync_hpc/ledger.py
+      - tests/geosync_hpc/test_ledger.py
+    added_utc: "2026-04-25"
+
+  - id: hpc-indexed-rng-control-flow-free
+    priority: P0
+    description: >
+      Event-addressed RNG (BLAKE2b → PCG64 keyed by
+      seed/stream/event_id/event_index) returns the same value for
+      the same 4-tuple regardless of how many other draws occurred
+      between addressed draws — control-flow refactors no longer
+      perturb addressed values.
+    evidence_paths:
+      - geosync_hpc/indexed_rng.py
+      - tests/geosync_hpc/test_indexed_rng.py
+    added_utc: "2026-04-25"
+
+  - id: hpc-runtime-state-envelope-integrity
+    priority: P0
+    description: >
+      Snapshot/restore envelope is typed (envelope_version),
+      versioned (schema_version), and SHA-256-checksummed; tampered
+      payloads, mismatched schema versions, unknown envelope versions,
+      and non-finite payload values all fail-closed at load.
+    evidence_paths:
+      - geosync_hpc/runtime_state.py
+      - tests/geosync_hpc/test_runtime_state.py
+    added_utc: "2026-04-25"
+
+  - id: hpc-session-lifecycle-explicit-fsm
+    priority: P1
+    description: >
+      BacktesterCAL session lifecycle is an explicit FSM with
+      8 states, 13 declared transitions, terminal absorption, and
+      envelope-serialisable round-trip; invalid transitions raise
+      InvalidTransitionError rather than producing undeclared state.
+    evidence_paths:
+      - geosync_hpc/session_fsm.py
+      - tests/geosync_hpc/test_session_fsm.py
+    added_utc: "2026-04-25"
+
+  - id: robustness-hac-psr-newey-west
+    priority: P1
+    description: >
+      Probabilistic Sharpe Ratio carries a HAC-adjusted variant via
+      Newey–West Bartlett kernel with the NW(1994) automatic
+      bandwidth, with effective-sample-size shrinkage under positive
+      autocorrelation verified analytically and on AR(1) fixtures.
+    evidence_paths:
+      - research/robustness/cpcv.py
+      - tests/research/robustness/test_hac_psr.py
+      - results/cross_asset_kuramoto/robustness_v1/ROBUSTNESS_LIMITATIONS.md
+    added_utc: "2026-04-25"
+
+  - id: cross-asset-walkforward-artifact-integrity
+    priority: P1
+    description: >
+      The frozen cross-asset Kuramoto walk-forward bundle satisfies
+      the protocol thresholds (robust=True, ≥4/5 folds beat BTC,
+      median Sharpe > 0.5, |Δ| < 0.05 vs spike) and preserves the
+      2022 fold-3 loss (honesty gate against retro-tampering).
+    evidence_paths:
+      - tests/core/cross_asset_kuramoto/test_walkforward_artifact.py
+      - results/cross_asset_kuramoto/walkforward_integrated.json
+      - results/cross_asset_kuramoto/PARAMETER_LOCK.json
+    added_utc: "2026-04-25"
+
+  - id: ricci-microstructure-ten-axis-falsification
+    priority: P1
+    description: >
+      The Ricci cross-sectional edge on L2 microstructure passes ten
+      orthogonal validation axes (kill test, block-bootstrap CI,
+      deflated Sharpe, purged CV, mutual info, lag attribution,
+      power spectrum, DFA Hurst, pairwise/conditional TE, rolling
+      walk-forward) on the frozen Session 1 substrate.
+    evidence_paths:
+      - research/microstructure/FINDINGS.md
+      - paper/ricci_microstructure/paper.tex
+      - paper/ricci_microstructure/references.bib
+    added_utc: "2026-04-25"

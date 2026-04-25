@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: MIT
+#
+# Claim/evidence gate — fail-closed on the canonical claim registry.
+#
+# Reads ``docs/CLAIMS.yaml`` and verifies that every gated (P0/P1)
+# claim's evidence paths exist in the working tree. A claim that
+# names artefacts the repository no longer ships breaks the build.
+#
+# Path-filtered: a PR that does not touch the registry, the script,
+# or its tests skips the job entirely.
+name: Claim Evidence Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/CLAIMS.yaml"
+      - "scripts/ci/check_claims.py"
+      - "tests/scripts/test_check_claims.py"
+      - ".github/workflows/claims-evidence-gate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/CLAIMS.yaml"
+      - "scripts/ci/check_claims.py"
+      - "tests/scripts/test_check_claims.py"
+      - ".github/workflows/claims-evidence-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: claim-evidence-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install pyyaml
+        run: python -m pip install --no-cache-dir pyyaml==6.0.2
+
+      - name: Validate claim registry
+        run: python scripts/ci/check_claims.py
+
+      - name: Run gate unit tests
+        run: |
+          python -m pip install --no-cache-dir pytest==8.4.2
+          python -m pytest tests/scripts/test_check_claims.py -v
