@@ -342,3 +342,47 @@ laws:
     validity: "all inputs to geosync_observe"
     source: "core/dro_ara/engine.py::_validate"
     severity: block
+
+  # ───────────────────── PNCC (Physics-Native Cognitive Kernel) ─────────────────────
+  # Wave 1 landed invariants. Two-layer protocol per
+  # docs/research/pncc/CANONS.md §7. Mirror entries live in
+  # .claude/physics/INVARIANTS.yaml under the `pncc:` section.
+
+  - id: pncc.landauer_proxy_dominance
+    module: pncc
+    statement: "Irreversible action proxy cost dominates the reversible-alternative cost; strictly so when irreversibility_score > 0 (INV-LANDAUER-PROXY)."
+    formula: "C_irr ≥ C_rev,  with C_irr > C_rev iff irreversibility_score > 0"
+    variables:
+      C_irr: "aggregate proxy cost of an irreversible action (token + latency + entropy + irreversibility penalty)"
+      C_rev: "aggregate proxy cost of a reversible alternative with identical token/latency/entropy components"
+      irreversibility_score: "scalar in [0, 1] returned by classify_irreversibility"
+    tolerance: "strict — any reversible/irreversible pair with identical (token, latency, entropy) and irreversibility_score > 0 must satisfy C_irr > C_rev exactly; equality only when irreversibility_score == 0"
+    validity: "pure functional path: aggregate_entry → total_cost → reversible_alternative_cost; no global state, no RNG, no time call"
+    source: "Landauer 1961; core/physics/thermodynamic_budget.py; tests/unit/physics/test_thermodynamic_budget.py"
+    severity: warn
+
+  - id: pncc.reversible_gate_byte_exact
+    module: pncc
+    statement: "A reversible-tagged action's rollback recovers the byte-exact pre-state (INV-REVERSIBLE-GATE)."
+    formula: "irreversibility_score(action) ≤ cfg.irreversibility_threshold  ⇒  gate.rollback(trace.audit_hash).state_bytes == pre_state"
+    variables:
+      pre_state: "snapshot bytes captured before action dispatch"
+      audit_hash: "deterministic SHA-256 over canonical-JSON of (action, pre_state, post_state, score)"
+      cfg.irreversibility_threshold: "configured cutoff separating reversible from irreversible actions"
+    tolerance: "strict bit-equality of pre_state and rollback output across 1000 random reversible actions"
+    validity: "rollback called with the trace.audit_hash issued by the same gate instance; action classified reversible"
+    source: "Bennett 1973; core/physics/reversible_gate.py; tests/unit/physics/test_reversible_gate.py"
+    severity: warn
+
+  - id: pncc.no_bio_claim
+    module: tacl
+    statement: "Cognitive-performance language in non-test source must be paired with a registered EvidenceClaim or an allowed disclaimer phrase (INV-NO-BIO-CLAIM)."
+    formula: "for every match m of DEFAULT_FORBIDDEN_PATTERNS in non-test source: ∃ EvidenceClaim_registered(m) ∨ ∃ phrase ∈ allowed_disclaimer_phrases within scope(m)"
+    variables:
+      DEFAULT_FORBIDDEN_PATTERNS: "regex tuple in tacl.evidence_ledger guarding cognitive/medical claims"
+      allowed_disclaimer_phrases: "tuple including 'make no claim', 'is not a', 'no causal', 'correlation-only', 'no-bio-claim', 'does NOT', 'no medical'"
+      EvidenceClaim_registered: "claim recorded via EvidenceRegistry.register with content-addressable hash"
+    tolerance: "strict — zero naked violations across core/, tacl/, runtime/, geosync/ in non-test source"
+    validity: "AST-grep + runtime guard via tacl.evidence_ledger.scan_source_for_bio_claims; test files (tests/**) and explicit disclaimer paragraphs are excluded by construction"
+    source: "GeoSync PNCC CANONS §INV-NO-BIO-CLAIM; tacl/evidence_ledger.py; tests/tacl/test_evidence_ledger.py"
+    severity: warn

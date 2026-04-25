@@ -778,3 +778,50 @@ higher_order_kuramoto:
     test_type: property_test
     falsification: "R outside [0,1]; sigma2=0 produces nonzero triadic RHS; sparse triangle count differs from dense; identical inputs produce different outputs; peak heap exceeds the c·n_triangles ceiling for sparse graphs"
     priority: P0
+
+
+# ═══════════════════════════════════════════════════
+# PNCC — PHYSICS-NATIVE COGNITIVE KERNEL (Wave 1)
+# ═══════════════════════════════════════════════════
+# Experimental / opt-in. Physics-first, not biology-first.
+# Canonical reference: docs/research/pncc/CANONS.md (7 CANONS, 5 pre-registered
+# hypotheses, 6 invariants). Two-layer protocol per CANONS §7: this file is the
+# assistant-facing layer; physics_contracts/catalog.yaml is the runtime layer.
+# Both updated atomically in this commit.
+#
+# Wave 1 landed: PNCC-A (#378), PNCC-E (#379), PNCC-C (#380).
+#   Three invariants registered here.
+# Wave 1 dropped: PNCC-B (Mpemba) — INV-MPEMBA-INIT not registered.
+# Wave 1 halted: PNCC-D (CNS proxy) — INV-CNS-SAFETY not registered, awaits real telemetry.
+# Wave 2 deferred: PNCC-F (free energy) — INV-FREE-ENERGY shadow-tracked by INV-FE1/FE2.
+
+pncc:
+  landauer_proxy:
+    id: INV-LANDAUER-PROXY
+    type: universal
+    statement: "Irreversible action proxy cost dominates reversible-alternative cost: C_irr >= C_rev with strict > whenever irreversibility_score > 0"
+    test_type: property_test
+    falsification: "Any pair of irreversible/reversible actions with identical (token, latency, entropy) where C_irr < C_rev"
+    priority: P0
+    source: core/physics/thermodynamic_budget.py
+    tests: tests/unit/physics/test_thermodynamic_budget.py
+
+  reversible_gate:
+    id: INV-REVERSIBLE-GATE
+    type: universal
+    statement: "Reversible-tagged action implies byte-exact pre-state recovery via rollback(audit_hash)"
+    test_type: property_test
+    falsification: "1000 random reversible actions where rollback(trace.audit_hash).state_bytes != pre_state"
+    priority: P0
+    source: core/physics/reversible_gate.py
+    tests: tests/unit/physics/test_reversible_gate.py
+
+  no_bio_claim:
+    id: INV-NO-BIO-CLAIM
+    type: universal
+    statement: "Cognitive-performance language must be paired with a registered EvidenceClaim or an explicit disclaimer phrase"
+    test_type: property_test
+    falsification: "AST-grep over core/, tacl/, runtime/, geosync/ returns >=1 naked violation in non-test source"
+    priority: P0
+    source: tacl/evidence_ledger.py
+    tests: tests/tacl/test_evidence_ledger.py
