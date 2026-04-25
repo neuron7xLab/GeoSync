@@ -856,3 +856,19 @@ pncc:
       - "'t Hooft, G. (1993). Dimensional reduction in quantum gravity. arXiv:gr-qc/9310026."
       - "Susskind, L. (1995). The world as a hologram. J. Math. Phys. 36, 6377."
     related: [INV-CRITICALITY, INV-LANDAUER-PROXY, INV-YV1]
+
+  simulation_falsification:
+    id: INV-SIMULATION-FALSIFICATION
+    type: statistical
+    statement: "The simulation hypothesis is operationalized as an enumerable registry of physical signatures, each with a published prediction, an explicit detectability threshold, and a current observation status (NOT_OBSERVED / OPEN / RULED_OUT). Probability is not a field; only status against observation."
+    test_type: property_test
+    falsification: "Any positive detection at or above a registered signature's threshold without independent corroboration is rejected; a productive ladder must have at least one entry with a published null bound (NOT_OBSERVED) within current instrument reach."
+    priority: P1
+    source: core/physics/simulation_falsification.py
+    tests: tests/unit/physics/test_simulation_falsification.py
+    references:
+      - "Bekenstein, J. D. (1981). Universal upper bound on the entropy-to-energy ratio for bounded systems. Phys. Rev. D 23, 287."
+      - "'t Hooft, G. (1993). Dimensional reduction in quantum gravity. arXiv:gr-qc/9310026."
+      - "Susskind, L. (1995). The world as a hologram. J. Math. Phys. 36, 6377."
+      - "Beane, S. R., Davoudi, Z., Savage, M. J. (2014). Constraints on the universe as a numerical simulation. Eur. Phys. J. A 50, 148. arXiv:1210.1847."
+    related: [INV-BEKENSTEIN-COGNITIVE, INV-CRITICALITY, INV-LANDAUER-PROXY]
