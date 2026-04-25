@@ -95,7 +95,7 @@ class ThermodynamicRiskGate:
         if total < 1e-12:
             return 0.0
         w = w / total
-        return (1.0 - float(np.sum(w ** self._q))) / (self._q - 1.0)
+        return (1.0 - float(np.sum(w**self._q))) / (self._q - 1.0)
 
     def ricci_temperature(self, kappa_min: float) -> float:
         """T_eff = T_base · exp(-κ_min).
@@ -103,7 +103,7 @@ class ThermodynamicRiskGate:
         κ_min < 0 (negative curvature) → T_eff > T_base → looser risk.
         κ_min > 0 (positive curvature) → T_eff < T_base → tighter risk.
         """
-        return self._T_base * np.exp(-kappa_min)
+        return float(self._T_base * np.exp(-kappa_min))
 
     @staticmethod
     def free_energy(U: float, T: float, S: float) -> float:

@@ -79,14 +79,20 @@ class AdaptiveKuramotoEngine:
         omega = self._omega
         adj = self._adj
 
-        def rhs(t: float, theta: NDArray) -> NDArray:
+        def rhs(t: float, theta: NDArray[np.float64]) -> NDArray[np.float64]:
             diff = theta[np.newaxis, :] - theta[:, np.newaxis]
             coupling = (adj * np.sin(diff)).sum(axis=1)
-            return omega + coupling
+            result: NDArray[np.float64] = omega + coupling
+            return result
 
         _logger.info(
             "AdaptiveKuramotoEngine: N=%d, K=%.4f, method=%s, rtol=%.0e, atol=%.0e, T=%.4f",
-            N, cfg.K, self._method, self._rtol, self._atol, t_end,
+            N,
+            cfg.K,
+            self._method,
+            self._rtol,
+            self._atol,
+            t_end,
         )
 
         sol = solve_ivp(
@@ -117,9 +123,13 @@ class AdaptiveKuramotoEngine:
         return KuramotoResult(phases=phases, order_parameter=R_arr, time=time_arr, config=cfg)
 
     @staticmethod
-    def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray, NDArray]:
+    def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         rng = np.random.default_rng(cfg.seed)
-        omega = cfg.omega.astype(np.float64, copy=False) if cfg.omega is not None else rng.standard_normal(cfg.N)
+        omega = (
+            cfg.omega.astype(np.float64, copy=False)
+            if cfg.omega is not None
+            else rng.standard_normal(cfg.N)
+        )
         theta0 = (
             cfg.theta0.astype(np.float64, copy=False)
             if cfg.theta0 is not None
@@ -128,7 +138,7 @@ class AdaptiveKuramotoEngine:
         return omega, theta0
 
     @staticmethod
-    def _resolve_adj(cfg: KuramotoConfig) -> NDArray:
+    def _resolve_adj(cfg: KuramotoConfig) -> NDArray[np.float64]:
         N, K = cfg.N, cfg.K
         if cfg.adjacency is not None:
             adj = K * cfg.adjacency.astype(np.float64, copy=True)

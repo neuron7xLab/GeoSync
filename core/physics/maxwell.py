@@ -117,9 +117,9 @@ def compute_market_field_curl(
     dfx_dy[-1] = (fx[-1] - fx[-2]) / dy
 
     # Curl (z-component) = ∂Fy/∂x - ∂Fx/∂y
-    curl = dfy_dx - dfx_dy
+    curl_arr = np.asarray(dfy_dx - dfx_dy)
 
-    return curl
+    return curl_arr
 
 
 def propagate_price_wave(
@@ -199,7 +199,7 @@ def wave_energy(
         >>> energy = wave_energy(amplitude=5.0, frequency=0.5, mass=1000.0)
     """
     omega = 2 * np.pi * frequency
-    return 0.5 * mass * (amplitude ** 2) * (omega ** 2)
+    return 0.5 * mass * (amplitude**2) * (omega**2)
 
 
 __all__ = [

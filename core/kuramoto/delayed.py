@@ -66,9 +66,7 @@ class DelayedKuramotoEngine:
         # Process delay
         if np.isscalar(tau):
             tau_scalar = float(tau)  # type: ignore[arg-type]
-            self._tau_matrix = np.full(
-                (config.N, config.N), tau_scalar, dtype=np.float64
-            )
+            self._tau_matrix = np.full((config.N, config.N), tau_scalar, dtype=np.float64)
             self._max_tau = tau_scalar
         else:
             self._tau_matrix = np.asarray(tau, dtype=np.float64)
@@ -122,9 +120,7 @@ class DelayedKuramotoEngine:
             phases[k + 1] = theta
             R_arr[k + 1] = _order_parameter(theta)
 
-        return KuramotoResult(
-            phases=phases, order_parameter=R_arr, time=time_arr, config=cfg
-        )
+        return KuramotoResult(phases=phases, order_parameter=R_arr, time=time_arr, config=cfg)
 
     def _lookup_delayed(
         self,
@@ -173,7 +169,8 @@ class DelayedKuramotoEngine:
         # sin(θ_j(t-τ) - θ_i(t))
         sin_diff = np.sin(delayed - theta[:, np.newaxis])
         coupling = (self._adj * sin_diff).sum(axis=1)
-        return self._omega + coupling
+        result: NDArray[np.float64] = self._omega + coupling
+        return result
 
     def _dde_rk4_step(
         self,
@@ -185,17 +182,13 @@ class DelayedKuramotoEngine:
     ) -> NDArray[np.float64]:
         """RK4 step for DDE system."""
         k1 = self._dde_dtheta_dt(theta, t, buffer, buf_ptr, dt)
-        k2 = self._dde_dtheta_dt(
-            theta + 0.5 * dt * k1, t + 0.5 * dt, buffer, buf_ptr, dt
-        )
-        k3 = self._dde_dtheta_dt(
-            theta + 0.5 * dt * k2, t + 0.5 * dt, buffer, buf_ptr, dt
-        )
+        k2 = self._dde_dtheta_dt(theta + 0.5 * dt * k1, t + 0.5 * dt, buffer, buf_ptr, dt)
+        k3 = self._dde_dtheta_dt(theta + 0.5 * dt * k2, t + 0.5 * dt, buffer, buf_ptr, dt)
         k4 = self._dde_dtheta_dt(theta + dt * k3, t + dt, buffer, buf_ptr, dt)
         return theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
     @staticmethod
-    def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray, NDArray]:
+    def _resolve_ic(cfg: KuramotoConfig) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         rng = np.random.default_rng(cfg.seed)
         omega = (
             cfg.omega.astype(np.float64, copy=False)
@@ -210,7 +203,7 @@ class DelayedKuramotoEngine:
         return omega, theta0
 
     @staticmethod
-    def _resolve_adj(cfg: KuramotoConfig) -> NDArray:
+    def _resolve_adj(cfg: KuramotoConfig) -> NDArray[np.float64]:
         N, K = cfg.N, cfg.K
         if cfg.adjacency is not None:
             adj = K * cfg.adjacency.astype(np.float64, copy=True)

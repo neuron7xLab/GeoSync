@@ -78,11 +78,11 @@ class GravitationalCouplingMatrix:
         Returns 1-D array of length n_assets.
         """
         dv = prices * volumes  # (T, N)
-        tail = dv[-self._window:]
+        tail = dv[-self._window :]
         mass = np.mean(tail, axis=0)
         # Ensure positive mass
-        mass = np.maximum(mass, 1e-12)
-        return mass
+        mass_pos: NDArray[np.float64] = np.maximum(mass, 1e-12)
+        return mass_pos
 
     def compute(
         self,
@@ -124,7 +124,7 @@ class GravitationalCouplingMatrix:
         # F_ij = m_i * m_j / r_ij²  (G absorbed into normalisation)
         mass_product = np.outer(mass, mass)
         dist_safe = np.maximum(dist, 1e-6)
-        F_raw = mass_product / (dist_safe ** 2)
+        F_raw = mass_product / (dist_safe**2)
         np.fill_diagonal(F_raw, 0.0)
 
         # Clip outliers at μ + clip_sigma·σ
@@ -142,10 +142,10 @@ class GravitationalCouplingMatrix:
         adjacency = F_raw / row_sums
 
         # Ensure symmetry (numerical)
-        adjacency = 0.5 * (adjacency + adjacency.T)
-        np.fill_diagonal(adjacency, 0.0)
+        adjacency_sym: NDArray[np.float64] = 0.5 * (adjacency + adjacency.T)
+        np.fill_diagonal(adjacency_sym, 0.0)
 
-        return adjacency
+        return adjacency_sym
 
 
 __all__ = ["GravitationalCouplingMatrix"]
