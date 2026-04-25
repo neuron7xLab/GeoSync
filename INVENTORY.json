@@ -18,6 +18,10 @@
       "sha256": "071a5fee28a586b58a245ce641906e83676cf1aeedb021d546dcebb81fa4618b"
     },
     {
+      "path": "scripts/ci/check_claims.py",
+      "sha256": "45e9398dcc716188f2fe9c4130af8124a76e7e03d32edaa40d970e836142e5f2"
+    },
+    {
       "path": "scripts/ci/check_config_sprawl.py",
       "sha256": "87fdfe3dc6fc30a841042e7bd9c6013a8013e921ebc222aa4a9715a2225e841f"
     },
