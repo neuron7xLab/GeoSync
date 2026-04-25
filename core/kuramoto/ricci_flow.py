@@ -45,6 +45,7 @@ edge or out-of-sample performance is made.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Final, Literal
 
@@ -56,10 +57,12 @@ __all__ = [
     "RicciFlowConfig",
     "NeckpinchEvent",
     "RicciFlowStepResult",
+    "IteratedRicciFlowResult",
     "discrete_ricci_flow_step",
     "detect_neckpinch_candidates",
     "apply_neckpinch_surgery",
     "ricci_flow_with_surgery",
+    "iterated_ricci_flow_with_surgery",
 ]
 
 
@@ -413,4 +416,190 @@ def ricci_flow_with_surgery(
         surgery_events=events,
         total_edge_mass_before=float(weights_before.sum()),
         total_edge_mass_after=float(after.sum()),
+    )
+
+
+# ── Iterated wrapper (closes API gap surfaced by falsification battery) ────
+
+
+@dataclass(frozen=True, slots=True)
+class IteratedRicciFlowResult:
+    """Outcome of an iterated Ricci-flow + surgery loop with explicit monitoring.
+
+    Attributes
+    ----------
+    final_weights:
+        ``(N, N)`` weight matrix after the last successfully executed step
+        (or the initial state if ``n_steps_executed == 0``).
+    n_steps_executed:
+        Number of steps actually executed before completion or abort.
+    n_steps_requested:
+        ``n_steps`` originally requested by the caller.
+    mass_drift_per_step:
+        Length ``n_steps_executed`` array; entry ``t`` holds
+        ``|mass_t - mass_0| / mass_0`` (or 0 when ``mass_0 == 0``).
+    connectedness_per_step:
+        Length ``n_steps_executed`` boolean array; entry ``t`` is ``True``
+        iff the active subgraph after step ``t`` is connected over the
+        nodes that started with at least one positive incident weight.
+    aborted_reason:
+        ``None`` if all ``n_steps_requested`` steps completed within
+        contract; otherwise one of:
+        ``"mass_drift_exceeded"``, ``"disconnected"``, ``"step_failed"``.
+    """
+
+    final_weights: NDArray[np.float64]
+    n_steps_executed: int
+    n_steps_requested: int
+    mass_drift_per_step: NDArray[np.float64]
+    connectedness_per_step: NDArray[np.bool_]
+    aborted_reason: str | None
+
+
+def _initial_active_nodes(weights: NDArray[np.float64]) -> set[int]:
+    """Nodes that have at least one strictly-positive incident weight."""
+    n = weights.shape[0]
+    iu, ju = np.triu_indices(n, k=1)
+    nodes: set[int] = set()
+    for i, j, w in zip(iu.tolist(), ju.tolist(), weights[iu, ju].tolist(), strict=True):
+        if w > 0.0:
+            nodes.add(int(i))
+            nodes.add(int(j))
+    return nodes
+
+
+def _is_active_subgraph_connected(weights: NDArray[np.float64], reference_nodes: set[int]) -> bool:
+    """Connectedness of the ``w > 0`` subgraph restricted to ``reference_nodes``.
+
+    Mirrors the connectedness check in :func:`apply_neckpinch_surgery` so the
+    iterated wrapper reports the same notion of connectedness as the
+    single-step contract.
+    """
+    if not reference_nodes:
+        return True
+    n = weights.shape[0]
+    graph = nx.Graph()
+    graph.add_nodes_from(range(n))
+    iu, ju = np.triu_indices(n, k=1)
+    for i, j, w in zip(iu.tolist(), ju.tolist(), weights[iu, ju].tolist(), strict=True):
+        if w > 0.0:
+            graph.add_edge(int(i), int(j))
+    sub = graph.subgraph(reference_nodes)
+    if sub.number_of_nodes() == 0:
+        return True
+    return bool(nx.is_connected(sub))
+
+
+def iterated_ricci_flow_with_surgery(
+    weights: NDArray[np.float64],
+    curvature_fn: Callable[[NDArray[np.float64]], Mapping[tuple[int, int], float]],
+    n_steps: int,
+    cfg: RicciFlowConfig,
+    *,
+    max_mass_drift: float = 0.10,
+    abort_on_disconnect: bool = True,
+) -> IteratedRicciFlowResult:
+    """Iterate :func:`ricci_flow_with_surgery` with explicit invariant monitoring.
+
+    Closes the iterated-step API gap documented in
+    ``docs/research/ricci_flow_surgery.md`` ("Iterated-Step Semantics").
+    Single-step ``ricci_flow_with_surgery`` preserves mass and connectedness
+    when configured, but those guarantees DO NOT compose across iterations
+    under the default ``eps_weight=1e-8`` clamp policy. This wrapper records
+    drift per step and aborts early when the contract would be broken.
+
+    Parameters
+    ----------
+    weights:
+        Initial ``(N, N)`` symmetric, non-negative, zero-diagonal weight
+        matrix.
+    curvature_fn:
+        Callable invoked once per step with the current weights; must
+        return a curvature dict over active edges. Recomputed every step
+        (no caching is assumed).
+    n_steps:
+        Number of flow + surgery steps to attempt (``n_steps >= 0``).
+    cfg:
+        Single-step configuration. Forwarded to each
+        :func:`ricci_flow_with_surgery` call unchanged.
+    max_mass_drift:
+        Abort if relative drift ``|mass_t - mass_0| / mass_0`` strictly
+        exceeds this threshold. Must be in ``[0, +inf)``. Default 0.10.
+    abort_on_disconnect:
+        When True (default) and ``cfg.preserve_connectedness=True``, abort
+        the iteration as soon as the active subgraph becomes disconnected.
+
+    Returns
+    -------
+    IteratedRicciFlowResult
+        Final weights, executed step count, per-step drift / connectedness,
+        and an optional ``aborted_reason``.
+
+    Raises
+    ------
+    ValueError
+        On invalid ``n_steps`` or ``max_mass_drift`` argument.
+
+    Notes
+    -----
+    See ``docs/research/ricci_flow_surgery.md`` for the iterated-step gap
+    that motivated this wrapper. The wrapper is descriptive — it does not
+    redefine the single-step contract or alter ``cfg``. INV-RC-FLOW
+    (single-step) remains the source of truth for one call.
+    """
+    if n_steps < 0:
+        raise ValueError("n_steps must be >= 0.")
+    if not np.isfinite(max_mass_drift) or max_mass_drift < 0.0:
+        raise ValueError("max_mass_drift must be a finite non-negative float.")
+
+    _validate_weights(weights)
+    current = weights.astype(np.float64, copy=True)
+    initial_mass = float(current.sum())
+    reference_nodes = _initial_active_nodes(current)
+
+    drift_history: list[float] = []
+    connected_history: list[bool] = []
+    aborted_reason: str | None = None
+
+    for _ in range(n_steps):
+        curvature = dict(curvature_fn(current))
+        try:
+            step_result = ricci_flow_with_surgery(current, curvature, cfg)
+        except (RuntimeError, ValueError):
+            # Single-step physics check failed — record nothing for this
+            # step, abort with a structured reason. Caller can inspect
+            # n_steps_executed to see where things broke.
+            aborted_reason = "step_failed"
+            break
+
+        next_weights = step_result.weights_after
+        # Drift relative to t=0; 0/0 case → 0.0 by convention. INV-RC-FLOW
+        # mass-preservation is single-step; this records the iterated drift.
+        if initial_mass > _FLOAT_TOL:
+            drift = abs(float(next_weights.sum()) - initial_mass) / initial_mass
+        else:
+            drift = 0.0
+        connected = _is_active_subgraph_connected(next_weights, reference_nodes)
+
+        drift_history.append(drift)
+        connected_history.append(connected)
+        current = next_weights
+
+        if drift > max_mass_drift:
+            aborted_reason = "mass_drift_exceeded"
+            break
+        if abort_on_disconnect and cfg.preserve_connectedness and not connected:
+            aborted_reason = "disconnected"
+            break
+
+    drift_arr = np.asarray(drift_history, dtype=np.float64)
+    connected_arr = np.asarray(connected_history, dtype=np.bool_)
+
+    return IteratedRicciFlowResult(
+        final_weights=current,
+        n_steps_executed=len(drift_history),
+        n_steps_requested=n_steps,
+        mass_drift_per_step=drift_arr,
+        connectedness_per_step=connected_arr,
+        aborted_reason=aborted_reason,
     )
