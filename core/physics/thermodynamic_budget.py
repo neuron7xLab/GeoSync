@@ -68,6 +68,10 @@ import math
 from dataclasses import dataclass
 
 __all__ = [
+    "BEKENSTEIN_BIT_COEFF",
+    "HBAR_J_S",
+    "SPEED_OF_LIGHT_M_S",
+    "bekenstein_cognitive_ceiling",
     "BudgetEntry",
     "BudgetLedger",
     "EntropyCost",
@@ -92,6 +96,14 @@ __all__ = [
 # cost currency, not k_B · T · ln(2). The use of ln(2) preserves the
 # Landauer mapping: 1 bit erased ↔ ln(2) units of proxy work.
 LANDAUER_LN2: float = math.log(2.0)
+
+# Physical constants in SI for INV-BEKENSTEIN-COGNITIVE.
+# CODATA 2018 reduced Planck constant; speed of light is exact by 1983 SI definition.
+HBAR_J_S: float = 1.054_571_817e-34
+SPEED_OF_LIGHT_M_S: float = 299_792_458.0
+# Bekenstein 1981 PRD 23, 287: I_max(E, R) = 2π·E·R / (ℏ·c·ln 2) bits.
+# Coefficient = 2π / (ℏ·c·ln 2) → multiply by E [J] · R [m] to get bits.
+BEKENSTEIN_BIT_COEFF: float = (2.0 * math.pi) / (HBAR_J_S * SPEED_OF_LIGHT_M_S * LANDAUER_LN2)
 
 # Decoder-dominance weight for output tokens. Decode is the
 # autoregressive step and dominates wall time and energy on
@@ -382,3 +394,31 @@ def reversible_alternative_cost(
     _check_finite(cost, "reversible_alternative_cost")
     _check_non_negative(cost, "reversible_alternative_cost")
     return cost
+
+
+def bekenstein_cognitive_ceiling(radius_m: float, energy_J: float) -> float:
+    """INV-BEKENSTEIN-COGNITIVE: maximum information (bits) for a region.
+
+    Bekenstein 1981 (Phys. Rev. D 23, 287): for any system contained in a
+    sphere of radius R with total energy E, the information content is
+    bounded by I ≤ 2π·E·R / (ℏ·c·ln 2). Saturated by black holes
+    (Bekenstein-Hawking entropy). Holographic principle ('t Hooft 1993,
+    Susskind 1995) generalizes the bound to all gravitational systems.
+
+    Inputs are SI (radius in metres, energy in joules). Output is bits.
+
+    Fail-closed:
+    - non-finite or negative inputs → ValueError (INV-HPC2)
+    - radius_m == 0 OR energy_J == 0 → 0.0 bits (degenerate region)
+
+    The function is stateless, dimensionally consistent, and identical to
+    the closed-form `BEKENSTEIN_BIT_COEFF * energy_J * radius_m` once the
+    fail-closed envelope is satisfied.
+    """
+    _check_finite(radius_m, "radius_m")
+    _check_finite(energy_J, "energy_J")
+    _check_non_negative(radius_m, "radius_m")
+    _check_non_negative(energy_J, "energy_J")
+    bits: float = BEKENSTEIN_BIT_COEFF * energy_J * radius_m
+    _check_finite(bits, "bekenstein_cognitive_ceiling")
+    return bits

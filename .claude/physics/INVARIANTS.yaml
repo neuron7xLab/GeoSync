@@ -841,3 +841,18 @@ pncc:
       - "Mora, T. & Bialek, W. (2011). Are biological systems poised at criticality? J. Stat. Phys. 144, 268."
       - "Beggs, J. M. & Plenz, D. (2003). Neuronal avalanches in neocortical circuits. J. Neurosci. 23, 11167."
     related: [INV-DRO1, INV-DRO2, INV-DRO4, INV-YV1]
+
+  bekenstein_cognitive:
+    id: INV-BEKENSTEIN-COGNITIVE
+    type: universal
+    statement: "Information capacity of any cognitive substrate is bounded by I ≤ 2π·E·R / (ℏ·c·ln 2) bits, where (R, E) are the substrate's bounding-sphere radius and total energy. Saturated by black holes (Bekenstein-Hawking entropy)."
+    test_type: property_test
+    falsification: "Any physical system that stably stores or processes I > 2π·E·R/(ℏ·c·ln 2) bits without forming an event horizon, OR an experimental violation of the holographic principle in the high-energy regime."
+    priority: P0
+    source: core/physics/thermodynamic_budget.py
+    tests: tests/unit/physics/test_thermodynamic_budget.py
+    references:
+      - "Bekenstein, J. D. (1981). Universal upper bound on the entropy-to-energy ratio for bounded systems. Phys. Rev. D 23, 287."
+      - "'t Hooft, G. (1993). Dimensional reduction in quantum gravity. arXiv:gr-qc/9310026."
+      - "Susskind, L. (1995). The world as a hologram. J. Math. Phys. 36, 6377."
+    related: [INV-CRITICALITY, INV-LANDAUER-PROXY, INV-YV1]
