@@ -145,7 +145,7 @@ uvicorn==0.46.0
 watchdog==6.0.0
 websockets==15.0.1
 yarl==1.22.0
-zipp==3.23.0
+zipp==3.23.1
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
