@@ -984,7 +984,42 @@ def _self_check() -> None:
     else:
         print("8. Cross-ref integrity OK: every `related:` ID resolves to a registered invariant")
 
-    # 9. Summary
+    # 9. Evidence matrix integrity. ANCHORED + runtime_evaluable=yes
+    # invariants must declare an `integration_test:` path that
+    # resolves on disk. SPECULATIVE invariants are NOT required to
+    # have integration coverage (per honest-provenance contract,
+    # PR #414). Registry-only invariants (no `runtime_evaluable`
+    # field, or runtime_evaluable=no) are also exempt.
+    matrix_violations: list[str] = []
+    for inv_id, data in reg.items():
+        provenance = data.get("provenance", "").upper()
+        if provenance != "ANCHORED":
+            continue
+        runtime = data.get("runtime_evaluable", "").lower()
+        if runtime not in {"yes", "true"}:
+            continue
+        integration = data.get("integration_test", "")
+        if not integration:
+            matrix_violations.append(f"{inv_id} missing integration_test")
+            continue
+        full = repo_root / integration.split("::", 1)[0]
+        if not full.exists():
+            matrix_violations.append(
+                f"{inv_id}.integration_test = {integration!r} does not resolve"
+            )
+    if matrix_violations:
+        print(
+            f"9. FAIL: {len(matrix_violations)} ANCHORED runtime invariants miss "
+            f"integration evidence: {matrix_violations}"
+        )
+        errors.append(f"missing_integration_evidence: {matrix_violations}")
+    else:
+        print(
+            "9. Evidence matrix OK: every ANCHORED runtime invariant has "
+            "a resolving integration_test path"
+        )
+
+    # 10. Summary
     ok = not errors
     print(f"\n{'✅' if ok else '❌'} Self-check {'PASSED' if ok else 'FAILED'}")
     if not ok:

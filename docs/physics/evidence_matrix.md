@@ -1,0 +1,95 @@
+# Physics Invariant Evidence Matrix
+
+Generated deterministically from `.claude/physics/INVARIANTS.yaml` by `tools/physics_evidence_matrix.py`. Do not edit by hand — re-run the generator after registry changes.
+
+| INV ID | Tier | Priority | Source | Unit Test | Integration Test | Runtime | Source ✓ | Unit ✓ | Integ ✓ |
+|---|---|---|---|---|---|---|:---:|:---:|:---:|
+| INV-YV1 | ANCHORED | P0 | `core/neuro/gradient_vital_signs.py` | `tests/integration/test_neurostack_integration.py` | `—` | — | ✓ | ✓ | — |
+| INV-K1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-K2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-K3 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-K4 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-K5 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-K6 | — | P2 | `—` | `—` | `—` | — | — | — | — |
+| INV-K7 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-ES1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-ES2 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-5HT1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-5HT2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-5HT3 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-5HT4 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-5HT5 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-5HT6 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-5HT7 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-DA1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-DA2 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-DA3 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-DA4 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-DA5 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-DA6 | — | P2 | `—` | `—` | `—` | — | — | — | — |
+| INV-DA7 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-GABA1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-GABA2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-GABA3 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-GABA4 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-GABA5 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-FE1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-FE2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-TH1 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-TH2 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-RC1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-RC2 | — | P2 | `—` | `—` | `—` | — | — | — | — |
+| INV-RC3 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-KELLY1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-KELLY2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-KELLY3 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-OMS1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-OMS2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-OMS3 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-SB1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-SB2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-HPC1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-HPC2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-CB1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-CB2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-CB3 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-CB4 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-CB5 | — | P1 | `—` | `—` | `—` | — | — | — | — |
+| INV-CB6 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-CB7 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-CB8 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-LE1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-LE2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-SG1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-SG2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-OA1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-OA2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-OA3 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-DRO1 | — | P0 | `core/dro_ara/engine.py::derive_gamma` | `—` | `—` | — | ✓ | — | — |
+| INV-DRO2 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-DRO3 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-DRO4 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-DRO5 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-REBUS-1 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-REBUS-3 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-REBUS-4 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-REBUS-5 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-REBUS-6 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-REBUS-7 | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-KBETA | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-RC-FLOW | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-FE-ROBUST | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-HO-SPARSE | — | P0 | `—` | `—` | `—` | — | — | — | — |
+| INV-LANDAUER-PROXY | — | P0 | `core/physics/thermodynamic_budget.py` | `tests/unit/physics/test_thermodynamic_budget.py` | `—` | — | ✓ | ✓ | — |
+| INV-REVERSIBLE-GATE | — | P0 | `core/physics/reversible_gate.py` | `tests/unit/physics/test_reversible_gate.py` | `—` | — | ✓ | ✓ | — |
+| INV-NO-BIO-CLAIM | — | P0 | `tacl/evidence_ledger.py` | `tests/tacl/test_evidence_ledger.py` | `—` | — | ✓ | ✓ | — |
+| INV-CRITICALITY | — | P0 | `tacl/evidence_ledger.py` | `tests/tacl/test_evidence_ledger.py` | `—` | — | ✓ | ✓ | — |
+| INV-BEKENSTEIN-COGNITIVE | ANCHORED | P0 | `core/physics/thermodynamic_budget.py` | `tests/unit/physics/test_thermodynamic_budget.py` | `tests/integration/test_substrate_gate_chain.py` | yes | ✓ | ✓ | ✓ |
+| INV-SIMULATION-FALSIFICATION | — | P1 | `core/physics/simulation_falsification.py` | `tests/unit/physics/test_simulation_falsification.py` | `—` | — | ✓ | ✓ | — |
+| INV-ARROW-OF-TIME | ANCHORED | P0 | `core/physics/arrow_of_time.py` | `tests/unit/physics/test_arrow_of_time.py` | `tests/integration/test_substrate_gate_chain.py` | yes | ✓ | ✓ | ✓ |
+| INV-OBSERVER-BANDWIDTH | SPECULATIVE | P2 | `core/physics/observer_bandwidth.py` | `tests/unit/physics/test_observer_bandwidth.py` | `—` | — | ✓ | ✓ | — |
+| INV-COSMOLOGICAL-COMPUTE | EXTRAPOLATED | P1 | `core/physics/cosmological_compute_bound.py` | `tests/unit/physics/test_cosmological_compute_bound.py` | `—` | — | ✓ | ✓ | — |
+| INV-JACOBSON-OBSERVER | EXTRAPOLATED | P1 | `core/physics/jacobson_observer_coherence.py` | `tests/unit/physics/test_jacobson_observer_coherence.py` | `—` | — | ✓ | ✓ | — |
+| INV-ANCHORED-SUBSTRATE-GATE | ANCHORED | P0 | `core/physics/anchored_substrate_gate.py` | `tests/unit/physics/test_anchored_substrate_gate.py` | `tests/integration/test_substrate_gate_chain.py` | yes | ✓ | ✓ | ✓ |
+
+Total invariants registered: 87
