@@ -45,11 +45,23 @@ def fcd() -> ModuleType:
 # ---------------------------------------------------------------------------
 
 
-def test_live_repo_surfaces_c1_coverage_omission(fcd: ModuleType) -> None:
-    """F02 must be visible: .coveragerc omits more than it covers."""
+def test_live_repo_no_longer_surfaces_c1_coverage_omission(fcd: ModuleType) -> None:
+    """F02 closed: .coveragerc no longer hides declared source via omit.
+
+    The detector's tightened C1 rule (omit-erases-declared-source) MUST
+    be silent on the post-F02-fix live tree. If this test fails, the bad
+    pattern (omit list shadowing core/* sub-packages, the original F02)
+    has returned. Promote it to xfail ONLY by also describing how the
+    new live finding is actually different from F02; otherwise fix the
+    config.
+    """
     report = fcd.collect(REPO_ROOT)
     c1 = [f for f in report.findings if f.false_confidence_type == "C1"]
-    assert c1, "C1 (.coveragerc omit inflation) not detected on live tree"
+    assert (
+        not c1
+    ), "C1 (.coveragerc omit-erases-declared-source) fired on live tree:\n  " + "\n  ".join(
+        f"{x.actual_evidence}" for x in c1
+    )
 
 
 def test_live_repo_surfaces_c2_scanner_path_mismatch(fcd: ModuleType) -> None:
@@ -78,7 +90,13 @@ def _make_repo(tmp_path: Path) -> Path:
     return repo
 
 
-def test_c1_synthetic_omit_inflation(fcd: ModuleType, tmp_path: Path) -> None:
+def test_c1_synthetic_omit_erases_declared_source(fcd: ModuleType, tmp_path: Path) -> None:
+    """C1 must fire when omit patterns erase paths under declared source.
+
+    This synthetic case mirrors the original F02: declare `src` as source,
+    then omit five sub-packages of `src`. Each omit pattern is a child of
+    a declared source root → C1 must fire.
+    """
     repo = _make_repo(tmp_path)
     (repo / ".coveragerc").write_text(
         dedent("""
@@ -86,16 +104,63 @@ def test_c1_synthetic_omit_inflation(fcd: ModuleType, tmp_path: Path) -> None:
             source =
                 src
             omit =
-                src/a
-                src/b
-                src/c
-                src/d
-                src/e
+                src/a/**
+                src/b/**
+                src/c/**
+                src/d/**
+                src/e/**
             """),
         encoding="utf-8",
     )
     findings = fcd._detect_c1_coverage_omission(repo)
-    assert findings, "C1 should detect 5x omit inflation"
+    assert findings, "C1 should detect omit patterns erasing declared source"
+    assert findings[0].finding_id == "C1-COVERAGERC-OMIT-ERASES-SOURCE"
+
+
+def test_c1_silent_when_omits_target_non_source(fcd: ModuleType, tmp_path: Path) -> None:
+    """C1 must NOT fire when omit patterns target only non-source paths.
+
+    A legitimate config declares source = src and omits tests, conftest,
+    __init__ markers, generated stubs. None of those are children of any
+    declared source root, so C1 stays silent.
+    """
+    repo = _make_repo(tmp_path)
+    (repo / ".coveragerc").write_text(
+        dedent("""
+            [run]
+            source =
+                src
+            omit =
+                tests/**
+                conftest.py
+                **/__init__.py
+                **/generated/**
+                **/_pb2.py
+            """),
+        encoding="utf-8",
+    )
+    findings = fcd._detect_c1_coverage_omission(repo)
+    assert not findings, "C1 should be silent on legitimate omits; got:\n  " + "\n  ".join(
+        f.actual_evidence for f in findings
+    )
+
+
+def test_c1_silent_when_omit_is_glob_filter(fcd: ModuleType, tmp_path: Path) -> None:
+    """A `**`-prefixed glob is a global filter, not a source eraser."""
+    repo = _make_repo(tmp_path)
+    (repo / ".coveragerc").write_text(
+        dedent("""
+            [run]
+            source =
+                src
+            omit =
+                **/__init__.py
+                **/generated/**
+            """),
+        encoding="utf-8",
+    )
+    findings = fcd._detect_c1_coverage_omission(repo)
+    assert not findings
 
 
 def test_c2_synthetic_dockerfile_unscanned(fcd: ModuleType, tmp_path: Path) -> None:

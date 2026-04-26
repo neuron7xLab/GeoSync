@@ -143,34 +143,73 @@ def _detect_c1_coverage_omission(repo_root: Path) -> list[Finding]:
     findings: list[Finding] = []
     if not source:
         return findings
-    omit_count = len(omits)
-    source_count = len(source)
-    # Heuristic: if the omit list is larger than the declared source list,
-    # the configuration is almost certainly excluding more than it covers.
-    if omit_count >= source_count * 2:
+
+    # Precision rule: an omit pattern is a false-confidence signal ONLY when
+    # it erases a path under a declared source root. A bare-name pattern
+    # like `tests/**` is fine when nothing in `source` declares `tests`; it
+    # is the omit-erases-declared-source pattern that produced F02.
+    erasing_omits = _omits_erasing_declared_source(source, omits)
+    if erasing_omits:
         findings.append(
             Finding(
-                finding_id="C1-COVERAGERC-OMIT-INFLATION",
+                finding_id="C1-COVERAGERC-OMIT-ERASES-SOURCE",
                 false_confidence_type="C1",
                 evidence_path=".coveragerc",
                 apparent_claim=(
-                    f"`source =` declares {source_count} target(s) " f"({', '.join(source)})"
+                    f"`source =` declares {len(source)} target(s) ({', '.join(source)})"
                 ),
                 actual_evidence=(
-                    f"`omit =` excludes {omit_count} pattern(s); ratio "
-                    f"{omit_count / max(source_count, 1):.1f}x — coverage "
-                    "is measured on a small subset"
+                    f"`omit =` erases {len(erasing_omits)} pattern(s) under "
+                    f"declared source roots: {sorted(erasing_omits)[:5]}"
+                    f"{'…' if len(erasing_omits) > 5 else ''}"
                 ),
                 risk="CRITICAL",
                 priority="CRITICAL",
                 minimal_repayment_action=(
-                    "rewrite .coveragerc to declare per-subsystem source "
-                    "blocks; remove the wholesale omit list; gate on "
-                    "per-subsystem floors not a single global %"
+                    "remove omit patterns that lie under declared source roots; "
+                    "if a sub-package is intentionally not measured by this "
+                    "profile, drop it from `source` instead of smuggling it "
+                    "into `omit`"
                 ),
             )
         )
     return findings
+
+
+def _omits_erasing_declared_source(source: list[str], omits: list[str]) -> list[str]:
+    """Return the omit patterns that erase a declared source root.
+
+    Both source and omit entries are normalised to a leading-segment
+    representation (no trailing slashes, no `**` suffixes). An omit
+    pattern erases a source root when the omit's leading path component
+    is a strict child of any source root path.
+
+    `tests/**` against `source = core, backtest, execution` returns []
+        (no source root is `tests`).
+    `core/utils/**` against the same `source` returns ['core/utils/**']
+        (it is under the `core` root).
+    `**/__init__.py` matches every package; treated as a global filter,
+        not as erasing-declared-source.
+    """
+    erasing: list[str] = []
+    # Strip trailing `/**` and `/*` suffixes; treat the rest as a path.
+    norm_sources = [s.rstrip("/").rstrip("*").rstrip("/") for s in source]
+    for omit in omits:
+        head = omit.rstrip("/").rstrip("*").rstrip("/")
+        if not head or head.startswith("**"):
+            # Globs like **/__init__.py or **/generated/** are global filters,
+            # not source-root erasers.
+            continue
+        for src in norm_sources:
+            if head == src:
+                # Omit IS the source root — total erasure.
+                erasing.append(omit)
+                break
+            if head.startswith(src + "/"):
+                # Omit is a child of a declared source root.
+                erasing.append(omit)
+                break
+    return erasing
 
 
 # ---------------------------------------------------------------------------
