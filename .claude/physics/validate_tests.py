@@ -909,7 +909,56 @@ def _self_check() -> None:
             "(honest-provenance contract)"
         )
 
-    # 6. Summary
+    # 6. Regression guard: no `truth_coherence_score` fields anywhere.
+    # PR #414 (chore/honest-provenance-cleanup) replaced fake-precision
+    # float scores with discrete PROVENANCE_TIER. Block any reintroduction
+    # in source code, YAML, or docs — the failure mode is recurring and
+    # the validator must catch it.
+    yaml_text = INVARIANTS_PATH.read_text() if INVARIANTS_PATH.exists() else ""
+    fake_precision_hits: list[str] = []
+    if "truth_coherence_score" in yaml_text:
+        fake_precision_hits.append(".claude/physics/INVARIANTS.yaml")
+    repo_root = SCRIPT_DIR.parent.parent
+    for path in (repo_root / "core").rglob("*.py"):
+        try:
+            if "TRUTH_COHERENCE_SCORE" in path.read_text(encoding="utf-8"):
+                fake_precision_hits.append(str(path.relative_to(repo_root)))
+        except (OSError, UnicodeDecodeError):
+            continue
+    if fake_precision_hits:
+        print(
+            f"6. FAIL: fake-precision regression — `truth_coherence_score` / "
+            f"`TRUTH_COHERENCE_SCORE` reintroduced in: {fake_precision_hits}. "
+            f"Use discrete PROVENANCE_TIER (Literal['ANCHORED', 'EXTRAPOLATED', "
+            f"'SPECULATIVE']) instead."
+        )
+        errors.append(f"fake_precision_regression: {fake_precision_hits}")
+    else:
+        print("6. Regression guard OK: no `truth_coherence_score` fake-precision fields detected")
+
+    # 7. Source/tests path integrity. Each invariant declares `source:`
+    # and `tests:` paths; the validator confirms they exist on disk.
+    # Catches typos, file moves, and stale references. A `::symbol`
+    # suffix is allowed (function/class anchor inside a file) and is
+    # stripped before the existence check.
+    missing_paths: list[str] = []
+    for inv_id, data in reg.items():
+        for field in ("source", "tests"):
+            rel = data.get(field, "")
+            if not rel or rel.startswith(("http", "{")):
+                continue
+            # Strip optional `::symbol` anchor pointing inside a file.
+            file_part = rel.split("::", 1)[0]
+            full = repo_root / file_part
+            if not full.exists():
+                missing_paths.append(f"{inv_id}.{field} = {rel!r}")
+    if missing_paths:
+        print(f"7. FAIL: {len(missing_paths)} stale path references: {missing_paths}")
+        errors.append(f"missing_paths: {missing_paths}")
+    else:
+        print("7. Path integrity OK: every invariant's source/tests resolves on disk")
+
+    # 8. Summary
     ok = not errors
     print(f"\n{'✅' if ok else '❌'} Self-check {'PASSED' if ok else 'FAILED'}")
     if not ok:
