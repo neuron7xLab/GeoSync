@@ -47,7 +47,9 @@ __all__ = [
     "FalsificationSignature",
     "ObservationStatus",
     "ReasoningTier",
+    "SignatureEvaluation",
     "build_canonical_ladder",
+    "evaluate_signature_observation",
 ]
 
 
@@ -322,3 +324,87 @@ def build_canonical_ladder() -> FalsificationLadder:
     that share the same underlying CANONICAL_SIGNATURES tuple.
     """
     return FalsificationLadder(signatures=CANONICAL_SIGNATURES)
+
+
+@dataclass(frozen=True, slots=True)
+class SignatureEvaluation:
+    """Result of evaluating one signature against one observation.
+
+    The evaluation is a *point* result on a single (signature, observed)
+    pair. It NEVER infers global probability of simulation. It NEVER
+    aggregates across signatures. It NEVER produces a substrate-state
+    verdict.
+
+    Fields preserve the per-signature contract for downstream consumers
+    (loggers, evidence ledgers, audits). The reasoning_tier flows
+    through unchanged from the source signature so a consumer can
+    weight DERIVED vs ANALOGICAL evidence honestly.
+    """
+
+    signature_id: str
+    reasoning_tier: ReasoningTier
+    observation_status: ObservationStatus
+    detectability_threshold: float
+    detectability_units: str
+    observed_value: float
+    hardware_class_ruled_out: bool
+    reason: str | None
+
+
+def evaluate_signature_observation(
+    signature_id: str,
+    observed_value: float,
+    *,
+    ladder: FalsificationLadder | None = None,
+) -> SignatureEvaluation:
+    """Point-evaluate one observation against one named signature.
+
+    Returns a structured SignatureEvaluation carrying the per-signature
+    threshold, the reasoning_tier (DERIVED vs ANALOGICAL), and a
+    boolean for whether the observation rules out the corresponding
+    hardware class. Does NOT infer simulation probability. Does NOT
+    aggregate across signatures.
+
+    Args:
+        signature_id: e.g. "SIM-LATTICE-UHECR". Must exist in the
+            ladder; unknown ids raise KeyError.
+        observed_value: numeric measurement to compare against the
+            signature's detectability_threshold. Must be finite;
+            non-finite values raise ValueError.
+        ladder: optional ladder to evaluate against; defaults to the
+            canonical ladder. The ladder argument exists so future
+            non-canonical ladders can be evaluated through the same
+            point-eval surface without monkey-patching the canonical.
+
+    Raises:
+        KeyError: signature_id not in ladder.
+        ValueError: observed_value is non-finite.
+    """
+    if not _is_finite(observed_value):
+        raise ValueError(
+            f"observed_value must be finite, got {observed_value!r}; "
+            "point-eval refuses to produce a verdict on unphysical input."
+        )
+    target_ladder = ladder if ladder is not None else build_canonical_ladder()
+    signature = target_ladder.signature_by_id(signature_id)
+    ruled_out = observed_value > signature.detectability_threshold
+    if ruled_out:
+        reason: str | None = (
+            f"observation {observed_value} {signature.detectability_units} "
+            f"exceeds detectability threshold "
+            f"{signature.detectability_threshold} {signature.detectability_units} "
+            f"for {signature_id}; the simulation hardware class predicting "
+            "signal below threshold is ruled out by this observation."
+        )
+    else:
+        reason = None
+    return SignatureEvaluation(
+        signature_id=signature.signature_id,
+        reasoning_tier=signature.reasoning_tier,
+        observation_status=signature.current_observation_status,
+        detectability_threshold=signature.detectability_threshold,
+        detectability_units=signature.detectability_units,
+        observed_value=observed_value,
+        hardware_class_ruled_out=ruled_out,
+        reason=reason,
+    )

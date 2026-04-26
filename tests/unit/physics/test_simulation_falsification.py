@@ -23,7 +23,9 @@ from core.physics.simulation_falsification import (
     FalsificationLadder,
     FalsificationSignature,
     ObservationStatus,
+    SignatureEvaluation,
     build_canonical_ladder,
+    evaluate_signature_observation,
 )
 
 # ---------------------------------------------------------------------------
@@ -241,3 +243,137 @@ def test_signatures_by_tier_buckets_correctly() -> None:
     }
     assert union_ids == {s.signature_id for s in CANONICAL_SIGNATURES}
     assert len(union_ids) == len(CANONICAL_SIGNATURES)
+
+
+# ---------------------------------------------------------------------------
+# Point-eval bridge (Task 5) — evaluate_signature_observation
+# ---------------------------------------------------------------------------
+
+
+def test_point_eval_below_threshold_does_not_rule_out() -> None:
+    """observed < threshold ⇒ hardware_class_ruled_out is False; no reason."""
+    sig = next(s for s in CANONICAL_SIGNATURES if s.signature_id == "SIM-HOLOGRAPHIC-SATURATION")
+    eval_result = evaluate_signature_observation(
+        "SIM-HOLOGRAPHIC-SATURATION",
+        sig.detectability_threshold * 0.5,
+    )
+    assert isinstance(eval_result, SignatureEvaluation)
+    assert eval_result.signature_id == "SIM-HOLOGRAPHIC-SATURATION"
+    assert eval_result.hardware_class_ruled_out is False
+    assert eval_result.reason is None
+
+
+def test_point_eval_at_exact_threshold_does_not_rule_out() -> None:
+    """Boundary case: observed == threshold. Per ladder contract
+    (hardware_class_ruled_out uses strict >), equality does NOT rule out."""
+    sig = next(s for s in CANONICAL_SIGNATURES if s.signature_id == "SIM-HOLOGRAPHIC-SATURATION")
+    eval_result = evaluate_signature_observation(
+        "SIM-HOLOGRAPHIC-SATURATION",
+        sig.detectability_threshold,
+    )
+    assert eval_result.hardware_class_ruled_out is False
+    assert eval_result.reason is None
+
+
+def test_point_eval_above_threshold_rules_out_with_reason() -> None:
+    """observed > threshold ⇒ ruled_out True with quantitative reason."""
+    sig = next(s for s in CANONICAL_SIGNATURES if s.signature_id == "SIM-HOLOGRAPHIC-SATURATION")
+    eval_result = evaluate_signature_observation(
+        "SIM-HOLOGRAPHIC-SATURATION",
+        sig.detectability_threshold * 2.0,
+    )
+    assert eval_result.hardware_class_ruled_out is True
+    assert eval_result.reason is not None
+    assert "exceeds detectability threshold" in eval_result.reason
+    assert "SIM-HOLOGRAPHIC-SATURATION" in eval_result.reason
+
+
+def test_point_eval_non_finite_observed_value_raises() -> None:
+    """NaN / ±Inf must be rejected before producing any verdict."""
+    for bad in (float("nan"), float("inf"), -float("inf")):
+        with pytest.raises(ValueError):
+            evaluate_signature_observation("SIM-HOLOGRAPHIC-SATURATION", bad)
+
+
+def test_point_eval_unknown_signature_id_raises() -> None:
+    """KeyError, not silent SignatureEvaluation, on unknown signature."""
+    with pytest.raises(KeyError):
+        evaluate_signature_observation("SIM-DOES-NOT-EXIST", 1.0)
+
+
+def test_point_eval_preserves_derived_reasoning_tier() -> None:
+    """DERIVED signatures evaluate with reasoning_tier='DERIVED' in result."""
+    eval_result = evaluate_signature_observation(
+        "SIM-LATTICE-UHECR",
+        observed_value=1.0,
+    )
+    assert eval_result.reasoning_tier == "DERIVED"
+
+
+def test_point_eval_preserves_analogical_reasoning_tier() -> None:
+    """ANALOGICAL signatures evaluate with reasoning_tier='ANALOGICAL'."""
+    eval_result = evaluate_signature_observation(
+        "SIM-HOLOGRAPHIC-SATURATION",
+        observed_value=0.0,
+    )
+    assert eval_result.reasoning_tier == "ANALOGICAL"
+
+
+def test_point_eval_preserves_observation_status() -> None:
+    """Result carries the registry's current_observation_status verbatim;
+    point evaluation does NOT mutate the ladder."""
+    eval_result = evaluate_signature_observation("SIM-LATTICE-UHECR", 0.0)
+    sig = next(s for s in CANONICAL_SIGNATURES if s.signature_id == "SIM-LATTICE-UHECR")
+    assert eval_result.observation_status == sig.current_observation_status
+
+
+def test_point_eval_does_not_aggregate_across_signatures() -> None:
+    """Sanity: the function returns ONE SignatureEvaluation, never a
+    composite. There is no API path that turns multiple point evals
+    into a global simulation verdict."""
+    # Type assertion + pinning the return shape.
+    eval_result = evaluate_signature_observation("SIM-LATTICE-UHECR", 0.0)
+    assert isinstance(eval_result, SignatureEvaluation)
+    fields = {f.name for f in SignatureEvaluation.__dataclass_fields__.values()}
+    assert fields == {
+        "signature_id",
+        "reasoning_tier",
+        "observation_status",
+        "detectability_threshold",
+        "detectability_units",
+        "observed_value",
+        "hardware_class_ruled_out",
+        "reason",
+    }
+
+
+def test_point_eval_registry_order_unchanged_after_evaluation() -> None:
+    """Registry order is invariant; point evaluation is read-only."""
+    before = tuple(s.signature_id for s in CANONICAL_SIGNATURES)
+    _ = evaluate_signature_observation("SIM-LATTICE-UHECR", 0.0)
+    _ = evaluate_signature_observation("SIM-HOLOGRAPHIC-SATURATION", 0.0)
+    after = tuple(s.signature_id for s in CANONICAL_SIGNATURES)
+    assert before == after
+
+
+def test_point_eval_signature_evaluation_is_frozen() -> None:
+    """SignatureEvaluation is immutable post-construction."""
+    eval_result = evaluate_signature_observation("SIM-LATTICE-UHECR", 0.0)
+    with pytest.raises(AttributeError):
+        eval_result.hardware_class_ruled_out = True  # type: ignore[misc]
+
+
+def test_point_eval_accepts_custom_ladder() -> None:
+    """Optional `ladder` argument allows evaluating against a non-canonical
+    ladder without monkey-patching CANONICAL_SIGNATURES."""
+    custom = FalsificationLadder(
+        signatures=(CANONICAL_SIGNATURES[0],),  # subset
+    )
+    sig = CANONICAL_SIGNATURES[0]
+    eval_result = evaluate_signature_observation(
+        sig.signature_id,
+        observed_value=sig.detectability_threshold + 0.1,
+        ladder=custom,
+    )
+    assert eval_result.signature_id == sig.signature_id
+    assert eval_result.hardware_class_ruled_out is True
