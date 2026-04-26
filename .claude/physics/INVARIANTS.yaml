@@ -940,3 +940,20 @@ pncc:
       - "Sakharov, A. D. (1967). Violation of CP invariance, C asymmetry, and baryon asymmetry of the universe. JETP Lett. 5, 24."
       - "Particle Data Group (2024). Review of Particle Physics. Prog. Theor. Exp. Phys. 2024, 083C01 (η = (n_b - n_b̄)/n_γ ≈ 6×10⁻¹⁰)."
     related: [INV-OBSERVER-BANDWIDTH, INV-ARROW-OF-TIME]
+
+  jacobson_observer:
+    id: INV-JACOBSON-OBSERVER
+    type: conditional
+    statement: "Jacobson 1995 derived Einstein equations from local Clausius δQ = T·dS on causal horizons. An observer-coherence correction c, residual = δQ − T·dS − c, must satisfy: (i) c → 0 in the decoupled limit (pure Jacobson recovery), (ii) any non-zero c at observable scale is a falsifiable extension of GR."
+    test_type: property_test
+    falsification: "A measured local context where δQ = T·dS holds (Einstein gravity confirmed) but the proposed c is non-zero above tolerance, OR δQ ≠ T·dS at a scale where Einstein gravity is independently confirmed."
+    priority: P1
+    provenance: EXTRAPOLATED
+    truth_coherence_score: 0.55
+    source: core/physics/jacobson_observer_coherence.py
+    tests: tests/unit/physics/test_jacobson_observer_coherence.py
+    references:
+      - "Jacobson, T. (1995). Thermodynamics of spacetime: the Einstein equation of state. Phys. Rev. Lett. 75, 1260. arXiv:gr-qc/9504004."
+      - "Padmanabhan, T. (2010). Thermodynamical aspects of gravity: new insights. Rep. Prog. Phys. 73, 046901. arXiv:0911.5004."
+      - "Verlinde, E. (2011). On the origin of gravity and the laws of Newton. JHEP 04, 029."
+    related: [INV-BEKENSTEIN-COGNITIVE, INV-COSMOLOGICAL-COMPUTE, INV-ARROW-OF-TIME]
