@@ -1,7 +1,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 # no-bio-claim
-"""Tests for INV-OBSERVER-BANDWIDTH (P1, conditional, EXTRAPOLATED)."""
+"""Tests for INV-OBSERVER-BANDWIDTH (P2, conditional, SPECULATIVE)."""
 
 from __future__ import annotations
 
@@ -17,12 +17,12 @@ from core.physics.observer_bandwidth import (
 )
 
 
-def test_provenance_tier_is_extrapolated() -> None:
-    """Provenance tier must be EXTRAPOLATED — not a settled theorem.
+def test_provenance_tier_is_speculative() -> None:
+    """Provenance tier must be SPECULATIVE — refs Zurek/Lieb-Robinson are adjacent, not derivative.
 
-    Discrete tier; no float score.
+    Discrete tier; no float score. SPECULATIVE → P2 cap (validator check 5).
     """
-    assert PROVENANCE_TIER == "EXTRAPOLATED"
+    assert PROVENANCE_TIER == "SPECULATIVE"
 
 
 def test_decoherence_rate_zero_is_isolated_system() -> None:

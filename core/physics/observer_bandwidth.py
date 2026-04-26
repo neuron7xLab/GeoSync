@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Observer bandwidth bound on decoherence rate (P2).
 
-INV-OBSERVER-BANDWIDTH (P1, conditional, EXTRAPOLATED):
+INV-OBSERVER-BANDWIDTH (P2, conditional, SPECULATIVE):
     For any observer-system pair under a Zurek-style decoherence
     coupling, the effective decoherence rate Γ of the system from the
     observer's perspective is upper-bounded by the observer's
@@ -14,24 +14,25 @@ INV-OBSERVER-BANDWIDTH (P1, conditional, EXTRAPOLATED):
     decohere from its own perspective, faster than its finite
     bit-acquisition rate allows.
 
-Provenance: EXTRAPOLATED.
+Provenance: SPECULATIVE.
     - Zurek (2003): Decoherence, einselection, and the quantum origins
       of the classical. Rev. Mod. Phys. 75, 715.
-      (anchors the decoherence framework that the bandwidth bound
-      extends.)
+      (adjacent context: anchors the decoherence framework, but does
+      not derive an observer-bandwidth ceiling on Γ.)
     - Lieb-Robinson (1972): The finite group velocity of quantum spin
       systems. Comm. Math. Phys. 28, 251.
-      (anchors the principle that information cannot propagate faster
-      than a finite speed in quantum lattice systems — the closest
-      direct precedent for an observer-side rate bound on decoherence.)
+      (adjacent context: bounds info-propagation speed in lattice
+      systems, not the bandwidth-observer-decoherence claim.)
 
-Decoherence is established physics (Zurek); finite information-
-propagation speed is established physics (Lieb-Robinson). The specific
-claim Γ ≤ Σ̇ — that an observer's bit-acquisition rate bounds the
-decoherence rate it can resolve — combines these but is not derived
-from them. EXTRAPOLATED. The unit equivalence "1 bit/s ↔ 1 Hz of
-resolvable events" is an ansatz: it makes the inequality dimensionally
-admissible by convention, not by physical first principles.
+Schema-only honesty: the unit equivalence "1 bit/s ↔ 1 Hz of
+resolvable events" is an ansatz that makes the inequality
+dimensionally admissible by convention, not by physical first
+principles. Lieb-Robinson 1972 bounds info-propagation in lattice
+systems — adjacent context, not direct derivation of the
+bandwidth-observer-decoherence claim. The two cited references jointly
+provide adjacent support; they do not derive Γ ≤ Σ̇. Tier therefore
+honestly downgraded EXTRAPOLATED → SPECULATIVE; per validator
+check 5, SPECULATIVE caps priority at P2.
 """
 
 from __future__ import annotations
@@ -51,7 +52,7 @@ __all__ = [
 ]
 
 # Discrete provenance tier; see arrow_of_time.py for definition.
-PROVENANCE_TIER: Literal["ANCHORED", "EXTRAPOLATED", "SPECULATIVE"] = "EXTRAPOLATED"
+PROVENANCE_TIER: Literal["ANCHORED", "EXTRAPOLATED", "SPECULATIVE"] = "SPECULATIVE"
 
 
 @dataclass(frozen=True, slots=True)
