@@ -216,7 +216,11 @@ def test_empty_witness_name_rejected() -> None:
 
 
 def test_invalid_tier_rejected() -> None:
-    """11. unknown tier string rejected."""
+    """11. unknown tier string rejected.
+
+    Valid tiers are exactly {FACT, ENGINEERING_ANALOG, HYPOTHESIS,
+    SPECULATIVE} — anything else is a constructor failure.
+    """
     with pytest.raises(ValueError, match="tier must be one of"):
         LocalWitness(
             name="x",
@@ -226,8 +230,26 @@ def test_invalid_tier_rejected() -> None:
         )
 
 
+def test_empty_reason_rejected() -> None:
+    """12. empty / whitespace LocalWitness.reason rejected at construction."""
+    with pytest.raises(ValueError, match="reason must be a non-empty string"):
+        LocalWitness(
+            name="x",
+            passed=True,
+            tier="ENGINEERING_ANALOG",
+            reason="",
+        )
+    with pytest.raises(ValueError, match="reason must be a non-empty string"):
+        LocalWitness(
+            name="x",
+            passed=True,
+            tier="ENGINEERING_ANALOG",
+            reason="   ",
+        )
+
+
 def test_witness_dataclass_frozen() -> None:
-    """12. GlobalParityWitness is a frozen dataclass; assignment raises."""
+    """13. GlobalParityWitness is a frozen dataclass; assignment raises."""
     witness = assess_global_parity(_input())
     with pytest.raises(Exception):  # noqa: B017 — dataclasses raise FrozenInstanceError
         witness.globally_consistent = False  # type: ignore[misc]
@@ -236,12 +258,12 @@ def test_witness_dataclass_frozen() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Brief-required scenarios 13-16
+# Brief-required scenarios 14-17
 # ---------------------------------------------------------------------------
 
 
 def test_evidence_and_failed_surfaces_immutable() -> None:
-    """13. evidence_fields and failed_surfaces are immutable."""
+    """14. evidence_fields and failed_surfaces are immutable."""
     witness = assess_global_parity(_input(claim_ledger_ok=False))
     assert isinstance(witness.evidence_fields, Mapping)
     with pytest.raises(TypeError):
@@ -251,7 +273,7 @@ def test_evidence_and_failed_surfaces_immutable() -> None:
 
 
 def test_no_forbidden_score_fields_exist() -> None:
-    """14. no numeric health score / percent / confidence_float / health_index."""
+    """15. no numeric health score / percent / confidence_float / health_index."""
     forbidden = {
         "score",
         "health_score",
@@ -263,13 +285,13 @@ def test_no_forbidden_score_fields_exist() -> None:
         "ratio",
     }
     fields = set(GlobalParityWitness.__dataclass_fields__.keys())
-    assert fields.isdisjoint(
-        forbidden
-    ), f"forbidden score fields present on witness: {fields & forbidden}"
+    assert fields.isdisjoint(forbidden), (
+        f"forbidden score fields present on witness: {fields & forbidden}"
+    )
 
 
 def test_deterministic_repeated_calls_equal() -> None:
-    """15. deterministic — repeated calls with identical inputs are equal."""
+    """16. deterministic — repeated calls with identical inputs are equal."""
     inp = _input(
         local_witnesses=(
             _passing_local("a"),
@@ -293,7 +315,7 @@ _MODULE_PATH = (
 
 
 def test_no_imports_from_execution_policy_application_layers() -> None:
-    """16. no imports from execution / policy / application layers."""
+    """17. no imports from execution / policy / application layers."""
     text = _MODULE_PATH.read_text(encoding="utf-8")
     for tainted in (
         "from geosync_hpc.execution",

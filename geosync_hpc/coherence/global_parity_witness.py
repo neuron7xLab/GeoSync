@@ -106,10 +106,10 @@ _GLOBAL_SURFACES: tuple[str, ...] = (
 
 _VALID_TIERS: frozenset[str] = frozenset(
     {
+        "FACT",
         "ENGINEERING_ANALOG",
-        "STRUCTURAL_INVARIANT",
-        "DETERMINISTIC_CHECK",
-        "EVIDENCE_GATED",
+        "HYPOTHESIS",
+        "SPECULATIVE",
     }
 )
 
@@ -176,8 +176,8 @@ class LocalWitness:
             raise ValueError(
                 f"LocalWitness.tier must be one of {sorted(_VALID_TIERS)} (got {self.tier!r})"
             )
-        if not isinstance(self.reason, str):
-            raise TypeError("LocalWitness.reason must be a string")
+        if not isinstance(self.reason, str) or not self.reason.strip():
+            raise ValueError("LocalWitness.reason must be a non-empty string")
 
 
 @dataclass(frozen=True)
