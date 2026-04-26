@@ -186,3 +186,70 @@ def test_zero_information_with_zero_entropy_is_admissible() -> None:
     w = assess_anchored_substrate_gate(_inputs(observed_information_bits=0.0))
     assert w.is_thermodynamically_admissible is True
     assert math.isfinite(w.bekenstein_ceiling_bits)
+
+
+# ---------------------------------------------------------------------------
+# Gate policy versioning (Task 3)
+# ---------------------------------------------------------------------------
+
+
+def test_default_policy_is_anchored_only() -> None:
+    """Default policy is ANCHORED_ONLY — verdict considers Bekenstein +
+    Arrow only, never EXTRAPOLATED/SPECULATIVE axes silently."""
+    from core.physics.anchored_substrate_gate import DEFAULT_GATE_POLICY
+
+    assert DEFAULT_GATE_POLICY == "ANCHORED_ONLY"
+
+
+def test_witness_exposes_policy_used_field() -> None:
+    """Composite witness must carry the policy under which it was
+    computed, so downstream consumers can audit the verdict's tier
+    contract without inferring it."""
+    w = assess_anchored_substrate_gate(_inputs(observed_information_bits=0.0))
+    assert w.policy_used == "ANCHORED_ONLY"
+
+
+def test_explicit_anchored_only_matches_default() -> None:
+    """Passing policy='ANCHORED_ONLY' explicitly produces an identical
+    verdict to relying on the default."""
+    inputs = _inputs(observed_information_bits=2.5e15, system_entropy_change_bits=1.0)
+    default = assess_anchored_substrate_gate(inputs)
+    explicit = assess_anchored_substrate_gate(inputs, policy="ANCHORED_ONLY")
+    assert default.is_thermodynamically_admissible == explicit.is_thermodynamically_admissible
+    assert default.failure_axes == explicit.failure_axes
+    assert default.policy_used == explicit.policy_used == "ANCHORED_ONLY"
+
+
+def test_unknown_policy_raises() -> None:
+    """Unsupported policy values fail fast — no silent fall-through to
+    default. Static type-checker will reject Literal-mismatched strings;
+    runtime raises ValueError as a defense-in-depth guard."""
+    inputs = _inputs(observed_information_bits=0.0)
+    with pytest.raises(ValueError):
+        assess_anchored_substrate_gate(inputs, policy="ALL_TIERS")  # type: ignore[arg-type]
+    with pytest.raises(ValueError):
+        assess_anchored_substrate_gate(inputs, policy="EXTRAPOLATED_PLUS")  # type: ignore[arg-type]
+
+
+def test_policy_used_serializes_as_string_in_dataclass_repr() -> None:
+    """The policy_used field is a plain string Literal value — appears in
+    repr, can be persisted/serialized without custom encoding."""
+    w = assess_anchored_substrate_gate(_inputs(observed_information_bits=0.0))
+    assert "policy_used='ANCHORED_ONLY'" in repr(w)
+
+
+def test_anchored_only_policy_does_not_consult_extrapolated_axes() -> None:
+    """Under ANCHORED_ONLY the gate's verdict depends ONLY on Bekenstein +
+    Arrow inputs. Inputs construct does not even REFERENCE bandwidth /
+    cosmological / Jacobson fields — the gate cannot consume them by
+    construction. This test pins the contract: SubstrateGateInputs
+    fields are the sum total of what the gate sees."""
+    inputs = _inputs(observed_information_bits=0.0)
+    fields = {f.name for f in inputs.__dataclass_fields__.values()}
+    # Only ANCHORED-axis inputs are accepted.
+    assert fields == {
+        "radius_m",
+        "energy_J",
+        "observed_information_bits",
+        "entropy_ledger",
+    }
