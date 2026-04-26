@@ -35,7 +35,7 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).parent
 INVARIANTS_PATH = SCRIPT_DIR / "INVARIANTS.yaml"
 
-INV_PATTERN = re.compile(r"INV-[A-Z0-9]+")
+INV_PATTERN = re.compile(r"INV-[A-Z0-9][A-Z0-9-]*")
 
 PHYSICS_KEYWORDS = {
     "physics",
@@ -78,7 +78,7 @@ def load_invariants() -> dict[str, dict[str, Any]]:
     current_block: dict[str, str] = {}
 
     for line in text.splitlines():
-        id_match = re.match(r"\s+id:\s+(INV-[A-Z0-9]+)", line)
+        id_match = re.match(r"\s+id:\s+(INV-[A-Z0-9][A-Z0-9-]*)", line)
         if id_match:
             if current_id and current_block:
                 registry[current_id] = current_block
@@ -958,7 +958,33 @@ def _self_check() -> None:
     else:
         print("7. Path integrity OK: every invariant's source/tests resolves on disk")
 
-    # 8. Summary
+    # 8. Cross-reference integrity for `related:` lists. Each invariant
+    #    may declare related: [INV-X, INV-Y, ...]. The parser captures
+    #    the value as a single string ("[INV-X, INV-Y]"). Extract the
+    #    INV-IDs and confirm each is present in the registry. Catches
+    #    typos, deletions, and stale cross-references — same class of
+    #    issue check 7 catches for source/tests paths.
+    broken_refs: list[str] = []
+    for inv_id, data in reg.items():
+        related_raw = data.get("related", "")
+        if not related_raw:
+            continue
+        inner = related_raw.strip().lstrip("[").rstrip("]")
+        if not inner:
+            continue
+        referenced_ids = [
+            token.strip() for token in inner.split(",") if token.strip().startswith("INV-")
+        ]
+        for ref in referenced_ids:
+            if ref not in reg:
+                broken_refs.append(f"{inv_id}.related → {ref}")
+    if broken_refs:
+        print(f"8. FAIL: {len(broken_refs)} broken `related:` cross-references: {broken_refs}")
+        errors.append(f"broken_related_refs: {broken_refs}")
+    else:
+        print("8. Cross-ref integrity OK: every `related:` ID resolves to a registered invariant")
+
+    # 9. Summary
     ok = not errors
     print(f"\n{'✅' if ok else '❌'} Self-check {'PASSED' if ok else 'FAILED'}")
     if not ok:
