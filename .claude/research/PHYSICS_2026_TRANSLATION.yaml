@@ -105,7 +105,8 @@ patterns:
       or INSUFFICIENT_COVERAGE or UNKNOWN.
     proposed_module: geosync_hpc/regimes/structured_absence.py
     claim_tier: ENGINEERING_ANALOG
-    implementation_status: PROPOSED
+    implementation_status: IMPLEMENTED
+    implemented_at: "2026-04-26"
     measurable_inputs:
       - observed_state_space
       - candidate_empty_region
