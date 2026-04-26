@@ -100,7 +100,7 @@ psycopg==3.2.11
 psycopg-binary==3.2.11
 pyarrow==21.0.0
 pycares==4.11.0
-pycparser==2.23
+pycparser==3.0
 pydantic==2.13.3
 pydantic-core==2.41.5
 pydantic-settings==2.12.0
