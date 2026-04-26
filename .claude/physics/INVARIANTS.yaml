@@ -889,3 +889,20 @@ pncc:
       - "Bennett, C. H. (1982). The thermodynamics of computation — a review. Int. J. Theor. Phys. 21, 905."
       - "Penrose, R. (1989). The Emperor's New Mind. Oxford University Press (cosmological-vs-thermodynamic arrow context)."
     related: [INV-LANDAUER-PROXY, INV-CRITICALITY, INV-BEKENSTEIN-COGNITIVE]
+
+  observer_bandwidth:
+    id: INV-OBSERVER-BANDWIDTH
+    type: conditional
+    statement: "For any observer-system pair under decoherence coupling, the system's effective decoherence rate Γ (Hz) is bounded above by the observer's information-acquisition rate Σ̇ (bit/s, treated 1:1 with Hz of resolvable events): Γ ≤ Σ̇."
+    test_type: property_test
+    falsification: "A measured observer-system pair where Γ > Σ̇ in well-isolated conditions, with the observer's bandwidth independently characterized."
+    priority: P1
+    provenance: EXTRAPOLATED
+    truth_coherence_score: 0.6
+    source: core/physics/observer_bandwidth.py
+    tests: tests/unit/physics/test_observer_bandwidth.py
+    references:
+      - "Zurek, W. H. (2003). Decoherence, einselection, and the quantum origins of the classical. Rev. Mod. Phys. 75, 715."
+      - "Verlinde, E. (2011). On the origin of gravity and the laws of Newton. JHEP 04, 029."
+      - "Aaronson, S. (2013). Quantum Computing since Democritus. Cambridge University Press."
+    related: [INV-LANDAUER-PROXY, INV-BEKENSTEIN-COGNITIVE, INV-ARROW-OF-TIME]
