@@ -881,7 +881,6 @@ pncc:
     falsification: "Any observed sequence of (ΔS_system, ΔI_observer) with ΔS_system + ΔI_observer < 0 in any contiguous window."
     priority: P0
     provenance: ANCHORED
-    truth_coherence_score: 0.9
     source: core/physics/arrow_of_time.py
     tests: tests/unit/physics/test_arrow_of_time.py
     references:
@@ -898,7 +897,6 @@ pncc:
     falsification: "A measured observer-system pair where Γ > Σ̇ in well-isolated conditions, with the observer's bandwidth independently characterized."
     priority: P1
     provenance: EXTRAPOLATED
-    truth_coherence_score: 0.6
     source: core/physics/observer_bandwidth.py
     tests: tests/unit/physics/test_observer_bandwidth.py
     references:
@@ -915,7 +913,6 @@ pncc:
     falsification: "A reproducible measurement of useful quantum computation inside a causal diamond exceeding the holographic ceiling, OR a derivation forcing ε > 1."
     priority: P1
     provenance: EXTRAPOLATED
-    truth_coherence_score: 0.5
     source: core/physics/cosmological_compute_bound.py
     tests: tests/unit/physics/test_cosmological_compute_bound.py
     references:
@@ -925,21 +922,11 @@ pncc:
       - "Susskind, L. (2014). Computational complexity and black hole horizons. Fortschr. Phys. 64, 24. arXiv:1402.5674."
     related: [INV-BEKENSTEIN-COGNITIVE, INV-LANDAUER-PROXY, INV-SIMULATION-FALSIFICATION]
 
-  observer_cpt:
-    id: INV-OBSERVER-CPT
-    type: qualitative
-    statement: "For a CPT-symmetric Lagrangian coupled to an observer with decoherence kernel K, the observed asymmetry η = (n_m - n_m̄)/(n_m + n_m̄) is zero iff K(matter) = K(antimatter). Any η ≠ 0 requires a kernel-level asymmetry; the Lagrangian itself remains CPT-symmetric."
-    test_type: property_test
-    falsification: "An observed η ≠ 0 in a system where the decoherence kernel is independently measured to be CPT-symmetric, OR an η = 0 in a system with a measured asymmetric kernel."
-    priority: P2
-    provenance: SPECULATIVE
-    truth_coherence_score: 0.3
-    source: core/physics/observer_cpt_asymmetry.py
-    tests: tests/unit/physics/test_observer_cpt_asymmetry.py
-    references:
-      - "Sakharov, A. D. (1967). Violation of CP invariance, C asymmetry, and baryon asymmetry of the universe. JETP Lett. 5, 24."
-      - "Particle Data Group (2024). Review of Particle Physics. Prog. Theor. Exp. Phys. 2024, 083C01 (η = (n_b - n_b̄)/n_γ ≈ 6×10⁻¹⁰)."
-    related: [INV-OBSERVER-BANDWIDTH, INV-ARROW-OF-TIME]
+  # INV-OBSERVER-CPT was demoted on 2026-04-26 (chore/honest-provenance-cleanup):
+  # the contract was tautological under any observer-asymmetric kernel and no
+  # peer-reviewed model of such a kernel for our universe was cited. The schema
+  # is preserved as a research demo at examples/observer_cpt_schema_demo.py and
+  # carries no registry weight.
 
   jacobson_observer:
     id: INV-JACOBSON-OBSERVER
@@ -949,7 +936,6 @@ pncc:
     falsification: "A measured local context where δQ = T·dS holds (Einstein gravity confirmed) but the proposed c is non-zero above tolerance, OR δQ ≠ T·dS at a scale where Einstein gravity is independently confirmed."
     priority: P1
     provenance: EXTRAPOLATED
-    truth_coherence_score: 0.55
     source: core/physics/jacobson_observer_coherence.py
     tests: tests/unit/physics/test_jacobson_observer_coherence.py
     references:

@@ -10,18 +10,19 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from core.physics.observer_bandwidth import (
-    PROVENANCE_LEVEL,
-    TRUTH_COHERENCE_SCORE,
+    PROVENANCE_TIER,
     assess_bandwidth_bound,
     decoherence_rate_hz,
     observer_bandwidth_hz,
 )
 
 
-def test_provenance_metadata_is_extrapolated() -> None:
-    """Provenance must mark this as EXTRAPOLATED — not a settled theorem."""
-    assert PROVENANCE_LEVEL == "EXTRAPOLATED"
-    assert 0.4 <= TRUTH_COHERENCE_SCORE <= 0.75
+def test_provenance_tier_is_extrapolated() -> None:
+    """Provenance tier must be EXTRAPOLATED — not a settled theorem.
+
+    Discrete tier; no float score.
+    """
+    assert PROVENANCE_TIER == "EXTRAPOLATED"
 
 
 def test_decoherence_rate_zero_is_isolated_system() -> None:

@@ -1,38 +1,25 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Observer-induced effective asymmetry in CPT-symmetric dynamics (P5).
+"""DEMO ONLY — observer-induced effective asymmetry, schema (formerly P5).
 
-INV-OBSERVER-CPT (P2, qualitative, SPECULATIVE):
-    For a CPT-symmetric Lagrangian coupled to an observer with an
-    asymmetric decoherence kernel K, the observed matter / antimatter
-    counts integrated over a window are equal iff K is CPT-symmetric:
+This file was previously shipped as ``core/physics/observer_cpt_asymmetry.py``
+with INV-OBSERVER-CPT registered in ``.claude/physics/INVARIANTS.yaml``. It
+has been DEMOTED out of the physics kernel because the contract it encodes
+is tautological under any observer-asymmetric kernel and no peer-reviewed
+model of such a kernel for our universe was ever cited. It remained a
+SPECULATIVE schema enforcing a relationship that the schema itself
+defined. Honest action: keep the code as a research-schema demo, but
+remove its registry weight.
 
-        η_observed = (N_matter - N_antimatter) / (N_matter + N_antimatter)
-        η_observed = 0   iff   K(matter) = K(antimatter)
+Use this module only as a worked example of how to structure a
+"declare-a-kernel + run-a-witness" contract; do NOT import it from
+production paths or the runtime invariant registry. There is no
+INV-OBSERVER-CPT in INVARIANTS.yaml and no fail-closed guard depends
+on it.
 
-    Equivalently: any observed baryon-asymmetry-like signal η ≠ 0 in a
-    Lagrangian-CPT-symmetric universe REQUIRES an observer with
-    K(matter) ≠ K(antimatter). This module does NOT derive that such
-    a kernel exists in our universe; it operationalizes the contract
-    so that any future model proposing one must declare a concrete
-    asymmetric K and pass falsification.
-
-Provenance: SPECULATIVE.
-    Sakharov 1967 (JETP Lett. 5, 24) lists three conditions for
-    baryogenesis in standard Big Bang cosmology: (i) baryon-number
-    violation, (ii) C and CP violation, (iii) departure from thermal
-    equilibrium. The observer-asymmetry route is an alternative
-    framing that requires the observer's coupling to break a discrete
-    symmetry without modifying the Lagrangian. No specific peer-
-    reviewed model of such a kernel for our universe is cited here;
-    this module is schema only. Truth-coherence ~0.3.
-
-The intended use of this module is to keep proposals of "the universe
-is CPT-symmetric and our observed baryon asymmetry comes from
-observer-side decoherence" honest: any such proposal must supply a
-concrete kernel K(matter) and K(antimatter) satisfying the contract
-and produce a measurable η consistent with cosmological observation
-(η_observed ≈ 6 × 10^-10 from BBN / CMB).
+Sakharov 1967 (JETP Lett. 5, 24) and PDG 2024 (η ≈ 6×10⁻¹⁰) are real
+anchors; this demo uses them only as cosmological context, not as
+support for a specific observer-side baryogenesis model.
 """
 
 from __future__ import annotations
@@ -44,14 +31,14 @@ __all__ = [
     "DecoherenceKernel",
     "ObservedAsymmetry",
     "ObserverCPTWitness",
-    "PROVENANCE_LEVEL",
-    "TRUTH_COHERENCE_SCORE",
+    "PROVENANCE_TIER",
     "asymmetry_from_kernel",
     "assess_observer_cpt",
 ]
 
-PROVENANCE_LEVEL: str = "SPECULATIVE"
-TRUTH_COHERENCE_SCORE: float = 0.3
+# This module is a demonstration of contract-shape for a SPECULATIVE
+# proposal. It is NOT registered in INVARIANTS.yaml.
+PROVENANCE_TIER: str = "SPECULATIVE"
 
 # Observed baryon asymmetry parameter η = (n_b - n_b̄) / n_γ from BBN/CMB.
 # Order ~6e-10 (Planck Collaboration 2018; PDG 2024 review).

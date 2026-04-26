@@ -14,8 +14,7 @@ from hypothesis import strategies as st
 from core.physics.cosmological_compute_bound import (
     BH_BIT_COEFF,
     PLANCK_LENGTH_M,
-    PROVENANCE_LEVEL,
-    TRUTH_COHERENCE_SCORE,
+    PROVENANCE_TIER,
     CausalDiamond,
     assess_compute_claim,
     diamond_compute_budget,
@@ -23,10 +22,9 @@ from core.physics.cosmological_compute_bound import (
 )
 
 
-def test_provenance_metadata_is_extrapolated() -> None:
-    """Provenance must be EXTRAPOLATED — efficiency coefficient is research."""
-    assert PROVENANCE_LEVEL == "EXTRAPOLATED"
-    assert 0.3 <= TRUTH_COHERENCE_SCORE <= 0.7
+def test_provenance_tier_is_extrapolated() -> None:
+    """Provenance tier must be EXTRAPOLATED — efficiency ε is research, not derivation."""
+    assert PROVENANCE_TIER == "EXTRAPOLATED"
 
 
 def test_holographic_bit_coefficient_finite() -> None:
