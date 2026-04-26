@@ -91,6 +91,7 @@ def test_status_summary_returns_zero_for_unused_buckets() -> None:
                 current_observation_status=ObservationStatus.NOT_OBSERVED,
                 current_observation_value=None,
                 reference="ref",
+                reasoning_tier="DERIVED",
             ),
         )
     )
@@ -193,3 +194,50 @@ def test_property_rule_out_iff_strictly_above_threshold(observed: float) -> None
     expected = observed > sig.detectability_threshold
     actual = ladder.hardware_class_ruled_out("SIM-HOLOGRAPHIC-SATURATION", observed)
     assert actual is expected
+
+
+# ---------------------------------------------------------------------------
+# reasoning_tier (inference flaw #6 — DERIVED vs ANALOGICAL gap)
+# ---------------------------------------------------------------------------
+
+
+_VALID_TIERS: frozenset[str] = frozenset({"DERIVED", "ANALOGICAL"})
+
+
+def test_each_canonical_signature_has_valid_reasoning_tier() -> None:
+    """Every canonical signature must carry a valid reasoning_tier label."""
+    for sig in CANONICAL_SIGNATURES:
+        msg = f"{sig.signature_id} has invalid reasoning_tier {sig.reasoning_tier!r}"
+        assert sig.reasoning_tier in _VALID_TIERS, msg
+
+
+def test_canonical_distribution_is_4_derived_2_analogical() -> None:
+    """Pre-registered tier distribution: 4 DERIVED + 2 ANALOGICAL.
+
+    Changing this count is a contract change and must be accompanied by a
+    documented justification in INVARIANTS.yaml under
+    `simulation_falsification.statement`.
+    """
+    derived = [s for s in CANONICAL_SIGNATURES if s.reasoning_tier == "DERIVED"]
+    analogical = [s for s in CANONICAL_SIGNATURES if s.reasoning_tier == "ANALOGICAL"]
+    assert len(derived) == 4, [s.signature_id for s in derived]
+    assert len(analogical) == 2, [s.signature_id for s in analogical]
+    assert {s.signature_id for s in analogical} == {
+        "SIM-HOLOGRAPHIC-SATURATION",
+        "SIM-COMPUTE-COMPLEXITY-WALL",
+    }
+
+
+def test_signatures_by_tier_buckets_correctly() -> None:
+    """signatures_by_tier exposes both buckets with correct counts and content."""
+    ladder = build_canonical_ladder()
+    buckets = ladder.signatures_by_tier()
+    assert set(buckets.keys()) == _VALID_TIERS
+    assert len(buckets["DERIVED"]) == 4
+    assert len(buckets["ANALOGICAL"]) == 2
+    # Round-trip: every signature appears in exactly one bucket.
+    union_ids = {s.signature_id for s in buckets["DERIVED"]} | {
+        s.signature_id for s in buckets["ANALOGICAL"]
+    }
+    assert union_ids == {s.signature_id for s in CANONICAL_SIGNATURES}
+    assert len(union_ids) == len(CANONICAL_SIGNATURES)
