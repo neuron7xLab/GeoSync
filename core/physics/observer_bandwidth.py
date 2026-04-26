@@ -32,20 +32,20 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Literal
 
 __all__ = [
     "BandwidthWitness",
     "ObserverBandwidth",
-    "PROVENANCE_LEVEL",
+    "PROVENANCE_TIER",
     "SystemDecoherence",
-    "TRUTH_COHERENCE_SCORE",
     "assess_bandwidth_bound",
     "decoherence_rate_hz",
     "observer_bandwidth_hz",
 ]
 
-PROVENANCE_LEVEL: str = "EXTRAPOLATED"
-TRUTH_COHERENCE_SCORE: float = 0.6
+# Discrete provenance tier; see arrow_of_time.py for definition.
+PROVENANCE_TIER: Literal["ANCHORED", "EXTRAPOLATED", "SPECULATIVE"] = "EXTRAPOLATED"
 
 
 @dataclass(frozen=True, slots=True)

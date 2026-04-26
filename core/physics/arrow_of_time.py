@@ -37,23 +37,25 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Literal
 
 __all__ = [
     "ArrowOfTimeWitness",
     "ObserverEntropyLedger",
-    "PROVENANCE_LEVEL",
-    "TRUTH_COHERENCE_SCORE",
+    "PROVENANCE_TIER",
     "assess_arrow_of_time",
     "cumulative_arrow_of_time",
     "landauer_floor_cost_bits",
     "net_entropy_production_bits",
 ]
 
-# Provenance metadata. ANCHORED = derivable from peer-reviewed established
-# physics; EXTRAPOLATED = research direction with one anchor; SPECULATIVE =
-# schema only, requires further empirical anchor before treating as fact.
-PROVENANCE_LEVEL: str = "ANCHORED"
-TRUTH_COHERENCE_SCORE: float = 0.9
+# Discrete provenance tier. ANCHORED = derivable from peer-reviewed
+# established physics; EXTRAPOLATED = research direction with at least
+# one anchor; SPECULATIVE = schema only, no specific cited model. The
+# tier is enforced by validate_tests.py: SPECULATIVE invariants cannot
+# carry P0/P1 priority. No float "truth-coherence" — that introduced
+# fake precision; tier is intentionally discrete.
+PROVENANCE_TIER: Literal["ANCHORED", "EXTRAPOLATED", "SPECULATIVE"] = "ANCHORED"
 
 
 @dataclass(frozen=True, slots=True)

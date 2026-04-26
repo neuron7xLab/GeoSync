@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Literal
 
 from core.physics.thermodynamic_budget import LANDAUER_LN2
 
@@ -44,15 +45,14 @@ __all__ = [
     "ComputeBudgetWitness",
     "ComputeBudget",
     "PLANCK_LENGTH_M",
-    "PROVENANCE_LEVEL",
-    "TRUTH_COHERENCE_SCORE",
+    "PROVENANCE_TIER",
     "assess_compute_claim",
     "diamond_compute_budget",
     "holographic_bit_capacity",
 ]
 
-PROVENANCE_LEVEL: str = "EXTRAPOLATED"
-TRUTH_COHERENCE_SCORE: float = 0.5
+# Discrete provenance tier; see arrow_of_time.py for definition.
+PROVENANCE_TIER: Literal["ANCHORED", "EXTRAPOLATED", "SPECULATIVE"] = "EXTRAPOLATED"
 
 # CODATA 2018 Planck length (square root of ℏ·G/c³).
 PLANCK_LENGTH_M: float = 1.616_255e-35

@@ -10,19 +10,17 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from core.physics.jacobson_observer_coherence import (
-    PROVENANCE_LEVEL,
-    TRUTH_COHERENCE_SCORE,
+    PROVENANCE_TIER,
     ClausiusContext,
     assess_jacobson_observer,
     clausius_residual,
 )
 
 
-def test_provenance_metadata_is_extrapolated() -> None:
-    """Provenance must mark this as EXTRAPOLATED — Jacobson 1995 settled,
+def test_provenance_tier_is_extrapolated() -> None:
+    """Provenance tier must be EXTRAPOLATED — Jacobson 1995 settled,
     observer-coherence extension is research direction."""
-    assert PROVENANCE_LEVEL == "EXTRAPOLATED"
-    assert 0.4 <= TRUTH_COHERENCE_SCORE <= 0.7
+    assert PROVENANCE_TIER == "EXTRAPOLATED"
 
 
 def test_pure_jacobson_satisfied_when_dQ_equals_T_dS() -> None:

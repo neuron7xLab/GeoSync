@@ -35,18 +35,18 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Literal
 
 __all__ = [
     "ClausiusContext",
     "JacobsonObserverWitness",
-    "PROVENANCE_LEVEL",
-    "TRUTH_COHERENCE_SCORE",
+    "PROVENANCE_TIER",
     "assess_jacobson_observer",
     "clausius_residual",
 ]
 
-PROVENANCE_LEVEL: str = "EXTRAPOLATED"
-TRUTH_COHERENCE_SCORE: float = 0.55
+# Discrete provenance tier; see arrow_of_time.py for definition.
+PROVENANCE_TIER: Literal["ANCHORED", "EXTRAPOLATED", "SPECULATIVE"] = "EXTRAPOLATED"
 
 
 @dataclass(frozen=True, slots=True)

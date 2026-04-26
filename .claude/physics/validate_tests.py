@@ -149,9 +149,7 @@ def _has_negative_slice(node: ast.AST) -> bool:
             lower = n.slice.lower
             if isinstance(lower, ast.UnaryOp) and isinstance(lower.op, ast.USub):
                 return True
-            if isinstance(lower, ast.Constant) and isinstance(
-                lower.value, (int, float)
-            ):
+            if isinstance(lower, ast.Constant) and isinstance(lower.value, (int, float)):
                 if lower.value < 0:
                     return True
     return False
@@ -533,8 +531,7 @@ def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list
                 has_any_msg = True
                 assert_start = child.lineno - 1
                 assert_end = min(
-                    getattr(child.msg, "end_lineno", child.msg.lineno)
-                    or child.msg.lineno,
+                    getattr(child.msg, "end_lineno", child.msg.lineno) or child.msg.lineno,
                     len(source_lines),
                 )
                 msg_source = "\n".join(source_lines[assert_start:assert_end])
@@ -689,9 +686,7 @@ def main() -> None:
         print("  python validate_tests.py <path>              # validate physics tests")
         print("  python validate_tests.py <path> --summary    # summary only")
         print("  python validate_tests.py <path> --audit-code # audit production code")
-        print(
-            "  python validate_tests.py --self-check        # verify kernel integrity"
-        )
+        print("  python validate_tests.py --self-check        # verify kernel integrity")
         sys.exit(1)
 
     if "--self-check" in args:
@@ -824,9 +819,7 @@ def _run_audit_code(files: list[Path], summary_mode: bool) -> None:
     if total == 0:
         print("\n✅ No silent invariant repairs detected.")
     else:
-        print(
-            "\nThese clamps may hide physics violations. Add logging or INV-* comment."
-        )
+        print("\nThese clamps may hide physics violations. Add logging or INV-* comment.")
         sys.exit(1)
 
 
@@ -893,7 +886,30 @@ def _self_check() -> None:
     else:
         print(f"4. Cross-ref OK: {len(theory_ids)} theory IDs, all in YAML")
 
-    # 5. Summary
+    # 5. SPECULATIVE invariants cannot carry P0 or P1 priority.
+    # Honest-provenance contract: a SPECULATIVE schema (no specific cited
+    # peer-reviewed model) must not trigger fail-closed at the same tier as
+    # an ANCHORED or EXTRAPOLATED invariant. P2 is informational; that is
+    # the highest tier a SPECULATIVE invariant may carry.
+    speculative_misranked: list[str] = []
+    for inv_id, data in reg.items():
+        provenance = data.get("provenance", "").upper()
+        priority = data.get("priority", "")
+        if provenance == "SPECULATIVE" and priority in {"P0", "P1"}:
+            speculative_misranked.append(f"{inv_id} (priority={priority})")
+    if speculative_misranked:
+        print(
+            f"5. FAIL: SPECULATIVE invariants must be P2 or lower, found "
+            f"{len(speculative_misranked)} at P0/P1: {speculative_misranked}"
+        )
+        errors.append(f"speculative_misranked: {speculative_misranked}")
+    else:
+        print(
+            "5. Provenance/priority OK: no SPECULATIVE invariants at P0/P1 "
+            "(honest-provenance contract)"
+        )
+
+    # 6. Summary
     ok = not errors
     print(f"\n{'✅' if ok else '❌'} Self-check {'PASSED' if ok else 'FAILED'}")
     if not ok:

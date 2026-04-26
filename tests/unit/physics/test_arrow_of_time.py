@@ -16,8 +16,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from core.physics.arrow_of_time import (
-    PROVENANCE_LEVEL,
-    TRUTH_COHERENCE_SCORE,
+    PROVENANCE_TIER,
     ObserverEntropyLedger,
     assess_arrow_of_time,
     cumulative_arrow_of_time,
@@ -36,10 +35,13 @@ def _ledger(
     )
 
 
-def test_provenance_metadata_is_anchored() -> None:
-    """Provenance must be the strongest tier — Landauer + Bennett are peer-reviewed."""
-    assert PROVENANCE_LEVEL == "ANCHORED"
-    assert 0.85 <= TRUTH_COHERENCE_SCORE <= 1.0
+def test_provenance_tier_is_anchored() -> None:
+    """Provenance tier must be ANCHORED — Landauer + Bennett are peer-reviewed.
+
+    Discrete tier; no float "truth-coherence" score (that introduced fake
+    precision and was removed in chore/honest-provenance-cleanup).
+    """
+    assert PROVENANCE_TIER == "ANCHORED"
 
 
 def test_landauer_floor_zero_information_gain_is_zero() -> None:
