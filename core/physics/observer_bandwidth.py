@@ -17,15 +17,21 @@ INV-OBSERVER-BANDWIDTH (P1, conditional, EXTRAPOLATED):
 Provenance: EXTRAPOLATED.
     - Zurek (2003): Decoherence, einselection, and the quantum origins
       of the classical. Rev. Mod. Phys. 75, 715.
-    - Verlinde (2011): On the origin of gravity and the laws of
-      Newton. JHEP 04, 029. (entropic-information framing)
-    - Aaronson (2013): Quantum Computing since Democritus, Cambridge
-      University Press. (computational-bandwidth context)
+      (anchors the decoherence framework that the bandwidth bound
+      extends.)
+    - Lieb-Robinson (1972): The finite group velocity of quantum spin
+      systems. Comm. Math. Phys. 28, 251.
+      (anchors the principle that information cannot propagate faster
+      than a finite speed in quantum lattice systems — the closest
+      direct precedent for an observer-side rate bound on decoherence.)
 
-Decoherence is established physics; the bandwidth-bound on the
-observer's perspective is a research direction, not a settled theorem.
-This module operationalizes the contract — comparing Γ to Σ̇ — without
-claiming the inequality is universally derived. Truth-coherence ~0.6.
+Decoherence is established physics (Zurek); finite information-
+propagation speed is established physics (Lieb-Robinson). The specific
+claim Γ ≤ Σ̇ — that an observer's bit-acquisition rate bounds the
+decoherence rate it can resolve — combines these but is not derived
+from them. EXTRAPOLATED. The unit equivalence "1 bit/s ↔ 1 Hz of
+resolvable events" is an ansatz: it makes the inequality dimensionally
+admissible by convention, not by physical first principles.
 """
 
 from __future__ import annotations

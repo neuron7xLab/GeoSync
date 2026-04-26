@@ -901,8 +901,7 @@ pncc:
     tests: tests/unit/physics/test_observer_bandwidth.py
     references:
       - "Zurek, W. H. (2003). Decoherence, einselection, and the quantum origins of the classical. Rev. Mod. Phys. 75, 715."
-      - "Verlinde, E. (2011). On the origin of gravity and the laws of Newton. JHEP 04, 029."
-      - "Aaronson, S. (2013). Quantum Computing since Democritus. Cambridge University Press."
+      - "Lieb, E. H. & Robinson, D. W. (1972). The finite group velocity of quantum spin systems. Comm. Math. Phys. 28, 251."
     related: [INV-LANDAUER-PROXY, INV-BEKENSTEIN-COGNITIVE, INV-ARROW-OF-TIME]
 
   cosmological_compute:
