@@ -892,11 +892,11 @@ pncc:
   observer_bandwidth:
     id: INV-OBSERVER-BANDWIDTH
     type: conditional
-    statement: "For any observer-system pair under decoherence coupling, the system's effective decoherence rate Γ (Hz) is bounded above by the observer's information-acquisition rate Σ̇ (bit/s, treated 1:1 with Hz of resolvable events): Γ ≤ Σ̇."
+    statement: "For any observer-system pair under decoherence coupling, the system's effective decoherence rate Γ (Hz) is bounded above by the observer's information-acquisition rate Σ̇ (bit/s, treated 1:1 with Hz of resolvable events): Γ ≤ Σ̇. Schema-only: the unit equivalence 1 bit/s ↔ 1 Hz of resolvable events is an ansatz, and the cited references (Zurek 2003, Lieb-Robinson 1972) provide adjacent context rather than direct derivation."
     test_type: property_test
     falsification: "A measured observer-system pair where Γ > Σ̇ in well-isolated conditions, with the observer's bandwidth independently characterized."
-    priority: P1
-    provenance: EXTRAPOLATED
+    priority: P2
+    provenance: SPECULATIVE
     source: core/physics/observer_bandwidth.py
     tests: tests/unit/physics/test_observer_bandwidth.py
     references:
