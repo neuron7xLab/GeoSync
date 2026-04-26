@@ -946,7 +946,7 @@ pncc:
   anchored_substrate_gate:
     id: INV-ANCHORED-SUBSTRATE-GATE
     type: conditional
-    statement: "A substrate is admissible for cognitive computation iff both ANCHORED-tier physical bounds hold simultaneously: I_observed ≤ 2π·E·R/(ℏ·c·ln 2) (INV-BEKENSTEIN-COGNITIVE) AND Σ_net = ΔS_system + ΔI_observer ≥ 0 (INV-ARROW-OF-TIME). Either failing makes the substrate inadmissible; the gate names the failing axis (or both)."
+    statement: "A substrate is *thermodynamically admissible* iff both ANCHORED-tier physical bounds hold simultaneously: I_observed ≤ 2π·E·R/(ℏ·c·ln 2) (INV-BEKENSTEIN-COGNITIVE) AND Σ_net = ΔS_system + ΔI_observer ≥ 0 (INV-ARROW-OF-TIME). The gate names the failing axis (or both). NOTE: passing the gate is necessary but NOT sufficient for any cognitive claim — non-cognitive systems satisfy both bounds trivially."
     test_type: property_test
     falsification: "A substrate where both ingredient invariants pass independently but the composite gate reports inadmissible, OR where one ingredient fails but the composite reports admissible. Composition must be the AND of the two ANCHORED axes."
     priority: P0
