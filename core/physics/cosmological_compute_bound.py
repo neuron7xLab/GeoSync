@@ -3,20 +3,18 @@
 """Cosmological compute bound on a causal diamond (P4).
 
 INV-COSMOLOGICAL-COMPUTE (P1, statistical, EXTRAPOLATED):
-    The total useful reversible computation that can be performed
-    inside any causal diamond is bounded above by the holographic bit
-    capacity of its bounding horizon, scaled by an efficiency
-    coefficient ε ∈ (0, 1]:
-
-        I_useful_max = ε · A / (4 · ℓ_p² · ln 2)   bits
+    I ≤ A / (4 · ℓ_p² · ln 2) bits per Bekenstein-Hawking 1973.
+    Caller-side discounting is the caller's responsibility; this
+    module ships only the holographic ceiling. The previous
+    `efficiency` parameter was dropped in chore/inflaw-5 because
+    for ε ≤ 1 the inequality reduced to a tautology (any number of
+    useful bits ≤ holographic ceiling is trivially satisfied by the
+    Bekenstein-Hawking bound itself, and ε had no operational
+    definition or first-principles derivation in this module).
 
     where A is the horizon area and ℓ_p is the Planck length. The
     Bekenstein-Hawking formula gives I_max = A / (4 · ℓ_p²) nats =
-    A / (4 · ℓ_p² · ln 2) bits. The efficiency ε ≤ 1 absorbs the
-    practical fact that not all holographic degrees of freedom are
-    addressable as useful logical bits at any given epoch — the
-    de Sitter complexity literature places ε in the 10^-3 .. 1 range
-    depending on the construction.
+    A / (4 · ℓ_p² · ln 2) bits.
 
 Provenance: EXTRAPOLATED.
     - Bekenstein 1973 (PRD 7, 2333): black-hole entropy ∝ horizon area.
@@ -26,9 +24,8 @@ Provenance: EXTRAPOLATED.
       computational complexity and black-hole horizons.
 
 The holographic-bound side is settled physics. The interpretation as
-a hard ceiling on "useful" cosmological computation is a research
-direction; the efficiency coefficient ε cannot be derived from first
-principles in this module. Truth-coherence ~0.5.
+a hard ceiling on cosmological computation is a research direction;
+truth-coherence ~0.5.
 """
 
 from __future__ import annotations
@@ -74,12 +71,15 @@ class CausalDiamond:
 
 @dataclass(frozen=True, slots=True)
 class ComputeBudget:
-    """Holographic compute budget of a causal diamond."""
+    """Holographic compute budget of a causal diamond.
+
+    `holographic_max_bits` is the Bekenstein-Hawking ceiling for the
+    diamond's horizon area. No `efficiency`/`useful_max_bits` split is
+    exposed — caller-side discounting belongs in the caller.
+    """
 
     diamond: CausalDiamond
     holographic_max_bits: float
-    efficiency: float
-    useful_max_bits: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,36 +119,24 @@ def holographic_bit_capacity(area_m2: float) -> float:
     return bits
 
 
-def diamond_compute_budget(
-    diamond: CausalDiamond,
-    *,
-    efficiency: float = 1.0,
-) -> ComputeBudget:
+def diamond_compute_budget(diamond: CausalDiamond) -> ComputeBudget:
     """Compute the holographic budget for a causal diamond.
 
-    `efficiency` is ε ∈ (0, 1] — the fraction of holographic bits
-    treated as useful logical-compute. Default 1.0 reproduces the
-    raw Bekenstein-Hawking bound. Values < 0 or > 1 are fail-closed.
+    Returns the Bekenstein-Hawking ceiling A / (4 · ℓ_p² · ln 2) for
+    the diamond's horizon area. Caller-side discounting (de Sitter
+    complexity efficiency) is intentionally not exposed here — see
+    module docstring.
     """
-    _check_finite(efficiency, "efficiency")
-    if not (0.0 < efficiency <= 1.0):
-        raise ValueError(f"efficiency must be in (0, 1], got {efficiency}")
     holographic = holographic_bit_capacity(diamond.horizon_area_m2)
-    useful = holographic * efficiency
-    _check_finite(useful, "useful_max_bits")
     return ComputeBudget(
         diamond=diamond,
         holographic_max_bits=holographic,
-        efficiency=efficiency,
-        useful_max_bits=useful,
     )
 
 
 def assess_compute_claim(
     diamond: CausalDiamond,
     claimed_bits: float,
-    *,
-    efficiency: float = 1.0,
 ) -> ComputeBudgetWitness:
     """Witness for INV-COSMOLOGICAL-COMPUTE on one claim.
 
@@ -157,17 +145,17 @@ def assess_compute_claim(
     """
     _check_finite(claimed_bits, "claimed_bits")
     _check_non_negative(claimed_bits, "claimed_bits")
-    budget = diamond_compute_budget(diamond, efficiency=efficiency)
-    margin = budget.useful_max_bits - claimed_bits
-    within = claimed_bits <= budget.useful_max_bits
+    budget = diamond_compute_budget(diamond)
+    margin = budget.holographic_max_bits - claimed_bits
+    within = claimed_bits <= budget.holographic_max_bits
     reason: str | None
     if within:
         reason = None
     else:
         reason = (
             "INV-COSMOLOGICAL-COMPUTE: claim exceeds budget; "
-            f"claimed_bits={claimed_bits} > useful_max_bits={budget.useful_max_bits} "
-            f"(holographic={budget.holographic_max_bits}, efficiency={efficiency})"
+            f"claimed_bits={claimed_bits} > "
+            f"holographic_max_bits={budget.holographic_max_bits}"
         )
     return ComputeBudgetWitness(
         budget=budget,

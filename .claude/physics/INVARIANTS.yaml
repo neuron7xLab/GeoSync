@@ -907,9 +907,9 @@ pncc:
   cosmological_compute:
     id: INV-COSMOLOGICAL-COMPUTE
     type: statistical
-    statement: "Useful reversible computation in any causal diamond is bounded above by ε · A / (4 · ℓ_p² · ln 2) bits, where A is horizon area, ℓ_p is the Planck length, and ε ∈ (0, 1] is a de-Sitter-complexity efficiency coefficient."
+    statement: "Useful reversible computation in any causal diamond is bounded above by A / (4 · ℓ_p² · ln 2) bits per Bekenstein-Hawking, where A is horizon area and ℓ_p is the Planck length. Caller-side discounting (de Sitter complexity efficiency) is the caller's responsibility, not part of this contract."
     test_type: property_test
-    falsification: "A reproducible measurement of useful quantum computation inside a causal diamond exceeding the holographic ceiling, OR a derivation forcing ε > 1."
+    falsification: "A reproducible measurement of useful quantum computation inside a causal diamond exceeding the holographic ceiling A / (4 · ℓ_p² · ln 2)."
     priority: P1
     provenance: EXTRAPOLATED
     source: core/physics/cosmological_compute_bound.py

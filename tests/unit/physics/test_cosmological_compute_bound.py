@@ -23,7 +23,7 @@ from core.physics.cosmological_compute_bound import (
 
 
 def test_provenance_tier_is_extrapolated() -> None:
-    """Provenance tier must be EXTRAPOLATED — efficiency ε is research, not derivation."""
+    """Provenance tier must be EXTRAPOLATED — useful-compute mapping is research."""
     assert PROVENANCE_TIER == "EXTRAPOLATED"
 
 
@@ -83,41 +83,11 @@ def test_holographic_capacity_hubble_horizon_order_of_magnitude() -> None:
     assert 121.0 <= log10_bits <= 124.0, msg
 
 
-def test_diamond_budget_default_efficiency_is_holographic() -> None:
-    """ε = 1 ⇒ useful_max_bits == holographic_max_bits."""
+def test_diamond_budget_returns_holographic_ceiling() -> None:
+    """diamond_compute_budget reports the Bekenstein-Hawking ceiling."""
     d = CausalDiamond(horizon_area_m2=1.0)
     budget = diamond_compute_budget(d)
-    assert budget.useful_max_bits == budget.holographic_max_bits
-    assert budget.efficiency == 1.0
-
-
-def test_diamond_budget_efficiency_scales_useful_bits() -> None:
-    """ε = 0.5 ⇒ useful_max_bits == holographic_max_bits / 2."""
-    d = CausalDiamond(horizon_area_m2=1.0)
-    budget = diamond_compute_budget(d, efficiency=0.5)
-    assert math.isclose(budget.useful_max_bits, budget.holographic_max_bits * 0.5)
-
-
-def test_diamond_budget_efficiency_zero_or_negative_raises() -> None:
-    """ε ≤ 0 is invalid (would make useful budget non-positive)."""
-    d = CausalDiamond(horizon_area_m2=1.0)
-    for bad in (0.0, -0.1, -1.0):
-        with pytest.raises(ValueError):
-            diamond_compute_budget(d, efficiency=bad)
-
-
-def test_diamond_budget_efficiency_above_one_raises() -> None:
-    """ε > 1 is unphysical — cannot use more bits than the holographic bound."""
-    d = CausalDiamond(horizon_area_m2=1.0)
-    with pytest.raises(ValueError):
-        diamond_compute_budget(d, efficiency=1.5)
-
-
-def test_diamond_budget_efficiency_non_finite_raises() -> None:
-    d = CausalDiamond(horizon_area_m2=1.0)
-    for bad in (float("nan"), float("inf")):
-        with pytest.raises(ValueError):
-            diamond_compute_budget(d, efficiency=bad)
+    assert math.isclose(budget.holographic_max_bits, BH_BIT_COEFF * 1.0, rel_tol=1e-12)
 
 
 def test_compute_claim_within_budget() -> None:
