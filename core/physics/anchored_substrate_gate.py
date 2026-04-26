@@ -63,13 +63,26 @@ from core.physics.arrow_of_time import (
 from core.physics.thermodynamic_budget import bekenstein_cognitive_ceiling
 
 __all__ = [
+    "DEFAULT_GATE_POLICY",
     "AnchoredSubstrateGateWitness",
+    "GatePolicy",
     "PROVENANCE_TIER",
     "SubstrateGateInputs",
     "assess_anchored_substrate_gate",
 ]
 
 PROVENANCE_TIER: Literal["ANCHORED", "EXTRAPOLATED", "SPECULATIVE"] = "ANCHORED"
+
+# Gate composition policy. ANCHORED_ONLY is the only currently-implemented
+# policy: the composite verdict considers ANCHORED-tier axes (Bekenstein
+# + Arrow) only. EXTRAPOLATED and SPECULATIVE axes (observer-bandwidth,
+# cosmological-compute, jacobson) may produce concerns independently but
+# DO NOT silently veto the composite under this policy. Future policies
+# (e.g. ALL_TIERS, ANCHORED_PLUS_EXTRAPOLATED) require an explicit API
+# extension — adding a new Literal value AND updating consumers — never
+# a silent behavior change.
+GatePolicy = Literal["ANCHORED_ONLY"]
+DEFAULT_GATE_POLICY: GatePolicy = "ANCHORED_ONLY"
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,6 +127,7 @@ class AnchoredSubstrateGateWitness:
     is_thermodynamically_admissible: bool
     failure_axes: tuple[str, ...]
     reason: str | None
+    policy_used: GatePolicy = "ANCHORED_ONLY"
 
 
 def _check_finite(value: float, name: str) -> None:
@@ -131,6 +145,8 @@ def _check_non_negative(value: float, name: str) -> None:
 
 def assess_anchored_substrate_gate(
     inputs: SubstrateGateInputs,
+    *,
+    policy: GatePolicy = DEFAULT_GATE_POLICY,
 ) -> AnchoredSubstrateGateWitness:
     """Compose INV-BEKENSTEIN-COGNITIVE and INV-ARROW-OF-TIME.
 
@@ -138,7 +154,21 @@ def assess_anchored_substrate_gate(
     violations (those are the gate's job to report); it raises only on
     malformed inputs (NaN/Inf, negative information count) per
     INV-HPC2 fail-closed.
+
+    `policy` controls which tier set the composite verdict consumes.
+    Currently only "ANCHORED_ONLY" is implemented — the verdict
+    considers Bekenstein + Arrow only. EXTRAPOLATED / SPECULATIVE
+    axes are NOT silently consulted under this policy. Future policy
+    values require an explicit Literal extension; passing an unknown
+    string fails fast (Literal-typed argument rejected by static
+    type checkers AND runtime via the equality check below).
     """
+    if policy != "ANCHORED_ONLY":
+        raise ValueError(
+            f"Unsupported gate policy {policy!r}; only 'ANCHORED_ONLY' is "
+            "implemented. Adding a new policy requires extending GatePolicy "
+            "Literal AND updating consumers — never a silent behavior change."
+        )
     _check_finite(inputs.observed_information_bits, "observed_information_bits")
     _check_non_negative(inputs.observed_information_bits, "observed_information_bits")
 
@@ -187,4 +217,5 @@ def assess_anchored_substrate_gate(
         is_thermodynamically_admissible=admissible,
         failure_axes=failure_tuple,
         reason=reason,
+        policy_used=policy,
     )
