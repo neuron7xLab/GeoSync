@@ -872,3 +872,20 @@ pncc:
       - "Susskind, L. (1995). The world as a hologram. J. Math. Phys. 36, 6377."
       - "Beane, S. R., Davoudi, Z., Savage, M. J. (2014). Constraints on the universe as a numerical simulation. Eur. Phys. J. A 50, 148. arXiv:1210.1847."
     related: [INV-BEKENSTEIN-COGNITIVE, INV-CRITICALITY, INV-LANDAUER-PROXY]
+
+  arrow_of_time:
+    id: INV-ARROW-OF-TIME
+    type: monotonic
+    statement: "For any observer-coupled closed system, cumulative net entropy production over any non-empty window is non-negative: Σ_net = ΔS_system + ΔI_observer (bit-space proxy) ≥ 0. Apparent local reductions of S_system must be paid for by observer information cost (Maxwell-demon resolution)."
+    test_type: property_test
+    falsification: "Any observed sequence of (ΔS_system, ΔI_observer) with ΔS_system + ΔI_observer < 0 in any contiguous window."
+    priority: P0
+    provenance: ANCHORED
+    truth_coherence_score: 0.9
+    source: core/physics/arrow_of_time.py
+    tests: tests/unit/physics/test_arrow_of_time.py
+    references:
+      - "Landauer, R. (1961). Irreversibility and Heat Generation in the Computing Process. IBM J. Res. Dev. 5, 183."
+      - "Bennett, C. H. (1982). The thermodynamics of computation — a review. Int. J. Theor. Phys. 21, 905."
+      - "Penrose, R. (1989). The Emperor's New Mind. Oxford University Press (cosmological-vs-thermodynamic arrow context)."
+    related: [INV-LANDAUER-PROXY, INV-CRITICALITY, INV-BEKENSTEIN-COGNITIVE]
