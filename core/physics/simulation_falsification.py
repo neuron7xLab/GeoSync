@@ -39,15 +39,40 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Final
+from typing import Final, Literal
 
 __all__ = [
     "CANONICAL_SIGNATURES",
     "FalsificationLadder",
     "FalsificationSignature",
     "ObservationStatus",
+    "ReasoningTier",
     "build_canonical_ladder",
 ]
+
+
+ReasoningTier = Literal["DERIVED", "ANALOGICAL"]
+"""Strength of the link between an observable and the simulation hypothesis.
+
+DERIVED:
+    The signature's prediction follows from a specific peer-reviewed
+    derivation that explicitly treats the universe-as-simulation
+    framing (e.g. Beane/Davoudi/Savage 2014 for cubic-lattice imprints
+    on cosmic rays and on photon dispersion; 't Hooft 1993 / Susskind
+    1995 for holography → Planck-scale resolution).
+
+ANALOGICAL:
+    The signature is plausibly *interpretable* as a simulation
+    fingerprint, but no published paper derives the threshold from a
+    concrete substrate model. The link is by analogy and the entry
+    exists to keep the ladder honest about which signatures are
+    genuinely derived versus interpretive.
+
+This field exists to surface, at the contract layer, the asymmetric
+evidential weight of canonical signatures — a uniform contract weight
+across all six entries would silently inflate ANALOGICAL signatures to
+the same status as DERIVED ones.
+"""
 
 
 class ObservationStatus(str, Enum):
@@ -88,6 +113,7 @@ class FalsificationSignature:
     current_observation_status: ObservationStatus
     current_observation_value: float | None
     reference: str
+    reasoning_tier: ReasoningTier
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +146,26 @@ class FalsificationLadder:
             if sig.signature_id == signature_id:
                 return sig
         raise KeyError(f"unknown signature_id: {signature_id!r}")
+
+    def signatures_by_tier(self) -> dict[str, tuple[FalsificationSignature, ...]]:
+        """Bucket the ladder by `reasoning_tier`.
+
+        Returns a dict with exactly two keys, "DERIVED" and "ANALOGICAL",
+        each mapped to the tuple of signatures carrying that tier
+        (preserving registry order). Both keys are always present even
+        if a bucket is empty, so callers can iterate without KeyError.
+        """
+        derived: list[FalsificationSignature] = []
+        analogical: list[FalsificationSignature] = []
+        for sig in self.signatures:
+            if sig.reasoning_tier == "DERIVED":
+                derived.append(sig)
+            else:
+                analogical.append(sig)
+        return {
+            "DERIVED": tuple(derived),
+            "ANALOGICAL": tuple(analogical),
+        }
 
     def hardware_class_ruled_out(self, signature_id: str, observed_value: float) -> bool:
         """Return True iff `observed_value` exceeds the threshold of the
@@ -176,6 +222,7 @@ CANONICAL_SIGNATURES: Final[tuple[FalsificationSignature, ...]] = (
             "'t Hooft 1993 (gr-qc/9310026); "
             "Susskind 1995 (J. Math. Phys. 36, 6377)."
         ),
+        reasoning_tier="ANALOGICAL",
     ),
     FalsificationSignature(
         signature_id="SIM-LATTICE-UHECR",
@@ -195,6 +242,7 @@ CANONICAL_SIGNATURES: Final[tuple[FalsificationSignature, ...]] = (
             "Constraints on the universe as a numerical simulation. "
             "Eur. Phys. J. A 50, 148. arXiv:1210.1847."
         ),
+        reasoning_tier="DERIVED",
     ),
     FalsificationSignature(
         signature_id="SIM-PLANCK-DISCRETIZATION",
@@ -211,6 +259,7 @@ CANONICAL_SIGNATURES: Final[tuple[FalsificationSignature, ...]] = (
         current_observation_status=ObservationStatus.OPEN,
         current_observation_value=None,
         reference=("'t Hooft 1993 (gr-qc/9310026); Susskind 1995 (J. Math. Phys. 36, 6377)."),
+        reasoning_tier="DERIVED",
     ),
     FalsificationSignature(
         signature_id="SIM-LATTICE-DISPERSION",
@@ -226,6 +275,7 @@ CANONICAL_SIGNATURES: Final[tuple[FalsificationSignature, ...]] = (
         current_observation_status=ObservationStatus.NOT_OBSERVED,
         current_observation_value=None,
         reference=("Beane, Davoudi, Savage (2014), §IV. Eur. Phys. J. A 50, 148."),
+        reasoning_tier="DERIVED",
     ),
     FalsificationSignature(
         signature_id="SIM-COMPUTE-COMPLEXITY-WALL",
@@ -244,6 +294,7 @@ CANONICAL_SIGNATURES: Final[tuple[FalsificationSignature, ...]] = (
             "Bekenstein-bound holography ('t Hooft 1993; Susskind 1995) "
             "applied to quantum-information capacity."
         ),
+        reasoning_tier="ANALOGICAL",
     ),
     FalsificationSignature(
         signature_id="SIM-CMB-MULTIPOLE-CUTOFF",
@@ -259,6 +310,7 @@ CANONICAL_SIGNATURES: Final[tuple[FalsificationSignature, ...]] = (
         current_observation_status=ObservationStatus.NOT_OBSERVED,
         current_observation_value=None,
         reference=("Beane, Davoudi, Savage (2014); context for cosmological observables."),
+        reasoning_tier="DERIVED",
     ),
 )
 

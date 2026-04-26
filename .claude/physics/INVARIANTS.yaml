@@ -887,7 +887,7 @@ pncc:
   simulation_falsification:
     id: INV-SIMULATION-FALSIFICATION
     type: statistical
-    statement: "The simulation hypothesis is operationalized as an enumerable registry of physical signatures, each with a published prediction, an explicit detectability threshold, and a current observation status (NOT_OBSERVED / OPEN / RULED_OUT). Probability is not a field; only status against observation."
+    statement: "The simulation hypothesis is operationalized as an enumerable registry of physical signatures, each with a published prediction, an explicit detectability threshold, and a current observation status (NOT_OBSERVED / OPEN / RULED_OUT). Probability is not a field; only status against observation. Each signature carries a reasoning_tier (DERIVED or ANALOGICAL) reflecting whether the link from observable to simulation-hypothesis is published derivation (Beane/Davoudi/Savage 2014, 't Hooft 1993, Susskind 1995) or interpretive analogy. Currently: 4 DERIVED, 2 ANALOGICAL."
     test_type: property_test
     falsification: "Any positive detection at or above a registered signature's threshold without independent corroboration is rejected; a productive ladder must have at least one entry with a published null bound (NOT_OBSERVED) within current instrument reach."
     priority: P1
