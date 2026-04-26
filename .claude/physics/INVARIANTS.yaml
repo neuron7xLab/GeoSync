@@ -906,3 +906,21 @@ pncc:
       - "Verlinde, E. (2011). On the origin of gravity and the laws of Newton. JHEP 04, 029."
       - "Aaronson, S. (2013). Quantum Computing since Democritus. Cambridge University Press."
     related: [INV-LANDAUER-PROXY, INV-BEKENSTEIN-COGNITIVE, INV-ARROW-OF-TIME]
+
+  cosmological_compute:
+    id: INV-COSMOLOGICAL-COMPUTE
+    type: statistical
+    statement: "Useful reversible computation in any causal diamond is bounded above by ε · A / (4 · ℓ_p² · ln 2) bits, where A is horizon area, ℓ_p is the Planck length, and ε ∈ (0, 1] is a de-Sitter-complexity efficiency coefficient."
+    test_type: property_test
+    falsification: "A reproducible measurement of useful quantum computation inside a causal diamond exceeding the holographic ceiling, OR a derivation forcing ε > 1."
+    priority: P1
+    provenance: EXTRAPOLATED
+    truth_coherence_score: 0.5
+    source: core/physics/cosmological_compute_bound.py
+    tests: tests/unit/physics/test_cosmological_compute_bound.py
+    references:
+      - "Bekenstein, J. D. (1973). Black holes and entropy. Phys. Rev. D 7, 2333."
+      - "'t Hooft, G. (1993). Dimensional reduction in quantum gravity. arXiv:gr-qc/9310026."
+      - "Susskind, L. (1995). The world as a hologram. J. Math. Phys. 36, 6377."
+      - "Susskind, L. (2014). Computational complexity and black hole horizons. Fortschr. Phys. 64, 24. arXiv:1402.5674."
+    related: [INV-BEKENSTEIN-COGNITIVE, INV-LANDAUER-PROXY, INV-SIMULATION-FALSIFICATION]
