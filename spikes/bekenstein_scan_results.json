@@ -5,7 +5,7 @@
     "energy_J": 1728000.0,
     "theoretical_max_bits": 3.4681615710941886e+31,
     "estimated_actual_bits": 2500000000000000.0,
-    "efficiency_margin": 7.208430024819351e-17,
+    "bekenstein_saturation_ratio": 7.208430024819351e-17,
     "log10_margin": -16.142159313061814
   },
   {
@@ -14,7 +14,7 @@
     "energy_J": 0.8640000000000001,
     "theoretical_max_bits": 1.2386291325336389e+23,
     "estimated_actual_bits": 1000000000.0,
-    "efficiency_margin": 8.073441627797672e-15,
+    "bekenstein_saturation_ratio": 8.073441627797672e-15,
     "log10_margin": -14.092941290391632
   },
   {
@@ -23,7 +23,7 @@
     "energy_J": 0.00864,
     "theoretical_max_bits": 1.2386291325336386e+20,
     "estimated_actual_bits": 10000.0,
-    "efficiency_margin": 8.073441627797674e-17,
+    "bekenstein_saturation_ratio": 8.073441627797674e-17,
     "log10_margin": -16.092941290391632
   },
   {
@@ -32,7 +32,7 @@
     "energy_J": 86400000000.0,
     "theoretical_max_bits": 1.2386291325336387e+37,
     "estimated_actual_bits": 10000000000000.0,
-    "efficiency_margin": 8.073441627797673e-25,
+    "bekenstein_saturation_ratio": 8.073441627797673e-25,
     "log10_margin": -24.092941290391632
   },
   {
@@ -41,7 +41,7 @@
     "energy_J": 4320000.0,
     "theoretical_max_bits": 1.2386291325336388e+32,
     "estimated_actual_bits": 1000000000000.0,
-    "efficiency_margin": 8.073441627797672e-21,
+    "bekenstein_saturation_ratio": 8.073441627797672e-21,
     "log10_margin": -20.092941290391632
   }
 ]
