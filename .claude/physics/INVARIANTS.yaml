@@ -5,6 +5,33 @@
 # Format: each invariant has type, condition, falsification criteria.
 
 # ═══════════════════════════════════════════════════
+# YAROSLAV'S GRADIENT ONTOLOGY — ROOT AXIOM (Layer 0)
+# ═══════════════════════════════════════════════════
+# CLAUDE.md §0: a system is a sustained potential difference; a static
+# gradient is a capacitor, a living gradient is a process. Intelligence
+# requires the second. Maintenance hierarchy Layers 0–3 = 40 percent;
+# Layer 4 (processing) computes noise if any of 0–3 fails. Registered
+# here so that `related:` cross-references from INV-CRITICALITY and
+# INV-BEKENSTEIN-COGNITIVE resolve under validator check 8.
+
+gradient_ontology:
+  living_gradient:
+    id: INV-YV1
+    type: universal
+    statement: "ΔV > 0 ∧ dΔV/dt ≠ 0 — gradient must be positive AND dynamic. A static gradient is a capacitor; a living gradient is a process. Intelligence requires the second."
+    test_type: property_test
+    falsification: "Any operating window in which ΔV ≤ 0 OR dΔV/dt ≡ 0 over a non-empty interval while the system claims live cognitive computation."
+    priority: P0
+    provenance: ANCHORED
+    source: core/neuro/gradient_vital_signs.py
+    tests: tests/integration/test_neurostack_integration.py
+    references:
+      - "Hodgkin, A. L. & Huxley, A. F. (1952). A quantitative description of membrane current and its application to conduction and excitation in nerve. J. Physiol. 117, 500."
+      - "Schrödinger, E. (1944). What Is Life? — negentropy as the substrate of organized matter."
+      - "Prigogine, I. (1977). Self-Organization in Nonequilibrium Systems. Wiley."
+    related: [INV-CRITICALITY, INV-BEKENSTEIN-COGNITIVE]
+
+# ═══════════════════════════════════════════════════
 # KURAMOTO SYNCHRONIZATION
 # ═══════════════════════════════════════════════════
 
