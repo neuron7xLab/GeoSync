@@ -876,8 +876,11 @@ pncc:
     test_type: property_test
     falsification: "Any physical system that stably stores or processes I > 2π·E·R/(ℏ·c·ln 2) bits without forming an event horizon, OR an experimental violation of the holographic principle in the high-energy regime."
     priority: P0
+    provenance: ANCHORED
     source: core/physics/thermodynamic_budget.py
     tests: tests/unit/physics/test_thermodynamic_budget.py
+    integration_test: tests/integration/test_substrate_gate_chain.py
+    runtime_evaluable: yes
     references:
       - "Bekenstein, J. D. (1981). Universal upper bound on the entropy-to-energy ratio for bounded systems. Phys. Rev. D 23, 287."
       - "'t Hooft, G. (1993). Dimensional reduction in quantum gravity. arXiv:gr-qc/9310026."
@@ -910,6 +913,8 @@ pncc:
     provenance: ANCHORED
     source: core/physics/arrow_of_time.py
     tests: tests/unit/physics/test_arrow_of_time.py
+    integration_test: tests/integration/test_substrate_gate_chain.py
+    runtime_evaluable: yes
     references:
       - "Landauer, R. (1961). Irreversibility and Heat Generation in the Computing Process. IBM J. Res. Dev. 5, 183."
       - "Bennett, C. H. (1982). The thermodynamics of computation — a review. Int. J. Theor. Phys. 21, 905."
@@ -980,6 +985,8 @@ pncc:
     provenance: ANCHORED
     source: core/physics/anchored_substrate_gate.py
     tests: tests/unit/physics/test_anchored_substrate_gate.py
+    integration_test: tests/integration/test_substrate_gate_chain.py
+    runtime_evaluable: yes
     references:
       - "Bekenstein, J. D. (1981). Universal upper bound on the entropy-to-energy ratio for bounded systems. Phys. Rev. D 23, 287."
       - "Landauer, R. (1961). Irreversibility and Heat Generation in the Computing Process. IBM J. Res. Dev. 5, 183."
