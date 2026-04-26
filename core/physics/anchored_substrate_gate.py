@@ -3,8 +3,8 @@
 """Anchored substrate gate — composition of ANCHORED-tier invariants.
 
 INV-ANCHORED-SUBSTRATE-GATE (P0, conditional, ANCHORED):
-    A substrate is admissible for cognitive computation iff it
-    simultaneously satisfies the two ANCHORED-tier physical bounds:
+    A substrate is *thermodynamically admissible* iff it simultaneously
+    satisfies the two ANCHORED-tier physical bounds:
 
         (1) INV-BEKENSTEIN-COGNITIVE — spatial/capacity:
                 I_observed ≤ 2π·E·R / (ℏ·c·ln 2)   bits
@@ -13,9 +13,17 @@ INV-ANCHORED-SUBSTRATE-GATE (P0, conditional, ANCHORED):
                 Σ_net = ΔS_system + ΔI_observer ≥ 0   bits
 
     Both must hold. Either failing makes the substrate inadmissible
-    for the purposes of the cognitive-engineering kernel; the gate
-    returns a structured witness that names which axis (or both)
-    failed.
+    under the gate; the gate returns a structured witness that names
+    which axis (or both) failed.
+
+    NOTE: The gate does NOT certify "cognitive capability". Many
+    non-cognitive systems (a rock, a glass of water, a planet)
+    trivially satisfy both bounds. Passing the gate is a *necessary*
+    condition for any cognition-relevant claim — never a sufficient
+    one. Earlier wording in this module said "admissible for
+    cognitive computation" and "cognitive-engineering kernel"; that
+    was an inferential overclaim and has been removed in
+    chore/substrate-gate-honest-naming.
 
 Provenance: ANCHORED.
     The gate composes only the two ANCHORED invariants. Both
@@ -92,7 +100,10 @@ class AnchoredSubstrateGateWitness:
     """Composite witness from `assess_anchored_substrate_gate`.
 
     Carries the per-axis sub-witnesses plus the composite verdict.
-    Non-raising; caller fail-closes on `is_substrate_admissible is False`.
+    Non-raising; caller fail-closes on
+    `is_thermodynamically_admissible is False`. The flag answers
+    only "do both anchored bounds hold for this substrate?" — it
+    does NOT certify cognition.
     """
 
     inputs: SubstrateGateInputs
@@ -100,7 +111,7 @@ class AnchoredSubstrateGateWitness:
     bekenstein_axis_holds: bool
     arrow_witness: ArrowOfTimeWitness
     arrow_axis_holds: bool
-    is_substrate_admissible: bool
+    is_thermodynamically_admissible: bool
     failure_axes: tuple[str, ...]
     reason: str | None
 
@@ -173,7 +184,7 @@ def assess_anchored_substrate_gate(
         bekenstein_axis_holds=bekenstein_holds,
         arrow_witness=arrow_witness,
         arrow_axis_holds=arrow_holds,
-        is_substrate_admissible=admissible,
+        is_thermodynamically_admissible=admissible,
         failure_axes=failure_tuple,
         reason=reason,
     )

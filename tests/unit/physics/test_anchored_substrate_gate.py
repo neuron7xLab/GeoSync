@@ -68,7 +68,7 @@ def test_admissible_when_both_axes_hold() -> None:
     )
     assert w.bekenstein_axis_holds is True
     assert w.arrow_axis_holds is True
-    assert w.is_substrate_admissible is True
+    assert w.is_thermodynamically_admissible is True
     assert w.failure_axes == ()
     assert w.reason is None
 
@@ -81,7 +81,7 @@ def test_inadmissible_when_information_exceeds_bekenstein_ceiling() -> None:
     )
     assert w.bekenstein_axis_holds is False
     assert w.arrow_axis_holds is True
-    assert w.is_substrate_admissible is False
+    assert w.is_thermodynamically_admissible is False
     assert w.failure_axes == ("BEKENSTEIN",)
     assert w.reason is not None
     assert "INV-BEKENSTEIN-COGNITIVE" in w.reason
@@ -98,7 +98,7 @@ def test_inadmissible_when_arrow_violated_by_unpaid_local_reduction() -> None:
     )
     assert w.bekenstein_axis_holds is True
     assert w.arrow_axis_holds is False
-    assert w.is_substrate_admissible is False
+    assert w.is_thermodynamically_admissible is False
     assert w.failure_axes == ("ARROW",)
     assert w.reason is not None
     assert "INV-ARROW-OF-TIME" in w.reason
@@ -115,7 +115,7 @@ def test_both_axes_fail_simultaneously() -> None:
     )
     assert w.bekenstein_axis_holds is False
     assert w.arrow_axis_holds is False
-    assert w.is_substrate_admissible is False
+    assert w.is_thermodynamically_admissible is False
     assert set(w.failure_axes) == {"BEKENSTEIN", "ARROW"}
     assert w.reason is not None
     assert "INV-BEKENSTEIN-COGNITIVE" in w.reason
@@ -137,7 +137,7 @@ def test_bekenstein_saturation_admissible_at_equality() -> None:
         )
     )
     assert w.bekenstein_axis_holds is True
-    assert w.is_substrate_admissible is True
+    assert w.is_thermodynamically_admissible is True
 
 
 def test_negative_observed_information_raises() -> None:
@@ -157,7 +157,7 @@ def test_witness_dataclass_is_frozen() -> None:
     """AnchoredSubstrateGateWitness is immutable post-construction."""
     w = assess_anchored_substrate_gate(_inputs(observed_information_bits=1.0))
     with pytest.raises(AttributeError):
-        w.is_substrate_admissible = False  # type: ignore[misc]
+        w.is_thermodynamically_admissible = False  # type: ignore[misc]
 
 
 def test_witness_carries_per_axis_sub_witness() -> None:
@@ -184,5 +184,5 @@ def test_zero_information_with_zero_entropy_is_admissible() -> None:
     """Trivial substrate (no claims, no change) is degenerate but admissible:
     nothing exceeds the ceiling, nothing violates the arrow."""
     w = assess_anchored_substrate_gate(_inputs(observed_information_bits=0.0))
-    assert w.is_substrate_admissible is True
+    assert w.is_thermodynamically_admissible is True
     assert math.isfinite(w.bekenstein_ceiling_bits)
