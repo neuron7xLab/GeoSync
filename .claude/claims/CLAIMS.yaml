@@ -137,12 +137,80 @@ claims:
       (HTTP 401/403 or WS close 1008).
     owner_surface: application/api/graphql
     last_verified_command: ""
-    status: PARTIAL
+    status: REJECTED
+    rejection_reason: |
+      Falsified by tests/integration/test_graphql_ws_reachability.py
+      (PR #452, audit record 2026-04-26-F03-graphql-ws-reachability.md).
+      The claim's framing assumed an authentication surface to bypass.
+      Integration witness shows /graphql is intentionally public:
+        - graphql-ws AND graphql-transport-ws handshakes both ACCEPTED
+        - rate-limit dep (enforce_public_rate_limit) IS invoked at WS upgrade
+        - schema declares no Subscription type; connection_init →
+          connection_ack succeeds but no subscription operations exist
+      GHSA-vpwc-v33q-mq89 (auth bypass via legacy graphql-ws): N/A —
+      no auth surface to bypass on this public endpoint.
+      GHSA-hv3w-m4g2-5x77 (DoS via unbounded subscriptions): N/A —
+      no Subscription type in the schema.
+      Replaced by SEC-GRAPHQL-WS-PUBLIC-SURFACE recording what was
+      actually proven. The original claim is preserved here as a
+      negative reference.
     related_pr: 445
     related_issue: 446
-    non_testable_reason: |
-      Reachability test is the explicit follow-up scope of issue #446; this
-      claim stays at SPECULATION tier until the integration test lands.
+    superseded_by: SEC-GRAPHQL-WS-PUBLIC-SURFACE
+
+  - claim_id: SEC-GRAPHQL-WS-PUBLIC-SURFACE
+    statement: |
+      /graphql exposes a public WebSocket endpoint that completes
+      both `graphql-ws` and `graphql-transport-ws` handshakes.
+      Rate-limit dependency `enforce_public_rate_limit` is invoked at
+      WS upgrade. The schema declares no Subscription type, so no
+      subscription operations exist for an attacker to subscribe to.
+      The endpoint is public by design; no authentication is required
+      and none is bypassed.
+    class: SECURITY
+    tier: FACT
+    evidence_paths:
+      - type: INTEGRATION_TEST
+        path: tests/integration/test_graphql_ws_reachability.py
+        capture: |
+          Both subprotocols → PROTOCOL_HANDSHAKE_ACCEPTED;
+          dependency_invoked=True; recv after connection_init =
+          {'type': 'connection_ack'}; subscription_type is None.
+      - type: MANUAL_INSPECTION
+        path: application/api/graphql_api.py
+        capture: |
+          create_graphql_router builds Schema(query=Query) with no
+          subscription= argument. GraphQLRouter constructed with
+          default subscription_protocols=('graphql-transport-ws',
+          'graphql-ws').
+      - type: MANUAL_INSPECTION
+        path: application/api/service.py
+        capture: |
+          app.include_router(graphql_router, prefix="/graphql",
+          dependencies=[Depends(enforce_public_rate_limit)]).
+      - type: EXTERNAL_ADVISORY
+        path: docs/governance/audit_records/2026-04-26-F03-graphql-ws-reachability.md
+        capture: |
+          GHSA-vpwc-v33q-mq89 fix=0.312.3; lockfile pinned at 0.315.2;
+          F03 version risk closed by PR #445. Reachability classified
+          here as N/A-by-design.
+    test_paths:
+      - tests/integration/test_graphql_ws_reachability.py
+    falsifier: |
+      Any of the following observable conditions would refute this
+      claim:
+        1. test_no_subscription_type_in_schema fails (a Subscription
+           type was added without re-deriving reachability).
+        2. test_dependency_is_invoked_on_http_route_baseline fails
+           (the rate-limit boundary regressed).
+        3. test_observed_reachability_matches_ledger_speculation_tier
+           records a tier outside the admissible set.
+    owner_surface: application/api/graphql
+    last_verified_command: |
+      python -m pytest tests/integration/test_graphql_ws_reachability.py -v
+    status: ACTIVE
+    related_pr: 452
+    related_issue: 446
 
   # =========================================================================
   # ARCHITECTURE — module boundary contracts (currently absent)
