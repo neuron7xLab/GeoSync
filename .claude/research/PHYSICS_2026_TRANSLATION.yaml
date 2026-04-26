@@ -159,7 +159,8 @@ patterns:
       accept the comparison.
     proposed_module: geosync_hpc/nulls/dynamic_null_model.py
     claim_tier: ENGINEERING_ANALOG
-    implementation_status: PROPOSED
+    implementation_status: IMPLEMENTED
+    implemented_at: "2026-04-26"
     measurable_inputs:
       - time_index
       - baseline_series
