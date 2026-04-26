@@ -924,3 +924,19 @@ pncc:
       - "Susskind, L. (1995). The world as a hologram. J. Math. Phys. 36, 6377."
       - "Susskind, L. (2014). Computational complexity and black hole horizons. Fortschr. Phys. 64, 24. arXiv:1402.5674."
     related: [INV-BEKENSTEIN-COGNITIVE, INV-LANDAUER-PROXY, INV-SIMULATION-FALSIFICATION]
+
+  observer_cpt:
+    id: INV-OBSERVER-CPT
+    type: qualitative
+    statement: "For a CPT-symmetric Lagrangian coupled to an observer with decoherence kernel K, the observed asymmetry η = (n_m - n_m̄)/(n_m + n_m̄) is zero iff K(matter) = K(antimatter). Any η ≠ 0 requires a kernel-level asymmetry; the Lagrangian itself remains CPT-symmetric."
+    test_type: property_test
+    falsification: "An observed η ≠ 0 in a system where the decoherence kernel is independently measured to be CPT-symmetric, OR an η = 0 in a system with a measured asymmetric kernel."
+    priority: P2
+    provenance: SPECULATIVE
+    truth_coherence_score: 0.3
+    source: core/physics/observer_cpt_asymmetry.py
+    tests: tests/unit/physics/test_observer_cpt_asymmetry.py
+    references:
+      - "Sakharov, A. D. (1967). Violation of CP invariance, C asymmetry, and baryon asymmetry of the universe. JETP Lett. 5, 24."
+      - "Particle Data Group (2024). Review of Particle Physics. Prog. Theor. Exp. Phys. 2024, 083C01 (η = (n_b - n_b̄)/n_γ ≈ 6×10⁻¹⁰)."
+    related: [INV-OBSERVER-BANDWIDTH, INV-ARROW-OF-TIME]
