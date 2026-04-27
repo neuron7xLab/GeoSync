@@ -369,7 +369,8 @@ patterns:
       by a documented threshold.
     proposed_module: geosync_hpc/regimes/regime_front_roughness_witness.py
     claim_tier: ENGINEERING_ANALOG
-    implementation_status: PROPOSED
+    implementation_status: IMPLEMENTED
+    implemented_at: "2026-04-27"
     measurable_inputs:
       - boundary_series
       - time_index
