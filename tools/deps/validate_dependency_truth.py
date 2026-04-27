@@ -24,6 +24,9 @@ Drift classes detected:
   D5  constraints/security.txt weaker than the matching manifest floor
   D6  package imported directly but only declared transitively
       (already covered by deptry; we surface the manifest-side facts)
+  D7  constraints/security.txt pins ABOVE the manifest's strict upper
+      bound (the lock-regeneration trap; pip-compile cannot satisfy
+      both bounds — observable as `make lock` ResolutionImpossible)
 
 Output is a deterministic JSON report. Exit code is non-zero when any
 drift is found that is not on the accepted backlog list.
@@ -69,6 +72,10 @@ F03_REGRESSION_PACKAGE = "strawberry-graphql"
 
 _PEP508_NAME = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)(?:\[[^\]]+\])?")
 _LOWER_BOUND = re.compile(r">=\s*([0-9][0-9A-Za-z.+\-_!]*)")
+# Match strict-less-than upper bounds. Captures the version after ``<``;
+# we use a negative lookahead to exclude ``<=`` (which is a different
+# semantic — strict < is the common pip-style upper-cap, e.g. <0.27).
+_UPPER_BOUND = re.compile(r"<(?!=)\s*([0-9][0-9A-Za-z.+\-_!]*)")
 _EXACT_PIN = re.compile(r"==\s*([0-9][0-9A-Za-z.+\-_!]*)")
 
 
@@ -92,7 +99,7 @@ def _pep508_name(spec: str) -> str | None:
 @dataclass(frozen=True)
 class Drift:
     package: str
-    drift_class: str  # D1..D6
+    drift_class: str  # D1..D7
     detail: str
     priority: str  # CRITICAL / HIGH / MEDIUM / LOW
     fix: str
@@ -130,6 +137,46 @@ def _read_plain_floors(path: Path) -> dict[str, str]:
         if m:
             bounds[name] = m.group(1)
     return bounds
+
+
+def _read_pyproject_uppers(path: Path) -> dict[str, str]:
+    """Return {package_name: strict-less-than upper bound} from pyproject.
+
+    Captures specs like ``"pandera>=0.20.4,<0.27"``. Packages without an
+    upper bound are absent from the result.
+    """
+    if not path.exists():
+        return {}
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    project = data.get("project", {})
+    deps = project.get("dependencies") or []
+    uppers: dict[str, str] = {}
+    for spec in deps:
+        name = _pep508_name(spec)
+        if not name:
+            continue
+        m = _UPPER_BOUND.search(spec)
+        if m:
+            uppers[name] = m.group(1)
+    return uppers
+
+
+def _read_plain_uppers(path: Path) -> dict[str, str]:
+    """Strict-less-than upper bounds from a plain requirements file."""
+    if not path.exists():
+        return {}
+    uppers: dict[str, str] = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("#") or stripped.startswith("-r "):
+            continue
+        name = _pep508_name(stripped)
+        if not name:
+            continue
+        m = _UPPER_BOUND.search(stripped)
+        if m:
+            uppers[name] = m.group(1)
+    return uppers
 
 
 def _read_lock_pins(path: Path) -> dict[str, str]:
@@ -354,6 +401,52 @@ def collect(repo_root: Path) -> TruthReport:
                     priority="HIGH",
                     fix=f"raise {name} in constraints/security.txt to >= {floor}",
                     manifests=("constraints/security.txt",),
+                )
+            )
+
+    # D7 — constraints/security.txt pins ABOVE the manifest's strict
+    # upper bound. This is the inverse of D5 and the load-bearing
+    # detector for the lock-regeneration class of failure: a constraint
+    # pin at e.g. ``pandera==0.31.1`` while a manifest declares
+    # ``pandera<0.27`` makes ``pip-compile --constraint=...`` impossible
+    # (the resolver cannot satisfy both bounds simultaneously). The
+    # observable symptom is ``make lock`` exiting with
+    # ``ResolutionImpossible``.
+    pyp_uppers = _read_pyproject_uppers(repo_root / "pyproject.toml")
+    req_uppers = _read_plain_uppers(repo_root / "requirements.txt")
+    req_scan_uppers = _read_plain_uppers(repo_root / "requirements-scan.txt")
+    for name, pin in sorted(constraints.items()):
+        # Find the strictest (lowest) declared upper bound across manifests.
+        candidate_uppers = [
+            (src, val)
+            for src, val in (
+                ("pyproject.toml", pyp_uppers.get(name)),
+                ("requirements.txt", req_uppers.get(name)),
+                ("requirements-scan.txt", req_scan_uppers.get(name)),
+            )
+            if val
+        ]
+        if not candidate_uppers:
+            continue
+        # Pick the lowest upper bound (the one most likely to clip the pin).
+        strictest_src, strictest_upper = min(candidate_uppers, key=lambda kv: _parse_version(kv[1]))
+        if _parse_version(pin) >= _parse_version(strictest_upper):
+            drifts.append(
+                Drift(
+                    package=name,
+                    drift_class="D7",
+                    detail=(
+                        f"constraints/security.txt pins {name}=={pin}, but "
+                        f"{strictest_src} declares {name}<{strictest_upper}; "
+                        "pip-compile --constraint cannot satisfy both"
+                    ),
+                    priority="HIGH",
+                    fix=(
+                        f"either lift the {name} upper bound in "
+                        f"{strictest_src} above {pin}, or downgrade the "
+                        f"constraints/security.txt pin below {strictest_upper}"
+                    ),
+                    manifests=("constraints/security.txt", strictest_src),
                 )
             )
 

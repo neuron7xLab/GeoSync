@@ -263,6 +263,127 @@ def test_d6_pointer_is_synthetic_and_low_priority(vdt: ModuleType, tmp_path: Pat
 
 
 # ---------------------------------------------------------------------------
+# D7 — constraint pin above manifest upper bound (the lock-regeneration trap)
+# ---------------------------------------------------------------------------
+
+
+def test_d7_detects_constraint_pin_above_manifest_upper(vdt: ModuleType, tmp_path: Path) -> None:
+    """The exact pandera-class drift the live tree fixed.
+
+    A constraint pin numerically above a strict-less-than upper bound in
+    pyproject makes ``pip-compile --constraint=...`` impossible. The
+    unifier MUST surface the conflict before make lock fails."""
+    _seed_minimal_repo(
+        tmp_path,
+        pyproject=dedent("""
+            [project]
+            name = "fake"
+            version = "0.0.0"
+            dependencies = ["pandera>=0.20.4,<0.27"]
+            """),
+        constraints="pandera==0.31.1\n",
+    )
+    report = vdt.collect(tmp_path)
+    d7 = [d for d in report.drifts if d.drift_class == "D7"]
+    assert d7, report.drifts
+    assert d7[0].package == "pandera"
+    assert d7[0].priority == "HIGH"
+    assert "0.31.1" in d7[0].detail
+    assert "0.27" in d7[0].detail
+
+
+def test_d7_silent_when_constraint_within_manifest_range(vdt: ModuleType, tmp_path: Path) -> None:
+    """No D7 fire when the constraint pin is below the manifest upper."""
+    _seed_minimal_repo(
+        tmp_path,
+        pyproject=dedent("""
+            [project]
+            name = "fake"
+            version = "0.0.0"
+            dependencies = ["pandera>=0.20.4,<1.0.0"]
+            """),
+        constraints="pandera==0.31.1\n",
+    )
+    report = vdt.collect(tmp_path)
+    d7 = [d for d in report.drifts if d.drift_class == "D7"]
+    assert not d7, report.drifts
+
+
+def test_d7_silent_when_no_manifest_upper_bound(vdt: ModuleType, tmp_path: Path) -> None:
+    """A package with no upper bound cannot trigger D7 — there is nothing
+    to clip the constraint against."""
+    _seed_minimal_repo(
+        tmp_path,
+        pyproject=dedent("""
+            [project]
+            name = "fake"
+            version = "0.0.0"
+            dependencies = ["pandera>=0.20.4"]
+            """),
+        constraints="pandera==0.31.1\n",
+    )
+    report = vdt.collect(tmp_path)
+    d7 = [d for d in report.drifts if d.drift_class == "D7"]
+    assert not d7, report.drifts
+
+
+def test_d7_uses_strictest_upper_across_manifests(vdt: ModuleType, tmp_path: Path) -> None:
+    """If pyproject says ``<0.27`` and requirements says ``<0.50``, the
+    unifier flags against the strictest (lower) upper — the one that
+    makes pip-compile actually fail."""
+    _seed_minimal_repo(
+        tmp_path,
+        pyproject=dedent("""
+            [project]
+            name = "fake"
+            version = "0.0.0"
+            dependencies = ["pandera>=0.20.4,<0.27"]
+            """),
+        requirements_txt="pandera>=0.20.4,<0.50\n",
+        constraints="pandera==0.31.1\n",
+    )
+    report = vdt.collect(tmp_path)
+    d7 = [d for d in report.drifts if d.drift_class == "D7"]
+    assert d7, report.drifts
+    # The detail must reference the strictest upper (0.27 from pyproject),
+    # not the looser 0.50 from requirements.
+    assert "0.27" in d7[0].detail
+
+
+def test_live_tree_pandera_d7_silent_after_fix(vdt: ModuleType) -> None:
+    """Regression guard: after the lock-regeneration PR, the live-tree
+    pandera bound is ``<1.0.0`` and the constraint pin is ``==0.31.1``.
+    No D7 fire."""
+    report = vdt.collect(REPO_ROOT)
+    pandera_d7 = [d for d in report.drifts if d.drift_class == "D7" and d.package == "pandera"]
+    assert not pandera_d7, (
+        "pandera D7 fire on live tree — lock-regeneration conflict has "
+        "returned:\n  " + "\n  ".join(str(d) for d in pandera_d7)
+    )
+
+
+def test_pip_compile_exit_zero_is_observable(vdt: ModuleType, tmp_path: Path) -> None:
+    """Sanity: a manifest+constraint pair without conflict produces
+    zero drift findings of class D7. This pairs with the synthetic
+    failure cases above to demonstrate the detector is precise.
+    """
+    _seed_minimal_repo(
+        tmp_path,
+        pyproject=dedent("""
+            [project]
+            name = "fake"
+            version = "0.0.0"
+            dependencies = ["pkga>=1.0.0,<2.0.0"]
+            """),
+        requirements_txt="pkga>=1.0.0,<2.0.0\n",
+        constraints="pkga==1.5.0\n",
+    )
+    report = vdt.collect(tmp_path)
+    d7 = [d for d in report.drifts if d.drift_class == "D7"]
+    assert not d7
+
+
+# ---------------------------------------------------------------------------
 # Contract 3 — deterministic output
 # ---------------------------------------------------------------------------
 
