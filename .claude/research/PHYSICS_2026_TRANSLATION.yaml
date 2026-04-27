@@ -1,0 +1,346 @@
+# GeoSync Physics-2026 Translation Matrix
+#
+# This file maps each Physics-2026 source pattern to a GeoSync engineering
+# analog. It is NOT a metaphor table. Every entry is gated by:
+#
+#   - explicit source_ids (must reference docs/research/physics_2026/source_pack.yaml)
+#   - claim_tier:  FACT / ENGINEERING_ANALOG / HYPOTHESIS / REJECTED
+#   - measurable_inputs that the runtime can actually produce
+#   - output_witness with a status / reason / evidence shape
+#   - null_model that establishes a baseline behaviour
+#   - falsifier — the concrete observation that would unmake the claim
+#   - deterministic_tests required at module-implementation time
+#   - mutation_candidate — the line / function the mutation harness would patch
+#
+# implementation_status separates intent from delivery:
+#   PROPOSED      — pattern accepted; module not yet implemented (PR-1 ships
+#                   only the rail; module PRs come later).
+#   IMPLEMENTED   — module shipped; tests pass; entry has a claim ledger row.
+#   REJECTED      — pattern fails one of the gating conditions; rejection_reason
+#                   must be set; the entry is kept as a negative reference.
+#
+# Source-pattern boundaries:
+#
+#   Each pattern targets ONE methodological move (catalog, structured-absence
+#   inference, dynamic-null modelling, global-witness, motional/trajectory
+#   correlation, composite-binding). Patterns do NOT compound. If a runtime
+#   need spans two patterns, it gets two ledger entries and two modules.
+#
+# Forbidden in any pattern body:
+#
+#   "physical equivalence", "quantum market", "universal", "predicts returns"
+#
+# Validator: tools/research/validate_physics_2026_translation.py
+# Tests:     tests/research/test_validate_physics_2026_translation.py
+
+schema_version: 1
+
+patterns:
+
+  # =========================================================================
+  - pattern_id: P1_POPULATION_EVENT_CATALOG
+    source_ids: [S1_GWTC4]
+    source_fact_summary: |
+      GWTC-4 adds 128 compact-binary candidates from O4a; events require
+      p_astro >= 0.5 and survive validation. Catalogue admission is gated
+      by provenance, not by post-hoc curation.
+    methodological_pattern: |
+      Population-scale event catalogue with explicit admission criteria
+      and provenance fields per event.
+    geosync_operational_analog: |
+      Market regimes are tracked as a catalogue of events, each carrying
+      provenance, parameters, evidence tier, and an admission verdict.
+    proposed_module: geosync_hpc/regimes/population_event_catalog.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - timestamp
+      - asset_universe
+      - regime_label
+      - event_features
+      - evidence_tier
+      - source_window
+    output_witness:
+      - event_id
+      - accepted
+      - reason
+      - falsifier_status
+    null_model: |
+      A duplicated event, a missing provenance field, an invalid
+      timestamp, or an unsupported evidence tier MUST cause the
+      catalogue to reject admission.
+    falsifier: |
+      Admission accepts an event whose provenance/timestamp/evidence
+      tier fails the documented admission rule.
+    deterministic_tests:
+      - duplicate event_id is rejected with a stable reason
+      - missing provenance field is rejected
+      - invalid timestamp (non-monotonic, NaN, or wrong type) is rejected
+      - unsupported evidence_tier is rejected
+      - valid event is accepted with falsifier_status = OK
+    property_tests_optional:
+      - "admit(catalog, e)  ⇒  catalog admits no duplicate of e"
+    mutation_candidate: |
+      Negate the duplicate-rejection branch in the admission function.
+      The duplicate-rejection deterministic test must fail.
+    ledger_entry_required: true
+
+  # =========================================================================
+  - pattern_id: P2_STRUCTURED_ABSENCE_INFERENCE
+    source_ids: [S2_PAIR_INSTABILITY_GAP]
+    source_fact_summary: |
+      Pair-instability gap appears in m2 secondary masses with a 90%
+      credible lower edge at 44 -4/+5 solar masses. The claim is gated
+      by a coverage / selection model that distinguishes "absence"
+      from "absent because we cannot see it".
+    methodological_pattern: |
+      An absent observation is not the same as a true absence. Coverage
+      and selection-bias must be modelled before "the data show no X"
+      can support any inference.
+    geosync_operational_analog: |
+      A region of state space with no observed events is classified as
+      TRUE_ABSENCE only when coverage is sufficient and selection bias
+      is documented; otherwise the witness must return SELECTION_BIAS
+      or INSUFFICIENT_COVERAGE or UNKNOWN.
+    proposed_module: geosync_hpc/regimes/structured_absence.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - observed_state_space
+      - candidate_empty_region
+      - coverage_mask
+      - selection_bias_flags
+      - sample_count
+    output_witness:
+      - status
+      - reason
+      - coverage_summary
+      - selection_bias_summary
+    null_model: |
+      With perfect uniform coverage and no selection bias flags, the
+      witness MAY return TRUE_ABSENCE for a candidate empty region with
+      zero observed events. With anything less, the default witness is
+      not TRUE_ABSENCE.
+    falsifier: |
+      The witness returns TRUE_ABSENCE while coverage is below threshold
+      OR while any selection_bias_flag is set, OR sample_count is below
+      the minimum.
+    deterministic_tests:
+      - sufficient coverage + zero observed + no bias => TRUE_ABSENCE
+      - low coverage + zero observed                  => INSUFFICIENT_COVERAGE
+      - any bias flag set                             => SELECTION_BIAS
+      - sample_count below minimum                    => UNKNOWN
+      - mismatched coverage_mask shape is rejected
+    property_tests_optional:
+      - "coverage(x) < threshold ⇒ status ≠ TRUE_ABSENCE  for any x"
+    mutation_candidate: |
+      Drop the coverage threshold check in the classifier. The
+      "low coverage + zero observed" deterministic test must fail.
+    ledger_entry_required: true
+
+  # =========================================================================
+  - pattern_id: P3_DYNAMIC_NULL_MODEL
+    source_ids: [S3_DESI_2026]
+    source_fact_summary: |
+      DESI's milestone surfaces tension in expansion-history baselines:
+      the null itself drifts under bounded rules and is not a static
+      reference. The drift bounds are part of the model, not implicit.
+    methodological_pattern: |
+      The null baseline against which signals are scored may itself
+      drift. The drift is bounded; an excursion outside the bound is
+      a model failure, not a signal.
+    geosync_operational_analog: |
+      A dynamic-null model maintains a baseline series with explicit
+      drift bounds. A signal is anomalous only when it exceeds both
+      the dynamic null and the drift bound; if the null itself blows
+      its bound, the witness must fail closed (UNKNOWN), not silently
+      accept the comparison.
+    proposed_module: geosync_hpc/nulls/dynamic_null_model.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - time_index
+      - baseline_series
+      - drift_bound
+      - observed_signal
+    output_witness:
+      - null_value
+      - drift_used
+      - within_bound
+      - anomaly_status
+    null_model: |
+      A static-baseline reference produces the same anomaly classification
+      as the dynamic baseline when the actual drift is zero. The dynamic
+      model must reduce to the static one in the no-drift limit.
+    falsifier: |
+      Drift exceeds drift_bound, but the witness returns
+      anomaly_status != UNKNOWN. OR: the dynamic null produces a
+      different verdict from the static null at zero observed drift.
+    deterministic_tests:
+      - drift = 0       ⇒ same verdict as static null
+      - drift < bound   ⇒ within_bound = True
+      - drift > bound   ⇒ within_bound = False AND anomaly_status = UNKNOWN
+      - signal exceeds dynamic null AND within bound ⇒ anomaly_status = ANOMALY
+      - signal within dynamic null                   ⇒ anomaly_status = NORMAL
+    property_tests_optional:
+      - "for any drift > drift_bound: anomaly_status == UNKNOWN"
+    mutation_candidate: |
+      Invert the within_bound check so drifts above the bound silently
+      pass. The "drift > bound" deterministic test must fail.
+    ledger_entry_required: true
+
+  # =========================================================================
+  - pattern_id: P4_GLOBAL_PARITY_WITNESS
+    source_ids: [S4_KITAEV_PARITY_READOUT]
+    source_fact_summary: |
+      In a Kitaev-chain readout, local charge sensing cannot distinguish
+      the two parity states; only a global capacitance witness does. The
+      property is invisible to local probes by construction.
+    methodological_pattern: |
+      Some properties of a system can be true / false only at the global
+      level; local checks pass while the global state is inconsistent.
+      The witness must aggregate global surfaces, not just local ones.
+    geosync_operational_analog: |
+      A repository's claim ledger, dependency truth, invariant coverage,
+      and CI status are the global surfaces. Each may be locally GREEN
+      while the composition is RED. The global parity witness aggregates
+      them and refuses to declare global consistency unless every
+      required global surface agrees.
+    proposed_module: geosync_hpc/coherence/global_parity_witness.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - local_witnesses
+      - claim_ledger_status
+      - dependency_truth_status
+      - invariant_coverage_status
+      - ci_gate_status
+    output_witness:
+      - globally_consistent
+      - failed_surfaces
+      - nonlocal_conflict_reason
+    null_model: |
+      With all global surfaces GREEN, the witness reports
+      globally_consistent = True. With any required surface != GREEN,
+      it reports globally_consistent = False with the exact failed
+      surface(s) listed; "local pass ⇒ global pass" is FALSE.
+    falsifier: |
+      Some required global surface reports != GREEN, but the witness
+      reports globally_consistent = True; OR the witness aggregates
+      only local checks and silently ignores a global surface.
+    deterministic_tests:
+      - all surfaces GREEN  ⇒ globally_consistent = True, failed = []
+      - one surface RED     ⇒ globally_consistent = False, failed includes that name
+      - one surface UNKNOWN ⇒ globally_consistent = False, failed includes that name
+      - missing required surface ⇒ rejected with structured error
+      - locally-passing inputs do not flip the global verdict
+    property_tests_optional:
+      - "for any required-surface s != GREEN: globally_consistent == False"
+    mutation_candidate: |
+      Replace the AND-aggregation across global surfaces with OR. The
+      "one surface RED" deterministic test must fail.
+    ledger_entry_required: true
+
+  # =========================================================================
+  - pattern_id: P5_MOTIONAL_CORRELATION_WITNESS
+    source_ids: [S5_HELIUM_MOTIONAL_BELL]
+    source_fact_summary: |
+      The helium-motional Bell experiment demonstrates that correlations
+      can live in trajectory / velocity / acceleration variables, not
+      only in static joint distributions. Trajectory shuffling breaks
+      the correlation; static correlations are insensitive to ordering.
+    methodological_pattern: |
+      A correlation across motional / trajectory variables is distinct
+      from a static correlation. A test that survives shuffling the
+      time axis is not a dynamic-relation test.
+    geosync_operational_analog: |
+      Pair-wise correlations across return-velocity, volatility-
+      acceleration, curvature-flow, and liquidity-displacement should
+      be tested separately from static correlations. The witness reports
+      whether the relation is dynamic by comparing against shuffled
+      trajectory nulls.
+    proposed_module: geosync_hpc/dynamics/motional_correlation_witness.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - return_velocity
+      - volatility_acceleration
+      - curvature_flow
+      - liquidity_displacement
+      - time_index
+    output_witness:
+      - dynamic_relation_detected
+      - static_correlation
+      - trajectory_relation
+      - null_comparison
+    null_model: |
+      A shuffled-trajectory null preserves the static joint
+      distribution but destroys time-ordering. A relation that scores
+      identically under the shuffled null is NOT a dynamic relation.
+    falsifier: |
+      Shuffled-trajectory null produces an indistinguishable score,
+      but the witness reports dynamic_relation_detected = True.
+    deterministic_tests:
+      - identical series ⇒ static_correlation = 1.0, trajectory_relation high
+      - independent noise series ⇒ both correlations near zero
+      - shuffled trajectory preserves score ⇒ dynamic_relation_detected = False
+      - constructed dynamic-only series ⇒ dynamic_relation_detected = True
+      - mismatched series lengths are rejected
+      - non-finite inputs are rejected
+    property_tests_optional:
+      - "for any (x, y) where x and y are independent shuffles: dynamic_relation_detected == False"
+    mutation_candidate: |
+      Drop the shuffled-null comparison so static correlations are
+      reported as dynamic. The "shuffled trajectory" deterministic
+      test must fail.
+    ledger_entry_required: true
+
+  # =========================================================================
+  - pattern_id: P6_COMPOSITE_BINDING_STRUCTURE
+    source_ids: [S6_LHCB_DOUBLY_CHARMED_BARYON]
+    source_fact_summary: |
+      The doubly-charmed baryon is held together by binding distinct
+      from transient correlations; binding survives small perturbations
+      that would dissolve a coincidence.
+    methodological_pattern: |
+      A composite is bound, not merely correlated, when the relation
+      survives perturbation across a persistence window. Transient
+      correlations dissolve under small perturbations; bindings do not.
+    geosync_operational_analog: |
+      An asset cluster is "bound" only when the in-cluster correlation
+      survives perturbation across a documented persistence window.
+      Otherwise it is reported as TRANSIENT_CORRELATION, not as a
+      cluster.
+    proposed_module: geosync_hpc/coherence/composite_binding_structure.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - asset_cluster
+      - correlation_matrix
+      - persistence_window
+      - perturbation_response
+    output_witness:
+      - binding_status
+      - transient_correlation
+      - persistent_binding
+      - reason
+    null_model: |
+      Under random perturbation drawn from a documented null distribution,
+      a transient correlation should dissolve in expectation; a binding
+      should survive. The witness compares against this null.
+    falsifier: |
+      The cluster's relation dissolves under the documented perturbation,
+      but the witness reports binding_status = PERSISTENT_BINDING.
+    deterministic_tests:
+      - persistent correlation across window ⇒ binding_status = PERSISTENT_BINDING
+      - transient correlation that dissolves ⇒ binding_status = TRANSIENT_CORRELATION
+      - empty cluster is rejected
+      - mismatched correlation_matrix shape is rejected
+      - persistence_window <= 0 is rejected
+    property_tests_optional:
+      - "for any perturbation that breaks the relation: binding_status != PERSISTENT_BINDING"
+    mutation_candidate: |
+      Drop the perturbation_response check, so transient correlations
+      are reported as bindings. The "transient correlation that
+      dissolves" deterministic test must fail.
+    ledger_entry_required: true
