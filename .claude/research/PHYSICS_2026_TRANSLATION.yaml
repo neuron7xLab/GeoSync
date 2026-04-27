@@ -350,3 +350,201 @@ patterns:
       are reported as bindings. The "transient correlation that
       dissolves" deterministic test must fail.
     ledger_entry_required: true
+
+  # =========================================================================
+  - pattern_id: P7_REGIME_FRONT_ROUGHNESS
+    source_ids: [S7_KPZ_2D_UNIVERSALITY]
+    source_fact_summary: |
+      Growing interfaces in two dimensions exhibit a universal roughness
+      exponent characteristic of the KPZ universality class.
+      Smooth-front assumptions fail when the front is in the KPZ regime.
+    methodological_pattern: |
+      An evolving regime boundary may roughen; smooth-transition
+      assumptions are not the default. Roughness must be tested against
+      a shuffled-trajectory null.
+    geosync_operational_analog: |
+      A regime-front witness measures the boundary-series roughness and
+      compares it against a shuffled-null roughness; a ROUGH_FRONT
+      verdict is granted only when observed roughness exceeds the null
+      by a documented threshold.
+    proposed_module: geosync_hpc/regimes/regime_front_roughness_witness.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - boundary_series
+      - time_index
+      - window
+      - null_shuffle_seed
+      - roughness_threshold
+    output_witness:
+      - status
+      - roughness_value
+      - shuffled_null_roughness
+      - exceeds_null
+      - reason
+    null_model: |
+      A shuffled-trajectory null preserves the static value distribution
+      but destroys ordering. A boundary whose roughness matches the
+      shuffled null is NOT a rough front.
+    falsifier: |
+      The witness reports ROUGH_FRONT when observed roughness is at or
+      below the shuffled-null roughness; OR the null comparison is
+      bypassed entirely.
+    deterministic_tests:
+      - rough synthetic front  ⇒ status = ROUGH_FRONT
+      - smooth synthetic front ⇒ status = SMOOTH_FRONT
+      - shuffled-null match    ⇒ status = NULL_MATCH
+      - short series           ⇒ status = INSUFFICIENT_HISTORY
+      - non-finite inputs are rejected
+    property_tests_optional:
+      - "for any boundary whose roughness matches its shuffled null: status != ROUGH_FRONT"
+    mutation_candidate: |
+      Drop the shuffled-null comparison so any non-zero roughness maps
+      to ROUGH_FRONT. The shuffled-null deterministic test must fail.
+    ledger_entry_required: true
+
+  # =========================================================================
+  - pattern_id: P8_NON_SELFSIMILAR_CLUSTER_GROWTH
+    source_ids: [S8_ACTIVE_COARSENING_NON_SELFSIMILAR]
+    source_fact_summary: |
+      Cluster growth in active-matter systems can be non-self-similar
+      across windows; a single growth exponent does not describe all
+      observation windows.
+    methodological_pattern: |
+      Cluster-growth modelling must not collapse multi-window dynamics
+      into a single exponent; per-window exponents must be measured
+      and compared.
+    geosync_operational_analog: |
+      A cluster-growth witness reports per-window growth exponents and
+      flags windows whose exponent diverges from the assumed self-
+      similar value.
+    proposed_module: geosync_hpc/regimes/non_selfsimilar_cluster_growth.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - cluster_size_series
+      - window_indices
+      - assumed_exponent
+      - tolerance
+    output_witness:
+      - status
+      - per_window_exponents
+      - divergent_windows
+      - reason
+    null_model: |
+      With a self-similar process, per-window exponents agree within
+      tolerance with the assumed exponent. Windows whose exponent
+      diverges beyond tolerance falsify the self-similar assumption.
+    falsifier: |
+      The witness reports a self-similar verdict while one or more
+      per-window exponents diverge beyond tolerance; OR the per-window
+      check is collapsed into a single global exponent.
+    deterministic_tests:
+      - self-similar synthetic series ⇒ no divergent windows
+      - non-self-similar series       ⇒ divergent_windows non-empty
+      - mismatched window indices rejected
+      - non-finite inputs rejected
+    property_tests_optional:
+      - "for any window whose exponent diverges: status != SELF_SIMILAR"
+    mutation_candidate: |
+      Replace the per-window check with a single global exponent fit.
+      The non-self-similar deterministic test must fail.
+    ledger_entry_required: true
+
+  # =========================================================================
+  - pattern_id: P9_EFFECTIVE_DEPTH_GUARD
+    source_ids: [S9_NOISE_INDUCED_SHALLOW_CIRCUITS]
+    source_fact_summary: |
+      Under finite noise, the effective depth of a variational circuit
+      can be lower than its nominal depth; adding more layers does not
+      automatically increase achievable accuracy.
+    methodological_pattern: |
+      A pipeline's effective depth must be tested by comparing outputs
+      across depths under explicit noise; longer is not automatically
+      deeper.
+    geosync_operational_analog: |
+      An effective-depth witness compares outputs across depths under
+      a documented noise level. If a shorter pipeline produces output
+      equivalent within tolerance, the additional depth is REDUNDANT.
+    proposed_module: geosync_hpc/inference/effective_depth_guard.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - outputs_by_depth
+      - tolerance
+      - noise_level
+      - minimum_depth
+      - maximum_depth
+    output_witness:
+      - status
+      - effective_depth
+      - redundant_depths
+      - reason
+    null_model: |
+      With zero noise and converged outputs, deeper pipelines produce
+      strictly different outputs from shallower ones. Under noise,
+      equivalent outputs across depths mark the additional depth as
+      redundant.
+    falsifier: |
+      The witness declares EFFECTIVE_DEPTH_FOUND while a shallower
+      pipeline produces output within tolerance; OR the equivalence
+      tolerance check is bypassed.
+    deterministic_tests:
+      - converged outputs across depths ⇒ effective depth found
+      - equivalent shallower output     ⇒ redundant_depths non-empty
+      - missing depth in outputs map rejected
+      - depth range invalid rejected
+      - non-finite inputs rejected
+    property_tests_optional:
+      - "for any depth d where outputs[d] ≈ outputs[d+k]: d+k ∈ redundant_depths"
+    mutation_candidate: |
+      Drop the equivalence tolerance check so every depth is reported
+      as effective. The redundant-depth deterministic test must fail.
+    ledger_entry_required: true
+
+  # =========================================================================
+  - pattern_id: P10_CLAIM_GAUGE_WITNESS
+    source_ids: [S10_LOGICAL_GAUGING_LOCAL_SYMMETRY]
+    source_fact_summary: |
+      Global truths can be inferred only through local consistency
+      constraints; no single local probe is sufficient.
+    methodological_pattern: |
+      A claim about a global property must be gauged against the local-
+      consistency constraints it implies. A claim that passes one local
+      probe and fails another is not a global truth.
+    geosync_operational_analog: |
+      A claim-gauge witness aggregates local consistency surfaces and
+      refuses to certify a system-wide claim unless every required
+      local-symmetry constraint is satisfied.
+    proposed_module: geosync_hpc/coherence/claim_gauge_witness.py
+    claim_tier: ENGINEERING_ANALOG
+    implementation_status: PROPOSED
+    measurable_inputs:
+      - claim_id
+      - local_constraints
+      - constraint_satisfaction
+      - required_constraints
+    output_witness:
+      - status
+      - failing_constraints
+      - reason
+    null_model: |
+      With every required local-consistency constraint satisfied, the
+      gauge passes. With any required constraint violated, the gauge
+      refuses certification regardless of how many other constraints
+      pass.
+    falsifier: |
+      The witness certifies a claim while at least one required local
+      constraint is violated; OR the required-constraints set is
+      silently emptied.
+    deterministic_tests:
+      - every required constraint satisfied ⇒ gauge passes
+      - one required constraint violated    ⇒ gauge refuses
+      - empty required-constraints rejected
+      - mismatched constraint shape rejected
+    property_tests_optional:
+      - "for any required constraint c that is unsatisfied: status != PASS"
+    mutation_candidate: |
+      Skip the required-constraints intersection. The "one required
+      constraint violated" deterministic test must fail.
+    ledger_entry_required: true

@@ -58,6 +58,10 @@ FORBIDDEN_PHRASES: tuple[str, ...] = (
     "predicts returns",
     "universal law",
     "physical equivalence",
+    "new law of physics",
+    "noise improves intelligence",
+    "kpz proves market",
+    "longer reasoning is always better",
 )
 
 # Stable shape: S followed by one or more digits, an underscore, and an
