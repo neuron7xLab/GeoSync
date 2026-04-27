@@ -1,0 +1,26 @@
+version: 1
+code_file_extensions:
+  - ".py"
+  - ".yaml"
+  - ".yml"
+  - ".toml"
+  - ".json"
+  - ".sh"
+governance_markdown_paths:
+  - ".claude/"
+  - "docs/governance/"
+  - "docs/architecture/"
+max_changed_files_by_claim_type:
+  correctness: 12
+  determinism: 12
+  fail_closed: 12
+  security: 10
+  performance: 10
+  governance: 16
+  refactor: 20
+  documentation: 24
+forbidden_import_patterns:
+  - "trading"
+  - "execution"
+  - "forecast"
+  - "policy"
