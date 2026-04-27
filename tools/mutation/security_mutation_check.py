@@ -92,7 +92,7 @@ MUTANTS: tuple[Mutant, ...] = (
         pattern="if _parse_version(version) < _parse_version(floor):",
         replacement="if False and _parse_version(version) < _parse_version(floor):",
         killer_test=(
-            "tests/deps/test_validate_dependency_truth.py::" "test_d2_detects_lock_below_floor"
+            "tests/deps/test_validate_dependency_truth.py::test_d2_detects_lock_below_floor"
         ),
     ),
     Mutant(
@@ -123,9 +123,7 @@ MUTANTS: tuple[Mutant, ...] = (
         ),
         pattern="if not falsifier:",
         replacement="if False and not falsifier:",
-        killer_test=(
-            "tests/unit/claims/test_validate_claims.py::" "test_inject_no_falsifier_fails"
-        ),
+        killer_test=("tests/unit/claims/test_validate_claims.py::test_inject_no_falsifier_fails"),
     ),
 )
 
@@ -146,18 +144,38 @@ def _list(argv_unused: object) -> int:  # noqa: ARG001
     return EXIT_OK
 
 
-def _apply(target: Path, pattern: str, replacement: str, replace_all: bool = False) -> bool:
-    text = target.read_text(encoding="utf-8")
+def _apply(
+    target: Path,
+    pattern: str,
+    replacement: str,
+    replace_all: bool = False,
+) -> tuple[bool, bytes | None]:
+    """Apply the mutation in-place. Returns (applied, original_bytes).
+
+    The original byte content is returned so the caller can restore it
+    deterministically — independent of git HEAD state on CI runners
+    (PR-merge commits, detached HEADs, autocrlf settings).
+    """
+    original = target.read_bytes()
+    text = original.decode("utf-8")
     if pattern not in text:
-        return False
+        return False, original
     count = -1 if replace_all else 1
     target.write_text(text.replace(pattern, replacement, count), encoding="utf-8")
-    return True
+    return True, original
 
 
-def _restore(target: Path) -> bool:
-    """Restore the file via `git checkout HEAD -- <path>`. Returns True if
-    `git diff --exit-code` agrees the file is clean afterwards."""
+def _restore(target: Path, original: bytes | None) -> bool:
+    """Restore the file from the in-memory original captured by _apply.
+
+    Falls back to ``git checkout HEAD -- <path>`` if no original is
+    supplied. Returns True if the on-disk bytes match the original
+    afterwards.
+    """
+    if original is not None:
+        target.write_bytes(original)
+        return target.read_bytes() == original
+
     subprocess.run(
         ["git", "checkout", "HEAD", "--", str(target)],
         cwd=REPO_ROOT,
@@ -191,14 +209,16 @@ def _execute(mutant: Mutant) -> dict[str, str]:
     if not target.exists():
         return {"status": "NOT_FOUND", "detail": f"target file missing: {target}"}
 
-    if not _apply(target, mutant.pattern, mutant.replacement, mutant.replace_all):
-        # Restore is a no-op (we did not change anything) but still verify clean.
-        _restore(target)
+    applied, original = _apply(target, mutant.pattern, mutant.replacement, mutant.replace_all)
+    if not applied:
+        # Pattern absent — file untouched. Verify the bytes still match.
+        if original is not None and target.read_bytes() != original:
+            return {"status": "RESTORE_FAILED", "detail": str(target)}
         return {"status": "NOT_FOUND", "detail": "pattern not found"}
 
     test_rc = _run_test(mutant.killer_test)
 
-    if not _restore(target):
+    if not _restore(target, original):
         return {"status": "RESTORE_FAILED", "detail": str(target)}
 
     if test_rc != 0:
@@ -243,9 +263,22 @@ def _one(args: argparse.Namespace) -> int:
     return EXIT_INVOCATION
 
 
-def _git_clean() -> bool:
+def _git_clean(targets: tuple[str, ...] | None = None) -> bool:
+    """Verify the working tree is clean — scoped to mutator targets only.
+
+    A global ``git diff --exit-code`` was historically used here, but it
+    falsely flags the tree dirty whenever ANY tracked file is modified
+    elsewhere (active development on the harness itself, CI runner CRLF
+    rewrites, pre-commit hook side-effects, etc.). Scoping the check to
+    the mutator's own target files isolates the contract: every file the
+    harness touched must end up byte-identical to its captured pre-mutation
+    snapshot.
+    """
+    paths = targets if targets is not None else tuple(m.target_file for m in MUTANTS)
+    if not paths:
+        return True
     diff = subprocess.run(
-        ["git", "diff", "--exit-code"],
+        ["git", "diff", "--exit-code", "--", *paths],
         cwd=REPO_ROOT,
         check=False,
         capture_output=True,
