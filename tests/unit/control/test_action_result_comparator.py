@@ -511,11 +511,33 @@ def test_36_rpe_ape_tpe_ignored_when_threshold_none() -> None:
 
 
 def test_public_surface_unchanged() -> None:
-    """Sanity check on the package-level public exports."""
-    assert set(control_pkg.__all__) == {
+    """Sanity check on the package-level public exports.
+
+    The comparator surface (Expected / Observed / Witness / Status /
+    accept_action_result) must remain present. The package additionally
+    re-exports the chronology-chain primitives from ``control_episode``;
+    those are listed as a separate non-overlapping superset.
+    """
+    comparator_surface = {
         "ActionResultStatus",
         "ActionResultWitness",
         "ExpectedResultModel",
         "ObservedActionResult",
         "accept_action_result",
     }
+    chain_surface = {
+        "ControlEpisode",
+        "EpisodePhase",
+        "EpisodeRecord",
+        "compute_error",
+        "dispatch_action",
+        "persist_memory",
+        "receive_afferentation",
+        "render_decision",
+        "seal_model",
+        "start_episode",
+        "verify_chain",
+    }
+    assert comparator_surface.issubset(set(control_pkg.__all__))
+    assert chain_surface.issubset(set(control_pkg.__all__))
+    assert set(control_pkg.__all__) == comparator_surface | chain_surface
