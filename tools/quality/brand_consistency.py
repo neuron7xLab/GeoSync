@@ -126,6 +126,10 @@ SKIP_PREFIXES: tuple[str, ...] = (
     "docs/archive",
     "artifacts",
     "observability/audit",
+    ".claude/archive",  # rebrand provenance ledgers — must keep legacy names
+    ".claude/worktrees",  # ephemeral Claude Code agent worktrees, not repo source
+    "tests/archive",  # tests that exercise the archive ledger schemas
+    "tools/archive",  # tooling that compares old-repo to new-repo by name
 )
 
 #: File extensions we scan for content. Everything else is skipped on the
@@ -272,10 +276,7 @@ def load_allowlist(path: Path) -> list[AllowlistEntry]:
 def _is_allowlisted(violation: Violation, allowlist: Iterable[AllowlistEntry]) -> bool:
     """Return ``True`` if the violation matches any allowlist entry."""
     for entry in allowlist:
-        if (
-            entry.path == violation.path
-            and entry.token.lower() == violation.token.lower()
-        ):
+        if entry.path == violation.path and entry.token.lower() == violation.token.lower():
             return True
     return False
 
@@ -334,9 +335,7 @@ def _should_skip_dir(rel: Path) -> bool:
     return False
 
 
-def _scan_file_content(
-    path: Path, rel: Path, pattern: re.Pattern[bytes]
-) -> Iterator[Violation]:
+def _scan_file_content(path: Path, rel: Path, pattern: re.Pattern[bytes]) -> Iterator[Violation]:
     """Yield one :class:`Violation` per in-file hit."""
     try:
         size = path.stat().st_size
@@ -365,9 +364,7 @@ def _scan_file_content(
         line_end = blob.find(b"\n", start)
         if line_end == -1:
             line_end = len(blob)
-        context = (
-            blob[last_newline + 1 : line_end].decode("utf-8", errors="replace").rstrip()
-        )
+        context = blob[last_newline + 1 : line_end].decode("utf-8", errors="replace").rstrip()
         token = match.group(0).decode("utf-8", errors="replace")
         yield Violation(
             path=rel.as_posix(),
@@ -379,9 +376,7 @@ def _scan_file_content(
         )
 
 
-def _scan_name(
-    rel: Path, is_dir: bool, pattern: re.Pattern[bytes]
-) -> Iterator[Violation]:
+def _scan_name(rel: Path, is_dir: bool, pattern: re.Pattern[bytes]) -> Iterator[Violation]:
     """Yield violations for file/directory names."""
     name = rel.name.encode("utf-8")
     for match in pattern.finditer(name):
