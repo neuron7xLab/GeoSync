@@ -1,23 +1,45 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Deterministic ActionResultAcceptor for the GeoSync HPC control plane.
+"""Deterministic ActionResultComparator for the GeoSync HPC control plane.
 
-The acceptor enforces the chain
-    expected -> observed -> error -> update / rollback / reentry
+The comparator enforces the chain
+    expected -> observed -> error -> update / rollback
 by pure, side-effect-free comparison.  No IO, no wall-clock, no random,
-no mutable globals, no trading / execution / policy / forecast imports.
+no mutable globals, no trading / execution / policy / forecast imports,
+no biological-equivalence imports.
 
-Engineering analogue only.  Names such as "expected_result",
-"reverse_afferentation", "predicted_action_signature" are shorthand for
-bounded mathematical objects described below.  No biological-equivalence
-claim is made.
+Engineering analogue only.  Names such as ``expected_result``,
+``reverse_afferentation``, ``predicted_action_signature`` are shorthand
+for bounded mathematical objects described below.  No biological
+equivalence claim is made.
+
+Design corrections relative to the prior "acceptor":
+    1. Chronology is encoded only via integer sequence numbers
+       (``model_created_seq < action_started_seq < observed_seq``); the
+       caller cannot present a ``created_before_action=True`` boolean
+       and skip ordering proof.
+    2. There is no ``REENTRY_REQUIRED`` status — re-entry is a higher
+       level policy decision, not a comparator concern.
+    3. There is no ``prior_confidence`` and no ``confidence * error``
+       formula. Precision is real and uses the inverse variance of the
+       expected result vector; absence of variance means precision is
+       not claimed and the comparator falls back to the raw Euclidean
+       Outcome Prediction Error.
+    4. There is no internal adaptive-threshold magic. The witness
+       reports ``adapted_error_threshold == error_threshold`` exactly;
+       any adaptation is the caller's responsibility.
+    5. ``success`` cannot override numerical comparison.
+    6. Missing expected model fails closed (``INVALID_INPUT``); the
+       comparator never fabricates a default ``Prediction``.
+    7. Logged observation alone (``reverse_afferentation_present=False``)
+       can never be sanctioned.
 """
 
 from __future__ import annotations
 
-import dataclasses
 import enum
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 
@@ -26,12 +48,15 @@ class ActionResultStatus(enum.StrEnum):
 
     Order is significant only in :func:`accept_action_result`'s decision
     cascade; the enum itself does not impose semantic ordering.
+
+    There is intentionally no ``REENTRY_REQUIRED`` member: re-entering
+    a context is a higher-level policy decision, not a comparator
+    output.
     """
 
     SANCTIONED_MATCH = "SANCTIONED_MATCH"
     UPDATE_REQUIRED = "UPDATE_REQUIRED"
     ROLLBACK_REQUIRED = "ROLLBACK_REQUIRED"
-    REENTRY_REQUIRED = "REENTRY_REQUIRED"
     INSUFFICIENT_OBSERVATION = "INSUFFICIENT_OBSERVATION"
     INSUFFICIENT_REVERSE_AFFERENTATION = "INSUFFICIENT_REVERSE_AFFERENTATION"
     ACTION_MISMATCH = "ACTION_MISMATCH"
@@ -44,7 +69,7 @@ def _is_finite_float(value: float) -> bool:
     return math.isfinite(value)
 
 
-def _all_finite(items: tuple[float, ...]) -> bool:
+def _all_finite(items: Iterable[float]) -> bool:
     return all(_is_finite_float(x) for x in items)
 
 
@@ -52,26 +77,35 @@ def _all_finite(items: tuple[float, ...]) -> bool:
 class ExpectedResultModel:
     """Pre-action expected outcome contract.
 
-    Construction-time validation enforces structural invariants; the
-    :func:`accept_action_result` entry point re-validates so that callers
+    Construction-time validation enforces structural invariants.  The
+    :func:`accept_action_result` entry point re-validates so callers
     cannot bypass the contract by reaching into ``__dict__``.
+
+    Sequence ordering invariants (validated here):
+        ``model_created_seq < action_started_seq``
+    The further invariant ``action_started_seq < observed_seq`` is
+    checked at comparison time because it requires both sides.
+
+    There is intentionally NO ``created_before_action`` boolean; a
+    boolean cannot be ordered against another timestamp and was
+    therefore an honesty trap.
     """
 
     action_id: str
     action_type: str
     expected_result: tuple[float, ...]
+    expected_result_variance: tuple[float, ...] | None
     context_signature: tuple[float, ...]
-    prior_confidence: float
+    model_created_seq: int
+    action_started_seq: int
     error_threshold: float
     rollback_threshold: float
-    reentry_threshold: float
     expected_value: float | None = None
     expected_latency_ms: float | None = None
     predicted_action_signature: tuple[float, ...] | None = None
     action_mismatch_threshold: float | None = None
     value_mismatch_threshold: float | None = None
     timing_mismatch_threshold_ms: float | None = None
-    created_before_action: bool = True
 
     def __post_init__(self) -> None:
         _validate_expected(self)
@@ -83,10 +117,15 @@ class ObservedActionResult:
 
     ``success`` is recorded for downstream telemetry only; it never
     overrides numerical comparison against the expected model.
+
+    The invariant ``observed_seq > action_started_seq`` is checked
+    against the supplied :class:`ExpectedResultModel` inside
+    :func:`accept_action_result`, since it depends on both sides.
     """
 
     action_id: str
-    observed_result: tuple[float, ...] | None
+    observed_seq: int
+    observed_result: tuple[float, ...] | None = None
     observed_value: float | None = None
     observed_latency_ms: float | None = None
     executed_action_signature: tuple[float, ...] | None = None
@@ -101,24 +140,32 @@ class ObservedActionResult:
 class ActionResultWitness:
     """Immutable verdict produced by :func:`accept_action_result`.
 
-    All booleans are derived from :attr:`status` per the exact flag table
-    in the module docstring.  ``reason`` always begins with one of the
-    documented stable codes so downstream consumers can switch on a
+    All booleans are derived from :attr:`status` per the exact flag
+    table in the module docstring. ``reason`` always begins with one of
+    the documented stable codes so downstream consumers can switch on a
     prefix rather than parse free-form text.
+
+    There is intentionally no ``reentry_required`` flag and no
+    ``precision_weighted_gain`` scalar: re-entry is a higher-level
+    policy decision and ``precision_weighted_gain`` was a confidence
+    pseudo-quantity that masqueraded as physics.  Precision is exposed
+    as :attr:`precision_weighted_outcome_error` (inverse-variance
+    weighted Euclidean error) and as :attr:`comparator_error`
+    (precision-weighted error if available, raw OPE otherwise).
     """
 
     status: ActionResultStatus
     accepted: bool
     dissolved: bool
-    reentry_required: bool
     rollback_required: bool
     update_required: bool
     inhibit_repetition: bool
     outcome_prediction_error: float | None
+    precision_weighted_outcome_error: float | None
+    comparator_error: float | None
     value_prediction_error: float | None
     action_prediction_error: float | None
     timing_prediction_error: float | None
-    precision_weighted_gain: float
     adapted_error_threshold: float
     next_context_expansion_required: bool
     reason: str
@@ -138,27 +185,27 @@ def _validate_expected(model: ExpectedResultModel) -> None:
         raise ValueError("INVALID_EXPECTED_MODEL: context_signature must be a non-empty tuple")
     if not _all_finite(model.context_signature):
         raise ValueError("NON_FINITE_VALUE: context_signature contains non-finite element")
-    if model.created_before_action is not True:
+    # Strict int check (bool is a subclass of int — reject it explicitly).
+    if not isinstance(model.model_created_seq, int) or isinstance(model.model_created_seq, bool):
+        raise ValueError("INVALID_EXPECTED_MODEL: model_created_seq must be int")
+    if model.model_created_seq < 0:
+        raise ValueError("INVALID_EXPECTED_MODEL: model_created_seq must be >= 0")
+    if not isinstance(model.action_started_seq, int) or isinstance(model.action_started_seq, bool):
+        raise ValueError("INVALID_EXPECTED_MODEL: action_started_seq must be int")
+    if model.action_started_seq < 0:
+        raise ValueError("INVALID_EXPECTED_MODEL: action_started_seq must be >= 0")
+    if not (model.model_created_seq < model.action_started_seq):
         raise ValueError(
-            "INVALID_EXPECTED_MODEL: created_before_action must be True (no post-hoc model)"
+            "SEQUENCE_ORDER_INVALID: model_created_seq must be strictly less "
+            "than action_started_seq"
         )
-    if not _is_finite_float(model.prior_confidence):
-        raise ValueError("NON_FINITE_VALUE: prior_confidence must be finite")
-    if not 0.0 <= model.prior_confidence <= 1.0:
-        raise ValueError("INVALID_EXPECTED_MODEL: prior_confidence must lie in [0, 1]")
     if not _is_finite_float(model.error_threshold) or model.error_threshold < 0.0:
         raise ValueError("INVALID_EXPECTED_MODEL: error_threshold must be finite and >= 0")
     if not _is_finite_float(model.rollback_threshold) or model.rollback_threshold < 0.0:
         raise ValueError("INVALID_EXPECTED_MODEL: rollback_threshold must be finite and >= 0")
-    if not _is_finite_float(model.reentry_threshold) or model.reentry_threshold < 0.0:
-        raise ValueError("INVALID_EXPECTED_MODEL: reentry_threshold must be finite and >= 0")
     if model.rollback_threshold < model.error_threshold:
         raise ValueError(
             "INVALID_THRESHOLD_ORDERING: rollback_threshold must be >= error_threshold"
-        )
-    if model.reentry_threshold < model.rollback_threshold:
-        raise ValueError(
-            "INVALID_THRESHOLD_ORDERING: reentry_threshold must be >= rollback_threshold"
         )
     if model.expected_value is not None and not _is_finite_float(model.expected_value):
         raise ValueError("NON_FINITE_VALUE: expected_value must be finite when provided")
@@ -176,6 +223,27 @@ def _validate_expected(model: ExpectedResultModel) -> None:
             raise ValueError(
                 "NON_FINITE_VALUE: predicted_action_signature contains non-finite element"
             )
+    if model.expected_result_variance is not None:
+        if not isinstance(model.expected_result_variance, tuple):
+            raise ValueError(
+                "INVALID_EXPECTED_MODEL: expected_result_variance must be a tuple or None"
+            )
+        if len(model.expected_result_variance) != len(model.expected_result):
+            raise ValueError(
+                "DIMENSION_MISMATCH: expected_result_variance length "
+                f"{len(model.expected_result_variance)} does not match expected_result length "
+                f"{len(model.expected_result)}"
+            )
+        for variance in model.expected_result_variance:
+            if not _is_finite_float(variance):
+                raise ValueError(
+                    "NON_FINITE_VALUE: expected_result_variance contains non-finite element"
+                )
+            if not (variance > 0.0):
+                raise ValueError(
+                    "INVALID_EXPECTED_MODEL: expected_result_variance entries must be > 0 "
+                    "(zero / negative variance rejected)"
+                )
     for name, value in (
         ("action_mismatch_threshold", model.action_mismatch_threshold),
         ("value_mismatch_threshold", model.value_mismatch_threshold),
@@ -192,6 +260,10 @@ def _validate_expected(model: ExpectedResultModel) -> None:
 def _validate_observed(observed: ObservedActionResult) -> None:
     if not isinstance(observed.action_id, str) or not observed.action_id:
         raise ValueError("INVALID_OBSERVED_RESULT: action_id must be a non-empty string")
+    if not isinstance(observed.observed_seq, int) or isinstance(observed.observed_seq, bool):
+        raise ValueError("INVALID_OBSERVED_RESULT: observed_seq must be int")
+    if observed.observed_seq < 0:
+        raise ValueError("INVALID_OBSERVED_RESULT: observed_seq must be >= 0")
     if observed.observed_result is not None:
         if not isinstance(observed.observed_result, tuple):
             raise ValueError("INVALID_OBSERVED_RESULT: observed_result must be a tuple or None")
@@ -214,24 +286,6 @@ def _validate_observed(observed: ObservedActionResult) -> None:
             )
 
 
-def _validate_error_history(history: tuple[float, ...]) -> None:
-    if not isinstance(history, tuple):
-        raise ValueError("INVALID_OBSERVED_RESULT: error_history must be a tuple")
-    for sample in history:
-        if not _is_finite_float(sample):
-            raise ValueError("NON_FINITE_VALUE: error_history contains non-finite element")
-        if sample < 0.0:
-            raise ValueError("INVALID_OBSERVED_RESULT: error_history must be non-negative")
-
-
-def _clamp(value: float, lo: float, hi: float) -> float:
-    if value < lo:
-        return lo
-    if value > hi:
-        return hi
-    return value
-
-
 def _euclidean(a: tuple[float, ...], b: tuple[float, ...]) -> float:
     total = 0.0
     for x, y in zip(a, b, strict=True):
@@ -240,20 +294,42 @@ def _euclidean(a: tuple[float, ...], b: tuple[float, ...]) -> float:
     return math.sqrt(total)
 
 
+def _precision_weighted_euclidean(
+    observed: tuple[float, ...],
+    expected: tuple[float, ...],
+    variance: tuple[float, ...],
+) -> float:
+    """Inverse-variance weighted Euclidean error.
+
+    Defined as ``sqrt( sum(p_i * (o_i - e_i)^2) / sum(p_i) )`` where
+    ``p_i = 1 / variance_i``. Variance entries are guaranteed strictly
+    positive at construction time.
+    """
+
+    weighted_squared = 0.0
+    weight_total = 0.0
+    for o, e, v in zip(observed, expected, variance, strict=True):
+        precision = 1.0 / v
+        diff = o - e
+        weighted_squared += precision * diff * diff
+        weight_total += precision
+    return math.sqrt(weighted_squared / weight_total)
+
+
 def _invalid_input_witness(reason: str, falsifier: str) -> ActionResultWitness:
     return ActionResultWitness(
         status=ActionResultStatus.INVALID_INPUT,
         accepted=False,
         dissolved=False,
-        reentry_required=False,
         rollback_required=False,
         update_required=False,
         inhibit_repetition=True,
         outcome_prediction_error=None,
+        precision_weighted_outcome_error=None,
+        comparator_error=None,
         value_prediction_error=None,
         action_prediction_error=None,
         timing_prediction_error=None,
-        precision_weighted_gain=0.0,
         adapted_error_threshold=0.0,
         next_context_expansion_required=False,
         reason=reason,
@@ -268,15 +344,15 @@ def _insufficient_witness(
         status=status,
         accepted=False,
         dissolved=False,
-        reentry_required=False,
         rollback_required=False,
         update_required=False,
         inhibit_repetition=True,
         outcome_prediction_error=None,
+        precision_weighted_outcome_error=None,
+        comparator_error=None,
         value_prediction_error=None,
         action_prediction_error=None,
         timing_prediction_error=None,
-        precision_weighted_gain=0.0,
         adapted_error_threshold=0.0,
         next_context_expansion_required=True,
         reason=reason,
@@ -287,25 +363,23 @@ def _insufficient_witness(
 def accept_action_result(
     expected: ExpectedResultModel | None,
     observed: ObservedActionResult,
-    *,
-    error_history: tuple[float, ...] = (),
 ) -> ActionResultWitness:
     """Compare a single (expected, observed) pair and emit a witness.
 
     Decision priority (exact, no shuffling):
         1.  INVALID_INPUT (any failed validation, including missing
-            expected model or non-finite / dimension / threshold issues).
+            expected model, sequence-order violation, dimension
+            mismatch, non-finite values, threshold ordering issues).
         2.  INSUFFICIENT_REVERSE_AFFERENTATION
             (``observed.reverse_afferentation_present is False``).
         3.  INSUFFICIENT_OBSERVATION (``observed.observed_result is None``).
         4.  ACTION_MISMATCH on differing ``action_id``.
-        5.  REENTRY_REQUIRED  if OPE >= reentry_threshold.
-        6.  ROLLBACK_REQUIRED if OPE >= rollback_threshold.
-        7.  ACTION_MISMATCH  on signature distance breach.
-        8.  VALUE_MISMATCH   on |RPE| breach.
-        9.  TIMING_MISMATCH  on |TPE| breach.
-        10. UPDATE_REQUIRED  if OPE >  adapted_error_threshold.
-        11. SANCTIONED_MATCH otherwise.
+        5.  ROLLBACK_REQUIRED if ``comparator_error >= rollback_threshold``.
+        6.  ACTION_MISMATCH on signature distance breach.
+        7.  VALUE_MISMATCH on ``|RPE|`` breach.
+        8.  TIMING_MISMATCH on ``|TPE|`` breach.
+        9.  UPDATE_REQUIRED if ``comparator_error > error_threshold``.
+        10. SANCTIONED_MATCH otherwise.
 
     The function is total: it never raises for normal invalid input;
     it returns a witness with status ``INVALID_INPUT`` instead.
@@ -316,8 +390,8 @@ def accept_action_result(
         return _invalid_input_witness(
             reason="INVALID_EXPECTED_MODEL: expected is None",
             falsifier=(
-                "Caller passed expected=None; acceptor would silently fabricate a default "
-                "Prediction. Acceptor must fail closed."
+                "Caller passed expected=None; comparator would silently fabricate a "
+                "default Prediction. Comparator must fail closed."
             ),
         )
 
@@ -328,7 +402,7 @@ def accept_action_result(
             reason=str(exc),
             falsifier=(
                 "Caller mutated ExpectedResultModel internals or bypassed __post_init__; "
-                "acceptor would proceed with malformed contract."
+                "comparator would proceed with malformed contract."
             ),
         )
 
@@ -338,19 +412,20 @@ def accept_action_result(
         return _invalid_input_witness(
             reason=str(exc),
             falsifier=(
-                "Caller passed malformed ObservedActionResult; acceptor would compute "
+                "Caller passed malformed ObservedActionResult; comparator would compute "
                 "errors against non-finite or wrongly typed observation."
             ),
         )
 
-    try:
-        _validate_error_history(error_history)
-    except ValueError as exc:
+    if not (observed.observed_seq > expected.action_started_seq):
         return _invalid_input_witness(
-            reason=str(exc),
+            reason=(
+                f"SEQUENCE_ORDER_INVALID: observed_seq={observed.observed_seq} must be "
+                f"strictly greater than action_started_seq={expected.action_started_seq}"
+            ),
             falsifier=(
-                "Caller passed an invalid error_history; acceptor would corrupt the adapted "
-                "threshold via NaN, Inf, or negative samples."
+                "Comparator accepted an observation logged before or at the action start; "
+                "post-hoc observation would silently validate any action."
             ),
         )
 
@@ -362,7 +437,7 @@ def accept_action_result(
                 "channel; cannot accept action result"
             ),
             falsifier=(
-                "Acceptor accepted an action without reverse afferentation; logged "
+                "Comparator accepted an action without reverse afferentation; logged "
                 "observation alone must never be sanctioned."
             ),
         )
@@ -372,8 +447,8 @@ def accept_action_result(
             ActionResultStatus.INSUFFICIENT_OBSERVATION,
             reason="MISSING_OBSERVATION: observed_result is None",
             falsifier=(
-                "Acceptor accepted an action with no observed result vector; comparison "
-                "is undefined."
+                "Comparator accepted an action with no observed result vector; "
+                "comparison is undefined."
             ),
         )
 
@@ -382,23 +457,23 @@ def accept_action_result(
             status=ActionResultStatus.ACTION_MISMATCH,
             accepted=False,
             dissolved=False,
-            reentry_required=False,
             rollback_required=False,
             update_required=True,
             inhibit_repetition=True,
             outcome_prediction_error=None,
+            precision_weighted_outcome_error=None,
+            comparator_error=None,
             value_prediction_error=None,
             action_prediction_error=None,
             timing_prediction_error=None,
-            precision_weighted_gain=0.0,
-            adapted_error_threshold=0.0,
+            adapted_error_threshold=expected.error_threshold,
             next_context_expansion_required=True,
             reason=(
                 f"ACTION_ID_MISMATCH: expected={expected.action_id!r} "
                 f"observed={observed.action_id!r}"
             ),
             falsifier=(
-                "Acceptor compared two different actions; cross-pairing would silently "
+                "Comparator compared two different actions; cross-pairing would silently "
                 "validate the wrong outcome."
             ),
         )
@@ -410,8 +485,8 @@ def accept_action_result(
                 f"elements, expected_result has {len(expected.expected_result)}"
             ),
             falsifier=(
-                "Acceptor compared vectors of different shapes; Euclidean error would be "
-                "ill-defined or zero-padded."
+                "Comparator compared vectors of different shapes; Euclidean error "
+                "would be ill-defined or zero-padded."
             ),
         )
 
@@ -427,11 +502,24 @@ def accept_action_result(
                 f"predicted_action_signature has {len(expected.predicted_action_signature)}"
             ),
             falsifier=(
-                "Acceptor compared action signatures of different shapes; APE would be ill-defined."
+                "Comparator compared action signatures of different shapes; APE would be "
+                "ill-defined."
             ),
         )
 
-    ope: float = _euclidean(observed.observed_result, expected.expected_result)
+    raw_ope: float = _euclidean(observed.observed_result, expected.expected_result)
+
+    pwope: float | None
+    if expected.expected_result_variance is not None:
+        pwope = _precision_weighted_euclidean(
+            observed.observed_result,
+            expected.expected_result,
+            expected.expected_result_variance,
+        )
+    else:
+        pwope = None
+
+    comparator_error: float = pwope if pwope is not None else raw_ope
 
     rpe: float | None
     if observed.observed_value is not None and expected.expected_value is not None:
@@ -454,64 +542,31 @@ def accept_action_result(
     else:
         tpe = None
 
-    precision_weighted_gain: float = _clamp(expected.prior_confidence * ope, 0.0, 1.0)
+    adapted_error_threshold: float = expected.error_threshold
 
-    if len(error_history) == 0:
-        threshold_modifier: float = 1.0
-    else:
-        mean_history = sum(error_history) / float(len(error_history))
-        threshold_modifier = _clamp(1.0 + 0.1 * mean_history, 0.75, 1.25)
-    adapted_error_threshold: float = expected.error_threshold * threshold_modifier
-
-    if ope >= expected.reentry_threshold:
-        return ActionResultWitness(
-            status=ActionResultStatus.REENTRY_REQUIRED,
-            accepted=False,
-            dissolved=False,
-            reentry_required=True,
-            rollback_required=True,
-            update_required=False,
-            inhibit_repetition=True,
-            outcome_prediction_error=ope,
-            value_prediction_error=rpe,
-            action_prediction_error=ape,
-            timing_prediction_error=tpe,
-            precision_weighted_gain=precision_weighted_gain,
-            adapted_error_threshold=adapted_error_threshold,
-            next_context_expansion_required=True,
-            reason=(
-                f"REENTRY_REQUIRED: OPE={ope:.6g} >= reentry_threshold="
-                f"{expected.reentry_threshold:.6g}"
-            ),
-            falsifier=(
-                "Acceptor accepted an action whose outcome breached the reentry threshold; "
-                "the controller must reopen the context, not silently update."
-            ),
-        )
-
-    if ope >= expected.rollback_threshold:
+    if comparator_error >= expected.rollback_threshold:
         return ActionResultWitness(
             status=ActionResultStatus.ROLLBACK_REQUIRED,
             accepted=False,
             dissolved=False,
-            reentry_required=False,
             rollback_required=True,
             update_required=False,
             inhibit_repetition=True,
-            outcome_prediction_error=ope,
+            outcome_prediction_error=raw_ope,
+            precision_weighted_outcome_error=pwope,
+            comparator_error=comparator_error,
             value_prediction_error=rpe,
             action_prediction_error=ape,
             timing_prediction_error=tpe,
-            precision_weighted_gain=precision_weighted_gain,
             adapted_error_threshold=adapted_error_threshold,
             next_context_expansion_required=True,
             reason=(
-                f"ROLLBACK_REQUIRED: OPE={ope:.6g} >= rollback_threshold="
-                f"{expected.rollback_threshold:.6g}"
+                f"ROLLBACK_REQUIRED: comparator_error={comparator_error:.6g} "
+                f">= rollback_threshold={expected.rollback_threshold:.6g}"
             ),
             falsifier=(
-                "Acceptor accepted an action whose outcome breached the rollback threshold; "
-                "the controller must roll back, not update."
+                "Comparator accepted an action whose outcome breached the rollback "
+                "threshold; the controller must roll back, not update."
             ),
         )
 
@@ -524,15 +579,15 @@ def accept_action_result(
             status=ActionResultStatus.ACTION_MISMATCH,
             accepted=False,
             dissolved=False,
-            reentry_required=False,
             rollback_required=False,
             update_required=True,
             inhibit_repetition=True,
-            outcome_prediction_error=ope,
+            outcome_prediction_error=raw_ope,
+            precision_weighted_outcome_error=pwope,
+            comparator_error=comparator_error,
             value_prediction_error=rpe,
             action_prediction_error=ape,
             timing_prediction_error=tpe,
-            precision_weighted_gain=precision_weighted_gain,
             adapted_error_threshold=adapted_error_threshold,
             next_context_expansion_required=True,
             reason=(
@@ -540,7 +595,7 @@ def accept_action_result(
                 f"{expected.action_mismatch_threshold:.6g}"
             ),
             falsifier=(
-                "Executed action signature drifted beyond contract; acceptor cannot "
+                "Executed action signature drifted beyond contract; comparator cannot "
                 "sanction divergent execution as a match."
             ),
         )
@@ -554,15 +609,15 @@ def accept_action_result(
             status=ActionResultStatus.VALUE_MISMATCH,
             accepted=False,
             dissolved=False,
-            reentry_required=False,
             rollback_required=False,
             update_required=True,
             inhibit_repetition=True,
-            outcome_prediction_error=ope,
+            outcome_prediction_error=raw_ope,
+            precision_weighted_outcome_error=pwope,
+            comparator_error=comparator_error,
             value_prediction_error=rpe,
             action_prediction_error=ape,
             timing_prediction_error=tpe,
-            precision_weighted_gain=precision_weighted_gain,
             adapted_error_threshold=adapted_error_threshold,
             next_context_expansion_required=True,
             reason=(
@@ -570,8 +625,8 @@ def accept_action_result(
                 f"{expected.value_mismatch_threshold:.6g}"
             ),
             falsifier=(
-                "Realized scalar value diverged beyond contract; acceptor cannot sanction "
-                "the action without flagging update."
+                "Realized scalar value diverged beyond contract; comparator cannot "
+                "sanction the action without flagging update."
             ),
         )
 
@@ -584,15 +639,15 @@ def accept_action_result(
             status=ActionResultStatus.TIMING_MISMATCH,
             accepted=False,
             dissolved=False,
-            reentry_required=False,
             rollback_required=False,
             update_required=True,
             inhibit_repetition=True,
-            outcome_prediction_error=ope,
+            outcome_prediction_error=raw_ope,
+            precision_weighted_outcome_error=pwope,
+            comparator_error=comparator_error,
             value_prediction_error=rpe,
             action_prediction_error=ape,
             timing_prediction_error=tpe,
-            precision_weighted_gain=precision_weighted_gain,
             adapted_error_threshold=adapted_error_threshold,
             next_context_expansion_required=True,
             reason=(
@@ -600,34 +655,34 @@ def accept_action_result(
                 f"{expected.timing_mismatch_threshold_ms:.6g}"
             ),
             falsifier=(
-                "Observed latency diverged beyond contract; acceptor cannot sanction "
+                "Observed latency diverged beyond contract; comparator cannot sanction "
                 "out-of-window execution."
             ),
         )
 
-    if ope > adapted_error_threshold:
+    if comparator_error > expected.error_threshold:
         return ActionResultWitness(
             status=ActionResultStatus.UPDATE_REQUIRED,
             accepted=False,
             dissolved=False,
-            reentry_required=False,
             rollback_required=False,
             update_required=True,
             inhibit_repetition=False,
-            outcome_prediction_error=ope,
+            outcome_prediction_error=raw_ope,
+            precision_weighted_outcome_error=pwope,
+            comparator_error=comparator_error,
             value_prediction_error=rpe,
             action_prediction_error=ape,
             timing_prediction_error=tpe,
-            precision_weighted_gain=precision_weighted_gain,
             adapted_error_threshold=adapted_error_threshold,
             next_context_expansion_required=True,
             reason=(
-                f"UPDATE_REQUIRED: OPE={ope:.6g} > adapted_error_threshold="
-                f"{adapted_error_threshold:.6g}"
+                f"UPDATE_REQUIRED: comparator_error={comparator_error:.6g} > "
+                f"error_threshold={expected.error_threshold:.6g}"
             ),
             falsifier=(
-                "Outcome error sits inside the safe band but above the adaptive threshold; "
-                "acceptor must request a model update rather than dissolve the action."
+                "Outcome error sits inside the safe band but above the error threshold; "
+                "comparator must request a model update rather than dissolve the action."
             ),
         )
 
@@ -635,30 +690,29 @@ def accept_action_result(
         status=ActionResultStatus.SANCTIONED_MATCH,
         accepted=True,
         dissolved=True,
-        reentry_required=False,
         rollback_required=False,
         update_required=False,
         inhibit_repetition=False,
-        outcome_prediction_error=ope,
+        outcome_prediction_error=raw_ope,
+        precision_weighted_outcome_error=pwope,
+        comparator_error=comparator_error,
         value_prediction_error=rpe,
         action_prediction_error=ape,
         timing_prediction_error=tpe,
-        precision_weighted_gain=precision_weighted_gain,
         adapted_error_threshold=adapted_error_threshold,
         next_context_expansion_required=False,
         reason=(
-            f"SANCTIONED_MATCH: OPE={ope:.6g} <= adapted_error_threshold="
-            f"{adapted_error_threshold:.6g}"
+            f"SANCTIONED_MATCH: comparator_error={comparator_error:.6g} <= "
+            f"error_threshold={expected.error_threshold:.6g}"
         ),
         falsifier=(
-            "Acceptor sanctioned an action whose outcome already exceeded the adaptive "
-            "threshold; mutation that flips the comparison must produce a different verdict."
+            "Comparator sanctioned an action whose outcome already exceeded the error "
+            "threshold; mutation that flips the comparison must produce a different "
+            "verdict."
         ),
     )
 
 
-# Re-export a tuple of public names for ``import *`` discipline; the actual
-# package surface is set in ``geosync_hpc.control.__init__``.
 __all__ = [
     "ActionResultStatus",
     "ActionResultWitness",
@@ -666,14 +720,3 @@ __all__ = [
     "ObservedActionResult",
     "accept_action_result",
 ]
-
-
-# ``dataclasses`` is imported only to make :func:`dataclasses.fields` reachable
-# for downstream introspection (used by tests asserting absence of forbidden
-# fields).  Reference it here so that ``ruff`` does not flag the import as
-# unused in environments where slots elide module-level attribute lookup.
-_PUBLIC_DATACLASS_FIELDS: tuple[str, ...] = tuple(
-    field.name
-    for cls in (ExpectedResultModel, ObservedActionResult, ActionResultWitness)
-    for field in dataclasses.fields(cls)
-)
