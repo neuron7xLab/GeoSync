@@ -266,20 +266,82 @@ def test_13_raw_ope_is_euclidean_norm() -> None:
 
 
 def test_14_precision_weighted_error_uses_inverse_variance() -> None:
+    """Asymmetric data forces the 1/variance form to dominate.
+
+    Symmetric ``diff`` collapses ``sqrt(sum(w * d^2) / sum(w))`` into ``|d|``
+    for any weight choice, hiding whether the formula uses ``1/variance``
+    (correct) or ``variance`` (inverted). Asymmetric ``diff`` distinguishes:
+
+      diff = (1.0, 4.0); variance = (1.0, 4.0)
+      precision (1/v)    = (1.0, 0.25)
+        weighted_squared = 1.0*1 + 0.25*16 = 5.0
+        weight_total     = 1.0 + 0.25       = 1.25
+        pwope (1/v)      = sqrt(5.0/1.25)   = 2.0
+      precision (v)      = (1.0, 4.0)        [INVERTED — must NOT match]
+        weighted_squared = 1.0*1 + 4.0*16   = 65.0
+        weight_total     = 1.0 + 4.0        = 5.0
+        pwope (v)        = sqrt(65.0/5.0)   = sqrt(13.0) ≈ 3.6056
+      raw OPE            = sqrt(1 + 16)     = sqrt(17.0) ≈ 4.1231
+
+    Test asserts pwope == 2.0 AND pwope < raw OPE (high-variance dimension is
+    downweighted, the defining property of 1/variance precision).
+    """
     expected = _make_expected(
         expected_result=(0.0, 0.0),
         expected_result_variance=(1.0, 4.0),
         error_threshold=10.0,
         rollback_threshold=10.0,
     )
-    # diff = (2.0, 2.0); precision = (1.0, 0.25)
-    # weighted_squared = 1.0*4 + 0.25*4 = 5.0
-    # weight_total     = 1.0 + 0.25 = 1.25
-    # pwope = sqrt(5.0/1.25) = sqrt(4.0) = 2.0
-    observed = _make_observed(observed_result=(2.0, 2.0))
+    observed = _make_observed(observed_result=(1.0, 4.0))
     witness = accept_action_result(expected, observed)
     assert witness.precision_weighted_outcome_error is not None
+    assert witness.outcome_prediction_error is not None
     assert math.isclose(witness.precision_weighted_outcome_error, 2.0, abs_tol=1e-12)
+    assert math.isclose(witness.outcome_prediction_error, math.sqrt(17.0), abs_tol=1e-12)
+    assert witness.precision_weighted_outcome_error < witness.outcome_prediction_error
+    inverted_pwope = math.sqrt(13.0)
+    assert not math.isclose(
+        witness.precision_weighted_outcome_error, inverted_pwope, abs_tol=1e-3
+    ), "test data must distinguish 1/variance from variance — the inverted formula yields sqrt(13)"
+
+
+@pytest.mark.parametrize(
+    ("variance", "observed", "expected_pwope", "inverted_pwope"),
+    [
+        ((1.0, 4.0), (1.0, 4.0), 2.0, math.sqrt(13.0)),
+        ((1.0, 9.0), (1.0, 3.0), math.sqrt(18.0 / 10.0 * 9.0) / 3.0, math.sqrt(82.0 / 10.0)),
+        (
+            (0.25, 4.0),
+            (0.5, 4.0),
+            math.sqrt((4.0 * 0.25 + 0.25 * 16.0) / 4.25),
+            math.sqrt((0.25 * 0.25 + 4.0 * 16.0) / 4.25),
+        ),
+    ],
+)
+def test_14b_precision_inversion_is_falsifiable(
+    variance: tuple[float, float],
+    observed: tuple[float, float],
+    expected_pwope: float,
+    inverted_pwope: float,
+) -> None:
+    """Mutation barrier: every parametrized row distinguishes 1/v from v.
+
+    If a future edit replaces ``precision_i = 1.0 / variance_i`` with
+    ``precision_i = variance_i``, every row's pwope shifts to ``inverted_pwope``,
+    breaking the equality assertion. This is the falsifier the audit demanded.
+    """
+    expected = _make_expected(
+        expected_result=(0.0, 0.0),
+        expected_result_variance=variance,
+        error_threshold=100.0,
+        rollback_threshold=100.0,
+    )
+    witness = accept_action_result(expected, _make_observed(observed_result=observed))
+    assert witness.precision_weighted_outcome_error is not None
+    assert math.isclose(witness.precision_weighted_outcome_error, expected_pwope, abs_tol=1e-12)
+    assert not math.isclose(
+        witness.precision_weighted_outcome_error, inverted_pwope, abs_tol=1e-9
+    ), f"data row failed to distinguish 1/v from v: pwope={expected_pwope}, inverted={inverted_pwope}"
 
 
 def test_15_comparator_error_uses_pwope_when_variance_present() -> None:
