@@ -421,7 +421,8 @@ patterns:
       similar value.
     proposed_module: geosync_hpc/regimes/non_selfsimilar_cluster_growth.py
     claim_tier: ENGINEERING_ANALOG
-    implementation_status: PROPOSED
+    implementation_status: IMPLEMENTED
+    implemented_at: "2026-04-27"
     measurable_inputs:
       - cluster_size_series
       - window_indices
