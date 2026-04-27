@@ -107,10 +107,15 @@ jobs:
       - name: Install minimal test dependencies
         run: |
           set -euo pipefail
+          # tests/conftest.py imports pandas + pytest + yaml at module
+          # level. Pandas is part of the project's runtime contract
+          # (requirements.txt pins pandas>=2.3.3); the minimal install
+          # below mirrors that pin so pytest collection succeeds.
           python -m pip install --upgrade pip
           python -m pip install \
             'pytest>=8.4' \
             'numpy>=2.3.3' \
+            'pandas>=2.3.3' \
             'PyYAML>=6.0.3'
 
       - name: Run physics-2026 unit suites
@@ -148,10 +153,16 @@ jobs:
       - name: Install minimal integration dependencies
         run: |
           set -euo pipefail
+          # tests/conftest.py imports pandas + pytest + yaml at module
+          # level. The integration suite also needs numpy. Pandas is
+          # pinned by the project (requirements.txt: pandas>=2.3.3); we
+          # mirror that pin here.
           python -m pip install --upgrade pip
           python -m pip install \
             'pytest>=8.4' \
-            'numpy>=2.3.3'
+            'numpy>=2.3.3' \
+            'pandas>=2.3.3' \
+            'PyYAML>=6.0.3'
 
       - name: Run physics-2026 reality chain
         run: |
