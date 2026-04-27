@@ -40,22 +40,20 @@ def fcd() -> ModuleType:
 
 
 # ---------------------------------------------------------------------------
-# Contract 2 — live-tree regression cases (run first to confirm the
-# detector actually finds the audit's known false-confidence zones)
+# Contract 2 — live-tree regression cases.
+#
+# The detector now consults `.claude/audit/false_confidence_exemptions.yaml`
+# by default. Tests that need the unfiltered baseline pass a missing
+# manifest path explicitly so historical-state waivers do not interfere.
 # ---------------------------------------------------------------------------
 
 
-def test_live_repo_no_longer_surfaces_c1_coverage_omission(fcd: ModuleType) -> None:
-    """F02 closed: .coveragerc no longer hides declared source via omit.
+_MISSING_MANIFEST = Path("/this/path/does/not/exist/empty_manifest.yaml")
 
-    The detector's tightened C1 rule (omit-erases-declared-source) MUST
-    be silent on the post-F02-fix live tree. If this test fails, the bad
-    pattern (omit list shadowing core/* sub-packages, the original F02)
-    has returned. Promote it to xfail ONLY by also describing how the
-    new live finding is actually different from F02; otherwise fix the
-    config.
-    """
-    report = fcd.collect(REPO_ROOT)
+
+def test_live_repo_no_longer_surfaces_c1_coverage_omission(fcd: ModuleType) -> None:
+    """F02 closed: .coveragerc no longer hides declared source via omit."""
+    report = fcd.collect(REPO_ROOT, exemption_manifest=_MISSING_MANIFEST)
     c1 = [f for f in report.findings if f.false_confidence_type == "C1"]
     assert (
         not c1
@@ -66,17 +64,33 @@ def test_live_repo_no_longer_surfaces_c1_coverage_omission(fcd: ModuleType) -> N
 
 def test_live_repo_surfaces_c2_scanner_path_mismatch(fcd: ModuleType) -> None:
     """F01-class: Dockerfiles install requirements.txt but only the lockfile
-    is pip-audited."""
-    report = fcd.collect(REPO_ROOT)
+    is pip-audited. Test bypasses the exemption manifest to confirm the
+    detector still sees the underlying historical state."""
+    report = fcd.collect(REPO_ROOT, exemption_manifest=_MISSING_MANIFEST)
     c2 = [f for f in report.findings if f.false_confidence_type == "C2"]
     assert c2, "C2 (scanner path mismatch) not detected on live tree"
 
 
-def test_live_repo_surfaces_at_least_five_classes(fcd: ModuleType) -> None:
-    """Closure criterion: ≥5 classes should fire on the live tree."""
-    report = fcd.collect(REPO_ROOT)
+def test_live_repo_surfaces_at_least_five_classes_unfiltered(fcd: ModuleType) -> None:
+    """Closure criterion: ≥5 classes should fire on the live tree when the
+    exemption manifest is bypassed."""
+    report = fcd.collect(REPO_ROOT, exemption_manifest=_MISSING_MANIFEST)
     classes = {f.false_confidence_type for f in report.findings}
     assert len(classes) >= 5, f"only {len(classes)} class(es) fired: {classes}"
+
+
+def test_live_repo_clean_under_default_manifest(fcd: ModuleType) -> None:
+    """With the default exemption manifest applied, live-tree findings = 0.
+
+    Every historical-state finding is documented in
+    .claude/audit/false_confidence_exemptions.yaml with a per-class
+    reason. Any new finding (a file crossing the threshold for the
+    first time) is NOT on the manifest and will appear here.
+    """
+    report = fcd.collect(REPO_ROOT)
+    assert not report.findings, "new false-confidence finding appeared:\n  " + "\n  ".join(
+        f"{f.finding_id} ({f.actual_evidence})" for f in report.findings
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -304,3 +318,131 @@ def test_main_exits_zero_in_report_only_mode(fcd: ModuleType, tmp_path: Path) ->
     repo = _make_repo(tmp_path)
     rc = fcd.main(["--repo-root", str(repo)])
     assert rc == 0
+
+
+# ---------------------------------------------------------------------------
+# Contract 3 — exemption manifest mechanism
+# ---------------------------------------------------------------------------
+
+
+def _write_manifest(path: Path, exemptions: list[dict[str, str]]) -> Path:
+    import yaml as _yaml
+
+    payload = {"schema_version": 1, "exemptions": exemptions}
+    path.write_text(_yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    return path
+
+
+def test_manifest_filters_listed_finding_ids(fcd: ModuleType, tmp_path: Path) -> None:
+    """Exemption manifest entries are removed from the report by finding_id."""
+    repo = _make_repo(tmp_path)
+    body = "\n".join("x = 1  # type: ignore" for _ in range(10))
+    (repo / "module.py").write_text(body, encoding="utf-8")
+
+    # First confirm the finding fires without a manifest.
+    bare = fcd.collect(repo, exemption_manifest=tmp_path / "missing.yaml")
+    assert any(f.false_confidence_type == "C8" for f in bare.findings)
+
+    # Now waive it via the manifest and confirm it disappears.
+    waived_id = next(f.finding_id for f in bare.findings if f.false_confidence_type == "C8")
+    manifest = _write_manifest(
+        tmp_path / "exempt.yaml",
+        [{"finding_id": waived_id, "reason": "test waiver"}],
+    )
+    filtered = fcd.collect(repo, exemption_manifest=manifest)
+    assert not any(f.finding_id == waived_id for f in filtered.findings)
+
+
+def test_manifest_missing_file_returns_no_exemptions(fcd: ModuleType, tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+    body = "\n".join("x = 1  # type: ignore" for _ in range(10))
+    (repo / "module.py").write_text(body, encoding="utf-8")
+    report = fcd.collect(repo, exemption_manifest=tmp_path / "absent.yaml")
+    assert any(f.false_confidence_type == "C8" for f in report.findings)
+
+
+def test_manifest_empty_file_returns_no_exemptions(fcd: ModuleType, tmp_path: Path) -> None:
+    manifest = tmp_path / "empty.yaml"
+    manifest.write_text("", encoding="utf-8")
+    repo = _make_repo(tmp_path)
+    body = "\n".join("x = 1  # type: ignore" for _ in range(10))
+    (repo / "module.py").write_text(body, encoding="utf-8")
+    report = fcd.collect(repo, exemption_manifest=manifest)
+    assert any(f.false_confidence_type == "C8" for f in report.findings)
+
+
+def test_manifest_bad_schema_version_raises(fcd: ModuleType, tmp_path: Path) -> None:
+    import pytest
+    import yaml as _yaml
+
+    manifest = tmp_path / "bad.yaml"
+    manifest.write_text(
+        _yaml.safe_dump({"schema_version": 99, "exemptions": []}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="schema_version: 1"):
+        fcd.load_exemptions(manifest)
+
+
+def test_manifest_duplicate_finding_id_raises(fcd: ModuleType, tmp_path: Path) -> None:
+    import pytest
+
+    manifest = _write_manifest(
+        tmp_path / "dup.yaml",
+        [
+            {"finding_id": "X", "reason": "first"},
+            {"finding_id": "X", "reason": "second"},
+        ],
+    )
+    with pytest.raises(ValueError, match="duplicate"):
+        fcd.load_exemptions(manifest)
+
+
+def test_manifest_non_mapping_entry_raises(fcd: ModuleType, tmp_path: Path) -> None:
+    import pytest
+    import yaml as _yaml
+
+    manifest = tmp_path / "bad_entry.yaml"
+    manifest.write_text(
+        _yaml.safe_dump(
+            {"schema_version": 1, "exemptions": ["not_a_mapping"]},
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="must be a mapping"):
+        fcd.load_exemptions(manifest)
+
+
+def test_manifest_empty_reason_rejected(fcd: ModuleType, tmp_path: Path) -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="non-empty string"):
+        fcd.Exemption(finding_id="X", reason="")
+    with pytest.raises(ValueError, match="non-empty string"):
+        fcd.Exemption(finding_id="X", reason="   ")
+
+
+def test_falsifier_removing_manifest_entry_re_emits_finding(
+    fcd: ModuleType, tmp_path: Path
+) -> None:
+    """Falsifier: deleting an exemption restores the underlying finding."""
+    repo = _make_repo(tmp_path)
+    body = "\n".join("x = 1  # type: ignore" for _ in range(10))
+    (repo / "module.py").write_text(body, encoding="utf-8")
+
+    bare = fcd.collect(repo, exemption_manifest=tmp_path / "missing.yaml")
+    target_id = next(f.finding_id for f in bare.findings if f.false_confidence_type == "C8")
+
+    # Waive: 0 findings of that ID.
+    full = _write_manifest(
+        tmp_path / "exempt.yaml",
+        [{"finding_id": target_id, "reason": "test waiver"}],
+    )
+    waived = fcd.collect(repo, exemption_manifest=full)
+    assert not any(f.finding_id == target_id for f in waived.findings)
+
+    # Remove the entry: finding reappears.
+    empty = _write_manifest(tmp_path / "empty_list.yaml", [])
+    restored = fcd.collect(repo, exemption_manifest=empty)
+    assert any(f.finding_id == target_id for f in restored.findings)
