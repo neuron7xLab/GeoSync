@@ -29,7 +29,7 @@ from types import ModuleType
 from typing import Any
 
 import pytest
-import yaml
+import yaml  # type: ignore[import-untyped,unused-ignore]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LEDGER_PATH = REPO_ROOT / ".claude" / "mutation" / "MUTATION_LEDGER.yaml"
@@ -175,13 +175,21 @@ def test_security_harness_kills_all_mutants_and_restores(
     ).returncode
     assert rc == 0, f"security harness exit {rc}"
 
+    # Only the mutator's own target files must end up clean — a global
+    # `git diff --exit-code` falsely flags the tree dirty whenever any
+    # other tracked file is modified elsewhere (active branch development,
+    # CI CRLF rewrites, pre-commit side-effects). The contract here is
+    # solely about the mutated files being restored byte-identically.
+    target_paths = tuple(m.target_file for m in smh.MUTANTS)
     diff = subprocess.run(
-        ["git", "diff", "--exit-code"],
+        ["git", "diff", "--exit-code", "--", *target_paths],
         cwd=REPO_ROOT,
         check=False,
         capture_output=True,
     )
-    assert diff.returncode == 0, "working tree dirty after harness run:\n" + diff.stdout.decode()
+    assert diff.returncode == 0, (
+        "mutator target files dirty after harness run:\n" + diff.stdout.decode()
+    )
 
 
 # ---------------------------------------------------------------------------
