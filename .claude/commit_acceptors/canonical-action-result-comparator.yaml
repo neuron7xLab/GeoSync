@@ -1,0 +1,35 @@
+# Forward-looking example acceptor documenting PR #490 content.
+# Bound to the deterministic ActionResultComparator stack under geosync_hpc/control.
+
+id: canonical-action-result-comparator
+status: ACTIVE
+claim_type: correctness
+promise: "Every control action is bound to an expected outcome via a deterministic comparator with chronology-chained ControlEpisode and falsifiable precision weighting."
+diff_scope:
+  changed_files:
+    - path: "geosync_hpc/control/action_result_comparator.py"
+    - path: "geosync_hpc/control/control_episode.py"
+    - path: "tests/unit/control/test_action_result_comparator.py"
+    - path: "tests/unit/control/test_control_episode.py"
+    - path: "tests/unit/control/test_precision_weighting.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols:
+  - "ActionResultComparator"
+  - "ControlEpisode"
+  - "compare_action_result"
+expected_signal: "all action-result comparator unit tests pass with deterministic chronology hash"
+measurement_command: "python -m pytest tests/unit/control -v"
+signal_artifact: "tmp/action_result_comparator_pytest.log"
+falsifier:
+  command: "python -m pytest tests/unit/control -v -k precision_weighting_falsifiable"
+  description: "Adversarial precision-weighting probe; must fail when comparator is replaced by an identity stub."
+rollback_command: "git checkout -- geosync_hpc/control tests/unit/control"
+rollback_verification_command: "git diff --exit-code geosync_hpc/control tests/unit/control"
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/canonical-action-result-comparator.yaml"
+report_path: "docs/reports/action_result_acceptor_audit.md"
+evidence: []
