@@ -200,9 +200,29 @@ def test_13_from_import_caught() -> None:
     assert out == ["execution.broker"]
 
 
-def test_14_relative_import_skipped() -> None:
-    src = "from . import sibling\nfrom .helpers import fn\n"
-    assert forbidden_imports(src, ["execution"]) == []
+def test_14_relative_import_two_directions() -> None:
+    """Audit Holes 1 & 2: relative-import semantics in both directions.
+
+    (a) ``from . import trading``  IS flagged — the alias name targets a
+        forbidden module (Hole 1: bypass closed).
+    (b) ``from .trading import x``  IS NOT flagged — ``.trading`` is a
+        repo-local sibling submodule (Hole 2: false positive removed).
+    (c) ``from . import sibling`` (non-forbidden alias) stays skipped.
+    """
+    # (a) Hole 1: bypass via `from . import trading` is now caught.
+    caught = forbidden_imports("from . import trading\n", ["trading"])
+    assert caught == ["trading"], caught
+
+    # (b) Hole 2: `.trading` as the relative module is a local sibling,
+    # NOT the forbidden absolute `trading` runtime module.
+    not_caught = forbidden_imports("from .trading import helper\n", ["trading"])
+    assert not_caught == [], not_caught
+
+    # (c) Original behavior preserved: relative imports of non-forbidden
+    # names stay clean.
+    assert (
+        forbidden_imports("from . import sibling\nfrom .helpers import fn\n", ["execution"]) == []
+    )
 
 
 def test_15_string_literal_not_inspected() -> None:
@@ -618,3 +638,113 @@ def test_validation_result_dataclass_basic() -> None:
 def test_subprocess_module_imported() -> None:
     """Sanity probe so import of subprocess is not flagged unused."""
     assert hasattr(subprocess, "run")
+
+
+# ---------------------------------------------------------------------------
+# Audit holes 3, 4, 5: path traversal, empty/whitespace, null promise
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad_path",
+    [
+        "../etc/passwd",
+        "geosync/../../escape",
+        "/abs/path",
+        "path\\windows",
+        "..",
+        "a/../b",
+    ],
+)
+def test_path_traversal_in_changed_files_rejected(tmp_path: Path, bad_path: str) -> None:
+    """Audit Hole 3: changed_files[*].path must reject traversal/absolute/backslash."""
+    body = _valid_acceptor()
+    body["diff_scope"]["changed_files"] = [{"path": bad_path}]
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_acceptors(POLICY, [(p, body)])
+    assert not res.ok
+    assert any("unsafe" in e and "changed_files" in e for e in res.errors), res.errors
+
+
+@pytest.mark.parametrize(
+    "bad_path",
+    [
+        "../escape/",
+        "/abs/forbid",
+        "back\\slash/",
+    ],
+)
+def test_path_traversal_in_forbidden_paths_rejected(tmp_path: Path, bad_path: str) -> None:
+    """Audit Hole 3 (symmetric): forbidden_paths must also reject traversal."""
+    body = _valid_acceptor()
+    body["diff_scope"]["forbidden_paths"] = [bad_path]
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_acceptors(POLICY, [(p, body)])
+    assert not res.ok
+    assert any("unsafe" in e and "forbidden_paths" in e for e in res.errors), res.errors
+
+
+def test_empty_id_rejected(tmp_path: Path) -> None:
+    """Audit Hole 4: id == "" must be rejected."""
+    body = _valid_acceptor(id="")
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_acceptors(POLICY, [(p, body)])
+    assert not res.ok
+    assert any("id must be a non-empty string" in e for e in res.errors), res.errors
+
+
+def test_whitespace_id_rejected(tmp_path: Path) -> None:
+    """Audit Hole 4: id of only whitespace must be rejected."""
+    body = _valid_acceptor(id="   ")
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_acceptors(POLICY, [(p, body)])
+    assert not res.ok
+    assert any("id must be a non-empty string" in e for e in res.errors), res.errors
+
+
+def test_empty_promise_summary_rejected(tmp_path: Path) -> None:
+    """Audit Hole 4: promise as empty string must be rejected."""
+    body = _valid_acceptor(promise="")
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_acceptors(POLICY, [(p, body)])
+    assert not res.ok
+    assert any("promise" in e and "non-empty" in e for e in res.errors), res.errors
+
+
+def test_whitespace_promise_summary_rejected(tmp_path: Path) -> None:
+    """Audit Hole 4: promise as whitespace-only string must be rejected."""
+    body = _valid_acceptor(promise="   \t\n")
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_acceptors(POLICY, [(p, body)])
+    assert not res.ok
+    assert any("promise" in e and "non-empty" in e for e in res.errors), res.errors
+
+
+def test_promise_dict_with_empty_summary_rejected(tmp_path: Path) -> None:
+    """Audit Hole 4 (dict shape): promise.summary empty/whitespace rejected."""
+    body = _valid_acceptor(promise={"summary": "   "})
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_acceptors(POLICY, [(p, body)])
+    assert not res.ok
+    assert any("promise.summary" in e for e in res.errors), res.errors
+
+
+def test_null_promise_block_rejected(tmp_path: Path) -> None:
+    """Audit Hole 5: promise: null (None) must be rejected with INVALID_PROMISE_BLOCK."""
+    body = _valid_acceptor(promise=None)
+    # _valid_acceptor pops keys with value None, so set explicitly.
+    body["promise"] = None
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_acceptors(POLICY, [(p, body)])
+    assert not res.ok
+    assert any("INVALID_PROMISE_BLOCK" in e for e in res.errors), res.errors
+
+
+def test_promise_wrong_type_rejected(tmp_path: Path) -> None:
+    """Audit Hole 5 (extension): promise as list/int rejected with INVALID_PROMISE_BLOCK."""
+    body = _valid_acceptor()
+    body["promise"] = ["not", "a", "string"]
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_acceptors(POLICY, [(p, body)])
+    assert not res.ok
+    assert any("INVALID_PROMISE_BLOCK" in e for e in res.errors), res.errors

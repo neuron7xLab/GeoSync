@@ -65,6 +65,29 @@ REQUIRED_FALSIFIER_FIELDS: tuple[str, ...] = ("command", "description")
 VALID_STATUSES: frozenset[str] = frozenset({"DRAFT", "ACTIVE", "VERIFIED", "REJECTED"})
 VALID_MEMORY_UPDATE_TYPES: frozenset[str] = frozenset({"append", "replace", "none"})
 
+# Fields that must be non-empty after .strip() (audit Hole 4).
+NON_EMPTY_TOP_LEVEL_FIELDS: tuple[str, ...] = ("id",)
+
+
+def _is_safe_repo_relative_path(p: str) -> bool:
+    """Return True iff *p* is a safe repo-relative path (audit Hole 3).
+
+    Rejects: leading ``/`` (absolute), backslashes (Windows path
+    components on a Unix repo), and any component equal to ``..``.
+    Empty/whitespace-only strings are rejected as unsafe.
+    """
+    if not p or not p.strip():
+        return False
+    if p.startswith("/"):
+        return False
+    if "\\" in p:
+        return False
+    parts = p.split("/")
+    if any(part == ".." for part in parts):
+        return False
+    return True
+
+
 # Schema fields that MUST NOT appear anywhere in an acceptor (legacy / banned).
 FORBIDDEN_SCHEMA_FIELDS: frozenset[str] = frozenset(
     {"forbidden_symbols", "max_files_changed", "generated_at"}
@@ -157,6 +180,32 @@ def _validate_single_acceptor(
     if status is not None and status not in VALID_STATUSES:
         result.errors.append(f"{path}: status '{status}' not in {sorted(VALID_STATUSES)}")
 
+    # id non-empty after .strip() (audit Hole 4).
+    aid_raw = acceptor.get("id")
+    if isinstance(aid_raw, str) and not aid_raw.strip():
+        result.errors.append(f"{path}: id must be a non-empty string (got empty/whitespace)")
+
+    # promise: reject None / non-dict-or-non-string and reject empty/whitespace
+    # content (audit Holes 4 & 5). Canonical schema is a non-empty string;
+    # mappings with a non-empty .summary are also accepted.
+    if "promise" in acceptor:
+        promise = acceptor.get("promise")
+        if promise is None:
+            result.errors.append(f"{path}: INVALID_PROMISE_BLOCK: promise must not be null")
+        elif isinstance(promise, str):
+            if not promise.strip():
+                result.errors.append(
+                    f"{path}: promise must be a non-empty string (got empty/whitespace)"
+                )
+        elif isinstance(promise, dict):
+            summary = promise.get("summary")
+            if not isinstance(summary, str) or not summary.strip():
+                result.errors.append(f"{path}: promise.summary must be a non-empty string")
+        else:
+            result.errors.append(
+                f"{path}: INVALID_PROMISE_BLOCK: promise must be a string or mapping"
+            )
+
     # claim_type vs policy
     claim_type = acceptor.get("claim_type")
     allowed_claims: dict[str, int] = policy.get("max_changed_files_by_claim_type", {})
@@ -178,9 +227,27 @@ def _validate_single_acceptor(
                     result.errors.append(
                         f"{path}: diff_scope.changed_files[{i}] must be a mapping with 'path'"
                     )
+                    continue
+                # Audit Hole 3: reject path traversal / absolute / Windows
+                # separators in changed_files[*].path.
+                p_val = entry.get("path")
+                if not isinstance(p_val, str) or not _is_safe_repo_relative_path(p_val):
+                    result.errors.append(
+                        f"{path}: diff_scope.changed_files[{i}].path "
+                        f"unsafe (traversal/absolute/backslash): {p_val!r}"
+                    )
         forbidden_paths = diff_scope.get("forbidden_paths")
         if not isinstance(forbidden_paths, list):
             result.errors.append(f"{path}: diff_scope.forbidden_paths must be a list")
+        else:
+            for i, fp in enumerate(forbidden_paths):
+                # Audit Hole 3: forbidden_paths are also repo-relative —
+                # reject traversal there too for symmetry.
+                if not isinstance(fp, str) or not _is_safe_repo_relative_path(fp):
+                    result.errors.append(
+                        f"{path}: diff_scope.forbidden_paths[{i}] "
+                        f"unsafe (traversal/absolute/backslash): {fp!r}"
+                    )
     elif diff_scope is not None:
         result.errors.append(f"{path}: diff_scope must be a mapping")
 
@@ -377,8 +444,16 @@ def forbidden_imports(source: str, forbidden_patterns: Sequence[str]) -> list[st
     """Return list of forbidden imports found in `source` via AST.
 
     Matches when an imported module name equals a pattern, or starts with
-    `pattern + "."`. Relative imports (`from . import x`) are skipped.
-    Comments and string literals are NOT inspected.
+    `pattern + "."`. Comments and string literals are NOT inspected.
+
+    Relative-import semantics (audit holes 1 & 2):
+      * ``from . import trading`` IS flagged: the imported alias name
+        targets a forbidden module (Hole 1 — bypass closed).
+      * ``from .trading import x`` IS NOT flagged: the relative module
+        ``.trading`` is a repo-local sibling submodule (Hole 2 — false
+        positive removed). Only ``alias.name`` is checked for relative
+        imports because that is the bound symbol(s); the relative module
+        name itself is repo-local by construction.
     """
     if not source.strip():
         return []
@@ -393,6 +468,16 @@ def forbidden_imports(source: str, forbidden_patterns: Sequence[str]) -> list[st
                         violations.append(name)
                         break
         elif isinstance(node, ast.ImportFrom):
+            if node.level and node.level > 0:
+                # Relative import: check each bound alias name; the
+                # relative module itself is repo-local (Hole 2).
+                for alias in node.names:
+                    aname = alias.name
+                    for pat in forbidden_patterns:
+                        if aname == pat or aname.startswith(pat + "."):
+                            violations.append(aname)
+                            break
+                continue
             mod = node.module
             if mod is None:
                 continue
