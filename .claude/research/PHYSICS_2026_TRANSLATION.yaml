@@ -52,7 +52,8 @@ patterns:
       provenance, parameters, evidence tier, and an admission verdict.
     proposed_module: geosync_hpc/regimes/population_event_catalog.py
     claim_tier: ENGINEERING_ANALOG
-    implementation_status: PROPOSED
+    implementation_status: IMPLEMENTED
+    implemented_at: "2026-04-26"
     measurable_inputs:
       - timestamp
       - asset_universe
