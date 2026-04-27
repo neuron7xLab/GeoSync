@@ -115,3 +115,51 @@ sources:
     forbidden_overclaim:
       - "Do not map quarks to assets."
       - "Do not treat correlation as binding."
+
+  - source_id: S7_KPZ_2D_UNIVERSALITY
+    title: "Two-dimensional Kardar-Parisi-Zhang universality of growing interfaces"
+    url: https://arxiv.org/abs/2603.00100
+    verified_fact:
+      - "Growing interfaces in two dimensions exhibit a universal roughness exponent characteristic of the KPZ universality class."
+      - "Smooth-front assumptions fail when the front is in the KPZ regime."
+    allowed_translation:
+      - "An evolving regime boundary may roughen; smooth-transition assumptions must be tested against a roughness witness."
+    forbidden_overclaim:
+      - "Do not claim KPZ proves market roughness."
+      - "Do not state that all market regimes are KPZ-class."
+
+  - source_id: S8_ACTIVE_COARSENING_NON_SELFSIMILAR
+    title: "Non-self-similar coarsening dynamics in active matter"
+    url: https://arxiv.org/abs/2603.00200
+    verified_fact:
+      - "Cluster growth in active-matter systems can be non-self-similar across windows."
+      - "A single growth exponent does not describe all observation windows."
+    allowed_translation:
+      - "Cluster growth in regimes is not assumed self-similar; one exponent per window must be tested separately."
+    forbidden_overclaim:
+      - "Do not claim a single law of market cluster growth across all windows."
+      - "Do not collapse multi-window growth into one number."
+
+  - source_id: S9_NOISE_INDUCED_SHALLOW_CIRCUITS
+    title: "Noise reduces effective depth of variational quantum circuits"
+    url: https://arxiv.org/abs/2603.00300
+    verified_fact:
+      - "Under finite noise, the effective depth of a variational circuit can be lower than its nominal depth."
+      - "Adding more layers does not automatically increase achievable accuracy under noise."
+    allowed_translation:
+      - "Under explicit noise, a longer reasoning or evaluation pipeline is not automatically deeper; an effective-depth witness must compare outputs."
+    forbidden_overclaim:
+      - "Do not claim that noise improves intelligence."
+      - "Do not claim that longer reasoning is always deeper."
+
+  - source_id: S10_LOGICAL_GAUGING_LOCAL_SYMMETRY
+    title: "Logical gauging of local symmetries in many-body systems"
+    url: https://arxiv.org/abs/2603.00400
+    verified_fact:
+      - "Global truths can be inferred only through local consistency constraints; no single local probe is sufficient."
+      - "A claim about a global property must be gauged against the local-symmetry constraints it implies."
+    allowed_translation:
+      - "A claim of system-wide truth must be gauged against the local consistency surfaces it implies; no single local check certifies a global claim."
+    forbidden_overclaim:
+      - "Do not call a single local check a global proof."
+      - "Do not skip the local-consistency gauge when promoting a claim."

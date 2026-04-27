@@ -83,15 +83,19 @@ def test_shipping_pack_validates_clean(vps: ModuleType) -> None:
     assert report.valid, "shipping pack errors:\n  - " + "\n  - ".join(
         str(e) for e in report.errors
     )
-    assert report.source_count == 6
-    assert len(report.source_ids) == 6
+    assert report.source_count == 10
+    assert len(report.source_ids) == 10
     assert sorted(report.source_ids) == [
+        "S10_LOGICAL_GAUGING_LOCAL_SYMMETRY",
         "S1_GWTC4",
         "S2_PAIR_INSTABILITY_GAP",
         "S3_DESI_2026",
         "S4_KITAEV_PARITY_READOUT",
         "S5_HELIUM_MOTIONAL_BELL",
         "S6_LHCB_DOUBLY_CHARMED_BARYON",
+        "S7_KPZ_2D_UNIVERSALITY",
+        "S8_ACTIVE_COARSENING_NON_SELFSIMILAR",
+        "S9_NOISE_INDUCED_SHALLOW_CIRCUITS",
     ]
 
 
@@ -235,7 +239,7 @@ def test_main_writes_json_and_exits_zero_on_clean_pack(vps: ModuleType, tmp_path
     assert out.exists()
     decoded = json.loads(out.read_text(encoding="utf-8"))
     assert decoded["valid"] is True
-    assert decoded["source_count"] == 6
+    assert decoded["source_count"] == 10
 
 
 def test_main_exits_nonzero_and_records_errors_on_bad_pack(vps: ModuleType, tmp_path: Path) -> None:

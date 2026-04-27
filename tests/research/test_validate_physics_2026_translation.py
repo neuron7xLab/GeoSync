@@ -111,14 +111,18 @@ def test_shipping_translation_validates_clean(vpt: ModuleType) -> None:
     assert report.valid, "shipping translation errors:\n  - " + "\n  - ".join(
         str(e) for e in report.errors
     )
-    assert report.pattern_count == 6
+    assert report.pattern_count == 10
     assert sorted(report.pattern_ids) == [
+        "P10_CLAIM_GAUGE_WITNESS",
         "P1_POPULATION_EVENT_CATALOG",
         "P2_STRUCTURED_ABSENCE_INFERENCE",
         "P3_DYNAMIC_NULL_MODEL",
         "P4_GLOBAL_PARITY_WITNESS",
         "P5_MOTIONAL_CORRELATION_WITNESS",
         "P6_COMPOSITE_BINDING_STRUCTURE",
+        "P7_REGIME_FRONT_ROUGHNESS",
+        "P8_NON_SELFSIMILAR_CLUSTER_GROWTH",
+        "P9_EFFECTIVE_DEPTH_GUARD",
     ]
 
 
@@ -133,6 +137,10 @@ def test_every_referenced_source_exists_in_shipping_pack(
         "S4_KITAEV_PARITY_READOUT",
         "S5_HELIUM_MOTIONAL_BELL",
         "S6_LHCB_DOUBLY_CHARMED_BARYON",
+        "S7_KPZ_2D_UNIVERSALITY",
+        "S8_ACTIVE_COARSENING_NON_SELFSIMILAR",
+        "S9_NOISE_INDUCED_SHALLOW_CIRCUITS",
+        "S10_LOGICAL_GAUGING_LOCAL_SYMMETRY",
     }
     assert set(report.referenced_source_ids) == expected
 
@@ -301,7 +309,7 @@ def test_main_writes_json_and_exits_zero_on_clean(vpt: ModuleType, tmp_path: Pat
     assert rc == 0
     decoded = json.loads(out.read_text(encoding="utf-8"))
     assert decoded["valid"] is True
-    assert decoded["pattern_count"] == 6
+    assert decoded["pattern_count"] == 10
 
 
 def test_main_exits_nonzero_on_bad_translation(vpt: ModuleType, tmp_path: Path) -> None:
