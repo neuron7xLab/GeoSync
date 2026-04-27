@@ -211,7 +211,8 @@ patterns:
       required global surface agrees.
     proposed_module: geosync_hpc/coherence/global_parity_witness.py
     claim_tier: ENGINEERING_ANALOG
-    implementation_status: PROPOSED
+    implementation_status: IMPLEMENTED
+    implemented_at: "2026-04-26"
     measurable_inputs:
       - local_witnesses
       - claim_ledger_status
