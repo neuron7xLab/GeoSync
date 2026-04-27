@@ -21,7 +21,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pyyaml black ruff mypy pytest pydantic
+          python -m pip install pyyaml types-PyYAML black ruff mypy pytest pydantic
       - name: Validate acceptors (static schema)
         run: python tools/commit_acceptor/validate_commit_acceptor.py
       - name: Validate diff binding (require acceptor)
