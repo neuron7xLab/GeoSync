@@ -61,7 +61,10 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_EXEMPTION_MANIFEST = REPO_ROOT / ".claude" / "audit" / "false_confidence_exemptions.yaml"
 
 
 # ---------------------------------------------------------------------------
@@ -428,7 +431,7 @@ def _detect_c4_doc_overclaim(repo_root: Path) -> list[Finding]:
                     evidence_path=str(rel),
                     apparent_claim=(f"`{md.name}` references `{keyword}` enforcement"),
                     actual_evidence=(
-                        f"none of the expected enforcer files exist: " f"{list(expected_files)}"
+                        f"none of the expected enforcer files exist: {list(expected_files)}"
                     ),
                     risk="MEDIUM",
                     priority="MEDIUM",
@@ -477,7 +480,7 @@ def _detect_c5_validator_existence_only(repo_root: Path) -> list[Finding]:
                 risk="MEDIUM",
                 priority="MEDIUM",
                 minimal_repayment_action=(
-                    "wire the validator into pr-gate.yml so regressions " "fail closed"
+                    "wire the validator into pr-gate.yml so regressions fail closed"
                 ),
             )
         )
@@ -505,7 +508,7 @@ def _detect_c6_dependency_manifest_drift(repo_root: Path) -> list[Finding]:
             risk="LOW",
             priority="LOW",
             minimal_repayment_action=(
-                "run `python tools/deps/validate_dependency_truth.py " "--exit-on-drift`"
+                "run `python tools/deps/validate_dependency_truth.py --exit-on-drift`"
             ),
         )
     ]
@@ -600,7 +603,75 @@ def _detect_c10_broad_exception(repo_root: Path) -> list[Finding]:
 # ---------------------------------------------------------------------------
 
 
-def collect(repo_root: Path) -> Report:
+@dataclass(frozen=True)
+class Exemption:
+    """One documented historical-state waiver."""
+
+    finding_id: str
+    reason: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.finding_id, str) or not self.finding_id.strip():
+            raise ValueError("Exemption.finding_id must be a non-empty string")
+        if not isinstance(self.reason, str) or not self.reason.strip():
+            raise ValueError("Exemption.reason must be a non-empty string")
+
+
+def load_exemptions(manifest_path: Path) -> dict[str, Exemption]:
+    """Load the exemption manifest. Missing or empty file → no exemptions.
+
+    The manifest format is a YAML mapping with a ``schema_version: 1``
+    key and an ``exemptions`` list of mappings, each with ``finding_id``
+    and ``reason`` (both non-empty strings). Unknown keys are tolerated
+    so future extensions (e.g. ``expires_at``) do not break older
+    detectors.
+
+    Returns a dict keyed by finding_id for O(1) lookup. Raises on
+    malformed manifest so a typo cannot silently waive a finding.
+    """
+    if not manifest_path.exists():
+        return {}
+    raw = manifest_path.read_text(encoding="utf-8")
+    if not raw.strip():
+        return {}
+    data = yaml.safe_load(raw) or {}
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"exemption manifest {manifest_path} must be a mapping; got {type(data).__name__}"
+        )
+    if data.get("schema_version") != 1:
+        raise ValueError(
+            f"exemption manifest {manifest_path} requires schema_version: 1; "
+            f"got {data.get('schema_version')!r}"
+        )
+    entries = data.get("exemptions") or []
+    if not isinstance(entries, list):
+        raise ValueError(f"exemption manifest {manifest_path} `exemptions` must be a list")
+    result: dict[str, Exemption] = {}
+    for i, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise ValueError(f"exemption manifest {manifest_path} entry [{i}] must be a mapping")
+        fid = entry.get("finding_id")
+        reason = entry.get("reason")
+        if not isinstance(fid, str) or not isinstance(reason, str):
+            raise ValueError(
+                f"exemption manifest {manifest_path} entry [{i}] requires "
+                f"finding_id and reason as non-empty strings"
+            )
+        e = Exemption(finding_id=fid, reason=reason)
+        if e.finding_id in result:
+            raise ValueError(
+                f"exemption manifest {manifest_path} contains duplicate finding_id {e.finding_id!r}"
+            )
+        result[e.finding_id] = e
+    return result
+
+
+def collect(
+    repo_root: Path,
+    *,
+    exemption_manifest: Path | None = None,
+) -> Report:
     findings: list[Finding] = []
     findings.extend(_detect_c1_coverage_omission(repo_root))
     findings.extend(_detect_c2_scanner_path_mismatch(repo_root))
@@ -612,6 +683,11 @@ def collect(repo_root: Path) -> Report:
     findings.extend(_detect_c8_type_ignore(repo_root))
     findings.extend(_detect_c9_no_cover(repo_root))
     findings.extend(_detect_c10_broad_exception(repo_root))
+
+    manifest = exemption_manifest if exemption_manifest is not None else DEFAULT_EXEMPTION_MANIFEST
+    exemptions = load_exemptions(manifest)
+    if exemptions:
+        findings = [f for f in findings if f.finding_id not in exemptions]
     return Report(findings=findings)
 
 
@@ -635,8 +711,17 @@ def main(argv: Iterable[str] | None = None) -> int:
         action="store_true",
         help="exit non-zero when any finding is reported",
     )
+    parser.add_argument(
+        "--exemption-manifest",
+        type=Path,
+        default=None,
+        help=(
+            "path to YAML exemption manifest documenting historical-state "
+            "waivers; defaults to .claude/audit/false_confidence_exemptions.yaml"
+        ),
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
-    report = collect(args.repo_root)
+    report = collect(args.repo_root, exemption_manifest=args.exemption_manifest)
     payload = json.dumps(report.to_dict(), indent=2, sort_keys=True)
     if args.output is not None:
         args.output.write_text(payload, encoding="utf-8")
