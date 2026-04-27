@@ -84,6 +84,10 @@ FORBIDDEN_PHRASES_IN_ANALOG: tuple[str, ...] = (
     "quantum market",
     "universal",
     "predicts returns",
+    "new law of physics",
+    "noise improves intelligence",
+    "kpz proves market",
+    "longer reasoning is always better",
 )
 
 
