@@ -521,7 +521,8 @@ patterns:
       local-symmetry constraint is satisfied.
     proposed_module: geosync_hpc/coherence/claim_gauge_witness.py
     claim_tier: ENGINEERING_ANALOG
-    implementation_status: PROPOSED
+    implementation_status: IMPLEMENTED
+    implemented_at: "2026-04-27"
     measurable_inputs:
       - claim_id
       - local_constraints
