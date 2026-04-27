@@ -265,7 +265,8 @@ patterns:
       trajectory nulls.
     proposed_module: geosync_hpc/dynamics/motional_correlation_witness.py
     claim_tier: ENGINEERING_ANALOG
-    implementation_status: PROPOSED
+    implementation_status: IMPLEMENTED
+    implemented_at: "2026-04-27"
     measurable_inputs:
       - return_velocity
       - volatility_acceleration
