@@ -1,0 +1,237 @@
+# SPDX-License-Identifier: MIT
+#
+# Reality Validators Gate — wires claims / evidence / dep-truth /
+# false-confidence / lint-imports validators into the PR gate.
+#
+# Blocks the named lie:
+#
+#   "validators exist = validators enforce"
+#
+# Pre-PR baseline:
+#   - claims:        clean (fail-closed)
+#   - evidence:      clean (fail-closed)
+#   - dep-truth:     clean (fail-closed)
+#   - sources:       clean (fail-closed; covered by physics-2026 gate)
+#   - translation:   clean (fail-closed; covered by physics-2026 gate)
+#   - false-conf:    74 advisory findings (advisory — see baseline note)
+#   - lint-imports:  may be missing; advisory
+#
+# Until the false-confidence baseline is cleaned, that job is
+# advisory: it prints findings and exits 0. The other validators are
+# fail-closed.
+#
+# Invariants:
+#   * permissions: contents: read (least privilege)
+#   * actions pinned by 40-character commit SHA
+#   * no pull_request_target
+#   * content-aware paths
+#   * concurrency cancels superseded runs
+name: Reality Validators Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.claude/claims/**'
+      - '.claude/evidence/**'
+      - 'tools/deps/**'
+      - 'tools/audit/**'
+      - 'tools/research/**'
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - 'requirements-scan.txt'
+      - 'constraints/**'
+      - '.github/workflows/reality-validators-gate.yml'
+  merge_group:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reality-validators-gate-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # claim-ledger — must validate clean.
+  # ---------------------------------------------------------------------------
+  claim-ledger:
+    name: reality-claim-ledger
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install minimal deps
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install 'PyYAML>=6.0.3'
+
+      - name: Validate claim ledger
+        run: python .claude/claims/validate_claims.py
+
+  # ---------------------------------------------------------------------------
+  # evidence-matrix — must validate clean.
+  # ---------------------------------------------------------------------------
+  evidence-matrix:
+    name: reality-evidence-matrix
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install minimal deps
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install 'PyYAML>=6.0.3'
+
+      - name: Validate evidence matrix
+        run: python .claude/evidence/validate_evidence.py
+
+  # ---------------------------------------------------------------------------
+  # dependency-truth — must validate clean.
+  # ---------------------------------------------------------------------------
+  dependency-truth:
+    name: reality-dependency-truth
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install minimal deps
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install 'PyYAML>=6.0.3' 'tomli>=2'
+
+      - name: Validate dependency truth
+        run: python tools/deps/validate_dependency_truth.py
+
+  # ---------------------------------------------------------------------------
+  # false-confidence — ADVISORY until baseline is cleaned.
+  # The runner reports findings as a job summary but exits 0.
+  # ---------------------------------------------------------------------------
+  false-confidence-advisory:
+    name: reality-false-confidence-advisory
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install minimal deps
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install 'PyYAML>=6.0.3'
+
+      - name: Run false-confidence detector (advisory)
+        run: |
+          set -euo pipefail
+          # Capture findings; DO NOT propagate the exit code — this
+          # is advisory until the baseline is cleaned (currently 74
+          # findings: C10/C2/C3/C5/C6/C8/C9 classes).
+          set +e
+          python tools/audit/false_confidence_detector.py > /tmp/fcd.json
+          set -e
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          findings = json.loads(Path("/tmp/fcd.json").read_text()).get("findings", [])
+          print(f"::notice title=false-confidence-advisory::{len(findings)} findings (advisory; not blocking)")
+          # Print summary by class for the job log
+          by_class: dict[str, int] = {}
+          for f in findings:
+              by_class[f.get("false_confidence_type", "?")] = by_class.get(f.get("false_confidence_type", "?"), 0) + 1
+          for cls in sorted(by_class):
+              print(f"  {cls}: {by_class[cls]}")
+          PY
+
+  # ---------------------------------------------------------------------------
+  # injection-probe — proves the translation validator REJECTS forbidden
+  # overclaims that are NOT already in the source pack. Mirrors the probe
+  # in physics-2026-gate.yml but targets reality-validator wiring.
+  # ---------------------------------------------------------------------------
+  injection-probe:
+    name: reality-validators-injection-probe
+    runs-on: ubuntu-latest
+    needs: [claim-ledger, evidence-matrix, dependency-truth]
+    continue-on-error: false
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install minimal deps
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install 'PyYAML>=6.0.3'
+
+      - name: Inject forbidden overclaim and assert validator rejects
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/reality_probe
+          cp .claude/research/PHYSICS_2026_TRANSLATION.yaml /tmp/reality_probe/MUTATED.yaml
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/reality_probe/MUTATED.yaml')
+          original = path.read_text(encoding='utf-8')
+          # Use a forbidden phrase that is NOT already in the file as
+          # a documented quotation (avoid "predicts returns" since it
+          # appears in forbidden-phrase comments).
+          mutated = original.replace(
+              'methodological_pattern: |',
+              'methodological_pattern: |\n      this is a new law of physics; KPZ proves market;',
+              1,
+          )
+          assert mutated != original, "mutation must change the file"
+          path.write_text(mutated, encoding='utf-8')
+          PY
+          set +e
+          python tools/research/validate_physics_2026_translation.py \
+            --translation /tmp/reality_probe/MUTATED.yaml \
+            --output /tmp/reality_probe/report.json
+          rc=$?
+          set -e
+          if [ "${rc}" -eq 0 ]; then
+            echo "::error::injection-probe FAILED: validator passed a forbidden-overclaim mutation"
+            exit 1
+          fi
+          echo "injection-probe OK: validator rejected mutation with exit code ${rc}"
