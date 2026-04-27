@@ -105,12 +105,28 @@ _FORBIDDEN_RUNTIME_EXACT: frozenset[str] = frozenset(
 
 
 def test_import_boundary_no_forbidden_modules() -> None:
-    """Importing the comparator must not pull in trading / policy modules."""
+    """Importing the comparator must not pull in trading / policy modules.
 
-    # Ensure the comparator is loaded (and let pytest's own imports settle).
-    import geosync_hpc.control.action_result_comparator  # noqa: F401
-
-    loaded = set(sys.modules)
+    The test runner's ``sys.modules`` is polluted by other tests in the same
+    session, so we cannot inspect it in-process — that produced false failures
+    in CI when unrelated tests had already imported ``geosync_hpc.policy``.
+    Instead we spawn a fresh subprocess that imports ONLY the comparator and
+    reports its own ``sys.modules`` snapshot. That snapshot is the only honest
+    evidence of what the comparator's import graph drags in.
+    """
+    probe = (
+        "import sys\n"
+        "import geosync_hpc.control.action_result_comparator  # noqa: F401\n"
+        "print('|'.join(sorted(sys.modules.keys())))\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    loaded = set(result.stdout.strip().split("|"))
     for name in loaded:
         if name in _FORBIDDEN_RUNTIME_EXACT:
             pytest.fail(f"forbidden module imported via comparator path: {name}")
