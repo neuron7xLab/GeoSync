@@ -13,12 +13,13 @@
 #   - dep-truth:     clean (fail-closed)
 #   - sources:       clean (fail-closed; covered by physics-2026 gate)
 #   - translation:   clean (fail-closed; covered by physics-2026 gate)
-#   - false-conf:    74 advisory findings (advisory — see baseline note)
+#   - false-conf:    0 findings on default exemption manifest
+#                    (.claude/audit/false_confidence_exemptions.yaml,
+#                    introduced #472). The detector is now a
+#                    REGRESSION detector: any new file crossing a
+#                    threshold is NOT in the manifest and trips the
+#                    gate. THIS JOB IS NOW FAIL-CLOSED.
 #   - lint-imports:  may be missing; advisory
-#
-# Until the false-confidence baseline is cleaned, that job is
-# advisory: it prints findings and exits 0. The other validators are
-# fail-closed.
 #
 # Invariants:
 #   * permissions: contents: read (least privilege)
@@ -133,11 +134,15 @@ jobs:
         run: python tools/deps/validate_dependency_truth.py
 
   # ---------------------------------------------------------------------------
-  # false-confidence — ADVISORY until baseline is cleaned.
-  # The runner reports findings as a job summary but exits 0.
+  # false-confidence — FAIL-CLOSED regression detector.
+  #
+  # Default invocation consults .claude/audit/false_confidence_exemptions.yaml
+  # (#472). Baseline is 0 findings; any new file crossing a threshold
+  # produces a finding NOT on the manifest and exits non-zero via
+  # --exit-on-finding.
   # ---------------------------------------------------------------------------
-  false-confidence-advisory:
-    name: reality-false-confidence-advisory
+  false-confidence-regression:
+    name: reality-false-confidence-regression
     runs-on: ubuntu-latest
     continue-on-error: false
     timeout-minutes: 5
@@ -156,20 +161,21 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install 'PyYAML>=6.0.3'
 
-      - name: Run false-confidence detector (advisory)
+      - name: Run false-confidence regression detector (fail-closed)
         run: |
           set -euo pipefail
-          # Capture findings; DO NOT propagate the exit code — this
-          # is advisory until the baseline is cleaned (currently 74
-          # findings: C10/C2/C3/C5/C6/C8/C9 classes).
-          set +e
-          python tools/audit/false_confidence_detector.py > /tmp/fcd.json
-          set -e
+          # Default manifest applies; baseline = 0 findings. Any new
+          # threshold-crossing file produces an unexempted finding
+          # and exits 1 via --exit-on-finding.
+          python tools/audit/false_confidence_detector.py \
+            --output /tmp/fcd.json \
+            --exit-on-finding
           python - <<'PY'
           import json
           from pathlib import Path
           findings = json.loads(Path("/tmp/fcd.json").read_text()).get("findings", [])
-          print(f"::notice title=false-confidence-advisory::{len(findings)} findings (advisory; not blocking)")
+          # If we got here, --exit-on-finding did NOT exit; baseline is clean.
+          print(f"::notice title=false-confidence-regression::{len(findings)} findings (must be 0 under default manifest)")
           # Print summary by class for the job log
           by_class: dict[str, int] = {}
           for f in findings:
