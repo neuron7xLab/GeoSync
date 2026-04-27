@@ -71,9 +71,7 @@ class ProvenanceReport:
             "edge_count": len(self.edges),
             "broken_count": len(self.broken),
             "nodes": [asdict(n) for n in sorted(self.nodes, key=lambda x: (x.kind, x.node_id))],
-            "edges": [
-                asdict(e) for e in sorted(self.edges, key=lambda x: (x.kind, x.src, x.dst))
-            ],
+            "edges": [asdict(e) for e in sorted(self.edges, key=lambda x: (x.kind, x.src, x.dst))],
             "broken": sorted(self.broken),
         }
 
@@ -161,9 +159,7 @@ def build_graph(translation_matrix_path: Path = DEFAULT_TRANSLATION) -> Provenan
         for sid in entry.get("source_ids") or []:
             sid_str = str(sid)
             report.nodes.append(GraphNode(node_id=sid_str, kind="evidence", status="OK"))
-            report.edges.append(
-                GraphEdge(src=pid, dst=sid_str, kind="CLAIM_SUPPORTED_BY_EVIDENCE")
-            )
+            report.edges.append(GraphEdge(src=pid, dst=sid_str, kind="CLAIM_SUPPORTED_BY_EVIDENCE"))
 
         module_path = str(entry.get("proposed_module") or "")
         module_node = GraphNode(
@@ -185,9 +181,7 @@ def build_graph(translation_matrix_path: Path = DEFAULT_TRANSLATION) -> Provenan
 
             if _module_contains_falsifier(REPO_ROOT, module_path):
                 falsifier_id = f"{module_path}::_FALSIFIER_TEXT"
-                report.nodes.append(
-                    GraphNode(node_id=falsifier_id, kind="falsifier", status="OK")
-                )
+                report.nodes.append(GraphNode(node_id=falsifier_id, kind="falsifier", status="OK"))
                 report.edges.append(
                     GraphEdge(src=rel, dst=falsifier_id, kind="TEST_KILLS_FALSIFIER")
                 )
@@ -265,9 +259,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         encoding="utf-8",
     )
     args.output_md.write_text(render_markdown(report), encoding="utf-8")
-    print(
-        f"OK: nodes={len(report.nodes)} edges={len(report.edges)} broken={len(report.broken)}"
-    )
+    print(f"OK: nodes={len(report.nodes)} edges={len(report.edges)} broken={len(report.broken)}")
     return 0 if not report.broken else 1
 
 
