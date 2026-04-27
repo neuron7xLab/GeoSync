@@ -150,7 +150,7 @@ googleapis-common-protos==1.70.0
     #   opentelemetry-exporter-otlp-proto-http
 gprof2dot==2025.4.14
     # via pytest-profiling
-graphql-core==3.2.7
+graphql-core==3.2.8
     # via strawberry-graphql
 greenlet==3.2.4
     # via sqlalchemy
@@ -515,9 +515,9 @@ python-dateutil==2.9.0.post0
     # via
     #   pandas
     #   strawberry-graphql
-python-dotenv==1.1.1
+python-dotenv==1.2.2
     # via pydantic-settings
-python-multipart==0.0.22
+python-multipart==0.0.26
     # via strawberry-graphql
 pytokens==0.4.0
     # via black
@@ -600,7 +600,7 @@ starlette==0.50.0
     #   fastapi
 stevedore==5.5.0
     # via bandit
-strawberry-graphql[fastapi]==0.287.2
+strawberry-graphql[fastapi]==0.315.2
     # via geosync (pyproject.toml)
 streamlit==1.54.0
     # via
