@@ -108,6 +108,60 @@ entries:
     reason: >-
       Tracker drives the canonical action→outcome→error→update loop.
 
+  - id: control-action-result-acceptor
+    old_path: ""
+    new_path: geosync_hpc/control/action_result_acceptor.py
+    mechanism_type: EXECUTION_RESULT_ACCEPTOR
+    status: OPERATIONAL
+    importance: CRITICAL
+    action_source: >-
+      Caller submits an ExpectedResultModel (created_before_action=True) plus
+      an ObservedActionResult to accept_action_result(); pure function, no
+      IO, no wall-clock, no random.
+    expected_result: >-
+      ExpectedResultModel(action_id, action_type, expected_result,
+      context_signature, prior_confidence, error_threshold,
+      rollback_threshold, reentry_threshold, optional expected_value /
+      expected_latency_ms / predicted_action_signature / mismatch
+      thresholds).
+    observed_result: >-
+      ObservedActionResult(action_id, observed_result,
+      observed_value, observed_latency_ms, executed_action_signature,
+      success, reverse_afferentation_present).
+    error_signal: >-
+      Outcome Prediction Error (Euclidean) plus optional Reward, Action and
+      Timing Prediction Errors; combined via the 11-step decision priority
+      to a status ∈ {SANCTIONED_MATCH, UPDATE_REQUIRED, ROLLBACK_REQUIRED,
+      REENTRY_REQUIRED, ACTION_MISMATCH, VALUE_MISMATCH, TIMING_MISMATCH,
+      INSUFFICIENT_OBSERVATION, INSUFFICIENT_REVERSE_AFFERENTATION,
+      INVALID_INPUT}.
+    update_rule: >-
+      UPDATE_REQUIRED witness raised when OPE exceeds the adapted error
+      threshold (error_threshold * clamp(1 + 0.1·mean(error_history),
+      0.75, 1.25)); precision_weighted_gain = clamp(prior_confidence·OPE,
+      0, 1) emitted to downstream learners.
+    rollback_rule: >-
+      ROLLBACK_REQUIRED witness when OPE >= rollback_threshold;
+      REENTRY_REQUIRED dominates when OPE >= reentry_threshold; both
+      raise inhibit_repetition and next_context_expansion_required.
+    memory_effect: >-
+      None at this layer — the acceptor is pure and emits an immutable
+      ActionResultWitness; persistence is the caller's responsibility.
+    existing_tests:
+      - tests/unit/control/test_action_result_acceptor.py
+    missing_tests: []
+    falsifier: >-
+      Mutate the OPE>=reentry_threshold comparison to strict > and the
+      acceptor silently downgrades a critical breach to ROLLBACK; the
+      boundary tests test_07_reentry_at_boundary / test_08_rollback_at_boundary
+      / test_10_sanctioned_at_threshold_boundary must catch the flip.
+    migration_action: KEEP_NEW
+    reason: >-
+      Deterministic pure-Python acceptor that fail-closes on missing
+      pre-action expected model and missing reverse afferentation;
+      provides the external ActionResultAcceptor contract referenced by
+      nak-aar-action-event missing_tests.
+
   # ──────────── PROMPT_OUTCOME_ACCEPTOR — needs measurement ─────────────
 
   - id: prompt-outcome-record
