@@ -469,7 +469,8 @@ patterns:
       equivalent within tolerance, the additional depth is REDUNDANT.
     proposed_module: geosync_hpc/inference/effective_depth_guard.py
     claim_tier: ENGINEERING_ANALOG
-    implementation_status: PROPOSED
+    implementation_status: IMPLEMENTED
+    implemented_at: "2026-04-27"
     measurable_inputs:
       - outputs_by_depth
       - tolerance
