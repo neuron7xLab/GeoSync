@@ -20,6 +20,7 @@ diff_scope:
     - path: "tests/unit/commit_acceptor/test_run_evidence.py"
     - path: ".github/workflows/commit-acceptor-gate.yml"
     - path: "docs/reports/diff_bound_commit_acceptor_layer.md"
+    - path: "tmp/run_evidence_dogfood.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
