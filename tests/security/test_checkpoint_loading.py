@@ -6,8 +6,8 @@ from pathlib import Path
 
 import torch
 
-import geosync_unified
 import geosync_hydro.utils as hb_utils
+import geosync_unified
 
 
 def test_load_checkpoint_uses_weights_only(monkeypatch) -> None:
@@ -58,4 +58,3 @@ def test_build_model_prefers_safe_checkpoint_load(tmp_path: Path, monkeypatch) -
 
     assert calls["weights_only"] is True
     assert calls["map_location"] == "cpu"
-
