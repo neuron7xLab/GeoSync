@@ -133,9 +133,7 @@ def evaluate_review(review: AgentReview, *, repo_root: Path = REPO_ROOT) -> Revi
     bad_in_claim = _contains_forbidden(review.claim_text)
     bad_in_action = _contains_forbidden(review.proposed_action)
     if bad_in_claim or bad_in_action:
-        reasons.append(
-            f"forbidden phrasing: {sorted(set(bad_in_claim) | set(bad_in_action))}"
-        )
+        reasons.append(f"forbidden phrasing: {sorted(set(bad_in_claim) | set(bad_in_action))}")
         return ReviewWitness(
             model_name=review.model_name,
             verdict=ReviewVerdict.REJECT,
@@ -181,9 +179,7 @@ def evaluate_review(review: AgentReview, *, repo_root: Path = REPO_ROOT) -> Revi
         )
 
     if missing > 0:
-        reasons.append(
-            f"partial evidence: {existing} existing, {missing} missing path(s)"
-        )
+        reasons.append(f"partial evidence: {existing} existing, {missing} missing path(s)")
         return ReviewWitness(
             model_name=review.model_name,
             verdict=ReviewVerdict.DOWNGRADE,
@@ -195,9 +191,7 @@ def evaluate_review(review: AgentReview, *, repo_root: Path = REPO_ROOT) -> Revi
 
     # All evidence paths exist; check that the proposed action references
     # at least one of them (avoids 'evidence dump' detached from action).
-    action_refs_any = any(
-        Path(p).name in review.proposed_action for p in review.evidence_paths
-    )
+    action_refs_any = any(Path(p).name in review.proposed_action for p in review.evidence_paths)
     if not action_refs_any and review.proposed_action.strip():
         reasons.append(
             "all evidence exists but proposed_action does not reference any "
@@ -223,9 +217,7 @@ def evaluate_review(review: AgentReview, *, repo_root: Path = REPO_ROOT) -> Revi
     )
 
 
-def evaluate_many(
-    reviews: Iterable[AgentReview], *, repo_root: Path = REPO_ROOT
-) -> HarnessReport:
+def evaluate_many(reviews: Iterable[AgentReview], *, repo_root: Path = REPO_ROOT) -> HarnessReport:
     report = HarnessReport()
     for r in reviews:
         report.witnesses.append(evaluate_review(r, repo_root=repo_root))
@@ -263,7 +255,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         encoding="utf-8",
     )
     rejected = sum(
-        1 for w in report.witnesses if w.verdict in {ReviewVerdict.REJECT, ReviewVerdict.NEEDS_EVIDENCE}
+        1
+        for w in report.witnesses
+        if w.verdict in {ReviewVerdict.REJECT, ReviewVerdict.NEEDS_EVIDENCE}
     )
     print(f"OK: {len(report.witnesses)} reviewed, {rejected} blocked")
     return 0
