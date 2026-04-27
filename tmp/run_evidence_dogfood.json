@@ -1,0 +1,32 @@
+{
+  "results": [
+    {
+      "acceptor_id": "canonical-action-result-comparator",
+      "evidence_artifact_sha256": {},
+      "falsifier_artifact_sha256": "08baafe941f2bf15c7684f6dfce197b8b6e7a73cb85f0e5d5bc5c13d9b77e0c4",
+      "falsifier_exit_code": 4,
+      "messages": [
+        "signal exit code 4 != 0"
+      ],
+      "signal_artifact_sha256": "8a475f98b8046059626f476c38ee32b8eef084c596f863f6ca5937dee3806c59",
+      "signal_exit_code": 4,
+      "success": false,
+      "verdict": "SIGNAL_FAILED"
+    },
+    {
+      "acceptor_id": "commit-acceptor-layer",
+      "evidence_artifact_sha256": {},
+      "falsifier_artifact_sha256": "0a6b6b660c0e4c2d9225b9fbeb976ae82e7719fabae8e3be12042893f365ada9",
+      "falsifier_exit_code": 0,
+      "messages": [],
+      "signal_artifact_sha256": "f4791ef25c83c6a2b134e7c7d826d974a64cbce633984086f79d2fcd55ac382e",
+      "signal_exit_code": 0,
+      "success": true,
+      "verdict": "PASS"
+    }
+  ],
+  "verdict_counts": {
+    "PASS": 1,
+    "SIGNAL_FAILED": 1
+  }
+}
