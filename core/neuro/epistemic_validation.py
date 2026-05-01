@@ -94,6 +94,7 @@ __all__ = [
     "EpistemicState",
     "RebusBridge",
     "initial_state",
+    "reset_with_external_proof",
     "update",
     "verify_stream",
 ]
@@ -464,6 +465,110 @@ def verify_stream(
             break
         current = update(current, float(signal), float(fact), config=config)
     return current
+
+
+def reset_with_external_proof(
+    halted_state: EpistemicState,
+    *,
+    external_proof_hex: str,
+    config: EpistemicConfig,
+) -> EpistemicState:
+    """Allocate a successor lineage from a halted state, anchored to external proof.
+
+    The sticky-halt contract enforced by :func:`update` makes
+    in-module recovery impossible by design — once a state's
+    ``phase`` is :attr:`EpistemicPhase.HALTED`, no further updates
+    advance the lineage. This function provides the *only* path out:
+    the caller must present a SHA-256 proof token (32 raw bytes,
+    encoded as 64 hex characters) representing a verifiable external
+    safety event — typically the digest of a
+    :class:`runtime.rebus_gate.RebusGate` ``emergency_exit`` audit
+    record. The new state's chain hash is derived from both the
+    halted state's hash AND the proof, so the external event is
+    woven into the lineage and verifiable downstream.
+
+    The new ``seq`` is ``halted_state.seq + 1`` — the lineage
+    continues, it is not restarted from zero. This means the audit
+    log of a system that has weathered N halts shows ``N`` resets,
+    each one a distinguishable transition.
+
+    Hashing format (pinned by :func:`tests.unit.neuro.test_epistemic_validation.test_reset_chain_format`):
+
+    * 32 bytes — raw SHA-256 digest of the halted state's hash.
+    * 32 bytes — raw external proof.
+    * 8 bytes — IEEE-754 little-endian ``config.initial_weight``.
+    * 8 bytes — IEEE-754 little-endian ``config.initial_budget``.
+    * 8 bytes — IEEE-754 little-endian ``config.invariant_floor``.
+
+    Total: 88 bytes hashed to derive the post-reset state hash.
+
+    Parameters
+    ----------
+    halted_state:
+        Must satisfy ``halted_state.is_halted``. Active states
+        cannot be "reset" — they are not in need of one.
+    external_proof_hex:
+        Exactly 64 hexadecimal characters encoding a 32-byte digest.
+        The function does not interpret the proof — verification of
+        what it represents is the caller's responsibility.
+    config:
+        Lineage configuration. Must agree with the halted state's
+        ``invariant_floor`` (a reset cannot quietly relax the
+        contract).
+
+    Raises
+    ------
+    EpistemicError
+        If the state is not halted, the proof is malformed, or the
+        config does not match the halted lineage.
+    """
+    if not halted_state.is_halted:
+        raise EpistemicError(
+            f"reset_with_external_proof: state is not HALTED "
+            f"(phase={halted_state.phase.value!r}); "
+            "an active lineage does not need — and cannot accept — an external reset."
+        )
+    if halted_state.invariant_floor != config.invariant_floor:
+        raise EpistemicError(
+            "reset_with_external_proof: lineage mismatch — "
+            f"halted_state.invariant_floor={halted_state.invariant_floor!r} "
+            f"!= config.invariant_floor={config.invariant_floor!r}. "
+            "A reset cannot relax the contract that produced the halt."
+        )
+    if len(external_proof_hex) != _HEX_LEN:
+        raise EpistemicError(
+            "reset_with_external_proof: external_proof_hex must be exactly "
+            f"{_HEX_LEN} hex characters (32 raw bytes); got "
+            f"{len(external_proof_hex)} characters."
+        )
+    try:
+        proof = bytes.fromhex(external_proof_hex)
+    except ValueError as exc:
+        raise EpistemicError(
+            f"reset_with_external_proof: external_proof_hex is not valid hex: {exc}"
+        ) from exc
+    if len(proof) != 32:
+        raise EpistemicError(
+            f"reset_with_external_proof: decoded proof length {len(proof)} != 32 bytes."
+        )
+    prior_digest = bytes.fromhex(halted_state.state_hash)
+    payload = (
+        prior_digest
+        + proof
+        + struct.pack("<d", config.initial_weight)
+        + struct.pack("<d", config.initial_budget)
+        + struct.pack("<d", config.invariant_floor)
+    )
+    new_hash = hashlib.sha256(payload).hexdigest()
+    return EpistemicState(
+        seq=halted_state.seq + 1,
+        weight=config.initial_weight,
+        budget=config.initial_budget,
+        invariant_floor=config.invariant_floor,
+        phase=EpistemicPhase.ACTIVE,
+        state_hash=new_hash,
+        halt_reason="",
+    )
 
 
 @dataclass(frozen=True, slots=True)

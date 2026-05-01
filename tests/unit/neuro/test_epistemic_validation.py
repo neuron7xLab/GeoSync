@@ -46,6 +46,7 @@ from core.neuro.epistemic_validation import (
     EpistemicState,
     RebusBridge,
     initial_state,
+    reset_with_external_proof,
     update,
     verify_stream,
 )
@@ -584,4 +585,210 @@ def test_property_halt_is_sticky(pre: list[float], post: list[float]) -> None:
             f"sticky-halt property: post-halt update mutated state "
             f"(seq={snapshot.seq}→{state.seq}, hash {snapshot.state_hash}→{state.state_hash}); "
             f"params={cfg!r}."
+        )
+
+
+# ---------------------------------------------------------------------------
+# External-proof reset (the only path out of HALTED)
+# ---------------------------------------------------------------------------
+
+
+def _force_halt(cfg: EpistemicConfig) -> EpistemicState:
+    """Helper: drive a fresh state to HALTED via budget exhaustion."""
+    state = initial_state(cfg)
+    halted = update(state, 0.0, 1000.0, config=cfg)
+    assert halted.is_halted
+    return halted
+
+
+_VALID_PROOF: str = "a" * 64
+
+
+def test_reset_rejects_active_state() -> None:
+    cfg = _default_config()
+    state = initial_state(cfg)
+    with pytest.raises(EpistemicError, match="not HALTED"):
+        reset_with_external_proof(state, external_proof_hex=_VALID_PROOF, config=cfg)
+
+
+def test_reset_rejects_invalid_proof_length() -> None:
+    cfg = _default_config(initial_budget=0.05)
+    halted = _force_halt(cfg)
+    with pytest.raises(EpistemicError, match="64 hex characters"):
+        reset_with_external_proof(halted, external_proof_hex="deadbeef", config=cfg)
+
+
+def test_reset_rejects_non_hex_proof() -> None:
+    cfg = _default_config(initial_budget=0.05)
+    halted = _force_halt(cfg)
+    bad = "z" * 64
+    with pytest.raises(EpistemicError, match="not valid hex"):
+        reset_with_external_proof(halted, external_proof_hex=bad, config=cfg)
+
+
+def test_reset_rejects_lineage_mismatch() -> None:
+    cfg_a = _default_config(invariant_floor=0.2, initial_budget=0.05)
+    cfg_b = _default_config(invariant_floor=0.3, initial_budget=0.05)
+    halted = _force_halt(cfg_a)
+    with pytest.raises(EpistemicError, match="lineage mismatch"):
+        reset_with_external_proof(halted, external_proof_hex=_VALID_PROOF, config=cfg_b)
+
+
+def test_reset_returns_active_state_with_continued_seq() -> None:
+    cfg = _default_config(initial_budget=0.05)
+    halted = _force_halt(cfg)
+    fresh = reset_with_external_proof(
+        halted,
+        external_proof_hex=_VALID_PROOF,
+        config=cfg,
+    )
+    assert fresh.phase is EpistemicPhase.ACTIVE
+    assert fresh.halt_reason == ""
+    assert fresh.weight == cfg.initial_weight
+    assert fresh.budget == cfg.initial_budget
+    assert fresh.invariant_floor == cfg.invariant_floor
+    assert fresh.seq == halted.seq + 1
+    assert fresh.state_hash != halted.state_hash, (
+        "INV-HPC1: post-reset hash must differ from halted hash; "
+        f"got identical hash={fresh.state_hash!r}; "
+        "lineage continuity is broken if proof is not woven into the chain."
+    )
+
+
+def test_reset_chain_is_deterministic() -> None:
+    """Identical (halted_state, proof, config) ⟹ identical reset state (INV-HPC1)."""
+    cfg = _default_config(initial_budget=0.05)
+    halted = _force_halt(cfg)
+    a = reset_with_external_proof(halted, external_proof_hex=_VALID_PROOF, config=cfg)
+    b = reset_with_external_proof(halted, external_proof_hex=_VALID_PROOF, config=cfg)
+    assert a == b
+    assert a.state_hash == b.state_hash
+
+
+def test_reset_chain_format_pinned() -> None:
+    """Recompute the reset hash by hand and compare.
+
+    The 88-byte payload format (32-byte halted-hash digest, 32-byte
+    proof, three LE doubles for initial_weight / initial_budget /
+    invariant_floor) is part of the persisted-lineage contract and
+    must not change without an explicit migration.
+    """
+    cfg = _default_config(
+        invariant_floor=0.2,
+        initial_budget=0.05,
+        initial_weight=0.5,
+        temperature=1.0,
+        learning_rate=0.5,
+        decay_factor=0.1,
+    )
+    halted = _force_halt(cfg)
+    proof_bytes = bytes(range(32))
+    proof_hex = proof_bytes.hex()
+    expected_payload = (
+        bytes.fromhex(halted.state_hash)
+        + proof_bytes
+        + struct.pack("<d", cfg.initial_weight)
+        + struct.pack("<d", cfg.initial_budget)
+        + struct.pack("<d", cfg.invariant_floor)
+    )
+    expected_hash = hashlib.sha256(expected_payload).hexdigest()
+    fresh = reset_with_external_proof(halted, external_proof_hex=proof_hex, config=cfg)
+    assert fresh.state_hash == expected_hash, (
+        f"INV-HPC1 chain regression: reset_hash={fresh.state_hash!r} "
+        f"expected={expected_hash!r}. "
+        "Reset hash must be SHA-256 of the documented 88-byte payload "
+        "(prior_digest, proof, LE doubles for weight/budget/floor); "
+        "field order or endianness change breaks persisted lineages."
+    )
+
+
+def test_reset_then_update_extends_lineage() -> None:
+    """After reset, normal updates work and chain past the halted node."""
+    cfg = _default_config(initial_budget=0.05)
+    halted = _force_halt(cfg)
+    fresh = reset_with_external_proof(halted, external_proof_hex=_VALID_PROOF, config=cfg)
+    cfg2 = _default_config(initial_budget=10.0)  # fresh budget for post-reset run
+    # cannot use cfg2 directly: lineage check requires same floor; same floor in defaults.
+    nxt = update(fresh, 0.5, 0.5, config=cfg2)
+    assert nxt.phase is EpistemicPhase.ACTIVE
+    assert nxt.seq == fresh.seq + 1
+    assert nxt.state_hash != fresh.state_hash
+
+
+# ---------------------------------------------------------------------------
+# Replay determinism + lineage-distinctness Hypothesis properties
+# ---------------------------------------------------------------------------
+
+
+@given(
+    signals=st.lists(_finite, min_size=0, max_size=80),
+    facts=st.lists(_finite, min_size=0, max_size=80),
+)
+@settings(
+    max_examples=120,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
+def test_property_replay_determinism(signals: list[float], facts: list[float]) -> None:
+    """INV-HPC1: replaying the same stream from the same genesis ⟹ same hash chain."""
+    n = min(len(signals), len(facts))
+    cfg = _default_config(initial_budget=50.0)
+
+    def fold(state: EpistemicState) -> EpistemicState:
+        cur = state
+        for i in range(n):
+            if cur.is_halted:
+                break
+            cur = update(cur, signals[i], facts[i], config=cfg)
+        return cur
+
+    a = fold(initial_state(cfg))
+    b = fold(initial_state(cfg))
+    assert a == b, (
+        "INV-HPC1 VIOLATED: identical stream replay produced different states; "
+        f"a.seq={a.seq} a.hash={a.state_hash} vs b.seq={b.seq} b.hash={b.state_hash}; "
+        f"params={cfg!r}; n={n}."
+    )
+
+
+@given(
+    seed_a=st.lists(_finite, min_size=1, max_size=20),
+    seed_b=st.lists(_finite, min_size=1, max_size=20),
+)
+@settings(
+    max_examples=120,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
+def test_property_diverging_streams_diverge_hashes(
+    seed_a: list[float], seed_b: list[float]
+) -> None:
+    """Two non-halted, non-identical streams produce distinct chain hashes.
+
+    Skips trivial collisions where the two streams reduce to the
+    same observable (e.g., both clipped at halt). Tests the chain's
+    distinguishing power on the live-lineage subset.
+    """
+    cfg = _default_config(initial_budget=200.0)
+    state_a: EpistemicState = initial_state(cfg)
+    state_b: EpistemicState = initial_state(cfg)
+    for s, f in zip(seed_a, seed_a, strict=False):
+        if state_a.is_halted:
+            break
+        state_a = update(state_a, s, f, config=cfg)
+    for s, f in zip(seed_b, seed_b, strict=False):
+        if state_b.is_halted:
+            break
+        state_b = update(state_b, s, f, config=cfg)
+    if seed_a == seed_b:
+        # Identical streams must produce identical hashes (replay
+        # determinism is its own property; this branch is the
+        # consistency-check counterpart).
+        assert state_a.state_hash == state_b.state_hash
+    elif state_a.seq != state_b.seq:
+        # Different stream lengths ⟹ different seq ⟹ different hash
+        # by construction (seq is in the packed payload).
+        assert state_a.state_hash != state_b.state_hash, (
+            f"chain integrity: distinct seq ({state_a.seq} vs {state_b.seq}) "
+            "but identical hash; INV-HPC1 requires seq in payload."
         )

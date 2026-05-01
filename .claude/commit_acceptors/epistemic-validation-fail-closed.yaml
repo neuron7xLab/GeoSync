@@ -19,8 +19,11 @@ diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/epistemic-validation-fail-closed.yaml"
     - path: "core/neuro/__init__.py"
+    - path: "core/neuro/epistemic_audit.py"
     - path: "core/neuro/epistemic_validation.py"
     - path: "docs/reports/epistemic_validation_fail_closed.md"
+    - path: "newsfragments/495.feature.md"
+    - path: "tests/unit/neuro/test_epistemic_audit.py"
     - path: "tests/unit/neuro/test_epistemic_validation.py"
   forbidden_paths:
     - "trading/"
@@ -28,12 +31,17 @@ diff_scope:
     - "forecast/"
     - "policy/"
 required_python_symbols:
+  - "AUDIT_SCHEMA_VERSION"
+  - "EpistemicAuditEntry"
   - "EpistemicConfig"
   - "EpistemicError"
   - "EpistemicPhase"
   - "EpistemicState"
   - "RebusBridge"
+  - "advance_entry"
   - "initial_state"
+  - "reset_entry"
+  - "reset_with_external_proof"
   - "update"
   - "verify_stream"
 expected_signal: >-
