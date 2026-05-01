@@ -2,29 +2,34 @@
 # SPDX-License-Identifier: MIT
 """Physics-inspired market modeling framework.
 
-This module provides fundamental physical laws and constants for physics-inspired
-algorithmic trading. By grounding market models in physical principles, we aim to:
+This module provides physics-inspired diagnostics and constants. The
+2026-04-30 external audit explicitly **rejects** the framing that
+markets obey mechanical conservation laws (no proven mapping
+``volume → mass``, ``Δp → velocity``, …). Modules in this package are
+therefore organised in two tiers:
 
-1. Reduce noise in predictions through deterministic constraints
-2. Improve stability via conservation laws
-3. Enhance interpretability through physical analogies
-4. Provide falsifiable hypotheses for market behavior
-
-The seven fundamental laws integrated are:
-- Newton's Laws of Motion (momentum, force, inertia)
-- Universal Gravitation (market entity attraction)
-- Conservation Laws (energy, momentum)
-- Thermodynamics (entropy, free energy, equilibrium)
-- Maxwell's Equations (field theory, wave propagation)
-- Relativity (reference frames, time dilation)
-- Heisenberg's Uncertainty Principle (position-momentum tradeoff)
+* **Anchored physics** — Kuramoto, Lyapunov, Ricci, thermodynamics,
+  Landauer, formal-verification kernels. These have invariant ids
+  (``INV-K1`` …) bound to peer-reviewed theory and are gated by
+  ``physics-kernel-gate.yml``.
+* **Volatility / flow proxies** — ``conservation`` (renamed),
+  ``newton``, ``gravity``, ``maxwell``, ``relativity``, ``uncertainty``.
+  These are interpretive analogies, not physical laws on the market
+  state. New code MUST treat their outputs as diagnostics and MUST NOT
+  introduce new ``INV-*`` invariants over them without an explicit
+  mapping proof. The ``conservation`` module exposes the canonical
+  ``*_proxy`` names; the historical ``*_market_*`` / ``*_conservation``
+  names remain only as deprecation aliases (see ``conservation.py``).
 """
 
 from .conservation import (
-    check_energy_conservation,
-    check_momentum_conservation,
-    compute_market_energy,
-    compute_market_momentum,
+    check_energy_conservation,  # deprecated alias
+    check_momentum_conservation,  # deprecated alias
+    check_proxy_drift,
+    compute_flow_momentum_proxy,
+    compute_market_energy,  # deprecated alias
+    compute_market_momentum,  # deprecated alias
+    compute_volatility_energy_proxy,
 )
 from .constants import PhysicsConstants
 
@@ -110,7 +115,11 @@ __all__ = [
     "gravitational_potential",
     "compute_market_gravity",
     "market_gravity_center",
-    # Conservation
+    # Volatility / flow proxies (canonical names — NOT conservation laws)
+    "compute_volatility_energy_proxy",
+    "compute_flow_momentum_proxy",
+    "check_proxy_drift",
+    # Deprecated aliases — kept for backward compatibility, do not use in new code
     "compute_market_energy",
     "compute_market_momentum",
     "check_energy_conservation",

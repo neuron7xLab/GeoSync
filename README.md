@@ -21,7 +21,7 @@
 Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynamics  ·  Cryptobiosis
 ```
 
-*Physics-first quantitative infrastructure with 67 machine-checkable invariants.*
+*Physics-inspired quantitative research platform with 87 machine-checkable invariants.*
 *Every signal traces back to peer-reviewed science. Every clamp traces back to a law.*
 
 <br>
@@ -32,7 +32,7 @@ Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynami
 [![Formal Verification](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Security](https://img.shields.io/badge/NIST%20SP%20800--53-aligned-red?style=flat)](docs/security/)
-[![Physics Gate](https://img.shields.io/badge/physics_gate-67_invariants-critical?style=flat)](CLAUDE.md)
+[![Physics Gate](https://img.shields.io/badge/physics_gate-87_invariants-critical?style=flat)](CLAUDE.md)
 [![Coverage](https://img.shields.io/badge/line_coverage-71%25-yellowgreen?style=flat)](BASELINE.md)
 
 </div>
@@ -145,13 +145,13 @@ dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
 
 ## Physics Kernel
 
-GeoSync is a **verified physical system**, not a test-coverage theatre. The physics kernel (`.claude/physics/`) defines **67 machine-checkable invariants** across 15 modules. Every test is a *mathematical witness* of a specific physical law, not a line-coverage artefact.
+GeoSync is a **physics-inspired quantitative research platform with a partially machine-checkable invariant layer**, not a "verified physical system" — that stronger claim was retracted on 2026-04-30 after an external audit ([CLAIMS.md](CLAIMS.md), [ALTERNATIVE_HYPOTHESES.md](.claude/physics/ALTERNATIVE_HYPOTHESES.md)). The physics kernel (`.claude/physics/`) declares **87 machine-checkable invariants** across the modules listed in [`INVARIANTS.yaml`](.claude/physics/INVARIANTS.yaml). Tests grounded in `INV-*` ids are *mathematical witnesses* of a specific invariant; the `BASELINE.md` ledger tracks how many of them currently exist (it is intentionally smaller than the registry — coverage growth is gated, not assumed).
 
 Control-plane safety properties are additionally **model-checked in TLA⁺** — see [`formal/tla/AdmissionGate.tla`](formal/tla/AdmissionGate.tla) for the four-barrier admission gate with three TLC-checkable invariants (`TypeOK`, `SafeFirstRejectionWins`, `RejectCodeMatchesBarrier`). CI runs TLC on every PR via [`formal-verification.yml`](.github/workflows/formal-verification.yml).
 
 ```
                      ┌──────────────────────────────────────┐
-                     │   67 INVARIANTS  ·  15 MODULES       │
+                     │   87 INVARIANTS  ·  registry-tracked  │
                      │   Every assert derives its tolerance  │
                      │   from the law's formula, not from    │
                      │   a magic literal.                    │
@@ -170,13 +170,13 @@ Control-plane safety properties are additionally **model-checked in TLA⁺** —
 
 **Protectors have unconditional priority over Generators.** A system without a gradient cannot use a gradient. See [`CLAUDE.md`](CLAUDE.md) §0 for the full gradient ontology.
 
-| Metric | Value |
-|--------|-------|
-| Physics invariants | **66 loaded by kernel self-check** (canonical + extended module laws; see `.claude/physics/INVARIANTS.yaml`) |
-| Grounded witnesses | **67** tests with `INV-*` docstrings and 5-field error messages |
-| C1/C2 code audit | **0** undocumented physics clamps in `core/` |
-| CI gate | `physics-kernel-gate.yml` — self-check + L1-L5 validation + C1/C2 audit |
-| OOS walk-forward alpha | **+78%** vs equal-weight, drawdown **-53%** (5/5 folds protected) |
+| Metric | Value | Source |
+|--------|-------|--------|
+| Physics invariants declared | **87 in `.claude/physics/INVARIANTS.yaml`** (single source of truth) | `python scripts/count_invariants.py` |
+| Physics invariants grounded by tests | tracked in [`BASELINE.md`](BASELINE.md) — **deliberately smaller than declared count**; coverage growth is gated, not assumed | `BASELINE.md` ledger |
+| C1/C2 code audit | **0** undocumented physics clamps in `core/` | `physics-kernel-gate.yml` |
+| CI gates | physics-kernel-gate · invariant-count-sync · formal-verification (TLA⁺) · claims-evidence-gate | `.github/workflows/` |
+| OOS walk-forward alpha | **claim retracted pending signed audit artefact** at `artifacts/audit/SCIENTIFIC_VERIFICATION_REPORT.json` (see [CLAIMS.md](CLAIMS.md) · audit 2026-04-30) | scientific-verification-report job |
 
 **Key invariants:**
 
@@ -778,6 +778,6 @@ Trading financial instruments involves substantial risk of loss. GeoSync provide
 
 [![MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat)](LICENSE)
 
-<sub>Built on peer-reviewed science. Physics-first, 66 invariants loaded by kernel self-check, every clamp documented.</sub>
+<sub>Built on peer-reviewed science. Physics-first, 87 invariants loaded from `.claude/physics/INVARIANTS.yaml`, every clamp documented.</sub>
 
 </div>

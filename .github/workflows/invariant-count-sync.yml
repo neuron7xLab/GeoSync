@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: MIT
+#
+# Invariant Count Sync Gate.
+#
+# Triggered by the 2026-04-30 external audit (S4.3), which discovered that
+# the same repository simultaneously claimed 57 / 66 / 67 / 87 invariants
+# across README.md, BASELINE.md, CLAUDE.md, and the actual registry. This
+# workflow makes that impossible to reintroduce by gating PRs against a
+# single source of truth: ``.claude/physics/INVARIANTS.yaml``.
+#
+# Fast path (<5s), zero non-stdlib dependencies. Fails closed on any
+# headline-pattern drift; ignores historical-narrative lines marked with
+# ``<!-- count-sync:skip historical -->``.
+name: Invariant Count Sync
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'BASELINE.md'
+      - 'CLAUDE.md'
+      - '.claude/physics/INVARIANTS.yaml'
+      - 'scripts/count_invariants.py'
+      - 'scripts/check_invariant_count_sync.py'
+      - '.github/workflows/invariant-count-sync.yml'
+  merge_group:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: invariant-count-sync-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  invariant-count-sync:
+    name: invariant-count-sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Print authoritative invariant count
+        run: |
+          set -euo pipefail
+          python scripts/count_invariants.py --json | python -m json.tool | head -10
+          echo "—"
+          echo "registry size: $(python scripts/count_invariants.py)"
+
+      - name: Fail-closed: documentation must match registry count
+        run: |
+          set -euo pipefail
+          PYTHONPATH=scripts python scripts/check_invariant_count_sync.py
+
+      - name: Regenerate scientific verification report (advisory)
+        run: |
+          set -euo pipefail
+          PYTHONPATH=scripts python scripts/build_verification_report.py
+          echo "—"
+          python -c "import json,sys; d=json.load(open('artifacts/audit/SCIENTIFIC_VERIFICATION_REPORT.json')); print('inv:', d['invariant_registry']['count']); print('retracted:', d['retracted_claims'])"
