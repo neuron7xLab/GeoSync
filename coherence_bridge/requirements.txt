@@ -6,5 +6,5 @@ numpy==2.4.4
 prometheus-client==0.25.0
 pydantic==2.13.3
 python-dotenv==1.2.2
-questdb==2.0.4
+questdb==4.1.0
 uvicorn==0.46.0
