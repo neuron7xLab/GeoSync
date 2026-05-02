@@ -44,7 +44,9 @@ from core.neuro.epistemic_validation import (
     EpistemicError,
     EpistemicPhase,
     EpistemicState,
+    HaltMargin,
     RebusBridge,
+    halt_margin,
     initial_state,
     reset_with_external_proof,
     update,
@@ -791,4 +793,128 @@ def test_property_diverging_streams_diverge_hashes(
         assert state_a.state_hash != state_b.state_hash, (
             f"chain integrity: distinct seq ({state_a.seq} vs {state_b.seq}) "
             "but identical hash; INV-HPC1 requires seq in payload."
+        )
+
+
+# ---------------------------------------------------------------------------
+# HaltMargin observable (predictive distance to halt boundary)
+# ---------------------------------------------------------------------------
+
+
+def test_halt_margin_fields_at_genesis() -> None:
+    cfg = _default_config(invariant_floor=0.2, initial_budget=10.0, initial_weight=0.6)
+    s0 = initial_state(cfg)
+    margin = halt_margin(s0, config=cfg)
+    assert isinstance(margin, HaltMargin)
+    assert margin.budget_remaining == 10.0
+    assert margin.weight_above_floor == pytest.approx(0.4)
+    assert margin.is_halted is False
+
+
+def test_halt_margin_rejects_lineage_mismatch() -> None:
+    cfg_a = _default_config(invariant_floor=0.2)
+    cfg_b = _default_config(invariant_floor=0.3)
+    s0 = initial_state(cfg_a)
+    with pytest.raises(EpistemicError, match="lineage mismatch"):
+        halt_margin(s0, config=cfg_b)
+
+
+def test_halt_margin_tracks_budget_after_update() -> None:
+    cfg = _default_config(initial_budget=10.0, temperature=1.0)
+    s0 = initial_state(cfg)
+    s1 = update(s0, 0.0, 1.0, config=cfg)
+    margin = halt_margin(s1, config=cfg)
+    expected = 10.0 - math.log1p(1.0)
+    assert margin.budget_remaining == pytest.approx(expected), (
+        f"halt_margin budget tracking: expected {expected!r}, got {margin.budget_remaining!r}; "
+        f"params={cfg!r}; one update with delta=1.0 should debit log1p(1.0)."
+    )
+
+
+def test_halt_margin_zero_at_budget_exhaustion() -> None:
+    cfg = _default_config(initial_budget=0.05, temperature=1.0)
+    s0 = initial_state(cfg)
+    halted = update(s0, 0.0, 1000.0, config=cfg)
+    margin = halt_margin(halted, config=cfg)
+    assert margin.is_halted is True
+    assert margin.budget_remaining == 0.0, (
+        f"halt_margin at budget exhaustion: expected 0.0, got {margin.budget_remaining!r}; "
+        "INV-FE2 component requires budget clamped at zero on exhaustion."
+    )
+
+
+def test_halt_margin_weight_axis_below_floor_after_collapse() -> None:
+    cfg = _default_config(
+        invariant_floor=0.55,
+        initial_weight=0.56,
+        initial_budget=10.0,
+        learning_rate=0.99,
+        decay_factor=0.1,
+        temperature=1.0,
+    )
+    s0 = initial_state(cfg)
+    halted = update(s0, 0.0, 20.0, config=cfg)
+    assert halted.is_halted
+    assert halted.halt_reason == "weight_collapse"
+    margin = halt_margin(halted, config=cfg)
+    assert margin.weight_above_floor < 0.0, (
+        f"halt_margin weight axis after weight_collapse: expected < 0, "
+        f"got {margin.weight_above_floor!r}; "
+        "consumer must be able to distinguish budget vs weight halt via the margin axes."
+    )
+
+
+def test_halt_margin_pure_function() -> None:
+    """INV-HPC1: identical input ⟹ identical output."""
+    cfg = _default_config()
+    s0 = initial_state(cfg)
+    a = halt_margin(s0, config=cfg)
+    b = halt_margin(s0, config=cfg)
+    assert a == b
+
+
+@given(
+    signals=st.lists(_finite, min_size=0, max_size=80),
+    facts=st.lists(_finite, min_size=0, max_size=80),
+)
+@settings(
+    max_examples=120,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow],
+)
+def test_property_halt_margin_consistent_with_state(
+    signals: list[float], facts: list[float]
+) -> None:
+    """The two-axis margin always agrees with the state's own halt flag.
+
+    If ``state.is_halted`` then at least one of the margin axes must
+    be at or past its boundary (``budget_remaining == 0`` or
+    ``weight_above_floor < 0``). Conversely, if both axes are
+    strictly inside their feasible regions then ``is_halted`` must
+    be False.
+    """
+    cfg = _default_config(initial_budget=50.0)
+    state: EpistemicState = initial_state(cfg)
+    n = min(len(signals), len(facts))
+    for i in range(n):
+        if state.is_halted:
+            break
+        state = update(state, signals[i], facts[i], config=cfg)
+    margin = halt_margin(state, config=cfg)
+
+    boundary_hit = (margin.budget_remaining == 0.0) or (margin.weight_above_floor < 0.0)
+    assert margin.is_halted == state.is_halted
+    if state.is_halted:
+        assert boundary_hit, (
+            f"halt_margin / state inconsistency: state.is_halted=True but neither "
+            f"axis at boundary: budget={margin.budget_remaining!r}, "
+            f"weight_above_floor={margin.weight_above_floor!r}; "
+            f"params={cfg!r}; n={n}."
+        )
+    else:
+        assert not boundary_hit, (
+            f"halt_margin / state inconsistency: state.is_halted=False but boundary "
+            f"hit: budget={margin.budget_remaining!r}, "
+            f"weight_above_floor={margin.weight_above_floor!r}; "
+            f"params={cfg!r}; n={n}."
         )

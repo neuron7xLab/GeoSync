@@ -92,7 +92,9 @@ __all__ = [
     "EpistemicError",
     "EpistemicPhase",
     "EpistemicState",
+    "HaltMargin",
     "RebusBridge",
+    "halt_margin",
     "initial_state",
     "reset_with_external_proof",
     "update",
@@ -568,6 +570,99 @@ def reset_with_external_proof(
         phase=EpistemicPhase.ACTIVE,
         state_hash=new_hash,
         halt_reason="",
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class HaltMargin:
+    """Two-axis observable describing how close a state is to its halt boundary.
+
+    Reactive halt detection (the ``HALTED`` phase set by :func:`update`)
+    only tells consumers that a halt has *already* happened. To gate
+    downstream actions *before* halt, this observable exposes the
+    distance to each halt trigger as a separate non-negotiable scalar.
+
+    Attributes
+    ----------
+    budget_remaining:
+        Information budget still available for spending.
+        ``budget_remaining == 0.0`` is the budget-exhaustion boundary;
+        the next non-zero cost crosses it. Always ``≥ 0`` by INV-FE2.
+    weight_above_floor:
+        ``state.weight − state.invariant_floor``. Strictly positive
+        in healthy operation. Reaches zero (or below) at the
+        weight-collapse boundary.
+    is_halted:
+        Convenience flag mirroring :attr:`EpistemicState.is_halted`
+        — present here so consumers do not have to plumb the state
+        object alongside the margin.
+
+    Why this is *not* a halt predictor
+    ----------------------------------
+
+    A predictor would extrapolate future cost trajectories under
+    explicit assumptions (i.i.d. costs, Markov surprise, regime
+    stationarity). The right place for those assumptions is the
+    consumer — they vary by deployment. This observable stays pure:
+    it reports the current geometric distance from the boundary on
+    each axis. Composing a predictor on top is straightforward
+    (e.g., ``budget_remaining / mean(recent_costs) ≈ steps_to_halt``)
+    and is documented in :func:`halt_margin`.
+    """
+
+    budget_remaining: float
+    weight_above_floor: float
+    is_halted: bool
+
+
+def halt_margin(state: EpistemicState, *, config: EpistemicConfig) -> HaltMargin:
+    """Compute the two-axis halt margin from a state.
+
+    Pure function. Identical input ⟹ identical output (INV-HPC1).
+
+    Composing a halt predictor on top — example
+    ------------------------------------------
+
+    Given a window of recent per-step costs, a consumer can extrapolate
+    the budget-axis steps-to-halt as::
+
+        margin = halt_margin(state, config=cfg)
+        avg_cost = float(np.mean(recent_costs))
+        if avg_cost > 0.0 and not margin.is_halted:
+            steps_to_budget_halt = margin.budget_remaining / avg_cost
+        else:
+            steps_to_budget_halt = math.inf
+
+    The weight-axis equivalent uses the EMA decay rate of recent
+    weight observations. Both extrapolations live with the consumer,
+    not in this module — they bake assumptions about the cost
+    distribution that are deployment-specific.
+
+    Parameters
+    ----------
+    state:
+        Current state.
+    config:
+        Lineage configuration. Must agree with the state's
+        ``invariant_floor`` (the lineage-mismatch contract from
+        :func:`update` is enforced here too — a margin computed
+        against the wrong floor would be silently wrong).
+
+    Raises
+    ------
+    EpistemicError
+        On lineage mismatch between state and config.
+    """
+    if state.invariant_floor != config.invariant_floor:
+        raise EpistemicError(
+            "halt_margin: lineage mismatch — "
+            f"state.invariant_floor ({state.invariant_floor!r}) != "
+            f"config.invariant_floor ({config.invariant_floor!r})."
+        )
+    return HaltMargin(
+        budget_remaining=state.budget,
+        weight_above_floor=state.weight - state.invariant_floor,
+        is_halted=state.is_halted,
     )
 
 

@@ -23,6 +23,7 @@ diff_scope:
     - path: "core/neuro/epistemic_validation.py"
     - path: "docs/reports/epistemic_validation_fail_closed.md"
     - path: "newsfragments/495.feature.md"
+    - path: "tests/integration/test_epistemic_rebus_integration.py"
     - path: "tests/unit/neuro/test_epistemic_audit.py"
     - path: "tests/unit/neuro/test_epistemic_validation.py"
   forbidden_paths:
@@ -37,8 +38,10 @@ required_python_symbols:
   - "EpistemicError"
   - "EpistemicPhase"
   - "EpistemicState"
+  - "HaltMargin"
   - "RebusBridge"
   - "advance_entry"
+  - "halt_margin"
   - "initial_state"
   - "reset_entry"
   - "reset_with_external_proof"
