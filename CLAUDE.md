@@ -111,6 +111,21 @@ INV-LE2 | qualitative | MLE(noise)≈0, MLE(stable)<0, MLE(chaos)>0       | P1
          Tests:  tests/unit/physics/test_T22_lyapunov_spectral.py
 ```
 
+### Full Lyapunov Spectrum (Law T2 — Benettin QR on variational flow)
+
+```
+INV-LY1 | algebraic    | linear ẋ = A x: sort_desc(spectrum) ==           | P0
+                       | sort_desc(Re(eigvals(A))) to 1e-3 at T=50.
+INV-LY2 | conservation | Hamiltonian flow ⇒ Σ λ_k = 0 to 1e-3            | P0
+                       | (harmonic oscillator, ≈16 periods).
+INV-LY3 | universal    | every contract violation (dt≤0, n_steps≤0,      | P0
+                       | qr_every∤n_steps, n_exp∉[1,n], non-1D x0) →
+                       | ValueError. Fail-closed; no silent repair.
+         Source: core/physics/lyapunov_spectrum.py
+         Tests:  tests/unit/physics/test_T2_lyapunov_full_spectrum.py
+         Law:    docs/laws/T2_lyapunov_spectrum.md
+```
+
 ### Spectral Graph (coupling Laplacian λ₂)
 
 ```
@@ -345,6 +360,7 @@ assert result.order > 0      # no INV, no context
 | `*explosive*`, `*hysteresis*` | INV-ES1..2 |
 | `*ott_antonsen*`, `*chimera*` | INV-OA1..3 |
 | `*lyapunov_exponent*`, `*mle*` | INV-LE1..2 |
+| `*lyapunov_spectrum*`, `*benettin*`, `*law_T2*` | INV-LY1..3 |
 | `*spectral_graph*`, `*laplacian*`, `*fiedler*` | INV-SG1..2 |
 | `*serotonin*`, `*5ht*` | INV-5HT1..7 |
 | `*dopamine*`, `*rpe*`, `*td_error*` | INV-DA1..7 |

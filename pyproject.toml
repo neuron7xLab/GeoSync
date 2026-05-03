@@ -33,6 +33,8 @@ dependencies = [
     "SQLAlchemy>=2.0.36",
     "optuna>=3.6.1,<4.0.0",
     "numba>=0.60.0",
+    # JAX kernel (Law T2: Lyapunov spectrum; Laws T1/T3-T7 build on it)
+    "jax>=0.4.30",
     # Data validation
     "pydantic>=2.13.0,<3.0.0",
     "pydantic-settings>=2.12.0,<3.0.0",
