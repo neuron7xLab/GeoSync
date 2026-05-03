@@ -231,6 +231,22 @@ INV-DET3 | universal | every contract violation → ValueError;        | P0
          Law:    docs/laws/T6_determinism_kit.md
 ```
 
+### Pinning Control of Chaos (Law T7)
+
+```
+INV-PIN1 | universal   | returned P satisfies λ_2(L + Γ_P) > ε_pin   | P0
+                       | OR status==INSUFFICIENT; fail-closed.
+INV-PIN2 | conditional | pinning_step contractive in linearised      | P0
+                       | regime when target=0, λ_2(L+Γ_P)>0,
+                       | dt < 2/λ_max(L+Γ_P).
+INV-PIN3 | universal   | A never mutated; topology preservation.     | P0
+INV-PIN4 | universal   | every contract violation → ValueError;      | P0
+                       | fail-closed.
+         Source: runtime/pinning_control.py
+         Tests:  tests/unit/physics/test_T7_pinning_control.py
+         Law:    docs/laws/T7_pinning_control.md
+```
+
 ### Free Energy / ECS
 
 ```
@@ -425,6 +441,7 @@ assert result.order > 0      # no INV, no context
 | `*lyapunov_calibration*`, `*law_T3*`, `*calibrate_coupling*` | INV-CAL1..3 |
 | `*predictability_horizon*`, `*law_T5*` | INV-TAU1..3 |
 | `*spectral_graph*`, `*laplacian*`, `*fiedler*` | INV-SG1..2 |
+| `*pinning_control*`, `*law_T7*`, `runtime/pinning*` | INV-PIN1..4 |
 | `*serotonin*`, `*5ht*` | INV-5HT1..7 |
 | `*dopamine*`, `*rpe*`, `*td_error*` | INV-DA1..7 |
 | `*gaba*`, `*inhibit*` | INV-GABA1..5 |
