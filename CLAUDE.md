@@ -111,6 +111,20 @@ INV-LE2 | qualitative | MLE(noise)≈0, MLE(stable)<0, MLE(chaos)>0       | P1
          Tests:  tests/unit/physics/test_T22_lyapunov_spectral.py
 ```
 
+### Coupling Calibration to Target λ_1 (Law T3 — bounded scalar inverse)
+
+```
+INV-CAL1 | algebraic    | feasible target ⇒ residual ≤ tolerance        | P0
+                       | (default 5e-2); round-trip recovers λ to 1e-12.
+INV-CAL2 | conditional  | infeasible target ⇒ status INFEASIBLE;        | P0
+                       | never silent best-effort.
+INV-CAL3 | universal    | K* > 0 always (hard positivity bound);        | P0
+                       | every contract violation → ValueError.
+         Source: core/kuramoto/lyapunov_calibration.py
+         Tests:  tests/unit/physics/test_T3_lyapunov_calibration.py
+         Law:    docs/laws/T3_lyapunov_calibration.md
+```
+
 ### Kuramoto-Ricci Sync-Onset Boundary (Law T1 — Restrepo-Ott-Hunt on κ-graph)
 
 ```
@@ -393,6 +407,7 @@ assert result.order > 0      # no INV, no context
 | `*lyapunov_exponent*`, `*mle*` | INV-LE1..2 |
 | `*lyapunov_spectrum*`, `*benettin*`, `*law_T2*` | INV-LY1..3 |
 | `*kuramoto_ricci*`, `*law_T1*`, `*sync_onset*` | INV-KR1..3 |
+| `*lyapunov_calibration*`, `*law_T3*`, `*calibrate_coupling*` | INV-CAL1..3 |
 | `*spectral_graph*`, `*laplacian*`, `*fiedler*` | INV-SG1..2 |
 | `*serotonin*`, `*5ht*` | INV-5HT1..7 |
 | `*dopamine*`, `*rpe*`, `*td_error*` | INV-DA1..7 |
