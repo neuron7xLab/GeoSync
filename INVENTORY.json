@@ -19,7 +19,7 @@
     },
     {
       "path": "scripts/ci/check_claims.py",
-      "sha256": "45e9398dcc716188f2fe9c4130af8124a76e7e03d32edaa40d970e836142e5f2"
+      "sha256": "42700a99e4cb7fff289ff2011dccd548eda609ce92266d762e982997b28e3bca"
     },
     {
       "path": "scripts/ci/check_config_sprawl.py",
@@ -36,6 +36,10 @@
     {
       "path": "scripts/ci/check_manifest_hashes.py",
       "sha256": "afa5e44d9253dc6f9fc7f006b998cb912e174ae08778aab54c03f898536bc44c"
+    },
+    {
+      "path": "scripts/ci/lint_forbidden_terms.py",
+      "sha256": "4a63556a364c3c4b7d90ca81d72a8ea5cfd3d25ef3405e85f71dee2bcda6c83b"
     },
     {
       "path": "scripts/ci/run_actionlint.py",
