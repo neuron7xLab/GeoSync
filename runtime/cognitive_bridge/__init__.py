@@ -23,12 +23,26 @@ Public surface:
     - invariants.CB_INVARIANTS, BridgeInvariantError
 """
 
+from runtime.cognitive_bridge.cycle import (
+    TRANSITIONS,
+    Cycle,
+    CycleContractError,
+    Stage,
+    StageRecord,
+    is_legal,
+)
 from runtime.cognitive_bridge.errors import (
     BridgeInvariantError,
     BridgeTimeoutError,
     BridgeTransportError,
 )
 from runtime.cognitive_bridge.invariants import CB_INVARIANTS, InvariantId
+from runtime.cognitive_bridge.knowledge_node import (
+    DEFAULT_THRESHOLDS,
+    KnowledgeNode,
+    KnowledgeStatus,
+    KnowledgeThresholds,
+)
 from runtime.cognitive_bridge.protocol import (
     PROTOCOL_VERSION,
     AdvisoryRequest,
@@ -42,6 +56,13 @@ from runtime.cognitive_bridge.transport import (
     LoopbackHttpTransport,
     Transport,
 )
+from runtime.cognitive_bridge.value_function import (
+    DEFAULT_WEIGHTS,
+    GvCondition,
+    ValueComponents,
+    ValueWeights,
+    integrate_value,
+)
 
 __all__ = [
     "AdvisoryRequest",
@@ -52,11 +73,26 @@ __all__ = [
     "BridgeTransportError",
     "CB_INVARIANTS",
     "CognitiveSidecar",
+    "Cycle",
+    "CycleContractError",
+    "DEFAULT_THRESHOLDS",
+    "DEFAULT_WEIGHTS",
     "EvidenceTier",
+    "GvCondition",
     "InMemoryTransport",
     "InvariantId",
+    "KnowledgeNode",
+    "KnowledgeStatus",
+    "KnowledgeThresholds",
     "LoopbackHttpTransport",
     "PROTOCOL_VERSION",
     "SidecarConfig",
+    "Stage",
+    "StageRecord",
+    "TRANSITIONS",
     "Transport",
+    "ValueComponents",
+    "ValueWeights",
+    "integrate_value",
+    "is_legal",
 ]
