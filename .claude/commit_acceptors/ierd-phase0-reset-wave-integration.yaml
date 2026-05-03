@@ -27,7 +27,7 @@ diff_scope:
     - path: "docs/reset_wave_validation_report.md"
     - path: "docs/stability_bounds.md"
     - path: "docs/adr/0022-reset-wave-engineering-model.md"
-    - path: "reports/reset_wave_validation_summary.json"
+    - path: "docs/validation/reset_wave_validation_summary.json"
     - path: ".claude/commit_acceptors/ierd-phase0-reset-wave-integration.yaml"
   forbidden_paths:
     - "trading/"
@@ -85,7 +85,7 @@ rollback_command: >-
         docs/reset_wave_validation_report.md
         docs/stability_bounds.md
         docs/adr/0022-reset-wave-engineering-model.md
-        reports/reset_wave_validation_summary.json
+        docs/validation/reset_wave_validation_summary.json
         .claude/commit_acceptors/ierd-phase0-reset-wave-integration.yaml &&
   git checkout origin/main -- geosync/neuroeconomics/homeostatic_stabilizer.py
                              tests/test_homeostatic_stabilizer.py

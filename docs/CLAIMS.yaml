@@ -418,7 +418,7 @@ claims:
       - docs/reset_wave_critical_centers.md
       - docs/reset_wave_truth_value_function.md
       - docs/stability_bounds.md
-      - reports/reset_wave_validation_summary.json
+      - docs/validation/reset_wave_validation_summary.json
     falsifier:
       test_id: tests/test_reset_wave_physics_laws.py::test_numerical_invariant_2_potential_nonincreasing_under_stable_reset
       invariants_cited:
@@ -553,7 +553,7 @@ claims:
       - docs/yana-response.md
       - geosync/neuroeconomics/reset_wave_engine.py
       - tests/test_reset_wave_stress_validation.py
-      - reports/reset_wave_validation_summary.json
+      - docs/validation/reset_wave_validation_summary.json
     added_utc: "2026-05-03"
 
   - id: edge-case-coverage-matrix

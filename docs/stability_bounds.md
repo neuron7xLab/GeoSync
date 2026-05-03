@@ -45,4 +45,4 @@ Outside this region, oscillation or divergence may occur. The negative tests cov
 * Source: [`geosync/neuroeconomics/reset_wave_engine.py`](../geosync/neuroeconomics/reset_wave_engine.py)
 * Critical centers: [`docs/reset_wave_critical_centers.md`](reset_wave_critical_centers.md)
 * Validation report: [`docs/reset_wave_validation_report.md`](reset_wave_validation_report.md)
-* Calibration artefacts: [`reports/reset_wave_validation_summary.json`](../reports/reset_wave_validation_summary.json)
+* Calibration artefacts: [`docs/validation/reset_wave_validation_summary.json`](../docs/validation/reset_wave_validation_summary.json)

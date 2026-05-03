@@ -8,7 +8,7 @@
 - [`docs/reset_wave_critical_centers.md`](../reset_wave_critical_centers.md)
 - [`docs/reset_wave_truth_value_function.md`](../reset_wave_truth_value_function.md)
 - [`docs/stability_bounds.md`](../stability_bounds.md)
-- [`reports/reset_wave_validation_summary.json`](../../reports/reset_wave_validation_summary.json)
+- [`docs/validation/reset_wave_validation_summary.json`](../../docs/validation/reset_wave_validation_summary.json)
 
 ---
 

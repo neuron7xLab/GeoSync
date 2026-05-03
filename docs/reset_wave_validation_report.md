@@ -20,8 +20,8 @@ This subsystem is a **numerical relaxation solver** on the compact phase manifol
 
 ## Calibration artefacts
 
-* [`reports/reset_wave_validation_summary.json`](../reports/reset_wave_validation_summary.json) — Monte Carlo summary (n=400, accuracy=1.0, stable rule = `coupling_gain · dt ≤ 0.2`)
-* [`reports/reset_wave_validation_sample.json`](../reports/reset_wave_validation_sample.json) — first 100 sampled scenario records
+* [`docs/validation/reset_wave_validation_summary.json`](validation/reset_wave_validation_summary.json) — Monte Carlo summary (n=400, accuracy=1.0, stable rule = `coupling_gain · dt ≤ 0.2`)
+* [`tests/test_reset_wave_stress_validation.py`](../tests/test_reset_wave_stress_validation.py) — 108-cell × 20-seed stress grid; deterministic on seed 20260503, no need to ship a separate sample dump
 
 ## Observed metrics
 
