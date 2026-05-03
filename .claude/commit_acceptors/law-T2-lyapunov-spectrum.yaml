@@ -35,6 +35,9 @@ diff_scope:
     - path: "docs/laws/T2_lyapunov_spectrum.md"
     - path: "newsfragments/law-T2-lyapunov-spectrum.feature.md"
     - path: "pyproject.toml"
+    - path: "CLAUDE.md"
+    - path: "requirements.lock"
+    - path: "requirements-dev.lock"
   forbidden_paths:
     - "trading/"
     - "execution/"
