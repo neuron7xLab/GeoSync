@@ -57,6 +57,8 @@ EVIDENCE_PATH_PREFIXES_FOR_ARTEFACT: tuple[str, ...] = (
     "docs/reports/",
     "docs/audit/",
     "docs/laws/",
+    "docs/governance/",  # binding directives count as governance artefacts
+    "docs/adr/",  # ADRs count as decision artefacts
 )
 
 
@@ -117,7 +119,7 @@ def _load_claims() -> list[ClaimRow]:
     if not isinstance(raw, dict):
         raise ValueError("CLAIMS.yaml must be a YAML mapping at the top level")
     schema = raw.get("schema_version")
-    if schema not in (1, 2):
+    if schema not in (1, 2, 3):
         raise ValueError(f"unsupported schema_version={schema!r}")
     entries = raw.get("claims") or []
     rows: list[ClaimRow] = []

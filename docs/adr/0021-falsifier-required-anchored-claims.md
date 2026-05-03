@@ -79,15 +79,20 @@ EXTRAPOLATED, SPECULATIVE, and UNKNOWN tiers do not require `falsifier` — for 
 
 ### Phased rollout inside Phase 1
 
-| Step | Scope | Exit |
-|---|---|---|
-| 1.0 | publish schema v3 with `falsifier` optional and warn-only on missing | parser accepts both v2 and v3 |
-| 1.1 | backfill `falsifier` on the 19 ANCHORED claims in the current ledger | `compute_fps_audit.py` reports `F=set` for all 19 |
-| 1.2 | flip `falsifier` to **required** on ANCHORED via schema v3 | check_claims.py fails-closed on missing falsifier |
-| 1.3 | bind `compute_pai.py` to falsifier audit: a module is "covered" only if every routed `INV-*` has a falsifier test referenced from CLAIMS.yaml | PAI computation hardened |
-| 1.4 | wire `.claude/physics/validate_tests.py` into CI as a separate gate that runs against every test referenced from a `falsifier.test_id` | structural test taxonomy enforced |
+Anchor date: 2026-05-03 (PR #528 merge target). All intervals are
+**relative to the merge date** so a slip in Phase 0 propagates
+deterministically. CI clock is calendar time, not engineering time.
 
-Each step is a separate PR. The schema change does not regress Phase-0 invariants because v2 is still accepted during Phase 1.0–1.1.
+| Step | Scope | Target | Exit |
+|---|---|---|---|
+| 1.0 | publish schema v3 with `falsifier` optional and warn-only on missing | **anchor + 0 days (this PR)** | parser accepts v1/v2/v3, `falsifier` shape validated when present, warn fired on v3 ANCHORED missing falsifier |
+| 1.1 | backfill `falsifier` on the 19 ANCHORED claims in the current ledger | **anchor + 14 days** | `check_claims.py` reports `falsifier coverage: 19/19 ANCHORED` |
+| 1.2 | flip `falsifier` to **required** on v3 ANCHORED via opt-in flag `--require-falsifier` in CI | **anchor + 21 days** | a v3 ANCHORED entry without `falsifier` fails the gate |
+| 1.3 | bind `compute_pai.py` to falsifier audit: a module is "covered" only if every routed `INV-*` has a falsifier-test reference in CLAIMS.yaml | **anchor + 35 days** | `compute_pai.py --require-falsifier` is the new default; PAI tightens; informational forbidden_assertion_count becomes a hard cap |
+| 1.4 | wire `.claude/physics/validate_tests.py` into CI as a separate gate that runs against every test referenced from a `falsifier.test_id` | **anchor + 49 days** | structural test taxonomy + 5-field error-message rule enforced as merge gate |
+| 1.exit | full Phase-1 compliance | **anchor + 56 days** | new claim `geosync-phase1-falsifier-coverage` lands as ANCHORED P0 with FPS_audit-grade evidence |
+
+Each step is a separate PR. The schema change does not regress Phase-0 invariants because v2 is still accepted during Phase 1.0–1.1. The 56-day clock starts on PR #528 merge to `main`; slip is logged in `docs/governance/IERD-PAI-FPS-UX-001.md` as a deviation marker.
 
 ## Consequences
 

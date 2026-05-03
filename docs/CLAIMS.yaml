@@ -54,7 +54,7 @@
 # Promoting EXTRAPOLATED → ANCHORED is a *contract change*: either
 # the missing evidence has been added, or the description was tightened.
 
-schema_version: 2
+schema_version: 3
 
 claims:
 
@@ -195,6 +195,16 @@ claims:
       - core/kuramoto
       - core/kuramoto/ott_antonsen.py
       - tests/unit/physics/test_T23_ott_antonsen_chimera.py
+    falsifier:
+      test_id: tests/unit/physics/test_T23_ott_antonsen_chimera.py::test_ott_antonsen_steady_state
+      invariants_cited:
+        - INV-K1
+        - INV-OA1
+        - INV-OA2
+      failure_signature: >
+        any |z(t)| > 1 in any sweep step OR R_∞ deviation from
+        √(1 − 2Δ/K) above 1e-3 on the Lorentzian fixture must
+        produce a 5-field assertion message naming INV-OA1 / INV-OA2.
     added_utc: "2026-05-03"
 
   - id: lyapunov-mle-finite-bounded
@@ -209,6 +219,17 @@ claims:
     evidence_paths:
       - core/physics/lyapunov_exponent.py
       - tests/unit/physics/test_T22_lyapunov_spectral.py
+    falsifier:
+      test_id: tests/unit/physics/test_T22_lyapunov_spectral.py::test_mle_finite_for_bounded_input
+      invariants_cited:
+        - INV-LE1
+        - INV-LE2
+        - INV-SG1
+        - INV-SG2
+      failure_signature: >
+        non-finite MLE on a bounded series or λ₂ < 0 on a Laplacian
+        must raise an INV-LE1 / INV-SG1 assertion message; sign-class
+        mismatch (chaos vs stable vs noise) must reference INV-LE2.
     added_utc: "2026-05-03"
 
   - id: serotonin-controller-bounded-veto
@@ -244,6 +265,17 @@ claims:
       - tests/core/neuro/dopamine/test_dopamine_controller.py
       - tests/test_dopamine_controller.py
       - tests/unit/physics/test_T11_dopamine_algebraic.py
+    falsifier:
+      test_id: tests/unit/physics/test_T11_dopamine_algebraic.py::test_dopamine_partial_derivative_unity
+      invariants_cited:
+        - INV-DA1
+        - INV-DA3
+        - INV-DA7
+      failure_signature: >
+        ∂δ/∂r ≠ 1 to float precision OR γ outside (0, 1] OR sign(δ)
+        not matching surprise direction must produce an INV-DA7 /
+        INV-DA3 assertion message; tanh-adapter conflation in
+        DopamineExecutionAdapter must NOT be tested as INV-DA7.
     added_utc: "2026-05-03"
 
   - id: gaba-inhibition-monotone-bounded
@@ -258,6 +290,15 @@ claims:
       - core/neuro/gaba_position_gate.py
       - tests/test_gaba_inhibition_gate.py
       - tests/unit/core/neuro/test_gaba_position_gate.py
+    falsifier:
+      test_id: tests/test_gaba_inhibition_gate.py::test_gate_within_unit_interval
+      invariants_cited:
+        - INV-GABA1
+        - INV-GABA2
+        - INV-GABA3
+      failure_signature: >
+        gate ∉ [0, 1] OR effective > raw OR vol↑ → inhibition↓ must
+        raise an INV-GABA1 / INV-GABA3 assertion message.
     added_utc: "2026-05-03"
 
   - id: ricci-curvature-bounded
@@ -271,6 +312,15 @@ claims:
     evidence_paths:
       - tests/unit/physics/test_T10_ricci_bounds.py
       - tests/test_augmented_ricci.py
+    falsifier:
+      test_id: tests/unit/physics/test_T10_ricci_bounds.py::test_ricci_upper_bound_universal
+      invariants_cited:
+        - INV-RC1
+        - INV-RC3
+      failure_signature: >
+        any κ > 1 on any connected graph OR κ ∉ [−1, 1] on
+        build_price_graph output must raise an INV-RC1 / INV-RC3
+        assertion message that names the offending node pair.
     added_utc: "2026-05-03"
 
   - id: kelly-sizing-cap-enforced
@@ -327,6 +377,17 @@ claims:
     evidence_paths:
       - core/neuro/cryptobiosis.py
       - tests/unit/physics/test_T17_cryptobiosis.py
+    falsifier:
+      test_id: tests/unit/physics/test_T17_cryptobiosis.py::test_dormant_multiplier_exact_zero
+      invariants_cited:
+        - INV-CB1
+        - INV-CB2
+        - INV-CB6
+        - INV-CB7
+      failure_signature: >
+        DORMANT multiplier ≠ 0.0 EXACTLY OR T ∉ [0, 1] OR
+        exit ≥ entry (no hysteresis) must raise an INV-CB1 /
+        INV-CB7 assertion with the offending state name.
     added_utc: "2026-05-03"
 
   - id: dro-ara-regime-fail-closed
@@ -344,6 +405,18 @@ claims:
       - tests/core/dro_ara/test_invariants.py
       - tests/core/dro_ara/test_properties.py
       - tests/core/dro_ara/test_falsification.py
+    falsifier:
+      test_id: tests/core/dro_ara/test_invariants.py::test_gamma_is_derived_from_H
+      invariants_cited:
+        - INV-DRO1
+        - INV-DRO2
+        - INV-DRO3
+        - INV-DRO4
+        - INV-DRO5
+      failure_signature: >
+        |γ − (2H + 1)| ≥ 1e-5 OR rs ∉ [0, 1] OR LONG signal emitted
+        outside CRITICAL ∧ rs > 0.33 OR NaN/Inf input not raising
+        ValueError must produce an INV-DRO* assertion.
     added_utc: "2026-05-03"
 
   - id: ierd-phase0-yana-response
@@ -418,5 +491,36 @@ claims:
       divergence. Status: UNKNOWN at Phase-0 — tracked by issue
       IERD-Q7. Re-classify on Phase-4 entry.
     evidence_paths:
+      - docs/yana-response.md
+    added_utc: "2026-05-03"
+
+  # ---------------------------------------------------------------
+  # System-level composite tier (Wave 5, 2026-05-03).
+  # Closes the round-2 attack from external audit Q-2.6: a system's
+  # tier cannot be ANCHORED while three of the IERD §1 trigger terms
+  # (production-ready, UX-ready, cycle-time acceleration) are still
+  # UNKNOWN. The claim below is the honest composite — the **whole
+  # system** rolls up to EXTRAPOLATED, not ANCHORED, even though the
+  # physics-kernel sub-tier is ANCHORED.
+  # ---------------------------------------------------------------
+
+  - id: geosync-system-tier
+    priority: P0
+    tier: EXTRAPOLATED
+    description: >
+      Composite system tier for GeoSync as a whole = EXTRAPOLATED
+      at Phase 0. Decomposition: physics-kernel sub-tier = ANCHORED
+      (19 P0 claims gated by check_claims.py + compute_pai.py +
+      compute_fps_audit.py). Operational/UX/latency sub-tier =
+      UNKNOWN across api-contract-openapi-coverage,
+      ux-readiness-state-coverage, e2e-latency-budget-compliance,
+      edge-case-coverage-matrix. The composite roll-up is the WEAKEST
+      child tier — a single UNKNOWN cannot be hidden by 19 ANCHOREDs.
+      Re-classify to ANCHORED on Phase-4 exit (UXRS ≥ 0.95, ECC ≥ 0.90,
+      all 4 E2E latency layers green) per ADR 0020 + ADR 0021.
+    evidence_paths:
+      - docs/CLAIMS.yaml
+      - docs/governance/IERD-PAI-FPS-UX-001.md
+      - docs/KNOWN_LIMITATIONS.md
       - docs/yana-response.md
     added_utc: "2026-05-03"

@@ -71,9 +71,9 @@ def test_live_registry_has_at_least_one_p0(cc: Any) -> None:
     gate. We require at least one to keep the contract live."""
     registry = cc._load_registry(CLAIMS_PATH)
     claims = cc._parse_claims(registry)
-    assert any(
-        c.priority == "P0" for c in claims
-    ), "no P0 claims registered — gate has nothing to enforce"
+    assert any(c.priority == "P0" for c in claims), (
+        "no P0 claims registered — gate has nothing to enforce"
+    )
 
 
 def test_live_registry_ids_are_unique(cc: Any) -> None:
@@ -262,6 +262,98 @@ def test_p0_claim_with_missing_evidence_fails_gate(
     failures = cc._validate_evidence(claims[0], ROOT)
     assert len(failures) == 1
     assert "totally/missing/path.py" in failures[0].reason
+
+
+def test_v3_falsifier_optional_warn_only_when_missing(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    """Phase 1.0 (per ADR 0021): v3 ANCHORED without falsifier is
+    warn-only, not gating. The schema accepts the entry; main()
+    emits a WARN line on stderr."""
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["priority"] = "P0"
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    claims = cc._parse_claims(registry)
+    assert claims[0].falsifier is None
+    failures = cc._validate_evidence(claims[0], ROOT)
+    assert failures == []  # Phase 1.0 — warn-only
+
+
+def test_v3_falsifier_block_parses_when_present(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["falsifier"] = {
+        "test_id": "tests/test_x.py::test_invariant",
+        "invariants_cited": ["INV-K1", "INV-OA1"],
+        "failure_signature": "any |z| > 1 raises INV-OA1",
+    }
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    claims = cc._parse_claims(registry)
+    assert claims[0].falsifier is not None
+    assert claims[0].falsifier.test_id == "tests/test_x.py::test_invariant"
+    assert claims[0].falsifier.invariants_cited == ("INV-K1", "INV-OA1")
+
+
+def test_v3_falsifier_rejects_missing_keys(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["falsifier"] = {
+        "test_id": "tests/test_x.py::test_a",
+        # invariants_cited and failure_signature missing
+    }
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    with pytest.raises(ValueError, match="falsifier missing keys"):
+        cc._parse_claims(registry)
+
+
+def test_v3_falsifier_rejects_bad_test_id_shape(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["falsifier"] = {
+        "test_id": "not_a_pytest_node",  # missing :: separator
+        "invariants_cited": ["INV-K1"],
+        "failure_signature": "x",
+    }
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    with pytest.raises(ValueError, match="pytest node id"):
+        cc._parse_claims(registry)
+
+
+def test_v3_falsifier_rejects_bad_inv_shape(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["falsifier"] = {
+        "test_id": "tests/x.py::test_a",
+        "invariants_cited": ["lowercase-not-valid"],
+        "failure_signature": "x",
+    }
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    with pytest.raises(ValueError, match="INV-"):
+        cc._parse_claims(registry)
 
 
 def test_v1_legacy_unknown_default_does_not_gate(

@@ -19,7 +19,7 @@
     },
     {
       "path": "scripts/ci/check_claims.py",
-      "sha256": "d79f116973f8fbe7706b8851542f6587f7a247b37997a46785b58e4b727fbdbc"
+      "sha256": "2a668d8d0220add6096567657c78df17faa0d2756854b1d96dc75127e0b773c6"
     },
     {
       "path": "scripts/ci/check_config_sprawl.py",
@@ -39,7 +39,7 @@
     },
     {
       "path": "scripts/ci/compute_fps_audit.py",
-      "sha256": "361fba01f2c96f394bb77e36623ba2e9091ad827bfbf420abf505fcf8e6254ea"
+      "sha256": "e35b695eb92648ce61d04318bdfd27e76a7ea9222316f8e244f87b43c6a4f06c"
     },
     {
       "path": "scripts/ci/compute_pai.py",

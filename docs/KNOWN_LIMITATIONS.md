@@ -146,6 +146,31 @@ formal `(endpoint × state × test_id)` matrix.
 Tracked under `edge-case-coverage-matrix` (tier `UNKNOWN`).
 Re-classified on Phase-4 entry of the IERD adoption plan.
 
+## L-11 · No independent replication of physics-kernel attest results
+
+The PAI = 1.00 and FPS_audit = 1.00 metrics, the 67-invariant
+registry in `CLAUDE.md`, the `tests/unit/physics/test_T*.py`
+suite, and the cross-asset Kuramoto walk-forward bundle frozen
+under `results/cross_asset_kuramoto/PARAMETER_LOCK.json` (with
+`_spike_commit` sha-256 lock) **have not been replicated by an
+external party**. The artefact integrity of the bundle is anchored
+by the sha-256 lock; the *result* (Sharpe, fold count, robust=True)
+has been verified only by the original author.
+
+By scientific method this means:
+
+* the gate is closed against silent file tampering,
+* the gate is **not** closed against single-author confirmation bias,
+* an independent replicator running `pytest tests/unit/physics/`
+  on a clean clone with the documented seed (42) **should**
+  reproduce the same numerical results, but **has not**.
+
+This is the institutional companion to L-5 (bus factor = 1):
+discipline applied by one author cannot substitute for cross-author
+replication. Closure path: Phase-1 entry per [ADR 0021](adr/0021-falsifier-required-anchored-claims.md)
+includes the option for a third party to attest the falsifier
+fingerprint of every ANCHORED claim, breaking the closed loop.
+
 ---
 
 If you find a limitation of the platform that is not listed here, that
