@@ -30,6 +30,12 @@ diff_scope:
     - path: "docs/yana-response.md"
     - path: "scripts/ci/check_claims.py"
     - path: "scripts/ci/lint_forbidden_terms.py"
+    - path: "scripts/ci/compute_pai.py"
+    - path: "scripts/ci/compute_fps_audit.py"
+    - path: "docs/validation/pai_latest.json"
+    - path: "docs/validation/fps_audit_latest.json"
+    - path: "tests/test_dfa_gamma_estimator.py"
+    - path: "tests/core/dro_ara/test_invariants.py"
     - path: ".claude/commit_acceptors/ierd-phase0-adoption.yaml"
     - path: "INVENTORY.json"
   forbidden_paths:
@@ -47,16 +53,33 @@ required_python_symbols:
   - "_validate_evidence"
   - "Finding"
   - "FORBIDDEN_PATTERNS"
+  - "TRIGGER_PATTERNS"
   - "EXCEPTION_PATTERNS"
   - "ALLOWLIST_PATHS"
+  - "STRICT_SUBSET_GLOBS"
+  - "ModuleGroup"
+  - "ModuleScore"
+  - "PaiSnapshot"
+  - "compute_pai"
+  - "ClaimRow"
+  - "ClaimAudit"
+  - "FpsSnapshot"
+  - "compute_fps_audit"
 expected_signal: >
   check_claims.py PASS on schema v2 with tier distribution
   ANCHORED=19, EXTRAPOLATED=1, SPECULATIVE=0, UNKNOWN=4;
-  lint_forbidden_terms.py PASS warn-only over README + docs;
-  17/17 tests/scripts/test_check_claims.py green.
+  lint_forbidden_terms.py PASS warn-only over README + docs and
+  PASS strict on Phase-0.5 subset; compute_pai.py PASS at 19/19
+  modules covered (PAI = 1.00 ≥ threshold 0.90); compute_fps_audit.py
+  PASS at 20/20 ANCHORED+EXTRAPOLATED claims with test/artefact
+  evidence (FPS_audit = 1.00 ≥ threshold 1.00); 17/17
+  tests/scripts/test_check_claims.py green.
 measurement_command: >-
   python scripts/ci/check_claims.py &&
   python scripts/ci/lint_forbidden_terms.py &&
+  python scripts/ci/lint_forbidden_terms.py --phase0-strict-subset &&
+  python scripts/ci/compute_pai.py --write &&
+  python scripts/ci/compute_fps_audit.py --write &&
   python -m pytest tests/scripts/test_check_claims.py -v
 signal_artifact: "tmp/ierd_phase0_adoption_evidence.log"
 falsifier:

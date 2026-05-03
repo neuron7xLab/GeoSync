@@ -16,26 +16,40 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "CLAUDE.md"
       - "docs/CLAIMS.yaml"
       - "docs/governance/**"
       - "docs/audit/**"
       - "docs/adr/**"
+      - "docs/validation/**"
       - "docs/yana-response.md"
       - "scripts/ci/check_claims.py"
       - "scripts/ci/lint_forbidden_terms.py"
+      - "scripts/ci/compute_pai.py"
+      - "scripts/ci/compute_fps_audit.py"
       - "tests/scripts/test_check_claims.py"
+      - "tests/**/test_T*.py"
+      - "tests/core/dro_ara/**"
+      - "tests/test_dfa_gamma_estimator.py"
       - ".github/workflows/claims-evidence-gate.yml"
   push:
     branches: [main]
     paths:
+      - "CLAUDE.md"
       - "docs/CLAIMS.yaml"
       - "docs/governance/**"
       - "docs/audit/**"
       - "docs/adr/**"
+      - "docs/validation/**"
       - "docs/yana-response.md"
       - "scripts/ci/check_claims.py"
       - "scripts/ci/lint_forbidden_terms.py"
+      - "scripts/ci/compute_pai.py"
+      - "scripts/ci/compute_fps_audit.py"
       - "tests/scripts/test_check_claims.py"
+      - "tests/**/test_T*.py"
+      - "tests/core/dro_ara/**"
+      - "tests/test_dfa_gamma_estimator.py"
       - ".github/workflows/claims-evidence-gate.yml"
 
 permissions:
@@ -77,5 +91,33 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run forbidden-terms lint (warn-only)
+      - name: Run forbidden-terms lint (warn-only, default scope)
         run: python scripts/ci/lint_forbidden_terms.py
+
+      - name: Run forbidden-terms lint (strict, Phase-0.5 subset)
+        run: python scripts/ci/lint_forbidden_terms.py --phase0-strict-subset
+
+  ierd-pai-fps-gate:
+    # IERD-PAI-FPS-UX-001 §5 metrics — automated PAI and FPS_audit.
+    # Phase 0 thresholds: PAI ≥ 0.90, FPS_audit = 1.00. Violations
+    # block merge.
+    name: ierd-pai-fps-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install pyyaml
+        run: python -m pip install --no-cache-dir pyyaml==6.0.2
+
+      - name: Compute Physics Alignment Index (threshold 0.90)
+        run: python scripts/ci/compute_pai.py --write
+
+      - name: Compute First-Principles Score audit (threshold 1.00)
+        run: python scripts/ci/compute_fps_audit.py --write

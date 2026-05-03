@@ -341,6 +341,9 @@ claims:
       input → ValueError, no silent numeric repair (INV-DRO5).
     evidence_paths:
       - core/dro_ara/engine.py
+      - tests/core/dro_ara/test_invariants.py
+      - tests/core/dro_ara/test_properties.py
+      - tests/core/dro_ara/test_falsification.py
     added_utc: "2026-05-03"
 
   - id: ierd-phase0-yana-response

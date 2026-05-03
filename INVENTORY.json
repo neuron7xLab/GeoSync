@@ -38,8 +38,16 @@
       "sha256": "afa5e44d9253dc6f9fc7f006b998cb912e174ae08778aab54c03f898536bc44c"
     },
     {
+      "path": "scripts/ci/compute_fps_audit.py",
+      "sha256": "361fba01f2c96f394bb77e36623ba2e9091ad827bfbf420abf505fcf8e6254ea"
+    },
+    {
+      "path": "scripts/ci/compute_pai.py",
+      "sha256": "b0adaebc0a51e23706b42459f18f7abf744750bbbb75bb474bb2e0f3ddf822f9"
+    },
+    {
       "path": "scripts/ci/lint_forbidden_terms.py",
-      "sha256": "4a63556a364c3c4b7d90ca81d72a8ea5cfd3d25ef3405e85f71dee2bcda6c83b"
+      "sha256": "d65c2bc782e1223dbd1c8379fad5bdcf92ad8fd6775cb37978e53b0f3e2da7b2"
     },
     {
       "path": "scripts/ci/run_actionlint.py",

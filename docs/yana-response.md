@@ -306,9 +306,20 @@ Phase-0 PR ships:
 * `docs/adr/0020-ierd-adoption.md` — adoption ADR.
 * `docs/CLAIMS.yaml` — schema v2 with `tier` field on all 24 entries.
 * `scripts/ci/check_claims.py` — extended schema validator.
-* `scripts/ci/lint_forbidden_terms.py` — Phase-0 warn-mode lexicon lint.
+* `scripts/ci/lint_forbidden_terms.py` — warn mode by default + Phase-0.5 strict subset on README, governance, audit, validation, yana-response, ADR 0020.
+* `scripts/ci/compute_pai.py` — automated PAI from CLAUDE.md routing × test files; CI-gated at 0.90.
+* `scripts/ci/compute_fps_audit.py` — automated FPS_audit from CLAIMS.yaml v2; CI-gated at 1.00.
 * `docs/audit/ierd_phase0_findings.md` — surface-text audit findings.
-* `docs/validation/pai_report_2026_05_03.md` — first PAI snapshot (PAI = 1.00).
+* `docs/validation/pai_report_2026_05_03.md` — narrative PAI snapshot.
+* `docs/validation/pai_latest.json` — machine-readable PAI snapshot (regenerated each CI run).
+* `docs/validation/fps_audit_latest.json` — machine-readable FPS_audit snapshot (regenerated each CI run).
 * `docs/yana-response.md` — this document.
 
-The directive's stricter gates (lint `--strict`, frontend integration, UX matrix, latency budgets) land in Phases 3–5 per ADR 0020. The honest position at Phase 0 is: the physics kernel is anchored, the surface terminology is auditable, and the frontend gap is declared — not hidden.
+**Narrative numbers vs CI-gated reality.** The PAI = 1.00 and FPS_audit = 1.00 figures cited above are not self-reported — they are the output of `scripts/ci/compute_pai.py` and `scripts/ci/compute_fps_audit.py` running against `CLAUDE.md` and `docs/CLAIMS.yaml`, gated in CI by the `ierd-pai-fps-gate` job. To reproduce locally:
+
+```
+python scripts/ci/compute_pai.py        # exits non-zero if PAI < 0.90
+python scripts/ci/compute_fps_audit.py  # exits non-zero if FPS_audit < 1.00
+```
+
+The directive's stricter gates (lint `--strict` everywhere, frontend integration, UX matrix, latency budgets) land in Phases 3–5 per ADR 0020. The honest position at Phase 0 is: the physics kernel is anchored, the surface terminology is auditable AND lint-enforced on the high-traffic subset, and the frontend gap is declared — not hidden.
