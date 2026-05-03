@@ -634,15 +634,15 @@ geosync run strategy.capital=200000 data.timeframe=4h
 
 ```
   VERSION         v0.1.0   Pre-Production Beta
-  CORE ENGINE     stable   anchored — see CLAIMS.yaml
+  CORE ENGINE     stable   ANCHORED — 19 invariants gated in CI
   INDICATORS      stable   50+ geometric + technical
   BACKTESTING     stable   event-driven, walk-forward
-  LIVE TRADING    beta     paper-trading only — see L-1
+  LIVE TRADING    beta     paper-trading only — caveat L-1
   DASHBOARD       alpha    early preview
   DOCUMENTATION   85%      170+ files
 ```
 
-Each row is tier-labelled per [IERD-PAI-FPS-UX-001](docs/governance/IERD-PAI-FPS-UX-001.md). Anchored claims are gated by [`docs/CLAIMS.yaml`](docs/CLAIMS.yaml) (schema v2) and [`scripts/ci/check_claims.py`](scripts/ci/check_claims.py); known caveats live in [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md). The full external-audit response is in [`docs/yana-response.md`](docs/yana-response.md).
+Each row is tier-labelled per [IERD-PAI-FPS-UX-001](docs/governance/IERD-PAI-FPS-UX-001.md). The CORE ENGINE row is anchored by [`claim_id=kuramoto-order-parameter-bounded`](docs/CLAIMS.yaml) and 18 sibling P0/P1 entries — see [INV-K1] through [INV-DRO5] in [`CLAUDE.md`](CLAUDE.md) plus [`scripts/ci/check_claims.py`](scripts/ci/check_claims.py), [`scripts/ci/compute_pai.py`](scripts/ci/compute_pai.py), and [`scripts/ci/compute_fps_audit.py`](scripts/ci/compute_fps_audit.py) for the gates that block merge. Known caveats: [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) (L-1..L-10). External-audit response: [`docs/yana-response.md`](docs/yana-response.md).
 
 **Roadmap**
 

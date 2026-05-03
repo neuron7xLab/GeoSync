@@ -71,9 +71,9 @@ def test_live_registry_has_at_least_one_p0(cc: Any) -> None:
     gate. We require at least one to keep the contract live."""
     registry = cc._load_registry(CLAIMS_PATH)
     claims = cc._parse_claims(registry)
-    assert any(
-        c.priority == "P0" for c in claims
-    ), "no P0 claims registered — gate has nothing to enforce"
+    assert any(c.priority == "P0" for c in claims), (
+        "no P0 claims registered — gate has nothing to enforce"
+    )
 
 
 def test_live_registry_ids_are_unique(cc: Any) -> None:
@@ -223,7 +223,17 @@ def test_p1_claim_with_missing_evidence_fails_gate(
     tmp_path: Path,
     cc: Any,
 ) -> None:
+    """Schema-v2 ANCHORED P1 with missing evidence must hard-fail.
+
+    Note: bumped to v2 with explicit ``tier: ANCHORED`` after the
+    Wave-4 hardening that changed the v1 legacy default from ANCHORED
+    to UNKNOWN. v1 entries without a ``tier`` field now warn-only
+    rather than gate, since silent promotion to ANCHORED is exactly
+    the IERD §1 loophole the directive forbids.
+    """
     body = _minimal_valid()
+    body["schema_version"] = 2
+    body["claims"][0]["tier"] = "ANCHORED"
     body["claims"][0]["priority"] = "P1"
     body["claims"][0]["evidence_paths"] = ["does/not/exist.txt"]
     path = _write_registry(tmp_path, body)
@@ -239,6 +249,8 @@ def test_p0_claim_with_missing_evidence_fails_gate(
     cc: Any,
 ) -> None:
     body = _minimal_valid()
+    body["schema_version"] = 2
+    body["claims"][0]["tier"] = "ANCHORED"
     body["claims"][0]["priority"] = "P0"
     body["claims"][0]["evidence_paths"] = [
         "docs/CLAIMS.yaml",
@@ -250,6 +262,27 @@ def test_p0_claim_with_missing_evidence_fails_gate(
     failures = cc._validate_evidence(claims[0], ROOT)
     assert len(failures) == 1
     assert "totally/missing/path.py" in failures[0].reason
+
+
+def test_v1_legacy_unknown_default_does_not_gate(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    """Wave-4 hardening: v1 legacy entries without ``tier`` default to
+    UNKNOWN (warn-only), not ANCHORED (strict). Closes the silent-
+    promotion loophole — a v1 entry with missing evidence must NOT
+    fail the build the same way an explicit ANCHORED entry would.
+    """
+    body = _minimal_valid()
+    body["schema_version"] = 1  # legacy
+    body["claims"][0]["priority"] = "P0"
+    body["claims"][0]["evidence_paths"] = ["totally/missing/path.py"]
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    claims = cc._parse_claims(registry)
+    assert claims[0].tier == "UNKNOWN"
+    failures = cc._validate_evidence(claims[0], ROOT)
+    assert failures == []  # warn-only on UNKNOWN tier
 
 
 # ---------------------------------------------------------------------------

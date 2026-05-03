@@ -24,6 +24,7 @@ This directory captures significant technical and governance decisions for GeoSy
 - [ADR 0018: Accelerator Observability](0018-accelerator-observability.md)
 - [ADR 0019: Distributed Tracing Carrier-Key Contract](0019-distributed-tracing-carrier-key-contract.md)
 - [ADR 0020: IERD-PAI-FPS-UX-001 Adoption](0020-ierd-adoption.md)
+- [ADR 0021: Falsifier-required ANCHORED claims (Phase 1 entry gate)](0021-falsifier-required-anchored-claims.md)
 
 ## Contributing
 

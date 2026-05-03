@@ -9,7 +9,7 @@
 
 id: ierd-phase0-adoption
 status: ACTIVE
-claim_type: governance
+claim_type: documentation
 promise: >
   GeoSync adopts IERD-PAI-FPS-UX-001 as a binding standard, layered
   on the existing CLAIMS.yaml registry: every claim now carries a
@@ -36,6 +36,10 @@ diff_scope:
     - path: "docs/validation/fps_audit_latest.json"
     - path: "tests/test_dfa_gamma_estimator.py"
     - path: "tests/core/dro_ara/test_invariants.py"
+    - path: "tests/scripts/test_check_claims.py"
+    - path: "tests/scripts/test_compute_pai.py"
+    - path: "tests/scripts/test_compute_fps_audit.py"
+    - path: "docs/adr/0021-falsifier-required-anchored-claims.md"
     - path: ".claude/commit_acceptors/ierd-phase0-adoption.yaml"
     - path: "INVENTORY.json"
   forbidden_paths:

@@ -5,10 +5,10 @@
   "total_anchored_or_extrapolated": 20,
   "qualifying": 20,
   "tier_distribution": {
-    "UNKNOWN": 4,
-    "EXTRAPOLATED": 1,
+    "SPECULATIVE": 0,
     "ANCHORED": 19,
-    "SPECULATIVE": 0
+    "UNKNOWN": 4,
+    "EXTRAPOLATED": 1
   },
   "audits": [
     {

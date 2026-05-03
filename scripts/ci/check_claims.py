@@ -47,10 +47,14 @@ ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 PRIORITIES_GATED = frozenset({"P0", "P1"})
 PRIORITIES_ALL = frozenset({"P0", "P1", "P2"})
 TIERS_VALID = frozenset({"ANCHORED", "EXTRAPOLATED", "SPECULATIVE", "UNKNOWN"})
-# v1 legacy default: behave as the pre-v2 gate did — every P0/P1
-# evidence path must exist. ANCHORED preserves that strictness; v2
-# entries opt into UNKNOWN explicitly when the evidence is aspirational.
-TIER_DEFAULT_LEGACY = "ANCHORED"
+# v1 legacy default: UNKNOWN. The pre-v2 gate's strict path-existence
+# check still runs because the gate enforces ``ANCHORED/EXTRAPOLATED ⇒
+# all paths exist`` only on those two tiers. A v1 entry without a tier
+# field cannot silently inherit ANCHORED — that would be the exact
+# IERD §1 loophole (a claim treated as anchored without declared
+# evidence quality). Operators must migrate v1 → v2 with an explicit
+# tier; until then their entries warn but do not gate.
+TIER_DEFAULT_LEGACY = "UNKNOWN"
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 

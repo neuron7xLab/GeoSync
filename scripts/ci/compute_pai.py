@@ -51,7 +51,11 @@ CLAUDE_MD_PATH = ROOT / "CLAUDE.md"
 OUTPUT_PATH = ROOT / "docs" / "validation" / "pai_latest.json"
 DEFAULT_THRESHOLD = 0.90
 
-INV_REFERENCE_RE = re.compile(r"\bINV-[A-Z0-9][A-Z0-9\-]*\b")
+# An INV reference is `INV-<TAG>` where TAG starts with an uppercase
+# letter or digit and may contain digits, uppercase letters, and
+# `-suffix` segments (e.g. INV-AC1-rev). Lowercase suffix is allowed
+# only after a hyphen — never as the first character.
+INV_REFERENCE_RE = re.compile(r"\bINV-[A-Z0-9][A-Z0-9]*(?:-[A-Za-z0-9]+)*\b")
 ROUTING_HEADING_RE = re.compile(
     r"^##\s+MODULE\s*→\s*INVARIANT\s+ROUTING", re.IGNORECASE | re.MULTILINE
 )
@@ -60,8 +64,14 @@ ROUTING_ROW_RE = re.compile(
     re.MULTILINE,
 )
 PATTERN_TOKEN_RE = re.compile(r"`([^`]+)`")
-INV_RANGE_RE = re.compile(r"INV-([A-Z0-9]+?)([0-9]+)\.\.([0-9]+)")
-INV_SINGLE_RE = re.compile(r"INV-([A-Z0-9][A-Z0-9\-]*)")
+# INV ranges in CLAUDE.md appear in two forms:
+#   "INV-K1..K7"      — prefix repeated on the right endpoint
+#   "INV-DRO1..5"     — bare digit on the right endpoint
+#   "INV-5HT1..2"     — prefix may begin with a digit (e.g. 5HT)
+INV_RANGE_RE = re.compile(
+    r"INV-(?P<prefix>[A-Z0-9][A-Z0-9]*?)(?P<start>[0-9]+)\.\.(?:(?P=prefix))?(?P<end>[0-9]+)"
+)
+INV_SINGLE_RE = re.compile(r"INV-([A-Z0-9][A-Z0-9]*(?:-[A-Za-z0-9]+)*)")
 
 TEST_DIRS: tuple[Path, ...] = (ROOT / "tests",)
 SOURCE_DIRS: tuple[Path, ...] = (
@@ -69,6 +79,28 @@ SOURCE_DIRS: tuple[Path, ...] = (
     ROOT / "runtime",
     ROOT / "geosync_hpc",
     ROOT / "geosync",
+)
+
+# CLAUDE.md "Forbidden:" anti-patterns. A test that contains any of
+# these on a stand-alone assertion line (no INV-* citation, no
+# error-message fields) cannot count as a falsifying test for an
+# invariant. The patterns are matched only on lines that *also* lack
+# an INV-* citation in the same line — INV-anchored asserts pass
+# even if they look magic-numbery, because the citation is the
+# context the rule asks for.
+FORBIDDEN_ASSERT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "magic-bare-bound",
+        re.compile(r"^\s*assert\s+\w+\s*[<>]=?\s*[0-9]+(?:\.[0-9]+)?\s*(?:#[^A-Z]*)?$"),
+    ),
+    (
+        "exact-stochastic",
+        re.compile(r"^\s*assert\s+\w+\s*==\s*0\.0\s*(?:#[^A-Z]*)?$"),
+    ),
+    (
+        "no-context",
+        re.compile(r"^\s*assert\s+\w+\.\w+\s*[<>]=?\s*0\s*(?:#[^A-Z]*)?$"),
+    ),
 )
 
 
@@ -85,6 +117,8 @@ class ModuleScore:
     declared_invariants: int
     distinct_inv_refs_in_tests: int
     test_files: list[str] = field(default_factory=list)
+    forbidden_assertion_count: int = 0
+    forbidden_assertion_files: list[str] = field(default_factory=list)
     covered: bool = False
 
 
@@ -110,6 +144,8 @@ class PaiSnapshot:
                     "declared_invariants": m.declared_invariants,
                     "distinct_inv_refs_in_tests": m.distinct_inv_refs_in_tests,
                     "test_files_count": len(m.test_files),
+                    "forbidden_assertion_count": m.forbidden_assertion_count,
+                    "forbidden_assertion_files": m.forbidden_assertion_files,
                     "covered": m.covered,
                 }
                 for m in self.modules
@@ -121,9 +157,9 @@ def _expand_invariants(invariants_cell: str) -> frozenset[str]:
     """Parse `INV-K1..K7` and `INV-DRO1..5` style range expansions."""
     ids: set[str] = set()
     for match in INV_RANGE_RE.finditer(invariants_cell):
-        prefix = match.group(1)
-        start = int(match.group(2))
-        end = int(match.group(3))
+        prefix = match.group("prefix")
+        start = int(match.group("start"))
+        end = int(match.group("end"))
         for i in range(start, end + 1):
             ids.add(f"INV-{prefix}{i}")
     cleaned = INV_RANGE_RE.sub("", invariants_cell)
@@ -187,6 +223,41 @@ def _count_inv_refs(test_files: Iterable[Path]) -> dict[str, set[Path]]:
     return inv_to_files
 
 
+def _relpath_or_abs(path: Path) -> str:
+    """Render a path relative to ROOT when possible; fall back to abs.
+
+    Defensive helper: synthetic test fixtures live under tmp_path
+    (outside ROOT) and would otherwise raise from ``relative_to``.
+    """
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _count_forbidden_assertions(test_file: Path) -> int:
+    """Count CLAUDE.md "Forbidden:" anti-pattern asserts in a test file.
+
+    A line counts as forbidden iff it matches one of FORBIDDEN_ASSERT_PATTERNS
+    AND does NOT carry an INV-* citation in the same line. The citation
+    is what redeems an otherwise magic-number-style assertion: a literal
+    bound is fine when the bound is named by an invariant.
+    """
+    try:
+        text = test_file.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return 0
+    count = 0
+    for line in text.splitlines():
+        if INV_REFERENCE_RE.search(line):
+            continue
+        for _name, pattern in FORBIDDEN_ASSERT_PATTERNS:
+            if pattern.match(line):
+                count += 1
+                break
+    return count
+
+
 def _score_modules(
     groups: list[ModuleGroup],
     inv_to_files: dict[str, set[Path]],
@@ -200,11 +271,20 @@ def _score_modules(
             if files_for_inv:
                 seen_invs.add(inv)
                 files_seen.update(files_for_inv)
+        forbidden_total = 0
+        forbidden_files: list[str] = []
+        for path in sorted(files_seen):
+            n = _count_forbidden_assertions(path)
+            if n:
+                forbidden_total += n
+                forbidden_files.append(f"{_relpath_or_abs(path)}:{n}")
         score = ModuleScore(
             label=group.label,
             declared_invariants=len(group.declared_invariants),
             distinct_inv_refs_in_tests=len(seen_invs),
-            test_files=sorted(p.relative_to(ROOT).as_posix() for p in files_seen),
+            test_files=sorted(_relpath_or_abs(p) for p in files_seen),
+            forbidden_assertion_count=forbidden_total,
+            forbidden_assertion_files=forbidden_files,
             covered=len(seen_invs) >= 3
             or (len(seen_invs) >= 1 and len(seen_invs) == len(group.declared_invariants)),
         )

@@ -19,7 +19,7 @@
     },
     {
       "path": "scripts/ci/check_claims.py",
-      "sha256": "42700a99e4cb7fff289ff2011dccd548eda609ce92266d762e982997b28e3bca"
+      "sha256": "d79f116973f8fbe7706b8851542f6587f7a247b37997a46785b58e4b727fbdbc"
     },
     {
       "path": "scripts/ci/check_config_sprawl.py",
@@ -43,7 +43,7 @@
     },
     {
       "path": "scripts/ci/compute_pai.py",
-      "sha256": "b0adaebc0a51e23706b42459f18f7abf744750bbbb75bb474bb2e0f3ddf822f9"
+      "sha256": "7c687cd68ac5a79898cb8caebf6c3742390e719fd2f249992ba88ae4acbf052e"
     },
     {
       "path": "scripts/ci/lint_forbidden_terms.py",
