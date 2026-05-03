@@ -71,9 +71,9 @@ def test_live_registry_has_at_least_one_p0(cc: Any) -> None:
     gate. We require at least one to keep the contract live."""
     registry = cc._load_registry(CLAIMS_PATH)
     claims = cc._parse_claims(registry)
-    assert any(c.priority == "P0" for c in claims), (
-        "no P0 claims registered — gate has nothing to enforce"
-    )
+    assert any(
+        c.priority == "P0" for c in claims
+    ), "no P0 claims registered — gate has nothing to enforce"
 
 
 def test_live_registry_ids_are_unique(cc: Any) -> None:
