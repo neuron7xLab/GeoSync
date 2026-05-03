@@ -10,26 +10,57 @@
 # `scripts/ci/check_claims.py`; missing evidence on a P0 / P1 claim
 # fails the build.
 #
-# Schema (per claim entry):
+# ---------------------------------------------------------------------
+# Schema v2 (2026-05-03, IERD-PAI-FPS-UX-001 adoption)
+# ---------------------------------------------------------------------
+#
+# Per-claim fields:
 #
 #   id              : str   — unique identifier (kebab-case).
 #   priority        : str   — one of {P0, P1, P2}. P0/P1 are gated.
+#   tier            : str   — IERD tier: ANCHORED | EXTRAPOLATED |
+#                              SPECULATIVE | UNKNOWN. Required at v2.
 #   description     : str   — one-sentence statement of the claim.
 #   evidence_paths  : list  — repo-relative paths required to exist.
 #                              Source files, tests, frozen artefacts.
 #   added_utc       : str   — ISO 8601 UTC date claim was registered.
 #
+# Tier semantics:
+#
+#   ANCHORED
+#     Evidence is complete: every artefact in evidence_paths exists,
+#     a falsifying test exists and is referenced, and the surface
+#     statement matches what the test verifies.
+#
+#   EXTRAPOLATED
+#     Evidence is partial: at least one of (test, artefact, citation)
+#     is named but has known limitation. The claim's description must
+#     explicitly enumerate the missing evidence and the confidence
+#     ceiling. May appear in product docs only with the limitation cited.
+#
+#   SPECULATIVE
+#     Hypothesis only — no falsifying test exists yet. Forbidden in
+#     README, product docs, API docs, and reports. Allowed only in
+#     research notes (paper/, research/, docs/research/).
+#
+#   UNKNOWN
+#     Tier not yet assessed. Must have a tracking issue and a deadline
+#     for re-classification. Treat as SPECULATIVE for surface text.
+#
 # Adding a claim: append an entry, ensure every evidence_path is
 # present, run `python scripts/ci/check_claims.py` locally before push.
 # Promoting a P2 → P1 / P0 is a *contract change* and should be
 # reviewed as carefully as a public API rename.
+# Promoting EXTRAPOLATED → ANCHORED is a *contract change*: either
+# the missing evidence has been added, or the description was tightened.
 
-schema_version: 1
+schema_version: 2
 
 claims:
 
   - id: hpc-runtime-state-seal-bit-identical
     priority: P0
+    tier: ANCHORED
     description: >
       BacktesterCAL.run produces bit-identical output on repeated calls
       against the same calibrated instance — every streaming component
@@ -47,6 +78,7 @@ claims:
 
   - id: hpc-fixed-point-ledger-conservation
     priority: P0
+    tier: ANCHORED
     description: >
       The fixed-point execution ledger preserves the conservation
       identity (cash + position*mark = const, modulo trade cost) to
@@ -59,6 +91,7 @@ claims:
 
   - id: hpc-indexed-rng-control-flow-free
     priority: P0
+    tier: ANCHORED
     description: >
       Event-addressed RNG (BLAKE2b → PCG64 keyed by
       seed/stream/event_id/event_index) returns the same value for
@@ -72,6 +105,7 @@ claims:
 
   - id: hpc-runtime-state-envelope-integrity
     priority: P0
+    tier: ANCHORED
     description: >
       Snapshot/restore envelope is typed (envelope_version),
       versioned (schema_version), and SHA-256-checksummed; tampered
@@ -84,6 +118,7 @@ claims:
 
   - id: hpc-session-lifecycle-explicit-fsm
     priority: P1
+    tier: ANCHORED
     description: >
       BacktesterCAL session lifecycle is an explicit FSM with
       8 states, 13 declared transitions, terminal absorption, and
@@ -96,6 +131,7 @@ claims:
 
   - id: robustness-hac-psr-newey-west
     priority: P1
+    tier: ANCHORED
     description: >
       Probabilistic Sharpe Ratio carries a HAC-adjusted variant via
       Newey–West Bartlett kernel with the NW(1994) automatic
@@ -109,11 +145,16 @@ claims:
 
   - id: cross-asset-walkforward-artifact-integrity
     priority: P1
+    tier: EXTRAPOLATED
     description: >
       The frozen cross-asset Kuramoto walk-forward bundle satisfies
       the protocol thresholds (robust=True, ≥4/5 folds beat BTC,
       median Sharpe > 0.5, |Δ| < 0.05 vs spike) and preserves the
       2022 fold-3 loss (honesty gate against retro-tampering).
+      EXTRAPOLATED scope: artefact integrity is ANCHORED; the live
+      out-of-sample edge is conditioned on regime persistence — see
+      docs/audit/ierd_phase0_findings.md and the honest-null discussion
+      in docs/cross_asset_kuramoto/ for the p≈0.09 caveat.
     evidence_paths:
       - tests/core/cross_asset_kuramoto/test_walkforward_artifact.py
       - results/cross_asset_kuramoto/walkforward_integrated.json
@@ -122,6 +163,7 @@ claims:
 
   - id: ricci-microstructure-ten-axis-falsification
     priority: P1
+    tier: ANCHORED
     description: >
       The Ricci cross-sectional edge on L2 microstructure passes ten
       orthogonal validation axes (kill test, block-bootstrap CI,
@@ -133,3 +175,245 @@ claims:
       - paper/ricci_microstructure/paper.tex
       - paper/ricci_microstructure/references.bib
     added_utc: "2026-04-25"
+
+  # ---------------------------------------------------------------
+  # IERD Phase-0 (2026-05-03) — invariant-anchored physics claims.
+  # Each entry maps a CLAUDE.md INV-* registry block to the source
+  # module and falsifying test set. PAI computation cites these.
+  # ---------------------------------------------------------------
+
+  - id: kuramoto-order-parameter-bounded
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Kuramoto order parameter R(t) is universally bounded
+      0 ≤ R(t) ≤ 1 for all t (INV-K1), and on the Ott–Antonsen
+      reduction |z(t)| ≤ 1 always (INV-OA1). Subcritical decay
+      R(t→∞) → 0 for K < K_c (INV-K2 / INV-OA3) and supercritical
+      growth R_∞ ∝ √(K − K_c) (INV-K3) are verified by sweep tests.
+    evidence_paths:
+      - core/kuramoto
+      - core/kuramoto/ott_antonsen.py
+      - tests/unit/physics/test_T23_ott_antonsen_chimera.py
+    added_utc: "2026-05-03"
+
+  - id: lyapunov-mle-finite-bounded
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Maximum Lyapunov exponent (MLE) is finite for any bounded
+      finite input series (INV-LE1) and qualitatively classifies
+      regime: noise ≈ 0, stable < 0, chaos > 0 (INV-LE2). Spectral
+      graph Laplacian λ₂ ≥ 0 (INV-SG1) and λ₂ > 0 ⟺ connectivity
+      (INV-SG2) gate the coupling-graph viability.
+    evidence_paths:
+      - core/physics/lyapunov_exponent.py
+      - tests/unit/physics/test_T22_lyapunov_spectral.py
+    added_utc: "2026-05-03"
+
+  - id: serotonin-controller-bounded-veto
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Serotonin ODE: Lyapunov V(s) non-increasing under zero stress
+      (INV-5HT1); s(t) ∈ [0, 1] always (INV-5HT2); sensitivity ∈
+      [0.1, 1.0] (INV-5HT4); tonic_level finite ≥ 0 (INV-5HT6);
+      veto fires on stress ≥ 1.0 OR |dd| ≥ 0.5 (INV-5HT7, SAFETY).
+      The "production-ready" verdict in surface docs is downgraded
+      to "tested under controlled fixtures" pending live-venue
+      evidence (KNOWN_LIMITATIONS L-1).
+    evidence_paths:
+      - core/neuro/serotonin_ode.py
+      - core/neuro/serotonin
+      - tests/core/neuro/serotonin/test_serotonin_controller.py
+      - tests/core/neuro/serotonin/test_serotonin_properties.py
+      - tests/unit/physics/test_T12_serotonin_stability.py
+    added_utc: "2026-05-03"
+
+  - id: dopamine-td-error-algebraic-exact
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Dopamine TD-error δ = r + γV′ − V is algebraic and tested to
+      float precision: ∂δ/∂r = 1 (INV-DA7); δ-sign matches surprise
+      direction (INV-DA1); γ ∈ (0, 1] within DopamineController
+      scope (INV-DA3). Asymptotic Robbins–Monro convergence V → V*
+      (INV-DA2) verified statistically on fixed-reward fixtures.
+    evidence_paths:
+      - core/neuro/dopamine_execution_adapter.py
+      - tests/core/neuro/dopamine/test_dopamine_controller.py
+      - tests/test_dopamine_controller.py
+      - tests/unit/physics/test_T11_dopamine_algebraic.py
+    added_utc: "2026-05-03"
+
+  - id: gaba-inhibition-monotone-bounded
+    priority: P0
+    tier: ANCHORED
+    description: >
+      GABA gate ∈ [0, 1] (INV-GABA1); higher volatility → higher
+      inhibition (INV-GABA2); effective ≤ raw always (INV-GABA3);
+      vol → 0 ⟹ inhibition ≈ 0 (INV-GABA4); vol → ∞ ⟹ inhibition
+      → 1 (INV-GABA5).
+    evidence_paths:
+      - core/neuro/gaba_position_gate.py
+      - tests/test_gaba_inhibition_gate.py
+      - tests/unit/core/neuro/test_gaba_position_gate.py
+    added_utc: "2026-05-03"
+
+  - id: ricci-curvature-bounded
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Ricci curvature universal upper bound κ ≤ 1 on any connected
+      graph (INV-RC1). On build_price_graph output κ ∈ [−1, 1]
+      (INV-RC3). Lower-bound caveat for non-price-graph topologies
+      is documented in CLAUDE.md and KNOWN_LIMITATIONS.
+    evidence_paths:
+      - tests/unit/physics/test_T10_ricci_bounds.py
+      - tests/test_augmented_ricci.py
+    added_utc: "2026-05-03"
+
+  - id: kelly-sizing-cap-enforced
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Kelly continuous-small-edge sizing f* = μ/σ² (INV-KELLY1)
+      with applied fraction always ≤ configured cap (INV-KELLY2),
+      and growth-optimal expectation E[log(1+f*X)] ≥ E[log(1+f'X)]
+      for all f' (INV-KELLY3) under stated independence assumption.
+    evidence_paths:
+      - core/neuro/sizing.py
+      - core/neuro/kuramoto_kelly.py
+      - analytics/math_trading/kelly_criterion.py
+      - tests/neuro/test_sizing.py
+      - tests/analytics/test_kelly_criterion.py
+      - tests/unit/physics/test_T14_portfolio_energy_conservation.py
+    added_utc: "2026-05-03"
+
+  - id: oms-conservation-idempotency-monotone
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Order-management E_kinetic = ½Σ|pos|·ret² ≥ 0 (INV-OMS1);
+      same correlation_id is idempotent (INV-OMS2); per-order
+      timestamps monotone (INV-OMS3).
+    evidence_paths:
+      - tests/unit/physics/test_T15_oms_idempotency_causality.py
+    added_utc: "2026-05-03"
+
+  - id: signalbus-deterministic-fanout
+    priority: P0
+    tier: ANCHORED
+    description: >
+      SignalBus DAG fanout: each subscriber fires once per publish
+      (INV-SB1); deterministic by construction (INV-SB2). Cyclic
+      subscription is documented as RecursionError, not clean
+      rejection — this is a tested, documented limit, not a bug.
+    evidence_paths:
+      - core/neuro/signal_bus.py
+      - tests/unit/physics/test_T16_signalbus_dag.py
+    added_utc: "2026-05-03"
+
+  - id: cryptobiosis-phase-transition-survival
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Cryptobiosis ACTIVE → VITRIFYING → DORMANT → REHYDRATING →
+      ACTIVE: DORMANT ⟹ multiplier == 0.0 EXACTLY (INV-CB1);
+      vitrification O(1) one-tick (INV-CB2); rehydration stages
+      non-decreasing (INV-CB4); T ∈ [0, 1] (INV-CB6); exit < entry
+      hysteresis (INV-CB7); T ≥ entry during rehydration → DORMANT
+      (INV-CB8).
+    evidence_paths:
+      - core/neuro/cryptobiosis.py
+      - tests/unit/physics/test_T17_cryptobiosis.py
+    added_utc: "2026-05-03"
+
+  - id: dro-ara-regime-fail-closed
+    priority: P0
+    tier: ANCHORED
+    description: >
+      DRO-ARA regime observer: γ = 2H + 1 to float precision
+      (INV-DRO1); rs = max(0, 1 − |γ − 1|) ∈ [0, 1] (INV-DRO2);
+      regime == INVALID iff (¬stationary ∨ R² < 0.90) (INV-DRO3);
+      LONG signal requires CRITICAL ∧ rs > 0.33 ∧ trend ∈
+      {CONVERGING, STABLE} (INV-DRO4); NaN/Inf/constant/rank/short
+      input → ValueError, no silent numeric repair (INV-DRO5).
+    evidence_paths:
+      - core/dro_ara/engine.py
+    added_utc: "2026-05-03"
+
+  - id: ierd-phase0-yana-response
+    priority: P1
+    tier: ANCHORED
+    description: >
+      IERD-PAI-FPS-UX-001 Phase-0 response to the 2026-05-02
+      external falsification audit is published with tier-labeled
+      answers to all 7 questions, the directive is adopted as a
+      binding standard, and the forbidden-terminology lint runs in
+      warn mode in CI.
+    evidence_paths:
+      - docs/governance/IERD-PAI-FPS-UX-001.md
+      - docs/adr/0020-ierd-adoption.md
+      - docs/yana-response.md
+      - docs/audit/ierd_phase0_findings.md
+      - docs/validation/pai_report_2026_05_03.md
+      - scripts/ci/lint_forbidden_terms.py
+    added_utc: "2026-05-03"
+
+  # ---------------------------------------------------------------
+  # IERD Phase-0 (2026-05-03) — frontend-integration gaps tracked
+  # as EXTRAPOLATED claims with explicit missing-evidence enumeration.
+  # ---------------------------------------------------------------
+
+  - id: api-contract-openapi-coverage
+    priority: P1
+    tier: UNKNOWN
+    description: >
+      All publicly exposed endpoints carry an OpenAPI 3.1 specification
+      with JSON Schema input/output contracts and a Schemathesis
+      contract-test suite. Status: UNKNOWN at Phase-0 — tracked by
+      issue IERD-Q4 (link in docs/yana-response.md). Re-classify on
+      Phase-3 entry.
+    evidence_paths:
+      - docs/yana-response.md
+    added_utc: "2026-05-03"
+
+  - id: ux-readiness-state-coverage
+    priority: P1
+    tier: UNKNOWN
+    description: >
+      Every endpoint declares the six required UX states (success,
+      empty, partial, validation_error, server_error, timeout) with
+      a standard error envelope and a frontend rendering for each.
+      Status: UNKNOWN at Phase-0 — tracked by issue IERD-Q5.
+      Re-classify on Phase-4 entry.
+    evidence_paths:
+      - docs/yana-response.md
+    added_utc: "2026-05-03"
+
+  - id: e2e-latency-budget-compliance
+    priority: P1
+    tier: UNKNOWN
+    description: >
+      End-to-end latency instrumentation across four layers
+      (client_render, network_TTFB, server_compute, db_io) green
+      against the budget (FCP < 1.0 s, TTFB < 300 ms, server p95
+      < 100 ms, interactive p95 < 200 ms). Status: UNKNOWN at
+      Phase-0 — tracked by issue IERD-Q6. Re-classify on Phase-4 entry.
+    evidence_paths:
+      - docs/yana-response.md
+    added_utc: "2026-05-03"
+
+  - id: edge-case-coverage-matrix
+    priority: P1
+    tier: UNKNOWN
+    description: >
+      Edge-case coverage matrix (endpoint × state × test_id) at
+      ECC ≥ 0.90, with mocked-failure E2E tests for network failure
+      and timeout, and a user-visible recoverable path for simulation
+      divergence. Status: UNKNOWN at Phase-0 — tracked by issue
+      IERD-Q7. Re-classify on Phase-4 entry.
+    evidence_paths:
+      - docs/yana-response.md
+    added_utc: "2026-05-03"

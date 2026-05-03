@@ -5,9 +5,11 @@
 # Reads ``docs/CLAIMS.yaml`` and verifies that every gated (P0/P1)
 # claim's evidence paths exist in the working tree. A claim that
 # names artefacts the repository no longer ships breaks the build.
+# A second job runs the IERD-PAI-FPS-UX-001 forbidden-terminology
+# lint in warn-only mode (Phase 0 — see docs/adr/0020-ierd-adoption.md).
 #
-# Path-filtered: a PR that does not touch the registry, the script,
-# or its tests skips the job entirely.
+# Path-filtered: a PR that does not touch the registry, the scripts,
+# or their tests skips the jobs entirely.
 name: Claim Evidence Gate
 
 on:
@@ -15,14 +17,24 @@ on:
     branches: [main]
     paths:
       - "docs/CLAIMS.yaml"
+      - "docs/governance/**"
+      - "docs/audit/**"
+      - "docs/adr/**"
+      - "docs/yana-response.md"
       - "scripts/ci/check_claims.py"
+      - "scripts/ci/lint_forbidden_terms.py"
       - "tests/scripts/test_check_claims.py"
       - ".github/workflows/claims-evidence-gate.yml"
   push:
     branches: [main]
     paths:
       - "docs/CLAIMS.yaml"
+      - "docs/governance/**"
+      - "docs/audit/**"
+      - "docs/adr/**"
+      - "docs/yana-response.md"
       - "scripts/ci/check_claims.py"
+      - "scripts/ci/lint_forbidden_terms.py"
       - "tests/scripts/test_check_claims.py"
       - ".github/workflows/claims-evidence-gate.yml"
 
@@ -48,3 +60,22 @@ jobs:
 
       - name: Validate claim registry
         run: python scripts/ci/check_claims.py
+
+  lint-forbidden-terms:
+    # IERD-PAI-FPS-UX-001 §3 forbidden-terminology lint.
+    # Phase 0: warn-only — informational, does not gate merge.
+    # Phase 5: promote to `--strict` per docs/adr/0020-ierd-adoption.md.
+    name: ierd-forbidden-terms-lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Run forbidden-terms lint (warn-only)
+        run: python scripts/ci/lint_forbidden_terms.py

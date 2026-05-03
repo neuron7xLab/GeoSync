@@ -94,6 +94,58 @@ confirmed no production paths imported from them, the `archive/`,
 removed as part of the repo-hygiene tier-1 cleanup. Git history
 preserves their contents for any historical reference.
 
+## L-7 · Frontend integration surface is undeclared (IERD Phase 0)
+
+The repository ships a quantitative-trading kernel and a research
+workbench. It does not currently ship a unified public HTTP API
+surface that an external frontend can integrate against:
+
+* No single OpenAPI 3.1 specification covers all exposed endpoints.
+* No versioned routing scheme (`/v{N}/`) is enforced repository-wide.
+* No standard error envelope (`{error_code, message, details, trace_id, recoverable}`) is enforced across services.
+* Long-running computations are not exposed under a unified
+  `job_id + status + WebSocket/SSE` async pattern.
+
+This is registered in [`docs/CLAIMS.yaml`](CLAIMS.yaml) as the
+`api-contract-openapi-coverage` entry with tier `UNKNOWN`. It is
+re-classified to `ANCHORED` on Phase-3 entry of the IERD adoption
+plan ([ADR 0020](adr/0020-ierd-adoption.md)). External-audit tracking:
+`docs/yana-response.md` Q4.
+
+## L-8 · UX state contracts not declared (IERD Phase 0)
+
+Endpoints today do not declare the six required UX states (`success`,
+`empty`, `partial`, `validation_error`, `server_error`, `timeout`)
+nor a frontend rendering for each. UX Readiness Score (UXRS) is
+therefore not computable at Phase 0.
+
+Tracked under `ux-readiness-state-coverage` (tier `UNKNOWN`).
+Re-classified on Phase-4 entry of the IERD adoption plan.
+
+## L-9 · End-to-end latency budget instrumented only at server layer
+
+Server-side latency is measured under `bench/`, `benchmarks/`, and
+`loadtests/` with HPC kernel determinism guards. The client_render
+(Web Vitals / Lighthouse), network_TTFB, and db_io layers are not
+covered by repository-level regression-gated CI. End-to-end latency
+budget compliance (FCP, TTFB, server p95, interactive p95) is
+therefore `UNKNOWN`.
+
+Tracked under `e2e-latency-budget-compliance` (tier `UNKNOWN`).
+Re-classified on Phase-4 entry of the IERD adoption plan.
+
+## L-10 · UX-level edge cases not in a tracked matrix
+
+Kernel-level edge cases (NaN/Inf input, constant input, rank-deficient
+input, divergent simulation) are tested heavily — see `INV-DRO5`,
+`INV-HPC2`, `INV-FE2`, etc. UX-level edge cases (empty result set,
+partial result, server timeout, network failure, validation error,
+simulation divergence presented to a human) are not covered by a
+formal `(endpoint × state × test_id)` matrix.
+
+Tracked under `edge-case-coverage-matrix` (tier `UNKNOWN`).
+Re-classified on Phase-4 entry of the IERD adoption plan.
+
 ---
 
 If you find a limitation of the platform that is not listed here, that
