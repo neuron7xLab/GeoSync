@@ -27,7 +27,10 @@ diff_scope:
     - path: "docs/reset_wave_validation_report.md"
     - path: "docs/stability_bounds.md"
     - path: "docs/adr/0022-reset-wave-engineering-model.md"
+    - path: "docs/adr/0023-reset-wave-distributed-resilience.md"
     - path: "docs/validation/reset_wave_validation_summary.json"
+    - path: "geosync/neuroeconomics/reset_wave_distributed.py"
+    - path: "tests/test_reset_wave_distributed_resilience.py"
     - path: ".claude/commit_acceptors/ierd-phase0-reset-wave-integration.yaml"
   forbidden_paths:
     - "trading/"
@@ -46,6 +49,14 @@ required_python_symbols:
   - "run_reset_wave"
   - "latent_interpretive_forecast_layer"
   - "audit_critical_centers"
+  - "JitterEnvelope"
+  - "StalenessGate"
+  - "ConcurrencyGuard"
+  - "PartialFailureDetector"
+  - "DiscontinuityMonitor"
+  - "DistributedResetWaveConfig"
+  - "DistributedResetWaveResult"
+  - "run_reset_wave_distributed"
 expected_signal: >
   pytest tests/test_reset_wave_engine.py
         tests/test_reset_wave_physics_laws.py

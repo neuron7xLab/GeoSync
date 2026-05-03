@@ -2,13 +2,13 @@
   "fps_audit": 1.0,
   "threshold": 1.0,
   "threshold_met": true,
-  "total_anchored_or_extrapolated": 26,
-  "qualifying": 26,
+  "total_anchored_or_extrapolated": 27,
+  "qualifying": 27,
   "tier_distribution": {
-    "ANCHORED": 20,
-    "UNKNOWN": 0,
     "SPECULATIVE": 0,
-    "EXTRAPOLATED": 6
+    "ANCHORED": 20,
+    "EXTRAPOLATED": 7,
+    "UNKNOWN": 0
   },
   "audits": [
     {
@@ -196,7 +196,17 @@
       "tier": "ANCHORED",
       "priority": "P0",
       "has_test_evidence": true,
-      "has_artefact_evidence": false,
+      "has_artefact_evidence": true,
+      "all_paths_exist": true,
+      "counts_for_numerator": true,
+      "missing_paths": []
+    },
+    {
+      "id": "reset-wave-distributed-resilience",
+      "tier": "EXTRAPOLATED",
+      "priority": "P0",
+      "has_test_evidence": true,
+      "has_artefact_evidence": true,
       "all_paths_exist": true,
       "counts_for_numerator": true,
       "missing_paths": []
@@ -246,7 +256,7 @@
       "tier": "EXTRAPOLATED",
       "priority": "P1",
       "has_test_evidence": true,
-      "has_artefact_evidence": false,
+      "has_artefact_evidence": true,
       "all_paths_exist": true,
       "counts_for_numerator": true,
       "missing_paths": []

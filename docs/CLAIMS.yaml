@@ -402,6 +402,13 @@ claims:
       (iii) any |Δφ| > max_phase_error trips the fail-closed safety lock,
       after which final_potential == initial_potential exactly;
       (iv) same input + config ⇒ bit-identical ResetWaveResult.
+      SCOPE (Wave-7 tightening): the four invariants hold ONLY under
+      ideal computational conditions — single-process, synchronous
+      input, no clock skew, no dropped or out-of-order updates, no
+      concurrent writers. Distributed asynchronous resilience is
+      tracked as a separate claim (reset-wave-distributed-resilience)
+      with its own adapter and adversarial test surface; see also
+      KNOWN_LIMITATIONS L-12.
       FACT/MODEL/ANALOGY scope discipline applied per IERD §4.2: the
       "homeostatic" / "reset-wave" language is ANALOGY tier; FACT is the
       Kuramoto-style discrete step; MODEL is the numerical relaxation
@@ -432,6 +439,48 @@ claims:
         max_phase_error not tripping the lock OR any non-determinism
         on identical inputs must surface a 5-field assertion message
         naming INV-RESET1..4 + the offending (coupling_gain, dt) cell.
+    added_utc: "2026-05-03"
+
+  - id: reset-wave-distributed-resilience
+    priority: P0
+    tier: EXTRAPOLATED
+    description: >
+      The distributed-resilience adapter
+      (geosync.neuroeconomics.reset_wave_distributed) intercepts five
+      async failure modes that violate the ideal-conditions assumption
+      of reset-wave-phase-synchronization: (1) clock-jitter envelope
+      via JitterEnvelope, (2) staleness via StalenessGate, (3)
+      out-of-order replay via ConcurrencyGuard, (4) partial node
+      failure via PartialFailureDetector, (5) re-entry / adversarial
+      gradient jumps via DiscontinuityMonitor. On any guard violation
+      the adapter fires a fail-closed safety lock with an explicit
+      `fail_reason`; the base solver does not run. EXTRAPOLATED scope:
+      the guards are fail-closed by construction (FACT — tested per
+      branch) but together they DO NOT deliver CAP-theorem-level
+      consensus or distributed clock synchronisation; they refuse to
+      compute on inputs that violate their preconditions. Residual gap
+      documented in KNOWN_LIMITATIONS L-12.
+    evidence_paths:
+      - geosync/neuroeconomics/reset_wave_distributed.py
+      - tests/test_reset_wave_distributed_resilience.py
+      - docs/adr/0023-reset-wave-distributed-resilience.md
+    falsifier:
+      test_id: tests/test_reset_wave_distributed_resilience.py::test_distributed_discontinuity_monitor_flags_re_entry
+      invariants_cited:
+        - INV-RESET-DIST1
+        - INV-RESET-DIST2
+        - INV-RESET-DIST3
+        - INV-RESET-DIST4
+        - INV-RESET-DIST5
+      failure_signature: >
+        any of: jitter beyond envelope not flagging jitter_violation;
+        timestamps older than max_age_ns not surfacing stale_indices;
+        node sequence ≤ last_seq not raising concurrency violation;
+        missing active node not surfacing missing_indices; new V
+        exceeding prev V by > tolerance not flagging discontinuity;
+        ANY guard violation allowing the base solver to perform an
+        active update — any of these must produce an explicit
+        INV-RESET-DIST1..5 assertion message naming the guard.
     added_utc: "2026-05-03"
 
   - id: dro-ara-regime-fail-closed

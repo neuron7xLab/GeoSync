@@ -171,6 +171,46 @@ replication. Closure path: Phase-1 entry per [ADR 0021](adr/0021-falsifier-requi
 includes the option for a third party to attest the falsifier
 fingerprint of every ANCHORED claim, breaking the closed loop.
 
+## L-12 · Reset-wave numerical model is single-process synchronous
+
+The four numerical invariants of `geosync.neuroeconomics.reset_wave_engine`
+(see `docs/reset_wave_validation_report.md` and the
+`reset-wave-phase-synchronization` claim in `docs/CLAIMS.yaml`) hold
+**only under ideal computational conditions**: single-process,
+synchronous input, no clock skew, no dropped updates, no concurrent
+writers.
+
+In real distributed asynchronous environments — financial market data
+feeds, IoT meshes, multi-process simulators — the following failure
+modes break the potential-non-increase guarantee:
+
+1. Clock-jitter on update arrival (`V` can spike before the next damped step).
+2. Dropped or out-of-order updates (silent drift between θ_t and θ_baseline).
+3. Partial node failure (a subset of nodes is silently stale).
+4. Re-entry after failure (recovered node injects an old phase).
+5. Concurrent writers (two callers interleave updates and step).
+
+`geosync.neuroeconomics.reset_wave_distributed` adds five fail-closed
+guards (`JitterEnvelope`, `StalenessGate`, `ConcurrencyGuard`,
+`PartialFailureDetector`, `DiscontinuityMonitor`) that **refuse to
+compute** when an async failure mode is detected; this is documented
+under the `reset-wave-distributed-resilience` claim with tier
+`EXTRAPOLATED`.
+
+What the resilience adapter does **NOT** provide:
+
+* CAP-theorem-level distributed consensus,
+* distributed clock synchronisation (no NTP / PTP integration),
+* automatic recovery from a failed node — the operator-side response
+  is still required.
+
+The adapter turns silent divergence into an explicit safety lock with
+`fail_reason`. It does not turn a partitioned async network into a
+synchronous one. Closure path: a future Phase-2 ADR will integrate
+with an existing distributed runtime (e.g. the GeoSync `runtime/`
+deterministic scheduler) to lift the EXTRAPOLATED tier to ANCHORED
+once the integration test surface exists.
+
 ---
 
 If you find a limitation of the platform that is not listed here, that
