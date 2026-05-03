@@ -275,6 +275,6 @@ def test_live_pai_at_or_above_phase0_threshold(cp: Any) -> None:
 def test_live_pai_module_count_matches_routing(cp: Any) -> None:
     """Catch silent routing-table edits that drop modules."""
     snapshot = cp.compute_pai(threshold=0.9)
-    assert snapshot.total_declared >= 19, (
-        f"routing table shrunk to {snapshot.total_declared} modules"
-    )
+    assert (
+        snapshot.total_declared >= 19
+    ), f"routing table shrunk to {snapshot.total_declared} modules"
