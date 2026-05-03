@@ -31,6 +31,7 @@ diff_scope:
     - path: "scripts/ci/check_claims.py"
     - path: "scripts/ci/lint_forbidden_terms.py"
     - path: ".claude/commit_acceptors/ierd-phase0-adoption.yaml"
+    - path: "INVENTORY.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
