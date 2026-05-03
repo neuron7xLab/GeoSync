@@ -50,7 +50,7 @@ class HomeostaticState:
 
 @dataclass(frozen=True, slots=True)
 class ResetWaveReport:
-    """Result of a damped phase-synchronization step (reset wave)."""
+    """Result of decentralized reset wave synchronization."""
 
     activation_trigger: str
     write_ops_inhibited: bool
@@ -228,39 +228,32 @@ class NeuroHomeostaticStabilizer:
         node_phases: list[float],
         baseline_phases: list[float],
         *,
-        coupling_gain: float = 1.0,
+        serotonin_gain: float = 1.0,
         convergence_tol: float = 0.05,
         max_phase_error: float = math.pi,
     ) -> ResetWaveReport:
-        """Run a single damped phase-synchronization step toward baseline.
+        """Run decentralized reset wave to pull nodes back to baseline phase.
 
-        FACT (numerical model): single-step Kuramoto-style phase
-        correction on the compact manifold ``[-π, π)``.
-            S_reset = mean(sin(θ_baseline − θ_node)) · coupling_gain
-        MODEL (interpretation): a one-shot "reset wave" toward a
-        baseline reference. The longer trajectory + stability bounds
-        live in :mod:`geosync.neuroeconomics.reset_wave_engine`.
-        ANALOGY (NHS metaphor only): "homeostatic reset". Not a
-        thermodynamic or neurobiological law.
+        Implements a Kuramoto-style phase correction:
+            S_reset = mean(sin(theta_base - theta_i)) * gamma_serotonin
 
-        Falsifiable invariant (closed digital system):
-            ``post_reset_energy ≤ pre_reset_energy``
-        where energy is the bounded phase potential
-        ``mean(1 − cos(Δφ))``.
+        Thermodynamic invariant (closed digital system analogue):
+            pre_reset_energy >= post_reset_energy
+        where energy is a phase potential based on (1 - cos(delta_phase)).
         """
         if len(node_phases) != len(baseline_phases):
             raise ValueError("node_phases and baseline_phases must have equal length")
         if not node_phases:
             raise ValueError("at least one node phase is required")
-        if coupling_gain <= 0:
-            raise ValueError("coupling_gain must be > 0")
+        if serotonin_gain <= 0:
+            raise ValueError("serotonin_gain must be > 0")
         if max_phase_error <= 0:
             raise ValueError("max_phase_error must be > 0")
 
         phase_diffs = [base - node for node, base in zip(node_phases, baseline_phases)]
         phase_errors = [abs(diff) for diff in phase_diffs]
         if any(err > max_phase_error for err in phase_errors):
-            pre_reset_energy = coupling_gain * (
+            pre_reset_energy = serotonin_gain * (
                 sum(1.0 - math.cos(diff) for diff in phase_diffs) / len(phase_diffs)
             )
             return ResetWaveReport(
@@ -276,14 +269,14 @@ class NeuroHomeostaticStabilizer:
                 safety_lock=True,
             )
         avg_error = sum(phase_errors) / len(phase_errors)
-        pre_reset_energy = coupling_gain * (
+        pre_reset_energy = serotonin_gain * (
             sum(1.0 - math.cos(diff) for diff in phase_diffs) / len(phase_diffs)
         )
-        reset_energy = coupling_gain * (
+        reset_energy = serotonin_gain * (
             sum(math.sin(diff) for diff in phase_diffs) / len(phase_diffs)
         )
         corrected_phase_diffs = [diff - reset_energy for diff in phase_diffs]
-        post_reset_energy = coupling_gain * (
+        post_reset_energy = serotonin_gain * (
             sum(1.0 - math.cos(diff) for diff in corrected_phase_diffs) / len(corrected_phase_diffs)
         )
         energy_delta = post_reset_energy - pre_reset_energy
