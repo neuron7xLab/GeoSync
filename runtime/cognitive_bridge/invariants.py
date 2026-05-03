@@ -58,9 +58,15 @@ CB_INVARIANTS: Mapping[InvariantId, Invariant] = {
     InvariantId.CB_INV_3_ADVISORY_ONLY: Invariant(
         invariant_id=InvariantId.CB_INV_3_ADVISORY_ONLY,
         description=(
-            "AdvisoryResponse never overrides host state; the host treats "
-            "every reply as Layer-2 advisory input only (default tier "
-            "SPECULATIVE)."
+            "AdvisoryResponse is a frozen Pydantic model with extra='forbid' "
+            "and exposes no mutator API. The bridge therefore CANNOT carry "
+            "an executable side-effect back to the host: the only payload "
+            "available is descriptive text plus a tier label that defaults "
+            "to SPECULATIVE. Falsified by: (a) the model becoming mutable, "
+            "(b) any new field that admits a callable / executable, or "
+            "(c) the tier defaulting to a non-speculative value. The host "
+            "contract is documentary; structural enforcement lives in the "
+            "schema."
         ),
         severity="P0",
     ),

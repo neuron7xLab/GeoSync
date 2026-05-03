@@ -86,7 +86,9 @@ def test_cb_inv_2_timeout_collapses_to_unavailable() -> None:
 
 
 def test_cb_inv_3_advisory_only_default_tier_is_speculative() -> None:
-    # Even a deterministic handler returning OK is treated as Layer-2 advice.
+    # Branch (c) of the falsification contract: tier MUST default to
+    # SPECULATIVE on a free-form reply. If a future change defaults it
+    # to ANCHORED the host could mistake LLM output for ground truth.
     def ok_handler(req: AdvisoryRequest) -> AdvisoryResponse:
         return AdvisoryResponse(
             correlation_id=req.correlation_id(),
@@ -97,8 +99,51 @@ def test_cb_inv_3_advisory_only_default_tier_is_speculative() -> None:
     sidecar = _make(ok_handler)
     response = sidecar.advise(_stress_request())
     assert response.status is AdvisoryStatus.OK
-    # Tier defaults to SPECULATIVE on free-form replies; host must reconcile.
     assert response.tier.value == "speculative"
+
+
+def test_cb_inv_3_advisory_response_is_frozen() -> None:
+    # Branch (a) of the falsification contract: AdvisoryResponse MUST
+    # be immutable, otherwise a host could mutate the reply mid-flight
+    # and re-publish it as authoritative state.
+    response = AdvisoryResponse(
+        correlation_id="a" * 64,
+        status=AdvisoryStatus.OK,
+        recommendation="hold",
+    )
+    with pytest.raises(Exception):
+        response.status = AdvisoryStatus.UNAVAILABLE  # type: ignore[misc]
+    with pytest.raises(Exception):
+        response.recommendation = "MARKET ORDER NOW"  # type: ignore[misc]
+
+
+def test_cb_inv_3_advisory_response_rejects_extra_fields() -> None:
+    # Branch (b) of the falsification contract: extra='forbid' MUST
+    # block any new field that could carry a callable, code blob, or
+    # other executable side-effect into the host process.
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        AdvisoryResponse(
+            correlation_id="a" * 64,
+            status=AdvisoryStatus.OK,
+            execute_now=True,  # type: ignore[call-arg]
+        )
+
+
+def test_cb_inv_3_advisory_response_exposes_no_callable_fields() -> None:
+    # Structural sweep: nothing in the public schema should be a
+    # callable type — the response is descriptive text + enum + hash.
+    schema = AdvisoryResponse.model_json_schema()
+    for name, field in schema.get("properties", {}).items():
+        field_type = field.get("type")
+        assert field_type in {
+            "string",
+            "boolean",
+            "integer",
+            "number",
+            None,
+        }, f"AdvisoryResponse.{name} has non-descriptive type {field_type!r}"
 
 
 def test_cb_inv_4_correlation_mismatch_raises() -> None:

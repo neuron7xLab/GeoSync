@@ -93,8 +93,32 @@ def is_legal(current: Stage, nxt: Stage) -> bool:
     return nxt in TRANSITIONS.get(current, frozenset())
 
 
+class CycleInvariantId(str, Enum):
+    """Cycle-internal contract IDs (distinct from bridge ``CB-INV-*``).
+
+    The semantic-sieve cycle has its own structural contracts. They are
+    NOT the same as the bridge invariants in
+    ``runtime.cognitive_bridge.invariants`` — keep the namespaces
+    separate so audits can attribute violations precisely.
+    """
+
+    CYCLE_INV_1_SEQUENTIAL = "CYCLE-INV-1"
+    CYCLE_INV_2_FALSIFIER_BEFORE_STABILITY = "CYCLE-INV-2"
+    CYCLE_INV_3_VERIFICATION_BEFORE_AUDIT = "CYCLE-INV-3"
+    CYCLE_INV_4_TERMINAL_SEALED = "CYCLE-INV-4"
+    CYCLE_INV_5_NON_EMPTY_INPUTS = "CYCLE-INV-5"
+
+
 class CycleContractError(RuntimeError):
-    """The caller violated the cycle's structural contract."""
+    """The caller violated the cycle's structural contract.
+
+    Carries the originating ``CycleInvariantId`` so the audit log can
+    attribute the violation to a named contract.
+    """
+
+    def __init__(self, invariant_id: CycleInvariantId, message: str) -> None:
+        super().__init__(f"[{invariant_id.value}] {message}")
+        self.invariant_id = invariant_id
 
 
 class StageRecord(BaseModel):
@@ -144,7 +168,10 @@ class Cycle:
         seed_components: ValueComponents | None = None,
     ) -> None:
         if not seed_summary.strip():
-            raise CycleContractError("seed_summary must be non-empty")
+            raise CycleContractError(
+                CycleInvariantId.CYCLE_INV_5_NON_EMPTY_INPUTS,
+                "seed_summary must be non-empty",
+            )
         self._weights = weights
         self._thresholds = thresholds
         self._state = _CycleState()
@@ -192,19 +219,30 @@ class Cycle:
         cross_domain_hits: tuple[str, ...] = (),
     ) -> None:
         if self._state.stage is Stage.ABORT:
-            raise CycleContractError("cycle is ABORTed; cannot advance")
+            raise CycleContractError(
+                CycleInvariantId.CYCLE_INV_4_TERMINAL_SEALED,
+                "cycle is ABORTed; cannot advance",
+            )
         if self._state.stage is Stage.KNOWLEDGE_NODE:
-            raise CycleContractError("cycle is sealed; cannot advance")
+            raise CycleContractError(
+                CycleInvariantId.CYCLE_INV_4_TERMINAL_SEALED,
+                "cycle is sealed; cannot advance",
+            )
         if not is_legal(self._state.stage, next_stage):
             raise CycleContractError(
-                f"illegal transition {self._state.stage.value} -> {next_stage.value}"
+                CycleInvariantId.CYCLE_INV_1_SEQUENTIAL,
+                f"illegal transition {self._state.stage.value} -> {next_stage.value}",
             )
         if next_stage is Stage.STABILITY and not self._state.falsification_contract:
             raise CycleContractError(
-                "falsification contract must be set before STABILITY (CB-INV-3)"
+                CycleInvariantId.CYCLE_INV_2_FALSIFIER_BEFORE_STABILITY,
+                "falsification contract must be set before STABILITY",
             )
         if next_stage is Stage.AUDIT and not self._state.verification_evidence:
-            raise CycleContractError("verification evidence must be set before AUDIT (CB-INV-3)")
+            raise CycleContractError(
+                CycleInvariantId.CYCLE_INV_3_VERIFICATION_BEFORE_AUDIT,
+                "verification evidence must be set before AUDIT",
+            )
         if next_stage is Stage.CROSS_DOMAIN and cross_domain_hits:
             self._state.cross_domain_hits.extend(cross_domain_hits)
         self._state.samples.append(
@@ -214,17 +252,26 @@ class Cycle:
 
     def set_falsification_contract(self, contract: str) -> None:
         if not contract.strip():
-            raise CycleContractError("falsification contract must be non-empty")
+            raise CycleContractError(
+                CycleInvariantId.CYCLE_INV_5_NON_EMPTY_INPUTS,
+                "falsification contract must be non-empty",
+            )
         self._state.falsification_contract = contract
 
     def set_verification_evidence(self, evidence: str) -> None:
         if not evidence.strip():
-            raise CycleContractError("verification evidence must be non-empty")
+            raise CycleContractError(
+                CycleInvariantId.CYCLE_INV_5_NON_EMPTY_INPUTS,
+                "verification evidence must be non-empty",
+            )
         self._state.verification_evidence = evidence
 
     def abort(self, reason: str) -> None:
         if not reason.strip():
-            raise CycleContractError("abort reason must be non-empty")
+            raise CycleContractError(
+                CycleInvariantId.CYCLE_INV_5_NON_EMPTY_INPUTS,
+                "abort reason must be non-empty",
+            )
         self._state.stage = Stage.ABORT
         self._state.aborted_reason = reason
 
@@ -235,8 +282,9 @@ class Cycle:
     def commit_to_memory(self, *, summary: str) -> KnowledgeNode:
         if self._state.stage is not Stage.AUDIT:
             raise CycleContractError(
+                CycleInvariantId.CYCLE_INV_1_SEQUENTIAL,
                 "commit_to_memory requires the cycle to be at AUDIT; "
-                f"current stage={self._state.stage.value}"
+                f"current stage={self._state.stage.value}",
             )
         gv = GvCondition(
             has_falsification_contract=bool(self._state.falsification_contract),
@@ -261,6 +309,7 @@ class Cycle:
 __all__ = [
     "Cycle",
     "CycleContractError",
+    "CycleInvariantId",
     "Stage",
     "StageRecord",
     "TRANSITIONS",
