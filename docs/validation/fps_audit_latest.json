@@ -2,13 +2,13 @@
   "fps_audit": 1.0,
   "threshold": 1.0,
   "threshold_met": true,
-  "total_anchored_or_extrapolated": 21,
-  "qualifying": 21,
+  "total_anchored_or_extrapolated": 26,
+  "qualifying": 26,
   "tier_distribution": {
-    "EXTRAPOLATED": 2,
+    "ANCHORED": 20,
+    "UNKNOWN": 0,
     "SPECULATIVE": 0,
-    "ANCHORED": 19,
-    "UNKNOWN": 4
+    "EXTRAPOLATED": 6
   },
   "audits": [
     {
@@ -192,6 +192,16 @@
       "missing_paths": []
     },
     {
+      "id": "reset-wave-phase-synchronization",
+      "tier": "ANCHORED",
+      "priority": "P0",
+      "has_test_evidence": true,
+      "has_artefact_evidence": false,
+      "all_paths_exist": true,
+      "counts_for_numerator": true,
+      "missing_paths": []
+    },
+    {
       "id": "dro-ara-regime-fail-closed",
       "tier": "ANCHORED",
       "priority": "P0",
@@ -213,42 +223,42 @@
     },
     {
       "id": "api-contract-openapi-coverage",
-      "tier": "UNKNOWN",
+      "tier": "EXTRAPOLATED",
       "priority": "P1",
-      "has_test_evidence": false,
+      "has_test_evidence": true,
       "has_artefact_evidence": false,
       "all_paths_exist": true,
-      "counts_for_numerator": false,
+      "counts_for_numerator": true,
       "missing_paths": []
     },
     {
       "id": "ux-readiness-state-coverage",
-      "tier": "UNKNOWN",
+      "tier": "EXTRAPOLATED",
       "priority": "P1",
-      "has_test_evidence": false,
+      "has_test_evidence": true,
       "has_artefact_evidence": false,
       "all_paths_exist": true,
-      "counts_for_numerator": false,
+      "counts_for_numerator": true,
       "missing_paths": []
     },
     {
       "id": "e2e-latency-budget-compliance",
-      "tier": "UNKNOWN",
+      "tier": "EXTRAPOLATED",
       "priority": "P1",
-      "has_test_evidence": false,
+      "has_test_evidence": true,
       "has_artefact_evidence": false,
       "all_paths_exist": true,
-      "counts_for_numerator": false,
+      "counts_for_numerator": true,
       "missing_paths": []
     },
     {
       "id": "edge-case-coverage-matrix",
-      "tier": "UNKNOWN",
+      "tier": "EXTRAPOLATED",
       "priority": "P1",
-      "has_test_evidence": false,
+      "has_test_evidence": true,
       "has_artefact_evidence": false,
       "all_paths_exist": true,
-      "counts_for_numerator": false,
+      "counts_for_numerator": true,
       "missing_paths": []
     },
     {

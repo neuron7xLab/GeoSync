@@ -18,7 +18,7 @@
       "label": "*kuramoto* | *sync* | *phase*",
       "declared_invariants": 7,
       "distinct_inv_refs_in_tests": 7,
-      "test_files_count": 20,
+      "test_files_count": 21,
       "forbidden_assertion_count": 2,
       "forbidden_assertion_files": [
         "tests/integration/research_extensions/test_four_feature_pipeline.py:1",
@@ -39,7 +39,7 @@
       "label": "*ott_antonsen* | *chimera*",
       "declared_invariants": 3,
       "distinct_inv_refs_in_tests": 3,
-      "test_files_count": 3,
+      "test_files_count": 4,
       "forbidden_assertion_count": 0,
       "forbidden_assertion_files": [],
       "covered": true

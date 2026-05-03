@@ -390,6 +390,50 @@ claims:
         INV-CB7 assertion with the offending state name.
     added_utc: "2026-05-03"
 
+  - id: reset-wave-phase-synchronization
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Damped phase synchronization on the compact manifold [-π, π)
+      satisfies four numerical invariants (per docs/reset_wave_validation_report.md):
+      (i) bounded phase potential V = mean(1 − cos(Δφ)) ≥ 0 by construction;
+      (ii) inside the empirical stable region (coupling_gain · dt ≤ 0.2)
+      V is non-increasing on every step;
+      (iii) any |Δφ| > max_phase_error trips the fail-closed safety lock,
+      after which final_potential == initial_potential exactly;
+      (iv) same input + config ⇒ bit-identical ResetWaveResult.
+      FACT/MODEL/ANALOGY scope discipline applied per IERD §4.2: the
+      "homeostatic" / "reset-wave" language is ANALOGY tier; FACT is the
+      Kuramoto-style discrete step; MODEL is the numerical relaxation
+      solver. Monte Carlo n=400 grid stress (108 cells × 20 seeds)
+      shows accuracy 1.0 vs labelling rule.
+    evidence_paths:
+      - geosync/neuroeconomics/reset_wave_engine.py
+      - geosync/neuroeconomics/homeostatic_stabilizer.py
+      - tests/test_reset_wave_engine.py
+      - tests/test_reset_wave_physics_laws.py
+      - tests/test_reset_wave_stress_validation.py
+      - tests/test_homeostatic_stabilizer.py
+      - docs/reset_wave_validation_report.md
+      - docs/reset_wave_critical_centers.md
+      - docs/reset_wave_truth_value_function.md
+      - docs/stability_bounds.md
+      - reports/reset_wave_validation_summary.json
+    falsifier:
+      test_id: tests/test_reset_wave_physics_laws.py::test_numerical_invariant_2_potential_nonincreasing_under_stable_reset
+      invariants_cited:
+        - INV-RESET1
+        - INV-RESET2
+        - INV-RESET3
+        - INV-RESET4
+      failure_signature: >
+        any V(θ_{t+1}) > V(θ_t) inside the calibrated stable region OR
+        any active update under safety_lock=True OR any |Δφ| >
+        max_phase_error not tripping the lock OR any non-determinism
+        on identical inputs must surface a 5-field assertion message
+        naming INV-RESET1..4 + the offending (coupling_gain, dt) cell.
+    added_utc: "2026-05-03"
+
   - id: dro-ara-regime-fail-closed
     priority: P0
     tier: ANCHORED
@@ -444,54 +488,96 @@ claims:
 
   - id: api-contract-openapi-coverage
     priority: P1
-    tier: UNKNOWN
+    tier: EXTRAPOLATED
     description: >
       All publicly exposed endpoints carry an OpenAPI 3.1 specification
       with JSON Schema input/output contracts and a Schemathesis
-      contract-test suite. Status: UNKNOWN at Phase-0 — tracked by
-      issue IERD-Q4 (link in docs/yana-response.md). Re-classify on
-      Phase-3 entry.
+      contract-test suite. Status (Wave 6): EXTRAPOLATED — partial
+      evidence shipped for the reset-wave subsystem (Pydantic-derivable
+      ResetWaveConfig + ResetWaveResult dataclass contracts + explicit
+      ValueError boundaries documented in docs/reset_wave_critical_centers.md
+      §7 contract_validation; audit via audit_critical_centers()).
+      Missing evidence: full OpenAPI 3.1 doc covering every public
+      endpoint; Schemathesis contract suite in CI; versioned /v{N}/
+      route prefix; async job_id workflow for long simulations.
+      Re-classify ANCHORED on Phase-3 entry (per ADR 0020). Tracked
+      by GitHub issue IERD-Q4.
     evidence_paths:
       - docs/yana-response.md
+      - geosync/neuroeconomics/reset_wave_engine.py
+      - tests/test_reset_wave_engine.py
+      - docs/reset_wave_critical_centers.md
     added_utc: "2026-05-03"
 
   - id: ux-readiness-state-coverage
     priority: P1
-    tier: UNKNOWN
+    tier: EXTRAPOLATED
     description: >
       Every endpoint declares the six required UX states (success,
       empty, partial, validation_error, server_error, timeout) with
       a standard error envelope and a frontend rendering for each.
-      Status: UNKNOWN at Phase-0 — tracked by issue IERD-Q5.
-      Re-classify on Phase-4 entry.
+      Status (Wave 6): EXTRAPOLATED — the reset-wave subsystem
+      already returns a finite supported state set via
+      latent_interpretive_forecast_layer (LOCKED / CONVERGING /
+      DIVERGING / OSCILLATORY / UNSTABLE / UNKNOWN, bounded
+      confidence ∈ [0, 1]); ResetWaveResult is a typed envelope with
+      explicit converged + locked + final_potential fields suitable
+      for UX rendering. Missing evidence: full per-endpoint state
+      enumeration in OpenAPI responses; standard {error_code,
+      message, details, trace_id, recoverable} envelope on all
+      4xx/5xx; frontend contract test verifying the matrix.
+      Re-classify ANCHORED on Phase-4 entry. Tracked by issue IERD-Q5.
     evidence_paths:
       - docs/yana-response.md
+      - geosync/neuroeconomics/reset_wave_engine.py
+      - tests/test_reset_wave_engine.py
     added_utc: "2026-05-03"
 
   - id: e2e-latency-budget-compliance
     priority: P1
-    tier: UNKNOWN
+    tier: EXTRAPOLATED
     description: >
       End-to-end latency instrumentation across four layers
       (client_render, network_TTFB, server_compute, db_io) green
       against the budget (FCP < 1.0 s, TTFB < 300 ms, server p95
-      < 100 ms, interactive p95 < 200 ms). Status: UNKNOWN at
-      Phase-0 — tracked by issue IERD-Q6. Re-classify on Phase-4 entry.
+      < 100 ms, interactive p95 < 200 ms). Status (Wave 6):
+      EXTRAPOLATED — server_compute layer measurable for the
+      reset-wave subsystem: deterministic O(N · steps) cost on a
+      compact manifold, RK4-fixed integrator, no I/O. Stress test
+      grid (108 cells × 20 seeds) finishes well under the per-call
+      budget. Missing evidence: client_render (Web Vitals via
+      Lighthouse CI), network_TTFB (HTTP timing), db_io (driver
+      telemetry), regression-gated CI dashboards. Re-classify
+      ANCHORED on Phase-4 entry. Tracked by issue IERD-Q6.
     evidence_paths:
       - docs/yana-response.md
+      - geosync/neuroeconomics/reset_wave_engine.py
+      - tests/test_reset_wave_stress_validation.py
+      - reports/reset_wave_validation_summary.json
     added_utc: "2026-05-03"
 
   - id: edge-case-coverage-matrix
     priority: P1
-    tier: UNKNOWN
+    tier: EXTRAPOLATED
     description: >
       Edge-case coverage matrix (endpoint × state × test_id) at
       ECC ≥ 0.90, with mocked-failure E2E tests for network failure
       and timeout, and a user-visible recoverable path for simulation
-      divergence. Status: UNKNOWN at Phase-0 — tracked by issue
-      IERD-Q7. Re-classify on Phase-4 entry.
+      divergence. Status (Wave 6): EXTRAPOLATED — kernel-level edge
+      cases for the reset-wave subsystem are covered exhaustively
+      (mismatched lengths, empty input, non-positive coupling_gain /
+      dt / steps / max_phase_error, unknown integrator, NaN/Inf phase
+      values via wrap_phase, max_phase_error exceedance via safety
+      lock, simulation divergence via UNSTABLE / DIVERGING forecast
+      class). Missing evidence: HTTP-level network failure, timeout,
+      cancelled, validation_error E2E coverage; Playwright + MSW
+      browser-side tests; ECC numeric per (endpoint × state) matrix.
+      Re-classify ANCHORED on Phase-4 entry. Tracked by issue IERD-Q7.
     evidence_paths:
       - docs/yana-response.md
+      - tests/test_reset_wave_engine.py
+      - tests/test_reset_wave_physics_laws.py
+      - tests/test_reset_wave_stress_validation.py
     added_utc: "2026-05-03"
 
   # ---------------------------------------------------------------

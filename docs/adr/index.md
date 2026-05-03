@@ -25,6 +25,7 @@ This directory captures significant technical and governance decisions for GeoSy
 - [ADR 0019: Distributed Tracing Carrier-Key Contract](0019-distributed-tracing-carrier-key-contract.md)
 - [ADR 0020: IERD-PAI-FPS-UX-001 Adoption](0020-ierd-adoption.md)
 - [ADR 0021: Falsifier-required ANCHORED claims (Phase 1 entry gate)](0021-falsifier-required-anchored-claims.md)
+- [ADR 0022: Reset-Wave as Engineering Numerical Model (FACT/MODEL/ANALOGY)](0022-reset-wave-engineering-model.md)
 
 ## Contributing
 
