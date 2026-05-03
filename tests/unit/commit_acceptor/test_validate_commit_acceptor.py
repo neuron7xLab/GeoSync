@@ -48,6 +48,7 @@ POLICY: dict[str, Any] = {
         "documentation": 24,
     },
     "forbidden_import_patterns": ["trading", "execution", "forecast", "policy"],
+    "dep_manifest_paths": ["package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
 }
 
 
@@ -748,3 +749,76 @@ def test_promise_wrong_type_rejected(tmp_path: Path) -> None:
     res = validate_acceptors(POLICY, [(p, body)])
     assert not res.ok
     assert any("INVALID_PROMISE_BLOCK" in e for e in res.errors), res.errors
+
+
+# ---------------------------------------------------------------------------
+# Dep-manifest exemption (added to unblock Dependabot bumps that touch only
+# package.json / package-lock.json / yarn.lock / pnpm-lock.yaml).
+# ---------------------------------------------------------------------------
+
+
+def test_dep_manifest_package_json_exempt_without_acceptor(tmp_path: Path) -> None:
+    """Lone package.json bump must NOT require an acceptor."""
+    body = _valid_acceptor()
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_diff_binding(
+        POLICY,
+        [(p, body)],
+        ["apps/web/package.json", "apps/web/package-lock.json"],
+        _file_loader_factory({}),
+    )
+    assert res.ok, res.errors
+
+
+def test_dep_manifest_yarn_lock_exempt_without_acceptor(tmp_path: Path) -> None:
+    body = _valid_acceptor()
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_diff_binding(
+        POLICY,
+        [(p, body)],
+        ["ui/dashboard/yarn.lock", "ui/dashboard/pnpm-lock.yaml"],
+        _file_loader_factory({}),
+    )
+    assert res.ok, res.errors
+
+
+def test_dep_manifest_exemption_does_not_apply_to_workflow_yml(tmp_path: Path) -> None:
+    """Workflow YAML bumps still require an acceptor (intentionally NOT exempt)."""
+    body = _valid_acceptor()
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_diff_binding(
+        POLICY,
+        [(p, body)],
+        [".github/workflows/pr-gate.yml"],
+        _file_loader_factory({".github/workflows/pr-gate.yml": "name: x\n"}),
+    )
+    assert not res.ok, "workflow YAML must NOT be exempt from acceptor binding"
+    assert any("code change without acceptor" in e for e in res.errors)
+
+
+def test_dep_manifest_exemption_does_not_apply_to_arbitrary_json(tmp_path: Path) -> None:
+    """A JSON file that is NOT a known dep-manifest must still bind."""
+    body = _valid_acceptor()
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_diff_binding(
+        POLICY,
+        [(p, body)],
+        ["src/config/app_settings.json"],
+        _file_loader_factory({"src/config/app_settings.json": "{}\n"}),
+    )
+    assert not res.ok
+    assert any("code change without acceptor" in e for e in res.errors)
+
+
+def test_dep_manifest_mixed_change_partial_binding(tmp_path: Path) -> None:
+    """Mixed bump: dep-manifest exempt; sibling .py code still bound to acceptor."""
+    body = _valid_acceptor()
+    body["diff_scope"]["changed_files"] = [{"path": "src/demo.py"}]
+    p = _write_acceptor(tmp_path, "demo", body)
+    res = validate_diff_binding(
+        POLICY,
+        [(p, body)],
+        ["apps/web/package.json", "src/demo.py"],
+        _file_loader_factory({"src/demo.py": "import os\n"}),
+    )
+    assert res.ok, res.errors

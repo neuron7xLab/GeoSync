@@ -6,6 +6,16 @@ code_file_extensions:
   - ".toml"
   - ".json"
   - ".sh"
+# Dependency-manifest filenames exempt from acceptor binding.
+# Bumps to these files are mechanical (Dependabot-style) and would
+# otherwise force a per-PR acceptor for every dep version bump.
+# Workflow YAML and Python dependency declarations are intentionally
+# NOT here — they remain bound to acceptors.
+dep_manifest_paths:
+  - "package.json"
+  - "package-lock.json"
+  - "yarn.lock"
+  - "pnpm-lock.yaml"
 governance_markdown_paths:
   - ".claude/"
   - "docs/governance/"

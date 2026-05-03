@@ -325,9 +325,34 @@ def _is_governance_markdown(file_path: str, governance_paths: Sequence[str]) -> 
     return any(file_path.startswith(prefix) for prefix in governance_paths)
 
 
+def _is_dep_manifest(file_path: str, dep_manifest_basenames: Sequence[str]) -> bool:
+    """Treat dependency-manifest files as non-code for diff binding.
+
+    Dependabot-style PRs that bump only ``package-lock.json`` /
+    ``package.json`` / ``yarn.lock`` / etc. otherwise force every
+    repository onto a per-PR acceptor for purely mechanical bumps.
+    The exemption list is policy-controlled (``dep_manifest_paths``
+    in ``commit_acceptor_policy.yaml``); workflow YAML and Python
+    dependency declarations are intentionally NOT in the default set.
+    """
+    if not dep_manifest_basenames:
+        return False
+    # Match by trailing path component (basename) only — "package.json"
+    # matches "apps/web/package.json" and "ui/dashboard/package.json"
+    # but not arbitrary user-named JSON elsewhere.
+    basename = file_path.rsplit("/", 1)[-1]
+    return basename in tuple(dep_manifest_basenames)
+
+
 def _file_is_code(
-    file_path: str, code_extensions: Sequence[str], governance_paths: Sequence[str]
+    file_path: str,
+    code_extensions: Sequence[str],
+    governance_paths: Sequence[str],
+    dep_manifest_basenames: Sequence[str] = (),
 ) -> bool:
+    # Dep-manifest bumps are mechanical and exempt from acceptor binding.
+    if _is_dep_manifest(file_path, dep_manifest_basenames):
+        return False
     # Markdown under governance paths is ignored for binding.
     if file_path.endswith(".md"):
         return not _is_governance_markdown(file_path, governance_paths)
@@ -355,10 +380,13 @@ def validate_diff_binding(
     code_extensions: list[str] = list(policy.get("code_file_extensions", []))
     governance_paths: list[str] = list(policy.get("governance_markdown_paths", []))
     forbidden_patterns: list[str] = list(policy.get("forbidden_import_patterns", []))
+    dep_manifest_basenames: list[str] = list(policy.get("dep_manifest_paths", []))
     max_by_claim: dict[str, int] = dict(policy.get("max_changed_files_by_claim_type", {}))
 
     code_files = sorted(
-        f for f in changed_files if _file_is_code(f, code_extensions, governance_paths)
+        f
+        for f in changed_files
+        if _file_is_code(f, code_extensions, governance_paths, dep_manifest_basenames)
     )
     result.info["code_files"] = code_files
 
