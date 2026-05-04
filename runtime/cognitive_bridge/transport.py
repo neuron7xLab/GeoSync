@@ -54,9 +54,13 @@ class InMemoryTransport:
 class LoopbackHttpTransport:
     """Talk to a local OpenClaw gateway over loopback HTTP.
 
-    The OpenClaw gateway run-mode (``openclaw gateway run --bind loopback
-    --port 18789``) exposes a JSON endpoint. We POST the canonical
-    request envelope and parse the JSON reply into ``AdvisoryResponse``.
+    The geosync-bridge plugin (an autonomous Node HTTP server bundled
+    with OpenClaw at ``openclaw-main/extensions/geosync-bridge``) listens
+    on loopback port 18790 by default and exposes the JSON endpoint
+    ``/v1/cognitive-bridge/exchange``. The OpenClaw gateway proper is on
+    18789 — the two are deliberately separated so they can run side by
+    side. We POST the canonical request envelope and parse the JSON
+    reply into ``AdvisoryResponse``.
 
     Any network or codec failure is wrapped as ``BridgeTransportError``;
     the caller (``CognitiveSidecar``) maps that into
@@ -66,9 +70,12 @@ class LoopbackHttpTransport:
     def __init__(
         self,
         *,
-        endpoint: str = "http://127.0.0.1:18789/v1/cognitive-bridge/exchange",
+        endpoint: str = "http://127.0.0.1:18790/v1/cognitive-bridge/exchange",
         client: httpx.Client | None = None,
     ) -> None:
+        # Default port is 18790, NOT 18789. The OpenClaw gateway already
+        # owns 18789 on this host; the geosync-bridge plugin sits on 18790
+        # so the two services can run side-by-side without EADDRINUSE.
         self._endpoint = endpoint
         self._client = client or httpx.Client()
 
