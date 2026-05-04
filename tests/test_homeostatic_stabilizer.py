@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import random
 import time
 
 from coherence_bridge.decision_engine import GeoSyncDecisionEngine
@@ -177,3 +178,83 @@ def test_entropy_computation() -> None:
     diverse_entropy = nhs2._compute_entropy()
 
     assert diverse_entropy > uniform_entropy
+
+
+# ---------------------------------------------------------------------------
+# re_adaptation_to_baseline — single-step reset-wave (FACT/MODEL/ANALOGY)
+# ---------------------------------------------------------------------------
+
+
+def test_re_adaptation_to_baseline_converges_with_small_phase_error() -> None:
+    nhs = NeuroHomeostaticStabilizer()
+    report = nhs.re_adaptation_to_baseline(
+        node_phases=[0.98, 1.01, 1.0],
+        baseline_phases=[1.0, 1.0, 1.0],
+        coupling_gain=1.2,
+        convergence_tol=0.05,
+    )
+    assert report.write_ops_inhibited
+    assert report.converged
+    assert report.node_count == 3
+    assert report.post_reset_energy <= report.pre_reset_energy
+
+
+def test_re_adaptation_to_baseline_requires_equal_vector_sizes() -> None:
+    nhs = NeuroHomeostaticStabilizer()
+    try:
+        nhs.re_adaptation_to_baseline([1.0], [1.0, 1.1])
+    except ValueError as exc:
+        assert "equal length" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for mismatched phase vectors")
+
+
+def test_re_adaptation_to_baseline_rejects_nonpositive_coupling_gain() -> None:
+    nhs = NeuroHomeostaticStabilizer()
+    try:
+        nhs.re_adaptation_to_baseline([1.0], [1.0], coupling_gain=0.0)
+    except ValueError as exc:
+        assert "coupling_gain must be > 0" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for nonpositive coupling_gain")
+
+
+def test_re_adaptation_to_baseline_engages_safety_lock_on_extreme_phase_error() -> None:
+    nhs = NeuroHomeostaticStabilizer()
+    report = nhs.re_adaptation_to_baseline(
+        node_phases=[10.0, -10.0],
+        baseline_phases=[0.0, 0.0],
+        max_phase_error=1.0,
+    )
+    assert report.safety_lock
+    assert report.write_ops_inhibited
+    assert not report.converged
+    assert report.reset_energy == 0.0
+    assert report.energy_delta == 0.0
+    assert report.post_reset_energy == report.pre_reset_energy
+
+
+def test_re_adaptation_to_baseline_rejects_nonpositive_max_phase_error() -> None:
+    nhs = NeuroHomeostaticStabilizer()
+    try:
+        nhs.re_adaptation_to_baseline([0.1], [0.0], max_phase_error=0.0)
+    except ValueError as exc:
+        assert "max_phase_error must be > 0" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for nonpositive max_phase_error")
+
+
+def test_re_adaptation_to_baseline_energy_is_nonincreasing_randomized() -> None:
+    rng = random.Random(7)
+    nhs = NeuroHomeostaticStabilizer()
+    for _ in range(100):
+        baseline = [rng.uniform(-0.3, 0.3) for _ in range(8)]
+        nodes = [b + rng.uniform(-0.2, 0.2) for b in baseline]
+        report = nhs.re_adaptation_to_baseline(
+            node_phases=nodes,
+            baseline_phases=baseline,
+            coupling_gain=1.0,
+            convergence_tol=0.3,
+            max_phase_error=1.0,
+        )
+        assert report.post_reset_energy <= report.pre_reset_energy

@@ -94,6 +94,123 @@ confirmed no production paths imported from them, the `archive/`,
 removed as part of the repo-hygiene tier-1 cleanup. Git history
 preserves their contents for any historical reference.
 
+## L-7 · Frontend integration surface is undeclared (IERD Phase 0)
+
+The repository ships a quantitative-trading kernel and a research
+workbench. It does not currently ship a unified public HTTP API
+surface that an external frontend can integrate against:
+
+* No single OpenAPI 3.1 specification covers all exposed endpoints.
+* No versioned routing scheme (`/v{N}/`) is enforced repository-wide.
+* No standard error envelope (`{error_code, message, details, trace_id, recoverable}`) is enforced across services.
+* Long-running computations are not exposed under a unified
+  `job_id + status + WebSocket/SSE` async pattern.
+
+This is registered in [`docs/CLAIMS.yaml`](CLAIMS.yaml) as the
+`api-contract-openapi-coverage` entry with tier `UNKNOWN`. It is
+re-classified to `ANCHORED` on Phase-3 entry of the IERD adoption
+plan ([ADR 0020](adr/0020-ierd-adoption.md)). External-audit tracking:
+`docs/yana-response.md` Q4.
+
+## L-8 · UX state contracts not declared (IERD Phase 0)
+
+Endpoints today do not declare the six required UX states (`success`,
+`empty`, `partial`, `validation_error`, `server_error`, `timeout`)
+nor a frontend rendering for each. UX Readiness Score (UXRS) is
+therefore not computable at Phase 0.
+
+Tracked under `ux-readiness-state-coverage` (tier `UNKNOWN`).
+Re-classified on Phase-4 entry of the IERD adoption plan.
+
+## L-9 · End-to-end latency budget instrumented only at server layer
+
+Server-side latency is measured under `bench/`, `benchmarks/`, and
+`loadtests/` with HPC kernel determinism guards. The client_render
+(Web Vitals / Lighthouse), network_TTFB, and db_io layers are not
+covered by repository-level regression-gated CI. End-to-end latency
+budget compliance (FCP, TTFB, server p95, interactive p95) is
+therefore `UNKNOWN`.
+
+Tracked under `e2e-latency-budget-compliance` (tier `UNKNOWN`).
+Re-classified on Phase-4 entry of the IERD adoption plan.
+
+## L-10 · UX-level edge cases not in a tracked matrix
+
+Kernel-level edge cases (NaN/Inf input, constant input, rank-deficient
+input, divergent simulation) are tested heavily — see `INV-DRO5`,
+`INV-HPC2`, `INV-FE2`, etc. UX-level edge cases (empty result set,
+partial result, server timeout, network failure, validation error,
+simulation divergence presented to a human) are not covered by a
+formal `(endpoint × state × test_id)` matrix.
+
+Tracked under `edge-case-coverage-matrix` (tier `UNKNOWN`).
+Re-classified on Phase-4 entry of the IERD adoption plan.
+
+## L-11 · No independent replication of physics-kernel attest results
+
+The PAI = 1.00 and FPS_audit = 1.00 metrics, the 67-invariant
+registry in `CLAUDE.md`, the `tests/unit/physics/test_T*.py`
+suite, and the cross-asset Kuramoto walk-forward bundle frozen
+under `results/cross_asset_kuramoto/PARAMETER_LOCK.json` (with
+`_spike_commit` sha-256 lock) **have not been replicated by an
+external party**. The artefact integrity of the bundle is anchored
+by the sha-256 lock; the *result* (Sharpe, fold count, robust=True)
+has been verified only by the original author.
+
+By scientific method this means:
+
+* the gate is closed against silent file tampering,
+* the gate is **not** closed against single-author confirmation bias,
+* an independent replicator running `pytest tests/unit/physics/`
+  on a clean clone with the documented seed (42) **should**
+  reproduce the same numerical results, but **has not**.
+
+This is the institutional companion to L-5 (bus factor = 1):
+discipline applied by one author cannot substitute for cross-author
+replication. Closure path: Phase-1 entry per [ADR 0021](adr/0021-falsifier-required-anchored-claims.md)
+includes the option for a third party to attest the falsifier
+fingerprint of every ANCHORED claim, breaking the closed loop.
+
+## L-12 · Reset-wave numerical model is single-process synchronous
+
+The four numerical invariants of `geosync.neuroeconomics.reset_wave_engine`
+(see `docs/reset_wave_validation_report.md` and the
+`reset-wave-phase-synchronization` claim in `docs/CLAIMS.yaml`) hold
+**only under ideal computational conditions**: single-process,
+synchronous input, no clock skew, no dropped updates, no concurrent
+writers.
+
+In real distributed asynchronous environments — financial market data
+feeds, IoT meshes, multi-process simulators — the following failure
+modes break the potential-non-increase guarantee:
+
+1. Clock-jitter on update arrival (`V` can spike before the next damped step).
+2. Dropped or out-of-order updates (silent drift between θ_t and θ_baseline).
+3. Partial node failure (a subset of nodes is silently stale).
+4. Re-entry after failure (recovered node injects an old phase).
+5. Concurrent writers (two callers interleave updates and step).
+
+`geosync.neuroeconomics.reset_wave_distributed` adds five fail-closed
+guards (`JitterEnvelope`, `StalenessGate`, `ConcurrencyGuard`,
+`PartialFailureDetector`, `DiscontinuityMonitor`) that **refuse to
+compute** when an async failure mode is detected; this is documented
+under the `reset-wave-distributed-resilience` claim with tier
+`EXTRAPOLATED`.
+
+What the resilience adapter does **NOT** provide:
+
+* CAP-theorem-level distributed consensus,
+* distributed clock synchronisation (no NTP / PTP integration),
+* automatic recovery from a failed node — the operator-side response
+  is still required.
+
+The adapter turns silent divergence into an explicit safety lock with
+`fail_reason`. It does not turn a partitioned async network into a
+synchronous one. Closure path: a future Phase-2 ADR will integrate
+with an existing distributed runtime (e.g. the GeoSync `runtime/`
+deterministic scheduler) to lift the EXTRAPOLATED tier to ANCHORED
+once the integration test surface exists.
+
 ---
 
 If you find a limitation of the platform that is not listed here, that

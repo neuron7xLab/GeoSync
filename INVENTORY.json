@@ -19,7 +19,7 @@
     },
     {
       "path": "scripts/ci/check_claims.py",
-      "sha256": "45e9398dcc716188f2fe9c4130af8124a76e7e03d32edaa40d970e836142e5f2"
+      "sha256": "2a668d8d0220add6096567657c78df17faa0d2756854b1d96dc75127e0b773c6"
     },
     {
       "path": "scripts/ci/check_config_sprawl.py",
@@ -36,6 +36,18 @@
     {
       "path": "scripts/ci/check_manifest_hashes.py",
       "sha256": "afa5e44d9253dc6f9fc7f006b998cb912e174ae08778aab54c03f898536bc44c"
+    },
+    {
+      "path": "scripts/ci/compute_fps_audit.py",
+      "sha256": "e35b695eb92648ce61d04318bdfd27e76a7ea9222316f8e244f87b43c6a4f06c"
+    },
+    {
+      "path": "scripts/ci/compute_pai.py",
+      "sha256": "7c687cd68ac5a79898cb8caebf6c3742390e719fd2f249992ba88ae4acbf052e"
+    },
+    {
+      "path": "scripts/ci/lint_forbidden_terms.py",
+      "sha256": "d65c2bc782e1223dbd1c8379fad5bdcf92ad8fd6775cb37978e53b0f3e2da7b2"
     },
     {
       "path": "scripts/ci/run_actionlint.py",

@@ -223,7 +223,17 @@ def test_p1_claim_with_missing_evidence_fails_gate(
     tmp_path: Path,
     cc: Any,
 ) -> None:
+    """Schema-v2 ANCHORED P1 with missing evidence must hard-fail.
+
+    Note: bumped to v2 with explicit ``tier: ANCHORED`` after the
+    Wave-4 hardening that changed the v1 legacy default from ANCHORED
+    to UNKNOWN. v1 entries without a ``tier`` field now warn-only
+    rather than gate, since silent promotion to ANCHORED is exactly
+    the IERD §1 loophole the directive forbids.
+    """
     body = _minimal_valid()
+    body["schema_version"] = 2
+    body["claims"][0]["tier"] = "ANCHORED"
     body["claims"][0]["priority"] = "P1"
     body["claims"][0]["evidence_paths"] = ["does/not/exist.txt"]
     path = _write_registry(tmp_path, body)
@@ -239,6 +249,8 @@ def test_p0_claim_with_missing_evidence_fails_gate(
     cc: Any,
 ) -> None:
     body = _minimal_valid()
+    body["schema_version"] = 2
+    body["claims"][0]["tier"] = "ANCHORED"
     body["claims"][0]["priority"] = "P0"
     body["claims"][0]["evidence_paths"] = [
         "docs/CLAIMS.yaml",
@@ -250,6 +262,119 @@ def test_p0_claim_with_missing_evidence_fails_gate(
     failures = cc._validate_evidence(claims[0], ROOT)
     assert len(failures) == 1
     assert "totally/missing/path.py" in failures[0].reason
+
+
+def test_v3_falsifier_optional_warn_only_when_missing(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    """Phase 1.0 (per ADR 0021): v3 ANCHORED without falsifier is
+    warn-only, not gating. The schema accepts the entry; main()
+    emits a WARN line on stderr."""
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["priority"] = "P0"
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    claims = cc._parse_claims(registry)
+    assert claims[0].falsifier is None
+    failures = cc._validate_evidence(claims[0], ROOT)
+    assert failures == []  # Phase 1.0 — warn-only
+
+
+def test_v3_falsifier_block_parses_when_present(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["falsifier"] = {
+        "test_id": "tests/test_x.py::test_invariant",
+        "invariants_cited": ["INV-K1", "INV-OA1"],
+        "failure_signature": "any |z| > 1 raises INV-OA1",
+    }
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    claims = cc._parse_claims(registry)
+    assert claims[0].falsifier is not None
+    assert claims[0].falsifier.test_id == "tests/test_x.py::test_invariant"
+    assert claims[0].falsifier.invariants_cited == ("INV-K1", "INV-OA1")
+
+
+def test_v3_falsifier_rejects_missing_keys(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["falsifier"] = {
+        "test_id": "tests/test_x.py::test_a",
+        # invariants_cited and failure_signature missing
+    }
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    with pytest.raises(ValueError, match="falsifier missing keys"):
+        cc._parse_claims(registry)
+
+
+def test_v3_falsifier_rejects_bad_test_id_shape(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["falsifier"] = {
+        "test_id": "not_a_pytest_node",  # missing :: separator
+        "invariants_cited": ["INV-K1"],
+        "failure_signature": "x",
+    }
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    with pytest.raises(ValueError, match="pytest node id"):
+        cc._parse_claims(registry)
+
+
+def test_v3_falsifier_rejects_bad_inv_shape(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["falsifier"] = {
+        "test_id": "tests/x.py::test_a",
+        "invariants_cited": ["lowercase-not-valid"],
+        "failure_signature": "x",
+    }
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    with pytest.raises(ValueError, match="INV-"):
+        cc._parse_claims(registry)
+
+
+def test_v1_legacy_unknown_default_does_not_gate(
+    tmp_path: Path,
+    cc: Any,
+) -> None:
+    """Wave-4 hardening: v1 legacy entries without ``tier`` default to
+    UNKNOWN (warn-only), not ANCHORED (strict). Closes the silent-
+    promotion loophole — a v1 entry with missing evidence must NOT
+    fail the build the same way an explicit ANCHORED entry would.
+    """
+    body = _minimal_valid()
+    body["schema_version"] = 1  # legacy
+    body["claims"][0]["priority"] = "P0"
+    body["claims"][0]["evidence_paths"] = ["totally/missing/path.py"]
+    path = _write_registry(tmp_path, body)
+    registry = cc._load_registry(path)
+    claims = cc._parse_claims(registry)
+    assert claims[0].tier == "UNKNOWN"
+    failures = cc._validate_evidence(claims[0], ROOT)
+    assert failures == []  # warn-only on UNKNOWN tier
 
 
 # ---------------------------------------------------------------------------

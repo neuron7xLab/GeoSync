@@ -1,5 +1,20 @@
 # mypy: ignore-errors
-"""Tests for DFA gamma estimator — Peng 1994 + wavelet cross-validation."""
+"""Tests for DFA gamma estimator — Peng 1994 + wavelet cross-validation.
+
+Coverage of INV-AC1-rev (Adaptive Criticality, Membrane Isolation):
+the criticality gate κ_critical = -ln(ΔH_max/ε) / (λ_local + δ) uses
+``DFAGammaEstimator.hurst_exponent`` as λ_local. The tests below pin
+the qualitative regime classification of the DFA estimator that the
+gate consumes:
+
+* white-noise input  → λ_local ≈ 0.5 (chaotic regime)
+* random-walk input  → λ_local → 1.0 (persistent regime)
+* differenced input  → λ_local < 0.5 (anti-persistent regime)
+* gamma identity     → γ = 2·H + 1 to float precision
+
+If any of these regress, the membrane-isolation gate downstream
+(INV-AC1-rev) silently misclassifies the topology of every node.
+"""
 
 from __future__ import annotations
 
@@ -18,7 +33,7 @@ def est() -> DFAGammaEstimator:
 
 
 def test_white_noise_H_near_half(est: DFAGammaEstimator) -> None:
-    """White noise → H ≈ 0.5, γ ≈ 2.0."""
+    """INV-AC1-rev λ_local: white noise → H ≈ 0.5, γ ≈ 2.0 (chaotic regime)."""
     rng = np.random.default_rng(42)
     g = est.compute(rng.standard_normal(4096))
     assert 0.3 <= g.hurst_exponent <= 0.7, f"White noise H={g.hurst_exponent}"
@@ -26,7 +41,7 @@ def test_white_noise_H_near_half(est: DFAGammaEstimator) -> None:
 
 
 def test_persistent_H_above_half(est: DFAGammaEstimator) -> None:
-    """Random walk (cumsum of WN) → H ≈ 1.0 → γ ≈ 3.0."""
+    """INV-AC1-rev λ_local: random walk (cumsum of WN) → H ≈ 1.0 → γ ≈ 3.0 (persistent)."""
     rng = np.random.default_rng(42)
     g = est.compute(np.cumsum(rng.standard_normal(4096)))
     assert g.hurst_exponent > 0.7, f"Persistent H={g.hurst_exponent}"
@@ -34,14 +49,14 @@ def test_persistent_H_above_half(est: DFAGammaEstimator) -> None:
 
 
 def test_anti_persistent(est: DFAGammaEstimator) -> None:
-    """Differenced random walk → anti-persistent H < 0.5."""
+    """INV-AC1-rev λ_local: differenced random walk → anti-persistent H < 0.5."""
     rng = np.random.default_rng(42)
     g = est.compute(np.diff(np.cumsum(rng.standard_normal(4097))))
     assert g.hurst_exponent < 0.7
 
 
 def test_gamma_equals_2H_plus_1(est: DFAGammaEstimator) -> None:
-    """INV: γ = 2H + 1 enforced by __post_init__."""
+    """INV-AC1-rev / INV-DRO1: γ = 2H + 1 enforced by __post_init__ to float precision."""
     rng = np.random.default_rng(42)
     for seed in range(5):
         g = est.compute(np.cumsum(rng.standard_normal(2048)))

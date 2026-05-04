@@ -10,26 +10,57 @@
 # `scripts/ci/check_claims.py`; missing evidence on a P0 / P1 claim
 # fails the build.
 #
-# Schema (per claim entry):
+# ---------------------------------------------------------------------
+# Schema v2 (2026-05-03, IERD-PAI-FPS-UX-001 adoption)
+# ---------------------------------------------------------------------
+#
+# Per-claim fields:
 #
 #   id              : str   — unique identifier (kebab-case).
 #   priority        : str   — one of {P0, P1, P2}. P0/P1 are gated.
+#   tier            : str   — IERD tier: ANCHORED | EXTRAPOLATED |
+#                              SPECULATIVE | UNKNOWN. Required at v2.
 #   description     : str   — one-sentence statement of the claim.
 #   evidence_paths  : list  — repo-relative paths required to exist.
 #                              Source files, tests, frozen artefacts.
 #   added_utc       : str   — ISO 8601 UTC date claim was registered.
 #
+# Tier semantics:
+#
+#   ANCHORED
+#     Evidence is complete: every artefact in evidence_paths exists,
+#     a falsifying test exists and is referenced, and the surface
+#     statement matches what the test verifies.
+#
+#   EXTRAPOLATED
+#     Evidence is partial: at least one of (test, artefact, citation)
+#     is named but has known limitation. The claim's description must
+#     explicitly enumerate the missing evidence and the confidence
+#     ceiling. May appear in product docs only with the limitation cited.
+#
+#   SPECULATIVE
+#     Hypothesis only — no falsifying test exists yet. Forbidden in
+#     README, product docs, API docs, and reports. Allowed only in
+#     research notes (paper/, research/, docs/research/).
+#
+#   UNKNOWN
+#     Tier not yet assessed. Must have a tracking issue and a deadline
+#     for re-classification. Treat as SPECULATIVE for surface text.
+#
 # Adding a claim: append an entry, ensure every evidence_path is
 # present, run `python scripts/ci/check_claims.py` locally before push.
 # Promoting a P2 → P1 / P0 is a *contract change* and should be
 # reviewed as carefully as a public API rename.
+# Promoting EXTRAPOLATED → ANCHORED is a *contract change*: either
+# the missing evidence has been added, or the description was tightened.
 
-schema_version: 1
+schema_version: 3
 
 claims:
 
   - id: hpc-runtime-state-seal-bit-identical
     priority: P0
+    tier: ANCHORED
     description: >
       BacktesterCAL.run produces bit-identical output on repeated calls
       against the same calibrated instance — every streaming component
@@ -47,6 +78,7 @@ claims:
 
   - id: hpc-fixed-point-ledger-conservation
     priority: P0
+    tier: ANCHORED
     description: >
       The fixed-point execution ledger preserves the conservation
       identity (cash + position*mark = const, modulo trade cost) to
@@ -59,6 +91,7 @@ claims:
 
   - id: hpc-indexed-rng-control-flow-free
     priority: P0
+    tier: ANCHORED
     description: >
       Event-addressed RNG (BLAKE2b → PCG64 keyed by
       seed/stream/event_id/event_index) returns the same value for
@@ -72,6 +105,7 @@ claims:
 
   - id: hpc-runtime-state-envelope-integrity
     priority: P0
+    tier: ANCHORED
     description: >
       Snapshot/restore envelope is typed (envelope_version),
       versioned (schema_version), and SHA-256-checksummed; tampered
@@ -84,6 +118,7 @@ claims:
 
   - id: hpc-session-lifecycle-explicit-fsm
     priority: P1
+    tier: ANCHORED
     description: >
       BacktesterCAL session lifecycle is an explicit FSM with
       8 states, 13 declared transitions, terminal absorption, and
@@ -96,6 +131,7 @@ claims:
 
   - id: robustness-hac-psr-newey-west
     priority: P1
+    tier: ANCHORED
     description: >
       Probabilistic Sharpe Ratio carries a HAC-adjusted variant via
       Newey–West Bartlett kernel with the NW(1994) automatic
@@ -109,11 +145,16 @@ claims:
 
   - id: cross-asset-walkforward-artifact-integrity
     priority: P1
+    tier: EXTRAPOLATED
     description: >
       The frozen cross-asset Kuramoto walk-forward bundle satisfies
       the protocol thresholds (robust=True, ≥4/5 folds beat BTC,
       median Sharpe > 0.5, |Δ| < 0.05 vs spike) and preserves the
       2022 fold-3 loss (honesty gate against retro-tampering).
+      EXTRAPOLATED scope: artefact integrity is ANCHORED; the live
+      out-of-sample edge is conditioned on regime persistence — see
+      docs/audit/ierd_phase0_findings.md and the honest-null discussion
+      in docs/cross_asset_kuramoto/ for the p≈0.09 caveat.
     evidence_paths:
       - tests/core/cross_asset_kuramoto/test_walkforward_artifact.py
       - results/cross_asset_kuramoto/walkforward_integrated.json
@@ -122,6 +163,7 @@ claims:
 
   - id: ricci-microstructure-ten-axis-falsification
     priority: P1
+    tier: ANCHORED
     description: >
       The Ricci cross-sectional edge on L2 microstructure passes ten
       orthogonal validation axes (kill test, block-bootstrap CI,
@@ -133,3 +175,487 @@ claims:
       - paper/ricci_microstructure/paper.tex
       - paper/ricci_microstructure/references.bib
     added_utc: "2026-04-25"
+
+  # ---------------------------------------------------------------
+  # IERD Phase-0 (2026-05-03) — invariant-anchored physics claims.
+  # Each entry maps a CLAUDE.md INV-* registry block to the source
+  # module and falsifying test set. PAI computation cites these.
+  # ---------------------------------------------------------------
+
+  - id: kuramoto-order-parameter-bounded
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Kuramoto order parameter R(t) is universally bounded
+      0 ≤ R(t) ≤ 1 for all t (INV-K1), and on the Ott–Antonsen
+      reduction |z(t)| ≤ 1 always (INV-OA1). Subcritical decay
+      R(t→∞) → 0 for K < K_c (INV-K2 / INV-OA3) and supercritical
+      growth R_∞ ∝ √(K − K_c) (INV-K3) are verified by sweep tests.
+    evidence_paths:
+      - core/kuramoto
+      - core/kuramoto/ott_antonsen.py
+      - tests/unit/physics/test_T23_ott_antonsen_chimera.py
+    falsifier:
+      test_id: tests/unit/physics/test_T23_ott_antonsen_chimera.py::test_ott_antonsen_steady_state
+      invariants_cited:
+        - INV-K1
+        - INV-OA1
+        - INV-OA2
+      failure_signature: >
+        any |z(t)| > 1 in any sweep step OR R_∞ deviation from
+        √(1 − 2Δ/K) above 1e-3 on the Lorentzian fixture must
+        produce a 5-field assertion message naming INV-OA1 / INV-OA2.
+    added_utc: "2026-05-03"
+
+  - id: lyapunov-mle-finite-bounded
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Maximum Lyapunov exponent (MLE) is finite for any bounded
+      finite input series (INV-LE1) and qualitatively classifies
+      regime: noise ≈ 0, stable < 0, chaos > 0 (INV-LE2). Spectral
+      graph Laplacian λ₂ ≥ 0 (INV-SG1) and λ₂ > 0 ⟺ connectivity
+      (INV-SG2) gate the coupling-graph viability.
+    evidence_paths:
+      - core/physics/lyapunov_exponent.py
+      - tests/unit/physics/test_T22_lyapunov_spectral.py
+    falsifier:
+      test_id: tests/unit/physics/test_T22_lyapunov_spectral.py::test_mle_finite_for_bounded_input
+      invariants_cited:
+        - INV-LE1
+        - INV-LE2
+        - INV-SG1
+        - INV-SG2
+      failure_signature: >
+        non-finite MLE on a bounded series or λ₂ < 0 on a Laplacian
+        must raise an INV-LE1 / INV-SG1 assertion message; sign-class
+        mismatch (chaos vs stable vs noise) must reference INV-LE2.
+    added_utc: "2026-05-03"
+
+  - id: serotonin-controller-bounded-veto
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Serotonin ODE: Lyapunov V(s) non-increasing under zero stress
+      (INV-5HT1); s(t) ∈ [0, 1] always (INV-5HT2); sensitivity ∈
+      [0.1, 1.0] (INV-5HT4); tonic_level finite ≥ 0 (INV-5HT6);
+      veto fires on stress ≥ 1.0 OR |dd| ≥ 0.5 (INV-5HT7, SAFETY).
+      The "production-ready" verdict in surface docs is downgraded
+      to "tested under controlled fixtures" pending live-venue
+      evidence (KNOWN_LIMITATIONS L-1).
+    evidence_paths:
+      - core/neuro/serotonin_ode.py
+      - core/neuro/serotonin
+      - tests/core/neuro/serotonin/test_serotonin_controller.py
+      - tests/core/neuro/serotonin/test_serotonin_properties.py
+      - tests/unit/physics/test_T12_serotonin_stability.py
+    added_utc: "2026-05-03"
+
+  - id: dopamine-td-error-algebraic-exact
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Dopamine TD-error δ = r + γV′ − V is algebraic and tested to
+      float precision: ∂δ/∂r = 1 (INV-DA7); δ-sign matches surprise
+      direction (INV-DA1); γ ∈ (0, 1] within DopamineController
+      scope (INV-DA3). Asymptotic Robbins–Monro convergence V → V*
+      (INV-DA2) verified statistically on fixed-reward fixtures.
+    evidence_paths:
+      - core/neuro/dopamine_execution_adapter.py
+      - tests/core/neuro/dopamine/test_dopamine_controller.py
+      - tests/test_dopamine_controller.py
+      - tests/unit/physics/test_T11_dopamine_algebraic.py
+    falsifier:
+      test_id: tests/unit/physics/test_T11_dopamine_algebraic.py::test_dopamine_partial_derivative_unity
+      invariants_cited:
+        - INV-DA1
+        - INV-DA3
+        - INV-DA7
+      failure_signature: >
+        ∂δ/∂r ≠ 1 to float precision OR γ outside (0, 1] OR sign(δ)
+        not matching surprise direction must produce an INV-DA7 /
+        INV-DA3 assertion message; tanh-adapter conflation in
+        DopamineExecutionAdapter must NOT be tested as INV-DA7.
+    added_utc: "2026-05-03"
+
+  - id: gaba-inhibition-monotone-bounded
+    priority: P0
+    tier: ANCHORED
+    description: >
+      GABA gate ∈ [0, 1] (INV-GABA1); higher volatility → higher
+      inhibition (INV-GABA2); effective ≤ raw always (INV-GABA3);
+      vol → 0 ⟹ inhibition ≈ 0 (INV-GABA4); vol → ∞ ⟹ inhibition
+      → 1 (INV-GABA5).
+    evidence_paths:
+      - core/neuro/gaba_position_gate.py
+      - tests/test_gaba_inhibition_gate.py
+      - tests/unit/core/neuro/test_gaba_position_gate.py
+    falsifier:
+      test_id: tests/test_gaba_inhibition_gate.py::test_gate_within_unit_interval
+      invariants_cited:
+        - INV-GABA1
+        - INV-GABA2
+        - INV-GABA3
+      failure_signature: >
+        gate ∉ [0, 1] OR effective > raw OR vol↑ → inhibition↓ must
+        raise an INV-GABA1 / INV-GABA3 assertion message.
+    added_utc: "2026-05-03"
+
+  - id: ricci-curvature-bounded
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Ricci curvature universal upper bound κ ≤ 1 on any connected
+      graph (INV-RC1). On build_price_graph output κ ∈ [−1, 1]
+      (INV-RC3). Lower-bound caveat for non-price-graph topologies
+      is documented in CLAUDE.md and KNOWN_LIMITATIONS.
+    evidence_paths:
+      - tests/unit/physics/test_T10_ricci_bounds.py
+      - tests/test_augmented_ricci.py
+    falsifier:
+      test_id: tests/unit/physics/test_T10_ricci_bounds.py::test_ricci_upper_bound_universal
+      invariants_cited:
+        - INV-RC1
+        - INV-RC3
+      failure_signature: >
+        any κ > 1 on any connected graph OR κ ∉ [−1, 1] on
+        build_price_graph output must raise an INV-RC1 / INV-RC3
+        assertion message that names the offending node pair.
+    added_utc: "2026-05-03"
+
+  - id: kelly-sizing-cap-enforced
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Kelly continuous-small-edge sizing f* = μ/σ² (INV-KELLY1)
+      with applied fraction always ≤ configured cap (INV-KELLY2),
+      and growth-optimal expectation E[log(1+f*X)] ≥ E[log(1+f'X)]
+      for all f' (INV-KELLY3) under stated independence assumption.
+    evidence_paths:
+      - core/neuro/sizing.py
+      - core/neuro/kuramoto_kelly.py
+      - analytics/math_trading/kelly_criterion.py
+      - tests/neuro/test_sizing.py
+      - tests/analytics/test_kelly_criterion.py
+      - tests/unit/physics/test_T14_portfolio_energy_conservation.py
+    added_utc: "2026-05-03"
+
+  - id: oms-conservation-idempotency-monotone
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Order-management E_kinetic = ½Σ|pos|·ret² ≥ 0 (INV-OMS1);
+      same correlation_id is idempotent (INV-OMS2); per-order
+      timestamps monotone (INV-OMS3).
+    evidence_paths:
+      - tests/unit/physics/test_T15_oms_idempotency_causality.py
+    added_utc: "2026-05-03"
+
+  - id: signalbus-deterministic-fanout
+    priority: P0
+    tier: ANCHORED
+    description: >
+      SignalBus DAG fanout: each subscriber fires once per publish
+      (INV-SB1); deterministic by construction (INV-SB2). Cyclic
+      subscription is documented as RecursionError, not clean
+      rejection — this is a tested, documented limit, not a bug.
+    evidence_paths:
+      - core/neuro/signal_bus.py
+      - tests/unit/physics/test_T16_signalbus_dag.py
+    added_utc: "2026-05-03"
+
+  - id: cryptobiosis-phase-transition-survival
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Cryptobiosis ACTIVE → VITRIFYING → DORMANT → REHYDRATING →
+      ACTIVE: DORMANT ⟹ multiplier == 0.0 EXACTLY (INV-CB1);
+      vitrification O(1) one-tick (INV-CB2); rehydration stages
+      non-decreasing (INV-CB4); T ∈ [0, 1] (INV-CB6); exit < entry
+      hysteresis (INV-CB7); T ≥ entry during rehydration → DORMANT
+      (INV-CB8).
+    evidence_paths:
+      - core/neuro/cryptobiosis.py
+      - tests/unit/physics/test_T17_cryptobiosis.py
+    falsifier:
+      test_id: tests/unit/physics/test_T17_cryptobiosis.py::test_dormant_multiplier_exact_zero
+      invariants_cited:
+        - INV-CB1
+        - INV-CB2
+        - INV-CB6
+        - INV-CB7
+      failure_signature: >
+        DORMANT multiplier ≠ 0.0 EXACTLY OR T ∉ [0, 1] OR
+        exit ≥ entry (no hysteresis) must raise an INV-CB1 /
+        INV-CB7 assertion with the offending state name.
+    added_utc: "2026-05-03"
+
+  - id: reset-wave-phase-synchronization
+    priority: P0
+    tier: ANCHORED
+    description: >
+      Damped phase synchronization on the compact manifold [-π, π)
+      satisfies four numerical invariants (per docs/reset_wave_validation_report.md):
+      (i) bounded phase potential V = mean(1 − cos(Δφ)) ≥ 0 by construction;
+      (ii) inside the empirical stable region (coupling_gain · dt ≤ 0.2)
+      V is non-increasing on every step;
+      (iii) any |Δφ| > max_phase_error trips the fail-closed safety lock,
+      after which final_potential == initial_potential exactly;
+      (iv) same input + config ⇒ bit-identical ResetWaveResult.
+      SCOPE (Wave-7 tightening): the four invariants hold ONLY under
+      ideal computational conditions — single-process, synchronous
+      input, no clock skew, no dropped or out-of-order updates, no
+      concurrent writers. Distributed asynchronous resilience is
+      tracked as a separate claim (reset-wave-distributed-resilience)
+      with its own adapter and adversarial test surface; see also
+      KNOWN_LIMITATIONS L-12.
+      FACT/MODEL/ANALOGY scope discipline applied per IERD §4.2: the
+      "homeostatic" / "reset-wave" language is ANALOGY tier; FACT is the
+      Kuramoto-style discrete step; MODEL is the numerical relaxation
+      solver. Monte Carlo n=400 grid stress (108 cells × 20 seeds)
+      shows accuracy 1.0 vs labelling rule.
+    evidence_paths:
+      - geosync/neuroeconomics/reset_wave_engine.py
+      - geosync/neuroeconomics/homeostatic_stabilizer.py
+      - tests/test_reset_wave_engine.py
+      - tests/test_reset_wave_physics_laws.py
+      - tests/test_reset_wave_stress_validation.py
+      - tests/test_homeostatic_stabilizer.py
+      - docs/reset_wave_validation_report.md
+      - docs/reset_wave_critical_centers.md
+      - docs/reset_wave_truth_value_function.md
+      - docs/stability_bounds.md
+      - docs/validation/reset_wave_validation_summary.json
+    falsifier:
+      test_id: tests/test_reset_wave_physics_laws.py::test_numerical_invariant_2_potential_nonincreasing_under_stable_reset
+      invariants_cited:
+        - INV-RESET1
+        - INV-RESET2
+        - INV-RESET3
+        - INV-RESET4
+      failure_signature: >
+        any V(θ_{t+1}) > V(θ_t) inside the calibrated stable region OR
+        any active update under safety_lock=True OR any |Δφ| >
+        max_phase_error not tripping the lock OR any non-determinism
+        on identical inputs must surface a 5-field assertion message
+        naming INV-RESET1..4 + the offending (coupling_gain, dt) cell.
+    added_utc: "2026-05-03"
+
+  - id: reset-wave-distributed-resilience
+    priority: P0
+    tier: EXTRAPOLATED
+    description: >
+      The distributed-resilience adapter
+      (geosync.neuroeconomics.reset_wave_distributed) intercepts five
+      async failure modes that violate the ideal-conditions assumption
+      of reset-wave-phase-synchronization: (1) clock-jitter envelope
+      via JitterEnvelope, (2) staleness via StalenessGate, (3)
+      out-of-order replay via ConcurrencyGuard, (4) partial node
+      failure via PartialFailureDetector, (5) re-entry / adversarial
+      gradient jumps via DiscontinuityMonitor. On any guard violation
+      the adapter fires a fail-closed safety lock with an explicit
+      `fail_reason`; the base solver does not run. EXTRAPOLATED scope:
+      the guards are fail-closed by construction (FACT — tested per
+      branch) but together they DO NOT deliver CAP-theorem-level
+      consensus or distributed clock synchronisation; they refuse to
+      compute on inputs that violate their preconditions. Residual gap
+      documented in KNOWN_LIMITATIONS L-12.
+    evidence_paths:
+      - geosync/neuroeconomics/reset_wave_distributed.py
+      - tests/test_reset_wave_distributed_resilience.py
+      - docs/adr/0023-reset-wave-distributed-resilience.md
+    falsifier:
+      test_id: tests/test_reset_wave_distributed_resilience.py::test_distributed_discontinuity_monitor_flags_re_entry
+      invariants_cited:
+        - INV-RESET-DIST1
+        - INV-RESET-DIST2
+        - INV-RESET-DIST3
+        - INV-RESET-DIST4
+        - INV-RESET-DIST5
+      failure_signature: >
+        any of: jitter beyond envelope not flagging jitter_violation;
+        timestamps older than max_age_ns not surfacing stale_indices;
+        node sequence ≤ last_seq not raising concurrency violation;
+        missing active node not surfacing missing_indices; new V
+        exceeding prev V by > tolerance not flagging discontinuity;
+        ANY guard violation allowing the base solver to perform an
+        active update — any of these must produce an explicit
+        INV-RESET-DIST1..5 assertion message naming the guard.
+    added_utc: "2026-05-03"
+
+  - id: dro-ara-regime-fail-closed
+    priority: P0
+    tier: ANCHORED
+    description: >
+      DRO-ARA regime observer: γ = 2H + 1 to float precision
+      (INV-DRO1); rs = max(0, 1 − |γ − 1|) ∈ [0, 1] (INV-DRO2);
+      regime == INVALID iff (¬stationary ∨ R² < 0.90) (INV-DRO3);
+      LONG signal requires CRITICAL ∧ rs > 0.33 ∧ trend ∈
+      {CONVERGING, STABLE} (INV-DRO4); NaN/Inf/constant/rank/short
+      input → ValueError, no silent numeric repair (INV-DRO5).
+    evidence_paths:
+      - core/dro_ara/engine.py
+      - tests/core/dro_ara/test_invariants.py
+      - tests/core/dro_ara/test_properties.py
+      - tests/core/dro_ara/test_falsification.py
+    falsifier:
+      test_id: tests/core/dro_ara/test_invariants.py::test_gamma_is_derived_from_H
+      invariants_cited:
+        - INV-DRO1
+        - INV-DRO2
+        - INV-DRO3
+        - INV-DRO4
+        - INV-DRO5
+      failure_signature: >
+        |γ − (2H + 1)| ≥ 1e-5 OR rs ∉ [0, 1] OR LONG signal emitted
+        outside CRITICAL ∧ rs > 0.33 OR NaN/Inf input not raising
+        ValueError must produce an INV-DRO* assertion.
+    added_utc: "2026-05-03"
+
+  - id: ierd-phase0-yana-response
+    priority: P1
+    tier: ANCHORED
+    description: >
+      IERD-PAI-FPS-UX-001 Phase-0 response to the 2026-05-02
+      external falsification audit is published with tier-labeled
+      answers to all 7 questions, the directive is adopted as a
+      binding standard, and the forbidden-terminology lint runs in
+      warn mode in CI.
+    evidence_paths:
+      - docs/governance/IERD-PAI-FPS-UX-001.md
+      - docs/adr/0020-ierd-adoption.md
+      - docs/yana-response.md
+      - docs/audit/ierd_phase0_findings.md
+      - docs/validation/pai_report_2026_05_03.md
+      - scripts/ci/lint_forbidden_terms.py
+    added_utc: "2026-05-03"
+
+  # ---------------------------------------------------------------
+  # IERD Phase-0 (2026-05-03) — frontend-integration gaps tracked
+  # as EXTRAPOLATED claims with explicit missing-evidence enumeration.
+  # ---------------------------------------------------------------
+
+  - id: api-contract-openapi-coverage
+    priority: P1
+    tier: EXTRAPOLATED
+    description: >
+      All publicly exposed endpoints carry an OpenAPI 3.1 specification
+      with JSON Schema input/output contracts and a Schemathesis
+      contract-test suite. Status (Wave 6): EXTRAPOLATED — partial
+      evidence shipped for the reset-wave subsystem (Pydantic-derivable
+      ResetWaveConfig + ResetWaveResult dataclass contracts + explicit
+      ValueError boundaries documented in docs/reset_wave_critical_centers.md
+      §7 contract_validation; audit via audit_critical_centers()).
+      Missing evidence: full OpenAPI 3.1 doc covering every public
+      endpoint; Schemathesis contract suite in CI; versioned /v{N}/
+      route prefix; async job_id workflow for long simulations.
+      Re-classify ANCHORED on Phase-3 entry (per ADR 0020). Tracked
+      by GitHub issue IERD-Q4.
+    evidence_paths:
+      - docs/yana-response.md
+      - geosync/neuroeconomics/reset_wave_engine.py
+      - tests/test_reset_wave_engine.py
+      - docs/reset_wave_critical_centers.md
+    added_utc: "2026-05-03"
+
+  - id: ux-readiness-state-coverage
+    priority: P1
+    tier: EXTRAPOLATED
+    description: >
+      Every endpoint declares the six required UX states (success,
+      empty, partial, validation_error, server_error, timeout) with
+      a standard error envelope and a frontend rendering for each.
+      Status (Wave 6): EXTRAPOLATED — the reset-wave subsystem
+      already returns a finite supported state set via
+      latent_interpretive_forecast_layer (LOCKED / CONVERGING /
+      DIVERGING / OSCILLATORY / UNSTABLE / UNKNOWN, bounded
+      confidence ∈ [0, 1]); ResetWaveResult is a typed envelope with
+      explicit converged + locked + final_potential fields suitable
+      for UX rendering. Missing evidence: full per-endpoint state
+      enumeration in OpenAPI responses; standard {error_code,
+      message, details, trace_id, recoverable} envelope on all
+      4xx/5xx; frontend contract test verifying the matrix.
+      Re-classify ANCHORED on Phase-4 entry. Tracked by issue IERD-Q5.
+    evidence_paths:
+      - docs/yana-response.md
+      - geosync/neuroeconomics/reset_wave_engine.py
+      - tests/test_reset_wave_engine.py
+    added_utc: "2026-05-03"
+
+  - id: e2e-latency-budget-compliance
+    priority: P1
+    tier: EXTRAPOLATED
+    description: >
+      End-to-end latency instrumentation across four layers
+      (client_render, network_TTFB, server_compute, db_io) green
+      against the budget (FCP < 1.0 s, TTFB < 300 ms, server p95
+      < 100 ms, interactive p95 < 200 ms). Status (Wave 6):
+      EXTRAPOLATED — server_compute layer measurable for the
+      reset-wave subsystem: deterministic O(N · steps) cost on a
+      compact manifold, RK4-fixed integrator, no I/O. Stress test
+      grid (108 cells × 20 seeds) finishes well under the per-call
+      budget. Missing evidence: client_render (Web Vitals via
+      Lighthouse CI), network_TTFB (HTTP timing), db_io (driver
+      telemetry), regression-gated CI dashboards. Re-classify
+      ANCHORED on Phase-4 entry. Tracked by issue IERD-Q6.
+    evidence_paths:
+      - docs/yana-response.md
+      - geosync/neuroeconomics/reset_wave_engine.py
+      - tests/test_reset_wave_stress_validation.py
+      - docs/validation/reset_wave_validation_summary.json
+    added_utc: "2026-05-03"
+
+  - id: edge-case-coverage-matrix
+    priority: P1
+    tier: EXTRAPOLATED
+    description: >
+      Edge-case coverage matrix (endpoint × state × test_id) at
+      ECC ≥ 0.90, with mocked-failure E2E tests for network failure
+      and timeout, and a user-visible recoverable path for simulation
+      divergence. Status (Wave 6): EXTRAPOLATED — kernel-level edge
+      cases for the reset-wave subsystem are covered exhaustively
+      (mismatched lengths, empty input, non-positive coupling_gain /
+      dt / steps / max_phase_error, unknown integrator, NaN/Inf phase
+      values via wrap_phase, max_phase_error exceedance via safety
+      lock, simulation divergence via UNSTABLE / DIVERGING forecast
+      class). Missing evidence: HTTP-level network failure, timeout,
+      cancelled, validation_error E2E coverage; Playwright + MSW
+      browser-side tests; ECC numeric per (endpoint × state) matrix.
+      Re-classify ANCHORED on Phase-4 entry. Tracked by issue IERD-Q7.
+    evidence_paths:
+      - docs/yana-response.md
+      - tests/test_reset_wave_engine.py
+      - tests/test_reset_wave_physics_laws.py
+      - tests/test_reset_wave_stress_validation.py
+    added_utc: "2026-05-03"
+
+  # ---------------------------------------------------------------
+  # System-level composite tier (Wave 5, 2026-05-03).
+  # Closes the round-2 attack from external audit Q-2.6: a system's
+  # tier cannot be ANCHORED while three of the IERD §1 trigger terms
+  # (production-ready, UX-ready, cycle-time acceleration) are still
+  # UNKNOWN. The claim below is the honest composite — the **whole
+  # system** rolls up to EXTRAPOLATED, not ANCHORED, even though the
+  # physics-kernel sub-tier is ANCHORED.
+  # ---------------------------------------------------------------
+
+  - id: geosync-system-tier
+    priority: P0
+    tier: EXTRAPOLATED
+    description: >
+      Composite system tier for GeoSync as a whole = EXTRAPOLATED
+      at Phase 0. Decomposition: physics-kernel sub-tier = ANCHORED
+      (19 P0 claims gated by check_claims.py + compute_pai.py +
+      compute_fps_audit.py). Operational/UX/latency sub-tier =
+      UNKNOWN across api-contract-openapi-coverage,
+      ux-readiness-state-coverage, e2e-latency-budget-compliance,
+      edge-case-coverage-matrix. The composite roll-up is the WEAKEST
+      child tier — a single UNKNOWN cannot be hidden by 19 ANCHOREDs.
+      Re-classify to ANCHORED on Phase-4 exit (UXRS ≥ 0.95, ECC ≥ 0.90,
+      all 4 E2E latency layers green) per ADR 0020 + ADR 0021.
+    evidence_paths:
+      - docs/CLAIMS.yaml
+      - docs/governance/IERD-PAI-FPS-UX-001.md
+      - docs/KNOWN_LIMITATIONS.md
+      - docs/yana-response.md
+    added_utc: "2026-05-03"

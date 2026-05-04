@@ -8,6 +8,12 @@ verifies that every ``P0`` / ``P1`` claim's ``evidence_paths`` exist
 in the working tree. Missing evidence on a P0 / P1 claim is a build
 failure.
 
+Schema v2 (2026-05-03, IERD-PAI-FPS-UX-001) introduces the ``tier``
+field on every claim: one of ``ANCHORED`` | ``EXTRAPOLATED`` |
+``SPECULATIVE`` | ``UNKNOWN``. Schema v1 entries are still accepted
+(tier defaults to ``UNKNOWN``); newly added v2 entries must declare
+the field explicitly.
+
 Run locally before push:
 
     python scripts/ci/check_claims.py
@@ -35,11 +41,35 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 CLAIMS_PATH = ROOT / "docs" / "CLAIMS.yaml"
 
-SCHEMA_VERSION_EXPECTED = 1
+SCHEMA_VERSIONS_SUPPORTED = frozenset({1, 2, 3})
+SCHEMA_VERSION_LATEST = 3
 ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 PRIORITIES_GATED = frozenset({"P0", "P1"})
 PRIORITIES_ALL = frozenset({"P0", "P1", "P2"})
+TIERS_VALID = frozenset({"ANCHORED", "EXTRAPOLATED", "SPECULATIVE", "UNKNOWN"})
+# v3 falsifier dict shape: per ADR 0021. Keys are validated structurally
+# (presence + type) on v3 ANCHORED claims; cross-reference (test_id
+# resolves to actual pytest node) is enforced by compute_fps_audit.
+FALSIFIER_REQUIRED_KEYS = frozenset({"test_id", "invariants_cited", "failure_signature"})
+INV_PATTERN = re.compile(r"^INV-[A-Z0-9][A-Z0-9]*(?:-[A-Za-z0-9]+)*$")
+# v1 legacy default: UNKNOWN. The pre-v2 gate's strict path-existence
+# check still runs because the gate enforces ``ANCHORED/EXTRAPOLATED ⇒
+# all paths exist`` only on those two tiers. A v1 entry without a tier
+# field cannot silently inherit ANCHORED — that would be the exact
+# IERD §1 loophole (a claim treated as anchored without declared
+# evidence quality). Operators must migrate v1 → v2 with an explicit
+# tier; until then their entries warn but do not gate.
+TIER_DEFAULT_LEGACY = "UNKNOWN"
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+@dataclass(frozen=True)
+class Falsifier:
+    """v3 falsifier block — pytest node + invariants + failure signature."""
+
+    test_id: str
+    invariants_cited: tuple[str, ...]
+    failure_signature: str
 
 
 @dataclass(frozen=True)
@@ -48,9 +78,11 @@ class Claim:
 
     id: str
     priority: str
+    tier: str
     description: str
     evidence_paths: tuple[str, ...]
     added_utc: str
+    falsifier: Falsifier | None = None
 
 
 @dataclass(frozen=True)
@@ -72,12 +104,19 @@ def _load_registry(path: Path) -> dict[str, Any]:
     return loaded
 
 
-def _parse_claims(registry: dict[str, Any]) -> list[Claim]:
-    if registry.get("schema_version") != SCHEMA_VERSION_EXPECTED:
+def _resolve_schema_version(registry: dict[str, Any]) -> int:
+    schema_version_raw: object = registry.get("schema_version")
+    if schema_version_raw not in SCHEMA_VERSIONS_SUPPORTED:
         raise ValueError(
-            f"schema_version={registry.get('schema_version')!r} "
-            f"!= expected {SCHEMA_VERSION_EXPECTED}"
+            f"schema_version={schema_version_raw!r} "
+            f"not in supported {sorted(SCHEMA_VERSIONS_SUPPORTED)}"
         )
+    assert isinstance(schema_version_raw, int)
+    return schema_version_raw
+
+
+def _parse_claims(registry: dict[str, Any]) -> list[Claim]:
+    schema_version = _resolve_schema_version(registry)
     raw_claims = registry.get("claims")
     if not isinstance(raw_claims, list):
         raise ValueError("'claims' must be a list at the top level of CLAIMS.yaml")
@@ -86,7 +125,7 @@ def _parse_claims(registry: dict[str, Any]) -> list[Claim]:
     for index, entry in enumerate(raw_claims):
         if not isinstance(entry, dict):
             raise ValueError(f"claim #{index}: expected mapping, got {type(entry).__name__}")
-        claim = _parse_one(entry, index)
+        claim = _parse_one(entry, index, schema_version=schema_version)
         if claim.id in seen_ids:
             raise ValueError(f"duplicate claim id: {claim.id!r}")
         seen_ids.add(claim.id)
@@ -94,8 +133,41 @@ def _parse_claims(registry: dict[str, Any]) -> list[Claim]:
     return claims
 
 
-def _parse_one(entry: dict[str, Any], index: int) -> Claim:
-    required = {"id", "priority", "description", "evidence_paths", "added_utc"}
+def _parse_falsifier(raw: object, claim_id: str) -> Falsifier:
+    if not isinstance(raw, dict):
+        raise ValueError(f"claim {claim_id}: falsifier must be a mapping")
+    missing = FALSIFIER_REQUIRED_KEYS - set(raw.keys())
+    if missing:
+        raise ValueError(f"claim {claim_id}: falsifier missing keys: {sorted(missing)}")
+    test_id = raw["test_id"]
+    if not isinstance(test_id, str) or "::" not in test_id:
+        raise ValueError(
+            f"claim {claim_id}: falsifier.test_id must be a pytest node id "
+            f"(file::test_func), got {test_id!r}"
+        )
+    cited = raw["invariants_cited"]
+    if not isinstance(cited, list) or not cited:
+        raise ValueError(f"claim {claim_id}: falsifier.invariants_cited must be non-empty list")
+    for inv in cited:
+        if not isinstance(inv, str) or not INV_PATTERN.match(inv):
+            raise ValueError(
+                f"claim {claim_id}: falsifier.invariants_cited entry {inv!r} "
+                f"must match INV-<TAG> shape"
+            )
+    sig = raw["failure_signature"]
+    if not isinstance(sig, str) or not sig.strip():
+        raise ValueError(f"claim {claim_id}: falsifier.failure_signature must be non-empty string")
+    return Falsifier(
+        test_id=test_id,
+        invariants_cited=tuple(cited),
+        failure_signature=sig,
+    )
+
+
+def _parse_one(entry: dict[str, Any], index: int, *, schema_version: int) -> Claim:
+    required_v1 = {"id", "priority", "description", "evidence_paths", "added_utc"}
+    required_v2 = required_v1 | {"tier"}
+    required = required_v2 if schema_version >= 2 else required_v1
     missing = required - set(entry.keys())
     if missing:
         raise ValueError(f"claim #{index} missing fields: {sorted(missing)}")
@@ -108,6 +180,9 @@ def _parse_one(entry: dict[str, Any], index: int) -> Claim:
     priority = entry["priority"]
     if priority not in PRIORITIES_ALL:
         raise ValueError(f"claim {cid}: priority={priority!r} not in {sorted(PRIORITIES_ALL)}")
+    tier_raw: object = entry.get("tier", TIER_DEFAULT_LEGACY)
+    if not isinstance(tier_raw, str) or tier_raw not in TIERS_VALID:
+        raise ValueError(f"claim {cid}: tier={tier_raw!r} not in {sorted(TIERS_VALID)}")
     description = entry["description"]
     if not isinstance(description, str) or not description.strip():
         raise ValueError(f"claim {cid}: description must be a non-empty string")
@@ -119,29 +194,53 @@ def _parse_one(entry: dict[str, Any], index: int) -> Claim:
     added = entry["added_utc"]
     if not isinstance(added, str) or not DATE_PATTERN.match(added):
         raise ValueError(f"claim {cid}: added_utc={added!r} must be 'YYYY-MM-DD'")
+    falsifier_raw = entry.get("falsifier")
+    falsifier: Falsifier | None = None
+    if falsifier_raw is not None:
+        falsifier = _parse_falsifier(falsifier_raw, cid)
     return Claim(
         id=cid,
         priority=priority,
+        tier=tier_raw,
         description=description,
         evidence_paths=tuple(evidence),
         added_utc=added,
+        falsifier=falsifier,
     )
 
 
 def _validate_evidence(claim: Claim, root: Path) -> list[ValidationFailure]:
-    """Return one failure per missing evidence path on a gated claim."""
+    """Return one failure per missing evidence path on a gated claim.
+
+    Tier-aware semantics:
+      ANCHORED / EXTRAPOLATED — every evidence path must exist.
+      SPECULATIVE / UNKNOWN  — evidence paths may be aspirational
+                               (e.g. tracking docs); existence is
+                               *strongly preferred* but not gated,
+                               since the tier itself states the
+                               evidence gap.
+    Gating still triggers only on P0 / P1 priorities.
+    """
     if claim.priority not in PRIORITIES_GATED:
         return []
+    tier_strict = claim.tier in {"ANCHORED", "EXTRAPOLATED"}
     failures: list[ValidationFailure] = []
     for relative in claim.evidence_paths:
         target = root / relative
         if not target.exists():
-            failures.append(
-                ValidationFailure(
-                    claim_id=claim.id,
-                    reason=f"missing evidence path: {relative}",
+            if tier_strict:
+                failures.append(
+                    ValidationFailure(
+                        claim_id=claim.id,
+                        reason=f"missing evidence path: {relative}",
+                    )
                 )
-            )
+            else:
+                # SPECULATIVE/UNKNOWN: warn-only, do not gate.
+                print(
+                    f"WARN: claim {claim.id} ({claim.tier}) references missing path {relative}",
+                    file=sys.stderr,
+                )
     return failures
 
 
@@ -149,6 +248,7 @@ def main(argv: list[str] | None = None) -> int:
     del argv  # accept-no-args contract; flags would invite ad-hoc skipping.
     try:
         registry = _load_registry(CLAIMS_PATH)
+        schema_version = _resolve_schema_version(registry)
         claims = _parse_claims(registry)
     except (FileNotFoundError, TypeError, ValueError) as exc:
         print(f"CLAIMS.yaml schema violation: {exc}", file=sys.stderr)
@@ -159,6 +259,9 @@ def main(argv: list[str] | None = None) -> int:
         failures.extend(_validate_evidence(claim, ROOT))
 
     gated_total = sum(1 for c in claims if c.priority in PRIORITIES_GATED)
+    tier_counts: dict[str, int] = {t: 0 for t in TIERS_VALID}
+    for c in claims:
+        tier_counts[c.tier] += 1
     if failures:
         print(
             f"FAIL: {len(failures)} evidence violation(s) across {gated_total} gated claim(s):",
@@ -168,9 +271,33 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {f}", file=sys.stderr)
         return 1
 
+    tier_summary = ", ".join(f"{t}={tier_counts[t]}" for t in sorted(TIERS_VALID))
+
+    # v3 falsifier coverage — warn-only in Phase 1.0 per ADR 0021.
+    if schema_version >= 3:
+        anchored_total = sum(1 for c in claims if c.tier == "ANCHORED")
+        anchored_with_falsifier = sum(
+            1 for c in claims if c.tier == "ANCHORED" and c.falsifier is not None
+        )
+        anchored_without = anchored_total - anchored_with_falsifier
+        if anchored_without:
+            missing = [c.id for c in claims if c.tier == "ANCHORED" and c.falsifier is None]
+            print(
+                f"WARN(v3): {anchored_without}/{anchored_total} ANCHORED claim(s) "
+                f"lack falsifier block (Phase 1.0 warn-only): {missing}",
+                file=sys.stderr,
+            )
+        falsifier_summary = (
+            f"; falsifier coverage: {anchored_with_falsifier}/{anchored_total} ANCHORED"
+        )
+    else:
+        falsifier_summary = ""
+
     print(
-        f"PASS: {gated_total} gated claim(s), {len(claims) - gated_total} P2; "
-        f"all evidence paths present."
+        f"PASS: schema v{schema_version}; "
+        f"{gated_total} gated claim(s), {len(claims) - gated_total} P2; "
+        f"all evidence paths present; "
+        f"tier distribution: {tier_summary}{falsifier_summary}."
     )
     return 0
 

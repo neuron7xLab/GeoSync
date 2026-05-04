@@ -48,6 +48,22 @@ class HomeostaticState:
     entropy: float  # signal entropy (information content)
 
 
+@dataclass(frozen=True, slots=True)
+class ResetWaveReport:
+    """Result of a damped phase-synchronization step (reset wave)."""
+
+    activation_trigger: str
+    write_ops_inhibited: bool
+    average_phase_error: float
+    reset_energy: float
+    pre_reset_energy: float
+    post_reset_energy: float
+    energy_delta: float
+    converged: bool
+    node_count: int
+    safety_lock: bool
+
+
 class NeuroHomeostaticStabilizer:
     """E/I balance controller that modulates position sizing.
 
@@ -206,6 +222,85 @@ class NeuroHomeostaticStabilizer:
     def is_dissociated(self) -> bool:
         """True if system is in protective shutdown."""
         return self._dissociated
+
+    def re_adaptation_to_baseline(
+        self,
+        node_phases: list[float],
+        baseline_phases: list[float],
+        *,
+        coupling_gain: float = 1.0,
+        convergence_tol: float = 0.05,
+        max_phase_error: float = math.pi,
+    ) -> ResetWaveReport:
+        """Run a single damped phase-synchronization step toward baseline.
+
+        FACT (numerical model): single-step Kuramoto-style phase
+        correction on the compact manifold ``[-π, π)``.
+            S_reset = mean(sin(θ_baseline − θ_node)) · coupling_gain
+        MODEL (interpretation): a one-shot "reset wave" toward a
+        baseline reference. The longer trajectory + stability bounds
+        live in :mod:`geosync.neuroeconomics.reset_wave_engine`.
+        ANALOGY (NHS metaphor only): "homeostatic reset". Not a
+        thermodynamic or neurobiological law.
+
+        Falsifiable invariant (closed digital system):
+            ``post_reset_energy ≤ pre_reset_energy``
+        where energy is the bounded phase potential
+        ``mean(1 − cos(Δφ))``.
+        """
+        if len(node_phases) != len(baseline_phases):
+            raise ValueError("node_phases and baseline_phases must have equal length")
+        if not node_phases:
+            raise ValueError("at least one node phase is required")
+        if coupling_gain <= 0:
+            raise ValueError("coupling_gain must be > 0")
+        if max_phase_error <= 0:
+            raise ValueError("max_phase_error must be > 0")
+
+        phase_diffs = [base - node for node, base in zip(node_phases, baseline_phases)]
+        phase_errors = [abs(diff) for diff in phase_diffs]
+        if any(err > max_phase_error for err in phase_errors):
+            pre_reset_energy = coupling_gain * (
+                sum(1.0 - math.cos(diff) for diff in phase_diffs) / len(phase_diffs)
+            )
+            return ResetWaveReport(
+                activation_trigger="NeuroHomeostaticStabilizer",
+                write_ops_inhibited=True,
+                average_phase_error=round(sum(phase_errors) / len(phase_errors), 6),
+                reset_energy=0.0,
+                pre_reset_energy=round(pre_reset_energy, 6),
+                post_reset_energy=round(pre_reset_energy, 6),
+                energy_delta=0.0,
+                converged=False,
+                node_count=len(node_phases),
+                safety_lock=True,
+            )
+        avg_error = sum(phase_errors) / len(phase_errors)
+        pre_reset_energy = coupling_gain * (
+            sum(1.0 - math.cos(diff) for diff in phase_diffs) / len(phase_diffs)
+        )
+        reset_energy = coupling_gain * (
+            sum(math.sin(diff) for diff in phase_diffs) / len(phase_diffs)
+        )
+        corrected_phase_diffs = [diff - reset_energy for diff in phase_diffs]
+        post_reset_energy = coupling_gain * (
+            sum(1.0 - math.cos(diff) for diff in corrected_phase_diffs) / len(corrected_phase_diffs)
+        )
+        energy_delta = post_reset_energy - pre_reset_energy
+        converged = avg_error <= convergence_tol
+
+        return ResetWaveReport(
+            activation_trigger="NeuroHomeostaticStabilizer",
+            write_ops_inhibited=True,
+            average_phase_error=round(avg_error, 6),
+            reset_energy=round(reset_energy, 6),
+            pre_reset_energy=round(pre_reset_energy, 6),
+            post_reset_energy=round(post_reset_energy, 6),
+            energy_delta=round(energy_delta, 6),
+            converged=converged,
+            node_count=len(node_phases),
+            safety_lock=False,
+        )
 
 
 def _to_float(v: object) -> float:
