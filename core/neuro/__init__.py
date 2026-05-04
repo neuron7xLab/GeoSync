@@ -67,6 +67,18 @@ __all__ = [
     "EWSkewness",
     "ema_update",
     "ewvar_update",
+    # Epistemic validation (budget-bounded fail-closed gate). Functions
+    # (initial_state / update / verify_stream / reset_with_external_proof
+    # / halt_margin) are submodule-only to avoid name collisions; import
+    # them directly from core.neuro.epistemic_validation.
+    "EpistemicConfig",
+    "EpistemicError",
+    "EpistemicPhase",
+    "EpistemicState",
+    "HaltMargin",
+    "RebusBridge",
+    # Epistemic audit-ledger (schema-versioned envelope of state transitions)
+    "EpistemicAuditEntry",
 ]
 
 _MODULE_EXPORTS: dict[str, tuple[str, ...]] = {
@@ -118,6 +130,15 @@ _MODULE_EXPORTS: dict[str, tuple[str, ...]] = {
         "pulse_weight",
         "precision_weight",
     ),
+    "core.neuro.epistemic_validation": (
+        "EpistemicConfig",
+        "EpistemicError",
+        "EpistemicPhase",
+        "EpistemicState",
+        "HaltMargin",
+        "RebusBridge",
+    ),
+    "core.neuro.epistemic_audit": ("EpistemicAuditEntry",),
     "core.neuro.training": (
         "AsyncDataLoader",
         "CheckpointManager",
