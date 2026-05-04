@@ -171,6 +171,21 @@ INV-GABA4 | asymptotic   | vol → 0 ⟹ inhibition ≈ 0                  | P1
 INV-GABA5 | asymptotic   | vol → ∞ ⟹ inhibition → 1                  | P1
 ```
 
+### Bit-Identical Reproducibility Kit (Law T6)
+
+```
+INV-DET1 | universal | identical canonical inputs ⇒ identical hash;  | P0
+                     | all NaN bit-patterns collapse to one; ±0
+                     | unify; subnormals flush to +0.
+INV-DET2 | universal | 1-ULP perturbation ⇒ different hash;          | P0
+                     | dtype/shape/trajectory-order aliasing blocked.
+INV-DET3 | universal | every contract violation → ValueError;        | P0
+                     | fail-closed.
+         Source: core/physics/determinism_kit.py
+         Tests:  tests/unit/physics/test_T6_determinism_kit.py
+         Law:    docs/laws/T6_determinism_kit.md
+```
+
 ### Free Energy / ECS
 
 ```
@@ -368,6 +383,7 @@ assert result.order > 0      # no INV, no context
 | `*energy*`, `*lyapunov*`, `*ecs*` | INV-FE1..2 |
 | `*thermo*`, `*conservation*` | INV-TH1..2 |
 | `*ricci*`, `*curvature*` | INV-RC1..3 |
+| `*determinism_kit*`, `*law_T6*`, `*replay_manifest*` | INV-DET1..3 |
 | `*kelly*`, `*sizing*` | INV-KELLY1..3 |
 | `*oms*`, `*order*`, `*execution*` | INV-OMS1..3 |
 | `*signal_bus*`, `*signalbus*` | INV-SB1..2 |
