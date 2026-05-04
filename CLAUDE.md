@@ -156,6 +156,21 @@ INV-LY3 | universal    | every contract violation (dt≤0, n_steps≤0,      | P
          Law:    docs/laws/T2_lyapunov_spectrum.md
 ```
 
+### Predictability Horizon under Landauer Budget (Law T5)
+
+```
+INV-TAU1 | algebraic    | Lorenz: τ(λ_1) = (1/λ_1) · ln(δ_tol/δ_0);   | P0
+                       | +∞ when λ_1 ≤ 0; halves under doubled λ_1.
+INV-TAU2 | conservation | Landauer floor: E_min = k_B·T·ln(Δ/δ_0);    | P0
+                       | over-budget δ_0_request → "physically
+                       | unaffordable" ValueError (no silent repair).
+INV-TAU3 | universal    | every contract violation → ValueError;      | P0
+                       | fail-closed.
+         Source: core/physics/predictability_horizon.py
+         Tests:  tests/unit/physics/test_T5_predictability_landauer.py
+         Law:    docs/laws/T5_predictability_landauer.md
+```
+
 ### Spectral Graph (coupling Laplacian λ₂)
 
 ```
@@ -408,6 +423,7 @@ assert result.order > 0      # no INV, no context
 | `*lyapunov_spectrum*`, `*benettin*`, `*law_T2*` | INV-LY1..3 |
 | `*kuramoto_ricci*`, `*law_T1*`, `*sync_onset*` | INV-KR1..3 |
 | `*lyapunov_calibration*`, `*law_T3*`, `*calibrate_coupling*` | INV-CAL1..3 |
+| `*predictability_horizon*`, `*law_T5*` | INV-TAU1..3 |
 | `*spectral_graph*`, `*laplacian*`, `*fiedler*` | INV-SG1..2 |
 | `*serotonin*`, `*5ht*` | INV-5HT1..7 |
 | `*dopamine*`, `*rpe*`, `*td_error*` | INV-DA1..7 |
