@@ -111,6 +111,22 @@ INV-LE2 | qualitative | MLE(noise)≈0, MLE(stable)<0, MLE(chaos)>0       | P1
          Tests:  tests/unit/physics/test_T22_lyapunov_spectral.py
 ```
 
+### Kuramoto-Ricci Sync-Onset Boundary (Law T1 — Restrepo-Ott-Hunt on κ-graph)
+
+```
+INV-KR1 | algebraic    | sign(Φ) ⇒ asymptotic ⟨R⟩ regime, where        | P0
+                       | Φ = K · λ_max(A_κ) − 2γ. Subcritical:
+                       | ⟨R⟩ ≤ 1.5·3/√N. Supercritical: ⟨R⟩ > 0.5.
+INV-KR2 | qualitative  | variational MLE crosses zero through Φ = 0    | P0
+                       | (verified via T2 lyapunov_spectrum).
+INV-KR3 | conservation | with ω_i = 0, coupling potential V is         | P0
+                       | non-increasing along midpoint trajectories
+                       | (max dV/dt ≤ 1e-9).
+         Source: core/kuramoto/kuramoto_ricci_engine.py
+         Tests:  tests/unit/physics/test_T1_kuramoto_ricci_boundary.py
+         Law:    docs/laws/T1_kuramoto_ricci_boundary.md
+```
+
 ### Full Lyapunov Spectrum (Law T2 — Benettin QR on variational flow)
 
 ```
@@ -376,6 +392,7 @@ assert result.order > 0      # no INV, no context
 | `*ott_antonsen*`, `*chimera*` | INV-OA1..3 |
 | `*lyapunov_exponent*`, `*mle*` | INV-LE1..2 |
 | `*lyapunov_spectrum*`, `*benettin*`, `*law_T2*` | INV-LY1..3 |
+| `*kuramoto_ricci*`, `*law_T1*`, `*sync_onset*` | INV-KR1..3 |
 | `*spectral_graph*`, `*laplacian*`, `*fiedler*` | INV-SG1..2 |
 | `*serotonin*`, `*5ht*` | INV-5HT1..7 |
 | `*dopamine*`, `*rpe*`, `*td_error*` | INV-DA1..7 |
