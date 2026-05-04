@@ -181,8 +181,15 @@ def _hurst_dfa(x: NDArray[np.float64]) -> tuple[float, float]:
 
 
 def derive_gamma(x: NDArray[np.float64] | np.ndarray) -> tuple[float, float, float]:
-    """Return (gamma, H, r2) with invariant gamma = 2·H + 1."""
-    arr: NDArray[np.float64] = np.asarray(x, dtype=np.float64)
+    """Return (gamma, H, r2) with invariant gamma = 2·H + 1.
+
+    Enforces INV-DRO5 (fail-closed): ``ValueError`` is raised on
+    NaN, ±Inf, constant series, non-1-D, or shorter-than-64-sample
+    inputs — no silent numeric repair. The 64-sample floor matches
+    the DFA inner-loop requirement (``min_box = max(8, N // 64)``);
+    legitimate production windows (default 512) are well above it.
+    """
+    arr = _validate(x, min_len=64)
     H, r2 = _hurst_dfa(arr)
     return round(2 * H + 1, 6), round(H, 6), round(r2, 6)
 
