@@ -1,19 +1,3 @@
-# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
-# SPDX-License-Identifier: MIT
-"""Stress / Monte Carlo validation surface for the reset-wave solver.
-
-Sweeps the ``coupling_gain × dt × convergence_tol × max_phase_error``
-configuration grid, each cell with N=20 random initial conditions,
-and asserts the two cardinal invariants on every cell:
-
-* locked → final_potential == initial_potential (no active updates),
-* unlocked → final_potential ≤ initial_potential + 1e-12.
-
-The grid intentionally contains both stable (``coupling_gain · dt ≤
-0.2``) and unstable cells so the negative case for nonconvergence is
-also exercised.
-"""
-
 from __future__ import annotations
 
 import math
@@ -51,7 +35,6 @@ def test_stress_surface_potential_and_lock_invariants() -> None:
 
 
 def test_negative_nonconvergence_large_dt_gain() -> None:
-    """Outside the stability bound (gain · dt > 0.2) nonconvergence is allowed."""
     cfg = ResetWaveConfig(coupling_gain=8.0, dt=1.5, steps=8, max_phase_error=math.pi)
     out = run_reset_wave([0.9, -1.1, 0.6], [0.0, 0.0, 0.0], cfg)
     assert not out.converged

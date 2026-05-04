@@ -1,66 +1,56 @@
-# Reset-Wave як objective-criterion функція
-
-> Per IERD §4.2 lexicon: "truth function" → "objective criterion". This document uses the IERD-compliant phrasing throughout.
+# Reset-Wave як Функція Істинної Цінності
 
 ## 1) Однофразова постановка
+Перетворити шумний фазовий стан мережі на керований рух до базового еталона так, щоб енергія помилки не зростала, а небезпечні режими автоматично блокувалися.
 
-Перетворити шумний фазовий стан мережі на керований рух до базового еталона так, щоб **bounded phase potential** не зростала, а небезпечні режими автоматично блокувалися.
-
-## 2) Абстрактна objective-criterion функція
-
+## 2) Абстрактна функція істинної цінності
 Нехай:
 - `x` — поточний вектор фаз вузлів,
 - `x*` — базовий (еталонний) вектор фаз,
-- `E(x, x*) = mean(1 − cos(x* − x))` — bounded phase potential (energy не у термодинамічному сенсі — ми не претендуємо на закон термодинаміки, лише на чисельну функцію Ляпунова на компактному [-π, π)),
-- `L(x)` — predicate безпеки (`True`, якщо є критичне відхилення).
+- `E(x, x*) = mean(1 - cos(x* - x))` — енергія відхилення,
+- `L(x)` — предикат безпеки (`True`, якщо є критичне відхилення).
 
-**Tier per IERD §2:** EXTRAPOLATED. ANCHORED-частина — стабільна область `coupling_gain · dt ≤ 0.2`. Поза нею не гарантовано монотонне зменшення.
+Тоді істинна цінність механізму:
 
-Тоді objective-criterion механізму:
-
-`V(x) = 1`, якщо одночасно:
-1. **Safety criterion (ANCHORED):** `L(x) ⇒ lock` (fail-closed),
-2. **Energy criterion (EXTRAPOLATED, scoped):** `not L(x) ∧ within_stable_region ⇒ E_{t+1} ≤ E_t`,
-3. **Convergence criterion (EXTRAPOLATED, scoped):** за скінченне число кроків `||x_t − x*|| → tol`.
+`V(x) = 1`, якщо виконується:
+1. **Safety truth:** `L(x) => lock` (fail-closed),
+2. **Energy truth:** `not L(x) => E_{t+1} <= E_t`,
+3. **Convergence truth:** за скінченне число кроків `||x_t - x*|| -> tol`.
 
 Інакше `V(x) = 0`.
 
-Інтуїція: система задовольняє objective criterion тоді, коли вона або безпечно блокує небезпеку, або всередині stability bound гарантовано зменшує відхилення до еталону.
+Інтуїція: система «істинна» тоді, коли вона або безпечно блокує небезпеку, або гарантовано зменшує відхилення до еталону.
 
-## 3) Механізм як цілісна дія
-
-1. **Сканування стану:** `d = x* − x`, `|d|`.
-2. **Decision на режим:**
-   - якщо `max(|d|) > max_phase_error` → **safety-lock**, write_ops_inhibited=True, no active updates;
-   - інакше → **damped phase synchronization**.
-3. **Step:** Euler `x ← x + dt · coupling_gain · sin(d)` або RK4-fixed.
-4. **Audit:** після кожного кроку:
-   - `V(θ_{t+1}) ≤ V(θ_t)` (всередині stable region),
-   - детермінізм траєкторії (same input ⇒ same output),
+## 3) Механізм як цілісна дія (не символи)
+1. **Сканування стану:** вимірюємо фазові різниці `d = x* - x`.
+2. **Рішення про режим:**
+   - якщо `max(|d|) > threshold` → **safety-lock** + заборона записів;
+   - інакше → **контрольований reset-wave**.
+3. **Крок корекції:** кожен вузол рухається за локальним правилом
+   `x := x + dt * gain * sin(d)`.
+4. **Аудит істинності:** після кожного кроку перевіряємо:
+   - енергія не зростає,
+   - траєкторія узгоджена,
    - досягнута збіжність або коректне блокування.
 
+Це і є «функція істинної цінності в дії»: або безпечне блокування, або монотонне виправлення.
+
 ## 4) Контракт I/O
+- **Вхід:** `node_phases`, `baseline_phases`, `gain`, `dt`, `steps`, `tol`, `max_phase_error`.
+- **Вихід:** `(converged, safety_lock, initial_energy, final_energy, trajectory)`.
+- **Границі:** додатні `gain/dt/steps/threshold`; однакова довжина векторів фаз.
 
-- **Вхід:** `node_phases`, `baseline_phases`, `coupling_gain`, `dt`, `steps`, `convergence_tol`, `max_phase_error`, `integrator ∈ {euler, rk4_fixed}`.
-- **Вихід:** `ResetWaveResult(converged, locked, initial_potential, final_potential, trajectory)`.
-- **Boundary conditions:** додатні `coupling_gain / dt / steps / max_phase_error`; однакова довжина векторів; `integrator` з whitelist.
-
-## 5) Falsification (коли модель вважається хибною)
-
-Механізм вважається falsified якщо хоч раз:
-1. `not safety_lock ∧ within_stable_region ∧ final_potential > initial_potential`,
-2. `safety_lock=True ∧ final_potential ≠ initial_potential` (lock дозволяє active update),
-3. однаковий вхід дає різний вихід (порушення детермінізму),
-4. `max(|d|) > max_phase_error ∧ not safety_lock` (lock не сцрацював на extreme drift).
-
-Falsifier тестується у `tests/test_reset_wave_physics_laws.py` + `tests/test_reset_wave_stress_validation.py` (Monte Carlo n=400 + grid 4×3×3×3=108 cells × 20 seeds).
+## 5) Фальсифікація (коли модель вважається хибною)
+Механізм вважається хибним, якщо хоч раз:
+1. `not safety_lock` і при цьому `final_energy > initial_energy`,
+2. `safety_lock=True`, але енергія/стан змінюються як активна корекція,
+3. однаковий вхід дає різний вихід (порушення детермінізму).
 
 ## 6) Практичний сенс
+Це не «магія фізики», а інженерна дисципліна:
+- **безпека першою** (lock),
+- **керований градієнт до еталона** (reset),
+- **перевірювані інваріанти** (energy, determinism, convergence).
 
-Це не "магія фізики" — це інженерна дисципліна:
-- **safety first** (lock),
-- **bounded градієнт до еталона** всередині stability region (reset),
-- **перевірювані інваріанти** (energy non-increase, determinism, convergence, lock fail-closed).
-
-У такій формі механізм читається як єдина система рішень:
-**ризик > поріг → lock; інакше → зменшуй помилку до нуля з audit objective criterion.**
+У такій формі механізм читається як єдина система рішень:  
+**ризик > поріг → блокуй; інакше → зменшуй помилку до нуля з аудитом істинності.**

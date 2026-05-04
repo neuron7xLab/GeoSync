@@ -1,13 +1,4 @@
-# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
-# SPDX-License-Identifier: MIT
-"""Numerical-invariant checks for the damped phase-synchronization model.
-
-These are FACT-tier invariants: every assertion is anchored by a
-named numerical claim in ``geosync/neuroeconomics/reset_wave_engine.py``
-and ``docs/stability_bounds.md``. Anything that needs interpretive
-language (homeostasis, neuro-) lives in MODEL/ANALOGY tier and is
-NOT tested here.
-"""
+"""Numerical invariant checks for damped phase synchronization model."""
 
 from __future__ import annotations
 
@@ -23,20 +14,17 @@ from geosync.neuroeconomics.reset_wave_engine import (
 
 
 def test_numerical_invariant_1_potential_nonnegative() -> None:
-    """V(θ) = mean(1 − cos(Δφ)) ≥ 0 by construction (cos ≤ 1)."""
     out = run_reset_wave([0.2, -0.1], [0.0, 0.0], ResetWaveConfig())
     assert out.initial_potential >= 0.0
     assert out.final_potential >= 0.0
 
 
 def test_numerical_invariant_2_potential_nonincreasing_under_stable_reset() -> None:
-    """Stable region (coupling_gain · dt ≤ 0.2) → potential non-increasing."""
     out = run_reset_wave([0.2, 0.1, -0.2], [0.0, 0.0, 0.0], ResetWaveConfig())
     assert out.final_potential <= out.initial_potential
 
 
 def test_numerical_invariant_3_zero_error_fixed_point() -> None:
-    """θ = θ_baseline → V = 0 fixed point, immediately ``converged``."""
     out = run_reset_wave([1.0, 1.0], [1.0, 1.0], ResetWaveConfig())
     assert math.isclose(out.initial_potential, 0.0, abs_tol=1e-9)
     assert math.isclose(out.final_potential, 0.0, abs_tol=1e-9)
@@ -44,13 +32,11 @@ def test_numerical_invariant_3_zero_error_fixed_point() -> None:
 
 
 def test_numerical_invariant_4_lock_on_critical_error() -> None:
-    """Any |Δφ| > max_phase_error must trip the safety lock."""
     out = run_reset_wave([10.0, -10.0], [0.0, 0.0], ResetWaveConfig(max_phase_error=0.5))
     assert out.locked
 
 
 def test_numerical_invariant_5_determinism() -> None:
-    """Same input + config → bit-identical ``ResetWaveResult``."""
     cfg = ResetWaveConfig(coupling_gain=1.2)
     assert run_reset_wave([0.11, 0.09], [0.1, 0.1], cfg) == run_reset_wave(
         [0.11, 0.09], [0.1, 0.1], cfg
@@ -58,7 +44,6 @@ def test_numerical_invariant_5_determinism() -> None:
 
 
 def test_phase_wrapping_and_distance() -> None:
-    """wrap_phase keeps result in [-π, π); phase_distance is shortest signed."""
     w = wrap_phase(4 * math.pi + 0.1)
     assert -math.pi <= w < math.pi
     d = phase_distance(math.pi - 0.01, -math.pi + 0.01)
@@ -66,7 +51,6 @@ def test_phase_wrapping_and_distance() -> None:
 
 
 def test_phase_alignment_potential_wrap_consistency() -> None:
-    """V(a, b) is symmetric across the manifold seam."""
     a = phase_alignment_potential([math.pi - 0.01], [-math.pi + 0.01])
     b = phase_alignment_potential([-math.pi + 0.01], [math.pi - 0.01])
     assert math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-9)
