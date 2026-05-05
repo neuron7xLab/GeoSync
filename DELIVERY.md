@@ -9,18 +9,25 @@
 
 ## 0. TL;DR — What is GeoSync, in one paragraph
 
-GeoSync is a **physics-first quantitative trading platform** with neuroscience-inspired
-risk management. It is **not** a trading bot that uses physics metaphors — it is a
-deterministic state machine in which every numerical claim is **anchored to a
-peer-reviewed invariant**. The kernel ships **87 machine-checkable invariants** (Kuramoto
-synchrony, Ollivier-Ricci curvature, dopamine TD error, serotonin ODE, GABA gate,
-Lyapunov spectrum, free-energy descent, Landauer-budgeted predictability), each gated
-by tests and CI. Three production substrata are bundled: a **risk engine**
-(ECS regulator + conformal prediction + Kelly cap), a **regime observer** (DRO-ARA on
-DFA-Hurst + ADF), and a **microstructure edge** (Ricci curvature on order-flow-imbalance
-graphs, validated by an 11-axis falsification battery in `paper/ricci_microstructure/`).
-Live-venue trading is **paper-only** as of this snapshot; that is the explicit boundary
-of what is shippable today.
+GeoSync is a **physics-first quantitative trading research platform** with
+neuroscience-inspired risk management. The design intent is a deterministic
+state machine where strong numerical claims are anchored to peer-reviewed
+invariants; how far that intent is realised is bounded by `CLAIMS.md` (which
+tracks per-claim tier — FACT / MEASURED / DERIVED / HYPOTHESIS — rather
+than asserting blanket anchoring). The physics kernel registers
+**87 machine-checkable invariants** (Kuramoto synchrony, Ollivier-Ricci
+curvature, dopamine TD error, serotonin ODE, GABA gate, Lyapunov spectrum,
+free-energy descent, Landauer-budgeted predictability); the count of those
+invariants currently grounded by tests is the smaller number reported in
+`BASELINE.md` and growth is gated, not assumed. Three engineered substrata
+are bundled at module-level production-scope: a **risk engine** (ECS
+regulator + conformal prediction + Kelly cap), a **regime observer**
+(DRO-ARA on DFA-Hurst + ADF), and a **microstructure research artefact**
+(Ricci curvature on order-flow-imbalance graphs, with an 11-axis
+falsification battery in `paper/ricci_microstructure/` — single-session
+in-sample, scope-bounded per the abstract caveat). Live-venue trading is
+**paper-only** in this snapshot — `docs/KNOWN_LIMITATIONS.md` L-1 is the
+explicit boundary of what is shippable today.
 
 ---
 
