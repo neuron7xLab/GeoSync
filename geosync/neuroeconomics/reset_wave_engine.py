@@ -75,6 +75,24 @@ class AsyncResilienceConfig:
     seed: int = 0
 
 
+def _ensure_finite_phase_vectors(node_phases: list[float], baseline_phases: list[float]) -> None:
+    """Fail-closed numerical input guard.
+
+    Closes the cross-stress NaN/Inf hole found 2026-05-05: pre-fix,
+    ``run_reset_wave([0.1, NaN, 0.2], [0,0,0], cfg)`` returned
+    ``final_potential = NaN`` instead of raising. This violated INV-DET3
+    (every contract violation → ValueError) and INV-HPC2 (finite inputs
+    → finite outputs). Apply to every public entry point.
+    """
+    for label, vec in (("node_phases", node_phases), ("baseline_phases", baseline_phases)):
+        for i, v in enumerate(vec):
+            if not math.isfinite(v):
+                raise ValueError(
+                    f"{label}[{i}] must be finite (got {v!r}); "
+                    f"reset-wave is fail-closed on NaN/Inf inputs"
+                )
+
+
 def run_reset_wave(
     node_phases: list[float], baseline_phases: list[float], cfg: ResetWaveConfig
 ) -> ResetWaveResult:
@@ -82,6 +100,7 @@ def run_reset_wave(
         raise ValueError("node_phases and baseline_phases must have equal length")
     if not node_phases:
         raise ValueError("at least one node phase is required")
+    _ensure_finite_phase_vectors(node_phases, baseline_phases)
     if cfg.coupling_gain <= 0 or cfg.dt <= 0 or cfg.steps <= 0 or cfg.max_phase_error <= 0:
         raise ValueError("invalid reset-wave configuration")
     if cfg.residual_potential_floor < 0:
@@ -247,11 +266,12 @@ def run_reset_wave_async_resilient(
     """
     import random
 
+    if len(node_phases) != len(baseline_phases) or not node_phases:
+        raise ValueError("node_phases and baseline_phases must have equal nonzero length")
+    _ensure_finite_phase_vectors(node_phases, baseline_phases)
     rng = random.Random(async_cfg.seed)
     phases = [wrap_phase(v) for v in node_phases]
     base = [wrap_phase(v) for v in baseline_phases]
-    if len(phases) != len(base) or not phases:
-        raise ValueError("node_phases and baseline_phases must have equal nonzero length")
     if not (0.0 <= async_cfg.dropout_rate < 1.0):
         raise ValueError("dropout_rate must be in [0,1)")
     if async_cfg.reentry_gain <= 0:
