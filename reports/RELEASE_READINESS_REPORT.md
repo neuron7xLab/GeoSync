@@ -1,15 +1,30 @@
-# GeoSync v0.1.0 — Release Readiness Report
+# GeoSync v0.1.0 — Release Readiness Report (historical snapshot)
 
-**Date:** 2025-12-07  
-**Version Target:** v0.1.0 (Beta)  
-**Assessment Status:** ✅ READY FOR BETA RELEASE  
-**Overall Health Score:** 94/100 ⭐⭐⭐⭐
+**Date:** 2025-12-07
+**Version Target:** v0.1.0 (Beta)
+**Assessment Status:** historical 2025-12-07 readiness snapshot
+**Overall Health Score (2025-12-07 assessor):** 94/100
+
+---
+
+> ⚠️ **PROVENANCE.** This file is the **2025-12-07 release-readiness
+> snapshot for the v0.1.0 Beta** designation. The "production-grade",
+> "enterprise-grade", "ready for beta release" verdicts below are the
+> 2025-12-07 assessor's wording at that release point. They are not
+> current 2026-05-05 statements. Specifically: "production-grade for
+> beta users" means "the build was scoped for closed-beta install" at
+> the time of writing — it does not mean live-venue capital is
+> approved. The current evidence boundary lives in `CLAIMS.md`,
+> `docs/PERFORMANCE_LEDGER.md`, and `docs/KNOWN_LIMITATIONS.md` (L-1
+> paper-trading only is still binding).
 
 ---
 
 ## Executive Summary
 
-GeoSync v0.1.0 is **ready for beta release**. The platform provides a solid foundation for algorithmic trading with:
+GeoSync v0.1.0 was recorded by the 2025-12-07 assessor as **ready for
+beta release** within the closed-beta scope. The platform at that time
+was reported with:
 - ✅ **351 passing tests** covering core modules (backtest, execution, indicators, metrics, integration, e2e)
 - ✅ **Zero type errors** across 683 source files (100% mypy pass rate)
 - ✅ **Performance validated** with benchmarks 48-74% faster than baseline

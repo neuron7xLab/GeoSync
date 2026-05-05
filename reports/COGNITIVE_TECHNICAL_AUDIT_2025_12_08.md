@@ -1,10 +1,21 @@
 # GeoSync Cognitive-Instrumental Intellectual-Technical Audit
 
-**Audit Date:** 2025-12-08  
-**Audit Type:** Cognitive Architecture & Technical Systems Assessment  
-**Auditor:** GitHub Copilot Technical Agent  
-**Repository:** neuron7xLab/GeoSync  
+**Audit Date:** 2025-12-08
+**Audit Type:** Cognitive Architecture & Technical Systems Assessment
+**Auditor:** GitHub Copilot Technical Agent
+**Repository:** neuron7xLab/GeoSync
 **Version:** 0.1.0 Beta
+
+---
+
+> ⚠️ **PROVENANCE — READ FIRST.** This is the 2025-12-08 cognitive-
+> technical audit, retained alongside `AUDIT_EXECUTIVE_SUMMARY_2025_12_08.md`
+> and `COMPREHENSIVE_SECURITY_AUDIT_2025_12_08.md`. Strong wording
+> below ("production-ready", "complete", scoring) is the 2025-12-08
+> verdict at that snapshot. It is not a current 2026-05-05 claim.
+> The current evidence boundary is `CLAIMS.md`,
+> `docs/PERFORMANCE_LEDGER.md`, and `docs/KNOWN_LIMITATIONS.md`
+> (live-venue trading boundary L-1 still binds).
 
 ---
 

@@ -74,7 +74,7 @@ A neuroscience-anatomy mapping of every cognitive module is in
 
 ## 3. Maturity Tiers (honest)
 
-Per `docs/CLAIMS.md` and `docs/PERFORMANCE_LEDGER.md`:
+Per `CLAIMS.md` and `docs/PERFORMANCE_LEDGER.md`:
 
 | Tier | Meaning | What lives here |
 |---|---|---|
@@ -125,7 +125,7 @@ CI gate `invariant-count-sync` fail-closes if these tiers drift.
 
 1. **Live-venue trading.** Modules under `execution/` are paper-trading. `KNOWN_LIMITATIONS.md L-1` is binding. Real-capital deployment requires the Wave-4 engineering programme that is not in this snapshot.
 2. **Multi-asset forward OOS** on Ricci microstructure. The paper documents one 5.3-hour single-asset-class session.
-3. **Physics tier ≠ system tier.** 87 invariants cover the kernel; UX/API latency tier is `UNKNOWN` per `docs/CLAIMS.md`.
+3. **Physics tier ≠ system tier.** 87 invariants cover the kernel; UX/API latency tier is `UNKNOWN` per `CLAIMS.md`.
 4. **NLCA / neuro-optimizer / FPMA** are research-tier or literature-anchor — not GeoSync-measured edges. The FPMA README has been corrected to flag this on 2026-05-05.
 
 ---
@@ -225,7 +225,7 @@ A complete neuroscience anatomy map is `~/CANONICAL_NEURO_MAPPING_2026_05_05.md`
 
 - [ ] Read this `DELIVERY.md` end-to-end.
 - [ ] Read `CLAUDE.md` (525 lines · the gradient-ontology + invariant kernel that makes everything else self-consistent).
-- [ ] Read `docs/CLAIMS.md` + `docs/PERFORMANCE_LEDGER.md` + `docs/KNOWN_LIMITATIONS.md` (the trinity that anchors every tier label).
+- [ ] Read `CLAIMS.md` + `docs/PERFORMANCE_LEDGER.md` + `docs/KNOWN_LIMITATIONS.md` (the trinity that anchors every tier label).
 - [ ] Run §6 smoke demo. Confirm 74-test green.
 - [ ] Read `paper/ricci_microstructure/paper.md` (the only manuscript-grade artefact in the repo).
 - [ ] Read `~/CANONICAL_NEURO_MAPPING_2026_05_05.md` if you intend to extend the neuro-stack.

@@ -15,11 +15,11 @@ links:
 The `core/indicators` module provides advanced geometric and phase-synchrony indicators for algorithmic trading signal generation. This module implements cutting-edge mathematical techniques including Kuramoto oscillator analysis, Ricci flow curvature detection, multi-scale coherence analysis, and entropy-based market regime classification.
 
 **Key Objectives:**
-- Provide high-quality, deterministic market microstructure signals
+- Provide deterministic market microstructure signals
 - Enable multi-timeframe and multi-asset synchronization analysis
 - Support both CPU and GPU-accelerated computation paths
-- Deliver production-grade caching and feature persistence
-- Maintain sub-100ms latency for real-time signal generation
+- Provide filesystem-backed caching and feature persistence with fingerprinting
+- Target sub-100 ms latency for real-time signal generation (measured per-class; see indicator-specific tests)
 
 ## Key Responsibilities
 
@@ -35,7 +35,7 @@ The `core/indicators` module provides advanced geometric and phase-synchrony ind
 
 | Interface | Type | Location | Description |
 | --------- | ---- | -------- | ----------- |
-| `KuramotoIndicator` | Class | `trading.py` | Production-ready Kuramoto order parameter calculator with configurable coupling strength |
+| `KuramotoIndicator` | Class | `trading.py` | Kuramoto order-parameter calculator with configurable coupling strength (module-level production-scoped, INV-K1..K7 gated) |
 | `HurstIndicator` | Class | `trading.py` | Hurst exponent estimator for detecting mean-reversion vs trending regimes |
 | `VPINIndicator` | Class | `trading.py` | Volume-synchronized Probability of Informed Trading indicator |
 | `GeoSyncCompositeEngine` | Class | `kuramoto_ricci_composite.py` | Primary signal generator combining Kuramoto, Ricci, and topology analysis |

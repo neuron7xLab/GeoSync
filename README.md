@@ -9,7 +9,7 @@
 <br><br>
 
 [![modules-15](https://img.shields.io/badge/modules-15-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
-[![invariants-67](https://img.shields.io/badge/invariants-67-critical?style=for-the-badge)](CLAUDE.md)
+[![invariants-87](https://img.shields.io/badge/invariants-87-critical?style=for-the-badge)](CLAUDE.md)
 [![tests-11446](https://img.shields.io/badge/tests-11%2C446-brightgreen?style=for-the-badge)](tests/)
 [![indicators-17](https://img.shields.io/badge/indicators-17-gold?style=for-the-badge)](core/indicators/)
 [![ADRs-16](https://img.shields.io/badge/ADRs-16-blue?style=for-the-badge)](docs/adr/)
