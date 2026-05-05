@@ -58,8 +58,7 @@ class ThreatGate:
             lam = math.log(2.0) / max(1, self.cfg.reopen_hl)
             self._reopen_phase = min(
                 1.0,
-                self._reopen_phase
-                + (1.0 - self._reopen_phase) * (1 - math.exp(-lam * 2)),
+                self._reopen_phase + (1.0 - self._reopen_phase) * (1 - math.exp(-lam * 2)),
             )
             gate = self.cfg.min_gate + (1.0 - self.cfg.min_gate) * self._reopen_phase
             if self._reopen_phase >= 0.95:

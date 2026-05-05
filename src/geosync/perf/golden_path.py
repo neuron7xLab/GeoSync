@@ -40,9 +40,7 @@ def get_git_commit_hash() -> str:
         if result.returncode == 0:
             return result.stdout.strip()
     except Exception as exc:
-        logging.getLogger(__name__).debug(
-            "Failed to read git commit hash for benchmark: %s", exc
-        )
+        logging.getLogger(__name__).debug("Failed to read git commit hash for benchmark: %s", exc)
     return "unknown"
 
 
@@ -92,7 +90,7 @@ def momentum_signal(prices: np.ndarray, lookback: int = 10) -> np.ndarray:
     signal = np.zeros_like(prices)
 
     for i in range(lookback, len(prices)):
-        ma = np.mean(prices[i-lookback:i])
+        ma = np.mean(prices[i - lookback : i])
         if prices[i] > ma:
             signal[i] = 1.0
         elif prices[i] < ma:
@@ -139,8 +137,7 @@ def run_golden_path_bench(
     """
     if walk_forward is None:
         raise RuntimeError(
-            "backtest.engine.walk_forward is not available. "
-            "Ensure backtest module is installed."
+            "backtest.engine.walk_forward is not available. Ensure backtest module is installed."
         )
 
     # Generate benchmark data once
@@ -172,14 +169,10 @@ def run_golden_path_bench(
 
     # Validate latencies
     if not np.all(np.isfinite(latencies_array)):
-        raise ValueError(
-            f"Latency measurements contain non-finite values: {latencies_array}"
-        )
+        raise ValueError(f"Latency measurements contain non-finite values: {latencies_array}")
 
     if not np.all(latencies_array > 0):
-        raise ValueError(
-            f"Latency measurements contain non-positive values: {latencies_array}"
-        )
+        raise ValueError(f"Latency measurements contain non-positive values: {latencies_array}")
 
     p50 = float(np.percentile(latencies_array, 50))
     p95 = float(np.percentile(latencies_array, 95))
@@ -195,6 +188,7 @@ def run_golden_path_bench(
     # Try to get memory usage (basic estimation)
     try:
         import psutil
+
         process = psutil.Process(os.getpid())
         memory_mb = process.memory_info().rss / 1024 / 1024
     except ImportError:

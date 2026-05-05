@@ -116,13 +116,14 @@ def _recovery_mean_symbolic(F_new: Any, baseline: Any, config: ProofConfig) -> A
     decay = RealVal(config.recovery_decay)
     window = config.recovery_window
     terms = [
-        F_new * (decay ** (i + 1)) + baseline * (1 - (decay ** (i + 1)))
-        for i in range(window)
+        F_new * (decay ** (i + 1)) + baseline * (1 - (decay ** (i + 1))) for i in range(window)
     ]
     return Sum(*terms) / RealVal(window)
 
 
-def tolerance_budget(baseline: float, F_prev: float, eps: float, config: Optional[ProofConfig] = None) -> float:
+def tolerance_budget(
+    baseline: float, F_prev: float, eps: float, config: Optional[ProofConfig] = None
+) -> float:
     """Numeric mirror of :func:`_tolerance_budget_symbolic` for testing."""
 
     cfg = config or ProofConfig()
@@ -139,8 +140,7 @@ def recovery_mean(F_new: float, baseline: float, config: Optional[ProofConfig] =
     decay = cfg.recovery_decay
     window = cfg.recovery_window
     terms = [
-        F_new * (decay ** (i + 1)) + baseline * (1 - (decay ** (i + 1)))
-        for i in range(window)
+        F_new * (decay ** (i + 1)) + baseline * (1 - (decay ** (i + 1))) for i in range(window)
     ]
     return sum(terms) / float(window)
 
@@ -310,8 +310,7 @@ def run_cache_coherence_proof(
             db_versions[idx + 1] == If(db_write, db_versions[idx] + 1, db_versions[idx])
         )
         coherence_solver.add(
-            cache_versions[idx + 1]
-            == If(cache_sync, db_versions[idx + 1], cache_versions[idx])
+            cache_versions[idx + 1] == If(cache_sync, db_versions[idx + 1], cache_versions[idx])
         )
         coherence_solver.add(
             divergent[idx + 1] == (cache_versions[idx + 1] != db_versions[idx + 1])
@@ -337,12 +336,10 @@ def run_cache_coherence_proof(
     for idx in range(steps):
         regress_db_write = Bool(f"reg_db_write_{idx}")
         regress_solver.add(
-            regress_db[idx + 1]
-            == If(regress_db_write, regress_db[idx] + 1, regress_db[idx])
+            regress_db[idx + 1] == If(regress_db_write, regress_db[idx] + 1, regress_db[idx])
         )
         regress_solver.add(
-            regress_cache[idx + 1]
-            == If(regress_sync[idx], regress_db[idx + 1], regress_cache[idx])
+            regress_cache[idx + 1] == If(regress_sync[idx], regress_db[idx + 1], regress_cache[idx])
         )
         regress_solver.add(
             regress_events[idx]
@@ -382,31 +379,23 @@ def run_cache_coherence_proof(
     ]
 
     if coherence_status == unsat:
-        certificate_lines.append(
-            "Invariant I: UNSAT (cache/db mismatch always implies DIVERGENT)"
-        )
+        certificate_lines.append("Invariant I: UNSAT (cache/db mismatch always implies DIVERGENT)")
     elif coherence_status == sat:
         certificate_lines.append("Invariant I: SAT (counterexample exists)")
     else:
         certificate_lines.append("Invariant I: UNKNOWN")
 
     if freshness_status == unsat:
-        certificate_lines.append(
-            "Invariant II: UNSAT (stale snapshots cannot emit verdicts)"
-        )
+        certificate_lines.append("Invariant II: UNSAT (stale snapshots cannot emit verdicts)")
     elif freshness_status == sat:
         certificate_lines.append("Invariant II: SAT (counterexample exists)")
     else:
         certificate_lines.append("Invariant II: UNKNOWN")
 
     if regress_status == unsat:
-        certificate_lines.append(
-            "Invariant III: UNSAT (no cache version regress on sync writes)"
-        )
+        certificate_lines.append("Invariant III: UNSAT (no cache version regress on sync writes)")
     elif regress_status == sat:
-        certificate_lines.append(
-            "Invariant III: SAT (version regress counterexample exists)"
-        )
+        certificate_lines.append("Invariant III: SAT (version regress counterexample exists)")
     else:
         certificate_lines.append("Invariant III: UNKNOWN")
 
@@ -449,9 +438,7 @@ def run_cache_liveness_proof(
 
     for idx in range(steps):
         db_write = Bool(f"live_db_write_{idx}")
-        solver.add(
-            db_versions[idx + 1] == If(db_write, db_versions[idx] + 1, db_versions[idx])
-        )
+        solver.add(db_versions[idx + 1] == If(db_write, db_versions[idx] + 1, db_versions[idx]))
         solver.add(
             cache_versions[idx + 1]
             == If(read_through[idx], db_versions[idx + 1], cache_versions[idx])
@@ -482,9 +469,7 @@ def run_cache_liveness_proof(
     if output_path is not None:
         Path(output_path).write_text(certificate, encoding="utf-8")
 
-    return CacheLivenessProofResult(
-        eventually_coherent=status == unsat, certificate=certificate
-    )
+    return CacheLivenessProofResult(eventually_coherent=status == unsat, certificate=certificate)
 
 
 def run_hlc_monotonicity_proof(

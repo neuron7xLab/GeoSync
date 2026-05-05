@@ -268,7 +268,5 @@ def test_apply_neural_decision_defaults_none_values() -> None:
 def test_apply_neural_decision_rejects_non_numeric_allocations() -> None:
     manager = _StubRiskManager()
 
-    with pytest.raises(
-        TypeError, match="Allocation field 'alloc_scale' must be numeric"
-    ):
+    with pytest.raises(TypeError, match="Allocation field 'alloc_scale' must be numeric"):
         apply_neural_decision({"alloc_scale": object()}, manager)

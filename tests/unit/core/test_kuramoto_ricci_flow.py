@@ -13,7 +13,13 @@ from core.kuramoto.ricci_flow_engine import KuramotoRicciFlowEngine
 
 
 def _engine(**kwargs: object) -> KuramotoRicciFlowEngine:
-    cfg = KuramotoConfig(N=kwargs.pop("N", 12), K=kwargs.pop("K", 1.0), dt=0.02, steps=kwargs.pop("steps", 120), seed=7)
+    cfg = KuramotoConfig(
+        N=kwargs.pop("N", 12),
+        K=kwargs.pop("K", 1.0),
+        dt=0.02,
+        steps=kwargs.pop("steps", 120),
+        seed=7,
+    )
     return KuramotoRicciFlowEngine(cfg, **kwargs)
 
 
@@ -28,7 +34,11 @@ def test_coupling_bounds() -> None:
 def test_symmetric_coupling() -> None:
     engine = _engine(curvature_method="forman", ricci_update_interval=5)
     result = engine.run()
-    assert np.allclose(result.coupling_matrix_history, np.swapaxes(result.coupling_matrix_history, 1, 2), atol=1e-12)
+    assert np.allclose(
+        result.coupling_matrix_history,
+        np.swapaxes(result.coupling_matrix_history, 1, 2),
+        atol=1e-12,
+    )
 
 
 def test_no_self_coupling() -> None:
@@ -130,7 +140,9 @@ def test_performance() -> None:
 
 
 def test_coupling_history_can_be_disabled() -> None:
-    engine = _engine(curvature_method="forman", ricci_update_interval=2, coupling_history_enabled=False)
+    engine = _engine(
+        curvature_method="forman", ricci_update_interval=2, coupling_history_enabled=False
+    )
     result = engine.run()
     assert result.coupling_matrix_history.shape == (0, engine._cfg.N, engine._cfg.N)
     assert result.curvature_timestamps.size > 0
@@ -150,7 +162,9 @@ def test_feedback_changes_dynamics_vs_standard_kuramoto() -> None:
 
 
 def test_ollivier_mode_does_not_silently_fallback() -> None:
-    engine = _engine(curvature_method="ollivier", N=8, steps=10, ricci_update_interval=1, graph_threshold=0.0)
+    engine = _engine(
+        curvature_method="ollivier", N=8, steps=10, ricci_update_interval=1, graph_threshold=0.0
+    )
     fallback_hit = {"value": False}
     original = engine._recompute_coupling
 

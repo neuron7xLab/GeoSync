@@ -37,14 +37,14 @@ from numpy.typing import NDArray
 class ESProximityResult:
     """Result of explosive synchronization proximity measurement."""
 
-    R_forward: NDArray[np.float64]   # R(K) forward sweep
+    R_forward: NDArray[np.float64]  # R(K) forward sweep
     R_backward: NDArray[np.float64]  # R(K) backward sweep
-    K_values: NDArray[np.float64]    # coupling values swept
-    K_c_forward: float               # critical K (forward)
-    K_c_backward: float              # critical K (backward)
-    hysteresis_width: float          # K_c_forward - K_c_backward
-    proximity: float                 # normalised proximity metric [0, 1]
-    is_explosive: bool               # True if significant hysteresis detected
+    K_values: NDArray[np.float64]  # coupling values swept
+    K_c_forward: float  # critical K (forward)
+    K_c_backward: float  # critical K (backward)
+    hysteresis_width: float  # K_c_forward - K_c_backward
+    proximity: float  # normalised proximity metric [0, 1]
+    is_explosive: bool  # True if significant hysteresis detected
 
 
 class ExplosiveSyncDetector:
@@ -123,8 +123,14 @@ class ExplosiveSyncDetector:
         theta_carry = theta0_base.copy()
         for i, K in enumerate(K_values):
             cfg = KuramotoConfig(
-                N=N, K=K, omega=omega, adjacency=adjacency,
-                theta0=theta_carry, dt=0.01, steps=self._steps, seed=seed,
+                N=N,
+                K=K,
+                omega=omega,
+                adjacency=adjacency,
+                theta0=theta_carry,
+                dt=0.01,
+                steps=self._steps,
+                seed=seed,
             )
             result = KuramotoEngine(cfg).run()
             R_forward[i] = result.order_parameter[-1]
@@ -134,8 +140,14 @@ class ExplosiveSyncDetector:
         theta_carry_back = theta_carry.copy()
         for i, K in enumerate(reversed(K_values)):
             cfg = KuramotoConfig(
-                N=N, K=K, omega=omega, adjacency=adjacency,
-                theta0=theta_carry_back, dt=0.01, steps=self._steps, seed=seed,
+                N=N,
+                K=K,
+                omega=omega,
+                adjacency=adjacency,
+                theta0=theta_carry_back,
+                dt=0.01,
+                steps=self._steps,
+                seed=seed,
             )
             result = KuramotoEngine(cfg).run()
             R_backward[self._n_K - 1 - i] = result.order_parameter[-1]
@@ -166,15 +178,11 @@ class ExplosiveSyncDetector:
         R_values: NDArray[np.float64],
     ) -> float:
         """Find K_c where R crosses threshold."""
-        crossings = np.where(
-            (R_values[:-1] < self._R_thresh) & (R_values[1:] >= self._R_thresh)
-        )[0]
+        crossings = np.where((R_values[:-1] < self._R_thresh) & (R_values[1:] >= self._R_thresh))[0]
         if crossings.size > 0:
             idx = crossings[0]
             # Linear interpolation
-            frac = (self._R_thresh - R_values[idx]) / max(
-                R_values[idx + 1] - R_values[idx], 1e-12
-            )
+            frac = (self._R_thresh - R_values[idx]) / max(R_values[idx + 1] - R_values[idx], 1e-12)
             return float(K_values[idx] + frac * (K_values[idx + 1] - K_values[idx]))
         # If no crossing found, return endpoint
         if R_values[-1] >= self._R_thresh:
@@ -194,9 +202,7 @@ class ExplosiveSyncDetector:
         """
         prices = np.asarray(prices, dtype=np.float64)
         if prices.ndim != 2 or prices.shape[0] < window:
-            raise ValueError(
-                f"Need (T≥{window}, N) array, got {prices.shape}"
-            )
+            raise ValueError(f"Need (T≥{window}, N) array, got {prices.shape}")
 
         returns = np.diff(prices, axis=0) / np.maximum(np.abs(prices[:-1]), 1e-12)
         tail = returns[-window:]

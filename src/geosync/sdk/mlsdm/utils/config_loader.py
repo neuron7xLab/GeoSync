@@ -107,9 +107,7 @@ class ConfigLoader:
         return merged
 
     @staticmethod
-    def _apply_env_overrides(
-        config: Dict[str, Any], prefix: str = ENV_PREFIX
-    ) -> Dict[str, Any]:
+    def _apply_env_overrides(config: Dict[str, Any], prefix: str = ENV_PREFIX) -> Dict[str, Any]:
         """Apply environment variable overrides using a prefix-scoped, nested syntax.
 
         Segments are normalized to lowercase to match YAML keys.
@@ -119,7 +117,7 @@ class ConfigLoader:
             for key, value in os.environ.items():
                 if not key.startswith(prefix):
                     continue
-                remainder = key[len(prefix):]
+                remainder = key[len(prefix) :]
                 if not remainder:
                     continue
                 path = ConfigLoader._normalize_path(remainder.split("__"))
@@ -134,17 +132,13 @@ class ConfigLoader:
         return merged
 
     @staticmethod
-    def _apply_cli_overrides(
-        config: Dict[str, Any], overrides: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _apply_cli_overrides(config: Dict[str, Any], overrides: Dict[str, Any]) -> Dict[str, Any]:
         """Apply explicit CLI overrides expressed in dotted or '__' notation."""
         merged = config.copy()
         for raw_path, value in overrides.items():
             if not raw_path:
                 continue
-            path = [
-                segment for segment in raw_path.replace("__", ".").split(".") if segment
-            ]
+            path = [segment for segment in raw_path.replace("__", ".").split(".") if segment]
             path = ConfigLoader._normalize_path(path)
             if not path:
                 continue

@@ -101,9 +101,7 @@ class AdaptationAction:
 class AdaptiveSystemManager:
     """Manager for autonomous system adaptation and optimization."""
 
-    def __init__(
-        self, health_check_interval: float = 60.0, adaptation_cooldown: float = 300.0
-    ):
+    def __init__(self, health_check_interval: float = 60.0, adaptation_cooldown: float = 300.0):
         """Initialize adaptive system manager.
 
         Args:
@@ -431,10 +429,6 @@ class AdaptiveSystemManager:
             "avg_score": float(np.mean(scores)),
             "min_score": float(np.min(scores)),
             "max_score": float(np.max(scores)),
-            "trend": (
-                "improving"
-                if len(scores) > 1 and scores[-1] > scores[0]
-                else "declining"
-            ),
+            "trend": ("improving" if len(scores) > 1 and scores[-1] > scores[0] else "declining"),
             "samples": len(scores),
         }

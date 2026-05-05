@@ -30,12 +30,6 @@ from pathlib import Path
 from typing import Any, Final
 
 import numpy as np
-from research.microstructure.l2_cli import (
-    SubstrateError,
-    add_common_args,
-    load_substrate,
-    setup_logging,
-)
 
 from research.microstructure.diurnal import session_start_ms_from_frames
 from research.microstructure.diurnal_filter import (
@@ -43,6 +37,12 @@ from research.microstructure.diurnal_filter import (
     load_hourly_direction_map,
 )
 from research.microstructure.killtest import cross_sectional_ricci_signal
+from research.microstructure.l2_cli import (
+    SubstrateError,
+    add_common_args,
+    load_substrate,
+    setup_logging,
+)
 from research.microstructure.pnl import (
     DEFAULT_DECISION_SEC,
     DEFAULT_HOLD_SEC,

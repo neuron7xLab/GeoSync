@@ -27,17 +27,17 @@ from pathlib import Path
 from typing import Any, Final
 
 import numpy as np
-from research.microstructure.l2_cli import (
-    SubstrateError,
-    add_common_args,
-    load_substrate,
-    setup_logging,
-)
 
 from research.microstructure.killtest import (
     _forward_log_return,
     _pooled_ic,
     cross_sectional_ricci_signal,
+)
+from research.microstructure.l2_cli import (
+    SubstrateError,
+    add_common_args,
+    load_substrate,
+    setup_logging,
 )
 
 _log = logging.getLogger("l2_symbol_ablation")

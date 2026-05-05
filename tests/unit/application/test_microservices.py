@@ -9,10 +9,10 @@ import numpy as np
 
 from application import (
     ExecutionRequest,
+    GeoSyncOrchestrator,
     LiveLoopSettings,
     MarketDataSource,
     ServiceRegistry,
-    GeoSyncOrchestrator,
     build_geosync_system,
 )
 

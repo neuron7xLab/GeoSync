@@ -148,9 +148,7 @@ def history(database_url: str | None, verbose: bool, rev_range: str | None) -> N
     envvar="GEOSYNC_DB_WRITER_DSN",
     help="Target database URL. Defaults to GEOSYNC_DB_WRITER_DSN if set.",
 )
-@click.option(
-    "--verbose", is_flag=True, help="Display revision context and environment info."
-)
+@click.option("--verbose", is_flag=True, help="Display revision context and environment info.")
 def current(database_url: str | None, verbose: bool) -> None:
     """Print the current database revision."""
 

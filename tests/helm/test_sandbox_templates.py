@@ -10,12 +10,7 @@ from typing import Any, Dict, List
 import yaml
 
 SANDBOX_CHART = (
-    Path(__file__).resolve().parents[2]
-    / "deploy"
-    / "helm"
-    / "geosync"
-    / "charts"
-    / "sandbox"
+    Path(__file__).resolve().parents[2] / "deploy" / "helm" / "geosync" / "charts" / "sandbox"
 )
 
 

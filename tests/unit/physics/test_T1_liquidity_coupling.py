@@ -82,9 +82,7 @@ class TestKuramotoIntegration:
 
 class TestMinCorrelationFilter:
     def test_sparse_coupling(self):
-        lcm = LiquidityCouplingMatrix(
-            volume_window=10, correlation_window=20, min_correlation=0.8
-        )
+        lcm = LiquidityCouplingMatrix(volume_window=10, correlation_window=20, min_correlation=0.8)
         rng = np.random.default_rng(42)
         prices = 100 + np.cumsum(rng.normal(0, 1, (60, 4)), axis=0)
         volumes = rng.uniform(100, 1000, (60, 4))

@@ -50,9 +50,7 @@ class RetryPolicy(BaseModel):
     def build(self, *, logger: logging.Logger) -> Retrying:
         """Return a configured :class:`~tenacity.Retrying` instance."""
 
-        wait = wait_random_exponential(
-            multiplier=self.initial_backoff, max=self.max_backoff
-        )
+        wait = wait_random_exponential(multiplier=self.initial_backoff, max=self.max_backoff)
         if self.max_jitter > 0:
             wait = wait + wait_random(0, self.max_jitter)
         return Retrying(

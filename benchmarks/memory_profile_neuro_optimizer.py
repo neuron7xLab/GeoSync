@@ -14,6 +14,7 @@ from benchmarks._neuro_optimizer_loader import (
     load_validation,
 )
 from utils.seed import set_global_seed
+
 try:
     from memory_profiler import memory_usage
 except ImportError:  # pragma: no cover - optional dependency

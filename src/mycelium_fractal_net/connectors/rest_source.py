@@ -173,8 +173,7 @@ class RestIngestor(BaseIngestor):
                 events = self._parse_response(data)
 
                 logger.info(
-                    f"Fetched {len(events)} events from {self.url} "
-                    f"(status: {response.status_code})"
+                    f"Fetched {len(events)} events from {self.url} (status: {response.status_code})"
                 )
                 return events
 
@@ -192,9 +191,7 @@ class RestIngestor(BaseIngestor):
 
             except httpx.RequestError as e:
                 last_error = e
-                logger.warning(
-                    f"Request failed, retrying ({attempt + 1}/{self.max_retries}): {e}"
-                )
+                logger.warning(f"Request failed, retrying ({attempt + 1}/{self.max_retries}): {e}")
                 await asyncio.sleep(2**attempt)
                 continue
 

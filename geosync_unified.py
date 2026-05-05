@@ -45,9 +45,7 @@ def make_optim(model: GeoSyncHydroV2, cfg: dict):
         lr=cfg["training"]["lr"],
         weight_decay=cfg["training"]["weight_decay"],
     )
-    sch = torch.optim.lr_scheduler.CosineAnnealingLR(
-        opt, T_max=cfg["training"]["t_max"]
-    )
+    sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=cfg["training"]["t_max"])
     return opt, sch
 
 
@@ -58,12 +56,8 @@ def train(cfg_path: str) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     A = build_A(cfg)
 
-    (Xtr, yfr, yhr, yqr), _ = load_npz_dataset(
-        cfg["data"]["train_npz"], cfg, synth_ok=True, N=512
-    )
-    (Xva, yfv, yhv, yqv), _ = load_npz_dataset(
-        cfg["data"]["val_npz"], cfg, synth_ok=True, N=256
-    )
+    (Xtr, yfr, yhr, yqr), _ = load_npz_dataset(cfg["data"]["train_npz"], cfg, synth_ok=True, N=512)
+    (Xva, yfv, yhv, yqv), _ = load_npz_dataset(cfg["data"]["val_npz"], cfg, synth_ok=True, N=256)
 
     model = build_model(cfg, device, A)
     opt, sch = make_optim(model, cfg)
@@ -181,9 +175,7 @@ def train(cfg_path: str) -> None:
                 break
 
 
-def infer(
-    cfg_path: str, npz_path: str | None = None, window_json: str | None = None
-) -> None:
+def infer(cfg_path: str, npz_path: str | None = None, window_json: str | None = None) -> None:
     cfg = yaml.safe_load(Path(cfg_path).read_text())
     setup_logging(cfg["logging"]["dir"], cfg["logging"]["file"])
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -248,9 +240,7 @@ def pipeline(cfg_path: str) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     A = build_A(cfg)
     model = build_model(cfg, device, A).eval()
-    (Xva, yfv, yhv, yqv), _ = load_npz_dataset(
-        cfg["data"]["val_npz"], cfg, synth_ok=False
-    )
+    (Xva, yfv, yhv, yqv), _ = load_npz_dataset(cfg["data"]["val_npz"], cfg, synth_ok=False)
     Xva = Xva.to(device)
     with torch.no_grad():
         out = model(Xva)
@@ -294,9 +284,7 @@ def serve(cfg_path: str) -> None:
     monitor = RealTimeMonitor(
         cfg,
         A,
-        weights_path=os.path.join(
-            cfg["training"]["save_dir"], cfg["training"]["save_name"]
-        ),
+        weights_path=os.path.join(cfg["training"]["save_dir"], cfg["training"]["save_name"]),
         device=device,
     )
 

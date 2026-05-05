@@ -155,9 +155,7 @@ def test_evaluate_license_compliance_classifies(tmp_path: Path) -> None:
         dependencies, sbom, policy, now=datetime(2025, 1, 1, tzinfo=timezone.utc)
     )
 
-    classifications = {
-        issue.dependency.canonical_name: issue.classification for issue in issues
-    }
+    classifications = {issue.dependency.canonical_name: issue.classification for issue in issues}
     assert "lib-ok" not in classifications
     assert classifications["lib-restricted"] == "restricted"
     assert classifications["lib-forbidden"] == "forbidden"

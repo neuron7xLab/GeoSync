@@ -130,9 +130,7 @@ def _is_component_sequence(value: Any) -> bool:
 def _merge_component_lists(
     existing: Sequence[Mapping[str, Any]], incoming: Sequence[Mapping[str, Any]]
 ) -> list[Mapping[str, Any]]:
-    merged: dict[str, Mapping[str, Any]] = {
-        str(item["id"]): dict(item) for item in existing
-    }
+    merged: dict[str, Mapping[str, Any]] = {str(item["id"]): dict(item) for item in existing}
     for item in incoming:
         identifier = str(item["id"])
         if identifier in merged:
@@ -218,11 +216,7 @@ class ParameterField(BaseModel):
         if resolved is None and not self.allow_none:
             msg = "Parameter requires a value or default"
             raise ValueError(msg)
-        if (
-            self.choices is not None
-            and resolved is not None
-            and resolved not in self.choices
-        ):
+        if self.choices is not None and resolved is not None and resolved not in self.choices:
             msg = f"Value {resolved!r} not in allowed choices {self.choices!r}"
             raise ValueError(msg)
         if self.minimum is not None and resolved is not None:
@@ -527,9 +521,7 @@ class StrategyPipeline:
 
     def materialise(self) -> dict[str, Any]:
         self.runtime.apply()
-        return {
-            component.component_id: component.create() for component in self.components
-        }
+        return {component.component_id: component.create() for component in self.components}
 
 
 # ---------------------------------------------------------------------------

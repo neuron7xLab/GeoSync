@@ -146,9 +146,7 @@ def main():
 
     for i in range(n_steps):
         # Update stress with market conditions
-        regulator.update_stress(
-            market_returns[: i + 1], drawdowns[i] if i > 0 else 0.0, prev_fe
-        )
+        regulator.update_stress(market_returns[: i + 1], drawdowns[i] if i > 0 else 0.0, prev_fe)
         prev_fe = regulator.free_energy_proxy
 
         # Adapt parameters based on context
@@ -187,9 +185,9 @@ def main():
     # Action distribution
     action_counts = np.bincount(np.array(actions) + 1, minlength=3)
     print("\nAction Distribution:")
-    print(f"  Sells:  {action_counts[0]:4d} ({action_counts[0]/n_steps*100:.1f}%)")
-    print(f"  Holds:  {action_counts[1]:4d} ({action_counts[1]/n_steps*100:.1f}%)")
-    print(f"  Buys:   {action_counts[2]:4d} ({action_counts[2]/n_steps*100:.1f}%)")
+    print(f"  Sells:  {action_counts[0]:4d} ({action_counts[0] / n_steps * 100:.1f}%)")
+    print(f"  Holds:  {action_counts[1]:4d} ({action_counts[1] / n_steps * 100:.1f}%)")
+    print(f"  Buys:   {action_counts[2]:4d} ({action_counts[2] / n_steps * 100:.1f}%)")
 
     # Performance metrics
     performance = calculate_performance_metrics(market_returns, actions)
@@ -210,7 +208,7 @@ def main():
     chronic_periods = sum(1 for s in stress_history if s > regulator.stress_threshold)
     print("\nStress Analysis:")
     print(
-        f"  High Stress Periods: {chronic_periods}/{n_steps} ({chronic_periods/n_steps*100:.1f}%)"
+        f"  High Stress Periods: {chronic_periods}/{n_steps} ({chronic_periods / n_steps * 100:.1f}%)"
     )
     print(f"  Mean Stress: {np.mean(stress_history):.4f}")
     print(f"  Max Stress: {np.max(stress_history):.4f}")
@@ -252,8 +250,7 @@ def main():
     print("=" * 70)
     print("Integration Notes:")
     print("=" * 70)
-    print(
-        """
+    print("""
 The ECS-Inspired Regulator can be integrated with GeoSync components:
 
 1. FractalMotivationController Integration:
@@ -299,8 +296,7 @@ Example integration code:
         state=[ecs_reg.stress_level, signal],
         signals={"risk_ok": ecs_reg.risk_threshold > 0.01}
     )
-"""
-    )
+""")
 
     print("=" * 70)
     print("Demo completed successfully!")

@@ -70,9 +70,7 @@ def test_transfer_with_resume_restarts_when_server_ignores_range(
     destination.write_bytes(payload[: len(payload) // 2])
 
     class _StubResponse:
-        def __init__(
-            self, status_code: int, headers: dict[str, str], data: bytes = b""
-        ) -> None:
+        def __init__(self, status_code: int, headers: dict[str, str], data: bytes = b"") -> None:
             self.status_code = status_code
             self.headers = headers
             self._data = data
@@ -109,9 +107,7 @@ def test_transfer_with_resume_rejects_incorrect_resume_offset(tmp_path: Path) ->
     destination.write_bytes(payload[: len(payload) // 2])
 
     class _StubResponse:
-        def __init__(
-            self, status_code: int, headers: dict[str, str], data: bytes = b""
-        ) -> None:
+        def __init__(self, status_code: int, headers: dict[str, str], data: bytes = b"") -> None:
             self.status_code = status_code
             self.headers = headers
             self._data = data

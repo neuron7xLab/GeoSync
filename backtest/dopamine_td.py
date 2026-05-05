@@ -44,6 +44,7 @@ except ImportError:
 
     def njit(*args, **kwargs):
         """Fallback decorator when Numba is not available."""
+
         def decorator(func):
             return func
 
@@ -84,9 +85,7 @@ def _fast_dopamine_loop(
     c_novelty: float,
     k: float,
     theta: float,
-) -> Tuple[
-    NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]
-]:
+) -> Tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
     """Numba-accelerated core loop for dopamine TD computation.
 
     This function implements the temporal difference learning algorithm with

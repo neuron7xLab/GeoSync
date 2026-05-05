@@ -322,9 +322,7 @@ class TestDuplicateDetection:
         report = validate_historical_data(df)
 
         dup_issues = [
-            i
-            for i in report.issues
-            if i.code in ("DUPLICATE_TIMESTAMPS", "DUPLICATE_ROWS")
+            i for i in report.issues if i.code in ("DUPLICATE_TIMESTAMPS", "DUPLICATE_ROWS")
         ]
         assert len(dup_issues) == 0
 
@@ -345,9 +343,7 @@ class TestTimezoneIssueDetection:
                 "2023-01-01 16:00",
             ]
         )
-        df = pd.DataFrame(
-            {"close": [100.0, 101.0, 102.0, 103.0, 104.0, 105.0]}, index=index
-        )
+        df = pd.DataFrame({"close": [100.0, 101.0, 102.0, 103.0, 104.0, 105.0]}, index=index)
 
         report = validate_historical_data(df)
 

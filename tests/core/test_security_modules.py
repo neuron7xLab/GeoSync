@@ -36,9 +36,7 @@ except ImportError:
 
 
 class TestIntegrityVerifier:
-    pytestmark = pytest.mark.skipif(
-        IntegrityVerifier is None, reason="integrity not importable"
-    )
+    pytestmark = pytest.mark.skipif(IntegrityVerifier is None, reason="integrity not importable")
 
     def test_compute_file_checksum(self, tmp_path):
         f = tmp_path / "test.bin"
@@ -203,9 +201,7 @@ class TestCommandValidator:
 
 
 class TestSecureRandom:
-    pytestmark = pytest.mark.skipif(
-        SecureRandom is None, reason="random not importable"
-    )
+    pytestmark = pytest.mark.skipif(SecureRandom is None, reason="random not importable")
 
     def test_randint_range(self):
         for _ in range(50):

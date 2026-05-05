@@ -90,9 +90,7 @@ def test_predefined_alerts():
     assert set(SEROTONIN_ALERTS.keys()) == expected_alerts
 
     # Check critical alerts have correct severity
-    assert (
-        SEROTONIN_ALERTS["state_validation_failure"].severity == AlertSeverity.CRITICAL
-    )
+    assert SEROTONIN_ALERTS["state_validation_failure"].severity == AlertSeverity.CRITICAL
     assert SEROTONIN_ALERTS["error_budget_critical"].severity == AlertSeverity.CRITICAL
 
     # Check warning alerts
@@ -175,9 +173,7 @@ def test_monitor_extended_hold_alert():
             validation_ok=True,
         )
         # Should not trigger yet
-        assert (
-            len([a for a in alerts if a.name == "serotonin_extended_hold_state"]) == 0
-        )
+        assert len([a for a in alerts if a.name == "serotonin_extended_hold_state"]) == 0
 
     # 1800th tick should trigger
     alerts = monitor.check_alerts(

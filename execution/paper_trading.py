@@ -120,12 +120,8 @@ class PaperTradingEngine:
         if telemetry_listeners:
             self._listeners.extend(telemetry_listeners)
 
-    def _record_event(
-        self, event: str, timestamp: float, **attributes: object
-    ) -> TelemetryEvent:
-        payload = TelemetryEvent(
-            timestamp=timestamp, event=event, attributes=dict(attributes)
-        )
+    def _record_event(self, event: str, timestamp: float, **attributes: object) -> TelemetryEvent:
+        payload = TelemetryEvent(timestamp=timestamp, event=event, attributes=dict(attributes))
         for listener in self._listeners:
             listener(payload)
         return payload

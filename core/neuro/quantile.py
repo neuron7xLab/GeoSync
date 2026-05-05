@@ -234,7 +234,6 @@ class P2Algorithm:
             if (d >= 1.0 and self._n[i + 1] - self._n[i] > 1) or (
                 d <= -1.0 and self._n[i - 1] - self._n[i] < -1
             ):
-
                 sign = 1.0 if d > 0 else -1.0
 
                 # Try parabolic formula

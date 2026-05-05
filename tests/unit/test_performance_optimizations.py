@@ -23,6 +23,7 @@ Key testing principles:
 - Chunked processing should produce results similar to non-chunked
 - All optimizations should preserve the core algorithm behavior
 """
+
 from __future__ import annotations
 
 import numpy as np

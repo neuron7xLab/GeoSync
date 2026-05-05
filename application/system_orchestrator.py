@@ -22,9 +22,9 @@ from application.microservices.market_data import MarketDataService
 from application.microservices.registry import ServiceRegistry
 from application.system import (
     ExchangeAdapterConfig,
-    LiveLoopSettings,
     GeoSyncSystem,
     GeoSyncSystemConfig,
+    LiveLoopSettings,
 )
 from domain import Order
 from execution.connectors import BinanceConnector, CoinbaseConnector

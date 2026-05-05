@@ -730,8 +730,7 @@ class ResponseQualityOrchestrator:
             return
         severity = delta / tolerance
         reason = (
-            f"Dataset '{summary.dataset}' score dropped by {delta:.4f} "
-            f"(tolerance {tolerance:.4f})"
+            f"Dataset '{summary.dataset}' score dropped by {delta:.4f} (tolerance {tolerance:.4f})"
         )
         self._emit_degradation(
             metric=f"{summary.dataset}.score",

@@ -59,9 +59,9 @@ def test_shipping_contracts_are_kept(lint_imports_available: bool) -> None:
         f"--- stdout ---\n{result.stdout}\n"
         f"--- stderr ---\n{result.stderr}"
     )
-    assert "Contracts: 5 kept, 0 broken" in result.stdout, (
-        "expected exactly 5 contracts kept and 0 broken; got:\n" f"{result.stdout}"
-    )
+    assert (
+        "Contracts: 5 kept, 0 broken" in result.stdout
+    ), f"expected exactly 5 contracts kept and 0 broken; got:\n{result.stdout}"
 
 
 def test_intentional_violation_is_detected(tmp_path: Path, lint_imports_available: bool) -> None:
@@ -118,8 +118,7 @@ def test_intentional_violation_is_detected(tmp_path: Path, lint_imports_availabl
     )
     combined = result.stdout + result.stderr
     assert "core.physics" in combined and "application" in combined, (
-        "expected the violation report to mention core.physics and "
-        "application; got:\n" + combined
+        "expected the violation report to mention core.physics and application; got:\n" + combined
     )
 
 

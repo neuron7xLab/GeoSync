@@ -61,9 +61,7 @@ class InductiveProofEngine:
     def _normalize(self, constraints: Any) -> list[Any]:
         if isinstance(constraints, self._z3.BoolRef):
             return [constraints]
-        if isinstance(constraints, Iterable) and not isinstance(
-            constraints, (str, bytes)
-        ):
+        if isinstance(constraints, Iterable) and not isinstance(constraints, (str, bytes)):
             return list(constraints)
         raise TypeError(
             "Inductive predicates must return a Z3 Boolean constraint or an iterable of such constraints"

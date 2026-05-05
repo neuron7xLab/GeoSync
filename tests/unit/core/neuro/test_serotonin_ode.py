@@ -66,9 +66,7 @@ class TestStressResponse:
 class TestDesensitisation:
     """Sustained stress → desensitisation → moderation of level."""
 
-    def test_sustained_stress_increases_desens(
-        self, params: SerotoninODEParams
-    ) -> None:
+    def test_sustained_stress_increases_desens(self, params: SerotoninODEParams) -> None:
         """INV-5HT4: sustained stress builds receptor desensitisation."""
         ode = SerotoninODE(params, level=params.baseline)
         # Drive level above threshold with stress
@@ -147,9 +145,7 @@ class TestRK4Accuracy:
 class TestLyapunovStability:
     """Lyapunov function V should decrease monotonically for convergent trajectories."""
 
-    def test_verify_lyapunov_normal_trajectory(
-        self, params: SerotoninODEParams
-    ) -> None:
+    def test_verify_lyapunov_normal_trajectory(self, params: SerotoninODEParams) -> None:
         """INV-5HT1: Lyapunov function V non-increasing along zero-stress trajectory."""
         # Use params without desensitisation coupling for clean Lyapunov
         # (desens introduces cross-term that can cause small V bumps)

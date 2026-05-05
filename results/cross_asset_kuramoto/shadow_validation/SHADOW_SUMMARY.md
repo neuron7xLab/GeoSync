@@ -4,7 +4,7 @@ gate decisions only; no marketing language.
 
 ## Current live bar count
 
-- Live bars completed: **6**
+- Live bars completed: **13**
 - Spike paper-trader start date: 2026-04-11 (day-90 gate ≈ 2026-07-10)
 
 ## Operational health
@@ -18,26 +18,26 @@ gate decisions only; no marketing language.
 
 | metric | value |
 |---|---:|
-| cumulative_net_return | 0.0119 |
-| annualized_return_live | 0.4967 |
-| annualized_vol_live | 0.0627 |
-| sharpe_live | 7.9267 |
-| max_dd_live | 0.0024 |
-| hit_rate_live | 0.3333 |
-| turnover_ann_live | 2.5060 |
-| cost_drag_bps_live | 25.0600 |
+| cumulative_net_return | -0.0255 |
+| annualized_return_live | -0.5011 |
+| annualized_vol_live | 0.0965 |
+| sharpe_live | -5.1957 |
+| max_dd_live | 0.0354 |
+| hit_rate_live | 0.1538 |
+| turnover_ann_live | 2.6385 |
+| cost_drag_bps_live | 26.3900 |
 
 ## Benchmark comparison
 
 | metric | value |
 |---|---:|
-| benchmark_cum_return | 0.0351 |
-| benchmark_sharpe_live | 4.7480 |
-| relative_return_vs_benchmark | -0.0232 |
+| benchmark_cum_return | 0.0722 |
+| benchmark_sharpe_live | 4.2197 |
+| relative_return_vs_benchmark | -0.0977 |
 
 ## Envelope position
 
-- Quantile band (live vs historical OOS block-bootstrap): **p25_p75**
+- Quantile band (live vs historical OOS block-bootstrap): **p05_p25**
 - Envelope source: demo-ready OOS integrated log returns
   (`results/cross_asset_kuramoto/demo/equity_curve.csv`); seed and
   block length locked in `DRIFT_NOTE.md`.

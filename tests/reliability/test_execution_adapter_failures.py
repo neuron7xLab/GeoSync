@@ -10,6 +10,7 @@ Validates handling of timeouts and connection errors:
 Note: These are simplified tests demonstrating failure handling concepts.
 Full integration tests would require actual broker adapters.
 """
+
 from __future__ import annotations
 
 import time
@@ -68,6 +69,7 @@ def test_partial_fill_tracking() -> None:
 
     class OrderTracker:
         """Mock order tracker."""
+
         def __init__(self):
             self.orders = {}
 
@@ -76,7 +78,7 @@ def test_partial_fill_tracking() -> None:
             self.orders[order_id] = {
                 "requested_qty": quantity,
                 "filled_qty": 0.0,
-                "status": "pending"
+                "status": "pending",
             }
 
         def partial_fill(self, order_id: str, fill_qty: float):
@@ -125,6 +127,7 @@ def test_retry_exhaustion() -> None:
 
     class UnreliableAPI:
         """Mock API that fails multiple times."""
+
         def __init__(self, fail_count: int = 3):
             self.attempt_count = 0
             self.fail_count = fail_count
@@ -175,7 +178,7 @@ def test_error_message_quality() -> None:
     error = {
         "code": "AUTH_FAILED",
         "message": "Invalid API credentials",
-        "details": {"hint": "Check API key in configuration"}
+        "details": {"hint": "Check API key in configuration"},
     }
 
     parsed = parse_api_error(error)
@@ -189,6 +192,7 @@ def test_no_position_update_on_failure() -> None:
 
     class PositionTracker:
         """Mock position tracker."""
+
         def __init__(self):
             self.positions = {}
 
@@ -219,6 +223,7 @@ def test_timeout_configuration() -> None:
 
     class TimeoutConfig:
         """Mock timeout configuration."""
+
         def __init__(self, connect_timeout: float = 5.0, read_timeout: float = 30.0):
             if connect_timeout <= 0 or read_timeout <= 0:
                 raise ValueError("Timeouts must be positive")
@@ -229,7 +234,9 @@ def test_timeout_configuration() -> None:
             """Validate that operation completed within timeout."""
             timeout = self.read_timeout if operation_type == "read" else self.connect_timeout
             if operation_time > timeout:
-                raise TimeoutError(f"{operation_type} operation exceeded timeout: {operation_time:.2f}s > {timeout}s")
+                raise TimeoutError(
+                    f"{operation_type} operation exceeded timeout: {operation_time:.2f}s > {timeout}s"
+                )
 
     config = TimeoutConfig(connect_timeout=5.0, read_timeout=30.0)
 

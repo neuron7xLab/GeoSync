@@ -104,9 +104,7 @@ def validate_positive(name: str, value: float, allow_zero: bool = False) -> floa
     return value
 
 
-def check_monotonic_thresholds(
-    go: float, hold: float, no_go: float
-) -> tuple[float, float, float]:
+def check_monotonic_thresholds(go: float, hold: float, no_go: float) -> tuple[float, float, float]:
     """Ensure thresholds follow go >= hold >= no_go invariant.
 
     If the invariant is violated, adjusts thresholds to the nearest valid configuration.
@@ -135,9 +133,7 @@ def check_monotonic_thresholds(
     return go_out, hold_out, no_go_out
 
 
-def rate_limited_change(
-    current: float, target: float, max_rate: float, dt: float = 1.0
-) -> float:
+def rate_limited_change(current: float, target: float, max_rate: float, dt: float = 1.0) -> float:
     """Apply rate limiting to a parameter change.
 
     Args:

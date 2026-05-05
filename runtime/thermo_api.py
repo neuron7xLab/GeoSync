@@ -27,9 +27,7 @@ def _build_default_graph() -> nx.DiGraph:
     graph.add_node("risk", cpu_norm=0.5)
     graph.add_node("broker", cpu_norm=0.3)
 
-    graph.add_edge(
-        "ingest", "matcher", type="covalent", latency_norm=0.4, coherency=0.9
-    )
+    graph.add_edge("ingest", "matcher", type="covalent", latency_norm=0.4, coherency=0.9)
     graph.add_edge("matcher", "risk", type="ionic", latency_norm=0.8, coherency=0.7)
     graph.add_edge("risk", "broker", type="metallic", latency_norm=0.2, coherency=0.85)
     graph.add_edge("broker", "ingest", type="hydrogen", latency_norm=1.1, coherency=0.6)
@@ -110,9 +108,7 @@ def reset_controller() -> Dict[str, object]:
 def manual_override(request: ManualOverrideRequest) -> Dict[str, object]:
     expected_token = _get_manual_override_token()
     if not hmac.compare_digest(request.token, expected_token):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     controller = get_controller()
     controller.manual_override(request.reason)

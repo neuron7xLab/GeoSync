@@ -17,6 +17,7 @@ import importlib.util
 import numpy as np
 
 from core.utils.determinism import DEFAULT_SEED, seed_numpy
+
 # Load ECS regulator
 spec_ecs = importlib.util.spec_from_file_location(
     "core.neuro.ecs_regulator",
@@ -139,9 +140,7 @@ def simulate_integrated_trading(n_steps: int = 100, seed: int = DEFAULT_SEED):
             combined_action = ecs_action
         else:
             # Disagreement: use ECS for conservative bias
-            combined_action = (
-                ecs_action if ecs_metrics.is_chronic else motivation_action
-            )
+            combined_action = ecs_action if ecs_metrics.is_chronic else motivation_action
 
         combined_actions.append(combined_action)
 
@@ -188,25 +187,23 @@ def simulate_integrated_trading(n_steps: int = 100, seed: int = DEFAULT_SEED):
 
     print("Action Distribution:")
     print("  ECS Only:")
-    print(f"    Sells: {ecs_counts['sell']:3d} ({ecs_counts['sell']/n_steps*100:.1f}%)")
-    print(f"    Holds: {ecs_counts['hold']:3d} ({ecs_counts['hold']/n_steps*100:.1f}%)")
-    print(f"    Buys:  {ecs_counts['buy']:3d} ({ecs_counts['buy']/n_steps*100:.1f}%)")
+    print(f"    Sells: {ecs_counts['sell']:3d} ({ecs_counts['sell'] / n_steps * 100:.1f}%)")
+    print(f"    Holds: {ecs_counts['hold']:3d} ({ecs_counts['hold'] / n_steps * 100:.1f}%)")
+    print(f"    Buys:  {ecs_counts['buy']:3d} ({ecs_counts['buy'] / n_steps * 100:.1f}%)")
     print()
     print("  Combined (ECS + Motivation):")
     print(
-        f"    Sells: {combined_counts['sell']:3d} ({combined_counts['sell']/n_steps*100:.1f}%)"
+        f"    Sells: {combined_counts['sell']:3d} ({combined_counts['sell'] / n_steps * 100:.1f}%)"
     )
     print(
-        f"    Holds: {combined_counts['hold']:3d} ({combined_counts['hold']/n_steps*100:.1f}%)"
+        f"    Holds: {combined_counts['hold']:3d} ({combined_counts['hold'] / n_steps * 100:.1f}%)"
     )
-    print(
-        f"    Buys:  {combined_counts['buy']:3d} ({combined_counts['buy']/n_steps*100:.1f}%)"
-    )
+    print(f"    Buys:  {combined_counts['buy']:3d} ({combined_counts['buy'] / n_steps * 100:.1f}%)")
     print()
 
     # Agreement analysis
     agreements = sum(1 for e, c in zip(ecs_actions, combined_actions) if e == c)
-    print(f"  Agreement Rate: {agreements/n_steps*100:.1f}%")
+    print(f"  Agreement Rate: {agreements / n_steps * 100:.1f}%")
     print()
 
     # Phase analysis
@@ -214,23 +211,19 @@ def simulate_integrated_trading(n_steps: int = 100, seed: int = DEFAULT_SEED):
     for phase in ["stable", "chaotic", "transition"]:
         count = sum(1 for p in phases if p == phase)
         phase_counts[phase] = count
-        print(
-            f"  {phase.capitalize():12s} phases: {count:3d} ({count/n_steps*100:.1f}%)"
-        )
+        print(f"  {phase.capitalize():12s} phases: {count:3d} ({count / n_steps * 100:.1f}%)")
     print()
 
     # Stress analysis
     stress_events = [h for h in ecs_reg.history if h["type"] == "Stress update"]
     high_stress_count = sum(
-        1
-        for event in stress_events
-        if event["details"]["stress"] > ecs_reg.stress_threshold
+        1 for event in stress_events if event["details"]["stress"] > ecs_reg.stress_threshold
     )
 
     print("Stress Analysis:")
     print(
         f"  High stress events: {high_stress_count}/{len(stress_events)} "
-        f"({high_stress_count/len(stress_events)*100:.1f}%)"
+        f"({high_stress_count / len(stress_events) * 100:.1f}%)"
     )
     print()
 
@@ -252,7 +245,7 @@ def simulate_integrated_trading(n_steps: int = 100, seed: int = DEFAULT_SEED):
     volatility = np.std(strategy_returns)
     sharpe = (np.mean(strategy_returns) / (volatility + 1e-10)) * np.sqrt(252)
 
-    print(f"  Total Return: {total_return:.4f} ({total_return*100:.2f}%)")
+    print(f"  Total Return: {total_return:.4f} ({total_return * 100:.2f}%)")
     print(f"  Volatility: {volatility:.4f}")
     print(f"  Annualized Sharpe: {sharpe:.4f}")
     print()
@@ -261,8 +254,7 @@ def simulate_integrated_trading(n_steps: int = 100, seed: int = DEFAULT_SEED):
     print("=" * 70)
     print("Integration Benefits")
     print("=" * 70)
-    print(
-        """
+    print("""
 1. Chronic Stress Detection:
    - ECS tracks cumulative stress over time
    - Motivation system can adjust exploration vs exploitation
@@ -282,8 +274,7 @@ def simulate_integrated_trading(n_steps: int = 100, seed: int = DEFAULT_SEED):
    - ECS: Bottom-up stress response
    - Motivation: Top-down goal-directed behavior
    - Combined: Balanced decision-making
-    """
-    )
+    """)
 
     print("=" * 70)
     print("Integration demo completed successfully!")

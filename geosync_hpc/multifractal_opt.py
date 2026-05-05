@@ -16,9 +16,7 @@ def levy_noise_like(param: torch.Tensor, alpha: float = 1.5) -> torch.Tensor:
     if alpha <= 0:
         raise ValueError("alpha must be positive")
 
-    samples = torch.from_numpy(np.random.standard_cauchy(size=tuple(param.shape))).to(
-        param.device
-    )
+    samples = torch.from_numpy(np.random.standard_cauchy(size=tuple(param.shape))).to(param.device)
     samples = samples.to(dtype=param.dtype)
 
     if alpha < 1.5:

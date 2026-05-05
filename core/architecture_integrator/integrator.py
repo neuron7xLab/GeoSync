@@ -324,9 +324,7 @@ class ArchitectureIntegrator:
             try:
                 health_map[component.metadata.name] = component.check_health()
             except Exception as exc:
-                logger.error(
-                    f"Failed to check health of {component.metadata.name}: {exc}"
-                )
+                logger.error(f"Failed to check health of {component.metadata.name}: {exc}")
 
         return health_map
 
@@ -370,9 +368,7 @@ class ArchitectureIntegrator:
         """
         return self._validator.validate_component(name)
 
-    def add_validation_rule(
-        self, rule: Callable[[ComponentRegistry], list[Any]]
-    ) -> None:
+    def add_validation_rule(self, rule: Callable[[ComponentRegistry], list[Any]]) -> None:
         """Add a custom validation rule.
 
         Args:

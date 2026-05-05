@@ -76,10 +76,7 @@ if NUMBA_AVAILABLE:
                 result[i] = sorted_data[lower]
             else:
                 weight = position - lower
-                result[i] = (
-                    sorted_data[lower]
-                    + (sorted_data[upper] - sorted_data[lower]) * weight
-                )
+                result[i] = sorted_data[lower] + (sorted_data[upper] - sorted_data[lower]) * weight
         return result
 
     @njit(cache=True)
@@ -92,9 +89,7 @@ if NUMBA_AVAILABLE:
         return result
 
     @njit(cache=True)
-    def _numba_convolve(
-        signal: np.ndarray, kernel: np.ndarray, mode_code: int
-    ) -> np.ndarray:
+    def _numba_convolve(signal: np.ndarray, kernel: np.ndarray, mode_code: int) -> np.ndarray:
         full = _numba_full_convolution(signal, kernel)
         n = signal.shape[0]
         m = kernel.shape[0]
@@ -139,9 +134,7 @@ def _load_baseline(path: Path) -> tuple[dict[str, object], BenchmarkResults]:
     for suite, backend_map in results.items():
         if not isinstance(backend_map, Mapping):
             raise ValueError(f"baseline suite '{suite}' is not a mapping")
-        normalized[suite] = {
-            backend: float(value) for backend, value in backend_map.items()
-        }
+        normalized[suite] = {backend: float(value) for backend, value in backend_map.items()}
     return metadata, normalized
 
 
@@ -156,9 +149,7 @@ def _analyze(
     current: BenchmarkResults,
     baseline: BenchmarkResults,
     threshold: float,
-) -> tuple[
-    list[tuple[str, str, float]], list[tuple[str, str, float]], list[tuple[str, str]]
-]:
+) -> tuple[list[tuple[str, str, float]], list[tuple[str, str, float]], list[tuple[str, str]]]:
     regressions: list[tuple[str, str, float]] = []
     improvements: list[tuple[str, str, float]] = []
     missing: list[tuple[str, str]] = []
@@ -212,17 +203,11 @@ def _register_sliding_windows(
         ("python", lambda: sliding_windows_python_backend(data, window, step)),
     ]
     if numpy_available():
-        registrations.append(
-            ("numpy", lambda: sliding_windows_numpy_backend(data, window, step))
-        )
+        registrations.append(("numpy", lambda: sliding_windows_numpy_backend(data, window, step)))
     if NUMBA_AVAILABLE:
-        registrations.append(
-            ("numba", lambda: _numba_sliding_windows(data, window, step))
-        )
+        registrations.append(("numba", lambda: _numba_sliding_windows(data, window, step)))
     if rust_available():
-        registrations.append(
-            ("rust", lambda: sliding_windows_rust_backend(data, window, step))
-        )
+        registrations.append(("rust", lambda: sliding_windows_rust_backend(data, window, step)))
     return registrations
 
 
@@ -233,16 +218,12 @@ def _register_quantiles(
         ("python", lambda: quantiles_python_backend(data, probabilities)),
     ]
     if numpy_available():
-        registrations.append(
-            ("numpy", lambda: quantiles_numpy_backend(data, probabilities))
-        )
+        registrations.append(("numpy", lambda: quantiles_numpy_backend(data, probabilities)))
     if NUMBA_AVAILABLE:
         probs_np = np.asarray(list(probabilities), dtype=np.float64)
         registrations.append(("numba", lambda: _numba_quantiles(data, probs_np)))
     if rust_available():
-        registrations.append(
-            ("rust", lambda: quantiles_rust_backend(data, probabilities))
-        )
+        registrations.append(("rust", lambda: quantiles_rust_backend(data, probabilities)))
     return registrations
 
 
@@ -253,18 +234,12 @@ def _register_convolution(
         ("python", lambda: convolve_python_backend(signal, kernel, mode=mode)),
     ]
     if numpy_available():
-        registrations.append(
-            ("numpy", lambda: convolve_numpy_backend(signal, kernel, mode=mode))
-        )
+        registrations.append(("numpy", lambda: convolve_numpy_backend(signal, kernel, mode=mode)))
     if NUMBA_AVAILABLE:
         mode_code = NUMBA_MODE_MAP[mode]
-        registrations.append(
-            ("numba", lambda: _numba_convolve(signal, kernel, mode_code))
-        )
+        registrations.append(("numba", lambda: _numba_convolve(signal, kernel, mode_code)))
     if rust_available():
-        registrations.append(
-            ("rust", lambda: convolve_rust_backend(signal, kernel, mode=mode))
-        )
+        registrations.append(("rust", lambda: convolve_rust_backend(signal, kernel, mode=mode)))
     return registrations
 
 
@@ -282,9 +257,7 @@ def main() -> None:
         help="Convolution mode to benchmark",
     )
     parser.add_argument("--repeat", type=int, default=5, help="Benchmark repetitions")
-    parser.add_argument(
-        "--warmup", type=int, default=1, help="Warmup iterations before timing"
-    )
+    parser.add_argument("--warmup", type=int, default=1, help="Warmup iterations before timing")
     parser.add_argument(
         "--save-baseline",
         type=Path,
@@ -356,17 +329,13 @@ def main() -> None:
         suite_results = results[suite_name]
         for backend, func in registrations:
             try:
-                elapsed = _benchmark(
-                    f"{suite_name}:{backend}", func, args.repeat, args.warmup
-                )
+                elapsed = _benchmark(f"{suite_name}:{backend}", func, args.repeat, args.warmup)
             except Exception as exc:
                 print(f"  {backend:>8}: error ({exc})")
                 continue
             suite_results[backend] = elapsed
             throughput = args.size / elapsed / 1e6 if elapsed > 0 else float("inf")
-            print(
-                f"  {backend:>8}: {elapsed * 1e3:8.3f} ms  ({throughput:8.3f} M items/s)"
-            )
+            print(f"  {backend:>8}: {elapsed * 1e3:8.3f} ms  ({throughput:8.3f} M items/s)")
         print()
 
     payload = {"metadata": metadata, "results": results}
@@ -395,11 +364,7 @@ def main() -> None:
                 for backend in backend_map
                 if backend not in results.get(suite, {})
             ]
-            print(
-                "Baseline comparison (threshold {:.1%}):".format(
-                    args.regression_threshold
-                )
-            )
+            print("Baseline comparison (threshold {:.1%}):".format(args.regression_threshold))
             if regressions:
                 print("  Regressions detected:")
                 for suite, backend, delta in regressions:
@@ -432,9 +397,7 @@ def main() -> None:
         _write_json(args.save_baseline, payload)
         print(f"Saved baseline to {args.save_baseline}")
 
-    print(
-        "Tip: run with `python bench/bench_numeric_accelerators.py --help` for options."
-    )
+    print("Tip: run with `python bench/bench_numeric_accelerators.py --help` for options.")
 
     if exit_code:
         sys.exit(exit_code)

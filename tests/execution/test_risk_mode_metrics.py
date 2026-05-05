@@ -44,9 +44,7 @@ class TestRiskMetrics:
         metrics = RiskMetrics(registry)
 
         metrics.record_gross_exposure(50000.0, env="staging")
-        value = _sample_value(
-            registry, "geosync_risk_gross_exposure", {"env": "staging"}
-        )
+        value = _sample_value(registry, "geosync_risk_gross_exposure", {"env": "staging"})
         assert value == 50000.0
 
     def test_daily_drawdown_recording(self) -> None:
@@ -66,12 +64,8 @@ class TestRiskMetrics:
         metrics = RiskMetrics(registry)
 
         metrics.record_circuit_state("open")
-        open_value = _sample_value(
-            registry, "geosync_risk_circuit_state", {"state": "open"}
-        )
-        closed_value = _sample_value(
-            registry, "geosync_risk_circuit_state", {"state": "closed"}
-        )
+        open_value = _sample_value(registry, "geosync_risk_circuit_state", {"state": "open"})
+        closed_value = _sample_value(registry, "geosync_risk_circuit_state", {"state": "closed"})
         half_open_value = _sample_value(
             registry, "geosync_risk_circuit_state", {"state": "half_open"}
         )
@@ -82,12 +76,8 @@ class TestRiskMetrics:
 
         # Now switch to closed
         metrics.record_circuit_state("closed")
-        open_value = _sample_value(
-            registry, "geosync_risk_circuit_state", {"state": "open"}
-        )
-        closed_value = _sample_value(
-            registry, "geosync_risk_circuit_state", {"state": "closed"}
-        )
+        open_value = _sample_value(registry, "geosync_risk_circuit_state", {"state": "open"})
+        closed_value = _sample_value(registry, "geosync_risk_circuit_state", {"state": "closed"})
         assert open_value == 0.0
         assert closed_value == 1.0
 
@@ -149,15 +139,9 @@ class TestTradingModeMetrics:
 
         metrics.set_mode("LIVE", reason="initial")
 
-        live_value = _sample_value(
-            registry, "geosync_trading_mode", {"mode": "LIVE"}
-        )
-        paper_value = _sample_value(
-            registry, "geosync_trading_mode", {"mode": "PAPER"}
-        )
-        backtest_value = _sample_value(
-            registry, "geosync_trading_mode", {"mode": "BACKTEST"}
-        )
+        live_value = _sample_value(registry, "geosync_trading_mode", {"mode": "LIVE"})
+        paper_value = _sample_value(registry, "geosync_trading_mode", {"mode": "PAPER"})
+        backtest_value = _sample_value(registry, "geosync_trading_mode", {"mode": "BACKTEST"})
 
         assert live_value == 1.0
         assert paper_value == 0.0
@@ -175,12 +159,8 @@ class TestTradingModeMetrics:
         # Transition to PAPER
         metrics.set_mode("PAPER", reason="manual")
 
-        paper_value = _sample_value(
-            registry, "geosync_trading_mode", {"mode": "PAPER"}
-        )
-        backtest_value = _sample_value(
-            registry, "geosync_trading_mode", {"mode": "BACKTEST"}
-        )
+        paper_value = _sample_value(registry, "geosync_trading_mode", {"mode": "PAPER"})
+        backtest_value = _sample_value(registry, "geosync_trading_mode", {"mode": "BACKTEST"})
 
         assert paper_value == 1.0
         assert backtest_value == 0.0
@@ -236,9 +216,7 @@ class TestTradingModeMetrics:
         metrics.set_mode("live", reason="test")
         assert metrics.current_mode == "LIVE"
 
-        live_value = _sample_value(
-            registry, "geosync_trading_mode", {"mode": "LIVE"}
-        )
+        live_value = _sample_value(registry, "geosync_trading_mode", {"mode": "LIVE"})
         assert live_value == 1.0
 
     def test_disabled_when_prometheus_unavailable(self, monkeypatch) -> None:

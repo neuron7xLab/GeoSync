@@ -59,9 +59,7 @@ def create_app(service: MarketService | None = None) -> FastAPI:
         try:
             series = market_service.prices(symbol)
         except KeyError as error:
-            raise HTTPException(
-                status_code=404, detail=f"Symbol '{symbol}' not found"
-            ) from error
+            raise HTTPException(status_code=404, detail=f"Symbol '{symbol}' not found") from error
         points = series.points[-window:] if window else series.points
         event = market_service.audit_log().emit(
             source="mock-market",

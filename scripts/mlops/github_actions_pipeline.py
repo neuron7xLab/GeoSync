@@ -58,9 +58,7 @@ class PipelineConfig:
 
 
 def _configure_logging(level: int = logging.INFO) -> None:
-    logging.basicConfig(
-        level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-    )
+    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 
 def _derive_seed(config: PipelineConfig) -> int:
@@ -75,10 +73,7 @@ def _dataset_path(config: PipelineConfig) -> Path:
     # Resolve repository sample dataset relative to this module.
     candidate = (Path(__file__).resolve().parents[2] / DEFAULT_DATASET).resolve()
     if not candidate.exists():
-        msg = (
-            "Default dataset not found. Provide --dataset-path when invoking the "
-            "pipeline."
-        )
+        msg = "Default dataset not found. Provide --dataset-path when invoking the pipeline."
         raise FileNotFoundError(msg)
     return candidate
 
@@ -127,14 +122,11 @@ def _select_lookback(seed: int) -> int:
     return lower + (seed % span)
 
 
-def _prepare_regression(
-    prices: np.ndarray, lookback: int
-) -> tuple[np.ndarray, np.ndarray]:
+def _prepare_regression(prices: np.ndarray, lookback: int) -> tuple[np.ndarray, np.ndarray]:
     returns = np.diff(prices) / np.maximum(prices[:-1], 1e-9)
     if returns.size <= lookback:
         raise ValueError(
-            "Dataset too small for requested lookback window "
-            f"(need > {lookback + 1} price points)."
+            f"Dataset too small for requested lookback window (need > {lookback + 1} price points)."
         )
 
     design = np.lib.stride_tricks.sliding_window_view(returns, lookback)
@@ -233,9 +225,7 @@ def _persist_artifacts(
     )
 
     artifacts: list[ArtifactSpec] = [
-        ArtifactSpec(
-            model_path, name="model.json", kind="model", metadata={"format": "json"}
-        ),
+        ArtifactSpec(model_path, name="model.json", kind="model", metadata={"format": "json"}),
         ArtifactSpec(
             metrics_path,
             name="metrics.json",

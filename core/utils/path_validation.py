@@ -5,6 +5,7 @@
 This module provides functions to safely validate file paths and prevent
 directory traversal vulnerabilities.
 """
+
 from __future__ import annotations
 
 import re
@@ -107,8 +108,7 @@ def validate_file_path(
     if extensions:
         # Normalize extensions to lowercase with leading dot
         normalized_extensions = {
-            ext if ext.startswith(".") else f".{ext}"
-            for ext in (e.lower() for e in extensions)
+            ext if ext.startswith(".") else f".{ext}" for ext in (e.lower() for e in extensions)
         }
 
         if validated_path.suffix.lower() not in normalized_extensions:

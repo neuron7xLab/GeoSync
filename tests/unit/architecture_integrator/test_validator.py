@@ -442,9 +442,7 @@ class TestArchitectureValidator:
         result = validator.validate_component("test")
 
         assert result.passed is False
-        assert any(
-            issue.severity == ValidationSeverity.CRITICAL for issue in result.issues
-        )
+        assert any(issue.severity == ValidationSeverity.CRITICAL for issue in result.issues)
 
     def test_validate_component_health_check_failure(self) -> None:
         """Test validate_component handles health check failure."""
@@ -462,9 +460,7 @@ class TestArchitectureValidator:
         result = validator.validate_component("test")
 
         assert result.passed is False
-        assert any(
-            "health check failed" in issue.message.lower() for issue in result.issues
-        )
+        assert any("health check failed" in issue.message.lower() for issue in result.issues)
 
     def test_validate_component_not_found(self) -> None:
         """Test validate_component with nonexistent component."""

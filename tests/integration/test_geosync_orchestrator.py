@@ -9,8 +9,8 @@ import numpy as np
 from application.system import LiveLoopSettings
 from application.system_orchestrator import (
     ExecutionRequest,
-    MarketDataSource,
     GeoSyncOrchestrator,
+    MarketDataSource,
     build_geosync_system,
 )
 

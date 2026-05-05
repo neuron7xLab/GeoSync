@@ -54,7 +54,9 @@ class KuramotoConfig(BaseModel):
         if self.omega is not None:
             omega = np.asarray(self.omega, dtype=np.float64)
             if omega.ndim != 1 or omega.shape[0] != N:
-                raise ValueError(f"'omega' must be a 1-D array of length N={N}; got shape {omega.shape}.")
+                raise ValueError(
+                    f"'omega' must be a 1-D array of length N={N}; got shape {omega.shape}."
+                )
             if not np.isfinite(omega).all():
                 raise ValueError("'omega' contains non-finite values (NaN or Inf).")
             object.__setattr__(self, "omega", omega)
@@ -62,7 +64,9 @@ class KuramotoConfig(BaseModel):
         if self.theta0 is not None:
             theta0 = np.asarray(self.theta0, dtype=np.float64)
             if theta0.ndim != 1 or theta0.shape[0] != N:
-                raise ValueError(f"'theta0' must be a 1-D array of length N={N}; got shape {theta0.shape}.")
+                raise ValueError(
+                    f"'theta0' must be a 1-D array of length N={N}; got shape {theta0.shape}."
+                )
             if not np.isfinite(theta0).all():
                 raise ValueError("'theta0' contains non-finite values (NaN or Inf).")
             object.__setattr__(self, "theta0", theta0)
@@ -70,7 +74,9 @@ class KuramotoConfig(BaseModel):
         if self.adjacency is not None:
             adj = np.asarray(self.adjacency, dtype=np.float64)
             if adj.ndim != 2 or adj.shape != (N, N):
-                raise ValueError(f"'adjacency' must be an (N×N)=({N}×{N}) matrix; got shape {adj.shape}.")
+                raise ValueError(
+                    f"'adjacency' must be an (N×N)=({N}×{N}) matrix; got shape {adj.shape}."
+                )
             if not np.isfinite(adj).all():
                 raise ValueError("'adjacency' contains non-finite values (NaN or Inf).")
             object.__setattr__(self, "adjacency", adj)

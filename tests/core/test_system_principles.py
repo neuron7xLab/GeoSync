@@ -48,24 +48,18 @@ class TestEnums:
 
 class TestPrincipleViolation:
     def test_creation(self):
-        v = PrincipleViolation(
-            principle_name="t", component="c", description="d", severity="high"
-        )
+        v = PrincipleViolation(principle_name="t", component="c", description="d", severity="high")
         assert v.timestamp > 0
 
     def test_frozen(self):
-        v = PrincipleViolation(
-            principle_name="t", component="c", description="d", severity="low"
-        )
+        v = PrincipleViolation(principle_name="t", component="c", description="d", severity="low")
         with pytest.raises(AttributeError):
             v.principle_name = "x"
 
 
 class TestIntegrationContract:
     def test_defaults(self):
-        c = IntegrationContract(
-            source="a", target="b", data_schema="json", protocol="async"
-        )
+        c = IntegrationContract(source="a", target="b", data_schema="json", protocol="async")
         assert c.version == "1.0.0"
 
 
@@ -80,12 +74,8 @@ class TestStateSnapshot:
         assert len(s.checksum) == 64
 
     def test_deterministic(self):
-        s1 = StateSnapshot(
-            component_states={}, random_seeds={}, configuration={}, timestamp=1.0
-        )
-        s2 = StateSnapshot(
-            component_states={}, random_seeds={}, configuration={}, timestamp=1.0
-        )
+        s1 = StateSnapshot(component_states={}, random_seeds={}, configuration={}, timestamp=1.0)
+        s2 = StateSnapshot(component_states={}, random_seeds={}, configuration={}, timestamp=1.0)
         assert s1.checksum == s2.checksum
 
 
@@ -148,20 +138,10 @@ class TestNeuroOrientedPrinciple:
 
 class TestModularPrinciple:
     def test_compliant(self):
-        assert (
-            ModularPrinciple().validate({"coupling_score": 0.1, "cohesion_score": 0.9})
-            == []
-        )
+        assert ModularPrinciple().validate({"coupling_score": 0.1, "cohesion_score": 0.9}) == []
 
     def test_high_coupling(self):
-        assert (
-            len(
-                ModularPrinciple().validate(
-                    {"coupling_score": 0.5, "cohesion_score": 0.9}
-                )
-            )
-            == 1
-        )
+        assert len(ModularPrinciple().validate({"coupling_score": 0.5, "cohesion_score": 0.9})) == 1
 
     def test_circular(self):
         vs = ModularPrinciple().validate({"circular_dependencies": ["a->b->a"]})
@@ -190,9 +170,7 @@ class TestRoleBasedPrinciple:
         assert len(RoleBasedPrinciple().validate({"assigned_roles": set()})) >= 1
 
     def test_permissions(self):
-        assert "veto_actions" in RoleBasedPrinciple().get_permissions(
-            ComponentRole.GUARDIAN
-        )
+        assert "veto_actions" in RoleBasedPrinciple().get_permissions(ComponentRole.GUARDIAN)
 
 
 class TestIntegrativePrinciple:
@@ -202,9 +180,7 @@ class TestIntegrativePrinciple:
     def test_register(self):
         p = IntegrativePrinciple()
         p.register_contract(
-            IntegrationContract(
-                source="a", target="b", data_schema="j", protocol="sync"
-            )
+            IntegrationContract(source="a", target="b", data_schema="j", protocol="sync")
         )
         assert len(p._integration_contracts) == 1
 
@@ -277,9 +253,7 @@ class TestSystemArchitecture:
         a = SystemArchitecture()
         a.configure_all({"modular": {"max_coupling_score": 0.9}})
         assert (
-            a.get_principle("modular").validate(
-                {"coupling_score": 0.8, "cohesion_score": 0.9}
-            )
+            a.get_principle("modular").validate({"coupling_score": 0.8, "cohesion_score": 0.9})
             == []
         )
 

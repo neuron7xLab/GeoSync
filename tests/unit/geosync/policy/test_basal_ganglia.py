@@ -8,8 +8,7 @@ from pathlib import Path
 
 spec = importlib.util.spec_from_file_location(
     "basal_ganglia",
-    Path(__file__).parent.parent.parent.parent.parent
-    / "src/geosync/policy/basal_ganglia.py",
+    Path(__file__).parent.parent.parent.parent.parent / "src/geosync/policy/basal_ganglia.py",
 )
 basal_ganglia_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(basal_ganglia_module)
@@ -34,9 +33,7 @@ class TestBasalGangliaPolicy:
         policy = BasalGangliaPolicy()
         state = {"R": 0.8}
 
-        action, size_hint = policy.decide(
-            state, ews_state="EMERGENT", risk_state="BREACH"
-        )
+        action, size_hint = policy.decide(state, ews_state="EMERGENT", risk_state="BREACH")
 
         assert action == "NO_GO"
         assert size_hint == 0.0
@@ -58,17 +55,13 @@ class TestBasalGangliaPolicy:
 
         # Low R
         state_low = {"R": 0.2}
-        action_low, size_low = policy.decide(
-            state_low, ews_state="EMERGENT", risk_state="OK"
-        )
+        action_low, size_low = policy.decide(state_low, ews_state="EMERGENT", risk_state="OK")
         assert action_low == "GO"
         assert abs(size_low - 0.6) < 0.01
 
         # High R
         state_high = {"R": 0.9}
-        action_high, size_high = policy.decide(
-            state_high, ews_state="EMERGENT", risk_state="OK"
-        )
+        action_high, size_high = policy.decide(state_high, ews_state="EMERGENT", risk_state="OK")
         assert action_high == "GO"
         assert abs(size_high - 0.95) < 0.01
         assert size_high > size_low

@@ -1,6 +1,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Tests for Hydra experiment configuration and reproducibility helpers."""
+
 from __future__ import annotations
 
 import os

@@ -499,12 +499,8 @@ class SyntheticGroundTruth(_FrozenArrayMixin):
             self.true_omega.shape == (n,),
             f"true_omega shape must be ({n},); got {self.true_omega.shape}",
         )
-        _require(
-            bool(np.all(np.diag(self.true_K) == 0.0)), "true_K diagonal must be zero"
-        )
-        _require(
-            bool(np.all(np.diag(self.true_tau) == 0)), "true_tau diagonal must be zero"
-        )
+        _require(bool(np.all(np.diag(self.true_K) == 0.0)), "true_K diagonal must be zero")
+        _require(bool(np.all(np.diag(self.true_tau) == 0)), "true_tau diagonal must be zero")
         _require(bool(np.all(self.true_tau >= 0)), "true_tau must be non-negative")
         _require(
             float(np.abs(self.true_alpha).max(initial=0.0)) <= np.pi + 1e-9,

@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 
 from application import (
-    LiveLoopSettings,
     GeoSyncOrchestrator,
+    LiveLoopSettings,
     build_geosync_system,
 )
 from core.neuro.fractal_regulator import RegulatorMetrics

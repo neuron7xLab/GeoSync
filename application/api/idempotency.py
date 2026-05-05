@@ -28,9 +28,7 @@ class IdempotencyConflictError(RuntimeError):
     """Raised when attempting to overwrite an idempotency record with a new payload."""
 
     def __init__(self, key: str) -> None:
-        super().__init__(
-            f"Idempotency key '{key}' already used with a different payload."
-        )
+        super().__init__(f"Idempotency key '{key}' already used with a different payload.")
         self.key = key
 
 
@@ -107,9 +105,7 @@ class IdempotencyCache:
             if existing is not None and existing.payload_hash != payload_hash:
                 raise IdempotencyConflictError(key)
             if len(self._entries) >= self._max_entries:
-                oldest_key = min(
-                    self._entries, key=lambda name: self._entries[name].stored_at
-                )
+                oldest_key = min(self._entries, key=lambda name: self._entries[name].stored_at)
                 self._entries.pop(oldest_key, None)
             self._entries[key] = record
         return record
@@ -121,9 +117,7 @@ class IdempotencyCache:
     async def snapshot(self) -> IdempotencySnapshot:
         async with self._lock:
             self._purge_locked()
-            return IdempotencySnapshot(
-                entries=len(self._entries), ttl_seconds=self._ttl
-            )
+            return IdempotencySnapshot(entries=len(self._entries), ttl_seconds=self._ttl)
 
     def _purge_locked(self) -> None:
         expired = [name for name, record in self._entries.items() if record.expired]

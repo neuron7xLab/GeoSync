@@ -184,14 +184,10 @@ def test_run_pip_audit_execution_failure(
 
 @patch("scripts.dependency_audit.shutil.which")
 @patch("scripts.dependency_audit.subprocess.run")
-def test_run_pip_audit_success(
-    mock_run: MagicMock, mock_which: MagicMock, tmp_path: Path
-) -> None:
+def test_run_pip_audit_success(mock_run: MagicMock, mock_which: MagicMock, tmp_path: Path) -> None:
     """Test that _run_pip_audit returns result on success."""
     mock_which.return_value = "/usr/bin/pip-audit"
-    mock_run.return_value = MagicMock(
-        returncode=0, stdout=json.dumps({"dependencies": []})
-    )
+    mock_run.return_value = MagicMock(returncode=0, stdout=json.dumps({"dependencies": []}))
     req_file = tmp_path / "requirements.txt"
     req_file.write_text("", encoding="utf-8")
 
@@ -209,9 +205,7 @@ def test_main_no_vulnerabilities(
     req_file = tmp_path / "requirements.txt"
     req_file.write_text("numpy==1.0.0\n", encoding="utf-8")
     mock_resolve.return_value = [req_file]
-    mock_run.return_value = MagicMock(
-        returncode=0, stdout=json.dumps({"dependencies": []})
-    )
+    mock_run.return_value = MagicMock(returncode=0, stdout=json.dumps({"dependencies": []}))
 
     exit_code = dependency_audit.main(["-r", str(req_file)])
 
@@ -257,9 +251,7 @@ def test_main_with_vulnerabilities(
 
 @patch("scripts.dependency_audit._run_pip_audit")
 @patch("scripts.dependency_audit._resolve_requirements")
-def test_main_fail_on_none(
-    mock_resolve: MagicMock, mock_run: MagicMock, tmp_path: Path
-) -> None:
+def test_main_fail_on_none(mock_resolve: MagicMock, mock_run: MagicMock, tmp_path: Path) -> None:
     """Test that main returns 0 with --fail-on=none even with vulnerabilities."""
     req_file = tmp_path / "requirements.txt"
     req_file.write_text("example-pkg==1.0.0\n", encoding="utf-8")
@@ -301,9 +293,7 @@ def test_main_writes_json_report(
     req_file = tmp_path / "requirements.txt"
     req_file.write_text("numpy==1.0.0\n", encoding="utf-8")
     mock_resolve.return_value = [req_file]
-    mock_run.return_value = MagicMock(
-        returncode=0, stdout=json.dumps({"dependencies": []})
-    )
+    mock_run.return_value = MagicMock(returncode=0, stdout=json.dumps({"dependencies": []}))
     report_file = tmp_path / "report.json"
 
     dependency_audit.main(["-r", str(req_file), "--write-json", str(report_file)])

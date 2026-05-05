@@ -45,9 +45,7 @@ class IncidentManager:
 
         date_prefix = timestamp.strftime("%Y%m%d")
         existing = sorted(
-            path
-            for path in year_directory.glob(f"INC-{date_prefix}-*")
-            if path.is_dir()
+            path for path in year_directory.glob(f"INC-{date_prefix}-*") if path.is_dir()
         )
         identifier = f"INC-{date_prefix}-{len(existing) + 1:03d}"
         incident_dir = year_directory / identifier

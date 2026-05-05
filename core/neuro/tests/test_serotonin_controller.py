@@ -349,9 +349,7 @@ def test_rho_loss_clamping(controller):
 
 
 def test_serotonin_monotonicity(controller):
-    responses = [
-        controller.compute_serotonin_signal(val) for val in np.linspace(0, 3, 15)
-    ]
+    responses = [controller.compute_serotonin_signal(val) for val in np.linspace(0, 3, 15)]
     assert responses == sorted(responses)
     assert all(0.0 <= r <= 1.0 for r in responses)
 
@@ -478,9 +476,7 @@ def test_check_cooldown_guard_overrides(controller):
 
 def test_step_basic_api(controller):
     """Test the step() API with basic inputs."""
-    hold, veto, cooldown_s, level = controller.step(
-        stress=1.2, drawdown=-0.03, novelty=0.8
-    )
+    hold, veto, cooldown_s, level = controller.step(stress=1.2, drawdown=-0.03, novelty=0.8)
     assert isinstance(hold, bool)
     assert isinstance(veto, bool)
     assert isinstance(cooldown_s, float)
@@ -500,9 +496,7 @@ def test_step_hold_trigger(controller):
 
     # High stress should eventually trigger HOLD
     for _ in range(50):
-        hold2, veto2, _, level2 = controller.step(
-            stress=3.0, drawdown=-0.1, novelty=2.0
-        )
+        hold2, veto2, _, level2 = controller.step(stress=3.0, drawdown=-0.1, novelty=2.0)
     assert hold2 or level2 > controller.config["cooldown_threshold"]
 
 
@@ -602,7 +596,9 @@ def test_step_with_overrides(controller):
     )
 
     hold2, _, _, level2 = controller.step(
-        stress=1.0, drawdown=-0.05, novelty=0.5  # No overrides
+        stress=1.0,
+        drawdown=-0.05,
+        novelty=0.5,  # No overrides
     )
 
     # Results should differ due to overrides
@@ -676,9 +672,7 @@ def test_step_monotonic_stress_response(controller):
         controller.sensitivity = 1.0
         # Run multiple steps to let tonic build up
         for _ in range(20):
-            _, _, _, level = controller.step(
-                stress=stress, drawdown=-0.02, novelty=stress * 0.4
-            )
+            _, _, _, level = controller.step(stress=stress, drawdown=-0.02, novelty=stress * 0.4)
         levels.append(level)
 
     # Higher stress should generally lead to higher levels
@@ -709,10 +703,7 @@ def test_save_and_load_state(controller, tmp_path):
     restored_state = controller.to_dict()
 
     # Verify key state is restored
-    assert (
-        abs(restored_state["serotonin_level"] - original_state["serotonin_level"])
-        < 0.01
-    )
+    assert abs(restored_state["serotonin_level"] - original_state["serotonin_level"]) < 0.01
     assert abs(restored_state["tonic_level"] - original_state["tonic_level"]) < 0.01
     assert abs(restored_state["sensitivity"] - original_state["sensitivity"]) < 0.01
 

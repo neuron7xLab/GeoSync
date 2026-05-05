@@ -19,16 +19,16 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+from research.microstructure.killtest import (
+    _forward_log_return,
+    cross_sectional_ricci_signal,
+)
 from research.microstructure.l2_cli import (
     SubstrateError,
     add_common_args,
     load_substrate,
     setup_logging,
-)
-
-from research.microstructure.killtest import (
-    _forward_log_return,
-    cross_sectional_ricci_signal,
 )
 from research.microstructure.robustness import (
     DEFAULT_BLOCK_SIZE,

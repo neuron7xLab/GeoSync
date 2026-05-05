@@ -424,9 +424,7 @@ class NeuroOrchestrator:
 
         return params
 
-    def _normalise_custom_parameters(
-        self, custom_parameters: Mapping[str, Any]
-    ) -> Dict[str, Any]:
+    def _normalise_custom_parameters(self, custom_parameters: Mapping[str, Any]) -> Dict[str, Any]:
         """Expand dotted-path overrides into nested dictionaries.
 
         ``custom_parameters`` can contain keys using dot notation (e.g.
@@ -458,9 +456,7 @@ class NeuroOrchestrator:
         for raw_key, raw_value in custom_parameters.items():
             prepared_value = self._prepare_override_value(raw_value)
             if "." in raw_key:
-                self._assign_override_path(
-                    normalised, raw_key.split("."), prepared_value
-                )
+                self._assign_override_path(normalised, raw_key.split("."), prepared_value)
             else:
                 if raw_key in normalised:
                     normalised[raw_key] = self._combine_override_values(
@@ -475,14 +471,10 @@ class NeuroOrchestrator:
         """Create a merge-ready copy of ``value``."""
 
         if isinstance(value, Mapping):
-            return {
-                key: self._prepare_override_value(val) for key, val in value.items()
-            }
+            return {key: self._prepare_override_value(val) for key, val in value.items()}
         return value
 
-    def _assign_override_path(
-        self, target: Dict[str, Any], path: List[str], value: Any
-    ) -> None:
+    def _assign_override_path(self, target: Dict[str, Any], path: List[str], value: Any) -> None:
         """Assign ``value`` to ``target`` following ``path`` segments."""
 
         current: Dict[str, Any] = target
@@ -497,17 +489,14 @@ class NeuroOrchestrator:
             if not isinstance(existing, dict):
                 joined = ".".join(path)
                 raise ValueError(
-                    "Custom parameter override for '%s' collides with a non-mapping value."
-                    % joined
+                    "Custom parameter override for '%s' collides with a non-mapping value." % joined
                 )
 
             current = existing
 
         leaf = path[-1]
         if leaf in current:
-            current[leaf] = self._combine_override_values(
-                current[leaf], value, ".".join(path)
-            )
+            current[leaf] = self._combine_override_values(current[leaf], value, ".".join(path))
         else:
             current[leaf] = value
 
@@ -519,8 +508,7 @@ class NeuroOrchestrator:
 
         if isinstance(existing, dict) != isinstance(incoming, dict):
             raise ValueError(
-                "Custom parameter override for '%s' mixes structured and scalar values."
-                % key
+                "Custom parameter override for '%s' mixes structured and scalar values." % key
             )
 
         return incoming
@@ -614,9 +602,7 @@ class NeuroOrchestrator:
             If parameters would violate the free-energy constraint
         """
         # Check critical parameters that affect free energy
-        free_energy_threshold = parameters.get(
-            "free_energy_threshold", self._free_energy_threshold
-        )
+        free_energy_threshold = parameters.get("free_energy_threshold", self._free_energy_threshold)
         temperature = parameters.get("temperature", 1.0)
 
         # Validate threshold

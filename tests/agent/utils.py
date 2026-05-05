@@ -11,9 +11,9 @@ import pandas as pd
 
 from application.system import (
     ExchangeAdapterConfig,
-    LiveLoopSettings,
     GeoSyncSystem,
     GeoSyncSystemConfig,
+    LiveLoopSettings,
 )
 from execution.connectors import BinanceConnector
 
@@ -31,9 +31,17 @@ def write_sample_ohlc(path: Path, *, periods: int = 128) -> None:
     low = np.minimum(open_prices, close) - rng.uniform(0.0, 0.1, size=periods)
     volume = rng.integers(1_000, 5_000, size=periods)
 
+    # Convert to Unix epoch seconds in a way that is independent of the
+    # pandas internal datetime resolution. In pandas <=2.x DatetimeIndex
+    # stored ns; in pandas 3.x the default is us — a raw
+    # `index.astype('int64') // 10**9` silently scales the result by 1e3
+    # and produced bogus 1970-01-20 timestamps in the agent loader tests.
+    epoch_seconds = (
+        (index - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta(seconds=1)
+    ).to_numpy()
     frame = pd.DataFrame(
         {
-            "ts": index.astype("int64") // 10**9,
+            "ts": epoch_seconds,
             "open": open_prices,
             "high": high,
             "low": low,

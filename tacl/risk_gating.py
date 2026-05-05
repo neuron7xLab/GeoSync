@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Mapping, Protocol, Sequence
+from typing import TYPE_CHECKING, Mapping, Protocol
 
 if TYPE_CHECKING:
     from .degradation import DegradationPolicy, DegradationReport

@@ -93,13 +93,8 @@ class VariableInspector:
                 for item_key, item_value in value.items()
             }
 
-        if isinstance(value, Sequence) and not isinstance(
-            value, (str, bytes, bytearray)
-        ):
-            return [
-                self._sanitise(path + (str(index),), item)
-                for index, item in enumerate(value)
-            ]
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            return [self._sanitise(path + (str(index),), item) for index, item in enumerate(value)]
 
         if is_dataclass(value):
             return self._sanitise(path, asdict(value))

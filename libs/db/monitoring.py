@@ -167,9 +167,7 @@ class DatabaseMonitor:
         try:
             if dialect.startswith("postgres"):
                 with self._engine.connect() as connection:
-                    result = connection.execute(
-                        text("SELECT pg_database_size(current_database())")
-                    )
+                    result = connection.execute(text("SELECT pg_database_size(current_database())"))
                     value = result.scalar_one()
                 return float(value)
 
@@ -217,9 +215,7 @@ def _normalise_host_label(url: URL) -> str:
 
 def _get_engine_metadata(engine: Engine) -> dict[str, object]:
     info = getattr(engine, "info", None)
-    if isinstance(
-        info, dict
-    ):  # pragma: no branch - attribute available on modern SQLAlchemy
+    if isinstance(info, dict):  # pragma: no branch - attribute available on modern SQLAlchemy
         return info.setdefault("geosync", {})
     return _ENGINE_METADATA.setdefault(engine, {})
 

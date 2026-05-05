@@ -11,6 +11,7 @@ Usage:
     python scripts/generate_sample_ohlcv.py --output data/sample_multi_asset.csv
     python scripts/generate_sample_ohlcv.py --symbols BTC ETH --days 30 --seed 42
 """
+
 # SPDX-License-Identifier: MIT
 
 from __future__ import annotations
@@ -215,9 +216,7 @@ def generate_multi_asset_data(
 
     all_data = []
     for i, symbol in enumerate(symbols):
-        config = asset_configs.get(
-            symbol.upper(), {"base_price": 100.0, "volatility": 0.02}
-        )
+        config = asset_configs.get(symbol.upper(), {"base_price": 100.0, "volatility": 0.02})
         symbol_seed = seed + i * 10000 if seed is not None else None
 
         df = generate_market_data(

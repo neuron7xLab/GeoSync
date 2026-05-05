@@ -84,9 +84,9 @@ def test_third_party_actions_pinned_by_sha(workflow: dict[str, object]) -> None:
                 continue
             # Extract SHA — must be 40 hex chars after @
             m = re.search(r"@([0-9a-f]{40})\b", str(uses))
-            assert m is not None, (
-                f"Job '{job_name}' step '{step.get('name')}' uses '{uses}' is not SHA-pinned"
-            )
+            assert (
+                m is not None
+            ), f"Job '{job_name}' step '{step.get('name')}' uses '{uses}' is not SHA-pinned"
 
 
 def test_every_job_has_timeout(workflow: dict[str, object]) -> None:

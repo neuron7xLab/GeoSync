@@ -73,9 +73,7 @@ class _StateStore:
             return
         try:
             raw = json.loads(self.path.read_text())
-            if not isinstance(
-                raw, Mapping
-            ):  # pragma: no cover - defensive, asserted in tests
+            if not isinstance(raw, Mapping):  # pragma: no cover - defensive, asserted in tests
                 raise TypeError("state must be a mapping")
         except Exception:
             # якщо файл пошкоджено — зберегти як .corrupt.json і почати заново
@@ -138,9 +136,7 @@ class HNCMConsensusAdapter:
         buy_threshold: float = 0.15,
         sell_threshold: float = -0.15,
     ) -> None:
-        self.base_weights: Dict[str, float] = self._validate_base_weights(
-            base_weights or {}
-        )
+        self.base_weights: Dict[str, float] = self._validate_base_weights(base_weights or {})
         self.alpha = self._validate_alpha(alpha)
         self.store = _StateStore(state_path)
         self.buy_threshold, self.sell_threshold = self._validate_thresholds(
@@ -172,9 +168,7 @@ class HNCMConsensusAdapter:
         for agent, value in weights.items():
             v = float(value)
             if v < 0.0:
-                raise ValueError(
-                    f"base weight for agent '{agent}' must be non-negative"
-                )
+                raise ValueError(f"base weight for agent '{agent}' must be non-negative")
             validated[str(agent)] = v
         return validated
 
@@ -186,9 +180,7 @@ class HNCMConsensusAdapter:
         return a
 
     @staticmethod
-    def _validate_thresholds(
-        buy_threshold: float, sell_threshold: float
-    ) -> Tuple[float, float]:
+    def _validate_thresholds(buy_threshold: float, sell_threshold: float) -> Tuple[float, float]:
         buy = float(buy_threshold)
         sell = float(sell_threshold)
         if not -1.0 <= sell <= buy <= 1.0:
@@ -203,13 +195,9 @@ class HNCMConsensusAdapter:
         override_weights: Optional[Mapping[str, float]] = None,
     ) -> Tuple[float, Dict[str, float]]:
         votes = tuple(votes)
-        weights = self._effective_weights(
-            self.base_weights, learned_weights, override_weights
-        )
+        weights = self._effective_weights(self.base_weights, learned_weights, override_weights)
         for vote in votes:
-            weights.setdefault(
-                vote.agent, max(0.0, float(self.base_weights.get(vote.agent, 1.0)))
-            )
+            weights.setdefault(vote.agent, max(0.0, float(self.base_weights.get(vote.agent, 1.0))))
         num = 0.0
         den = 0.0
         for v in votes:
@@ -290,9 +278,7 @@ class HNCMConsensusAdapter:
 # ---------- EWS → AgentVote ----------
 
 
-def ews_to_vote(
-    agent_name: str, ews_result: Any, *, use_probability: bool = True
-) -> AgentVote:
+def ews_to_vote(agent_name: str, ews_result: Any, *, use_probability: bool = True) -> AgentVote:
     """Перетворити :class:`EWSResult` у голос агента."""
     score = 0.0
     prob = getattr(ews_result, "probability", None)
@@ -300,6 +286,4 @@ def ews_to_vote(
         score = clamp(2.0 * float(prob), 0.0, 2.0) - 1.0
     elif hasattr(ews_result, "ews_score"):
         score = clamp(float(getattr(ews_result, "ews_score")), -1.0, 1.0)
-    return AgentVote(
-        agent=agent_name, score=score, confidence=1.0, rationale="EWS meta-signal"
-    )
+    return AgentVote(agent=agent_name, score=score, confidence=1.0, rationale="EWS meta-signal")

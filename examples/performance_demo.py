@@ -9,6 +9,7 @@ precision, chunked processing, and other optimizations in GeoSync.
 Run with:
     python examples/performance_demo.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -53,9 +54,7 @@ def benchmark_entropy():
         start = time.time()
         h_baseline = entropy(data, bins=50)
         time_baseline = time.time() - start
-        print(
-            f"  Baseline (float64):           {time_baseline:.3f}s  H={h_baseline:.4f}"
-        )
+        print(f"  Baseline (float64):           {time_baseline:.3f}s  H={h_baseline:.4f}")
 
         # Float32 only
         start = time.time()
@@ -103,9 +102,7 @@ def benchmark_hurst():
         start = time.time()
         h_baseline = hurst_exponent(data, max_lag=50)
         time_baseline = time.time() - start
-        print(
-            f"  Baseline (float64):           {time_baseline:.3f}s  H={h_baseline:.4f}"
-        )
+        print(f"  Baseline (float64):           {time_baseline:.3f}s  H={h_baseline:.4f}")
 
         # Float32
         start = time.time()
@@ -140,9 +137,7 @@ def benchmark_ricci():
         start = time.time()
         r_baseline = mean_ricci(G)
         time_baseline = time.time() - start
-        print(
-            f"  Baseline (float64):           {time_baseline:.3f}s  κ={r_baseline:.4f}"
-        )
+        print(f"  Baseline (float64):           {time_baseline:.3f}s  κ={r_baseline:.4f}")
 
         # Float32 only
         start = time.time()

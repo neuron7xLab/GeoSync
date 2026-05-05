@@ -29,7 +29,9 @@ def _load_serotonin_cls():
     return module.SerotoninController
 
 
-def _config_with_receptors(tmp_path: Path, *, enabled: bool, enabled_list: list[str] | None = None) -> Path:
+def _config_with_receptors(
+    tmp_path: Path, *, enabled: bool, enabled_list: list[str] | None = None
+) -> Path:
     cfg_source = Path(__file__).resolve().parents[4] / "configs" / "serotonin.yaml"
     cfg = yaml.safe_load(cfg_source.read_text(encoding="utf-8")) or {}
     cfg.setdefault("active_profile", "v24")

@@ -238,8 +238,7 @@ def classify(metrics: Metrics) -> tuple[PressureBand, list[str]]:
 
     if metrics.runtime_loc > 1000 and metrics.test_loc < metrics.runtime_loc // 4:
         reasons.append(
-            f"runtime_loc={metrics.runtime_loc} but test_loc={metrics.test_loc} "
-            f"(< 25% of runtime)"
+            f"runtime_loc={metrics.runtime_loc} but test_loc={metrics.test_loc} (< 25% of runtime)"
         )
         return PressureBand.UNDERTESTED, reasons
 

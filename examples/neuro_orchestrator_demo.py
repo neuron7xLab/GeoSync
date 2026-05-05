@@ -28,9 +28,7 @@ spec.loader.exec_module(neuro_orchestrator)
 
 NeuroOrchestrator = neuro_orchestrator.NeuroOrchestrator
 TradingScenario = neuro_orchestrator.TradingScenario
-create_orchestration_from_scenario = (
-    neuro_orchestrator.create_orchestration_from_scenario
-)
+create_orchestration_from_scenario = neuro_orchestrator.create_orchestration_from_scenario
 
 
 def demo_basic_usage():
@@ -170,9 +168,7 @@ def demo_tacl_integration():
     print(f"Protocol Options: {', '.join(tacl_config['protocol_options'])}")
 
     print("\nTACL ensures:")
-    print(
-        "  • Monotonic free-energy descent (no action increases system F without override)"
-    )
+    print("  • Monotonic free-energy descent (no action increases system F without override)")
     print("  • Hot-swapping of communication protocols (RDMA, CRDT, gRPC, etc.)")
     print("  • Crisis-aware adaptive recovery")
     print("  • 7-year audit trail for compliance")

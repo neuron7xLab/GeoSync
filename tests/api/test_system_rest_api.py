@@ -52,9 +52,7 @@ class _EagerFillConnector(SimulatedExchangeConnector):
 @pytest.fixture()
 def system() -> GeoSyncSystem:
     connector = _EagerFillConnector()
-    config = GeoSyncSystemConfig(
-        venues=(ExchangeAdapterConfig(name="dummy", connector=connector),)
-    )
+    config = GeoSyncSystemConfig(venues=(ExchangeAdapterConfig(name="dummy", connector=connector),))
     return GeoSyncSystem(config)
 
 
@@ -75,13 +73,9 @@ def identity_dependency(authorized_identity: AdminIdentity):
 
 @pytest.fixture()
 def authorization_gateway() -> AuthorizationGateway:
-    policy_path = (
-        Path(__file__).resolve().parents[2] / "configs" / "rbac" / "policy.yaml"
-    )
+    policy_path = Path(__file__).resolve().parents[2] / "configs" / "rbac" / "policy.yaml"
     audit_logger = AuditLogger(secret="integration-rbac-secret")
-    return build_authorization_gateway(
-        policy_path=policy_path, audit_logger=audit_logger
-    )
+    return build_authorization_gateway(policy_path=policy_path, audit_logger=audit_logger)
 
 
 @pytest.fixture()
@@ -177,9 +171,7 @@ def test_market_order_requires_reference_price(client: TestClient) -> None:
 
     assert response.status_code == 422
     detail = response.json()
-    assert any(
-        "reference_price" in error.get("msg", "") for error in detail.get("detail", [])
-    )
+    assert any("reference_price" in error.get("msg", "") for error in detail.get("detail", []))
 
 
 def test_market_order_uses_reference_price_for_risk_validation(
@@ -249,10 +241,7 @@ def test_trader_role_is_required(system: GeoSyncSystem) -> None:
         return AdminIdentity(subject="integration-test", roles=("foundation:viewer",))
 
     gateway = build_authorization_gateway(
-        policy_path=Path(__file__).resolve().parents[2]
-        / "configs"
-        / "rbac"
-        / "policy.yaml",
+        policy_path=Path(__file__).resolve().parents[2] / "configs" / "rbac" / "policy.yaml",
         audit_logger=AuditLogger(secret="integration-rbac-secret"),
     )
     app = create_system_app(

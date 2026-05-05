@@ -19,12 +19,6 @@ from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
-from research.microstructure.l2_cli import (
-    SubstrateError,
-    add_common_args,
-    load_substrate,
-    setup_logging,
-)
 
 from research.microstructure.attribution import (
     LAGS_DEFAULT_SEC,
@@ -35,6 +29,12 @@ from research.microstructure.attribution import (
 from research.microstructure.killtest import (
     _forward_log_return,
     cross_sectional_ricci_signal,
+)
+from research.microstructure.l2_cli import (
+    SubstrateError,
+    add_common_args,
+    load_substrate,
+    setup_logging,
 )
 from research.microstructure.pnl import (
     DEFAULT_DECISION_SEC,

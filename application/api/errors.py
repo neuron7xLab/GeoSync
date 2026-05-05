@@ -163,9 +163,7 @@ def register_exception_handlers(
             return value
         if isinstance(value, Mapping):
             return {key: _make_json_safe(item) for key, item in value.items()}
-        if isinstance(value, Sequence) and not isinstance(
-            value, (str, bytes, bytearray)
-        ):
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
             return [_make_json_safe(item) for item in value]
         return str(value)
 
@@ -189,9 +187,7 @@ def register_exception_handlers(
         )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(
-        request: Request, exc: HTTPException
-    ) -> JSONResponse:
+    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         default_code = error_codes.get(exc.status_code, ApiErrorCode.INTERNAL)
         detail = exc.detail
         serializable_detail = _make_json_safe(detail) if detail is not None else None
@@ -223,9 +219,7 @@ def register_exception_handlers(
         return JSONResponse(status_code=exc.status_code, content=content)
 
     @app.exception_handler(Exception)
-    async def unhandled_exception_handler(
-        request: Request, exc: Exception
-    ) -> JSONResponse:
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         LOGGER.exception(
             "Unhandled error while processing request",
             extra={"path": request.url.path},

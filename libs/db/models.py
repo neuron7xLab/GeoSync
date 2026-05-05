@@ -31,9 +31,7 @@ class KillSwitchState(Base):
 
     id: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
     engaged: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    reason: Mapped[str] = mapped_column(
-        String(length=2048), nullable=False, server_default=""
-    )
+    reason: Mapped[str] = mapped_column(String(length=2048), nullable=False, server_default="")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

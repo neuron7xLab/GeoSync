@@ -40,7 +40,10 @@ def test_main_writes_matrix(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_adapter_import_failure_skipped(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr(gen.pkgutil, "walk_packages", lambda *a, **k: [(None, "execution.adapters.missing", False)])
+    monkeypatch.setattr(
+        gen.pkgutil, "walk_packages", lambda *a, **k: [(None, "execution.adapters.missing", False)]
+    )
+
     def raise_import(_):
         raise ImportError()
 

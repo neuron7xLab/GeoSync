@@ -13,6 +13,7 @@ This script validates all the fixes made to the simplified serotonin controller:
 
 Can be run directly without pytest dependencies.
 """
+
 import sys
 import tempfile
 from pathlib import Path
@@ -172,12 +173,8 @@ def test_tonic_phasic():
         if i % 2 == 0:
             print(f"  Step {i}: tonic={ctrl.tonic_level:.4f}")
 
-    assert (
-        ctrl.tonic_level > 0.05
-    ), f"Tonic should accumulate, got {ctrl.tonic_level:.4f}"
-    assert (
-        ctrl.tonic_level < 0.5
-    ), f"Tonic should accumulate slowly, got {ctrl.tonic_level:.4f}"
+    assert ctrl.tonic_level > 0.05, f"Tonic should accumulate, got {ctrl.tonic_level:.4f}"
+    assert ctrl.tonic_level < 0.5, f"Tonic should accumulate slowly, got {ctrl.tonic_level:.4f}"
     print(f"✓ Tonic accumulated slowly to {ctrl.tonic_level:.4f}")
 
     # Test phasic (fast response)
@@ -197,9 +194,7 @@ def test_tonic_phasic():
 
     assert phasic_during > phasic_before, "Phasic should spike"
     assert phasic_after < phasic_during, "Phasic should decay"
-    assert (
-        phasic_during > 0.02
-    ), f"Phasic should show significant response, got {phasic_during:.4f}"
+    assert phasic_during > 0.02, f"Phasic should show significant response, got {phasic_during:.4f}"
     print(f"✓ Phasic responded quickly (spike: {phasic_during:.4f})")
 
 
@@ -232,18 +227,14 @@ def test_hold_property():
             break
 
     assert not ctrl._hold and ctrl.hold, "hold should be True via cooldown"
-    print(
-        f"✓ After exit: hold={ctrl.hold}, _hold={ctrl._hold}, cooldown={result['cooldown']}"
-    )
+    print(f"✓ After exit: hold={ctrl.hold}, _hold={ctrl._hold}, cooldown={result['cooldown']}")
 
     # Wait for cooldown to expire
     for _ in range(config["cooldown_ticks"] + 2):
         result = ctrl.step(stress=0.0, drawdown=0.0, novelty=0.0, dt=1.0)
 
     assert not ctrl.hold, "hold should be False after cooldown expires"
-    print(
-        f"✓ After cooldown: hold={ctrl.hold}, _hold={ctrl._hold}, cooldown={ctrl._cooldown}"
-    )
+    print(f"✓ After cooldown: hold={ctrl.hold}, _hold={ctrl._hold}, cooldown={ctrl._cooldown}")
 
 
 def test_config_validation():

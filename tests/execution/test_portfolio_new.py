@@ -26,9 +26,7 @@ class TestPortfolioAccounting:
         p = PortfolioAccounting(initial_cash=10000.0)
         p.apply_fill("BTCUSD", "buy", 1.0, 5000.0)
         # Cash reduced by 5000
-        assert p.equity() == pytest.approx(
-            10000.0, abs=0.1
-        )  # equity unchanged at fill price
+        assert p.equity() == pytest.approx(10000.0, abs=0.1)  # equity unchanged at fill price
 
     def test_sell_increases_cash(self):
         p = PortfolioAccounting(initial_cash=10000.0)

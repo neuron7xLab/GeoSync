@@ -22,16 +22,12 @@ class TestKillSwitchStateRecord:
         assert rec.reason == "max drawdown exceeded"
 
     def test_valid_disengaged(self):
-        rec = KillSwitchStateRecord(
-            engaged=False, reason="", updated_at=datetime.now(timezone.utc)
-        )
+        rec = KillSwitchStateRecord(engaged=False, reason="", updated_at=datetime.now(timezone.utc))
         assert rec.engaged is False
 
     def test_engaged_without_reason_raises(self):
         with pytest.raises(Exception, match="reason"):
-            KillSwitchStateRecord(
-                engaged=True, reason="", updated_at=datetime.now(timezone.utc)
-            )
+            KillSwitchStateRecord(engaged=True, reason="", updated_at=datetime.now(timezone.utc))
 
     def test_from_tuple(self):
         now = datetime.now(timezone.utc)
@@ -39,16 +35,12 @@ class TestKillSwitchStateRecord:
         assert rec.engaged is True
 
     def test_iso_string_timestamp(self):
-        rec = KillSwitchStateRecord(
-            engaged=False, reason="", updated_at="2024-01-01T00:00:00Z"
-        )
+        rec = KillSwitchStateRecord(engaged=False, reason="", updated_at="2024-01-01T00:00:00Z")
         assert rec.updated_at.year == 2024
         assert rec.updated_at.tzinfo is not None
 
     def test_naive_timestamp_gets_utc(self):
-        rec = KillSwitchStateRecord(
-            engaged=False, reason="", updated_at="2024-01-01T00:00:00"
-        )
+        rec = KillSwitchStateRecord(engaged=False, reason="", updated_at="2024-01-01T00:00:00")
         assert rec.updated_at.tzinfo == timezone.utc
 
     def test_control_chars_in_reason_rejected(self):
@@ -96,9 +88,7 @@ class TestRiskStateRecord:
 
     def test_empty_symbol_filtered(self):
         # Use model_validate to go through the before validator
-        rec = RiskStateRecord.model_validate(
-            {"positions": {"": 1.0, "  ": 2.0, "BTC": 3.0}}
-        )
+        rec = RiskStateRecord.model_validate({"positions": {"": 1.0, "  ": 2.0, "BTC": 3.0}})
         assert "" not in rec.positions
         assert "BTC" in rec.positions
 

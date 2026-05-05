@@ -77,7 +77,7 @@ def compute_market_temperature(
         >>> print(f"Market temperature: {temp:.1f}K")
     """
     vol_ratio = volatility / reference_vol
-    temperature = T_ref * (vol_ratio ** 2)
+    temperature = T_ref * (vol_ratio**2)
 
     return temperature
 

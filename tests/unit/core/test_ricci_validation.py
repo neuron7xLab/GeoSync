@@ -19,7 +19,6 @@ import pytest
 from core.kuramoto.config import KuramotoConfig
 from core.kuramoto.ricci_flow_engine import (
     KuramotoRicciFlowEngine,
-    KuramotoRicciFlowResult,
     _LocalOllivierRicciCurvatureLite,
     _SimpleUndirectedGraph,
 )
@@ -28,6 +27,7 @@ from core.kuramoto.ricci_flow_engine import (
 
 
 # ── Graph construction helpers ───────────────────────────────────────────
+
 
 def _complete_graph(n: int) -> _SimpleUndirectedGraph:
     """Build complete graph K_n."""
@@ -70,6 +70,7 @@ def _star_graph(n: int) -> _SimpleUndirectedGraph:
 # Curvature on known graphs
 # ═══════════════════════════════════════════════════════════════════════
 
+
 class TestOllivierRicciCurvatureOnKnownGraphs:
     """Test the lightweight Ollivier-Ricci estimator against analytic expectations."""
 
@@ -83,9 +84,7 @@ class TestOllivierRicciCurvatureOnKnownGraphs:
         g = _complete_graph(5)
         for i, j in g.edges():
             kappa = self.ricci.compute_edge_curvature(g, (i, j))
-            assert kappa > 0.0, (
-                f"K5 edge ({i},{j}) curvature={kappa:.6f} should be positive"
-            )
+            assert kappa > 0.0, f"K5 edge ({i},{j}) curvature={kappa:.6f} should be positive"
 
     def test_complete_graph_k5_curvature_uniform(self):
         """All edges in K5 should have the same curvature by symmetry."""
@@ -107,7 +106,7 @@ class TestOllivierRicciCurvatureOnKnownGraphs:
         for i in range(1, 4):
             kappa = self.ricci.compute_edge_curvature(g, (i, i + 1))
             assert kappa <= 0.5 + 1e-10, (
-                f"Path interior edge ({i},{i+1}) curvature={kappa:.6f} "
+                f"Path interior edge ({i},{i + 1}) curvature={kappa:.6f} "
                 "should not exceed 0.5 (lazy-RW with alpha=0.5 caps overlap)"
             )
 
@@ -126,9 +125,9 @@ class TestOllivierRicciCurvatureOnKnownGraphs:
         for i, j in g.edges():
             k_ij = self.ricci.compute_edge_curvature(g, (i, j))
             k_ji = self.ricci.compute_edge_curvature(g, (j, i))
-            assert abs(k_ij - k_ji) < 1e-12, (
-                f"Curvature not symmetric: kappa({i},{j})={k_ij}, kappa({j},{i})={k_ji}"
-            )
+            assert (
+                abs(k_ij - k_ji) < 1e-12
+            ), f"Curvature not symmetric: kappa({i},{j})={k_ij}, kappa({j},{i})={k_ji}"
 
     def test_curvature_symmetric_on_path(self):
         g = _path_graph(5)
@@ -141,14 +140,18 @@ class TestOllivierRicciCurvatureOnKnownGraphs:
 
     def test_curvature_bounded(self):
         """Ollivier-Ricci curvature should be in [-1, 1] for connected unweighted graphs."""
-        for graph_fn, n in [(_complete_graph, 5), (_path_graph, 8),
-                            (_cycle_graph, 6), (_star_graph, 6)]:
+        for graph_fn, n in [
+            (_complete_graph, 5),
+            (_path_graph, 8),
+            (_cycle_graph, 6),
+            (_star_graph, 6),
+        ]:
             g = graph_fn(n)
             for edge in g.edges():
                 kappa = self.ricci.compute_edge_curvature(g, edge)
-                assert -1.0 - 1e-10 <= kappa <= 1.0 + 1e-10, (
-                    f"Curvature {kappa:.6f} out of bounds for {graph_fn.__name__}({n}) edge {edge}"
-                )
+                assert (
+                    -1.0 - 1e-10 <= kappa <= 1.0 + 1e-10
+                ), f"Curvature {kappa:.6f} out of bounds for {graph_fn.__name__}({n}) edge {edge}"
 
     # ── Cycle graph ──────────────────────────────────────────────────
 
@@ -189,8 +192,8 @@ class TestOllivierRicciCurvatureOnKnownGraphs:
 # SimpleUndirectedGraph internals
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestSimpleUndirectedGraph:
 
+class TestSimpleUndirectedGraph:
     def test_shortest_path_self(self):
         g = _complete_graph(4)
         assert g.shortest_path_length(0, 0) == 0.0
@@ -227,8 +230,8 @@ class TestSimpleUndirectedGraph:
 # KuramotoRicciFlowEngine integration sanity
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestKuramotoRicciFlowEngineSanity:
 
+class TestKuramotoRicciFlowEngineSanity:
     def test_basic_run_order_parameter_bounded(self):
         cfg = KuramotoConfig(N=6, K=3.0, dt=0.01, steps=200, seed=42)
         engine = KuramotoRicciFlowEngine(cfg, ricci_update_interval=50)

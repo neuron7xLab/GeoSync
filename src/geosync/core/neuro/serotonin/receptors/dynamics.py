@@ -14,7 +14,9 @@ def low_pass(prev: float, new: float, alpha: float) -> float:
     return float((1.0 - alpha) * prev + alpha * new)
 
 
-def hysteresis_latch(active: bool, prev_latched: bool, enter: float, exit: float, signal: float) -> bool:
+def hysteresis_latch(
+    active: bool, prev_latched: bool, enter: float, exit: float, signal: float
+) -> bool:
     if prev_latched:
         return signal > exit
     return active and signal >= enter

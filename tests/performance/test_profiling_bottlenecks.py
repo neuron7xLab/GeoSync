@@ -402,9 +402,7 @@ class TestPerformanceRegression:
         regression = (current_latency - baseline_latency) / baseline_latency
 
         # Check if within acceptable range
-        assert (
-            regression <= threshold
-        ), f"Performance regression detected: {regression:.1%}"
+        assert regression <= threshold, f"Performance regression detected: {regression:.1%}"
 
     def test_throughput_regression(self):
         """Test throughput regression detection."""

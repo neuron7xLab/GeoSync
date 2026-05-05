@@ -22,6 +22,7 @@ import numpy as np
 
 from modules.types import MarketState
 
+
 class RegimeType(str, Enum):
     """Типи ринкових режимів"""
 
@@ -238,9 +239,7 @@ class MarketRegimeAnalyzer:
         except Exception:
             return 0.0, 1.0
 
-    def calculate_trend_strength(
-        self, prices: np.ndarray
-    ) -> Tuple[float, TrendStrength]:
+    def calculate_trend_strength(self, prices: np.ndarray) -> Tuple[float, TrendStrength]:
         """
         Розрахунок сили тренду
 
@@ -301,9 +300,7 @@ class MarketRegimeAnalyzer:
         """
         if isinstance(market_state_or_prices, dict):
             prices = self._validate_market_state_prices(market_state_or_prices)
-            returns = self._validate_market_state_returns(
-                market_state_or_prices, prices
-            )
+            returns = self._validate_market_state_returns(market_state_or_prices, prices)
         else:
             prices = np.asarray(market_state_or_prices, dtype=float)
             if prices.ndim != 1:
@@ -314,8 +311,8 @@ class MarketRegimeAnalyzer:
                 if returns.ndim != 1:
                     raise ValueError("returns must be a 1D array")
             else:
-                returns = np.diff(prices) / prices[:-1] if len(prices) > 1 else np.array(
-                    [], dtype=float
+                returns = (
+                    np.diff(prices) / prices[:-1] if len(prices) > 1 else np.array([], dtype=float)
                 )
 
         if len(prices) < self.min_regime_duration:
@@ -369,11 +366,7 @@ class MarketRegimeAnalyzer:
             regime_scores[RegimeType.CALM] = 1.0 - annual_vol / 0.15
 
         # Choppy (без чіткого тренду, середня волатильність)
-        if (
-            abs(trend_value) < 0.3
-            and 0.45 <= hurst <= 0.55
-            and 0.15 <= annual_vol <= 0.3
-        ):
+        if abs(trend_value) < 0.3 and 0.45 <= hurst <= 0.55 and 0.15 <= annual_vol <= 0.3:
             regime_scores[RegimeType.CHOPPY] = 0.7
 
         # Визначаємо режим з найвищим score
@@ -429,9 +422,7 @@ class MarketRegimeAnalyzer:
         """
         return self._regime_probabilities.copy()
 
-    def get_transition_history(
-        self, limit: Optional[int] = None
-    ) -> List[RegimeTransition]:
+    def get_transition_history(self, limit: Optional[int] = None) -> List[RegimeTransition]:
         """
         Отримання історії переходів режимів
 
@@ -445,9 +436,7 @@ class MarketRegimeAnalyzer:
             return self._transition_history.copy()
         return self._transition_history[-limit:]
 
-    def recommend_strategy_parameters(
-        self, regime_metrics: RegimeMetrics
-    ) -> Dict[str, float]:
+    def recommend_strategy_parameters(self, regime_metrics: RegimeMetrics) -> Dict[str, float]:
         """
         Рекомендації параметрів стратегії на основі режиму
 

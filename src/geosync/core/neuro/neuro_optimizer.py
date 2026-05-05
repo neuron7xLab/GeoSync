@@ -86,15 +86,14 @@ class NumericConfig:
         if self.gradient_dev_clip <= 0:
             raise ValueError("gradient_dev_clip must be positive")
 
-        self._validate_range(self.da_5ht_ratio_range, 'da_5ht_ratio_range')
-        self._validate_range(self.ei_balance_range, 'ei_balance_range')
+        self._validate_range(self.da_5ht_ratio_range, "da_5ht_ratio_range")
+        self._validate_range(self.ei_balance_range, "ei_balance_range")
         self._validate_aa_coherence_min()
 
     @staticmethod
     def _validate_range(value_range: Tuple[float, float], name: str) -> None:
-        if (
-            len(value_range) != 2
-            or not all(isinstance(value, (int, float)) for value in value_range)
+        if len(value_range) != 2 or not all(
+            isinstance(value, (int, float)) for value in value_range
         ):
             raise ValueError(f"{name} must be a tuple of two numbers")
         low, high = value_range
@@ -106,6 +105,7 @@ class NumericConfig:
             raise ValueError("aa_coherence_min must be a number")
         if not 0 <= self.aa_coherence_min <= 1:
             raise ValueError("aa_coherence_min must be in [0, 1]")
+
 
 @dataclass
 class OptimizationConfig:
@@ -373,14 +373,14 @@ class NeuroOptimizer:
             Setpoint values for homeostatic regulation
         """
         return {
-            'dopamine_level': 0.5,  # Baseline dopamine
-            'serotonin_level': 0.3,  # Baseline serotonin (lower = less stress)
-            'gaba_inhibition': 0.4,  # Moderate inhibition
-            'na_arousal': 1.0,  # Neutral arousal
-            'ach_attention': 0.7,  # Good attention
+            "dopamine_level": 0.5,  # Baseline dopamine
+            "serotonin_level": 0.3,  # Baseline serotonin (lower = less stress)
+            "gaba_inhibition": 0.4,  # Moderate inhibition
+            "na_arousal": 1.0,  # Neutral arousal
+            "ach_attention": 0.7,  # Good attention
             # Ratios and balances
-            'da_5ht_ratio': 1.67,  # Dopamine/serotonin ratio
-            'excitation_inhibition': 1.5,  # E/I balance
+            "da_5ht_ratio": 1.67,  # Dopamine/serotonin ratio
+            "excitation_inhibition": 1.5,  # E/I balance
         }
 
     def optimize(
@@ -413,9 +413,7 @@ class NeuroOptimizer:
         objective = self._calculate_objective(performance_score, balance, current_state)
         self._performance_history.append(objective)
         if len(self._performance_history) > self.config.history_window:
-            self._performance_history = self._performance_history[
-                -self.config.history_window:
-            ]
+            self._performance_history = self._performance_history[-self.config.history_window :]
         self._update_learning_rate(objective)
 
         # Update best
@@ -424,9 +422,7 @@ class NeuroOptimizer:
             self._last_improvement = self._iteration
 
         # Calculate gradients (approximated via finite differences)
-        gradients = self._estimate_gradients(
-            current_params, current_state, performance_score
-        )
+        gradients = self._estimate_gradients(current_params, current_state, performance_score)
 
         # Apply updates with momentum
         updated_params = self._apply_updates(current_params, gradients)
@@ -454,9 +450,7 @@ class NeuroOptimizer:
                 snapshot[module] = numeric_params
         return snapshot
 
-    def _calculate_balance_metrics(
-        self, state: Dict[str, float]
-    ) -> BalanceMetrics:
+    def _calculate_balance_metrics(self, state: Dict[str, float]) -> BalanceMetrics:
         """Calculate neuromodulator balance metrics.
 
         Parameters
@@ -472,11 +466,11 @@ class NeuroOptimizer:
         # Extract state values with defaults
         da_level, sero_level, gaba_inhib, arousal, attention = self._to_array(
             [
-                state.get('dopamine_level', 0.5),
-                state.get('serotonin_level', 0.3),
-                state.get('gaba_inhibition', 0.4),
-                state.get('na_arousal', 1.0),
-                state.get('ach_attention', 0.7),
+                state.get("dopamine_level", 0.5),
+                state.get("serotonin_level", 0.3),
+                state.get("gaba_inhibition", 0.4),
+                state.get("na_arousal", 1.0),
+                state.get("ach_attention", 0.7),
             ]
         )
 
@@ -496,35 +490,28 @@ class NeuroOptimizer:
         ei_balance = self._xp.clip(ei_balance, ei_min, ei_max)
 
         # Arousal-attention coherence (should be correlated)
-        aa_coherence = (
-            self._dtype.type(1.0)
-            - self._xp.abs(arousal - attention) / self._dtype.type(2.0)
+        aa_coherence = self._dtype.type(1.0) - self._xp.abs(arousal - attention) / self._dtype.type(
+            2.0
         )
         aa_coherence = self._xp.clip(aa_coherence, 0.0, 1.0)
 
         # Calculate deviations from setpoints
-        da_5ht_dev = (
-            self._xp.abs(da_5ht_ratio - self._setpoints['da_5ht_ratio'])
-            / (self._setpoints['da_5ht_ratio'] + epsilon)
+        da_5ht_dev = self._xp.abs(da_5ht_ratio - self._setpoints["da_5ht_ratio"]) / (
+            self._setpoints["da_5ht_ratio"] + epsilon
         )
-        ei_dev = (
-            self._xp.abs(ei_balance - self._setpoints['excitation_inhibition'])
-            / (self._setpoints['excitation_inhibition'] + epsilon)
+        ei_dev = self._xp.abs(ei_balance - self._setpoints["excitation_inhibition"]) / (
+            self._setpoints["excitation_inhibition"] + epsilon
         )
 
         # Overall homeostatic deviation.
         # Formula reference: docs/neuro_optimization_guide.md ("Homeostatic Deviation & Balance Score").
         homeostatic_dev = (da_5ht_dev + ei_dev) / self._dtype.type(2.0)
-        homeostatic_dev = self._xp.clip(
-            homeostatic_dev, self._dtype.type(0.0), self._xp.inf
-        )
+        homeostatic_dev = self._xp.clip(homeostatic_dev, self._dtype.type(0.0), self._xp.inf)
 
         # Overall balance score (inverse of deviation).
         # Formula reference: docs/neuro_optimization_guide.md ("Homeostatic Deviation & Balance Score").
         balance_score = self._dtype.type(1.0) / (self._dtype.type(1.0) + homeostatic_dev)
-        balance_score = self._xp.clip(
-            balance_score, self._dtype.type(0.0), self._dtype.type(1.0)
-        )
+        balance_score = self._xp.clip(balance_score, self._dtype.type(0.0), self._dtype.type(1.0))
 
         return BalanceMetrics(
             dopamine_serotonin_ratio=float(da_5ht_ratio),
@@ -587,7 +574,7 @@ class NeuroOptimizer:
         # Stability objective (variance over recent history).
         # Formula reference: docs/neuro_optimization_guide.md ("Stability Objective").
         if len(self._performance_history) >= self.config.history_window > 1:
-            recent_perf = self._performance_history[-self.config.history_window:]
+            recent_perf = self._performance_history[-self.config.history_window :]
             recent_array = self._xp.asarray(recent_perf, dtype=self._dtype)
             mean_perf = self._xp.mean(recent_array)
             std_perf = self._xp.std(recent_array)
@@ -647,39 +634,29 @@ class NeuroOptimizer:
         def clip_deviation(value: float) -> float:
             return float(self._xp.clip(value, -max_deviation, max_deviation))
 
-        dopamine_level = float(
-            state.get('dopamine_level', self._setpoints['dopamine_level'])
-        )
-        serotonin_level = float(
-            state.get('serotonin_level', self._setpoints['serotonin_level'])
-        )
+        dopamine_level = float(state.get("dopamine_level", self._setpoints["dopamine_level"]))
+        serotonin_level = float(state.get("serotonin_level", self._setpoints["serotonin_level"]))
         ratio_value = dopamine_level / (serotonin_level + float(epsilon))
         ratio_deviation = clip_deviation(
-            relative_deviation(ratio_value, self._setpoints['da_5ht_ratio'])
+            relative_deviation(ratio_value, self._setpoints["da_5ht_ratio"])
         )
 
-        gaba_value = float(
-            state.get('gaba_inhibition', self._setpoints['gaba_inhibition'])
-        )
-        arousal_value = float(
-            state.get('na_arousal', self._setpoints['na_arousal'])
-        )
-        attention_value = float(
-            state.get('ach_attention', self._setpoints['ach_attention'])
-        )
+        gaba_value = float(state.get("gaba_inhibition", self._setpoints["gaba_inhibition"]))
+        arousal_value = float(state.get("na_arousal", self._setpoints["na_arousal"]))
+        attention_value = float(state.get("ach_attention", self._setpoints["ach_attention"]))
 
         gaba_dev = clip_deviation(
-            relative_deviation(gaba_value, self._setpoints['gaba_inhibition'])
+            relative_deviation(gaba_value, self._setpoints["gaba_inhibition"])
         )
         arousal_dev = clip_deviation(
-            relative_deviation(arousal_value, self._setpoints['na_arousal'])
+            relative_deviation(arousal_value, self._setpoints["na_arousal"])
         )
         attention_dev = clip_deviation(
-            relative_deviation(attention_value, self._setpoints['ach_attention'])
+            relative_deviation(attention_value, self._setpoints["ach_attention"])
         )
 
         # For each neuromodulator
-        for module in ['dopamine', 'serotonin', 'gaba', 'na_ach']:
+        for module in ["dopamine", "serotonin", "gaba", "na_ach"]:
             if module not in params:
                 continue
 
@@ -691,16 +668,16 @@ class NeuroOptimizer:
                     continue
 
                 # Estimate gradient based on proportional deviation from setpoints.
-                if module == 'dopamine':
+                if module == "dopamine":
                     grad = -ratio_deviation
-                elif module == 'serotonin':
+                elif module == "serotonin":
                     grad = ratio_deviation
-                elif module == 'gaba':
+                elif module == "gaba":
                     grad = -gaba_dev
                 else:
-                    if 'arousal' in param_name:
+                    if "arousal" in param_name:
                         grad = -arousal_dev
-                    elif 'attention' in param_name:
+                    elif "attention" in param_name:
                         grad = -attention_dev
                     else:
                         grad = -0.5 * (arousal_dev + attention_dev)
@@ -760,30 +737,21 @@ class NeuroOptimizer:
 
                 # Gradient clipping relative to parameter magnitude
                 max_step = abs(param_value) * self.config.numeric.max_gradient_norm
-                clipped_velocity = float(
-                    self._xp.clip(velocity, -max_step, max_step)
-                )
+                clipped_velocity = float(self._xp.clip(velocity, -max_step, max_step))
 
                 # Apply update
                 new_value = param_value + clipped_velocity
 
                 # Clip to reasonable bounds (prevent instability)
-                new_value = float(
-                    self._xp.clip(new_value, param_value * 0.8, param_value * 1.2)
-                )
+                new_value = float(self._xp.clip(new_value, param_value * 0.8, param_value * 1.2))
 
                 bounds_spec = self.config.bounds_spec.get(module, {}).get(param_name)
                 if bounds_spec is not None:
                     if bounds_spec.behavior == "clip":
                         new_value = float(
-                            self._xp.clip(
-                                new_value, bounds_spec.min_value, bounds_spec.max_value
-                            )
+                            self._xp.clip(new_value, bounds_spec.min_value, bounds_spec.max_value)
                         )
-                    elif (
-                        new_value < bounds_spec.min_value
-                        or new_value > bounds_spec.max_value
-                    ):
+                    elif new_value < bounds_spec.min_value or new_value > bounds_spec.max_value:
                         raise ValueError(
                             f"{module}.{param_name} must be between "
                             f"{bounds_spec.min_value} and {bounds_spec.max_value}"
@@ -792,9 +760,7 @@ class NeuroOptimizer:
                     # Apply config bounds for safety (legacy)
                     bounds = self.config.param_bounds.get(module, {}).get(param_name)
                     if bounds is not None:
-                        new_value = float(
-                            self._xp.clip(new_value, bounds[0], bounds[1])
-                        )
+                        new_value = float(self._xp.clip(new_value, bounds[0], bounds[1]))
 
                 updated[module][param_name] = new_value
 
@@ -863,8 +829,8 @@ class NeuroOptimizer:
         """
         if not self._performance_history:
             return {
-                'status': 'no_data',
-                'message': 'No optimization data available',
+                "status": "no_data",
+                "message": "No optimization data available",
             }
 
         recent_perf = self._performance_history[-10:]
@@ -872,20 +838,24 @@ class NeuroOptimizer:
         parameter_drift = self._calculate_parameter_drift(self.DRIFT_WINDOW)
 
         return {
-            'status': 'active',
-            'iteration': self._iteration,
-            'best_objective': self._best_objective,
-            'current_objective': self._performance_history[-1],
-            'performance_trend': 'improving' if len(recent_perf) > 1 and recent_perf[-1] > recent_perf[0] else 'stable',
-            'parameter_drift': parameter_drift,
-            'avg_balance_score': float(
+            "status": "active",
+            "iteration": self._iteration,
+            "best_objective": self._best_objective,
+            "current_objective": self._performance_history[-1],
+            "performance_trend": (
+                "improving"
+                if len(recent_perf) > 1 and recent_perf[-1] > recent_perf[0]
+                else "stable"
+            ),
+            "parameter_drift": parameter_drift,
+            "avg_balance_score": float(
                 self._xp.mean(self._xp.asarray([b.overall_balance_score for b in recent_balance]))
             ),
-            'avg_homeostatic_dev': float(
+            "avg_homeostatic_dev": float(
                 self._xp.mean(self._xp.asarray([b.homeostatic_deviation for b in recent_balance]))
             ),
-            'convergence': self._check_convergence(),
-            'health_status': self._assess_health(
+            "convergence": self._check_convergence(),
+            "health_status": self._assess_health(
                 recent_balance[-1] if recent_balance else None,
                 drift_stats=parameter_drift,
             ),
@@ -894,10 +864,10 @@ class NeuroOptimizer:
     def _calculate_parameter_drift(self, window: int) -> Dict[str, Any]:
         """Calculate mean/median parameter deltas over the last N steps."""
         if len(self._param_history) < 2:
-            return {'window': 0, 'stats': {}}
+            return {"window": 0, "stats": {}}
 
         window = min(window, len(self._param_history) - 1)
-        recent = self._param_history[-(window + 1):]
+        recent = self._param_history[-(window + 1) :]
         drift_values: Dict[str, Dict[str, List[float]]] = {}
 
         for prev, curr in zip(recent[:-1], recent[1:]):
@@ -919,13 +889,13 @@ class NeuroOptimizer:
                 if not deltas:
                     continue
                 module_stats[name] = {
-                    'mean_delta': float(self._xp.mean(self._xp.asarray(deltas))),
-                    'median_delta': float(self._xp.median(self._xp.asarray(deltas))),
+                    "mean_delta": float(self._xp.mean(self._xp.asarray(deltas))),
+                    "median_delta": float(self._xp.median(self._xp.asarray(deltas))),
                 }
             if module_stats:
                 drift_stats[module] = module_stats
 
-        return {'window': window, 'stats': drift_stats}
+        return {"window": window, "stats": drift_stats}
 
     def _check_convergence(self) -> Dict[str, Any]:
         """Check if optimization has converged.
@@ -937,24 +907,24 @@ class NeuroOptimizer:
         """
         if len(self._performance_history) < self.config.history_window:
             return {
-                'converged': False,
-                'reason': 'insufficient_data',
+                "converged": False,
+                "reason": "insufficient_data",
             }
 
-        recent = self._performance_history[-self.config.history_window:]
+        recent = self._performance_history[-self.config.history_window :]
         variance = float(self._xp.std(self._xp.asarray(recent)))
 
         if variance < self.config.convergence_threshold:
             return {
-                'converged': True,
-                'variance': variance,
-                'message': 'Optimization has converged',
+                "converged": True,
+                "variance": variance,
+                "message": "Optimization has converged",
             }
         else:
             return {
-                'converged': False,
-                'variance': variance,
-                'message': f'Still optimizing (variance={variance:.4f})',
+                "converged": False,
+                "variance": variance,
+                "message": f"Still optimizing (variance={variance:.4f})",
             }
 
     def _assess_health(
@@ -976,20 +946,20 @@ class NeuroOptimizer:
         """
         if balance is None:
             return {
-                'status': 'unknown',
-                'message': 'No balance data available',
+                "status": "unknown",
+                "message": "No balance data available",
             }
 
         issues = []
         drift_risk = {
-            'status': 'unknown',
-            'thresholds': {
-                'mean_delta': self.DRIFT_MEAN_THRESHOLD,
-                'median_delta': self.DRIFT_MEDIAN_THRESHOLD,
+            "status": "unknown",
+            "thresholds": {
+                "mean_delta": self.DRIFT_MEAN_THRESHOLD,
+                "median_delta": self.DRIFT_MEDIAN_THRESHOLD,
             },
-            'violations': [],
-            'max_mean_delta': 0.0,
-            'max_median_delta': 0.0,
+            "violations": [],
+            "max_mean_delta": 0.0,
+            "max_median_delta": 0.0,
         }
 
         da_ratio_min, da_ratio_max = self.config.da_5ht_ratio_range
@@ -997,28 +967,28 @@ class NeuroOptimizer:
 
         # Check DA/5-HT ratio
         if balance.dopamine_serotonin_ratio < da_ratio_min:
-            issues.append('Low dopamine/serotonin ratio - system may be over-stressed')
+            issues.append("Low dopamine/serotonin ratio - system may be over-stressed")
         elif balance.dopamine_serotonin_ratio > da_ratio_max:
-            issues.append('High dopamine/serotonin ratio - excessive risk-taking')
+            issues.append("High dopamine/serotonin ratio - excessive risk-taking")
 
         # Check E/I balance
         if balance.gaba_excitation_balance < ei_min:
-            issues.append('Excessive inhibition - may miss opportunities')
+            issues.append("Excessive inhibition - may miss opportunities")
         elif balance.gaba_excitation_balance > ei_max:
-            issues.append('Excessive excitation - impulsive behavior risk')
+            issues.append("Excessive excitation - impulsive behavior risk")
 
         # Check arousal-attention coherence
         if balance.arousal_attention_coherence < self.config.numeric.aa_coherence_min:
-            issues.append('Poor arousal-attention coherence - attention deficits')
+            issues.append("Poor arousal-attention coherence - attention deficits")
 
-        if drift_stats and drift_stats.get('stats'):
+        if drift_stats and drift_stats.get("stats"):
             violations = []
             max_mean = 0.0
             max_median = 0.0
-            for module, module_params in drift_stats['stats'].items():
+            for module, module_params in drift_stats["stats"].items():
                 for name, stats in module_params.items():
-                    mean_delta = stats.get('mean_delta', 0.0)
-                    median_delta = stats.get('median_delta', 0.0)
+                    mean_delta = stats.get("mean_delta", 0.0)
+                    median_delta = stats.get("median_delta", 0.0)
                     max_mean = max(max_mean, mean_delta)
                     max_median = max(max_median, median_delta)
                     if (
@@ -1029,38 +999,35 @@ class NeuroOptimizer:
 
             drift_risk.update(
                 {
-                    'status': 'warning' if violations else 'stable',
-                    'violations': violations,
-                    'max_mean_delta': max_mean,
-                    'max_median_delta': max_median,
+                    "status": "warning" if violations else "stable",
+                    "violations": violations,
+                    "max_mean_delta": max_mean,
+                    "max_median_delta": max_median,
                 }
             )
             if violations:
-                issues.append(
-                    'Parameter drift risk detected: '
-                    + ', '.join(sorted(violations))
-                )
+                issues.append("Parameter drift risk detected: " + ", ".join(sorted(violations)))
         else:
-            drift_risk['status'] = 'unknown'
+            drift_risk["status"] = "unknown"
 
         # Overall assessment
         if balance.overall_balance_score > 0.8:
-            status = 'healthy'
-            message = 'Neuromodulator system is well-balanced'
+            status = "healthy"
+            message = "Neuromodulator system is well-balanced"
         elif balance.overall_balance_score > 0.6:
-            status = 'acceptable'
-            message = 'Minor imbalances detected but within acceptable range'
+            status = "acceptable"
+            message = "Minor imbalances detected but within acceptable range"
         else:
-            status = 'warning'
-            message = 'Significant imbalances detected - intervention recommended'
+            status = "warning"
+            message = "Significant imbalances detected - intervention recommended"
 
         return {
-            'status': status,
-            'message': message,
-            'balance_score': balance.overall_balance_score,
-            'homeostatic_deviation': balance.homeostatic_deviation,
-            'issues': issues if issues else ['No issues detected'],
-            'drift_risk': drift_risk,
+            "status": status,
+            "message": message,
+            "balance_score": balance.overall_balance_score,
+            "homeostatic_deviation": balance.homeostatic_deviation,
+            "issues": issues if issues else ["No issues detected"],
+            "drift_risk": drift_risk,
         }
 
     def reset(self) -> None:

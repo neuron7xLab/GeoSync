@@ -5,6 +5,7 @@
 This module tests the multi-profile config loading, validation, and
 backwards compatibility for the serotonin controller configuration.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

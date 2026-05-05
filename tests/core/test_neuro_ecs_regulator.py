@@ -139,9 +139,7 @@ class TestECSInspiredRegulator:
 
     def test_action_threshold_supersedes_risk(self):
         with pytest.warns(DeprecationWarning):
-            reg = ECSInspiredRegulator(
-                initial_risk_threshold=0.05, action_threshold=0.2
-            )
+            reg = ECSInspiredRegulator(initial_risk_threshold=0.05, action_threshold=0.2)
         assert reg.risk_threshold == pytest.approx(0.2)
 
     def test_seed_reproducibility(self):

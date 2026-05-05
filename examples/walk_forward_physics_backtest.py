@@ -97,9 +97,7 @@ def main() -> None:
     csv_path = Path("/tmp/geosync_6month_synthetic.csv")
     if not csv_path.exists():
         print("Run physics_alpha_proof.py first to generate data, or:")
-        print(
-            "  python -c \"exec(open('examples/walk_forward_physics_backtest.py').read())\""
-        )
+        print("  python -c \"exec(open('examples/walk_forward_physics_backtest.py').read())\"")
         return
 
     prices = pd.read_csv(csv_path, index_col=0, parse_dates=True)
@@ -115,9 +113,7 @@ def main() -> None:
     oos_bars = 30 * 24  # 30 days
     step = oos_bars
 
-    print(
-        f"\nWalk-forward: IS={is_bars // 24}d, OOS={oos_bars // 24}d, step={step // 24}d"
-    )
+    print(f"\nWalk-forward: IS={is_bars // 24}d, OOS={oos_bars // 24}d, step={step // 24}d")
 
     all_oos_physics = []
     all_oos_benchmark = []
@@ -219,18 +215,14 @@ def main() -> None:
     alpha = total_ret_phys - total_ret_bench
     dd_saved = dd_phys - dd_bench
     print(f"\n  OOS Alpha:              {alpha:>+.2%}")
-    print(
-        f"  OOS Drawdown saved:     {dd_saved:>+.2%} {'(better)' if dd_saved > 0 else '(worse)'}"
-    )
+    print(f"  OOS Drawdown saved:     {dd_saved:>+.2%} {'(better)' if dd_saved > 0 else '(worse)'}")
 
     # MLE on aggregate OOS R(t)
     if len(oos_all_phys) > 100:
         R_oos = R_full[is_bars : is_bars + len(oos_all_phys)]
         valid = R_oos[np.isfinite(R_oos)]
         if len(valid) > 50:
-            mle = maximal_lyapunov_exponent(
-                valid, dim=3, tau=1, max_divergence_steps=20
-            )
+            mle = maximal_lyapunov_exponent(valid, dim=3, tau=1, max_divergence_steps=20)
             print(f"  OOS MLE of R(t):        {mle:.4f}")
 
     # Verdict

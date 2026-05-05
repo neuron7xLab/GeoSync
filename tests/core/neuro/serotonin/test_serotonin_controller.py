@@ -23,9 +23,7 @@ def _load_serotonin_module() -> tuple[types.ModuleType, Any]:
         / "serotonin"
         / "serotonin_controller.py"
     )
-    spec = importlib.util.spec_from_file_location(
-        "serotonin_controller_test_module", module_path
-    )
+    spec = importlib.util.spec_from_file_location("serotonin_controller_test_module", module_path)
     assert spec is not None
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -75,9 +73,7 @@ def serotonin_controller(serotonin_cls: Any, serotonin_config_path: Path) -> Any
     return serotonin_cls(str(serotonin_config_path))
 
 
-def test_resolve_config_path_direct_file(
-    serotonin_cls: Any, serotonin_config_path: Path
-) -> None:
+def test_resolve_config_path_direct_file(serotonin_cls: Any, serotonin_config_path: Path) -> None:
     resolved = serotonin_cls._resolve_config_path(str(serotonin_config_path))
     assert resolved == serotonin_config_path
 
@@ -301,18 +297,14 @@ def test_check_cooldown_guard_can_block(
     assert block_calls and block_calls[0][0] == "serotonin_cooldown"
 
 
-def test_step_validates_inputs(
-    serotonin_controller: Any, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_step_validates_inputs(serotonin_controller: Any, caplog: pytest.LogCaptureFixture) -> None:
     """INV-5HT3: step rejects negative stress; coerces positive drawdown."""
     ctrl = serotonin_controller
     with pytest.raises(ValueError):
         ctrl.step(stress=-0.1, drawdown=-0.01, novelty=0.2)
     with caplog.at_level("WARNING"):
         ctrl.step(stress=0.1, drawdown=0.01, novelty=0.2)
-        assert any(
-            "coercing to negative" in record.message for record in caplog.records
-        )
+        assert any("coercing to negative" in record.message for record in caplog.records)
     with pytest.raises(ValueError):
         ctrl.step(stress=0.1, drawdown=-0.01, novelty=-0.2)
 

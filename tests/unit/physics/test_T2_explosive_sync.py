@@ -101,9 +101,7 @@ class TestHysteresisDetection:
         reproducibility contract of the circuit breaker.
         """
         n_runs = 3
-        runs = [
-            detector.measure_proximity(N=5, seed=42).R_forward for _ in range(n_runs)
-        ]
+        runs = [detector.measure_proximity(N=5, seed=42).R_forward for _ in range(n_runs)]
         baseline = runs[0]
         for run_idx, other in enumerate(runs[1:], start=1):
             max_diff = float(np.max(np.abs(other - baseline)))

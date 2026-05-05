@@ -36,14 +36,10 @@ class DummyConnector:
 
 
 class DummyRiskController:
-    def validate_order(
-        self, symbol: str, side: str, quantity: float, price: float | None
-    ) -> None:
+    def validate_order(self, symbol: str, side: str, quantity: float, price: float | None) -> None:
         return None
 
-    def register_fill(
-        self, symbol: str, side: str, quantity: float, price: float
-    ) -> None:
+    def register_fill(self, symbol: str, side: str, quantity: float, price: float) -> None:
         return None
 
 
@@ -99,9 +95,7 @@ def test_order_ledger_appends_and_replays(tmp_path: Path, simple_order: Order) -
     assert latest_state["orders"][0]["symbol"] == "BTC-USD"
 
 
-def test_oms_writes_and_recovers_from_order_ledger(
-    tmp_path: Path, simple_order: Order
-) -> None:
+def test_oms_writes_and_recovers_from_order_ledger(tmp_path: Path, simple_order: Order) -> None:
     state_path = tmp_path / "oms-state.json"
     ledger_path = tmp_path / "oms-ledger.jsonl"
     config = OMSConfig(state_path=state_path, ledger_path=ledger_path)
@@ -142,9 +136,7 @@ def test_oms_writes_and_recovers_from_order_ledger(
     assert replayed_events[-1].metadata["source"] == "ledger"
 
 
-def test_order_ledger_snapshotting_and_indexing(
-    tmp_path: Path, simple_order: Order
-) -> None:
+def test_order_ledger_snapshotting_and_indexing(tmp_path: Path, simple_order: Order) -> None:
     ledger_path = tmp_path / "snapshot-ledger.jsonl"
     config = OrderLedgerConfig(
         snapshot_interval=1,
@@ -185,9 +177,7 @@ def test_order_ledger_snapshotting_and_indexing(
     assert metadata["next_sequence"] == 5
 
 
-def test_order_ledger_compaction_and_archive(
-    tmp_path: Path, simple_order: Order
-) -> None:
+def test_order_ledger_compaction_and_archive(tmp_path: Path, simple_order: Order) -> None:
     ledger_path = tmp_path / "compaction-ledger.jsonl"
     config = OrderLedgerConfig(
         snapshot_interval=1,

@@ -72,9 +72,7 @@ def controller(tmp_path, config_dict: Dict[str, object]) -> DopamineController:
     return DopamineController(str(cfg_path))
 
 
-def _dopamine_snapshot(
-    controller: DopamineController, level: float
-) -> DopamineSnapshot:
+def _dopamine_snapshot(controller: DopamineController, level: float) -> DopamineSnapshot:
     controller.dopamine_level = level
     temperature = controller.compute_temperature(level)
     return DopamineSnapshot(

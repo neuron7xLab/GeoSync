@@ -30,9 +30,7 @@ def sample_df():
     np.random.seed(42)
     returns = np.random.normal(0, 0.01, 1000)
     prices = 100.0 * np.cumprod(1 + returns)
-    df = pd.DataFrame(
-        {"close": prices}, index=pd.date_range("2023-01-01", periods=1000, freq="1h")
-    )
+    df = pd.DataFrame({"close": prices}, index=pd.date_range("2023-01-01", periods=1000, freq="1h"))
     return df
 
 

@@ -83,9 +83,9 @@ def test_live_repo_does_not_falsely_confirm_exploit(rg: ModuleType) -> None:
     report = rg.classify(REPO_ROOT, rg.SEED_ADVISORIES)
     for f in report.facts:
         if f.exploit_path_confirmed:
-            assert f.advisory_id in rg.CONFIRMED_EXPLOIT_PATHS, (
-                f"{f.advisory_id}: marked confirmed, but no entry in " f"CONFIRMED_EXPLOIT_PATHS"
-            )
+            assert (
+                f.advisory_id in rg.CONFIRMED_EXPLOIT_PATHS
+            ), f"{f.advisory_id}: marked confirmed, but no entry in CONFIRMED_EXPLOIT_PATHS"
 
 
 # ---------------------------------------------------------------------------

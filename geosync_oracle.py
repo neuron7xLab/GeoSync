@@ -163,9 +163,7 @@ class GeoSyncOracle:
         # ════════════════════════════════════════════════════════════════
         if len(self._R_history) >= 50:
             R_arr = np.array(self._R_history, dtype=np.float64)
-            mle = maximal_lyapunov_exponent(
-                R_arr, dim=3, tau=1, max_divergence_steps=20
-            )
+            mle = maximal_lyapunov_exponent(R_arr, dim=3, tau=1, max_divergence_steps=20)
         else:
             mle = 0.0
 
@@ -208,9 +206,7 @@ class GeoSyncOracle:
             for j in range(N):
                 col = log_returns[:, j]
                 if col.size > 5:
-                    hist, _ = np.histogram(
-                        col, bins=min(20, col.size // 3 + 1), density=True
-                    )
+                    hist, _ = np.histogram(col, bins=min(20, col.size // 3 + 1), density=True)
                     hist = hist[hist > 0]
                     if hist.sum() > 0:
                         p = hist / hist.sum()
@@ -225,28 +221,18 @@ class GeoSyncOracle:
         # 5. NEUROMODULATION — INV-GABA1/2, INV-DA1, INV-5HT2
         # ════════════════════════════════════════════════════════════════
         vix_proxy = (
-            float(
-                np.std(log_returns[-min(24, log_returns.shape[0]) :])
-                * math.sqrt(8760)
-                * 100
-            )
+            float(np.std(log_returns[-min(24, log_returns.shape[0]) :]) * math.sqrt(8760) * 100)
             if log_returns.size > 0
             else 15.0
         )
         vol_proxy = (
-            float(
-                np.std(log_returns[-min(24, log_returns.shape[0]) :]) * math.sqrt(8760)
-            )
+            float(np.std(log_returns[-min(24, log_returns.shape[0]) :]) * math.sqrt(8760))
             if log_returns.size > 0
             else 0.15
         )
 
-        gaba_inh = self.gaba.update_inhibition(
-            vix=vix_proxy, volatility=vol_proxy, rpe=0.0
-        )
-        rpe = self.dopamine.compute_rpe(
-            realized_pnl=current_return, predicted_return=0.0
-        )
+        gaba_inh = self.gaba.update_inhibition(vix=vix_proxy, volatility=vol_proxy, rpe=0.0)
+        rpe = self.dopamine.compute_rpe(realized_pnl=current_return, predicted_return=0.0)
         serotonin = min(1.0, 0.3 + 0.5 * min(1.0, vix_proxy / 50.0))
         self.bus.publish_gaba(gaba_inh)
         self.bus.publish_kuramoto(R)
@@ -353,9 +339,7 @@ def _render_state(state: MarketPhysicsState) -> str:
         return "║" + content[:w].ljust(w) + "║"
 
     lines.append("║" + "  ── Synchronization (Kuramoto) ──".ljust(w) + "║")
-    lines.append(
-        row("Order Parameter R(t)", f"{state.order_parameter_R:.4f}", "INV-K1")
-    )
+    lines.append(row("Order Parameter R(t)", f"{state.order_parameter_R:.4f}", "INV-K1"))
     lines.append(
         row(
             "K / K_c ratio",
@@ -398,9 +382,7 @@ def _render_state(state: MarketPhysicsState) -> str:
 
     lines.append("╠" + "═" * w + "╣")
     lines.append("║" + "  ── DECISION ──".ljust(w) + "║")
-    lines.append(
-        row("Position Multiplier", f"{state.position_multiplier:.4f}", "FINAL")
-    )
+    lines.append(row("Position Multiplier", f"{state.position_multiplier:.4f}", "FINAL"))
     lines.append("║" + f"  Regime: {state.regime_label}".ljust(w) + "║")
     lines.append("║" + f"  Proof:  {state.invariant_proof[: w - 10]}".ljust(w) + "║")
     lines.append("╚" + "═" * w + "╝")
@@ -414,9 +396,7 @@ def main() -> None:
         csv_path = Path(sys.argv[1])
         df = pd.read_csv(csv_path, index_col=0, parse_dates=True)
         if "close" in df.columns:
-            prices = df.pivot_table(
-                values="close", index=df.index, columns="symbol"
-            ).dropna()
+            prices = df.pivot_table(values="close", index=df.index, columns="symbol").dropna()
         else:
             prices = df.dropna()
     else:
@@ -437,15 +417,9 @@ def main() -> None:
     step = max(1, len(price_matrix) // 30)
     for t in range(oracle.window + 10, len(price_matrix), step):
         window_prices = price_matrix[: t + 1]
-        ret = (
-            float(np.mean(np.diff(np.log(window_prices[-2:])), axis=1)[-1])
-            if t > 1
-            else 0.0
-        )
+        ret = float(np.mean(np.diff(np.log(window_prices[-2:])), axis=1)[-1]) if t > 1 else 0.0
         s = oracle.diagnose(window_prices, current_return=ret)
-        R_bar = "█" * int(s.order_parameter_R * 10) + "░" * (
-            10 - int(s.order_parameter_R * 10)
-        )
+        R_bar = "█" * int(s.order_parameter_R * 10) + "░" * (10 - int(s.order_parameter_R * 10))
         gvs_bar = "█" * int(s.gvs_score * 10) + "░" * (10 - int(s.gvs_score * 10))
         print(
             f"  t={t:>4}  R=[{R_bar}]{s.order_parameter_R:.2f}  "

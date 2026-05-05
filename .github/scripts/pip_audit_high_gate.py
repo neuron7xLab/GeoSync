@@ -6,9 +6,7 @@ import sys
 from pathlib import Path
 
 if len(sys.argv) < 2:
-    raise SystemExit(
-        "Usage: pip_audit_high_gate.py <pip-audit-json> [<pip-audit-json> ...]"
-    )
+    raise SystemExit("Usage: pip_audit_high_gate.py <pip-audit-json> [<pip-audit-json> ...]")
 
 high_or_critical = 0
 for report_path in sys.argv[1:]:
@@ -20,8 +18,6 @@ for report_path in sys.argv[1:]:
                 high_or_critical += 1
 
 if high_or_critical:
-    raise SystemExit(
-        f"pip-audit found {high_or_critical} HIGH/CRITICAL vulnerabilities"
-    )
+    raise SystemExit(f"pip-audit found {high_or_critical} HIGH/CRITICAL vulnerabilities")
 
 print("pip-audit HIGH/CRITICAL gate passed.")

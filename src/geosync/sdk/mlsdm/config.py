@@ -69,6 +69,7 @@ def _default_modulation_signal_params() -> dict[str, Any]:
         "max_scale": 1.5,
     }
 
+
 @dataclass(slots=True)
 class FHMCConfig:
     """Configuration for the Fracto-Hypothalamic Meta-Controller.
@@ -94,12 +95,8 @@ class FHMCConfig:
     arousal: dict[str, Any] = field(default_factory=lambda: {"slope_gate": False})
     sleep: dict[str, Any] = field(default_factory=lambda: {"dgr_ratio": 0.25})
     explore: dict[str, Any] = field(default_factory=_default_explore_params)
-    fractional_update: dict[str, Any] = field(
-        default_factory=_default_fractional_params
-    )
-    modulation_signal: dict[str, Any] = field(
-        default_factory=_default_modulation_signal_params
-    )
+    fractional_update: dict[str, Any] = field(default_factory=_default_fractional_params)
+    modulation_signal: dict[str, Any] = field(default_factory=_default_modulation_signal_params)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to a dictionary suitable for FHMC initialization."""
@@ -128,9 +125,7 @@ class FHMCConfig:
             arousal=dict(data.get("arousal", {"slope_gate": False})),
             sleep=dict(data.get("sleep", {"dgr_ratio": 0.25})),
             explore=dict(data.get("explore", _default_explore_params())),
-            fractional_update=dict(
-                data.get("fractional_update", _default_fractional_params())
-            ),
+            fractional_update=dict(data.get("fractional_update", _default_fractional_params())),
             modulation_signal=dict(
                 data.get("modulation_signal", _default_modulation_signal_params())
             ),

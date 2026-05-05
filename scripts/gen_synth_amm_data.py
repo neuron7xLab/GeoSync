@@ -6,6 +6,7 @@
 This script creates synthetic time series data with configurable regime changes,
 useful for testing trading algorithms and market analysis tools.
 """
+
 from __future__ import annotations
 
 # SPDX-License-Identifier: MIT
@@ -72,9 +73,7 @@ def write_csv(
     Returns:
         Path to the written CSV file
     """
-    LOGGER.info(
-        "Generating %d synthetic AMM samples (seed=%d) to %s", n, seed, output_path
-    )
+    LOGGER.info("Generating %d synthetic AMM samples (seed=%d) to %s", n, seed, output_path)
 
     x, R, kappa, H = generate_amm_data(n, seed)
 

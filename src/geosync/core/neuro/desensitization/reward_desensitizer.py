@@ -38,9 +38,7 @@ class RewardDesensitizer:
 
         delta = reward - self._mean
         self._mean += self.cfg.ewma_alpha * delta
-        self._var = (
-            1 - self.cfg.ewma_alpha
-        ) * self._var + self.cfg.ewma_alpha * delta * delta
+        self._var = (1 - self.cfg.ewma_alpha) * self._var + self.cfg.ewma_alpha * delta * delta
         std = max(STABILITY_EPSILON, math.sqrt(self._var))
         z = (reward - self._mean) / std
         rpe = reward - self._last

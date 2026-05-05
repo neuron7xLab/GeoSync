@@ -108,9 +108,7 @@ def test_gate_respects_release_serotonin_and_gaba(
     assert eval_closed.temperature >= 0.5 - 1e-9
 
     dopamine_open = _make_dopamine_snapshot(controller, 0.8, release_gate_open=True)
-    eval_serotonin_hold = gate.evaluate(
-        dopamine=dopamine_open, serotonin=serotonin_hold
-    )
+    eval_serotonin_hold = gate.evaluate(dopamine=dopamine_open, serotonin=serotonin_hold)
     assert eval_serotonin_hold.hold is True
     assert eval_serotonin_hold.no_go is True
 
@@ -188,9 +186,7 @@ def test_gate_produces_hold_window(controller: DopamineController) -> None:
 
     dopamine = _make_dopamine_snapshot(controller, 0.5)
     serotonin = _make_serotonin_snapshot(hold=False)
-    na_ach = NAACHSnapshot(
-        arousal=0.4, attention=1.0, risk_multiplier=1.0, temperature_scale=1.0
-    )
+    na_ach = NAACHSnapshot(arousal=0.4, attention=1.0, risk_multiplier=1.0, temperature_scale=1.0)
 
     evaluation = gate.evaluate(dopamine=dopamine, serotonin=serotonin, na_ach=na_ach)
 
@@ -201,9 +197,7 @@ def test_gate_produces_hold_window(controller: DopamineController) -> None:
     assert evaluation.score == pytest.approx(0.5, rel=1e-3)
 
 
-def test_gate_with_real_serotonin_step_api(
-    controller: DopamineController, tmp_path: Path
-) -> None:
+def test_gate_with_real_serotonin_step_api(controller: DopamineController, tmp_path: Path) -> None:
     """Test ActionGate integration with SerotoninController.step() API."""
     sero_cfg = tmp_path / "serotonin.yaml"
     sero_cfg.write_text(yaml.safe_dump(SEROTONIN_TEST_CONFIG), encoding="utf-8")

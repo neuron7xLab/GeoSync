@@ -43,9 +43,7 @@ def main() -> None:
     risk_manager = AdaptiveRiskManager(base_capital=1_000_000, risk_tolerance=0.02)
     risk_metrics = risk_manager.calculate_risk_metrics(market_state)
     position_limit = risk_manager.update_position_limits(market_state)
-    max_position = risk_manager.calculate_position_size(
-        market_state, confidence=0.7
-    )
+    max_position = risk_manager.calculate_position_size(market_state, confidence=0.7)
 
     position_sizer = DynamicPositionSizer(base_capital=1_000_000)
     sizing_result = position_sizer.calculate_adaptive_size(

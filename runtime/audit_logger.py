@@ -10,9 +10,7 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-DEFAULT_AUDIT_PATH = Path(
-    os.getenv("GEOSYNC_AUDIT_PATH", "/var/log/geosync/thermo_audit.jsonl")
-)
+DEFAULT_AUDIT_PATH = Path(os.getenv("GEOSYNC_AUDIT_PATH", "/var/log/geosync/thermo_audit.jsonl"))
 
 
 @dataclass(slots=True)

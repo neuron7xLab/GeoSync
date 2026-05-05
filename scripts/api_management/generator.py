@@ -54,18 +54,12 @@ class ApiArtifactGenerator:
         docs_dir.mkdir(parents=True, exist_ok=True)
         examples_dir.mkdir(parents=True, exist_ok=True)
 
-        python_client = self._generate_python_client(
-            clients_dir / "geosync_client.py"
-        )
-        typescript_client = self._generate_typescript_client(
-            clients_dir / "geosyncClient.ts"
-        )
+        python_client = self._generate_python_client(clients_dir / "geosync_client.py")
+        typescript_client = self._generate_typescript_client(clients_dir / "geosyncClient.ts")
         overview = self._generate_overview(docs_dir / "overview.md")
         routes_index = self._generate_route_index(docs_dir / "routes.json")
         webhooks_doc = self._generate_webhook_doc(docs_dir / "webhooks.md")
-        smoke_tests_index = self._generate_smoke_tests_index(
-            docs_dir / "smoke_tests.json"
-        )
+        smoke_tests_index = self._generate_smoke_tests_index(docs_dir / "smoke_tests.json")
         changelog = self._generate_changelog(docs_dir / "CHANGELOG.md")
         deprecations = self._generate_deprecations(docs_dir / "deprecations.md")
         migrations = self._generate_migrations(docs_dir / "migrations.md")
@@ -108,8 +102,7 @@ class ApiArtifactGenerator:
         method_blocks: list[str] = []
         for route in routes:
             method_blocks.append(self._render_python_method(route))
-        client_template = textwrap.dedent(
-            """
+        client_template = textwrap.dedent("""
             \"\"\"Auto-generated GeoSync REST client.\"\"\"
 
             from __future__ import annotations
@@ -156,12 +149,9 @@ class ApiArtifactGenerator:
                     )
 
             {{METHODS}}
-            """
-        ).strip()
+            """).strip()
         method_source = textwrap.indent("\n\n".join(method_blocks), "    ")
-        client_source = (
-            client_template.replace("{{METHODS}}", method_source).rstrip() + "\n"
-        )
+        client_source = client_template.replace("{{METHODS}}", method_source).rstrip() + "\n"
         _write_if_changed(path, client_source)
         return path
 
@@ -187,11 +177,7 @@ class ApiArtifactGenerator:
         lines.append(f"Scope: {route.scope}")
         lines.append(f"Cache: {route.cache.strategy}; max-age={route.cache.max_age}s")
         if route.idempotency.required:
-            ttl = (
-                f" ttl={route.idempotency.ttl_seconds}s"
-                if route.idempotency.ttl_seconds
-                else ""
-            )
+            ttl = f" ttl={route.idempotency.ttl_seconds}s" if route.idempotency.ttl_seconds else ""
             lines.append(
                 f"Idempotency: required via {route.idempotency.header or self._registry.metadata.idempotency_header}{ttl}"
             )
@@ -199,9 +185,7 @@ class ApiArtifactGenerator:
             lines.append("Idempotency: optional")
         return "\n".join(lines)
 
-    def _render_python_request_builder(
-        self, route: ApiRoute, path_params: Sequence[str]
-    ) -> str:
+    def _render_python_request_builder(self, route: ApiRoute, path_params: Sequence[str]) -> str:
         path_expr = route.path
         for name in path_params:
             path_expr = path_expr.replace(f"{{{name}}}", "{" + name + "}")
@@ -233,11 +217,8 @@ class ApiArtifactGenerator:
         return textwrap.indent("\n".join(lines), "    ")
 
     def _generate_typescript_client(self, path: Path) -> Path:
-        method_blocks = [
-            self._render_typescript_method(route) for route in self._registry.routes
-        ]
-        template = textwrap.dedent(
-            """
+        method_blocks = [self._render_typescript_method(route) for route in self._registry.routes]
+        template = textwrap.dedent("""
 /* Auto-generated GeoSync REST client (TypeScript). */
 
 export type RequestOptions = {
@@ -269,8 +250,7 @@ export class GeoSyncClient {
 
 {{METHODS}}
 }
-            """
-        ).strip()
+            """).strip()
         method_source = textwrap.indent("\n\n".join(method_blocks), "    ")
         source = template.replace("{{METHODS}}", method_source) + "\n"
         _write_if_changed(path, source)
@@ -328,8 +308,7 @@ export class GeoSyncClient {
 
     def _render_metadata_section(self) -> str:
         metadata = self._registry.metadata
-        return textwrap.dedent(
-            f"""
+        return textwrap.dedent(f"""
             # GeoSync API Governance Overview
 
             * Service: **{metadata.service}**
@@ -338,8 +317,7 @@ export class GeoSyncClient {
             * Default signature algorithm: `{metadata.default_signature_algorithm}`
             * Default idempotency header: `{metadata.idempotency_header}`
             * Compatibility tier: `{metadata.compatibility.default}` (support window {metadata.compatibility.support_window_days} days)
-            """
-        ).strip()
+            """).strip()
 
     def _render_environment_section(self) -> str:
         if not self._registry.environments:
@@ -370,9 +348,7 @@ export class GeoSyncClient {
         for route in self._registry.routes:
             cache = f"{route.cache.strategy}; max-age={route.cache.max_age}; swr={route.cache.stale_while_revalidate}"
             rate_limit = _format_rate_limit(route.rate_limit)
-            throttle = (
-                f"burst={route.throttle.burst} / {route.throttle.period_seconds}s"
-            )
+            throttle = f"burst={route.throttle.burst} / {route.throttle.period_seconds}s"
             if route.idempotency.required:
                 ttl = (
                     f" ttl={route.idempotency.ttl_seconds}s"
@@ -384,9 +360,7 @@ export class GeoSyncClient {
                 idempotency = "optional"
             signature = "required" if route.signatures.required else "optional"
             suffix = f" {route.signatures.version}" if route.signatures.version else ""
-            signature += (
-                f" ({route.signatures.algorithm} via {route.signatures.header}{suffix})"
-            )
+            signature += f" ({route.signatures.algorithm} via {route.signatures.header}{suffix})"
             webhooks = ", ".join(route.webhooks) if route.webhooks else "—"
             rows.append(
                 "| "
@@ -451,8 +425,7 @@ export class GeoSyncClient {
         if not maintainers:
             return "## Maintainers\n\n_No maintainer records available._"
         bullet_lines = [
-            f"- **{maintainer.name}** — {maintainer.contact}"
-            for maintainer in maintainers
+            f"- **{maintainer.name}** — {maintainer.contact}" for maintainer in maintainers
         ]
         return "## Maintainers\n\n" + "\n".join(bullet_lines)
 
@@ -490,12 +463,8 @@ export class GeoSyncClient {
                     or self._registry.metadata.idempotency_header,
                     "ttl_seconds": route.idempotency.ttl_seconds,
                 },
-                "request_schema": self._normalise_schema_reference(
-                    route.request_schema
-                ),
-                "response_schema": self._normalise_schema_reference(
-                    route.response_schema
-                ),
+                "request_schema": self._normalise_schema_reference(route.request_schema),
+                "response_schema": self._normalise_schema_reference(route.response_schema),
                 "webhooks": list(route.webhooks),
             }
             route_index.append(entry)
@@ -537,9 +506,7 @@ export class GeoSyncClient {
                         "headers": dict(test.request.headers),
                         "body": test.request.body,
                         "expected_status": test.expected_status,
-                        "response_schema": self._normalise_schema_reference(
-                            test.response_schema
-                        ),
+                        "response_schema": self._normalise_schema_reference(test.response_schema),
                     }
                 )
         _write_json_if_changed(path, tests)
@@ -638,9 +605,7 @@ def _write_if_changed(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def _write_json_if_changed(
-    path: Path, payload: Mapping[str, object] | Sequence[object]
-) -> None:
+def _write_json_if_changed(path: Path, payload: Mapping[str, object] | Sequence[object]) -> None:
     serialized = json.dumps(payload, indent=2, sort_keys=True)
     existing = path.read_text(encoding="utf-8") if path.exists() else None
     if existing == serialized:

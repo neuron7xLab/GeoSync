@@ -123,9 +123,7 @@ class ValidationError(GeoSyncError):
         context: ErrorContext | None = None,
         error_code: str | None = None,
     ) -> None:
-        super().__init__(
-            message, context=context, error_code=error_code or "VALIDATION_ERROR"
-        )
+        super().__init__(message, context=context, error_code=error_code or "VALIDATION_ERROR")
         self.field = field
         self.value = value
         self.constraint = constraint
@@ -165,9 +163,7 @@ class ConfigError(GeoSyncError):
         context: ErrorContext | None = None,
         error_code: str | None = None,
     ) -> None:
-        super().__init__(
-            message, context=context, error_code=error_code or "CONFIG_ERROR"
-        )
+        super().__init__(message, context=context, error_code=error_code or "CONFIG_ERROR")
         self.config_key = config_key
         self.config_value = config_value
         self.expected_type = expected_type
@@ -208,9 +204,7 @@ class IntegrityError(GeoSyncError):
         context: ErrorContext | None = None,
         error_code: str | None = None,
     ) -> None:
-        super().__init__(
-            message, context=context, error_code=error_code or "INTEGRITY_ERROR"
-        )
+        super().__init__(message, context=context, error_code=error_code or "INTEGRITY_ERROR")
         self.artifact = artifact
         self.expected_checksum = expected_checksum
         self.actual_checksum = actual_checksum
@@ -257,9 +251,7 @@ class ResourceBudgetError(GeoSyncError):
         context: ErrorContext | None = None,
         error_code: str | None = None,
     ) -> None:
-        super().__init__(
-            message, context=context, error_code=error_code or "RESOURCE_BUDGET_ERROR"
-        )
+        super().__init__(message, context=context, error_code=error_code or "RESOURCE_BUDGET_ERROR")
         self.resource = resource
         self.budget_ms = budget_ms
         self.actual_ms = actual_ms
@@ -317,9 +309,7 @@ class EngineError(GeoSyncError):
         context: ErrorContext | None = None,
         error_code: str | None = None,
     ) -> None:
-        super().__init__(
-            message, context=context, error_code=error_code or "ENGINE_ERROR"
-        )
+        super().__init__(message, context=context, error_code=error_code or "ENGINE_ERROR")
         self.stage = stage
         self.run_id = run_id
         self.cycle_number = cycle_number
@@ -361,9 +351,7 @@ class PipelineError(GeoSyncError):
         context: ErrorContext | None = None,
         error_code: str | None = None,
     ) -> None:
-        super().__init__(
-            message, context=context, error_code=error_code or "PIPELINE_ERROR"
-        )
+        super().__init__(message, context=context, error_code=error_code or "PIPELINE_ERROR")
         self.pipeline = pipeline
         self.stage = stage
         self.idempotency_key = idempotency_key

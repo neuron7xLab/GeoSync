@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -13,19 +13,20 @@ from execution.liquidation import (
     LiquidationAction,
     LiquidationEngine,
     LiquidationEngineConfig,
-    LiquidationError,
     LiquidationPlan,
     MarginAccountState,
     PositionExposure,
 )
 
-
 # ── PositionExposure ────────────────────────────────────────────────
+
 
 class TestPositionExposure:
     def test_valid(self):
         pe = PositionExposure(
-            symbol="BTC", quantity=1.0, mark_price=100.0,
+            symbol="BTC",
+            quantity=1.0,
+            mark_price=100.0,
             maintenance_margin_rate=0.05,
         )
         assert pe.abs_quantity == 1.0
@@ -36,7 +37,9 @@ class TestPositionExposure:
 
     def test_short_position(self):
         pe = PositionExposure(
-            symbol="BTC", quantity=-2.0, mark_price=50.0,
+            symbol="BTC",
+            quantity=-2.0,
+            mark_price=50.0,
             maintenance_margin_rate=0.1,
         )
         assert pe.abs_quantity == 2.0
@@ -45,7 +48,9 @@ class TestPositionExposure:
 
     def test_flat_position_raises(self):
         pe = PositionExposure(
-            symbol="BTC", quantity=0.0, mark_price=50.0,
+            symbol="BTC",
+            quantity=0.0,
+            mark_price=50.0,
             maintenance_margin_rate=0.1,
         )
         with pytest.raises(ValueError, match="flat position"):
@@ -53,8 +58,11 @@ class TestPositionExposure:
 
     def test_initial_margin_rate(self):
         pe = PositionExposure(
-            symbol="BTC", quantity=1.0, mark_price=100.0,
-            maintenance_margin_rate=0.05, initial_margin_rate=0.1,
+            symbol="BTC",
+            quantity=1.0,
+            mark_price=100.0,
+            maintenance_margin_rate=0.05,
+            initial_margin_rate=0.1,
         )
         assert pe.initial_margin == 10.0
 
@@ -72,17 +80,24 @@ class TestPositionExposure:
 
     def test_invalid_initial_margin_rate(self):
         with pytest.raises(ValueError, match="initial_margin_rate"):
-            PositionExposure(symbol="BTC", quantity=1, mark_price=100,
-                             maintenance_margin_rate=0.05, initial_margin_rate=-1)
+            PositionExposure(
+                symbol="BTC",
+                quantity=1,
+                mark_price=100,
+                maintenance_margin_rate=0.05,
+                initial_margin_rate=-1,
+            )
 
 
 # ── MarginAccountState ──────────────────────────────────────────────
 
+
 class TestMarginAccountState:
     def test_maintenance_from_positions(self):
         pos = [
-            PositionExposure(symbol="BTC", quantity=1.0, mark_price=100,
-                             maintenance_margin_rate=0.05),
+            PositionExposure(
+                symbol="BTC", quantity=1.0, mark_price=100, maintenance_margin_rate=0.05
+            ),
         ]
         acc = MarginAccountState(equity=100.0, positions=pos)
         assert acc.maintenance_requirement == 5.0
@@ -96,8 +111,13 @@ class TestMarginAccountState:
 
     def test_initial_from_positions(self):
         pos = [
-            PositionExposure(symbol="BTC", quantity=1.0, mark_price=100,
-                             maintenance_margin_rate=0.05, initial_margin_rate=0.1),
+            PositionExposure(
+                symbol="BTC",
+                quantity=1.0,
+                mark_price=100,
+                maintenance_margin_rate=0.05,
+                initial_margin_rate=0.1,
+            ),
         ]
         acc = MarginAccountState(equity=100.0, positions=pos)
         assert acc.initial_requirement == 10.0
@@ -116,6 +136,7 @@ class TestMarginAccountState:
 
 
 # ── LiquidationEngineConfig ─────────────────────────────────────────
+
 
 class TestLiquidationEngineConfig:
     def test_defaults(self):
@@ -141,61 +162,83 @@ class TestLiquidationEngineConfig:
 
 # ── LiquidationAction ──────────────────────────────────────────────
 
+
 class TestLiquidationAction:
     def test_valid(self):
         a = LiquidationAction(
-            symbol="BTC", side=OrderSide.SELL, quantity=1.0,
-            maintenance_reduction=5.0, notional_reduction=100.0,
+            symbol="BTC",
+            side=OrderSide.SELL,
+            quantity=1.0,
+            maintenance_reduction=5.0,
+            notional_reduction=100.0,
         )
         assert a.quantity == 1.0
 
     def test_zero_quantity_raises(self):
         with pytest.raises(ValueError, match="quantity"):
             LiquidationAction(
-                symbol="BTC", side=OrderSide.SELL, quantity=0,
-                maintenance_reduction=5.0, notional_reduction=100.0,
+                symbol="BTC",
+                side=OrderSide.SELL,
+                quantity=0,
+                maintenance_reduction=5.0,
+                notional_reduction=100.0,
             )
 
     def test_negative_maintenance_reduction_raises(self):
         with pytest.raises(ValueError, match="maintenance_reduction"):
             LiquidationAction(
-                symbol="BTC", side=OrderSide.SELL, quantity=1.0,
-                maintenance_reduction=-1, notional_reduction=100.0,
+                symbol="BTC",
+                side=OrderSide.SELL,
+                quantity=1.0,
+                maintenance_reduction=-1,
+                notional_reduction=100.0,
             )
 
     def test_negative_notional_reduction_raises(self):
         with pytest.raises(ValueError, match="notional_reduction"):
             LiquidationAction(
-                symbol="BTC", side=OrderSide.SELL, quantity=1.0,
-                maintenance_reduction=5.0, notional_reduction=-1,
+                symbol="BTC",
+                side=OrderSide.SELL,
+                quantity=1.0,
+                maintenance_reduction=5.0,
+                notional_reduction=-1,
             )
 
 
 # ── LiquidationPlan ─────────────────────────────────────────────────
 
+
 class TestLiquidationPlan:
     def test_should_liquidate_true(self):
         action = LiquidationAction(
-            symbol="BTC", side=OrderSide.SELL, quantity=1.0,
-            maintenance_reduction=5.0, notional_reduction=100.0,
+            symbol="BTC",
+            side=OrderSide.SELL,
+            quantity=1.0,
+            maintenance_reduction=5.0,
+            notional_reduction=100.0,
         )
         plan = LiquidationPlan(
-            actions=(action,), pre_margin_ratio=0.8,
-            post_margin_ratio=1.1, maintenance_deficit=10.0,
+            actions=(action,),
+            pre_margin_ratio=0.8,
+            post_margin_ratio=1.1,
+            maintenance_deficit=10.0,
             required_reduction=5.0,
         )
         assert plan.should_liquidate is True
 
     def test_should_liquidate_false(self):
         plan = LiquidationPlan(
-            actions=(), pre_margin_ratio=1.5,
-            post_margin_ratio=1.5, maintenance_deficit=0.0,
+            actions=(),
+            pre_margin_ratio=1.5,
+            post_margin_ratio=1.5,
+            maintenance_deficit=0.0,
             required_reduction=0.0,
         )
         assert plan.should_liquidate is False
 
 
 # ── LiquidationEngine ──────────────────────────────────────────────
+
 
 class TestLiquidationEngine:
     @pytest.fixture()
@@ -205,8 +248,9 @@ class TestLiquidationEngine:
     def test_plan_no_liquidation_needed(self, submit_mock):
         engine = LiquidationEngine(submit_mock)
         pos = [
-            PositionExposure(symbol="BTC", quantity=1.0, mark_price=100,
-                             maintenance_margin_rate=0.05),
+            PositionExposure(
+                symbol="BTC", quantity=1.0, mark_price=100, maintenance_margin_rate=0.05
+            ),
         ]
         acc = MarginAccountState(equity=100.0, positions=pos)
         plan = engine.plan(acc)
@@ -215,8 +259,9 @@ class TestLiquidationEngine:
 
     def test_plan_with_liquidation(self, submit_mock):
         pos = [
-            PositionExposure(symbol="BTC", quantity=10.0, mark_price=100,
-                             maintenance_margin_rate=0.1),
+            PositionExposure(
+                symbol="BTC", quantity=10.0, mark_price=100, maintenance_margin_rate=0.1
+            ),
         ]
         # equity=50, requirement=100, ratio=0.5 < 1.05
         acc = MarginAccountState(equity=50.0, positions=pos)
@@ -235,8 +280,9 @@ class TestLiquidationEngine:
 
     def test_liquidate_executes_orders(self, submit_mock):
         pos = [
-            PositionExposure(symbol="BTC", quantity=10.0, mark_price=100,
-                             maintenance_margin_rate=0.1),
+            PositionExposure(
+                symbol="BTC", quantity=10.0, mark_price=100, maintenance_margin_rate=0.1
+            ),
         ]
         acc = MarginAccountState(equity=50.0, positions=pos)
         engine = LiquidationEngine(submit_mock)
@@ -246,8 +292,9 @@ class TestLiquidationEngine:
 
     def test_liquidate_no_action_needed(self, submit_mock):
         pos = [
-            PositionExposure(symbol="BTC", quantity=1.0, mark_price=100,
-                             maintenance_margin_rate=0.05),
+            PositionExposure(
+                symbol="BTC", quantity=1.0, mark_price=100, maintenance_margin_rate=0.05
+            ),
         ]
         acc = MarginAccountState(equity=1000.0, positions=pos)
         engine = LiquidationEngine(submit_mock)
@@ -257,12 +304,14 @@ class TestLiquidationEngine:
 
     def test_simulate_multiple_accounts(self, submit_mock):
         pos1 = [
-            PositionExposure(symbol="BTC", quantity=1.0, mark_price=100,
-                             maintenance_margin_rate=0.05),
+            PositionExposure(
+                symbol="BTC", quantity=1.0, mark_price=100, maintenance_margin_rate=0.05
+            ),
         ]
         pos2 = [
-            PositionExposure(symbol="ETH", quantity=10.0, mark_price=50,
-                             maintenance_margin_rate=0.1),
+            PositionExposure(
+                symbol="ETH", quantity=10.0, mark_price=50, maintenance_margin_rate=0.1
+            ),
         ]
         acc1 = MarginAccountState(equity=1000.0, positions=pos1)
         acc2 = MarginAccountState(equity=10.0, positions=pos2)
@@ -279,10 +328,12 @@ class TestLiquidationEngine:
 
     def test_plan_multiple_positions(self, submit_mock):
         pos = [
-            PositionExposure(symbol="BTC", quantity=5.0, mark_price=200,
-                             maintenance_margin_rate=0.1),
-            PositionExposure(symbol="ETH", quantity=10.0, mark_price=50,
-                             maintenance_margin_rate=0.1),
+            PositionExposure(
+                symbol="BTC", quantity=5.0, mark_price=200, maintenance_margin_rate=0.1
+            ),
+            PositionExposure(
+                symbol="ETH", quantity=10.0, mark_price=50, maintenance_margin_rate=0.1
+            ),
         ]
         # Maint: BTC=100, ETH=50 → total=150, equity=80 → ratio ~0.53
         acc = MarginAccountState(equity=80.0, positions=pos)
@@ -293,8 +344,9 @@ class TestLiquidationEngine:
 
     def test_plan_with_min_order_quantity(self, submit_mock):
         pos = [
-            PositionExposure(symbol="BTC", quantity=0.001, mark_price=100,
-                             maintenance_margin_rate=0.1),
+            PositionExposure(
+                symbol="BTC", quantity=0.001, mark_price=100, maintenance_margin_rate=0.1
+            ),
         ]
         acc = MarginAccountState(equity=0.005, positions=pos)
         cfg = LiquidationEngineConfig(min_order_quantity=1.0)
@@ -305,8 +357,9 @@ class TestLiquidationEngine:
 
     def test_plan_max_position_fraction(self, submit_mock):
         pos = [
-            PositionExposure(symbol="BTC", quantity=10.0, mark_price=100,
-                             maintenance_margin_rate=0.1),
+            PositionExposure(
+                symbol="BTC", quantity=10.0, mark_price=100, maintenance_margin_rate=0.1
+            ),
         ]
         acc = MarginAccountState(equity=50.0, positions=pos)
         cfg = LiquidationEngineConfig(max_position_fraction=0.5)
@@ -317,8 +370,9 @@ class TestLiquidationEngine:
 
     def test_plan_short_position(self, submit_mock):
         pos = [
-            PositionExposure(symbol="BTC", quantity=-10.0, mark_price=100,
-                             maintenance_margin_rate=0.1),
+            PositionExposure(
+                symbol="BTC", quantity=-10.0, mark_price=100, maintenance_margin_rate=0.1
+            ),
         ]
         acc = MarginAccountState(equity=50.0, positions=pos)
         engine = LiquidationEngine(submit_mock)
@@ -328,8 +382,9 @@ class TestLiquidationEngine:
 
     def test_plan_already_at_target(self, submit_mock):
         pos = [
-            PositionExposure(symbol="BTC", quantity=1.0, mark_price=100,
-                             maintenance_margin_rate=0.1),
+            PositionExposure(
+                symbol="BTC", quantity=1.0, mark_price=100, maintenance_margin_rate=0.1
+            ),
         ]
         # Maint=10, equity=10.5 → ratio=1.05 exactly
         acc = MarginAccountState(equity=10.5, positions=pos)

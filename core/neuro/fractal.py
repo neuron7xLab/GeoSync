@@ -82,9 +82,7 @@ def hurst_exponent(
     if windows.size < 2:
         return 0.5
 
-    rs_values = np.array(
-        [rescaled_range(data, int(window)) for window in windows], dtype=float
-    )
+    rs_values = np.array([rescaled_range(data, int(window)) for window in windows], dtype=float)
     mask = np.isfinite(rs_values) & (rs_values > 0.0)
     if mask.sum() < 2:
         return 0.5

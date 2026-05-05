@@ -129,9 +129,7 @@ class Component:
             self.status = ComponentStatus.RUNNING
         except Exception as exc:
             self.status = ComponentStatus.FAILED
-            raise RuntimeError(
-                f"Failed to start component {self.metadata.name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to start component {self.metadata.name}: {exc}") from exc
         finally:
             self.last_updated = datetime.now(timezone.utc)
 
@@ -148,9 +146,7 @@ class Component:
             self.status = ComponentStatus.STOPPED
         except Exception as exc:
             self.status = ComponentStatus.FAILED
-            raise RuntimeError(
-                f"Failed to stop component {self.metadata.name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to stop component {self.metadata.name}: {exc}") from exc
         finally:
             self.last_updated = datetime.now(timezone.utc)
 

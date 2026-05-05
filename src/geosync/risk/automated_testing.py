@@ -86,9 +86,7 @@ class RiskScenario:
     max_drawdown: Optional[float] = None
     metadata: dict = field(default_factory=dict)
 
-    def validate_metrics(
-        self, var: float, es: float, alpha: float = 0.975
-    ) -> List[str]:
+    def validate_metrics(self, var: float, es: float, alpha: float = 0.975) -> List[str]:
         """Validate if computed metrics are within expected ranges.
 
         Returns:
@@ -106,9 +104,7 @@ class RiskScenario:
         if self.expected_es_range:
             min_es, max_es = self.expected_es_range
             if not (min_es <= es <= max_es):
-                errors.append(
-                    f"ES {es:.4f} outside expected range [{min_es:.4f}, {max_es:.4f}]"
-                )
+                errors.append(f"ES {es:.4f} outside expected range [{min_es:.4f}, {max_es:.4f}]")
 
         # ES should always be >= VaR
         if es < var:
@@ -169,9 +165,7 @@ class MonteCarloConfig:
 class RiskMetricsProtocol(Protocol):
     """Protocol for risk metrics calculation."""
 
-    def compute_var_es(
-        self, returns: NDArray[np.float64], alpha: float
-    ) -> Tuple[float, float]:
+    def compute_var_es(self, returns: NDArray[np.float64], alpha: float) -> Tuple[float, float]:
         """Compute VaR and ES."""
         ...
 
@@ -264,10 +258,7 @@ class AutomatedRiskTester:
         )
 
         self.results.append(result)
-        logger.info(
-            f"Completed stress test: {scenario.name} - "
-            f"{'PASSED' if passed else 'FAILED'}"
-        )
+        logger.info(f"Completed stress test: {scenario.name} - {'PASSED' if passed else 'FAILED'}")
 
         return result
 
@@ -294,9 +285,7 @@ class AutomatedRiskTester:
 
         return results
 
-    def run_monte_carlo_simulation(
-        self, config: MonteCarloConfig
-    ) -> List[StressTestResult]:
+    def run_monte_carlo_simulation(self, config: MonteCarloConfig) -> List[StressTestResult]:
         """Run Monte Carlo simulation with multiple random scenarios.
 
         Args:
@@ -305,9 +294,7 @@ class AutomatedRiskTester:
         Returns:
             List of results from all simulated scenarios
         """
-        logger.info(
-            f"Running Monte Carlo simulation with {config.num_simulations} iterations..."
-        )
+        logger.info(f"Running Monte Carlo simulation with {config.num_simulations} iterations...")
 
         if config.seed is not None:
             np.random.seed(config.seed)
@@ -316,9 +303,7 @@ class AutomatedRiskTester:
 
         for i in range(config.num_simulations):
             # Generate random returns
-            returns = np.random.normal(
-                loc=config.mu, scale=config.sigma, size=config.num_periods
-            )
+            returns = np.random.normal(loc=config.mu, scale=config.sigma, size=config.num_periods)
 
             # Create scenario
             scenario = RiskScenario(
@@ -419,9 +404,7 @@ class AutomatedRiskTester:
         return float(np.min(drawdown))
 
     @staticmethod
-    def _calculate_sharpe_ratio(
-        returns: NDArray[np.float64], risk_free_rate: float = 0.0
-    ) -> float:
+    def _calculate_sharpe_ratio(returns: NDArray[np.float64], risk_free_rate: float = 0.0) -> float:
         """Calculate Sharpe ratio from returns."""
         if len(returns) == 0:
             return 0.0
@@ -559,9 +542,7 @@ def generate_liquidity_crisis_scenarios(
 
     # Gradually deteriorating liquidity
     vol_schedule = np.linspace(0.01, 0.08, num_days)
-    deteriorating_returns = np.array(
-        [np.random.normal(-0.001, vol) for vol in vol_schedule]
-    )
+    deteriorating_returns = np.array([np.random.normal(-0.001, vol) for vol in vol_schedule])
 
     scenarios.append(
         RiskScenario(

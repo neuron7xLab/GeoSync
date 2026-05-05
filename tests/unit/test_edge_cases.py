@@ -1,6 +1,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Edge case and error handling tests for core modules."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -206,9 +207,7 @@ class TestAgentEdgeCases:
 
     def test_agent_cooldown_decrements_correctly(self) -> None:
         """Agent cooldown should decrement over multiple calls."""
-        agent = PiAgent(
-            strategy=Strategy(name="test", params={"instability_threshold": 0.05})
-        )
+        agent = PiAgent(strategy=Strategy(name="test", params={"instability_threshold": 0.05}))
 
         # Trigger cooldown
         high_instability = {"R": 0.9, "delta_H": -0.5, "kappa_mean": -0.5}

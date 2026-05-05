@@ -73,9 +73,7 @@ class TestSyntheticRecovery:
         return float(np.mean(np.abs(d)))
 
     @staticmethod
-    def _aligned_circular_residual(
-        extracted: np.ndarray, true_phase: np.ndarray
-    ) -> np.ndarray:
+    def _aligned_circular_residual(extracted: np.ndarray, true_phase: np.ndarray) -> np.ndarray:
         """Circular residual after removing the global constant offset.
 
         Hilbert(sin(φ)) introduces a fixed −π/2 shift, and different
@@ -108,9 +106,7 @@ class TestSyntheticRecovery:
 
         # Ignore filter transients (first / last 10%)
         edge = T // 10
-        residual = self._aligned_circular_residual(
-            theta[edge:-edge, 0], true_phase[edge:-edge]
-        )
+        residual = self._aligned_circular_residual(theta[edge:-edge, 0], true_phase[edge:-edge])
         mse = float(np.mean(residual**2))
         assert mse < 0.01, f"phase recovery MSE {mse:.6f} exceeds 0.01 rad²"
         mae = float(np.mean(np.abs(residual)))
@@ -118,15 +114,11 @@ class TestSyntheticRecovery:
 
     def test_noisy_sinusoid_recovery(self) -> None:
         T, fs, f = 4000, 10.0, 1.0
-        signal, true_phase = self._build_signal(
-            T=T, fs=fs, f=f, phi0=0.3, noise=0.15, seed=1
-        )
+        signal, true_phase = self._build_signal(T=T, fs=fs, f=f, phi0=0.3, noise=0.15, seed=1)
         cfg = PhaseExtractionConfig(fs=fs, f_low=0.5, f_high=1.5, detrend_window=None)
         theta, _ = extract_phases_hilbert(signal, cfg)
         edge = T // 10
-        residual = self._aligned_circular_residual(
-            theta[edge:-edge, 0], true_phase[edge:-edge]
-        )
+        residual = self._aligned_circular_residual(theta[edge:-edge, 0], true_phase[edge:-edge])
         mae = float(np.mean(np.abs(residual)))
         assert mae < 0.2, f"noisy recovery MAE {mae:.4f} too large"
 
@@ -156,12 +148,9 @@ class TestPhaseExtractorAPI:
         phases0 = np.array([0.0, 0.5, 1.2])
         x = np.stack(
             [
-                np.sin(2 * np.pi * 1.0 * t + phases0[0])
-                + 0.05 * rng.standard_normal(T),
-                np.sin(2 * np.pi * 1.0 * t + phases0[1])
-                + 0.05 * rng.standard_normal(T),
-                np.sin(2 * np.pi * 1.0 * t + phases0[2])
-                + 0.05 * rng.standard_normal(T),
+                np.sin(2 * np.pi * 1.0 * t + phases0[0]) + 0.05 * rng.standard_normal(T),
+                np.sin(2 * np.pi * 1.0 * t + phases0[1]) + 0.05 * rng.standard_normal(T),
+                np.sin(2 * np.pi * 1.0 * t + phases0[2]) + 0.05 * rng.standard_normal(T),
             ],
             axis=1,
         )
@@ -190,9 +179,7 @@ class TestPhaseExtractorAPI:
         # Returned theta must be immutable
         assert pm.theta.flags.writeable is False
 
-    def test_rejects_unknown_method(
-        self, signal_3assets: tuple[np.ndarray, np.ndarray]
-    ) -> None:
+    def test_rejects_unknown_method(self, signal_3assets: tuple[np.ndarray, np.ndarray]) -> None:
         x, t = signal_3assets
         extractor = PhaseExtractor(
             PhaseExtractionConfig(fs=10.0, f_low=0.5, f_high=1.5, detrend_window=None)

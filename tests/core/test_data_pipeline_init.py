@@ -19,9 +19,7 @@ from core.data.pipeline import (
 
 
 def _mock_source(name="src", priority=100):
-    return SourceOfTruthSpec(
-        name=name, loader=lambda ctx: pd.DataFrame(), priority=priority
-    )
+    return SourceOfTruthSpec(name=name, loader=lambda ctx: pd.DataFrame(), priority=priority)
 
 
 class TestDataPipelineInit:
@@ -36,9 +34,7 @@ class TestDataPipelineInit:
         assert pipeline is not None
 
     def test_custom_random_seed(self):
-        cfg = DataPipelineConfig(
-            sources=(_mock_source(),), schema_registry={}, random_seed=42
-        )
+        cfg = DataPipelineConfig(sources=(_mock_source(),), schema_registry={}, random_seed=42)
         pipeline = DataPipeline(cfg)
         # rng is initialised
         assert pipeline._rng is not None

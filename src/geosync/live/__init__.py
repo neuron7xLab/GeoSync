@@ -201,9 +201,7 @@ class LiveTrader:
             cold_start: If True, start fresh without restoring previous state.
         """
         if not self._config_path.exists():
-            raise FileNotFoundError(
-                f"Live trading config not found: {self._config_path}"
-            )
+            raise FileNotFoundError(f"Live trading config not found: {self._config_path}")
 
         self._runner = LiveTradingRunner(
             config_path=self._config_path,

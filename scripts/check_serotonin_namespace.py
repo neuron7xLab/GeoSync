@@ -97,8 +97,7 @@ def find_non_canonical_imports(base_dir: Path) -> list[ImportViolation]:
             elif isinstance(node, ast.ImportFrom):
                 module = node.module
                 if module and (
-                    module == NON_CANONICAL_MODULE
-                    or module.startswith(f"{NON_CANONICAL_MODULE}.")
+                    module == NON_CANONICAL_MODULE or module.startswith(f"{NON_CANONICAL_MODULE}.")
                 ):
                     violations.append(ImportViolation(path, node.lineno, module))
     return violations
@@ -139,10 +138,7 @@ def main() -> int:
         print("❌ Serotonin namespace enforcement failed:")
         for err in errors:
             print(f" - {err}")
-        print(
-            f"Canonical module: {CANONICAL_MODULE} "
-            f"(shim: {NON_CANONICAL_MODULE})"
-        )
+        print(f"Canonical module: {CANONICAL_MODULE} (shim: {NON_CANONICAL_MODULE})")
         return 1
     print("✅ Serotonin namespace enforcement passed.")
     return 0

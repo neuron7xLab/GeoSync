@@ -19,9 +19,7 @@ __all__ = [
     "PYTHON_VERSION",
 ]
 
-def sliding_windows(
-    data: NDArray[np.float64], window: int, step: int, /
-) -> NDArray[np.float64]:
+def sliding_windows(data: NDArray[np.float64], window: int, step: int, /) -> NDArray[np.float64]:
     """Return flattened sliding windows as a 2D float64 NumPy array.
 
     Raises:
@@ -30,9 +28,7 @@ def sliding_windows(
             Rust side; surfaced as ``PyValueError``).
     """
 
-def quantiles(
-    data: NDArray[np.float64], probabilities: Sequence[float], /
-) -> NDArray[np.float64]:
+def quantiles(data: NDArray[np.float64], probabilities: Sequence[float], /) -> NDArray[np.float64]:
     """Return linearly interpolated quantiles for sorted/unsorted input data.
 
     Raises:

@@ -147,9 +147,7 @@ class LogisticRegression:
 
     def decision_function(self, features: ArrayLike) -> ArrayLike:
         if self.coef_ is None or self.intercept_ is None:
-            raise RuntimeError(
-                "The model must be fitted before calling decision_function"
-            )
+            raise RuntimeError("The model must be fitted before calling decision_function")
         x = np.asarray(features, dtype=float)
         return x @ self.coef_ + self.intercept_
 
@@ -182,9 +180,7 @@ class IsotonicRegression:
 
     def predict(self, x: ArrayLike) -> ArrayLike:
         if self._x is None or self._y is None:
-            raise RuntimeError(
-                "The isotonic regressor must be fitted before prediction"
-            )
+            raise RuntimeError("The isotonic regressor must be fitted before prediction")
 
         x_arr = np.asarray(x, dtype=float)
         x_sorted = self._x

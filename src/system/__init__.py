@@ -27,8 +27,8 @@ from .api_messaging_integration import (
     RouteDispatchResult,
 )
 from .integration import (
-    StreamingPipelineSettings,
     GeoSyncPlatform,
+    StreamingPipelineSettings,
     build_geosync_platform,
 )
 from .module_orchestrator import (

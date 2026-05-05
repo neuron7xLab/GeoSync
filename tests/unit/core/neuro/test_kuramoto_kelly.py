@@ -68,9 +68,9 @@ class TestKellyFraction:
             prices = 100 + np.cumsum(rng.standard_normal(200))
             prices = np.abs(prices) + 1  # ensure positive
             frac = adapter.compute_kelly_fraction(kelly_base, prices)
-            assert 0.1 * kelly_base - 1e-9 <= frac <= kelly_base + 1e-9, (
-                f"Fraction {frac} outside bounds"
-            )
+            assert (
+                0.1 * kelly_base - 1e-9 <= frac <= kelly_base + 1e-9
+            ), f"Fraction {frac} outside bounds"
 
     def test_coherent_prices_higher_fraction(self, adapter):
         """Trending price (high R) should yield larger fraction than noise."""

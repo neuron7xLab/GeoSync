@@ -10,6 +10,7 @@ Validates configuration validation:
 
 These tests ensure configuration errors are caught early with clear messages.
 """
+
 from __future__ import annotations
 
 import tempfile
@@ -36,7 +37,7 @@ def test_yaml_parse_error() -> None:
         invalid_indent
     """
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(malformed_yaml)
         config_path = f.name
 
@@ -181,7 +182,7 @@ def test_yaml_type_coercion_safe() -> None:
       lookback: "10"    # String instead of int
     """
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(yaml_config)
         config_path = f.name
 
@@ -208,7 +209,7 @@ def test_yaml_type_coercion_safe() -> None:
 def test_empty_config_file() -> None:
     """Test that empty config file is handled gracefully."""
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write("")  # Empty file
         config_path = f.name
 

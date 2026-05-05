@@ -18,9 +18,7 @@ if str(ROOT) not in sys.path:
 os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "openapi-generation-secret")
 os.environ.setdefault("GEOSYNC_OAUTH2_ISSUER", "https://openapi.geosync.local")
 os.environ.setdefault("GEOSYNC_OAUTH2_AUDIENCE", "geosync-api")
-os.environ.setdefault(
-    "GEOSYNC_OAUTH2_JWKS_URI", "https://openapi.geosync.local/jwks"
-)
+os.environ.setdefault("GEOSYNC_OAUTH2_JWKS_URI", "https://openapi.geosync.local/jwks")
 
 from application.api.service import create_app  # noqa: E402
 
@@ -42,9 +40,7 @@ def main() -> None:
     schema = app.openapi()
     output_path: Path = args.output
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(schema, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    output_path.write_text(json.dumps(schema, indent=2, sort_keys=True), encoding="utf-8")
 
 
 if __name__ == "__main__":

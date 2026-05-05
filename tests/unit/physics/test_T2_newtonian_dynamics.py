@@ -55,11 +55,11 @@ class TestEulerIntegration:
     def test_zero_acceleration_constant_velocity(self):
         p, v = NewtonianPriceDynamics.euler_step(100.0, 1.0, 0.0, dt=1.0)
         assert p == 101.0  # p + v*dt
-        assert v == 1.0    # unchanged
+        assert v == 1.0  # unchanged
 
     def test_positive_acceleration_increases_velocity(self):
         p, v = NewtonianPriceDynamics.euler_step(100.0, 0.0, 2.0, dt=1.0)
-        assert v == 2.0    # v + a*dt
+        assert v == 2.0  # v + a*dt
         assert p == 101.0  # p + 0*1 + 0.5*2*1²
 
     def test_step_method_integrates_correctly(self, dynamics):

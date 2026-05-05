@@ -97,7 +97,7 @@ class NewtonianPriceDynamics:
         mathematically honest choice.
         """
         new_velocity = velocity + acceleration * dt
-        new_price = price + velocity * dt + 0.5 * acceleration * dt ** 2
+        new_price = price + velocity * dt + 0.5 * acceleration * dt**2
         return new_price, new_velocity
 
     def step(
@@ -114,9 +114,7 @@ class NewtonianPriceDynamics:
         mass = self.compute_mass(volume_history, self._ema_span)
         force = self.compute_force(ofi)
         accel = self.compute_acceleration(force, mass)
-        new_price, new_velocity = self.euler_step(
-            price, velocity, accel, self._dt
-        )
+        new_price, new_velocity = self.euler_step(price, velocity, accel, self._dt)
         return new_price, new_velocity, accel
 
 

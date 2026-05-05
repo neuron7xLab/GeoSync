@@ -349,9 +349,7 @@ class LocalOptimizer(OptimizationPort):
         # Posterior calculations
         tau_sigma = tau * covariance
         M = np.linalg.inv(np.linalg.inv(tau_sigma) + P.T @ np.linalg.inv(omega) @ P)
-        posterior_returns = M @ (
-            np.linalg.inv(tau_sigma) @ pi + P.T @ np.linalg.inv(omega) @ Q
-        )
+        posterior_returns = M @ (np.linalg.inv(tau_sigma) @ pi + P.T @ np.linalg.inv(omega) @ Q)
 
         return posterior_returns
 

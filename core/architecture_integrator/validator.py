@@ -76,13 +76,9 @@ class ArchitectureValidator:
             registry: Component registry to validate
         """
         self._registry = registry
-        self._custom_rules: list[
-            Callable[[ComponentRegistry], list[ValidationIssue]]
-        ] = []
+        self._custom_rules: list[Callable[[ComponentRegistry], list[ValidationIssue]]] = []
 
-    def add_custom_rule(
-        self, rule: Callable[[ComponentRegistry], list[ValidationIssue]]
-    ) -> None:
+    def add_custom_rule(self, rule: Callable[[ComponentRegistry], list[ValidationIssue]]) -> None:
         """Add a custom validation rule.
 
         Args:
@@ -234,9 +230,7 @@ class ArchitectureValidator:
 
         # Check dependencies
         for dep in component.get_dependencies():
-            if not self._registry.has_component(
-                dep
-            ) and not self._registry.has_capability(dep):
+            if not self._registry.has_component(dep) and not self._registry.has_capability(dep):
                 issues.append(
                     ValidationIssue(
                         severity=ValidationSeverity.ERROR,

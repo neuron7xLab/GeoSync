@@ -123,9 +123,7 @@ def test_kill_switch_endpoint_reflects_facade_state() -> None:
 
     app = FastAPI()
     app.include_router(
-        create_remote_control_router(
-            facade, audit_logger, identity_dependency=identity_dependency
-        )
+        create_remote_control_router(facade, audit_logger, identity_dependency=identity_dependency)
     )
     client = TestClient(app)
     try:
@@ -161,13 +159,9 @@ def test_kill_switch_reaffirmation_is_audited(
 ) -> None:
     client, _, records, _ = remote_control_fixture
     headers = {"X-Test-Admin-Subject": "auditor"}
-    first = client.post(
-        "/admin/kill-switch", headers=headers, json={"reason": "initial"}
-    )
+    first = client.post("/admin/kill-switch", headers=headers, json={"reason": "initial"})
     assert first.status_code == 200
-    second = client.post(
-        "/admin/kill-switch", headers=headers, json={"reason": "still engaged"}
-    )
+    second = client.post("/admin/kill-switch", headers=headers, json={"reason": "still engaged"})
     assert second.status_code == 200
     body = second.json()
     assert body["already_engaged"] is True
@@ -228,9 +222,7 @@ def test_identity_dependency_errors_are_propagated() -> None:
     risk_manager = RiskManagerFacade(RiskManager(RiskLimits()))
 
     async def failing_identity(_: Request) -> AdminIdentity:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid cert"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid cert")
 
     app = FastAPI()
     app.include_router(
@@ -322,8 +314,7 @@ def _request_from_headers(headers: dict[str, str]) -> Request:
         "method": "GET",
         "path": "/admin/kill-switch",
         "headers": [
-            (key.lower().encode("utf-8"), value.encode("utf-8"))
-            for key, value in headers.items()
+            (key.lower().encode("utf-8"), value.encode("utf-8")) for key, value in headers.items()
         ],
         "client": ("10.0.0.99", 443),
     }

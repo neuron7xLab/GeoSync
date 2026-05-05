@@ -64,9 +64,7 @@ class SecureEnvelope:
             nonce=base64.b64encode(nonce).decode("ascii"),
             ciphertext=base64.b64encode(ciphertext).decode("ascii"),
             associated_data=(
-                base64.b64encode(associated_data).decode("ascii")
-                if associated_data
-                else None
+                base64.b64encode(associated_data).decode("ascii") if associated_data else None
             ),
         )
 
@@ -127,9 +125,7 @@ class SecureChannel:
                 raise ValueError("Associated data mismatch")
         return json.loads(plaintext.decode("utf-8"))
 
-    def _build_envelope(
-        self, associated_data: Mapping[str, Any] | None
-    ) -> SecureEnvelope:
+    def _build_envelope(self, associated_data: Mapping[str, Any] | None) -> SecureEnvelope:
         secret = self._secret_provider()
         if not secret:
             raise ValueError("secret_provider returned empty secret")

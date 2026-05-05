@@ -68,7 +68,7 @@ def check_config_single_source(repo_root: Path = REPO_ROOT) -> list[Violation]:
 
     for key, rel_path in CANONICAL_CONFIGS.items():
         canonical_abs = (repo_root / rel_path).resolve()
-        allowlist = { (repo_root / p).resolve() for p in LEGACY_DUPLICATE_ALLOWLIST.get(key, set()) }
+        allowlist = {(repo_root / p).resolve() for p in LEGACY_DUPLICATE_ALLOWLIST.get(key, set())}
         for duplicate in repo_root.rglob(rel_path.name):
             duplicate_resolved = duplicate.resolve()
             if duplicate_resolved == canonical_abs:

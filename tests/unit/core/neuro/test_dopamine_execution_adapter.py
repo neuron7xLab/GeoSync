@@ -11,8 +11,8 @@ import math
 
 import pytest
 
-from core.neuro.signal_bus import NeuroSignalBus
 from core.neuro.dopamine_execution_adapter import DopamineExecutionAdapter
+from core.neuro.signal_bus import NeuroSignalBus
 
 
 @pytest.fixture
@@ -72,9 +72,7 @@ class TestSlippagePenalty:
 
     def test_slippage_reduces_rpe(self, adapter: DopamineExecutionAdapter) -> None:
         rpe_no_slip = adapter.compute_rpe(realized_pnl=10.0, predicted_return=5.0)
-        rpe_with_slip = adapter.compute_rpe(
-            realized_pnl=10.0, predicted_return=5.0, slippage=2.0
-        )
+        rpe_with_slip = adapter.compute_rpe(realized_pnl=10.0, predicted_return=5.0, slippage=2.0)
         assert rpe_with_slip < rpe_no_slip
 
     def test_negative_slippage_treated_as_abs(self, adapter: DopamineExecutionAdapter) -> None:

@@ -114,9 +114,7 @@ def normalize_indicator_series(
         raise ValueError("Provide either config or mode, not both")
 
     if config is None:
-        resolved_mode = (
-            NormalizationMode(mode) if mode is not None else NormalizationMode.Z_SCORE
-        )
+        resolved_mode = NormalizationMode(mode) if mode is not None else NormalizationMode.Z_SCORE
         config = IndicatorNormalizationConfig(mode=resolved_mode)
 
     if config.mode is NormalizationMode.IDENTITY:
@@ -124,9 +122,7 @@ def normalize_indicator_series(
     if config.mode is NormalizationMode.Z_SCORE:
         return _zscore_normalize(values, epsilon=config.epsilon)
     if config.mode is NormalizationMode.MIN_MAX:
-        return _minmax_normalize(
-            values, epsilon=config.epsilon, feature_range=config.feature_range
-        )
+        return _minmax_normalize(values, epsilon=config.epsilon, feature_range=config.feature_range)
 
     raise ValueError(f"Unsupported normalisation mode: {config.mode}")
 
@@ -154,9 +150,7 @@ def resolve_indicator_normalizer(
             values = normalizer(series)
             array = np.asarray(values, dtype=float)
             if array.ndim != 1:
-                raise ValueError(
-                    "Indicator normalizer must return a one-dimensional array"
-                )
+                raise ValueError("Indicator normalizer must return a one-dimensional array")
             return array.copy()
 
         return _wrapper

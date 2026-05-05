@@ -123,13 +123,13 @@ class FreeEnergyTradingGate:
             m = np.asarray(order_book_sizes, dtype=np.float64)
             if v.size == 0:
                 return self._T_base
-            kinetic = 0.5 * np.sum(m * v ** 2)
+            kinetic = 0.5 * np.sum(m * v**2)
             T = 2.0 * kinetic / max(v.size, 1)
             return max(float(T), 1e-6)
 
         if realized_volatility is not None:
             ratio = realized_volatility / self._vol_ref
-            return self._T_base * ratio ** 2
+            return self._T_base * ratio**2
 
         return self._T_base
 
@@ -140,7 +140,7 @@ class FreeEnergyTradingGate:
         if total < 1e-12:
             return 0.0
         w = w / total
-        return (1.0 - float(np.sum(w ** self._q))) / (self._q - 1.0)
+        return (1.0 - float(np.sum(w**self._q))) / (self._q - 1.0)
 
     def compute_risk_exposure(
         self,
@@ -220,11 +220,7 @@ class FreeEnergyTradingGate:
         total = self._total_checks
         rejected = self._total_rejected
         rate = rejected / max(total, 1)
-        mean_dF = (
-            float(np.mean(self._delta_F_history))
-            if self._delta_F_history
-            else 0.0
-        )
+        mean_dF = float(np.mean(self._delta_F_history)) if self._delta_F_history else 0.0
         return GateStatistics(
             total_checks=total,
             total_rejected=rejected,

@@ -59,9 +59,7 @@ def analyze_compliance(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     return {
         "total_decisions": len(entries),
-        "monotonic_violations": sum(
-            1 for e in entries if e.get("action") == "rejected"
-        ),
+        "monotonic_violations": sum(1 for e in entries if e.get("action") == "rejected"),
         "circuit_breaker_activations": sum(
             1 for e in entries if e.get("circuit_breaker_active", False)
         ),
@@ -132,9 +130,7 @@ def generate_text_report(
             f"⚠️  {analysis['energy_threshold_breaches']} energy threshold breaches detected"
         )
 
-    if (
-        analysis["monotonic_violations"] > len(entries) * 0.01
-    ):  # More than 1% violations
+    if analysis["monotonic_violations"] > len(entries) * 0.01:  # More than 1% violations
         compliance_issues.append(
             f"⚠️  High violation rate: {analysis['monotonic_violations']} violations"
         )
@@ -182,13 +178,9 @@ def generate_text_report(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate thermodynamics compliance report"
-    )
+    parser = argparse.ArgumentParser(description="Generate thermodynamics compliance report")
 
-    parser.add_argument(
-        "--start", type=str, required=True, help="Start date (YYYY-MM-DD)"
-    )
+    parser.add_argument("--start", type=str, required=True, help="Start date (YYYY-MM-DD)")
 
     parser.add_argument("--end", type=str, required=True, help="End date (YYYY-MM-DD)")
 
@@ -245,9 +237,7 @@ def main():
         print("Install with: pip install reportlab")
         print("For now, use the .txt report or convert manually.")
     else:
-        print(
-            f"Error: Unsupported output format '{args.output.suffix}'. Use .txt or .pdf"
-        )
+        print(f"Error: Unsupported output format '{args.output.suffix}'. Use .txt or .pdf")
         return 1
 
     return 0

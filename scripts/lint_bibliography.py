@@ -4,6 +4,7 @@
 """
 Lint bibliography, citations, and claim mappings.
 """
+
 from __future__ import annotations
 
 import re
@@ -126,9 +127,7 @@ def check_duplicates(entries: Dict[str, BibEntry], errors: List[str]) -> None:
             if value:
                 key = f"{field}:{value.lower()}"
                 if key in seen:
-                    errors.append(
-                        f"Duplicate {field} between {seen[key]} and {entry.key}: {value}"
-                    )
+                    errors.append(f"Duplicate {field} between {seen[key]} and {entry.key}: {value}")
                 seen[key] = entry.key
 
 
@@ -162,9 +161,7 @@ def check_neuro_strictness(root: Path, errors: List[str]) -> None:
             if "[heuristic]" in text.lower():
                 continue
             if keyword_re.search(text) and "[@" not in text:
-                errors.append(
-                    f"{path.relative_to(root)} lacks citation for neuroscience keywords"
-                )
+                errors.append(f"{path.relative_to(root)} lacks citation for neuroscience keywords")
 
 
 def main() -> int:
@@ -209,7 +206,9 @@ def main() -> int:
             print(f" - {msg}")
         return 1
 
-    print(f"Bibliography lint passed: {len(entries)} references, {len(citations_in_docs)} citations checked.")
+    print(
+        f"Bibliography lint passed: {len(entries)} references, {len(citations_in_docs)} citations checked."
+    )
     return 0
 
 

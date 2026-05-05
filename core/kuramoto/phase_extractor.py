@@ -104,13 +104,9 @@ class PhaseExtractionConfig:
         if self.fs <= 0:
             raise ValueError(f"fs must be > 0; got {self.fs}")
         if not 0 <= self.f_low < self.f_high:
-            raise ValueError(
-                f"need 0 ≤ f_low < f_high; got ({self.f_low}, {self.f_high})"
-            )
+            raise ValueError(f"need 0 ≤ f_low < f_high; got ({self.f_low}, {self.f_high})")
         if self.f_high >= 0.5 * self.fs:
-            raise ValueError(
-                f"f_high={self.f_high} must be < Nyquist=fs/2={0.5 * self.fs}"
-            )
+            raise ValueError(f"f_high={self.f_high} must be < Nyquist=fs/2={0.5 * self.fs}")
         if self.filter_order < 1:
             raise ValueError("filter_order must be ≥ 1")
 
@@ -226,8 +222,7 @@ def extract_phases_ceemdan(
         from PyEMD import CEEMDAN  # type: ignore[import-not-found,unused-ignore]
     except ImportError as exc:  # pragma: no cover - exercised only without PyEMD
         raise OptionalDependencyError(
-            "CEEMDAN requires the optional 'EMD-signal' package "
-            "(pip install EMD-signal)"
+            "CEEMDAN requires the optional 'EMD-signal' package (pip install EMD-signal)"
         ) from exc
 
     if signal.ndim != 2:
@@ -253,13 +248,7 @@ def extract_phases_ceemdan(
         if not selected:
             # Fallback: keep IMF closest to band centre by median freq
             freqs = [
-                float(
-                    np.median(
-                        np.gradient(np.unwrap(np.angle(hilbert(imf))))
-                        * cfg.fs
-                        / _TWO_PI
-                    )
-                )
+                float(np.median(np.gradient(np.unwrap(np.angle(hilbert(imf)))) * cfg.fs / _TWO_PI))
                 for imf in imfs
             ]
             idx = int(np.argmin(np.abs(np.asarray(freqs) - f_centre)))
@@ -292,8 +281,7 @@ def extract_phases_ssq_cwt(
         )
     except ImportError as exc:  # pragma: no cover
         raise OptionalDependencyError(
-            "SSQ-CWT requires the optional 'ssqueezepy' package "
-            "(pip install ssqueezepy)"
+            "SSQ-CWT requires the optional 'ssqueezepy' package (pip install ssqueezepy)"
         ) from exc
 
     if signal.ndim != 2:
@@ -360,9 +348,7 @@ def _quality_gates(
     inst_freq = np.gradient(theta_unwrapped, axis=0) * cfg.fs / _TWO_PI
     f_centre = 0.5 * (cfg.f_low + cfg.f_high)
     f_std = np.std(inst_freq, axis=0)
-    out_of_band = np.mean(
-        np.abs(inst_freq - f_centre) > 3.0 * np.maximum(f_std, 1e-12), axis=0
-    )
+    out_of_band = np.mean(np.abs(inst_freq - f_centre) > 3.0 * np.maximum(f_std, 1e-12), axis=0)
     scores["Q2_out_of_band_fraction_max"] = float(np.max(out_of_band))
 
     return scores
@@ -442,9 +428,7 @@ class PhaseExtractor:
         elif method == "ssq_cwt":
             theta, amplitude = extract_phases_ssq_cwt(signal, self.config)
         else:
-            raise ValueError(
-                f"Unknown method '{method}'; expected hilbert|ceemdan|ssq_cwt"
-            )
+            raise ValueError(f"Unknown method '{method}'; expected hilbert|ceemdan|ssq_cwt")
 
         quality = _quality_gates(theta, amplitude, self.config)
 

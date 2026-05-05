@@ -40,9 +40,7 @@ def test_access_policy_inheritance_and_permissions(tmp_path: Path) -> None:
         resource="binance",
     )
     assert controller.is_allowed("modify_risk_limits", actor="alice", roles=("risk",))
-    assert not controller.is_allowed(
-        "reset_kill_switch", actor="bob", roles=("operations",)
-    )
+    assert not controller.is_allowed("reset_kill_switch", actor="bob", roles=("operations",))
 
 
 def test_access_controller_require_raises_on_denial(tmp_path: Path) -> None:

@@ -193,9 +193,7 @@ class StrictCausalFeatureBuilder:
         step = max(1, segment // 2)
         coherence_series: list[float] = []
         for start in range(0, len(past_returns) - segment + 1, step):
-            coherence_series.append(
-                cls._coherence(past_returns[start : start + segment])
-            )
+            coherence_series.append(cls._coherence(past_returns[start : start + segment]))
 
         if len(coherence_series) < 2:
             return 0.0
@@ -203,9 +201,7 @@ class StrictCausalFeatureBuilder:
         coherence_array = np.asarray(coherence_series, dtype=float)
         if coherence_array.ndim != 1:
             coherence_array = coherence_array.reshape(-1)
-        coherence_array = np.nan_to_num(
-            coherence_array, nan=0.0, posinf=1.0, neginf=0.0
-        )
+        coherence_array = np.nan_to_num(coherence_array, nan=0.0, posinf=1.0, neginf=0.0)
         smoothed = _ema(coherence_array, alpha=alpha)
         if len(smoothed) < 2:
             return 0.0
@@ -217,9 +213,7 @@ class StrictCausalFeatureBuilder:
         graph = _graph_from_corr(corr, threshold)
         if graph.number_of_edges() == 0:
             return 0.0
-        curvature = [
-            4.0 - (graph.degree(u) + graph.degree(v)) for u, v in graph.edges()
-        ]
+        curvature = [4.0 - (graph.degree(u) + graph.degree(v)) for u, v in graph.edges()]
         return float(np.mean(curvature))
 
     def _compute_topology(self, past_returns: np.ndarray) -> float:
@@ -255,9 +249,7 @@ class StrictCausalFeatureBuilder:
                 if driver == target:
                     continue
                 try:
-                    series = np.column_stack(
-                        [past_returns[:, target], past_returns[:, driver]]
-                    )
+                    series = np.column_stack([past_returns[:, target], past_returns[:, driver]])
                     tests = sm.tsa.stattools.grangercausalitytests(
                         series,
                         maxlag=maxlag,
@@ -295,9 +287,7 @@ class StrictCausalFeatureBuilder:
             index=pd.Index(timestamps, name="ts"),
             columns=["dr", "ricci_mean", "topo_intensity", "causal_strength"],
         )
-        return StrictCausalFeatures(
-            features=frame, labels=np.asarray(labels, dtype=int)
-        )
+        return StrictCausalFeatures(features=frame, labels=np.asarray(labels, dtype=int))
 
 
 # ---------------------------------------------------------------------------
@@ -406,9 +396,7 @@ class LogisticIsotonicTrainer:
         standardized = (features - full_mean) / full_std
         base_model = self._fit_logistic(standardized, labels, cfg, rng)
 
-        conformal_eps = _conformal_epsilon(
-            calibrated[mask], labels[mask], cfg.conformal_alpha
-        )
+        conformal_eps = _conformal_epsilon(calibrated[mask], labels[mask], cfg.conformal_alpha)
 
         performance = ModelPerformance(
             auc=float(auc),
@@ -433,9 +421,7 @@ class LogisticIsotonicTrainer:
 # ---------------------------------------------------------------------------
 
 
-def _conformal_epsilon(
-    probabilities: np.ndarray, labels: np.ndarray, alpha: float
-) -> float:
+def _conformal_epsilon(probabilities: np.ndarray, labels: np.ndarray, alpha: float) -> float:
     residuals = np.abs(labels - probabilities)
     return float(np.quantile(residuals, 1.0 - alpha))
 
@@ -493,9 +479,7 @@ class RegimeHMMAdapter:
     @staticmethod
     def _logsumexp(values: np.ndarray, axis: int) -> np.ndarray:
         max_val = np.max(values, axis=axis, keepdims=True)
-        return max_val + np.log(
-            np.sum(np.exp(values - max_val), axis=axis, keepdims=True)
-        )
+        return max_val + np.log(np.sum(np.exp(values - max_val), axis=axis, keepdims=True))
 
     def adjust(self, probabilities: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         cfg = self._config
@@ -626,9 +610,7 @@ class ProbabilityBacktester:
         positions[mask] = 0.5
         return positions
 
-    def backtest(
-        self, probabilities: np.ndarray, returns: np.ndarray
-    ) -> BacktestSummary:
+    def backtest(self, probabilities: np.ndarray, returns: np.ndarray) -> BacktestSummary:
         cfg = self._config
         positions = self._positions(probabilities)
         delta_positions = np.insert(np.diff(positions), 0, 0.0)
@@ -642,9 +624,7 @@ class ProbabilityBacktester:
         sharpe = float(mu / sigma)
         equity = np.cumprod(1.0 + pnl)
         max_dd, _ = _drawdown(equity)
-        return BacktestSummary(
-            sharpe=sharpe, max_drawdown=max_dd, equity_final=float(equity[-1])
-        )
+        return BacktestSummary(sharpe=sharpe, max_drawdown=max_dd, equity_final=float(equity[-1]))
 
     def stress_test(
         self,
@@ -772,8 +752,7 @@ class GeoSyncV21Pipeline:
         calibrated = artifacts.isotonic.predict(base_probs)
         hmm_probs, path = self._hmm.adjust(calibrated)
         final_probs = (
-            self._ensemble.lambda_base * calibrated
-            + (1.0 - self._ensemble.lambda_base) * hmm_probs
+            self._ensemble.lambda_base * calibrated + (1.0 - self._ensemble.lambda_base) * hmm_probs
         )
 
         probability_outputs = ProbabilityOutputs(

@@ -274,9 +274,7 @@ def simple_backtest(
     # Compute metrics
     total_return = (capital - initial_capital) / initial_capital
     sharpe = np.mean(trades) / np.std(trades) if trades and np.std(trades) > 0 else 0.0
-    max_drawdown = (
-        abs(min(np.minimum.accumulate(trades))) / initial_capital if trades else 0.0
-    )
+    max_drawdown = abs(min(np.minimum.accumulate(trades))) / initial_capital if trades else 0.0
     mean_pwpe = np.mean(pwpes) if pwpes else 0.0
 
     # Action distribution

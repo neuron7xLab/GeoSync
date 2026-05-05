@@ -28,9 +28,7 @@ class SandboxHttpClient:
 
     @asynccontextmanager
     async def client(self) -> AsyncIterator[httpx.AsyncClient]:
-        async with httpx.AsyncClient(
-            base_url=self._base_url, timeout=self._timeout
-        ) as session:
+        async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as session:
             yield session
 
 

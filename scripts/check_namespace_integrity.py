@@ -43,7 +43,10 @@ def _has_flag(path: Path, expected: bool) -> bool:
         return False
     for node in tree.body:
         if isinstance(node, ast.Assign):
-            if any(isinstance(target, ast.Name) and target.id == "__CANONICAL__" for target in node.targets):
+            if any(
+                isinstance(target, ast.Name) and target.id == "__CANONICAL__"
+                for target in node.targets
+            ):
                 if isinstance(node.value, ast.Constant):
                     return bool(node.value.value) is expected
         elif isinstance(node, ast.AnnAssign):

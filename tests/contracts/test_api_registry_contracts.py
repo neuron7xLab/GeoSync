@@ -157,12 +157,8 @@ def test_api_registry_routes_match_documentation(
         registry_response = _canonical_schema_reference(route.get("response_schema"))
         doc_request = _canonical_schema_reference(doc.get("request_schema"))
         doc_response = _canonical_schema_reference(doc.get("response_schema"))
-        assert (
-            doc_request == registry_request
-        ), f"Request schema mismatch for route {name}"
-        assert (
-            doc_response == registry_response
-        ), f"Response schema mismatch for route {name}"
+        assert doc_request == registry_request, f"Request schema mismatch for route {name}"
+        assert doc_response == registry_response, f"Response schema mismatch for route {name}"
 
 
 def test_api_registry_smoke_tests_match_documentation(
@@ -199,9 +195,7 @@ def test_api_registry_smoke_tests_match_documentation(
 
     for name, spec in expected.items():
         doc = documented[name]
-        assert (
-            doc.get("route") == spec["route"]
-        ), f"Route mismatch for smoke test {name}"
+        assert doc.get("route") == spec["route"], f"Route mismatch for smoke test {name}"
         assert doc.get("description") == spec["description"]
         assert doc.get("method") == spec["method"], f"HTTP method mismatch for {name}"
         assert doc.get("path") == spec["path"], f"Path mismatch for smoke test {name}"
@@ -238,9 +232,7 @@ def test_api_registry_schema_references_exist(
     extract(api_registry.get("routes", []))
     extract(documented_routes)
     referenced.update(
-        _collect_schema_paths(
-            entry.get("response_schema") for entry in documented_smoke_tests
-        )
+        _collect_schema_paths(entry.get("response_schema") for entry in documented_smoke_tests)
     )
 
     assert referenced, "No schema references discovered across API registry artifacts"
@@ -249,9 +241,7 @@ def test_api_registry_schema_references_exist(
         absolute = (REPO_ROOT / relative_path).resolve()
         assert absolute.exists(), f"Schema reference missing on disk: {relative_path}"
         payload = json.loads(absolute.read_text(encoding="utf-8"))
-        assert isinstance(
-            payload, dict
-        ), f"Schema payload must be a JSON object: {relative_path}"
+        assert isinstance(payload, dict), f"Schema payload must be a JSON object: {relative_path}"
         assert payload, f"Schema payload should not be empty: {relative_path}"
         assert (
             "$schema" in payload or "type" in payload

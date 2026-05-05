@@ -48,9 +48,7 @@ def test_contract_blocks_action_potential_without_approval() -> None:
 
 
 def test_contract_permits_dual_approval_override() -> None:
-    contract = BehavioralContract(
-        required_approvals=frozenset({"operations", "safety"})
-    )
+    contract = BehavioralContract(required_approvals=frozenset({"operations", "safety"}))
     report = contract.enforce(
         [_result(1.3), _result(1.37)],
         approvals={"operations", "safety", "observer"},

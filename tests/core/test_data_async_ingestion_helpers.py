@@ -110,7 +110,5 @@ class TestTickMetricBatcher:
 
     @pytest.mark.parametrize("threshold", [1, 5, 10, 50, 100, 1000])
     def test_various_thresholds(self, threshold):
-        batcher = _TickMetricBatcher(
-            MagicMock(), "src", "sym", flush_threshold=threshold
-        )
+        batcher = _TickMetricBatcher(MagicMock(), "src", "sym", flush_threshold=threshold)
         assert batcher._flush_threshold == threshold

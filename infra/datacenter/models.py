@@ -115,9 +115,7 @@ class DataCenterHealth:
 
         # Resource utilization impact (up to -20 points)
         # Use max utilization to ensure high usage in any resource is penalized
-        max_utilization = max(
-            self.cpu_utilization, self.memory_utilization, self.disk_utilization
-        )
+        max_utilization = max(self.cpu_utilization, self.memory_utilization, self.disk_utilization)
         if max_utilization > 70:
             score -= min(20.0, (max_utilization - 70) / 1.0)
 

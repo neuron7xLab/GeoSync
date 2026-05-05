@@ -102,7 +102,10 @@ class PhaseTransitionAnalyzer:
 
         _logger.info(
             "Phase transition sweep: N=%d, K=[%.2f, %.2f], %d points",
-            self._N, K_range[0], K_range[1], n_points,
+            self._N,
+            K_range[0],
+            K_range[1],
+            n_points,
         )
 
         R_forward = self._directional_sweep(K_values, direction="forward")
@@ -137,8 +140,11 @@ class PhaseTransitionAnalyzer:
         _logger.info(
             "Phase transition detected: K_c=%.4f (fwd=%.4f, bwd=%.4f), "
             "hysteresis=%.4f, theoretical=%.4f",
-            K_c_mid, K_c_fwd, K_c_bwd,
-            report.hysteresis_width, K_c_theo,
+            K_c_mid,
+            K_c_fwd,
+            K_c_bwd,
+            report.hysteresis_width,
+            K_c_theo,
         )
 
         return report

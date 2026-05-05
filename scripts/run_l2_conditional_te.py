@@ -19,18 +19,18 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from research.microstructure.l2_cli import (
-    SubstrateError,
-    add_common_args,
-    load_substrate,
-    setup_logging,
-)
 
 from research.microstructure.conditional_transfer_entropy import (
     DEFAULT_LAG_ROWS,
     DEFAULT_N_BINS,
     DEFAULT_N_SURROGATES,
     conditional_transfer_entropy,
+)
+from research.microstructure.l2_cli import (
+    SubstrateError,
+    add_common_args,
+    load_substrate,
+    setup_logging,
 )
 
 _log = logging.getLogger("l2_conditional_te")

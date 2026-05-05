@@ -165,9 +165,7 @@ class HPCActiveInferenceModuleV4(nn.Module):
                     data = data.set_index("date")
                 else:
                     # Create dummy index
-                    data.index = pd.date_range(
-                        start="2020-01-01", periods=len(data), freq="D"
-                    )
+                    data.index = pd.date_range(start="2020-01-01", periods=len(data), freq="D")
 
             # Analyze market and extract signal
             signal = engine.analyze_market(data)
@@ -176,9 +174,7 @@ class HPCActiveInferenceModuleV4(nn.Module):
             features = pd.DataFrame(
                 {
                     "close": data["close"].iloc[-1] if "close" in data.columns else 0.0,
-                    "volume": (
-                        data["volume"].iloc[-1] if "volume" in data.columns else 0.0
-                    ),
+                    "volume": (data["volume"].iloc[-1] if "volume" in data.columns else 0.0),
                     "kuramoto_R": signal.kuramoto_R,
                     "consensus_R": signal.consensus_R,
                     "coherence": signal.cross_scale_coherence,
@@ -209,17 +205,13 @@ class HPCActiveInferenceModuleV4(nn.Module):
         features_array = features.values.astype(np.float32)
         if features_array.shape[1] < self.input_dim:
             # Pad to input_dim
-            padding = np.zeros(
-                (features_array.shape[0], self.input_dim - features_array.shape[1])
-            )
+            padding = np.zeros((features_array.shape[0], self.input_dim - features_array.shape[1]))
             features_array = np.concatenate([features_array, padding], axis=1)
         elif features_array.shape[1] > self.input_dim:
             # Truncate
             features_array = features_array[:, : self.input_dim]
 
-        features_tensor = torch.tensor(features_array, dtype=torch.float32).to(
-            self.device
-        )
+        features_tensor = torch.tensor(features_array, dtype=torch.float32).to(self.device)
 
         # Embed and encode
         embedded = self.input_embedding(features_tensor.unsqueeze(0))
@@ -255,9 +247,7 @@ class HPCActiveInferenceModuleV4(nn.Module):
             predictions.append(pred_res)
             # For next level, project back to state_dim and expand to sequence
             pred_state = (
-                pred_res[:, : self.state_dim]
-                if pred_res.shape[-1] > self.state_dim
-                else pred_res
+                pred_res[:, : self.state_dim] if pred_res.shape[-1] > self.state_dim else pred_res
             )
             top_down = pred_state.unsqueeze(1).repeat(1, seq_length, 1)
 
@@ -265,15 +255,11 @@ class HPCActiveInferenceModuleV4(nn.Module):
         pwpes = []
         bottom_up = state.squeeze(1) if state.dim() > 2 else state
 
-        for i, (error_layer, precision) in enumerate(
-            zip(self.hpc_errors, self.precision_weights)
-        ):
+        for i, (error_layer, precision) in enumerate(zip(self.hpc_errors, self.precision_weights)):
             pred = predictions[self.hpc_levels - 1 - i]
 
             # Prediction error (project pred to state_dim if needed)
-            pred_state = (
-                pred[:, : self.state_dim] if pred.shape[-1] > self.state_dim else pred
-            )
+            pred_state = pred[:, : self.state_dim] if pred.shape[-1] > self.state_dim else pred
             pe = bottom_up - pred_state
 
             # Precision-weighted prediction error
@@ -351,9 +337,7 @@ class HPCActiveInferenceModuleV4(nn.Module):
         perturbed_probs = F.softmax(perturbed_logits, dim=-1)
 
         selected_prob = action_probs.gather(1, action.unsqueeze(1).long()).squeeze()
-        perturbed_selected = perturbed_probs.gather(
-            1, action.unsqueeze(1).long()
-        ).squeeze()
+        perturbed_selected = perturbed_probs.gather(1, action.unsqueeze(1).long()).squeeze()
 
         actor_loss = (
             -torch.log(selected_prob + 1e-8) * td_error.detach()
@@ -365,9 +349,7 @@ class HPCActiveInferenceModuleV4(nn.Module):
 
         # Reward prediction loss
         expert_reward = torch.tensor([[reward]], dtype=torch.float32).to(self.device)
-        reward_input = torch.tensor([[reward, 0.0, 0.0]], dtype=torch.float32).to(
-            self.device
-        )
+        reward_input = torch.tensor([[reward, 0.0, 0.0]], dtype=torch.float32).to(self.device)
         reward_loss = F.mse_loss(self.reward_predictor(reward_input), expert_reward)
 
         # L1 regularization on blending alpha
@@ -400,9 +382,7 @@ class HPCActiveInferenceModuleV4(nn.Module):
         Returns:
             True if metastable transition detected (should hold)
         """
-        gate_input = torch.tensor([pwpe, d_pwpe_dt], dtype=torch.float32).to(
-            self.device
-        )
+        gate_input = torch.tensor([pwpe, d_pwpe_dt], dtype=torch.float32).to(self.device)
         gate_input = self.dropout(gate_input)
         gate_value = torch.sigmoid(self.pwpe_threshold_base * gate_input.mean())
         return gate_value.item() > 0.5

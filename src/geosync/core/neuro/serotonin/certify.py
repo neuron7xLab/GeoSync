@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
-import os
 import math
-import threading
+import os
 import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence

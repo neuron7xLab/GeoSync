@@ -91,9 +91,7 @@ class DriftDetector:
         self._psi_monitor = DistributionDriftMonitor(
             method="psi", threshold=psi_threshold, bins=bins
         )
-        self._ks_monitor = DistributionDriftMonitor(
-            method="ks", threshold=ks_confidence, bins=bins
-        )
+        self._ks_monitor = DistributionDriftMonitor(method="ks", threshold=ks_confidence, bins=bins)
         self._ks_alpha = 1.0 - ks_confidence
 
     def evaluate(self, snapshot: FeatureSnapshot) -> FeatureDriftSummary:
@@ -285,16 +283,8 @@ class RemediationPlanner:
                     rationale="production metric outside guardrail",
                     metadata={
                         "value": deviation.value,
-                        "lower": (
-                            deviation.lower
-                            if deviation.lower is not None
-                            else float("nan")
-                        ),
-                        "upper": (
-                            deviation.upper
-                            if deviation.upper is not None
-                            else float("nan")
-                        ),
+                        "lower": (deviation.lower if deviation.lower is not None else float("nan")),
+                        "upper": (deviation.upper if deviation.upper is not None else float("nan")),
                     },
                 )
             )
@@ -469,20 +459,12 @@ class RetrainingTrigger:
             feature_counts.update(features)
         if total_events < self._min_events:
             return RetrainingDecision(False, None, tuple(), self._window)
-        active_features = [
-            feature for feature, count in feature_counts.items() if count > 0
-        ]
+        active_features = [feature for feature, count in feature_counts.items() if count > 0]
         if len(active_features) < self._min_features:
             return RetrainingDecision(False, None, tuple(), self._window)
 
-        reason = (
-            "drift persistence"
-            if total_events >= self._min_events
-            else "insufficient events"
-        )
-        return RetrainingDecision(
-            True, reason, tuple(sorted(active_features)), self._window
-        )
+        reason = "drift persistence" if total_events >= self._min_events else "insufficient events"
+        return RetrainingDecision(True, reason, tuple(sorted(active_features)), self._window)
 
     def _prune(self, timestamp: dt.datetime) -> None:
         boundary = timestamp - self._window
@@ -619,9 +601,7 @@ class DriftMonitoringService:
         drifted_features = [summary.feature for summary in summaries if summary.drifted]
         retraining = self._retraining_trigger.evaluate(timestamp, drifted_features)
         isolation = self._isolation_planner.plan(summaries)
-        remediation = self._remediation_planner.plan(
-            summaries, quality, retraining.triggered
-        )
+        remediation = self._remediation_planner.plan(summaries, quality, retraining.triggered)
         alerts = self._build_alerts(summaries, quality, remediation, retraining)
         dashboard = self._dashboard.render(
             timestamp, summaries, quality, isolation, remediation, self._change_log
@@ -701,9 +681,7 @@ class DriftMonitoringService:
                     severity="critical",
                     subject="Remediation approval required",
                     message="Manual acknowledgement required for remediation plan",
-                    metadata={
-                        "actions": [action.action for action in remediation.actions]
-                    },
+                    metadata={"actions": [action.action for action in remediation.actions]},
                 )
             )
         return alerts

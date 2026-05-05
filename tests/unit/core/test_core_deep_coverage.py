@@ -5,18 +5,13 @@
 from __future__ import annotations
 
 import json
-import textwrap
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
-
 # ═══════════════════════════════════════════════════════════════════
 # core.data.fingerprint
 # ═══════════════════════════════════════════════════════════════════
-
 from core.data.fingerprint import (
     _normalise_text_lines,
     _sha256,
@@ -103,24 +98,40 @@ class TestFingerprintRows:
 class TestComputeDatasetFingerprint:
     def test_file_not_found(self, tmp_path):
         from core.data.dataset_contracts import DatasetContract
+
         contract = DatasetContract(
-            dataset_id="test", path=tmp_path / "nope.csv",
-            schema_version="1.0", columns=["a"], dtypes=["int"],
-            origin="test", description="test", creation_method="test",
-            temporal_coverage="test", intended_use="test", forbidden_use="test",
+            dataset_id="test",
+            path=tmp_path / "nope.csv",
+            schema_version="1.0",
+            columns=["a"],
+            dtypes=["int"],
+            origin="test",
+            description="test",
+            creation_method="test",
+            temporal_coverage="test",
+            intended_use="test",
+            forbidden_use="test",
         )
         with pytest.raises(FileNotFoundError):
             compute_dataset_fingerprint(contract)
 
     def test_valid_contract(self, tmp_path):
         from core.data.dataset_contracts import DatasetContract
+
         csv_path = tmp_path / "data.csv"
         csv_path.write_text("a,b\n1,2\n3,4\n", encoding="utf-8")
         contract = DatasetContract(
-            dataset_id="test", path=csv_path,
-            schema_version="1.0", columns=["a", "b"], dtypes=["int", "int"],
-            origin="test", description="test", creation_method="test",
-            temporal_coverage="test", intended_use="test", forbidden_use="test",
+            dataset_id="test",
+            path=csv_path,
+            schema_version="1.0",
+            columns=["a", "b"],
+            dtypes=["int", "int"],
+            origin="test",
+            description="test",
+            creation_method="test",
+            temporal_coverage="test",
+            intended_use="test",
+            forbidden_use="test",
         )
         fp = compute_dataset_fingerprint(contract)
         assert fp["dataset_id"] == "test"
@@ -141,13 +152,21 @@ class TestWriteFingerprintArtifact:
 class TestRecordRunFingerprint:
     def test_writes_with_run_type(self, tmp_path):
         from core.data.dataset_contracts import DatasetContract
+
         csv_path = tmp_path / "data.csv"
         csv_path.write_text("a\n1\n", encoding="utf-8")
         contract = DatasetContract(
-            dataset_id="run_test", path=csv_path,
-            schema_version="1.0", columns=["a"], dtypes=["str"],
-            origin="test", description="test", creation_method="test",
-            temporal_coverage="test", intended_use="test", forbidden_use="test",
+            dataset_id="run_test",
+            path=csv_path,
+            schema_version="1.0",
+            columns=["a"],
+            dtypes=["str"],
+            origin="test",
+            description="test",
+            creation_method="test",
+            temporal_coverage="test",
+            intended_use="test",
+            forbidden_use="test",
         )
         out_dir = tmp_path / "fingerprints"
         result = record_run_fingerprint(contract, run_type="backtest", output_dir=out_dir)
@@ -191,7 +210,11 @@ class TestPhaseTransitionAnalyzer:
     def test_sweep_small(self):
         """Run a minimal sweep and verify report structure."""
         analyzer = PhaseTransitionAnalyzer(
-            N=10, seed=42, steps_per_point=100, dt=0.05, warmup_fraction=0.3,
+            N=10,
+            seed=42,
+            steps_per_point=100,
+            dt=0.05,
+            warmup_fraction=0.3,
         )
         report = analyzer.sweep(K_range=(0.0, 3.0), n_points=5)
         assert isinstance(report, PhaseTransitionReport)

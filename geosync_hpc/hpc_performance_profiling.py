@@ -54,9 +54,7 @@ def estimate_flops_forward(model, input_size=(1, 10)):
     # Error layers
     flops_error = 3 * ((hidden_dim * 2 + state_dim) * state_dim)
 
-    total_flops = (
-        flops_embed + flops_transformer + flops_gru + flops_residual + flops_error
-    )
+    total_flops = flops_embed + flops_transformer + flops_gru + flops_residual + flops_error
     return total_flops
 
 

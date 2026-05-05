@@ -25,6 +25,7 @@ results = []
 
 def test(name):
     """Decorator for test functions."""
+
     def decorator(fn):
         def wrapper():
             t0 = time.perf_counter()
@@ -38,7 +39,9 @@ def test(name):
                 print(f"  {FAIL}  {name} ({dt:.3f}s): {e}")
                 traceback.print_exc()
                 results.append((name, "FAIL", dt))
+
         return wrapper
+
     return decorator
 
 
@@ -46,9 +49,11 @@ def test(name):
 # 0. BASELINE — Original engine
 # ============================================================
 
+
 @test("0. Baseline RK4 engine (N=100, 5000 steps)")
 def test_baseline():
     from core.kuramoto import KuramotoConfig, KuramotoEngine
+
     cfg = KuramotoConfig(N=100, K=2.0, dt=0.01, steps=5000, seed=42)
     result = KuramotoEngine(cfg).run()
     assert result.phases.shape == (5001, 100)
@@ -60,15 +65,18 @@ def test_baseline():
 # 1. JAX ENGINE
 # ============================================================
 
+
 @test("1a. JAX import check")
 def test_jax_import():
     try:
         from core.kuramoto.jax_engine import JAX_AVAILABLE
+
         if not JAX_AVAILABLE:
             print(f"    {SKIP} JAX not installed — skipping JAX tests")
             results.append(("1. JAX engine", "SKIP", 0))
             return
         import jax
+
         print(f"    JAX backend: {jax.default_backend()}")
     except ImportError:
         print(f"    {SKIP} JAX not available")
@@ -77,10 +85,12 @@ def test_jax_import():
 @test("1b. JAX single simulation (N=100, 5000 steps)")
 def test_jax_single():
     from core.kuramoto.jax_engine import JAX_AVAILABLE
+
     if not JAX_AVAILABLE:
         return
-    from core.kuramoto.jax_engine import JaxKuramotoEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.jax_engine import JaxKuramotoEngine
+
     cfg = KuramotoConfig(N=100, K=2.0, dt=0.01, steps=5000, seed=42)
     result = JaxKuramotoEngine(cfg).run()
     assert result.phases.shape == (5001, 100)
@@ -90,10 +100,12 @@ def test_jax_single():
 @test("1c. JAX batch vmap (100 simulations)")
 def test_jax_batch():
     from core.kuramoto.jax_engine import JAX_AVAILABLE
+
     if not JAX_AVAILABLE:
         return
-    from core.kuramoto.jax_engine import JaxKuramotoEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.jax_engine import JaxKuramotoEngine
+
     cfg = KuramotoConfig(N=50, K=2.0, dt=0.01, steps=1000, seed=0)
     results_batch = JaxKuramotoEngine.batch(cfg, seeds=list(range(100)))
     assert len(results_batch) == 100
@@ -105,11 +117,13 @@ def test_jax_batch():
 # 2. SPARSE ENGINE
 # ============================================================
 
+
 @test("2a. Sparse engine — small (N=200, density=0.1)")
 def test_sparse_small():
-    from core.kuramoto.sparse import SparseKuramotoEngine
-    from core.kuramoto import KuramotoConfig
     from scipy import sparse
+
+    from core.kuramoto import KuramotoConfig
+    from core.kuramoto.sparse import SparseKuramotoEngine
 
     N = 200
     adj = sparse.random(N, N, density=0.1, format="csr", random_state=42)
@@ -122,9 +136,10 @@ def test_sparse_small():
 
 @test("2b. Sparse engine — large (N=10000, density=0.001)")
 def test_sparse_large():
-    from core.kuramoto.sparse import SparseKuramotoEngine
-    from core.kuramoto import KuramotoConfig
     from scipy import sparse
+
+    from core.kuramoto import KuramotoConfig
+    from core.kuramoto.sparse import SparseKuramotoEngine
 
     N = 10_000
     adj = sparse.random(N, N, density=0.001, format="csr", random_state=42)
@@ -132,13 +147,13 @@ def test_sparse_large():
     result = SparseKuramotoEngine(cfg, sparse_adjacency=adj).run()
     assert result.phases.shape == (201, N)
     edges = adj.nnz
-    print(f"    N={N:,}, edges={edges:,}, memory={adj.data.nbytes/1e6:.1f}MB")
+    print(f"    N={N:,}, edges={edges:,}, memory={adj.data.nbytes / 1e6:.1f}MB")
 
 
 @test("2c. Sparse vs dense equivalence (N=50)")
 def test_sparse_dense_equiv():
-    from core.kuramoto.sparse import SparseKuramotoEngine
     from core.kuramoto import KuramotoConfig, KuramotoEngine
+    from core.kuramoto.sparse import SparseKuramotoEngine
 
     cfg = KuramotoConfig(N=50, K=2.0, dt=0.01, steps=500, seed=42)
     r_dense = KuramotoEngine(cfg).run()
@@ -151,10 +166,11 @@ def test_sparse_dense_equiv():
 # 3. ADAPTIVE SOLVER
 # ============================================================
 
+
 @test("3a. Adaptive RK45 (N=50, stiff K=20)")
 def test_adaptive_rk45():
-    from core.kuramoto.adaptive import AdaptiveKuramotoEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.adaptive import AdaptiveKuramotoEngine
 
     cfg = KuramotoConfig(N=50, K=20.0, dt=0.01, steps=3000, seed=42)
     result = AdaptiveKuramotoEngine(cfg, method="RK45", rtol=1e-8).run()
@@ -165,8 +181,8 @@ def test_adaptive_rk45():
 
 @test("3b. Adaptive LSODA (auto stiff/non-stiff)")
 def test_adaptive_lsoda():
-    from core.kuramoto.adaptive import AdaptiveKuramotoEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.adaptive import AdaptiveKuramotoEngine
 
     cfg = KuramotoConfig(N=30, K=50.0, dt=0.005, steps=2000, seed=42)
     result = AdaptiveKuramotoEngine(cfg, method="LSODA").run()
@@ -177,8 +193,8 @@ def test_adaptive_lsoda():
 
 @test("3c. Adaptive vs fixed-step convergence (N=20)")
 def test_adaptive_vs_fixed():
-    from core.kuramoto.adaptive import AdaptiveKuramotoEngine
     from core.kuramoto import KuramotoConfig, KuramotoEngine
+    from core.kuramoto.adaptive import AdaptiveKuramotoEngine
 
     cfg = KuramotoConfig(N=20, K=3.0, dt=0.005, steps=2000, seed=42)
     r_fixed = KuramotoEngine(cfg).run()
@@ -194,6 +210,7 @@ def test_adaptive_vs_fixed():
 # ============================================================
 # 4. PHASE TRANSITION DETECTOR
 # ============================================================
+
 
 @test("4a. Phase transition sweep (N=100, 30 points)")
 def test_phase_transition():
@@ -225,10 +242,11 @@ def test_phase_transition_mono():
 # 5. DELAYED FEEDBACK DDE
 # ============================================================
 
+
 @test("5a. DDE uniform delay (τ=0.1)")
 def test_dde_uniform():
-    from core.kuramoto.delayed import DelayedKuramotoEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.delayed import DelayedKuramotoEngine
 
     cfg = KuramotoConfig(N=30, K=3.0, dt=0.01, steps=3000, seed=42)
     result = DelayedKuramotoEngine(cfg, tau=0.1).run()
@@ -239,8 +257,8 @@ def test_dde_uniform():
 
 @test("5b. DDE heterogeneous delays (N×N τ matrix)")
 def test_dde_heterogeneous():
-    from core.kuramoto.delayed import DelayedKuramotoEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.delayed import DelayedKuramotoEngine
 
     N = 20
     rng = np.random.default_rng(42)
@@ -252,8 +270,8 @@ def test_dde_heterogeneous():
 
 @test("5c. DDE τ=0 should match standard engine")
 def test_dde_zero_delay():
-    from core.kuramoto.delayed import DelayedKuramotoEngine
     from core.kuramoto import KuramotoConfig, KuramotoEngine
+    from core.kuramoto.delayed import DelayedKuramotoEngine
 
     cfg = KuramotoConfig(N=15, K=2.0, dt=0.01, steps=500, seed=42)
     r_std = KuramotoEngine(cfg).run()
@@ -270,10 +288,11 @@ def test_dde_zero_delay():
 # 6. SECOND-ORDER (SWING EQUATION)
 # ============================================================
 
+
 @test("6a. Second-order basic (m=1, d=0.1)")
 def test_second_order_basic():
-    from core.kuramoto.second_order import SecondOrderKuramotoEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.second_order import SecondOrderKuramotoEngine
 
     cfg = KuramotoConfig(N=50, K=5.0, dt=0.005, steps=5000, seed=42)
     result = SecondOrderKuramotoEngine(cfg, mass=1.0, damping=0.1).run()
@@ -288,8 +307,8 @@ def test_second_order_basic():
 
 @test("6b. Second-order — heterogeneous inertia")
 def test_second_order_hetero():
-    from core.kuramoto.second_order import SecondOrderKuramotoEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.second_order import SecondOrderKuramotoEngine
 
     N = 30
     rng = np.random.default_rng(42)
@@ -303,8 +322,8 @@ def test_second_order_hetero():
 
 @test("6c. Second-order — high damping converges to first-order")
 def test_second_order_overdamped():
-    from core.kuramoto.second_order import SecondOrderKuramotoEngine
     from core.kuramoto import KuramotoConfig, KuramotoEngine
+    from core.kuramoto.second_order import SecondOrderKuramotoEngine
 
     cfg = KuramotoConfig(N=20, K=3.0, dt=0.001, steps=10000, seed=42)
     # High damping, moderate mass → approaches first-order behaviour
@@ -318,14 +337,17 @@ def test_second_order_overdamped():
 # 7. EARLY STOPPING
 # ============================================================
 
+
 @test("7a. Early stopping — strong coupling (should stop early)")
 def test_early_stop_fast():
-    from core.kuramoto.early_stopping import EarlyStoppingEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.early_stopping import EarlyStoppingEngine
 
     cfg = KuramotoConfig(N=50, K=5.0, dt=0.01, steps=50000, seed=42)
     result = EarlyStoppingEngine(cfg, epsilon=1e-5, patience=200, min_steps=100).run()
-    print(f"    stopped at step {result.summary['converged_at_step']}/{result.summary['max_steps']}")
+    print(
+        f"    stopped at step {result.summary['converged_at_step']}/{result.summary['max_steps']}"
+    )
     print(f"    saved {result.summary['compute_saved_pct']:.1f}% compute")
     assert result.summary["early_stopped"] is True
     assert result.summary["compute_saved_pct"] > 30.0
@@ -333,20 +355,22 @@ def test_early_stop_fast():
 
 @test("7b. Early stopping — weak coupling (should run longer)")
 def test_early_stop_slow():
-    from core.kuramoto.early_stopping import EarlyStoppingEngine
     from core.kuramoto import KuramotoConfig
+    from core.kuramoto.early_stopping import EarlyStoppingEngine
 
     cfg = KuramotoConfig(N=50, K=0.5, dt=0.01, steps=5000, seed=42)
     result = EarlyStoppingEngine(cfg, epsilon=1e-4, patience=100, min_steps=100).run()
-    print(f"    stopped at step {result.summary['converged_at_step']}/{result.summary['max_steps']}")
+    print(
+        f"    stopped at step {result.summary['converged_at_step']}/{result.summary['max_steps']}"
+    )
     # Weak coupling → might not converge quickly, but should still produce valid result
     assert 0.0 <= result.summary["final_R"] <= 1.0
 
 
 @test("7c. Early stopping — correctness vs full run")
 def test_early_stop_correctness():
-    from core.kuramoto.early_stopping import EarlyStoppingEngine
     from core.kuramoto import KuramotoConfig, KuramotoEngine
+    from core.kuramoto.early_stopping import EarlyStoppingEngine
 
     cfg = KuramotoConfig(N=30, K=4.0, dt=0.01, steps=10000, seed=42)
     r_full = KuramotoEngine(cfg).run()
@@ -363,9 +387,11 @@ def test_early_stop_correctness():
 # STRESS TEST — PERFORMANCE
 # ============================================================
 
+
 @test("STRESS: Dense N=300, 5000 steps")
 def test_stress_dense():
     from core.kuramoto import KuramotoConfig, KuramotoEngine
+
     cfg = KuramotoConfig(N=300, K=2.0, dt=0.01, steps=5000, seed=42)
     result = KuramotoEngine(cfg).run()
     assert result.phases.shape == (5001, 300)
@@ -375,9 +401,10 @@ def test_stress_dense():
 
 @test("STRESS: Sparse N=20000, 50 steps, density=0.0005")
 def test_stress_sparse():
-    from core.kuramoto.sparse import SparseKuramotoEngine
-    from core.kuramoto import KuramotoConfig
     from scipy import sparse
+
+    from core.kuramoto import KuramotoConfig
+    from core.kuramoto.sparse import SparseKuramotoEngine
 
     N = 20_000
     adj = sparse.random(N, N, density=0.0005, format="csr", random_state=42)
@@ -399,14 +426,28 @@ if __name__ == "__main__":
 
     tests = [
         test_baseline,
-        test_jax_import, test_jax_single, test_jax_batch,
-        test_sparse_small, test_sparse_large, test_sparse_dense_equiv,
-        test_adaptive_rk45, test_adaptive_lsoda, test_adaptive_vs_fixed,
-        test_phase_transition, test_phase_transition_mono,
-        test_dde_uniform, test_dde_heterogeneous, test_dde_zero_delay,
-        test_second_order_basic, test_second_order_hetero, test_second_order_overdamped,
-        test_early_stop_fast, test_early_stop_slow, test_early_stop_correctness,
-        test_stress_dense, test_stress_sparse,
+        test_jax_import,
+        test_jax_single,
+        test_jax_batch,
+        test_sparse_small,
+        test_sparse_large,
+        test_sparse_dense_equiv,
+        test_adaptive_rk45,
+        test_adaptive_lsoda,
+        test_adaptive_vs_fixed,
+        test_phase_transition,
+        test_phase_transition_mono,
+        test_dde_uniform,
+        test_dde_heterogeneous,
+        test_dde_zero_delay,
+        test_second_order_basic,
+        test_second_order_hetero,
+        test_second_order_overdamped,
+        test_early_stop_fast,
+        test_early_stop_slow,
+        test_early_stop_correctness,
+        test_stress_dense,
+        test_stress_sparse,
     ]
 
     total_t0 = time.perf_counter()

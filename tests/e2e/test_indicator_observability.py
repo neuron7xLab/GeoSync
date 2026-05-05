@@ -83,9 +83,7 @@ def test_indicator_observability_pipeline() -> None:
         curvature_ema_alpha=0.3,
     )
 
-    analysis_frame = df.tail(160)[["price", "volume"]].rename(
-        columns={"price": "close"}
-    )
+    analysis_frame = df.tail(160)[["price", "volume"]].rename(columns={"price": "close"})
     result = analyzer.analyze(
         analysis_frame, price_col="close", volume_col="volume", reset_history=True
     )

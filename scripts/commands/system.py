@@ -116,9 +116,7 @@ def handle(args: object) -> int:  # noqa: ARG001 - argparse namespace
     report = runner.run()
 
     if not report.succeeded:
-        failures = ", ".join(
-            f"{res.name} ({res.status})" for res in report.failed_steps
-        )
+        failures = ", ".join(f"{res.name} ({res.status})" for res in report.failed_steps)
         raise CommandError(f"System launch failed: {failures}")
 
     duration = (report.completed_at - report.started_at).total_seconds()
@@ -172,16 +170,12 @@ def _normalise_sequence(value: object) -> list[str] | None:
         return [str(value)]
 
 
-def validate_environment(
-    env_file: Path, required_vars: Iterable[str]
-) -> Mapping[str, str]:
+def validate_environment(env_file: Path, required_vars: Iterable[str]) -> Mapping[str, str]:
     """Ensure required environment variables are available for Compose."""
 
     loaded = parse_env_file(env_file)
     if loaded is None:
-        LOGGER.warning(
-            "Compose env file %s is missing; falling back to OS env", env_file
-        )
+        LOGGER.warning("Compose env file %s is missing; falling back to OS env", env_file)
         variables: dict[str, str] = dict(os.environ)
     else:
         variables = {**os.environ, **dict(loaded.variables)}
@@ -286,8 +280,7 @@ def wait_for_healthy_services(
             missing = required - names
             if missing:
                 raise CommandError(
-                    "Required services missing from docker compose: "
-                    + ", ".join(sorted(missing))
+                    "Required services missing from docker compose: " + ", ".join(sorted(missing))
                 )
             statuses = [status for status in statuses if status.name in required]
 
@@ -300,13 +293,8 @@ def wait_for_healthy_services(
 
         time.sleep(interval)
 
-    summary = (
-        ", ".join(status.summary() for status in last_statuses)
-        or "no services reported"
-    )
-    raise CommandError(
-        f"Services failed to become healthy within {timeout:.0f}s: {summary}"
-    )
+    summary = ", ".join(status.summary() for status in last_statuses) or "no services reported"
+    raise CommandError(f"Services failed to become healthy within {timeout:.0f}s: {summary}")
 
 
 __all__ = [

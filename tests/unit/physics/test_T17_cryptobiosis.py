@@ -120,9 +120,7 @@ def test_rehydration_stages_non_decreasing() -> None:
     Pushes controller through full lifecycle and records rehydration
     stages. Each tick at T < exit must advance or hold (never regress).
     """
-    cfg = CryptobiosisConfig(
-        entry_threshold=0.80, exit_threshold=0.50, n_rehydration_stages=5
-    )
+    cfg = CryptobiosisConfig(entry_threshold=0.80, exit_threshold=0.50, n_rehydration_stages=5)
     ctrl = CryptobiosisController(cfg)
     # Enter DORMANT
     ctrl.update(T=0.90)
@@ -250,9 +248,7 @@ def test_full_lifecycle_active_dormant_rehydrate_active() -> None:
     ACTIVE → VITRIFYING → DORMANT → REHYDRATING → ACTIVE
     and asserts every invariant holds at every stage.
     """
-    cfg = CryptobiosisConfig(
-        entry_threshold=0.80, exit_threshold=0.50, n_rehydration_stages=3
-    )
+    cfg = CryptobiosisConfig(entry_threshold=0.80, exit_threshold=0.50, n_rehydration_stages=3)
     ctrl = CryptobiosisController(cfg)
 
     # Phase 1: ACTIVE at low distress

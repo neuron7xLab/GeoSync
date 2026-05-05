@@ -30,9 +30,7 @@ class TestStrategySignature:
 
     def test_create_valid_signature(self) -> None:
         """Valid signature should be created successfully."""
-        sig = StrategySignature(
-            R=0.95, delta_H=0.05, kappa_mean=0.3, entropy=2.1, instability=0.1
-        )
+        sig = StrategySignature(R=0.95, delta_H=0.05, kappa_mean=0.3, entropy=2.1, instability=0.1)
         assert sig.R == 0.95
         assert sig.delta_H == 0.05
 
@@ -60,9 +58,7 @@ class TestStrategySignature:
 
     def test_to_dict_roundtrip(self) -> None:
         """Serialization and deserialization should preserve values."""
-        sig = StrategySignature(
-            R=0.95, delta_H=0.05, kappa_mean=0.3, entropy=2.1, instability=0.1
-        )
+        sig = StrategySignature(R=0.95, delta_H=0.05, kappa_mean=0.3, entropy=2.1, instability=0.1)
         sig_dict = sig.to_dict()
         restored = StrategySignature.from_dict(sig_dict)
         assert sig == restored
@@ -86,33 +82,25 @@ class TestStrategyRecord:
 
     def test_create_valid_record(self) -> None:
         """Valid record should be created successfully."""
-        sig = StrategySignature(
-            R=0.95, delta_H=0.05, kappa_mean=0.3, entropy=2.1, instability=0.1
-        )
+        sig = StrategySignature(R=0.95, delta_H=0.05, kappa_mean=0.3, entropy=2.1, instability=0.1)
         record = StrategyRecord(name="test", signature=sig, score=0.85, ts=time.time())
         assert record.name == "test"
         assert record.score == 0.85
 
     def test_create_record_from_tuple_signature(self) -> None:
         """Record should accept tuple signature and convert to StrategySignature."""
-        record = StrategyRecord(
-            name="test", signature=(0.95, 0.05, 0.3, 2.1, 0.1), score=0.85
-        )
+        record = StrategyRecord(name="test", signature=(0.95, 0.05, 0.3, 2.1, 0.1), score=0.85)
         assert isinstance(record.signature, StrategySignature)
 
     def test_reject_nan_score(self) -> None:
         """NaN score should be rejected."""
         with pytest.raises(InvariantError, match="score must be finite"):
-            StrategyRecord(
-                name="test", signature=(0.95, 0.05, 0.3, 2.1, 0.1), score=float("nan")
-            )
+            StrategyRecord(name="test", signature=(0.95, 0.05, 0.3, 2.1, 0.1), score=float("nan"))
 
     def test_reject_inf_score(self) -> None:
         """Infinity score should be rejected."""
         with pytest.raises(InvariantError, match="score must be finite"):
-            StrategyRecord(
-                name="test", signature=(0.95, 0.05, 0.3, 2.1, 0.1), score=float("inf")
-            )
+            StrategyRecord(name="test", signature=(0.95, 0.05, 0.3, 2.1, 0.1), score=float("inf"))
 
     def test_reject_negative_timestamp(self) -> None:
         """Negative timestamp should be rejected."""
@@ -126,9 +114,7 @@ class TestStrategyRecord:
 
     def test_to_dict_roundtrip(self) -> None:
         """Serialization and deserialization should preserve values."""
-        sig = StrategySignature(
-            R=0.95, delta_H=0.05, kappa_mean=0.3, entropy=2.1, instability=0.1
-        )
+        sig = StrategySignature(R=0.95, delta_H=0.05, kappa_mean=0.3, entropy=2.1, instability=0.1)
         record = StrategyRecord(name="test", signature=sig, score=0.85, ts=1000.0)
         record_dict = record.to_dict()
         restored = StrategyRecord.from_dict(record_dict)
@@ -161,16 +147,12 @@ class TestStrategyMemory:
 
     def test_reject_negative_decay_lambda(self) -> None:
         """Negative decay_lambda should be rejected."""
-        with pytest.raises(
-            InvariantError, match="decay_lambda must be finite and >= 0"
-        ):
+        with pytest.raises(InvariantError, match="decay_lambda must be finite and >= 0"):
             StrategyMemory(decay_lambda=-1.0)
 
     def test_reject_nan_decay_lambda(self) -> None:
         """NaN decay_lambda should be rejected."""
-        with pytest.raises(
-            InvariantError, match="decay_lambda must be finite and >= 0"
-        ):
+        with pytest.raises(InvariantError, match="decay_lambda must be finite and >= 0"):
             StrategyMemory(decay_lambda=float("nan"))
 
     def test_reject_zero_max_records(self) -> None:
@@ -194,9 +176,7 @@ class TestStrategyMemory:
         """Memory should not exceed max_records."""
         memory = StrategyMemory(max_records=3)
         for i in range(10):
-            memory.add(
-                f"strategy_{i}", (i * 0.1, 0.05, 0.3, 2.1, 0.1), score=float(i) * 0.1
-            )
+            memory.add(f"strategy_{i}", (i * 0.1, 0.05, 0.3, 2.1, 0.1), score=float(i) * 0.1)
         assert len(memory) == 3
 
     def test_serialize_roundtrip(self) -> None:
@@ -311,9 +291,7 @@ class TestStrategyMemory:
         memory = StrategyMemory(max_records=2)
 
         records = [
-            StrategyRecord(
-                name=f"test{i}", signature=(i * 0.1, 0.05, 0.3, 2.1, 0.1), score=0.5
-            )
+            StrategyRecord(name=f"test{i}", signature=(i * 0.1, 0.05, 0.3, 2.1, 0.1), score=0.5)
             for i in range(5)
         ]
 
@@ -341,9 +319,7 @@ class TestPropertyBased:
             if op == "add":
                 sig_values = rng.random(5).tolist()
                 score = rng.random()
-                memory.add(
-                    f"strategy_{rng.integers(1000)}", tuple(sig_values), score=score
-                )
+                memory.add(f"strategy_{rng.integers(1000)}", tuple(sig_values), score=score)
             elif op == "topk":
                 k = rng.integers(1, 20)
                 _ = memory.topk(int(k))

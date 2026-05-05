@@ -99,9 +99,7 @@ class _ChaosHandler:
 
         if event.name == "dns_failure":
             self._clock.advance(0.05)
-            raise httpx.ConnectError(
-                OSError("Name or service not known"), request=request
-            )
+            raise httpx.ConnectError(OSError("Name or service not known"), request=request)
         if event.name == "packet_loss":
             self._clock.advance(0.05)
             raise httpx.ReadError("Simulated packet loss", request=request)

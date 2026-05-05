@@ -16,6 +16,7 @@ Usage:
     python examples/data_pipeline_demo.py
     python examples/data_pipeline_demo.py --symbols BTC ETH --days 30
 """
+
 # SPDX-License-Identifier: MIT
 
 from __future__ import annotations
@@ -51,9 +52,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def generate_data(
-    symbols: list[str], days: int, timeframe: str, seed: int
-) -> pd.DataFrame:
+def generate_data(symbols: list[str], days: int, timeframe: str, seed: int) -> pd.DataFrame:
     """Generate synthetic OHLCV data.
 
     Args:

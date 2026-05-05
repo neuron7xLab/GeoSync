@@ -14,13 +14,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from core.neuro.signal_bus import BusConfig, NeuroSignalBus, StressRegime
 from core.neuro.dopamine_execution_adapter import DopamineExecutionAdapter
-from core.neuro.gaba_position_gate import GABAPositionGate
-from core.neuro.serotonin_ode import SerotoninODE
-from core.neuro.kuramoto_kelly import KuramotoKellyAdapter
 from core.neuro.ecs_lyapunov import ECSLyapunovRegulator
+from core.neuro.gaba_position_gate import GABAPositionGate
 from core.neuro.hpc_neuro_bridge import HPCNeuroBridge
+from core.neuro.kuramoto_kelly import KuramotoKellyAdapter
+from core.neuro.serotonin_ode import SerotoninODE
+from core.neuro.signal_bus import BusConfig, NeuroSignalBus, StressRegime
 
 pytestmark = pytest.mark.L3
 
@@ -72,7 +72,7 @@ class TestFullPipelineE2E:
 
         window = 50
         for t in range(window, len(returns)):
-            ret_window = returns[t - window:t]
+            ret_window = returns[t - window : t]
             price = prices[t]
             current_return = returns[t]
             current_vix = float(vix[t])
@@ -81,7 +81,7 @@ class TestFullPipelineE2E:
             # 1. Kuramoto → regime detection + Kelly fraction
             kelly_fraction = kuramoto.compute_kelly_fraction(
                 kelly_base=kelly_base,
-                prices=prices[t - window:t + 1],
+                prices=prices[t - window : t + 1],
             )
 
             # 2. Serotonin ODE → aversive state
@@ -90,10 +90,12 @@ class TestFullPipelineE2E:
             bus.publish_serotonin(level=min(1.0, serotonin_level))
 
             # 3. GABA → inhibition from VIX + volatility
-            rpe = float(dopamine.compute_rpe(
-                realized_pnl=current_return * position,
-                predicted_return=0.0,
-            ))
+            rpe = float(
+                dopamine.compute_rpe(
+                    realized_pnl=current_return * position,
+                    predicted_return=0.0,
+                )
+            )
             inhibition = gaba.update_inhibition(
                 vix=current_vix,
                 volatility=vol,
@@ -134,17 +136,19 @@ class TestFullPipelineE2E:
             capital += pnl
             pnl_history.append(pnl)
 
-            decisions.append({
-                "t": t,
-                "kelly_fraction": kelly_fraction,
-                "serotonin": serotonin_level,
-                "inhibition": inhibition,
-                "rpe": rpe,
-                "hold": should_hold,
-                "position_mult": position_mult,
-                "regime": bus.snapshot().stress_regime.value,
-                "capital": capital,
-            })
+            decisions.append(
+                {
+                    "t": t,
+                    "kelly_fraction": kelly_fraction,
+                    "serotonin": serotonin_level,
+                    "inhibition": inhibition,
+                    "rpe": rpe,
+                    "hold": should_hold,
+                    "position_mult": position_mult,
+                    "regime": bus.snapshot().stress_regime.value,
+                    "capital": capital,
+                }
+            )
 
         # ── Assertions: the pipeline produces sane output ──
         assert len(decisions) == len(returns) - window
@@ -210,11 +214,13 @@ class TestFullPipelineE2E:
 
     def test_crash_triggers_full_defensive_response(self):
         """Simulated crash: all defensive systems engage."""
-        bus = NeuroSignalBus(config=BusConfig(
-            serotonin_hold_threshold=0.6,
-            crisis_rpe_threshold=-0.2,
-            crisis_serotonin_threshold=0.7,
-        ))
+        bus = NeuroSignalBus(
+            config=BusConfig(
+                serotonin_hold_threshold=0.6,
+                crisis_rpe_threshold=-0.2,
+                crisis_serotonin_threshold=0.7,
+            )
+        )
         dopamine = DopamineExecutionAdapter(bus)
         gaba = GABAPositionGate(bus)
         serotonin = SerotoninODE()

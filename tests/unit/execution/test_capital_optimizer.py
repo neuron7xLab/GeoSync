@@ -15,8 +15,8 @@ from execution.capital_optimizer import (
     TargetProfile,
 )
 
-
 # ── PipelineMetrics validation ──────────────────────────────────────
+
 
 class TestPipelineMetrics:
     def test_valid_construction(self):
@@ -34,33 +34,43 @@ class TestPipelineMetrics:
     def test_negative_min_allocation_raises(self):
         with pytest.raises(ValueError, match="min_allocation"):
             PipelineMetrics(
-                expected_return=0.05, volatility=0.1, max_drawdown=0.2,
+                expected_return=0.05,
+                volatility=0.1,
+                max_drawdown=0.2,
                 min_allocation=-0.1,
             )
 
     def test_risk_limit_zero_raises(self):
         with pytest.raises(ValueError, match="risk_limit"):
             PipelineMetrics(
-                expected_return=0.05, volatility=0.1, max_drawdown=0.2,
+                expected_return=0.05,
+                volatility=0.1,
+                max_drawdown=0.2,
                 risk_limit=0.0,
             )
 
     def test_risk_limit_negative_raises(self):
         with pytest.raises(ValueError, match="risk_limit"):
             PipelineMetrics(
-                expected_return=0.05, volatility=0.1, max_drawdown=0.2,
+                expected_return=0.05,
+                volatility=0.1,
+                max_drawdown=0.2,
                 risk_limit=-1.0,
             )
 
     def test_min_allocation_exceeds_risk_limit(self):
         with pytest.raises(ValueError, match="min_allocation must not exceed"):
             PipelineMetrics(
-                expected_return=0.05, volatility=0.1, max_drawdown=0.2,
-                risk_limit=0.3, min_allocation=0.5,
+                expected_return=0.05,
+                volatility=0.1,
+                max_drawdown=0.2,
+                risk_limit=0.3,
+                min_allocation=0.5,
             )
 
 
 # ── TargetProfile validation ────────────────────────────────────────
+
 
 class TestTargetProfile:
     def test_defaults(self):
@@ -81,6 +91,7 @@ class TestTargetProfile:
 
 
 # ── AllocationConstraints validation ────────────────────────────────
+
 
 class TestAllocationConstraints:
     def test_defaults(self):
@@ -105,6 +116,7 @@ class TestAllocationConstraints:
 
 
 # ── Optimizer constructor validation ────────────────────────────────
+
 
 class TestOptimizerInit:
     def test_risk_aversion_zero_raises(self):
@@ -142,6 +154,7 @@ class TestOptimizerInit:
 
 # ── Helpers ─────────────────────────────────────────────────────────
 
+
 def _make_metrics(n: int = 3) -> dict[str, PipelineMetrics]:
     """Return *n* pipeline metrics with reproducible parameters."""
     return {
@@ -155,7 +168,7 @@ def _make_metrics(n: int = 3) -> dict[str, PipelineMetrics]:
 
 
 def _make_correlations_tuple(names: list[str]) -> dict[tuple[str, str], float]:
-    return {(a, b): 0.3 for i, a in enumerate(names) for b in names[i + 1:]}
+    return {(a, b): 0.3 for i, a in enumerate(names) for b in names[i + 1 :]}
 
 
 def _make_correlations_nested(names: list[str]) -> dict[str, dict[str, float]]:
@@ -170,6 +183,7 @@ def _make_correlations_nested(names: list[str]) -> dict[str, dict[str, float]]:
 
 # ── Core optimise / reallocate tests ────────────────────────────────
 
+
 class TestOptimise:
     def test_empty_metrics_raises(self):
         opt = CapitalAllocationOptimizer(rng=np.random.default_rng(0))
@@ -181,7 +195,8 @@ class TestOptimise:
         names = sorted(metrics.keys())
         corr = _make_correlations_tuple(names)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=64, rng=np.random.default_rng(42),
+            monte_carlo_trials=64,
+            rng=np.random.default_rng(42),
         )
         result = opt.optimise(metrics, corr)
         assert isinstance(result, AllocationResult)
@@ -193,7 +208,8 @@ class TestOptimise:
         names = sorted(metrics.keys())
         corr = _make_correlations_nested(names)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=64, rng=np.random.default_rng(7),
+            monte_carlo_trials=64,
+            rng=np.random.default_rng(7),
         )
         result = opt.optimise(metrics, corr)
         assert set(result.weights.keys()) == set(names)
@@ -203,7 +219,8 @@ class TestOptimise:
         names = sorted(metrics.keys())
         corr = _make_correlations_tuple(names)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=32, rng=np.random.default_rng(0),
+            monte_carlo_trials=32,
+            rng=np.random.default_rng(0),
         )
         result = opt.reallocate(metrics, corr)
         assert isinstance(result, AllocationResult)
@@ -219,6 +236,7 @@ class TestOptimise:
 
 # ── Constraints ─────────────────────────────────────────────────────
 
+
 class TestConstraints:
     def test_max_allocation_per_pipeline_applied(self):
         metrics = _make_metrics(2)
@@ -226,7 +244,8 @@ class TestConstraints:
         corr = _make_correlations_tuple(names)
         constraints = AllocationConstraints(max_allocation_per_pipeline=0.6)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=32, rng=np.random.default_rng(0),
+            monte_carlo_trials=32,
+            rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr, constraints=constraints)
         for w in result.weights.values():
@@ -238,7 +257,8 @@ class TestConstraints:
         corr = _make_correlations_tuple(names)
         constraints = AllocationConstraints(min_allocation_per_pipeline=0.1)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=32, rng=np.random.default_rng(1),
+            monte_carlo_trials=32,
+            rng=np.random.default_rng(1),
         )
         result = opt.optimise(metrics, corr, constraints=constraints)
         for w in result.weights.values():
@@ -248,8 +268,11 @@ class TestConstraints:
         # Use constraints to force lower > upper without triggering PipelineMetrics validation
         metrics = {
             "a": PipelineMetrics(
-                expected_return=0.05, volatility=0.1, max_drawdown=0.1,
-                risk_limit=0.3, min_allocation=0.2,
+                expected_return=0.05,
+                volatility=0.1,
+                max_drawdown=0.1,
+                risk_limit=0.3,
+                min_allocation=0.2,
             ),
         }
         corr: dict[tuple[str, str], float] = {}
@@ -264,7 +287,9 @@ class TestConstraints:
     def test_sum_of_min_allocations_exceeds_capital(self):
         metrics = {
             f"p{i}": PipelineMetrics(
-                expected_return=0.05, volatility=0.1, max_drawdown=0.1,
+                expected_return=0.05,
+                volatility=0.1,
+                max_drawdown=0.1,
                 min_allocation=0.4,
             )
             for i in range(4)
@@ -277,6 +302,7 @@ class TestConstraints:
 
 # ── Previous allocation / turnover ──────────────────────────────────
 
+
 class TestPreviousAllocation:
     def test_with_previous_allocation(self):
         metrics = _make_metrics(2)
@@ -284,7 +310,8 @@ class TestPreviousAllocation:
         corr = _make_correlations_tuple(names)
         prev = {names[0]: 0.6, names[1]: 0.4}
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=32, smoothing=0.5,
+            monte_carlo_trials=32,
+            smoothing=0.5,
             rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr, previous_allocation=prev)
@@ -297,10 +324,14 @@ class TestPreviousAllocation:
         prev = {names[0]: 0.7, names[1]: 0.3}
         constraints = AllocationConstraints(max_turnover=0.1)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=32, rng=np.random.default_rng(0),
+            monte_carlo_trials=32,
+            rng=np.random.default_rng(0),
         )
         result = opt.optimise(
-            metrics, corr, previous_allocation=prev, constraints=constraints,
+            metrics,
+            corr,
+            previous_allocation=prev,
+            constraints=constraints,
         )
         assert isinstance(result, AllocationResult)
 
@@ -310,7 +341,8 @@ class TestPreviousAllocation:
         corr = _make_correlations_tuple(names)
         prev = {names[0]: 0.5, names[1]: 0.5}
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=32, smoothing=0.0,
+            monte_carlo_trials=32,
+            smoothing=0.0,
             rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr, previous_allocation=prev)
@@ -319,6 +351,7 @@ class TestPreviousAllocation:
 
 # ── TargetProfile interactions ──────────────────────────────────────
 
+
 class TestTargetProfileOptimise:
     def test_min_return_target(self):
         metrics = _make_metrics(3)
@@ -326,7 +359,8 @@ class TestTargetProfileOptimise:
         corr = _make_correlations_tuple(names)
         tp = TargetProfile(min_return=0.10)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=32, rng=np.random.default_rng(0),
+            monte_carlo_trials=32,
+            rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr, target_profile=tp)
         assert isinstance(result, AllocationResult)
@@ -337,7 +371,8 @@ class TestTargetProfileOptimise:
         corr = _make_correlations_tuple(names)
         tp = TargetProfile(max_volatility=0.01)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=64, rng=np.random.default_rng(0),
+            monte_carlo_trials=64,
+            rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr, target_profile=tp)
         assert isinstance(result, AllocationResult)
@@ -348,7 +383,8 @@ class TestTargetProfileOptimise:
         corr = _make_correlations_tuple(names)
         tp = TargetProfile(max_drawdown=0.001)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=64, rng=np.random.default_rng(0),
+            monte_carlo_trials=64,
+            rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr, target_profile=tp)
         assert isinstance(result, AllocationResult)
@@ -356,13 +392,15 @@ class TestTargetProfileOptimise:
 
 # ── Monte Carlo 0 → stability shortcut ──────────────────────────────
 
+
 class TestZeroMonteCarlo:
     def test_skip_stability_validation(self):
         metrics = _make_metrics(2)
         names = sorted(metrics.keys())
         corr = _make_correlations_tuple(names)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=0, rng=np.random.default_rng(0),
+            monte_carlo_trials=0,
+            rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr)
         assert isinstance(result, AllocationResult)
@@ -370,20 +408,26 @@ class TestZeroMonteCarlo:
 
 # ── Pipeline with risk_limit ────────────────────────────────────────
 
+
 class TestRiskLimit:
     def test_risk_limit_caps_upper_bound(self):
         metrics = {
             "a": PipelineMetrics(
-                expected_return=0.05, volatility=0.1, max_drawdown=0.1,
+                expected_return=0.05,
+                volatility=0.1,
+                max_drawdown=0.1,
                 risk_limit=0.4,
             ),
             "b": PipelineMetrics(
-                expected_return=0.04, volatility=0.1, max_drawdown=0.1,
+                expected_return=0.04,
+                volatility=0.1,
+                max_drawdown=0.1,
             ),
         }
         corr = {("a", "b"): 0.2}
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=32, rng=np.random.default_rng(0),
+            monte_carlo_trials=32,
+            rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr)
         assert result.weights["a"] <= 0.4 + 0.05
@@ -394,7 +438,8 @@ class TestRiskLimit:
         corr = _make_correlations_tuple(names)
         constraints = AllocationConstraints(total_risk_limit=0.005)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=64, rng=np.random.default_rng(0),
+            monte_carlo_trials=64,
+            rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr, constraints=constraints)
         assert isinstance(result, AllocationResult)
@@ -402,13 +447,15 @@ class TestRiskLimit:
 
 # ── AllocationResult notes ──────────────────────────────────────────
 
+
 class TestAllocationResultNotes:
     def test_notes_populated(self):
         metrics = _make_metrics(2)
         names = sorted(metrics.keys())
         corr = _make_correlations_tuple(names)
         opt = CapitalAllocationOptimizer(
-            monte_carlo_trials=32, rng=np.random.default_rng(0),
+            monte_carlo_trials=32,
+            rng=np.random.default_rng(0),
         )
         result = opt.optimise(metrics, corr)
         assert "portfolio_return" in result.notes

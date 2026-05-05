@@ -17,7 +17,6 @@ from types import ModuleType
 from typing import (
     Any,
     Callable,
-    cast,
     Deque,
     Dict,
     Iterable,
@@ -25,6 +24,7 @@ from typing import (
     Optional,
     Protocol,
     Tuple,
+    cast,
     runtime_checkable,
 )
 
@@ -193,9 +193,7 @@ if getattr(bond_evolver, "_DEAP_AVAILABLE", False):
 class PrometheusMetrics:
     """Minimal metrics exporter used in unit tests."""
 
-    def record(
-        self, key: str, value: float, labels: Optional[Dict[str, str]] = None
-    ) -> None:
+    def record(self, key: str, value: float, labels: Optional[Dict[str, str]] = None) -> None:
         print(f"[metric] {key}={value} {labels or {}}")
 
 
@@ -233,9 +231,7 @@ def estimate_entropy(graph: nx.DiGraph) -> float:
     return entropy / max_entropy if max_entropy > 0 else 0.0
 
 
-def gradient_descent_step(
-    graph: nx.DiGraph, snap: MetricsSnapshot, lr: float = 0.02
-) -> bool:
+def gradient_descent_step(graph: nx.DiGraph, snap: MetricsSnapshot, lr: float = 0.02) -> bool:
     bonds = {(u, v): data.get("type", "vdw") for u, v, data in graph.edges(data=True)}
     base_energy = system_free_energy(
         bonds,
@@ -286,10 +282,7 @@ def gradient_descent_step(
                 snap.coherency,
             )
             candidate_energy = (
-                non_bond_component
-                + total_bond_energy
-                - base_contribution
-                + candidate_contribution
+                non_bond_component + total_bond_energy - base_contribution + candidate_contribution
             )
 
             if candidate_energy < best_energy - improvement_threshold:
@@ -300,9 +293,7 @@ def gradient_descent_step(
         if best_type != current_type:
             graph.edges[(src, dst)]["type"] = best_type
             bonds[(src, dst)] = best_type
-            total_bond_energy = (
-                total_bond_energy - base_contribution + best_contribution
-            )
+            total_bond_energy = total_bond_energy - base_contribution + best_contribution
             bond_contributions[(src, dst)] = best_contribution
             base_energy = best_energy
             non_bond_component = base_energy - total_bond_energy
@@ -315,9 +306,7 @@ class ThermoController:
     """Thermodynamic control loop with safety guarantees."""
 
     AUDIT_LOG_PATH = Path(
-        os.environ.get(
-            "THERMO_AUDIT_LOG_PATH", "/var/log/geosync/thermo_audit.jsonl"
-        )
+        os.environ.get("THERMO_AUDIT_LOG_PATH", "/var/log/geosync/thermo_audit.jsonl")
     )
 
     def __init__(
@@ -386,9 +375,7 @@ class ThermoController:
     ) -> Callable[[Dict[str, float]], None]:
         """Register an agent and return a telemetry hook for runtime metrics."""
 
-        if not isinstance(
-            agent, SupportsThermoFeedback
-        ):  # pragma: no cover - defensive
+        if not isinstance(agent, SupportsThermoFeedback):  # pragma: no cover - defensive
             raise TypeError("agent must implement SupportsThermoFeedback")
         if name in self._agent_bindings:
             raise ValueError(f"agent '{name}' is already registered")
@@ -441,9 +428,7 @@ class ThermoController:
 
         latency_ratio = self._detect_latency_spike(snapshot)
         if snapshot.coherency:
-            coherency = float(
-                sum(snapshot.coherency.values()) / len(snapshot.coherency)
-            )
+            coherency = float(sum(snapshot.coherency.values()) / len(snapshot.coherency))
         else:
             coherency = 0.0
 
@@ -458,9 +443,7 @@ class ThermoController:
                 continue
 
             metrics_list = list(binding.metrics)
-            cvar_values = [
-                float(m.get("cvar_hat", 0.0)) for m in metrics_list if "cvar_hat" in m
-            ]
+            cvar_values = [float(m.get("cvar_hat", 0.0)) for m in metrics_list if "cvar_hat" in m]
             if cvar_values:
                 avg_cvar = float(np.mean(cvar_values))
                 tail_risk = max(0.0, binding.agent.cvar_floor - avg_cvar)
@@ -478,9 +461,7 @@ class ThermoController:
             else:
                 coverage_shortfall = 0.0
 
-            ood_values = [
-                float(m.get("ood_score", 0.0)) for m in metrics_list if "ood_score" in m
-            ]
+            ood_values = [float(m.get("ood_score", 0.0)) for m in metrics_list if "ood_score" in m]
             if ood_values:
                 tail_risk += max(0.0, float(np.mean(ood_values)) - 0.2) * 0.1
 
@@ -512,9 +493,7 @@ class ThermoController:
                 existing = getattr(REGISTRY, "_names_to_collectors", {}).get(name)
                 if existing is not None:
                     return existing
-                return factory(
-                    name, documentation, labelnames=labels_tuple, registry=None
-                )
+                return factory(name, documentation, labelnames=labels_tuple, registry=None)
 
         self.integrity_ratio = _create(
             Gauge,
@@ -564,16 +543,12 @@ class ThermoController:
             return df
 
         raw_signals = df["coherency"].to_numpy(dtype=float).tolist()
-        filtered_signals = self.stabilizer.process_signals_sync(
-            raw_signals, ga_phase=ga_phase
-        )
+        filtered_signals = self.stabilizer.process_signals_sync(raw_signals, ga_phase=ga_phase)
         eventlog = self.stabilizer.get_eventlog()
         self._last_stabilizer_event = eventlog[-1] if eventlog else None
 
         if self.stabilizer.get_system_mode() == "PoR":
-            self.stabilizer.notify_external_block(
-                ga_phase=ga_phase, reason="system_mode_PoR"
-            )
+            self.stabilizer.notify_external_block(ga_phase=ga_phase, reason="system_mode_PoR")
             eventlog = self.stabilizer.get_eventlog()
             self._last_stabilizer_event = eventlog[-1] if eventlog else None
             self._record_homeostasis_metrics(self._last_stabilizer_event)
@@ -603,15 +578,11 @@ class ThermoController:
         filtered_array = np.asarray(filtered_signals, dtype=float)
         if len(filtered_array) != len(stabilised_df):
             indices = np.linspace(0, len(filtered_array) - 1, num=len(stabilised_df))
-            filtered_array = np.interp(
-                indices, np.arange(len(filtered_array)), filtered_array
-            )
+            filtered_array = np.interp(indices, np.arange(len(filtered_array)), filtered_array)
         stabilised_df["coherency"] = filtered_array
         return stabilised_df
 
-    def _handle_stabilizer_veto(
-        self, snapshot: MetricsSnapshot, event: Dict[str, Any]
-    ) -> None:
+    def _handle_stabilizer_veto(self, snapshot: MetricsSnapshot, event: Dict[str, Any]) -> None:
         current_F = self._compute_free_energy(snapshot=snapshot)
         phase = str(event.get("data", {}).get("phase", "unknown"))
         integrity = float(event.get("data", {}).get("integrity", 0.0))
@@ -665,10 +636,7 @@ class ThermoController:
         self.broadcast_agent_feedback(snapshot)
 
         last_event = self._last_stabilizer_event or {}
-        if (
-            isinstance(last_event, dict)
-            and last_event.get("data", {}).get("action") == "veto"
-        ):
+        if isinstance(last_event, dict) and last_event.get("data", {}).get("action") == "veto":
             self._handle_stabilizer_veto(snapshot, last_event)
             return
 
@@ -707,15 +675,9 @@ class ThermoController:
         self._update_adaptive_epsilon(self.dF_dt)
         self._update_bottleneck(snapshot)
 
-        crisis_mode = CrisisMode.detect(
-            current_F, self.baseline_F, self.crisis_ga.crisis_threshold
-        )
-        control_state = (
-            CRITICAL_HALT_STATE if self.circuit_breaker_active else crisis_mode
-        )
-        in_crisis = (
-            crisis_mode != CrisisMode.NORMAL or abs(self.dF_dt) > self.epsilon_adaptive
-        )
+        crisis_mode = CrisisMode.detect(current_F, self.baseline_F, self.crisis_ga.crisis_threshold)
+        control_state = CRITICAL_HALT_STATE if self.circuit_breaker_active else crisis_mode
+        in_crisis = crisis_mode != CrisisMode.NORMAL or abs(self.dF_dt) > self.epsilon_adaptive
 
         resulting_F = current_F
         decision_action = "accepted"
@@ -739,9 +701,7 @@ class ThermoController:
             if not tolerance.accepted:
                 self.circuit_breaker_active = True
                 control_state = CRITICAL_HALT_STATE
-                log_level = (
-                    logging.ERROR if not was_active_before_tolerance else logging.INFO
-                )
+                log_level = logging.ERROR if not was_active_before_tolerance else logging.INFO
                 message = (
                     "Thermodynamic circuit breaker activated due to unsafe topology proposal"
                     if not was_active_before_tolerance
@@ -831,9 +791,8 @@ class ThermoController:
 
                     if proceed:
                         reward = -abs(crisis_result.proposed_F - current_F)
-                        if (
-                            crisis_result.new_topology is not None
-                            and self._apply_topology_changes(crisis_result.new_topology)
+                        if crisis_result.new_topology is not None and self._apply_topology_changes(
+                            crisis_result.new_topology
                         ):
                             self.current_topology = self._graph_to_topology(self.graph)
                             resulting_F = crisis_result.proposed_F
@@ -846,10 +805,7 @@ class ThermoController:
                             steps_in_crisis=self.crisis_step_count,
                         )
 
-                        if (
-                            not self.circuit_breaker_active
-                            and crisis_result.action is not None
-                        ):
+                        if not self.circuit_breaker_active and crisis_result.action is not None:
                             self.recovery_agent.update(
                                 crisis_result.state,
                                 crisis_result.action,
@@ -857,9 +813,7 @@ class ThermoController:
                                 next_state,
                             )
                         decision_action = "accepted"
-            control_state = (
-                crisis_mode if not self.circuit_breaker_active else CRITICAL_HALT_STATE
-            )
+            control_state = crisis_mode if not self.circuit_breaker_active else CRITICAL_HALT_STATE
         else:
             self.crisis_step_count = 0
             if not self.circuit_breaker_active and gradient_descent_step(
@@ -877,9 +831,7 @@ class ThermoController:
         self.previous_F = current_F
         self.previous_t = current_time
         self.controller_state = control_state
-        topology_changes = self._diff_topologies(
-            topology_before_step, self.current_topology
-        )
+        topology_changes = self._diff_topologies(topology_before_step, self.current_topology)
         self._record_telemetry(
             F_old=F_before_action,
             F_new=current_F,
@@ -1062,9 +1014,7 @@ class ThermoController:
         latencies: Dict[Tuple[str, str], float] = {}
         coherency: Dict[Tuple[str, str], float] = {}
         if edges:
-            df = pd.DataFrame(
-                {"latency": latency_values, "coherency": coherency_values}
-            )
+            df = pd.DataFrame({"latency": latency_values, "coherency": coherency_values})
             filtered = self.vlpo_filter.filter(df, target_col="coherency")
             filtered = self._apply_stabilizer(filtered, ga_phase)
             for edge, latency, coherence in zip(
@@ -1096,9 +1046,7 @@ class ThermoController:
 
     def _update_bottleneck(self, snapshot: MetricsSnapshot) -> None:
         if snapshot.latencies:
-            (src, dst), value = max(
-                snapshot.latencies.items(), key=lambda item: item[1]
-            )
+            (src, dst), value = max(snapshot.latencies.items(), key=lambda item: item[1])
             self.bottleneck_edge = f"{src}->{dst}"
             self.bottleneck_cost = value
         else:
@@ -1179,8 +1127,7 @@ class ThermoController:
     def _predict_recovery_window(self, F_new: float, window_size: int) -> List[float]:
         decay = 0.9
         return [
-            F_new * (decay**i) + self.baseline_F * (1 - decay**i)
-            for i in range(1, window_size + 1)
+            F_new * (decay**i) + self.baseline_F * (1 - decay**i) for i in range(1, window_size + 1)
         ]
 
     def _apply_topology_changes(self, new_topology: Topology) -> bool:
@@ -1197,10 +1144,7 @@ class ThermoController:
 
     # Data conversion ----------------------------------------------------
     def _graph_to_topology(self, graph: nx.DiGraph) -> Topology:
-        return [
-            (src, dst, data.get("type", "vdw"))
-            for src, dst, data in graph.edges(data=True)
-        ]
+        return [(src, dst, data.get("type", "vdw")) for src, dst, data in graph.edges(data=True)]
 
     def _diff_topologies(
         self, old: Iterable[Tuple[str, str, str]], new: Iterable[Tuple[str, str, str]]
@@ -1231,9 +1175,7 @@ class ThermoController:
         )
 
     def _evaluate_topology(self, topology: Topology) -> float:
-        return self._compute_free_energy(
-            topology=topology, snapshot=self._latest_snapshot
-        )
+        return self._compute_free_energy(topology=topology, snapshot=self._latest_snapshot)
 
     # Public getters -----------------------------------------------------
     def get_current_F(self) -> float:
@@ -1431,9 +1373,7 @@ class FHMC:
         actions = list(action_scalar_series)
         if len(actions) >= 500:
             tail = np.asarray(actions[-2000:], dtype=float)
-            alpha = dfa_alpha(
-                tail, min_win=50, max_win=min(2000, len(tail) // 2), n_win=12
-            )
+            alpha = dfa_alpha(tail, min_win=50, max_win=min(2000, len(tail) // 2), n_win=12)
             self._alpha_hist.append(alpha)
             lo, hi = self.cfg["alpha_target"]
             if self.cfg["mfs"].get("adapt_alpha", False):

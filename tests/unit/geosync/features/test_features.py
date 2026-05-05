@@ -13,8 +13,7 @@ import pytest
 # Import RicciCurvatureGraph
 spec = importlib.util.spec_from_file_location(
     "ricci",
-    Path(__file__).parent.parent.parent.parent.parent
-    / "src/geosync/features/ricci.py",
+    Path(__file__).parent.parent.parent.parent.parent / "src/geosync/features/ricci.py",
 )
 ricci_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ricci_module)
@@ -23,8 +22,7 @@ RicciCurvatureGraph = ricci_module.RicciCurvatureGraph
 # Import TopoSentinel
 spec = importlib.util.spec_from_file_location(
     "topo",
-    Path(__file__).parent.parent.parent.parent.parent
-    / "src/geosync/features/topo.py",
+    Path(__file__).parent.parent.parent.parent.parent / "src/geosync/features/topo.py",
 )
 topo_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(topo_module)
@@ -33,8 +31,7 @@ TopoSentinel = topo_module.TopoSentinel
 # Import CausalGuard
 spec = importlib.util.spec_from_file_location(
     "causal",
-    Path(__file__).parent.parent.parent.parent.parent
-    / "src/geosync/features/causal.py",
+    Path(__file__).parent.parent.parent.parent.parent / "src/geosync/features/causal.py",
 )
 causal_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(causal_module)
@@ -241,9 +238,7 @@ class TestCausalGuard:
     def test_insufficient_data(self):
         """Test with insufficient data."""
         dates = pd.date_range("2024-01-01", periods=5, freq="1h")
-        df = pd.DataFrame(
-            {"target": [1, 2, 3, 4, 5], "driver": [5, 4, 3, 2, 1]}, index=dates
-        )
+        df = pd.DataFrame({"target": [1, 2, 3, 4, 5], "driver": [5, 4, 3, 2, 1]}, index=dates)
 
         detector = CausalGuard(max_lag=5)
         result = detector.fit_transform(df, target="target")
