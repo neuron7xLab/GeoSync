@@ -240,9 +240,10 @@ class TopoSentinel:
         cleaned = corr.fillna(0.0)
         # pandas 3 Copy-on-Write returns ``.values`` as a read-only view;
         # ``np.fill_diagonal`` writes in place. Build a writable buffer,
-        # set the diagonal there, then assign back.
+        # set the diagonal there, then assign back via the input frame's own
+        # constructor (avoids a runtime import of the pandas top-level name).
         values = np.array(cleaned.values, copy=True)
         np.fill_diagonal(values, 1.0)
-        cleaned = DataFrame(values, index=cleaned.index, columns=cleaned.columns)
+        cleaned = type(cleaned)(values, index=cleaned.index, columns=cleaned.columns)
         cleaned = (cleaned + cleaned.T) / 2.0
         return cleaned

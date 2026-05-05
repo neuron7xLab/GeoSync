@@ -69,6 +69,11 @@ ignore_imports =
     core.integration.system_integrator -> application.system_orchestrator
     # core ↔ runtime — registry shortcut to a runtime agent; tracked:
     core.agent.registry -> runtime.misanthropic_agent
+    # core ↔ runtime — TYPE_CHECKING-only type-hint reference to the
+    # RebusGate primitive (used solely for typing; not imported at runtime).
+    # Tracked for eventual relocation of the RebusGate type into a shared
+    # `core/types` module so the type hint stops crossing the boundary.
+    core.neuro.epistemic_validation -> runtime.rebus_gate
 
 # ---------------------------------------------------------------------------
 # Contract 2 — core.physics is hardened: no I/O, scheduling, or HTTP.
