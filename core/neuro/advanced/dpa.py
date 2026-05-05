@@ -1,6 +1,24 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Dopamine prediction network for advanced neuro trading."""
+"""Dopamine prediction network — research-tier moving-average tracker.
+
+⚠️ SCOPE OF NEURO-NAMING — read before extending.
+
+This module uses biological vocabulary (``_dopamine_levels``, ``_serotonin``,
+``_norepinephrine``) as decorative scalar dials updated by ad-hoc multiplicative
+rules. It is NOT a functional homologue of midbrain dopamine — there is no
+TD prediction error, no eligibility trace, no D1/D2 receptor model, no
+phasic-vs-tonic decomposition.
+
+For genuine Schultz-style RPE see:
+  * ``backtest/dopamine_td.py``                  — Numba-accelerated TD(0)
+  * ``core/neuro/dopamine_execution_adapter.py`` — RPE bridge to NeuroSignalBus
+  * ``src/geosync/core/neuro/dopamine/dopamine_controller.py`` — full controller
+
+Use ``DopaminePredictionNetwork`` only as a research-tier moving-average tracker
+where the bio-naming is an analogy, not a contract. Do NOT wire its outputs
+into any module that depends on INV-DA1..7.
+"""
 
 from __future__ import annotations
 
