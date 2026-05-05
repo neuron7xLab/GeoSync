@@ -22,6 +22,19 @@ def phase_distance(a: float, b: float) -> float:
 
 
 def phase_alignment_potential(node_phases: list[float], baseline_phases: list[float]) -> float:
+    """Mean phase potential (1 - cos δ) over zipped (node, baseline) pairs.
+
+    Public helper. Fails closed on empty input (no implicit zero-fallback)
+    and on non-finite phases (NaN/Inf would silently propagate as NaN
+    pre-2026-05-05 cycle #5).
+
+    Returns a value in [0, 2] for valid input.
+    """
+    if not node_phases or not baseline_phases:
+        raise ValueError("phase vectors must be non-empty")
+    if len(node_phases) != len(baseline_phases):
+        raise ValueError("node_phases and baseline_phases must have equal length")
+    _ensure_finite_phase_vectors(node_phases, baseline_phases)
     diffs = [phase_distance(n, b) for n, b in zip(node_phases, baseline_phases)]
     return sum(1.0 - math.cos(d) for d in diffs) / len(diffs)
 
