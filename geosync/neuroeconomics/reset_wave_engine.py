@@ -292,8 +292,15 @@ def run_reset_wave_async_resilient(
         candidate = phases[:]
         for i, d in enumerate(diffs):
             if rng.random() < async_cfg.dropout_rate:
+                # Manifold-correct re-entry: use signed shortest phase distance,
+                # not naive subtraction. At the ±π boundary the naive form
+                # routes the node through the long arc (e.g. candidate=+π-ε,
+                # base=-π+ε gives naive_diff ≈ -2π whereas the shortest signed
+                # arc is ≈ +2ε). wrap_phase outside hides the overshoot but
+                # not the wrong direction — the bug was silent until the
+                # 2026-05-05 cross-stress probe surfaced it.
                 candidate[i] = wrap_phase(
-                    candidate[i] + async_cfg.reentry_gain * (base[i] - candidate[i])
+                    candidate[i] + async_cfg.reentry_gain * phase_distance(candidate[i], base[i])
                 )
                 continue
             jitter = rng.uniform(-async_cfg.message_jitter, async_cfg.message_jitter)
