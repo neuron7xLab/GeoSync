@@ -25,7 +25,14 @@ falsifies a distinct failure mode (spurious correlation, multiple-testing
 inflation, look-ahead leakage, common-factor confounding, single-window
 overfitting). All axes concord: IC $= 0.122$ at permutation $p = 0.002$;
 95\% block-bootstrap CI $[0.029, 0.210]$ excludes zero; deflated Sharpe
-$= 15.1$; 5/5 CV folds positive; $\beta = 1.80$ and $H = 1.01$ agree on
+$\mathrm{DSR}_{\mathrm{IC}} = 15.1$
+(\textbf{caveat}: this is the deflated Sharpe of the \emph{IC bar series}
+on a single 5.3-hour in-sample session, computed per
+Bailey \& L\'opez de Prado (2014); it is NOT an annualised trading Sharpe and
+should not be compared to one --- the realistic capital-deployable edge
+after frictions is characterised by the maker-fill break-even
+$f^{\star}\approx 0.232$ in \S\ref{cost-model});
+5/5 CV folds positive; $\beta = 1.80$ and $H = 1.01$ agree on
 persistence; 45/45 pairs show bidirectional transfer entropy; 33/36 pairs
 retain private coupling after BTC-OFI conditioning; 82.1\% of 40-minute
 walk-forward windows reproduce the edge at $p<0.05$. Under a realistic

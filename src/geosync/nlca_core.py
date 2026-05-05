@@ -1,5 +1,34 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
+"""NLCA Core — Neuro-Lyapunov Coordination Adapter (research/optimization layer).
+
+Runtime backbone for the ``neuro_optimizer`` benchmark suite and neuro-orchestrator
+demos: a queue-driven, deterministic coordinator that wires together heterogeneous
+neuro modules (Kuramoto, dopamine TD, ECS regulator, GABA gate) under a shared
+Lyapunov-bounded scheduler.
+
+Responsibilities
+----------------
+* Argparse-driven CLI entry-point for reproducible benchmark runs.
+* Deterministic event queue with seeded RNG propagation; every event carries
+  ``(seed, stream_id, event_id)`` for indexed-RNG replay (see also
+  ``runtime.thermo_memory_manager``).
+* Telemetry sink for benchmarks/profilers — emits structured logging events
+  consumed by ``benchmarks/profile_neuro_optimizer.py``.
+
+Determinism contract
+--------------------
+Pure functions over the queue; no module-level singletons; no wall-clock
+dependence in core paths. ``time.perf_counter`` is isolated to telemetry —
+never feeds back into control state.
+
+Status
+------
+RESEARCH-TIER (not production). Used by benchmarks and the neuro-optimization
+guide (``docs/neuro_optimization_guide.md``). For production cognitive loops
+use ``runtime.cognitive_bridge`` instead.
+"""
+
 import argparse
 import logging
 import queue

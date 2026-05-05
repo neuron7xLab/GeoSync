@@ -61,6 +61,13 @@ class NeuroSignals:
 
     Each signal has a biological analogue and a bounded valid range:
         dopamine_rpe     ∈ [-1, 1]   — reward prediction error (TD error)
+            INV-DA7 scope: ∂δ/∂r = 1 holds ONLY for the raw-TD path
+            (DopamineController.compute_rpe). DopamineExecutionAdapter
+            publishes tanh(scale * raw_rpe) into this same slot; for
+            that path ∂δ/∂r = sech²(·) ≠ 1. Consumers that depend on
+            the algebraic identity must read from the controller path,
+            not from the adapter post-tanh value. See
+            .claude/physics/INVARIANTS.yaml::INV-DA7 scope_note.
         serotonin_level  ∈ [0, 1]    — aversive state / risk aversion
         gaba_inhibition  ∈ [0, 1]    — action inhibition coefficient
         nak_energy       ∈ [0, 1]    — arousal / metabolic energy state
