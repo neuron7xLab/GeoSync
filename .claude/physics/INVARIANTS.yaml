@@ -125,6 +125,46 @@ explosive_sync:
     priority: P1
 
 # ═══════════════════════════════════════════════════
+# STUART-LANDAU ES (T2b — amplitude-preserving extension of T2)
+# ═══════════════════════════════════════════════════
+
+stuart_landau_es:
+  amplitude_non_negative:
+    id: INV-SL1
+    type: universal
+    statement: "Stuart-Landau amplitude A_i = |z_i| ≥ 0 always"
+    test_type: property_test
+    falsification: "Any A_i < 0 in fitted Stuart-Landau ensemble"
+    priority: P0
+    source: core/physics/stuart_landau_es.py
+    tests: tests/unit/physics/test_T2b_stuart_landau_es.py
+    references:
+      - "Lee, U. et al. (2025). PNAS 122(44). DOI: 10.1073/pnas.2505434122"
+      - "Stuart, J. T. (1960); Landau, L. D. (1944)."
+
+  es_proximity_bounded:
+    id: INV-SL2
+    type: universal
+    statement: "es_proximity ∈ [0, 1] always"
+    test_type: property_test
+    falsification: "es_proximity outside [0, 1] for any input"
+    priority: P0
+    source: core/physics/stuart_landau_es.py
+    tests: tests/unit/physics/test_T2b_stuart_landau_es.py
+
+  es_proximity_leads_r_peak:
+    id: INV-T2b
+    type: qualitative
+    statement: "Rolling ES proximity peak precedes R(t) peak by τ ≥ 1 bar in crisis episodes"
+    test_type: sweep_test
+    falsification: "leads_rate < 0.6 OR p_value > 0.05 across OOS crisis episodes"
+    priority: P1
+    source: core/physics/stuart_landau_es.py
+    tests: tests/unit/physics/test_T2b_stuart_landau_es.py
+    references:
+      - "Lee, U. et al. (2025). PNAS 122(44)."
+
+# ═══════════════════════════════════════════════════
 # SEROTONIN ODE
 # ═══════════════════════════════════════════════════
 
