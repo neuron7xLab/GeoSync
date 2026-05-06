@@ -99,3 +99,13 @@ Brotli>=1.2.0
 # scientific/ML extras (e.g. torchvision-adjacent paths). Pin the floor
 # here so transitive resolution cannot regress below the fix line.
 pillow>=12.2.0
+
+# ============================================================================
+# Secret-scan tooling — version floor for detect-secrets-hook correctness
+# ============================================================================
+# detect-secrets 1.5.0 has a benign exit=3 false-positive: the hook
+# announces "baseline updated" and exits non-zero even when the on-disk
+# baseline is byte-identical (pre/post `diff` shows no change). Patch
+# releases above 1.5.0 fix the spurious-update path. Pinning the floor
+# avoids the secrets-supply-chain gate flapping on no-op runs.
+detect-secrets>=1.5.42
