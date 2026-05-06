@@ -1,0 +1,2 @@
+run_date,latest_bar_json,stale_assets_over_5bdays,missing_bars_before_ffill,missing_bars_after_ffill,misaligned_pct,forward_fill_count,data_coverage_pct,timezone_mismatch,operationally_unsafe
+2026-05-06,"{""PORTFOLIO"": ""2026-05-06""}",,0,0,0.0,0,100.0,False,False
