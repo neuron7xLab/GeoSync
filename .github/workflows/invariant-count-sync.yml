@@ -55,7 +55,7 @@ jobs:
           echo "—"
           echo "registry size: $(python scripts/count_invariants.py)"
 
-      - name: Fail-closed: documentation must match registry count
+      - name: "Fail-closed: documentation must match registry count"
         run: |
           set -euo pipefail
           PYTHONPATH=scripts python scripts/check_invariant_count_sync.py

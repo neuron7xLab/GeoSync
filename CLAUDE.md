@@ -56,7 +56,7 @@ GeoSync is a quantitative trading platform with neuroscience-inspired risk manag
 
 ---
 
-## INVARIANT REGISTRY — 87 invariants loaded by kernel self-check
+## INVARIANT REGISTRY — 90 invariants loaded by kernel self-check
 
 > **Single source of truth:** `.claude/physics/INVARIANTS.yaml` (`python scripts/count_invariants.py`). The 2026-04-30 external audit corrected a four-way drift (`57 / 66 / 67 / 87`); CI gate `invariant-count-sync` now fail-closes on any future divergence between this header, README badges, BASELINE.md, and the registry.
 

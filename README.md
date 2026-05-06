@@ -21,7 +21,7 @@
 Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynamics  ·  Cryptobiosis
 ```
 
-*Physics-inspired quantitative research platform with 87 machine-checkable invariants.*
+*Physics-inspired quantitative research platform with 90 machine-checkable invariants.*
 *Every signal traces back to peer-reviewed science. Every clamp traces back to a law.*
 
 <br>
@@ -145,13 +145,13 @@ dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
 
 ## Physics Kernel
 
-GeoSync is a **physics-inspired quantitative research platform with a partially machine-checkable invariant layer**, not a "verified physical system" — that stronger claim was retracted on 2026-04-30 after an external audit ([CLAIMS.md](CLAIMS.md), [ALTERNATIVE_HYPOTHESES.md](.claude/physics/ALTERNATIVE_HYPOTHESES.md)). The physics kernel (`.claude/physics/`) declares **87 machine-checkable invariants** across the modules listed in [`INVARIANTS.yaml`](.claude/physics/INVARIANTS.yaml). Tests grounded in `INV-*` ids are *mathematical witnesses* of a specific invariant; the `BASELINE.md` ledger tracks how many of them currently exist (it is intentionally smaller than the registry — coverage growth is gated, not assumed).
+GeoSync is a **physics-inspired quantitative research platform with a partially machine-checkable invariant layer**, not a "verified physical system" — that stronger claim was retracted on 2026-04-30 after an external audit ([CLAIMS.md](CLAIMS.md), [ALTERNATIVE_HYPOTHESES.md](.claude/physics/ALTERNATIVE_HYPOTHESES.md)). The physics kernel (`.claude/physics/`) declares **90 machine-checkable invariants** across the modules listed in [`INVARIANTS.yaml`](.claude/physics/INVARIANTS.yaml). Tests grounded in `INV-*` ids are *mathematical witnesses* of a specific invariant; the `BASELINE.md` ledger tracks how many of them currently exist (it is intentionally smaller than the registry — coverage growth is gated, not assumed).
 
 Control-plane safety properties are additionally **model-checked in TLA⁺** — see [`formal/tla/AdmissionGate.tla`](formal/tla/AdmissionGate.tla) for the four-barrier admission gate with three TLC-checkable invariants (`TypeOK`, `SafeFirstRejectionWins`, `RejectCodeMatchesBarrier`). CI runs TLC on every PR via [`formal-verification.yml`](.github/workflows/formal-verification.yml).
 
 ```
                      ┌──────────────────────────────────────┐
-                     │   87 INVARIANTS  ·  registry-tracked  │
+                     │   90 INVARIANTS  ·  registry-tracked  │
                      │   Every assert derives its tolerance  │
                      │   from the law's formula, not from    │
                      │   a magic literal.                    │
@@ -778,6 +778,6 @@ Trading financial instruments involves substantial risk of loss. GeoSync provide
 
 [![MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat)](LICENSE)
 
-<sub>Built on peer-reviewed science. Physics-first, 87 invariants loaded from `.claude/physics/INVARIANTS.yaml`, every clamp documented.</sub>
+<sub>Built on peer-reviewed science. Physics-first, 90 invariants loaded from `.claude/physics/INVARIANTS.yaml`, every clamp documented.</sub>
 
 </div>

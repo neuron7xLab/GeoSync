@@ -10,7 +10,7 @@ preserved as historical context, not as the current count.
 ## 0. TL;DR (current state, 2026-04-30)
 
 - **Physics kernel is real.** `.claude/physics/` currently contains
-  **87 invariants** (per `python scripts/count_invariants.py`, single source of
+  **90 invariants** (per `python scripts/count_invariants.py`, single source of
   truth: `.claude/physics/INVARIANTS.yaml`), 5 theory files, a 780-line
   validator with 7 levels (L1–L5 + C1–C2), and a self-check that passes.
   CI gate `invariant-count-sync` fail-closes on any drift between this file,

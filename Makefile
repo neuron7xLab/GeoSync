@@ -103,6 +103,14 @@ test:
 	pytest tests/ -m "not slow and not heavy_math and not nightly and not flaky" -q
 	@echo "✅ Tests passed"
 
+.PHONY: eval-tick
+eval-tick:
+	@echo "📊 Running cross-asset Kuramoto shadow evaluator (persisting to results/shadow_live.json)..."
+	@mkdir -p results
+	@$(PYTHON) scripts/evaluate_cross_asset_kuramoto_shadow.py | tee results/shadow_live.json >/dev/null
+	@test -s results/shadow_live.json || { echo "❌ results/shadow_live.json not produced or empty"; exit 1; }
+	@echo "✅ shadow_live.json refreshed at $$(stat -c %Y results/shadow_live.json)"
+
 .PHONY: lint
 lint: lint-python lint-go lint-shell
 	@echo "✅ All linters passed"
