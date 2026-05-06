@@ -191,9 +191,7 @@ def compute_error(
         higher_is_better=True,  # Higher PnL is better
     )
 
-    latency_abs = absolute_error(
-        prediction.expected_latency_ms, outcome.actual_latency_ms
-    )
+    latency_abs = absolute_error(prediction.expected_latency_ms, outcome.actual_latency_ms)
     latency_rel = relative_error(
         prediction.expected_latency_ms, outcome.actual_latency_ms, latency_scale
     )

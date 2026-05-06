@@ -95,9 +95,11 @@ def compute_acceleration(
         >>> acceleration = compute_acceleration(force, mass)
     """
     # Protect against division by zero
-    mass_safe = np.where(np.abs(mass) < 1e-10, 1e-10, mass) if isinstance(
-        mass, np.ndarray
-    ) else (mass if abs(mass) >= 1e-10 else 1e-10)
+    mass_safe = (
+        np.where(np.abs(mass) < 1e-10, 1e-10, mass)
+        if isinstance(mass, np.ndarray)
+        else (mass if abs(mass) >= 1e-10 else 1e-10)
+    )
 
     return force / mass_safe
 

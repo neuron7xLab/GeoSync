@@ -51,9 +51,7 @@ class RawEvent(BaseModel):
 
     source: str = Field(..., min_length=1, description="Data source identifier")
     timestamp: datetime = Field(..., description="Event timestamp (UTC)")
-    payload: dict[str, Any] = Field(
-        default_factory=dict, description="Event payload data"
-    )
+    payload: dict[str, Any] = Field(default_factory=dict, description="Event payload data")
     meta: dict[str, Any] = Field(default_factory=dict, description="Optional metadata")
 
     @field_validator("timestamp", mode="before")

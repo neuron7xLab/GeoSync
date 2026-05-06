@@ -83,9 +83,7 @@ def test_mle_sign_matches_dynamical_regime() -> None:
         logistic[i] = 4.0 * logistic[i - 1] * (1.0 - logistic[i - 1])
     # dim=2 (natural for 1D map), max_divergence_steps=20 (short fit window
     # to capture the initial exponential growth before saturation on the attractor)
-    mle_logistic = maximal_lyapunov_exponent(
-        logistic, dim=2, tau=1, max_divergence_steps=20
-    )
+    mle_logistic = maximal_lyapunov_exponent(logistic, dim=2, tau=1, max_divergence_steps=20)
 
     print(
         f"  MLE(noise)={mle_noise:.4f}, MLE(damped)={mle_damped:.4f}, MLE(logistic)={mle_logistic:.4f}"

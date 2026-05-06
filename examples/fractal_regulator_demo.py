@@ -45,9 +45,7 @@ def demo_crisis_detection():
     print("DEMO 2: Crisis Detection")
     print("=" * 60)
 
-    regulator = EEPFractalRegulator(
-        window_size=100, crisis_threshold=0.4, seed=DEFAULT_SEED
-    )
+    regulator = EEPFractalRegulator(window_size=100, crisis_threshold=0.4, seed=DEFAULT_SEED)
 
     rng = np.random.default_rng(DEFAULT_SEED)
 

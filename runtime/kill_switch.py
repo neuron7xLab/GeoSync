@@ -60,9 +60,7 @@ class KillSwitchEvent:
         """Convert event to dictionary for serialization."""
         return {
             "timestamp": self.timestamp,
-            "timestamp_iso": datetime.fromtimestamp(
-                self.timestamp, tz=timezone.utc
-            ).isoformat(),
+            "timestamp_iso": datetime.fromtimestamp(self.timestamp, tz=timezone.utc).isoformat(),
             "action": self.action,
             "reason": self.reason,
             "source": self.source,
@@ -173,9 +171,7 @@ class KillSwitchManager:
         Returns:
             True if activation succeeded, False otherwise
         """
-        reason_str = (
-            reason.value if isinstance(reason, KillSwitchReason) else str(reason)
-        )
+        reason_str = reason.value if isinstance(reason, KillSwitchReason) else str(reason)
 
         with self._state_lock:
             now = time.time()
@@ -336,9 +332,7 @@ class KillSwitchManager:
                 "activation_reason": self.state.activation_reason,
                 "activation_source": self.state.activation_source,
                 "active_duration_seconds": (
-                    now - self.state.activation_time
-                    if self.state.activation_time
-                    else None
+                    now - self.state.activation_time if self.state.activation_time else None
                 ),
                 "total_activations": self.state.activation_count,
                 "total_deactivations": self.state.deactivation_count,

@@ -38,9 +38,7 @@ def _coerce(value: Any) -> Any:
 def _canonical_dumps(payload: Mapping[str, Any]) -> str:
     """Return a canonical JSON representation with stable key ordering."""
 
-    return json.dumps(
-        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    )
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,9 +111,7 @@ class LedgerMetadata:
         metadata.created_at = str(payload.get("created_at", metadata.created_at))
         metadata.updated_at = str(payload.get("updated_at", metadata.updated_at))
         metadata.event_count = int(payload.get("event_count", 0))
-        metadata.next_sequence = int(
-            payload.get("next_sequence", metadata.next_sequence)
-        )
+        metadata.next_sequence = int(payload.get("next_sequence", metadata.next_sequence))
         metadata.tail_digest = payload.get("tail_digest")
         metadata.last_snapshot_sequence = payload.get("last_snapshot_sequence")
         metadata.last_snapshot_path = payload.get("last_snapshot_path")
@@ -231,9 +227,7 @@ class OrderLedger:
         self._snapshots: list[LedgerSnapshot] = []
         self._anchor_digest: str | None = None
         self._tail_digest: str | None = None
-        self._last_state_event: tuple[int, str, str | None, Any, str | None] | None = (
-            None
-        )
+        self._last_state_event: tuple[int, str, str | None, Any, str | None] | None = None
         self._rebuild_from_disk()
 
     @property
@@ -379,9 +373,7 @@ class OrderLedger:
             min_sequence=None,
         )
 
-    def replay_from(
-        self, sequence: int, *, verify: bool = True
-    ) -> Iterator[OrderLedgerEvent]:
+    def replay_from(self, sequence: int, *, verify: bool = True) -> Iterator[OrderLedgerEvent]:
         """Replay events starting from the first entry with ``sequence`` or greater."""
 
         if sequence < 1:
@@ -434,9 +426,7 @@ class OrderLedger:
         with self._lock:
             return [snapshot.sequence for snapshot in self._snapshots]
 
-    def load_snapshot(
-        self, sequence: int | None = None
-    ) -> MutableMapping[str, Any] | None:
+    def load_snapshot(self, sequence: int | None = None) -> MutableMapping[str, Any] | None:
         """Load a snapshot by sequence, defaulting to the most recent."""
 
         with self._lock:
@@ -477,9 +467,7 @@ class OrderLedger:
                 if verify:
                     content = dict(payload)
                     del content["digest"]
-                    computed = sha256(
-                        _canonical_dumps(content).encode("utf-8")
-                    ).hexdigest()
+                    computed = sha256(_canonical_dumps(content).encode("utf-8")).hexdigest()
                     expected_previous = content.get("previous_digest")
                     if computed != digest:
                         raise ValueError(
@@ -584,12 +572,9 @@ class OrderLedger:
             self._metadata.next_sequence - 1
         ) - self._metadata.compacted_through
         size_exceeded = (
-            self._path.exists()
-            and self._path.stat().st_size > self._config.max_journal_size
+            self._path.exists() and self._path.stat().st_size > self._config.max_journal_size
         )
-        threshold_exceeded = (
-            events_since_compaction >= self._config.compaction_threshold_events
-        )
+        threshold_exceeded = events_since_compaction >= self._config.compaction_threshold_events
         if not size_exceeded and not threshold_exceeded:
             return False
         return self._compact(latest_snapshot)
@@ -650,9 +635,7 @@ class OrderLedger:
                 break
         return offset, previous
 
-    def _append_index_entry(
-        self, sequence: int, offset: int, previous_digest: str | None
-    ) -> None:
+    def _append_index_entry(self, sequence: int, offset: int, previous_digest: str | None) -> None:
         entry = {
             "sequence": sequence,
             "offset": offset,
@@ -670,9 +653,7 @@ class OrderLedger:
                     "offset": offset,
                     "previous_digest": previous,
                 }
-                handle.write(
-                    json.dumps(entry, sort_keys=True, ensure_ascii=False) + "\n"
-                )
+                handle.write(json.dumps(entry, sort_keys=True, ensure_ascii=False) + "\n")
         tmp_path.replace(self._index_path)
 
     def _write_metadata(self) -> None:
@@ -736,9 +717,7 @@ class OrderLedger:
                     digest = str(payload.get("digest"))
                     content = dict(payload)
                     content.pop("digest", None)
-                    computed = sha256(
-                        _canonical_dumps(content).encode("utf-8")
-                    ).hexdigest()
+                    computed = sha256(_canonical_dumps(content).encode("utf-8")).hexdigest()
                     if computed != digest:
                         handle.seek(offset)
                         handle.truncate()
@@ -825,9 +804,7 @@ class OrderLedger:
                 if state is None:
                     raise ValueError("missing state payload")
                 if state_hash:
-                    computed = sha256(
-                        _canonical_dumps(state).encode("utf-8")
-                    ).hexdigest()
+                    computed = sha256(_canonical_dumps(state).encode("utf-8")).hexdigest()
                     if computed != state_hash:
                         raise ValueError("state hash mismatch")
             except Exception:

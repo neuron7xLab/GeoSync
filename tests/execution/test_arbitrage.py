@@ -28,9 +28,7 @@ class InMemoryGateway(SettlementGateway):
         self.released: set[str] = set()
         self._counter = 0
 
-    async def reserve(
-        self, exchange_id: str, asset: str, amount: Decimal, transfer_id: str
-    ) -> str:
+    async def reserve(self, exchange_id: str, asset: str, amount: Decimal, transfer_id: str) -> str:
         token = f"{exchange_id}:{asset}:{self._counter}"
         self._counter += 1
         self.reservations[token] = (exchange_id, asset, amount)
@@ -111,9 +109,7 @@ async def test_atomic_capital_mover_success_and_failure() -> None:
     )
     result = await mover.execute(plan)
     assert result.committed is False
-    assert any(
-        token in failing_gateway.released for token in failing_gateway.reservations
-    )
+    assert any(token in failing_gateway.released for token in failing_gateway.reservations)
 
 
 @pytest.mark.asyncio

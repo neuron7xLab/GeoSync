@@ -344,8 +344,7 @@ class BaseKillSwitchStateStore(KillSwitchStateStore, ABC):
     def _check_not_quarantined(self) -> None:
         if self._quarantined:
             raise DataQualityError(
-                self._quarantine_reason
-                or "kill-switch store quarantined due to invalid state"
+                self._quarantine_reason or "kill-switch store quarantined due to invalid state"
             )
 
     def _quarantine(self, reason: str, *, exc: Exception | None = None) -> None:
@@ -401,9 +400,7 @@ class BaseKillSwitchStateStore(KillSwitchStateStore, ABC):
 
     def _enforce_outgoing_contracts(self, engaged: bool, reason: str) -> None:
         if engaged and not reason:
-            raise DataQualityError(
-                "reason must be supplied when engaging the kill-switch"
-            )
+            raise DataQualityError("reason must be supplied when engaging the kill-switch")
         if len(reason) > self._max_reason_length:
             raise DataQualityError(
                 f"reason exceeds allowed length {len(reason)} > {self._max_reason_length}"
@@ -464,16 +461,14 @@ class SQLiteKillSwitchStateStore(BaseKillSwitchStateStore):
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(self._path, timeout=self._timeout) as connection:
             connection.execute("PRAGMA journal_mode=WAL")
-            connection.execute(
-                """
+            connection.execute("""
                 CREATE TABLE IF NOT EXISTS kill_switch_state (
                     id INTEGER PRIMARY KEY CHECK (id = 1),
                     engaged INTEGER NOT NULL CHECK (engaged IN (0, 1)),
                     reason TEXT NOT NULL DEFAULT '',
                     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
-                """
-            )
+                """)
 
     def _with_retry(
         self, operation: Callable[[sqlite3.Connection], T], *, write: bool = False
@@ -499,7 +494,6 @@ class SQLiteKillSwitchStateStore(BaseKillSwitchStateStore):
         return "locked" in message or "busy" in message
 
     def _load_row(self) -> tuple[object, ...] | None:
-
         def _load(connection: sqlite3.Connection) -> tuple[object, ...] | None:
             cursor = connection.execute(
                 "SELECT engaged, reason, updated_at FROM kill_switch_state WHERE id = 1"
@@ -509,7 +503,6 @@ class SQLiteKillSwitchStateStore(BaseKillSwitchStateStore):
         return self._with_retry(_load)
 
     def _save_payload(self, engaged: bool, reason: str) -> None:
-
         def _save(connection: sqlite3.Connection) -> None:
             connection.execute(
                 self._UPSERT_STATEMENT,
@@ -654,9 +647,7 @@ class PostgresKillSwitchStateStore(BaseKillSwitchStateStore):
                 self._session_manager = session_manager
                 self._owns_session_manager = True
             if self._session_manager is None:
-                raise RuntimeError(
-                    "session_manager must be provided when repository is None"
-                )
+                raise RuntimeError("session_manager must be provided when repository is None")
             repository = KillSwitchStateRepository(
                 self._session_manager,
                 retry_policy=effective_retry,
@@ -731,9 +722,7 @@ class JsonRiskStateStore(RiskStateStore):
         positions: Mapping[str, float],
         notionals: Mapping[str, float],
     ) -> None:
-        record = RiskStateRecord(
-            positions=dict(positions), last_notional=dict(notionals)
-        )
+        record = RiskStateRecord(positions=dict(positions), last_notional=dict(notionals))
         tmp_path = self._path.with_suffix(".tmp")
         tmp_path.write_text(
             json.dumps(
@@ -821,9 +810,7 @@ class KillSwitch:
         if self._store is not None:
             self._refresh_from_store()
         if self._triggered:
-            raise RiskError(
-                f"Kill-switch engaged: {self._reason or 'unspecified reason'}"
-            )
+            raise RiskError(f"Kill-switch engaged: {self._reason or 'unspecified reason'}")
 
 
 class RiskManager(RiskController):
@@ -1094,9 +1081,7 @@ class RiskManager(RiskController):
             try:
                 position, notional = payload
             except (TypeError, ValueError) as exc:
-                raise ValueError(
-                    "hydrate_positions expects mapping values to be 2-tuples"
-                ) from exc
+                raise ValueError("hydrate_positions expects mapping values to be 2-tuples") from exc
 
             canonical = self._canonical_symbol(symbol)
             try:
@@ -1129,10 +1114,7 @@ class RiskManager(RiskController):
         if len(self._submissions) >= self.limits.max_orders_per_interval:
             self._throttle_violation_streak += 1
             reason = f"Order throttle exceeded: {len(self._submissions)} submissions in {window}s"
-            if (
-                self._throttle_violation_streak
-                >= self.limits.kill_switch_rate_limit_threshold
-            ):
+            if self._throttle_violation_streak >= self.limits.kill_switch_rate_limit_threshold:
                 self._trigger_kill_switch(
                     reason,
                     symbol=symbol,
@@ -1241,9 +1223,7 @@ class RiskManager(RiskController):
         try:
             self._kill_switch.guard()
         except RiskError as exc:
-            self._metrics.record_risk_validation(
-                canonical_symbol, "kill_switch_blocked"
-            )
+            self._metrics.record_risk_validation(canonical_symbol, "kill_switch_blocked")
             self._record_risk_audit(
                 symbol=canonical_symbol,
                 side=side.lower(),
@@ -1285,8 +1265,7 @@ class RiskManager(RiskController):
                 self.limits.max_position * self.limits.kill_switch_limit_multiplier
             )
             if severe or (
-                self._limit_violation_streak
-                >= self.limits.kill_switch_violation_threshold
+                self._limit_violation_streak >= self.limits.kill_switch_violation_threshold
             ):
                 self._trigger_kill_switch(
                     reason,
@@ -1316,8 +1295,7 @@ class RiskManager(RiskController):
                 self.limits.max_notional * self.limits.kill_switch_limit_multiplier
             )
             if severe or (
-                self._limit_violation_streak
-                >= self.limits.kill_switch_violation_threshold
+                self._limit_violation_streak >= self.limits.kill_switch_violation_threshold
             ):
                 self._trigger_kill_switch(
                     reason,
@@ -1470,9 +1448,7 @@ class IdempotentRetryExecutor:
                         time.sleep(delay)
         if last_error is not None:
             raise last_error
-        raise RuntimeError(
-            "IdempotentRetryExecutor terminated without executing the callable"
-        )
+        raise RuntimeError("IdempotentRetryExecutor terminated without executing the callable")
 
 
 class DefaultPortfolioRiskAnalyzer(PortfolioRiskAnalyzer):

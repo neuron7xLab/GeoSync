@@ -116,9 +116,7 @@ class FeatureRecord:
             "value": json.dumps(self.value, separators=(",", ":")),
         }
         if self.lineage is not None:
-            payload["lineage"] = json.dumps(
-                self.lineage.asdict(), separators=(",", ":")
-            )
+            payload["lineage"] = json.dumps(self.lineage.asdict(), separators=(",", ":"))
         return payload
 
     @classmethod
@@ -141,9 +139,7 @@ class FeatureRecord:
             descriptor=descriptor,
             entity_id=payload["entity_id"],
             value=json.loads(payload["value"]),
-            event_ts=datetime.fromisoformat(payload["event_ts"]).astimezone(
-                timezone.utc
-            ),
+            event_ts=datetime.fromisoformat(payload["event_ts"]).astimezone(timezone.utc),
             lineage=lineage,
         )
 
@@ -218,8 +214,7 @@ class RealTimeFeatureStore:
             if self._registry_ready.is_set():
                 return
             async with self._db_pool.acquire() as conn:
-                await conn.execute(
-                    """
+                await conn.execute("""
                     CREATE TABLE IF NOT EXISTS feature_registry (
                         feature_name TEXT NOT NULL,
                         feature_version TEXT NOT NULL,
@@ -229,10 +224,8 @@ class RealTimeFeatureStore:
                         description TEXT,
                         PRIMARY KEY (feature_name, feature_version, entity)
                     );
-                    """
-                )
-                await conn.execute(
-                    """
+                    """)
+                await conn.execute("""
                     CREATE TABLE IF NOT EXISTS feature_values (
                         feature_name TEXT NOT NULL,
                         feature_version TEXT NOT NULL,
@@ -242,13 +235,10 @@ class RealTimeFeatureStore:
                         lineage JSONB,
                         PRIMARY KEY (feature_name, feature_version, entity_id, event_ts)
                     );
-                    """
-                )
-                await conn.execute(
-                    """
+                    """)
+                await conn.execute("""
                     SELECT create_hypertable('feature_values', 'event_ts', if_not_exists => TRUE);
-                    """
-                )
+                    """)
             self._registry_ready.set()
             _LOGGER.info("RealTimeFeatureStore metadata initialised")
 
@@ -273,11 +263,7 @@ class RealTimeFeatureStore:
                 descriptor.version,
                 descriptor.entity,
                 ttl_ms,
-                (
-                    json.dumps(descriptor.schema)
-                    if descriptor.schema is not None
-                    else None
-                ),
+                (json.dumps(descriptor.schema) if descriptor.schema is not None else None),
                 descriptor.description,
             )
         self._registered_descriptors[key] = descriptor
@@ -309,9 +295,7 @@ class RealTimeFeatureStore:
             lineage=lineage,
         )
         redis_payload = record.to_redis_payload()
-        ttl_ms = descriptor.ttl_milliseconds or int(
-            self._default_ttl.total_seconds() * 1000
-        )
+        ttl_ms = descriptor.ttl_milliseconds or int(self._default_ttl.total_seconds() * 1000)
 
         timescale_applied = await self._execute_with_retries(
             lambda: self._write_to_timescale(record),
@@ -320,9 +304,7 @@ class RealTimeFeatureStore:
         )
         try:
             await self._execute_with_retries(
-                lambda: self._write_to_redis(
-                    descriptor, entity_id, redis_payload, ttl_ms
-                ),
+                lambda: self._write_to_redis(descriptor, entity_id, redis_payload, ttl_ms),
                 attempts=self._write_retry_attempts,
                 op_name="redis write",
             )
@@ -330,9 +312,7 @@ class RealTimeFeatureStore:
             if timescale_applied:
                 try:
                     await self._delete_from_timescale(record)
-                except (
-                    Exception
-                ) as rollback_error:  # pragma: no cover - defensive logging
+                except Exception as rollback_error:  # pragma: no cover - defensive logging
                     _LOGGER.error(
                         "Failed to rollback Timescale write for %s/%s after Redis error: %s",  # noqa: TRY400
                         descriptor.name,
@@ -444,9 +424,7 @@ class RealTimeFeatureStore:
                 payload_text = payload_json
             payload = json.loads(payload_text)
             record = FeatureRecord.from_redis_payload(descriptor, payload)
-            ttl_ms = descriptor.ttl_milliseconds or int(
-                self._default_ttl.total_seconds() * 1000
-            )
+            ttl_ms = descriptor.ttl_milliseconds or int(self._default_ttl.total_seconds() * 1000)
             await self._microcache.set(cache_key, record, ttl_ms)
             return record
 
@@ -482,9 +460,7 @@ class RealTimeFeatureStore:
             event_ts=row["event_ts"].astimezone(timezone.utc),
             lineage=lineage,
         )
-        ttl_ms = descriptor.ttl_milliseconds or int(
-            self._default_ttl.total_seconds() * 1000
-        )
+        ttl_ms = descriptor.ttl_milliseconds or int(self._default_ttl.total_seconds() * 1000)
         await self._microcache.set(cache_key, record, ttl_ms)
         return record
 
@@ -583,9 +559,7 @@ class RealTimeFeatureStore:
                     ttl_ms = descriptor.ttl_milliseconds or int(
                         self._default_ttl.total_seconds() * 1000
                     )
-                    await self._write_to_redis(
-                        descriptor, record.entity_id, payload, ttl_ms
-                    )
+                    await self._write_to_redis(descriptor, record.entity_id, payload, ttl_ms)
                     await self._microcache.set(
                         descriptor.cache_key(record.entity_id), record, ttl_ms
                     )
@@ -649,9 +623,7 @@ class RealTimeFeatureStore:
                         payload_str[key_str] = value
                 record = FeatureRecord.from_redis_payload(descriptor, payload_str)
                 records.append(record)
-                _LOGGER.debug(
-                    "Consumed stream entry %s for %s", entry_id, descriptor.name
-                )
+                _LOGGER.debug("Consumed stream entry %s for %s", entry_id, descriptor.name)
         return records
 
 

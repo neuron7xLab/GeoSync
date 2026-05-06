@@ -25,9 +25,7 @@ def _metric(
 
 
 def test_missing_description_triggers_issue() -> None:
-    catalog_metric = _metric(
-        "geosync_missing_total", description="short", metric_type="counter"
-    )
+    catalog_metric = _metric("geosync_missing_total", description="short", metric_type="counter")
     code_metric = mv.CodeMetric(
         name=catalog_metric.name,
         type="counter",
@@ -117,9 +115,7 @@ def test_known_good_catalog_subset_passes(tmp_path: Path) -> None:
     code_metrics = mv.discover_code_metrics(tmp_path)
     catalog_metric = _metric("geosync_live_total")
 
-    issues = mv.structural_issues(
-        {catalog_metric.name: catalog_metric}, code_metrics
-    )
+    issues = mv.structural_issues({catalog_metric.name: catalog_metric}, code_metrics)
     dead = mv.find_dead_metrics(tmp_path, code_metrics)
 
     assert issues == []

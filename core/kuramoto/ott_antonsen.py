@@ -137,9 +137,7 @@ class OttAntonsenEngine:
         """
         z_conj = z.conjugate()
         z_abs_sq = z.real**2 + z.imag**2
-        return -(self.delta + 1j * self.omega0) * z + (self.K / 2.0) * (
-            z_conj - z * z_abs_sq
-        )
+        return -(self.delta + 1j * self.omega0) * z + (self.K / 2.0) * (z_conj - z * z_abs_sq)
 
     def integrate(
         self,
@@ -254,12 +252,8 @@ def detect_chimera(
             sector_R[s] = float(np.abs(sector_z))
 
     # Chimera detection: some sectors sync, others desync
-    sync_sectors = [
-        sector_labels[i] for i in range(n_sectors) if sector_R[i] > sync_threshold
-    ]
-    desync_sectors = [
-        sector_labels[i] for i in range(n_sectors) if sector_R[i] < desync_threshold
-    ]
+    sync_sectors = [sector_labels[i] for i in range(n_sectors) if sector_R[i] > sync_threshold]
+    desync_sectors = [sector_labels[i] for i in range(n_sectors) if sector_R[i] < desync_threshold]
     is_chimera = len(sync_sectors) > 0 and len(desync_sectors) > 0
 
     # Chimera index: std/mean of sector R values (high = chimera-like)

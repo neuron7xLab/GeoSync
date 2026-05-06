@@ -64,8 +64,7 @@ class DynamicGraphConfig:
     def __post_init__(self) -> None:
         if self.window < self.min_window_for_solver:
             raise ValueError(
-                f"window={self.window} must be ≥ min_window_for_solver"
-                f"={self.min_window_for_solver}"
+                f"window={self.window} must be ≥ min_window_for_solver={self.min_window_for_solver}"
             )
         if self.step < 1:
             raise ValueError("step must be ≥ 1")

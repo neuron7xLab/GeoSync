@@ -1,5 +1,61 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
+"""DopamineController v2.3 — biologically-grounded reinforcement-learning controller.
+
+Computes a TD(0) reward-prediction-error (RPE) signal and broadcasts it on the
+NeuroSignalBus so downstream modules (Kelly sizing, action-value modulation,
+policy temperature, Go/Hold/No-Go gating) can adapt deterministically.
+
+Biological grounding
+--------------------
+* Schultz, Dayan, Montague (1997) — midbrain dopaminergic neurons (VTA/SNc)
+  encode reward prediction error: δ = (actual reward) − (predicted reward).
+* Sutton & Barto (1998) — TD(0) learning is the canonical computational
+  abstraction of phasic dopamine dynamics.
+* Niv (2009); Frank (2005) — D1-Go / D2-No-Go pathway gating in basal
+  ganglia is reproduced here as the Go/Hold/No-Go release gate.
+* Doya (2002); Aston-Jones & Cohen (2005) — neuromodulator phasic-vs-tonic
+  decomposition: phasic δ drives moment-to-moment learning; tonic level
+  drives motivational vigour.
+
+Architectural pipeline
+----------------------
+1. **TD(0) RPE**:        δ = r + γ·V′ − V, with γ ∈ (0, 1] saturated.
+2. **Phasic vs Tonic**:  phasic = max(0, δ)·burst_factor
+                         tonic  = EMA(appetitive state, decay_rate).
+3. **Dopamine state**:   σ(k·(tonic − θ)) with logit clipping.
+4. **Action value**:     `modulate_action_value` rescales policy logits;
+                         `compute_temperature` modulates softmax temperature
+                         under negative-RPE penalty and DDM coupling.
+5. **Release gate**:     RPE-variance EMA opens/closes the Go channel
+                         (safety inhibition under instability).
+6. **Meta-adapt**:       Adam-style update on base temperature with target
+                         variance `temp_adapt_target_var`.
+7. **DDM coupling**:     `ddm_thresholds(v, a, t0)` returns Go/Hold/No-Go
+                         thresholds and a temperature scale (Ratcliff DDM).
+
+Bus contract
+------------
+Publishes onto `NeuroSignalBus.dopamine_rpe ∈ [-1, 1]`. The raw TD path
+satisfies INV-DA7 (∂δ/∂r = 1). The downstream `DopamineExecutionAdapter`
+applies tanh-squashing on the same slot — consumers that depend on the
+algebraic identity must read from this controller path.
+
+Invariants enforced
+-------------------
+INV-DA1 (sign of δ = surprise direction), INV-DA2 (V → V* convergence),
+INV-DA3 (γ ∈ (0, 1]), INV-DA5 (E[δ] ≈ 0 at equilibrium), INV-DA7
+(∂δ/∂r = 1 on the raw TD path). See `.claude/physics/INVARIANTS.yaml`
+and `docs/neuromodulators_dopamine.md` for the full contract.
+
+Determinism & telemetry
+-----------------------
+Pure-function RPE computation with explicit seed propagation. All public
+methods publish structured telemetry events (`dopamine.rpe`, `dopamine.gate`,
+`dopamine.meta_adapt`) consumed by `runtime.thermo_memory_manager` for
+reconstructable audit traces.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -1075,7 +1131,9 @@ class DopamineController:
         # Use defaults if not provided
         current_value = self.value_estimate if value is None else float(value)
         next_val = self.value_estimate if next_value is None else float(next_value)
-        app_state = max(0.0, reward) if appetitive_state is None else float(appetitive_state)  # INV-DA3: gamma bounds validation floor
+        app_state = (
+            max(0.0, reward) if appetitive_state is None else float(appetitive_state)
+        )  # INV-DA3: gamma bounds validation floor
 
         # Compute RPE
         rpe = self.compute_rpe(reward, current_value, next_val)

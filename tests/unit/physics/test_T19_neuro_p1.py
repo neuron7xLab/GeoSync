@@ -198,9 +198,7 @@ def test_dopamine_value_converges_to_fixed_reward(
     converges V toward r / (1 - gamma). After convergence, RPE should be
     near zero.
     """
-    n_iterations: int = (
-        3000  # INV-DA2: convergence steps (slow due to lr*(1-gamma)~0.002)
-    )
+    n_iterations: int = 3000  # INV-DA2: convergence steps (slow due to lr*(1-gamma)~0.002)
     fixed_reward: float = 1.0  # INV-DA2: constant reward signal
     rpe_tolerance: float = 0.05  # tolerance: RPE near-zero threshold
 
@@ -240,9 +238,7 @@ def test_dopamine_value_estimate_stabilises(
     than early-time standard deviation (first 200), demonstrating that V
     is settling toward its fixed point.
     """
-    n_iterations: int = (
-        3000  # INV-DA4: total convergence steps (slow due to lr*(1-gamma)~0.002)
-    )
+    n_iterations: int = 3000  # INV-DA4: total convergence steps (slow due to lr*(1-gamma)~0.002)
     fixed_reward: float = 1.0  # INV-DA4: constant reward signal
     window: int = 200  # INV-DA4: window size for std comparison
 
@@ -284,9 +280,7 @@ def test_dopamine_mean_rpe_near_zero_at_equilibrium(
     50 more RPEs. The mean of collected RPEs must be near zero, confirming
     the value estimate has converged and the prediction error is unbiased.
     """
-    warmup_steps: int = (
-        3000  # INV-DA5: warm-up for convergence (slow due to lr*(1-gamma)~0.002)
-    )
+    warmup_steps: int = 3000  # INV-DA5: warm-up for convergence (slow due to lr*(1-gamma)~0.002)
     collect_steps: int = 50  # INV-DA5: post-convergence sample size
     mean_tolerance: float = 0.1  # tolerance: |E[delta]| bound
 

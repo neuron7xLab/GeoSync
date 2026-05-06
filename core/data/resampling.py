@@ -94,7 +94,9 @@ def align_timeframes(
         if frame.index.equals(ref_index):
             aligned[name] = frame
             continue
-        aligned[name] = frame.reindex(ref_index, method="pad", copy=False)
+        # pandas 3.x emits Pandas4Warning -> error when ``copy`` is passed.
+        # Copy-on-Write semantics already provide the no-copy behaviour we need.
+        aligned[name] = frame.reindex(ref_index, method="pad")
     return aligned
 
 

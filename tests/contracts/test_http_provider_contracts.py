@@ -170,14 +170,10 @@ def test_prediction_provider_matches_contract(provider_client: TestClient) -> No
 
 def test_idempotent_replay_respects_contract(provider_client: TestClient) -> None:
     headers = {"Idempotency-Key": "contract-idempotency"}
-    first = provider_client.post(
-        _api_v1("/features"), json=_feature_payload(), headers=headers
-    )
+    first = provider_client.post(_api_v1("/features"), json=_feature_payload(), headers=headers)
     assert first.status_code == 200
     assert first.headers.get("Idempotency-Key") == "contract-idempotency"
-    second = provider_client.post(
-        _api_v1("/features"), json=_feature_payload(), headers=headers
-    )
+    second = provider_client.post(_api_v1("/features"), json=_feature_payload(), headers=headers)
     assert second.status_code == 200
     assert second.headers.get("Idempotency-Key") == "contract-idempotency"
     assert second.headers.get("X-Idempotent-Replay") == "true"

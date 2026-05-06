@@ -147,9 +147,7 @@ class ExperimentTrackingConfig(BaseModel):
     hyperparameters_filename: str = "hyperparameters.json"
     reports: ExperimentReportConfig = Field(default_factory=ExperimentReportConfig)
     archive: ExperimentArchiveConfig = Field(default_factory=ExperimentArchiveConfig)
-    alerts: ExperimentDeviationAlertConfig = Field(
-        default_factory=ExperimentDeviationAlertConfig
-    )
+    alerts: ExperimentDeviationAlertConfig = Field(default_factory=ExperimentDeviationAlertConfig)
     baseline: ExperimentBaselineConfig | None = None
     data_versioning: bool = True
     auto_log_config: bool = True
@@ -328,9 +326,7 @@ class FeatureParitySpecConfig(BaseModel):
         try:
             return pd.Timedelta(value)
         except (ValueError, TypeError) as exc:  # pragma: no cover - defensive
-            raise ValueError(
-                "timedelta fields must be pandas-compatible strings"
-            ) from exc
+            raise ValueError("timedelta fields must be pandas-compatible strings") from exc
 
     @model_validator(mode="after")
     def _validate_columns(self) -> "FeatureParitySpecConfig":
@@ -392,9 +388,7 @@ class DeploymentConfig(GeoSyncBaseConfig):
     environment: Environment
     strategy: str
     artifact: str
-    manifests: DeploymentManifestsConfig = Field(
-        default_factory=DeploymentManifestsConfig
-    )
+    manifests: DeploymentManifestsConfig = Field(default_factory=DeploymentManifestsConfig)
     deployment_name: str = "geosync-api"
     wait_for_rollout: bool = True
     rollout_timeout_seconds: float = 600.0
@@ -429,7 +423,5 @@ class DeploymentConfig(GeoSyncBaseConfig):
         if not self.wait_for_rollout:
             return self
         if self.rollout_timeout_seconds <= 0.0:
-            raise ValueError(
-                "wait_for_rollout requires a positive rollout_timeout_seconds"
-            )
+            raise ValueError("wait_for_rollout requires a positive rollout_timeout_seconds")
         return self

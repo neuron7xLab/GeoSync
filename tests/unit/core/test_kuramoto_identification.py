@@ -73,9 +73,7 @@ class TestNaturalFrequency:
             theta[t] = theta[t - 1] + dt * omega_true
         theta = np.mod(theta, 2 * np.pi)
         med = estimate_natural_frequencies_from_theta(theta, dt=dt, method="median")
-        tri = estimate_natural_frequencies_from_theta(
-            theta, dt=dt, method="trimmed", trim=0.1
-        )
+        tri = estimate_natural_frequencies_from_theta(theta, dt=dt, method="trimmed", trim=0.1)
         assert np.allclose(med, tri, atol=1e-6)
 
     def test_rejects_invalid_dt(self) -> None:
@@ -108,9 +106,7 @@ class TestNaturalFrequency:
 
 
 class TestSyntheticGenerator:
-    @pytest.mark.parametrize(
-        "structure", ["zero", "symmetric", "antisymmetric", "mixed"]
-    )
+    @pytest.mark.parametrize("structure", ["zero", "symmetric", "antisymmetric", "mixed"])
     def test_alpha_structure(self, structure: str) -> None:
         """Verify each ``alpha_structure`` mode has the correct symmetry.
 
@@ -153,24 +149,18 @@ class TestSyntheticGenerator:
             )
 
     def test_tau_is_zero_where_k_is_zero(self) -> None:
-        gt = generate_sakaguchi_kuramoto(
-            SyntheticConfig(N=8, T=800, tau_max=4, burn_in=50, seed=1)
-        )
+        gt = generate_sakaguchi_kuramoto(SyntheticConfig(N=8, T=800, tau_max=4, burn_in=50, seed=1))
         mask_no_edge = gt.true_K == 0.0
         assert np.all(gt.true_tau[mask_no_edge] == 0)
 
     def test_phase_wrapping_is_canonical(self) -> None:
-        gt = generate_sakaguchi_kuramoto(
-            SyntheticConfig(N=5, T=600, burn_in=50, seed=3)
-        )
+        gt = generate_sakaguchi_kuramoto(SyntheticConfig(N=5, T=600, burn_in=50, seed=3))
         theta = gt.generated_phases.theta
         assert float(theta.min()) >= 0.0
         assert float(theta.max()) < 2 * np.pi
 
     def test_contract_valid_output(self) -> None:
-        gt = generate_sakaguchi_kuramoto(
-            SyntheticConfig(N=6, T=700, burn_in=50, seed=9)
-        )
+        gt = generate_sakaguchi_kuramoto(SyntheticConfig(N=6, T=700, burn_in=50, seed=9))
         assert gt.true_K.shape == (6, 6)
         assert gt.true_K.flags.writeable is False
         assert gt.generated_phases.theta.flags.writeable is False
@@ -306,9 +296,7 @@ class TestDelayEstimator:
         # Realistic bound on multi-edge joint recovery under
         # weak-coupling identifiability conditions. The single-edge
         # test above pins down the exact case.
-        assert (
-            float(err.mean()) <= 2.0
-        ), f"seed={seed} tau MAE={err.mean():.2f} exceeds 2.0"
+        assert float(err.mean()) <= 2.0, f"seed={seed} tau MAE={err.mean():.2f} exceeds 2.0"
 
     def test_returns_contract_valid_delay_matrix(self) -> None:
         gt = generate_sakaguchi_kuramoto(
@@ -337,9 +325,7 @@ class TestDelayEstimator:
         assert np.all(D.tau[inactive] == 0)
 
     def test_rejects_asset_id_mismatch(self) -> None:
-        gt = generate_sakaguchi_kuramoto(
-            SyntheticConfig(N=4, T=400, burn_in=40, seed=2)
-        )
+        gt = generate_sakaguchi_kuramoto(SyntheticConfig(N=4, T=400, burn_in=40, seed=2))
         mismatched = CouplingMatrix(
             K=np.zeros((4, 4), dtype=np.float64),
             asset_ids=("a", "b", "c", "d"),
@@ -347,9 +333,7 @@ class TestDelayEstimator:
             method="scad",
         )
         with pytest.raises(ValueError, match="asset_ids"):
-            estimate_delays(
-                gt.generated_phases, mismatched, DelayEstimationConfig(dt=0.05)
-            )
+            estimate_delays(gt.generated_phases, mismatched, DelayEstimationConfig(dt=0.05))
 
 
 # ---------------------------------------------------------------------------
@@ -432,9 +416,7 @@ class TestFrustrationEstimator:
         assert mae < np.pi / 4, f"MAE {mae:.3f} rad exceeds π/4"
 
     def test_returns_contract_valid_frustration_matrix(self) -> None:
-        gt = generate_sakaguchi_kuramoto(
-            SyntheticConfig(N=4, T=500, burn_in=50, seed=1)
-        )
+        gt = generate_sakaguchi_kuramoto(SyntheticConfig(N=4, T=500, burn_in=50, seed=1))
         delays = DelayMatrix(
             tau=np.zeros((4, 4), dtype=np.int64),
             tau_seconds=np.zeros((4, 4)),

@@ -41,9 +41,7 @@ def test_inv_th1_energy_conservation_balance() -> None:
     expected_returns = rng.uniform(low=-0.01, high=0.01, size=n_assets)
 
     # Compute total energy BEFORE rebalance
-    total_before = conservator.compute_total(
-        positions_before, returns, expected_returns
-    )
+    total_before = conservator.compute_total(positions_before, returns, expected_returns)
 
     # Small rebalance: positions shift by a tiny perturbation
     perturbation_scale = 0.005  # tolerance: small enough to stay within epsilon

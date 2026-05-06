@@ -59,11 +59,7 @@ class ToyMarketEnv:
         max_drawdown = _max_drawdown(np.array(self.returns, dtype=float))
 
         volshock = vol_shock(np.array(self.returns), window=min(60, len(self.returns)))
-        cp = (
-            cusum_score(np.array(self.returns[-300:]))
-            if len(self.returns) > 100
-            else 0.0
-        )
+        cp = cusum_score(np.array(self.returns[-300:])) if len(self.returns) > 100 else 0.0
 
         padded = np.array(self.returns[-128:], dtype=float)
         if padded.size < 128:
@@ -124,11 +120,7 @@ class RegimeShiftEnv(ToyMarketEnv):
         max_drawdown = _max_drawdown(np.array(self.returns, dtype=float))
 
         volshock = vol_shock(np.array(self.returns), window=min(60, len(self.returns)))
-        cp = (
-            cusum_score(np.array(self.returns[-300:]))
-            if len(self.returns) > 100
-            else 0.0
-        )
+        cp = cusum_score(np.array(self.returns[-300:])) if len(self.returns) > 100 else 0.0
 
         padded = np.array(self.returns[-128:], dtype=float)
         if padded.size < 128:

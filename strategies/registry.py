@@ -198,9 +198,7 @@ class StrategyRoutingPolicy:
     default_strategy: str
 
     def validate(self, registry: StrategyRegistry) -> None:
-        missing = [
-            name for name in self.policy_map.values() if not registry.contains(name)
-        ]
+        missing = [name for name in self.policy_map.values() if not registry.contains(name)]
         if not registry.contains(self.default_strategy):
             missing.append(self.default_strategy)
         if missing:
@@ -330,9 +328,7 @@ def register_strategy(
 ) -> None:
     """Register a strategy in the global registry."""
 
-    _GLOBAL_REGISTRY.register(
-        name, entrypoint, description=description, override=override
-    )
+    _GLOBAL_REGISTRY.register(name, entrypoint, description=description, override=override)
 
 
 def available_strategies() -> Tuple[StrategySpec, ...]:

@@ -5,6 +5,7 @@
 This module provides tools for detecting secrets, API keys, and sensitive
 data in code and configuration files.
 """
+
 from __future__ import annotations
 
 import logging
@@ -16,17 +17,13 @@ _LOGGER = logging.getLogger(__name__)
 
 # Common secret patterns
 SECRET_PATTERNS: Dict[str, Pattern[str]] = {
-    "api_key": re.compile(
-        r"(?i)(api[_-]?key|apikey)\s*[=:]\s*['\"]([a-zA-Z0-9_\-]+)['\"]"
-    ),
+    "api_key": re.compile(r"(?i)(api[_-]?key|apikey)\s*[=:]\s*['\"]([a-zA-Z0-9_\-]+)['\"]"),
     "api_secret": re.compile(
         r"(?i)(api[_-]?secret|apisecret)\s*[=:]\s*['\"]([a-zA-Z0-9_\-]+)['\"]"
     ),
     "password": re.compile(r"(?i)(password|passwd|pwd)\s*[=:]\s*['\"]([^'\"]+)['\"]"),
     "private_key": re.compile(r"-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----"),
-    "aws_key": re.compile(
-        r"(?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}"
-    ),
+    "aws_key": re.compile(r"(?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}"),
     "github_token": re.compile(r"ghp_[a-zA-Z0-9]{36}"),
     "jwt_token": re.compile(r"eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*"),
     "slack_token": re.compile(r"xox[baprs]-[0-9]{10,13}-[a-zA-Z0-9-]{24,}"),
@@ -141,8 +138,7 @@ class SecretDetector:
 
             if normalized_extensions:
                 matches_extension = any(
-                    file_name == ext or file_name.endswith(ext)
-                    for ext in normalized_extensions
+                    file_name == ext or file_name.endswith(ext) for ext in normalized_extensions
                 )
                 if not matches_extension:
                     continue

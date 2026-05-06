@@ -185,9 +185,7 @@ class InventoryManager:
         for exchange_id, target in targets.items():
             snapshot = self._ledger.get_snapshot(exchange_id, symbol)
             if snapshot is None:
-                raise InventoryError(
-                    f"No liquidity snapshot available for {exchange_id}:{symbol}"
-                )
+                raise InventoryError(f"No liquidity snapshot available for {exchange_id}:{symbol}")
             weight = weights[exchange_id]
             base_available = snapshot.base_available
             quote_available = snapshot.quote_available
@@ -206,9 +204,7 @@ class InventoryManager:
             )
             venues.append(venue)
 
-        venues_with_targets = self._compute_targets(
-            venues, targets, weights, total_base
-        )
+        venues_with_targets = self._compute_targets(venues, targets, weights, total_base)
         return InventorySnapshot(
             symbol=symbol,
             base_asset=base_asset,
@@ -247,9 +243,7 @@ class InventoryManager:
         )
         if not transfers:
             return snapshot, None
-        estimated_cost = sum(
-            (leg.amount * leg.unit_cost for leg in transfers), Decimal("0")
-        )
+        estimated_cost = sum((leg.amount * leg.unit_cost for leg in transfers), Decimal("0"))
         plan = RebalancePlan(
             symbol=symbol,
             asset=snapshot.base_asset,
@@ -258,9 +252,7 @@ class InventoryManager:
         )
         return snapshot, plan
 
-    def _normalise_weights(
-        self, targets: Mapping[str, InventoryTarget]
-    ) -> Dict[str, Decimal]:
+    def _normalise_weights(self, targets: Mapping[str, InventoryTarget]) -> Dict[str, Decimal]:
         weights: Dict[str, Decimal] = {}
         total = Decimal("0")
         for exchange_id, target in targets.items():

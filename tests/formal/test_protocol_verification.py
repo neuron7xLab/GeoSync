@@ -116,9 +116,7 @@ class TestProtocolVerificationReport:
         }
         assert properties_verified == expected_properties
 
-    def test_save_certificate(
-        self, verifier: TLSProtocolVerifier, tmp_path: Path
-    ) -> None:
+    def test_save_certificate(self, verifier: TLSProtocolVerifier, tmp_path: Path) -> None:
         """Test saving protocol verification certificate."""
         cert_path = tmp_path / "PROTOCOL_CERT.txt"
         verifier.verify_all(output_path=cert_path)

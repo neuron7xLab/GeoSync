@@ -44,9 +44,7 @@ from src.data.pipeline import (
 class _FlakyKillSwitchStateRepository(KillSwitchStateRepository):
     """Repository that fails once to exercise retry/backoff logic."""
 
-    def __init__(
-        self, session_manager: SessionManager, *, retry_policy: RetryPolicy
-    ) -> None:
+    def __init__(self, session_manager: SessionManager, *, retry_policy: RetryPolicy) -> None:
         super().__init__(
             session_manager,
             retry_policy=retry_policy,
@@ -97,12 +95,8 @@ def test_postgres_kill_switch_store_handles_transient_failures(tmp_path: Path) -
     base_repo.ensure_schema()
     base_repo.upsert(engaged=False, reason="seed state")
 
-    retry_policy = RetryPolicy(
-        attempts=3, initial_backoff=0.01, max_backoff=0.05, max_jitter=0.01
-    )
-    flaky_repo = _FlakyKillSwitchStateRepository(
-        session_manager, retry_policy=retry_policy
-    )
+    retry_policy = RetryPolicy(attempts=3, initial_backoff=0.01, max_backoff=0.05, max_jitter=0.01)
+    flaky_repo = _FlakyKillSwitchStateRepository(session_manager, retry_policy=retry_policy)
     store = PostgresKillSwitchStateStore(
         "postgresql://integration",
         session_manager=session_manager,
@@ -228,9 +222,7 @@ class _FakeKafkaConsumer:
     def assignment(self) -> set[_TopicPartition]:
         return set(self._assignment)
 
-    async def end_offsets(
-        self, partitions: list[_TopicPartition]
-    ) -> dict[_TopicPartition, int]:
+    async def end_offsets(self, partitions: list[_TopicPartition]) -> dict[_TopicPartition, int]:
         return {tp: self._end_offsets.get(tp, 0) for tp in partitions}
 
     async def seek(self, tp: _TopicPartition, offset: int) -> None:
@@ -313,9 +305,7 @@ async def test_streaming_pipeline_processes_kafka_batches_and_updates_cache(
     pipeline = StreamingIngestionPipeline(
         kafka_config=config,
         cache_service=cache_service,
-        routing_strategy=StaticTickRoutingStrategy(
-            CacheRoute(layer="raw", timeframe="1min")
-        ),
+        routing_strategy=StaticTickRoutingStrategy(CacheRoute(layer="raw", timeframe="1min")),
         lag_handler=lag_handler,
         kafka_service_factory=factory,
     )
@@ -410,9 +400,7 @@ def test_siem_audit_sink_retries_and_drains_spool(tmp_path: Path) -> None:
     assert record.signature
 
     def _spool_empty() -> bool:
-        return not list(spool_dir.glob("*.json")) and not list(
-            spool_dir.glob("*.json.inflight")
-        )
+        return not list(spool_dir.glob("*.json")) and not list(spool_dir.glob("*.json.inflight"))
 
     _wait_for(lambda: attempts >= 3 and _spool_empty(), timeout=2.0)
 

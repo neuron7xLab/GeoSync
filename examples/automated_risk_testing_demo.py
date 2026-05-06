@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from core.utils.determinism import DEFAULT_SEED, seed_numpy
+
 # Load risk_core first
 risk_core_spec = importlib.util.spec_from_file_location(
     "risk_core",
@@ -36,9 +37,7 @@ auto_test_spec.loader.exec_module(auto_test_module)
 AutomatedRiskTester = auto_test_module.AutomatedRiskTester
 MonteCarloConfig = auto_test_module.MonteCarloConfig
 generate_flash_crash_scenarios = auto_test_module.generate_flash_crash_scenarios
-generate_liquidity_crisis_scenarios = (
-    auto_test_module.generate_liquidity_crisis_scenarios
-)
+generate_liquidity_crisis_scenarios = auto_test_module.generate_liquidity_crisis_scenarios
 generate_market_stress_scenarios = auto_test_module.generate_market_stress_scenarios
 validate_risk_metrics = auto_test_module.validate_risk_metrics
 
@@ -85,15 +84,11 @@ def demo_market_stress_testing():
     print("=" * 80)
 
     # Initialize tester
-    tester = AutomatedRiskTester(
-        es_limit=0.03, var_alpha=0.975, f_max=1.0, seed=DEFAULT_SEED
-    )
+    tester = AutomatedRiskTester(es_limit=0.03, var_alpha=0.975, f_max=1.0, seed=DEFAULT_SEED)
 
     # Generate market stress scenarios
     print("\nGenerating market stress scenarios...")
-    market_scenarios = generate_market_stress_scenarios(
-        num_days=252, seed=DEFAULT_SEED
-    )
+    market_scenarios = generate_market_stress_scenarios(num_days=252, seed=DEFAULT_SEED)
 
     print(f"Generated {len(market_scenarios)} market stress scenarios:")
     for scenario in market_scenarios:
@@ -136,9 +131,7 @@ def demo_crisis_scenarios():
 
     # Generate crisis scenarios
     print("\nGenerating crisis scenarios...")
-    crisis_scenarios = generate_liquidity_crisis_scenarios(
-        num_days=252, seed=DEFAULT_SEED
-    )
+    crisis_scenarios = generate_liquidity_crisis_scenarios(num_days=252, seed=DEFAULT_SEED)
     flash_scenarios = generate_flash_crash_scenarios(
         num_days=252, crash_magnitude=0.15, seed=DEFAULT_SEED
     )
@@ -231,7 +224,7 @@ def demo_monte_carlo_simulation():
 
     print(
         f"\n  Risk Breaches: {breaches} / {config.num_simulations} "
-        f"({breaches/config.num_simulations:.1%})"
+        f"({breaches / config.num_simulations:.1%})"
     )
 
 
@@ -247,12 +240,8 @@ def demo_comprehensive_report():
     # Add all types of scenarios
     print("\nBuilding comprehensive test suite...")
 
-    market_scenarios = generate_market_stress_scenarios(
-        num_days=252, seed=DEFAULT_SEED
-    )
-    crisis_scenarios = generate_liquidity_crisis_scenarios(
-        num_days=252, seed=DEFAULT_SEED
-    )
+    market_scenarios = generate_market_stress_scenarios(num_days=252, seed=DEFAULT_SEED)
+    crisis_scenarios = generate_liquidity_crisis_scenarios(num_days=252, seed=DEFAULT_SEED)
     flash_scenarios = generate_flash_crash_scenarios(
         num_days=252, crash_magnitude=0.12, seed=DEFAULT_SEED
     )
@@ -273,9 +262,7 @@ def demo_comprehensive_report():
     summary = tester.generate_summary_report()
 
     # Save to file
-    output_file = (
-        Path(__file__).parent.parent / "test_results" / "risk_test_report.json"
-    )
+    output_file = Path(__file__).parent.parent / "test_results" / "risk_test_report.json"
     output_file.parent.mkdir(exist_ok=True)
 
     with open(output_file, "w") as f:
@@ -294,13 +281,9 @@ def demo_comprehensive_report():
 
     print("\nAggregate Risk Metrics:")
     print(
-        f"  VaR: {summary['metrics']['var']['mean']:.6f} ± "
-        f"{summary['metrics']['var']['std']:.6f}"
+        f"  VaR: {summary['metrics']['var']['mean']:.6f} ± {summary['metrics']['var']['std']:.6f}"
     )
-    print(
-        f"  ES: {summary['metrics']['es']['mean']:.6f} ± "
-        f"{summary['metrics']['es']['std']:.6f}"
-    )
+    print(f"  ES: {summary['metrics']['es']['mean']:.6f} ± {summary['metrics']['es']['std']:.6f}")
     print(
         f"  Max Drawdown: {summary['metrics']['max_drawdown']['mean']:.4%} ± "
         f"{summary['metrics']['max_drawdown']['std']:.4%}"
@@ -316,15 +299,9 @@ def demo_comprehensive_report():
 def main():
     """Run all demos."""
     print("\n")
-    print(
-        "╔═══════════════════════════════════════════════════════════════════════════╗"
-    )
-    print(
-        "║           GeoSync Automated Risk Testing Module Demo                   ║"
-    )
-    print(
-        "╚═══════════════════════════════════════════════════════════════════════════╝"
-    )
+    print("╔═══════════════════════════════════════════════════════════════════════════╗")
+    print("║           GeoSync Automated Risk Testing Module Demo                   ║")
+    print("╚═══════════════════════════════════════════════════════════════════════════╝")
 
     try:
         demo_basic_risk_validation()

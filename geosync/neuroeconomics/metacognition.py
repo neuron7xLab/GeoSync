@@ -1,4 +1,4 @@
-"""MetaCognition Layer — система бачить себе.
+"""MetaCognition Layer — система бачить себе (model-level self-monitoring).
 
 CNS doesn't just process signals — it monitors its own processing.
 Prefrontal cortex observes how other regions make decisions.
@@ -6,16 +6,27 @@ Prefrontal cortex observes how other regions make decisions.
 GeoSyncDecisionEngine observes the market.
 MetaCognitionLayer observes GeoSyncDecisionEngine.
 
-Subsystems:
-  1. PredictionErrorMonitor  — prefrontal: prediction vs outcome
-  2. CalibrationDriftDetector — cerebellum: decision distribution drift
-  3. ModelGammaEstimator      — interoception: γ₂ of the model itself
-  4. IndependentWitness       — ACC: error detection, blind spots
-  5. MetaCognitionLayer       — unified: all four → MetaState
+Subsystems (computational analogy, NOT functional homology — see SCOPE below):
+  1. PredictionErrorMonitor   — analogue: prefrontal prediction vs outcome
+  2. CalibrationDriftDetector — analogue: cerebellum decision-distribution drift
+  3. ModelGammaEstimator      — analogue: interoception γ₂ of the model itself
+  4. IndependentWitness       — analogue: ACC error detection / blind-spot guard
+  5. MetaCognitionLayer       — unified gate: all four → MetaState
 
 Key invariant:
   γ₂ (model) ≈ γ (market) → model is in resonance with market
   γ₂ ≠ γ     → model is in a different regime → OBSERVE
+
+⚠️ SCOPE OF BIO-NAMING.
+The four sub-blocks are decision-rate moving averages with empirically chosen
+constants (e.g. ``ModelGammaEstimator`` derives γ_model from
+``var − 0.125`` × 8.0 — a calibration-anchor, not a neuroanatomical mapping).
+The "prefrontal / cerebellum / interoception / ACC" labels are analogical
+shorthand for *what* each block monitors, not a claim that the implementation
+reproduces the cellular mechanisms of those regions. The block boundaries are
+useful for product reasoning (each block falsifies a distinct mode of model
+failure) but are not load-bearing physics. For the genuine neuroanatomy map
+of GeoSync, see ``~/CANONICAL_NEURO_MAPPING_2026_05_05.md``.
 """
 
 from __future__ import annotations

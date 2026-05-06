@@ -16,9 +16,7 @@ from loadtests.scenario import MarketScenario
 from loadtests.security import mint_loadtest_token
 
 RECORDING_PATH = Path(
-    os.environ.get(
-        "LOADTEST_MARKET_RECORDING", "tests/fixtures/recordings/coinbase_btcusd.jsonl"
-    )
+    os.environ.get("LOADTEST_MARKET_RECORDING", "tests/fixtures/recordings/coinbase_btcusd.jsonl")
 )
 HTTP_SCENARIO_TEMPLATE = MarketScenario.from_recording(RECORDING_PATH)
 GRPC_SCENARIO_TEMPLATE = MarketScenario.from_recording(RECORDING_PATH)

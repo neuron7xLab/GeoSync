@@ -75,9 +75,9 @@ def test_every_required_key_is_present(metrics: dict[str, Any]) -> None:
 def test_schema_values_are_primitive(metrics: dict[str, Any]) -> None:
     """Downstream contract: every value must be primitive or None, never nested."""
     for k, v in metrics.items():
-        assert v is None or isinstance(v, (int, float, str, bool)), (
-            f"key '{k}' has non-primitive type {type(v).__name__}: {v!r}"
-        )
+        assert v is None or isinstance(
+            v, (int, float, str, bool)
+        ), f"key '{k}' has non-primitive type {type(v).__name__}: {v!r}"
 
 
 def test_headline_ic_matches_killtest(metrics: dict[str, Any]) -> None:

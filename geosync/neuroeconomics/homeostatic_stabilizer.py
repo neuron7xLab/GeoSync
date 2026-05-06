@@ -36,6 +36,17 @@ from collections import deque
 from dataclasses import dataclass
 
 
+def _shortest_signed_arc(a: float, b: float) -> float:
+    """Signed shortest arc from `a` to `b` on the unit circle, in (-π, π].
+
+    Defined locally so NHS does not depend on the reset-wave engine module.
+    Used by `re_adaptation_to_baseline` to compare phases on the manifold
+    rather than as raw real-line numbers; this guards the safety-lock gate
+    against false triggers on equivalent phases that differ by 2π·k.
+    """
+    return ((b - a + math.pi) % (2.0 * math.pi)) - math.pi
+
+
 @dataclass(frozen=True, slots=True)
 class HomeostaticState:
     """Snapshot of E/I balance at one time step."""
@@ -250,7 +261,17 @@ class NeuroHomeostaticStabilizer:
         if max_phase_error <= 0:
             raise ValueError("max_phase_error must be > 0")
 
-        phase_diffs = [base - node for node, base in zip(node_phases, baseline_phases)]
+        # 2026-05-05 cycle #6: phase_diffs use the shortest signed arc on
+        # the circle, not naive subtraction. The energy fields (1 - cos,
+        # sin) are 2π-periodic and were already manifold-invariant, but
+        # the SAFETY-LOCK gate compared `abs(naive_diff)` against
+        # max_phase_error and so could trigger on phases that are close
+        # on the manifold but linearly far in R. That made re_adaptation
+        # falsely safety-lock when a caller normalised phases to a
+        # different 2π window, with downstream impact on trade gating.
+        phase_diffs = [
+            _shortest_signed_arc(node, base) for node, base in zip(node_phases, baseline_phases)
+        ]
         phase_errors = [abs(diff) for diff in phase_diffs]
         if any(err > max_phase_error for err in phase_errors):
             pre_reset_energy = serotonin_gain * (

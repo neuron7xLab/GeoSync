@@ -509,7 +509,7 @@ class ModelObservabilityOrchestrator:
         template = PostmortemTemplate(
             incident_id=incident_id,
             summary=(
-                f"{self._config.model_name} {event.metric} degradation detected:" f" {event.reason}"
+                f"{self._config.model_name} {event.metric} degradation detected: {event.reason}"
             ),
             started_at=event.timestamp,
             detected_by="model-observability-orchestrator",
@@ -652,7 +652,7 @@ class ModelObservabilityOrchestrator:
             return
 
         reason = (
-            "quality mean outside target band " f"{baseline.target:.4f} ± {baseline.tolerance:.4f}"
+            f"quality mean outside target band {baseline.target:.4f} ± {baseline.tolerance:.4f}"
         )
         self._emit_degradation(metric, interval.mean, baseline.target, reason, now)
 

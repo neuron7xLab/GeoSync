@@ -39,9 +39,7 @@ from core.physics.lyapunov_exponent import maximal_lyapunov_exponent
 
 def load_crypto_data() -> pd.DataFrame:
     """Load BTC/ETH/SOL hourly OHLCV data."""
-    data_path = (
-        Path(__file__).resolve().parent.parent / "data" / "sample_crypto_ohlcv.csv"
-    )
+    data_path = Path(__file__).resolve().parent.parent / "data" / "sample_crypto_ohlcv.csv"
     df = pd.read_csv(data_path, parse_dates=["timestamp"])
     return df.pivot(index="timestamp", columns="symbol", values="close").dropna()
 

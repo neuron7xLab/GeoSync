@@ -1,6 +1,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 """Parsers for OKX books-l2-tbt feeds."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -10,9 +11,7 @@ from ..models import OrderBookDiff, OrderBookSnapshot, PriceLevel
 
 
 def _levels(entries: Iterable[Sequence[str | float]]) -> tuple[PriceLevel, ...]:
-    return tuple(
-        PriceLevel.from_raw(price, quantity) for price, quantity, *_ in entries
-    )
+    return tuple(PriceLevel.from_raw(price, quantity) for price, quantity, *_ in entries)
 
 
 def parse(

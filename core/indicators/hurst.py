@@ -83,6 +83,7 @@ References:
     - Peters, E. E. (1994). Fractal Market Analysis: Applying Chaos Theory
       to Investment and Economics. Wiley.
 """
+
 from __future__ import annotations
 
 import logging
@@ -101,9 +102,7 @@ _metrics = get_metrics_collector()
 _DEFAULT_MIN_LAG = 2
 _DEFAULT_MAX_LAG = 50
 _DEFAULT_LAGS = np.arange(_DEFAULT_MIN_LAG, _DEFAULT_MAX_LAG + 1, dtype=int)
-_DEFAULT_DESIGN = np.vstack(
-    [np.ones_like(_DEFAULT_LAGS, dtype=float), np.log(_DEFAULT_LAGS)]
-).T
+_DEFAULT_DESIGN = np.vstack([np.ones_like(_DEFAULT_LAGS, dtype=float), np.log(_DEFAULT_LAGS)]).T
 _DEFAULT_PSEUDO = np.linalg.pinv(_DEFAULT_DESIGN)
 
 _NUMBA_AUTO_THRESHOLD = 50_000
@@ -508,9 +507,7 @@ def hurst_exponent(
         lags_int = lags.astype(np.int32)
         try:
             if selected_backend == "cuda":
-                tau = _compute_tau_cuda(
-                    np.asarray(x, dtype=np.float32, copy=False), lags
-                )
+                tau = _compute_tau_cuda(np.asarray(x, dtype=np.float32, copy=False), lags)
                 if tau_buffer is not None and tau_buffer.shape == tau.shape:
                     np.copyto(tau_buffer, tau)
                     tau = tau_buffer

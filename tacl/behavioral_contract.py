@@ -117,10 +117,7 @@ class BehavioralContract:
                     )
                 )
 
-            if (
-                previous_energy is not None
-                and energy - previous_energy > self.monotonic_tolerance
-            ):
+            if previous_energy is not None and energy - previous_energy > self.monotonic_tolerance:
                 breaches.append(
                     ContractBreach(
                         kind="monotonicity",
@@ -137,9 +134,7 @@ class BehavioralContract:
             previous_energy = energy
 
         compliant = not breaches
-        overrides_applied = bool(breaches) and self.required_approvals.issubset(
-            approvals_set
-        )
+        overrides_applied = bool(breaches) and self.required_approvals.issubset(approvals_set)
 
         report = BehavioralContractReport(
             compliant=compliant,

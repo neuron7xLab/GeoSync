@@ -16,7 +16,7 @@
       },
       "INV_003_freshness": {
         "passed": false,
-        "reason": "stale: 67977.3min > 60.0"
+        "reason": "stale: 102951.0min > 60.0"
       },
       "INV_004_nan_policy": {
         "passed": true,

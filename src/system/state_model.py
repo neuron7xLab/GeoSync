@@ -47,9 +47,7 @@ _ALLOWED_TRANSITIONS: Mapping[LifecycleState, Sequence[LifecycleState]] = {
     LifecycleState.STOPPED: (),
 }
 
-TERMINAL_STATES = frozenset(
-    state for state, allowed in _ALLOWED_TRANSITIONS.items() if not allowed
-)
+TERMINAL_STATES = frozenset(state for state, allowed in _ALLOWED_TRANSITIONS.items() if not allowed)
 
 
 @dataclass(frozen=True, slots=True)

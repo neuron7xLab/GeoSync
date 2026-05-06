@@ -163,9 +163,7 @@ class GradientHealthMonitor:
         # ── 1. Sync health: MLE of R(t) trajectory ──
         if len(self._R_history) >= 50:
             R_arr = np.array(self._R_history, dtype=np.float64)
-            mle = maximal_lyapunov_exponent(
-                R_arr, dim=3, tau=1, max_divergence_steps=20
-            )
+            mle = maximal_lyapunov_exponent(R_arr, dim=3, tau=1, max_divergence_steps=20)
         else:
             mle = 0.0
 

@@ -77,8 +77,7 @@ def test_expectations_enforce_bounds(tmp_path: Path) -> None:
     payload = json.loads(artifact.read_text(encoding="utf-8"))
     assert status == 1
     assert any(
-        issue["code"] == "above_max"
-        and issue["metric"] == "geosync_process_cpu_percent"
+        issue["code"] == "above_max" and issue["metric"] == "geosync_process_cpu_percent"
         for issue in payload["issues"]
     )
 
@@ -102,8 +101,7 @@ def test_expectations_enforce_latency_non_negative(tmp_path: Path) -> None:
     payload = json.loads((Path(vm.ARTIFACT_DIR) / "expectations.json").read_text())
     assert status == 1
     assert any(
-        issue["code"] == "below_min"
-        and issue["metric"] == "geosync_api_request_latency_seconds"
+        issue["code"] == "below_min" and issue["metric"] == "geosync_api_request_latency_seconds"
         for issue in payload["issues"]
     )
 
@@ -128,7 +126,6 @@ def test_expectations_enforce_monotonic_counter(tmp_path: Path) -> None:
     payload = json.loads((Path(vm.ARTIFACT_DIR) / "expectations.json").read_text())
     assert status == 1
     assert any(
-        issue["code"] == "monotonicity"
-        and issue["metric"] == "geosync_api_requests_total"
+        issue["code"] == "monotonicity" and issue["metric"] == "geosync_api_requests_total"
         for issue in payload["issues"]
     )

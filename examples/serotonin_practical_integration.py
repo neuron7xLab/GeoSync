@@ -7,6 +7,7 @@ Practical Integration Examples for Serotonin Controller
 This module demonstrates real-world integration patterns and best practices
 for using the serotonin controller in trading systems.
 """
+
 import sys
 from pathlib import Path
 
@@ -79,9 +80,7 @@ def example_1_basic_integration():
             print(f"\nTick {tick}:")
             print(f"  Stress: {stress:.1f}, Level: {result['level']:.3f}")
             print(f"  Can Trade: {can_trade}, Position Size: {position_size:.2%}")
-            print(
-                f"  Hold: {bool(result['hold'])}, Cooldown: {int(result['cooldown'])}"
-            )
+            print(f"  Hold: {bool(result['hold'])}, Cooldown: {int(result['cooldown'])}")
 
             if result["hold"]:
                 recovery = controller.estimate_recovery_time()
@@ -141,16 +140,10 @@ def example_2_position_sizing():
         status = (
             "✓ Full"
             if multiplier > 0.9
-            else (
-                "⚠ Reduced"
-                if multiplier > 0.3
-                else "⏸ Hold" if multiplier > 0 else "✗ No Trade"
-            )
+            else ("⚠ Reduced" if multiplier > 0.3 else "⏸ Hold" if multiplier > 0 else "✗ No Trade")
         )
 
-        print(
-            f"{stress_level:<10.1f} {controller.level:<10.3f} ${actual_size:<14.0f} {status}"
-        )
+        print(f"{stress_level:<10.1f} {controller.level:<10.3f} ${actual_size:<14.0f} {status}")
 
     Path(config_path).unlink()
     print("\n✓ Example 2 complete")
@@ -196,9 +189,7 @@ def example_3_risk_management():
     print("\nMarket stress scenario (stress=0.6):")
     controller.step(0.6, 0.1, 0.2)
 
-    print(
-        f"\n{'Risk Profile':<15} {'Can Trade':<12} {'Position Size':<15} {'Recommendation'}"
-    )
+    print(f"\n{'Risk Profile':<15} {'Can Trade':<12} {'Position Size':<15} {'Recommendation'}")
     print("-" * 60)
 
     for profile in risk_profiles:
@@ -214,9 +205,7 @@ def example_3_risk_management():
         else:
             recommendation = "⏸ Hold/rest"
 
-        print(
-            f"{profile:<15} {str(can_trade):<12} {position_multiplier:<15.2%} {recommendation}"
-        )
+        print(f"{profile:<15} {str(can_trade):<12} {position_multiplier:<15.2%} {recommendation}")
 
     Path(config_path).unlink()
     print("\n✓ Example 3 complete")
@@ -338,9 +327,9 @@ def example_5_batch_processing():
     batch_time = time.time() - start
 
     print(f"\nProcessed {n_steps} steps:")
-    print(f"  Loop method:  {loop_time:.4f}s ({n_steps/loop_time:.0f} steps/sec)")
-    print(f"  Batch method: {batch_time:.4f}s ({n_steps/batch_time:.0f} steps/sec)")
-    print(f"  Speedup:      {loop_time/batch_time:.2f}x")
+    print(f"  Loop method:  {loop_time:.4f}s ({n_steps / loop_time:.0f} steps/sec)")
+    print(f"  Batch method: {batch_time:.4f}s ({n_steps / batch_time:.0f} steps/sec)")
+    print(f"  Speedup:      {loop_time / batch_time:.2f}x")
 
     # Show sample results
     print("\nSample results (last 5 steps):")

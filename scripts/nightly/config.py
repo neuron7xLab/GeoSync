@@ -138,12 +138,8 @@ class BaselineStore:
                 if not isinstance(scenario_value, Mapping):
                     continue
                 baseline = self._coerce_metrics(scenario_value.get("baseline", {}))
-                thresholds = self._coerce_thresholds(
-                    scenario_value.get("thresholds", {})
-                )
-                parsed_stage[str(scenario)] = BaselineEntry(
-                    metrics=baseline, thresholds=thresholds
-                )
+                thresholds = self._coerce_thresholds(scenario_value.get("thresholds", {}))
+                parsed_stage[str(scenario)] = BaselineEntry(metrics=baseline, thresholds=thresholds)
             self._entries[str(stage)] = parsed_stage
 
     @staticmethod

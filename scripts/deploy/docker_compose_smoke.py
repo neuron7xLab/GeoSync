@@ -14,7 +14,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from urllib.parse import urlparse
 from typing import Iterable
 from urllib.parse import urlparse
 
@@ -54,9 +53,7 @@ def _validate_path(value: str, *, expected_file: bool) -> Path:
 def _validate_compose_file(value: str) -> Path:
     path = _validate_path(value, expected_file=True)
     if path.suffix.lower() not in {".yml", ".yaml"}:
-        raise argparse.ArgumentTypeError(
-            "Compose file must have a .yml or .yaml extension."
-        )
+        raise argparse.ArgumentTypeError("Compose file must have a .yml or .yaml extension.")
     return path
 
 
@@ -108,9 +105,7 @@ def _compose_cmd(compose_file: Path, project: str, *args: str) -> list[str]:
     return command
 
 
-def _wait_for_service(
-    project: str, compose_file: Path, service: str, timeout: float
-) -> None:
+def _wait_for_service(project: str, compose_file: Path, service: str, timeout: float) -> None:
     deadline = time.monotonic() + timeout
     last_status = "unknown"
     while time.monotonic() < deadline:
@@ -138,9 +133,7 @@ def _wait_for_service(
         last_status = status
         time.sleep(3.0)
 
-    raise TimeoutError(
-        f"service '{service}' did not become healthy (last status: {last_status})"
-    )
+    raise TimeoutError(f"service '{service}' did not become healthy (last status: {last_status})")
 
 
 def _port_is_available(port: int) -> bool:
@@ -238,9 +231,7 @@ def run_smoke_test(args: argparse.Namespace) -> None:
     env.setdefault("COMPOSE_DOCKER_CLI_BUILD", "1")
 
     default_http_port_env = (
-        os.environ.get("GEOSYNC_HTTP_PORT")
-        or os.environ.get("HTTP_PORT")
-        or str(DEFAULT_HTTP_PORT)
+        os.environ.get("GEOSYNC_HTTP_PORT") or os.environ.get("HTTP_PORT") or str(DEFAULT_HTTP_PORT)
     )
     default_health_url = f"http://localhost:{default_http_port_env}/health"
     default_metrics_url = f"http://localhost:{default_http_port_env}/metrics"
@@ -281,14 +272,10 @@ def run_smoke_test(args: argparse.Namespace) -> None:
     if args.metrics_url == default_metrics_url:
         args.metrics_url = f"http://localhost:{http_port}/metrics"
 
-    default_runtime_url = PROMETHEUS_RUNTIME_TEMPLATE.format(
-        port=DEFAULT_PROMETHEUS_PORT
-    )
+    default_runtime_url = PROMETHEUS_RUNTIME_TEMPLATE.format(port=DEFAULT_PROMETHEUS_PORT)
     default_up_url = PROMETHEUS_UP_TEMPLATE.format(port=DEFAULT_PROMETHEUS_PORT)
     if args.prometheus_runtime_url == default_runtime_url:
-        args.prometheus_runtime_url = PROMETHEUS_RUNTIME_TEMPLATE.format(
-            port=prometheus_port
-        )
+        args.prometheus_runtime_url = PROMETHEUS_RUNTIME_TEMPLATE.format(port=prometheus_port)
     if args.prometheus_up_url == default_up_url:
         args.prometheus_up_url = PROMETHEUS_UP_TEMPLATE.format(port=prometheus_port)
 
@@ -311,9 +298,7 @@ def run_smoke_test(args: argparse.Namespace) -> None:
         )
 
         try:
-            prom_runtime = _fetch_json(
-                args.prometheus_runtime_url, timeout=args.http_timeout
-            )
+            prom_runtime = _fetch_json(args.prometheus_runtime_url, timeout=args.http_timeout)
             prom_up = _fetch_json(args.prometheus_up_url, timeout=args.http_timeout)
         except (requests.Timeout, requests.RequestException, ValueError) as exc:
             raise RuntimeError(f"Failed to query Prometheus: {exc}") from exc
@@ -377,9 +362,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
     # Use GEOSYNC_HTTP_PORT/HTTP_PORT environment variables with fallback to DEFAULT_HTTP_PORT
     http_port = (
-        os.environ.get("GEOSYNC_HTTP_PORT")
-        or os.environ.get("HTTP_PORT")
-        or str(DEFAULT_HTTP_PORT)
+        os.environ.get("GEOSYNC_HTTP_PORT") or os.environ.get("HTTP_PORT") or str(DEFAULT_HTTP_PORT)
     )
     default_health = f"http://localhost:{http_port}/health"
     default_metrics = f"http://localhost:{http_port}/metrics"

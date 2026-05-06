@@ -191,9 +191,7 @@ class CausalGuard:
         marginal = self._entropy(x)
         return joint - marginal
 
-    def _conditional_entropy_2(
-        self, y: np.ndarray, x1: np.ndarray, x2: np.ndarray
-    ) -> float:
+    def _conditional_entropy_2(self, y: np.ndarray, x1: np.ndarray, x2: np.ndarray) -> float:
         """Compute conditional entropy H(Y|X1,X2)."""
         # H(Y|X1,X2) = H(Y,X1,X2) - H(X1,X2)
         joint_3 = self._joint_entropy_3(y, x1, x2)
@@ -228,9 +226,7 @@ class CausalGuard:
                     continue
 
                 # Run Granger test
-                result = grangercausalitytests(
-                    test_data, maxlag=self.max_lag, verbose=False
-                )
+                result = grangercausalitytests(test_data, maxlag=self.max_lag, verbose=False)
 
                 # Check if any lag is significant
                 for lag in range(1, self.max_lag + 1):

@@ -15,18 +15,19 @@ Scenarios:
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from core.neuro.kuramoto_kelly import KuramotoKellyAdapter
-from core.neuro.signal_bus import NeuroSignalBus, BusConfig
+from core.neuro.signal_bus import BusConfig, NeuroSignalBus
 
 # Level auto-assigned by conftest from tests/test_levels.yaml (L3 for integration)
 
 
 # ── Signal generators ────────────────────────────────────────────────────
 
-def _sine_wave_prices(n: int = 200, freq: float = 0.05, amplitude: float = 5.0,
-                       base: float = 100.0, seed: int = 42) -> np.ndarray:
+
+def _sine_wave_prices(
+    n: int = 200, freq: float = 0.05, amplitude: float = 5.0, base: float = 100.0, seed: int = 42
+) -> np.ndarray:
     """Generate a clean trending price series (sine wave + upward drift).
 
     A coherent signal should produce high Kuramoto R.
@@ -61,8 +62,8 @@ def _flat_prices(n: int = 100, base: float = 100.0) -> np.ndarray:
 # Core pipeline tests
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestKuramotoKellyPipeline:
 
+class TestKuramotoKellyPipeline:
     def setup_method(self):
         self.bus = NeuroSignalBus()
         self.adapter = KuramotoKellyAdapter(self.bus)
@@ -79,9 +80,7 @@ class TestKuramotoKellyPipeline:
         noise_prices = _noisy_prices(n=200)
         noise_returns = np.diff(noise_prices) / noise_prices[:-1]
         R_noise = self.adapter.compute_order_parameter(noise_returns)
-        assert R > R_noise, (
-            f"Sine wave R={R:.4f} should exceed noise R={R_noise:.4f}"
-        )
+        assert R > R_noise, f"Sine wave R={R:.4f} should exceed noise R={R_noise:.4f}"
 
     def test_sine_wave_large_kelly_fraction(self):
         """High coherence should yield large Kelly fraction."""
@@ -113,9 +112,9 @@ class TestKuramotoKellyPipeline:
         self.bus.reset()
         frac_noise = self.adapter.compute_kelly_fraction(kelly_base, prices_noise)
 
-        assert frac_sine >= frac_noise, (
-            f"Sine fraction={frac_sine:.4f} should be >= noise fraction={frac_noise:.4f}"
-        )
+        assert (
+            frac_sine >= frac_noise
+        ), f"Sine fraction={frac_sine:.4f} should be >= noise fraction={frac_noise:.4f}"
 
     # ── Bus integration: R published ─────────────────────────────────
 
@@ -154,9 +153,9 @@ class TestKuramotoKellyPipeline:
             prices = prices_fn(n=150)
             kelly_base = 0.3
             fraction = self.adapter.compute_kelly_fraction(kelly_base, prices)
-            assert fraction <= kelly_base + 1e-12, (
-                f"Fraction {fraction} exceeds kelly_base {kelly_base}"
-            )
+            assert (
+                fraction <= kelly_base + 1e-12
+            ), f"Fraction {fraction} exceeds kelly_base {kelly_base}"
 
     def test_kelly_fraction_lower_bound(self):
         """Kelly fraction should be >= floor * kelly_base."""
@@ -165,9 +164,9 @@ class TestKuramotoKellyPipeline:
             prices = prices_fn(n=150)
             kelly_base = 0.4
             fraction = adapter.compute_kelly_fraction(kelly_base, prices)
-            assert fraction >= 0.1 * kelly_base - 1e-12, (
-                f"Fraction {fraction} below floor*kelly_base {0.1 * kelly_base}"
-            )
+            assert (
+                fraction >= 0.1 * kelly_base - 1e-12
+            ), f"Fraction {fraction} below floor*kelly_base {0.1 * kelly_base}"
 
     def test_kelly_fraction_bounded_various_bases(self):
         """Test bounding with various kelly_base values."""
@@ -181,8 +180,8 @@ class TestKuramotoKellyPipeline:
 # Edge cases
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestKuramotoKellyEdgeCases:
 
+class TestKuramotoKellyEdgeCases:
     def setup_method(self):
         self.bus = NeuroSignalBus()
         self.adapter = KuramotoKellyAdapter(self.bus)
@@ -227,8 +226,8 @@ class TestKuramotoKellyEdgeCases:
 # Regime classification
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestRegimeClassification:
 
+class TestRegimeClassification:
     def setup_method(self):
         self.bus = NeuroSignalBus()
         self.adapter = KuramotoKellyAdapter(self.bus)
@@ -253,8 +252,8 @@ class TestRegimeClassification:
 # Custom adapter parameters
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestCustomAdapterParams:
 
+class TestCustomAdapterParams:
     def test_custom_floor_ceil(self):
         bus = NeuroSignalBus()
         adapter = KuramotoKellyAdapter(bus, floor=0.2, ceil=0.8)

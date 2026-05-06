@@ -1,15 +1,27 @@
-# GeoSync — Physical-Contracts Baseline (2026-04-06)
+# GeoSync — Physical-Contracts Baseline (2026-04-06, refreshed 2026-04-30)
 
 This file is the honest ground truth that future physical-contract work is
 measured against. It replaces README badge numbers with what the kernel
-validator actually sees.
+validator actually sees. The 2026-04-30 external audit
+([`docs/audit/2026-04-30-external-audit.md`](docs/audit/2026-04-30-external-audit.md))
+forced the count refresh below — the migration narrative further down is
+preserved as historical context, not as the current count.
 
-## 0. TL;DR
+## 0. TL;DR (current state, 2026-04-30)
 
-- **Physics kernel is real.** `.claude/physics/` contains **57 invariants**
-  (after this migration extended it by 11 modules — Kelly / OMS / SignalBus
-  / HPC + refined RC1→RC1+RC3, FE2, OMS1), 5 theory files, a 780-line
+- **Physics kernel is real.** `.claude/physics/` currently contains
+  **87 invariants** (per `python scripts/count_invariants.py`, single source of
+  truth: `.claude/physics/INVARIANTS.yaml`), 5 theory files, a 780-line
   validator with 7 levels (L1–L5 + C1–C2), and a self-check that passes.
+  CI gate `invariant-count-sync` fail-closes on any drift between this file,
+  README, CLAUDE.md, and the registry.
+
+## 0a. TL;DR (as of 2026-04-06 — historical migration milestone)
+
+- **Physics kernel was real then too.** `.claude/physics/` contained **57 invariants** <!-- count-sync:skip historical -->
+  (after that migration extended it by 11 modules — Kelly / OMS / SignalBus
+  / HPC + refined RC1→RC1+RC3, FE2, OMS1), 5 theory files, a 780-line
+  validator with 7 levels (L1–L5 + C1–C2), and a self-check that passed.
 - **Repo-wide physics grounding before this work: 0 / 1500 tests (0%).**
 - **Repo-wide physics grounding after this work: 36 / 1518 tests (≈ 2.4%).**
   Across **15 test files** covering **24 distinct INV-* invariants**,

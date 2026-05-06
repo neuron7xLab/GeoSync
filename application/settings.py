@@ -96,9 +96,7 @@ class KillSwitchPostgresSettings(BaseModel):
     def _validate_pool(self) -> "KillSwitchPostgresSettings":
         ensure_secure_postgres_uri(str(self.dsn))
         if self.max_pool_size < self.min_pool_size:
-            raise ValueError(
-                "max_pool_size must be greater than or equal to min_pool_size"
-            )
+            raise ValueError("max_pool_size must be greater than or equal to min_pool_size")
         return self
 
     model_config = ConfigDict(extra="forbid")
@@ -127,9 +125,7 @@ class ConfigNamespaceSettings(BaseModel):
         readers = tuple(actor.strip() for actor in self.readers if actor.strip())
         writers = tuple(actor.strip() for actor in self.writers if actor.strip())
         if not readers and not writers:
-            raise ValueError(
-                "At least one reader or writer must be configured for a namespace"
-            )
+            raise ValueError("At least one reader or writer must be configured for a namespace")
         if not self.name.strip():
             raise ValueError("Namespace name must not be blank")
         return self.model_copy(update={"readers": readers, "writers": writers})
@@ -192,9 +188,7 @@ class ApiServerTLSSettings(BaseModel):
 
     @field_validator("cipher_suites", "alpn_protocols", mode="before")
     @classmethod
-    def _normalise_sequence(
-        cls, value: object, info: ValidationInfo
-    ) -> tuple[str, ...]:
+    def _normalise_sequence(cls, value: object, info: ValidationInfo) -> tuple[str, ...]:
         if value is None:
             return ()
         if isinstance(value, str):
@@ -234,9 +228,7 @@ class ApiServerTLSSettings(BaseModel):
                 msg = f"{attribute.replace('_', ' ')} '{candidate}' must be a file"
                 raise ValueError(msg)
         if self.require_client_certificate and self.client_ca is None:
-            raise ValueError(
-                "Client certificate authentication requires a trusted CA bundle"
-            )
+            raise ValueError("Client certificate authentication requires a trusted CA bundle")
         return self
 
     def resolved_minimum_version(self) -> ssl.TLSVersion:
@@ -247,9 +239,7 @@ class ApiServerTLSSettings(BaseModel):
 class ApiServerSettings(BaseSettings):
     """Runtime configuration for the HTTPS listener."""
 
-    host: str = Field(
-        "0.0.0.0", description="Network interface bound by the API server."
-    )
+    host: str = Field("0.0.0.0", description="Network interface bound by the API server.")
     port: PositiveInt = Field(8000, description="TCP port exposed by the API server.")
     allow_plaintext: bool = Field(
         False,
@@ -263,9 +253,7 @@ class ApiServerSettings(BaseSettings):
     @model_validator(mode="after")
     def _enforce_tls(self) -> "ApiServerSettings":
         if not self.allow_plaintext and self.tls is None:
-            raise ValueError(
-                "TLS configuration is required for the GeoSync API server"
-            )
+            raise ValueError("TLS configuration is required for the GeoSync API server")
         return self
 
     model_config = SettingsConfigDict(
@@ -338,8 +326,7 @@ class AdminApiSettings(BaseSettings):
         "X-Admin-OTP",
         min_length=1,
         description=(
-            "HTTP header that must contain a valid administrator TOTP code for"
-            " privileged requests."
+            "HTTP header that must contain a valid administrator TOTP code for privileged requests."
         ),
     )
     two_factor_digits: int = Field(
@@ -393,8 +380,7 @@ class AdminApiSettings(BaseSettings):
     access_policy_path: Path = Field(
         Path("configs/security/access_policy.yaml"),
         description=(
-            "Filesystem path to the access control policy defining privileged "
-            "operations."
+            "Filesystem path to the access control policy defining privileged operations."
         ),
     )
     kill_switch_store_path: Path = Field(
@@ -426,9 +412,7 @@ class AdminApiSettings(BaseSettings):
     )
     siem_client_secret_path: Path | None = Field(
         default=None,
-        description=(
-            "Optional filesystem path monitored for SIEM client secret rotations."
-        ),
+        description=("Optional filesystem path monitored for SIEM client secret rotations."),
     )
     siem_scope: str | None = Field(
         default=None,
@@ -439,8 +423,7 @@ class AdminApiSettings(BaseSettings):
     def _validate_siem_configuration(self) -> "AdminApiSettings":
         if self.siem_endpoint is not None:
             has_secret = (
-                self.siem_client_secret is not None
-                or self.siem_client_secret_path is not None
+                self.siem_client_secret is not None or self.siem_client_secret_path is not None
             )
             if not self.siem_client_id or not has_secret:
                 raise ValueError(
@@ -519,10 +502,7 @@ class AdminApiSettings(BaseSettings):
             refresh_interval_seconds=refresh_interval,
         )
 
-        if (
-            self.siem_client_secret is not None
-            or self.siem_client_secret_path is not None
-        ):
+        if self.siem_client_secret is not None or self.siem_client_secret_path is not None:
             fallback: str | None = None
             if self.siem_client_secret is not None:
                 fallback = self.siem_client_secret.get_secret_value()
@@ -578,9 +558,7 @@ class AdminApiSettings(BaseSettings):
             audit_logger=audit_logger,
             clock=clock_fn,
         )
-        template_mgr = template_manager or ConfigTemplateManager(
-            self.config_template_directory
-        )
+        template_mgr = template_manager or ConfigTemplateManager(self.config_template_directory)
         detector = secret_detector or SecretDetector()
         rotator_instance = rotator or SecretRotator(vault=vault, clock=clock_fn)
         store = CentralConfigurationStore(
@@ -605,9 +583,7 @@ class AdminApiSettings(BaseSettings):
 
     def _resolve_config_vault_key(self) -> bytes:
         if self.config_vault_master_key_path is not None:
-            key_text = self.config_vault_master_key_path.read_text(
-                encoding="utf-8"
-            ).strip()
+            key_text = self.config_vault_master_key_path.read_text(encoding="utf-8").strip()
             if not key_text:
                 raise ValueError("Configuration vault master key file is empty")
             if len(key_text) < 44:
@@ -619,9 +595,7 @@ class AdminApiSettings(BaseSettings):
         if not key_value:
             raise ValueError("config_vault_master_key must be provided")
         if len(key_value) < 44:
-            raise ValueError(
-                "config_vault_master_key must be a base64-encoded 32 byte value"
-            )
+            raise ValueError("config_vault_master_key must be a base64-encoded 32 byte value")
         return key_value.encode("utf-8")
 
     model_config = SettingsConfigDict(
@@ -706,9 +680,7 @@ class ApiSecuritySettings(BaseSettings):
     )
     suspicious_json_keys: list[str] = Field(
         default_factory=lambda: ["$where", "__proto__", "$regex"],
-        description=(
-            "JSON keys that trigger an early rejection when present in request payloads."
-        ),
+        description=("JSON keys that trigger an early rejection when present in request payloads."),
     )
     suspicious_json_substrings: list[str] = Field(
         default_factory=lambda: ["<script", "javascript:"],
@@ -758,9 +730,7 @@ class ApiSecuritySettings(BaseSettings):
                 canonical.append(value)
         algorithms = tuple(canonical)
         if not algorithms:
-            raise ValueError(
-                "oauth2_algorithms must define at least one signing algorithm"
-            )
+            raise ValueError("oauth2_algorithms must define at least one signing algorithm")
         return self.model_copy(update={"oauth2_algorithms": algorithms})
 
     model_config = SettingsConfigDict(env_prefix="GEOSYNC_", extra="ignore")
@@ -795,9 +765,7 @@ class ApiRateLimitSettings(BaseSettings):
     )
     client_policies: dict[str, RateLimitPolicy] = Field(
         default_factory=dict,
-        description=(
-            "Mapping of authenticated subject identifiers to dedicated rate policies."
-        ),
+        description=("Mapping of authenticated subject identifiers to dedicated rate policies."),
     )
     redis_url: AnyUrl | None = Field(
         default=None,
@@ -818,9 +786,7 @@ class EmailNotificationSettings(BaseModel):
 
     host: str = Field(..., min_length=1, description="SMTP server hostname.")
     port: PositiveInt = Field(587, description="SMTP server port.")
-    sender: str = Field(
-        ..., min_length=3, description="Email address used as the sender."
-    )
+    sender: str = Field(..., min_length=3, description="Email address used as the sender.")
     recipients: list[str] = Field(
         default_factory=list,
         description="Email recipients that receive GeoSync notifications.",
@@ -832,9 +798,7 @@ class EmailNotificationSettings(BaseModel):
         default=None, description="Optional password used for SMTP authentication."
     )
     use_tls: bool = Field(True, description="Enable STARTTLS for SMTP connections.")
-    use_ssl: bool = Field(
-        False, description="Use implicit TLS when connecting to SMTP."
-    )
+    use_ssl: bool = Field(False, description="Use implicit TLS when connecting to SMTP.")
     timeout_seconds: PositiveFloat = Field(10.0, description="SMTP connection timeout.")
 
     @model_validator(mode="after")
@@ -878,9 +842,7 @@ class BackendRuntimeSettings(BaseSettings):
 
     debug: bool = Field(
         False,
-        description=(
-            "Enable FastAPI debug mode and expose authenticated debug endpoints."
-        ),
+        description=("Enable FastAPI debug mode and expose authenticated debug endpoints."),
     )
     log_level: int | str = Field(
         "INFO",
@@ -895,9 +857,7 @@ class BackendRuntimeSettings(BaseSettings):
     )
     redact_patterns: tuple[str, ...] = Field(
         default=("secret", "token", "key", "password"),
-        description=(
-            "Case-insensitive substrings that trigger redaction in debug output."
-        ),
+        description=("Case-insensitive substrings that trigger redaction in debug output."),
     )
     force_log_configuration: bool = Field(
         False,

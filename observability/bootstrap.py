@@ -111,9 +111,7 @@ class MetricsSetup:
     """Configuration for metrics validation and tagging."""
 
     metrics_path: Path = Path("observability/metrics.json")
-    required_tags: Sequence[str] = field(
-        default_factory=lambda: ("service", "environment")
-    )
+    required_tags: Sequence[str] = field(default_factory=lambda: ("service", "environment"))
     max_labels_per_metric: int = 8
     cardinality_limits: Mapping[str, int] = field(
         default_factory=lambda: {"service": 10, "environment": 5, "strategy": 50}
@@ -141,9 +139,7 @@ class MetricsSetup:
                 issues.append(
                     MetricsValidationIssue(
                         metric=metric.name,
-                        message=(
-                            "missing required tags: " + ", ".join(sorted(missing))
-                        ),
+                        message=("missing required tags: " + ", ".join(sorted(missing))),
                     )
                 )
 
@@ -152,9 +148,7 @@ class MetricsSetup:
                     issues.append(
                         MetricsValidationIssue(
                             metric=metric.name,
-                            message=(
-                                f"label '{label}' lacks a configured cardinality limit"
-                            ),
+                            message=(f"label '{label}' lacks a configured cardinality limit"),
                         )
                     )
 
@@ -490,18 +484,14 @@ class PostmortemTemplateBuilder:
             "Follow-up Actions": "- Define remediation tasks with owners and due dates to prevent recurrence.",
             "Lessons Learned": "- Summarize key takeaways to improve processes, tooling, and communication.",
         }
-        default_note = (
-            "- Record the most relevant facts, decisions, and outstanding questions."
-        )
+        default_note = "- Record the most relevant facts, decisions, and outstanding questions."
         for section in self.sections:
             lines.append(f"## {section}")
             lines.append("")
             lines.append(guidance.get(section, default_note))
             lines.append("")
 
-        self.template_path.write_text(
-            "\n".join(lines).rstrip() + "\n", encoding="utf-8"
-        )
+        self.template_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
         return self.template_path
 
 
@@ -526,9 +516,7 @@ class ObservabilityBootstrapper:
 
     def run(self) -> dict[str, Any]:
         formatter = self.logging.apply()
-        LOGGER.debug(
-            "Logging configured", extra={"formatter": formatter.__class__.__name__}
-        )
+        LOGGER.debug("Logging configured", extra={"formatter": formatter.__class__.__name__})
 
         metrics_report = self.metrics.validate()
         if metrics_report.issues:

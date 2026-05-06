@@ -146,17 +146,11 @@ class NetworkKuramotoEngine:
 
         coupling: CouplingMatrix = self._coupling.estimate(phases)
         delays: DelayMatrix = self._delay.estimate(phases, coupling)
-        frustration: FrustrationMatrix = self._frustration.estimate(
-            phases, coupling, delays
-        )
-        omega = estimate_natural_frequencies(
-            phases, method=cfg.natural_frequency_method, dt=dt
-        )
+        frustration: FrustrationMatrix = self._frustration.estimate(phases, coupling, delays)
+        omega = estimate_natural_frequencies(phases, method=cfg.natural_frequency_method, dt=dt)
 
         # Noise std estimate: residual of the coupling model.
-        noise_std = self._estimate_noise_std(
-            phases, coupling, delays, frustration, omega, dt
-        )
+        noise_std = self._estimate_noise_std(phases, coupling, delays, frustration, omega, dt)
 
         state = NetworkState(
             phases=phases,
@@ -230,9 +224,7 @@ class NetworkKuramotoEngine:
                     if K[i, j] == 0.0:
                         continue
                     t_d = t - int(tau[i, j])
-                    acc += float(
-                        K[i, j] * np.sin(theta[t_d, j] - theta[t, i] - alpha[i, j])
-                    )
+                    acc += float(K[i, j] * np.sin(theta[t_d, j] - theta[t, i] - alpha[i, j]))
                 pred[i] = acc
             residuals.append(float(np.mean((diffs[t] - pred) ** 2)))
         if not residuals:

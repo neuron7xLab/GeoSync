@@ -9,9 +9,9 @@ import numpy as np
 
 from application.system import (
     ExchangeAdapterConfig,
-    LiveLoopSettings,
     GeoSyncSystem,
     GeoSyncSystemConfig,
+    LiveLoopSettings,
 )
 from execution.connectors import BinanceConnector
 from observability.health_checks import (
@@ -45,7 +45,9 @@ def test_data_pipeline_health_reflects_status(tmp_path: Path) -> None:
     result = evaluate_data_pipeline_health(system)
     assert result.healthy
 
-    system._last_ingestion_completed_at = system.last_ingestion_completed_at - timedelta(seconds=400)  # type: ignore[assignment]
+    system._last_ingestion_completed_at = system.last_ingestion_completed_at - timedelta(
+        seconds=400
+    )  # type: ignore[assignment]
     result = evaluate_data_pipeline_health(system, stale_after_seconds=300.0)
     assert not result.healthy
 

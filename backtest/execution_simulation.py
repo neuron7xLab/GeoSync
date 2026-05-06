@@ -215,9 +215,7 @@ class MatchingEngine:
             raise ValueError("Liquidity price must be positive")
 
         book = self._books.setdefault(symbol, _OrderBook())
-        entry = _BookEntry(
-            price=price, qty=qty, order_id="liquidity", timestamp=timestamp
-        )
+        entry = _BookEntry(price=price, qty=qty, order_id="liquidity", timestamp=timestamp)
         target = book.bids if side is OrderSide.BUY else book.asks
         target.append(entry)
         self._sort_book_side(target, side)
@@ -330,9 +328,7 @@ class MatchingEngine:
         )
         self._sort_book_side(same_side, order.side)
         order.status = (
-            OrderStatus.PARTIALLY_FILLED
-            if order.filled_qty > EPSILON
-            else OrderStatus.NEW
+            OrderStatus.PARTIALLY_FILLED if order.filled_qty > EPSILON else OrderStatus.NEW
         )
 
     def _available_qty(

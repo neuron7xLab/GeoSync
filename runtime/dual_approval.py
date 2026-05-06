@@ -70,9 +70,7 @@ class ApprovalRecord:
         """Convert to dictionary for serialization."""
         return {
             "timestamp": self.timestamp,
-            "timestamp_iso": datetime.fromtimestamp(
-                self.timestamp, tz=timezone.utc
-            ).isoformat(),
+            "timestamp_iso": datetime.fromtimestamp(self.timestamp, tz=timezone.utc).isoformat(),
             "action_id": self.action_id,
             "approver": self.approver,
             "expires_at": self.expires_at,
@@ -99,9 +97,7 @@ class ApprovalAuditEntry:
         """Convert to dictionary for serialization."""
         return {
             "timestamp": self.timestamp,
-            "timestamp_iso": datetime.fromtimestamp(
-                self.timestamp, tz=timezone.utc
-            ).isoformat(),
+            "timestamp_iso": datetime.fromtimestamp(self.timestamp, tz=timezone.utc).isoformat(),
             "action_id": self.action_id,
             "result": self.result.value,
             "source": self.source,
@@ -337,9 +333,7 @@ class DualApprovalManager:
 
         return True
 
-    def revoke_approval(
-        self, action_id: str, reason: str = "manual_revocation"
-    ) -> bool:
+    def revoke_approval(self, action_id: str, reason: str = "manual_revocation") -> bool:
         """Revoke an existing approval.
 
         Args:
@@ -379,9 +373,7 @@ class DualApprovalManager:
         """
         return [entry.to_dict() for entry in self._audit_log[-limit:]]
 
-    def register_callback(
-        self, callback: Callable[[str, ApprovalResult], None]
-    ) -> None:
+    def register_callback(self, callback: Callable[[str, ApprovalResult], None]) -> None:
         """Register a callback for approval events.
 
         Args:

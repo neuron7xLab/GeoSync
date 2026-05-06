@@ -32,9 +32,7 @@ price_series = pd.Series(price, index=idx, name="close")
 cfg = IGSConfig(window=400, n_states=7)
 features = compute_igs_features(price_series, cfg)
 signal = igs_directional_signal(features, cfg=cfg)
-out = pd.concat(
-    [price_series.rename("close"), features, signal.rename("igs_signal")], axis=1
-)
+out = pd.concat([price_series.rename("close"), features, signal.rename("igs_signal")], axis=1)
 Path("igs_demo_features_signal.csv").write_text(out.to_csv())
 
 eng = StreamingIGS(cfg)

@@ -36,10 +36,9 @@ def test_demographic_parity_balanced_dataset() -> None:
 
     difference = demographic_parity_difference(y_pred, groups)
 
-    assert pytest.approx(difference, abs=1e-9) == 0.0, (
-        f"Expected zero demographic parity difference for balanced dataset, "
-        f"but got {difference}"
-    )
+    assert (
+        pytest.approx(difference, abs=1e-9) == 0.0
+    ), f"Expected zero demographic parity difference for balanced dataset, but got {difference}"
 
 
 def test_demographic_parity_detects_bias() -> None:
@@ -71,10 +70,9 @@ def test_equal_opportunity_difference_balanced() -> None:
 
     difference = equal_opportunity_difference(y_true, y_pred, groups)
 
-    assert difference == pytest.approx(0.0), (
-        f"Expected zero equal opportunity difference for balanced TPR, "
-        f"but got {difference}"
-    )
+    assert difference == pytest.approx(
+        0.0
+    ), f"Expected zero equal opportunity difference for balanced TPR, but got {difference}"
 
 
 def test_equal_opportunity_detects_bias() -> None:

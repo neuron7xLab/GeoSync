@@ -285,9 +285,9 @@ def test_no_forbidden_score_fields_exist() -> None:
         "ratio",
     }
     fields = set(GlobalParityWitness.__dataclass_fields__.keys())
-    assert fields.isdisjoint(forbidden), (
-        f"forbidden score fields present on witness: {fields & forbidden}"
-    )
+    assert fields.isdisjoint(
+        forbidden
+    ), f"forbidden score fields present on witness: {fields & forbidden}"
 
 
 def test_deterministic_repeated_calls_equal() -> None:

@@ -16,15 +16,11 @@ from geosync_hpc import synthetic as synthetic_module
 def test_generate_demo_ticks_is_deterministic(tmp_path: Path) -> None:
     out_path = tmp_path / "sim_ticks.csv"
 
-    first = pd.read_csv(
-        synthetic_module.generate_demo_ticks(out_path, n=256, seed=1234)
-    )
+    first = pd.read_csv(synthetic_module.generate_demo_ticks(out_path, n=256, seed=1234))
 
     out_path.unlink()
 
-    second = pd.read_csv(
-        synthetic_module.generate_demo_ticks(out_path, n=256, seed=1234)
-    )
+    second = pd.read_csv(synthetic_module.generate_demo_ticks(out_path, n=256, seed=1234))
 
     pd.testing.assert_frame_equal(first, second)
 
@@ -34,12 +30,8 @@ def test_read_ticks_csv_materialises_missing_demo(
 ) -> None:
     dataset_path = tmp_path / "sim_ticks.csv"
 
-    monkeypatch.setattr(
-        synthetic_module, "DEFAULT_DEMO_TICKS_PATH", dataset_path, raising=False
-    )
-    monkeypatch.setattr(
-        data_module, "DEFAULT_DEMO_TICKS_PATH", dataset_path, raising=False
-    )
+    monkeypatch.setattr(synthetic_module, "DEFAULT_DEMO_TICKS_PATH", dataset_path, raising=False)
+    monkeypatch.setattr(data_module, "DEFAULT_DEMO_TICKS_PATH", dataset_path, raising=False)
     monkeypatch.setattr(
         data_module,
         "generate_demo_ticks",

@@ -56,8 +56,7 @@ class TestPerformanceTracker:
             with open(self.baseline_file, encoding="utf-8") as f:
                 data = json.load(f)
                 self.baseline = {
-                    record["test_id"]: record["duration"]
-                    for record in data.get("records", [])
+                    record["test_id"]: record["duration"] for record in data.get("records", [])
                 }
             print(f"Loaded baseline with {len(self.baseline)} test records")
         except (json.JSONDecodeError, KeyError, IOError) as e:
@@ -105,9 +104,7 @@ class TestPerformanceTracker:
             current_duration = record.duration
             delta_seconds = current_duration - baseline_duration
             delta_percentage = (
-                (delta_seconds / baseline_duration * 100)
-                if baseline_duration > 0
-                else 0
+                (delta_seconds / baseline_duration * 100) if baseline_duration > 0 else 0
             )
 
             is_regression = current_duration > baseline_duration * threshold
@@ -135,9 +132,7 @@ class TestPerformanceTracker:
             reverse=True,
         )
 
-    def save_as_baseline(
-        self, records: list[TestPerformanceRecord], output_file: Path
-    ) -> None:
+    def save_as_baseline(self, records: list[TestPerformanceRecord], output_file: Path) -> None:
         """Save current results as new baseline."""
         data = {
             "records": [
@@ -200,9 +195,7 @@ class TestPerformanceTracker:
                     "delta_seconds": c.delta_seconds,
                     "delta_percentage": c.delta_percentage,
                 }
-                for c in sorted(
-                    regressions, key=lambda x: x.delta_percentage, reverse=True
-                )[
+                for c in sorted(regressions, key=lambda x: x.delta_percentage, reverse=True)[
                     :20
                 ]  # Top 20 worst
             ],
@@ -240,9 +233,7 @@ class TestPerformanceTracker:
 
 def main(argv: list[str] | None = None) -> int:
     """Main entry point for test performance tracker."""
-    parser = argparse.ArgumentParser(
-        description="Track and analyze test performance metrics"
-    )
+    parser = argparse.ArgumentParser(description="Track and analyze test performance metrics")
     parser.add_argument(
         "--results",
         type=Path,
@@ -308,9 +299,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Check for regressions
     if args.fail_on_regression and report["summary"]["regressions_count"] > 0:
-        print(
-            f"\n❌ {report['summary']['regressions_count']} performance regression(s) detected"
-        )
+        print(f"\n❌ {report['summary']['regressions_count']} performance regression(s) detected")
         return 1
 
     return 0

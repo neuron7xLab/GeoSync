@@ -63,9 +63,7 @@ class TestThermoControllerHPCAI:
             controller.prev_pwpe == 0.0
         ), f"Initial prev_pwpe should be 0.0, got {controller.prev_pwpe}"
 
-    def test_hpc_ai_control_step_not_initialized(
-        self, simple_graph, synthetic_market_data
-    ):
+    def test_hpc_ai_control_step_not_initialized(self, simple_graph, synthetic_market_data):
         """Test HPC-AI control step returns error when not initialized.
 
         When HPC-AI is not initialized, the control step should gracefully
@@ -108,13 +106,9 @@ class TestThermoControllerHPCAI:
         assert isinstance(
             result["td_error"], float
         ), f"TD error should be float, got {type(result['td_error'])}"
-        assert (
-            result["pwpe"] >= 0.0
-        ), f"PWPE should be non-negative, got {result['pwpe']}"
+        assert result["pwpe"] >= 0.0, f"PWPE should be non-negative, got {result['pwpe']}"
 
-    def test_hpc_ai_control_step_with_execution(
-        self, simple_graph, synthetic_market_data
-    ):
+    def test_hpc_ai_control_step_with_execution(self, simple_graph, synthetic_market_data):
         """Test HPC-AI control step with action execution enabled.
 
         When execute_action=True, the controller should not only compute
@@ -154,15 +148,11 @@ class TestThermoControllerHPCAI:
         assert len(results) == 5, f"Expected 5 control step results, got {len(results)}"
 
         # Check prev_pwpe is updated after multiple steps
-        assert (
-            controller.prev_pwpe > 0.0
-        ), "prev_pwpe should be updated after control steps"
+        assert controller.prev_pwpe > 0.0, "prev_pwpe should be updated after control steps"
 
         # Check all actions are valid
         actions = [r["action"] for r in results]
-        assert all(
-            a in [0, 1, 2] for a in actions
-        ), f"All actions should be 0-2, got {actions}"
+        assert all(a in [0, 1, 2] for a in actions), f"All actions should be 0-2, got {actions}"
 
     def test_pwpe_tracking(self, simple_graph, synthetic_market_data):
         """Test that PWPE is tracked across steps."""

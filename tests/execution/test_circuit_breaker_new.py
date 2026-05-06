@@ -101,9 +101,7 @@ class TestCircuitBreaker:
         assert cb.state == CircuitBreakerState.HALF_OPEN
 
     def test_half_open_max_calls_limit(self):
-        cb = self._make(
-            failure_threshold=1, recovery_timeout=0.01, half_open_max_calls=2
-        )
+        cb = self._make(failure_threshold=1, recovery_timeout=0.01, half_open_max_calls=2)
         cb.record_failure()
         time.sleep(0.02)
         assert cb.allow_request() is True

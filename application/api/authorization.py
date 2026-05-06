@@ -88,9 +88,7 @@ def require_roles(
 def _resolve_audit_secret() -> str:
     secret = os.getenv(_AUDIT_SECRET_ENV)
     if secret is None:
-        raise RuntimeError(
-            "GEOSYNC_RBAC_AUDIT_SECRET must be set to enable audit logging"
-        )
+        raise RuntimeError("GEOSYNC_RBAC_AUDIT_SECRET must be set to enable audit logging")
     candidate = secret.strip()
     if not candidate:
         raise RuntimeError("RBAC audit secret cannot be empty or whitespace")
@@ -104,9 +102,7 @@ def _build_default_gateway() -> AuthorizationGateway:
     if not policy_path.is_absolute():
         policy_path = _REPO_ROOT / policy_path
     audit_logger = AuditLogger(secret=_resolve_audit_secret())
-    return build_authorization_gateway(
-        policy_path=policy_path, audit_logger=audit_logger
-    )
+    return build_authorization_gateway(policy_path=policy_path, audit_logger=audit_logger)
 
 
 def get_authorization_gateway() -> AuthorizationGateway:

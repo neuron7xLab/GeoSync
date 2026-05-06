@@ -75,9 +75,7 @@ class FakeExchangeAdapter(ExecutionConnector):
 
     # ------------------------------------------------------------------
     # Order lifecycle
-    def place_order(
-        self, order: Order, *, idempotency_key: str | None = None
-    ) -> Order:  # type: ignore[override]
+    def place_order(self, order: Order, *, idempotency_key: str | None = None) -> Order:  # type: ignore[override]
         attempt_key = None
         if idempotency_key is not None:
             attempt_key = str(idempotency_key)

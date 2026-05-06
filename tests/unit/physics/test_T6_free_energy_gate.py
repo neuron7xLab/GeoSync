@@ -55,9 +55,7 @@ class TestDeltaFConstraint:
             # Core descent invariant: allowed ⇒ ΔF ≤ 0.
             if decision.allowed and decision.delta_F > 0:
                 violations += 1
-                details.append(
-                    f"step {step}: allowed trade had ΔF={decision.delta_F:.6f} > 0"
-                )
+                details.append(f"step {step}: allowed trade had ΔF={decision.delta_F:.6f} > 0")
 
         assert violations == 0, (
             f"INV-FE1 VIOLATED: {violations} descent failures along a "

@@ -9,7 +9,18 @@
 
 ## Overall Assessment
 
-### 🎯 Final Verdict: **EXCEPTIONAL** ✅
+> ⚠️ **PROVENANCE — READ FIRST.** This file is a **historical executive
+> summary from 2025-12-08**, retained for audit trail. The verdict and
+> language below were the words the audit team used at that time. They
+> do not represent the current 2026-05-05 evidence boundary, which is
+> documented in `CLAIMS.md`, `docs/PERFORMANCE_LEDGER.md`, and
+> `docs/KNOWN_LIMITATIONS.md`. Treat any "production-ready",
+> "world-class", or "exceptional" wording in this file as
+> historical-aspirational, not as a current claim. Live-venue trading
+> evidence (limitation L-1) was not yet present then and is still not
+> present in this snapshot.
+
+### 🎯 Final Verdict (2025-12-08, historical): **EXCEPTIONAL** ✅
 
 GeoSync demonstrates **world-class security posture** and **groundbreaking technical innovation**. The system is **production-ready** with formal safety guarantees unprecedented in the trading platform industry.
 

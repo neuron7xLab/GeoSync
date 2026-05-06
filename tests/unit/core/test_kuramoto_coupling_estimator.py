@@ -124,9 +124,7 @@ class TestRowSolver:
         beta_true[7] = 0.9
         y = X @ beta_true + 0.01 * rng.standard_normal(n)
 
-        beta_hat = _proximal_gradient_row(
-            X, y, lam=0.01, penalty="lasso", max_iter=2000, tol=1e-9
-        )
+        beta_hat = _proximal_gradient_row(X, y, lam=0.01, penalty="lasso", max_iter=2000, tol=1e-9)
         assert np.allclose(beta_hat, beta_true, atol=0.05)
 
     def test_mcp_zeros_noise_coefficients(self) -> None:
@@ -205,9 +203,7 @@ class TestSyntheticRecovery:
         assert tpr >= 0.8, f"TPR={tpr:.3f} below 0.8 threshold"
         assert fpr <= 0.1, f"FPR={fpr:.3f} above 0.1 threshold"
 
-    def test_sign_recovery(
-        self, ground_truth: tuple[np.ndarray, np.ndarray, PhaseMatrix]
-    ) -> None:
+    def test_sign_recovery(self, ground_truth: tuple[np.ndarray, np.ndarray, PhaseMatrix]) -> None:
         K_true, _, pm = ground_truth
         cfg = CouplingEstimationConfig(
             penalty="mcp",
@@ -267,9 +263,7 @@ class TestNullRejection:
             f"null_edges={null_edges} ≥ real_edges={real_edges}: "
             "estimator does not discriminate signal from noise"
         )
-        assert (
-            null_edges / off_diag < 0.2
-        ), f"null density {null_edges / off_diag:.2f} too high"
+        assert null_edges / off_diag < 0.2, f"null density {null_edges / off_diag:.2f} too high"
 
 
 # ---------------------------------------------------------------------------

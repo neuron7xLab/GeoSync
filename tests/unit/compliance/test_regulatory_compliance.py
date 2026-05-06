@@ -155,9 +155,7 @@ def test_validator_detects_broad_failures() -> None:
     assert any("Consent logging must be enabled" in message for message in messages)
     assert "Independent audit coverage is not confirmed" in messages
     assert "Audit frequency exceeds configured maximum interval" in messages
-    assert any(
-        "Remediation commitments are not aligned" in message for message in messages
-    )
+    assert any("Remediation commitments are not aligned" in message for message in messages)
     assert "Remediation plan reference is missing" in messages
 
 
@@ -233,9 +231,7 @@ def test_validator_accepts_compliant_metadata(
     report = validator.validate(sample_metadata)
     assert report.compliant
     assert report.issues == ()
-    assert (
-        report.metadata["license"] == "MIT License"
-    )
+    assert report.metadata["license"] == "MIT License"
     assert "GDPR" in report.metadata["privacy_regimes"]
 
 

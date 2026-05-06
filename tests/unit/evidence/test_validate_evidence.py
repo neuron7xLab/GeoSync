@@ -126,7 +126,7 @@ def test_each_regression_case_actually_refuses(
         # The expected refusal must appear in the errors `where` field.
         if not any(e.where == expected for e in errors):
             failed_to_refuse.append(
-                f"{cname}: expected refusal {expected!r}, " f"got {[e.where for e in errors]}"
+                f"{cname}: expected refusal {expected!r}, got {[e.where for e in errors]}"
             )
     assert not failed_to_refuse, "\n".join(failed_to_refuse)
 

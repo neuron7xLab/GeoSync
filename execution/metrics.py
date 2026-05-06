@@ -283,9 +283,7 @@ class TradingModeMetrics:
         for m in ["BACKTEST", "PAPER", "LIVE"]:
             self.trading_mode.labels(mode=m).set(1.0 if m == mode_upper else 0.0)
 
-    def record_transition_latency(
-        self, from_mode: str, to_mode: str, latency: float
-    ) -> None:
+    def record_transition_latency(self, from_mode: str, to_mode: str, latency: float) -> None:
         """Record the latency of a mode transition.
 
         Args:

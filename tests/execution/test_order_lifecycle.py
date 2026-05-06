@@ -60,9 +60,7 @@ class _SQLiteDAL:
 
 def _make_store():
     dal = _SQLiteDAL()
-    store = OrderLifecycleStore(
-        dal, schema=None, table="order_journal", dialect="sqlite"
-    )
+    store = OrderLifecycleStore(dal, schema=None, table="order_journal", dialect="sqlite")
     store.ensure_schema()
     return store, dal
 

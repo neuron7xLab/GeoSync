@@ -8,6 +8,7 @@ Validates graceful shutdown:
 Note: These tests are simplified as full signal testing requires
 process-level control. Tests validate cleanup logic exists.
 """
+
 from __future__ import annotations
 
 import signal
@@ -66,7 +67,8 @@ def test_checkpoint_on_interruption() -> None:
         def save_checkpoint(data: dict, path: Path) -> None:
             """Simulate checkpoint saving."""
             import json
-            with open(path, 'w') as f:
+
+            with open(path, "w") as f:
                 json.dump(data, f)
 
         # Simulate interrupted work
@@ -84,6 +86,7 @@ def test_checkpoint_on_interruption() -> None:
 
         # Verify checkpoint is valid
         import json
+
         with open(checkpoint_path) as f:
             loaded = json.load(f)
 
@@ -171,6 +174,7 @@ def test_fast_shutdown() -> None:
 
     # Interrupt after a bit
     import threading
+
     def interrupt_after_delay():
         time.sleep(0.05)  # Let some work happen
         nonlocal interrupted
@@ -199,11 +203,12 @@ def test_no_partial_output_files() -> None:
         # Simulate interrupted write with flag
         def write_results_atomically(data: dict, path: Path, interrupted: bool = False) -> None:
             """Write to temp file, then atomic rename."""
-            temp_path = path.with_suffix('.tmp')
+            temp_path = path.with_suffix(".tmp")
 
             import json
+
             # Write to temp file
-            with open(temp_path, 'w') as f:
+            with open(temp_path, "w") as f:
                 json.dump(data, f)
 
             # Simulate interruption before rename

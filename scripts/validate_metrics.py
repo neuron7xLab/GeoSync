@@ -7,14 +7,15 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
-import math
 import json
+import math
 import os
 import sys
 from pathlib import Path
 from typing import Mapping
 
 from fastapi.testclient import TestClient
+
 try:
     from prometheus_client.parser import text_string_to_metric_families
 except ImportError:  # pragma: no cover - fallback for older prometheus_client versions
@@ -43,7 +44,9 @@ structural_issues = _METRICS_VALIDATION.structural_issues
 summarise_catalog = _METRICS_VALIDATION.summarise_catalog
 write_artifact = _METRICS_VALIDATION.write_artifact
 
-ARTIFACT_DIR = Path(os.environ.get("METRICS_VALIDATION_ARTIFACT_DIR", "artifacts/metrics-validation"))
+ARTIFACT_DIR = Path(
+    os.environ.get("METRICS_VALIDATION_ARTIFACT_DIR", "artifacts/metrics-validation")
+)
 
 
 def _default_catalogs() -> list[Path]:
@@ -166,10 +169,14 @@ def _validate_regression_baselines(root: Path) -> list[str]:
                 if key in cfg and cfg[key] is not None and cfg[key] < 0:
                     errors.append(f"{scenario_name}.{metric_name}: {key} cannot be negative")
             for bound in ("min_value", "max_value"):
-                if bound in cfg and cfg[bound] is not None and not isinstance(
-                    cfg[bound], (int, float)
+                if (
+                    bound in cfg
+                    and cfg[bound] is not None
+                    and not isinstance(cfg[bound], (int, float))
                 ):
-                    errors.append(f"{scenario_name}.{metric_name}: {bound} must be numeric when set")
+                    errors.append(
+                        f"{scenario_name}.{metric_name}: {bound} must be numeric when set"
+                    )
     return errors
 
 
@@ -245,9 +252,7 @@ def run_runtime(root: Path, catalogs: list[Path]) -> int:
         labels_health,
     )
 
-    inflight_value = _sample_value(
-        metrics_after, "geosync_api_requests_in_flight", labels_health
-    )
+    inflight_value = _sample_value(metrics_after, "geosync_api_requests_in_flight", labels_health)
 
     queue_depth_samples = [
         sample["value"]
@@ -269,21 +274,28 @@ def run_runtime(root: Path, catalogs: list[Path]) -> int:
     )
 
     deltas = {
-        "geosync_api_requests_total": None
-        if requests_before is None or requests_after is None
-        else requests_after - requests_before,
-        "geosync_api_request_latency_seconds_count": None
-        if latency_before is None or latency_after is None
-        else latency_after - latency_before,
-        "geosync_ticks_processed_total": ticks_after - ticks_before
-        if ticks_after is not None and ticks_before is not None
-        else None,
+        "geosync_api_requests_total": (
+            None
+            if requests_before is None or requests_after is None
+            else requests_after - requests_before
+        ),
+        "geosync_api_request_latency_seconds_count": (
+            None
+            if latency_before is None or latency_after is None
+            else latency_after - latency_before
+        ),
+        "geosync_ticks_processed_total": (
+            ticks_after - ticks_before
+            if ticks_after is not None and ticks_before is not None
+            else None
+        ),
     }
 
     invariants = {
         "health_counter_incremented": deltas["geosync_api_requests_total"] is not None
         and deltas["geosync_api_requests_total"] >= 2,
-        "health_latency_incremented": deltas["geosync_api_request_latency_seconds_count"] is not None
+        "health_latency_incremented": deltas["geosync_api_request_latency_seconds_count"]
+        is not None
         and deltas["geosync_api_request_latency_seconds_count"] >= 2,
         "latency_finite": latency_sum is None or (math.isfinite(latency_sum) and latency_sum >= 0),
         "inflight_finite": inflight_value is None

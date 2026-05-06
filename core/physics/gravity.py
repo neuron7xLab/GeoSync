@@ -46,12 +46,9 @@ def gravitational_force(
         >>> force = gravitational_force(mass1, mass2, distance)
     """
     # Prevent division by zero with minimum distance
-    distance_safe = np.maximum(
-        np.abs(distance),
-        PhysicsConstants.MIN_DISTANCE
-    )
+    distance_safe = np.maximum(np.abs(distance), PhysicsConstants.MIN_DISTANCE)
 
-    return G * (mass1 * mass2) / (distance_safe ** 2)
+    return G * (mass1 * mass2) / (distance_safe**2)
 
 
 def gravitational_potential(
@@ -79,10 +76,7 @@ def gravitational_potential(
         >>> distance = 50.0
         >>> potential = gravitational_potential(mass, distance)
     """
-    distance_safe = np.maximum(
-        np.abs(distance),
-        PhysicsConstants.MIN_DISTANCE
-    )
+    distance_safe = np.maximum(np.abs(distance), PhysicsConstants.MIN_DISTANCE)
 
     return -G * mass / distance_safe
 
@@ -136,7 +130,7 @@ def compute_market_gravity(
                     volumes_arr[j],
                     1.0,  # Test mass
                     distance,
-                    G
+                    G,
                 )
                 # Add contribution with sign based on direction
                 direction = np.sign(prices_arr[j] - prices_arr[i])

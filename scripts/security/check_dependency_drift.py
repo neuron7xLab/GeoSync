@@ -72,9 +72,7 @@ def _parse_pyproject_dependencies(pyproject_path: Path) -> List[Requirement]:
         try:
             requirements.append(Requirement(spec))
         except Exception as exc:  # pragma: no cover - defensive
-            raise ValueError(
-                f"Failed to parse dependency '{spec}' in {pyproject_path}"
-            ) from exc
+            raise ValueError(f"Failed to parse dependency '{spec}' in {pyproject_path}") from exc
     return requirements
 
 
@@ -133,9 +131,7 @@ def _check_requirements(
                 )
             )
             continue
-        if req.specifier and not req.specifier.contains(
-            locked_version, prereleases=True
-        ):
+        if req.specifier and not req.specifier.contains(locked_version, prereleases=True):
             issues.append(
                 DriftIssue(
                     package=req.name,

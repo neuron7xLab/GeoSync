@@ -334,12 +334,8 @@ def run_production_checks(verbose: bool = False) -> ReadinessReport:
 
 def main() -> int:
     """Main entry point for production readiness checks."""
-    parser = argparse.ArgumentParser(
-        description="GeoSync Production Readiness Verification"
-    )
-    parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Enable verbose output"
-    )
+    parser = argparse.ArgumentParser(description="GeoSync Production Readiness Verification")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
     parser.add_argument(
         "--json-output",
         "-o",

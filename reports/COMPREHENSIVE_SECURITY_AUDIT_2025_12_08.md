@@ -1,12 +1,27 @@
 # GeoSync Comprehensive Security Audit Report
 
-**Audit Date:** 2025-12-08  
-**Audit Type:** Comprehensive Security & Technical Assessment  
-**Auditor:** GitHub Copilot Security Agent  
-**Repository:** neuron7xLab/GeoSync  
+**Audit Date:** 2025-12-08
+**Audit Type:** Comprehensive Security & Technical Assessment
+**Auditor:** GitHub Copilot Security Agent
+**Repository:** neuron7xLab/GeoSync
 **Version:** 0.1.0 Beta
 
 ---
+
+> ⚠️ **PROVENANCE — READ FIRST.** This is the historical 2025-12-08
+> security audit, retained for audit-trail completeness. The verdicts
+> ("STRONG", "EXCEPTIONAL", "Mathematically proven stability") and the
+> 95/100 score reflect the audit team's assessment at that time. They
+> are NOT a current 2026-05-05 evidence boundary. Specifically:
+>
+> * "Mathematically proven stability" refers to the formal-Lyapunov
+>   structure of the ECS regulator, not to live-venue capital safety.
+> * "Production-ready" predates limitation L-1 (paper-trading only),
+>   which still binds in the 2026-05-05 canonical snapshot.
+>
+> Treat strong language in this file as historical-aspirational. The
+> current evidence boundary is in `CLAIMS.md`,
+> `docs/PERFORMANCE_LEDGER.md`, and `docs/KNOWN_LIMITATIONS.md`.
 
 ## Executive Summary
 

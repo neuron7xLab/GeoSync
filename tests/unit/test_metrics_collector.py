@@ -78,9 +78,7 @@ def _p2_quantile(samples: Iterable[float], probability: float) -> float:
                 d <= -1 and positions[i - 1] - positions[i] < -1
             ):
                 d_sign = 1 if d > 0 else -1
-                new_height = ordered[i] + d_sign / (
-                    positions[i + 1] - positions[i - 1]
-                ) * (
+                new_height = ordered[i] + d_sign / (positions[i + 1] - positions[i - 1]) * (
                     (positions[i] - positions[i - 1] + d_sign)
                     * (ordered[i + 1] - ordered[i])
                     / (positions[i + 1] - positions[i])
@@ -151,9 +149,7 @@ def test_order_placement_context_uses_custom_status_and_updates_gauges() -> None
     collector.set_strategy_score("alpha", 0.87)
     collector.set_strategy_memory_size(4)
     collector.record_tick_processed("csv", "ETH-USDT", count=3)
-    collector.record_order_placed(
-        "binance", "ETH-USDT", "market", status="success", count=2
-    )
+    collector.record_order_placed("binance", "ETH-USDT", "market", status="success", count=2)
 
     duration_count = _sample_value(
         registry,
@@ -517,12 +513,8 @@ def test_database_metrics_track_size_growth_and_latency() -> None:
     registry = CollectorRegistry()
     collector = MetricsCollector(registry)
 
-    collector.observe_database_size(
-        database="geosync", host="db-primary", size_bytes=1024
-    )
-    collector.observe_database_size(
-        database="geosync", host="db-primary", size_bytes=2048
-    )
+    collector.observe_database_size(database="geosync", host="db-primary", size_bytes=1024)
+    collector.observe_database_size(database="geosync", host="db-primary", size_bytes=2048)
 
     collector.observe_database_query(
         database="geosync",
@@ -698,9 +690,7 @@ def test_incident_and_lifecycle_metrics() -> None:
     collector.record_runbook_execution("runbook_live_trading", "failed", count=2)
     collector.set_lifecycle_phase_state("active_operations", "active")
     collector.set_lifecycle_checkpoint_status("daily-risk-review", "passed")
-    collector.record_lifecycle_transition(
-        "startup", "active_operations", outcome="success"
-    )
+    collector.record_lifecycle_transition("startup", "active_operations", outcome="success")
 
     open_incidents = _sample_value(
         registry,

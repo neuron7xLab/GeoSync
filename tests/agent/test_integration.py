@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from domain import Signal
-from geosync.sdk import SDKConfig, GeoSyncSDK
+from geosync.sdk import GeoSyncSDK, SDKConfig
 from geosync_agent import (
     AgentAction,
     AgentDataFeedConfig,

@@ -80,9 +80,7 @@ class SessionManager:
         finally:
             session.close()
 
-    def warmup(
-        self, *, writer_connections: int = 0, reader_connections: int = 0
-    ) -> None:
+    def warmup(self, *, writer_connections: int = 0, reader_connections: int = 0) -> None:
         """Pre-open connections so latency-sensitive workloads do not pay the initial cost."""
 
         warm_pool(self._writer_engine, target_size=writer_connections)

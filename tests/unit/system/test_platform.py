@@ -23,8 +23,8 @@ from src.data.ingestion_service import DataIngestionCacheService
 from src.data.kafka_ingestion import KafkaIngestionConfig
 from src.data.pipeline import CacheRoute
 from src.system import (
-    StreamingPipelineSettings,
     GeoSyncPlatform,
+    StreamingPipelineSettings,
     build_geosync_platform,
 )
 
@@ -42,9 +42,7 @@ class _StubStreamingPipeline:
     async def stop(self) -> None:
         self.stopped += 1
 
-    def create_aggregator(
-        self, route: CacheRoute, *, frequency: str | pd.Timedelta | None = None
-    ):
+    def create_aggregator(self, route: CacheRoute, *, frequency: str | pd.Timedelta | None = None):
         self.created.append((route, frequency))
         from src.data.streaming_aggregator import TickStreamAggregator
 
@@ -192,9 +190,7 @@ def test_platform_ingest_csv_updates_cache_metadata() -> None:
     )
 
     assert not frame.empty
-    metadata = platform.metadata_for(
-        layer="raw", symbol="BTCUSD", venue="CSV", timeframe="1s"
-    )
+    metadata = platform.metadata_for(layer="raw", symbol="BTCUSD", venue="CSV", timeframe="1s")
     assert metadata is not None
     assert metadata.rows == frame.shape[0]
 
@@ -223,9 +219,7 @@ def test_platform_create_aggregator_without_pipeline_uses_shared_cache() -> None
         historical=[tick],
     )
 
-    metadata = platform.metadata_for(
-        layer="raw", symbol="BTCUSD", venue="CSV", timeframe="1min"
-    )
+    metadata = platform.metadata_for(layer="raw", symbol="BTCUSD", venue="CSV", timeframe="1min")
     assert metadata is not None
     assert metadata.rows == 1
     assert result.frame.shape[0] == 1
@@ -264,9 +258,7 @@ def test_platform_create_aggregator_with_pipeline_delegates() -> None:
         historical=ticks,
     )
 
-    metadata = platform.metadata_for(
-        layer="raw", symbol="BTCUSD", venue="CSV", timeframe="1s"
-    )
+    metadata = platform.metadata_for(layer="raw", symbol="BTCUSD", venue="CSV", timeframe="1s")
     assert metadata is not None
     assert metadata.rows == 2
 
@@ -384,9 +376,7 @@ def test_build_geosync_platform_uses_explicit_system_config(tmp_path: Path) -> N
     )
 
     assert platform.system.connector_names == ("sim",)
-    path_guard = (
-        platform.system.data_ingestor._path_guard
-    )  # noqa: SLF001 - test introspection
+    path_guard = platform.system.data_ingestor._path_guard  # noqa: SLF001 - test introspection
     assert path_guard.allowed_roots == (allowed_root.resolve(),)
     assert path_guard.max_bytes == 1234
 
@@ -471,9 +461,7 @@ async def test_build_geosync_platform_streaming_settings_create_pipeline() -> No
     assert service.kwargs == {"retries": 3}
 
     aggregator = platform.create_aggregator(CacheRoute(layer="raw", timeframe="1s"))
-    assert (
-        aggregator._cache_service is cache_service
-    )  # noqa: SLF001 - test introspection
+    assert aggregator._cache_service is cache_service  # noqa: SLF001 - test introspection
 
     await platform.start_streaming()
     await platform.stop_streaming()

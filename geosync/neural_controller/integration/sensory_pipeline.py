@@ -78,8 +78,7 @@ class SensoryPipeline:
                 },
             )
             raise ValueError(
-                "Unsupported sensory schema version "
-                f"{schema_version!r}; expected {SCHEMA_VERSION}."
+                f"Unsupported sensory schema version {schema_version!r}; expected {SCHEMA_VERSION}."
             )
         if expected_fields is None:
             return
@@ -104,8 +103,7 @@ class SensoryPipeline:
                 },
             )
             raise ValueError(
-                "Sensory schema fields mismatch "
-                f"{expected!r}; expected {sorted(schema_fields)!r}."
+                f"Sensory schema fields mismatch {expected!r}; expected {sorted(schema_fields)!r}."
             )
 
     def _compute_prediction_error(self, obs: Dict[str, float]) -> float:

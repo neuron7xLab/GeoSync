@@ -7,6 +7,7 @@ This example demonstrates the full pipeline of the Hierarchical Predictive Codin
 with Active Inference (HPC-AI v4) module for adaptive trading.
 """
 
+from core.utils.determinism import DEFAULT_SEED
 from geosync_hpc.hpc_active_inference_v4 import HPCActiveInferenceModuleV4
 from geosync_hpc.hpc_validation import (
     calibrate_perturbation_scale,
@@ -15,7 +16,6 @@ from geosync_hpc.hpc_validation import (
     simple_backtest,
     validate_hpc_ai,
 )
-from core.utils.determinism import DEFAULT_SEED
 
 
 def main():

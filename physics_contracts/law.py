@@ -139,9 +139,7 @@ def get_law(law_id: str) -> Law:
         raise KeyError(f"unknown law_id={law_id!r}. Known: {known}") from exc
 
 
-def law(
-    law_id: str, **kwargs: Any
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def law(law_id: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator: bind a pytest function to a physical law.
 
     Usage::

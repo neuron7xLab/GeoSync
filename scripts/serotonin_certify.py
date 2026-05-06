@@ -27,6 +27,8 @@ except ImportError:
 
 os.environ.setdefault("GEOSYNC_LIGHT_DATA_IMPORT", "1")
 
+from core.data.dataset_contracts import contract_by_path
+from core.data.fingerprint import record_run_fingerprint
 from geosync.core.neuro.serotonin.certify import (
     RegimeMetrics,
     run_basal_ganglia_integration,
@@ -35,8 +37,6 @@ from geosync.core.neuro.serotonin.certify import (
 )
 from geosync.core.neuro.serotonin.regimes import build_regimes
 from geosync.core.neuro.serotonin.serotonin_controller import SerotoninController
-from core.data.dataset_contracts import contract_by_path
-from core.data.fingerprint import record_run_fingerprint
 
 
 def _load_series(path: Path, *, fast: bool) -> np.ndarray:

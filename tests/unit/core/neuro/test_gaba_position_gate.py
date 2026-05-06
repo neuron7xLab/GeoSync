@@ -111,9 +111,7 @@ class TestGatePositionSize:
                 f"Physical reasoning: default gate is multiplicative-linear."
             )
 
-    def test_result_never_negative(
-        self, bus: NeuroSignalBus, gate: GABAPositionGate
-    ) -> None:
+    def test_result_never_negative(self, bus: NeuroSignalBus, gate: GABAPositionGate) -> None:
         """INV-GABA1: gate output stays in [0, 1]-scaled range across inputs.
 
         Sweeps inhibition over its full [0, 1] domain and asserts the
@@ -161,13 +159,11 @@ class TestUpdateInhibition:
         qualitative "higher VIX → stronger inhibition" contract.
         """
         vix_sweep = [5.0, 10.0, 20.0, 40.0, 60.0, 80.0]
-        inh_sweep = [
-            gate.update_inhibition(vix=v, volatility=0.1, rpe=0.0) for v in vix_sweep
-        ]
+        inh_sweep = [gate.update_inhibition(vix=v, volatility=0.1, rpe=0.0) for v in vix_sweep]
         for i in range(1, len(inh_sweep)):
             assert inh_sweep[i] >= inh_sweep[i - 1] - 1e-12, (
                 f"INV-GABA2 VIOLATED: inhibition dropped from "
-                f"{inh_sweep[i-1]:.6f} (vix={vix_sweep[i-1]}) to "
+                f"{inh_sweep[i - 1]:.6f} (vix={vix_sweep[i - 1]}) to "
                 f"{inh_sweep[i]:.6f} (vix={vix_sweep[i]}). "
                 f"Expected monotone non-decreasing inhibition as vix rises. "
                 f"Observed at vol=0.1, rpe=0.0 with full vix sweep {vix_sweep}. "
@@ -189,9 +185,7 @@ class TestUpdateInhibition:
         neg = gate.update_inhibition(vix=20.0, volatility=0.1, rpe=-0.5)
         assert neg > pos
 
-    def test_inhibition_bounded_zero_one(
-        self, bus: NeuroSignalBus, gate: GABAPositionGate
-    ) -> None:
+    def test_inhibition_bounded_zero_one(self, bus: NeuroSignalBus, gate: GABAPositionGate) -> None:
         """INV-GABA1: inhibition gate output lies in [0, 1] across the
         full (vix × vol × rpe) grid.
 
@@ -211,9 +205,7 @@ class TestUpdateInhibition:
                         f"means the update bypassed the sigmoid clamp."
                     )
 
-    def test_publishes_to_bus(
-        self, bus: NeuroSignalBus, gate: GABAPositionGate
-    ) -> None:
+    def test_publishes_to_bus(self, bus: NeuroSignalBus, gate: GABAPositionGate) -> None:
         inh = gate.update_inhibition(vix=30.0, volatility=0.2, rpe=0.0)
         assert bus.snapshot().gaba_inhibition == pytest.approx(inh, abs=1e-6)
 
@@ -244,9 +236,7 @@ class TestSTDPPlasticity:
 
         assert gate.w_rpe == pytest.approx(initial_w)
 
-    def test_plasticity_increases_inhibition_over_time(
-        self, bus: NeuroSignalBus
-    ) -> None:
+    def test_plasticity_increases_inhibition_over_time(self, bus: NeuroSignalBus) -> None:
         gate = GABAPositionGate(bus, plasticity_rate=0.1)
 
         # First call: baseline sensitivity

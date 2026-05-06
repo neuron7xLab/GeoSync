@@ -121,9 +121,7 @@ class CryptographicProofReport:
     """
 
     results: list[ProofResult] = field(default_factory=list)
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     z3_version: str = ""
     total_time_ms: float = 0.0
 
@@ -161,9 +159,7 @@ class CryptographicProofReport:
         if not self.all_passed:
             lines.append("Failures:")
             for result in self.get_failures():
-                lines.append(
-                    f"  - {result.security_property.name}: {result.status.value}"
-                )
+                lines.append(f"  - {result.security_property.name}: {result.status.value}")
         return "\n".join(lines)
 
 
@@ -213,9 +209,7 @@ class CryptographicProver:
 
         self._z3 = z3
         self._report.z3_version = z3.get_version_string()
-        self._inductive_engine = InductiveProofEngine(
-            timeout_ms=timeout_ms, z3_module=self._z3
-        )
+        self._inductive_engine = InductiveProofEngine(timeout_ms=timeout_ms, z3_module=self._z3)
 
     def _create_solver(self) -> "Any":
         """Create a configured Z3 solver instance."""
@@ -262,9 +256,7 @@ class CryptographicProver:
         security_margin = z3.Int("security_margin")  # bits of security
 
         def base_case_predicate(z3m: Any) -> list[Any]:
-            compress = z3m.Function(
-                "compress_base", z3m.IntSort(), z3m.IntSort(), z3m.IntSort()
-            )
+            compress = z3m.Function("compress_base", z3m.IntSort(), z3m.IntSort(), z3m.IntSort())
             h1, h2, b1, b2 = z3m.Ints("h1 h2 b1 b2")
             block_a, block_b = z3m.Ints("block_a block_b")
             iv = z3m.Int("iv")
@@ -279,9 +271,7 @@ class CryptographicProver:
             return [injective, block_a != block_b, collision]
 
         def inductive_step_predicate(z3m: Any) -> list[Any]:
-            compress = z3m.Function(
-                "compress_step", z3m.IntSort(), z3m.IntSort(), z3m.IntSort()
-            )
+            compress = z3m.Function("compress_step", z3m.IntSort(), z3m.IntSort(), z3m.IntSort())
             h_prev_a, h_prev_b = z3m.Ints("h_prev_a h_prev_b")
             block_a, block_b = z3m.Ints("block_step_a block_step_b")
             ha1, ha2, ba1, ba2 = z3m.Ints("ha1 ha2 ba1 ba2")

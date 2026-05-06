@@ -157,23 +157,15 @@ class GABAInhibitionGate:
         impulse_threshold = ensure_float(
             "impulse_threshold", raw["impulse_threshold"], min_value=0.0
         )
-        inhibition_gain = ensure_float(
-            "inhibition_gain", raw["inhibition_gain"], min_value=0.0
-        )
+        inhibition_gain = ensure_float("inhibition_gain", raw["inhibition_gain"], min_value=0.0)
         stress_gain = ensure_float("stress_gain", raw["stress_gain"], min_value=0.0)
         max_inhibition = ensure_float(
             "max_inhibition", raw["max_inhibition"], min_value=0.0, max_value=0.99
         )
         stdp_lr = ensure_float("stdp_lr", raw["stdp_lr"], min_value=0.0)
-        stdp_min = ensure_float(
-            "stdp_min", raw["stdp_min"], min_value=0.1, max_value=1.0
-        )
-        stdp_max = ensure_float(
-            "stdp_max", raw["stdp_max"], min_value=stdp_min, max_value=2.0
-        )
-        rpe_beta = ensure_float(
-            "rpe_beta", raw["rpe_beta"], min_value=0.0, max_value=1.0
-        )
+        stdp_min = ensure_float("stdp_min", raw["stdp_min"], min_value=0.1, max_value=1.0)
+        stdp_max = ensure_float("stdp_max", raw["stdp_max"], min_value=stdp_min, max_value=2.0)
+        rpe_beta = ensure_float("rpe_beta", raw["rpe_beta"], min_value=0.0, max_value=1.0)
         plasticity = ensure_bool("plasticity", raw["plasticity"])
         return GABAConfig(
             impulse_decay=impulse_decay,
@@ -242,7 +234,9 @@ class GABAInhibitionGate:
         alpha = 1.0 - (1.0 - cfg.impulse_decay) ** dt
         self._impulse_trace += alpha * (seq - self._impulse_trace)
 
-        impulse_drive = max(0.0, self._impulse_trace - cfg.impulse_threshold)  # INV-GABA1: sigmoid output bounded to [0,1]
+        impulse_drive = max(
+            0.0, self._impulse_trace - cfg.impulse_threshold
+        )  # INV-GABA1: sigmoid output bounded to [0,1]
         inhibition = impulse_drive * cfg.inhibition_gain * self._weight
         inhibition *= 1.0 + cfg.stress_gain * stress
         self.inhibition = min(cfg.max_inhibition, max(0.0, inhibition))

@@ -266,11 +266,7 @@ class SimplifiedBacktest:
 
         total_return = (self.capital - self.initial_capital) / self.initial_capital
         volatility = returns.std() * np.sqrt(252)  # Annualized
-        sharpe = (
-            (returns.mean() / returns.std() * np.sqrt(252))
-            if returns.std() > 0
-            else 0.0
-        )
+        sharpe = (returns.mean() / returns.std() * np.sqrt(252)) if returns.std() > 0 else 0.0
 
         # Drawdown
         cummax = equity_series.cummax()

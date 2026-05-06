@@ -128,31 +128,19 @@ class NAACHNeuromodulator:
         missing = required - set(raw.keys())
         if missing:
             raise ValueError(f"Missing NA/ACh config keys: {sorted(missing)}")
-        arousal_baseline = ensure_float(
-            "arousal_baseline", raw["arousal_baseline"], min_value=0.0
-        )
+        arousal_baseline = ensure_float("arousal_baseline", raw["arousal_baseline"], min_value=0.0)
         arousal_gain = ensure_float("arousal_gain", raw["arousal_gain"], min_value=0.0)
         arousal_min = ensure_float("arousal_min", raw["arousal_min"], min_value=0.0)
-        arousal_max = ensure_float(
-            "arousal_max", raw["arousal_max"], min_value=arousal_min
-        )
+        arousal_max = ensure_float("arousal_max", raw["arousal_max"], min_value=arousal_min)
         risk_min = ensure_float("risk_min", raw["risk_min"], min_value=0.0)
         risk_max = ensure_float("risk_max", raw["risk_max"], min_value=risk_min)
         attention_baseline = ensure_float(
             "attention_baseline", raw["attention_baseline"], min_value=0.0
         )
-        attention_gain = ensure_float(
-            "attention_gain", raw["attention_gain"], min_value=0.0
-        )
-        attention_min = ensure_float(
-            "attention_min", raw["attention_min"], min_value=0.0
-        )
-        attention_max = ensure_float(
-            "attention_max", raw["attention_max"], min_value=attention_min
-        )
-        temp_gain = ensure_float(
-            "temp_gain", raw["temp_gain"], min_value=0.0, max_value=3.0
-        )
+        attention_gain = ensure_float("attention_gain", raw["attention_gain"], min_value=0.0)
+        attention_min = ensure_float("attention_min", raw["attention_min"], min_value=0.0)
+        attention_max = ensure_float("attention_max", raw["attention_max"], min_value=attention_min)
+        temp_gain = ensure_float("temp_gain", raw["temp_gain"], min_value=0.0, max_value=3.0)
         return NAACHConfig(
             arousal_baseline=arousal_baseline,
             arousal_gain=arousal_gain,
@@ -187,17 +175,14 @@ class NAACHNeuromodulator:
             cfg.attention_max,
             max(
                 cfg.attention_min,
-                cfg.attention_baseline
-                + cfg.attention_gain * (nov - cfg.attention_baseline),
+                cfg.attention_baseline + cfg.attention_gain * (nov - cfg.attention_baseline),
             ),
         )
 
         risk_multiplier = max(
             cfg.risk_min, min(cfg.risk_max, 1.0 + (self.arousal - cfg.arousal_baseline))
         )
-        temperature_scale = max(
-            0.2, min(3.0, 1.0 + cfg.temp_gain * (1.0 - self.arousal))
-        )
+        temperature_scale = max(0.2, min(3.0, 1.0 + cfg.temp_gain * (1.0 - self.arousal)))
 
         self._log("tacl.na.arousal", self.arousal)
         self._log("tacl.ach.attn", self.attention)

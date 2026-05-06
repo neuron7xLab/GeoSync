@@ -18,9 +18,7 @@ try:
         NeuroRiskManager,
     )
 except ImportError:
-    pytest.skip(
-        "core.neuro.advanced.integrated not importable", allow_module_level=True
-    )
+    pytest.skip("core.neuro.advanced.integrated not importable", allow_module_level=True)
 
 
 def _random_prices(n: int = 100, base: float = 100.0, seed: int = 42) -> np.ndarray:

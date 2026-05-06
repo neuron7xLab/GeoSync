@@ -119,12 +119,8 @@ def test_json_schema_contract_versions_are_semantic() -> None:
     versions = _iter_schema_versions()
     assert versions, "No JSON schema contract versions discovered"
     parsed_versions = [version for version, _ in versions]
-    assert len(parsed_versions) == len(
-        set(parsed_versions)
-    ), "Duplicate schema versions found"
-    assert parsed_versions == sorted(
-        parsed_versions
-    ), "Schema versions must increase monotonically"
+    assert len(parsed_versions) == len(set(parsed_versions)), "Duplicate schema versions found"
+    assert parsed_versions == sorted(parsed_versions), "Schema versions must increase monotonically"
 
 
 def test_json_schema_backward_and_forward_compatibility() -> None:
@@ -135,9 +131,7 @@ def test_json_schema_backward_and_forward_compatibility() -> None:
     version_schemas: list[tuple[SemanticVersion, dict[str, dict[str, Any]]]] = []
     for version, path in versions:
         files = {
-            file.name: _load_schema(file)
-            for file in path.glob("*.schema.json")
-            if file.is_file()
+            file.name: _load_schema(file) for file in path.glob("*.schema.json") if file.is_file()
         }
         version_schemas.append((version, files))
 

@@ -58,9 +58,7 @@ def _write_certificate_bundle(tmp_path: Path) -> tuple[Path, Path, Path]:
         .not_valid_before(now - one_day)
         .not_valid_after(now + timedelta(days=180))
         .add_extension(
-            x509.SubjectAlternativeName(
-                [x509.DNSName("geosync.test"), x509.DNSName("localhost")]
-            ),
+            x509.SubjectAlternativeName([x509.DNSName("geosync.test"), x509.DNSName("localhost")]),
             critical=False,
         )
         .add_extension(

@@ -40,9 +40,7 @@ def dopamine_step(
 
     rpe = ctrl.compute_rpe(reward, value, next_value, discount_gamma=discount_gamma)
     ctrl.update_value_estimate(rpe)
-    appetitive = ctrl.estimate_appetitive_state(
-        reward_proxy, novelty, momentum, value_gap
-    )
+    appetitive = ctrl.estimate_appetitive_state(reward_proxy, novelty, momentum, value_gap)
     da = ctrl.compute_dopamine_signal(appetitive, rpe)
     q_mod = ctrl.modulate_action_value(original_q, da)
     temp = ctrl.compute_temperature(da)
@@ -53,8 +51,7 @@ def dopamine_step(
         missing = {"drawdown", "sharpe"} - set(performance_metrics)
         if missing:
             raise ValueError(
-                "performance_metrics is missing required keys: "
-                + ", ".join(sorted(missing))
+                "performance_metrics is missing required keys: " + ", ".join(sorted(missing))
             )
         metrics = {
             "drawdown": float(performance_metrics["drawdown"]),

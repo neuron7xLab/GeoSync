@@ -35,13 +35,43 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option("--N", "n_oscillators", type=int, default=10, show_default=True, help="Number of coupled oscillators (≥ 2).")
-@click.option("--K", "coupling", type=float, default=1.0, show_default=True, help="Global coupling scale. Global mode uses K/N; adjacency mode uses K*A_ij.")
-@click.option("--dt", type=float, default=0.01, show_default=True, help="Integration time-step (> 0).")
-@click.option("--steps", type=int, default=1000, show_default=True, help="Number of RK4 integration steps (≥ 1).")
+@click.option(
+    "--N",
+    "n_oscillators",
+    type=int,
+    default=10,
+    show_default=True,
+    help="Number of coupled oscillators (≥ 2).",
+)
+@click.option(
+    "--K",
+    "coupling",
+    type=float,
+    default=1.0,
+    show_default=True,
+    help="Global coupling scale. Global mode uses K/N; adjacency mode uses K*A_ij.",
+)
+@click.option(
+    "--dt", type=float, default=0.01, show_default=True, help="Integration time-step (> 0)."
+)
+@click.option(
+    "--steps",
+    type=int,
+    default=1000,
+    show_default=True,
+    help="Number of RK4 integration steps (≥ 1).",
+)
 @click.option("--seed", type=int, default=None, help="Random seed for reproducibility.")
-@click.option("--omega", "omega_str", type=str, default=None, help="Comma-separated natural frequencies.")
-@click.option("--theta0", "theta0_str", type=str, default=None, help="Comma-separated initial phases (radians).")
+@click.option(
+    "--omega", "omega_str", type=str, default=None, help="Comma-separated natural frequencies."
+)
+@click.option(
+    "--theta0",
+    "theta0_str",
+    type=str,
+    default=None,
+    help="Comma-separated initial phases (radians).",
+)
 @click.option(
     "--adjacency-file",
     type=click.Path(exists=True, path_type=Path, dir_okay=False),
@@ -54,7 +84,13 @@ def cli() -> None:
     default=None,
     help="Load directed weighted edges from JSON file with {'edges': [...]} schema.",
 )
-@click.option("--output", "output_path", type=click.Path(path_type=Path), default=None, help="Write JSON result to this file.")
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Write JSON result to this file.",
+)
 @click.option(
     "--export",
     "export_mode",
@@ -86,7 +122,9 @@ def simulate(
       - ``--quiet`` prints JSON to stdout; ``--output`` writes an equivalent JSON payload to file.
     """
     if adjacency_file is not None and edge_list_file is not None:
-        raise click.ClickException("Use only one topology source: --adjacency-file or --edge-list-file.")
+        raise click.ClickException(
+            "Use only one topology source: --adjacency-file or --edge-list-file."
+        )
 
     omega: np.ndarray | None = None
     theta0: np.ndarray | None = None

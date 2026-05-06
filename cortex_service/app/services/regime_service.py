@@ -200,9 +200,7 @@ class RegimeCache:
         REGIME_CACHE_EVENTS_TOTAL.labels(event="hit").inc()
         return entry
 
-    def write_through(
-        self, state: RegimeState, *, version: int | None = None
-    ) -> CachedRegimeState:
+    def write_through(self, state: RegimeState, *, version: int | None = None) -> CachedRegimeState:
         """Write-through update with atomic pointer swap."""
 
         if version is None:
@@ -380,9 +378,7 @@ class RegimeService:
         required_fields = ("label", "valence", "confidence", "as_of")
         missing = [field for field in required_fields if not hasattr(row, field)]
         if missing:
-            raise ValueError(
-                f"Regime row is missing required fields: {', '.join(missing)}"
-            )
+            raise ValueError(f"Regime row is missing required fields: {', '.join(missing)}")
         return RegimeState(
             label=getattr(row, "label"),
             valence=getattr(row, "valence"),
@@ -469,14 +465,10 @@ class RegimeService:
         scaled = base_entropy * ((1.0 + max(volatility, 0.0)) ** self._entropy_gamma)
         return min(1.0, scaled)
 
-    def _fetch_latest_state(
-        self, repository: MemoryRepository
-    ) -> tuple[RegimeState | None, int]:
+    def _fetch_latest_state(self, repository: MemoryRepository) -> tuple[RegimeState | None, int]:
         start = time.perf_counter()
         previous = repository.latest_regime()
-        DB_OPERATION_LATENCY.labels(operation="fetch_regime").observe(
-            time.perf_counter() - start
-        )
+        DB_OPERATION_LATENCY.labels(operation="fetch_regime").observe(time.perf_counter() - start)
 
         if previous is None:
             return None, self._latest_version
@@ -508,9 +500,7 @@ class RegimeService:
         )
         return False
 
-    def _shadow_compare(
-        self, repository: MemoryRepository, cached: CachedRegimeState
-    ) -> None:
+    def _shadow_compare(self, repository: MemoryRepository, cached: CachedRegimeState) -> None:
         """Validate cached entry against repository truth via adaptive shadow reads."""
 
         if not self._shadow_sampler.should_sample():
@@ -659,9 +649,7 @@ class RegimeService:
         )
         previous_state = self._load_previous_state(repository)
 
-        updated_state = self._modulator.update(
-            previous_state, feedback, volatility, as_of
-        )
+        updated_state = self._modulator.update(previous_state, feedback, volatility, as_of)
 
         start = time.perf_counter()
         repository.store_regime(
@@ -670,9 +658,7 @@ class RegimeService:
             updated_state.confidence,
             updated_state.as_of,
         )
-        DB_OPERATION_LATENCY.labels(operation="store_regime").observe(
-            time.perf_counter() - start
-        )
+        DB_OPERATION_LATENCY.labels(operation="store_regime").observe(time.perf_counter() - start)
 
         version = self._compute_version(updated_state.as_of)
         self._latest_version = max(self._latest_version, version)

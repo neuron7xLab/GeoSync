@@ -48,6 +48,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 class StressRegime(Enum):
     """Market stress regime derived from combined neuromodulator signals."""
+
     NORMAL = "normal"
     ELEVATED = "elevated"
     CRISIS = "crisis"
@@ -60,6 +61,13 @@ class NeuroSignals:
 
     Each signal has a biological analogue and a bounded valid range:
         dopamine_rpe     ∈ [-1, 1]   — reward prediction error (TD error)
+            INV-DA7 scope: ∂δ/∂r = 1 holds ONLY for the raw-TD path
+            (DopamineController.compute_rpe). DopamineExecutionAdapter
+            publishes tanh(scale * raw_rpe) into this same slot; for
+            that path ∂δ/∂r = sech²(·) ≠ 1. Consumers that depend on
+            the algebraic identity must read from the controller path,
+            not from the adapter post-tanh value. See
+            .claude/physics/INVARIANTS.yaml::INV-DA7 scope_note.
         serotonin_level  ∈ [0, 1]    — aversive state / risk aversion
         gaba_inhibition  ∈ [0, 1]    — action inhibition coefficient
         nak_energy       ∈ [0, 1]    — arousal / metabolic energy state
@@ -68,6 +76,7 @@ class NeuroSignals:
         ecs_free_energy  ∈ [0, ∞)    — homeostatic free energy
         stress_regime    ∈ StressRegime — categorical regime label
     """
+
     dopamine_rpe: float = 0.0
     serotonin_level: float = 0.0
     gaba_inhibition: float = 0.0
@@ -102,6 +111,7 @@ class BusConfig:
     - crisis_rpe_threshold: negative RPE triggering crisis regime
       Based on: phasic DA dips signal worse-than-expected (Schultz 2016)
     """
+
     kelly_coherence_floor: float = 0.3
     kelly_coherence_ceil: float = 0.8
     kelly_min_fraction: float = 0.1
@@ -137,8 +147,11 @@ class NeuroSignalBus:
         lr = bus.compute_learning_rate(base_lr=1e-4)
     """
 
-    def __init__(self, config: Optional[BusConfig] = None,
-                 logger: Optional[Callable[[str, float], None]] = None) -> None:
+    def __init__(
+        self,
+        config: Optional[BusConfig] = None,
+        logger: Optional[Callable[[str, float], None]] = None,
+    ) -> None:
         self._config = config or BusConfig()
         self._lock = threading.RLock()
         self._signals = NeuroSignals(timestamp=time.time())
@@ -309,16 +322,18 @@ class NeuroSignalBus:
         s = self._signals
 
         # Crisis: large negative RPE + high serotonin + high PWPE
-        if (s.dopamine_rpe < cfg.crisis_rpe_threshold
-                and s.serotonin_level > cfg.crisis_serotonin_threshold):
+        if (
+            s.dopamine_rpe < cfg.crisis_rpe_threshold
+            and s.serotonin_level > cfg.crisis_serotonin_threshold
+        ):
             new_regime = StressRegime.CRISIS
         # Recovery: was in crisis, free energy decreasing
-        elif (s.stress_regime == StressRegime.CRISIS
-              and s.ecs_free_energy < cfg.fe_recovery_threshold):
+        elif (
+            s.stress_regime == StressRegime.CRISIS and s.ecs_free_energy < cfg.fe_recovery_threshold
+        ):
             new_regime = StressRegime.RECOVERY
         # Elevated: moderate serotonin or negative RPE
-        elif (s.serotonin_level > cfg.elevated_serotonin_threshold
-              or s.dopamine_rpe < 0):
+        elif s.serotonin_level > cfg.elevated_serotonin_threshold or s.dopamine_rpe < 0:
             new_regime = StressRegime.ELEVATED
         else:
             new_regime = StressRegime.NORMAL
@@ -332,19 +347,21 @@ class NeuroSignalBus:
         s.timestamp = time.time()
 
         # Archive to history
-        self._history.append(NeuroSignals(
-            dopamine_rpe=s.dopamine_rpe,
-            serotonin_level=s.serotonin_level,
-            gaba_inhibition=s.gaba_inhibition,
-            nak_energy=s.nak_energy,
-            kuramoto_R=s.kuramoto_R,
-            hpc_pwpe=s.hpc_pwpe,
-            ecs_free_energy=s.ecs_free_energy,
-            stress_regime=s.stress_regime,
-            timestamp=s.timestamp,
-        ))
+        self._history.append(
+            NeuroSignals(
+                dopamine_rpe=s.dopamine_rpe,
+                serotonin_level=s.serotonin_level,
+                gaba_inhibition=s.gaba_inhibition,
+                nak_energy=s.nak_energy,
+                kuramoto_R=s.kuramoto_R,
+                hpc_pwpe=s.hpc_pwpe,
+                ecs_free_energy=s.ecs_free_energy,
+                stress_regime=s.stress_regime,
+                timestamp=s.timestamp,
+            )
+        )
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
     # ── Subscription / Observability ──────────────────────────────────
 

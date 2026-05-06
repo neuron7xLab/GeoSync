@@ -184,7 +184,7 @@ class AbsenceInput:
         if not math.isfinite(thr):
             raise ValueError(f"minimum_coverage_threshold must be finite (got {thr!r})")
         if not 0.0 <= thr <= 1.0:
-            raise ValueError(f"minimum_coverage_threshold must be in [0.0, 1.0] " f"(got {thr!r})")
+            raise ValueError(f"minimum_coverage_threshold must be in [0.0, 1.0] (got {thr!r})")
 
 
 @dataclass(frozen=True)

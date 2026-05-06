@@ -14,6 +14,7 @@ Tests verify:
 - Edge cases like insufficient data are handled properly
 - Performance optimizations preserve accuracy
 """
+
 from __future__ import annotations
 
 import numpy as np

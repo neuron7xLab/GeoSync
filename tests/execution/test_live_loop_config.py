@@ -44,9 +44,7 @@ class TestLiveLoopConfig:
         assert cfg.heartbeat_interval == 0.5
 
     def test_max_backoff_at_least_heartbeat(self, tmp_path):
-        cfg = LiveLoopConfig(
-            state_dir=tmp_path / "s", heartbeat_interval=20.0, max_backoff=5.0
-        )
+        cfg = LiveLoopConfig(state_dir=tmp_path / "s", heartbeat_interval=20.0, max_backoff=5.0)
         assert cfg.max_backoff >= cfg.heartbeat_interval
 
     def test_min_snapshot_interval(self, tmp_path):

@@ -56,9 +56,7 @@ def test_cycle_modulation_range():
 
 def test_custom_gate_params():
     """Test gate with custom parameters."""
-    custom_params = GateParams(
-        k_inhibit=0.6, cycle_modulation=False, risk_min=0.3, risk_max=2.0
-    )
+    custom_params = GateParams(k_inhibit=0.6, cycle_modulation=False, risk_min=0.3, risk_max=2.0)
     gate = GABAInhibitionGate(params=custom_params)
     a = torch.tensor([1.0])
     gated, metrics = gate(base_state(), a)
@@ -503,14 +501,10 @@ def test_rpe_and_position_adaptive_plasticity():
     gate = GABAInhibitionGate()
     action = torch.tensor([1.0])
 
-    positive_state = base_state(
-        vix=50.0, vol=0.6, ret=0.4, rpe=0.9, pos=0.2, dt_ms=10.0
-    )
+    positive_state = base_state(vix=50.0, vol=0.6, ret=0.4, rpe=0.9, pos=0.2, dt_ms=10.0)
     _, metrics_positive = gate(positive_state, action)
 
-    negative_state = base_state(
-        vix=50.0, vol=0.6, ret=0.4, rpe=-0.9, pos=3.0, dt_ms=10.0
-    )
+    negative_state = base_state(vix=50.0, vol=0.6, ret=0.4, rpe=-0.9, pos=3.0, dt_ms=10.0)
     _, metrics_negative = gate(negative_state, action)
 
     assert metrics_positive.adaptive_delta > metrics_negative.adaptive_delta

@@ -532,7 +532,13 @@ def validate_timeseries_frame(
         )
 
     normalized = frame.copy()
-    normalized[timestamp_col] = raw_series.dt.tz_convert("UTC")
+    # pandas 3 defaults DatetimeIndex to microsecond resolution while the
+    # schema and downstream contract assume nanoseconds. Pin the unit at
+    # the validation boundary so callers do not need to track resolution
+    # changes between pandas major versions.
+    normalized[timestamp_col] = raw_series.dt.tz_convert("UTC").astype(
+        f"datetime64[ns, {required_key}]"
+    )
 
     schema = build_timeseries_schema(config)
     try:

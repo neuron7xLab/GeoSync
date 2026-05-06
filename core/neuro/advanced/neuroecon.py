@@ -138,13 +138,9 @@ else:
                 raise ValueError("temperature must be greater than zero")
 
             adjacency_tensor = self._build_adjacency(adjacency)
-            self._device = torch.device(
-                device or ("cuda" if torch.cuda.is_available() else "cpu")
-            )
+            self._device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
             adjacency_tensor = adjacency_tensor.to(self._device)
-            self._graph = _NeuroGraphEncoder(adjacency_tensor, hidden_dim).to(
-                self._device
-            )
+            self._graph = _NeuroGraphEncoder(adjacency_tensor, hidden_dim).to(self._device)
             self._actor = nn.Sequential(
                 nn.Linear(1, hidden_dim),
                 nn.Tanh(),
@@ -198,9 +194,7 @@ else:
                 features[3, 0] = self.uncertainty_reduction
             return self._graph(features)
 
-        def evaluate_option(
-            self, option: Mapping[str, float] | DecisionOption
-        ) -> float:
+        def evaluate_option(self, option: Mapping[str, float] | DecisionOption) -> float:
             """Return the adjusted subjective value for a single option."""
 
             decision = (
@@ -209,9 +203,7 @@ else:
                 else DecisionOption.from_mapping(option)
             )
             adjusted_reward = (
-                decision.reward
-                * (1.0 + self.risk_tolerance * decision.risk)
-                * self.psychiatric_mod
+                decision.reward * (1.0 + self.risk_tolerance * decision.risk) * self.psychiatric_mod
             )
             adjusted_cost = decision.cost * (1.0 - self.uncertainty_reduction)
             return adjusted_reward - adjusted_cost
@@ -307,9 +299,7 @@ else:
             temperature: float | None = None,
             deterministic: bool = False,
         ) -> Tuple[int, float]:
-            distribution, values = self.policy_distribution(
-                options, temperature=temperature
-            )
+            distribution, values = self.policy_distribution(options, temperature=temperature)
             if deterministic or distribution.probs.numel() == 1:
                 choice = int(torch.argmax(distribution.probs).item())
             else:
@@ -323,13 +313,9 @@ else:
             rewards: Sequence[float],
         ) -> Sequence[float]:
             if len(states) < 2 or len(actions) < 2 or len(rewards) < 1:
-                raise ValueError(
-                    "scenario sequences must contain at least two transitions"
-                )
+                raise ValueError("scenario sequences must contain at least two transitions")
             if not (len(states) == len(actions) == len(rewards) + 1):
-                raise ValueError(
-                    "states/actions must be one element longer than rewards"
-                )
+                raise ValueError("states/actions must be one element longer than rewards")
 
             history: list[float] = []
             for idx in range(len(rewards)):
@@ -342,5 +328,6 @@ else:
                 )
                 history.append(delta)
             return history
+
 
 __all__ = ["AdvancedNeuroEconCore", "DecisionOption"]

@@ -25,12 +25,8 @@ def main():
         required=True,
         help="Repository name (directory will be created if missing).",
     )
-    p_init.add_argument(
-        "--license", default="MIT", help="License identifier (default: MIT)."
-    )
-    p_init.add_argument(
-        "--ci", action="store_true", help="Install GitHub Actions workflows."
-    )
+    p_init.add_argument("--license", default="MIT", help="License identifier (default: MIT).")
+    p_init.add_argument("--ci", action="store_true", help="Install GitHub Actions workflows.")
     p_init.add_argument(
         "--no-bazel", action="store_true", help="Skip Bazel skeleton (not recommended)."
     )
@@ -38,9 +34,7 @@ def main():
     p_fu = sub.add_parser("add-fu", help="Add a Fractal Unit (FU) to the repo.")
     p_fu.add_argument("--path", required=True, help="Path to repo root.")
     p_fu.add_argument("--name", required=True, help="FU name, e.g., payments")
-    p_fu.add_argument(
-        "--domain", default="domains", help="Top-level domain folder (domains|libs)."
-    )
+    p_fu.add_argument("--domain", default="domains", help="Top-level domain folder (domains|libs).")
     p_fu.add_argument(
         "--lang",
         choices=["python", "node"],
@@ -53,13 +47,9 @@ def main():
         help="Include OpenAPI 3.1 contract in api/.",
     )
 
-    p_graph = sub.add_parser(
-        "graph", help="Build dependency graph (imports) across FUs."
-    )
+    p_graph = sub.add_parser("graph", help="Build dependency graph (imports) across FUs.")
     p_graph.add_argument("--path", required=True, help="Path to repo root.")
-    p_graph.add_argument(
-        "--out-dot", default="tools/dep_graph.dot", help="DOT file output path."
-    )
+    p_graph.add_argument("--out-dot", default="tools/dep_graph.dot", help="DOT file output path.")
     p_graph.add_argument("--stdout", action="store_true", help="Print DOT to stdout.")
 
     p_check = sub.add_parser(
@@ -146,9 +136,7 @@ def main():
             fail = True
         elif args.fail_on == "imports" and inv_violations:
             fail = True
-        elif (
-            args.fail_on == "complexity" and report["complexity"]["max"] > args.max_cyc
-        ):
+        elif args.fail_on == "complexity" and report["complexity"]["max"] > args.max_cyc:
             fail = True
         elif args.fail_on == "any" and (
             cycles or inv_violations or report["complexity"]["max"] > args.max_cyc

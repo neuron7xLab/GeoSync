@@ -588,8 +588,7 @@ def quantiles(
         return _quantiles_numpy(arr, probabilities)
     if use_rust and strict_backend:
         raise _raise_sync_error(
-            "Rust quantiles backend requires NumPy and compiled extension "
-            "when strict_backend=True",
+            "Rust quantiles backend requires NumPy and compiled extension when strict_backend=True",
             backend="rust",
             reason="numpy_missing",
         )
@@ -737,8 +736,7 @@ def convolve(
         return _convolve_numpy(signal_arr, kernel_arr, mode=mode)
     if use_rust and strict_backend:
         raise _raise_sync_error(
-            "Rust convolve backend requires NumPy and compiled extension "
-            "when strict_backend=True",
+            "Rust convolve backend requires NumPy and compiled extension when strict_backend=True",
             backend="rust",
             reason="numpy_missing",
         )

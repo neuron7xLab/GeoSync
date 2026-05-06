@@ -5,6 +5,7 @@
 This module provides robust input validation functions to prevent
 injection attacks, data corruption, and other security issues.
 """
+
 from __future__ import annotations
 
 import re
@@ -46,9 +47,7 @@ def validate_symbol(symbol: str, max_length: int = 20) -> str:
     symbol = symbol.strip().upper()
 
     if len(symbol) > max_length:
-        raise ValidationError(
-            f"Symbol too long (max {max_length} characters): {symbol}"
-        )
+        raise ValidationError(f"Symbol too long (max {max_length} characters): {symbol}")
 
     # Allow alphanumeric, dash, slash, underscore
     if not re.match(r"^[A-Z0-9/_-]+$", symbol):
@@ -237,8 +236,7 @@ def validate_order_type(order_type: str) -> str:
 
     if order_type not in valid_types:
         raise ValidationError(
-            f"Invalid order type: '{order_type}'. "
-            f"Must be one of: {', '.join(valid_types)}"
+            f"Invalid order type: '{order_type}'. Must be one of: {', '.join(valid_types)}"
         )
 
     return order_type
@@ -297,14 +295,10 @@ def validate_string_length(
     length = len(value)
 
     if length < min_length:
-        raise ValidationError(
-            f"{field_name} too short (min {min_length} characters): got {length}"
-        )
+        raise ValidationError(f"{field_name} too short (min {min_length} characters): got {length}")
 
     if length > max_length:
-        raise ValidationError(
-            f"{field_name} too long (max {max_length} characters): got {length}"
-        )
+        raise ValidationError(f"{field_name} too long (max {max_length} characters): got {length}")
 
     return value
 
@@ -342,8 +336,7 @@ def validate_enum(
 
     if value_check not in allowed_set:
         raise ValidationError(
-            f"Invalid {field_name}: '{value}'. "
-            f"Must be one of: {', '.join(sorted(allowed_values))}"
+            f"Invalid {field_name}: '{value}'. Must be one of: {', '.join(sorted(allowed_values))}"
         )
 
     return value
@@ -376,9 +369,7 @@ def sanitize_sql_identifier(identifier: str, max_length: int = 63) -> str:
         )
 
     if len(identifier) > max_length:
-        raise ValidationError(
-            f"Identifier too long (max {max_length} characters): {identifier}"
-        )
+        raise ValidationError(f"Identifier too long (max {max_length} characters): {identifier}")
 
     return identifier
 

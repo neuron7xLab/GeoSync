@@ -4,8 +4,7 @@
 
 from __future__ import annotations
 
-import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -16,13 +15,14 @@ from execution.metrics import (
     get_trading_mode_metrics,
 )
 
-
 # ── Helpers to avoid global singleton collisions ────────────────────
+
 
 @pytest.fixture(autouse=True)
 def _reset_globals():
     """Reset module-level singleton caches between tests."""
     import execution.metrics as mod
+
     old_risk = mod._GLOBAL_METRICS
     old_mode = mod._GLOBAL_MODE_METRICS
     mod._GLOBAL_METRICS = None
@@ -34,10 +34,12 @@ def _reset_globals():
 
 # ── RiskMetrics with prometheus available ───────────────────────────
 
+
 class TestRiskMetricsWithPrometheus:
     @pytest.fixture()
     def registry(self):
         from prometheus_client import CollectorRegistry
+
         return CollectorRegistry()
 
     def test_construction(self, registry):
@@ -79,6 +81,7 @@ class TestRiskMetricsWithPrometheus:
 
 # ── RiskMetrics with prometheus unavailable ─────────────────────────
 
+
 class TestRiskMetricsDisabled:
     def test_all_methods_noop_when_disabled(self):
         with patch("execution.metrics.PROMETHEUS_AVAILABLE", False):
@@ -96,9 +99,11 @@ class TestRiskMetricsDisabled:
 
 # ── get_risk_metrics singleton ──────────────────────────────────────
 
+
 class TestGetRiskMetrics:
     def test_returns_same_instance(self):
         from prometheus_client import CollectorRegistry
+
         reg = CollectorRegistry()
         a = get_risk_metrics(registry=reg)
         b = get_risk_metrics(registry=reg)
@@ -106,6 +111,7 @@ class TestGetRiskMetrics:
 
     def test_accepts_registry(self):
         from prometheus_client import CollectorRegistry
+
         reg = CollectorRegistry()
         m = get_risk_metrics(registry=reg)
         assert m is not None
@@ -113,10 +119,12 @@ class TestGetRiskMetrics:
 
 # ── TradingModeMetrics with prometheus ──────────────────────────────
 
+
 class TestTradingModeMetrics:
     @pytest.fixture()
     def registry(self):
         from prometheus_client import CollectorRegistry
+
         return CollectorRegistry()
 
     def test_construction(self, registry):
@@ -151,6 +159,7 @@ class TestTradingModeMetrics:
 
 # ── TradingModeMetrics disabled ─────────────────────────────────────
 
+
 class TestTradingModeMetricsDisabled:
     def test_all_methods_noop_when_disabled(self):
         with patch("execution.metrics.PROMETHEUS_AVAILABLE", False):
@@ -163,9 +172,11 @@ class TestTradingModeMetricsDisabled:
 
 # ── get_trading_mode_metrics singleton ──────────────────────────────
 
+
 class TestGetTradingModeMetrics:
     def test_returns_same_instance(self):
         from prometheus_client import CollectorRegistry
+
         reg = CollectorRegistry()
         a = get_trading_mode_metrics(registry=reg)
         b = get_trading_mode_metrics(registry=reg)
@@ -173,6 +184,7 @@ class TestGetTradingModeMetrics:
 
     def test_accepts_registry(self):
         from prometheus_client import CollectorRegistry
+
         reg = CollectorRegistry()
         m = get_trading_mode_metrics(registry=reg)
         assert m is not None

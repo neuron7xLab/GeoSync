@@ -12,9 +12,7 @@ from core.utils import metrics as metrics_module
 from core.utils.metrics import MetricsCollector
 
 _MODULE_PATH = Path(__file__).resolve().parents[4] / "libs" / "db" / "monitoring.py"
-_SPEC = importlib.util.spec_from_file_location(
-    "geosync.test.db_monitoring", _MODULE_PATH
-)
+_SPEC = importlib.util.spec_from_file_location("geosync.test.db_monitoring", _MODULE_PATH)
 if _SPEC is None or _SPEC.loader is None:  # pragma: no cover - defensive guard
     raise RuntimeError("Unable to load database monitoring module for testing")
 db_monitoring = importlib.util.module_from_spec(_SPEC)
@@ -97,9 +95,7 @@ def test_database_monitor_collects_sqlite_size(
 
     labels = {"database": db_path.name, "host": "local"}
     size_value = registry.get_sample_value("geosync_database_size_bytes", labels)
-    growth_value = registry.get_sample_value(
-        "geosync_database_size_growth_bytes", labels
-    )
+    growth_value = registry.get_sample_value("geosync_database_size_growth_bytes", labels)
 
     assert size_value is not None and size_value > 0
     assert growth_value == 0.0

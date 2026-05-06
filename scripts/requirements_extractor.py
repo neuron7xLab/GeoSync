@@ -227,9 +227,7 @@ class RequirementExtractor:
         if not requirements:
             gaps.append("У документі не знайдено жодної фрази з ключовими словами")
 
-        duplicates = {
-            text: ids for text, ids in normalized_index.items() if len(ids) > 1
-        }
+        duplicates = {text: ids for text, ids in normalized_index.items() if len(ids) > 1}
         for ids in duplicates.values():
             for req in requirements:
                 if req.identifier in ids and "дублікат" not in req.flags:
@@ -335,9 +333,7 @@ class RequirementExtractor:
         return flags
 
 
-def write_csv(
-    path: Path, rows: Iterable[dict[str, str]], headers: Sequence[str]
-) -> None:
+def write_csv(path: Path, rows: Iterable[dict[str, str]], headers: Sequence[str]) -> None:
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=headers)
         writer.writeheader()

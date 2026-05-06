@@ -91,9 +91,7 @@ except Exception:  # pragma: no cover - fallback for lightweight environments
         ) -> Iterable[tuple[int, float]] | float:
             if node is None:
                 if weight:
-                    return tuple(
-                        (n, sum(neigh.values())) for n, neigh in self._adj.items()
-                    )
+                    return tuple((n, sum(neigh.values())) for n, neigh in self._adj.items())
                 return tuple((n, len(neigh)) for n, neigh in self._adj.items())
             neigh = self._adj.get(int(node), {})
             return sum(neigh.values()) if weight else len(neigh)
@@ -341,11 +339,7 @@ class NodeDistribution:
     positions: np.ndarray
 
     def __post_init__(self) -> None:
-        if (
-            self.support.ndim != 1
-            or self.probabilities.ndim != 1
-            or self.positions.ndim != 1
-        ):
+        if self.support.ndim != 1 or self.probabilities.ndim != 1 or self.positions.ndim != 1:
             raise ValueError("NodeDistribution arrays must be one-dimensional")
         if (
             self.support.shape != self.probabilities.shape
@@ -354,9 +348,7 @@ class NodeDistribution:
             raise ValueError("NodeDistribution arrays must share the same shape")
         total = float(self.probabilities.sum())
         if not np.isfinite(total) or total <= 0.0:
-            raise ValueError(
-                "NodeDistribution probabilities must sum to a positive finite value"
-            )
+            raise ValueError("NodeDistribution probabilities must sum to a positive finite value")
 
 
 def _graph_geometry(G: nx.Graph) -> tuple[float, float]:
@@ -374,9 +366,7 @@ def _graph_geometry(G: nx.Graph) -> tuple[float, float]:
     return offset, scale
 
 
-def _normalized_neighbor_weights(
-    G: nx.Graph, node: int
-) -> tuple[np.ndarray, np.ndarray]:
+def _normalized_neighbor_weights(G: nx.Graph, node: int) -> tuple[np.ndarray, np.ndarray]:
     """Return neighbour identifiers and normalized transition weights."""
 
     neighbors = [int(n) for n in G.neighbors(node)]
@@ -751,10 +741,7 @@ def mean_ricci(
         if parallel == "async":
             curv = _run_ricci_async(G, edges, max_workers, distributions)
         else:
-            curv = [
-                ricci_curvature_edge(G, u, v, distributions=distributions)
-                for u, v in edges
-            ]
+            curv = [ricci_curvature_edge(G, u, v, distributions=distributions) for u, v in edges]
         dtype = np.float32 if use_float32 else float
         if not curv:  # pragma: no cover - empty graph handled above
             return 0.0
@@ -918,9 +905,7 @@ def _w1_fallback(
 
     # Use JIT-compiled kernel for mass array construction if available
     if _HAS_NUMBA:
-        mass_a, mass_b = _build_mass_arrays_jit(
-            positions, pos_a, weights_a, pos_b, weights_b
-        )
+        mass_a, mass_b = _build_mass_arrays_jit(positions, pos_a, weights_a, pos_b, weights_b)
         return float(_w1_jit_kernel(positions, mass_a, mass_b))
 
     # Fallback to numpy vectorized implementation

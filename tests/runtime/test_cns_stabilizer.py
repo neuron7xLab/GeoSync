@@ -173,9 +173,7 @@ async def test_circadian_reset_cleanup(monkeypatch):
 
 def test_heatmap_file_written(tmp_path):
     stabilizer = CNSStabilizer()
-    stabilizer.heatmap_data.append(
-        {"epoch": 1, "delta_f": 0.1, "phase": "stable", "margin": 0.03}
-    )
+    stabilizer.heatmap_data.append({"epoch": 1, "delta_f": 0.1, "phase": "stable", "margin": 0.03})
     csv_path = tmp_path / "delta.csv"
     stabilizer.export_heatmap(str(csv_path))
     assert csv_path.exists()
@@ -245,9 +243,7 @@ def test_monotonic_violation_triggers_veto(monkeypatch):
     assert event["allowed"] is False
     assert event["mode"] == "PoR"
     recovery_events = [
-        evt
-        for evt in stabilizer.get_eventlog()
-        if evt["data"].get("action") == "micro_recovery"
+        evt for evt in stabilizer.get_eventlog() if evt["data"].get("action") == "micro_recovery"
     ]
     assert recovery_events
 
@@ -267,9 +263,7 @@ def test_micro_recovery_invocation_in_audit(monkeypatch):
 
 def test_heatmap_export_default_path(tmp_path):
     stabilizer = CNSStabilizer()
-    stabilizer.heatmap_data.append(
-        {"epoch": 1, "delta_f": 0.1, "phase": "stable", "margin": 0.03}
-    )
+    stabilizer.heatmap_data.append({"epoch": 1, "delta_f": 0.1, "phase": "stable", "margin": 0.03})
 
     csv_path = tmp_path / "custom.csv"
     df = stabilizer.export_heatmap(str(csv_path))

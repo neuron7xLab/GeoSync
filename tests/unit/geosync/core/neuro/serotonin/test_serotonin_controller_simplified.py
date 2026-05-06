@@ -50,9 +50,7 @@ def serotonin_controller(serotonin_config):
 
     # Create temporary config file
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-        yaml.dump(
-            {"active_profile": "legacy", "serotonin_legacy": serotonin_config}, f
-        )
+        yaml.dump({"active_profile": "legacy", "serotonin_legacy": serotonin_config}, f)
         config_path = f.name
 
     controller = SerotoninController(config_path)
@@ -125,9 +123,7 @@ def test_reset_is_total_reset(serotonin_controller):
 class TestHysteresisApplication:
     """Tests for hysteresis application to thresholds."""
 
-    def test_entry_threshold_includes_hysteresis(
-        self, serotonin_controller, serotonin_config
-    ):
+    def test_entry_threshold_includes_hysteresis(self, serotonin_controller, serotonin_config):
         """Test that high stress triggers hold state via the v24 fast-path or threshold."""
         ctrl = serotonin_controller
         ctrl.reset()
@@ -140,9 +136,7 @@ class TestHysteresisApplication:
         else:
             pytest.fail("Should have entered hold state")
 
-    def test_exit_threshold_includes_hysteresis(
-        self, serotonin_controller, serotonin_config
-    ):
+    def test_exit_threshold_includes_hysteresis(self, serotonin_controller, serotonin_config):
         """Test that hold eventually exits when stress drops to zero."""
         ctrl = serotonin_controller
         ctrl.reset()
@@ -165,9 +159,7 @@ class TestHysteresisApplication:
 
         assert exited, "Should have exited hold state when stress drops"
 
-    def test_hysteresis_prevents_oscillation(
-        self, serotonin_controller, serotonin_config
-    ):
+    def test_hysteresis_prevents_oscillation(self, serotonin_controller, serotonin_config):
         """Test that hysteresis creates a gap between entry and exit thresholds."""
         # In v24, the hysteresis is multiplicative: entry = threshold * (1 + margin),
         # exit = threshold * (1 - margin). This ensures a gap that prevents oscillation.
@@ -262,9 +254,7 @@ class TestCooldownBehavior:
         assert initial_cooldown > 0, "Cooldown should be active"
 
         result = ctrl.step(stress=0.0, drawdown=0.0, novelty=0.0, dt=1.0)
-        assert (
-            result["cooldown"] < initial_cooldown
-        ), "Cooldown should decrement outside hold"
+        assert result["cooldown"] < initial_cooldown, "Cooldown should decrement outside hold"
 
     def test_cooldown_reaches_zero(self, serotonin_controller, serotonin_config):
         """Test that cooldown eventually reaches zero."""
@@ -362,9 +352,7 @@ class TestTonicPhasicSeparation:
 
         # Tonic should barely change
         tonic_change = abs(tonic_after - tonic_baseline)
-        assert (
-            tonic_change < 0.1
-        ), "Tonic should not be significantly affected by single transient"
+        assert tonic_change < 0.1, "Tonic should not be significantly affected by single transient"
 
 
 class TestHoldPropertyLogic:
@@ -413,9 +401,7 @@ class TestHoldPropertyLogic:
         assert result["cooldown"] > 0, "Cooldown should be active"
         assert ctrl.hold, "hold property should be True during cooldown"
 
-    def test_hold_false_after_cooldown_expires(
-        self, serotonin_controller, serotonin_config
-    ):
+    def test_hold_false_after_cooldown_expires(self, serotonin_controller, serotonin_config):
         """Test that hold is False after cooldown expires."""
         ctrl = serotonin_controller
         ctrl.reset()
@@ -496,17 +482,13 @@ class TestStepMethod:
         # High stress should not cause unbounded level
         for _ in range(50):
             result = ctrl.step(stress=10.0, drawdown=5.0, novelty=5.0, dt=1.0)
-            assert (
-                0.0 <= result["level"] <= 1.5
-            ), f"Level {result['level']} out of bounds"
+            assert 0.0 <= result["level"] <= 1.5, f"Level {result['level']} out of bounds"
 
 
 class TestCheckCooldownMethod:
     """Tests for the check_cooldown method."""
 
-    def test_check_cooldown_with_explicit_signal(
-        self, serotonin_controller, serotonin_config
-    ):
+    def test_check_cooldown_with_explicit_signal(self, serotonin_controller, serotonin_config):
         """Test check_cooldown with explicit serotonin signal."""
         ctrl = serotonin_controller
         ctrl.reset()
@@ -517,16 +499,12 @@ class TestCheckCooldownMethod:
 
         # High signal should trigger hold
         high_threshold = (
-            serotonin_config["stress_threshold"]
-            + serotonin_config["hysteresis"] / 2.0
-            + 0.1
+            serotonin_config["stress_threshold"] + serotonin_config["hysteresis"] / 2.0 + 0.1
         )
         result = ctrl.check_cooldown(serotonin_signal=high_threshold)
         assert result, "High signal should trigger hold"
 
-    def test_check_cooldown_applies_hysteresis(
-        self, serotonin_controller, serotonin_config
-    ):
+    def test_check_cooldown_applies_hysteresis(self, serotonin_controller, serotonin_config):
         """Test that check_cooldown applies hysteresis correctly (v24 multiplicative)."""
         ctrl = serotonin_controller
         ctrl.reset()

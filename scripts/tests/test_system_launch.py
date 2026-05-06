@@ -76,9 +76,7 @@ def test_wait_for_healthy_services_eventually_succeeds(
 
 def test_wait_for_healthy_services_times_out(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_fetch(_: Path, __: object) -> list[system.ServiceStatus]:
-        return [
-            system.ServiceStatus(name="geosync", state="running", health="starting")
-        ]
+        return [system.ServiceStatus(name="geosync", state="running", health="starting")]
 
     monkeypatch.setattr(system.time, "sleep", lambda _: None)
 

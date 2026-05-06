@@ -85,9 +85,7 @@ def test_policy_temperature_remains_bounded_under_noise() -> None:
     for _ in range(120):
         reward = random.uniform(-0.1, 0.1)
         next_value = random.uniform(0.4, 0.6)
-        appetitive = ctrl.estimate_appetitive_state(
-            abs(reward), 0.2, 0.1, abs(next_value - value)
-        )
+        appetitive = ctrl.estimate_appetitive_state(abs(reward), 0.2, 0.1, abs(next_value - value))
         ctrl.step(
             reward=reward,
             value=value,

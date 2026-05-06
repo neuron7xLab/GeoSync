@@ -10,17 +10,16 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
+from research.microstructure.diurnal import session_start_ms_from_frames
+from research.microstructure.diurnal_filter import (
+    direction_per_row,
+    load_hourly_direction_map,
+)
 from research.microstructure.l2_cli import (
     SubstrateError,
     add_common_args,
     load_substrate,
     setup_logging,
-)
-
-from research.microstructure.diurnal import session_start_ms_from_frames
-from research.microstructure.diurnal_filter import (
-    direction_per_row,
-    load_hourly_direction_map,
 )
 from research.microstructure.regime import (
     regime_mask_from_quantile,

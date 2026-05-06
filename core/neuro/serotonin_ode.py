@@ -84,11 +84,7 @@ class SerotoninODE:
                           - delta * desens
         """
         p = self.p
-        d_level = (
-            -(p.alpha + p.gamma) * (level - p.baseline)
-            + p.beta * stress
-            - p.delta * desens
-        )
+        d_level = -(p.alpha + p.gamma) * (level - p.baseline) + p.beta * stress - p.delta * desens
         d_desens = p.eta * max(0.0, level - p.threshold) - p.mu * desens
         return d_level, d_desens
 

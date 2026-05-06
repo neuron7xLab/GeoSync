@@ -217,9 +217,7 @@ class TestRobustnessWithPerturbations:
         noise = np.random.normal(0, perturb, size=data.shape)
         perturbed_data = data.copy()
         for col in ["open", "high", "low", "close"]:
-            perturbed_data[col] += (
-                perturbed_data[col] * noise[:, data.columns.get_loc(col)]
-            )
+            perturbed_data[col] += perturbed_data[col] * noise[:, data.columns.get_loc(col)]
 
         # Model should still produce valid action
         perturbed_action = model.decide_action(perturbed_data)

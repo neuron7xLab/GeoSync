@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for HPC-Neuro integration bridge."""
 
-import numpy as np
 import pytest
 
 from core.neuro.hpc_neuro_bridge import HPCNeuroBridge

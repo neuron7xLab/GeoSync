@@ -151,9 +151,7 @@ def _estimate_alpha_edge(
             start = max_lag_i - t_ik
             theta_k_lag = theta[start : start + T_eff, kk]
             theta_i_win = theta[max_lag_i : max_lag_i + T_eff, i]
-            contribution = K[i, kk] * np.sin(
-                theta_k_lag - theta_i_win - alpha_current[i, kk]
-            )
+            contribution = K[i, kk] * np.sin(theta_k_lag - theta_i_win - alpha_current[i, kk])
             target = target - contribution
 
     t_ij = int(tau[i, j])

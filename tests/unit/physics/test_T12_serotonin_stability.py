@@ -30,9 +30,7 @@ from core.neuro.serotonin_ode import SerotoninODE, SerotoninODEParams
 from geosync.core.neuro.serotonin.serotonin_controller import SerotoninController
 
 
-def _lyapunov_value(
-    level: float, desens: float, target: float, lambda_weight: float
-) -> float:
+def _lyapunov_value(level: float, desens: float, target: float, lambda_weight: float) -> float:
     """Compute V(level, desens) using the published Lyapunov form.
 
     V = 0.5 · (level − target)² + λ · desens²
@@ -66,9 +64,7 @@ def test_serotonin_lyapunov_is_non_increasing_under_zero_stress() -> None:
 
     for step_idx in range(n_steps):
         ode.step(stress=0.0, dt=dt)
-        current_v = _lyapunov_value(
-            ode.level, ode.desensitization, params.target, params.lambda_
-        )
+        current_v = _lyapunov_value(ode.level, ode.desensitization, params.target, params.lambda_)
         previous_v = lyapunov_trajectory[-1]
         rise = current_v - previous_v
         assert rise <= integrator_epsilon, (

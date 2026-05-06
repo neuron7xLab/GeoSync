@@ -71,7 +71,9 @@ def _extract_defaults_and_env(
     defaults = defaults_instance.model_dump()
     env_applied = env_instance.model_dump()
     env_overrides = {
-        key: value for key, value in env_applied.items() if env_applied.get(key) != defaults.get(key)
+        key: value
+        for key, value in env_applied.items()
+        if env_applied.get(key) != defaults.get(key)
     }
     return defaults, env_overrides
 
@@ -93,11 +95,7 @@ def _merge_precedence(
     if cli_overrides:
         merged.update({k: v for k, v in cli_overrides.items() if v is not None})
     local_default = not yaml_section and not cli_overrides and not env_overrides
-    if (
-        merged.get("tls") is None
-        and not merged.get("allow_plaintext", False)
-        and local_default
-    ):
+    if merged.get("tls") is None and not merged.get("allow_plaintext", False) and local_default:
         LOGGER.warning(
             "No TLS configuration detected; enabling allow_plaintext for local runs. "
             "Provide GEOSYNC_API_SERVER_TLS__* or --allow-plaintext to override."

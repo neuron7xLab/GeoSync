@@ -97,7 +97,9 @@ class TestBacktest:
         prices = 100 + np.cumsum(rng.normal(0, 1, (100, 5)), axis=0)
 
         result = predictor.backtest(
-            prices, vol_window=5, correlation_window=15,
+            prices,
+            vol_window=5,
+            correlation_window=15,
         )
         assert result.n_windows > 0
         assert 0 <= result.roc_auc_t1 <= 1

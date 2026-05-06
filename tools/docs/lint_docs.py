@@ -258,9 +258,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             missing.append(candidate)
 
     if missing and not args.allow_missing:
-        parser.error(
-            f"Path '{missing[0]}' does not exist. Use --allow-missing to skip."
-        )
+        parser.error(f"Path '{missing[0]}' does not exist. Use --allow-missing to skip.")
 
     if not targets:
         if args.allow_missing:

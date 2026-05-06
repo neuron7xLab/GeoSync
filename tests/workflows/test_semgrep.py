@@ -10,9 +10,7 @@ from typing import Any, Dict
 import pytest
 import yaml
 
-WORKFLOW_PATH = (
-    Path(__file__).resolve().parents[2] / ".github" / "workflows" / "semgrep.yml"
-)
+WORKFLOW_PATH = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "semgrep.yml"
 pytestmark = pytest.mark.skipif(not WORKFLOW_PATH.exists(), reason="workflow file not found")
 
 
@@ -143,9 +141,7 @@ def test_semgrep_checks_critical_findings() -> None:
 
     check_step = None
     for step in steps:
-        if isinstance(step, dict) and "Check for critical findings" in step.get(
-            "name", ""
-        ):
+        if isinstance(step, dict) and "Check for critical findings" in step.get("name", ""):
             check_step = step
             break
 

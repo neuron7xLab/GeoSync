@@ -10,18 +10,18 @@ import pytest
 
 from application.system import (
     ExchangeAdapterConfig,
-    LiveLoopSettings,
     GeoSyncSystem,
     GeoSyncSystemConfig,
+    LiveLoopSettings,
 )
 from domain import Order, OrderSide, Signal, SignalAction
 from execution.connectors import BinanceConnector
 from execution.risk import RiskLimits
 from geosync.sdk import (
+    GeoSyncSDK,
     MarketState,
     SDKConfig,
     SuggestedOrder,
-    GeoSyncSDK,
 )
 
 
@@ -57,16 +57,13 @@ def _position_sizer(signal) -> float:
     return max(signal.confidence, 0.25)
 
 
-def _build_system(
-    tmp_path: Path, *, risk_limits: RiskLimits | None = None
-) -> GeoSyncSystem:
+def _build_system(tmp_path: Path, *, risk_limits: RiskLimits | None = None) -> GeoSyncSystem:
     venue = ExchangeAdapterConfig(name="BINANCE", connector=BinanceConnector())
     settings = LiveLoopSettings(state_dir=tmp_path / "state")
     config = GeoSyncSystemConfig(
         venues=[venue],
         live_settings=settings,
-        risk_limits=risk_limits
-        or RiskLimits(max_notional=1_000_000.0, max_position=1_000.0),
+        risk_limits=risk_limits or RiskLimits(max_notional=1_000_000.0, max_position=1_000.0),
     )
     return GeoSyncSystem(config)
 
@@ -132,9 +129,7 @@ def test_risk_check_rejection(tmp_path: Path) -> None:
     )
     sdk = GeoSyncSDK(system, config)
 
-    signal = sdk.get_signal(
-        MarketState(symbol="BTCUSDT", venue="BINANCE", market_frame=market)
-    )
+    signal = sdk.get_signal(MarketState(symbol="BTCUSDT", venue="BINANCE", market_frame=market))
     proposal = sdk.propose_trade(signal)
 
     result = sdk.risk_check(proposal.order)

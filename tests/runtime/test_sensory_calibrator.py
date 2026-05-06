@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 
 from runtime.filters.vlpo_core_filter.data.sensory_calibrator import (
-    SensoryCalibrator,
     SensoryCalibrationConfig,
+    SensoryCalibrator,
 )
 
 

@@ -140,9 +140,7 @@ def test_inventory_manager_generates_rebalance_plan() -> None:
         transfer_costs={("EX1", "EX2"): Decimal("0.25")},
     )
     targets = {
-        "EX1": InventoryTarget(
-            target_weight=Decimal("1"), min_base_buffer=Decimal("4")
-        ),
+        "EX1": InventoryTarget(target_weight=Decimal("1"), min_base_buffer=Decimal("4")),
         "EX2": InventoryTarget(target_weight=Decimal("1")),
     }
     snapshot, plan = manager.propose_rebalance("BTCUSDT", targets)
@@ -200,12 +198,8 @@ def test_inventory_manager_respects_buffers_and_costs() -> None:
             min_base_buffer=Decimal("6"),
             max_weight=Decimal("0.6"),
         ),
-        "EX2": InventoryTarget(
-            target_weight=Decimal("1"), min_base_buffer=Decimal("2")
-        ),
-        "EX3": InventoryTarget(
-            target_weight=Decimal("1"), min_base_buffer=Decimal("1")
-        ),
+        "EX2": InventoryTarget(target_weight=Decimal("1"), min_base_buffer=Decimal("2")),
+        "EX3": InventoryTarget(target_weight=Decimal("1"), min_base_buffer=Decimal("1")),
     }
     snapshot, plan = manager.propose_rebalance("BTCUSDT", targets)
     assert plan is not None
@@ -230,6 +224,4 @@ def test_inventory_manager_raises_for_unknown_symbol() -> None:
     ledger = _build_ledger()
     manager = InventoryManager(ledger, {"ETHUSDT": ("ETH", "USDT")})
     with pytest.raises(InventoryError):
-        manager.propose_rebalance(
-            "BTCUSDT", {"EX1": InventoryTarget(target_weight=Decimal("1"))}
-        )
+        manager.propose_rebalance("BTCUSDT", {"EX1": InventoryTarget(target_weight=Decimal("1"))})

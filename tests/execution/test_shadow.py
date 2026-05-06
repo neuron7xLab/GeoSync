@@ -115,9 +115,7 @@ def test_shadow_orchestrator_rejects_on_guardrail_breach() -> None:
     decision: ShadowDecision | None = None
     for index in range(4):
         timestamp = datetime(2024, 2, 1, tzinfo=timezone.utc) + timedelta(seconds=index)
-        decision = orchestrator.process({"timestamp": timestamp, "symbol": "ETHUSDT"})[
-            "noisy"
-        ]
+        decision = orchestrator.process({"timestamp": timestamp, "symbol": "ETHUSDT"})["noisy"]
         if decision.action != "continue":
             break
 
@@ -136,9 +134,7 @@ def test_shadow_orchestrator_handles_candidate_errors() -> None:
     def failing_candidate(_: Mapping[str, Any]) -> Signal:
         raise RuntimeError("boom")
 
-    config = ShadowDeploymentConfig(
-        window_size=2, min_samples=1, promotion_stable_observations=1
-    )
+    config = ShadowDeploymentConfig(window_size=2, min_samples=1, promotion_stable_observations=1)
     orchestrator = ShadowDeploymentOrchestrator(
         baseline=baseline,
         candidates={"failing": failing_candidate},

@@ -12,9 +12,9 @@ import pytest
 
 from application.system import (
     ExchangeAdapterConfig,
-    LiveLoopSettings,
     GeoSyncSystem,
     GeoSyncSystemConfig,
+    LiveLoopSettings,
 )
 from domain import OrderSide, OrderStatus, SignalAction
 from execution.connectors import BinanceConnector
@@ -64,9 +64,7 @@ def test_end_to_end_trading_cycle(tmp_path: Path) -> None:
 
     signals = system.generate_signals(feature_frame, strategy=adaptive_momentum)
     assert signals
-    actionable = [
-        signal for signal in signals if signal.action is not SignalAction.HOLD
-    ]
+    actionable = [signal for signal in signals if signal.action is not SignalAction.HOLD]
     assert actionable
 
     latest_signal = actionable[-1]
@@ -78,9 +76,7 @@ def test_end_to_end_trading_cycle(tmp_path: Path) -> None:
     # Round-trip through DTO conversion to ensure metadata survives transport.
     payloads = system.signals_to_dtos([latest_signal])
     assert payloads[0]["symbol"] == "BTCUSDT"
-    assert payloads[0]["metadata"]["score"] == pytest.approx(
-        latest_signal.metadata["score"]
-    )
+    assert payloads[0]["metadata"]["score"] == pytest.approx(latest_signal.metadata["score"])
 
     loop = system.ensure_live_loop()
     system.submit_signal(
@@ -108,9 +104,7 @@ def test_end_to_end_trading_cycle(tmp_path: Path) -> None:
     else:
         expected_position = -fill_qty
 
-    assert system.risk_manager.current_position("BTCUSDT") == pytest.approx(
-        expected_position
-    )
+    assert system.risk_manager.current_position("BTCUSDT") == pytest.approx(expected_position)
     assert system.risk_manager.current_notional("BTCUSDT") == pytest.approx(
         abs(expected_position * latest_price)
     )

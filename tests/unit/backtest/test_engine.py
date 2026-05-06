@@ -13,6 +13,7 @@ Tests cover:
 - Data quality validation
 - Anti-look-ahead bias prevention
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -43,22 +44,14 @@ class TestLatencyConfig:
 
     def test_latency_config_custom_values(self) -> None:
         """Test LatencyConfig accepts custom values."""
-        config = LatencyConfig(
-            signal_to_order=1,
-            order_to_execution=2,
-            execution_to_fill=1
-        )
+        config = LatencyConfig(signal_to_order=1, order_to_execution=2, execution_to_fill=1)
         assert config.signal_to_order == 1
         assert config.order_to_execution == 2
         assert config.execution_to_fill == 1
 
     def test_total_delay_calculation(self) -> None:
         """Test total_delay property computes correct sum."""
-        config = LatencyConfig(
-            signal_to_order=1,
-            order_to_execution=2,
-            execution_to_fill=1
-        )
+        config = LatencyConfig(signal_to_order=1, order_to_execution=2, execution_to_fill=1)
         assert config.total_delay == 4
 
     def test_total_delay_never_negative(self) -> None:
@@ -74,8 +67,8 @@ class TestOrderBookConfig:
         """Test OrderBookConfig has sensible defaults."""
         config = OrderBookConfig()
         # Test that config can be instantiated with defaults
-        assert hasattr(config, 'spread_bps')
-        assert hasattr(config, 'depth_profile')
+        assert hasattr(config, "spread_bps")
+        assert hasattr(config, "depth_profile")
 
     def test_orderbook_config_custom_spread(self) -> None:
         """Test OrderBookConfig accepts custom spread values."""
@@ -89,8 +82,8 @@ class TestSlippageConfig:
     def test_slippage_config_defaults(self) -> None:
         """Test SlippageConfig initializes properly."""
         config = SlippageConfig()
-        assert hasattr(config, 'per_unit_bps')
-        assert hasattr(config, 'depth_impact_bps')
+        assert hasattr(config, "per_unit_bps")
+        assert hasattr(config, "depth_impact_bps")
 
 
 class TestPortfolioConstraints:
@@ -132,7 +125,7 @@ class TestResult:
             max_dd=-50.0,
             latency_steps=2,
             slippage_cost=5.0,
-            equity_curve=np.array([100.0, 110.0, 120.0])
+            equity_curve=np.array([100.0, 110.0, 120.0]),
         )
         assert result.pnl == 100.0
         assert result.trades == 10
@@ -225,12 +218,7 @@ class TestWalkForward:
             return np.ones_like(p) * 10.0
 
         constraints = PortfolioConstraints()
-        result = walk_forward(
-            prices,
-            aggressive_signal,
-            fee=0.0,
-            constraints=constraints
-        )
+        result = walk_forward(prices, aggressive_signal, fee=0.0, constraints=constraints)
 
         # Result should still be valid even with constraints
         assert isinstance(result, Result)
@@ -323,12 +311,7 @@ class TestTransactionCostModels:
             return signal
 
         slippage = SlippageConfig(per_unit_bps=10.0)
-        result = walk_forward(
-            prices,
-            signal_func,
-            fee=0.0,
-            slippage=slippage
-        )
+        result = walk_forward(prices, signal_func, fee=0.0, slippage=slippage)
 
         assert result.slippage_cost >= 0.0
 
@@ -340,12 +323,7 @@ class TestTransactionCostModels:
             return np.ones_like(p)
 
         order_book = OrderBookConfig(spread_bps=5.0)
-        result = walk_forward(
-            prices,
-            signal_func,
-            fee=0.0,
-            order_book=order_book
-        )
+        result = walk_forward(prices, signal_func, fee=0.0, order_book=order_book)
 
         assert isinstance(result, Result)
 
@@ -365,8 +343,8 @@ class TestWalkForwardIntegration:
         def moving_average_crossover(p: np.ndarray) -> np.ndarray:
             signal = np.zeros_like(p)
             if len(p) >= 20:
-                short_ma = np.convolve(p, np.ones(5)/5, mode='same')
-                long_ma = np.convolve(p, np.ones(20)/20, mode='same')
+                short_ma = np.convolve(p, np.ones(5) / 5, mode="same")
+                long_ma = np.convolve(p, np.ones(20) / 20, mode="same")
                 signal = np.sign(short_ma - long_ma)
             return signal
 
@@ -377,7 +355,7 @@ class TestWalkForwardIntegration:
             fee=0.001,
             latency=LatencyConfig(signal_to_order=1),
             order_book=OrderBookConfig(spread_bps=5.0),
-            slippage=SlippageConfig(per_unit_bps=10.0)
+            slippage=SlippageConfig(per_unit_bps=10.0),
         )
 
         # Verify result is reasonable

@@ -273,9 +273,7 @@ def test_engine_cycle_logs_when_all_signals_rejected() -> None:
 
 
 def test_engine_cycle_sequence_numbers_increment_per_datum() -> None:
-    data_feed = DummyDataFeed(
-        [_make_market_data("feed-seq-1"), _make_market_data("feed-seq-2")]
-    )
+    data_feed = DummyDataFeed([_make_market_data("feed-seq-1"), _make_market_data("feed-seq-2")])
     signal_generator = DummySignalGenerator(
         {
             "feed-seq-1": (_make_signal("sig-1"),),

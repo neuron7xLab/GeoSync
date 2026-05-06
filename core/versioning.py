@@ -155,15 +155,13 @@ def get_git_info(repo_path: Path | None = None) -> GitInfo | None:
 
     # Get commit date
     commit_date: datetime | None = None
-    date_str = _run_git_command(
-        ["show", "-s", "--format=%ci", "HEAD"], cwd
-    )
+    date_str = _run_git_command(["show", "-s", "--format=%ci", "HEAD"], cwd)
     if date_str:
         try:
             # Parse git date format: "2023-01-15 10:30:45 -0500"
-            commit_date = datetime.strptime(
-                date_str[:19], "%Y-%m-%d %H:%M:%S"
-            ).replace(tzinfo=timezone.utc)
+            commit_date = datetime.strptime(date_str[:19], "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=timezone.utc
+            )
         except ValueError:
             LOGGER.debug("Failed to parse git commit date: %s", date_str)
 

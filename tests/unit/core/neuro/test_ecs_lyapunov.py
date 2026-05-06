@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for ECS Lyapunov regulator — homeostatic stability guarantees."""
 
-import numpy as np
 import pytest
 
 from core.neuro.ecs_lyapunov import ECSLyapunovRegulator
@@ -77,9 +76,7 @@ class TestFreeEnergyConvergence:
         # Remove stress, let recover
         for _ in range(2000):
             reg.step(0.0, dt=0.5)
-        assert abs(reg.free_energy) < fe_after_stress, (
-            "FE should decrease after stress removal"
-        )
+        assert abs(reg.free_energy) < fe_after_stress, "FE should decrease after stress removal"
 
     def test_recovery_after_stress_removal(self, reg):
         """FE returns toward baseline after stress spike."""
@@ -108,9 +105,9 @@ class TestCompensatoryFactor:
         """CF should grow when FE is above target."""
         for _ in range(500):
             reg.step(1.0, dt=0.5)
-        assert abs(reg.compensatory_factor) > 1e-4, (
-            f"CF should adapt to counteract sustained stress, got {reg.compensatory_factor}"
-        )
+        assert (
+            abs(reg.compensatory_factor) > 1e-4
+        ), f"CF should adapt to counteract sustained stress, got {reg.compensatory_factor}"
 
 
 class TestRiskMultiplier:

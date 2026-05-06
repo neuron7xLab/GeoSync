@@ -71,7 +71,6 @@ class NaKAdapter:
             gate=size_gate,
             effective_size=effective_size,
             temperature=temp_effect,
-            controller_log=ctrl_log
-            | {"shaped_reward": shaped_reward, "size_hint": size_hint},
+            controller_log=ctrl_log | {"shaped_reward": shaped_reward, "size_hint": size_hint},
             gate_state=gate_state,
         )

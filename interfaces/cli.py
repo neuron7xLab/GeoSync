@@ -110,9 +110,7 @@ def signal_from_indicators(
             else:
                 futures = {
                     "entropy": executor.submit(entropy, window_prices),
-                    "delta_entropy": executor.submit(
-                        delta_entropy, prefix, window=window
-                    ),
+                    "delta_entropy": executor.submit(delta_entropy, prefix, window=window),
                     "ricci": executor.submit(_compute_ricci, window_prices),
                 }
                 H = futures["entropy"].result()
@@ -343,11 +341,7 @@ def cmd_analyze(args):
     try:
         from core.indicators.kuramoto import compute_phase_gpu
 
-        phases = (
-            compute_phase_gpu(prices)
-            if getattr(args, "gpu", False)
-            else compute_phase(prices)
-        )
+        phases = compute_phase_gpu(prices) if getattr(args, "gpu", False) else compute_phase(prices)
         R = kuramoto_order(phases[-args.window :])
         H = entropy(prices[-args.window :], bins=args.bins)
         dH = delta_entropy(prices, window=args.window, bins_range=(10, 50))
@@ -586,9 +580,7 @@ def _run_with_trace_context(cmd_name: str, args: argparse.Namespace) -> None:
         tracing as outlined in ``docs/monitoring.md``.
     """
     tracer = get_tracer("geosync.cli")
-    inbound = getattr(args, "traceparent", None) or os.environ.get(
-        "GEOSYNC_TRACEPARENT"
-    )
+    inbound = getattr(args, "traceparent", None) or os.environ.get("GEOSYNC_TRACEPARENT")
     with activate_traceparent(inbound):
         with tracer.start_as_current_span(
             f"cli.{cmd_name}",
@@ -637,9 +629,7 @@ For detailed documentation, visit: https://github.com/neuron7xLab/GeoSync
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    sub = p.add_subparsers(
-        dest="cmd", required=True, help="Available commands", metavar="COMMAND"
-    )
+    sub = p.add_subparsers(dest="cmd", required=True, help="Available commands", metavar="COMMAND")
 
     trace_arg_help = "W3C traceparent header used to join an existing distributed trace"
 
@@ -706,9 +696,7 @@ Output is JSON-formatted and includes:
         default=0.005,
         help="Step size for Ricci curvature calculation (default: 0.005)",
     )
-    pa.add_argument(
-        "--config", help="Path to YAML configuration file (optional)", default=None
-    )
+    pa.add_argument("--config", help="Path to YAML configuration file (optional)", default=None)
     pa.add_argument(
         "--gpu",
         action="store_true",
@@ -770,12 +758,8 @@ Output metrics:
         default=0.0005,
         help="Transaction fee as a fraction (default: 0.0005 = 0.05%%)",
     )
-    pb.add_argument(
-        "--config", help="Path to YAML configuration file (optional)", default=None
-    )
-    pb.add_argument(
-        "--gpu", action="store_true", help="Enable GPU acceleration (requires CUDA)"
-    )
+    pb.add_argument("--config", help="Path to YAML configuration file (optional)", default=None)
+    pb.add_argument("--gpu", action="store_true", help="Enable GPU acceleration (requires CUDA)")
     pb.add_argument("--traceparent", default=None, help=trace_arg_help)
     pb.set_defaults(func=cmd_backtest)
 

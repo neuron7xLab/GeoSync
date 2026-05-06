@@ -71,9 +71,7 @@ class ThresholdConfig:
         if self.min_threshold_multiplier <= 0:
             raise ValueError("min_threshold_multiplier must be positive")
         if self.max_threshold_multiplier < self.min_threshold_multiplier:
-            raise ValueError(
-                "max_threshold_multiplier must be >= min_threshold_multiplier"
-            )
+            raise ValueError("max_threshold_multiplier must be >= min_threshold_multiplier")
         if not 0 < self.adaptation_rate <= 1:
             raise ValueError("adaptation_rate must be in (0, 1]")
 

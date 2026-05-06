@@ -8,6 +8,7 @@ price–time priority queue, explicit level management and pluggable impact /
 slippage adapters so additional realism can be layered without modifying the
 matching logic.
 """
+
 from __future__ import annotations
 
 import heapq
@@ -270,9 +271,7 @@ class PriceTimeOrderBook:
             while remaining > 0 and level.orders:
                 resting_order = level.orders[0]
                 take = min(remaining, resting_order.quantity)
-                impacted = self._impact_model.adjusted_price(
-                    level.price, side, take, level_index
-                )
+                impacted = self._impact_model.adjusted_price(level.price, side, take, level_index)
                 slippage = self._compute_slippage(
                     side=side,
                     base_price=level.price,

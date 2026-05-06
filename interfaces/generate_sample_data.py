@@ -135,9 +135,7 @@ def generate_volume(
     rng = np.random.default_rng(seed)
 
     # Base log-normal volume
-    volume = rng.lognormal(
-        mean=np.log(mean_volume) - (volatility**2) / 2, sigma=volatility, size=n
-    )
+    volume = rng.lognormal(mean=np.log(mean_volume) - (volatility**2) / 2, sigma=volatility, size=n)
 
     # Add correlation with price changes if prices provided
     if prices is not None and len(prices) == n and price_correlation != 0:
@@ -171,9 +169,7 @@ def generate_market_data(
 
     # Generate prices based on regime
     if regime == "trending":
-        prices = generate_trending_prices(
-            periods, trend=0.03, volatility=1.2, seed=seed
-        )
+        prices = generate_trending_prices(periods, trend=0.03, volatility=1.2, seed=seed)
     elif regime == "mean_reverting":
         prices = generate_mean_reverting_prices(
             periods, reversion_speed=0.15, volatility=2.0, seed=seed
@@ -192,9 +188,7 @@ def generate_market_data(
     )
 
     # Create DataFrame
-    df = pd.DataFrame(
-        {"timestamp": timestamps, "price": prices, "volume": volume.astype(int)}
-    )
+    df = pd.DataFrame({"timestamp": timestamps, "price": prices, "volume": volume.astype(int)})
 
     return df
 
@@ -220,9 +214,7 @@ Examples:
         """,
     )
 
-    parser.add_argument(
-        "--output", "-o", type=str, required=True, help="Output CSV file path"
-    )
+    parser.add_argument("--output", "-o", type=str, required=True, help="Output CSV file path")
 
     parser.add_argument(
         "--periods",

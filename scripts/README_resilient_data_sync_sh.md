@@ -4,7 +4,7 @@ Bash script for resilient data synchronization with comprehensive error handling
 
 ## Description
 
-This Bash script demonstrates production-grade scripting practices for reliable data synchronization:
+This Bash script applies the following defensive scripting practices for reliable data synchronization:
 
 - **Idempotency**: Uses lock files, content hashing, and execution markers
 - **Structured logging**: JSON-formatted logs to stdout/stderr

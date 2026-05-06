@@ -36,13 +36,9 @@ except ImportError:  # pragma: no cover - fallback when optional deps missing
     if not _determinism_path.is_file():
         msg = f"Determinism helpers missing at {_determinism_path.as_posix()}"
         raise ImportError(msg)
-    spec = importlib.util.spec_from_file_location(
-        "_geosync_determinism", _determinism_path
-    )
+    spec = importlib.util.spec_from_file_location("_geosync_determinism", _determinism_path)
     if spec is None or spec.loader is None:
-        msg = (
-            f"Unable to load determinism helpers from {_determinism_path.as_posix()}"
-        )
+        msg = f"Unable to load determinism helpers from {_determinism_path.as_posix()}"
         raise ImportError(msg)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -150,9 +146,7 @@ if SRC.exists() and str(SRC) not in sys.path:
     sys.path.append(str(SRC))
 
 
-if (
-    "exchange_calendars" not in sys.modules
-):  # pragma: no cover - optional dependency shim
+if "exchange_calendars" not in sys.modules:  # pragma: no cover - optional dependency shim
     stub = types.ModuleType("exchange_calendars")
 
     class _BaseCalendar:
@@ -224,9 +218,7 @@ if (
             return True
 
     class _AlwaysOpenNamespace:
-        AlwaysOpenCalendar = (
-            _AlwaysOpenCalendar  # noqa: N803 - match third-party naming
-        )
+        AlwaysOpenCalendar = _AlwaysOpenCalendar  # noqa: N803 - match third-party naming
 
     class _ErrorsNamespace:
         class InvalidCalendarName(Exception):
@@ -323,9 +315,7 @@ def pytest_addoption(parser):  # type: ignore[override]
 
 def pytest_configure(config):  # type: ignore[override]
     if not hasattr(config, "_geosync_flaky_tracker"):
-        config._geosync_flaky_tracker = _FlakyTracker(
-            config.getoption("flaky_report")
-        )
+        config._geosync_flaky_tracker = _FlakyTracker(config.getoption("flaky_report"))
     if config.pluginmanager.hasplugin("pytest_cov"):
         return
     cov_targets = config.getoption("geosync_cov", default=None)
@@ -354,9 +344,7 @@ def pytest_pyfunc_call(pyfuncitem):  # type: ignore[override]
     loop = asyncio.new_event_loop()
     try:
         asyncio.set_event_loop(loop)
-        kwargs = {
-            arg: pyfuncitem.funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames
-        }
+        kwargs = {arg: pyfuncitem.funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames}
         loop.run_until_complete(testfunction(**kwargs))
     finally:
         try:
@@ -367,9 +355,7 @@ def pytest_pyfunc_call(pyfuncitem):  # type: ignore[override]
     return True
 
 
-def pytest_collection_modifyitems(
-    config: pytest.Config, items: list[pytest.Item]
-) -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     tracker = getattr(config, "_geosync_flaky_tracker", None)
     if tracker is None:
         return
@@ -378,9 +364,7 @@ def pytest_collection_modifyitems(
             tracker.register(item)
 
 
-def pytest_runtest_makereport(
-    item: pytest.Item, call: pytest.CallInfo[object]
-) -> None:  # type: ignore[override]
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[object]) -> None:  # type: ignore[override]
     if call.when != "call":
         return
     tracker = getattr(item.config, "_geosync_flaky_tracker", None)

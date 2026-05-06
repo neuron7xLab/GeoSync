@@ -30,6 +30,7 @@ def apply_thread_determinism(env: MutableMapping[str, str] | None = None) -> Non
     for key, value in THREAD_BOUND_ENV_VARS.items():
         target.setdefault(key, value)
 
+
 def seed_numpy(seed: int = DEFAULT_SEED) -> None:
     """Seed Python and NumPy RNGs for deterministic experiments."""
 

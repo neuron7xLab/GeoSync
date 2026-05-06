@@ -21,8 +21,8 @@ validate_neuro_invariants : Validate neuromodulator metric bounds
 
 from __future__ import annotations
 
-import math
 import logging
+import math
 from dataclasses import dataclass
 from typing import Literal, Optional
 
@@ -313,9 +313,7 @@ def validate_neuro_metric_bounds(
         checked_value = ensure_finite(name, value)
         if bounds.min_value <= checked_value <= bounds.max_value:
             return checked_value
-        message = (
-            f"{name} out of bounds [{bounds.min_value}, {bounds.max_value}]: {checked_value}"
-        )
+        message = f"{name} out of bounds [{bounds.min_value}, {bounds.max_value}]: {checked_value}"
         if bounds.behavior == "clip":
             clipped = clamp(checked_value, bounds.min_value, bounds.max_value)
             resolved_logger.warning("%s; clipped to %s", message, clipped)

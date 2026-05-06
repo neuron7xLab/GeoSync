@@ -28,7 +28,9 @@ def test_openapi_contract_is_stable() -> None:
     assert runtime_schema.get("info", {}).get("version") == expected.get("info", {}).get("version")
     # Auto-update snapshot when run from CI to prevent drift
     import json
+
     from tests.api.openapi_spec import openapi_spec_path
+
     spec_path = openapi_spec_path()
     if runtime_schema != expected:
         spec_path.write_text(json.dumps(runtime_schema, indent=2, sort_keys=True), encoding="utf-8")

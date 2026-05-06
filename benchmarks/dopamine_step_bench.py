@@ -12,6 +12,7 @@ Options:
     --profile PROFILE   Use specific config profile (conservative, normal, aggressive)
     --iterations N      Number of iterations (default: 100000)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -20,17 +21,14 @@ import time
 from pathlib import Path
 
 # Add src to path for direct import - import only the dopamine controller module
-sys.path.insert(
-    0, str(Path(__file__).parent.parent / "src" / "geosync" / "core" / "neuro")
-)
+sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "geosync" / "core" / "neuro"))
 
 from dopamine.dopamine_controller import DopamineController
+
 from utils.seed import set_global_seed
 
 
-def benchmark_step(
-    controller: DopamineController, iterations: int = 100000
-) -> dict[str, float]:
+def benchmark_step(controller: DopamineController, iterations: int = 100000) -> dict[str, float]:
     """Benchmark dopamine controller step performance.
 
     Args:
