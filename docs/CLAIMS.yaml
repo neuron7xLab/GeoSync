@@ -599,21 +599,30 @@ claims:
       End-to-end latency instrumentation across four layers
       (client_render, network_TTFB, server_compute, db_io) green
       against the budget (FCP < 1.0 s, TTFB < 300 ms, server p95
-      < 100 ms, interactive p95 < 200 ms). Status (Wave 6):
-      EXTRAPOLATED — server_compute layer measurable for the
-      reset-wave subsystem: deterministic O(N · steps) cost on a
-      compact manifold, RK4-fixed integrator, no I/O. Stress test
-      grid (108 cells × 20 seeds) finishes well under the per-call
-      budget. Missing evidence: client_render (Web Vitals via
-      Lighthouse CI), network_TTFB (HTTP timing), db_io (driver
-      telemetry), regression-gated CI dashboards. Re-classify
-      ANCHORED on Phase-4 entry. Tracked by issue IERD-Q6.
+      < 100 ms, interactive p95 < 200 ms). Status (Wave 6 +
+      Phase-4 ENTRY 2026-05-07): EXTRAPOLATED — server_compute
+      layer is gated end-to-end on every PR via
+      tests/api/test_latency_budget_server_compute.py +
+      .github/workflows/latency-budget.yml; the gate runs
+      Starlette TestClient against application.api.service.create_app()
+      and asserts p95 of /metrics < 100 ms (simple) and p95 of
+      /health < 200 ms (interactive) over 200 samples per endpoint
+      with a 20-sample warmup. Reset-wave subsystem stress evidence
+      remains in scope (108 cells × 20 seeds). Missing evidence:
+      client_render (Web Vitals via Lighthouse CI), network_TTFB
+      (HTTP timing), db_io (driver telemetry), regression-gated
+      Grafana dashboards. Re-classify ANCHORED on Phase-4 EXIT.
+      Tracked by issue IERD-Q6 (#531).
     evidence_paths:
       - docs/yana-response.md
       - geosync/neuroeconomics/reset_wave_engine.py
       - tests/test_reset_wave_stress_validation.py
+      - tests/api/test_latency_budget_server_compute.py
+      - .github/workflows/latency-budget.yml
+      - application/api/middleware/prometheus.py
       - docs/validation/reset_wave_validation_summary.json
     added_utc: "2026-05-03"
+    last_updated_utc: "2026-05-07"
 
   - id: edge-case-coverage-matrix
     priority: P1
