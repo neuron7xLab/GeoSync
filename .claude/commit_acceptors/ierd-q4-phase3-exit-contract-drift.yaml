@@ -43,6 +43,7 @@ diff_scope:
     - path: "src/admin/remote_control.py"
     - path: "tests/api/test_schemathesis_contract.py"
     - path: "tests/api/test_service.py"
+    - path: "tests/unit/api/test_service_helpers.py"
   forbidden_paths:
     - "trading/"
     - "forecast/"

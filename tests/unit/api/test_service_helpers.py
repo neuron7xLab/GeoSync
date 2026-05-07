@@ -1,6 +1,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -112,7 +113,9 @@ def test_validate_idempotency_key_guards_invalid_inputs() -> None:
 
 
 def test_payload_guard_middleware_blocks_suspicious_content() -> None:
-    async def ingest(request):  # pragma: no cover - executed via TestClient
+    async def ingest(
+        request: Request,
+    ) -> JSONResponse:  # pragma: no cover - executed via TestClient
         body = await request.json()
         return JSONResponse({"accepted": True, "echo": body})
 
@@ -141,7 +144,9 @@ def test_payload_guard_middleware_blocks_suspicious_content() -> None:
 
 
 def test_payload_guard_middleware_handles_invalid_json() -> None:
-    async def handler(request):  # pragma: no cover - executed via TestClient
+    async def handler(
+        request: Request,
+    ) -> JSONResponse:  # pragma: no cover - executed via TestClient
         body = await request.json()
         return JSONResponse(body)
 
@@ -158,7 +163,10 @@ def test_payload_guard_middleware_handles_invalid_json() -> None:
         "/test", content=b"not-json", headers={"content-type": "application/json"}
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json()["detail"] == "Malformed JSON payload."
+    # PayloadGuardMiddleware now wraps short-circuit errors in the
+    # canonical ErrorResponse envelope (`{"error": ErrorPayload}`)
+    # for OpenAPI Phase-3 EXIT contract compliance.
+    assert response.json()["error"]["message"] == "Malformed JSON payload."
 
 
 @pytest.mark.parametrize(
@@ -169,8 +177,8 @@ def test_payload_guard_middleware_handles_invalid_json() -> None:
         ({"x-real-ip": "192.0.2.8"}, "192.0.2.8"),
     ],
 )
-def test_resolve_ip_prefers_forwarded_headers(headers, expected) -> None:
-    scope = {
+def test_resolve_ip_prefers_forwarded_headers(headers: dict[str, str], expected: str) -> None:
+    scope: dict[str, Any] = {
         "type": "http",
         "method": "GET",
         "path": "/",
@@ -178,10 +186,10 @@ def test_resolve_ip_prefers_forwarded_headers(headers, expected) -> None:
         "client": ("127.0.0.1", 12345),
     }
 
-    async def receive():  # pragma: no cover - handshake stub
+    async def receive() -> dict[str, Any]:  # pragma: no cover - handshake stub
         return {"type": "http.request", "body": b""}
 
-    async def send(message):  # pragma: no cover - handshake stub
+    async def send(message: dict[str, Any]) -> None:  # pragma: no cover - handshake stub
         pass
 
     request = Request(scope, receive=receive)
@@ -189,7 +197,7 @@ def test_resolve_ip_prefers_forwarded_headers(headers, expected) -> None:
 
 
 def test_resolve_ip_falls_back_to_client_host() -> None:
-    scope = {
+    scope: dict[str, Any] = {
         "type": "http",
         "method": "GET",
         "path": "/",
@@ -197,10 +205,10 @@ def test_resolve_ip_falls_back_to_client_host() -> None:
         "client": ("198.18.0.1", 443),
     }
 
-    async def receive():  # pragma: no cover - handshake stub
+    async def receive() -> dict[str, Any]:  # pragma: no cover - handshake stub
         return {"type": "http.request", "body": b""}
 
-    async def send(message):  # pragma: no cover - handshake stub
+    async def send(message: dict[str, Any]) -> None:  # pragma: no cover - handshake stub
         pass
 
     request = Request(scope, receive=receive)
