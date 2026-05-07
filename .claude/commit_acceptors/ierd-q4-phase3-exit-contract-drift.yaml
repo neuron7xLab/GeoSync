@@ -33,6 +33,7 @@ diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/ierd-q4-phase3-exit-contract-drift.yaml"
     - path: ".claude/commit_acceptors/ierd-q4-schemathesis-contract-gate.yaml"
+    - path: ".github/detect-secrets.baseline"
     - path: ".github/workflows/schemathesis-contract.yml"
     - path: "application/api/errors.py"
     - path: "application/api/risk_factory.py"
