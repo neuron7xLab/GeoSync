@@ -60,11 +60,11 @@ INTERACTIVE_P95_MS: Final[float] = float(
 
 
 _REQUIRED_ENV: Final[dict[str, str]] = {
-    "GEOSYNC_AUDIT_SECRET": "latency-budget-test-secret",
+    "GEOSYNC_AUDIT_SECRET": "latency-budget-test-secret",  # pragma: allowlist secret
     "GEOSYNC_OAUTH2_ISSUER": "https://latency.test",
     "GEOSYNC_OAUTH2_AUDIENCE": "geosync-api",
     "GEOSYNC_OAUTH2_JWKS_URI": "https://latency.test/jwks",
-    "GEOSYNC_RBAC_AUDIT_SECRET": "latency-budget-rbac-secret",
+    "GEOSYNC_RBAC_AUDIT_SECRET": "latency-budget-rbac-secret",  # pragma: allowlist secret
     # Isolated CollectorRegistry — the ~440 GET requests this suite
     # fires must not pollute the global Prometheus REGISTRY read by
     # ``tests/observability/test_metrics_expectations.py``.
