@@ -537,25 +537,27 @@ claims:
 
   - id: api-contract-openapi-coverage
     priority: P1
-    tier: EXTRAPOLATED
+    tier: ANCHORED
     description: >
       All publicly exposed endpoints carry an OpenAPI 3.1 specification
       with JSON Schema input/output contracts and a Schemathesis
-      contract-test suite. Status (Wave 6 + Phase-3 ENTRY 2026-05-07):
-      EXTRAPOLATED — Phase-3 entry gate shipped. The OpenAPI 3.1 schema
-      is generated from the FastAPI app (Pydantic-derived schemas);
-      schemathesis>=4 is wired via tests/api/test_schemathesis_contract.py
-      and the Schemathesis Contract workflow runs on every PR touching
-      application/api/** or schemas/openapi/**. The suite is informational
-      at Phase-3 ENTRY (continue-on-error: true) and surfaces pre-existing
-      contract drift as upload artifacts for triage; reset-wave subsystem
-      Pydantic boundaries (ResetWaveConfig/ResetWaveResult) remain covered
-      by audit_critical_centers().
-      Missing evidence (Phase-3 EXIT): contract drift remediated to green;
-      continue-on-error flipped to false in the workflow; /v{N}/ prefix
-      audit across every route; async job_id workflow for long simulations.
-      Re-classify ANCHORED on Phase-3 EXIT (per ADR 0020). Tracked by
-      GitHub issue IERD-Q4 (#529).
+      contract-test suite. Status (Phase-3 EXIT 2026-05-07): ANCHORED —
+      the schemathesis>=4 suite at tests/api/test_schemathesis_contract.py
+      runs fail-closed in the Schemathesis Contract workflow. Eleven
+      operations covering /admin/kill-switch, /health, /metrics,
+      /api/v1/{features,predictions}, /v1/{features,predictions}, and
+      /{features,predictions} pass under six checks (no_5xx,
+      status_code_conformance, content_type_conformance,
+      response_headers_conformance, response_schema_conformance,
+      negative_data_rejection). PayloadGuardMiddleware errors now wrap
+      in ErrorResponse via build_error_envelope; admin/kill-switch
+      handlers run auth before rate-limit so unauthenticated callers
+      always receive 401 (declared) instead of 429. The /graphql
+      operations are excluded from the OpenAPI gate because GraphQL
+      has its own typed schema (Strawberry); a dedicated GraphQL
+      contract suite is tracked separately. Reset-wave subsystem
+      Pydantic boundaries remain covered by audit_critical_centers().
+      Phase-4 ENTRY (Q5/Q7) is now unblocked.
     evidence_paths:
       - docs/yana-response.md
       - geosync/neuroeconomics/reset_wave_engine.py

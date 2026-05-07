@@ -14,10 +14,10 @@
 #   * negative (schema-violating) inputs are rejected.
 #
 # Phase status (per ADR 0020):
-#   * Phase-3 ENTRY (this workflow lands)  — gate runs in CI; failures are
-#     uploaded as an artifact for triage; merge is NOT blocked.
-#   * Phase-3 EXIT (follow-up PR)          — `continue-on-error: false`,
-#     full coverage of operations, claim re-classified ANCHORED.
+#   * Phase-3 ENTRY (PR #545, 2026-05-07) — gate landed informational.
+#   * Phase-3 EXIT  (this PR, 2026-05-07) — gate is fail-closed; OpenAPI
+#     contract drift on any non-GraphQL operation blocks merge. The
+#     `api-contract-openapi-coverage` claim is re-classified ANCHORED.
 #
 # Tracked by GitHub issue IERD-Q4 (#529) and claim
 # `api-contract-openapi-coverage` in `docs/CLAIMS.yaml`.
@@ -81,14 +81,12 @@ jobs:
           # Test infra needed by `tests/api/` fixtures.
           pip install pytest pytest-asyncio hypothesis httpx
 
-      - name: Run Schemathesis contract suite (informational)
+      - name: Run Schemathesis contract suite (fail-closed)
         id: run
-        # Phase-3 ENTRY: the suite surfaces pre-existing contract drift as
-        # an artifact for triage. continue-on-error is set on the STEP so
-        # the JOB still reports success and the GitHub check resolves to
-        # SUCCESS even when the suite finds violations. Phase-3 EXIT
-        # removes this and makes the gate fail-closed.
-        continue-on-error: true
+        # Phase-3 EXIT (2026-05-07): the gate is now fail-closed. Any
+        # contract drift discovered by Schemathesis on a public OpenAPI
+        # operation breaks the merge. The /graphql operations are
+        # excluded inside the test (GraphQL has its own typed schema).
         run: |
           set -o pipefail
           mkdir -p artifacts/schemathesis
@@ -116,4 +114,4 @@ jobs:
             tail -40 artifacts/schemathesis/run.log >> "$GITHUB_STEP_SUMMARY" || true
           fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Phase status: **Phase-3 ENTRY** — informational. Failures tracked under IERD-Q4." >> "$GITHUB_STEP_SUMMARY"
+          echo "Phase status: **Phase-3 EXIT** — fail-closed. OpenAPI contract drift blocks merge." >> "$GITHUB_STEP_SUMMARY"
