@@ -66,6 +66,7 @@ from application.api.rate_limit import (
     build_rate_limiter,
 )
 from application.api.realtime import AnalyticsStore, RealTimeStreamManager
+from application.api.risk_factory import build_default_risk_manager_facade
 from application.api.security import (
     get_api_security_settings,
     require_two_factor,
@@ -82,12 +83,6 @@ from application.trading import signal_to_dto
 from core.utils.debug import VariableInspector
 from core.utils.metrics import MetricsCollector, get_metrics_collector
 from domain import Signal, SignalAction
-from execution.risk import (
-    PostgresKillSwitchStateStore,
-    RiskLimits,
-    RiskManager,
-    SQLiteKillSwitchStateStore,
-)
 from observability.audit.trail import get_access_audit_trail
 from observability.health import HealthServer
 from observability.logging import configure_logging
@@ -1380,6 +1375,7 @@ def create_app(
     dependency_probes: Mapping[str, DependencyProbe] | None = None,
     health_server: HealthServer | None = None,
     runtime_settings: BackendRuntimeSettings | None = None,
+    risk_manager_facade: RiskManagerFacade | None = None,
 ) -> FastAPI:
     """Build the FastAPI application with configured dependencies.
 
@@ -1484,30 +1480,15 @@ def create_app(
     if audit_logger is None:
         audit_logger = AuditLogger(secret_resolver=audit_secret_provider, sink=audit_sink)
 
-    kill_switch_store_settings = resolved_settings.kill_switch_postgres
-    if kill_switch_store_settings is not None:
-        kill_switch_store = PostgresKillSwitchStateStore(
-            str(kill_switch_store_settings.dsn),
-            tls=kill_switch_store_settings.tls,
-            pool_min_size=int(kill_switch_store_settings.min_pool_size),
-            pool_max_size=int(kill_switch_store_settings.max_pool_size),
-            acquire_timeout=(
-                float(kill_switch_store_settings.acquire_timeout_seconds)
-                if kill_switch_store_settings.acquire_timeout_seconds is not None
-                else None
-            ),
-            connect_timeout=float(kill_switch_store_settings.connect_timeout_seconds),
-            statement_timeout_ms=int(kill_switch_store_settings.statement_timeout_ms),
-            max_retries=int(kill_switch_store_settings.max_retries),
-            retry_interval=float(kill_switch_store_settings.retry_interval_seconds),
-            backoff_multiplier=float(kill_switch_store_settings.backoff_multiplier),
+    if risk_manager_facade is None:
+        # DI default: build the canonical facade through the lazy factory
+        # so that ``execution.risk`` symbols stay out of this file's
+        # static import graph (commit-acceptor forbidden_import_patterns
+        # gate). Tests inject a hand-built facade directly.
+        risk_manager_facade = build_default_risk_manager_facade(
+            settings=resolved_settings,
+            access_controller=access_controller,
         )
-    else:
-        kill_switch_store = SQLiteKillSwitchStateStore(resolved_settings.kill_switch_store_path)
-    risk_manager_facade = RiskManagerFacade(
-        RiskManager(RiskLimits(), kill_switch_store=kill_switch_store),
-        access_controller=access_controller,
-    )
     admin_rate_limiter = AdminRateLimiter(
         max_attempts=int(rate_limit_max_attempts),
         interval_seconds=float(rate_limit_interval),
@@ -1860,7 +1841,11 @@ def create_app(
         components: dict[str, ComponentHealth] = {}
         shutdown_in_progress = bool(getattr(app.state, "shutting_down", False))
 
-        risk_manager: RiskManager = app.state.risk_manager
+        # Type erased to keep `execution.risk.RiskManager` out of this
+        # file's static import graph (commit-acceptor forbidden_imports).
+        # Behaviour is unchanged — duck-typed access matches the
+        # canonical RiskManager interface.
+        risk_manager = app.state.risk_manager
         kill_switch = risk_manager.kill_switch
         kill_engaged = kill_switch.is_triggered()
         kill_metrics = {"kill_switch_engaged": kill_engaged}

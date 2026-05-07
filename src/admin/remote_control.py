@@ -13,7 +13,6 @@ from typing import Any, Awaitable, Callable, Deque, Dict
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from application.api.errors import COMMON_ERROR_RESPONSES
 from src.audit.audit_logger import AuditLogger
 from src.risk.risk_manager import KillSwitchState, RiskManagerFacade
 from src.security import AccessDeniedError
@@ -234,6 +233,13 @@ def create_remote_control_router(
     # 400 path returned by the upstream PayloadGuardMiddleware on
     # malformed payloads. Phase-3 EXIT contract: status code emitted
     # at runtime is always documented in the spec.
+    #
+    # Deferred import — `application.api.errors` transitively re-imports
+    # `src.admin.remote_control.AdminIdentity` via the rbac module; a
+    # top-level import here would create a circular import. Resolving
+    # the catalogue at factory-call time breaks the cycle.
+    from application.api.errors import COMMON_ERROR_RESPONSES
+
     admin_responses: Dict[int | str, Dict[str, Any]] = {
         int(code): dict(spec) for code, spec in COMMON_ERROR_RESPONSES.items()
     }
