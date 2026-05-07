@@ -8,7 +8,7 @@ import asyncio
 import ipaddress
 from collections import deque
 from dataclasses import dataclass
-from typing import Awaitable, Callable, Deque, Dict
+from typing import Any, Awaitable, Callable, Deque, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -227,10 +227,26 @@ def create_remote_control_router(
 ) -> APIRouter:
     """Create a router exposing secure administrative endpoints."""
 
+    # Inherit the canonical 4xx/5xx ErrorResponse envelope from the
+    # common error-response catalogue so every admin route's OpenAPI
+    # operation declares the same set of failure shapes — including the
+    # 400 path returned by the upstream PayloadGuardMiddleware on
+    # malformed payloads. Phase-3 EXIT contract: status code emitted
+    # at runtime is always documented in the spec.
+    #
+    # Deferred import — `application.api.errors` transitively re-imports
+    # `src.admin.remote_control.AdminIdentity` via the rbac module; a
+    # top-level import here would create a circular import. Resolving
+    # the catalogue at factory-call time breaks the cycle.
+    from application.api.errors import COMMON_ERROR_RESPONSES
+
+    admin_responses: Dict[int | str, Dict[str, Any]] = {
+        int(code): dict(spec) for code, spec in COMMON_ERROR_RESPONSES.items()
+    }
     router = APIRouter(
         prefix="/admin",
         tags=["admin"],
-        responses={401: {"description": "Unauthorized"}},
+        responses=admin_responses,
     )
 
     def get_risk_manager() -> RiskManagerFacade:
@@ -259,8 +275,13 @@ def create_remote_control_router(
     async def engage_kill_switch(
         payload: KillSwitchRequest,
         request: Request,
-        _: None = Depends(enforce_admin_rate_limit),
+        # Order matters: auth runs before rate-limit so unauthenticated
+        # callers always get 401 (declared) instead of 429 (also declared
+        # but reserved for authenticated abuse). Schemathesis Phase-3 EXIT
+        # contract requires schema-violating requests to fail with the
+        # negative-rejection set, which excludes 429 by convention.
         identity: AdminIdentity = Depends(execute_dependency),
+        _: None = Depends(enforce_admin_rate_limit),
         manager: RiskManagerFacade = Depends(get_risk_manager),
         logger: AuditLogger = Depends(get_audit_logger),
     ) -> KillSwitchResponse:
@@ -298,8 +319,8 @@ def create_remote_control_router(
     )
     async def read_kill_switch_state(
         request: Request,
-        _: None = Depends(enforce_admin_rate_limit),
         identity: AdminIdentity = Depends(read_dependency),
+        _: None = Depends(enforce_admin_rate_limit),
         manager: RiskManagerFacade = Depends(get_risk_manager),
         logger: AuditLogger = Depends(get_audit_logger),
     ) -> KillSwitchResponse:
@@ -334,8 +355,8 @@ def create_remote_control_router(
     )
     async def reset_kill_switch(
         request: Request,
-        _: None = Depends(enforce_admin_rate_limit),
         identity: AdminIdentity = Depends(reset_dependency),
+        _: None = Depends(enforce_admin_rate_limit),
         manager: RiskManagerFacade = Depends(get_risk_manager),
         logger: AuditLogger = Depends(get_audit_logger),
     ) -> KillSwitchResponse:

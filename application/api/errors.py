@@ -111,6 +111,30 @@ class ErrorResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+def build_error_envelope(
+    *,
+    status_code: int,
+    code: ApiErrorCode,
+    message: str,
+    path: str,
+    meta: dict[str, Any] | None = None,
+) -> JSONResponse:
+    """Construct an ``ErrorResponse``-wrapped ``JSONResponse``.
+
+    Middleware that short-circuits the request before reaching the route
+    cannot rely on the registered ``HTTPException`` handler to wrap their
+    error responses with ``{"error": ErrorPayload}``. Use this helper
+    instead of raw ``JSONResponse(content={"detail": ...})`` to keep the
+    response shape contract intact end-to-end. Phase-3 EXIT contract
+    (IERD-Q4): every 4xx/5xx body matches ``ErrorResponse``.
+    """
+    payload = ErrorPayload(code=code, message=message, path=path, meta=meta)
+    return JSONResponse(
+        status_code=status_code,
+        content=ErrorResponse(error=payload).model_dump(mode="json"),
+    )
+
+
 COMMON_ERROR_RESPONSES: dict[int, dict[str, Any]] = {
     status.HTTP_400_BAD_REQUEST: {
         "model": ErrorResponse,
@@ -241,5 +265,6 @@ __all__ = [
     "DEFAULT_ERROR_CODES",
     "ErrorPayload",
     "ErrorResponse",
+    "build_error_envelope",
     "register_exception_handlers",
 ]
