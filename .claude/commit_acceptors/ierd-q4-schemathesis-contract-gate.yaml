@@ -76,14 +76,15 @@ measurement_command: >-
 signal_artifact: "tmp/ierd_q4_schemathesis_contract_gate.log"
 falsifier:
   command: >-
-    bash -c 'python -c "import yaml,sys; spec=yaml.safe_load(open(\".github/workflows/schemathesis-contract.yml\")); job=spec[\"jobs\"][\"schemathesis-contract\"]; sys.exit(0 if job.get(\"continue-on-error\") is True else 1)"'
+    bash -c 'python -c "import yaml,sys; spec=yaml.safe_load(open(\".github/workflows/schemathesis-contract.yml\")); steps=spec[\"jobs\"][\"schemathesis-contract\"][\"steps\"]; run_step=next(s for s in steps if s.get(\"id\")==\"run\"); sys.exit(0 if run_step.get(\"continue-on-error\") is True else 1)"'
   description: >-
     Probes the workflow YAML for the Phase-3 ENTRY contract
-    `continue-on-error: true`. If a future change flips the gate to
-    fail-closed without re-classifying the claim ANCHORED in
-    docs/CLAIMS.yaml, the falsifier exits non-zero, signalling that
-    Phase-3 EXIT promotion must be co-shipped with the strictness
-    flip — preventing silent strictness drift.
+    `continue-on-error: true` on the schemathesis run step. If a
+    future change flips the gate to fail-closed without re-classifying
+    the claim ANCHORED in docs/CLAIMS.yaml, the falsifier exits
+    non-zero, signalling that Phase-3 EXIT promotion must be
+    co-shipped with the strictness flip — preventing silent
+    strictness drift.
 rollback_command: >-
   git checkout HEAD~1 --
   .claude/commit_acceptors/ierd-q4-schemathesis-contract-gate.yaml

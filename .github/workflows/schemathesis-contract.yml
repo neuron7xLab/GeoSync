@@ -49,10 +49,11 @@ jobs:
     name: schemathesis-contract
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Phase-3 ENTRY: this gate is informational. It surfaces contract drift
-    # as an artifact without blocking merge. The gate flips to fail-closed
-    # on Phase-3 exit (claim re-classified ANCHORED in CLAIMS.yaml).
-    continue-on-error: true
+    # Phase-3 ENTRY: this gate is informational. The pytest step is allowed
+    # to fail (`continue-on-error: true` on the test step below); the job
+    # itself is reported as success so the GitHub check resolves cleanly.
+    # On Phase-3 EXIT the step-level continue-on-error is removed and the
+    # gate becomes fail-closed (claim re-classified ANCHORED in CLAIMS.yaml).
     env:
       GEOSYNC_AUDIT_SECRET: schemathesis-ci-audit-secret-not-real  # pragma: allowlist secret
       GEOSYNC_OAUTH2_ISSUER: https://schemathesis.test
@@ -82,6 +83,12 @@ jobs:
 
       - name: Run Schemathesis contract suite (informational)
         id: run
+        # Phase-3 ENTRY: the suite surfaces pre-existing contract drift as
+        # an artifact for triage. continue-on-error is set on the STEP so
+        # the JOB still reports success and the GitHub check resolves to
+        # SUCCESS even when the suite finds violations. Phase-3 EXIT
+        # removes this and makes the gate fail-closed.
+        continue-on-error: true
         run: |
           set -o pipefail
           mkdir -p artifacts/schemathesis
