@@ -136,6 +136,12 @@ gpu = [
     "numba>=0.62.1",
     "cupy>=13.6.0",
 ]
+contract = [
+    # IERD-Q4 Phase-3 entry gate: property-based contract testing of the
+    # OpenAPI 3.1 surface produced by application.api.service.create_app().
+    # Required by tests/api/test_schemathesis_contract.py.
+    "schemathesis>=4.0,<5",
+]
 
 [project.scripts]
 geosync-sync = "scripts.resilient_data_sync:main"
