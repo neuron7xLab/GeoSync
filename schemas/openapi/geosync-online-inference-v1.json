@@ -360,19 +360,6 @@
         "title": "FeatureSnapshot",
         "type": "object"
       },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
-        "type": "object"
-      },
       "HealthResponse": {
         "description": "Structured response for the readiness probe.",
         "properties": {
@@ -844,46 +831,6 @@
         ],
         "title": "SignalAction",
         "type": "string"
-      },
-      "ValidationError": {
-        "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "title": "Location",
-            "type": "array"
-          },
-          "msg": {
-            "title": "Message",
-            "type": "string"
-          },
-          "type": {
-            "title": "Error Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError",
-        "type": "object"
       }
     },
     "securitySchemes": {
@@ -939,6 +886,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request payload failed validation or business rules."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -947,7 +904,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Authentication token missing or invalid."
           },
           "403": {
             "content": {
@@ -959,6 +916,36 @@
             },
             "description": "Authenticated caller lacks sufficient privileges."
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Requested resource could not be located."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Idempotency key conflict detected for the supplied payload."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Payload schema is syntactically valid but semantically incorrect."
+          },
           "429": {
             "content": {
               "application/json": {
@@ -967,7 +954,7 @@
                 }
               }
             },
-            "description": "Administrator exceeded configured rate limits."
+            "description": "Client exceeded configured rate limits."
           },
           "500": {
             "content": {
@@ -1005,6 +992,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request payload failed validation or business rules."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -1013,7 +1010,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Authentication token missing or invalid."
           },
           "403": {
             "content": {
@@ -1025,6 +1022,36 @@
             },
             "description": "Authenticated caller lacks sufficient privileges."
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Requested resource could not be located."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Idempotency key conflict detected for the supplied payload."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Payload schema is syntactically valid but semantically incorrect."
+          },
           "429": {
             "content": {
               "application/json": {
@@ -1033,7 +1060,7 @@
                 }
               }
             },
-            "description": "Administrator exceeded configured rate limits."
+            "description": "Client exceeded configured rate limits."
           },
           "500": {
             "content": {
@@ -1081,6 +1108,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request payload failed validation or business rules."
+          },
           "401": {
             "content": {
               "application/json": {
@@ -1089,7 +1126,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Authentication token missing or invalid."
           },
           "403": {
             "content": {
@@ -1101,15 +1138,35 @@
             },
             "description": "Authenticated caller lacks sufficient privileges."
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Requested resource could not be located."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Idempotency key conflict detected for the supplied payload."
+          },
           "422": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Payload schema is syntactically valid but semantically incorrect."
           },
           "429": {
             "content": {
@@ -1119,7 +1176,7 @@
                 }
               }
             },
-            "description": "Administrator exceeded configured rate limits."
+            "description": "Client exceeded configured rate limits."
           },
           "500": {
             "content": {
