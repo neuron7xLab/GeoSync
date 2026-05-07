@@ -34,7 +34,7 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -46,6 +46,7 @@ from application.api.debug import install_debug_routes
 from application.api.errors import (
     COMMON_ERROR_RESPONSES,
     ApiErrorCode,
+    build_error_envelope,
     register_exception_handlers,
 )
 from application.api.graphql_api import create_graphql_router
@@ -1142,21 +1143,27 @@ class PayloadGuardMiddleware(BaseHTTPMiddleware):
                 try:
                     length_value = int(content_length)
                 except ValueError:
-                    return JSONResponse(
+                    return build_error_envelope(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        content={"detail": "Invalid Content-Length header."},
+                        code=ApiErrorCode.BAD_REQUEST,
+                        message="Invalid Content-Length header.",
+                        path=request.url.path,
                     )
                 if length_value > self._max_body_bytes:
-                    return JSONResponse(
+                    return build_error_envelope(
                         status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                        content={"detail": "Request body exceeds configured limit."},
+                        code=ApiErrorCode.BAD_REQUEST,
+                        message="Request body exceeds configured limit.",
+                        path=request.url.path,
                     )
 
             body = await request.body()
             if len(body) > self._max_body_bytes:
-                return JSONResponse(
+                return build_error_envelope(
                     status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                    content={"detail": "Request body exceeds configured limit."},
+                    code=ApiErrorCode.BAD_REQUEST,
+                    message="Request body exceeds configured limit.",
+                    path=request.url.path,
                 )
 
             content_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
@@ -1165,19 +1172,25 @@ class PayloadGuardMiddleware(BaseHTTPMiddleware):
                     try:
                         parsed = json.loads(body)
                     except JSONDecodeError:
-                        return JSONResponse(
+                        return build_error_envelope(
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            content={"detail": "Malformed JSON payload."},
+                            code=ApiErrorCode.BAD_REQUEST,
+                            message="Malformed JSON payload.",
+                            path=request.url.path,
                         )
                     if not isinstance(parsed, (dict, list)):
-                        return JSONResponse(
+                        return build_error_envelope(
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            content={"detail": "Unsupported JSON payload structure."},
+                            code=ApiErrorCode.BAD_REQUEST,
+                            message="Unsupported JSON payload structure.",
+                            path=request.url.path,
                         )
                     if self._is_suspicious(parsed):
-                        return JSONResponse(
+                        return build_error_envelope(
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            content={"detail": "Suspicious payload rejected."},
+                            code=ApiErrorCode.BAD_REQUEST,
+                            message="Suspicious payload rejected.",
+                            path=request.url.path,
                         )
                 request._body = body
 
