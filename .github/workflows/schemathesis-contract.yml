@@ -54,11 +54,11 @@ jobs:
     # on Phase-3 exit (claim re-classified ANCHORED in CLAIMS.yaml).
     continue-on-error: true
     env:
-      GEOSYNC_AUDIT_SECRET: schemathesis-ci-audit-secret-not-real
+      GEOSYNC_AUDIT_SECRET: schemathesis-ci-audit-secret-not-real  # pragma: allowlist secret
       GEOSYNC_OAUTH2_ISSUER: https://schemathesis.test
       GEOSYNC_OAUTH2_AUDIENCE: geosync-api
       GEOSYNC_OAUTH2_JWKS_URI: https://schemathesis.test/jwks
-      GEOSYNC_RBAC_AUDIT_SECRET: schemathesis-ci-rbac-secret-not-real
+      GEOSYNC_RBAC_AUDIT_SECRET: schemathesis-ci-rbac-secret-not-real  # pragma: allowlist secret
       GEOSYNC_SCHEMATHESIS_EXAMPLES: "8"
       GEOSYNC_SCHEMATHESIS_DEADLINE_MS: "5000"
     steps:
