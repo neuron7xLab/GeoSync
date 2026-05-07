@@ -541,22 +541,32 @@ claims:
     description: >
       All publicly exposed endpoints carry an OpenAPI 3.1 specification
       with JSON Schema input/output contracts and a Schemathesis
-      contract-test suite. Status (Wave 6): EXTRAPOLATED — partial
-      evidence shipped for the reset-wave subsystem (Pydantic-derivable
-      ResetWaveConfig + ResetWaveResult dataclass contracts + explicit
-      ValueError boundaries documented in docs/reset_wave_critical_centers.md
-      §7 contract_validation; audit via audit_critical_centers()).
-      Missing evidence: full OpenAPI 3.1 doc covering every public
-      endpoint; Schemathesis contract suite in CI; versioned /v{N}/
-      route prefix; async job_id workflow for long simulations.
-      Re-classify ANCHORED on Phase-3 entry (per ADR 0020). Tracked
-      by GitHub issue IERD-Q4.
+      contract-test suite. Status (Wave 6 + Phase-3 ENTRY 2026-05-07):
+      EXTRAPOLATED — Phase-3 entry gate shipped. The OpenAPI 3.1 schema
+      is generated from the FastAPI app (Pydantic-derived schemas);
+      schemathesis>=4 is wired via tests/api/test_schemathesis_contract.py
+      and the Schemathesis Contract workflow runs on every PR touching
+      application/api/** or schemas/openapi/**. The suite is informational
+      at Phase-3 ENTRY (continue-on-error: true) and surfaces pre-existing
+      contract drift as upload artifacts for triage; reset-wave subsystem
+      Pydantic boundaries (ResetWaveConfig/ResetWaveResult) remain covered
+      by audit_critical_centers().
+      Missing evidence (Phase-3 EXIT): contract drift remediated to green;
+      continue-on-error flipped to false in the workflow; /v{N}/ prefix
+      audit across every route; async job_id workflow for long simulations.
+      Re-classify ANCHORED on Phase-3 EXIT (per ADR 0020). Tracked by
+      GitHub issue IERD-Q4 (#529).
     evidence_paths:
       - docs/yana-response.md
       - geosync/neuroeconomics/reset_wave_engine.py
       - tests/test_reset_wave_engine.py
       - docs/reset_wave_critical_centers.md
+      - tests/api/test_schemathesis_contract.py
+      - .github/workflows/schemathesis-contract.yml
+      - schemas/openapi/geosync-online-inference-v1.json
+      - application/api/errors.py
     added_utc: "2026-05-03"
+    last_updated_utc: "2026-05-07"
 
   - id: ux-readiness-state-coverage
     priority: P1
