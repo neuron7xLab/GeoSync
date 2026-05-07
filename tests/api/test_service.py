@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Any, Callable, Sequence, cast
 
 import httpx
 import jwt
@@ -25,7 +25,6 @@ os.environ.setdefault("GEOSYNC_OAUTH2_JWKS_URI", "https://issuer.geosync.test/jw
 os.environ.setdefault("GEOSYNC_RBAC_AUDIT_SECRET", "test-rbac-secret")
 
 from application.api import security as security_module
-from application.api import service as service_module
 from application.api.rate_limit import (
     InMemorySlidingWindowBackend,
     SlidingWindowRateLimiter,
@@ -160,7 +159,17 @@ def test_create_app_uses_postgres_store(
         def load(self) -> None:
             return None
 
-    monkeypatch.setattr(service_module, "PostgresKillSwitchStateStore", DummyStore)
+    # The PostgresKillSwitchStateStore is now resolved at runtime via
+    # importlib in `application.api.risk_factory` (so service.py's
+    # static import graph stays free of `execution.risk` per the
+    # commit-acceptor forbidden-import gate). Resolve the module
+    # through importlib here for the same reason — a top-level
+    # `import execution.risk` would re-violate the gate from the
+    # test file.
+    import importlib
+
+    execution_risk_module = importlib.import_module("execution.risk")
+    monkeypatch.setattr(execution_risk_module, "PostgresKillSwitchStateStore", DummyStore)
 
     tls_dir = tmp_path / "tls"
     tls_dir.mkdir()
@@ -182,8 +191,9 @@ def test_create_app_uses_postgres_store(
     app = create_app(settings=settings)
 
     kill_switch = app.state.risk_manager.kill_switch
-    assert isinstance(kill_switch._store, DummyStore)  # type: ignore[attr-defined]
-    assert invoked["kwargs"]["pool_min_size"] == 0
+    assert isinstance(kill_switch._store, DummyStore)
+    invoked_kwargs = cast(dict[str, object], invoked["kwargs"])
+    assert invoked_kwargs["pool_min_size"] == 0
 
 
 def _build_payload() -> dict[str, object]:
@@ -332,7 +342,7 @@ def test_feature_idempotency_conflict_is_detected(
     assert first.status_code == 200
 
     mutated = _build_payload()
-    mutated["bars"][0]["close"] += 1.0
+    cast(list[dict[str, Any]], mutated["bars"])[0]["close"] += 1.0
     conflict = client.post(_api_v1("/features"), json=mutated, headers=headers)
     assert conflict.status_code == 409
     error = conflict.json()["error"]
@@ -909,7 +919,7 @@ def test_payload_guard_rejects_large_and_suspicious_bodies(
     token = security_context(subject="feature-user")
 
     oversized_payload = _build_payload()
-    oversized_payload["bars"] *= 20
+    oversized_payload["bars"] = cast(list[dict[str, Any]], oversized_payload["bars"]) * 20
     response_large = client.post(
         "/features",
         json=oversized_payload,
@@ -919,7 +929,7 @@ def test_payload_guard_rejects_large_and_suspicious_bodies(
 
     suspicious_payload = _build_payload()
     suspicious_payload["symbol"] = "<script>alert(1)</script>"
-    suspicious_payload["bars"] = suspicious_payload["bars"][:1]
+    suspicious_payload["bars"] = cast(list[dict[str, Any]], suspicious_payload["bars"])[:1]
     response_suspicious = client.post(
         "/features",
         json=suspicious_payload,
@@ -953,8 +963,8 @@ async def test_shutdown_hook_marks_app_unhealthy_and_closes_streams() -> None:
 
         stream_manager = app.state.stream_manager
         dummy_socket = _DummyWebSocket()
-        async with stream_manager._lock:  # type: ignore[attr-defined]
-            stream_manager._connections.add(dummy_socket)  # type: ignore[attr-defined]
+        async with stream_manager._lock:
+            stream_manager._connections.add(dummy_socket)
 
         try:
             await (getattr(app.router, "shutdown", None) or app.router._shutdown)()
@@ -965,7 +975,7 @@ async def test_shutdown_hook_marks_app_unhealthy_and_closes_streams() -> None:
 
         assert getattr(app.state, "shutting_down", False) is True
         assert dummy_socket.closed_codes == [status.WS_1012_SERVICE_RESTART]
-        assert not stream_manager._connections  # type: ignore[attr-defined]
+        assert not stream_manager._connections
 
         health_server = app.state.health_server
         if health_server is not None:

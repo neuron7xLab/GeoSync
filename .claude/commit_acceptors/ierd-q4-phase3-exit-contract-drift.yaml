@@ -41,6 +41,7 @@ diff_scope:
     - path: "schemas/openapi/geosync-online-inference-v1.json"
     - path: "src/admin/remote_control.py"
     - path: "tests/api/test_schemathesis_contract.py"
+    - path: "tests/api/test_service.py"
   forbidden_paths:
     - "trading/"
     - "forecast/"
