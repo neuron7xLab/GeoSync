@@ -24,30 +24,25 @@ Tracks claim `e2e-latency-budget-compliance` in `docs/CLAIMS.yaml`.
 
 from __future__ import annotations
 
+import importlib
 import os
 import statistics
+from collections.abc import Iterator
 from time import perf_counter
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import pytest
+from fastapi.testclient import TestClient
 
-# Auth / settings env required by `create_app()`.
-os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "latency-budget-test-secret")
-os.environ.setdefault("GEOSYNC_OAUTH2_ISSUER", "https://latency.test")
-os.environ.setdefault("GEOSYNC_OAUTH2_AUDIENCE", "geosync-api")
-os.environ.setdefault("GEOSYNC_OAUTH2_JWKS_URI", "https://latency.test/jwks")
-os.environ.setdefault("GEOSYNC_RBAC_AUDIT_SECRET", "latency-budget-rbac-secret")
-# Force the app onto an isolated CollectorRegistry so the ~440 requests
-# fired during this suite do not pollute the global Prometheus registry.
-# `tests/observability/test_metrics_expectations.py` reads that registry
-# and applies a uniform ``max=100`` rule across every histogram series of
-# ``geosync_api_request_latency_seconds`` (including the ``_count`` row),
-# which would otherwise trip on the inflated observation count.
-os.environ["GEOSYNC_DISABLE_METRICS"] = "1"
+if TYPE_CHECKING:
+    from fastapi import FastAPI
 
-from fastapi.testclient import TestClient  # noqa: E402
-
-from application.api.service import create_app  # noqa: E402
+# Env-var injection deferred to a module-scoped fixture (see
+# ``_isolated_env`` below) so this module no longer mutates ``os.environ``
+# at import time. Previously the unconditional
+# ``os.environ["GEOSYNC_DISABLE_METRICS"] = "1"`` left state behind for
+# downstream tests in the same pytest session, in violation of the
+# IERD test-isolation discipline this very module's claim asserts.
 
 # Sample count and warmup count are independent of the budget — they
 # control statistical resolution of the p95 estimator. With N=200 and a
@@ -64,15 +59,44 @@ INTERACTIVE_P95_MS: Final[float] = float(
 )
 
 
-@pytest.fixture(scope="module")
-def client() -> TestClient:
-    """Build the canonical app once; lifespan handlers run inside the manager.
+_REQUIRED_ENV: Final[dict[str, str]] = {
+    "GEOSYNC_AUDIT_SECRET": "latency-budget-test-secret",  # pragma: allowlist secret
+    "GEOSYNC_OAUTH2_ISSUER": "https://latency.test",
+    "GEOSYNC_OAUTH2_AUDIENCE": "geosync-api",
+    "GEOSYNC_OAUTH2_JWKS_URI": "https://latency.test/jwks",
+    "GEOSYNC_RBAC_AUDIT_SECRET": "latency-budget-rbac-secret",  # pragma: allowlist secret
+    # Isolated CollectorRegistry — the ~440 GET requests this suite
+    # fires must not pollute the global Prometheus REGISTRY read by
+    # ``tests/observability/test_metrics_expectations.py``.
+    "GEOSYNC_DISABLE_METRICS": "1",
+}
 
-    Isolation is provided at the registry level via ``GEOSYNC_DISABLE_METRICS``
-    set at module import time (see top of file).
+
+@pytest.fixture(scope="module")
+def client() -> Iterator[TestClient]:
+    """Build the canonical app inside an isolated env-var window.
+
+    The previous implementation set ``os.environ`` at module import
+    time, leaving every required key in place for the rest of the
+    pytest session. This fixture takes a snapshot, applies overrides,
+    builds the app, yields the TestClient, and restores the snapshot
+    on teardown — the env mutation is bounded to the lifetime of this
+    module's test cases.
     """
-    app = create_app()
-    return TestClient(app)
+    saved: dict[str, str | None] = {key: os.environ.get(key) for key in _REQUIRED_ENV}
+    os.environ.update(_REQUIRED_ENV)
+    try:
+        # Late import so settings (Pydantic, env-driven) resolve under
+        # the overrides above, not under whatever leaked from upstream.
+        service_module = importlib.import_module("application.api.service")
+        app: "FastAPI" = service_module.create_app()
+        yield TestClient(app)
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
 
 
 def _measure_p95_ms(client: TestClient, path: str) -> tuple[float, float, float]:
