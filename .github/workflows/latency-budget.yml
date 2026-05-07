@@ -55,6 +55,11 @@ jobs:
       GEOSYNC_RBAC_AUDIT_SECRET: latency-budget-ci-rbac-secret-not-real  # pragma: allowlist secret
       GEOSYNC_LATENCY_SAMPLES: "200"
       GEOSYNC_LATENCY_WARMUP: "20"
+      # Force a fresh CollectorRegistry so the warmup + sample requests
+      # do not inflate the histogram count series read by
+      # tests/observability/test_metrics_expectations.py (uniform
+      # max=100 rule applies across all histogram rows including _count).
+      GEOSYNC_DISABLE_METRICS: "1"
       # CI-runner overhead can shift p95 by 1.2-1.6× vs bare metal; the
       # budget itself is unchanged and the threshold below preserves the
       # IERD §5 numbers verbatim. If a future PR raises these the claim

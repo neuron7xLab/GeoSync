@@ -37,6 +37,13 @@ os.environ.setdefault("GEOSYNC_OAUTH2_ISSUER", "https://latency.test")
 os.environ.setdefault("GEOSYNC_OAUTH2_AUDIENCE", "geosync-api")
 os.environ.setdefault("GEOSYNC_OAUTH2_JWKS_URI", "https://latency.test/jwks")
 os.environ.setdefault("GEOSYNC_RBAC_AUDIT_SECRET", "latency-budget-rbac-secret")
+# Force the app onto an isolated CollectorRegistry so the ~440 requests
+# fired during this suite do not pollute the global Prometheus registry.
+# `tests/observability/test_metrics_expectations.py` reads that registry
+# and applies a uniform ``max=100`` rule across every histogram series of
+# ``geosync_api_request_latency_seconds`` (including the ``_count`` row),
+# which would otherwise trip on the inflated observation count.
+os.environ["GEOSYNC_DISABLE_METRICS"] = "1"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -59,7 +66,11 @@ INTERACTIVE_P95_MS: Final[float] = float(
 
 @pytest.fixture(scope="module")
 def client() -> TestClient:
-    """Build the canonical app once; lifespan handlers run inside the manager."""
+    """Build the canonical app once; lifespan handlers run inside the manager.
+
+    Isolation is provided at the registry level via ``GEOSYNC_DISABLE_METRICS``
+    set at module import time (see top of file).
+    """
     app = create_app()
     return TestClient(app)
 
