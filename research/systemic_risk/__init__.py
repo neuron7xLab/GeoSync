@@ -169,6 +169,18 @@ from .metrics import (
     compute_classification_metrics,
     compute_lead_time_metrics,
 )
+from .minimal import (
+    Claim as MinimalClaim,
+)
+from .minimal import (
+    TierAction as MinimalTierAction,
+)
+from .minimal import (
+    evaluate as minimal_evaluate,
+)
+from .minimal import (
+    initial_claim as minimal_initial_claim,
+)
 from .network_fitting import (
     MIN_RELATIVE_SE_VALIDATION,
     MIN_TAIL_SIZE_VALIDATION,
@@ -280,6 +292,8 @@ __all__ = [
     "MIN_RELATIVE_SE_VALIDATION",
     "MIN_TAIL_SIZE_VALIDATION",
     "MismatchReason",
+    "MinimalClaim",
+    "MinimalTierAction",
     "ModelComparison",
     "NullSurrogate",
     "OpRecord",
@@ -354,6 +368,8 @@ __all__ = [
     "linear_correlation_surrogate",
     "manifest_replication_sha",
     "mann_whitney_effective_n",
+    "minimal_evaluate",
+    "minimal_initial_claim",
     "mann_whitney_null_variance",
     "omega_from_volatility",
     "parameter_fragility_audit",
