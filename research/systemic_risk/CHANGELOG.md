@@ -1,5 +1,39 @@
 # CHANGELOG — research/systemic_risk
 
+## 2026-05-08 — Adversarial ladder (hypothesis-destruction first)
+
+`adversarial_ladder.py` lands as the spine of the falsification
+battery. Operationalises
+`feedback_hypothesis_destruction_machine.md`: default verdict
+is **GUILTY**; acquittal requires the candidate to beat every
+engaged prosecutor on paired-bootstrap delta-AUC with the CI
+lower bound clearing `delta_floor`.
+
+* `run_adversarial_ladder(...)` — verdict machine across the 8
+  canonical rungs (naive baselines / null surrogates / leakage
+  traps / data-friction / parameter fragility / cross-impl /
+  replication / prospective).
+* `LadderReport` — verdict + per-prosecutor outcomes + survival
+  paths + losing paths + `lowest_rung_loss` + `untested_rungs`.
+* `parameter_fragility_audit(...)` — single-knob sweep over
+  `FalsificationConfig`; reports AUC range + fragile flag.
+* `run_null_audit(...)` — closes the PATH B deferral declared
+  in `null_models.py`. Thin orchestrator that pins each supplied
+  null surrogate to rung 2 and emits the ladder verdict.
+* `ACQUITTED_ENGAGED` is the strongest verdict any autonomous
+  run can emit; full `ACQUITTED` requires the four external
+  rungs (data-friction / cross-impl / replication / prospective)
+  to be cleared by separate evidence.
+* Tests (+17): canonical 8-rung enumeration, default-GUILTY
+  under random candidate, ACQUITTED_ENGAGED requires every
+  engaged prosecutor to lose, one-tie-anywhere collapses to
+  GUILTY, length-mismatch records failure_reason, untested
+  rungs enumerate correctly, parameter-fragility sweep AUC
+  range, run_null_audit pins to rung 2, partial null audit
+  lists remaining 7 untested rungs, zero-null-input →
+  INSUFFICIENT_RUNGS.
+* Doc: `ADVERSARIAL_LADDER.md` — first-class artefact.
+
 ## 2026-05-08 — Protocol X-7
 
 Added score-level CSD indicators, naive baselines, extended
