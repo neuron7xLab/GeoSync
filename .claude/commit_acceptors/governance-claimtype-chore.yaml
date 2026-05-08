@@ -32,6 +32,7 @@ diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/governance-claimtype-chore.yaml"
     - path: "application/governance/commit_acceptor.py"
+    - path: "docs/schemas/governance/commit_acceptor.schema.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
