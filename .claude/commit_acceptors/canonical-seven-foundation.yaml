@@ -27,7 +27,7 @@
 
 id: canonical-seven-foundation
 status: ACTIVE
-claim_type: research
+claim_type: governance
 promise: >-
   After this PR lands, ``research.systemic_risk`` exposes three new
   fail-closed primitives — ``EvidenceLedger`` (Bayesian update),
