@@ -1032,3 +1032,30 @@ pncc:
       - "Landauer, R. (1961). Irreversibility and Heat Generation in the Computing Process. IBM J. Res. Dev. 5, 183."
       - "Bennett, C. H. (1982). The thermodynamics of computation — a review. Int. J. Theor. Phys. 21, 905."
     related: [INV-BEKENSTEIN-COGNITIVE, INV-ARROW-OF-TIME]
+
+# ═══════════════════════════════════════════════════
+# API CONTRACT — schemathesis-enforced OpenAPI 3.1 surface (Phase-3 EXIT)
+# ═══════════════════════════════════════════════════
+# IERD-PAI-FPS-UX-001 §5 + ADR 0020 (Phase-3 EXIT, 2026-05-07): every
+# response emitted by `application.api.service.create_app()` must conform
+# to the OpenAPI 3.1 contract published in `schemas/openapi/`. Schemathesis
+# property-based fuzz fires on every PR touching application/api/** with
+# fail-closed semantics (no continue-on-error; the gate blocks merge).
+
+api_contract:
+  openapi_conformance:
+    id: INV-API-CONTRACT
+    type: universal
+    statement: "For every (path, method) declared in schemas/openapi/geosync-online-inference-v1.json, runtime responses from `application.api.service.create_app()` satisfy: (a) HTTP status code ∈ declared response codes for that operation; (b) response body validates against the declared JSON Schema for that status; (c) Content-Type matches the declared media type; (d) declared headers are present; (e) schema-violating requests are rejected with one of the declared 4xx codes (no silent acceptance)."
+    test_type: property_test
+    falsification: "Any response from `create_app()` whose status code, body, Content-Type, or headers diverge from the declared OpenAPI 3.1 contract; OR any schema-violating request silently accepted. Schemathesis emits a structured FailureGroup naming one of: UndefinedStatusCode, JsonSchemaError, MalformedMediaType, MissingHeaders, AcceptedNegativeData, ServerError."
+    priority: P1
+    provenance: ANCHORED
+    source: application/api/service.py
+    tests: tests/api/test_schemathesis_contract.py
+    runtime_evaluable: yes
+    references:
+      - "OpenAPI Initiative (2024). OpenAPI Specification 3.1.0. https://spec.openapis.org/oas/v3.1.0"
+      - "Hatfield-Dodds, Z. et al. Schemathesis: property-based API testing. https://schemathesis.readthedocs.io"
+      - "IERD-PAI-FPS-UX-001 §5 (this repository): Phase-3 EXIT contract for the HTTP API."
+    related: []
