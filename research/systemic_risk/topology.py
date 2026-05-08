@@ -1,31 +1,37 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Interbank network topology — empirical adapter + null baselines.
+"""Interbank network topology — directed empirical adapter + null baselines.
+
+Real interbank exposures are *directed*: bank *i* lending to bank *j* is
+not the same as *j* lending to *i*. Symmetrising the graph, as v1 of this
+module did, throws away the credit-direction signal that determines
+which institution propagates stress to which neighbour. v2 builds a
+directed (asymmetric) adjacency by default and supports an explicit
+symmetric override only for null-model baselines.
 
 Two construction paths:
 
-1. **Empirical**: weighted, possibly directed exposure matrix
-   (``A[i, j]`` = lending from bank *i* to bank *j*) is symmetrised with
-   :math:`A_{sym} = (A + A^T) / 2` and binarised at a documented
-   threshold to give the undirected coupling support used by the
-   Kuramoto model. The binary skeleton is what enters the inverse
-   problem; magnitudes are kept on a parallel ``weights`` matrix for
-   diagnostics.
+1. **Empirical** (:func:`from_exposure_matrix`): a possibly directed
+   exposure matrix :math:`E` where :math:`E_{ij}` = lending from bank
+   *i* to bank *j* is binarised at a documented threshold.
+   ``directed=True`` (default) keeps the asymmetric structure;
+   ``directed=False`` averages :math:`E` with :math:`E^T` first
+   (legacy/null-only).
 
-2. **Barabási–Albert null** (preferential attachment, *m* edges per
-   step). Empirical interbank networks are well documented to be
-   approximately scale-free with γ ≈ 2.0–2.3 (Boss et al. 2004,
-   *Quant. Finance* 4: 677; Soramäki et al. 2007, *Physica A* 379:
-   317). BA at *m* ≈ 2–4 reproduces this regime and is used **only** as
-   the topology-null baseline of the falsification battery, never as a
-   model of the real economy.
+2. **Barabási–Albert null** (:func:`barabasi_albert_null`,
+   :func:`fit_barabasi_albert`): the BA generator produces a symmetric
+   graph by construction; :func:`fit_barabasi_albert` fits the
+   power-law exponent of an *empirical* degree sequence by MLE
+   (Clauset, Shalizi, Newman 2009, *SIAM Rev.* 51: 661) so the null
+   baseline is calibrated to the data, not hard-coded at *m=2*.
 
-Pure-function API. No I/O. No randomness except where ``rng`` is passed.
+Pure-function API. No I/O. Determinism via explicit seeds.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 
 import numpy as np
 from numpy.typing import NDArray
@@ -44,39 +50,46 @@ class InterbankTopology:
     Attributes
     ----------
     adjacency
-        Binary symmetric adjacency, ``int8`` shape ``(N, N)``, zero
-        diagonal. ``adjacency[i, j] == 1`` iff there is a coupling
-        between *i* and *j* in the support graph.
+        Binary adjacency, ``int8`` shape ``(N, N)``, zero diagonal.
+        ``adjacency[i, j] == 1`` iff there is a directed edge *i → j*
+        in the support graph (lending from *i* to *j*). May be
+        symmetric (BA null) or asymmetric (empirical exposures).
     weights
-        Real, non-negative, symmetric exposure magnitudes shape
-        ``(N, N)``, zero diagonal. ``None`` when the topology was
-        generated synthetically (BA null).
+        Real, non-negative magnitudes shape ``(N, N)``, zero diagonal.
+        Symmetric iff ``adjacency`` is symmetric. ``None`` when the
+        topology was generated synthetically.
     node_labels
         Tuple of node identifiers; length ``N``.
     source_label
         Free-form provenance tag, e.g. ``"e-MID_2011-Q3"`` or
         ``"BA_null_m=3_seed=42"``.
+    snapshot_date
+        Calendar date the snapshot pertains to. ``None`` when the
+        topology represents a static null model.
 
     Invariants
     ----------
-    INV-TOP1: ``adjacency`` is symmetric, binary, zero-diagonal.
-    INV-TOP2: ``weights`` (when present) is symmetric, non-negative,
+    INV-TOP1: ``adjacency`` is binary, square 2-D, zero-diagonal.
+    INV-TOP2: ``weights`` (when present) is non-negative, finite,
               zero-diagonal, with the same shape as ``adjacency``.
     INV-TOP3: ``len(node_labels) == adjacency.shape[0]``.
+    INV-TOP4 (asymmetry): for empirical directed inputs, the bound
+              ``mean(adjacency != adjacency.T) > 0`` is reported but
+              not enforced — symmetric empirical graphs are valid
+              edge cases (e.g. fully reciprocated lending).
     """
 
     adjacency: NDArray[np.int8]
     node_labels: tuple[str, ...]
     source_label: str
     weights: NDArray[np.float64] | None = None
+    snapshot_date: date | None = None
 
     def __post_init__(self) -> None:
         a = self.adjacency
         if a.ndim != 2 or a.shape[0] != a.shape[1]:
             raise ValueError(f"INV-TOP1: adjacency must be square 2-D, got shape={a.shape}")
         n = a.shape[0]
-        if not np.array_equal(a, a.T):
-            raise ValueError("INV-TOP1: adjacency must be symmetric")
         if not np.all((a == 0) | (a == 1)):
             raise ValueError("INV-TOP1: adjacency must be binary {0,1}")
         if np.any(np.diag(a) != 0):
@@ -87,10 +100,10 @@ class InterbankTopology:
         if w is not None:
             if w.shape != a.shape:
                 raise ValueError(f"INV-TOP2: weights shape={w.shape} != adjacency {a.shape}")
-            if not np.allclose(w, w.T, equal_nan=False):
-                raise ValueError("INV-TOP2: weights must be symmetric")
             if np.any(w < 0):
                 raise ValueError("INV-TOP2: weights must be non-negative")
+            if not np.isfinite(w).all():
+                raise ValueError("INV-TOP2: weights must be finite (no NaN/Inf)")
             if np.any(np.diag(w) != 0):
                 raise ValueError("INV-TOP2: weights must have zero diagonal")
         # Freeze arrays to prevent silent mutation downstream.
@@ -107,8 +120,42 @@ class InterbankTopology:
         return int(self.adjacency.shape[0])
 
     @property
-    def degree(self) -> NDArray[np.int64]:
+    def is_symmetric(self) -> bool:
+        return bool(np.array_equal(self.adjacency, self.adjacency.T))
+
+    @property
+    def asymmetry_fraction(self) -> float:
+        """Fraction of off-diagonal entries that differ between A and A.T.
+
+        ``0.0`` for fully symmetric graphs; bounded above by 1.0. Used
+        by the asymmetry-invariant test on real-data adapters.
+        """
+        a = self.adjacency
+        if a.shape[0] <= 1:
+            return 0.0
+        diff = a != a.T
+        # Off-diagonal entries only; diagonal is zero on both sides.
+        np.fill_diagonal(diff, False)
+        n = a.shape[0]
+        denom = float(n * (n - 1))
+        return float(diff.sum()) / denom if denom > 0 else 0.0
+
+    @property
+    def in_degree(self) -> NDArray[np.int64]:
+        """Number of incoming edges per node (sum over rows)."""
+        out: NDArray[np.int64] = self.adjacency.sum(axis=0, dtype=np.int64)
+        return out
+
+    @property
+    def out_degree(self) -> NDArray[np.int64]:
+        """Number of outgoing edges per node (sum over columns)."""
         out: NDArray[np.int64] = self.adjacency.sum(axis=1, dtype=np.int64)
+        return out
+
+    @property
+    def degree(self) -> NDArray[np.int64]:
+        """Total degree per node (in + out). For symmetric graphs equals 2*out_degree."""
+        out: NDArray[np.int64] = self.in_degree + self.out_degree
         return out
 
 
@@ -118,43 +165,63 @@ def from_exposure_matrix(
     *,
     threshold: float = 0.0,
     source_label: str = "empirical_exposure",
+    directed: bool = True,
+    snapshot_date: date | None = None,
 ) -> InterbankTopology:
-    """Build an :class:`InterbankTopology` from a possibly directed exposure matrix.
+    """Build an :class:`InterbankTopology` from a directed exposure matrix.
 
     Parameters
     ----------
     exposures
         Real, non-negative matrix shape ``(N, N)``. ``exposures[i, j]``
         is the magnitude of *i*'s exposure to *j* (e.g. lending volume).
-        May be directed; symmetrisation by averaging is applied.
     node_labels
         Length-``N`` tuple of node identifiers.
     threshold
-        Inclusive lower bound on a symmetrised entry for it to enter
-        the binary support. Default ``0.0`` keeps every non-zero edge.
+        Inclusive lower bound on an entry for it to enter the binary
+        support. Default ``0.0`` keeps every non-zero edge.
     source_label
         Provenance tag stored on the resulting topology.
+    directed
+        If ``True`` (default), preserve the asymmetric exposure
+        structure: ``A[i,j] = 1`` iff ``exposures[i,j] > threshold``.
+        If ``False``, symmetrise via :math:`(E + E^T)/2` before
+        thresholding — used only by the null baseline.
+    snapshot_date
+        Optional calendar date the snapshot pertains to. Required for
+        temporal-snapshot pipelines (e-MID quarterly, BIS LBS).
+
+    HARD_FAIL conditions
+    --------------------
+    * ``exposures`` not 2-D / not square.
+    * Length of ``node_labels`` ≠ N.
+    * ``exposures`` contains negatives, NaN, or Inf.
+    * ``threshold`` < 0.
     """
     e = np.asarray(exposures, dtype=np.float64)
     if e.ndim != 2 or e.shape[0] != e.shape[1]:
         raise ValueError(f"exposures must be square 2-D, got shape={e.shape}")
     if e.shape[0] != len(node_labels):
         raise ValueError(f"node_labels length {len(node_labels)} != exposures dim {e.shape[0]}")
-    if np.any(e < 0):
-        raise ValueError("exposures must be non-negative")
     if not np.isfinite(e).all():
         raise ValueError("exposures must be finite (no NaN/Inf)")
+    if np.any(e < 0):
+        raise ValueError("exposures must be non-negative")
     if threshold < 0:
         raise ValueError(f"threshold must be >= 0, got {threshold}")
-    sym = 0.5 * (e + e.T)
-    np.fill_diagonal(sym, 0.0)
-    adj = (sym > threshold).astype(np.int8)
+    if directed:
+        weights = np.array(e, dtype=np.float64, copy=True)
+    else:
+        weights = 0.5 * (e + e.T)
+    np.fill_diagonal(weights, 0.0)
+    adj = (weights > threshold).astype(np.int8)
     np.fill_diagonal(adj, 0)
     return InterbankTopology(
         adjacency=adj,
-        weights=sym,
+        weights=weights,
         node_labels=tuple(node_labels),
         source_label=source_label,
+        snapshot_date=snapshot_date,
     )
 
 
@@ -167,14 +234,15 @@ def barabasi_albert_null(
 ) -> InterbankTopology:
     """Barabási–Albert preferential attachment, *m* edges per new node.
 
-    Implementation is self-contained (no NetworkX dependency) so the
-    module remains importable in minimal install environments and
-    the seed semantics are unambiguous: ``rng = default_rng(seed)``.
+    Implementation is self-contained (no NetworkX dependency). Produces
+    a *symmetric* graph by construction — used as the null baseline of
+    the falsification battery, never as a model of the real economy.
 
     Empirical anchor: :math:`m \\in \\{2, 3, 4\\}` reproduces interbank
     degree distributions observed in Boss et al. 2004 and Soramäki et
     al. 2007. The mean degree of the resulting graph is ``2m`` for
-    large ``n``.
+    large ``n``. To pick *m* directly from data use
+    :func:`research.systemic_risk.network_fitting.fit_barabasi_albert`.
 
     Parameters
     ----------
@@ -183,8 +251,7 @@ def barabasi_albert_null(
     m
         Edges added per new node (must be >= 1).
     seed
-        Seed for ``np.random.default_rng``. Required — there is no
-        sensible default for a null model.
+        Seed for ``np.random.default_rng``. Required.
     source_label
         Optional override for the resulting ``source_label`` field.
     """

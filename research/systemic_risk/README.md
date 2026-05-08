@@ -1,98 +1,126 @@
-# Systemic Risk as Phase Transition — Kuramoto on Interbank Networks
+# Systemic Risk as Phase Transition — Kuramoto on Interbank Networks (v2)
 
-> **Tier (per `CLAIMS.md`):** `HYPOTHESIS` until the falsification battery
-> in `falsification.py` returns `HARD_PASS` on ≥ 2 independent crises.
+> **Tier (per `CLAIMS.md`):** `HYPOTHESIS` until the v2 falsification
+> battery returns `HARD_PASS` on ≥ 2 independent crises with real
+> interbank exposure data and the bootstrap-CI lower bound clears 0.70.
 
-## Hypothesis (pre-registered)
+## What this does
 
-The interbank market is a network of phase oscillators coupled through
-exposure-weighted lending. Approach to the Kuramoto bifurcation
-:math:`K_c` manifests as elevated rolling order parameter `R(t)`,
-positive slope of `R(t)`, and growing variance of `R(t)` (canonical
-critical-slowing-down diagnostics, Scheffer et al. 2009, *Nature*
-**461**: 53). The composite early-warning score
+A pre-registered, fail-closed test of one falsifiable claim: the
+early-warning score derived from rolling Kuramoto order-parameter
+features (level + slope + variance) is *elevated* in pre-event
+windows preceding banking-crisis dates relative to safely-distant
+null windows. The verdict is encoded once and never edited after
+seeing data — the AUC thresholds (`fail_auc=0.55`, `pass_auc_ci_low=0.70`),
+permutation p (`pass_alpha=0.01`), and Bonferroni FWER discipline are
+all defined in `falsification.FalsificationConfig`.
 
-```
-score(t) = R̄(t) · |slope(R)(t)| · √var(R)(t)
-```
+## What data it needs
 
-is *elevated* in pre-event windows preceding banking-crisis dates
-relative to null windows drawn from the same series at safe distance
-from any event.
-
-## Modules
-
-| File | Role |
-|------|------|
-| `event_ledger.py` | `BankingCrisisLedger` from Laeven & Valencia 2018 + 2023 anchor events |
-| `topology.py` | Empirical exposure → adjacency adapter + Barabási-Albert null |
-| `phase_extraction.py` | Interbank-rate spread → :math:`\theta_i(t)` via Hilbert (wraps `core.kuramoto.phase_extractor`) |
-| `early_warning.py` | Rolling-window CSD predictor (level + slope + variance composite) |
-| `falsification.py` | Pre-registered AUC + permutation p + Benjamini-Hochberg battery |
-
-## Falsification protocol (pre-registered, frozen)
-
-For each crisis *c* in the ledger with at least one valid pre-event window:
-
-1. Extract pre-event score values from the `pre_event_window_days`-long
-   window ending one day before `c.start`.
-2. Sample `null_window_count` non-overlapping null windows of the same
-   length, each ≥ `min_distance_from_event_days` from any event.
-3. Compute :math:`AUC_c` (Mann-Whitney U) and one-sided permutation p
-   with `n_permutations` resamples.
-4. Apply Benjamini-Hochberg FDR correction across all crises that
-   yielded valid windows.
-
-### Decision rule
-
-| Verdict | Condition |
-|---------|-----------|
-| `HARD_FAIL` | ∃ c with :math:`AUC_c \le` `fail_auc` (default 0.55) |
-| `HARD_PASS` | ≥ 2 crises with :math:`AUC_c \ge` `pass_auc` AND :math:`p^{BH}_c \le` `pass_alpha` (defaults 0.70, 0.01) |
-| `UNDECIDED` | neither — collect more data, do not promote tier |
-
-The thresholds are written *once* and never edited after seeing data.
-Any change to thresholds is a new pre-registration on a fresh branch.
-
-## Dataset manifest
+A directed exposure matrix (asymmetric). The module ships **no** real
+interbank exposure data; the loader expects user-supplied parquet/CSV
+in shape `(N, N)` where `exposures[i, j]` is *i*'s exposure to *j*.
 
 | Source | Status | Notes |
 |--------|--------|-------|
-| Laeven-Valencia 2018 (IMF WP/18/206) | inline | systemic banking crisis dates |
+| Laeven & Valencia 2018 (IMF WP/18/206) | inline | systemic banking crisis dates |
 | post-LV2020 designations (USA-2023, CHE-2023) | inline | flagged `source="post_LV2020"` |
-| e-MID Italian interbank (2009-2015) | external — caller-supplied | feed `from_exposure_matrix` |
-| BIS Locational Banking Statistics | external — caller-supplied | quarterly aggregate, sensitivity-only |
+| e-MID Italian interbank (2009-2015) | external | feed `from_exposure_matrix` |
+| BIS Locational Banking Statistics | external | quarterly, sensitivity-only |
+| ECB MMSR | external | granular intraday |
 
-The package ships *no* real interbank exposure data; the topology
-loader expects user-supplied parquet/CSV. The Barabási-Albert null
-exists exclusively as a falsification baseline (Boss et al. 2004).
+## What it claims
 
-## Physics anchors (from `CLAUDE.md`)
+`C-SYSRISK-PHASE` (`HYPOTHESIS` tier). Promotion to `MEASURED`
+requires:
 
-* INV-K1 — :math:`0 \le R(t) \le 1` (universal, P0); enforced in
-  `EarlyWarningResult.__post_init__`.
-* INV-K5 — :math:`\langle R \rangle \sim O(1/\sqrt{N})` for incoherent
-  phases (statistical, P1); test
-  `test_early_warning::test_inv_k5_incoherent_finite_size`.
-* INV-EVT1, INV-EVT2 — event-ledger date and country invariants
-  (this module).
-* INV-TOP1..3 — topology adjacency / weights / labels invariants
-  (this module).
-* INV-EW1, INV-EW2 — early-warning config invariants (this module).
+1. ≥ 2 of {2008 GFC, 2011 Eurozone, 2023 SVB/CS} return `HARD_PASS`
+   on real e-MID / BIS LBS / ECB MMSR data.
+2. The bootstrap CI lower bound clears 0.70 with Bonferroni-adjusted
+   p ≤ 0.01.
+3. No crisis returns `HARD_FAIL` (CI crossing 0.5 or AUC ≤ 0.55).
+
+## Minimal example
+
+```python
+from datetime import date
+import numpy as np
+
+from research.systemic_risk import (
+    DEFAULT_LEDGER,
+    FalsificationConfig,
+    coupling_from_exposures,
+    fit_barabasi_albert,
+    from_exposure_matrix,
+    run_falsification,
+)
+
+# 1. Build a directed topology from a real exposure matrix.
+exposures: np.ndarray = ...  # (N, N) directed, non-negative
+labels = tuple(f"bank_{i}" for i in range(exposures.shape[0]))
+topo = from_exposure_matrix(exposures, labels, snapshot_date=date(2011, 6, 30))
+
+# 2. Calibrate the BA null to the empirical degree distribution.
+m_hat, fit = fit_barabasi_albert(topo.degree, n_bootstrap=1000)
+print(f"BA m={m_hat}, α={fit.alpha:.3f} ± {fit.alpha_se:.3f}, KS p={fit.ks_p_value:.3f}")
+
+# 3. Build the asymmetric coupling matrix K_ij.
+K = coupling_from_exposures(exposures, normalisation="row_stochastic")
+
+# 4. Run the pre-registered falsification battery.
+score: np.ndarray = ...           # (T,) early-warning score over time
+dates: tuple[date, ...] = ...     # length T, monotonically increasing
+report = run_falsification(score, dates, DEFAULT_LEDGER, country_filter="USA")
+
+print(f"verdict: {report.verdict}")
+for o in report.outcomes:
+    print(f"{o.label}: AUC={o.auc:.3f} [{o.auc_ci_low:.3f}, {o.auc_ci_high:.3f}], p_BONF={o.p_bonferroni:.4f}")
+```
+
+## What changed in v2
+
+- **Asymmetric directed coupling.** v1 auto-symmetrised; real interbank
+  exposures are not symmetric (Bardoscia et al. 2021, *Nat. Rev. Phys.*
+  3: 490). `from_exposure_matrix(..., directed=True)` is now the
+  default; `directed=False` reserved for null baselines.
+- **MLE-fitted BA null.** v1 hard-coded `m=3`; v2 fits the power-law
+  exponent and BA `m` from the empirical degree sequence with a KS
+  goodness-of-fit p-value and AIC vs an exponential alternative
+  (Clauset, Shalizi, Newman 2009, *SIAM Rev.* 51: 661).
+- **Bootstrap CI on AUC.** v1 reported only the point estimate; v2
+  adds a stratified percentile-bootstrap CI (n=10000) and uses
+  `auc_ci_low` for the pass/fail thresholds — the whole CI must
+  clear the bar.
+- **Bonferroni FWER, not BH FDR.** v2 uses strict family-wise control
+  given the small crisis count and the cost of a false MEASURED
+  promotion.
+- **Optional snapshot date** for temporal pipelines (e-MID quarterly,
+  BIS LBS).
+- **ω from balance-sheet vol** via `omega_from_volatility` (first-order;
+  full inverse problem in `core.kuramoto.natural_frequency`).
 
 ## Maintenance-hierarchy role
 
-Sustainer (Layer 2). The module emits a diagnostic score; it never
-takes execution action. A `HARD_PASS` outcome would only motivate
-promotion to a Protector role downstream — it does not itself protect
-any gradient.
+Sustainer (Layer 2). Emits a diagnostic score; never takes execution
+action. A future `HARD_PASS` would only motivate promotion to a
+Protector role downstream.
 
-## Status
+## References
 
-Initial commit:
-
-* All public APIs typed (`mypy --strict` clean).
-* 57 tests covering invariants + statistical sanity (BH FWER,
-  null-AUC ≈ 0.5).
-* Hypothesis remains `HYPOTHESIS` tier; first real-data run pending
-  on user-supplied e-MID dump.
+- Bardoscia, M. et al. (2021). *Physics of Financial Networks*.
+  *Nature Reviews Physics* **3**: 490 — canonical survey.
+- Acemoglu, D., Ozdaglar, A., Tahbaz-Salehi, A. (2015). *Systemic
+  Risk and Stability in Financial Networks*. *Am. Econ. Rev.*
+  **105**: 564 — phase-transition argument for interbank networks.
+- Arenas, A. et al. (2008). *Synchronization in Complex Networks*.
+  *Physics Reports* **469**: 93 — Kuramoto on graphs.
+- Boss, M. et al. (2004). *Network topology of the interbank market*.
+  *Quantitative Finance* **4**: 677.
+- Clauset, A., Shalizi, C. R., Newman, M. E. J. (2009).
+  *Power-law distributions in empirical data*. *SIAM Review* **51**: 661.
+- Laeven, L., Valencia, F. (2018). *Systemic Banking Crises Revisited*.
+  IMF Working Paper WP/18/206.
+- Scheffer, M. et al. (2009). *Early-warning signals for critical
+  transitions*. *Nature* **461**: 53.
+- Soramäki, K. et al. (2007). *The topology of interbank payment flows*.
+  *Physica A* **379**: 317.

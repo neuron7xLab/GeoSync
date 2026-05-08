@@ -1,17 +1,16 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Tests for :mod:`research.systemic_risk.falsification`.
+"""Tests for :mod:`research.systemic_risk.falsification` (v2).
 
 Coverage:
 * :func:`auc_mann_whitney` algebraic identities (perfect / inverted /
-  uniform).
-* :func:`benjamini_hochberg` monotonicity + clipping under standard
-  edge cases (Benjamini & Hochberg 1995).
+  uniform / random).
+* :func:`auc_bootstrap_ci` CI bracket sanity + degeneracy.
+* :func:`bonferroni_correction` clipping + order preservation.
 * End-to-end ``run_falsification`` null-AUC sanity:
-  on i.i.d. random scores the per-crisis AUC distribution should be
-  centred near 0.5 and the BH-corrected verdict should not be
-  ``HARD_PASS``. This is the test that *catches* implementation bugs
-  that systematically inflate AUC.
+  on i.i.d. random scores the per-crisis AUC must not produce
+  ``HARD_PASS``; on injected pre-event signal it must produce
+  ``HARD_PASS`` with both CI bounds clearing the v2 thresholds.
 """
 
 from __future__ import annotations
@@ -27,8 +26,9 @@ from research.systemic_risk.event_ledger import (
 )
 from research.systemic_risk.falsification import (
     FalsificationConfig,
+    auc_bootstrap_ci,
     auc_mann_whitney,
-    benjamini_hochberg,
+    bonferroni_correction,
     run_falsification,
 )
 
@@ -54,7 +54,6 @@ class TestAucMannWhitney:
         assert auc_mann_whitney(np.array([1.0]), np.array([])) == 0.5
 
     def test_random_iid_centred_at_half(self) -> None:
-        # Statistical: under H0 (same distribution) E[AUC] = 0.5.
         rng = np.random.default_rng(123)
         aucs = []
         for _ in range(100):
@@ -67,36 +66,77 @@ class TestAucMannWhitney:
         )
 
 
-class TestBenjaminiHochberg:
+class TestAucBootstrapCi:
+    def test_ci_brackets_point_estimate(self) -> None:
+        rng = np.random.default_rng(7)
+        pos = rng.normal(0.5, 1.0, size=80)
+        neg = rng.normal(0.0, 1.0, size=80)
+        point, ci_low, ci_high = auc_bootstrap_ci(pos, neg, n_bootstrap=2000)
+        assert ci_low <= point <= ci_high, (
+            f"INV-CI-BRACKET VIOLATED: point={point:.4f} outside "
+            f"[{ci_low:.4f}, {ci_high:.4f}] at n_bootstrap=2000, seed=7"
+        )
+
+    def test_ci_under_h0_contains_half(self) -> None:
+        # Under H0 the 95% CI should contain 0.5 most of the time.
+        # Statistical sweep: check ≥85/100 reps contain 0.5 (binomial 0.95 → ~95%).
+        rng = np.random.default_rng(11)
+        contains = 0
+        for _ in range(100):
+            pos = rng.standard_normal(40)
+            neg = rng.standard_normal(40)
+            _, lo, hi = auc_bootstrap_ci(
+                pos, neg, n_bootstrap=500, seed=int(rng.integers(0, 10**6))
+            )
+            if lo <= 0.5 <= hi:
+                contains += 1
+        assert contains >= 85, (
+            f"INV-CI-COVERAGE: 95% CI under H0 contained 0.5 in only {contains}/100 reps; "
+            f"expected ≥ 85 (≥80% empirical coverage at n_bootstrap=500)"
+        )
+
+    def test_degenerate_inputs_collapse(self) -> None:
+        # Single observation per arm → CI collapses to point estimate.
+        pos = np.array([2.0])
+        neg = np.array([1.0])
+        point, lo, hi = auc_bootstrap_ci(pos, neg, n_bootstrap=100)
+        assert lo == hi == point
+
+    def test_invalid_confidence_rejected(self) -> None:
+        with pytest.raises(ValueError, match="confidence"):
+            auc_bootstrap_ci(np.array([1.0, 2.0]), np.array([0.0, 0.5]), confidence=0.0)
+
+    def test_invalid_n_bootstrap_rejected(self) -> None:
+        with pytest.raises(ValueError, match="n_bootstrap"):
+            auc_bootstrap_ci(np.array([1.0]), np.array([0.0]), n_bootstrap=0)
+
+
+class TestBonferroni:
     def test_all_zero_input(self) -> None:
-        out = benjamini_hochberg(np.zeros(5))
+        out = bonferroni_correction(np.zeros(5))
         assert np.all(out == 0.0)
 
     def test_all_one_input(self) -> None:
-        out = benjamini_hochberg(np.ones(5))
+        out = bonferroni_correction(np.ones(5))
+        # 5*1 clipped to 1.
         assert np.all(out == 1.0)
 
-    def test_classic_example(self) -> None:
-        # B-H (1995) Table 1 mini-case: 4 p-values [0.005, 0.01, 0.04, 0.5].
-        # Adjusted: 4/1*0.005=0.02, 4/2*0.01=0.02, 4/3*0.04≈0.0533, 4/4*0.5=0.5.
-        # After enforcing monotonicity from the largest, expected:
-        # [0.02, 0.02, 0.0533, 0.5].
+    def test_simple_case(self) -> None:
         p = np.array([0.005, 0.01, 0.04, 0.5])
-        out = benjamini_hochberg(p)
-        np.testing.assert_allclose(out, [0.02, 0.02, 0.05333333, 0.5], atol=1e-7)
+        out = bonferroni_correction(p)
+        np.testing.assert_allclose(out, [0.02, 0.04, 0.16, 1.0], atol=1e-12)
 
     def test_order_preserved(self) -> None:
-        # Output order matches input order, even with shuffled input.
         p = np.array([0.5, 0.005, 0.04, 0.01])
-        out = benjamini_hochberg(p)
-        # The smallest input is at index 1; its adjusted value should be 0.02.
+        out = bonferroni_correction(p)
+        # min input at index 1 → 4 * 0.005 = 0.02.
         assert out[1] == pytest.approx(0.02)
 
     def test_invalid_p_rejected(self) -> None:
         with pytest.raises(ValueError):
-            benjamini_hochberg(np.array([-0.1, 0.5]))
+            bonferroni_correction(np.array([-0.1, 0.5]))
         with pytest.raises(ValueError):
-            benjamini_hochberg(np.array([0.5, 1.5]))
+            bonferroni_correction(np.array([0.5, 1.5]))
 
 
 class TestRunFalsificationSanity:
@@ -104,8 +144,6 @@ class TestRunFalsificationSanity:
         self,
         seed: int,
     ) -> tuple[BankingCrisisLedger, tuple[date, ...], np.ndarray]:
-        # 5 crises spread across an 8-year synthetic series; pure noise score.
-        # No physics → expected verdict ≠ HARD_PASS.
         start = date(2010, 1, 1)
         n_days = 365 * 8
         dates = tuple(start + timedelta(days=i) for i in range(n_days))
@@ -144,14 +182,40 @@ class TestRunFalsificationSanity:
             null_window_count=10,
             min_distance_from_event_days=180,
             n_permutations=200,
+            n_bootstrap=500,
             seed=7,
         )
         report = run_falsification(score, dates, ledger, config=cfg, country_filter="ABC")
-        # Random noise must not produce HARD_PASS — that would mean a leak.
         assert report.verdict != "HARD_PASS"
-        # Either an outcome is below the fail threshold (HARD_FAIL) or none
-        # of the AUCs are convincingly above the pass threshold (UNDECIDED).
         assert report.verdict in {"HARD_FAIL", "UNDECIDED"}
+
+    def test_injected_signal_passes(self) -> None:
+        ledger, dates, score = self._build_synthetic_ledger_and_score(seed=42)
+        # Inject +3σ elevation in the 60-day pre-event window of every crisis.
+        for ev in ledger.events:
+            delta = (ev.start - dates[0]).days
+            if delta - 60 < 0:
+                continue
+            score[delta - 60 : delta] += 3.0
+        cfg = FalsificationConfig(
+            pre_event_window_days=60,
+            null_window_count=15,
+            min_distance_from_event_days=180,
+            n_permutations=2000,
+            n_bootstrap=2000,
+            seed=11,
+        )
+        report = run_falsification(score, dates, ledger, config=cfg, country_filter="ABC")
+        assert report.verdict == "HARD_PASS", (
+            f"INJECTED-SIGNAL VIOLATED: verdict={report.verdict}, "
+            f"expected HARD_PASS at +3σ injection across 3 crises. "
+            f"outcomes: {[(o.label, round(o.auc, 3), round(o.auc_ci_low, 3)) for o in report.outcomes]}"
+        )
+        for o in report.outcomes:
+            assert o.auc_ci_low >= 0.70, (
+                f"PASS-THRESHOLD VIOLATED: {o.label} auc_ci_low={o.auc_ci_low:.4f} "
+                f"< 0.70 at +3σ injection, n_bootstrap=2000, seed=11"
+            )
 
     def test_score_length_mismatch_rejected(self) -> None:
         ledger, dates, _ = self._build_synthetic_ledger_and_score(seed=0)
