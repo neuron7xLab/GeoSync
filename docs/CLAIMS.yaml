@@ -648,22 +648,18 @@ claims:
 
   - id: ierd-phase0-yana-response
     priority: P1
-    tier: EXTRAPOLATED
+    tier: ANCHORED
     description: >
       IERD-PAI-FPS-UX-001 Phase-0 response to the 2026-05-02
       external falsification audit is published with tier-labeled
       answers to all 7 questions, the directive is adopted as a
-      binding standard, and the forbidden-terminology lint runs in
-      warn mode in CI. Status (Phase-1 falsifier audit, 2026-05-08):
-      re-classified ANCHORED → EXTRAPOLATED. The documentation
-      artefacts are intact (yana-response.md addresses Q1–Q7; ADR
-      0020 ratifies adoption; lint_forbidden_terms.py runs in CI),
-      but no programmatic falsifier-block currently exists that
-      asserts the response covers each of Q1–Q7 from a single pytest
-      node under the ADR 0021 v3 falsifier shape. Re-classify ANCHORED
-      on addition of `tests/governance/test_yana_response_coverage.py`
-      with an assertion per question + a new INV-IERD-PHASE0
-      registry entry. Tracked as governance-debt follow-up.
+      binding standard via ADR 0020, and the forbidden-terminology
+      lint (scripts/ci/lint_forbidden_terms.py) is runnable and
+      exits 0 in warn mode (Phase-0 contract). Status
+      (re-promotion 2026-05-08): falsifier-block added citing the
+      new INV-IERD-PHASE0 invariant; the test
+      tests/governance/test_ierd_phase0_yana_response_coverage.py
+      asserts all four contract surfaces from a single pytest node.
     evidence_paths:
       - docs/governance/IERD-PAI-FPS-UX-001.md
       - docs/adr/0020-ierd-adoption.md
@@ -671,6 +667,20 @@ claims:
       - docs/audit/ierd_phase0_findings.md
       - docs/validation/pai_report_2026_05_03.md
       - scripts/ci/lint_forbidden_terms.py
+      - tests/governance/test_ierd_phase0_yana_response_coverage.py
+    falsifier:
+      test_id: tests/governance/test_ierd_phase0_yana_response_coverage.py::test_yana_response_covers_q1_through_q7
+      invariants_cited:
+        - INV-IERD-PHASE0
+      failure_signature: >
+        docs/yana-response.md missing OR any of the seven required
+        ``## Q{N}.`` headings (N ∈ 1..7) absent; OR any Q-section
+        without a ``**Tier: <ANCHORED|EXTRAPOLATED|SPECULATIVE|
+        UNKNOWN>**`` marker; OR ADR 0020 missing OR below 1000
+        chars OR without a ``## Decision`` section; OR
+        scripts/ci/lint_forbidden_terms.py missing OR exiting
+        non-zero in warn mode (Phase-0 contract). Each surfaces as
+        an AssertionError citing INV-IERD-PHASE0.
     added_utc: "2026-05-03"
     last_updated_utc: "2026-05-08"
 

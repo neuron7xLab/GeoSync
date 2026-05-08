@@ -574,6 +574,24 @@ hpc:
       - "NIST (2015). FIPS 180-4: Secure Hash Standard (SHA-256). National Institute of Standards and Technology."
     related: [INV-HPC1]
 
+  ierd_phase0_response_coverage:
+    id: INV-IERD-PHASE0
+    type: universal
+    statement: "The IERD-PAI-FPS-UX-001 Phase-0 audit response carries a documented contract surface: docs/yana-response.md declares one ``## Q{N}.`` heading and one ``**Tier: <T>**`` marker per question N ∈ 1..7; ADR 0020 (docs/adr/0020-ierd-adoption.md) contains a non-trivial ``## Decision`` section that ratifies adoption; scripts/ci/lint_forbidden_terms.py is runnable and exits 0 in warn mode (Phase-0 contract; strict mode lands at Phase-5)."
+    test_type: property_test
+    falsification: "yana-response.md missing or any of Q1..Q7 sections absent; OR any Q-section without a Tier marker; OR ADR 0020 missing or below substantive length without a Decision section; OR lint_forbidden_terms.py missing OR exiting non-zero in warn mode."
+    priority: P1
+    provenance: ANCHORED
+    source: scripts/ci/lint_forbidden_terms.py
+    tests: tests/governance/test_ierd_phase0_yana_response_coverage.py
+    integration_test: tests/governance/test_ierd_phase0_yana_response_coverage.py
+    runtime_evaluable: yes
+    references:
+      - "IERD-PAI-FPS-UX-001 (this repository, 2026-05-03). Institutional Engineering Remediation Directive — binding standard for documentation, CI, API, frontend, validation."
+      - "Popper, K. R. (1959). The Logic of Scientific Discovery. Hutchinson (claim → falsifying-test pairing as the demarcation criterion that backs ADR 0021)."
+      - "Lakatos, I. (1970). Falsification and the methodology of scientific research programmes. In Criticism and the Growth of Knowledge (progressive vs degenerative shift; the tier ladder ANCHORED/EXTRAPOLATED/SPECULATIVE/UNKNOWN derives from this)."
+    related: []
+
   psr_hac_newey_west:
     id: INV-PSR-HAC
     type: monotonic
