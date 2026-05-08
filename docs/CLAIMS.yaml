@@ -567,8 +567,27 @@ claims:
       - .github/workflows/schemathesis-contract.yml
       - schemas/openapi/geosync-online-inference-v1.json
       - application/api/errors.py
+    falsifier:
+      test_id: tests/api/test_schemathesis_contract.py::test_api_operation_conforms_to_schema
+      invariants_cited:
+        - INV-API-CONTRACT
+      failure_signature: >
+        Any (path, method) declared in
+        schemas/openapi/geosync-online-inference-v1.json that diverges
+        from the OpenAPI 3.1 contract under property-based fuzz produces
+        a Schemathesis FailureGroup naming one of: UndefinedStatusCode
+        (HTTP code emitted at runtime not in declared response set),
+        JsonSchemaError (response body shape divergent from declared
+        $ref), MalformedMediaType / MissingHeaders (response Content-Type
+        or declared headers missing), AcceptedNegativeData (schema-
+        violating input silently accepted), ServerError (5xx emitted
+        when the spec declares only success codes). The /graphql
+        operations are excluded by design (Strawberry has its own
+        typed schema; tracked under a separate GraphQL contract suite).
+        On Phase-3 EXIT the workflow run-step continue-on-error is
+        false; any of the above failures blocks merge.
     added_utc: "2026-05-03"
-    last_updated_utc: "2026-05-07"
+    last_updated_utc: "2026-05-08"
 
   - id: ux-readiness-state-coverage
     priority: P1
