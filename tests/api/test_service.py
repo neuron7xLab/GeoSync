@@ -512,6 +512,44 @@ def test_websocket_stream_broadcasts_updates(
         assert "signal" in signal_event
 
 
+@pytest.mark.parametrize(
+    "raw_body",
+    [
+        pytest.param(b"\x00\x00\x00\x00\x00", id="utf32-be-truncated"),
+        pytest.param(b"\x80start", id="invalid-utf8-start-byte"),
+        pytest.param(b"\xff\xfe\x00", id="bare-bom-no-payload"),
+        pytest.param(b"\x90\x90\x90\x90", id="invalid-utf8-continuation"),
+    ],
+)
+def test_invalid_utf8_body_returns_400_not_500(
+    configured_app: FastAPI,
+    security_context: Callable[..., str],
+    raw_body: bytes,
+) -> None:
+    """Schemathesis fuzzing produced UnicodeDecodeError paths that surfaced as 500s.
+
+    Root cause: ``json.loads(body)`` raises ``UnicodeDecodeError`` (not
+    ``JSONDecodeError``) when *body* contains bytes that do not decode under
+    the advertised encoding. The body-parser middleware now catches both,
+    so every non-UTF-8 body returns a structured 400 instead of crashing.
+    """
+    client = TestClient(configured_app, raise_server_exceptions=False)
+    token = security_context(subject="fuzz-user")
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    response = client.post(_api_v1("/predictions"), content=raw_body, headers=headers)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST, (
+        f"expected 400 BAD_REQUEST on non-UTF-8 body, got "
+        f"{response.status_code} (body would have crashed json.loads with "
+        f"UnicodeDecodeError before the fix)"
+    )
+    body = response.json()
+    assert body["error"]["code"] == "ERR_BAD_REQUEST"
+    assert "Malformed JSON" in body["error"]["message"]
+
+
 def test_internal_errors_return_structured_payload(configured_app: FastAPI) -> None:
     app = configured_app
 
