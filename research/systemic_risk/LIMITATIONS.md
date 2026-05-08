@@ -83,3 +83,35 @@ A future `VALIDATED` claim must additionally provide:
 Until points 1-3 are in evidence, no claim stronger than
 "associative pre-event signal" is permitted in any external
 artefact.
+
+## 6. Outstanding gaps (post-2026-05-08 self-audit)
+
+The following items from the Protocol X-7 33-task upgrade
+checklist are **not** closed by autonomous code changes and
+require external resources or human action:
+
+* **Task 13 — Real-data ingest pipeline.** e-MID is licence-restricted
+  (BAFFI / Carefin Bocconi). ECB MMSR is governed by ECB Regulation
+  2014/1333 and not freely redistributable. Until a data-sharing
+  agreement is signed or a public substitute is identified, the
+  CLI's `--data real` path is intentionally absent.
+* **Task 14 — Evaluation on 2008 / 2011 / 2020.** Blocked by
+  Task 13. The pipeline infrastructure (firewall + leakage +
+  ladder + capsule + ledger + FSM + orchestrator + CLI) is
+  ready to receive real data; no code change is required to
+  run, only the data feed.
+* **Task 15 — AUC > 0.75 on real data.** Blocked by Task 13.
+  Per the no-unprovenanced-percentages contract, the lab does
+  not predict an AUC value before measurement.
+* **Task 16 — Zenodo publication of replication capsule.**
+  Requires the user's Zenodo account credentials; outside the
+  repository scope.
+* **Task 17 — Daily SHA256 verification of real-data runs.**
+  Blocked by Task 13. The capsule comparator
+  (``compare_run_outputs``) ships the per-run primitive; the
+  daily-cron wiring is ops, not research code.
+* **Tasks 27, 28 — External adversarial review.** Two-to-three
+  external reviewers must be invited by the lab; the codebase
+  is ready for review (530+ tests, mypy --strict, ruff/black
+  clean, property-based coverage of lattice axioms,
+  Cramér-Rao bound, Lindley penalty, all eight firewall gates).
