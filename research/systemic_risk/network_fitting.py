@@ -292,6 +292,7 @@ def fit_barabasi_albert(
     *,
     n_bootstrap: int = 0,
     seed: int = 42,
+    min_relative_se: float | None = None,
 ) -> tuple[int, PowerLawFit]:
     """Fit a BA-compatible *m* parameter to an empirical degree sequence.
 
@@ -332,7 +333,7 @@ def fit_barabasi_albert(
             f"BA-incompatible input: <k>={mean_k:.4f} < 2; "
             f"BA(m≥1) requires <k> ≥ 2 by Albert-Barabási 2002 eq. 4.7"
         )
-    pl = fit_power_law(d, n_bootstrap=n_bootstrap, seed=seed)
+    pl = fit_power_law(d, n_bootstrap=n_bootstrap, seed=seed, min_relative_se=min_relative_se)
     m = int(round(mean_k / 2.0))
     if m < 1:  # unreachable given mean_k>=2 above; fail-closed assertion
         raise ValueError(f"BA m must satisfy m ≥ 1; got m={m} from <k>={mean_k:.4f}")
@@ -344,6 +345,7 @@ def fit_barabasi_albert_from_topology(
     *,
     n_bootstrap: int = 0,
     seed: int = 42,
+    min_relative_se: float | None = None,
 ) -> tuple[int, PowerLawFit]:
     """Calibrate BA *m* directly from an :class:`InterbankTopology`.
 
@@ -362,7 +364,12 @@ def fit_barabasi_albert_from_topology(
     Reported *m* therefore matches the generator's *m* on
     :func:`barabasi_albert_null` outputs to within ±1 at finite *N*.
     """
-    return fit_barabasi_albert(topology.out_degree, n_bootstrap=n_bootstrap, seed=seed)
+    return fit_barabasi_albert(
+        topology.out_degree,
+        n_bootstrap=n_bootstrap,
+        seed=seed,
+        min_relative_se=min_relative_se,
+    )
 
 
 # ---------------------------------------------------------------------------

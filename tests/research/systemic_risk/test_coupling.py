@@ -87,6 +87,34 @@ class TestCouplingFromExposures:
         with pytest.raises(ValueError):
             coupling_from_exposures(np.array([[0.0, -1.0], [-1.0, 0.0]]))
 
+    def test_orientation_invariant_2x2(self) -> None:
+        # Per the canonical orientation invariant in coupling.py:
+        #   E[i, j] = i lent to j (i's exposure to j)
+        #   K[i, j] = stress felt by i from j ∝ E[i, j]
+        # A 2×2 directed example: bank 0 lends 9 units to bank 1,
+        # bank 1 lends 1 unit to bank 0. K must reflect this
+        # asymmetry without transposing.
+        e = np.array([[0.0, 9.0], [1.0, 0.0]], dtype=np.float64)
+        K = coupling_from_exposures(e, normalisation="raw")
+        # Raw retains the magnitudes; only the diagonal is cleared.
+        assert K[0, 1] == 9.0, (
+            "INV-K-ORIENTATION VIOLATED: K[0,1] should encode bank 0's "
+            "stress from bank 1 ∝ E[0,1]=9 (0's loan to 1); got "
+            f"{K[0, 1]}. A wrong-direction transpose would give 1.0."
+        )
+        assert K[1, 0] == 1.0, (
+            "INV-K-ORIENTATION VIOLATED: K[1,0] should encode bank 1's "
+            "stress from bank 0 ∝ E[1,0]=1 (1's loan to 0); got "
+            f"{K[1, 0]}. A wrong-direction transpose would give 9.0."
+        )
+        # Row-stochastic must also preserve orientation (now 9/9, 1/1).
+        K_rs = coupling_from_exposures(e)  # default row_stochastic
+        assert K_rs[0, 1] == pytest.approx(1.0), (
+            f"row-stochastic orientation drift: K[0,1]={K_rs[0, 1]}, "
+            f"expected 1.0 (only outgoing edge from row 0)"
+        )
+        assert K_rs[1, 0] == pytest.approx(1.0)
+
 
 class TestOmegaFromVolatility:
     def test_finite_output(self) -> None:

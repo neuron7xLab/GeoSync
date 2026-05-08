@@ -135,6 +135,16 @@ class TestFitBarabasiAlbert:
         with pytest.raises(ValueError, match="BA-incompatible"):
             fit_barabasi_albert(sparse)
 
+    def test_min_relative_se_propagates(self) -> None:
+        # The validation-mode precision floor must reach the
+        # underlying fit_power_law via _from_topology too.
+        from research.systemic_risk.topology import barabasi_albert_null
+
+        # n=20 BA(m=2) — n_tail too small for tight precision floor.
+        topo = barabasi_albert_null(n_nodes=20, m=2, seed=0)
+        with pytest.raises(ValueError, match="Cramér-Rao precision floor"):
+            fit_barabasi_albert_from_topology(topo, min_relative_se=0.05)
+
 
 class TestFitBarabasiAlbertFromTopology:
     """Regression: catch the v2 in+out double-count drift on `topology.degree`.

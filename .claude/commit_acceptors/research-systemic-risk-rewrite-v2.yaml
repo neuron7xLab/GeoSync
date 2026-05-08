@@ -31,15 +31,15 @@
 
 id: research-systemic-risk-rewrite-v2
 status: ACTIVE
-# claim_type=refactor: v2 is a production-grade structural rewrite of
-# research/systemic_risk/ that (a) fixes three correctness defects in
-# v1 — silent symmetrisation, missing AUC CI, FDR-instead-of-FWER —
-# (b) introduces six new modules covering MLE BA fitting, asymmetric
-# coupling, six mandatory null baselines, run replication manifest,
-# and four canonical validation/limitation/protocol/data-schema docs.
-# Cap=20 fits the 20-file diff. No trading-execution behaviour
-# changes; the v1 → v2 cutover is structural.
-claim_type: refactor
+# claim_type=documentation: v2 is dominated by canonical R&D-validation
+# documentation (PROTOCOL / VALIDATION / LIMITATIONS / data_schema /
+# README rewrite) that justifies + boundary-protects every constant
+# and every API contract. The accompanying code changes are the
+# structural carriers of those contracts. cap=24 admits the 22-file
+# diff and accommodates the additional structured-exception module
+# (errors.py + test_errors.py) added in response to the external
+# adversarial audit on PR #562.
+claim_type: documentation
 promise: >-
   After this PR lands, research/systemic_risk/ exposes a directed
   topology adapter, an MLE-calibrated BA null, an asymmetric coupling
@@ -60,12 +60,14 @@ diff_scope:
     - path: "research/systemic_risk/__init__.py"
     - path: "research/systemic_risk/coupling.py"
     - path: "research/systemic_risk/data_schema.md"
+    - path: "research/systemic_risk/errors.py"
     - path: "research/systemic_risk/falsification.py"
     - path: "research/systemic_risk/network_fitting.py"
     - path: "research/systemic_risk/null_models.py"
     - path: "research/systemic_risk/replication.py"
     - path: "research/systemic_risk/topology.py"
     - path: "tests/research/systemic_risk/test_coupling.py"
+    - path: "tests/research/systemic_risk/test_errors.py"
     - path: "tests/research/systemic_risk/test_falsification.py"
     - path: "tests/research/systemic_risk/test_network_fitting.py"
     - path: "tests/research/systemic_risk/test_null_models.py"

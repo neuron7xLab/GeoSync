@@ -33,8 +33,14 @@ The six baselines, in order of stringency:
    detection coincides with the labelled events or with arbitrary
    dates.
 
-Each generator is a pure function returning the surrogate object;
-the falsification battery composes them via :func:`run_null_audit`.
+Each generator is a pure function returning a :class:`NullSurrogate`
+that the caller passes back through the appropriate detector path
+(score-replacing surrogates feed :func:`run_falsification`;
+topology-replacing surrogates feed the score-construction stack).
+A single composed audit entry-point that orchestrates all six is
+deferred until the empirical-data ingest lands — at that point the
+contract for "valid score from a surrogate topology" becomes
+testable end-to-end.
 
 Pure-function API. No I/O. Determinism via explicit ``seed``.
 """

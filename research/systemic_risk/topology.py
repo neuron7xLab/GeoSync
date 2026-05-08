@@ -36,6 +36,8 @@ from datetime import date
 import numpy as np
 from numpy.typing import NDArray
 
+from .errors import InvalidExposureMatrixError, InvalidNodeLabelsError
+
 __all__ = [
     "InterbankTopology",
     "from_exposure_matrix",
@@ -178,8 +180,10 @@ def from_exposure_matrix(
     node_labels
         Length-``N`` tuple of node identifiers.
     threshold
-        Inclusive lower bound on an entry for it to enter the binary
-        support. Default ``0.0`` keeps every non-zero edge.
+        **Strict** lower cutoff: ``A[i, j] = 1`` iff
+        ``weights[i, j] > threshold`` (an entry equal to ``threshold``
+        is *not* an edge). Default ``0.0`` admits every strictly-
+        positive entry — zero-exposure cells never become edges.
     source_label
         Provenance tag stored on the resulting topology.
     directed
@@ -193,22 +197,31 @@ def from_exposure_matrix(
 
     HARD_FAIL conditions
     --------------------
-    * ``exposures`` not 2-D / not square.
-    * Length of ``node_labels`` ≠ N.
-    * ``exposures`` contains negatives, NaN, or Inf.
-    * ``threshold`` < 0.
+    * ``exposures`` not 2-D / not square ⇒ :class:`InvalidExposureMatrixError`.
+    * Length of ``node_labels`` ≠ N ⇒ :class:`InvalidNodeLabelsError`.
+    * ``node_labels`` contain duplicates or empty strings ⇒
+      :class:`InvalidNodeLabelsError`.
+    * ``exposures`` contains negatives, NaN, or Inf ⇒
+      :class:`InvalidExposureMatrixError`.
+    * ``threshold`` < 0 ⇒ :class:`InvalidExposureMatrixError`.
     """
     e = np.asarray(exposures, dtype=np.float64)
     if e.ndim != 2 or e.shape[0] != e.shape[1]:
-        raise ValueError(f"exposures must be square 2-D, got shape={e.shape}")
+        raise InvalidExposureMatrixError(f"exposures must be square 2-D, got shape={e.shape}")
     if e.shape[0] != len(node_labels):
-        raise ValueError(f"node_labels length {len(node_labels)} != exposures dim {e.shape[0]}")
+        raise InvalidNodeLabelsError(
+            f"node_labels length {len(node_labels)} != exposures dim {e.shape[0]}"
+        )
+    if len(set(node_labels)) != len(node_labels):
+        raise InvalidNodeLabelsError("node_labels must be unique")
+    if any(not lbl for lbl in node_labels):
+        raise InvalidNodeLabelsError("node_labels must not contain empty strings")
     if not np.isfinite(e).all():
-        raise ValueError("exposures must be finite (no NaN/Inf)")
+        raise InvalidExposureMatrixError("exposures must be finite (no NaN/Inf)")
     if np.any(e < 0):
-        raise ValueError("exposures must be non-negative")
+        raise InvalidExposureMatrixError("exposures must be non-negative")
     if threshold < 0:
-        raise ValueError(f"threshold must be >= 0, got {threshold}")
+        raise InvalidExposureMatrixError(f"threshold must be >= 0, got {threshold}")
     if directed:
         weights = np.array(e, dtype=np.float64, copy=True)
     else:

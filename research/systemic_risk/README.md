@@ -34,11 +34,16 @@ in shape `(N, N)` where `exposures[i, j]` is *i*'s exposure to *j*.
 `C-SYSRISK-PHASE` (`HYPOTHESIS` tier). Promotion to `MEASURED`
 requires:
 
-1. ≥ 2 of {2008 GFC, 2011 Eurozone, 2023 SVB/CS} return `HARD_PASS`
-   on real e-MID / BIS LBS / ECB MMSR data.
+1. ≥ 2 valid crisis windows from available real exposure datasets
+   (e-MID 2009-2015 ⇒ Eurozone 2011 + SVB-tail proxy; BIS LBS
+   aggregated quarterly; ECB MMSR granular but access-constrained).
+   The exact crisis labels admissible per dataset are documented in
+   `LIMITATIONS.md`; e-MID does not cover Lehman 2008 (out-of-window).
 2. The bootstrap CI lower bound clears 0.70 with Bonferroni-adjusted
-   p ≤ 0.01.
+   p ≤ 0.01 on each surviving crisis.
 3. No crisis returns `HARD_FAIL` (CI crossing 0.5 or AUC ≤ 0.55).
+4. Each surviving crisis additionally clears all six null baselines
+   in `null_models.py` (per `PROTOCOL.md` § 4).
 
 ## Minimal example
 
@@ -50,7 +55,7 @@ from research.systemic_risk import (
     DEFAULT_LEDGER,
     FalsificationConfig,
     coupling_from_exposures,
-    fit_barabasi_albert,
+    fit_barabasi_albert_from_topology,
     from_exposure_matrix,
     run_falsification,
 )
@@ -61,7 +66,9 @@ labels = tuple(f"bank_{i}" for i in range(exposures.shape[0]))
 topo = from_exposure_matrix(exposures, labels, snapshot_date=date(2011, 6, 30))
 
 # 2. Calibrate the BA null to the empirical degree distribution.
-m_hat, fit = fit_barabasi_albert(topo.degree, n_bootstrap=1000)
+#    Use `_from_topology` — passing `topo.degree` directly (in + out)
+#    doubles the recovered m on symmetric graphs.
+m_hat, fit = fit_barabasi_albert_from_topology(topo, n_bootstrap=1000)
 print(f"BA m={m_hat}, α={fit.alpha:.3f} ± {fit.alpha_se:.3f}, KS p={fit.ks_p_value:.3f}")
 
 # 3. Build the asymmetric coupling matrix K_ij.

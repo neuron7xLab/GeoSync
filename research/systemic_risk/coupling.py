@@ -10,13 +10,31 @@ lag :math:`\\alpha_{ij}` is
     \\dot\\theta_i = \\omega_i + \\sum_{j \\ne i}
                     K_{ij} \\sin(\\theta_j - \\theta_i - \\alpha_{ij})
 
-where :math:`K_{ij}` is the coupling strength bank *i* feels from
-bank *j* via the lending channel *j → i*. v1 of this module assumed
-symmetric :math:`K`; v2 builds it directly from the asymmetric
-exposure matrix without symmetrising. Per-pair phase lag is supported
-but defaults to the symmetric Kuramoto limit (:math:`\\alpha_{ij} = 0`)
-because joint estimation of α from interbank data is a separate
-inverse problem (delegated to ``core.kuramoto.frustration``).
+**Canonical orientation invariant** (single source of truth — every
+caller must respect this):
+
+::
+
+    E[i, j]  =  exposure of *i* to *j*  =  i has lent to j
+                (lending channel  i → j;
+                 i is at risk if j defaults)
+
+    K[i, j]  =  stress felt by i from j
+                ∝ E[i, j] (i's claim on j; if j fails, i is hurt
+                           proportionally to its loan to j)
+
+So ``K = f(E)`` *without* a transpose: the row index is the bank
+that *feels* the stress; the column index is the bank whose
+default would cause it. Every test in this module's regression
+suite asserts the canonical orientation on a 2×2 directed example
+to catch any future transpose bug.
+
+v1 of this module assumed symmetric :math:`K`; v2 builds it
+directly from the asymmetric exposure matrix without symmetrising.
+Per-pair phase lag is supported but defaults to the symmetric
+Kuramoto limit (:math:`\\alpha_{ij} = 0`) because joint estimation
+of α from interbank data is a separate inverse problem (delegated
+to ``core.kuramoto.frustration``).
 
 Three pure functions:
 
