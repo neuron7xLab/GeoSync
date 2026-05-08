@@ -30,6 +30,11 @@ from .baselines import (
     edge_density_score,
     rolling_volatility_score,
 )
+from .canonical_seven import (
+    CanonicalSevenInputs,
+    CanonicalSevenOutcome,
+    run_canonical_seven,
+)
 from .coupling import (
     coupling_from_exposures,
     omega_from_volatility,
@@ -208,6 +213,8 @@ __all__ = [
     "BankingCrisisLedger",
     "CSDConfig",
     "CSDIndicators",
+    "CanonicalSevenInputs",
+    "CanonicalSevenOutcome",
     "ClassificationMetrics",
     "CrisisOutcome",
     "DEFAULT_BIT_IDENTICAL_TOLERANCE",
@@ -331,6 +338,7 @@ __all__ = [
     "replication_match_bayes_factor",
     "rolling_volatility_score",
     "run_adversarial_ladder",
+    "run_canonical_seven",
     "run_data_firewall",
     "run_end_to_end_falsification",
     "run_falsification",
