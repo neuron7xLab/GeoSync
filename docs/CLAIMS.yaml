@@ -74,7 +74,20 @@ claims:
       - geosync_hpc/conformal.py
       - geosync_hpc/execution.py
       - tests/geosync_hpc/test_backtest_runtime_reset.py
+    falsifier:
+      test_id: tests/geosync_hpc/test_backtest_runtime_reset.py::test_backtester_run_is_bit_identical_across_repeated_calls
+      invariants_cited:
+        - INV-HPC1
+      failure_signature: >
+        Two repeated invocations of BacktesterCAL.run on the same
+        calibrated instance and identical input produce a result tuple
+        whose hash differs by any byte (or any element of the result
+        whose binary representation differs by any ULP on identical
+        hardware). The test asserts deep equality on the canonical
+        result envelope; any divergence prints the offending field
+        path and triggers AssertionError naming INV-HPC1.
     added_utc: "2026-04-25"
+    last_updated_utc: "2026-05-08"
 
   - id: hpc-fixed-point-ledger-conservation
     priority: P0
@@ -87,7 +100,19 @@ claims:
     evidence_paths:
       - geosync_hpc/ledger.py
       - tests/geosync_hpc/test_ledger.py
+    falsifier:
+      test_id: tests/geosync_hpc/test_ledger.py::test_conservation_holds_under_random_fills
+      invariants_cited:
+        - INV-HPC3
+      failure_signature: >
+        Hypothesis-generated (fill, qty, fee, mark) sequence within the
+        int64 envelope where geosync_hpc.ledger.conservation_holds()
+        returns False, OR where two permutations of the same independent
+        fill set produce different terminal LedgerState values
+        (test_sequential_fills_sum_commutes_over_permutations). Either
+        violation surfaces as an AssertionError citing INV-HPC3.
     added_utc: "2026-04-25"
+    last_updated_utc: "2026-05-08"
 
   - id: hpc-indexed-rng-control-flow-free
     priority: P0
@@ -101,7 +126,19 @@ claims:
     evidence_paths:
       - geosync_hpc/indexed_rng.py
       - tests/geosync_hpc/test_indexed_rng.py
+    falsifier:
+      test_id: tests/geosync_hpc/test_indexed_rng.py::test_same_tuple_yields_same_value
+      invariants_cited:
+        - INV-HPC1
+      failure_signature: >
+        Two evaluations of the indexed RNG with identical
+        (seed, stream, event_id, event_index) tuple produce different
+        floating-point values, OR the same tuple produces a different
+        value across two fresh IndexedRng instances
+        (test_same_tuple_across_fresh_instances_yields_same_value).
+        Both failures surface as AssertionError citing INV-HPC1.
     added_utc: "2026-04-25"
+    last_updated_utc: "2026-05-08"
 
   - id: hpc-runtime-state-envelope-integrity
     priority: P0
@@ -114,7 +151,19 @@ claims:
     evidence_paths:
       - geosync_hpc/runtime_state.py
       - tests/geosync_hpc/test_runtime_state.py
+    falsifier:
+      test_id: tests/geosync_hpc/test_runtime_state.py::test_load_detects_tampered_payload
+      invariants_cited:
+        - INV-HPC4
+      failure_signature: >
+        A payload byte mutated post-checksum loads without raising
+        EnvelopeIntegrityError; OR a non-finite (NaN/Inf) value passes
+        load validation; OR two semantically identical payloads with
+        differently ordered dict keys produce different SHA-256
+        checksums (canonical-serialisation contract). Each surfaces
+        as an AssertionError citing INV-HPC4.
     added_utc: "2026-04-25"
+    last_updated_utc: "2026-05-08"
 
   - id: hpc-session-lifecycle-explicit-fsm
     priority: P1
@@ -127,7 +176,19 @@ claims:
     evidence_paths:
       - geosync_hpc/session_fsm.py
       - tests/geosync_hpc/test_session_fsm.py
+    falsifier:
+      test_id: tests/geosync_hpc/test_session_fsm.py::test_canonical_happy_path_reaches_completed
+      invariants_cited:
+        - INV-HPC5
+      failure_signature: >
+        The canonical happy-path action sequence fails to reach the
+        COMPLETED terminal state; OR a terminal state has at least one
+        outgoing transition declared in the table; OR an
+        InvalidTransitionError fires AFTER a side effect on the FSM
+        (transition not pre-validated). Each surfaces as an
+        AssertionError citing INV-HPC5.
     added_utc: "2026-04-25"
+    last_updated_utc: "2026-05-08"
 
   - id: robustness-hac-psr-newey-west
     priority: P1

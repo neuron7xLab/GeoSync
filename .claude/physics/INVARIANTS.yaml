@@ -538,6 +538,60 @@ hpc:
     falsification: "any finite input within spec yields NaN/Inf or cond(A) > kappa_max"
     priority: P0
 
+  ledger_conservation:
+    id: INV-HPC3
+    type: conservation
+    statement: "For the fixed-point execution ledger, the conservation identity (cash + position·mark = invariant, modulo trade cost) holds to the cent on every (fill, qty, fee, mark) tuple within the int64 envelope. The identity is checked end-to-end via geosync_hpc.ledger.conservation_holds() after each apply_fill."
+    test_type: property_test
+    falsification: "Any (fill, qty, fee, mark) sequence within the int64 envelope where conservation_holds() returns False, OR where sequential apply_fill is non-commutative under permutation of independent fills."
+    priority: P0
+    provenance: ANCHORED
+    source: geosync_hpc/ledger.py
+    tests: tests/geosync_hpc/test_ledger.py
+    integration_test: tests/geosync_hpc/test_ledger.py
+    runtime_evaluable: yes
+    references:
+      - "Knuth, D. E. (1997). The Art of Computer Programming, Vol. 2 §4.2: Floating-Point Arithmetic. Addison-Wesley, 3rd ed."
+      - "Goldberg, D. (1991). What every computer scientist should know about floating-point arithmetic. ACM Comput. Surv. 23(1), 5–48."
+      - "Demmel, J. & Nguyen, H. D. (2013). Fast reproducible floating-point summation. 2013 IEEE 21st Symposium on Computer Arithmetic, 163–172."
+    related: [INV-HPC1, INV-HPC2]
+
+  state_envelope_integrity:
+    id: INV-HPC4
+    type: universal
+    statement: "Snapshot/restore envelopes carry an explicit envelope_version, schema_version, and SHA-256 checksum over the serialised payload. On load: tampered payload, mismatched schema_version, unknown envelope_version, or non-finite payload value all raise EnvelopeIntegrityError; bit-identical round-trip is guaranteed for canonical payloads. Key-order permutations of the same dict do NOT change the checksum (canonical serialisation)."
+    test_type: property_test
+    falsification: "A tampered payload that loads without raising; a non-canonical serialisation where two semantically identical payloads produce different checksums; a load that returns silently after schema_version mismatch; a non-finite payload value (NaN/Inf) accepted into the envelope."
+    priority: P0
+    provenance: ANCHORED
+    source: geosync_hpc/runtime_state.py
+    tests: tests/geosync_hpc/test_runtime_state.py
+    integration_test: tests/geosync_hpc/test_runtime_state.py
+    runtime_evaluable: yes
+    references:
+      - "Merkle, R. C. (1979). Secrecy, Authentication and Public Key Systems. Stanford PhD thesis (origin of hash-tree integrity proofs)."
+      - "Lamport, L. (1981). Password authentication with insecure communication. Comm. ACM 24(11), 770–772."
+      - "NIST (2015). FIPS 180-4: Secure Hash Standard (SHA-256). National Institute of Standards and Technology."
+    related: [INV-HPC1]
+
+  session_fsm_totality:
+    id: INV-HPC5
+    type: universal
+    statement: "BacktesterCAL session lifecycle is an explicit finite-state machine with a frozen states-set, a frozen actions-set, a transition table that is total over (state, action) pairs, terminal-state absorption (terminal states have no outgoing transitions), and a serialisable envelope round-trip. Invalid (state, action) pairs raise InvalidTransitionError before any side effect."
+    test_type: property_test
+    falsification: "An (state, action) pair that produces a successor state not in the declared states-set; a terminal state with at least one outgoing transition; an InvalidTransitionError that fires AFTER a side effect; a serialise/deserialise round-trip that loses or mutates the FSM state."
+    priority: P1
+    provenance: ANCHORED
+    source: geosync_hpc/session_fsm.py
+    tests: tests/geosync_hpc/test_session_fsm.py
+    integration_test: tests/geosync_hpc/test_session_fsm.py
+    runtime_evaluable: yes
+    references:
+      - "Hopcroft, J. E. & Ullman, J. D. (1979). Introduction to Automata Theory, Languages, and Computation. Addison-Wesley (canonical FSM definitions: states, alphabet, transition function, initial state, accepting states)."
+      - "Pnueli, A. (1977). The temporal logic of programs. 18th Annual Symposium on Foundations of Computer Science, 46–57 (terminal-absorption + transition totality semantics)."
+      - "Harel, D. (1987). Statecharts: a visual formalism for complex systems. Sci. Comput. Programming 8(3), 231–274 (state hierarchy and transition algebra)."
+    related: [INV-HPC1, INV-HPC4]
+
 # ═══════════════════════════════════════════════════
 # CRYPTOBIOSIS — Phase-Transition Survival
 # Physics: tardigrade-inspired state machine. System exits threat space
