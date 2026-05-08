@@ -1,8 +1,8 @@
-// neuron7x.md design tokens — single source of truth per ./DESIGN.md at repo root.
+// neuron7xLab.md design tokens — single source of truth per ./DESIGN.md at repo root.
 // Cream editorial aesthetic (warm minimalism, IBM Plex, charcoal ink on cream canvas).
 // Every legacy --tp-* alias is remapped to the cream system so existing tp-* utility
 // classes inherit the research-paper theme automatically.
-export const NEURON7X_TOKENS = `
+export const NEURON7XLAB_TOKENS = `
   :root {
     color-scheme: light;
 
@@ -74,7 +74,7 @@ export const NEURON7X_TOKENS = `
     --motion-base: 150ms cubic-bezier(0.2, 0, 0, 1);
     --motion-tick: 120ms cubic-bezier(0.2, 0, 0, 1);
 
-    /* ========== Legacy alias bridge: --tp-* → neuron7x tokens ========== */
+    /* ========== Legacy alias bridge: --tp-* → neuron7xLab tokens ========== */
     /* Surfaces: swap dark → cream paper stack */
     --tp-surface-900: var(--bg-canvas);
     --tp-surface-800: var(--bg-elevated);

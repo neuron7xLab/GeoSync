@@ -29,6 +29,11 @@ max_changed_files_by_claim_type:
   governance: 16
   refactor: 20
   documentation: 24
+  # chore: brand renames, file moves, identifier rewrites with no
+  # behavior or architecture change. Matches conventional-commits
+  # `chore(...)` subject prefix. Wider cap than refactor because
+  # rebrands legitimately touch many files at once.
+  chore: 24
 forbidden_import_patterns:
   - "trading"
   - "execution"

@@ -1,4 +1,4 @@
-# neuron7x.md
+# neuron7xLab.md
 ## Visual Design Contract · neuron7xLab
 
 > Editorial research aesthetic. Warm minimalism. Academic publication meets

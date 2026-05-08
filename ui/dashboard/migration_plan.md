@@ -1,6 +1,6 @@
-# GeoSync Dashboard → neuron7x.md Migration Plan
+# GeoSync Dashboard → neuron7xLab.md Migration Plan
 
-**Contract**: `./DESIGN.md` == `./neuron7x.md` (cream editorial, IBM Plex, warm minimalism).
+**Contract**: `./DESIGN.md` == `./neuron7xLab.md` (cream editorial, IBM Plex, warm minimalism).
 **Previous Linear contract**: archived at `./DESIGN.md.linear.bak` (context only, not load-bearing).
 **Entry date**: 2026-04-20.
 
@@ -44,15 +44,15 @@
 
 | # | Change | File |
 |---|---|---|
-| 1 | Import contract at repo root | `neuron7x.md` (new, 415 lines) |
+| 1 | Import contract at repo root | `neuron7xLab.md` (new, 415 lines) |
 
 | # | Change | File |
 |---|---|---|
-| 1 | Import contract at repo root | `neuron7x.md` (new, 415 lines) |
-| 2 | Install as active design contract | `DESIGN.md` (overwritten from `neuron7x.md`) |
+| 1 | Import contract at repo root | `neuron7xLab.md` (new, 415 lines) |
+| 2 | Install as active design contract | `DESIGN.md` (overwritten from `neuron7xLab.md`) |
 | 3 | Archive prior contract | `DESIGN.md.linear.bak` (ex Linear) |
-| 4 | Rewrite token dictionary under neuron7x tokens + legacy `--tp-*` alias bridge | `ui/dashboard/src/styles/tokens.css.js` |
-| 5 | Replace Linear overrides with cream editorial overrides | `ui/dashboard/src/styles/neuron7x_overrides.css.js` (new) |
+| 4 | Rewrite token dictionary under neuron7xLab tokens + legacy `--tp-*` alias bridge | `ui/dashboard/src/styles/tokens.css.js` |
+| 5 | Replace Linear overrides with cream editorial overrides | `ui/dashboard/src/styles/neuron7xLab_overrides.css.js` (new) |
 | 6 | Drop prior Linear overrides file | `ui/dashboard/src/styles/linear_overrides.css.js` (removed) |
 | 7 | Wire new module names in style cascade | `ui/dashboard/src/core/dashboard_ui.js` |
 | 8 | Replace `demo.html` with cream editorial dashboard + 4 signatures + 6 priorities | `ui/dashboard/demo.html` |
@@ -62,12 +62,12 @@
 ## Cascade order
 
 ```
-NEURON7X_TOKENS         ← first: defines --bg/--ink/--rule/--sig/--t/--s/--r + remaps --tp-*
+NEURON7XLAB_TOKENS         ← first: defines --bg/--ink/--rule/--sig/--t/--s/--r + remaps --tp-*
 BASE_STYLES             ← legacy tp-* utility & class rules
 TABLE_STYLES
 CHART_STYLES
 ONBOARDING_STYLES
-NEURON7X_OVERRIDES      ← last: strips gradients/blur/aurora/glow + forces IBM Plex + tabular-nums
+NEURON7XLAB_OVERRIDES      ← last: strips gradients/blur/aurora/glow + forces IBM Plex + tabular-nums
 ```
 
 Every rule that declares a hard-coded cyan/violet hex, a gradient, a backdrop-filter, a text-gradient, a glow shadow, a transform on hover, or a drop-shadow filter is overridden to the cream editorial equivalent.
@@ -130,15 +130,15 @@ Every rule that declares a hard-coded cyan/violet hex, a gradient, a backdrop-fi
 
 ### Phase 6 — Playwright / a11y re-baseline
 
-- Re-run `playwright test` to capture new screenshots under `tests/e2e/__screenshots__/`. Archive dark-era under `tests/e2e/__screenshots__/pre-neuron7x/`.
+- Re-run `playwright test` to capture new screenshots under `tests/e2e/__screenshots__/`. Archive dark-era under `tests/e2e/__screenshots__/pre-neuron7xLab/`.
 - Re-run `@axe-core/playwright` — contrast ratios must meet §10 (4.5:1 body, 7:1 primary metrics).
 - Verify `prefers-reduced-motion: reduce` disables `n7-pulse` and tick crossfades.
 - Verify ISO-8601 UTC timestamps throughout (no relative-time copy).
 
 ## Acceptance checks for this PR
 
-- [x] `neuron7x.md` at repo root (415 lines).
-- [x] `DESIGN.md` mirrors neuron7x; `DESIGN.md.linear.bak` preserved.
+- [x] `neuron7xLab.md` at repo root (415 lines).
+- [x] `DESIGN.md` mirrors neuron7xLab; `DESIGN.md.linear.bak` preserved.
 - [x] `CLAUDE.md` carries UI Contract block (retained from prior PR).
 - [x] `demo.html` renders cream editorial dashboard with:
   - [x] all 6 trading priorities
@@ -172,4 +172,4 @@ Every rule that declares a hard-coded cyan/violet hex, a gradient, a backdrop-fi
 - **Architecture reads as only possible solution?**
   - Token layer first + overrides last is the minimal edit that rebinds the 3 746-line legacy CSS tree. A full rewrite of `base.css.js` is scheduled for Phase 2 because it touches every view test and should not be folded into the contract swap.
 
-Gate: **PASS**. Phases 2–6 documented; removing `neuron7x_overrides.css.js` before Phase 2 reverts the cascade and is therefore gated.
+Gate: **PASS**. Phases 2–6 documented; removing `neuron7xLab_overrides.css.js` before Phase 2 reverts the cascade and is therefore gated.

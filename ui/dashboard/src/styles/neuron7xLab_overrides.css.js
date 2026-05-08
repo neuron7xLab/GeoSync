@@ -1,6 +1,6 @@
-// neuron7x.md overrides — appended LAST in the cascade so it wins against base/table/chart/onboarding.
+// neuron7xLab.md overrides — appended LAST in the cascade so it wins against base/table/chart/onboarding.
 // Strips aurora/noise/glow/blur, rebinds typography to IBM Plex, forces cream surfaces + charcoal ink.
-export const NEURON7X_OVERRIDES = `
+export const NEURON7XLAB_OVERRIDES = `
   html, body {
     background: var(--bg-canvas);
     color: var(--ink-primary);
