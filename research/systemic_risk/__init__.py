@@ -50,9 +50,22 @@ from .network_fitting import (
     fit_exponential,
     fit_power_law,
 )
+from .null_models import (
+    NullSurrogate,
+    degree_preserving_randomization,
+    linear_correlation_surrogate,
+    permuted_crisis_dates,
+    random_exposure_weights,
+    shuffled_time_labels,
+    static_topology_baseline,
+)
 from .phase_extraction import (
     INTERBANK_DEFAULT_BAND,
     interbank_phase_extract,
+)
+from .replication import (
+    RunManifest,
+    build_run_manifest,
 )
 from .topology import (
     InterbankTopology,
@@ -73,14 +86,18 @@ __all__ = [
     "INTERBANK_DEFAULT_BAND",
     "InterbankTopology",
     "ModelComparison",
+    "NullSurrogate",
     "PowerLawFit",
+    "RunManifest",
     "auc_bootstrap_ci",
     "auc_mann_whitney",
     "barabasi_albert_null",
     "bonferroni_correction",
+    "build_run_manifest",
     "compare_power_law_vs_exponential",
     "compute_early_warning",
     "coupling_from_exposures",
+    "degree_preserving_randomization",
     "fit_barabasi_albert",
     "fit_barabasi_albert_from_topology",
     "fit_exponential",
@@ -88,7 +105,12 @@ __all__ = [
     "from_exposure_matrix",
     "interbank_phase_extract",
     "kuramoto_order_parameter",
+    "linear_correlation_surrogate",
     "omega_from_volatility",
+    "permuted_crisis_dates",
+    "random_exposure_weights",
     "run_falsification",
     "sakaguchi_alpha_zero",
+    "shuffled_time_labels",
+    "static_topology_baseline",
 ]

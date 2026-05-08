@@ -31,10 +31,15 @@
 
 id: research-systemic-risk-rewrite-v2
 status: ACTIVE
-# claim_type=correctness: v2 fixes three correctness defects in v1
-# (silent symmetrisation that destroyed direction signal; missing
-# CI on the verdict statistic; FDR control where FWER is required).
-claim_type: correctness
+# claim_type=refactor: v2 is a production-grade structural rewrite of
+# research/systemic_risk/ that (a) fixes three correctness defects in
+# v1 — silent symmetrisation, missing AUC CI, FDR-instead-of-FWER —
+# (b) introduces six new modules covering MLE BA fitting, asymmetric
+# coupling, six mandatory null baselines, run replication manifest,
+# and four canonical validation/limitation/protocol/data-schema docs.
+# Cap=20 fits the 20-file diff. No trading-execution behaviour
+# changes; the v1 → v2 cutover is structural.
+claim_type: refactor
 promise: >-
   After this PR lands, research/systemic_risk/ exposes a directed
   topology adapter, an MLE-calibrated BA null, an asymmetric coupling
@@ -48,15 +53,23 @@ diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/research-systemic-risk-rewrite-v2.yaml"
     - path: "CLAIMS.md"
-    - path: "research/systemic_risk/__init__.py"
+    - path: "research/systemic_risk/LIMITATIONS.md"
+    - path: "research/systemic_risk/PROTOCOL.md"
     - path: "research/systemic_risk/README.md"
+    - path: "research/systemic_risk/VALIDATION.md"
+    - path: "research/systemic_risk/__init__.py"
     - path: "research/systemic_risk/coupling.py"
+    - path: "research/systemic_risk/data_schema.md"
     - path: "research/systemic_risk/falsification.py"
     - path: "research/systemic_risk/network_fitting.py"
+    - path: "research/systemic_risk/null_models.py"
+    - path: "research/systemic_risk/replication.py"
     - path: "research/systemic_risk/topology.py"
     - path: "tests/research/systemic_risk/test_coupling.py"
     - path: "tests/research/systemic_risk/test_falsification.py"
     - path: "tests/research/systemic_risk/test_network_fitting.py"
+    - path: "tests/research/systemic_risk/test_null_models.py"
+    - path: "tests/research/systemic_risk/test_replication.py"
     - path: "tests/research/systemic_risk/test_topology.py"
   forbidden_paths:
     - "trading/"
@@ -70,6 +83,14 @@ diff_scope:
 required_python_symbols:
   - "research/systemic_risk/topology.py::InterbankTopology"
   - "research/systemic_risk/topology.py::from_exposure_matrix"
+  - "research/systemic_risk/null_models.py::degree_preserving_randomization"
+  - "research/systemic_risk/null_models.py::shuffled_time_labels"
+  - "research/systemic_risk/null_models.py::random_exposure_weights"
+  - "research/systemic_risk/null_models.py::static_topology_baseline"
+  - "research/systemic_risk/null_models.py::linear_correlation_surrogate"
+  - "research/systemic_risk/null_models.py::permuted_crisis_dates"
+  - "research/systemic_risk/replication.py::RunManifest"
+  - "research/systemic_risk/replication.py::build_run_manifest"
   - "research/systemic_risk/network_fitting.py::fit_power_law"
   - "research/systemic_risk/network_fitting.py::fit_barabasi_albert"
   - "research/systemic_risk/network_fitting.py::compare_power_law_vs_exponential"
