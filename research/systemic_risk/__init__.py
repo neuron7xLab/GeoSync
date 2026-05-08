@@ -15,10 +15,19 @@ without taking any execution action.
 
 from __future__ import annotations
 
+from .baselines import (
+    edge_density_score,
+    rolling_volatility_score,
+)
 from .coupling import (
     coupling_from_exposures,
     omega_from_volatility,
     sakaguchi_alpha_zero,
+)
+from .critical_slowing_down import (
+    CSDConfig,
+    CSDIndicators,
+    compute_csd_indicators,
 )
 from .early_warning import (
     EarlyWarningConfig,
@@ -55,6 +64,13 @@ from .governance import (
     assert_claim_tier,
     build_validation_readiness_report,
     run_premerge_science_gate,
+)
+from .metrics import (
+    ClassificationMetrics,
+    LeadTimeConfig,
+    LeadTimeMetrics,
+    compute_classification_metrics,
+    compute_lead_time_metrics,
 )
 from .network_fitting import (
     MIN_RELATIVE_SE_VALIDATION,
@@ -99,6 +115,9 @@ from .topology import (
 __all__ = [
     "BankingCrisisEvent",
     "BankingCrisisLedger",
+    "CSDConfig",
+    "CSDIndicators",
+    "ClassificationMetrics",
     "CrisisOutcome",
     "DEFAULT_LEDGER",
     "EarlyWarningConfig",
@@ -112,6 +131,8 @@ __all__ = [
     "InvalidExposureMatrixError",
     "InvalidNodeLabelsError",
     "InvalidTemporalPanelError",
+    "LeadTimeConfig",
+    "LeadTimeMetrics",
     "MIN_RELATIVE_SE_VALIDATION",
     "MIN_TAIL_SIZE_VALIDATION",
     "ModelComparison",
@@ -129,9 +150,13 @@ __all__ = [
     "build_run_manifest",
     "build_validation_readiness_report",
     "compare_power_law_vs_exponential",
+    "compute_classification_metrics",
+    "compute_csd_indicators",
     "compute_early_warning",
+    "compute_lead_time_metrics",
     "coupling_from_exposures",
     "degree_preserving_randomization",
+    "edge_density_score",
     "fit_barabasi_albert",
     "fit_barabasi_albert_from_topology",
     "fit_barabasi_albert_validation_from_topology",
@@ -145,6 +170,7 @@ __all__ = [
     "omega_from_volatility",
     "permuted_crisis_dates",
     "random_exposure_weights",
+    "rolling_volatility_score",
     "run_end_to_end_falsification",
     "run_falsification",
     "run_premerge_science_gate",
