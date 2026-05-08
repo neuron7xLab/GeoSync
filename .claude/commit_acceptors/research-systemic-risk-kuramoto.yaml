@@ -23,7 +23,11 @@
 
 id: research-systemic-risk-kuramoto
 status: ACTIVE
-claim_type: research
+# claim_type=governance: this PR is primarily governance over a falsifiable
+# research hypothesis — pre-registered decision rule, frozen thresholds,
+# CLAIMS.md ledger entry, fail-closed verdict. The research code itself is
+# composition over the existing core.kuramoto stack.
+claim_type: governance
 promise: >-
   After this PR lands, research/systemic_risk/ ships a pre-registered
   falsification battery for C-SYSRISK-PHASE (HYPOTHESIS tier in
