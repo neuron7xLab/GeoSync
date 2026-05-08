@@ -191,9 +191,9 @@ class TestCramerRao:
         empirical_se = float(np.std(alpha_hats, ddof=1))
         lower_bound = cramer_rao_alpha_lower_bound(true_alpha, n=n)
         # Empirical SE must be ≥ CRLB. Allow 5% finite-sample tolerance.
-        assert empirical_se >= 0.95 * lower_bound, (
-            f"Empirical SE {empirical_se:.5f} fell below 95% of Cramér-Rao bound {lower_bound:.5f}"
-        )
+        assert (
+            empirical_se >= 0.95 * lower_bound
+        ), f"Empirical SE {empirical_se:.5f} fell below 95% of Cramér-Rao bound {lower_bound:.5f}"
         # ... but should also be close (within 20%) — MLE asymptotically attains it.
         assert empirical_se <= 1.20 * lower_bound, (
             f"Empirical SE {empirical_se:.5f} exceeded 120% of "
