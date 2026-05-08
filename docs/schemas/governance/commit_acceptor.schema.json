@@ -48,7 +48,8 @@
         "performance",
         "governance",
         "refactor",
-        "documentation"
+        "documentation",
+        "chore"
       ],
       "title": "ClaimType",
       "type": "string"
