@@ -251,3 +251,36 @@ class TestRunFalsificationSanity:
         bad_dates = (date(2010, 1, 1), date(2010, 1, 1))
         with pytest.raises(ValueError, match="strictly increasing"):
             run_falsification(np.zeros(2, dtype=np.float64), bad_dates, ledger)
+
+
+class TestScopeExplicitAliases:
+    def _build(
+        self,
+    ) -> tuple[BankingCrisisLedger, tuple[date, ...], np.ndarray]:
+        return TestRunFalsificationSanity()._build_synthetic_ledger_and_score(seed=42)
+
+    def test_score_level_alias_matches_run_falsification(self) -> None:
+        from research.systemic_risk.falsification import run_score_level_falsification
+
+        ledger, dates, score = self._build()
+        cfg = FalsificationConfig(
+            pre_event_window_days=60,
+            null_window_count=10,
+            min_distance_from_event_days=180,
+            n_permutations=200,
+            n_bootstrap=500,
+            seed=7,
+        )
+        a = run_falsification(score, dates, ledger, config=cfg, country_filter="ABC")
+        b = run_score_level_falsification(score, dates, ledger, config=cfg, country_filter="ABC")
+        assert a.verdict == b.verdict
+        assert len(a.outcomes) == len(b.outcomes)
+        for oa, ob in zip(a.outcomes, b.outcomes):
+            assert oa.label == ob.label
+            assert oa.auc == ob.auc
+
+    def test_end_to_end_falsification_fails_closed(self) -> None:
+        from research.systemic_risk.falsification import run_end_to_end_falsification
+
+        with pytest.raises(NotImplementedError, match="end-to-end|null-audit"):
+            run_end_to_end_falsification()

@@ -439,6 +439,47 @@ def fit_barabasi_albert_from_topology(
     )
 
 
+def fit_barabasi_albert_validation_from_topology(
+    topology: "InterbankTopology",
+    *,
+    n_bootstrap: int = 1000,
+    seed: int = 42,
+) -> tuple[int, PowerLawFit]:
+    """Strict, fail-closed BA calibration for validation-mode pipelines.
+
+    Wraps :func:`fit_barabasi_albert_from_topology` with the
+    validation-mode floors enforced by :func:`fit_power_law_validation`:
+
+    * ``n_tail >= MIN_TAIL_SIZE_VALIDATION = 50`` (CRLB-derived)
+    * ``σ_α / α <= MIN_RELATIVE_SE_VALIDATION = 0.10``
+      (Clauset-Shalizi-Newman 2009 fig. 3 boundary)
+
+    Both floors are applied internally; the kwarg surface
+    deliberately offers no escape hatch (no ``min_relative_se=None``
+    and no opt-out for the n-tail floor) so the validation contract
+    is unambiguous. ``n_bootstrap`` defaults to 1000 (KS-p resolves
+    to ±0.001 by Davison-Hinkley) — also tighter than exploratory.
+
+    Always uses ``topology.out_degree`` per the canonical
+    BA-orientation contract. Use the exploratory
+    :func:`fit_barabasi_albert_from_topology` for permissive fits.
+    """
+    out_deg = topology.out_degree
+    if out_deg.size < MIN_TAIL_SIZE_VALIDATION:
+        raise ValueError(
+            f"validation-mode BA fit requires "
+            f"n_observations >= {MIN_TAIL_SIZE_VALIDATION}; "
+            f"got n={out_deg.size}. "
+            f"For exploratory use, call fit_barabasi_albert_from_topology."
+        )
+    return fit_barabasi_albert(
+        out_deg,
+        n_bootstrap=n_bootstrap,
+        seed=seed,
+        min_relative_se=MIN_RELATIVE_SE_VALIDATION,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Internals: k_min selection + KS statistic + bootstrap p
 # ---------------------------------------------------------------------------

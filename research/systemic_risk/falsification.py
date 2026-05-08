@@ -53,6 +53,8 @@ __all__ = [
     "auc_bootstrap_ci",
     "bonferroni_correction",
     "run_falsification",
+    "run_score_level_falsification",
+    "run_end_to_end_falsification",
 ]
 
 
@@ -470,3 +472,54 @@ def run_falsification(
         verdict = "HARD_PASS" if len(passing) >= 2 else "UNDECIDED"
 
     return FalsificationReport(outcomes=finalised, verdict=verdict, config=cfg)
+
+
+# ---------------------------------------------------------------------------
+# Scope-explicit aliases — make the validation boundary auditable
+# ---------------------------------------------------------------------------
+
+
+def run_score_level_falsification(
+    score: NDArray[np.float64],
+    dates: tuple[date, ...],
+    ledger: BankingCrisisLedger,
+    *,
+    config: FalsificationConfig | None = None,
+    country_filter: str | None = None,
+) -> FalsificationReport:
+    """Score-level alias of :func:`run_falsification` — explicit scope tag.
+
+    Identical behaviour to :func:`run_falsification`. The dedicated
+    name makes the *scope* of the test auditable in caller code:
+    this function evaluates a pre-computed score series; it does
+    NOT validate the upstream pipeline that produced the score.
+    For end-to-end (exposure → verdict) validation see
+    :func:`run_end_to_end_falsification`.
+    """
+    return run_falsification(score, dates, ledger, config=config, country_filter=country_filter)
+
+
+def run_end_to_end_falsification(
+    *args: object,
+    **kwargs: object,
+) -> FalsificationReport:
+    """End-to-end falsification — NOT YET IMPLEMENTED.
+
+    The full pipeline — temporal exposure panel → topology →
+    coupling → Kuramoto dynamics → r(t) → early-warning score →
+    crisis verdict — requires real-data ingest and an executable
+    null-audit orchestrator, neither of which has landed on
+    ``main`` (see ``LIMITATIONS.md`` § "Domain limitations" and
+    ``null_models.py`` module docstring).
+
+    Calling this function fails-closed via
+    :class:`NotImplementedError` rather than running a partial
+    pipeline that could be misread as end-to-end evidence.
+    """
+    raise NotImplementedError(
+        "End-to-end falsification (exposure panel → verdict) is not "
+        "yet implemented on main. The composed null-audit orchestrator "
+        "and temporal-exposure ingest are both deferred — see "
+        "research/systemic_risk/LIMITATIONS.md and PROTOCOL.md § 4. "
+        "For score-level evaluation use run_score_level_falsification."
+    )
