@@ -28,6 +28,7 @@
 | C-INV-COUNT | "87 invariants in `.claude/physics/INVARIANTS.yaml`" | `FACT` | `python scripts/count_invariants.py` | 2026-04-30 |
 | C-PHYS-KERNEL | "Physics-inspired research platform with partially machine-checkable invariant layer" | `MEASURED` | `physics-kernel-gate.yml`, `BASELINE.md` | 2026-04-30 |
 | C-TLA-PROOF | "Four-barrier admission gate model-checked in TLA⁺ with 3 invariants" | `FACT` | `formal/tla/AdmissionGate.tla`, `formal-verification.yml` | 2026-04-30 |
+| C-SYSRISK-PHASE | "Interbank phase-locking precedes banking-crisis events" | `HYPOTHESIS` | `research/systemic_risk/falsification.py` (pre-registered AUC + permutation p + BH FDR battery, `HARD_PASS` requires AUC≥0.70 + p_BH≤0.01 on ≥2 crises); `research/systemic_risk/README.md` | 2026-05-08 |
 
 ## Retired claims (pending re-validation under tier rules)
 
