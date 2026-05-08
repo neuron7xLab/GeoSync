@@ -285,7 +285,7 @@ limitations`, `mark as historical/upstream`, or `remove`.
 |---|---|
 | Repo-wide systematic broken-path resolver | requires careful relative-path handling per host directory; recorded as "Future evidence gate". |
 | Full pytest sweep | already executed in the prior pre-final session (commit `568722e`); not re-run here as documentation audit must not modify or re-execute test surface. |
-| `gh` push / PR / merge flow | blocked by upstream `neuron7x` token has pull-only rights to `neuron7xLab/GeoSync`; not in scope of documentation audit. |
+| `gh` push / PR / merge flow | blocked by upstream `neuron7xLab` token has pull-only rights to `neuron7xLab/GeoSync`; not in scope of documentation audit. |
 
 ---
 

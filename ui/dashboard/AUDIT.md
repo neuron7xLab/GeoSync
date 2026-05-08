@@ -1,4 +1,4 @@
-# GeoSync Dashboard — neuron7x.md (cream editorial) Audit
+# GeoSync Dashboard — neuron7xLab.md (cream editorial) Audit
 
 ## Update — truth-mode (PR #2)
 
@@ -31,7 +31,7 @@ engine; DRO-ARA is for *spreads*, so the dashboard is fed a spread.
 
 ## Original PR #1 contract audit follows
 
-Contract: `./DESIGN.md` at repo root (= `./neuron7x.md`, warm-minimalism research-paper aesthetic).
+Contract: `./DESIGN.md` at repo root (= `./neuron7xLab.md`, warm-minimalism research-paper aesthetic).
 Previous Linear contract archived at `./DESIGN.md.linear.bak`.
 Scope: `ui/dashboard/` — vanilla-JS trading dashboard (`*.css.js` style modules + `demo.html`).
 
@@ -63,7 +63,7 @@ Scope: `ui/dashboard/` — vanilla-JS trading dashboard (`*.css.js` style module
 
 ## Delta vs previous Linear pass
 
-| Axis | Linear pass | neuron7x pass |
+| Axis | Linear pass | neuron7xLab pass |
 |---|---|---|
 | canvas | `#08090a` near-black | `#F2EDE4` warm cream |
 | ink | `#f7f8f8` off-white | `#1F1D1A` charcoal |
@@ -76,9 +76,9 @@ Scope: `ui/dashboard/` — vanilla-JS trading dashboard (`*.css.js` style module
 | elevation | border-as-shadow ring | background tonal shift + hairline |
 | signatures | none | γ-indicator + ⊛ + CANON·2026 + "7" proportion |
 
-## Violation table — pre-refactor → neuron7x contract
+## Violation table — pre-refactor → neuron7xLab contract
 
-| # | Surface | Source state | neuron7x rule | Severity |
+| # | Surface | Source state | neuron7xLab rule | Severity |
 |---|---|---|---|---|
 | V01 | canvas | multi-gradient dark `#020617`/`#0a0f1e` + aurora + noise | flat `#F2EDE4` cream | **P0** |
 | V02 | panels | `rgba(10,15,30,0.95)` dark glass | `#EBE5D9` elevated + hairline | **P0** |

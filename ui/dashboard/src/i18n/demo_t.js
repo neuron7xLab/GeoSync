@@ -1,6 +1,6 @@
 // ⊛ neuron7xLab · CANON·2026 · i18n runtime for demo.html
 // Locale state + translation + Intl formatters + toggle wiring.
-// Two locales only: "uk" | "en". Persistence key: neuron7x.locale.
+// Two locales only: "uk" | "en". Persistence key: neuron7xLab.locale.
 // Autodetect: navigator.language.startsWith("uk") → "uk" else "en".
 //
 // Contract:
@@ -17,7 +17,7 @@ import { strings } from "./demo_strings.js";
 /** @typedef {"uk" | "en"} Locale */
 /** @type {readonly Locale[]} */
 export const LOCALES = Object.freeze(["uk", "en"]);
-const STORAGE_KEY = "neuron7x.locale";
+const STORAGE_KEY = "neuron7xLab.locale";
 
 /** @type {Locale} */
 let _locale = _initialLocale();
