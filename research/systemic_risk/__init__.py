@@ -30,6 +30,16 @@ from .baselines import (
     edge_density_score,
     rolling_volatility_score,
 )
+from .bayes_rigorous import (
+    ASYMPTOTIC_BIC_PENALTY,
+    auc_per_crisis_bf_rigorous,
+    auc_to_z_under_null,
+    cramer_rao_alpha_lower_bound,
+    derive_kill_threshold_log_odds,
+    mann_whitney_effective_n,
+    mann_whitney_null_variance,
+    wagenmakers_bic_bayes_factor,
+)
 from .canonical_seven import (
     CanonicalSevenInputs,
     CanonicalSevenOutcome,
@@ -213,6 +223,7 @@ from .verdict_lattice import (
 )
 
 __all__ = [
+    "ASYMPTOTIC_BIC_PENALTY",
     "BankingCrisisEvent",
     "BankingCrisisLedger",
     "CSDConfig",
@@ -295,6 +306,8 @@ __all__ = [
     "auc_bootstrap_ci",
     "auc_mann_whitney",
     "auc_per_crisis_bayes_factor",
+    "auc_per_crisis_bf_rigorous",
+    "auc_to_z_under_null",
     "barabasi_albert_null",
     "baseline_dominance_bayes_factor",
     "bonferroni_correction",
@@ -306,16 +319,18 @@ __all__ = [
     "check_future_data_via_mutation",
     "check_label_leakage",
     "check_post_event_contamination",
-    "compare_power_law_vs_exponential",
     "aggregate_actions",
+    "compare_power_law_vs_exponential",
     "compare_run_outputs",
     "compute_classification_metrics",
     "compute_csd_indicators",
     "compute_early_warning",
     "compute_lead_time_metrics",
     "coupling_from_exposures",
+    "cramer_rao_alpha_lower_bound",
     "default_registry",
     "degree_preserving_randomization",
+    "derive_kill_threshold_log_odds",
     "edge_density_score",
     "external_review_bayes_factor",
     "fit_barabasi_albert",
@@ -337,6 +352,8 @@ __all__ = [
     "kuramoto_order_parameter",
     "linear_correlation_surrogate",
     "manifest_replication_sha",
+    "mann_whitney_effective_n",
+    "mann_whitney_null_variance",
     "omega_from_volatility",
     "parameter_fragility_audit",
     "permuted_crisis_dates",
@@ -361,4 +378,5 @@ __all__ = [
     "trigger_parameter_fragility",
     "trigger_replication_mismatch",
     "validate_temporal_exposure_panel",
+    "wagenmakers_bic_bayes_factor",
 ]
