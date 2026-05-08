@@ -1053,6 +1053,7 @@ api_contract:
     provenance: ANCHORED
     source: application/api/service.py
     tests: tests/api/test_schemathesis_contract.py
+    integration_test: tests/api/test_schemathesis_contract.py
     runtime_evaluable: yes
     references:
       - "OpenAPI Initiative (2024). OpenAPI Specification 3.1.0. https://spec.openapis.org/oas/v3.1.0"
