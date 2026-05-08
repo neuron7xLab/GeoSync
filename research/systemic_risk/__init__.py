@@ -235,6 +235,7 @@ from .replication_capsule import (
     compare_run_outputs,
     manifest_replication_sha,
 )
+from .synthetic import SyntheticPanelConfig, generate_panel
 from .temporal_panel import (
     validate_temporal_exposure_panel,
 )
@@ -324,6 +325,7 @@ __all__ = [
     "ReplicationResultLike",
     "ReplicationToleranceClass",
     "RunManifest",
+    "SyntheticPanelConfig",
     "SystemicRiskInputError",
     "TERMINAL_STATES",
     "TierAction",
@@ -373,6 +375,7 @@ __all__ = [
     "fit_power_law",
     "fit_power_law_validation",
     "from_exposure_matrix",
+    "generate_panel",
     "gate_diagonal",
     "gate_finite",
     "gate_monotonic_time",
