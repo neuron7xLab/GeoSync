@@ -39,6 +39,19 @@ class TestExceptionHierarchy:
         with pytest.raises(InvalidNodeLabelsError, match="empty"):
             from_exposure_matrix(np.zeros((3, 3), dtype=np.float64), ("a", "", "c"))
 
+    def test_whitespace_only_label_raises_typed(self) -> None:
+        with pytest.raises(InvalidNodeLabelsError, match="empty or whitespace"):
+            from_exposure_matrix(np.zeros((3, 3), dtype=np.float64), ("a", "  ", "c"))
+
+    def test_none_label_raises_typed(self) -> None:
+        # node_labels is typed `tuple[str, ...]` but runtime callers
+        # may pass through dynamically-built tuples; defend at runtime.
+        with pytest.raises(InvalidNodeLabelsError, match="None"):
+            from_exposure_matrix(
+                np.zeros((3, 3), dtype=np.float64),
+                ("a", None, "c"),  # type: ignore[arg-type]
+            )
+
     def test_nan_exposure_raises_typed(self) -> None:
         e = np.array([[0.0, np.nan], [0.0, 0.0]], dtype=np.float64)
         with pytest.raises(InvalidExposureMatrixError, match="finite"):

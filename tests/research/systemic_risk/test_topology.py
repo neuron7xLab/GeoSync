@@ -109,6 +109,19 @@ class TestFromExposureMatrix:
         topo = from_exposure_matrix(e, node_labels=("a", "b"), snapshot_date=snap)
         assert topo.snapshot_date == snap
 
+    def test_single_node_graph_accepted(self) -> None:
+        e = np.zeros((1, 1), dtype=np.float64)
+        topo = from_exposure_matrix(e, ("solo",))
+        assert topo.n_nodes == 1
+        assert topo.adjacency.sum() == 0
+
+    def test_all_zero_matrix_accepted_as_empty_graph(self) -> None:
+        e = np.zeros((5, 5), dtype=np.float64)
+        topo = from_exposure_matrix(e, tuple(f"b{i}" for i in range(5)))
+        assert topo.adjacency.sum() == 0
+        assert np.all(topo.in_degree == 0)
+        assert np.all(topo.out_degree == 0)
+
     def test_asymmetry_invariant_on_directed_data(self) -> None:
         # v2 protocol's asymmetry invariant: empirical e-MID, BIS, ECB
         # interbank exposures are documented at ≥ 60% asymmetry

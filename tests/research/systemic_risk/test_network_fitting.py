@@ -146,6 +146,29 @@ class TestFitBarabasiAlbert:
             fit_barabasi_albert_from_topology(topo, min_relative_se=0.05)
 
 
+class TestFitPowerLawValidation:
+    def test_rejects_small_n(self) -> None:
+        # n < MIN_TAIL_SIZE_VALIDATION must fail-closed.
+        from research.systemic_risk.network_fitting import (
+            MIN_TAIL_SIZE_VALIDATION,
+            fit_power_law_validation,
+        )
+
+        small = _draw_power_law(MIN_TAIL_SIZE_VALIDATION - 1, 2.5, 4, 0)
+        with pytest.raises(ValueError, match="validation-mode"):
+            fit_power_law_validation(small)
+
+    def test_passes_on_sufficient_sample(self) -> None:
+        # Large enough sample at α=2.5 with k_min=6 clears both the
+        # n=50 floor and the 10 % relative-SE precision bound.
+        from research.systemic_risk.network_fitting import fit_power_law_validation
+
+        sample = _draw_power_law(2000, 2.5, 6, 7)
+        fit = fit_power_law_validation(sample, k_min=6, n_bootstrap=200, seed=11)
+        assert fit.n_tail >= 50
+        assert fit.alpha_se / fit.alpha <= 0.10
+
+
 class TestFitBarabasiAlbertFromTopology:
     """Regression: catch the v2 in+out double-count drift on `topology.degree`.
 

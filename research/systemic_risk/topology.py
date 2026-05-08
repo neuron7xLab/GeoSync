@@ -212,10 +212,16 @@ def from_exposure_matrix(
         raise InvalidNodeLabelsError(
             f"node_labels length {len(node_labels)} != exposures dim {e.shape[0]}"
         )
+    if any(lbl is None for lbl in node_labels):
+        raise InvalidNodeLabelsError("node_labels must not contain None")
+    if any(not isinstance(lbl, str) for lbl in node_labels):
+        raise InvalidNodeLabelsError("node_labels must contain only str values")
+    if any(lbl.strip() == "" for lbl in node_labels):
+        raise InvalidNodeLabelsError(
+            "node_labels must not contain empty or whitespace-only strings"
+        )
     if len(set(node_labels)) != len(node_labels):
         raise InvalidNodeLabelsError("node_labels must be unique")
-    if any(not lbl for lbl in node_labels):
-        raise InvalidNodeLabelsError("node_labels must not contain empty strings")
     if not np.isfinite(e).all():
         raise InvalidExposureMatrixError("exposures must be finite (no NaN/Inf)")
     if np.any(e < 0):

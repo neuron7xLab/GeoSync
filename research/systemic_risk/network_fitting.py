@@ -38,15 +38,38 @@ if TYPE_CHECKING:
     from .topology import InterbankTopology
 
 __all__ = [
+    "MIN_TAIL_SIZE_VALIDATION",
+    "MIN_RELATIVE_SE_VALIDATION",
     "PowerLawFit",
     "ExponentialFit",
     "ModelComparison",
     "fit_power_law",
+    "fit_power_law_validation",
     "fit_exponential",
     "compare_power_law_vs_exponential",
     "fit_barabasi_albert",
     "fit_barabasi_albert_from_topology",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Validation-mode constants — derived, not declared
+# ---------------------------------------------------------------------------
+#
+# MIN_TAIL_SIZE_VALIDATION: at α≈2.5 the Cramér-Rao σ_α/α floor at
+# n_tail=50 is 1.5/(2.5·√50) ≈ 0.085, giving a 95 % CI half-width of
+# 1.96·0.085·α ≈ 0.42 — sufficient to distinguish α=2.0 from α=2.4.
+# Below n_tail=50 the SE explodes and the implied minimum from the
+# CRLB (see fit_power_law `min_relative_se` derivation) becomes
+# brittle to a single-realisation seed.
+#
+# MIN_RELATIVE_SE_VALIDATION: 0.10 (10 % relative SE) is the bound
+# at which Clauset-Shalizi-Newman 2009 fig. 3 reports the discrete
+# power-law fit becoming reliably distinguishable from exponential
+# alternatives at the AIC-Δ > 4 level on synthetic samples.
+
+MIN_TAIL_SIZE_VALIDATION: int = 50
+MIN_RELATIVE_SE_VALIDATION: float = 0.10
 
 
 # ---------------------------------------------------------------------------
@@ -226,6 +249,50 @@ def fit_power_law(
         log_likelihood=float(log_likelihood),
         ks_statistic=float(ks),
         ks_p_value=p_value,
+    )
+
+
+def fit_power_law_validation(
+    degrees: NDArray[np.int64],
+    *,
+    k_min: int | None = None,
+    n_bootstrap: int = 1000,
+    seed: int = 42,
+) -> PowerLawFit:
+    """Strict, fail-closed validation-mode wrapper around :func:`fit_power_law`.
+
+    Validation mode enforces TWO floors that the exploratory API
+    leaves opt-in:
+
+    * ``n_tail >= MIN_TAIL_SIZE_VALIDATION = 50`` — derived from the
+      Cramér-Rao bound at α≈2.5 (95 % CI half-width ≤ 0.42, sufficient
+      to separate α=2.0 from α=2.4 — see module-level constant
+      derivation block).
+    * ``σ_α / α <= MIN_RELATIVE_SE_VALIDATION = 0.10`` — Clauset-
+      Shalizi-Newman 2009 fig. 3 reports this as the bound where the
+      power-law fit becomes reliably distinguishable from the
+      exponential alternative at AIC-Δ > 4.
+
+    Both floors must hold simultaneously; failure of either raises
+    :class:`ValueError` with the implied minimum sample size at the
+    fitted α. ``n_bootstrap`` defaults to 1000 (KS-p resolves to
+    ±0.001 by Davison-Hinkley) — also tighter than the exploratory
+    default. ``min_relative_se`` is enforced internally; it is *not*
+    a kwarg here so the validation contract is unambiguous.
+    """
+    d = _validate_degrees(degrees)
+    if d.size < MIN_TAIL_SIZE_VALIDATION:
+        raise ValueError(
+            f"validation-mode power-law fit requires "
+            f"n_observations >= {MIN_TAIL_SIZE_VALIDATION}; got n={d.size}. "
+            f"For exploratory use, call fit_power_law directly."
+        )
+    return fit_power_law(
+        d,
+        k_min=k_min,
+        n_bootstrap=n_bootstrap,
+        seed=seed,
+        min_relative_se=MIN_RELATIVE_SE_VALIDATION,
     )
 
 

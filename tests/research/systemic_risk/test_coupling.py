@@ -147,6 +147,21 @@ class TestOmegaFromVolatility:
         with pytest.raises(ValueError, match="at least 2 time samples"):
             omega_from_volatility(np.zeros((0, 4)))
 
+    def test_inf_input_rejected(self) -> None:
+        bad = np.zeros((10, 3), dtype=np.float64)
+        bad[5, 1] = np.inf
+        with pytest.raises(ValueError, match="finite"):
+            omega_from_volatility(bad)
+
+    def test_zero_variance_returns_zero_omega(self) -> None:
+        # Constant series → σ=0 → ω=0. Caller-detectable, no NaN
+        # leakage. The downstream Kuramoto solver receives explicit
+        # zero (a degenerate but well-defined oscillator) instead of
+        # an undefined value.
+        omega = omega_from_volatility(np.full((10, 3), 0.123, dtype=np.float64))
+        assert np.all(omega == 0.0)
+        assert np.all(np.isfinite(omega))
+
 
 class TestSakaguchiAlphaZero:
     def test_shape_and_values(self) -> None:

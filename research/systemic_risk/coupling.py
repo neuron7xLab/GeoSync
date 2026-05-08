@@ -81,11 +81,14 @@ def coupling_from_exposures(
         Real, non-negative matrix shape ``(N, N)`` where
         ``exposures[i, j]`` is *i*'s exposure to *j* (lending volume).
     normalisation
-        ``"row_stochastic"`` (default) divides each row by its sum so
-        the *outgoing* couplings sum to 1, modelling the fact that a
-        single bank's stress propagates to its borrowers proportionally
-        to its lending exposure share. Rows that sum to zero stay
-        zero. ``"capital_weighted"`` divides each row by the lender's
+        ``"row_stochastic"`` (default) divides each row by its row
+        sum: ``K[i, j] = E[i, j] / Σ_j E[i, j]``. Per the canonical
+        orientation invariant declared in the module docstring,
+        ``K[i, j]`` then expresses the **share of bank i's total
+        exposure that is concentrated in counterparty j** — i.e. the
+        fraction of i's claims at risk if j defaults. Rows whose sum
+        is zero stay zero (no edges originate from that bank).
+        ``"capital_weighted"`` divides each row by the lender's
         capital, so the coupling expresses exposure-to-capital ratio
         (Battiston et al. 2012, *Sci. Rep.* 2: 541). ``"raw"`` returns
         the exposure matrix unchanged (only the diagonal cleared).

@@ -41,6 +41,8 @@ from .falsification import (
     run_falsification,
 )
 from .network_fitting import (
+    MIN_RELATIVE_SE_VALIDATION,
+    MIN_TAIL_SIZE_VALIDATION,
     ExponentialFit,
     ModelComparison,
     PowerLawFit,
@@ -49,6 +51,7 @@ from .network_fitting import (
     fit_barabasi_albert_from_topology,
     fit_exponential,
     fit_power_law,
+    fit_power_law_validation,
 )
 from .null_models import (
     NullSurrogate,
@@ -85,6 +88,8 @@ __all__ = [
     "FalsificationReport",
     "INTERBANK_DEFAULT_BAND",
     "InterbankTopology",
+    "MIN_RELATIVE_SE_VALIDATION",
+    "MIN_TAIL_SIZE_VALIDATION",
     "ModelComparison",
     "NullSurrogate",
     "PowerLawFit",
@@ -102,6 +107,7 @@ __all__ = [
     "fit_barabasi_albert_from_topology",
     "fit_exponential",
     "fit_power_law",
+    "fit_power_law_validation",
     "from_exposure_matrix",
     "interbank_phase_extract",
     "kuramoto_order_parameter",
