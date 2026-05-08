@@ -1,33 +1,35 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Pre-registered falsification battery for the interbank-Kuramoto hypothesis.
+"""Pre-registered falsification battery — v2 with bootstrap-CI verdict.
 
 The hypothesis under test (``HYPOTHESIS`` tier per ``CLAIMS.md``):
 
-    The early-warning score (``research.systemic_risk.early_warning``)
+    The early-warning score
+    (:func:`research.systemic_risk.early_warning.compute_early_warning`)
     is *elevated* in pre-event windows preceding banking-crisis dates
     compared to null windows drawn from the same series at safe
     distance from any event.
 
 Decision rule (pre-registered, written *before* any data is run)::
 
-    For each crisis c with at least one valid pre-event window:
-        AUC_c   = ROC AUC of (pre-event scores vs null-window scores)
-        p_c     = one-sided permutation p-value
-                  (alternative: pre-event > null)
+    For each crisis c with a valid pre-event window:
+        AUC_c          = ROC AUC of (pre-event scores vs null-window scores)
+        AUC_c (95% CI) = percentile bootstrap, n=10000 stratified resamples
+        p_c            = one-sided permutation p (alternative: pre > null)
 
     Across crises:
-        p_BH    = Benjamini-Hochberg corrected p-values (FDR control)
+        p_BONF = Bonferroni-corrected p-values (k = number of valid crises)
 
-    HARD FAIL  : ∃ c with AUC_c <= ``fail_auc`` (default 0.55)
-                  → archive negative; close the hypothesis.
-    HARD PASS  : at least 2 crises with AUC_c >= ``pass_auc`` AND
-                  p_BH_c <= ``pass_alpha`` (defaults 0.70, 0.01).
-    UNDECIDED  : neither — collect more data, do not promote tier.
+    HARD_FAIL : ∃ c with AUC_c <= ``fail_auc`` (default 0.55)
+                OR ∃ c with auc_ci_low <= 0.5 + ``ci_floor_tol`` (CI crosses 0.5)
+                → archive negative; close the hypothesis.
+    HARD_PASS : >= 2 crises with auc_ci_low >= ``pass_auc_ci_low``
+                AND p_BONF_c <= ``pass_alpha`` (defaults 0.70, 0.01).
+    UNDECIDED : neither — collect more data, do not promote tier.
 
-The verdict is *encoded once* and never edited after seeing data — any
-subsequent change to ``fail_auc``, ``pass_auc`` or ``pass_alpha`` is a
-new pre-registration on a fresh branch.
+Bonferroni replaces the v1 Benjamini-Hochberg FDR control: the user
+prefers strict family-wise error control given the small number of
+crises and the high cost of a false MEASURED promotion.
 
 Pure-function API. No I/O. Determinism via explicit ``seed``.
 """
@@ -48,7 +50,8 @@ __all__ = [
     "CrisisOutcome",
     "FalsificationReport",
     "auc_mann_whitney",
-    "benjamini_hochberg",
+    "auc_bootstrap_ci",
+    "bonferroni_correction",
     "run_falsification",
 ]
 
@@ -65,7 +68,7 @@ def auc_mann_whitney(positives: NDArray[np.float64], negatives: NDArray[np.float
     """ROC AUC via the Mann-Whitney U statistic.
 
     AUC = P(X_pos > X_neg) + 0.5 * P(X_pos == X_neg).
-    Returns 0.5 when either array is empty (uninformative, by convention).
+    Returns 0.5 when either array is empty.
     """
     if positives.size == 0 or negatives.size == 0:
         return 0.5
@@ -74,7 +77,6 @@ def auc_mann_whitney(positives: NDArray[np.float64], negatives: NDArray[np.float
     if pos.size == 0 or neg.size == 0:
         return 0.5
     combined = np.concatenate([pos, neg])
-    # Average ranks over ties (rankdata midrank).
     _, inv, counts = np.unique(combined, return_inverse=True, return_counts=True)
     raw_ranks = combined.argsort().argsort().astype(np.float64) + 1.0
     sums = np.bincount(inv, weights=raw_ranks)
@@ -85,6 +87,46 @@ def auc_mann_whitney(positives: NDArray[np.float64], negatives: NDArray[np.float
     n_neg = neg.size
     u = rank_sum_pos - n_pos * (n_pos + 1) / 2.0
     return float(u / (n_pos * n_neg))
+
+
+def auc_bootstrap_ci(
+    positives: NDArray[np.float64],
+    negatives: NDArray[np.float64],
+    *,
+    n_bootstrap: int = 10000,
+    seed: int = 42,
+    confidence: float = 0.95,
+) -> tuple[float, float, float]:
+    """Stratified percentile-bootstrap CI on the AUC.
+
+    Resamples positives and negatives independently *with replacement*
+    ``n_bootstrap`` times, computes the AUC on each resample, and
+    returns ``(point_estimate, ci_low, ci_high)`` where the CI is the
+    central ``confidence`` percentile interval. Stratified resampling
+    preserves the marginal sample sizes — an AUC artefact of mixing
+    the two arms is impossible.
+    """
+    if not 0.0 < confidence < 1.0:
+        raise ValueError(f"confidence must be in (0, 1), got {confidence}")
+    if n_bootstrap < 1:
+        raise ValueError(f"n_bootstrap must be >= 1, got {n_bootstrap}")
+    pos = positives[np.isfinite(positives)]
+    neg = negatives[np.isfinite(negatives)]
+    point = auc_mann_whitney(pos, neg)
+    if pos.size < 2 or neg.size < 2:
+        return point, point, point
+    rng = np.random.default_rng(seed)
+    samples = np.empty(n_bootstrap, dtype=np.float64)
+    n_pos = pos.size
+    n_neg = neg.size
+    for b in range(n_bootstrap):
+        idx_p = rng.integers(0, n_pos, size=n_pos)
+        idx_n = rng.integers(0, n_neg, size=n_neg)
+        samples[b] = auc_mann_whitney(pos[idx_p], neg[idx_n])
+    alpha = (1.0 - confidence) / 2.0
+    ci_low = float(np.quantile(samples, alpha))
+    ci_high = float(np.quantile(samples, 1.0 - alpha))
+    return point, ci_low, ci_high
 
 
 def _permutation_p(
@@ -108,15 +150,16 @@ def _permutation_p(
         a = auc_mann_whitney(perm[:n_pos], perm[n_pos:])
         if a >= observed:
             exceedances += 1
-    # Davison & Hinkley (1997) +1 continuity correction.
     return float((exceedances + 1) / (n_permutations + 1))
 
 
-def benjamini_hochberg(p_values: NDArray[np.float64]) -> NDArray[np.float64]:
-    """Benjamini-Hochberg FDR-adjusted p-values (1995).
+def bonferroni_correction(p_values: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Family-wise error-rate control via Bonferroni: ``p_adj = min(1, m * p)``.
 
-    Adjusted p_(i) = min_{k>=i} (m / k) * p_(k), clipped to [0, 1].
-    Order is preserved relative to the input.
+    Order is preserved relative to the input. More conservative than
+    Benjamini-Hochberg FDR — chosen here per the v2 protocol because
+    promoting C-SYSRISK-PHASE to MEASURED on a false positive is
+    treated as catastrophic.
     """
     p = np.asarray(p_values, dtype=np.float64)
     if p.ndim != 1:
@@ -126,16 +169,7 @@ def benjamini_hochberg(p_values: NDArray[np.float64]) -> NDArray[np.float64]:
     if np.any(p < 0) or np.any(p > 1) or not np.isfinite(p).all():
         raise ValueError("p_values must be finite values in [0, 1]")
     m = p.size
-    order = p.argsort()
-    ranked = p[order]
-    factors = np.arange(1, m + 1, dtype=np.float64)
-    adjusted_sorted = ranked * (m / factors)
-    # Enforce monotone non-decreasing along reverse-sorted indices.
-    adjusted_sorted = np.minimum.accumulate(adjusted_sorted[::-1])[::-1]
-    adjusted_sorted = np.clip(adjusted_sorted, 0.0, 1.0)
-    out = np.empty_like(p)
-    out[order] = adjusted_sorted
-    return out
+    return np.clip(p * m, 0.0, 1.0)
 
 
 # ---------------------------------------------------------------------------
@@ -144,7 +178,6 @@ def benjamini_hochberg(p_values: NDArray[np.float64]) -> NDArray[np.float64]:
 
 
 def _date_to_index(target: date, dates: tuple[date, ...]) -> int | None:
-    """Return the index of the *latest* date <= ``target``, or ``None`` if all later."""
     out: int | None = None
     for i, d in enumerate(dates):
         if d <= target:
@@ -160,7 +193,6 @@ def _pre_event_window(
     event_start: date,
     window_days: int,
 ) -> NDArray[np.float64]:
-    """Extract the score values strictly *before* the event, length ``window_days``."""
     end_idx = _date_to_index(event_start - timedelta(days=1), dates)
     if end_idx is None:
         return np.empty(0, dtype=np.float64)
@@ -179,12 +211,10 @@ def _null_windows(
     n_windows: int,
     country_filter: str | None,
 ) -> NDArray[np.float64]:
-    """Sample non-overlapping null windows at safe distance from any event."""
     if score.size != len(dates):
         raise ValueError(f"score length {score.size} != dates length {len(dates)}")
     if score.size < window_days:
         return np.empty(0, dtype=np.float64)
-
     relevant_events: tuple[BankingCrisisEvent, ...]
     if country_filter is None:
         relevant_events = ledger.events
@@ -208,7 +238,6 @@ def _null_windows(
             valid_ends.append(end_idx)
     if not valid_ends:
         return np.empty(0, dtype=np.float64)
-
     take = min(n_windows, len(valid_ends))
     chosen = rng.choice(np.asarray(valid_ends, dtype=np.int64), size=take, replace=False)
     flat = np.concatenate([score[int(c) - window_days + 1 : int(c) + 1] for c in chosen])
@@ -222,7 +251,7 @@ def _null_windows(
 
 @dataclass(frozen=True, slots=True)
 class FalsificationConfig:
-    """Pre-registered falsification protocol.
+    """Pre-registered falsification protocol (v2).
 
     Attributes
     ----------
@@ -232,15 +261,24 @@ class FalsificationConfig:
         Number of null windows to draw per run (default 30).
     min_distance_from_event_days
         Buffer between any null window and any event interval
-        (default 365: a full year of separation).
+        (default 365).
     n_permutations
         Permutations for the AUC p-value (default 5000).
+    n_bootstrap
+        Stratified-bootstrap resamples for the AUC CI (default 10000).
+    confidence
+        Confidence level for the AUC CI (default 0.95).
     fail_auc
-        Hard-fail threshold (default 0.55).
-    pass_auc
-        Hard-pass AUC threshold (default 0.70).
+        Hard-fail threshold on the *point* AUC (default 0.55).
+    ci_floor_tol
+        Tolerance above 0.5 below which the CI lower bound triggers
+        HARD_FAIL (default 0.0 — strict: any CI crossing 0.5 fails).
+    pass_auc_ci_low
+        HARD_PASS threshold on the AUC *CI lower bound* (default 0.70).
+        Stronger than v1's point-estimate threshold: requires the
+        whole CI to clear the bar.
     pass_alpha
-        Hard-pass BH-adjusted p threshold (default 0.01).
+        HARD_PASS Bonferroni-adjusted p threshold (default 0.01).
     seed
         Deterministic RNG seed (default 42).
     """
@@ -249,8 +287,11 @@ class FalsificationConfig:
     null_window_count: int = 30
     min_distance_from_event_days: int = 365
     n_permutations: int = 5000
+    n_bootstrap: int = 10000
+    confidence: float = 0.95
     fail_auc: float = 0.55
-    pass_auc: float = 0.70
+    ci_floor_tol: float = 0.0
+    pass_auc_ci_low: float = 0.70
     pass_alpha: float = 0.01
     seed: int = 42
 
@@ -268,18 +309,24 @@ class FalsificationConfig:
             )
         if self.n_permutations < 100:
             raise ValueError(f"n_permutations must be >= 100, got {self.n_permutations}")
-        if not 0.0 < self.fail_auc < self.pass_auc <= 1.0:
+        if self.n_bootstrap < 100:
+            raise ValueError(f"n_bootstrap must be >= 100, got {self.n_bootstrap}")
+        if not 0.0 < self.confidence < 1.0:
+            raise ValueError(f"confidence must be in (0, 1), got {self.confidence}")
+        if not 0.0 < self.fail_auc < self.pass_auc_ci_low <= 1.0:
             raise ValueError(
-                f"thresholds must satisfy 0 < fail_auc < pass_auc <= 1; "
-                f"got fail={self.fail_auc}, pass={self.pass_auc}"
+                f"thresholds must satisfy 0 < fail_auc < pass_auc_ci_low <= 1; "
+                f"got fail={self.fail_auc}, pass={self.pass_auc_ci_low}"
             )
+        if self.ci_floor_tol < 0:
+            raise ValueError(f"ci_floor_tol must be >= 0, got {self.ci_floor_tol}")
         if not 0.0 < self.pass_alpha <= 0.1:
             raise ValueError(f"pass_alpha must be in (0, 0.1], got {self.pass_alpha}")
 
 
 @dataclass(frozen=True, slots=True)
 class CrisisOutcome:
-    """Per-crisis outcome of the falsification run."""
+    """Per-crisis outcome of the falsification run (v2)."""
 
     label: str
     country: str
@@ -287,8 +334,10 @@ class CrisisOutcome:
     n_pre_event: int
     n_null: int
     auc: float
+    auc_ci_low: float
+    auc_ci_high: float
     p_value: float
-    p_bh: float
+    p_bonferroni: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -308,7 +357,7 @@ def run_falsification(
     config: FalsificationConfig | None = None,
     country_filter: str | None = None,
 ) -> FalsificationReport:
-    """Run the pre-registered falsification battery.
+    """Run the pre-registered v2 falsification battery.
 
     Parameters
     ----------
@@ -319,11 +368,11 @@ def run_falsification(
     ledger
         :class:`BankingCrisisLedger` of crisis events.
     config
-        Optional :class:`FalsificationConfig`; defaults to the
+        Optional :class:`FalsificationConfig`; defaults to the v2
         pre-registered settings.
     country_filter
-        If given (ISO-3 code), restrict events and null-distance
-        masking to that country only.
+        Optional ISO-3 country code to restrict events and null
+        masking to a single jurisdiction.
     """
     cfg = config if config is not None else FalsificationConfig()
     s = np.asarray(score, dtype=np.float64)
@@ -339,7 +388,6 @@ def run_falsification(
             )
 
     rng = np.random.default_rng(cfg.seed)
-
     if country_filter is None:
         candidate_events = ledger.events
     else:
@@ -366,7 +414,13 @@ def run_falsification(
         nulls = nulls[np.isfinite(nulls)]
         if nulls.size < 4:
             continue
-        a = auc_mann_whitney(pre, nulls)
+        point, ci_low, ci_high = auc_bootstrap_ci(
+            pre,
+            nulls,
+            n_bootstrap=cfg.n_bootstrap,
+            seed=cfg.seed,
+            confidence=cfg.confidence,
+        )
         p = _permutation_p(pre, nulls, n_permutations=cfg.n_permutations, rng=rng)
         outcomes_in_order.append(
             CrisisOutcome(
@@ -375,21 +429,19 @@ def run_falsification(
                 event_start=ev.start,
                 n_pre_event=int(pre.size),
                 n_null=int(nulls.size),
-                auc=a,
+                auc=point,
+                auc_ci_low=ci_low,
+                auc_ci_high=ci_high,
                 p_value=p,
-                p_bh=float("nan"),
+                p_bonferroni=float("nan"),
             )
         )
         p_per_crisis.append(p)
 
     if not outcomes_in_order:
-        return FalsificationReport(
-            outcomes=tuple(),
-            verdict="UNDECIDED",
-            config=cfg,
-        )
+        return FalsificationReport(outcomes=tuple(), verdict="UNDECIDED", config=cfg)
 
-    p_bh = benjamini_hochberg(np.asarray(p_per_crisis, dtype=np.float64))
+    p_bonf = bonferroni_correction(np.asarray(p_per_crisis, dtype=np.float64))
     finalised = tuple(
         CrisisOutcome(
             label=o.label,
@@ -398,16 +450,23 @@ def run_falsification(
             n_pre_event=o.n_pre_event,
             n_null=o.n_null,
             auc=o.auc,
+            auc_ci_low=o.auc_ci_low,
+            auc_ci_high=o.auc_ci_high,
             p_value=o.p_value,
-            p_bh=float(p_bh[i]),
+            p_bonferroni=float(p_bonf[i]),
         )
         for i, o in enumerate(outcomes_in_order)
     )
 
-    if any(o.auc <= cfg.fail_auc for o in finalised):
+    ci_floor = 0.5 + cfg.ci_floor_tol
+    if any(o.auc <= cfg.fail_auc or o.auc_ci_low <= ci_floor for o in finalised):
         verdict: Verdict = "HARD_FAIL"
     else:
-        passing = [o for o in finalised if o.auc >= cfg.pass_auc and o.p_bh <= cfg.pass_alpha]
+        passing = [
+            o
+            for o in finalised
+            if o.auc_ci_low >= cfg.pass_auc_ci_low and o.p_bonferroni <= cfg.pass_alpha
+        ]
         verdict = "HARD_PASS" if len(passing) >= 2 else "UNDECIDED"
 
     return FalsificationReport(outcomes=finalised, verdict=verdict, config=cfg)
