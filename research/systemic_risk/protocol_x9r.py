@@ -339,8 +339,15 @@ def _gate_data_firewall(state: _RunState) -> GateResult:
             outputs_sha256=(),
             started_at_utc=started,
         )
+    # Word-boundary regex match — substring match falsely flags
+    # "unrestricted" as containing "RESTRICTED". The token list is
+    # word-bounded against the upper-cased text.
+    import re
+
     upper = license_text.upper()
-    blocked_token = next((t for t in _BLOCKED_LICENSE_TOKENS if t in upper), None)
+    pattern = re.compile(r"\b(" + "|".join(re.escape(t) for t in _BLOCKED_LICENSE_TOKENS) + r")\b")
+    match = pattern.search(upper)
+    blocked_token = match.group(1) if match else None
     if blocked_token is not None:
         return _make_gate_result(
             gate=GateName.DATA_FIREWALL,
