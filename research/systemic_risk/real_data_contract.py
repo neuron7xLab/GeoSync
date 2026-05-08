@@ -144,8 +144,16 @@ def validate_real_data_contract(dataset_dir: str | Path) -> DataContractReport:
     license_text = (root / "license.txt").read_text(encoding="utf-8").strip()
     if not license_text:
         return _blocked("license.txt is empty (cannot establish ingestion right)")
+    # Word-boundary regex match — substring match falsely flags
+    # "unrestricted" as containing "RESTRICTED".
+    import re as _re
+
     upper = license_text.upper()
-    blocked_token = next((t for t in BLOCKED_LICENSE_TOKENS if t in upper), None)
+    _pattern = _re.compile(
+        r"\b(" + "|".join(_re.escape(t) for t in BLOCKED_LICENSE_TOKENS) + r")\b"
+    )
+    _match = _pattern.search(upper)
+    blocked_token = _match.group(1) if _match else None
     if blocked_token is not None:
         return _blocked(f"license.txt contains restriction token: {blocked_token!r}")
 
