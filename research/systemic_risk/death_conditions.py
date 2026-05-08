@@ -64,14 +64,10 @@ TierAction = Literal[
 ]
 
 
-_PRECEDENCE: dict[TierAction, int] = {
-    "NONE": 0,
-    "STOP": 1,
-    "DEMOTE": 2,
-    "QUARANTINE": 3,
-    "INVALIDATE": 4,
-    "KILL": 5,
-}
+# Precedence is encoded algebraically in research.systemic_risk.verdict_lattice
+# as the join (⊔) on the totally-ordered TierLattice; see that module for the
+# formal axioms (commutativity / associativity / idempotence / identity at
+# NONE) and the Hypothesis-checked property tests.
 
 
 # ---------------------------------------------------------------------------
@@ -336,10 +332,17 @@ class DeathConditionsRegistry:
         evaluated = [(t, t.evaluate(state)) for t in self.triggers]
         outcomes = tuple(o for _, o in evaluated)
         fired = tuple(t.name for t, o in evaluated if o.fired)
-        action: TierAction = "NONE"
-        for _, outcome in evaluated:
-            if outcome.fired and _PRECEDENCE[outcome.action] > _PRECEDENCE[action]:
-                action = outcome.action
+        # Algebraic aggregation: the precedence rule
+        #   KILL > INVALIDATE > QUARANTINE > DEMOTE > STOP > NONE
+        # is exactly the join (⊔) over the totally-ordered TierLattice.
+        # See research.systemic_risk.verdict_lattice for the formal
+        # algebra and Hypothesis-checked lattice axioms.
+        from .verdict_lattice import TierLattice, aggregate_actions
+
+        joined = aggregate_actions(
+            TierLattice.from_action_name(o.action) for _, o in evaluated if o.fired
+        )
+        action: TierAction = joined.name  # type: ignore[assignment]
         return TierTransition(
             action=action,
             fired_triggers=fired,

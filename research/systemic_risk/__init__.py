@@ -207,6 +207,10 @@ from .topology import (
     barabasi_albert_null,
     from_exposure_matrix,
 )
+from .verdict_lattice import (
+    TierLattice,
+    aggregate_actions,
+)
 
 __all__ = [
     "BankingCrisisEvent",
@@ -282,6 +286,7 @@ __all__ = [
     "SystemicRiskInputError",
     "TERMINAL_STATES",
     "TierAction",
+    "TierLattice",
     "TierTransition",
     "Trigger",
     "TriggerOutcome",
@@ -302,6 +307,7 @@ __all__ = [
     "check_label_leakage",
     "check_post_event_contamination",
     "compare_power_law_vs_exponential",
+    "aggregate_actions",
     "compare_run_outputs",
     "compute_classification_metrics",
     "compute_csd_indicators",
