@@ -1,8 +1,8 @@
 {
-  "last_eval_utc": "2026-05-06T22:00:33Z",
-  "live_bars": 15,
+  "last_eval_utc": "2026-05-08T22:00:34Z",
+  "live_bars": 17,
   "cumulative_net_return": -0.040063,
-  "sharpe_live": -6.5606,
+  "sharpe_live": -6.1229,
   "max_dd_live": 0.046421,
   "predictive_envelope_quantile": "p05_p25",
   "status_label": "BUILDING_SAMPLE",
