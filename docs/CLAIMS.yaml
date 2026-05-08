@@ -202,7 +202,19 @@ claims:
       - research/robustness/cpcv.py
       - tests/research/robustness/test_hac_psr.py
       - results/cross_asset_kuramoto/robustness_v1/ROBUSTNESS_LIMITATIONS.md
+    falsifier:
+      test_id: tests/research/robustness/test_hac_psr.py::test_auto_bandwidth_matches_newey_west_1994_rule
+      invariants_cited:
+        - INV-PSR-HAC
+      failure_signature: >
+        AR(1) fixture with ρ > 0 yielding n_eff ≥ n; OR ρ = 0 yielding
+        n_eff ≠ n; OR ρ < 0 yielding n_eff ≤ n; OR auto-bandwidth
+        output that is negative or non-integer; OR a deviation from
+        the NW(1994) automatic-bandwidth rule beyond the documented
+        small-sample tolerance. Each surfaces as an AssertionError
+        citing INV-PSR-HAC.
     added_utc: "2026-04-25"
+    last_updated_utc: "2026-05-08"
 
   - id: cross-asset-walkforward-artifact-integrity
     priority: P1
@@ -224,18 +236,28 @@ claims:
 
   - id: ricci-microstructure-ten-axis-falsification
     priority: P1
-    tier: ANCHORED
+    tier: EXTRAPOLATED
     description: >
       The Ricci cross-sectional edge on L2 microstructure passes ten
       orthogonal validation axes (kill test, block-bootstrap CI,
       deflated Sharpe, purged CV, mutual info, lag attribution,
       power spectrum, DFA Hurst, pairwise/conditional TE, rolling
-      walk-forward) on the frozen Session 1 substrate.
+      walk-forward) on the frozen Session 1 substrate. Status
+      (Phase-1 falsifier audit, 2026-05-08): re-classified ANCHORED
+      → EXTRAPOLATED. The paper-tier evidence (FINDINGS.md, paper.tex)
+      is intact and the 10-axis result is reproducible from the frozen
+      substrate, but no programmatic falsifier-block currently exists
+      that re-runs the full 10-axis battery from a single pytest node
+      under the ADR 0021 v3 falsifier shape. Re-classify ANCHORED on
+      addition of `tests/research/microstructure/test_ten_axis.py`
+      with one parametrised test per axis, citing a new INV-RICCI-MS
+      invariant in the registry. Tracked as research-debt follow-up.
     evidence_paths:
       - research/microstructure/FINDINGS.md
       - paper/ricci_microstructure/paper.tex
       - paper/ricci_microstructure/references.bib
     added_utc: "2026-04-25"
+    last_updated_utc: "2026-05-08"
 
   # ---------------------------------------------------------------
   # IERD Phase-0 (2026-05-03) — invariant-anchored physics claims.
@@ -310,7 +332,21 @@ claims:
       - tests/core/neuro/serotonin/test_serotonin_controller.py
       - tests/core/neuro/serotonin/test_serotonin_properties.py
       - tests/unit/physics/test_T12_serotonin_stability.py
+    falsifier:
+      test_id: tests/unit/physics/test_T12_serotonin_stability.py::test_serotonin_lyapunov_is_non_increasing_under_zero_stress
+      invariants_cited:
+        - INV-5HT1
+        - INV-5HT2
+        - INV-5HT4
+        - INV-5HT7
+      failure_signature: >
+        Lyapunov V(s) increasing across any step under zero stress
+        (INV-5HT1); OR s(t) ∉ [0, 1] in any window (INV-5HT2); OR
+        sensitivity output ∉ [0.1, 1.0] (INV-5HT4); OR veto failing to
+        fire when stress ≥ 1.0 OR |dd| ≥ 0.5 (INV-5HT7 SAFETY).
+        Each surfaces as an AssertionError citing the offending INV.
     added_utc: "2026-05-03"
+    last_updated_utc: "2026-05-08"
 
   - id: dopamine-td-error-algebraic-exact
     priority: P0
@@ -399,7 +435,18 @@ claims:
       - tests/neuro/test_sizing.py
       - tests/analytics/test_kelly_criterion.py
       - tests/unit/physics/test_T14_portfolio_energy_conservation.py
+    falsifier:
+      test_id: tests/analytics/test_kelly_criterion.py::test_single_asset_kelly_closed_form
+      invariants_cited:
+        - INV-KELLY1
+        - INV-KELLY2
+      failure_signature: >
+        f* output diverges from μ/σ² to float precision on the closed-form
+        single-asset fixture (INV-KELLY1); OR applied fraction exceeds the
+        configured cap on any synthetic edge (INV-KELLY2). Each surfaces
+        as an AssertionError citing the offending INV.
     added_utc: "2026-05-03"
+    last_updated_utc: "2026-05-08"
 
   - id: oms-conservation-idempotency-monotone
     priority: P0
@@ -410,7 +457,20 @@ claims:
       timestamps monotone (INV-OMS3).
     evidence_paths:
       - tests/unit/physics/test_T15_oms_idempotency_causality.py
+    falsifier:
+      test_id: tests/unit/physics/test_T15_oms_idempotency_causality.py::test_oms_submit_is_idempotent_under_duplicate_correlation_id
+      invariants_cited:
+        - INV-OMS1
+        - INV-OMS2
+        - INV-OMS3
+      failure_signature: >
+        Two submits with identical correlation_id producing two distinct
+        orders OR distinct downstream state (INV-OMS2); OR per-order
+        lifecycle timestamps non-monotone in any window (INV-OMS3); OR
+        E_kinetic = ½Σ|pos|·ret² < 0 on any held position (INV-OMS1).
+        Each surfaces as an AssertionError citing the offending INV.
     added_utc: "2026-05-03"
+    last_updated_utc: "2026-05-08"
 
   - id: signalbus-deterministic-fanout
     priority: P0
@@ -423,7 +483,20 @@ claims:
     evidence_paths:
       - core/neuro/signal_bus.py
       - tests/unit/physics/test_T16_signalbus_dag.py
+    falsifier:
+      test_id: tests/unit/physics/test_T16_signalbus_dag.py::test_signalbus_dag_fanout_fires_each_subscriber_exactly_once
+      invariants_cited:
+        - INV-SB1
+        - INV-SB2
+      failure_signature: >
+        A subscriber not invoked exactly once per publish on a non-cyclic
+        DAG (INV-SB1); OR a deterministic-construction violation where
+        two publishes with identical input produce different observed
+        fan-out order (INV-SB2). Each surfaces as an AssertionError
+        citing the offending INV. Cyclic subscriptions raising
+        RecursionError remain a documented limit, not a falsification.
     added_utc: "2026-05-03"
+    last_updated_utc: "2026-05-08"
 
   - id: cryptobiosis-phase-transition-survival
     priority: P0
@@ -575,13 +648,22 @@ claims:
 
   - id: ierd-phase0-yana-response
     priority: P1
-    tier: ANCHORED
+    tier: EXTRAPOLATED
     description: >
       IERD-PAI-FPS-UX-001 Phase-0 response to the 2026-05-02
       external falsification audit is published with tier-labeled
       answers to all 7 questions, the directive is adopted as a
       binding standard, and the forbidden-terminology lint runs in
-      warn mode in CI.
+      warn mode in CI. Status (Phase-1 falsifier audit, 2026-05-08):
+      re-classified ANCHORED → EXTRAPOLATED. The documentation
+      artefacts are intact (yana-response.md addresses Q1–Q7; ADR
+      0020 ratifies adoption; lint_forbidden_terms.py runs in CI),
+      but no programmatic falsifier-block currently exists that
+      asserts the response covers each of Q1–Q7 from a single pytest
+      node under the ADR 0021 v3 falsifier shape. Re-classify ANCHORED
+      on addition of `tests/governance/test_yana_response_coverage.py`
+      with an assertion per question + a new INV-IERD-PHASE0
+      registry entry. Tracked as governance-debt follow-up.
     evidence_paths:
       - docs/governance/IERD-PAI-FPS-UX-001.md
       - docs/adr/0020-ierd-adoption.md
@@ -590,6 +672,7 @@ claims:
       - docs/validation/pai_report_2026_05_03.md
       - scripts/ci/lint_forbidden_terms.py
     added_utc: "2026-05-03"
+    last_updated_utc: "2026-05-08"
 
   # ---------------------------------------------------------------
   # IERD Phase-0 (2026-05-03) — frontend-integration gaps tracked
