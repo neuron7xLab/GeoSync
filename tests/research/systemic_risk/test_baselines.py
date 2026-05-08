@@ -68,16 +68,36 @@ class TestEdgeDensityScore:
         out = edge_density_score([a], include_self_edges=True)
         assert out[0] == pytest.approx(1.0)
 
-    def test_undirected_no_self_edges(self) -> None:
-        a = np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype=np.int8)  # K3
+    def test_undirected_complete_graph_density_is_one(self) -> None:
+        # Canonical: K3 has 3 unordered edges; undirected denominator
+        # is N*(N-1)/2 = 3; density = 3/3 = 1.0. Reading only the
+        # strict upper triangle prevents the double-count that
+        # would push the value past 1.0.
+        a = np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype=np.int8)
         out = edge_density_score([a], directed=False)
-        # 6 entries / (3*2/2 * 2) — 6 entries because both i→j and
-        # j→i are 1 in the symmetric matrix; denominator for the
-        # *undirected* canonical formula is 6/2=3 → density = 6/3=2.
-        # For our convention we sum the matrix directly so an
-        # undirected K3 gives density = 6 / 3 = 2.0; document with
-        # the canonical no-double-count check below.
-        assert out[0] == pytest.approx(2.0)
+        assert out[0] == pytest.approx(1.0)
+
+    def test_undirected_requires_symmetric_matrix(self) -> None:
+        # Asymmetric input with directed=False is a transpose-bug
+        # signal; must fail-closed rather than silently distorting
+        # the scale.
+        a = np.array([[0, 1, 0], [0, 0, 1], [0, 0, 0]], dtype=np.int8)
+        with pytest.raises(InvalidExposureMatrixError, match="symmetric"):
+            edge_density_score([a], directed=False)
+
+    def test_density_in_unit_interval_for_random_binary(self) -> None:
+        # Property: any binary symmetric adjacency must yield
+        # density in [0, 1] under directed=False.
+        rng = np.random.default_rng(0)
+        for n in (3, 5, 10, 20):
+            for p in (0.1, 0.3, 0.5, 0.8):
+                upper = (rng.random((n, n)) < p).astype(np.int8)
+                a = np.triu(upper, k=1)
+                a = a + a.T  # symmetric, no self-edges
+                out = edge_density_score([a], directed=False)
+                assert (
+                    0.0 <= out[0] <= 1.0
+                ), f"density={out[0]:.4f} out of [0, 1] at N={n}, p={p}, undirected"
 
     def test_panel_with_inconsistent_n_rejected(self) -> None:
         a = np.zeros((3, 3), dtype=np.int8)

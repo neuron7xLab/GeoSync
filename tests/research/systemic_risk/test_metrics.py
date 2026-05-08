@@ -57,6 +57,30 @@ class TestClassificationMetrics:
         with pytest.raises(ValueError, match="matching shape"):
             compute_classification_metrics(np.ones(3, dtype=np.bool_), np.ones(4, dtype=np.bool_))
 
+    def test_arbitrary_numeric_input_rejected(self) -> None:
+        # Codex audit P1: arbitrary floats must NOT be silently
+        # coerced via np.asarray(..., dtype=bool). The binary
+        # contract is enforced fail-closed.
+        with pytest.raises(ValueError, match="bool or binary"):
+            compute_classification_metrics(
+                np.array([0.0, 1.0, 0.5], dtype=np.float64),
+                np.array([0, 1, 1], dtype=np.int64),
+            )
+
+    def test_out_of_range_int_rejected(self) -> None:
+        with pytest.raises(ValueError, match="0/1"):
+            compute_classification_metrics(
+                np.array([0, 1, 2], dtype=np.int64),
+                np.array([0, 1, 1], dtype=np.int64),
+            )
+
+    def test_binary_int_input_accepted(self) -> None:
+        m = compute_classification_metrics(
+            np.array([1, 1, 0, 0], dtype=np.int64),
+            np.array([1, 0, 0, 1], dtype=np.int64),
+        )
+        assert m.tp == 1 and m.fp == 1 and m.tn == 1 and m.fn == 1
+
 
 class TestLeadTimeConfig:
     def test_negative_min_lead_rejected(self) -> None:
@@ -71,12 +95,16 @@ class TestLeadTimeConfig:
         with pytest.raises(ValueError, match="max_lead_days"):
             LeadTimeConfig(min_lead_days=0, max_lead_days=0)
 
-    def test_negative_exclusion_rejected(self) -> None:
-        with pytest.raises(ValueError, match="event_exclusion"):
-            LeadTimeConfig(
+    def test_event_exclusion_param_removed(self) -> None:
+        # event_exclusion_days_after has been removed from
+        # LeadTimeConfig; passing it must raise TypeError as a
+        # protective regression test against future re-introduction
+        # without explicit operationalisation.
+        with pytest.raises(TypeError):
+            LeadTimeConfig(  # type: ignore[call-arg]
                 min_lead_days=1,
                 max_lead_days=10,
-                event_exclusion_days_after=-1,
+                event_exclusion_days_after=0,
             )
 
 
@@ -173,6 +201,81 @@ class TestLeadTimeMetrics:
         )
         assert out.detected_event_count == 1
         assert out.lead_times == (30,)
+
+    def test_threshold_must_be_finite(self) -> None:
+        start = date(2020, 1, 1)
+        score, dates = self._make(60, start)
+        cfg = LeadTimeConfig(min_lead_days=1, max_lead_days=60)
+        with pytest.raises(ValueError, match="threshold must be finite"):
+            compute_lead_time_metrics(
+                score,
+                dates,
+                threshold=float("inf"),
+                event_dates=(dates[50],),
+                config=cfg,
+            )
+
+    def test_dates_must_be_strictly_increasing(self) -> None:
+        start = date(2020, 1, 1)
+        score = np.zeros(3, dtype=np.float64)
+        bad_dates = (start, start, start + timedelta(days=1))
+        cfg = LeadTimeConfig(min_lead_days=1, max_lead_days=10)
+        with pytest.raises(ValueError, match="strictly increasing"):
+            compute_lead_time_metrics(
+                score,
+                bad_dates,
+                threshold=0.5,
+                event_dates=(start + timedelta(days=2),),
+                config=cfg,
+            )
+
+    def test_warmup_nan_allowed_by_default(self) -> None:
+        # Leading NaN block from rolling-window warmup is accepted;
+        # a NaN past warmup is rejected.
+        start = date(2020, 1, 1)
+        score, dates = self._make(60, start)
+        score[:10] = np.nan  # warmup
+        cfg = LeadTimeConfig(min_lead_days=1, max_lead_days=30)
+        # No alarms inside window so detected count = 0 — but the
+        # call must not raise on the warmup NaN block.
+        out = compute_lead_time_metrics(
+            score,
+            dates,
+            threshold=0.5,
+            event_dates=(dates[40],),
+            config=cfg,
+        )
+        assert out.detected_event_count == 0
+
+    def test_nan_past_warmup_rejected(self) -> None:
+        start = date(2020, 1, 1)
+        score, dates = self._make(60, start)
+        score[5] = 1.0  # finite — first finite value
+        score[20] = np.nan  # NaN past warmup
+        cfg = LeadTimeConfig(min_lead_days=1, max_lead_days=30)
+        with pytest.raises(ValueError, match="past the leading warmup"):
+            compute_lead_time_metrics(
+                score,
+                dates,
+                threshold=0.5,
+                event_dates=(dates[40],),
+                config=cfg,
+            )
+
+    def test_strict_finite_score_mode(self) -> None:
+        start = date(2020, 1, 1)
+        score, dates = self._make(60, start)
+        score[3] = np.nan
+        cfg = LeadTimeConfig(min_lead_days=1, max_lead_days=30)
+        with pytest.raises(ValueError, match="must be finite"):
+            compute_lead_time_metrics(
+                score,
+                dates,
+                threshold=0.5,
+                event_dates=(dates[40],),
+                config=cfg,
+                allow_warmup_nan=False,
+            )
 
     def test_no_signal_undetected(self) -> None:
         start = date(2020, 1, 1)

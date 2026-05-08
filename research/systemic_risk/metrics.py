@@ -52,13 +52,39 @@ class ClassificationMetrics:
     false_negative_rate: float
 
 
+def _coerce_binary_or_bool(name: str, arr: NDArray[np.generic]) -> NDArray[np.bool_]:
+    """Accept ``bool`` or strictly-binary ``{0, 1}`` integer arrays.
+
+    Refuses arbitrary numeric input — silent ``np.asarray(..., dtype=bool)``
+    casting would map ``-1``, ``2``, ``np.nan`` all to ``True`` and
+    smuggle a graded score through a binary contract. Fail-closed.
+    """
+    raw = np.asarray(arr)
+    if raw.dtype == np.bool_:
+        return raw
+    if not np.issubdtype(raw.dtype, np.integer):
+        raise ValueError(
+            f"{name} must be bool or binary {{0, 1}} integer array; got dtype={raw.dtype}"
+        )
+    if not np.isin(raw, np.array([0, 1])).all():
+        raise ValueError(
+            f"{name} must contain only 0/1 values when not bool; got values outside {{0, 1}}"
+        )
+    return raw.astype(np.bool_)
+
+
 def compute_classification_metrics(
-    y_true: NDArray[np.bool_],
-    y_pred: NDArray[np.bool_],
+    y_true: NDArray[np.generic],
+    y_pred: NDArray[np.generic],
 ) -> ClassificationMetrics:
-    """Confusion-matrix metrics from boolean truth / prediction arrays."""
-    t = np.asarray(y_true, dtype=np.bool_)
-    p = np.asarray(y_pred, dtype=np.bool_)
+    """Confusion-matrix metrics from boolean / binary 0-1 truth and prediction arrays.
+
+    Inputs must be either ``bool`` or strictly-binary ``{0, 1}``
+    integer arrays; arbitrary numeric input is rejected to prevent
+    silent coercion of graded scores into a binary contract.
+    """
+    t = _coerce_binary_or_bool("y_true", y_true)
+    p = _coerce_binary_or_bool("y_pred", y_pred)
     if t.shape != p.shape or t.ndim != 1:
         raise ValueError(
             f"y_true and y_pred must be 1-D with matching shape; "
@@ -107,15 +133,20 @@ class LeadTimeConfig:
         Maximum gap (days). The pre-event window is closed at
         both ends; an alarm older than ``max_lead_days`` does not
         count as a warning *for this event*.
-    event_exclusion_days_after
-        Buffer days *after* the event during which alarms are
-        ignored entirely (post-event contamination guard).
-        Defaults to 0 — the strict pre-event-only contract.
+
+    Notes
+    -----
+    Post-event masking is enforced *by construction* — the
+    aggregator considers only dates strictly before each event
+    (or on it when ``min_lead_days == 0``). A separate
+    ``event_exclusion_days_after`` parameter would belong to
+    label-construction or evaluation-window masking, not to the
+    lead-time aggregator; it has been deliberately removed from
+    this dataclass to avoid a decorative API.
     """
 
     min_lead_days: int
     max_lead_days: int
-    event_exclusion_days_after: int = 0
 
     def __post_init__(self) -> None:
         if self.min_lead_days < 0:
@@ -127,10 +158,6 @@ class LeadTimeConfig:
             )
         if self.max_lead_days < 1:
             raise ValueError(f"max_lead_days must be >= 1, got {self.max_lead_days}")
-        if self.event_exclusion_days_after < 0:
-            raise ValueError(
-                f"event_exclusion_days_after must be >= 0, got {self.event_exclusion_days_after}"
-            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,6 +208,7 @@ def compute_lead_time_metrics(
     threshold: float,
     event_dates: tuple[date, ...],
     config: LeadTimeConfig,
+    allow_warmup_nan: bool = True,
 ) -> LeadTimeMetrics:
     """Aggregate lead-time profile across a set of pre-registered events.
 
@@ -188,9 +216,45 @@ def compute_lead_time_metrics(
     ``dates`` (or with no valid pre-event window inside the score
     range) count as *undetected* events. Same-day and post-event
     alarms never count regardless of how high they spike.
+
+    ``allow_warmup_nan`` (default ``True``) tolerates leading NaN
+    values in ``score`` arising from rolling-window warmup; any
+    Inf or NaN past warmup still raises. Set to ``False`` to
+    enforce strict finiteness on the entire series.
+
+    Fail-closed
+    -----------
+    * ``threshold`` not finite → :class:`ValueError`
+    * ``dates`` not strictly increasing → :class:`ValueError`
+    * ``score`` length ≠ ``len(dates)`` → :class:`ValueError`
+    * non-finite ``score`` outside the leading warmup band when
+      ``allow_warmup_nan=True`` (or anywhere when ``False``)
+      → :class:`ValueError`
     """
+    if not np.isfinite(threshold):
+        raise ValueError(f"threshold must be finite, got {threshold}")
     if config.min_lead_days < 0 or config.max_lead_days < 1:
         raise ValueError("LeadTimeConfig invariants must already be satisfied")
+    if any(dates[i] >= dates[i + 1] for i in range(len(dates) - 1)):
+        raise ValueError("dates must be strictly increasing")
+    s = np.asarray(score, dtype=np.float64)
+    if s.shape != (len(dates),):
+        raise ValueError(f"score length {s.size} != dates length {len(dates)}")
+    if allow_warmup_nan:
+        # Allow only a leading contiguous block of NaN (rolling-warmup);
+        # any NaN/Inf past the first finite value is a hard fail.
+        finite = np.isfinite(s)
+        if finite.any():
+            first_finite = int(np.argmax(finite))
+            tail = s[first_finite:]
+            if not np.isfinite(tail).all():
+                raise ValueError(
+                    "score contains NaN/Inf past the leading warmup band; "
+                    "set allow_warmup_nan=False to inspect, or fix the score"
+                )
+    else:
+        if not np.isfinite(s).all():
+            raise ValueError("score must be finite when allow_warmup_nan=False")
     leads: list[int] = []
     for ev in event_dates:
         lead = _first_valid_lead(

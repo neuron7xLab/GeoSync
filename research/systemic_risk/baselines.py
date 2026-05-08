@@ -86,19 +86,21 @@ def edge_density_score(
 ) -> NDArray[np.float64]:
     """Per-snapshot edge density of a panel of adjacency matrices.
 
-    For each snapshot ``A`` of shape ``(N, N)``:
+    Canonical formula (density ∈ [0, 1] for binary adjacency):
 
     ::
 
-        directed,   no self-edges:  density = sum(A) / (N * (N - 1))
-        directed,   self-edges:     density = sum(A) /  N**2
-        undirected, no self-edges:  density = sum(A) / (N * (N - 1) / 2)
-        undirected, self-edges:     density = sum(A) /  N**2
+        directed,   no self-edges:  sum(A_off)        / (N * (N - 1))
+        directed,   self-edges:     sum(A)            /  N**2
+        undirected, no self-edges:  sum(triu(A, k=1)) / (N * (N - 1) / 2)
+        undirected, self-edges:     sum(triu(A, k=0)) / (N * (N + 1) / 2)
 
-    The undirected case sums ``A`` directly — caller is responsible
-    for ensuring symmetry; transposing ``A`` is *not* done here so
-    a transpose bug stays loud (cf. coupling.py orientation
-    invariant).
+    The undirected case reads only the strict upper triangle so
+    each edge is counted exactly once — an unguarded ``A.sum()`` on
+    a symmetric matrix would double-count and exceed 1.0 for the
+    complete graph. Symmetry is enforced fail-closed when
+    ``directed=False``: a transpose bug raises rather than
+    silently scaling the density wrong.
 
     Returns a length-``len(adjacency_panel)`` ``float64`` array.
 
@@ -110,6 +112,8 @@ def edge_density_score(
     * NaN / Inf snapshot → :class:`InvalidExposureMatrixError`
     * negative entry → :class:`InvalidExposureMatrixError`
       (caller passes binary 0/1 or non-negative weights only)
+    * ``directed=False`` with non-symmetric snapshot →
+      :class:`InvalidExposureMatrixError`
     """
     if len(adjacency_panel) == 0:
         raise InvalidTemporalPanelError("adjacency_panel must be non-empty")
@@ -134,16 +138,29 @@ def edge_density_score(
                 f"snapshot {idx} has N={n}; expected N={n_nodes} from "
                 f"snapshot 0 (panel must share a stable node universe)"
             )
+        if not directed and not np.array_equal(a, a.T):
+            # bounds: undirected density is only well-defined on
+            # symmetric adjacency. A transpose / orientation bug
+            # would silently distort the scale; fail-closed.
+            raise InvalidExposureMatrixError(
+                f"snapshot {idx} must be symmetric when directed=False"
+            )
         if n <= 1:
             out[idx] = 0.0
             continue
         if include_self_edges:
-            denom = float(n * n)
-            edges = float(a.sum())
+            if directed:
+                edges = float(a.sum())
+                denom = float(n * n)
+            else:
+                edges = float(np.triu(a, k=0).sum())
+                denom = float(n * (n + 1) / 2)
         else:
-            edges = float(a.sum() - np.trace(a))
-            denom = float(n * (n - 1))
-            if not directed:
-                denom = denom / 2.0
+            if directed:
+                edges = float(a.sum() - np.trace(a))
+                denom = float(n * (n - 1))
+            else:
+                edges = float(np.triu(a, k=1).sum())
+                denom = float(n * (n - 1) / 2)
         out[idx] = edges / denom
     return out

@@ -34,6 +34,21 @@ class TestCSDConfig:
         with pytest.raises(ValueError, match=r"lag.*<.*min_periods"):
             CSDConfig(window=10, min_periods=5, lag=5)
 
+    def test_ddof_must_be_less_than_min_periods(self) -> None:
+        # Codex audit P0: ddof >= min_periods leaves the rolling
+        # variance with 0 degrees of freedom on the smallest
+        # evaluated window → silent NaN. Fail-closed instead.
+        with pytest.raises(ValueError, match=r"ddof.*< min_periods"):
+            CSDConfig(window=10, min_periods=5, ddof=5)
+
+    def test_ddof_less_than_min_periods_accepted(self) -> None:
+        cfg = CSDConfig(window=10, min_periods=5, ddof=4)
+        assert cfg.ddof == 4
+
+    def test_ddof_zero_accepted(self) -> None:
+        cfg = CSDConfig(window=10, min_periods=5, ddof=0)
+        assert cfg.ddof == 0
+
 
 class TestCSDIndicatorContracts:
     def test_rejects_2d(self) -> None:

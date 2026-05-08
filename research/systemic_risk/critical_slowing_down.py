@@ -95,6 +95,15 @@ class CSDConfig:
             raise ValueError(f"lag ({self.lag}) must be < min_periods ({self.min_periods})")
         if self.ddof < 0:
             raise ValueError(f"ddof must be >= 0, got {self.ddof}")
+        if self.ddof >= self.min_periods:
+            # bounds: rolling variance / std at the smallest evaluated
+            # window must have ≥ 1 degree of freedom; otherwise the
+            # estimator is undefined and emits silent NaN/RuntimeWarning.
+            raise ValueError(
+                f"ddof ({self.ddof}) must be < min_periods "
+                f"({self.min_periods}) so the rolling variance is "
+                f"defined at the first evaluated window"
+            )
 
 
 @dataclass(frozen=True, slots=True)
