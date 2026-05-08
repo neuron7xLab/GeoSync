@@ -202,3 +202,29 @@ class TestFitBarabasiAlbertFromTopology:
             f"graph (in+out doubles), got m_via_total={m_via_total}, "
             f"m_via_topology={m_via_topology} at N=400, true_m=3, seed=11"
         )
+
+
+class TestFitBarabasiAlbertValidationFromTopology:
+    def test_rejects_small_topology(self) -> None:
+        from research.systemic_risk.network_fitting import (
+            fit_barabasi_albert_validation_from_topology,
+        )
+        from research.systemic_risk.topology import barabasi_albert_null
+
+        topo = barabasi_albert_null(n_nodes=20, m=2, seed=0)
+        with pytest.raises(ValueError, match="validation-mode BA fit"):
+            fit_barabasi_albert_validation_from_topology(topo)
+
+    def test_passes_on_sufficient_topology(self) -> None:
+        from research.systemic_risk.network_fitting import (
+            fit_barabasi_albert_validation_from_topology,
+        )
+        from research.systemic_risk.topology import barabasi_albert_null
+
+        # n=3000: auto-selected k_min ≈ 25 leaves n_tail ≈ 56 ≥ 50
+        # AND rel_se ≈ 0.086 ≤ 0.10 — both validation floors cleared.
+        topo = barabasi_albert_null(n_nodes=3000, m=3, seed=42)
+        m_hat, fit = fit_barabasi_albert_validation_from_topology(topo)
+        assert m_hat >= 1
+        assert fit.n_tail >= 50
+        assert fit.alpha_se / fit.alpha <= 0.10

@@ -97,4 +97,13 @@ HYPOTHESIS
                             └─▶ VALIDATED  (peer-reviewed)
 ```
 
-Current status: **HYPOTHESIS / INSTRUMENTATION COMPLETE**.
+Current status: **HYPOTHESIS / SCORE-LEVEL INSTRUMENTATION COMPLETE; END-TO-END VALIDATION PENDING**.
+
+The pre-registered falsification battery operates on a *score
+series*. The full pipeline — temporal exposure panel → topology →
+coupling → Kuramoto dynamics → r(t) → early-warning score → verdict
+— is not yet end-to-end executable. The composed null-audit
+orchestrator (`null_models.run_null_audit`) is documented as
+deferred until empirical temporal-exposure ingest lands; promotion
+gates beyond `INSTRUMENTED + TESTED_ON_SYNTHETIC` therefore cannot
+fire from the current main.

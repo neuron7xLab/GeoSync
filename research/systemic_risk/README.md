@@ -3,6 +3,28 @@
 > **Tier (per `CLAIMS.md`):** `HYPOTHESIS` until the v2 falsification
 > battery returns `HARD_PASS` on ≥ 2 independent crises with real
 > interbank exposure data and the bootstrap-CI lower bound clears 0.70.
+>
+> **Scope of the current executable falsification — score-level only.**
+>
+> The instrument tests:
+>
+> ```
+> score(t)  →  crisis-window statistical evaluation
+> ```
+>
+> It does **not** yet validate the full end-to-end pipeline:
+>
+> ```
+> temporal exposure panel  →  topology  →  coupling  →  Kuramoto dynamics
+>                          →  r(t)  →  early-warning score  →  crisis verdict
+> ```
+>
+> End-to-end validation requires empirical temporal exposure ingest,
+> locked score construction, executable null-audit orchestration,
+> reproducibility manifest, and real-data runs. None of those have
+> happened yet — see `LIMITATIONS.md` § "Domain limitations" and
+> `governance.run_premerge_science_gate` for the machine-checked
+> readiness profile.
 
 ## What this does
 
