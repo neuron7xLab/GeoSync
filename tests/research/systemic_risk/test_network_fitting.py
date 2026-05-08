@@ -10,9 +10,11 @@ import pytest
 from research.systemic_risk.network_fitting import (
     compare_power_law_vs_exponential,
     fit_barabasi_albert,
+    fit_barabasi_albert_from_topology,
     fit_exponential,
     fit_power_law,
 )
+from research.systemic_risk.topology import barabasi_albert_null
 
 
 def _draw_power_law(n: int, alpha: float, k_min: int, seed: int) -> np.ndarray:
@@ -108,3 +110,38 @@ class TestFitBarabasiAlbert:
         b, fit_b = fit_barabasi_albert(sample)
         assert a == b
         assert fit_a.alpha == fit_b.alpha
+
+
+class TestFitBarabasiAlbertFromTopology:
+    """Regression: catch the v2 in+out double-count drift on `topology.degree`.
+
+    Reported by the Codex code-reviewer on PR #562: feeding
+    ``topology.degree`` (= in + out) directly into
+    :func:`fit_barabasi_albert` doubles the recovered ``m`` on
+    symmetric BA-null graphs because each undirected edge is counted
+    twice. :func:`fit_barabasi_albert_from_topology` resolves this by
+    using ``out_degree`` consistently.
+    """
+
+    @pytest.mark.parametrize("true_m", [2, 3, 4])
+    def test_recovers_generator_m_on_ba_null(self, true_m: int) -> None:
+        topo = barabasi_albert_null(n_nodes=400, m=true_m, seed=true_m * 7)
+        m_hat, _ = fit_barabasi_albert_from_topology(topo)
+        assert abs(m_hat - true_m) <= 1, (
+            f"BA-CALIBRATION VIOLATED: m̂={m_hat} from "
+            f"fit_barabasi_albert_from_topology vs true m={true_m} on "
+            f"barabasi_albert_null(n=400). Tolerance ±1 (finite-N)."
+        )
+
+    def test_total_degree_double_count_is_caught(self) -> None:
+        # Demonstrates the original bug: feeding topology.degree (sum of
+        # in+out) doubles the recovered m on symmetric graphs. The
+        # _from_topology helper avoids this by using out_degree.
+        topo = barabasi_albert_null(n_nodes=400, m=3, seed=11)
+        m_via_total, _ = fit_barabasi_albert(topo.degree)
+        m_via_topology, _ = fit_barabasi_albert_from_topology(topo)
+        assert m_via_total >= 2 * m_via_topology - 1, (
+            f"Expected m_via_total ≈ 2·m_via_topology on a symmetric BA "
+            f"graph (in+out doubles), got m_via_total={m_via_total}, "
+            f"m_via_topology={m_via_topology} at N=400, true_m=3, seed=11"
+        )

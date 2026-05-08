@@ -82,6 +82,16 @@ class TestOmegaFromVolatility:
         with pytest.raises(ValueError):
             omega_from_volatility(np.zeros((10, 3)), fs=0.0)
 
+    def test_single_observation_rejected(self) -> None:
+        # Regression: Codex flagged that std(ddof=1) on T=1 returns NaN
+        # silently. The validator must fail-closed on T < 2.
+        with pytest.raises(ValueError, match="at least 2 time samples"):
+            omega_from_volatility(np.zeros((1, 4)))
+
+    def test_zero_observations_rejected(self) -> None:
+        with pytest.raises(ValueError, match="at least 2 time samples"):
+            omega_from_volatility(np.zeros((0, 4)))
+
 
 class TestSakaguchiAlphaZero:
     def test_shape_and_values(self) -> None:

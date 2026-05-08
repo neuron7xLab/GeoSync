@@ -29,10 +29,13 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    from .topology import InterbankTopology
 
 __all__ = [
     "PowerLawFit",
@@ -42,6 +45,7 @@ __all__ = [
     "fit_exponential",
     "compare_power_law_vs_exponential",
     "fit_barabasi_albert",
+    "fit_barabasi_albert_from_topology",
 ]
 
 
@@ -264,18 +268,54 @@ def fit_barabasi_albert(
     direction-asymmetry effects shift α typically into [2, 3]
     (Albert & Barabási 2002, *Rev. Mod. Phys.* 74: 47). Once the
     empirical α is fitted, *m* is recovered from the BA mean-degree
-    identity ``<k> = 2m``: rounding ``mean(k) / 2`` to the nearest
-    positive integer.
+    identity ``<k> = 2m`` (Albert-Barabási 2002, eq. 4.7):
+    rounding ``mean(k) / 2`` to the nearest positive integer.
 
-    Returns the fitted *m* and the underlying :class:`PowerLawFit`
-    so the caller can inspect ``alpha``, ``ks_statistic``, and
-    (when ``n_bootstrap > 0``) ``ks_p_value``.
+    Parameters
+    ----------
+    degrees
+        1-D array of **undirected per-node degree counts** (each
+        undirected edge contributes 1 to each of its two endpoints,
+        and the BA mean-degree identity ``<k> = 2m`` assumes this
+        convention). Direct ``InterbankTopology.degree`` from a
+        symmetric topology counts each undirected edge **twice** —
+        once via ``in_degree`` and once via ``out_degree`` — and so
+        produces ``<k>_directed = 4m`` and a doubled ``m̂``. Use
+        :func:`fit_barabasi_albert_from_topology` to handle the
+        symmetric/asymmetric switch automatically, or pass
+        ``topo.out_degree`` for symmetric inputs.
     """
     d = _validate_degrees(degrees)
     pl = fit_power_law(d, n_bootstrap=n_bootstrap, seed=seed)
     mean_k = float(d.mean())
     m = max(1, int(round(mean_k / 2.0)))
     return m, pl
+
+
+def fit_barabasi_albert_from_topology(
+    topology: "InterbankTopology",
+    *,
+    n_bootstrap: int = 0,
+    seed: int = 42,
+) -> tuple[int, PowerLawFit]:
+    """Calibrate BA *m* directly from an :class:`InterbankTopology`.
+
+    Resolves the in+out-vs-undirected ambiguity introduced by
+    :attr:`InterbankTopology.degree` (which is the **sum** of in- and
+    out-degree, doubling undirected counts on symmetric graphs):
+
+    * Symmetric graphs: ``out_degree == in_degree`` and equals the
+      undirected per-node degree, so the BA identity ``<k>=2m``
+      applies directly to ``out_degree``.
+    * Asymmetric directed graphs: the natural BA analogue is the
+      out-degree distribution (each new node attaches *m* outgoing
+      edges); the BA identity again applies to ``out_degree``.
+
+    Both cases reduce to ``fit_barabasi_albert(topology.out_degree)``.
+    Reported *m* therefore matches the generator's *m* on
+    :func:`barabasi_albert_null` outputs to within ±1 at finite *N*.
+    """
+    return fit_barabasi_albert(topology.out_degree, n_bootstrap=n_bootstrap, seed=seed)
 
 
 # ---------------------------------------------------------------------------

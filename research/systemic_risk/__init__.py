@@ -46,6 +46,7 @@ from .network_fitting import (
     PowerLawFit,
     compare_power_law_vs_exponential,
     fit_barabasi_albert,
+    fit_barabasi_albert_from_topology,
     fit_exponential,
     fit_power_law,
 )
@@ -81,6 +82,7 @@ __all__ = [
     "compute_early_warning",
     "coupling_from_exposures",
     "fit_barabasi_albert",
+    "fit_barabasi_albert_from_topology",
     "fit_exponential",
     "fit_power_law",
     "from_exposure_matrix",

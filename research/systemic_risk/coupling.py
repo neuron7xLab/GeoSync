@@ -155,6 +155,11 @@ def omega_from_volatility(
     r = np.asarray(log_returns, dtype=np.float64)
     if r.ndim != 2:
         raise ValueError(f"log_returns must be 2-D (T, N), got shape={r.shape}")
+    if r.shape[0] < 2:
+        raise ValueError(
+            f"log_returns must have at least 2 time samples to compute "
+            f"sample std (ddof=1), got T={r.shape[0]}"
+        )
     if not np.isfinite(r).all():
         raise ValueError("log_returns must be finite (no NaN/Inf)")
     if fs <= 0:
