@@ -1166,7 +1166,11 @@ class PayloadGuardMiddleware(BaseHTTPMiddleware):
                 if body:
                     try:
                         parsed = json.loads(body)
-                    except JSONDecodeError:
+                    except (JSONDecodeError, UnicodeDecodeError):
+                        # JSONDecodeError: malformed JSON syntax.
+                        # UnicodeDecodeError: bytes that are not decodable as the
+                        # advertised encoding (default utf-8). Both are 400-class
+                        # client errors — never let them surface as a 500.
                         return build_error_envelope(
                             status_code=status.HTTP_400_BAD_REQUEST,
                             code=ApiErrorCode.BAD_REQUEST,
