@@ -222,6 +222,10 @@ from .phase_extraction import (
     interbank_phase_extract,
 )
 from .quick_round import quick_round
+from .real_data_contract import (
+    DataContractReport,
+    validate_real_data_contract,
+)
 from .replication import (
     RunManifest,
     build_run_manifest,
@@ -263,6 +267,7 @@ __all__ = [
     "DEFAULT_DETERMINISTIC_TOLERANCE",
     "DEFAULT_LEDGER",
     "DEFAULT_PRIOR_LOG_ODDS",
+    "DataContractReport",
     "DOWNGRADE_TRIGGER_DELTA",
     "DataFirewallReport",
     "DataFirewallResultLike",
@@ -420,6 +425,7 @@ __all__ = [
     "trigger_leakage_positive",
     "trigger_parameter_fragility",
     "trigger_replication_mismatch",
+    "validate_real_data_contract",
     "validate_temporal_exposure_panel",
     "wagenmakers_bic_bayes_factor",
 ]

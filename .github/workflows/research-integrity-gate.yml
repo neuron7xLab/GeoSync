@@ -1,0 +1,105 @@
+# SPDX-License-Identifier: MIT
+#
+# Research Integrity Gate.
+#
+# Closes audit task T8 of the 9.9 upgrade. Runs the canonical-seven
+# test suite, the metamorphic + negative-control packs, the public-
+# symbol-matrix audit, and the claims compiler. Fails closed on:
+#   * orphan public symbol (in __all__ but missing from the matrix)
+#   * phantom matrix row (in matrix but not in __all__)
+#   * floating claim (claim with zero evidence anchors)
+#   * any test failure
+#   * any mypy --strict error on the audited source set
+#   * any ruff or black diagnostic
+#
+# Hard rule: README claim without evidence anchor = CI fail.
+
+name: Research Integrity Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'research/systemic_risk/**'
+      - 'tests/research/systemic_risk/**'
+      - 'tests/metamorphic/**'
+      - 'tests/negative_controls/**'
+      - 'tools/check_public_symbol_matrix.py'
+      - 'tools/compile_claims.py'
+      - '.github/workflows/research-integrity-gate.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-integrity-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  research-integrity-gate:
+    name: research-integrity-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+
+      - name: Install runtime + test deps
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest hypothesis pyyaml
+
+      - name: Public-symbol matrix audit
+        run: python tools/check_public_symbol_matrix.py
+
+      - name: Claims compiler — fail on floating
+        run: python tools/compile_claims.py --fail-on-floating
+
+      - name: pytest — research/systemic_risk
+        run: python -m pytest tests/research/systemic_risk/ -q --maxfail=1
+
+      - name: pytest — metamorphic
+        run: python -m pytest tests/metamorphic/ -q --maxfail=1
+
+      - name: pytest — negative_controls
+        run: python -m pytest tests/negative_controls/ -q --maxfail=1
+
+      - name: mypy --strict on audited surface
+        run: |
+          set -euo pipefail
+          python -m mypy --strict \
+            research/systemic_risk/death_conditions.py \
+            research/systemic_risk/evidence_ledger.py \
+            research/systemic_risk/leakage_sentinel.py \
+            research/systemic_risk/data_firewall.py \
+            research/systemic_risk/replication_capsule.py \
+            research/systemic_risk/governance_fsm.py \
+            research/systemic_risk/canonical_seven.py \
+            research/systemic_risk/quick_round.py \
+            research/systemic_risk/verdict_lattice.py \
+            research/systemic_risk/bayes_rigorous.py \
+            research/systemic_risk/kuramoto_extensions.py \
+            research/systemic_risk/occam_penalty.py \
+            research/systemic_risk/synthetic.py \
+            research/systemic_risk/cli.py \
+            research/systemic_risk/minimal.py \
+            research/systemic_risk/protocol_x9r.py \
+            research/systemic_risk/real_data_contract.py \
+            tools/check_public_symbol_matrix.py \
+            tools/compile_claims.py
+
+      - name: ruff
+        run: python -m ruff check research/systemic_risk/ tools/ tests/research/systemic_risk/ tests/metamorphic/ tests/negative_controls/
+
+      - name: black --check
+        run: python -m black --check research/systemic_risk/ tools/ tests/research/systemic_risk/ tests/metamorphic/ tests/negative_controls/
