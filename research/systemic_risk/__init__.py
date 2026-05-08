@@ -196,6 +196,7 @@ from .phase_extraction import (
     INTERBANK_DEFAULT_BAND,
     interbank_phase_extract,
 )
+from .quick_round import quick_round
 from .replication import (
     RunManifest,
     build_run_manifest,
@@ -357,6 +358,7 @@ __all__ = [
     "omega_from_volatility",
     "parameter_fragility_audit",
     "permuted_crisis_dates",
+    "quick_round",
     "random_exposure_weights",
     "replication_match_bayes_factor",
     "rolling_volatility_score",
