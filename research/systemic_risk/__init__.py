@@ -176,6 +176,15 @@ from .replication import (
     RunManifest,
     build_run_manifest,
 )
+from .replication_capsule import (
+    DEFAULT_BIT_IDENTICAL_TOLERANCE,
+    DEFAULT_DETERMINISTIC_TOLERANCE,
+    MismatchReason,
+    ReplicationOutcome,
+    ReplicationToleranceClass,
+    compare_run_outputs,
+    manifest_replication_sha,
+)
 from .temporal_panel import (
     validate_temporal_exposure_panel,
 )
@@ -192,6 +201,8 @@ __all__ = [
     "CSDIndicators",
     "ClassificationMetrics",
     "CrisisOutcome",
+    "DEFAULT_BIT_IDENTICAL_TOLERANCE",
+    "DEFAULT_DETERMINISTIC_TOLERANCE",
     "DEFAULT_LEDGER",
     "DEFAULT_PRIOR_LOG_ODDS",
     "DOWNGRADE_TRIGGER_DELTA",
@@ -231,6 +242,7 @@ __all__ = [
     "LedgerEntry",
     "MIN_RELATIVE_SE_VALIDATION",
     "MIN_TAIL_SIZE_VALIDATION",
+    "MismatchReason",
     "ModelComparison",
     "NullSurrogate",
     "OpRecord",
@@ -241,7 +253,9 @@ __all__ = [
     "ProsecutorOutcome",
     "ProsecutorScore",
     "Provenance",
+    "ReplicationOutcome",
     "ReplicationResultLike",
+    "ReplicationToleranceClass",
     "RunManifest",
     "SystemicRiskInputError",
     "TierAction",
@@ -265,6 +279,7 @@ __all__ = [
     "check_label_leakage",
     "check_post_event_contamination",
     "compare_power_law_vs_exponential",
+    "compare_run_outputs",
     "compute_classification_metrics",
     "compute_csd_indicators",
     "compute_early_warning",
@@ -292,6 +307,7 @@ __all__ = [
     "interbank_phase_extract",
     "kuramoto_order_parameter",
     "linear_correlation_surrogate",
+    "manifest_replication_sha",
     "omega_from_volatility",
     "parameter_fragility_audit",
     "permuted_crisis_dates",
