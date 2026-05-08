@@ -68,6 +68,7 @@ class ClaimType(str, Enum):
     GOVERNANCE = "governance"
     REFACTOR = "refactor"
     DOCUMENTATION = "documentation"
+    CHORE = "chore"
 
 
 class MemoryUpdateType(str, Enum):
