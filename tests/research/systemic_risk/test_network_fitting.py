@@ -65,6 +65,15 @@ class TestFitPowerLaw:
         with pytest.raises(ValueError):
             fit_power_law(np.array([-1, 2, 3, 4], dtype=np.int64))
 
+    def test_relative_se_floor_enforced(self) -> None:
+        # Tiny tail → high relative SE — must trigger the Cramér-Rao
+        # floor when min_relative_se is below the floor's empirical
+        # value. Concretely: at α≈2.5, n=4 the SE is 1.5/√4=0.75 and
+        # σ_α/α≈0.30; tol=0.10 must reject.
+        sample = np.array([6, 7, 8, 100], dtype=np.int64)
+        with pytest.raises(ValueError, match="Cramér-Rao precision floor"):
+            fit_power_law(sample, k_min=6, min_relative_se=0.10)
+
 
 class TestFitExponential:
     def test_recovers_lambda(self) -> None:
@@ -110,6 +119,21 @@ class TestFitBarabasiAlbert:
         b, fit_b = fit_barabasi_albert(sample)
         assert a == b
         assert fit_a.alpha == fit_b.alpha
+
+    def test_degenerate_constant_input_rejected(self) -> None:
+        # All nodes share the same degree → no power-law tail, no
+        # MLE solution. Fail-closed instead of returning a meaningless
+        # m≈k/2.
+        constant = np.full(20, 5, dtype=np.int64)
+        with pytest.raises(ValueError, match="degenerate input"):
+            fit_barabasi_albert(constant)
+
+    def test_low_mean_degree_rejected(self) -> None:
+        # <k> < 2 is incompatible with BA(m≥1) by Albert-Barabási
+        # 2002 eq. 4.7. Must fail-closed.
+        sparse = np.array([0, 0, 0, 1, 1, 1, 0, 0], dtype=np.int64)
+        with pytest.raises(ValueError, match="BA-incompatible"):
+            fit_barabasi_albert(sparse)
 
 
 class TestFitBarabasiAlbertFromTopology:

@@ -78,11 +78,32 @@ class TestAucBootstrapCi:
         )
 
     def test_ci_under_h0_contains_half(self) -> None:
-        # Under H0 the 95% CI should contain 0.5 most of the time.
-        # Statistical sweep: check ≥85/100 reps contain 0.5 (binomial 0.95 → ~95%).
+        # Under H0 (positives and negatives drawn from the same
+        # distribution) the indicator I_b = [0.5 ∈ CI_b] is Bernoulli
+        # with success probability equal to the actual coverage of
+        # the percentile bootstrap. A correctly-calibrated 95% CI has
+        # coverage 0.95 in the limit, so the count K = Σ_b I_b over
+        # ``N_REPS`` independent reps is Binomial(N_REPS, 0.95).
+        #
+        # The acceptance threshold is the lower quantile of that
+        # binomial under a chosen test-reliability level
+        # ``alpha_test`` — the target rate at which a *correctly
+        # implemented* bootstrap is allowed to fail this assertion by
+        # sampling noise. Setting ``alpha_test = 1e-3`` keeps spurious
+        # failures below 1 in 1000 CI runs, which is the "frontier-
+        # lab" reliability level expected by feedback_dev_cycle.
+        from scipy.stats import binom
+
+        n_reps = 100
+        nominal_coverage = 0.95
+        alpha_test = 1e-3
+        # binom.ppf is the quantile (smallest k with CDF(k) >= q),
+        # which is the inclusive lower bound of the acceptance set.
+        threshold = int(binom.ppf(alpha_test, n_reps, nominal_coverage))
+
         rng = np.random.default_rng(11)
         contains = 0
-        for _ in range(100):
+        for _ in range(n_reps):
             pos = rng.standard_normal(40)
             neg = rng.standard_normal(40)
             _, lo, hi = auc_bootstrap_ci(
@@ -90,9 +111,12 @@ class TestAucBootstrapCi:
             )
             if lo <= 0.5 <= hi:
                 contains += 1
-        assert contains >= 85, (
-            f"INV-CI-COVERAGE: 95% CI under H0 contained 0.5 in only {contains}/100 reps; "
-            f"expected ≥ 85 (≥80% empirical coverage at n_bootstrap=500)"
+        assert contains >= threshold, (
+            f"INV-CI-COVERAGE VIOLATED: 95%-nominal bootstrap CI under "
+            f"H0 contained 0.5 in {contains}/{n_reps} reps; "
+            f"binomial-derived lower bound at α_test={alpha_test} is "
+            f"{threshold}. Under-coverage at this magnitude indicates "
+            f"a calibration bug in auc_bootstrap_ci, not sampling noise."
         )
 
     def test_degenerate_inputs_collapse(self) -> None:

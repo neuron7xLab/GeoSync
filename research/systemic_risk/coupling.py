@@ -76,8 +76,9 @@ def coupling_from_exposures(
         ``normalisation == "capital_weighted"``. Must be strictly
         positive (no zero capital).
     floor
-        Inclusive lower bound: entries ``<= floor`` after
-        normalisation are clamped to zero. Defaults to ``0.0`` —
+        Inclusive lower bound on the *kept* set: entries strictly
+        below ``floor`` after normalisation are clamped to zero;
+        entries equal to ``floor`` are kept. Defaults to ``0.0`` —
         ``floor > 0`` is useful when the empirical matrix carries
         rounding noise.
 
@@ -117,7 +118,12 @@ def coupling_from_exposures(
     else:  # pragma: no cover - typing should prevent this path
         raise ValueError(f"unknown normalisation {normalisation!r}")
     if floor > 0:
-        k_matrix = np.where(k_matrix > floor, k_matrix, 0.0)
+        # Inclusive lower bound on the *kept* set: entries strictly
+        # below ``floor`` are clamped to zero; entries equal to floor
+        # are kept (they are by definition at the documented noise
+        # threshold, not below it). Matches the docstring's
+        # "Inclusive lower bound" wording.
+        k_matrix = np.where(k_matrix >= floor, k_matrix, 0.0)
     np.fill_diagonal(k_matrix, 0.0)
     return k_matrix
 

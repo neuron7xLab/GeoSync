@@ -56,6 +56,33 @@ class TestCouplingFromExposures:
         # Large entry survives.
         assert K[0, 2] > 0.0
 
+    def test_floor_inclusive_at_exact_boundary(self) -> None:
+        # Documentation guarantees an *inclusive* lower bound on the
+        # kept set: an entry equal to ``floor`` survives.
+        e = np.array([[0.0, 0.5, 0.5], [0.5, 0.0, 0.5], [0.5, 0.5, 0.0]], dtype=np.float64)
+        # Row-stochastic produces equal off-diagonal entries == 0.5.
+        K = coupling_from_exposures(e, floor=0.5)
+        assert K[0, 1] == 0.5, (
+            f"floor inclusivity violated: entry equal to floor=0.5 "
+            f"clamped to {K[0, 1]} (expected 0.5)"
+        )
+
+    def test_all_zero_row_survives_without_crash(self) -> None:
+        # Bank with no outgoing exposures: row sum is zero, must
+        # NOT trigger division-by-zero noise. Coupling row stays 0.
+        e = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 2.0], [3.0, 4.0, 0.0]], dtype=np.float64)
+        K = coupling_from_exposures(e)
+        assert np.all(K[0, :] == 0.0)
+        assert np.isfinite(K).all()
+        # Other rows must still be row-stochastic.
+        np.testing.assert_allclose(K[1, :].sum(), 1.0, atol=1e-12)
+        np.testing.assert_allclose(K[2, :].sum(), 1.0, atol=1e-12)
+
+    def test_nan_exposure_rejected(self) -> None:
+        e = np.array([[0.0, np.nan], [1.0, 0.0]], dtype=np.float64)
+        with pytest.raises(ValueError, match="finite"):
+            coupling_from_exposures(e)
+
     def test_negative_exposure_rejected(self) -> None:
         with pytest.raises(ValueError):
             coupling_from_exposures(np.array([[0.0, -1.0], [-1.0, 0.0]]))

@@ -142,6 +142,7 @@ def fit_power_law(
     k_min: int | None = None,
     n_bootstrap: int = 0,
     seed: int = 42,
+    min_relative_se: float | None = None,
 ) -> PowerLawFit:
     """Fit a discrete power-law tail by maximum likelihood.
 
@@ -152,12 +153,31 @@ def fit_power_law(
     k_min
         Tail cutoff. ``None`` (default) selects the cutoff that
         minimises the KS statistic over all admissible cutoffs
-        (Clauset et al. 2009, §3.3 — discrete grid scan).
+        (Clauset, Shalizi, Newman 2009 §3.3 — discrete grid scan).
     n_bootstrap
         Number of parametric-bootstrap resamples for the p-value.
         ``0`` (default) skips the bootstrap and returns ``ks_p_value=None``.
     seed
         RNG seed for the bootstrap.
+    min_relative_se
+        Optional Cramér-Rao precision floor: after fit, if the
+        relative asymptotic standard error
+        :math:`\\sigma_\\alpha / \\hat\\alpha = (\\hat\\alpha - 1) /
+        (\\hat\\alpha \\sqrt{n_\\text{tail}})` exceeds this value, raise
+        :class:`ValueError`. ``None`` (default) skips the check —
+        the caller can read ``alpha_se`` from the result and decide
+        their own tolerance. Derivation (Clauset et al. 2009, eq. 3.2,
+        and the discrete-power-law Fisher information
+        :math:`I(\\alpha) = n_\\text{tail} / (\\alpha-1)^2`):
+
+            σ_α    α − 1
+            ─── = ─────────  must be ≤ ``min_relative_se``.
+             α    α · √n_t
+
+        Solving for the implied minimum tail size at a given α:
+        :math:`n_\\text{tail} \\ge \\bigl[(\\alpha-1)/(\\alpha
+        \\cdot \\text{tol})\\bigr]^2`. e.g. α=2.5, tol=0.10 → n ≥ 36;
+        α=2.0, tol=0.10 → n ≥ 25.
     """
     d = _validate_degrees(degrees)
     if k_min is None:
@@ -175,6 +195,18 @@ def fit_power_law(
         raise ValueError("non-positive log-ratio sum — degenerate tail")
     alpha = 1.0 + tail.size / log_ratio
     alpha_se = (alpha - 1.0) / math.sqrt(tail.size)
+    if min_relative_se is not None:
+        if min_relative_se <= 0.0:
+            raise ValueError(f"min_relative_se must be > 0, got {min_relative_se}")
+        rel_se = alpha_se / alpha
+        if rel_se > min_relative_se:
+            implied_n = math.ceil(((alpha - 1.0) / (alpha * min_relative_se)) ** 2)
+            raise ValueError(
+                f"power-law fit fails Cramér-Rao precision floor: "
+                f"σ_α/α = {rel_se:.4f} > {min_relative_se:.4f} "
+                f"at α̂={alpha:.4f}, n_tail={tail.size}, k_min={chosen}; "
+                f"need n_tail ≥ {implied_n} for that α to clear the floor."
+            )
     log_likelihood = (
         tail.size * math.log(alpha - 1.0)
         - tail.size * math.log(chosen - 0.5)
@@ -286,9 +318,24 @@ def fit_barabasi_albert(
         ``topo.out_degree`` for symmetric inputs.
     """
     d = _validate_degrees(degrees)
-    pl = fit_power_law(d, n_bootstrap=n_bootstrap, seed=seed)
+    if np.unique(d).size < 2:
+        raise ValueError(
+            f"degenerate input: all observations equal ({int(d[0])}); cannot fit a power-law tail"
+        )
     mean_k = float(d.mean())
-    m = max(1, int(round(mean_k / 2.0)))
+    if mean_k < 2.0:
+        # BA with m >= 1 generates <k> >= 2 by construction; mean<2
+        # means input is incompatible with the BA generator, not a
+        # finite-size artefact. Fail-closed instead of silently
+        # returning m=1 via the floor.
+        raise ValueError(
+            f"BA-incompatible input: <k>={mean_k:.4f} < 2; "
+            f"BA(m≥1) requires <k> ≥ 2 by Albert-Barabási 2002 eq. 4.7"
+        )
+    pl = fit_power_law(d, n_bootstrap=n_bootstrap, seed=seed)
+    m = int(round(mean_k / 2.0))
+    if m < 1:  # unreachable given mean_k>=2 above; fail-closed assertion
+        raise ValueError(f"BA m must satisfy m ≥ 1; got m={m} from <k>={mean_k:.4f}")
     return m, pl
 
 
