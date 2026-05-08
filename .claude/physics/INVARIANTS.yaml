@@ -574,6 +574,24 @@ hpc:
       - "NIST (2015). FIPS 180-4: Secure Hash Standard (SHA-256). National Institute of Standards and Technology."
     related: [INV-HPC1]
 
+  psr_hac_newey_west:
+    id: INV-PSR-HAC
+    type: monotonic
+    statement: "The HAC-adjusted Probabilistic Sharpe Ratio uses a Newey–West Bartlett-kernel HAC variance estimator with the NW(1994) automatic-bandwidth rule. The effective sample size n_eff shrinks under positive autocorrelation, equals n under zero autocorrelation, and grows under negative autocorrelation: n_eff(ρ > 0) < n; n_eff(ρ = 0) = n; n_eff(ρ < 0) > n. The auto-bandwidth output is a non-negative integer."
+    test_type: property_test
+    falsification: "Any AR(1) fixture with ρ > 0 yielding n_eff ≥ n; OR ρ = 0 yielding n_eff ≠ n; OR ρ < 0 yielding n_eff ≤ n; OR an auto-bandwidth output that is negative or non-integer."
+    priority: P1
+    provenance: ANCHORED
+    source: research/robustness/cpcv.py
+    tests: tests/research/robustness/test_hac_psr.py
+    integration_test: tests/research/robustness/test_hac_psr.py
+    runtime_evaluable: yes
+    references:
+      - "Newey, W. K. & West, K. D. (1987). A simple, positive semi-definite, heteroskedasticity and autocorrelation consistent covariance matrix. Econometrica 55(3), 703–708."
+      - "Newey, W. K. & West, K. D. (1994). Automatic lag selection in covariance matrix estimation. Rev. Economic Studies 61(4), 631–653."
+      - "Bailey, D. H. & López de Prado, M. (2014). The deflated Sharpe ratio: correcting for selection bias, backtest overfitting, and non-normality. J. Portfolio Management 40(5), 94–107."
+    related: []
+
   session_fsm_totality:
     id: INV-HPC5
     type: universal
