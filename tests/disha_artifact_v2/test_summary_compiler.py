@@ -30,8 +30,17 @@ def test_compile_safe_summary_uses_default_countries_when_none_supplied() -> Non
         excluded_noise_nodes=[],
         target_only_nodes=[],
     )
-    for cn in ("GB", "DE", "FR", "LU", "US", "IE", "NL", "BE"):
-        assert cn in summary.body_md
+    assert summary.body_md.startswith("## Article-safe summary")
+    assert "GB" in summary.body_md
+    assert "DE" in summary.body_md
+    assert "FR" in summary.body_md
+    assert "LU" in summary.body_md
+    assert "US" in summary.body_md
+    assert "IE" in summary.body_md
+    assert "NL" in summary.body_md
+    assert "BE" in summary.body_md
+    assert summary.exploratory_sentence_count >= 1
+    assert "Validated findings ledger" in summary.body_md
 
 
 def test_retracted_claims_listed() -> None:
