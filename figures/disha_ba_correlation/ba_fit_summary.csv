@@ -1,0 +1,3 @@
+period,n_nodes,n_edges_thresholded,edge_quantile,ba_m_estimate,empirical_mean_degree,empirical_max_degree,empirical_degree_gini,ba_degree_pearson_r,ba_degree_ks_distance,interpretation,caveat
+normal,31,73,0.85,2,4.709677419354839,20,0.5718073353954927,0.9410083044336826,0.34935483870967743,descriptively similar to preferential-attachment-style concentration,"small N (~31), sparse thresholded graph; descriptive only — not a strict power-law test"
+lehman,31,72,0.85,2,4.645161290322581,19,0.5703405017921148,0.9454111013946608,0.414483870967742,descriptively similar to preferential-attachment-style concentration,"small N (~31), sparse thresholded graph; descriptive only — not a strict power-law test"
