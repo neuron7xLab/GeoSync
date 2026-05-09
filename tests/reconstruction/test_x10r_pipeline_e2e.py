@@ -314,3 +314,49 @@ def test_evidence_envelope_drives_domain_check_consistently() -> None:
     # same data and they must not drift.
     assert check.certified_envelope["density"] == env["density"]
     assert check.certified_envelope["n_nodes"] == env["n_nodes"]
+
+
+# ---------------------------------------------------------------------------
+# Path 7: scaling across N — pipeline must not degrade at larger sizes
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("n_nodes", [80, 160, 240])
+def test_pipeline_scales_across_node_counts(n_nodes: int) -> None:
+    """Gate 5 recovery must hold across the {80, 160, 240} sweep.
+
+    The default recovery thresholds are size-independent by design
+    (relative spectral error + Jaccard + L1-relative). Verifying
+    here that they actually hold at three distinct N values guards
+    against accidental size-coupling in the audit math (which has
+    happened historically in network-recovery code).
+    """
+    w = ground_truth_core_periphery(n=n_nodes, core_frac=0.30, seed=2026)
+    cert = run_recovery_on_substrate(f"CP_{n_nodes}_scaling", w, seed=2026)
+    assert cert.passed, f"Gate 5 failed at N={n_nodes}: {cert.failure_reasons}"
+    assert cert.tested_at_n_nodes == (n_nodes,)
+
+
+# ---------------------------------------------------------------------------
+# Path 8: Gate 2 wiring — conservation_of_mass_passes is the precondition
+# ---------------------------------------------------------------------------
+
+
+def test_gate_2_rejects_unbalanced_marginals_before_pipeline() -> None:
+    """Gate 2 must reject `Σs_in ≠ Σs_out` before any reconstruction
+    work happens. If the pipeline silently accepts unbalanced inputs,
+    later residuals get blamed on IPF non-convergence."""
+    s_out = np.array([100.0, 200.0, 300.0])
+    s_in = np.array([1.0, 1.0, 1.0])  # massively unbalanced
+    assert conservation_of_mass_passes(s_out, s_in) is False
+
+
+def test_gate_2_accepts_balanced_marginals_at_realistic_scale() -> None:
+    """Gate 2 must accept inputs whose imbalance is below the 1e-9
+    relative tolerance — the regime real BIS aggregates fall in
+    after a careful upstream balancing pass."""
+    rng = np.random.default_rng(2026)
+    s_out = rng.lognormal(mean=10.0, sigma=1.5, size=200)
+    s_in = rng.lognormal(mean=10.0, sigma=1.5, size=200)
+    s_in = s_in * (s_out.sum() / s_in.sum())
+    assert conservation_of_mass_passes(s_out, s_in) is True

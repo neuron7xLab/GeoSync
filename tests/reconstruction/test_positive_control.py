@@ -171,9 +171,9 @@ def test_hierarchical_recovery_passes_across_5_independent_seeds() -> None:
         cert = run_recovery_on_substrate(f"HIER_{s}", w, seed=s)
         if cert.passed:
             n_passes += 1
-    assert n_passes >= 4, (
-        f"Hierarchical recovery brittle: only {n_passes}/{len(seeds)} seeds passed"
-    )
+    assert (
+        n_passes >= 4
+    ), f"Hierarchical recovery brittle: only {n_passes}/{len(seeds)} seeds passed"
 
 
 def test_certificate_is_unique_per_seed_pair() -> None:
