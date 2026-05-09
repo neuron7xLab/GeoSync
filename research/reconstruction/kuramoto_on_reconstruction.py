@@ -160,6 +160,11 @@ def gate_6_precursor_discriminative(
         raise ValueError(f"Gate 6 requires N >= 8; got {n}")
     if n_bootstrap < 4:
         raise ValueError(f"n_bootstrap must be >= 4; got {n_bootstrap}")
+    if min_gap <= 0:
+        raise ValueError(
+            f"min_gap must be > 0 (a non-positive threshold makes the CI test "
+            f"trivially true, producing false-positive Gate 6 certificates); got {min_gap}"
+        )
 
     w_norm = _normalise_to_unit_spectral_radius(w_recon)
     w_shuf = _normalise_to_unit_spectral_radius(_shuffle_offdiag(w_recon, seed=seed + 7919))

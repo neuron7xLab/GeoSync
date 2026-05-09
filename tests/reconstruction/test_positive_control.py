@@ -90,6 +90,14 @@ def test_ba_default_m_is_in_safe_regime() -> None:
     w = ground_truth_ba(n=200, seed=42)
     cert = run_recovery_on_substrate("BA_200_default", w, seed=42)
     assert cert.passed is True
+    assert len(cert.failure_reasons) == 0
+    assert len(cert.per_density_reports) == 4
+    for d, report in cert.per_density_reports.items():
+        assert report.passed is True, f"density {d} unexpectedly failed: {report.failure_reasons}"
+        assert report.spectral_radius_relative_error <= 0.20
+        assert report.top_k_hub_jaccard >= 0.60
+        assert report.row_sum_invariant_L1 <= 0.05
+        assert report.col_sum_invariant_L1 <= 0.05
 
 
 def test_ba_m3_stress_substrate_at_canonical_seed_fails() -> None:

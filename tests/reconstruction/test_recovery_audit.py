@@ -51,10 +51,23 @@ def test_audit_rejects_shape_mismatch() -> None:
 
 
 def test_audit_rejects_non_square() -> None:
+    """Both shape mismatch AND matching-but-non-square inputs are rejected.
+
+    A pair like (10,5)/(10,5) used to slip past the early check and then
+    crash inside numpy.linalg.eigvals — a controlled ValueError is the
+    documented contract (Codex P2 hardening).
+    """
     a = np.ones((10, 5))
     b = np.ones((10, 5))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="square"):
         audit_recovery(a, b)
+    a2 = np.ones((10, 10))
+    b2 = np.ones((5, 5))
+    with pytest.raises(ValueError, match="square"):
+        audit_recovery(a2, b2)
+    a3 = np.ones((6, 4))  # rectangular, identical
+    with pytest.raises(ValueError, match="square"):
+        audit_recovery(a3, a3)
 
 
 def test_audit_strength_hubs_used_not_binary() -> None:

@@ -71,7 +71,7 @@ def audit_recovery(
     k_top: int | None = None,
 ) -> RecoveryReport:
     """Compare reconstructed W against ground-truth W on Gate 5 metrics."""
-    if w_true.shape != w_recon.shape or w_true.ndim != 2:
+    if w_true.shape != w_recon.shape or w_true.ndim != 2 or w_true.shape[0] != w_true.shape[1]:
         raise ValueError(
             f"w_true and w_recon must be matching square 2-D; got {w_true.shape} / {w_recon.shape}"
         )

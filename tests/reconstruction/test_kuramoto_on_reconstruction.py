@@ -53,6 +53,16 @@ def test_gate_6_rejects_too_few_bootstrap() -> None:
         gate_6_precursor_discriminative(w, n_bootstrap=2)
 
 
+def test_gate_6_rejects_non_positive_min_gap() -> None:
+    """Codex P1: a non-positive min_gap makes the CI test trivially true,
+    producing false-positive certificates. Must raise ValueError up front."""
+    w = _structured_w(n=20, seed=0)
+    with pytest.raises(ValueError, match="min_gap"):
+        gate_6_precursor_discriminative(w, n_bootstrap=4, min_gap=0.0)
+    with pytest.raises(ValueError, match="min_gap"):
+        gate_6_precursor_discriminative(w, n_bootstrap=4, min_gap=-0.05)
+
+
 def test_gate_6_rejects_non_square() -> None:
     w = np.zeros((10, 5))
     with pytest.raises(ValueError):
