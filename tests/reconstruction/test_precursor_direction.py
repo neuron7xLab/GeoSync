@@ -81,6 +81,7 @@ def test_hindered_at_exact_min_gap_boundary() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_gate_6_report_carries_direction_field() -> None:
     n = 50
     rng = np.random.default_rng(0)
