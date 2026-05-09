@@ -708,7 +708,7 @@ tzdata==2025.2
     #   pandas
 uc-micro-py==1.0.3
     # via linkify-it-py
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   -c constraints/security.txt
     #   requests

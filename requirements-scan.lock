@@ -119,7 +119,7 @@ typing-extensions==4.15.0
 typing-inspect==0.9.0
 typing-inspection==0.4.2
 tzdata==2025.3
-urllib3==2.6.3
+urllib3==2.7.0
 uvicorn==0.40.0
 watchdog==6.0.0
 websockets==15.0.1
