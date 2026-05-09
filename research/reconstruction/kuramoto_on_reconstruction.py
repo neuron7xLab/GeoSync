@@ -29,11 +29,60 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
+from enum import Enum
 
 import numpy as np
 
 from core.kuramoto.config import KuramotoConfig
 from core.kuramoto.engine import KuramotoEngine
+
+
+class PrecursorDirection(Enum):
+    """Direction of the precursor signal (FIX B5, X-10R deep review).
+
+    The frozen ClaimTier enum (PR #592) cannot represent direction —
+    a positive precursor under the ``VALIDATED_NEGATIVE`` ClaimTier
+    label is internally consistent but externally confusing. This
+    enum sits *next to* ClaimTier (not in place of it) so that human
+    text can state the direction explicitly:
+
+      SYNCHRONIZATION_FACILITATED — reconstructed structure makes
+        synchronisation easier than the topology-randomised null
+        (CI lower bound exceeds +min_gap). Common in hub-dominated
+        scale-free regimes (BA m=5, core-periphery).
+      SYNCHRONIZATION_HINDERED — reconstructed structure makes
+        synchronisation *harder* than the null (CI upper bound is
+        below −min_gap). Common in hierarchical / tiered regimes
+        where heterogeneous coupling competes with the mean field.
+      NO_SIGNAL — the 95 % CI overlaps the [-min_gap, +min_gap]
+        band; the precursor signal is indistinguishable from noise.
+
+    Both signed directions are *informative* — what Gate 6 forbids
+    is the absence of signal, NOT a particular sign. The capsule
+    human-facing text (and any downstream claim) MUST surface the
+    direction so a reader can interpret VALIDATED_NEGATIVE without
+    decoding internals.
+    """
+
+    SYNCHRONIZATION_FACILITATED = "structure_aids_sync"
+    SYNCHRONIZATION_HINDERED = "structure_hinders_sync"
+    NO_SIGNAL = "ci_overlaps_zero"
+
+
+def _classify_direction(*, ci_low: float, ci_high: float, min_gap: float) -> PrecursorDirection:
+    """Map the (ci_low, ci_high, min_gap) triple to a PrecursorDirection.
+
+    Boundary semantics match Gate 6 itself: closed intervals on the
+    ``≥ min_gap`` / ``≤ -min_gap`` predicates so a ΔR exactly at the
+    threshold is classified as a signal (consistent with the FIX A1
+    Gate 6 PASS predicate).
+    """
+    if ci_low >= min_gap:
+        return PrecursorDirection.SYNCHRONIZATION_FACILITATED
+    if ci_high <= -min_gap:
+        return PrecursorDirection.SYNCHRONIZATION_HINDERED
+    return PrecursorDirection.NO_SIGNAL
+
 
 # Gate 6 threshold — precursor must beat the null by at least this much
 # (lower-95 % bound of the bootstrap ΔR distribution).
@@ -142,6 +191,28 @@ class PrecursorReport:
     min_precursor_gap: float
     passed: bool
     failure_reason: str | None
+    direction: PrecursorDirection = PrecursorDirection.NO_SIGNAL
+
+    def human_text(self) -> str:
+        """Human-facing one-liner including direction (FIX B5).
+
+        Used by capsule rendering / log output so a reader doesn't
+        have to decode VALIDATED_NEGATIVE vs VALIDATED_POSITIVE from
+        the upstream-frozen ClaimTier alone.
+        """
+        if self.direction is PrecursorDirection.SYNCHRONIZATION_FACILITATED:
+            tail = "structure aids synchronisation vs topology-randomised null"
+        elif self.direction is PrecursorDirection.SYNCHRONIZATION_HINDERED:
+            tail = "structure hinders synchronisation vs topology-randomised null"
+        else:
+            tail = "no signal beyond noise (CI overlaps zero band)"
+        verdict = "PASS" if self.passed else "FAIL"
+        return (
+            f"Gate 6 {verdict} | direction={self.direction.value} | "
+            f"ΔR_median={self.delta_r_median:.4f} "
+            f"CI=[{self.delta_r_ci_low:.4f},{self.delta_r_ci_high:.4f}] "
+            f"min_gap={self.min_precursor_gap} | {tail}"
+        )
 
 
 def gate_6_precursor_discriminative(
@@ -203,6 +274,7 @@ def gate_6_precursor_discriminative(
             f"includes the |ΔR| < min_gap={min_gap} zone — precursor "
             f"signal indistinguishable from topology-randomised null"
         )
+    direction = _classify_direction(ci_low=ci_low, ci_high=ci_high, min_gap=min_gap)
     return PrecursorReport(
         n_nodes=n,
         k_test=k_test,
@@ -215,6 +287,7 @@ def gate_6_precursor_discriminative(
         min_precursor_gap=min_gap,
         passed=passed,
         failure_reason=failure_reason,
+        direction=direction,
     )
 
 
