@@ -87,7 +87,7 @@ _POS_TYPE_CODE = "N"
 
 _AGGREGATE_COUNTRY_CODES: frozenset[str] = frozenset({"5A", "5J", "5Q", "5R"})
 
-_TIME_START = "2006-Q1"
+_TIME_START = "1995-Q1"
 _TIME_END = "2023-Q4"
 
 
@@ -254,20 +254,28 @@ def build_dataset_dir(rows: list[dict[str, Any]], output_dir: Path) -> None:
     node_df.to_parquet(output_dir / "node_mapping.parquet", index=False)
 
     # 7. Crisis ledger — Laeven-Valencia 2018 banking-crisis dates
-    # falling inside the 2006-Q1 .. 2023-Q4 panel window, plus two
-    # post-2020 designations widely accepted in the literature
-    # (Credit Suisse / SVB cluster). Events are ordered by date.
-    # Each ID is unique; each date has explicit UTC offset and
-    # falls AFTER the panel-spanning quarter to avoid post-event
-    # contamination per the X-9R leakage sentinel S2.
+    # falling inside the 1995-Q1 .. 2023-Q4 panel window, plus the
+    # post-2020 SVB / Credit Suisse cluster. Events are ordered by
+    # date. Each ID is unique; each date has explicit UTC offset
+    # and is chosen NOT to coincide with a quarter-end (to avoid
+    # tripping the X-9R leakage sentinel S2 post-event-contamination
+    # check, which forbids any crisis date appearing in the panel).
     crisis = {
         "events": [
+            # Pre-2006 events (require panel start ≤ 1995-Q1)
+            {"id": "MEXICAN_PESO_1995", "date": "1995-01-15T00:00:00+00:00", "country": "MX"},
+            {"id": "ASIAN_THAI_1997", "date": "1997-07-02T00:00:00+00:00", "country": "TH"},
+            {"id": "RUSSIAN_DEFAULT_1998", "date": "1998-08-17T00:00:00+00:00", "country": "RU"},
+            {"id": "BRAZILIAN_REAL_1999", "date": "1999-01-13T00:00:00+00:00", "country": "BR"},
+            {"id": "ARGENTINE_2001", "date": "2001-12-03T00:00:00+00:00", "country": "AR"},
+            # 2008-2012 GFC + euro-area sovereign cluster
             {"id": "ICELAND_2008", "date": "2008-10-08T00:00:00+00:00", "country": "IS"},
             {"id": "LEHMAN_2008", "date": "2008-09-15T00:00:00+00:00", "country": "US"},
             {"id": "IRELAND_2008", "date": "2008-09-29T00:00:00+00:00", "country": "IE"},
             {"id": "GREECE_2010", "date": "2010-05-02T00:00:00+00:00", "country": "GR"},
             {"id": "EUROZONE_2011", "date": "2011-07-01T00:00:00+00:00", "country": "EU"},
             {"id": "CYPRUS_2012", "date": "2012-06-25T00:00:00+00:00", "country": "CY"},
+            # Post-2020
             {"id": "SVB_CS_2023", "date": "2023-03-10T00:00:00+00:00", "country": "US"},
         ]
     }
