@@ -57,7 +57,7 @@ jobs:
           set -euo pipefail
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m pip install pytest hypothesis pyyaml
+          python -m pip install pytest hypothesis pyyaml mypy ruff black
 
       - name: Public-symbol matrix audit
         run: python tools/check_public_symbol_matrix.py
