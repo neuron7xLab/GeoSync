@@ -162,3 +162,51 @@ def test_hash_marginals_changes_with_input() -> None:
     h_a = hash_marginals(s_out, s_in)
     h_b = hash_marginals(s_out + 1.0, s_in)
     assert h_a != h_b
+
+
+# ---------------------------------------------------------------------------
+# Gate 4 — bit-exact reproducibility (explicit Protocol X-10R names).
+# These are named per protocol (test_gate_4_*) to make Gate 4 enforcement
+# auditable from the spec rather than only via internal helpers.
+# ---------------------------------------------------------------------------
+
+
+def test_gate_4_bit_exact_rerun_with_fixed_prng() -> None:
+    """Gate 4: identical canonical inputs (incl. fixed prng_seed) ⇒
+    bit-identical capsule_id. This is the determinism contract that
+    every X-10R verdict is anchored on."""
+    args = _good_args()
+    args["prng_seed"] = 20260509
+    cap_a = build_reconstruction_capsule(**args)
+    cap_b = build_reconstruction_capsule(**args)
+    assert cap_a.capsule_id == cap_b.capsule_id
+    assert cap_a.payload_sha256 == cap_b.payload_sha256
+    assert cap_a.metrics_sha == cap_b.metrics_sha
+    assert cap_a.code_sha == cap_b.code_sha
+    assert cap_a.spectral_radius == cap_b.spectral_radius
+
+
+def test_gate_4_payload_tamper_breaks_rerun() -> None:
+    """Gate 4: tampering ANY payload field must change capsule_id —
+    otherwise determinism is decoupled from inputs and replay is theatre."""
+    args_a = _good_args()
+    args_a["prng_seed"] = 20260509
+    cap_a = build_reconstruction_capsule(**args_a)
+
+    # Tamper a single float byte at the 12-decimal canonicalisation boundary.
+    args_b = dict(args_a)
+    args_b["spectral_radius"] = args_a["spectral_radius"] + 1e-9
+    cap_b = build_reconstruction_capsule(**args_b)
+    assert cap_a.capsule_id != cap_b.capsule_id
+
+    # Tamper payload_sha256 (hash of the marginals).
+    args_c = dict(args_a)
+    args_c["payload_sha256"] = hashlib.sha256(b"tampered").hexdigest()
+    cap_c = build_reconstruction_capsule(**args_c)
+    assert cap_a.capsule_id != cap_c.capsule_id
+
+    # Tamper metrics_sha.
+    args_d = dict(args_a)
+    args_d["metrics_sha"] = hashlib.sha256(b"different-metrics").hexdigest()
+    cap_d = build_reconstruction_capsule(**args_d)
+    assert cap_a.capsule_id != cap_d.capsule_id
