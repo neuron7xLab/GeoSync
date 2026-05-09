@@ -52,6 +52,23 @@ def _synthetic_certificate_at(n: int, seed: int = 42) -> GroundTruthRecoveryCert
     return run_recovery_on_substrate(f"CP_{n}", w, seed=seed)
 
 
+# Module-scoped baseline certificate. The DoV tests are pure gate
+# logic — they do not need a fresh Gate 5 sweep per test. Caching at
+# (N=80, seed=42) once and reusing across the whole test module saves
+# ~10 × 5-10s of `run_recovery_on_substrate` on CI without weakening
+# the contract. The (N=80, seed=42) cell is specifically certified
+# stable on `core_periphery` by the empirical recovery summary
+# (X10R_EMPIRICAL_RECOVERY_SUMMARY.md row 1).
+_CACHED_CERT_N80_SEED42: GroundTruthRecoveryCertificate | None = None
+
+
+def _cached_cert_n80_seed42() -> GroundTruthRecoveryCertificate:
+    global _CACHED_CERT_N80_SEED42
+    if _CACHED_CERT_N80_SEED42 is None:
+        _CACHED_CERT_N80_SEED42 = _synthetic_certificate_at(n=80, seed=42)
+    return _CACHED_CERT_N80_SEED42
+
+
 def _marginals_for_n(n: int, *, seed: int = 0) -> tuple[np.ndarray, np.ndarray]:
     """Generate balanced (Σs_in = Σs_out) lognormal marginals."""
     rng = np.random.default_rng(seed)
@@ -104,7 +121,7 @@ def _empty_certificate() -> GroundTruthRecoveryCertificate:
 def test_within_domain_when_all_dims_inside_certified_range() -> None:
     """N inside [min, max] of tested_at_n_nodes AND density inside envelope
     ⇒ WITHIN_VALIDATED_DOMAIN."""
-    cert = _synthetic_certificate_at(n=80, seed=1)
+    cert = _cached_cert_n80_seed42()
     s_out, s_in = _marginals_for_n(n=80, seed=11)
     # Pick an inferred density inside the certified sweep envelope.
     densities = cert.tested_at_densities
@@ -119,7 +136,7 @@ def test_within_domain_when_all_dims_inside_certified_range() -> None:
 
 def test_out_of_domain_when_n_nodes_exceed_certified() -> None:
     """N outside the certificate's tested_at_n_nodes envelope ⇒ OUT_OF_."""
-    cert = _synthetic_certificate_at(n=80, seed=2)
+    cert = _cached_cert_n80_seed42()
     s_out, s_in = _marginals_for_n(n=600, seed=12)
     inside = float((min(cert.tested_at_densities) + max(cert.tested_at_densities)) / 2.0)
     check = check_domain_of_validity(s_out, s_in, cert, inferred_density=inside)
@@ -130,7 +147,7 @@ def test_out_of_domain_when_n_nodes_exceed_certified() -> None:
 
 def test_out_of_domain_when_density_below_floor() -> None:
     """Inferred density well below the smallest tested density ⇒ OUT_OF_."""
-    cert = _synthetic_certificate_at(n=80, seed=3)
+    cert = _cached_cert_n80_seed42()
     s_out, s_in = _marginals_for_n(n=80, seed=13)
     floor = float(min(cert.tested_at_densities))
     check = check_domain_of_validity(s_out, s_in, cert, inferred_density=floor / 10.0)
@@ -214,7 +231,7 @@ def test_synthetic_path_emits_recovery_status_never_domain_status() -> None:
 
 
 def test_domain_check_serialises_to_dict() -> None:
-    cert = _synthetic_certificate_at(n=80, seed=4)
+    cert = _cached_cert_n80_seed42()
     s_out, s_in = _marginals_for_n(n=80, seed=16)
     inside = float((min(cert.tested_at_densities) + max(cert.tested_at_densities)) / 2.0)
     check = check_domain_of_validity(s_out, s_in, cert, inferred_density=inside)
@@ -227,7 +244,7 @@ def test_domain_check_serialises_to_dict() -> None:
 
 
 def test_domain_check_rejects_shape_mismatch() -> None:
-    cert = _synthetic_certificate_at(n=80, seed=5)
+    cert = _cached_cert_n80_seed42()
     s_out = np.zeros(50)
     s_in = np.zeros(60)
     with pytest.raises(ValueError, match="shape mismatch"):
@@ -235,14 +252,14 @@ def test_domain_check_rejects_shape_mismatch() -> None:
 
 
 def test_domain_check_rejects_too_small_n() -> None:
-    cert = _synthetic_certificate_at(n=80, seed=6)
+    cert = _cached_cert_n80_seed42()
     s = np.array([1.0])
     with pytest.raises(ValueError, match="at least 2 nodes"):
         check_domain_of_validity(s, s, cert)
 
 
 def test_domain_check_rejects_non_finite_marginals() -> None:
-    cert = _synthetic_certificate_at(n=80, seed=7)
+    cert = _cached_cert_n80_seed42()
     s_out = np.array([1.0, np.nan, 3.0])
     s_in = np.array([1.0, 2.0, 3.0])
     with pytest.raises(ValueError, match="finite"):
@@ -251,7 +268,7 @@ def test_domain_check_rejects_non_finite_marginals() -> None:
 
 def test_evidence_envelope_reports_min_max() -> None:
     """The envelope helper returns (min, max) per dimension that has evidence."""
-    cert = _synthetic_certificate_at(n=80, seed=8)
+    cert = _cached_cert_n80_seed42()
     env = cert.evidence_envelope()
     assert "n_nodes" in env
     assert env["n_nodes"] == (80, 80)
@@ -286,7 +303,7 @@ def test_within_domain_when_real_n_at_envelope_boundary() -> None:
 
 
 def test_certified_envelope_is_populated_on_within_verdict() -> None:
-    cert = _synthetic_certificate_at(n=80, seed=9)
+    cert = _cached_cert_n80_seed42()
     s_out, s_in = _marginals_for_n(n=80, seed=18)
     inside = float((min(cert.tested_at_densities) + max(cert.tested_at_densities)) / 2.0)
     check = check_domain_of_validity(s_out, s_in, cert, inferred_density=inside)
@@ -299,7 +316,7 @@ def test_certified_envelope_is_populated_on_within_verdict() -> None:
 def test_reciprocity_required_but_missing_returns_insufficient() -> None:
     """Caller can demand a reciprocity gate even though FIX B6 hasn't shipped;
     the gate must then report INSUFFICIENT_CERTIFICATE rather than a free pass."""
-    cert = _synthetic_certificate_at(n=80, seed=10)
+    cert = _cached_cert_n80_seed42()
     s_out, s_in = _marginals_for_n(n=80, seed=19)
     inside = float((min(cert.tested_at_densities) + max(cert.tested_at_densities)) / 2.0)
     check = check_domain_of_validity(
@@ -427,7 +444,7 @@ def test_domain_check_returns_exactly_one_verdict_per_input(
     """For every (real_n, real_density) pair, the gate returns exactly
     one of {WITHIN, OUT_OF, INSUFFICIENT}; verdicts are mutually
     exclusive and exhaustive."""
-    cert = _synthetic_certificate_at(n=80, seed=42)
+    cert = _cached_cert_n80_seed42()
     rng = np.random.default_rng(seed)
     s_out = rng.lognormal(mean=10.0, sigma=1.0, size=real_n)
     s_in = rng.lognormal(mean=10.0, sigma=1.0, size=real_n)
@@ -447,7 +464,7 @@ def test_domain_check_negative_control_extreme_density_is_out() -> None:
     """A real-data run with density wildly outside the certified range
     MUST be flagged OUT, never WITHIN. This is the negative control
     that proves the gate has discriminative capacity."""
-    cert = _synthetic_certificate_at(n=80, seed=11)
+    cert = _cached_cert_n80_seed42()
     s_out, s_in = _marginals_for_n(n=120, seed=21)
     # Density 100x above any tested density.
     crazy = float(max(cert.tested_at_densities) * 100.0)
