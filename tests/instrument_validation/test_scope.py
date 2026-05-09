@@ -77,3 +77,36 @@ def test_serialise_scope_shape() -> None:
         "invalid_for",
     ):
         assert key in payload
+
+
+def test_scope_match_rejects_non_int_n() -> None:
+    """Iter-4 audit fix — booleans subclass int, float silently coerced."""
+    from typing import Any, cast
+
+    scope = country_aggregate_default_scope()
+    # Float n masquerading as int
+    assert not scope_match(
+        scope,
+        n=cast(Any, 31.0),
+        substrate=scope.valid_for_substrate,
+        density=0.15,
+    )
+    # Boolean n (True == 1, was silently treated as n=1)
+    assert not scope_match(
+        scope,
+        n=cast(Any, True),
+        substrate=scope.valid_for_substrate,
+        density=0.15,
+    )
+
+
+def test_scope_match_rejects_bool_substrate() -> None:
+    from typing import Any, cast
+
+    scope = country_aggregate_default_scope()
+    assert not scope_match(
+        scope,
+        n=31,
+        substrate=cast(Any, False),
+        density=0.15,
+    )
