@@ -1000,8 +1000,8 @@ def _null_mean_shuffled_time_labels(
     means: list[float] = []
     for k in range(_NULL_AUDIT_PERMUTATIONS):
         rng = np.random.default_rng(seed + 1 + k * 1000)
-        permuted = list(sorted_dates)
-        rng.shuffle(permuted)
+        perm_idx = rng.permutation(len(sorted_dates))
+        permuted = [sorted_dates[int(j)] for j in perm_idx]
         relabelled = {permuted[i]: matrices[sorted_dates[i]] for i in range(len(sorted_dates))}
         score_per_date = _candidate_score(relabelled, seed=seed + 1 + k * 1000, method=method)
         per_event = _per_event_score(score_per_date, crisis_events)
