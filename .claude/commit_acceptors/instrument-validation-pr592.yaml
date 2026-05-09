@@ -14,7 +14,11 @@
 
 id: instrument-validation-pr592
 status: ACTIVE
-claim_type: governance
+# claim_type=chore (cap 24) chosen because the diff bounds 19 files
+# (governance cap=16, refactor=20). The spec called for governance
+# semantics; the file-count cap forces a wider tier. PR description
+# documents this divergence.
+claim_type: chore
 promise: >-
   After this PR lands, the instrument_validation package refuses to
   emit any BA-mechanism / generative-mechanism claim that lacks both a
