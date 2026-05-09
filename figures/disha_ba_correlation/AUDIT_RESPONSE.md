@@ -3,7 +3,7 @@
 Maps the bugs raised in `~/Downloads/DISHA_AUDIT_REPORT_2026-05-09.md` to fixes shipped
 in this PR. Each item is `fixed`, `partially fixed`, or `accepted risk`.
 
-Git SHA: `f5883d96096838e47abd1619c63873320cf38f8a`
+Git SHA: `89653191f10aad84674a67a4e56e181f5284cfcd`
 Output dir: `figures/disha_ba_correlation`
 
 | # | bug | severity | status | fix landed |
@@ -24,8 +24,8 @@ Output dir: `figures/disha_ba_correlation`
 
 | period | BA r | ER r | BA−ER r | KS_BA | KS_ER | winner | zero-mismatch | claim_status |
 |---|---|---|---|---|---|---|---|---|
-| normal | 0.941 | 0.940 | +0.001 | 0.349 | 0.417 | BA | True | NOT_DISTINGUISHED |
-| lehman | 0.945 | 0.942 | +0.003 | 0.415 | 0.381 | ER | True | NOT_DISTINGUISHED |
+| normal | 0.940 | 0.941 | -0.001 | 0.349 | 0.422 | BA | True | NOT_DISTINGUISHED |
+| lehman | 0.945 | 0.940 | +0.005 | 0.414 | 0.373 | ER | True | NOT_DISTINGUISHED |
 
 ## Artefact status
 

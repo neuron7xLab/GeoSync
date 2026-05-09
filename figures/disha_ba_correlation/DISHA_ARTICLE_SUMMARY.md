@@ -36,8 +36,8 @@ material for any country-level comparison and is exposed in `reporter_status_sum
 We threshold each period's averaged exposure matrix at the top 15%
 of positive weights and compare the thresholded undirected degree sequence to:
 
-- 500 Barabási-Albert simulations (same N, m matched to edge density)
-- 500 Erdős-Rényi simulations (same N, p matched to edge density)
+- 200 Barabási-Albert simulations (same N, m matched to edge density)
+- 200 Erdős-Rényi simulations (same N, p matched to edge density)
 
 For each, we compute (a) Pearson r of sorted-degree sequences and (b) Kolmogorov-Smirnov
 distance between empirical and pooled-simulated degree distributions. The BA claim is
@@ -49,8 +49,8 @@ upgraded to `BA_DESCRIPTIVELY_BETTER` ONLY when:
 
 Otherwise: `NOT_DISTINGUISHED`, `ER_KS_BETTER`, or `BA_STRUCTURAL_MISMATCH`.
 
-  normal: BA r = 0.941, ER r = 0.940, BA−ER r = +0.001, KS_BA = 0.349, KS_ER = 0.417, winner_by_ks = BA, emp_zero_deg = 8, BA_zero_deg_mean = 0.0, status = NOT_DISTINGUISHED
-  lehman: BA r = 0.945, ER r = 0.942, BA−ER r = +0.003, KS_BA = 0.415, KS_ER = 0.381, winner_by_ks = ER, emp_zero_deg = 7, BA_zero_deg_mean = 0.0, status = NOT_DISTINGUISHED
+  normal: BA r = 0.940, ER r = 0.941, BA−ER r = -0.001, KS_BA = 0.349, KS_ER = 0.422, winner_by_ks = BA, emp_zero_deg = 8, BA_zero_deg_mean = 0.0, status = NOT_DISTINGUISHED
+  lehman: BA r = 0.945, ER r = 0.940, BA−ER r = +0.005, KS_BA = 0.414, KS_ER = 0.373, winner_by_ks = ER, emp_zero_deg = 7, BA_zero_deg_mean = 0.0, status = NOT_DISTINGUISHED
 
 Honest framing: the network is **concentrated**, but this concentration is not uniquely
 explained by a Barabási-Albert mechanism unless the status above is `BA_DESCRIPTIVELY_BETTER`.
@@ -94,16 +94,16 @@ nodes whose high |r| is short-window saturation noise.
 
 Top 10 article-grade countries:
 
-  1. CA — Δ|r|_changes = +0.491, |r|_changes_lehman = 0.782, total_strength = 579,052
-  2. JE — Δ|r|_changes = +0.483, |r|_changes_lehman = 0.773, total_strength = 699,868
-  3. IM — Δ|r|_changes = +0.481, |r|_changes_lehman = 0.789, total_strength = 116,405
-  4. DE — Δ|r|_changes = +0.479, |r|_changes_lehman = 0.775, total_strength = 4,428,127
-  5. LU — Δ|r|_changes = +0.469, |r|_changes_lehman = 0.789, total_strength = 1,687,001
-  6. TW — Δ|r|_changes = +0.446, |r|_changes_lehman = 0.785, total_strength = 151,879
-  7. AT — Δ|r|_changes = +0.440, |r|_changes_lehman = 0.732, total_strength = 463,389
-  8. FR — Δ|r|_changes = +0.411, |r|_changes_lehman = 0.786, total_strength = 3,725,457
-  9. FI — Δ|r|_changes = +0.402, |r|_changes_lehman = 0.702, total_strength = 207,828
-  10. BR — Δ|r|_changes = +0.400, |r|_changes_lehman = 0.788, total_strength = 126,105
+  1. GB — Δ|r|_changes = +0.335, |r|_changes_lehman = 0.764, total_strength = 9,006,228
+  2. DE — Δ|r|_changes = +0.479, |r|_changes_lehman = 0.775, total_strength = 4,428,127
+  3. FR — Δ|r|_changes = +0.411, |r|_changes_lehman = 0.786, total_strength = 3,725,457
+  4. LU — Δ|r|_changes = +0.469, |r|_changes_lehman = 0.789, total_strength = 1,687,001
+  5. US — Δ|r|_changes = +0.149, |r|_changes_lehman = 0.573, total_strength = 5,247,551
+  6. IE — Δ|r|_changes = +0.385, |r|_changes_lehman = 0.786, total_strength = 1,991,685
+  7. BE — Δ|r|_changes = +0.386, |r|_changes_lehman = 0.701, total_strength = 1,363,849
+  8. CH — Δ|r|_changes = +0.383, |r|_changes_lehman = 0.789, total_strength = 1,587,252
+  9. NL — Δ|r|_changes = +0.306, |r|_changes_lehman = 0.662, total_strength = 2,116,425
+  10. ES — Δ|r|_changes = +nan, |r|_changes_lehman = nan, total_strength = 1,040,336
 
 The full unfiltered ranking is in `risk_concentration_summary.csv`; the filtered ranking is in
 `risk_concentration_article_grade.csv`. Use the latter for any external claim.
@@ -135,13 +135,13 @@ python tools/build_disha_ba_correlation_figures.py \
     --sensitivity-end 2009Q4 \
     --edge-quantile 0.85 \
     --top-n-labels 12 \
-    --ba-simulations 500 \
+    --ba-simulations 200 \
     --min-risk-total-strength 100000.0 \
     --min-effective-change-observations 8 \
     --seed 42
 ```
 
-Git SHA: `f5883d96096838e47abd1619c63873320cf38f8a`
+Git SHA: `89653191f10aad84674a67a4e56e181f5284cfcd`
 
 ## 9. Out of scope
 

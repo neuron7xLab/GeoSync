@@ -28,6 +28,7 @@ from tools.build_disha_ba_correlation_figures import (  # noqa: E402
     build_period_matrix,
     build_period_outward_strength_panel,
     compute_ba_comparison,
+    compute_correlation_validity,
     compute_reporter_status,
     compute_risk_concentration,
     estimate_ba_m,
@@ -372,8 +373,12 @@ def test_build_article_artifact_end_to_end(synthetic_dataset: Path, tmp_path: Pa
         "risk_concentration_article_grade.csv",
         "reporter_status_summary.csv",
         "model_comparison_summary.csv",
+        "model_comparison_full.csv",
+        "correlation_validity_summary.csv",
         "data_quality_summary.csv",
         "DISHA_ARTICLE_SUMMARY.md",
+        "DISHA_SAFE_120_WORDS.md",
+        "CLAIM_BOUNDARY.md",
         "REPRODUCIBILITY.md",
         "AUDIT_RESPONSE.md",
     ]
@@ -709,3 +714,227 @@ def test_data_quality_summary_new_metrics(synthetic_dataset: Path, tmp_path: Pat
     assert "constant_source_nodes" in metrics
     assert "reporting_filter_warning" in metrics
     assert "article_safe_outputs" in metrics
+
+
+# ---------------------------------------------------------------------------
+# OAI-RIGOR-590 — multi-null model comparison
+# ---------------------------------------------------------------------------
+
+
+def test_ba_comparison_includes_configuration_and_rewire_baselines(
+    synthetic_dataset: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    df = pd.read_csv(out / "model_comparison_full.csv")
+    for col in (
+        "ba_pearson_r",
+        "er_pearson_r",
+        "cfg_pearson_r",
+        "rew_pearson_r",
+        "ba_ks",
+        "er_ks",
+        "cfg_ks",
+        "rew_ks",
+        "ba_wasserstein",
+        "er_wasserstein",
+        "cfg_wasserstein",
+        "rew_wasserstein",
+        "ba_top5_hub_overlap",
+        "er_top5_hub_overlap",
+        "max_degree_error",
+        "zero_degree_error",
+        "ba_beats_all_ks",
+    ):
+        assert col in df.columns, f"missing column {col}"
+
+
+def test_ba_comparison_returns_wasserstein_and_top5() -> None:
+    rng = np.random.default_rng(11)
+    n = 12
+    A = (rng.random((n, n)) > 0.6).astype(np.uint8)
+    np.fill_diagonal(A, 0)
+    info = compute_ba_comparison(A, ba_simulations=20, seed=42)
+    assert "ba_wasserstein_distance" in info
+    assert "er_wasserstein_distance" in info
+    assert "cfg_degree_pearson_r" in info
+    assert "rew_degree_pearson_r" in info
+    assert "ba_beats_all_ks" in info
+
+
+# ---------------------------------------------------------------------------
+# OAI-RIGOR-590 — correlation validity (Spearman + Kendall + bootstrap)
+# ---------------------------------------------------------------------------
+
+
+def test_correlation_validity_columns() -> None:
+    rng = np.random.default_rng(0)
+    df_panel = pd.DataFrame(rng.normal(size=(15, 3)))
+    cv = compute_correlation_validity(
+        df_panel, ("A", "B", "C"), mode="changes", period="t", seed=42, n_boot=50
+    )
+    for col in (
+        "pearson_r",
+        "spearman_r",
+        "kendall_tau",
+        "effective_n",
+        "bootstrap_ci_low",
+        "bootstrap_ci_high",
+        "near_perfect_warning",
+        "low_n_warning",
+        "low_variance_warning",
+        "headline_allowed",
+    ):
+        assert col in cv.columns
+
+
+def test_correlation_validity_low_n_blocks_headline() -> None:
+    df_panel = pd.DataFrame(
+        {
+            0: [1.0, 2.0, 3.0] + [np.nan] * 5,
+            1: [1.0, 2.5, 4.0] + [np.nan] * 5,
+        }
+    )
+    cv = compute_correlation_validity(
+        df_panel, ("A", "B"), mode="changes", period="lehman", seed=42, n_boot=20
+    )
+    row = cv.iloc[0]
+    assert int(row["effective_n"]) == 3
+    assert bool(row["low_n_warning"])
+    assert not bool(row["headline_allowed"])
+
+
+def test_correlation_validity_near_perfect_blocks_headline() -> None:
+    n_obs = 15
+    x = np.linspace(0.0, 1.0, n_obs)
+    df_panel = pd.DataFrame({0: x, 1: x + 1e-9})
+    cv = compute_correlation_validity(
+        df_panel, ("A", "B"), mode="changes", period="t", seed=42, n_boot=20
+    )
+    row = cv.iloc[0]
+    assert bool(row["near_perfect_warning"])
+    assert not bool(row["headline_allowed"])
+
+
+def test_correlation_validity_csv_written(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    cv = pd.read_csv(out / "correlation_validity_summary.csv")
+    assert cv.shape[0] > 0
+    assert "headline_allowed" in cv.columns
+    assert set(cv["period"].unique()) >= {"normal", "lehman", "sensitivity_2007Q1_2009Q4"}
+
+
+# ---------------------------------------------------------------------------
+# OAI-RIGOR-590 — strength-weighted article risk score
+# ---------------------------------------------------------------------------
+
+
+def test_article_risk_score_penalises_low_mass(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    df = pd.read_csv(out / "risk_concentration_article_grade.csv")
+    if df.empty:
+        pytest.skip("article-grade table empty under synthetic fixture")
+    assert "article_risk_score" in df.columns
+    assert "low_mass_penalty" in df.columns
+    assert "short_sample_penalty" in df.columns
+    # Article-grade rows should have low_mass_penalty == 0.
+    assert (df["low_mass_penalty"] == 0).all()
+
+
+# ---------------------------------------------------------------------------
+# OAI-RIGOR-590 — claim boundary contract
+# ---------------------------------------------------------------------------
+
+
+def test_claim_boundary_md_written(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    assert (out / "CLAIM_BOUNDARY.md").is_file()
+
+
+def test_disha_safe_120_written(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    text = (out / "DISHA_SAFE_120_WORDS.md").read_text(encoding="utf-8")
+    flat = " ".join(text.split())
+    assert "BIS Locational Banking Statistics" in flat
+    word_count = len(text.split())
+    # paragraph + header markdown, target ~120 words; allow 100..200 for header / linewrap
+    assert 100 <= word_count <= 200, f"word count {word_count} out of safe range"
+
+
+def test_no_forbidden_phrases_in_any_md(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    for md in (
+        "DISHA_ARTICLE_SUMMARY.md",
+        "DISHA_SAFE_120_WORDS.md",
+        "AUDIT_RESPONSE.md",
+        "REPRODUCIBILITY.md",
+    ):
+        text = (out / md).read_text(encoding="utf-8")
+        leaks = find_forbidden_phrases(text)
+        assert leaks == [], f"{md} contains forbidden phrases: {leaks}"
+
+
+# ---------------------------------------------------------------------------
+# OAI-RIGOR-590 — reproducibility capsule
+# ---------------------------------------------------------------------------
+
+
+def test_repro_capsule_contents(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    capsule = out / "repro_capsule"
+    assert capsule.is_dir()
+    for name in (
+        "MANIFEST.json",
+        "COMMANDS.sh",
+        "ENVIRONMENT.txt",
+        "INPUT_DATASET_MANIFEST_COPY.json",
+        "OUTPUT_SHA256SUMS.txt",
+        "QUALITY_GATES.txt",
+    ):
+        assert (capsule / name).is_file(), f"missing capsule file: {name}"
+    manifest = json.loads((capsule / "MANIFEST.json").read_text())
+    assert manifest["artifact"] == "disha_ba_correlation"
+    assert manifest["forbidden_claims_enforced"] is True
+    assert manifest["claim_level"] == "descriptive_macro_country_level"
+
+
+def test_repro_capsule_sha256_lines_match_files(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    sha_file = (out / "repro_capsule" / "OUTPUT_SHA256SUMS.txt").read_text(encoding="utf-8")
+    lines = [line for line in sha_file.strip().splitlines() if line]
+    assert lines, "OUTPUT_SHA256SUMS.txt is empty"
+    # Each line is "<sha>  <basename>"
+    for line in lines:
+        parts = line.split("  ", 1)
+        assert len(parts) == 2
+        sha, name = parts
+        assert len(sha) == 64
+        assert (out / name).is_file()
+
+
+# ---------------------------------------------------------------------------
+# OAI-RIGOR-590 — multi-null override
+# ---------------------------------------------------------------------------
+
+
+def test_ba_status_not_distinguished_when_cfg_or_rewire_match() -> None:
+    """If BA edges out ER but configuration/rewiring also match, the multi-null
+    override flips claim status to NOT_DISTINGUISHED."""
+    # Construct a graph with an even degree distribution where any null matches.
+    n = 20
+    A = np.zeros((n, n), dtype=np.uint8)
+    # ring: each node has degree 2
+    for i in range(n):
+        A[i, (i + 1) % n] = 1
+        A[(i + 1) % n, i] = 1
+    info = compute_ba_comparison(A, ba_simulations=30, seed=42)
+    # On a regular graph, BA m≈1 vs ER vs configuration all produce similar
+    # sequences; status should NOT be BA_DESCRIPTIVELY_BETTER.
+    assert info["ba_claim_status"] != "BA_DESCRIPTIVELY_BETTER"
