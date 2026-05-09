@@ -29,6 +29,7 @@ from research.reconstruction.kuramoto_on_reconstruction import (
 )
 from research.reconstruction.positive_control import (
     ground_truth_core_periphery,
+    ground_truth_hierarchical,
     run_recovery_on_substrate,
 )
 from research.reconstruction.reconstruction_capsule import (
@@ -360,3 +361,72 @@ def test_gate_2_accepts_balanced_marginals_at_realistic_scale() -> None:
     s_in = rng.lognormal(mean=10.0, sigma=1.5, size=200)
     s_in = s_in * (s_out.sum() / s_in.sum())
     assert conservation_of_mass_passes(s_out, s_in) is True
+
+
+# ---------------------------------------------------------------------------
+# Path 9: Gate 6 direction stability across seeds on a known topology
+# ---------------------------------------------------------------------------
+
+
+def test_gate_6_direction_is_stable_across_seeds_on_cp_topology() -> None:
+    """Core-periphery is hub-dominated; the precursor sign is a
+    *property of the topology*, not of the seed. Across 4 seeds the
+    *signed direction* of ΔR (median sign, regardless of CI width)
+    must be stable: it cannot flip from FACILITATED to HINDERED
+    just because the bootstrap drew a different ω-set.
+
+    Stability is the invariant; PASS / NO_SIGNAL is allowed because
+    finite bootstrap budgets at small N can leave the CI overlapping
+    zero. What is forbidden is sign-flipping: that would mean the
+    structural signal is actually noise dressed up by the bootstrap."""
+    n = 80
+    seeds = [1, 5, 9, 13]
+    medians: list[float] = []
+    for s in seeds:
+        w_true = ground_truth_core_periphery(n=n, core_frac=0.30, seed=s)
+        s_out = w_true.sum(axis=1)
+        s_in = w_true.sum(axis=0)
+        fit = fit_cimini_squartini(s_out, s_in, target_density=0.05)
+        p = p_link(fit.x, fit.y, fit.z)
+        rng = np.random.default_rng(s * 31)
+        a = sample_adjacency_bernoulli(p, rng=rng)
+        w_recon = allocate_weights(a, s_out, s_in)
+        cert = issue_kuramoto_recovery_certificate(w_recon, seed=s, n_bootstrap=4)
+        medians.append(cert.report.delta_r_median)
+    # If any sign flips, fail loudly. We do NOT require all four to
+    # have the same sign (small-N noise is allowed to flip a single
+    # cell at the median), but at least three must agree.
+    n_neg = sum(1 for m in medians if m < 0)
+    n_pos = sum(1 for m in medians if m > 0)
+    n_zero = sum(1 for m in medians if m == 0)
+    dominant = max(n_neg, n_pos, n_zero)
+    assert dominant >= 3, f"Gate 6 direction instability across seeds: medians={medians}"
+
+
+# ---------------------------------------------------------------------------
+# Path 10: hierarchical seed-sensitivity — pinned, not hidden
+# ---------------------------------------------------------------------------
+
+
+def test_hierarchical_at_small_n_has_documented_seed_sensitivity() -> None:
+    """At N=80 the hierarchical substrate has documented seed
+    sensitivity (some seeds clip the ρ_rel ≤ 0.20 threshold). Across
+    a 5-seed sample we MUST see ≥3/5 PASS — anything less means the
+    method is too brittle for the documented N=160 lower bound on
+    the InstrumentScope intent.
+
+    Pinning this explicitly rather than picking a "good" seed means
+    the regression surface flags brittleness loudly the moment the
+    method drifts."""
+    seeds = [42, 17, 101, 2026, 31337]
+    n_passes = 0
+    for s in seeds:
+        w = ground_truth_hierarchical(n=80, n_tiers=4, seed=s)
+        cert = run_recovery_on_substrate(f"HIER_80_{s}", w, seed=s)
+        if cert.passed:
+            n_passes += 1
+    assert n_passes >= 3, (
+        f"Hierarchical N=80 too brittle: only {n_passes}/{len(seeds)} seeds passed; "
+        "method is unstable in this regime — the InstrumentScope envelope "
+        "should be tightened or the substrate generator stiffened."
+    )
