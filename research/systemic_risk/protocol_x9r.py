@@ -692,15 +692,89 @@ def _build_panel_matrices(panel_df: pd.DataFrame, n_banks: int) -> dict[date, np
     return out
 
 
-def _candidate_score(matrices: dict[date, np.ndarray], seed: int) -> dict[date, float]:
-    """Deterministic time-dependent candidate score per snapshot.
+_KURAMOTO_BURN_IN: int = 200
+_KURAMOTO_AVG_STEPS: int = 200
+_KURAMOTO_DT: float = 0.05
+_KURAMOTO_K_NORM_FACTOR: float = 0.05
 
-    Score per date = trailing mean of network-density across the
-    last ``window`` snapshots (or ``nan`` while the window has not
-    yet filled). Time-dependent on purpose so that the
-    shuffled-time-labels null erodes the signal (any temporal
-    clustering of high-density matrices is destroyed by the
-    shuffle).
+
+def _kuramoto_R_per_snapshot(matrices: dict[date, np.ndarray], *, seed: int) -> dict[date, float]:
+    """Per-snapshot Kuramoto order parameter R(t) on the directed
+    weighted graph defined by each exposure-matrix snapshot.
+
+    For each snapshot:
+      * Build coupling K_ij = ``_KURAMOTO_K_NORM_FACTOR`` × exposure_ij
+        normalised by the snapshot's max non-zero entry, so K stays
+        physically bounded across panels of any scale.
+      * Initialise phases θ ~ U(−π, π) seeded by ``seed + i`` (per-
+        snapshot deterministic).
+      * Integrate Sakaguchi-Kuramoto with α = 0 for
+        ``_KURAMOTO_BURN_IN + _KURAMOTO_AVG_STEPS`` steps, dt =
+        ``_KURAMOTO_DT``.
+      * R(snapshot) = mean of the order-parameter magnitude over the
+        post-burn-in window.
+
+    The ω vector is set to per-bank node-strength rank divided by N
+    (a stable structural per-bank ω that preserves heterogeneity
+    across snapshots without requiring an extra time series).
+    """
+    from .kuramoto_extensions import (
+        kuramoto_order_parameter,
+        sakaguchi_kuramoto_step,
+    )
+
+    sorted_dates = sorted(matrices.keys())
+    out: dict[date, float] = {}
+    for i, d in enumerate(sorted_dates):
+        m = matrices[d]
+        n = m.shape[0]
+        if n == 0:
+            out[d] = float("nan")
+            continue
+        # K normalised by snapshot scale.
+        scale = float(np.max(m)) if np.any(m) else 0.0
+        if scale == 0.0:
+            out[d] = float("nan")
+            continue
+        coupling = _KURAMOTO_K_NORM_FACTOR * m / scale
+        # Per-bank ω from out-strength rank (heterogeneous, structural).
+        out_strength = m.sum(axis=1)
+        if not np.any(out_strength > 0):
+            out[d] = float("nan")
+            continue
+        omega = (out_strength.argsort().argsort().astype(np.float64) / max(n - 1, 1)) - 0.5
+        alpha = np.zeros((n, n), dtype=np.float64)
+        rng = np.random.default_rng(seed + i)
+        theta = np.asarray(rng.uniform(-np.pi, np.pi, n), dtype=np.float64)
+        # Burn-in.
+        for _ in range(_KURAMOTO_BURN_IN):
+            theta = sakaguchi_kuramoto_step(
+                theta, omega=omega, coupling=coupling, alpha=alpha, dt=_KURAMOTO_DT
+            )
+        # Time-average R.
+        r_acc = 0.0
+        for _ in range(_KURAMOTO_AVG_STEPS):
+            theta = sakaguchi_kuramoto_step(
+                theta, omega=omega, coupling=coupling, alpha=alpha, dt=_KURAMOTO_DT
+            )
+            r_acc += kuramoto_order_parameter(theta)
+        out[d] = r_acc / float(_KURAMOTO_AVG_STEPS)
+    return out
+
+
+_CANDIDATE_SCORE_METHOD_TRAILING_MEAN: str = "trailing_mean_density"
+_CANDIDATE_SCORE_METHOD_KURAMOTO: str = "kuramoto_R_per_snapshot"
+_CANDIDATE_SCORE_METHOD_DEFAULT: str = _CANDIDATE_SCORE_METHOD_TRAILING_MEAN
+
+
+def _candidate_score_trailing_mean(
+    matrices: dict[date, np.ndarray], seed: int
+) -> dict[date, float]:
+    """Trailing-mean network-density candidate score.
+
+    Time-dependent so the shuffled-time-labels null erodes the
+    signal: any temporal clustering of high-density matrices is
+    destroyed by the shuffle.
     """
     rng = np.random.default_rng(seed)
     _ = rng.uniform(0.0, 1.0, 1)  # exercise the seed; result unused
@@ -719,6 +793,45 @@ def _candidate_score(matrices: dict[date, np.ndarray], seed: int) -> dict[date, 
         finite = [x for x in chunk if not np.isnan(x)]
         out[d] = float(np.mean(finite)) if finite else float("nan")
     return out
+
+
+def _candidate_score(
+    matrices: dict[date, np.ndarray],
+    seed: int,
+    *,
+    method: str = _CANDIDATE_SCORE_METHOD_DEFAULT,
+) -> dict[date, float]:
+    """Dispatch to the configured candidate-score implementation.
+
+    Two methods are supported:
+
+    * ``trailing_mean_density`` (default) — fast, time-aware, well-
+      tuned for synthetic stress fixtures. Used by the X-9R unit
+      tests to keep the pipeline test-pinned.
+    * ``kuramoto_R_per_snapshot`` — physics-meaningful Sakaguchi-
+      Kuramoto steady-state order parameter R(t) on the directed
+      weighted graph. Recommended for real-data runs (BIS LBS,
+      e-MID, MiMiK, etc.) where the systemic-risk-as-phase-
+      transition hypothesis is the actual claim under test.
+
+    Selectable per-run via ``manifest.config["candidate_score_method"]``;
+    callers that don't pass a method get the default.
+    """
+    if method == _CANDIDATE_SCORE_METHOD_KURAMOTO:
+        return _kuramoto_R_per_snapshot(matrices, seed=seed)
+    return _candidate_score_trailing_mean(matrices, seed=seed)
+
+
+def _resolve_candidate_score_method(state: _RunState) -> str:
+    cfg = state.manifest.get("config", {})
+    if isinstance(cfg, dict):
+        method = cfg.get("candidate_score_method")
+        if isinstance(method, str) and method in (
+            _CANDIDATE_SCORE_METHOD_TRAILING_MEAN,
+            _CANDIDATE_SCORE_METHOD_KURAMOTO,
+        ):
+            return method
+    return _CANDIDATE_SCORE_METHOD_DEFAULT
 
 
 def _per_event_score(
@@ -769,7 +882,8 @@ def _gate_end_to_end_run(state: _RunState) -> GateResult:
             outputs_sha256=(),
             started_at_utc=started,
         )
-    score_per_date = _candidate_score(matrices, seed=seed)
+    method = _resolve_candidate_score_method(state)
+    score_per_date = _candidate_score(matrices, seed=seed, method=method)
     score_per_event = _per_event_score(score_per_date, state.crisis_ledger.get("events", []))
 
     # No-placeholder guard: if every event score is NaN, the score
@@ -832,6 +946,7 @@ def _null_mean_shuffled_time_labels(
     matrices: dict[date, np.ndarray],
     crisis_events: list[dict[str, Any]],
     seed: int,
+    method: str = _CANDIDATE_SCORE_METHOD_DEFAULT,
 ) -> float:
     """Average per-event-score-mean over many time-label shuffles.
 
@@ -846,7 +961,7 @@ def _null_mean_shuffled_time_labels(
         permuted = list(sorted_dates)
         rng.shuffle(permuted)
         relabelled = {permuted[i]: matrices[sorted_dates[i]] for i in range(len(sorted_dates))}
-        score_per_date = _candidate_score(relabelled, seed=seed + 1 + k * 1000)
+        score_per_date = _candidate_score(relabelled, seed=seed + 1 + k * 1000, method=method)
         per_event = _per_event_score(score_per_date, crisis_events)
         m = _mean_per_event_score(per_event)
         if np.isfinite(m):
@@ -894,16 +1009,17 @@ def _gate_null_audit(state: _RunState) -> GateResult:
 
     # Per-event candidate score (already in state).
     cand_mean = _mean_per_event_score(state.score_per_event)
+    method = _resolve_candidate_score_method(state)
 
     # Null comparators: each is the *average over many independent
     # permutations* (n=_NULL_AUDIT_PERMUTATIONS), not a single noisy
     # draw. The single-draw approach was numerically unstable on
     # small N and produced false NaN at quarterly cadence.
     null_a_mean = _null_mean_shuffled_time_labels(
-        matrices, state.crisis_ledger.get("events", []), seed=seed
+        matrices, state.crisis_ledger.get("events", []), seed=seed, method=method
     )
     null_b_mean = _null_mean_permuted_crisis_dates(
-        _candidate_score(matrices, seed=seed),
+        _candidate_score(matrices, seed=seed, method=method),
         state.crisis_ledger.get("events", []),
         seed=seed,
     )
@@ -1005,7 +1121,8 @@ def _gate_metrics_validity(state: _RunState) -> GateResult:
     assert panel is not None
     n_banks = int(state.manifest["n_banks"])
     matrices = _build_panel_matrices(panel, n_banks=n_banks)
-    null_score_per_date = _candidate_score(matrices, seed=seed + 7)
+    method = _resolve_candidate_score_method(state)
+    null_score_per_date = _candidate_score(matrices, seed=seed + 7, method=method)
     null_finite = [v for v in null_score_per_date.values() if not np.isnan(v)]
 
     auc = _auc_mann_whitney(finite_candidate, null_finite)
