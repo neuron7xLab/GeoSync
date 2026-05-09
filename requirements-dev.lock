@@ -461,7 +461,7 @@ pycodestyle==2.12.1
     # via flake8
 pycparser==2.23
     # via cffi
-pydantic==2.13.2
+pydantic==2.13.4
     # via
     #   -c constraints/security.txt
     #   fastapi
