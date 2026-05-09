@@ -31,9 +31,9 @@ gate decisions only; no marketing language.
 
 | metric | value |
 |---|---:|
-| benchmark_cum_return | 0.1001 |
-| benchmark_sharpe_live | 4.2878 |
-| relative_return_vs_benchmark | -0.1402 |
+| benchmark_cum_return | 0.0991 |
+| benchmark_sharpe_live | 4.2457 |
+| relative_return_vs_benchmark | -0.1392 |
 
 ## Envelope position
 
