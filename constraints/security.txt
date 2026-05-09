@@ -66,7 +66,7 @@ configobj==5.0.9
 
 # setuptools: Fix path traversal and RCE vulnerabilities PYSEC-2025-49, GHSA-cx63-2mw6-8hw5
 # Version 78.1.1+ fixes these vulnerabilities
-setuptools>=78.1.1
+setuptools>=82.0.1
 
 # twisted: Fix XSS and request ordering vulnerabilities PYSEC-2024-75, GHSA-c8m8-j448-xjx7, CVE-2024-41671
 # CVE-2024-41671: HTTP request pipelining out-of-order processing vulnerability
