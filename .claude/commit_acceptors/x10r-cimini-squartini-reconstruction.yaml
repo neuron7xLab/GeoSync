@@ -80,6 +80,7 @@ diff_scope:
     # Post-review additions (X-10R deep review, 2026-05-09):
     - path: "tests/reconstruction/test_domain_of_validity.py"
     - path: "tests/reconstruction/test_precursor_direction.py"
+    - path: "tests/reconstruction/test_x10r_pipeline_e2e.py"
     - path: "ISSUE_DRAFTS_X10R.md"
   forbidden_paths:
     - "trading/"

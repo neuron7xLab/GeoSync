@@ -14,6 +14,8 @@ from dataclasses import replace
 from typing import Any
 
 import numpy as np
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from research.reconstruction.kuramoto_on_reconstruction import (
     PrecursorDirection,
@@ -170,3 +172,74 @@ def test_direction_default_is_no_signal_for_legacy_constructions() -> None:
         failure_reason=None,
     )
     assert legacy_like.direction is PrecursorDirection.NO_SIGNAL
+
+
+# ---------------------------------------------------------------------------
+# Property-based tests — Hypothesis exhaustively probes the classifier's
+# logical contract. The classifier is a pure function of three numbers, so
+# the right level of test rigor is property-based, not example-based.
+# ---------------------------------------------------------------------------
+
+
+@given(
+    a=st.floats(min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False),
+    b=st.floats(min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False),
+    min_gap=st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False),
+)
+@settings(max_examples=400, deadline=None)
+def test_classifier_partitions_state_space_disjointly(a: float, b: float, min_gap: float) -> None:
+    """Every (ci_low, ci_high) point falls in exactly one of three
+    mutually-exclusive bins. The classifier is a function — same input,
+    same output — and the bins partition R²: this property is the
+    foundation Gate 6 inherits."""
+    ci_low, ci_high = min(a, b), max(a, b)
+    direction = _classify_direction(ci_low=ci_low, ci_high=ci_high, min_gap=min_gap)
+
+    facilitated = ci_low >= min_gap
+    hindered = ci_high <= -min_gap
+    no_signal = (not facilitated) and (not hindered)
+
+    # Mutual exclusivity: exactly one bin true.
+    assert sum([facilitated, hindered, no_signal]) == 1
+
+    # Bin assignment matches verdict.
+    if facilitated:
+        assert direction is PrecursorDirection.SYNCHRONIZATION_FACILITATED
+    elif hindered:
+        assert direction is PrecursorDirection.SYNCHRONIZATION_HINDERED
+    else:
+        assert direction is PrecursorDirection.NO_SIGNAL
+
+
+@given(
+    ci_low=st.floats(min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False),
+    width=st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False),
+    min_gap=st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False),
+)
+@settings(max_examples=200, deadline=None)
+def test_classifier_is_idempotent(ci_low: float, width: float, min_gap: float) -> None:
+    """Calling the classifier twice on the same triple returns the same
+    PrecursorDirection — pure-function property, no hidden state."""
+    ci_high = ci_low + width
+    a = _classify_direction(ci_low=ci_low, ci_high=ci_high, min_gap=min_gap)
+    b = _classify_direction(ci_low=ci_low, ci_high=ci_high, min_gap=min_gap)
+    assert a is b
+
+
+@given(
+    ci_low=st.floats(min_value=0.06, max_value=2.0, allow_nan=False, allow_infinity=False),
+    width=st.floats(min_value=0.001, max_value=2.0, allow_nan=False, allow_infinity=False),
+)
+@settings(max_examples=100, deadline=None)
+def test_facilitated_is_invariant_under_min_gap_below_ci_low(ci_low: float, width: float) -> None:
+    """Once a CI exceeds +min_gap, *lowering* min_gap never demotes the
+    verdict (only raising min_gap above ci_low can flip to NO_SIGNAL).
+    Equivalently: FACILITATED is closed under min_gap → 0⁺."""
+    ci_high = ci_low + width
+    base = _classify_direction(ci_low=ci_low, ci_high=ci_high, min_gap=0.05)
+    if base is PrecursorDirection.SYNCHRONIZATION_FACILITATED:
+        for tighter in (0.04, 0.02, 0.01, 1e-6):
+            assert (
+                _classify_direction(ci_low=ci_low, ci_high=ci_high, min_gap=tighter)
+                is PrecursorDirection.SYNCHRONIZATION_FACILITATED
+            )
