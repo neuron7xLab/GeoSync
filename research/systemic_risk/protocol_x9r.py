@@ -819,42 +819,69 @@ def _gate_end_to_end_run(state: _RunState) -> GateResult:
 # ============================================================================
 
 
-def _null_score_shuffled_time_labels(
-    matrices: dict[date, np.ndarray], crisis_events: list[dict[str, Any]], seed: int
-) -> dict[str, float]:
-    """Shuffle the time labels; recompute per-event score.
+_NULL_AUDIT_PERMUTATIONS: int = 200
 
-    Under H0 the candidate's signal should be **erased** by this
-    shuffle.
+
+def _mean_per_event_score(per_event: dict[str, float]) -> float:
+    """Return the mean of finite per-event scores; ``nan`` only if all are non-finite."""
+    finite = [v for v in per_event.values() if not np.isnan(v)]
+    return float(np.mean(finite)) if finite else float("nan")
+
+
+def _null_mean_shuffled_time_labels(
+    matrices: dict[date, np.ndarray],
+    crisis_events: list[dict[str, Any]],
+    seed: int,
+) -> float:
+    """Average per-event-score-mean over many time-label shuffles.
+
+    A single shuffle is a noisy point estimate; the canonical
+    permutation-test mean is the average over many independent
+    shuffles. ``_NULL_AUDIT_PERMUTATIONS`` controls the count.
     """
     sorted_dates = sorted(matrices.keys())
-    rng = np.random.default_rng(seed + 1)
-    permuted = list(sorted_dates)
-    rng.shuffle(permuted)
-    relabelled = {permuted[i]: matrices[sorted_dates[i]] for i in range(len(sorted_dates))}
-    score_per_date = _candidate_score(relabelled, seed=seed + 1)
-    return _per_event_score(score_per_date, crisis_events)
+    means: list[float] = []
+    for k in range(_NULL_AUDIT_PERMUTATIONS):
+        rng = np.random.default_rng(seed + 1 + k * 1000)
+        permuted = list(sorted_dates)
+        rng.shuffle(permuted)
+        relabelled = {permuted[i]: matrices[sorted_dates[i]] for i in range(len(sorted_dates))}
+        score_per_date = _candidate_score(relabelled, seed=seed + 1 + k * 1000)
+        per_event = _per_event_score(score_per_date, crisis_events)
+        m = _mean_per_event_score(per_event)
+        if np.isfinite(m):
+            means.append(m)
+    return float(np.mean(means)) if means else float("nan")
 
 
-def _null_score_permuted_crisis_dates(
+def _null_mean_permuted_crisis_dates(
     score_per_date: dict[date, float],
     crisis_events: list[dict[str, Any]],
     seed: int,
-) -> dict[str, float]:
-    """Replace each event's date with a permuted random panel date.
+) -> float:
+    """Average per-event-score-mean over many crisis-date permutations.
 
-    Under H0 the per-event scores should be statistically
-    indistinguishable from the candidate's true per-event scores.
+    Robust against the small-N corner case where a single
+    permutation lands all events in the trailing-window NaN
+    region: averaging over ``_NULL_AUDIT_PERMUTATIONS`` independent
+    permutations recovers a finite mean even if ~30% of single
+    permutations would individually return all-NaN.
     """
     sorted_dates = sorted(score_per_date.keys())
     if len(sorted_dates) < 2:
-        return {ev.get("id", "?"): float("nan") for ev in crisis_events}
-    rng = np.random.default_rng(seed + 2)
-    permuted_events: list[dict[str, Any]] = []
-    for ev in crisis_events:
-        new_date = sorted_dates[int(rng.integers(0, len(sorted_dates)))]
-        permuted_events.append({"id": ev.get("id", "?"), "date": new_date.isoformat()})
-    return _per_event_score(score_per_date, permuted_events)
+        return float("nan")
+    means: list[float] = []
+    for k in range(_NULL_AUDIT_PERMUTATIONS):
+        rng = np.random.default_rng(seed + 2 + k * 1000)
+        permuted_events: list[dict[str, Any]] = []
+        for ev in crisis_events:
+            new_date = sorted_dates[int(rng.integers(0, len(sorted_dates)))]
+            permuted_events.append({"id": ev.get("id", "?"), "date": new_date.isoformat()})
+        per_event = _per_event_score(score_per_date, permuted_events)
+        m = _mean_per_event_score(per_event)
+        if np.isfinite(m):
+            means.append(m)
+    return float(np.mean(means)) if means else float("nan")
 
 
 def _gate_null_audit(state: _RunState) -> GateResult:
@@ -866,21 +893,20 @@ def _gate_null_audit(state: _RunState) -> GateResult:
     matrices = _build_panel_matrices(panel, n_banks=n_banks)
 
     # Per-event candidate score (already in state).
-    cand_finite = [v for v in state.score_per_event.values() if not np.isnan(v)]
-    cand_mean = float(np.mean(cand_finite)) if cand_finite else float("nan")
+    cand_mean = _mean_per_event_score(state.score_per_event)
 
-    null_a = _null_score_shuffled_time_labels(
+    # Null comparators: each is the *average over many independent
+    # permutations* (n=_NULL_AUDIT_PERMUTATIONS), not a single noisy
+    # draw. The single-draw approach was numerically unstable on
+    # small N and produced false NaN at quarterly cadence.
+    null_a_mean = _null_mean_shuffled_time_labels(
         matrices, state.crisis_ledger.get("events", []), seed=seed
     )
-    null_b = _null_score_permuted_crisis_dates(
+    null_b_mean = _null_mean_permuted_crisis_dates(
         _candidate_score(matrices, seed=seed),
         state.crisis_ledger.get("events", []),
         seed=seed,
     )
-    null_a_finite = [v for v in null_a.values() if not np.isnan(v)]
-    null_b_finite = [v for v in null_b.values() if not np.isnan(v)]
-    null_a_mean = float(np.mean(null_a_finite)) if null_a_finite else float("nan")
-    null_b_mean = float(np.mean(null_b_finite)) if null_b_finite else float("nan")
 
     # Margin requirement: candidate must beat each null by at least
     # ``_NULL_AUDIT_MIN_MARGIN``. Tie or worse → FAIL.

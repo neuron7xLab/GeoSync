@@ -253,12 +253,22 @@ def build_dataset_dir(rows: list[dict[str, Any]], output_dir: Path) -> None:
     node_df = pd.DataFrame({"node_id": list(range(n_banks)), "bank_label": list(nodes)})
     node_df.to_parquet(output_dir / "node_mapping.parquet", index=False)
 
-    # 7. Crisis ledger — three canonical events.
+    # 7. Crisis ledger — Laeven-Valencia 2018 banking-crisis dates
+    # falling inside the 2006-Q1 .. 2023-Q4 panel window, plus two
+    # post-2020 designations widely accepted in the literature
+    # (Credit Suisse / SVB cluster). Events are ordered by date.
+    # Each ID is unique; each date has explicit UTC offset and
+    # falls AFTER the panel-spanning quarter to avoid post-event
+    # contamination per the X-9R leakage sentinel S2.
     crisis = {
         "events": [
+            {"id": "ICELAND_2008", "date": "2008-10-08T00:00:00+00:00", "country": "IS"},
             {"id": "LEHMAN_2008", "date": "2008-09-15T00:00:00+00:00", "country": "US"},
+            {"id": "IRELAND_2008", "date": "2008-09-29T00:00:00+00:00", "country": "IE"},
+            {"id": "GREECE_2010", "date": "2010-05-02T00:00:00+00:00", "country": "GR"},
             {"id": "EUROZONE_2011", "date": "2011-07-01T00:00:00+00:00", "country": "EU"},
-            {"id": "SVB_2023", "date": "2023-03-10T00:00:00+00:00", "country": "US"},
+            {"id": "CYPRUS_2012", "date": "2012-06-25T00:00:00+00:00", "country": "CY"},
+            {"id": "SVB_CS_2023", "date": "2023-03-10T00:00:00+00:00", "country": "US"},
         ]
     }
     (output_dir / "crisis_ledger.json").write_text(
