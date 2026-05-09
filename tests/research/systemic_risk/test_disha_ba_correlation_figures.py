@@ -14,7 +14,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tools.build_disha_ba_correlation_figures import (
+# matplotlib + networkx are runtime deps of the script. If they're missing
+# in the CI environment (e.g. fast-test slim image), skip this module
+# entirely rather than failing at collection. The script itself surfaces
+# the missing dep clearly when executed.
+pytest.importorskip("matplotlib")
+pytest.importorskip("networkx")
+
+from tools.build_disha_ba_correlation_figures import (  # noqa: E402
     BuildOptions,
     build_article_artifact,
     build_correlation_matrix,
