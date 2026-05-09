@@ -98,6 +98,28 @@ def test_build_null_audit_rejects_low_draws() -> None:
         )
 
 
+def test_build_null_audit_rejects_invalid_one_sided() -> None:
+    """Iter-4 audit fix — invalid one_sided was detected only after
+    expensive percentile computation; now fails fast."""
+    with pytest.raises(ValueError, match="one_sided must be one of"):
+        build_null_audit(
+            null_family="x",
+            null_draws=np.random.default_rng(0).normal(size=300),
+            candidate=0.0,
+            one_sided="typo_not_a_real_choice",
+        )
+
+
+def test_build_null_audit_rejects_empty_null_family() -> None:
+    """Iter-4 audit fix — empty null_family was previously stored as-is."""
+    with pytest.raises(ValueError, match="null_family"):
+        build_null_audit(
+            null_family="",
+            null_draws=np.random.default_rng(0).normal(size=300),
+            candidate=0.0,
+        )
+
+
 def test_serialise_null_audit_round_trip() -> None:
     rng = np.random.default_rng(0)
     audit = build_null_audit(
