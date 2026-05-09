@@ -1,6 +1,6 @@
 module github.com/neuron7xLab/GeoSync/examples/go-client
 
-go 1.25.0
+go 1.24.0
 
 require google.golang.org/grpc v1.81.0
 
