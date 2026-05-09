@@ -764,7 +764,41 @@ def _kuramoto_R_per_snapshot(matrices: dict[date, np.ndarray], *, seed: int) -> 
 
 _CANDIDATE_SCORE_METHOD_TRAILING_MEAN: str = "trailing_mean_density"
 _CANDIDATE_SCORE_METHOD_KURAMOTO: str = "kuramoto_R_per_snapshot"
+_CANDIDATE_SCORE_METHOD_SPECTRAL_RADIUS: str = "spectral_radius_of_coupling"
 _CANDIDATE_SCORE_METHOD_DEFAULT: str = _CANDIDATE_SCORE_METHOD_TRAILING_MEAN
+
+
+def _spectral_radius_per_snapshot(
+    matrices: dict[date, np.ndarray], *, seed: int
+) -> dict[date, float]:
+    """Per-snapshot spectral radius ρ(K) = max |eigenvalue| of the
+    snapshot exposure matrix.
+
+    Maps to the Gai-Kapadia (2010) contagion bound: spectral radius
+    of the interbank coupling matrix is the controlling parameter
+    for the linearised default-cascade fixed point. ρ(K) ≥ 1 is the
+    classical onset of unbounded cascade in the linearised regime;
+    larger ρ ⇒ structurally more contagious network.
+
+    The seed argument is accepted for API symmetry with other
+    candidate-score methods but unused — λ_max is deterministic.
+    """
+    rng = np.random.default_rng(seed)
+    _ = rng.uniform(0.0, 1.0, 1)  # exercise the seed; result unused
+    out: dict[date, float] = {}
+    for d, m in matrices.items():
+        if m.size == 0:
+            out[d] = float("nan")
+            continue
+        if not np.any(m):
+            out[d] = 0.0
+            continue
+        try:
+            eigvals = np.linalg.eigvals(m.astype(np.float64))
+            out[d] = float(np.max(np.abs(eigvals)))
+        except np.linalg.LinAlgError:
+            out[d] = float("nan")
+    return out
 
 
 def _candidate_score_trailing_mean(
@@ -803,7 +837,7 @@ def _candidate_score(
 ) -> dict[date, float]:
     """Dispatch to the configured candidate-score implementation.
 
-    Two methods are supported:
+    Three methods are supported:
 
     * ``trailing_mean_density`` (default) — fast, time-aware, well-
       tuned for synthetic stress fixtures. Used by the X-9R unit
@@ -813,12 +847,19 @@ def _candidate_score(
       weighted graph. Recommended for real-data runs (BIS LBS,
       e-MID, MiMiK, etc.) where the systemic-risk-as-phase-
       transition hypothesis is the actual claim under test.
+    * ``spectral_radius_of_coupling`` — Gai-Kapadia (2010) contagion
+      bound: per-snapshot ρ(K) = max |eigenvalue| of the exposure
+      matrix. Orthogonal in nature to Kuramoto R (linearised cascade
+      vs nonlinear phase synchronisation); useful as an independent
+      cross-check on real bank-network data.
 
     Selectable per-run via ``manifest.config["candidate_score_method"]``;
     callers that don't pass a method get the default.
     """
     if method == _CANDIDATE_SCORE_METHOD_KURAMOTO:
         return _kuramoto_R_per_snapshot(matrices, seed=seed)
+    if method == _CANDIDATE_SCORE_METHOD_SPECTRAL_RADIUS:
+        return _spectral_radius_per_snapshot(matrices, seed=seed)
     return _candidate_score_trailing_mean(matrices, seed=seed)
 
 
@@ -829,6 +870,7 @@ def _resolve_candidate_score_method(state: _RunState) -> str:
         if isinstance(method, str) and method in (
             _CANDIDATE_SCORE_METHOD_TRAILING_MEAN,
             _CANDIDATE_SCORE_METHOD_KURAMOTO,
+            _CANDIDATE_SCORE_METHOD_SPECTRAL_RADIUS,
         ):
             return method
     return _CANDIDATE_SCORE_METHOD_DEFAULT
@@ -958,8 +1000,8 @@ def _null_mean_shuffled_time_labels(
     means: list[float] = []
     for k in range(_NULL_AUDIT_PERMUTATIONS):
         rng = np.random.default_rng(seed + 1 + k * 1000)
-        permuted = list(sorted_dates)
-        rng.shuffle(permuted)
+        perm_idx = rng.permutation(len(sorted_dates))
+        permuted = [sorted_dates[int(j)] for j in perm_idx]
         relabelled = {permuted[i]: matrices[sorted_dates[i]] for i in range(len(sorted_dates))}
         score_per_date = _candidate_score(relabelled, seed=seed + 1 + k * 1000, method=method)
         per_event = _per_event_score(score_per_date, crisis_events)

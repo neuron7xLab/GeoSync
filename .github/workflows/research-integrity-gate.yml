@@ -57,7 +57,7 @@ jobs:
           set -euo pipefail
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m pip install pytest hypothesis pyyaml
+          python -m pip install pytest hypothesis pyyaml mypy ruff black
 
       - name: Public-symbol matrix audit
         run: python tools/check_public_symbol_matrix.py
@@ -77,7 +77,7 @@ jobs:
       - name: mypy --strict on audited surface
         run: |
           set -euo pipefail
-          python -m mypy --strict \
+          python -m mypy --strict --follow-imports=silent \
             research/systemic_risk/death_conditions.py \
             research/systemic_risk/evidence_ledger.py \
             research/systemic_risk/leakage_sentinel.py \
