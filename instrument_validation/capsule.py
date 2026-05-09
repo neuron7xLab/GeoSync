@@ -61,14 +61,24 @@ class Capsule:
     def __post_init__(self) -> None:
         if not self.metrics_sha:
             raise ValueError("Capsule.metrics_sha is empty — forbidden by spec G14")
-        if len(self.payload_sha256) != 64:
-            raise ValueError("payload_sha256 must be 64-char sha256 hexdigest")
-        if len(self.capsule_id) != 64:
-            raise ValueError("capsule_id must be 64-char sha256 hexdigest")
+        # Bug 5 fix — non-hex metrics_sha was previously accepted.
+        # All sha-shaped fields must be 64-char lowercase hex.
+        for field_name in ("metrics_sha", "payload_sha256", "capsule_id"):
+            value = getattr(self, field_name)
+            if len(value) != 64:
+                raise ValueError(
+                    f"{field_name} must be 64-char sha256 hexdigest; got len={len(value)}"
+                )
+            try:
+                int(value, 16)
+            except ValueError as exc:
+                raise ValueError(f"{field_name} must be valid hex: {value!r}") from exc
         if not isinstance(self.external_replication_required, bool):
             raise TypeError("external_replication_required must be bool")
         if self.external_replication_required is False:
             raise ValueError("external_replication_required must always be True (spec)")
+        if self.seed_master < 0:
+            raise ValueError(f"seed_master must be >= 0; got {self.seed_master}")
 
 
 def _git_sha(repo_root: Path) -> str:

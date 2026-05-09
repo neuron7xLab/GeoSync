@@ -167,3 +167,40 @@ def test_capsule_rerun_strict_rejects_capsule_id_mismatch(tmp_path: Path) -> Non
     assert not res.matched
     assert res.failure_reason is not None
     assert "capsule_id mismatch" in res.failure_reason
+
+
+def test_capsule_rejects_non_hex_metrics_sha(tmp_path: Path) -> None:
+    """Bug 5 fix — non-hex metrics_sha was previously accepted silently."""
+    with pytest.raises(ValueError, match="must be valid hex|must be 64-char"):
+        _make_capsule(
+            tmp_path,
+            metrics_sha="not-a-hex-value-but-64-chars-padded-aaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        )
+
+
+def test_capsule_rejects_short_metrics_sha(tmp_path: Path) -> None:
+    """Bug 5 fix — sha length must be exactly 64."""
+    with pytest.raises(ValueError, match="64-char"):
+        _make_capsule(tmp_path, metrics_sha="abc123")
+
+
+def test_capsule_rejects_negative_seed(tmp_path: Path) -> None:
+    """Bug 5 fix — negative seeds break determinism semantics."""
+    cap, _ = _make_capsule(tmp_path)
+    with pytest.raises(ValueError, match="seed_master"):
+        Capsule(
+            capsule_id=cap.capsule_id,
+            payload_sha256=cap.payload_sha256,
+            dataset_abs_path=cap.dataset_abs_path,
+            instrument_scope_id=cap.instrument_scope_id,
+            pos_control_cert_id=cap.pos_control_cert_id,
+            neg_control_cert_id=cap.neg_control_cert_id,
+            null_audits=cap.null_audits,
+            discrimination_report=cap.discrimination_report,
+            verdict=cap.verdict,
+            claim_tier=cap.claim_tier,
+            seed_master=-1,
+            code_sha=cap.code_sha,
+            metrics_sha=cap.metrics_sha,
+            external_replication_required=True,
+        )
