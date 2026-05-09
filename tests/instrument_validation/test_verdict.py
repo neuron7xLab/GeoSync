@@ -170,6 +170,40 @@ def test_generative_mechanism_not_distinguished() -> None:
     assert out.claim_tier is ClaimTier.NOT_DISTINGUISHED
 
 
+def test_descriptive_emission_blocked_when_pos_cert_failed() -> None:
+    """Iter-4 hardening: even DESCRIPTIVE_TOPOLOGY claims require a
+    pos_cert with passed=True. A failed certificate means the instrument
+    has not proven discriminative capacity and must NOT emit any verdict.
+    """
+    scope = country_aggregate_default_scope()
+    failed_pos = PosControlCertificate(
+        instrument_id=scope.instrument_id,
+        n_runs=500,
+        detection_power={
+            "BA_vs_ER": 0.10,  # below 0.80
+            "BA_vs_CM": 0.10,
+            "BA_vs_HUB": 0.10,
+            "BA_vs_GINI": 0.10,
+        },
+        false_positive_rate={"ER": 0.04, "CM": 0.03},
+        passed=False,
+        failure_reason="detection_power < 0.80 on every contrast",
+        cert_id="c" * 64,
+    )
+    out = emit_verdict(
+        scope=scope,
+        pos_cert=failed_pos,
+        neg_cert=_ok_neg(scope.instrument_id),
+        discrimination=None,
+        runtime_substrate=scope.valid_for_substrate,
+        runtime_n=31,
+        runtime_density=0.15,
+        claim_type=ClaimType.DESCRIPTIVE_TOPOLOGY,
+    )
+    assert out.verdict is Verdict.INVALID_INSTRUMENT
+    assert out.claim_tier is ClaimTier.INVALID_INSTRUMENT
+
+
 def test_liquidity_contagion_blocked_under_country_aggregate() -> None:
     scope = country_aggregate_default_scope()
     out = emit_verdict(
