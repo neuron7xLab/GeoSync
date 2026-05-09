@@ -2,6 +2,19 @@
 # SPDX-License-Identifier: MIT
 """Bernoulli sampling of A_ij + gravity allocation + IPF marginal projection.
 
+TODO_PR_NEXT (operational-regime fidelity, 2026-05-09):
+  Unit tests in tests/reconstruction/test_weighted_allocation.py exercise
+  this module under uniform-Bernoulli p (e.g., p=0.30) supports — NOT
+  the Cimini-calibrated heterogeneous p_ij that the operational pipeline
+  generates. The two regimes have different IPF feasibility profiles:
+  uniform supports converge crisply, but Cimini-calibrated supports
+  concentrate edges on top-fitness pairs and can leave structural
+  residual on heavy-tailed marginals (BIS LBS country aggregates
+  exhibit lognormal-like distributions). This is debt, not a bug —
+  the audit instrument (Gate 5 row/col L1) catches any residual at
+  the gate level. To repay before processing real BIS marginals:
+  regenerate test fixtures from `fit_cimini_squartini` at the X-10R
+  density sweep so the unit tests mirror the operational regime.
 Per Protocol X-10R:
 
     if a_ij sampled True via Bernoulli(p_ij):
