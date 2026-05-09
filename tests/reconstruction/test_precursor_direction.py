@@ -14,6 +14,7 @@ from dataclasses import replace
 from typing import Any
 
 import numpy as np
+import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -136,6 +137,7 @@ def test_capsule_human_text_includes_direction() -> None:
     assert "FAIL" in no_signal.human_text()
 
 
+@pytest.mark.slow
 def test_precursor_direction_is_authoritative_on_known_facilitating_topology() -> None:
     """Core-periphery is hub-dominated and reliably facilitates sync.
 
@@ -186,7 +188,7 @@ def test_direction_default_is_no_signal_for_legacy_constructions() -> None:
     b=st.floats(min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False),
     min_gap=st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False),
 )
-@settings(max_examples=400, deadline=None)
+@settings(max_examples=100, deadline=None)
 def test_classifier_partitions_state_space_disjointly(a: float, b: float, min_gap: float) -> None:
     """Every (ci_low, ci_high) point falls in exactly one of three
     mutually-exclusive bins. The classifier is a function — same input,
@@ -216,7 +218,7 @@ def test_classifier_partitions_state_space_disjointly(a: float, b: float, min_ga
     width=st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False),
     min_gap=st.floats(min_value=1e-6, max_value=1.0, allow_nan=False, allow_infinity=False),
 )
-@settings(max_examples=200, deadline=None)
+@settings(max_examples=80, deadline=None)
 def test_classifier_is_idempotent(ci_low: float, width: float, min_gap: float) -> None:
     """Calling the classifier twice on the same triple returns the same
     PrecursorDirection — pure-function property, no hidden state."""

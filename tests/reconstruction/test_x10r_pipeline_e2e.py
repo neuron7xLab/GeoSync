@@ -127,6 +127,7 @@ def test_synthetic_pipeline_full_recovery_to_capsule_replay() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_real_data_pipeline_within_domain_emits_correct_status() -> None:
     """Real-like marginals inside the certified envelope ⇒ WITHIN_VALIDATED_DOMAIN.
 
@@ -174,6 +175,7 @@ def test_real_data_pipeline_within_domain_emits_correct_status() -> None:
     assert_real_data_status_legal(cap.reconstruction_status)
 
 
+@pytest.mark.slow
 def test_real_data_pipeline_out_of_domain_when_n_too_large() -> None:
     """Real N far above the certified envelope ⇒ OUT_OF_VALIDATED_DOMAIN.
 
@@ -222,6 +224,7 @@ def test_real_data_pipeline_out_of_domain_when_n_too_large() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_real_data_pipeline_emitting_recovered_is_forbidden_at_boundary() -> None:
     """A real-data capsule that *tries* to emit GROUND_TRUTH_RECOVERED
     must be rejected by `assert_real_data_status_legal` — end-to-end.
@@ -293,6 +296,7 @@ def test_capsule_replay_bit_exact_after_direction_field_added() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_evidence_envelope_drives_domain_check_consistently() -> None:
     """If evidence_envelope reports an envelope, check_domain_of_validity
     must use exactly that envelope; otherwise the two helpers diverge

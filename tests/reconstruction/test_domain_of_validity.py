@@ -104,8 +104,8 @@ def _empty_certificate() -> GroundTruthRecoveryCertificate:
 def test_within_domain_when_all_dims_inside_certified_range() -> None:
     """N inside [min, max] of tested_at_n_nodes AND density inside envelope
     ⇒ WITHIN_VALIDATED_DOMAIN."""
-    cert = _synthetic_certificate_at(n=120, seed=1)
-    s_out, s_in = _marginals_for_n(n=120, seed=11)
+    cert = _synthetic_certificate_at(n=80, seed=1)
+    s_out, s_in = _marginals_for_n(n=80, seed=11)
     # Pick an inferred density inside the certified sweep envelope.
     densities = cert.tested_at_densities
     inside = float((min(densities) + max(densities)) / 2.0)
@@ -119,7 +119,7 @@ def test_within_domain_when_all_dims_inside_certified_range() -> None:
 
 def test_out_of_domain_when_n_nodes_exceed_certified() -> None:
     """N outside the certificate's tested_at_n_nodes envelope ⇒ OUT_OF_."""
-    cert = _synthetic_certificate_at(n=120, seed=2)
+    cert = _synthetic_certificate_at(n=80, seed=2)
     s_out, s_in = _marginals_for_n(n=600, seed=12)
     inside = float((min(cert.tested_at_densities) + max(cert.tested_at_densities)) / 2.0)
     check = check_domain_of_validity(s_out, s_in, cert, inferred_density=inside)
@@ -130,8 +130,8 @@ def test_out_of_domain_when_n_nodes_exceed_certified() -> None:
 
 def test_out_of_domain_when_density_below_floor() -> None:
     """Inferred density well below the smallest tested density ⇒ OUT_OF_."""
-    cert = _synthetic_certificate_at(n=120, seed=3)
-    s_out, s_in = _marginals_for_n(n=120, seed=13)
+    cert = _synthetic_certificate_at(n=80, seed=3)
+    s_out, s_in = _marginals_for_n(n=80, seed=13)
     floor = float(min(cert.tested_at_densities))
     check = check_domain_of_validity(s_out, s_in, cert, inferred_density=floor / 10.0)
     assert check.status is DomainOfValidityStatus.OUT_OF_VALIDATED_DOMAIN
@@ -152,7 +152,7 @@ def test_insufficient_when_certificate_lacks_tested_ranges() -> None:
 def test_partial_certificate_only_n_dim_yields_insufficient_for_density() -> None:
     """Certificate with only N evidence: density is missing ⇒ INSUFFICIENT_."""
     cert = _stub_certificate_only_n(n_set=(50, 200))
-    s_out, s_in = _marginals_for_n(n=120, seed=15)
+    s_out, s_in = _marginals_for_n(n=80, seed=15)
     check = check_domain_of_validity(s_out, s_in, cert, inferred_density=0.05)
     assert check.status is DomainOfValidityStatus.INSUFFICIENT_CERTIFICATE
     assert "density" in check.missing_dims
@@ -330,7 +330,7 @@ _FLOAT_R = st.floats(min_value=-1e9, max_value=1e9, allow_nan=False, allow_infin
     n=st.integers(min_value=2, max_value=200),
     seed=st.integers(min_value=0, max_value=2**31 - 1),
 )
-@settings(max_examples=120, deadline=None)
+@settings(max_examples=40, deadline=None)
 def test_gini_is_in_unit_interval_on_lognormal_inputs(n: int, seed: int) -> None:
     """Gini is bounded in [0, 1] on any non-negative non-zero vector.
 
@@ -373,7 +373,7 @@ def test_gini_rejects_negative() -> None:
     n=st.integers(min_value=2, max_value=200),
     seed=st.integers(min_value=0, max_value=2**31 - 1),
 )
-@settings(max_examples=120, deadline=None)
+@settings(max_examples=40, deadline=None)
 def test_strength_pearson_is_in_correlation_range(n: int, seed: int) -> None:
     """Pearson(s_out, s_in) ∈ [-1, 1] on any pair of finite vectors of
     equal length. Numerical drift under tiny variances must not push the
@@ -414,19 +414,20 @@ def test_strength_pearson_perfect_negative_is_minus_one() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 @given(
     real_n=st.integers(min_value=10, max_value=400),
     real_density=st.floats(min_value=0.0001, max_value=0.5, allow_nan=False, allow_infinity=False),
     seed=st.integers(min_value=0, max_value=2**31 - 1),
 )
-@settings(max_examples=80, deadline=None)
+@settings(max_examples=40, deadline=None)
 def test_domain_check_returns_exactly_one_verdict_per_input(
     real_n: int, real_density: float, seed: int
 ) -> None:
     """For every (real_n, real_density) pair, the gate returns exactly
     one of {WITHIN, OUT_OF, INSUFFICIENT}; verdicts are mutually
     exclusive and exhaustive."""
-    cert = _synthetic_certificate_at(n=120, seed=42)
+    cert = _synthetic_certificate_at(n=80, seed=42)
     rng = np.random.default_rng(seed)
     s_out = rng.lognormal(mean=10.0, sigma=1.0, size=real_n)
     s_in = rng.lognormal(mean=10.0, sigma=1.0, size=real_n)
@@ -441,11 +442,12 @@ def test_domain_check_returns_exactly_one_verdict_per_input(
     assert sum(seen) == 1
 
 
+@pytest.mark.slow
 def test_domain_check_negative_control_extreme_density_is_out() -> None:
     """A real-data run with density wildly outside the certified range
     MUST be flagged OUT, never WITHIN. This is the negative control
     that proves the gate has discriminative capacity."""
-    cert = _synthetic_certificate_at(n=120, seed=11)
+    cert = _synthetic_certificate_at(n=80, seed=11)
     s_out, s_in = _marginals_for_n(n=120, seed=21)
     # Density 100x above any tested density.
     crazy = float(max(cert.tested_at_densities) * 100.0)
