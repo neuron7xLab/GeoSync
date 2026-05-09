@@ -104,7 +104,7 @@ scipy==1.16.3
 six==1.17.0
 smmap==5.0.2
 sqlalchemy==2.0.44
-starlette==0.50.0
+starlette==1.0.0
 strawberry-graphql==0.315.2
 streamlit==1.54.0
 streamlit-authenticator==0.4.2

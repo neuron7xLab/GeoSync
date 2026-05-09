@@ -616,7 +616,7 @@ sqlalchemy==2.0.44
     #   alembic
     #   geosync (pyproject.toml)
     #   optuna
-starlette==0.50.0
+starlette==1.0.0
     # via
     #   -c constraints/security.txt
     #   fastapi
