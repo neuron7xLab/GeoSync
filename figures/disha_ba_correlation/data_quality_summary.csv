@@ -9,6 +9,10 @@ n_edges_positive_lehman,692
 residual_nodes_excluded,5Q (already filtered upstream by build_bis_lbs_dataset.py)
 constant_nodes_levels,"ES,HK,IT,PH,ZA"
 constant_nodes_changes,"ES,HK,IT,PH,ZA"
+target_only_nodes,"ES,HK,IT,PH,ZA"
+constant_source_nodes,"ES,HK,IT,PH,ZA"
+reporting_filter_warning,"ES, IT, HK, PH, ZA-style countries appear as target-only or constant under the active L_PARENT_CTY=5J + L_CP_SECTOR=A filter; this reflects BIS reporting / filter constraints, not economic absence. See reporter_status_summary.csv."
+article_safe_outputs,"risk_concentration_article_grade.csv, top_correlated_pairs_changes.csv (rows where headline_allowed=True), model_comparison_summary.csv (BA vs ER baseline)"
 missing_quarters,(none — every quarter in window has ≥1 row)
 low_sample_warning_lehman_changes,TRUE
 warnings,Pearson on 4-quarter Lehman window is fragile; rely on sensitivity window.

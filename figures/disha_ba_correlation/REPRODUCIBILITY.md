@@ -1,7 +1,7 @@
 # Reproducibility — Disha BA + Correlation Artefact
 
 - Repository: `neuron7xLab/GeoSync`
-- Git SHA: `e01faaa81f729a0221e5cbc981b3f953b37ae70e`
+- Git SHA: `f5883d96096838e47abd1619c63873320cf38f8a`
 - Dataset directory: `/tmp/bis_real_data/dataset_dir_v2`
 - Manifest path: `/tmp/bis_real_data/dataset_dir_v2/manifest.json`
 - Manifest source_id: `BIS-LBS-WS_LBS_D_PUB-v1.0`
@@ -12,7 +12,7 @@
 ## Command
 
 ```
-tools/build_disha_ba_correlation_figures.py --dataset-dir /tmp/bis_real_data/dataset_dir_v2 --output-dir figures/disha_ba_correlation --normal-start 2006Q1 --normal-end 2007Q4 --lehman-start 2008Q3 --lehman-end 2009Q2 --sensitivity-start 2007Q1 --sensitivity-end 2009Q4 --edge-quantile 0.85 --top-n-labels 12 --ba-simulations 1000 --seed 42
+tools/build_disha_ba_correlation_figures.py --dataset-dir /tmp/bis_real_data/dataset_dir_v2 --output-dir figures/disha_ba_correlation --ba-simulations 500
 ```
 
 Or programmatically equivalent:
@@ -29,7 +29,7 @@ python tools/build_disha_ba_correlation_figures.py \
     --sensitivity-end 2009Q4 \
     --edge-quantile 0.85 \
     --top-n-labels 12 \
-    --ba-simulations 1000 \
+    --ba-simulations 500 \
     --seed 42
 ```
 

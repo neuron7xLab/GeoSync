@@ -43,6 +43,10 @@ diff_scope:
     - path: "figures/disha_ba_correlation/correlation_changes_lehman.png"
     - path: "figures/disha_ba_correlation/correlation_changes_delta.png"
     - path: "figures/disha_ba_correlation/risk_concentration_bar.png"
+    - path: "figures/disha_ba_correlation/AUDIT_RESPONSE.md"
+    - path: "figures/disha_ba_correlation/model_comparison_summary.csv"
+    - path: "figures/disha_ba_correlation/reporter_status_summary.csv"
+    - path: "figures/disha_ba_correlation/risk_concentration_article_grade.csv"
   forbidden_paths:
     - "trading/"
     - "execution/"

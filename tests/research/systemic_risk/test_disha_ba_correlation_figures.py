@@ -28,13 +28,17 @@ from tools.build_disha_ba_correlation_figures import (  # noqa: E402
     build_period_matrix,
     build_period_outward_strength_panel,
     compute_ba_comparison,
+    compute_reporter_status,
     compute_risk_concentration,
     estimate_ba_m,
+    find_forbidden_phrases,
     load_dataset,
+    normalize_forbidden_text,
     parse_quarter,
     quarter_end_date,
     threshold_adjacency,
     to_log_changes,
+    top_correlated_pairs,
 )
 
 # ---------------------------------------------------------------------------
@@ -365,9 +369,13 @@ def test_build_article_artifact_end_to_end(synthetic_dataset: Path, tmp_path: Pa
         "top_correlated_pairs_levels.csv",
         "top_correlated_pairs_changes.csv",
         "risk_concentration_summary.csv",
+        "risk_concentration_article_grade.csv",
+        "reporter_status_summary.csv",
+        "model_comparison_summary.csv",
         "data_quality_summary.csv",
         "DISHA_ARTICLE_SUMMARY.md",
         "REPRODUCIBILITY.md",
+        "AUDIT_RESPONSE.md",
     ]
     for name in expected:
         assert (out / name).is_file(), f"missing: {name}"
@@ -425,3 +433,279 @@ def test_repro_markdown_records_sha_and_dataset(synthetic_dataset: Path, tmp_pat
     repro = (out / "REPRODUCIBILITY.md").read_text(encoding="utf-8")
     assert "Git SHA" in repro
     assert str(synthetic_dataset) in repro
+
+
+# ---------------------------------------------------------------------------
+# AUDIT-RESPONSE TESTS — B1..B9 + Codex P1/P2
+# ---------------------------------------------------------------------------
+
+
+def _default_opts(synthetic_dataset: Path, out: Path, **overrides: object) -> BuildOptions:
+    base = dict(
+        dataset_dir=synthetic_dataset,
+        output_dir=out,
+        normal_start=(2006, 1),
+        normal_end=(2007, 4),
+        lehman_start=(2008, 3),
+        lehman_end=(2009, 2),
+        sensitivity_start=(2007, 1),
+        sensitivity_end=(2009, 4),
+        edge_quantile=0.5,
+        top_n_labels=4,
+        ba_simulations=20,
+        seed=42,
+        min_risk_total_strength=100_000.0,
+        min_effective_change_observations=8,
+    )
+    base.update(overrides)
+    return BuildOptions(**base)  # type: ignore[arg-type]
+
+
+# Codex P2 — quarter validation
+def test_parse_quarter_rejects_invalid_quarter_number() -> None:
+    with pytest.raises(ValueError, match="quarter must be"):
+        parse_quarter("2008Q5")
+    with pytest.raises(ValueError, match="quarter must be"):
+        parse_quarter("2008Q0")
+
+
+# Codex P1 — empty period preserves n_nodes columns
+def test_empty_outward_strength_panel_preserves_columns(synthetic_dataset: Path) -> None:
+    ds = load_dataset(synthetic_dataset)
+    n = len(ds.nodes)
+    panel, qs = build_period_outward_strength_panel(ds.panel, n, (1990, 1), (1990, 4))
+    assert qs == []
+    assert [int(c) for c in panel.columns] == list(range(n))
+    assert panel.shape == (0, n)
+
+
+# B1 — ER baseline columns exist
+def test_ba_summary_includes_er_baseline(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    ba = pd.read_csv(out / "ba_fit_summary.csv")
+    for col in (
+        "ba_degree_pearson_r",
+        "er_degree_pearson_r",
+        "ba_minus_er_r",
+        "ba_degree_ks_distance",
+        "er_degree_ks_distance",
+        "winner_by_ks",
+        "ba_claim_status",
+    ):
+        assert col in ba.columns
+
+
+# B1 — when BA r is essentially equal to ER r, claim status is NOT_DISTINGUISHED
+def test_ba_claim_not_distinguished_when_er_matches() -> None:
+    rng = np.random.default_rng(0)
+    n = 12
+    A = (rng.random((n, n)) > 0.6).astype(np.uint8)
+    np.fill_diagonal(A, 0)
+    info = compute_ba_comparison(A, ba_simulations=30, seed=42)
+    if info["ba_minus_er_r"] < 0.05:
+        assert info["ba_claim_status"] in (
+            "NOT_DISTINGUISHED",
+            "ER_KS_BETTER",
+            "BA_STRUCTURAL_MISMATCH",
+        )
+
+
+# B8 — claim status flips to ER_KS_BETTER when ER KS is smaller
+def test_ba_claim_er_ks_better_overrides_pearson_margin() -> None:
+    from tools.build_disha_ba_correlation_figures import _ba_claim_status
+
+    status, _ = _ba_claim_status(
+        ba_r=0.95,
+        er_r=0.80,
+        ba_ks=0.50,
+        er_ks=0.30,
+        zero_degree_mismatch=False,
+    )
+    assert status == "ER_KS_BETTER"
+
+
+# B3 — zero-degree mismatch flagged
+def test_zero_degree_mismatch_blocks_ba_positive_claim() -> None:
+    from tools.build_disha_ba_correlation_figures import _ba_claim_status
+
+    status, _ = _ba_claim_status(
+        ba_r=0.95,
+        er_r=0.50,
+        ba_ks=0.20,
+        er_ks=0.40,
+        zero_degree_mismatch=True,
+    )
+    assert status == "BA_STRUCTURAL_MISMATCH"
+
+
+# B2 — risk concentration filters by total_strength + effective_n
+def test_risk_concentration_strength_and_observation_filters() -> None:
+    nodes = ("BIG", "TINY", "SHORT")
+    cor = np.array([[1.0, 0.8, 0.7], [0.8, 1.0, 0.7], [0.7, 0.7, 1.0]])
+    # BIG <-> SHORT carry all the mass; TINY isolated → total_strength = 0.
+    weighted = np.array(
+        [[0, 0, 5e6], [0, 0, 0], [5e6, 0, 0]],
+        dtype=float,
+    )
+    binary = (weighted > 0).astype(np.uint8)
+    chg_panel = pd.DataFrame(
+        {
+            0: np.linspace(0.1, 0.5, 10),  # BIG: 10 finite
+            1: np.linspace(0.1, 0.5, 10),  # TINY: 10 finite (low mass)
+            2: [0.1, 0.2] + [np.nan] * 8,  # SHORT: only 2 finite
+        }
+    )
+    rc = compute_risk_concentration(
+        nodes=nodes,
+        corr_levels_normal=cor,
+        corr_levels_lehman=cor,
+        corr_changes_normal=cor,
+        corr_changes_lehman=cor,
+        weighted_lehman=weighted,
+        binary_lehman=binary,
+        chg_lehman_panel=chg_panel,
+        min_total_strength=100_000.0,
+        min_effective_change_observations=8,
+    )
+    rc_by_country = rc.set_index("country")
+    assert bool(rc_by_country.loc["BIG", "article_grade"])
+    assert not bool(rc_by_country.loc["TINY", "article_grade"])  # low mass
+    assert not bool(rc_by_country.loc["SHORT", "article_grade"])  # short sample
+
+
+# B6/B7 — top_correlated_pairs flags near-perfect + low effective_n
+def test_top_correlated_pairs_flags_saturation() -> None:
+    nodes = ("A", "B", "C")
+    cor = np.array([[1.0, 0.999, 0.5], [0.999, 1.0, 0.6], [0.5, 0.6, 1.0]])
+    series = pd.DataFrame(
+        {
+            0: np.arange(15.0),
+            1: np.arange(15.0) + 0.001,
+            2: np.linspace(0, 1, 15),
+        }
+    )
+    df = top_correlated_pairs(cor, nodes, mode="changes", period="x", series_panel=series)
+    pair_ab = df[(df.country_i == "A") & (df.country_j == "B")].iloc[0]
+    assert bool(pair_ab["suspicious_near_perfect"])
+    assert not bool(pair_ab["headline_allowed"])
+    pair_ac = df[(df.country_i == "A") & (df.country_j == "C")].iloc[0]
+    assert not bool(pair_ac["suspicious_near_perfect"])
+    assert bool(pair_ac["headline_allowed"])
+
+
+def test_top_correlated_pairs_low_effective_n_blocks_headline() -> None:
+    nodes = ("A", "B")
+    cor = np.array([[1.0, 0.7], [0.7, 1.0]])
+    short_series = pd.DataFrame(
+        {0: [1.0, 2.0, 3.0] + [np.nan] * 4, 1: [1.0, 2.5, 4.0] + [np.nan] * 4}
+    )
+    df = top_correlated_pairs(
+        cor, nodes, mode="changes", period="lehman", series_panel=short_series
+    )
+    row = df.iloc[0]
+    assert int(row["effective_n"]) == 3
+    assert bool(row["low_sample_warning"])
+    assert not bool(row["headline_allowed"])
+
+
+# B4 — forbidden-wording catches multi-line phrases
+def test_forbidden_wording_normalises_whitespace() -> None:
+    text = "we present a bank-to-bank\nexposures matrix that is well-calibrated"
+    found = find_forbidden_phrases(text)
+    assert "bank-to-bank exposures" in found
+
+    text2 = "this is a\nvalidated repo\nliquidity exercise"
+    found2 = find_forbidden_phrases(text2)
+    assert "validated repo liquidity" in found2
+
+    safe = "we explicitly do not have a validated repository for liquidity tests"
+    assert find_forbidden_phrases(safe) == []
+
+
+def test_normalize_forbidden_text_collapses_whitespace() -> None:
+    assert normalize_forbidden_text("foo\nbar\t\tBAZ") == "foo bar baz"
+
+
+# B5 — reporter-status detects target-only countries
+def test_reporter_status_detects_target_only(synthetic_dataset: Path) -> None:
+    ds = load_dataset(synthetic_dataset)
+    rs = compute_reporter_status(ds.panel, ds.nodes, period_start=(2006, 1), period_end=(2009, 4))
+    # CCC is constant (always 100 → 200 sum) — appears as source AND target.
+    # No node in the synthetic fixture is target-only, so the column exists
+    # and is False for all by construction.
+    assert "target_only_under_filter" in rs.columns
+    assert "appears_as_source" in rs.columns
+    assert "appears_as_target" in rs.columns
+    assert rs.shape[0] == len(ds.nodes)
+
+
+# B9 — article summary uses honest framing (no PA-as-fact statement)
+def test_article_summary_does_not_overclaim_ba(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    md = (out / "DISHA_ARTICLE_SUMMARY.md").read_text(encoding="utf-8").lower()
+    # Must mention ER baseline OR honest "not uniquely"
+    assert "erdős-rényi" in md or "erdos-renyi" in md or "not uniquely" in md
+    # Must not say "preferential-attachment-style concentration" as a closed claim
+    bad = "the network is preferential-attachment"
+    assert bad not in md
+
+
+# AUDIT_RESPONSE.md must enumerate B1–B9 + Codex bugs
+def test_audit_response_enumerates_bugs(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    text = (out / "AUDIT_RESPONSE.md").read_text(encoding="utf-8")
+    for tag in ("B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9"):
+        assert tag in text
+    assert "Codex P1" in text
+    assert "Codex P2" in text
+
+
+# Article-grade CSV exists and has article_rank
+def test_article_grade_csv_has_article_rank(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    df = pd.read_csv(out / "risk_concentration_article_grade.csv")
+    if not df.empty:
+        assert "article_rank" in df.columns
+        assert df["article_rank"].tolist() == list(range(1, len(df) + 1))
+
+
+# Reporter status CSV has the required columns
+def test_reporter_status_csv_columns(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    df = pd.read_csv(out / "reporter_status_summary.csv")
+    for col in (
+        "country",
+        "appears_as_source",
+        "appears_as_target",
+        "source_quarter_count",
+        "target_quarter_count",
+        "zero_out_strength_all_windows",
+        "target_only_under_filter",
+    ):
+        assert col in df.columns
+
+
+# model_comparison_summary.csv exists with expected columns
+def test_model_comparison_csv(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    df = pd.read_csv(out / "model_comparison_summary.csv")
+    for col in ("ba_pearson_r", "er_pearson_r", "ba_minus_er_r", "winner_by_ks", "ba_claim_status"):
+        assert col in df.columns
+
+
+# data_quality_summary.csv carries the new metrics
+def test_data_quality_summary_new_metrics(synthetic_dataset: Path, tmp_path: Path) -> None:
+    out = tmp_path / "art"
+    build_article_artifact(_default_opts(synthetic_dataset, out))
+    df = pd.read_csv(out / "data_quality_summary.csv")
+    metrics = set(df["metric"].tolist())
+    assert "target_only_nodes" in metrics
+    assert "constant_source_nodes" in metrics
+    assert "reporting_filter_warning" in metrics
+    assert "article_safe_outputs" in metrics

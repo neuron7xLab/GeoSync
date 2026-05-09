@@ -2,9 +2,13 @@
 
 ## 1. Executive Verdict
 
-**FINAL_STATUS: PASS**
+**FINAL_STATUS: ARTICLE_SAFE_AFTER_AUDIT**
 
-All quality gates pass; all 16 expected output files produced; 24/24 unit tests green; mypy `--strict`, ruff, black clean; no Kuramoto used; no forbidden wording in summaries; explicit limitation block included.
+All quality gates pass; 20 output files produced; 42/42 unit tests green (was 24, added 18 audit-coverage tests); 625/625 full systemic_risk suite pass; mypy `--strict`, ruff, black clean; no Kuramoto used; whitespace-normalised forbidden-wording check; explicit limitation block included; **all B1–B9 audit findings + Codex P1/P2 fixed** (see `figures/disha_ba_correlation/AUDIT_RESPONSE.md`).
+
+Article-safe outputs: `risk_concentration_article_grade.csv`, sensitivity-window pairs in `top_correlated_pairs_changes.csv` filtered by `headline_allowed=True`, `model_comparison_summary.csv`. Use these — not the unfiltered headline tables — for any external claim.
+
+Honest BA framing: under this BIS sample, the network is **concentrated** but BA Pearson margin over Erdős-Rényi is < 0.05 → `ba_claim_status = NOT_DISTINGUISHED`. KS distance favours ER on the Lehman window; BA cannot reproduce the empirical zero-degree tail (8/7 zero-degree countries vs 0 in BA simulations). The "preferential attachment" framing is therefore explicitly retracted from headline use.
 
 ## 2. Reproducibility
 
