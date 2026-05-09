@@ -155,3 +155,109 @@ def test_allocate_weights_rejects_infeasible_support() -> None:
     s_in = s_out.copy()
     with pytest.raises(ValueError, match="infeasible"):
         allocate_weights(a, s_out, s_in)
+
+
+# ---------------------------------------------------------------------------
+# Empirical certification of the FIX B1 docstring math claim.
+#
+# The corrected weighted_allocation.py docstring states:
+#     "naive gravity w_ij^0 = a_ij · s_i^out · s_j^in / W_total
+#     does NOT preserve E[Σ_j w_ij] = s_i^out once the support of A
+#     is non-trivially sparsified."
+#
+# This was previously documented but never empirically asserted. The
+# tests below pin the claim into the regression surface so a future
+# reader can audit the math without rerunning derivations.
+# ---------------------------------------------------------------------------
+
+
+def _naive_gravity_no_ipf(a: np.ndarray, s_out: np.ndarray, s_in: np.ndarray) -> np.ndarray:
+    """Reference implementation of the naive gravity rule WITHOUT IPF.
+
+    This is *not* the production allocator — it deliberately omits the
+    Almog-Squartini IPF projection so the failure mode is observable.
+    """
+    w_total = float(s_in.sum())
+    outer = np.outer(s_out, s_in) / w_total
+    w0: np.ndarray = (a.astype(np.float64) * outer).astype(np.float64)
+    np.fill_diagonal(w0, 0.0)
+    return w0
+
+
+def test_naive_gravity_does_not_preserve_marginals_on_sparse_support() -> None:
+    """Empirical certification of the FIX B1 math claim.
+
+    On a Bernoulli-sparsified support at p=0.20 with heterogeneous
+    lognormal marginals, naive gravity loses ≥10% of the row marginals
+    in expectation (relative L1). The IPF projection on the SAME support
+    drives the loss to <1%. This is exactly why the production allocator
+    runs IPF; this test makes the *necessity* of IPF auditable.
+    """
+    n = 80
+    s_out, s_in = _marginals(n, seed=7)
+    rng = np.random.default_rng(11)
+    a = sample_adjacency_bernoulli(np.full((n, n), 0.20), rng=rng)
+
+    # Naive gravity (no IPF) — the claim's failure surface.
+    w_naive = _naive_gravity_no_ipf(a, s_out, s_in)
+    naive_row_loss = float(np.abs(w_naive.sum(axis=1) - s_out).sum() / s_out.sum())
+
+    # Production allocator (gravity + IPF projection).
+    w_ipf = allocate_weights(a, s_out, s_in)
+    ipf_row_loss = float(np.abs(w_ipf.sum(axis=1) - s_out).sum() / s_out.sum())
+
+    # The FIX B1 claim: naive gravity loses substantial row mass on
+    # this regime, IPF closes the gap by ≥1 order of magnitude.
+    assert naive_row_loss > 0.10, (
+        f"Naive-gravity row loss = {naive_row_loss:.4f} — the FIX B1 docstring "
+        "claim 'naive gravity does not preserve marginals' is supposed to be "
+        "FALSIFIABLE on this regime, but here naive gravity is suspiciously "
+        "close to mass-preserving. Re-derive the claim."
+    )
+    assert ipf_row_loss < naive_row_loss / 10, (
+        f"IPF row loss = {ipf_row_loss:.4f} not tight enough vs naive "
+        f"{naive_row_loss:.4f} — IPF is supposed to drive the loss "
+        "below 10% of the naive baseline."
+    )
+    # Production-level invariant: IPF row loss must be inside Gate 5's
+    # row_sum_invariant_L1 ≤ 0.05 envelope, scaled by N (Gate 5 averages).
+    assert ipf_row_loss < 0.05
+
+
+def test_ipf_projection_tightens_row_marginals_below_gate5_threshold() -> None:
+    """The IPF projection in `allocate_weights` enforces the marginals
+    to *production* tolerance (≤ 5% relative row/col L1, the Gate 5
+    threshold), and is order-of-magnitude tighter than the naive
+    gravity baseline.
+
+    This is the Almog-Squartini 2017 contract delivered at the level
+    Gate 5 actually consumes. Stronger machine-precision claims
+    DO NOT hold uniformly on heavy-tailed lognormal marginals (a
+    Sinkhorn-Knopp with iter cap = 5000 leaves a residual proportional
+    to the marginal heterogeneity); pinning the *production* contract
+    rather than the *theoretical* one keeps the regression surface
+    honest under realistic inputs.
+    """
+    n = 60
+    s_out, s_in = _marginals(n, seed=23)
+    rng = np.random.default_rng(29)
+    a = sample_adjacency_bernoulli(np.full((n, n), 0.40), rng=rng)
+
+    # Production allocator.
+    w = allocate_weights(a, s_out, s_in)
+    mean_strength = float(s_out.mean())
+    ipf_row_l1 = float(np.abs(w.sum(axis=1) - s_out).sum() / n / mean_strength)
+    ipf_col_l1 = float(np.abs(w.sum(axis=0) - s_in).sum() / n / mean_strength)
+
+    # Naive baseline (no IPF).
+    w_naive = _naive_gravity_no_ipf(a, s_out, s_in)
+    naive_row_l1 = float(np.abs(w_naive.sum(axis=1) - s_out).sum() / n / mean_strength)
+
+    # IPF must clear Gate 5's 5% row/col L1 envelope on this regime.
+    assert ipf_row_l1 < 0.05, f"IPF row L1 {ipf_row_l1:.4f} > 0.05 (Gate 5)"
+    assert ipf_col_l1 < 0.05, f"IPF col L1 {ipf_col_l1:.4f} > 0.05 (Gate 5)"
+    # And IPF must be at least 5x tighter than naive on this regime.
+    assert naive_row_l1 / max(ipf_row_l1, 1e-12) >= 5.0, (
+        f"naive_row_l1 / ipf_row_l1 = {naive_row_l1 / max(ipf_row_l1, 1e-12):.2f}; "
+        "IPF should beat naive by at least 5x on this dense lognormal regime"
+    )
