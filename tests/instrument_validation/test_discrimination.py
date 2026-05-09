@@ -16,8 +16,28 @@ from instrument_validation.discrimination import (
 )
 
 
-def test_mde_constant() -> None:
+def test_mde_default() -> None:
     assert mde_at_n31() == 0.05
+
+
+def test_mde_per_metric_is_unit_aware() -> None:
+    """Bug 1 fix — single 0.05 MDE was unit-blind across metrics on
+    different scales (KS [0,1] vs degree z-score unbounded vs zero-deg
+    integer count). Per-metric MDE must differ."""
+    mdes = {
+        "M1_ks_distance": mde_at_n31("M1_ks_distance"),
+        "M2_max_degree_z": mde_at_n31("M2_max_degree_z"),
+        "M3_zero_degree_err": mde_at_n31("M3_zero_degree_err"),
+        "M4_gini_strength_z": mde_at_n31("M4_gini_strength_z"),
+        "M5_top_k_hub": mde_at_n31("M5_top_k_hub"),
+        "M6_norm_rich_club": mde_at_n31("M6_norm_rich_club"),
+    }
+    # KS (∈[0,1]) and integer-count MDE must NOT be the same scalar.
+    assert mdes["M1_ks_distance"] != mdes["M3_zero_degree_err"]
+    # z-score MDE must be larger than KS MDE (different ranges).
+    assert mdes["M2_max_degree_z"] > mdes["M1_ks_distance"]
+    # Unknown metric falls back to the default.
+    assert mde_at_n31("nonexistent_metric") == 0.05
 
 
 def test_metric_ks_distance_basic() -> None:

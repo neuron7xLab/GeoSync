@@ -1,10 +1,15 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Discrimination layer — multi-metric, Bonferroni-corrected.
+"""Discrimination layer — multi-metric majority vote with Bonferroni
+family-error budget.
 
 Six metrics (M1..M6) jointly compare an empirical graph against a BA
-ensemble and an ER ensemble. Aggregate verdict: BA_FAVORED only when
-≥4 of 6 metrics favor BA after Bonferroni over six tests.
+ensemble and an ER ensemble. Each metric's per-metric verdict uses a
+95% interval test at α = 0.05/6 (Bonferroni-corrected per metric).
+The aggregate verdict is then a MAJORITY VOTE: BA_FAVORED only when
+≥4 of 6 metrics individually favour BA. The 4-of-6 threshold is the
+voting rule, not a multiple-comparison correction — both are applied,
+at different layers.
 
 Closes:
 * B1 (sorted Pearson is non-discriminating — replaced by 6-metric vote)
@@ -24,12 +29,37 @@ import numpy as np
 
 _BONFERRONI_K: int = 6
 _ALPHA_FAMILY: float = 0.05
-_MDE_AT_N31: float = 0.05  # minimum detectable effect on KS at N=31
+
+# Per-metric MDE (Bug 1 fix — single 0.05 was unit-blind across metrics
+# of different ranges). Calibrated to N=31 simulation regime:
+#   M1 KS distance              ∈ [0, 1]    → MDE = 0.05 (5% of range)
+#   M2 max-degree z-score       unbounded   → MDE = 0.5  (half-σ)
+#   M3 zero-degree-count error  integer     → MDE = 1.0  (one node)
+#   M4 Gini-strength z-score    unbounded   → MDE = 0.5
+#   M5 top-k hub Jaccard        ∈ [0, 1]    → MDE = 0.10
+#   M6 normalised rich-club     ratio       → MDE = 0.20 (20% deviation)
+_MDE_PER_METRIC: dict[str, float] = {
+    "M1_ks_distance": 0.05,
+    "M2_max_degree_z": 0.5,
+    "M3_zero_degree_err": 1.0,
+    "M4_gini_strength_z": 0.5,
+    "M5_top_k_hub": 0.10,
+    "M6_norm_rich_club": 0.20,
+}
+_MDE_DEFAULT: float = 0.05
 
 
-def mde_at_n31() -> float:
-    """Minimum detectable effect (KS) for N=31 graphs at α=0.05/6."""
-    return _MDE_AT_N31
+def mde_at_n31(metric_name: str | None = None) -> float:
+    """Minimum detectable effect for the named metric at N=31.
+
+    Different metrics live on different scales — a single threshold across
+    KS (∈[0,1]), z-scores (unbounded), counts (integer), and ratios is
+    unit-blind. Returns the per-metric MDE, falling back to the legacy
+    0.05 default when ``metric_name`` is not in the registry.
+    """
+    if metric_name is None:
+        return _MDE_DEFAULT
+    return _MDE_PER_METRIC.get(metric_name, _MDE_DEFAULT)
 
 
 class DiscriminationVerdict(Enum):
@@ -209,9 +239,10 @@ def discriminate(
     metrics: dict[str, dict[str, Any]],
     *,
     bonferroni_k: int = _BONFERRONI_K,
-    mde: float = _MDE_AT_N31,
+    mde: float | None = None,
 ) -> DiscriminationReport:
-    """Combine 6 metrics into one Bonferroni-corrected aggregate verdict.
+    """Combine 6 metrics via per-metric Bonferroni 95% intervals plus a
+    majority-vote aggregate (≥4/6).
 
     ``metrics`` schema (per metric name):
         {
@@ -219,14 +250,23 @@ def discriminate(
             "ba_pool":   np.ndarray,
             "er_pool":   np.ndarray,
         }
+
+    The 4-of-6 majority threshold is the VOTING rule. Bonferroni at
+    α/k applies inside each per-metric 95% interval test. They are
+    independent layers — see module docstring.
+
+    If ``mde`` is None, each metric uses its own per-metric MDE from
+    :func:`mde_at_n31` so different metric scales are not pooled
+    under a single unit-blind threshold.
     """
     rows: list[MetricResult] = []
     for name, payload in metrics.items():
+        per_metric_mde = mde if mde is not None else mde_at_n31(name)
         verdict, _delta, ba_int, er_int = _per_metric_verdict(
             float(payload["empirical"]),
             np.asarray(payload["ba_pool"], dtype=np.float64),
             np.asarray(payload["er_pool"], dtype=np.float64),
-            mde=mde,
+            mde=per_metric_mde,
         )
         rows.append(
             MetricResult(

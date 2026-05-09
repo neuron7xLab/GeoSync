@@ -1220,8 +1220,13 @@ def build_article_artifact(opts: BuildOptions) -> dict[str, Any]:
     # emission (ClaimType.GENERATIVE_MECHANISM) is the path that would
     # return INVALID_INSTRUMENT and block downstream — that path is in
     # tools/disha_artifact/discrimination_v2.py and is the primary gate.
-    _ = _verdict
-    _ = Verdict  # silences unused-import in non-mechanism path
+    instrument_gate_verdict = {
+        "verdict": _verdict.verdict.value,
+        "claim_tier": _verdict.claim_tier.value,
+        "reason": _verdict.reason,
+        "scope_id": _verdict.extra.get("scope_id", "?"),
+        "in_scope": _verdict.verdict is not Verdict.OUT_OF_SCOPE,
+    }
 
     # Per-period exposure matrices and outward-strength panels
     mat_normal, q_normal = build_period_matrix(panel, n, opts.normal_start, opts.normal_end)
@@ -1666,6 +1671,7 @@ def build_article_artifact(opts: BuildOptions) -> dict[str, Any]:
         "constant_source_nodes": constant_source_nodes,
         "n_article_grade_countries": int(rc_article.shape[0]),
         "n_correlation_validity_rows": int(cv_all.shape[0]),
+        "instrument_gate_verdict": instrument_gate_verdict,
     }
     _write_repro_capsule(opts, ds, sha, summary_payload)
     return summary_payload
