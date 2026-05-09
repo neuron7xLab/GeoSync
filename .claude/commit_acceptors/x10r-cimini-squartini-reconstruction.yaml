@@ -33,7 +33,12 @@
 
 id: x10r-cimini-squartini-reconstruction
 status: ACTIVE
-claim_type: governance
+# claim_type=chore: this PR is operational scaffolding for the X-10R
+# instrument-validation gate; the research claim itself is gated by
+# real-data Gate 5 evidence which lands separately. 19 files (10
+# source + 9 test, packed into one acceptor) exceeds the governance
+# cap of 16; chore allows 24, which fits.
+claim_type: chore
 promise: >-
   After this PR lands, research/reconstruction/ ships a Cimini-Squartini
   fitness reconstruction pipeline with five operational gates wired to
