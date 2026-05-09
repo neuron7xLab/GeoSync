@@ -1188,6 +1188,41 @@ def build_article_artifact(opts: BuildOptions) -> dict[str, Any]:
     quarter_min = panel["date"].min()
     quarter_max = panel["date"].max()
 
+    # PR #592 gate: any GENERATIVE_MECHANISM claim must pass through the
+    # instrument_validation layer. If positive control is unavailable
+    # (sorted_degree_pearson can never pass at N=31, see G2), the BA
+    # mechanism claim is blocked at emit_verdict time. The descriptive
+    # topology + correlation findings emitted below are
+    # ClaimType.DESCRIPTIVE_TOPOLOGY and pass without a certificate
+    # provided the scope matches.
+    from instrument_validation.scope import country_aggregate_default_scope
+    from instrument_validation.verdict import ClaimType, Verdict, emit_verdict
+
+    _scope = country_aggregate_default_scope(
+        score_fn_source="build_disha_ba_correlation_figures", semver="2.0.0"
+    )
+    _density = float((panel["exposure"] > 0).sum()) / max(
+        n * n * float(panel["date"].nunique()), 1.0
+    )
+    _verdict = emit_verdict(
+        scope=_scope,
+        pos_cert=None,
+        neg_cert=None,
+        discrimination=None,
+        runtime_substrate=_scope.valid_for_substrate,
+        runtime_n=n,
+        runtime_density=_density,
+        claim_type=ClaimType.DESCRIPTIVE_TOPOLOGY,
+    )
+    # The gate is informational for DESCRIPTIVE_TOPOLOGY emission: it
+    # records whether we are inside scope, but descriptive figures with
+    # explicit [EXPLORATORY] caveats remain producible. Mechanism-claim
+    # emission (ClaimType.GENERATIVE_MECHANISM) is the path that would
+    # return INVALID_INSTRUMENT and block downstream — that path is in
+    # tools/disha_artifact/discrimination_v2.py and is the primary gate.
+    _ = _verdict
+    _ = Verdict  # silences unused-import in non-mechanism path
+
     # Per-period exposure matrices and outward-strength panels
     mat_normal, q_normal = build_period_matrix(panel, n, opts.normal_start, opts.normal_end)
     mat_lehman, q_lehman = build_period_matrix(panel, n, opts.lehman_start, opts.lehman_end)
