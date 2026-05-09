@@ -16,8 +16,8 @@ id: instrument-validation-pr592
 status: ACTIVE
 claim_type: governance
 promise: >-
-  After this PR lands, the Disha artefact refuses to emit any
-  BA-mechanism / generative-mechanism claim that lacks both a
+  After this PR lands, the instrument_validation package refuses to
+  emit any BA-mechanism / generative-mechanism claim that lacks both a
   positive-control certificate (power ≥ 0.80) and a negative-control
   certificate (FPR ≤ 0.05) tied to the runtime instrument_id, and
   refuses any claim out of declared InstrumentScope.
@@ -25,8 +25,6 @@ promise: >-
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/instrument-validation-pr592.yaml"
-    - path: "DISHA_SAFE_120_WORDS_v2.md"
-    - path: "tools/build_disha_ba_correlation_figures.py"
     - path: "instrument_validation/__init__.py"
     - path: "instrument_validation/scope.py"
     - path: "instrument_validation/null_audit.py"
@@ -36,10 +34,6 @@ diff_scope:
     - path: "instrument_validation/verdict.py"
     - path: "instrument_validation/capsule.py"
     - path: "instrument_validation/claim_boundary.py"
-    - path: "tools/disha_artifact/__init__.py"
-    - path: "tools/disha_artifact/discrimination_v2.py"
-    - path: "tools/disha_artifact/risk_concentration_v2.py"
-    - path: "tools/disha_artifact/summary_compiler.py"
     - path: "tests/instrument_validation/__init__.py"
     - path: "tests/instrument_validation/test_scope.py"
     - path: "tests/instrument_validation/test_null_audit.py"
@@ -49,11 +43,6 @@ diff_scope:
     - path: "tests/instrument_validation/test_verdict.py"
     - path: "tests/instrument_validation/test_capsule.py"
     - path: "tests/instrument_validation/test_claim_boundary.py"
-    - path: "tests/disha_artifact_v2/__init__.py"
-    - path: "tests/disha_artifact_v2/test_discrimination_v2.py"
-    - path: "tests/disha_artifact_v2/test_risk_concentration_v2.py"
-    - path: "tests/disha_artifact_v2/test_summary_compiler.py"
-    - path: "tests/disha_artifact_v2/test_build_script_gating.py"
   forbidden_paths:
     - "research/systemic_risk/protocol_x9r.py"
     - "tools/build_bis_lbs_dataset.py"
