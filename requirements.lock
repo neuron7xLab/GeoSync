@@ -94,7 +94,7 @@ exchange-calendars==4.11.1
     # via geosync (pyproject.toml)
 extra-streamlit-components==0.1.81
     # via streamlit-authenticator
-fastapi==0.136.0
+fastapi==0.136.1
     # via
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
