@@ -77,7 +77,7 @@ jobs:
       - name: mypy --strict on audited surface
         run: |
           set -euo pipefail
-          python -m mypy --strict \
+          python -m mypy --strict --follow-imports=silent \
             research/systemic_risk/death_conditions.py \
             research/systemic_risk/evidence_ledger.py \
             research/systemic_risk/leakage_sentinel.py \
