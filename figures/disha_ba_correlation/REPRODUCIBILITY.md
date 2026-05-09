@@ -1,7 +1,7 @@
 # Reproducibility — Disha BA + Correlation Artefact
 
 - Repository: `neuron7xLab/GeoSync`
-- Git SHA: `89653191f10aad84674a67a4e56e181f5284cfcd`
+- Git SHA: `725f3bf0993d3b65741a5704e63e1a54303d25e9`
 - Dataset directory: `/tmp/bis_real_data/dataset_dir_v2`
 - Manifest path: `/tmp/bis_real_data/dataset_dir_v2/manifest.json`
 - Manifest source_id: `BIS-LBS-WS_LBS_D_PUB-v1.0`
@@ -61,6 +61,5 @@ Allowed wording: country-level banking-system exposure network; macro banking-ne
 illustration; descriptive preferential-attachment-style comparison; correlation between
 country banking-system exposure time series; public reproducible BIS baseline.
 
-Forbidden wording (auto-checked): bank-level interbank network; bank-to-bank exposures;
-validated repo liquidity-risk model; confirmed Barabási-Albert law; confirmed systemic-risk
-phase transition; liquidity contagion proof; production-grade scientific validation.
+Forbidden wording (auto-checked at write time; see CLAIM_BOUNDARY.md for the
+authoritative list).

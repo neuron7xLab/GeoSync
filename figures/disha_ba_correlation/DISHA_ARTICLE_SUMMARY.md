@@ -99,11 +99,11 @@ Top 10 article-grade countries:
   3. FR — Δ|r|_changes = +0.411, |r|_changes_lehman = 0.786, total_strength = 3,725,457
   4. LU — Δ|r|_changes = +0.469, |r|_changes_lehman = 0.789, total_strength = 1,687,001
   5. US — Δ|r|_changes = +0.149, |r|_changes_lehman = 0.573, total_strength = 5,247,551
-  6. IE — Δ|r|_changes = +0.385, |r|_changes_lehman = 0.786, total_strength = 1,991,685
+  6. NL — Δ|r|_changes = +0.306, |r|_changes_lehman = 0.662, total_strength = 2,116,425
   7. BE — Δ|r|_changes = +0.386, |r|_changes_lehman = 0.701, total_strength = 1,363,849
-  8. CH — Δ|r|_changes = +0.383, |r|_changes_lehman = 0.789, total_strength = 1,587,252
-  9. NL — Δ|r|_changes = +0.306, |r|_changes_lehman = 0.662, total_strength = 2,116,425
-  10. ES — Δ|r|_changes = +nan, |r|_changes_lehman = nan, total_strength = 1,040,336
+  8. JP — Δ|r|_changes = +0.140, |r|_changes_lehman = 0.420, total_strength = 2,501,610
+  9. IE — Δ|r|_changes = +0.385, |r|_changes_lehman = 0.786, total_strength = 1,991,685
+  10. CH — Δ|r|_changes = +0.383, |r|_changes_lehman = 0.789, total_strength = 1,587,252
 
 The full unfiltered ranking is in `risk_concentration_summary.csv`; the filtered ranking is in
 `risk_concentration_article_grade.csv`. Use the latter for any external claim.
@@ -141,7 +141,7 @@ python tools/build_disha_ba_correlation_figures.py \
     --seed 42
 ```
 
-Git SHA: `89653191f10aad84674a67a4e56e181f5284cfcd`
+Git SHA: `725f3bf0993d3b65741a5704e63e1a54303d25e9`
 
 ## 9. Out of scope
 

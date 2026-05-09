@@ -3,7 +3,7 @@
 Maps the bugs raised in `~/Downloads/DISHA_AUDIT_REPORT_2026-05-09.md` to fixes shipped
 in this PR. Each item is `fixed`, `partially fixed`, or `accepted risk`.
 
-Git SHA: `89653191f10aad84674a67a4e56e181f5284cfcd`
+Git SHA: `725f3bf0993d3b65741a5704e63e1a54303d25e9`
 Output dir: `figures/disha_ba_correlation`
 
 | # | bug | severity | status | fix landed |

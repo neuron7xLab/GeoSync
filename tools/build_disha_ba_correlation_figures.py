@@ -295,20 +295,33 @@ def _configuration_model_graph(n: int, *, seed: int, degree_sequence: list[int])
     return g
 
 
-def _degree_preserving_rewire(empirical_binary: np.ndarray, *, seed: int) -> Any:
-    """Double-edge swap rewiring that exactly preserves the degree sequence."""
-    g = nx.from_numpy_array(empirical_binary)
+def _degree_preserving_rewire(empirical_binary: np.ndarray, *, seed: int) -> tuple[Any, bool]:
+    """Double-edge-swap rewiring that preserves the degree sequence.
+
+    Returns (rewired_graph, swap_succeeded). ``swap_succeeded`` is False
+    when the graph is too constrained for any swap; callers MUST treat
+    a False result as "no rewiring null available" rather than as a
+    legitimate degenerate-distance-zero null. Earlier versions silently
+    returned the empirical graph on swap failure, which would falsely
+    show KS=0 vs the rewiring null and break the multi-null override.
+    """
+    sym = ((empirical_binary + empirical_binary.T) > 0).astype(np.uint8)
+    np.fill_diagonal(sym, 0)
+    g = nx.from_numpy_array(sym)
     n_edges = g.number_of_edges()
     if n_edges < 2:
-        return g
+        return g, False
+    # nswap == n_edges // 2 randomises ~half the wiring while staying within
+    # max_tries on sparse country-level graphs. Earlier versions used
+    # nswap=5*n_edges which exhausted max_tries on N≈30 graphs and yielded
+    # zero successful rewirings (silently treated as a degenerate null).
+    nswap = max(5, n_edges // 2)
+    max_tries = max(500, 100 * n_edges)
     try:
-        nx.algorithms.swap.double_edge_swap(
-            g, nswap=max(10, 5 * n_edges), max_tries=max(100, 50 * n_edges), seed=seed
-        )
+        nx.algorithms.swap.double_edge_swap(g, nswap=nswap, max_tries=max_tries, seed=seed)
     except (nx.NetworkXError, nx.NetworkXAlgorithmError):
-        # Graph too constrained for swaps — return as-is.
-        pass
-    return g
+        return g, False
+    return g, True
 
 
 def _simulate_configuration_model(
@@ -340,14 +353,24 @@ def _simulate_degree_preserving_rewire(
     n_simulations: int,
     *,
     seed: int,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, int]:
+    """Returns (mean_sorted_deg, pooled_deg, n_successful_swaps).
+
+    Caller must check ``n_successful_swaps`` — a value of 0 means no
+    legitimate rewiring null is available and BA-vs-rewire comparisons
+    must be marked NaN, NOT zero KS distance.
+    """
     n = int(empirical_binary.shape[0])
     rng_master = np.random.default_rng(seed)
     sim_seeds = rng_master.integers(0, 2**31 - 1, size=n_simulations)
     sim_sorted = np.zeros((n_simulations, n), dtype=np.float64)
     pooled: list[int] = []
+    n_succeeded = 0
     for k in range(n_simulations):
-        g = _degree_preserving_rewire(empirical_binary, seed=int(sim_seeds[k]))
+        g, ok = _degree_preserving_rewire(empirical_binary, seed=int(sim_seeds[k]))
+        if not ok:
+            continue
+        n_succeeded += 1
         deg = sorted(dict(g.degree()).values(), reverse=True)
         if len(deg) < n:
             deg = deg + [0] * (n - len(deg))
@@ -355,7 +378,15 @@ def _simulate_degree_preserving_rewire(
             deg = deg[:n]
         sim_sorted[k, :] = deg
         pooled.extend(deg)
-    return sim_sorted.mean(axis=0), np.asarray(pooled, dtype=np.float64)
+    if n_succeeded == 0:
+        return (
+            np.full(n, np.nan, dtype=np.float64),
+            np.asarray([], dtype=np.float64),
+            0,
+        )
+    # Average only over the rows that succeeded.
+    mean_sorted = sim_sorted[:n_succeeded].mean(axis=0)
+    return mean_sorted, np.asarray(pooled, dtype=np.float64), n_succeeded
 
 
 def _wasserstein_1d(a: np.ndarray, b: np.ndarray) -> float:
@@ -372,12 +403,31 @@ def _wasserstein_1d(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.mean(np.abs(a_q - b_q)))
 
 
-def _top_k_overlap(emp_deg: np.ndarray, sim_deg: np.ndarray, *, k: int = 5) -> float:
-    if emp_deg.size == 0 or sim_deg.size == 0:
+def _top_k_degree_value_overlap(
+    emp_deg: np.ndarray, sim_sorted_mean: np.ndarray, *, k: int = 5
+) -> float:
+    """Fraction of empirical top-k degree VALUES that fall within the
+    simulated mean top-k range.
+
+    Note: argsort on ``sim_sorted_mean`` (which is already monotonically
+    sorted) returns [0, 1, ..., k-1] by construction — the previous
+    ``_top_k_overlap`` collapsed to a trivial node-index comparison and
+    was numerically meaningless for an unlabeled generative null. This
+    replacement compares VALUE ranges (the top-k degree counts), which
+    is the only fair signal for label-free random graphs.
+    """
+    if emp_deg.size == 0 or sim_sorted_mean.size == 0:
         return float("nan")
-    top_e = set(np.argsort(-emp_deg)[:k].tolist())
-    top_s = set(np.argsort(-sim_deg)[:k].tolist())
-    return float(len(top_e & top_s) / max(k, 1))
+    emp_top_k_vals = np.sort(emp_deg)[::-1][:k].astype(np.float64)
+    sim_top_k_vals = sim_sorted_mean[:k].astype(np.float64)
+    if emp_top_k_vals.size == 0 or sim_top_k_vals.size == 0:
+        return float("nan")
+    sim_min = float(sim_top_k_vals.min())
+    sim_max = float(sim_top_k_vals.max())
+    if sim_max <= sim_min:
+        return float("nan")
+    in_range = ((emp_top_k_vals >= sim_min) & (emp_top_k_vals <= sim_max)).sum()
+    return float(in_range / max(k, 1))
 
 
 def _ks_distance(emp_sorted: np.ndarray, pooled: np.ndarray) -> float:
@@ -491,10 +541,12 @@ def compute_ba_comparison(
     cfg_mean_sorted, cfg_pool = _simulate_configuration_model(
         n, ba_simulations, seed=seed + 17, degree_sequence=deg.tolist()
     )
-    # Degree-preserving rewiring
-    rew_mean_sorted, rew_pool = _simulate_degree_preserving_rewire(
+    # Degree-preserving rewiring (with explicit success counter — see
+    # _simulate_degree_preserving_rewire docstring)
+    rew_mean_sorted, rew_pool, n_rew_succeeded = _simulate_degree_preserving_rewire(
         sym, ba_simulations, seed=seed + 31
     )
+    rew_available = n_rew_succeeded > 0
 
     def _safe_r(a: np.ndarray, b: np.ndarray) -> float:
         if np.std(a) == 0 or np.std(b) == 0:
@@ -518,8 +570,8 @@ def compute_ba_comparison(
     er_max_mean = float(er_pool.reshape(ba_simulations, n).max(axis=1).mean())
     ba_zero_count_mean = float((ba_pool.reshape(ba_simulations, n) == 0).sum(axis=1).mean())
     er_zero_count_mean = float((er_pool.reshape(ba_simulations, n) == 0).sum(axis=1).mean())
-    ba_top5 = _top_k_overlap(deg, ba_mean_sorted)
-    er_top5 = _top_k_overlap(deg, er_mean_sorted)
+    ba_top5 = _top_k_degree_value_overlap(deg, ba_mean_sorted)
+    er_top5 = _top_k_degree_value_overlap(deg, er_mean_sorted)
     margin = ba_r - er_r if (not math.isnan(ba_r) and not math.isnan(er_r)) else float("nan")
     if math.isnan(ba_ks) or math.isnan(er_ks):
         winner = "n/a"
@@ -532,8 +584,11 @@ def compute_ba_comparison(
 
     # Multi-baseline KS comparison: BA must win against ER AND configuration
     # AND rewiring on KS to qualify as "structurally distinct".
+    # If rewiring nulls were unavailable (no successful swaps) we cannot
+    # claim BA superiority — the discrimination criterion fail-closes.
     ba_beats_all_ks = (
-        not math.isnan(ba_ks)
+        rew_available
+        and not math.isnan(ba_ks)
         and not any(math.isnan(x) for x in (er_ks, cfg_ks, rew_ks))
         and ba_ks < er_ks
         and ba_ks < cfg_ks
@@ -584,6 +639,8 @@ def compute_ba_comparison(
         "rew_degree_pearson_r": rew_r,
         "rew_degree_ks_distance": rew_ks,
         "rew_wasserstein_distance": rew_w,
+        "rew_n_successful_swaps": int(n_rew_succeeded),
+        "rew_available": bool(rew_available),
         # Comparisons
         "ba_minus_er_r": margin,
         "winner_by_ks": winner,
@@ -786,6 +843,7 @@ def compute_risk_concentration(
     weighted_lehman: np.ndarray,
     binary_lehman: np.ndarray,
     chg_lehman_panel: pd.DataFrame | None = None,
+    corr_changes_sensitivity: np.ndarray | None = None,
     min_total_strength: float = 100_000.0,
     min_effective_change_observations: int = 8,
 ) -> pd.DataFrame:
@@ -805,6 +863,13 @@ def compute_risk_concentration(
     macl = _mean_abs(corr_levels_lehman)
     machn = _mean_abs(corr_changes_normal)
     machl = _mean_abs(corr_changes_lehman)
+    # Sensitivity-window |r| of changes — statistically more stable than the
+    # 4-quarter Lehman window. Used as the article-grade headline metric.
+    machs = (
+        _mean_abs(corr_changes_sensitivity)
+        if corr_changes_sensitivity is not None
+        else np.full(n, np.nan)
+    )
     out_str = weighted_lehman.sum(axis=1)
     in_str = weighted_lehman.sum(axis=0)
     total_str = out_str + in_str
@@ -830,6 +895,9 @@ def compute_risk_concentration(
             "mean_abs_corr_changes_normal": machn,
             "mean_abs_corr_changes_lehman": machl,
             "delta_mean_abs_corr_changes": machl - machn,
+            # Sensitivity-window primary metrics (preferred for article use)
+            "mean_abs_corr_changes_sensitivity": machs,
+            "delta_mean_abs_corr_changes_sensitivity": machs - machn,
             "weighted_out_strength_lehman": out_str,
             "weighted_in_strength_lehman": in_str,
             "total_strength_lehman": total_str,
@@ -842,8 +910,15 @@ def compute_risk_concentration(
             "article_grade": article_grade,
         }
     )
+    # Primary sort uses the sensitivity-window Δ (statistically stable, n=11)
+    # rather than the noise-prone 4-quarter Lehman Δ.
+    primary_delta = (
+        "delta_mean_abs_corr_changes_sensitivity"
+        if corr_changes_sensitivity is not None
+        else "delta_mean_abs_corr_changes"
+    )
     df = df.sort_values(
-        ["delta_mean_abs_corr_changes", "mean_abs_corr_changes_lehman", "total_strength_lehman"],
+        [primary_delta, "mean_abs_corr_changes_sensitivity", "total_strength_lehman"],
         ascending=[False, False, False],
         na_position="last",
     ).reset_index(drop=True)
@@ -1213,6 +1288,7 @@ def build_article_artifact(opts: BuildOptions) -> dict[str, Any]:
         weighted_lehman=mat_lehman,
         binary_lehman=bin_lehman,
         chg_lehman_panel=chg_sens,
+        corr_changes_sensitivity=corr_chg_sens,
         min_total_strength=opts.min_risk_total_strength,
         min_effective_change_observations=opts.min_effective_change_observations,
     )
@@ -1230,7 +1306,10 @@ def build_article_artifact(opts: BuildOptions) -> dict[str, Any]:
     rc_with_score["log_total_strength_lehman"] = np.log1p(
         rc_with_score["total_strength_lehman"].astype(float)
     )
-    z_delta = _zscore(rc_with_score["delta_mean_abs_corr_changes"]).fillna(0.0)
+    # Use sensitivity-window Δ (n=11 obs, statistically stable) as the primary
+    # signal; the 4-quarter Lehman Δ is too noisy for ranking even after the
+    # article-grade observation filter.
+    z_delta = _zscore(rc_with_score["delta_mean_abs_corr_changes_sensitivity"]).fillna(0.0)
     z_logmass = _zscore(rc_with_score["log_total_strength_lehman"]).fillna(0.0)
     z_deg = _zscore(rc_with_score["binary_degree_lehman"].astype(float)).fillna(0.0)
     penalty_low_obs = (~rc_with_score["passes_observation_filter"]).astype(float)
