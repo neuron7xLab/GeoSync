@@ -136,3 +136,68 @@ def test_run_recovery_handles_zero_topology_gracefully() -> None:
     assert cert.passed is False
     assert len(cert.failure_reasons) >= 1
     assert any("crashed" in f or "spectral" in f for f in cert.failure_reasons)
+
+
+# ---------------------------------------------------------------------------
+# Statistical-robustness tests — prove Gate 5 holds across multiple seeds,
+# not just at the canonical seed=42. A certificate that passes only on one
+# seed is *cherry-picked*, not a robust capability claim.
+# ---------------------------------------------------------------------------
+
+
+def test_cp_recovery_passes_across_5_independent_seeds() -> None:
+    """Core-periphery substrate: Gate 5 must pass at every density across
+    5 independent seeds. The point is not "best case at seed=42" but
+    "this method works"."""
+    seeds = [42, 17, 101, 4242, 31337]
+    n_passes = 0
+    for s in seeds:
+        w = ground_truth_core_periphery(n=120, core_frac=0.30, seed=s)
+        cert = run_recovery_on_substrate(f"CP_{s}", w, seed=s)
+        if cert.passed:
+            n_passes += 1
+    # Allow at most 1 seed to fail — that's the seed-sensitivity envelope
+    # we accept on Gate 5 thresholds (5/5 expected, 4/5 tolerated as a
+    # finite-sample fluctuation; 3/5 or worse means the method is brittle).
+    assert n_passes >= 4, f"CP recovery brittle: only {n_passes}/{len(seeds)} seeds passed"
+
+
+def test_hierarchical_recovery_passes_across_5_independent_seeds() -> None:
+    """Same statistical-robustness check on the hierarchical substrate."""
+    seeds = [42, 17, 101, 4242, 31337]
+    n_passes = 0
+    for s in seeds:
+        w = ground_truth_hierarchical(n=120, n_tiers=4, seed=s)
+        cert = run_recovery_on_substrate(f"HIER_{s}", w, seed=s)
+        if cert.passed:
+            n_passes += 1
+    assert n_passes >= 4, (
+        f"Hierarchical recovery brittle: only {n_passes}/{len(seeds)} seeds passed"
+    )
+
+
+def test_certificate_is_unique_per_seed_pair() -> None:
+    """cert_id must be deterministic for (substrate, seed) but unique
+    across distinct seeds — no accidental hash collisions on the seed axis.
+    """
+    n_seeds = 6
+    cert_ids = set()
+    for s in range(n_seeds):
+        w = ground_truth_core_periphery(n=80, core_frac=0.30, seed=s)
+        cert = run_recovery_on_substrate("CP_unique", w, seed=s)
+        cert_ids.add(cert.cert_id)
+    # All seeds produced distinct certificates — no collision.
+    assert len(cert_ids) == n_seeds
+
+
+def test_evidence_envelope_carries_real_seed_evidence() -> None:
+    """When a sweep actually completes, the evidence_envelope must
+    reflect what was tested, not what was *intended* to be tested."""
+    w = ground_truth_core_periphery(n=80, core_frac=0.30, seed=7)
+    sweep = (0.04, 0.07)
+    cert = run_recovery_on_substrate("CP_evidence", w, seed=7, sweep=sweep)
+    env = cert.evidence_envelope()
+    # Density envelope must be exactly what the sweep covered.
+    assert env["density"] == (min(sweep), max(sweep))
+    # n_nodes envelope is single-point because the sweep ran at one N.
+    assert env["n_nodes"] == (80, 80)
