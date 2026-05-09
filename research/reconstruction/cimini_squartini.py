@@ -12,12 +12,51 @@ fitness-only model collapses the N-dim nonlinear MLE to a single
 fitness vectors so downstream weighted_allocation + recovery_audit
 can sample / verify.
 
+TARGET OBJECT (FIX B3, 2026-05-09)
+==================================
+The reconstruction operates over **whatever node ontology the
+caller supplies via (s_out, s_in)**. The pipeline cannot, and does
+not, infer node ontology from the marginals — it can only honour
+what is fed in.
+
+Specifically, when the inputs are BIS Locational Banking Statistics
+country-aggregate marginals, the *target object* of this
+reconstruction is the **latent country-aggregate exposure network**
+consistent with those marginals and with the Cimini-Squartini
+fitness prior. **It is NOT a bank-level interbank network.** BIS
+LBS marginals are residence-based, country-aggregate, and include
+intragroup positions; lifting from country aggregates to bank-level
+inference is a separate two-step inverse problem that requires a
+country-to-bank allocator with its own prior and own validation
+(epic X-10R-1, deferred to PR #599+).
+
+For PR #635 the reconstruction therefore operates on:
+
+  * Synthetic substrates at N=200 (positive controls, ground-truth
+    recovery — Gate 5 in synthetic mode).
+  * Real BIS LBS country-aggregate marginals (domain-of-validity
+    check only — see `recovery_audit.check_domain_of_validity`).
+    Recovery in the literal sense is undefined here because the
+    bank-level truth is unobserved; the strongest available gate
+    is whether real inputs fall inside the regime where synthetic
+    recovery has been demonstrated.
+
+Real-data interpretation contract: any precursor signal recovered
+on real BIS through this pipeline binds to the latent country-
+aggregate network class, NOT to bank-level structure. Any human-
+facing claim text MUST carry the qualifier
+``via_max_entropy_reconstruction_at_country_aggregate``.
+
 Citations (reviewer traceability only — gates are operational):
   * Cimini, Squartini, Garlaschelli, Gabrielli (2015), "Estimating
     topological properties of weighted networks from limited
     information."
   * Squartini & Garlaschelli (2011), "Analytical maximum-likelihood
     method to detect patterns in real networks."
+  * Bank for International Settlements (2019), "Reporting Guidelines
+    for the BIS International Banking Statistics" — for the LBS
+    residence-based / aggregate / intragroup-inclusive contract
+    that the target-object reframing rests on.
 """
 
 from __future__ import annotations

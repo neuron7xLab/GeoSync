@@ -2,43 +2,108 @@
 # SPDX-License-Identifier: MIT
 """Bernoulli sampling of A_ij + gravity allocation + IPF marginal projection.
 
-TODO_PR_NEXT (operational-regime fidelity, 2026-05-09):
-  Unit tests in tests/reconstruction/test_weighted_allocation.py exercise
-  this module under uniform-Bernoulli p (e.g., p=0.30) supports — NOT
-  the Cimini-calibrated heterogeneous p_ij that the operational pipeline
-  generates. The two regimes have different IPF feasibility profiles:
-  uniform supports converge crisply, but Cimini-calibrated supports
-  concentrate edges on top-fitness pairs and can leave structural
-  residual on heavy-tailed marginals (BIS LBS country aggregates
-  exhibit lognormal-like distributions). This is debt, not a bug —
-  the audit instrument (Gate 5 row/col L1) catches any residual at
-  the gate level. To repay before processing real BIS marginals:
-  regenerate test fixtures from `fit_cimini_squartini` at the X-10R
-  density sweep so the unit tests mirror the operational regime.
-Per Protocol X-10R:
+MATHEMATICAL CONTRACT — corrected per FIX B1 (X-10R deep review, 2026-05-09)
+============================================================================
 
-    if a_ij sampled True via Bernoulli(p_ij):
-        <w_ij> = (s_i^out · s_j^in) / W_total          (gravity initial)
-    else:
-        w_ij = 0
+Two-step weighted reconstruction:
 
-The bare gravity formula preserves expected TOTAL mass but not row/col
-marginals — Gate 5 requires row_sum_invariant_L1 ≤ 0.05 exactly.
-Almog & Squartini 2017 §2.3 closes the gap with iterated proportional
-fitting (Sinkhorn–Knopp on the support of A). We do that here:
+  Step 1 (support sampling):
+      A_ij ~ Bernoulli(p_ij)  with p_ij from Cimini-Squartini fitness
+                              (z·x_i·y_j / (1 + z·x_i·y_j)).
 
-  1. Initialise W^0_ij = a_ij · s_i^out · s_j^in / W_total
-  2. Row-scale W^k_ij ← W^k_ij · (s_i^out / Σ_j W^k_ij)
-  3. Col-scale W^k_ij ← W^k_ij · (s_j^in  / Σ_i W^k_ij)
-  4. Iterate until max(row_err, col_err) ≤ ipf_tol or max_iter exhausted
+  Step 2 (weight allocation under support):
+      Initial gravity:
+          W^0_ij = A_ij · (s_i^out · s_j^in) / W_total
 
-Convergence is monotone provided the support of A can carry the
-prescribed marginals (every row/col with positive marginal must have
-≥ 1 non-zero edge). Pre-checked; ValueError on infeasible support.
+      IPF (Almog-Squartini 2017 Sinkhorn-Knopp) projection on the
+      support of A onto the marginal slice
+          {Σ_j w_ij = s_i^out,  Σ_i w_ij = s_j^in} :
+
+          repeat
+              W^k_ij ← W^k_ij · (s_i^out / Σ_j W^k_ij)        (row scale)
+              W^k_ij ← W^k_ij · (s_j^in  / Σ_i W^k_ij)        (col scale)
+          until max(row_err, col_err) ≤ ipf_tol·max(s)
+                or k = ipf_max_iter.
+
+WHY NAIVE GRAVITY DOES *NOT* PRESERVE MARGINALS
+-----------------------------------------------
+For the *initial* gravity rule
+    w_ij^0 = a_ij · s_i^out · s_j^in / W_total ,
+the expectation under the Bernoulli ensemble is
+
+    E[Σ_j w_ij^0]
+        = (s_i^out / W_total) · Σ_j p_ij · s_j^in
+        ≠ s_i^out  in general,
+
+because Σ_j p_ij·s_j^in does *not* equal W_total once the support is
+non-trivially sparsified (the "missing" weight on absent links is not
+redistributed). This is exactly the failure that Cimini et al. 2015 §3
+flag, and why they introduced the *degree-corrected* gravity rule
+    <w_ij | a_ij = 1> = (s_i^out · s_j^in) / (W_total · p_ij) ,
+which preserves E[Σ_j w_ij] = s_i^out by construction.
+
+Older versions of the X-10R protocol claimed the simple gravity
+rule preserved marginals "in expectation" — that claim is false and
+has been retracted. The implementation here was already correct
+(the IPF projection enforces the marginals exactly, post-hoc, on
+the realised support), but the documented invariant has been
+brought into alignment with the math.
+
+WHY WE USE IPF INSTEAD OF DEGREE-CORRECTED GRAVITY
+--------------------------------------------------
+Both routes meet the marginal-preservation contract on the *support*
+of A. We chose IPF because:
+
+  * IPF enforces marginals to numerical tolerance regardless of how
+    the support was sampled — so it is robust to the orphan-row /
+    orphan-col repairs in `sample_adjacency_bernoulli`.
+  * Degree-corrected gravity divides by p_ij, which becomes
+    numerically unstable on heavy-tailed marginals (the Cimini
+    p_ij can be arbitrarily small on weak-fitness pairs).
+  * The Almog-Squartini 2017 stack uses IPF; using IPF here keeps
+    us inside a reconstruction family that has been independently
+    validated on e-MID (Cimini 2015, Anand et al. 2018, Gandy &
+    Veraart 2019).
+
+IPF NON-CONVERGENCE IS *NOT* SILENTLY MASKED
+--------------------------------------------
+On extremely sparse supports the row/col scaling can fail to drive
+both residuals to ipf_tol. We do **not** raise here — instead the
+residual surfaces as `L1_error_row` / `L1_error_col` on the capsule
+and is caught by Gate 5 (`row_sum_invariant_L1`,
+`col_sum_invariant_L1` ≤ 0.05). This is the X-10R contract:
+"every failure must be a numbered gate".
+
+OPERATIONAL-REGIME FIDELITY (existing debt, tracked)
+----------------------------------------------------
+Unit tests in tests/reconstruction/test_weighted_allocation.py exercise
+this module under uniform-Bernoulli p supports (e.g., p=0.30) — NOT
+the Cimini-calibrated heterogeneous p_ij that the operational pipeline
+generates. The two regimes have different IPF feasibility profiles:
+uniform supports converge crisply, but Cimini-calibrated supports
+concentrate edges on top-fitness pairs and can leave structural
+residual on heavy-tailed marginals (BIS LBS country aggregates
+exhibit lognormal-like distributions). This is debt, not a bug —
+Gate 5 catches any residual at the gate level. Repayment before
+processing real BIS marginals: regenerate test fixtures from
+`fit_cimini_squartini` at the X-10R density sweep so the unit tests
+mirror the operational regime.
 
 GATE_4 (REPRODUCIBILITY): all sampling via injected
 ``numpy.random.Generator`` — no global numpy.random.seed, no system
 entropy. Identical PRNG state + identical input → bit-exact A, W.
+
+References
+----------
+* Cimini, Squartini, Garlaschelli, Gabrielli (2015), Sci. Rep. 5:15758.
+* Almog & Squartini (2017), New J. Phys. 19, 053022.
+* Squartini & Garlaschelli (2017), "Maximum-entropy networks", §6.2.
+* Anand, van Lelyveld, Banai, Friedrich, Garratt, Hałaj, Fique,
+  Hansen, Jaramillo, Lee, Molina-Borboa, Nobili, Rajan, Salakhova,
+  Silva, Silvestri, de Souza (2018), "The missing links:
+  A global study on uncovering financial network structures from
+  partial data", J. Financ. Stab. 35, 107-119.
+* Gandy & Veraart (2019), Manag. Sci. 65, 4781-4797.
 """
 
 from __future__ import annotations
@@ -176,6 +241,10 @@ def allocate_weights(
     if ipf_tol <= 0 or ipf_max_iter < 1:
         raise ValueError(f"ipf_tol > 0 and ipf_max_iter ≥ 1; got {ipf_tol}, {ipf_max_iter}")
     _validate_support(a, s_out_arr, s_in_arr)
+    # Initial gravity allocation. Note: this expression does NOT preserve
+    # row/col marginals in expectation (see module docstring §"WHY NAIVE
+    # GRAVITY DOES NOT PRESERVE MARGINALS"). The IPF projection below
+    # corrects this exactly on the realised support of A.
     outer = np.outer(s_out_arr, s_in_arr) / w_total
     w0: np.ndarray = (a.astype(np.float64) * outer).astype(np.float64)
     np.fill_diagonal(w0, 0.0)
