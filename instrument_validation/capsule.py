@@ -77,6 +77,12 @@ class Capsule:
             raise TypeError("external_replication_required must be bool")
         if self.external_replication_required is False:
             raise ValueError("external_replication_required must always be True (spec)")
+        # Bool subclasses int — exclude it explicitly so True/False can't
+        # silently become seed_master=1/0.
+        if isinstance(self.seed_master, bool) or not isinstance(self.seed_master, int):
+            raise TypeError(
+                f"seed_master must be int (not bool); got {type(self.seed_master).__name__}"
+            )
         if self.seed_master < 0:
             raise ValueError(f"seed_master must be >= 0; got {self.seed_master}")
 

@@ -204,6 +204,29 @@ def test_rerun_strict_rejects_instrument_scope_id_prefix_mismatch(
     assert "instrument_scope_id prefix mismatch" in res.failure_reason
 
 
+def test_capsule_rejects_bool_seed(tmp_path: Path) -> None:
+    """Iter-4 audit: True/False subclasses int → previously coerced
+    silently to seed_master=1/0, breaking determinism semantics."""
+    cap, _ = _make_capsule(tmp_path)
+    with pytest.raises(TypeError, match="seed_master must be int"):
+        Capsule(
+            capsule_id=cap.capsule_id,
+            payload_sha256=cap.payload_sha256,
+            dataset_abs_path=cap.dataset_abs_path,
+            instrument_scope_id=cap.instrument_scope_id,
+            pos_control_cert_id=cap.pos_control_cert_id,
+            neg_control_cert_id=cap.neg_control_cert_id,
+            null_audits=cap.null_audits,
+            discrimination_report=cap.discrimination_report,
+            verdict=cap.verdict,
+            claim_tier=cap.claim_tier,
+            seed_master=True,
+            code_sha=cap.code_sha,
+            metrics_sha=cap.metrics_sha,
+            external_replication_required=True,
+        )
+
+
 def test_capsule_rejects_negative_seed(tmp_path: Path) -> None:
     """Bug 5 fix — negative seeds break determinism semantics."""
     cap, _ = _make_capsule(tmp_path)
