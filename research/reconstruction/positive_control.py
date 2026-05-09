@@ -12,6 +12,59 @@ For each substrate we:
   1. compute marginals s_out, s_in from ground-truth W
   2. reconstruct via fit_cimini_squartini + sample_adjacency + allocate
   3. measure recovery via audit_recovery (Gate 5)
+
+TARGET-OBJECT CONTRACT (FIX B3, 2026-05-09)
+===========================================
+The substrates here are **synthetic ground truth** networks of
+known structure. Their purpose is to *certify the reconstruction
+method* against a regime where recovery is well defined.
+
+When the same Cimini-Squartini + IPF pipeline is applied to real
+BIS LBS marginals, the target object is the **latent country-
+aggregate exposure network**, not a bank-level interbank network
+(see cimini_squartini.py docstring §"TARGET OBJECT"). On real
+data the gate is **domain-of-validity** (see
+`recovery_audit.check_domain_of_validity`), NOT recovery, because
+no bank-level ground truth exists for real BIS aggregates.
+Conflating the two is the exact category error the X-10R protocol
+exists to prevent.
+
+EVIDENCE VS INTENT (FIX B4, 2026-05-09)
+=======================================
+``GroundTruthRecoveryCertificate`` carries two complementary
+fields:
+  * ``tested_at_n_nodes`` and ``tested_at_densities`` — the
+    *evidence* surface, populated from the actual sweep that
+    produced the certificate.
+  * The InstrumentScope intent (e.g., ``valid_for_n_nodes =
+    (50, 5000)`` declared elsewhere) is **intent**, not
+    evidence. Domain-of-validity gates use evidence, not intent.
+
+OPEN DEBT — RECIPROCITY (FIX B6, 2026-05-09)
+=============================================
+Sweep dimensions in this PR: density only.
+
+Known limitation: reciprocity-aware controls are NOT yet
+implemented. The 2024 e-MID-based reconstruction literature shows
+that *spectral* recovery — the metric class that Gate 6 (Kuramoto
+precursor) ultimately depends on — requires reciprocity-aware
+nulls and reciprocity-conditioned ground-truth substrates. Without
+those, a certificate may certify the wrong network for the exact
+metric used downstream.
+
+  Tracked: ``TODO_PR_RECIPROCITY_AWARE_CONTROLS`` (also surfaced
+  as a GitHub issue / ISSUE_DRAFTS_X10R.md entry).
+  Repayment trigger: BEFORE the first Gate 6 verdict on real BIS
+  LBS data.
+  Repayment plan: extend the sweep to a density × reciprocity
+  grid; regenerate the certificate; add a ``reciprocity_tested``
+  field to ``GroundTruthRecoveryCertificate``.
+
+References for the reciprocity-aware extension:
+  * Cimini et al. (2015), Sci. Rep. 5:15758 — fitness model.
+  * Squartini & Garlaschelli (2017), MEN textbook §6.2.
+  * Reciprocity-aware reconstruction literature (2024) — see
+    GitHub issue / ISSUE_DRAFTS_X10R.md for the citation anchor.
 """
 
 from __future__ import annotations
@@ -137,6 +190,16 @@ def _reconstruct_from_marginals(
 
 @dataclass(frozen=True)
 class GroundTruthRecoveryCertificate:
+    """Synthetic-ground-truth recovery certificate.
+
+    The ``tested_at_*`` tuples are the *evidence surface* of the
+    certificate (FIX B4, 2026-05-09). Downstream domain-of-validity
+    checks on real data MUST consult these fields — not the
+    InstrumentScope ``valid_for_n_nodes`` intent — when deciding
+    whether real inputs fall inside a regime where recovery has
+    actually been demonstrated.
+    """
+
     substrate_name: str
     n_nodes: int
     target_density: float
@@ -145,9 +208,39 @@ class GroundTruthRecoveryCertificate:
     passed: bool
     failure_reasons: tuple[str, ...]
     cert_id: str
+    tested_at_n_nodes: tuple[int, ...] = ()
+    tested_at_densities: tuple[float, ...] = ()
+    tested_at_reciprocity: tuple[float, ...] = ()  # always () until FIX B6 lands
 
     def is_valid(self) -> bool:
         return self.passed and bool(self.cert_id)
+
+    def evidence_envelope(self) -> dict[str, tuple[float, float] | tuple[int, int]]:
+        """Return the (min, max) envelope on each tested dimension.
+
+        This is the canonical "regime where recovery was demonstrated"
+        lookup used by `check_domain_of_validity`. Empty tuple ⇒ that
+        dimension was never swept and is therefore certificate-silent
+        (callers should treat that as INSUFFICIENT_CERTIFICATE in the
+        domain-of-validity gate, never as a free pass).
+        """
+        envelope: dict[str, tuple[float, float] | tuple[int, int]] = {}
+        if self.tested_at_n_nodes:
+            envelope["n_nodes"] = (
+                int(min(self.tested_at_n_nodes)),
+                int(max(self.tested_at_n_nodes)),
+            )
+        if self.tested_at_densities:
+            envelope["density"] = (
+                float(min(self.tested_at_densities)),
+                float(max(self.tested_at_densities)),
+            )
+        if self.tested_at_reciprocity:
+            envelope["reciprocity"] = (
+                float(min(self.tested_at_reciprocity)),
+                float(max(self.tested_at_reciprocity)),
+            )
+        return envelope
 
 
 _DENSITY_SWEEP: tuple[float, ...] = (0.03, 0.05, 0.08, 0.12)
@@ -182,9 +275,17 @@ def run_recovery_on_substrate(
         if not report.passed:
             failures.append(f"density={d}: " + "; ".join(report.failure_reasons))
     passed = not failures and len(per_density) == len(sweep)
+    # Evidence surface: only the densities that *actually produced a report*
+    # count as tested. A density that crashed before yielding a report cannot
+    # certify the regime even if `passed` is False — and especially must not
+    # certify it as `passed`.
+    tested_densities = tuple(sorted(per_density.keys()))
+    tested_n_nodes = (int(n),)
     cert_payload = (
         f"{substrate_name}|n={n}|seed={seed}|sweep={sweep}|"
-        f"thresholds={sorted(RECOVERY_THRESHOLDS.items())}|passed={passed}"
+        f"thresholds={sorted(RECOVERY_THRESHOLDS.items())}|"
+        f"tested_n_nodes={tested_n_nodes}|tested_densities={tested_densities}|"
+        f"passed={passed}"
     )
     cert_id = hashlib.sha256(cert_payload.encode("utf-8")).hexdigest()
     return GroundTruthRecoveryCertificate(
@@ -196,4 +297,7 @@ def run_recovery_on_substrate(
         passed=passed,
         failure_reasons=tuple(failures),
         cert_id=cert_id,
+        tested_at_n_nodes=tested_n_nodes,
+        tested_at_densities=tested_densities,
+        tested_at_reciprocity=(),
     )

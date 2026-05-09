@@ -5,6 +5,27 @@
 Mandatory ground_truth_recovery_cert_id (no claim emission without
 recovery proven). Empty metrics_sha forbidden. external_replication
 flag mandatory True per Protocol X-10R contract.
+
+STATUS SURFACE — TWO PATHS  (FIX B2, INV-RECONSTRUCTION-2)
+==========================================================
+Synthetic-recovery path (positive controls): emits one of
+    GROUND_TRUTH_RECOVERED, GROUND_TRUTH_NOT_RECOVERED,
+    INVALID_RECONSTRUCTION, OUT_OF_DENSITY_BOUND.
+Real-data path (no ground truth available): emits one of
+    WITHIN_VALIDATED_DOMAIN, OUT_OF_VALIDATED_DOMAIN,
+    INSUFFICIENT_CERTIFICATE.
+
+By contract (enforced by `assert_real_data_status_legal` and the
+test ``test_real_data_path_emits_within_or_out_never_recovered``),
+emitting GROUND_TRUTH_RECOVERED on the real-data path is FORBIDDEN.
+This is the exact category error INV-RECONSTRUCTION-2 prevents:
+"recovery" is defined only on synthetic substrates with known truth.
+
+TODO_PR_RECONCILE_592 (2026-05-09): once PR #592 lands, reconcile
+the ClaimTier emission with the PrecursorDirection field added in
+FIX B5. ClaimTier is frozen upstream; we expose direction
+separately through the Gate6Result and through human-facing capsule
+text — no patch-down of the frozen enum.
 """
 
 from __future__ import annotations
@@ -20,10 +41,62 @@ import numpy as np
 
 
 class ReconstructionStatus(Enum):
+    # Synthetic-recovery path (positive controls):
     GROUND_TRUTH_RECOVERED = "ground_truth_recovered"
     GROUND_TRUTH_NOT_RECOVERED = "ground_truth_not_recovered"
     INVALID_RECONSTRUCTION = "invalid_reconstruction"
     OUT_OF_DENSITY_BOUND = "out_of_density_bound"
+    # Real-data path (no ground truth; FIX B2):
+    WITHIN_VALIDATED_DOMAIN = "within_validated_domain"
+    OUT_OF_VALIDATED_DOMAIN = "out_of_validated_domain"
+    INSUFFICIENT_CERTIFICATE = "insufficient_certificate"
+
+
+_REAL_DATA_LEGAL_STATUSES: frozenset[ReconstructionStatus] = frozenset(
+    {
+        ReconstructionStatus.WITHIN_VALIDATED_DOMAIN,
+        ReconstructionStatus.OUT_OF_VALIDATED_DOMAIN,
+        ReconstructionStatus.INSUFFICIENT_CERTIFICATE,
+    }
+)
+
+
+_SYNTHETIC_RECOVERY_LEGAL_STATUSES: frozenset[ReconstructionStatus] = frozenset(
+    {
+        ReconstructionStatus.GROUND_TRUTH_RECOVERED,
+        ReconstructionStatus.GROUND_TRUTH_NOT_RECOVERED,
+        ReconstructionStatus.INVALID_RECONSTRUCTION,
+        ReconstructionStatus.OUT_OF_DENSITY_BOUND,
+    }
+)
+
+
+def assert_real_data_status_legal(status: ReconstructionStatus) -> None:
+    """Contract: real-data path must emit a domain-of-validity status.
+
+    GROUND_TRUTH_RECOVERED on real data is the exact category error
+    INV-RECONSTRUCTION-2 forbids ("recovery" is undefined where there
+    is no ground truth). Fail-closed at the boundary, with a message
+    that names the violated invariant so reviewers can trace it.
+    """
+    if status not in _REAL_DATA_LEGAL_STATUSES:
+        raise ValueError(
+            "INV-RECONSTRUCTION-2 VIOLATED: real-data reconstruction status must "
+            f"be one of {sorted(s.value for s in _REAL_DATA_LEGAL_STATUSES)}; "
+            f"got {status.value!r}. On real inputs there is no ground truth, so "
+            "GROUND_TRUTH_RECOVERED / GROUND_TRUTH_NOT_RECOVERED are forbidden."
+        )
+
+
+def assert_synthetic_status_legal(status: ReconstructionStatus) -> None:
+    """Contract: synthetic-recovery path must emit a recovery status."""
+    if status not in _SYNTHETIC_RECOVERY_LEGAL_STATUSES:
+        raise ValueError(
+            "INV-RECONSTRUCTION-1 VIOLATED: synthetic reconstruction status must "
+            f"be one of {sorted(s.value for s in _SYNTHETIC_RECOVERY_LEGAL_STATUSES)}; "
+            f"got {status.value!r}. Domain-of-validity statuses are reserved "
+            "for the real-data path — they cannot certify ground-truth recovery."
+        )
 
 
 def _sha256_bytes(payload: bytes) -> str:

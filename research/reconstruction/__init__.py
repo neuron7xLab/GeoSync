@@ -28,6 +28,7 @@ from research.reconstruction.density_calibration import (
 from research.reconstruction.kuramoto_on_reconstruction import (
     MIN_PRECURSOR_GAP,
     KuramotoRecoveryCertificate,
+    PrecursorDirection,
     PrecursorReport,
     gate_6_precursor_discriminative,
     issue_kuramoto_recovery_certificate,
@@ -51,6 +52,8 @@ from research.reconstruction.positive_control import (
 from research.reconstruction.reconstruction_capsule import (
     ReconstructionCapsule,
     ReconstructionStatus,
+    assert_real_data_status_legal,
+    assert_synthetic_status_legal,
     build_reconstruction_capsule,
     hash_marginals,
     rerun_reconstruction_strict,
@@ -58,8 +61,11 @@ from research.reconstruction.reconstruction_capsule import (
 )
 from research.reconstruction.recovery_audit import (
     RECOVERY_THRESHOLDS,
+    DomainCheck,
+    DomainOfValidityStatus,
     RecoveryReport,
     audit_recovery,
+    check_domain_of_validity,
     conservation_of_mass_passes,
 )
 from research.reconstruction.weighted_allocation import (
@@ -70,21 +76,27 @@ from research.reconstruction.weighted_allocation import (
 __all__ = [
     "DENSITY_LOWER",
     "DENSITY_UPPER",
+    "DomainCheck",
+    "DomainOfValidityStatus",
     "GroundTruthRecoveryCertificate",
     "HiddenFitness",
     "KuramotoRecoveryCertificate",
     "MIN_PRECURSOR_GAP",
     "NegFalsePositiveError",
     "NegativeControlCertificate",
+    "PrecursorDirection",
     "PrecursorReport",
     "RECOVERY_THRESHOLDS",
     "ReconstructionCapsule",
     "ReconstructionStatus",
     "RecoveryReport",
     "allocate_weights",
+    "assert_real_data_status_legal",
+    "assert_synthetic_status_legal",
     "audit_recovery",
     "build_reconstruction_capsule",
     "calibrate_density_z",
+    "check_domain_of_validity",
     "conservation_of_mass_passes",
     "density_bound_passes",
     "fit_cimini_squartini",

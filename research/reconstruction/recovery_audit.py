@@ -1,6 +1,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""GATE_5 — reconstruction recovery audit on synthetic ground truth.
+"""GATE_5 — reconstruction recovery audit (synthetic) +
+domain-of-validity gate (real data).
 
 Per Protocol X-10R:
 
@@ -14,13 +15,34 @@ Per Protocol X-10R:
 
 Any threshold violated → INVALID_RECONSTRUCTION. This is the
 PRECONDITION for any real-data interpretation.
+
+TWO PATHS — SYNTHETIC vs REAL  (FIX B2, INV-RECONSTRUCTION-2)
+-------------------------------------------------------------
+On synthetic ground truth ``audit_recovery`` measures literal
+recovery against a known network and the verdict is GROUND_TRUTH_
+RECOVERED / GROUND_TRUTH_NOT_RECOVERED.
+
+On real data the bank-level (or country-aggregate) ground truth is
+unobserved. Asking "did we recover the truth?" is therefore not a
+well-posed question on real inputs. The strongest available gate
+is **domain-of-validity**: do real input statistics fall inside
+the regime where synthetic recovery has been demonstrated?
+``check_domain_of_validity`` implements that gate. Its verdicts
+live in a separate enum subset (WITHIN_/OUT_OF_VALIDATED_DOMAIN /
+INSUFFICIENT_CERTIFICATE) and, by contract, the real-data path is
+FORBIDDEN from emitting GROUND_TRUTH_RECOVERED.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+
+if TYPE_CHECKING:  # pragma: no cover — hint-only import to avoid cycle
+    from research.reconstruction.positive_control import GroundTruthRecoveryCertificate
 
 # Recovery thresholds — matched 1:1 to Protocol X-10R Gate 5.
 RECOVERY_THRESHOLDS: dict[str, float] = {
@@ -29,6 +51,214 @@ RECOVERY_THRESHOLDS: dict[str, float] = {
     "row_sum_invariant_L1_relative_max": 0.05,
     "col_sum_invariant_L1_relative_max": 0.05,
 }
+
+
+# ---------------------------------------------------------------------------
+# DOMAIN-OF-VALIDITY GATE  (real-data path; FIX B2, INV-RECONSTRUCTION-2)
+# ---------------------------------------------------------------------------
+#
+# On real data, recovery is undefined (no ground truth). The strongest
+# available gate is whether the real input statistics fall inside the
+# regime where synthetic recovery has been demonstrated.
+#
+# The verdict surface is intentionally disjoint from the synthetic recovery
+# verdict surface: a real-data run MUST emit one of
+#   * WITHIN_VALIDATED_DOMAIN
+#   * OUT_OF_VALIDATED_DOMAIN
+#   * INSUFFICIENT_CERTIFICATE
+# and is FORBIDDEN from emitting GROUND_TRUTH_RECOVERED. Conflating the two
+# surfaces is the exact category error the X-10R protocol exists to prevent.
+
+
+class DomainOfValidityStatus(Enum):
+    WITHIN_VALIDATED_DOMAIN = "within_validated_domain"
+    OUT_OF_VALIDATED_DOMAIN = "out_of_validated_domain"
+    INSUFFICIENT_CERTIFICATE = "insufficient_certificate"
+
+
+@dataclass(frozen=True)
+class DomainCheck:
+    status: DomainOfValidityStatus
+    checks: dict[str, bool] = field(default_factory=dict)
+    measured: dict[str, float] = field(default_factory=dict)
+    certified_envelope: dict[str, tuple[float, float]] = field(default_factory=dict)
+    out_of_range_dims: tuple[str, ...] = ()
+    missing_dims: tuple[str, ...] = ()
+    notes: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status.value,
+            "checks": dict(self.checks),
+            "measured": dict(self.measured),
+            "certified_envelope": {k: list(v) for k, v in self.certified_envelope.items()},
+            "out_of_range_dims": list(self.out_of_range_dims),
+            "missing_dims": list(self.missing_dims),
+            "notes": self.notes,
+        }
+
+
+def _gini(x: np.ndarray) -> float:
+    """Gini coefficient on a non-negative 1-D vector.
+
+    Returns 0 for a constant vector, a value in (0, 1) for unequal vectors,
+    and is NaN-safe via filtering. NaN/Inf inputs raise ValueError.
+    """
+    arr = np.asarray(x, dtype=np.float64).ravel()
+    if not np.all(np.isfinite(arr)):
+        raise ValueError("Gini undefined on non-finite vector")
+    if np.any(arr < 0):
+        raise ValueError("Gini undefined on negative vector")
+    n = arr.size
+    if n == 0 or float(arr.sum()) == 0.0:
+        return 0.0
+    arr_s = np.sort(arr)
+    idx = np.arange(1, n + 1, dtype=np.float64)
+    return float((2.0 * (idx * arr_s).sum() - (n + 1) * arr_s.sum()) / (n * arr_s.sum()))
+
+
+def _strength_pearson(s_out: np.ndarray, s_in: np.ndarray) -> float:
+    """Pearson correlation between out-strength and in-strength.
+
+    Used as a *crude* reciprocity prior: in real interbank data
+    Pearson(s_out, s_in) is large and positive (a heavy borrower is
+    typically also a heavy lender). Returns 0.0 when either vector
+    has zero variance, which would otherwise be NaN.
+    """
+    a = np.asarray(s_out, dtype=np.float64).ravel()
+    b = np.asarray(s_in, dtype=np.float64).ravel()
+    if a.shape != b.shape:
+        raise ValueError(f"shape mismatch: {a.shape} vs {b.shape}")
+    if not (np.all(np.isfinite(a)) and np.all(np.isfinite(b))):
+        raise ValueError("Pearson undefined on non-finite vector")
+    if a.size < 2:
+        return 0.0
+    sa = float(a.std())
+    sb = float(b.std())
+    if sa == 0.0 or sb == 0.0:
+        return 0.0
+    return float(((a - a.mean()) * (b - b.mean())).mean() / (sa * sb))
+
+
+def check_domain_of_validity(
+    s_out_real: np.ndarray,
+    s_in_real: np.ndarray,
+    recovery_certificate: GroundTruthRecoveryCertificate,
+    *,
+    inferred_density: float | None = None,
+    aggregation_ratio: float | None = None,
+    require_dims: tuple[str, ...] = ("n_nodes", "density"),
+) -> DomainCheck:
+    """Real-data validation-domain gate (FIX B2 / INV-RECONSTRUCTION-2).
+
+    Verifies that real inputs lie inside the regime where the supplied
+    synthetic recovery certificate has demonstrated recovery. This is
+    NOT a recovery test: there is no ground truth on real data, so
+    "recovery" cannot be evaluated. The gate's verdict surface is
+    deliberately disjoint from `audit_recovery`.
+
+    Dimensions checked when their evidence is present in the certificate:
+
+      * ``n_nodes``       — input size against tested_at_n_nodes envelope
+      * ``density``       — caller-supplied inferred density against
+                            tested_at_densities envelope
+      * ``reciprocity``   — Pearson(s_out, s_in) against
+                            tested_at_reciprocity envelope (FIX B6
+                            placeholder; default empty until reciprocity-
+                            aware controls land)
+      * ``aggregation_ratio`` — caller-supplied if available
+
+    Heterogeneity (Gini of strengths) is reported in `measured` for
+    transparency but is not gated unless the caller adds it to
+    `require_dims` (kept off the default path because the certificate
+    in PR #635 does not yet carry a heterogeneity envelope).
+
+    Verdict semantics:
+      * INSUFFICIENT_CERTIFICATE — the certificate is silent on every
+        dimension the caller required (`require_dims`). Fail-closed:
+        the gate refuses to certify a domain it has no evidence about.
+      * OUT_OF_VALIDATED_DOMAIN — at least one *available* dimension
+        falls outside the certified envelope.
+      * WITHIN_VALIDATED_DOMAIN — every required dimension is present
+        in the certificate and inside its envelope.
+    """
+    s_out = np.asarray(s_out_real, dtype=np.float64).ravel()
+    s_in = np.asarray(s_in_real, dtype=np.float64).ravel()
+    if s_out.shape != s_in.shape:
+        raise ValueError(f"shape mismatch: s_out={s_out.shape}, s_in={s_in.shape}")
+    if s_out.size < 2:
+        raise ValueError(f"need at least 2 nodes; got n={s_out.size}")
+    if not (np.all(np.isfinite(s_out)) and np.all(np.isfinite(s_in))):
+        raise ValueError("s_out / s_in must be finite (no NaN/Inf)")
+
+    envelope = recovery_certificate.evidence_envelope()
+
+    measured: dict[str, float] = {
+        "n_nodes": float(s_out.size),
+        "gini_s_out": _gini(s_out),
+        "gini_s_in": _gini(s_in),
+        "pearson_in_out": _strength_pearson(s_out, s_in),
+    }
+    if inferred_density is not None:
+        measured["density"] = float(inferred_density)
+    if aggregation_ratio is not None:
+        measured["aggregation_ratio"] = float(aggregation_ratio)
+
+    checks: dict[str, bool] = {}
+    out_of_range: list[str] = []
+    missing: list[str] = []
+    certified_envelope: dict[str, tuple[float, float]] = {}
+
+    def _gate(dim: str, value: float | None) -> None:
+        if dim not in envelope:
+            missing.append(dim)
+            return
+        lo_raw, hi_raw = envelope[dim]
+        lo, hi = float(lo_raw), float(hi_raw)
+        certified_envelope[dim] = (lo, hi)
+        if value is None:
+            missing.append(dim)
+            return
+        ok = lo <= float(value) <= hi
+        checks[dim] = ok
+        if not ok:
+            out_of_range.append(dim)
+
+    _gate("n_nodes", measured["n_nodes"])
+    _gate("density", measured.get("density"))
+    if "reciprocity" in envelope:
+        _gate("reciprocity", measured["pearson_in_out"])
+    elif "reciprocity" in require_dims:
+        # The caller demanded a reciprocity gate but the certificate
+        # has none — count as missing (drives INSUFFICIENT below).
+        missing.append("reciprocity")
+
+    required_missing = [d for d in require_dims if d in missing]
+    if required_missing == list(require_dims) and not checks:
+        status = DomainOfValidityStatus.INSUFFICIENT_CERTIFICATE
+        notes = (
+            "certificate is silent on every required dimension "
+            f"({list(require_dims)}); cannot certify domain"
+        )
+    elif required_missing:
+        status = DomainOfValidityStatus.INSUFFICIENT_CERTIFICATE
+        notes = f"certificate is silent on required dimension(s): {required_missing}"
+    elif out_of_range:
+        status = DomainOfValidityStatus.OUT_OF_VALIDATED_DOMAIN
+        notes = f"out of certified envelope on: {out_of_range}"
+    else:
+        status = DomainOfValidityStatus.WITHIN_VALIDATED_DOMAIN
+        notes = "real inputs fall inside the certified recovery envelope"
+
+    return DomainCheck(
+        status=status,
+        checks=dict(checks),
+        measured=dict(measured),
+        certified_envelope=certified_envelope,
+        out_of_range_dims=tuple(out_of_range),
+        missing_dims=tuple(sorted(set(missing))),
+        notes=notes,
+    )
 
 
 @dataclass(frozen=True)
