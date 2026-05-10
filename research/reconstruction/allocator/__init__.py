@@ -18,6 +18,11 @@ from research.reconstruction.allocator.certificate import (
     BankLevelMarginalsCertificate,
     compute_cert_id,
 )
+from research.reconstruction.allocator.mfi_loader import (
+    DialectName,
+    MFIRegistryLoad,
+    load_mfi_registry,
+)
 from research.reconstruction.allocator.prior import AllocatorPrior, UniformPrior
 from research.reconstruction.allocator.registry import registry_to_bank_country_map
 from research.reconstruction.allocator.size_weighted_prior import (
@@ -34,12 +39,15 @@ __all__ = [
     "BankLevelMarginalsCertificate",
     "BankLevelRecoveryReport",
     "CountryToBankAllocator",
+    "DialectName",
+    "MFIRegistryLoad",
     "ShareDistribution",
     "SizeWeightedPrior",
     "UniformPrior",
     "audit_bank_level_recovery",
     "bank_level_recovery_l1",
     "compute_cert_id",
+    "load_mfi_registry",
     "registry_to_bank_country_map",
     "synthetic_country_aggregates",
 ]
