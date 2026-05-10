@@ -116,9 +116,9 @@ def test_cp_keep_p_half_lands_near_predicted_ratio() -> None:
         achieved.append(compute_reciprocity_ratio(w))
     mean_achieved = float(np.mean(achieved))
     # ±0.10 envelope absorbs finite-N variance at N=120 with 5 seeds.
-    assert math.isclose(
-        mean_achieved, 0.5, abs_tol=0.10
-    ), f"expected r ≈ 0.5, got mean(achieved)={mean_achieved:.3f} across seeds {(1, 2, 3, 4, 5)}"
+    assert math.isclose(mean_achieved, 0.5, abs_tol=0.10), (
+        f"expected r ≈ 0.5, got mean(achieved)={mean_achieved:.3f} across seeds {(1, 2, 3, 4, 5)}"
+    )
 
 
 def test_hierarchical_keep_p_zero_drives_reciprocity_to_zero() -> None:
@@ -150,6 +150,7 @@ def test_keep_p_filter_preserves_one_edge_per_pair() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_run_recovery_populates_tested_reciprocity_when_passed() -> None:
     """`run_recovery_on_substrate` records the substrate's achieved
     reciprocity ratio in `tested_at_reciprocity` when Gate 5 passes."""
@@ -162,6 +163,7 @@ def test_run_recovery_populates_tested_reciprocity_when_passed() -> None:
         assert 0.0 <= r <= 1.0
 
 
+@pytest.mark.slow
 def test_run_recovery_evidence_envelope_carries_reciprocity() -> None:
     """The certificate's evidence_envelope must surface the recorded
     reciprocity dimension when the sweep passed."""
@@ -242,6 +244,7 @@ def test_reciprocity_aware_sweep_failed_cell_keeps_envelope_empty() -> None:
     assert cert.tested_at_reciprocity == ()
 
 
+@pytest.mark.slow
 def test_reciprocity_aware_cert_id_is_64_hex_and_seed_sensitive() -> None:
     def factory_a(r_target: float, seed: int) -> np.ndarray:
         keep_p = reciprocity_keep_p_for_target(r_target)
