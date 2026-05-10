@@ -10,6 +10,10 @@ transparency, BankFocus) land in subsequent epic PRs.
 """
 
 from research.reconstruction.allocator.allocator import CountryToBankAllocator
+from research.reconstruction.allocator.bank_level_audit import (
+    BankLevelRecoveryReport,
+    audit_bank_level_recovery,
+)
 from research.reconstruction.allocator.certificate import (
     BankLevelMarginalsCertificate,
     compute_cert_id,
@@ -28,10 +32,12 @@ from research.reconstruction.allocator.synthetic import (
 __all__ = [
     "AllocatorPrior",
     "BankLevelMarginalsCertificate",
+    "BankLevelRecoveryReport",
     "CountryToBankAllocator",
     "ShareDistribution",
     "SizeWeightedPrior",
     "UniformPrior",
+    "audit_bank_level_recovery",
     "bank_level_recovery_l1",
     "compute_cert_id",
     "registry_to_bank_country_map",
