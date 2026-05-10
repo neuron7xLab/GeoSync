@@ -25,6 +25,12 @@ from research.reconstruction.allocator.dov_composition import (
     ComposedDomainStatus,
     check_composed_domain_of_validity,
 )
+from research.reconstruction.allocator.forward_signal import (
+    BankLevelForwardSignalCertificate,
+    assert_real_data_input_not_validated_here,
+    composed_status_admits,
+    emit_bank_level_forward_signal,
+)
 from research.reconstruction.allocator.mfi_loader import (
     DialectName,
     MFIRegistryLoad,
@@ -44,6 +50,7 @@ from research.reconstruction.allocator.synthetic import (
 __all__ = [
     "ALLOCATOR_COVERAGE_RATIO_MIN_DEFAULT",
     "AllocatorPrior",
+    "BankLevelForwardSignalCertificate",
     "BankLevelMarginalsCertificate",
     "BankLevelRecoveryReport",
     "ComposedDomainCheck",
@@ -56,10 +63,13 @@ __all__ = [
     "ShareDistribution",
     "SizeWeightedPrior",
     "UniformPrior",
+    "assert_real_data_input_not_validated_here",
     "audit_bank_level_recovery",
     "bank_level_recovery_l1",
     "check_composed_domain_of_validity",
+    "composed_status_admits",
     "compute_cert_id",
+    "emit_bank_level_forward_signal",
     "load_mfi_registry",
     "registry_to_bank_country_map",
     "synthetic_country_aggregates",
