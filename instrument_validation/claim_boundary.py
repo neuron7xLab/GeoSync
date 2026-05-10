@@ -51,9 +51,28 @@ class ClaimBoundaryViolation(Exception):
         return "; ".join(parts) or "ClaimBoundaryViolation"
 
 
+_UNICODE_DASH_TO_ASCII: dict[int, int] = {
+    0x2010: ord("-"),  # hyphen
+    0x2011: ord("-"),  # non-breaking hyphen
+    0x2012: ord("-"),  # figure dash
+    0x2013: ord("-"),  # en-dash
+    0x2014: ord("-"),  # em-dash
+    0x2015: ord("-"),  # horizontal bar
+    0x2212: ord("-"),  # minus sign
+}
+
+
 def normalize_claim_text(text: str) -> str:
-    """Lower-case + collapse whitespace so multi-line phrases match."""
-    return re.sub(r"\s+", " ", text.lower()).strip()
+    """Lower-case, collapse whitespace, and fold all Unicode dash variants
+    to ASCII hyphen so multi-line / typographic phrases still match.
+
+    Iter-4 audit: previously ``preferential—attachment`` (em-dash U+2014)
+    bypassed the forbidden-phrase filter because the registry uses ASCII
+    hyphens. The fold table covers the seven dash codepoints in common
+    typography.
+    """
+    folded = text.translate(_UNICODE_DASH_TO_ASCII)
+    return re.sub(r"\s+", " ", folded.lower()).strip()
 
 
 def find_forbidden_phrases(text: str) -> list[tuple[str, ClaimType]]:

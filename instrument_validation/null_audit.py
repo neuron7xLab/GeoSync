@@ -67,6 +67,9 @@ def _sha256_array(arr: np.ndarray) -> str:
     return hashlib.sha256(rounded.tobytes()).hexdigest()
 
 
+_VALID_ONE_SIDED: frozenset[str] = frozenset({"candidate_below_null", "candidate_above_null"})
+
+
 def build_null_audit(
     *,
     null_family: str,
@@ -79,6 +82,12 @@ def build_null_audit(
 
     ``one_sided`` ∈ {'candidate_below_null', 'candidate_above_null'}.
     """
+    # Iter-4 audit: validate one_sided BEFORE doing 200-element percentile
+    # work, so a typo fails fast rather than after expensive computation.
+    if one_sided not in _VALID_ONE_SIDED:
+        raise ValueError(f"one_sided must be one of {sorted(_VALID_ONE_SIDED)}; got {one_sided!r}")
+    if not null_family:
+        raise ValueError("null_family must be a non-empty string")
     arr = np.asarray(null_draws, dtype=np.float64)
     arr = arr[np.isfinite(arr)]
     if arr.size < _MIN_NULL_DRAWS:

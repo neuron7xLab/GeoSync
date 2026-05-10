@@ -712,18 +712,26 @@ def to_log_changes(panel: pd.DataFrame, epsilon: float = 1.0) -> pd.DataFrame:
 
 
 def _spearman_kendall_pair(x: np.ndarray, y: np.ndarray) -> tuple[float, float]:
-    """Spearman ρ and Kendall τ via numpy/scipy fallback. Returns NaN on degenerate input."""
+    """Spearman ρ and Kendall τ via scipy. Returns NaN on degenerate input.
+
+    Audit-found: previously caught broad ``Exception`` which would mask
+    genuine bugs (e.g. shape mismatch). Now narrows to
+    ``ImportError`` (scipy not installed) and ``ValueError`` (bad input
+    sizes / data); other exceptions propagate.
+    """
     if x.size < 2 or y.size < 2:
         return float("nan"), float("nan")
     if np.std(x) == 0 or np.std(y) == 0:
         return float("nan"), float("nan")
     try:
         from scipy.stats import kendalltau, spearmanr
-
+    except ImportError:
+        return float("nan"), float("nan")
+    try:
         sp = spearmanr(x, y)
         kt = kendalltau(x, y)
         return float(sp.correlation), float(kt.correlation)
-    except Exception:
+    except (ValueError, FloatingPointError):
         return float("nan"), float("nan")
 
 

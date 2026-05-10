@@ -55,6 +55,7 @@ def compile_safe_summary(
     excluded = ", ".join(excluded_noise_nodes) or "(none observed in this build)"
     target_only = ", ".join(target_only_nodes) or "(none observed in this build)"
     findings_block = "\n".join(f"- {fid}: {text}" for fid, text in VALIDATED_FINDINGS.items())
+    retracted_block = "\n".join(f"- [EXPLORATORY] {claim}" for claim in RETRACTED_CLAIMS)
     countries = ", ".join(article_grade_countries)
     body = f"""## Article-safe summary (compiled)
 
@@ -71,6 +72,10 @@ The BE-NL corridor reflects Benelux banking ties [F-CORR-BE-NL].
 ### Validated findings ledger
 
 {findings_block}
+
+### Retracted claims
+
+{retracted_block}
 """
     # Whitespace-normalised forbidden-wording check + per-sentence anchor.
     claim_boundary_check(

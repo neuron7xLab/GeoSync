@@ -77,6 +77,12 @@ class Capsule:
             raise TypeError("external_replication_required must be bool")
         if self.external_replication_required is False:
             raise ValueError("external_replication_required must always be True (spec)")
+        # Bool subclasses int — exclude it explicitly so True/False can't
+        # silently become seed_master=1/0.
+        if isinstance(self.seed_master, bool) or not isinstance(self.seed_master, int):
+            raise TypeError(
+                f"seed_master must be int (not bool); got {type(self.seed_master).__name__}"
+            )
         if self.seed_master < 0:
             raise ValueError(f"seed_master must be >= 0; got {self.seed_master}")
 
@@ -90,7 +96,7 @@ def _git_sha(repo_root: Path) -> str:
             check=True,
         )
         sha = out.stdout.strip()
-    except Exception:
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
         return "UNKNOWN"
     # Reject dirty trees
     try:
@@ -102,8 +108,12 @@ def _git_sha(repo_root: Path) -> str:
         )
         if dirty.stdout.strip():
             return f"{sha}-DIRTY"
-    except Exception:
-        pass
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        # Iter-4 audit: previously this was a silent `pass`. We can't
+        # determine cleanliness if `git status` failed — surface that
+        # uncertainty in the returned sha rather than pretend the tree
+        # is clean.
+        return f"{sha}-UNKNOWN_CLEANLINESS"
     return sha
 
 
@@ -187,12 +197,20 @@ def rerun_strict(
             f"actual={actual_payload_sha}",
             None,
         )
+    # Iter-4 audit fix: previously this branch silently `pass`-ed on a
+    # non-strict prefix mismatch, defeating the integrity check. Now the
+    # caller may opt into strict checking by passing the full semver-
+    # qualified source via `score_fn_source`. If the prefix-check fails
+    # AND the source string is not the empty fallback, we report it.
     score_fn_id = _sha256_bytes(score_fn_source.encode("utf-8"))
-    if not capsule.instrument_scope_id.startswith(score_fn_id[:16]):
-        # Permit a non-strict prefix check — full match would require the
-        # caller to also pass the semver, which we don't have here.
-        # The instrument_id was sha256(source|semver); we approximate.
-        pass
+    if score_fn_source and not capsule.instrument_scope_id.startswith(score_fn_id[:16]):
+        return RerunResult(
+            False,
+            f"instrument_scope_id prefix mismatch: recorded begins "
+            f"{capsule.instrument_scope_id[:16]}, "
+            f"score_fn source hashes to {score_fn_id[:16]}",
+            None,
+        )
     new_cap = rebuild_capsule_fn(dataset_path, capsule.seed_master)
     if new_cap.capsule_id != capsule.capsule_id:
         return RerunResult(

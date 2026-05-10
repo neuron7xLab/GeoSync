@@ -89,3 +89,15 @@ def test_claim_boundary_anchor_rule_passes_with_finding_id() -> None:
         validated_finding_ids=("F-CONC-CORE",),
         require_anchor_per_sentence=True,
     )
+
+
+def test_find_forbidden_catches_unicode_dashes() -> None:
+    """Iter-4 audit fix — em-dash, en-dash, etc. were silently bypassing
+    the registry which uses ASCII hyphens.
+    """
+    for dash in ("—", "–", "‐", "‑", "‒", "―", "−"):
+        text = f"the network exhibits preferential{dash}attachment dynamics"
+        found = find_forbidden_phrases(text)
+        assert any(
+            p == "preferential-attachment" for p, _ in found
+        ), f"unicode dash U+{ord(dash):04X} bypassed the forbidden filter"

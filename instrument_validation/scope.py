@@ -64,7 +64,23 @@ def scope_match(
     density: float,
     obs_per_corr: int | None = None,
 ) -> bool:
-    """Return True iff the operational regime fits the declared scope."""
+    """Return True iff the operational regime fits the declared scope.
+
+    Iter-4 audit: rejects bool/float/non-int n and bool obs_per_corr that
+    were previously coerced silently. Booleans subclass int in Python, so
+    explicit type-check is required to keep ``scope_match(... n=True ...)``
+    from being treated as ``n=1``.
+    """
+    if not isinstance(substrate, str) or isinstance(substrate, bool):
+        return False
+    if not isinstance(n, int) or isinstance(n, bool):
+        return False
+    if not isinstance(density, (int, float)) or isinstance(density, bool):
+        return False
+    if obs_per_corr is not None and (
+        not isinstance(obs_per_corr, int) or isinstance(obs_per_corr, bool)
+    ):
+        return False
     if substrate != scope.valid_for_substrate:
         return False
     if substrate in scope.invalid_for:

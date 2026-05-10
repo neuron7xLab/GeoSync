@@ -96,7 +96,7 @@ def test_rerun_strict_detects_payload_tamper(tmp_path: Path) -> None:
     payload_file.write_bytes(b"TAMPERED")
     res = rerun_strict(
         cap,
-        score_fn_source="x",
+        score_fn_source="",
         rebuild_capsule_fn=lambda _p, _s: cap,
     )
     assert not res.matched
@@ -109,7 +109,7 @@ def test_rerun_strict_passes_on_matching_rebuild(tmp_path: Path) -> None:
     cap, _ = _make_capsule(tmp_path)
     res = rerun_strict(
         cap,
-        score_fn_source="x",
+        score_fn_source="",
         rebuild_capsule_fn=lambda _p, _s: cap,
     )
     assert res.matched
@@ -148,7 +148,7 @@ def test_capsule_rerun_strict_rejects_missing_dataset(tmp_path: Path) -> None:
     payload.unlink()
     res = rerun_strict(
         cap,
-        score_fn_source="x",
+        score_fn_source="",
         rebuild_capsule_fn=lambda _p, _s: cap,
     )
     assert not res.matched
@@ -161,7 +161,7 @@ def test_capsule_rerun_strict_rejects_capsule_id_mismatch(tmp_path: Path) -> Non
     other_cap, _ = _make_capsule(tmp_path, metrics_sha="cafef00d" * 8)
     res = rerun_strict(
         cap,
-        score_fn_source="x",
+        score_fn_source="",
         rebuild_capsule_fn=lambda _p, _s: other_cap,
     )
     assert not res.matched
@@ -182,6 +182,49 @@ def test_capsule_rejects_short_metrics_sha(tmp_path: Path) -> None:
     """Bug 5 fix — sha length must be exactly 64."""
     with pytest.raises(ValueError, match="64-char"):
         _make_capsule(tmp_path, metrics_sha="abc123")
+
+
+def test_rerun_strict_rejects_instrument_scope_id_prefix_mismatch(
+    tmp_path: Path,
+) -> None:
+    """Iter-4 audit fix: previously this branch silently `pass`-ed.
+
+    When score_fn_source is non-empty, its sha256 prefix must match the
+    capsule.instrument_scope_id prefix; otherwise rerun_strict reports
+    integrity failure instead of letting it slide.
+    """
+    cap, _ = _make_capsule(tmp_path)
+    res = rerun_strict(
+        cap,
+        score_fn_source="totally-different-score-source",
+        rebuild_capsule_fn=lambda _p, _s: cap,
+    )
+    assert not res.matched
+    assert res.failure_reason is not None
+    assert "instrument_scope_id prefix mismatch" in res.failure_reason
+
+
+def test_capsule_rejects_bool_seed(tmp_path: Path) -> None:
+    """Iter-4 audit: True/False subclasses int → previously coerced
+    silently to seed_master=1/0, breaking determinism semantics."""
+    cap, _ = _make_capsule(tmp_path)
+    with pytest.raises(TypeError, match="seed_master must be int"):
+        Capsule(
+            capsule_id=cap.capsule_id,
+            payload_sha256=cap.payload_sha256,
+            dataset_abs_path=cap.dataset_abs_path,
+            instrument_scope_id=cap.instrument_scope_id,
+            pos_control_cert_id=cap.pos_control_cert_id,
+            neg_control_cert_id=cap.neg_control_cert_id,
+            null_audits=cap.null_audits,
+            discrimination_report=cap.discrimination_report,
+            verdict=cap.verdict,
+            claim_tier=cap.claim_tier,
+            seed_master=True,
+            code_sha=cap.code_sha,
+            metrics_sha=cap.metrics_sha,
+            external_replication_required=True,
+        )
 
 
 def test_capsule_rejects_negative_seed(tmp_path: Path) -> None:
