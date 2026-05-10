@@ -161,7 +161,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: python-quality
     continue-on-error: false
-    timeout-minutes: 20
+    # Job-level cap raised 20→25 to keep ~5min headroom over the inner
+    # `timeout 1200s pytest`. Repeated CI cancellations on PRs that
+    # otherwise complete pytest occurred when setup+post-pytest steps
+    # consumed the residual budget. The inner 1200s pytest timeout is
+    # unchanged — this only widens the wrapper.
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
