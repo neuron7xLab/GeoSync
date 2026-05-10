@@ -48,6 +48,11 @@ diff_scope:
     - path: "research/reconstruction/allocator/data/__init__.py"
     - path: "research/reconstruction/allocator/data/mfi_demo.tsv"
     - path: "tests/reconstruction/allocator/test_mfi_fixture_e2e.py"
+    # ILS-2026 review-driven additions (committed in 7d82ce4 / next):
+    - path: "research/reconstruction/allocator/dov_composition.py"
+    - path: "tests/reconstruction/allocator/test_dov_composition.py"
+    - path: ".claude/commit_acceptors/x10r-1-dov-composition.yaml"
+    - path: "X10R_INSTRUMENTED_STATE.md"
   forbidden_paths:
     - "trading/"
     - "execution/"
