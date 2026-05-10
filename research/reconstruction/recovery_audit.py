@@ -162,16 +162,22 @@ def check_domain_of_validity(
       * ``n_nodes``       — input size against tested_at_n_nodes envelope
       * ``density``       — caller-supplied inferred density against
                             tested_at_densities envelope
-      * ``reciprocity``   — Pearson(s_out, s_in) against
-                            tested_at_reciprocity envelope (FIX B6
-                            placeholder; default empty until reciprocity-
-                            aware controls land)
       * ``aggregation_ratio`` — caller-supplied if available
 
-    Heterogeneity (Gini of strengths) is reported in `measured` for
-    transparency but is not gated unless the caller adds it to
-    `require_dims` (kept off the default path because the certificate
-    in PR #635 does not yet carry a heterogeneity envelope).
+    Heterogeneity (Gini of strengths), Pearson(s_in, s_out), and
+    network reciprocity (when carried by the certificate) are reported
+    in `measured` / `certified_envelope` for transparency but are NOT
+    gate dimensions:
+
+      * `pearson_in_out` is a node-marginal balance measure; the
+        certificate's `tested_at_reciprocity` (X-10R-2) is the
+        substrate's *topological* reciprocity ratio. These are
+        different observables; gating one against the other is a
+        category error. Network reciprocity therefore appears in
+        `certified_envelope` for provenance but does not drive the
+        verdict.
+      * `gini_s_*` is reported because heavy-tailed marginals are
+        what the BIS path will see; it is not gated.
 
     Verdict semantics:
       * INSUFFICIENT_CERTIFICATE — the certificate is silent on every
@@ -226,11 +232,17 @@ def check_domain_of_validity(
 
     _gate("n_nodes", measured["n_nodes"])
     _gate("density", measured.get("density"))
+    # Reciprocity is provenance-only (see docstring): the certificate's
+    # `tested_at_reciprocity` is topological while the only observable on
+    # real marginals is Pearson(s_in, s_out). We surface the certified
+    # envelope but do NOT gate on it. A caller that demands reciprocity
+    # via `require_dims` still triggers INSUFFICIENT — the contract
+    # honours their explicit ask, but the *default* path no longer
+    # falsely gates a node-balance number against a topology number.
     if "reciprocity" in envelope:
-        _gate("reciprocity", measured["pearson_in_out"])
-    elif "reciprocity" in require_dims:
-        # The caller demanded a reciprocity gate but the certificate
-        # has none — count as missing (drives INSUFFICIENT below).
+        lo_raw, hi_raw = envelope["reciprocity"]
+        certified_envelope["reciprocity"] = (float(lo_raw), float(hi_raw))
+    if "reciprocity" in require_dims and "reciprocity" not in checks:
         missing.append("reciprocity")
 
     required_missing = [d for d in require_dims if d in missing]
