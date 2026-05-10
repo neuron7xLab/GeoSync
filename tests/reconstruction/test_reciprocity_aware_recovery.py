@@ -116,9 +116,9 @@ def test_cp_keep_p_half_lands_near_predicted_ratio() -> None:
         achieved.append(compute_reciprocity_ratio(w))
     mean_achieved = float(np.mean(achieved))
     # ±0.10 envelope absorbs finite-N variance at N=120 with 5 seeds.
-    assert math.isclose(mean_achieved, 0.5, abs_tol=0.10), (
-        f"expected r ≈ 0.5, got mean(achieved)={mean_achieved:.3f} across seeds {(1, 2, 3, 4, 5)}"
-    )
+    assert math.isclose(
+        mean_achieved, 0.5, abs_tol=0.10
+    ), f"expected r ≈ 0.5, got mean(achieved)={mean_achieved:.3f} across seeds {(1, 2, 3, 4, 5)}"
 
 
 def test_hierarchical_keep_p_zero_drives_reciprocity_to_zero() -> None:
