@@ -168,5 +168,10 @@ tests/unit/execution/test_order_lifecycle_deep.py
 
 # L2 killtest substrate (NARROW — prevent-regen only; result JSONs tracked explicitly)
 data/
+# X-10R-1 allocator demo fixture (license-clean, hermetic; tracked explicitly).
+!research/reconstruction/allocator/data/
+!research/reconstruction/allocator/data/__init__.py
+!research/reconstruction/allocator/data/*.tsv
+!research/reconstruction/allocator/data/*.csv
 logs/
 tmp/

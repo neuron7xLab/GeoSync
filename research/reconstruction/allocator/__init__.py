@@ -18,6 +18,7 @@ from research.reconstruction.allocator.certificate import (
     BankLevelMarginalsCertificate,
     compute_cert_id,
 )
+from research.reconstruction.allocator.data import DATA_DIR, MFI_DEMO_TSV
 from research.reconstruction.allocator.mfi_loader import (
     DialectName,
     MFIRegistryLoad,
@@ -39,8 +40,10 @@ __all__ = [
     "BankLevelMarginalsCertificate",
     "BankLevelRecoveryReport",
     "CountryToBankAllocator",
+    "DATA_DIR",
     "DialectName",
     "MFIRegistryLoad",
+    "MFI_DEMO_TSV",
     "ShareDistribution",
     "SizeWeightedPrior",
     "UniformPrior",
