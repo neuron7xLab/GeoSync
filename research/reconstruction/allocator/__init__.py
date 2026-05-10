@@ -18,6 +18,13 @@ from research.reconstruction.allocator.certificate import (
     BankLevelMarginalsCertificate,
     compute_cert_id,
 )
+from research.reconstruction.allocator.data import DATA_DIR, MFI_DEMO_TSV
+from research.reconstruction.allocator.dov_composition import (
+    ALLOCATOR_COVERAGE_RATIO_MIN_DEFAULT,
+    ComposedDomainCheck,
+    ComposedDomainStatus,
+    check_composed_domain_of_validity,
+)
 from research.reconstruction.allocator.mfi_loader import (
     DialectName,
     MFIRegistryLoad,
@@ -35,17 +42,23 @@ from research.reconstruction.allocator.synthetic import (
 )
 
 __all__ = [
+    "ALLOCATOR_COVERAGE_RATIO_MIN_DEFAULT",
     "AllocatorPrior",
     "BankLevelMarginalsCertificate",
     "BankLevelRecoveryReport",
+    "ComposedDomainCheck",
+    "ComposedDomainStatus",
     "CountryToBankAllocator",
+    "DATA_DIR",
     "DialectName",
     "MFIRegistryLoad",
+    "MFI_DEMO_TSV",
     "ShareDistribution",
     "SizeWeightedPrior",
     "UniformPrior",
     "audit_bank_level_recovery",
     "bank_level_recovery_l1",
+    "check_composed_domain_of_validity",
     "compute_cert_id",
     "load_mfi_registry",
     "registry_to_bank_country_map",
