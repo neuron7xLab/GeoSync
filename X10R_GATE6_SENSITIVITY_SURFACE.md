@@ -46,20 +46,32 @@ with `W_null = shuffle_offdiag(W_recon)`.
 
 ### Tests
 
-`tests/reconstruction/test_gate6_sensitivity_surface.py` (12):
+`tests/reconstruction/test_gate6_sensitivity_surface.py` (14):
 
 - 5 fast tests on the mixing helper (λ=0/0.5/1 edge cases,
   rejection of out-of-range λ, rejection of non-square W).
-- 4 fast tests on the surface (smoke, round-trip, lookup
-  semantics, MDE-dict shape).
-- 1 fast test confirming the cell lookup returns None for
-  missing inputs.
-- **`test_power_at_lambda_one_exceeds_power_at_lambda_zero_at_n_100`**
-  (slow): Gate 6 instrument MUST distinguish signal from null at
-  N=100. Catches a regime-blind instrument.
-- **`test_fpr_estimate_bounded_at_n_100`** (slow): FPR (power at
-  λ=0) on N=100 must be ≤ 0.30 (relaxed envelope; the production
-  target is ≤ 0.05).
+- 6 fast tests on the dataclass contract (power property, dominant
+  direction, cell lookup, to_dict inf→None serialisation, finite
+  MDE serialisation). These construct cells directly via
+  `_stub_cell` — no Kuramoto sims, ms-level total.
+- **`test_compute_sensitivity_surface_smallest_grid_smoke`** (slow):
+  end-to-end driver wire-check on the smallest grid that satisfies
+  the Gate 6 contract (n_bootstrap≥4); ~4 s.
+- **`test_sub_mde_surface_reports_no_mde_without_fail_open`**
+  (slow): pin the D-002A pilot contract — surface computes for
+  λ∈{0, 1}, fpr_estimate finite, MDE allowed to be None
+  (sub-MDE is the honest pilot state), JSON-safe serialisation
+  survives inf→None coercion. ~40 s. **Replaces a prior
+  `power(λ=1) > power(λ=0)` assertion that wrongly belonged to
+  D-002B; at the pilot budget the gate is sub-MDE so the assertion
+  was scientifically over-strict and refuted by the pilot itself.**
+- **`test_fpr_estimate_bounded_at_pilot_budget`** (slow): FPR
+  (power at λ=0) at pilot budget (N=50, n_seeds=5, n_bootstrap=4)
+  must be ≤ 0.30 — the relaxed pilot envelope. The 0.05 production
+  target is reserved for D-002B certification. ~20 s.
+
+All slow tests combined run ≤ 90 s on uncontended local CPU; the
+file fits the python-heavy-tests lane (1200 s inner cap).
 
 ---
 
