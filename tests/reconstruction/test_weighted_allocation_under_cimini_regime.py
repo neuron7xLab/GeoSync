@@ -189,9 +189,9 @@ def test_operational_regime_heavy_tail_sigma_2() -> None:
     where IPF residual is hardest)."""
     cells = [_run_cell(density=d, n=80, sigma=2.0, seed=42) for d in _DENSITIES]
     n_pass = sum(1 for c in cells if c["passed"])
-    assert n_pass >= 2, (
-        f"heavy-tail (sigma=2) regime broke: {n_pass}/4 densities cleared. Cells: {cells}"
-    )
+    assert (
+        n_pass >= 2
+    ), f"heavy-tail (sigma=2) regime broke: {n_pass}/4 densities cleared. Cells: {cells}"
 
 
 # ---------------------------------------------------------------------------
@@ -229,6 +229,6 @@ def test_total_mass_conserved_in_cimini_regime(density: float) -> None:
     # column marginals to ipf_tol = 1e-9 relative to max(s), and
     # the global sum is just the col marginals' sum.
     rel_drift = abs(total_w - total_s) / total_s
-    assert rel_drift < 1e-7, (
-        f"total mass not conserved at density={density}: Σw={total_w:.4f} vs Σs={total_s:.4f}"
-    )
+    assert (
+        rel_drift < 1e-7
+    ), f"total mass not conserved at density={density}: Σw={total_w:.4f} vs Σs={total_s:.4f}"
