@@ -1,16 +1,36 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Composed Domain-of-Validity gate (X-10R-1 PR #6).
+"""Composed Domain-of-Validity ADMISSIBILITY gate (X-10R-1 PR #6).
 
-Per epic #638: a real-data bank-level run is admissible only if BOTH
-the country-to-bank ALLOCATOR layer AND the X-10R RECONSTRUCTION
-layer certify the inputs. Each layer's domain-of-validity is
-independent — the allocator's certificate envelope (registry size,
-coverage_ratio, reciprocity / size-signal evidence) is orthogonal
-to the reconstruction's envelope (n_nodes, density, network
-reciprocity). Lifting one layer's WITHIN to a bank-level claim
-without the other's WITHIN would smuggle an unverified assumption
-into the verdict.
+NAMING DISCIPLINE (per ILS-2026 critique on PR #646)
+====================================================
+This gate certifies *admissibility*, NOT *validity*. A `BOTH_WITHIN`
+verdict means the inputs fall inside the regime where downstream
+testing IS DEFINED — it does NOT mean the bank-level marginals are
+scientifically validated. Validity requires a downstream Gate 6
+forward signal on the reconstructed bank-level network. This is
+deliberately a *necessary* condition, not a sufficient one.
+
+Concretely:
+
+    is_admissible_for_downstream_bank_level_test == True
+        ⇏ is_scientifically_validated_bank_level_result == True
+
+The latter is set by a separate Gate 6 layer (epic PR #7). Both
+flags appear on `ComposedDomainCheck` so a downstream consumer
+cannot accidentally treat admissibility as validation.
+
+WHY ARCHITECTURE
+================
+Per epic #638: a real-data bank-level run becomes admissible only
+if BOTH the country-to-bank ALLOCATOR layer AND the X-10R
+RECONSTRUCTION layer certify the inputs. Each layer's
+domain-of-validity is independent — the allocator's certificate
+envelope (registry size, coverage_ratio, reciprocity / size-signal
+evidence) is orthogonal to the reconstruction's envelope (n_nodes,
+density, network reciprocity). Lifting one layer's WITHIN to a
+bank-level claim without the other's WITHIN would smuggle an
+unverified assumption into the verdict.
 
 This module ships the *composition surface*:
 
@@ -28,10 +48,20 @@ The composed verdict semantics:
     ALLOCATOR_OUT        allocator layer says OUT or INSUFFICIENT
     BOTH_OUT             both layers fail
 
-Composition is FAIL-CLOSED: anything other than BOTH_WITHIN means
-the bank-level claim is forbidden. INV-IDENTIFICATION-1 stays in
-force until at least BOTH_WITHIN clears, AND a downstream Gate 6
-forward signal lands (subsequent epic PR).
+Composition is FAIL-CLOSED: anything other than `BOTH_WITHIN`
+forbids the next-step downstream test. INV-IDENTIFICATION-1
+stays in force until BOTH `BOTH_WITHIN` clears AND a downstream
+Gate 6 forward signal lands.
+
+COVERAGE RATIO IS NECESSARY, NOT SUFFICIENT
+============================================
+The default coverage threshold (`ALLOCATOR_COVERAGE_RATIO_MIN_DEFAULT
+= 0.80`) answers: "did the prior have evidence for ≥ 80 % of
+countries?". It does NOT answer: "is that evidence informative
+enough to allocate country aggregates correctly?". Coverage is a
+necessary condition — without it the prior is degenerate — but it
+is NOT sufficient. Sufficiency requires real-data validation
+landing in epic PR #7.
 """
 
 from __future__ import annotations
@@ -84,11 +114,28 @@ class ComposedDomainCheck:
     notes: str = ""
 
     @property
-    def is_admissible_for_bank_level_claim(self) -> bool:
+    def is_admissible_for_downstream_bank_level_test(self) -> bool:
         """Single boolean for downstream consumers. True iff the
-        composed verdict is BOTH_WITHIN. Anything else forbids a
-        bank-level claim per INV-IDENTIFICATION-1."""
+        composed verdict is BOTH_WITHIN — meaning the *next-step*
+        test (Gate 6 forward signal in epic PR #7) is well-defined
+        on these inputs.
+
+        This is admissibility, NOT validation. A True here is
+        *necessary* but NOT *sufficient* for a bank-level claim.
+        The full validation contract requires
+        `is_scientifically_validated_bank_level_result` to also
+        be True (set only by a Gate 6 PASS in epic PR #7)."""
         return self.status is ComposedDomainStatus.BOTH_WITHIN
+
+    @property
+    def is_scientifically_validated_bank_level_result(self) -> bool:
+        """Always False at this layer. Validation requires a Gate 6
+        forward signal on the reconstructed bank-level network,
+        which is owned by epic PR #7. This property exists so a
+        downstream consumer that tries to use `is_admissible_…` as
+        a validation flag will fail loudly: validation lives on a
+        DIFFERENT property and is set by a DIFFERENT layer."""
+        return False
 
 
 # Default thresholds for the allocator-side composition layer.

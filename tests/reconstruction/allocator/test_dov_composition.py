@@ -94,7 +94,7 @@ def test_both_within_when_both_layers_certify() -> None:
     )
     assert isinstance(composed, ComposedDomainCheck)
     assert composed.status is ComposedDomainStatus.BOTH_WITHIN
-    assert composed.is_admissible_for_bank_level_claim is True
+    assert composed.is_admissible_for_downstream_bank_level_test is True
 
 
 def test_reconstruction_out_when_only_allocator_certifies() -> None:
@@ -113,7 +113,7 @@ def test_reconstruction_out_when_only_allocator_certifies() -> None:
         reconstruction_inferred_density=inside,
     )
     assert composed.status is ComposedDomainStatus.RECONSTRUCTION_OUT
-    assert composed.is_admissible_for_bank_level_claim is False
+    assert composed.is_admissible_for_downstream_bank_level_test is False
 
 
 def test_allocator_out_when_coverage_below_threshold() -> None:
@@ -132,7 +132,7 @@ def test_allocator_out_when_coverage_below_threshold() -> None:
         reconstruction_inferred_density=inside,
     )
     assert composed.status is ComposedDomainStatus.ALLOCATOR_OUT
-    assert composed.is_admissible_for_bank_level_claim is False
+    assert composed.is_admissible_for_downstream_bank_level_test is False
     assert composed.allocator_checks["coverage_ratio"] is False
 
 
@@ -152,7 +152,7 @@ def test_both_out_when_neither_layer_certifies() -> None:
         reconstruction_inferred_density=inside,
     )
     assert composed.status is ComposedDomainStatus.BOTH_OUT
-    assert composed.is_admissible_for_bank_level_claim is False
+    assert composed.is_admissible_for_downstream_bank_level_test is False
     assert "reconstruction" in composed.notes
     assert "coverage_ratio" in composed.notes
 
@@ -263,9 +263,67 @@ def test_e2e_demo_fixture_produces_both_within_at_matched_envelopes() -> None:
         reconstruction_inferred_density=inside,
     )
     assert composed.status is ComposedDomainStatus.BOTH_WITHIN
-    assert composed.is_admissible_for_bank_level_claim is True
+    assert composed.is_admissible_for_downstream_bank_level_test is True
     # Allocator coverage on the demo fixture is 1.0 (every country
     # has positive total weight).
     assert composed.allocator_measured["coverage_ratio"] == pytest.approx(1.0)
     assert composed.allocator_measured["n_banks"] == 25.0
     assert composed.allocator_measured["n_countries"] == 5.0
+
+
+# ---------------------------------------------------------------------------
+# Admissibility ≠ validation discipline
+# ---------------------------------------------------------------------------
+
+
+def test_both_within_does_not_imply_gate6_ready_or_validated() -> None:
+    """A BOTH_WITHIN composed verdict means inputs are admissible
+    for the NEXT downstream test (Gate 6 forward signal in epic
+    PR #7). It does NOT mean the bank-level result is
+    scientifically validated. The two properties are deliberately
+    distinct so a downstream consumer cannot conflate them."""
+    rec_cert = _within_recovery_cert(n=80, seed=8)
+    alloc_cert = _stub_allocator_cert(coverage=1.0)
+    s_out, s_in = _balanced_marginals_at_n(n=80, seed=21)
+    inside = float((min(rec_cert.tested_at_densities) + max(rec_cert.tested_at_densities)) / 2.0)
+    composed = check_composed_domain_of_validity(
+        s_out,
+        s_in,
+        recovery_certificate=rec_cert,
+        allocator_certificate=alloc_cert,
+        reconstruction_inferred_density=inside,
+    )
+    # The two flags are independent properties. Admissibility True,
+    # validation False — that gap is the entire point of this layer.
+    assert composed.is_admissible_for_downstream_bank_level_test is True
+    assert composed.is_scientifically_validated_bank_level_result is False
+
+
+def test_validated_flag_is_false_on_every_verdict() -> None:
+    """`is_scientifically_validated_bank_level_result` is hard-coded
+    False on every ComposedDomainCheck — validation is owned by
+    Gate 6 (epic PR #7), NOT by the DoV gate. This test pins the
+    property's invariant: it cannot be flipped True by composition
+    alone, regardless of how many envelopes certify."""
+    rec_cert = _within_recovery_cert(n=80, seed=9)
+    s_out, s_in = _balanced_marginals_at_n(n=80, seed=22)
+    inside = float((min(rec_cert.tested_at_densities) + max(rec_cert.tested_at_densities)) / 2.0)
+    # Run every cell of the verdict matrix; the validated flag must
+    # stay False on each.
+    for coverage, expected_status in [
+        (1.0, ComposedDomainStatus.BOTH_WITHIN),
+        (0.40, ComposedDomainStatus.ALLOCATOR_OUT),
+    ]:
+        alloc_cert = _stub_allocator_cert(coverage=coverage)
+        composed = check_composed_domain_of_validity(
+            s_out,
+            s_in,
+            recovery_certificate=rec_cert,
+            allocator_certificate=alloc_cert,
+            reconstruction_inferred_density=inside,
+        )
+        assert composed.status is expected_status
+        assert composed.is_scientifically_validated_bank_level_result is False, (
+            f"validation flag must remain False at {expected_status.value}; "
+            "validation is owned by Gate 6 (epic PR #7), not the DoV gate"
+        )
