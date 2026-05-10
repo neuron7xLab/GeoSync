@@ -91,10 +91,16 @@ def test_bank_level_recovery_l1_positive_for_mismatch() -> None:
 
 
 def test_bank_level_recovery_l1_safe_on_zero_truth() -> None:
-    """Σ |gt| = 0 ⇒ return 0 (denominator-safe)."""
+    """Σ |gt| = 0 ⇒ return 0 (denominator-safe), regardless of `allocated`.
+
+    Two distinct allocation profiles must both collapse to 0.0:
+      * `al = ones` (pure mismatch)
+      * `al = zeros` (pure match)
+    Otherwise the safe-on-zero path is conditional, not denominator-safe.
+    """
     gt = np.zeros(5)
-    al = np.ones(5)
-    assert bank_level_recovery_l1(ground_truth=gt, allocated=al) == 0.0
+    assert bank_level_recovery_l1(ground_truth=gt, allocated=np.ones(5)) == 0.0
+    assert bank_level_recovery_l1(ground_truth=gt, allocated=np.zeros(5)) == 0.0
 
 
 def test_bank_level_recovery_l1_rejects_shape_mismatch() -> None:
