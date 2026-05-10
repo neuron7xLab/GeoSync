@@ -77,23 +77,22 @@ def test_demo_fixture_country_order_is_alphabetical() -> None:
 def test_demo_fixture_content_hash_is_pinned() -> None:
     """Locks the fixture's exact byte content. Any rewrite of the
     fixture must intentionally update this hash — it is the canonical
-    "the demo data has changed" signal in the regression surface."""
+    "the demo data has changed" signal in the regression surface.
+
+    Recompute on rewrite via::
+
+        python -c "import hashlib, pathlib; \\
+            print(hashlib.sha256(pathlib.Path( \\
+                'research/reconstruction/allocator/data/mfi_demo.tsv' \\
+            ).read_bytes()).hexdigest())"
+    """
     blob = MFI_DEMO_TSV.read_bytes()
     actual = hashlib.sha256(blob).hexdigest()
-    expected = (
-        # Recompute on rewrite via:
-        # python -c "import hashlib,pathlib; print(hashlib.sha256(pathlib.Path("
-        # "'research/reconstruction/allocator/data/mfi_demo.tsv'"
-        # ").read_bytes()).hexdigest())"
-        ""
+    expected = "304612f1c45aa433522f221b4fcf28fc15d4969dac155013783b1e2f384c2e2b"
+    assert actual == expected, (
+        f"demo fixture drift: actual sha256 = {actual}, pinned = {expected}; "
+        "intentionally update the pinned hash if the rewrite is expected."
     )
-    if not expected:
-        # First commit: just snapshot. On the second run the assertion
-        # below will catch a drift. The bare `assert actual` ensures
-        # we still don't ship an empty hash silently.
-        assert actual
-        return
-    assert actual == expected, f"demo fixture drift: actual sha256 = {actual}, pinned = {expected}"
 
 
 # ---------------------------------------------------------------------------
