@@ -88,7 +88,7 @@ def test_demo_fixture_content_hash_is_pinned() -> None:
     """
     blob = MFI_DEMO_TSV.read_bytes()
     actual = hashlib.sha256(blob).hexdigest()
-    expected = "304612f1c45aa433522f221b4fcf28fc15d4969dac155013783b1e2f384c2e2b"
+    expected = "304612f1c45aa433522f221b4fcf28fc15d4969dac155013783b1e2f384c2e2b"  # pragma: allowlist secret
     assert actual == expected, (
         f"demo fixture drift: actual sha256 = {actual}, pinned = {expected}; "
         "intentionally update the pinned hash if the rewrite is expected."
