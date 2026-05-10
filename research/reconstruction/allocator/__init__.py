@@ -15,6 +15,10 @@ from research.reconstruction.allocator.certificate import (
     compute_cert_id,
 )
 from research.reconstruction.allocator.prior import AllocatorPrior, UniformPrior
+from research.reconstruction.allocator.registry import registry_to_bank_country_map
+from research.reconstruction.allocator.size_weighted_prior import (
+    SizeWeightedPrior,
+)
 from research.reconstruction.allocator.synthetic import (
     ShareDistribution,
     bank_level_recovery_l1,
@@ -26,8 +30,10 @@ __all__ = [
     "BankLevelMarginalsCertificate",
     "CountryToBankAllocator",
     "ShareDistribution",
+    "SizeWeightedPrior",
     "UniformPrior",
     "bank_level_recovery_l1",
     "compute_cert_id",
+    "registry_to_bank_country_map",
     "synthetic_country_aggregates",
 ]
