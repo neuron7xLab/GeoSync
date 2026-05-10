@@ -17,7 +17,7 @@ certifi==2025.11.12
 charset-normalizer==3.4.4
 idna==3.11
 requests==2.33.0
-urllib3==2.6.3
+urllib3==2.7.0
 
 # ============================================================================
 # Cryptography & Authentication - CRITICAL security packages
@@ -50,7 +50,7 @@ SQLAlchemy==2.0.44
 
 # pydantic: Data validation, critical for API input validation
 # Security fixes for ReDoS and validation bypass
-pydantic==2.13.2
+pydantic==2.13.4
 pydantic-settings==2.12.0
 
 # pandera: DataFrame validation, data quality and security
@@ -81,8 +81,8 @@ twisted==24.7.0
 # CVE-2025-52316: DoS via crafted Range header in FileResponse
 # fastapi: Web framework built on starlette, requires compatible starlette version
 # Pin to ensure secure versions are used
-starlette>=0.50.0
-fastapi>=0.119.0,<1.0.0
+starlette>=1.0.0
+fastapi>=0.136.1,<1.0.0
 
 # ============================================================================
 # Additional Brotli encoding support - Required for urllib3 decompression

@@ -126,7 +126,7 @@ execnet==2.1.1
     # via pytest-xdist
 extra-streamlit-components==0.1.81
     # via streamlit-authenticator
-fastapi==0.136.0
+fastapi==0.136.1
     # via
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
@@ -461,7 +461,7 @@ pycodestyle==2.12.1
     # via flake8
 pycparser==2.23
     # via cffi
-pydantic==2.13.2
+pydantic==2.13.4
     # via
     #   -c constraints/security.txt
     #   fastapi
@@ -469,7 +469,7 @@ pydantic==2.13.2
     #   pandera
     #   pydantic-settings
     #   scalene
-pydantic-core==2.46.2
+pydantic-core==2.46.4
     # via pydantic
 pydantic-settings==2.12.0
     # via
@@ -616,7 +616,7 @@ sqlalchemy==2.0.44
     #   alembic
     #   geosync (pyproject.toml)
     #   optuna
-starlette==0.50.0
+starlette==1.0.0
     # via
     #   -c constraints/security.txt
     #   fastapi
@@ -708,7 +708,7 @@ tzdata==2025.2
     #   pandas
 uc-micro-py==1.0.3
     # via linkify-it-py
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   -c constraints/security.txt
     #   requests
