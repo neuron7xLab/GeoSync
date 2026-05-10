@@ -267,7 +267,13 @@ def test_domain_check_rejects_non_finite_marginals() -> None:
 
 
 def test_evidence_envelope_reports_min_max() -> None:
-    """The envelope helper returns (min, max) per dimension that has evidence."""
+    """The envelope helper returns (min, max) per dimension that has evidence.
+
+    Post X-10R-2 (#636): reciprocity is now populated from the substrate's
+    achieved ratio whenever the certificate passes. Default substrates
+    (CP, hierarchical, BA) build both directions per edge, so the
+    achieved ratio is 1.0 unless reciprocity_keep_p < 1.0.
+    """
     cert = _cached_cert_n80_seed42()
     env = cert.evidence_envelope()
     assert "n_nodes" in env
@@ -275,8 +281,10 @@ def test_evidence_envelope_reports_min_max() -> None:
     assert "density" in env
     lo, hi = env["density"]
     assert lo <= hi
-    # Reciprocity not yet swept (FIX B6 placeholder).
-    assert "reciprocity" not in env
+    # Default CP substrate has full bidirectional symmetry → r=1.
+    assert "reciprocity" in env
+    r_lo, r_hi = env["reciprocity"]
+    assert 0.99 <= r_lo <= r_hi <= 1.0
 
 
 def test_within_domain_when_real_n_at_envelope_boundary() -> None:

@@ -44,9 +44,13 @@ from research.reconstruction.negative_control import (
 )
 from research.reconstruction.positive_control import (
     GroundTruthRecoveryCertificate,
+    ReciprocityAwareRecoveryCertificate,
+    compute_reciprocity_ratio,
     ground_truth_ba,
     ground_truth_core_periphery,
     ground_truth_hierarchical,
+    reciprocity_keep_p_for_target,
+    run_reciprocity_aware_recovery,
     run_recovery_on_substrate,
 )
 from research.reconstruction.reconstruction_capsule import (
@@ -87,6 +91,7 @@ __all__ = [
     "PrecursorDirection",
     "PrecursorReport",
     "RECOVERY_THRESHOLDS",
+    "ReciprocityAwareRecoveryCertificate",
     "ReconstructionCapsule",
     "ReconstructionStatus",
     "RecoveryReport",
@@ -97,6 +102,7 @@ __all__ = [
     "build_reconstruction_capsule",
     "calibrate_density_z",
     "check_domain_of_validity",
+    "compute_reciprocity_ratio",
     "conservation_of_mass_passes",
     "density_bound_passes",
     "fit_cimini_squartini",
@@ -111,9 +117,11 @@ __all__ = [
     "neg_path_lattice",
     "neg_ring_lattice",
     "p_link",
+    "reciprocity_keep_p_for_target",
     "rerun_reconstruction_strict",
     "run_all_negative_controls",
     "run_negative_control",
+    "run_reciprocity_aware_recovery",
     "run_recovery_on_substrate",
     "sample_adjacency_bernoulli",
     "serialise_reconstruction_capsule",

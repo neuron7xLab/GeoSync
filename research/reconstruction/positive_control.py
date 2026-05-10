@@ -70,6 +70,7 @@ References for the reciprocity-aware extension:
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import networkx as nx
@@ -91,11 +92,107 @@ from research.reconstruction.weighted_allocation import (
 )
 
 # ---------------------------------------------------------------------------
+# Reciprocity machinery (X-10R-2, GH issue #636)
+# ---------------------------------------------------------------------------
+#
+# Reciprocity in a directed weighted network = fraction of directed edges
+# whose reverse is also present:
+#
+#     r(W) = #{(i,j) : a_ij=1 ∧ a_ji=1, i≠j} / #{(i,j) : a_ij=1, i≠j}
+#
+# Empirical interbank networks (e-MID, BIS LBS proxies) sit in the
+# r ≈ 0.3–0.6 range. The current substrates (CP, hierarchical, BA) build
+# both directions whenever an edge exists, so their intrinsic reciprocity
+# is ≈ 1.0. To probe the spectral-recovery sensitivity to reciprocity
+# (Vandermarliere/Heiberger 2024 e-MID line of work), we expose a
+# reciprocity-keep parameter that drops one direction of bidirectional
+# edge pairs with probability `1 - keep_p`.
+#
+# Mapping from the keep parameter to achieved reciprocity ratio:
+#   r_achieved = 2·keep_p / (1 + keep_p)
+#   keep_p  = r_target / (2 − r_target)   (inverse)
+#
+# Examples:
+#   keep_p = 1.0 → r_achieved = 1.0 (pure bidirectional)
+#   keep_p = 1/3 → r_achieved = 0.5
+#   keep_p = 0.0 → r_achieved = 0.0 (purely unidirectional)
+
+
+def reciprocity_keep_p_for_target(r_target: float) -> float:
+    """Inverse of `r_achieved = 2·keep_p / (1 + keep_p)`.
+
+    Maps a desired achieved-reciprocity ratio in [0, 1] to the
+    keep-probability the substrate generators consume.
+    """
+    if not (0.0 <= r_target <= 1.0):
+        raise ValueError(f"r_target must be in [0, 1]; got {r_target}")
+    return r_target / (2.0 - r_target)
+
+
+def compute_reciprocity_ratio(w: np.ndarray) -> float:
+    """Achieved reciprocity ratio of a directed weighted matrix.
+
+    r(W) = (#edges (i,j) with both w_ij > 0 and w_ji > 0)
+           / (#edges (i,j) with w_ij > 0)
+
+    Returns 0.0 on empty matrices to keep the denominator safe.
+    """
+    if w.ndim != 2 or w.shape[0] != w.shape[1]:
+        raise ValueError(f"w must be square 2-D; got {w.shape}")
+    a = (w > 0).astype(np.uint8)
+    np.fill_diagonal(a, 0)
+    n_edges = int(a.sum())
+    if n_edges == 0:
+        return 0.0
+    bidirectional = a * a.T  # 1 only where both directions exist
+    return float(int(bidirectional.sum()) / n_edges)
+
+
+def _apply_reciprocity_filter(
+    w: np.ndarray, *, keep_p: float, rng: np.random.Generator
+) -> np.ndarray:
+    """Drop one direction of each bidirectional edge pair with prob 1 - keep_p.
+
+    For each unordered pair (i, j) with i < j and both w_ij > 0 and w_ji > 0:
+      * with probability keep_p, leave both directions intact;
+      * with probability 1 - keep_p, zero out one direction (uniform random).
+
+    This preserves the underlying topology's marginal degree (one edge
+    survives in every previously-bidirectional pair) while attenuating
+    reciprocity to the target ratio. Pure unidirectional pairs are
+    unchanged.
+    """
+    if not (0.0 <= keep_p <= 1.0):
+        raise ValueError(f"keep_p must be in [0, 1]; got {keep_p}")
+    out = w.copy()
+    if keep_p >= 1.0:
+        return out  # full reciprocity preserved — fast path
+    n = out.shape[0]
+    for i in range(n):
+        for j in range(i + 1, n):
+            if out[i, j] > 0 and out[j, i] > 0:
+                if rng.uniform() < keep_p:
+                    continue  # keep both directions
+                # Drop one direction; pick uniformly at random which.
+                if rng.uniform() < 0.5:
+                    out[i, j] = 0.0
+                else:
+                    out[j, i] = 0.0
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Ground-truth generators
 # ---------------------------------------------------------------------------
 
 
-def ground_truth_ba(n: int = 200, m: int = 5, *, seed: int = 42) -> np.ndarray:
+def ground_truth_ba(
+    n: int = 200,
+    m: int = 5,
+    *,
+    seed: int = 42,
+    reciprocity_keep_p: float = 1.0,
+) -> np.ndarray:
     """BA(N, m) skeleton with log-normal weights.
 
     Default m=5 (not m=3 from spec). Rationale: fitness-only Cimini cannot
@@ -105,6 +202,11 @@ def ground_truth_ba(n: int = 200, m: int = 5, *, seed: int = 42) -> np.ndarray:
     BA(m=5) is still scale-free (γ=3) but the degree heterogeneity is
     within the model's regime of validity. m=3 remains available for
     stress testing — it WILL trigger INVALID_RECONSTRUCTION.
+
+    `reciprocity_keep_p ∈ [0, 1]` (X-10R-2): the per-edge probability
+    that a bidirectional pair survives intact. Default 1.0 ⇒ original
+    behaviour. Achieved reciprocity = 2·p / (1 + p); use
+    `reciprocity_keep_p_for_target` to invert.
     """
     rng = np.random.default_rng(seed)
     g = nx.barabasi_albert_graph(n, m, seed=int(rng.integers(0, 2**31 - 1)))
@@ -115,13 +217,24 @@ def ground_truth_ba(n: int = 200, m: int = 5, *, seed: int = 42) -> np.ndarray:
         # Asymmetric: assign reverse weight independently for directed
         w[v, u] = float(rng.lognormal(mean=12.0, sigma=2.0))
     np.fill_diagonal(w, 0.0)
+    if reciprocity_keep_p < 1.0:
+        w = _apply_reciprocity_filter(w, keep_p=reciprocity_keep_p, rng=rng)
     return w
 
 
 def ground_truth_core_periphery(
-    n: int = 200, *, core_frac: float = 0.30, seed: int = 42
+    n: int = 200,
+    *,
+    core_frac: float = 0.30,
+    seed: int = 42,
+    reciprocity_keep_p: float = 1.0,
 ) -> np.ndarray:
-    """Core (fully connected) + periphery (sparse to core only)."""
+    """Core (fully connected) + periphery (sparse to core only).
+
+    `reciprocity_keep_p ∈ [0, 1]` (X-10R-2): per-bidirectional-pair
+    keep probability; see module docstring for the mapping to achieved
+    reciprocity ratio.
+    """
     rng = np.random.default_rng(seed)
     n_core = max(2, int(n * core_frac))
     w = np.zeros((n, n), dtype=np.float64)
@@ -138,11 +251,23 @@ def ground_truth_core_periphery(
             w[i, int(j)] = float(rng.lognormal(mean=11.0, sigma=2.0))
             w[int(j), i] = float(rng.lognormal(mean=11.0, sigma=2.0))
     np.fill_diagonal(w, 0.0)
+    if reciprocity_keep_p < 1.0:
+        w = _apply_reciprocity_filter(w, keep_p=reciprocity_keep_p, rng=rng)
     return w
 
 
-def ground_truth_hierarchical(n: int = 200, *, n_tiers: int = 4, seed: int = 42) -> np.ndarray:
-    """Block-structured tiers with descending strength (Bardoscia stylized)."""
+def ground_truth_hierarchical(
+    n: int = 200,
+    *,
+    n_tiers: int = 4,
+    seed: int = 42,
+    reciprocity_keep_p: float = 1.0,
+) -> np.ndarray:
+    """Block-structured tiers with descending strength (Bardoscia stylized).
+
+    `reciprocity_keep_p ∈ [0, 1]` (X-10R-2): per-bidirectional-pair
+    keep probability; see module docstring for the mapping.
+    """
     rng = np.random.default_rng(seed)
     tier_size = n // n_tiers
     w = np.zeros((n, n), dtype=np.float64)
@@ -164,6 +289,8 @@ def ground_truth_hierarchical(n: int = 200, *, n_tiers: int = 4, seed: int = 42)
                     if rng.uniform() < 0.2:
                         w[i, j] = float(rng.lognormal(mean=weight_mean - 1.0, sigma=1.0))
     np.fill_diagonal(w, 0.0)
+    if reciprocity_keep_p < 1.0:
+        w = _apply_reciprocity_filter(w, keep_p=reciprocity_keep_p, rng=rng)
     return w
 
 
@@ -256,10 +383,15 @@ def run_recovery_on_substrate(
     """Run Gate 5 recovery audit across the density sweep on a substrate.
 
     All sweep densities must pass for the certificate to be valid.
+    The achieved reciprocity ratio of ``w_true`` is measured once and
+    stored in ``tested_at_reciprocity = (r_observed,)`` so a downstream
+    domain-of-validity gate can use the certificate's reciprocity
+    envelope when it is non-trivial.
     """
     s_out_true = w_true.sum(axis=1)
     s_in_true = w_true.sum(axis=0)
     n = w_true.shape[0]
+    r_observed = compute_reciprocity_ratio(w_true)
     per_density: dict[float, RecoveryReport] = {}
     failures: list[str] = []
     for d in sweep:
@@ -281,10 +413,12 @@ def run_recovery_on_substrate(
     # certify it as `passed`.
     tested_densities = tuple(sorted(per_density.keys()))
     tested_n_nodes = (int(n),)
+    tested_reciprocity = (round(r_observed, 6),) if passed else ()
     cert_payload = (
         f"{substrate_name}|n={n}|seed={seed}|sweep={sweep}|"
         f"thresholds={sorted(RECOVERY_THRESHOLDS.items())}|"
         f"tested_n_nodes={tested_n_nodes}|tested_densities={tested_densities}|"
+        f"tested_reciprocity={tested_reciprocity}|"
         f"passed={passed}"
     )
     cert_id = hashlib.sha256(cert_payload.encode("utf-8")).hexdigest()
@@ -299,5 +433,158 @@ def run_recovery_on_substrate(
         cert_id=cert_id,
         tested_at_n_nodes=tested_n_nodes,
         tested_at_densities=tested_densities,
-        tested_at_reciprocity=(),
+        tested_at_reciprocity=tested_reciprocity,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Reciprocity × density sweep — the X-10R-2 evidence builder
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReciprocityAwareRecoveryCertificate:
+    """Aggregate of (reciprocity × density) Gate-5 recovery results.
+
+    Built by `run_reciprocity_aware_recovery` (X-10R-2). Each grid cell
+    is a `GroundTruthRecoveryCertificate` from a freshly-generated
+    substrate at a target reciprocity; a cell counts as `passed` only if
+    Gate 5 holds at every density for that reciprocity. The aggregate
+    `tested_at_reciprocity` is the union of achieved reciprocity ratios
+    across cells that passed.
+    """
+
+    substrate_name: str
+    n_nodes: int
+    target_reciprocity_grid: tuple[float, ...]
+    achieved_reciprocity_grid: tuple[float, ...]
+    sweep_densities: tuple[float, ...]
+    per_reciprocity_certs: dict[float, GroundTruthRecoveryCertificate]
+    passed: bool
+    failure_reasons: tuple[str, ...]
+    cert_id: str
+    tested_at_n_nodes: tuple[int, ...]
+    tested_at_densities: tuple[float, ...]
+    tested_at_reciprocity: tuple[float, ...]
+
+    def is_valid(self) -> bool:
+        return self.passed and bool(self.cert_id)
+
+    def evidence_envelope(self) -> dict[str, tuple[float, float] | tuple[int, int]]:
+        envelope: dict[str, tuple[float, float] | tuple[int, int]] = {}
+        if self.tested_at_n_nodes:
+            envelope["n_nodes"] = (
+                int(min(self.tested_at_n_nodes)),
+                int(max(self.tested_at_n_nodes)),
+            )
+        if self.tested_at_densities:
+            envelope["density"] = (
+                float(min(self.tested_at_densities)),
+                float(max(self.tested_at_densities)),
+            )
+        if self.tested_at_reciprocity:
+            envelope["reciprocity"] = (
+                float(min(self.tested_at_reciprocity)),
+                float(max(self.tested_at_reciprocity)),
+            )
+        return envelope
+
+
+# Default reciprocity grid — covers the empirical interbank range
+# (e-MID 2008 ≈ 0.27; pre-crisis core-periphery substrates 0.6–0.9; the
+# r=1 anchor preserves the original X-10R behaviour for backward compat).
+_RECIPROCITY_GRID: tuple[float, ...] = (0.30, 0.60, 1.00)
+
+
+def run_reciprocity_aware_recovery(
+    substrate_name: str,
+    *,
+    substrate_factory: Callable[[float, int], np.ndarray],
+    seed: int = 42,
+    reciprocity_grid: tuple[float, ...] = _RECIPROCITY_GRID,
+    density_sweep: tuple[float, ...] = _DENSITY_SWEEP,
+) -> ReciprocityAwareRecoveryCertificate:
+    """Sweep Gate 5 recovery across a (reciprocity × density) grid.
+
+    `substrate_factory(r_target, seed)` must return the directed
+    weighted matrix at the target reciprocity ratio. Use
+    `reciprocity_keep_p_for_target` to invert the target into the
+    keep-probability the existing generators consume.
+
+    Each (r_target) cell:
+      1. builds the substrate at that target reciprocity,
+      2. measures achieved reciprocity (which is what the certificate
+         records — empirical, not intended),
+      3. runs the full density sweep via `run_recovery_on_substrate`,
+      4. counts the cell as PASS iff that nested certificate passes.
+
+    Aggregate PASS iff every cell passes. `tested_at_reciprocity` on
+    the aggregate is the union of achieved reciprocity ratios across
+    PASSING cells — the evidence the domain-of-validity gate consumes.
+    """
+    if not reciprocity_grid:
+        raise ValueError("reciprocity_grid must be non-empty")
+    if not density_sweep:
+        raise ValueError("density_sweep must be non-empty")
+
+    per_reciprocity: dict[float, GroundTruthRecoveryCertificate] = {}
+    achieved: list[float] = []
+    failures: list[str] = []
+
+    for r_target in reciprocity_grid:
+        if not (0.0 <= r_target <= 1.0):
+            raise ValueError(f"reciprocity grid value out of [0, 1]: {r_target}")
+        cell_seed = seed + int(round(r_target * 10_000))
+        try:
+            w_true = substrate_factory(r_target, cell_seed)
+        except (ValueError, FloatingPointError) as exc:
+            failures.append(f"r_target={r_target}: substrate build failed ({exc})")
+            continue
+        r_actual = compute_reciprocity_ratio(w_true)
+        achieved.append(round(r_actual, 6))
+        cell_cert = run_recovery_on_substrate(
+            f"{substrate_name}_r{r_target:.2f}",
+            w_true,
+            seed=cell_seed,
+            sweep=density_sweep,
+        )
+        per_reciprocity[r_target] = cell_cert
+        if not cell_cert.passed:
+            failures.append(
+                f"r_target={r_target} (achieved={r_actual:.3f}): "
+                + "; ".join(cell_cert.failure_reasons)
+            )
+
+    passed = not failures and len(per_reciprocity) == len(reciprocity_grid)
+
+    # Evidence surface: only achieved reciprocities of PASSING cells
+    # count toward tested_at_reciprocity. This mirrors the density-sweep
+    # contract — a crashed or failed cell cannot certify the regime.
+    tested_reciprocity: tuple[float, ...] = ()
+    if passed:
+        tested_reciprocity = tuple(sorted(achieved))
+    n_nodes = (
+        per_reciprocity[reciprocity_grid[0]].n_nodes
+        if reciprocity_grid[0] in per_reciprocity
+        else 0
+    )
+    cert_payload = (
+        f"{substrate_name}|n={n_nodes}|seed={seed}|"
+        f"r_grid={reciprocity_grid}|d_sweep={density_sweep}|"
+        f"achieved={tuple(sorted(achieved))}|passed={passed}"
+    )
+    cert_id = hashlib.sha256(cert_payload.encode("utf-8")).hexdigest()
+    return ReciprocityAwareRecoveryCertificate(
+        substrate_name=substrate_name,
+        n_nodes=n_nodes,
+        target_reciprocity_grid=reciprocity_grid,
+        achieved_reciprocity_grid=tuple(sorted(achieved)),
+        sweep_densities=density_sweep,
+        per_reciprocity_certs=per_reciprocity,
+        passed=passed,
+        failure_reasons=tuple(failures),
+        cert_id=cert_id,
+        tested_at_n_nodes=(int(n_nodes),) if n_nodes else (),
+        tested_at_densities=tuple(density_sweep),
+        tested_at_reciprocity=tested_reciprocity,
     )
