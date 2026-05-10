@@ -189,9 +189,9 @@ def test_operational_regime_heavy_tail_sigma_2() -> None:
     where IPF residual is hardest)."""
     cells = [_run_cell(density=d, n=80, sigma=2.0, seed=42) for d in _DENSITIES]
     n_pass = sum(1 for c in cells if c["passed"])
-    assert (
-        n_pass >= 2
-    ), f"heavy-tail (sigma=2) regime broke: {n_pass}/4 densities cleared. Cells: {cells}"
+    assert n_pass >= 2, (
+        f"heavy-tail (sigma=2) regime broke: {n_pass}/4 densities cleared. Cells: {cells}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -202,9 +202,21 @@ def test_operational_regime_heavy_tail_sigma_2() -> None:
 @pytest.mark.parametrize("density", _DENSITIES)
 def test_total_mass_conserved_in_cimini_regime(density: float) -> None:
     """Even when row/col L1 clip the threshold, the TOTAL mass
-    must be conserved exactly: Σ w_ij ≡ Σ s_out (= Σ s_in) to
-    floating-point tolerance. This is GATE_2 at the global level."""
-    s_out, s_in = _operational_marginals(80, sigma=1.0, seed=42)
+    must be conserved to FLOATING-POINT tolerance: Σ w_ij ≡ Σ s_out
+    (= Σ s_in). This is GATE_2 at the global level — a tight bound,
+    NOT a gross sanity check.
+
+    Per Codex P2 review on PR #649: a 1 % envelope hides a real
+    0.5 % leakage regression. The bound below (10 × N × ipf_tol)
+    matches the actual IPF contract: the global sum's deviation is
+    upper-bounded by `N × per_row_tol`, where per_row_tol is the
+    ipf_tol times the maximum marginal. We harden to 10× that
+    bound to leave a small safety margin for floating-point
+    round-off in the comparator while still rejecting any
+    meaningful (≥ 1e-7 relative) conservation regression.
+    """
+    n = 80
+    s_out, s_in = _operational_marginals(n, sigma=1.0, seed=42)
     fit = fit_cimini_squartini(s_out, s_in, target_density=density)
     p = p_link(fit.x, fit.y, fit.z)
     rng = np.random.default_rng(7919 + int(density * 1000))
@@ -212,11 +224,11 @@ def test_total_mass_conserved_in_cimini_regime(density: float) -> None:
     w = allocate_weights(a, s_out, s_in)
     total_w = float(w.sum())
     total_s = float(s_out.sum())
-    # IPF guarantees per-row / per-col within ipf_tol; the GLOBAL sum
-    # is the marginal sums, so deviation is bounded by N * ipf_tol.
-    # Use a generous bound (1%) — the test catches gross conservation
-    # breaks, not subtle row/col L1 clipping (which is gate-tested
-    # separately).
-    assert (
-        abs(total_w - total_s) / total_s < 0.01
-    ), f"total mass not conserved at density={density}: Σw={total_w:.4f} vs Σs={total_s:.4f}"
+    # Hard bound: relative drift < 1e-7. Every density should
+    # satisfy this exactly because the IPF projection enforces
+    # column marginals to ipf_tol = 1e-9 relative to max(s), and
+    # the global sum is just the col marginals' sum.
+    rel_drift = abs(total_w - total_s) / total_s
+    assert rel_drift < 1e-7, (
+        f"total mass not conserved at density={density}: Σw={total_w:.4f} vs Σs={total_s:.4f}"
+    )
