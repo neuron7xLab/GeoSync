@@ -211,6 +211,9 @@ def test_auc_monotone_in_R() -> None:
 
 def test_phase_lag_default_threshold_matches_locked_yaml() -> None:
     assert DeltaPhiSyncMetric().threshold_phi == DEFAULT_PHASE_LAG_THRESHOLD
+    # And the canonical numeric value (sanity against accidental edit of
+    # the module-level constant)
+    assert DEFAULT_PHASE_LAG_THRESHOLD == 0.50
 
 
 def test_phase_lag_requires_theta() -> None:

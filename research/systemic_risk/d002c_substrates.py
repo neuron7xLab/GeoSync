@@ -78,9 +78,19 @@ PRE_EVENT_START_QUARTER: Final[int] = 2
 PRE_EVENT_WINDOW: Final[range] = range(PRE_EVENT_START_QUARTER, EVENT_QUARTER)
 PRECURSOR_INJECTION_WINDOW: Final[range] = range(EVENT_QUARTER - 2, EVENT_QUARTER)
 
-# Gates G6 / G9
+# Gates G6 / G9 / G9-precursor
 DENSITY_RANGE: Final[tuple[float, float]] = (0.05, 0.15)
+# Baseline must sit at the critical-onset regime (ρ/N ≈ 1.0). Tight band so
+# the three substrate families are spectrally comparable AT THE NULL.
 SPECTRAL_RANGE: Final[tuple[float, float]] = (0.95, 1.05)
+# Precursor is BY DESIGN an amplification — a precursor that didn't lift
+# coupling would have nothing to detect. We allow up to +15% spectral
+# radius lift but refuse contraction (ρ/N < 0.95) and any pathological
+# explosion (ρ/N > 1.15) that would push the regime so far past onset
+# that the metric saturates trivially. The precursor gate is asserted
+# at lambda=1 (the maximum); lambdas in (0, 1) lift continuously and
+# stay strictly inside the corresponding sub-interval.
+PRECURSOR_SPECTRAL_RANGE: Final[tuple[float, float]] = (0.95, 1.15)
 
 # Default Erdős-Rényi density for the Ricci substrate
 DEFAULT_ER_DENSITY: Final[float] = 0.10
@@ -112,6 +122,13 @@ class SubstrateRealization:
     K_c: float
     density: float
     spectral_radius_over_N: float
+    # New (Codex P1 fix, 2026-05-11): gate G9 was previously asserted only
+    # on K_baseline; this is now also asserted on K_precursor with a
+    # wider but bounded range (PRECURSOR_SPECTRAL_RANGE). A precursor
+    # that pushed K outside the comparable regime would bias the
+    # downstream metric comparison; the gate refuses such realisations
+    # fail-closed.
+    spectral_radius_over_N_precursor: float
     precursor_frobenius_delta: float
 
 
@@ -155,17 +172,46 @@ def _enforce_calibration_gates(
     density: float | None,
     substrate_id: str,
     N: int,
-) -> tuple[float, float]:
-    """Run gates G6, G7, G8, G9, G10. Return (spectral_radius_over_N, delta)."""
+) -> tuple[float, float, float]:
+    """Run gates G6, G7, G8, G9 (baseline + precursor), G10.
+
+    Returns
+    -------
+    (spectral_radius_over_N_baseline, spectral_radius_over_N_precursor, delta)
+
+    Notes
+    -----
+    Codex P1 fix (2026-05-11): gate G9 was previously asserted only on
+    ``K_baseline``; the precursor trajectory was constructed but never
+    spectrally validated. That allowed a realisation whose precursor
+    exceeded the comparable-regime band to pass silently (e.g.
+    ``BlockStructuredSubstrate(lambda_=1.0)`` was producing
+    ``ρ/N ≈ 1.052`` on the precursor, beyond the baseline gate hi).
+    Both trajectories are now spectrally validated, against their own
+    ranges (:data:`SPECTRAL_RANGE` for baseline,
+    :data:`PRECURSOR_SPECTRAL_RANGE` for precursor — wider but bounded,
+    reflecting that the precursor IS by design an amplification).
+    """
     _verify_K_trajectory(K_baseline, where=f"{substrate_id}.K_baseline")
     _verify_K_trajectory(K_precursor, where=f"{substrate_id}.K_precursor")
 
-    spec = _spectral_radius_mean(K_baseline) / float(N)
+    spec_baseline = _spectral_radius_mean(K_baseline) / float(N)
     lo, hi = SPECTRAL_RANGE
-    if not (lo <= spec <= hi):
+    if not (lo <= spec_baseline <= hi):
         raise SubstrateInvalid(
-            f"{substrate_id}: spectral_radius_over_N={spec:.4f} outside "
-            f"[{lo}, {hi}] (gate G9 failed)"
+            f"{substrate_id}: baseline spectral_radius_over_N={spec_baseline:.4f} "
+            f"outside [{lo}, {hi}] (gate G9 baseline failed)"
+        )
+
+    spec_precursor = _spectral_radius_mean(K_precursor) / float(N)
+    p_lo, p_hi = PRECURSOR_SPECTRAL_RANGE
+    if not (p_lo <= spec_precursor <= p_hi):
+        raise SubstrateInvalid(
+            f"{substrate_id}: precursor spectral_radius_over_N={spec_precursor:.4f} "
+            f"outside [{p_lo}, {p_hi}] (gate G9 precursor failed) — "
+            f"at lambda_={lambda_:.4f}. The precursor injection pushed K "
+            f"past the comparable-regime band; downstream metric "
+            f"comparison would be biased."
         )
 
     if density is not None:
@@ -188,7 +234,7 @@ def _enforce_calibration_gates(
             f"{substrate_id}: lambda_=0 but precursor delta is {delta:.3e} "
             "(null run must be identical to baseline)"
         )
-    return spec, delta
+    return spec_baseline, spec_precursor, delta
 
 
 def _calibrate_spectral_radius(
@@ -279,7 +325,7 @@ class RicciFlowSubstrate:
             for t in PRECURSOR_INJECTION_WINDOW:
                 K_precursor[t] = K_event
         density = float(A.sum() / (N * (N - 1)))
-        spec, delta = _enforce_calibration_gates(
+        spec_b, spec_p, delta = _enforce_calibration_gates(
             K_baseline=K_baseline,
             K_precursor=K_precursor,
             lambda_=lambda_,
@@ -296,7 +342,8 @@ class RicciFlowSubstrate:
             K_precursor=K_precursor,
             K_c=K_c,
             density=density,
-            spectral_radius_over_N=spec,
+            spectral_radius_over_N=spec_b,
+            spectral_radius_over_N_precursor=spec_p,
             precursor_frobenius_delta=delta,
         )
 
@@ -372,7 +419,7 @@ class BlockStructuredSubstrate:
         # density is structural (no random graph) — equal to fraction
         # of nonzero off-diagonal entries in the locked pattern.
         density = float(np.count_nonzero(W) / (N * (N - 1)))
-        spec, delta = _enforce_calibration_gates(
+        spec_b, spec_p, delta = _enforce_calibration_gates(
             K_baseline=K_baseline,
             K_precursor=K_precursor,
             lambda_=lambda_,
@@ -380,7 +427,6 @@ class BlockStructuredSubstrate:
             substrate_id=self.id,
             N=N,
         )
-        _ = density
         return SubstrateRealization(
             substrate_id=self.id,
             N=N,
@@ -390,7 +436,8 @@ class BlockStructuredSubstrate:
             K_precursor=K_precursor,
             K_c=K_c,
             density=density,
-            spectral_radius_over_N=spec,
+            spectral_radius_over_N=spec_b,
+            spectral_radius_over_N_precursor=spec_p,
             precursor_frobenius_delta=delta,
         )
 
@@ -448,7 +495,7 @@ class TemporalKtSubstrate:
             lift = np.where(K_base_static > 0, additive, 0.0)
             for t in PRECURSOR_INJECTION_WINDOW:
                 K_precursor[t] = K_baseline[t] + lift
-        spec, delta = _enforce_calibration_gates(
+        spec_b, spec_p, delta = _enforce_calibration_gates(
             K_baseline=K_baseline,
             K_precursor=K_precursor,
             lambda_=lambda_,
@@ -465,7 +512,8 @@ class TemporalKtSubstrate:
             K_precursor=K_precursor,
             K_c=base.K_c,
             density=base.density,
-            spectral_radius_over_N=spec,
+            spectral_radius_over_N=spec_b,
+            spectral_radius_over_N_precursor=spec_p,
             precursor_frobenius_delta=delta,
         )
 
@@ -492,6 +540,7 @@ __all__ = [
     "PRECURSOR_INJECTION_WINDOW",
     "DENSITY_RANGE",
     "SPECTRAL_RANGE",
+    "PRECURSOR_SPECTRAL_RANGE",
     "DEFAULT_ER_DENSITY",
     "BLOCK_FRACTIONS",
     "SubstrateInvalid",

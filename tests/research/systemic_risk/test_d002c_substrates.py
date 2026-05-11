@@ -30,6 +30,7 @@ from research.systemic_risk.d002c_substrates import (
     DENSITY_RANGE,
     PRE_EVENT_WINDOW,
     PRECURSOR_INJECTION_WINDOW,
+    PRECURSOR_SPECTRAL_RANGE,
     SPECTRAL_RANGE,
     SUBSTRATE_BY_ID,
     T_HORIZON,
@@ -39,6 +40,7 @@ from research.systemic_risk.d002c_substrates import (
     SubstrateInvalid,
     SubstrateRealization,
     TemporalKtSubstrate,
+    _enforce_calibration_gates,
 )
 
 # ---------------------------------------------------------------------------
@@ -331,3 +333,84 @@ def test_substrate_realization_carries_seed_and_lambda() -> None:
     assert r.lambda_ == pytest.approx(0.40)
     assert r.N == 50
     assert r.substrate_id == "ricci_flow"
+
+
+# ---------------------------------------------------------------------------
+# G9 precursor — Codex P1 regression (2026-05-11).
+#
+# The original implementation enforced the spectral gate ONLY on
+# K_baseline; K_precursor was constructed but never spectrally
+# validated. BlockStructuredSubstrate(..., lambda_=1.0) was producing
+# ρ/N ≈ 1.052 — past the baseline gate hi of 1.05. The gate now
+# applies a wider but bounded range to the precursor (
+# PRECURSOR_SPECTRAL_RANGE = [0.95, 1.15]) reflecting that the precursor
+# IS by design an amplification, while still refusing any pathological
+# explosion that would push K past the comparable regime.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("substrate", SUBSTRATES, ids=SUBSTRATE_IDS)
+@pytest.mark.parametrize("lambda_", [0.0, 0.05, 0.40, 1.0])
+def test_g9_precursor_spectral_radius_in_range(substrate: Substrate, lambda_: float) -> None:
+    """For every (substrate, λ) the PRECURSOR trajectory's mean spectral
+    radius / N must lie inside :data:`PRECURSOR_SPECTRAL_RANGE`. This is
+    the Codex P1 regression — without this gate a substrate at λ=1.0
+    could silently push K outside the comparable regime and bias the
+    downstream metric comparison."""
+    r = substrate.realize(N=100, lambda_=lambda_, seed=42)
+    p_lo, p_hi = PRECURSOR_SPECTRAL_RANGE
+    assert (
+        p_lo <= r.spectral_radius_over_N_precursor <= p_hi
+    ), f"{substrate.id} λ={lambda_}: precursor ρ/N = {r.spectral_radius_over_N_precursor:.4f}"
+
+
+def test_g9_precursor_spectral_radius_lambda_zero_equals_baseline() -> None:
+    """At λ=0 the precursor field equals the baseline by construction —
+    so the two spectral radii MUST be exactly equal (not just within
+    each gate's range)."""
+    for s in SUBSTRATES:
+        r = s.realize(N=100, lambda_=0.0, seed=42)
+        assert r.spectral_radius_over_N == pytest.approx(
+            r.spectral_radius_over_N_precursor, abs=1e-12
+        )
+
+
+def test_g9_precursor_spectral_radius_monotone_in_lambda() -> None:
+    """For every substrate, larger λ → larger precursor spectral radius
+    (the precursor is constructed to amplify coupling). A non-monotone
+    response would indicate the lift mechanism cancels with itself."""
+    for s in SUBSTRATES:
+        rho = [
+            s.realize(N=100, lambda_=lam, seed=42).spectral_radius_over_N_precursor
+            for lam in (0.0, 0.05, 0.40, 1.0)
+        ]
+        assert all(rho[i] <= rho[i + 1] for i in range(len(rho) - 1)), (
+            s.id,
+            rho,
+        )
+
+
+def test_g9_precursor_gate_refuses_out_of_range_synthetic() -> None:
+    """Construct a synthetic (baseline, precursor) pair whose precursor
+    sits *past* :data:`PRECURSOR_SPECTRAL_RANGE` and verify the gate
+    refuses it. This is the fail-closed contract for any future
+    substrate whose lift mechanism is mis-calibrated."""
+    N = 8
+    # Calibrated baseline: identity * 1.0 → ρ = 1.0, ρ/N = 0.125 (way
+    # below baseline gate). We want a baseline INSIDE the range so the
+    # baseline check passes, then a precursor OUTSIDE.
+    K_baseline = np.broadcast_to(np.eye(N) * 1.0, (T_HORIZON, N, N)).copy()
+    # Baseline ρ/N = 1.0/N = 0.125 — below the 0.95 floor. Need a
+    # baseline whose ρ/N is inside [0.95, 1.05].
+    K_baseline = np.broadcast_to(np.eye(N) * 1.0 * N, (T_HORIZON, N, N)).copy()
+    # Precursor amplified by 30% (well past 1.15 cap)
+    K_precursor = K_baseline.copy() * 1.30
+    with pytest.raises(SubstrateInvalid, match="gate G9 precursor failed"):
+        _enforce_calibration_gates(
+            K_baseline=K_baseline,
+            K_precursor=K_precursor,
+            lambda_=1.0,
+            density=None,
+            substrate_id="synthetic",
+            N=N,
+        )
