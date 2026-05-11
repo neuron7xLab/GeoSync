@@ -78,12 +78,36 @@ def test_cell_key_is_stable_across_call_order() -> None:
     a = cell_key((50, 0.5, "block", "tau"))
     b = cell_key((50, 0.5, "block", "tau"))
     assert a == b
-    assert a == "50|0.5|block|tau"
+    # Canonical-JSON-array form: collision-free, type-preserving,
+    # delimiter-safe (cf. test_cell_key_no_type_collision and
+    # test_cell_key_no_delimiter_collision below).
+    assert a == '[50,0.5,"block","tau"]'
 
 
 def test_cell_key_distinguishes_distinct_inputs() -> None:
     assert cell_key((50, 0.5, "a", "b")) != cell_key((50, 0.5, "a", "c"))
     assert cell_key((50, 0.5, "a", "b")) != cell_key((50, 0.6, "a", "b"))
+
+
+def test_cell_key_no_type_collision() -> None:
+    """Regression for Codex P1: (5,) (int) and ("5",) (str) must
+    produce DIFFERENT keys — otherwise save_cell of one would
+    overwrite the other and remaining_cells would silently skip
+    work."""
+    assert cell_key((5,)) != cell_key(("5",))
+    assert cell_key((50, 0.5)) != cell_key((50, "0.5"))
+    assert cell_key((True,)) != cell_key((1,))
+
+
+def test_cell_key_no_delimiter_collision() -> None:
+    """Regression for Codex P1: a single string component
+    containing the old "|" delimiter must NOT collide with the
+    multi-part tuple of the same characters split on the
+    delimiter. Without this guarantee, save_cell on one cell
+    would silently overwrite an unrelated cell."""
+    assert cell_key(("a|b", "c")) != cell_key(("a", "b", "c"))
+    assert cell_key(("[5,",)) != cell_key((5,))
+    assert cell_key(('"x"', "y")) != cell_key(("x", "y"))
 
 
 def test_canonical_json_rejects_nan() -> None:
@@ -236,6 +260,45 @@ def test_g4_code_drift_logs_warning_but_resumes(
         e.get("from_code_sha") == "codeA" and e.get("to_code_sha") == "codeB"
         for e in ckpt.code_drift_events
     )
+
+
+def test_g4_drift_event_persisted_to_disk_immediately(tmp_path: Path) -> None:
+    """Regression for Codex P2: drift event must be written back to
+    disk during load_or_create, NOT deferred to the next save_cell.
+    Without this, a run with zero remaining cells exits without
+    persisting the drift, and the same WARNING repeats on every
+    subsequent load — the audit trail is silently lost."""
+    p = tmp_path / "ckpt.json"
+    mgr_a = CheckpointManager(p, _config(), code_sha="codeA")
+    mgr_a.load_or_create()
+    # No save_cell — checkpoint is empty but exists on disk.
+
+    # Drift on second open
+    mgr_b = CheckpointManager(p, _config(), code_sha="codeB")
+    mgr_b.load_or_create()
+    # ** No save_cell on mgr_b ** — simulates a run that exits
+    # immediately because remaining_cells is empty.
+
+    # Open fresh and inspect on-disk state
+    persisted = json.loads(p.read_text(encoding="utf-8"))
+    assert persisted["code_sha"] == "codeB"
+    drift_events = persisted["code_drift_events"]
+    assert any(
+        e.get("from_code_sha") == "codeA" and e.get("to_code_sha") == "codeB" for e in drift_events
+    )
+
+    # Re-opening with codeB again must NOT add a duplicate drift event
+    mgr_c = CheckpointManager(p, _config(), code_sha="codeB")
+    mgr_c.load_or_create()
+    persisted2 = json.loads(p.read_text(encoding="utf-8"))
+    drift_count_a_to_b = sum(
+        1
+        for e in persisted2["code_drift_events"]
+        if e.get("from_code_sha") == "codeA" and e.get("to_code_sha") == "codeB"
+    )
+    assert (
+        drift_count_a_to_b == 1
+    ), f"drift event should be recorded exactly once; found {drift_count_a_to_b}"
 
 
 # ---------------------------------------------------------------------------

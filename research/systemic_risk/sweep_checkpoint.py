@@ -161,14 +161,27 @@ def config_sha256(sweep_config: dict[str, Any]) -> str:
 def cell_key(parts: tuple[Any, ...]) -> str:
     """Canonical string form for a heterogeneous cell tuple.
 
-    Example: ``cell_key((50, 0.5, "block_structured", "tau_onset"))``
-    → ``"50|0.5|block_structured|tau_onset"``.
+    The encoding is the canonical-JSON array of the parts:
 
-    The form is stable (no Python ``repr`` quirks), hashable as a
-    str, and round-trips through JSON without losing structure
-    (since each component is rendered with canonical_json).
+        cell_key((50, 0.5, "block_structured", "tau_onset"))
+            → '[50,0.5,"block_structured","tau_onset"]'
+
+    This form is collision-free in two ways the previous
+    ``"|".join(...)`` design was NOT:
+
+    * **type-preserving** — ``cell_key((5,))`` (int) is
+      distinct from ``cell_key(("5",))`` (str) because the
+      string components keep their JSON quotes.
+    * **delimiter-safe** — a string component that itself
+      contains a "|" or "[" character does not collide with
+      a multi-part tuple of those characters, because the
+      JSON encoder quotes and escapes the string.
+
+    The form is also stable (no Python ``repr`` quirks),
+    hashable as a str, and round-trips losslessly via
+    ``json.loads(key)``.
     """
-    return "|".join(canonical_json(p).strip('"') for p in parts)
+    return canonical_json(list(parts))
 
 
 def stable_ledger_sha256(checkpoint: SweepCheckpoint) -> str:
@@ -252,7 +265,8 @@ class CheckpointManager:
                 )
             # Code drift: warn but do not fail
             drift_events = list(on_disk.code_drift_events)
-            if on_disk.code_sha != self._code_sha:
+            drift_detected = on_disk.code_sha != self._code_sha
+            if drift_detected:
                 drift_event = {
                     "from_code_sha": on_disk.code_sha,
                     "to_code_sha": self._code_sha,
@@ -270,11 +284,18 @@ class CheckpointManager:
                 config_sha=on_disk.config_sha,
                 code_sha=self._code_sha,
                 created_at=on_disk.created_at,
-                last_updated=on_disk.last_updated,
+                last_updated=_now_iso() if drift_detected else on_disk.last_updated,
                 completed_cells=on_disk.completed_cells,
                 results=dict(on_disk.results),
                 code_drift_events=tuple(drift_events),
             )
+            # Persist drift metadata immediately so the audit trail
+            # survives even when the run exits before any save_cell
+            # call (e.g. zero remaining cells). Without this write,
+            # the file still carries the old code_sha and the same
+            # drift WARNING would repeat on every subsequent load.
+            if drift_detected:
+                self._atomic_write(self._checkpoint)
             return self._checkpoint
 
         now = _now_iso()
