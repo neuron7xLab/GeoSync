@@ -116,6 +116,21 @@ acceptance:
         rule: "FPR(lambda=0) <= 0.05 across all swept cells of that (N, substrate, metric)"
       - id: R3
         rule: "direction stability >= 0.80 (i.e. <= 20% direction flips across seeds at the selected cell)"
+  # Formal mathematical decisions locked at pre-registration time.
+  # These are NOT "defaults" — they are the contract the sweep driver
+  # must agree with at launch. validate_sweep_config() raises
+  # PreregistrationMismatch on any disagreement.
+  formal_decisions:
+    ci_method: bca_bootstrap                                # bias-corrected, accelerated
+    ci_alpha: 0.05                                          # family-wise α
+    signal_ci_ratio_threshold: 1.0                          # R1 numeric form
+    direction_consistency_min_seeds: 3                      # of n_seeds=20
+    direction_stability_min_fraction: 0.80                  # R3 numeric form
+    multiple_testing_correction:
+      method: bonferroni
+      n_cells: 216                                          # 3 substrates × 3 metrics × 3 N × 6 λ × stratified
+      # effective_alpha_per_cell = ci_alpha / n_cells       # derived in code
+    lambda_grid: [0.0, 0.05, 0.10, 0.20, 0.40, 1.0]         # explicit λ sweep dimension
   secondary_metrics_to_log:
     - per_substrate_per_metric_per_N_power_table
     - per_substrate_per_metric_per_N_CI_width_table
