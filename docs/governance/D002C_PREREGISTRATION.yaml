@@ -26,7 +26,7 @@ strict_scope_invariant: INV-IDENTIFICATION-1  # remains globally active
 # 1. Motivation (boundary D-002C must beat)
 # --------------------------------------------------------------
 # D-002B-A boundary (PR #656, ledger sha256
-# e3b9d0a4daa553485e7123bdbe325ca4e9c3c4a9cf46499208087e3910321362):
+# e3b9d0a4daa553485e7123bdbe325ca4e9c3c4a9cf46499208087e3910321362):  # pragma: allowlist secret
 #   - Gate 6 fail-closed (FPR = 0.000) across the full grid.
 #   - sub-MDE on N <= 200 / n_bootstrap=16 / n_seeds=20.
 #   - N=400 cells show partial detectability (power 0.95 at
@@ -193,7 +193,7 @@ disclosure:
 provenance:
   predecessor_report: X10R_GATE6_CERTIFICATION_REPORT.md
   predecessor_boundary_card: docs/governance/X10R_BOUNDARY_CARD.md
-  predecessor_ledger_sha256: e3b9d0a4daa553485e7123bdbe325ca4e9c3c4a9cf46499208087e3910321362
+  predecessor_ledger_sha256: e3b9d0a4daa553485e7123bdbe325ca4e9c3c4a9cf46499208087e3910321362  # pragma: allowlist secret
   protocol_authors: [neuron7xLab, Claude Code]
   not_a_paper: true
   not_a_promise_of_success: true

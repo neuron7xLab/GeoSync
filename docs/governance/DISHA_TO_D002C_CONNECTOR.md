@@ -3,8 +3,8 @@
 **Class.** Architectural cross-reference. Not a claim.
 **Date.** 2026-05-11.
 **Anchor commits:** D-002B-A ledger sha256
-`e3b9d0a4daa553485e7123bdbe325ca4e9c3c4a9cf46499208087e3910321362`;
-Disha artifact PR #590 / #592 lineage.
+`e3b9d0a4daa553485e7123bdbe325ca4e9c3c4a9cf46499208087e3910321362`
+(pragma: allowlist secret); Disha artifact PR #590 / #592 lineage.
 
 This file makes one specific architectural statement:
 

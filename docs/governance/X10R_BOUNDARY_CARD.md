@@ -76,9 +76,9 @@ reviewer can `sha256sum` against this card.
 
 | File | sha256 |
 |---|---|
-| `tmp/x10r_gate6_certification_sweep.json` | `e3b9d0a4daa553485e7123bdbe325ca4e9c3c4a9cf46499208087e3910321362` |
-| `tmp/x10r_gate6_certification_sweep_n_le_200.json` | `fdc69809cb29f0fc6132c1f11d8252c544546f5ed0e67109159e566cac733e05` |
-| `tmp/x10r_gate6_certification_sweep_n400_exploratory.json` | `c53f05cd758fb7abb40dd9118e7be18e398c36217b9365ac60a409563546b378` |
+| `tmp/x10r_gate6_certification_sweep.json` | `e3b9d0a4daa553485e7123bdbe325ca4e9c3c4a9cf46499208087e3910321362` <!-- pragma: allowlist secret --> |
+| `tmp/x10r_gate6_certification_sweep_n_le_200.json` | `fdc69809cb29f0fc6132c1f11d8252c544546f5ed0e67109159e566cac733e05` <!-- pragma: allowlist secret --> |
+| `tmp/x10r_gate6_certification_sweep_n400_exploratory.json` | `c53f05cd758fb7abb40dd9118e7be18e398c36217b9365ac60a409563546b378` <!-- pragma: allowlist secret --> |
 
 ---
 
