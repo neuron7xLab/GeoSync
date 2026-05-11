@@ -22,7 +22,7 @@
 
 id: x10r-gate6-certification
 status: ACTIVE
-claim_type: research
+claim_type: correctness
 promise: >-
   After this PR lands, the Gate 6 high-budget power certification
   sweep (issue #652) is COMPLETE on a scoped subset: the
