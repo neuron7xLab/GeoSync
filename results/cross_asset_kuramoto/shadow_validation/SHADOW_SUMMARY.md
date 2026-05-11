@@ -4,7 +4,7 @@ gate decisions only; no marketing language.
 
 ## Current live bar count
 
-- Live bars completed: **17**
+- Live bars completed: **18**
 - Spike paper-trader start date: 2026-04-11 (day-90 gate ≈ 2026-07-10)
 
 ## Operational health
@@ -19,21 +19,21 @@ gate decisions only; no marketing language.
 | metric | value |
 |---|---:|
 | cumulative_net_return | -0.0401 |
-| annualized_return_live | -0.6061 |
-| annualized_vol_live | 0.0990 |
-| sharpe_live | -6.1229 |
+| annualized_return_live | -0.5724 |
+| annualized_vol_live | 0.0965 |
+| sharpe_live | -5.9347 |
 | max_dd_live | 0.0464 |
-| hit_rate_live | 0.1176 |
-| turnover_ann_live | 2.3822 |
-| cost_drag_bps_live | 23.8200 |
+| hit_rate_live | 0.1111 |
+| turnover_ann_live | 2.2499 |
+| cost_drag_bps_live | 22.5000 |
 
 ## Benchmark comparison
 
 | metric | value |
 |---|---:|
-| benchmark_cum_return | 0.0991 |
-| benchmark_sharpe_live | 4.2457 |
-| relative_return_vs_benchmark | -0.1392 |
+| benchmark_cum_return | 0.1215 |
+| benchmark_sharpe_live | 4.9437 |
+| relative_return_vs_benchmark | -0.1616 |
 
 ## Envelope position
 
