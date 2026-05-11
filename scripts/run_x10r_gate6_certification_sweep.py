@@ -37,11 +37,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from research.reconstruction.sensitivity_surface import (
-    SensitivityCell,
-    SensitivitySurface,
-    mix_substrate_with_null,
-)
 
 from research.reconstruction.kuramoto_on_reconstruction import (
     DEFAULT_BOOTSTRAP_SEEDS,
@@ -51,6 +46,11 @@ from research.reconstruction.kuramoto_on_reconstruction import (
     gate_6_precursor_discriminative,
 )
 from research.reconstruction.positive_control import ground_truth_core_periphery
+from research.reconstruction.sensitivity_surface import (
+    SensitivityCell,
+    SensitivitySurface,
+    mix_substrate_with_null,
+)
 
 
 def _init_worker() -> None:
