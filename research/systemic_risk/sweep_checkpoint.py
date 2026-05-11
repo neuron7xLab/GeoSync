@@ -43,9 +43,11 @@ The contract is small and frozen:
 
 from __future__ import annotations
 
+import enum
 import hashlib
 import json
 import logging
+import math
 import os
 import time
 from dataclasses import dataclass, field
@@ -53,6 +55,39 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Schema version — bumped only on incompatible on-disk format changes.
+# Old files with a known older version may be migrated forward; an unknown
+# version is a hard refuse (we won't silently mis-interpret a future format).
+# ---------------------------------------------------------------------------
+SCHEMA_VERSION: int = 1
+
+
+class OverwritePolicy(enum.Enum):
+    """How :meth:`CheckpointManager.save_cell` handles a re-save of a
+    cell_key that is already present in the ledger.
+
+    Default is :attr:`IDEMPOTENT_ONLY` — fail-closed under
+    non-determinism. A sweep that recomputes a cell and produces a
+    DIFFERENT result on the second pass is a real bug we want to
+    surface, not silently mask by overwriting the ledger.
+    """
+
+    IDEMPOTENT_ONLY = "idempotent_only"
+    """Same payload → silent no-op. Different payload → raise
+    :class:`CheckpointCellConflict`."""
+
+    OVERWRITE_WITH_WARNING = "overwrite_with_warning"
+    """Any re-save overwrites and logs a warning. Use only when the
+    science layer explicitly wants last-write-wins (e.g. mid-sweep
+    re-runs with tuned parameters)."""
+
+    REJECT = "reject"
+    """Any re-save raises :class:`CheckpointCellConflict`, including
+    a bit-identical re-save. Use to surface every redundant
+    compute as a bug."""
 
 
 # ---------------------------------------------------------------------------
@@ -97,6 +132,11 @@ class SweepCheckpoint:
     The on-disk JSON format is the canonical form: it round-trips
     through :meth:`to_dict` / :meth:`from_dict` and is the input
     to :func:`stable_ledger_sha256`.
+
+    The ``schema_version`` field is the forward-compat fence: an
+    on-disk file with an unknown version is refused by
+    :meth:`from_dict` rather than silently mis-interpreted. Bump
+    :data:`SCHEMA_VERSION` only on incompatible format changes.
     """
 
     sweep_id: str
@@ -107,9 +147,11 @@ class SweepCheckpoint:
     completed_cells: tuple[str, ...]
     results: dict[str, CellResult] = field(default_factory=dict)
     code_drift_events: tuple[dict[str, str], ...] = ()
+    schema_version: int = SCHEMA_VERSION
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "schema_version": int(self.schema_version),
             "sweep_id": self.sweep_id,
             "config_sha": self.config_sha,
             "code_sha": self.code_sha,
@@ -122,7 +164,18 @@ class SweepCheckpoint:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> SweepCheckpoint:
+        # Schema-version fence: silently absent → assume v1
+        # (back-compat with files written before the field
+        # existed). Present but unknown → hard refuse.
+        version = int(d.get("schema_version", 1))
+        if version > SCHEMA_VERSION:
+            raise CheckpointSchemaError(
+                f"on-disk schema_version={version} is newer than this "
+                f"module's SCHEMA_VERSION={SCHEMA_VERSION}; refusing to "
+                f"load (a newer module may have written this file)"
+            )
         return cls(
+            schema_version=version,
             sweep_id=str(d["sweep_id"]),
             config_sha=str(d["config_sha"]),
             code_sha=str(d["code_sha"]),
@@ -205,17 +258,115 @@ class CheckpointConfigMismatch(RuntimeError):
     different sweeps."""
 
 
-class CheckpointManager:
-    """Atomic per-cell checkpoint store.
+class CheckpointSchemaError(RuntimeError):
+    """Raised when an on-disk checkpoint declares a ``schema_version``
+    this module does not know how to interpret. Refusing to load
+    rather than silently mis-interpreting a future format."""
 
-    Usage:
+
+class CheckpointCellConflict(RuntimeError):
+    """Raised by :meth:`CheckpointManager.save_cell` when the
+    configured :class:`OverwritePolicy` forbids the requested
+    re-save. The default policy is :attr:`OverwritePolicy.IDEMPOTENT_ONLY`
+    which raises on a non-identical re-save (a real bug in the
+    science layer that would otherwise be masked by a silent
+    overwrite)."""
+
+
+class CheckpointTypeError(TypeError):
+    """Raised by :func:`normalize_config` when the supplied
+    ``sweep_config`` contains a value that has no canonical JSON
+    representation (e.g. ``set``, ``datetime``, custom class)."""
+
+
+def normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+    """Return a canonical-JSON-safe copy of ``config`` for hashing.
+
+    Two callers that build the same logical sweep config from
+    different Python idioms (tuple vs list, ``frozenset`` vs sorted
+    list, ``numpy.float64`` vs ``float``) must end up with the same
+    sweep identity. This helper enforces that contract.
+
+    Rules:
+
+    * ``tuple`` → ``list`` (recursive)
+    * ``set`` / ``frozenset`` → sorted ``list`` (raises if elements
+      are not totally orderable)
+    * ``Path`` → ``str`` (its POSIX form)
+    * ``bool`` / ``int`` / ``float`` / ``str`` / ``None`` → kept as-is
+    * ``dict`` → ``dict`` with str keys, recursively normalised
+    * any other type → :class:`CheckpointTypeError`
+
+    Non-finite floats (NaN, ±Inf) are rejected — the same rule
+    :func:`canonical_json` enforces — because ``NaN != NaN`` would
+    silently break sweep identity.
+    """
+    normalised = _normalize(config)
+    if not isinstance(normalised, dict):
+        raise CheckpointTypeError(f"sweep_config must be a dict; got {type(config).__name__}")
+    return normalised
+
+
+def _normalize(obj: Any) -> Any:
+    if isinstance(obj, bool):
+        # bool is a subclass of int; check first to preserve True/False
+        return obj
+    if obj is None or isinstance(obj, (int, str)):
+        return obj
+    if isinstance(obj, float):
+        if not math.isfinite(obj):
+            raise CheckpointTypeError(f"non-finite float in sweep_config: {obj!r}")
+        return obj
+    if isinstance(obj, Path):
+        return obj.as_posix()
+    if isinstance(obj, dict):
+        return {str(k): _normalize(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_normalize(v) for v in obj]
+    if isinstance(obj, (set, frozenset)):
+        try:
+            ordered = sorted(obj)
+        except TypeError as exc:
+            raise CheckpointTypeError(
+                f"set in sweep_config contains non-orderable elements: {obj!r}"
+            ) from exc
+        return [_normalize(v) for v in ordered]
+    raise CheckpointTypeError(f"unsupported type {type(obj).__name__!r} in sweep_config: {obj!r}")
+
+
+class CheckpointManager:
+    """Atomic durable per-cell checkpoint store.
+
+    Usage::
 
         mgr = CheckpointManager(path, sweep_config={...})
         ckpt = mgr.load_or_create()
         for cell in mgr.remaining_cells(full_grid):
             result = compute(cell)  # science layer
-            mgr.save_cell(cell_key=cell, result=result)
+            mgr.save_cell(cell, result=result)
         df = mgr.export_ledger()
+
+    Concurrency contract — single-writer only
+    -----------------------------------------
+    This class is **NOT** thread-safe and **NOT** multi-process
+    safe. Only one CheckpointManager instance per checkpoint file
+    may be writing at a time. The atomic ``replace`` guarantees
+    file integrity (no torn writes) but a concurrent writer would
+    race on the read-modify-write cycle: two writers can both
+    observe the same pre-state, each compute an updated state, and
+    the second writer's ``replace`` overwrites the first writer's
+    cell.
+
+    For a multi-process sweep (e.g. ``multiprocessing.Pool``), the
+    canonical pattern is: workers return their per-cell results to
+    a *single* coordinator process, and the coordinator owns the
+    CheckpointManager. Workers must not touch the checkpoint file
+    directly. A future PR may add file-locking + shard-per-cell
+    storage to allow safe concurrent writers; until then,
+    single-writer is the contract.
+
+    Multiple **readers** are safe (the ``replace`` is atomic) so
+    long as no writer is active.
     """
 
     def __init__(
@@ -311,12 +462,29 @@ class CheckpointManager:
         self._atomic_write(self._checkpoint)
         return self._checkpoint
 
-    def save_cell(self, cell_key_str: str, result: CellResult) -> None:
-        """Save one cell result to disk atomically.
+    def save_cell(
+        self,
+        cell_key_str: str,
+        result: CellResult,
+        *,
+        policy: OverwritePolicy = OverwritePolicy.IDEMPOTENT_ONLY,
+    ) -> None:
+        """Save one cell result to disk atomically and durably.
 
-        Idempotent: writing the same (cell_key, result) twice is
-        a no-op on the ledger. If a different result is written
-        for the same cell_key, the latest write wins (we log it).
+        Re-save semantics are governed by ``policy``:
+
+        * :attr:`OverwritePolicy.IDEMPOTENT_ONLY` (default,
+          fail-closed): bit-identical re-save is a no-op; a
+          non-identical re-save raises
+          :class:`CheckpointCellConflict`. A sweep that recomputes
+          a cell and produces a *different* payload on the second
+          pass is a real bug we want to surface, not silently mask.
+        * :attr:`OverwritePolicy.OVERWRITE_WITH_WARNING`: any
+          re-save overwrites; a warning is logged. Use when the
+          science layer explicitly wants last-write-wins.
+        * :attr:`OverwritePolicy.REJECT`: any re-save raises,
+          including a bit-identical one. Use to surface every
+          redundant compute.
         """
         if self._checkpoint is None:
             self.load_or_create()
@@ -324,9 +492,30 @@ class CheckpointManager:
         completed = set(self._checkpoint.completed_cells)
         if cell_key_str in completed:
             existing = self._checkpoint.results.get(cell_key_str)
-            if existing is not None and existing.to_dict() == result.to_dict():
-                return  # idempotent no-op
-            logger.warning("checkpoint cell %s overwritten with new result", cell_key_str)
+            identical = existing is not None and existing.to_dict() == result.to_dict()
+            if policy is OverwritePolicy.IDEMPOTENT_ONLY:
+                if identical:
+                    return  # idempotent no-op
+                raise CheckpointCellConflict(
+                    f"cell {cell_key_str!r} already has a different result; "
+                    f"re-save refused under IDEMPOTENT_ONLY policy. Pass "
+                    f"policy=OverwritePolicy.OVERWRITE_WITH_WARNING to "
+                    f"override explicitly."
+                )
+            if policy is OverwritePolicy.REJECT:
+                raise CheckpointCellConflict(
+                    f"cell {cell_key_str!r} already present; re-save refused under REJECT policy"
+                )
+            # OVERWRITE_WITH_WARNING
+            if not identical:
+                logger.warning(
+                    "checkpoint cell %s overwritten with new result",
+                    cell_key_str,
+                )
+            elif identical:
+                # No-op write to keep behaviour equivalent to
+                # IDEMPOTENT_ONLY on identical payloads.
+                return
         new_results = dict(self._checkpoint.results)
         new_results[cell_key_str] = result
         new_completed = tuple(sorted(set(self._checkpoint.completed_cells) | {cell_key_str}))
@@ -383,18 +572,50 @@ class CheckpointManager:
     # ------------------------------------------------------------------
 
     def _atomic_write(self, checkpoint: SweepCheckpoint) -> None:
-        """Write to ``path.tmp`` then ``os.replace`` to final path.
+        """Durable atomic write of the checkpoint to disk.
 
-        Atomic on POSIX: a reader either sees the old file or the
+        Strategy: write to ``path.tmp`` → ``flush`` →
+        ``os.fsync(fileno)`` → ``os.replace`` to the final path.
+        Without the fsync, ``os.replace`` is atomic but not durable:
+        a power-loss between the rename and the kernel flushing the
+        page cache can leave the on-disk inode pointing at a new
+        name with old (or stale) contents. The fsync guarantees the
+        data hits stable storage before the rename is observed by
+        any reader.
+
+        Atomicity (POSIX): a reader either sees the old file or the
         new file, never a half-written file.
+
+        Durability (POSIX with fsync): after this method returns,
+        the new state survives a kernel panic or power loss.
         """
         self._path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = self._path.with_suffix(self._path.suffix + ".tmp")
-        payload = checkpoint.to_dict()
-        tmp_path.write_text(
-            json.dumps(payload, indent=2, sort_keys=True, allow_nan=False),
-            encoding="utf-8",
+        payload = json.dumps(
+            checkpoint.to_dict(),
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
+        ).encode("utf-8")
+        # Open with O_WRONLY|O_CREAT|O_TRUNC; write; flush; fsync.
+        fd = os.open(
+            tmp_path,
+            os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+            0o644,
         )
+        try:
+            with os.fdopen(fd, "wb", closefd=True) as fh:
+                fh.write(payload)
+                fh.flush()
+                os.fsync(fh.fileno())
+        except BaseException:
+            # Drop the partial tmp file on any error path so a
+            # subsequent run doesn't see stale .tmp leftovers.
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
         os.replace(tmp_path, self._path)
 
 
