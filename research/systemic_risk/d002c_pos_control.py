@@ -70,6 +70,7 @@ from .d002c_metrics import (
     MetricEvaluation,
     signal_mean,
 )
+from .d002c_preflight import canonical_preflight_json
 from .d002c_substrates import (
     ALL_SUBSTRATES,
     EVENT_QUARTER,
@@ -139,13 +140,18 @@ class PosControlVerdict:
 # ---------------------------------------------------------------------------
 
 
-def _canonical_json(payload: dict[str, Any]) -> str:
-    """Canonical JSON: sorted keys, no whitespace."""
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+def _capsule_sha256(payload: dict[str, Any]) -> str:
+    """SHA-256 over the validator's exact canonical form.
 
-
-def _sha256(payload: dict[str, Any]) -> str:
-    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+    The pre-flight validator (:mod:`d002c_preflight`) recomputes
+    each capsule's sha by re-encoding the capsule body (minus the
+    ``sha256`` field) via :func:`canonical_preflight_json`. To
+    survive validator round-trip, writers MUST use the SAME
+    function — anything else (bare ``json.dumps``, smaller
+    aggregate dicts, untouched non-finite floats) drifts and the
+    validator refuses launch with ``capsule_sha256_mismatch``.
+    """
+    return hashlib.sha256(canonical_preflight_json(payload).encode("utf-8")).hexdigest()
 
 
 def _now_iso() -> str:
@@ -374,7 +380,12 @@ def run_pos_control_cell(
         "steps_per_quarter": steps_per_quarter,
         "omega_gamma": omega_gamma,
     }
-    sha = _sha256(payload)
+    # Per-cell sha uses the validator's exact canonical form so
+    # downstream tooling can recompute it independently. In the
+    # degenerate-variance branch ``ratio`` is ``math.inf``;
+    # canonical_preflight_json substitutes a stable string sentinel
+    # so the sha is well-defined.
+    sha = _capsule_sha256(payload)
     return PosControlCellResult(
         substrate_id=substrate.id,
         metric_id=metric.id,
@@ -471,38 +482,36 @@ def run_pos_control_all(
     )
     all_pass = n_exclude == 0
 
-    aggregate = {
-        "per_cell_shas": [r.sha256 for r in results],
-        "n_pass": n_pass,
-        "n_exclude": n_exclude,
-        "threshold": threshold,
-        "all_pass": all_pass,
-        "excluded_combos": [list(c) for c in excluded_combos],
-    }
-    sha = _sha256(aggregate)
     generated_at = _now_iso()
 
+    # Build the FULL capsule body (every field except ``sha256``)
+    # FIRST, then sha it via the validator's canonical form. This
+    # is what makes the preflight round-trip succeed: the validator
+    # recomputes sha over capsule_without_sha and refuses launch on
+    # any drift.
+    capsule_without_sha: dict[str, Any] = {
+        "kind": "d002c_pos_control_capsule_v1",
+        "all_pass": all_pass,
+        "n_pass": n_pass,
+        "n_exclude": n_exclude,
+        "excluded_combos": [list(c) for c in excluded_combos],
+        "n_seeds": n_seeds,
+        "N": N,
+        "lambda_": lambda_,
+        "threshold": threshold,
+        "steps_per_quarter": steps_per_quarter,
+        "omega_gamma": omega_gamma,
+        "rng_seed_base": rng_seed_base,
+        "wallclock_seconds": wall,
+        "results": [_result_to_dict(r) for r in results],
+        "generated_at": generated_at,
+        "substrate_ids": [s.id for s in substrates],
+        "metric_ids": [m.id for m in metrics],
+    }
+    sha = _capsule_sha256(capsule_without_sha)
+
     if output_path is not None:
-        capsule: dict[str, Any] = {
-            "kind": "d002c_pos_control_capsule_v1",
-            "all_pass": all_pass,
-            "n_pass": n_pass,
-            "n_exclude": n_exclude,
-            "excluded_combos": [list(c) for c in excluded_combos],
-            "n_seeds": n_seeds,
-            "N": N,
-            "lambda_": lambda_,
-            "threshold": threshold,
-            "steps_per_quarter": steps_per_quarter,
-            "omega_gamma": omega_gamma,
-            "rng_seed_base": rng_seed_base,
-            "wallclock_seconds": wall,
-            "results": [_result_to_dict(r) for r in results],
-            "sha256": sha,
-            "generated_at": generated_at,
-            "substrate_ids": [s.id for s in substrates],
-            "metric_ids": [m.id for m in metrics],
-        }
+        capsule = {**capsule_without_sha, "sha256": sha}
         _atomic_write(Path(output_path), capsule)
 
     return PosControlVerdict(

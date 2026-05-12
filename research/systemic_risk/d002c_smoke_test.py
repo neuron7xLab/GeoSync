@@ -64,10 +64,27 @@ from .d002c_metrics import (
     ALL_METRICS,
     Metric,
 )
+from .d002c_preflight import canonical_preflight_json
 from .d002c_substrates import (
     ALL_SUBSTRATES,
     Substrate,
 )
+
+
+def _capsule_sha256(payload: dict[str, Any]) -> str:
+    """SHA-256 over the validator's exact canonical form.
+
+    The pre-flight validator (:mod:`d002c_preflight`) recomputes
+    a capsule's sha by re-encoding the capsule body (minus the
+    ``sha256`` field) via :func:`canonical_preflight_json`. To
+    survive validator round-trip, the smoke-test writer MUST use
+    the SAME function — anything else (bare ``json.dumps``, a
+    smaller surrogate dict, untouched non-finite floats) drifts
+    and the validator refuses launch with
+    ``capsule_sha256_mismatch``.
+    """
+    return hashlib.sha256(canonical_preflight_json(payload).encode("utf-8")).hexdigest()
+
 
 # ---------------------------------------------------------------------------
 # Locked defaults
@@ -126,14 +143,6 @@ class SmokeTestResult:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _canonical_json(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
-
-
-def _sha256(payload: dict[str, Any]) -> str:
-    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
 
 
 def _now_iso() -> str:
@@ -373,25 +382,32 @@ def run_smoke_test(
     over_budget = total_wall > max_wallclock_seconds
     verdict = "PASS" if (n_failed == 0 and not over_budget) else "FAIL"
 
-    payload: dict[str, Any] = {
+    generated_at = _now_iso()
+
+    # Build the FULL capsule body (every field except ``sha256``)
+    # FIRST, then sha it via the validator's canonical form so the
+    # preflight round-trip succeeds. The previous implementation
+    # hashed a smaller payload dict; that drifted from the
+    # validator's recompute and triggered ``capsule_sha256_mismatch``
+    # refusal at launch time.
+    capsule_without_sha: dict[str, Any] = {
+        "verdict": verdict,
         "grid_N": list(N_grid),
         "grid_lambda": list(lambda_grid),
         "n_seeds": n_seeds,
         "n_cells_total": len(cells),
         "n_cells_ok": n_ok,
         "n_cells_failed": n_failed,
+        "total_wallclock_seconds": total_wall,
         "max_wallclock_seconds": max_wallclock_seconds,
+        "over_budget": over_budget,
         "steps_per_quarter": steps_per_quarter,
         "omega_gamma": omega_gamma,
         "rng_seed_base": rng_seed_base,
-        "over_budget": over_budget,
-        "verdict": verdict,
-        "cell_signatures": [
-            f"{c.substrate_id}×{c.metric_id}@N={c.N},λ={c.lambda_}:ok={c.ok}" for c in cells
-        ],
+        "cells": [_cell_to_dict(c) for c in cells],
+        "generated_at": generated_at,
     }
-    sha = _sha256(payload)
-    generated_at = _now_iso()
+    sha = _capsule_sha256(capsule_without_sha)
 
     result = SmokeTestResult(
         grid_N=tuple(int(x) for x in N_grid),
@@ -408,24 +424,7 @@ def run_smoke_test(
     )
 
     if output_path is not None:
-        capsule: dict[str, Any] = {
-            "verdict": verdict,
-            "grid_N": list(N_grid),
-            "grid_lambda": list(lambda_grid),
-            "n_seeds": n_seeds,
-            "n_cells_total": len(cells),
-            "n_cells_ok": n_ok,
-            "n_cells_failed": n_failed,
-            "total_wallclock_seconds": total_wall,
-            "max_wallclock_seconds": max_wallclock_seconds,
-            "over_budget": over_budget,
-            "steps_per_quarter": steps_per_quarter,
-            "omega_gamma": omega_gamma,
-            "rng_seed_base": rng_seed_base,
-            "cells": [_cell_to_dict(c) for c in cells],
-            "sha256": sha,
-            "generated_at": generated_at,
-        }
+        capsule = {**capsule_without_sha, "sha256": sha}
         _atomic_write(Path(output_path), capsule)
 
     return result
