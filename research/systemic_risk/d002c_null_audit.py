@@ -262,28 +262,64 @@ def _extract_per_seed_arrays(
     audit. The keys we accept are intentionally a small union — a stub
     capsule from C2.3 that only carries aggregate variances will be
     skipped cleanly, with a log line.
+
+    D-002C C2.4-A2 — the sweep runner writes the paired vectors under a
+    nested ``null_audit_payload`` sub-dict whose own ``sha256`` field
+    is content-addressed via ``canonical_preflight_json``. When that
+    sub-dict is present we route through
+    :meth:`d002c_sweep_runner.NullAuditCellPayload.from_payload_dict`
+    so the sha is verified fail-closed (a one-byte tamper of the
+    on-disk payload makes the aggregator record SKIPPED_NO_PER_SEED_DATA,
+    NEVER silently accept the row). For pre-A2 capsules and the C2.3
+    flat schema we fall back to the legacy key set.
     """
+    nested = cell.get("null_audit_payload")
+    if isinstance(nested, dict):
+        # Lazy import to avoid a module-load cycle with d002c_sweep_runner
+        # (which in turn imports from this module via the preflight
+        # validator chain). Function-scope mirrors the
+        # _canonical_capsule_sha pattern below.
+        from .d002c_sweep_runner import (  # noqa: PLC0415
+            NullAuditCellPayload,
+            NullAuditPayloadInvalid,
+        )
+
+        try:
+            payload = NullAuditCellPayload.from_payload_dict(nested)
+        except NullAuditPayloadInvalid as exc:
+            # Fail-closed: a corrupted on-disk payload is NOT silently
+            # downgraded to "no data"; surface the divergence so the
+            # aggregator records SKIPPED for the cell instead of an
+            # invented PASS.
+            logger.info("null_audit: payload rejected (%s) — treating as no per-seed data", exc)
+            return None
+        p_arr = np.asarray(payload.precursor_values, dtype=np.float64)
+        n_arr = np.asarray(payload.null_values, dtype=np.float64)
+        if p_arr.shape != n_arr.shape or p_arr.ndim != 1 or p_arr.size < MIN_N_SEEDS:
+            return None
+        return p_arr, n_arr
+
     candidates_precursor = (
         "precursor_per_seed",
         "per_seed_precursor",
         "precursor_values",
     )
     candidates_null = ("null_per_seed", "per_seed_null", "null_values")
-    p_arr: NDArray[np.float64] | None = None
-    n_arr: NDArray[np.float64] | None = None
+    p_arr_opt: NDArray[np.float64] | None = None
+    n_arr_opt: NDArray[np.float64] | None = None
     for k in candidates_precursor:
         if k in cell and cell[k] is not None:
-            p_arr = np.asarray(cell[k], dtype=np.float64)
+            p_arr_opt = np.asarray(cell[k], dtype=np.float64)
             break
     for k in candidates_null:
         if k in cell and cell[k] is not None:
-            n_arr = np.asarray(cell[k], dtype=np.float64)
+            n_arr_opt = np.asarray(cell[k], dtype=np.float64)
             break
-    if p_arr is None or n_arr is None:
+    if p_arr_opt is None or n_arr_opt is None:
         return None
-    if p_arr.shape != n_arr.shape or p_arr.ndim != 1 or p_arr.size < MIN_N_SEEDS:
+    if p_arr_opt.shape != n_arr_opt.shape or p_arr_opt.ndim != 1 or p_arr_opt.size < MIN_N_SEEDS:
         return None
-    return p_arr, n_arr
+    return p_arr_opt, n_arr_opt
 
 
 def run_null_audit_from_capsule(
@@ -499,6 +535,18 @@ def _iter_cells_from_capsule(
 ) -> tuple[tuple[str, tuple[NDArray[np.float64], NDArray[np.float64]] | None], ...]:
     """Walk a sweep capsule and yield (cell_key, arrays_or_None) pairs.
 
+    Two on-disk shapes are accepted:
+
+    * **C2.3 sweep capsule** — ``data["results"]`` is a list of per-cell
+      dicts. The cell identity is derived from
+      ``substrate_id/metric_id/N/lambda_`` fields on the dict itself.
+    * **D-002D sweep checkpoint** (D-002C C2.4-A2 emitter) —
+      ``data["results"]`` is a dict mapping ``cell_key`` strings to
+      ``{cell_key, payload, duration_seconds}`` rows; the per-seed
+      paired vectors live under ``payload.null_audit_payload``. We walk
+      the dict in sorted-key order so two invocations on the same
+      checkpoint emit deterministic per-cell sequences.
+
     Cells lacking per-seed data are yielded with ``None`` so the
     aggregator can record them as SKIPPED — they MUST NOT be silently
     dropped (a dropped cell would falsely raise aggregate=PASS).
@@ -513,22 +561,42 @@ def _iter_cells_from_capsule(
         raise NullAuditInvalid(f"could not parse capsule {capsule_path}: {exc}") from exc
     if not isinstance(data, dict):
         raise NullAuditInvalid(f"capsule root must be a JSON object; got {type(data).__name__}")
-    results_list = data.get("results")
-    if not isinstance(results_list, list):
-        return ()
+    results_field = data.get("results")
     out: list[tuple[str, tuple[NDArray[np.float64], NDArray[np.float64]] | None]] = []
-    for cell in results_list:
-        if not isinstance(cell, dict):
-            continue
-        cell_id = (
-            f"[N={cell.get('N', '?')},"
-            f"lambda={cell.get('lambda_', '?')},"
-            f"sub={cell.get('substrate_id', '?')},"
-            f"metric={cell.get('metric_id', '?')}]"
-        )
-        arrays = _extract_per_seed_arrays(cell)
-        out.append((cell_id, arrays))
-    return tuple(out)
+
+    if isinstance(results_field, list):
+        for cell in results_field:
+            if not isinstance(cell, dict):
+                continue
+            cell_id = (
+                f"[N={cell.get('N', '?')},"
+                f"lambda={cell.get('lambda_', '?')},"
+                f"sub={cell.get('substrate_id', '?')},"
+                f"metric={cell.get('metric_id', '?')}]"
+            )
+            arrays = _extract_per_seed_arrays(cell)
+            out.append((cell_id, arrays))
+        return tuple(out)
+
+    if isinstance(results_field, dict):
+        # D-002D checkpoint layout: deterministic walk by sorted
+        # cell_key so the aggregator output is stable across runs.
+        for key in sorted(results_field.keys()):
+            row = results_field[key]
+            if not isinstance(row, dict):
+                continue
+            payload = row.get("payload")
+            if not isinstance(payload, dict):
+                continue
+            # Skip preflight-excluded rows; they are SKIPPED_BY_PREFLIGHT
+            # in the checkpoint and carry no metric values.
+            if payload.get("status") == "SKIPPED_BY_PREFLIGHT":
+                continue
+            arrays = _extract_per_seed_arrays(payload)
+            out.append((str(key), arrays))
+        return tuple(out)
+
+    return ()
 
 
 def run_null_audit_all(
