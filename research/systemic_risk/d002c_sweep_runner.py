@@ -1,0 +1,879 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
+"""D-002C C2.4 — Signal Amplification Sweep runner core.
+
+Rationale
+=========
+The D-002C pre-registration commits 216 cells (3 substrates × 3
+metrics × 3 N × 6 λ × ...) to a falsification protocol whose
+verdict is computed mechanically from a BCa-bootstrap CI on the
+per-seed signal differences. This module is the driver that walks
+the cell grid, dispatches a single cell to substrate → integrator
+→ metric → BCa-CI → direction, and writes each completed cell
+through the D-002D :class:`CheckpointManager` for atomic per-cell
+durability.
+
+API
+===
+* :class:`SweepCellOutput` — frozen per-cell payload (sha256
+  content-addressed; same inputs → same sha).
+* :class:`SweepResult`     — frozen aggregate over the whole
+  cell grid (carries the per-cell tuple + a stable aggregate
+  sha256).
+* :func:`run_one_cell`     — one (substrate, metric, N, λ) cell:
+  paired-CRN over ``n_seeds`` substrate realisations + Kuramoto
+  integrations, BCa bootstrap CI on the per-seed diff vector,
+  direction by sign-count consistency.
+* :func:`run_sweep`        — full sweep over the locked grid with
+  resumable per-cell checkpointing. Refuses to launch on any
+  pre-registration mismatch (delegates to
+  :func:`d002c_preregistration.validate_sweep_config`).
+
+Paired-CRN protocol
+===================
+Mirrors the C2.3 CRN validator:
+* For seed ``i`` in ``[base, base + n_seeds)``:
+    substrate.realize(seed=i) → ``(K_baseline, K_precursor)``
+    simulate_kuramoto(K_baseline, seed=i)  → R/θ trajectory
+    simulate_kuramoto(K_precursor, seed=i) → R/θ trajectory
+    metric.evaluate(...) on each → ``(eval_null, eval_precursor)``
+* Same seed → same ω draw → same θ(0). Shared noise cancels in
+  the metric difference. This is the only stream-CRN protocol
+  that survives the proof from C2.3.
+
+BCa bootstrap CI
+================
+First-principles BCa (DiCiccio & Efron 1996):
+
+1. θ̂ = mean(samples) on the original sample.
+2. Resample with replacement ``n_bootstrap`` times → θ̂_b.
+3. Bias correction
+       z_0 = Φ^{-1}( #{θ̂_b < θ̂} / n_bootstrap )
+4. Acceleration via jackknife
+       θ̂_{-i} = mean(samples without i)
+       θ̂_{··} = mean(θ̂_{-i})
+       a = Σ(θ̂_{··} − θ̂_{-i})³ / [6 · (Σ(θ̂_{··} − θ̂_{-i})²)^{3/2}]
+5. Adjusted endpoints
+       α₁ = Φ(z_0 + (z_0 + z_{α/2})   / (1 − a (z_0 + z_{α/2})))
+       α₂ = Φ(z_0 + (z_0 + z_{1−α/2}) / (1 − a (z_0 + z_{1−α/2})))
+       CI = (percentile(θ̂_b, α₁), percentile(θ̂_b, α₂))
+
+Edge cases:
+* ``n_bootstrap < 2``         → ValueError.
+* Empty / single-element sample → ValueError.
+* Zero bootstrap variance     → CI collapses to (θ̂, θ̂).
+* Zero jackknife denominator  → ``a = 0`` (degenerate but defined).
+* ``z_0`` saturated by an empty resample tail → clamped to a
+  finite value before substitution.
+
+Strict scope
+============
+Sweep driver + BCa bootstrap. NO claim layer. NO threshold
+tuning. NO post-hoc relaxation. The verdict that consumes
+:class:`SweepResult` is the C2.5 acceptance evaluator (pending);
+this module emits no claim of its own.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Final
+
+import numpy as np
+from numpy.typing import NDArray
+from scipy.stats import norm
+
+from .d002c_kuramoto import (
+    DEFAULT_OMEGA_GAMMA,
+    DEFAULT_STEPS_PER_QUARTER,
+    simulate_kuramoto,
+)
+from .d002c_metrics import (
+    METRIC_BY_ID,
+    Metric,
+    MetricEvaluation,
+    signal_mean,
+)
+from .d002c_preregistration import (
+    D002CPreregistration,
+    validate_sweep_config,
+)
+from .d002c_substrates import (
+    EVENT_QUARTER,
+    PRE_EVENT_START_QUARTER,
+    SUBSTRATE_BY_ID,
+    Substrate,
+)
+from .sweep_checkpoint import (
+    CellResult,
+    CheckpointManager,
+    canonical_json,
+    cell_key,
+)
+
+# ---------------------------------------------------------------------------
+# Module constants
+# ---------------------------------------------------------------------------
+
+#: The pre-event window in metric-step units depends on the integrator's
+#: ``steps_per_quarter``. The metric layer reports values relative to the
+#: window start; the right-censoring horizon for the KM aggregator equals
+#: the window length in steps.
+PRE_EVENT_WINDOW_QUARTERS: Final[int] = EVENT_QUARTER - PRE_EVENT_START_QUARTER
+
+#: Default code sha used by :func:`run_sweep` if the caller does not pass
+#: an explicit ``code_sha``. The CheckpointManager stores this as soft
+#: metadata; a drift versus the on-disk file is a warning, not a refusal.
+DEFAULT_CODE_SHA: Final[str] = "d002c_sweep_runner@unknown"
+
+
+class SweepRunnerInvalid(RuntimeError):
+    """Bad input to :func:`run_one_cell` / :func:`run_sweep`."""
+
+
+# ---------------------------------------------------------------------------
+# Frozen outputs
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SweepCellOutput:
+    """One sweep cell's verdict-ready payload.
+
+    Fields
+    ------
+    cell_key
+        Canonical-JSON form of ``[N, lambda_, substrate_id, metric_id]``.
+        Matches :func:`sweep_checkpoint.cell_key` so the checkpoint
+        ledger and the runner agree on identity.
+    sha256
+        Hex sha256 over the canonical-JSON payload of the load-bearing
+        fields (everything except ``sha256`` itself and the wallclock).
+        Same inputs → same sha across calls / processes / machines.
+    """
+
+    cell_key: str
+    substrate_id: str
+    metric_id: str
+    N: int
+    lambda_: float
+    n_seeds: int
+    n_bootstrap: int
+    signal_mean: float
+    bca_ci_lo: float
+    bca_ci_hi: float
+    signal_over_ci: float
+    direction: str  # "up" | "down" | "none"
+    censoring_fraction_precursor: float
+    censoring_fraction_null: float
+    wallclock_seconds: float
+    sha256: str
+
+    def to_payload_dict(self) -> dict[str, Any]:
+        """Canonical dict used both for sha computation and on-disk storage.
+
+        Wallclock is excluded from the sha so a re-run with identical
+        inputs and a different machine clock produces the same sha.
+        """
+        return {
+            "cell_key": self.cell_key,
+            "substrate_id": self.substrate_id,
+            "metric_id": self.metric_id,
+            "N": int(self.N),
+            "lambda_": float(self.lambda_),
+            "n_seeds": int(self.n_seeds),
+            "n_bootstrap": int(self.n_bootstrap),
+            "signal_mean": _finite_or_str(self.signal_mean),
+            "bca_ci_lo": _finite_or_str(self.bca_ci_lo),
+            "bca_ci_hi": _finite_or_str(self.bca_ci_hi),
+            "signal_over_ci": _finite_or_str(self.signal_over_ci),
+            "direction": self.direction,
+            "censoring_fraction_precursor": float(self.censoring_fraction_precursor),
+            "censoring_fraction_null": float(self.censoring_fraction_null),
+        }
+
+
+@dataclass(frozen=True)
+class SweepResult:
+    """Frozen aggregate over a full sweep."""
+
+    preregistration_sha: str
+    completed_cells: int
+    total_cells: int
+    results: tuple[SweepCellOutput, ...]
+    sha256: str
+    generated_at: str
+    wallclock_seconds: float
+
+
+# ---------------------------------------------------------------------------
+# Determinism helpers
+# ---------------------------------------------------------------------------
+
+
+def _finite_or_str(x: float) -> Any:
+    """JSON-safe float: non-finite → string sentinel (NaN/+Inf/-Inf).
+
+    Canonical JSON disallows non-finite floats; the sweep contract
+    requires every cell payload to be JSON-serialisable so the
+    checkpoint ledger and the sha256 are well-defined. We replace
+    non-finite floats with a string sentinel ("NaN", "Infinity",
+    "-Infinity") that is deterministic + hashable + reviewable.
+    """
+    f = float(x)
+    if math.isnan(f):
+        return "NaN"
+    if math.isinf(f):
+        return "Infinity" if f > 0 else "-Infinity"
+    return f
+
+
+def _sha256_over_payload(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def _now_iso() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+# ---------------------------------------------------------------------------
+# BCa bootstrap
+# ---------------------------------------------------------------------------
+
+
+def _percentile_of_value(samples: NDArray[np.float64], value: float) -> float:
+    """Empirical fraction of ``samples`` strictly less than ``value``.
+
+    Returns a value in [0, 1]. Used to bias-correct in BCa.
+    """
+    if samples.size == 0:
+        return 0.5
+    return float(np.mean(samples < value))
+
+
+def _empirical_percentile(samples: NDArray[np.float64], fraction: float) -> float:
+    """``numpy.quantile`` with the BCa-canonical 'linear' interpolation.
+
+    ``fraction`` is in [0, 1]. We clamp to that range to absorb the
+    occasional 1-ULP overshoot from ``norm.cdf`` and to keep
+    :func:`numpy.quantile` from raising on a saturated bias-correction
+    in degenerate small-B regimes.
+    """
+    frac = max(0.0, min(1.0, float(fraction)))
+    return float(np.quantile(samples, frac, method="linear"))
+
+
+def bca_bootstrap_ci(
+    samples: NDArray[np.float64] | list[float],
+    n_bootstrap: int,
+    alpha: float,
+    *,
+    seed: int = 0,
+) -> tuple[float, float]:
+    """Bias-corrected, accelerated bootstrap CI on the sample mean.
+
+    Parameters
+    ----------
+    samples
+        1-D array-like of observed per-seed signal differences. Must
+        contain at least one finite element; ``len(samples) >= 2`` is
+        required to define the jackknife acceleration.
+    n_bootstrap
+        Number of resamples with replacement. ``>= 2``.
+    alpha
+        Two-sided coverage gap. ``0 < alpha < 1``. CI is
+        ``[α/2, 1 − α/2]`` after BCa adjustment.
+    seed
+        Seed for the resampling RNG. Determinism contract: same
+        ``(samples, n_bootstrap, alpha, seed)`` → identical ``(lo, hi)``.
+
+    Returns
+    -------
+    (lo, hi)
+        BCa-adjusted endpoints. If every bootstrap replicate equals the
+        observed estimate (no variance among resamples), the CI
+        collapses to ``(θ̂, θ̂)``.
+
+    Raises
+    ------
+    ValueError
+        On any contract violation (empty / 1-element sample,
+        non-finite element, ``n_bootstrap < 2``, ``alpha`` outside
+        ``(0, 1)``).
+
+    Notes
+    -----
+    The BCa endpoints (DiCiccio & Efron, *Stat Sci* 1996, §2) are
+
+        z_0 = Φ^{-1}(p₀),         p₀ = #{θ̂_b < θ̂} / B
+        a   = Σ Δ_i³ / [6 (Σ Δ_i²)^{3/2}],   Δ_i = θ̂_{··} − θ̂_{-i}
+        α₁  = Φ(z_0 + (z_0 + z_{α/2})  / (1 − a(z_0 + z_{α/2})))
+        α₂  = Φ(z_0 + (z_0 + z_{1−α/2})/ (1 − a(z_0 + z_{1−α/2})))
+        CI  = (percentile(θ̂_b, α₁), percentile(θ̂_b, α₂))
+
+    Degeneracies handled:
+      * Σ Δ_i² == 0 → a = 0 (every jackknife replicate identical).
+      * p₀ == 0 or p₀ == 1 → z_0 finite via clamping to
+        [1/(B+1), B/(B+1)] before Φ^{-1}. Saturated tails would
+        otherwise drive z_0 to ±∞ and explode the endpoints.
+      * 1 − a·(z_0 + z_p) == 0 → α-endpoint pinned to {0, 1}
+        depending on the numerator sign. Fail-closed inside the
+        percentile clamp; the empirical CI then collapses to the
+        empirical extremum, which is the only honest answer when
+        the BCa correction is singular.
+    """
+    arr = np.asarray(samples, dtype=np.float64)
+    if arr.ndim != 1:
+        raise ValueError(f"samples must be 1-D; got shape {arr.shape}")
+    if arr.size < 2:
+        raise ValueError(f"samples must contain >= 2 elements; got size {arr.size}")
+    if not np.all(np.isfinite(arr)):
+        raise ValueError("samples contains non-finite element(s)")
+    if n_bootstrap < 2:
+        raise ValueError(f"n_bootstrap must be >= 2; got {n_bootstrap}")
+    if not (0.0 < alpha < 1.0):
+        raise ValueError(f"alpha must lie in (0, 1); got {alpha}")
+
+    rng = np.random.default_rng(int(seed))
+    n = arr.size
+    theta_hat = float(arr.mean())
+
+    # 1. Resamples
+    idx = rng.integers(0, n, size=(int(n_bootstrap), n))
+    theta_boot: NDArray[np.float64] = arr[idx].mean(axis=1)
+
+    # If every bootstrap replicate matches θ̂ exactly (e.g. constant
+    # sample), the BCa percentile lookup is moot — the CI is a point.
+    if float(np.max(theta_boot) - np.min(theta_boot)) == 0.0:
+        return theta_hat, theta_hat
+
+    # 2. Bias correction z_0
+    p0 = _percentile_of_value(theta_boot, theta_hat)
+    # Clamp p0 away from {0, 1} so Φ^{-1} is finite
+    lo_clamp = 1.0 / float(n_bootstrap + 1)
+    hi_clamp = float(n_bootstrap) / float(n_bootstrap + 1)
+    p0_safe = max(lo_clamp, min(hi_clamp, p0))
+    z0 = float(norm.ppf(p0_safe))
+
+    # 3. Acceleration via jackknife
+    total = arr.sum()
+    jackknife = (total - arr) / float(n - 1)
+    jack_mean = float(jackknife.mean())
+    diff = jack_mean - jackknife
+    num = float((diff**3).sum())
+    den = float((diff**2).sum())
+    if den <= 0.0:
+        accel = 0.0
+    else:
+        accel = num / (6.0 * (den**1.5))
+
+    # 4. Adjusted endpoints
+    z_lo = float(norm.ppf(alpha / 2.0))
+    z_hi = float(norm.ppf(1.0 - alpha / 2.0))
+
+    def _adjusted(z_q: float) -> float:
+        denom = 1.0 - accel * (z0 + z_q)
+        if denom == 0.0:
+            # BCa correction singular: drive the endpoint to the
+            # appropriate tail of the bootstrap distribution.
+            return 0.0 if (z0 + z_q) < 0.0 else 1.0
+        return float(norm.cdf(z0 + (z0 + z_q) / denom))
+
+    alpha_1 = _adjusted(z_lo)
+    alpha_2 = _adjusted(z_hi)
+
+    lo = _empirical_percentile(theta_boot, alpha_1)
+    hi = _empirical_percentile(theta_boot, alpha_2)
+    # Tolerate inverted endpoints (rare, only when the BCa correction
+    # is extremely strong) by ordering them at the caller boundary.
+    if lo > hi:
+        lo, hi = hi, lo
+    return lo, hi
+
+
+# ---------------------------------------------------------------------------
+# Direction-consistency rule
+# ---------------------------------------------------------------------------
+
+
+def _direction(diffs: NDArray[np.float64], *, min_seeds_same_sign: int) -> str:
+    """Classify direction from a vector of per-seed signed signal diffs.
+
+    Returns
+    -------
+    "up"   — at least ``min_seeds_same_sign`` diffs are strictly positive
+    "down" — at least ``min_seeds_same_sign`` diffs are strictly negative
+    "none" — otherwise
+
+    A diff of exactly 0.0 contributes to neither tally. If both rails
+    fire (impossible when ``min_seeds_same_sign > len(diffs) / 2`` but
+    permissible at smaller thresholds), we resolve by the larger count;
+    ties → "none" (consistent with the pre-registration intent of
+    refusing weak directional signal).
+    """
+    up = int(np.sum(diffs > 0.0))
+    down = int(np.sum(diffs < 0.0))
+    up_pass = up >= min_seeds_same_sign
+    down_pass = down >= min_seeds_same_sign
+    if up_pass and not down_pass:
+        return "up"
+    if down_pass and not up_pass:
+        return "down"
+    if up_pass and down_pass:
+        if up > down:
+            return "up"
+        if down > up:
+            return "down"
+        return "none"
+    return "none"
+
+
+# ---------------------------------------------------------------------------
+# One-cell driver
+# ---------------------------------------------------------------------------
+
+
+def _evaluate_paired(
+    substrate: Substrate,
+    metric: Metric,
+    *,
+    N: int,
+    lambda_: float,
+    seed: int,
+    steps_per_quarter: int,
+    omega_gamma: float,
+) -> tuple[MetricEvaluation, MetricEvaluation]:
+    """Substrate.realize(seed) + paired-CRN Kuramoto + metric.evaluate.
+
+    Returns (eval_null, eval_precursor). Shared seed → shared ω + θ(0)
+    across the two integrator runs; the only difference is the K matrix.
+    """
+    real = substrate.realize(N=N, lambda_=lambda_, seed=seed)
+    traj_null = simulate_kuramoto(
+        real.K_baseline,
+        seed=seed,
+        steps_per_quarter=steps_per_quarter,
+        omega_gamma=omega_gamma,
+    )
+    traj_pre = simulate_kuramoto(
+        real.K_precursor,
+        seed=seed,
+        steps_per_quarter=steps_per_quarter,
+        omega_gamma=omega_gamma,
+    )
+    return metric.evaluate(traj_null), metric.evaluate(traj_pre)
+
+
+def run_one_cell(
+    *,
+    substrate: Substrate,
+    metric: Metric,
+    N: int,
+    lambda_: float,
+    n_seeds: int,
+    n_bootstrap: int,
+    rng_seed_base: int,
+    direction_consistency_min_seeds: int,
+    ci_alpha: float,
+    steps_per_quarter: int = DEFAULT_STEPS_PER_QUARTER,
+    omega_gamma: float = DEFAULT_OMEGA_GAMMA,
+) -> SweepCellOutput:
+    """Run one sweep cell to a verdict-ready :class:`SweepCellOutput`.
+
+    Parameters
+    ----------
+    substrate, metric
+        Cell identity along the substrate × metric axis.
+    N, lambda_
+        Cell identity along the N × λ axis.
+    n_seeds
+        Number of paired-CRN seeds. Each seed → one substrate
+        realisation + two Kuramoto integrations + two metric
+        evaluations → one signal-difference scalar.
+    n_bootstrap
+        BCa bootstrap resample count. Must be ``>= 2``.
+    rng_seed_base
+        Lowest seed used; seed range is ``[base, base + n_seeds)``.
+    direction_consistency_min_seeds
+        Threshold for the direction rule (pre-registration:
+        ``D002CPreregistration.direction_consistency_min_seeds``).
+    ci_alpha
+        Two-sided coverage gap for BCa (pre-registration:
+        ``D002CPreregistration.ci_alpha``).
+    steps_per_quarter, omega_gamma
+        Integrator hyperparameters.
+
+    Returns
+    -------
+    SweepCellOutput
+        Carries the BCa-CI endpoints, ``|signal|/CI_half_width``
+        ratio, direction verdict, per-cohort censoring fractions,
+        wallclock, and a sha256 that is bit-stable across calls.
+
+    Raises
+    ------
+    SweepRunnerInvalid
+        On any contract violation.
+    """
+    if n_seeds < 2:
+        raise SweepRunnerInvalid(f"n_seeds must be >= 2; got {n_seeds}")
+    if n_bootstrap < 2:
+        raise SweepRunnerInvalid(f"n_bootstrap must be >= 2; got {n_bootstrap}")
+    if direction_consistency_min_seeds < 1:
+        raise SweepRunnerInvalid(
+            f"direction_consistency_min_seeds must be >= 1; got {direction_consistency_min_seeds}"
+        )
+    if not (0.0 < ci_alpha < 1.0):
+        raise SweepRunnerInvalid(f"ci_alpha must lie in (0, 1); got {ci_alpha}")
+    if N < 2:
+        raise SweepRunnerInvalid(f"N must be >= 2; got {N}")
+    if not math.isfinite(lambda_) or lambda_ < 0.0:
+        raise SweepRunnerInvalid(f"lambda_ must be finite and >= 0; got {lambda_}")
+    if steps_per_quarter < 1:
+        raise SweepRunnerInvalid(f"steps_per_quarter must be >= 1; got {steps_per_quarter}")
+    if not math.isfinite(omega_gamma) or omega_gamma <= 0.0:
+        raise SweepRunnerInvalid(f"omega_gamma must be finite and > 0; got {omega_gamma}")
+
+    t0 = time.monotonic()
+
+    evals_null: list[MetricEvaluation] = []
+    evals_pre: list[MetricEvaluation] = []
+    per_seed_diffs = np.empty(n_seeds, dtype=np.float64)
+    for i in range(n_seeds):
+        seed_i = rng_seed_base + i
+        eval_null, eval_pre = _evaluate_paired(
+            substrate,
+            metric,
+            N=N,
+            lambda_=lambda_,
+            seed=seed_i,
+            steps_per_quarter=steps_per_quarter,
+            omega_gamma=omega_gamma,
+        )
+        evals_null.append(eval_null)
+        evals_pre.append(eval_pre)
+        per_seed_diffs[i] = float(eval_pre.value) - float(eval_null.value)
+
+    # Cohort signal estimate (handles right-censoring via KM RMST).
+    horizon_steps = float(PRE_EVENT_WINDOW_QUARTERS * steps_per_quarter)
+    signal_estimate = signal_mean(
+        metric,
+        evals_pre,
+        evals_null,
+        horizon=horizon_steps,
+    )
+    s_mean = float(signal_estimate.signal_mean)
+
+    # BCa CI on the per-seed paired-diff vector. The BCa CI is on
+    # the per-seed paired diffs (not on the cohort-RMST difference);
+    # this is the rule the pre-registration locks: a 20-seed paired
+    # CRN distribution of signal samples is the input distribution
+    # to BCa, with the cohort mean as θ̂.
+    bca_seed = int(rng_seed_base) ^ 0x9E37_79B9
+    ci_lo, ci_hi = bca_bootstrap_ci(
+        per_seed_diffs, int(n_bootstrap), float(ci_alpha), seed=bca_seed
+    )
+    half_width = 0.5 * (ci_hi - ci_lo)
+    if half_width > 0.0:
+        signal_over_ci = abs(s_mean) / half_width
+    elif s_mean == 0.0:
+        signal_over_ci = 0.0
+    else:
+        signal_over_ci = math.inf
+
+    direction = _direction(per_seed_diffs, min_seeds_same_sign=direction_consistency_min_seeds)
+
+    ck = cell_key((int(N), float(lambda_), substrate.id, metric.id))
+    payload = {
+        "cell_key": ck,
+        "substrate_id": substrate.id,
+        "metric_id": metric.id,
+        "N": int(N),
+        "lambda_": float(lambda_),
+        "n_seeds": int(n_seeds),
+        "n_bootstrap": int(n_bootstrap),
+        "signal_mean": _finite_or_str(s_mean),
+        "bca_ci_lo": _finite_or_str(ci_lo),
+        "bca_ci_hi": _finite_or_str(ci_hi),
+        "signal_over_ci": _finite_or_str(signal_over_ci),
+        "direction": direction,
+        "censoring_fraction_precursor": float(signal_estimate.censoring_fraction_precursor),
+        "censoring_fraction_null": float(signal_estimate.censoring_fraction_null),
+        "rng_seed_base": int(rng_seed_base),
+        "ci_alpha": float(ci_alpha),
+        "direction_consistency_min_seeds": int(direction_consistency_min_seeds),
+        "steps_per_quarter": int(steps_per_quarter),
+        "omega_gamma": float(omega_gamma),
+    }
+    sha = _sha256_over_payload(payload)
+    wall = time.monotonic() - t0
+    return SweepCellOutput(
+        cell_key=ck,
+        substrate_id=substrate.id,
+        metric_id=metric.id,
+        N=int(N),
+        lambda_=float(lambda_),
+        n_seeds=int(n_seeds),
+        n_bootstrap=int(n_bootstrap),
+        signal_mean=s_mean,
+        bca_ci_lo=ci_lo,
+        bca_ci_hi=ci_hi,
+        signal_over_ci=signal_over_ci,
+        direction=direction,
+        censoring_fraction_precursor=float(signal_estimate.censoring_fraction_precursor),
+        censoring_fraction_null=float(signal_estimate.censoring_fraction_null),
+        wallclock_seconds=wall,
+        sha256=sha,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Full sweep driver with D-002D checkpoint integration
+# ---------------------------------------------------------------------------
+
+
+def _build_full_grid(
+    preregistration: D002CPreregistration,
+) -> list[tuple[int, float, str, str]]:
+    """Cartesian product of N × λ × substrate × metric in canonical order.
+
+    Order is fixed so two callers building from the same prereg produce
+    the same grid traversal. The checkpoint manager treats cells as a
+    set, so order only matters for the progress callback and for
+    streamed wallclock observability.
+    """
+    full_grid: list[tuple[int, float, str, str]] = []
+    for N in preregistration.N_grid:
+        for lam in preregistration.lambda_grid:
+            for sid in preregistration.substrate_ids:
+                for mid in preregistration.metric_ids:
+                    full_grid.append((int(N), float(lam), str(sid), str(mid)))
+    return full_grid
+
+
+def _resolve_substrate(substrate_id: str) -> Substrate:
+    if substrate_id not in SUBSTRATE_BY_ID:
+        raise SweepRunnerInvalid(
+            f"substrate_id {substrate_id!r} not in registry; available={sorted(SUBSTRATE_BY_ID)}"
+        )
+    return SUBSTRATE_BY_ID[substrate_id]
+
+
+def _resolve_metric(metric_id: str) -> Metric:
+    if metric_id not in METRIC_BY_ID:
+        raise SweepRunnerInvalid(
+            f"metric_id {metric_id!r} not in registry; available={sorted(METRIC_BY_ID)}"
+        )
+    return METRIC_BY_ID[metric_id]
+
+
+def _payload_for_storage(cell_out: SweepCellOutput) -> dict[str, Any]:
+    """Pure-JSON dict for storage in CellResult.payload."""
+    return {
+        **cell_out.to_payload_dict(),
+        "sha256": cell_out.sha256,
+        "wallclock_seconds": float(cell_out.wallclock_seconds),
+    }
+
+
+def _restore_cell_from_payload(payload: dict[str, Any]) -> SweepCellOutput:
+    """Reverse of :func:`_payload_for_storage` — used on resume."""
+
+    def _f(x: Any) -> float:
+        if isinstance(x, str):
+            if x == "NaN":
+                return math.nan
+            if x == "Infinity":
+                return math.inf
+            if x == "-Infinity":
+                return -math.inf
+            raise SweepRunnerInvalid(f"unknown float sentinel: {x!r}")
+        return float(x)
+
+    return SweepCellOutput(
+        cell_key=str(payload["cell_key"]),
+        substrate_id=str(payload["substrate_id"]),
+        metric_id=str(payload["metric_id"]),
+        N=int(payload["N"]),
+        lambda_=float(payload["lambda_"]),
+        n_seeds=int(payload["n_seeds"]),
+        n_bootstrap=int(payload["n_bootstrap"]),
+        signal_mean=_f(payload["signal_mean"]),
+        bca_ci_lo=_f(payload["bca_ci_lo"]),
+        bca_ci_hi=_f(payload["bca_ci_hi"]),
+        signal_over_ci=_f(payload["signal_over_ci"]),
+        direction=str(payload["direction"]),
+        censoring_fraction_precursor=float(payload["censoring_fraction_precursor"]),
+        censoring_fraction_null=float(payload["censoring_fraction_null"]),
+        wallclock_seconds=float(payload.get("wallclock_seconds", 0.0)),
+        sha256=str(payload["sha256"]),
+    )
+
+
+def run_sweep(
+    *,
+    preregistration: D002CPreregistration,
+    sweep_config: dict[str, Any],
+    checkpoint_path: Path,
+    rng_seed_base: int = 42,
+    steps_per_quarter: int = DEFAULT_STEPS_PER_QUARTER,
+    omega_gamma: float = DEFAULT_OMEGA_GAMMA,
+    progress_callback: Callable[[int, int], None] | None = None,
+    code_sha: str = DEFAULT_CODE_SHA,
+) -> SweepResult:
+    """Drive the full pre-registered grid with per-cell checkpointing.
+
+    Parameters
+    ----------
+    preregistration
+        Locked frozen contract built by :func:`load_and_lock`.
+    sweep_config
+        Driver-side snapshot that MUST agree with the preregistration
+        on every key in
+        :data:`d002c_preregistration._EXPECTED_KEYS`. Mismatches are
+        collected and raised together as a single
+        :class:`PreregistrationMismatch`.
+    checkpoint_path
+        On-disk path for the D-002D :class:`CheckpointManager`.
+        Each completed cell is durably saved before the next cell
+        starts; a kill mid-sweep loses at most one in-flight cell.
+    rng_seed_base
+        Lowest paired-CRN seed; cell ``i`` uses ``[base, base + n_seeds)``
+        (the same base for every cell — the substrate / metric / N / λ
+        identity is what distinguishes their results).
+    steps_per_quarter, omega_gamma
+        Integrator hyperparameters.
+    progress_callback
+        Optional ``(done, total)`` callback fired once per completed
+        cell. Exceptions in the callback are NOT caught — by design
+        the caller's progress UI must not silently swallow errors.
+    code_sha
+        Soft metadata for the checkpoint ledger. Drift versus the
+        on-disk file is a WARNING from :class:`CheckpointManager`,
+        not a refusal.
+
+    Returns
+    -------
+    SweepResult
+        Carries every cell output (sorted by cell_key for stability)
+        and a stable aggregate sha256.
+
+    Raises
+    ------
+    PreregistrationMismatch
+        From :func:`validate_sweep_config` — refuses to launch on any
+        disagreement with the locked contract.
+    SweepRunnerInvalid
+        On unresolvable substrate / metric ids or bad inputs.
+    """
+    validate_sweep_config(preregistration, sweep_config)
+
+    full_grid = _build_full_grid(preregistration)
+    total_cells = len(full_grid)
+
+    cell_key_to_tuple: dict[str, tuple[int, float, str, str]] = {
+        cell_key((N, lam, sid, mid)): (N, lam, sid, mid) for (N, lam, sid, mid) in full_grid
+    }
+    all_keys: list[str] = list(cell_key_to_tuple.keys())
+
+    mgr = CheckpointManager(
+        Path(checkpoint_path), sweep_config=dict(sweep_config), code_sha=code_sha
+    )
+    checkpoint = mgr.load_or_create()
+
+    # Restore already-completed cells from the on-disk checkpoint so
+    # the aggregate sha is stable across resume.
+    restored: dict[str, SweepCellOutput] = {
+        k: _restore_cell_from_payload(v.payload) for k, v in checkpoint.results.items()
+    }
+
+    t0 = time.monotonic()
+    remaining = mgr.remaining_cells(all_keys)
+    done_count = total_cells - len(remaining)
+
+    for ck in remaining:
+        N, lam, sid, mid = cell_key_to_tuple[ck]
+        substrate = _resolve_substrate(sid)
+        metric = _resolve_metric(mid)
+        cell_out = run_one_cell(
+            substrate=substrate,
+            metric=metric,
+            N=N,
+            lambda_=lam,
+            n_seeds=preregistration.n_seeds,
+            n_bootstrap=preregistration.n_bootstrap,
+            rng_seed_base=rng_seed_base,
+            direction_consistency_min_seeds=preregistration.direction_consistency_min_seeds,
+            ci_alpha=preregistration.ci_alpha,
+            steps_per_quarter=steps_per_quarter,
+            omega_gamma=omega_gamma,
+        )
+        mgr.save_cell(
+            ck,
+            CellResult(
+                cell_key=ck,
+                payload=_payload_for_storage(cell_out),
+                duration_seconds=float(cell_out.wallclock_seconds),
+            ),
+        )
+        restored[ck] = cell_out
+        done_count += 1
+        if progress_callback is not None:
+            progress_callback(done_count, total_cells)
+
+    wall = time.monotonic() - t0
+
+    # Stable order: sort by cell_key so the aggregate sha is invariant
+    # under the traversal order (and stable across resume).
+    ordered_keys = sorted(restored.keys())
+    results = tuple(restored[k] for k in ordered_keys)
+    aggregate = {
+        "preregistration_sha": preregistration.preregistration_sha,
+        "per_cell_shas": [r.sha256 for r in results],
+        "completed_cells": len(results),
+        "total_cells": total_cells,
+        "rng_seed_base": int(rng_seed_base),
+        "steps_per_quarter": int(steps_per_quarter),
+        "omega_gamma": float(omega_gamma),
+    }
+    sha = _sha256_over_payload(aggregate)
+
+    return SweepResult(
+        preregistration_sha=preregistration.preregistration_sha,
+        completed_cells=len(results),
+        total_cells=total_cells,
+        results=results,
+        sha256=sha,
+        generated_at=_now_iso(),
+        wallclock_seconds=wall,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Re-export the integrator defaults so callers needn't reach across modules
+# for the canonical step / γ values.
+# ---------------------------------------------------------------------------
+
+
+__all__ = [
+    "DEFAULT_STEPS_PER_QUARTER",
+    "DEFAULT_OMEGA_GAMMA",
+    "DEFAULT_CODE_SHA",
+    "PRE_EVENT_WINDOW_QUARTERS",
+    "SweepRunnerInvalid",
+    "SweepCellOutput",
+    "SweepResult",
+    "bca_bootstrap_ci",
+    "run_one_cell",
+    "run_sweep",
+]
+
+
+# Keep json imported for side-effect-free import checks in static analysis.
+_ = json
