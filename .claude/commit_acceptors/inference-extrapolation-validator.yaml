@@ -1,0 +1,91 @@
+# Diff-bound commit acceptor for the Inference Extrapolation Validator (IEV).
+#
+# Codifies the contract this PR ships: a fail-closed module that produces
+# canonical, SHA-256-sealed JSON artifacts certifying whether a hypothesis
+# *survived* (EVIDENCE / VERIFIED_EVIDENCE) or was *killed* (KILLED /
+# FALSIFIED_OR_REJECTED) under a risk-tiered battery of required tests,
+# null models, witness review, purpose-drift gate, external-falsification
+# probe, and STN-hyperdirect ACC-conflict ceiling.
+#
+# The IEV is a *certificate format and gate*, not a test runner. Truth of
+# the underlying numbers (hypothesis_score, null_model_results, drift_score)
+# is supplied by the caller; the IEV enforces only structural consistency,
+# risk-tier coverage, internal arithmetic (hypothesis_score > max null),
+# SHA integrity, and fail-closed semantics. Claim boundary is documented
+# in `artifacts/inference_extrapolation_validator/CLAIM_BOUNDARY.md`.
+#
+# Locally verified prior to commit:
+#   * mypy --strict on generate_artifact.py / falsifier.py / test_*.py: clean
+#   * ruff check (E, F, W, I): clean
+#   * black --check: clean
+#   * python -m unittest test_generate_artifact.py: 27 tests pass
+#   * python falsifier.py: FALSIFIER PASS
+#   * python generate_artifact.py verify --artifact example_artifact.json: pass
+
+id: inference-extrapolation-validator
+status: ACTIVE
+claim_type: governance
+promise: >-
+  After this PR lands, artifacts/inference_extrapolation_validator/ ships a
+  self-contained CLI (generate / verify) that emits a canonical-JSON,
+  SHA-256-sealed artifact with bounded epistemic semantics. EVIDENCE is
+  reachable only when (a) result == survived AND test_passed == true,
+  (b) risk-tier-required tests + null models are all present and keyed
+  consistently, (c) hypothesis_score strictly exceeds every null model
+  result, (d) for high risk, witness.status == approved with structured
+  reviewer_id / review_timestamp_utc (≤30d fresh) / review_hash, (e)
+  purpose.alignment_score ≥ 0.7 AND purpose.drift_check ≤ 0.3, (f)
+  external_falsification.drift_score ≤ 0.5, (g) STN-hyperdirect ACC
+  conflict score does not exceed 0.8 (hard ceiling, stochastic-noise
+  exempt) or the adaptive threshold, (h) api_version == "1.0", and (i)
+  artifact.sha256 matches recomputed sha256 over canonical JSON minus the
+  sha256 field. Any single violation flips the artifact to KILLED /
+  FALSIFIED_OR_REJECTED and exits non-zero (2 = contract violation,
+  3 = parse failure).
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/inference-extrapolation-validator.yaml"
+    - path: ".github/workflows/iev-module-gate.yml"
+    - path: "Makefile"
+    - path: "artifacts/inference_extrapolation_validator/CHANGELOG.md"
+    - path: "artifacts/inference_extrapolation_validator/CLAIM_BOUNDARY.md"
+    - path: "artifacts/inference_extrapolation_validator/INVARIANTS.yaml"
+    - path: "artifacts/inference_extrapolation_validator/PURPOSE.md"
+    - path: "artifacts/inference_extrapolation_validator/README.md"
+    - path: "artifacts/inference_extrapolation_validator/docs/ROLLBACK_DOCTRINE.md"
+    - path: "artifacts/inference_extrapolation_validator/docs/THREAT_MODEL.md"
+    - path: "artifacts/inference_extrapolation_validator/example_artifact.json"
+    - path: "artifacts/inference_extrapolation_validator/falsifier.py"
+    - path: "artifacts/inference_extrapolation_validator/generate_artifact.py"
+    - path: "artifacts/inference_extrapolation_validator/purpose_contract.json"
+    - path: "artifacts/inference_extrapolation_validator/release/RELEASE_MANIFEST.json"
+    - path: "artifacts/inference_extrapolation_validator/schema/artifact.schema.json"
+    - path: "artifacts/inference_extrapolation_validator/schema/spec.schema.json"
+    - path: "artifacts/inference_extrapolation_validator/scripts/brutal_e2e_proof.sh"
+    - path: "artifacts/inference_extrapolation_validator/scripts/final_handoff_gate.sh"
+    - path: "artifacts/inference_extrapolation_validator/spec.json"
+    - path: "artifacts/inference_extrapolation_validator/state_diagram.md"
+    - path: "artifacts/inference_extrapolation_validator/test_generate_artifact.py"
+    - path: "go.work.sum"
+  forbidden_paths:
+    - "core/"
+    - "runtime/"
+    - "trading/"
+    - "research/"
+    - "geosync/"
+evidence:
+  required_commands:
+    - "python -m unittest artifacts/inference_extrapolation_validator/test_generate_artifact.py -v"
+    - "python artifacts/inference_extrapolation_validator/falsifier.py"
+    - "python artifacts/inference_extrapolation_validator/generate_artifact.py verify --artifact artifacts/inference_extrapolation_validator/example_artifact.json"
+    - "make iev-gate"
+  expected_exit_codes:
+    success: 0
+    contract_violation: 2
+    parse_failure: 3
+claim_boundary: >-
+  The IEV certifies STRUCTURAL CONSISTENCY of an extrapolation claim
+  (schema, risk-tier coverage, internal arithmetic, witness rules, SHA
+  integrity), not the truth of caller-supplied numerics (hypothesis_score,
+  null_model_results, drift_score, prompt_hash, requirements_lock_sha256).
+  Truth of those upstream inputs is an external obligation.

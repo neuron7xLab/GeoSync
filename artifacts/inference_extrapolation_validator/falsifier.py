@@ -71,13 +71,13 @@ BASE = [
 ]
 
 
-def run_expect(cmd, code):
+def run_expect(cmd: list[str], code: int) -> subprocess.CompletedProcess[str]:
     r = subprocess.run(cmd, capture_output=True, text=True)
     assert r.returncode == code, (r.returncode, r.stderr)
     return r
 
 
-def main():
+def main() -> None:
     with tempfile.TemporaryDirectory() as d:
         p = Path(d) / "a.json"
         run_expect(BASE + ["--out", str(p)], 0)
