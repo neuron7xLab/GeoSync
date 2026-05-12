@@ -42,10 +42,11 @@ Invariants (see INVARIANTS.yaml INV-CB1..CB8):
 
 from __future__ import annotations
 
-import time
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
+
+from geosync.core.compat import default_clock
 
 
 class CryptobiosisState(Enum):
@@ -203,7 +204,7 @@ class CryptobiosisController:
         self._state = CryptobiosisState.VITRIFYING
         self._snapshot = CryptobiosisSnapshot(
             entry_T=T,
-            entry_timestamp=time.time(),
+            entry_timestamp=default_clock().epoch_ns() / 1_000_000_000,
             metadata=dict(metadata),
         )
         self._rehydration_stage = 0
