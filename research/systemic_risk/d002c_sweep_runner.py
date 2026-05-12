@@ -107,6 +107,7 @@ from .d002c_preflight import (
     SkippedCell,
     apply_preflight_to_grid,
     assert_preflight_launch_allowed,
+    canonical_preflight_json,
     load_and_validate_preflight_capsules,
 )
 from .d002c_preregistration import (
@@ -141,14 +142,290 @@ PRE_EVENT_WINDOW_QUARTERS: Final[int] = EVENT_QUARTER - PRE_EVENT_START_QUARTER
 #: metadata; a drift versus the on-disk file is a warning, not a refusal.
 DEFAULT_CODE_SHA: Final[str] = "d002c_sweep_runner@unknown"
 
+#: Version tag stamped onto every :class:`NullAuditCellPayload`. Bumped
+#: only when the per-seed metric layout changes in a way that invalidates
+#: previously persisted payloads. The aggregator does not parse this; it
+#: is folded into the payload sha256 so a metric-layer rev is visible as
+#: a sha drift to the audit row.
+METRIC_VERSION: Final[str] = "d002c_metrics_v1"
+
+#: Version tag stamped onto every :class:`NullAuditCellPayload`. Bumped
+#: only when the substrate realisation contract changes (so the paired
+#: precursor/null realisations stop being byte-equivalent across runs).
+SUBSTRATE_VERSION: Final[str] = "d002c_substrates_v1"
+
 
 class SweepRunnerInvalid(RuntimeError):
     """Bad input to :func:`run_one_cell` / :func:`run_sweep`."""
 
 
+class NullAuditPayloadInvalid(RuntimeError):
+    """Bad input to :class:`NullAuditCellPayload` construction / reload.
+
+    Raised by :meth:`NullAuditCellPayload.from_payload_dict` on any
+    contract violation (paired-array length mismatch, non-finite element,
+    paired_by_seed=False, sha mismatch). Fail-closed: a corrupted on-disk
+    payload MUST NOT be silently accepted into the null-audit aggregator.
+    """
+
+
+# ---------------------------------------------------------------------------
+# Determinism helpers (forward-declared so the payload dataclass can use
+# them; the bulk of the helper section is below the dataclass cluster).
+# ---------------------------------------------------------------------------
+
+
+def _finite_or_str(x: float) -> Any:
+    """JSON-safe float: non-finite → string sentinel (NaN/+Inf/-Inf).
+
+    Canonical JSON disallows non-finite floats; the sweep contract
+    requires every cell payload to be JSON-serialisable so the
+    checkpoint ledger and the sha256 are well-defined. We replace
+    non-finite floats with a string sentinel ("NaN", "Infinity",
+    "-Infinity") that is deterministic + hashable + reviewable.
+    """
+    f = float(x)
+    if math.isnan(f):
+        return "NaN"
+    if math.isinf(f):
+        return "Infinity" if f > 0 else "-Infinity"
+    return f
+
+
+def _now_iso() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _sha256_preflight_canonical(payload: dict[str, Any]) -> str:
+    """sha256 over the preflight-canonical JSON form.
+
+    The :class:`NullAuditCellPayload` content-addresses itself with the
+    SAME canonical JSON discipline the C2.4-D preflight validator uses
+    so the post-sweep aggregator can recompute it bit-exactly via
+    :func:`d002c_preflight.canonical_preflight_json`. This is the C2.6
+    sha-alignment pattern: one canonical formula across writer + reader.
+    """
+    return hashlib.sha256(canonical_preflight_json(payload).encode("utf-8")).hexdigest()
+
+
 # ---------------------------------------------------------------------------
 # Frozen outputs
 # ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class NullAuditCellPayload:
+    """Per-cell paired-CRN evidence for the post-sweep null audit.
+
+    D-002C C2.4-A2 data contract. Carries the per-seed precursor / null
+    metric values BEFORE aggregation so the C2.4-C2 null-audit aggregator
+    (``run_null_audit_all``) can run the permutation test on the actual
+    paired vector rather than on a reconstructed surrogate.
+
+    Invariants
+    ----------
+    * ``len(seed_ids) == len(precursor_values) == len(null_values)``
+    * ``paired_by_seed is True`` under the paired-CRN protocol locked in
+      C2.3; the aggregator MUST refuse a payload with this flag False.
+    * Every element of ``precursor_values`` / ``null_values`` is finite.
+    * ``sha256`` is content-addressed over
+      :func:`d002c_preflight.canonical_preflight_json` of the payload
+      (sans the sha256 field itself and sans ``generated_at``, so a
+      machine-clock difference does not change the sha). This is the
+      same canonical formula the preflight validator uses on the
+      ``d002c_null_audit_capsule_v1`` aggregate.
+
+    Fail-closed semantics
+    ---------------------
+    A cell that the preflight gates skipped (``SKIPPED_BY_PREFLIGHT``)
+    does NOT receive a payload — the absence of evidence is recorded as
+    ``SKIPPED_BY_PREFLIGHT`` in the checkpoint and the aggregator's
+    ``SKIPPED_NO_PER_SEED_DATA`` sentinel is reserved for cells that
+    failed to emit a payload through any other path.
+    """
+
+    cell_key: str
+    N: int
+    lambda_: float
+    substrate_id: str
+    metric_id: str
+    seed_ids: tuple[int, ...]
+    precursor_values: tuple[float, ...]
+    null_values: tuple[float, ...]
+    paired_by_seed: bool
+    crn_identity_hash: str
+    metric_version: str
+    substrate_version: str
+    generated_at: str
+    sha256: str
+
+    def to_payload_dict(self) -> dict[str, Any]:
+        """JSON-pure dict for on-disk storage and sha recomputation.
+
+        ``generated_at`` and ``sha256`` are excluded from the sha-input
+        form returned by :meth:`to_sha_input_dict`; this method keeps
+        every field so the on-disk row carries the full audit trail.
+        """
+        return {
+            "cell_key": self.cell_key,
+            "N": int(self.N),
+            "lambda_": float(self.lambda_),
+            "substrate_id": self.substrate_id,
+            "metric_id": self.metric_id,
+            "seed_ids": [int(s) for s in self.seed_ids],
+            "precursor_values": [_finite_or_str(v) for v in self.precursor_values],
+            "null_values": [_finite_or_str(v) for v in self.null_values],
+            "paired_by_seed": bool(self.paired_by_seed),
+            "crn_identity_hash": self.crn_identity_hash,
+            "metric_version": self.metric_version,
+            "substrate_version": self.substrate_version,
+            "generated_at": self.generated_at,
+            "sha256": self.sha256,
+        }
+
+    def to_sha_input_dict(self) -> dict[str, Any]:
+        """Load-bearing fields the sha256 is computed over.
+
+        ``sha256`` and ``generated_at`` are excluded so the sha is stable
+        across machines / clocks with identical scientific inputs.
+        """
+        return {
+            "cell_key": self.cell_key,
+            "N": int(self.N),
+            "lambda_": float(self.lambda_),
+            "substrate_id": self.substrate_id,
+            "metric_id": self.metric_id,
+            "seed_ids": [int(s) for s in self.seed_ids],
+            "precursor_values": [_finite_or_str(v) for v in self.precursor_values],
+            "null_values": [_finite_or_str(v) for v in self.null_values],
+            "paired_by_seed": bool(self.paired_by_seed),
+            "crn_identity_hash": self.crn_identity_hash,
+            "metric_version": self.metric_version,
+            "substrate_version": self.substrate_version,
+        }
+
+    @classmethod
+    def from_payload_dict(cls, d: dict[str, Any]) -> NullAuditCellPayload:
+        """Reverse of :meth:`to_payload_dict` with fail-closed verification.
+
+        Raises
+        ------
+        NullAuditPayloadInvalid
+            On paired-array length mismatch, non-finite element,
+            ``paired_by_seed=False``, missing field, or recomputed sha
+            mismatch versus the on-disk ``sha256``.
+        """
+        try:
+            seed_ids = tuple(int(s) for s in d["seed_ids"])
+            precursor_values = tuple(_load_float(v) for v in d["precursor_values"])
+            null_values = tuple(_load_float(v) for v in d["null_values"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise NullAuditPayloadInvalid(
+                f"null_audit_payload missing or malformed array field: {exc}"
+            ) from exc
+        if not (len(seed_ids) == len(precursor_values) == len(null_values)):
+            raise NullAuditPayloadInvalid(
+                "null_audit_payload paired-array length mismatch: "
+                f"len(seed_ids)={len(seed_ids)} "
+                f"len(precursor_values)={len(precursor_values)} "
+                f"len(null_values)={len(null_values)}"
+            )
+        if not bool(d.get("paired_by_seed", False)):
+            raise NullAuditPayloadInvalid(
+                "null_audit_payload paired_by_seed is False; CRN pairing "
+                "identity cannot be reconstructed — aggregator refuses"
+            )
+        for arr_name, arr in (
+            ("precursor_values", precursor_values),
+            ("null_values", null_values),
+        ):
+            for v in arr:
+                if not math.isfinite(float(v)):
+                    raise NullAuditPayloadInvalid(
+                        f"null_audit_payload {arr_name} has non-finite element: {v!r}"
+                    )
+        try:
+            payload = cls(
+                cell_key=str(d["cell_key"]),
+                N=int(d["N"]),
+                lambda_=float(d["lambda_"]),
+                substrate_id=str(d["substrate_id"]),
+                metric_id=str(d["metric_id"]),
+                seed_ids=seed_ids,
+                precursor_values=precursor_values,
+                null_values=null_values,
+                paired_by_seed=True,
+                crn_identity_hash=str(d["crn_identity_hash"]),
+                metric_version=str(d["metric_version"]),
+                substrate_version=str(d["substrate_version"]),
+                generated_at=str(d.get("generated_at", "")),
+                sha256=str(d["sha256"]),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise NullAuditPayloadInvalid(
+                f"null_audit_payload missing or malformed scalar field: {exc}"
+            ) from exc
+        recomputed = _sha256_preflight_canonical(payload.to_sha_input_dict())
+        if recomputed != payload.sha256:
+            raise NullAuditPayloadInvalid(
+                "null_audit_payload sha256 mismatch: "
+                f"on-disk={payload.sha256!r} recomputed={recomputed!r} "
+                "— payload was tampered with or written by an incompatible "
+                "writer"
+            )
+        return payload
+
+
+def _load_float(x: Any) -> float:
+    """Reverse of :func:`_finite_or_str`.
+
+    String sentinels round-trip back to their respective IEEE-754
+    values; numeric values pass through ``float`` unchanged.
+    """
+    if isinstance(x, str):
+        if x == "NaN":
+            return math.nan
+        if x == "Infinity":
+            return math.inf
+        if x == "-Infinity":
+            return -math.inf
+        raise SweepRunnerInvalid(f"unknown float sentinel: {x!r}")
+    return float(x)
+
+
+def _crn_identity_hash(
+    *,
+    substrate_id: str,
+    metric_id: str,
+    N: int,
+    lambda_: float,
+    rng_seed_base: int,
+    n_seeds: int,
+    steps_per_quarter: int,
+    omega_gamma: float,
+) -> str:
+    """Stable digest binding the paired-CRN realisation identity.
+
+    The CRN pairing identity is fully determined by the substrate, metric,
+    cell coordinates ``(N, λ)`` and the integrator seeds. Two runs with
+    identical scientific inputs produce identical hashes; any drift in
+    seed_base / steps_per_quarter / omega_gamma produces a different
+    hash, surfacing the divergence to the aggregator.
+    """
+    return _sha256_preflight_canonical(
+        {
+            "substrate_id": substrate_id,
+            "metric_id": metric_id,
+            "N": int(N),
+            "lambda_": float(lambda_),
+            "rng_seed_base": int(rng_seed_base),
+            "n_seeds": int(n_seeds),
+            "steps_per_quarter": int(steps_per_quarter),
+            "omega_gamma": float(omega_gamma),
+            "metric_version": METRIC_VERSION,
+            "substrate_version": SUBSTRATE_VERSION,
+        }
+    )
 
 
 @dataclass(frozen=True)
@@ -183,6 +460,12 @@ class SweepCellOutput:
     censoring_fraction_null: float
     wallclock_seconds: float
     sha256: str
+    #: D-002C C2.4-A2 data contract. Optional only for backward
+    #: compatibility with pre-A2 callers (e.g. ``test_d002c_verdict``
+    #: fixtures that fabricate :class:`SweepCellOutput` directly without
+    #: a sweep); :func:`run_one_cell` ALWAYS populates this field on
+    #: every cell it computes.
+    null_audit_payload: NullAuditCellPayload | None = None
 
     def to_payload_dict(self) -> dict[str, Any]:
         """Canonical dict used both for sha computation and on-disk storage.
@@ -233,33 +516,14 @@ class SweepResult:
 
 
 # ---------------------------------------------------------------------------
-# Determinism helpers
+# Determinism helpers (cell-payload sha; see also _sha256_preflight_canonical
+# above, which is used by NullAuditCellPayload for the C2.4-C2 / C2.6
+# canonical-JSON alignment with the preflight validator).
 # ---------------------------------------------------------------------------
-
-
-def _finite_or_str(x: float) -> Any:
-    """JSON-safe float: non-finite → string sentinel (NaN/+Inf/-Inf).
-
-    Canonical JSON disallows non-finite floats; the sweep contract
-    requires every cell payload to be JSON-serialisable so the
-    checkpoint ledger and the sha256 are well-defined. We replace
-    non-finite floats with a string sentinel ("NaN", "Infinity",
-    "-Infinity") that is deterministic + hashable + reviewable.
-    """
-    f = float(x)
-    if math.isnan(f):
-        return "NaN"
-    if math.isinf(f):
-        return "Infinity" if f > 0 else "-Infinity"
-    return f
 
 
 def _sha256_over_payload(payload: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
-
-
-def _now_iso() -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
 # ---------------------------------------------------------------------------
@@ -565,6 +829,9 @@ def run_one_cell(
     evals_null: list[MetricEvaluation] = []
     evals_pre: list[MetricEvaluation] = []
     per_seed_diffs = np.empty(n_seeds, dtype=np.float64)
+    seed_ids_list: list[int] = []
+    precursor_values_list: list[float] = []
+    null_values_list: list[float] = []
     for i in range(n_seeds):
         seed_i = rng_seed_base + i
         eval_null, eval_pre = _evaluate_paired(
@@ -579,6 +846,14 @@ def run_one_cell(
         evals_null.append(eval_null)
         evals_pre.append(eval_pre)
         per_seed_diffs[i] = float(eval_pre.value) - float(eval_null.value)
+        # D-002C C2.4-A2 — retain the per-seed paired metric values for
+        # the post-sweep null-audit aggregator. Order is the seed order
+        # (i = 0..n_seeds-1, seed_i = rng_seed_base + i); aligning to
+        # ``seed_ids`` so any downstream consumer can re-derive the
+        # paired (precursor, null) pair from a seed identity.
+        seed_ids_list.append(int(seed_i))
+        precursor_values_list.append(float(eval_pre.value))
+        null_values_list.append(float(eval_null.value))
 
     # Cohort signal estimate (handles right-censoring via KM RMST).
     horizon_steps = float(PRE_EVENT_WINDOW_QUARTERS * steps_per_quarter)
@@ -632,6 +907,58 @@ def run_one_cell(
         "omega_gamma": float(omega_gamma),
     }
     sha = _sha256_over_payload(payload)
+
+    # D-002C C2.4-A2 — assemble the per-seed null-audit payload from the
+    # paired metric values retained above. The payload's own sha256 is
+    # computed via canonical_preflight_json so the post-sweep aggregator
+    # can recompute it bit-exactly through the same canonical formula
+    # the preflight validator uses on aggregate capsules.
+    seed_ids_t = tuple(seed_ids_list)
+    precursor_values_t = tuple(precursor_values_list)
+    null_values_t = tuple(null_values_list)
+    crn_hash = _crn_identity_hash(
+        substrate_id=substrate.id,
+        metric_id=metric.id,
+        N=int(N),
+        lambda_=float(lambda_),
+        rng_seed_base=int(rng_seed_base),
+        n_seeds=int(n_seeds),
+        steps_per_quarter=int(steps_per_quarter),
+        omega_gamma=float(omega_gamma),
+    )
+    null_audit_generated_at = _now_iso()
+    null_audit_input = {
+        "cell_key": ck,
+        "N": int(N),
+        "lambda_": float(lambda_),
+        "substrate_id": substrate.id,
+        "metric_id": metric.id,
+        "seed_ids": list(seed_ids_t),
+        "precursor_values": [_finite_or_str(v) for v in precursor_values_t],
+        "null_values": [_finite_or_str(v) for v in null_values_t],
+        "paired_by_seed": True,
+        "crn_identity_hash": crn_hash,
+        "metric_version": METRIC_VERSION,
+        "substrate_version": SUBSTRATE_VERSION,
+    }
+    null_audit_sha = _sha256_preflight_canonical(null_audit_input)
+    null_audit_payload = NullAuditCellPayload(
+        cell_key=ck,
+        N=int(N),
+        lambda_=float(lambda_),
+        substrate_id=substrate.id,
+        metric_id=metric.id,
+        seed_ids=seed_ids_t,
+        precursor_values=precursor_values_t,
+        null_values=null_values_t,
+        paired_by_seed=True,
+        crn_identity_hash=crn_hash,
+        metric_version=METRIC_VERSION,
+        substrate_version=SUBSTRATE_VERSION,
+        generated_at=null_audit_generated_at,
+        sha256=null_audit_sha,
+    )
+
     wall = time.monotonic() - t0
     return SweepCellOutput(
         cell_key=ck,
@@ -650,6 +977,7 @@ def run_one_cell(
         censoring_fraction_null=float(signal_estimate.censoring_fraction_null),
         wallclock_seconds=wall,
         sha256=sha,
+        null_audit_payload=null_audit_payload,
     )
 
 
@@ -694,27 +1022,43 @@ def _resolve_metric(metric_id: str) -> Metric:
 
 
 def _payload_for_storage(cell_out: SweepCellOutput) -> dict[str, Any]:
-    """Pure-JSON dict for storage in CellResult.payload."""
-    return {
+    """Pure-JSON dict for storage in CellResult.payload.
+
+    D-002C C2.4-A2 — the on-disk row includes the
+    ``null_audit_payload`` sub-dict iff the cell carries one (always
+    True for :func:`run_one_cell` outputs; the optional field is only
+    used by pre-A2 test fixtures that fabricate SweepCellOutput without
+    a sweep).
+    """
+    stored: dict[str, Any] = {
         **cell_out.to_payload_dict(),
         "sha256": cell_out.sha256,
         "wallclock_seconds": float(cell_out.wallclock_seconds),
     }
+    if cell_out.null_audit_payload is not None:
+        stored["null_audit_payload"] = cell_out.null_audit_payload.to_payload_dict()
+    return stored
 
 
 def _restore_cell_from_payload(payload: dict[str, Any]) -> SweepCellOutput:
-    """Reverse of :func:`_payload_for_storage` — used on resume."""
+    """Reverse of :func:`_payload_for_storage` — used on resume.
 
-    def _f(x: Any) -> float:
-        if isinstance(x, str):
-            if x == "NaN":
-                return math.nan
-            if x == "Infinity":
-                return math.inf
-            if x == "-Infinity":
-                return -math.inf
-            raise SweepRunnerInvalid(f"unknown float sentinel: {x!r}")
-        return float(x)
+    D-002C C2.4-A2 — a row that carries a ``null_audit_payload`` is
+    reconstructed with fail-closed verification (paired-array invariants
+    + sha recompute) via :meth:`NullAuditCellPayload.from_payload_dict`;
+    a row without one (legacy v1 schema or a pre-A2 row) is loaded with
+    ``null_audit_payload=None`` and surfaces as "no per-seed data" to
+    the aggregator, which records it as SKIPPED_NO_PER_SEED_DATA
+    (fail-closed at the aggregator boundary, not silently dropped).
+    """
+    null_audit_dict = payload.get("null_audit_payload")
+    null_audit_payload: NullAuditCellPayload | None = None
+    if null_audit_dict is not None:
+        if not isinstance(null_audit_dict, dict):
+            raise NullAuditPayloadInvalid(
+                f"null_audit_payload must be a dict; got {type(null_audit_dict).__name__}"
+            )
+        null_audit_payload = NullAuditCellPayload.from_payload_dict(null_audit_dict)
 
     return SweepCellOutput(
         cell_key=str(payload["cell_key"]),
@@ -724,15 +1068,16 @@ def _restore_cell_from_payload(payload: dict[str, Any]) -> SweepCellOutput:
         lambda_=float(payload["lambda_"]),
         n_seeds=int(payload["n_seeds"]),
         n_bootstrap=int(payload["n_bootstrap"]),
-        signal_mean=_f(payload["signal_mean"]),
-        bca_ci_lo=_f(payload["bca_ci_lo"]),
-        bca_ci_hi=_f(payload["bca_ci_hi"]),
-        signal_over_ci=_f(payload["signal_over_ci"]),
+        signal_mean=_load_float(payload["signal_mean"]),
+        bca_ci_lo=_load_float(payload["bca_ci_lo"]),
+        bca_ci_hi=_load_float(payload["bca_ci_hi"]),
+        signal_over_ci=_load_float(payload["signal_over_ci"]),
         direction=str(payload["direction"]),
         censoring_fraction_precursor=float(payload["censoring_fraction_precursor"]),
         censoring_fraction_null=float(payload["censoring_fraction_null"]),
         wallclock_seconds=float(payload.get("wallclock_seconds", 0.0)),
         sha256=str(payload["sha256"]),
+        null_audit_payload=null_audit_payload,
     )
 
 
@@ -1073,10 +1418,14 @@ __all__ = [
     "DEFAULT_STEPS_PER_QUARTER",
     "DEFAULT_OMEGA_GAMMA",
     "DEFAULT_CODE_SHA",
+    "METRIC_VERSION",
     "PRE_EVENT_WINDOW_QUARTERS",
-    "SweepRunnerInvalid",
+    "SUBSTRATE_VERSION",
+    "NullAuditCellPayload",
+    "NullAuditPayloadInvalid",
     "SweepCellOutput",
     "SweepResult",
+    "SweepRunnerInvalid",
     "bca_bootstrap_ci",
     "run_one_cell",
     "run_sweep",

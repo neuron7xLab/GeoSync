@@ -61,8 +61,21 @@ logger = logging.getLogger(__name__)
 # Schema version — bumped only on incompatible on-disk format changes.
 # Old files with a known older version may be migrated forward; an unknown
 # version is a hard refuse (we won't silently mis-interpret a future format).
+#
+# Version history
+# ---------------
+# 1 — original D-002D format (per-cell verdict payload only).
+# 2 — D-002C C2.4-A2: per-cell payload may carry a ``null_audit_payload``
+#     sub-dict (paired-CRN precursor/null per-seed arrays) for the
+#     post-sweep null-audit aggregator. The on-disk JSON layout is a
+#     pure additive extension — v1 readers ignore the new sub-dict and
+#     v2 readers tolerate v1 files (cells without ``null_audit_payload``
+#     are surfaced as "no per-seed data" to the aggregator, which records
+#     them as SKIPPED_NO_PER_SEED_DATA = fail-closed). The fence is
+#     therefore "v2 reads v1, v1 ignores v2 extras"; the strict refusal
+#     remains for any version strictly greater than this module knows.
 # ---------------------------------------------------------------------------
-SCHEMA_VERSION: int = 1
+SCHEMA_VERSION: int = 2
 
 
 class OverwritePolicy(enum.Enum):
@@ -439,6 +452,7 @@ class CheckpointManager:
                 completed_cells=on_disk.completed_cells,
                 results=dict(on_disk.results),
                 code_drift_events=tuple(drift_events),
+                schema_version=on_disk.schema_version,
             )
             # Persist drift metadata immediately so the audit trail
             # survives even when the run exits before any save_cell
