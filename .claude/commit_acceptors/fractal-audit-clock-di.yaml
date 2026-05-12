@@ -51,12 +51,9 @@ diff_scope:
     - "forecast/"
 
 required_python_symbols:
-  - module: "geosync.core.compat"
-    name: "default_clock"
-  - module: "geosync.core.compat"
-    name: "FrozenClock"
-  - module: "geosync.core.compat"
-    name: "use_clock"
+  - "geosync.core.compat.default_clock"
+  - "geosync.core.compat.FrozenClock"
+  - "geosync.core.compat.use_clock"
 
 expected_signal: >-
   ``python -m pytest tests/integration/test_fractal_audit_determinism.py
