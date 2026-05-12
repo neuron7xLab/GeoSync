@@ -70,22 +70,22 @@ claims:
         additional exclusions from NEG = 0 cells.
 
     evidence:
-      preregistration_sha: "b1561ddde08a60a8eed416f2103655e0f3ee1ecd4e2b2037f4e7193c424a154e"
-      preflight_decision_sha: "a065d18223b9cd126c6839990e0877b436198c2424c771d09323b8fa30266a40"
-      sweep_sha: "54b1dd9d8059197f3463b9728d54adb632ec45b2459bcae001a08efe4dee2b16"
-      verdict_sha: "9380bb42db9e858e759ffacfd1906cd54023cae24e3d72ef83d1df8b8dbc9bd5"
-      archive_sha256: "c4f62f867f4aee6bb17ab6c768a6faf3791f2fedf17bd576490a2bb499566e1d"
+      preregistration_sha: "b1561ddde08a60a8eed416f2103655e0f3ee1ecd4e2b2037f4e7193c424a154e"  # pragma: allowlist secret
+      preflight_decision_sha: "a065d18223b9cd126c6839990e0877b436198c2424c771d09323b8fa30266a40"  # pragma: allowlist secret
+      sweep_sha: "54b1dd9d8059197f3463b9728d54adb632ec45b2459bcae001a08efe4dee2b16"  # pragma: allowlist secret
+      verdict_sha: "9380bb42db9e858e759ffacfd1906cd54023cae24e3d72ef83d1df8b8dbc9bd5"  # pragma: allowlist secret
+      archive_sha256: "c4f62f867f4aee6bb17ab6c768a6faf3791f2fedf17bd576490a2bb499566e1d"  # pragma: allowlist secret
       archive_path: tmp/d002c_canonical_20260512T122837Z.tar.gz
       manifest: docs/governance/evidence/D002C_CANONICAL_ARCHIVE_MANIFEST.txt
       run_report: docs/governance/D002C_CANONICAL_RUN_REPORT.md
       preflight_capsules:
-        pos_control_sha: "4de86ed462b77f4bd23fb8b04de276682877315a5b2861f3d6ee34d1a0470bb5"
-        neg_control_sha: "2d1f60008ac7624bb43cd098df489e3d6e0e754a9c9a58f2689460e69267d9fb"
-        smoke_test_sha: "927950f3a408c76666cd6409c0d3d0055a791a8e2761df4f9f629c7136354a6a"
-        null_audit_sha: "3376df404d3cd8fcb27ee7d358c31485615302389283e656186f871dd1f4c3dd"
+        pos_control_sha: "4de86ed462b77f4bd23fb8b04de276682877315a5b2861f3d6ee34d1a0470bb5"  # pragma: allowlist secret
+        neg_control_sha: "2d1f60008ac7624bb43cd098df489e3d6e0e754a9c9a58f2689460e69267d9fb"  # pragma: allowlist secret
+        smoke_test_sha: "927950f3a408c76666cd6409c0d3d0055a791a8e2761df4f9f629c7136354a6a"  # pragma: allowlist secret
+        null_audit_sha: "3376df404d3cd8fcb27ee7d358c31485615302389283e656186f871dd1f4c3dd"  # pragma: allowlist secret
 
     code_provenance:
-      git_head: adc3726930bcee5d05a4317ef14fbd7a2fcb258b
+      git_head: adc3726930bcee5d05a4317ef14fbd7a2fcb258b  # pragma: allowlist secret
       branch_at_run: main
       python_version: "3.12.3"
       runtime_profile:
