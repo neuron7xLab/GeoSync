@@ -99,16 +99,31 @@ def test_audit_marks_R3_as_downgraded() -> None:
     )
 
 
-def test_locked_files_never_mention_bca_for_phase0b() -> None:
-    """Sanity: the LOCKED files must NOT have ever mentioned BCa for Phase 0b.
+def _phase0b_bca_leak(body: str) -> bool:
+    """Return True iff ``body`` mentions BOTH a Phase 0b context AND a BCa token.
 
-    The contract downgrade is in the implementation report + audit (both
-    modifiable). The locked governance files (prereg / acceptance /
-    design / commit-acceptor / D-002C ledger) MUST NOT carry a BCa
-    claim for Phase 0b — otherwise this PR would need to touch them,
-    which is FORBIDDEN. If any locked file mentions BCa in the Phase 0b
-    context, ABORT — the contract downgrade is incomplete.
+    The locked design doc references BCa CI for the CANONICAL sweep R1
+    (not Phase 0b), so the rule is the CONJUNCTION: a Phase-0b context
+    string must not co-occur with any BCa/bias-corrected/accelerated
+    token in the same file.
     """
+    lo = body.lower()
+    if "phase 0b" not in lo and "phase_0b" not in lo:
+        return False
+    return bool(re.search(r"(BCa|bias-corrected|accelerated)", body))
+
+
+def test_locked_files_never_mention_bca_for_phase0b() -> None:
+    """Locked governance MUST NOT carry a Phase-0b BCa claim.
+
+    Positive path: every real locked file is leak-free (the contract
+    downgrade lives in the modifiable report + audit, never in the
+    locked anchors). Negative path: the leak detector itself is
+    instrumented against a synthetic body that DOES contain both
+    "Phase 0b" and "BCa" — if the detector fails to flag it, the
+    positive path is meaningless and the gate is a no-op.
+    """
+    # Positive path — every locked governance file must be leak-free.
     locked_files = [
         REPO_ROOT / "docs" / "governance" / "D002G_PREREGISTRATION.yaml",
         REPO_ROOT / "docs" / "governance" / "D002G_NONDEGENERATE_NULL_DESIGN.md",
@@ -118,15 +133,38 @@ def test_locked_files_never_mention_bca_for_phase0b() -> None:
         if not fp.exists():
             continue
         body = _read(fp)
-        # The locked design doc references BCa CI for the CANONICAL
-        # sweep R1 (not Phase 0b). The contract downgrade scope is
-        # Phase 0b only. Reject only on the conjunction "Phase 0b" +
-        # any BCa token in the same locked file.
-        if "phase 0b" in body.lower() or "phase_0b" in body.lower():
-            has_bca = bool(re.search(r"(BCa|bias-corrected|accelerated)", body))
-            assert not has_bca, (
-                f"P1-3 LOCKED-FILE LEAK: {fp} mentions BOTH Phase 0b and "
-                f"BCa/bias-corrected/accelerated. Locked files must not "
-                f"carry a Phase-0b BCa claim — this PR is forbidden from "
-                f"modifying them. Report and ABORT."
-            )
+        assert not _phase0b_bca_leak(body), (
+            f"P1-3 LOCKED-FILE LEAK: {fp} mentions BOTH Phase 0b and "
+            f"BCa/bias-corrected/accelerated. Locked files must not "
+            f"carry a Phase-0b BCa claim — this PR is forbidden from "
+            f"modifying them. Report and ABORT."
+        )
+
+    # Negative path — the detector must actually flag a constructed leak.
+    # If this assertion fails, the positive path above is vacuous: the
+    # detector would silently pass even on a contaminated locked file.
+    synthetic_leak = (
+        "Phase 0b verification uses BCa bootstrap CI with bias-corrected accelerated quantiles."
+    )
+    assert _phase0b_bca_leak(synthetic_leak), (
+        "Phase-0b BCa leak detector is broken: failed to flag a "
+        "synthetic body that mentions both 'Phase 0b' and 'BCa'. "
+        "The positive path is a no-op until this is fixed."
+    )
+
+    # Negative-of-negative — a clean body must not be flagged.
+    synthetic_clean = (
+        "Phase 0b verification uses percentile bootstrap CI; BCa is "
+        "future hardening, not the current contract."
+    )
+    # The clean body co-mentions both tokens but in a documented
+    # downgrade context. The detector is intentionally substring-based
+    # (no contract-vs-claim NLP), so it WILL flag this — confirming the
+    # detector's known limitation. We assert the flag fires here only
+    # to pin that limitation in the test, not because the body is
+    # actually a leak.
+    assert _phase0b_bca_leak(synthetic_clean), (
+        "Detector lost its substring-based conjunction behaviour. "
+        "If the detector grew NLP smarts, update this test and the "
+        "implementation report's known-limitations section together."
+    )
