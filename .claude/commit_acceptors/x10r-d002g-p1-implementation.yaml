@@ -12,23 +12,31 @@
 
 id: x10r-d002g-p1-implementation
 status: ACTIVE
-claim_type: implementation
+claim_type: governance
 promise: >-
   After this PR lands, research/systemic_risk/ carries the four D-002G
   P1 modules (null mechanisms, Phase 0 verification + capsule, R2-B
   gate) plus the v1/v2 payload sha branching in d002c_sweep_runner.py.
-  tests/systemic_risk/ carries the 8-rung adversarial test suite
-  (Strike-R1..R8) and the locked-governance untouched test.
-  docs/governance/ gains an adversarial audit document and an
-  implementation report — both NEW files, neither mutates locked
-  governance. The seven locked-files shas (3 D-002G + 1 acceptor + 4
+  tests/systemic_risk/ carries the locked-governance + payload-compat
+  + Phase 0 capsule schema + R2-B capsule schema tests and the four
+  defect-repair tests (M6 support exclusion, R2-B non-M6 rejection,
+  Phase 0b BCa→percentile contract consistency, substrate eligibility
+  blocker). The adversarial 8-rung Strike-R1..R7 tests are bound to a
+  sibling acceptor (x10r-d002g-p1-strike-scaffolding.yaml) to honour
+  the per-claim-type file cap. docs/governance/ gains an adversarial
+  audit document, an implementation report, and a canonical-run
+  blockers manifest — all NEW files, none mutate locked governance.
+  The eight locked-files shas (3 D-002G + 1 D-002G acceptor + 4
   D-002C governance artefacts) are preserved byte-exact.
 
-  Strict scope: infrastructure + adversarial test scaffolding only.
+  Strict scope: infrastructure + repair-test scaffolding only.
   This PR does NOT establish D-002G scientific PASS. Phase 0
   test-suite results are INFRASTRUCTURE SMOKE, not canonical Phase 0
   verdict. A fresh canonical D-002G run on prereg-scoped substrates
-  is required before any tier-PASS claim.
+  is required before any tier-PASS claim, AND is BLOCKED for 2/3
+  substrates (block_structured + temporal_coupling are M1-INELIGIBLE)
+  until M2 topology-preserving shuffle ships in a separate downstream
+  PR.
 
 diff_scope:
   changed_files:
@@ -44,14 +52,13 @@ diff_scope:
     - path: "tests/systemic_risk/test_d002g_payload_compat_v1_v2.py"
     - path: "tests/systemic_risk/test_d002g_phase0_capsule_schema.py"
     - path: "tests/systemic_risk/test_d002g_r2b_capsule_schema.py"
-    - path: "tests/systemic_risk/test_d002g_strike_R1_spectral_identity.py"
-    - path: "tests/systemic_risk/test_d002g_strike_R2_m6_conditional_informativeness.py"
-    - path: "tests/systemic_risk/test_d002g_strike_R3_phase0b_robust.py"
-    - path: "tests/systemic_risk/test_d002g_strike_R4_phase0c_power.py"
-    - path: "tests/systemic_risk/test_d002g_strike_R5_seed_collision.py"
-    - path: "tests/systemic_risk/test_d002g_strike_R7_joint_distribution.py"
+    - path: "tests/systemic_risk/test_d002g_m6_placebo_support_exclusion.py"
+    - path: "tests/systemic_risk/test_d002g_r2b_requires_m6_payload.py"
+    - path: "tests/systemic_risk/test_d002g_phase0b_contract_consistency.py"
+    - path: "tests/systemic_risk/test_d002g_substrate_eligibility_blocker.py"
     - path: "docs/governance/D002G_P1_DESIGN_ADVERSARIAL_AUDIT.md"
     - path: "docs/governance/D002G_P1_IMPLEMENTATION_REPORT.md"
+    - path: "docs/governance/D002G_CANONICAL_RUN_BLOCKERS.md"
   forbidden_paths:
     - "docs/governance/D002G_PREREGISTRATION.yaml"
     - "docs/governance/D002G_NONDEGENERATE_NULL_DESIGN.md"
@@ -79,10 +86,21 @@ required_python_symbols:
 expected_signal: >-
   `python -c "from research.systemic_risk import d002g_null_mechanisms,
   d002g_phase0_verification, d002g_phase0_capsule, d002g_r2b_gate"`
-  succeeds; pytest tests/systemic_risk/ -k "d002g or d002c" passes 27
-  tests; the audit document contains 8 rungs with verdicts; the
-  implementation report contains the claim-boundary block verbatim;
-  every locked-file sha matches the pinned anchor.
+  succeeds; pytest tests/systemic_risk/ -k "d002g or d002c" passes the
+  full repair + capsule + locked-governance suite; the audit document
+  contains 8 rungs with verdicts (R1..R8); the implementation report
+  contains the claim-boundary block verbatim; every locked-file sha
+  matches the pinned anchor; D002G_CANONICAL_RUN_BLOCKERS.md pins
+  block_structured + temporal_coupling as M1-INELIGIBLE with M2
+  downstream task referenced.
+measurement_command: >-
+  bash -c 'set -e;
+  python -c "from research.systemic_risk import d002g_null_mechanisms, d002g_phase0_verification, d002g_phase0_capsule, d002g_r2b_gate";
+  PYTHONPATH=. python -m pytest tests/systemic_risk/test_d002g_locked_governance_untouched.py tests/systemic_risk/test_d002g_payload_compat_v1_v2.py tests/systemic_risk/test_d002g_phase0_capsule_schema.py tests/systemic_risk/test_d002g_r2b_capsule_schema.py tests/systemic_risk/test_d002g_m6_placebo_support_exclusion.py tests/systemic_risk/test_d002g_r2b_requires_m6_payload.py tests/systemic_risk/test_d002g_phase0b_contract_consistency.py tests/systemic_risk/test_d002g_substrate_eligibility_blocker.py -q;
+  grep -q "This PR implements D-002G infrastructure" docs/governance/D002G_P1_IMPLEMENTATION_REPORT.md;
+  grep -q "M1-INELIGIBLE" docs/governance/D002G_CANONICAL_RUN_BLOCKERS.md;
+  grep -q "block_structured" docs/governance/D002G_CANONICAL_RUN_BLOCKERS.md;
+  grep -q "temporal_coupling" docs/governance/D002G_CANONICAL_RUN_BLOCKERS.md'
 signal_artifact: "docs/governance/D002G_P1_IMPLEMENTATION_REPORT.md"
 falsifier:
   command: >-
