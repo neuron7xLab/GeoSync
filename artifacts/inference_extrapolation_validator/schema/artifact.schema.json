@@ -99,7 +99,10 @@
     },
     "null_model_results": {
       "type": "object",
-      "minProperties": 1
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "number"
+      }
     },
     "witness": {
       "type": "object",

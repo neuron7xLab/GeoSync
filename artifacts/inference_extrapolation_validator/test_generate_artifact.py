@@ -4,6 +4,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,9 @@ class TestIEV(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.out = Path(self.tmp.name) / "a.json"
+        now_utc = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        self.witness_ts = now_utc
+        self.generated_ts = now_utc
         self.base = [
             "python",
             str(GENERATE_ARTIFACT_PY),
@@ -72,13 +76,13 @@ class TestIEV(unittest.TestCase):
             "--witness-reviewer-id",
             "rev-1",
             "--witness-review-timestamp-utc",
-            "2026-05-12T00:00:00+00:00",
+            self.witness_ts,
             "--witness-review-hash",
             "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "--witness-notes-hash",
             "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "--generated-at-utc",
-            "2026-05-12T00:00:00+00:00",
+            self.generated_ts,
             "--purpose-id",
             "risk_gate_v1",
             "--purpose-statement",

@@ -70,7 +70,7 @@ guarantee.
 python artifacts/inference_extrapolation_validator/generate_artifact.py generate ... --out path/to/artifact.json
 
 # Verify an existing artifact (re-runs every contract check).
-python artifacts/inference_extrapolation_validator/generate_artifact.py verify --artifact artifacts/inference_extrapolation_validator/example_artifact.json
+python artifacts/inference_extrapolation_validator/generate_artifact.py verify --artifact path/to/artifact.json
 
 # Run the in-process unit suite (27 tests).
 python -m unittest artifacts/inference_extrapolation_validator/test_generate_artifact.py -v

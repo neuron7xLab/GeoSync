@@ -13,14 +13,6 @@
 # risk-tier coverage, internal arithmetic (hypothesis_score > max null),
 # SHA integrity, and fail-closed semantics. Claim boundary is documented
 # in `artifacts/inference_extrapolation_validator/CLAIM_BOUNDARY.md`.
-#
-# Locally verified prior to commit:
-#   * mypy --strict on generate_artifact.py / falsifier.py / test_*.py: clean
-#   * ruff check (E, F, W, I): clean
-#   * black --check: clean
-#   * python -m unittest test_generate_artifact.py: 27 tests pass
-#   * python falsifier.py: FALSIFIER PASS
-#   * python generate_artifact.py verify --artifact example_artifact.json: pass
 
 id: inference-extrapolation-validator
 status: ACTIVE
@@ -33,9 +25,9 @@ promise: >-
   (b) risk-tier-required tests + null models are all present and keyed
   consistently, (c) hypothesis_score strictly exceeds every null model
   result, (d) for high risk, witness.status == approved with structured
-  reviewer_id / review_timestamp_utc (≤30d fresh) / review_hash, (e)
-  purpose.alignment_score ≥ 0.7 AND purpose.drift_check ≤ 0.3, (f)
-  external_falsification.drift_score ≤ 0.5, (g) STN-hyperdirect ACC
+  reviewer_id / review_timestamp_utc (<=30d fresh) / review_hash, (e)
+  purpose.alignment_score >= 0.7 AND purpose.drift_check <= 0.3, (f)
+  external_falsification.drift_score <= 0.5, (g) STN-hyperdirect ACC
   conflict score does not exceed 0.8 (hard ceiling, stochastic-noise
   exempt) or the adaptive threshold, (h) api_version == "1.0", and (i)
   artifact.sha256 matches recomputed sha256 over canonical JSON minus the
@@ -54,7 +46,6 @@ diff_scope:
     - path: "artifacts/inference_extrapolation_validator/README.md"
     - path: "artifacts/inference_extrapolation_validator/docs/ROLLBACK_DOCTRINE.md"
     - path: "artifacts/inference_extrapolation_validator/docs/THREAT_MODEL.md"
-    - path: "artifacts/inference_extrapolation_validator/example_artifact.json"
     - path: "artifacts/inference_extrapolation_validator/falsifier.py"
     - path: "artifacts/inference_extrapolation_validator/generate_artifact.py"
     - path: "artifacts/inference_extrapolation_validator/purpose_contract.json"
@@ -73,16 +64,73 @@ diff_scope:
     - "trading/"
     - "research/"
     - "geosync/"
-evidence:
-  required_commands:
-    - "python -m unittest artifacts/inference_extrapolation_validator/test_generate_artifact.py -v"
-    - "python artifacts/inference_extrapolation_validator/falsifier.py"
-    - "python artifacts/inference_extrapolation_validator/generate_artifact.py verify --artifact artifacts/inference_extrapolation_validator/example_artifact.json"
-    - "make iev-gate"
-  expected_exit_codes:
-    success: 0
-    contract_violation: 2
-    parse_failure: 3
+required_python_symbols:
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::build_parser"
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::build_artifact"
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::validate_contract"
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::compute_acc_conflict_score"
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::stn_hyperdirect_gate"
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::compute_artifact_sha256"
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::verify_artifact_sha256"
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::canonical_json_bytes"
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::RISK_REQUIRED_TESTS"
+  - "artifacts/inference_extrapolation_validator/generate_artifact.py::RISK_REQUIRED_NULL_MODELS"
+  - "artifacts/inference_extrapolation_validator/falsifier.py::_build_base"
+  - "artifacts/inference_extrapolation_validator/falsifier.py::run_expect"
+  - "artifacts/inference_extrapolation_validator/test_generate_artifact.py::TestIEV"
+expected_signal: >-
+  `python -m unittest artifacts/inference_extrapolation_validator/test_generate_artifact.py -v`
+  reports 27 tests, 0 failures, 0 errors. `python artifacts/inference_extrapolation_validator/falsifier.py`
+  prints `FALSIFIER PASS`. `bash artifacts/inference_extrapolation_validator/scripts/brutal_e2e_proof.sh`
+  prints `BRUTAL_E2E_PROOF PASS`. `mypy --strict`, `ruff check`, and
+  `black --check` over the three Python files in the module are clean.
+measurement_command: >-
+  bash -c '
+    .venv/bin/mypy --strict
+      artifacts/inference_extrapolation_validator/generate_artifact.py
+      artifacts/inference_extrapolation_validator/falsifier.py
+      artifacts/inference_extrapolation_validator/test_generate_artifact.py
+    && .venv/bin/ruff check artifacts/inference_extrapolation_validator/
+    && .venv/bin/black --check artifacts/inference_extrapolation_validator/
+    && .venv/bin/python -m unittest
+      artifacts/inference_extrapolation_validator/test_generate_artifact.py -v
+    && .venv/bin/python artifacts/inference_extrapolation_validator/falsifier.py
+    && bash artifacts/inference_extrapolation_validator/scripts/brutal_e2e_proof.sh
+  ' 2>&1 | tee tmp/inference_extrapolation_validator.log
+signal_artifact: "tmp/inference_extrapolation_validator.log"
+falsifier:
+  command: >-
+    bash -c '
+      .venv/bin/python artifacts/inference_extrapolation_validator/falsifier.py
+        >/tmp/_iev_falsifier.log 2>&1
+      && ! grep -q "FALSIFIER PASS" /tmp/_iev_falsifier.log
+    '
+  description: >-
+    Probes the IEV CLI's adversarial battery: known-good survives,
+    missing required test fails, missing high-risk witness review hash
+    fails, sha-256 corruption fails verify, test_passed=false+survived
+    contradiction fails, missing required null model fails, valid killed
+    mode succeeds. Falsifier succeeds (exit 0) only when the FALSIFIER
+    PASS line is missing — meaning at least one adversarial scenario
+    silently passed where it should have failed-closed.
+rollback_command: >-
+  bash -c '
+    rm -rf artifacts/inference_extrapolation_validator/
+    && rm -f
+      .claude/commit_acceptors/inference-extrapolation-validator.yaml
+      .github/workflows/iev-module-gate.yml
+    && git checkout HEAD~1 -- Makefile .github/detect-secrets.baseline go.work.sum
+  '
+rollback_verification_command: >-
+  bash -c '
+    ! test -d artifacts/inference_extrapolation_validator/
+    && ! test -f .github/workflows/iev-module-gate.yml
+    && ! test -f .claude/commit_acceptors/inference-extrapolation-validator.yaml
+  '
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/inference-extrapolation-validator.yaml"
+report_path: "tmp/inference_extrapolation_validator.log"
+evidence: []
 claim_boundary: >-
   The IEV certifies STRUCTURAL CONSISTENCY of an extrapolation claim
   (schema, risk-tier coverage, internal arithmetic, witness rules, SHA

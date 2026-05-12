@@ -581,4 +581,4 @@ l2-test:
 iev-gate:
 	python -m unittest artifacts/inference_extrapolation_validator/test_generate_artifact.py -v
 	python artifacts/inference_extrapolation_validator/falsifier.py
-	python artifacts/inference_extrapolation_validator/generate_artifact.py verify --artifact artifacts/inference_extrapolation_validator/example_artifact.json
+	bash artifacts/inference_extrapolation_validator/scripts/brutal_e2e_proof.sh

@@ -275,6 +275,12 @@ def validate_contract(artifact: dict[str, Any]) -> None:
     nm_keys = set(artifact["null_model_results"].keys())
     if nm_run != nm_keys:
         raise ValueError("null_model_results keys must match null_models_run")
+    for nm_key, nm_value in artifact["null_model_results"].items():
+        if isinstance(nm_value, bool) or not isinstance(nm_value, (int, float)):
+            raise ValueError(
+                f"null_model_results[{nm_key!r}] must be numeric (int or float), got "
+                f"{type(nm_value).__name__}"
+            )
 
     # evidence must beat null models
     if artifact["claim_status"] == "EVIDENCE":
@@ -319,6 +325,12 @@ def build_artifact(args: argparse.Namespace) -> dict[str, Any]:
     null_model_results = json.loads(args.null_model_results)
     if not isinstance(null_model_results, dict) or not null_model_results:
         raise ValueError("null_model_results must be non-empty JSON object")
+    for nm_key, nm_value in null_model_results.items():
+        if isinstance(nm_value, bool) or not isinstance(nm_value, (int, float)):
+            raise ValueError(
+                f"null_model_results[{nm_key!r}] must be numeric (int or float), got "
+                f"{type(nm_value).__name__}"
+            )
 
     artifact = {
         "module": "inference_extrapolation_validator",
