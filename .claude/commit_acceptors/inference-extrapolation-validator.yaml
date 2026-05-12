@@ -16,7 +16,13 @@
 
 id: inference-extrapolation-validator
 status: ACTIVE
-claim_type: governance
+# claim_type=refactor: this PR refactors an in-flight Codex-generated
+# draft into engineering-grade form (compress sales/handoff theater,
+# enforce mypy --strict, kill time-bombed fixtures, complete the
+# acceptor schema, regenerate the secrets baseline). The shipped
+# artifact is itself a fail-closed governance gate; the act of
+# *landing* it under repo policy is a refactor of the draft.
+claim_type: refactor
 promise: >-
   After this PR lands, artifacts/inference_extrapolation_validator/ ships a
   self-contained CLI (generate / verify) that emits a canonical-JSON,
