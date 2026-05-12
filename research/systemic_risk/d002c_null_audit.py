@@ -357,14 +357,382 @@ def run_null_audit_from_capsule(
     return tuple(out)
 
 
+# ---------------------------------------------------------------------------
+# C2.4-C2 — Aggregate null audit (D-002C launch-hygiene contract)
+#
+# The preflight validator at d002c_preflight._process_null_audit expects a
+# capsule of kind d002c_null_audit_capsule_v1 with per-cell NullAuditResult
+# payloads (each carrying verdict in {"PASS","FAIL"}) and a recomputed
+# sha256 that matches the validator's canonical_preflight_json discipline.
+#
+# Until C2.4-C2 lands, the runtime path emits an aggregate_only=true escape
+# capsule with results=[] — the validator accepts that as a launch-hygiene
+# compromise (no real null-audit FAIL signal is exercised). This block
+# closes that gap: run_null_audit_all aggregates per-cell audits across
+# the full sweep grid and emits a real capsule whose sha aligns with the
+# validator's recompute, so launch_allowed reflects the actual null-audit
+# result.
+#
+# Strict scope: aggregation + capsule emission ONLY. NO claim layer. NO
+# tier promotion. NO modification of the per-pair primitive contract.
+# ---------------------------------------------------------------------------
+
+NULL_AUDIT_AGGREGATE_KIND: Final[str] = "d002c_null_audit_capsule_v1"
+
+#: Verdict emitted for cells that the capsule path lacks per-seed data
+#: for. Treated as fail-closed by the aggregate verdict (NOT counted
+#: as PASS): a missing audit is not evidence of a passing audit.
+SKIPPED_NO_PER_SEED_DATA: Final[str] = "SKIPPED_NO_PER_SEED_DATA"
+
+
+class NullAuditAggregateInvalid(RuntimeError):
+    """Bad input to :func:`run_null_audit_all`.
+
+    Raised when caller-side preconditions fail (both/neither input source
+    supplied, empty results without ``aggregate_only=true``, etc.). Per-cell
+    audit failures DO NOT raise — they are recorded in the capsule and
+    flip ``aggregate_verdict`` to ``"FAIL"`` for the caller to handle.
+    """
+
+
+@dataclass(frozen=True)
+class NullAuditInputCell:
+    """Per-cell input payload for the aggregate audit.
+
+    Carries the paired (precursor, null) per-seed samples for one
+    (substrate × metric × N × λ) sweep cell. The ``cell_key`` is the
+    canonical identity string (any stable encoding of the cell tuple
+    — the aggregator does not parse it, only carries it through to the
+    emitted capsule).
+    """
+
+    cell_key: str
+    precursor_values: NDArray[np.float64]
+    null_values: NDArray[np.float64]
+
+
+@dataclass(frozen=True)
+class NullAuditAggregateResult:
+    """Frozen aggregate verdict across all audited sweep cells.
+
+    Fields
+    ------
+    aggregate_verdict
+        ``"PASS"`` iff EVERY audited cell has ``verdict == "PASS"`` AND
+        zero cells were skipped for missing per-seed data. Any FAIL or
+        SKIPPED cell flips it to ``"FAIL"`` (fail-closed).
+    n_audited_cells
+        Number of cells with a real audit verdict (PASS or FAIL).
+        Does NOT include SKIPPED_NO_PER_SEED_DATA cells.
+    n_pass, n_fail
+        Counts within ``n_audited_cells``.
+    results
+        Tuple of per-cell :class:`NullAuditResult` (one per
+        audited-or-skipped cell, in input traversal order). Skipped
+        cells carry verdict=``SKIPPED_NO_PER_SEED_DATA``.
+    sha256
+        Canonical sha256 of the emitted capsule body (recomputed
+        through :func:`d002c_preflight.canonical_preflight_json` so it
+        matches the preflight validator's recompute bit-exactly).
+    generated_at
+        ISO-8601 UTC timestamp written into the capsule.
+    """
+
+    aggregate_verdict: str  # "PASS" | "FAIL"
+    n_audited_cells: int
+    n_pass: int
+    n_fail: int
+    results: tuple[NullAuditResult, ...]
+    sha256: str
+    generated_at: str
+
+
+def _result_to_payload(res: NullAuditResult, cell_key: str) -> dict[str, Any]:
+    """Convert a :class:`NullAuditResult` into the dict layout the
+    preflight validator iterates over in ``_process_null_audit``.
+
+    Keeps the canonical NullAuditResult sha (a different sha — over the
+    per-cell payload — than the aggregate capsule sha) and adds the
+    aggregator-only ``cell_key`` field. Skipped cells get a synthetic
+    payload with verdict=SKIPPED_NO_PER_SEED_DATA and a deterministic
+    sha over the cell_key alone, so the aggregate capsule is content-
+    addressed even when some cells are unaudited.
+    """
+    return {
+        "cell_key": cell_key,
+        "n_seeds": int(res.n_seeds),
+        "n_shuffles": int(res.n_shuffles),
+        "unshuffled_abs_signal": float(res.unshuffled_abs_signal),
+        "shuffled_abs_signal_median": float(res.shuffled_abs_signal_median),
+        "shuffled_abs_signal_p95": float(res.shuffled_abs_signal_p95),
+        "p_value_empirical": float(res.p_value_empirical),
+        "verdict": str(res.verdict),
+        "sha256": str(res.sha256),
+    }
+
+
+def _skipped_result(cell_key: str) -> NullAuditResult:
+    """Build a synthetic NullAuditResult for a cell lacking per-seed
+    data. The aggregate verdict treats it as FAIL (fail-closed). The
+    per-cell sha is deterministic in ``cell_key`` so two runs over the
+    same skipped cell produce the same aggregate capsule sha."""
+    payload: dict[str, Any] = {
+        "cell_key": cell_key,
+        "verdict": SKIPPED_NO_PER_SEED_DATA,
+    }
+    sha = _sha256(payload)
+    return NullAuditResult(
+        n_seeds=0,
+        n_shuffles=0,
+        unshuffled_abs_signal=0.0,
+        shuffled_abs_signal_median=0.0,
+        shuffled_abs_signal_p95=0.0,
+        unshuffled_greater_than_median=False,
+        p_value_empirical=1.0,
+        verdict=SKIPPED_NO_PER_SEED_DATA,
+        sha256=sha,
+    )
+
+
+def _iter_cells_from_capsule(
+    capsule_path: Path,
+) -> tuple[tuple[str, tuple[NDArray[np.float64], NDArray[np.float64]] | None], ...]:
+    """Walk a sweep capsule and yield (cell_key, arrays_or_None) pairs.
+
+    Cells lacking per-seed data are yielded with ``None`` so the
+    aggregator can record them as SKIPPED — they MUST NOT be silently
+    dropped (a dropped cell would falsely raise aggregate=PASS).
+    """
+    capsule_path = Path(capsule_path)
+    if not capsule_path.exists():
+        raise NullAuditInvalid(f"capsule does not exist: {capsule_path}")
+    try:
+        raw = capsule_path.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise NullAuditInvalid(f"could not parse capsule {capsule_path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise NullAuditInvalid(f"capsule root must be a JSON object; got {type(data).__name__}")
+    results_list = data.get("results")
+    if not isinstance(results_list, list):
+        return ()
+    out: list[tuple[str, tuple[NDArray[np.float64], NDArray[np.float64]] | None]] = []
+    for cell in results_list:
+        if not isinstance(cell, dict):
+            continue
+        cell_id = (
+            f"[N={cell.get('N', '?')},"
+            f"lambda={cell.get('lambda_', '?')},"
+            f"sub={cell.get('substrate_id', '?')},"
+            f"metric={cell.get('metric_id', '?')}]"
+        )
+        arrays = _extract_per_seed_arrays(cell)
+        out.append((cell_id, arrays))
+    return tuple(out)
+
+
+def run_null_audit_all(
+    *,
+    output_path: Path,
+    sweep_results: tuple[NullAuditInputCell, ...] | None = None,
+    sweep_capsule_path: Path | None = None,
+    n_shuffles: int = DEFAULT_N_SHUFFLES,
+    rng_seed: int = DEFAULT_RNG_SEED,
+    p_value_threshold: float = DEFAULT_P_VALUE_THRESHOLD,
+    aggregate_only_if_empty: bool = False,
+    generated_at: str | None = None,
+) -> NullAuditAggregateResult:
+    """Aggregate null audit across all sweep cells.
+
+    Runs :func:`run_null_audit` on every (precursor, null) pair the
+    caller supplies (or that the capsule path carries), records each
+    per-cell verdict, and emits a ``d002c_null_audit_capsule_v1``
+    capsule whose sha256 matches the preflight validator's canonical
+    recompute (so ``launch_allowed=True`` is reachable for the canonical
+    D-002C launch hygiene path).
+
+    Exactly one of ``sweep_results`` or ``sweep_capsule_path`` must be
+    provided.
+
+    Parameters
+    ----------
+    output_path
+        Where to write the emitted capsule (atomic tmp + fsync +
+        os.replace; on-disk JSON is content-addressed).
+    sweep_results
+        Tuple of :class:`NullAuditInputCell` carrying per-cell
+        paired-seed precursor/null samples.
+    sweep_capsule_path
+        Path to a sweep result capsule from which per-cell pair samples
+        are loaded. Cells lacking per-seed data are recorded with
+        ``verdict=SKIPPED_NO_PER_SEED_DATA`` — NEVER silently dropped.
+    n_shuffles, rng_seed, p_value_threshold
+        Forwarded per-cell to :func:`run_null_audit`.
+    aggregate_only_if_empty
+        Genuine-empty-grid escape hatch. If True AND the resolved cell
+        list is empty, emit ``aggregate_only=true, results=[]`` (which
+        the preflight accepts) instead of raising. Required for, e.g.,
+        a sweep that has POS/NEG-excluded the entire grid.
+    generated_at
+        Optional ISO-8601 UTC timestamp. Defaults to ``_now_iso()``.
+        Override only when test-pinning determinism of the sha.
+
+    Returns
+    -------
+    NullAuditAggregateResult
+        Frozen aggregate carrying the per-cell results, capsule sha,
+        and ``aggregate_verdict`` (PASS iff every audited cell PASSes
+        AND no cell was skipped).
+
+    Raises
+    ------
+    NullAuditAggregateInvalid
+        Both inputs missing, both inputs supplied, or empty resolved
+        cell list without ``aggregate_only_if_empty=True``.
+    """
+    if (sweep_results is None) == (sweep_capsule_path is None):
+        raise NullAuditAggregateInvalid(
+            "exactly one of sweep_results or sweep_capsule_path must be provided"
+        )
+
+    # Resolve the (cell_key, arrays_or_None) sequence.
+    resolved: list[tuple[str, tuple[NDArray[np.float64], NDArray[np.float64]] | None]] = []
+    if sweep_results is not None:
+        for cell in sweep_results:
+            if not isinstance(cell, NullAuditInputCell):
+                raise NullAuditAggregateInvalid(
+                    f"sweep_results must contain NullAuditInputCell; got {type(cell).__name__}"
+                )
+            resolved.append((cell.cell_key, (cell.precursor_values, cell.null_values)))
+    else:
+        assert sweep_capsule_path is not None  # mypy guard
+        resolved.extend(_iter_cells_from_capsule(sweep_capsule_path))
+
+    # Empty path: aggregate_only escape hatch, or fail-closed refuse.
+    if not resolved:
+        if not aggregate_only_if_empty:
+            raise NullAuditAggregateInvalid(
+                "resolved cell list is empty and aggregate_only_if_empty=False — refuse "
+                "to emit an empty real-results capsule (the preflight escape hatch must "
+                "be opt-in)"
+            )
+        ts = generated_at if generated_at is not None else _now_iso()
+        body: dict[str, Any] = {
+            "kind": NULL_AUDIT_AGGREGATE_KIND,
+            "generated_at": ts,
+            "n_audited_cells": 0,
+            "n_pass": 0,
+            "n_fail": 0,
+            "n_shuffles_per_cell": int(n_shuffles),
+            "aggregate_verdict": "PASS",
+            "aggregate_only": True,
+            "results": [],
+        }
+        sha = _canonical_capsule_sha(body)
+        body["sha256"] = sha
+        _atomic_write(output_path, body)
+        return NullAuditAggregateResult(
+            aggregate_verdict="PASS",
+            n_audited_cells=0,
+            n_pass=0,
+            n_fail=0,
+            results=(),
+            sha256=sha,
+            generated_at=ts,
+        )
+
+    # Per-cell audits (or SKIPPED records).
+    per_cell_results: list[NullAuditResult] = []
+    per_cell_payloads: list[dict[str, Any]] = []
+    n_audited = 0
+    n_pass = 0
+    n_fail = 0
+    n_skipped = 0
+    for cell_key, arrays in resolved:
+        if arrays is None:
+            res = _skipped_result(cell_key)
+            per_cell_results.append(res)
+            per_cell_payloads.append(_result_to_payload(res, cell_key))
+            n_skipped += 1
+            continue
+        precursor_arr, null_arr = arrays
+        res = run_null_audit(
+            precursor_arr,
+            null_arr,
+            n_shuffles=n_shuffles,
+            rng_seed=rng_seed,
+            p_value_threshold=p_value_threshold,
+        )
+        per_cell_results.append(res)
+        per_cell_payloads.append(_result_to_payload(res, cell_key))
+        n_audited += 1
+        if res.verdict == "PASS":
+            n_pass += 1
+        else:
+            n_fail += 1
+
+    # Aggregate verdict: fail-closed on any FAIL or any SKIPPED cell.
+    aggregate_verdict = "PASS" if (n_fail == 0 and n_skipped == 0 and n_audited > 0) else "FAIL"
+    ts = generated_at if generated_at is not None else _now_iso()
+
+    body = {
+        "kind": NULL_AUDIT_AGGREGATE_KIND,
+        "generated_at": ts,
+        "n_audited_cells": int(n_audited),
+        "n_pass": int(n_pass),
+        "n_fail": int(n_fail),
+        "n_skipped_cells": int(n_skipped),
+        "n_shuffles_per_cell": int(n_shuffles),
+        "aggregate_verdict": aggregate_verdict,
+        "aggregate_only": False,
+        "results": per_cell_payloads,
+    }
+    sha = _canonical_capsule_sha(body)
+    body["sha256"] = sha
+    _atomic_write(output_path, body)
+
+    return NullAuditAggregateResult(
+        aggregate_verdict=aggregate_verdict,
+        n_audited_cells=int(n_audited),
+        n_pass=int(n_pass),
+        n_fail=int(n_fail),
+        results=tuple(per_cell_results),
+        sha256=sha,
+        generated_at=ts,
+    )
+
+
+def _canonical_capsule_sha(body: dict[str, Any]) -> str:
+    """Compute the capsule sha using the preflight validator's canonical
+    JSON discipline. Lazy import: ``d002c_preflight`` already imports
+    several sibling modules (substrates, metrics, neg_control); a top-
+    level import here is safe today but would couple this module to the
+    preflight's import graph for all callers. We follow the C2.6
+    function-scope import pattern (used for ``d002c_neg_control`` from
+    ``d002c_preflight``) so any future import-graph change in
+    ``d002c_preflight`` does not break ``d002c_null_audit`` at module
+    load time."""
+    from .d002c_preflight import canonical_preflight_json  # noqa: PLC0415
+
+    body_for_sha = {k: v for k, v in body.items() if k != "sha256"}
+    canon = canonical_preflight_json(body_for_sha)
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()
+
+
 __all__ = [
     "DEFAULT_N_SHUFFLES",
     "DEFAULT_RNG_SEED",
     "DEFAULT_P_VALUE_THRESHOLD",
     "MIN_N_SHUFFLES",
     "MIN_N_SEEDS",
+    "NULL_AUDIT_AGGREGATE_KIND",
+    "SKIPPED_NO_PER_SEED_DATA",
     "NullAuditInvalid",
+    "NullAuditAggregateInvalid",
+    "NullAuditInputCell",
     "NullAuditResult",
+    "NullAuditAggregateResult",
     "run_null_audit",
     "run_null_audit_from_capsule",
+    "run_null_audit_all",
 ]
