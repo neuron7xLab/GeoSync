@@ -105,12 +105,10 @@ def test_R7_capsule_emits_rule_correlation_matrix() -> None:
     cells = _make_cells_with_shared_inflation()
     verdict = evaluate_r2b(cells, n_bootstrap=64, bca_seed=42)
     cap = r2b_verdict_to_capsule(verdict)
-    assert (
-        "rule_correlation_matrix" in cap
-    ), "R7 VIOLATED: r2b capsule missing 'rule_correlation_matrix'"
-    assert (
-        "rule_correlation_labels" in cap
-    ), "R7 VIOLATED: r2b capsule missing 'rule_correlation_labels'"
+    has_mat = "rule_correlation_matrix" in cap
+    assert has_mat, "R7 VIOLATED: r2b capsule missing 'rule_correlation_matrix'"
+    has_labels = "rule_correlation_labels" in cap
+    assert has_labels, "R7 VIOLATED: r2b capsule missing 'rule_correlation_labels'"
     labels = list(cap["rule_correlation_labels"])
     mat = cap["rule_correlation_matrix"]
     k = len(labels)
@@ -120,13 +118,13 @@ def test_R7_capsule_emits_rule_correlation_matrix() -> None:
         assert len(row) == k, f"R7 VIOLATED: row {i} length {len(row)} ≠ k {k}"
         for j, v in enumerate(row):
             fv = float(v)
-            assert np.isfinite(
-                fv
-            ), f"R7 VIOLATED: correlation_matrix[{i}][{j}] = {fv!r} (not finite)"
-            assert (
-                -1.0 - 1e-9 <= fv <= 1.0 + 1e-9
-            ), f"R7 VIOLATED: correlation_matrix[{i}][{j}] = {fv} outside [-1, 1]"
+            finite = bool(np.isfinite(fv))
+            msg_f = f"R7 VIOLATED: correlation_matrix[{i}][{j}] = {fv!r} (not finite)"
+            assert finite, msg_f
+            in_band = -1.0 - 1e-9 <= fv <= 1.0 + 1e-9
+            msg_b = f"R7 VIOLATED: correlation_matrix[{i}][{j}] = {fv} outside [-1, 1]"
+            assert in_band, msg_b
         # Diagonal == 1 (within tiny float tolerance)
-        assert (
-            abs(float(row[i]) - 1.0) < 1e-9
-        ), f"R7 VIOLATED: correlation_matrix diagonal [{i}][{i}] = {row[i]} ≠ 1"
+        diag_ok = abs(float(row[i]) - 1.0) < 1e-9
+        msg_d = f"R7 VIOLATED: correlation_matrix diagonal [{i}][{i}] = {row[i]} ≠ 1"
+        assert diag_ok, msg_d

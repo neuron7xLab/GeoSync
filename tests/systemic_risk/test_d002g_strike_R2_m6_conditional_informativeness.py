@@ -150,15 +150,14 @@ def test_R2_capsule_emits_topology_coupling_indicator() -> None:
     cells = _make_spectrally_driven_cells()
     verdict = evaluate_r2b(cells, n_bootstrap=64, bca_seed=42)
     cap = r2b_verdict_to_capsule(verdict)
-    assert (
-        "topology_coupling_indicator_mean" in cap
-    ), "R2 VIOLATED: r2b capsule missing 'topology_coupling_indicator_mean'."
+    has_mean = "topology_coupling_indicator_mean" in cap
+    assert has_mean, "R2 VIOLATED: capsule missing topology_coupling_indicator_mean"
     # Per-cell indicator also exposed
     cell_rows = cap["cell_results"]
     for row in cell_rows:
-        assert (
-            "topology_coupling_indicator" in row
-        ), f"R2 VIOLATED: per-cell row {row['cell_key']!r} missing 'topology_coupling_indicator'."
+        has_indicator = "topology_coupling_indicator" in row
+        msg = f"R2 VIOLATED: per-cell row {row['cell_key']!r} missing coupling indicator"
+        assert has_indicator, msg
 
 
 def test_R2_topology_blind_metric_downgrades_to_indeterminate() -> None:

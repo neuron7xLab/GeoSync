@@ -102,9 +102,9 @@ def test_v2_payload_roundtrips_with_extended_sha() -> None:
 def test_v1_and_v2_shas_differ_on_same_scientific_fields() -> None:
     v1 = _make_payload(PAYLOAD_SCHEMA_V1, DEFAULT_NULL_STRATEGY, None)
     v2 = _make_payload(PAYLOAD_SCHEMA_V2, "M1_INDEPENDENT_SEED", 42)
-    assert (
-        v1.sha256 != v2.sha256
-    ), "v1 and v2 shas must differ when v2 carries non-default null_strategy/null_seed"
+    differ = v1.sha256 != v2.sha256
+    msg = "v1 and v2 shas must differ when v2 carries non-default null_strategy/null_seed"
+    assert differ, msg
 
 
 def test_mixed_mode_loader_reads_both_schemas() -> None:
