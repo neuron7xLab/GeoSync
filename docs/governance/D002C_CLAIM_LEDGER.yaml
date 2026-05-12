@@ -151,3 +151,110 @@ claims:
         description: >-
           Independent Clock DI reliability hardening PR. Not a D-002C
           blocker, may be merged after canonical evidence is frozen.
+
+  # ---------------------------------------------------------------------
+  # Append-only — attempt-2 entry (2026-05-12).
+  # The C2.4-A2 data contract (#674) merged after attempt-1's freeze.
+  # Attempt-2 reran the canonical sweep under the new contract: per-cell
+  # NullAuditCellPayload now emitted, run_null_audit_all consumed real
+  # sweep output, and the post-sweep permutation null audit FALSIFIED
+  # the prior PASS-shape. The attempt-1 entry above remains in place
+  # (historically defensible — the executable safeguard did not yet
+  # exist). Attempt-2 ECLIPSES attempt-1 going forward.
+  # ---------------------------------------------------------------------
+
+  - claim_id: D002C_CANONICAL_SYNTHETIC_ATTEMPT_2_FALSIFIED
+    status: FALSIFIED_BY_EXECUTABLE_NULL_AUDIT
+    eclipses: D002C_CANONICAL_SYNTHETIC_PASS_SYNC_AUC
+    run_class: D002C_CANONICAL_SYNTHETIC_SWEEP_ATTEMPT_2_EXECUTABLE_NULL_AUDIT
+    run_id: d002c_canonical_attempt_2_20260512T160318Z
+    sweep_exit_code: 0
+    tier: D002C_REDESIGN_INSUFFICIENT_AT_TESTED_BUDGET
+    generated_at: "2026-05-12T16:23:16Z"
+
+    pre_null_audit_rule_summary:
+      r1_r2_r3_passing_cells: 45
+      r1_r2_r3_evaluated_cells: 45
+      note: >-
+        R1 ∧ R2 ∧ R3 PASS at 45/45 evaluated cells, identical pattern
+        to attempt-1. The PASS is voided by the post-sweep null audit
+        result below.
+
+    post_sweep_null_audit:
+      executed: true
+      aggregate_only: false
+      aggregate_verdict: FAIL
+      n_audited_cells: 54
+      n_pass: 45
+      n_fail: 9
+      n_shuffles_per_cell: 100
+      rng_seed: 42
+      fail_cells_lambda_distribution:
+        "0.0": 9
+        "non_zero": 0
+      mechanistic_explanation: >-
+        All 9 FAIL cells are λ=0. Under the locked paired-CRN protocol,
+        K_precursor == K_baseline bit-identically at λ=0 (substrate
+        invariant), so per-seed precursor_values == null_values. The
+        permutation test correctly reports p = 1.0 (zero
+        discriminability). This is the expected fail-closed behaviour
+        of a permutation null audit applied to a degenerate null
+        cohort — the result predicted by
+        docs/governance/D002C_R2_STRUCTURAL_LIMITATION_NOTE.md.
+
+    code_provenance:
+      git_head: 5c5393ed71fdc8b6b893503437318eb5ed7a4d45  # pragma: allowlist secret
+      branch_at_run: main
+      python_version: "3.12.3"
+      c2_4_a2_merge_sha: 5c5393e  # pragma: allowlist secret
+      contract_chain:
+        - "#671 C2.6 writer sha alignment"
+        - "#672 C2.4-C2 null audit aggregator"
+        - "#673 P0 docs freeze"
+        - "#674 C2.4-A2 per-seed payload data contract"
+
+    evidence:
+      preregistration_sha: "b1561ddde08a60a8eed416f2103655e0f3ee1ecd4e2b2037f4e7193c424a154e"  # pragma: allowlist secret
+      sweep_sha_pre_null_audit: "9abd7ca683f2c0f769496b471bad39462730a2971d7e17d05368fc1d13948473"  # pragma: allowlist secret
+      null_audit_capsule_sha: "7d5404d1e9714e79"  # pragma: allowlist secret
+      verdict_sha_final: "b427f22419bf7866b8913cd76bc31572d5dd6c48a64950dd597904829fd4df48"  # pragma: allowlist secret
+      archive_sha256: "f0fbea551dd0c4b74d1ec231a73c1f0917de16f6b15e24921e68c7706fc029f9"  # pragma: allowlist secret
+      archive_path: tmp/d002c_canonical_attempt_2_20260512T160318Z.tar.gz
+      run_report: docs/governance/D002C_ATTEMPT_2_NULL_AUDIT_FALSIFICATION_REPORT.md
+
+    limitations:
+      - no_real_data_validation
+      - no_bank_level_inference
+      - no_production_certification
+      - no_universal_claim
+      - null_cohort_is_degenerate_at_lambda_zero_under_paired_CRN
+      - D002G_redesign_required_before_any_new_canonical_PASS_claim
+
+    forbidden_interpretations:
+      - "attempt-1 PASS still holds — eclipsed by attempt-2"
+      - "sync_auc evidence survives null shuffle"
+      - "narratively rescue verdict by re-tuning thresholds"
+      - "edit D002C_PREREGISTRATION.yaml to flip verdict"
+      - "promote to real-data validation"
+      - "universal / cross-asset / bank-level inference"
+      - "production certification / external certification"
+      - "claim that R2 is a valid FPR safeguard"
+      - "D002C canonical PASS achieved (any unqualified phrasing)"
+
+    next_required_actions:
+      P2:
+        id: D-002G
+        description: >-
+          Redesign the null mechanism so λ=0 substrate dynamics are
+          mechanistically distinct from λ>0. Requires a FRESH
+          pre-registration document — never an edit to the locked
+          D002C_PREREGISTRATION.yaml. Five candidate mechanisms
+          specified in D002G_DEGENERATE_NULL_REDESIGN_SPEC.md.
+        spec: docs/governance/D002G_DEGENERATE_NULL_REDESIGN_SPEC.md
+      P3:
+        id: R2-B
+        description: >-
+          R2-B supplementary null (specified earlier under the original
+          attempt-1 ledger entry). Remains a valid alternative or
+          additive path; same fresh-pre-registration discipline applies.
+        spec: docs/governance/D002C_R2_B_SUPPLEMENTARY_NULL_SPEC.md
