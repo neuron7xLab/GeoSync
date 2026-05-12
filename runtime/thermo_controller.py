@@ -8,7 +8,6 @@ import hashlib
 import json
 import logging
 import os
-import time
 import warnings
 from collections import deque
 from dataclasses import dataclass
@@ -45,6 +44,7 @@ from core.metrics.aperiodic import aperiodic_slope
 from core.metrics.dfa import dfa_alpha
 from evolution import bond_evolver
 from evolution.crisis_ga import CrisisAwareGA, CrisisMode, Topology
+from geosync.core.compat import default_clock
 from rl.replay.sleep_engine import SleepReplayEngine
 from runtime.behavior_contract import (
     ActionClass,
@@ -60,6 +60,13 @@ from runtime.link_activator import LinkActivator
 from runtime.recovery_agent import AdaptiveRecoveryAgent, RecoveryState
 from utils.change_point import cusum_score, vol_shock
 from utils.fractal_cascade import DyadicPMCascade, pink_noise
+
+
+def _now_seconds() -> float:
+    """Wall-clock seconds via the injected :class:`Clock` (Class A migration)."""
+
+    return default_clock().epoch_ns() / 1_000_000_000
+
 
 torch: ModuleType | None = None
 try:
@@ -346,7 +353,7 @@ class ThermoController:
         self.baseline_F = initial_F
         self.baseline_ema = initial_F
         self.previous_F = initial_F
-        self.previous_t = time.time()
+        self.previous_t = _now_seconds()
         self.dF_dt = 0.0
         self.epsilon_adaptive = 0.0
         self.crisis_step_count = 0
@@ -601,7 +608,7 @@ class ThermoController:
         self.metrics.record("system_free_energy", current_F)
         self.metrics.record("system_dFdt", self.dF_dt)
         self.previous_F = current_F
-        self.previous_t = time.time()
+        self.previous_t = _now_seconds()
 
         self._record_telemetry(
             F_old=current_F,
@@ -631,7 +638,7 @@ class ThermoController:
 
         snapshot = self.snapshot_metrics(ga_phase="pre_evolve")
         self._latest_snapshot = snapshot
-        current_time = time.time()
+        current_time = _now_seconds()
 
         self.broadcast_agent_feedback(snapshot)
 
@@ -849,7 +856,7 @@ class ThermoController:
         self.crisis_step_count = 0
         self._last_tolerance_check = None
         self.override_reason = reason
-        self.override_time = time.time()
+        self.override_time = _now_seconds()
         self.controller_state = CrisisMode.NORMAL
 
         self.audit_logger.warning(
@@ -948,7 +955,7 @@ class ThermoController:
         action: str,
         topology_changes: List[Tuple[str, str, str, str]],
     ) -> None:
-        timestamp = time.time()
+        timestamp = _now_seconds()
         topology_change_records = [
             {"src": src, "dst": dst, "old": old_type, "new": new_type}
             for src, dst, old_type, new_type in topology_changes

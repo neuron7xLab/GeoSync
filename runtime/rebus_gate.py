@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from math import isfinite
 from numbers import Real
@@ -11,9 +11,18 @@ from threading import RLock
 from types import MappingProxyType
 from typing import Callable, Mapping
 
+from geosync.core.compat import default_clock
+
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    """Tz-aware UTC ``datetime`` from the injected :class:`Clock`.
+
+    Routes through ``default_clock().now()`` so audit events and phase
+    transitions are deterministic under a ``FrozenClock`` (Class A migration —
+    formal/micro_dynamic_bug_fractal_audit.md §3, replay determinism invariant).
+    """
+
+    return default_clock().now()
 
 
 class ExplorationPhase(str, Enum):

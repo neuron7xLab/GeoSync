@@ -20,7 +20,6 @@ import json
 import logging
 import os
 import threading
-import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -28,7 +27,20 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, List, Optional
 
+from geosync.core.compat import default_clock
+
 logger = logging.getLogger(__name__)
+
+
+def _now_epoch_seconds() -> float:
+    """Wall-clock seconds via the injected :class:`Clock`.
+
+    Routes through ``default_clock().epoch_ns()`` so audit/lifecycle traces
+    are deterministic under a ``FrozenClock`` (formal/micro_dynamic_bug_fractal_audit.md
+    §3 — Clock monotonicity / Replay determinism invariants).
+    """
+
+    return default_clock().epoch_ns() / 1_000_000_000
 
 
 class KillSwitchReason(Enum):
@@ -174,7 +186,7 @@ class KillSwitchManager:
         reason_str = reason.value if isinstance(reason, KillSwitchReason) else str(reason)
 
         with self._state_lock:
-            now = time.time()
+            now = _now_epoch_seconds()
             previous_state = self.state.active
 
             # Check cooldown (unless forced or already active)
@@ -254,7 +266,7 @@ class KillSwitchManager:
             True if deactivation succeeded, False otherwise
         """
         with self._state_lock:
-            now = time.time()
+            now = _now_epoch_seconds()
             previous_state = self.state.active
 
             # Check cooldown (unless forced or already inactive)
@@ -323,7 +335,7 @@ class KillSwitchManager:
             Dictionary with current state and statistics
         """
         with self._state_lock:
-            now = time.time()
+            now = _now_epoch_seconds()
             return {
                 "active": self.is_active(),
                 "active_programmatic": self.state.active,
@@ -383,7 +395,7 @@ class KillSwitchManager:
     ) -> None:
         """Record a state change event in the audit log."""
         event = KillSwitchEvent(
-            timestamp=time.time(),
+            timestamp=_now_epoch_seconds(),
             action=action,
             reason=reason,
             source=source,
@@ -419,7 +431,7 @@ class KillSwitchManager:
                 "activation_source": self.state.activation_source,
                 "activation_count": self.state.activation_count,
                 "deactivation_count": self.state.deactivation_count,
-                "persisted_at": time.time(),
+                "persisted_at": _now_epoch_seconds(),
             }
             with open(self.persist_path, "w", encoding="utf-8") as f:
                 json.dump(state_data, f, indent=2)
