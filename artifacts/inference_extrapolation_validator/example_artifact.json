@@ -1,0 +1,124 @@
+{
+  "module": "inference_extrapolation_validator",
+  "api_version": "1.0",
+  "stochastic_falsification": {
+    "tolerance": 0.0,
+    "noise_seed": 0
+  },
+  "version": "3.0.0",
+  "source_context_hash": "9fabb09e74849708ae7c6541ada4fcc5b3fc800b43158d82af1f5754e36b136c",
+  "hypothesis": "signal X remains stable beyond observed range",
+  "tests_run": [
+    "adversarial_test",
+    "boundary_check",
+    "counterexample_search",
+    "null_model_comparison",
+    "replay_test"
+  ],
+  "falsifiers_run": [
+    "counterexample_search",
+    "null_model_comparison"
+  ],
+  "failure_modes_checked": [
+    "boundary_violation",
+    "overfit"
+  ],
+  "null_models_run": [
+    "baseline_random_or_stationary",
+    "boundary_shuffle",
+    "counterexample_search_null",
+    "replay_consistency_null"
+  ],
+  "null_model_results": {
+    "baseline_random_or_stationary": 0.2,
+    "boundary_shuffle": 0.1,
+    "counterexample_search_null": 0.15,
+    "replay_consistency_null": 0.05
+  },
+  "test_passed": true,
+  "result": "survived",
+  "claim_status": "EVIDENCE",
+  "claim_boundary": "VERIFIED_EVIDENCE",
+  "risk_class": "high",
+  "metrics": {
+    "hypothesis_score": 0.9
+  },
+  "witness": {
+    "status": "approved",
+    "declared_result": "survived",
+    "reviewer_id": "rev-1",
+    "review_timestamp_utc": "2026-05-12T00:00:00+00:00",
+    "review_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "notes_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "purpose": {
+    "id": "risk_gate_v1",
+    "statement": "Prevent unverified extrapolation promotion",
+    "framework": "DIKWP",
+    "alignment_score": 0.9,
+    "drift_check": 0.1
+  },
+  "external_falsification": {
+    "probe_id": "probe-001",
+    "substrate": "exchange_sim",
+    "observation_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "drift_score": 0.2
+  },
+  "reproducibility": {
+    "model_id": "ext_inf",
+    "model_version": "3.4.0",
+    "seed": 1,
+    "prompt_hash": "9db6f9e7c6e5d6f6ac7a72f01561f1f5f8d6759f4f8999f8fceca85f2f4e6eb4",
+    "decoding": {
+      "temperature": 0.0,
+      "top_p": 1.0
+    },
+    "environment": {
+      "python": "3.14.4",
+      "python_implementation": "CPython",
+      "platform": "Linux-6.12.47-x86_64-with-glibc2.39",
+      "requirements_lock_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "code": {
+      "git_head": "462f61a84c0c3fad392030aadb0df365b5d6cbbd"
+    },
+    "command_line": "artifacts/inference_extrapolation_validator/generate_artifact.py generate --context verified dataset v1 --hypothesis signal X remains stable beyond observed range --model-id ext_inf --model-version 3.4.0 --seed 1 --prompt-hash 9db6f9e7c6e5d6f6ac7a72f01561f1f5f8d6759f4f8999f8fceca85f2f4e6eb4 --requirements-lock-sha256 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --risk high --result survived --test-passed true --tests-run adversarial_test,boundary_check,null_model_comparison,counterexample_search,replay_test --falsifiers-run counterexample_search,null_model_comparison --failure-modes-checked boundary_violation,overfit --null-models-run baseline_random_or_stationary,boundary_shuffle,counterexample_search_null,replay_consistency_null --null-model-results {\"baseline_random_or_stationary\":0.2,\"boundary_shuffle\":0.1,\"counterexample_search_null\":0.15,\"replay_consistency_null\":0.05} --hypothesis-score 0.9 --reality-probe-id probe-001 --reality-substrate exchange_sim --observation-hash dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd --drift-score 0.2 --witness-status approved --witness-reviewer-id rev-1 --witness-review-timestamp-utc 2026-05-12T00:00:00+00:00 --witness-review-hash bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb --witness-notes-hash cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc --generated-at-utc 2026-05-12T00:00:00+00:00 --purpose-id risk_gate_v1 --purpose-statement Prevent unverified extrapolation promotion --purpose-alignment-score 0.9 --purpose-drift-check 0.1 --api-version 1.0 --stochastic-tolerance 0.0 --noise-seed 0 --out artifacts/inference_extrapolation_validator/example_artifact.json",
+    "command_line_sha256": "9ffe633b12b9fe92ff6a301f429330e935ca3f4cbafdb4bf9f3d2aeeb4953571"
+  },
+  "generated_at_utc": "2026-05-12T00:00:00+00:00",
+  "owner": "inference_extrapolation_working_group",
+  "rollback": {
+    "mode": "force_kill",
+    "command": "set result=killed_with_counterexample"
+  },
+  "decision_trace": [
+    "schema",
+    "tests",
+    "null_models",
+    "witness",
+    "purpose",
+    "stn_gate",
+    "sha256"
+  ],
+  "epistemic_unit": "closed_validation_cycle",
+  "truth_claim": "bounded_contractual_evidence_only",
+  "no_overclaim": true,
+  "stn_hyperdirect_gate": {
+    "enabled": true,
+    "acc_conflict_score": 0.2,
+    "threshold": 0.5,
+    "adaptive_threshold": 0.5,
+    "adaptive_noise": 0.0,
+    "action": "exit_2_fail_closed",
+    "conflict_vector": {
+      "falsifier_disagreement": 0.0,
+      "null_model_contradiction": 0.0,
+      "witness_uncertainty": 0.0,
+      "purpose_drift": 0.1,
+      "external_falsification_drift": 0.2,
+      "schema_claim_inconsistency": 0.0,
+      "evidence_boundary_violation_risk": 0.0
+    }
+  },
+  "sha256": "179a9a669c482309954346a4e8e68ce18c3e3c0aa043ef2734a64f7d82ac5913"
+}

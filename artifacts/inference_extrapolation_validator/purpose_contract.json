@@ -1,0 +1,10 @@
+{
+  "module": "inference_extrapolation_validator",
+  "version": "1.0.0",
+  "purpose_boundary": {
+    "principle": "Data is not evidence. Inference is not evidence. Extrapolation is not evidence.",
+    "evidence_condition": "purpose_aligned && falsified && bounded && reproducible",
+    "alignment_threshold": 0.7,
+    "max_drift": 0.3
+  }
+}

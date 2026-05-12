@@ -1,0 +1,71 @@
+version: 4
+module: inference_extrapolation_validator
+invariants:
+  - id: IEV-001
+    name: no_unverified_claim_is_evidence
+    rule: "claim_status == EVIDENCE iff result == survived and test_passed == true"
+  - id: IEV-002
+    name: claim_boundary_is_status_code
+    rule: "claim_boundary in [VERIFIED_EVIDENCE, FALSIFIED_OR_REJECTED]"
+  - id: IEV-003
+    name: reproducibility_mandatory
+    rule: "reproducibility must include model_id, model_version, seed, prompt_hash, decoding, environment"
+  - id: IEV-004
+    name: high_risk_requires_witness_approved
+    rule: "risk_class == high implies witness.status == approved"
+  - id: IEV-005
+    name: sha256_integrity
+    rule: "artifact.sha256 equals SHA-256(UTF-8 canonical JSON without sha256 field)"
+  - id: IEV-006
+    name: generated_at_is_utc_offset_aware
+    rule: "generated_at_utc is ISO8601 and includes timezone offset"
+  - id: IEV-007
+    name: high_risk_requires_structured_witness_approval
+    rule: "high risk requires reviewer_id, review_timestamp_utc, review_hash"
+  - id: IEV-008
+    name: required_null_models_must_run
+    rule: "EVIDENCE requires risk-specific null model set"
+  - id: IEV-009
+    name: killed_hypotheses_preserved
+    rule: "killed_with_counterexample artifacts are valid negative artifacts"
+  - id: IEV-010
+    name: sha_drift_must_fail_verification
+    rule: "artifact verification fails if sha drift detected"
+  - id: IEV-011
+    name: survived_cannot_have_failed_tests
+    rule: "result=survived implies test_passed=true"
+  - id: IEV-012
+    name: evidence_requires_reproducibility
+    rule: "claim_status=EVIDENCE implies reproducibility complete"
+  - id: IEV-013
+    name: utc_normalized_timestamp
+    rule: "generated_at_utc must be timezone-aware and UTC-normalized"
+  - id: IEV-014
+    name: schema_gate_before_write
+    rule: "artifact schema validation passes before artifact write"
+
+  - id: IEV-015
+    name: evidence_requires_external_falsification
+    rule: "EVIDENCE requires external_falsification with drift_score <= 0.5"
+
+  - id: IEV-016
+    name: purpose_metadata_mandatory
+    rule: "artifact must include purpose.id and purpose.statement under DIKWP framework"
+
+  - id: IEV-017
+    name: purpose_alignment_threshold
+    rule: "EVIDENCE requires purpose.alignment_score >= 0.7 and purpose.drift_check <= 0.3"
+
+  - id: IEV-018
+    name: stn_hyperdirect_fail_closed
+    rule: "if stn_hyperdirect_gate.acc_conflict_score > 0.5 then exit code 2 and no promotion"
+
+  - id: IEV-019
+    name: api_version_lock
+    rule: "artifact.api_version must equal supported contract version"
+  - id: IEV-020
+    name: witness_freshness_gate
+    rule: "witness.review_timestamp_utc must be within freshness window"
+  - id: IEV-021
+    name: null_model_key_consistency
+    rule: "null_model_results keys must equal null_models_run set"

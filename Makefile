@@ -576,3 +576,9 @@ l2-ablations:
 l2-test:
 	$(call L2_BANNER,l2-test,every tests/test_l2_*.py file)
 	@python -m pytest tests/test_l2_*.py -q --timeout=60
+
+
+iev-gate:
+	python -m unittest artifacts/inference_extrapolation_validator/test_generate_artifact.py -v
+	python artifacts/inference_extrapolation_validator/falsifier.py
+	python artifacts/inference_extrapolation_validator/generate_artifact.py verify --artifact artifacts/inference_extrapolation_validator/example_artifact.json

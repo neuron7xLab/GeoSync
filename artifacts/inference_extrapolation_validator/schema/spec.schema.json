@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["module", "version", "contracts", "risk_policy"],
+  "properties": {
+    "module": {"const": "inference_extrapolation_validator"},
+    "version": {"type": "string"},
+    "contracts": {"type": "object"},
+    "risk_policy": {"type": "object"}
+  }
+}

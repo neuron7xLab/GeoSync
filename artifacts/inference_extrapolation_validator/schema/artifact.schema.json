@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "module",
+    "version",
+    "source_context_hash",
+    "tests_run",
+    "falsifiers_run",
+    "failure_modes_checked",
+    "null_models_run",
+    "null_model_results",
+    "result",
+    "claim_status",
+    "claim_boundary",
+    "risk_class",
+    "generated_at_utc",
+    "witness",
+    "reproducibility",
+    "sha256",
+    "external_falsification",
+    "purpose",
+    "stn_hyperdirect_gate",
+    "api_version",
+    "decision_trace",
+    "stochastic_falsification"
+  ],
+  "properties": {
+    "module": {
+      "const": "inference_extrapolation_validator"
+    },
+    "version": {
+      "type": "string"
+    },
+    "source_context_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "claim_status": {
+      "enum": [
+        "EVIDENCE",
+        "KILLED"
+      ]
+    },
+    "claim_boundary": {
+      "enum": [
+        "VERIFIED_EVIDENCE",
+        "FALSIFIED_OR_REJECTED"
+      ]
+    },
+    "result": {
+      "enum": [
+        "survived",
+        "killed_with_counterexample"
+      ]
+    },
+    "risk_class": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "pattern": ".*(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "tests_run": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "falsifiers_run": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "failure_modes_checked": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "null_models_run": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "null_model_results": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "witness": {
+      "type": "object",
+      "required": [
+        "status",
+        "reviewer_id",
+        "review_timestamp_utc",
+        "review_hash",
+        "notes_hash"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "approved",
+            "rejected",
+            "not_required"
+          ]
+        },
+        "reviewer_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_timestamp_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-f]{64})?$"
+        },
+        "notes_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-f]{64})?$"
+        }
+      }
+    },
+    "reproducibility": {
+      "type": "object",
+      "required": [
+        "model_id",
+        "model_version",
+        "seed",
+        "prompt_hash",
+        "decoding",
+        "environment"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string"
+        },
+        "model_version": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "prompt_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decoding": {
+          "type": "object",
+          "required": [
+            "temperature",
+            "top_p"
+          ]
+        },
+        "environment": {
+          "type": "object",
+          "required": [
+            "python",
+            "python_implementation",
+            "platform",
+            "requirements_lock_sha256"
+          ],
+          "properties": {
+            "requirements_lock_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "command_line_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "external_falsification": {
+      "type": "object",
+      "required": [
+        "probe_id",
+        "substrate",
+        "observation_hash",
+        "drift_score"
+      ],
+      "properties": {
+        "probe_id": {
+          "type": "string"
+        },
+        "substrate": {
+          "type": "string"
+        },
+        "observation_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "drift_score": {
+          "type": "number"
+        }
+      }
+    },
+    "purpose": {
+      "type": "object",
+      "required": [
+        "id",
+        "statement",
+        "framework",
+        "alignment_score",
+        "drift_check"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "statement": {
+          "type": "string"
+        },
+        "framework": {
+          "const": "DIKWP"
+        },
+        "alignment_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "drift_check": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "stn_hyperdirect_gate": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "acc_conflict_score",
+        "threshold",
+        "adaptive_threshold",
+        "adaptive_noise",
+        "action",
+        "conflict_vector"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "acc_conflict_score": {
+          "type": "number"
+        },
+        "threshold": {
+          "type": "number"
+        },
+        "action": {
+          "const": "exit_2_fail_closed"
+        }
+      }
+    },
+    "api_version": {
+      "const": "1.0"
+    },
+    "decision_trace": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "stochastic_falsification": {
+      "type": "object",
+      "required": [
+        "tolerance",
+        "noise_seed"
+      ],
+      "properties": {
+        "tolerance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "noise_seed": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

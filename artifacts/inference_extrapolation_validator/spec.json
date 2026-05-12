@@ -1,0 +1,168 @@
+{
+  "module": "inference_extrapolation_validator",
+  "version": "3.4.0",
+  "protocol": "falsification_heavy",
+  "architecture": {
+    "core": "distributed_cognitive_substrate",
+    "nodes": [
+      "inference_engine",
+      "extrapolation_layer",
+      "falsifier_unit",
+      "independent_witness_unit",
+      "evidence_artifact_writer"
+    ],
+    "flow": "verified_context_set -> inference -> extrapolation -> hypothesis_queue -> falsification_battery -> witness_review -> claim_status -> evidence_artifact"
+  },
+  "contracts": {
+    "inference": {
+      "input": "verified_context_set",
+      "output": "intra_context_conclusion",
+      "constraint": "reproducibility_required",
+      "status": "CONTEXT_BOUND"
+    },
+    "extrapolation": {
+      "input": "intra_context_conclusion",
+      "output": "predictive_hypothesis",
+      "status": "UNVERIFIED",
+      "claim_boundary": "must_not_be_treated_as_evidence"
+    },
+    "falsification": {
+      "input": "predictive_hypothesis",
+      "methods": [
+        "adversarial_test",
+        "boundary_check",
+        "null_model_comparison",
+        "counterexample_search",
+        "replay_test"
+      ],
+      "pass_rule": "all_critical_tests_pass && no_unresolved_counterexample && hypothesis_score > null_model_score",
+      "output_threshold": "evidence_artifact_or_kill_enforced"
+    },
+    "witness": {
+      "input": "falsification_report",
+      "output": "independent_witness_judgement",
+      "status": "REQUIRED_FOR_HIGH_RISK_CLAIMS"
+    },
+    "artifact": {
+      "input": "survived_or_killed_hypothesis",
+      "output": "sha256_attested_evidence_artifact",
+      "artifact_modes": [
+        "survived",
+        "killed_with_counterexample"
+      ],
+      "required_fields": [
+        "module",
+        "version",
+        "source_context_hash",
+        "tests_run",
+        "falsifiers_run",
+        "failure_modes_checked",
+        "null_models_run",
+        "null_model_results",
+        "test_passed",
+        "result",
+        "claim_status",
+        "claim_boundary",
+        "risk_class",
+        "witness",
+        "reproducibility",
+        "generated_at_utc",
+        "sha256"
+      ]
+    },
+    "external_falsification": {
+      "input": "artifact_action_and_probe_observation",
+      "required": [
+        "probe_id",
+        "substrate",
+        "observation_hash",
+        "drift_score"
+      ],
+      "evidence_rule": "drift_score <= 0.5"
+    },
+    "purpose": {
+      "framework": "DIKWP",
+      "required": [
+        "id",
+        "statement",
+        "alignment_score",
+        "drift_check"
+      ],
+      "alignment_threshold": 0.7,
+      "max_drift": 0.3
+    },
+    "stn_hyperdirect_gate": {
+      "required": [
+        "acc_conflict_score",
+        "threshold",
+        "action"
+      ],
+      "threshold": 0.5,
+      "action": "exit_2_fail_closed"
+    }
+  },
+  "risk_policy": {
+    "classes": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "required_falsifiers_by_risk": {
+      "low": [
+        "boundary_check",
+        "replay_test"
+      ],
+      "medium": [
+        "boundary_check",
+        "null_model_comparison",
+        "replay_test"
+      ],
+      "high": [
+        "adversarial_test",
+        "boundary_check",
+        "null_model_comparison",
+        "counterexample_search",
+        "replay_test"
+      ]
+    },
+    "witness_required_for": [
+      "high"
+    ],
+    "required_null_models_by_risk": {
+      "low": [
+        "replay_consistency_null"
+      ],
+      "medium": [
+        "baseline_random_or_stationary",
+        "replay_consistency_null"
+      ],
+      "high": [
+        "baseline_random_or_stationary",
+        "boundary_shuffle",
+        "counterexample_search_null",
+        "replay_consistency_null"
+      ]
+    }
+  },
+  "verification_ledger": {
+    "step_1": "Extract inference from verified data.",
+    "step_2": "Project inference beyond data boundaries.",
+    "step_3": "Mark projected inference as UNVERIFIED.",
+    "step_4": "Apply mechanical falsification battery.",
+    "step_5": "Run independent witness review if risk_class=high.",
+    "step_6": "Kill hypothesis if falsification fails.",
+    "step_7": "Generate SHA-256 attested artifact in survived or killed mode.",
+    "step_8": "Record claim boundary explicitly."
+  },
+  "epistemic_foundation": {
+    "fundamental_unit": "closed_validation_cycle",
+    "cycle": [
+      "intention",
+      "inference",
+      "extrapolation",
+      "falsification",
+      "integration"
+    ],
+    "overclaim_policy": "must_not_assert_real_world_truth"
+  }
+}

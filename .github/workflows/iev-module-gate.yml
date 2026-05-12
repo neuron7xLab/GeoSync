@@ -1,0 +1,23 @@
+name: iev-module-gate
+on:
+  pull_request:
+    paths:
+      - 'artifacts/inference_extrapolation_validator/**'
+      - '.github/workflows/iev-module-gate.yml'
+  push:
+    paths:
+      - 'artifacts/inference_extrapolation_validator/**'
+      - '.github/workflows/iev-module-gate.yml'
+
+jobs:
+  validate-iev:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip jsonschema
+      - run: python -m unittest artifacts/inference_extrapolation_validator/test_generate_artifact.py -v
+      - run: python artifacts/inference_extrapolation_validator/falsifier.py
+      - run: python artifacts/inference_extrapolation_validator/generate_artifact.py verify --artifact artifacts/inference_extrapolation_validator/example_artifact.json
