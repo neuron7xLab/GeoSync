@@ -29,8 +29,13 @@ sweep — out of scope for a unit test).
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from research.systemic_risk.d002g_phase0_verification import phase0b_robust
+
+# Bootstrap + Wilcoxon over 50 paired seeds — gate behind `slow` so
+# python-fast-tests stays under its 20-min cap.
+pytestmark = pytest.mark.slow
 
 
 def test_R3_phase0b_passes_under_clean_zero_mean_noise() -> None:

@@ -34,6 +34,7 @@ from __future__ import annotations
 import hashlib
 
 import numpy as np
+import pytest
 
 from research.systemic_risk.d002c_preflight import canonical_preflight_json
 from research.systemic_risk.d002c_sweep_runner import (
@@ -44,6 +45,9 @@ from research.systemic_risk.d002g_r2b_gate import (
     evaluate_r2b,
     r2b_verdict_to_capsule,
 )
+
+# Joint rule-correlation matrix synthesis — gate behind `slow`.
+pytestmark = pytest.mark.slow
 
 
 def _build_payload(

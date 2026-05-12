@@ -21,10 +21,15 @@ detection rate.
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from research.systemic_risk.d002g_phase0_verification import (
     phase0c_power_calibration,
 )
+
+# Power calibration over many δ values — gate behind `slow` so
+# python-fast-tests stays under its 20-min cap.
+pytestmark = pytest.mark.slow
 
 
 def test_R4_power_calibration_monotonic_in_delta() -> None:

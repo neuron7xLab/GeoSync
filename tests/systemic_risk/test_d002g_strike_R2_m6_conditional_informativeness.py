@@ -37,6 +37,7 @@ Phase-C repair surface
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from research.systemic_risk.d002c_sweep_runner import (
     PAYLOAD_SCHEMA_V2,
@@ -47,6 +48,10 @@ from research.systemic_risk.d002g_r2b_gate import (
     evaluate_r2b,
     r2b_verdict_to_capsule,
 )
+
+# Heavy statistical strike — gated behind `slow` so python-fast-tests stays
+# under its 20-min cap; strike acceptor measurement_command runs without filter.
+pytestmark = pytest.mark.slow
 
 
 def _build_payload(

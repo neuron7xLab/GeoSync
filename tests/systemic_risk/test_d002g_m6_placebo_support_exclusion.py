@@ -57,6 +57,11 @@ from research.systemic_risk.d002g_null_mechanisms import (
     realize_null,
 )
 
+# 50-trial statistical battery against M6 support leakage — gate behind `slow`
+# so python-fast-tests stays under its 20-min cap. Strike acceptor's
+# measurement_command runs without the `-m "not slow"` filter.
+pytestmark = pytest.mark.slow
+
 # ---------------------------------------------------------------------------
 # Synthetic substrate with a HAND-PINNED support mask.
 # ---------------------------------------------------------------------------

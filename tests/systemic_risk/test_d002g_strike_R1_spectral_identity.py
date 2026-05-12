@@ -31,6 +31,12 @@ import pytest
 from research.systemic_risk.d002c_substrates import SUBSTRATE_BY_ID
 from research.systemic_risk.d002g_null_mechanisms import realize_null
 
+# Strike rungs run heavy eigenvalue / multi-seed statistics; gate behind
+# `slow` so python-fast-tests stays under its 20-min job cap. The strike
+# acceptor's measurement_command runs this test explicitly without the
+# `-m "not slow"` filter, so coverage is preserved on the strike binding.
+pytestmark = pytest.mark.slow
+
 
 def _sorted_eigvals(K: np.ndarray) -> np.ndarray:
     return np.sort(np.linalg.eigvalsh(np.asarray(K, dtype=np.float64)))

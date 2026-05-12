@@ -35,6 +35,10 @@ from research.systemic_risk.d002g_null_mechanisms import (
     realize_null,
 )
 
+# 50-seed sweep on ricci_flow — gate behind `slow` so python-fast-tests
+# stays under its 20-min cap.
+pytestmark = pytest.mark.slow
+
 SEED_SENSITIVE_SUBSTRATES: tuple[str, ...] = ("ricci_flow",)
 
 
