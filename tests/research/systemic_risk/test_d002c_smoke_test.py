@@ -242,10 +242,22 @@ def test_run_cell_returns_failure_record_not_exception() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_sha256_deterministic_across_calls() -> None:
-    """Same config → same sha (sha is over canonical fields, not over
-    wallclock — wallclock varies but is excluded from the sha payload)."""
-    a = run_smoke_test(
+def test_sha256_round_trips_with_preflight_canonical_form(tmp_path: Path) -> None:
+    """Round-trip contract: the writer's sha MUST equal the preflight
+    validator's recompute over (capsule - sha256). This is the contract
+    that C2.4-D enforces — any drift triggers ``capsule_sha256_mismatch``.
+
+    Wallclock fields are now part of the full-capsule body (so the
+    validator can recompute over the on-disk JSON without rebuilding a
+    surrogate dict). Two separate runs therefore produce DIFFERENT
+    shas, but each run's sha MUST round-trip cleanly.
+    """
+    import hashlib
+
+    from research.systemic_risk.d002c_preflight import canonical_preflight_json
+
+    out = tmp_path / "smoke.json"
+    res = run_smoke_test(
         substrates=(BlockStructuredSubstrate(),),
         metrics=(AucPreEventMetric(),),
         N_grid=(20,),
@@ -253,18 +265,13 @@ def test_sha256_deterministic_across_calls() -> None:
         n_seeds=2,
         steps_per_quarter=3,
         max_wallclock_seconds=120.0,
+        output_path=out,
     )
-    b = run_smoke_test(
-        substrates=(BlockStructuredSubstrate(),),
-        metrics=(AucPreEventMetric(),),
-        N_grid=(20,),
-        lambda_grid=(0.0, 0.5),
-        n_seeds=2,
-        steps_per_quarter=3,
-        max_wallclock_seconds=120.0,
-    )
-    assert a.sha256 == b.sha256
-    assert a.n_cells_total == b.n_cells_total
+    on_disk = json.loads(out.read_text(encoding="utf-8"))
+    body = {k: v for k, v in on_disk.items() if k != "sha256"}
+    recomputed = hashlib.sha256(canonical_preflight_json(body).encode("utf-8")).hexdigest()
+    assert on_disk["sha256"] == recomputed
+    assert res.sha256 == recomputed
 
 
 def test_sha256_changes_with_grid() -> None:

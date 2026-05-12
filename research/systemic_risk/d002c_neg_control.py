@@ -145,12 +145,21 @@ class NegControlVerdict:
 # ---------------------------------------------------------------------------
 
 
-def _canonical_json(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+def _capsule_sha256(payload: dict[str, Any]) -> str:
+    """SHA-256 over the validator's exact canonical form.
 
+    See :func:`research.systemic_risk.d002c_pos_control._capsule_sha256`
+    for the contract — both writers MUST use the same formula or the
+    preflight validator refuses launch with ``capsule_sha256_mismatch``.
 
-def _sha256(payload: dict[str, Any]) -> str:
-    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+    The :func:`canonical_preflight_json` import is deferred to the
+    function body to break the circular import between
+    :mod:`d002c_preflight` (which imports
+    :data:`DEFAULT_NEG_N_GRID` from this module) and this module.
+    """
+    from .d002c_preflight import canonical_preflight_json
+
+    return hashlib.sha256(canonical_preflight_json(payload).encode("utf-8")).hexdigest()
 
 
 def _now_iso() -> str:
@@ -378,7 +387,10 @@ def run_neg_control_cell(
         "omega_gamma": omega_gamma,
         "independent_seed_stride": independent_seed_stride,
     }
-    sha = _sha256(payload)
+    # Per-cell sha uses the validator's canonical form for
+    # forward-safety (no non-finite fields at present, but the
+    # validator's _sanitize is the single source of truth).
+    sha = _capsule_sha256(payload)
     return NegControlCellResult(
         substrate_id=substrate.id,
         metric_id=metric.id,
@@ -473,40 +485,37 @@ def run_neg_control_all(
     )
     all_pass = n_exclude == 0
 
-    aggregate = {
-        "per_cell_shas": [r.sha256 for r in results],
-        "n_pass": n_pass,
-        "n_exclude": n_exclude,
-        "alpha_bonferroni": alpha_bonferroni,
-        "tolerance": tolerance,
-        "all_pass": all_pass,
-        "excluded_cells": [list(c) for c in excluded_cells],
-    }
-    sha = _sha256(aggregate)
     generated_at = _now_iso()
 
+    # Build the FULL capsule body (every field except ``sha256``)
+    # FIRST, then sha it via the validator's canonical form so the
+    # preflight round-trip succeeds. Hashing a smaller aggregate
+    # dict would drift from the validator's recompute and trigger
+    # ``capsule_sha256_mismatch`` refusal.
+    capsule_without_sha: dict[str, Any] = {
+        "kind": "d002c_neg_control_capsule_v1",
+        "all_pass": all_pass,
+        "n_pass": n_pass,
+        "n_exclude": n_exclude,
+        "excluded_cells": [list(c) for c in excluded_cells],
+        "n_seeds": n_seeds,
+        "N_grid": list(N_grid),
+        "alpha_bonferroni": alpha_bonferroni,
+        "tolerance": tolerance,
+        "steps_per_quarter": steps_per_quarter,
+        "omega_gamma": omega_gamma,
+        "rng_seed_base": rng_seed_base,
+        "independent_seed_stride": independent_seed_stride,
+        "wallclock_seconds": wall,
+        "results": [_result_to_dict(r) for r in results],
+        "generated_at": generated_at,
+        "substrate_ids": [s.id for s in substrates],
+        "metric_ids": [m.id for m in metrics],
+    }
+    sha = _capsule_sha256(capsule_without_sha)
+
     if output_path is not None:
-        capsule: dict[str, Any] = {
-            "kind": "d002c_neg_control_capsule_v1",
-            "all_pass": all_pass,
-            "n_pass": n_pass,
-            "n_exclude": n_exclude,
-            "excluded_cells": [list(c) for c in excluded_cells],
-            "n_seeds": n_seeds,
-            "N_grid": list(N_grid),
-            "alpha_bonferroni": alpha_bonferroni,
-            "tolerance": tolerance,
-            "steps_per_quarter": steps_per_quarter,
-            "omega_gamma": omega_gamma,
-            "rng_seed_base": rng_seed_base,
-            "independent_seed_stride": independent_seed_stride,
-            "wallclock_seconds": wall,
-            "results": [_result_to_dict(r) for r in results],
-            "sha256": sha,
-            "generated_at": generated_at,
-            "substrate_ids": [s.id for s in substrates],
-            "metric_ids": [m.id for m in metrics],
-        }
+        capsule = {**capsule_without_sha, "sha256": sha}
         _atomic_write(Path(output_path), capsule)
 
     return NegControlVerdict(
