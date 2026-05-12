@@ -154,6 +154,25 @@ METRIC_VERSION: Final[str] = "d002c_metrics_v1"
 #: precursor/null realisations stop being byte-equivalent across runs).
 SUBSTRATE_VERSION: Final[str] = "d002c_substrates_v1"
 
+#: Payload schema tag carried inside :class:`NullAuditCellPayload`.
+#: ``d002c_null_audit_cell_v1`` is the legacy (D-002C / paired-CRN) layout
+#: with no ``null_strategy`` / ``null_seed`` fields. ``d002c_null_audit_cell_v2``
+#: is the D-002G extension that adds:
+#:
+#:   * ``null_strategy`` — one of {"M1_INDEPENDENT_SEED",
+#:     "M6_PLACEBO_COUPLING", "D002C_PAIRED_CRN_LEGACY"}.
+#:   * ``null_seed`` — explicit seed used to draw the null cohort
+#:     (None under legacy paired-CRN).
+#:
+#: A v1 payload reads back as ``payload_schema=v1`` with
+#: ``null_strategy="D002C_PAIRED_CRN_LEGACY"`` and ``null_seed=None`` —
+#: the sha-input is the v1 shape so legacy payloads round-trip bit-exactly.
+PAYLOAD_SCHEMA_V1: Final[str] = "d002c_null_audit_cell_v1"
+PAYLOAD_SCHEMA_V2: Final[str] = "d002c_null_audit_cell_v2"
+
+#: Default null-strategy tag for v1 emissions and pre-A2 callers.
+DEFAULT_NULL_STRATEGY: Final[str] = "D002C_PAIRED_CRN_LEGACY"
+
 
 class SweepRunnerInvalid(RuntimeError):
     """Bad input to :func:`run_one_cell` / :func:`run_sweep`."""
@@ -258,6 +277,11 @@ class NullAuditCellPayload:
     substrate_version: str
     generated_at: str
     sha256: str
+    # D-002G v1/v2 schema branching (Strike-R7 documentation; v1 default
+    # preserves bit-exact legacy sha).
+    payload_schema: str = PAYLOAD_SCHEMA_V1
+    null_strategy: str = DEFAULT_NULL_STRATEGY
+    null_seed: int | None = None
 
     def to_payload_dict(self) -> dict[str, Any]:
         """JSON-pure dict for on-disk storage and sha recomputation.
@@ -265,8 +289,12 @@ class NullAuditCellPayload:
         ``generated_at`` and ``sha256`` are excluded from the sha-input
         form returned by :meth:`to_sha_input_dict`; this method keeps
         every field so the on-disk row carries the full audit trail.
+
+        v1/v2 branching: v1 omits ``payload_schema`` / ``null_strategy``
+        / ``null_seed`` from the dict to preserve byte-exact legacy
+        on-disk representation. v2 emits all three.
         """
-        return {
+        out: dict[str, Any] = {
             "cell_key": self.cell_key,
             "N": int(self.N),
             "lambda_": float(self.lambda_),
@@ -282,14 +310,25 @@ class NullAuditCellPayload:
             "generated_at": self.generated_at,
             "sha256": self.sha256,
         }
+        if self.payload_schema == PAYLOAD_SCHEMA_V2:
+            out["payload_schema"] = self.payload_schema
+            out["null_strategy"] = self.null_strategy
+            out["null_seed"] = self.null_seed
+        return out
 
     def to_sha_input_dict(self) -> dict[str, Any]:
         """Load-bearing fields the sha256 is computed over.
 
         ``sha256`` and ``generated_at`` are excluded so the sha is stable
         across machines / clocks with identical scientific inputs.
+
+        v1/v2 branching: under v1 the sha input is the legacy 12-field
+        shape (back-compat); under v2 it adds ``payload_schema``,
+        ``null_strategy``, and ``null_seed`` (D-002G P1 contract).
+        A v1 payload always round-trips to its legacy sha; a v2 payload
+        bit-exactly addresses its (strategy, seed) provenance.
         """
-        return {
+        base: dict[str, Any] = {
             "cell_key": self.cell_key,
             "N": int(self.N),
             "lambda_": float(self.lambda_),
@@ -303,6 +342,11 @@ class NullAuditCellPayload:
             "metric_version": self.metric_version,
             "substrate_version": self.substrate_version,
         }
+        if self.payload_schema == PAYLOAD_SCHEMA_V2:
+            base["payload_schema"] = self.payload_schema
+            base["null_strategy"] = self.null_strategy
+            base["null_seed"] = self.null_seed
+        return base
 
     @classmethod
     def from_payload_dict(cls, d: dict[str, Any]) -> NullAuditCellPayload:
@@ -344,6 +388,21 @@ class NullAuditCellPayload:
                     raise NullAuditPayloadInvalid(
                         f"null_audit_payload {arr_name} has non-finite element: {v!r}"
                     )
+        # v1/v2 schema detection: presence of ``payload_schema`` field with
+        # the v2 tag enables v2 sha input; absence (legacy) defaults to v1.
+        raw_schema = str(d.get("payload_schema", PAYLOAD_SCHEMA_V1))
+        if raw_schema not in {PAYLOAD_SCHEMA_V1, PAYLOAD_SCHEMA_V2}:
+            raise NullAuditPayloadInvalid(
+                f"null_audit_payload unknown payload_schema: {raw_schema!r}; "
+                f"expected one of {{{PAYLOAD_SCHEMA_V1!r}, {PAYLOAD_SCHEMA_V2!r}}}"
+            )
+        if raw_schema == PAYLOAD_SCHEMA_V2:
+            v2_strategy = str(d.get("null_strategy", DEFAULT_NULL_STRATEGY))
+            raw_null_seed = d.get("null_seed")
+            v2_null_seed: int | None = None if raw_null_seed is None else int(raw_null_seed)
+        else:
+            v2_strategy = DEFAULT_NULL_STRATEGY
+            v2_null_seed = None
         try:
             payload = cls(
                 cell_key=str(d["cell_key"]),
@@ -360,6 +419,9 @@ class NullAuditCellPayload:
                 substrate_version=str(d["substrate_version"]),
                 generated_at=str(d.get("generated_at", "")),
                 sha256=str(d["sha256"]),
+                payload_schema=raw_schema,
+                null_strategy=v2_strategy,
+                null_seed=v2_null_seed,
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise NullAuditPayloadInvalid(
