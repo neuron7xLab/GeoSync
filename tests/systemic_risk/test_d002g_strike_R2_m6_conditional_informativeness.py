@@ -38,7 +38,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from research.systemic_risk.d002c_sweep_runner import NullAuditCellPayload
+from research.systemic_risk.d002c_sweep_runner import (
+    PAYLOAD_SCHEMA_V2,
+    NullAuditCellPayload,
+)
 from research.systemic_risk.d002g_r2b_gate import (
     R2B_INDETERMINATE_VERDICT,
     evaluate_r2b,
@@ -82,6 +85,11 @@ def _build_payload(
     }
     sha = hashlib.sha256(canonical_preflight_json(sha_input).encode("utf-8")).hexdigest()
     _ = math  # keep import live without flake noise
+    # P0-2 Codex review fix: R2-B aggregates ONLY M6 placebo payloads.
+    # The R2 strike tests build M6-style cohorts by construction
+    # (the "placebo" arm is the null leg). Mark the payload schema +
+    # null_strategy explicitly so the new provenance preflight in
+    # evaluate_r2b admits the row.
     return NullAuditCellPayload(
         cell_key=cell_key,
         N=int(N),
@@ -97,6 +105,9 @@ def _build_payload(
         substrate_version="test_v1",
         generated_at="",
         sha256=sha,
+        payload_schema=PAYLOAD_SCHEMA_V2,
+        null_strategy="M6_PLACEBO_COUPLING",
+        null_seed=12345,
     )
 
 

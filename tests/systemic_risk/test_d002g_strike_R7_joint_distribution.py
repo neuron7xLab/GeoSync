@@ -36,7 +36,10 @@ import hashlib
 import numpy as np
 
 from research.systemic_risk.d002c_preflight import canonical_preflight_json
-from research.systemic_risk.d002c_sweep_runner import NullAuditCellPayload
+from research.systemic_risk.d002c_sweep_runner import (
+    PAYLOAD_SCHEMA_V2,
+    NullAuditCellPayload,
+)
 from research.systemic_risk.d002g_r2b_gate import (
     evaluate_r2b,
     r2b_verdict_to_capsule,
@@ -66,6 +69,7 @@ def _build_payload(
         "substrate_version": "test_v1",
     }
     sha = hashlib.sha256(canonical_preflight_json(sha_input).encode("utf-8")).hexdigest()
+    # P0-2 Codex review fix: M6 provenance required by evaluate_r2b.
     return NullAuditCellPayload(
         cell_key=cell_key,
         N=50,
@@ -81,6 +85,9 @@ def _build_payload(
         substrate_version="test_v1",
         generated_at="",
         sha256=sha,
+        payload_schema=PAYLOAD_SCHEMA_V2,
+        null_strategy="M6_PLACEBO_COUPLING",
+        null_seed=99999,
     )
 
 

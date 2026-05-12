@@ -13,7 +13,10 @@ Replacement (Strike-R3): require ``phase0b_robust`` to perform BOTH
 
   (a) Wilcoxon signed-rank ``p_value > 0.05`` (non-parametric, robust
       to skewed/bounded distributions), AND
-  (b) BCa bootstrap 95% CI on ``mean(diffs)`` contains 0.
+  (b) Percentile bootstrap 95% CI on ``mean(diffs)`` contains 0.
+      (P1-3 Codex review fix: the contract was downgraded from BCa to
+      percentile bootstrap to match the implementation; true BCa is
+      future hardening — see report §"P1-3 percentile bootstrap CI".)
 
 The original t-test value is kept for diagnostic continuity but NOT in
 the verdict path.

@@ -42,7 +42,7 @@ Full attack ladder in [`D002G_P1_DESIGN_ADVERSARIAL_AUDIT.md`](D002G_P1_DESIGN_A
 |------|---------------------|----------------------|------------------|
 | R1 — Phase 0a only `np.array_equal` | UNTESTED | TESTED (spectral L∞ + KS gate via `test_d002g_strike_R1_spectral_identity.py`) | n/a (test-only enforcement) |
 | R2 — M6 frob preservation = conditional informativeness | UNTESTED | PATCHED (`R2B_TOPOLOGY_COUPLING_FLOOR`, `R2B_INDETERMINATE_VERDICT`, `topology_coupling_indicator`) | `# Strike-R2` |
-| R3 — Phase 0b `|t|<2` mis-calibrated for skewed/bounded | FAILS | PATCHED (Wilcoxon signed-rank + bootstrap CI in `phase0b_robust`; verdict path switched) | `# Strike-R3` |
+| R3 — Phase 0b `|t|<2` mis-calibrated for skewed/bounded | FAILS | DOWNGRADED — Wilcoxon signed-rank + **percentile bootstrap CI** in `phase0b_robust` (NOT BCa). See "P1-3 percentile bootstrap CI" below. | `# Strike-R3` |
 | R4 — Phase 0c range check ≠ power | UNTESTED | PATCHED (`phase0c_power_calibration` helper with deterministic detection-rate gate) | `# Strike-R4` |
 | R5 — `null_seed = base_seed + 10000` only checked at seed 42 | FAILS (partial) | TESTED (all 50 seeds via `test_d002g_strike_R5_seed_collision.py`) | n/a (coverage test) |
 | R6 — Bonferroni-216 conservatism vs dependence | Doc deficit | DOCUMENTED HERE (§7 below) | n/a |
@@ -144,6 +144,54 @@ $ pytest tests/systemic_risk/ -k "d002g or d002c" -q
 - No tier promotion. No cross-promotion to D-002C tier strings or to real-data / bank-level claims.
 - No threshold edits to the locked pre-registration constants (`null_seed_offset=10000`, `r2_b_random_site_seed=99`, `bonferroni_n_cells=216`, `R2B_CI_ALPHA=0.05`, `R2B_FPR_THRESHOLD=0.05`).
 
-## Substrate-eligibility note (informational)
+## P1-3 percentile bootstrap CI (Codex review — contract downgrade)
+
+Codex P1-3 review (2026-05-12) flagged a mismatch between the advertised Phase 0b contract and its implementation: the Phase 0b docstring + adversarial audit promised a BCa (bias-corrected accelerated) bootstrap CI on the per-seed paired-difference mean; the implementation always used a simple percentile quantile of bootstrap means.
+
+User decision: **Path 2 — downgrade the contract.** Do NOT half-implement BCa.
+
+**Resolution.** Phase 0b uses percentile bootstrap CI, not BCa; therefore skew/bounded paired-difference calibration remains a limitation. True BCa (bias-corrected accelerated) is future hardening.
+
+- Code rename: `d002g_phase0_verification.phase0b_robust` and `Phase0bResult.bootstrap_ci_lo`/`bootstrap_ci_hi` docstrings updated to "percentile bootstrap CI"; no identifier path advertised BCa, only the docstring of `Phase0bResult.passed`.
+- Audit doc Strike-R3 rung marked DOWNGRADED with the limitation paragraph above (see `D002G_P1_DESIGN_ADVERSARIAL_AUDIT.md`).
+- Locked pre-registration files untouched (Phase 0b in the prereg does not specify BCa — the over-promise was only in the implementation docstring + adversarial-audit narrative).
+
+Consumers reading the Phase 0b capsule should treat the CI as percentile bootstrap. The Wilcoxon signed-rank gate (non-parametric) remains the primary skew-robust check.
+
+## SUBSTRATE ELIGIBILITY DISCOVERY (CANONICAL-RUN BLOCKER)
+
+Codex P1-4 review surface (2026-05-12) elevated the prior "informational" eligibility footnote to a CANONICAL-RUN BLOCKER. This is **substrate eligibility discovery**, not a bug — the M1 mechanism's seed-independence assumption is incompatible with two of the three stock substrates at λ=0 by their own construction.
+
+### Eligibility table
+
+| Substrate id        | M1 eligibility   | Reason                                                            |
+|---------------------|------------------|-------------------------------------------------------------------|
+| `ricci_flow`        | M1-ELIGIBLE      | Non-degenerate under current smoke tests; seed-sensitive at λ=0. |
+| `block_structured`  | M1-INELIGIBLE    | Seed-deterministic at λ=0 (baseline K depends only on `(substrate_id, N)`). |
+| `temporal_coupling` | M1-INELIGIBLE    | Seed-deterministic at λ=0 (same root cause).                     |
+
+### Why this matters
+
+M1 (independent-seed null cohort) requires that drawing the substrate at `(base_seed)` and `(base_seed + NULL_SEED_OFFSET)` yields a non-degenerate K_baseline. For `block_structured` and `temporal_coupling` the substrate API deliberately ignores the seed argument at λ=0, so M1 produces a bit-identical CRN — exactly the pathology M1 was designed to remove. The `BitIdenticalNullError` fires fail-closed at the realisation layer; downstream Phase 0a marks the cell M1-INELIGIBLE.
+
+### Canonical D-002G run BLOCKED for 2 of 3 substrates
+
+Because 2 of the 3 stock substrates are M1-INELIGIBLE at λ=0, the **canonical D-002G run is BLOCKED** until the M2 topology-preserving shuffle mechanism is implemented as the prereg §4 fallback. The current P1 PR ships:
+
+- M1 mechanism + Phase 0a/0b/0c verification on `ricci_flow` only (the 1 eligible substrate);
+- M6 placebo coupling (independent of seed-determinism — uses ΔK support relocation);
+- R2-B aggregation, capsule writers, audit ladder.
+
+It does NOT enable a 2/3-substrate canonical run. That requires:
+
+- Downstream PR: **D-002G-P2/M2** — implementation of the **M2 topology-preserving shuffle** per `D002G_PREREGISTRATION.yaml §4 fallback policy`.
+
+The downstream-task requirement is documented in `docs/governance/D002G_CANONICAL_RUN_BLOCKERS.md` (consolidated blockers).
+
+### Why this is NOT a bug
+
+The substrate API spec is correct: at λ=0 a substrate that is deterministic by construction must produce a deterministic baseline — that is the meaning of "no precursor effect at λ=0". Mechanism M1 was designed for substrates that draw `ω`, `θ_0`, and integrator stream from independent randomness; for substrates without such streams, M1 cannot apply. The prereg foresaw this and locked the M2 fallback at §4. P1 ships the M1 infrastructure on the substrate where it applies; P2 ships the M2 fallback on the substrates where M1 cannot apply.
+
+## Substrate-eligibility note (legacy informational paragraph, superseded by §SUBSTRATE ELIGIBILITY DISCOVERY above)
 
 Two of the three stock substrates (`block_structured`, `temporal_coupling`) are seed-deterministic at λ=0 by design — they deliberately ignore the seed argument so the baseline K is fully determined by `(substrate_id, N)`. Phase 0a / M1 would fail on these substrates and the prereg §4 fallback to M2 (topology-preserving shuffle) applies. The R5 seed-sweep test is scoped to `ricci_flow` (the only seed-sensitive substrate); the test docstring annotates the scope. M2 is OUT of P1 scope; it lands in a follow-on PR if Phase 0 FAILs at the canonical run.

@@ -114,6 +114,23 @@ class BitIdenticalNullError(RuntimeError):
     """
 
 
+class M6InsufficientCandidatePool(RuntimeError):
+    """M6 placebo-coupling candidate edge pool is smaller than support.
+
+    Raised when the off-support pool of upper-triangle edges (i.e.
+    ``upper_triangle ∖ original_support``) has fewer entries than the
+    privileged ΔK support size. Sampling cannot proceed without either
+    (a) reusing privileged sites (forbidden — re-introduces support
+    leakage, the very pathology this fix removes) or (b) sampling with
+    replacement (forbidden — breaks M6 distinct-edge contract).
+
+    Fail-closed semantics: the cell is REFUSED at the realisation
+    layer; callers must tag it ``M6-INELIGIBLE_CANDIDATE_POOL_TOO_SMALL``
+    and either widen N or escalate to the M2 fallback per the locked
+    pre-registration §4 fallback policy.
+    """
+
+
 class D002GNullInvalid(ValueError):
     """Bad input to :func:`realize_null` / :func:`deterministic_mix`."""
 
@@ -422,10 +439,19 @@ def _realize_m6(
     if n_support == 0 or precursor_frobenius == 0.0:
         # No precursor delta at this (N, lambda) — placebo is the
         # baseline itself (no fake injection to add). Clean corner case.
+        # P0-1: emit the same support-exclusion metadata schema as the
+        # non-degenerate branch so downstream audits read a uniform
+        # contract.
         return K_0.copy(), {
             "placebo_edges_count": 0,
             "placebo_frobenius_norm": 0.0,
             "precursor_frobenius_norm": 0.0,
+            "null_strategy": "M6_PLACEBO_COUPLING",
+            "original_support_count": 0,
+            "placebo_support_count": 0,
+            "placebo_overlap_count": 0,
+            "placebo_overlap_forbidden": True,
+            "candidate_pool_size": int(_upper_tri_indices_count(N)),
         }
 
     n_total_upper = _upper_tri_indices_count(N)
@@ -434,10 +460,44 @@ def _realize_m6(
             f"M6: support size {n_support} exceeds upper-triangle count {n_total_upper}"
         )
 
+    # P0-1 Codex review fix: privileged ΔK support MUST be excluded from
+    # the placebo sampling pool. Sampling from the full upper triangle
+    # would let placebo edges overlap original support, retaining true
+    # precursor topology in the "placebo" cohort and biasing R2-B toward
+    # optimism. Build the candidate pool as upper_triangle ∖ support and
+    # sample only from the off-support indices. Fail-closed if the pool
+    # is smaller than the support size — the cell is REFUSED rather
+    # than silently allowing overlap.
+    candidate_indices = np.flatnonzero(~support_mask)
+    original_support_indices = np.flatnonzero(support_mask)
+    candidate_pool_size = int(candidate_indices.size)
+    if candidate_pool_size < n_support:
+        raise M6InsufficientCandidatePool(
+            f"M6: candidate edge pool too small for support exclusion: "
+            f"|upper_triangle ∖ support|={candidate_pool_size} < "
+            f"|support|={n_support} at N={N}. Cell is M6-INELIGIBLE; "
+            f"escalate to M2 topology-preserving shuffle per the "
+            f"D-002G pre-registration §4 fallback policy."
+        )
+
     rng = np.random.default_rng(int(null_seed))
-    chosen = rng.choice(n_total_upper, size=n_support, replace=False)
+    chosen = rng.choice(candidate_indices, size=n_support, replace=False)
     magnitudes = delta_upper[support_mask].copy()
     rng.shuffle(magnitudes)
+
+    # P0-1 audit: verify zero overlap between chosen placebo sites and
+    # the privileged support BEFORE building the placebo matrix. This is
+    # a defensive invariant — the candidate-pool exclusion above already
+    # guarantees zero overlap by construction; the explicit check
+    # converts the property into an observable failure mode for the
+    # downstream Phase 0 / R2-B audits.
+    overlap_count = int(np.intersect1d(chosen, original_support_indices).size)
+    if overlap_count != 0:
+        raise D002GNullInvalid(
+            f"M6: placebo-vs-support overlap_count={overlap_count} ≠ 0 "
+            f"despite candidate-pool exclusion. This is an internal "
+            f"invariant violation; refusing the cell."
+        )
 
     placebo_upper = np.zeros(n_total_upper, dtype=np.float64)
     placebo_upper[chosen] = magnitudes
@@ -463,6 +523,14 @@ def _realize_m6(
         "placebo_edges_count": int(n_support),
         "placebo_frobenius_norm": placebo_frobenius,
         "precursor_frobenius_norm": precursor_frobenius,
+        # P0-1 Codex review fix: explicit metadata so downstream audits
+        # can verify the support-exclusion contract was honoured.
+        "null_strategy": "M6_PLACEBO_COUPLING",
+        "original_support_count": int(n_support),
+        "placebo_support_count": int(n_support),
+        "placebo_overlap_count": int(overlap_count),
+        "placebo_overlap_forbidden": True,
+        "candidate_pool_size": int(candidate_pool_size),
     }
 
 
@@ -601,6 +669,7 @@ def realize_null(
 __all__ = [
     "BitIdenticalNullError",
     "D002GNullInvalid",
+    "M6InsufficientCandidatePool",
     "M6_PLACEBO_SALT",
     "NULL_SEED_OFFSET",
     "NullRealization",

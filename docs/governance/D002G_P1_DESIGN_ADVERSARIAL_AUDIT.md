@@ -62,6 +62,8 @@ For every rung the verdict against the **current** implementation is recorded. A
 
 **Test to add.** `test_d002g_strike_R3_phase0b_robust.py` — drive Phase 0b with Wilcoxon signed-rank + bootstrap CI on mean(diffs), exercise the lognormal-noise distinguishing case.
 
+**Verdict (post-patch, P1-3 Codex review):** DOWNGRADED. Path 2 chosen by user — contract downgraded to match implementation. Phase 0b uses **percentile bootstrap CI**, not BCa; therefore skew/bounded paired-difference calibration remains a LIMITATION. True BCa (bias-corrected accelerated) is future hardening. The Wilcoxon signed-rank gate (non-parametric) remains in the conjunction and absorbs most of the skew/bounded concern; the percentile CI is the secondary check. See `D002G_P1_IMPLEMENTATION_REPORT.md` §"P1-3 percentile bootstrap CI" for the verbatim limitation paragraph and `D002G_CANONICAL_RUN_BLOCKERS.md` §B2 for the canonical-run implication.
+
 ---
 
 ## R4 — Phase 0c rejects collapse but does NOT certify non-trivial discriminability

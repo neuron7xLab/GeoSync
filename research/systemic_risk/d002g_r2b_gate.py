@@ -81,9 +81,52 @@ R2B_CAPSULE_VERSION: Final[str] = "d002g_r2b_capsule_v1"
 R2B_TOPOLOGY_COUPLING_FLOOR: Final[float] = 0.50
 R2B_INDETERMINATE_VERDICT: Final[str] = "INDETERMINATE_R2B_TOPOLOGY_BLIND_METRIC"
 
+# P0-2 Codex review fix: provenance preflight contract. R2-B aggregates
+# ONLY M6 placebo payloads. A row that is missing ``null_strategy``,
+# carries the legacy CRN strategy, or carries an M1 cohort must be
+# rejected fail-closed BEFORE any per-cell statistic is computed. The
+# verdict literal below is stamped on the returned R2BVerdict and
+# downstream consumers can pattern-match it. R2-B provenance is
+# INPUT-VALIDATED, not OUTPUT-INVENTED.
+R2B_INVALID_NON_M6_PAYLOAD_VERDICT: Final[str] = "INVALID_R2B_NON_M6_PAYLOAD"
+
+#: Required schema fields on every row before R2-B will compute any
+#: statistic. ``null_seed`` is allowed to be None for the legacy v1
+#: payload schema; we only reject if the field is missing as an
+#: attribute (schema-shape violation).
+_R2B_REQUIRED_PAYLOAD_FIELDS: Final[tuple[str, ...]] = (
+    "null_strategy",
+    "lambda_",
+    "substrate_id",
+    "cell_key",
+    "metric_id",
+    "N",
+    "precursor_values",
+    "null_values",
+)
+
 
 class R2BGateInvalid(RuntimeError):
-    """Bad input to :func:`evaluate_r2b`."""
+    """Bad input to :func:`evaluate_r2b`.
+
+    Distinct from :exc:`R2BProvenanceInvalid`: ``R2BGateInvalid``
+    signals a STRUCTURAL refusal (empty cohort, malformed array, bad
+    parameter range). Provenance failures use the verdict-channel
+    return path described on :data:`R2B_INVALID_NON_M6_PAYLOAD_VERDICT`
+    so consumers can pattern-match without catching exceptions.
+    """
+
+
+class R2BProvenanceInvalid(RuntimeError):
+    """One or more rows failed the M6 provenance preflight.
+
+    Raised by :func:`_r2b_provenance_preflight`. The aggregator catches
+    this internally and converts to a verdict-channel refusal
+    (``R2B_INVALID_NON_M6_PAYLOAD_VERDICT``) so downstream consumers can
+    pattern-match without exception-handling discipline. The exception
+    itself is kept for unit-test introspection of the precise failure
+    reason.
+    """
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +245,137 @@ def _sha_over(payload: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_preflight_json(payload).encode("utf-8")).hexdigest()
 
 
+def _r2b_provenance_preflight(
+    per_cell_payloads: Sequence[NullAuditCellPayload],
+) -> tuple[int, dict[str, Any]]:
+    """P0-2 fix: enforce M6-only provenance before any statistic.
+
+    Returns
+    -------
+    (rejected_count, audit_dict)
+        ``rejected_count`` is the number of rows that failed the
+        preflight; the audit_dict carries per-row evidence for the
+        capsule. ``rejected_count == 0`` is the precondition for the
+        aggregator to compute per-cell statistics.
+
+    Raises
+    ------
+    R2BProvenanceInvalid
+        At least one row failed the preflight. The exception message
+        identifies the first failing row + reason; the audit_dict is
+        attached on the exception's ``audit`` attribute.
+
+    Why this is the right discipline
+    --------------------------------
+    The aggregator previously stamped ``null_strategy="M6_PLACEBO_COUPLING"``
+    on every output cell row regardless of input provenance. Mixed
+    or mis-routed inputs (e.g. legacy v1 payloads with
+    ``null_strategy="D002C_PAIRED_CRN_LEGACY"``, or accidentally
+    included M1 cohort rows) would silently produce R2-B verdicts
+    against the wrong cohort and mislabel provenance.
+
+    Provenance MUST be input-validated, not output-invented. This
+    function is the fail-closed gate; the verdict-channel refusal
+    converts the exception into a structured verdict for the consumer.
+    """
+    rejects: list[dict[str, Any]] = []
+    for i, row in enumerate(per_cell_payloads):
+        # Schema shape: every required attribute must exist. We assert
+        # by ``hasattr`` so this catches both dataclass-typed and
+        # dict-typed inputs.
+        missing_fields = [f for f in _R2B_REQUIRED_PAYLOAD_FIELDS if not hasattr(row, f)]
+        if missing_fields:
+            rejects.append(
+                {
+                    "row_index": i,
+                    "reason": "MISSING_REQUIRED_FIELDS",
+                    "missing_fields": list(missing_fields),
+                    "row_cell_key": getattr(row, "cell_key", None),
+                }
+            )
+            continue
+        strategy = str(getattr(row, "null_strategy", ""))
+        if strategy != "M6_PLACEBO_COUPLING":
+            rejects.append(
+                {
+                    "row_index": i,
+                    "reason": "NON_M6_NULL_STRATEGY",
+                    "found_null_strategy": strategy,
+                    "expected_null_strategy": "M6_PLACEBO_COUPLING",
+                    "row_cell_key": str(getattr(row, "cell_key", "")),
+                }
+            )
+    audit: dict[str, Any] = {
+        "rejected_count": len(rejects),
+        "rejected_rows": rejects,
+        "required_fields": list(_R2B_REQUIRED_PAYLOAD_FIELDS),
+        "expected_null_strategy": "M6_PLACEBO_COUPLING",
+        "n_cells_examined": len(per_cell_payloads),
+    }
+    if rejects:
+        exc = R2BProvenanceInvalid(
+            f"R2-B provenance preflight rejected {len(rejects)} row(s); "
+            f"first failure: {rejects[0]!r}"
+        )
+        # Stash audit on the exception so callers can introspect.
+        exc.audit = audit  # type: ignore[attr-defined]
+        raise exc
+    return 0, audit
+
+
+def _invalid_payload_verdict(
+    audit: dict[str, Any],
+    *,
+    ci_alpha: float,
+    fpr_threshold: float,
+    bonferroni_n_cells: int,
+    metadata_extra: dict[str, Any] | None,
+) -> R2BVerdict:
+    """Build the fail-closed verdict for the non-M6-payload refusal path.
+
+    No per-cell statistics are computed; the verdict carries the
+    provenance audit in ``metadata`` so the consumer can locate the
+    failing rows. ``fpr_r2b`` is set to NaN so any consumer that
+    accidentally treats this as a normal verdict immediately surfaces
+    the anomaly.
+    """
+    md = dict(metadata_extra or {})
+    md["r2b_provenance_audit"] = audit
+    body: dict[str, Any] = {
+        "capsule_version": R2B_CAPSULE_VERSION,
+        "verdict": R2B_INVALID_NON_M6_PAYLOAD_VERDICT,
+        "fpr_r2b": "NaN",
+        "threshold": _finite_or_str(float(fpr_threshold)),
+        "n_cells": 0,
+        "n_placebo_positive": 0,
+        "bonferroni_n_cells": int(bonferroni_n_cells),
+        "bonferroni_alpha_per_cell": _finite_or_str(
+            float(fpr_threshold) / float(bonferroni_n_cells)
+        ),
+        "ci_alpha": _finite_or_str(float(ci_alpha)),
+        "topology_coupling_indicator_mean": "NaN",
+        "topology_coupling_floor": _finite_or_str(float(R2B_TOPOLOGY_COUPLING_FLOOR)),
+        "cell_results": [],
+        "metadata": md,
+    }
+    sha = _sha_over(body)
+    return R2BVerdict(
+        verdict=R2B_INVALID_NON_M6_PAYLOAD_VERDICT,
+        fpr_r2b=float("nan"),
+        threshold=float(fpr_threshold),
+        n_cells=0,
+        n_placebo_positive=0,
+        bonferroni_n_cells=int(bonferroni_n_cells),
+        bonferroni_alpha_per_cell=float(fpr_threshold) / float(bonferroni_n_cells),
+        ci_alpha=float(ci_alpha),
+        cell_results=(),
+        sha256=sha,
+        topology_coupling_indicator_mean=float("nan"),
+        topology_coupling_floor=float(R2B_TOPOLOGY_COUPLING_FLOOR),
+        metadata=md,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public aggregator
 # ---------------------------------------------------------------------------
@@ -263,12 +437,31 @@ def evaluate_r2b(
     if not (0.0 < fpr_threshold < 1.0):
         raise R2BGateInvalid(f"fpr_threshold must lie in (0, 1); got {fpr_threshold}")
 
-    cell_results: list[R2BCellResult] = []
-    for row in per_cell_payloads:
+    # P0-2 Codex review fix: provenance preflight. Every row must carry
+    # ``null_strategy == "M6_PLACEBO_COUPLING"`` plus the full schema.
+    # Mixed / M1 / legacy / missing-strategy rows trigger
+    # R2B_INVALID_NON_M6_PAYLOAD_VERDICT — NO statistics are computed.
+    # The aggregator MUST NOT stamp M6 provenance on payloads that did
+    # not originate from M6 cohorts. Type discipline first.
+    for i, row in enumerate(per_cell_payloads):
         if not isinstance(row, NullAuditCellPayload):
             raise R2BGateInvalid(
-                f"per_cell_payloads must be NullAuditCellPayload; got {type(row).__name__}"
+                f"per_cell_payloads[{i}] must be NullAuditCellPayload; got {type(row).__name__}"
             )
+    try:
+        _r2b_provenance_preflight(per_cell_payloads)
+    except R2BProvenanceInvalid as exc:
+        audit = getattr(exc, "audit", {"rejected_rows": [], "rejected_count": -1})
+        return _invalid_payload_verdict(
+            audit,
+            ci_alpha=float(ci_alpha),
+            fpr_threshold=float(fpr_threshold),
+            bonferroni_n_cells=int(bonferroni_n_cells),
+            metadata_extra=metadata_extra,
+        )
+
+    cell_results: list[R2BCellResult] = []
+    for row in per_cell_payloads:
         if float(row.lambda_) <= 0.0:
             raise R2BGateInvalid(
                 f"R2-B is scoped to lambda_ > 0; row {row.cell_key!r} has lambda_={row.lambda_!r}"
@@ -506,9 +699,11 @@ __all__ = [
     "R2B_CI_ALPHA",
     "R2B_FPR_THRESHOLD",
     "R2B_INDETERMINATE_VERDICT",
+    "R2B_INVALID_NON_M6_PAYLOAD_VERDICT",
     "R2B_TOPOLOGY_COUPLING_FLOOR",
     "R2BCellResult",
     "R2BGateInvalid",
+    "R2BProvenanceInvalid",
     "R2BVerdict",
     "evaluate_r2b",
     "r2b_verdict_to_capsule",

@@ -28,7 +28,10 @@ import re
 import numpy as np
 
 from research.systemic_risk.d002c_preflight import canonical_preflight_json
-from research.systemic_risk.d002c_sweep_runner import NullAuditCellPayload
+from research.systemic_risk.d002c_sweep_runner import (
+    PAYLOAD_SCHEMA_V2,
+    NullAuditCellPayload,
+)
 from research.systemic_risk.d002g_r2b_gate import (
     R2B_BONFERRONI_N_CELLS,
     R2B_CAPSULE_VERSION,
@@ -57,6 +60,8 @@ def _make_cell(i: int, rng: np.random.Generator) -> NullAuditCellPayload:
         "substrate_version": "v1",
     }
     sha = hashlib.sha256(canonical_preflight_json(sha_input).encode("utf-8")).hexdigest()
+    # P0-2 Codex review fix: R2-B aggregator now requires M6 provenance.
+    # These capsule-schema cells represent an M6 cohort by intent.
     return NullAuditCellPayload(
         cell_key=f"cap_{i}",
         N=50,
@@ -72,6 +77,9 @@ def _make_cell(i: int, rng: np.random.Generator) -> NullAuditCellPayload:
         substrate_version="v1",
         generated_at="",
         sha256=sha,
+        payload_schema=PAYLOAD_SCHEMA_V2,
+        null_strategy="M6_PLACEBO_COUPLING",
+        null_seed=12345 + i,
     )
 
 

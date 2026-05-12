@@ -129,7 +129,13 @@ class Phase0bResult:
 
       * Wilcoxon signed-rank ``p_value > 0.05`` (non-parametric, robust
         to skewed/bounded distributions).
-      * BCa bootstrap 95% CI on ``mean(diffs)`` contains 0.
+      * Percentile bootstrap CI on ``mean(diffs)`` contains 0. (P1-3
+        Codex review fix: the original contract advertised BCa
+        bias-corrected accelerated CI; the implementation always was
+        percentile bootstrap. Path 2 downgrade — the contract is now
+        explicitly percentile. True BCa (bias-corrected accelerated)
+        remains future hardening on skew/bounded paired-difference
+        calibration.)
 
     The t-statistic is still emitted for diagnostic continuity with the
     pre-registration documentation, but it is NOT in the verdict path.
