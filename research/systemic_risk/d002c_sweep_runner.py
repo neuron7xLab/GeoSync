@@ -100,6 +100,15 @@ from .d002c_metrics import (
     MetricEvaluation,
     signal_mean,
 )
+from .d002c_preflight import (
+    PreflightCapsulePaths,
+    PreflightDecision,
+    PreflightLaunchRefused,
+    SkippedCell,
+    apply_preflight_to_grid,
+    assert_preflight_launch_allowed,
+    load_and_validate_preflight_capsules,
+)
 from .d002c_preregistration import (
     D002CPreregistration,
     validate_sweep_config,
@@ -201,7 +210,16 @@ class SweepCellOutput:
 
 @dataclass(frozen=True)
 class SweepResult:
-    """Frozen aggregate over a full sweep."""
+    """Frozen aggregate over a full sweep.
+
+    ``skipped_cells`` (added in C2.4-D) carries the cells removed by
+    the preflight POS/NEG gates; ``preflight_decision_sha`` is the
+    content-addressed sha of the preflight decision and is folded into
+    the aggregate sha256, so capsule tampering between runs changes the
+    sweep sha. Both fields default to empty / empty string for
+    backward-compatibility with legacy callers that run with
+    ``require_preflight=False``.
+    """
 
     preregistration_sha: str
     completed_cells: int
@@ -210,6 +228,8 @@ class SweepResult:
     sha256: str
     generated_at: str
     wallclock_seconds: float
+    skipped_cells: tuple[SkippedCell, ...] = ()
+    preflight_decision_sha: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -716,6 +736,38 @@ def _restore_cell_from_payload(payload: dict[str, Any]) -> SweepCellOutput:
     )
 
 
+def _skipped_cell_to_payload(s: SkippedCell) -> dict[str, Any]:
+    """JSON-pure payload for a SKIPPED_BY_PREFLIGHT checkpoint entry."""
+    return {
+        "cell_key": s.cell_key,
+        "substrate_id": s.substrate_id,
+        "metric_id": s.metric_id,
+        "N": int(s.N),
+        "lambda_": float(s.lambda_),
+        "status": "SKIPPED_BY_PREFLIGHT",
+        "reason": s.reason,
+        "source_capsule": s.source_capsule,
+        "source_capsule_sha256": s.source_capsule_sha256,
+    }
+
+
+def _payload_is_skipped(payload: dict[str, Any]) -> bool:
+    return payload.get("status") == "SKIPPED_BY_PREFLIGHT"
+
+
+def _restore_skipped_from_payload(payload: dict[str, Any]) -> SkippedCell:
+    return SkippedCell(
+        cell_key=str(payload["cell_key"]),
+        substrate_id=str(payload["substrate_id"]),
+        metric_id=str(payload["metric_id"]),
+        N=int(payload["N"]),
+        lambda_=float(payload["lambda_"]),
+        reason=str(payload["reason"]),
+        source_capsule=str(payload["source_capsule"]),
+        source_capsule_sha256=str(payload["source_capsule_sha256"]),
+    )
+
+
 def run_sweep(
     *,
     preregistration: D002CPreregistration,
@@ -726,6 +778,8 @@ def run_sweep(
     omega_gamma: float = DEFAULT_OMEGA_GAMMA,
     progress_callback: Callable[[int, int], None] | None = None,
     code_sha: str = DEFAULT_CODE_SHA,
+    preflight_capsules: PreflightCapsulePaths | None = None,
+    require_preflight: bool = True,
 ) -> SweepResult:
     """Drive the full pre-registered grid with per-cell checkpointing.
 
@@ -757,28 +811,75 @@ def run_sweep(
         Soft metadata for the checkpoint ledger. Drift versus the
         on-disk file is a WARNING from :class:`CheckpointManager`,
         not a refusal.
+    preflight_capsules
+        Optional :class:`PreflightCapsulePaths` for the four C2.4-D
+        gate capsules (pos_control, neg_control, null_audit,
+        smoke_test). When supplied the runner loads + validates them
+        via :func:`load_and_validate_preflight_capsules`, refuses
+        launch on a refusal verdict, and reduces the execution grid
+        by ``excluded_combos`` (POS) and ``excluded_cells`` (NEG).
+    require_preflight
+        Default ``True`` — preflight is mandatory and a missing
+        ``preflight_capsules`` argument refuses launch. Set ``False``
+        ONLY for legacy callers (e.g. unit tests of run_one_cell
+        plumbing) that pre-date C2.4-D; in that mode the runner
+        behaves identically to the pre-C2.4-D version.
 
     Returns
     -------
     SweepResult
-        Carries every cell output (sorted by cell_key for stability)
-        and a stable aggregate sha256.
+        Carries every cell output (sorted by cell_key for stability),
+        the preflight-skipped cells, the preflight decision sha, and a
+        stable aggregate sha256 (which folds in the preflight sha so
+        capsule tampering between runs changes the sweep sha).
 
     Raises
     ------
     PreregistrationMismatch
         From :func:`validate_sweep_config` — refuses to launch on any
         disagreement with the locked contract.
+    PreflightLaunchRefused
+        From :func:`assert_preflight_launch_allowed` — refuses launch
+        on any preflight failure (missing/bad capsule, smoke FAIL,
+        null audit FAIL, unknown identity). The exception carries the
+        full refusal-reasons list.
     SweepRunnerInvalid
         On unresolvable substrate / metric ids or bad inputs.
     """
     validate_sweep_config(preregistration, sweep_config)
 
+    # ---- preflight gate ----------------------------------------------------
+    decision: PreflightDecision | None = None
+    if require_preflight:
+        if preflight_capsules is None:
+            raise PreflightLaunchRefused(
+                "preflight is required (require_preflight=True) but "
+                "preflight_capsules is None; pass a PreflightCapsulePaths"
+            )
+        decision = load_and_validate_preflight_capsules(preflight_capsules)
+        assert_preflight_launch_allowed(decision)
+    elif preflight_capsules is not None:
+        # Caller opted in despite require_preflight=False — honour the
+        # gate but do not synthesise one if absent.
+        decision = load_and_validate_preflight_capsules(preflight_capsules)
+        assert_preflight_launch_allowed(decision)
+
+    # ---- grid construction + preflight-driven reduction -------------------
     full_grid = _build_full_grid(preregistration)
     total_cells = len(full_grid)
 
+    if decision is not None:
+        runnable, skipped = apply_preflight_to_grid(full_grid, decision)
+        runnable_tuples: list[tuple[int, float, str, str]] = [
+            (rc.N, rc.lambda_, rc.substrate_id, rc.metric_id) for rc in runnable
+        ]
+        skipped_cells: tuple[SkippedCell, ...] = skipped
+    else:
+        runnable_tuples = list(full_grid)
+        skipped_cells = ()
+
     cell_key_to_tuple: dict[str, tuple[int, float, str, str]] = {
-        cell_key((N, lam, sid, mid)): (N, lam, sid, mid) for (N, lam, sid, mid) in full_grid
+        cell_key((N, lam, sid, mid)): (N, lam, sid, mid) for (N, lam, sid, mid) in runnable_tuples
     }
     all_keys: list[str] = list(cell_key_to_tuple.keys())
 
@@ -788,14 +889,40 @@ def run_sweep(
     checkpoint = mgr.load_or_create()
 
     # Restore already-completed cells from the on-disk checkpoint so
-    # the aggregate sha is stable across resume.
-    restored: dict[str, SweepCellOutput] = {
-        k: _restore_cell_from_payload(v.payload) for k, v in checkpoint.results.items()
-    }
+    # the aggregate sha is stable across resume. Persisted
+    # SKIPPED_BY_PREFLIGHT entries are restored into the skipped tuple
+    # (idempotent with the in-memory ``skipped_cells``); legacy entries
+    # (no ``status`` field) become SweepCellOutput as before.
+    restored: dict[str, SweepCellOutput] = {}
+    persisted_skipped: dict[str, SkippedCell] = {}
+    for k, v in checkpoint.results.items():
+        if _payload_is_skipped(v.payload):
+            persisted_skipped[k] = _restore_skipped_from_payload(v.payload)
+        else:
+            restored[k] = _restore_cell_from_payload(v.payload)
+
+    # Persist any preflight-skipped cells that aren't yet on disk. This
+    # makes the checkpoint a complete audit trail: SKIPPED_BY_PREFLIGHT
+    # rows survive a kill and bind the source_capsule_sha256 so resume
+    # cannot silently recompute a previously-skipped cell.
+    for s in skipped_cells:
+        if s.cell_key in persisted_skipped:
+            continue
+        mgr.save_cell(
+            s.cell_key,
+            CellResult(
+                cell_key=s.cell_key,
+                payload=_skipped_cell_to_payload(s),
+                duration_seconds=0.0,
+            ),
+        )
+        persisted_skipped[s.cell_key] = s
 
     t0 = time.monotonic()
     remaining = mgr.remaining_cells(all_keys)
-    done_count = total_cells - len(remaining)
+    # Subtract the runnable cells already computed from the work count;
+    # SKIPPED rows are accounted for separately.
+    done_count = len(all_keys) - len(remaining)
 
     for ck in remaining:
         N, lam, sid, mid = cell_key_to_tuple[ck]
@@ -830,9 +957,13 @@ def run_sweep(
     wall = time.monotonic() - t0
 
     # Stable order: sort by cell_key so the aggregate sha is invariant
-    # under the traversal order (and stable across resume).
+    # under the traversal order (and stable across resume). Skipped
+    # cells appear in their own deterministic tuple, also sorted.
     ordered_keys = sorted(restored.keys())
     results = tuple(restored[k] for k in ordered_keys)
+    final_skipped = tuple(persisted_skipped[k] for k in sorted(persisted_skipped.keys()))
+    preflight_sha = decision.sha256 if decision is not None else ""
+
     aggregate = {
         "preregistration_sha": preregistration.preregistration_sha,
         "per_cell_shas": [r.sha256 for r in results],
@@ -841,6 +972,10 @@ def run_sweep(
         "rng_seed_base": int(rng_seed_base),
         "steps_per_quarter": int(steps_per_quarter),
         "omega_gamma": float(omega_gamma),
+        # Truth-binding: capsule tampering between runs changes the sweep sha.
+        "preflight_decision_sha": preflight_sha,
+        "skipped_cell_keys": [s.cell_key for s in final_skipped],
+        "skipped_cell_source_shas": [s.source_capsule_sha256 for s in final_skipped],
     }
     sha = _sha256_over_payload(aggregate)
 
@@ -852,6 +987,8 @@ def run_sweep(
         sha256=sha,
         generated_at=_now_iso(),
         wallclock_seconds=wall,
+        skipped_cells=final_skipped,
+        preflight_decision_sha=preflight_sha,
     )
 
 
