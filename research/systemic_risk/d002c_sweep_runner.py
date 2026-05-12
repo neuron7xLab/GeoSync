@@ -901,6 +901,77 @@ def run_sweep(
         else:
             restored[k] = _restore_cell_from_payload(v.payload)
 
+    # Codex P1 fix (2026-05-12): when resuming a checkpoint under a NEW
+    # preflight decision, every persisted cell must still agree with the
+    # current decision. Three drift modes are possible and ALL are
+    # fail-closed:
+    #
+    #   (a) persisted_skipped AND now runnable —
+    #       the operator updated POS/NEG capsules so exclusion was
+    #       lifted, but ``remaining_cells`` would treat the cell as
+    #       already done and silently skip recomputation. The new
+    #       sweep would return an incomplete grid under a fresh
+    #       aggregate sha, defeating the tamper-evidence contract.
+    #
+    #   (b) persisted_computed AND now skipped —
+    #       the cell already has a real metric value, but the new
+    #       decision says it should never have run. Persisting both
+    #       a SKIPPED row and the real result is internally
+    #       contradictory; the operator must explicitly resolve.
+    #
+    #   (c) persisted_skipped AND still skipped BUT source_capsule
+    #       sha drifted — exclusion happened to be preserved but the
+    #       capsule was rotated. The exclusion provenance has
+    #       changed under our feet; the operator must acknowledge
+    #       this rather than have the runner silently rewrite the
+    #       audit row.
+    #
+    # In every case the runner refuses launch and tells the
+    # operator to start a fresh checkpoint path (or run with
+    # ``require_preflight=False`` for the legacy ungated path).
+    if preflight_capsules is not None:
+        current_skipped_keys: dict[str, SkippedCell] = {s.cell_key: s for s in skipped_cells}
+        current_runnable_keys: set[str] = set(cell_key_to_tuple.keys())
+        drift_reasons: list[str] = []
+        for k in sorted(checkpoint.results.keys()):
+            is_persisted_skip = k in persisted_skipped
+            is_currently_skip = k in current_skipped_keys
+            is_currently_runnable = k in current_runnable_keys
+            if is_persisted_skip and is_currently_runnable:
+                drift_reasons.append(
+                    f"persisted_skipped_cell_no_longer_excluded:{k} — "
+                    "the previous run skipped this cell under a preflight "
+                    "exclusion that the current decision does not assert; "
+                    "resume would silently treat the cell as completed."
+                )
+            elif (not is_persisted_skip) and is_currently_skip:
+                drift_reasons.append(
+                    f"persisted_computed_cell_now_excluded:{k} — "
+                    "this cell already has a real metric value on disk "
+                    "but the current preflight decision now excludes it; "
+                    "the audit trail cannot be both 'computed' and "
+                    "'skipped' for the same cell."
+                )
+            elif is_persisted_skip and is_currently_skip:
+                persisted = persisted_skipped[k]
+                current = current_skipped_keys[k]
+                if persisted.source_capsule_sha256 != current.source_capsule_sha256:
+                    drift_reasons.append(
+                        f"persisted_skipped_cell_source_capsule_sha_drifted:"
+                        f"{k} — exclusion preserved but capsule provenance "
+                        f"changed (was {persisted.source_capsule_sha256[:8]}…, "
+                        f"now {current.source_capsule_sha256[:8]}…); "
+                        "the audit row cannot be silently rewritten."
+                    )
+        if drift_reasons:
+            raise PreflightLaunchRefused(
+                "checkpoint contradicts current preflight decision; the "
+                "saved sweep state cannot be safely resumed under the new "
+                "contract. Start a fresh checkpoint path or run with "
+                "require_preflight=False (legacy mode). Drift:\n"
+                + "\n".join(f"  - {r}" for r in drift_reasons)
+            )
+
     # Persist any preflight-skipped cells that aren't yet on disk. This
     # makes the checkpoint a complete audit trail: SKIPPED_BY_PREFLIGHT
     # rows survive a kill and bind the source_capsule_sha256 so resume

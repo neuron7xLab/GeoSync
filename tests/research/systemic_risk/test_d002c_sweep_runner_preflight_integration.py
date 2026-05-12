@@ -479,3 +479,141 @@ def test_run_sweep_skipped_cells_count_matches_expectation(tmp_path: Path) -> No
     assert len(result.skipped_cells) == 2
     reasons = sorted(s.reason for s in result.skipped_cells)
     assert reasons == ["NEG_EXCLUDED_CELL", "POS_EXCLUDED_COMBO"]
+
+
+# ---------------------------------------------------------------------------
+# Codex P1 regression (2026-05-12) — checkpoint drift under capsule rotation
+#
+# Three drift modes are fail-closed: if the persisted checkpoint state
+# contradicts the CURRENT preflight decision, the runner must refuse
+# launch rather than silently return an incomplete / stale grid.
+# ---------------------------------------------------------------------------
+
+
+def test_checkpoint_drift_persisted_skipped_now_runnable_refuses(
+    tmp_path: Path,
+) -> None:
+    """Run 1: POS excludes (block_structured, tau_onset) → cell saved as
+    SKIPPED. Run 2: POS exclusion lifted (no excluded combos) → cell is
+    now runnable. The runner MUST refuse, because resuming would treat
+    the previously-skipped cell as already completed and never compute it,
+    silently emitting an incomplete sweep under a fresh aggregate sha."""
+    paths_strict = _valid_capsule_paths(
+        tmp_path,
+        pos_excluded_combos=[["block_structured", "tau_onset"]],
+    )
+    _run(tmp_path, capsules=paths_strict, checkpoint_name="ckpt.json")
+    # New capsules — exclusion removed — written to the same dir; the
+    # checkpoint still carries the SKIPPED row from run 1.
+    paths_relaxed = _valid_capsule_paths(tmp_path)
+    with pytest.raises(PreflightLaunchRefused) as excinfo:
+        _run(tmp_path, capsules=paths_relaxed, checkpoint_name="ckpt.json")
+    msg = str(excinfo.value)
+    assert "persisted_skipped_cell_no_longer_excluded" in msg
+    assert "block_structured" in msg
+    assert "tau_onset" in msg
+
+
+def test_checkpoint_drift_persisted_computed_now_excluded_refuses(
+    tmp_path: Path,
+) -> None:
+    """Run 1: no exclusions → all 9 cells computed. Run 2: POS now
+    excludes (block_structured, tau_onset) → that cell is in the
+    skipped tuple. The on-disk record is a computed result; the new
+    decision contradicts it. Refuse rather than rewrite the audit row."""
+    paths_open = _valid_capsule_paths(tmp_path)
+    _run(tmp_path, capsules=paths_open, checkpoint_name="ckpt.json")
+    paths_strict = _valid_capsule_paths(
+        tmp_path,
+        pos_excluded_combos=[["block_structured", "tau_onset"]],
+    )
+    with pytest.raises(PreflightLaunchRefused) as excinfo:
+        _run(tmp_path, capsules=paths_strict, checkpoint_name="ckpt.json")
+    msg = str(excinfo.value)
+    assert "persisted_computed_cell_now_excluded" in msg
+
+
+def test_checkpoint_drift_source_capsule_sha_change_refuses(
+    tmp_path: Path,
+) -> None:
+    """Run 1: POS capsule excludes (block_structured, tau_onset) → cell
+    skipped with source_capsule_sha256 = sha_A. Run 2: POS capsule
+    rotated to a structurally equivalent capsule with a different sha
+    (e.g. additional metadata field) but the SAME exclusion → still
+    excluded but the audit provenance changed. The runner must refuse
+    rather than silently rewrite the source_capsule_sha256 row."""
+    paths_run1 = _valid_capsule_paths(
+        tmp_path / "run1",
+        pos_excluded_combos=[["block_structured", "tau_onset"]],
+    )
+    # Copy the four capsules to a fresh run2 directory but rewrite the
+    # POS capsule with a different generated_at (so its sha shifts)
+    # while preserving the same excluded_combos.
+    import json
+    import shutil
+
+    run2_dir = tmp_path / "run2"
+    run2_dir.mkdir()
+    for name in ("pos", "neg", "null", "smoke"):
+        src = tmp_path / "run1" / f"{name}.json"
+        dst = run2_dir / f"{name}.json"
+        if name == "pos":
+            payload = json.loads(src.read_text(encoding="utf-8"))
+            # Recompute sha-bearing canonical form with a new generated_at
+            payload["generated_at"] = "2026-05-12T12:00:00Z"
+            payload.pop("sha256", None)
+            import hashlib
+
+            from research.systemic_risk.d002c_preflight import (
+                canonical_preflight_json,
+            )
+
+            payload["sha256"] = hashlib.sha256(
+                canonical_preflight_json(payload).encode("utf-8")
+            ).hexdigest()
+            dst.write_text(json.dumps(payload, sort_keys=True, indent=2), encoding="utf-8")
+        else:
+            shutil.copy(src, dst)
+    paths_run2 = PreflightCapsulePaths(
+        pos_control=run2_dir / "pos.json",
+        neg_control=run2_dir / "neg.json",
+        null_audit=run2_dir / "null.json",
+        smoke_test=run2_dir / "smoke.json",
+    )
+    # First run — populate the checkpoint with the original POS sha
+    ckpt = run2_dir / "ckpt.json"
+    prereg = _mini_prereg()
+    cfg = _well_formed_config(prereg)
+    run_sweep(
+        preregistration=prereg,
+        sweep_config=cfg,
+        checkpoint_path=ckpt,
+        steps_per_quarter=4,
+        preflight_capsules=paths_run1,
+        require_preflight=True,
+    )
+    # Resume against the rotated POS capsule — refuse
+    with pytest.raises(PreflightLaunchRefused) as excinfo:
+        run_sweep(
+            preregistration=prereg,
+            sweep_config=cfg,
+            checkpoint_path=ckpt,
+            steps_per_quarter=4,
+            preflight_capsules=paths_run2,
+            require_preflight=True,
+        )
+    msg = str(excinfo.value)
+    assert "persisted_skipped_cell_source_capsule_sha_drifted" in msg
+
+
+def test_checkpoint_drift_clean_resume_passes(tmp_path: Path) -> None:
+    """The drift check must NOT false-positive on a clean resume where
+    the capsules are byte-identical between run 1 and run 2."""
+    paths = _valid_capsule_paths(
+        tmp_path,
+        pos_excluded_combos=[["block_structured", "tau_onset"]],
+    )
+    first = _run(tmp_path, capsules=paths, checkpoint_name="ckpt.json")
+    second = _run(tmp_path, capsules=paths, checkpoint_name="ckpt.json")
+    assert first.sha256 == second.sha256
+    assert len(first.skipped_cells) == len(second.skipped_cells)
