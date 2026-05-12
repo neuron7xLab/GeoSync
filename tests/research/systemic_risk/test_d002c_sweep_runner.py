@@ -498,6 +498,7 @@ def test_run_sweep_completes_full_mini_grid_under_60s(tmp_path: Path) -> None:
         sweep_config=cfg,
         checkpoint_path=tmp_path / "ckpt.json",
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     elapsed = time.monotonic() - t0
     assert result.total_cells == 9
@@ -515,6 +516,7 @@ def test_run_sweep_persists_via_checkpoint(tmp_path: Path) -> None:
         sweep_config=cfg,
         checkpoint_path=ckpt,
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     assert ckpt.exists()
     # Reload through CheckpointManager and confirm every cell is on disk
@@ -537,6 +539,7 @@ def test_run_sweep_resume_after_partial_completion(tmp_path: Path) -> None:
         sweep_config=cfg,
         checkpoint_path=tmp_path / "ref_ckpt.json",
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
 
     # Cold run on a second path that records which cells were
@@ -546,6 +549,7 @@ def test_run_sweep_resume_after_partial_completion(tmp_path: Path) -> None:
         sweep_config=cfg,
         checkpoint_path=ckpt,
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     n_completed = first.completed_cells
 
@@ -555,6 +559,7 @@ def test_run_sweep_resume_after_partial_completion(tmp_path: Path) -> None:
         sweep_config=cfg,
         checkpoint_path=ckpt,
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     assert resumed.completed_cells == n_completed
     assert resumed.sha256 == full.sha256
@@ -571,6 +576,7 @@ def test_run_sweep_resume_after_kill_completes_remainder(tmp_path: Path) -> None
         sweep_config=cfg,
         checkpoint_path=tmp_path / "ref.json",
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
 
     # Pre-seed a checkpoint with the FIRST cell already done (from ref)
@@ -614,6 +620,7 @@ def test_run_sweep_resume_after_kill_completes_remainder(tmp_path: Path) -> None
         sweep_config=cfg,
         checkpoint_path=target_ckpt,
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     assert resumed.completed_cells == ref.completed_cells
     assert resumed.sha256 == ref.sha256
@@ -627,12 +634,14 @@ def test_run_sweep_deterministic_aggregate_sha(tmp_path: Path) -> None:
         sweep_config=cfg,
         checkpoint_path=tmp_path / "a.json",
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     b = run_sweep(
         preregistration=prereg,
         sweep_config=cfg,
         checkpoint_path=tmp_path / "b.json",
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     assert a.sha256 == b.sha256
     assert len(a.results) == len(b.results)
@@ -654,6 +663,7 @@ def test_run_sweep_progress_callback_fires_once_per_cell(tmp_path: Path) -> None
         checkpoint_path=tmp_path / "ckpt.json",
         steps_per_quarter=4,
         progress_callback=cb,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     assert len(events) == 9
     # Monotone increasing done; total constant
@@ -672,6 +682,7 @@ def test_run_sweep_callback_not_called_on_already_complete_resume(
         sweep_config=cfg,
         checkpoint_path=ckpt,
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     events: list[tuple[int, int]] = []
     run_sweep(
@@ -680,6 +691,7 @@ def test_run_sweep_callback_not_called_on_already_complete_resume(
         checkpoint_path=ckpt,
         steps_per_quarter=4,
         progress_callback=lambda d, t: events.append((d, t)),
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     assert events == []  # nothing remaining to compute
 
@@ -692,6 +704,7 @@ def test_run_sweep_result_serializable_to_json(tmp_path: Path) -> None:
         sweep_config=cfg,
         checkpoint_path=tmp_path / "ckpt.json",
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     on_disk = json.loads((tmp_path / "ckpt.json").read_text(encoding="utf-8"))
     assert on_disk["config_sha"]  # checkpoint identity exists
@@ -717,6 +730,7 @@ def test_sweep_result_is_frozen(tmp_path: Path) -> None:
         sweep_config=_well_formed_config(prereg),
         checkpoint_path=tmp_path / "ckpt.json",
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     assert dataclasses.is_dataclass(result)
     with pytest.raises(dataclasses.FrozenInstanceError):
@@ -735,6 +749,7 @@ def test_all_substrates_and_metrics_routed_in_mini_grid(tmp_path: Path) -> None:
         sweep_config=_well_formed_config(prereg),
         checkpoint_path=tmp_path / "ckpt.json",
         steps_per_quarter=4,
+        require_preflight=False,  # legacy-shim — pre-C2.4-D test
     )
     seen_substrates = {r.substrate_id for r in result.results}
     seen_metrics = {r.metric_id for r in result.results}
