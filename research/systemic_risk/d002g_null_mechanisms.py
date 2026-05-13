@@ -85,6 +85,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .d002c_substrates import (
+    BLOCK_FRACTIONS,
     PRECURSOR_INJECTION_WINDOW,
     Substrate,
     SubstrateRealization,
@@ -112,6 +113,7 @@ NullStrategy = Literal[
     "M1_INDEPENDENT_SEED",
     "M6_PLACEBO_COUPLING",
     "M2_TOPOLOGY_PRESERVING_SHUFFLE",
+    "M3_TOPOLOGY_CONDITIONED",
 ]
 
 #: Locked salt mixed with ``base_seed`` to produce the M6 RNG.
@@ -144,11 +146,66 @@ M2_NODE_PAYLOAD_SALT: Final[int] = 313
 #: Same domain-separation rationale as :data:`M2_NODE_PAYLOAD_SALT`.
 M2_INJECTION_SEQUENCE_SALT: Final[int] = 419
 
+#: D-002G-M3 salt — topology-conditioned independent realisation under
+#: matched-density resampling. Locked at 523 in the M3 pre-registration
+#: (``docs/governance/D002G_P3_M3_PREREGISTRATION.md`` §9). A distinct
+#: prime from the prior salts (99, 211, 313, 419) — full domain
+#: separation across the M1/M6/M2 sub-domain and M3 RNG streams so the
+#: per-mechanism realisation never aliases another mechanism under
+#: stride / collision attacks (Strike-R5 anti-pattern).
+M3_TOPOLOGY_CONDITIONED_SALT: Final[int] = 523
+
+#: Strategy string constant emitted in :class:`NullRealization.metadata`
+#: under the ``null_strategy`` key for an M3 realisation. Mirrors the
+#: literal entry in :data:`NullStrategy`. Tests assert this constant
+#: matches the literal value byte-exact.
+M3_NULL_STRATEGY: Final[str] = "M3_TOPOLOGY_CONDITIONED"
+
+#: M3 generator cap. The matched-resample inner loop attempts up to
+#: this many rebalance iterations before raising
+#: :class:`M3GeneratorDivergentError`. The cap is a LOCKED constant —
+#: changing it requires a fresh M4 pre-registration per the M3 pre-reg
+#: §9.1 forbidden refinement scope.
+M3_GENERATOR_MAX_ITERATIONS: Final[int] = 100
+
+#: M3 precursor-specificity ensemble size. Verifier draws this many
+#: independent precursor seeds (0..N-1) and counts pairs whose
+#: marginals differ above the marginal tolerance. ≥ 50% of pairs must
+#: differ for the marginal to be precursor-specific. Locked.
+M3_PRECURSOR_ENSEMBLE_SIZE: Final[int] = 100
+
+#: M3 tolerance constants — declared BEFORE any substrate evaluation
+#: per the M3 pre-registration §9.1 ("tolerance constants pre-declared
+#: in the M3 implementation PR body BEFORE any canonical result is
+#: inspected"). The pre-declared values:
+#:
+#:   * ``M3_TOL_MARGINAL``         = 0.05 (general marginal-match band).
+#:   * ``M3_TOL_NON_DEGENERATE``   = 1e-3 (min Frobenius distance K_null
+#:     vs K_p; below this the null is statistically indistinguishable
+#:     from the precursor and the realisation is REFUSED fail-closed).
+#:   * ``M3_TOL_DENSITY``          = 0.02 (density relative error).
+#:   * ``M3_TOL_SPECTRAL_RADIUS``  = 0.05 (spectral radius / N relative
+#:     error).
+#:   * ``M3_TOL_DEGREE_WASSERSTEIN`` = 0.05 (degree-sequence Wasserstein-1
+#:     distance normalised by the precursor mean degree).
+#:
+#: These are HONEST defaults. If they prove too strict and every
+#: substrate fails, that is a TRUTHFUL FINDING per the M3 pre-reg's
+#: §7 forbidden interpretation list — relaxation post-hoc to engineer
+#: ELIGIBLE_M3 is forbidden by the discipline. Tolerance relaxation
+#: requires a fresh M4 pre-registration, NOT an in-PR edit.
+M3_TOL_MARGINAL: Final[float] = 0.05
+M3_TOL_NON_DEGENERATE: Final[float] = 1e-3
+M3_TOL_DENSITY: Final[float] = 0.02
+M3_TOL_SPECTRAL_RADIUS: Final[float] = 0.05
+M3_TOL_DEGREE_WASSERSTEIN: Final[float] = 0.05
+
 _VALID_STRATEGIES: Final[frozenset[str]] = frozenset(
     {
         "M1_INDEPENDENT_SEED",
         "M6_PLACEBO_COUPLING",
         "M2_TOPOLOGY_PRESERVING_SHUFFLE",
+        "M3_TOPOLOGY_CONDITIONED",
     }
 )
 
@@ -281,6 +338,37 @@ class D002GNullInvalid(ValueError):
 # ---------------------------------------------------------------------------
 # Deterministic seed mixing
 # ---------------------------------------------------------------------------
+
+
+def deterministic_mix_multi(*words: int) -> int:
+    """Deterministic uint63 hash of N signed-int64 words for RNG seeding.
+
+    Generalisation of :func:`deterministic_mix` to N inputs. Used by the
+    M3 mechanism per its pre-reg §5 signature:
+
+    ``deterministic_mix(base_seed, M3_TOPOLOGY_CONDITIONED_SALT,
+    null_seed, substrate_id_hash, N, lambda_value_bits)``
+
+    The 2-arg public ``deterministic_mix`` keeps its original signature
+    and ABI for M1/M2/M6 callers; this multi-arg helper is M3-specific.
+    Both functions sha256 over big-endian-packed int64 words and return
+    the low 63 bits — same primitive, parameterised over arity.
+
+    Raises
+    ------
+    D002GNullInvalid
+        Any word outside the signed-int64 range, or fewer than 2 words.
+    """
+    if len(words) < 2:
+        raise D002GNullInvalid(f"deterministic_mix_multi requires >= 2 words; got {len(words)}")
+    packed = bytearray()
+    for w in words:
+        if not (-(2**63) <= int(w) < 2**63):
+            raise D002GNullInvalid(f"word must fit in int64; got {w!r}")
+        packed.extend(struct.pack(">q", int(w)))
+    digest = hashlib.sha256(bytes(packed)).digest()
+    head = int.from_bytes(digest[:8], byteorder="big", signed=False)
+    return int(head & ((1 << 63) - 1))
 
 
 def deterministic_mix(base_seed: int, salt: int) -> int:
@@ -1787,6 +1875,1067 @@ def realize_m2_injection_sequence_null(
 
 
 # ---------------------------------------------------------------------------
+# M3 — topology-conditioned independent realisation under matched-density
+# resampling (pre-registered at PR #680 merge; salt 523 locked).
+# ---------------------------------------------------------------------------
+#
+# Discipline contract. M3 is NOT a permutation of an existing precursor
+# realisation. M3 draws a topology-MATCHED INDEPENDENT realisation from
+# a deterministic generator whose marginals match the precursor's
+# locked marginal set (degree sequence + block-label histogram + spectral
+# radius / N + density). The matched marginal set is LOCKED at the M3
+# pre-reg — refining it requires a fresh M4. What this implementation
+# refines (per M3 §9.1 allowed scope) is the concrete estimator + the
+# generator engineering, NOT the marginal definition.
+#
+# A TRUTHFUL INELIGIBLE_M3_* verdict on either or both
+# block_structured / temporal_coupling is the operating law: M3 may not
+# have the right to exist on the locked grid, and the verifier records
+# that fact. Forcing ELIGIBLE_M3 to game B1 closure is the failure mode
+# the pre-registration discipline exists to prevent.
+
+
+M3EligibilityStatus = Literal[
+    "ELIGIBLE_M3",
+    "INELIGIBLE_M3_MARGINAL_MISMATCH",
+    "INELIGIBLE_M3_NON_PRECURSOR_SPECIFIC",
+    "INELIGIBLE_M3_DEGENERATE_DISTANCE",
+    "INELIGIBLE_M3_GENERATOR_DIVERGENT",
+    "INELIGIBLE_M3_TOPOLOGY_SUMMARY_MISSING",
+    "INELIGIBLE_M3_NUMERICAL_NONFINITE",
+    "INELIGIBLE_M3_SHAPE_CONTRACT_VIOLATION",
+    "INDETERMINATE_M3_PROVENANCE_MISSING",
+]
+
+_M3_ELIGIBLE: Final[str] = "ELIGIBLE_M3"
+
+
+class M3NotEligibleError(RuntimeError):
+    """M3 verifier returned a non-ELIGIBLE_M3 verdict for this cell.
+
+    Carries the :class:`M3EligibilityVerdict` as ``self.verdict`` so
+    callers can introspect ``status`` and ``eligibility_reason``.
+    Raised by :func:`realize_null` when invoked with strategy
+    ``"M3_TOPOLOGY_CONDITIONED"`` on a cell the verifier refuses. The
+    M3 contract is fail-closed by construction — no silent downgrade
+    to M1 / M2 / no-op (per pre-reg §4 Non-negotiable 7).
+    """
+
+    def __init__(self, verdict: Any) -> None:
+        super().__init__(
+            f"M3 verdict {verdict.status!r} for substrate "
+            f"{verdict.substrate_id!r} at N={verdict.N}, "
+            f"lambda_value={verdict.lambda_value}: "
+            f"{verdict.eligibility_reason}"
+        )
+        self.verdict = verdict
+
+
+class M3GeneratorDivergentError(RuntimeError):
+    """M3 matched generator failed to converge to target marginals.
+
+    Raised by :func:`topology_matched_resample` after
+    :data:`M3_GENERATOR_MAX_ITERATIONS` rebalance iterations failed to
+    drive every marginal inside the locked tolerance. The verifier
+    catches this exception and routes it to
+    ``INELIGIBLE_M3_GENERATOR_DIVERGENT``; the realisation layer
+    refuses the cell.
+    """
+
+
+@dataclass(frozen=True)
+class M3TopologySummary:
+    """Frozen locked marginal set for one K matrix.
+
+    The marginal set is LOCKED at the M3 pre-registration §2. Any change
+    to the marginals requires a fresh M4 pre-registration.
+
+    Fields
+    ------
+    degree_sequence
+        Sorted ascending tuple of per-node row-sum magnitudes (length N).
+        Captures the per-node weighted-degree distribution.
+    block_label_histogram
+        Tuple of integer bin counts over the substrate-defined block
+        label space. For substrates without a block label exposed, the
+        verifier falls back to ``(N,)`` (single bin) so the histogram
+        is always defined.
+    spectral_radius_over_N
+        ``max(|eigvals(K)|) / N``. Captures the largest-mode coupling.
+    density
+        Fraction of nonzero upper-triangle entries — i.e.
+        ``|{(i,j) : i<j, |K[i,j]| > 1e-12}| / (N*(N-1)/2)``.
+    n_nodes
+        Cohort size (matrix dimension).
+    n_support_edges
+        Count of |K| > 1e-12 entries on the strict upper triangle.
+    summary_sha256
+        sha256 over the canonical-JSON dump of all fields above
+        (excluding itself). Two K matrices with identical marginals
+        share this sha bit-exact.
+    """
+
+    degree_sequence: tuple[float, ...]
+    block_label_histogram: tuple[int, ...]
+    spectral_radius_over_N: float
+    density: float
+    n_nodes: int
+    n_support_edges: int
+    summary_sha256: str
+
+
+@dataclass(frozen=True)
+class M3MarginalMatchReport:
+    """Frozen comparator report for one (K_p, K_null) marginal match.
+
+    Fields
+    ------
+    degree_wasserstein
+        Wasserstein-1 distance between the sorted degree sequences,
+        normalised by the K_p mean degree (zero-mean fallback: 1.0).
+    block_histogram_l1
+        L1 distance between the two block-label histograms.
+    spectral_radius_rel_err
+        ``|ρ_null/N - ρ_p/N| / max(ρ_p/N, 1e-12)``.
+    density_rel_err
+        ``|d_null - d_p| / max(d_p, 1e-12)``.
+    all_within_tolerance
+        True iff every comparator is below its locked tolerance.
+    failed_marginal
+        Name of the first marginal that exceeded tolerance, or None
+        if all match. Names: ``"degree_wasserstein"``,
+        ``"block_histogram_l1"``, ``"spectral_radius"``, ``"density"``.
+    """
+
+    degree_wasserstein: float
+    block_histogram_l1: float
+    spectral_radius_rel_err: float
+    density_rel_err: float
+    all_within_tolerance: bool
+    failed_marginal: str | None
+
+
+@dataclass(frozen=True)
+class M3EligibilityVerdict:
+    """Frozen verdict from :func:`verify_m3_eligibility`.
+
+    Fields
+    ------
+    status
+        One of :data:`M3EligibilityStatus`. Only ``"ELIGIBLE_M3"`` admits
+        a subsequent :func:`realize_null` call with strategy
+        ``"M3_TOPOLOGY_CONDITIONED"``.
+    substrate_id
+        From :attr:`Substrate.id`.
+    N
+        Cohort size.
+    lambda_value
+        Cell coordinate.
+    summary
+        The :class:`M3TopologySummary` of the precursor K at this cell;
+        None when summary extraction itself fails (substrate raised or
+        K shape / numerical contract violation).
+    match_report
+        The :class:`M3MarginalMatchReport` for the generated K_null
+        against the precursor summary; None when the generator never
+        produced a candidate (e.g. summary missing / divergent).
+    eligibility_reason
+        Single-line human-readable explanation.
+    metadata
+        Strategy-specific diagnostics for downstream audits.
+    """
+
+    status: M3EligibilityStatus
+    substrate_id: str
+    N: int
+    lambda_value: float
+    summary: M3TopologySummary | None
+    match_report: M3MarginalMatchReport | None
+    eligibility_reason: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+def _substrate_block_labels(substrate: Substrate, N: int) -> NDArray[np.int_] | None:
+    """Best-effort block-label vector for the substrate.
+
+    Honest stance: the :class:`SubstrateRealization` schema does NOT
+    expose a per-node block label today, so this helper recovers a
+    label vector from substrate-id-specific knowledge:
+
+      * ``block_structured`` — label = block index from the locked
+        fractions (0.20, 0.30, 0.50). Same partition the substrate
+        applies internally.
+      * ``temporal_coupling`` — inherits block_structured's partition.
+      * any other id — None (no block label available; histogram falls
+        back to a single bin).
+
+    Returning None is the HONEST path when the substrate exposes no
+    block partition. The verifier still operates — its block-histogram
+    comparator collapses to a length-1 tuple (n_nodes,) in that case.
+    """
+    sid = str(substrate.id)
+    if sid in ("block_structured", "temporal_coupling"):
+        f_core, f_mid, _f_per = BLOCK_FRACTIONS
+        n_core = max(1, int(round(f_core * N)))
+        n_mid = max(1, int(round(f_mid * N)))
+        n_per = int(N) - n_core - n_mid
+        if n_per <= 0:
+            return None
+        labels = np.empty(int(N), dtype=np.int_)
+        labels[:n_core] = 0
+        labels[n_core : n_core + n_mid] = 1
+        labels[n_core + n_mid :] = 2
+        return labels
+    return None
+
+
+def _wasserstein_1_sorted(a: NDArray[np.float64], b: NDArray[np.float64]) -> float:
+    """Wasserstein-1 distance between two equal-length 1-D samples.
+
+    Both arrays are sorted ascending then averaged absolute-diff is
+    returned. For unequal lengths the function raises — the M3 caller
+    always passes equal-length degree sequences.
+    """
+    if a.shape != b.shape:
+        raise D002GNullInvalid(f"Wasserstein-1: shape mismatch {a.shape} vs {b.shape}")
+    a_sorted = np.sort(a)
+    b_sorted = np.sort(b)
+    return float(np.mean(np.abs(a_sorted - b_sorted)))
+
+
+def extract_m3_topology_summary(
+    K: NDArray[np.float64],
+    *,
+    substrate_block_labels: NDArray[np.int_] | None,
+) -> M3TopologySummary:
+    """Extract the locked marginal set from one K matrix.
+
+    Parameters
+    ----------
+    K
+        Symmetric float64 (N, N) coupling matrix. Must be finite.
+    substrate_block_labels
+        Length-N integer vector of block labels, or None. When None the
+        block-label histogram falls back to a single bin of size N.
+
+    Raises
+    ------
+    D002GNullInvalid
+        K not float64 / non-square / non-finite, or
+        ``substrate_block_labels`` length mismatch / non-integer.
+    """
+    if K.dtype != np.float64:
+        raise D002GNullInvalid(f"K must be float64; got {K.dtype}")
+    _refuse_if_non_square(K)
+    if not np.all(np.isfinite(K)):
+        raise D002GNullInvalid("K contains non-finite entries")
+    N = int(K.shape[0])
+    # Degree sequence: sorted ascending row-sum magnitudes (length N).
+    row_sums = np.abs(K).sum(axis=1)
+    degree_sequence = tuple(float(x) for x in np.sort(row_sums).tolist())
+
+    # Block-label histogram. Length-1 fallback when no labels exposed.
+    if substrate_block_labels is None:
+        block_label_histogram: tuple[int, ...] = (int(N),)
+    else:
+        labels = np.asarray(substrate_block_labels)
+        if labels.shape != (N,):
+            raise D002GNullInvalid(
+                f"substrate_block_labels must have shape ({N},); got {labels.shape}"
+            )
+        if not np.issubdtype(labels.dtype, np.integer):
+            raise D002GNullInvalid(
+                f"substrate_block_labels must be integer dtype; got {labels.dtype}"
+            )
+        max_lab = int(labels.max()) if N > 0 else 0
+        bincount = np.bincount(labels.astype(np.int64), minlength=max_lab + 1)
+        block_label_histogram = tuple(int(x) for x in bincount.tolist())
+
+    # Spectral radius / N (use eigvalsh — K is symmetric).
+    eigs = np.linalg.eigvalsh(K)
+    spectral_radius_over_N = float(np.abs(eigs).max() / float(N))
+
+    # Density on upper triangle.
+    iu_r, iu_c = np.triu_indices(N, k=1)
+    upper = K[iu_r, iu_c]
+    support_mask = np.abs(upper) > 1e-12
+    n_support_edges = int(np.count_nonzero(support_mask))
+    n_upper = (N * (N - 1)) // 2
+    density = float(n_support_edges) / float(n_upper) if n_upper > 0 else 0.0
+
+    # Canonical sha over the marginal payload (excludes the sha itself).
+    payload = {
+        "degree_sequence": list(degree_sequence),
+        "block_label_histogram": list(block_label_histogram),
+        "spectral_radius_over_N": float(spectral_radius_over_N),
+        "density": float(density),
+        "n_nodes": int(N),
+        "n_support_edges": int(n_support_edges),
+    }
+    summary_sha256 = hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+
+    return M3TopologySummary(
+        degree_sequence=degree_sequence,
+        block_label_histogram=block_label_histogram,
+        spectral_radius_over_N=spectral_radius_over_N,
+        density=density,
+        n_nodes=N,
+        n_support_edges=n_support_edges,
+        summary_sha256=summary_sha256,
+    )
+
+
+def _compare_m3_marginals(
+    target: M3TopologySummary,
+    candidate: M3TopologySummary,
+) -> M3MarginalMatchReport:
+    """Compute marginal-distance comparator for one (target, candidate) pair."""
+    target_deg = np.asarray(target.degree_sequence, dtype=np.float64)
+    cand_deg = np.asarray(candidate.degree_sequence, dtype=np.float64)
+    if target_deg.shape != cand_deg.shape:
+        # Length mismatch → infinite Wasserstein. Drive the comparator
+        # to "fail" deterministically; downstream verifier flags it.
+        degree_wasserstein = float("inf")
+    else:
+        mean_deg = float(np.mean(target_deg)) if target_deg.size else 0.0
+        denom = max(mean_deg, 1e-12)
+        degree_wasserstein = _wasserstein_1_sorted(target_deg, cand_deg) / denom
+
+    target_hist = np.asarray(target.block_label_histogram, dtype=np.int64)
+    cand_hist = np.asarray(candidate.block_label_histogram, dtype=np.int64)
+    if target_hist.shape == cand_hist.shape:
+        block_histogram_l1 = float(np.sum(np.abs(target_hist - cand_hist)))
+    else:
+        # Pad to common length then compare. Treat absent bins as 0.
+        max_len = max(target_hist.size, cand_hist.size)
+        t_pad = np.zeros(max_len, dtype=np.int64)
+        c_pad = np.zeros(max_len, dtype=np.int64)
+        t_pad[: target_hist.size] = target_hist
+        c_pad[: cand_hist.size] = cand_hist
+        block_histogram_l1 = float(np.sum(np.abs(t_pad - c_pad)))
+
+    spec_p = float(target.spectral_radius_over_N)
+    spec_n = float(candidate.spectral_radius_over_N)
+    spectral_radius_rel_err = abs(spec_n - spec_p) / max(abs(spec_p), 1e-12)
+
+    d_p = float(target.density)
+    d_n = float(candidate.density)
+    density_rel_err = abs(d_n - d_p) / max(d_p, 1e-12)
+
+    failed_marginal: str | None = None
+    if not math.isfinite(degree_wasserstein) or degree_wasserstein > M3_TOL_DEGREE_WASSERSTEIN:
+        failed_marginal = "degree_wasserstein"
+    elif block_histogram_l1 > 0:
+        # Histogram L1 must be exactly 0 — the generator preserves the
+        # block-bin counts by construction. Any drift is a marginal-
+        # mismatch failure.
+        failed_marginal = "block_histogram_l1"
+    elif spectral_radius_rel_err > M3_TOL_SPECTRAL_RADIUS:
+        failed_marginal = "spectral_radius"
+    elif density_rel_err > M3_TOL_DENSITY:
+        failed_marginal = "density"
+
+    all_within_tolerance = failed_marginal is None
+    return M3MarginalMatchReport(
+        degree_wasserstein=float(degree_wasserstein),
+        block_histogram_l1=float(block_histogram_l1),
+        spectral_radius_rel_err=float(spectral_radius_rel_err),
+        density_rel_err=float(density_rel_err),
+        all_within_tolerance=all_within_tolerance,
+        failed_marginal=failed_marginal,
+    )
+
+
+def topology_matched_resample(
+    target: M3TopologySummary,
+    *,
+    null_seed: int,
+    rng_salt_mix: int,
+) -> NDArray[np.float64]:
+    """Draw an independent K matrix whose marginals match ``target``.
+
+    Procedure (deterministic given ``(null_seed, rng_salt_mix)`` —
+    no global state, no time-based seeds):
+
+    1. Initialise empty symmetric upper-triangle K_null (N×N float64).
+    2. Sample ``n_support_edges`` distinct upper-triangle positions
+       weighted by a degree-product prior derived from ``target``.
+    3. Assign weights drawn from the target degree-magnitude scale
+       (mean row-sum / mean degree); these are the initial edge weights.
+    4. Rebalance: iteratively swap or rescale edges so each marginal
+       (degree-Wasserstein, spectral radius, density) sits inside its
+       locked tolerance. Capped at :data:`M3_GENERATOR_MAX_ITERATIONS`.
+    5. Symmetrise: K_null = (K_null + K_null.T) / 2 (already symmetric
+       by construction; the explicit step guards against floating-point
+       asymmetry from in-place writes).
+
+    Returns
+    -------
+    K_null
+        N×N float64 symmetric matrix.
+
+    Raises
+    ------
+    M3GeneratorDivergentError
+        After :data:`M3_GENERATOR_MAX_ITERATIONS` iterations the
+        marginals are still out of tolerance.
+    D002GNullInvalid
+        Bad target (e.g. n_nodes < 2 or non-finite density).
+    """
+    N = int(target.n_nodes)
+    if N < 2:
+        raise D002GNullInvalid(f"M3 generator: N must be >= 2; got {N}")
+    if not (0.0 <= target.density <= 1.0):
+        raise D002GNullInvalid(f"M3 generator: target.density={target.density!r} outside [0, 1]")
+    if not math.isfinite(target.spectral_radius_over_N):
+        raise D002GNullInvalid("M3 generator: target.spectral_radius_over_N non-finite")
+
+    # Build deterministic RNG. The seed mixes (null_seed, rng_salt_mix)
+    # so different cells / substrates produce different draws while
+    # same-cell same-seed replays bit-identically.
+    seed = deterministic_mix_multi(int(null_seed), int(rng_salt_mix))
+    rng = np.random.default_rng(seed)
+
+    iu_r, iu_c = np.triu_indices(N, k=1)
+    n_upper = iu_r.size
+    n_target_edges = int(target.n_support_edges)
+    if n_target_edges > n_upper:
+        raise D002GNullInvalid(
+            f"M3 generator: target.n_support_edges={n_target_edges} > "
+            f"upper-triangle count {n_upper}"
+        )
+
+    target_degrees = np.asarray(target.degree_sequence, dtype=np.float64)
+    # Reference scale = mean target degree; used to seed initial edge
+    # weights. If everything is zero the trivial all-zero K matches the
+    # target (degenerate-target branch handled below).
+    if n_target_edges == 0:
+        K_null = np.zeros((N, N), dtype=np.float64)
+        return K_null
+
+    mean_deg_target = float(np.mean(target_degrees)) if target_degrees.size else 0.0
+    if mean_deg_target == 0.0:
+        # Target carries zero row-sums but n_target_edges > 0 — internal
+        # contradiction; fail-closed.
+        raise M3GeneratorDivergentError(
+            "M3 generator: target.degree_sequence sum is zero but "
+            f"n_support_edges={n_target_edges} > 0 (contradictory marginals)"
+        )
+
+    # Initial edge weight: split the row-sum scale across the per-node
+    # edge budget. mean weight = mean_deg_target * N / (2 * n_target_edges).
+    initial_weight = float(mean_deg_target * N) / float(2 * n_target_edges)
+
+    # Sample edge positions uniformly without replacement.
+    chosen_positions = rng.choice(n_upper, size=n_target_edges, replace=False)
+    # Perturb weights with a small log-normal multiplier so the degree
+    # sequence is not constant by construction; rebalance below pulls
+    # the Wasserstein-1 distance below tolerance.
+    perturbations = np.exp(rng.normal(0.0, 0.2, size=n_target_edges))
+    edge_weights = initial_weight * perturbations
+
+    target_spectral = float(target.spectral_radius_over_N)
+
+    substrate_labels: NDArray[np.int_] | None = None  # generator-side: no labels
+
+    converged = False
+    last_iteration_report: M3MarginalMatchReport | None = None
+    iters_used = 0
+    for it in range(M3_GENERATOR_MAX_ITERATIONS):
+        iters_used = it + 1
+        K_null = np.zeros((N, N), dtype=np.float64)
+        K_null[iu_r[chosen_positions], iu_c[chosen_positions]] = edge_weights
+        K_null = K_null + K_null.T  # symmetrise
+
+        # Snap spectral radius to target by uniform rescale (cheap,
+        # marginal-preserving up to spectral & density which is invariant).
+        eigs = np.linalg.eigvalsh(K_null)
+        rho_n = float(np.abs(eigs).max() / float(N))
+        if rho_n > 0.0:
+            scale = target_spectral / rho_n
+            K_null = K_null * scale
+            edge_weights = edge_weights * scale
+
+        candidate_summary = extract_m3_topology_summary(
+            K_null, substrate_block_labels=substrate_labels
+        )
+        # Block histogram check happens only when target HAS multi-bin
+        # labels. The generator does NOT know substrate labels, so this
+        # field is compared at the verifier level (with substrate labels
+        # applied). Inside the generator we use the unlabelled target —
+        # only checked when caller supplies labels in target.
+        unlabeled_target_hist = (int(N),)
+        target_for_compare = M3TopologySummary(
+            degree_sequence=target.degree_sequence,
+            block_label_histogram=unlabeled_target_hist,
+            spectral_radius_over_N=target.spectral_radius_over_N,
+            density=target.density,
+            n_nodes=target.n_nodes,
+            n_support_edges=target.n_support_edges,
+            summary_sha256=target.summary_sha256,
+        )
+        candidate_for_compare = M3TopologySummary(
+            degree_sequence=candidate_summary.degree_sequence,
+            block_label_histogram=unlabeled_target_hist,
+            spectral_radius_over_N=candidate_summary.spectral_radius_over_N,
+            density=candidate_summary.density,
+            n_nodes=candidate_summary.n_nodes,
+            n_support_edges=candidate_summary.n_support_edges,
+            summary_sha256=candidate_summary.summary_sha256,
+        )
+        report = _compare_m3_marginals(target_for_compare, candidate_for_compare)
+        last_iteration_report = report
+
+        # Density mismatch? If the candidate's |K|>1e-12 support set
+        # drifted (some edges collapsed below threshold under rescale),
+        # snap weights up.
+        if report.failed_marginal == "density":
+            edge_weights = np.maximum(edge_weights, 2e-12 * np.ones_like(edge_weights))
+            continue
+
+        # Degree-Wasserstein mismatch? Adjust per-edge weights toward
+        # target's sorted degree sequence via a contraction step.
+        if report.failed_marginal == "degree_wasserstein":
+            cur_row_sum = np.abs(K_null).sum(axis=1)
+            order_cur = np.argsort(cur_row_sum)
+            target_sorted = np.sort(target_degrees)
+            desired = np.empty_like(cur_row_sum)
+            desired[order_cur] = target_sorted
+            # Scale each node's incident edges by the desired/current
+            # ratio (clamped to [0.5, 2.0] per step for stability).
+            ratio_per_node = np.where(
+                cur_row_sum > 1e-12,
+                np.clip(desired / np.maximum(cur_row_sum, 1e-12), 0.5, 2.0),
+                1.0,
+            )
+            # Apply the geometric mean of (ratio_i, ratio_j) to edge (i,j).
+            edge_ratios = np.sqrt(
+                ratio_per_node[iu_r[chosen_positions]] * ratio_per_node[iu_c[chosen_positions]]
+            )
+            edge_weights = edge_weights * edge_ratios
+            continue
+
+        if report.all_within_tolerance:
+            converged = True
+            break
+
+        # Spectral mismatch was already snapped above. If we end up here
+        # the comparator detected a residual; small jitter keeps the
+        # loop from stalling.
+        jitter = rng.normal(0.0, 0.01, size=n_target_edges)
+        edge_weights = edge_weights * np.exp(jitter)
+
+    if not converged:
+        if last_iteration_report is None:
+            raise M3GeneratorDivergentError(
+                "M3 generator: no iteration produced a comparator report "
+                f"(iters_used={iters_used}, max={M3_GENERATOR_MAX_ITERATIONS})"
+            )
+        raise M3GeneratorDivergentError(
+            f"M3 generator: failed to match marginals within "
+            f"{M3_GENERATOR_MAX_ITERATIONS} iterations "
+            f"(failed_marginal={last_iteration_report.failed_marginal!r}, "
+            f"degree_wasserstein={last_iteration_report.degree_wasserstein:.4f}, "
+            f"density_rel_err={last_iteration_report.density_rel_err:.4f}, "
+            f"spectral_rel_err={last_iteration_report.spectral_radius_rel_err:.4f})"
+        )
+
+    # Final symmetrisation guard against floating-point asymmetry.
+    K_final = (K_null + K_null.T) / 2.0
+    return K_final.astype(np.float64, copy=False)
+
+
+def _default_null_seed_m3(base_seed: int) -> int:
+    """Locked M3 null-seed formula — deterministic mix with salt 523.
+
+    Distinct prime salt from M1 offset (10000), M6 (99), M2 edge_weight
+    (211), M2 node_payload (313), and M2 injection_sequence (419) —
+    fully domain-separated RNG stream against Strike-R5 stride attack.
+    """
+    return deterministic_mix(int(base_seed), M3_TOPOLOGY_CONDITIONED_SALT)
+
+
+def _m3_substrate_id_hash(substrate_id: str) -> int:
+    """Deterministic int63 hash of the substrate id string.
+
+    Used in the M3 multi-arg deterministic_mix call so different
+    substrates yield different RNG streams at the same (base_seed,
+    null_seed, N, lambda). sha256-low-63 keeps the mixing primitive
+    consistent with :func:`deterministic_mix`.
+    """
+    digest = hashlib.sha256(substrate_id.encode("utf-8")).digest()
+    head = int.from_bytes(digest[:8], byteorder="big", signed=False)
+    return int(head & ((1 << 63) - 1))
+
+
+def _m3_lambda_bits(lambda_value: float) -> int:
+    """Bit-pattern of float64 lambda_value cast as signed int64.
+
+    Provides a deterministic injection of lambda_value into the M3 mix
+    without floating-point ambiguity. NaN bits are forbidden — caller
+    must check finiteness first.
+    """
+    if not math.isfinite(lambda_value):
+        raise D002GNullInvalid(f"lambda_value must be finite for M3 mix; got {lambda_value!r}")
+    raw = struct.unpack(">q", struct.pack(">d", float(lambda_value)))[0]
+    return int(raw)
+
+
+def verify_m3_eligibility(
+    substrate: Substrate,
+    *,
+    N: int,
+    lambda_value: float,
+    base_seed: int,
+    null_seed: int | None = None,
+) -> M3EligibilityVerdict:
+    """Pre-check whether (substrate, N, λ, seed) admits an M3 null.
+
+    The verifier walks the 5 admissibility criteria from the M3
+    pre-registration §3 fail-closed:
+
+    1. Topology marginal extractable — substrate produces a valid
+       K_precursor at this cell; shape (N,N), float64, finite, symmetric.
+       Failure → SHAPE_CONTRACT_VIOLATION / NUMERICAL_NONFINITE /
+       PROVENANCE_MISSING / TOPOLOGY_SUMMARY_MISSING.
+    2. Matched generator exists — :func:`topology_matched_resample`
+       converges within :data:`M3_GENERATOR_MAX_ITERATIONS`. Divergence
+       → GENERATOR_DIVERGENT.
+    3. Identifiable from precursor — over 100 distinct precursor seeds,
+       ≥ 50 / 100 pairs yield distinct degree marginals. Otherwise
+       → NON_PRECURSOR_SPECIFIC (the marginal is not informative).
+    4. Non-degenerate distance — ``||K_null − K_p||_F`` strictly above
+       :data:`M3_TOL_NON_DEGENERATE`. Otherwise → DEGENERATE_DISTANCE.
+    5. Topology-coupling decoupled — a non-identity node permutation
+       preserves the M3 marginal summary sha (necessary, not sufficient).
+       Otherwise → MARGINAL_MISMATCH.
+
+    Notes
+    -----
+    Criterion 3 is the heaviest single check (100 substrate realisations).
+    It is gated behind criteria 1+2 — if the substrate can't produce a
+    single matched generator output, no precursor-specificity probe is
+    meaningful.
+    """
+    if not math.isfinite(lambda_value) or lambda_value <= 0.0:
+        raise D002GNullInvalid(
+            "verify_m3_eligibility requires lambda_value > 0 (M3 conditions on K_precursor at λ>0)"
+        )
+    if int(N) < 2:
+        raise D002GNullInvalid(f"N must be >= 2; got {N!r}")
+
+    sub_id = str(substrate.id)
+    eff_null_seed = (
+        int(null_seed) if null_seed is not None else _default_null_seed_m3(int(base_seed))
+    )
+
+    # ---- Criterion 1: precursor extraction + shape + numerical checks
+    try:
+        real = substrate.realize(N=int(N), lambda_=float(lambda_value), seed=int(base_seed))
+    except Exception as exc:  # noqa: BLE001
+        return M3EligibilityVerdict(
+            status="INDETERMINATE_M3_PROVENANCE_MISSING",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=None,
+            match_report=None,
+            eligibility_reason=(f"substrate.realize raised {type(exc).__name__}: {exc!s}"),
+            metadata={
+                "exception_type": type(exc).__name__,
+                "base_seed": int(base_seed),
+                "null_seed": int(eff_null_seed),
+            },
+        )
+
+    inject_t = int(next(iter(PRECURSOR_INJECTION_WINDOW)))
+    # Narrowed catch — np.asarray + indexing can raise this concrete set on
+    # malformed substrate output. Any other exception SHOULD propagate so an
+    # unexpected failure mode surfaces as a real bug, not a silent INELIGIBLE.
+    try:
+        K_p = np.asarray(real.K_precursor[inject_t], dtype=np.float64)
+    except (
+        ValueError,
+        TypeError,
+        IndexError,
+        KeyError,
+        AttributeError,
+        np.linalg.LinAlgError,
+    ) as exc:
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_SHAPE_CONTRACT_VIOLATION",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=None,
+            match_report=None,
+            eligibility_reason=f"K_precursor slice failed: {type(exc).__name__}: {exc!s}",
+            metadata={"base_seed": int(base_seed), "null_seed": int(eff_null_seed)},
+        )
+
+    if K_p.ndim != 2 or K_p.shape[0] != K_p.shape[1] or K_p.shape[0] != int(N):
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_SHAPE_CONTRACT_VIOLATION",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=None,
+            match_report=None,
+            eligibility_reason=(f"K_precursor shape {K_p.shape} ≠ expected (N,N)=({N},{N})"),
+            metadata={"base_seed": int(base_seed), "null_seed": int(eff_null_seed)},
+        )
+
+    if not np.all(np.isfinite(K_p)):
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_NUMERICAL_NONFINITE",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=None,
+            match_report=None,
+            eligibility_reason="K_precursor contains non-finite entries",
+            metadata={"base_seed": int(base_seed), "null_seed": int(eff_null_seed)},
+        )
+
+    # Symmetry sanity (substrate gate G enforces this; defensive double-check).
+    asym = float(np.max(np.abs(K_p - K_p.T))) if N > 0 else 0.0
+    if asym > 1e-9:
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_SHAPE_CONTRACT_VIOLATION",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=None,
+            match_report=None,
+            eligibility_reason=f"K_precursor not symmetric (max asymmetry={asym:.3e})",
+            metadata={"base_seed": int(base_seed), "null_seed": int(eff_null_seed)},
+        )
+
+    block_labels = _substrate_block_labels(substrate, int(N))
+    try:
+        target_summary = extract_m3_topology_summary(K_p, substrate_block_labels=block_labels)
+    except D002GNullInvalid as exc:
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_TOPOLOGY_SUMMARY_MISSING",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=None,
+            match_report=None,
+            eligibility_reason=f"topology summary extraction failed: {exc!s}",
+            metadata={"base_seed": int(base_seed), "null_seed": int(eff_null_seed)},
+        )
+
+    # ---- Criterion 2: matched generator converges
+    rng_salt_mix = deterministic_mix_multi(
+        int(base_seed),
+        int(M3_TOPOLOGY_CONDITIONED_SALT),
+        int(eff_null_seed),
+        int(_m3_substrate_id_hash(sub_id)),
+        int(N),
+        int(_m3_lambda_bits(float(lambda_value))),
+    )
+    try:
+        K_null_candidate = topology_matched_resample(
+            target_summary, null_seed=eff_null_seed, rng_salt_mix=rng_salt_mix
+        )
+    except M3GeneratorDivergentError as exc:
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_GENERATOR_DIVERGENT",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=target_summary,
+            match_report=None,
+            eligibility_reason=str(exc),
+            metadata={"base_seed": int(base_seed), "null_seed": int(eff_null_seed)},
+        )
+    except D002GNullInvalid as exc:
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_GENERATOR_DIVERGENT",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=target_summary,
+            match_report=None,
+            eligibility_reason=f"M3 generator rejected target: {exc!s}",
+            metadata={"base_seed": int(base_seed), "null_seed": int(eff_null_seed)},
+        )
+
+    candidate_summary = extract_m3_topology_summary(
+        K_null_candidate, substrate_block_labels=block_labels
+    )
+    match_report = _compare_m3_marginals(target_summary, candidate_summary)
+    if not match_report.all_within_tolerance:
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_MARGINAL_MISMATCH",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=target_summary,
+            match_report=match_report,
+            eligibility_reason=(
+                f"candidate K_null marginals fail tolerance "
+                f"(failed_marginal={match_report.failed_marginal!r})"
+            ),
+            metadata={"base_seed": int(base_seed), "null_seed": int(eff_null_seed)},
+        )
+
+    # ---- Criterion 3: identifiable from precursor (ensemble of 100 seeds)
+    summaries_for_pairwise: list[M3TopologySummary] = []
+    # Narrowed catch — substrate.realize and numpy extraction can raise the
+    # concrete set below; any OTHER exception type SHOULD propagate so an
+    # unexpected failure mode surfaces as a real bug, not a silently-skipped
+    # seed. The fail-safe semantic is preserved: any seed that legitimately
+    # fails to realise → skip; the ensemble shrinks; if < 50/100 valid
+    # summaries remain, admissibility criterion 3 fails closed downstream.
+    _SUBSTRATE_REALIZE_EXPECTED = (
+        ValueError,
+        RuntimeError,
+        ArithmeticError,
+        AttributeError,
+        IndexError,
+        KeyError,
+        TypeError,
+        MemoryError,
+        np.linalg.LinAlgError,
+    )
+    for s in range(M3_PRECURSOR_ENSEMBLE_SIZE):
+        try:
+            r_s = substrate.realize(N=int(N), lambda_=float(lambda_value), seed=int(s))
+            K_s = np.asarray(r_s.K_precursor[inject_t], dtype=np.float64)
+            if not np.all(np.isfinite(K_s)):
+                continue
+            summaries_for_pairwise.append(
+                extract_m3_topology_summary(K_s, substrate_block_labels=block_labels)
+            )
+        except _SUBSTRATE_REALIZE_EXPECTED:
+            # Any failed seed reduces the effective ensemble; the check
+            # is "≥ 50 distinct pairs out of 100 attempted" — if we have
+            # <50 valid summaries the substrate cannot meet the criterion.
+            continue
+
+    n_ens = len(summaries_for_pairwise)
+    distinct_pairs = 0
+    pair_count = 0
+    # Pair (i, i+1) over the first n_ens-1 indices — N=100 candidates yield
+    # 99 ordered pairs; the criterion requires ≥ 50 distinct (i.e. ~half).
+    for i in range(n_ens - 1):
+        pair_count += 1
+        rep = _compare_m3_marginals(summaries_for_pairwise[i], summaries_for_pairwise[i + 1])
+        if not math.isfinite(rep.degree_wasserstein) or rep.degree_wasserstein > (
+            M3_TOL_MARGINAL / 10.0
+        ):
+            distinct_pairs += 1
+    if distinct_pairs < (M3_PRECURSOR_ENSEMBLE_SIZE // 2):
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_NON_PRECURSOR_SPECIFIC",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=target_summary,
+            match_report=match_report,
+            eligibility_reason=(
+                f"only {distinct_pairs}/{pair_count} adjacent-seed pairs yield "
+                f"degree_wasserstein > tol/10; marginal is not precursor-specific"
+            ),
+            metadata={
+                "ensemble_size_attempted": int(M3_PRECURSOR_ENSEMBLE_SIZE),
+                "ensemble_size_valid": int(n_ens),
+                "distinct_pair_count": int(distinct_pairs),
+                "pair_count": int(pair_count),
+                "base_seed": int(base_seed),
+                "null_seed": int(eff_null_seed),
+            },
+        )
+
+    # ---- Criterion 4: non-degenerate Frobenius distance
+    frob = float(np.linalg.norm(K_null_candidate - K_p))
+    if frob < M3_TOL_NON_DEGENERATE:
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_DEGENERATE_DISTANCE",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=target_summary,
+            match_report=match_report,
+            eligibility_reason=(
+                f"||K_null - K_p||_F = {frob:.3e} < tol_non_degenerate {M3_TOL_NON_DEGENERATE:.3e}"
+            ),
+            metadata={
+                "frobenius_distance": float(frob),
+                "base_seed": int(base_seed),
+                "null_seed": int(eff_null_seed),
+            },
+        )
+
+    # ---- Criterion 5: topology-coupling decoupled (necessary, not sufficient)
+    # Apply a deterministic non-identity permutation. The M3 marginal
+    # summary must be permutation-invariant — the degree sequence is
+    # sorted, the spectral radius is permutation-invariant, the density
+    # is permutation-invariant. Block-label histogram preservation
+    # depends on whether the labels themselves permute with the rows.
+    # We compare the UNLABELLED-fallback summary for this invariant
+    # (block-label-aware coupling is detected by the substrate-side
+    # node-payload verifier; M3 cares about marginal preservation under
+    # row/column permutation only).
+    rng = np.random.default_rng(eff_null_seed)
+    perm = rng.permutation(int(N))
+    if np.array_equal(perm, np.arange(int(N))):
+        # Force a non-identity permutation by swapping the first two
+        # entries; for N=2 the swap is the unique non-identity.
+        if int(N) >= 2:
+            perm = perm.copy()
+            perm[0], perm[1] = perm[1], perm[0]
+    K_null_perm = K_null_candidate[np.ix_(perm, perm)]
+    summary_unlabelled = extract_m3_topology_summary(K_null_candidate, substrate_block_labels=None)
+    summary_perm_unlabelled = extract_m3_topology_summary(K_null_perm, substrate_block_labels=None)
+    # Compare via comparator (tolerance-aware) rather than sha equality.
+    # Sub-ulp drift in eigvalsh / row-sum accumulation can flip the
+    # canonical-JSON sha while the underlying physics is invariant; the
+    # tolerance-bounded comparator is the honest invariant.
+    perm_report = _compare_m3_marginals(summary_unlabelled, summary_perm_unlabelled)
+    if not perm_report.all_within_tolerance:
+        return M3EligibilityVerdict(
+            status="INELIGIBLE_M3_MARGINAL_MISMATCH",
+            substrate_id=sub_id,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            summary=target_summary,
+            match_report=match_report,
+            eligibility_reason=(
+                "topology-coupling decoupling invariant failed: "
+                "non-identity permutation mutated K_null marginal summary "
+                f"(failed_marginal={perm_report.failed_marginal!r})"
+            ),
+            metadata={
+                "base_seed": int(base_seed),
+                "null_seed": int(eff_null_seed),
+                "pre_summary_sha": summary_unlabelled.summary_sha256,
+                "post_summary_sha": summary_perm_unlabelled.summary_sha256,
+                "perm_match_report": {
+                    "degree_wasserstein": float(perm_report.degree_wasserstein),
+                    "spectral_radius_rel_err": float(perm_report.spectral_radius_rel_err),
+                    "density_rel_err": float(perm_report.density_rel_err),
+                    "failed_marginal": perm_report.failed_marginal,
+                },
+            },
+        )
+
+    return M3EligibilityVerdict(
+        status="ELIGIBLE_M3",
+        substrate_id=sub_id,
+        N=int(N),
+        lambda_value=float(lambda_value),
+        summary=target_summary,
+        match_report=match_report,
+        eligibility_reason=(
+            f"all five admissibility criteria pass: marginals match within "
+            f"tolerance (failed_marginal=None), {distinct_pairs}/{pair_count} "
+            f"precursor pairs distinct, ||K_null-K_p||_F={frob:.3e} > "
+            f"{M3_TOL_NON_DEGENERATE:.3e}, marginal summary invariant under "
+            f"node permutation"
+        ),
+        metadata={
+            "base_seed": int(base_seed),
+            "null_seed": int(eff_null_seed),
+            "frobenius_distance": float(frob),
+            "distinct_pair_count": int(distinct_pairs),
+            "pair_count": int(pair_count),
+            "preserved_topology_summary_sha256": target_summary.summary_sha256,
+            "m3_salt": int(M3_TOPOLOGY_CONDITIONED_SALT),
+            "lambda_value": float(lambda_value),
+        },
+    )
+
+
+def realize_m3_null(
+    substrate: Substrate,
+    *,
+    base_seed: int,
+    null_seed: int,
+    lambda_value: float,
+    N: int,
+) -> tuple[NDArray[np.float64], dict[str, Any]]:
+    """Construct the M3 topology-conditioned K_null.
+
+    Procedure (assumes verifier has already returned ``ELIGIBLE_M3``):
+
+    1. Run :func:`verify_m3_eligibility`; refuse on non-ELIGIBLE.
+    2. Extract the precursor summary again (deterministic — same
+       (base_seed, lambda_value, N) yields bit-identical summary).
+    3. Call :func:`topology_matched_resample` with the same rng_salt_mix
+       the verifier used; the bit-identical replay guarantee means the
+       realisation produces the exact K_null the verifier validated.
+    4. Post-check: extracted summary of K_null matches the verifier's
+       match-report; raise :class:`M3GeneratorDivergentError` on drift.
+
+    Raises
+    ------
+    M3NotEligibleError
+        Verifier refused the cell.
+    M3GeneratorDivergentError
+        Post-check observed a marginal drift the verifier missed
+        (internal invariant violation; should be unreachable).
+    """
+    verdict = verify_m3_eligibility(
+        substrate,
+        N=int(N),
+        lambda_value=float(lambda_value),
+        base_seed=int(base_seed),
+        null_seed=int(null_seed),
+    )
+    if verdict.status != _M3_ELIGIBLE:
+        raise M3NotEligibleError(verdict)
+    assert verdict.summary is not None  # noqa: S101  # verifier post-condition
+    assert verdict.match_report is not None  # noqa: S101  # verifier post-condition
+
+    block_labels = _substrate_block_labels(substrate, int(N))
+    sub_id = str(substrate.id)
+
+    rng_salt_mix = deterministic_mix_multi(
+        int(base_seed),
+        int(M3_TOPOLOGY_CONDITIONED_SALT),
+        int(null_seed),
+        int(_m3_substrate_id_hash(sub_id)),
+        int(N),
+        int(_m3_lambda_bits(float(lambda_value))),
+    )
+    K_null = topology_matched_resample(
+        verdict.summary, null_seed=int(null_seed), rng_salt_mix=rng_salt_mix
+    )
+
+    # Post-check: marginals still inside tolerance.
+    post_summary = extract_m3_topology_summary(K_null, substrate_block_labels=block_labels)
+    post_report = _compare_m3_marginals(verdict.summary, post_summary)
+    if not post_report.all_within_tolerance:
+        raise M3GeneratorDivergentError(
+            "M3 post-check: generator output marginals drifted out of tolerance "
+            f"(failed_marginal={post_report.failed_marginal!r}); verifier "
+            "should have caught this — internal invariant violation"
+        )
+
+    metadata: dict[str, Any] = {
+        "null_strategy": M3_NULL_STRATEGY,
+        "null_seed": int(null_seed),
+        "m3_salt": int(M3_TOPOLOGY_CONDITIONED_SALT),
+        "preserved_topology_summary_sha256": verdict.summary.summary_sha256,
+        "post_summary_sha256": post_summary.summary_sha256,
+        "match_report": {
+            "degree_wasserstein": float(post_report.degree_wasserstein),
+            "block_histogram_l1": float(post_report.block_histogram_l1),
+            "spectral_radius_rel_err": float(post_report.spectral_radius_rel_err),
+            "density_rel_err": float(post_report.density_rel_err),
+            "all_within_tolerance": bool(post_report.all_within_tolerance),
+            "failed_marginal": post_report.failed_marginal,
+        },
+        "eligibility_status": _M3_ELIGIBLE,
+        "lambda_value": float(lambda_value),
+    }
+    return K_null, metadata
+
+
+# ---------------------------------------------------------------------------
 # Public API — realize_null
 # ---------------------------------------------------------------------------
 
@@ -1797,6 +2946,8 @@ def _default_null_seed(strategy: NullStrategy, base_seed: int) -> int:
         return int(base_seed) + NULL_SEED_OFFSET
     if strategy == "M2_TOPOLOGY_PRESERVING_SHUFFLE":
         return _default_null_seed_m2(int(base_seed))
+    if strategy == "M3_TOPOLOGY_CONDITIONED":
+        return _default_null_seed_m3(int(base_seed))
     # M6: deterministic mix of base_seed with the locked salt.
     return deterministic_mix(int(base_seed), M6_PLACEBO_SALT)
 
@@ -1903,6 +3054,12 @@ def realize_null(
             "M2_TOPOLOGY_PRESERVING_SHUFFLE requires lambda_value > 0 "
             "(no ΔK to permute at lambda=0)"
         )
+    if strategy == "M3_TOPOLOGY_CONDITIONED" and lambda_value <= 0.0:
+        raise D002GNullInvalid(
+            "M3_TOPOLOGY_CONDITIONED requires lambda_value > 0 "
+            "(M3 conditions on K_precursor's marginal set; at λ=0 the "
+            "precursor matches baseline so the marginal set degenerates)"
+        )
 
     # Domain-aware default null seed for M2 sub-domains
     if null_seed is None and strategy == "M2_TOPOLOGY_PRESERVING_SHUFFLE":
@@ -1982,6 +3139,14 @@ def realize_null(
                 lambda_value=float(lambda_value),
                 N=int(N),
             )
+    elif strategy == "M3_TOPOLOGY_CONDITIONED":
+        K_null, mech_meta = realize_m3_null(
+            substrate,
+            base_seed=int(base_seed),
+            null_seed=effective_null_seed,
+            lambda_value=float(lambda_value),
+            N=int(N),
+        )
     else:
         K_null, mech_meta = _realize_m6(
             substrate,
@@ -2034,6 +3199,21 @@ __all__ = [
     "M2_PLACEBO_SALT",
     "M2_NODE_PAYLOAD_SALT",
     "M2_INJECTION_SEQUENCE_SALT",
+    "M3EligibilityStatus",
+    "M3EligibilityVerdict",
+    "M3GeneratorDivergentError",
+    "M3MarginalMatchReport",
+    "M3NotEligibleError",
+    "M3TopologySummary",
+    "M3_GENERATOR_MAX_ITERATIONS",
+    "M3_NULL_STRATEGY",
+    "M3_PRECURSOR_ENSEMBLE_SIZE",
+    "M3_TOL_DEGREE_WASSERSTEIN",
+    "M3_TOL_DENSITY",
+    "M3_TOL_MARGINAL",
+    "M3_TOL_NON_DEGENERATE",
+    "M3_TOL_SPECTRAL_RADIUS",
+    "M3_TOPOLOGY_CONDITIONED_SALT",
     "M6InsufficientCandidatePool",
     "M6_PLACEBO_SALT",
     "NULL_SEED_OFFSET",
@@ -2041,10 +3221,15 @@ __all__ = [
     "NullStrategy",
     "R2_B_RANDOM_SITE_SEED",
     "deterministic_mix",
+    "deterministic_mix_multi",
+    "extract_m3_topology_summary",
     "realize_null",
     "realize_m2_node_payload_null",
     "realize_m2_injection_sequence_null",
+    "realize_m3_null",
+    "topology_matched_resample",
     "verify_m2_eligibility",
     "verify_m2_node_payload_eligibility",
     "verify_m2_injection_sequence_eligibility",
+    "verify_m3_eligibility",
 ]
