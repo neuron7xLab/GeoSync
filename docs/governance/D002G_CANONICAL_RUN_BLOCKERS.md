@@ -207,3 +207,19 @@ B1 (D-002H ricci_flow eligibility): CLOSED via 7-gate conjunction
 B2 (Phase 0b percentile vs BCa): KNOWN LIMITATION, carried per D-002G prereg §4
 canonical_run_authorized_final: TRUE  ← terminal state achieved
 
+---
+
+## D-002H R2-B scope clarification
+
+**Status:** RESOLVED — R2-B inherited-but-inapplicable under D-002H
+**Document:** `docs/governance/D002H_R2B_INAPPLICABILITY_NOTE.md`
+**Resolution rule:** D-002H canonical-run acceptance is the 4-term conjunction R1 ∧ R2 ∧ R3 ∧ NULL_AUDIT (R2-B unevaluable because M6 ∉ D-002H null_mechanisms_allowed).
+
+D-002G acceptance rules byte-exact locked. D-002H prereg byte-exact
+locked. This is scope clarification, not contract change. Canonical
+run authorisation (Gate G, terminal) remains valid; cell-verdict
+computation is now contractually unambiguous.
+
+A future M3-based R2-B analogue would constitute a fresh D-002J
+pre-registration.
+
