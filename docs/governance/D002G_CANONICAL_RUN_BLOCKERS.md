@@ -76,6 +76,10 @@ Full machine-readable matrix is at `artifacts/d002g/m3/m3_null_domain_verdicts.j
 
 **Canonical-run status (verbatim):** even though M3 lands ELIGIBLE on `ricci_flow`, canonical run authorisation requires B1 closure (all three substrates ELIGIBLE) AND B2 closure / acceptance AND an explicit canonical-run authorisation artefact. NONE of these conjuncts are satisfied by this PR. Canonical D-002G remains BLOCKED.
 
+#### B1.closure — Structural closure under current locked grid
+
+> After PR #681 (M3 topology-conditioned, merge `cced6e60`) returned `INELIGIBLE_M3_NON_PRECURSOR_SPECIFIC` for both `block_structured` and `temporal_coupling`, the M1/M2/M3 mechanism family is exhausted on the locked substrate grid. The bottom-turtle code fact (`research/systemic_risk/d002c_substrates.py:401`) confirms the substrates discard seed by construction. B1 closure under D-002G is therefore STRUCTURALLY BLOCKED; canonical D-002G run remains BLOCKED. See `D002G_STRUCTURAL_CLOSURE_REPORT.md` for the full closure artifact. Resolution requires fresh D-002H pre-registration (scope narrowing OR substrate redesign), NOT an M4 mechanism inside the current D-002G prereg.
+
 ### B2 — Phase 0b CI is percentile bootstrap, not BCa — OPEN (limitation)
 
 The Phase 0b verdict-grade CI on the per-seed paired-difference mean is a percentile bootstrap CI (P1-3 Codex review, Path 2 downgrade). True BCa (bias-corrected accelerated) bootstrap CI was advertised in the original implementation docstring + adversarial audit narrative; the implementation always was percentile.
