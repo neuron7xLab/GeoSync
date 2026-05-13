@@ -2,8 +2,8 @@
   "schema_version": "D002H-GATE-D-v1",
   "study_id": "D-002H",
   "gate": "D",
-  "scanned_files_count": 76,
-  "exempt_files_count": 26,
+  "scanned_files_count": 90,
+  "exempt_files_count": 27,
   "scanned_files": [
     ".claude/commit_acceptors/x10r-d002c-attempt-2-falsification-freeze.yaml",
     ".claude/commit_acceptors/x10r-d002c-c2-4-a2-null-audit-data-contract.yaml",
@@ -19,11 +19,18 @@
     ".claude/commit_acceptors/x10r-d002c-sweep-runner.yaml",
     ".claude/commit_acceptors/x10r-d002c-writer-sha-alignment.yaml",
     ".claude/commit_acceptors/x10r-d002d-sweep-checkpoint.yaml",
+    ".claude/commit_acceptors/x10r-d002h-gate-e-locked-files.yaml",
+    ".claude/commit_acceptors/x10r-d002h-gate-f-authorization.yaml",
+    ".claude/commit_acceptors/x10r-d002h-gate-g-ci-lock.yaml",
+    ".claude/commit_acceptors/x10r-d002h-r2b-scope-clarification.yaml",
     "artifacts/d002g/closure/d002g_structural_closure.json",
     "artifacts/d002g/m3/m3_null_domain_verdicts.json",
     "artifacts/d002g/p3/null_domain_verdicts.json",
+    "artifacts/d002h/authorization/d002h_canonical_run_authorisation.json",
+    "artifacts/d002h/authorization/d002h_canonical_run_final_lock.json",
     "artifacts/d002h/canonical/d002h_canonical_grid.json",
     "artifacts/d002h/eligibility/d002h_ricci_eligibility.json",
+    "artifacts/d002h/locks/d002h_locked_file_pins.json",
     "artifacts/d002h/prereg/d002h_preregistration_lock.json",
     "docs/governance/D002C_ATTEMPT_2_NULL_AUDIT_FALSIFICATION_REPORT.md",
     "docs/governance/D002C_CANONICAL_RUN_REPORT.md",
@@ -56,6 +63,10 @@
     "docs/governance/D002G_STRUCTURAL_CLOSURE_REPORT.md",
     "docs/governance/D002H_GATE_B_REPORT.md",
     "docs/governance/D002H_GATE_C_CANONICAL_GRID.md",
+    "docs/governance/D002H_GATE_E_LOCKED_FILE_REPORT.md",
+    "docs/governance/D002H_GATE_F_AUTHORIZATION_REPORT.md",
+    "docs/governance/D002H_GATE_G_CI_LOCK_REPORT.md",
+    "docs/governance/D002H_R2B_INAPPLICABILITY_NOTE.md",
     "scripts/x10r_d002g_m3_eligibility_matrix.py",
     "scripts/x10r_d002h_gate_b_eligibility.py",
     "tests/systemic_risk/test_d002g_locked_governance_untouched.py",
@@ -80,7 +91,10 @@
     "tests/systemic_risk/test_d002g_strike_R5_seed_collision.py",
     "tests/systemic_risk/test_d002g_strike_R7_joint_distribution.py",
     "tests/systemic_risk/test_d002g_substrate_eligibility_blocker.py",
-    "tests/systemic_risk/test_d002h_gate_c_grid.py"
+    "tests/systemic_risk/test_d002h_gate_c_grid.py",
+    "tests/systemic_risk/test_d002h_gate_e_locked_files.py",
+    "tests/systemic_risk/test_d002h_gate_f_authorization.py",
+    "tests/systemic_risk/test_d002h_gate_g_ci_lock.py"
   ],
   "exempt_files": [
     ".claude/commit_acceptors/x10r-d002g-m3-topology-conditioned-null.yaml",
@@ -108,7 +122,8 @@
     "tests/systemic_risk/test_d002g_structural_closure.py",
     "tests/systemic_risk/test_d002h_gate_b_eligibility.py",
     "tests/systemic_risk/test_d002h_gate_d_forbidden_claims.py",
-    "tests/systemic_risk/test_d002h_preregistration.py"
+    "tests/systemic_risk/test_d002h_preregistration.py",
+    "tests/systemic_risk/test_d002h_r2b_inapplicability.py"
   ],
   "forbidden_phrases": [
     "cross-substrate robustness",
