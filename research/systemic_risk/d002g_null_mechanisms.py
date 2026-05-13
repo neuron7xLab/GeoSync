@@ -127,6 +127,23 @@ M6_PLACEBO_SALT: Final[int] = R2_B_RANDOM_SITE_SEED
 #: (10000) — domain-separation against M1 and M6 RNG streams.
 M2_PLACEBO_SALT: Final[int] = 211
 
+#: P3 salt for the M2 node-payload sub-domain shuffle. Distinct prime
+#: (313) from the edge_weight salt (211) and the M6 salt (99). Used by
+#: :func:`_default_null_seed_m2_node_payload` to derive a domain-
+#: separated RNG stream — required by §11 closure rule (4) so the
+#: node-payload shuffle never aliases the edge-weight stream under
+#: stride attack (Strike-R5 anti-pattern). Honest stance: even though
+#: every prereg-scoped substrate currently fails admissibility at the
+#: contract level, the salt is locked so the verifier's RNG is
+#: deterministic by construction — INELIGIBLE verdicts are themselves
+#: bit-identical-replay invariants.
+M2_NODE_PAYLOAD_SALT: Final[int] = 313
+
+#: P3 salt for the M2 injection-sequence sub-domain shuffle. Distinct
+#: prime (419) from edge_weight (211), node_payload (313), and M6 (99).
+#: Same domain-separation rationale as :data:`M2_NODE_PAYLOAD_SALT`.
+M2_INJECTION_SEQUENCE_SALT: Final[int] = 419
+
 _VALID_STRATEGIES: Final[frozenset[str]] = frozenset(
     {
         "M1_INDEPENDENT_SEED",
@@ -137,18 +154,47 @@ _VALID_STRATEGIES: Final[frozenset[str]] = frozenset(
 
 #: Status literals for :class:`M2EligibilityVerdict`. The verifier emits
 #: exactly one of these for every (substrate, N, λ, base_seed) it is
-#: asked about. ``ELIGIBLE_M2`` is the only status that admits a
-#: subsequent call to :func:`realize_null` with strategy
-#: ``"M2_TOPOLOGY_PRESERVING_SHUFFLE"``.
+#: asked about. ``ELIGIBLE_M2`` is the only edge-weight status that
+#: admits a subsequent call to :func:`realize_null` with strategy
+#: ``"M2_TOPOLOGY_PRESERVING_SHUFFLE"`` and ``shuffle_domain
+#: ="edge_weight"``. The node-payload and injection-sequence
+#: sub-domain literals (P3) carry their own ELIGIBLE / INELIGIBLE /
+#: INDETERMINATE families — exactly one of those is ELIGIBLE_* per
+#: sub-domain and the rest fail-closed.
 M2EligibilityStatus = Literal[
     "ELIGIBLE_M2",
     "INELIGIBLE_M2_INSUFFICIENT_TOPOLOGY",
     "INELIGIBLE_M2_DEGENERATE_SHUFFLE_POOL",
     "INELIGIBLE_M2_TOPOLOGY_MUTATION_DETECTED",
     "INDETERMINATE_M2_PROVENANCE_MISSING",
+    # P3 — M2 node-payload sub-domain verdict literals (PR
+    # `feat/x10r-d002g-p3-constant-payload-null-recovery`). Each
+    # status communicates a specific failure mode of the node-payload
+    # admissibility ladder; ELIGIBLE_M2_NODE_PAYLOAD is the ONLY one
+    # that admits a node-payload shuffle realisation downstream.
+    "ELIGIBLE_M2_NODE_PAYLOAD",
+    "INELIGIBLE_M2_NODE_PAYLOAD_DEGENERATE_POOL",
+    "INELIGIBLE_M2_NODE_PAYLOAD_MISSING_DOMAIN",
+    "INELIGIBLE_M2_NODE_PAYLOAD_TOPOLOGY_COUPLED",
+    "INDETERMINATE_M2_NODE_PAYLOAD_PROVENANCE_MISSING",
+    # P3 — M2 injection-sequence sub-domain verdict literals.
+    # ELIGIBLE_M2_INJECTION_SEQUENCE is the only admissible status.
+    # CONTRACT_VIOLATION fires when permuting the event order would
+    # break the substrate's stated lag-coupling contract — for
+    # `temporal_coupling` whose injection IS the entire causal
+    # hypothesis, reordering destroys substrate identity and the
+    # cell is REFUSED rather than silently emitting a no-op or a
+    # semantically-fake null.
+    "ELIGIBLE_M2_INJECTION_SEQUENCE",
+    "INELIGIBLE_M2_INJECTION_SEQUENCE_DEGENERATE",
+    "INELIGIBLE_M2_INJECTION_SEQUENCE_CONTRACT_VIOLATION",
+    "INELIGIBLE_M2_INJECTION_SEQUENCE_MISSING_DOMAIN",
+    "INDETERMINATE_M2_INJECTION_SEQUENCE_PROVENANCE_MISSING",
 ]
 
 _M2_ELIGIBLE: Final[str] = "ELIGIBLE_M2"
+_M2_NODE_PAYLOAD_ELIGIBLE: Final[str] = "ELIGIBLE_M2_NODE_PAYLOAD"
+_M2_INJECTION_SEQUENCE_ELIGIBLE: Final[str] = "ELIGIBLE_M2_INJECTION_SEQUENCE"
 
 
 class BitIdenticalNullError(RuntimeError):
@@ -1092,6 +1138,655 @@ def _realize_m2(
 
 
 # ---------------------------------------------------------------------------
+# P3 — M2 node-payload sub-domain (constant-payload substrate adjudication)
+# ---------------------------------------------------------------------------
+#
+# Honest scope. The P3 sub-domains are an admissibility adjudication for
+# substrates whose ΔK upper-triangle support carries a single distinct
+# payload value (`block_structured`, `temporal_coupling` in the locked
+# pre-registration grid). The P2 edge-weight shuffle returned
+# INELIGIBLE_M2_DEGENERATE_SHUFFLE_POOL on those — every permutation of
+# `{v, v, …, v}` is a no-op. P3 asks two narrow questions:
+#
+#   * Does the substrate expose a per-NODE attribute that can be
+#     permuted under a fixed topology hash? — :func:`verify_m2_node_payload_eligibility`.
+#   * Does the substrate expose a per-EVENT injection sequence that
+#     can be reordered without violating its lag-coupling contract? —
+#     :func:`verify_m2_injection_sequence_eligibility`.
+#
+# A NEGATIVE result (INELIGIBLE / INDETERMINATE / MISSING_DOMAIN) is
+# the safe outcome. The verifier MUST NOT fabricate eligibility by
+# inventing an artificial domain when the substrate exposes none.
+
+
+def _default_null_seed_m2_node_payload(base_seed: int) -> int:
+    """Locked node-payload sub-domain null-seed formula.
+
+    Deterministic mix of ``base_seed`` with :data:`M2_NODE_PAYLOAD_SALT`
+    (313). NOT an arithmetic offset (same Strike-R5 anti-pattern rule
+    as the edge-weight stream). Distinct prime salt from M1 / M6 / M2
+    edge-weight / M2 injection-sequence — fully domain-separated.
+    """
+    return deterministic_mix(int(base_seed), M2_NODE_PAYLOAD_SALT)
+
+
+def _default_null_seed_m2_injection_sequence(base_seed: int) -> int:
+    """Locked injection-sequence sub-domain null-seed formula.
+
+    Deterministic mix of ``base_seed`` with
+    :data:`M2_INJECTION_SEQUENCE_SALT` (419). NOT an arithmetic offset.
+    """
+    return deterministic_mix(int(base_seed), M2_INJECTION_SEQUENCE_SALT)
+
+
+def _extract_node_payload(
+    substrate: Substrate,
+    *,
+    base_seed: int,
+    lambda_value: float,
+    N: int,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], int]:
+    """Extract a per-node payload vector and its topology context.
+
+    Returns
+    -------
+    (K_0, delta, node_payload, inject_t)
+        ``K_0`` and ``delta`` are the static baseline / ΔK slices from
+        :func:`_build_precursor_delta`. ``node_payload`` is the
+        per-node row-sum of the upper-triangle of ΔK — a stand-in for
+        a per-node intensity attribute. ``inject_t`` is the canonical
+        injection-window slice index.
+
+    Rationale
+    ---------
+    None of the prereg-scoped substrates expose an explicit per-node
+    attribute via the :class:`SubstrateRealization` schema; the
+    closest topology-agnostic candidate is the per-node row-sum of
+    the (symmetric) ΔK. This is a SIGNAL the verifier CAN test for
+    admissibility — it neither invents nor promotes node-payload
+    eligibility. If the substrate were extended to carry an explicit
+    per-node attribute, this extraction would be re-wired without
+    changing the verdict ladder.
+
+    The function is intentionally bare: the verifier owns the
+    admissibility ladder (degeneracy / topology-coupling / missing
+    domain). This helper is a domain extractor only.
+    """
+    K_0, _K_p, delta, inject_t = _build_precursor_delta(
+        substrate,
+        base_seed=int(base_seed),
+        lambda_value=float(lambda_value),
+        N=int(N),
+    )
+    # The per-node "intensity" payload is the row-sum of ΔK. For a
+    # symmetric ΔK this equals 2 * sum of upper-triangle entries
+    # incident on node i — well-defined and topology-agnostic.
+    node_payload = np.asarray(delta.sum(axis=1), dtype=np.float64)
+    return K_0, delta, node_payload, inject_t
+
+
+def verify_m2_node_payload_eligibility(
+    substrate: Substrate,
+    *,
+    N: int,
+    lambda_value: float,
+    base_seed: int,
+    null_seed: int | None = None,
+) -> M2EligibilityVerdict:
+    """Pre-check whether (substrate, N, λ, seed) admits an M2 node-payload null.
+
+    Verdict ladder (first matching condition wins):
+
+    1. ``INDETERMINATE_M2_NODE_PAYLOAD_PROVENANCE_MISSING`` — substrate
+       refuses to construct the precursor (gate failure / non-finite).
+    2. ``INELIGIBLE_M2_NODE_PAYLOAD_MISSING_DOMAIN`` — the substrate
+       does not expose any per-node attribute that could be permuted
+       independently of topology. In the current prereg-scoped grid
+       this fires when the substrate has no row-sum variability AND
+       no other per-node attribute is exposed.
+    3. ``INELIGIBLE_M2_NODE_PAYLOAD_DEGENERATE_POOL`` — the node-
+       payload pool has fewer than 2 distinct values. A permutation
+       of constant values is a no-op.
+    4. ``INELIGIBLE_M2_NODE_PAYLOAD_TOPOLOGY_COUPLED`` — permuting
+       node identities mutates the topology hash of ``K_0`` (or of
+       ``ΔK``). This means the per-node attribute is NOT decoupled
+       from the substrate's topology — the M2 contract forbids any
+       permutation that mutates topology semantics.
+    5. ``ELIGIBLE_M2_NODE_PAYLOAD`` — all checks pass.
+
+    Notes
+    -----
+    `block_structured` couples its block label assignment to the
+    inter-block lift topology — permuting node identities relocates
+    the lift to new (i, j) pairs and mutates the ΔK support pattern.
+    The verdict for that substrate is therefore TOPOLOGY_COUPLED on
+    the locked prereg grid. `temporal_coupling` inherits the same
+    coupling via its block-structured base. `ricci_flow` has random
+    adjacency whose hash is mutated by any non-identity node
+    permutation — also TOPOLOGY_COUPLED on the K_0 mask. This is the
+    HONEST outcome: there is no admissible node-payload domain on
+    any of the three prereg-scoped substrates today, and the
+    verifier records that fact rather than fabricating eligibility.
+    """
+    if not math.isfinite(lambda_value) or lambda_value <= 0.0:
+        raise D002GNullInvalid(
+            "verify_m2_node_payload_eligibility requires lambda_value > 0 "
+            "(M2 shuffles ΔK; node-payload sub-domain inherits the contract)"
+        )
+    if int(N) < 2:
+        raise D002GNullInvalid(f"N must be >= 2; got {N!r}")
+
+    sub_id = str(substrate.id)
+    try:
+        K_0, delta, node_payload, inject_t = _extract_node_payload(
+            substrate,
+            base_seed=int(base_seed),
+            lambda_value=float(lambda_value),
+            N=int(N),
+        )
+    except Exception as exc:  # noqa: BLE001
+        return M2EligibilityVerdict(
+            status="INDETERMINATE_M2_NODE_PAYLOAD_PROVENANCE_MISSING",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash="",
+            shuffle_domain="node_payload",
+            candidate_pool_size=0,
+            eligibility_reason=(f"substrate.realize raised {type(exc).__name__}: {exc!s}"),
+            metadata={
+                "exception_type": type(exc).__name__,
+                "lambda_value": float(lambda_value),
+                "base_seed": int(base_seed),
+            },
+        )
+
+    # Decision: a substrate "exposes" a node-payload domain iff the
+    # row-sum carries non-trivial information beyond the topology of
+    # ΔK itself. The current substrate API does NOT expose any other
+    # per-node attribute; if the row-sum is identically zero (ΔK
+    # empty), we record MISSING_DOMAIN — there is nothing to permute.
+    if not np.any(np.abs(node_payload) > 1e-12):
+        return M2EligibilityVerdict(
+            status="INELIGIBLE_M2_NODE_PAYLOAD_MISSING_DOMAIN",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash=_topology_hash(delta),
+            shuffle_domain="node_payload",
+            candidate_pool_size=0,
+            eligibility_reason=(
+                "substrate exposes no per-node payload attribute distinct "
+                "from topology (ΔK row-sums are uniformly zero at this cell)"
+            ),
+            metadata={
+                "substrate_id": sub_id,
+                "lambda_value": float(lambda_value),
+                "base_seed": int(base_seed),
+                "injection_window_index": int(inject_t),
+                "pool_count": 0,
+                "distinct_values_count": 0,
+            },
+        )
+
+    distinct = int(np.unique(np.round(node_payload, 12)).size)
+    if distinct < 2:
+        return M2EligibilityVerdict(
+            status="INELIGIBLE_M2_NODE_PAYLOAD_DEGENERATE_POOL",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash=_topology_hash(delta),
+            shuffle_domain="node_payload",
+            candidate_pool_size=int(N),
+            eligibility_reason=(
+                f"node-payload pool carries {distinct} distinct value(s); "
+                "permutation of constant payload is a no-op"
+            ),
+            metadata={
+                "substrate_id": sub_id,
+                "lambda_value": float(lambda_value),
+                "base_seed": int(base_seed),
+                "injection_window_index": int(inject_t),
+                "pool_count": int(N),
+                "distinct_values_count": int(distinct),
+            },
+        )
+
+    # Topology-coupling probe: permute node identities deterministically
+    # and check whether the resulting K_0 / ΔK topology hashes match
+    # the originals. If ANY non-identity permutation mutates either
+    # hash, the per-node attribute is structurally coupled to topology
+    # — node-payload permutation cannot honour the M2 contract.
+    eff_null_seed = (
+        int(null_seed)
+        if null_seed is not None
+        else _default_null_seed_m2_node_payload(int(base_seed))
+    )
+    rng = np.random.default_rng(eff_null_seed)
+    perm = rng.permutation(int(N))
+    K_0_perm = K_0[np.ix_(perm, perm)]
+    delta_perm = delta[np.ix_(perm, perm)]
+    pre_K0_hash = _topology_hash(K_0)
+    pre_delta_hash = _topology_hash(delta)
+    post_K0_hash = _topology_hash(K_0_perm)
+    post_delta_hash = _topology_hash(delta_perm)
+    if pre_K0_hash != post_K0_hash or pre_delta_hash != post_delta_hash:
+        return M2EligibilityVerdict(
+            status="INELIGIBLE_M2_NODE_PAYLOAD_TOPOLOGY_COUPLED",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash=pre_delta_hash,
+            shuffle_domain="node_payload",
+            candidate_pool_size=int(N),
+            eligibility_reason=(
+                "node identity is coupled to topology — a non-identity "
+                "permutation mutates K_0 or ΔK topology hash; "
+                "node-payload permutation cannot honour M2 contract"
+            ),
+            metadata={
+                "substrate_id": sub_id,
+                "lambda_value": float(lambda_value),
+                "base_seed": int(base_seed),
+                "injection_window_index": int(inject_t),
+                "pool_count": int(N),
+                "distinct_values_count": int(distinct),
+                "pre_K0_topology_hash": pre_K0_hash,
+                "post_K0_topology_hash": post_K0_hash,
+                "pre_delta_topology_hash": pre_delta_hash,
+                "post_delta_topology_hash": post_delta_hash,
+            },
+        )
+
+    return M2EligibilityVerdict(
+        status="ELIGIBLE_M2_NODE_PAYLOAD",
+        substrate_id=sub_id,
+        N=int(N),
+        preserved_topology_hash=pre_delta_hash,
+        shuffle_domain="node_payload",
+        candidate_pool_size=int(N),
+        eligibility_reason=(
+            f"per-node payload exposes {distinct} distinct value(s); "
+            "topology hashes invariant under node permutation"
+        ),
+        metadata={
+            "substrate_id": sub_id,
+            "lambda_value": float(lambda_value),
+            "base_seed": int(base_seed),
+            "null_seed": int(eff_null_seed),
+            "injection_window_index": int(inject_t),
+            "pool_count": int(N),
+            "distinct_values_count": int(distinct),
+        },
+    )
+
+
+def realize_m2_node_payload_null(
+    substrate: Substrate,
+    *,
+    base_seed: int,
+    null_seed: int,
+    lambda_value: float,
+    N: int,
+) -> tuple[NDArray[np.float64], dict[str, Any]]:
+    """Construct an M2 node-payload-shuffle K_null.
+
+    Procedure (assumes verifier has already returned ELIGIBLE_M2_NODE_PAYLOAD):
+
+    1. Build ``(K_0, ΔK, node_payload)`` via
+       :func:`_extract_node_payload`.
+    2. Seed ``rng = np.random.default_rng(null_seed)``; permute node
+       indices deterministically.
+    3. Reassemble ``K_null = K_0 + permuted_ΔK`` where
+       ``permuted_ΔK = ΔK[ix_(perm, perm)]``. The reassembly preserves
+       the payload multiset by construction (just relocates rows /
+       columns) and — under the contract validated by the verifier
+       — preserves the topology hash.
+    4. Verify topology hash invariance fail-closed; raise
+       :class:`M2TopologyMutationError` on drift.
+
+    Notes
+    -----
+    On the prereg-scoped grid this function is UNREACHABLE because the
+    verifier always returns INELIGIBLE_* for every prereg substrate.
+    It is implemented for completeness so the realisation surface
+    matches the eligibility surface and future substrate extensions
+    can plug in without touching the dispatch.
+    """
+    K_0, delta, node_payload, inject_t = _extract_node_payload(
+        substrate,
+        base_seed=int(base_seed),
+        lambda_value=float(lambda_value),
+        N=int(N),
+    )
+    distinct = int(np.unique(np.round(node_payload, 12)).size)
+    if distinct < 2:
+        raise D002GNullInvalid(
+            f"M2 node-payload: degenerate pool ({distinct} distinct "
+            "value(s)); verifier should have screened this"
+        )
+
+    pre_K0_hash = _topology_hash(K_0)
+    pre_delta_hash = _topology_hash(delta)
+
+    rng = np.random.default_rng(int(null_seed))
+    perm = rng.permutation(int(N))
+    K_0_perm = K_0[np.ix_(perm, perm)]
+    delta_perm = delta[np.ix_(perm, perm)]
+
+    post_K0_hash = _topology_hash(K_0_perm)
+    post_delta_hash = _topology_hash(delta_perm)
+    if pre_K0_hash != post_K0_hash or pre_delta_hash != post_delta_hash:
+        raise M2TopologyMutationError(
+            "M2 node-payload shuffle mutated topology hash "
+            f"(K_0 pre={pre_K0_hash}, post={post_K0_hash}; "
+            f"ΔK pre={pre_delta_hash}, post={post_delta_hash}) — "
+            "internal-invariant violation; cell REFUSED"
+        )
+
+    K_null = K_0_perm + delta_perm
+    metadata: dict[str, Any] = {
+        "null_strategy": "M2_TOPOLOGY_PRESERVING_SHUFFLE",
+        "shuffle_domain": "node_payload",
+        "eligibility_status": _M2_NODE_PAYLOAD_ELIGIBLE,
+        "null_seed": int(null_seed),
+        "preserved_topology_hash": pre_delta_hash,
+        "candidate_pool_size": int(N),
+        "support_count": int(N),
+        "distinct_values_count": int(distinct),
+        "injection_window_index": int(inject_t),
+        "lambda_value": float(lambda_value),
+    }
+    return K_null, metadata
+
+
+# ---------------------------------------------------------------------------
+# P3 — M2 injection-sequence sub-domain
+# ---------------------------------------------------------------------------
+
+
+def _extract_injection_sequence(
+    substrate: Substrate,
+    *,
+    base_seed: int,
+    lambda_value: float,
+    N: int,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], list[NDArray[np.float64]], list[int]]:
+    """Return ``(K_baseline_traj, K_precursor_traj, per_event_deltas, event_times)``.
+
+    The injection-event sequence is the per-time-step ΔK during the
+    canonical injection window. For substrates that lift K uniformly
+    across the window (current prereg grid), the sequence is the
+    constant-per-event list ``[ΔK(t)]`` for ``t`` in the injection
+    window.
+    """
+    real = substrate.realize(N=int(N), lambda_=float(lambda_value), seed=int(base_seed))
+    K_base = np.asarray(real.K_baseline, dtype=np.float64)
+    K_prec = np.asarray(real.K_precursor, dtype=np.float64)
+    if K_base.ndim != 3 or K_prec.ndim != 3:
+        raise D002GNullInvalid(
+            f"injection-sequence: K trajectories must be 3-D; "
+            f"got baseline={K_base.shape} precursor={K_prec.shape}"
+        )
+    if not (np.all(np.isfinite(K_base)) and np.all(np.isfinite(K_prec))):
+        raise D002GNullInvalid("injection-sequence: K trajectories contain non-finite")
+    events: list[NDArray[np.float64]] = []
+    times: list[int] = []
+    for t in PRECURSOR_INJECTION_WINDOW:
+        d_t = K_prec[t] - K_base[t]
+        if np.any(np.abs(d_t) > 1e-12):
+            events.append(d_t)
+            times.append(int(t))
+    return K_base, K_prec, events, times
+
+
+def verify_m2_injection_sequence_eligibility(
+    substrate: Substrate,
+    *,
+    N: int,
+    lambda_value: float,
+    base_seed: int,
+    null_seed: int | None = None,
+) -> M2EligibilityVerdict:
+    """Pre-check whether (substrate, N, λ, seed) admits an M2 injection-sequence null.
+
+    Verdict ladder (first matching condition wins):
+
+    1. ``INDETERMINATE_M2_INJECTION_SEQUENCE_PROVENANCE_MISSING`` —
+       substrate refuses to construct the precursor.
+    2. ``INELIGIBLE_M2_INJECTION_SEQUENCE_MISSING_DOMAIN`` — the
+       substrate's precursor injection has length < 2 distinct
+       time slices. There is no sequence to permute.
+    3. ``INELIGIBLE_M2_INJECTION_SEQUENCE_DEGENERATE`` — every
+       event is bit-identical. Permuting an equal-event list is a
+       no-op.
+    4. ``INELIGIBLE_M2_INJECTION_SEQUENCE_CONTRACT_VIOLATION`` —
+       the substrate is `temporal_coupling`: its injection IS the
+       entire causal hypothesis and any reordering would destroy
+       the substrate's identity (the lag-coupling contract). The
+       cell is REFUSED rather than emit a semantically-fake null.
+    5. ``ELIGIBLE_M2_INJECTION_SEQUENCE`` — all checks pass.
+
+    Notes
+    -----
+    `block_structured` has no temporal dimension to its injection
+    (the lift is identical across all injection-window slices). On
+    the prereg grid it returns DEGENERATE or MISSING_DOMAIN.
+    `temporal_coupling` returns CONTRACT_VIOLATION because the
+    sinusoidal envelope + injection-window timing IS the substrate's
+    causal hypothesis; permuting events would falsely report a
+    non-degenerate null whose semantics differ from the precursor's.
+    `ricci_flow` has no injection-event sequence beyond the same
+    uniform-window lift; returns DEGENERATE.
+    """
+    if not math.isfinite(lambda_value) or lambda_value <= 0.0:
+        raise D002GNullInvalid("verify_m2_injection_sequence_eligibility requires lambda_value > 0")
+    if int(N) < 2:
+        raise D002GNullInvalid(f"N must be >= 2; got {N!r}")
+
+    sub_id = str(substrate.id)
+    try:
+        _K_base, _K_prec, events, times = _extract_injection_sequence(
+            substrate,
+            base_seed=int(base_seed),
+            lambda_value=float(lambda_value),
+            N=int(N),
+        )
+    except Exception as exc:  # noqa: BLE001
+        return M2EligibilityVerdict(
+            status="INDETERMINATE_M2_INJECTION_SEQUENCE_PROVENANCE_MISSING",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash="",
+            shuffle_domain="injection_sequence",
+            candidate_pool_size=0,
+            eligibility_reason=(f"substrate.realize raised {type(exc).__name__}: {exc!s}"),
+            metadata={
+                "exception_type": type(exc).__name__,
+                "lambda_value": float(lambda_value),
+                "base_seed": int(base_seed),
+            },
+        )
+
+    n_events = len(events)
+    if n_events < 2:
+        return M2EligibilityVerdict(
+            status="INELIGIBLE_M2_INJECTION_SEQUENCE_MISSING_DOMAIN",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash="",
+            shuffle_domain="injection_sequence",
+            candidate_pool_size=int(n_events),
+            eligibility_reason=(
+                f"substrate emits {n_events} discrete injection event(s) "
+                "in the canonical window; injection-sequence sub-domain "
+                "requires >= 2 distinct events to admit a permutation"
+            ),
+            metadata={
+                "substrate_id": sub_id,
+                "lambda_value": float(lambda_value),
+                "base_seed": int(base_seed),
+                "event_times": list(times),
+                "event_count": int(n_events),
+            },
+        )
+
+    # Lag-coupling contract check. `temporal_coupling` carries the
+    # injection sequence as the substrate's causal hypothesis (the
+    # K(t) envelope is sinusoidal and the injection window timing
+    # interacts with that envelope). Permuting events would emit a
+    # K_null whose semantics differ from the precursor's stated
+    # hypothesis — exactly the kind of semantic-fake null this PR's
+    # adjudication protocol is designed to reject.
+    if sub_id == "temporal_coupling":
+        return M2EligibilityVerdict(
+            status="INELIGIBLE_M2_INJECTION_SEQUENCE_CONTRACT_VIOLATION",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash="",
+            shuffle_domain="injection_sequence",
+            candidate_pool_size=int(n_events),
+            eligibility_reason=(
+                "temporal_coupling substrate: the injection-event "
+                "sequence is the substrate's stated lag-coupling "
+                "contract (sinusoidal envelope × injection-window "
+                "timing). Permuting events would emit a semantically-"
+                "fake null with hypothesis ≠ precursor's. REFUSED."
+            ),
+            metadata={
+                "substrate_id": sub_id,
+                "lambda_value": float(lambda_value),
+                "base_seed": int(base_seed),
+                "event_times": list(times),
+                "event_count": int(n_events),
+                "contract": "sinusoidal_envelope_times_injection_window",
+            },
+        )
+
+    # Degenerate-event check: events are pairwise bit-identical.
+    first = events[0]
+    if all(np.array_equal(first, ev) for ev in events[1:]):
+        return M2EligibilityVerdict(
+            status="INELIGIBLE_M2_INJECTION_SEQUENCE_DEGENERATE",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash=_topology_hash(first),
+            shuffle_domain="injection_sequence",
+            candidate_pool_size=int(n_events),
+            eligibility_reason=(
+                f"all {n_events} injection events are bit-identical; permutation is a no-op"
+            ),
+            metadata={
+                "substrate_id": sub_id,
+                "lambda_value": float(lambda_value),
+                "base_seed": int(base_seed),
+                "event_times": list(times),
+                "event_count": int(n_events),
+                "distinct_event_count": 1,
+            },
+        )
+
+    eff_null_seed = (
+        int(null_seed)
+        if null_seed is not None
+        else _default_null_seed_m2_injection_sequence(int(base_seed))
+    )
+    return M2EligibilityVerdict(
+        status="ELIGIBLE_M2_INJECTION_SEQUENCE",
+        substrate_id=sub_id,
+        N=int(N),
+        preserved_topology_hash=_topology_hash(first),
+        shuffle_domain="injection_sequence",
+        candidate_pool_size=int(n_events),
+        eligibility_reason=(
+            f"{n_events} injection events with non-degenerate ordering; "
+            "no stated lag-coupling contract violated"
+        ),
+        metadata={
+            "substrate_id": sub_id,
+            "lambda_value": float(lambda_value),
+            "base_seed": int(base_seed),
+            "null_seed": int(eff_null_seed),
+            "event_times": list(times),
+            "event_count": int(n_events),
+        },
+    )
+
+
+def realize_m2_injection_sequence_null(
+    substrate: Substrate,
+    *,
+    base_seed: int,
+    null_seed: int,
+    lambda_value: float,
+    N: int,
+) -> tuple[NDArray[np.float64], dict[str, Any]]:
+    """Construct an M2 injection-sequence-shuffle K_null.
+
+    Procedure (assumes verifier has already returned
+    ELIGIBLE_M2_INJECTION_SEQUENCE):
+
+    1. Extract event sequence via :func:`_extract_injection_sequence`.
+    2. Permute event order deterministically.
+    3. Re-emit the baseline K at the canonical injection slice plus
+       the FIRST event from the permuted order. (For event lists with
+       len == 2 the two reorderings ARE the admissible non-degenerate
+       nulls; the function emits the static slice consistent with the
+       :class:`NullRealization` contract.)
+    4. Verify topology hash invariance of the per-event ΔK.
+
+    Honest stance: on the locked prereg grid no substrate reaches
+    this function — `temporal_coupling` is REFUSED by contract,
+    `block_structured` / `ricci_flow` return DEGENERATE /
+    MISSING_DOMAIN. The function is implemented for completeness so
+    the realisation surface matches the eligibility surface, and so
+    a future substrate that exposes a non-trivial admissible
+    injection sequence can plug in without touching the dispatch.
+    """
+    K_base_traj, _K_prec_traj, events, times = _extract_injection_sequence(
+        substrate,
+        base_seed=int(base_seed),
+        lambda_value=float(lambda_value),
+        N=int(N),
+    )
+    n_events = len(events)
+    if n_events < 2:
+        raise D002GNullInvalid(
+            f"M2 injection-sequence: {n_events} event(s); verifier should have screened this"
+        )
+
+    rng = np.random.default_rng(int(null_seed))
+    perm_order = rng.permutation(n_events)
+    permuted_events = [events[i] for i in perm_order]
+
+    inject_t = int(next(iter(PRECURSOR_INJECTION_WINDOW)))
+    K_0_static = np.asarray(K_base_traj[inject_t], dtype=np.float64)
+    delta_first = permuted_events[0]
+
+    pre_hash = _topology_hash(events[0])
+    post_hash = _topology_hash(delta_first)
+    if pre_hash != post_hash:
+        raise M2TopologyMutationError(
+            f"M2 injection-sequence: per-event topology hash drift "
+            f"(pre={pre_hash}, post={post_hash}); REFUSED"
+        )
+
+    K_null = K_0_static + delta_first
+    metadata: dict[str, Any] = {
+        "null_strategy": "M2_TOPOLOGY_PRESERVING_SHUFFLE",
+        "shuffle_domain": "injection_sequence",
+        "eligibility_status": _M2_INJECTION_SEQUENCE_ELIGIBLE,
+        "null_seed": int(null_seed),
+        "preserved_topology_hash": pre_hash,
+        "candidate_pool_size": int(n_events),
+        "support_count": int(n_events),
+        "distinct_values_count": int(n_events),
+        "injection_window_index": int(inject_t),
+        "event_times": list(times),
+        "event_order_permutation": [int(x) for x in perm_order.tolist()],
+        "lambda_value": float(lambda_value),
+    }
+    return K_null, metadata
+
+
+# ---------------------------------------------------------------------------
 # Public API — realize_null
 # ---------------------------------------------------------------------------
 
@@ -1106,6 +1801,11 @@ def _default_null_seed(strategy: NullStrategy, base_seed: int) -> int:
     return deterministic_mix(int(base_seed), M6_PLACEBO_SALT)
 
 
+_M2_SHUFFLE_DOMAINS: Final[frozenset[str]] = frozenset(
+    {"edge_weight", "node_payload", "injection_sequence"}
+)
+
+
 def realize_null(
     substrate: Substrate,
     *,
@@ -1115,6 +1815,7 @@ def realize_null(
     lambda_value: float,
     null_seed: int | None = None,
     metadata_extra: Mapping[str, Any] | None = None,
+    shuffle_domain: Literal["edge_weight", "node_payload", "injection_sequence"] = "edge_weight",
 ) -> NullRealization:
     """Realise one M1 / M6 / M2 null cohort K_baseline.
 
@@ -1138,13 +1839,22 @@ def realize_null(
 
           * M1: ``base_seed + NULL_SEED_OFFSET`` (offset = 10000).
           * M6: ``deterministic_mix(base_seed, M6_PLACEBO_SALT)``.
-          * M2: ``deterministic_mix(base_seed, M2_PLACEBO_SALT)``.
+          * M2 edge_weight:
+            ``deterministic_mix(base_seed, M2_PLACEBO_SALT)`` (211).
+          * M2 node_payload:
+            ``deterministic_mix(base_seed, M2_NODE_PAYLOAD_SALT)`` (313).
+          * M2 injection_sequence:
+            ``deterministic_mix(base_seed, M2_INJECTION_SEQUENCE_SALT)`` (419).
 
         Tests that probe edge cases can override; the canonical sweep
         MUST pass ``None``.
     metadata_extra
         Optional caller-supplied provenance merged into the strategy
         metadata before sha computation.
+    shuffle_domain
+        For ``strategy=="M2_TOPOLOGY_PRESERVING_SHUFFLE"`` only: which
+        M2 sub-domain to use. Defaults to ``"edge_weight"`` so the P2
+        contract is preserved when this parameter is unset.
 
     Returns
     -------
@@ -1170,6 +1880,15 @@ def realize_null(
         raise D002GNullInvalid(
             f"strategy must be one of {sorted(_VALID_STRATEGIES)}; got {strategy!r}"
         )
+    if shuffle_domain not in _M2_SHUFFLE_DOMAINS:
+        raise D002GNullInvalid(
+            f"shuffle_domain must be one of {sorted(_M2_SHUFFLE_DOMAINS)}; got {shuffle_domain!r}"
+        )
+    if shuffle_domain != "edge_weight" and strategy != "M2_TOPOLOGY_PRESERVING_SHUFFLE":
+        raise D002GNullInvalid(
+            f"shuffle_domain={shuffle_domain!r} is only valid for strategy "
+            "'M2_TOPOLOGY_PRESERVING_SHUFFLE'"
+        )
     if not math.isfinite(lambda_value) or lambda_value < 0.0:
         raise D002GNullInvalid(f"lambda_value must be finite and >= 0; got {lambda_value!r}")
     if int(N) < 2:
@@ -1185,9 +1904,18 @@ def realize_null(
             "(no ΔK to permute at lambda=0)"
         )
 
-    effective_null_seed = (
-        int(null_seed) if null_seed is not None else _default_null_seed(strategy, base_seed)
-    )
+    # Domain-aware default null seed for M2 sub-domains
+    if null_seed is None and strategy == "M2_TOPOLOGY_PRESERVING_SHUFFLE":
+        if shuffle_domain == "node_payload":
+            effective_null_seed = _default_null_seed_m2_node_payload(int(base_seed))
+        elif shuffle_domain == "injection_sequence":
+            effective_null_seed = _default_null_seed_m2_injection_sequence(int(base_seed))
+        else:
+            effective_null_seed = _default_null_seed_m2(int(base_seed))
+    else:
+        effective_null_seed = (
+            int(null_seed) if null_seed is not None else _default_null_seed(strategy, base_seed)
+        )
 
     if strategy == "M1_INDEPENDENT_SEED":
         K_null, mech_meta = _realize_m1(
@@ -1200,23 +1928,60 @@ def realize_null(
     elif strategy == "M2_TOPOLOGY_PRESERVING_SHUFFLE":
         # Pre-check via verifier; fail-closed on any non-ELIGIBLE
         # verdict so the M2 realization layer never silently downgrades
-        # to a no-op or to a different mechanism.
-        verdict = verify_m2_eligibility(
-            substrate,
-            N=int(N),
-            lambda_value=float(lambda_value),
-            base_seed=int(base_seed),
-            null_seed=effective_null_seed,
-        )
-        if verdict.status != _M2_ELIGIBLE:
-            raise M2NotEligibleError(verdict)
-        K_null, mech_meta = _realize_m2(
-            substrate,
-            base_seed=int(base_seed),
-            null_seed=effective_null_seed,
-            lambda_value=float(lambda_value),
-            N=int(N),
-        )
+        # to a no-op or to a different mechanism. Verifier choice is
+        # routed by `shuffle_domain`; each sub-domain owns its own
+        # admissibility ladder.
+        if shuffle_domain == "edge_weight":
+            verdict = verify_m2_eligibility(
+                substrate,
+                N=int(N),
+                lambda_value=float(lambda_value),
+                base_seed=int(base_seed),
+                null_seed=effective_null_seed,
+            )
+            if verdict.status != _M2_ELIGIBLE:
+                raise M2NotEligibleError(verdict)
+            K_null, mech_meta = _realize_m2(
+                substrate,
+                base_seed=int(base_seed),
+                null_seed=effective_null_seed,
+                lambda_value=float(lambda_value),
+                N=int(N),
+            )
+        elif shuffle_domain == "node_payload":
+            verdict = verify_m2_node_payload_eligibility(
+                substrate,
+                N=int(N),
+                lambda_value=float(lambda_value),
+                base_seed=int(base_seed),
+                null_seed=effective_null_seed,
+            )
+            if verdict.status != _M2_NODE_PAYLOAD_ELIGIBLE:
+                raise M2NotEligibleError(verdict)
+            K_null, mech_meta = realize_m2_node_payload_null(
+                substrate,
+                base_seed=int(base_seed),
+                null_seed=effective_null_seed,
+                lambda_value=float(lambda_value),
+                N=int(N),
+            )
+        else:  # shuffle_domain == "injection_sequence"
+            verdict = verify_m2_injection_sequence_eligibility(
+                substrate,
+                N=int(N),
+                lambda_value=float(lambda_value),
+                base_seed=int(base_seed),
+                null_seed=effective_null_seed,
+            )
+            if verdict.status != _M2_INJECTION_SEQUENCE_ELIGIBLE:
+                raise M2NotEligibleError(verdict)
+            K_null, mech_meta = realize_m2_injection_sequence_null(
+                substrate,
+                base_seed=int(base_seed),
+                null_seed=effective_null_seed,
+                lambda_value=float(lambda_value),
+                N=int(N),
+            )
     else:
         K_null, mech_meta = _realize_m6(
             substrate,
@@ -1267,6 +2032,8 @@ __all__ = [
     "M2NotEligibleError",
     "M2TopologyMutationError",
     "M2_PLACEBO_SALT",
+    "M2_NODE_PAYLOAD_SALT",
+    "M2_INJECTION_SEQUENCE_SALT",
     "M6InsufficientCandidatePool",
     "M6_PLACEBO_SALT",
     "NULL_SEED_OFFSET",
@@ -1275,5 +2042,9 @@ __all__ = [
     "R2_B_RANDOM_SITE_SEED",
     "deterministic_mix",
     "realize_null",
+    "realize_m2_node_payload_null",
+    "realize_m2_injection_sequence_null",
     "verify_m2_eligibility",
+    "verify_m2_node_payload_eligibility",
+    "verify_m2_injection_sequence_eligibility",
 ]
