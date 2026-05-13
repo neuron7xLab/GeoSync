@@ -178,6 +178,12 @@ SCANNER_EXEMPT_PATHS: Final[frozenset[str]] = frozenset(
         "tests/systemic_risk/test_d002g_structural_closure.py",
         "tests/systemic_risk/test_d002h_gate_b_eligibility.py",
         "tests/systemic_risk/test_d002h_preregistration.py",
+        # The R2-B inapplicability test enumerates the forbidden phrases
+        # verbatim as a `_FORBIDDEN_*` tuple, mirroring the Gate D scanner's
+        # own exempt-by-design pattern. The note doc + tests pin the
+        # phrases so they cannot drift; the test itself is therefore a
+        # guard-literal-bearing file, not a leak.
+        "tests/systemic_risk/test_d002h_r2b_inapplicability.py",
     }
 )
 
