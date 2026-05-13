@@ -160,3 +160,16 @@ remains BLOCKED until conjunction A ∧ B ∧ C ∧ D ∧ E ∧ F ∧ G.
 Per `D002H_CANONICAL_RUN_AUTHORIZATION_GATES.md` §D. Gates A-D closed.
 Gates E, F, G remain open. Canonical run BLOCKED until A∧B∧C∧D∧E∧F∧G.
 
+---
+
+## D-002H Gate E — locked-ledger verification
+
+**Status:** PASS
+**Artifact:** `artifacts/d002h/locks/d002h_locked_file_pins.json`
+**Schema:** D002H-GATE-E-v1
+**Report:** `docs/governance/D002H_GATE_E_LOCKED_FILE_REPORT.md`
+**Pinned files:** 16 (D-002C + D-002G + D-002H + source code)
+
+Per §E gates doc. Gates A-E closed. Gates F, G remain open. Canonical
+run BLOCKED until A∧B∧C∧D∧E∧F∧G.
+
