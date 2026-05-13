@@ -173,3 +173,16 @@ Gates E, F, G remain open. Canonical run BLOCKED until A∧B∧C∧D∧E∧F∧G
 Per §E gates doc. Gates A-E closed. Gates F, G remain open. Canonical
 run BLOCKED until A∧B∧C∧D∧E∧F∧G.
 
+---
+
+## D-002H Gate F — canonical-run authorisation artifact
+
+**Status:** AUTHORISED (intermediate; Gate G required for absolute final)
+**Artifact:** `artifacts/d002h/authorization/d002h_canonical_run_authorisation.json`
+**Schema:** D002H-CANONICAL-RUN-AUTHORISATION-v1
+**Report:** `docs/governance/D002H_GATE_F_AUTHORIZATION_REPORT.md`
+
+Conjunction A ∧ B ∧ C ∧ D ∧ E ∧ F all certified PASS at the
+gate-F-pin shas (5 anchors verified ancestors of main). Gate G is the
+final CI lock; canonical run remains BLOCKED until A∧B∧C∧D∧E∧F∧G.
+
