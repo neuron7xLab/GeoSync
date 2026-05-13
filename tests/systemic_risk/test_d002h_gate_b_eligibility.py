@@ -168,3 +168,143 @@ def test_gate_b_preserves_d002c_ledger() -> None:
         f"got {actual}. This PR (D-002H Gate B) is forbidden from "
         "touching the D-002C claim ledger."
     )
+
+
+# ---------------------------------------------------------------------------
+# User-contract test aliases — explicit names per the D-002H Gate B brief.
+# These cover the same invariants as the tests above but with the exact
+# function names the operator's contract requires. Both layers are
+# retained so future renames are detected at audit.
+# ---------------------------------------------------------------------------
+
+# D-002H pre-registration anchor — byte-exact sha256 of
+# ``docs/governance/D002H_PREREGISTRATION.yaml`` pinned at the PR #683
+# merge commit. Touching the prereg constitutes a fresh D-002J
+# pre-registration per the locked edit policy.
+# fmt: off
+D002H_PREREG_RELPATH: str = "docs/governance/D002H_PREREGISTRATION.yaml"
+D002H_PREREG_SHA256: str = "44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec"  # noqa: E501  # pragma: allowlist secret
+# fmt: on
+
+GATE_B_REPORT_RELPATH: str = "docs/governance/D002H_GATE_B_REPORT.md"
+
+# Forbidden cross-substrate / cross-promotion phrases the Gate B report
+# MUST NOT contain outside an explicit denial / ❌ context. The Gate B
+# claim is scoped to ricci_flow only.
+_FORBIDDEN_CROSS_SUBSTRATE_PHRASES: tuple[str, ...] = (
+    "cross-substrate robustness",
+    "general topology robustness",
+    "universal null-admissibility",
+    "all substrates eligible",
+    "multi-substrate generalisation",
+    "multi-substrate generalization",
+)
+
+
+def test_gate_b_scope_ricci_flow_only() -> None:
+    """Substrate scope is exactly ['ricci_flow'] — no implicit broadening."""
+    payload = _load_artifact()
+    assert payload["substrate_scope"] == ["ricci_flow"]
+
+
+def test_gate_b_reverifies_m1() -> None:
+    """Every cell carries an M1 verdict; every cell evaluates ELIGIBLE_M1.
+
+    M1 is applicable at all λ (including λ=0, which is the natural M1
+    null seed regime). A cell with INELIGIBLE_M1_* would kill the gate;
+    a cell missing the field would mean the artifact was generated
+    incorrectly.
+    """
+    payload = _load_artifact()
+    for cell in payload["cells"]:
+        assert "m1_status" in cell, f"cell missing m1_status: {cell}"
+        m1: str = cell["m1_status"]
+        assert m1.startswith("ELIGIBLE_M1"), (
+            f"cell N={cell['N']} λ={cell['lambda_value']} m1_status={m1!r} "
+            "is not ELIGIBLE_M1; Gate B FAILs"
+        )
+
+
+def test_gate_b_reverifies_m3() -> None:
+    """Every λ>0 cell carries ELIGIBLE_M3 with match_report within tolerance.
+
+    M3 contract: λ ≤ 0 cells emit N/A_M3_REQUIRES_LAMBDA_GT_ZERO (the
+    M3 module raises on λ=0; the script translates this to the explicit
+    N/A literal). λ>0 cells must return ELIGIBLE_M3 with match_report
+    .all_within_tolerance == True.
+    """
+    payload = _load_artifact()
+    lambda_pos_cells = [c for c in payload["cells"] if c["lambda_value"] > 0.0]
+    for cell in lambda_pos_cells:
+        m3: str = cell["m3_status"]
+        assert m3.startswith("ELIGIBLE_M3"), (
+            f"cell N={cell['N']} λ={cell['lambda_value']} m3_status={m3!r} "
+            "is not ELIGIBLE_M3; Gate B FAILs"
+        )
+        report = cell["m3_match_report"]
+        assert report is not None
+        assert report["all_within_tolerance"] is True
+
+
+def test_gate_b_forbids_block_structured() -> None:
+    """block_structured must NOT appear in scope or any cell.substrate field."""
+    payload = _load_artifact()
+    assert "block_structured" not in payload["substrate_scope"]
+    for cell in payload["cells"]:
+        cell_substrate = cell.get("substrate_id") or cell.get("substrate") or "ricci_flow"
+        msg_block = f"cell {cell} leaks block_structured substrate identity"
+        assert cell_substrate != "block_structured", msg_block
+
+
+def test_gate_b_forbids_temporal_coupling() -> None:
+    """temporal_coupling must NOT appear in scope or any cell.substrate field."""
+    payload = _load_artifact()
+    assert "temporal_coupling" not in payload["substrate_scope"]
+    for cell in payload["cells"]:
+        cell_substrate = cell.get("substrate_id") or cell.get("substrate") or "ricci_flow"
+        msg_temp = f"cell {cell} leaks temporal_coupling substrate identity"
+        assert cell_substrate != "temporal_coupling", msg_temp
+
+
+def test_gate_b_does_not_authorize_canonical_run() -> None:
+    """Gate B PASS does NOT authorise canonical run — conjunction A∧B∧C∧D∧E∧F∧G needed."""
+    payload = _load_artifact()
+    assert payload["canonical_run_authorized"] is False
+    # Downstream gates must still be open — Gate B alone is not the contract.
+    assert set(payload["downstream_gates_remaining"]) == {"C", "D", "E", "F", "G"}
+
+
+def test_gate_b_preserves_prereg_lock() -> None:
+    """D-002H pre-registration sha256 byte-exact UNCHANGED at PR #683 anchor."""
+    prereg_path = REPO_ROOT / D002H_PREREG_RELPATH
+    assert prereg_path.is_file(), f"D-002H prereg missing at {D002H_PREREG_RELPATH}"
+    actual = hashlib.sha256(prereg_path.read_bytes()).hexdigest()
+    assert actual == D002H_PREREG_SHA256, (
+        f"D-002H prereg MUTATED: expected {D002H_PREREG_SHA256}, got {actual}. "
+        "Editing the locked prereg constitutes a fresh D-002J pre-registration; "
+        "Gate B is forbidden from this."
+    )
+
+
+def test_gate_b_no_cross_substrate_claim() -> None:
+    """Gate B report must NOT contain cross-substrate / universal claims.
+
+    Phrases are allowed ONLY inside explicit denial contexts (❌, 'does
+    not', 'forbidden', 'out of scope', 'excluded'). This is the
+    Gate-D-style forbidden-claim scan applied to the Gate B report.
+    """
+    report_path = REPO_ROOT / GATE_B_REPORT_RELPATH
+    assert report_path.is_file(), f"Gate B report missing at {GATE_B_REPORT_RELPATH}"
+    body = report_path.read_text(encoding="utf-8")
+    for phrase in _FORBIDDEN_CROSS_SUBSTRATE_PHRASES:
+        for line_no, line in enumerate(body.splitlines(), start=1):
+            if phrase.lower() not in line.lower():
+                continue
+            # Allow inside explicit denial markers
+            denial_markers = ("❌", "does not", "forbidden", "out of scope", "excluded", "not ")
+            if any(marker.lower() in line.lower() for marker in denial_markers):
+                continue
+            raise AssertionError(
+                f"Gate B report line {line_no} leaks forbidden cross-substrate "
+                f"phrase outside denial context: {line.strip()!r}"
+            )
