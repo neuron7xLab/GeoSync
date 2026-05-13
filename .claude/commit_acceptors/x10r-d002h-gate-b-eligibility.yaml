@@ -98,14 +98,10 @@ diff_scope:
     - "artifacts/d002h/canonical/"
     - "artifacts/d002h/authorization/"
 required_python_symbols:
-  - module: "research.systemic_risk.d002g_null_mechanisms"
-    symbol: "verify_m3_eligibility"
-  - module: "research.systemic_risk.d002g_null_mechanisms"
-    symbol: "realize_null"
-  - module: "research.systemic_risk.d002g_null_mechanisms"
-    symbol: "BitIdenticalNullError"
-  - module: "research.systemic_risk.d002c_substrates"
-    symbol: "RicciFlowSubstrate"
+  - "research.systemic_risk.d002g_null_mechanisms.verify_m3_eligibility"
+  - "research.systemic_risk.d002g_null_mechanisms.realize_null"
+  - "research.systemic_risk.d002g_null_mechanisms.BitIdenticalNullError"
+  - "research.systemic_risk.d002c_substrates.RicciFlowSubstrate"
 expected_signal: >-
   `PYTHONPATH=. python scripts/x10r_d002h_gate_b_eligibility.py` exits
   0; `PYTHONPATH=. python -m pytest
