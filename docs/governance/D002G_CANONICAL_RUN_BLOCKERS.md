@@ -186,3 +186,24 @@ Conjunction A ∧ B ∧ C ∧ D ∧ E ∧ F all certified PASS at the
 gate-F-pin shas (5 anchors verified ancestors of main). Gate G is the
 final CI lock; canonical run remains BLOCKED until A∧B∧C∧D∧E∧F∧G.
 
+---
+
+## D-002H Gate G — FINAL CI lock (canonical-run authorisation COMPLETE)
+
+**Status:** PASS (TERMINAL — 7-gate conjunction A∧B∧C∧D∧E∧F∧G all PASS)
+**Artifact:** `artifacts/d002h/authorization/d002h_canonical_run_final_lock.json`
+**Schema:** D002H-GATE-G-v1
+**Report:** `docs/governance/D002H_GATE_G_CI_LOCK_REPORT.md`
+**Canonical run authorisation:** GRANTED (scoped to ricci_flow only)
+**Canonical run execution status:** NOT STARTED
+
+The 7-gate authorisation contract is now CLOSED. A separate
+canonical-sweep PR may execute the D-002H ricci_flow sweep downstream.
+This authorisation does NOT itself produce scientific results; the
+sweep PR's R1/R2/R3/R2-B/NULL_AUDIT verdict is the scientific output.
+
+B1 (D-002G substrate eligibility): STRUCTURALLY CLOSED (negative artifact #682)
+B1 (D-002H ricci_flow eligibility): CLOSED via 7-gate conjunction
+B2 (Phase 0b percentile vs BCa): KNOWN LIMITATION, carried per D-002G prereg §4
+canonical_run_authorized_final: TRUE  ← terminal state achieved
+
