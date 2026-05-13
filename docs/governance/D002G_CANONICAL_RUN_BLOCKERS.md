@@ -115,3 +115,21 @@ pre-registered lineage:
 - D-002G remains sha-pinned as a negative-result artifact; **NO M4 inside D-002G**.
 - D-002H authorisation gates A..G live in `D002H_CANONICAL_RUN_AUTHORIZATION_GATES.md`
   and must all PASS before any canonical D-002H run begins.
+
+---
+
+## D-002H Gate B — ricci_flow M1/M3 eligibility reverification
+
+**Status:** PASS
+**Artifact:** `artifacts/d002h/eligibility/d002h_ricci_eligibility.json`
+**Schema:** D002H-GATE-B-v1
+**Report:** `docs/governance/D002H_GATE_B_REPORT.md`
+**Merge anchor:** will pin at this PR's merge sha
+**Cells:** 18/18 PASS (3 N × 6 λ; λ=0 cells emit `N/A_M3_REQUIRES_LAMBDA_GT_ZERO`
+per the M3 module contract; every λ>0 cell ELIGIBLE_M1 AND ELIGIBLE_M3
+with marginal-match report inside locked tolerances)
+
+Per `D002H_CANONICAL_RUN_AUTHORIZATION_GATES.md`, Gate B PASS is necessary
+but NOT sufficient for canonical D-002H run authorisation. Gates A, B
+closed. Gates C, D, E, F, G remain open. Canonical run remains BLOCKED.
+
