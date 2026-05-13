@@ -101,3 +101,17 @@ When all three preconditions are met, a canonical D-002G run may be launched. Th
 ## Claim boundary (verbatim)
 
 > The D-002G P1 PR implements infrastructure and adversarial test scaffolding only. It does NOT establish D-002G scientific PASS. Phase 0 test-suite results are INFRASTRUCTURE SMOKE, not canonical Phase 0 verdict. A fresh canonical D-002G run on prereg-scoped substrates is required before any tier-PASS claim, and is BLOCKED on M2 until the substrate-eligibility gap is closed in a downstream D-002G-P2/M2 PR.
+
+---
+
+## D-002G ↔ D-002H lineage transition
+
+D-002G closed structurally per the artifact above. Future work proceeds under a fresh
+pre-registered lineage:
+
+- **D-002H** (this PR opens it): `docs/governance/D002H_PREREGISTRATION.yaml` —
+  ricci_flow-only canonical run scope, scoped pre-registration. Locked at the merge
+  commit of `docs/x10r-d002h-ricci-flow-scope-prereg`.
+- D-002G remains sha-pinned as a negative-result artifact; **NO M4 inside D-002G**.
+- D-002H authorisation gates A..G live in `D002H_CANONICAL_RUN_AUTHORIZATION_GATES.md`
+  and must all PASS before any canonical D-002H run begins.
