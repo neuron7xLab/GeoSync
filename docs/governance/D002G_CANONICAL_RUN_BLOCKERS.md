@@ -148,3 +148,15 @@ report. Grid matches D-002H prereg `canonical_grid` block byte-exact.
 Gates A, B, C closed. Gates D, E, F, G remain open. Canonical run
 remains BLOCKED until conjunction A ∧ B ∧ C ∧ D ∧ E ∧ F ∧ G.
 
+---
+
+## D-002H Gate D — forbidden-claim scanner
+
+**Status:** PASS (zero leaks across scanned D-002H surface)
+**Artifact:** `artifacts/d002h/scans/d002h_forbidden_claim_scan.json`
+**Schema:** D002H-GATE-D-v1
+**Report:** `docs/governance/D002H_GATE_D_FORBIDDEN_CLAIM_SCAN.md`
+
+Per `D002H_CANONICAL_RUN_AUTHORIZATION_GATES.md` §D. Gates A-D closed.
+Gates E, F, G remain open. Canonical run BLOCKED until A∧B∧C∧D∧E∧F∧G.
+
