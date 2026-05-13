@@ -1,6 +1,6 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""D-002G — Non-degenerate null mechanisms (M1 + M6).
+"""D-002G — Non-degenerate null mechanisms (M1 + M6 + M2).
 
 Rationale
 =========
@@ -10,7 +10,7 @@ at λ=0 the locked paired-CRN protocol produces
 ``K_precursor == K_baseline`` bit-identically. The permutation null
 audit then collapses to ``p=1.0`` for those 9 λ=0 cells.
 
-D-002G fixes this with two pre-committed mechanisms locked in
+D-002G fixes this with three pre-committed mechanisms locked in
 ``docs/governance/D002G_PREREGISTRATION.yaml``:
 
 * **M1 (primary)** — independent-seed null cohort. For seed ``s`` the
@@ -27,6 +27,20 @@ D-002G fixes this with two pre-committed mechanisms locked in
   temporal_coupling). The metric SHOULD NOT detect this fake injection
   — if it does, the metric is a false-positive prone detector that
   responds to any energy injection rather than to substrate topology.
+
+* **M2 (fallback)** — topology-preserving shuffle. Used only for
+  substrates declared M1-INELIGIBLE (``block_structured``,
+  ``temporal_coupling`` — seed-deterministic at λ=0). At λ>0 the
+  precursor matrix is decomposed as ``K_p = K_0 + ΔK``; the support
+  positions of ΔK (the precursor's topology) are HELD FIXED while the
+  payload values at those positions are permuted by a deterministic
+  RNG. The topology hash is preserved bit-identically; the payload
+  assignment changes whenever the support carries ≥ 2 distinct values.
+  Substrates whose ΔK is constant-valued at every privileged position
+  yield ``INELIGIBLE_M2_DEGENERATE_SHUFFLE_POOL`` — the topology-
+  preserving edge-weight shuffle cannot construct a non-degenerate
+  null on a constant-valued payload, and the verifier refuses the cell
+  fail-closed rather than emit a no-op null.
 
 Strict scope
 ============
@@ -94,12 +108,47 @@ R2_B_RANDOM_SITE_SEED: Final[int] = 99
 #: ``d002c_sweep_runner`` extension in Phase 7 for backward
 #: compatibility with pre-A2 emissions; it is NOT a D-002G mechanism
 #: and is intentionally not part of this Literal.
-NullStrategy = Literal["M1_INDEPENDENT_SEED", "M6_PLACEBO_COUPLING"]
+NullStrategy = Literal[
+    "M1_INDEPENDENT_SEED",
+    "M6_PLACEBO_COUPLING",
+    "M2_TOPOLOGY_PRESERVING_SHUFFLE",
+]
 
 #: Locked salt mixed with ``base_seed`` to produce the M6 RNG.
 M6_PLACEBO_SALT: Final[int] = R2_B_RANDOM_SITE_SEED
 
-_VALID_STRATEGIES: Final[frozenset[str]] = frozenset({"M1_INDEPENDENT_SEED", "M6_PLACEBO_COUPLING"})
+#: Locked random_site-style salt for the M2 topology-preserving shuffle.
+#: NOT an arithmetic offset (those collide trivially under stride
+#: aliasing per the P1 Strike-R5 attack). The actual RNG seed is
+#: ``deterministic_mix(base_seed, M2_PLACEBO_SALT)`` xor-mixed further
+#: with the per-cell ``null_seed`` override when the caller supplies
+#: one. Value 211 is a small prime distinct from
+#: :data:`R2_B_RANDOM_SITE_SEED` (99) and :data:`NULL_SEED_OFFSET`
+#: (10000) — domain-separation against M1 and M6 RNG streams.
+M2_PLACEBO_SALT: Final[int] = 211
+
+_VALID_STRATEGIES: Final[frozenset[str]] = frozenset(
+    {
+        "M1_INDEPENDENT_SEED",
+        "M6_PLACEBO_COUPLING",
+        "M2_TOPOLOGY_PRESERVING_SHUFFLE",
+    }
+)
+
+#: Status literals for :class:`M2EligibilityVerdict`. The verifier emits
+#: exactly one of these for every (substrate, N, λ, base_seed) it is
+#: asked about. ``ELIGIBLE_M2`` is the only status that admits a
+#: subsequent call to :func:`realize_null` with strategy
+#: ``"M2_TOPOLOGY_PRESERVING_SHUFFLE"``.
+M2EligibilityStatus = Literal[
+    "ELIGIBLE_M2",
+    "INELIGIBLE_M2_INSUFFICIENT_TOPOLOGY",
+    "INELIGIBLE_M2_DEGENERATE_SHUFFLE_POOL",
+    "INELIGIBLE_M2_TOPOLOGY_MUTATION_DETECTED",
+    "INDETERMINATE_M2_PROVENANCE_MISSING",
+]
+
+_M2_ELIGIBLE: Final[str] = "ELIGIBLE_M2"
 
 
 class BitIdenticalNullError(RuntimeError):
@@ -112,6 +161,54 @@ class BitIdenticalNullError(RuntimeError):
     or escalate. Silently accepting a bit-identical M1 null would
     reintroduce the exact pathology M1 was designed to remove.
     """
+
+
+class M2TopologyMutationError(RuntimeError):
+    """M2 shuffle mutated the precursor topology mask.
+
+    Raised when the topology hash of the precursor ΔK support and the
+    topology hash of the constructed ``K_null`` ΔK support disagree.
+    By construction the M2 shuffle relocates payload values WITHIN the
+    fixed support set, so the support mask must be invariant. A
+    detected mutation is an internal-invariant violation — never a
+    user-fixable input error — and the cell is REFUSED fail-closed.
+
+    The verifier emits the same status as ``INELIGIBLE_M2_TOPOLOGY_
+    MUTATION_DETECTED`` rather than raising; this exception is raised
+    only on the realization-layer post-check, after the verifier has
+    already approved the cell.
+    """
+
+
+# Forward declaration: :class:`M2NotEligibleError` carries an
+# :class:`M2EligibilityVerdict` instance. The dataclass is defined
+# further down (alongside :class:`NullRealization`) so its strict-typed
+# fields can reference :data:`M2EligibilityStatus`; the exception's
+# constructor uses a string-form forward reference to avoid the
+# circular declaration order. Mypy / ruff see the actual symbol once
+# the module finishes loading.
+class M2NotEligibleError(RuntimeError):
+    """M2 verifier returned a non-ELIGIBLE verdict for this cell.
+
+    Carries the :class:`M2EligibilityVerdict` as ``self.verdict`` so
+    callers can introspect ``status`` and ``eligibility_reason`` for
+    structured diagnostics. Raised by :func:`realize_null` when invoked
+    with strategy ``"M2_TOPOLOGY_PRESERVING_SHUFFLE"`` on a cell the
+    verifier refuses; the M2 fallback is fail-closed by contract — no
+    silent downgrade to M1 / M6 / no-op.
+    """
+
+    def __init__(self, verdict: Any) -> None:
+        # ``verdict`` is duck-typed as :class:`M2EligibilityVerdict`
+        # (defined below). We avoid the forward type annotation to
+        # keep static analysers happy with the declaration-order
+        # constraint.
+        super().__init__(
+            f"M2 verdict {verdict.status!r} for substrate "
+            f"{verdict.substrate_id!r} at N={verdict.N}: "
+            f"{verdict.eligibility_reason}"
+        )
+        self.verdict = verdict
 
 
 class M6InsufficientCandidatePool(RuntimeError):
@@ -535,6 +632,466 @@ def _realize_m6(
 
 
 # ---------------------------------------------------------------------------
+# M2 — topology-preserving shuffle
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class M2EligibilityVerdict:
+    """Frozen verdict from :func:`verify_m2_eligibility`.
+
+    Fields
+    ------
+    status
+        One of :data:`M2EligibilityStatus`. Only ``"ELIGIBLE_M2"``
+        admits a subsequent :func:`realize_null` call with strategy
+        ``"M2_TOPOLOGY_PRESERVING_SHUFFLE"``.
+    substrate_id
+        From :attr:`Substrate.id`.
+    N
+        Cohort size.
+    preserved_topology_hash
+        sha256 over the canonical-JSON of the precursor ΔK upper-
+        triangle boolean support mask. The realization-layer post-
+        check requires the constructed K_null's ΔK support hash to
+        match this value bit-identically.
+    shuffle_domain
+        Which payload domain the shuffle is applied to. The current
+        P2/M2 implementation supports ``"edge_weight"`` only; the
+        other two values are reserved for future M2 sub-domains and
+        will raise :class:`D002GNullInvalid` if the verifier is asked
+        to evaluate them in this PR.
+    candidate_pool_size
+        Number of upper-triangle positions in the ΔK support — the
+        positions over which the shuffle permutes payload values.
+        Always equals ``support_mask.sum()`` for the precursor at the
+        verified cell coordinate.
+    eligibility_reason
+        Single-line human-readable explanation of the verdict.
+        Cross-checked by the tests so the format stays stable.
+    metadata
+        Strategy-specific diagnostics:
+          * ``distinct_values_count``: number of distinct ΔK payload
+            values at support positions. If ``< 2`` the shuffle is a
+            no-op and the verdict is
+            ``INELIGIBLE_M2_DEGENERATE_SHUFFLE_POOL``.
+          * ``support_count``: ``candidate_pool_size`` (duplicate for
+            downstream consumers).
+          * ``injection_window_index``: which time slice of the
+            substrate trajectory was sampled for ΔK construction.
+    """
+
+    status: M2EligibilityStatus
+    substrate_id: str
+    N: int
+    preserved_topology_hash: str
+    shuffle_domain: Literal["node_payload", "edge_weight", "injection_sequence"]
+    candidate_pool_size: int
+    eligibility_reason: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+def _topology_hash(K: NDArray[np.float64]) -> str:
+    """sha256 over the canonical-JSON of K's upper-triangle nonzero mask.
+
+    ``K`` is interpreted as a payload-delta matrix (e.g. ΔK = K_p − K_0
+    OR ΔK = K_null − K_0). The hash domain is the BOOLEAN PATTERN of
+    where the delta is nonzero on the strict upper triangle — i.e. the
+    edge-set topology the precursor injection touches. Two matrices
+    with identical support patterns hash identically regardless of
+    their payload magnitudes; a single bit flipped in the support
+    pattern produces a different hash.
+
+    The threshold for "nonzero" is ``1e-12`` to match :func:`_realize_m6`
+    and match what downstream substrate gates accept as "no precursor
+    delta" (gate G10).
+
+    Raises
+    ------
+    D002GNullInvalid
+        ``K`` not square or not float64.
+    """
+    if K.dtype != np.float64:
+        raise D002GNullInvalid(f"K must be float64; got {K.dtype}")
+    _refuse_if_non_square(K)
+    iu_r, iu_c = np.triu_indices(K.shape[0], k=1)
+    mask = np.abs(K[iu_r, iu_c]) > 1e-12
+    payload = {
+        "domain": "topology_upper_triangle_nonzero_mask",
+        "N": int(K.shape[0]),
+        # Pack the boolean mask as a compact "0"/"1" string — stable,
+        # canonical, machine-and-process invariant.
+        "mask": "".join("1" if b else "0" for b in mask.tolist()),
+    }
+    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+
+
+def _build_precursor_delta(
+    substrate: Substrate,
+    *,
+    base_seed: int,
+    lambda_value: float,
+    N: int,
+) -> tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    int,
+]:
+    """Return ``(K_0, K_p, ΔK, inject_t)`` for the M2 shuffle.
+
+    Both substrate calls use the SAME ``base_seed``. For substrates
+    that are seed-deterministic at λ=0 (block_structured,
+    temporal_coupling) the ``K_0`` baseline is independent of the seed
+    by construction; the relevant payload variation lives entirely in
+    ``ΔK = K_p − K_0`` at the canonical injection window slice.
+
+    Raises
+    ------
+    D002GNullInvalid
+        Non-finite K, non-square K, or substrate API contract
+        violation that bubbles up.
+    """
+    precursor_real = substrate.realize(N=N, lambda_=lambda_value, seed=base_seed)
+    baseline_real = substrate.realize(N=N, lambda_=0.0, seed=base_seed)
+    inject_t = int(next(iter(PRECURSOR_INJECTION_WINDOW)))
+    K_p = np.asarray(precursor_real.K_precursor[inject_t], dtype=np.float64)
+    K_0 = np.asarray(baseline_real.K_baseline[inject_t], dtype=np.float64)
+    _refuse_if_non_square(K_p)
+    _refuse_if_non_square(K_0)
+    if not (np.all(np.isfinite(K_p)) and np.all(np.isfinite(K_0))):
+        raise D002GNullInvalid("M2: K_precursor / K_baseline contains non-finite")
+    delta = K_p - K_0
+    return K_0, K_p, delta, inject_t
+
+
+def verify_m2_eligibility(
+    substrate: Substrate,
+    *,
+    N: int,
+    lambda_value: float,
+    base_seed: int,
+    null_seed: int | None = None,
+) -> M2EligibilityVerdict:
+    """Pre-check whether (substrate, N, λ, seed) admits an M2 null.
+
+    The verifier mirrors :func:`_realize_m2` except it does NOT emit a
+    :class:`NullRealization`. It is the cheap pre-check that callers
+    invoke BEFORE attempting realization, so a cell can be tagged
+    ``M2-INELIGIBLE`` and routed to escalation without paying the
+    realization-layer cost twice.
+
+    Verdict ladder (first matching condition wins):
+
+    1. ``INDETERMINATE_M2_PROVENANCE_MISSING`` — substrate refuses to
+       construct the precursor (e.g. ``SubstrateInvalid`` from a gate
+       failure). The verifier cannot decide eligibility because the
+       precursor itself is malformed; escalate to the substrate owner.
+    2. ``INELIGIBLE_M2_INSUFFICIENT_TOPOLOGY`` — ΔK upper-triangle
+       support is empty. There is no topology to preserve; the M2
+       shuffle has nothing to shuffle.
+    3. ``INELIGIBLE_M2_DEGENERATE_SHUFFLE_POOL`` — ΔK support has
+       fewer than 2 distinct payload values. A permutation of one
+       repeated value yields the identical ΔK — the M2 shuffle is
+       a no-op and the resulting K_null would equal K_p
+       bit-identically (recreating the exact pathology M2 was
+       designed to remove).
+    4. ``INELIGIBLE_M2_TOPOLOGY_MUTATION_DETECTED`` — the dry-run
+       shuffle's reconstructed support mask hashes differently from
+       the precursor's. Defensive: by construction the support is
+       held fixed, so this should never fire; if it does, the
+       implementation has an invariant break and the cell is REFUSED.
+    5. ``ELIGIBLE_M2`` — all of the above checks pass.
+
+    ``null_seed`` is optional. When ``None`` the verifier uses the
+    locked formula :func:`_default_null_seed` for M2; when supplied
+    the verifier uses the override (tests probing edge cases).
+
+    Notes
+    -----
+    The verifier is callable WITHOUT performing the actual null
+    realization. Phase 0 / canonical preflight code paths use it as a
+    cheap eligibility gate before incurring the realization cost.
+    """
+    if not math.isfinite(lambda_value) or lambda_value <= 0.0:
+        # M2 needs ΔK = K_p − K_0; at λ=0 ΔK is zero by gate G10 and
+        # there is nothing to shuffle. Same fail-closed semantics as
+        # the realization-layer M6 lambda gate.
+        raise D002GNullInvalid("verify_m2_eligibility requires lambda_value > 0 (M2 shuffles ΔK)")
+    if int(N) < 2:
+        raise D002GNullInvalid(f"N must be >= 2; got {N!r}")
+
+    sub_id = str(substrate.id)
+    try:
+        K_0, K_p, delta, inject_t = _build_precursor_delta(
+            substrate,
+            base_seed=int(base_seed),
+            lambda_value=float(lambda_value),
+            N=int(N),
+        )
+    except Exception as exc:  # noqa: BLE001
+        # Substrate construction failed → eligibility is INDETERMINATE
+        # (we cannot decide without the precursor). Wrap rather than
+        # propagate so the verifier's contract is "always returns a
+        # verdict" — the caller routes INDETERMINATE_M2_* upward.
+        return M2EligibilityVerdict(
+            status="INDETERMINATE_M2_PROVENANCE_MISSING",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash="",
+            shuffle_domain="edge_weight",
+            candidate_pool_size=0,
+            eligibility_reason=(f"substrate.realize raised {type(exc).__name__}: {exc!s}"),
+            metadata={
+                "exception_type": type(exc).__name__,
+                "lambda_value": float(lambda_value),
+                "base_seed": int(base_seed),
+            },
+        )
+
+    iu_r, iu_c = np.triu_indices(int(N), k=1)
+    delta_upper = delta[iu_r, iu_c]
+    support_mask = np.abs(delta_upper) > 1e-12
+    n_support = int(np.count_nonzero(support_mask))
+
+    if n_support < 1:
+        return M2EligibilityVerdict(
+            status="INELIGIBLE_M2_INSUFFICIENT_TOPOLOGY",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash=_topology_hash(delta),
+            shuffle_domain="edge_weight",
+            candidate_pool_size=0,
+            eligibility_reason=(
+                "ΔK upper-triangle support is empty at this (N, λ, seed); "
+                "M2 has no topology to preserve"
+            ),
+            metadata={
+                "support_count": 0,
+                "distinct_values_count": 0,
+                "injection_window_index": int(inject_t),
+                "lambda_value": float(lambda_value),
+            },
+        )
+
+    support_values = delta_upper[support_mask]
+    # Round to 1e-12 to match the support-mask threshold; otherwise
+    # floating-point dithering inside a constant-valued payload would
+    # spuriously inflate the distinct-value count.
+    distinct_count = int(np.unique(np.round(support_values, 12)).size)
+
+    if distinct_count < 2:
+        return M2EligibilityVerdict(
+            status="INELIGIBLE_M2_DEGENERATE_SHUFFLE_POOL",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash=_topology_hash(delta),
+            shuffle_domain="edge_weight",
+            candidate_pool_size=int(n_support),
+            eligibility_reason=(
+                f"ΔK support carries {distinct_count} distinct payload "
+                "value(s); a permutation of constant-valued payload "
+                "is a no-op — K_null would equal K_p bit-identically"
+            ),
+            metadata={
+                "support_count": int(n_support),
+                "distinct_values_count": int(distinct_count),
+                "injection_window_index": int(inject_t),
+                "lambda_value": float(lambda_value),
+            },
+        )
+
+    # Dry-run shuffle: relocate values within the fixed support; verify
+    # the reconstructed ΔK has bit-identical topology hash. Uses the
+    # same RNG-seeding contract as :func:`_realize_m2` so the verifier
+    # observes exactly the realisation that downstream code would emit.
+    eff_null_seed = (
+        int(null_seed) if null_seed is not None else _default_null_seed_m2(int(base_seed))
+    )
+    rng = np.random.default_rng(eff_null_seed)
+    perm = rng.permutation(support_values)
+    dry_delta_upper = np.zeros_like(delta_upper)
+    dry_delta_upper[support_mask] = perm
+    dry_delta = np.zeros_like(delta)
+    dry_delta[iu_r, iu_c] = dry_delta_upper
+    dry_delta = dry_delta + dry_delta.T
+
+    pre_hash = _topology_hash(delta)
+    post_hash = _topology_hash(dry_delta)
+    if pre_hash != post_hash:
+        return M2EligibilityVerdict(
+            status="INELIGIBLE_M2_TOPOLOGY_MUTATION_DETECTED",
+            substrate_id=sub_id,
+            N=int(N),
+            preserved_topology_hash=pre_hash,
+            shuffle_domain="edge_weight",
+            candidate_pool_size=int(n_support),
+            eligibility_reason=(
+                "dry-run shuffle mutated topology hash; this is an "
+                "internal-invariant violation (support set must be "
+                "fixed by construction) — cell REFUSED"
+            ),
+            metadata={
+                "support_count": int(n_support),
+                "distinct_values_count": int(distinct_count),
+                "pre_shuffle_topology_hash": pre_hash,
+                "post_shuffle_topology_hash": post_hash,
+                "injection_window_index": int(inject_t),
+                "lambda_value": float(lambda_value),
+            },
+        )
+
+    return M2EligibilityVerdict(
+        status="ELIGIBLE_M2",
+        substrate_id=sub_id,
+        N=int(N),
+        preserved_topology_hash=pre_hash,
+        shuffle_domain="edge_weight",
+        candidate_pool_size=int(n_support),
+        eligibility_reason=(
+            f"support count {n_support} with {distinct_count} distinct "
+            "values; topology hash invariant under dry-run shuffle"
+        ),
+        metadata={
+            "support_count": int(n_support),
+            "distinct_values_count": int(distinct_count),
+            "injection_window_index": int(inject_t),
+            "lambda_value": float(lambda_value),
+            "base_seed": int(base_seed),
+            "null_seed": int(eff_null_seed),
+        },
+    )
+
+
+def _default_null_seed_m2(base_seed: int) -> int:
+    """Locked M2 null-seed formula.
+
+    Deterministic mix of ``base_seed`` with :data:`M2_PLACEBO_SALT`
+    (211). NOT an arithmetic offset — that primitive is collision-
+    prone under stride aliasing (per the P1 Strike-R5 attack on M1's
+    offset=10000). The hash-based mix gives statistical independence
+    of the M2 RNG stream from M1 (``base_seed + 10000``) and M6
+    (``deterministic_mix(base_seed, 99)``).
+    """
+    return deterministic_mix(int(base_seed), M2_PLACEBO_SALT)
+
+
+def _realize_m2(
+    substrate: Substrate,
+    *,
+    base_seed: int,
+    null_seed: int,
+    lambda_value: float,
+    N: int,
+) -> tuple[NDArray[np.float64], dict[str, Any]]:
+    """Construct the M2 topology-preserving shuffle K_null.
+
+    Procedure (matches ``D002G_M2_TOPOLOGY_PRESERVING_NULL.md`` and
+    the locked pre-registration §4 fallback policy):
+
+    1. Compute ``K_0 = substrate.realize(N, λ=0, seed=base_seed)``
+       static slice at the canonical injection window index.
+    2. Compute ``K_p = substrate.realize(N, λ=lambda_value,
+       seed=base_seed)`` static slice at the same index.
+    3. ΔK = K_p − K_0. Support mask = (|ΔK| > 1e-12) on the upper
+       triangle.
+    4. Seed ``rng = np.random.default_rng(null_seed)`` where
+       ``null_seed = deterministic_mix(base_seed, M2_PLACEBO_SALT)``
+       under the locked formula, or the caller's override.
+    5. Permute the support's payload values via ``rng.permutation``;
+       reassign permuted values to the SAME support positions.
+    6. K_null = K_0 + symmetrised ΔK_shuffled.
+    7. Verify topology-hash invariance — raise
+       :class:`M2TopologyMutationError` if the reconstructed support
+       hash drifted from the precursor's. This is an internal-invariant
+       check; the verifier already screens this case as INELIGIBLE.
+
+    Returns
+    -------
+    (K_null, metadata)
+        ``K_null`` is N×N float64 symmetric. ``metadata`` carries the
+        full M2 provenance schema (eligibility status stamp, preserved
+        topology hash, shuffle domain, candidate pool size, null seed,
+        substrate-anchored injection window).
+
+    Raises
+    ------
+    M2TopologyMutationError
+        Reconstructed support hash ≠ precursor support hash. Internal
+        invariant violation; downstream callers tag the cell
+        ``INELIGIBLE_M2_TOPOLOGY_MUTATION_DETECTED`` rather than
+        accepting the realization.
+    D002GNullInvalid
+        Substrate produced non-finite K or shape violation; or the
+        support carries fewer than 2 distinct values (degenerate
+        shuffle pool — should have been screened by the verifier).
+    """
+    K_0, _K_p, delta, inject_t = _build_precursor_delta(
+        substrate,
+        base_seed=int(base_seed),
+        lambda_value=float(lambda_value),
+        N=int(N),
+    )
+
+    iu_r, iu_c = np.triu_indices(int(N), k=1)
+    delta_upper = delta[iu_r, iu_c]
+    support_mask = np.abs(delta_upper) > 1e-12
+    n_support = int(np.count_nonzero(support_mask))
+
+    if n_support < 1:
+        raise D002GNullInvalid(
+            f"M2: ΔK upper-triangle support empty at substrate "
+            f"{substrate.id!r}, N={N}, lambda_={lambda_value}, "
+            f"seed={base_seed} — verifier should have screened this"
+        )
+
+    support_values = delta_upper[support_mask]
+    distinct_count = int(np.unique(np.round(support_values, 12)).size)
+    if distinct_count < 2:
+        raise D002GNullInvalid(
+            f"M2: degenerate shuffle pool ({distinct_count} distinct "
+            "values across support); verifier should have screened "
+            "this — would yield K_null == K_p bit-identically"
+        )
+
+    pre_hash = _topology_hash(delta)
+
+    rng = np.random.default_rng(int(null_seed))
+    perm = rng.permutation(support_values)
+
+    shuffled_upper = np.zeros_like(delta_upper)
+    shuffled_upper[support_mask] = perm
+
+    delta_shuffled = np.zeros_like(delta)
+    delta_shuffled[iu_r, iu_c] = shuffled_upper
+    delta_shuffled = delta_shuffled + delta_shuffled.T  # symmetrise
+
+    K_null = K_0 + delta_shuffled
+
+    post_hash = _topology_hash(delta_shuffled)
+    if pre_hash != post_hash:
+        raise M2TopologyMutationError(
+            f"M2: topology hash drifted under shuffle "
+            f"(pre={pre_hash}, post={post_hash}); internal-invariant "
+            "violation — cell REFUSED"
+        )
+
+    metadata: dict[str, Any] = {
+        "null_strategy": "M2_TOPOLOGY_PRESERVING_SHUFFLE",
+        "null_seed": int(null_seed),
+        "preserved_topology_hash": pre_hash,
+        "shuffle_domain": "edge_weight",
+        "eligibility_status": _M2_ELIGIBLE,
+        "candidate_pool_size": int(n_support),
+        "support_count": int(n_support),
+        "distinct_values_count": int(distinct_count),
+        "injection_window_index": int(inject_t),
+        "lambda_value": float(lambda_value),
+    }
+    return K_null, metadata
+
+
+# ---------------------------------------------------------------------------
 # Public API — realize_null
 # ---------------------------------------------------------------------------
 
@@ -543,6 +1100,8 @@ def _default_null_seed(strategy: NullStrategy, base_seed: int) -> int:
     """Locked null-seed formula. Tests can override; canonical sweep MUST NOT."""
     if strategy == "M1_INDEPENDENT_SEED":
         return int(base_seed) + NULL_SEED_OFFSET
+    if strategy == "M2_TOPOLOGY_PRESERVING_SHUFFLE":
+        return _default_null_seed_m2(int(base_seed))
     # M6: deterministic mix of base_seed with the locked salt.
     return deterministic_mix(int(base_seed), M6_PLACEBO_SALT)
 
@@ -557,7 +1116,7 @@ def realize_null(
     null_seed: int | None = None,
     metadata_extra: Mapping[str, Any] | None = None,
 ) -> NullRealization:
-    """Realise one M1 or M6 null cohort K_baseline.
+    """Realise one M1 / M6 / M2 null cohort K_baseline.
 
     Parameters
     ----------
@@ -571,13 +1130,15 @@ def realize_null(
     N
         Cohort size (required).
     lambda_value
-        Cell coordinate. Must be ≥ 0; M6 additionally requires > 0.
+        Cell coordinate. Must be ≥ 0; M6 and M2 additionally require
+        ``> 0`` (no ΔK to permute at λ=0).
     null_seed
         Optional override of the locked null-seed formula. ``None`` →
         the formula:
 
           * M1: ``base_seed + NULL_SEED_OFFSET`` (offset = 10000).
           * M6: ``deterministic_mix(base_seed, M6_PLACEBO_SALT)``.
+          * M2: ``deterministic_mix(base_seed, M2_PLACEBO_SALT)``.
 
         Tests that probe edge cases can override; the canonical sweep
         MUST pass ``None``.
@@ -593,10 +1154,17 @@ def realize_null(
     Raises
     ------
     D002GNullInvalid
-        Invalid strategy, ``lambda_value < 0``, ``lambda_value == 0``
-        under M6, non-square / non-finite K, dtype mismatch, N < 2.
+        Invalid strategy, ``lambda_value < 0``, ``lambda_value <= 0``
+        under M6 or M2, non-square / non-finite K, dtype mismatch,
+        N < 2.
     BitIdenticalNullError
         M1 produced ``K_null == K_precursor`` bit-identically.
+    M2NotEligibleError
+        M2 strategy invoked on a cell the verifier refuses. Carries
+        the :class:`M2EligibilityVerdict` as ``.verdict``.
+    M2TopologyMutationError
+        M2 realisation post-check observed a topology-hash drift —
+        internal invariant break. Verifier should have screened this.
     """
     if strategy not in _VALID_STRATEGIES:
         raise D002GNullInvalid(
@@ -611,6 +1179,11 @@ def realize_null(
             "M6_PLACEBO_COUPLING requires lambda_value > 0 "
             "(no precursor delta to permute at lambda=0)"
         )
+    if strategy == "M2_TOPOLOGY_PRESERVING_SHUFFLE" and lambda_value <= 0.0:
+        raise D002GNullInvalid(
+            "M2_TOPOLOGY_PRESERVING_SHUFFLE requires lambda_value > 0 "
+            "(no ΔK to permute at lambda=0)"
+        )
 
     effective_null_seed = (
         int(null_seed) if null_seed is not None else _default_null_seed(strategy, base_seed)
@@ -618,6 +1191,26 @@ def realize_null(
 
     if strategy == "M1_INDEPENDENT_SEED":
         K_null, mech_meta = _realize_m1(
+            substrate,
+            base_seed=int(base_seed),
+            null_seed=effective_null_seed,
+            lambda_value=float(lambda_value),
+            N=int(N),
+        )
+    elif strategy == "M2_TOPOLOGY_PRESERVING_SHUFFLE":
+        # Pre-check via verifier; fail-closed on any non-ELIGIBLE
+        # verdict so the M2 realization layer never silently downgrades
+        # to a no-op or to a different mechanism.
+        verdict = verify_m2_eligibility(
+            substrate,
+            N=int(N),
+            lambda_value=float(lambda_value),
+            base_seed=int(base_seed),
+            null_seed=effective_null_seed,
+        )
+        if verdict.status != _M2_ELIGIBLE:
+            raise M2NotEligibleError(verdict)
+        K_null, mech_meta = _realize_m2(
             substrate,
             base_seed=int(base_seed),
             null_seed=effective_null_seed,
@@ -669,6 +1262,11 @@ def realize_null(
 __all__ = [
     "BitIdenticalNullError",
     "D002GNullInvalid",
+    "M2EligibilityStatus",
+    "M2EligibilityVerdict",
+    "M2NotEligibleError",
+    "M2TopologyMutationError",
+    "M2_PLACEBO_SALT",
     "M6InsufficientCandidatePool",
     "M6_PLACEBO_SALT",
     "NULL_SEED_OFFSET",
@@ -677,4 +1275,5 @@ __all__ = [
     "R2_B_RANDOM_SITE_SEED",
     "deterministic_mix",
     "realize_null",
+    "verify_m2_eligibility",
 ]
