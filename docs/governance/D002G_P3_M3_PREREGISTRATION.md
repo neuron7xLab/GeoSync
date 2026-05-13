@@ -29,7 +29,10 @@ cohort by drawing an INDEPENDENT realisation from a TOPOLOGY-MATCHED
 generator whose marginals match the precursor's marginals at the
 canonical injection slice.
 
-Concretely (sketch — to be refined by the implementation PR):
+Concretely, the implementation PR may refine only implementation details
+inside the locked M3 family below. It may NOT change the mechanism family,
+admissibility criteria, failure states, negative controls, forbidden
+interpretations, or RNG salt without creating a fresh M4 pre-registration.
 
 ```
 M3.realize_null(substrate, base_seed, null_seed, λ, N):
@@ -145,3 +148,41 @@ subsequent edit to this document constitutes a fresh M4
 pre-registration. The locked salt for M3 RNG mixing is reserved
 (523) but not yet implemented; reservation is recorded here so a
 future PR cannot accidentally pick it for an unrelated mechanism.
+
+### 9.1 Refinement scope contract (escape-hatch closure)
+
+The phrase "implementation PR may refine implementation details" in §2
+is bounded by the following explicit lists. These lists are part of the
+M3 pre-registration lock; touching either list constitutes a fresh M4
+pre-registration, not a patch to this M3.
+
+**Allowed future refinement scope (implementation PR may decide):**
+- concrete marginal-distance estimator implementation (e.g. specific
+  Wasserstein quantile estimator, density relative-error formula,
+  spectral-radius extractor) — provided the marginal set itself
+  (degree sequence + block-label histogram + spectral radius / N +
+  density) is unchanged;
+- tolerance constants (`tol_marginal`, `tol_non_degenerate`,
+  `tol_density`) — provided they are pre-declared in the M3
+  implementation PR body BEFORE any canonical result is inspected and
+  pinned in the implementation report's claim-boundary block;
+- generator engineering details (sampling order, batching, vectorised
+  paths) needed to satisfy the locked match-set deterministically.
+
+**Forbidden future refinement scope (requires fresh M4 pre-registration):**
+- replacing topology-conditioned independent realisation with another
+  mechanism family (e.g. swapping to permutation, generative-model
+  surrogate, or any non-marginal-matched null);
+- adding post-hoc admissibility criteria after observing canonical
+  outcomes (criteria adjustment-to-pass is the failure mode this
+  pre-registration exists to prevent);
+- removing or weakening any failure state enumerated in §5;
+- removing or weakening any negative control enumerated in §6;
+- changing the locked salt 523 to another value;
+- authorising a canonical D-002G run from M3 eligibility alone
+  (canonical run authorisation still requires the B1 ∧ B2 conjunction
+  per `D002G_P3_NULL_DOMAIN_CONTRACTS.md §7`).
+
+If the implementation PR finds a refinement need that falls outside the
+Allowed list, the protocol-correct response is to open a fresh M4
+pre-registration document, NOT to edit this one.
