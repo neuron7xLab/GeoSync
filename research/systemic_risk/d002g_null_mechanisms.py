@@ -2549,9 +2549,19 @@ def verify_m3_eligibility(
         )
 
     inject_t = int(next(iter(PRECURSOR_INJECTION_WINDOW)))
+    # Narrowed catch — np.asarray + indexing can raise this concrete set on
+    # malformed substrate output. Any other exception SHOULD propagate so an
+    # unexpected failure mode surfaces as a real bug, not a silent INELIGIBLE.
     try:
         K_p = np.asarray(real.K_precursor[inject_t], dtype=np.float64)
-    except Exception as exc:  # noqa: BLE001
+    except (
+        ValueError,
+        TypeError,
+        IndexError,
+        KeyError,
+        AttributeError,
+        np.linalg.LinAlgError,
+    ) as exc:
         return M3EligibilityVerdict(
             status="INELIGIBLE_M3_SHAPE_CONTRACT_VIOLATION",
             substrate_id=sub_id,
@@ -2673,6 +2683,23 @@ def verify_m3_eligibility(
 
     # ---- Criterion 3: identifiable from precursor (ensemble of 100 seeds)
     summaries_for_pairwise: list[M3TopologySummary] = []
+    # Narrowed catch — substrate.realize and numpy extraction can raise the
+    # concrete set below; any OTHER exception type SHOULD propagate so an
+    # unexpected failure mode surfaces as a real bug, not a silently-skipped
+    # seed. The fail-safe semantic is preserved: any seed that legitimately
+    # fails to realise → skip; the ensemble shrinks; if < 50/100 valid
+    # summaries remain, admissibility criterion 3 fails closed downstream.
+    _SUBSTRATE_REALIZE_EXPECTED = (
+        ValueError,
+        RuntimeError,
+        ArithmeticError,
+        AttributeError,
+        IndexError,
+        KeyError,
+        TypeError,
+        MemoryError,
+        np.linalg.LinAlgError,
+    )
     for s in range(M3_PRECURSOR_ENSEMBLE_SIZE):
         try:
             r_s = substrate.realize(N=int(N), lambda_=float(lambda_value), seed=int(s))
@@ -2682,7 +2709,7 @@ def verify_m3_eligibility(
             summaries_for_pairwise.append(
                 extract_m3_topology_summary(K_s, substrate_block_labels=block_labels)
             )
-        except Exception:  # noqa: BLE001
+        except _SUBSTRATE_REALIZE_EXPECTED:
             # Any failed seed reduces the effective ensemble; the check
             # is "≥ 50 distinct pairs out of 100 attempted" — if we have
             # <50 valid summaries the substrate cannot meet the criterion.

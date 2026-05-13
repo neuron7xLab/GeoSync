@@ -285,10 +285,39 @@ def test_m3_constants_distinct_from_prior_salts() -> None:
 
 
 def test_m3_constants_max_iterations_locked() -> None:
-    """Generator max iterations is a locked constant."""
+    """Generator max iterations is a locked constant at 100.
+
+    Positive: exact pin. Negative: rejects degenerate values and common
+    drift targets so a silent constant retune cannot pass under the cover
+    of "refinement". M3 pre-reg §9.1 explicitly forbids salt / constant
+    drift without a fresh M4 pre-registration.
+    """
+    # Positive — exact value pinned.
     assert M3_GENERATOR_MAX_ITERATIONS == 100
+    # Negative — must not be a degenerate value that defeats the
+    # generator's fail-closed contract.
+    assert M3_GENERATOR_MAX_ITERATIONS > 0, "max_iterations must be positive"
+    assert M3_GENERATOR_MAX_ITERATIONS != 1, "max_iterations must permit ≥1 rebalance"
+    # Drift sentinel — common-default values that would indicate a silent
+    # constant retune rather than an intentional M4 pre-registration.
+    assert M3_GENERATOR_MAX_ITERATIONS not in {10, 50, 200, 500, 1000}, "drift"
 
 
 def test_m3_constants_precursor_ensemble_size_locked() -> None:
-    """Precursor-specificity ensemble size is a locked constant."""
+    """Precursor-specificity ensemble size is a locked constant at 100.
+
+    Positive: exact pin. Negative: rejects degenerate values, enforces
+    even-ness so the 50% majority threshold in criterion 3 is exact
+    integer (not a floor-rounded approximation), and catches drift to
+    common-default values.
+    """
+    # Positive — exact value pinned.
     assert M3_PRECURSOR_ENSEMBLE_SIZE == 100
+    # Negative — ensemble must be large enough for the 50/100 majority
+    # threshold in admissibility criterion 3 to be statistically meaningful.
+    assert M3_PRECURSOR_ENSEMBLE_SIZE >= 30, "ensemble size < 30 is uninformative"
+    # Even-ness — the 50% majority cut must be an integer, not floor(N/2).
+    assert M3_PRECURSOR_ENSEMBLE_SIZE % 2 == 0, "ensemble size must be even"
+    # Drift sentinel — common-default values that would indicate a silent
+    # constant retune rather than an intentional M4 pre-registration.
+    assert M3_PRECURSOR_ENSEMBLE_SIZE not in {10, 20, 50, 200, 500, 1000}, "drift"
