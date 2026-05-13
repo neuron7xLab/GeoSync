@@ -133,3 +133,18 @@ Per `D002H_CANONICAL_RUN_AUTHORIZATION_GATES.md`, Gate B PASS is necessary
 but NOT sufficient for canonical D-002H run authorisation. Gates A, B
 closed. Gates C, D, E, F, G remain open. Canonical run remains BLOCKED.
 
+---
+
+## D-002H Gate C — canonical parameter grid declared
+
+**Status:** PASS
+**Artifact:** `artifacts/d002h/canonical/d002h_canonical_grid.json`
+**Schema:** D002H-CANONICAL-GRID-v1
+**Report:** `docs/governance/D002H_GATE_C_CANONICAL_GRID.md`
+
+Per `D002H_CANONICAL_RUN_AUTHORIZATION_GATES.md` §C: locked canonical
+parameter grid declared as machine-readable artifact + human-readable
+report. Grid matches D-002H prereg `canonical_grid` block byte-exact.
+Gates A, B, C closed. Gates D, E, F, G remain open. Canonical run
+remains BLOCKED until conjunction A ∧ B ∧ C ∧ D ∧ E ∧ F ∧ G.
+
