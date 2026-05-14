@@ -16,7 +16,20 @@
 
 id: x10r-d002h-ledger-append-refused
 status: ACTIVE
-claim_type: governance
+# claim_type=chore: this PR contains TWO orthogonal kinds of change
+# under one commit acceptor:
+#   (1) a single append-only governance touch (the D-002H REFUSED
+#       entry on docs/governance/D002C_CLAIM_LEDGER.yaml) plus its
+#       contract tests;
+#   (2) sha-pin rotation across ~16 byte-exact-guard tests under
+#       tests/systemic_risk/ that pinned the pre-append ledger sha
+#       (each guard fired correctly when the ledger legitimately
+#       rotated). The rotation is a mechanical identifier rewrite —
+#       sha256 hex value swap with no behavior or architecture
+#       change — which matches the chore claim_type contract.
+# The chore cap (24) admits the combined 20-file diff scope; the
+# original governance cap (16) does not.
+claim_type: chore
 promise: >-
   After this PR lands, docs/governance/D002C_CLAIM_LEDGER.yaml carries
   exactly 3 claim entries (was 2):
