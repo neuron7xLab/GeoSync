@@ -1,10 +1,10 @@
 {
   "schema_version": "D002J-SOURCE-REGISTRY-v1",
-  "generated_at": "2026-05-14T00:00:00Z",
+  "generated_at": "2026-05-14T20:00:00Z",
   "study_id": "D-002J",
-  "pr_lineage": "D-002J-P1",
+  "pr_lineage": "D-002J-P1B",
   "registry_scope": "documentation_only_no_ingest",
-  "total_sources": 25,
+  "total_sources": 26,
   "sources": [
     {
       "source_id": "BIS_CBS",
@@ -107,9 +107,9 @@
       "provider": "European Central Bank",
       "source_class": "banking",
       "status": "USABLE_NOW",
-      "official_url": "https://sdw.ecb.europa.eu/browse.do?node=9691593",
-      "documentation_url": "https://www.ecb.europa.eu/stats/ecb_statistics/escb/html/table.en.html?id=JDF_CBD2",
-      "access_method": "public_sdw_api",
+      "official_url": "https://data.ecb.europa.eu/data/datasets/CBD2",
+      "documentation_url": "https://data.ecb.europa.eu/methodology/consolidated-banking-data",
+      "access_method": "public_ecb_data_portal_api",
       "coverage_start": "2007-Q1",
       "coverage_end": "ongoing",
       "frequency": "quarterly_and_semiannual",
@@ -145,7 +145,7 @@
         "pre_2007_history",
         "non_euro_area_jurisdictions"
       ],
-      "evidence_notes": "ECB_FSR_Eurozone_2011_2012 references CBD for cross-border euro-area exposure aggregates."
+      "evidence_notes": "ECB_FSR_Eurozone_2011_2012 references CBD for cross-border euro-area exposure aggregates. P1B repair (2026-05-14): SDW domain decommissioned; official_url repinned to ECB Data Portal CBD2 dataset (https://data.ecb.europa.eu/data/datasets/CBD2 HEAD 200) and documentation_url to ECB CBD methodology page (https://data.ecb.europa.eu/methodology/consolidated-banking-data HEAD 200); access_method updated to public_ecb_data_portal_api."
     },
     {
       "source_id": "FED_Y9C",
@@ -452,6 +452,61 @@
       "evidence_notes": "Croushore_2011 lookahead-bias arguments require ALFRED for honest replication."
     },
     {
+      "source_id": "PHILLY_FED_RTDSM",
+      "name": "Philadelphia Fed Real-Time Data Set for Macroeconomists",
+      "provider": "Federal Reserve Bank of Philadelphia",
+      "source_class": "macro_financial",
+      "status": "USABLE_NOW",
+      "official_url": "https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/real-time-data-set-for-macroeconomists",
+      "documentation_url": "https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/real-time-data-set-full-documentation",
+      "access_method": "public_bulk_download_xlsx_csv",
+      "coverage_start": "1965-Q4",
+      "coverage_end": "ongoing",
+      "frequency": "quarterly_vintage_dated",
+      "geography": "US_macro_real_time_lens",
+      "variables": [
+        "real_GNP_GDP_vintages",
+        "nominal_GNP_GDP_vintages",
+        "industrial_production_vintages",
+        "civilian_unemployment_rate_vintages",
+        "CPI_vintages",
+        "PCE_vintages",
+        "payroll_employment_vintages",
+        "real_personal_consumption_expenditures_vintages",
+        "fixed_investment_vintages",
+        "money_stock_M1_M2_vintages"
+      ],
+      "crisis_window_relevance": ["CW1", "CW2", "CW3", "CW4", "CW5", "CW6"],
+      "mechanistic_relevance": [
+        "real_time_information_constraint",
+        "vintage_anti_leakage_baseline"
+      ],
+      "license_boundary": "public_redistribution_permitted_with_attribution",
+      "known_limitations": [
+        "US_only_no_international_coverage",
+        "macro_only_no_financial_micro_data",
+        "quarterly_vintage_release_cadence_no_daily_granularity",
+        "non_RTDSM_native_series_not_vintaged"
+      ],
+      "data_quality_risks": [
+        "vintage_definitions_differ_across_release_dates",
+        "definitional_revisions_require_explicit_alignment_notes",
+        "Croushore_Stark_methodology_required_for_proper_vintage_use"
+      ],
+      "ingestion_readiness": "fully_documented_ready_for_W1_downstream_pr",
+      "recommended_use": [
+        "real_time_validation_to_avoid_lookahead_bias_at_macro_layer",
+        "pre_crisis_precursor_signal_only_with_vintage_data",
+        "canonical_us_vintage_pair_with_ALFRED"
+      ],
+      "forbidden_use": [
+        "post_hoc_revised_data_used_for_in_window_prediction",
+        "redistribution_without_Philadelphia_Fed_attribution",
+        "claim_of_owning_the_methodology"
+      ],
+      "evidence_notes": "Philadelphia Fed RTDSM is the canonical academic source for vintage US macro data since Croushore & Stark (1999, 2003) established the dataset; complements ALFRED for FRED-native series with non-FRED-native macro variables (GNP-era pre-1992 definitions, multiple GDP definitional regimes). Selected in P1B (2026-05-14) to satisfy the information_constraint mechanism-family floor (≥2 verified/partial sources). official_url + documentation_url HEAD 200 verified."
+    },
+    {
       "source_id": "OFR_FSI",
       "name": "OFR Financial Stress Index",
       "provider": "Office of Financial Research (OFR), US Treasury",
@@ -619,8 +674,8 @@
       "provider": "ICE BofA (public daily series via FRED partial coverage)",
       "source_class": "market_structure",
       "status": "CANDIDATE_REQUIRES_LICENSE_REVIEW",
-      "official_url": "https://www.theice.com/iba/move-index",
-      "documentation_url": "https://www.theice.com/publicdocs/MOVE_Index_Methodology.pdf",
+      "official_url": "https://www.theice.com/iba",
+      "documentation_url": "https://www.ice.com/products",
       "access_method": "public_summary_full_history_licensed",
       "coverage_start": "1988-04-01",
       "coverage_end": "ongoing",
@@ -650,7 +705,7 @@
         "redistribution_of_full_history_without_licence",
         "claim_of_owning_the_methodology"
       ],
-      "evidence_notes": "Restricted by vendor licence for full history; partial coverage may be public."
+      "evidence_notes": "Restricted by vendor licence for full history; partial coverage may be public. P1B repair (2026-05-14): legacy URLs /iba/move-index + /publicdocs/MOVE_Index_Methodology.pdf both HTTP 404; repinned to live ICE Benchmark Administration landing https://www.theice.com/iba (HEAD 200, redirects to ice.com/iba) and ICE products index https://www.ice.com/products (HEAD 200). Specific MOVE methodology PDF not relocatable on live ICE site as of P1B HEAD probe — full methodology now lives in ICE Indices subscriber portal; vendor-licence boundary unchanged."
     },
     {
       "source_id": "BIS_QR_NETWORK",
@@ -658,7 +713,7 @@
       "provider": "Bank for International Settlements",
       "source_class": "market_structure",
       "status": "USABLE_NOW",
-      "official_url": "https://www.bis.org/publ/qtrpdf/",
+      "official_url": "https://www.bis.org/publ/quarterly.htm",
       "documentation_url": "https://www.bis.org/statistics/",
       "access_method": "public_pdf_plus_associated_csv_data",
       "coverage_start": "1994",
@@ -691,7 +746,7 @@
       "forbidden_use": [
         "claim_of_machine_readable_full_dataset_underlying_narrative"
       ],
-      "evidence_notes": "BIS_QR_2019_Q4 is the canonical 2019 repo spike narrative; BIS_QR_2020_Q2 for COVID."
+      "evidence_notes": "BIS_QR_2019_Q4 is the canonical 2019 repo spike narrative; BIS_QR_2020_Q2 for COVID. P1B repair (2026-05-14): legacy directory listing /publ/qtrpdf/ HTTP 404 after BIS site reorganisation; repinned to canonical BIS Quarterly Review landing https://www.bis.org/publ/quarterly.htm (HEAD 200, redirects to current issue r_qt2603.htm)."
     },
     {
       "source_id": "OFR_WP_NETWORK",
@@ -776,11 +831,11 @@
     {
       "source_id": "FED_TIMELINE",
       "name": "Federal Reserve Crisis Response Timelines and Post-Mortems",
-      "provider": "Federal Reserve Board / FRBNY / FRBSF / others",
+      "provider": "Federal Reserve Board / FRBNY / FRBSF / Federal Reserve History",
       "source_class": "crisis_window",
       "status": "USABLE_NOW",
-      "official_url": "https://www.federalreserve.gov/aboutthefed/educational-tools/foia-financial-crisis-timeline.htm",
-      "documentation_url": "https://www.federalreserve.gov/monetarypolicy/financial-stability.htm",
+      "official_url": "https://www.federalreserve.gov/publications/financial-stability-report.htm",
+      "documentation_url": "https://www.federalreservehistory.org/essays/great-recession-of-200709",
       "access_method": "public_pdf_plus_html",
       "coverage_start": "2007",
       "coverage_end": "ongoing",
@@ -813,7 +868,7 @@
       "forbidden_use": [
         "claim_of_underlying_decision_internals_beyond_public_record"
       ],
-      "evidence_notes": "FRBSF_Williams_2020 covid timeline + FRBNY post-mortems are canonical."
+      "evidence_notes": "FRBSF_Williams_2020 covid timeline + FRBNY post-mortems are canonical. P1B repair (2026-05-14): legacy URLs /aboutthefed/educational-tools/foia-financial-crisis-timeline.htm and /monetarypolicy/financial-stability.htm both HTTP 404 after FRB site reorganisation; repinned to canonical Federal Reserve Financial Stability Report https://www.federalreserve.gov/publications/financial-stability-report.htm (HEAD 200/206) and Federal Reserve History Great Recession essay https://www.federalreservehistory.org/essays/great-recession-of-200709 (HEAD 200, peer-reviewed FRB historical research)."
     },
     {
       "source_id": "ECB_FSR",
@@ -862,8 +917,8 @@
       "provider": "Bank of England",
       "source_class": "crisis_window",
       "status": "USABLE_NOW",
-      "official_url": "https://www.bankofengland.co.uk/financial-stability-report/2022",
-      "documentation_url": "https://www.bankofengland.co.uk/working-paper",
+      "official_url": "https://www.bankofengland.co.uk/financial-stability-report/2022/december-2022",
+      "documentation_url": "https://www.bankofengland.co.uk/working-paper/staff-working-papers",
       "access_method": "public_pdf_html",
       "coverage_start": "2022",
       "coverage_end": "ongoing",
@@ -896,7 +951,7 @@
       "forbidden_use": [
         "claim_of_individual_pension_fund_attribution"
       ],
-      "evidence_notes": "BoE FSR Dec 2022 + BoE Working Paper 1019 (Czech_Huang_Silva_Vause_2022) are canonical."
+      "evidence_notes": "BoE FSR Dec 2022 + BoE Working Paper 1019 (Czech_Huang_Silva_Vause_2022) are canonical. P1B repair (2026-05-14): legacy URLs /financial-stability-report/2022 and /working-paper both HTTP 404 after BoE slug reorganisation; repinned to canonical BoE FSR December 2022 issue https://www.bankofengland.co.uk/financial-stability-report/2022/december-2022 (HEAD 200, title 'Financial Stability Report - December 2022') and BoE Staff Working Papers index https://www.bankofengland.co.uk/working-paper/staff-working-papers (HEAD 200)."
     },
     {
       "source_id": "LIT_INTERBANK_CONTAGION",
@@ -951,7 +1006,7 @@
       "provider": "FDIC Office of Inspector General",
       "source_class": "crisis_window",
       "status": "USABLE_NOW",
-      "official_url": "https://www.fdicoig.gov/publications/material-loss-reviews",
+      "official_url": "https://www.fdicoig.gov/",
       "documentation_url": "https://www.fdic.gov/news/news/press/2023/index.html",
       "access_method": "public_pdf",
       "coverage_start": "2008",
@@ -984,7 +1039,7 @@
       "forbidden_use": [
         "claim_of_real_time_supervisory_decisions"
       ],
-      "evidence_notes": "FDIC OIG MLRs are the canonical public source for failed-bank post-mortems."
+      "evidence_notes": "FDIC OIG MLRs are the canonical public source for failed-bank post-mortems. P1B incidental repair (2026-05-14): legacy /publications/material-loss-reviews path HTTP 404 across all candidate paths (/publications, /reports, /our-work/material-loss-reviews, /audits, etc. all 404); the substantive FDIC OIG product is only reachable via the agency root https://www.fdicoig.gov/ (HEAD 200). Repinned official_url to FDIC OIG root to keep USABLE_NOW honest; specific MLR landing must be navigated from the root."
     },
     {
       "source_id": "LIT_NETWORK_RECON",

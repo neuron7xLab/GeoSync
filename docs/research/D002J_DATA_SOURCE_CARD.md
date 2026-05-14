@@ -203,7 +203,7 @@ A card missing any of the eight fields is incomplete.
 - **name**: Bank of England Financial Policy Committee and Working
   Paper reports on the 2022 LDI episode
 - **provider**: Bank of England (BoE)
-- **official_url**: https://www.bankofengland.co.uk/financial-stability-report/2022
+- **official_url**: https://www.bankofengland.co.uk/financial-stability-report/2022/december-2022
 - **license**: public domain with attribution required
 - **what_it_gives_us**:
   - Canonical post-mortem chronology of the 2022-09 LDI fund
@@ -248,6 +248,48 @@ A card missing any of the eight fields is incomplete.
   - Paper results CANNOT be treated as raw data series
   - Methodology references CANNOT substitute for an empirical
     null model in the D-002J pipeline
+
+---
+
+## Card 9 — Philadelphia Fed Real-Time Data Set for Macroeconomists (added in P1B)
+
+- **source_id**: `PHILLY_FED_RTDSM`
+- **name**: Philadelphia Fed Real-Time Data Set for Macroeconomists
+- **provider**: Federal Reserve Bank of Philadelphia
+- **official_url**: https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/real-time-data-set-for-macroeconomists
+- **documentation_url**: https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/real-time-data-set-full-documentation
+- **license**: public redistribution permitted with attribution to Federal Reserve Bank of Philadelphia
+- **what_it_gives_us**:
+  - Canonical vintage US macro time-series — every observation
+    carries the date at which it was first released, allowing
+    honest real-time replication free of revision lookahead
+  - Coverage from 1965-Q4 onwards across real and nominal GNP/GDP,
+    industrial production, civilian unemployment, CPI, PCE,
+    payroll employment, fixed investment, and M1/M2 money stock
+  - Non-FRED-native macro variables (GNP-era pre-1992 definitions,
+    multiple GDP definitional regimes) that ALFRED does not vintage
+- **what_it_does_not**:
+  - US-only — no international macro real-time data
+  - Macro-only — no financial micro data (no bank balance sheets,
+    no repo, no derivatives)
+  - Quarterly vintage release cadence — no daily granularity
+  - Series not present in RTDSM are not vintaged
+- **ingestion_notes**:
+  - Public bulk download via XLSX / CSV
+  - Pipeline grade: READY for W1 downstream PR
+  - Anchor methodology: Croushore & Stark (1999, 2003)
+- **forbidden_interpretations**:
+  - Post-hoc revised data CANNOT be used for in-window prediction
+  - Redistribution requires explicit Philadelphia Fed attribution
+  - Methodology CANNOT be claimed as owned by the user — it is
+    the Philadelphia Fed's
+  - This card is for vintage US macro data only; do not extrapolate
+    to financial micro-data or non-US series
+
+This card was added in **D-002J-P1B** (2026-05-14) to satisfy the
+`information_constraint` mechanism-family floor (≥ 2 verified/partial
+sources). Together with `ALFRED`, this forms the canonical US
+vintage-data pair.
 
 ---
 

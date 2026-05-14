@@ -451,3 +451,70 @@ explicit, dated, signed justification AND re-pins the five
 DOWNGRADED URL fields. P2 (`feat(x10r,D-002J-P2): implement crisis
 window registry v1`) cannot open until the audit decision flips to
 `SOURCE_REGISTRY_VERIFIED` or `SOURCE_REGISTRY_PARTIALLY_VERIFIED`.
+
+## D-002J-P1B — source registry provenance repair landed (PARTIALLY_VERIFIED)
+
+**Status:** D-002J-P1B LANDED (registry repair; decision `SOURCE_REGISTRY_PARTIALLY_VERIFIED`)
+**Parent:** D-002J-P1A (PR #697) `SOURCE_REGISTRY_REJECTED` at merge sha `4b64faf67f4c1bec48a66d20eeddbdf6931e762d`
+**PR:** `fix/x10r-d002j-p1b-source-registry-provenance-repair`
+**Registry artifact (P1B):** `artifacts/d002j/data_registry/source_registry_v1.json` (sha256 `570ca2e219a8a398f9e6819516905623d73d08c7c135d2f6048686b46f5dbbf8`)
+**Audit artifact:** `artifacts/d002j/data_registry/source_provenance_audit_v1.json` (schema `D002J-SOURCE-PROVENANCE-AUDIT-v1`)
+**Smoke artifact:** `artifacts/d002j/data_registry/source_access_smoke_v1.json` (schema `D002J-SOURCE-ACCESS-SMOKE-v1`)
+**Evidence-lock artifact:** `artifacts/d002j/data_registry/source_evidence_lock_v1.json` (schema `D002J-SOURCE-EVIDENCE-LOCK-v1`)
+**Summary artifact:** `artifacts/d002j/data_registry/source_registry_audit_summary_v1.json` (schema `D002J-SOURCE-REGISTRY-AUDIT-SUMMARY-v1`)
+**Audit decision:** `SOURCE_REGISTRY_PARTIALLY_VERIFIED`
+**Counts:** 18 VERIFIED, 8 PARTIAL, 0 DOWNGRADED, 0 REJECTED (verified_or_partial=26 ≥ 18 floor PASS)
+**verified_usable_now:** 18 (≥ 12 floor PASS)
+**Crisis-window retention (≥3 verified/partial each):** CW1 21, CW2 16, CW3 17, CW4 19, CW5 12, CW6 16 — PASS
+**Mechanism-family retention (≥2 verified/partial each):** balance_sheet 4, contagion 5, **information_constraint 2 (was 1 — now PASS)**, liquidity_funding 7, market_wide_stress 7, official_response 7 — ALL PASS
+**P1B repair outcomes (5 URLs + 1 new source):**
+- ECB_CBD: `REPIN_CANONICAL_URL` → `https://data.ecb.europa.eu/data/datasets/CBD2` (audit_status DOWNGRADED → VERIFIED)
+- ICAP_MOVE: `REPIN_CANONICAL_URL` → `https://www.theice.com/iba` (audit_status DOWNGRADED → PARTIAL — methodology PDF unrecoverable; license-bound)
+- BIS_QR_NETWORK: `REPIN_CANONICAL_URL` → `https://www.bis.org/publ/quarterly.htm` (audit_status DOWNGRADED → VERIFIED)
+- FED_TIMELINE: `REPIN_CANONICAL_URL` → `https://www.federalreserve.gov/publications/financial-stability-report.htm` + `https://www.federalreservehistory.org/essays/great-recession-of-200709` (audit_status DOWNGRADED → VERIFIED)
+- BOE_LDI_REVIEW: `REPIN_CANONICAL_URL` → `https://www.bankofengland.co.uk/financial-stability-report/2022/december-2022` (audit_status DOWNGRADED → VERIFIED)
+- PHILLY_FED_RTDSM: `ADDED_NEW_INFORMATION_CONSTRAINT_SOURCE` (new VERIFIED source, satisfies information_constraint mech-family floor; complement to ALFRED)
+
+D-002J-P1B is the surgical repair gate following P1A. P1B repairs the
+structural defects surfaced by P1A's audit (one mechanism-family floor
+failure + five broken URL pins) WITHOUT weakening the rules, WITHOUT
+amending the D-002J prereg, and WITHOUT folding the taxonomy. Every
+URL repair was HEAD-verified at audit time.
+
+Hard scope boundary (repeat for safety):
+
+- D-002J-P1B is **registry repair only**. P1B does **NOT** ingest any data.
+- D-002J-P1B does **NOT** authorise any canonical run.
+  `canonical_run_authorized: false`.
+- D-002J-P1B does **NOT** claim real-bank validation.
+- D-002J-P1B does **NOT** rescue D-002H. D-002H REFUSED remains the
+  truthful canonical verdict.
+- D-002J-P1B does **NOT** pre-empt the D-002I investigation outcomes.
+- D-002J-P1B does **NOT** weaken the prereg `information_constraint`
+  mechanism-family floor (≥ 2 verified/partial preserved).
+- D-002J-P1B does **NOT** collapse the taxonomy (information_constraint
+  retained as a separate mechanism family).
+- D-002J-P1B does **NOT** edit any locked governance file:
+  D-002G prereg sha256 byte-exact
+  `1ab91f09370e4705a8b0849467bc1f56df2e58d58d5623d3b6d905cbd110bb04`,
+  D-002G acceptance rules sha256 byte-exact
+  `875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31`,
+  D-002H prereg sha256 byte-exact
+  `44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec`,
+  D-002I prereg sha256 byte-exact
+  `b646989c032dc0e29f9b791e0b68209ff22b40f4757737712badc8656cf2db5f`,
+  D-002J prereg sha256 byte-exact
+  `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`,
+  D-002C claim ledger sha256 byte-exact
+  `eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387`.
+- D-002J-P1B does **NOT** edit any source code under
+  `research/systemic_risk/*.py` or any `scripts/x10r_d002*.py`.
+- D-002J-P1B does **NOT** rewrite the P1A REJECTED audit verdict —
+  the P1A section in `docs/research/D002J_SOURCE_DOWNGRADE_LOG.md` is
+  preserved verbatim as banked truth.
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B this PR (PARTIALLY_VERIFIED)`.
+
+Next legal PR: `feat(x10r,D-002J-P2): implement crisis window registry v1` —
+opens W2 of the D-002J Frontier Benchmark Program now that the
+provenance audit decision has flipped to PARTIALLY_VERIFIED.

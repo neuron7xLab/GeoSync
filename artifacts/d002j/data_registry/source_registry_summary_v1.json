@@ -1,19 +1,19 @@
 {
   "schema_version": "D002J-SOURCE-REGISTRY-SUMMARY-v1",
-  "generated_at": "2026-05-14T00:00:00Z",
+  "generated_at": "2026-05-14T20:00:00Z",
   "study_id": "D-002J",
-  "pr_lineage": "D-002J-P1",
+  "pr_lineage": "D-002J-P1B",
   "registry_scope": "documentation_only_no_ingest",
-  "total_sources": 25,
+  "total_sources": 26,
   "by_status": {
-    "USABLE_NOW": 23,
+    "USABLE_NOW": 24,
     "CANDIDATE_REQUIRES_LICENSE_REVIEW": 2,
     "REJECTED_NONPUBLIC_OR_RESTRICTED": 0
   },
   "by_source_class": {
     "banking": 4,
     "repo": 4,
-    "macro_financial": 5,
+    "macro_financial": 6,
     "market_structure": 4,
     "crisis_window": 5,
     "literature_support": 3
@@ -58,16 +58,17 @@
     "external_crisis_window_anchor": 1,
     "us_financial_stress_anchor": 1,
     "us_financial_stress_alternative_construction": 1,
-    "real_time_information_constraint": 1,
+    "real_time_information_constraint": 2,
+    "vintage_anti_leakage_baseline": 1,
     "supervisory_failure_attribution": 1
   },
   "by_crisis_window": {
-    "CW1": 20,
-    "CW2": 15,
-    "CW3": 16,
-    "CW4": 18,
-    "CW5": 11,
-    "CW6": 15
+    "CW1": 21,
+    "CW2": 16,
+    "CW3": 17,
+    "CW4": 19,
+    "CW5": 12,
+    "CW6": 16
   },
   "floors": {
     "min_total_sources": 18,
@@ -91,11 +92,11 @@
     "literature_support": "PASS",
     "per_crisis_window_min_5": "PASS"
   },
-  "usable_now_count": 23,
+  "usable_now_count": 24,
   "candidate_count": 2,
   "rejected_count": 0,
   "decision": "DATA_REGISTRY_READY",
-  "decision_rationale": "All declared floors satisfied; 25 sources documented; 23 USABLE_NOW; 2 CANDIDATE_REQUIRES_LICENSE_REVIEW; 0 REJECTED_NONPUBLIC_OR_RESTRICTED; every crisis window CW1..CW6 has at least 11 corroborating sources (floor 5); every source_class meets its floor; literature_support carries Eisenberg-Noe / Battiston / Glasserman-Young / Anand / Mistrulli / Brunnermeier / Gorton-Metrick anchors.",
+  "decision_rationale": "P1B repair (2026-05-14): 26 sources documented (+1 vs P1 — PHILLY_FED_RTDSM added to satisfy information_constraint mechanism-family floor; 5 listed URL pins repaired in ECB_CBD, ICAP_MOVE, BIS_QR_NETWORK, FED_TIMELINE, BOE_LDI_REVIEW + 1 incidental repair in FDIC_SVB_POSTMORTEM (legacy /publications/material-loss-reviews path 404; repinned to FDIC OIG root) — all via HEAD-verified canonical URLs). 24 USABLE_NOW; 2 CANDIDATE_REQUIRES_LICENSE_REVIEW; 0 REJECTED_NONPUBLIC_OR_RESTRICTED; every crisis window CW1..CW6 has at least 12 corroborating sources (floor 5); every source_class meets its floor; literature_support carries Eisenberg-Noe / Battiston / Glasserman-Young / Anand / Mistrulli / Brunnermeier / Gorton-Metrick anchors. Information_constraint mechanism family now carries 2 sources (ALFRED + PHILLY_FED_RTDSM) — floor ≥ 2 PASS.",
   "forbidden_claims_carried_from_d002j_prereg": [
     "D-002J rescues D-002H",
     "D-002J invalidates D-002H REFUSED",
@@ -109,6 +110,21 @@
   "benchmark_only": true,
   "registry_only": true,
   "no_ingest_in_this_pr": true,
+  "p1b_repair_summary": {
+    "new_sources_added": ["PHILLY_FED_RTDSM"],
+    "url_repairs": {
+      "ECB_CBD": "REPIN_CANONICAL_URL",
+      "ICAP_MOVE": "REPIN_CANONICAL_URL",
+      "BIS_QR_NETWORK": "REPIN_CANONICAL_URL",
+      "FED_TIMELINE": "REPIN_CANONICAL_URL",
+      "BOE_LDI_REVIEW": "REPIN_CANONICAL_URL",
+      "FDIC_SVB_POSTMORTEM": "REPIN_CANONICAL_URL_INCIDENTAL"
+    },
+    "prereg_floor_unchanged": true,
+    "taxonomy_unchanged": true,
+    "sources_total_before": 25,
+    "sources_total_after": 26
+  },
   "locked_anchors": {
     "d002g_preregistration_sha256": "1ab91f09370e4705a8b0849467bc1f56df2e58d58d5623d3b6d905cbd110bb04",
     "d002g_acceptance_rules_sha256": "875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31",
