@@ -337,3 +337,49 @@ D-002H prereg byte-exact UNCHANGED at sha256
 D-002C claim ledger sha256 at D-002J prereg-lock anchor:
 `eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387`
 (unchanged from the D-002I lineage-opening append).
+
+---
+
+## D-002J-P1 — data source registry v1 landed
+
+**Status:** D-002J-P1 LANDED (registry assembled; benchmark-only; no canonical run)
+**Parent:** D-002J prereg PR `docs/x10r-d002j-financial-benchmark-prereg` (PR #694)
+**PR:** `feat/x10r-d002j-p1-data-source-registry-v1`
+**Registry artifact:** `artifacts/d002j/data_registry/source_registry_v1.json` (schema `D002J-SOURCE-REGISTRY-v1`)
+**Summary artifact:** `artifacts/d002j/data_registry/source_registry_summary_v1.json` (schema `D002J-SOURCE-REGISTRY-SUMMARY-v1`)
+**Total sources:** 25 documented (23 USABLE_NOW, 2 CANDIDATE_REQUIRES_LICENSE_REVIEW, 0 REJECTED)
+**Source classes:** banking 4, repo 4, macro_financial 5, market_structure 4, crisis_window 5, literature_support 3
+**Crisis-window coverage:** CW1 20, CW2 15, CW3 16, CW4 18, CW5 11, CW6 15 (floor 5 each — PASS)
+**Registry decision:** `DATA_REGISTRY_READY` (all floors satisfied; rationale recorded in summary `decision_rationale`)
+
+D-002J-P1 ships the **data source registry v1** under W1 scope: a
+machine-readable JSON registry, a JSON summary, a crisis-window
+coverage matrix (§10 in `D002J_DATA_SOURCE_MATRIX.md`), a
+mechanism-coverage matrix (§11), 8 filled source cards
+(`D002J_DATA_SOURCE_CARD.md`), and a full §9 selection rationale
+(`D002J_SOURCE_SELECTION_RATIONALE.md`) covering all 25 sources.
+
+Hard scope boundary (repeat for safety):
+
+- D-002J-P1 is **registry only**. P1 does **NOT** ingest any data.
+- D-002J-P1 does NOT rescue D-002H. D-002H REFUSED remains the
+  truthful canonical verdict.
+- D-002J-P1 does **NOT** authorise any canonical run.
+  `canonical_run_authorized: false`; `benchmark_only: true`.
+- D-002J-P1 does **NOT** claim real-bank validation.
+- D-002J-P1 does **NOT** pre-empt the D-002I investigation outcomes.
+- D-002J-P1 does **NOT** edit any locked governance file:
+  D-002G prereg sha256 byte-exact
+  `1ab91f09370e4705a8b0849467bc1f56df2e58d58d5623d3b6d905cbd110bb04`,
+  D-002G acceptance rules sha256 byte-exact
+  `875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31`,
+  D-002H prereg sha256 byte-exact
+  `44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec`,
+  D-002C claim ledger sha256 byte-exact
+  `eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387`,
+  D-002J prereg sha256 byte-exact at the P0 anchor
+  `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`.
+
+Next legal PR: `feat(x10r,D-002J-P2): implement crisis window registry v1` —
+expands W2 (machine-readable crisis-window registry on top of the
+narrative `D002J_CRISIS_WINDOW_REGISTRY.md` scaffold).

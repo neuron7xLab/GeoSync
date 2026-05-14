@@ -100,3 +100,79 @@ This scaffold inherits the locked-governance anchors recorded in
 `docs/governance/D002J_PREREGISTRATION.yaml` `locked_anchors`. Any
 edit to W1 acceptance contract (the §6 block above) constitutes a
 fresh D-002K pre-registration, not a patch.
+
+---
+
+## D-002J-P1 — Registry expansion (P1 PR)
+
+The matrices below are added by PR `feat/x10r-d002j-p1-data-source-registry-v1`.
+They EXPAND the scaffold above; they do NOT replace it. The machine-readable
+registry is at `artifacts/d002j/data_registry/source_registry_v1.json`
+(schema `D002J-SOURCE-REGISTRY-v1`). The summary breakdown is at
+`artifacts/d002j/data_registry/source_registry_summary_v1.json`
+(schema `D002J-SOURCE-REGISTRY-SUMMARY-v1`).
+
+**P1 scope discipline.** P1 documents publicly-known sources only. P1
+does NOT ingest any data, does NOT validate any source against
+real-bank ground truth, does NOT claim coverage completeness, and
+does NOT authorise a canonical run. See the D-002J pre-registration
+`forbidden_claims` block for the binding boundary.
+
+### §10 — Crisis-window coverage matrix
+
+Each row lists the candidate sources expected to anchor that window's
+mechanistic story, plus the primary / secondary indicators, a coarse
+coverage-quality rating, the known gap, and the recommended next
+action. `coverage_quality` is a documentation-grade rating, NOT a
+quantitative claim:
+
+- `HIGH` — multiple independent public sources at appropriate frequency cover the window end-to-end.
+- `MEDIUM` — the window is covered, but at least one mechanism axis is thin (frequency too coarse, narrative only, post-hoc only).
+- `LOW` — coverage is partial; explicit gap is the dominant feature.
+
+| crisis_window                  | candidate_sources                                                                                                | primary_indicator                                       | secondary_indicator                                  | coverage_quality | known_gap                                                                                       | recommended_next_action |
+|--------------------------------|------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|------------------------------------------------------|------------------|-------------------------------------------------------------------------------------------------|-------------------------|
+| CW1 — 2007-2009 GFC            | `BIS_CBS`, `FDIC_CALL_REPORTS`, `FED_Y9C`, `FED_H15`, `FRED`, `ALFRED`, `OFR_FSI`, `STLFSI`, `KCFSI`, `CBOE_VIX`, `BIS_QR_NETWORK`, `OFR_WP_NETWORK`, `NBER_RECESSION`, `FED_TIMELINE`, `ECB_FSR`, `LIT_INTERBANK_CONTAGION`, `LIT_NETWORK_RECON`, `LIT_REPO_FUNDING`, `FDIC_SVB_POSTMORTEM`, `ICAP_MOVE` | `TED_spread_proxy_via_H15_plus_FRED_DGS3MO`             | `VIX_close_plus_OFR_FSI_credit_subcomponent`         | HIGH             | No public tri-party-repo micro-data pre-2014; OFR Short-Term Funding Monitor starts 2014-01-01. | W1 ingest pipeline for FRED + FDIC + BIS_CBS; narrative extraction for FED_TIMELINE GFC subset. |
+| CW2 — 2011-2012 Eurozone       | `BIS_CBS`, `ECB_CBD`, `FRED`, `ALFRED`, `OFR_FSI`, `STLFSI`, `KCFSI`, `CBOE_VIX`, `ICAP_MOVE`, `BIS_QR_NETWORK`, `OFR_WP_NETWORK`, `ECB_FSR`, `LIT_INTERBANK_CONTAGION`, `LIT_NETWORK_RECON`, `FED_H15` | `peripheral_sovereign_spread_via_FRED_IRLTLT01ESM156N`  | `euro_area_banking_npl_via_ECB_CBD`                  | MEDIUM           | ECB CBD coverage starts 2007-Q1 only; pre-2007 euro-area banking time series sparse.            | W1 ingest pipeline for ECB SDW; narrative extraction for ECB_FSR Eurozone subset. |
+| CW3 — 2019 US Repo Spike       | `NYFED_SOFR`, `OFR_REPO_DATA`, `FED_H15`, `FRED`, `ALFRED`, `OFR_FSI`, `STLFSI`, `CBOE_VIX`, `BIS_QR_NETWORK`, `FED_TIMELINE`, `FED_Y9C`, `LIT_REPO_FUNDING`, `OFR_WP_NETWORK`, `ICAP_MOVE` | `SOFR_99th_percentile_minus_median`                     | `tri_party_repo_volume_dealer_to_money_fund`         | HIGH             | Bilateral uncleared repo segment not in OFR_REPO_DATA; rate spike causal attribution still debated in literature. | W1 ingest pipeline for SOFR daily; cross-reference with FED_TIMELINE Sept-2019 facility announcements. |
+| CW4 — 2020 COVID Dash-for-Cash | `NYFED_SOFR`, `OFR_REPO_DATA`, `FED_H15`, `FRED`, `ALFRED`, `OFR_FSI`, `STLFSI`, `KCFSI`, `CBOE_VIX`, `ICAP_MOVE`, `BIS_QR_NETWORK`, `OFR_WP_NETWORK`, `NBER_RECESSION`, `FED_TIMELINE`, `ECB_FSR`, `ECB_CBD`, `LIT_INTERBANK_CONTAGION`, `LIT_REPO_FUNDING` | `CBOE_VIX_close_plus_OFR_FSI_funding_subcomponent`      | `tri_party_repo_volume_collateral_class_shifts`      | HIGH             | Intra-day dash-for-cash dynamics lost at daily aggregate; FX-swap basis needs separate Datastream-quality source not in this registry. | W1 ingest pipeline for OFR_REPO_DATA + VIX + OFR_FSI; narrative extraction for FRBSF post-mortem. |
+| CW5 — 2022 UK Gilt LDI         | `BOE_LDI_REVIEW`, `FRED`, `ALFRED`, `OFR_FSI`, `ICAP_MOVE`, `CBOE_VIX`, `BIS_QR_NETWORK`, `ECB_FSR`, `ECB_MMSR`, `FED_H15`, `OFR_WP_NETWORK` | `UK_gilt_10y_yield_first_difference_via_FRED_IRLTLT01GBM156N` | `MOVE_index_plus_OFR_FSI_funding`                    | MEDIUM           | UK-specific data sources thin in this registry; full LDI fund collateral chronology only in BoE narrative PDFs. | W1 ingest pipeline for BoE FSR Dec 2022 + WP 1019; cross-reference ECB_FSR Nov 2022 spillover. |
+| CW6 — 2023 Regional Banking    | `FDIC_CALL_REPORTS`, `FED_Y9C`, `NYFED_SOFR`, `FED_H15`, `FRED`, `ALFRED`, `OFR_FSI`, `STLFSI`, `CBOE_VIX`, `BIS_QR_NETWORK`, `OFR_WP_NETWORK`, `FED_TIMELINE`, `FDIC_SVB_POSTMORTEM`, `ICAP_MOVE`, `ECB_FSR` | `FDIC_call_report_uninsured_deposit_share_q1_2023_q2_2023` | `held_to_maturity_securities_unrealised_loss_ratio`  | MEDIUM           | Call reports quarterly — misses SVB Mar-2023 intra-week run dynamics; only post-hoc post-mortem captures speed. | W1 ingest pipeline for FDIC Call Reports + Y-9C; narrative extraction for FDIC OIG Material Loss Reviews. |
+
+### §11 — Mechanism-coverage matrix
+
+This matrix flips the §10 view: rows are the seven mechanism families
+named in D-002J prereg §3 and §5 W4, columns are what we need to
+observe vs what we currently have public access to.
+
+| mechanism                                       | required_observables                                                          | available_sources                                                              | missing_observables                                                  | proxy_available                                          | readiness |
+|-------------------------------------------------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------------|----------------------------------------------------------------------|----------------------------------------------------------|-----------|
+| repo_collateral_haircut_propagation             | daily haircut distribution per collateral class; bilateral + tri-party        | `OFR_REPO_DATA`, `NYFED_SOFR`, `FED_H15`, `LIT_REPO_FUNDING`                   | bilateral-uncleared haircut micro-data; pre-2014 tri-party micro     | tri-party haircut distribution at daily aggregate        | READY_WITH_KNOWN_GAP |
+| rehypothecation_chain                           | dealer balance-sheet rehypothecation flag; intercompany funding chain         | `FED_Y9C`, `OFR_REPO_DATA`, `LIT_REPO_FUNDING`                                 | per-counterparty rehypothecation network                              | Y-9C off-balance-sheet aggregate; OFR working papers     | READY_AS_PROXY |
+| liquidity_rollover_stress                       | maturity-bucket funding distribution; rollover volume per day                 | `OFR_REPO_DATA`, `NYFED_SOFR`, `ECB_MMSR`, `FED_H15`, `LIT_REPO_FUNDING`       | bank-by-bank rollover schedule                                       | market-wide repo volume + secured-unsecured spread       | READY_AS_PROXY |
+| interbank_exposure_concentration_reconstruction | bilateral interbank exposure matrix                                           | `BIS_CBS`, `ECB_CBD`, `OFR_WP_NETWORK`, `LIT_INTERBANK_CONTAGION`, `LIT_NETWORK_RECON` | bilateral counterparty matrix (regulatory-only)                       | max-entropy / minimum-density reconstruction baseline    | READY_WITH_KNOWN_BIAS |
+| funding_maturity_mismatch                       | per-bank wholesale-funding share; uninsured-deposit share                     | `FDIC_CALL_REPORTS`, `FED_Y9C`, `ECB_CBD`                                      | continuous high-frequency funding flow                                | quarterly call-report wholesale-funding ratio            | READY_WITH_KNOWN_GAP |
+| market_wide_deleveraging                        | aggregate dealer position; VAR-driven deleveraging signal                     | `CBOE_VIX`, `ICAP_MOVE`, `FRED`, `OFR_FSI`, `STLFSI`, `KCFSI`                  | dealer position micro-data                                            | implied-volatility surface + stress indices              | READY_AS_PROXY |
+| crisis_window_synchronisation                   | independent crisis-window labels; cross-window indicator alignment            | `NBER_RECESSION`, `FED_TIMELINE`, `ECB_FSR`, `BOE_LDI_REVIEW`, `FDIC_SVB_POSTMORTEM`, `BIS_QR_NETWORK` | unified machine-readable global crisis label                          | union of public regulator chronologies                   | READY_AS_PROXY |
+
+**Reading note.** A row marked `READY_WITH_KNOWN_GAP` means the public
+registry can stand up the mechanism observable at documented coarse
+granularity (e.g. quarterly call reports for the 2023 regional
+banking stress) but cannot resolve dynamics faster than that
+granularity. A row marked `READY_AS_PROXY` means the underlying
+observable is unavailable publicly and the registry depends on a
+documented proxy. NO row is marked `FULLY_READY` because no public
+source registry alone constitutes real-bank validation — that is a
+D-002J `forbidden_claim` by construction.
+
+### Registry decision
+
+Registry decision (carried verbatim from
+`artifacts/d002j/data_registry/source_registry_summary_v1.json`):
+`DATA_REGISTRY_READY`. All declared floors satisfied. This decision
+authorises downstream PRs to begin W1 ingest pipelines under
+documented license boundaries; it does NOT authorise a canonical
+D-002J run, does NOT rescue D-002H, and does NOT claim real-bank
+validation. See D-002J prereg `forbidden_claims` and
+`docs/governance/D002G_CANONICAL_RUN_BLOCKERS.md` for the binding
+boundary.
