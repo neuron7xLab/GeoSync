@@ -299,3 +299,41 @@ prereg-lock anchor (PR #693, 2e55b73a). The D-002H REFUSED entry
 append in PR #692 legitimately rotates it to
 `eb0b7151...319ef84a32387`; the D-002I investigation is unchanged
 in scope or content by that append-only ledger event.
+
+---
+
+## D-002J lineage opened — financial-mechanistic systemic-risk benchmark pre-reg
+
+**Status:** D-002J PRE-REG LOCKED (5 research questions, 7 workstreams, 6 crisis windows)
+**Parent:** D-002H canonical sweep REFUSED (PR #692, sha `669d4458`)
+**Parent investigation lineage:** D-002I (PR #693, sha `2e55b73a`)
+**5 research questions:** RQ1 (substrate signal/null separation), RQ2 (pre-crisis precursor), RQ3 (null-model power against false signal), RQ4 (minimum power budget), RQ5 (negative-result-equal benchmark).
+**7 workstreams:** W1 (Data Source Matrix), W2 (Crisis Window Registry), W3 (Synthetic Positive Controls), W4 (Financial Mechanistic Substrates), W5 (Null Model Hierarchy), W6 (Power-First Canonical Design), W7 (Benchmark Package).
+**6 crisis windows:** CW1 (2007-2009 GFC), CW2 (2011-2012 Eurozone Sovereign), CW3 (2019 US Repo Spike), CW4 (2020 COVID Dash-for-Cash), CW5 (2022 UK Gilt LDI), CW6 (2023 Regional Banking Stress).
+
+D-002J opens a **fresh research lineage** on financially motivated
+substrates with explicit crisis-window anchors, planted positive
+controls, a 9-null adversarial hierarchy, and a hard power-first
+gate (`requires_power_first_approval: true`). D-002J does **NOT**
+rescue D-002H — D-002H REFUSED remains the truthful canonical
+verdict; D-002J does NOT retroactively flip it. D-002J also does
+NOT pre-empt the D-002I investigation outcomes (H_I1..H_I4 may
+land in parallel under their own pre-committed protocol).
+
+`canonical_run_authorized: false`; `benchmark_only: true`;
+`requires_power_first_approval: true`. No D-002J canonical sweep
+runs until the W6 power-first protocol has emitted a power report
+with `power_target ≥ 0.8` and the W3 positive-control battery
+has detected its planted signal under the W5 null hierarchy. Each
+of the 7 workstreams is implemented in a separate downstream PR
+(D-002J-W1..W7) under this pre-committed protocol.
+
+D-002G acceptance rules byte-exact UNCHANGED at sha256
+`875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31`.
+D-002G prereg byte-exact UNCHANGED at sha256
+`1ab91f09370e4705a8b0849467bc1f56df2e58d58d5623d3b6d905cbd110bb04`.
+D-002H prereg byte-exact UNCHANGED at sha256
+`44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec`.
+D-002C claim ledger sha256 at D-002J prereg-lock anchor:
+`eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387`
+(unchanged from the D-002I lineage-opening append).
