@@ -36,7 +36,7 @@ ARTIFACTS_D002G = REPO_ROOT / "artifacts" / "d002g"
 # on-disk sha at branch-off time so any in-PR mutation to the ledger
 # fails closed. The post-merge sha is recorded in §11 of the
 # implementation report as the rebase-target invariant.
-LEDGER_SHA256_AT_BRANCH_OFF: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+LEDGER_SHA256_AT_BRANCH_OFF: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
 LEDGER_SHA256_TARGET_POST_P2_MERGE: str = "fd0c83a263d4a687c24e1d350cb3e0809dfdff2a"  # noqa: E501  # pragma: allowlist secret  # 40-hex per protocol §3
 # fmt: on
 

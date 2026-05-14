@@ -50,7 +50,7 @@ SUBSTRATES_PY = REPO_ROOT / "research" / "systemic_risk" / "d002c_substrates.py"
 PARENT_CLOSURE_SHA = "8cf5364a3f3b605d8b134bccbfe5170098e0e197"
 
 # fmt: off
-D002C_LEDGER_SHA256 = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+D002C_LEDGER_SHA256 = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
 SUBSTRATES_PY_SHA256_AT_BASE = "4b2e5d65c104a5be5a207951cd3c4ae099f31ce83b3f2c0766a160d8c9e80eca"  # noqa: E501  # pragma: allowlist secret
 # fmt: on
 

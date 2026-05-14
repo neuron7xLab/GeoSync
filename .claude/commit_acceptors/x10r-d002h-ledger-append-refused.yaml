@@ -85,6 +85,31 @@ diff_scope:
     - path: ".claude/commit_acceptors/x10r-d002h-ledger-append-refused.yaml"
     - path: "docs/governance/D002G_CANONICAL_RUN_BLOCKERS.md"
     - path: "tests/systemic_risk/test_d002g_locked_governance_untouched.py"
+    # Byte-exact-guard tests rotated from the pre-append sha
+    # (f96ba9b5...d6d543b8bd6dd) to the post-append sha
+    # (eb0b7151...319ef84a32387). Each guard fired correctly when
+    # PR #692 appended the D-002H REFUSED entry; the rotation is
+    # contract-honored append-only mutation.
+    - path: "tests/systemic_risk/test_d002g_m2_locked_governance_untouched.py"
+    - path: "tests/systemic_risk/test_d002g_m2_topology_preserving_shuffle.py"
+    - path: "tests/systemic_risk/test_d002g_m3_invariants.py"
+    - path: "tests/systemic_risk/test_d002g_m3_no_promotion.py"
+    - path: "tests/systemic_risk/test_d002g_m3_traps.py"
+    - path: "tests/systemic_risk/test_d002g_p3_no_canonical_promotion.py"
+    - path: "tests/systemic_risk/test_d002g_structural_closure.py"
+    - path: "tests/systemic_risk/test_d002h_gate_b_eligibility.py"
+    - path: "tests/systemic_risk/test_d002h_gate_c_grid.py"
+    - path: "tests/systemic_risk/test_d002h_gate_d_forbidden_claims.py"
+    - path: "tests/systemic_risk/test_d002h_preregistration.py"
+    - path: "tests/systemic_risk/test_d002h_r2b_inapplicability.py"
+    # Gate E/F/G + canonical-run artifact tests: split-anchor refactor
+    # (pre-append anchor for the frozen artifact JSON pin, post-append
+    # anchor for the live disk sha). Artifact JSONs are NOT mutated;
+    # the test logic acknowledges the legitimate ledger rotation.
+    - path: "tests/systemic_risk/test_d002h_gate_e_locked_files.py"
+    - path: "tests/systemic_risk/test_d002h_gate_f_authorization.py"
+    - path: "tests/systemic_risk/test_d002h_gate_g_ci_lock.py"
+    - path: "tests/systemic_risk/test_d002h_canonical_run_artifact.py"
   forbidden_paths:
     - "docs/governance/D002C_PREREGISTRATION.yaml"
     - "docs/governance/D002C_CANONICAL_RUN_REPORT.md"

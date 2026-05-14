@@ -45,7 +45,7 @@ D002C_LEDGER_RELPATH = "docs/governance/D002C_CLAIM_LEDGER.yaml"
 # fmt: off
 D002G_ACCEPTANCE_SHA_PIN: str = "875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31"  # noqa: E501  # pragma: allowlist secret
 D002H_PREREG_SHA_PIN: str = "44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec"  # noqa: E501  # pragma: allowlist secret
-D002C_LEDGER_SHA_PIN: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+D002C_LEDGER_SHA_PIN: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
 # fmt: on
 
 # Verbatim resolution-block markers (Section 4).
