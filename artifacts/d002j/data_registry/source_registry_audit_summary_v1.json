@@ -1,0 +1,95 @@
+{
+  "by_crisis_window_verified_or_partial": {
+    "CW1": 17,
+    "CW2": 12,
+    "CW3": 13,
+    "CW4": 14,
+    "CW5": 8,
+    "CW6": 12
+  },
+  "by_mechanistic_relevance_verified_or_partial": {
+    "balance_sheet": 3,
+    "contagion": 4,
+    "information_constraint": 1,
+    "liquidity_funding": 7,
+    "market_wide_stress": 6,
+    "official_response": 5
+  },
+  "by_source_class": {
+    "banking": 3,
+    "crisis_window": 3,
+    "literature_support": 3,
+    "macro_financial": 5,
+    "market_structure": 2,
+    "repo": 4
+  },
+  "canonical_run_authorized": false,
+  "decision": "SOURCE_REGISTRY_REJECTED",
+  "decision_rationale": "Audit of 25 sources: 13 VERIFIED, 7 PARTIAL, 5 DOWNGRADED, 0 REJECTED. verified_or_partial=20 (floor 18 -> PASS). verified_usable_now=13 (floor 12 -> PASS). All six crisis windows retain >=3 verified/partial sources (CW5 minimum=8 actual). All 6 mechanism families retain >=2 verified/partial sources (floor PASS). Decision=SOURCE_REGISTRY_REJECTED. Downgrades concentrate on stale URL pins (ECB SDW decommissioned, BIS QR PDF path, BoE FSR slug, FRB crisis-timeline tree, ICE MOVE pages); substantive providers verified live at parent domains. Partials are documentation_url regressions only; substantive product paths intact. P2 MUST repin URL fields before any W1 ingestion downstream \u2014 see D002J_SOURCE_DOWNGRADE_LOG.md for per-source repair instructions.",
+  "downgraded": 5,
+  "downgraded_or_rejected_source_ids": [
+    "ECB_CBD",
+    "ICAP_MOVE",
+    "BIS_QR_NETWORK",
+    "FED_TIMELINE",
+    "BOE_LDI_REVIEW"
+  ],
+  "floor_checks": {
+    "crisis_window_min_three_pass": true,
+    "mech_family_min_two_pass": false,
+    "mechanism_family_counts_verified_or_partial": {
+      "balance_sheet": 3,
+      "contagion": 4,
+      "information_constraint": 1,
+      "liquidity_funding": 7,
+      "market_wide_stress": 6,
+      "official_response": 5
+    },
+    "mechanism_family_definitions": {
+      "balance_sheet": "uninsured deposits / AFS-HTM losses / capital / derivatives concentration",
+      "contagion": "interbank exposure / cross-border / DebtRank / reconstruction-methodology",
+      "information_constraint": "real-time vintage information lookahead constraint",
+      "liquidity_funding": "repo collateral / rollover / rehypothecation / maturity mismatch / LDI collateral / gilt dysfunction",
+      "market_wide_stress": "FSI composites / VIX / credit spreads / term structure / MOVE / risk-off",
+      "official_response": "facility announcements / event studies / supervisory post-mortems / discount window / external anchors / NBFI"
+    },
+    "total_sources_audited": 25,
+    "total_sources_audited_floor": 25,
+    "total_sources_audited_pass": true,
+    "verified_or_partial": 20,
+    "verified_or_partial_floor": 18,
+    "verified_or_partial_pass": true,
+    "verified_usable_now": 13,
+    "verified_usable_now_floor": 12,
+    "verified_usable_now_pass": true
+  },
+  "generated_at": "2026-05-14T18:13:28Z",
+  "mechanism_family_definitions": {
+    "balance_sheet": "uninsured deposits / AFS-HTM losses / capital / derivatives concentration",
+    "contagion": "interbank exposure / cross-border / DebtRank / reconstruction-methodology",
+    "information_constraint": "real-time vintage information lookahead constraint",
+    "liquidity_funding": "repo collateral / rollover / rehypothecation / maturity mismatch / LDI collateral / gilt dysfunction",
+    "market_wide_stress": "FSI composites / VIX / credit spreads / term structure / MOVE / risk-off",
+    "official_response": "facility announcements / event studies / supervisory post-mortems / discount window / external anchors / NBFI"
+  },
+  "parent_registry_path": "artifacts/d002j/data_registry/source_registry_v1.json",
+  "parent_registry_sha256": "0fae24d4c3ef3165509166bec89d6dc5eee806888f352358ad77851e51079b7b",
+  "partial": 7,
+  "partial_source_ids": [
+    "FED_Y9C",
+    "ECB_MMSR",
+    "ALFRED",
+    "KCFSI",
+    "CBOE_VIX",
+    "FDIC_SVB_POSTMORTEM",
+    "LIT_REPO_FUNDING"
+  ],
+  "pr_lineage": "D-002J-P1A",
+  "rejected": 0,
+  "schema_version": "D002J-SOURCE-REGISTRY-AUDIT-SUMMARY-v1",
+  "source_code_changed": false,
+  "study_id": "D-002J",
+  "total_sources": 25,
+  "verified": 13,
+  "verified_or_partial": 20
+}

@@ -382,3 +382,72 @@ Hard scope boundary (repeat for safety):
 Next legal PR: `feat(x10r,D-002J-P2): implement crisis window registry v1` —
 expands W2 (machine-readable crisis-window registry on top of the
 narrative `D002J_CRISIS_WINDOW_REGISTRY.md` scaffold).
+
+---
+
+## D-002J-P1A — source registry provenance audit landed (REJECTED)
+
+**Status:** D-002J-P1A LANDED (audit-only; decision `SOURCE_REGISTRY_REJECTED`)
+**Parent:** D-002J-P1 (PR #695) registry sha256 byte-exact `0fae24d4c3ef3165509166bec89d6dc5eee806888f352358ad77851e51079b7b`
+**PR:** `audit/x10r-d002j-p1a-source-provenance-audit-v1`
+**Audit artifact:** `artifacts/d002j/data_registry/source_provenance_audit_v1.json` (schema `D002J-SOURCE-PROVENANCE-AUDIT-v1`)
+**Smoke artifact:** `artifacts/d002j/data_registry/source_access_smoke_v1.json` (schema `D002J-SOURCE-ACCESS-SMOKE-v1`)
+**Evidence-lock artifact:** `artifacts/d002j/data_registry/source_evidence_lock_v1.json` (schema `D002J-SOURCE-EVIDENCE-LOCK-v1`)
+**Summary artifact:** `artifacts/d002j/data_registry/source_registry_audit_summary_v1.json` (schema `D002J-SOURCE-REGISTRY-AUDIT-SUMMARY-v1`)
+**Audit decision:** `SOURCE_REGISTRY_REJECTED`
+**Counts:** 13 VERIFIED, 7 PARTIAL, 5 DOWNGRADED, 0 REJECTED (verified_or_partial=20 ≥ 18 floor PASS)
+**verified_usable_now:** 13 (≥ 12 floor PASS)
+**Crisis-window retention (≥3 verified/partial each):** CW1 17, CW2 12, CW3 13, CW4 14, CW5 8, CW6 12 — PASS
+**Mechanism-family retention (≥2 verified/partial each):** contagion 4, liquidity_funding 7, balance_sheet 3, market_wide_stress 6, official_response 5, **information_constraint 1 — FAIL**
+**Downgraded source_ids:** ECB_CBD, ICAP_MOVE, BIS_QR_NETWORK, FED_TIMELINE, BOE_LDI_REVIEW
+**Partial source_ids:** FED_Y9C, ECB_MMSR, ALFRED, KCFSI, CBOE_VIX, FDIC_SVB_POSTMORTEM, LIT_REPO_FUNDING
+
+D-002J-P1A is the first verification gate of the D-002J Frontier
+Benchmark Program. P1A audits the 25 sources committed by PR #695
+against ten verification dimensions (provider, official URL,
+documentation, access method, license boundary, coverage, frequency,
+variables, crisis-window relevance, mechanistic relevance). The
+audit verdict is **`SOURCE_REGISTRY_REJECTED`** because the
+`information_constraint` mechanism family has only one source
+(ALFRED, PARTIAL) and the floor of ≥2 verified/partial-per-family is
+not satisfied. Rejection is a scientifically valid outcome — the
+audit system working as designed.
+
+Hard scope boundary (repeat for safety):
+
+- D-002J-P1A is **audit only**. P1A does **NOT** ingest any data.
+- D-002J-P1A does **NOT** authorise any canonical run.
+  `canonical_run_authorized: false`.
+- D-002J-P1A does **NOT** claim real-bank validation.
+- D-002J-P1A does **NOT** rescue D-002H. D-002H REFUSED remains the
+  truthful canonical verdict.
+- D-002J-P1A does **NOT** pre-empt the D-002I investigation outcomes.
+- D-002J-P1A does **NOT** add new sources or modify the P1 registry
+  (registry stays byte-exact at sha
+  `0fae24d4c3ef3165509166bec89d6dc5eee806888f352358ad77851e51079b7b`).
+- D-002J-P1A does **NOT** edit any locked governance file:
+  D-002G prereg sha256 byte-exact
+  `1ab91f09370e4705a8b0849467bc1f56df2e58d58d5623d3b6d905cbd110bb04`,
+  D-002G acceptance rules sha256 byte-exact
+  `875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31`,
+  D-002H prereg sha256 byte-exact
+  `44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec`,
+  D-002I prereg sha256 byte-exact
+  `b646989c032dc0e29f9b791e0b68209ff22b40f4757737712badc8656cf2db5f`,
+  D-002J prereg sha256 byte-exact
+  `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`,
+  D-002C claim ledger sha256 byte-exact
+  `eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387`.
+- D-002J-P1A does **NOT** edit any source code under
+  `research/systemic_risk/*.py` or any `scripts/x10r_d002*.py`.
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A this PR (REJECTED at mechanism-family floor)`.
+
+Next legal PR: `fix(x10r,D-002J-P1): repair source registry provenance` —
+either adds ≥1 new `information_constraint` source (e.g. Philadelphia
+Fed Real-Time Data Set, Atlanta Fed GDPNow vintages, BIS long-series
+real-time data) OR amends the prereg's mechanism-family floor with
+explicit, dated, signed justification AND re-pins the five
+DOWNGRADED URL fields. P2 (`feat(x10r,D-002J-P2): implement crisis
+window registry v1`) cannot open until the audit decision flips to
+`SOURCE_REGISTRY_VERIFIED` or `SOURCE_REGISTRY_PARTIALLY_VERIFIED`.
