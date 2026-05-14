@@ -518,3 +518,74 @@ Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #69
 Next legal PR: `feat(x10r,D-002J-P2): implement crisis window registry v1` —
 opens W2 of the D-002J Frontier Benchmark Program now that the
 provenance audit decision has flipped to PARTIALLY_VERIFIED.
+
+---
+
+## D-002J-P2 — crisis window registry v1 landed
+
+**Status:** D-002J-P2 LANDED (registry assembled; benchmark-only; no canonical run)
+**Parent:** D-002J-P1B (PR #698) PARTIALLY_VERIFIED at merge sha `5102b008ee9fb89545f22ebafc8289aa40c0571c`
+**PR:** `feat/x10r-d002j-p2-crisis-window-registry-v1`
+**Registry artifact (P2):** `artifacts/d002j/crisis_windows/crisis_window_registry_v1.json` (schema `D002J-CRISIS-WINDOW-REGISTRY-v1`)
+**Summary artifact:** `artifacts/d002j/crisis_windows/crisis_window_summary_v1.json` (schema `D002J-CRISIS-WINDOW-SUMMARY-v1`)
+**Parent registry sha256:** `f1899b7a882b4b3efbebb54e3dc942c079839f77f981273e2dd09757973b14ec` (P1B source_registry_v1.json)
+**Total windows:** 6 (CW1_GFC_2007_2009, CW2_EUROZONE_2011_2012, CW3_US_REPO_SPIKE_2019, CW4_COVID_DASH_FOR_CASH_2020, CW5_UK_GILT_LDI_2022, CW6_REGIONAL_BANKING_2023)
+**Total distinct source_ids referenced:** 26 (every P1B-surviving source touched by ≥ 1 window; no DOWNGRADED, no REJECTED)
+**Per-window source counts:** CW1 21, CW2 16, CW3 17, CW4 19, CW5 12, CW6 16 — all ≥ floor of 3 (PASS)
+**Event-type distribution:** systemic_banking_crisis 1, sovereign_debt_crisis 1, repo_market_dysfunction 1, liquidity_crisis 1, gilt_dysfunction 1, regional_banking_crisis 1
+**Primary mechanism family distribution:** liquidity_funding 3, contagion 1, market_wide_stress 1, balance_sheet 1
+**Data availability distribution:** strong 4 (CW1, CW2, CW3, CW4), partial 2 (CW5, CW6)
+**Registry decision:** `CRISIS_WINDOW_REGISTRY_READY` (all per-window floors and forbidden-claim guards satisfied)
+
+D-002J-P2 ships the **crisis window registry v1** under W2 scope: a
+machine-readable JSON registry, a JSON summary, a per-window
+narrative (`docs/research/D002J_CRISIS_WINDOW_REGISTRY.md`), and a
+selection rationale (`docs/research/D002J_CRISIS_WINDOW_SELECTION_RATIONALE.md`)
+covering the 6 chosen windows AND the explicit non-windows
+(LTCM 1998, 1987 Black Monday, 1990-91 S&L, 1997-98 Asian, Cyprus 2013,
+2016 Brexit, 2008-09-15 single-day, 2008-Q4 single-quarter,
+2014-15 oil collapse, 2018-Q4 mild repo, 2021-Q1 SLR-relief,
+2023 Credit Suisse as own window, 2023-Q2-Q3 PacWest / WAL).
+
+Hard scope boundary (repeat for safety):
+
+- D-002J-P2 is **registry only**. P2 does **NOT** ingest any data.
+- D-002J-P2 does **NOT** rescue D-002H. D-002H REFUSED remains the
+  truthful canonical verdict.
+- D-002J-P2 does **NOT** authorise any canonical run.
+  `canonical_run_authorized: false`; `benchmark_only: true`.
+- D-002J-P2 does **NOT** claim crisis prediction at any window.
+- D-002J-P2 does **NOT** claim bank-level validation at any window.
+- D-002J-P2 does **NOT** claim cross-asset / interbank causal
+  inference at any window (Brunetti e-MID literature scope reminder
+  enforced via `test_no_cross_asset_interbank_overclaim`).
+- D-002J-P2 does **NOT** pre-empt the D-002I investigation outcomes.
+- D-002J-P2 does **NOT** modify the P1B registry, audit, smoke, or
+  evidence lock JSON artifacts (P1B registry sha256 byte-exact
+  `f1899b7a882b4b3efbebb54e3dc942c079839f77f981273e2dd09757973b14ec`).
+- D-002J-P2 does **NOT** edit any locked governance file:
+  D-002G prereg sha256 byte-exact
+  `1ab91f09370e4705a8b0849467bc1f56df2e58d58d5623d3b6d905cbd110bb04`,
+  D-002G acceptance rules sha256 byte-exact
+  `875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31`,
+  D-002H prereg sha256 byte-exact
+  `44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec`,
+  D-002I prereg sha256 byte-exact
+  `b646989c032dc0e29f9b791e0b68209ff22b40f4757737712badc8656cf2db5f`,
+  D-002J prereg sha256 byte-exact
+  `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`,
+  D-002C claim ledger sha256 byte-exact
+  `eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387`.
+- D-002J-P2 does **NOT** edit any source code under
+  `research/systemic_risk/*.py` or any `scripts/x10r_d002*.py`.
+- D-002J-P2 does **NOT** create `artifacts/d002j/ingestion/`
+  (that directory is P3 territory; its absence is asserted in
+  `test_no_ingestion`).
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 this PR (CRISIS_WINDOW_REGISTRY_READY)`.
+
+Next legal PR: `feat(x10r,D-002J-P3): implement ingestion manifest and point-in-time adapter boundary` —
+opens W3/W4 of the D-002J Frontier Benchmark Program (ingestion
+manifest, vintage-aware adapters) on top of this v1 crisis-window
+registry. P3 may only open after this P2 PR is merged with decision
+`CRISIS_WINDOW_REGISTRY_READY`.
