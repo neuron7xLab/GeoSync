@@ -123,6 +123,16 @@ diff_scope:
     - path: "tests/systemic_risk/test_d002h_gate_f_authorization.py"
     - path: "tests/systemic_risk/test_d002h_gate_g_ci_lock.py"
     - path: "tests/systemic_risk/test_d002h_canonical_run_artifact.py"
+    # Post-merge `python-full-validation` workflow lacks `fetch-depth: 0`
+    # on actions/checkout, causing shallow-clone exit-128 on
+    # `git merge-base --is-ancestor <historical-sha> origin/main`.
+    # Workflow fix + test-helper hardening (shallow-clone detect +
+    # targeted fetch + actionable error).
+    - path: ".github/workflows/main-validation.yml"
+    # D-002I prereg test inherits the contract-honored ledger rotation
+    # via split-anchor refactor (YAML field pinned at f96ba9b5...,
+    # live disk sha asserted ∈ {pre-append, post-append} anchor set).
+    - path: "tests/systemic_risk/test_d002i_preregistration.py"
   forbidden_paths:
     - "docs/governance/D002C_PREREGISTRATION.yaml"
     - "docs/governance/D002C_CANONICAL_RUN_REPORT.md"

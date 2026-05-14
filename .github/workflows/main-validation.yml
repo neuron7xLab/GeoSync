@@ -23,6 +23,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # tests/systemic_risk/test_d002h_gate_{f,g}_*.py call
+          # `git merge-base --is-ancestor <historical-sha> origin/main`
+          # to verify the seven canonical-run authorisation anchors
+          # are real ancestors of main. Default actions/checkout depth=1
+          # makes those historical commits unavailable -> exit 128
+          # ("Not a valid commit name"). Full history is required.
+          fetch-depth: 0
 
       - name: Setup Python environment
         uses: ./.github/actions/setup-geosync
