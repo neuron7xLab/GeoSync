@@ -251,3 +251,20 @@ Any ledger update consuming this verdict is a SEPARATE downstream PR.
 Verdict scope: `ricci_flow` only; does NOT extend to `block_structured`
 or `temporal_coupling` (structurally excluded by D-002G closure).
 
+---
+
+## D-002H Lineage CLOSED-AS-REFUSED — ledger entry appended
+
+**Status:** D-002H lineage CLOSED with REFUSED verdict
+**Ledger entry:** claim_id=D002H_RICCI_FLOW_SCOPED_REFUSED (new, append-only)
+**Canonical-run anchor:** PR #691 sha 250d8069
+**Aggregate verdict:** REFUSED via NULL_AUDIT_FAIL (42/54 audited cells FAIL)
+
+D-002C ledger entries 1 and 2 (attempt-1 SUPPORTED, attempt-2 FALSIFIED)
+byte-exact preserved. D-002H entry is the 3rd and is NOT an eclipse —
+D-002H is a scoped lineage opened after D-002G structural closure (PR #682).
+
+Future legal paths:
+- D-002I fresh pre-reg to investigate WHY null audit FAILs on ricci_flow
+- D-002H retained as scoped-REFUSED negative artifact
+
