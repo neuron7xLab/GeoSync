@@ -84,6 +84,7 @@ diff_scope:
     - path: "tests/systemic_risk/test_d002c_ledger_d002h_refused_entry.py"
     - path: ".claude/commit_acceptors/x10r-d002h-ledger-append-refused.yaml"
     - path: "docs/governance/D002G_CANONICAL_RUN_BLOCKERS.md"
+    - path: "tests/systemic_risk/test_d002g_locked_governance_untouched.py"
   forbidden_paths:
     - "docs/governance/D002C_PREREGISTRATION.yaml"
     - "docs/governance/D002C_CANONICAL_RUN_REPORT.md"
