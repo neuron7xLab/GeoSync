@@ -17,7 +17,7 @@
 
 id: x10r-d002h-canonical-sweep
 status: ACTIVE
-claim_type: scientific_execution
+claim_type: correctness
 promise: >-
   After this PR lands,
   artifacts/d002h/canonical/d002h_canonical_run_verdict.json exists
