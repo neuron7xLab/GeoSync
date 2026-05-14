@@ -589,3 +589,77 @@ opens W3/W4 of the D-002J Frontier Benchmark Program (ingestion
 manifest, vintage-aware adapters) on top of this v1 crisis-window
 registry. P3 may only open after this P2 PR is merged with decision
 `CRISIS_WINDOW_REGISTRY_READY`.
+
+---
+
+## D-002J-P2.5 — verdict DAG bootstrap landed
+
+**Status:** D-002J-P2.5 LANDED (verdict DAG self-anchor; governance infrastructure only; no canonical run)
+**Parent:** D-002J-P2 (PR #699) CRISIS_WINDOW_REGISTRY_READY at merge sha `055783785571f68a4e0b07206e08c72a8c928e7c`
+**PR:** `chore/x10r-d002j-p25-verdict-dag-bootstrap`
+**Capsule artifacts (P2.5):** `artifacts/governance/verdicts/d002j_p{0,1,1a,1b,2}_verdict_v1.json` (schema `D002J-VERDICT-CAPSULE-v1`)
+**DAG artifact:** `artifacts/governance/verdicts/d002j_verdict_dag_v1.json` (schema `D002J-VERDICT-DAG-v1`)
+**Renderer:** `tools/governance/render_lineage.py` → `docs/research/D002J_LINEAGE_MAP.md` (byte-deterministic)
+**Tool module:** `tools/governance/verdict_dag.py` (`load_capsule`, `load_dag`, `check_acyclic`, `topological_order`, `detect_orphans`, `emit_dag_verdict`, `check_legal_transition`)
+**Decision:** `VERDICT_DAG_BOOTSTRAPPED`
+**DAG state:**
+
+- Nodes: 5 (`D002J-P0`, `D002J-P1`, `D002J-P1A`, `D002J-P1B`, `D002J-P2`).
+- Topological order: `D002J-P0 → D002J-P1 → D002J-P1A → D002J-P1B → D002J-P2`.
+- Acyclic: `true`. Orphans: `0`.
+- Retained rejected nodes: `["D002J-P1A"]` (`TERMINAL_REJECTED`,
+  `failure_retention` non-empty, repaired by `D002J-P1B`).
+- `D002J-P2.parent_nodes == ["D002J-P1B"]` — P2 depends on the
+  repaired registry, NOT on P1A directly.
+- `canonical_run_authorized_anywhere`: `false` (every capsule
+  carries a `claim_boundary` encoding the no-canonical-run
+  invariant; the DAG verdict records the conjunction explicitly).
+- DAG self-verdict node: `D002J-P2.5` (`VERDICT_DAG_BOOTSTRAPPED`,
+  `TERMINAL_PASS`).
+
+D-002J-P2.5 ships the **verdict DAG self-anchor** under governance
+infrastructure scope: a frozen capsule schema, a strict-typed
+parser/walker, a deterministic markdown renderer, and a 16-test
+integrity guard locking the four transition invariants (acyclicity,
+P1A retention, P1B repair edge, P2-not-from-P1A-directly).
+
+Hard scope boundary (repeat for safety):
+
+- D-002J-P2.5 is **governance infrastructure only**. P2.5 does
+  **NOT** ingest any data.
+- D-002J-P2.5 does **NOT** rescue D-002H. D-002H REFUSED remains
+  the truthful canonical verdict.
+- D-002J-P2.5 does **NOT** authorise any canonical run anywhere.
+  `canonical_run_authorized_anywhere: false`.
+- D-002J-P2.5 does **NOT** claim crisis prediction.
+- D-002J-P2.5 does **NOT** claim bank-level validation.
+- D-002J-P2.5 does **NOT** rewrite the P1A REJECTED audit verdict —
+  the P1A capsule preserves `TERMINAL_REJECTED` and a non-empty
+  `failure_retention` field.
+- D-002J-P2.5 does **NOT** edit the P0/P1/P1A/P1B/P2 source
+  summary artifacts under `artifacts/d002j/{prereg,data_registry,crisis_windows}/`.
+- D-002J-P2.5 does **NOT** edit any locked governance file:
+  D-002G prereg sha256 byte-exact
+  `1ab91f09370e4705a8b0849467bc1f56df2e58d58d5623d3b6d905cbd110bb04`,
+  D-002G acceptance rules sha256 byte-exact
+  `875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31`,
+  D-002H prereg sha256 byte-exact
+  `44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec`,
+  D-002I prereg sha256 byte-exact
+  `b646989c032dc0e29f9b791e0b68209ff22b40f4757737712badc8656cf2db5f`,
+  D-002J prereg sha256 byte-exact
+  `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`,
+  D-002C claim ledger sha256 byte-exact
+  `eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387`.
+- D-002J-P2.5 does **NOT** edit any source code under
+  `research/systemic_risk/*.py` or any `scripts/x10r_d002*.py`.
+- D-002J-P2.5 does **NOT** create `artifacts/d002j/ingestion/`
+  (that directory remains P3 territory).
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 CRISIS_WINDOW_REGISTRY_READY → P2.5 this PR (VERDICT_DAG_BOOTSTRAPPED)`.
+
+Next legal PR: `feat(x10r,D-002J-P3): implement ingestion manifest
+and point-in-time adapter boundary` — opens W3/W4 of the D-002J
+Frontier Benchmark Program on top of the now-anchored verdict
+DAG. P3 may only open after this P2.5 PR is merged with decision
+`VERDICT_DAG_BOOTSTRAPPED`.
