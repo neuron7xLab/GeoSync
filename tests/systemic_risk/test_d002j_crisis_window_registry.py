@@ -456,18 +456,29 @@ def test_no_cross_asset_interbank_overclaim() -> None:
 
 
 def test_no_ingestion() -> None:
-    """No 'ingested' / 'downloaded raw' affirmatives in strict files; no artifacts/d002j/ingestion/ directory."""
+    """No 'ingested' / 'downloaded raw' affirmatives in strict P2 files.
+
+    The artifacts/d002j/ingestion/ directory is P3 territory; once P3
+    ships its ingestion *manifest* (contracts only, no bytes ingested),
+    the directory legitimately exists. P2's invariant is that strict
+    declaration-free files MUST NOT carry ingestion-affirmative phrases,
+    NOT that the P3 artifact tree must be absent forever.
+    """
     leaks = _scan_strict_for(INGESTION_PATTERNS)
     msg_leak = (
         f"{len(leaks)} ingestion-claim leak(s) in strict (non-declaration) P2 file(s): {leaks[:3]}"
     )
     assert not leaks, msg_leak
+    # When P3 ingestion manifest is on disk, the directory holds CONTRACTS
+    # ONLY (no staged/ subdirectory with real bytes). The P2 invariant
+    # remains: no actual data files under staged/.
     ingest_dir = REPO_ROOT / "artifacts" / "d002j" / "ingestion"
-    msg_dir = (
-        f"P3 territory artifacts/d002j/ingestion/ must NOT exist in P2 PR; "
-        f"observed: {ingest_dir.exists()}"
+    staged_dir = ingest_dir / "staged"
+    msg_staged = (
+        f"artifacts/d002j/ingestion/staged/ must NOT contain bytes-ingested data at "
+        f"P2 or P3; observed: {staged_dir.exists()}"
     )
-    assert not ingest_dir.exists(), msg_dir
+    assert not staged_dir.exists(), msg_staged
 
 
 def test_no_canonical_run_authorized() -> None:
