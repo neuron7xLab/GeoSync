@@ -161,31 +161,23 @@ def test_d002h_gate_c_grid_total_cells_18() -> None:
 
 
 def test_d002h_gate_c_does_not_run_sweep() -> None:
-    """No sweep / no results: Gate C is pure declaration.
+    """Gate C's OWN artifact is pure declaration, not a sweep result.
 
-    Enforces three invariants:
-      1. No ``artifacts/d002h/canonical/results/`` directory exists.
-      2. No ``sweep_result_*`` file exists anywhere under
-         ``artifacts/d002h/``.
-      3. The grid JSON has no ``results`` or ``sweep`` top-level field.
+    Scope-bound to Gate C's contribution. Downstream PRs (e.g. the
+    canonical sweep PR after Gate G) MAY legitimately create
+    ``artifacts/d002h/canonical/results/`` as their own scientific
+    output — Gate C's invariant is that GATE C did not run the sweep,
+    not that no sweep ever runs.
+
+    Enforces two invariants on Gate C's own grid JSON:
+      1. The grid JSON has no ``results`` top-level field.
+      2. The grid JSON has no ``sweep`` top-level field.
     """
-    msg_results_dir = (
-        f"Gate C must NOT produce results: {CANONICAL_RESULTS_DIR} exists "
-        "— Gate C is forbidden from running the canonical sweep"
-    )
-    assert not CANONICAL_RESULTS_DIR.exists(), msg_results_dir
-
-    if D002H_ARTIFACT_ROOT.is_dir():
-        sweep_hits = list(D002H_ARTIFACT_ROOT.rglob("sweep_result_*"))
-        msg_sweep = (
-            f"Gate C produced sweep artifacts: {sweep_hits!r} — Gate C "
-            "is declaration only, no compute"
-        )
-        assert sweep_hits == [], msg_sweep
-
     payload = _load_artifact()
-    assert "results" not in payload, "Gate C grid JSON must not embed results"
-    assert "sweep" not in payload, "Gate C grid JSON must not embed sweep state"
+    msg_results_field = "Gate C grid JSON must not embed results — declaration only"
+    msg_sweep_field = "Gate C grid JSON must not embed sweep state — declaration only"
+    assert "results" not in payload, msg_results_field
+    assert "sweep" not in payload, msg_sweep_field
 
 
 def test_d002h_gate_c_preserves_d002c_ledger() -> None:
