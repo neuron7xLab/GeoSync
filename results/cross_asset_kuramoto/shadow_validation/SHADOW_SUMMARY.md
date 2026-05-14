@@ -4,7 +4,7 @@ gate decisions only; no marketing language.
 
 ## Current live bar count
 
-- Live bars completed: **19**
+- Live bars completed: **20**
 - Spike paper-trader start date: 2026-04-11 (day-90 gate ≈ 2026-07-10)
 
 ## Operational health
@@ -19,21 +19,21 @@ gate decisions only; no marketing language.
 | metric | value |
 |---|---:|
 | cumulative_net_return | -0.0401 |
-| annualized_return_live | -0.5423 |
-| annualized_vol_live | 0.0941 |
-| sharpe_live | -5.7630 |
+| annualized_return_live | -0.5152 |
+| annualized_vol_live | 0.0919 |
+| sharpe_live | -5.6054 |
 | max_dd_live | 0.0464 |
-| hit_rate_live | 0.1053 |
-| turnover_ann_live | 2.1315 |
-| cost_drag_bps_live | 21.3100 |
+| hit_rate_live | 0.1000 |
+| turnover_ann_live | 2.0249 |
+| cost_drag_bps_live | 20.2500 |
 
 ## Benchmark comparison
 
 | metric | value |
 |---|---:|
-| benchmark_cum_return | 0.1051 |
-| benchmark_sharpe_live | 4.0774 |
-| relative_return_vs_benchmark | -0.1451 |
+| benchmark_cum_return | 0.1156 |
+| benchmark_sharpe_live | 4.3468 |
+| relative_return_vs_benchmark | -0.1556 |
 
 ## Envelope position
 
@@ -61,7 +61,7 @@ paper-trader's own per-bar cost slot, cumulated over live bars.
 
 ## Current recommendation
 
-- **status_label:** `BUILDING_SAMPLE`
+- **status_label:** `UNDERWATCH`
 - **gate_decision:** `CONTINUE_SHADOW`
 
 Claude Code does not authorize capital deployment. The gate is
