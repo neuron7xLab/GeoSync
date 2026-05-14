@@ -251,6 +251,7 @@ Any ledger update consuming this verdict is a SEPARATE downstream PR.
 Verdict scope: `ricci_flow` only; does NOT extend to `block_structured`
 or `temporal_coupling` (structurally excluded by D-002G closure).
 
+<<<<<<< HEAD
 ---
 
 ## D-002H Lineage CLOSED-AS-REFUSED — ledger entry appended
