@@ -151,6 +151,13 @@ SCANNER_EXEMPT_PATHS: Final[frozenset[str]] = frozenset(
         "docs/governance/D002H_GATE_D_FORBIDDEN_CLAIM_SCAN.md",
         # Forbidden-claims list source.
         "docs/governance/D002H_PREREGISTRATION.yaml",
+        # D-002I pre-registration enumerates the same forbidden_claims
+        # list inside its denial block (it inherits the D-002H forbidden
+        # set + adds D-002I-specific denials). Exempt by design,
+        # mirroring D002H_PREREGISTRATION.yaml.
+        "docs/governance/D002I_PREREGISTRATION.yaml",
+        "docs/governance/D002I_CLAIM_BOUNDARY.md",
+        "docs/governance/D002I_INVESTIGATION_RATIONALE.md",
         # ❌-block / scope-rationale docs that enumerate forbidden phrases
         # as ❌ list entries.
         "docs/governance/D002H_CLAIM_BOUNDARY.md",

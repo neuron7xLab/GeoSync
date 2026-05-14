@@ -79,6 +79,7 @@ diff_scope:
     - path: "tests/systemic_risk/test_d002i_preregistration.py"
     - path: ".claude/commit_acceptors/x10r-d002i-null-audit-failure-investigation-prereg.yaml"
     - path: "docs/governance/D002G_CANONICAL_RUN_BLOCKERS.md"
+    - path: "scripts/x10r_d002h_gate_d_scan.py"
   forbidden_paths:
     - "docs/governance/D002C_CLAIM_LEDGER.yaml"
     - "docs/governance/D002C_PREREGISTRATION.yaml"
