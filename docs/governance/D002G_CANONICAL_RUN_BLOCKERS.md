@@ -223,3 +223,31 @@ computation is now contractually unambiguous.
 A future M3-based R2-B analogue would constitute a fresh D-002J
 pre-registration.
 
+---
+
+## D-002H canonical-sweep execution (downstream of Gate G + R2-B note)
+
+**Status:** EXECUTED — scientific verdict recorded as a downstream
+artifact of the closed 7-gate authorisation conjunction and the R2-B
+inapplicability clarification.
+**Run ID:** `d002h_ricci_flow_canonical_v1_2026-05-14`
+**Authoritative artifact:** `artifacts/d002h/canonical/d002h_canonical_run_verdict.json`
+**Report:** `docs/governance/D002H_CANONICAL_RUN_REPORT.md`
+**Anchor main SHA:** `ee12a9e6a08e5916109c99eec84796d1e1375cd0`
+**Acceptance conjunction:** R1 ∧ R2 ∧ R3 ∧ NULL_AUDIT
+(R2-B INAPPLICABLE per `D002H_R2B_INAPPLICABILITY_NOTE.md`).
+
+The canonical sweep executes on the locked 18-cell `ricci_flow` grid
+under `M1_INDEPENDENT_SEED` and `M3_TOPOLOGY_CONDITIONED` null
+mechanisms (`M6_PLACEBO_COUPLING` is structurally excluded per D-002H
+prereg). Whatever the data verdict is — `SYNTHETIC_GATE6_CERTIFIED_D002H_REDESIGN`,
+`MARGINAL_PASS_SYNTHETIC_D002H`, `D002H_REDESIGN_INSUFFICIENT_AT_TESTED_BUDGET`,
+or `REFUSED_NULL_AUDIT_FAIL_D002H` — that IS the result. Truthful FAIL
+is preserved as negative artifact.
+
+D-002C claim ledger byte-exact UNCHANGED at sha256
+`f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd`.
+Any ledger update consuming this verdict is a SEPARATE downstream PR.
+Verdict scope: `ricci_flow` only; does NOT extend to `block_structured`
+or `temporal_coupling` (structurally excluded by D-002G closure).
+
