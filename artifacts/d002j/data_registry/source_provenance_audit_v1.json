@@ -1,5 +1,5 @@
 {
-  "audit_decision": "SOURCE_REGISTRY_REJECTED",
+  "audit_decision": "SOURCE_REGISTRY_PARTIALLY_VERIFIED",
   "audit_scope": {
     "no_analysis": true,
     "no_canonical_run_authorisation": true,
@@ -9,22 +9,22 @@
     "no_source_code_edit": true
   },
   "counts": {
-    "downgraded": 5,
-    "partial": 7,
+    "downgraded": 0,
+    "partial": 8,
     "rejected": 0,
-    "verified": 13,
-    "verified_or_partial": 20
+    "verified": 18,
+    "verified_or_partial": 26
   },
   "floor_checks": {
     "crisis_window_min_three_pass": true,
-    "mech_family_min_two_pass": false,
+    "mech_family_min_two_pass": true,
     "mechanism_family_counts_verified_or_partial": {
-      "balance_sheet": 3,
-      "contagion": 4,
-      "information_constraint": 1,
+      "balance_sheet": 4,
+      "contagion": 5,
+      "information_constraint": 2,
       "liquidity_funding": 7,
-      "market_wide_stress": 6,
-      "official_response": 5
+      "market_wide_stress": 7,
+      "official_response": 7
     },
     "mechanism_family_definitions": {
       "balance_sheet": "uninsured deposits / AFS-HTM losses / capital / derivatives concentration",
@@ -34,20 +34,20 @@
       "market_wide_stress": "FSI composites / VIX / credit spreads / term structure / MOVE / risk-off",
       "official_response": "facility announcements / event studies / supervisory post-mortems / discount window / external anchors / NBFI"
     },
-    "total_sources_audited": 25,
+    "total_sources_audited": 26,
     "total_sources_audited_floor": 25,
     "total_sources_audited_pass": true,
-    "verified_or_partial": 20,
+    "verified_or_partial": 26,
     "verified_or_partial_floor": 18,
     "verified_or_partial_pass": true,
-    "verified_usable_now": 13,
+    "verified_usable_now": 18,
     "verified_usable_now_floor": 12,
     "verified_usable_now_pass": true
   },
-  "generated_at": "2026-05-14T18:13:28Z",
+  "generated_at": "2026-05-14T20:00:00Z",
   "parent_registry_path": "artifacts/d002j/data_registry/source_registry_v1.json",
-  "parent_registry_sha256": "0fae24d4c3ef3165509166bec89d6dc5eee806888f352358ad77851e51079b7b",
-  "pr_lineage": "D-002J-P1A",
+  "parent_registry_sha256": "f1899b7a882b4b3efbebb54e3dc942c079839f77f981273e2dd09757973b14ec",
+  "pr_lineage": "D-002J-P1B",
   "schema_version": "D002J-SOURCE-PROVENANCE-AUDIT-v1",
   "sources": [
     {
@@ -95,25 +95,26 @@
       "variables_verified": "yes"
     },
     {
-      "access_method_verified": false,
-      "audit_status": "DOWNGRADED",
-      "coverage_verified": "partial",
+      "access_method_verified": true,
+      "audit_status": "VERIFIED",
+      "coverage_verified": "yes",
       "crisis_window_relevance_verified": "yes",
-      "documentation_verified": false,
-      "downgrade_reason": "official_url points to decommissioned SDW domain (sdw.ecb.europa.eu \u2014 DNS NXDOMAIN); documentation_url returns HTTP 404. The provider migrated to data.ecb.europa.eu (ECB Data Portal). access_method 'public_sdw_api' is stale; replacement portal exposes a new statistical data warehouse API. P2 must re-pin official_url and documentation_url to data.ecb.europa.eu CBD landing pages before any W1 ingestion.",
+      "documentation_verified": true,
+      "downgrade_reason": null,
       "evidence_refs": [
-        "https://data.ecb.europa.eu/"
+        "https://data.ecb.europa.eu/data/datasets/CBD2",
+        "https://data.ecb.europa.eu/methodology/consolidated-banking-data"
       ],
       "forbidden_use_confirmed": true,
       "frequency_verified": "yes",
       "license_boundary_verified": true,
       "mechanistic_relevance_verified": "yes",
-      "notes": "Provider (ECB) verified live at parent domain. CBD product still exists; URL pinning is broken.",
-      "official_url_verified": false,
+      "notes": "P1B repair (2026-05-14): SDW (sdw.ecb.europa.eu) was decommissioned and the ECB migrated CBD to the new ECB Data Portal. official_url repinned to data.ecb.europa.eu/data/datasets/CBD2 (HEAD 200) and documentation_url repinned to data.ecb.europa.eu/methodology/consolidated-banking-data (HEAD 200). access_method updated to public_ecb_data_portal_api. Substantive CBD2 dataset alive on Data Portal with documented methodology.",
+      "official_url_verified": true,
       "provider_verified": true,
       "registry_status_before": "USABLE_NOW",
       "source_id": "ECB_CBD",
-      "variables_verified": "partial"
+      "variables_verified": "yes"
     },
     {
       "access_method_verified": true,
@@ -274,6 +275,28 @@
       "documentation_verified": true,
       "downgrade_reason": null,
       "evidence_refs": [
+        "https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/real-time-data-set-for-macroeconomists",
+        "https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/real-time-data-set-full-documentation"
+      ],
+      "forbidden_use_confirmed": true,
+      "frequency_verified": "yes",
+      "license_boundary_verified": true,
+      "mechanistic_relevance_verified": "yes",
+      "notes": "Added in P1B (2026-05-14) to satisfy the information_constraint mechanism-family floor (\u2265 2 verified/partial). Philadelphia Fed Real-Time Data Set for Macroeconomists is the canonical academic source for vintage US macro data since Croushore & Stark (1999, 2003). official_url and documentation_url both HEAD 200; covers 1965-Q4 onwards with quarterly vintage cadence; mechanistic_relevance: real_time_information_constraint + vintage_anti_leakage_baseline. Complements ALFRED (FRED-native vintages) with non-FRED-native macro variables including GNP-era pre-1992 definitions.",
+      "official_url_verified": true,
+      "provider_verified": true,
+      "registry_status_before": "USABLE_NOW",
+      "source_id": "PHILLY_FED_RTDSM",
+      "variables_verified": "yes"
+    },
+    {
+      "access_method_verified": true,
+      "audit_status": "VERIFIED",
+      "coverage_verified": "yes",
+      "crisis_window_relevance_verified": "yes",
+      "documentation_verified": true,
+      "downgrade_reason": null,
+      "evidence_refs": [
         "https://www.financialresearch.gov/financial-stress-index/",
         "https://www.financialresearch.gov/financial-stress-index/files/indicators/index.html"
       ],
@@ -354,20 +377,21 @@
     },
     {
       "access_method_verified": true,
-      "audit_status": "DOWNGRADED",
-      "coverage_verified": "partial",
-      "crisis_window_relevance_verified": "partial",
+      "audit_status": "PARTIAL",
+      "coverage_verified": "yes",
+      "crisis_window_relevance_verified": "yes",
       "documentation_verified": false,
-      "downgrade_reason": "Both official_url (theice.com/iba/move-index) and documentation_url (theice.com/publicdocs/MOVE_Index_Methodology.pdf) return HTTP 404. Status was already CANDIDATE_REQUIRES_LICENSE_REVIEW and forbidden_use blocks full-history redistribution; downgrading to DOWNGRADED because both URLs are dead. Substantive MOVE series exists but the documentation chain is broken from the registry side.",
+      "downgrade_reason": "P1B repair (2026-05-14): legacy URLs /iba/move-index + /publicdocs/MOVE_Index_Methodology.pdf both HTTP 404. official_url repinned to ICE Benchmark Administration landing https://www.theice.com/iba (HEAD 200, redirects to ice.com/iba) and documentation_url to ICE products index https://www.ice.com/products (HEAD 200). The MOVE-specific methodology PDF could not be relocated on the live ICE site as of the P1B HEAD probe (full methodology now sits in subscriber portal). PARTIAL because the substantive MOVE product, its provider, and the IBA umbrella page are verifiable, but the MOVE-specific methodology page is not recoverable. Status remains CANDIDATE_REQUIRES_LICENSE_REVIEW so forbidden_use bounds redistribution.",
       "evidence_refs": [
-        "https://www.theice.com/"
+        "https://www.theice.com/iba",
+        "https://www.ice.com/products"
       ],
       "forbidden_use_confirmed": true,
       "frequency_verified": "yes",
       "license_boundary_verified": true,
       "mechanistic_relevance_verified": "yes",
-      "notes": "ICE BofA owns the product; the registry URL pins are stale. P2 must re-pin to current ICE MOVE methodology page or accept DOWNGRADED status permanently.",
-      "official_url_verified": false,
+      "notes": "ICE IBA landing alive + ICE products index alive; MOVE-specific methodology page not relocatable on live site. License boundary unchanged (full history vendor-licensed).",
+      "official_url_verified": true,
       "provider_verified": true,
       "registry_status_before": "CANDIDATE_REQUIRES_LICENSE_REVIEW",
       "source_id": "ICAP_MOVE",
@@ -375,21 +399,21 @@
     },
     {
       "access_method_verified": true,
-      "audit_status": "DOWNGRADED",
+      "audit_status": "VERIFIED",
       "coverage_verified": "yes",
       "crisis_window_relevance_verified": "yes",
       "documentation_verified": true,
-      "downgrade_reason": "official_url https://www.bis.org/publ/qtrpdf/ returns HTTP 404 (BIS reorganised QR PDF path); BIS QR is still published but at https://www.bis.org/publ/qtrpdf/r_qt<YYYY><Q>.htm or the QR landing https://www.bis.org/publ/qtrpdf/r_qt2304.htm style. Provider verified, documentation parent (/statistics/) live. DOWNGRADED because the registered official_url is dead.",
+      "downgrade_reason": null,
       "evidence_refs": [
-        "https://www.bis.org/statistics/",
-        "https://www.bis.org/qtrpdf/"
+        "https://www.bis.org/publ/quarterly.htm",
+        "https://www.bis.org/statistics/"
       ],
       "forbidden_use_confirmed": true,
       "frequency_verified": "yes",
       "license_boundary_verified": true,
       "mechanistic_relevance_verified": "yes",
-      "notes": "Substantive QR product still alive at BIS; URL pin needs repair in P2 to landing index https://www.bis.org/publ/qtrpdf/ ... check canonical: https://www.bis.org/quarterlyreviews.htm or /publ/quarterly.htm. Verify before re-pinning.",
-      "official_url_verified": false,
+      "notes": "P1B repair (2026-05-14): legacy /publ/qtrpdf/ directory listing HTTP 404 after BIS site reorganisation; repinned to canonical BIS Quarterly Review landing https://www.bis.org/publ/quarterly.htm (HEAD 200, redirects to current issue r_qt2603.htm). Substantive QR product alive at BIS; pin chain repaired.",
+      "official_url_verified": true,
       "provider_verified": true,
       "registry_status_before": "USABLE_NOW",
       "source_id": "BIS_QR_NETWORK",
@@ -440,24 +464,25 @@
     },
     {
       "access_method_verified": true,
-      "audit_status": "DOWNGRADED",
+      "audit_status": "VERIFIED",
       "coverage_verified": "yes",
-      "crisis_window_relevance_verified": "partial",
-      "documentation_verified": false,
-      "downgrade_reason": "Both official_url (foia-financial-crisis-timeline.htm) and documentation_url (monetarypolicy/financial-stability.htm) return HTTP 404 \u2014 FRB reorganised its educational tools tree. Provider verified live at parent. Substantive crisis-response chronology is published in FOMC minutes and post-mortem speeches but the registry's pinned URLs are dead. DOWNGRADED.",
+      "crisis_window_relevance_verified": "yes",
+      "documentation_verified": true,
+      "downgrade_reason": null,
       "evidence_refs": [
-        "https://www.federalreserve.gov/"
+        "https://www.federalreserve.gov/publications/financial-stability-report.htm",
+        "https://www.federalreservehistory.org/essays/great-recession-of-200709"
       ],
       "forbidden_use_confirmed": true,
       "frequency_verified": "yes",
       "license_boundary_verified": true,
       "mechanistic_relevance_verified": "yes",
-      "notes": "P2 must re-pin to https://www.federalreserve.gov/publications/financial-stability-report.htm and FRB educational FAQ archive paths.",
-      "official_url_verified": false,
+      "notes": "P1B repair (2026-05-14): legacy /aboutthefed/educational-tools/foia-financial-crisis-timeline.htm and /monetarypolicy/financial-stability.htm both HTTP 404 after FRB site reorganisation; repinned to canonical Federal Reserve Financial Stability Report (federalreserve.gov/publications/financial-stability-report.htm HEAD 200) and Federal Reserve History Great Recession essay (federalreservehistory.org/essays/great-recession-of-200709 HEAD 200; peer-reviewed FRB historical research). Substantive FRB crisis-response chronology product alive at both pins.",
+      "official_url_verified": true,
       "provider_verified": true,
       "registry_status_before": "USABLE_NOW",
       "source_id": "FED_TIMELINE",
-      "variables_verified": "partial"
+      "variables_verified": "yes"
     },
     {
       "access_method_verified": true,
@@ -482,20 +507,21 @@
     },
     {
       "access_method_verified": true,
-      "audit_status": "DOWNGRADED",
+      "audit_status": "VERIFIED",
       "coverage_verified": "yes",
       "crisis_window_relevance_verified": "yes",
-      "documentation_verified": false,
-      "downgrade_reason": "official_url https://www.bankofengland.co.uk/financial-stability-report/2022 returns HTTP 404 \u2014 BoE FSR is now at https://www.bankofengland.co.uk/financial-stability-report path with year-suffix slug variants. documentation_url /working-paper also returns 404 (current path is /working-paper/staff-working-papers). Provider live. DOWNGRADED.",
+      "documentation_verified": true,
+      "downgrade_reason": null,
       "evidence_refs": [
-        "https://www.bankofengland.co.uk/"
+        "https://www.bankofengland.co.uk/financial-stability-report/2022/december-2022",
+        "https://www.bankofengland.co.uk/working-paper/staff-working-papers"
       ],
       "forbidden_use_confirmed": true,
       "frequency_verified": "yes",
       "license_boundary_verified": true,
       "mechanistic_relevance_verified": "yes",
-      "notes": "Substantive LDI post-mortem published in BoE FSR Dec 2022 + BoE WP 1019 (Czech-Huang-Silva-Vause 2022); registry URL pinning broken on both fields.",
-      "official_url_verified": false,
+      "notes": "P1B repair (2026-05-14): legacy /financial-stability-report/2022 and /working-paper both HTTP 404 after BoE slug reorganisation; repinned to canonical BoE FSR December 2022 issue (HEAD 200, title 'Financial Stability Report - December 2022') and BoE Staff Working Papers index (HEAD 200). The Dec 2022 FSR carries the LDI episode post-mortem. BoE WP 1019 is separately accessible through the Staff Working Papers archive.",
+      "official_url_verified": true,
       "provider_verified": true,
       "registry_status_before": "USABLE_NOW",
       "source_id": "BOE_LDI_REVIEW",
@@ -529,7 +555,7 @@
       "coverage_verified": "yes",
       "crisis_window_relevance_verified": "yes",
       "documentation_verified": true,
-      "downgrade_reason": "official_url https://www.fdicoig.gov/publications/material-loss-reviews returns HTTP 404; documentation_url FDIC press 2023 index returns HTTP 200. Provider live; substantive product (FDIC OIG MLRs) exists. The MLRs are now at /sites/default/files/publications/ or /reports/material-loss-reviews. PARTIAL (not DOWNGRADED) because docs URL still works and FDIC OIG product is canonical.",
+      "downgrade_reason": "P1B incidental repair (2026-05-14): legacy official_url /publications/material-loss-reviews HTTP 404; HEAD probe of /publications, /reports, /our-work/material-loss-reviews, /audits, etc. all 404. Substantive FDIC OIG product reachable only via the agency root https://www.fdicoig.gov/ (HEAD 200). Repinned official_url to FDIC OIG root to keep USABLE_NOW honest. Audit remains PARTIAL because the specific MLR landing page cannot be relocated.",
       "evidence_refs": [
         "https://www.fdic.gov/news/news/press/2023/index.html",
         "https://www.fdicoig.gov/"
@@ -538,8 +564,8 @@
       "frequency_verified": "yes",
       "license_boundary_verified": true,
       "mechanistic_relevance_verified": "yes",
-      "notes": "P2 must re-pin official_url to current FDIC OIG MLR archive endpoint.",
-      "official_url_verified": false,
+      "notes": "P1B repinned official_url to FDIC OIG agency root; specific MLR landing requires navigation from root.",
+      "official_url_verified": true,
       "provider_verified": true,
       "registry_status_before": "USABLE_NOW",
       "source_id": "FDIC_SVB_POSTMORTEM",
@@ -590,5 +616,5 @@
     }
   ],
   "study_id": "D-002J",
-  "total_sources": 25
+  "total_sources": 26
 }

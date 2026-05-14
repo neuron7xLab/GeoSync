@@ -72,6 +72,7 @@ tag (D-002J-W*) where the source is intended to be ingested.
 | `ECB_MMSR`                 | European Central Bank             | repo               | rollover_stress; secured_unsecured_spread        | CW5                     | CANDIDATE_REQUIRES_LICENSE_REVIEW   | Daily euro-area secured / unsecured aggregates                               | Aggregates only public; micro data restricted; post-2016 only                       | D-002J-W4 (review)     |
 | `FRED`                     | Federal Reserve Bank of St. Louis | macro_financial    | market_wide_deleveraging; credit_spread; term    | CW1..CW6                | USABLE_NOW                          | De facto public macro-financial backbone                                     | Aggregator — upstream revisions propagate; some series attribution-only             | D-002J-W2 + W4         |
 | `ALFRED`                   | Federal Reserve Bank of St. Louis | macro_financial    | real_time_information_constraint                  | CW1..CW6                | USABLE_NOW                          | Vintage-dated FRED for honest real-time replication                          | Vintages only back to first release date; non-FRED-native series not vintaged       | D-002J-W2              |
+| `PHILLY_FED_RTDSM`         | Federal Reserve Bank of Philadelphia | macro_financial | real_time_information_constraint; vintage_anti_leakage_baseline | CW1..CW6 | USABLE_NOW                          | Canonical vintage US macro data since Croushore-Stark; satisfies information_constraint floor | US-only; macro-only; quarterly vintage cadence                                       | D-002J-W2              |
 | `OFR_FSI`                  | OFR                               | macro_financial    | market_wide_stress; external_window_anchor       | CW1..CW6                | USABLE_NOW                          | Daily five-region stress composite plus sub-indices                          | Composite — circular if used as y-label with same constituents in x                 | D-002J-W2              |
 | `STLFSI`                   | Federal Reserve Bank of St. Louis | macro_financial    | us_financial_stress_anchor                        | CW1, CW2, CW3, CW4, CW6 | USABLE_NOW                          | US-specific stress series back to 1993                                       | Weekly; STLFSI / STLFSI2 / STLFSI4 redesigns break continuity                       | D-002J-W2              |
 | `KCFSI`                    | Federal Reserve Bank of Kansas City | macro_financial  | us_financial_stress_alternative                   | CW1, CW2                | USABLE_NOW                          | Long-history monthly US stress series back to 1990                           | Monthly — too coarse for repo-spike or COVID dynamics                               | D-002J-W2              |
@@ -108,10 +109,14 @@ together cover both the US tri-party perimeter and the euro-area
 money-market layer, with `LIT_REPO_FUNDING` providing the
 methodology anchor.
 
-### macro_financial (5)
-`FRED` + `ALFRED` cover the de facto public backbone with vintage
-discipline; `OFR_FSI` + `STLFSI` + `KCFSI` provide three
-independent stress-composite constructions for cross-check.
+### macro_financial (6 — P1B)
+`FRED` + `ALFRED` + `PHILLY_FED_RTDSM` cover the de facto public
+backbone with vintage discipline (`PHILLY_FED_RTDSM` added in
+D-002J-P1B 2026-05-14 to satisfy the `information_constraint`
+mechanism-family floor of ≥ 2 verified/partial sources, complementing
+ALFRED with non-FRED-native macro variables); `OFR_FSI` + `STLFSI`
++ `KCFSI` provide three independent stress-composite constructions
+for cross-check.
 
 ### market_structure (4)
 `CBOE_VIX` (equity implied vol), `ICAP_MOVE` (Treasury implied

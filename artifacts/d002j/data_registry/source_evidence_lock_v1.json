@@ -44,6 +44,41 @@
     },
     {
       "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'European Central Bank' canonically operates ECB_CBD",
+      "evidence_url": "https://data.ecb.europa.eu/data/datasets/CBD2",
+      "source_id": "ECB_CBD",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'European Central Bank' canonically operates ECB_CBD",
+      "evidence_url": "https://data.ecb.europa.eu/methodology/consolidated-banking-data",
+      "source_id": "ECB_CBD",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "ECB_CBD status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://data.ecb.europa.eu/data/datasets/CBD2",
+      "source_id": "ECB_CBD",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Federal Reserve Board' canonically operates FED_Y9C",
+      "evidence_url": "https://www.federalreserve.gov/apps/mdrm/data-dictionary",
+      "source_id": "FED_Y9C",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "FED_Y9C status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://www.federalreserve.gov/apps/mdrm/data-dictionary",
+      "source_id": "FED_Y9C",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
       "claim": "Provider 'Federal Reserve Bank of New York' canonically operates NYFED_SOFR",
       "evidence_url": "https://www.newyorkfed.org/markets/reference-rates/sofr",
       "source_id": "NYFED_SOFR",
@@ -107,6 +142,20 @@
     },
     {
       "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'European Central Bank' canonically operates ECB_MMSR",
+      "evidence_url": "https://www.ecb.europa.eu/stats/financial_markets_and_interest_rates/money_market/html/index.en.html",
+      "source_id": "ECB_MMSR",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "ECB_MMSR status_before=CANDIDATE_REQUIRES_LICENSE_REVIEW is consistent with audit findings",
+      "evidence_url": "https://www.ecb.europa.eu/stats/financial_markets_and_interest_rates/money_market/html/index.en.html",
+      "source_id": "ECB_MMSR",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
       "claim": "Provider 'Federal Reserve Bank of St. Louis' canonically operates FRED",
       "evidence_url": "https://fred.stlouisfed.org/",
       "source_id": "FRED",
@@ -124,6 +173,41 @@
       "claim": "FRED status_before=USABLE_NOW is consistent with audit findings",
       "evidence_url": "https://fred.stlouisfed.org/",
       "source_id": "FRED",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Federal Reserve Bank of St. Louis' canonically operates ALFRED",
+      "evidence_url": "https://alfred.stlouisfed.org/",
+      "source_id": "ALFRED",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "ALFRED status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://alfred.stlouisfed.org/",
+      "source_id": "ALFRED",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Federal Reserve Bank of Philadelphia' canonically operates PHILLY_FED_RTDSM",
+      "evidence_url": "https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/real-time-data-set-for-macroeconomists",
+      "source_id": "PHILLY_FED_RTDSM",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Federal Reserve Bank of Philadelphia' canonically operates PHILLY_FED_RTDSM",
+      "evidence_url": "https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/real-time-data-set-full-documentation",
+      "source_id": "PHILLY_FED_RTDSM",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "PHILLY_FED_RTDSM status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://www.philadelphiafed.org/surveys-and-data/real-time-data-research/real-time-data-set-for-macroeconomists",
+      "source_id": "PHILLY_FED_RTDSM",
       "verified_field": "audit_status"
     },
     {
@@ -170,6 +254,76 @@
     },
     {
       "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Federal Reserve Bank of Kansas City' canonically operates KCFSI",
+      "evidence_url": "https://fred.stlouisfed.org/series/KCFSI",
+      "source_id": "KCFSI",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "KCFSI status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://fred.stlouisfed.org/series/KCFSI",
+      "source_id": "KCFSI",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'CBOE (republished publicly via FRED VIXCLS)' canonically operates CBOE_VIX",
+      "evidence_url": "https://fred.stlouisfed.org/series/VIXCLS",
+      "source_id": "CBOE_VIX",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "CBOE_VIX status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://fred.stlouisfed.org/series/VIXCLS",
+      "source_id": "CBOE_VIX",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'ICE BofA (public daily series via FRED partial coverage)' canonically operates ICAP_MOVE",
+      "evidence_url": "https://www.theice.com/iba",
+      "source_id": "ICAP_MOVE",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'ICE BofA (public daily series via FRED partial coverage)' canonically operates ICAP_MOVE",
+      "evidence_url": "https://www.ice.com/products",
+      "source_id": "ICAP_MOVE",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "ICAP_MOVE status_before=CANDIDATE_REQUIRES_LICENSE_REVIEW is consistent with audit findings",
+      "evidence_url": "https://www.theice.com/iba",
+      "source_id": "ICAP_MOVE",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Bank for International Settlements' canonically operates BIS_QR_NETWORK",
+      "evidence_url": "https://www.bis.org/publ/quarterly.htm",
+      "source_id": "BIS_QR_NETWORK",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Bank for International Settlements' canonically operates BIS_QR_NETWORK",
+      "evidence_url": "https://www.bis.org/statistics/",
+      "source_id": "BIS_QR_NETWORK",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "BIS_QR_NETWORK status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://www.bis.org/publ/quarterly.htm",
+      "source_id": "BIS_QR_NETWORK",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
       "claim": "Provider 'Office of Financial Research (OFR), US Treasury' canonically operates OFR_WP_NETWORK",
       "evidence_url": "https://www.financialresearch.gov/working-papers/",
       "source_id": "OFR_WP_NETWORK",
@@ -205,6 +359,27 @@
     },
     {
       "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Federal Reserve Board / FRBNY / FRBSF / Federal Reserve History' canonically operates FED_TIMELINE",
+      "evidence_url": "https://www.federalreserve.gov/publications/financial-stability-report.htm",
+      "source_id": "FED_TIMELINE",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Federal Reserve Board / FRBNY / FRBSF / Federal Reserve History' canonically operates FED_TIMELINE",
+      "evidence_url": "https://www.federalreservehistory.org/essays/great-recession-of-200709",
+      "source_id": "FED_TIMELINE",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "FED_TIMELINE status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://www.federalreserve.gov/publications/financial-stability-report.htm",
+      "source_id": "FED_TIMELINE",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
       "claim": "Provider 'European Central Bank' canonically operates ECB_FSR",
       "evidence_url": "https://www.ecb.europa.eu/pub/financial-stability/fsr/html/index.en.html",
       "source_id": "ECB_FSR",
@@ -215,6 +390,27 @@
       "claim": "ECB_FSR status_before=USABLE_NOW is consistent with audit findings",
       "evidence_url": "https://www.ecb.europa.eu/pub/financial-stability/fsr/html/index.en.html",
       "source_id": "ECB_FSR",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Bank of England' canonically operates BOE_LDI_REVIEW",
+      "evidence_url": "https://www.bankofengland.co.uk/financial-stability-report/2022/december-2022",
+      "source_id": "BOE_LDI_REVIEW",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Bank of England' canonically operates BOE_LDI_REVIEW",
+      "evidence_url": "https://www.bankofengland.co.uk/working-paper/staff-working-papers",
+      "source_id": "BOE_LDI_REVIEW",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "BOE_LDI_REVIEW status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://www.bankofengland.co.uk/financial-stability-report/2022/december-2022",
+      "source_id": "BOE_LDI_REVIEW",
       "verified_field": "audit_status"
     },
     {
@@ -240,6 +436,27 @@
     },
     {
       "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'FDIC Office of Inspector General' canonically operates FDIC_SVB_POSTMORTEM",
+      "evidence_url": "https://www.fdic.gov/news/news/press/2023/index.html",
+      "source_id": "FDIC_SVB_POSTMORTEM",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'FDIC Office of Inspector General' canonically operates FDIC_SVB_POSTMORTEM",
+      "evidence_url": "https://www.fdicoig.gov/",
+      "source_id": "FDIC_SVB_POSTMORTEM",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "FDIC_SVB_POSTMORTEM status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://www.fdic.gov/news/news/press/2023/index.html",
+      "source_id": "FDIC_SVB_POSTMORTEM",
+      "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
       "claim": "Provider 'Academic publishers / Deutsche Bundesbank Working Papers / SSRN' canonically operates LIT_NETWORK_RECON",
       "evidence_url": "https://www.bundesbank.de/en/publications/research/discussion-papers",
       "source_id": "LIT_NETWORK_RECON",
@@ -258,13 +475,27 @@
       "evidence_url": "https://www.bundesbank.de/en/publications/research/discussion-papers",
       "source_id": "LIT_NETWORK_RECON",
       "verified_field": "audit_status"
+    },
+    {
+      "boundary": "audit only \u2014 does not assert data quality or fitness-for-purpose",
+      "claim": "Provider 'Academic publishers / NBER / Federal Reserve working papers' canonically operates LIT_REPO_FUNDING",
+      "evidence_url": "https://www.nber.org/papers",
+      "source_id": "LIT_REPO_FUNDING",
+      "verified_field": "provider+official_url"
+    },
+    {
+      "boundary": "VERIFIED does not authorise canonical run; only attests provenance/access/license/coverage/relevance",
+      "claim": "LIT_REPO_FUNDING status_before=USABLE_NOW is consistent with audit findings",
+      "evidence_url": "https://www.nber.org/papers",
+      "source_id": "LIT_REPO_FUNDING",
+      "verified_field": "audit_status"
     }
   ],
-  "generated_at": "2026-05-14T18:13:28Z",
+  "generated_at": "2026-05-14T20:00:00Z",
   "parent_audit_path": "artifacts/d002j/data_registry/source_provenance_audit_v1.json",
-  "parent_registry_sha256": "0fae24d4c3ef3165509166bec89d6dc5eee806888f352358ad77851e51079b7b",
-  "pr_lineage": "D-002J-P1A",
+  "parent_registry_sha256": "f1899b7a882b4b3efbebb54e3dc942c079839f77f981273e2dd09757973b14ec",
+  "pr_lineage": "D-002J-P1B",
   "schema_version": "D002J-SOURCE-EVIDENCE-LOCK-v1",
   "study_id": "D-002J",
-  "total_entries": 37
+  "total_entries": 70
 }
