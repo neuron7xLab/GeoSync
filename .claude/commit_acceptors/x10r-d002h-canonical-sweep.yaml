@@ -120,18 +120,11 @@ diff_scope:
     - "artifacts/d002g/p3/"
     - "artifacts/d002g/canonical/"
 required_python_symbols:
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_artifact_exists"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_schema_version"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_grid_matches_d002h_prereg"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_uses_only_m1_m3_nulls"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_r2b_marked_inapplicable"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_per_cell_verdict_count_18"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_tier_string_in_locked_enum"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_aggregate_verdict_consistent_with_cells"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_preserves_d002c_ledger"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_anti_overclaim_guards_applied"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_anchor_main_sha_pinned"
-  - "tests/systemic_risk/test_d002h_canonical_run_artifact.py::test_canonical_run_bonferroni_denominator_locked"
+  - "research.systemic_risk.d002c_sweep_runner.run_one_cell"
+  - "research.systemic_risk.d002c_null_audit.run_null_audit_all"
+  - "research.systemic_risk.d002c_substrates.RicciFlowSubstrate"
+  - "research.systemic_risk.d002c_metrics.METRIC_BY_ID"
+  - "research.systemic_risk.d002g_null_mechanisms.realize_null"
 expected_signal: >-
   `PYTHONPATH=. python -m pytest
   tests/systemic_risk/test_d002h_canonical_run_artifact.py -q` passes all
