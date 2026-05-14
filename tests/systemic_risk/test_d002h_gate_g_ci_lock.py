@@ -358,27 +358,34 @@ def test_gate_g_preserves_d002h_prereg() -> None:
 
 
 def test_gate_g_does_not_run_sweep() -> None:
-    """No ``artifacts/d002h/canonical/results/`` directory exists.
+    """Gate G's OWN artifact records NOT_STARTED execution.
 
-    Gate G is AUTHORISATION-only. The canonical sweep is a separate
-    downstream PR. This test asserts the sweep has not been side-
-    effected by the Gate G PR.
+    Scope-bound to Gate G's contribution. Downstream PRs (e.g. the
+    canonical sweep PR) MAY legitimately create
+    ``artifacts/d002h/canonical/results/`` — Gate G's invariant is
+    that GATE G itself did not execute the sweep, encoded in its own
+    ``canonical_run_execution_status`` field, NOT a global filesystem
+    check.
 
-    Two-assertion test (Lesson 4 C3): the results directory does NOT
-    exist AND the artifact's execution-status records NOT_STARTED.
+    Two-assertion test (Lesson 4 C3): Gate G artifact's
+    canonical_run_execution_status == NOT_STARTED AND the artifact
+    documents the canonical sweep as a SEPARATE downstream PR.
     """
-    results_path = REPO_ROOT / CANONICAL_RESULTS_RELPATH
-    msg_dir = (
-        f"forbidden directory {CANONICAL_RESULTS_RELPATH!r} exists - "
-        "Gate G must not execute the canonical sweep; that is a downstream PR"
-    )
-    assert not results_path.exists(), msg_dir
     payload = _load_payload()
     msg_status = (
         f"canonical_run_execution_status must be NOT_STARTED, got "
         f"{payload['canonical_run_execution_status']!r}"
     )
     assert payload["canonical_run_execution_status"] == EXPECTED_EXECUTION_STATUS, msg_status
+    # Drift sentinel: confirm Gate G artifact pins the "separate
+    # downstream PR" semantic in its own contract, not via filesystem
+    # absence (which is brittle and bleeds across PR boundaries).
+    execution_artifact = payload.get("canonical_run_execution_artifact", "")
+    msg_artifact_doc = (
+        "Gate G artifact must document the canonical-sweep PR as a SEPARATE "
+        f"downstream artifact; got {execution_artifact!r}"
+    )
+    assert "separate" in execution_artifact.lower(), msg_artifact_doc
 
 
 # ---------------------------------------------------------------------------
