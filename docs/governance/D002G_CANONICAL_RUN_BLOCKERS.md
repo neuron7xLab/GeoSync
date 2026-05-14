@@ -268,3 +268,33 @@ Future legal paths:
 - D-002I fresh pre-reg to investigate WHY null audit FAILs on ricci_flow
 - D-002H retained as scoped-REFUSED negative artifact
 
+---
+
+## D-002I lineage opened — null-audit failure-mode investigation pre-reg
+
+**Status:** D-002I PRE-REG LOCKED (4 falsifiable hypotheses)
+**Parent:** D-002H canonical sweep REFUSED (PR #691, sha `250d8069`)
+**Parent null-audit aggregate:** 42 / 54 audited cells FAIL on `ricci_flow` under M1 ∪ M3.
+**4 hypotheses:** H_I1 (M1 offset), H_I2 (M3 tolerance), H_I3 (signal magnitude), H_I4 (Bonferroni denominator).
+
+Each hypothesis will be implemented in a separate D-002I-P1/Hn PR.
+Each produces a SUPPORTED or REFUTED scoped verdict. NO mechanism
+change, NO canonical sweep run. D-002I is investigation, not
+validation. D-002H REFUSED remains the truthful canonical verdict;
+D-002I does NOT retroactively flip it.
+
+If all 4 hypotheses REFUTED → D-002H REFUSED is structural at the
+tested signal magnitude on `ricci_flow` under M1 ∪ M3 (mechanism
+families M1+M3 fundamentally insufficient at this signal strength);
+next step = fresh D-002J pre-reg or retain D-002H as terminal scoped
+negative artifact.
+
+D-002G acceptance rules byte-exact UNCHANGED at sha256
+`875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31`.
+D-002H prereg byte-exact UNCHANGED at sha256
+`44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec`.
+D-002C claim ledger sha256 was `f96ba9b5...d6d543b8bd6dd` at D-002I
+prereg-lock anchor (PR #693, 2e55b73a). The D-002H REFUSED entry
+append in PR #692 legitimately rotates it to
+`eb0b7151...319ef84a32387`; the D-002I investigation is unchanged
+in scope or content by that append-only ledger event.
