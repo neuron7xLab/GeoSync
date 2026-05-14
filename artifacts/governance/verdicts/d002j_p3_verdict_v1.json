@@ -25,7 +25,7 @@
     "D002J-P2"
   ],
   "phase": "P3",
-  "pr_number": 0,
+  "pr_number": 701,
   "schema_version": "D002J-VERDICT-CAPSULE-v1",
   "source_summary_path": "artifacts/d002j/ingestion/adapter_registry_v1.json",
   "status": "TERMINAL_PASS",
