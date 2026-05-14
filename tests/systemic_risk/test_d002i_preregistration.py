@@ -30,8 +30,12 @@ PREREG_LOCK_JSON = REPO_ROOT / "artifacts" / "d002i" / "prereg" / "d002i_preregi
 LOCKED_D002G_ACCEPTANCE_SHA = "875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31"
 # D-002H prereg locked sha256.  # pragma: allowlist secret
 LOCKED_D002H_PREREG_SHA = "44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec"
-# D-002C claim ledger locked sha256.  # pragma: allowlist secret
+# D-002C claim ledger sha256 at D-002I prereg-lock anchor.  # pragma: allowlist secret
 LOCKED_D002C_LEDGER_SHA = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"
+# D-002C claim ledger sha256 post-D-002H-REFUSED-append (PR #692).  # pragma: allowlist secret
+LOCKED_D002C_LEDGER_SHA_POST_APPEND = (
+    "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"
+)
 PARENT_CANONICAL_SHA = "250d8069d16ecabdb49b5a20b7cf1d622eddc925"
 HYPOTHESIS_IDS = ("H_I1", "H_I2", "H_I3", "H_I4")
 
@@ -185,18 +189,29 @@ def test_d002i_no_canonical_run_authorisation() -> None:
 
 
 def test_d002i_preserves_d002c_ledger() -> None:
-    """D-002C claim ledger sha256 stays byte-exact at the pinned anchor."""
+    """D-002I prereg pins D-002C ledger sha at the historical prereg anchor.
+
+    The YAML field ``relationship_to_d002c.d002c_ledger_sha_at_d002i_prereg``
+    records the ledger sha AT D-002I PREREG LOCK — must remain byte-exact.
+    The live disk sha rotates legitimately under the PR #692 D-002H
+    REFUSED entry append (a separate append-only governance event).
+    """
     ledger_path = REPO_ROOT / "docs" / "governance" / "D002C_CLAIM_LEDGER.yaml"
     assert ledger_path.exists()
-    assert (
-        _sha256(ledger_path) == LOCKED_D002C_LEDGER_SHA
-    ), "D-002C claim ledger sha256 drift -- D-002I forbids any ledger touch."
     yaml_data = _load_prereg()
     rel = yaml_data["relationship_to_d002c"]
     assert isinstance(rel, dict)
     assert (
         str(cast(dict[str, Any], rel)["d002c_ledger_sha_at_d002i_prereg"])
         == LOCKED_D002C_LEDGER_SHA
+    ), "D-002I prereg yaml field d002c_ledger_sha_at_d002i_prereg drift."
+    live_sha = _sha256(ledger_path)
+    assert live_sha in {
+        LOCKED_D002C_LEDGER_SHA,
+        LOCKED_D002C_LEDGER_SHA_POST_APPEND,
+    }, (
+        f"D-002C claim ledger live disk sha {live_sha!r} is neither the "
+        f"D-002I prereg-lock anchor nor the post-D-002H-REFUSED-append anchor."
     )
 
 

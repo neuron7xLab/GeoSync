@@ -409,7 +409,7 @@ def test_m2_marks_temporal_coupling_eligible_if_contract_satisfied() -> None:
 # Pinned at the merge commit of #677 (P1). The M2 PR MUST NOT mutate the
 # D-002C claim ledger byte-for-byte. # fmt: off
 EXPECTED_D002C_LEDGER_SHA256: str = (
-    "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+    "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
 )
 # fmt: on
 

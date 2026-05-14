@@ -76,7 +76,12 @@ EXPECTED_PRIOR_GATES: list[dict[str, str]] = [
 # silences detect-secrets HexHighEntropy - these are not credentials,
 # they are governance anchors enforcing the byte-exact contract.
 # fmt: off
-D002C_LEDGER_SHA256_PIN: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+# Live (post-append) disk anchor — see Gate E test for full explanation.
+D002C_LEDGER_SHA256_PIN: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
+# Frozen pre-append anchor: the Gate F artifact JSON records the ledger sha
+# at Gate E close, which is the OLD pre-append anchor. The artifact stays
+# historical; the live disk has rotated post-PR #692.
+D002C_LEDGER_SHA256_PRE_APPEND: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret  # frozen at Gate E anchor; pre-D-002H-REFUSED-append
 D002H_PREREG_SHA256_PIN: str = "44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec"  # noqa: E501  # pragma: allowlist secret
 # fmt: on
 
@@ -100,26 +105,62 @@ def _compute_disk_sha(relpath: str) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _is_ancestor_of_main(sha: str) -> bool:
-    """Return True iff ``sha`` is an ancestor of ``origin/main``.
-
-    Uses ``git merge-base --is-ancestor`` (exit 0 = ancestor, 1 = not).
-    Any other exit code (e.g. unknown ref) propagates as a CalledProcessError
-    through ``check=False`` returning non-{0,1}; the test fails with context.
-    """
-    result = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", sha, "origin/main"],
+def _git(args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run a git command in ``REPO_ROOT`` without raising on non-zero exit."""
+    return subprocess.run(
+        ["git", *args],
         cwd=str(REPO_ROOT),
         check=False,
         capture_output=True,
         text=True,
     )
-    msg_unknown = (
+
+
+def _ensure_commit_fetched(sha: str) -> None:
+    """Best-effort fetch of ``sha`` when the working clone is shallow.
+
+    GitHub Actions ``actions/checkout`` defaults to ``fetch-depth: 1``,
+    which makes historical commits (e.g. Gate A..E anchor merges) unknown
+    locally. We detect this via ``git rev-parse --is-shallow-repository``
+    and, if shallow, ask the origin to fetch the missing commit. The
+    fetch is bounded and idempotent; failure is silent here and surfaces
+    as the explicit shallow-clone diagnostic in :func:`_is_ancestor_of_main`.
+    """
+    if _git(["cat-file", "-e", f"{sha}^{{commit}}"]).returncode == 0:
+        return
+    if _git(["rev-parse", "--is-shallow-repository"]).stdout.strip() != "true":
+        return
+    # Try a targeted fetch first (cheap, works on GHA/Pro), then fall back
+    # to --unshallow (heavier, but guarantees full history).
+    if _git(["fetch", "--depth=1", "origin", sha]).returncode == 0:
+        return
+    _git(["fetch", "--unshallow", "origin"])
+
+
+def _is_ancestor_of_main(sha: str) -> bool:
+    """Return True iff ``sha`` is an ancestor of ``origin/main``.
+
+    Uses ``git merge-base --is-ancestor`` (exit 0 = ancestor, 1 = not).
+    Any other exit code is treated as an environment failure (most commonly
+    a shallow clone that doesn't carry the historical anchor commit) and
+    raised with an actionable message pointing at the workflow's
+    ``actions/checkout`` ``fetch-depth`` setting.
+    """
+    _ensure_commit_fetched(sha)
+    result = _git(["merge-base", "--is-ancestor", sha, "origin/main"])
+    if result.returncode in (0, 1):
+        return result.returncode == 0
+    is_shallow = _git(["rev-parse", "--is-shallow-repository"]).stdout.strip() == "true"
+    msg = (
         f"git merge-base --is-ancestor returned unexpected code "
-        f"{result.returncode} for {sha!r}: stderr={result.stderr!r}"
+        f"{result.returncode} for {sha!r}: stderr={result.stderr!r}. "
+        f"shallow_clone={is_shallow}. If shallow=True, the calling "
+        f"workflow's actions/checkout step needs `fetch-depth: 0` "
+        f"(historical D-002H gate anchor commits are not present in "
+        f"depth=1 clones). See .github/workflows/main-validation.yml "
+        f"python-full-validation job for the canonical setting."
     )
-    assert result.returncode in (0, 1), msg_unknown
-    return result.returncode == 0
+    raise AssertionError(msg)
 
 
 # ---------------------------------------------------------------------------
@@ -291,31 +332,36 @@ def test_gate_f_downstream_gates_remaining_is_g_only() -> None:
 
 
 def test_gate_f_preserves_d002c_ledger() -> None:
-    """D-002C claim ledger remains byte-exact at the locked pin.
+    """D-002C claim ledger split-anchor check after PR #692 REFUSED append.
 
-    Three assertions (Lesson 4 C3): pinned-sha field in artifact equals
-    inline anchor, disk bytes match inline anchor, and the artifact's
-    pinned-sha field matches the disk bytes (transitive consistency).
+    Three assertions (Lesson 4 C3): Gate F artifact carries the
+    pre-append Gate E anchor (frozen historical record), disk bytes
+    match the post-append live anchor, and the artifact pin is the
+    frozen pre-append sha (NOT equal to live disk — the legitimate
+    append rotated the live sha while the historical record stays).
     """
     payload = _load_payload()
     pinned_in_artifact = payload["d002c_ledger_byte_exact_at_gate_e"]
     msg_artifact = (
         f"D-002C ledger pin in Gate F artifact drift: got "
-        f"{pinned_in_artifact!r}, expected {D002C_LEDGER_SHA256_PIN!r}"
+        f"{pinned_in_artifact!r}, expected pre-append anchor "
+        f"{D002C_LEDGER_SHA256_PRE_APPEND!r} (frozen Gate E historical record)"
     )
-    assert pinned_in_artifact == D002C_LEDGER_SHA256_PIN, msg_artifact
+    assert pinned_in_artifact == D002C_LEDGER_SHA256_PRE_APPEND, msg_artifact
     actual_disk = _compute_disk_sha(D002C_LEDGER_RELPATH)
     msg_disk = (
-        f"D-002C ledger MUTATED on disk: expected {D002C_LEDGER_SHA256_PIN!r}, "
-        f"got {actual_disk!r}; Gate F is forbidden from touching the D-002C "
-        "claim ledger"
+        f"D-002C ledger disk sha drift: expected post-append anchor "
+        f"{D002C_LEDGER_SHA256_PIN!r} (live, after PR #692 append), "
+        f"got {actual_disk!r}"
     )
     assert actual_disk == D002C_LEDGER_SHA256_PIN, msg_disk
-    msg_transitive = (
-        f"D-002C ledger transitive consistency violated: artifact pin "
-        f"{pinned_in_artifact!r} != disk sha {actual_disk!r}"
+    msg_split = (
+        f"D-002C ledger split-anchor invariant: artifact pin "
+        f"{pinned_in_artifact!r} (pre-append) MUST differ from live disk "
+        f"sha {actual_disk!r} (post-append); the legitimate D-002H REFUSED "
+        "append rotates the live sha while the historical record stays."
     )
-    assert pinned_in_artifact == actual_disk, msg_transitive
+    assert pinned_in_artifact != actual_disk, msg_split
 
 
 # ---------------------------------------------------------------------------

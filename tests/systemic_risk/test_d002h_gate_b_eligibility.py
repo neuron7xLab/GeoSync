@@ -30,7 +30,7 @@ ARTIFACT_PATH = REPO_ROOT / ARTIFACT_RELPATH
 # HexHighEntropy; this is a content-addressed governance anchor, not
 # a credential. fmt:off keeps the long literal on one line for review.
 # fmt: off
-D002C_LEDGER_SHA256: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+D002C_LEDGER_SHA256: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
 # fmt: on
 
 D002C_LEDGER_RELPATH = "docs/governance/D002C_CLAIM_LEDGER.yaml"

@@ -53,7 +53,13 @@ EXPECTED_DOWNSTREAM_GATES = ["F", "G"]
 # silences detect-secrets HexHighEntropy - these are not credentials,
 # they are governance anchors enforcing the Gate D byte-exact contract.
 # fmt: off
-D002C_LEDGER_SHA256_PIN: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+# Live (post-append) disk anchor: this is the sha256 of the on-disk ledger
+# after the legitimate D-002H REFUSED entry append in PR #692.
+D002C_LEDGER_SHA256_PIN: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
+# Frozen pre-append historical anchor: this is the sha256 the ledger had
+# at the Gate E merge anchor (077073ee). The Gate E artifact JSON is a
+# historical record and preserves this sha — it must NOT be mutated.
+D002C_LEDGER_SHA256_PRE_APPEND: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret  # frozen at Gate E anchor; pre-D-002H-REFUSED-append
 D002H_PREREG_SHA256_PIN: str = "44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec"  # noqa: E501  # pragma: allowlist secret
 # fmt: on
 
@@ -123,6 +129,14 @@ def test_gate_e_all_pinned_shas_byte_exact() -> None:
     This is the Gate E byte-exact preservation contract. Each pinned
     file's sha256 is recomputed from disk bytes and compared to the
     pinned value. Any drift in any file fails Gate E for the full PR.
+
+    Exception: the D-002C claim ledger entry. The Gate E artifact
+    records the pre-append historical sha at gate close; the live disk
+    sha has rotated post-PR #692 (legitimate D-002H REFUSED append,
+    acceptor-authorised). For this single entry we assert (1) the
+    artifact pin equals the pre-append anchor (historical record
+    correct) and (2) the disk sha equals the post-append anchor (live
+    state correct).
     """
     payload = _load_payload()
     pinned = payload["pinned_files"]
@@ -131,11 +145,20 @@ def test_gate_e_all_pinned_shas_byte_exact() -> None:
         relpath = entry["path"]
         expected = entry["sha256"]
         actual = _compute_disk_sha(relpath)
+        if relpath == D002C_LEDGER_RELPATH:
+            # Split-anchor check: artifact pin frozen at pre-append sha,
+            # disk sha rotated to post-append sha by PR #692.
+            if expected != D002C_LEDGER_SHA256_PRE_APPEND:
+                drifts.append((relpath, D002C_LEDGER_SHA256_PRE_APPEND, expected))
+            if actual != D002C_LEDGER_SHA256_PIN:
+                drifts.append((relpath, D002C_LEDGER_SHA256_PIN, actual))
+            continue
         if actual != expected:
             drifts.append((relpath, expected, actual))
     msg = (
         f"Gate E byte-exact contract violated for {len(drifts)} files: "
-        f"{drifts!r}; expected all 16 pinned shas to match disk."
+        f"{drifts!r}; expected all 16 pinned shas to match disk "
+        "(D-002C ledger entry: artifact==pre-append anchor, disk==post-append anchor)."
     )
     assert drifts == [], msg
     # Two-assertion sentinel (Lesson 4): pinned set was non-empty AND
@@ -145,11 +168,13 @@ def test_gate_e_all_pinned_shas_byte_exact() -> None:
 
 
 def test_gate_e_d002c_ledger_pinned() -> None:
-    """Specific guard: D-002C claim ledger is pinned AND byte-exact AND not mutated.
+    """Specific guard: D-002C claim ledger is pinned in the Gate E artifact
+    at the pre-append historical anchor, and on disk at the post-append
+    live anchor (rotated by PR #692, the D-002H REFUSED ledger append).
 
-    Three assertions (Lesson 4 C3): presence in pin set, pinned sha
-    matches inline anchor, and disk bytes match pinned sha. Either
-    drift fails Gate E and corroborates Gate D's own ledger sentinel.
+    Three assertions (Lesson 4 C3): presence in pin set, artifact pin
+    equals pre-append anchor (frozen Gate E historical record), disk
+    bytes equal post-append anchor (live state).
     """
     payload = _load_payload()
     entry = next(
@@ -159,14 +184,15 @@ def test_gate_e_d002c_ledger_pinned() -> None:
     msg_present = f"D-002C ledger missing from pin set: {D002C_LEDGER_RELPATH}"
     assert entry is not None, msg_present
     msg_pin = (
-        f"D-002C ledger pinned sha drift: got {entry['sha256']!r}, "
-        f"expected {D002C_LEDGER_SHA256_PIN!r}"
+        f"D-002C ledger artifact pin drift: got {entry['sha256']!r}, "
+        f"expected pre-append anchor {D002C_LEDGER_SHA256_PRE_APPEND!r} "
+        "(Gate E artifact is a frozen historical record)"
     )
-    assert entry["sha256"] == D002C_LEDGER_SHA256_PIN, msg_pin
+    assert entry["sha256"] == D002C_LEDGER_SHA256_PRE_APPEND, msg_pin
     actual = _compute_disk_sha(D002C_LEDGER_RELPATH)
     msg_disk = (
-        f"D-002C ledger MUTATED on disk: expected {D002C_LEDGER_SHA256_PIN!r}, got {actual!r}; "
-        "Gate E is forbidden from touching the D-002C claim ledger"
+        f"D-002C ledger disk sha drift: expected post-append anchor "
+        f"{D002C_LEDGER_SHA256_PIN!r} (live, after PR #692 append), got {actual!r}"
     )
     assert actual == D002C_LEDGER_SHA256_PIN, msg_disk
 
@@ -261,6 +287,12 @@ def test_gate_e_no_drift_in_any_pin(entry: dict[str, Any]) -> None:
     Two-assertion test (Lesson 4 C3): file presence on disk AND
     byte-exact sha equality. Parametrisation gives 16 distinct test
     cases (>= 2 cases) by file path.
+
+    Exception: D-002C claim ledger. The Gate E artifact's pin is frozen
+    at the pre-append historical anchor; the live disk sha has rotated
+    to the post-append anchor (PR #692 legitimate REFUSED append). The
+    assertion is split: artifact pin == pre-append, disk sha == post-
+    append.
     """
     relpath = entry["path"]
     expected = entry["sha256"]
@@ -268,6 +300,18 @@ def test_gate_e_no_drift_in_any_pin(entry: dict[str, Any]) -> None:
     msg_present = f"pinned file missing on disk: {relpath}"
     assert path.is_file(), msg_present
     actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if relpath == D002C_LEDGER_RELPATH:
+        msg_artifact = (
+            f"Gate E artifact pin drift for {relpath}: artifact={expected!r}, "
+            f"expected pre-append anchor {D002C_LEDGER_SHA256_PRE_APPEND!r}"
+        )
+        assert expected == D002C_LEDGER_SHA256_PRE_APPEND, msg_artifact
+        msg_disk = (
+            f"Gate E disk sha drift for {relpath}: disk={actual!r}, "
+            f"expected post-append anchor {D002C_LEDGER_SHA256_PIN!r} (PR #692 append)"
+        )
+        assert actual == D002C_LEDGER_SHA256_PIN, msg_disk
+        return
     msg_drift = f"Gate E byte-exact drift for {relpath}: expected {expected!r}, got {actual!r}"
     assert actual == expected, msg_drift
 

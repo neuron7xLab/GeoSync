@@ -258,3 +258,75 @@ claims:
           attempt-1 ledger entry). Remains a valid alternative or
           additive path; same fresh-pre-registration discipline applies.
         spec: docs/governance/D002C_R2_B_SUPPLEMENTARY_NULL_SPEC.md
+
+  # ---------------------------------------------------------------------
+  # Append-only — D-002H scoped REFUSED entry (2026-05-14).
+  # D-002H is a new SCOPED lineage opened AFTER D-002G structural closure
+  # (PR #682 sha 8cf5364a...). The D-002H canonical sweep (PR #691 merge
+  # sha 250d8069...) executed on the ricci_flow substrate only. The
+  # post-sweep permutation null audit FAILED at 42/54 audited cells,
+  # triggering the NULL_AUDIT_FAIL anti-overclaim guard; 0/18 canonical
+  # cells satisfied the 4-term acceptance conjunction
+  # R1 AND R2 AND R3 AND NULL_AUDIT.
+  #
+  # This entry is NOT an eclipse — the D-002C attempt-1 (SUPPORTED) and
+  # attempt-2 (FALSIFIED) entries above are unrelated to the D-002H
+  # ricci_flow substrate-scoped REFUSED verdict. D-002C attempt-2 already
+  # eclipses attempt-1; D-002H opens a separate scoped lineage and is
+  # recorded as such (`eclipses: null`).
+  # ---------------------------------------------------------------------
+
+  - claim_id: D002H_RICCI_FLOW_SCOPED_REFUSED
+    status: REFUSED_BY_NULL_AUDIT_FAIL
+    tier: REFUSED_NULL_AUDIT_FAIL_D002H
+    scope: ricci_flow substrate only (per D-002H prereg)
+    asserted_at: "2026-05-14T02:13:54Z"
+    canonical_run_merge_sha: 250d8069d16ecabdb49b5a20b7cf1d622eddc925
+    canonical_run_pr: 691
+    parent_lineage: D-002H
+    parent_lineage_prereg_sha: 44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec
+    parent_closure_artifact: D-002G_STRUCTURAL_CLOSURE_PR682
+    parent_closure_sha: 8cf5364a3f3b605d8b134bccbfe5170098e0e197
+    acceptance_conjunction: "R1 ∧ R2 ∧ R3 ∧ NULL_AUDIT (R2-B INAPPLICABLE per D002H_R2B_INAPPLICABILITY_NOTE.md merge ee12a9e6)"
+    canonical_grid:
+      substrates: [ricci_flow]
+      N: [50, 100, 200]
+      lambda_values: [0.0, 0.05, 0.10, 0.20, 0.40, 1.0]
+      n_seeds: 20
+      n_bootstrap: 16
+      total_cells: 18
+    null_mechanisms_used: [M1_INDEPENDENT_SEED, M3_TOPOLOGY_CONDITIONED]
+    n_cells_total: 18
+    n_cells_pass: 0
+    n_cells_fail: 15
+    n_cells_indeterminate: 3
+    post_sweep_null_audit:
+      aggregate_verdict: FAIL
+      n_audited: 54
+      n_pass: 12
+      n_fail: 42
+      n_shuffles: 100
+      rng_seed: 42
+    anti_overclaim_guards_triggered: [NULL_AUDIT_FAIL]
+    artifact_path: artifacts/d002h/canonical/d002h_canonical_run_verdict.json
+    eclipses: null  # NOT an eclipse — D-002H is a new SCOPED lineage opened after D-002G structural closure
+    notes: >-
+      Canonical D-002H sweep on ricci_flow substrate produced verdict
+      REFUSED via NULL_AUDIT_FAIL anti-overclaim guard (42/54 audited
+      cells FAIL the post-sweep permutation null audit). 0/18 cells
+      satisfied the 4-term acceptance conjunction R1 ∧ R2 ∧ R3 ∧
+      NULL_AUDIT. Verdict SCOPED to ricci_flow only per D-002H
+      prereg substrate_scope; does NOT generalise to block_structured
+      or temporal_coupling (excluded by D-002G structural closure
+      PR #682). Truthful negative result preserved as scoped scientific
+      artifact. Does NOT change D-002C attempt-1 SUPPORTED status or
+      attempt-2 FALSIFIED status (both entries byte-exact above).
+    seven_gate_authorisation:
+      gate_a_anchor: 1b59ce5326a8e8bd8aaaf9666a06075d34b4f6a5
+      gate_b_anchor: b97daae8b554ab9960510564e19263adcc1fe71b
+      gate_c_anchor: a9d852d34258861809325df81bd7cba6d0e557ec
+      gate_d_anchor: 077073ee801c434840d64f911e7b1f39ce2ac0fa
+      gate_e_anchor: e1d3ae304274e8b8f509edeb83b0a9adfeb43a77
+      gate_f_anchor: 0e598fff84308356fd93e953d4fdde0b7811ac53
+      gate_g_anchor: 4686455ed8de3902ea5ad4040bfc4ca8c530bc39
+      r2b_clarification_anchor: ee12a9e6a08e5916109c99eec84796d1e1375cd0

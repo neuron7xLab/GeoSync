@@ -251,6 +251,23 @@ Any ledger update consuming this verdict is a SEPARATE downstream PR.
 Verdict scope: `ricci_flow` only; does NOT extend to `block_structured`
 or `temporal_coupling` (structurally excluded by D-002G closure).
 
+<<<<<<< HEAD
+---
+
+## D-002H Lineage CLOSED-AS-REFUSED — ledger entry appended
+
+**Status:** D-002H lineage CLOSED with REFUSED verdict
+**Ledger entry:** claim_id=D002H_RICCI_FLOW_SCOPED_REFUSED (new, append-only)
+**Canonical-run anchor:** PR #691 sha 250d8069
+**Aggregate verdict:** REFUSED via NULL_AUDIT_FAIL (42/54 audited cells FAIL)
+
+D-002C ledger entries 1 and 2 (attempt-1 SUPPORTED, attempt-2 FALSIFIED)
+byte-exact preserved. D-002H entry is the 3rd and is NOT an eclipse —
+D-002H is a scoped lineage opened after D-002G structural closure (PR #682).
+
+Future legal paths:
+- D-002I fresh pre-reg to investigate WHY null audit FAILs on ricci_flow
+- D-002H retained as scoped-REFUSED negative artifact
 
 ---
 
@@ -277,5 +294,8 @@ D-002G acceptance rules byte-exact UNCHANGED at sha256
 `875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31`.
 D-002H prereg byte-exact UNCHANGED at sha256
 `44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec`.
-D-002C claim ledger byte-exact UNCHANGED at sha256
-`f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd`.
+D-002C claim ledger sha256 was `f96ba9b5...d6d543b8bd6dd` at D-002I
+prereg-lock anchor (PR #693, 2e55b73a). The D-002H REFUSED entry
+append in PR #692 legitimately rotates it to
+`eb0b7151...319ef84a32387`; the D-002I investigation is unchanged
+in scope or content by that append-only ledger event.

@@ -386,7 +386,7 @@ def test_trap_t9_no_canonical_artifact_path_created() -> None:
 # ---- Trap T10: D002C ledger sha pin ----------------------------------
 
 # fmt: off
-_LEDGER_SHA256_PIN: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+_LEDGER_SHA256_PIN: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
 # fmt: on
 
 

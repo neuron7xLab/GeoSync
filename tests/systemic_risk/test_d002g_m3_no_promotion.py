@@ -25,7 +25,7 @@ M3_ELIGIBILITY_MATRIX = REPO_ROOT / "docs" / "governance" / "D002G_M3_ELIGIBILIT
 ARTIFACTS_D002G = REPO_ROOT / "artifacts" / "d002g"
 
 # fmt: off
-_LEDGER_SHA256_PIN: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+_LEDGER_SHA256_PIN: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
 _M3_PREREG_SHA256_PIN: str = "0f11a0c890374c35e4dedecc66caec52ae867f49a8f8b3be2374f1464712c1f8"  # noqa: E501  # pragma: allowlist secret
 # fmt: on
 
@@ -172,6 +172,5 @@ def test_m3_no_b2_closure_claim() -> None:
             continue
         text = p.read_text(encoding="utf-8")
         for lit in b2_closure_literals:
-            assert (
-                lit not in text
-            ), f"B2 closure claim {lit!r} leaked into {p.name}; B2 is OUT-OF-SCOPE for this PR."
+            msg = f"B2 closure claim {lit!r} leaked into {p.name}; B2 is OUT-OF-SCOPE for this PR."
+            assert lit not in text, msg

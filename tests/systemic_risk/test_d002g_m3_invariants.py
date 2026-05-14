@@ -250,7 +250,7 @@ def _sha256(path: Path) -> str:
 def test_m3_inv_8_d002c_claim_ledger_unchanged() -> None:
     ledger = REPO_ROOT / "docs" / "governance" / "D002C_CLAIM_LEDGER.yaml"
     # fmt: off
-    pinned: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+    pinned: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
     # fmt: on
     assert _sha256(ledger) == pinned, (
         "M3-INV-8 VIOLATED: D002C_CLAIM_LEDGER.yaml sha drifted from "

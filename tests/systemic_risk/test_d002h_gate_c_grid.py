@@ -39,7 +39,7 @@ D002H_ARTIFACT_ROOT = REPO_ROOT / "artifacts" / "d002h"
 # HexHighEntropy; these are governance hashes, not credentials. ``fmt: off``
 # keeps the long literal on one line for byte-equivalent review.
 # fmt: off
-D002C_LEDGER_SHA256: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+D002C_LEDGER_SHA256: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
 D002H_PREREG_SHA256: str = "44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec"  # noqa: E501  # pragma: allowlist secret
 # fmt: on
 

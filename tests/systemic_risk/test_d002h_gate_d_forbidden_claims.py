@@ -46,7 +46,7 @@ D002H_PREREG_RELPATH = "docs/governance/D002H_PREREGISTRATION.yaml"
 # on a single line; the inline pragma silences detect-secrets
 # HexHighEntropy — these are not credentials.
 # fmt: off
-D002C_LEDGER_SHA256: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+D002C_LEDGER_SHA256: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
 D002H_PREREG_SHA256: str = "44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec"  # noqa: E501  # pragma: allowlist secret
 # fmt: on
 

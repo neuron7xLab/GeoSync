@@ -39,7 +39,14 @@ D002G_ACCEPTANCE_RELPATH = "docs/governance/D002G_ACCEPTANCE_RULES.md"
 R2B_NOTE_RELPATH = "docs/governance/D002H_R2B_INAPPLICABILITY_NOTE.md"
 
 # fmt: off
-D002C_LEDGER_SHA_PIN: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret
+# Live (post-append) disk anchor: sha256 of the on-disk ledger AFTER the
+# legitimate D-002H REFUSED entry append in PR #692.
+D002C_LEDGER_SHA_PIN: str = "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387"  # noqa: E501  # pragma: allowlist secret  # post-D-002H-REFUSED-append (PR #692)
+# Frozen pre-append anchor: the canonical-run verdict artifact records
+# the ledger sha AT THE TIME the canonical sweep executed (PR #691),
+# which is the pre-append historical sha. The artifact stays unchanged;
+# only the live disk has rotated.
+D002C_LEDGER_SHA_PRE_APPEND: str = "f96ba9b5a2057d2e0bff84afc28578ab316cff73f6dc6673fb0d6d543b8bd6dd"  # noqa: E501  # pragma: allowlist secret  # frozen at canonical-run anchor; pre-D-002H-REFUSED-append
 D002H_PREREG_SHA_PIN: str = "44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec"  # noqa: E501  # pragma: allowlist secret
 D002G_ACCEPTANCE_SHA_PIN: str = "875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31"  # noqa: E501  # pragma: allowlist secret
 ANCHOR_MAIN_SHA: str = "ee12a9e6a08e5916109c99eec84796d1e1375cd0"  # noqa: E501  # pragma: allowlist secret
@@ -247,21 +254,36 @@ def test_canonical_run_aggregate_verdict_consistent_with_cells() -> None:
 
 
 def test_canonical_run_preserves_d002c_ledger() -> None:
-    """D-002C claim ledger is byte-exact UNCHANGED; verdict capsule
-    reports d002c_ledger_touched=False with the pinned sha at run time."""
-    # Live file sha must equal pinned anchor.
+    """D-002C claim ledger split-anchor check after PR #692 REFUSED append.
+
+    Live disk sha matches the post-append anchor (PR #692 legitimate
+    append); the canonical-run verdict capsule's frozen
+    ``d002c_ledger_sha_at_run`` field equals the pre-append anchor
+    (sha at canonical-sweep execution time, PR #691 — before the
+    legitimate ledger append). The capsule remains a faithful
+    historical record of the run; live disk rotates per the append
+    contract.
+    """
+    # Live file sha must equal post-append anchor.
     actual_sha = _sha256_file(REPO_ROOT / D002C_LEDGER_RELPATH)
     msg_live = (
-        f"D-002C claim ledger sha256 must equal pinned anchor; "
-        f"expected {D002C_LEDGER_SHA_PIN}, got {actual_sha}"
+        f"D-002C claim ledger live sha drift: expected post-append anchor "
+        f"{D002C_LEDGER_SHA_PIN} (after PR #692 append), got {actual_sha}"
     )
     assert actual_sha == D002C_LEDGER_SHA_PIN, msg_live
 
     v = _load_verdict()
-    msg_flag = "verdict.d002c_ledger_touched must be False"
+    msg_flag = (
+        "verdict.d002c_ledger_touched must be False (the sweep itself did not touch the ledger)"
+    )
     assert v.get("d002c_ledger_touched") is False, msg_flag
-    msg_pin = f"verdict.d002c_ledger_sha_at_run must equal {D002C_LEDGER_SHA_PIN}"
-    assert v.get("d002c_ledger_sha_at_run") == D002C_LEDGER_SHA_PIN, msg_pin
+    msg_pin = (
+        f"verdict.d002c_ledger_sha_at_run must equal the pre-append anchor "
+        f"{D002C_LEDGER_SHA_PRE_APPEND} — this is the sha the ledger had at "
+        "canonical-sweep execution time (PR #691); the artifact is a frozen "
+        "historical record and is not rotated by the subsequent PR #692 append."
+    )
+    assert v.get("d002c_ledger_sha_at_run") == D002C_LEDGER_SHA_PRE_APPEND, msg_pin
 
     # Governance docs byte-exact UNCHANGED.
     prereg_sha = _sha256_file(REPO_ROOT / D002H_PREREG_RELPATH)
