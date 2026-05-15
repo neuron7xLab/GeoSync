@@ -979,3 +979,29 @@ D-002K-P2 produces a **deterministic, seed-locked** registry of matched NON-cris
 Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J P1..P7 #705 POWER_GATE_REFUSED_UNDERPOWERED → D-002K-P0 #706 D002K_PREREG_LOCKED → D-002K-P1 #707 D002K_SOURCE_OBSERVABLE_CONTRACT_READY → D-002K-P2 this PR (D002K_MATCHED_PLACEBO_READY)`.
 
 Next legal PR: `feat(x10r,D-002K-P3): high-SNR event metrics` — D-002K-P3 may only open after this D-002K-P2 PR merges. D-002J-P8 must NEVER be dispatched.
+
+## D-002K-P3 — High-SNR Event-Transition Metric Layer (this PR)
+
+**Decision: `D002K_EVENT_METRICS_READY` — `canonical_run_authorized: false`. NOT a D-002J rescue.**
+
+D-002J remains **terminally REFUSED at P7** (`POWER_GATE_REFUSED_UNDERPOWERED`, axis `effect_too_small`). That REFUSED verdict is **retained verbatim**. D-002K-P3 does **NOT** reopen, mutate, amend, or rescue D-002J and does **NOT** authorise any D-002J-P8.
+
+D-002K-P3 pre-registers the **metric layer only** (executable definitions; **NO scoring on data**):
+
+- **Exactly ONE confirmatory endpoint:** `pre_post_standardized_mean_shift`, == the K-P0 lock (`d002k_primary_metric_contract_v1.json::primary_metric_id`). Full executable Cohen's-d contract: `(mean(in-crisis) − mean(pre-baseline)) / std(pre-baseline, ddof=1)`. No swap, no second confirmatory metric, no post-hoc primary — that is exactly the D-002I multiplicity-inflation failure and is forbidden.
+- **Six secondary metrics** (`max_zscore`, `area_under_stress_curve`, `recovery_half_life`, `slope_into_crisis`, `volatility_ratio`, `persistence_above_threshold`) — **ALL `role=secondary_exploratory`, `confirmatory=false`**. None enters the Bonferroni denominator; none may be promoted to primary without a fresh D-002L pre-registration.
+- **Every metric maps to ≥1 K-P1 observable family** and uses the FROZEN **K-P2 matched-placebo registry** for the crisis-vs-placebo contrast (`Δ = metric_crisis − mean(metric over K-P2 placebos)`; quantities only, no verdict).
+- **No numeric decision threshold.** Every metric defers its threshold to the D-002K **power gate** (a later P-power phase). This phase locks WHAT and HOW, never the threshold VALUE.
+- **Deterministic + fail-closed.** The primary metric raises on `sigma_pre==0`, short pre/post window, and `NaN`/`Inf` input — no silent numeric repair (GeoSync physics discipline).
+
+**Zero data, zero ingestion, zero scoring, zero model run, zero canonical sweep.** This phase is a metric-definition layer only.
+
+**DAG verdict (regenerated):** `nodes_count` = 14 (was 13); `topological_order` appends `D002K-P3` AFTER `D002K-P2`; `next_legal_nodes_from_main_head` = `["D002K-P4"]`; `acyclic` = true; `orphans` = `[]`; `rejected_nodes_retained` = `["D002J-P1A","D002J-P7"]` (D-002K-P3 does NOT clear them); `canonical_run_authorized_anywhere` = false; `lineage_transitions["D002J-P7"]` unchanged; locked governance shas byte-exact.
+
+**D-002K-P3 capsule:** `parent_nodes=["D002K-P2"]`, `decision=D002K_EVENT_METRICS_READY`, `status=TERMINAL_PASS`, `allowed_next_nodes=["D002K-P4"]`, `forbidden_next_nodes=["D002K-P5"]`, `failure_retention=null`.
+
+**Frozen byte-exact:** D-002K-P0 primary-metric contract sha256 `7effc088810ba5933850618312fcad369fdac0386b4a3cab6f14455feeb5a569`; D-002K-P1 observable contract sha256 `952739cbfe4aa16a54eb5684be4bbd653e820eaf92113418e379a3bf8a2a71c3`; D-002K-P2 placebo registry sha256 `435d41df868859f25811236fa4675d01f202682c693d06208922c263ace09413`; D-002K prereg sha256 `2cd923810bf64547cd86ecb403bfd3f12a799cb16c3d10ebc07bc05865fee43f`; D-002J prereg sha256 `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`; all `artifacts/d002j/**`, `artifacts/d002k/{prereg,observables,placebo}/**`.
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J P1..P7 #705 POWER_GATE_REFUSED_UNDERPOWERED → D-002K-P0 #706 D002K_PREREG_LOCKED → D-002K-P1 #707 D002K_SOURCE_OBSERVABLE_CONTRACT_READY → D-002K-P2 #708 D002K_MATCHED_PLACEBO_READY → D-002K-P3 this PR (D002K_EVENT_METRICS_READY)`.
+
+Next legal PR: `feat(x10r,D-002K-P4): power gate before full run` — D-002K-P4 may only open after this D-002K-P3 PR merges. D-002J-P8 must NEVER be dispatched.
