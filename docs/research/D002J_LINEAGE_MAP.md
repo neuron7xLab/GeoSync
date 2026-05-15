@@ -29,6 +29,7 @@ graph LR
     D002K-P1[D002K-P1<br/>TERMINAL_PASS]
     D002K-P2[D002K-P2<br/>TERMINAL_PASS]
     D002K-P3[D002K-P3<br/>TERMINAL_PASS]
+    D002K-P4[D002K-P4<br/>TERMINAL_REFUSED]
     D002J-P0 --> D002J-P1
     D002J-P1 --> D002J-P1A
     D002J-P1A --> D002J-P1B
@@ -42,12 +43,13 @@ graph LR
     D002K-P0 --> D002K-P1
     D002K-P1 --> D002K-P2
     D002K-P2 --> D002K-P3
+    D002K-P3 --> D002K-P4
 ```
 
 ASCII fallback:
 
 ```
-D002J-P0 -> D002J-P1 -> D002J-P1A -> D002J-P1B -> D002J-P2 -> D002J-P3 -> D002J-P4 -> D002J-P5 -> D002J-P6 -> D002J-P7 -> D002K-P0 -> D002K-P1 -> D002K-P2 -> D002K-P3
+D002J-P0 -> D002J-P1 -> D002J-P1A -> D002J-P1B -> D002J-P2 -> D002J-P3 -> D002J-P4 -> D002J-P5 -> D002J-P6 -> D002J-P7 -> D002K-P0 -> D002K-P1 -> D002K-P2 -> D002K-P3 -> D002K-P4
 ```
 
 ## §2 Per-node table
@@ -68,6 +70,7 @@ D002J-P0 -> D002J-P1 -> D002J-P1A -> D002J-P1B -> D002J-P2 -> D002J-P3 -> D002J-
 | `D002K-P1` | P1 | #0 | `0000000` | `D002K_SOURCE_OBSERVABLE_CONTRACT_READY` | `TERMINAL_PASS` | D002K-P0 | D002K-P2 |
 | `D002K-P2` | P2 | #0 | `0000000` | `D002K_MATCHED_PLACEBO_READY` | `TERMINAL_PASS` | D002K-P1 | D002K-P3 |
 | `D002K-P3` | P3 | #0 | `0000000` | `D002K_EVENT_METRICS_READY` | `TERMINAL_PASS` | D002K-P2 | D002K-P4 |
+| `D002K-P4` | P4 | #0 | `0000000` | `POWER_GATE_REFUSED_UNDERPOWERED` | `TERMINAL_REFUSED` | D002K-P3 | — |
 
 ## §3 Retained rejected nodes
 
@@ -89,9 +92,17 @@ These nodes shipped a TERMINAL_REJECTED or TERMINAL_REFUSED verdict and are reta
 
   > REFUSED on axis 'effect_too_small'. With the explicit Bonferroni denominator of 102 canonical cells (alpha=4.90e-4) and the honest P4-sourced effect-size priors (Cohen's d in {0.30, 0.40, 0.50}), n_min in {150, 235, 417} per cell -- every one above the most-generous runtime-affordable feasible cap of 100 seeds (set just above the D-002I median anchor n_min~=93 and 5x the D-002H budget of 20). Runtime is NOT the binding constraint (measured per-sim ~4e-5 s; projected local sweep < 0.1 h): the binding constraint is purely that the realistic per-cell substrate-vs-null separation, sourced honestly from the P4 ground-truth magnitudes, is too small to reach power>=0.8 at the Bonferroni-corrected alpha within a feasible per-cell seed budget. This is the SAME failure mode D-002I diagnosed for D-002H (sub-threshold signal + insufficient grid power). The full per-cell power table, the explicit Bonferroni derivation, the measured runtime probe and the false-negative-risk quantification are retained in artifacts/d002j/power/power_report_v1.json as a truthful negative artifact. Forward motion is NOT P8: it requires a fresh D-002K pre-registration designed against the effect-too-small axis (e.g. a higher-SNR observable, a window-conditioned statistic, or a substantively re-derived effect-size prior with new ground truth -- NOT a relaxed alpha or an inflated prior).
 
+### `D002K-P4` — `POWER_GATE_REFUSED_UNDERPOWERED`
+
+- PR #0 at `0000000000000000000000000000000000000000`
+- Repaired by: (none)
+- Failure retention:
+
+  > POWER_GATE_REFUSED_UNDERPOWERED on axis effect_too_small_event_conditioned: at the K-P0-locked Bonferroni alpha_per=0.016667 (0.05/(3 windows x 1 primary metric)) the conservative honestly-sourced funding-liquidity effect prior (Cohen's d=0.80, the conservative lower edge of the literature, NOT the point estimate, NOT inflated) reaches power 0.0481 at the feasible event-conditioned sample (crisis-side n1=1 per window because CW3/CW4/CW5 are unique unrepeatable historical events; reference arm n2=5 K-P2 matched placebos) -- far below the K-P0 power target 0.8. The design-transparency n_min for power>=0.8 is 20 crisis-side replicates per window, which an event-conditioned design cannot supply (a crisis window happens once). This is the same class of honest refusal as D-002J-P7 (effect_too_small at alpha=0.05/102). Narrowing scope from 102 to 3 hypotheses raised alpha_per legitimately (fewer pre-registered hypotheses) but did NOT relax D-002J-P7's alpha at fixed scope; the binding constraint is structural underpower of an irreproducible single-realisation event-conditioned design, not multiple-testing. Forward motion requires fresh D-002L pre-registration; D-002J stays REFUSED; this is a retained truthful negative, not a failure to fix.
+
 ## §4 Next legal nodes from main HEAD
 
-- `D002K-P4`
+No further nodes declared. The DAG is sealed.
 
 ## §5 Forbidden claims aggregate
 

@@ -94,6 +94,19 @@ EXPECTED_NODE_IDS: tuple[str, ...] = (
     # only: no scoring on real data, numeric threshold deferred to the
     # power gate; D-002J-P1A + D-002J-P7 stay retained; canon false.
     "D002K-P3",
+    # D-002K-P4 power-first gate before the event-conditioned run.
+    # Parent is D002K-P3. Truth point of D-002K: at the K-P0-locked
+    # Bonferroni alpha (0.05/3, the legitimate consequence of fewer
+    # PRE-REGISTERED hypotheses, NOT a relaxation of D-002J-P7's
+    # 0.05/102 at fixed scope) the conservative funding-liquidity
+    # effect prior (d=0.80, NOT inflated) reaches power 0.0481 at the
+    # feasible event-conditioned sample (crisis-side n1=1 per window;
+    # crisis windows happen once) -- far below the 0.8 target. Honest
+    # POWER_GATE_REFUSED_UNDERPOWERED, TERMINAL_REFUSED, retained as a
+    # truthful negative alongside D-002J-P1A + D-002J-P7. Lineage halts
+    # at P4; next legal node is a fresh D-002L pre-registration, NOT P5
+    # and NOT a D-002J resurrection. D-002J stays REFUSED; canon false.
+    "D002K-P4",
 )
 
 # Mirrors ``tests/governance/test_no_unresolved_merge_markers.py::_MARKER``.

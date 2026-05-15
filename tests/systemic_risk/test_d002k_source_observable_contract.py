@@ -527,10 +527,15 @@ def test_no_canonical_run_authorized() -> None:
         f"got {dag['canonical_run_authorized_anywhere']!r}"
     )
     assert dag["canonical_run_authorized_anywhere"] is False, _amsg5
+    # Monotonic-retention invariant: D002J-P1A + D002J-P7 must STAY
+    # rejected as later D-002K phases land. The list only ever grows
+    # (e.g. D-002K-P4's honest POWER_GATE_REFUSED_UNDERPOWERED joins
+    # it); it never drops a prior retained negative. Subset check, not
+    # exact-list lock.
     _amsg6 = (
         f"DAG must retain D002J-P1A + D002J-P7 rejected; got {dag['rejected_nodes_retained']!r}"
     )
-    assert dag["rejected_nodes_retained"] == ["D002J-P1A", "D002J-P7"], _amsg6
+    assert {"D002J-P1A", "D002J-P7"}.issubset(set(dag["rejected_nodes_retained"])), _amsg6
     # The DAG advances monotonically as later D-002K phases land
     # (K-P2 -> 13 nodes, ...). K-P1 only requires that its own node is
     # retained and the DAG has not shrunk below the K-P1 snapshot.

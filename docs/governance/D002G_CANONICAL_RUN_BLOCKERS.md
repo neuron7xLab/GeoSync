@@ -1005,3 +1005,29 @@ D-002K-P3 pre-registers the **metric layer only** (executable definitions; **NO 
 Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J P1..P7 #705 POWER_GATE_REFUSED_UNDERPOWERED → D-002K-P0 #706 D002K_PREREG_LOCKED → D-002K-P1 #707 D002K_SOURCE_OBSERVABLE_CONTRACT_READY → D-002K-P2 #708 D002K_MATCHED_PLACEBO_READY → D-002K-P3 this PR (D002K_EVENT_METRICS_READY)`.
 
 Next legal PR: `feat(x10r,D-002K-P4): power gate before full run` — D-002K-P4 may only open after this D-002K-P3 PR merges. D-002J-P8 must NEVER be dispatched.
+
+## D-002K-P4 — Power-First Gate Before the Event-Conditioned Benchmark Run (this PR)
+
+**Decision: `POWER_GATE_REFUSED_UNDERPOWERED` — `canonical_run_authorized: false`. NOT a D-002J rescue. Retained truthful negative.**
+
+D-002K-P4 is the **truth point** of D-002K. It computes — power DESIGN only, **no data scoring, no model run, no canonical run** — whether the K-P0/P1/P2/P3-locked 3-hypothesis event-conditioned design can reach power ≥ 0.8 for a conservative funding-liquidity effect at the K-P0-locked Bonferroni alpha. The honest computation:
+
+- **Alpha policy:** `alpha_per = 0.05 / (n_windows × n_primary_metrics) = 0.05 / (3 × 1) = 0.016667`. The Bonferroni denominator **3** is the legitimate consequence of K-P0 pre-registering exactly **1 mechanism × 3 windows × 1 primary metric = 3 hypotheses** — it is **NOT** a relaxation of D-002J-P7's `α = 0.05/102 = 4.9e-4` at a fixed hypothesis count. Narrowing scope is not relaxing statistics. **D-002J-P7 stays TERMINAL_REFUSED and retained; D-002K does not un-refuse it.**
+- **Effect prior:** conservative, honestly sourced, **NOT inflated** — Cohen's d = **0.80**, the conventional "large" floor (Cohen 1988), pinned to the *lower edge* of the funding-liquidity literature on SOFR/repo dislocations (Copeland-Duffie-Yang 2021; Avalos-Ehlers-Eren BIS Dec-2019; Bank of England Dec-2022), deliberately the smallest defensible value (literature point estimates are multiples of σ).
+- **Test family:** crisis-vs-matched-placebo-reference contrast (K-P3): `Δ = metric_crisis − mean(metric over 5 K-P2 matched placebos)` per window; two-group standardised-mean comparison, crisis arm n1 vs reference arm n2 = 5.
+- **Feasible-n cap:** crisis-side **n1 = 1 per window** — CW3/CW4/CW5 are unique unrepeatable historical events; each has exactly one realisation in recorded history (contrast D-002J-P7's synthetic `n_seeds = 100`). Hard data-availability bound, the most generous value physically available, NOT inflated.
+- **Result:** at d = 0.80, α_per = 0.016667, feasible sample (n1 = 1, n2 = 5): **power = 0.0481** (false-negative risk 0.9519); design-transparency `n_min = 20` crisis-side replicates per window (unreachable for an event-conditioned design — a crisis happens once); MDE at the feasible sample for power 0.8 is Cohen's d ≈ 3.54.
+
+**DECISION: `POWER_GATE_REFUSED_UNDERPOWERED`**, axis `effect_too_small_event_conditioned`. Honest narrowing of *scope* (Bonferroni 102 → 3) was insufficient because the binding constraint is **structural underpower of an irreproducible single-realisation event-conditioned design**, not multiple-testing. This is the same canon as D-002J-P7 — a retained truthful negative, **a scientific win, not a failure to fix**. **Forward motion = a fresh D-002L pre-registration. NOT D-002K-P5. NOT a D-002J resurrection.**
+
+**Zero data, zero ingestion, zero scoring, zero model run, zero canonical sweep.** Power design (definitions + arithmetic) only.
+
+**DAG verdict (regenerated):** `nodes_count` = 15 (was 14); `topological_order` appends `D002K-P4` AFTER `D002K-P3`; P4 honestly REFUSED so `next_legal_nodes_from_main_head` = `[]` (the lineage halts); `acyclic` = true; `orphans` = `[]`; `rejected_nodes_retained` = `["D002J-P1A","D002J-P7","D002K-P4"]` (D-002K-P4 joins the retained negatives); `canonical_run_authorized_anywhere` = false; `lineage_transitions["D002J-P7"]` unchanged; locked governance shas byte-exact.
+
+**D-002K-P4 capsule:** `parent_nodes=["D002K-P3"]`, `decision=POWER_GATE_REFUSED_UNDERPOWERED`, `status=TERMINAL_REFUSED`, `allowed_next_nodes=[]`, `forbidden_next_nodes=["D002K-P5"]`, `failure_retention` = exact axis + "forward motion requires fresh D-002L pre-registration; D-002J stays REFUSED; this is a retained truthful negative, not a failure to fix".
+
+**Frozen byte-exact:** D-002K-P0 primary-metric contract sha256 `7effc088810ba5933850618312fcad369fdac0386b4a3cab6f14455feeb5a569`; D-002K-P1 observable contract sha256 `952739cbfe4aa16a54eb5684be4bbd653e820eaf92113418e379a3bf8a2a71c3`; D-002K-P2 placebo registry sha256 `435d41df868859f25811236fa4675d01f202682c693d06208922c263ace09413`; D-002K-P3 metric contract sha256 `9c2ce60b6fbcb52e969d71e2137d8345c35f2f71ff9dcc1d64b9ad759d2480ce`; D-002K prereg sha256 `2cd923810bf64547cd86ecb403bfd3f12a799cb16c3d10ebc07bc05865fee43f`; D-002J prereg sha256 `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`; all `artifacts/d002j/**`, `artifacts/d002k/{prereg,observables,placebo,metrics}/**`.
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J P1..P7 #705 POWER_GATE_REFUSED_UNDERPOWERED → D-002K-P0 #706 → D-002K-P1 #707 → D-002K-P2 #708 → D-002K-P3 #709 D002K_EVENT_METRICS_READY → D-002K-P4 this PR (POWER_GATE_REFUSED_UNDERPOWERED)`.
+
+Next legal PR: a **fresh `D-002L` pre-registration** designed against the `effect_too_small_event_conditioned` axis. `D-002K-P5` must NEVER be dispatched (forbidden). `D-002J-P8` must NEVER be dispatched.
