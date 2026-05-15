@@ -114,6 +114,10 @@ _DECISION_STATUS_MAP: Final[dict[str, str]] = {
     "REJECTED": "TERMINAL_REJECTED",
     "REPAIR_FAILED": "TERMINAL_REJECTED",
     "REFUSED": "TERMINAL_REFUSED",
+    # D-002J-P7 power-first gate honest refusal terminal: an
+    # underpowered canonical-run gate is a TERMINAL_REFUSED retained
+    # negative artifact (same canon as a bare _REFUSED), not a PASS.
+    "REFUSED_UNDERPOWERED": "TERMINAL_REFUSED",
 }
 
 

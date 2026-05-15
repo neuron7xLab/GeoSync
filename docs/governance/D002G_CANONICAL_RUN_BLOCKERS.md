@@ -870,3 +870,33 @@ Decision: **NULL_HIERARCHY_READY**. Status: `TERMINAL_PASS`. Parent: `D002J-P5`.
 Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 CRISIS_WINDOW_REGISTRY_READY → P2.5 #700 VERDICT_DAG_BOOTSTRAPPED → P3 #701 INGESTION_MANIFEST_READY → P4 #702 POSITIVE_CONTROLS_READY → P5 #703 SUBSTRATE_CANDIDATES_READY → P6 this PR (NULL_HIERARCHY_READY)`.
 
 Next legal PR: `feat(x10r,D-002J-P7): implement power-first canonical-run gate` — P7 may only open after this P6 PR merges with decision `NULL_HIERARCHY_READY`.
+
+## D-002J-P7 — Power-First Canonical-Run Gate (this PR)
+
+**Decision: `POWER_GATE_REFUSED_UNDERPOWERED` — `canonical_run_authorized: false`.**
+
+This is the gate D-002H lacked. Its whole purpose is to refuse a blind sweep when the realistic budget cannot reach power ≥ 0.8 for the honest effect-size priors. The honest computation REFUSES, and a truthful refusal is the scientific win (same canon as D-002H REFUSED and D-002J-P1A REJECTED).
+
+**Power design (honest, P4-sourced):**
+
+- **Canonical cells = Bonferroni denominator = 102.** Derivation: Σ over the 3 P5 substrates of (applicable P6 nulls × P5-declared P2 windows × P5 metrics) = `funding_liquidity_rollover` (6×3×2=36) + `cross_exposure_contagion_proxy` (7×3×2=42) + `volatility_credit_spread_regime` (6×2×2=24) = **102** → Bonferroni α = 0.05/102 = **4.90e-4** (same correction CLASS that gave D-002H its α = 0.05/216 = 2.31e-4).
+- **Effect-size priors sourced ONLY from P4 positive controls** (no invention): `funding_liquidity_rollover` ← PC1 (control_class `liquidity_shock`, pass z=5.0) → conservative shrink-only Cohen's d = **0.50**; `cross_exposure_contagion_proxy` ← PC2 (`contagion_cascade`, cascade=0.3) → d = **0.30**; `volatility_credit_spread_regime` ← PC4 (`volatility_regime_switch`, ratio=2.0) → d = **0.40**. Attenuation is documented, monotone, shrink-only — it can only push the gate toward REFUSED.
+- **n_min distribution** at the Bonferroni α for power ≥ 0.8: min **150**, median **235**, p90 **417**, max **417** — every one of the 102 cells exceeds the feasible cap.
+- **feasible_cap_n_seeds = 100**, justified as the most generous runtime-affordable per-cell budget: just above the D-002I median anchor (n_min ≈ 93, α=0.05/216) and 5× the D-002H budget (n_seeds=20). NOT inflated to manufacture a PASS.
+- **Runtime probe (measured, not guessed):** one P5 `FundingLiquidityRolloverSubstrate.simulate()` call ≈ 4e-5 s wallclock locally; projected full canonical sweep < 0.1 h local / < 0.01 h cloud (GCP c3-highcpu, CPU-bound, NOT GPU, $300 credit context). **Runtime is NOT the binding constraint.**
+- **False-negative risk** at the capped budget ≈ 0.91 worst-cell (this is exactly the D-002H blind spot, now quantified); residual ≈ 0.20 at each cell's own n_min (= 1 − power_target).
+
+**Refused axis: `effect_too_small`.** The binding constraint is purely that the realistic per-cell substrate-vs-null separation, sourced honestly from the P4 ground-truth magnitudes, is too small to reach power ≥ 0.8 at the Bonferroni-corrected α within any feasible per-cell seed budget. This is the SAME failure mode D-002I diagnosed for D-002H (sub-threshold signal + insufficient grid power). Alpha was **NOT** loosened, the effect prior was **NOT** inflated, the grid was **NOT** shrunk.
+
+**Scope boundary (repeat for safety):**
+- D-002J-P7 is a power-DESIGN gate. It does **NOT** execute a canonical run (P8), promote any claim (P9), fit real data, or edit the D-002J prereg (sha256 byte-exact `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`).
+- The ONLY new source code is under `tools/systemic_risk/` (`__init__.py` + `design_d002j_power_grid.py`). P7 adds **no** files under `research/systemic_risk/`.
+- D-002J-P7 does **NOT** rescue D-002H. D-002H REFUSED remains the truthful canonical verdict. `canonical_run_authorized_anywhere: false` preserved.
+
+**DAG verdict (regenerated):** `nodes_count` = 10 (was 9); `topological_order` appended `D002J-P7`; `next_legal_nodes_from_main_head` = `[]` (the lineage HALTS at P7 — canonical sweep NOT authorized); `acyclic` = true; `orphans` = `[]`; `rejected_nodes_retained` = `["D002J-P1A","D002J-P7"]`; `canonical_run_authorized_anywhere` = false; locked governance shas byte-exact.
+
+**P7 capsule:** `parent_nodes=["D002J-P6"]`, `decision=POWER_GATE_REFUSED_UNDERPOWERED`, `status=TERMINAL_REFUSED`, `allowed_next_nodes=[]`, `forbidden_next_nodes=["D002J-P8","D002J-P9"]`, non-empty `failure_retention` recording the `effect_too_small` axis.
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 → P2.5 #700 → P3 #701 → P4 #702 → P5 #703 → P6 #704 NULL_HIERARCHY_READY → P7 this PR (POWER_GATE_REFUSED_UNDERPOWERED)`.
+
+**D-002J halts at P7; canonical sweep NOT authorized; forward motion requires fresh D-002K pre-registration.** P8 must NOT be dispatched. A fresh D-002K pre-reg must be designed against the `effect_too_small` axis (e.g. a higher-SNR observable, a window-conditioned statistic, or a substantively re-derived effect-size prior with new ground truth) — NOT a relaxed alpha or an inflated prior.
