@@ -531,8 +531,13 @@ def test_no_canonical_run_authorized() -> None:
         f"DAG must retain D002J-P1A + D002J-P7 rejected; got {dag['rejected_nodes_retained']!r}"
     )
     assert dag["rejected_nodes_retained"] == ["D002J-P1A", "D002J-P7"], _amsg6
-    _amsg7 = f"DAG nodes_count must be 12; got {dag['nodes_count']!r}"
-    assert dag["nodes_count"] == 12, _amsg7
+    # The DAG advances monotonically as later D-002K phases land
+    # (K-P2 -> 13 nodes, ...). K-P1 only requires that its own node is
+    # retained and the DAG has not shrunk below the K-P1 snapshot.
+    _amsg7 = f"DAG nodes_count must be >= 12 (K-P1 snapshot floor); got {dag['nodes_count']!r}"
+    assert int(dag["nodes_count"]) >= 12, _amsg7
+    _amsg8 = f"D002K-P1 must remain in topological_order; got {dag['topological_order']!r}"
+    assert "D002K-P1" in dag["topological_order"], _amsg8
 
 
 def test_no_unresolved_merge_markers() -> None:
