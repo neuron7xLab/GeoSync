@@ -81,6 +81,12 @@ EXPECTED_NODE_IDS: tuple[str, ...] = (
     # funding-liquidity sources x {CW3,CW4,CW5}. Narrow by design;
     # D-002J-P1A + D-002J-P7 stay TERMINAL_REJECTED/REFUSED retained.
     "D002K-P1",
+    # D-002K-P2 matched placebo window registry. Parent is D002K-P1;
+    # deterministic seed-locked selection of n_placebo_per_crisis
+    # (K-P0 lock) matched NON-crisis placebos per CW3/CW4/CW5, zero
+    # overlap with any of the six D-002J registered windows. No
+    # scoring; D-002J-P1A + D-002J-P7 stay retained; canon false.
+    "D002K-P2",
 )
 
 # Mirrors ``tests/governance/test_no_unresolved_merge_markers.py::_MARKER``.

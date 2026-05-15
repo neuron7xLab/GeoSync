@@ -450,23 +450,25 @@ def test_d002k_p0_verdict_capsule_locked() -> None:
 
 def test_dag_has_d002k_p0_and_d002j_p7_still_refused() -> None:
     dag = _load_json(DAG_VERDICT_JSON)
-    # D-002K-P1 (source/observable contract) advanced the DAG snapshot:
-    # 12 nodes, topo tail D002K-P1, next legal D002K-P2. D-002K-P0
-    # remains present and D-002J-P7/P1A stay refused/rejected retained.
-    msg_n = f"DAG must have 12 nodes; got {dag['nodes_count']!r}"
-    assert dag["nodes_count"] == 12, msg_n
+    # D-002K-P2 (matched placebo registry) advanced the DAG snapshot:
+    # 13 nodes, topo tail D002K-P2, next legal D002K-P3. D-002K-P0/P1
+    # remain present and D-002J-P7/P1A stay refused/rejected retained.
+    msg_n = f"DAG must have 13 nodes; got {dag['nodes_count']!r}"
+    assert dag["nodes_count"] == 13, msg_n
     msg_p0 = f"D002K-P0 must remain in topological_order; got {dag['topological_order']!r}"
     assert "D002K-P0" in dag["topological_order"], msg_p0
+    msg_p1 = f"D002K-P1 must remain in topological_order; got {dag['topological_order']!r}"
+    assert "D002K-P1" in dag["topological_order"], msg_p1
     msg_to = (
-        f"D002K-P1 must be appended last in topological_order; got {dag['topological_order']!r}"
+        f"D002K-P2 must be appended last in topological_order; got {dag['topological_order']!r}"
     )
-    assert dag["topological_order"][-1] == "D002K-P1", msg_to
+    assert dag["topological_order"][-1] == "D002K-P2", msg_to
     _amsg14 = "D002J-P7 must remain in rejected_nodes_retained (still refused)"
     assert "D002J-P7" in dag["rejected_nodes_retained"], _amsg14
     _amsg15 = "D002J-P1A must remain in rejected_nodes_retained"
     assert "D002J-P1A" in dag["rejected_nodes_retained"], _amsg15
-    msg_nl = f"next legal node must be D002K-P2; got {dag['next_legal_nodes_from_main_head']!r}"
-    assert dag["next_legal_nodes_from_main_head"] == ["D002K-P2"], msg_nl
+    msg_nl = f"next legal node must be D002K-P3; got {dag['next_legal_nodes_from_main_head']!r}"
+    assert dag["next_legal_nodes_from_main_head"] == ["D002K-P3"], msg_nl
     lt = dag["lineage_transitions"]["D002J-P7"]
     msg_ls = f"lineage_transition D002J-P7 status must be TERMINAL_REFUSED; got {lt['status']!r}"
     assert lt["status"] == "TERMINAL_REFUSED", msg_ls

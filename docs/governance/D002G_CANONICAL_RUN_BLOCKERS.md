@@ -952,3 +952,30 @@ D-002K-P1 binds a **narrow** source + observable manifest — funding-liquidity 
 Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J P1..P7 #705 POWER_GATE_REFUSED_UNDERPOWERED → D-002K-P0 #706 D002K_PREREG_LOCKED → D-002K-P1 this PR (D002K_SOURCE_OBSERVABLE_CONTRACT_READY)`.
 
 Next legal PR: `feat(x10r,D-002K-P2): matched placebo windows` — D-002K-P2 may only open after this D-002K-P1 PR merges. D-002J-P8 must NEVER be dispatched.
+
+## D-002K-P2 — Matched Placebo Window Registry (this PR)
+
+**Decision: `D002K_MATCHED_PLACEBO_READY` — `canonical_run_authorized: false`. NOT a D-002J rescue.**
+
+D-002J remains **terminally REFUSED at P7** (`POWER_GATE_REFUSED_UNDERPOWERED`, axis `effect_too_small`). That REFUSED verdict is **retained verbatim**. D-002K-P2 does **NOT** reopen, mutate, amend, or rescue D-002J and does **NOT** authorise any D-002J-P8.
+
+D-002K-P2 produces a **deterministic, seed-locked** registry of matched NON-crisis placebo windows. The crisis-vs-placebo contrast is **PREDEFINED by an algorithm**, never hand-selected:
+
+- **5 placebos per crisis** (the K-P0 `matched_placebo_policy.n_placebo_per_crisis` lock) for each of CW3/CW4/CW5 → **15 placebos total**. Crisis dates pulled read-only from the FROZEN D-002J P2 crisis-window registry.
+- **Zero overlap.** Every placebo's buffered span is fail-closed-checked (in code AND test) against the buffered envelope of **all six** D-002J registered windows (CW1..CW6). Overlap = hard violation, never relaxed to pad the count.
+- **Exact trading-day calendar-length match** to each parent crisis (CW3=20, CW4=35, CW5=16 trading days; Mon-Fri count, no holiday calendar → fully deterministic).
+- **Five K-P0 `match_on` covariates** carried per placebo: `macro_period`, `volatility_regime`, `calendar_length`, `data_availability`, `pre_window_baseline_variance`. Exact policy conformance — no drift.
+- **Seed-locked reproducibility:** algo `d002k_p2_deterministic_grid_permutation_v1`, seed `20260515`; selector run twice → bit-identical placebo list (the anti-cherry-pick guarantee).
+- **Point-in-time consistency:** placebos respect the K-P1 release-boundary rule (decision frontier `2024-12-31`); no look-ahead. No manual-override field anywhere.
+
+**Zero data, zero ingestion, zero scoring, zero model run, zero canonical sweep.** This phase is a date-range registry only.
+
+**DAG verdict (regenerated):** `nodes_count` = 13 (was 12); `topological_order` appends `D002K-P2` AFTER `D002K-P1`; `next_legal_nodes_from_main_head` = `["D002K-P3"]`; `acyclic` = true; `orphans` = `[]`; `rejected_nodes_retained` = `["D002J-P1A","D002J-P7"]` (D-002K-P2 does NOT clear them); `canonical_run_authorized_anywhere` = false; `lineage_transitions["D002J-P7"]` unchanged; locked governance shas byte-exact.
+
+**D-002K-P2 capsule:** `parent_nodes=["D002K-P1"]`, `decision=D002K_MATCHED_PLACEBO_READY`, `status=TERMINAL_PASS`, `allowed_next_nodes=["D002K-P3"]`, `forbidden_next_nodes=["D002K-P4","D002K-P5"]`, `failure_retention=null`.
+
+**Frozen byte-exact:** D-002K-P0 prereg sha256 `2cd923810bf64547cd86ecb403bfd3f12a799cb16c3d10ebc07bc05865fee43f`; D-002J prereg sha256 `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`; D-002J P2 crisis registry sha256 `41f281d9e97fbf49725f0eb1a1bb7b45865c14cdc5c525ea96231ef0aa651e8f`; all `artifacts/d002j/**`, `artifacts/d002k/prereg/**`, and `artifacts/d002k/observables/**`.
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J P1..P7 #705 POWER_GATE_REFUSED_UNDERPOWERED → D-002K-P0 #706 D002K_PREREG_LOCKED → D-002K-P1 #707 D002K_SOURCE_OBSERVABLE_CONTRACT_READY → D-002K-P2 this PR (D002K_MATCHED_PLACEBO_READY)`.
+
+Next legal PR: `feat(x10r,D-002K-P3): high-SNR event metrics` — D-002K-P3 may only open after this D-002K-P2 PR merges. D-002J-P8 must NEVER be dispatched.
