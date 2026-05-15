@@ -21,6 +21,7 @@ graph LR
     D002J-P4[D002J-P4<br/>TERMINAL_PASS]
     D002J-P5[D002J-P5<br/>TERMINAL_PASS]
     D002J-P6[D002J-P6<br/>TERMINAL_PASS]
+    D002J-P7[D002J-P7<br/>TERMINAL_REFUSED]
     D002J-P0 --> D002J-P1
     D002J-P1 --> D002J-P1A
     D002J-P1A --> D002J-P1B
@@ -29,12 +30,13 @@ graph LR
     D002J-P3 --> D002J-P4
     D002J-P4 --> D002J-P5
     D002J-P5 --> D002J-P6
+    D002J-P6 --> D002J-P7
 ```
 
 ASCII fallback:
 
 ```
-D002J-P0 -> D002J-P1 -> D002J-P1A -> D002J-P1B -> D002J-P2 -> D002J-P3 -> D002J-P4 -> D002J-P5 -> D002J-P6
+D002J-P0 -> D002J-P1 -> D002J-P1A -> D002J-P1B -> D002J-P2 -> D002J-P3 -> D002J-P4 -> D002J-P5 -> D002J-P6 -> D002J-P7
 ```
 
 ## §2 Per-node table
@@ -50,6 +52,7 @@ D002J-P0 -> D002J-P1 -> D002J-P1A -> D002J-P1B -> D002J-P2 -> D002J-P3 -> D002J-
 | `D002J-P4` | P4 | #702 | `0000000` | `POSITIVE_CONTROLS_READY` | `TERMINAL_PASS` | D002J-P3 | D002J-P5 |
 | `D002J-P5` | P5 | #703 | `0000000` | `SUBSTRATE_CANDIDATES_READY` | `TERMINAL_PASS` | D002J-P4 | D002J-P6 |
 | `D002J-P6` | P6 | #0 | `0000000` | `NULL_HIERARCHY_READY` | `TERMINAL_PASS` | D002J-P5 | D002J-P7 |
+| `D002J-P7` | P7 | #0 | `0000000` | `POWER_GATE_REFUSED_UNDERPOWERED` | `TERMINAL_REFUSED` | D002J-P6 | — |
 
 ## §3 Retained rejected nodes
 
@@ -63,9 +66,17 @@ These nodes shipped a TERMINAL_REJECTED or TERMINAL_REFUSED verdict and are reta
 
   > information_constraint mechanism family had only 1 verified_or_partial source (ALFRED, audit_status PARTIAL); 5 broken provenance URLs (ECB_CBD sdw.ecb DNS NXDOMAIN; ICAP_MOVE methodology PDF 404; BIS_QR_NETWORK 404; FED_TIMELINE financial-crisis-timeline 404; BOE_LDI_REVIEW FSR 2022 + working paper 404). Retained verbatim in docs/research/D002J_SOURCE_DOWNGRADE_LOG.md (P1A section preserved through P1B append).
 
+### `D002J-P7` — `POWER_GATE_REFUSED_UNDERPOWERED`
+
+- PR #0 at `0000000000000000000000000000000000000000`
+- Repaired by: (none)
+- Failure retention:
+
+  > REFUSED on axis 'effect_too_small'. With the explicit Bonferroni denominator of 102 canonical cells (alpha=4.90e-4) and the honest P4-sourced effect-size priors (Cohen's d in {0.30, 0.40, 0.50}), n_min in {150, 235, 417} per cell -- every one above the most-generous runtime-affordable feasible cap of 100 seeds (set just above the D-002I median anchor n_min~=93 and 5x the D-002H budget of 20). Runtime is NOT the binding constraint (measured per-sim ~4e-5 s; projected local sweep < 0.1 h): the binding constraint is purely that the realistic per-cell substrate-vs-null separation, sourced honestly from the P4 ground-truth magnitudes, is too small to reach power>=0.8 at the Bonferroni-corrected alpha within a feasible per-cell seed budget. This is the SAME failure mode D-002I diagnosed for D-002H (sub-threshold signal + insufficient grid power). The full per-cell power table, the explicit Bonferroni derivation, the measured runtime probe and the false-negative-risk quantification are retained in artifacts/d002j/power/power_report_v1.json as a truthful negative artifact. Forward motion is NOT P8: it requires a fresh D-002K pre-registration designed against the effect-too-small axis (e.g. a higher-SNR observable, a window-conditioned statistic, or a substantively re-derived effect-size prior with new ground truth -- NOT a relaxed alpha or an inflated prior).
+
 ## §4 Next legal nodes from main HEAD
 
-- `D002J-P7`
+No further nodes declared. The DAG is sealed.
 
 ## §5 Forbidden claims aggregate
 
