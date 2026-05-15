@@ -48,7 +48,12 @@ diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/hyperdirect-veto.yaml"
     - path: "runtime/hyperdirect_veto.py"
+    - path: "runtime/hyperdirect_veto_falsifier.py"
+    - path: "runtime/inference_promotion_brake.py"
+    - path: "bench/hyperdirect_veto_perf.py"
+    - path: "bench/hyperdirect_veto_calibration.py"
     - path: "tests/unit/runtime/test_hyperdirect_veto.py"
+    - path: "tests/unit/runtime/test_inference_promotion_brake.py"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -65,21 +70,42 @@ required_python_symbols:
   - "runtime/hyperdirect_veto.py::HyperdirectConfig"
   - "runtime/hyperdirect_veto.py::VetoDecision"
   - "runtime/hyperdirect_veto.py::HyperdirectVeto"
+  - "runtime/hyperdirect_veto_falsifier.py::run_battery"
+  - "runtime/inference_promotion_brake.py::InferenceClaim"
+  - "runtime/inference_promotion_brake.py::PromotionVerdict"
+  - "runtime/inference_promotion_brake.py::InferencePromotionBrake"
+  - "bench/hyperdirect_veto_perf.py::run_benchmark"
+  - "bench/hyperdirect_veto_calibration.py::characterise"
+  - "bench/hyperdirect_veto_calibration.py::recommend_gain"
 expected_signal: >-
-  Local: `python -m pytest tests/unit/runtime/test_hyperdirect_veto.py -q`
-  reports "36 passed"; `mypy --strict` is clean on
-  runtime/hyperdirect_veto.py and tests/unit/runtime/test_hyperdirect_veto.py;
-  `ruff check` and `black --check` both pass on those two paths. The
-  core adversarial test (single saturated channel with evidence_margin
-  = 1e9) returns passed=False with reason
-  "single_channel_stop:<channel>", and the max-not-mean test confirms
-  a {0.9, 0.0, 0.0} vector vetoes although its mean is 0.3.
+  Local: `python -m pytest tests/unit/runtime/test_hyperdirect_veto.py
+  tests/unit/runtime/test_inference_promotion_brake.py -q` reports
+  "48 passed"; `mypy --strict`, `ruff check` and `black --check` are
+  clean on all five module files and both test files. The standalone
+  falsifier battery exits 0 with every protected invariant SURVIVED and
+  only the documented A2 channel-split BOUNDARY surfaced (not hidden).
+  The synthetic calibration emits a monotone false-promote/false-veto
+  tradeoff surface and a procedure-derived (not magic) default,
+  explicitly tier-labelled EXTRAPOLATED. The InferencePromotionBrake
+  adapter is advisory-only: PromotionVerdict.advisory is True by
+  construction and nothing on a trading/execution path is touched.
 measurement_command: >-
   bash -c 'mypy --strict runtime/hyperdirect_veto.py
+  runtime/hyperdirect_veto_falsifier.py runtime/inference_promotion_brake.py
+  bench/hyperdirect_veto_perf.py bench/hyperdirect_veto_calibration.py
   tests/unit/runtime/test_hyperdirect_veto.py
-  && ruff check runtime/hyperdirect_veto.py tests/unit/runtime/test_hyperdirect_veto.py
-  && black --check runtime/hyperdirect_veto.py tests/unit/runtime/test_hyperdirect_veto.py
-  && python -m pytest tests/unit/runtime/test_hyperdirect_veto.py -q'
+  tests/unit/runtime/test_inference_promotion_brake.py
+  && ruff check runtime/hyperdirect_veto.py runtime/hyperdirect_veto_falsifier.py
+  runtime/inference_promotion_brake.py bench/hyperdirect_veto_perf.py
+  bench/hyperdirect_veto_calibration.py tests/unit/runtime/test_hyperdirect_veto.py
+  tests/unit/runtime/test_inference_promotion_brake.py
+  && black --check runtime/hyperdirect_veto.py runtime/hyperdirect_veto_falsifier.py
+  runtime/inference_promotion_brake.py bench/hyperdirect_veto_perf.py
+  bench/hyperdirect_veto_calibration.py tests/unit/runtime/test_hyperdirect_veto.py
+  tests/unit/runtime/test_inference_promotion_brake.py
+  && python -m pytest tests/unit/runtime/test_hyperdirect_veto.py
+  tests/unit/runtime/test_inference_promotion_brake.py -q
+  && python runtime/hyperdirect_veto_falsifier.py'
 signal_artifact: "tmp/hyperdirect_veto.log"
 falsifier:
   command: >-
@@ -95,14 +121,20 @@ falsifier:
     a saturated red flag can be laundered by strong evidence, i.e. the
     disjunctive STOP has degraded into an averaging gate.
 rollback_command: >-
-  git checkout HEAD~1 --
-  runtime tests
-  && rm -f runtime/hyperdirect_veto.py
+  rm -f runtime/hyperdirect_veto.py runtime/hyperdirect_veto_falsifier.py
+  runtime/inference_promotion_brake.py bench/hyperdirect_veto_perf.py
+  bench/hyperdirect_veto_calibration.py
   tests/unit/runtime/test_hyperdirect_veto.py
+  tests/unit/runtime/test_inference_promotion_brake.py
   .claude/commit_acceptors/hyperdirect-veto.yaml
 rollback_verification_command: >-
   bash -c 'test ! -f runtime/hyperdirect_veto.py
+  && test ! -f runtime/hyperdirect_veto_falsifier.py
+  && test ! -f runtime/inference_promotion_brake.py
+  && test ! -f bench/hyperdirect_veto_perf.py
+  && test ! -f bench/hyperdirect_veto_calibration.py
   && test ! -f tests/unit/runtime/test_hyperdirect_veto.py
+  && test ! -f tests/unit/runtime/test_inference_promotion_brake.py
   && test ! -f .claude/commit_acceptors/hyperdirect-veto.yaml'
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/hyperdirect-veto.yaml"
