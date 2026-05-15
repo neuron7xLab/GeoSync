@@ -663,3 +663,79 @@ and point-in-time adapter boundary` — opens W3/W4 of the D-002J
 Frontier Benchmark Program on top of the now-anchored verdict
 DAG. P3 may only open after this P2.5 PR is merged with decision
 `VERDICT_DAG_BOOTSTRAPPED`.
+
+## D-002J-P3 — ingestion manifest + point-in-time adapter boundary landed
+
+**Status:** D-002J-P3 LANDED (ingestion CONTRACT only; no bytes ingested; no canonical run authorisation)
+**Parent:** D-002J-P2 (PR #699) CRISIS_WINDOW_REGISTRY_READY at merge sha `055783785571f68a4e0b07206e08c72a8c928e7c` (DAG-anchored via P2.5)
+**Decision:** `INGESTION_MANIFEST_READY` (`TERMINAL_PASS`)
+**Artifacts retained:**
+- `artifacts/d002j/ingestion/ingestion_manifest_v1.json` (schema `D002J-INGESTION-MANIFEST-v1`, 18 adapters)
+- `artifacts/d002j/ingestion/adapter_registry_v1.json` (schema `D002J-ADAPTER-REGISTRY-v1`)
+- `artifacts/d002j/ingestion/source_hash_manifest_v1.json` (schema `D002J-SOURCE-HASH-MANIFEST-v1`, all `expected_sha256_at_pin_time` null at P3)
+- `docs/research/D002J_INGESTION_BOUNDARY.md`
+- `docs/research/D002J_POINT_IN_TIME_DISCIPLINE.md`
+- `artifacts/governance/verdicts/d002j_p3_verdict_v1.json` (capsule under DAG contract)
+- `artifacts/governance/verdicts/d002j_verdict_dag_v1.json` (regenerated to 6 nodes)
+- `docs/research/D002J_LINEAGE_MAP.md` (re-rendered byte-deterministically)
+
+**Coverage at PR emit time:**
+- `total_adapters` = 18 (floor: 12)
+- `by_class`: `static_csv_adapter`=3, `official_api_adapter`=10, `metadata_only_adapter`=2, `literature_reference_adapter`=2, `manual_event_registry_adapter`=1
+- `by_status`: `STUB_ONLY`=14, `REQUIRES_MANUAL_DOWNLOAD`=2, `REQUIRES_LICENSE_REVIEW`=2 (NO adapter promoted to `READY` — honest baseline)
+- `vintage_aware_count` = 3 (ALFRED GDP + UNEMP, PHILLY_FED_RTDSM GDP) — floor 1
+- `forecast_count` = 1 (FRED MICH Michigan consumer inflation expectations) — floor 1
+- `BIS/ECB/OFR-bound` = 5 (floor 3)
+- `macro_financial-bound` = 7 (floor 6)
+
+**Phase-coupling verified:**
+- Every adapter `source_id` is in the P1B audit-surviving set (audit_status ∈ {VERIFIED, PARTIAL}).
+- Every adapter `window_id` is declared in the P2 crisis window registry.
+- Parent P1B registry sha pinned in manifest: `f1899b7a882b4b3efbebb54e3dc942c079839f77f981273e2dd09757973b14ec`.
+- Parent P2 window registry sha pinned in manifest: `41f281d9e97fbf49725f0eb1a1bb7b45865c14cdc5c525ea96231ef0aa651e8f`.
+
+**Point-in-time discipline made EXECUTABLE:**
+- `test_revisable_sources_require_vintage_adapter` enforces every P1B source whose `mechanistic_relevance` contains `real_time_information_constraint` or `vintage_anti_leakage_baseline` is bound by at least one `vintage_required: true` adapter declaring `vintage_release_date <= decision_date` as a lookahead invariant.
+- `test_forecast_sources_require_forecast_date_field` enforces every `forecast_required: true` adapter declares a non-null `forecast_date_field`.
+- `test_observation_date_lte_decision_date_invariant` + `test_release_date_lte_decision_date_invariant` enforce the universal baselines.
+
+**DAG verdict (regenerated):**
+- `nodes_count` = 6 (was 5).
+- `topological_order` appended `D002J-P3`.
+- `next_legal_nodes_from_main_head` = `["D002J-P4"]`.
+- `canonical_run_authorized_anywhere` = `false`.
+- `acyclic` = `true`.
+- `orphans` = `[]`.
+- `dag_self_verdict.node_id` = `D002J-P2.5` (unchanged self-anchor).
+
+**P3 capsule:** `parent_nodes=["D002J-P2"]`, `allowed_next_nodes=["D002J-P4"]`, `forbidden_next_nodes=["D002J-P5","D002J-P6","D002J-P7","D002J-P8","D002J-P9"]` (no gate-skip).
+
+Hard scope boundary (repeat for safety):
+
+- D-002J-P3 is **ingestion CONTRACT only**. P3 does **NOT** ingest a single byte. P3 does **NOT** fetch from any endpoint. P3 does **NOT** model anything.
+- D-002J-P3 does **NOT** rescue D-002H. D-002H REFUSED remains the truthful canonical verdict.
+- D-002J-P3 does **NOT** authorise any canonical run anywhere. `canonical_run_authorized_anywhere: false` preserved.
+- D-002J-P3 does **NOT** claim crisis prediction.
+- D-002J-P3 does **NOT** claim bank-level validation.
+- D-002J-P3 does **NOT** rewrite the P1B source registry sha256 — pinned byte-exact in `parent_registry_sha256`.
+- D-002J-P3 does **NOT** rewrite the P2 crisis window registry sha256 — pinned byte-exact in `parent_window_registry_sha256`.
+- D-002J-P3 does **NOT** edit any locked governance file:
+  D-002G prereg sha256 byte-exact
+  `1ab91f09370e4705a8b0849467bc1f56df2e58d58d5623d3b6d905cbd110bb04`,
+  D-002G acceptance rules sha256 byte-exact
+  `875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31`,
+  D-002H prereg sha256 byte-exact
+  `44b18b5a40ce9d188a9c3bd49339621f81a65a15f97a683247902450dd54acec`,
+  D-002I prereg sha256 byte-exact
+  `b646989c032dc0e29f9b791e0b68209ff22b40f4757737712badc8656cf2db5f`,
+  D-002J prereg sha256 byte-exact
+  `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`,
+  D-002C claim ledger sha256 byte-exact
+  `eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387`.
+- D-002J-P3 does **NOT** edit any source code under
+  `research/systemic_risk/*.py` or any `scripts/x10r_d002*.py`.
+- D-002J-P3 does **NOT** promote any adapter to status `READY`. The honest baseline is `STUB_ONLY` / `REQUIRES_MANUAL_DOWNLOAD` / `REQUIRES_LICENSE_REVIEW`. Promotion to `READY` is P3.5 territory after endpoint verification.
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 CRISIS_WINDOW_REGISTRY_READY → P2.5 #700 VERDICT_DAG_BOOTSTRAPPED → P3 this PR (INGESTION_MANIFEST_READY)`.
+
+Next legal PR: `feat(x10r,D-002J-P4): implement planted positive controls v1` — pre-registers planted positive controls (synthetic signal injected into surrogate panels, drawn from the P3 manifest's vintage-aware adapters) on top of the now-anchored ingestion contract. P4 may only open after this P3 PR is merged with decision `INGESTION_MANIFEST_READY`.

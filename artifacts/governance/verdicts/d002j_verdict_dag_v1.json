@@ -4,8 +4,7 @@
   "dag_self_verdict": {
     "decision": "VERDICT_DAG_BOOTSTRAPPED",
     "merge_sha": null,
-    "node_id": "D002J-P2.5",
-    "status": "TERMINAL_PASS"
+    "node_id": "D002J-P2.5"
   },
   "forbidden_claims_aggregate": [
     "GeoSync predicts systemic crises",
@@ -16,7 +15,7 @@
     "source registry proves data quality",
     "crisis windows prove predictive power"
   ],
-  "generated_at": "2026-05-14T22:18:29Z",
+  "generated_at": "2026-05-14T23:25:48Z",
   "locked_governance_shas": {
     "docs/governance/D002C_CLAIM_LEDGER.yaml": "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387",
     "docs/governance/D002G_ACCEPTANCE_RULES.md": "875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31",
@@ -26,14 +25,10 @@
     "docs/governance/D002J_PREREGISTRATION.yaml": "f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0"
   },
   "next_legal_nodes_from_main_head": [
-    "D002J-P2.5",
-    "D002J-P3"
+    "D002J-P4"
   ],
-  "nodes_count": 5,
+  "nodes_count": 6,
   "orphans": [],
-  "rejected_nodes_repaired_by": {
-    "D002J-P1A": "D002J-P1B"
-  },
   "rejected_nodes_retained": [
     "D002J-P1A"
   ],
@@ -43,6 +38,7 @@
     "D002J-P1",
     "D002J-P1A",
     "D002J-P1B",
-    "D002J-P2"
+    "D002J-P2",
+    "D002J-P3"
   ]
 }
