@@ -23,7 +23,7 @@
     "D002J-P3"
   ],
   "phase": "P4",
-  "pr_number": 0,
+  "pr_number": 702,
   "schema_version": "D002J-VERDICT-CAPSULE-v1",
   "source_summary_path": "artifacts/d002j/positive_controls/positive_control_summary_v1.json",
   "status": "TERMINAL_PASS",
