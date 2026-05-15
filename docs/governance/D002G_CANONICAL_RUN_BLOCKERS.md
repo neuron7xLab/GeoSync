@@ -925,3 +925,30 @@ D-002K-P0 opens a **fresh, narrower lineage explicitly designed against the inhe
 Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1..P6 → P7 #705 POWER_GATE_REFUSED_UNDERPOWERED → D-002K-P0 this PR (D002K_PREREG_LOCKED, fresh)`.
 
 Next legal PR: `feat(x10r,D-002K-P1): source + observable contract for funding-liquidity` — D-002K-P1 may only open after this D-002K-P0 PR merges. D-002J-P8 must NEVER be dispatched.
+
+## D-002K-P1 — Source & Observable Contract for Funding-Liquidity (this PR)
+
+**Decision: `D002K_SOURCE_OBSERVABLE_CONTRACT_READY` — `canonical_run_authorized: false`. NOT a D-002J rescue.**
+
+D-002J remains **terminally REFUSED at P7** (`POWER_GATE_REFUSED_UNDERPOWERED`, axis `effect_too_small`). That REFUSED verdict is **retained verbatim**. D-002K-P1 does **NOT** reopen, mutate, amend, or rescue D-002J and does **NOT** authorise any D-002J-P8.
+
+D-002K-P1 binds a **narrow** source + observable manifest — funding-liquidity **ONLY**:
+
+- **Six P0-locked observable families covered ≥1 each:** `level_shift` (SOFR; ALFRED vintage TED/OIS proxy), `spread_widening` (H.15 secured-vs-unsecured), `volatility_burst` (OFR tri-party haircut dispersion; VIX as CONTROL only), `recovery_time` (OFR-FSI funding subcomponent), `transition_steepness` (SOFR 99th pct), `stress_persistence` (STLFSI4).
+- **8 observables, 7 funding-liquidity + 1 control covariate.** Every `source_id` ∈ the P1B-audit-surviving set (VERIFIED|PARTIAL). Every `crisis_windows` ⊆ `{CW3,CW4,CW5}`. No CW1/CW2/CW6 leak.
+- **Point-in-time vintage discipline executable:** 2 `vintage_required=true` observables (STLFSI revisable composite; ALFRED real-time vintage lens for the CW5 funding-spread proxy). Every observable carries `observation_date <= decision_date` and `release_date <= decision_date` look-ahead invariants — the D-002I/D-002J look-ahead lesson applied at the observable layer.
+- **Control / observable separation:** VIX (VIXCLS) bound `role=control_covariate`, never a funding-liquidity observable. Echoes cross-asset ≠ interbank discipline.
+- **Funding-liquidity narrowness enforced:** NO contagion / balance-sheet / cross-asset / interbank-network source bound. Narrowing scope against `effect_too_small` is legitimate design; loosening statistics at fixed scope is forbidden laundering.
+- **Primary metric == P0 lock:** every observable maps to `pre_post_standardized_mean_shift`.
+
+**Zero data, zero ingestion, zero scoring, zero model run, zero canonical sweep.** This phase is a manifest only.
+
+**DAG verdict (regenerated):** `nodes_count` = 12 (was 11); `topological_order` appends `D002K-P1` AFTER `D002K-P0`; `next_legal_nodes_from_main_head` = `["D002K-P2"]`; `acyclic` = true; `orphans` = `[]`; `rejected_nodes_retained` = `["D002J-P1A","D002J-P7"]` (D-002K-P1 does NOT clear them); `canonical_run_authorized_anywhere` = false; `lineage_transitions["D002J-P7"]` unchanged; locked governance shas byte-exact.
+
+**D-002K-P1 capsule:** `parent_nodes=["D002K-P0"]`, `decision=D002K_SOURCE_OBSERVABLE_CONTRACT_READY`, `status=TERMINAL_PASS`, `allowed_next_nodes=["D002K-P2"]`, `forbidden_next_nodes=["D002K-P3","D002K-P4","D002K-P5"]`, `failure_retention=null`.
+
+**Frozen byte-exact:** D-002K-P0 prereg sha256 `2cd923810bf64547cd86ecb403bfd3f12a799cb16c3d10ebc07bc05865fee43f`; D-002J prereg sha256 `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`; all `artifacts/d002j/**` and `artifacts/d002k/prereg/**`.
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J P1..P7 #705 POWER_GATE_REFUSED_UNDERPOWERED → D-002K-P0 #706 D002K_PREREG_LOCKED → D-002K-P1 this PR (D002K_SOURCE_OBSERVABLE_CONTRACT_READY)`.
+
+Next legal PR: `feat(x10r,D-002K-P2): matched placebo windows` — D-002K-P2 may only open after this D-002K-P1 PR merges. D-002J-P8 must NEVER be dispatched.

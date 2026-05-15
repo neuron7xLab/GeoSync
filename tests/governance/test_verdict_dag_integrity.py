@@ -76,6 +76,11 @@ EXPECTED_NODE_IDS: tuple[str, ...] = (
     # a fresh-restart descent, NOT a rescue. D-002J-P7 stays
     # TERMINAL_REFUSED and retained.
     "D002K-P0",
+    # D-002K-P1 source & observable contract. Parent is D002K-P0;
+    # binds the 6 P0-locked observable families to P1B-surviving
+    # funding-liquidity sources x {CW3,CW4,CW5}. Narrow by design;
+    # D-002J-P1A + D-002J-P7 stay TERMINAL_REJECTED/REFUSED retained.
+    "D002K-P1",
 )
 
 # Mirrors ``tests/governance/test_no_unresolved_merge_markers.py::_MARKER``.
