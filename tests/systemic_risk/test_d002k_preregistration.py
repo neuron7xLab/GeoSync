@@ -450,28 +450,38 @@ def test_d002k_p0_verdict_capsule_locked() -> None:
 
 def test_dag_has_d002k_p0_and_d002j_p7_still_refused() -> None:
     dag = _load_json(DAG_VERDICT_JSON)
-    # D-002K-P3 (high-SNR event-metric layer) advanced the DAG
-    # snapshot: 14 nodes, topo tail D002K-P3, next legal D002K-P4.
-    # D-002K-P0/P1/P2 remain present and D-002J-P7/P1A stay
-    # refused/rejected retained. Same sanctioned per-phase widen.
-    msg_n = f"DAG must have 14 nodes; got {dag['nodes_count']!r}"
-    assert dag["nodes_count"] == 14, msg_n
+    # D-002K-P4 (power-first gate) advanced the DAG snapshot: 15 nodes,
+    # topo tail D002K-P4. P4 honestly REFUSED
+    # (POWER_GATE_REFUSED_UNDERPOWERED, TERMINAL_REFUSED) so the lineage
+    # halts: next_legal is empty and D002K-P4 joins D002J-P1A/D002J-P7
+    # in rejected_nodes_retained. D-002K-P0/P1/P2/P3 remain present;
+    # D-002J-P7/P1A stay refused/rejected retained. Same sanctioned
+    # per-phase widen.
+    msg_n = f"DAG must have 15 nodes; got {dag['nodes_count']!r}"
+    assert dag["nodes_count"] == 15, msg_n
     msg_p0 = f"D002K-P0 must remain in topological_order; got {dag['topological_order']!r}"
     assert "D002K-P0" in dag["topological_order"], msg_p0
     msg_p1 = f"D002K-P1 must remain in topological_order; got {dag['topological_order']!r}"
     assert "D002K-P1" in dag["topological_order"], msg_p1
     msg_p2 = f"D002K-P2 must remain in topological_order; got {dag['topological_order']!r}"
     assert "D002K-P2" in dag["topological_order"], msg_p2
+    msg_p3 = f"D002K-P3 must remain in topological_order; got {dag['topological_order']!r}"
+    assert "D002K-P3" in dag["topological_order"], msg_p3
     msg_to = (
-        f"D002K-P3 must be appended last in topological_order; got {dag['topological_order']!r}"
+        f"D002K-P4 must be appended last in topological_order; got {dag['topological_order']!r}"
     )
-    assert dag["topological_order"][-1] == "D002K-P3", msg_to
+    assert dag["topological_order"][-1] == "D002K-P4", msg_to
     _amsg14 = "D002J-P7 must remain in rejected_nodes_retained (still refused)"
     assert "D002J-P7" in dag["rejected_nodes_retained"], _amsg14
     _amsg15 = "D002J-P1A must remain in rejected_nodes_retained"
     assert "D002J-P1A" in dag["rejected_nodes_retained"], _amsg15
-    msg_nl = f"next legal node must be D002K-P4; got {dag['next_legal_nodes_from_main_head']!r}"
-    assert dag["next_legal_nodes_from_main_head"] == ["D002K-P4"], msg_nl
+    _amsg16 = "D002K-P4 must be in rejected_nodes_retained (honestly refused)"
+    assert "D002K-P4" in dag["rejected_nodes_retained"], _amsg16
+    msg_nl = (
+        f"P4 REFUSED halts the lineage: next_legal must be empty; "
+        f"got {dag['next_legal_nodes_from_main_head']!r}"
+    )
+    assert dag["next_legal_nodes_from_main_head"] == [], msg_nl
     lt = dag["lineage_transitions"]["D002J-P7"]
     msg_ls = f"lineage_transition D002J-P7 status must be TERMINAL_REFUSED; got {lt['status']!r}"
     assert lt["status"] == "TERMINAL_REFUSED", msg_ls

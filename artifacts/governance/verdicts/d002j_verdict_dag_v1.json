@@ -15,7 +15,7 @@
     "source registry proves data quality",
     "crisis windows prove predictive power"
   ],
-  "generated_at": "2026-05-15T10:35:53Z",
+  "generated_at": "2026-05-15T00:00:00Z",
   "lineage_transitions": {
     "D002J-P7": {
       "is_rescue": false,
@@ -32,14 +32,13 @@
     "docs/governance/D002I_PREREGISTRATION.yaml": "b646989c032dc0e29f9b791e0b68209ff22b40f4757737712badc8656cf2db5f",
     "docs/governance/D002J_PREREGISTRATION.yaml": "f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0"
   },
-  "next_legal_nodes_from_main_head": [
-    "D002K-P4"
-  ],
-  "nodes_count": 14,
+  "next_legal_nodes_from_main_head": [],
+  "nodes_count": 15,
   "orphans": [],
   "rejected_nodes_retained": [
     "D002J-P1A",
-    "D002J-P7"
+    "D002J-P7",
+    "D002K-P4"
   ],
   "schema_version": "D002J-VERDICT-DAG-v1",
   "topological_order": [
@@ -56,6 +55,7 @@
     "D002K-P0",
     "D002K-P1",
     "D002K-P2",
-    "D002K-P3"
+    "D002K-P3",
+    "D002K-P4"
   ]
 }
