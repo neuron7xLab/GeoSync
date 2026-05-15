@@ -811,3 +811,62 @@ Decision: **SUBSTRATE_CANDIDATES_READY**. Status: `TERMINAL_PASS`. Parent: `D002
 Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 CRISIS_WINDOW_REGISTRY_READY → P2.5 #700 VERDICT_DAG_BOOTSTRAPPED → P3 #701 INGESTION_MANIFEST_READY → P4 #702 POSITIVE_CONTROLS_READY → P5 this PR (SUBSTRATE_CANDIDATES_READY)`.
 
 Next legal PR: `feat(x10r,D-002J-P6): implement null model hierarchy v1` — P6 implements the forward-declared null families and may only open after this P5 PR merges with decision `SUBSTRATE_CANDIDATES_READY`.
+
+---
+
+## D-002J-P6 — Null Model Hierarchy v1 (this PR)
+
+Decision: **NULL_HIERARCHY_READY**. Status: `TERMINAL_PASS`. Parent: `D002J-P5`.
+
+**Exactly 10 null families (each a FALSIFIER targeting ONE named false explanation; a null with no genuine target is decorative and REJECTED):**
+
+| Null | Class | Target false explanation (abbrev.) | Preserves → Destroys | H_I2-cond |
+|---|---|---|---|---|
+| N1 `label_permutation` | outcome_alignment | "any structure attached, not THIS outcome-aligned structure" | label multiset → label position alignment | no |
+| N2 `time_window_shift_placebo` | temporal_alignment | "just a window-alignment artifact" | marginal dist → window-onset alignment | no |
+| N3 `temporal_block_bootstrap` | temporal_dependence | "just iid noise" | lag-1 autocorr band → global trajectory order | no |
+| N4 `iaaft_surrogate` | spectral | "linear-spectral artifact only" | spectrum band + amplitude dist → nonlinear phase | no |
+| N5 `degree_preserving_graph_null` | graph_degree | "just the degree distribution, not edge placement" | degree sequence (EXACT) → edge placement | no |
+| N6 `weight_preserving_shuffle` | graph_weight | "weight magnitude only, not placement" | weight multiset + binary topology → weight placement | no |
+| N7 `configuration_model` | graph_topology_conditioned | "generic to any graph with this degree sequence" | degree sequence (EXACT) → specific edge structure | **YES** |
+| N8 `sparse_maximum_entropy_reconstruction` | graph_topology_conditioned | "dense-network artifact" | total edge count → dense placement | **YES** |
+| N9 `shock_time_placebo` | temporal_alignment | "exists at any time, not the crisis time" | series values + single onset → crisis-time alignment | no |
+| N10 `vintage_leakage_trap_null` | leakage_trap | "look-ahead / vintage leakage artifact" | present-arm marginal → causal-information boundary | no |
+
+**N10 INVERTED PASS SEMANTICS:** PASS iff the signal DISAPPEARS in the leakage-free (causal) arm; a signal that persists only in the look-ahead arm is a leakage artifact. This is the P3 leakage-sentinel / PC5 bridge null.
+
+**Substrate → null applicability matrix (3 P5 substrates × 10 nulls), `A`=applicable:**
+
+| Null | funding_liquidity_rollover | cross_exposure_contagion_proxy | volatility_credit_spread_regime |
+|---|---|---|---|
+| N1 | A | A | A |
+| N2 | A | – | A |
+| N3 | A | – | A |
+| N4 | A | – | A |
+| N5 | – | A | – |
+| N6 | – | A | – |
+| N7 | – | A | – |
+| N8 | – | A | – |
+| N9 | A | A | A |
+| N10 | A | A | A |
+| **count** | **6** | **7** | **6** |
+
+**Phase-coupling P6→P5 (verified):** every P5 substrate binds ≥2 applicable nulls (min = 6); no null lists a non-existent substrate. The two time-series substrates honestly do NOT bind the graph nulls (N5/N6/N7/N8 — no graph to rewire); the contagion substrate honestly does NOT bind the scalar-series nulls (N2/N3/N4 — its observable is a network-cascade quantity). No null is padded onto an inapplicable substrate.
+
+**H_I2 conditional (stim #3, forward-declared, NOT a blocker):** D-002I H_I2 (M3 topology-conditioned over-fit) is UNKNOWN. N7 `configuration_model` and N8 `sparse_maximum_entropy_reconstruction` carry `h_i2_conditional: true` + the note "If D-002I H_I2 is later SUPPORTED, this null requires fresh admissibility justification before canonical use (P8)." The conditional only gates their *canonical* use at P8 and only fires on an H_I2 UNKNOWN→SUPPORTED transition.
+
+**Preserve/destroy verified IN CODE:** every `NullInstance` records `preserved_invariants_checked` and `destroyed_structure_checked` as in-code numeric boolean maps; `.admitted` is `True` only if every preserve AND destroy check passed (e.g. N5/N7 assert the post-rewire degree sequence is *exactly* equal to the pre-rewire degree sequence). Determinism: every null seed→bit-identical `nulled_array`.
+
+**Scope boundary (repeat for safety):**
+- D-002J-P6 builds the null-generator HIERARCHY contract + deterministic generators. It does **NOT** execute nulls against real substrate data at scale (P7/P8 territory).
+- D-002J-P6 does **NOT** compute power (P7), run canonically (P8), or edit the D-002J prereg (sha256 byte-exact `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`).
+- D-002J-P6 does **NOT** rescue D-002H. D-002H REFUSED remains the truthful canonical verdict. `canonical_run_authorized_anywhere: false` preserved.
+- The ONLY new source files under `research/systemic_risk/` are under `research/systemic_risk/nulls/d002j/` (P6 is explicitly allowed to add this subtree; all other `research/systemic_risk/*` paths are forbidden by the P6 acceptor).
+
+**DAG verdict (regenerated):** `nodes_count` = 9 (was 8); `topological_order` appended `D002J-P6`; `next_legal_nodes_from_main_head` = `["D002J-P7"]`; `acyclic` = true; `orphans` = `[]`; `canonical_run_authorized_anywhere` = false; locked governance shas byte-exact.
+
+**P6 capsule:** `parent_nodes=["D002J-P5"]`, `allowed_next_nodes=["D002J-P7"]`, `forbidden_next_nodes=["D002J-P8","D002J-P9"]` (no gate-skip).
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 CRISIS_WINDOW_REGISTRY_READY → P2.5 #700 VERDICT_DAG_BOOTSTRAPPED → P3 #701 INGESTION_MANIFEST_READY → P4 #702 POSITIVE_CONTROLS_READY → P5 #703 SUBSTRATE_CANDIDATES_READY → P6 this PR (NULL_HIERARCHY_READY)`.
+
+Next legal PR: `feat(x10r,D-002J-P7): implement power-first canonical-run gate` — P7 may only open after this P6 PR merges with decision `NULL_HIERARCHY_READY`.
