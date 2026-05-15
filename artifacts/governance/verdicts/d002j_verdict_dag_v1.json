@@ -15,7 +15,15 @@
     "source registry proves data quality",
     "crisis windows prove predictive power"
   ],
-  "generated_at": "2026-05-15T06:09:15Z",
+  "generated_at": "2026-05-15T07:21:57Z",
+  "lineage_transitions": {
+    "D002J-P7": {
+      "is_rescue": false,
+      "status": "TERMINAL_REFUSED",
+      "successor_lineage": "D-002K",
+      "successor_root": "D002K-P0"
+    }
+  },
   "locked_governance_shas": {
     "docs/governance/D002C_CLAIM_LEDGER.yaml": "eb0b7151d76e5409e6dc9bb4a023551de5e0704673d5ac9f726319ef84a32387",
     "docs/governance/D002G_ACCEPTANCE_RULES.md": "875b1e3eb031b8e5333dc8b455454f0a30419ead1ebe787aa01d5882e7d6ad31",
@@ -24,8 +32,10 @@
     "docs/governance/D002I_PREREGISTRATION.yaml": "b646989c032dc0e29f9b791e0b68209ff22b40f4757737712badc8656cf2db5f",
     "docs/governance/D002J_PREREGISTRATION.yaml": "f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0"
   },
-  "next_legal_nodes_from_main_head": [],
-  "nodes_count": 10,
+  "next_legal_nodes_from_main_head": [
+    "D002K-P1"
+  ],
+  "nodes_count": 11,
   "orphans": [],
   "rejected_nodes_retained": [
     "D002J-P1A",
@@ -42,6 +52,7 @@
     "D002J-P4",
     "D002J-P5",
     "D002J-P6",
-    "D002J-P7"
+    "D002J-P7",
+    "D002K-P0"
   ]
 }

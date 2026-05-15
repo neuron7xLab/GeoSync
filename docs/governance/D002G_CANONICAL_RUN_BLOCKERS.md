@@ -900,3 +900,28 @@ This is the gate D-002H lacked. Its whole purpose is to refuse a blind sweep whe
 Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 → P2.5 #700 → P3 #701 → P4 #702 → P5 #703 → P6 #704 NULL_HIERARCHY_READY → P7 this PR (POWER_GATE_REFUSED_UNDERPOWERED)`.
 
 **D-002J halts at P7; canonical sweep NOT authorized; forward motion requires fresh D-002K pre-registration.** P8 must NOT be dispatched. A fresh D-002K pre-reg must be designed against the `effect_too_small` axis (e.g. a higher-SNR observable, a window-conditioned statistic, or a substantively re-derived effect-size prior with new ground truth) — NOT a relaxed alpha or an inflated prior.
+
+## D-002K-P0 — Fresh High-SNR Funding-Liquidity Stress Benchmark Pre-Registration (this PR)
+
+**Decision: `D002K_PREREG_LOCKED` — `canonical_run_authorized: false`. NOT a D-002J rescue.**
+
+D-002J remains **terminally REFUSED at P7** (`POWER_GATE_REFUSED_UNDERPOWERED`, refused axis `effect_too_small`, PR #705, merge sha `c5c4158bed639014ec35ab8f53ec70d98be660a2`). That REFUSED verdict is **retained verbatim** and is the truthful terminal outcome. D-002K does **NOT** reopen, mutate, amend, or rescue D-002J, and does **NOT** authorise any D-002J P8.
+
+D-002K-P0 opens a **fresh, narrower lineage explicitly designed against the inherited `effect_too_small` axis** — by narrowing **scope**, not by loosening **statistics**:
+
+- **Single locked mechanism:** `funding_liquidity_rollover` (most direct point-in-time public observables — SOFR / OFR tri-party repo / FRED H.15; lowest fake-network risk of the 3 P5 substrates).
+- **Three locked crisis windows:** CW3 (2019 US repo spike), CW4 (2020 COVID dash-for-cash), CW5 (2022 UK gilt/LDI) — exactly the windows the P5 funding substrate declares.
+- **One locked primary metric:** `pre_post_standardized_mean_shift` (standardized mean shift of `funding_stress_index`, pre-window baseline vs in-crisis window). Secondary metrics explicitly exploratory only.
+- **Matched-placebo policy locked BEFORE scoring:** deterministic pre-registered selection algorithm, 5 placebo windows per crisis, matched on macro period / volatility regime / calendar length / data availability / pre-window baseline variance. No hand-picked placebos.
+- **Power-gate-before-scoring is a prereg LAW:** the power gate must run and PASS before any scoring; REFUSE => D-002K halts, no scoring, fresh D-002L required.
+- **Alpha NOT relaxed:** Bonferroni denominator rule = `n_windows * n_primary_metrics` = 3. This is a legitimately smaller denominator because the pre-registered hypothesis count is honestly smaller (3, not D-002J's 102), NOT because alpha was loosened at a fixed hypothesis count. Narrowing scope is not loosening statistics; loosening statistics at fixed scope is forbidden laundering.
+
+**Zero data, zero scoring, zero model run.** This phase locks the contract only.
+
+**DAG verdict (regenerated):** `nodes_count` = 11 (was 10); `topological_order` appends `D002K-P0` AFTER `D002J-P7`; `next_legal_nodes_from_main_head` = `["D002K-P1"]`; `acyclic` = true; `orphans` = `[]`; `rejected_nodes_retained` = `["D002J-P1A","D002J-P7"]` (D-002K does NOT clear them); `canonical_run_authorized_anywhere` = false; `lineage_transitions["D002J-P7"]` = `{status: TERMINAL_REFUSED, successor_lineage: D-002K, successor_root: D002K-P0, is_rescue: false}`; locked governance shas byte-exact.
+
+**D-002K-P0 capsule:** `parent_nodes=["D002J-P7"]` (D-002K exists BECAUSE D-002J-P7 refused — honest descent, not rescue), `decision=D002K_PREREG_LOCKED`, `status=TERMINAL_PASS`, `allowed_next_nodes=["D002K-P1"]`, `forbidden_next_nodes=["D002J-P8"]`.
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1..P6 → P7 #705 POWER_GATE_REFUSED_UNDERPOWERED → D-002K-P0 this PR (D002K_PREREG_LOCKED, fresh)`.
+
+Next legal PR: `feat(x10r,D-002K-P1): source + observable contract for funding-liquidity` — D-002K-P1 may only open after this D-002K-P0 PR merges. D-002J-P8 must NEVER be dispatched.

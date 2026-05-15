@@ -30,6 +30,7 @@ import pytest
 
 from tools.governance.render_lineage import render_lineage, write_lineage
 from tools.governance.verdict_dag import (
+    CAPSULE_GLOB,
     LOCKED_GOVERNANCE_SHAS,
     REPO_ROOT,
     VERDICTS_DIR_REL,
@@ -70,6 +71,11 @@ EXPECTED_NODE_IDS: tuple[str, ...] = (
     "D002J-P5",
     "D002J-P6",
     "D002J-P7",
+    # D-002K fresh lineage root. Parent is D002J-P7: D-002K exists
+    # BECAUSE D-002J-P7 terminally refused (effect_too_small); this is
+    # a fresh-restart descent, NOT a rescue. D-002J-P7 stays
+    # TERMINAL_REFUSED and retained.
+    "D002K-P0",
 )
 
 # Mirrors ``tests/governance/test_no_unresolved_merge_markers.py::_MARKER``.
@@ -299,7 +305,7 @@ def test_no_orphan_nodes(dag: dict[str, VerdictCapsule]) -> None:
 
 
 def test_all_capsule_jsons_parse_via_load_capsule() -> None:
-    files = sorted(VERDICTS_DIR.glob("d002j_p*_verdict_v1.json"))
+    files = sorted(VERDICTS_DIR.glob(CAPSULE_GLOB))
     msg_count = (
         f"expected {len(EXPECTED_NODE_IDS)} capsule files under {VERDICTS_DIR}; found {len(files)}"
     )
@@ -329,7 +335,7 @@ def test_lineage_map_md_renders_deterministically(tmp_path: Path) -> None:
     # twice and assert byte equality.
     tmp_verdicts = tmp_path / "verdicts"
     tmp_verdicts.mkdir()
-    for f in sorted(VERDICTS_DIR.glob("d002j_p*_verdict_v1.json")):
+    for f in sorted(VERDICTS_DIR.glob(CAPSULE_GLOB)):
         shutil.copy2(f, tmp_verdicts / f.name)
     out1 = tmp_path / "render1.md"
     out2 = tmp_path / "render2.md"
@@ -373,7 +379,7 @@ def test_locked_governance_shas_byte_exact() -> None:
 
 def test_no_unresolved_merge_markers() -> None:
     targets: list[Path] = []
-    targets.extend(sorted(VERDICTS_DIR.glob("d002j_*verdict*v1.json")))
+    targets.extend(sorted(VERDICTS_DIR.glob("d002[jk]_*verdict*v1.json")))
     targets.append(REPO_ROOT / "tools/governance/verdict_dag.py")
     targets.append(REPO_ROOT / "tools/governance/render_lineage.py")
     targets.append(REPO_ROOT / "tests/governance/test_verdict_dag_integrity.py")
