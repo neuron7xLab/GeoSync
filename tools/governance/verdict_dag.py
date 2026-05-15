@@ -325,12 +325,27 @@ def load_capsule(path: Path) -> VerdictCapsule:
     )
 
 
+CAPSULE_GLOB: Final[str] = "d002[jk]_p*_verdict_v1.json"
+"""Glob matching per-phase capsule files across the connected D-002J /
+D-002K lineages.
+
+The DAG spans both lineages: D-002K-P0's parent is ``D002J-P7`` because
+D-002K exists *because* D-002J-P7 refused. Widened from the original
+``d002j_p*`` to ``d002[jk]_p*`` so the single combined DAG renders both
+lineages in one honest graph. The DAG-about-the-DAG artifact
+(``d002j_verdict_dag_v1.json``) is still excluded because it carries a
+different schema (it ends in ``verdict_dag_v1.json``, not
+``_p*_verdict_v1.json``).
+"""
+
+
 def load_dag(verdicts_dir: Path) -> dict[str, VerdictCapsule]:
     """Load every per-phase capsule under *verdicts_dir* into a node_id->capsule map.
 
     The DAG-about-the-DAG artifact (``d002j_verdict_dag_v1.json``) is
-    explicitly excluded because it carries a different schema. Any other
-    ``d002j_p*_verdict_v1.json`` file is treated as a capsule.
+    explicitly excluded because it carries a different schema. Any
+    ``d002[jk]_p*_verdict_v1.json`` file is treated as a capsule (the
+    connected D-002J / D-002K lineages).
 
     Raises:
         :class:`MissingCapsule` when *verdicts_dir* does not exist.
@@ -339,7 +354,7 @@ def load_dag(verdicts_dir: Path) -> dict[str, VerdictCapsule]:
         msg = f"verdicts directory does not exist: {verdicts_dir}"
         raise MissingCapsule(msg)
     dag: dict[str, VerdictCapsule] = {}
-    for path in sorted(verdicts_dir.glob("d002j_p*_verdict_v1.json")):
+    for path in sorted(verdicts_dir.glob(CAPSULE_GLOB)):
         capsule = load_capsule(path)
         dag[capsule.node_id] = capsule
     return dag
@@ -509,6 +524,35 @@ def emit_dag_verdict(
     # wide invariant). The DAG verdict records the conjunction
     # explicitly, so callers cannot infer authorization by silence.
     canonical_anywhere = False
+    # Lineage transitions: a parent node whose lineage prefix differs
+    # from a child's records an explicit cross-lineage transition. This
+    # makes the honest "successor lineage opened BECAUSE the parent
+    # terminally refused" relationship machine-readable and forbids any
+    # silent rescue. is_rescue is always False by construction here: a
+    # cross-lineage edge is a fresh-restart descent, never a rescue.
+    lineage_transitions: dict[str, dict[str, Any]] = {}
+    for child_id, child in dag.items():
+        child_lineage = child_id.split("-", 1)[0]
+        for parent_id in child.parent_nodes:
+            if parent_id not in dag:
+                continue
+            parent_lineage = parent_id.split("-", 1)[0]
+            if parent_lineage == child_lineage:
+                continue
+            parent_cap = dag[parent_id]
+            # "D002K" -> "D-002K" (canonical study-id form). Generic:
+            # split the leading "D" from the numeric+letter remainder.
+            successor_lineage = (
+                f"D-{child_lineage[1:]}"
+                if child_lineage.startswith("D") and len(child_lineage) > 1
+                else child_lineage
+            )
+            lineage_transitions[parent_id] = {
+                "status": parent_cap.status,
+                "successor_lineage": successor_lineage,
+                "successor_root": child_id,
+                "is_rescue": False,
+            }
     ts = (
         generated_at
         if generated_at is not None
@@ -525,6 +569,7 @@ def emit_dag_verdict(
         "next_legal_nodes_from_main_head": sorted(next_legal),
         "forbidden_claims_aggregate": list(_FORBIDDEN_CLAIMS_AGGREGATE),
         "canonical_run_authorized_anywhere": canonical_anywhere,
+        "lineage_transitions": lineage_transitions,
         "dag_self_verdict": {
             "node_id": self_verdict.node_id,
             "decision": self_verdict.decision,
