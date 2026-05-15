@@ -87,6 +87,13 @@ EXPECTED_NODE_IDS: tuple[str, ...] = (
     # overlap with any of the six D-002J registered windows. No
     # scoring; D-002J-P1A + D-002J-P7 stay retained; canon false.
     "D002K-P2",
+    # D-002K-P3 high-SNR event-transition metric layer. Parent is
+    # D002K-P2; locks the executable contract for the single K-P0
+    # primary confirmatory endpoint (pre_post_standardized_mean_shift)
+    # plus the six exploratory_only secondary metrics. Definitions
+    # only: no scoring on real data, numeric threshold deferred to the
+    # power gate; D-002J-P1A + D-002J-P7 stay retained; canon false.
+    "D002K-P3",
 )
 
 # Mirrors ``tests/governance/test_no_unresolved_merge_markers.py::_MARKER``.
