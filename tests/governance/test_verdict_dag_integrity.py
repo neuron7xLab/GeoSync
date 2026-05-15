@@ -47,7 +47,7 @@ from tools.governance.verdict_dag import (
 
 VERDICTS_DIR: Path = REPO_ROOT / VERDICTS_DIR_REL
 DAG_VERDICT_PATH: Path = VERDICTS_DIR / "d002j_verdict_dag_v1.json"
-EXPECTED_PHASES: tuple[str, ...] = ("P0", "P1", "P1A", "P1B", "P2", "P3")
+EXPECTED_PHASES: tuple[str, ...] = ("P0", "P1", "P1A", "P1B", "P2", "P3", "P4")
 EXPECTED_NODE_IDS: tuple[str, ...] = (
     "D002J-P0",
     "D002J-P1",
@@ -55,6 +55,7 @@ EXPECTED_NODE_IDS: tuple[str, ...] = (
     "D002J-P1B",
     "D002J-P2",
     "D002J-P3",
+    "D002J-P4",
 )
 
 # Mirrors ``tests/governance/test_no_unresolved_merge_markers.py::_MARKER``.

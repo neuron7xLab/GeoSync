@@ -716,12 +716,19 @@ def test_p3_capsule_under_dag_contract() -> None:
 
 
 def test_p3_in_dag_verdict() -> None:
-    """DAG verdict must now contain 6 nodes and include D-002J-P3 in topological_order."""
+    """DAG verdict must contain >=6 nodes and include D-002J-P3 in topological_order.
+
+    The DAG grows monotonically as later phases land (P4 adds a 7th
+    node, etc.). This P3 guard pins the floor (P3 must be present and
+    the DAG must be at least the post-P3 size) without re-asserting an
+    exact count that a legitimate downstream phase would break.
+    """
     msg_exists = f"DAG verdict must exist at {DAG_VERDICT_JSON}"
     assert DAG_VERDICT_JSON.is_file(), msg_exists
     dv = _load_json(DAG_VERDICT_JSON)
-    msg_count = f"DAG verdict nodes_count must be 6 after P3 lands; got {dv.get('nodes_count')!r}"
-    assert dv.get("nodes_count") == 6, msg_count
+    nodes_count = dv.get("nodes_count")
+    msg_count = f"DAG verdict nodes_count must be >=6 after P3 lands; got {nodes_count!r}"
+    assert isinstance(nodes_count, int) and nodes_count >= 6, msg_count
     order = cast(list[str], dv.get("topological_order", []))
     msg_order = f"DAG topological_order must include 'D002J-P3'; got {order}"
     assert "D002J-P3" in order, msg_order

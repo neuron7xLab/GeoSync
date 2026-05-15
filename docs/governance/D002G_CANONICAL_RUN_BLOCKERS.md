@@ -739,3 +739,42 @@ Hard scope boundary (repeat for safety):
 Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 CRISIS_WINDOW_REGISTRY_READY → P2.5 #700 VERDICT_DAG_BOOTSTRAPPED → P3 this PR (INGESTION_MANIFEST_READY)`.
 
 Next legal PR: `feat(x10r,D-002J-P4): implement planted positive controls v1` — pre-registers planted positive controls (synthetic signal injected into surrogate panels, drawn from the P3 manifest's vintage-aware adapters) on top of the now-anchored ingestion contract. P4 may only open after this P3 PR is merged with decision `INGESTION_MANIFEST_READY`.
+
+---
+
+## D-002J-P4 — Planted Positive Controls v1 (this PR)
+
+Decision: **POSITIVE_CONTROLS_READY**. Status: `TERMINAL_PASS`. Parent: `D002J-P3`.
+
+**Six synthetic positive-control families, each with a paired negative sibling:**
+
+| Control | Class | Ground truth | pass_threshold | Negative sibling |
+|---|---|---|---|---|
+| PC1 | `liquidity_shock` | onset_time, effect_size, propagation_radius, shocked_node | worst-node mean-shift z `>= 5.0` (NULL-CALIBRATED above extreme-value null) | `PC1_NEGATIVE_SIBLING` (ε=0) |
+| PC2 | `contagion_cascade` | onset_time, cascade_extent, cascade_speed, defaulted_node | impaired-node fraction `>= 0.30` | `PC2_NEGATIVE_SIBLING` (no default) |
+| PC3 | `balance_sheet_impairment` | onset_time, mark_down_magnitude, impaired_set | worst-decile capital shift `>= 1.5` | `PC3_NEGATIVE_SIBLING` (no mark-down) |
+| PC4 | `volatility_regime_switch` | switch_time, vol_ratio, pre_vol, post_vol | post/pre realised-vol ratio `>= 2.0` | `PC4_NEGATIVE_SIBLING` (stationary var) |
+| PC5 | `information_delay_trap` | leakage_delta, expected_failure_mode=LOOKAHEAD_DETECTED | INVERTED: leakage-detection flag `== 1.0` | `PC5_NEGATIVE_SIBLING` (point-in-time correct) |
+| PC6 | `official_response_event_shock` | intervention_time, shift_magnitude, pre_vol, post_vol | pre/post vol drop ratio `>= 1.5` | `PC6_NEGATIVE_SIBLING` (no intervention) |
+
+**Verification at PR emit time (8-seed battery {42,7,123,999,2026,1,55,314}):**
+- All 6 families: `min(score(signal)) >= pass_threshold` AND `max(score(null)) < pass_threshold`.
+- No negative sibling scores at or above its pass_threshold (no FALSE_POSITIVE; no threshold loosened — PC1's bar was RAISED above the null extreme; PC2/PC3 observables were redesigned to be null-bounded).
+- PC5 inverted-pass: leakage array scored `1.0` (lookahead caught), point-in-time null scored `0.0` (not flagged) for every seed — P3 point-in-time discipline is EXECUTABLE on the P4 pipeline.
+- Determinism: same seed → bit-identical `signal_array` and `null_sibling_array` for all 6 families.
+
+**Scope boundary (repeat for safety):**
+- D-002J-P4 is **SYNTHETIC ONLY**. No real data referenced; no file reads from `artifacts/d002j/ingestion/` or anywhere else.
+- D-002J-P4 does **NOT** prove real-world performance, bank-level validation, or systemic-risk prediction.
+- D-002J-P4 does **NOT** implement the P5 substrate, execute a P6 null, or authorise any P8 canonical run. `canonical_run_authorized_anywhere: false` preserved.
+- D-002J-P4 does **NOT** rescue D-002H. D-002H REFUSED remains the truthful canonical verdict.
+- D-002J-P4 does **NOT** edit the D-002J prereg (sha256 byte-exact `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`) or any locked governance file.
+- The ONLY new file under `research/systemic_risk/` is `d002j_positive_controls.py` (P4 is explicitly allowed to add this single implementation file; all other `research/systemic_risk/*` paths are forbidden by the P4 acceptor).
+
+**DAG verdict (regenerated):** `nodes_count` = 7 (was 6); `topological_order` appended `D002J-P4`; `next_legal_nodes_from_main_head` = `["D002J-P5"]`; `acyclic` = true; `orphans` = `[]`; `canonical_run_authorized_anywhere` = false; `dag_self_verdict.node_id` = `D002J-P2.5` (unchanged self-anchor); six locked governance shas byte-exact.
+
+**P4 capsule:** `parent_nodes=["D002J-P3"]`, `allowed_next_nodes=["D002J-P5"]`, `forbidden_next_nodes=["D002J-P6","D002J-P7","D002J-P8","D002J-P9"]` (no gate-skip).
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 CRISIS_WINDOW_REGISTRY_READY → P2.5 #700 VERDICT_DAG_BOOTSTRAPPED → P3 #701 INGESTION_MANIFEST_READY → P4 this PR (POSITIVE_CONTROLS_READY)`.
+
+Next legal PR: `feat(x10r,D-002J-P5): implement financial-mechanistic substrate candidates v1` — P5 may use ONLY P4-validated controls and may only open after this P4 PR merges with decision `POSITIVE_CONTROLS_READY`.
