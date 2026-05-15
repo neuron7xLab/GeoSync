@@ -778,3 +778,36 @@ Decision: **POSITIVE_CONTROLS_READY**. Status: `TERMINAL_PASS`. Parent: `D002J-P
 Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 CRISIS_WINDOW_REGISTRY_READY → P2.5 #700 VERDICT_DAG_BOOTSTRAPPED → P3 #701 INGESTION_MANIFEST_READY → P4 this PR (POSITIVE_CONTROLS_READY)`.
 
 Next legal PR: `feat(x10r,D-002J-P5): implement financial-mechanistic substrate candidates v1` — P5 may use ONLY P4-validated controls and may only open after this P4 PR merges with decision `POSITIVE_CONTROLS_READY`.
+
+---
+
+## D-002J-P5 — Financial-Mechanistic Substrate Candidates v1 (this PR)
+
+Decision: **SUBSTRATE_CANDIDATES_READY**. Status: `TERMINAL_PASS`. Parent: `D002J-P4`.
+
+**Exactly 3 admitted substrates (operator-locked: not 2, not 4):**
+
+| Substrate | Class | Sources (P1B) | Windows | PC analogue | Required P6 nulls (fwd-decl) |
+|---|---|---|---|---|---|
+| `funding_liquidity_rollover` | funding/liquidity | NYFED_SOFR (V), OFR_REPO_DATA (V), FED_H15 (V) | CW3, CW4, CW5 | PC1 | `phase_shuffled_funding_rate_null`, `block_bootstrap_rollover_null` |
+| `cross_exposure_contagion_proxy` | contagion | LIT_NETWORK_RECON (V), LIT_INTERBANK_CONTAGION (V), BIS_QR_NETWORK (V) | CW1, CW2, CW6 | PC2 | `degree_preserving_rewired_network_null`, `constant_payload_no_cascade_null` |
+| `volatility_credit_spread_regime` | market/info | CBOE_VIX (P), STLFSI (V), OFR_FSI (V) | CW1, CW4 | PC4 | `single_regime_constant_variance_null`, `iid_shuffled_spread_null` |
+
+**Selection criterion (operator-locked, encoded in manifest):** EXACTLY 3 substrates; ≥1 contagion-class (PC2/PC3); ≥1 funding/liquidity-class (PC1); ≥1 market/information-class (PC4/PC5); collectively cover ≥4 of 6 P2 windows (achieved: **6/6**); NO substrate may require real interbank transaction microdata.
+
+**Brunetti e-MID scope guard (EXECUTABLE):** the physical interbank funding network CONTRACTS in crisis while cross-asset correlation networks EXPAND; therefore cross-asset coherence does NOT prove interbank funding contagion. Every substrate's metadata flags `requires_real_interbank_transaction_data: false` (asserted by `test_no_substrate_requires_real_interbank_transaction_data`), and `test_cross_asset_interbank_distinction_documented` fails on any `cross-asset … interbank … (proves|validates|confirms)` sequence outside the negated declaration blocks.
+
+**Scope boundary (repeat for safety):**
+- D-002J-P5 substrates are **GENERATIVE models**, NOT real-data fits. Calibration is P7+ territory.
+- D-002J-P5 does **NOT** implement nulls (P6), compute power (P7), run canonically (P8), or edit the D-002J prereg (sha256 byte-exact `f3dc65b7e64b96eafe6f23ca8bdd0e05dc9bf95b12c2658b227bd0340f7975a0`).
+- D-002J-P5 does **NOT** prove real-world performance, bank-level validation, or interbank contagion. `canonical_run_authorized_anywhere: false` preserved.
+- D-002J-P5 does **NOT** rescue D-002H. D-002H REFUSED remains the truthful canonical verdict.
+- The ONLY new source files under `research/systemic_risk/` are under `research/systemic_risk/substrates/d002j/` (P5 is explicitly allowed to add this subtree; all other `research/systemic_risk/*` paths are forbidden by the P5 acceptor).
+
+**DAG verdict (regenerated):** `nodes_count` = 8 (was 7); `topological_order` appended `D002J-P5`; `next_legal_nodes_from_main_head` = `["D002J-P6"]`; `acyclic` = true; `orphans` = `[]`; `canonical_run_authorized_anywhere` = false; locked governance shas byte-exact.
+
+**P5 capsule:** `parent_nodes=["D002J-P4"]`, `allowed_next_nodes=["D002J-P6"]`, `forbidden_next_nodes=["D002J-P7","D002J-P8","D002J-P9"]` (no gate-skip).
+
+Lineage: `D-002G → D-002H REFUSED → D-002I → D-002J prereg #694 → P1 #695 → P1A #697 REJECTED → P1B #698 PARTIALLY_VERIFIED → P2 #699 CRISIS_WINDOW_REGISTRY_READY → P2.5 #700 VERDICT_DAG_BOOTSTRAPPED → P3 #701 INGESTION_MANIFEST_READY → P4 #702 POSITIVE_CONTROLS_READY → P5 this PR (SUBSTRATE_CANDIDATES_READY)`.
+
+Next legal PR: `feat(x10r,D-002J-P6): implement null model hierarchy v1` — P6 implements the forward-declared null families and may only open after this P5 PR merges with decision `SUBSTRATE_CANDIDATES_READY`.
