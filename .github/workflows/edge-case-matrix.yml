@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: MIT
+#
+# Edge-Case Coverage Matrix Gate (IERD-Q7 Phase-4 ENTRY).
+#
+# Scores the (endpoint × state × test_id) matrix from
+# tests/edge_cases/coverage_matrix.py:
+#
+#   ECC = covered applicable cells / total applicable cells   (≥ 0.90)
+#
+# over the ten §5/#532 states (empty, loading, success,
+# validation_error, server_error, network_failure, timeout,
+# partial_result, cancelled, simulation_diverged) against the gated
+# public operations, classified collection/command/probe. Every
+# covered cell cites a real resolvable test; the gate statically
+# verifies each cited target still exists.
+#
+# Phase status (per ADR 0020):
+#   * Phase-4 ENTRY (this workflow) — honest ECC ≈ 0.78; the ECC
+#     threshold runs informationally (continue-on-error: true) while
+#     the §532 hard sub-requirements (network_failure + timeout per
+#     endpoint, simulation_diverged ↔ INV-DRO5) and the matrix
+#     well-formedness / cited-target-resolution tests run fail-closed
+#     in the global lanes.
+#   * Phase-4 EXIT (follow-up) — Playwright route-interception specs
+#     for loading / cancelled / per-probe server_error lift ECC ≥ 0.90;
+#     the run step flips fail-closed and the claim re-classifies
+#     ANCHORED.
+#
+# Tracked by GitHub issue IERD-Q7 (#532) and claim
+# `edge-case-coverage-matrix` in `docs/CLAIMS.yaml`.
+name: Edge-Case Matrix — IERD-Q7
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/edge_cases/**'
+      - 'schemas/openapi/**'
+      - 'application/api/**'
+      - 'pyproject.toml'
+      - '.github/workflows/edge-case-matrix.yml'
+  merge_group:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edge-case-matrix-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  edge-case-matrix:
+    name: edge-case-matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Activates the Phase-4 ENTRY informational ECC sub-test. The
+      # global python-fast-tests / python-heavy-tests lanes do NOT set
+      # this, so test_ecc_meets_threshold SKIPs there (it is red by
+      # design until Phase-4 EXIT lands loading/cancelled/per-probe
+      # server_error); it runs and fails informationally only here,
+      # where continue-on-error: true on the run step keeps the check
+      # green. The four genuinely-green matrix tests run unguarded in
+      # the global lanes. Same isolation posture as the Q5 ENTRY gate.
+      GEOSYNC_EDGE_CASE_GATE: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install runtime + test dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest
+
+      - name: Run edge-case coverage matrix gate
+        id: run
+        # Phase-4 ENTRY: the ECC threshold is informational so the
+        # Playwright route-interception specs for the client-only
+        # states can land under the same claim without flipping gate
+        # strictness mid-phase. Phase-4 EXIT removes this and makes the
+        # gate fail-closed, at which point the claim re-classifies
+        # ANCHORED.
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/edge-case-matrix
+          pytest tests/edge_cases/ \
+            -q -s --tb=short \
+            --junitxml=artifacts/edge-case-matrix/junit.xml \
+            2>&1 | tee artifacts/edge-case-matrix/run.log
+
+      - name: Upload edge-case-matrix artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: edge-case-matrix-results
+          path: artifacts/edge-case-matrix/
+          retention-days: 14
+
+      - name: Summarise edge-case coverage
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "## Edge-case coverage matrix — IERD-Q7 §532" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f artifacts/edge-case-matrix/run.log ]; then
+            grep -E "^\[ecc\] AGGREGATE" artifacts/edge-case-matrix/run.log >> "$GITHUB_STEP_SUMMARY" || true
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Phase status: **Phase-4 ENTRY** — ECC informational (~0.78). §532 hard requirements (network_failure+timeout per endpoint, simulation_diverged↔INV-DRO5) fail-closed. Playwright route specs for loading/cancelled land in Phase-4 EXIT." >> "$GITHUB_STEP_SUMMARY"

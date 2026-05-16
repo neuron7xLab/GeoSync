@@ -1,0 +1,122 @@
+# Diff-bound commit acceptor for IERD-Q7 Phase-4 ENTRY: edge-case
+# coverage matrix gate.
+#
+# Before: claim `edge-case-coverage-matrix` declared an
+# (endpoint × state × test_id) matrix at ECC ≥ 0.90 but no
+# tests/edge_cases/ harness existed; the only evidence was reset-wave
+# kernel edge cases. ECC was unmeasured.
+#
+# After: tests/edge_cases/coverage_matrix.py defines the canonical
+# matrix — the ten §5/#532 states × the gated public operations
+# (classified collection/command/probe with documented applicability,
+# mirroring the IERD-Q5 discipline). Every covered cell cites a real
+# resolvable test (verified collectible during construction);
+# tests/edge_cases/test_edge_case_matrix.py statically asserts each
+# cited target still exists, so a deleted/renamed cited test fails the
+# gate even with no ECC change. The §532 hard sub-requirements
+# (network_failure + timeout tested for every applicable endpoint;
+# simulation_diverged ↔ INV-DRO5 fail-closed) and the
+# well-formedness / cited-target-resolution tests run fail-closed in
+# the global lanes (genuinely met today). The ECC ≥ 0.90 threshold is
+# red by design at Phase-4 ENTRY (honest ECC = 0.7753, 69/89: loading,
+# cancelled and per-probe server_error have no genuine test until the
+# frontend consumes the endpoints) so it is guarded by
+# GEOSYNC_EDGE_CASE_GATE=1, set only on the dedicated edge-case-matrix
+# workflow whose run step is continue-on-error: true. Phase-4 EXIT
+# lands the Playwright route-interception specs, lifts ECC ≥ 0.90 and
+# flips the gate fail-closed (claim ANCHORED).
+#
+# Locally verified (development laptop, native Python):
+#   tests/edge_cases/ WITHOUT GEOSYNC_EDGE_CASE_GATE ... 4 passed, 1 skipped
+#   tests/edge_cases/ WITH GEOSYNC_EDGE_CASE_GATE=1 ..... 4 passed,
+#     test_ecc_meets_threshold FAIL (informational)
+#     [ecc] AGGREGATE covered=69/89 ECC=0.7753
+#   mypy --strict / black / ruff ........................ clean
+
+id: ierd-q7-edge-case-matrix-gate
+status: ACTIVE
+claim_type: correctness
+promise: >-
+  tests/edge_cases/coverage_matrix.py defines the canonical
+  (endpoint × state × test_id) matrix over the ten §5/#532 states and
+  the gated public operations; tests/edge_cases/test_edge_case_matrix.py
+  asserts (a) every cited test target statically resolves, (b) the
+  matrix is well-formed and total (every applicable cell covered or
+  explicitly UNCOVERED), (c) §532 hard requirement — network_failure
+  AND timeout covered for every applicable endpoint — fail-closed,
+  (d) simulation_diverged cites the INV-DRO5 fail-closed suite
+  fail-closed, and (e) ECC = covered/applicable ≥ 0.90 (observed
+  0.7753, informational at ENTRY). The Edge-Case Matrix workflow runs
+  the suite path-filtered with GEOSYNC_EDGE_CASE_GATE=1 and uploads
+  junit.xml + run.log as `edge-case-matrix-results` (14-day
+  retention). Phase-4 ENTRY contract: continue-on-error is set on the
+  run STEP so the GitHub check resolves SUCCESS even though the ECC
+  sub-test fails; Phase-4 EXIT removes it and the claim re-classifies
+  ANCHORED.
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/ierd-q7-edge-case-matrix-gate.yaml"
+    - path: ".github/workflows/edge-case-matrix.yml"
+    - path: "docs/CLAIMS.yaml"
+    - path: "tests/edge_cases/__init__.py"
+    - path: "tests/edge_cases/coverage_matrix.py"
+    - path: "tests/edge_cases/test_edge_case_matrix.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+    - "core/physics/"
+    - "core/kuramoto/"
+    - "application/api/service.py"
+    - "application/api/errors.py"
+    - "schemas/openapi/"
+required_python_symbols:
+  - "tests/edge_cases/test_edge_case_matrix.py::test_ecc_meets_threshold"
+  - "tests/edge_cases/test_edge_case_matrix.py::test_every_cited_test_target_resolves"
+  - "tests/edge_cases/test_edge_case_matrix.py::test_network_failure_and_timeout_covered_for_every_endpoint"
+  - "tests/edge_cases/test_edge_case_matrix.py::test_simulation_diverged_correlates_with_inv_dro5"
+  - "tests/edge_cases/coverage_matrix.py::compute_ecc"
+  - "tests/edge_cases/coverage_matrix.py::ECC_THRESHOLD"
+expected_signal: >-
+  Local: `mypy --strict --follow-imports=silent
+  tests/edge_cases/coverage_matrix.py tests/edge_cases/test_edge_case_matrix.py`
+  reports "Success: no issues found in 2 source files"; `black --check`
+  and `ruff check tests/edge_cases/` clean; `pytest tests/edge_cases/
+  -q` (no env) reports 4 passed + 1 skipped (global-lane posture);
+  with GEOSYNC_EDGE_CASE_GATE=1 reports 4 passed and
+  test_ecc_meets_threshold failing informationally at
+  `[ecc] AGGREGATE covered=69/89 ECC=0.7753`; `python
+  scripts/ci/check_claims.py` reports schema v3 with
+  `edge-case-coverage-matrix` extended evidence_paths all present.
+measurement_command: >-
+  bash -c 'mypy --strict --follow-imports=silent
+  tests/edge_cases/coverage_matrix.py tests/edge_cases/test_edge_case_matrix.py
+  && black --check tests/edge_cases/
+  && ruff check tests/edge_cases/
+  && python scripts/ci/check_claims.py'
+signal_artifact: "tmp/ierd_q7_edge_case_matrix_gate.log"
+falsifier:
+  command: >-
+    bash -c 'python -c "import yaml,sys; spec=yaml.safe_load(open(\".github/workflows/edge-case-matrix.yml\")); steps=spec[\"jobs\"][\"edge-case-matrix\"][\"steps\"]; run_step=next(s for s in steps if s.get(\"id\")==\"run\"); sys.exit(0 if run_step.get(\"continue-on-error\") is True else 1)"'
+  description: >-
+    Probes the workflow YAML for the Phase-4 ENTRY contract
+    `continue-on-error: true` on the edge-case-matrix run step. If a
+    future change flips the gate to fail-closed without re-classifying
+    the claim ANCHORED in docs/CLAIMS.yaml, the falsifier exits
+    non-zero, signalling that Phase-4 EXIT promotion must be co-shipped
+    with the strictness flip — preventing silent strictness drift
+    identical to the Q4/Q5/Q6 guarantees.
+rollback_command: >-
+  git checkout HEAD~1 --
+  .claude/commit_acceptors/ierd-q7-edge-case-matrix-gate.yaml
+  .github/workflows/edge-case-matrix.yml
+  tests/edge_cases/
+  docs/CLAIMS.yaml
+rollback_verification_command: >-
+  git diff --exit-code tests/edge_cases/
+  .github/workflows/edge-case-matrix.yml
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/ierd-q7-edge-case-matrix-gate.yaml"
+report_path: "tmp/ierd_q7_edge_case_matrix_gate.log"
+evidence: []
