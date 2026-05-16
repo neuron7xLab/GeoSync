@@ -6,7 +6,12 @@ Kuramoto (1975). Ott & Antonsen (2008) showed that for Lorentzian-
 distributed natural frequencies, the infinite-N Kuramoto model reduces
 to a SINGLE complex ODE for the order parameter z(t) = R(t)·exp(iΨ(t)):
 
-    dz/dt = -(Δ + iω₀)·z + (K/2)·(z̄ − z·|z|²)
+    dz/dt = -(Δ + iω₀)·z + (K/2)·(z − z·|z|²)
+
+The synchronising coupling gain is linear in z (NOT z̄). On the real
+axis with ω₀ = 0 the conjugate form is numerically identical, which is
+exactly why an ω₀ = 0 / real-z test cannot see a z↔z̄ swap — the OA
+falsification battery must probe ω₀ ≠ 0 (see test_T23_*).
 
 where:
     Δ = half-width of the Lorentzian frequency distribution
@@ -133,11 +138,14 @@ class OttAntonsenEngine:
     def _dz_dt(self, z: complex) -> complex:
         """Ott-Antonsen ODE right-hand side.
 
-        dz/dt = -(Δ + iω₀)·z + (K/2)·(z̄ − z·|z|²)
+        dz/dt = -(Δ + iω₀)·z + (K/2)·(z − z·|z|²)
+
+        The coupling contributes the synchronising gain +(K/2)·z
+        (linear in z, NOT z̄) and the saturating cubic −(K/2)·|z|²·z.
+        Ott & Antonsen, Chaos 18, 037113 (2008), Eq. 2.13.
         """
-        z_conj = z.conjugate()
         z_abs_sq = z.real**2 + z.imag**2
-        return -(self.delta + 1j * self.omega0) * z + (self.K / 2.0) * (z_conj - z * z_abs_sq)
+        return -(self.delta + 1j * self.omega0) * z + (self.K / 2.0) * (z - z * z_abs_sq)
 
     def integrate(
         self,

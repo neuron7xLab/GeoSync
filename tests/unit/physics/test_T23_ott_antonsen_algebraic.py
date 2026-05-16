@@ -160,3 +160,83 @@ def test_inv_oa2_residual_grows_with_perturbation_size() -> None:
         "fixed point, the algebraic test cannot catch implementation "
         "drift and INV-OA2 would be vacuously satisfied."
     )
+
+
+# ---------------------------------------------------------------------------
+# INV-OA2 — ω₀ ≠ 0 / off-real-axis falsifiers.
+#
+# Every test above fixes ω₀ = 0 and probes z on the real axis. On that
+# measure-zero slice the conjugate-vs-direct coupling form is bit-
+# identical, so a z↔z̄ swap in the linear coupling gain is INVISIBLE
+# there (the original defect: ``(K/2)·z̄`` instead of ``(K/2)·z``). The
+# tests below permanently close that blind manifold: they exercise the
+# rotating fixed point ``z = R_∞·e^{iφ}`` with ω₀ ≠ 0, where the OA
+# normal form requires *rigid rotation*::
+#
+#     dz/dt = -(Δ+iω₀)·z + (K/2)·(z − |z|²·z)
+#           = z·[-(Δ+iω₀) + (K/2)·(1 − R_∞²)]
+#           = z·[-(Δ+iω₀) + Δ]              (R_∞² = 1 − 2Δ/K)
+#           = -iω₀·z
+#
+# i.e. zero radial drift, pure rotation at the mean frequency, for
+# ANY phase φ. The buggy z̄ form does not satisfy this for ω₀ ≠ 0 (it
+# counter-rotates and collapses to z = 0), so these are genuine
+# falsifiers, not vacuous probes.
+# ---------------------------------------------------------------------------
+
+_OMEGA0_CASES: list[float] = [0.3, 1.0, 2.0, -1.7, 5.0]
+_PHASE_CASES: list[float] = [0.0, 0.7, math.pi / 2, math.pi, -2.1]
+
+
+@pytest.mark.parametrize("K", [1.5, 3.0, 5.0, 20.0])
+@pytest.mark.parametrize("omega0", _OMEGA0_CASES)
+@pytest.mark.parametrize("phi", _PHASE_CASES)
+def test_inv_oa2_rotating_fixed_point_is_rigid_rotation(
+    K: float, omega0: float, phi: float
+) -> None:
+    """INV-OA2 (ω₀≠0 algebraic): _dz_dt(R_∞·e^{iφ}) == -iω₀·z to machine ε.
+
+    Strongest non-integrator falsifier of the z↔z̄ coupling-gain
+    defect: at the supercritical amplitude the radial drift must
+    vanish and the order parameter must rotate rigidly at ω₀ for
+    every phase φ. A conjugate on the linear term breaks this for any
+    ω₀ ≠ 0 or φ ≠ 0.
+    """
+    delta = 0.5
+    engine = OttAntonsenEngine(K=K, delta=delta, omega0=omega0)
+    R_inf = math.sqrt(1.0 - 2.0 * delta / K)
+    z = complex(R_inf * math.cos(phi), R_inf * math.sin(phi))
+    dz = engine._dz_dt(z)  # noqa: SLF001 — algebraic invariant probe
+    expected = -1j * omega0 * z  # pure rigid rotation, zero radial drift
+    residual = abs(dz - expected)
+    assert residual < _ALGEBRAIC_TOL, (
+        f"INV-OA2 ROTATING-FIXED-POINT VIOLATED: at z = R_∞·e^(iφ) the "
+        f"OA RHS must equal -iω₀·z (rigid rotation, zero radial drift); "
+        f"|dz/dt − (−iω₀·z)| = {residual:.3e} > {_ALGEBRAIC_TOL:.0e}. "
+        f"K={K}, Δ={delta}, ω₀={omega0}, φ={phi}, R_∞={R_inf:.12f}, "
+        f"dz/dt={dz!r}, expected={expected!r}. A residual here is the "
+        f"signature of a conjugate on the linear coupling gain "
+        f"(z̄ instead of z) — invisible on the ω₀=0 real axis."
+    )
+
+
+@pytest.mark.parametrize("omega0", [0.0, 1.0, -2.5, 4.0])
+def test_inv_oa2_omega0_integration_locks_at_R_inf(omega0: float) -> None:
+    """INV-OA2 (ω₀≠0 dynamical): RK4 from a perturbation locks to R_∞.
+
+    Closes the integrator-path blind spot (integrate() also defaulted
+    ω₀=0). For supercritical K the magnitude must converge to
+    √(1−2Δ/K) regardless of ω₀; with the conjugate defect it instead
+    collapses to 0 for ω₀≠0.
+    """
+    K, delta = 4.0, 0.5
+    engine = OttAntonsenEngine(K=K, delta=delta, omega0=omega0)
+    result = engine.integrate(T=80.0, dt=0.005, R0=0.05, psi0=0.3)
+    R_final = result.R[-1]
+    R_expected = math.sqrt(1.0 - 2.0 * delta / K)
+    assert abs(R_final - R_expected) < 1e-3, (
+        f"INV-OA2 DYNAMICAL VIOLATED: integrated R_∞ = {R_final:.6f} at "
+        f"ω₀={omega0}, expected √(1−2Δ/K) = {R_expected:.6f} "
+        f"(K={K}, Δ={delta}). A collapse to ~0 for ω₀≠0 is the "
+        f"conjugate-coupling defect; the magnitude must be ω₀-invariant."
+    )
