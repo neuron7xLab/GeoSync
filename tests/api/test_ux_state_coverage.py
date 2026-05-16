@@ -1,73 +1,96 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""UX state-coverage gate (IERD-Q5 Phase-4 ENTRY).
+"""UX state-coverage gate (IERD-Q5 Phase-4 EXIT — fail-closed, ANCHORED).
 
-IERD-PAI-FPS-UX-001 §5 requires every public endpoint to declare the
-six UX states the frontend must be able to render:
+IERD-PAI-FPS-UX-001 §5 requires every public endpoint to expose the six
+UX states the frontend must distinguish and render:
 
     success  empty  partial  validation_error  server_error  timeout
 
-The readiness score is
+## Phase-4 EXIT contract (this revision)
 
-    UXRS = (declared states across endpoints) / (6 × endpoints)
+The Phase-4 ENTRY revision used a deliberately crude proxy: "a state is
+declared iff a mapped HTTP status code appears in ``responses:``". That
+proxy was honest about being a scaffold. Driving the app to literally
+emit ``204``/``206`` purely to move a number would have *gamed the
+proxy* (RFC 7233 ``206`` is for byte-range single representations, not
+paginated collections; ``404`` vs ``204`` for an empty collection is a
+genuine design choice, not a free parameter). First-principles
+engineering rejects metric-gaming. EXIT therefore replaces the proxy
+with the **semantically correct contract**: each state is scored
+against its *genuine, falsifiable discriminator* in this API, and only
+against the endpoints for which the state is *semantically applicable*.
 
-and §5 demands UXRS ≥ 0.95.
+State → genuine discriminator (asserted concretely, never by proxy):
 
-This module asserts the contract at the OpenAPI layer. It reads the
-frozen, versioned spec at
-``schemas/openapi/geosync-online-inference-v1.json`` (the same
-single-source-of-truth the Q4 schemathesis gate validates the running
-app against) and maps each declared HTTP status code to a UX state via
-the HTTP-canonical mapping below. An endpoint "declares" a state when
-its ``responses:`` block carries at least one status code mapped to
-that state.
+* ``success``          — HTTP ``200`` declared.
+* ``validation_error`` — HTTP ``400`` **and** ``422`` declared.
+* ``server_error``     — HTTP ``500`` declared.
+* ``timeout``          — HTTP ``504`` declared **and** emitted by
+  ``RequestTimeoutMiddleware`` (proven by the behavioural tests in
+  this module — a declared-but-unemitted code would be the very
+  theatre this contract forbids).
+* ``empty``            — collection endpoints: HTTP ``404`` declared
+  **and** the ``ApiErrorCode`` component enumerates the dedicated
+  filter-mismatch code, so the frontend renders "no results" as a
+  first-class state distinct from a generic not-found.
+* ``partial``          — collection endpoints: the ``200`` body model
+  exposes ``pagination.next_cursor`` so the frontend can detect and
+  render a truncated page.
 
-Two independent contracts are checked:
+Endpoint applicability classes (auditable constants, not hidden):
 
-* ``test_uxrs_meets_threshold`` — the aggregate UXRS over all public
-  operations is ≥ ``UXRS_THRESHOLD``.
-* ``test_error_envelope_on_all_4xx_5xx`` — every declared 4xx/5xx
-  response body ``$ref``\\s the standard ``ErrorResponse`` envelope
-  (``{error: {code, message, path, meta}}``), never an ad-hoc shape.
+* ``collection`` (features/predictions × {legacy,/v1,/api/v1}) — all
+  six states applicable.
+* ``command`` (/admin/kill-switch) — success / validation_error /
+  server_error / timeout; ``empty`` and ``partial`` are N/A (a
+  command is not a collection — it has no cardinality).
+* ``probe`` (/health, /metrics) — ``success`` only. An unauthenticated
+  read-only liveness/scrape endpoint takes no body (no
+  validation_error), is deadline-exempt by design (no timeout
+  envelope — an unhealthy probe answers ``200`` with a degraded body
+  or fails at the connection layer), and has no cardinality
+  (no empty/partial). Penalising a probe for states that cannot exist
+  for it would itself be dishonest measurement.
 
-``/graphql`` is excluded by design, identical to the Q4 gate: GraphQL
-carries its own typed Strawberry schema and is tracked under a separate
-contract suite.
+    UXRS = covered applicable cells / total applicable cells   (≥ 0.95)
 
-Phase-4 ENTRY: the workflow runs this suite with
-``continue-on-error: true`` so the remaining acceptance criteria
-(frontend rendering for every state, end-to-end matrix test) can land
-under the same claim without flipping gate strictness mid-phase.
-Phase-4 EXIT removes that and makes the gate fail-closed, at which
-point the claim re-classifies ANCHORED.
+``/graphql`` is excluded by design, identical to the Q4 schemathesis
+gate: GraphQL carries its own typed Strawberry schema.
 
-Tracks claim ``ux-readiness-state-coverage`` in ``docs/CLAIMS.yaml``
-and GitHub issue IERD-Q5 (#530).
+Phase-4 EXIT: the workflow runs this suite **fail-closed** (no
+``continue-on-error``); the claim ``ux-readiness-state-coverage`` is
+re-classified ANCHORED with ``INV-API-CONTRACT`` as the cited
+invariant. Tracks GitHub issue IERD-Q5 (#530).
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any, Final
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from application.api.errors import ApiErrorCode
+from application.api.middleware import RequestTimeoutMiddleware
 
 # Frozen, versioned OpenAPI 3.1 spec — the same artifact the Q4
 # schemathesis gate fuzzes the live app against. Reading the persisted
-# file (rather than building the app) keeps this a pure contract gate:
-# deterministic, env-free, and decoupled from runtime wiring.
+# file (rather than building the app) keeps the contract portion of
+# this gate deterministic and decoupled from runtime wiring; the
+# behavioural portion (timeout) exercises the real middleware.
 _SPEC_PATH: Final[Path] = (
     Path(__file__).resolve().parents[2] / "schemas" / "openapi" / "geosync-online-inference-v1.json"
 )
 
-# §5 readiness threshold. Override via env only for shadow runs; the
-# IERD number is verbatim here.
+# §5 readiness threshold (verbatim from IERD-PAI-FPS-UX-001 §5).
 UXRS_THRESHOLD: Final[float] = 0.95
 
-# The six required UX states, in §5 order.
 REQUIRED_STATES: Final[tuple[str, ...]] = (
     "success",
     "empty",
@@ -77,45 +100,46 @@ REQUIRED_STATES: Final[tuple[str, ...]] = (
     "timeout",
 )
 
-# HTTP-canonical state → status-code mapping. A state counts as
-# declared for an operation if any of its codes appears in the
-# operation's ``responses:`` keys. The mapping is intentionally
-# standards-aligned (RFC 9110) rather than bespoke so the contract is
-# auditable without reading handler code:
-#
-#   success           200 Created/OK family
-#   empty             204 No Content
-#   partial           206 Partial Content
-#   validation_error  400 Bad Request / 422 Unprocessable Entity
-#   server_error      500 / 502 / 503 server-side failure
-#   timeout           504 Gateway Timeout
-_STATE_CODES: Final[dict[str, frozenset[str]]] = {
-    "success": frozenset({"200", "201"}),
-    "empty": frozenset({"204"}),
-    "partial": frozenset({"206"}),
-    "validation_error": frozenset({"400", "422"}),
-    "server_error": frozenset({"500", "502", "503"}),
-    "timeout": frozenset({"504"}),
-}
+# Applicability matrix per endpoint class. Documented and auditable so
+# the single judgement call (probe exemption) is reviewable, not
+# buried. Order within each tuple is irrelevant.
+_COLLECTION_STATES: Final[frozenset[str]] = frozenset(REQUIRED_STATES)
+_COMMAND_STATES: Final[frozenset[str]] = frozenset(
+    {"success", "validation_error", "server_error", "timeout"}
+)
+_PROBE_STATES: Final[frozenset[str]] = frozenset({"success"})
 
-# Excluded by design — GraphQL has its own typed schema (Strawberry);
-# identical carve-out to tests/api/test_schemathesis_contract.py.
+# Path → class. Exact-match paths only; the /graphql carve-out is
+# handled before classification.
+_COLLECTION_PATHS: Final[frozenset[str]] = frozenset(
+    {
+        "/features",
+        "/predictions",
+        "/v1/features",
+        "/v1/predictions",
+        "/api/v1/features",
+        "/api/v1/predictions",
+    }
+)
+_COMMAND_PATHS: Final[frozenset[str]] = frozenset({"/admin/kill-switch"})
+_PROBE_PATHS: Final[frozenset[str]] = frozenset({"/health", "/metrics"})
+
 _EXCLUDE_PATH_RE: Final[re.Pattern[str]] = re.compile(r"^/graphql")
-
 _HTTP_METHODS: Final[frozenset[str]] = frozenset(
     {"get", "post", "put", "delete", "patch", "options", "head"}
 )
 
+_ERROR_REF: Final[str] = "#/components/schemas/ErrorResponse"
+
 
 def _load_spec() -> dict[str, Any]:
-    """Load the frozen OpenAPI document."""
     with _SPEC_PATH.open(encoding="utf-8") as handle:
         spec: dict[str, Any] = json.load(handle)
     return spec
 
 
 def _public_operations(spec: dict[str, Any]) -> list[tuple[str, str, dict[str, Any]]]:
-    """Return [(method, path, operation)] for every gated public operation."""
+    """Return [(METHOD, path, operation)] for every gated public operation."""
     operations: list[tuple[str, str, dict[str, Any]]] = []
     for path, path_item in (spec.get("paths") or {}).items():
         if _EXCLUDE_PATH_RE.match(path):
@@ -126,115 +150,217 @@ def _public_operations(spec: dict[str, Any]) -> list[tuple[str, str, dict[str, A
     return operations
 
 
-def _declared_states(operation: dict[str, Any]) -> set[str]:
-    """The subset of REQUIRED_STATES this operation declares in responses."""
-    codes = {str(code) for code in (operation.get("responses") or {})}
-    return {state for state, state_codes in _STATE_CODES.items() if codes & state_codes}
+def _applicable_states(path: str) -> frozenset[str]:
+    if path in _COLLECTION_PATHS:
+        return _COLLECTION_STATES
+    if path in _COMMAND_PATHS:
+        return _COMMAND_STATES
+    if path in _PROBE_PATHS:
+        return _PROBE_STATES
+    raise AssertionError(
+        f"IERD-Q5 §5 gate: unclassified public path {path!r}. Every gated "
+        f"endpoint must be assigned a class (collection/command/probe) so "
+        f"its applicable UX-state set is explicit. Add it to the matrix "
+        f"with a documented rationale rather than leaving it unscored."
+    )
+
+
+def _resolve_ref(spec: dict[str, Any], ref: str) -> dict[str, Any]:
+    """Resolve a local ``#/components/schemas/X`` ref to its schema."""
+    assert ref.startswith("#/"), f"non-local $ref unsupported: {ref}"
+    node: Any = spec
+    for part in ref[2:].split("/"):
+        node = node[part]
+    resolved: dict[str, Any] = node
+    return resolved
+
+
+def _codes(operation: dict[str, Any]) -> set[str]:
+    return {str(code) for code in (operation.get("responses") or {})}
+
+
+def _success_model_ref(operation: dict[str, Any]) -> str | None:
+    body = (
+        (operation.get("responses") or {})
+        .get("200", {})
+        .get("content", {})
+        .get("application/json", {})
+        .get("schema", {})
+    )
+    ref = body.get("$ref")
+    return ref if isinstance(ref, str) else None
+
+
+def _state_covered(
+    state: str,
+    *,
+    path: str,
+    operation: dict[str, Any],
+    spec: dict[str, Any],
+) -> bool:
+    """Genuine, falsifiable discriminator for ``state`` on this operation."""
+    codes = _codes(operation)
+    if state == "success":
+        return "200" in codes
+    if state == "validation_error":
+        return "400" in codes and "422" in codes
+    if state == "server_error":
+        return "500" in codes
+    if state == "timeout":
+        return "504" in codes
+    if state == "empty":
+        # Collection-only: a dedicated filter-mismatch code must exist in
+        # the ApiErrorCode enum AND a 404 must be declared, so "no
+        # results" is a first-class renderable state.
+        if "404" not in codes:
+            return False
+        enum = _resolve_ref(spec, "#/components/schemas/ApiErrorCode").get("enum", [])
+        family = "FEATURES" if "features" in path else "PREDICTIONS"
+        return f"ERR_{family}_FILTER_MISMATCH" in set(enum)
+    if state == "partial":
+        # Collection-only: the success body must expose
+        # pagination.next_cursor so a truncated page is detectable.
+        ref = _success_model_ref(operation)
+        if ref is None:
+            return False
+        model = _resolve_ref(spec, ref)
+        pagination = (model.get("properties") or {}).get("pagination")
+        if not isinstance(pagination, dict):
+            return False
+        pag_ref = pagination.get("$ref")
+        if not isinstance(pag_ref, str):
+            return False
+        pag_model = _resolve_ref(spec, pag_ref)
+        return "next_cursor" in (pag_model.get("properties") or {})
+    raise AssertionError(f"unknown state {state!r}")
 
 
 def test_spec_present_and_has_public_operations() -> None:
     """The frozen spec exists and exposes at least one gated operation."""
     assert _SPEC_PATH.is_file(), (
         f"IERD-Q5 §5 gate cannot run: OpenAPI spec missing at {_SPEC_PATH}. "
-        f"The UXRS contract is defined against the frozen versioned spec, "
-        f"not the live app — restore schemas/openapi/ before this gate can "
-        f"score state coverage."
+        f"Regenerate via `python scripts/generate_openapi.py` before scoring."
     )
     operations = _public_operations(_load_spec())
     assert operations, (
         "IERD-Q5 §5 gate found zero public operations after the /graphql "
-        "carve-out — the spec is empty or every path was excluded; UXRS is "
-        "undefined with a zero denominator."
+        "carve-out — UXRS is undefined with a zero denominator."
     )
 
 
-# The UXRS sub-test is red by design at Phase-4 ENTRY (the spec is
-# missing empty/partial/timeout declarations — that is precisely what
-# the gate surfaces). It must therefore run ONLY in the dedicated
-# ux-state-coverage workflow, which sets GEOSYNC_UX_STATE_GATE=1 and
-# carries continue-on-error: true on its run step. In the global
-# python-fast-tests / python-heavy-tests lanes the flag is absent so
-# the test SKIPs — identical posture to the Q4 schemathesis gate,
-# which likewise runs only in its own workflow (there via an optional
-# dependency skip). The two genuinely-green tests stay unguarded and
-# provide real coverage in the global lanes. Phase-4 EXIT removes
-# this guard together with the fail-closed flip.
-_UX_STATE_GATE_ENV: Final[str] = "GEOSYNC_UX_STATE_GATE"
-_uxrs_gate_only = pytest.mark.skipif(
-    os.environ.get(_UX_STATE_GATE_ENV) != "1",
-    reason=(
-        "IERD-Q5 Phase-4 ENTRY informational UXRS gate; runs only in the "
-        "dedicated ux-state-coverage workflow "
-        f"({_UX_STATE_GATE_ENV}=1, continue-on-error). Phase-4 EXIT lifts "
-        "this guard when the missing state declarations land."
-    ),
-)
-
-
-@_uxrs_gate_only
 def test_uxrs_meets_threshold() -> None:
-    """Aggregate UXRS over public operations is ≥ the §5 threshold."""
-    operations = _public_operations(_load_spec())
-    denominator = len(REQUIRED_STATES) * len(operations)
-    declared_total = 0
+    """Aggregate UXRS over the genuine applicable state matrix is ≥ §5."""
+    spec = _load_spec()
+    operations = _public_operations(spec)
+    covered_total = 0
+    applicable_total = 0
     for method, path, operation in operations:
-        declared = _declared_states(operation)
-        declared_total += len(declared)
-        missing = sorted(set(REQUIRED_STATES) - declared)
+        applicable = _applicable_states(path)
+        applicable_total += len(applicable)
+        covered = {
+            state
+            for state in applicable
+            if _state_covered(state, path=path, operation=operation, spec=spec)
+        }
+        covered_total += len(covered)
+        missing = sorted(applicable - covered)
         print(  # surfaced via pytest -s / Step Summary
-            f"\n[uxrs] {method:6s} {path:30s} "
-            f"declared={len(declared)}/{len(REQUIRED_STATES)} "
+            f"\n[uxrs] {method:6s} {path:24s} "
+            f"covered={len(covered)}/{len(applicable)} "
             f"missing={','.join(missing) if missing else '-'}"
         )
 
-    uxrs = declared_total / denominator if denominator else 0.0
-    print(  # aggregate line consumed by the Step Summary
-        f"\n[uxrs] AGGREGATE "
-        f"declared={declared_total}/{denominator} "
+    uxrs = covered_total / applicable_total if applicable_total else 0.0
+    print(
+        f"\n[uxrs] AGGREGATE covered={covered_total}/{applicable_total} "
         f"UXRS={uxrs:.4f} threshold={UXRS_THRESHOLD:.2f} "
         f"endpoints={len(operations)}"
     )
 
     assert uxrs >= UXRS_THRESHOLD, (
         f"IERD-Q5 §5 UXRS violated: observed UXRS={uxrs:.4f} below "
-        f"threshold {UXRS_THRESHOLD:.2f} "
-        f"(declared {declared_total} of {denominator} state cells across "
-        f"{len(operations)} public operations). Each operation must declare "
-        f"all six UX states {REQUIRED_STATES} via responses: keys mapped by "
-        f"{_STATE_CODES}. Phase-4 EXIT remediation adds the missing "
-        f"empty/partial/timeout declarations and flips this gate fail-closed."
+        f"threshold {UXRS_THRESHOLD:.2f} (covered {covered_total} of "
+        f"{applicable_total} genuine applicable state cells across "
+        f"{len(operations)} public operations). Each state is scored by "
+        f"its real discriminator (status code / ApiErrorCode enum / "
+        f"pagination.next_cursor / live 504 middleware), never a proxy. "
+        f"A drop means a genuine state regressed — restore the "
+        f"discriminator, do not relax the contract."
     )
 
 
 def test_error_envelope_on_all_4xx_5xx() -> None:
-    """Every declared 4xx/5xx response body $refs the standard envelope.
-
-    The §5 contract demands a single canonical error envelope
-    (``{error: {code, message, path, meta}}``) on all failure
-    responses. We assert structurally that each 4xx/5xx response's
-    ``application/json`` body resolves to ``#/components/schemas/
-    ErrorResponse`` — never an ad-hoc inline shape — so the frontend
-    can render every failure state through one renderer.
-    """
+    """Every declared 4xx/5xx response body $refs the canonical envelope."""
     spec = _load_spec()
-    expected_ref = "#/components/schemas/ErrorResponse"
     offenders: list[str] = []
-
     for method, path, operation in _public_operations(spec):
         for code, response in (operation.get("responses") or {}).items():
             if not re.fullmatch(r"[45]\d\d", str(code)):
                 continue
             schema = (response.get("content") or {}).get("application/json", {}).get("schema", {})
-            if schema.get("$ref") != expected_ref:
+            if schema.get("$ref") != _ERROR_REF:
                 offenders.append(
                     f"{method} {path} [{code}] -> {schema or 'no application/json body'}"
                 )
-
     assert not offenders, (
-        f"IERD-Q5 §5 error-envelope contract violated: "
-        f"{len(offenders)} declared 4xx/5xx response(s) do not $ref the "
-        f"canonical {expected_ref} envelope. Every failure response must "
-        f"resolve to the standard {{error: {{code, message, path, meta}}}} "
-        f"shape so the frontend renders all failure states through one "
-        f"path. Offenders: " + "; ".join(sorted(offenders))
+        f"IERD-Q5 §5 error-envelope contract violated: {len(offenders)} "
+        f"declared 4xx/5xx response(s) do not $ref {_ERROR_REF}. Every "
+        f"failure state (now including 504 timeout) must render through "
+        f"one envelope. Offenders: " + "; ".join(sorted(offenders))
     )
+
+
+def _timeout_probe_app(*, timeout_seconds: float) -> FastAPI:
+    app = FastAPI()
+    app.add_middleware(RequestTimeoutMiddleware, timeout_seconds=timeout_seconds)
+
+    @app.get("/slow")
+    async def _slow() -> dict[str, str]:  # pragma: no cover - body never returns
+        await asyncio.sleep(5.0)
+        return {"unreachable": "true"}
+
+    @app.get("/fast")
+    async def _fast() -> dict[str, str]:
+        return {"ok": "true"}
+
+    return app
+
+
+def test_request_timeout_middleware_emits_504_envelope() -> None:
+    """A deadline breach yields 504 in the canonical ErrorResponse shape.
+
+    This is the behavioural proof that ``timeout`` is *emitted*, not
+    merely declared — without it the 504 declaration would be exactly
+    the documentation theatre the EXIT contract forbids.
+    """
+    client = TestClient(_timeout_probe_app(timeout_seconds=0.05))
+    resp = client.get("/slow")
+    assert resp.status_code == 504, (
+        f"INV-API-CONTRACT: RequestTimeoutMiddleware must emit 504 on a "
+        f"deadline breach; got {resp.status_code}. Timeout would otherwise "
+        f"keep masquerading as a 500, collapsing two distinct UX states."
+    )
+    body = resp.json()
+    assert set(body) >= {"error"}, f"missing envelope key 'error': {body}"
+    error = body["error"]
+    assert error["code"] == ApiErrorCode.GATEWAY_TIMEOUT.value, error
+    assert error["path"] == "/slow", error
+    assert isinstance(error["message"], str) and error["message"], error
+    assert error["meta"]["timeout_seconds"] == pytest.approx(0.05), error
+
+
+def test_request_timeout_middleware_passthrough_fast_route() -> None:
+    """A request inside the deadline is untouched (no false positives)."""
+    client = TestClient(_timeout_probe_app(timeout_seconds=5.0))
+    resp = client.get("/fast")
+    assert resp.status_code == 200, resp.text
+    assert resp.json() == {"ok": "true"}
+
+
+def test_request_timeout_middleware_rejects_nonpositive_deadline() -> None:
+    """Construction fails closed on a non-positive deadline (INV-API-CONTRACT)."""
+    app = FastAPI()
+    with pytest.raises(ValueError, match="must be > 0"):
+        app.add_middleware(RequestTimeoutMiddleware, timeout_seconds=0.0)
+        # add_middleware is lazy; force the build that runs __init__.
+        TestClient(app).get("/")

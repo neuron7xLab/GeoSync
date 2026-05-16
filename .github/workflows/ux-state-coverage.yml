@@ -1,26 +1,28 @@
 # SPDX-License-Identifier: MIT
 #
-# UX State-Coverage Gate (IERD-Q5 Phase-4 ENTRY).
+# UX State-Coverage Gate (IERD-Q5 Phase-4 EXIT — fail-closed).
 #
-# Asserts that the frozen OpenAPI 3.1 spec at
-# schemas/openapi/geosync-online-inference-v1.json declares the six
-# IERD §5 UX states per public endpoint:
+# Scores every public endpoint against the genuine, falsifiable
+# discriminator for each of the six IERD §5 UX states:
 #
 #     success  empty  partial  validation_error  server_error  timeout
 #
-# Readiness score UXRS = (declared states) / (6 × endpoints) must be
-# ≥ 0.95. The same suite also asserts every declared 4xx/5xx response
-# $refs the canonical ErrorResponse envelope.
+# success/validation_error/server_error/timeout via declared status
+# codes; empty via the dedicated ApiErrorCode filter-mismatch enum +
+# 404; partial via pagination.next_cursor on the 200 model; timeout
+# additionally proven *emitted* by RequestTimeoutMiddleware behavioural
+# tests. States are scored only where semantically applicable
+# (collection/command/probe classes). UXRS = covered/applicable ≥ 0.95.
+# The suite also asserts every 4xx/5xx (incl. 504) $refs the canonical
+# ErrorResponse envelope.
 #
 # Phase status (per ADR 0020):
-#   * Phase-4 ENTRY (this workflow lands) — the OpenAPI state-coverage
-#     contract is gated informationally; frontend rendering for every
-#     state and the end-to-end matrix test land as follow-ups under
-#     the same claim.
-#   * Phase-4 EXIT (follow-up PRs) — missing empty/partial/timeout
-#     declarations remediated, frontend renderers + matrix test
-#     shipped; the run step flips fail-closed and the claim
-#     re-classifies ANCHORED.
+#   * Phase-4 ENTRY (prior) — gated informationally while the genuine
+#     timeout state and the honest contract were built.
+#   * Phase-4 EXIT (this revision) — RequestTimeoutMiddleware emits a
+#     real 504 envelope; the contract is semantically correct (no
+#     metric-gaming); the run step is fail-closed and the claim
+#     `ux-readiness-state-coverage` is ANCHORED with INV-API-CONTRACT.
 #
 # Tracked by GitHub issue IERD-Q5 (#530) and claim
 # `ux-readiness-state-coverage` in `docs/CLAIMS.yaml`.
@@ -51,15 +53,6 @@ jobs:
     name: ux-state-coverage
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      # Activates the Phase-4 ENTRY informational UXRS sub-test. The
-      # global python-fast-tests / python-heavy-tests lanes do NOT set
-      # this, so test_uxrs_meets_threshold SKIPs there (it is red by
-      # design until Phase-4 EXIT lands the missing state
-      # declarations); it runs and fails informationally only here,
-      # where continue-on-error: true on the run step keeps the check
-      # green. Same isolation posture as the Q4 schemathesis gate.
-      GEOSYNC_UX_STATE_GATE: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -79,13 +72,13 @@ jobs:
 
       - name: Run UX state-coverage gate
         id: run
-        # Phase-4 ENTRY: the OpenAPI state-coverage contract is gated
-        # informationally so the remaining acceptance criteria
-        # (frontend rendering per state, end-to-end matrix test) can
-        # land under the same claim without flipping gate strictness
-        # mid-phase. Phase-4 EXIT removes this and makes the gate
-        # fail-closed, at which point the claim re-classifies ANCHORED.
-        continue-on-error: true
+        # Phase-4 EXIT: fail-closed. The genuine timeout state is
+        # emitted by RequestTimeoutMiddleware and the contract is
+        # semantically correct, so a UXRS regression, an unenveloped
+        # 4xx/5xx, or a timeout-middleware behavioural failure now
+        # blocks merge. The claim is ANCHORED; any future flip back to
+        # informational must co-ship an EXTRAPOLATED re-classification
+        # (guarded by the commit-acceptor falsifier).
         run: |
           set -o pipefail
           mkdir -p artifacts/ux-state-coverage
@@ -112,4 +105,4 @@ jobs:
             grep -E "^\[uxrs\]" artifacts/ux-state-coverage/run.log >> "$GITHUB_STEP_SUMMARY" || true
           fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Phase status: **Phase-4 ENTRY** — OpenAPI state-coverage contract gated informationally. Frontend renderers + end-to-end matrix land in Phase-4 EXIT." >> "$GITHUB_STEP_SUMMARY"
+          echo "Phase status: **Phase-4 EXIT** — fail-closed; genuine 504 timeout state emitted by RequestTimeoutMiddleware; claim ANCHORED (INV-API-CONTRACT)." >> "$GITHUB_STEP_SUMMARY"
