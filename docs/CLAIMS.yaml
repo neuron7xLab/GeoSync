@@ -750,22 +750,42 @@ claims:
       Every endpoint declares the six required UX states (success,
       empty, partial, validation_error, server_error, timeout) with
       a standard error envelope and a frontend rendering for each.
-      Status (Wave 6): EXTRAPOLATED — the reset-wave subsystem
-      already returns a finite supported state set via
+      Status (Phase-4 ENTRY 2026-05-16): EXTRAPOLATED — the OpenAPI
+      state-coverage contract is now gated on every PR via
+      tests/api/test_ux_state_coverage.py +
+      .github/workflows/ux-state-coverage.yml. The gate reads the
+      frozen schemas/openapi/geosync-online-inference-v1.json, maps
+      each declared status code to a UX state (success → 200/201,
+      empty → 204, partial → 206, validation_error → 400/422,
+      server_error → 500/502/503, timeout → 504), and scores
+      UXRS = declared / (6 × endpoints) over every public operation
+      (the /graphql carve-out matches the Q4 schemathesis gate). The
+      standard error envelope is already ANCHORED-level: every
+      declared 4xx/5xx response $refs #/components/schemas/
+      ErrorResponse ({error: {code, message, path, meta}}) — verified
+      by test_error_envelope_on_all_4xx_5xx (PASS). The reset-wave
+      subsystem still returns a finite supported state set via
       latent_interpretive_forecast_layer (LOCKED / CONVERGING /
       DIVERGING / OSCILLATORY / UNSTABLE / UNKNOWN, bounded
-      confidence ∈ [0, 1]); ResetWaveResult is a typed envelope with
-      explicit converged + locked + final_potential fields suitable
-      for UX rendering. Missing evidence: full per-endpoint state
-      enumeration in OpenAPI responses; standard {error_code,
-      message, details, trace_id, recoverable} envelope on all
-      4xx/5xx; frontend contract test verifying the matrix.
-      Re-classify ANCHORED on Phase-4 entry. Tracked by issue IERD-Q5.
+      confidence ∈ [0, 1]). Current UXRS = 0.4394 (29/66): 9 of 11
+      operations declare only success + validation_error +
+      server_error. Missing evidence: empty/partial/timeout
+      declarations across the OpenAPI responses; frontend rendering
+      for every declared state; an end-to-end matrix test. Phase-4
+      ENTRY runs the gate informationally (continue-on-error: true on
+      the run step). Re-classify ANCHORED on Phase-4 EXIT, when the
+      missing declarations + frontend renderers + matrix test land
+      and the gate flips fail-closed. Tracked by issue IERD-Q5 (#530).
     evidence_paths:
       - docs/yana-response.md
       - geosync/neuroeconomics/reset_wave_engine.py
       - tests/test_reset_wave_engine.py
+      - tests/api/test_ux_state_coverage.py
+      - .github/workflows/ux-state-coverage.yml
+      - schemas/openapi/geosync-online-inference-v1.json
+      - application/api/errors.py
     added_utc: "2026-05-03"
+    last_updated_utc: "2026-05-16"
 
   - id: e2e-latency-budget-compliance
     priority: P1

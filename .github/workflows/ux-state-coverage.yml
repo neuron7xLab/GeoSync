@@ -1,0 +1,106 @@
+# SPDX-License-Identifier: MIT
+#
+# UX State-Coverage Gate (IERD-Q5 Phase-4 ENTRY).
+#
+# Asserts that the frozen OpenAPI 3.1 spec at
+# schemas/openapi/geosync-online-inference-v1.json declares the six
+# IERD §5 UX states per public endpoint:
+#
+#     success  empty  partial  validation_error  server_error  timeout
+#
+# Readiness score UXRS = (declared states) / (6 × endpoints) must be
+# ≥ 0.95. The same suite also asserts every declared 4xx/5xx response
+# $refs the canonical ErrorResponse envelope.
+#
+# Phase status (per ADR 0020):
+#   * Phase-4 ENTRY (this workflow lands) — the OpenAPI state-coverage
+#     contract is gated informationally; frontend rendering for every
+#     state and the end-to-end matrix test land as follow-ups under
+#     the same claim.
+#   * Phase-4 EXIT (follow-up PRs) — missing empty/partial/timeout
+#     declarations remediated, frontend renderers + matrix test
+#     shipped; the run step flips fail-closed and the claim
+#     re-classifies ANCHORED.
+#
+# Tracked by GitHub issue IERD-Q5 (#530) and claim
+# `ux-readiness-state-coverage` in `docs/CLAIMS.yaml`.
+name: UX State Coverage — IERD-Q5
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'schemas/openapi/**'
+      - 'application/api/**'
+      - 'tests/api/test_ux_state_coverage.py'
+      - 'pyproject.toml'
+      - '.github/workflows/ux-state-coverage.yml'
+  merge_group:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ux-state-coverage-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  ux-state-coverage:
+    name: ux-state-coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install runtime + test dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest
+
+      - name: Run UX state-coverage gate
+        id: run
+        # Phase-4 ENTRY: the OpenAPI state-coverage contract is gated
+        # informationally so the remaining acceptance criteria
+        # (frontend rendering per state, end-to-end matrix test) can
+        # land under the same claim without flipping gate strictness
+        # mid-phase. Phase-4 EXIT removes this and makes the gate
+        # fail-closed, at which point the claim re-classifies ANCHORED.
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/ux-state-coverage
+          pytest tests/api/test_ux_state_coverage.py \
+            -q -s --tb=short \
+            --junitxml=artifacts/ux-state-coverage/junit.xml \
+            2>&1 | tee artifacts/ux-state-coverage/run.log
+
+      - name: Upload ux-state-coverage artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ux-state-coverage-results
+          path: artifacts/ux-state-coverage/
+          retention-days: 14
+
+      - name: Summarise UX state coverage
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "## UX state coverage — IERD-Q5 §5" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f artifacts/ux-state-coverage/run.log ]; then
+            grep -E "^\[uxrs\]" artifacts/ux-state-coverage/run.log >> "$GITHUB_STEP_SUMMARY" || true
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Phase status: **Phase-4 ENTRY** — OpenAPI state-coverage contract gated informationally. Frontend renderers + end-to-end matrix land in Phase-4 EXIT." >> "$GITHUB_STEP_SUMMARY"
