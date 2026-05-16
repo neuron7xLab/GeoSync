@@ -103,6 +103,17 @@ kuramoto:
     condition: "All ω_i = 0 (identical frequencies)"
     priority: P1
 
+  sakaguchi_frustration_sign:
+    id: INV-SAK1
+    type: qualitative
+    statement: "The Sakaguchi phase-lag enters the coupling as sin(θ_j(t−τ_ij) − θ_i(t) − α_ij) (minus α). For N identical all-to-all oscillators (ω_i ≡ ω₀, K_ij = κ for i≠j, τ = 0, σ = 0) the phase-locked state rotates at the collective frequency Ω = ω₀ − (N−1)·κ·sin(α)."
+    test_type: sweep_test
+    condition: "Identical oscillators, uniform frustration α, zero delay and noise; Ω measured from the least-squares slope of the unwrapped mean phase. α = 0 is the blind manifold (both sign conventions agree) — falsification requires α ≠ 0."
+    falsification: "Observed collective frequency matches the sign-flipped law ω₀ + (N−1)·κ·sin(α) instead of the canonical minus-α form, i.e. |Ω − (ω₀ − (N−1)·κ·sin(α))| above integrator tolerance for any α ≠ 0. Registered because the absence of any frustration-sign invariant is precisely why no test mandated α ≠ 0 coverage — the blind manifold that hid the analogous Ott–Antonsen conjugate defect (PR #745)."
+    priority: P0
+    source: core/kuramoto/synthetic.py
+    tests: tests/unit/physics/test_sakaguchi_frustration_alpha.py
+
 # ═══════════════════════════════════════════════════
 # EXPLOSIVE SYNCHRONIZATION
 # ═══════════════════════════════════════════════════
