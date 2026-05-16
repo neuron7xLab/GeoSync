@@ -22,6 +22,14 @@
 # the same claim without flipping gate strictness mid-phase. Phase-4
 # EXIT removes it and the claim re-classifies ANCHORED.
 #
+# Isolation: test_uxrs_meets_threshold is red by design until Phase-4
+# EXIT, so it is guarded by GEOSYNC_UX_STATE_GATE=1 (set only on the
+# dedicated workflow job). In the global python-fast-tests /
+# python-heavy-tests lanes the flag is absent and the sub-test SKIPs;
+# the two genuinely-green tests (spec present, error envelope) run
+# unguarded there. Same posture as the Q4 schemathesis gate, which
+# runs only in its own workflow via an optional-dependency skip.
+#
 # Locally verified (development laptop, native Python):
 #   test_spec_present_and_has_public_operations       PASS
 #   test_error_envelope_on_all_4xx_5xx                PASS
@@ -82,7 +90,9 @@ expected_signal: >-
   prints per-operation `[uxrs] ...` lines plus an `[uxrs] AGGREGATE`
   line, with test_spec_present and test_error_envelope passing and
   test_uxrs_meets_threshold failing informationally at
-  UXRS=0.4394 (29/66); `python scripts/ci/check_claims.py` reports
+  UXRS=0.4394 (29/66); the same suite WITHOUT
+  GEOSYNC_UX_STATE_GATE=1 reports 2 passed + 1 skipped (global-lane
+  posture); `python scripts/ci/check_claims.py` reports
   schema v3 with `ux-readiness-state-coverage` extended evidence_paths
   (test file, workflow) all present.
 measurement_command: >-

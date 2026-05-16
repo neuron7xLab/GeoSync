@@ -48,9 +48,12 @@ and GitHub issue IERD-Q5 (#530).
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any, Final
+
+import pytest
 
 # Frozen, versioned OpenAPI 3.1 spec — the same artifact the Q4
 # schemathesis gate fuzzes the live app against. Reading the persisted
@@ -145,6 +148,30 @@ def test_spec_present_and_has_public_operations() -> None:
     )
 
 
+# The UXRS sub-test is red by design at Phase-4 ENTRY (the spec is
+# missing empty/partial/timeout declarations — that is precisely what
+# the gate surfaces). It must therefore run ONLY in the dedicated
+# ux-state-coverage workflow, which sets GEOSYNC_UX_STATE_GATE=1 and
+# carries continue-on-error: true on its run step. In the global
+# python-fast-tests / python-heavy-tests lanes the flag is absent so
+# the test SKIPs — identical posture to the Q4 schemathesis gate,
+# which likewise runs only in its own workflow (there via an optional
+# dependency skip). The two genuinely-green tests stay unguarded and
+# provide real coverage in the global lanes. Phase-4 EXIT removes
+# this guard together with the fail-closed flip.
+_UX_STATE_GATE_ENV: Final[str] = "GEOSYNC_UX_STATE_GATE"
+_uxrs_gate_only = pytest.mark.skipif(
+    os.environ.get(_UX_STATE_GATE_ENV) != "1",
+    reason=(
+        "IERD-Q5 Phase-4 ENTRY informational UXRS gate; runs only in the "
+        "dedicated ux-state-coverage workflow "
+        f"({_UX_STATE_GATE_ENV}=1, continue-on-error). Phase-4 EXIT lifts "
+        "this guard when the missing state declarations land."
+    ),
+)
+
+
+@_uxrs_gate_only
 def test_uxrs_meets_threshold() -> None:
     """Aggregate UXRS over public operations is ≥ the §5 threshold."""
     operations = _public_operations(_load_spec())

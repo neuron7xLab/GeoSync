@@ -51,6 +51,15 @@ jobs:
     name: ux-state-coverage
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Activates the Phase-4 ENTRY informational UXRS sub-test. The
+      # global python-fast-tests / python-heavy-tests lanes do NOT set
+      # this, so test_uxrs_meets_threshold SKIPs there (it is red by
+      # design until Phase-4 EXIT lands the missing state
+      # declarations); it runs and fails informationally only here,
+      # where continue-on-error: true on the run step keeps the check
+      # green. Same isolation posture as the Q4 schemathesis gate.
+      GEOSYNC_UX_STATE_GATE: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
