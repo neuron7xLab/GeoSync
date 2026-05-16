@@ -34,6 +34,7 @@ promise: >-
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/calib-grid-001.yaml"
+    - path: ".github/detect-secrets.baseline"
     - path: "research/calibration/grid_kuramoto/__init__.py"
     - path: "research/calibration/grid_kuramoto/grid_data.py"
     - path: "research/calibration/grid_kuramoto/calibration.py"
