@@ -42,11 +42,14 @@ Invariants:
 
 from __future__ import annotations
 
+import logging
 import math
 from typing import Optional
 
 import numpy as np
 from numpy.typing import NDArray
+
+_LOGGER = logging.getLogger("geosync.physics.lyapunov")
 
 
 def delay_embed(
@@ -135,11 +138,16 @@ def maximal_lyapunov_exponent(
         return 0.0
 
     if max_divergence_steps is None:
+        # bounds: Rosenstein algorithm parameter, not a physics quantity —
+        # ≥10 divergence steps are required for a meaningful log-divergence
+        # slope fit. Non-physics algorithmic minimum (no INV-* applies).
         max_divergence_steps = max(10, n_points // 4)
     max_divergence_steps = min(max_divergence_steps, n_points - 1)
 
     if min_temporal_separation is None:
         min_temporal_separation = dim * tau
+    # bounds: Theiler temporal-exclusion window must span ≥1 sample —
+    # algorithmic guard against self-pairing, not a physics clamp.
     min_temporal_separation = max(1, min_temporal_separation)
 
     # For each point, find its nearest neighbor (excluding temporal vicinity)
@@ -185,7 +193,9 @@ def maximal_lyapunov_exponent(
     t_values = valid_indices.astype(np.float64) * dt
     y_values = mean_log_div[valid_indices]
 
-    # Use only the initial linear region (first 40% of valid data)
+    # Use only the initial linear region (first 40% of valid data).
+    # bounds: ≥5 points are needed for a non-degenerate least-squares
+    # slope — algorithmic regression minimum, not a physics quantity.
     n_use = max(5, len(valid_indices) * 2 // 5)
     t_fit = t_values[:n_use]
     y_fit = y_values[:n_use]
@@ -266,7 +276,18 @@ def spectral_gap(
     # Symmetrise (in case of rounding asymmetry)
     A = 0.5 * (A + A.T)
 
-    # INV-HPC2: non-negative adjacency
+    # INV-HPC2: non-negative adjacency. Observability (OA-defect lesson:
+    # a silent repair of a physical quantity must be surfaced): a
+    # non-trivial negative entry is an upstream sign/data fault, not
+    # mere expm round-off — log it before clamping. Behaviour unchanged.
+    _neg_adj = float(-A[A < 0.0].sum()) if np.any(A < 0.0) else 0.0
+    if _neg_adj > 1e-9:
+        _LOGGER.warning(
+            "spectral_gap: clamped %.3e of negative adjacency mass to 0 "
+            "(INV-HPC2). Negative weights upstream of the Laplacian "
+            "indicate a sign/data fault, not numerical noise.",
+            _neg_adj,
+        )
     A = np.maximum(A, 0.0)
     np.fill_diagonal(A, 0.0)
 

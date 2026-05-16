@@ -32,11 +32,14 @@ AUDIT NOTE on complexity:
 
 from __future__ import annotations
 
+import logging
 from typing import cast
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.linalg import expm
+
+_LOGGER = logging.getLogger("geosync.physics.wave")
 
 
 class GraphDiffusionEngine:
@@ -130,7 +133,18 @@ class GraphDiffusionEngine:
 
         propagator = expm(-L * t)
         rho_t = propagator @ rho_0
-        # Ensure non-negativity (numerical)
+        # bounds: ρ(t) is a probability density (≥ 0); expm(-L·t) for a
+        # graph Laplacian is non-negative, so negativity is round-off.
+        # Surface a non-trivial excursion (non-Laplacian L). Behaviour
+        # unchanged by the log.
+        _neg = float(-rho_t[rho_t < 0.0].sum()) if np.any(rho_t < 0.0) else 0.0
+        if _neg > 1e-9:
+            _LOGGER.warning(
+                "wave propagate: clamped %.3e negative density mass to 0 "
+                "— heat kernel should be non-negative; check L is a valid "
+                "graph Laplacian.",
+                _neg,
+            )
         rho_t = np.maximum(rho_t, 0.0)
         # Renormalise to preserve total probability
         total = rho_t.sum()

@@ -31,11 +31,14 @@ References:
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.linalg import expm
+
+_LOGGER = logging.getLogger("geosync.physics.diffusion")
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,6 +119,19 @@ class DiffusionVolatilityPredictor:
             return rho_0.copy()
         propagator = expm(-L * t)
         rho: NDArray[np.float64] = propagator @ rho_0
+        # bounds: ρ(t) is a probability density (≥ 0); the heat-kernel
+        # expm(-L·t) is non-negative for a graph Laplacian, so any
+        # negativity here is expm round-off. Surface a non-trivial
+        # excursion (would indicate a non-Laplacian L). Behaviour
+        # unchanged by the log.
+        _neg = float(-rho[rho < 0.0].sum()) if np.any(rho < 0.0) else 0.0
+        if _neg > 1e-9:
+            _LOGGER.warning(
+                "diffusion _propagate: clamped %.3e negative density mass "
+                "to 0 — heat kernel should be non-negative; check L is a "
+                "valid graph Laplacian.",
+                _neg,
+            )
         rho = np.maximum(rho, 0.0)
         total = rho.sum()
         if total > 0:
@@ -143,7 +159,18 @@ class DiffusionVolatilityPredictor:
         vol = np.asarray(realized_vol, dtype=np.float64)
         n = vol.size
 
-        # Normalise vol to probability density
+        # Normalise vol to probability density.
+        # bounds: realised volatility is ≥ 0 by construction. Unlike the
+        # round-off case above, a negative input here is a genuine data
+        # fault (e.g. sign error upstream) — surface it, then clamp.
+        if np.any(vol < 0.0):
+            _LOGGER.warning(
+                "diffusion predict: %d negative realised-volatility "
+                "input(s) (min=%.3e) clamped to 0 — realised vol must be "
+                "non-negative; check the upstream estimator.",
+                int(np.count_nonzero(vol < 0.0)),
+                float(vol.min()),
+            )
         rho_0 = np.maximum(vol, 0.0)
         total = rho_0.sum()
         if total > 0:
