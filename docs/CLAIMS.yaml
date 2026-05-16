@@ -845,22 +845,43 @@ claims:
       Edge-case coverage matrix (endpoint × state × test_id) at
       ECC ≥ 0.90, with mocked-failure E2E tests for network failure
       and timeout, and a user-visible recoverable path for simulation
-      divergence. Status (Wave 6): EXTRAPOLATED — kernel-level edge
-      cases for the reset-wave subsystem are covered exhaustively
-      (mismatched lengths, empty input, non-positive coupling_gain /
-      dt / steps / max_phase_error, unknown integrator, NaN/Inf phase
-      values via wrap_phase, max_phase_error exceedance via safety
-      lock, simulation divergence via UNSTABLE / DIVERGING forecast
-      class). Missing evidence: HTTP-level network failure, timeout,
-      cancelled, validation_error E2E coverage; Playwright + MSW
-      browser-side tests; ECC numeric per (endpoint × state) matrix.
-      Re-classify ANCHORED on Phase-4 entry. Tracked by issue IERD-Q7.
+      divergence. Status (Phase-4 ENTRY 2026-05-16): EXTRAPOLATED —
+      tests/edge_cases/coverage_matrix.py now defines the canonical
+      matrix (ten §5/#532 states × gated public operations, classified
+      collection/command/probe with documented applicability mirroring
+      the IERD-Q5 discipline) and tests/edge_cases/
+      test_edge_case_matrix.py gates it via
+      .github/workflows/edge-case-matrix.yml. Every covered cell cites
+      a real resolvable test, statically verified by
+      test_every_cited_test_target_resolves (a deleted/renamed cited
+      test fails the gate). The two §532 hard sub-requirements run
+      fail-closed in the global lanes and are genuinely met today:
+      network_failure AND timeout are covered for every applicable
+      endpoint (RequestTimeoutMiddleware behavioural test + fail-closed
+      connector suite), and simulation_diverged correlates with the
+      INV-DRO5 fail-closed suite. Honest ECC = 0.7753 (69/89): the
+      uncovered cells are loading + cancelled (pure client in-flight /
+      abort, no genuine test until the frontend pages consume the
+      endpoints) and per-probe server_error. The ECC ≥ 0.90 threshold
+      runs informationally at Phase-4 ENTRY (workflow
+      continue-on-error: true; sub-test guarded by
+      GEOSYNC_EDGE_CASE_GATE so it skips the global lanes). Reset-wave
+      kernel edge cases remain covered exhaustively. Missing evidence:
+      Playwright route-interception E2E specs for loading / cancelled /
+      per-probe server_error. Re-classify ANCHORED on Phase-4 EXIT,
+      when those land, ECC ≥ 0.90, and the gate flips fail-closed.
+      Tracked by issue IERD-Q7 (#532).
     evidence_paths:
       - docs/yana-response.md
       - tests/test_reset_wave_engine.py
       - tests/test_reset_wave_physics_laws.py
       - tests/test_reset_wave_stress_validation.py
+      - tests/edge_cases/coverage_matrix.py
+      - tests/edge_cases/test_edge_case_matrix.py
+      - .github/workflows/edge-case-matrix.yml
+      - tests/unit/physics/test_inv_dro5_fail_closed.py
     added_utc: "2026-05-03"
+    last_updated_utc: "2026-05-16"
 
   # ---------------------------------------------------------------
   # System-level composite tier (Wave 5, 2026-05-03).
