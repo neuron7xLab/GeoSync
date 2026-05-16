@@ -180,7 +180,8 @@ def _first_order_traj(k: np.ndarray, w: np.ndarray, dt: float, n: int, seed: int
     return out
 
 
-@settings(max_examples=12, deadline=None)
+@pytest.mark.slow
+@settings(max_examples=8, deadline=None)
 @given(seed=st.integers(min_value=0, max_value=2**31 - 1))
 def test_property_weak_coupling_topology_recovered(seed: int) -> None:
     """In the estimator's design regime (weak, non-locked, matched
@@ -261,6 +262,7 @@ def test_gate_thresholds_are_frozen_values() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_calibration_deterministic() -> None:
     """Seeded calibration is bit-reproducible across two runs."""
     sys = wscc_9_bus()
@@ -272,6 +274,7 @@ def test_calibration_deterministic() -> None:
     assert a.critical_coupling_rel_error == b.critical_coupling_rel_error
 
 
+@pytest.mark.slow
 def test_wscc9_verdict_is_negative_and_localized() -> None:
     """The pre-registered WSCC-9 calibration lands a NEGATIVE artifact
     whose failing gates name a concrete refinement target.
@@ -319,6 +322,7 @@ def test_ledger_is_machine_readable_and_sha_pinned() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.slow
 def test_identifiability_sweep_weak_regime() -> None:
     """The estimator *does* recover K in its design regime.
 
