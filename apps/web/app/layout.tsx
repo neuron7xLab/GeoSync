@@ -6,6 +6,7 @@ import './styles.css'
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter'
 import { AppThemeProvider } from './providers'
 import { AuthProvider } from './auth/auth-provider'
+import { WebVitalsReporter } from './_components/web-vitals-reporter'
 
 export const metadata: Metadata = {
   title: 'GeoSync Scenario Studio',
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
+        <WebVitalsReporter />
         <AppRouterCacheProvider>
           <AppThemeProvider>
             <Suspense fallback={<LoadingFallback />}>
