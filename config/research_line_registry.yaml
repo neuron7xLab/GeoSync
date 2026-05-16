@@ -109,3 +109,20 @@ lines:
 
 # Future lines go below with status: OPEN.
 # Rejected lines MUST NOT be re-opened; any revival requires a new line_id.
+
+  ctc_falsify_001:
+    signal_family: ctc_falsify
+    signal_source: "research.ctc_falsify.run.run"
+    substrate: kuramoto_two_population_generative
+    universe:
+      - synthetic_sakaguchi_kuramoto
+    status: OPEN
+    verdict: null
+    wave2_authorized: false
+    parameter_rescue_allowed: false
+    same_family_same_substrate_retest_allowed: false
+    allowed_next_action: continue_same_line
+    evidence_path: research/ctc_falsify/evidence
+    lock_sha: null
+    complete_sha: null
+    canonical_fail_note: null
