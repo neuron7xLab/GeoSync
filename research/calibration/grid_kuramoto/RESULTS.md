@@ -6,9 +6,9 @@
 > recovered by the current estimator, and the miss is localized below.
 >
 > Source ledger: `RESULTS.json`
-> (`ledger_sha256 = 3d9ab8c2755796845f2057a3960205f2f0c8dff8ce338be71aa1d2fba29cc44b`,
-> branch sha `ab4555ed8819abea12ba5afa1eaa52e2f5929b6f`,
-> Python 3.12.3). Reproduce:
+> (`ledger_sha256 = ed8d409b7b222eb0…`, branch sha
+> `d170d48afa5066c13edeb40b2c1904b3fd708516`, Python 3.12.3).
+> Reproduce:
 > `PYTHONPATH=. python -m research.calibration.grid_kuramoto.run --system wscc9`.
 
 ## Numeric verdict per gate (tier: MEASURED on a known ground truth)

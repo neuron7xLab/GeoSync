@@ -1,6 +1,6 @@
 {
   "artifact": "CALIB-GRID-001",
-  "branch_sha": "ab4555ed8819abea12ba5afa1eaa52e2f5929b6f",
+  "branch_sha": "d170d48afa5066c13edeb40b2c1904b3fd708516",
   "citation": "Anderson&Fouad-2003-Ex2.6 / Dorfler-Bullo-PNAS-2013-Fig1",
   "config": {
     "coupling_scale": 8.0,
@@ -101,7 +101,7 @@
   ],
   "is_hypothesis": false,
   "kind": "external-ground-truth-calibration",
-  "ledger_sha256": "3d9ab8c2755796845f2057a3960205f2f0c8dff8ce338be71aa1d2fba29cc44b",
+  "ledger_sha256": "ed8d409b7b222eb053572d6bf9ab6e98c5f4918be1cae384864733a2b4d72aaf",
   "localized_refinement_targets": [
     "coupling_estimator noise robustness / standardisation",
     "coupling_estimator row-regression bias / \u03bb_reg",
