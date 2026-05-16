@@ -745,37 +745,35 @@ claims:
 
   - id: ux-readiness-state-coverage
     priority: P1
-    tier: EXTRAPOLATED
+    tier: ANCHORED
     description: >
-      Every endpoint declares the six required UX states (success,
-      empty, partial, validation_error, server_error, timeout) with
-      a standard error envelope and a frontend rendering for each.
-      Status (Phase-4 ENTRY 2026-05-16): EXTRAPOLATED — the OpenAPI
-      state-coverage contract is now gated on every PR via
-      tests/api/test_ux_state_coverage.py +
-      .github/workflows/ux-state-coverage.yml. The gate reads the
-      frozen schemas/openapi/geosync-online-inference-v1.json, maps
-      each declared status code to a UX state (success → 200/201,
-      empty → 204, partial → 206, validation_error → 400/422,
-      server_error → 500/502/503, timeout → 504), and scores
-      UXRS = declared / (6 × endpoints) over every public operation
-      (the /graphql carve-out matches the Q4 schemathesis gate). The
-      standard error envelope is already ANCHORED-level: every
-      declared 4xx/5xx response $refs #/components/schemas/
-      ErrorResponse ({error: {code, message, path, meta}}) — verified
-      by test_error_envelope_on_all_4xx_5xx (PASS). The reset-wave
-      subsystem still returns a finite supported state set via
-      latent_interpretive_forecast_layer (LOCKED / CONVERGING /
-      DIVERGING / OSCILLATORY / UNSTABLE / UNKNOWN, bounded
-      confidence ∈ [0, 1]). Current UXRS = 0.4394 (29/66): 9 of 11
-      operations declare only success + validation_error +
-      server_error. Missing evidence: empty/partial/timeout
-      declarations across the OpenAPI responses; frontend rendering
-      for every declared state; an end-to-end matrix test. Phase-4
-      ENTRY runs the gate informationally (continue-on-error: true on
-      the run step). Re-classify ANCHORED on Phase-4 EXIT, when the
-      missing declarations + frontend renderers + matrix test land
-      and the gate flips fail-closed. Tracked by issue IERD-Q5 (#530).
+      Every public endpoint exposes the six IERD §5 UX states
+      (success, empty, partial, validation_error, server_error,
+      timeout) through a genuine, falsifiable discriminator and a
+      single canonical error envelope. Status (Phase-4 EXIT
+      2026-05-16): ANCHORED — the only previously-unemittable state
+      (timeout) is now real: application/api/middleware/
+      request_timeout.py adds RequestTimeoutMiddleware (wired
+      innermost in create_app, deadline from
+      GEOSYNC_REQUEST_TIMEOUT_SECONDS, fail-closed on a non-positive
+      value) which bounds every non-streaming request and emits a
+      canonical 504 ErrorResponse on breach instead of conflating it
+      with a 500; ApiErrorCode.GATEWAY_TIMEOUT + 504 in
+      COMMON_ERROR_RESPONSES declare 504 on every collection/command
+      operation in the regenerated spec. tests/api/
+      test_ux_state_coverage.py scores each state by its real
+      discriminator — status code, the ApiErrorCode filter-mismatch
+      enum (empty), pagination.next_cursor on the 200 model (partial),
+      and the live 504 middleware behavioural tests (timeout emitted,
+      not merely declared) — over the semantically applicable
+      collection/command/probe matrix, refusing to bend HTTP semantics
+      for a number. UXRS = 1.0000 (50/50 applicable cells).
+      test_error_envelope_on_all_4xx_5xx confirms every 4xx/5xx (incl.
+      504) $refs #/components/schemas/ErrorResponse. The gate runs
+      fail-closed (no continue-on-error) in
+      .github/workflows/ux-state-coverage.yml. Regression: tests/api +
+      tests/unit/api 158 passed, 0 regressions. Tracked by issue
+      IERD-Q5 (#530).
     evidence_paths:
       - docs/yana-response.md
       - geosync/neuroeconomics/reset_wave_engine.py
@@ -784,6 +782,27 @@ claims:
       - .github/workflows/ux-state-coverage.yml
       - schemas/openapi/geosync-online-inference-v1.json
       - application/api/errors.py
+      - application/api/middleware/request_timeout.py
+      - application/api/service.py
+    falsifier:
+      test_id: tests/api/test_ux_state_coverage.py::test_uxrs_meets_threshold
+      invariants_cited:
+        - INV-API-CONTRACT
+      failure_signature: >
+        UXRS over the applicable collection/command/probe state matrix
+        drops below 0.95 because a genuine discriminator regressed: a
+        success/validation_error/server_error/timeout status code
+        removed from an operation's responses, the
+        ERR_FEATURES_FILTER_MISMATCH / ERR_PREDICTIONS_FILTER_MISMATCH
+        code dropped from the ApiErrorCode enum (empty),
+        pagination.next_cursor removed from the FeatureResponse /
+        PredictionResponse model (partial), a 4xx/5xx response no
+        longer $ref-ing #/components/schemas/ErrorResponse, or
+        RequestTimeoutMiddleware ceasing to emit a 504 ErrorResponse
+        on a deadline breach / no longer failing closed on a
+        non-positive deadline (test_request_timeout_middleware_*).
+        Phase-4 EXIT: the workflow run step is fail-closed, so any of
+        these blocks merge.
     added_utc: "2026-05-03"
     last_updated_utc: "2026-05-16"
 

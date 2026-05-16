@@ -34,6 +34,7 @@ class ApiErrorCode(str, Enum):
     VALIDATION_FAILED = "ERR_VALIDATION_FAILED"
     UNPROCESSABLE = "ERR_UNPROCESSABLE"
     INTERNAL = "ERR_INTERNAL"
+    GATEWAY_TIMEOUT = "ERR_GATEWAY_TIMEOUT"
     FEATURES_EMPTY = "ERR_FEATURES_EMPTY"
     FEATURES_MISSING = "ERR_FEATURES_MISSING"
     FEATURES_INVALID = "ERR_FEATURES_INVALID"
@@ -55,6 +56,7 @@ DEFAULT_ERROR_CODES: dict[int, ApiErrorCode] = {
     status.HTTP_429_TOO_MANY_REQUESTS: ApiErrorCode.RATE_LIMIT,
     status.HTTP_500_INTERNAL_SERVER_ERROR: ApiErrorCode.INTERNAL,
     status.HTTP_503_SERVICE_UNAVAILABLE: ApiErrorCode.INTERNAL,
+    status.HTTP_504_GATEWAY_TIMEOUT: ApiErrorCode.GATEWAY_TIMEOUT,
 }
 
 
@@ -167,6 +169,14 @@ COMMON_ERROR_RESPONSES: dict[int, dict[str, Any]] = {
     status.HTTP_500_INTERNAL_SERVER_ERROR: {
         "model": ErrorResponse,
         "description": "Unexpected server-side failure.",
+    },
+    status.HTTP_504_GATEWAY_TIMEOUT: {
+        "model": ErrorResponse,
+        "description": (
+            "Request exceeded the server processing deadline; emitted by "
+            "RequestTimeoutMiddleware as the canonical timeout UX state "
+            "(IERD-Q5 §5) instead of conflating it with a 500."
+        ),
     },
 }
 

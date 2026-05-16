@@ -30,6 +30,7 @@
           "ERR_VALIDATION_FAILED",
           "ERR_UNPROCESSABLE",
           "ERR_INTERNAL",
+          "ERR_GATEWAY_TIMEOUT",
           "ERR_FEATURES_EMPTY",
           "ERR_FEATURES_MISSING",
           "ERR_FEATURES_INVALID",
@@ -965,6 +966,16 @@
               }
             },
             "description": "Unexpected server-side failure."
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request exceeded the server processing deadline; emitted by RequestTimeoutMiddleware as the canonical timeout UX state (IERD-Q5 \u00a75) instead of conflating it with a 500."
           }
         },
         "security": [
@@ -1071,6 +1082,16 @@
               }
             },
             "description": "Unexpected server-side failure."
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request exceeded the server processing deadline; emitted by RequestTimeoutMiddleware as the canonical timeout UX state (IERD-Q5 \u00a75) instead of conflating it with a 500."
           }
         },
         "security": [
@@ -1187,6 +1208,16 @@
               }
             },
             "description": "Unexpected server-side failure."
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request exceeded the server processing deadline; emitted by RequestTimeoutMiddleware as the canonical timeout UX state (IERD-Q5 \u00a75) instead of conflating it with a 500."
           }
         },
         "security": [
@@ -1463,6 +1494,16 @@
               }
             },
             "description": "Unexpected server-side failure."
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request exceeded the server processing deadline; emitted by RequestTimeoutMiddleware as the canonical timeout UX state (IERD-Q5 \u00a75) instead of conflating it with a 500."
           }
         },
         "security": [
@@ -1738,6 +1779,16 @@
               }
             },
             "description": "Unexpected server-side failure."
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request exceeded the server processing deadline; emitted by RequestTimeoutMiddleware as the canonical timeout UX state (IERD-Q5 \u00a75) instead of conflating it with a 500."
           }
         },
         "security": [
@@ -2014,6 +2065,16 @@
               }
             },
             "description": "Unexpected server-side failure."
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request exceeded the server processing deadline; emitted by RequestTimeoutMiddleware as the canonical timeout UX state (IERD-Q5 \u00a75) instead of conflating it with a 500."
           }
         },
         "security": [
@@ -2375,6 +2436,16 @@
               }
             },
             "description": "Unexpected server-side failure."
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request exceeded the server processing deadline; emitted by RequestTimeoutMiddleware as the canonical timeout UX state (IERD-Q5 \u00a75) instead of conflating it with a 500."
           }
         },
         "security": [
@@ -2650,6 +2721,16 @@
               }
             },
             "description": "Unexpected server-side failure."
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request exceeded the server processing deadline; emitted by RequestTimeoutMiddleware as the canonical timeout UX state (IERD-Q5 \u00a75) instead of conflating it with a 500."
           }
         },
         "security": [
@@ -2925,6 +3006,16 @@
               }
             },
             "description": "Unexpected server-side failure."
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request exceeded the server processing deadline; emitted by RequestTimeoutMiddleware as the canonical timeout UX state (IERD-Q5 \u00a75) instead of conflating it with a 500."
           }
         },
         "security": [

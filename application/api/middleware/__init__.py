@@ -4,5 +4,14 @@
 
 from .access_log import AccessLogMiddleware
 from .prometheus import PrometheusMetricsMiddleware
+from .request_timeout import (
+    DEFAULT_REQUEST_TIMEOUT_SECONDS,
+    RequestTimeoutMiddleware,
+)
 
-__all__ = ["AccessLogMiddleware", "PrometheusMetricsMiddleware"]
+__all__ = [
+    "DEFAULT_REQUEST_TIMEOUT_SECONDS",
+    "AccessLogMiddleware",
+    "PrometheusMetricsMiddleware",
+    "RequestTimeoutMiddleware",
+]

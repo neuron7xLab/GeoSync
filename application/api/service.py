@@ -57,8 +57,10 @@ from application.api.idempotency import (
 )
 from application.api.metrics import MetricsSampler
 from application.api.middleware import (
+    DEFAULT_REQUEST_TIMEOUT_SECONDS,
     AccessLogMiddleware,
     PrometheusMetricsMiddleware,
+    RequestTimeoutMiddleware,
 )
 from application.api.rate_limit import (
     RateLimiterSnapshot,
@@ -1368,6 +1370,38 @@ def configure_openapi(app: FastAPI) -> None:
     app.openapi = custom_openapi
 
 
+def _resolve_request_timeout_seconds() -> float:
+    """Resolve the request deadline from the environment, fail-safe.
+
+    A malformed or non-positive ``GEOSYNC_REQUEST_TIMEOUT_SECONDS`` must
+    not crash app startup (a deploy-time typo should degrade to the safe
+    default, not take the service down); the value is logged so the
+    fallback is observable rather than silent. The hard fail-closed
+    guard lives in ``RequestTimeoutMiddleware.__init__`` for the
+    programmatic-construction path.
+    """
+    raw = os.environ.get("GEOSYNC_REQUEST_TIMEOUT_SECONDS")
+    if raw is None or raw.strip() == "":
+        return DEFAULT_REQUEST_TIMEOUT_SECONDS
+    try:
+        value = float(raw)
+    except ValueError:
+        logging.getLogger("geosync.api.timeout").warning(
+            "Invalid GEOSYNC_REQUEST_TIMEOUT_SECONDS=%r; using default %.3fs",
+            raw,
+            DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        )
+        return DEFAULT_REQUEST_TIMEOUT_SECONDS
+    if not value > 0.0:
+        logging.getLogger("geosync.api.timeout").warning(
+            "Non-positive GEOSYNC_REQUEST_TIMEOUT_SECONDS=%r; using default %.3fs",
+            raw,
+            DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        )
+        return DEFAULT_REQUEST_TIMEOUT_SECONDS
+    return value
+
+
 def create_app(
     *,
     rate_limiter: SlidingWindowRateLimiter | None = None,
@@ -1607,6 +1641,17 @@ def create_app(
         await stream_manager.broadcast(event)
 
     configure_openapi(app)
+
+    # Innermost custom middleware: bounds the handler+routing only, so a
+    # deadline breach returns a canonical 504 envelope that still flows
+    # back out through Prometheus (recorded) and CORS (headers applied).
+    # Resolved from env here (import-pure module stays test-friendly);
+    # a non-positive value fails closed at construction.
+    _request_timeout_seconds = _resolve_request_timeout_seconds()
+    app.add_middleware(
+        RequestTimeoutMiddleware,
+        timeout_seconds=_request_timeout_seconds,
+    )
 
     app.add_middleware(
         PrometheusMetricsMiddleware,

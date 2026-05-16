@@ -1,71 +1,68 @@
-# Diff-bound commit acceptor for IERD-Q5 Phase-4 ENTRY: UX
-# state-coverage gate.
+# Diff-bound commit acceptor for IERD-Q5 Phase-4 EXIT: UX
+# state-coverage gate (fail-closed, claim ANCHORED).
 #
-# Before: claim `ux-readiness-state-coverage` declared that every
-# endpoint must surface the six IERD §5 UX states (success, empty,
-# partial, validation_error, server_error, timeout) with a standard
-# error envelope, but no CI gate scored the OpenAPI spec against the
-# UXRS ≥ 0.95 threshold. Reset-wave subsystem state set was the only
-# existing evidence.
+# Before (Phase-4 ENTRY): the gate scored a crude state→status-code
+# proxy and ran informationally (continue-on-error: true), guarded by
+# GEOSYNC_UX_STATE_GATE=1; UXRS was 0.4394 by design because the API
+# could not emit the `timeout` state (deadline breaches surfaced as
+# 500, conflating server_error and timeout).
 #
-# After: tests/api/test_ux_state_coverage.py reads the frozen
-# schemas/openapi/geosync-online-inference-v1.json, maps each declared
-# HTTP status code to a UX state via the HTTP-canonical mapping, and
-# asserts the aggregate UXRS over all public operations (the /graphql
-# carve-out is identical to the Q4 schemathesis gate) is ≥ 0.95. A
-# second test asserts every declared 4xx/5xx response $refs the
-# canonical ErrorResponse envelope. The UX State Coverage workflow
-# runs the same suite on every PR touching schemas/openapi/** or the
-# API surface and uploads junit.xml + run.log as artifacts (14-day
-# retention). Phase-4 ENTRY only: continue-on-error: true on the run
-# step so frontend renderers + the end-to-end matrix can land under
-# the same claim without flipping gate strictness mid-phase. Phase-4
-# EXIT removes it and the claim re-classifies ANCHORED.
-#
-# Isolation: test_uxrs_meets_threshold is red by design until Phase-4
-# EXIT, so it is guarded by GEOSYNC_UX_STATE_GATE=1 (set only on the
-# dedicated workflow job). In the global python-fast-tests /
-# python-heavy-tests lanes the flag is absent and the sub-test SKIPs;
-# the two genuinely-green tests (spec present, error envelope) run
-# unguarded there. Same posture as the Q4 schemathesis gate, which
-# runs only in its own workflow via an optional-dependency skip.
+# After (Phase-4 EXIT): the only genuinely-absent state is made real.
+# application/api/middleware/request_timeout.py adds
+# RequestTimeoutMiddleware, wired innermost in create_app, which bounds
+# every non-streaming request by GEOSYNC_REQUEST_TIMEOUT_SECONDS and
+# emits a canonical 504 ErrorResponse envelope on breach;
+# ApiErrorCode.GATEWAY_TIMEOUT + 504 in COMMON_ERROR_RESPONSES make 504
+# declared on every collection/command op (regenerated spec). The test
+# is rewritten to score each state by its genuine, falsifiable
+# discriminator (status code / ApiErrorCode filter-mismatch enum /
+# pagination.next_cursor / live 504 middleware) over the semantically
+# applicable matrix (collection/command/probe classes), NOT a proxy —
+# refusing to bend HTTP semantics for a number. UXRS = 1.0000 (50/50).
+# Behavioural tests prove the 504 is emitted, not merely declared. The
+# run step is now fail-closed; the env-gate and continue-on-error are
+# removed; claim `ux-readiness-state-coverage` is ANCHORED with
+# INV-API-CONTRACT.
 #
 # Locally verified (development laptop, native Python):
-#   test_spec_present_and_has_public_operations       PASS
-#   test_error_envelope_on_all_4xx_5xx                PASS
-#   test_uxrs_meets_threshold                         FAIL (informational)
-#     [uxrs] AGGREGATE declared=29/66 UXRS=0.4394
-#   The UXRS failure is the honest Phase-4 ENTRY gap: 9 of 11
-#   operations declare only success+validation_error+server_error;
-#   empty/partial/timeout declarations land in Phase-4 EXIT.
+#   tests/api/test_ux_state_coverage.py ................ 6 passed
+#     [uxrs] AGGREGATE covered=50/50 UXRS=1.0000
+#   tests/api + tests/unit/api regression .............. 158 passed
+#     (openapi drift, full service suite, latency budget — 0 regressions)
+#   mypy --strict / black / ruff ....................... clean
 
 id: ierd-q5-ux-state-coverage-gate
 status: ACTIVE
 claim_type: correctness
 promise: >-
-  `pytest tests/api/test_ux_state_coverage.py` reads the frozen
-  OpenAPI 3.1 spec at
-  schemas/openapi/geosync-online-inference-v1.json, maps each declared
-  status code to one of the six IERD §5 UX states (success → 200/201,
-  empty → 204, partial → 206, validation_error → 400/422, server_error
-  → 500/502/503, timeout → 504), and asserts the aggregate
-  UXRS = declared / (6 × endpoints) ≥ 0.95 over every public operation
-  (the /graphql carve-out matches the Q4 gate). A second test asserts
-  every declared 4xx/5xx response body $refs
-  #/components/schemas/ErrorResponse. Each case emits structured
-  `[uxrs] ...` lines consumed by the GitHub Step Summary. The UX
-  State Coverage workflow runs the same suite path-filtered to the
-  schema + API surface and uploads junit.xml + run.log as
-  `ux-state-coverage-results` (14-day retention). Phase-4 ENTRY
-  contract: continue-on-error is set on the run STEP so the GitHub
-  check resolves SUCCESS even though the UXRS sub-test currently
-  fails; Phase-4 EXIT removes it and the claim re-classifies ANCHORED.
+  RequestTimeoutMiddleware emits a canonical 504 ErrorResponse on a
+  deadline breach (proven by
+  tests/api/test_ux_state_coverage.py::test_request_timeout_middleware_emits_504_envelope),
+  and fails closed on a non-positive deadline
+  (test_request_timeout_middleware_rejects_nonpositive_deadline).
+  test_uxrs_meets_threshold scores every public operation against the
+  genuine discriminator for each of the six IERD §5 UX states over the
+  applicable collection/command/probe matrix and asserts
+  UXRS = covered/applicable ≥ 0.95 (observed 1.0000, 50/50);
+  test_error_envelope_on_all_4xx_5xx asserts every 4xx/5xx (incl. 504)
+  $refs #/components/schemas/ErrorResponse. The UX State Coverage
+  workflow runs the suite fail-closed (no continue-on-error) on every
+  PR touching the API surface or schema and uploads junit.xml +
+  run.log as `ux-state-coverage-results` (14-day retention). Phase-4
+  EXIT contract: continue-on-error is NOT set on the run step and the
+  claim is ANCHORED; any flip back to informational must co-ship an
+  EXTRAPOLATED re-classification.
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/ierd-q5-ux-state-coverage-gate.yaml"
     - path: ".github/workflows/ux-state-coverage.yml"
     - path: "docs/CLAIMS.yaml"
     - path: "tests/api/test_ux_state_coverage.py"
+    - path: "application/api/middleware/request_timeout.py"
+    - path: "application/api/middleware/__init__.py"
+    - path: "application/api/errors.py"
+    - path: "application/api/service.py"
+    - path: "schemas/openapi/geosync-online-inference-v1.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -73,54 +70,58 @@ diff_scope:
     - "policy/"
     - "core/physics/"
     - "core/kuramoto/"
-    - "application/api/service.py"
-    - "application/api/errors.py"
-    - "schemas/openapi/"
 required_python_symbols:
   - "tests/api/test_ux_state_coverage.py::test_uxrs_meets_threshold"
   - "tests/api/test_ux_state_coverage.py::test_error_envelope_on_all_4xx_5xx"
-  - "tests/api/test_ux_state_coverage.py::test_spec_present_and_has_public_operations"
-  - "tests/api/test_ux_state_coverage.py::UXRS_THRESHOLD"
-  - "tests/api/test_ux_state_coverage.py::REQUIRED_STATES"
+  - "tests/api/test_ux_state_coverage.py::test_request_timeout_middleware_emits_504_envelope"
+  - "tests/api/test_ux_state_coverage.py::test_request_timeout_middleware_rejects_nonpositive_deadline"
+  - "application/api/middleware/request_timeout.py::RequestTimeoutMiddleware"
+  - "application/api/errors.py::ApiErrorCode"
 expected_signal: >-
   Local: `mypy --strict --follow-imports=silent
+  application/api/middleware/request_timeout.py
   tests/api/test_ux_state_coverage.py` reports "Success: no issues
-  found in 1 source file"; `black --check` and `ruff check` both
-  report clean; `pytest tests/api/test_ux_state_coverage.py -q -s`
-  prints per-operation `[uxrs] ...` lines plus an `[uxrs] AGGREGATE`
-  line, with test_spec_present and test_error_envelope passing and
-  test_uxrs_meets_threshold failing informationally at
-  UXRS=0.4394 (29/66); the same suite WITHOUT
-  GEOSYNC_UX_STATE_GATE=1 reports 2 passed + 1 skipped (global-lane
-  posture); `python scripts/ci/check_claims.py` reports
-  schema v3 with `ux-readiness-state-coverage` extended evidence_paths
-  (test file, workflow) all present.
+  found in 2 source files"; `black --check` and `ruff check` clean;
+  `pytest tests/api/test_ux_state_coverage.py -q` reports 6 passed
+  with `[uxrs] AGGREGATE covered=50/50 UXRS=1.0000`; `pytest tests/api
+  tests/unit/api -q` reports 158 passed (openapi drift + full service
+  suite + latency budget, 0 regressions, schemathesis skipped — runs
+  fail-closed in its own workflow); `python scripts/ci/check_claims.py`
+  reports schema v3 with `ux-readiness-state-coverage` ANCHORED, all
+  evidence paths present, falsifier block well-formed.
 measurement_command: >-
-  bash -c 'mypy --strict --follow-imports=silent tests/api/test_ux_state_coverage.py
-  && black --check tests/api/test_ux_state_coverage.py
-  && ruff check tests/api/test_ux_state_coverage.py
+  bash -c 'mypy --strict --follow-imports=silent
+  application/api/middleware/request_timeout.py tests/api/test_ux_state_coverage.py
+  && black --check application/api/middleware/request_timeout.py tests/api/test_ux_state_coverage.py
+  && ruff check application/api/middleware/request_timeout.py application/api/errors.py application/api/service.py tests/api/test_ux_state_coverage.py
   && python scripts/ci/check_claims.py'
 signal_artifact: "tmp/ierd_q5_ux_state_coverage_gate.log"
 falsifier:
   command: >-
-    bash -c 'python -c "import yaml,sys; spec=yaml.safe_load(open(\".github/workflows/ux-state-coverage.yml\")); steps=spec[\"jobs\"][\"ux-state-coverage\"][\"steps\"]; run_step=next(s for s in steps if s.get(\"id\")==\"run\"); sys.exit(0 if run_step.get(\"continue-on-error\") is True else 1)"'
+    bash -c 'python -c "import yaml,sys; spec=yaml.safe_load(open(\".github/workflows/ux-state-coverage.yml\")); steps=spec[\"jobs\"][\"ux-state-coverage\"][\"steps\"]; run_step=next(s for s in steps if s.get(\"id\")==\"run\"); sys.exit(0 if run_step.get(\"continue-on-error\") is not True else 1)"'
   description: >-
-    Probes the workflow YAML for the Phase-4 ENTRY contract
-    `continue-on-error: true` on the ux-state-coverage run step. If a
-    future change flips the gate to fail-closed without re-classifying
-    the claim ANCHORED in docs/CLAIMS.yaml, the falsifier exits
-    non-zero, signalling that Phase-4 EXIT promotion must be
-    co-shipped with the strictness flip — preventing silent
-    strictness drift identical to the Q4 and Q6 guarantees.
+    Phase-4 EXIT (2026-05-16): the gate is now fail-closed. The
+    falsifier asserts the inverse invariant — `continue-on-error` must
+    NOT be True on the ux-state-coverage run step. If a future change
+    flips the gate back to informational, the falsifier exits
+    non-zero, forcing the claim back to EXTRAPOLATED in
+    docs/CLAIMS.yaml. Prevents silent strictness regression, identical
+    to the Q4 Phase-3 EXIT guarantee.
 rollback_command: >-
   git checkout HEAD~1 --
   .claude/commit_acceptors/ierd-q5-ux-state-coverage-gate.yaml
   .github/workflows/ux-state-coverage.yml
   tests/api/test_ux_state_coverage.py
+  application/api/middleware/request_timeout.py
+  application/api/middleware/__init__.py
+  application/api/errors.py
+  application/api/service.py
+  schemas/openapi/geosync-online-inference-v1.json
   docs/CLAIMS.yaml
 rollback_verification_command: >-
   git diff --exit-code tests/api/test_ux_state_coverage.py
   .github/workflows/ux-state-coverage.yml
+  application/api/middleware/request_timeout.py
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/ierd-q5-ux-state-coverage-gate.yaml"
 report_path: "tmp/ierd_q5_ux_state_coverage_gate.log"
