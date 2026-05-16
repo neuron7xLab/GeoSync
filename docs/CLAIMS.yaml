@@ -821,12 +821,28 @@ claims:
       Starlette TestClient against application.api.service.create_app()
       and asserts p95 of /metrics < 100 ms (simple) and p95 of
       /health < 200 ms (interactive) over 200 samples per endpoint
-      with a 20-sample warmup. Reset-wave subsystem stress evidence
-      remains in scope (108 cells × 20 seeds). Missing evidence:
-      client_render (Web Vitals via Lighthouse CI), network_TTFB
-      (HTTP timing), db_io (driver telemetry), regression-gated
-      Grafana dashboards. Re-classify ANCHORED on Phase-4 EXIT.
-      Tracked by issue IERD-Q6 (#531).
+      with a 20-sample warmup. Phase-4 progress (2026-05-16):
+      client_render is now genuinely instrumented —
+      apps/web/app/_components/web-vitals-reporter.tsx wires Next's
+      useReportWebVitals (zero new deps) into a §5-budget-classified
+      beacon, mounted in layout.tsx and unit-falsified by
+      web-vitals-reporter.test.tsx; db_io has a collector-level
+      regression test (observe_database_query); and
+      observability/grafana/latency_budget_dashboard.json adds the
+      four-layer dashboard at the verbatim §5 budgets.
+      tests/observability/test_latency_layer_coverage.py scores the
+      layers the Q7 way (every covered layer cites a real resolvable
+      test, statically verified cross-language; uncovered layers
+      explicit) and asserts server_compute / client_render / db_io /
+      dashboard fail-closed in the global lanes. LayerCoverage = 0.75
+      (3/4). Missing evidence: network_TTFB regression-gated budget
+      run (Lighthouse CI FCP/LCP/CLS against a real Next build) and
+      OpenTelemetry trace propagation frontend→API→DB — these need
+      real infra and are NOT faked; the "all four layers
+      regression-gated" check is env-gated informational
+      (continue-on-error) until they land. Re-classify ANCHORED on
+      Phase-4 EXIT (Lighthouse CI + OTel + LayerCoverage = 1.0,
+      gate flipped fail-closed). Tracked by issue IERD-Q6 (#531).
     evidence_paths:
       - docs/yana-response.md
       - geosync/neuroeconomics/reset_wave_engine.py
@@ -835,8 +851,12 @@ claims:
       - .github/workflows/latency-budget.yml
       - application/api/middleware/prometheus.py
       - docs/validation/reset_wave_validation_summary.json
+      - tests/observability/test_latency_layer_coverage.py
+      - .github/workflows/latency-layer-coverage.yml
+      - observability/grafana/latency_budget_dashboard.json
+      - apps/web/app/_components/web-vitals-reporter.tsx
     added_utc: "2026-05-03"
-    last_updated_utc: "2026-05-07"
+    last_updated_utc: "2026-05-16"
 
   - id: edge-case-coverage-matrix
     priority: P1
