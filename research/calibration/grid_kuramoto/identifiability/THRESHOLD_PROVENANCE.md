@@ -45,57 +45,134 @@ solution (Gauss–Markov; the swing identity is linear in
     Cov(ĉ_std) = σ̂² · (D_stdᵀ D_std)⁺                          (2)
     SE(K̂_p)   = sqrt( [Cov(ĉ_std)]_{pp} )  /  s_p              (3)
 
-Equation (1) is the unbiased residual-variance (noise-floor) estimate;
-(2) is the Cramér–Rao / Fisher-information covariance for a linear
-Gaussian model (`(D_stdᵀD_std)⁺` is the inverse Fisher information up to
-σ̂²); (3) back-transforms to physical units. The Moore–Penrose pseudo-
-inverse is used so a rank-deficient design degrades gracefully into the
-existing hard PE guard rather than raising inside the covariance.
+Equation (1) is the residual-variance (noise-floor) estimate; (2) is
+the Cramér–Rao bound for the linear Gaussian model (`(D_stdᵀD_std)⁺` is
+the inverse Fisher information up to σ̂²); (3) back-transforms to
+physical units. The Moore–Penrose pseudo-inverse is used so a
+rank-deficient design degrades gracefully into the existing hard PE
+guard rather than raising inside the covariance.
 
-Per **edge** `p` we form the **Wald / inverse-coefficient-of-variation
-ratio**
+**Interpretation — this is a CRLB *lower bound*, not a
+coverage-calibrated interval (honest scoping).** The dominant error of
+the merged R1 swing path in the *noiseless* regime is a **deterministic
+Savitzky–Golay derivative bias**, not estimation variance: `σ̂² → 0`
+while `‖K̂ − K‖ ≠ 0`. The residual-variance covariance therefore
+*under*-states the true error there — a Monte-Carlo over the matched
+recovery regime shows empirical coverage far below nominal when the
+fit is near-exact (verified, reported in `RESULTS.md`). Consequently
+`SE(K̂_p)` is used **only** as what the Cramér–Rao theorem proves it to
+be: a *lower bound* on the standard error of any unbiased estimator
+(`SE_true ≥ SE_CRLB`). It is **never** promoted as a 95 % coverage
+interval. The front-gate is built so its verdict does **not** depend on
+CI calibration:
+
+* the **precision leg** uses `w_p = |K̂_p|/SE_CRLB` as an *optimistic
+  upper bound* on the true Wald ratio. "Even the best-case (smallest
+  possible) SE leaves the CI straddling zero" is then a **sufficient**
+  (sound, conservative) REFUSE condition — it can only ever
+  *under*-trigger REFUSE on precision, never falsely ACCEPT a
+  variance-unidentifiable edge;
+* the **decisive leg is model adequacy `R²`** (below), which is
+  *bias-sensitive* and is what actually separates the two frozen
+  calibration regimes.
+
+The per-edge band is reported as a CRLB variance band for transparency,
+explicitly flagged non-coverage-calibrated.
+
+Identifiability has **two independent legs**, both required (a point
+estimate is trustworthy only if it is both *precise* and *adequate*):
+
+**(A) Per-edge precision — Wald / inverse-coefficient-of-variation
+ratio.**
 
     w_p = |K̂_p| / SE(K̂_p)                                      (4)
+    w_min = min_p w_p
 
-and the scalar **identifiability score** is the worst edge ratio mapped
-into a bounded, monotone, documented range:
+`w` → 0 as an edge becomes variance-unidentifiable (`SE ≫ |K̂|`, e.g.
+near phase-locked).
 
-    IDENTIFIABILITY = w_min / (1 + w_min),  w_min = min_p w_p     (5)
+**(B) Model adequacy — coefficient of determination of the linear
+swing fit.** The swing identity is *exact* in the noiseless limit, so
+the linear model must explain the target; the standard a-priori
+model-adequacy statistic is
 
-`IDENTIFIABILITY ∈ [0, 1)`. It → 0 as the weakest edge becomes
-unidentifiable (`SE ≫ |K̂|`, e.g. noise-dominated or near phase-locked)
-and → 1 as every edge is sharply estimated (`SE ≪ |K̂|`). It is
-**scale-free** (ratio of like units), **monotone decreasing in the
-measurement-noise σ** (σ̂² ∝ σ² enters every `SE` linearly, numerator
-fixed) and **monotone increasing in record length** (`SE ∝ 1/√n_obs`
-under persistent excitation). It is derived from the model's Fisher
-information and residual noise floor — there is no fitted constant.
+    R² = 1 − SSR / SST ,  SSR = ‖y − D_std ĉ_std‖² ,
+         SST = ‖y − ȳ‖²                                          (5)
+
+Leg (B) is essential because leg (A) alone is **blind to bias**: after
+double differentiation, measurement noise can inflate both `|K̂_p|` and
+`SE(K̂_p)` so that `w_p` stays large while `K̂` is grossly wrong (the
+fit is confidently incorrect, not imprecise). `R²` detects exactly this:
+when the un-modelled residual dominates, `R² → 0` even though the
+per-coefficient Wald ratios remain finite.
+
+The scalar **identifiability score** combines both legs, each mapped
+into a bounded, monotone range and conjoined by the minimum (a chain is
+as strong as its weakest leg):
+
+    s_A = w_min / (1 + w_min)            (precision leg, ∈ [0, 1))
+    s_B = max(R², 0)                      (adequacy leg, ∈ [0, 1])
+    IDENTIFIABILITY = min(s_A, s_B)       (∈ [0, 1])              (6)
+
+`IDENTIFIABILITY` → 0 if *either* the weakest edge is variance-
+unidentifiable *or* the linear model fails to explain the data. It is
+**scale-free**, **monotone decreasing in measurement noise σ** (σ̂² ∝ σ²
+inflates every `SE` and drives `R² → 0`) and **monotone increasing in
+record length** (`SE ∝ 1/√n_obs` under persistent excitation). Both
+legs are derived from the linear Gaussian model's Fisher information
+and residual noise floor — there is no fitted constant.
 
 ## 3. REFUSE threshold (numerical + statistical theory)
 
-A coupling entry is **not statistically identifiable** when its
-two-sided 95 % Wald confidence interval contains zero, i.e.
+Two theory-derived REFUSE legs, **either** of which triggers REFUSE
+(fail-closed conjunctive trust — the gate accepts only if both pass):
+
+**Leg A — precision floor.** A coupling entry is not statistically
+identifiable when its two-sided 95 % Wald confidence interval contains
+zero, i.e.
 
     |K̂_p|  ≤  z_{0.975} · SE(K̂_p) ,    z_{0.975} = 1.959963984540054
 
 (standard-normal 0.975 quantile; large-sample Wald CI for the linear
 Gaussian model). Equivalently `w_p ≤ z_{0.975}`. Mapping the binding
-edge through (5), the REFUSE region is
+edge through `s_A`, the precision-REFUSE level is
 
-    IDENTIFIABILITY  <  REFUSE_SCORE
+    s_A  <  REFUSE_SCORE
     REFUSE_SCORE  =  z / (1 + z)  with  z = 1.959963984540054
-                  =  0.6621429206633470…                          (6)
+                  =  0.6621580515090663…                          (7)
 
-i.e. the front-gate REFUSES exactly when the weakest coupling entry's
-95 % CI straddles zero (the estimate is statistically indistinguishable
-from "no edge"). This is the canonical "estimate is not separable from
-its own uncertainty" boundary; it is the smallest theory point at which
-a point estimate is *misleading rather than imprecise*.
+i.e. REFUSE when the weakest coupling entry's 95 % CI straddles zero.
+
+**Leg B — adequacy floor.** The linear swing identity is exact in the
+noiseless limit. Information about the coupling survives only while the
+*explained* variance is at least the *unexplained* variance — once the
+un-modelled residual dominates, no estimator (biased or unbiased) can
+recover `K`. The canonical "signal at least as large as noise" boundary
+is therefore
+
+    R²  <  R2_FLOOR  =  0.5                                       (8)
+
+`R² = ½` is exactly `SSR = SST/2` (explained = unexplained). This is
+the same ½-information argument as the √eps mantissa floor (7): below
+it more than half the target variance is noise. `R2_FLOOR` is a fixed
+theory constant, **not** fitted to any calibration value.
+
+Because `IDENTIFIABILITY = min(s_A, s_B)` and `s_B = max(R², 0)`, the
+single REFUSE rule is
+
+    IDENTIFIABILITY  <  REFUSE_SCORE  with  REFUSE_SCORE = z/(1+z)
+
+provided `R2_FLOOR ≤ REFUSE_SCORE` (0.5 ≤ 0.662 ✓): any `R² < 0.5`
+forces `s_B < 0.5 < REFUSE_SCORE`, so the adequacy failure alone trips
+the same threshold. The gate is thus a single bounded comparison while
+remaining the conjunction of the precision and adequacy legs. It is the
+smallest theory point at which a point estimate is *misleading rather
+than imprecise*.
 
 Conjoined numerical floor (kept as the **hard** fail, unchanged from the
 merged code): the reciprocal condition number of `D_std` below
 
-    PE_HARD_FLOOR  =  sqrt(eps_float64)  =  1.4901161193847656e-08    (7)
+    PE_HARD_FLOOR  =  sqrt(eps_float64)  =  1.4901161193847656e-08    (9)
 
 means the linear solve has lost more than half of the float64 mantissa
 (`eps ≈ 2.22e-16`; losing ½ the 52-bit mantissa ⇒ relative error
