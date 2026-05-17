@@ -15,13 +15,13 @@ here; this module just orchestrates and serialises (fail-closed).
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import platform
 import sys
 from pathlib import Path
 from typing import Any
 
+from ._substrate import FROZEN_PREREG_SHA, PARENT_LEDGER_SHA256, branch_sha, ledger_sha256
 from .calibration import SimConfig, run_calibration
 from .gates import (
     NOISELESS_GATES,
@@ -41,15 +41,7 @@ _SYSTEMS: dict[str, Any] = {
 
 def _branch_sha() -> str:
     """Best-effort current commit sha for the ledger provenance field."""
-    head = Path(__file__).resolve().parents[3] / ".git" / "HEAD"
-    try:
-        ref = head.read_text(encoding="utf-8").strip()
-        if ref.startswith("ref:"):
-            ref_path = head.parent / ref.split(" ", 1)[1]
-            return ref_path.read_text(encoding="utf-8").strip()
-        return ref
-    except OSError:
-        return "unknown"
+    return branch_sha(Path(__file__).resolve().parents[3])
 
 
 def build_ledger(system: GridSystem, cfg: SimConfig) -> dict[str, Any]:
@@ -93,13 +85,8 @@ def build_ledger(system: GridSystem, cfg: SimConfig) -> dict[str, Any]:
         "failed_gates": failed,
         "localized_refinement_targets": sorted({g.localises_to for g in all_gates if not g.passed}),
     }
-    payload = json.dumps(ledger, sort_keys=True).encode("utf-8")
-    ledger["ledger_sha256"] = hashlib.sha256(payload).hexdigest()
+    ledger["ledger_sha256"] = ledger_sha256(ledger)
     return ledger
-
-
-_FROZEN_PREREG_SHA = "d170d48afa5066c13edeb40b2c1904b3fd708516"
-_PARENT_LEDGER_SHA256 = "ed8d409b7b222eb053572d6bf9ab6e98c5f4918be1cae384864733a2b4d72aaf"
 
 
 def build_r1_ledger(system: GridSystem, cfg: SimConfig) -> dict[str, Any]:
@@ -126,8 +113,8 @@ def build_r1_ledger(system: GridSystem, cfg: SimConfig) -> dict[str, Any]:
         "kind": "external-ground-truth-calibration",
         "is_hypothesis": False,
         "r1_scope": "estimator-only change (second-order swing path)",
-        "frozen_preregistration_sha": _FROZEN_PREREG_SHA,
-        "parent_ledger_sha256": _PARENT_LEDGER_SHA256,
+        "frozen_preregistration_sha": FROZEN_PREREG_SHA,
+        "parent_ledger_sha256": PARENT_LEDGER_SHA256,
         "system": system.name,
         "citation": system.citation,
         "estimator": (
@@ -158,8 +145,7 @@ def build_r1_ledger(system: GridSystem, cfg: SimConfig) -> dict[str, Any]:
         "failed_gates": failed,
         "localized_refinement_targets": sorted({g.localises_to for g in all_gates if not g.passed}),
     }
-    payload = json.dumps(ledger, sort_keys=True).encode("utf-8")
-    ledger["ledger_sha256"] = hashlib.sha256(payload).hexdigest()
+    ledger["ledger_sha256"] = ledger_sha256(ledger)
     return ledger
 
 
