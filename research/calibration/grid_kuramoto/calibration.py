@@ -36,6 +36,7 @@ from core.kuramoto.contracts import PhaseMatrix
 from core.kuramoto.coupling_estimator import (
     CouplingEstimationConfig,
     CouplingEstimator,
+    estimate_swing_coupling,
 )
 from core.kuramoto.second_order import SecondOrderKuramotoEngine
 
@@ -52,6 +53,7 @@ __all__ = [
     "ground_truth",
     "simulate_phases",
     "recover_coupling",
+    "recover_coupling_swing",
     "score_recovery",
     "run_calibration",
 ]
@@ -243,6 +245,60 @@ def recover_coupling(
     return k_hat, np.asarray(omega_hat, dtype=np.float64)
 
 
+def recover_coupling_swing(
+    phases: PhaseMatrix,
+    system: GridSystem,
+    cfg: SimConfig,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    r"""CALIB-GRID-001 R1 — recover ``(K_hat, omega_hat)`` via the swing path.
+
+    Feeds the same frozen trajectory into the second-order identification
+    path :func:`core.kuramoto.coupling_estimator.estimate_swing_coupling`.
+    The published machine constants (``system.inertia``, ``system.damping``)
+    are the *known* swing parameters; coupling and injection are the
+    unknowns. ``omega_hat`` is the estimator's own ``ω = P̂ / d``
+    (mean-centred to the rotating reference gauge, matching the
+    ground-truth convention), so both halves of the inverse problem are
+    scored consistently.
+
+    The persistent-excitation guard is active (fail-closed): a
+    phase-locked / rank-deficient design raises
+    :class:`~core.kuramoto.coupling_estimator.PersistentExcitationError`
+    rather than emitting a misleading ``K̂``.
+
+    Two solver choices are *pre-committed on physics grounds* (not by
+    inspecting the frozen result, which would be a protocol violation):
+
+    * ``symmetric=True`` — a lossless power-network coupling is
+      physically symmetric (PREREGISTRATION § 2).
+    * Savitzky–Golay ``window=7, polyorder=4`` — the WSCC-9 / scale-8
+      swing response is *over-damped* (the relative rotor angles slew
+      monotonically to the locked state with no ringing — verified: no
+      zero-crossings of the detrended relative angle). An over-damped
+      monotone transient carries no high-frequency content to suppress,
+      so the *minimal-smoothing* SG stencil consistent with a degree-4
+      local fit (the smallest odd window > polyorder) is the
+      least-biased derivative. This is a stencil choice dictated by the
+      signal class, the analogue of "use the smallest consistent
+      finite-difference stencil", and is fixed independently of the
+      gate value.
+    """
+    est = estimate_swing_coupling(
+        phases,
+        np.asarray(system.inertia, dtype=np.float64),
+        np.asarray(system.damping, dtype=np.float64),
+        dt=cfg.dt,
+        symmetric=True,
+        savgol_window=7,
+        savgol_polyorder=4,
+        pe_guard=True,
+    )
+    k_hat = np.asarray(est.K, dtype=np.float64)
+    omega_hat = np.asarray(est.omega, dtype=np.float64)
+    omega_hat = omega_hat - float(np.mean(omega_hat))
+    return k_hat, np.asarray(omega_hat, dtype=np.float64)
+
+
 def _topology_f1(
     k_true: NDArray[np.float64],
     k_hat: NDArray[np.float64],
@@ -346,11 +402,27 @@ def run_calibration(
     cfg: SimConfig,
     *,
     noisy: bool,
+    estimator_path: str = "first_order",
 ) -> CalibrationMetrics:
-    """End-to-end one-regime calibration: simulate → recover → score."""
+    """End-to-end one-regime calibration: simulate → recover → score.
+
+    ``estimator_path`` selects the inverse machinery:
+
+    * ``"first_order"`` (default) — the frozen CALIB-GRID-001 path
+      (``coupling_estimator`` MCP row regression). Unchanged so the
+      pre-registered NEGATIVE artifact and its tests stay bit-stable.
+    * ``"swing"`` — the CALIB-GRID-001 R1 second-order identification
+      path (:func:`recover_coupling_swing`). Estimator-only change; the
+      simulation, seeds, σ, θ₀ perturbation and gates are identical.
+    """
+    if estimator_path not in ("first_order", "swing"):
+        raise ValueError(f"estimator_path must be 'first_order' or 'swing'; got {estimator_path!r}")
     regime = "noisy" if noisy else "noiseless"
     run_cfg = cfg if noisy else replace(cfg, noise_sigma=0.0)
     k_true, omega_true = ground_truth(system, run_cfg.coupling_scale)
     phases, _ = simulate_phases(system, k_true, omega_true, run_cfg)
-    k_hat, omega_hat = recover_coupling(phases, run_cfg)
+    if estimator_path == "swing":
+        k_hat, omega_hat = recover_coupling_swing(phases, system, run_cfg)
+    else:
+        k_hat, omega_hat = recover_coupling(phases, run_cfg)
     return score_recovery(k_true, omega_true, k_hat, omega_hat, regime, run_cfg)
