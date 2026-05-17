@@ -60,3 +60,12 @@ def test_oos_auc_in_unit_interval(result: dict[str, object]) -> None:
     o = result["oracle"]
     assert isinstance(o, dict)
     assert 0.0 <= float(o["oos_auc"]) <= 1.0  # type: ignore[arg-type]
+
+
+def test_metric_policy_split_is_claim_neutral(result: dict[str, object]) -> None:
+    """No-claim-change guarantee: extracting _discriminability from the
+    inline fold must NOT move the C5 number or verdict (pure refactor)."""
+    o = result["oracle"]
+    assert isinstance(o, dict)
+    assert abs(float(o["oos_auc"]) - 0.9629629629629629) < 1e-15  # byte-identical
+    assert result["verdict"] == c5.VERDICT_ESTIMATOR_QUALITY_GAP
