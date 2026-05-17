@@ -53,6 +53,7 @@ __all__ = [
     "SwingCouplingEstimate",
     "estimate_coupling",
     "estimate_swing_coupling",
+    "estimate_swing_coupling_integral",
     "mcp_prox",
     "scad_prox",
     "soft_threshold",
@@ -927,6 +928,331 @@ def estimate_swing_coupling(
             for col, j in enumerate(others):
                 k_hat[i, j] = -coef[col]
             injection[i] = coef[-1]
+
+    # ω_i = P_i / d_i (over-damped reduction). Guard d_i = 0 explicitly.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        omega = np.where(d > 0.0, injection / np.where(d > 0.0, d, 1.0), 0.0)
+
+    return SwingCouplingEstimate(
+        K=np.asarray(k_hat, dtype=np.float64),
+        injection=np.asarray(injection, dtype=np.float64),
+        omega=np.asarray(omega, dtype=np.float64),
+        min_singular_ratio=float(worst_ratio),
+        identifiability=identifiability,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Integral / weak-form (test-function) swing identification — CALIB-GRID-002
+# ---------------------------------------------------------------------------
+#
+# The R1 path above forms the swing target ``m θ̈ + d θ̇`` by *double*
+# numerical differentiation of the phase (Savitzky–Golay ``deriv=2``).
+# Differentiation is a high-pass operator: it amplifies additive
+# measurement noise by ``∝ 1/Δt`` per derivative, so a second derivative
+# multiplies the noise PSD by ``ω⁴``. CALIB-GRID-001 R1 proved a swept
+# Savitzky–Golay verification could not push the σ=0.02 Frobenius error
+# below ≈0.61 at the frozen record length: no consistent *differential*
+# estimator exists there.
+#
+# This path is a legitimately different estimator class — the **weak /
+# integral form** (Messenger & Bortz, "Weak SINDy for partial
+# differential equations", J. Comput. Phys. 443 (2021) 110525; and
+# "Weak SINDy: Galerkin-based data-driven model selection", Multiscale
+# Model. Simul. 19(3) (2021) 1474). Pick a family of compactly
+# supported, ``C^{≥2}`` test functions ``φ_k(t)`` (each vanishing with
+# its first derivative at the window endpoints). Multiply the swing
+# identity by ``φ_k`` and integrate over the window. Integration by
+# parts moves *both* time derivatives off the noisy phase and onto the
+# analytically known test function:
+#
+#     ∫ φ_k · m_i θ̈_i dt =  m_i ∫ φ_k'' θ_i dt
+#     ∫ φ_k · d_i θ̇_i dt = −d_i ∫ φ_k'  θ_i dt
+#
+# (the boundary terms ``[φ_k θ̇]`` and ``[φ_k' θ]`` vanish because
+# ``φ_k = φ_k' = 0`` at the endpoints). The resulting linear system
+#
+#     m_i ∫ φ_k'' θ_i − d_i ∫ φ_k' θ_i
+#         = P_i ∫ φ_k + Σ_{j≠i} (−K_ij) ∫ φ_k sin(θ_i − θ_j)
+#
+# contains **only θ and the analytic derivatives of φ** — the phase is
+# never differentiated. Integration is a *low-pass* operator: the
+# quadrature ``∫ φ_k η dt`` of zero-mean measurement noise ``η`` has
+# variance ``∝ σ² ‖φ_k‖² Δt`` and *averages noise down*, the exact
+# opposite of the ``ω⁴`` blow-up of double differentiation. This is the
+# documented noise-propagation advantage and the reason the class is
+# different, not merely a re-tuned differential estimator.
+
+
+def _test_function_stencil(
+    half: int,
+    bump_order: int,
+    dt: float,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+    r"""Compact ``C^{bump_order-1}`` test function ``φ`` and ``φ'``, ``φ''``.
+
+    The canonical Messenger–Bortz weak-form test function is the
+    bump ``φ(s) = (1 - s²)^p`` on the reference interval ``s ∈ [-1, 1]``
+    (``s = 0`` at the window centre). For ``p = bump_order ≥ 2`` it is
+    ``C^{p-1}`` and ``φ = φ' = 0`` at ``s = ±1``, so the integration-by-
+    parts boundary terms vanish exactly. The reference-interval
+    derivatives are mapped to physical time by the chain rule with
+    ``ds/dt = 1/(half·dt)`` (``half`` samples = half-window in steps):
+
+    .. math::
+
+        \varphi(s)   &= (1-s^2)^p \\
+        \varphi'(s)  &= -2 p\, s\,(1-s^2)^{p-1} \\
+        \varphi''(s) &= -2 p\,(1-s^2)^{p-1}
+                        + 4 p (p-1)\, s^2 (1-s^2)^{p-2}
+
+    Parameters
+    ----------
+    half : int
+        Half-window length in samples; the stencil has ``2·half + 1``
+        points. Must be ``≥ 2``.
+    bump_order : int
+        Polynomial power ``p`` of the bump (``≥ 2`` ⇒ ``φ`` is at least
+        ``C¹`` so the boundary terms vanish and ``φ''`` is finite).
+    dt : float
+        Physical sampling interval (used by the chain rule so the
+        returned ``φ'``, ``φ''`` are derivatives w.r.t. *time*).
+
+    Returns
+    -------
+    phi, dphi, d2phi : np.ndarray
+        Length ``2·half + 1`` arrays: the test function and its first
+        and second time derivatives, sampled on the stencil.
+    """
+    p = bump_order
+    s = np.arange(-half, half + 1, dtype=np.float64) / float(half)
+    one_minus = 1.0 - s**2
+    phi = one_minus**p
+    # Pin the endpoints to exactly zero (float round-off otherwise leaves
+    # ~1e-300 there and would re-introduce a boundary term).
+    phi[0] = 0.0
+    phi[-1] = 0.0
+    dphi_ds = -2.0 * p * s * one_minus ** (p - 1)
+    d2phi_ds2 = -2.0 * p * one_minus ** (p - 1) + 4.0 * p * (p - 1) * s**2 * one_minus ** (p - 2)
+    inv = 1.0 / (float(half) * dt)
+    dphi = dphi_ds * inv
+    d2phi = d2phi_ds2 * (inv * inv)
+    return (
+        np.asarray(phi, dtype=np.float64),
+        np.asarray(dphi, dtype=np.float64),
+        np.asarray(d2phi, dtype=np.float64),
+    )
+
+
+def estimate_swing_coupling_integral(
+    phases: PhaseMatrix,
+    inertia: NDArray[np.float64],
+    damping: NDArray[np.float64],
+    *,
+    dt: float,
+    test_support: int = 400,
+    n_windows: int = 120,
+    bump_order: int = 6,
+    pe_min_singular_ratio: float = 1e-3,
+    pe_guard: bool = True,
+    identifiability_gate: bool = False,
+) -> SwingCouplingEstimate:
+    r"""Identify ``K_ij``, ``P_i``, ``ω_i`` by the **weak / integral form**.
+
+    A legitimately different estimator class from
+    :func:`estimate_swing_coupling` (CALIB-GRID-001 R1): the swing
+    identity is projected onto a family of compactly supported test
+    functions ``φ_k`` and **integrated**, so the phase is never
+    differentiated. With ``φ_k = φ_k' = 0`` at every window endpoint,
+    integration by parts gives, per node ``i`` and window ``k``,
+
+    .. math::
+
+        m_i\!\int\!\varphi_k''\,\theta_i\,dt
+            \;-\; d_i\!\int\!\varphi_k'\,\theta_i\,dt
+        \;=\; P_i\!\int\!\varphi_k\,dt
+            \;+\;\sum_{j\neq i}(-K_{ij})\!
+            \int\!\varphi_k\,\sin(\theta_i-\theta_j)\,dt .
+
+    Only ``θ`` and the *analytic* derivatives of ``φ`` enter the design
+    — integration is a low-pass operator (the quadrature of zero-mean
+    noise has variance ``∝ σ²‖φ_k‖²Δt`` and averages down) versus the
+    ``ω⁴`` high-pass amplification of the differential path's double
+    Savitzky–Golay derivative. Literature anchor: Messenger & Bortz,
+    *Weak SINDy*, J. Comput. Phys. 443 (2021) 110525 / Multiscale
+    Model. Simul. 19(3) (2021) 1474.
+
+    The solver is the symmetric joint least-squares (one shared
+    parameter per *unordered* edge ``K_{ij}=K_{ji}`` plus one injection
+    ``P_i`` per node) on the column-standardised global weak design, so
+    the result is a contract-identical :class:`SwingCouplingEstimate`
+    and interoperates unchanged with the merged identifiability
+    front-gate (``identifiability_gate=True``).
+
+    Parameters
+    ----------
+    phases : PhaseMatrix
+        Wrapped phase trajectory (the contract guarantees ``[0, 2π)``).
+    inertia, damping : np.ndarray
+        Per-node ``m_i > 0`` and ``d_i ≥ 0`` (length ``N``).
+    dt : float
+        Sampling interval matching ``phases.timestamps`` units.
+    test_support : int
+        Test-function window width in samples (``2·⌊support/2⌋+1`` after
+        rounding to an odd stencil). The integration window is the
+        low-pass cutoff: wider ⇒ stronger noise rejection, but it must
+        stay inside the excited transient. Default ``400``.
+    n_windows : int
+        Number of window placements (test functions) spread uniformly
+        over the trajectory; the global system has ``N·n_windows`` rows.
+    bump_order : int
+        Polynomial power ``p`` of the ``(1-s²)^p`` test function
+        (``≥ 2`` ⇒ ``C^{p-1}`` so the boundary terms vanish).
+    pe_min_singular_ratio : float
+        Minimum acceptable reciprocal condition number of the
+        standardised weak design. Below it the design is treated as
+        rank-deficient (phase-locked / under-excited input).
+    pe_guard : bool
+        If ``True`` (default) a sub-threshold design raises
+        :class:`PersistentExcitationError` (fail-closed). If ``False``
+        the diagnostic is still reported but the estimate is returned
+        anyway — for diagnostic sweeps only.
+    identifiability_gate : bool
+        **Additive, opt-in** graded self-knowledge layer (default
+        ``False`` ⇒ behaviour bit-identical for the point estimate).
+        When ``True`` the linearised covariance of the *weak* design is
+        propagated into the same
+        :class:`~core.kuramoto.identifiability.IdentifiabilityReport`
+        the merged front-gate consumes, so the instrument's envelope is
+        reported in weak-form units.
+
+    Returns
+    -------
+    SwingCouplingEstimate
+        Signed symmetric ``K``, recovered injection ``P``, natural
+        frequency ``ω = P / d``, the reciprocal condition number of the
+        weak design and (when ``identifiability_gate``) the additive
+        :class:`~core.kuramoto.identifiability.IdentifiabilityReport`.
+
+    Raises
+    ------
+    ValueError
+        On contract violations (shape / sign / ``dt`` / window) —
+        fail-closed, no silent repair.
+    PersistentExcitationError
+        When ``pe_guard`` is set and the weak design is rank-deficient.
+    """
+    if dt <= 0.0:
+        raise ValueError("dt must be > 0")
+    if not 0.0 < pe_min_singular_ratio < 1.0:
+        raise ValueError("pe_min_singular_ratio must lie in (0, 1)")
+    if bump_order < 2:
+        raise ValueError("bump_order must be ≥ 2 (need a finite, C¹ test function)")
+    if n_windows < 1:
+        raise ValueError("n_windows must be ≥ 1")
+
+    theta_wrapped = np.asarray(phases.theta, dtype=np.float64)
+    t_len, n = theta_wrapped.shape
+    m = np.asarray(inertia, dtype=np.float64)
+    d = np.asarray(damping, dtype=np.float64)
+    if m.shape != (n,) or d.shape != (n,):
+        raise ValueError(f"inertia and damping must both have shape ({n},)")
+    if not np.all(np.isfinite(m)) or not np.all(np.isfinite(d)):
+        raise ValueError("inertia and damping must be finite")
+    if np.any(m <= 0.0):
+        raise ValueError("inertia must be strictly positive")
+    if np.any(d < 0.0):
+        raise ValueError("damping must be non-negative")
+
+    if test_support < 5:
+        raise ValueError("test_support must be ≥ 5 samples")
+    half = min(test_support, t_len - 1) // 2
+    if half < 2:
+        raise ValueError(
+            f"test_support {test_support} too large for trajectory length {t_len} "
+            f"(need at least one full window inside the record)"
+        )
+
+    # The phase enters the integrals *unwrapped* (the wrapped jumps are
+    # not physical); φ never differentiates it — that is the whole point.
+    theta = np.unwrap(theta_wrapped, axis=0)
+    phi, dphi, d2phi = _test_function_stencil(half, bump_order, dt)
+
+    # Uniformly placed window centres (clipped so every window fits).
+    lo, hi = half, t_len - half - 1
+    if hi <= lo:
+        raise ValueError(f"trajectory length {t_len} too short for support {2 * half + 1}")
+    centres = np.unique(np.linspace(lo, hi, n_windows).astype(np.int64))
+    n_w = int(centres.size)
+
+    edges = [(a, b) for a in range(n) for b in range(a + 1, n)]
+    n_edge = len(edges)
+    edge_index = {e: p for p, e in enumerate(edges)}
+    n_param = n_edge + n
+
+    design = np.zeros((n * n_w, n_param), dtype=np.float64)
+    target = np.zeros(n * n_w, dtype=np.float64)
+    int_phi = float(np.trapezoid(phi, dx=dt))
+    for i in range(n):
+        for wi in range(n_w):
+            c = int(centres[wi])
+            row = i * n_w + wi
+            sl = slice(c - half, c + half + 1)
+            theta_i = theta[sl, i]
+            # Weak target: m_i ∫φ'' θ_i − d_i ∫φ' θ_i  (no phase deriv).
+            target[row] = m[i] * float(np.trapezoid(d2phi * theta_i, dx=dt)) - d[i] * float(
+                np.trapezoid(dphi * theta_i, dx=dt)
+            )
+            for j in range(n):
+                if j == i:
+                    continue
+                a, b = (i, j) if i < j else (j, i)
+                col = edge_index[(a, b)]
+                sin_ij = np.sin(theta[sl, i] - theta[sl, j])
+                # y = P_i ∫φ + Σ(−K_ij) ∫φ sin(θ_i−θ_j); the design
+                # column is the coefficient of (−K_{ij}).
+                design[row, col] += float(np.trapezoid(phi * sin_ij, dx=dt))
+            design[row, n_edge + i] = int_phi
+
+    scale = design.std(axis=0, ddof=0)
+    # bounds: a fully constant column (degenerate edge) keeps unit scale
+    # so the PE diagnostic flags it rather than dividing by zero.
+    scale_safe = np.where(scale > 1e-12, scale, 1.0)
+    design_std = design / scale_safe
+
+    worst_ratio = _singular_ratio(design_std)
+    if pe_guard and worst_ratio < pe_min_singular_ratio:
+        raise PersistentExcitationError(-1, worst_ratio, pe_min_singular_ratio)
+
+    coef_std, *_ = np.linalg.lstsq(design_std, target, rcond=None)
+    coef = coef_std / scale_safe
+
+    k_hat = np.zeros((n, n), dtype=np.float64)
+    for p_idx, (a, b) in enumerate(edges):
+        k_ab = -float(coef[p_idx])  # K = −(design coefficient)
+        k_hat[a, b] = k_ab
+        k_hat[b, a] = k_ab
+    injection = np.asarray(coef[n_edge:], dtype=np.float64)
+
+    identifiability: IdentifiabilityReport | None = None
+    if identifiability_gate:
+        # Reuse the *exact* weak design_std / target / coef_std / scale
+        # already solved — point estimate untouched (additive layer).
+        edge_se, residual_var, r_squared = linearised_edge_covariance(
+            np.asarray(design_std, dtype=np.float64),
+            np.asarray(target, dtype=np.float64),
+            np.asarray(coef_std, dtype=np.float64),
+            np.asarray(scale_safe, dtype=np.float64),
+            n_edge,
+        )
+        identifiability = front_gate_verdict(
+            k_hat,
+            edges,
+            edge_se,
+            worst_ratio,
+            residual_var,
+            r_squared,
+        )
 
     # ω_i = P_i / d_i (over-damped reduction). Guard d_i = 0 explicitly.
     with np.errstate(divide="ignore", invalid="ignore"):
