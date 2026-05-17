@@ -21,7 +21,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from ._substrate import FROZEN_PREREG_SHA, PARENT_LEDGER_SHA256, branch_sha, ledger_sha256
+from ._substrate import (
+    FROZEN_PREREG_SHA,
+    PARENT_LEDGER_SHA256,
+    branch_sha,
+    ledger_sha256,
+    overall_verdict_amended,
+)
 from .calibration import SimConfig, run_calibration
 from .gates import (
     NOISELESS_GATES,
@@ -31,7 +37,7 @@ from .gates import (
 )
 from .grid_data import GridSystem, ieee_39_new_england, wscc_9_bus
 
-__all__ = ["build_ledger", "build_r1_ledger", "main"]
+__all__ = ["build_amended_ledger", "build_ledger", "build_r1_ledger", "main"]
 
 _SYSTEMS: dict[str, Any] = {
     "wscc9": wscc_9_bus,
@@ -149,6 +155,80 @@ def build_r1_ledger(system: GridSystem, cfg: SimConfig) -> dict[str, Any]:
     return ledger
 
 
+def build_amended_ledger(system: GridSystem, cfg: SimConfig) -> dict[str, Any]:
+    """Forward-only lineage #6 ledger under PRE-REGISTRATION-AMENDMENT-001.
+
+    This is a **new, forward-only** lineage artifact. It runs the R1
+    swing-aware path on the frozen configuration, evaluates the *frozen*
+    gates (read, never redefined — no threshold value is touched), then
+    partitions the verdict with :func:`overall_verdict_amended`: the two
+    ``noisy.*`` gates the CALIB-GRID-002 sha-pinned NEGATIVE proved are
+    information-theoretically unreachable are emitted as the distinct
+    zero-bit state ``INFEASIBLE_BY_CONSTRUCTION`` (not PASS, not FAIL)
+    and the overall verdict is computed over the remaining genuine
+    pass/fail gates only.
+
+    It does **not** recompute, overwrite or rewrite any merged
+    CALIB-GRID-001 / R1 / CALIB-GRID-002 ``RESULTS.json`` — those stay
+    byte-frozen with their historical NEGATIVE + FAIL. ``build_ledger``
+    / ``build_r1_ledger`` are untouched and still reproduce the exact
+    historical bytes.
+    """
+    noiseless = run_calibration(system, cfg, noisy=False, estimator_path="swing")
+    noisy = run_calibration(system, cfg, noisy=True, estimator_path="swing")
+    all_gates = evaluate_gates(noiseless, NOISELESS_GATES) + evaluate_gates(noisy, NOISY_GATES)
+    amended_verdict, per_gate_state = overall_verdict_amended(all_gates)
+
+    genuine_failed = [
+        g.to_dict()
+        for g in all_gates
+        if per_gate_state[g.name] not in ("INFEASIBLE_BY_CONSTRUCTION", "PASS")
+    ]
+    ledger: dict[str, Any] = {
+        "artifact": "CALIB-GRID-001",
+        "lineage": "AMENDED-001 (forward-only, PRE-REGISTRATION-AMENDMENT-001)",
+        "kind": "external-ground-truth-calibration",
+        "is_hypothesis": False,
+        "is_science_claim": False,
+        "amends_preregistration_sha": FROZEN_PREREG_SHA,
+        "amendment": "PREREGISTRATION-AMENDMENT-001",
+        "amendment_cross_reference": "SUPERSESSIONS.yaml::SUPERSEDE-001",
+        "system": system.name,
+        "citation": system.citation,
+        "estimator": (
+            "core.kuramoto.coupling_estimator.estimate_swing_coupling "
+            "(R1 swing path; gates read not redefined)"
+        ),
+        "branch_sha": _branch_sha(),
+        "python": platform.python_version(),
+        "config": {
+            "coupling_scale": cfg.coupling_scale,
+            "dt": cfg.dt,
+            "steps": cfg.steps,
+            "keep_frac": cfg.keep_frac,
+            "theta0_perturb": cfg.theta0_perturb,
+            "seed": cfg.seed,
+            "noise_sigma": cfg.noise_sigma,
+            "lambda_reg": cfg.lambda_reg,
+            "penalty": cfg.penalty,
+            "topology_rel_threshold": cfg.topology_rel_threshold,
+        },
+        "metrics": {
+            "noiseless": noiseless.to_dict(),
+            "noisy": noisy.to_dict(),
+        },
+        "gates": [g.to_dict() for g in all_gates],
+        "per_gate_state": per_gate_state,
+        "verdict": amended_verdict,
+        "failed_gates": genuine_failed,
+        "infeasible_by_construction_gates": sorted(
+            n for n, s in per_gate_state.items() if s == "INFEASIBLE_BY_CONSTRUCTION"
+        ),
+    }
+    ledger["ledger_sha256"] = ledger_sha256(ledger)
+    return ledger
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point. Returns 0 on PASS, 1 on NEGATIVE (fail-closed)."""
     parser = argparse.ArgumentParser(description="CALIB-GRID-001 runner")
@@ -167,6 +247,16 @@ def main(argv: list[str] | None = None) -> int:
             "identifier; new pre-registered lineage, own gates)"
         ),
     )
+    parser.add_argument(
+        "--amended",
+        action="store_true",
+        help=(
+            "run the forward-only lineage #6 under "
+            "PRE-REGISTRATION-AMENDMENT-001 (noisy.* gates reclassified "
+            "to INFEASIBLE_BY_CONSTRUCTION; does NOT recompute frozen "
+            "artifacts)"
+        ),
+    )
     args = parser.parse_args(argv)
 
     system = _SYSTEMS[args.system]()
@@ -175,6 +265,8 @@ def main(argv: list[str] | None = None) -> int:
         from .cg002 import build_cg002_ledger
 
         ledger = build_cg002_ledger(system, cfg)
+    elif args.amended:
+        ledger = build_amended_ledger(system, cfg)
     elif args.r1:
         ledger = build_r1_ledger(system, cfg)
     else:
