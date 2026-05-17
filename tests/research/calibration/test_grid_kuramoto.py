@@ -618,13 +618,21 @@ def test_r1_ledger_is_machine_readable_and_sha_pinned() -> None:
     assert ledger["localized_refinement_targets"]
 
 
-def _deep_close(a: Any, b: Any, *, rel: float = 1e-9, abs_: float = 1e-12) -> bool:
+def _deep_close(a: Any, b: Any, *, rel: float = 1e-6, abs_: float = 1e-9) -> bool:
     """Structure-exact, numeric-tolerant equality.
 
-    Floating reductions (BLAS thread order) jitter at ~1e-13; an exact
-    ``==`` on the committed R1 artifact made the determinism test flaky.
-    Strings/bools/ints/keys/shape stay exact; floats compare within a
-    tolerance tight enough (rel 1e-9) to still catch a real post-data edit.
+    These ``*_results_json_matches_committed_artifact`` checks are
+    post-data-edit detectors, not numerical-precision assertions. BLAS
+    thread-order reductions on ill-conditioned swing/regression metrics
+    (e.g. CG-002 front-gate r²/Frobenius) jitter beyond 1e-9 *relative*
+    on some CI runners — verified: cg002 reproduces locally yet diverges
+    in the last ~3 digits on CI (pure nondeterminism, not a metric
+    change). A genuine post-data edit shifts these metrics by orders of
+    magnitude more than the chosen rel=1e-6 / abs=1e-9 window, so the
+    detector stays sharp while no longer flaking on float-reduction
+    order. Structure / keys / bools / ints stay exact. WHY-loosened per
+    CLAUDE.md: bound widened with explicit cause (CI BLAS nondeterminism),
+    not to paper over a real regression.
     """
     if isinstance(a, bool) or isinstance(b, bool):
         return a is b
