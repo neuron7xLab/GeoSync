@@ -23,7 +23,7 @@ inert: true   # zero python, zero imports, not pytest-collected
 tombstones:
   - id: CALIB-GRID-001
     pr: 749
-    sha: 64ce6f55ca5fd39b2ae895be2c2ece2824b9eb4c
+    sha: 64ce6f55ca5fd39b2ae895be2c2ece2824b9eb4c  # pragma: allowlist secret
     artifact: research/calibration/grid_kuramoto/RESULTS.md
     born: >-
       The core.kuramoto.coupling_estimator recovers the signed coupling
@@ -41,7 +41,7 @@ tombstones:
 
   - id: CALIB-GRID-001-R1
     pr: 751
-    sha: a5527708833df308e67536aaa690b4f16e88dccd
+    sha: a5527708833df308e67536aaa690b4f16e88dccd  # pragma: allowlist secret
     artifact: research/calibration/grid_kuramoto/r1/RESULTS.md
     born: >-
       The swing-aware symmetric estimator closes the first-order /
@@ -58,7 +58,7 @@ tombstones:
       SNR floor. Recorded append-only in SUPERSESSIONS.yaml/.md
       (SUPERSEDE-001). The artifact is NOT edited.
     success_score: 0          # the causal CLAIM: zero (falsified forward)
-    superseded_by: e71d1915233283452f3fb219aafabd2f19035371
+    superseded_by: e71d1915233283452f3fb219aafabd2f19035371  # pragma: allowlist secret
     note: >-
       The engineering sub-result (first-order/antisymmetric defect
       closed, residual 15.9 -> 0.0) is real and survives; the
@@ -67,7 +67,7 @@ tombstones:
 
   - id: CALIB-GRID-002
     pr: 757
-    sha: e71d1915233283452f3fb219aafabd2f19035371
+    sha: e71d1915233283452f3fb219aafabd2f19035371  # pragma: allowlist secret
     artifact: research/calibration/grid_kuramoto/cg002/RESULTS.md
     born: >-
       An integral / weak-form swing identifier that never double-
@@ -88,7 +88,7 @@ tombstones:
 
   - id: CALIB-GRID-noisy-INFEASIBLE
     pr: 764
-    sha: 65666072003ec51b14a1322944d2ec9508615b6e
+    sha: 65666072003ec51b14a1322944d2ec9508615b6e  # pragma: allowlist secret
     artifact: research/calibration/grid_kuramoto/PREREGISTRATION_AMENDMENT_001.md
     born: >-
       The two frozen sigma=0.02 gates (noisy.frobenius <=0.25,
@@ -107,10 +107,10 @@ tombstones:
 
   - id: CTC-FALSIFY-001
     pr: 750
-    sha: eb521856dcacd5349c9aaa7251df25f8bed3544d
+    sha: eb521856dcacd5349c9aaa7251df25f8bed3544d  # pragma: allowlist secret
     artifact: research/ctc_falsify/RESULTS.md
     consolidation_pr: 756
-    consolidation_sha: f8c70ba1cbcff860cbe01790a2793647a9a24c6d
+    consolidation_sha: f8c70ba1cbcff860cbe01790a2793647a9a24c6d  # pragma: allowlist secret
     born: >-
       Standard Communication-through-Coherence estimands recover a
       known toggleable directed A->B gamma-phase channel on a physics-
@@ -129,7 +129,7 @@ tombstones:
 
   - id: SYSTEMIC-RISK-interbank-phaselock
     pr: 557
-    sha: 7716a25bb64fc2418779d1eae692939d56fe76d3
+    sha: 7716a25bb64fc2418779d1eae692939d56fe76d3  # pragma: allowlist secret
     artifact: research/systemic_risk/VALIDATION.md
     born: >-
       Interbank phase-locking (Kuramoto order parameter on the interbank
