@@ -16,7 +16,6 @@ decision rule are **untouched** — CALIB-GRID-002 carries its own
 
 from __future__ import annotations
 
-import hashlib
 import json
 import platform
 from dataclasses import dataclass, field, replace
@@ -32,6 +31,14 @@ from core.kuramoto.coupling_estimator import (
 )
 from core.kuramoto.identifiability import PE_HARD_FLOOR, IdentifiabilityVerdict
 
+from .._substrate import (
+    FROZEN_PREREG_SHA,
+    PARENT_LEDGER_SHA256,
+    PREREG_BRANCH_BASE_SHA,
+    ledger_sha256,
+)
+from .._substrate import Gate as CG002Gate
+from .._substrate import topology_f1 as _topology_f1
 from ..calibration import SimConfig, ground_truth, simulate_phases
 from ..grid_data import GridSystem, wscc_9_bus
 
@@ -63,35 +70,6 @@ __all__ = [
 CG002_BUMP_ORDER: int = 6
 CG002_TEST_SUPPORT: int = 120
 CG002_N_WINDOWS: int = 400
-
-# audited: frozen parent pre-registration git sha, not a credential
-_FROZEN_PREREG_SHA = "d170d48afa5066c13edeb40b2c1904b3fd708516"  # pragma: allowlist secret
-# audited: parent calibration ledger content hash, not a credential
-_PARENT_LEDGER_SHA256 = (
-    "ed8d409b7b222eb053572d6bf9ab6e98c5f4918be1cae384864733a2b4d72aaf"  # pragma: allowlist secret
-)
-# audited: branch base sha that the pre-registration was committed off
-_PREREG_BRANCH_BASE_SHA = "a5e0d533b2201c999b31c792773e858f8da713bf"  # pragma: allowlist secret
-
-
-@dataclass(frozen=True)
-class CG002Gate:
-    """A single pre-registered numeric gate (mirror of the YAML)."""
-
-    name: str
-    metric_key: str
-    operator: str  # "<=" or ">="
-    threshold: float
-    localises_to: str
-
-    def check(self, observed: float) -> bool:
-        """Fail-closed comparison; unknown operator raises."""
-        if self.operator == "<=":
-            return observed <= self.threshold
-        if self.operator == ">=":
-            return observed >= self.threshold
-        raise ValueError(f"unknown operator {self.operator!r}")
-
 
 # --- Pre-registered, frozen. Mirror of PREREGISTRATION_002.yaml. ---------
 
@@ -245,27 +223,6 @@ def dcb_phase_cohesiveness_rel_error(
     if denom <= 0.0:
         return float("inf")
     return float(np.linalg.norm(coh_hat - coh_true) / denom)
-
-
-def _topology_f1(
-    k_true: NDArray[np.float64],
-    k_hat: NDArray[np.float64],
-    rel_threshold: float,
-) -> tuple[float, int, int]:
-    """Edge-support F1 of the thresholded recovered adjacency."""
-    n = k_true.shape[0]
-    off = ~np.eye(n, dtype=bool)
-    true_mask = (np.abs(k_true) > 0.0) & off
-    scale = float(np.max(np.abs(k_hat)))
-    if scale <= 0.0:
-        return 0.0, int(true_mask.sum()), 0
-    hat_mask = (np.abs(k_hat) > rel_threshold * scale) & off
-    tp = int((true_mask & hat_mask).sum())
-    fp = int((~true_mask & hat_mask).sum())
-    fn = int((true_mask & ~hat_mask).sum())
-    denom = 2 * tp + fp + fn
-    f1 = (2.0 * tp / denom) if denom > 0 else 1.0
-    return f1, int(true_mask.sum()), int(hat_mask.sum())
 
 
 @dataclass(frozen=True)
@@ -585,9 +542,9 @@ def build_cg002_ledger(
             "PR #751 (R1 differential swing)",
             "PR #755 (identifiability front-gate)",
         ],
-        "frozen_preregistration_sha": _FROZEN_PREREG_SHA,
-        "parent_ledger_sha256": _PARENT_LEDGER_SHA256,
-        "prereg_branch_base_sha": _PREREG_BRANCH_BASE_SHA,
+        "frozen_preregistration_sha": FROZEN_PREREG_SHA,
+        "parent_ledger_sha256": PARENT_LEDGER_SHA256,
+        "prereg_branch_base_sha": PREREG_BRANCH_BASE_SHA,
         "estimator": (
             "core.kuramoto.coupling_estimator.estimate_swing_coupling_integral "
             f"(weak/integral form, bump_order={CG002_BUMP_ORDER}, "
@@ -625,8 +582,7 @@ def build_cg002_ledger(
             "command in PROVENANCE_002.md § 4"
         ),
     }
-    payload = json.dumps(ledger, sort_keys=True).encode("utf-8")
-    ledger["ledger_sha256"] = hashlib.sha256(payload).hexdigest()
+    ledger["ledger_sha256"] = ledger_sha256(ledger)
     return ledger
 
 
