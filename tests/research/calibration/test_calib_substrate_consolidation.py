@@ -49,10 +49,11 @@ from research.calibration.grid_kuramoto.run import build_ledger, build_r1_ledger
 # excluded (exactly as the pre-existing _deep_close artifact tests do);
 # every other byte of every ledger must be reproduced unchanged.
 _GOLDEN_STRUCT_SHA: dict[str, str] = {
-    "base": "ba10ed1392f62a146e1040dc782c1097f65f17495b61f81c810d77048b751b1e",
-    "r1": "8315eb0a21bb411dd97b0d96134a9c3ba25c3eb7ca2db45cd121bc92ea05f8b4",
-    "cg002": "d0f89e24341b099598e2e5cc9809772ee2c47627f77bf3354f957fab860819b1",
-    "ident": "b3f8afa120f704e320c6b0144d3335680f6edae4347bccc27db264e66e018648",
+    # audited: deterministic ledger content hashes, not credentials
+    "base": "ba10ed1392f62a146e1040dc782c1097f65f17495b61f81c810d77048b751b1e",  # pragma: allowlist secret
+    "r1": "8315eb0a21bb411dd97b0d96134a9c3ba25c3eb7ca2db45cd121bc92ea05f8b4",  # pragma: allowlist secret
+    "cg002": "d0f89e24341b099598e2e5cc9809772ee2c47627f77bf3354f957fab860819b1",  # pragma: allowlist secret
+    "ident": "b3f8afa120f704e320c6b0144d3335680f6edae4347bccc27db264e66e018648",  # pragma: allowlist secret
 }
 
 
@@ -132,10 +133,15 @@ def test_both_swing_classes_bit_identical_through_shared_back_end() -> None:
     )
 
     # Frozen raw-byte hashes captured pre-refactor (origin/main).
-    assert hashlib.sha256(diff.K.tobytes()).hexdigest()[:16] == "9c1232742154b0bf"
-    assert hashlib.sha256(diff.injection.tobytes()).hexdigest()[:16] == "ae84ba5f46cf805f"
-    assert hashlib.sha256(intg.K.tobytes()).hexdigest()[:16] == "8af3560026ed4934"
-    assert hashlib.sha256(intg.injection.tobytes()).hexdigest()[:16] == "c60a9639b789a42a"
+    # audited: deterministic float64 content hashes, not credentials
+    exp_diff_k = "9c1232742154b0bf"  # pragma: allowlist secret
+    exp_diff_p = "ae84ba5f46cf805f"  # pragma: allowlist secret
+    exp_intg_k = "8af3560026ed4934"  # pragma: allowlist secret
+    exp_intg_p = "c60a9639b789a42a"  # pragma: allowlist secret
+    assert hashlib.sha256(diff.K.tobytes()).hexdigest()[:16] == exp_diff_k
+    assert hashlib.sha256(diff.injection.tobytes()).hexdigest()[:16] == exp_diff_p
+    assert hashlib.sha256(intg.K.tobytes()).hexdigest()[:16] == exp_intg_k
+    assert hashlib.sha256(intg.injection.tobytes()).hexdigest()[:16] == exp_intg_p
     assert diff.identifiability is not None and diff.identifiability.verdict.value == "REFUSE"
     assert intg.identifiability is not None and intg.identifiability.verdict.value == "REFUSE"
     # Symmetric solve ⇒ exactly symmetric K with zero diagonal.
