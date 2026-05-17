@@ -23,6 +23,17 @@ from .calibration import (
     score_recovery,
     simulate_phases,
 )
+from .cg002 import (
+    CG002_NOISELESS_GATES,
+    CG002_NOISY_GATES,
+    CG002_THEOREM_GATE,
+    CG002Metrics,
+    build_cg002_ledger,
+    dcb_phase_cohesiveness_rel_error,
+    null_battery_fpr,
+    recover_coupling_integral,
+    run_cg002_calibration,
+)
 from .gates import (
     NOISELESS_GATES,
     NOISY_GATES,
@@ -60,4 +71,13 @@ __all__ = [
     "ieee_39_new_england",
     "natural_frequency_from_injection",
     "wscc_9_bus",
+    "CG002_NOISELESS_GATES",
+    "CG002_NOISY_GATES",
+    "CG002_THEOREM_GATE",
+    "CG002Metrics",
+    "build_cg002_ledger",
+    "dcb_phase_cohesiveness_rel_error",
+    "null_battery_fpr",
+    "recover_coupling_integral",
+    "run_cg002_calibration",
 ]

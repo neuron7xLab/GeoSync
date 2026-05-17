@@ -173,11 +173,26 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="run the R1 refinement lineage (swing-aware estimator path)",
     )
+    parser.add_argument(
+        "--cg002",
+        action="store_true",
+        help=(
+            "run the CALIB-GRID-002 lineage (integral/weak-form swing "
+            "identifier; new pre-registered lineage, own gates)"
+        ),
+    )
     args = parser.parse_args(argv)
 
     system = _SYSTEMS[args.system]()
     cfg = SimConfig()
-    ledger = build_r1_ledger(system, cfg) if args.r1 else build_ledger(system, cfg)
+    if args.cg002:
+        from .cg002 import build_cg002_ledger
+
+        ledger = build_cg002_ledger(system, cfg)
+    elif args.r1:
+        ledger = build_r1_ledger(system, cfg)
+    else:
+        ledger = build_ledger(system, cfg)
 
     text = json.dumps(ledger, indent=2, sort_keys=True)
     if args.out is not None:
