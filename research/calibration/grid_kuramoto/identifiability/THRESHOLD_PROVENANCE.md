@@ -116,11 +116,30 @@ as strong as its weakest leg):
 
 `IDENTIFIABILITY` → 0 if *either* the weakest edge is variance-
 unidentifiable *or* the linear model fails to explain the data. It is
-**scale-free**, **monotone decreasing in measurement noise σ** (σ̂² ∝ σ²
-inflates every `SE` and drives `R² → 0`) and **monotone increasing in
-record length** (`SE ∝ 1/√n_obs` under persistent excitation). Both
-legs are derived from the linear Gaussian model's Fisher information
-and residual noise floor — there is no fitted constant.
+**scale-free** and both legs are derived from the linear Gaussian
+model's Fisher information and residual noise floor — there is no
+fitted constant.
+
+**Monotonicity scope (empirically corrected, no-peek-safe).** The
+adequacy leg is **not** a globally monotone function of σ. Because the
+swing target `y = m θ̈ + d θ̇` is itself a *differentiated* signal,
+additive phase noise inflates **both** the residual `SSR` *and* the
+total `SST`, so `R² = 1 − SSR/SST` collapses sharply away from σ = 0
+and then merely *fluctuates inside a low noise-dominated floor* — it
+does not decrease strictly. The defensible, verified property — and the
+only one the reliability contract needs — is the **coarse separation**:
+
+* at σ = 0 (and the noiseless calibration case) the score is **high**
+  and **above** `REFUSE_SCORE` (ACCEPT);
+* for any non-trivial measurement noise the score **collapses below**
+  `REFUSE_SCORE` (REFUSE) and stays there.
+
+Correcting this over-claim changes **no threshold and no constant**
+(`REFUSE_SCORE = z/(1+z)`, `R2_FLOOR = ½` are untouched); it only
+restates the monotonicity property to what is empirically true, before
+any RESULTS were produced. The record-length property holds in the
+expected direction (a longer matched record under persistent excitation
+does not push an ACCEPT into REFUSE) and is asserted as such.
 
 ## 3. REFUSE threshold (numerical + statistical theory)
 
