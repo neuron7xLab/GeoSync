@@ -145,3 +145,38 @@ tombstones:
       Recorded to prevent promotion of a verified MACHINE into a
       verified FINDING. The instrument tiering lives in HONORS.md; the
       claim's zero lives here.
+
+  - id: CALIB-F3
+    pr: 770
+    sha: 9c8f53960000000000000000000000000000000000000000000000000000000  # pragma: allowlist secret  (diagnosis-bearing tree anchor, not a credential)
+    artifact: research/calibration/grid_kuramoto/_deterministic.py
+    audit_pr: 762
+    consolidation_pr: 759
+    born: >-
+      The calibration-ledger reproduction nondeterminism is
+      thread/BLAS-reduction-order noise, therefore removable by pinning
+      native pools to one thread + a fixed reduction order, after which
+      the ledger is bit-identical across CI runners and the reproduction
+      epsilon can be tightened to bit-exact.
+    cause_of_death: >-
+      Falsified by direct measurement. numpy/scipy each bundle a private
+      static libscipy_openblas64 built DYNAMIC_ARCH; OpenBLAS dispatches
+      a CPU-micro-architecture micro-kernel at load (host-CPU property,
+      not thread-pool). Single-thread (OMP=1, OPENBLAS=1), only
+      OPENBLAS_CORETYPE varied over six kernels: worst-case pinned-metric
+      relative divergence 2.20e-9 (cg002 front_gate_score); pure-numpy
+      reductions bit-identical. In-process bit-exact cross-runner
+      reproduction is infeasible without re-linking BLAS.
+    success_score: 0          # forced cross-runner bit-exactness: zero (proven infeasible)
+    regime_split: >-
+      Historical sha-pinned ledgers born under the OLD nondeterministic
+      regime are NOT recomputed / overwritten / retro-claimed bit-exact;
+      reproduced at LEGACY_REL_TOL=1e-6. Forward computations run under
+      the harness at the derived FORWARD_REL_TOL=1e-8
+      (=ceil_decade(2.20e-9 x 4.5)), 100x tighter. Mirrors the F2
+      amendment / SUPERSEDE-001 discipline.
+    note: >-
+      Proven impossibility, not hidden failure. The zero IS the result.
+      Honest second-best shipped: single-thread deterministic harness
+      (same-CPU bit-identical, verified N=5x) + derived forward bound +
+      forcing test. Explicitly NOT promoted to HONORS.md.
