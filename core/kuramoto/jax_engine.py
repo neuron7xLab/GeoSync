@@ -16,6 +16,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 import numpy as np
 
@@ -42,7 +43,7 @@ _logger = logging.getLogger(__name__)
 
 if JAX_AVAILABLE:
 
-    @jit  # type: ignore[misc]
+    @jit  # type: ignore[misc, unused-ignore]
     def _jax_dtheta_dt(
         theta: jnp.ndarray,
         omega: jnp.ndarray,
@@ -53,7 +54,7 @@ if JAX_AVAILABLE:
         coupling = (adj * jnp.sin(diff)).sum(axis=1)
         return omega + coupling
 
-    @jit  # type: ignore[misc]
+    @jit  # type: ignore[misc, unused-ignore]
     def _jax_rk4_step(
         theta: jnp.ndarray,
         omega: jnp.ndarray,
@@ -65,9 +66,14 @@ if JAX_AVAILABLE:
         k2 = _jax_dtheta_dt(theta + 0.5 * dt * k1, omega, adj)
         k3 = _jax_dtheta_dt(theta + 0.5 * dt * k2, omega, adj)
         k4 = _jax_dtheta_dt(theta + dt * k3, omega, adj)
-        return theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+        # ``_jax_dtheta_dt`` is wrapped by ``@jit``; ``JitWrapped.__call__``
+        # is typed as returning ``Any`` (jax has no array-precise jit stub),
+        # so this pure-array RK4 combination loses its static type. The
+        # declared ``jnp.ndarray`` contract is correct at runtime — cast to
+        # restore it without widening or suppressing the real signal.
+        return cast("jnp.ndarray", theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4))
 
-    @jit  # type: ignore[misc]
+    @jit  # type: ignore[misc, unused-ignore]
     def _jax_order_parameter(theta: jnp.ndarray) -> jnp.ndarray:
         """Order parameter R — vectorised, no Python loop."""
         z = jnp.exp(1j * theta).mean()
@@ -112,7 +118,7 @@ if JAX_AVAILABLE:
         ) -> tuple[jnp.ndarray, jnp.ndarray]:
             return _jax_simulate_trajectory(theta0, omega, adj, dt, steps)
 
-        return vmap(single_sim)(theta0_batch)  # type: ignore[no-any-return]
+        return vmap(single_sim)(theta0_batch)  # type: ignore[no-any-return, unused-ignore]
 
 
 class JaxKuramotoEngine:

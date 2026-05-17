@@ -56,8 +56,11 @@ required_python_symbols:
 expected_signal: >-
   `pytest tests/research/systemic_risk/` reports "248 passed";
   `mypy --strict research/systemic_risk/ tests/research/systemic_risk/`
-  is clean (the 5 pre-existing core/kuramoto/jax_engine errors
-  persist on origin/main and are out of scope); ruff + black
+  is clean (the 5 formerly-tolerated core/kuramoto/jax_engine
+  unused-ignore / no-any-return errors were root-cause-fixed in
+  fix/jax-engine-mypy-strict-debt — they are no longer expected;
+  any recurrence is a genuine regression to surface, not absorb);
+  ruff + black
   are clean on the diff; LADDER_RUNGS enumerates rungs 1..8
   exactly once; the default-GUILTY rail and the ACQUITTED_ENGAGED
   rail both pass.
