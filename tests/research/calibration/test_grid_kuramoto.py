@@ -589,10 +589,14 @@ def test_r1_ledger_is_machine_readable_and_sha_pinned() -> None:
     assert json.loads(blob)["verdict"] == "NEGATIVE"
     assert ledger["lineage"] == "R1"
     assert ledger["is_hypothesis"] is False
-    assert ledger["frozen_preregistration_sha"] == "d170d48afa5066c13edeb40b2c1904b3fd708516"
+    assert (  # pragma: allowlist secret  (audited: parent prereg git sha, not a credential)
+        ledger["frozen_preregistration_sha"]
+        == "d170d48afa5066c13edeb40b2c1904b3fd708516"  # pragma: allowlist secret
+    )
+    # audited: parent calibration ledger content hash, not a credential
     assert (
         ledger["parent_ledger_sha256"]
-        == "ed8d409b7b222eb053572d6bf9ab6e98c5f4918be1cae384864733a2b4d72aaf"
+        == "ed8d409b7b222eb053572d6bf9ab6e98c5f4918be1cae384864733a2b4d72aaf"  # pragma: allowlist secret
     )
     assert len(ledger["ledger_sha256"]) == 64
     assert ledger["localized_refinement_targets"]
