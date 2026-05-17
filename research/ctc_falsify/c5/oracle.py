@@ -76,6 +76,17 @@ def _auc(scores: np.ndarray, y: np.ndarray) -> float:
     return float(u / (pos.size * neg.size))
 
 
+def _discriminability(auc: float) -> float:
+    """Orientation-invariant separability = max(auc, 1-auc).
+
+    Deliberately a SEPARATE function, not folded into ``_auc``: the raw
+    AUC must remain a direction-sensitive metric so a discriminator that
+    is anti-correlated by construction reads as AUC≈0 (a real failure
+    signal), while the sign-blind fold is an explicit policy step.
+    """
+    return float(max(auc, 1.0 - auc))
+
+
 def run_oracle() -> OracleResult:
     tr, te = c5.train_seeds(), c5.test_seeds()
     disjoint = set(tr).isdisjoint(set(te))
@@ -85,9 +96,12 @@ def run_oracle() -> OracleResult:
     mu, sd = x_tr.mean(0), x_tr.std(0) + 1e-12
     w = _lda_direction((x_tr - mu) / sd, y_tr)
     s_te = ((x_te - mu) / sd) @ w
-    auc = _auc(s_te, y_te)
-    # AUC is symmetric about 0.5 w.r.t. orientation; report discriminability.
-    auc = max(auc, 1.0 - auc)
+    # Metric ↔ policy split: _auc stays direction-sensitive (so an
+    # anti-correlated-by-construction discriminator is detectable as AUC≈0);
+    # the orientation-invariant fold is an explicit, separately testable
+    # policy choice — never collapsed inside the metric.
+    raw_auc = _auc(s_te, y_te)
+    auc = _discriminability(raw_auc)
     return OracleResult(
         oos_auc=auc,
         n_train=len(x_tr),
