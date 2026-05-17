@@ -14,8 +14,8 @@ partial success — the verdict is one of ``PASS`` / ``NEGATIVE``.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
+from ._substrate import Gate as GateVerdict
+from ._substrate import GateRow as GateResult
 from .calibration import CalibrationMetrics
 
 __all__ = [
@@ -26,17 +26,6 @@ __all__ = [
     "evaluate_gates",
     "overall_verdict",
 ]
-
-
-@dataclass(frozen=True)
-class GateVerdict:
-    """A single pre-registered numeric gate."""
-
-    name: str
-    metric_key: str
-    operator: str  # "<=" or ">="
-    threshold: float
-    localises_to: str
 
 
 # --- Pre-registered, frozen. Mirror of PREREGISTRATION.md § 4. ---------------
@@ -83,38 +72,6 @@ NOISY_GATES: tuple[GateVerdict, ...] = (
 )
 
 
-@dataclass(frozen=True)
-class GateResult:
-    """Outcome of evaluating one :class:`GateVerdict` against metrics."""
-
-    name: str
-    metric_key: str
-    observed: float
-    operator: str
-    threshold: float
-    passed: bool
-    localises_to: str
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "name": self.name,
-            "metric_key": self.metric_key,
-            "observed": self.observed,
-            "operator": self.operator,
-            "threshold": self.threshold,
-            "passed": self.passed,
-            "localises_to": self.localises_to,
-        }
-
-
-def _check(gate: GateVerdict, observed: float) -> bool:
-    if gate.operator == "<=":
-        return observed <= gate.threshold
-    if gate.operator == ">=":
-        return observed >= gate.threshold
-    raise ValueError(f"unknown operator {gate.operator!r}")
-
-
 def evaluate_gates(
     metrics: CalibrationMetrics,
     gates: tuple[GateVerdict, ...],
@@ -131,7 +88,7 @@ def evaluate_gates(
                 observed=observed,
                 operator=gate.operator,
                 threshold=gate.threshold,
-                passed=_check(gate, observed),
+                passed=gate.check(observed),
                 localises_to=gate.localises_to,
             )
         )

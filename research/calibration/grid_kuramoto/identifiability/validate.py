@@ -20,7 +20,6 @@ Usage::
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import platform
 import sys
@@ -38,30 +37,16 @@ from core.kuramoto.identifiability import (
     WALD_Z_0975,
 )
 
+from .._substrate import FROZEN_PREREG_SHA, PARENT_LEDGER_SHA256, branch_sha, ledger_sha256
 from ..calibration import SimConfig, ground_truth, simulate_phases
 from ..grid_data import GridSystem, wscc_9_bus
 
 __all__ = ["build_identifiability_ledger", "main"]
 
-# audited: frozen parent pre-registration git sha, not a credential
-_FROZEN_PREREG_SHA = "d170d48afa5066c13edeb40b2c1904b3fd708516"  # pragma: allowlist secret
-# audited: parent calibration ledger content hash, not a credential
-_PARENT_LEDGER_SHA256 = (
-    "ed8d409b7b222eb053572d6bf9ab6e98c5f4918be1cae384864733a2b4d72aaf"  # pragma: allowlist secret
-)
-
 
 def _branch_sha() -> str:
     """Best-effort current commit sha for the ledger provenance field."""
-    head = Path(__file__).resolve().parents[4] / ".git" / "HEAD"
-    try:
-        ref = head.read_text(encoding="utf-8").strip()
-        if ref.startswith("ref:"):
-            ref_path = head.parent / ref.split(" ", 1)[1]
-            return ref_path.read_text(encoding="utf-8").strip()
-        return ref
-    except OSError:
-        return "unknown"
+    return branch_sha(Path(__file__).resolve().parents[4])
 
 
 def _front_gate_one(
@@ -164,8 +149,8 @@ def build_identifiability_ledger(
         "is_science_claim": False,
         "closes_noisy_gate": False,
         "parent_lineages": ["PR #749 (CALIB-GRID-001)", "PR #751 (R1)"],
-        "frozen_preregistration_sha": _FROZEN_PREREG_SHA,
-        "parent_ledger_sha256": _PARENT_LEDGER_SHA256,
+        "frozen_preregistration_sha": FROZEN_PREREG_SHA,
+        "parent_ledger_sha256": PARENT_LEDGER_SHA256,
         "scope": (
             "additive graded self-knowledge layer on the already-"
             "calibrated swing estimator; PREREGISTRATION/gates/seeds/"
@@ -200,8 +185,7 @@ def build_identifiability_ledger(
             "of silently emitting a misleading point estimate."
         ),
     }
-    payload = json.dumps(ledger, sort_keys=True).encode("utf-8")
-    ledger["ledger_sha256"] = hashlib.sha256(payload).hexdigest()
+    ledger["ledger_sha256"] = ledger_sha256(ledger)
     return ledger
 
 

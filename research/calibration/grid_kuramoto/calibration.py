@@ -40,6 +40,7 @@ from core.kuramoto.coupling_estimator import (
 )
 from core.kuramoto.second_order import SecondOrderKuramotoEngine
 
+from ._substrate import topology_f1 as _topology_f1
 from .grid_data import (
     GridSystem,
     coupling_from_susceptance,
@@ -297,33 +298,6 @@ def recover_coupling_swing(
     omega_hat = np.asarray(est.omega, dtype=np.float64)
     omega_hat = omega_hat - float(np.mean(omega_hat))
     return k_hat, np.asarray(omega_hat, dtype=np.float64)
-
-
-def _topology_f1(
-    k_true: NDArray[np.float64],
-    k_hat: NDArray[np.float64],
-    rel_threshold: float,
-) -> tuple[float, int, int]:
-    """Edge-support F1 of the thresholded recovered adjacency.
-
-    The recovered edge is "present" if ``|K_hat_ij|`` exceeds
-    ``rel_threshold · max|K_hat|``; the truth edge is present if
-    ``|K_true_ij| > 0``. Diagonal excluded.
-    """
-    n = k_true.shape[0]
-    off = ~np.eye(n, dtype=bool)
-    true_mask = (np.abs(k_true) > 0.0) & off
-    scale = float(np.max(np.abs(k_hat)))
-    if scale <= 0.0:
-        return 0.0, int(true_mask.sum()), 0
-    hat_mask = (np.abs(k_hat) > rel_threshold * scale) & off
-
-    tp = int((true_mask & hat_mask).sum())
-    fp = int((~true_mask & hat_mask).sum())
-    fn = int((true_mask & ~hat_mask).sum())
-    denom = 2 * tp + fp + fn
-    f1 = (2.0 * tp / denom) if denom > 0 else 1.0
-    return f1, int(true_mask.sum()), int(hat_mask.sum())
 
 
 def _symmetrise(k: NDArray[np.float64]) -> NDArray[np.float64]:
