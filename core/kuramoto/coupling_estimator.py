@@ -37,13 +37,17 @@ import logging
 from dataclasses import dataclass, field
 
 import numpy as np
+from numpy.typing import NDArray
 
 from .contracts import CouplingMatrix, PhaseMatrix
 
 __all__ = [
     "CouplingEstimationConfig",
     "CouplingEstimator",
+    "PersistentExcitationError",
+    "SwingCouplingEstimate",
     "estimate_coupling",
+    "estimate_swing_coupling",
     "mcp_prox",
     "scad_prox",
     "soft_threshold",
@@ -519,3 +523,257 @@ def estimate_coupling(
 ) -> CouplingMatrix:
     """Functional shortcut around :class:`CouplingEstimator`."""
     return CouplingEstimator(config).estimate(phases)
+
+
+# ---------------------------------------------------------------------------
+# Second-order (swing) identification path — CALIB-GRID-001 R1
+# ---------------------------------------------------------------------------
+#
+# The first-order path above solves
+#
+#     θ̇_i − ω̄_i = Σ_{j≠i} K_ij sin(θ_j − θ_i) + ε_i .
+#
+# Power-grid rotors are *second-order* (swing equation):
+#
+#     m_i θ̈_i + d_i θ̇_i = P_i − Σ_{j≠i} K_ij sin(θ_i − θ_j) .
+#
+# Applying the first-order identifier to swing data folds the unmodelled
+# inertial term ``m_i θ̈_i`` into the residual, biasing ``K̂``. The path
+# below regresses the *full* swing identity instead. With known per-node
+# inertia ``m_i`` and damping ``d_i`` the model is linear in the unknowns
+# ``(K_i·, P_i)``:
+#
+#     y_i(t) ≡ m_i θ̈_i(t) + d_i θ̇_i(t)
+#            = P_i + Σ_{j≠i} (−K_ij) · sin(θ_i(t) − θ_j(t)) .
+#
+# A column of ones recovers the injection ``P_i`` jointly (so the natural
+# frequency ``ω_i = P_i / d_i`` is *not* assumed known), and the negated
+# phase-difference sines recover the signed, symmetric coupling.
+
+
+class PersistentExcitationError(RuntimeError):
+    """Raised when the swing design matrix is rank-deficient.
+
+    A phase-locked trajectory has ``θ_i − θ_j → const`` so the regressor
+    columns ``sin(θ_i − θ_j)`` become near-collinear: the per-node design
+    Gram matrix loses rank and the least-squares solution is dominated by
+    noise. Emitting a ``K̂`` from such a design would be a misleading
+    instrument output, so the swing path fails closed with this typed
+    diagnostic instead (instrument-honesty invariant, not a tuning knob).
+
+    Attributes
+    ----------
+    node : int
+        Index of the oscillator whose row design first failed the test.
+    singular_ratio : float
+        Smallest-to-largest singular-value ratio of the standardised
+        design at ``node`` (the persistent-excitation diagnostic).
+    threshold : float
+        The configured minimum acceptable ``singular_ratio``.
+    """
+
+    def __init__(self, node: int, singular_ratio: float, threshold: float) -> None:
+        self.node = node
+        self.singular_ratio = singular_ratio
+        self.threshold = threshold
+        super().__init__(
+            f"persistent-excitation guard tripped at node {node}: "
+            f"design singular-value ratio {singular_ratio:.3e} < "
+            f"threshold {threshold:.3e} — the trajectory is phase-locked / "
+            f"rank-deficient and no trustworthy K̂ can be identified "
+            f"(fail-closed, no silent biased estimate)"
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class SwingCouplingEstimate:
+    """Result of the second-order (swing) identification path.
+
+    Attributes
+    ----------
+    K : np.ndarray
+        Shape ``(N, N)``, signed coupling with zero diagonal. The grid
+        coupling is physically symmetric; the raw row solution is *not*
+        symmetrised here (the caller decides), but the swing identity
+        removes the inertial bias that produced the large antisymmetric
+        residual under the first-order path.
+    injection : np.ndarray
+        Shape ``(N,)``, recovered per-node net power injection ``P_i``.
+    omega : np.ndarray
+        Shape ``(N,)``, natural frequency ``ω_i = P_i / d_i`` consistent
+        with the over-damped reduction (Dörfler–Bullo SI Eq. (S15)).
+    min_singular_ratio : float
+        Worst per-node persistent-excitation diagnostic over all rows
+        (smallest-to-largest singular-value ratio of the standardised
+        design). Reported for transparency even when the guard passes.
+    """
+
+    K: NDArray[np.float64]
+    injection: NDArray[np.float64]
+    omega: NDArray[np.float64]
+    min_singular_ratio: float
+
+
+def _finite_difference_derivatives(
+    theta: NDArray[np.float64], dt: float
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    r"""Second-order central finite differences of the unwrapped phase.
+
+    Returns ``(θ̇, θ̈)`` with shape ``(T, N)``. The phase is unwrapped
+    along the time axis first so the derivative is taken on the
+    continuous lift, not the wrapped ``[0, 2π)`` representation. Both
+    derivatives use :func:`numpy.gradient` (second-order accurate in the
+    interior, first-order at the two endpoints).
+    """
+    unwrapped = np.unwrap(theta, axis=0)
+    theta_dot = np.gradient(unwrapped, dt, axis=0)
+    theta_ddot = np.gradient(theta_dot, dt, axis=0)
+    return (
+        np.asarray(theta_dot, dtype=np.float64),
+        np.asarray(theta_ddot, dtype=np.float64),
+    )
+
+
+def _singular_ratio(design: NDArray[np.float64]) -> float:
+    """Smallest-to-largest singular-value ratio of a design matrix.
+
+    This is the reciprocal condition number; it is ``0`` for a
+    rank-deficient design and ``1`` for a perfectly conditioned one. It
+    is the principled persistent-excitation diagnostic (it does not
+    depend on an absolute scale once the columns are standardised).
+    """
+    if design.shape[1] == 0:
+        return 0.0
+    sv = np.linalg.svd(design, compute_uv=False)
+    s_max = float(sv[0])
+    if s_max <= 0.0:
+        return 0.0
+    return float(sv[-1] / s_max)
+
+
+def estimate_swing_coupling(
+    phases: PhaseMatrix,
+    inertia: NDArray[np.float64],
+    damping: NDArray[np.float64],
+    *,
+    dt: float,
+    pe_min_singular_ratio: float = 1e-3,
+    pe_guard: bool = True,
+) -> SwingCouplingEstimate:
+    r"""Identify ``K_ij``, ``P_i`` and ``ω_i`` from second-order swing data.
+
+    Solves, per oscillator ``i``, the ordinary least-squares regression
+
+    .. math::
+
+        m_i\,\ddot\theta_i(t) + d_i\,\dot\theta_i(t)
+            \;=\; P_i \;+\; \sum_{j\neq i} (-K_{ij})\,
+                \sin\!\bigl(\theta_i(t) - \theta_j(t)\bigr) ,
+
+    where the derivatives are obtained by second-order central finite
+    differences of the unwrapped phase. The design is standardised per
+    column before the solve and the coefficients are back-transformed,
+    so the persistent-excitation diagnostic is scale-free.
+
+    Parameters
+    ----------
+    phases : PhaseMatrix
+        Wrapped phase trajectory (the contract guarantees ``[0, 2π)``).
+    inertia, damping : np.ndarray
+        Per-node ``m_i > 0`` and ``d_i ≥ 0`` (length ``N``). These are
+        the *known* machine constants of the swing model; the coupling
+        and injection are the unknowns.
+    dt : float
+        Sampling interval matching ``phases.timestamps`` units.
+    pe_min_singular_ratio : float
+        Minimum acceptable smallest-to-largest singular-value ratio of
+        any per-node standardised design. Below this the design is
+        treated as rank-deficient (phase-locked input).
+    pe_guard : bool
+        If ``True`` (default) a sub-threshold design raises
+        :class:`PersistentExcitationError` (fail-closed). If ``False``
+        the diagnostic is still reported on the result but the
+        (untrustworthy) estimate is returned anyway — for diagnostic
+        sweeps only.
+
+    Returns
+    -------
+    SwingCouplingEstimate
+        Signed ``K``, recovered injection ``P``, natural frequency
+        ``ω = P / d`` and the worst persistent-excitation ratio.
+
+    Raises
+    ------
+    ValueError
+        On contract violations (shape / sign / ``dt``) — fail-closed,
+        no silent repair.
+    PersistentExcitationError
+        When ``pe_guard`` is set and any row design is rank-deficient.
+    """
+    if dt <= 0.0:
+        raise ValueError("dt must be > 0")
+    if not 0.0 < pe_min_singular_ratio < 1.0:
+        raise ValueError("pe_min_singular_ratio must lie in (0, 1)")
+
+    theta = np.asarray(phases.theta, dtype=np.float64)
+    _, n = theta.shape
+    m = np.asarray(inertia, dtype=np.float64)
+    d = np.asarray(damping, dtype=np.float64)
+    if m.shape != (n,) or d.shape != (n,):
+        raise ValueError(f"inertia and damping must both have shape ({n},)")
+    if not np.all(np.isfinite(m)) or not np.all(np.isfinite(d)):
+        raise ValueError("inertia and damping must be finite")
+    if np.any(m <= 0.0):
+        raise ValueError("inertia must be strictly positive")
+    if np.any(d < 0.0):
+        raise ValueError("damping must be non-negative")
+
+    theta_dot, theta_ddot = _finite_difference_derivatives(theta, dt)
+
+    k_hat = np.zeros((n, n), dtype=np.float64)
+    injection = np.zeros(n, dtype=np.float64)
+    worst_ratio = 1.0
+
+    for i in range(n):
+        # Target: y_i = m_i θ̈_i + d_i θ̇_i
+        y = m[i] * theta_ddot[:, i] + d[i] * theta_dot[:, i]
+        # Regressors: [sin(θ_i − θ_j)]_{j≠i} and a constant for P_i.
+        others = [j for j in range(n) if j != i]
+        sin_cols = np.sin(theta[:, i][:, None] - theta[:, others])  # (T, n-1)
+        design = np.column_stack([sin_cols, np.ones(theta.shape[0])])
+
+        # Standardise the sine columns (the intercept column is left as
+        # a unit constant so its coefficient stays in physical units).
+        sin_scale = sin_cols.std(axis=0, ddof=0)
+        # bounds: a near-constant regressor (phase-locked pair) gets a
+        # unit scale so the PE diagnostic — not a divide-by-zero — flags
+        # the degeneracy.
+        sin_scale_safe = np.where(sin_scale > 1e-12, sin_scale, 1.0)
+        design_std = design.copy()
+        design_std[:, :-1] = sin_cols / sin_scale_safe
+
+        ratio = _singular_ratio(design_std)
+        worst_ratio = min(worst_ratio, ratio)
+        if pe_guard and ratio < pe_min_singular_ratio:
+            raise PersistentExcitationError(i, ratio, pe_min_singular_ratio)
+
+        coef_std, *_ = np.linalg.lstsq(design_std, y, rcond=None)
+        # Back-transform the standardised sine coefficients.
+        coef = coef_std.copy()
+        coef[:-1] = coef_std[:-1] / sin_scale_safe
+
+        # y = P_i + Σ (−K_ij) sin(θ_i − θ_j)  ⇒  K_ij = −coef_j .
+        for col, j in enumerate(others):
+            k_hat[i, j] = -coef[col]
+        injection[i] = coef[-1]
+
+    # ω_i = P_i / d_i (over-damped reduction). Guard d_i = 0 explicitly.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        omega = np.where(d > 0.0, injection / np.where(d > 0.0, d, 1.0), 0.0)
+
+    return SwingCouplingEstimate(
+        K=np.asarray(k_hat, dtype=np.float64),
+        injection=np.asarray(injection, dtype=np.float64),
+        omega=np.asarray(omega, dtype=np.float64),
+        min_singular_ratio=float(worst_ratio),
+    )
