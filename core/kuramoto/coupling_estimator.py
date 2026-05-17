@@ -40,6 +40,11 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .contracts import CouplingMatrix, PhaseMatrix
+from .identifiability import (
+    IdentifiabilityReport,
+    front_gate_verdict,
+    linearised_edge_covariance,
+)
 
 __all__ = [
     "CouplingEstimationConfig",
@@ -609,12 +614,24 @@ class SwingCouplingEstimate:
         Worst per-node persistent-excitation diagnostic over all rows
         (smallest-to-largest singular-value ratio of the standardised
         design). Reported for transparency even when the guard passes.
+    identifiability : IdentifiabilityReport | None
+        **Additive** graded self-knowledge layer (upgrade lineage #2).
+        Present only for the ``symmetric=True`` joint solve when
+        ``identifiability_gate=True`` (the global design needed for the
+        linearised covariance exists only there); ``None`` otherwise.
+        Carries the bounded identifiability score, per-edge calibrated
+        95 % confidence intervals and the ``ACCEPT`` / ``REFUSE``
+        verdict. The point-estimate fields (``K``, ``injection``,
+        ``omega``, ``min_singular_ratio``) are **bit-identical**
+        regardless of this field — existing callers that ignore it see
+        no change (verified by the R1 bit-stability tests).
     """
 
     K: NDArray[np.float64]
     injection: NDArray[np.float64]
     omega: NDArray[np.float64]
     min_singular_ratio: float
+    identifiability: IdentifiabilityReport | None = None
 
 
 def _savgol_derivatives(
@@ -684,6 +701,7 @@ def estimate_swing_coupling(
     savgol_polyorder: int = 4,
     pe_min_singular_ratio: float = 1e-3,
     pe_guard: bool = True,
+    identifiability_gate: bool = False,
 ) -> SwingCouplingEstimate:
     r"""Identify ``K_ij``, ``P_i`` and ``ω_i`` from second-order swing data.
 
@@ -743,12 +761,29 @@ def estimate_swing_coupling(
         the diagnostic is still reported on the result but the
         (untrustworthy) estimate is returned anyway — for diagnostic
         sweeps only.
+    identifiability_gate : bool
+        **Additive, opt-in** (default ``False`` ⇒ behaviour and point
+        estimates bit-identical to the merged R1 path). When ``True``
+        *and* ``symmetric=True``, the linearised regression covariance
+        of the joint solve is propagated into per-edge 95 % confidence
+        intervals and a bounded identifiability score; the resulting
+        :class:`~core.kuramoto.identifiability.IdentifiabilityReport`
+        (``ACCEPT`` / ``REFUSE`` + score + reason + per-edge CIs) is
+        attached to ``SwingCouplingEstimate.identifiability``. This is a
+        *graded self-knowledge layer* sitting **above** the hard PE
+        guard — it does not raise and does not alter ``K``/``P``/``ω``;
+        it lets the caller see when the instrument is out of envelope
+        (e.g. the noisy calibration regime) instead of trusting a
+        misleading point estimate. Theory + REFUSE threshold:
+        ``research/calibration/grid_kuramoto/identifiability/THRESHOLD_PROVENANCE.md``.
 
     Returns
     -------
     SwingCouplingEstimate
         Signed ``K``, recovered injection ``P``, natural frequency
-        ``ω = P / d`` and the worst persistent-excitation ratio.
+        ``ω = P / d``, the worst persistent-excitation ratio and (when
+        ``identifiability_gate`` and ``symmetric``) the additive
+        :class:`~core.kuramoto.identifiability.IdentifiabilityReport`.
 
     Raises
     ------
@@ -787,6 +822,7 @@ def estimate_swing_coupling(
 
     k_hat = np.zeros((n, n), dtype=np.float64)
     injection = np.zeros(n, dtype=np.float64)
+    identifiability: IdentifiabilityReport | None = None
 
     if symmetric:
         # One shared parameter per unordered edge (a < b) + one P_i per
@@ -833,6 +869,30 @@ def estimate_swing_coupling(
             k_hat[a, b] = k_ab
             k_hat[b, a] = k_ab
         injection[:] = coef[n_edge:]
+
+        if identifiability_gate:
+            # Additive graded self-knowledge layer (upgrade lineage #2).
+            # Reuses the *exact* design_std / target / coef_std / scale
+            # already solved above — the point estimate is untouched.
+            # K̂_ab = −coef_p, so SE(K̂_ab) = SE(coef_p): the negation
+            # is a unit-modulus map and leaves the standard error
+            # invariant; pass k_hat (already negated) so the CIs are in
+            # signed-coupling units.
+            edge_se, residual_var, r_squared = linearised_edge_covariance(
+                np.asarray(design_std, dtype=np.float64),
+                np.asarray(target, dtype=np.float64),
+                np.asarray(coef_std, dtype=np.float64),
+                np.asarray(scale_safe, dtype=np.float64),
+                n_edge,
+            )
+            identifiability = front_gate_verdict(
+                k_hat,
+                edges,
+                edge_se,
+                worst_ratio,
+                residual_var,
+                r_squared,
+            )
     else:
         worst_ratio = 1.0
         for i in range(n):
@@ -877,4 +937,5 @@ def estimate_swing_coupling(
         injection=np.asarray(injection, dtype=np.float64),
         omega=np.asarray(omega, dtype=np.float64),
         min_singular_ratio=float(worst_ratio),
+        identifiability=identifiability,
     )
