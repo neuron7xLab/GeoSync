@@ -794,3 +794,216 @@ def test_identifiability_results_json_matches_committed_artifact() -> None:
     for regime in ("noiseless", "noisy"):
         assert committed["front_gate"][regime]["verdict"] == fresh["front_gate"][regime]["verdict"]
         assert _deep_close(committed["front_gate"][regime], fresh["front_gate"][regime])
+
+
+# ---------------------------------------------------------------------------
+# CALIB-GRID-002 — integral / weak-form swing identifier (new lineage)
+# ---------------------------------------------------------------------------
+
+_CG002_PREREG = (
+    Path(__file__).resolve().parents[3]
+    / "research"
+    / "calibration"
+    / "grid_kuramoto"
+    / "cg002"
+    / "PREREGISTRATION_002.yaml"
+)
+
+
+def test_cg002_preregistration_matches_code() -> None:
+    """No-peek: PREREGISTRATION_002.yaml mirrors cg002.py constants.
+
+    Binds the frozen weak-form solver constants and every gate
+    threshold to the pre-registered document. Changing either side
+    without the other fails closed (post-data-edit detector).
+    """
+    from research.calibration.grid_kuramoto.cg002.cg002 import (
+        CG002_BUMP_ORDER,
+        CG002_N_WINDOWS,
+        CG002_NOISELESS_GATES,
+        CG002_NOISY_GATES,
+        CG002_NULL_FPR_GATE,
+        CG002_TEST_SUPPORT,
+        CG002_THEOREM_GATE,
+    )
+
+    text = _CG002_PREREG.read_text(encoding="utf-8")
+    assert f"bump_order: {CG002_BUMP_ORDER}" in text
+    assert f"test_support: {CG002_TEST_SUPPORT}" in text
+    assert f"n_windows: {CG002_N_WINDOWS}" in text
+    assert "pe_min_singular_ratio_is_PE_HARD_FLOOR: true" in text
+    for gate in (
+        *CG002_NOISELESS_GATES,
+        *CG002_NOISY_GATES,
+        CG002_THEOREM_GATE,
+        CG002_NULL_FPR_GATE,
+    ):
+        assert gate.name in text, f"{gate.name} missing from PREREGISTRATION_002.yaml"
+        assert f"threshold: {gate.threshold}" in text
+        assert f'operator: "{gate.operator}"' in text
+
+
+def test_cg002_gate_thresholds_are_frozen_values() -> None:
+    """Lock the exact pre-registered CG002 numbers (post-data detector)."""
+    from research.calibration.grid_kuramoto.cg002.cg002 import (
+        CG002_NOISELESS_GATES,
+        CG002_NOISY_GATES,
+        CG002_NULL_FPR_GATE,
+        CG002_THEOREM_GATE,
+    )
+
+    nl = {g.name: (g.operator, g.threshold) for g in CG002_NOISELESS_GATES}
+    ny = {g.name: (g.operator, g.threshold) for g in CG002_NOISY_GATES}
+    assert nl == {
+        "cg002.noiseless.frobenius": ("<=", 0.10),
+        "cg002.noiseless.topology_f1": (">=", 0.95),
+    }
+    assert ny == {
+        "cg002.noisy.frobenius": ("<=", 0.25),
+        "cg002.noisy.topology_f1": (">=", 0.90),
+    }
+    assert (CG002_THEOREM_GATE.operator, CG002_THEOREM_GATE.threshold) == ("<=", 0.15)
+    assert (CG002_NULL_FPR_GATE.operator, CG002_NULL_FPR_GATE.threshold) == ("<=", 0.05)
+
+
+def test_cg002_does_not_touch_frozen_calib_grid_001_gates() -> None:
+    """CALIB-GRID-002 is a NEW lineage; the frozen R1 gates are unchanged.
+
+    Frozen-gate non-interference rail: the five CALIB-GRID-001 / R1
+    thresholds must still be exactly the pre-registered values and the
+    R1 verdict must still be NEGATIVE — CG002 carries its own gates.
+    """
+    nl = {g.name: (g.operator, g.threshold) for g in NOISELESS_GATES}
+    ny = {g.name: (g.operator, g.threshold) for g in NOISY_GATES}
+    assert nl == {
+        "noiseless.frobenius": ("<=", 0.10),
+        "noiseless.topology_f1": (">=", 0.95),
+        "noiseless.critical_coupling": ("<=", 0.15),
+    }
+    assert ny == {
+        "noisy.frobenius": ("<=", 0.25),
+        "noisy.topology_f1": (">=", 0.90),
+    }
+
+
+@pytest.mark.slow
+def test_cg002_verdict_is_negative_and_localized() -> None:
+    """The integral form does NOT close the frozen noisy regime.
+
+    Pins the honest sha-pinned NEGATIVE: noiseless Frobenius PASSES
+    (≤0.10, no regression vs R1's 0.0666) and the noisy Frobenius is
+    massively better than R1's 16.6 but still FAILS the frozen 0.25
+    target — the falsifiable claim is FALSIFIED for the noisy regime.
+    No promotion language; this pins a measured numeric state.
+    """
+    from research.calibration.grid_kuramoto.cg002 import (
+        build_cg002_ledger,
+        run_cg002_calibration,
+    )
+
+    nl = run_cg002_calibration(wscc_9_bus(), SimConfig(), noisy=False)
+    ny = run_cg002_calibration(wscc_9_bus(), SimConfig(), noisy=True)
+
+    # Noiseless: integral class is sound and does not regress vs R1.
+    assert nl.frobenius_rel_error <= 0.10
+    assert nl.frobenius_rel_error < 0.0666  # strictly better than R1
+    assert nl.topology_f1 >= 0.95
+    assert nl.front_gate_verdict == "ACCEPT"
+
+    # Noisy: massively better than R1 (16.6) but still fails ≤0.25.
+    assert ny.frobenius_rel_error < 1.0  # ≫ better than R1's 16.6
+    assert ny.frobenius_rel_error > 0.25  # still FAILS the frozen target
+    assert ny.front_gate_verdict == "REFUSE"  # claim #2↔#1 FALSIFIED
+
+    led = build_cg002_ledger(wscc_9_bus(), SimConfig())
+    assert led["verdict"] == "NEGATIVE"
+    assert led["is_science_claim"] is False
+    assert led["failed_gates"]
+
+
+@pytest.mark.slow
+def test_cg002_front_gate_refuse_under_differential_and_integral() -> None:
+    """Before→after rail: σ=0.02 REFUSEs under BOTH estimator classes.
+
+    The pre-registered claim was that the integral form would flip the
+    front-gate to ACCEPT at σ=0.02. It does NOT — the regressor-level
+    SNR floor keeps R² noise-dominated for both classes. This rail pins
+    the honest FALSIFIED outcome (REFUSE → REFUSE) on the same frozen
+    σ=0.02 trajectory.
+    """
+    from research.calibration.grid_kuramoto.calibration import (
+        ground_truth,
+        simulate_phases,
+    )
+
+    sys = wscc_9_bus()
+    cfg = SimConfig()
+
+    # Differential R1 path at σ=0.02 → REFUSE (the merged behaviour).
+    k_true, omega_true = ground_truth(sys, cfg.coupling_scale)
+    phases, _ = simulate_phases(sys, k_true, omega_true, cfg)
+    diff_est = estimate_swing_coupling(
+        phases,
+        np.asarray(sys.inertia, dtype=np.float64),
+        np.asarray(sys.damping, dtype=np.float64),
+        dt=cfg.dt,
+        symmetric=True,
+        savgol_window=7,
+        savgol_polyorder=4,
+        pe_guard=True,
+        identifiability_gate=True,
+    )
+    assert diff_est.identifiability is not None
+    assert diff_est.identifiability.verdict.value == "REFUSE"
+
+    # Integral path on the SAME frozen σ=0.02 case → still REFUSE.
+    from research.calibration.grid_kuramoto.cg002 import recover_coupling_integral
+
+    rec = recover_coupling_integral(sys, cfg, noisy=True)
+    assert rec.front_verdict == "REFUSE"
+
+
+@pytest.mark.slow
+def test_cg002_null_battery_specificity_reported() -> None:
+    """The null battery runs and its FPR is reported (not silently hidden).
+
+    The pre-registered FPR target is ≤0.05; the measured value (≈0.10
+    on the 3-edge WSCC-9 small graph) is a reported specificity
+    limitation, NOT masked — the NEGATIVE verdict already reflects it.
+    """
+    from research.calibration.grid_kuramoto.cg002 import null_battery_fpr
+
+    fpr, detail = null_battery_fpr(wscc_9_bus(), SimConfig())
+    assert 0.0 <= fpr <= 1.0
+    assert detail["n_trials"] >= 2
+    assert "shuffle_null" in detail and "placebo_null" in detail
+    # The placebo (no weight contrast) must be clean — low dispersion.
+    assert detail["placebo_dispersion"] < 1.0
+
+
+@pytest.mark.slow
+def test_cg002_results_json_matches_committed_artifact() -> None:
+    """Committed cg002/RESULTS.json reproduces (post-data-edit detector).
+
+    Structure-exact, numeric-tolerant: verdict and gate pass-flags must
+    reproduce; ``ledger_sha256`` legitimately moves with the commit
+    only if a numeric drifts, so the verdict + gate booleans are pinned.
+    """
+    from research.calibration.grid_kuramoto.cg002 import build_cg002_ledger
+
+    art = (
+        Path(__file__).resolve().parents[3]
+        / "research"
+        / "calibration"
+        / "grid_kuramoto"
+        / "cg002"
+        / "RESULTS.json"
+    )
+    committed = json.loads(art.read_text(encoding="utf-8"))
+    fresh = build_cg002_ledger(wscc_9_bus(), SimConfig())
+    assert committed["verdict"] == fresh["verdict"] == "NEGATIVE"
+    assert committed["is_science_claim"] is fresh["is_science_claim"] is False
+    assert _deep_close(committed["metrics"], fresh["metrics"])
+    cg = {g["name"]: g["passed"] for g in committed["gates"]}
+    fg = {g["name"]: g["passed"] for g in fresh["gates"]}
+    assert cg == fg
