@@ -43,8 +43,12 @@ from ..grid_data import GridSystem, wscc_9_bus
 
 __all__ = ["build_identifiability_ledger", "main"]
 
-_FROZEN_PREREG_SHA = "d170d48afa5066c13edeb40b2c1904b3fd708516"
-_PARENT_LEDGER_SHA256 = "ed8d409b7b222eb053572d6bf9ab6e98c5f4918be1cae384864733a2b4d72aaf"
+# audited: frozen parent pre-registration git sha, not a credential
+_FROZEN_PREREG_SHA = "d170d48afa5066c13edeb40b2c1904b3fd708516"  # pragma: allowlist secret
+# audited: parent calibration ledger content hash, not a credential
+_PARENT_LEDGER_SHA256 = (
+    "ed8d409b7b222eb053572d6bf9ab6e98c5f4918be1cae384864733a2b4d72aaf"  # pragma: allowlist secret
+)
 
 
 def _branch_sha() -> str:

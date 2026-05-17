@@ -1,6 +1,6 @@
 {
   "artifact": "CALIB-GRID-001",
-  "branch_sha": "58738dede8d5f87e2341b925146aeb5f1e412126",
+  "branch_sha": "52e3912785ea5e10aadc30981eb1504ca8948e56",
   "citation": "Anderson&Fouad-2003-Ex2.6 / Dorfler-Bullo-PNAS-2013-Fig1",
   "closes_noisy_gate": false,
   "front_gate": {
@@ -127,7 +127,7 @@
   "interpretation": "Before (binary PE guard): the reciprocal condition number is HIGHER in the noisy case than the noiseless one, so the merged guard PASSES the noisy regime while emitting a K\u0302 biased ~20x. After (graded front-gate): the noiseless case ACCEPTs (model adequate, R2 high) and the noisy case REFUSEs (R2 noise-dominated). The frozen noisy.frobenius gate STAYS NEGATIVE \u2014 this does NOT close it; the upgrade is that the instrument now self-reports the failure instead of silently emitting a misleading point estimate.",
   "is_science_claim": false,
   "kind": "reliability-instrument-honesty",
-  "ledger_sha256": "4787f012a6135293ecf694002b6b623e41e33982075c44bac23808c42d03abd3",
+  "ledger_sha256": "0b19118124ad08a12d003a0410c3cf02bba7681eaf9a8e0fdff91b918c99f335",
   "lineage": "identifiability-front-gate (upgrade #2)",
   "parent_ledger_sha256": "ed8d409b7b222eb053572d6bf9ab6e98c5f4918be1cae384864733a2b4d72aaf",
   "parent_lineages": [
