@@ -34,7 +34,10 @@ optional per-edge ``stability_scores``.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -51,6 +54,8 @@ __all__ = [
     "CouplingEstimator",
     "PersistentExcitationError",
     "SwingCouplingEstimate",
+    "SwingDesign",
+    "SwingDesignStrategy",
     "estimate_coupling",
     "estimate_swing_coupling",
     "estimate_swing_coupling_integral",
@@ -58,6 +63,7 @@ __all__ = [
     "scad_prox",
     "soft_threshold",
     "complementary_pairs_stability",
+    "swing_strategy_registry",
 ]
 
 logger = logging.getLogger(__name__)
@@ -691,6 +697,331 @@ def _singular_ratio(design: NDArray[np.float64]) -> float:
     return float(sv[-1] / s_max)
 
 
+# ---------------------------------------------------------------------------
+# Swing design-assembly strategy registry (module-scale forcing function)
+# ---------------------------------------------------------------------------
+#
+# Every symmetric-joint swing identifier ever added to this module (the
+# R1 differential path #1 and the weak/integral path CALIB-GRID-002 #2)
+# assembles a *path-specific* global design ``[n·R × (n_edge + n)]`` and
+# target and then delegates the **identical** standardise → PE-guard →
+# lstsq → unpack → identifiability → ω tail (the #759 shared
+# :func:`_solve_symmetric_joint`). Before this refactor each lineage
+# bolted another ``estimate_swing_coupling_*`` public function onto the
+# module with its design build inlined — an open-loop universal sink
+# (521 → 1322 LOC, +154 % over five lineages, monotonic). The strategy
+# registry below caps that accretion: a new symmetric-joint estimation
+# path must register a :class:`SwingDesignStrategy` (encapsulating only
+# its design/target assembly) — it cannot edit the dispatcher core.
+#
+# This is a behaviour-preserving, structure-only extraction: the design
+# / target each strategy returns is byte-for-byte the array the former
+# inline block built, and the shared tail is unchanged, so ``K̂`` / ``P̂``
+# / ``ω̂`` / the identifiability score / the PE verdict are bit-identical
+# (pinned by the existing bit-stability tests and the added golden
+# vectors).
+
+
+@dataclass(frozen=True, slots=True)
+class SwingDesign:
+    """Path-specific global design assembled by a swing strategy.
+
+    The four fields are exactly the positional arguments the shared
+    :func:`_solve_symmetric_joint` back end consumes (the ``damping``
+    and the three solver flags are supplied by the dispatcher, not the
+    strategy — they are path-independent).
+
+    Attributes
+    ----------
+    design : np.ndarray
+        Global design ``(n·R, n_edge + n)`` (``R`` = per-node rows:
+        ``t_len`` differential / ``n_windows`` weak).
+    target : np.ndarray
+        Global target ``(n·R,)``.
+    edges : list[tuple[int, int]]
+        Unordered edge list ``[(a, b) : a < b]`` indexing the first
+        ``n_edge`` design columns.
+    n_edge : int
+        Edge count (``n_param = n_edge + n``).
+    """
+
+    design: NDArray[np.float64]
+    target: NDArray[np.float64]
+    edges: list[tuple[int, int]]
+    n_edge: int
+
+
+@runtime_checkable
+class SwingDesignStrategy(Protocol):
+    """Frozen contract every symmetric-joint swing path must satisfy.
+
+    A strategy encapsulates **only** the path-specific design/target
+    assembly. It never solves, never standardises, never touches the
+    PE guard or the identifiability layer — that shared tail lives once
+    in :func:`_solve_symmetric_joint`. This is the structural boundary
+    that caps the monotonic accretion: adding a future estimation path
+    means implementing + registering a strategy, not editing the
+    dispatcher.
+
+    Implementations are stateless callables registered under a unique
+    string key in :data:`_SWING_STRATEGY_REGISTRY`.
+    """
+
+    @property
+    def key(self) -> str:
+        """Stable registry key (the estimation-path identity)."""
+        ...
+
+    def build(
+        self,
+        theta_wrapped: NDArray[np.float64],
+        inertia: NDArray[np.float64],
+        damping: NDArray[np.float64],
+        *,
+        dt: float,
+        params: Mapping[str, int],
+    ) -> SwingDesign:
+        """Assemble the path-specific global design and target.
+
+        ``params`` carries the path-specific integer hyperparameters
+        already validated by the dispatcher (the differential path uses
+        ``savgol_window`` / ``savgol_polyorder``; the weak path uses
+        ``test_support`` / ``n_windows`` / ``bump_order``). The contract
+        (shape / sign / ``dt``) has been enforced upstream so the
+        strategy only does numeric assembly.
+        """
+        ...
+
+
+_SWING_STRATEGY_REGISTRY: dict[str, SwingDesignStrategy] = {}
+
+
+def _register_swing_strategy(strategy: SwingDesignStrategy) -> SwingDesignStrategy:
+    """Register a swing design strategy under its unique key.
+
+    Fail-closed on a duplicate key — a silent overwrite would let a new
+    lineage shadow an audited path's design assembly.
+    """
+    if strategy.key in _SWING_STRATEGY_REGISTRY:
+        raise ValueError(f"swing strategy key {strategy.key!r} already registered")
+    _SWING_STRATEGY_REGISTRY[strategy.key] = strategy
+    return strategy
+
+
+def swing_strategy_registry() -> Mapping[str, SwingDesignStrategy]:
+    """Read-only view of the registered swing design strategies.
+
+    Consumed by the architectural forcing-function test, which asserts
+    every public symmetric-joint swing estimation entry point dispatches
+    through exactly the registered strategy set (no path may bypass the
+    registry).
+    """
+
+    return MappingProxyType(_SWING_STRATEGY_REGISTRY)
+
+
+def _dispatch_swing(
+    strategy_key: str,
+    theta_wrapped: NDArray[np.float64],
+    inertia: NDArray[np.float64],
+    damping: NDArray[np.float64],
+    *,
+    dt: float,
+    params: Mapping[str, int],
+    pe_guard: bool,
+    pe_min_singular_ratio: float,
+    identifiability_gate: bool,
+) -> SwingCouplingEstimate:
+    """Select a registered strategy, assemble its design, run the tail.
+
+    The single dispatcher core. It is path-*independent*: a new
+    symmetric-joint estimation path is added by registering a strategy,
+    never by editing this function (the module-scale negative-feedback
+    term — see the registry preamble).
+    """
+    strategy = _SWING_STRATEGY_REGISTRY[strategy_key]
+    sd = strategy.build(
+        theta_wrapped,
+        inertia,
+        damping,
+        dt=dt,
+        params=params,
+    )
+    n = theta_wrapped.shape[1]
+    return _solve_symmetric_joint(
+        sd.design,
+        sd.target,
+        sd.edges,
+        sd.n_edge,
+        n,
+        damping,
+        pe_guard=pe_guard,
+        pe_min_singular_ratio=pe_min_singular_ratio,
+        identifiability_gate=identifiability_gate,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _DifferentialSwingStrategy:
+    """R1 differential symmetric-joint design (CALIB-GRID-001 R1).
+
+    Savitzky–Golay second-derivative swing target ``m θ̈ + d θ̇`` with one
+    shared parameter per unordered edge and one injection per node.
+    Path-specific assembly only — the standardise → PE → solve → unpack
+    → identifiability → ω tail is the shared :func:`_solve_symmetric_joint`.
+    """
+
+    key: str = "differential_symmetric"
+
+    def build(
+        self,
+        theta_wrapped: NDArray[np.float64],
+        inertia: NDArray[np.float64],
+        damping: NDArray[np.float64],
+        *,
+        dt: float,
+        params: Mapping[str, int],
+    ) -> SwingDesign:
+        theta = theta_wrapped
+        m = inertia
+        d = damping
+        _, n = theta.shape
+        savgol_window = params["savgol_window"]
+        savgol_polyorder = params["savgol_polyorder"]
+        if savgol_window < 5:
+            raise ValueError("savgol_window must be ≥ 5")
+        if savgol_polyorder < 2:
+            raise ValueError("savgol_polyorder must be ≥ 2 (need a non-zero 2nd derivative)")
+        theta_dot, theta_ddot = _savgol_derivatives(
+            theta, dt, window=savgol_window, polyorder=savgol_polyorder
+        )
+        t_len = theta.shape[0]
+
+        # One shared parameter per unordered edge (a < b) + one P_i per
+        # node. Node a's equation sees +sin(θ_a−θ_b) for edge (a,b);
+        # node b's equation sees sin(θ_b−θ_a) = −sin(θ_a−θ_b). Stack all
+        # N·T scalar equations into one global least-squares problem.
+        edges = [(a, b) for a in range(n) for b in range(a + 1, n)]
+        n_edge = len(edges)
+        edge_index = {e: p for p, e in enumerate(edges)}
+        n_param = n_edge + n  # edge couplings, then per-node injections
+
+        design = np.zeros((n * t_len, n_param), dtype=np.float64)
+        target = np.zeros(n * t_len, dtype=np.float64)
+        for i in range(n):
+            r0, r1 = i * t_len, (i + 1) * t_len
+            target[r0:r1] = m[i] * theta_ddot[:, i] + d[i] * theta_dot[:, i]
+            for j in range(n):
+                if j == i:
+                    continue
+                a, b = (i, j) if i < j else (j, i)
+                # y = P_i + Σ (−K_ij) sin(θ_i − θ_j); the design column
+                # is therefore the coefficient of (−K_{ij}).
+                col = edge_index[(a, b)]
+                design[r0:r1, col] += np.sin(theta[:, i] - theta[:, j])
+            design[r0:r1, n_edge + i] = 1.0
+
+        return SwingDesign(
+            design=np.asarray(design, dtype=np.float64),
+            target=np.asarray(target, dtype=np.float64),
+            edges=edges,
+            n_edge=n_edge,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class _IntegralSwingStrategy:
+    """Weak / integral-form symmetric-joint design (CALIB-GRID-002).
+
+    The swing identity is projected onto compactly supported test
+    functions and integrated, so the phase is never differentiated.
+    Path-specific assembly only — the solve tail is the same shared
+    :func:`_solve_symmetric_joint` as the differential path.
+    """
+
+    key: str = "integral_weak_form"
+
+    def build(
+        self,
+        theta_wrapped: NDArray[np.float64],
+        inertia: NDArray[np.float64],
+        damping: NDArray[np.float64],
+        *,
+        dt: float,
+        params: Mapping[str, int],
+    ) -> SwingDesign:
+        m = inertia
+        d = damping
+        t_len, n = theta_wrapped.shape
+        test_support = params["test_support"]
+        n_windows = params["n_windows"]
+        bump_order = params["bump_order"]
+        if bump_order < 2:
+            raise ValueError("bump_order must be ≥ 2 (need a finite, C¹ test function)")
+        if n_windows < 1:
+            raise ValueError("n_windows must be ≥ 1")
+        if test_support < 5:
+            raise ValueError("test_support must be ≥ 5 samples")
+        half = min(test_support, t_len - 1) // 2
+        if half < 2:
+            raise ValueError(
+                f"test_support {test_support} too large for trajectory length {t_len} "
+                f"(need at least one full window inside the record)"
+            )
+
+        # The phase enters the integrals *unwrapped* (the wrapped jumps
+        # are not physical); φ never differentiates it — the whole point.
+        theta = np.unwrap(theta_wrapped, axis=0)
+        phi, dphi, d2phi = _test_function_stencil(half, bump_order, dt)
+
+        # Uniformly placed window centres (clipped so every window fits).
+        lo, hi = half, t_len - half - 1
+        if hi <= lo:
+            raise ValueError(f"trajectory length {t_len} too short for support {2 * half + 1}")
+        centres = np.unique(np.linspace(lo, hi, n_windows).astype(np.int64))
+        n_w = int(centres.size)
+
+        edges = [(a, b) for a in range(n) for b in range(a + 1, n)]
+        n_edge = len(edges)
+        edge_index = {e: p for p, e in enumerate(edges)}
+        n_param = n_edge + n
+
+        design = np.zeros((n * n_w, n_param), dtype=np.float64)
+        target = np.zeros(n * n_w, dtype=np.float64)
+        int_phi = float(np.trapezoid(phi, dx=dt))
+        for i in range(n):
+            for wi in range(n_w):
+                c = int(centres[wi])
+                row = i * n_w + wi
+                sl = slice(c - half, c + half + 1)
+                theta_i = theta[sl, i]
+                # Weak target: m_i ∫φ'' θ_i − d_i ∫φ' θ_i (no phase deriv).
+                target[row] = m[i] * float(np.trapezoid(d2phi * theta_i, dx=dt)) - d[i] * float(
+                    np.trapezoid(dphi * theta_i, dx=dt)
+                )
+                for j in range(n):
+                    if j == i:
+                        continue
+                    a, b = (i, j) if i < j else (j, i)
+                    col = edge_index[(a, b)]
+                    sin_ij = np.sin(theta[sl, i] - theta[sl, j])
+                    # y = P_i ∫φ + Σ(−K_ij) ∫φ sin(θ_i−θ_j); the design
+                    # column is the coefficient of (−K_{ij}).
+                    design[row, col] += float(np.trapezoid(phi * sin_ij, dx=dt))
+                design[row, n_edge + i] = int_phi
+
+        return SwingDesign(
+            design=np.asarray(design, dtype=np.float64),
+            target=np.asarray(target, dtype=np.float64),
+            edges=edges,
+            n_edge=n_edge,
+        )
+
+
+_register_swing_strategy(_DifferentialSwingStrategy())
+_register_swing_strategy(_IntegralSwingStrategy())
+
+
 def _solve_symmetric_joint(
     design: NDArray[np.float64],
     target: NDArray[np.float64],
@@ -930,6 +1261,33 @@ def estimate_swing_coupling(
     if np.any(d < 0.0):
         raise ValueError("damping must be non-negative")
 
+    if symmetric:
+        # Symmetric-joint path: a registered strategy assembles the
+        # path-specific differential design (Savitzky–Golay derivatives
+        # + one shared parameter per unordered edge + one P_i per node)
+        # and the single dispatcher runs the shared standardise → PE →
+        # solve → unpack → identifiability → ω tail. The strategy
+        # performs the *exact same operations in the exact same order*
+        # as the former inline block, so the estimate is bit-identical
+        # (algorithm-preserving extraction — pinned by the R1
+        # bit-stability tests and the added golden vectors). Adding a
+        # future symmetric-joint path means registering a strategy, not
+        # editing this dispatcher (module-scale forcing function).
+        return _dispatch_swing(
+            "differential_symmetric",
+            theta,
+            m,
+            d,
+            dt=dt,
+            params={
+                "savgol_window": savgol_window,
+                "savgol_polyorder": savgol_polyorder,
+            },
+            pe_guard=pe_guard,
+            pe_min_singular_ratio=pe_min_singular_ratio,
+            identifiability_gate=identifiability_gate,
+        )
+
     if savgol_window < 5:
         raise ValueError("savgol_window must be ≥ 5")
     if savgol_polyorder < 2:
@@ -942,46 +1300,6 @@ def estimate_swing_coupling(
     k_hat = np.zeros((n, n), dtype=np.float64)
     injection = np.zeros(n, dtype=np.float64)
     identifiability: IdentifiabilityReport | None = None
-
-    if symmetric:
-        # One shared parameter per unordered edge (a < b) + one P_i per
-        # node. Node a's equation sees +sin(θ_a−θ_b) for edge (a,b);
-        # node b's equation sees sin(θ_b−θ_a) = −sin(θ_a−θ_b). Stack all
-        # N·T scalar equations into one global least-squares problem.
-        edges = [(a, b) for a in range(n) for b in range(a + 1, n)]
-        n_edge = len(edges)
-        edge_index = {e: p for p, e in enumerate(edges)}
-        n_param = n_edge + n  # edge couplings, then per-node injections
-
-        design = np.zeros((n * t_len, n_param), dtype=np.float64)
-        target = np.zeros(n * t_len, dtype=np.float64)
-        for i in range(n):
-            r0, r1 = i * t_len, (i + 1) * t_len
-            target[r0:r1] = m[i] * theta_ddot[:, i] + d[i] * theta_dot[:, i]
-            for j in range(n):
-                if j == i:
-                    continue
-                a, b = (i, j) if i < j else (j, i)
-                # y = P_i + Σ (−K_ij) sin(θ_i − θ_j); the design column
-                # is therefore the coefficient of (−K_{ij}).
-                col = edge_index[(a, b)]
-                design[r0:r1, col] += np.sin(theta[:, i] - theta[:, j])
-            design[r0:r1, n_edge + i] = 1.0
-
-        # Identical standardise → PE → solve → unpack → identifiability
-        # → ω tail as the weak/integral path: one shared back end (no
-        # numeric change — bit-identical, structure-only extraction).
-        return _solve_symmetric_joint(
-            design,
-            target,
-            edges,
-            n_edge,
-            n,
-            d,
-            pe_guard=pe_guard,
-            pe_min_singular_ratio=pe_min_singular_ratio,
-            identifiability_gate=identifiability_gate,
-        )
 
     # Asymmetric variant: unconstrained per-row OLS (one independent fit
     # per node). Kept for diagnostic comparison; the symmetric joint
@@ -1243,7 +1561,7 @@ def estimate_swing_coupling_integral(
         raise ValueError("n_windows must be ≥ 1")
 
     theta_wrapped = np.asarray(phases.theta, dtype=np.float64)
-    t_len, n = theta_wrapped.shape
+    _, n = theta_wrapped.shape
     m = np.asarray(inertia, dtype=np.float64)
     d = np.asarray(damping, dtype=np.float64)
     if m.shape != (n,) or d.shape != (n,):
@@ -1255,67 +1573,28 @@ def estimate_swing_coupling_integral(
     if np.any(d < 0.0):
         raise ValueError("damping must be non-negative")
 
-    if test_support < 5:
-        raise ValueError("test_support must be ≥ 5 samples")
-    half = min(test_support, t_len - 1) // 2
-    if half < 2:
-        raise ValueError(
-            f"test_support {test_support} too large for trajectory length {t_len} "
-            f"(need at least one full window inside the record)"
-        )
-
-    # The phase enters the integrals *unwrapped* (the wrapped jumps are
-    # not physical); φ never differentiates it — that is the whole point.
-    theta = np.unwrap(theta_wrapped, axis=0)
-    phi, dphi, d2phi = _test_function_stencil(half, bump_order, dt)
-
-    # Uniformly placed window centres (clipped so every window fits).
-    lo, hi = half, t_len - half - 1
-    if hi <= lo:
-        raise ValueError(f"trajectory length {t_len} too short for support {2 * half + 1}")
-    centres = np.unique(np.linspace(lo, hi, n_windows).astype(np.int64))
-    n_w = int(centres.size)
-
-    edges = [(a, b) for a in range(n) for b in range(a + 1, n)]
-    n_edge = len(edges)
-    edge_index = {e: p for p, e in enumerate(edges)}
-    n_param = n_edge + n
-
-    design = np.zeros((n * n_w, n_param), dtype=np.float64)
-    target = np.zeros(n * n_w, dtype=np.float64)
-    int_phi = float(np.trapezoid(phi, dx=dt))
-    for i in range(n):
-        for wi in range(n_w):
-            c = int(centres[wi])
-            row = i * n_w + wi
-            sl = slice(c - half, c + half + 1)
-            theta_i = theta[sl, i]
-            # Weak target: m_i ∫φ'' θ_i − d_i ∫φ' θ_i  (no phase deriv).
-            target[row] = m[i] * float(np.trapezoid(d2phi * theta_i, dx=dt)) - d[i] * float(
-                np.trapezoid(dphi * theta_i, dx=dt)
-            )
-            for j in range(n):
-                if j == i:
-                    continue
-                a, b = (i, j) if i < j else (j, i)
-                col = edge_index[(a, b)]
-                sin_ij = np.sin(theta[sl, i] - theta[sl, j])
-                # y = P_i ∫φ + Σ(−K_ij) ∫φ sin(θ_i−θ_j); the design
-                # column is the coefficient of (−K_{ij}).
-                design[row, col] += float(np.trapezoid(phi * sin_ij, dx=dt))
-            design[row, n_edge + i] = int_phi
-
-    # Identical standardise → PE → solve → unpack → identifiability → ω
-    # tail as the differential symmetric path: the single shared back
-    # end. Only the weak design / target above differ — the solve is
-    # bit-identical and structure-only (no algorithm change).
-    return _solve_symmetric_joint(
-        design,
-        target,
-        edges,
-        n_edge,
-        n,
+    # Symmetric-joint weak/integral path: a registered strategy
+    # assembles the path-specific weak design (test-function projection
+    # + integration by parts; the phase is never differentiated) and the
+    # single dispatcher runs the *same* shared standardise → PE → solve
+    # → unpack → identifiability → ω tail as the differential path. The
+    # strategy performs the exact same operations in the exact same
+    # order as the former inline block (algorithm-preserving extraction
+    # — bit-identical, pinned by the CALIB-GRID-002 bit-stability tests
+    # and the added golden vectors). A future symmetric-joint estimator
+    # class is added by registering a strategy, never by editing this
+    # dispatcher (module-scale forcing function).
+    return _dispatch_swing(
+        "integral_weak_form",
+        theta_wrapped,
+        m,
         d,
+        dt=dt,
+        params={
+            "test_support": test_support,
+            "n_windows": n_windows,
+            "bump_order": bump_order,
+        },
         pe_guard=pe_guard,
         pe_min_singular_ratio=pe_min_singular_ratio,
         identifiability_gate=identifiability_gate,
