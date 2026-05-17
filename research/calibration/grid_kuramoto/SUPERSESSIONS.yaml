@@ -53,13 +53,15 @@ supersessions:
     # superseded lineage (R1). Both are real commit ancestors; the
     # forcing-function test verifies ancestry fail-closed.
     superseded_lineage: CALIB-GRID-001-R1
-    superseded_sha: a5527708833df308e67536aaa690b4f16e88dccd
+    # audited: CALIB-GRID-001 R1 merge git sha, not a credential
+    superseded_sha: a5527708833df308e67536aaa690b4f16e88dccd  # pragma: allowlist secret
     superseding_lineage: CALIB-GRID-002
-    superseding_sha: e71d1915233283452f3fb219aafabd2f19035371
+    # audited: CALIB-GRID-002 merge git sha, not a credential
+    superseding_sha: e71d1915233283452f3fb219aafabd2f19035371  # pragma: allowlist secret
     superseding_artifact: research/calibration/grid_kuramoto/cg002/RESULTS.md
-    # Evidence anchor: the superseding artifact's sha-pinned ledger.
-    superseding_ledger_sha256: >-
-      d0f89e24341b0995
+    # Evidence anchor: the superseding artifact's sha-pinned ledger
+    # (short content-hash prefix; full hash in cg002/RESULTS.json).
+    superseding_ledger_sha256: "d0f89e24341b0995"  # pragma: allowlist secret
     # The EXACTLY FOUR sha-pinned artifacts that ENCODE the stale R1
     # causal premise (found by grep; file:line + verbatim anchor).
     stale_artifacts:

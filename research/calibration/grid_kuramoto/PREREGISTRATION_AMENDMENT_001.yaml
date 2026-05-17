@@ -28,7 +28,8 @@ amends:
   section: "§ 4 — Pre-registered acceptance gates (Noisy regime)"
   # The frozen pre-registration sha this amendment supersedes the
   # CLASSIFICATION (not the values) of. Verified commit ancestor.
-  frozen_preregistration_sha: d170d48afa5066c13edeb40b2c1904b3fd708516
+  # audited: frozen parent pre-registration git sha, not a credential
+  frozen_preregistration_sha: d170d48afa5066c13edeb40b2c1904b3fd708516  # pragma: allowlist secret
   # The amendment is itself committed on this branch base (sha-binding
   # is the commit that lands this file; see PROVENANCE / commit acceptor).
   amendment_branch_base_sha: e6370fe3
@@ -39,8 +40,10 @@ amends:
 # (0.085 on edge (0,2)) at the frozen sigma=0.02, class-independent.
 evidence:
   superseding_lineage: CALIB-GRID-002
-  superseding_sha: e71d1915233283452f3fb219aafabd2f19035371
-  cg002_ledger_sha256: d0f89e24341b099598e2e5cc9809772ee2c47627f77bf3354f957fab860819b1
+  # audited: CALIB-GRID-002 merge git sha, not a credential
+  superseding_sha: e71d1915233283452f3fb219aafabd2f19035371  # pragma: allowlist secret
+  # audited: CALIB-GRID-002 ledger content hash, not a credential
+  cg002_ledger_sha256: d0f89e24341b099598e2e5cc9809772ee2c47627f77bf3354f957fab860819b1  # pragma: allowlist secret
   proof: >-
     CALIB-GRID-002 cg002/RESULTS.md measures the clean
     sin(theta_i-theta_j) coupling regressor (std 0.00244-0.01611) versus
