@@ -691,6 +691,124 @@ def _singular_ratio(design: NDArray[np.float64]) -> float:
     return float(sv[-1] / s_max)
 
 
+def _solve_symmetric_joint(
+    design: NDArray[np.float64],
+    target: NDArray[np.float64],
+    edges: list[tuple[int, int]],
+    n_edge: int,
+    n: int,
+    damping: NDArray[np.float64],
+    *,
+    pe_guard: bool,
+    pe_min_singular_ratio: float,
+    identifiability_gate: bool,
+) -> SwingCouplingEstimate:
+    r"""Shared symmetric-joint least-squares back end (structure-only).
+
+    Both swing identifiers — the differential
+    :func:`estimate_swing_coupling` (``symmetric=True``) and the
+    weak/integral :func:`estimate_swing_coupling_integral` — assemble a
+    *different* global design ``[n·rows × (n_edge + n)]`` and target, but
+    then run an **identical** tail: column-standardise, take the
+    persistent-excitation diagnostic on the standardised design, raise
+    :class:`PersistentExcitationError` if guarded and rank-deficient,
+    solve the back-transformed least squares, unpack ``K_{ab}=-coef_p``
+    and ``P_i=coef_{n_edge+i}``, optionally attach the additive
+    identifiability report, and reduce ``ω = P/d``.
+
+    This function is the single copy of that tail. It performs the
+    *exact same operations in the exact same order* as the two former
+    inline copies, so ``K``/``P``/``ω`` are **bit-identical** before and
+    after the extraction (no algorithm change — pinned by the existing
+    bit-stability tests and the calibration golden ledgers).
+
+    Parameters
+    ----------
+    design, target : np.ndarray
+        The lineage-specific global design ``(n·R, n_edge+n)`` and
+        target ``(n·R,)`` (``R`` = per-node rows: ``t_len`` differential
+        / ``n_windows`` weak).
+    edges : list[tuple[int, int]]
+        Unordered edge list ``[(a, b) : a < b]`` indexing the first
+        ``n_edge`` design columns.
+    n_edge, n : int
+        Edge count and node count (``n_param = n_edge + n``).
+    damping : np.ndarray
+        Per-node ``d_i ≥ 0`` for the ``ω = P/d`` reduction.
+    pe_guard, pe_min_singular_ratio, identifiability_gate
+        Same semantics as the public estimators (see their docstrings).
+
+    Returns
+    -------
+    SwingCouplingEstimate
+        Signed symmetric ``K``, injection ``P``, ``ω``, the reciprocal
+        condition number and (optional) identifiability report.
+
+    Raises
+    ------
+    PersistentExcitationError
+        When ``pe_guard`` and the standardised design is rank-deficient
+        (``worst_ratio < pe_min_singular_ratio``).
+    """
+    d = damping
+    # Standardise every column (the per-node intercept blocks have a
+    # well-defined non-zero std). bounds: a fully constant column
+    # (degenerate edge) keeps unit scale so the PE diagnostic flags it
+    # rather than dividing by zero.
+    scale = design.std(axis=0, ddof=0)
+    scale_safe = np.where(scale > 1e-12, scale, 1.0)
+    design_std = design / scale_safe
+
+    worst_ratio = _singular_ratio(design_std)
+    if pe_guard and worst_ratio < pe_min_singular_ratio:
+        raise PersistentExcitationError(-1, worst_ratio, pe_min_singular_ratio)
+
+    coef_std, *_ = np.linalg.lstsq(design_std, target, rcond=None)
+    coef = coef_std / scale_safe
+
+    k_hat = np.zeros((n, n), dtype=np.float64)
+    for p_idx, (a, b) in enumerate(edges):
+        k_ab = -float(coef[p_idx])  # K = −(design coefficient)
+        k_hat[a, b] = k_ab
+        k_hat[b, a] = k_ab
+    injection = np.asarray(coef[n_edge:], dtype=np.float64)
+
+    identifiability: IdentifiabilityReport | None = None
+    if identifiability_gate:
+        # Reuse the *exact* design_std / target / coef_std / scale
+        # already solved — the point estimate is untouched (additive).
+        # K̂_ab = −coef_p, so SE(K̂_ab) = SE(coef_p): the negation is a
+        # unit-modulus map and leaves the standard error invariant; pass
+        # k_hat (already negated) so the CIs are in signed-coupling units.
+        edge_se, residual_var, r_squared = linearised_edge_covariance(
+            np.asarray(design_std, dtype=np.float64),
+            np.asarray(target, dtype=np.float64),
+            np.asarray(coef_std, dtype=np.float64),
+            np.asarray(scale_safe, dtype=np.float64),
+            n_edge,
+        )
+        identifiability = front_gate_verdict(
+            k_hat,
+            edges,
+            edge_se,
+            worst_ratio,
+            residual_var,
+            r_squared,
+        )
+
+    # ω_i = P_i / d_i (over-damped reduction). Guard d_i = 0 explicitly.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        omega = np.where(d > 0.0, injection / np.where(d > 0.0, d, 1.0), 0.0)
+
+    return SwingCouplingEstimate(
+        K=np.asarray(k_hat, dtype=np.float64),
+        injection=np.asarray(injection, dtype=np.float64),
+        omega=np.asarray(omega, dtype=np.float64),
+        min_singular_ratio=float(worst_ratio),
+        identifiability=identifiability,
+    )
+
+
 def estimate_swing_coupling(
     phases: PhaseMatrix,
     inertia: NDArray[np.float64],
@@ -850,84 +968,57 @@ def estimate_swing_coupling(
                 design[r0:r1, col] += np.sin(theta[:, i] - theta[:, j])
             design[r0:r1, n_edge + i] = 1.0
 
-        # Standardise every column (the per-node intercept blocks are
-        # 0/1 indicators; their std is well-defined and non-zero).
-        scale = design.std(axis=0, ddof=0)
-        # bounds: a fully constant column (degenerate edge) keeps unit
-        # scale so the PE diagnostic flags it rather than dividing by 0.
-        scale_safe = np.where(scale > 1e-12, scale, 1.0)
-        design_std = design / scale_safe
+        # Identical standardise → PE → solve → unpack → identifiability
+        # → ω tail as the weak/integral path: one shared back end (no
+        # numeric change — bit-identical, structure-only extraction).
+        return _solve_symmetric_joint(
+            design,
+            target,
+            edges,
+            n_edge,
+            n,
+            d,
+            pe_guard=pe_guard,
+            pe_min_singular_ratio=pe_min_singular_ratio,
+            identifiability_gate=identifiability_gate,
+        )
 
-        worst_ratio = _singular_ratio(design_std)
-        if pe_guard and worst_ratio < pe_min_singular_ratio:
-            raise PersistentExcitationError(-1, worst_ratio, pe_min_singular_ratio)
+    # Asymmetric variant: unconstrained per-row OLS (one independent fit
+    # per node). Kept for diagnostic comparison; the symmetric joint
+    # solve above is the physically correct, calibrated path.
+    worst_ratio = 1.0
+    for i in range(n):
+        # Target: y_i = m_i θ̈_i + d_i θ̇_i
+        y = m[i] * theta_ddot[:, i] + d[i] * theta_dot[:, i]
+        # Regressors: [sin(θ_i − θ_j)]_{j≠i} and a constant for P_i.
+        others = [j for j in range(n) if j != i]
+        sin_cols = np.sin(theta[:, i][:, None] - theta[:, others])  # (T, n-1)
+        design_row = np.column_stack([sin_cols, np.ones(t_len)])
 
-        coef_std, *_ = np.linalg.lstsq(design_std, target, rcond=None)
-        coef = coef_std / scale_safe
+        # Standardise the sine columns (the intercept column is left
+        # as a unit constant so its coefficient stays physical).
+        sin_scale = sin_cols.std(axis=0, ddof=0)
+        # bounds: a near-constant regressor (phase-locked pair) gets
+        # a unit scale so the PE diagnostic — not a divide-by-zero —
+        # flags the degeneracy.
+        sin_scale_safe = np.where(sin_scale > 1e-12, sin_scale, 1.0)
+        design_std = design_row.copy()
+        design_std[:, :-1] = sin_cols / sin_scale_safe
 
-        for p, (a, b) in enumerate(edges):
-            k_ab = -float(coef[p])  # K = −(design coefficient)
-            k_hat[a, b] = k_ab
-            k_hat[b, a] = k_ab
-        injection[:] = coef[n_edge:]
+        ratio = _singular_ratio(design_std)
+        worst_ratio = min(worst_ratio, ratio)
+        if pe_guard and ratio < pe_min_singular_ratio:
+            raise PersistentExcitationError(i, ratio, pe_min_singular_ratio)
 
-        if identifiability_gate:
-            # Additive graded self-knowledge layer (upgrade lineage #2).
-            # Reuses the *exact* design_std / target / coef_std / scale
-            # already solved above — the point estimate is untouched.
-            # K̂_ab = −coef_p, so SE(K̂_ab) = SE(coef_p): the negation
-            # is a unit-modulus map and leaves the standard error
-            # invariant; pass k_hat (already negated) so the CIs are in
-            # signed-coupling units.
-            edge_se, residual_var, r_squared = linearised_edge_covariance(
-                np.asarray(design_std, dtype=np.float64),
-                np.asarray(target, dtype=np.float64),
-                np.asarray(coef_std, dtype=np.float64),
-                np.asarray(scale_safe, dtype=np.float64),
-                n_edge,
-            )
-            identifiability = front_gate_verdict(
-                k_hat,
-                edges,
-                edge_se,
-                worst_ratio,
-                residual_var,
-                r_squared,
-            )
-    else:
-        worst_ratio = 1.0
-        for i in range(n):
-            # Target: y_i = m_i θ̈_i + d_i θ̇_i
-            y = m[i] * theta_ddot[:, i] + d[i] * theta_dot[:, i]
-            # Regressors: [sin(θ_i − θ_j)]_{j≠i} and a constant for P_i.
-            others = [j for j in range(n) if j != i]
-            sin_cols = np.sin(theta[:, i][:, None] - theta[:, others])  # (T, n-1)
-            design_row = np.column_stack([sin_cols, np.ones(t_len)])
+        coef_std, *_ = np.linalg.lstsq(design_std, y, rcond=None)
+        # Back-transform the standardised sine coefficients.
+        coef = coef_std.copy()
+        coef[:-1] = coef_std[:-1] / sin_scale_safe
 
-            # Standardise the sine columns (the intercept column is left
-            # as a unit constant so its coefficient stays physical).
-            sin_scale = sin_cols.std(axis=0, ddof=0)
-            # bounds: a near-constant regressor (phase-locked pair) gets
-            # a unit scale so the PE diagnostic — not a divide-by-zero —
-            # flags the degeneracy.
-            sin_scale_safe = np.where(sin_scale > 1e-12, sin_scale, 1.0)
-            design_std = design_row.copy()
-            design_std[:, :-1] = sin_cols / sin_scale_safe
-
-            ratio = _singular_ratio(design_std)
-            worst_ratio = min(worst_ratio, ratio)
-            if pe_guard and ratio < pe_min_singular_ratio:
-                raise PersistentExcitationError(i, ratio, pe_min_singular_ratio)
-
-            coef_std, *_ = np.linalg.lstsq(design_std, y, rcond=None)
-            # Back-transform the standardised sine coefficients.
-            coef = coef_std.copy()
-            coef[:-1] = coef_std[:-1] / sin_scale_safe
-
-            # y = P_i + Σ (−K_ij) sin(θ_i − θ_j)  ⇒  K_ij = −coef_j .
-            for col, j in enumerate(others):
-                k_hat[i, j] = -coef[col]
-            injection[i] = coef[-1]
+        # y = P_i + Σ (−K_ij) sin(θ_i − θ_j)  ⇒  K_ij = −coef_j .
+        for col, j in enumerate(others):
+            k_hat[i, j] = -coef[col]
+        injection[i] = coef[-1]
 
     # ω_i = P_i / d_i (over-damped reduction). Guard d_i = 0 explicitly.
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -1214,54 +1305,18 @@ def estimate_swing_coupling_integral(
                 design[row, col] += float(np.trapezoid(phi * sin_ij, dx=dt))
             design[row, n_edge + i] = int_phi
 
-    scale = design.std(axis=0, ddof=0)
-    # bounds: a fully constant column (degenerate edge) keeps unit scale
-    # so the PE diagnostic flags it rather than dividing by zero.
-    scale_safe = np.where(scale > 1e-12, scale, 1.0)
-    design_std = design / scale_safe
-
-    worst_ratio = _singular_ratio(design_std)
-    if pe_guard and worst_ratio < pe_min_singular_ratio:
-        raise PersistentExcitationError(-1, worst_ratio, pe_min_singular_ratio)
-
-    coef_std, *_ = np.linalg.lstsq(design_std, target, rcond=None)
-    coef = coef_std / scale_safe
-
-    k_hat = np.zeros((n, n), dtype=np.float64)
-    for p_idx, (a, b) in enumerate(edges):
-        k_ab = -float(coef[p_idx])  # K = −(design coefficient)
-        k_hat[a, b] = k_ab
-        k_hat[b, a] = k_ab
-    injection = np.asarray(coef[n_edge:], dtype=np.float64)
-
-    identifiability: IdentifiabilityReport | None = None
-    if identifiability_gate:
-        # Reuse the *exact* weak design_std / target / coef_std / scale
-        # already solved — point estimate untouched (additive layer).
-        edge_se, residual_var, r_squared = linearised_edge_covariance(
-            np.asarray(design_std, dtype=np.float64),
-            np.asarray(target, dtype=np.float64),
-            np.asarray(coef_std, dtype=np.float64),
-            np.asarray(scale_safe, dtype=np.float64),
-            n_edge,
-        )
-        identifiability = front_gate_verdict(
-            k_hat,
-            edges,
-            edge_se,
-            worst_ratio,
-            residual_var,
-            r_squared,
-        )
-
-    # ω_i = P_i / d_i (over-damped reduction). Guard d_i = 0 explicitly.
-    with np.errstate(divide="ignore", invalid="ignore"):
-        omega = np.where(d > 0.0, injection / np.where(d > 0.0, d, 1.0), 0.0)
-
-    return SwingCouplingEstimate(
-        K=np.asarray(k_hat, dtype=np.float64),
-        injection=np.asarray(injection, dtype=np.float64),
-        omega=np.asarray(omega, dtype=np.float64),
-        min_singular_ratio=float(worst_ratio),
-        identifiability=identifiability,
+    # Identical standardise → PE → solve → unpack → identifiability → ω
+    # tail as the differential symmetric path: the single shared back
+    # end. Only the weak design / target above differ — the solve is
+    # bit-identical and structure-only (no algorithm change).
+    return _solve_symmetric_joint(
+        design,
+        target,
+        edges,
+        n_edge,
+        n,
+        d,
+        pe_guard=pe_guard,
+        pe_min_singular_ratio=pe_min_singular_ratio,
+        identifiability_gate=identifiability_gate,
     )
