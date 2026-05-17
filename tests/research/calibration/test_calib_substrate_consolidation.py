@@ -47,17 +47,25 @@ from research.calibration.grid_kuramoto.run import build_r1_ledger
 _CALIB_ROOT = Path(__file__).resolve().parents[3] / "research" / "calibration" / "grid_kuramoto"
 
 
-def _deep_close(a: Any, b: Any, *, rel: float = 1e-9, abs_: float = 1e-12) -> bool:
+def _deep_close(a: Any, b: Any, *, rel: float = 1e-6, abs_: float = 1e-9) -> bool:
     """Structure-exact, numeric-tolerant equality.
 
-    The same comparator the pre-existing ``test_grid_kuramoto.py`` drift
-    tests use: keys / strings / bools / ints / shape are exact; floats
-    compare within a tolerance tight enough (rel 1e-9) to still catch a
-    real post-data edit but loose enough to absorb the ~1e-13 BLAS
-    thread-order jitter that makes a raw ``==`` / byte-sha flaky across
-    platforms (the R1 determinism test was de-flaked for exactly this).
-    A byte-exact float sha would assert a *machine-specific* artifact,
-    not the behavior-preserving contract.
+    Unified with the single audited post-data-edit tolerance window
+    (rel 1e-6 / abs 1e-9) that ``test_grid_kuramoto.py`` and the
+    ``calib-cg002-determinism`` acceptor pin. This copy previously
+    carried rel=1e-9 while the sibling copy was widened to rel=1e-6 in
+    #760 (CI BLAS thread-order nondeterminism on ill-conditioned CG-002
+    front-gate r²/Frobenius); the two divergent ε were a fractal
+    tolerance-creep with no negative feedback. They are now single-
+    valued and the sharpness of the window (a real post-data edit, which
+    shifts these metrics by orders of magnitude more than rel=1e-6, is
+    still detected) is independently forced by
+    ``test_calib_lineage_forcing_functions.py::
+    test_deep_close_tolerance_is_pinned_single_valued_and_sharp``.
+    Keys / strings / bools / ints / shape stay exact. A byte-exact float
+    sha would assert a *machine-specific* artifact, not the
+    behavior-preserving contract. WHY-loosened per CLAUDE.md: unified to
+    the already-merged audited window, not widened past it.
     """
     if isinstance(a, bool) or isinstance(b, bool):
         return a is b
