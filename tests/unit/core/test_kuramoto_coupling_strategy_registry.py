@@ -258,29 +258,31 @@ def _swing_pm() -> tuple[PhaseMatrix, np.ndarray, np.ndarray]:
 # every estimation path's raw-byte hash. A single ULP drift on any path
 # flips one of these and fails the test (algorithm-preserving contract).
 _GOLDEN: dict[str, object] = {
-    "first_order_mcp_K": "2ef43b77c3cb4e24b567563caddebd0a31c01155a72a283bb0b048a66266cdff",
+    # audited: numpy-array content sha256 / scalar diagnostics, NOT
+    # credentials — the bit-identical golden vectors from sha 65666072.
+    "first_order_mcp_K": "2ef43b77c3cb4e24b567563caddebd0a31c01155a72a283bb0b048a66266cdff",  # pragma: allowlist secret
     "first_order_mcp_sparsity": 0.9333333333333333,
-    "first_order_stab_K": "4a1693424442e9ef473e2f0d6a4699a885a8316d54a284412cae70e0fdcd858e",
-    "first_order_stab_scores": "f4c4a8f934857770e8649f2ee958d2af3a63a783ea4038e41108a423053d4297",
-    "cps_K_median": "bd3e05110466b148c0eae3b58928949f54207036b9a30369f66cfb2cb0c66148",
-    "cps_stability": "f4c4a8f934857770e8649f2ee958d2af3a63a783ea4038e41108a423053d4297",
-    "mcp_prox": "0509a9a0bed614b2eb21a44091006cc979db732f34076fe63af2aaa0d992226f",
-    "scad_prox": "9dff064a01a1963ac4ee4b0f71ee300deb65f81835151df3419e3043f10f935f",
-    "soft_threshold": "93f77c0d636d04dd2cd1683ec9936f95bcdeec12e3526e4c2e5b66861f3fa7c6",
-    "swing_sym_K": "f2f63bc4f07cedc6044017d641fb93e264f98e9b7959daf38b97a021a6e1ca76",
-    "swing_sym_P": "3b9e7840e3f6056bbc94e043a9ca8fbe94132a83af040168151c73c0edbc7e87",
-    "swing_sym_omega": "749e28c849ccc30f5858bd7b6f1087e24262ab450bd6f92b06bc6aeaf8800797",
+    "first_order_stab_K": "4a1693424442e9ef473e2f0d6a4699a885a8316d54a284412cae70e0fdcd858e",  # pragma: allowlist secret
+    "first_order_stab_scores": "f4c4a8f934857770e8649f2ee958d2af3a63a783ea4038e41108a423053d4297",  # pragma: allowlist secret
+    "cps_K_median": "bd3e05110466b148c0eae3b58928949f54207036b9a30369f66cfb2cb0c66148",  # pragma: allowlist secret
+    "cps_stability": "f4c4a8f934857770e8649f2ee958d2af3a63a783ea4038e41108a423053d4297",  # pragma: allowlist secret
+    "mcp_prox": "0509a9a0bed614b2eb21a44091006cc979db732f34076fe63af2aaa0d992226f",  # pragma: allowlist secret
+    "scad_prox": "9dff064a01a1963ac4ee4b0f71ee300deb65f81835151df3419e3043f10f935f",  # pragma: allowlist secret
+    "soft_threshold": "93f77c0d636d04dd2cd1683ec9936f95bcdeec12e3526e4c2e5b66861f3fa7c6",  # pragma: allowlist secret
+    "swing_sym_K": "f2f63bc4f07cedc6044017d641fb93e264f98e9b7959daf38b97a021a6e1ca76",  # pragma: allowlist secret
+    "swing_sym_P": "3b9e7840e3f6056bbc94e043a9ca8fbe94132a83af040168151c73c0edbc7e87",  # pragma: allowlist secret
+    "swing_sym_omega": "749e28c849ccc30f5858bd7b6f1087e24262ab450bd6f92b06bc6aeaf8800797",  # pragma: allowlist secret
     "swing_sym_msr": 0.04004743831202507,
-    "swing_sym_ident_K": "f2f63bc4f07cedc6044017d641fb93e264f98e9b7959daf38b97a021a6e1ca76",
+    "swing_sym_ident_K": "f2f63bc4f07cedc6044017d641fb93e264f98e9b7959daf38b97a021a6e1ca76",  # pragma: allowlist secret
     "swing_sym_ident_score": 0.9996845317668399,
     "swing_sym_ident_verdict": "ACCEPT",
-    "swing_asym_K": "cd0021bea77cada8ed6c21231b239a042783ee4d91394921d57cbca8fb765879",
-    "swing_asym_P": "92ecaf44292090862a4732bf4fa71fd8cd8d29ef9e75c7c125c8d96cf5c9e55f",
-    "swing_asym_omega": "759d69c0bd363d78abedf78b4fede1cd9bc9ca41605644822e7ff0566d853bec",
+    "swing_asym_K": "cd0021bea77cada8ed6c21231b239a042783ee4d91394921d57cbca8fb765879",  # pragma: allowlist secret
+    "swing_asym_P": "92ecaf44292090862a4732bf4fa71fd8cd8d29ef9e75c7c125c8d96cf5c9e55f",  # pragma: allowlist secret
+    "swing_asym_omega": "759d69c0bd363d78abedf78b4fede1cd9bc9ca41605644822e7ff0566d853bec",  # pragma: allowlist secret
     "swing_asym_msr": 0.03644135053721742,
-    "integral_K": "b9dc00b1f213add6039d55b1d2e25c197a9c8d6b280f315d8f693ebae80b2304",
-    "integral_P": "d22c73572803701d064edbd6678577800320fbabf1522f74c5b3bcd1bce6f30c",
-    "integral_omega": "2936f444e03019d5e58528559908ba4a60954a79a426f611c0522f38ddfb1490",
+    "integral_K": "b9dc00b1f213add6039d55b1d2e25c197a9c8d6b280f315d8f693ebae80b2304",  # pragma: allowlist secret
+    "integral_P": "d22c73572803701d064edbd6678577800320fbabf1522f74c5b3bcd1bce6f30c",  # pragma: allowlist secret
+    "integral_omega": "2936f444e03019d5e58528559908ba4a60954a79a426f611c0522f38ddfb1490",  # pragma: allowlist secret
     "integral_msr": 0.037442981977247894,
     "integral_ident_score": 0.9981478637919239,
     "integral_ident_verdict": "ACCEPT",
