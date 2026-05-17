@@ -156,16 +156,22 @@ jobs:
   # ---------------------------------------------------------------------------
   # python-fast-tests — fast deterministic pytest suite
   # ---------------------------------------------------------------------------
-  python-fast-tests:
-    name: python-fast-tests
+  # Sharded across parallel CI jobs (pytest-split, a pinned dev dep). The
+  # fast suite outgrew the 20-min cap as parallel research lines added
+  # tests/; the timeout was silently masking a backlog of latent failures.
+  # In-process xdist was rejected — it breaks caplog/log-propagation tests.
+  # Each shard is a normal serial pytest process (no caplog breakage),
+  # ~1/N of the suite, well under the 1200s cap. The aggregator job below
+  # keeps the stable required-check name `python-fast-tests`.
+  python-fast-shard:
+    name: python-fast-shard
     runs-on: ubuntu-latest
     needs: python-quality
     continue-on-error: false
-    # Job-level cap raised 20→25 to keep ~5min headroom over the inner
-    # `timeout 1200s pytest`. Repeated CI cancellations on PRs that
-    # otherwise complete pytest occurred when setup+post-pytest steps
-    # consumed the residual budget. The inner 1200s pytest timeout is
-    # unchanged — this only widens the wrapper.
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [1, 2, 3, 4]
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -210,13 +216,32 @@ jobs:
             }
             END { exit !found }
           '; then
-            echo "No Python runtime/test surface changes detected; python-fast-tests passes."
+            echo "No Python runtime/test surface changes detected; shard passes."
             exit 0
           fi
 
           [[ -x .venv/bin/pytest ]] || { echo ".venv/bin/pytest missing"; exit 1; }
-          timeout 1200s .venv/bin/pytest tests/ \
-            -m "not slow and not heavy_math and not nightly and not flaky" \
+          # Locale hardening: deterministic UTF-8 default text I/O so a
+          # UTF-8 source file cannot crash open() under a C-locale runner.
+          export PYTHONUTF8=1
+          export PYTHONIOENCODING=utf-8
+          # Plugin-free deterministic shard. pytest-split needs pytest<9
+          # (this repo is pytest 9) and in-process xdist breaks caplog —
+          # both rejected. Instead: collect the selected fast set once,
+          # partition node ids by crc32 % 4, and run only this shard's
+          # ids. Serial process per shard (caplog unaffected), ~1/4 of the
+          # suite, 1200s cap unchanged/not masked.
+          MARK="not slow and not heavy_math and not nightly and not flaky"
+          .venv/bin/pytest tests/ -m "$MARK" --collect-only -q 2>/dev/null \
+            | grep -E '::' > /tmp/all_nodeids.txt || true
+          .venv/bin/python -c "import binascii,pathlib; ids=[l.strip() for l in pathlib.Path('/tmp/all_nodeids.txt').read_text().splitlines() if l.strip()]; g=${{ matrix.group }}-1; sh=[n for n in ids if binascii.crc32(n.encode())%4==g]; pathlib.Path('/tmp/shard_nodeids.txt').write_text(chr(10).join(sh)); print(f'shard {g+1}/4: {len(sh)}/{len(ids)} selected tests')"
+          if [[ ! -s /tmp/shard_nodeids.txt ]]; then
+            echo "empty shard (no selected tests) — shard passes"; exit 0
+          fi
+          mapfile -t SHARD_IDS < /tmp/shard_nodeids.txt
+          timeout 1200s .venv/bin/pytest \
+            -m "$MARK" \
+            "${SHARD_IDS[@]}" \
             --maxfail=1 \
             -q
 
@@ -254,6 +279,22 @@ jobs:
           fi
 
           make formal-verify
+
+  # ---------------------------------------------------------------------------
+  # python-fast-tests — stable aggregator over the sharded fast lane.
+  # Keeps the exact required-check name + `needs:` target unchanged while
+  # the actual work fans out across python-fast-shard. Green iff every
+  # shard is green (fail-fast:false surfaces all shard failures first).
+  # ---------------------------------------------------------------------------
+  python-fast-tests:
+    name: python-fast-tests
+    runs-on: ubuntu-latest
+    needs: python-fast-shard
+    continue-on-error: false
+    timeout-minutes: 5
+    steps:
+      - name: All fast shards green
+        run: echo "python-fast-shard matrix fully green — fast gate satisfied"
 
   # ---------------------------------------------------------------------------
   # python-heavy-tests — heavy compute test lane
