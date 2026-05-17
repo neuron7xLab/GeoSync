@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from scipy.signal import csd
+from scipy.stats import rankdata
 
 from research.ctc_falsify import config as l1
 from research.ctc_falsify.c5 import config_c5 as c5
@@ -57,14 +58,20 @@ def _lda_direction(x: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 def _auc(scores: np.ndarray, y: np.ndarray) -> float:
+    """Tie-correct ROC-AUC via the Mann–Whitney U with *average* ranks.
+
+    Equals the definitional AUC = P(s+ > s-) + 0.5·P(s+ == s-). Uses
+    ``scipy.stats.rankdata`` (mid-ranks for ties) — the prior ordinal-rank
+    version inflated AUC on ties and returned a *false* perfect separation
+    on constant scores (all-equal → 0.0 → orientation-fold → 1.0). With
+    mid-ranks, constant/all-tied scores correctly give 0.5.
+    """
     pos = scores[y == 1]
     neg = scores[y == 0]
     if pos.size == 0 or neg.size == 0:
         return 0.5
-    order = np.argsort(np.concatenate([pos, neg]), kind="stable")
-    ranks = np.empty(order.size, dtype=np.float64)
-    ranks[order] = np.arange(1, order.size + 1)
-    r_pos = ranks[: pos.size].sum()
+    ranks = rankdata(np.concatenate([pos, neg]))  # 'average' ties by default
+    r_pos = float(ranks[: pos.size].sum())
     u = r_pos - pos.size * (pos.size + 1) / 2.0
     return float(u / (pos.size * neg.size))
 

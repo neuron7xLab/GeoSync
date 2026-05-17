@@ -74,7 +74,19 @@ C4 left one question open: is the standard-estimand blindness an
 gap? C5 puts a near-oracle upper bound on it — the best out-of-sample
 linear discriminant over the **full gamma cross-spectrum**
 (magnitude + phase), train/test seed-disjoint (no leakage). Result:
-**OOS ROC-AUC ≈ 0.96** ⇒ verdict `C5_ESTIMATOR_QUALITY_GAP`.
+**OOS ROC-AUC = 0.9630** ⇒ verdict `C5_ESTIMATOR_QUALITY_GAP`.
+
+> **Metric audit (post-closure hardening).** The AUC implementation was
+> independently audited and the prior ordinal-rank version had a real
+> defect: on tied/constant scores it returned a *false* perfect
+> separation. It was replaced with a tie-correct Mann–Whitney
+> (`scipy.stats.rankdata` mid-ranks) and pinned by a brute-force
+> definitional regression suite (constant, all-tied, perfect/anti,
+> reversed-label, unbalanced, randomised-ties). On rerun the OOS AUC is
+> **byte-identical 0.9630** (the real LDA projection scores are
+> continuous — no ties — so only degenerate cases were ever affected).
+> Per the pre-stated rule "fixed AUC ≈0.96 ⇒ C5 strengthened": the
+> closure is now **unconditional**, not contingent on a suspect metric.
 
 So the channel **is** information-recoverable on this generative model: a
 sufficient statistic exists in the richer cross-spectral representation.
