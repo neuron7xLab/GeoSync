@@ -37,17 +37,32 @@ the family must share:
   bespoke-ledger-schema generator (F4/F5): every ``build_*_ledger``
   must emit the shared required key set. A lineage #6 that invents a
   new RESULTS shape fails this test.
+* ``test_superseded_claims_resolve_via_registry`` /
+  ``test_supersession_registry_is_internally_consistent`` — kills the
+  stale-falsified-premise generator (F-supersession): a sha-pinned
+  artifact may encode a causal premise a *later* sha-pinned lineage has
+  falsified (R1's "double-differentiation / no-consistent-estimator"
+  noisy attribution, falsified by CALIB-GRID-002's class-independent
+  regressor-floor proof). ``SUPERSESSIONS.yaml`` is the single source
+  of truth for that relation; any *new* doc that references the
+  superseded R1 claim/sha without resolving the registry fails closed,
+  and the registry's own integrity (every stale-artifact path exists
+  and carries its verbatim anchor; the superseded sha is a real commit
+  ancestor) is enforced fail-closed. No frozen artifact is touched —
+  the registry is a pure-additive forward-only supersession layer.
 """
 
 from __future__ import annotations
 
 import inspect
 import re
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 from research.calibration.grid_kuramoto import (
     SimConfig,
@@ -270,4 +285,151 @@ def test_every_results_ledger_conforms_to_shared_schema(name: str) -> None:
     assert "hashlib.sha256(payload).hexdigest()" not in src, (
         f"{name}: builder re-implements ledger sha-pinning inline; it "
         f"must delegate to _substrate.ledger_sha256 (single source)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# F-supersession — the stale-falsified-premise forcing function
+# ---------------------------------------------------------------------------
+
+_SUPERSESSIONS_YAML = _LINEAGE_ROOT / "SUPERSESSIONS.yaml"
+_SUPERSESSIONS_MD = _LINEAGE_ROOT / "SUPERSESSIONS.md"
+
+# The R1 falsified-premise fingerprints. A *new* doc that contains any
+# of these (i.e. references R1's superseded noisy attribution as a
+# premise) MUST also resolve the supersession registry by naming it.
+_R1_STALE_FINGERPRINTS = (
+    "double-differentiation SNR boundary",
+    "No consistent estimator exists for the noisy regime",
+)
+# Files that legitimately *contain* the stale fingerprint: the frozen
+# R1 artifacts that ENCODE it (immutable historical record), the
+# superseding artifact that QUOTES it to falsify it, the registry
+# itself, this test, and any doc that already resolves the registry.
+_REGISTRY_RESOLUTION_TOKENS = ("SUPERSESSIONS.yaml", "SUPERSEDE-001", "SUPERSESSIONS.md")
+
+
+def _load_supersessions() -> dict[str, Any]:
+    data = yaml.safe_load(_SUPERSESSIONS_YAML.read_text(encoding="utf-8"))
+    assert isinstance(data, dict), "SUPERSESSIONS.yaml is not a mapping"
+    return data
+
+
+def test_supersession_registry_is_internally_consistent() -> None:
+    """The supersession registry is the single, fail-closed source.
+
+    Forcing function for the F-supersession generative mechanism (a
+    sha-pinned artifact encodes a premise a later sha-pinned lineage
+    falsified, with no forward-resolution layer). This pins the
+    registry's own integrity so the relation cannot silently rot:
+
+    1. every ``stale_artifacts[].path`` / ``citing_artifacts[].path``
+       exists on disk and carries its ``verbatim_anchor`` substring
+       (the enumeration cannot drift off the real artifact);
+    2. the ``superseded_sha`` and ``superseding_sha`` are real commit
+       ancestors of HEAD (the supersession points at genuine history);
+    3. the registry enumerates **exactly four** encoding artifacts and
+       **exactly two** citing artifacts (the audited cardinality —
+       a future entry that drops or pads the enumeration fails closed);
+    4. the human ``SUPERSESSIONS.md`` references the machine registry
+       (single source: the prose cannot diverge from the contract).
+    """
+    data = _load_supersessions()
+    assert data["registry"] == "CALIB-GRID-SUPERSESSIONS"
+    entries = data["supersessions"]
+    assert isinstance(entries, list) and entries, "no supersession entries"
+
+    repo_root = _LINEAGE_ROOT.parents[2]
+    for entry in entries:
+        stale = entry["stale_artifacts"]
+        citing = entry["citing_artifacts"]
+        # Audited cardinality: exactly four distinct encoding artifacts
+        # (r1/RESULTS.md, r1/RESULTS.json, r1/ATTEMPT.md — RESULTS.md
+        # contributes the prose claim + its summary restatement) and
+        # exactly two citing artifacts.
+        encoding_paths = {row["path"] for row in stale}
+        citing_paths = {row["path"] for row in citing}
+        assert encoding_paths == {
+            "research/calibration/grid_kuramoto/r1/RESULTS.md",
+            "research/calibration/grid_kuramoto/r1/RESULTS.json",
+            "research/calibration/grid_kuramoto/r1/ATTEMPT.md",
+        }, f"{entry['id']}: encoding-artifact set drifted: {sorted(encoding_paths)}"
+        assert citing_paths == {
+            "research/calibration/grid_kuramoto/identifiability/THRESHOLD_PROVENANCE.md",
+            "research/calibration/grid_kuramoto/cg002/PROVENANCE_002.md",
+        }, f"{entry['id']}: citing-artifact set drifted: {sorted(citing_paths)}"
+
+        for row in (*stale, *citing):
+            path = repo_root / row["path"]
+            assert path.is_file(), f"{entry['id']}: stale path missing: {row['path']}"
+            text = path.read_text(encoding="utf-8")
+            anchor = " ".join(row["verbatim_anchor"].split())
+            assert anchor in " ".join(text.split()), (
+                f"{entry['id']}: verbatim_anchor not found in {row['path']}: "
+                f"{anchor!r} — the enumeration drifted off the real artifact"
+            )
+
+        for sha_field in ("superseded_sha", "superseding_sha"):
+            sha = entry[sha_field]
+            assert isinstance(sha, str) and len(sha) == 40 and int(sha, 16) >= 0
+            res = subprocess.run(
+                ["git", "merge-base", "--is-ancestor", sha, "HEAD"],
+                cwd=repo_root,
+                capture_output=True,
+                check=False,
+            )
+            assert res.returncode == 0, (
+                f"{entry['id']}: {sha_field} {sha} is not a commit ancestor "
+                f"of HEAD — a supersession must point at genuine history"
+            )
+
+    md = _SUPERSESSIONS_MD.read_text(encoding="utf-8")
+    assert "SUPERSESSIONS.yaml" in md, (
+        "SUPERSESSIONS.md must reference the machine registry "
+        "(single source of truth — the prose cannot diverge)"
+    )
+
+
+def test_superseded_claims_resolve_via_registry() -> None:
+    """No *new* doc may inherit R1's falsified premise unresolved.
+
+    Forcing function: lineage #6+ reading ``r1/RESULTS.md`` as ground
+    truth would inherit a premise CALIB-GRID-002 falsified (the
+    "double-differentiation / no-consistent-estimator" noisy
+    attribution). Any markdown/yaml under the lineage tree that repeats
+    an R1 stale fingerprint must also resolve the supersession registry
+    (name ``SUPERSESSIONS.yaml`` / ``SUPERSEDE-001``). The frozen R1
+    artifacts that *encode* it (immutable historical record), the
+    superseding artifact that *quotes* it to falsify it, and the
+    registry itself are exempt — they are the enumerated supersession,
+    not an unresolved re-derivation.
+    """
+    data = _load_supersessions()
+    repo_root = _LINEAGE_ROOT.parents[2]
+    # Exempt: every enumerated stale/superseding/registry artifact.
+    exempt = {
+        _SUPERSESSIONS_YAML,
+        _SUPERSESSIONS_MD,
+        Path(__file__),
+    }
+    for entry in data["supersessions"]:
+        for row in (*entry["stale_artifacts"], *entry["citing_artifacts"]):
+            exempt.add((repo_root / row["path"]).resolve())
+        exempt.add((repo_root / entry["superseding_artifact"]).resolve())
+
+    offenders: list[str] = []
+    for path in sorted(_LINEAGE_ROOT.rglob("*")):
+        if path.suffix not in (".md", ".yaml", ".yml"):
+            continue
+        if "__pycache__" in path.parts or path.resolve() in exempt:
+            continue
+        text = path.read_text(encoding="utf-8")
+        normalised = " ".join(text.split())
+        for fp in _R1_STALE_FINGERPRINTS:
+            if fp in normalised and not any(t in text for t in _REGISTRY_RESOLUTION_TOKENS):
+                offenders.append(f"{path.relative_to(_LINEAGE_ROOT.parents[2])} -> {fp!r}")
+    assert not offenders, (
+        "doc(s) inherit R1's falsified noisy attribution without "
+        "resolving the supersession registry (reference SUPERSESSIONS.yaml "
+        "/ SUPERSEDE-001 — this is the stale-falsified-premise generator):\n" + "\n".join(offenders)
     )
