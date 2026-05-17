@@ -258,8 +258,71 @@ tree.
 
 ---
 
-*End of register. Six entries. The complete in-repo set of genuine
-NEGATIVE / FALSIFIED / superseded / UNTESTED artifacts found by grep
-(`RETRACTION`, `NEGATIVE`, `NO_ADMISSIBLE`, `null`, `falsif`,
+## CALIB-F3 — bit-exact cross-runner ledger reproduction is INFEASIBLE
+
+- **NAME** · CALIB-F3
+- **LINEAGE / PR** · PR #770 — `fix(calib): F3 — deterministic-reduction
+  harness + derived forward ε; cross-runner bit-exactness proven
+  infeasible`
+- **SHA** · `9c8f5396` *(diagnosis-bearing tree; the impossibility
+  reproducer below runs verbatim from this anchor — the closing PR adds
+  only the harness, the forward bound and this headstone)*
+- **ARTIFACT** · `research/calibration/grid_kuramoto/_deterministic.py`
+  (the harness + the derived forward bound and its derivation)
+- **BORN** · The F3 working hypothesis (audit PR #762, consolidation
+  #759): the calibration-ledger reproduction nondeterminism is
+  **thread/BLAS-reduction-order** noise, therefore *removable* by pinning
+  native pools to one thread + a fixed reduction order, after which the
+  ledger is **bit-identical across CI runners** and the reproduction ε
+  can be tightened to bit-exact (or a machine-eps bound).
+- **CAUSE OF DEATH** · Falsified by direct measurement. numpy and scipy
+  each bundle a *private, statically linked* `libscipy_openblas64` built
+  with `DYNAMIC_ARCH`; OpenBLAS dispatches to a CPU-micro-architecture
+  micro-kernel at library load (a *host-CPU* property, **not** a
+  thread-pool property). Procedure: full ledger rebuilt single-threaded
+  (`OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=1`) with **only**
+  `OPENBLAS_CORETYPE` varied over six micro-kernels (Haswell, Prescott,
+  Nehalem, SandyBridge, Core2, Atom). Result: a *pinned ledger metric*
+  diverged by a worst-case **relative `2.20e-9`** (cg002
+  `front_gate_score`) while the pure-numpy reductions
+  (`sum`/`mean`/`std`/`median`, numpy's own pairwise loop, not BLAS)
+  were bit-identical. Bit-exact cross-runner reproduction therefore
+  requires re-linking numpy/scipy against a reference BLAS — outside the
+  calibration boundary. The "removable by thread-pinning" premise is
+  dead.
+- **SUCCESS SCORE** · Forcing bit-exact cross-runner reproduction:
+  **успіх: 0** (proven infeasible in-process). This zero **is** the
+  result — a proven impossibility, not a hidden failure. The honest
+  second-best shipped alongside it: a single-thread deterministic
+  harness (same-CPU bit-identical, verified N=5×) and a *derived*
+  forward window `FORWARD_REL_TOL = 1e-8` — **100× tighter** than the
+  legacy `1e-6` — with `1e-8 = ceil_decade(2.20e-9 × 4.5)` recorded in
+  the harness docstring. Explicitly **not** promoted to `HONORS.md`.
+- **WHAT IT KILLED** · The masking failure mode: a `1e-6` reproduction
+  window ~6 orders of magnitude looser than the real noise floor, in
+  which a genuine `1e-9..1e-6` numeric regression on a pinned metric
+  passed undetected. Forward ledgers are now detected ~100× sharper,
+  bounded at the *proven-irreducible* noise floor — no looser, no
+  falsely-tighter.
+- **REGIME SPLIT (honesty rail)** · The merged sha-pinned ledgers
+  (`RESULTS.json/.md`, `ledger_sha256`, `PREREGISTRATION*`,
+  `THRESHOLD_PROVENANCE`, `SUPERSESSIONS*`, `AMENDMENT_001`) were born
+  under the OLD nondeterministic regime. They are **NOT recomputed, NOT
+  overwritten, NOT retroactively claimed bit-exact**: their reproduction
+  stays at the documented `LEGACY_REL_TOL = 1e-6`. Only *forward* ledger
+  computations run under the harness at the tight derived window. This
+  mirrors the F2 amendment / SUPERSEDE-001 discipline: historical record
+  immutable, ε documented as legacy-regime, forward = deterministic+tight.
+- **REUSABLE LESSON** · A static `DYNAMIC_ARCH` BLAS makes in-process
+  bit-exact cross-runner FP reproduction impossible by construction;
+  the correct response is a *derived, measured* tolerance bounded by the
+  irreducible micro-kernel noise floor, not an arbitrary loose window
+  and not a forced determinism claim that the wheels cannot honour.
+
+---
+
+*End of register. Seven entries. The complete in-repo set of genuine
+NEGATIVE / FALSIFIED / superseded / UNTESTED / INFEASIBLE artifacts found
+by grep (`RETRACTION`, `NEGATIVE`, `NO_ADMISSIBLE`, `null`, `falsif`,
 `superseded`, `INFEASIBLE`, pre-registration ledgers, RESULTS.json
 verdicts). No entry was padded; the catalog is the evidence.*
