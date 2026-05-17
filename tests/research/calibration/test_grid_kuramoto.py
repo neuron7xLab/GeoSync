@@ -12,6 +12,7 @@ instrument itself is sound, and the stable NEGATIVE verdict ledger.
 from __future__ import annotations
 
 import json
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -602,6 +603,25 @@ def test_r1_ledger_is_machine_readable_and_sha_pinned() -> None:
     assert ledger["localized_refinement_targets"]
 
 
+def _deep_close(a: Any, b: Any, *, rel: float = 1e-9, abs_: float = 1e-12) -> bool:
+    """Structure-exact, numeric-tolerant equality.
+
+    Floating reductions (BLAS thread order) jitter at ~1e-13; an exact
+    ``==`` on the committed R1 artifact made the determinism test flaky.
+    Strings/bools/ints/keys/shape stay exact; floats compare within a
+    tolerance tight enough (rel 1e-9) to still catch a real post-data edit.
+    """
+    if isinstance(a, bool) or isinstance(b, bool):
+        return a is b
+    if isinstance(a, float) or isinstance(b, float):
+        return math.isclose(float(a), float(b), rel_tol=rel, abs_tol=abs_)
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(_deep_close(a[k], b[k], rel=rel, abs_=abs_) for k in a)
+    if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+        return len(a) == len(b) and all(_deep_close(x, y, rel=rel, abs_=abs_) for x, y in zip(a, b))
+    return bool(a == b)
+
+
 def test_r1_results_json_matches_committed_artifact() -> None:
     """The committed r1/RESULTS.json verdict/gates match a fresh build.
 
@@ -621,5 +641,5 @@ def test_r1_results_json_matches_committed_artifact() -> None:
     committed = json.loads(art.read_text(encoding="utf-8"))
     fresh = build_r1_ledger(wscc_9_bus(), SimConfig())
     assert committed["verdict"] == fresh["verdict"] == "NEGATIVE"
-    assert committed["gates"] == fresh["gates"]
-    assert committed["metrics"] == fresh["metrics"]
+    assert _deep_close(committed["gates"], fresh["gates"])
+    assert _deep_close(committed["metrics"], fresh["metrics"])
