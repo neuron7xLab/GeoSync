@@ -564,10 +564,12 @@ class PersistentExcitationError(RuntimeError):
     Attributes
     ----------
     node : int
-        Index of the oscillator whose row design first failed the test.
+        Index of the oscillator whose row design first failed the test
+        (per-row solver), or ``-1`` when the *global* symmetric joint
+        design is rank-deficient.
     singular_ratio : float
         Smallest-to-largest singular-value ratio of the standardised
-        design at ``node`` (the persistent-excitation diagnostic).
+        design (the persistent-excitation diagnostic).
     threshold : float
         The configured minimum acceptable ``singular_ratio``.
     """
@@ -576,8 +578,9 @@ class PersistentExcitationError(RuntimeError):
         self.node = node
         self.singular_ratio = singular_ratio
         self.threshold = threshold
+        where = "global symmetric design" if node < 0 else f"node {node}"
         super().__init__(
-            f"persistent-excitation guard tripped at node {node}: "
+            f"persistent-excitation guard tripped ({where}): "
             f"design singular-value ratio {singular_ratio:.3e} < "
             f"threshold {threshold:.3e} — the trajectory is phase-locked / "
             f"rank-deficient and no trustworthy K̂ can be identified "
@@ -614,20 +617,39 @@ class SwingCouplingEstimate:
     min_singular_ratio: float
 
 
-def _finite_difference_derivatives(
-    theta: NDArray[np.float64], dt: float
+def _savgol_derivatives(
+    theta: NDArray[np.float64],
+    dt: float,
+    *,
+    window: int,
+    polyorder: int,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-    r"""Second-order central finite differences of the unwrapped phase.
+    r"""Savitzky–Golay derivatives ``(θ̇, θ̈)`` of the unwrapped phase.
 
-    Returns ``(θ̇, θ̈)`` with shape ``(T, N)``. The phase is unwrapped
-    along the time axis first so the derivative is taken on the
-    continuous lift, not the wrapped ``[0, 2π)`` representation. Both
-    derivatives use :func:`numpy.gradient` (second-order accurate in the
-    interior, first-order at the two endpoints).
+    The phase is unwrapped along the time axis first so the derivative
+    is taken on the continuous lift, not the wrapped ``[0, 2π)``
+    representation. A local degree-``polyorder`` polynomial is fitted by
+    least squares in a sliding ``window`` and its analytic first and
+    second derivatives are evaluated at the window centre. On a smooth
+    damped-oscillatory swing transient this is *consistent* (the naïve
+    twice-applied central difference compounds truncation error and is
+    only first-order at the endpoints) and it strongly rejects additive
+    measurement noise — the standard treatment for swing-data RoCoF /
+    acceleration estimation.
+
+    ``window`` is forced odd and clipped to the trajectory length;
+    ``polyorder`` is clipped below ``window`` (both required by the
+    Savitzky–Golay least-squares fit). Shapes returned: ``(T, N)``.
     """
+    from scipy.signal import savgol_filter
+
     unwrapped = np.unwrap(theta, axis=0)
-    theta_dot = np.gradient(unwrapped, dt, axis=0)
-    theta_ddot = np.gradient(theta_dot, dt, axis=0)
+    t_len = unwrapped.shape[0]
+    win = min(window if window % 2 == 1 else window + 1, t_len if t_len % 2 == 1 else t_len - 1)
+    win = max(win, 5)
+    order = min(polyorder, win - 1)
+    theta_dot = savgol_filter(unwrapped, win, order, deriv=1, delta=dt, axis=0)
+    theta_ddot = savgol_filter(unwrapped, win, order, deriv=2, delta=dt, axis=0)
     return (
         np.asarray(theta_dot, dtype=np.float64),
         np.asarray(theta_ddot, dtype=np.float64),
@@ -657,12 +679,15 @@ def estimate_swing_coupling(
     damping: NDArray[np.float64],
     *,
     dt: float,
+    symmetric: bool = True,
+    savgol_window: int = 51,
+    savgol_polyorder: int = 4,
     pe_min_singular_ratio: float = 1e-3,
     pe_guard: bool = True,
 ) -> SwingCouplingEstimate:
     r"""Identify ``K_ij``, ``P_i`` and ``ω_i`` from second-order swing data.
 
-    Solves, per oscillator ``i``, the ordinary least-squares regression
+    The swing identity per oscillator ``i`` is
 
     .. math::
 
@@ -671,9 +696,25 @@ def estimate_swing_coupling(
                 \sin\!\bigl(\theta_i(t) - \theta_j(t)\bigr) ,
 
     where the derivatives are obtained by second-order central finite
-    differences of the unwrapped phase. The design is standardised per
-    column before the solve and the coefficients are back-transformed,
-    so the persistent-excitation diagnostic is scale-free.
+    differences of the unwrapped phase.
+
+    Two solver variants are exposed via ``symmetric``:
+
+    * ``symmetric=True`` (default) — a **single joint** least-squares
+      over all nodes with one shared parameter per *unordered* edge
+      ``K_{ij}=K_{ji}`` and one injection ``P_i`` per node. This encodes
+      the physical invariant that a lossless power-network coupling is
+      symmetric (PREREGISTRATION § 2; ``grid_data`` builds a symmetric
+      ``K``), halves the parameter count, and removes the antisymmetric
+      residual that an unconstrained row solver produces on weakly
+      excited near-locked trajectories. The persistent-excitation
+      diagnostic is taken on this *global* standardised design.
+    * ``symmetric=False`` — the unconstrained per-row OLS (one
+      independent fit per node). Kept for diagnostic comparison.
+
+    The design columns are standardised before the solve and the
+    coefficients back-transformed, so the persistent-excitation
+    diagnostic is scale-free.
 
     Parameters
     ----------
@@ -685,6 +726,13 @@ def estimate_swing_coupling(
         and injection are the unknowns.
     dt : float
         Sampling interval matching ``phases.timestamps`` units.
+    symmetric : bool
+        Solver variant (see above). Default ``True`` (physically correct
+        for a lossless network coupling).
+    savgol_window, savgol_polyorder : int
+        Savitzky–Golay window length and polynomial order for the
+        ``(θ̇, θ̈)`` estimate. ``window`` is forced odd and clipped to
+        the trajectory length; ``polyorder`` is clipped below ``window``.
     pe_min_singular_ratio : float
         Minimum acceptable smallest-to-largest singular-value ratio of
         any per-node standardised design. Below this the design is
@@ -728,44 +776,97 @@ def estimate_swing_coupling(
     if np.any(d < 0.0):
         raise ValueError("damping must be non-negative")
 
-    theta_dot, theta_ddot = _finite_difference_derivatives(theta, dt)
+    if savgol_window < 5:
+        raise ValueError("savgol_window must be ≥ 5")
+    if savgol_polyorder < 2:
+        raise ValueError("savgol_polyorder must be ≥ 2 (need a non-zero 2nd derivative)")
+    theta_dot, theta_ddot = _savgol_derivatives(
+        theta, dt, window=savgol_window, polyorder=savgol_polyorder
+    )
+    t_len = theta.shape[0]
 
     k_hat = np.zeros((n, n), dtype=np.float64)
     injection = np.zeros(n, dtype=np.float64)
-    worst_ratio = 1.0
 
-    for i in range(n):
-        # Target: y_i = m_i θ̈_i + d_i θ̇_i
-        y = m[i] * theta_ddot[:, i] + d[i] * theta_dot[:, i]
-        # Regressors: [sin(θ_i − θ_j)]_{j≠i} and a constant for P_i.
-        others = [j for j in range(n) if j != i]
-        sin_cols = np.sin(theta[:, i][:, None] - theta[:, others])  # (T, n-1)
-        design = np.column_stack([sin_cols, np.ones(theta.shape[0])])
+    if symmetric:
+        # One shared parameter per unordered edge (a < b) + one P_i per
+        # node. Node a's equation sees +sin(θ_a−θ_b) for edge (a,b);
+        # node b's equation sees sin(θ_b−θ_a) = −sin(θ_a−θ_b). Stack all
+        # N·T scalar equations into one global least-squares problem.
+        edges = [(a, b) for a in range(n) for b in range(a + 1, n)]
+        n_edge = len(edges)
+        edge_index = {e: p for p, e in enumerate(edges)}
+        n_param = n_edge + n  # edge couplings, then per-node injections
 
-        # Standardise the sine columns (the intercept column is left as
-        # a unit constant so its coefficient stays in physical units).
-        sin_scale = sin_cols.std(axis=0, ddof=0)
-        # bounds: a near-constant regressor (phase-locked pair) gets a
-        # unit scale so the PE diagnostic — not a divide-by-zero — flags
-        # the degeneracy.
-        sin_scale_safe = np.where(sin_scale > 1e-12, sin_scale, 1.0)
-        design_std = design.copy()
-        design_std[:, :-1] = sin_cols / sin_scale_safe
+        design = np.zeros((n * t_len, n_param), dtype=np.float64)
+        target = np.zeros(n * t_len, dtype=np.float64)
+        for i in range(n):
+            r0, r1 = i * t_len, (i + 1) * t_len
+            target[r0:r1] = m[i] * theta_ddot[:, i] + d[i] * theta_dot[:, i]
+            for j in range(n):
+                if j == i:
+                    continue
+                a, b = (i, j) if i < j else (j, i)
+                # y = P_i + Σ (−K_ij) sin(θ_i − θ_j); the design column
+                # is therefore the coefficient of (−K_{ij}).
+                col = edge_index[(a, b)]
+                design[r0:r1, col] += np.sin(theta[:, i] - theta[:, j])
+            design[r0:r1, n_edge + i] = 1.0
 
-        ratio = _singular_ratio(design_std)
-        worst_ratio = min(worst_ratio, ratio)
-        if pe_guard and ratio < pe_min_singular_ratio:
-            raise PersistentExcitationError(i, ratio, pe_min_singular_ratio)
+        # Standardise every column (the per-node intercept blocks are
+        # 0/1 indicators; their std is well-defined and non-zero).
+        scale = design.std(axis=0, ddof=0)
+        # bounds: a fully constant column (degenerate edge) keeps unit
+        # scale so the PE diagnostic flags it rather than dividing by 0.
+        scale_safe = np.where(scale > 1e-12, scale, 1.0)
+        design_std = design / scale_safe
 
-        coef_std, *_ = np.linalg.lstsq(design_std, y, rcond=None)
-        # Back-transform the standardised sine coefficients.
-        coef = coef_std.copy()
-        coef[:-1] = coef_std[:-1] / sin_scale_safe
+        worst_ratio = _singular_ratio(design_std)
+        if pe_guard and worst_ratio < pe_min_singular_ratio:
+            raise PersistentExcitationError(-1, worst_ratio, pe_min_singular_ratio)
 
-        # y = P_i + Σ (−K_ij) sin(θ_i − θ_j)  ⇒  K_ij = −coef_j .
-        for col, j in enumerate(others):
-            k_hat[i, j] = -coef[col]
-        injection[i] = coef[-1]
+        coef_std, *_ = np.linalg.lstsq(design_std, target, rcond=None)
+        coef = coef_std / scale_safe
+
+        for p, (a, b) in enumerate(edges):
+            k_ab = -float(coef[p])  # K = −(design coefficient)
+            k_hat[a, b] = k_ab
+            k_hat[b, a] = k_ab
+        injection[:] = coef[n_edge:]
+    else:
+        worst_ratio = 1.0
+        for i in range(n):
+            # Target: y_i = m_i θ̈_i + d_i θ̇_i
+            y = m[i] * theta_ddot[:, i] + d[i] * theta_dot[:, i]
+            # Regressors: [sin(θ_i − θ_j)]_{j≠i} and a constant for P_i.
+            others = [j for j in range(n) if j != i]
+            sin_cols = np.sin(theta[:, i][:, None] - theta[:, others])  # (T, n-1)
+            design_row = np.column_stack([sin_cols, np.ones(t_len)])
+
+            # Standardise the sine columns (the intercept column is left
+            # as a unit constant so its coefficient stays physical).
+            sin_scale = sin_cols.std(axis=0, ddof=0)
+            # bounds: a near-constant regressor (phase-locked pair) gets
+            # a unit scale so the PE diagnostic — not a divide-by-zero —
+            # flags the degeneracy.
+            sin_scale_safe = np.where(sin_scale > 1e-12, sin_scale, 1.0)
+            design_std = design_row.copy()
+            design_std[:, :-1] = sin_cols / sin_scale_safe
+
+            ratio = _singular_ratio(design_std)
+            worst_ratio = min(worst_ratio, ratio)
+            if pe_guard and ratio < pe_min_singular_ratio:
+                raise PersistentExcitationError(i, ratio, pe_min_singular_ratio)
+
+            coef_std, *_ = np.linalg.lstsq(design_std, y, rcond=None)
+            # Back-transform the standardised sine coefficients.
+            coef = coef_std.copy()
+            coef[:-1] = coef_std[:-1] / sin_scale_safe
+
+            # y = P_i + Σ (−K_ij) sin(θ_i − θ_j)  ⇒  K_ij = −coef_j .
+            for col, j in enumerate(others):
+                k_hat[i, j] = -coef[col]
+            injection[i] = coef[-1]
 
     # ω_i = P_i / d_i (over-damped reduction). Guard d_i = 0 explicitly.
     with np.errstate(divide="ignore", invalid="ignore"):
