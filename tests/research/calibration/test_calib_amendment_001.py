@@ -81,9 +81,9 @@ def test_amendment_001_matches_code() -> None:
 
     doc_names = set(data["reclassification"]["amended_gate_names"])
     code_names = set(amended_gate_names())
-    assert doc_names == code_names, (
-        f"amendment doc/code drift: doc {sorted(doc_names)} != substrate {sorted(code_names)}"
-    )
+    assert (
+        doc_names == code_names
+    ), f"amendment doc/code drift: doc {sorted(doc_names)} != substrate {sorted(code_names)}"
 
     # Every amended name must be a real frozen NOISY_GATES name — the
     # amendment reclassifies an existing gate, it does not invent one,
@@ -108,9 +108,9 @@ def test_amendment_001_matches_code() -> None:
     assert data["evidence"]["cross_reference"] == "SUPERSESSIONS.yaml::SUPERSEDE-001"
 
     md = _AMENDMENT_MD.read_text(encoding="utf-8")
-    assert "PREREGISTRATION_AMENDMENT_001.yaml" in md, (
-        "the amendment .md must reference the machine YAML (single source)"
-    )
+    assert (
+        "PREREGISTRATION_AMENDMENT_001.yaml" in md
+    ), "the amendment .md must reference the machine YAML (single source)"
     # No threshold VALUE may appear in the amendment (classification
     # only — values stay frozen in gates.py / PREREGISTRATION.md).
     for g in NOISY_GATES:
@@ -243,9 +243,9 @@ def test_fresh_amended_run_emits_infeasible_and_reduced_verdict() -> None:
 
     per_gate = led["per_gate_state"]
     for name in (g.name for g in NOISY_GATES):
-        assert per_gate[name] == INFEASIBLE_BY_CONSTRUCTION, (
-            f"{name} must be reclassified to INFEASIBLE_BY_CONSTRUCTION"
-        )
+        assert (
+            per_gate[name] == INFEASIBLE_BY_CONSTRUCTION
+        ), f"{name} must be reclassified to INFEASIBLE_BY_CONSTRUCTION"
     assert sorted(led["infeasible_by_construction_gates"]) == sorted(g.name for g in NOISY_GATES)
 
     # The reduced verdict is decided ONLY by genuine gates. The R1
@@ -253,9 +253,9 @@ def test_fresh_amended_run_emits_infeasible_and_reduced_verdict() -> None:
     # noiseless.critical_coupling FAIL (the genuine residual) ⇒ NEGATIVE.
     assert led["verdict"] == "NEGATIVE"
     genuine_failed = {g["name"] for g in led["failed_gates"]}
-    assert "noiseless.critical_coupling" in genuine_failed, (
-        "the reduced NEGATIVE must rest on a GENUINE gate, not the zero-bit noisy gates"
-    )
+    assert (
+        "noiseless.critical_coupling" in genuine_failed
+    ), "the reduced NEGATIVE must rest on a GENUINE gate, not the zero-bit noisy gates"
     # No noisy gate may appear in failed_gates (they are not FAIL — they
     # are INFEASIBLE_BY_CONSTRUCTION).
     for name in (g.name for g in NOISY_GATES):
