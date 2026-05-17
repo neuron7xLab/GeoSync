@@ -1,9 +1,11 @@
 # CTC-FALSIFY-001 — Consolidated Result (in-silico, scoped, hypothesis-level)
 
-**Status: a finished negative-as-product, including a recursive
-self-retraction.** This document closes the in-silico arc
-(L1 → L2 → C3 → **C4 self-audit**). It is **not** a verdict on the
-Communication-through-Coherence (CTC) theory and **not** a real-data result.
+**Status: CONSOLIDATED — the in-silico arc is decided.** A negative with a
+recursive self-retraction (C4) and a decisive closure (C5):
+L1 → L2 → C3 → **C4 self-audit** → **C5 identifiability probe**. It is
+**not** a verdict on the Communication-through-Coherence (CTC) theory and
+**not** a real-data result. The arc terminates here; the only open layer is
+real electrophysiology, on explicit user vector.
 
 ## Claim actually established (post-C4)
 
@@ -36,7 +38,8 @@ falsification. NOT real electrophysiology. The instrument falsified its
 | L2 | Standardized-residual layer, jointly-matched surrogate, 8 self-audit fixes as gates (v1 phase-randomization estimator) | PR #750 | `eb521856` |
 | C3 | v2 time-reversed-surrogate directed PSI + boundary probe | PR #752 | `5ba34fd7` |
 | C0 | consolidated RESULTS (pre-C4) | PR #756 | `f8c70ba1` |
-| **C4** | **adversarial self-audit of the C3 boundary probe** | this PR | — |
+| C4 | adversarial self-audit of the C3 boundary probe (retraction) | PR #758 | `3163f2f7` |
+| **C5** | **near-oracle identifiability probe — closes the C4 OPEN** | this PR | — |
 
 Supporting infra (separate, honest, not bundled): calib determinism de-flake
 (`39916212`, #753), pytest-9-safe sharded fast-gate (`d123b8ea`, #754).
@@ -64,13 +67,30 @@ its negative was itself a self-lie*, caught and retracted — not buried.
 This is the apex behaviour of the contract: it falsifies its own
 conclusions, not only external hypotheses.
 
+## C5 decisive closure of the C4 OPEN
+
+C4 left one question open: is the standard-estimand blindness an
+*identifiability limit* of these observables, or an *estimator-quality*
+gap? C5 puts a near-oracle upper bound on it — the best out-of-sample
+linear discriminant over the **full gamma cross-spectrum**
+(magnitude + phase), train/test seed-disjoint (no leakage). Result:
+**OOS ROC-AUC ≈ 0.96** ⇒ verdict `C5_ESTIMATOR_QUALITY_GAP`.
+
+So the channel **is** information-recoverable on this generative model: a
+sufficient statistic exists in the richer cross-spectral representation.
+The blindness of the standard scalar estimands (v1 PLV-residual, v2
+time-reversed PSI) is therefore an **estimator-quality gap, not an
+identifiability limit** — those particular scalar estimands are simply
+inadequate to a channel that the full representation discriminates near-
+perfectly. The C4 OPEN is **closed**; the in-silico arc consolidates here.
+
 ## What this is NOT
 
 - NOT "CTC is false." The theory is untouched.
-- NOT "the channel is recoverable / unrecoverable" — that is now **OPEN**;
-  C3's recoverability inference is withdrawn.
-- NOT a real-data finding. No electrophysiology was bound.
-- NOT a closed research line. `ctc_falsify_001` stays **OPEN**.
+- NOT a real-data finding. No electrophysiology was bound; AUC≈0.96 is an
+  in-silico upper bound on this generative model only.
+- NOT a closed research line. `ctc_falsify_001` stays **OPEN** for the
+  real-data layer; the *in-silico question* is decided.
 
 ## Honesty invariant
 
