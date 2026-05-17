@@ -38,7 +38,7 @@
 
 id: rip-engineering-graveyard
 status: ACTIVE
-claim_type: docs
+claim_type: documentation
 promise: >-
   After this PR lands, RIP/ is an inert engineering-graveyard register:
   README.md (postulate + non-interference contract), TOMBSTONES.md (6
