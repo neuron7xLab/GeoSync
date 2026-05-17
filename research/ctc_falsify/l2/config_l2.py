@@ -65,6 +65,20 @@ ALL_VERDICTS: Final[tuple[str, ...]] = (
     VERDICT_SURVIVED_INITIAL,
 )
 
+# --- C3: v2 time-reversed-surrogate directed estimator -------------------
+# v1 (phase-randomization) was blind by its own gate. v2 uses a directed
+# Phase-Slope Index with a time-reversed surrogate. SAME admissibility bar
+# (NPLUS_RESIDUAL_MIN_Z / CONFOUND_RESIDUAL_MAX_Z) — the gate is not relaxed
+# for v2; only the estimator changes.
+ESTIMATOR_VERSION: Final[str] = "v2_time_reversed_psi"
+PSI_NPERSEG: Final[int] = 512
+V2_SCHEMA_PATH: Final[Path] = (
+    Path(__file__).resolve().parent / "schema" / "ctc_falsify_l2v2_result.schema.json"
+)
+V2_RESULT_PATH: Final[Path] = (
+    Path(__file__).resolve().parent / "evidence" / "ctc_falsify_l2v2_result.json"
+)
+
 _PKG: Final[Path] = Path(__file__).resolve().parent
 SCHEMA_PATH: Final[Path] = _PKG / "schema" / "ctc_falsify_l2_result.schema.json"
 EVIDENCE_DIR: Final[Path] = _PKG / "evidence"
