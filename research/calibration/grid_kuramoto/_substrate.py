@@ -32,16 +32,21 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import yaml
 from numpy.typing import NDArray
 
 __all__ = [
+    "AMENDMENT_001_PATH",
     "FROZEN_PREREG_SHA",
+    "INFEASIBLE_BY_CONSTRUCTION",
     "PARENT_LEDGER_SHA256",
     "PREREG_BRANCH_BASE_SHA",
     "Gate",
     "GateRow",
+    "amended_gate_names",
     "branch_sha",
     "ledger_sha256",
+    "overall_verdict_amended",
     "topology_f1",
 ]
 
@@ -179,3 +184,81 @@ class GateRow:
             "passed": self.passed,
             "localises_to": self.localises_to,
         }
+
+
+# --- Pre-Registration Amendment 001 — forward-only verdict layer ---------
+#
+# This block is the ONLY behavioural change of the F2 amendment and it
+# is FORWARD-ONLY. It does NOT touch any threshold value, the frozen
+# ``PREREGISTRATION.md`` / ``gates.py``, or any sha-pinned RESULTS
+# ledger. The legacy ``gates.overall_verdict`` is left byte-identical,
+# so every historical ``build_*_ledger`` reproduces the exact frozen
+# bytes when run WITHOUT the amendment. A fresh lineage #6+ run that
+# explicitly opts into the amendment uses :func:`overall_verdict_amended`
+# instead, which reclassifies the amended ``noisy.*`` gates as
+# ``INFEASIBLE_BY_CONSTRUCTION`` (a distinct 0-bit state, not PASS, not
+# FAIL) and computes the overall verdict over the remaining genuine
+# pass/fail gates only.
+
+# A distinct, zero-bit verdict state for a gate the CG002 sha-pinned
+# NEGATIVE proved is information-theoretically unreachable (regressor
+# SNR < 0.6 ∀ edge at the frozen σ): P(FAIL)=1 ∀ estimator ⇒ H=0 bits.
+INFEASIBLE_BY_CONSTRUCTION = "INFEASIBLE_BY_CONSTRUCTION"
+
+# The append-only amendment document. The single source of truth for
+# *which* gates are reclassified is this YAML; a no-peek drift test
+# binds these names to the document fail-closed.
+AMENDMENT_001_PATH = Path(__file__).resolve().parent / "PREREGISTRATION_AMENDMENT_001.yaml"
+
+
+def amended_gate_names(amendment_path: Path | None = None) -> frozenset[str]:
+    """Gate names PRE-REGISTRATION-AMENDMENT-001 reclassifies (read-only).
+
+    Reads ``PREREGISTRATION_AMENDMENT_001.yaml`` and returns the set of
+    gate names reclassified to ``INFEASIBLE_BY_CONSTRUCTION``. This is a
+    pure read of the append-only amendment document — no threshold value
+    is read or redefined here. ``amendment_path`` defaults to the merged
+    amendment; an explicit path is accepted for the drift test.
+    """
+    path = amendment_path if amendment_path is not None else AMENDMENT_001_PATH
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"amendment {path} is not a YAML mapping")
+    if data.get("identifier") != "PREREGISTRATION-AMENDMENT-001":
+        raise ValueError(f"amendment {path} has an unexpected identifier")
+    names = data["reclassification"]["amended_gate_names"]
+    if not isinstance(names, list) or not all(isinstance(n, str) for n in names):
+        raise ValueError(f"amendment {path} amended_gate_names is malformed")
+    return frozenset(names)
+
+
+def overall_verdict_amended(
+    rows: list[GateRow],
+    *,
+    amendment_path: Path | None = None,
+) -> tuple[str, dict[str, str]]:
+    """Forward-only amended overall verdict (lineage #6+ runs only).
+
+    Returns ``(verdict, per_gate_state)`` where every gate named by
+    PRE-REGISTRATION-AMENDMENT-001 is assigned the distinct zero-bit
+    state ``INFEASIBLE_BY_CONSTRUCTION`` (neither PASS nor FAIL) and the
+    overall ``verdict`` is computed over the **remaining genuine
+    pass/fail gates only**: ``"PASS"`` iff every non-amended gate passed,
+    else ``"NEGATIVE"`` (fail-closed). If every gate is amended away the
+    verdict is ``INFEASIBLE_BY_CONSTRUCTION`` (no genuine gate remains to
+    decide). This never mutates ``rows`` and never touches a threshold;
+    it only re-partitions the verdict, forward.
+    """
+    amended = amended_gate_names(amendment_path)
+    per_gate: dict[str, str] = {}
+    genuine: list[GateRow] = []
+    for row in rows:
+        if row.name in amended:
+            per_gate[row.name] = INFEASIBLE_BY_CONSTRUCTION
+        else:
+            per_gate[row.name] = "PASS" if row.passed else "FAIL"
+            genuine.append(row)
+    if not genuine:
+        return INFEASIBLE_BY_CONSTRUCTION, per_gate
+    verdict = "PASS" if all(r.passed for r in genuine) else "NEGATIVE"
+    return verdict, per_gate
