@@ -90,7 +90,6 @@ diff_scope:
     - "research/calibration/grid_kuramoto/cg002/PREREGISTRATION_002.yaml"
     - "research/calibration/grid_kuramoto/identifiability/RESULTS.json"
     - "research/calibration/grid_kuramoto/identifiability/THRESHOLD_PROVENANCE.md"
-    - "research/calibration/grid_kuramoto/gates.py"
     - "core/kuramoto/identifiability.py"
     - "application/governance/claim_ledger.py"
     - "application/governance/commit_acceptor.py"
