@@ -51,7 +51,7 @@ captcha==0.7.1
     # via streamlit-authenticator
 ccxt==4.5.12
     # via geosync (pyproject.toml)
-certifi==2025.11.12
+certifi==2026.4.22
     # via
     #   -c constraints/security.txt
     #   ccxt
@@ -75,7 +75,7 @@ colorlog==6.10.1
     # via optuna
 cross-web==0.6.0
     # via strawberry-graphql
-cryptography==46.0.7
+cryptography==48.0.0
     # via
     #   -c constraints/security.txt
     #   ccxt
@@ -335,7 +335,7 @@ pydantic==2.13.4
     #   pydantic-settings
 pydantic-core==2.46.4
     # via pydantic
-pydantic-settings==2.12.0
+pydantic-settings==2.14.1
     # via
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
@@ -372,7 +372,7 @@ referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.33.0
+requests==2.34.2
     # via
     #   -c constraints/security.txt
     #   ccxt
