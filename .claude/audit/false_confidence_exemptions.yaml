@@ -208,6 +208,16 @@ exemptions:
   reason: "Type-ignore concentration is a third-party typing gap (pandas, strawberry, prometheus, sqlalchemy\
     \ stubs). Each # type: ignore audited 2026-04-27 against mypy --strict; tightening requires upstream\
     \ stub fixes \u2014 out of scope."
+- finding_id: C8-TYPE-IGNORE-tests/meta/test_feedback_guards_are_live.py
+  reason: 'Detector false-positive corrected, not masked. All 10 `type: ignore`
+    occurrences are STRING LITERALS / docstring text \u2014 synthetic source the G7
+    guard-efficacy test injects into temp files to prove the anti-`# type:
+    ignore[misc]` acceptor falsifier fires; none is a real directive silencing
+    this module. Verified 2026-05-18: `mypy --strict
+    tests/meta/test_feedback_guards_are_live.py` => Success, 0 issues (the
+    apparent_claim is TRUE); zero code-level `# type: ignore` outside strings.
+    Added with #772 (capstone); same audited pattern as the other
+    C8-TYPE-IGNORE test exemptions above.'
 - finding_id: C9-NO-COVER-analytics/signals/news_sentiment.py
   reason: '# pragma: no cover concentration on platform-specific or environment-conditional branches (e.g.
     async ingestion guards, kafka transports, fallback executors). Each pragma audited 2026-04-27; replacement
