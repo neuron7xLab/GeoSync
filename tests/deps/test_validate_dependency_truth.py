@@ -384,6 +384,127 @@ def test_pip_compile_exit_zero_is_observable(vdt: ModuleType, tmp_path: Path) ->
 
 
 # ---------------------------------------------------------------------------
+# D8 — constraint exact-pin vs lock exact-pin divergence
+#      (the install-time ResolutionImpossible trap — the exact generative
+#      defect behind Dependabot PRs #717/#718/#720/#723/#741: every
+#      /constraints bump desyncs the pip-compiled lock files, and the CI
+#      setup step `pip install -c constraints/security.txt -r
+#      requirements.lock` aborts before any gate runs. This forcing
+#      function converts that silent open-loop setup crash into an
+#      explicit, fail-closed, actionable drift finding.)
+# ---------------------------------------------------------------------------
+
+
+def test_d8_detects_constraint_lock_pin_divergence(vdt: ModuleType, tmp_path: Path) -> None:
+    """The exact PR #717/#718/#720/#723/#741 defect.
+
+    A constraints/security.txt exact-pin numerically different from the
+    requirements.lock exact-pin for the same package makes
+    ``pip install -c constraints/security.txt -r requirements.lock``
+    ResolutionImpossible. The unifier MUST surface this before the CI
+    setup step crashes opaquely (python-quality + secrets-supply-chain
+    fail at setup, fast/heavy tests SKIPPED)."""
+    _seed_minimal_repo(
+        tmp_path,
+        pyproject=dedent("""
+            [project]
+            name = "fake"
+            version = "0.0.0"
+            dependencies = []
+            """),
+        requirements_lock="certifi==2025.11.12\n",
+        constraints="certifi==2026.4.22\n",
+    )
+    report = vdt.collect(tmp_path)
+    d8 = [d for d in report.drifts if d.drift_class == "D8" and d.package == "certifi"]
+    assert d8, report.drifts
+    assert d8[0].priority == "HIGH"
+    assert "2026.4.22" in d8[0].detail
+    assert "2025.11.12" in d8[0].detail
+    assert "ResolutionImpossible" in d8[0].detail
+    assert "make deps-update" in d8[0].fix
+    # Must be actionable: a constraint/lock divergence is never an
+    # accepted backlog item — --exit-on-drift MUST fail on it so the
+    # generator cannot silently break setup again.
+    assert vdt._is_actionable(d8[0])
+
+
+def test_d8_exit_on_drift_fails_on_divergence(vdt: ModuleType, tmp_path: Path) -> None:
+    """The forcing function's teeth: a constraint/lock divergence makes
+    the validator exit non-zero under --exit-on-drift. If a future
+    /constraints bump desyncs the locks, this gate (wired into pr-gate)
+    fails fast with an actionable message instead of an opaque setup
+    crash."""
+    _seed_minimal_repo(
+        tmp_path,
+        pyproject=dedent("""
+            [project]
+            name = "fake"
+            version = "0.0.0"
+            dependencies = []
+            """),
+        requirements_lock="cryptography==46.0.7\n",
+        constraints="cryptography==48.0.0\n",
+    )
+    rc = vdt.main(["--repo-root", str(tmp_path), "--exit-on-drift"])
+    assert rc != 0
+
+
+def test_d8_silent_when_constraint_and_lock_agree(vdt: ModuleType, tmp_path: Path) -> None:
+    """No D8 fire when the lock pin matches the constraint pin — the
+    post-`make deps-update` steady state. This is the load-bearing
+    half: the detector must NOT block a correctly-regenerated lock."""
+    _seed_minimal_repo(
+        tmp_path,
+        pyproject=dedent("""
+            [project]
+            name = "fake"
+            version = "0.0.0"
+            dependencies = []
+            """),
+        requirements_lock="certifi==2026.4.22\n",
+        constraints="certifi==2026.4.22\n",
+    )
+    report = vdt.collect(tmp_path)
+    d8 = [d for d in report.drifts if d.drift_class == "D8"]
+    assert not d8, report.drifts
+
+
+def test_d8_silent_when_package_not_in_constraints(vdt: ModuleType, tmp_path: Path) -> None:
+    """A package present only in the lock (not security-constrained)
+    cannot trigger D8 — there is no constraint pin to contradict."""
+    _seed_minimal_repo(
+        tmp_path,
+        pyproject=dedent("""
+            [project]
+            name = "fake"
+            version = "0.0.0"
+            dependencies = []
+            """),
+        requirements_lock="numpy==2.1.0\n",
+        constraints="certifi==2026.4.22\n",
+    )
+    report = vdt.collect(tmp_path)
+    d8 = [d for d in report.drifts if d.drift_class == "D8"]
+    assert not d8, report.drifts
+
+
+def test_live_tree_has_no_d8_divergence(vdt: ModuleType) -> None:
+    """Regression guard: the shipping tree's constraints/security.txt
+    pins must agree with every requirements*.lock pin for the same
+    package. A D8 fire here means a /constraints bump landed without a
+    lock regeneration — the setup-breaking divergence is back."""
+    report = vdt.collect(REPO_ROOT)
+    d8 = [d for d in report.drifts if d.drift_class == "D8"]
+    assert not d8, (
+        "D8 fire on live tree — a constraints/security.txt pin disagrees "
+        "with a lock pin; `pip install -c constraints -r lock` will be "
+        "ResolutionImpossible. Run `make deps-update` and commit the "
+        "regenerated locks:\n  " + "\n  ".join(str(d) for d in d8)
+    )
+
+
+# ---------------------------------------------------------------------------
 # Contract 3 — deterministic output
 # ---------------------------------------------------------------------------
 
