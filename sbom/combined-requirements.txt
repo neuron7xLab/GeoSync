@@ -119,7 +119,7 @@ rpds-py==0.27.1
 scikit-learn==1.8.0
 scipy==1.17.1
 six==1.17.0
-smmap==5.0.2
+smmap==5.0.3
 sniffio==1.3.1
 sqlalchemy==2.0.49
 starlette==1.0.0
