@@ -1,9 +1,9 @@
 {
-  "last_eval_utc": "2026-05-17T22:00:21Z",
-  "live_bars": 21,
+  "last_eval_utc": "2026-05-18T22:00:15Z",
+  "live_bars": 22,
   "cumulative_net_return": -0.040063,
-  "sharpe_live": -5.4601,
-  "max_dd_live": 0.061297,
+  "sharpe_live": -5.3256,
+  "max_dd_live": 0.061309,
   "predictive_envelope_quantile": "p05_p25",
   "status_label": "UNDERWATCH",
   "gate_decision": "CONTINUE_SHADOW",
