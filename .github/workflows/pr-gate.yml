@@ -92,6 +92,94 @@ jobs:
           python scripts/ci/check_manifest_hashes.py
 
   # ---------------------------------------------------------------------------
+  # constraints-lock-sync — fail-closed guard for the install-time
+  # ResolutionImpossible trap (drift class D8).
+  #
+  # `pip install -c constraints/security.txt -r requirements.lock` (run by
+  # the shared setup-geosync action) aborts with ResolutionImpossible
+  # whenever a constraints/security.txt exact-pin disagrees with a
+  # requirements*.lock exact-pin for the same package. Dependabot's
+  # /constraints ecosystem bumps the constraint but structurally CANNOT
+  # regenerate the pip-compiled lock files, so EVERY constraints-only bump
+  # silently broke setup (python-quality + secrets-supply-chain failing at
+  # the setup step, fast/heavy tests SKIPPED). This job runs the
+  # dependency-truth validator and fails fast — with the exact package,
+  # the two contradicting pins, and `make deps-update` as the fix —
+  # BEFORE the opaque setup crash. Stdlib-only, no heavy setup, mirrors
+  # the reality-dependency-truth job. Content-aware: passes when neither
+  # constraints/security.txt nor any requirements*.lock changed.
+  # ---------------------------------------------------------------------------
+  constraints-lock-sync:
+    name: constraints-lock-sync
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install minimal deps
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install 'PyYAML>=6.0.3' 'tomli>=2'
+
+      - name: Detect relevant changes
+        id: changed
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            git fetch --no-tags origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+          if printf '%s\n' "$changed_files" | grep -Eq \
+            '^(constraints/security\.txt|requirements(-dev|-scan)?\.lock)$'; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+            echo "No constraints/lock surface changed; D8 gate passes."
+          fi
+
+      - name: Fail-closed on constraint/lock divergence (D8)
+        if: steps.changed.outputs.relevant == 'true'
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          out = subprocess.run(
+              [sys.executable, "tools/deps/validate_dependency_truth.py"],
+              check=True,
+              capture_output=True,
+              text=True,
+          ).stdout
+          report = json.loads(out)
+          d8 = [d for d in report["drifts"] if d["drift_class"] == "D8"]
+          if d8:
+              print("FAIL: constraint/lock divergence (D8) — "
+                    "`pip install -c constraints/security.txt -r "
+                    "requirements.lock` will be ResolutionImpossible:")
+              for d in d8:
+                  print(f"  [{d['priority']}] {d['package']}: {d['detail']}")
+                  print(f"        fix: {d['fix']}")
+              sys.exit(1)
+          print("constraints/security.txt and requirements*.lock are in "
+                "sync (no D8 drift).")
+          PY
+
+  # ---------------------------------------------------------------------------
   # python-quality — ruff + black + mypy on changed Python files
   # ---------------------------------------------------------------------------
   python-quality:

@@ -27,6 +27,11 @@ Drift classes detected:
   D7  constraints/security.txt pins ABOVE the manifest's strict upper
       bound (the lock-regeneration trap; pip-compile cannot satisfy
       both bounds — observable as `make lock` ResolutionImpossible)
+  D8  constraints/security.txt exact-pin disagrees with a
+      requirements*.lock exact-pin for the same package (the
+      install-time trap; `pip install -c constraints -r lock` is
+      ResolutionImpossible — the exact failure every dependabot
+      /constraints bump hits until the locks are regenerated)
 
 Output is a deterministic JSON report. Exit code is non-zero when any
 drift is found that is not on the accepted backlog list.
@@ -294,8 +299,7 @@ def collect(repo_root: Path) -> TruthReport:
                     package=name,
                     drift_class="D1",
                     detail=(
-                        f"requirements.txt floor {req[name]} is below "
-                        f"pyproject floor {pyp[name]}"
+                        f"requirements.txt floor {req[name]} is below pyproject floor {pyp[name]}"
                     ),
                     priority="MEDIUM" if name in ACCEPTED_BACKLOG_D1 else "HIGH",
                     fix="raise requirements.txt to match pyproject lower bound",
@@ -320,7 +324,7 @@ def collect(repo_root: Path) -> TruthReport:
                         drift_class="D2",
                         detail=(f"{lock_path} pins {version}, below floor {floor}"),
                         priority="HIGH",
-                        fix=(f"regenerate {lock_path} or surgically bump " f"{name} to >= {floor}"),
+                        fix=(f"regenerate {lock_path} or surgically bump {name} to >= {floor}"),
                         manifests=(lock_path,),
                     )
                 )
@@ -374,7 +378,7 @@ def collect(repo_root: Path) -> TruthReport:
                     Drift(
                         package=f"<dockerfile:{df}>",
                         drift_class="D4",
-                        detail=(f"{df} installs {f}, which is not scanned by " f"any CI workflow"),
+                        detail=(f"{df} installs {f}, which is not scanned by any CI workflow"),
                         priority="HIGH",
                         fix=(
                             "either install the lockfile in this Dockerfile "
@@ -396,7 +400,7 @@ def collect(repo_root: Path) -> TruthReport:
                     package=name,
                     drift_class="D5",
                     detail=(
-                        f"constraints/security.txt pins {pin}, below the " f"manifest floor {floor}"
+                        f"constraints/security.txt pins {pin}, below the manifest floor {floor}"
                     ),
                     priority="HIGH",
                     fix=f"raise {name} in constraints/security.txt to >= {floor}",
@@ -449,6 +453,54 @@ def collect(repo_root: Path) -> TruthReport:
                     manifests=("constraints/security.txt", strictest_src),
                 )
             )
+
+    # D8 — constraints/security.txt exact-pin disagrees with a
+    # requirements*.lock exact-pin for the SAME package. This is the
+    # install-time ResolutionImpossible trap (distinct from D7's
+    # pip-compile-time trap): CI runs
+    # ``pip install -c constraints/security.txt -r requirements.lock``.
+    # When dependabot's /constraints ecosystem bumps a pin in
+    # constraints/security.txt but the lock files (derived artifacts of
+    # constraints/security.txt via ``pip-compile --constraint=...``) still
+    # carry the OLD exact pin, pip sees two contradicting ``==`` pins for
+    # one package and aborts with ``ResolutionImpossible`` *before any
+    # gate runs*. The observable symptom is python-quality +
+    # secrets-supply-chain failing at the shared setup step while
+    # fast/heavy tests are SKIPPED (they ``needs: python-quality``). The
+    # constraints ecosystem structurally cannot regenerate the locks, so
+    # nothing detected this divergence until now — every constraints-only
+    # bump silently broke setup. This makes it explicit and fail-closed.
+    for lock_path, lock_pins in (
+        ("requirements.lock", lock),
+        ("requirements-dev.lock", lock_dev),
+        ("requirements-scan.lock", lock_scan),
+    ):
+        for name, pin in sorted(constraints.items()):
+            locked = lock_pins.get(name)
+            if not locked:
+                continue
+            if _parse_version(locked) != _parse_version(pin):
+                drifts.append(
+                    Drift(
+                        package=name,
+                        drift_class="D8",
+                        detail=(
+                            f"constraints/security.txt pins {name}=={pin} but "
+                            f"{lock_path} pins {name}=={locked}; "
+                            f"`pip install -c constraints/security.txt -r "
+                            f"{lock_path}` resolves to ResolutionImpossible "
+                            f"(two contradicting == pins)"
+                        ),
+                        priority="HIGH",
+                        fix=(
+                            f"regenerate the lock files against the new "
+                            f"constraint: `make deps-update` (pip-compile "
+                            f"--constraint=constraints/security.txt), then "
+                            f"commit the updated {lock_path}"
+                        ),
+                        manifests=("constraints/security.txt", lock_path),
+                    )
+                )
 
     # D6 is left as a placeholder: deptry already covers it. We surface a
     # synthetic finding that points the user at deptry rather than
