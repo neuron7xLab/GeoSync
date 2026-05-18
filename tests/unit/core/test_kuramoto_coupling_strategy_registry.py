@@ -89,7 +89,9 @@ def test_every_symmetric_joint_path_dispatches_through_registry() -> None:
         "design assembly into the dispatcher/public function"
     )
 
-    tree = ast.parse(_MODULE.read_text())
+    # encoding pinned: coupling_estimator.py carries β/θ/λ/κ glyphs; a
+    # locale-default read crashes under an ASCII CI locale (UnicodeDecodeError).
+    tree = ast.parse(_MODULE.read_text(encoding="utf-8"))
     dispatched_keys: set[str] = set()
     for node in ast.walk(tree):
         if (
