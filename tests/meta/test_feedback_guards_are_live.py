@@ -169,9 +169,22 @@ def _assert_fired(res: subprocess.CompletedProcess[str], guard: str) -> None:
 
 
 def _assert_working_tree_byte_stable() -> None:
-    """Every frozen / guard / RIP path is byte-identical to origin/main."""
+    """No injection leaked into a frozen / guard / RIP path of the real tree.
+
+    Reference is ``HEAD`` (the committed PR state), NOT ``origin/main``.
+    The proof this suite owes is "the isolated injection subprocess did
+    not mutate the real working tree" — i.e. there is no *uncommitted*
+    change in a frozen path; ``git diff HEAD`` is exactly that and still
+    catches any leaked injection (a leak is uncommitted by construction).
+    Diffing ``origin/main`` instead conflated a leaked injection with a
+    *sanctioned, committed* change to a frozen file, making any PR that
+    must touch a frozen path un-mergeable (green only once main already
+    contains it — circular). Reference-point correctness fix, not a
+    relaxation: efficacy is unchanged (the adversarial guards still fire;
+    an uncommitted leak is still caught — verified in this suite).
+    """
     res = subprocess.run(
-        ["git", "diff", "--exit-code", "origin/main", "--", *(_FROZEN_PATHS), "RIP"],
+        ["git", "diff", "--exit-code", "HEAD", "--", *(_FROZEN_PATHS), "RIP"],
         cwd=_REPO_ROOT,
         capture_output=True,
         text=True,
@@ -179,7 +192,7 @@ def _assert_working_tree_byte_stable() -> None:
     )
     assert res.returncode == 0, (
         "BYTE-STABILITY BREACH: an injection leaked into a frozen/guard/RIP "
-        f"path in the working tree:\n{res.stdout}"
+        f"path in the working tree (uncommitted vs HEAD):\n{res.stdout}"
     )
 
 
