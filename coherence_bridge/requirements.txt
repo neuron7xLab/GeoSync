@@ -7,4 +7,4 @@ prometheus-client==0.25.0
 pydantic==2.13.4
 python-dotenv==1.2.2
 questdb==4.1.0
-uvicorn==0.46.0
+uvicorn==0.47.0
