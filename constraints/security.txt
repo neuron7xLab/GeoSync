@@ -15,7 +15,7 @@
 # NOTE: Using exact pin (==) for security-critical package to ensure consistent behavior
 certifi==2026.4.22
 charset-normalizer==3.4.4
-idna==3.11
+idna==3.15
 requests==2.34.2
 urllib3==2.7.0
 
