@@ -49,13 +49,46 @@ jobs:
             --cov=execution \
             --cov-config=configs/quality/critical_surface.coveragerc \
             --cov-report=term-missing \
-            --cov-report=xml
+            --cov-report=xml:reports/coverage/coverage.xml \
+            --cov-report=html:reports/coverage/htmlcov
 
+
+      - name: Build coverage summaries
+        run: |
+          .venv/bin/python tools/coverage/summarize_coverage.py \
+            --coverage reports/coverage/coverage.xml \
+            --targets configs/quality/coverage_targets.toml
+
+      - name: Validate coverage targets
+        run: |
+          .venv/bin/python tools/coverage/validate_coverage_targets.py \
+            --coverage reports/coverage/coverage.xml \
+            --targets configs/quality/coverage_targets.toml
+
+      - name: Enforce diff coverage gate
+        run: |
+          .venv/bin/python tools/coverage/check_diff_coverage.py \
+            --coverage reports/coverage/coverage.xml \
+            --targets configs/quality/coverage_targets.toml \
+            --base origin/main \
+            --head HEAD \
+            --min-diff 90
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-artifacts
+          path: |
+            reports/coverage/coverage.xml
+            reports/coverage/htmlcov
+            reports/coverage/coverage_summary.json
+            reports/coverage/module_coverage.json
+            reports/coverage/priority_map_*.md
       - name: Enforce coverage guardrail
         run: |
           .venv/bin/python -m tools.coverage.guardrail \
             --config configs/quality/critical_surface.toml \
-            --coverage coverage.xml
+            --coverage reports/coverage/coverage.xml
 
   packaging-smoke:
     name: packaging-smoke

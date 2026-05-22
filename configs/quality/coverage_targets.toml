@@ -1,0 +1,60 @@
+[global]
+final_aspirational_gate = 98
+current_release_gate = 90
+diff_coverage_gate = 90
+
+[surfaces.core]
+short_term = 80
+mid_term = 90
+final = 95
+claim_risk = "high"
+rationale = "Core logic supports system-level claims and must not rely on shallow execution coverage."
+paths = ["core/"]
+
+[surfaces.execution]
+short_term = 80
+mid_term = 90
+final = 95
+claim_risk = "critical"
+rationale = "Execution failures may create unsafe orders, stale states, or invalid runtime behavior."
+paths = ["execution/"]
+
+[surfaces.backtest]
+short_term = 90
+mid_term = 95
+final = 98
+claim_risk = "critical"
+rationale = "Backtest determinism and replay claims depend on high path and branch coverage."
+paths = ["backtest/"]
+
+[surfaces.src]
+short_term = 75
+mid_term = 85
+final = 90
+claim_risk = "medium"
+rationale = "General source modules must preserve regression safety for shared utilities."
+paths = ["src/"]
+
+[surfaces.analytics]
+short_term = 75
+mid_term = 85
+final = 90
+claim_risk = "medium"
+rationale = "Analytics supports reporting claims but is less safety-critical than execution."
+paths = ["analytics/", "geosync/analytics/"]
+
+[surfaces.ingestion]
+short_term = 85
+mid_term = 92
+final = 95
+claim_risk = "high"
+rationale = "Invalid market data must fail closed, not silently poison downstream tests."
+paths = ["ingestion/", "core/data/", "geosync/data_quality/"]
+
+[surfaces.risk]
+short_term = 90
+mid_term = 95
+final = 98
+claim_risk = "critical"
+rationale = "Risk controls must be tested harder than happy-path strategy code."
+paths = ["execution/risk/", "risk/", "core/risk/"]
