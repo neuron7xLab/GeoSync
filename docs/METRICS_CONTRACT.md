@@ -35,6 +35,7 @@ links:
 | `partial` | Partial evidence (old log, not in CI, or incomplete coverage) | ⚠️ Partial |
 | `goal` | Target/roadmap item, no technical proof yet | ❌ No |
 | `remove` | Claim too bold/unprovable, should be removed from docs | ❌ N/A |
+| `quarantine` | Claim potentially useful but not admissible as release evidence | ⚠️ No |
 
 **Legacy statuses** (mapped to above):
 - `enforced` → `proven` (CI gate active)

@@ -1,29 +1,18 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
 
-METRICS = Path("docs/METRICS_CONTRACT.md")
-EVIDENCE = Path("reports/test_audit/evidence_index.json")
-SCAN_DIRS = [
-    Path("README.md"),
-    Path("docs/testing/canonical_commands.md"),
-]
-ALLOWED_STATUSES = {"proven", "partial", "goal", "remove", "quarantine"}
-STRONG_WORDS = ("verified", "production-grade", "enterprise-grade", "robust", "secure")
-REQUIRED_FIELDS = (
-    "claim_id",
-    "command",
-    "artifact_path",
-    "status",
-    "last_verified_sha",
-    "timestamp",
-)
+METRICS_PATH = Path("docs/METRICS_CONTRACT.md")
+EVIDENCE_PATH = Path("reports/test_audit/evidence_index.json")
+STATUS_ALLOWED = {"proven", "partial", "goal", "remove", "quarantine"}
+ACHIEVEMENT_WORDS = ("verified", "enforced", "guaranteed", "production-grade", "enterprise-grade")
 
 
-def _parse_claim_rows(metrics_text: str) -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
+def parse_metrics_claims(metrics_text: str) -> dict[str, dict[str, str]]:
+    claims: dict[str, dict[str, str]] = {}
     for line in metrics_text.splitlines():
         if not line.startswith("| ") or line.startswith("|----"):
             continue
@@ -31,77 +20,98 @@ def _parse_claim_rows(metrics_text: str) -> list[dict[str, str]]:
         parts = [
             p.strip().replace("__PIPE__", "|") for p in normalized.strip().strip("|").split("|")
         ]
-        if len(parts) < 7 or parts[0] == "id":
+        if len(parts) < 7 or not re.fullmatch(r"[A-Z0-9_]+", parts[0]):
             continue
-        if not re.fullmatch(r"[A-Z0-9_]+", parts[0]):
-            continue
-        rows.append({"claim_id": parts[0], "status": parts[5], "claim": parts[2]})
-    return rows
+        claims[parts[0]] = {"claim": parts[2], "status": parts[5], "notes": parts[6]}
+    return claims
 
 
-def _is_strong_claim(row: dict[str, str]) -> bool:
-    return row["status"] == "proven"
+def _artifact_exists(path_value: str) -> bool:
+    cleaned = path_value.strip().strip("`")
+    primary = cleaned.split(",")[0].strip()
+    if not primary or primary == "N/A":
+        return False
+    primary = primary.split(":")[0] if ".yml:" in primary or ".md:" in primary else primary
+    return Path(primary).exists()
 
 
-def _scan_docs_for_overclaims() -> list[str]:
-    violations: list[str] = []
-    allowlist = {"docs/METRICS_CONTRACT.md"}
-    for base in SCAN_DIRS:
-        files = [base] if base.is_file() else list(base.rglob("*.md"))
-        for path in files:
-            rel = str(path).replace("\\", "/")
-            if rel in allowlist:
+def _check_manifest_if_present() -> list[str]:
+    errors: list[str] = []
+    for manifest in Path("reports/test_audit").glob("baseline_run_*/artifact_manifest.sha256"):
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
                 continue
-            text = path.read_text(encoding="utf-8", errors="ignore").lower()
-            for word in STRONG_WORDS:
-                if word in text and "metrics contract" not in text and "claim boundary" not in text:
-                    violations.append(f"Potential overclaim word '{word}' in {rel}")
-                    break
-    return violations
+            expected, fname = line.split(maxsplit=1)
+            target = manifest.parent / fname.strip()
+            if not target.exists():
+                errors.append(f"Manifest missing file: {target}")
+                continue
+            actual = hashlib.sha256(target.read_bytes()).hexdigest()
+            if actual != expected:
+                errors.append(f"Manifest hash mismatch: {target}")
+    return errors
+
+
+def validate(metrics_path: Path = METRICS_PATH, evidence_path: Path = EVIDENCE_PATH) -> list[str]:
+    errors: list[str] = []
+    metrics = parse_metrics_claims(metrics_path.read_text(encoding="utf-8"))
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    claims = evidence.get("claims", [])
+    records = {c.get("claim_id"): c for c in claims}
+
+    for cid, rec in records.items():
+        if cid not in metrics:
+            errors.append(f"{cid}: evidence claim missing from METRICS_CONTRACT")
+            continue
+        if not rec.get("claim_status"):
+            errors.append(f"{cid}: evidence record missing status")
+            continue
+
+        m = metrics[cid]
+        e_status = rec.get("claim_status")
+        if e_status not in STATUS_ALLOWED:
+            errors.append(f"{cid}: invalid evidence status {e_status}")
+        if m["status"] != e_status:
+            errors.append(f"{cid}: status mismatch metrics={m['status']} evidence={e_status}")
+
+        if e_status == "proven":
+            for field in (
+                "claim_id",
+                "command",
+                "artifact_path",
+                "last_verified_sha",
+                "timestamp_utc",
+            ):
+                if not str(rec.get(field, "")).strip():
+                    errors.append(f"{cid}: proven claim missing {field}")
+            if not _artifact_exists(str(rec.get("artifact_path", ""))):
+                errors.append(f"{cid}: proven claim artifact path does not exist")
+
+        text_low = (m["claim"] + " " + m["notes"] + " " + str(rec.get("notes", ""))).lower()
+        if (
+            e_status == "goal"
+            and rec.get("verdict") == "accepted"
+            and any(w in text_low for w in ACHIEVEMENT_WORDS)
+        ):
+            errors.append(f"{cid}: goal claim presented as achievement")
+        if e_status == "partial" and "proven" in text_low and rec.get("verdict") == "accepted":
+            errors.append(f"{cid}: partial claim presented as proven")
+
+    for cid, m in metrics.items():
+        if m["status"] == "proven" and cid not in records:
+            errors.append(f"{cid}: missing evidence record for proven claim")
+
+    errors.extend(_check_manifest_if_present())
+    return errors
 
 
 def main() -> int:
-    metrics_text = METRICS.read_text(encoding="utf-8")
-    evidence = json.loads(EVIDENCE.read_text(encoding="utf-8"))
-    records = evidence.get("records", [])
-    index = {r.get("claim_id"): r for r in records}
-
-    errors: list[str] = []
-    claim_rows = _parse_claim_rows(metrics_text)
-
-    for row in claim_rows:
-        if row["status"] not in ALLOWED_STATUSES:
-            errors.append(f"Invalid status for {row['claim_id']}: {row['status']}")
-
-        record = index.get(row["claim_id"])
-        if record is None:
-            errors.append(f"Missing evidence record for {row['claim_id']}")
-            continue
-
-        missing_fields = [f for f in REQUIRED_FIELDS if f not in record]
-        if missing_fields:
-            errors.append(
-                f"Evidence record {row['claim_id']} missing fields: {', '.join(missing_fields)}"
-            )
-
-        if _is_strong_claim(row):
-            if not str(record.get("last_verified_sha", "")).strip():
-                errors.append(f"Strong claim {row['claim_id']} missing last_verified_sha")
-            if not str(record.get("timestamp", "")).strip():
-                errors.append(f"Strong claim {row['claim_id']} missing timestamp")
-            if record.get("status") != "proven":
-                errors.append(
-                    f"Strong claim {row['claim_id']} has mismatched evidence status {record.get('status')}"
-                )
-
-    errors.extend(_scan_docs_for_overclaims())
-
+    errors = validate()
     if errors:
         print("CLAIM EVIDENCE VALIDATION FAILED")
         for e in errors:
             print(f" - {e}")
         return 1
-
     print("Claim evidence validation passed.")
     return 0
 

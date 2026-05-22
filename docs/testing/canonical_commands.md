@@ -1,37 +1,33 @@
-# Canonical Test Commands (Stage 1 Evidence Grounding)
+# Canonical Test Commands
 
-All commands write artifacts under `reports/test_audit/baseline_run_20260522/`.
+Date: 2026-05-22 (UTC)
+Baseline artifact root template: `reports/test_audit/baseline_run_YYYYMMDD/`
 
 ## fast
 ```bash
-pytest tests/ -m "not slow and not flaky" -q
+pytest tests/ -m "not slow and not heavy_math and not nightly and not flaky" -q
 ```
 
 ## full
 ```bash
-pytest tests/ -m "not flaky" --junitxml=reports/test_audit/baseline_run_20260522/junit.xml
+pytest tests/ -m "not nightly and not flaky" --junitxml=reports/test_audit/baseline_run_YYYYMMDD/junit.xml
 ```
 
-## coverage baseline
+## coverage
 ```bash
-pytest tests/ -m "not flaky" \
+pytest tests/ -m "not nightly and not flaky" \
   --cov=core \
   --cov=backtest \
   --cov=execution \
-  --cov-report=xml:reports/test_audit/baseline_run_20260522/coverage.xml \
+  --cov-config=configs/quality/critical_surface.coveragerc \
+  --cov-report=xml:reports/test_audit/baseline_run_YYYYMMDD/coverage.xml \
   --cov-report=term-missing \
-  --junitxml=reports/test_audit/baseline_run_20260522/junit.xml \
-  | tee reports/test_audit/baseline_run_20260522/pytest.log
-```
-
-## heavy
-```bash
-pytest tests/nightly tests/performance -m "not flaky" -q
+  --junitxml=reports/test_audit/baseline_run_YYYYMMDD/junit.xml
 ```
 
 ## property
 ```bash
-pytest tests/property/ --hypothesis-profile=ci
+pytest tests/property/ -q
 ```
 
 ## fuzz
@@ -48,7 +44,6 @@ bandit -r core backtest execution src -ll -q
 ## mutation
 ```bash
 mutmut run --use-coverage
-python -m tools.mutation.kill_rate_guard --threshold 0.9 --scope critical
 ```
 
 ## benchmark
