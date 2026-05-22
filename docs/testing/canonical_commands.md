@@ -1,7 +1,16 @@
 # Canonical Test Commands
 
 Date: 2026-05-22 (UTC)
-Baseline artifact root template: `reports/test_audit/baseline_run_YYYYMMDD/`
+Baseline artifact root template: `reports/test_audit/baseline_run_YYYYMMDDTHHMMSSZ/`
+
+## Canonical Environment Setup
+```bash
+python -m pip install -r requirements-dev.lock
+python -m pip install -c constraints/security.txt -r requirements.lock
+```
+
+These are evidence-generation commands only. Proof status requires preserved artifacts (junit.xml, coverage.xml, coverage_summary.json, run_metadata.json, artifact_manifest.sha256) from a run directory.
+
 
 ## fast
 ```bash

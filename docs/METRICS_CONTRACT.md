@@ -46,6 +46,19 @@ links:
 
 ---
 
+
+## Stage 1 Evidence Grounding
+
+PR #782 bootstraps Stage 1 evidence grounding but does not by itself prove full test-suite health.
+
+A non-zero baseline exit code blocks Stage 1 closure.
+
+Artifacts:
+- `reports/test_audit/post_merge_triage_20260522.md`
+- `reports/test_audit/evidence_index.json`
+- `docs/testing/canonical_commands.md`
+- `scripts/test_audit/run_evidence_baseline.sh`
+
 ## CI Workflow Notes
 
 > **Note on workflow status reporting**: Some workflows may show as "failure" with 0 jobs
