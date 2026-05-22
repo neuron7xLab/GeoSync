@@ -80,3 +80,42 @@ def test_manifest_scope_all_reports_unreferenced_manifest_errors(tmp_path: Path,
 
     errors = validate(evidence, audit_root=audit_root, manifest_scope="all")
     assert any("Manifest references missing artifact" in error for error in errors)
+
+
+def test_manifest_scope_none_skips_manifest_validation(tmp_path: Path, audit_root: Path) -> None:
+    artifact = tmp_path / "proof.txt"
+    artifact.write_text("ok", encoding="utf-8")
+    evidence = _write_evidence(tmp_path / "evidence.json", [{"claim_id": "C1", "status": "proven", "artifact_path": str(artifact)}])
+
+    bad = audit_root / "baseline_run_test_none"
+    bad.mkdir(parents=True)
+    (bad / "artifact_manifest.sha256").write_text("deadbeef missing.log\n", encoding="utf-8")
+
+    assert validate(evidence, audit_root=audit_root, manifest_scope="none") == []
+
+
+def test_manifest_scope_referenced_ignores_unreferenced_bad_manifest(tmp_path: Path, audit_root: Path) -> None:
+    artifact = tmp_path / "proof.txt"
+    artifact.write_text("ok", encoding="utf-8")
+    evidence = _write_evidence(tmp_path / "evidence.json", [{"claim_id": "C1", "status": "proven", "artifact_path": str(artifact)}])
+
+    bad = audit_root / "baseline_run_test_unreferenced_bad"
+    bad.mkdir(parents=True)
+    (bad / "artifact_manifest.sha256").write_text("deadbeef missing.log\n", encoding="utf-8")
+
+    assert validate(evidence, audit_root=audit_root, manifest_scope="referenced") == []
+
+
+def test_manifest_scope_referenced_fails_referenced_bad_manifest(tmp_path: Path, audit_root: Path) -> None:
+    baseline = audit_root / "baseline_run_test_bad"
+    baseline.mkdir(parents=True)
+    artifact = baseline / "pytest.log"
+    artifact.write_text("ok", encoding="utf-8")
+    (baseline / "artifact_manifest.sha256").write_text("deadbeef coverage.xml\n", encoding="utf-8")
+
+    evidence = _write_evidence(
+        tmp_path / "evidence.json",
+        [{"claim_id": "C1", "status": "proven", "artifact_path": str(artifact)}],
+    )
+    errors = validate(evidence, audit_root=audit_root, manifest_scope="referenced")
+    assert any("Manifest references missing artifact" in error for error in errors)
