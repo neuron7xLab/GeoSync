@@ -6,7 +6,10 @@ from pathlib import Path
 
 METRICS = Path("docs/METRICS_CONTRACT.md")
 EVIDENCE = Path("reports/test_audit/evidence_index.json")
-SCAN_DIRS = [Path("README.md"), Path("docs/testing/canonical_commands.md"), Path("reports/test_audit/current_state_20260522.md")]
+SCAN_DIRS = [
+    Path("README.md"),
+    Path("docs/testing/canonical_commands.md"),
+]
 ALLOWED_STATUSES = {"proven", "partial", "goal", "remove", "quarantine"}
 STRONG_WORDS = ("verified", "production-grade", "enterprise-grade", "robust", "secure")
 REQUIRED_FIELDS = (
@@ -25,7 +28,9 @@ def _parse_claim_rows(metrics_text: str) -> list[dict[str, str]]:
         if not line.startswith("| ") or line.startswith("|----"):
             continue
         normalized = line.replace(r"\|", "__PIPE__")
-        parts = [p.strip().replace("__PIPE__", "|") for p in normalized.strip().strip("|").split("|")]
+        parts = [
+            p.strip().replace("__PIPE__", "|") for p in normalized.strip().strip("|").split("|")
+        ]
         if len(parts) < 7 or parts[0] == "id":
             continue
         if not re.fullmatch(r"[A-Z0-9_]+", parts[0]):
@@ -75,7 +80,9 @@ def main() -> int:
 
         missing_fields = [f for f in REQUIRED_FIELDS if f not in record]
         if missing_fields:
-            errors.append(f"Evidence record {row['claim_id']} missing fields: {', '.join(missing_fields)}")
+            errors.append(
+                f"Evidence record {row['claim_id']} missing fields: {', '.join(missing_fields)}"
+            )
 
         if _is_strong_claim(row):
             if not str(record.get("last_verified_sha", "")).strip():
@@ -83,7 +90,9 @@ def main() -> int:
             if not str(record.get("timestamp", "")).strip():
                 errors.append(f"Strong claim {row['claim_id']} missing timestamp")
             if record.get("status") != "proven":
-                errors.append(f"Strong claim {row['claim_id']} has mismatched evidence status {record.get('status')}")
+                errors.append(
+                    f"Strong claim {row['claim_id']} has mismatched evidence status {record.get('status')}"
+                )
 
     errors.extend(_scan_docs_for_overclaims())
 

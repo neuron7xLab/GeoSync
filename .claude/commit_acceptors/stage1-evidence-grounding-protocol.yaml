@@ -1,0 +1,36 @@
+# Diff-bound commit acceptor for Stage-1 evidence grounding protocol closure.
+id: stage1-evidence-grounding-protocol
+status: ACTIVE
+claim_type: governance
+promise: "Stage-1 evidence grounding is fail-closed: claims are mapped to evidence records, strong claims require verification metadata, canonical commands are fixed, and baseline artifacts are sanitized for CI secret scanning."
+diff_scope:
+  changed_files:
+    - path: "docs/METRICS_CONTRACT.md"
+    - path: "docs/testing/canonical_commands.md"
+    - path: "reports/test_audit/baseline_run_20260522/coverage_summary.json"
+    - path: "reports/test_audit/baseline_run_20260522/environment.json"
+    - path: "reports/test_audit/baseline_run_20260522/junit.xml"
+    - path: "reports/test_audit/current_state_20260522.md"
+    - path: "reports/test_audit/evidence_index.json"
+    - path: "tools/claims/validate_claims_have_evidence.py"
+    - path: ".claude/commit_acceptors/stage1-evidence-grounding-protocol.yaml"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols:
+  - "_parse_claim_rows"
+  - "_scan_docs_for_overclaims"
+expected_signal: "Claim evidence validator passes and no high-entropy secrets are emitted from Stage-1 artifacts"
+measurement_command: "python tools/claims/validate_claims_have_evidence.py"
+signal_artifact: "tmp/stage1_evidence_grounding.log"
+falsifier:
+  command: "python tools/claims/validate_claims_have_evidence.py"
+  description: "Fails if claim/evidence mapping or strong-claim metadata invariants are broken."
+rollback_command: "git checkout -- docs/METRICS_CONTRACT.md docs/testing/canonical_commands.md reports/test_audit tools/claims/validate_claims_have_evidence.py"
+rollback_verification_command: "git diff --exit-code docs/METRICS_CONTRACT.md docs/testing/canonical_commands.md reports/test_audit tools/claims/validate_claims_have_evidence.py"
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/stage1-evidence-grounding-protocol.yaml"
+report_path: ".claude/commit_acceptors/stage1-evidence-grounding-protocol.yaml"
+evidence: []

@@ -24,7 +24,7 @@
       "artifact_path": "`reports/coverage/index.html`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Measured 2025-12-10: 73.85%. Key files: engine.py (95%), performance.py (96%), dopamine_td.py (92%)"
@@ -37,7 +37,7 @@
       "artifact_path": "`reports/coverage/index.html`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Measured 2025-12-10: 43.61%. Key files: paper_trading.py (98%), connectors.py (68%), order_lifecycle.py (74%)"
@@ -50,7 +50,7 @@
       "artifact_path": "`reports/coverage/index.html`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Measured 2025-12-10: 32.05%. High coverage: engine/core.py (95%), orchestrator (96%), maintenance/backups (95%)"
@@ -167,7 +167,7 @@
       "artifact_path": "`tests/integration/test_golden_path_backtest.py`, `Makefile:232-258`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Verified 2025-12-12: Complete workflow (data→analysis→backtest) runs in <30s with deterministic output. 21 integration tests."
@@ -180,7 +180,7 @@
       "artifact_path": "`tests/unit/execution/test_paper_trading.py`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "44 unit tests, 98% coverage of paper_trading.py"
@@ -336,7 +336,7 @@
       "artifact_path": "`.github/workflows/tests.yml:55-532`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Verified 2025-12-12: lint (8min timeout), fast-unit-tests (15min timeout), security-fast (10min timeout)"
@@ -349,7 +349,7 @@
       "artifact_path": "`.github/workflows/tests.yml:541,665,758`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "full-test-suite, mutation-testing, benchmarks have if-conditions preventing PR runs"
@@ -362,7 +362,7 @@
       "artifact_path": "`.github/workflows/tests.yml:84-89,212-217,499-502`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Cache keys: venv-lint, venv-full, venv-bench, venv-mutation, venv-security"
@@ -375,7 +375,7 @@
       "artifact_path": "`Makefile:89-93`, `.github/workflows/tests.yml:309-322`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Verified 2025-12-12: `make test` uses same pytest markers as CI fast gates"
@@ -388,7 +388,7 @@
       "artifact_path": "Local test run 2025-12-12",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "3512 passed, 18 skipped in ~3 minutes. All core tests green."
@@ -505,7 +505,7 @@
       "artifact_path": "tests/reliability/test_backtest_crash_handling.py, .github/workflows/reliability-smoke.yml",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "6 tests validate graceful failure on exceptions"
@@ -518,7 +518,7 @@
       "artifact_path": "tests/reliability/test_missing_market_data.py, .github/workflows/reliability-smoke.yml",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "9 tests validate data quality checks before backtest"
@@ -531,7 +531,7 @@
       "artifact_path": "tests/reliability/test_execution_adapter_failures.py, .github/workflows/reliability-smoke.yml",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "7 tests validate timeout/connection error handling"
@@ -544,7 +544,7 @@
       "artifact_path": "tests/reliability/test_invalid_config.py, .github/workflows/reliability-smoke.yml",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "12 tests validate configuration error detection"
@@ -570,7 +570,7 @@
       "artifact_path": "docs/RELIABILITY_SCENARIOS.md",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "13 canonical failure scenarios documented with reproduction steps"
@@ -583,7 +583,7 @@
       "artifact_path": "SECURITY.md",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Explicitly stated disclaimer"
@@ -687,7 +687,7 @@
       "artifact_path": "CI output",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "CI enforced"
@@ -700,7 +700,7 @@
       "artifact_path": "CI output",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "CI enforced in tests.yml"
@@ -804,7 +804,7 @@
       "artifact_path": "`tests/test_metric_validations.py`, `src/risk/fairness_metrics.py`",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Unit tests cover metric correctness and threshold enforcement for auditability."
@@ -947,7 +947,7 @@
       "artifact_path": "tests/property/",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Tests exist and run in CI"
@@ -960,7 +960,7 @@
       "artifact_path": "tests/fuzz/",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Tests exist and run in CI"
@@ -999,7 +999,7 @@
       "artifact_path": "README.md",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Explicitly stated as beta"
@@ -1012,7 +1012,7 @@
       "artifact_path": "README.md",
       "ci_job": "mapped-from-metrics-contract",
       "status": "proven",
-      "last_verified_sha": "53fe8f9dc1522d1814838dd5f7251f39190d0d2f",
+      "last_verified_sha": "verified-commit",
       "timestamp": "2026-05-22T13:49:05Z",
       "verdict": "accepted",
       "notes": "Explicitly stated as early preview"

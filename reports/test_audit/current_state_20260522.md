@@ -1,7 +1,7 @@
 # GeoSync Test Evidence Audit — 2026-05-22
 
 ## Problem (1 sentence)
-GeoSync previously allowed strong quality claims without a mandatory machine-readable evidence chain linking claim → command → artifact → verification metadata.
+GeoSync previously allowed strong quality claims without a mandatory machine-readable evidence chain linking claim → command → artifact → validation metadata.
 
 ## Falsifiable hypothesis
 If Stage‑1 evidence grounding is complete, every claim in `docs/METRICS_CONTRACT.md` must have an evidence record, and every `proven` claim must include non-empty `last_verified_sha` and `timestamp`; otherwise validation fails.

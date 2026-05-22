@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="50" failures="0" skipped="21" tests="71" time="36.569" timestamp="2026-05-22T13:43:16.558876+00:00" hostname="c5e8aa5a716b"><testcase classname="" name="tests.analytics.test_kelly_criterion" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/GeoSync/tests/analytics/test_kelly_criterion.py'.
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="50" failures="0" skipped="21" tests="71" time="36.569" timestamp="2026-05-22T13:43:16.558876+00:00" hostname="ci-runner"><testcase classname="" name="tests.analytics.test_kelly_criterion" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/GeoSync/tests/analytics/test_kelly_criterion.py'.
 Hint: make sure your test modules/packages have valid Python names.
 Traceback:
 tests/analytics/test_kelly_criterion.py:5: in &lt;module&gt;
