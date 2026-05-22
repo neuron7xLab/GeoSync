@@ -18,10 +18,17 @@ class SurfaceTarget:
 
 
 @dataclass(frozen=True)
+class CoverageWeights:
+    divergence: float
+    convergence: float
+
+
+@dataclass(frozen=True)
 class CoverageTargets:
     source_path: Path
     global_thresholds: dict[str, float]
     surfaces: dict[str, SurfaceTarget]
+    weights: CoverageWeights | None = None
 
 
 _REQUIRED_GLOBAL = ("final_aspirational_gate", "current_release_gate", "diff_coverage_gate")
@@ -66,7 +73,17 @@ def load_coverage_targets(path: Path) -> CoverageTargets:
             rationale=str(raw["rationale"]),
         )
 
-    return CoverageTargets(source_path=path, global_thresholds=global_thresholds, surfaces=surfaces)
+    weights = None
+    if "weights" in doc:
+        raw_weights = doc["weights"]
+        if "divergence" not in raw_weights or "convergence" not in raw_weights:
+            raise ValueError("[weights] must define divergence and convergence")
+        weights = CoverageWeights(
+            divergence=_as_float("weights.divergence", raw_weights["divergence"]),
+            convergence=_as_float("weights.convergence", raw_weights["convergence"]),
+        )
+
+    return CoverageTargets(source_path=path, global_thresholds=global_thresholds, surfaces=surfaces, weights=weights)
 
 
 def map_file_to_surface(file_path: str, targets: CoverageTargets) -> str | None:
@@ -113,5 +130,14 @@ def validate_target_contract(targets: CoverageTargets) -> list[str]:
             errors.append(f"Surface '{name}' missing claim_risk")
         if not surface.rationale.strip():
             errors.append(f"Surface '{name}' missing rationale")
+
+    if targets.weights is not None:
+        if not (0.0 <= targets.weights.divergence <= 1.0):
+            errors.append(f"weights.divergence out of range [0,1]: {targets.weights.divergence}")
+        if not (0.0 <= targets.weights.convergence <= 1.0):
+            errors.append(f"weights.convergence out of range [0,1]: {targets.weights.convergence}")
+        total = targets.weights.divergence + targets.weights.convergence
+        if abs(total - 1.0) > 1e-9:
+            errors.append(f"weights must sum to 1.0, got {total}")
 
     return errors

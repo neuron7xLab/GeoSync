@@ -42,7 +42,7 @@ def _json_payload(targets_path: Path, targets: Any, unmapped: list[str], errors:
             "final": cfg.final,
             "claim_risk": cfg.claim_risk,
         }
-    return {
+    payload = {
         "schema_version": "1.0",
         "status": "fail" if errors else "pass",
         "targets_path": str(targets_path),
@@ -50,6 +50,9 @@ def _json_payload(targets_path: Path, targets: Any, unmapped: list[str], errors:
         "unmapped_files": unmapped,
         "errors": errors,
     }
+    if targets.weights is not None:
+        payload["weights"] = {"divergence": targets.weights.divergence, "convergence": targets.weights.convergence}
+    return payload
 
 
 def main() -> int:
