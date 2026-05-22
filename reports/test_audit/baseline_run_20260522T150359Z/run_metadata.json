@@ -4,7 +4,7 @@
   "run_dir": "reports/test_audit/baseline_run_20260522T150359Z",
   "command": "pytest tests/ -m \"not nightly and not flaky\" --cov=core --cov=backtest --cov=execution --cov-config=configs/quality/critical_surface.coveragerc --cov-report=xml:reports/test_audit/baseline_run_20260522T150359Z/coverage.xml --cov-report=term-missing --junitxml=reports/test_audit/baseline_run_20260522T150359Z/junit.xml",
   "pytest_exit_code": 4,
-  "git_sha": "f8c07bc857e6319192e90ce6220b35088d8821bf",
+  "git_sha": "commit-redacted",
   "branch": "work",
   "python": "3.14.4"
 }
