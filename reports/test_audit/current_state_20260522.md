@@ -1,28 +1,28 @@
 # GeoSync Test Evidence Audit — 2026-05-22
 
-## Problem statement
-Current test architecture has strong breadth but incomplete proof chain for high-strength claims (`COV_98_CI_GATE` remains `goal`, `MUTATION_90_KILL` remains `partial`).
+## Problem (1 sentence)
+GeoSync has broad test coverage by suite count, but claim-level evidence links were incomplete and non-fail-closed before this Stage-1 grounding pass.
 
-## Canonical command tiers
-- fast: `pytest tests/ -m "not slow and not flaky" -q`
-- full: `pytest tests/ -m "not flaky" --cov=core --cov=backtest --cov=execution --cov-report=xml --cov-report=term-missing`
-- heavy: `pytest tests/nightly tests/performance -m "not flaky" -q`
-- property: `pytest tests/property/ --hypothesis-profile=ci`
-- fuzz: `pytest tests/fuzz/ -q`
-- security: `pytest tests/security/ -q && bandit -r core backtest execution src -ll -q`
-- mutation: `mutmut run --use-coverage && python -m tools.mutation.kill_rate_guard --threshold 0.9 --scope critical`
-- benchmark: `pytest tests/performance/ --benchmark-enable`
+## Falsifiable hypothesis
+If the evidence protocol is valid, every `proven` claim in `docs/METRICS_CONTRACT.md` must have a machine-readable evidence record with command/artifact/status/SHA/timestamp; otherwise gate fails.
 
-## Evidence policy
-Only claims with machine-readable evidence records are allowed to remain high-strength in docs/release statements.
+## Inventory snapshot (factual)
+- Python test files under `tests/`: **1380** (`rg --files tests | rg '\\.py$' | wc -l`)
+- Baseline run folder created: `reports/test_audit/baseline_run_20260522/`
+- Baseline artifacts present: `pytest.log`, `junit.xml`, `coverage.xml`, `coverage_summary.json`, `environment.json`, `pip_freeze.txt`, `git_sha.txt`, `python_version.txt`, `exit_code.txt`
 
-## Required artifacts for a baseline run
-- `coverage.xml`
-- `junit.xml`
-- `pytest.log`
-- `environment.json`
-- `pip_freeze.txt`
-- `git_sha.txt`
+## Canonical command source of truth
+See `docs/testing/canonical_commands.md`.
 
-## Next gating command
+## Baseline command executed
+`pytest tests/ -m "not flaky" --cov=core --cov=backtest --cov=execution --cov-report=xml:reports/test_audit/baseline_run_20260522/coverage.xml --cov-report=term-missing --junitxml=reports/test_audit/baseline_run_20260522/junit.xml`
+
+Output log: `reports/test_audit/baseline_run_20260522/pytest.log`
+
+## Acceptance gate
 `python tools/claims/validate_claims_have_evidence.py`
+
+Expected behavior:
+- fail if `proven` claim has no evidence record;
+- fail if evidence record misses required fields;
+- fail if strong claim language appears outside `METRICS_CONTRACT` allowlist.
