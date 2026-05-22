@@ -1,0 +1,231 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-22T00:00:00Z",
+  "records": [
+    {
+      "claim_id": "COV_BACKTEST_74",
+      "command": "`pytest tests/unit/backtest tests/integration/test_backtest.py tests/integration/test_golden_path_backtest.py --cov=backtest --cov-report=term`",
+      "artifact_path": "`reports/coverage/index.html`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "COV_EXECUTION_44",
+      "command": "`pytest tests/unit/execution tests/integration/ --cov=execution --cov-report=term -m \"not slow\"`",
+      "artifact_path": "`reports/coverage/index.html`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "COV_CORE_32",
+      "command": "`pytest tests/unit/core tests/integration/ --cov=core --cov-report=term -m \"not slow\"`",
+      "artifact_path": "`reports/coverage/index.html`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "COV_GOLDEN_PATH",
+      "command": "`make golden-path`",
+      "artifact_path": "`tests/integration/test_golden_path_backtest.py`, `Makefile:232-258`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "COV_PAPER_TRADING",
+      "command": "`pytest tests/unit/execution/test_paper_trading.py --cov=execution.paper_trading`",
+      "artifact_path": "`tests/unit/execution/test_paper_trading.py`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "CI_FAST_GATES_15MIN",
+      "command": "GitHub Actions workflow run",
+      "artifact_path": "`.github/workflows/tests.yml:55-532`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "CI_HEAVY_JOBS_GATED",
+      "command": "N/A",
+      "artifact_path": "`.github/workflows/tests.yml:541,665,758`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "CI_CACHE_STRATEGY",
+      "command": "N/A",
+      "artifact_path": "`.github/workflows/tests.yml:84-89,212-217,499-502`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "CI_LOCAL_MATCH",
+      "command": "`make test`",
+      "artifact_path": "`Makefile:89-93`, `.github/workflows/tests.yml:309-322`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "TEST_FAST_PASSED",
+      "command": "`make test`",
+      "artifact_path": "Local test run 2025-12-12",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "REL_BACKTEST_CRASH_001",
+      "command": "`pytest tests/reliability/test_backtest_crash_handling.py -v`",
+      "artifact_path": "tests/reliability/test_backtest_crash_handling.py, .github/workflows/reliability-smoke.yml",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "REL_DATA_MISSING_001",
+      "command": "`pytest tests/reliability/test_missing_market_data.py -v`",
+      "artifact_path": "tests/reliability/test_missing_market_data.py, .github/workflows/reliability-smoke.yml",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "REL_EXEC_TIMEOUT_001",
+      "command": "`pytest tests/reliability/test_execution_adapter_failures.py -v`",
+      "artifact_path": "tests/reliability/test_execution_adapter_failures.py, .github/workflows/reliability-smoke.yml",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "REL_CONFIG_INVALID_001",
+      "command": "`pytest tests/reliability/test_invalid_config.py -v`",
+      "artifact_path": "tests/reliability/test_invalid_config.py, .github/workflows/reliability-smoke.yml",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "REL_SCENARIOS_DOC",
+      "command": "N/A",
+      "artifact_path": "docs/RELIABILITY_SCENARIOS.md",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "SEC_NO_EXTERNAL_AUDIT",
+      "command": "N/A",
+      "artifact_path": "SECURITY.md",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "SEC_BANDIT_SCAN",
+      "command": "`bandit -r core/ backtest/ execution/ src/ -ll -q`",
+      "artifact_path": "CI output",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "SEC_SECRETS_SCAN",
+      "command": "`detect-secrets scan`",
+      "artifact_path": "CI output",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "FAIR_BIAS_GUARDS",
+      "command": "`pytest tests/test_metric_validations.py -q`",
+      "artifact_path": "`tests/test_metric_validations.py`, `src/risk/fairness_metrics.py`",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "PROD_PROPERTY_TESTS",
+      "command": "`pytest tests/property/`",
+      "artifact_path": "tests/property/",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "PROD_FUZZ_TESTS",
+      "command": "`pytest tests/fuzz/`",
+      "artifact_path": "tests/fuzz/",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "OTHER_LIVE_BETA",
+      "command": "N/A",
+      "artifact_path": "README.md",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "OTHER_DASHBOARD_ALPHA",
+      "command": "N/A",
+      "artifact_path": "README.md",
+      "ci_job": "manual-or-ci",
+      "status": "proven",
+      "last_verified_sha": "unknown",
+      "timestamp": "2026-05-22T00:00:00Z"
+    },
+    {
+      "claim_id": "COV_98_CI_GATE",
+      "command": "`pytest tests/ --cov=core --cov=backtest --cov=execution --cov-fail-under=98`",
+      "artifact_path": "`.github/workflows/tests.yml`, `reports/coverage/`",
+      "ci_job": "manual-or-ci",
+      "status": "goal",
+      "last_verified_sha": null,
+      "timestamp": null
+    },
+    {
+      "claim_id": "MUTATION_90_KILL",
+      "command": "`mutmut run --use-coverage && python -m tools.mutation.kill_rate_guard --threshold 0.9`",
+      "artifact_path": "`reports/mutmut/summary.json`",
+      "ci_job": "manual-or-ci",
+      "status": "partial",
+      "last_verified_sha": null,
+      "timestamp": null
+    }
+  ]
+}
