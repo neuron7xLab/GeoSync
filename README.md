@@ -21,8 +21,8 @@
 Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynamics  ·  Cryptobiosis
 ```
 
-*Physics-inspired quantitative research platform with 97 machine-checkable invariants.*
-*Every signal traces back to peer-reviewed science. Every clamp traces back to a law.*
+*Physics-inspired quantitative research platform with a registry-tracked invariant layer.*
+*Every promoted claim must map to an evidence tier, a gate, or a documented boundary.*
 
 <br>
 
@@ -32,7 +32,7 @@ Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynami
 [![Formal Verification](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Security](https://img.shields.io/badge/NIST%20SP%20800--53-aligned-red?style=flat)](docs/security/)
-[![Physics Gate](https://img.shields.io/badge/physics_gate-96_invariants-critical?style=flat)](CLAUDE.md)
+[![Physics Gate](https://img.shields.io/badge/physics_gate-97_invariants-critical?style=flat)](CLAUDE.md)
 [![Coverage](https://img.shields.io/badge/line_coverage-71%25-yellowgreen?style=flat)](BASELINE.md)
 
 </div>
@@ -43,7 +43,7 @@ Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynami
 
 ## The Signal
 
-GeoSync distils validated mechanisms from **computational neuroscience**, **differential geometry**, **thermodynamics**, and **synchronization theory** into a rigorous, production-oriented algorithmic infrastructure.
+GeoSync implements research-grade mechanisms inspired by **computational neuroscience**, **differential geometry**, **thermodynamics**, and **synchronization theory** inside a verification-first quantitative infrastructure.
 
 <table>
 <tr>
@@ -75,7 +75,7 @@ The **Kuramoto order parameter** `R(t)` quantifies instantaneous phase coherence
 - `R → 0` desynchronized, independent motion
 - `R → 1` full phase-lock, regime transition
 
-When `R` crosses critical coupling `Kc`, the market undergoes a **phase transition** — the geometric signal that conventional factor models systematically miss.
+When `R` approaches critical coupling `Kc`, the model flags a **candidate synchronization regime** — a geometric hypothesis tested against conventional baselines, not assumed as market law.
 
 ```
 dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
@@ -144,6 +144,9 @@ dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
 </p>
 
 ## Physics Kernel
+
+> **Claim boundary:** GeoSync is a research-code platform, not a verified physical market system.  
+> Active and retired claims are governed by [`CLAIMS.md`](CLAIMS.md); baseline truth is tracked in [`BASELINE.md`](BASELINE.md).
 
 GeoSync is a **physics-inspired quantitative research platform with a partially machine-checkable invariant layer**, not a "verified physical system" — that stronger claim was retracted on 2026-04-30 after an external audit ([CLAIMS.md](CLAIMS.md), [ALTERNATIVE_HYPOTHESES.md](.claude/physics/ALTERNATIVE_HYPOTHESES.md)). The physics kernel (`.claude/physics/`) declares **97 machine-checkable invariants** across the modules listed in [`INVARIANTS.yaml`](.claude/physics/INVARIANTS.yaml). Tests grounded in `INV-*` ids are *mathematical witnesses* of a specific invariant; the `BASELINE.md` ledger tracks how many of them currently exist (it is intentionally smaller than the registry — coverage growth is gated, not assumed).
 
