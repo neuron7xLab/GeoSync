@@ -3,20 +3,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
-import sys
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from tools.coverage.surface_contract import (
-    list_unmapped_files,
-    load_coverage_targets,
-    map_file_to_surface,
-    validate_target_contract,
-)
 
 CRITICAL_PREFIXES = ("core/", "backtest/", "execution/", "analytics/", "ingestion/", "risk/", "data/")
 
@@ -51,7 +40,10 @@ def _json_payload(targets_path: Path, targets: Any, unmapped: list[str], errors:
         "errors": errors,
     }
     if targets.weights is not None:
-        payload["weights"] = {"divergence": targets.weights.divergence, "convergence": targets.weights.convergence}
+        payload["weights"] = {
+            "divergence": targets.weights.divergence,
+            "convergence": targets.weights.convergence,
+        }
     return payload
 
 
@@ -61,6 +53,17 @@ def main() -> int:
     parser.add_argument("--files", type=Path, required=False)
     parser.add_argument("--json-out", type=Path, required=False)
     args = parser.parse_args()
+
+    repo_root = Path(__file__).resolve().parents[2]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
+
+    from tools.coverage.surface_contract import (  # noqa: PLC0415
+        list_unmapped_files,
+        load_coverage_targets,
+        map_file_to_surface,
+        validate_target_contract,
+    )
 
     errors: list[str] = []
     unmapped_files: list[str] = []
@@ -73,11 +76,10 @@ def main() -> int:
 
     if targets is not None:
         errors.extend(validate_target_contract(targets))
-
         if args.files is not None:
             supplied_files = _read_files(args.files)
             unmapped_files = list_unmapped_files(supplied_files, targets)
-            critical_unmapped = [f for f in unmapped_files if _is_critical(f)]
+            critical_unmapped = [file_path for file_path in unmapped_files if _is_critical(file_path)]
             if critical_unmapped:
                 errors.append(
                     "Critical supplied files are unmapped: " + ", ".join(sorted(critical_unmapped))
@@ -85,14 +87,17 @@ def main() -> int:
 
     if args.json_out is not None:
         args.json_out.parent.mkdir(parents=True, exist_ok=True)
-        payload = _json_payload(args.targets, targets, unmapped_files, errors) if targets else {
-            "schema_version": "1.0",
-            "status": "fail",
-            "targets_path": str(args.targets),
-            "surfaces": {},
-            "unmapped_files": [],
-            "errors": errors,
-        }
+        if targets is not None:
+            payload = _json_payload(args.targets, targets, unmapped_files, errors)
+        else:
+            payload = {
+                "schema_version": "1.0",
+                "status": "fail",
+                "targets_path": str(args.targets),
+                "surfaces": {},
+                "unmapped_files": [],
+                "errors": errors,
+            }
         args.json_out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
     if errors:
@@ -102,7 +107,7 @@ def main() -> int:
 
     print(f"Coverage target contract is valid: {args.targets}")
     if args.files is not None and targets is not None:
-        mapped = [f for f in _read_files(args.files) if map_file_to_surface(f, targets) is not None]
+        mapped = [file_path for file_path in _read_files(args.files) if map_file_to_surface(file_path, targets) is not None]
         print(f"Mapped files: {len(mapped)}")
         print(f"Unmapped files: {len(unmapped_files)}")
     return 0
