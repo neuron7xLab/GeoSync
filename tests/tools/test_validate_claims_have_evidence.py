@@ -1,16 +1,12 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 import pytest
-import shutil
 
 from tools.claims.validate_claims_have_evidence import validate
-
-
-import shutil
-import pytest
 
 
 @pytest.fixture(autouse=True)

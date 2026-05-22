@@ -1,7 +1,7 @@
 # Diff-bound commit acceptor for Stage-1 evidence grounding protocol closure.
 id: stage1-evidence-grounding-protocol
 status: ACTIVE
-claim_type: governance
+claim_type: documentation
 promise: "Stage-1 evidence grounding hardening is fail-closed: baseline artifacts, coverage summary, claims validator, and tests remain bound to evidence semantics."
 diff_scope:
   changed_files:
@@ -18,6 +18,7 @@ diff_scope:
     - path: "reports/test_audit/baseline_run_20260522T150359Z/coverage_summary.json"
     - path: "reports/test_audit/baseline_run_20260522T150359Z/run_metadata.json"
     - path: "reports/test_audit/baseline_run_20260522T151534Z/run_metadata.json"
+    - path: "reports/test_audit/baseline_run_20260522T151534Z/coverage_summary.json"
     - path: "scripts/test_audit/run_evidence_baseline.sh"
     - path: "tools/coverage/write_coverage_summary.py"
     - path: "tools/claims/validate_claims_have_evidence.py"
