@@ -193,3 +193,40 @@ def test_cli_json_includes_weights(tmp_path: Path) -> None:
     assert run.returncode == 0, run.stdout + run.stderr
     payload = json.loads(out_path.read_text(encoding="utf-8"))
     assert payload["weights"] == {"divergence": 0.5, "convergence": 0.5}
+
+
+def test_most_specific_surface_prefix_wins(tmp_path: Path) -> None:
+    toml = VALID_TOML + "\n\n" + """
+
+[surfaces.risk]
+paths = ["risk/", "execution/risk", "core/risk"]
+short_term = 90
+mid_term = 95
+final = 98
+claim_risk = "critical"
+rationale = "risk rationale"
+""".strip()
+
+    targets = load_coverage_targets(_write_targets(tmp_path / "targets.toml", toml))
+
+    assert map_file_to_surface("core/risk/limits.py", targets) == "risk"
+    assert map_file_to_surface("execution/risk/limits.py", targets) == "risk"
+    assert map_file_to_surface("risk/limits.py", targets) == "risk"
+
+
+def test_prefix_matching_is_path_boundary_safe(tmp_path: Path) -> None:
+    toml = VALID_TOML + "\n\n" + """
+
+[surfaces.risk]
+paths = ["execution/risk"]
+short_term = 90
+mid_term = 95
+final = 98
+claim_risk = "critical"
+rationale = "risk rationale"
+""".strip()
+
+    targets = load_coverage_targets(_write_targets(tmp_path / "targets.toml", toml))
+
+    assert map_file_to_surface("execution/risk/limits.py", targets) == "risk"
+    assert map_file_to_surface("execution/risky.py", targets) == "execution"

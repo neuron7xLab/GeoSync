@@ -151,3 +151,55 @@ def test_manifest_scope_referenced_fails_referenced_bad_manifest(
     )
     errors = validate(evidence, audit_root=audit_root, manifest_scope="referenced")
     assert any("Manifest references missing artifact" in error for error in errors)
+
+
+def test_relative_artifact_path_resolves_against_audit_root(
+    tmp_path: Path, audit_root: Path
+) -> None:
+    baseline = audit_root / "baseline_run_test_valid"
+    baseline.mkdir(parents=True)
+
+    artifact = baseline / "pytest.log"
+    artifact.write_text("ok", encoding="utf-8")
+
+    evidence = _write_evidence(
+        tmp_path / "evidence.json",
+        [
+            {
+                "claim_id": "C1",
+                "status": "proven",
+                "artifact_path": "baseline_run_test_valid/pytest.log",
+            }
+        ],
+    )
+
+    assert validate(evidence, audit_root=audit_root, manifest_scope="referenced") == []
+
+
+def test_relative_artifact_path_marks_referenced_baseline_for_manifest_validation(
+    tmp_path: Path, audit_root: Path
+) -> None:
+    baseline = audit_root / "baseline_run_test_bad"
+    baseline.mkdir(parents=True)
+
+    artifact = baseline / "pytest.log"
+    artifact.write_text("ok", encoding="utf-8")
+    (baseline / "artifact_manifest.sha256").write_text(
+        "deadbeef coverage.xml\n",
+        encoding="utf-8",
+    )
+
+    evidence = _write_evidence(
+        tmp_path / "evidence.json",
+        [
+            {
+                "claim_id": "C1",
+                "status": "proven",
+                "artifact_path": "baseline_run_test_bad/pytest.log",
+            }
+        ],
+    )
+
+    errors = validate(evidence, audit_root=audit_root, manifest_scope="referenced")
+
+    assert any("Manifest references missing artifact" in error for error in errors)

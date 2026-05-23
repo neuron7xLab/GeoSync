@@ -92,13 +92,33 @@ def load_coverage_targets(path: Path) -> CoverageTargets:
     )
 
 
+def _normalize_repo_path(value: str) -> str:
+    return value.strip().replace("\\", "/").lstrip("./")
+
+
+def _prefix_matches(file_path: str, prefix: str) -> bool:
+    normalized_prefix = _normalize_repo_path(prefix)
+    if not normalized_prefix:
+        return False
+    if normalized_prefix.endswith("/"):
+        return file_path.startswith(normalized_prefix)
+    return file_path == normalized_prefix or file_path.startswith(f"{normalized_prefix}/")
+
+
 def map_file_to_surface(file_path: str, targets: CoverageTargets) -> str | None:
-    normalized = file_path.strip()
+    normalized = _normalize_repo_path(file_path)
+
+    matches: list[tuple[int, str]] = []
     for surface, cfg in targets.surfaces.items():
         for prefix in cfg.paths:
-            if normalized.startswith(prefix):
-                return surface
-    return None
+            normalized_prefix = _normalize_repo_path(prefix)
+            if _prefix_matches(normalized, normalized_prefix):
+                matches.append((len(normalized_prefix.rstrip("/")), surface))
+
+    if not matches:
+        return None
+
+    return max(matches, key=lambda item: item[0])[1]
 
 
 def list_unmapped_files(file_paths: Iterable[str], targets: CoverageTargets) -> list[str]:

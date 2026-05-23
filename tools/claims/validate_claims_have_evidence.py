@@ -7,12 +7,36 @@ from pathlib import Path
 from typing import Any
 
 EVIDENCE_PATH = Path("reports/test_audit/evidence_index.json")
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _clean_artifact_path(raw: str) -> str:
+    return raw.strip().strip("`")
 
 
 def _split_artifact_paths(raw: str | None) -> list[str]:
     if not raw:
         return []
-    return [part.strip() for part in raw.split(",") if part.strip()]
+    return [_clean_artifact_path(part) for part in raw.split(",") if part.strip()]
+
+
+def _resolve_artifact_path(artifact: str, evidence_path: Path, audit_root: Path) -> Path:
+    path = Path(_clean_artifact_path(artifact))
+
+    if path.is_absolute():
+        return path
+
+    candidates = [
+        audit_root / path,
+        evidence_path.parent / path,
+        REPO_ROOT / path,
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return audit_root / path
 
 
 def _resolve_audit_root(evidence_path: Path, audit_root: Path | None) -> Path:
@@ -67,14 +91,14 @@ def _verify_manifest(audit_root: Path, allowed_dirs: set[Path] | None) -> list[s
     return errors
 
 
-def _referenced_baseline_dirs(claims: list[dict[str, Any]], audit_root: Path) -> set[Path]:
+def _referenced_baseline_dirs(
+    claims: list[dict[str, Any]], audit_root: Path, evidence_path: Path
+) -> set[Path]:
     referenced: set[Path] = set()
     root = audit_root.resolve()
     for claim in claims:
         for artifact in _split_artifact_paths(claim.get("artifact_path")):
-            artifact_path = Path(artifact)
-            if not artifact_path.is_absolute():
-                artifact_path = Path.cwd() / artifact_path
+            artifact_path = _resolve_artifact_path(artifact, evidence_path, audit_root)
             try:
                 rel = artifact_path.resolve().relative_to(root)
             except ValueError:
@@ -111,7 +135,7 @@ def validate(
                 errors.append(f"{claim_id}: proven claim missing artifact_path")
                 continue
             for artifact in artifact_paths:
-                artifact_path = Path(artifact)
+                artifact_path = _resolve_artifact_path(artifact, evidence_path, root)
                 if not artifact_path.exists():
                     errors.append(f"{claim_id}: missing artifact {artifact}")
                     continue
@@ -125,7 +149,7 @@ def validate(
                     )
 
     if manifest_scope == "referenced":
-        manifest_dirs = _referenced_baseline_dirs(claims, root)
+        manifest_dirs = _referenced_baseline_dirs(claims, root, evidence_path)
     elif manifest_scope == "all":
         manifest_dirs = None
     elif manifest_scope == "none":
