@@ -1,7 +1,7 @@
 ---
 owner: docs@geosync
 review_cadence: monthly
-last_reviewed: 2025-12-25
+last_reviewed: 2026-05-22
 status: active
 links:
   - ../DOCUMENTATION_SUMMARY.md
@@ -15,7 +15,7 @@ links:
 > All coverage, performance, security, and compliance claims in README.md, TESTING.md, SECURITY.md,
 > and docs/** must reference this document for their evidence status.
 >
-> **Last Updated**: 2025-12-25
+> **Last Updated**: 2026-05-22
 > **Maintainer**: GeoSync Team
 
 ## ⚠️ Important Disclaimers
@@ -42,6 +42,7 @@ links:
 | `partial` | Partial evidence (old log, not in CI, or incomplete coverage) | ⚠️ Partial |
 | `goal` | Target/roadmap item, no technical proof yet | ❌ No |
 | `remove` | Claim too bold/unprovable, should be removed from docs | ❌ N/A |
+| `quarantine` | Claim potentially useful but not admissible as release evidence | ⚠️ No |
 
 **Legacy statuses** (mapped to above):
 - `enforced` → `proven` (CI gate active)
@@ -51,6 +52,19 @@ links:
 - `planned` → `goal`
 
 ---
+
+
+## Stage 1 Evidence Grounding
+
+PR #782 bootstraps Stage 1 evidence grounding but does not by itself prove full test-suite health.
+
+A non-zero baseline exit code blocks Stage 1 closure.
+
+Artifacts:
+- `reports/test_audit/post_merge_triage_20260522.md`
+- `reports/test_audit/evidence_index.json`
+- `docs/testing/canonical_commands.md`
+- `scripts/test_audit/run_evidence_baseline.sh`
 
 ## CI Workflow Notes
 
