@@ -97,14 +97,16 @@ def _verify_manifest(audit_root: Path, allowed_dirs: set[Path] | None) -> list[s
     if allowed_dirs is not None and not allowed_dirs:
         return []
 
-    manifests: list[Path] = []
+    manifests: list[Path]
     if allowed_dirs is None:
         manifests = sorted(audit_root.glob("baseline_run_*/artifact_manifest.sha256"))
     else:
-        for baseline_dir in sorted(allowed_dirs):
-            manifest = baseline_dir / "artifact_manifest.sha256"
-            if manifest.exists():
-                manifests.append(manifest)
+        manifests = [
+            manifest
+            for baseline_dir in sorted(allowed_dirs)
+            for manifest in [baseline_dir / "artifact_manifest.sha256"]
+            if manifest.exists()
+        ]
 
     errors: list[str] = []
     for manifest in manifests:
@@ -113,6 +115,7 @@ def _verify_manifest(audit_root: Path, allowed_dirs: set[Path] | None) -> list[s
             entry = line.strip()
             if not entry:
                 continue
+
             chunks = entry.split(maxsplit=1)
             if len(chunks) != 2:
                 errors.append(f"Malformed manifest entry in {manifest}: {entry}")
