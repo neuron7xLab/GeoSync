@@ -136,8 +136,11 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            git fetch --no-tags origin "${{ github.base_ref }}"
-            base_ref="origin/${{ github.base_ref }}"
+            base_ref="${{ github.event.pull_request.base.sha }}"
+            if ! git cat-file -e "$base_ref^{commit}" 2>/dev/null; then
+              git fetch --no-tags origin "${{ github.base_ref }}" || true
+              base_ref="origin/${{ github.base_ref }}"
+            fi
             changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
           else
             changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
