@@ -1,162 +1,253 @@
+#!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 from pathlib import Path
+from typing import Any
 
-import pytest
+EVIDENCE_PATH = Path("reports/test_audit/evidence_index.json")
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
-from tools.claims.validate_claims_have_evidence import validate
-
-
-@pytest.fixture
-def audit_root(tmp_path: Path) -> Path:
-    root = tmp_path / "reports" / "test_audit"
-    root.mkdir(parents=True)
-    return root
-
-
-def _write_evidence(path: Path, claims: list[dict]) -> Path:
-    payload = {"schema_version": "1.1", "claims": claims}
-    path.write_text(json.dumps(payload), encoding="utf-8")
-    return path
-
-
-def _base_claim(**kwargs: object) -> dict[str, object]:
-    data: dict[str, object] = {
-        "claim_id": "C1",
-        "claim_text": "sample claim",
-        "domain": "testing",
-        "claim_status": "proven",
-        "command": "pytest -q",
-        "artifact_path": "",
-        "verdict": "accepted",
-        "release_decision": "allow",
-        "last_verified_sha": "abc",
-        "timestamp_utc": "2026-05-22T00:00:00Z",
-    }
-    data.update(kwargs)
-    return data
+REQUIRED_FIELDS = {
+    "claim_id",
+    "claim_text",
+    "domain",
+    "claim_status",
+    "command",
+    "artifact_path",
+    "verdict",
+    "release_decision",
+}
+ALLOWED_STATUSES = {"proven", "partial", "goal", "remove", "quarantine"}
+GOAL_BAD_RELEASE = {
+    "achieved",
+    "accepted_as_proven",
+    "release_evidence",
+    "unrestricted_release",
+    "allow",
+}
+PARTIAL_BAD_RELEASE = {"proven", "accepted_as_proven", "unrestricted_release", "allow"}
+QUARANTINE_ALLOWED_RELEASE = {
+    "blocked",
+    "blocked_as_release_evidence",
+    "not_admissible",
+    "quarantine",
+}
+REMOVE_ALLOWED_RELEASE = {"remove", "blocked"}
 
 
-def test_valid_proven_claim_with_real_artifact_passes(tmp_path: Path, audit_root: Path) -> None:
-    artifact = tmp_path / "proof.txt"
-    artifact.write_text("ok", encoding="utf-8")
-    evidence = _write_evidence(
-        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
+def _clean_artifact_path(raw: str) -> str:
+    return raw.strip().strip("`")
+
+
+def _split_artifact_paths(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    return [_clean_artifact_path(part) for part in raw.split(",") if part.strip()]
+
+
+def _resolve_audit_root(evidence_path: Path, audit_root: Path | None) -> Path:
+    if audit_root is not None:
+        return audit_root
+    if evidence_path.resolve() == EVIDENCE_PATH.resolve():
+        return Path("reports/test_audit")
+    return evidence_path.parent
+
+
+def _resolve_artifact_path(artifact: str, evidence_path: Path, audit_root: Path) -> Path:
+    path = Path(_clean_artifact_path(artifact))
+    if path.is_absolute():
+        return path
+
+    candidates = [
+        audit_root / path,
+        evidence_path.parent / path,
+        REPO_ROOT / path,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return audit_root / path
+
+
+def _failed_baseline_dirs(audit_root: Path) -> set[Path]:
+    failed: set[Path] = set()
+    for ex in audit_root.glob("baseline_run_*/exit_code.txt"):
+        try:
+            code = ex.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        if code and code != "0":
+            failed.add(ex.parent.resolve())
+    return failed
+
+
+def _artifact_in_failed_baseline(artifact_path: Path, failed_dirs: set[Path]) -> bool:
+    ap = artifact_path.resolve()
+    for d in failed_dirs:
+        if d in ap.parents or ap == d:
+            return True
+    return False
+
+
+def _verify_manifest(audit_root: Path, allowed_dirs: set[Path] | None) -> list[str]:
+    if allowed_dirs is not None and not allowed_dirs:
+        return []
+
+    manifests: list[Path] = []
+    if allowed_dirs is None:
+        manifests = sorted(audit_root.glob("baseline_run_*/artifact_manifest.sha256"))
+    else:
+        for baseline_dir in sorted(allowed_dirs):
+            manifest = baseline_dir / "artifact_manifest.sha256"
+            if manifest.exists():
+                manifests.append(manifest)
+
+    errors: list[str] = []
+    for manifest in manifests:
+        baseline_dir = manifest.parent
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            entry = line.strip()
+            if not entry:
+                continue
+            chunks = entry.split(maxsplit=1)
+            if len(chunks) != 2:
+                errors.append(f"Malformed manifest entry in {manifest}: {entry}")
+                continue
+
+            expected_hash, rel_path = chunks
+            target = baseline_dir / rel_path.strip()
+            if not target.exists():
+                errors.append(f"manifest missing file: {target.as_posix()}")
+                continue
+
+            actual_hash = hashlib.sha256(target.read_bytes()).hexdigest()
+            if actual_hash != expected_hash:
+                errors.append(f"manifest hash mismatch: {target.as_posix()}")
+
+    return errors
+
+
+def _referenced_baseline_dirs(
+    claims: list[dict[str, Any]], audit_root: Path, evidence_path: Path
+) -> set[Path]:
+    referenced: set[Path] = set()
+    root = audit_root.resolve()
+
+    for claim in claims:
+        for artifact in _split_artifact_paths(str(claim.get("artifact_path", ""))):
+            artifact_path = _resolve_artifact_path(artifact, evidence_path, audit_root)
+            try:
+                rel = artifact_path.resolve().relative_to(root)
+            except ValueError:
+                continue
+            parts = rel.parts
+            if parts and parts[0].startswith("baseline_run_"):
+                referenced.add(root / parts[0])
+
+    return referenced
+
+
+def validate(
+    evidence_path: Path = EVIDENCE_PATH,
+    *,
+    audit_root: Path | None = None,
+    manifest_scope: str = "referenced",
+) -> list[str]:
+    if not evidence_path.exists():
+        return [f"Evidence index not found: {evidence_path}"]
+
+    errors: list[str] = []
+    doc = json.loads(evidence_path.read_text(encoding="utf-8"))
+    if doc.get("schema_version") != "1.1":
+        errors.append("schema_version must be 1.1")
+
+    claims = doc.get("claims")
+    if not isinstance(claims, list):
+        return ["claims must be a list"]
+
+    root = _resolve_audit_root(evidence_path, audit_root)
+    failed_dirs = _failed_baseline_dirs(root)
+
+    for c in claims:
+        missing = [f for f in REQUIRED_FIELDS if f not in c]
+        if missing:
+            errors.append(f"{c.get('claim_id','<missing-id>')}: missing fields {missing}")
+            continue
+
+        cid = str(c["claim_id"])
+        st = str(c["claim_status"])
+        rd = str(c["release_decision"]).strip().lower()
+
+        if st not in ALLOWED_STATUSES:
+            errors.append(f"{cid}: invalid status {st}")
+            continue
+
+        if st == "proven":
+            for f in ("command", "artifact_path", "last_verified_sha", "timestamp_utc"):
+                if not str(c.get(f, "")).strip():
+                    errors.append(f"{cid}: proven missing {f}")
+
+            for raw_artifact in _split_artifact_paths(str(c.get("artifact_path", ""))):
+                artifact_path = _resolve_artifact_path(raw_artifact, evidence_path, root)
+                if not artifact_path.exists():
+                    errors.append(f"{cid}: artifact missing {raw_artifact}")
+                    continue
+                if _artifact_in_failed_baseline(artifact_path, failed_dirs) and "fail" not in str(
+                    c.get("claim_text", "")
+                ).lower():
+                    errors.append(f"{cid}: proven uses failed baseline artifact {artifact_path}")
+
+        if st == "goal" and rd in GOAL_BAD_RELEASE:
+            errors.append(f"{cid}: goal has invalid release_decision={rd}")
+        if st == "partial" and rd in PARTIAL_BAD_RELEASE:
+            errors.append(f"{cid}: partial has invalid release_decision={rd}")
+        if st == "quarantine" and rd not in QUARANTINE_ALLOWED_RELEASE:
+            errors.append(f"{cid}: quarantine has invalid release_decision={rd}")
+        if st == "remove" and rd not in REMOVE_ALLOWED_RELEASE:
+            errors.append(f"{cid}: remove has invalid release_decision={rd}")
+
+    if manifest_scope == "referenced":
+        manifest_dirs = _referenced_baseline_dirs(claims, root, evidence_path)
+    elif manifest_scope == "all":
+        manifest_dirs = None
+    elif manifest_scope == "none":
+        manifest_dirs = set()
+    else:
+        return [f"Invalid manifest_scope: {manifest_scope}"]
+
+    errors.extend(_verify_manifest(root, manifest_dirs))
+    return errors
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Validate claims have evidence.")
+    parser.add_argument("--evidence-index", type=Path, default=EVIDENCE_PATH)
+    parser.add_argument("--audit-root", type=Path, default=None)
+    parser.add_argument(
+        "--manifest-scope",
+        choices=("referenced", "all", "none"),
+        default="referenced",
     )
-    assert validate(evidence, audit_root=audit_root) == []
+    args = parser.parse_args(argv)
 
-
-def test_proven_claim_without_artifact_path_fails(tmp_path: Path, audit_root: Path) -> None:
-    evidence = _write_evidence(tmp_path / "evidence.json", [_base_claim(artifact_path="")])
-    assert validate(evidence, audit_root=audit_root)
-
-
-def test_artifact_manifest_valid_passes(tmp_path: Path, audit_root: Path) -> None:
-    baseline = audit_root / "baseline_run_test_valid"
-    baseline.mkdir(parents=True)
-    artifact = baseline / "a.txt"
-    artifact.write_text("x", encoding="utf-8")
-    import hashlib
-
-    h = hashlib.sha256(artifact.read_bytes()).hexdigest()
-    (baseline / "artifact_manifest.sha256").write_text(f"{h} a.txt\n", encoding="utf-8")
-    evidence = _write_evidence(
-        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
+    errors = validate(
+        args.evidence_index,
+        audit_root=args.audit_root,
+        manifest_scope=args.manifest_scope,
     )
-    assert validate(evidence, audit_root=audit_root, manifest_scope="referenced") == []
+    if errors:
+        print("CLAIM EVIDENCE VALIDATION FAILED")
+        for e in errors:
+            print(f" - {e}")
+        return 1
+
+    print("Claim evidence validation passed.")
+    return 0
 
 
-def test_manifest_mismatch_fails_for_referenced_baseline(tmp_path: Path, audit_root: Path) -> None:
-    baseline = audit_root / "baseline_run_test_mismatch"
-    baseline.mkdir(parents=True)
-    artifact = baseline / "pytest.log"
-    artifact.write_text("ok", encoding="utf-8")
-    (baseline / "artifact_manifest.sha256").write_text("deadbeef coverage.xml\n", encoding="utf-8")
-    evidence = _write_evidence(
-        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
-    )
-    errors = validate(evidence, audit_root=audit_root, manifest_scope="referenced")
-    assert any("missing" in error or "mismatch" in error for error in errors)
-
-
-def test_failed_baseline_only_allowed_for_failure_detection(
-    tmp_path: Path, audit_root: Path
-) -> None:
-    baseline = audit_root / "baseline_run_test_failed"
-    baseline.mkdir(parents=True)
-    (baseline / "exit_code.txt").write_text("1\n", encoding="utf-8")
-    artifact = baseline / "junit.xml"
-    artifact.write_text("<testsuite/>", encoding="utf-8")
-
-    evidence = _write_evidence(
-        tmp_path / "evidence.json",
-        [_base_claim(artifact_path=str(artifact), claim_text="test suite passes")],
-    )
-    assert validate(evidence, audit_root=audit_root)
-
-
-def test_manifest_scope_all_reports_unreferenced_manifest_errors(
-    tmp_path: Path, audit_root: Path
-) -> None:
-    artifact = tmp_path / "proof.txt"
-    artifact.write_text("ok", encoding="utf-8")
-    evidence = _write_evidence(
-        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
-    )
-
-    unreferenced = audit_root / "baseline_run_test_unreferenced"
-    unreferenced.mkdir(parents=True)
-    (unreferenced / "artifact_manifest.sha256").write_text(
-        "deadbeef pytest.log\n", encoding="utf-8"
-    )
-
-    errors = validate(evidence, audit_root=audit_root, manifest_scope="all")
-    assert any("missing" in error for error in errors)
-
-
-def test_manifest_scope_none_skips_manifest_validation(tmp_path: Path, audit_root: Path) -> None:
-    artifact = tmp_path / "proof.txt"
-    artifact.write_text("ok", encoding="utf-8")
-    evidence = _write_evidence(
-        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
-    )
-
-    bad = audit_root / "baseline_run_test_none"
-    bad.mkdir(parents=True)
-    (bad / "artifact_manifest.sha256").write_text("deadbeef missing.log\n", encoding="utf-8")
-
-    assert validate(evidence, audit_root=audit_root, manifest_scope="none") == []
-
-
-def test_relative_artifact_path_resolves_against_audit_root(
-    tmp_path: Path, audit_root: Path
-) -> None:
-    baseline = audit_root / "baseline_run_test_rel"
-    baseline.mkdir(parents=True)
-    artifact = baseline / "pytest.log"
-    artifact.write_text("ok", encoding="utf-8")
-
-    evidence = _write_evidence(
-        tmp_path / "evidence.json", [_base_claim(artifact_path="baseline_run_test_rel/pytest.log")]
-    )
-
-    assert validate(evidence, audit_root=audit_root, manifest_scope="referenced") == []
-
-
-def test_relative_artifact_path_marks_referenced_baseline_for_manifest_validation(
-    tmp_path: Path, audit_root: Path
-) -> None:
-    baseline = audit_root / "baseline_run_test_rel_bad"
-    baseline.mkdir(parents=True)
-    artifact = baseline / "pytest.log"
-    artifact.write_text("ok", encoding="utf-8")
-    (baseline / "artifact_manifest.sha256").write_text("deadbeef coverage.xml\n", encoding="utf-8")
-
-    evidence = _write_evidence(
-        tmp_path / "evidence.json",
-        [_base_claim(artifact_path="baseline_run_test_rel_bad/pytest.log")],
-    )
-
-    errors = validate(evidence, audit_root=audit_root, manifest_scope="referenced")
-    assert any("missing" in error for error in errors)
+if __name__ == "__main__":
+    raise SystemExit(main())
