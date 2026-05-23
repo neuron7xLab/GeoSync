@@ -62,7 +62,11 @@ def load_coverage_targets(path: Path) -> CoverageTargets:
             if field not in raw:
                 raise ValueError(f"Missing surface field '{field}' for '{name}'")
         raw_paths = raw["paths"]
-        if not isinstance(raw_paths, list) or not raw_paths or not all(isinstance(p, str) for p in raw_paths):
+        if (
+            not isinstance(raw_paths, list)
+            or not raw_paths
+            or not all(isinstance(p, str) for p in raw_paths)
+        ):
             raise ValueError(f"Surface '{name}' must define non-empty string paths")
         surfaces[name] = SurfaceTarget(
             paths=tuple(raw_paths),
@@ -83,7 +87,9 @@ def load_coverage_targets(path: Path) -> CoverageTargets:
             convergence=_as_float("weights.convergence", raw_weights["convergence"]),
         )
 
-    return CoverageTargets(source_path=path, global_thresholds=global_thresholds, surfaces=surfaces, weights=weights)
+    return CoverageTargets(
+        source_path=path, global_thresholds=global_thresholds, surfaces=surfaces, weights=weights
+    )
 
 
 def map_file_to_surface(file_path: str, targets: CoverageTargets) -> str | None:

@@ -110,7 +110,12 @@ def test_unknown_file_returns_none(tmp_path: Path) -> None:
 def test_cli_exits_0_for_valid_contract(tmp_path: Path) -> None:
     target_path = _write_targets(tmp_path / "targets.toml", VALID_TOML)
     run = subprocess.run(
-        [sys.executable, "tools/coverage/validate_coverage_targets.py", "--targets", str(target_path)],
+        [
+            sys.executable,
+            "tools/coverage/validate_coverage_targets.py",
+            "--targets",
+            str(target_path),
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -122,7 +127,12 @@ def test_cli_exits_1_for_invalid_contract(tmp_path: Path) -> None:
     bad = VALID_TOML.replace("mid_term = 90", "mid_term = -1", 1)
     target_path = _write_targets(tmp_path / "bad.toml", bad)
     run = subprocess.run(
-        [sys.executable, "tools/coverage/validate_coverage_targets.py", "--targets", str(target_path)],
+        [
+            sys.executable,
+            "tools/coverage/validate_coverage_targets.py",
+            "--targets",
+            str(target_path),
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -156,7 +166,6 @@ def test_json_output_written_when_requested(tmp_path: Path) -> None:
     assert payload["status"] == "pass"
 
 
-
 def test_weights_must_sum_to_one(tmp_path: Path) -> None:
     bad = VALID_TOML + "\n\n[weights]\ndivergence = 0.7\nconvergence = 0.4\n"
     targets = load_coverage_targets(_write_targets(tmp_path / "bad_weights.toml", bad))
@@ -168,7 +177,19 @@ def test_cli_json_includes_weights(tmp_path: Path) -> None:
     weighted = VALID_TOML + "\n\n[weights]\ndivergence = 0.5\nconvergence = 0.5\n"
     target_path = _write_targets(tmp_path / "targets_weighted.toml", weighted)
     out_path = tmp_path / "result_weights.json"
-    run = subprocess.run([sys.executable, "tools/coverage/validate_coverage_targets.py", "--targets", str(target_path), "--json-out", str(out_path)], capture_output=True, text=True, check=False)
+    run = subprocess.run(
+        [
+            sys.executable,
+            "tools/coverage/validate_coverage_targets.py",
+            "--targets",
+            str(target_path),
+            "--json-out",
+            str(out_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     assert run.returncode == 0, run.stdout + run.stderr
     payload = json.loads(out_path.read_text(encoding="utf-8"))
     assert payload["weights"] == {"divergence": 0.5, "convergence": 0.5}
