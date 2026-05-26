@@ -30,7 +30,7 @@ def main() -> int:
         'generated_at_utc': '2026-05-26T00:00:00Z',
         'nodes': nodes,
         'edges': edges,
-        'constraints': {'dangling_nodes': 0, 'max_derived_depth': 3},
+        'constraints': {'dangling_nodes': max(len(nodes)-len(edges)-1,0), 'max_derived_depth': 3},
     }
     OUT.write_text(json.dumps(graph, indent=2) + '\n', encoding='utf-8')
     return 0

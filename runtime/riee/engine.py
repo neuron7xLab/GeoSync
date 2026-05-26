@@ -39,13 +39,14 @@ class PrefrontalCortexEngine:
         self._base_threshold = base_threshold
 
     def threshold_for_stress(self, stress_level: float) -> float:
-        # allostatic tightening: higher stress => tighter threshold
         stress = max(stress_level, 0.0)
         return self._base_threshold / (1.0 + stress)
 
     def enforce(self, gamma_fact: float, stress_level: float = 0.0) -> RIEEStatus:
         if not math.isfinite(gamma_fact):
-            return RIEEStatus(False, float('inf'), 'non-finite runtime signal', self.threshold_for_stress(stress_level))
+            status = RIEEStatus(False, float('inf'), 'non-finite runtime signal', self.threshold_for_stress(stress_level))
+            emit_riee_event(status, gamma_fact=gamma_fact, gamma_claim=self._gamma_claim)
+            return status
         threshold = self.threshold_for_stress(stress_level)
         delta = abs(gamma_fact - self._gamma_claim)
         if delta > threshold:
@@ -63,7 +64,7 @@ def load_claim_gamma(claims_path: Path) -> float:
     for line in text.splitlines():
         if marker in line:
             return float(line.split(marker, 1)[1].strip())
-    return 1.0
+    raise KernelPanic(f'Kernel_Panic: {marker} missing in {claims_path}')
 
 
 def enforce_runtime_invariant(gamma_fact: float, claims_path: Path, threshold: float = 1e-6) -> RIEEStatus:

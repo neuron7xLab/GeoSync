@@ -33,3 +33,7 @@ jobs:
           tests/tools/test_runtime_cost_profiler.py
           tests/tools/test_check_epistemic_drift.py
           tests/adversarial_invariants/test_invariant_fail_closed.py
+          tests/riee/test_riee_kernel.py
+          tests/riee/test_riee_sdk_modes.py
+          tests/tools/test_validate_financial_contract_dfvep.py
+          tests/tools/test_verify_guard_surface.py

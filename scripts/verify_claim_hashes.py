@@ -13,6 +13,8 @@ def claim_lines(text: str) -> dict[str, str]:
     for ln in text.splitlines():
         if ln.startswith('| C-'):
             cid = ln.split('|')[1].strip()
+            if cid in out:
+                raise ValueError(f'duplicate claim id: {cid}')
             out[cid] = hashlib.sha256(ln.strip().encode('utf-8')).hexdigest()
     return out
 
@@ -22,7 +24,12 @@ def main() -> int:
         print('CLAIM HASH VIOLATION: artifacts/claims_hashes.json missing. Run generate_claim_hashes.py')
         return 1
     recorded = json.loads(HASHES.read_text(encoding='utf-8')).get('hashes', {})
-    current = claim_lines(CLAIMS.read_text(encoding='utf-8'))
+    
+    try:
+        current = claim_lines(CLAIMS.read_text(encoding='utf-8'))
+    except ValueError as exc:
+        print(f'CLAIM HASH VIOLATION: {exc}')
+        return 1
     if recorded != current:
         print('CLAIM HASH VIOLATION: claim-line hashes diverged')
         missing = sorted(set(recorded) ^ set(current))

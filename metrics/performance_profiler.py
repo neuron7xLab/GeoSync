@@ -20,16 +20,18 @@ def profile_validation_cycle(validation_fn: Callable[[], None], baseline_fn: Cal
     v_times = []
     b_times = []
     tracemalloc.start()
-    for _ in range(runs):
-        t0 = time.perf_counter()
-        baseline_fn()
-        b_times.append((time.perf_counter() - t0) * 1000)
+    try:
+        for _ in range(runs):
+            t0 = time.perf_counter()
+            baseline_fn()
+            b_times.append((time.perf_counter() - t0) * 1000)
 
-        t1 = time.perf_counter()
-        validation_fn()
-        v_times.append((time.perf_counter() - t1) * 1000)
-    _, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
+            t1 = time.perf_counter()
+            validation_fn()
+            v_times.append((time.perf_counter() - t1) * 1000)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
 
     v_mean = statistics.mean(v_times)
     v_stdev = statistics.pstdev(v_times)

@@ -15,19 +15,28 @@ from runtime.riee.engine import (
 from scripts.riee.chaos_engine import run_chaos
 
 
-def test_delta_engine_and_interceptor() -> None:
-    status = enforce_runtime_invariant(1.0, Path('CLAIMS.md'))
+def _claims_with_gamma(tmp_path: Path) -> Path:
+    p = tmp_path / 'CLAIMS.md'
+    p.write_text('GAMMA-CLAIM: 1.0\n', encoding='utf-8')
+    return p
+
+
+def test_delta_engine_and_interceptor(tmp_path: Path) -> None:
+    claims = _claims_with_gamma(tmp_path)
+    status = enforce_runtime_invariant(1.0, claims)
     assert status.state_validity
 
-    @state_interceptor(Path('CLAIMS.md'))
+    @state_interceptor(claims)
     def good() -> float:
         return 1.0
 
     assert good() == 1.0
 
 
-def test_kernel_panic_on_drift() -> None:
-    @state_interceptor(Path('CLAIMS.md'))
+def test_kernel_panic_on_drift(tmp_path: Path) -> None:
+    claims = _claims_with_gamma(tmp_path)
+
+    @state_interceptor(claims)
     def bad() -> float:
         return 1.1
 
@@ -65,6 +74,12 @@ def test_ed25519_sign_verify(tmp_path: Path) -> None:
     assert verify_file(f, pk, sig)
 
 
-def test_chaos_engine_detection() -> None:
+def test_chaos_engine_detection(tmp_path: Path, monkeypatch) -> None:
+    claims = _claims_with_gamma(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    from shutil import copytree
+    from pathlib import Path as P
+    # make script path expectations work
+    (tmp_path / 'CLAIMS.md').write_text('GAMMA-CLAIM: 1.0\n', encoding='utf-8')
     detected, total = run_chaos(1000)
     assert detected == total // 2

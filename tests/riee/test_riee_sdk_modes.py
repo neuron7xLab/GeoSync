@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import os
+from pathlib import Path
 
 from runtime.riee.engine import KernelPanic
 from runtime.riee.sdk import riee_guard
@@ -12,8 +12,8 @@ def test_supported_modes_declared() -> None:
     assert modes == {'cloud_native', 'local_edge', 'application_sdk'}
 
 
-def test_sdk_passthrough_when_disabled() -> None:
-    os.environ['RIEE_ENABLE'] = '0'
+def test_sdk_passthrough_when_disabled(monkeypatch) -> None:
+    monkeypatch.setenv('RIEE_ENABLE', '0')
 
     @riee_guard()
     def f() -> float:
@@ -22,10 +22,12 @@ def test_sdk_passthrough_when_disabled() -> None:
     assert f() == 1.1
 
 
-def test_sdk_panics_when_enabled_and_drift() -> None:
-    os.environ['RIEE_ENABLE'] = '1'
+def test_sdk_panics_when_enabled_and_drift(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv('RIEE_ENABLE', '1')
+    claims = tmp_path / 'CLAIMS.md'
+    claims.write_text('GAMMA-CLAIM: 1.0\n', encoding='utf-8')
 
-    @riee_guard()
+    @riee_guard(claims_path=str(claims))
     def f() -> float:
         return 1.1
 
