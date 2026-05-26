@@ -14,38 +14,52 @@ class Check:
 
 
 CHECKS = [
-    Check('drift', [sys.executable, 'scripts/check_epistemic_drift.py']),
-    Check('financial', [sys.executable, 'scripts/validate_financial_contract.py']),
-    Check('claim_graph', [sys.executable, 'scripts/generate_claim_graph.py']),
-    Check('claim_hashes', [sys.executable, 'scripts/verify_claim_hashes.py']),
-    Check('guard_surface', [sys.executable, 'scripts/verify_guard_surface.py']),
-    Check('riee_core_tests', [sys.executable, '-m', 'pytest', '-q', 'tests/riee/test_riee_kernel.py', 'tests/riee/test_riee_sdk_modes.py', 'tests/riee/test_riee_telemetry.py']),
+    Check("drift", [sys.executable, "scripts/check_epistemic_drift.py"]),
+    Check("financial", [sys.executable, "scripts/validate_financial_contract.py"]),
+    Check("claim_graph", [sys.executable, "scripts/generate_claim_graph.py"]),
+    Check("claim_hashes", [sys.executable, "scripts/verify_claim_hashes.py"]),
+    Check("guard_surface", [sys.executable, "scripts/verify_guard_surface.py"]),
+    Check(
+        "riee_core_tests",
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            "tests/riee/test_riee_kernel.py",
+            "tests/riee/test_riee_sdk_modes.py",
+            "tests/riee/test_riee_telemetry.py",
+        ],
+    ),
 ]
 
 
 def ensure_pytest_startup_deps() -> int:
-    needs_numpy = importlib.util.find_spec('numpy') is None
-    needs_pandas = importlib.util.find_spec('pandas') is None
+    needs_numpy = importlib.util.find_spec("numpy") is None
+    needs_pandas = importlib.util.find_spec("pandas") is None
     if not needs_numpy and not needs_pandas:
         return 0
-    proc = subprocess.run([sys.executable, '-m', 'pip', 'install', 'numpy', 'pandas'], check=False)
+    proc = subprocess.run(
+        [sys.executable, "-m", "pip", "install", "numpy", "pandas"],
+        check=False,
+    )
     return proc.returncode
 
 
 def main() -> int:
     dep_rc = ensure_pytest_startup_deps()
     if dep_rc != 0:
-        print(f'FAIL-CLOSED: pytest startup dependency install failed with code {dep_rc}')
+        print(f"FAIL-CLOSED: pytest startup dependency install failed with code {dep_rc}")
         return dep_rc
     for check in CHECKS:
-        print(f'==> {check.name}: {" ".join(check.cmd)}')
+        print(f"==> {check.name}: {' '.join(check.cmd)}")
         proc = subprocess.run(check.cmd, check=False)
         if proc.returncode != 0:
-            print(f'FAIL-CLOSED: {check.name} failed with code {proc.returncode}')
+            print(f"FAIL-CLOSED: {check.name} failed with code {proc.returncode}")
             return proc.returncode
-    print('RIEE PRODUCTION READINESS: PASSED')
+    print("RIEE PRODUCTION READINESS: PASSED")
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())
