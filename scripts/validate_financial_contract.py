@@ -5,14 +5,21 @@ import csv
 import hashlib
 import json
 import math
-import sys
-from collections import Counter
-from datetime import datetime, timezone
+from collections import Counter, defaultdict
+from datetime import timezone, datetime
 from pathlib import Path
 from statistics import mean, pstdev
 from uuid import UUID
 
 import yaml
+
+DEFAULT_CONTRACT_FILE = Path('docs/architecture/methodology/financial/FINANCIAL_DATA_CONTRACT.yaml')
+DEFAULT_DATA_FILE = Path('docs/architecture/methodology/financial/sample_financial_data.csv')
+DEFAULT_OUT_FILE = Path('artifacts/financial_verification_manifest.json')
+
+
+class FinancialContractError(ValueError):
+    pass
 
 
 def _first_digit(x: float) -> int:
@@ -41,6 +48,8 @@ def _benford_chi_square(amounts: list[float]) -> float:
 
 def _z_scores_log(amounts: list[float]) -> list[float]:
     ln = [math.log(x) for x in amounts if x > 0]
+    if not ln:
+        raise FinancialContractError('no positive amount values available for log z-score validation')
     mu = mean(ln)
     sigma = pstdev(ln) or 1e-12
     return [(v - mu) / sigma for v in ln]
@@ -54,39 +63,54 @@ def _is_uuid4(s: str) -> bool:
         return False
 
 
-def main() -> int:
-    contract_file = Path('docs/architecture/methodology/financial/FINANCIAL_DATA_CONTRACT.yaml')
-    data_file = Path('docs/architecture/methodology/financial/sample_financial_data.csv')
-    out_file = Path('artifacts/financial_verification_manifest.json')
+def _parse_utc_timestamp(raw: str, row_idx: int) -> datetime:
+    if not raw.endswith('Z'):
+        raise FinancialContractError(f'ts_utc must use explicit UTC Z suffix at row {row_idx}')
+    try:
+        ts = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+    except ValueError as exc:
+        raise FinancialContractError(f'invalid ts_utc at row {row_idx}: {exc}') from exc
+    if ts.tzinfo is None or ts.utcoffset() != timezone.utc.utcoffset(ts):
+        raise FinancialContractError(f'ts_utc is not UTC at row {row_idx}')
+    return ts
 
-    if not contract_file.exists() or not data_file.exists():
-        print('CONTRACT ERROR: Missing required financial validation assets.')
-        return 1
 
-    contract = yaml.safe_load(contract_file.read_text(encoding='utf-8'))
-    required_fields = [f['name'] for f in contract.get('required_fields', [])]
-
-    rows = list(csv.DictReader(data_file.open(encoding='utf-8')))
+def _load_rows(data_file: Path) -> list[dict[str, str]]:
+    with data_file.open(encoding='utf-8', newline='') as fh:
+        rows = list(csv.DictReader(fh))
     if not rows:
-        print('CONTRACT ERROR: Empty dataset.')
-        return 1
+        raise FinancialContractError('empty dataset')
+    return rows
 
+
+def validate_contract(
+    contract_file: Path = DEFAULT_CONTRACT_FILE,
+    data_file: Path = DEFAULT_DATA_FILE,
+    out_file: Path = DEFAULT_OUT_FILE,
+) -> dict[str, object]:
+    if not contract_file.exists() or not data_file.exists():
+        raise FinancialContractError('missing required financial validation assets')
+
+    contract = yaml.safe_load(contract_file.read_text(encoding='utf-8')) or {}
+    required_fields = [f['name'] for f in contract.get('required_fields', [])]
+    if not required_fields:
+        raise FinancialContractError('contract has no required_fields')
+
+    rows = _load_rows(data_file)
     amounts: list[float] = []
-    timestamps = []
+    timestamps_by_symbol: dict[str, list[datetime]] = defaultdict(list)
+
     for idx, row in enumerate(rows, start=1):
         for field in required_fields:
             if field not in row or row[field] == '':
-                print(f"CONTRACT VIOLATION: Missing field '{field}' at row {idx}")
-                return 1
+                raise FinancialContractError(f"missing field '{field}' at row {idx}")
 
-        # Extended DFV-EP fields optional but validated when present
         if 'transaction_id' in row and row['transaction_id'] and not _is_uuid4(row['transaction_id']):
-            print(f'CONTRACT VIOLATION: invalid transaction_id at row {idx}')
-            return 1
+            raise FinancialContractError(f'invalid transaction_id at row {idx}')
         if 'source_hash' in row and row['source_hash']:
-            if len(row['source_hash']) != 64 or any(c not in '0123456789abcdefABCDEF' for c in row['source_hash']):
-                print(f'CONTRACT VIOLATION: invalid source_hash at row {idx}')
-                return 1
+            source_hash = row['source_hash']
+            if len(source_hash) != 64 or any(c not in '0123456789abcdefABCDEF' for c in source_hash):
+                raise FinancialContractError(f'invalid source_hash at row {idx}')
 
         try:
             high = float(row['high'])
@@ -96,41 +120,43 @@ def main() -> int:
             volume = float(row['volume'])
             spread = float(row['spread_bps'])
             fee = float(row['fee_bps'])
-            amount = float(row.get('amount', close_val))
-            ts = datetime.fromisoformat(row['ts_utc'].replace('Z', '+00:00'))
-        except ValueError as e:
-            print(f'CONTRACT VIOLATION: Non-numeric/invalid datetime at row {idx}: {e}')
-            return 1
+            amount = float(row.get('amount') or close_val)
+        except ValueError as exc:
+            raise FinancialContractError(f'non-numeric value at row {idx}: {exc}') from exc
 
-        if not (high >= low and open_val > 0 and close_val > 0 and volume >= 0 and spread >= 0 and fee >= 0 and amount > 0 and math.isfinite(amount)):
-            print(f'CONTRACT VIOLATION: Core mathematical invariants breached at row {idx}')
-            return 1
+        values = [high, low, open_val, close_val, volume, spread, fee, amount]
+        if not all(math.isfinite(v) for v in values):
+            raise FinancialContractError(f'non-finite numeric value at row {idx}')
+        if not (high >= low and open_val > 0 and close_val > 0 and volume >= 0 and spread >= 0 and fee >= 0 and amount > 0):
+            raise FinancialContractError(f'core mathematical invariants breached at row {idx}')
 
-        timestamps.append(ts)
+        ts = _parse_utc_timestamp(row['ts_utc'], idx)
+        timestamps_by_symbol[row['symbol']].append(ts)
         amounts.append(amount)
 
-    if timestamps != sorted(timestamps):
-        print('CONTRACT VIOLATION: Non-monotonic timestamp_utc detected.')
-        return 1
+    for symbol, timestamps in timestamps_by_symbol.items():
+        if timestamps != sorted(timestamps):
+            raise FinancialContractError(f'non-monotonic ts_utc detected for symbol {symbol}')
 
     benford_chi2 = _benford_chi_square(amounts)
     # df=8, alpha=0.01 critical approx 20.09
     if benford_chi2 > 20.09:
-        print(f'CONTRACT VIOLATION: Benford chi-square too high ({benford_chi2:.4f})')
-        return 1
+        raise FinancialContractError(f'benford chi-square too high ({benford_chi2:.4f})')
 
     z_scores = _z_scores_log(amounts)
     max_abs_z = max(abs(z) for z in z_scores)
-    delta = abs(sum(amounts) - sum(amounts))
+    expected_records = int(contract.get('expected_records', len(rows)))
+    record_delta = abs(len(rows) - expected_records)
 
     manifest = {
         'protocol_version': 'DFV-EP v1.0',
-        'timestamp_utc': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'timestamp_utc': '1970-01-01T00:00:00Z',
         'verification_metrics': {
             'records_processed': len(rows),
+            'expected_records': expected_records,
             'benford_chi_square': round(benford_chi2, 6),
             'max_detected_z_score': round(max_abs_z, 6),
-            'epistemic_drift_delta': round(delta, 6),
+            'epistemic_drift_delta': record_delta,
         },
         'integrity': {
             'data_ledger_sha256': hashlib.sha256(data_file.read_bytes()).hexdigest(),
@@ -140,16 +166,26 @@ def main() -> int:
     }
     out_file.parent.mkdir(parents=True, exist_ok=True)
     out_file.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+    return manifest
 
+
+def main() -> int:
+    try:
+        validate_contract()
+    except FinancialContractError as exc:
+        print(f'CONTRACT VIOLATION: {exc}')
+        return 1
     print('OK: Financial data contract runtime validations passed cleanly.')
     return 0
 
 
-
-
 def validate_financial_data() -> list[str]:
-    rc = main()
-    return [] if rc == 0 else ['validation failed']
+    try:
+        validate_contract()
+    except FinancialContractError as exc:
+        return [str(exc)]
+    return []
+
 
 if __name__ == '__main__':
     raise SystemExit(main())
