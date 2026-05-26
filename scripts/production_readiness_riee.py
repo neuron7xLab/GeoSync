@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import importlib.util
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -22,7 +23,18 @@ CHECKS = [
 ]
 
 
+def ensure_pytest_startup_deps() -> int:
+    if importlib.util.find_spec('numpy') is not None:
+        return 0
+    proc = subprocess.run([sys.executable, '-m', 'pip', 'install', 'numpy'], check=False)
+    return proc.returncode
+
+
 def main() -> int:
+    dep_rc = ensure_pytest_startup_deps()
+    if dep_rc != 0:
+        print(f'FAIL-CLOSED: pytest startup dependency install failed with code {dep_rc}')
+        return dep_rc
     for check in CHECKS:
         print(f'==> {check.name}: {" ".join(check.cmd)}')
         proc = subprocess.run(check.cmd, check=False)
