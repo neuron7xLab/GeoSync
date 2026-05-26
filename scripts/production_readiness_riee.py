@@ -24,9 +24,11 @@ CHECKS = [
 
 
 def ensure_pytest_startup_deps() -> int:
-    if importlib.util.find_spec('numpy') is not None:
+    needs_numpy = importlib.util.find_spec('numpy') is None
+    needs_pandas = importlib.util.find_spec('pandas') is None
+    if not needs_numpy and not needs_pandas:
         return 0
-    proc = subprocess.run([sys.executable, '-m', 'pip', 'install', 'numpy'], check=False)
+    proc = subprocess.run([sys.executable, '-m', 'pip', 'install', 'numpy', 'pandas'], check=False)
     return proc.returncode
 
 
