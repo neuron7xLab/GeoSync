@@ -1,0 +1,10 @@
+{
+  "algorithm": "sha256",
+  "count": 4,
+  "hashes": {
+    "C-INV-COUNT": "ef1ee82b7a711344f4f76e0f2e0a0ac9c189fb9cb873dff4a0ca4360510c3887",
+    "C-PHYS-KERNEL": "c3ec6f4b733b4d5f4c2fec619923c9d55fece29a0c2dff14e4040a38698cf2c4",
+    "C-SYSRISK-PHASE": "6f9137f95a704eef13c4a5f3b8027f67ba256cf687eab3d9a594f82e904d02e3",
+    "C-TLA-PROOF": "ff08f6f434eee095dc0a4fa8ce571e6c7264329b84a8f0045b854d188ce594f3"
+  }
+}
