@@ -1,9 +1,0 @@
-{
-  "price_usd_per_month": 4900,
-  "urgency_level": "RED",
-  "trust_level": "VERIFIED",
-  "package_tier": "RIEE_ENTERPRISE",
-  "automation_coverage_pct": 92,
-  "sales_readiness": "READY_FOR_PILOT",
-  "call_to_action": "Run fail_closed_guardians and onboard first production stream."
-}
