@@ -33,8 +33,17 @@ def _extract_claim_id_presence(text: str) -> bool:
     return 'C-INV-COUNT' in text
 
 
-def _run_count_script() -> int:
-    out = subprocess.check_output([sys.executable, str(COUNT_SCRIPT)], text=True).strip()
+def _run_count_script(timeout_seconds: float = MAX_RUNTIME_SECONDS) -> int:
+    try:
+        out = subprocess.check_output(
+            [sys.executable, str(COUNT_SCRIPT)],
+            text=True,
+            timeout=timeout_seconds,
+        ).strip()
+    except subprocess.TimeoutExpired as exc:
+        raise TimeoutError(
+            f'invariant counter timed out after {timeout_seconds:.3f}s'
+        ) from exc
     return int(out)
 
 
@@ -43,9 +52,13 @@ def main() -> int:
     readme_text = README.read_text(encoding='utf-8')
     claims_text = CLAIMS.read_text(encoding='utf-8')
 
-    readme_count = _extract_readme_invariants(readme_text)
-    claims_count = _extract_claim_count(claims_text)
-    script_count = _run_count_script()
+    try:
+        readme_count = _extract_readme_invariants(readme_text)
+        claims_count = _extract_claim_count(claims_text)
+        script_count = _run_count_script()
+    except (ValueError, TimeoutError, subprocess.CalledProcessError) as exc:
+        print(f'EPISTEMIC DRIFT CHECK FAILED: {exc}')
+        return 1
 
     ok = True
     if not _extract_claim_id_presence(claims_text):
