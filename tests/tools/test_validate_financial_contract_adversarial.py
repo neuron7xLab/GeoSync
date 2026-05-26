@@ -7,7 +7,18 @@ import pytest
 
 from scripts.validate_financial_contract import FinancialContractError, validate_contract
 
-FIELDS = ["symbol", "venue", "ts_utc", "open", "high", "low", "close", "volume", "spread_bps", "fee_bps"]
+FIELDS = [
+    "symbol",
+    "venue",
+    "ts_utc",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "spread_bps",
+    "fee_bps",
+]
 ROW = {
     "symbol": "BTC",
     "venue": "x",
@@ -24,8 +35,10 @@ ROW = {
 
 def _contract(path: Path, expected_records: int = 1) -> None:
     path.write_text(
-        "expected_records: " + str(expected_records) + "\n"
-        "required_fields:\n"
+        "expected_records: "
+        + str(expected_records)
+        + "\n"
+        + "required_fields:\n"
         + "".join("  - name: " + field + "\n" for field in FIELDS),
         encoding="utf-8",
     )
@@ -38,7 +51,11 @@ def _csv(path: Path, rows: list[dict[str, str]]) -> None:
         writer.writerows(rows)
 
 
-def _validate(tmp_path: Path, rows: list[dict[str, str]], expected_records: int = 1) -> dict[str, object]:
+def _validate(
+    tmp_path: Path,
+    rows: list[dict[str, str]],
+    expected_records: int = 1,
+) -> dict[str, object]:
     contract = tmp_path / "contract.yaml"
     data = tmp_path / "data.csv"
     out = tmp_path / "manifest.json"
