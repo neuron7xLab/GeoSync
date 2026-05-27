@@ -11,7 +11,7 @@ from pathlib import Path
 from statistics import mean, pstdev
 from uuid import UUID
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 DEFAULT_CONTRACT_FILE = Path(
     "docs/architecture/methodology/financial/FINANCIAL_DATA_CONTRACT.yaml"
