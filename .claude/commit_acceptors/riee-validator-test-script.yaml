@@ -1,15 +1,16 @@
 id: riee-validator-test-script
 status: ACTIVE
 claim_type: correctness
-promise: "Validator script test is bound."
+promise: "Validator tests are bound."
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/riee-validator-test-script.yaml"
     - path: "tests/tools/test_validate_financial_contract_script.py"
+    - path: "tests/tools/test_validate_financial_contract_adversarial.py"
   forbidden_paths: []
 required_python_symbols: []
-expected_signal: "test runs"
-measurement_command: "python -m pytest -q tests/tools/test_validate_financial_contract_script.py"
+expected_signal: "validator tests run"
+measurement_command: "python -m pytest -q tests/tools/test_validate_financial_contract_script.py tests/tools/test_validate_financial_contract_adversarial.py"
 signal_artifact: "tmp/riee_validator_test_script.log"
 falsifier:
   command: "python -m pytest -q tests/tools/test_validate_financial_contract_script.py"
