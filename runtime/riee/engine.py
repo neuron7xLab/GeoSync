@@ -140,33 +140,33 @@ def runtime_interceptor(
     return deco
 
 
-def generate_ed25519_keypair(private_key_path: Path, public_key_path: Path) -> None:
-    sk = Ed25519PrivateKey.generate()
-    pk = sk.public_key()
-    private_key_path.write_bytes(
-        sk.private_bytes(
+def generate_ed25519_keypair(signing_key_path: Path, verify_key_path: Path) -> None:
+    signing_key = Ed25519PrivateKey.generate()
+    verify_key = signing_key.public_key()
+    signing_key_path.write_bytes(
+        signing_key.private_bytes(
             encoding=serialization.Encoding.Raw,
             format=serialization.PrivateFormat.Raw,
             encryption_algorithm=serialization.NoEncryption(),
         )
     )
-    public_key_path.write_bytes(
-        pk.public_bytes(
+    verify_key_path.write_bytes(
+        verify_key.public_bytes(
             encoding=serialization.Encoding.Raw,
             format=serialization.PublicFormat.Raw,
         )
     )
 
 
-def sign_file(path: Path, private_key_path: Path, sig_path: Path) -> None:
-    sk = Ed25519PrivateKey.from_private_bytes(private_key_path.read_bytes())
-    sig_path.write_bytes(sk.sign(path.read_bytes()))
+def sign_file(path: Path, signing_key_path: Path, sig_path: Path) -> None:
+    signing_key = Ed25519PrivateKey.from_private_bytes(signing_key_path.read_bytes())
+    sig_path.write_bytes(signing_key.sign(path.read_bytes()))
 
 
-def verify_file(path: Path, public_key_path: Path, sig_path: Path) -> bool:
-    pk = Ed25519PublicKey.from_public_bytes(public_key_path.read_bytes())
+def verify_file(path: Path, verify_key_path: Path, sig_path: Path) -> bool:
+    verify_key = Ed25519PublicKey.from_public_bytes(verify_key_path.read_bytes())
     try:
-        pk.verify(sig_path.read_bytes(), path.read_bytes())
+        verify_key.verify(sig_path.read_bytes(), path.read_bytes())
         return True
     except Exception:
         return False
