@@ -13,7 +13,9 @@ from uuid import UUID
 
 import yaml
 
-DEFAULT_CONTRACT_FILE = Path("docs/architecture/methodology/financial/FINANCIAL_DATA_CONTRACT.yaml")
+DEFAULT_CONTRACT_FILE = Path(
+    "docs/architecture/methodology/financial/FINANCIAL_DATA_CONTRACT.yaml"
+)
 DEFAULT_DATA_FILE = Path("docs/architecture/methodology/financial/sample_financial_data.csv")
 DEFAULT_OUT_FILE = Path("artifacts/financial_verification_manifest.json")
 BENFORD_ENFORCEMENT_MIN_ROWS = 30
@@ -51,7 +53,9 @@ def _benford_chi_square(amounts: list[float]) -> float:
 def _z_scores_log(amounts: list[float]) -> list[float]:
     ln = [math.log(x) for x in amounts if x > 0]
     if not ln:
-        raise FinancialContractError("no positive amount values available for log z-score validation")
+        raise FinancialContractError(
+            "no positive amount values available for log z-score validation"
+        )
     mu = mean(ln)
     sigma = pstdev(ln) or 1e-12
     return [(v - mu) / sigma for v in ln]
@@ -67,7 +71,9 @@ def _is_uuid4(s: str) -> bool:
 
 def _parse_utc_timestamp(raw: str, row_idx: int) -> datetime:
     if not raw.endswith("Z"):
-        raise FinancialContractError(f"ts_utc must use explicit UTC Z suffix at row {row_idx}")
+        raise FinancialContractError(
+            f"ts_utc must use explicit UTC Z suffix at row {row_idx}"
+        )
     try:
         ts = datetime.fromisoformat(raw.replace("Z", "+00:00"))
     except ValueError as exc:
@@ -107,7 +113,11 @@ def validate_contract(
             if field not in row or row[field] == "":
                 raise FinancialContractError(f"missing field '{field}' at row {idx}")
 
-        if "transaction_id" in row and row["transaction_id"] and not _is_uuid4(row["transaction_id"]):
+        if (
+            "transaction_id" in row
+            and row["transaction_id"]
+            and not _is_uuid4(row["transaction_id"])
+        ):
             raise FinancialContractError(f"invalid transaction_id at row {idx}")
         if "source_hash" in row and row["source_hash"]:
             source_hash = row["source_hash"]
@@ -140,7 +150,9 @@ def validate_contract(
             and fee >= 0
             and amount > 0
         ):
-            raise FinancialContractError(f"core mathematical invariants breached at row {idx}")
+            raise FinancialContractError(
+                f"core mathematical invariants breached at row {idx}"
+            )
 
         ts = _parse_utc_timestamp(row["ts_utc"], idx)
         timestamps_by_symbol[row["symbol"]].append(ts)
@@ -148,7 +160,9 @@ def validate_contract(
 
     for symbol, timestamps in timestamps_by_symbol.items():
         if timestamps != sorted(timestamps):
-            raise FinancialContractError(f"non-monotonic ts_utc detected for symbol {symbol}")
+            raise FinancialContractError(
+                f"non-monotonic ts_utc detected for symbol {symbol}"
+            )
 
     benford_chi2 = _benford_chi_square(amounts)
     benford_enforced = len(amounts) >= BENFORD_ENFORCEMENT_MIN_ROWS
