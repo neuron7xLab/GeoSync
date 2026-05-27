@@ -16,9 +16,13 @@ class RuntimeCost:
     peak_memory_kib: float
 
 
-def profile_validation_cycle(validation_fn: Callable[[], None], baseline_fn: Callable[[], None], runs: int = 20) -> RuntimeCost:
-    v_times = []
-    b_times = []
+def profile_validation_cycle(
+    validation_fn: Callable[[], None],
+    baseline_fn: Callable[[], None],
+    runs: int = 20,
+) -> RuntimeCost:
+    v_times: list[float] = []
+    b_times: list[float] = []
     tracemalloc.start()
     try:
         for _ in range(runs):
