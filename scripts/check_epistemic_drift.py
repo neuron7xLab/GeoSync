@@ -14,7 +14,10 @@ MAX_RUNTIME_SECONDS = 2.0
 
 
 def _extract_readme_invariants(text: str) -> int:
-    patterns = [r'invariants-(\d+)', r'declares \*\*(\d+) machine-checkable invariants\*\*']
+    patterns = [
+        r'invariants-(\d+)',
+        r'declares \*\*(\d+) machine-checkable invariants\*\*',
+    ]
     for pattern in patterns:
         m = re.search(pattern, text)
         if m:
@@ -74,11 +77,17 @@ def main() -> int:
 
     elapsed = time.perf_counter() - started
     if elapsed > MAX_RUNTIME_SECONDS:
-        print(f'EPISTEMIC DRIFT CHECK TIMEOUT: {elapsed:.3f}s > {MAX_RUNTIME_SECONDS:.3f}s')
+        print(
+            f'EPISTEMIC DRIFT CHECK TIMEOUT: {elapsed:.3f}s '
+            f'> {MAX_RUNTIME_SECONDS:.3f}s'
+        )
         ok = False
 
     if ok:
-        print(f'OK: invariant counts synchronized at {script_count} (elapsed={elapsed:.3f}s)')
+        print(
+            f'OK: invariant counts synchronized at {script_count} '
+            f'(elapsed={elapsed:.3f}s)'
+        )
         return 0
     return 1
 
