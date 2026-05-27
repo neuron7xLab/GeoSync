@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -55,7 +56,7 @@ def _validate(
     tmp_path: Path,
     rows: list[dict[str, str]],
     expected_records: int = 1,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     contract = tmp_path / "contract.yaml"
     data = tmp_path / "data.csv"
     out = tmp_path / "manifest.json"
