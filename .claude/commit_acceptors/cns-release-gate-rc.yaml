@@ -12,6 +12,7 @@ diff_scope:
   changed_files:
     - path: ".github/workflows/cns-release-gate.yml"
     - path: ".claude/commit_acceptors/cns-release-gate-rc.yaml"
+    - path: "pyproject.toml"
     - path: "conf/cns_program/default.yaml"
     - path: "conf/cns_program/invariants.yaml"
     - path: "reports/CNS_RELEASE_GATE_CONTRACT.md"
