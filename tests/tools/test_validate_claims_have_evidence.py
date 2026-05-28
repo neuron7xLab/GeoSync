@@ -10,7 +10,9 @@ from tools.claims.validate_claims_have_evidence import validate
 
 
 @pytest.fixture(autouse=True)
-def _clean_test_baseline_dirs() -> None:
+def _isolate_test_audit_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep claim-evidence unit tests from reading repository audit history."""
+    monkeypatch.chdir(tmp_path)
     for name in (
         "baseline_run_test_mismatch",
         "baseline_run_test_valid",
