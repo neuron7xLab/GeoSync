@@ -9,7 +9,7 @@
   },
   "integrity": {
     "data_ledger_sha256": "58900364302609da98f5e0992b138fde25d86f2e5c2c005f90a01d0fc2c87617",
-    "verification_provenance_signature": "ed25519::local-dev-signature"
+    "verification_provenance_marker": "local-dev-marker"
   },
   "verdict": "EP_PARITY_PASSED"
 }
