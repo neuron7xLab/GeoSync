@@ -8,7 +8,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from tools.cns_program.cns_contract import DEPLOY_GATE_RESULT, MANIFEST_FILES, RELEASE_MANIFEST_RESULT
+from tools.cns_program.cns_contract import (  # noqa: E402
+    DEPLOY_GATE_RESULT,
+    MANIFEST_FILES,
+    RELEASE_MANIFEST_RESULT,
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -32,8 +36,14 @@ def main() -> int:
         "deploy_gate": json.loads(DEPLOY_GATE_RESULT.read_text(encoding="utf-8")),
         "sha256": {str(path): sha256_file(path) for path in MANIFEST_FILES},
     }
-    RELEASE_MANIFEST_RESULT.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"manifest": str(RELEASE_MANIFEST_RESULT), "files_hashed": len(MANIFEST_FILES)}))
+    RELEASE_MANIFEST_RESULT.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    print(
+        json.dumps(
+            {"manifest": str(RELEASE_MANIFEST_RESULT), "files_hashed": len(MANIFEST_FILES)}
+        )
+    )
     return 0
 
 
