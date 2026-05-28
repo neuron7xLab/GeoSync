@@ -5,19 +5,31 @@ import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from tools.cns_program.cns_contract import CONFIG_PATH, DEPLOY_GATE_RESULT, REQUIRED_STATES
-from tools.cns_program.simple_yaml import load_yaml_file
+from tools.cns_program.cns_contract import (  # noqa: E402
+    CONFIG_PATH,
+    DEPLOY_GATE_RESULT,
+    REQUIRED_STATES,
+)
+from tools.cns_program.simple_yaml import load_yaml_file  # noqa: E402
 
 
-def validate_protocol() -> dict:
+def validate_protocol() -> dict[str, Any]:
     config = load_yaml_file(CONFIG_PATH)
     states = config.get("states", [])
+    if not isinstance(states, list):
+        states = []
     missing = [state for state in REQUIRED_STATES if state not in states]
     weights = config.get("metrics", {}).get("quality_weights", {})
-    weight_sum = sum(float(weights.get(key, 0.0)) for key in weights)
-    threshold = float(config.get("thresholds", {}).get("quality_score_min", 0.0))
+    if not isinstance(weights, dict):
+        weights = {}
+    weight_sum = sum(float(value) for value in weights.values())
+    thresholds = config.get("thresholds", {})
+    if not isinstance(thresholds, dict):
+        thresholds = {}
+    threshold = float(thresholds.get("quality_score_min", 0.0))
     valid = not missing and abs(weight_sum - 1.0) < 1e-9 and 0.0 < threshold <= 1.0
     return {
         "valid": valid,
@@ -35,7 +47,9 @@ def main() -> int:
         "deploy_ready": bool(protocol["valid"]),
         "protocol": protocol,
     }
-    DEPLOY_GATE_RESULT.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    DEPLOY_GATE_RESULT.write_text(
+        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     print(json.dumps(payload, sort_keys=True))
     return 0 if payload["deploy_ready"] else 1
 
