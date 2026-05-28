@@ -187,7 +187,7 @@ def validate_contract(
         },
         "integrity": {
             "data_ledger_sha256": hashlib.sha256(data_file.read_bytes()).hexdigest(),
-            "verification_provenance_signature": "ed25519::local-dev-signature",
+            "verification_provenance_marker": "local-dev-marker",
         },
         "verdict": "EP_PARITY_PASSED",
     }
