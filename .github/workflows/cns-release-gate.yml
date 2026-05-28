@@ -49,6 +49,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install test dependency
+        run: python -m pip install pytest
+
       - name: Run deterministic CNS release gate
         run: |
           python tools/cns_program/deploy_release_gate.py
