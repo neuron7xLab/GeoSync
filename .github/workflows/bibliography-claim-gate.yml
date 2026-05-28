@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: MIT
+
+name: Bibliography Claim Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "CLAIMS.md"
+      - "docs/BIBLIOGRAPHY.md"
+      - "docs/claim_source_matrix.json"
+      - "scripts/check_claim_source_matrix.py"
+      - ".github/workflows/bibliography-claim-gate.yml"
+  merge_group:
+  push:
+    branches: [main]
+    paths:
+      - "CLAIMS.md"
+      - "docs/BIBLIOGRAPHY.md"
+      - "docs/claim_source_matrix.json"
+      - "scripts/check_claim_source_matrix.py"
+      - ".github/workflows/bibliography-claim-gate.yml"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+concurrency:
+  group: bibliography-claim-gate-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  bibliography-claim-gate:
+    name: bibliography-claim-gate
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Validate claim-source matrix
+        run: |
+          set -euo pipefail
+          python scripts/check_claim_source_matrix.py
