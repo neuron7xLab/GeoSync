@@ -5,11 +5,19 @@ import subprocess
 import sys
 from pathlib import Path
 
+from tools.cns_program.verify_reports_contract import verify_reports
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def run(args: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([sys.executable, *args], cwd=ROOT, text=True, capture_output=True, check=False)
+    return subprocess.run(
+        [sys.executable, *args],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
 
 
 def test_release_gate_chain_passes() -> None:
@@ -23,7 +31,9 @@ def test_release_gate_chain_passes() -> None:
         completed = run(args)
         assert completed.returncode == 0, completed.stderr or completed.stdout
 
-    payload = json.loads((ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8")
+    )
     assert payload["passed"] is True
     assert payload["quality_score"] == 1.0
 
@@ -37,17 +47,17 @@ def test_manifest_verifier_fails_on_hash_tamper(tmp_path: Path) -> None:
     data["sha256"][first] = "0" * 64
     tampered = tmp_path / "tampered.json"
     tampered.write_text(json.dumps(data), encoding="utf-8")
-    completed = run(["tools/cns_program/verify_release_manifest.py", "--manifest", str(tampered)])
+    completed = run(
+        ["tools/cns_program/verify_release_manifest.py", "--manifest", str(tampered)]
+    )
     assert completed.returncode != 0
     payload = json.loads(completed.stdout)
     assert payload["valid"] is False
     assert any(error.startswith("artifact_hash_mismatch:") for error in payload["errors"])
 
 
-def test_reports_contract_fails_on_missing_report(tmp_path: Path) -> None:
-    script = ROOT / "tools/cns_program/verify_reports_contract.py"
-    modified = tmp_path / "verify_reports_contract_missing.py"
-    text = script.read_text(encoding="utf-8").replace("REQUIRED_REPORTS", "(Path('reports/__missing__.md'),)")
-    modified.write_text("from pathlib import Path\n" + text, encoding="utf-8")
-    completed = subprocess.run([sys.executable, str(modified)], cwd=ROOT, text=True, capture_output=True, check=False)
-    assert completed.returncode != 0
+def test_reports_contract_fails_on_missing_report() -> None:
+    missing_report = Path("reports/__missing__.md")
+    payload = verify_reports((missing_report,))
+    assert payload["valid"] is False
+    assert payload["errors"] == ["report_missing:reports/__missing__.md"]
