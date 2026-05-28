@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import Any
 
 CLAIMS = Path("CLAIMS.md")
 HASHES = Path("artifacts/claims_hashes.json")
@@ -19,6 +20,20 @@ def claim_lines(text: str) -> dict[str, str]:
     return out
 
 
+def _normalize_hashes(raw: object) -> dict[str, str]:
+    if not isinstance(raw, dict):
+        return {}
+    normalized: dict[str, str] = {}
+    for key, value in raw.items():
+        if not isinstance(key, str):
+            continue
+        if isinstance(value, str):
+            normalized[key] = value
+        elif isinstance(value, list) and all(isinstance(part, str) for part in value):
+            normalized[key] = "".join(value)
+    return normalized
+
+
 def main() -> int:
     if not HASHES.exists():
         print(
@@ -26,7 +41,8 @@ def main() -> int:
             "Run generate_claim_hashes.py"
         )
         return 1
-    recorded = json.loads(HASHES.read_text(encoding="utf-8")).get("hashes", {})
+    payload: dict[str, Any] = json.loads(HASHES.read_text(encoding="utf-8"))
+    recorded = _normalize_hashes(payload.get("hashes", {}))
 
     try:
         current = claim_lines(CLAIMS.read_text(encoding="utf-8"))
