@@ -39,18 +39,19 @@ def main() -> int:
         manifest.get("checked_artifacts") == manifest.get("total_artifacts")
         and int(manifest.get("total_artifacts", 0)) > 0
     )
-    metrics = [
-        {"name": "protocol_valid", "value": 1.0 if protocol_valid else 0.0, "weight": 0.35},
-        {"name": "manifest_valid", "value": 1.0 if manifest_valid else 0.0, "weight": 0.30},
-        {"name": "reports_valid", "value": 1.0 if reports_valid else 0.0, "weight": 0.20},
-        {
-            "name": "deterministic_artifacts",
-            "value": 1.0 if deterministic_artifacts else 0.0,
-            "weight": 0.15,
-        },
+
+    metric_specs: list[tuple[str, float, float]] = [
+        ("protocol_valid", 1.0 if protocol_valid else 0.0, 0.35),
+        ("manifest_valid", 1.0 if manifest_valid else 0.0, 0.30),
+        ("reports_valid", 1.0 if reports_valid else 0.0, 0.20),
+        ("deterministic_artifacts", 1.0 if deterministic_artifacts else 0.0, 0.15),
     ]
-    score = sum(float(item["value"]) * float(item["weight"]) for item in metrics)
-    passed = score >= 0.80 and all(item["value"] == 1.0 for item in metrics)
+    metrics = [
+        {"name": name, "value": value, "weight": weight}
+        for name, value, weight in metric_specs
+    ]
+    score = sum(value * weight for _, value, weight in metric_specs)
+    passed = score >= 0.80 and all(value == 1.0 for _, value, _ in metric_specs)
     payload = {
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "quality_score": score,
