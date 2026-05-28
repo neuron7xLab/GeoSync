@@ -10,7 +10,16 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VALID_TIERS = {"FACT", "MEASURED", "DERIVED", "SIMULATION", "SYNTHETIC_DEMO", "HYPOTHESIS", "SPECULATIVE", "RETIRED"}
+VALID_TIERS = {
+    "FACT",
+    "MEASURED",
+    "DERIVED",
+    "SIMULATION",
+    "SYNTHETIC_DEMO",
+    "HYPOTHESIS",
+    "SPECULATIVE",
+    "RETIRED",
+}
 
 
 def die(msg: str) -> None:
@@ -33,8 +42,12 @@ def main() -> int:
     except json.JSONDecodeError as exc:
         die(f"docs/claim_source_matrix.json is invalid JSON: {exc}")
 
-    bib_ids = set(re.findall(r"^### (BIB-[A-Z0-9-]+)\b", bib_md, re.MULTILINE))
-    claim_ids = set(re.findall(r"^\| ([CR]-[A-Z0-9-]+) \|", claim_md, re.MULTILINE))
+    bib_ids = set(
+        re.findall(r"^### (BIB-[A-Z0-9-]+)\b", bib_md, re.MULTILINE)
+    )
+    claim_ids = set(
+        re.findall(r"^\| ([CR]-[A-Z0-9-]+) \|", claim_md, re.MULTILINE)
+    )
     rows = matrix.get("entries")
     if not isinstance(rows, list) or not rows:
         die("matrix entries must be a non-empty list")
@@ -71,7 +84,10 @@ def main() -> int:
     missing = sorted(claim_ids - seen)
     if missing:
         die(f"CLAIMS.md ids missing from matrix: {', '.join(missing)}")
-    print(f"claim-source-matrix: OK ({len(bib_ids)} bibliography sources, {len(seen)} claim rows)")
+    print(
+        "claim-source-matrix: OK "
+        f"({len(bib_ids)} bibliography sources, {len(seen)} claim rows)"
+    )
     return 0
 
 
