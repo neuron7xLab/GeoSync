@@ -7,6 +7,7 @@ import json
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from tools.cns_program.cns_contract import MANIFEST_VERIFICATION_RESULT
 
@@ -21,18 +22,31 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def verify(path: Path) -> dict:
+def verify(path: Path) -> dict[str, Any]:
     errors: list[str] = []
     if not path.exists():
         errors.append(f"manifest_missing:{path}")
-        return {"valid": False, "errors": errors, "checked_artifacts": 0, "total_artifacts": 0}
+        return {
+            "valid": False,
+            "errors": errors,
+            "checked_artifacts": 0,
+            "total_artifacts": 0,
+        }
+
     data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        errors.append("manifest_not_object")
+        data = {}
     sha_map = data.get("sha256")
     if not isinstance(sha_map, dict) or not sha_map:
         errors.append("sha256_map_missing")
         sha_map = {}
+
     checked = 0
     for raw_path, expected in sha_map.items():
+        if not isinstance(raw_path, str):
+            errors.append("artifact_path_not_string")
+            continue
         if not isinstance(expected, str) or not SHA256_RE.match(expected):
             errors.append(f"sha256_invalid:{raw_path}")
             continue
@@ -45,6 +59,7 @@ def verify(path: Path) -> dict:
             errors.append(f"artifact_hash_mismatch:{raw_path}")
             continue
         checked += 1
+
     return {
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "manifest": str(path),
@@ -61,7 +76,9 @@ def main() -> int:
     args = parser.parse_args()
     payload = verify(Path(args.manifest))
     MANIFEST_VERIFICATION_RESULT.parent.mkdir(parents=True, exist_ok=True)
-    MANIFEST_VERIFICATION_RESULT.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    MANIFEST_VERIFICATION_RESULT.write_text(
+        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     print(json.dumps(payload, sort_keys=True))
     return 0 if payload["valid"] else 1
 
