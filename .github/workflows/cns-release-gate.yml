@@ -1,25 +1,61 @@
-version: 1
-program_name: cns_release_gate
-states:
-  - ingest
-  - validate
-  - render
-  - manifest
-  - verify
-  - report
-  - release_decision
-metrics:
-  quality_weights:
-    protocol_valid: 0.35
-    manifest_valid: 0.30
-    reports_valid: 0.20
-    deterministic_artifacts: 0.15
-thresholds:
-  quality_score_min: 0.80
-artifacts:
-  required:
-    - results/cns_deploy_gate.json
-    - results/cns_release_manifest.json
-    - results/cns_manifest_verification.json
-    - results/cns_reports_contract.json
-    - results/cns_quality_gate.json
+# SPDX-License-Identifier: MIT
+name: CNS Release Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/cns-release-gate.yml"
+      - "conf/cns_program/**"
+      - "tools/cns_program/**"
+      - "tests/cns_program/**"
+      - "docs/governance/CNS_RELEASE_GATE.md"
+      - "reports/CNS_RELEASE_GATE_CONTRACT.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cns-release-gate.yml"
+      - "conf/cns_program/**"
+      - "tools/cns_program/**"
+      - "tests/cns_program/**"
+      - "docs/governance/CNS_RELEASE_GATE.md"
+      - "reports/CNS_RELEASE_GATE_CONTRACT.md"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+concurrency:
+  group: cns-release-gate-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  cns-release-gate:
+    name: cns-release-gate / python-${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run deterministic CNS release gate
+        run: |
+          python tools/cns_program/deploy_release_gate.py
+          python tools/cns_program/build_release_manifest.py
+          python tools/cns_program/verify_release_manifest.py
+          python tools/cns_program/verify_reports_contract.py
+          python tools/cns_program/quality_gate.py
+
+      - name: Run CNS tests
+        run: python -m pytest -q tests/cns_program
