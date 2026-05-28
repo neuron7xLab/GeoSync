@@ -3,14 +3,15 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 
 from tools.cns_program.cns_contract import REPORTS_CONTRACT_RESULT, REQUIRED_REPORTS
 
 
-def main() -> int:
+def verify_reports(required_reports: tuple[Path, ...] = REQUIRED_REPORTS) -> dict[str, object]:
     errors: list[str] = []
     checked = 0
-    for path in REQUIRED_REPORTS:
+    for path in required_reports:
         if not path.exists():
             errors.append(f"report_missing:{path}")
             continue
@@ -22,15 +23,21 @@ def main() -> int:
             errors.append(f"report_heading_missing:{path}")
             continue
         checked += 1
-    payload = {
+    return {
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "valid": not errors,
         "errors": errors,
         "checked_reports": checked,
-        "total_reports": len(REQUIRED_REPORTS),
+        "total_reports": len(required_reports),
     }
+
+
+def main() -> int:
+    payload = verify_reports()
     REPORTS_CONTRACT_RESULT.parent.mkdir(parents=True, exist_ok=True)
-    REPORTS_CONTRACT_RESULT.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    REPORTS_CONTRACT_RESULT.write_text(
+        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     print(json.dumps(payload, sort_keys=True))
     return 0 if payload["valid"] else 1
 
