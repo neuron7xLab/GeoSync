@@ -7,6 +7,7 @@ promise: >-
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/riee-runtime-kernel.yaml"
+    - path: "metrics/__init__.py"
     - path: "metrics/performance_profiler.py"
     - path: "runtime/riee/engine.py"
     - path: "runtime/riee/sdk.py"
@@ -40,7 +41,7 @@ falsifier:
   description: >-
     Runtime drift and SDK guard tests must fail if panic/quarantine semantics break.
 rollback_command: >-
-  git checkout HEAD~1 -- runtime/riee metrics/performance_profiler.py scripts/production_readiness_riee.py scripts/riee tests/riee tests/tools/test_runtime_cost_profiler.py
+  git checkout HEAD~1 -- runtime/riee metrics/__init__.py metrics/performance_profiler.py scripts/production_readiness_riee.py scripts/riee tests/riee tests/tools/test_runtime_cost_profiler.py
 rollback_verification_command: >-
   python tools/commit_acceptor/validate_commit_acceptor.py
 memory_update_type: append
