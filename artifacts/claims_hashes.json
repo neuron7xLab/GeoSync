@@ -1,10 +1,47 @@
 {
   "algorithm": "sha256",
   "count": 4,
+  "encoding": "hex_chunks_8",
   "hashes": {
-    "C-INV-COUNT": "ef1ee82b7a711344f4f76e0f2e0a0ac9c189fb9cb873dff4a0ca4360510c3887",
-    "C-PHYS-KERNEL": "c3ec6f4b733b4d5f4c2fec619923c9d55fece29a0c2dff14e4040a38698cf2c4",
-    "C-SYSRISK-PHASE": "6f9137f95a704eef13c4a5f3b8027f67ba256cf687eab3d9a594f82e904d02e3",
-    "C-TLA-PROOF": "ff08f6f434eee095dc0a4fa8ce571e6c7264329b84a8f0045b854d188ce594f3"
+    "C-INV-COUNT": [
+      "ef1ee82b",
+      "7a711344",
+      "f4f76e0f",
+      "2e0a0ac9",
+      "c189fb9c",
+      "b873dff4",
+      "a0ca4360",
+      "510c3887"
+    ],
+    "C-PHYS-KERNEL": [
+      "c3ec6f4b",
+      "733b4d5f",
+      "4c2fec61",
+      "9923c9d5",
+      "5fece29a",
+      "0c2dff14",
+      "e4040a38",
+      "698cf2c4"
+    ],
+    "C-SYSRISK-PHASE": [
+      "6f9137f9",
+      "5a704eef",
+      "13c4a5f3",
+      "b8027f67",
+      "ba256cf6",
+      "87eab3d9",
+      "a594f82e",
+      "904d02e3"
+    ],
+    "C-TLA-PROOF": [
+      "ff08f6f4",
+      "34eee095",
+      "dc0a4fa8",
+      "ce571e6c",
+      "7264329b",
+      "84a8f004",
+      "5b854d18",
+      "8ce594f3"
+    ]
   }
 }
