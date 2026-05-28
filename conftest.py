@@ -17,7 +17,6 @@ This module performs two responsibilities:
 from __future__ import annotations
 
 import asyncio
-import inspect
 import importlib.util
 import json
 import os
@@ -339,7 +338,7 @@ def pytest_pyfunc_call(pyfuncitem):  # type: ignore[override]
         return None
 
     testfunction = pyfuncitem.obj
-    if not inspect.iscoroutinefunction(testfunction):
+    if not asyncio.iscoroutinefunction(testfunction):
         return None
 
     loop = asyncio.new_event_loop()

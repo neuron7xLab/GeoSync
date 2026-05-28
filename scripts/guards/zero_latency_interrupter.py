@@ -10,10 +10,7 @@ def main() -> int:
         check=False,
     )
     if result.returncode != 0:
-        print(
-            "ZERO-LATENCY INTERRUPTER: epistemic noise detected (Δ > 0). "
-            "Execution blocked."
-        )
+        print("ZERO-LATENCY INTERRUPTER: epistemic noise detected (Δ > 0). " "Execution blocked.")
         return 1
     print("ZERO-LATENCY INTERRUPTER: clean state, execution allowed.")
     return 0

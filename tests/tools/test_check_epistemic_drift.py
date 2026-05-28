@@ -9,8 +9,5 @@ def test_extract_readme_invariants() -> None:
 
 
 def test_extract_claim_count() -> None:
-    text = (
-        '| C-INV-COUNT | "97 invariants in `.claude/physics/INVARIANTS.yaml`" '
-        "| `FACT` |"
-    )
+    text = '| C-INV-COUNT | "97 invariants in `.claude/physics/INVARIANTS.yaml`" ' "| `FACT` |"
     assert _extract_claim_count(text) == 97

@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
 )
+
 from runtime.riee.telemetry import emit_riee_event
 
 
@@ -108,9 +109,7 @@ def state_interceptor(
             gamma_fact = fn(*args, **kwargs)
             status = pfc.enforce(gamma_fact)
             if not status.state_validity:
-                q = quarantine_snapshot(
-                    [claims_path, Path("docs/architecture/claim_graph.json")]
-                )
+                q = quarantine_snapshot([claims_path, Path("docs/architecture/claim_graph.json")])
                 raise KernelPanic(
                     "Kernel_Panic "
                     f"delta={status.delta} threshold={status.threshold} quarantine={q}"
@@ -130,9 +129,7 @@ def runtime_interceptor(
             gamma_fact = fn(*args, **kwargs)
             status = pfc.enforce(gamma_fact)
             if not status.state_validity:
-                raise KernelPanic(
-                    f"Kernel_Panic delta={status.delta} threshold={status.threshold}"
-                )
+                raise KernelPanic(f"Kernel_Panic delta={status.delta} threshold={status.threshold}")
             return gamma_fact
 
         return wrapped

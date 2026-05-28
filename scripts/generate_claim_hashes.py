@@ -24,9 +24,7 @@ def main() -> int:
         "encoding": "hex_chunks_8",
         "count": len(lines),
         "hashes": {
-            line.split("|")[1].strip(): chunk_hash(
-                hashlib.sha256(line.encode("utf-8")).hexdigest()
-            )
+            line.split("|")[1].strip(): chunk_hash(hashlib.sha256(line.encode("utf-8")).hexdigest())
             for line in lines
         },
     }

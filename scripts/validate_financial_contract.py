@@ -13,9 +13,7 @@ from uuid import UUID
 
 import yaml  # type: ignore[import-untyped]
 
-DEFAULT_CONTRACT_FILE = Path(
-    "docs/architecture/methodology/financial/FINANCIAL_DATA_CONTRACT.yaml"
-)
+DEFAULT_CONTRACT_FILE = Path("docs/architecture/methodology/financial/FINANCIAL_DATA_CONTRACT.yaml")
 DEFAULT_DATA_FILE = Path("docs/architecture/methodology/financial/sample_financial_data.csv")
 DEFAULT_OUT_FILE = Path("artifacts/financial_verification_manifest.json")
 BENFORD_ENFORCEMENT_MIN_ROWS = 30
@@ -71,9 +69,7 @@ def _is_uuid4(s: str) -> bool:
 
 def _parse_utc_timestamp(raw: str, row_idx: int) -> datetime:
     if not raw.endswith("Z"):
-        raise FinancialContractError(
-            f"ts_utc must use explicit UTC Z suffix at row {row_idx}"
-        )
+        raise FinancialContractError(f"ts_utc must use explicit UTC Z suffix at row {row_idx}")
     try:
         ts = datetime.fromisoformat(raw.replace("Z", "+00:00"))
     except ValueError as exc:
@@ -150,9 +146,7 @@ def validate_contract(
             and fee >= 0
             and amount > 0
         ):
-            raise FinancialContractError(
-                f"core mathematical invariants breached at row {idx}"
-            )
+            raise FinancialContractError(f"core mathematical invariants breached at row {idx}")
 
         ts = _parse_utc_timestamp(row["ts_utc"], idx)
         timestamps_by_symbol[row["symbol"]].append(ts)
@@ -160,9 +154,7 @@ def validate_contract(
 
     for symbol, timestamps in timestamps_by_symbol.items():
         if timestamps != sorted(timestamps):
-            raise FinancialContractError(
-                f"non-monotonic ts_utc detected for symbol {symbol}"
-            )
+            raise FinancialContractError(f"non-monotonic ts_utc detected for symbol {symbol}")
 
     benford_chi2 = _benford_chi_square(amounts)
     benford_enforced = len(amounts) >= BENFORD_ENFORCEMENT_MIN_ROWS

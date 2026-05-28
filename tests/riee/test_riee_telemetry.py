@@ -20,8 +20,6 @@ def test_riee_emits_telemetry_event(
 
     log = Path("artifacts/quarantine/riee_events.jsonl")
     assert log.exists()
-    payload: dict[str, Any] = json.loads(
-        log.read_text(encoding="utf-8").strip().splitlines()[-1]
-    )
+    payload: dict[str, Any] = json.loads(log.read_text(encoding="utf-8").strip().splitlines()[-1])
     assert "timestamp_utc" in payload
     assert payload["status"]["reason"] in {"ok", "epistemic drift detected"}

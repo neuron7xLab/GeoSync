@@ -31,9 +31,7 @@ def main() -> int:
     edges: list[dict[str, str]] = []
     ids = {n["id"] for n in nodes}
     if "C-PHYS-KERNEL" in ids and "C-INV-COUNT" in ids:
-        edges.append(
-            {"from": "C-PHYS-KERNEL", "to": "C-INV-COUNT", "type": "depends_on"}
-        )
+        edges.append({"from": "C-PHYS-KERNEL", "to": "C-INV-COUNT", "type": "depends_on"})
     graph = {
         "generated_at_utc": "2026-05-26T00:00:00Z",
         "nodes": nodes,
