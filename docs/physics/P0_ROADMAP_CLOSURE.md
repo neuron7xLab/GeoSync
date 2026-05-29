@@ -24,7 +24,7 @@ A P0 item is closed only when it has all four surfaces:
 | HPC theory boundary | CLOSED_DOC | `docs/physics/theory/HPC_THEORY.md` |
 | Criticality FSS battery | PREREGISTERED | `experiments/criticality_fss/README.md` and `schema.json` |
 | OOS signed audit artifact | RETIRED_PENDING | existing audit report marks OOS evidence RETRACTED |
-| README three-surface split | OPEN | verified kernel / measured experiments / hypothesis sandbox still needs rewrite |
+| README three-surface split | PARTIAL_CLOSED | `docs/README_SURFACES.md` defines verified kernel / measured experiments / hypothesis sandbox; README still needs a direct hook |
 
 ## Metadata drift
 
