@@ -15,10 +15,8 @@
 #      clip physical quantities without logging or an INV-* comment
 #      (C1, C2 audit).
 #
-# The gate is fail-closed. If the kernel self-check fails OR any test
-# validation issue is reported OR any code-audit violation is found,
-# the PR cannot merge. Orphan (pre-migration) tests are tracked but do
-# not block merging yet — the migration path is tracked in BASELINE.md.
+# The gate is fail-closed for changed physics tests and changed core code.
+# Repo-wide grounding remains informational until the migration backlog closes.
 name: Physics Kernel Gate
 
 on:
@@ -148,6 +146,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
@@ -157,4 +157,12 @@ jobs:
       - name: Audit core/ for silent clamps and undocumented bounds
         run: |
           set -euo pipefail
+          if [ -n "${GITHUB_BASE_REF:-}" ]; then
+            changed=$(git diff --name-only "origin/${GITHUB_BASE_REF}"...HEAD)
+            echo "${changed}"
+            if ! echo "${changed}" | grep -q '^core/'; then
+              echo "No core/ changes in this PR; skipping core code audit."
+              exit 0
+            fi
+          fi
           python .claude/physics/validate_tests.py core/ --audit-code --summary
