@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at_utc": "2026-05-29T16:15:00Z",
+  "repository": "neuron7xLab/GeoSync",
+  "pull_request": 824,
+  "head_sha": "950dcf068facac7b5b5d7871d4bd1a9fc8bdd284",
+  "merge_sha": "7f0db3ffab7c77e5ad7722b2f466d9b7a66e6605",
+  "merged": true,
+  "checks": [
+    {"name": "CALIB GRID Witness Map", "run_id": 26647413841, "conclusion": "success"},
+    {"name": "Physics Invariants", "run_id": 26647413840, "conclusion": "success"},
+    {"name": "Commit Acceptor Gate", "run_id": 26647413899, "conclusion": "success"},
+    {"name": "PR Gate", "run_id": 26647413907, "conclusion": "success"},
+    {"name": "Physics Kernel Gate", "run_id": 26647413197, "conclusion": "success"}
+  ],
+  "note": "Connector did not expose workflow runs for the squash merge commit; this record binds the merged PR to the pre-merge green checks."
+}
