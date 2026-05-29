@@ -15,6 +15,7 @@ diff_scope:
     - path: "pyproject.toml"
     - path: "conf/cns_program/default.yaml"
     - path: "conf/cns_program/invariants.yaml"
+    - path: "docs/governance/CNS_RELEASE_GATE.md"
     - path: "reports/CNS_RELEASE_GATE_CONTRACT.md"
     - path: "tests/cns_program/test_release_gate.py"
     - path: "tools/cns_program/__init__.py"
@@ -53,10 +54,10 @@ falsifier:
     Manifest verification must fail closed when the manifest is missing or hashes do not match current workspace artifacts.
 
 rollback_command: >-
-  git rm -r .github/workflows/cns-release-gate.yml conf/cns_program docs/governance/CNS_RELEASE_GATE.md reports/CNS_RELEASE_GATE_CONTRACT.md tests/cns_program tools/cns_program .claude/commit_acceptors/cns-release-gate-rc.yaml
+  git checkout -- .github/workflows/cns-release-gate.yml conf/cns_program docs/governance/CNS_RELEASE_GATE.md reports/CNS_RELEASE_GATE_CONTRACT.md tests/cns_program tools/cns_program .claude/commit_acceptors/cns-release-gate-rc.yaml
 
 rollback_verification_command: >-
-  test ! -f tools/cns_program/deploy_release_gate.py
+  git diff --exit-code
 
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/cns-release-gate-rc.yaml"
