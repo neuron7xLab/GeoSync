@@ -2,18 +2,26 @@
 from __future__ import annotations
 
 import json
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from tools.cns_program.cns_contract import (  # noqa: E402
-    CONFIG_PATH,
-    DEPLOY_GATE_RESULT,
-    REQUIRED_STATES,
+try:
+    from tools.cns_program.simple_yaml import load_yaml_file
+except ModuleNotFoundError:  # pragma: no cover - direct script execution
+    from simple_yaml import load_yaml_file
+
+CONFIG_PATH = Path("conf/cns_program/default.yaml")
+DEPLOY_GATE_RESULT = Path("results/cns_deploy_gate.json")
+REQUIRED_STATES = (
+    "ingest",
+    "validate",
+    "render",
+    "manifest",
+    "verify",
+    "report",
+    "release_decision",
 )
-from tools.cns_program.simple_yaml import load_yaml_file  # noqa: E402
 
 
 def validate_protocol() -> dict[str, Any]:
