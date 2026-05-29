@@ -9,7 +9,9 @@ REPORTS_CONTRACT_RESULT = Path("results/cns_reports_contract.json")
 REQUIRED_REPORTS = (Path("reports/CNS_RELEASE_GATE_CONTRACT.md"),)
 
 
-def verify_reports(required_reports: tuple[Path, ...] = REQUIRED_REPORTS) -> dict[str, object]:
+def verify_reports(
+    required_reports: tuple[Path, ...] = REQUIRED_REPORTS,
+) -> dict[str, object]:
     errors: list[str] = []
     checked = 0
     for path in required_reports:
