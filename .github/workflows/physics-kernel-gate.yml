@@ -181,10 +181,9 @@ jobs:
         with:
           python-version: '3.12'
 
-      # The C1/C2 audit is currently run in report-only mode (|| true) until
-      # the backlog of silent clamps in core/ is resolved. Flip the `|| true`
-      # to a hard failure once the audit count reaches zero.
+      # C1/C2 is blocking: silent clamps and undocumented bounds in core/
+      # must be annotated or instrumented before merge.
       - name: Audit core/ for silent clamps and undocumented bounds
         run: |
           set -euo pipefail
-          python .claude/physics/validate_tests.py core/ --audit-code --summary || true
+          python .claude/physics/validate_tests.py core/ --audit-code --summary
