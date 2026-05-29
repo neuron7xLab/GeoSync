@@ -15,16 +15,20 @@ A P0 item is closed only when it has all four surfaces:
 
 | Item | Status | Evidence |
 |---|---|---|
-| 13 historic zero-witness P0 invariants | PARTIAL_CLOSED | T9-T16 strict files exist in physics-kernel-gate; evidence matrix still stale |
+| 13 historic zero-witness P0 invariants | PARTIAL_CLOSED | `docs/physics/strict_witness_surface.md` records T9-T16 strict witnesses; registry metadata and evidence matrix still need sync |
 | C1/C2 audit blocking | OPEN | workflow still keeps audit command report-only with `|| true` |
 | Orphan physics tests below 100 | OPEN | requires local validator sweep and migration batch |
-| Kelly theory boundary | CLOSED_DOC | docs/physics/theory/KELLY_THEORY.md |
-| OMS theory boundary | CLOSED_DOC | docs/physics/theory/OMS_THEORY.md |
-| SignalBus theory boundary | CLOSED_DOC | docs/physics/theory/SIGNALBUS_THEORY.md |
-| HPC theory boundary | CLOSED_DOC | docs/physics/theory/HPC_THEORY.md |
-| Criticality FSS battery | PREREGISTERED | experiments/criticality_fss/README.md and schema.json |
+| Kelly theory boundary | CLOSED_DOC | `docs/physics/theory/KELLY_THEORY.md` |
+| OMS theory boundary | CLOSED_DOC | `docs/physics/theory/OMS_THEORY.md` |
+| SignalBus theory boundary | CLOSED_DOC | `docs/physics/theory/SIGNALBUS_THEORY.md` |
+| HPC theory boundary | CLOSED_DOC | `docs/physics/theory/HPC_THEORY.md` |
+| Criticality FSS battery | PREREGISTERED | `experiments/criticality_fss/README.md` and `schema.json` |
 | OOS signed audit artifact | RETIRED_PENDING | existing audit report marks OOS evidence RETRACTED |
 | README three-surface split | OPEN | verified kernel / measured experiments / hypothesis sandbox still needs rewrite |
+
+## Metadata drift
+
+`docs/physics/evidence_matrix.md` is generated from `.claude/physics/INVARIANTS.yaml`. If a witness exists in tests but the YAML row lacks `tests:` metadata, the generated matrix will show `—`. The strict witness surface ledger captures this bridge until registry metadata is updated and the matrix is regenerated.
 
 ## Next machine step
 
