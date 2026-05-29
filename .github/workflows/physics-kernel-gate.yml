@@ -41,10 +41,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # kernel-self-check — verify the physics kernel is internally consistent.
-  # Fast (<1s), no deps beyond the standard library; runs on every PR.
-  # ---------------------------------------------------------------------------
   kernel-self-check:
     name: physics-kernel-self-check
     runs-on: ubuntu-latest
@@ -63,12 +59,6 @@ jobs:
           set -euo pipefail
           python .claude/physics/validate_tests.py --self-check
 
-  # ---------------------------------------------------------------------------
-  # test-validation — run L1–L5 checks on physics tests.
-  # Reports issues; blocks merge on validation regressions relative to
-  # tracked migrated files (listed below). Orphan tests outside the
-  # tracked set are informational until migration completes.
-  # ---------------------------------------------------------------------------
   test-validation:
     name: physics-test-validation
     runs-on: ubuntu-latest
@@ -83,17 +73,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Strict-list enforcement: files that MUST validate clean at every
-      # level (L1 through L5, zero issues of any kind). Add a file here
-      # only after every single test function in it is grounded to an
-      # INV-* invariant and the kernel validator prints
-      # "All physics tests pass validation."
-      #
-      # A file with partial-migration status (some tests grounded,
-      # others still orphans) goes in PARTIAL_MIGRATED below instead,
-      # which is checked for L2/L3/L4/L5 regressions only — those are
-      # the levels that affect existing INV-* witnesses. L1 is allowed
-      # to be non-zero for partial files.
+      - name: Validate physics witness sidecar map
+        run: |
+          set -euo pipefail
+          python .claude/physics/validate_witness_map.py
+
       - name: Validate fully-migrated physics tests (strict, fail-closed)
         run: |
           set -euo pipefail
@@ -121,10 +105,6 @@ jobs:
           done
           exit "${exit_code}"
 
-      # Partial-migration list: files with at least one INV-* witness but
-      # still carrying pre-migration orphans. Enforcement ensures no
-      # regression in the grounded witnesses (no new L2/L3/L4/L5 issue),
-      # but tolerates the remaining L1 backlog while migration continues.
       - name: Validate partial-migration files (no L2-L5 regression)
         run: |
           set -euo pipefail
@@ -137,8 +117,6 @@ jobs:
           exit_code=0
           for file in "${PARTIAL_MIGRATED[@]}"; do
             echo "::group::partial: ${file}"
-            # The validator exits non-zero when any L1-L5 issue exists.
-            # We re-examine its output and fail only on L2-L5 regressions.
             report=$(python .claude/physics/validate_tests.py "${file}" 2>&1 || true)
             echo "${report}"
             regressed=0
@@ -156,17 +134,12 @@ jobs:
           done
           exit "${exit_code}"
 
-      # Repo-wide sweep: informational today (orphan tests are not blocking)
-      # but emitted so reviewers can see total grounding progress.
       - name: Repo-wide physics grounding report (informational)
         if: always()
         run: |
           set -euo pipefail
           python .claude/physics/validate_tests.py tests/ --summary || true
 
-  # ---------------------------------------------------------------------------
-  # code-audit — C1/C2: silent clamps and undocumented bounds in physics code
-  # ---------------------------------------------------------------------------
   code-audit:
     name: physics-code-audit
     runs-on: ubuntu-latest
@@ -181,8 +154,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      # C1/C2 is blocking: silent clamps and undocumented bounds in core/
-      # must be annotated or instrumented before merge.
       - name: Audit core/ for silent clamps and undocumented bounds
         run: |
           set -euo pipefail
