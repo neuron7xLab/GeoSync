@@ -73,9 +73,7 @@ def _split_mapping_item(text: str, line_number: int) -> tuple[str, str]:
     return key, value.strip()
 
 
-def _parse_block(
-    lines: list[tuple[int, str, int]], index: int, indent: int
-) -> tuple[Any, int]:
+def _parse_block(lines: list[tuple[int, str, int]], index: int, indent: int) -> tuple[Any, int]:
     if index >= len(lines):
         return {}, index
     current_indent, text, line_number = lines[index]
