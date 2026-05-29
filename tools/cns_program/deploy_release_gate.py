@@ -6,10 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-try:
-    from tools.cns_program.simple_yaml import load_yaml_file
-except ModuleNotFoundError:  # pragma: no cover - direct script execution
-    from simple_yaml import load_yaml_file
+from tools.cns_program.simple_yaml import load_yaml_file
 
 CONFIG_PATH = Path("conf/cns_program/default.yaml")
 DEPLOY_GATE_RESULT = Path("results/cns_deploy_gate.json")
