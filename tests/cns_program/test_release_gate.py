@@ -53,7 +53,9 @@ def test_manifest_verifier_fails_on_hash_tamper(tmp_path: Path) -> None:
     assert completed.returncode != 0
     payload = json.loads(completed.stdout)
     assert payload["valid"] is False
-    assert any(error.startswith("artifact_hash_mismatch:") for error in payload["errors"])
+    assert any(
+        error.startswith("artifact_hash_mismatch:") for error in payload["errors"]
+    )
 
 
 def test_reports_contract_fails_on_missing_report() -> None:
