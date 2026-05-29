@@ -124,6 +124,7 @@ def _parse_list(
         if not text.startswith("- "):
             break
         item_text = text[2:].strip()
+        item: Any
         index += 1
         if item_text == "":
             if index < len(lines) and lines[index][0] > current_indent:
