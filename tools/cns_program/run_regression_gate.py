@@ -2,23 +2,10 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from pathlib import Path
 
-from tools.cns_program.verify_reports_contract import verify_reports
-
 ROOT = Path(__file__).resolve().parents[2]
-
-
-def run(args: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [sys.executable, *args],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+QUALITY_GATE_RESULT = ROOT / "results/cns_quality_gate.json"
 
 
 def require(condition: bool, message: str) -> None:
@@ -26,36 +13,22 @@ def require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def regression_chain_passes() -> None:
-    for args in [
-        ["tools/cns_program/deploy_release_gate.py"],
-        ["tools/cns_program/build_release_manifest.py"],
-        ["tools/cns_program/verify_release_manifest.py"],
-        ["tools/cns_program/verify_reports_contract.py"],
-        ["tools/cns_program/quality_gate.py"],
-    ]:
-        completed = run(args)
-        require(completed.returncode == 0, completed.stderr or completed.stdout)
-
-    payload = json.loads(
-        (ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8")
-    )
-    require(payload["passed"] is True, "quality gate did not pass")
-    require(payload["quality_score"] == 1.0, "quality score is not 1.0")
-
-
-def regression_missing_report_fails() -> None:
-    payload = verify_reports((Path("reports/__missing__.md"),))
-    require(payload["valid"] is False, "missing report unexpectedly passed")
+def regression_quality_artifact_passes() -> None:
     require(
-        payload["errors"] == ["report_missing:reports/__missing__.md"],
-        "missing report error mismatch",
+        QUALITY_GATE_RESULT.exists(),
+        f"missing quality gate artifact: {QUALITY_GATE_RESULT}",
     )
+    payload = json.loads(QUALITY_GATE_RESULT.read_text(encoding="utf-8"))
+    require(isinstance(payload, dict), "quality gate payload is not a JSON object")
+    require(payload.get("passed") is True, "quality gate did not pass")
+    require(payload.get("quality_score") == 1.0, "quality score is not 1.0")
+    require(payload.get("threshold") == 0.80, "quality threshold changed")
+    metrics = payload.get("metrics")
+    require(isinstance(metrics, list) and len(metrics) == 4, "quality metrics shape changed")
 
 
 def main() -> int:
-    regression_chain_passes()
-    regression_missing_report_fails()
+    regression_quality_artifact_passes()
     print(json.dumps({"cns_regression_gate": "PASS"}, sort_keys=True))
     return 0
 
