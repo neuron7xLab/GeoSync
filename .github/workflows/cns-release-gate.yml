@@ -8,6 +8,7 @@ on:
       - ".github/workflows/cns-release-gate.yml"
       - "conf/cns_program/**"
       - "tools/cns_program/**"
+      - "tests/cns_program/**"
       - "docs/governance/CNS_RELEASE_GATE.md"
       - "reports/CNS_RELEASE_GATE_CONTRACT.md"
   push:
@@ -16,6 +17,7 @@ on:
       - ".github/workflows/cns-release-gate.yml"
       - "conf/cns_program/**"
       - "tools/cns_program/**"
+      - "tests/cns_program/**"
       - "docs/governance/CNS_RELEASE_GATE.md"
       - "reports/CNS_RELEASE_GATE_CONTRACT.md"
 
@@ -78,3 +80,6 @@ jobs:
           python tools/cns_program/verify_release_manifest.py
           python tools/cns_program/verify_reports_contract.py
           python tools/cns_program/quality_gate.py
+
+      - name: Run CNS regression gate
+        run: python tools/cns_program/run_regression_gate.py
