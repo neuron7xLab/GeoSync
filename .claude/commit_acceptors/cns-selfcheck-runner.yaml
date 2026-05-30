@@ -1,0 +1,23 @@
+id: cns-selfcheck-runner
+status: ACTIVE
+claim_type: governance
+promise: CNS selfcheck runner is bound to its release gate script.
+
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/cns-selfcheck-runner.yaml"
+    - path: "tools/cns_program/regression_selftest.py"
+
+required_python_symbols:
+  - "tools.cns_program.regression_selftest.main"
+
+expected_signal: CNS selfcheck runner executes release gate checks.
+
+measurement_command: python tools/cns_program/regression_selftest.py
+
+signal_artifact: "tools/cns_program/regression_selftest.py"
+
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/cns-selfcheck-runner.yaml"
+report_path: "tools/cns_program/regression_selftest.py"
+evidence: []
