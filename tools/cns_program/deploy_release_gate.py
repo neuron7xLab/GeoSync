@@ -35,9 +35,9 @@ def validate_protocol() -> dict[str, Any]:
     if not isinstance(thresholds, dict):
         thresholds = {}
     threshold = float(thresholds.get("quality_score_min", 0.0))
-    valid = not missing and abs(weight_sum - 1.0) < 1e-9 and 0.0 < threshold <= 1.0
+    ok = not missing and abs(weight_sum - 1.0) < 1e-9 and 0.0 < threshold <= 1.0
     return {
-        "valid": valid,
+        "valid": ok,
         "missing_states": missing,
         "weight_sum": weight_sum,
         "quality_score_min": threshold,
@@ -47,16 +47,16 @@ def validate_protocol() -> dict[str, Any]:
 def main() -> int:
     DEPLOY_GATE_RESULT.parent.mkdir(parents=True, exist_ok=True)
     protocol = validate_protocol()
+    ready = bool(protocol.get("valid"))
     payload = {
         "timestamp_utc": datetime.now(UTC).isoformat(),
-        "deploy_ready": bool(protocol["valid"]),
+        "deploy_ready": ready,
         "protocol": protocol,
     }
-    DEPLOY_GATE_RESULT.write_text(
-        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    output = json.dumps(payload, indent=2, sort_keys=True)
+    DEPLOY_GATE_RESULT.write_text(output, encoding="utf-8")
     print(json.dumps(payload, sort_keys=True))
-    return 0 if payload["deploy_ready"] else 1
+    return 0 if ready else 1
 
 
 if __name__ == "__main__":
