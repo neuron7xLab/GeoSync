@@ -8,6 +8,7 @@ on:
       - ".github/workflows/cns-release-gate.yml"
       - "conf/cns_program/**"
       - "tools/cns_program/**"
+      - "tests/cns_program/**"
       - "docs/governance/CNS_RELEASE_GATE.md"
       - "reports/CNS_RELEASE_GATE_CONTRACT.md"
   push:
@@ -16,6 +17,7 @@ on:
       - ".github/workflows/cns-release-gate.yml"
       - "conf/cns_program/**"
       - "tools/cns_program/**"
+      - "tests/cns_program/**"
       - "docs/governance/CNS_RELEASE_GATE.md"
       - "reports/CNS_RELEASE_GATE_CONTRACT.md"
 
@@ -69,7 +71,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install runtime dependency
-        run: python -m pip install PyYAML
+        run: python -m pip install PyYAML pytest
 
       - name: Run deterministic CNS release gate
         run: |
@@ -78,3 +80,6 @@ jobs:
           python tools/cns_program/verify_release_manifest.py
           python tools/cns_program/verify_reports_contract.py
           python tools/cns_program/quality_gate.py
+
+      - name: Run CNS regression tests
+        run: python -m pytest -q --confcutdir=tests/cns_program tests/cns_program
