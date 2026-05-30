@@ -57,6 +57,15 @@ jobs:
           python tools/cns_program/verify_reports_contract.py
           python tools/cns_program/quality_gate.py
 
+      - name: Upload CNS evidence artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cns-evidence-python-3.11
+          path: |
+            results/cns_*.json
+          if-no-files-found: error
+          retention-days: 30
+
   cns-release-gate-python-312:
     name: cns-release-gate / python-3.12
     runs-on: ubuntu-latest
@@ -83,3 +92,12 @@ jobs:
 
       - name: Run CNS regression gate
         run: python tools/cns_program/run_regression_gate.py
+
+      - name: Upload CNS evidence artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cns-evidence-python-3.12
+          path: |
+            results/cns_*.json
+          if-no-files-found: error
+          retention-days: 30
