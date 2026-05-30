@@ -43,7 +43,11 @@ def main() -> int:
         ("deterministic_artifacts", 1.0 if deterministic_artifacts else 0.0, 0.15),
     ]
     metrics = [
-        {"name": name, "value": value, "weight": weight}
+        {
+            "name": name,
+            "value": value,
+            "weight": weight,
+        }
         for name, value, weight in metric_specs
     ]
     score = sum(value * weight for _, value, weight in metric_specs)
