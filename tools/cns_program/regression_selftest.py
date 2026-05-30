@@ -36,14 +36,16 @@ def test_release_chain() -> None:
     ]:
         assert_ok(args)
 
-    payload = json.loads((ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8")
+    )
     if payload.get("passed") is not True:
-        raise AssertionError("quality gate did not pass")
+        raise AssertionError("quality gate not green")
     if payload.get("quality_score") != 1.0:
-        raise AssertionError("quality score drifted")
+        raise AssertionError("quality score drift")
 
 
-def test_manifest_negative_case() -> None:
+def test_manifest_altered_case() -> None:
     assert_ok(["tools/cns_program/deploy_release_gate.py"])
     assert_ok(["tools/cns_program/build_release_manifest.py"])
     manifest_path = ROOT / "results/cns_release_manifest.json"
@@ -54,30 +56,32 @@ def test_manifest_negative_case() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         candidate = Path(tmpdir) / "candidate.json"
         candidate.write_text(json.dumps(data), encoding="utf-8")
-        completed = run(["tools/cns_program/verify_release_manifest.py", "--manifest", str(candidate)])
+        completed = run(
+            ["tools/cns_program/verify_release_manifest.py", "--manifest", str(candidate)]
+        )
     if completed.returncode == 0:
-        raise AssertionError("manifest verifier accepted changed artifact")
+        raise AssertionError("altered manifest returned zero")
     payload = json.loads(completed.stdout)
     if payload.get("valid") is not False:
-        raise AssertionError("negative manifest case did not report invalid")
+        raise AssertionError("altered manifest marked valid")
     if not payload.get("errors"):
-        raise AssertionError("negative manifest case did not report errors")
+        raise AssertionError("altered manifest has no errors")
 
 
-def test_reports_negative_case() -> None:
+def test_reports_missing_case() -> None:
     from tools.cns_program.verify_reports_contract import verify_reports
 
     payload = verify_reports((Path("reports/__absent__.md"),))
     if payload.get("valid") is not False:
-        raise AssertionError("missing report case did not report invalid")
+        raise AssertionError("missing report marked valid")
     if not payload.get("errors"):
-        raise AssertionError("missing report case did not report errors")
+        raise AssertionError("missing report has no errors")
 
 
 def main() -> int:
     test_release_chain()
-    test_manifest_negative_case()
-    test_reports_negative_case()
+    test_manifest_altered_case()
+    test_reports_missing_case()
     print(json.dumps({"cns_regression_selftest": "passed"}, sort_keys=True))
     return 0
 
