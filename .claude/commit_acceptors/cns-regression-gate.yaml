@@ -2,13 +2,14 @@ id: cns-regression-gate
 status: ACTIVE
 claim_type: governance
 promise: >-
-  Add CNS release-gate regression tests and wire them into the CNS Release Gate
-  workflow so the runtime gate is covered by pytest on Python 3.12.
+  Add a standalone CNS regression gate and wire it into the CNS Release Gate
+  workflow so the runtime release chain is checked without repository-wide pytest coupling.
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/cns-regression-gate.yaml"
     - path: ".github/workflows/cns-release-gate.yml"
     - path: "tests/cns_program/test_release_gate.py"
+    - path: "tools/cns_program/run_regression_gate.py"
   forbidden_paths:
     - "core/"
     - "trading/"
@@ -16,13 +17,13 @@ diff_scope:
     - "forecast/"
     - "runtime/"
 required_python_symbols:
-  - "tests.cns_program.test_release_gate.test_release_gate_chain_passes"
-  - "tests.cns_program.test_release_gate.test_manifest_verifier_fails_on_hash_tamper"
-  - "tests.cns_program.test_release_gate.test_reports_contract_fails_on_missing_report"
+  - "tools.cns_program.run_regression_gate.regression_chain_passes"
+  - "tools.cns_program.run_regression_gate.regression_missing_report_fails"
+  - "tools.cns_program.run_regression_gate.main"
 expected_signal: >-
   CNS Release Gate, PR Gate, Commit Acceptor Gate, and Physics Invariants pass.
 measurement_command: >-
-  python tools/cns_program/deploy_release_gate.py && python tools/cns_program/build_release_manifest.py && python tools/cns_program/verify_release_manifest.py && python tools/cns_program/verify_reports_contract.py && python tools/cns_program/quality_gate.py && python -m pytest -q --confcutdir=tests/cns_program tests/cns_program
+  python tools/cns_program/run_regression_gate.py
 signal_artifact: "results/cns_quality_gate.json"
 falsifier:
   command: >-
@@ -30,11 +31,12 @@ falsifier:
   description: >-
     Manifest verification must fail closed when the manifest is absent.
 rollback_command: >-
-  python -c "from pathlib import Path; [Path(p).unlink(missing_ok=True) for p in ['.claude/commit_acceptors/cns-regression-gate.yaml', 'tests/cns_program/test_release_gate.py']]"
+  python -c "from pathlib import Path; [Path(p).unlink(missing_ok=True) for p in ['.claude/commit_acceptors/cns-regression-gate.yaml', 'tests/cns_program/test_release_gate.py', 'tools/cns_program/run_regression_gate.py']]"
 rollback_verification_command: >-
-  python -c "from pathlib import Path; raise SystemExit(0 if not Path('tests/cns_program/test_release_gate.py').exists() else 1)"
+  python -c "from pathlib import Path; raise SystemExit(0 if not Path('tools/cns_program/run_regression_gate.py').exists() else 1)"
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/cns-regression-gate.yaml"
 report_path: "results/cns_quality_gate.json"
 evidence:
+  - path: "tools/cns_program/run_regression_gate.py"
   - path: "tests/cns_program/test_release_gate.py"
