@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any, cast
 
 from tools.cns_program.verify_reports_contract import verify_reports
 
@@ -20,6 +21,13 @@ def run(args: list[str]) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         check=False,
     )
+
+
+def load_json_object(text: str) -> dict[str, Any]:
+    payload = json.loads(text)
+    if not isinstance(payload, dict):
+        raise AssertionError("json payload is not an object")
+    return cast(dict[str, Any], payload)
 
 
 def assert_ok(args: list[str]) -> None:
@@ -38,9 +46,8 @@ def verify_release_chain() -> None:
     ]:
         assert_ok(args)
 
-    payload = json.loads(
-        (ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8")
-    )
+    quality_path = ROOT / "results/cns_quality_gate.json"
+    payload = load_json_object(quality_path.read_text(encoding="utf-8"))
     if payload.get("passed") is not True:
         raise AssertionError("quality gate not green")
     if payload.get("quality_score") != 1.0:
@@ -51,18 +58,25 @@ def verify_manifest_altered_case() -> None:
     assert_ok(["tools/cns_program/deploy_release_gate.py"])
     assert_ok(["tools/cns_program/build_release_manifest.py"])
     manifest_path = ROOT / "results/cns_release_manifest.json"
-    data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    first = next(iter(data["sha256"]))
-    data["sha256"][first] = "0" * 64
+    data = load_json_object(manifest_path.read_text(encoding="utf-8"))
+    sha_map = data.get("sha256")
+    if not isinstance(sha_map, dict) or not sha_map:
+        raise AssertionError("manifest sha map missing")
+    first = next(iter(sha_map))
+    sha_map[first] = "0" * 64
 
     with tempfile.TemporaryDirectory() as tmpdir:
         candidate = Path(tmpdir) / "candidate.json"
         candidate.write_text(json.dumps(data), encoding="utf-8")
-        args = ["tools/cns_program/verify_release_manifest.py", "--manifest", str(candidate)]
+        args = [
+            "tools/cns_program/verify_release_manifest.py",
+            "--manifest",
+            str(candidate),
+        ]
         completed = run(args)
     if completed.returncode == 0:
         raise AssertionError("altered manifest returned zero")
-    payload = json.loads(completed.stdout)
+    payload = load_json_object(completed.stdout)
     if payload.get("valid") is not False:
         raise AssertionError("altered manifest marked valid")
     if not payload.get("errors"):
