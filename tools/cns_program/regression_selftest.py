@@ -7,6 +7,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from tools.cns_program.verify_reports_contract import verify_reports
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -26,7 +28,7 @@ def assert_ok(args: list[str]) -> None:
         raise AssertionError(completed.stderr or completed.stdout)
 
 
-def test_release_chain() -> None:
+def verify_release_chain() -> None:
     for args in [
         ["tools/cns_program/deploy_release_gate.py"],
         ["tools/cns_program/build_release_manifest.py"],
@@ -45,7 +47,7 @@ def test_release_chain() -> None:
         raise AssertionError("quality score drift")
 
 
-def test_manifest_altered_case() -> None:
+def verify_manifest_altered_case() -> None:
     assert_ok(["tools/cns_program/deploy_release_gate.py"])
     assert_ok(["tools/cns_program/build_release_manifest.py"])
     manifest_path = ROOT / "results/cns_release_manifest.json"
@@ -56,9 +58,8 @@ def test_manifest_altered_case() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         candidate = Path(tmpdir) / "candidate.json"
         candidate.write_text(json.dumps(data), encoding="utf-8")
-        completed = run(
-            ["tools/cns_program/verify_release_manifest.py", "--manifest", str(candidate)]
-        )
+        args = ["tools/cns_program/verify_release_manifest.py", "--manifest", str(candidate)]
+        completed = run(args)
     if completed.returncode == 0:
         raise AssertionError("altered manifest returned zero")
     payload = json.loads(completed.stdout)
@@ -68,9 +69,7 @@ def test_manifest_altered_case() -> None:
         raise AssertionError("altered manifest has no errors")
 
 
-def test_reports_missing_case() -> None:
-    from tools.cns_program.verify_reports_contract import verify_reports
-
+def verify_reports_missing_case() -> None:
     payload = verify_reports((Path("reports/__absent__.md"),))
     if payload.get("valid") is not False:
         raise AssertionError("missing report marked valid")
@@ -79,9 +78,9 @@ def test_reports_missing_case() -> None:
 
 
 def main() -> int:
-    test_release_chain()
-    test_manifest_altered_case()
-    test_reports_missing_case()
+    verify_release_chain()
+    verify_manifest_altered_case()
+    verify_reports_missing_case()
     print(json.dumps({"cns_regression_selftest": "passed"}, sort_keys=True))
     return 0
 
