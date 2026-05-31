@@ -3,9 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+HEX = set("0123456789abcdef")
+
+
+def load_data() -> dict:
+    return json.loads(Path("governance/readiness_register.json").read_text(encoding="utf-8"))
+
 
 def test_readiness_register_is_structured() -> None:
-    data = json.loads(Path("governance/readiness_register.json").read_text(encoding="utf-8"))
+    data = load_data()
 
     assert data["schema_version"] == "readiness.v1"
     assert data["system"] == "GeoSync"
@@ -24,12 +30,31 @@ def test_readiness_register_is_structured() -> None:
         assert len(entry["summary"]) >= 20
         assert isinstance(entry["required_artifacts"], list)
         assert entry["required_artifacts"]
-        if entry["status"] == "closed":
-            assert entry.get("evidence_artifacts")
 
 
 def test_readiness_register_starts_without_promotion() -> None:
-    data = json.loads(Path("governance/readiness_register.json").read_text(encoding="utf-8"))
+    data = load_data()
 
     assert data["current_level"] != data["target_direction"]
     assert any(entry["status"] == "open" for entry in data["entries"])
+
+
+def test_evidence_artifact_records_are_structured_when_present() -> None:
+    data = load_data()
+
+    for entry in data["entries"]:
+        records = entry.get("evidence_artifacts")
+        if records is None:
+            continue
+        assert isinstance(records, list)
+        assert records or entry["status"] == "open"
+        for record in records:
+            assert isinstance(record, dict)
+            for key in ("kind", "path", "verification_command"):
+                assert isinstance(record.get(key), str)
+                assert record[key].strip()
+            digest = record.get("sha256")
+            assert isinstance(digest, str)
+            assert len(digest) == 64
+            assert digest == digest.lower()
+            assert set(digest) <= HEX
