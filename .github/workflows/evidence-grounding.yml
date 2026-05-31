@@ -29,7 +29,7 @@ jobs:
         run: python tools/claims/validate_claims_have_evidence.py | tee evidence-validator.log
       - name: Upload validator log
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: evidence-validator-log
           path: evidence-validator.log
