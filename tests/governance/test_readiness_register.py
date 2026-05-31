@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 HEX = set("0123456789abcdef")
@@ -70,3 +72,15 @@ def test_readiness_note_mentions_every_register_entry() -> None:
 
     for phrase in ("Boundary", "Register", "Evidence", "Gate", "Review"):
         assert phrase in note_text
+
+
+def test_readiness_checker_runs_under_optimized_python() -> None:
+    result = subprocess.run(
+        [sys.executable, "-O", "tools/check_readiness_register.py"],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "readiness register ok" in result.stdout
