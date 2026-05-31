@@ -58,11 +58,27 @@ jobs:
           python tools/cns_program/quality_gate.py
 
       - name: Upload CNS evidence artifacts
+        id: upload-cns-evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: cns-evidence-python-3.11
           path: |
             results/cns_*.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Build CNS evidence index
+        run: |
+          python tools/cns_program/build_evidence_index.py \
+            --python-version 3.11 \
+            --artifact-name cns-evidence-python-3.11 \
+            --artifact-digest "${{ steps.upload-cns-evidence.outputs.artifact-digest }}"
+
+      - name: Upload CNS evidence index
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cns-evidence-index-python-3.11
+          path: results/cns_evidence_index.json
           if-no-files-found: error
           retention-days: 30
 
@@ -94,10 +110,26 @@ jobs:
         run: python tools/cns_program/run_regression_gate.py
 
       - name: Upload CNS evidence artifacts
+        id: upload-cns-evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: cns-evidence-python-3.12
           path: |
             results/cns_*.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Build CNS evidence index
+        run: |
+          python tools/cns_program/build_evidence_index.py \
+            --python-version 3.12 \
+            --artifact-name cns-evidence-python-3.12 \
+            --artifact-digest "${{ steps.upload-cns-evidence.outputs.artifact-digest }}"
+
+      - name: Upload CNS evidence index
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cns-evidence-index-python-3.12
+          path: results/cns_evidence_index.json
           if-no-files-found: error
           retention-days: 30
