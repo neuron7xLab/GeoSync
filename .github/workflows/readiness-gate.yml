@@ -32,4 +32,4 @@ jobs:
       - name: Test readiness register contract
         run: |
           set -euo pipefail
-          python -m pytest -q tests/governance/test_readiness_register.py
+          python -m pytest -q tests/governance/test_readiness_register.py --confcutdir=tests/governance
