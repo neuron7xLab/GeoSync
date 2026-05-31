@@ -28,6 +28,14 @@ This document does not promote the repository. It opens the path by making the r
 | OPS-001 | Operational readiness evidence is not complete. | Runbooks, recovery drills, runtime safety checks, and retained execution evidence. |
 | EXT-001 | Independent review must be tied to remediation evidence. | Finding-to-commit map and post-remediation verification artifacts. |
 
+## Integration ladder
+
+1. Boundary: keep the current claim level explicit.
+2. Register: keep each readiness gap named and tracked.
+3. Evidence: require structured artifact records for any resolved entry.
+4. Gate: run the readiness checker in CI.
+5. Review: map external findings to committed remediation artifacts.
+
 ## Non-goals for this PR
 
 - No claim promotion.

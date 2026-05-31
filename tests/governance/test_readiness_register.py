@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 HEX = set("0123456789abcdef")
+NOTE = Path("docs/readiness_note.md")
 
 
 def load_data() -> dict:
@@ -58,3 +59,14 @@ def test_evidence_artifact_records_are_structured_when_present() -> None:
             assert len(digest) == 64
             assert digest == digest.lower()
             assert set(digest) <= HEX
+
+
+def test_readiness_note_mentions_every_register_entry() -> None:
+    data = load_data()
+    note_text = NOTE.read_text(encoding="utf-8")
+
+    for entry in data["entries"]:
+        assert entry["id"] in note_text
+
+    for phrase in ("Boundary", "Register", "Evidence", "Gate", "Review"):
+        assert phrase in note_text
