@@ -10,6 +10,10 @@ This report is intentionally static and small. Dynamic evidence is generated und
 - reports contract validation
 - weighted quality decision
 
+## Evidence boundary
+
+Runtime JSON evidence must be regenerated from the current checkout. A stale `results/` directory is not a release witness.
+
 ## Non-goals
 
 - no clinical claim
