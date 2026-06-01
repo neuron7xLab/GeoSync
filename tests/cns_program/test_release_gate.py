@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 from tools.cns_program.verify_reports_contract import verify_reports
 
@@ -20,6 +21,13 @@ def run(args: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
+def load_json_object(text: str) -> dict[str, Any]:
+    payload = json.loads(text)
+    if not isinstance(payload, dict):
+        raise AssertionError("expected JSON object")
+    return cast(dict[str, Any], payload)
+
+
 def test_release_gate_chain_passes() -> None:
     for args in [
         ["tools/cns_program/deploy_release_gate.py"],
@@ -31,7 +39,7 @@ def test_release_gate_chain_passes() -> None:
         completed = run(args)
         assert completed.returncode == 0, completed.stderr or completed.stdout
 
-    payload = json.loads(
+    payload = load_json_object(
         (ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8")
     )
     assert payload["passed"] is True
@@ -42,19 +50,24 @@ def test_manifest_verifier_fails_on_digest_mismatch(tmp_path: Path) -> None:
     assert run(["tools/cns_program/deploy_release_gate.py"]).returncode == 0
     assert run(["tools/cns_program/build_release_manifest.py"]).returncode == 0
     manifest_path = ROOT / "results/cns_release_manifest.json"
-    data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    first = next(iter(data["sha256"]))
-    data["sha256"][first] = "0" * 64
+    data = load_json_object(manifest_path.read_text(encoding="utf-8"))
+    sha_map = data["sha256"]
+    assert isinstance(sha_map, dict)
+    first = next(iter(sha_map))
+    sha_map[first] = "0" * 64
     bad_manifest = tmp_path / "bad_manifest.json"
     bad_manifest.write_text(json.dumps(data), encoding="utf-8")
     completed = run(
         ["tools/cns_program/verify_release_manifest.py", "--manifest", str(bad_manifest)]
     )
     assert completed.returncode != 0
-    payload = json.loads(completed.stdout)
+    payload = load_json_object(completed.stdout)
     assert payload["valid"] is False
+    errors = payload["errors"]
+    assert isinstance(errors, list)
     assert any(
-        error.startswith("artifact_hash_mismatch:") for error in payload["errors"]
+        isinstance(error, str) and error.startswith("artifact_hash_mismatch:")
+        for error in errors
     )
 
 
