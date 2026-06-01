@@ -38,9 +38,7 @@ def test_release_gate_chain_passes() -> None:
         completed = run(args)
         assert completed.returncode == 0, completed.stderr or completed.stdout
 
-    payload = load_json_object(
-        (ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8")
-    )
+    payload = load_json_object((ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8"))
     assert payload["passed"] is True
     assert payload["quality_score"] == 1.0
 
@@ -50,16 +48,16 @@ def test_manifest_verifier_fails_on_digest_mismatch(tmp_path: Path) -> None:
     assert run(["tools/cns_program/build_release_manifest.py"]).returncode == 0
     manifest_path = ROOT / "results/cns_release_manifest.json"
     data = load_json_object(manifest_path.read_text(encoding="utf-8"))
-    raw_sha_map = data["sha256"]
-    assert isinstance(raw_sha_map, dict)
-    sha_map = {str(key): str(value) for key, value in raw_sha_map.items()}
-    first = next(iter(sha_map))
-    sha_map[first] = "0" * 64
-    data["sha256"] = sha_map
-    bad_manifest = tmp_path / "bad_manifest.json"
-    bad_manifest.write_text(json.dumps(data), encoding="utf-8")
+    raw_digest_map = data["sha256"]
+    assert isinstance(raw_digest_map, dict)
+    digest_map = {str(key): str(value) for key, value in raw_digest_map.items()}
+    first = next(iter(digest_map))
+    digest_map[first] = "0" * 64
+    data["sha256"] = digest_map
+    edited_file = tmp_path / "edited_release_manifest.json"
+    edited_file.write_text(json.dumps(data), encoding="utf-8")
     completed = run(
-        ["tools/cns_program/verify_release_manifest.py", "--manifest", str(bad_manifest)]
+        ["tools/cns_program/verify_release_manifest.py", "--manifest", str(edited_file)]
     )
     assert completed.returncode != 0
     payload = load_json_object(completed.stdout)
@@ -67,8 +65,7 @@ def test_manifest_verifier_fails_on_digest_mismatch(tmp_path: Path) -> None:
     errors = payload["errors"]
     assert isinstance(errors, list)
     assert any(
-        isinstance(error, str) and error.startswith("artifact_hash_mismatch:")
-        for error in errors
+        isinstance(error, str) and error.startswith("artifact_hash_mismatch:") for error in errors
     )
 
 
