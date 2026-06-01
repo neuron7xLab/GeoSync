@@ -7,7 +7,7 @@ import json
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from tools.cns_program.cns_contract import MANIFEST_VERIFICATION_RESULT
 
@@ -22,6 +22,17 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def load_json_object(path: Path) -> dict[str, object]:
+    raw_data: object = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw_data, dict):
+        raise SimpleManifestError("manifest_not_object")
+    return {str(key): value for key, value in raw_data.items()}
+
+
+class SimpleManifestError(ValueError):
+    """Raised when the CNS release manifest cannot be structurally verified."""
+
+
 def verify(path: Path) -> dict[str, Any]:
     errors: list[str] = []
     if not path.exists():
@@ -33,23 +44,20 @@ def verify(path: Path) -> dict[str, Any]:
             "total_artifacts": 0,
         }
 
-    raw_data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(raw_data, dict):
-        errors.append("manifest_not_object")
-        raw_data = {}
-    data = cast(dict[str, Any], raw_data)
+    try:
+        data = load_json_object(path)
+    except SimpleManifestError as exc:
+        errors.append(str(exc))
+        data = {}
 
     raw_sha_map = data.get("sha256")
     if not isinstance(raw_sha_map, dict) or not raw_sha_map:
         errors.append("sha256_map_missing")
         raw_sha_map = {}
-    sha_map = cast(dict[Any, Any], raw_sha_map)
+    sha_map = {str(key): value for key, value in raw_sha_map.items()}
 
     checked = 0
     for raw_path, expected in sha_map.items():
-        if not isinstance(raw_path, str):
-            errors.append("artifact_path_not_string")
-            continue
         if not isinstance(expected, str) or not SHA256_RE.match(expected):
             errors.append(f"sha256_invalid:{raw_path}")
             continue
