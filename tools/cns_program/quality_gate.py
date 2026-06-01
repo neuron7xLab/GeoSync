@@ -45,8 +45,7 @@ def main() -> int:
         ("deterministic_artifacts", 1.0 if deterministic_artifacts else 0.0, 0.15),
     ]
     metrics = [
-        {"name": name, "value": value, "weight": weight}
-        for name, value, weight in metric_specs
+        {"name": name, "value": value, "weight": weight} for name, value, weight in metric_specs
     ]
     score = sum(value * weight for _, value, weight in metric_specs)
     passed = score >= 0.80 and all(value == 1.0 for _, value, _ in metric_specs)
@@ -57,9 +56,7 @@ def main() -> int:
         "passed": passed,
         "metrics": metrics,
     }
-    QUALITY_GATE_RESULT.write_text(
-        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    QUALITY_GATE_RESULT.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     print(json.dumps(payload, sort_keys=True))
     return 0 if passed else 1
 
