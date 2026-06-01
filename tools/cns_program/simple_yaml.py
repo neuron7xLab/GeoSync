@@ -136,7 +136,7 @@ def _parse_list(
         elif ":" in item_text and not item_text.startswith(('"', "'")):
             key, raw_value = _split_mapping_item(item_text, line_number)
             item_dict: dict[str, Any] = {
-                key: _parse_scalar(raw_value) if raw_value else {}
+                key: _parse_scalar(raw_value) if raw_value else {},
             }
             if index < len(lines) and lines[index][0] > current_indent:
                 tail, index = _parse_dict(lines, index, current_indent + 2)
