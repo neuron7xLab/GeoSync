@@ -8,7 +8,9 @@ from pathlib import Path
 from tools.cns_program.cns_contract import REPORTS_CONTRACT_RESULT, REQUIRED_REPORTS
 
 
-def verify_reports(required_reports: tuple[Path, ...] = REQUIRED_REPORTS) -> dict[str, object]:
+def verify_reports(
+    required_reports: tuple[Path, ...] = REQUIRED_REPORTS,
+) -> dict[str, object]:
     errors: list[str] = []
     checked = 0
     for path in required_reports:
