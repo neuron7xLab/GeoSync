@@ -4,7 +4,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
 from tools.cns_program.verify_reports_contract import verify_reports
 
@@ -21,8 +20,8 @@ def run(args: list[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
-def load_json_object(text: str) -> dict[str, Any]:
-    payload = json.loads(text)
+def load_json_object(text: str) -> dict[str, object]:
+    payload: object = json.loads(text)
     if not isinstance(payload, dict):
         raise AssertionError("expected JSON object")
     return {str(key): value for key, value in payload.items()}
