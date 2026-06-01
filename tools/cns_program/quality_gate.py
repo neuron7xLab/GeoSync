@@ -6,10 +6,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-DEPLOY = Path("results/cns_deploy_gate.json")
-MANIFEST = Path("results/cns_manifest_verification.json")
-REPORTS = Path("results/cns_reports_contract.json")
-OUT = Path("results/cns_quality_gate.json")
+from tools.cns_program.cns_contract import (
+    DEPLOY_GATE_RESULT,
+    MANIFEST_VERIFICATION_RESULT,
+    QUALITY_GATE_RESULT,
+    REPORTS_CONTRACT_RESULT,
+)
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -20,9 +22,9 @@ def load(path: Path) -> dict[str, Any]:
 
 
 def main() -> int:
-    deploy = load(DEPLOY)
-    manifest = load(MANIFEST)
-    reports = load(REPORTS)
+    deploy = load(DEPLOY_GATE_RESULT)
+    manifest = load(MANIFEST_VERIFICATION_RESULT)
+    reports = load(REPORTS_CONTRACT_RESULT)
 
     protocol = deploy.get("protocol", {})
     if not isinstance(protocol, dict):
@@ -43,12 +45,7 @@ def main() -> int:
         ("deterministic_artifacts", 1.0 if deterministic_artifacts else 0.0, 0.15),
     ]
     metrics = [
-        {
-            "name": name,
-            "value": value,
-            "weight": weight,
-        }
-        for name, value, weight in metric_specs
+        {"name": name, "value": value, "weight": weight} for name, value, weight in metric_specs
     ]
     score = sum(value * weight for _, value, weight in metric_specs)
     passed = score >= 0.80 and all(value == 1.0 for _, value, _ in metric_specs)
@@ -59,7 +56,7 @@ def main() -> int:
         "passed": passed,
         "metrics": metrics,
     }
-    OUT.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    QUALITY_GATE_RESULT.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     print(json.dumps(payload, sort_keys=True))
     return 0 if passed else 1
 

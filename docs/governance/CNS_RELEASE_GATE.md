@@ -1,10 +1,23 @@
 # CNS Release Gate
 
-## Scope
+## Claim boundary
 
-This component validates repository release-gate artifacts for the CNS program. The gate checks configuration state coverage, manifest integrity, report presence, and a weighted quality verdict.
+This component is a deterministic release-readiness gate for CNS governance artifacts. It does not claim biological validity, therapeutic effect, trading performance, or production profitability.
 
-## Local verification
+## Production claim
+
+GeoSync can build and verify a CNS release evidence bundle containing protocol validation, manifest hashes, report-contract status, and a weighted quality verdict.
+
+## Falsification condition
+
+The claim is falsified if any of the following occurs on a clean checkout:
+
+1. `python tools/cns_program/deploy_release_gate.py` exits non-zero.
+2. `python tools/cns_program/build_release_manifest.py` cannot create the manifest.
+3. `python tools/cns_program/verify_release_manifest.py` fails on the freshly generated manifest.
+4. `python tools/cns_program/quality_gate.py` returns `passed: false`.
+
+## One-command local gate
 
 ```bash
 python tools/cns_program/deploy_release_gate.py && \
@@ -15,7 +28,7 @@ python tools/cns_program/quality_gate.py && \
 python -m pytest -q tests/cns_program
 ```
 
-## Runtime artifacts
+## Evidence artifacts
 
 - `results/cns_deploy_gate.json`
 - `results/cns_release_manifest.json`
@@ -23,6 +36,10 @@ python -m pytest -q tests/cns_program
 - `results/cns_reports_contract.json`
 - `results/cns_quality_gate.json`
 
-## Merge rule
+## Proof boundary
 
-Merge is valid when the CNS Release Gate workflow passes on Python 3.11 and Python 3.12.
+The generated JSON files are transient evidence for the current checkout. They are not permanent truth, not a release certificate, and not a substitute for rerunning the gate after any relevant source change.
+
+## Merge policy
+
+Merge is valid only when the GitHub Actions CNS Release Gate is green on Python 3.11 and 3.12.
