@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 
 class SimpleYAMLError(ValueError):
@@ -159,7 +159,7 @@ def load_yaml_text(text: str) -> dict[str, Any]:
         raise SimpleYAMLError(f"unparsed content begins at line {line_number}")
     if not isinstance(parsed, dict):
         raise SimpleYAMLError("top-level YAML document must be a mapping")
-    return parsed
+    return {str(key): value for key, value in parsed.items()}
 
 
 def load_yaml_file(path: str | Path) -> dict[str, Any]:
@@ -168,9 +168,9 @@ def load_yaml_file(path: str | Path) -> dict[str, Any]:
         import yaml  # type: ignore[import-untyped]
     except ImportError:
         return load_yaml_text(Path(path).read_text(encoding="utf-8"))
-    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    data: object = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     if data is None:
         return {}
     if not isinstance(data, dict):
         raise SimpleYAMLError("top-level YAML document must be a mapping")
-    return cast(dict[str, Any], data)
+    return {str(key): value for key, value in data.items()}
