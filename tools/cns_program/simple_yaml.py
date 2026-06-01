@@ -33,9 +33,7 @@ def _prepare_lines(text: str) -> list[tuple[int, str, int]]:
             continue
         indent = len(line) - len(line.lstrip(" "))
         if indent % 2 != 0:
-            raise SimpleYAMLError(
-                f"indent must use multiples of two spaces at line {line_number}"
-            )
+            raise SimpleYAMLError(f"indent must use multiples of two spaces at line {line_number}")
         prepared.append((indent, line.strip(), line_number))
     return prepared
 
@@ -73,9 +71,7 @@ def _split_mapping_item(text: str, line_number: int) -> tuple[str, str]:
     return key, value.strip()
 
 
-def _parse_block(
-    lines: list[tuple[int, str, int]], index: int, indent: int
-) -> tuple[Any, int]:
+def _parse_block(lines: list[tuple[int, str, int]], index: int, indent: int) -> tuple[Any, int]:
     if index >= len(lines):
         return {}, index
     current_indent, text, line_number = lines[index]
