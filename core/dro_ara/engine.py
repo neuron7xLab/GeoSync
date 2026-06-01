@@ -26,10 +26,18 @@ References:
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import json
+import math
 from enum import Enum
 from typing import Any, Final, Iterator, NamedTuple
 
 import numpy as np
+from geosync_hpc.control.action_result_comparator import (
+    ExpectedResultModel,
+    ObservedActionResult,
+    accept_action_result,
+)
 from numpy.typing import NDArray
 
 __all__ = [
@@ -50,6 +58,9 @@ __all__ = [
     "ADF_CV_5PCT",
     "ADF_MAX_LAGS",
     "RS_LONG_THRESH",
+    "FREE_ENERGY_CRITICAL",
+    "VARIATIONAL_ENERGY_FLOOR",
+    "VARIATIONAL_ENERGY_CEILING",
 ]
 
 MAX_DEPTH: Final[int] = 32
@@ -63,6 +74,9 @@ H_DRIFT: Final[float] = 0.55
 ADF_CV_5PCT: Final[float] = -2.86
 ADF_MAX_LAGS: Final[int] = 4
 RS_LONG_THRESH: Final[float] = 0.33
+FREE_ENERGY_CRITICAL: Final[float] = 0.25
+VARIATIONAL_ENERGY_FLOOR: Final[float] = 0.05
+VARIATIONAL_ENERGY_CEILING: Final[float] = 2.0
 
 
 class Regime(str, Enum):
@@ -237,18 +251,118 @@ def _windows(p: NDArray[np.float64], w: int, s: int) -> Iterator[NDArray[np.floa
         yield p[i : i + w]
 
 
+class _CausalChronology:
+    """Monotone hash-chain allocator for DRO-ARA internal events.
+
+    The public ``geosync_observe`` API is still deterministic for replay, but
+    sequence numbers are now allocated from observed event transitions and bound
+    into a SHA-256 chain instead of being derived from a loop-index formula.
+    """
+
+    def __init__(self) -> None:
+        self._next_seq = 1
+        self.chain_hash = "0" * 64
+
+    def bind(self, phase: str, payload: dict[str, float | int | str]) -> int:
+        seq = self._next_seq
+        self._next_seq += 1
+        body = {"parent": self.chain_hash, "phase": phase, "seq": seq, "payload": payload}
+        encoded = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        self.chain_hash = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+        return seq
+
+
 class _ARA(NamedTuple):
     pred: float
     regime: Regime
     errors: tuple[float, ...]
+    variational_energy: tuple[float, ...]
     stable: int
+    belief_mean: float
+    belief_variance: float
+    adaptive_threshold: float
 
 
-def _ara_step(a: _ARA, actual: State, alpha: float) -> _ARA:
-    err = abs(actual.gamma - a.pred)
-    stable = a.stable + 1 if err < EPSILON_H else 0
-    pred = alpha * actual.gamma + (1 - alpha) * a.pred
-    return _ARA(round(pred, 6), actual.regime, a.errors + (round(err, 6),), stable)
+def _adaptive_energy_threshold(actual: State) -> float:
+    """Context-conditioned free-energy gate derived from the current state."""
+
+    phase_transition_pressure = 1.0 + abs(actual.H - 0.5)
+    evidence_quality = 0.5 + actual.r2
+    risk_capacity = 0.5 + actual.rs
+    threshold = FREE_ENERGY_CRITICAL * evidence_quality * risk_capacity / phase_transition_pressure
+    return round(float(np.clip(threshold, VARIATIONAL_ENERGY_FLOOR, VARIATIONAL_ENERGY_CEILING)), 6)
+
+
+def _variational_energy(error: float, belief_mean: float, belief_variance: float, predicted: float) -> float:
+    """Gaussian variational surrogate: accuracy surprise + complexity penalty."""
+
+    variance = max(belief_variance, 1e-9)
+    surprise = 0.5 * (math.log(2.0 * math.pi * variance) + (error * error) / variance)
+    complexity = 0.5 * ((predicted - belief_mean) ** 2) / variance
+    return round(max(0.0, float(surprise + complexity)), 6)
+
+
+def _update_belief_variance(previous: float, error: float, actual: State) -> float:
+    context_floor = max(EPSILON_H * EPSILON_H, (1.0 - actual.r2 + 1e-6) * 0.05)
+    updated = 0.85 * previous + 0.15 * max(error * error, context_floor)
+    return round(float(np.clip(updated, 1e-6, 4.0)), 6)
+
+
+def _ara_comparator_error(predicted_gamma: float, actual: State, chronology: _CausalChronology) -> float:
+    """Return deterministic ActionResultComparator error for one DRO-ARA event."""
+
+    model_seq = chronology.bind(
+        "MODEL_SEALED",
+        {"predicted_gamma": round(predicted_gamma, 6), "H": actual.H, "r2": actual.r2, "rs": actual.rs},
+    )
+    action_seq = chronology.bind("ACTION_DISPATCHED", {"predicted_gamma": round(predicted_gamma, 6)})
+    observed_seq = chronology.bind("AFFERENTATION_RECEIVED", {"actual_gamma": actual.gamma})
+    expected = ExpectedResultModel(
+        action_id=f"dro-ara:{model_seq}:{action_seq}:{observed_seq}",
+        action_type="regime_observe",
+        expected_result=(predicted_gamma,),
+        expected_result_variance=(1.0,),
+        context_signature=(actual.H, actual.r2, actual.rs),
+        model_created_seq=model_seq,
+        action_started_seq=action_seq,
+        error_threshold=EPSILON_H,
+        rollback_threshold=max(EPSILON_H * 10.0, 1.0),
+    )
+    observed = ObservedActionResult(
+        action_id=expected.action_id,
+        observed_seq=observed_seq,
+        observed_result=(actual.gamma,),
+        reverse_afferentation_present=True,
+    )
+    witness = accept_action_result(expected, observed)
+    if witness.comparator_error is None:
+        raise ValueError(f"DRO-ARA comparator failed closed: {witness.reason}")
+    return witness.comparator_error
+
+
+def _ara_step(a: _ARA, actual: State, alpha: float, chronology: _CausalChronology) -> _ARA:
+    """Advance one bounded ARA step with comparator-backed chronology."""
+
+    err = _ara_comparator_error(a.pred, actual, chronology)
+    err_rounded = round(float(err), 6)
+    adaptive_threshold = _adaptive_energy_threshold(actual)
+    energy = _variational_energy(err_rounded, a.belief_mean, a.belief_variance, a.pred)
+    next_errors = (a.errors + (err_rounded,))[-STABLE_RUNS:]
+    next_energy = (a.variational_energy + (energy,))[-STABLE_RUNS:]
+    stable = a.stable + 1 if err_rounded < EPSILON_H and energy <= adaptive_threshold else 0
+    pred = round(float(a.pred + alpha * (actual.gamma - a.pred)), 6)
+    belief_mean = round(float(a.belief_mean + alpha * (actual.gamma - a.belief_mean)), 6)
+    belief_variance = _update_belief_variance(a.belief_variance, err_rounded, actual)
+    return _ARA(
+        pred=pred,
+        regime=actual.regime,
+        errors=next_errors,
+        variational_energy=next_energy,
+        stable=stable,
+        belief_mean=belief_mean,
+        belief_variance=belief_variance,
+        adaptive_threshold=adaptive_threshold,
+    )
 
 
 def _converged(a: _ARA) -> bool:
@@ -256,15 +370,16 @@ def _converged(a: _ARA) -> bool:
 
 
 def _free_energy(a: _ARA) -> float:
-    if not a.errors:
-        return float("inf")
-    return round(float(np.mean(a.errors[-STABLE_RUNS:])), 6)
+    if not a.variational_energy:
+        return 0.0
+    return round(float(np.mean(a.variational_energy[-STABLE_RUNS:])), 6)
 
 
 def _trend(a: _ARA) -> str | None:
-    if len(a.errors) < 3:
+    signal = a.variational_energy if len(a.variational_energy) >= 2 else a.errors
+    if len(signal) < 2:
         return None
-    w = a.errors[-4:]
+    w = signal[-4:]
     if w[-1] < w[0] * 0.7:
         return "CONVERGING"
     if w[-1] > w[0] * 1.3:
@@ -272,18 +387,30 @@ def _trend(a: _ARA) -> str | None:
     return "STABLE"
 
 
-def _dro(price: NDArray[np.float64], window: int, step: int, alpha: float) -> tuple[State, _ARA]:
+def _dro(price: NDArray[np.float64], window: int, step: int, alpha: float) -> tuple[State, _ARA, str]:
     gen = _windows(price, window, step)
+    chronology = _CausalChronology()
     s = State.from_window(next(gen))
-    ara = _ARA(s.gamma, s.regime, (), 0)
+    initial_variance = max(EPSILON_H * EPSILON_H, 1.0 - s.r2 + 1e-6)
+    ara = _ARA(s.gamma, s.regime, (), (), 0, s.gamma, round(initial_variance, 6), _adaptive_energy_threshold(s))
     for depth, w in enumerate(gen):
         if depth >= MAX_DEPTH:
             break
         s = State.from_window(w)
-        ara = _ara_step(ara, s, alpha)
+        ara = _ara_step(ara, s, alpha, chronology)
         if _converged(ara):
             break
-    return s, ara
+    return s, ara, chronology.chain_hash
+
+
+def _recovery_action(free_energy: float, threshold: float, belief_variance: float) -> str:
+    """Return the bounded generative-recovery action for the current belief state."""
+
+    if free_energy > threshold:
+        return "REDUCE_RISK"
+    if free_energy > threshold * 0.5 or belief_variance > threshold:
+        return "EXPAND_CONTEXT"
+    return "ALLOW_MODEL_UPDATE"
 
 
 def geosync_observe(
@@ -309,29 +436,47 @@ def geosync_observe(
     arr = _validate(price, min_len=window + step)
     N = (len(arr) - window) // step
     alpha = 2.0 / (N + 1)
-    s, ara = _dro(arr, window, step, alpha)
+    s, ara, chronology_hash = _dro(arr, window, step, alpha)
     trend = _trend(ara)
+    free_energy = _free_energy(ara)
+    dynamic_free_energy_threshold = ara.adaptive_threshold
+    circuit_breaker = free_energy > dynamic_free_energy_threshold
 
-    if s.regime == Regime.CRITICAL and s.rs > RS_LONG_THRESH and trend in ("CONVERGING", "STABLE"):
-        signal = Signal.LONG
-    elif s.regime == Regime.DRIFT and trend == "DIVERGING":
-        signal = Signal.SHORT
-    elif trend in ("CONVERGING", "STABLE"):
-        signal = Signal.HOLD
-    else:
+    if circuit_breaker:
+        regime = Regime.INVALID
+        risk_scalar_value = 0.0
         signal = Signal.REDUCE
+        converged = False
+    else:
+        regime = s.regime
+        risk_scalar_value = s.rs
+        converged = _converged(ara)
+        if s.regime == Regime.CRITICAL and s.rs > RS_LONG_THRESH and trend in ("CONVERGING", "STABLE"):
+            signal = Signal.LONG
+        elif s.regime == Regime.DRIFT and trend == "DIVERGING":
+            signal = Signal.SHORT
+        elif trend in ("CONVERGING", "STABLE"):
+            signal = Signal.HOLD
+        else:
+            signal = Signal.REDUCE
 
     return {
         "gamma": s.gamma,
         "H": s.H,
         "r2_dfa": s.r2,
-        "regime": s.regime.value,
-        "risk_scalar": s.rs,
+        "regime": regime.value,
+        "risk_scalar": risk_scalar_value,
         "stationary": s.stationary,
         "signal": signal.value,
-        "free_energy": _free_energy(ara),
+        "free_energy": free_energy,
+        "free_energy_circuit_breaker": circuit_breaker,
+        "dynamic_free_energy_threshold": dynamic_free_energy_threshold,
+        "belief_mean": ara.belief_mean,
+        "belief_variance": ara.belief_variance,
+        "causal_chronology_hash": chronology_hash,
+        "recovery_action": _recovery_action(free_energy, dynamic_free_energy_threshold, ara.belief_variance),
         "ara_steps": len(ara.errors),
-        "converged": _converged(ara),
+        "converged": converged,
         "trend": trend,
         "alpha_ema": round(alpha, 6),
     }

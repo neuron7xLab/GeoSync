@@ -822,3 +822,104 @@ def test_dep_manifest_mixed_change_partial_binding(tmp_path: Path) -> None:
         _file_loader_factory({"src/demo.py": "import os\n"}),
     )
     assert res.ok, res.errors
+
+
+def test_cli_acceptor_id_scopes_validation_warnings(tmp_path: Path) -> None:
+    """--acceptor-id validates one acceptor without unrelated evidence warnings."""
+
+    sub = tmp_path / "commit_acceptors"
+    sub.mkdir()
+    selected = _valid_acceptor(id="selected")
+    selected["ledger_path"] = ".claude/commit_acceptors/selected.yaml"
+    selected["signal_artifact"] = "README.md"
+    selected["evidence"] = []
+    unrelated = _valid_acceptor(id="unrelated")
+    unrelated["ledger_path"] = ".claude/commit_acceptors/unrelated.yaml"
+    unrelated["signal_artifact"] = "tmp/missing-unrelated.log"
+    unrelated["evidence"] = [{"path": "tmp/missing-unrelated.log"}]
+    (sub / "selected.yaml").write_text(yaml.safe_dump(selected), encoding="utf-8")
+    (sub / "unrelated.yaml").write_text(yaml.safe_dump(unrelated), encoding="utf-8")
+    policy_path = tmp_path / "policy.yaml"
+    policy_path.write_text(yaml.safe_dump(POLICY), encoding="utf-8")
+    out = tmp_path / "summary.json"
+
+    rc = main(
+        [
+            str(sub),
+            "--policy",
+            str(policy_path),
+            "--summary-out",
+            str(out),
+            "--template",
+            "",
+            "--acceptor-id",
+            "selected",
+        ]
+    )
+
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert rc == 0
+    assert payload["ok"] is True
+    assert payload["warnings"] == []
+    assert [acceptor["id"] for acceptor in payload["acceptors"]] == ["selected"]
+
+
+def test_cli_acceptor_id_returns_2_for_unknown_id(tmp_path: Path) -> None:
+    sub = tmp_path / "commit_acceptors"
+    sub.mkdir()
+    body = _valid_acceptor(id="selected")
+    body["ledger_path"] = ".claude/commit_acceptors/selected.yaml"
+    (sub / "selected.yaml").write_text(yaml.safe_dump(body), encoding="utf-8")
+    policy_path = tmp_path / "policy.yaml"
+    policy_path.write_text(yaml.safe_dump(POLICY), encoding="utf-8")
+
+    rc = main(
+        [
+            str(sub),
+            "--policy",
+            str(policy_path),
+            "--summary-out",
+            str(tmp_path / "summary.json"),
+            "--template",
+            "",
+            "--acceptor-id",
+            "missing",
+        ]
+    )
+
+    assert rc == 2
+
+
+def test_cli_acceptor_id_can_select_multiple_acceptors(tmp_path: Path) -> None:
+    sub = tmp_path / "commit_acceptors"
+    sub.mkdir()
+    for acceptor_id in ("first", "second", "third"):
+        body = _valid_acceptor(id=acceptor_id)
+        body["ledger_path"] = f".claude/commit_acceptors/{acceptor_id}.yaml"
+        body["signal_artifact"] = "README.md"
+        body["evidence"] = []
+        (sub / f"{acceptor_id}.yaml").write_text(yaml.safe_dump(body), encoding="utf-8")
+    policy_path = tmp_path / "policy.yaml"
+    policy_path.write_text(yaml.safe_dump(POLICY), encoding="utf-8")
+    out = tmp_path / "summary.json"
+
+    rc = main(
+        [
+            str(sub),
+            "--policy",
+            str(policy_path),
+            "--summary-out",
+            str(out),
+            "--template",
+            "",
+            "--acceptor-id",
+            "first",
+            "--acceptor-id",
+            "third",
+        ]
+    )
+
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert rc == 0
+    assert payload["warnings"] == []
+    assert [acceptor["id"] for acceptor in payload["acceptors"]] == ["first", "third"]

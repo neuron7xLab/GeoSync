@@ -193,22 +193,30 @@ def test_11_receive_afferentation_seq_mismatch_raises() -> None:
         receive_afferentation(episode, observed, 5)
 
 
-def test_12_receive_afferentation_seq_not_after_action_seq_raises() -> None:
-    """12: observed_seq <= action_started_seq is rejected even if matched."""
+def test_12_out_of_order_afferentation_annuls_episode_with_invalid_witness() -> None:
+    """12: observed_seq <= action_started_seq closes with rollback witness."""
     episode = start_episode("e", b"intent", 1)
-    # Build expected where action_started_seq=3 but try observed_seq=3 too.
     expected = _make_expected(model_seq=2, action_seq=3)
     episode = seal_model(episode, expected, 2)
     episode = dispatch_action(episode, b"action", 3)
-    # ObservedActionResult with observed_seq=3 (== action_started_seq) — also
-    # the seq strictly-after rule would catch it; force a fresh observed.
     observed = ObservedActionResult(
         action_id="a-1",
         observed_seq=3,
         observed_result=(1.0, 0.0),
     )
-    with pytest.raises(ValueError):
-        receive_afferentation(episode, observed, 3)
+
+    rejected = receive_afferentation(episode, observed, 3)
+
+    assert rejected.closed is True
+    assert rejected.witness is not None
+    assert rejected.witness.status is ActionResultStatus.INVALID_INPUT
+    assert rejected.witness.rollback_required is True
+    assert rejected.witness.reason.startswith("SEQUENCE_ORDER_INVALID")
+    assert rejected.records[-2].phase is EpisodePhase.AFFERENTATION_RECEIVED
+    assert rejected.records[-1].phase is EpisodePhase.ERROR_COMPUTED
+    assert verify_chain(rejected) is True
+    with pytest.raises(ValueError, match="episode is closed"):
+        render_decision(rejected, rejected.records[-1].seq + 1)
 
 
 def test_13_compute_error_before_afferentation_raises() -> None:

@@ -1,35 +1,104 @@
-# Forward-looking example acceptor documenting PR #490 content.
-# Bound to the deterministic ActionResultComparator stack under geosync_hpc/control.
-
 id: canonical-action-result-comparator
 status: ACTIVE
 claim_type: correctness
-promise: "Every control action is bound to an expected outcome via a deterministic comparator with chronology-chained ControlEpisode and falsifiable precision weighting."
+promise: Every control action is bound to a sealed expected outcome before dispatch; missing predictions fail closed, comparator chronology is hash/sequence-bound, and DRO-ARA free energy is fed by deterministic comparator error.
 diff_scope:
   changed_files:
-    - path: "geosync_hpc/control/action_result_comparator.py"
-    - path: "geosync_hpc/control/control_episode.py"
-    - path: "tests/unit/control/test_action_result_comparator.py"
-    - path: "tests/unit/control/test_control_episode.py"
-    - path: "tests/unit/control/test_precision_weighting.py"
+  - path: core/dro_ara/__init__.py
+  - path: core/dro_ara/engine.py
+  - path: geosync_hpc/control/__init__.py
+  - path: geosync_hpc/control/action_result_comparator.py
+  - path: geosync_hpc/control/control_episode.py
+  - path: geosync_hpc/control/self_healing.py
+  - path: nak_controller/aar/memory.py
+  - path: nak_controller/docs/AAR_SPEC.md
+  - path: scripts/aar_pro_readiness.py
+  - path: scripts/aar_pro_smoke.py
   forbidden_paths:
-    - "trading/"
-    - "execution/"
-    - "forecast/"
-    - "policy/"
+  - trading/
+  - execution/
+  - forecast/
+  - policy/
 required_python_symbols:
-  - "ActionResultComparator"
-  - "ControlEpisode"
-  - "compare_action_result"
-expected_signal: "all action-result comparator unit tests pass with deterministic chronology hash"
-measurement_command: "python -m pytest tests/unit/control -v"
-signal_artifact: "tmp/action_result_comparator_pytest.log"
+- ActionResultComparator
+- ActionResultEvidence
+- ControlEpisode
+- AARTracker
+- accept_action_result
+- compare_action_result
+- seal_action_result_evidence
+- _ara_comparator_error
+- _CausalChronology
+- prescribe_recovery
+expected_signal: 'AAR-PRO partitioned scoped acceptor validation is warning-clean and targeted tests pass: strict no-default AAR tracker, deterministic control comparator, precision-extreme rollback, deterministic evidence sealing, operational smoke/readiness replay, self-healing recovery planning, causal hash-chain chronology, adaptive variational energy, bounded ARA buffers, machine-readable invariant registry, TLA+ chronology contract, chronology annulment, and DRO-ARA free-energy circuit breaker invariants.'
+measurement_command: python tools/commit_acceptor/validate_commit_acceptor.py .claude/commit_acceptors --acceptor-id canonical-action-result-comparator --acceptor-id aar-pro-verification-suite --acceptor-id aar-pro-operational-governance --summary-out tmp/commit_acceptor_validation_invariant_registry_scoped.json && pytest -q -W ignore::DeprecationWarning nak_controller/tests/test_aar.py tests/unit/control/test_action_result_comparator.py tests/unit/control/test_control_episode.py tests/unit/control/test_precision_extremes.py tests/unit/control/test_self_healing.py tests/integration/control/test_action_result_comparator_integration.py tests/integration/control/test_aar_pro_smoke_script.py tests/integration/control/test_aar_pro_readiness_script.py tests/formal/test_aar_pro_tla_spec.py tests/formal/test_aar_pro_invariants_yaml.py tests/unit/commit_acceptor/test_validate_commit_acceptor.py::test_cli_acceptor_id_scopes_validation_warnings tests/unit/commit_acceptor/test_validate_commit_acceptor.py::test_cli_acceptor_id_returns_2_for_unknown_id
+  tests/unit/commit_acceptor/test_validate_commit_acceptor.py::test_cli_acceptor_id_can_select_multiple_acceptors tests/core/dro_ara/test_invariants.py tests/core/dro_ara/test_falsification.py
+signal_artifact: artifacts/aar_pro/action_result_comparator_pytest.txt
 falsifier:
-  command: "python -m pytest tests/unit/control -v -k precision_weighting_falsifiable"
-  description: "Adversarial precision-weighting probe; must fail when comparator is replaced by an identity stub."
-rollback_command: "git checkout -- geosync_hpc/control tests/unit/control"
-rollback_verification_command: "git diff --exit-code geosync_hpc/control tests/unit/control"
+  command: python -m pytest -q -W ignore::DeprecationWarning tests/unit/control/test_action_result_comparator.py::test_14b_precision_inversion_is_falsifiable tests/unit/control/test_precision_extremes.py tests/unit/control/test_action_result_comparator.py::test_01d_action_result_evidence_is_deterministic_and_tamper_evident tests/unit/control/test_action_result_comparator.py::test_01e_action_result_evidence_rejects_stale_or_forged_witness tests/unit/control/test_self_healing.py tests/integration/control/test_aar_pro_smoke_script.py tests/integration/control/test_aar_pro_readiness_script.py tests/formal/test_aar_pro_tla_spec.py tests/formal/test_aar_pro_invariants_yaml.py tests/unit/commit_acceptor/test_validate_commit_acceptor.py::test_cli_acceptor_id_scopes_validation_warnings tests/unit/commit_acceptor/test_validate_commit_acceptor.py::test_cli_acceptor_id_returns_2_for_unknown_id tests/unit/commit_acceptor/test_validate_commit_acceptor.py::test_cli_acceptor_id_can_select_multiple_acceptors
+    tests/core/dro_ara/test_falsification.py::test_dro_ara_exposes_dynamic_belief_and_causal_chronology tests/core/dro_ara/test_falsification.py::test_dro_ara_no_synthetic_step_index_chronology tests/core/dro_ara/test_falsification.py::test_dro_ara_minimum_contract_length_has_finite_energy tests/core/dro_ara/test_falsification.py::test_dro_ara_ara_state_keeps_bounded_energy_window
+  description: Adversarial precision-weighting and variance-extreme probes; must fail if inverse-variance weighting is inverted, identity-stubbed, allowed to pass tiny-variance micro-drift without rollback, allowed to emit stale/forged evidence, break the self-healing recovery planner, remove scoped acceptor filtering, the formal invariant binding, or the machine-readable invariant binding, restore synthetic chronology, remove dynamic belief outputs, unbound the ARA buffers, restore finite-length false breakers, or break the one-command operational smoke/readiness replay.
+rollback_command: git checkout -- geosync_hpc/control core/dro_ara/README.md core/dro_ara/__init__.py core/dro_ara/engine.py docs/physics/dro_ara_invariants.md nak_controller/aar/memory.py nak_controller/docs/AAR_SPEC.md nak_controller/tests/test_aar.py tests/test_levels.yaml tests/integration/control/test_action_result_comparator_integration.py tests/core/dro_ara/test_falsification.py tests/unit/control/test_precision_extremes.py tests/integration/control/test_aar_pro_smoke_script.py tests/integration/control/test_aar_pro_readiness_script.py scripts/aar_pro_smoke.py scripts/aar_pro_readiness.py docs/operations/aar_pro_v1_operational_contract.md docs/operations/aar_pro_v1_invariants.yaml tools/commit_acceptor/validate_commit_acceptor.py tests/unit/commit_acceptor/test_validate_commit_acceptor.py formal/AAR_PRO_V1.tla formal/AAR_PRO_V1.cfg geosync_hpc/control/self_healing.py tests/unit/control/test_self_healing.py tests/formal/test_aar_pro_tla_spec.py tests/formal/test_aar_pro_invariants_yaml.py
+  .claude/commit_acceptors/canonical-action-result-comparator.yaml artifacts/aar_pro/action_result_comparator_pytest.txt artifacts/aar_pro/action_result_acceptor_audit.md .claude/commit_acceptors/aar-pro-verification-suite.yaml .claude/commit_acceptors/aar-pro-operational-governance.yaml
+rollback_verification_command: git diff --exit-code geosync_hpc/control core/dro_ara/README.md core/dro_ara/__init__.py core/dro_ara/engine.py docs/physics/dro_ara_invariants.md nak_controller/aar/memory.py nak_controller/docs/AAR_SPEC.md nak_controller/tests/test_aar.py tests/test_levels.yaml tests/integration/control/test_action_result_comparator_integration.py tests/core/dro_ara/test_falsification.py tests/unit/control/test_precision_extremes.py tests/integration/control/test_aar_pro_smoke_script.py tests/integration/control/test_aar_pro_readiness_script.py scripts/aar_pro_smoke.py scripts/aar_pro_readiness.py docs/operations/aar_pro_v1_operational_contract.md docs/operations/aar_pro_v1_invariants.yaml tools/commit_acceptor/validate_commit_acceptor.py tests/unit/commit_acceptor/test_validate_commit_acceptor.py formal/AAR_PRO_V1.tla formal/AAR_PRO_V1.cfg geosync_hpc/control/self_healing.py tests/unit/control/test_self_healing.py tests/formal/test_aar_pro_tla_spec.py tests/formal/test_aar_pro_invariants_yaml.py
+  .claude/commit_acceptors/canonical-action-result-comparator.yaml artifacts/aar_pro/action_result_comparator_pytest.txt artifacts/aar_pro/action_result_acceptor_audit.md .claude/commit_acceptors/aar-pro-verification-suite.yaml .claude/commit_acceptors/aar-pro-operational-governance.yaml
 memory_update_type: append
-ledger_path: ".claude/commit_acceptors/canonical-action-result-comparator.yaml"
-report_path: "docs/reports/action_result_acceptor_audit.md"
-evidence: []
+ledger_path: .claude/commit_acceptors/canonical-action-result-comparator.yaml
+report_path: artifacts/aar_pro/action_result_acceptor_audit.md
+evidence:
+- path: artifacts/aar_pro/action_result_acceptor_audit.md
+  sha256: 9231142360b10bc389b7a40dfd0701472462eb86bf4aa3664c5367b35546abb7
+- path: artifacts/aar_pro/action_result_comparator_pytest.txt
+  sha256: b4ad2ec82508f70e9662cb1784219d87b15ec92aad7c86b19cf9fb1d3d2f4111
+- path: tests/unit/control/test_action_result_comparator.py
+  sha256: a17000dda068e9b3ec086edbbd5a19e93a904291cac22d4ccdbc641d112f1272
+- path: tests/unit/control/test_control_episode.py
+  sha256: abe80e86fc0f5cd44488aeac0fac4193cf240a45a5edfb0b5a1a5cfb3b4c5968
+- path: tests/unit/control/test_precision_extremes.py
+  sha256: f76cec147deeac78e22058612e81b13ef9decd97f3e5bec547b92a30f37e20ac
+- path: tests/unit/control/test_self_healing.py
+  sha256: 2c4d39be4900cfd410bd04817787fcd9b6a3a98b199d178777931e3e09d7d414
+- path: tests/core/dro_ara/test_falsification.py
+  sha256: d2dbfefe9bad51e73e8c221d517210f673ee04c7f2ce352b32f6c8f67a3cd075
+- path: tests/integration/control/test_action_result_comparator_integration.py
+  sha256: fdfa44d460e4e88bc958bde25f99067205ea704d1ceba703badfb6941fb86439
+- path: tests/integration/control/test_aar_pro_smoke_script.py
+  sha256: f2e7949e7eb159cfadf5d652d9ad15dabddaca6d7800fdea31140ef3cb76f1f9
+- path: tests/integration/control/test_aar_pro_readiness_script.py
+  sha256: 1c900c8a83643053affe62375ec299a5073c80765a3f71cce782332e9f14746b
+- path: tests/formal/test_aar_pro_tla_spec.py
+  sha256: 4fe897e555cded786ff43aabe95a60bcab5b6eaaeec064c2a0ef57e09a5454e2
+- path: tests/formal/test_aar_pro_invariants_yaml.py
+  sha256: fd414f0cc88c00ee9ca53304aadd6f22ffb0f172319356a332492722d026dc05
+- path: tools/commit_acceptor/validate_commit_acceptor.py
+  sha256: 3c5f9b8976ce961b2e7828279aa23355a415c8f2a9793c50500096a874267c39
+- path: tests/unit/commit_acceptor/test_validate_commit_acceptor.py
+  sha256: eab898352134bb361ba5cd46008c1b9075dd35dce10d4ea60e4bc339a3aca57e
+- path: geosync_hpc/control/action_result_comparator.py
+  sha256: a3c5502834b685851ffeffd0ee7de1f34ebdd93e624e44b7201e66273a6d6638
+- path: geosync_hpc/control/__init__.py
+  sha256: 0cb9aa3edccafe702fd6f0647fba7a13b02c8c43cf268efde45f1de8e6496bd0
+- path: geosync_hpc/control/control_episode.py
+  sha256: f5b3cdee6ca73bb25de3a58b514a80f8833df735de0fbe9e71b1b5d757b0f812
+- path: geosync_hpc/control/self_healing.py
+  sha256: eb10d9d0879ff54a0197cb438e5c5c64284fe92c24ea650514438819737e4c13
+- path: core/dro_ara/engine.py
+  sha256: 0ed4e5c25784a9f3736b2af4b7b1aeaef2e155205b86e88c7f3aca4d92f74e3b
+- path: core/dro_ara/__init__.py
+  sha256: 5d06dd59225217e61cb5dae18e130d398a818b8730f93d4eba7a0ff5998642a3
+- path: core/dro_ara/README.md
+  sha256: a5788fed5bce1b85887ef26b9ff8e0226219e9f3d177073a2ee398605b4de976
+- path: docs/physics/dro_ara_invariants.md
+  sha256: 873e6e957cd9ae13472f61a06451aaf72e1f615c384e3ef8d9f138fcd8a139e3
+- path: docs/operations/aar_pro_v1_operational_contract.md
+  sha256: 5c95fbecd20fe7d3e6fac60ede9d1b15259b4e6c7181f8ebcb883bbf5ea83434
+- path: docs/operations/aar_pro_v1_invariants.yaml
+  sha256: 0b6e57916bd562ea721d3d87ec4992e6911aa0d0d14cede3874f26eebdc1a476
+- path: scripts/aar_pro_smoke.py
+  sha256: f7a08a66da102268af7c4af510f9adedd237388fd007ab1223e97bcd061fb6f3
+- path: scripts/aar_pro_readiness.py
+  sha256: 0015cef48da4da66525066f96cc5feb69332fcb8f128823e8f8315d0f255ee15
+- path: formal/AAR_PRO_V1.tla
+  sha256: 3160882fddec84e3b01775b60bebe7ece5ffdc8aae7eff4a8029bf578c1267aa
+- path: formal/AAR_PRO_V1.cfg
+  sha256: b17585e97950deb8aba89c9c038b08f46a93728c5960b2ddea03c0974c093d37

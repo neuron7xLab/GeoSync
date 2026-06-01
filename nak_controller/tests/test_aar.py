@@ -479,18 +479,17 @@ class TestAARTracker:
         with pytest.raises(ValueError, match="No pending action"):
             tracker.record_outcome(out)
 
-    def test_outcome_without_prediction_uses_default(self) -> None:
+    def test_outcome_without_prediction_fails_closed(self) -> None:
         tracker = AARTracker()
         action = create_action_event("trade", "strat1")
         tracker.record_action(action)
 
-        # Skip prediction
         out = Outcome(action_id=action.action_id, actual_pnl=50.0)
-        entry = tracker.record_outcome(out)
+        with pytest.raises(ValueError, match="Missing prediction.*default prediction.*forbidden"):
+            tracker.record_outcome(out)
 
-        assert entry is not None
-        assert entry.prediction.expected_pnl == 0.0  # Default
-        assert entry.prediction.confidence == 0.0  # Default
+        assert tracker.pending_count() == 1
+        assert tracker.entry_count() == 0
 
     def test_get_recent_entries(self) -> None:
         tracker = AARTracker()
@@ -512,6 +511,7 @@ class TestAARTracker:
         for i in range(3):
             action = create_action_event("trade", f"strat{i % 2}", action_id=str(i))
             tracker.record_action(action)
+            tracker.record_prediction(Prediction(action_id=str(i)))
             tracker.record_outcome(Outcome(action_id=str(i)))
 
         strat0_entries = tracker.get_entries_by_strategy("strat0")
@@ -529,6 +529,7 @@ class TestAARTracker:
 
         assert tracker.pending_count() == 3
 
+        tracker.record_prediction(Prediction(action_id="0"))
         tracker.record_outcome(Outcome(action_id="0"))
         assert tracker.pending_count() == 2
 
@@ -547,6 +548,7 @@ class TestAARTracker:
 
         action = create_action_event("trade", "strat")
         tracker.record_action(action)
+        tracker.record_prediction(Prediction(action_id=action.action_id))
         tracker.record_outcome(Outcome(action_id=action.action_id))
 
         tracker.clear()

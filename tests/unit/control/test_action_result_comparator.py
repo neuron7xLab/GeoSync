@@ -38,11 +38,15 @@ import pytest
 
 from geosync_hpc import control as control_pkg
 from geosync_hpc.control import (
+    ActionResultComparator,
+    ActionResultEvidence,
     ActionResultStatus,
     ActionResultWitness,
     ExpectedResultModel,
     ObservedActionResult,
     accept_action_result,
+    compare_action_result,
+    seal_action_result_evidence,
 )
 from geosync_hpc.control import action_result_comparator as module_under_test
 
@@ -120,7 +124,63 @@ def test_01_missing_expected_returns_invalid_input() -> None:
     witness = accept_action_result(None, observed)
     assert witness.status is ActionResultStatus.INVALID_INPUT
     assert witness.accepted is False
+    assert witness.rollback_required is True
     assert witness.reason.startswith("INVALID_EXPECTED_MODEL")
+
+
+def test_01b_non_observed_object_returns_invalid_input() -> None:
+    """Malformed observation objects fail closed without attribute probing."""
+    witness = accept_action_result(_make_expected(), object())  # type: ignore[arg-type]
+    assert witness.status is ActionResultStatus.INVALID_INPUT
+    assert witness.rollback_required is True
+    assert witness.reason.startswith("INVALID_OBSERVED_RESULT")
+
+
+def test_01c_comparator_facade_and_alias_match_function() -> None:
+    """Public façade, compatibility alias, and function share one verdict contract."""
+    expected = _make_expected()
+    observed = _make_observed()
+    direct = accept_action_result(expected, observed)
+    comparator = ActionResultComparator()
+    assert comparator.compare(expected, observed) == direct
+    assert compare_action_result(expected, observed) == direct
+    assert comparator.seal_evidence(expected, observed).status is direct.status
+
+
+def test_01d_action_result_evidence_is_deterministic_and_tamper_evident() -> None:
+    expected = _make_expected(expected_result_variance=(1.0, 4.0, 9.0))
+    observed = _make_observed(observed_result=(1.1, 0.2, -1.3))
+    witness = accept_action_result(expected, observed)
+
+    sealed = seal_action_result_evidence(expected, observed, witness)
+    replayed = seal_action_result_evidence(expected, observed)
+    changed = seal_action_result_evidence(
+        expected,
+        _make_observed(observed_result=(1.2, 0.2, -1.3)),
+    )
+
+    assert isinstance(sealed, ActionResultEvidence)
+    assert sealed == replayed
+    assert sealed.schema_version == "AAR-PRO-V1-EVIDENCE"
+    assert sealed.expected_action_id == expected.action_id
+    assert sealed.observed_action_id == observed.action_id
+    assert sealed.status is witness.status
+    assert len(sealed.expected_digest) == 64
+    assert len(sealed.observed_digest) == 64
+    assert len(sealed.witness_digest) == 64
+    assert len(sealed.evidence_digest) == 64
+    assert changed.observed_digest != sealed.observed_digest
+    assert changed.evidence_digest != sealed.evidence_digest
+
+
+def test_01e_action_result_evidence_rejects_stale_or_forged_witness() -> None:
+    expected = _make_expected(error_threshold=0.5, rollback_threshold=10.0)
+    original_observed = _make_observed(observed_result=(1.0, 0.0, -1.0))
+    stale_witness = accept_action_result(expected, original_observed)
+    drifted_observed = _make_observed(observed_result=(2.0, 0.0, -1.0))
+
+    with pytest.raises(ValueError, match="EVIDENCE_WITNESS_MISMATCH"):
+        seal_action_result_evidence(expected, drifted_observed, stale_witness)
 
 
 @pytest.mark.parametrize(
@@ -147,6 +207,7 @@ def test_03_observed_seq_must_be_strictly_greater_than_action_seq(
     observed = _make_observed(observed_seq=observed_seq)
     witness = accept_action_result(expected, observed)
     assert witness.status is ActionResultStatus.INVALID_INPUT
+    assert witness.rollback_required is True
     assert witness.reason.startswith("SEQUENCE_ORDER_INVALID")
 
 
@@ -169,6 +230,8 @@ def test_05_medium_error_returns_update_required() -> None:
     observed = _make_observed(observed_result=(1.7, 0.0, -1.0))
     witness = accept_action_result(expected, observed)
     assert witness.status is ActionResultStatus.UPDATE_REQUIRED
+    assert witness.accepted is True
+    assert witness.dissolved is False
     assert witness.update_required is True
     assert witness.rollback_required is False
     assert witness.next_context_expansion_required is True
@@ -208,7 +271,10 @@ def test_09_action_id_mismatch_returns_action_mismatch() -> None:
     observed = _make_observed(action_id="beta")
     witness = accept_action_result(expected, observed)
     assert witness.status is ActionResultStatus.ACTION_MISMATCH
+    assert witness.rollback_required is True
+    assert witness.update_required is False
     assert witness.reason.startswith("ACTION_ID_MISMATCH")
+    assert "SECURITY_VIOLATION" in witness.reason
 
 
 def test_10_ape_breach_returns_action_mismatch() -> None:
@@ -268,23 +334,15 @@ def test_13_raw_ope_is_euclidean_norm() -> None:
 def test_14_precision_weighted_error_uses_inverse_variance() -> None:
     """Asymmetric data forces the 1/variance form to dominate.
 
-    Symmetric ``diff`` collapses ``sqrt(sum(w * d^2) / sum(w))`` into ``|d|``
-    for any weight choice, hiding whether the formula uses ``1/variance``
-    (correct) or ``variance`` (inverted). Asymmetric ``diff`` distinguishes:
+    The AAR-PRO-V1 invariant is the unnormalised precision distance:
 
       diff = (1.0, 4.0); variance = (1.0, 4.0)
-      precision (1/v)    = (1.0, 0.25)
-        weighted_squared = 1.0*1 + 0.25*16 = 5.0
-        weight_total     = 1.0 + 0.25       = 1.25
-        pwope (1/v)      = sqrt(5.0/1.25)   = 2.0
-      precision (v)      = (1.0, 4.0)        [INVERTED — must NOT match]
-        weighted_squared = 1.0*1 + 4.0*16   = 65.0
-        weight_total     = 1.0 + 4.0        = 5.0
-        pwope (v)        = sqrt(65.0/5.0)   = sqrt(13.0) ≈ 3.6056
-      raw OPE            = sqrt(1 + 16)     = sqrt(17.0) ≈ 4.1231
+      precision denominator = variance + 1e-9
+      pwope = sqrt(1^2/(1+eps) + 4^2/(4+eps)) ≈ sqrt(5.0)
+      inverted variance form = sqrt(1^2*1 + 4^2*4) = sqrt(65.0)
+      raw OPE = sqrt(1 + 16) = sqrt(17.0)
 
-    Test asserts pwope == 2.0 AND pwope < raw OPE (high-variance dimension is
-    downweighted, the defining property of 1/variance precision).
+    Test asserts the inverse-variance form and rejects the inverted formula.
     """
     expected = _make_expected(
         expected_result=(0.0, 0.0),
@@ -296,25 +354,25 @@ def test_14_precision_weighted_error_uses_inverse_variance() -> None:
     witness = accept_action_result(expected, observed)
     assert witness.precision_weighted_outcome_error is not None
     assert witness.outcome_prediction_error is not None
-    assert math.isclose(witness.precision_weighted_outcome_error, 2.0, abs_tol=1e-12)
+    assert math.isclose(witness.precision_weighted_outcome_error, math.sqrt(5.0), abs_tol=1e-9)
     assert math.isclose(witness.outcome_prediction_error, math.sqrt(17.0), abs_tol=1e-12)
     assert witness.precision_weighted_outcome_error < witness.outcome_prediction_error
-    inverted_pwope = math.sqrt(13.0)
+    inverted_pwope = math.sqrt(65.0)
     assert not math.isclose(
         witness.precision_weighted_outcome_error, inverted_pwope, abs_tol=1e-3
-    ), "test data must distinguish 1/variance from variance — the inverted formula yields sqrt(13)"
+    ), "test data must distinguish 1/variance from variance — the inverted formula yields sqrt(65)"
 
 
 @pytest.mark.parametrize(
     ("variance", "observed", "expected_pwope", "inverted_pwope"),
     [
-        ((1.0, 4.0), (1.0, 4.0), 2.0, math.sqrt(13.0)),
-        ((1.0, 9.0), (1.0, 3.0), math.sqrt(18.0 / 10.0 * 9.0) / 3.0, math.sqrt(82.0 / 10.0)),
+        ((1.0, 4.0), (1.0, 4.0), math.sqrt(5.0), math.sqrt(65.0)),
+        ((1.0, 9.0), (1.0, 3.0), math.sqrt(2.0), math.sqrt(82.0)),
         (
             (0.25, 4.0),
             (0.5, 4.0),
-            math.sqrt((4.0 * 0.25 + 0.25 * 16.0) / 4.25),
-            math.sqrt((0.25 * 0.25 + 4.0 * 16.0) / 4.25),
+            math.sqrt(5.0),
+            math.sqrt(64.0625),
         ),
     ],
 )
@@ -338,7 +396,7 @@ def test_14b_precision_inversion_is_falsifiable(
     )
     witness = accept_action_result(expected, _make_observed(observed_result=observed))
     assert witness.precision_weighted_outcome_error is not None
-    assert math.isclose(witness.precision_weighted_outcome_error, expected_pwope, abs_tol=1e-12)
+    assert math.isclose(witness.precision_weighted_outcome_error, expected_pwope, abs_tol=1e-9)
     assert not math.isclose(
         witness.precision_weighted_outcome_error, inverted_pwope, abs_tol=1e-9
     ), f"data row failed to distinguish 1/v from v: pwope={expected_pwope}, inverted={inverted_pwope}"
@@ -496,7 +554,8 @@ def test_31_success_true_cannot_force_sanctioned_on_breach() -> None:
     observed = _make_observed(observed_result=(2.0, 0.0, -1.0), success=True)
     witness = accept_action_result(expected, observed)
     assert witness.status is ActionResultStatus.UPDATE_REQUIRED
-    assert witness.accepted is False
+    assert witness.accepted is True
+    assert witness.dissolved is False
 
 
 def test_32_success_false_cannot_force_failure_on_exact_match() -> None:
@@ -576,16 +635,20 @@ def test_public_surface_unchanged() -> None:
     """Sanity check on the package-level public exports.
 
     The comparator surface (Expected / Observed / Witness / Status /
-    accept_action_result) must remain present. The package additionally
+    comparator facade / pure functions) must remain present. The package additionally
     re-exports the chronology-chain primitives from ``control_episode``;
     those are listed as a separate non-overlapping superset.
     """
     comparator_surface = {
+        "ActionResultComparator",
+        "ActionResultEvidence",
         "ActionResultStatus",
         "ActionResultWitness",
         "ExpectedResultModel",
         "ObservedActionResult",
         "accept_action_result",
+        "compare_action_result",
+        "seal_action_result_evidence",
     }
     chain_surface = {
         "ControlEpisode",
@@ -600,6 +663,13 @@ def test_public_surface_unchanged() -> None:
         "start_episode",
         "verify_chain",
     }
+    recovery_surface = {
+        "RecoveryAction",
+        "RecoveryPlan",
+        "estimate_entropy_risk",
+        "prescribe_recovery",
+    }
     assert comparator_surface.issubset(set(control_pkg.__all__))
     assert chain_surface.issubset(set(control_pkg.__all__))
-    assert set(control_pkg.__all__) == comparator_surface | chain_surface
+    assert recovery_surface.issubset(set(control_pkg.__all__))
+    assert set(control_pkg.__all__) == comparator_surface | chain_surface | recovery_surface
