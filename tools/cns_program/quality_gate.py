@@ -6,7 +6,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from tools.cns_program.cns_contract import DEPLOY_GATE_RESULT, MANIFEST_VERIFICATION_RESULT, QUALITY_GATE_RESULT, REPORTS_CONTRACT_RESULT
+from tools.cns_program.cns_contract import (
+    DEPLOY_GATE_RESULT,
+    MANIFEST_VERIFICATION_RESULT,
+    QUALITY_GATE_RESULT,
+    REPORTS_CONTRACT_RESULT,
+)
 
 
 def load(path: Path) -> dict[str, Any]:
