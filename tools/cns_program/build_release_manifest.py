@@ -37,7 +37,11 @@ def main() -> int:
     RELEASE_MANIFEST_RESULT.write_text(
         json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8"
     )
-    print(json.dumps({"manifest": str(RELEASE_MANIFEST_RESULT), "files_hashed": len(MANIFEST_FILES)}))
+    print(
+        json.dumps(
+            {"manifest": str(RELEASE_MANIFEST_RESULT), "files_hashed": len(MANIFEST_FILES)}
+        )
+    )
     return 0
 
 
