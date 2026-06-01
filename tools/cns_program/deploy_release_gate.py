@@ -5,7 +5,11 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from tools.cns_program.cns_contract import CONFIG_PATH, DEPLOY_GATE_RESULT, REQUIRED_STATES
+from tools.cns_program.cns_contract import (
+    CONFIG_PATH,
+    DEPLOY_GATE_RESULT,
+    REQUIRED_STATES,
+)
 from tools.cns_program.simple_yaml import load_yaml_file
 
 
