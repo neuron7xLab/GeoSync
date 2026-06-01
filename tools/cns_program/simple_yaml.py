@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 
 class SimpleYAMLError(ValueError):
@@ -166,11 +166,11 @@ def load_yaml_file(path: str | Path) -> dict[str, Any]:
     """Load YAML through PyYAML when present, otherwise use the strict subset."""
     try:
         import yaml  # type: ignore[import-untyped]
-    except Exception:
+    except ImportError:
         return load_yaml_text(Path(path).read_text(encoding="utf-8"))
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     if data is None:
         return {}
     if not isinstance(data, dict):
         raise SimpleYAMLError("top-level YAML document must be a mapping")
-    return data
+    return cast(dict[str, Any], data)
