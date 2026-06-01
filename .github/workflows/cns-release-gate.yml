@@ -29,14 +29,18 @@ env:
   PYTHONPATH: .
 
 concurrency:
-  group: cns-release-gate
+  group: cns-release-gate-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:
-  cns-release-gate-python-311:
-    name: cns-release-gate / python-3.11
+  cns-release-gate:
+    name: cns-release-gate / python-${{ matrix.python-version }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -44,10 +48,11 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
 
-      - name: Install runtime dependency
-        run: python -m pip install PyYAML
+      - name: Install test dependency
+        if: matrix.python-version == '3.12'
+        run: python -m pip install pytest
 
       - name: Run deterministic CNS release gate
         run: |
@@ -57,79 +62,6 @@ jobs:
           python tools/cns_program/verify_reports_contract.py
           python tools/cns_program/quality_gate.py
 
-      - name: Upload CNS evidence artifacts
-        id: upload-cns-evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: cns-evidence-python-3.11
-          path: |
-            results/cns_*.json
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Build CNS evidence index
-        run: |
-          python tools/cns_program/build_evidence_index.py \
-            --python-version 3.11 \
-            --artifact-name cns-evidence-python-3.11 \
-            --artifact-digest "${{ steps.upload-cns-evidence.outputs.artifact-digest }}"
-
-      - name: Upload CNS evidence index
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: cns-evidence-index-python-3.11
-          path: results/cns_evidence_index.json
-          if-no-files-found: error
-          retention-days: 30
-
-  cns-release-gate-python-312:
-    name: cns-release-gate / python-3.12
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: '3.12'
-
-      - name: Install runtime dependency
-        run: python -m pip install PyYAML
-
-      - name: Run deterministic CNS release gate
-        run: |
-          python tools/cns_program/deploy_release_gate.py
-          python tools/cns_program/build_release_manifest.py
-          python tools/cns_program/verify_release_manifest.py
-          python tools/cns_program/verify_reports_contract.py
-          python tools/cns_program/quality_gate.py
-
-      - name: Run CNS regression gate
-        run: python tools/cns_program/run_regression_gate.py
-
-      - name: Upload CNS evidence artifacts
-        id: upload-cns-evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: cns-evidence-python-3.12
-          path: |
-            results/cns_*.json
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Build CNS evidence index
-        run: |
-          python tools/cns_program/build_evidence_index.py \
-            --python-version 3.12 \
-            --artifact-name cns-evidence-python-3.12 \
-            --artifact-digest "${{ steps.upload-cns-evidence.outputs.artifact-digest }}"
-
-      - name: Upload CNS evidence index
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: cns-evidence-index-python-3.12
-          path: results/cns_evidence_index.json
-          if-no-files-found: error
-          retention-days: 30
+      - name: Run CNS tests
+        if: matrix.python-version == '3.12'
+        run: python -m pytest -q --confcutdir=tests/cns_program tests/cns_program

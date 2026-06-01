@@ -6,21 +6,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-DEPLOY_GATE_RESULT = Path("results/cns_deploy_gate.json")
-RELEASE_MANIFEST_RESULT = Path("results/cns_release_manifest.json")
-MANIFEST_FILES = (
-    Path(".github/workflows/cns-release-gate.yml"),
-    Path("conf/cns_program/default.yaml"),
-    Path("conf/cns_program/invariants.yaml"),
-    Path("reports/CNS_RELEASE_GATE_CONTRACT.md"),
-    Path("tools/cns_program/cns_contract.py"),
-    Path("tools/cns_program/deploy_release_gate.py"),
-    Path("tools/cns_program/build_release_manifest.py"),
-    Path("tools/cns_program/verify_release_manifest.py"),
-    Path("tools/cns_program/verify_reports_contract.py"),
-    Path("tools/cns_program/quality_gate.py"),
-    Path("tools/cns_program/simple_yaml.py"),
-)
+from tools.cns_program.cns_contract import DEPLOY_GATE_RESULT, MANIFEST_FILES, RELEASE_MANIFEST_RESULT
 
 
 def sha256_file(path: Path) -> str:
@@ -47,14 +33,7 @@ def main() -> int:
     RELEASE_MANIFEST_RESULT.write_text(
         json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8"
     )
-    print(
-        json.dumps(
-            {
-                "manifest": str(RELEASE_MANIFEST_RESULT),
-                "files_hashed": len(MANIFEST_FILES),
-            }
-        )
-    )
+    print(json.dumps({"manifest": str(RELEASE_MANIFEST_RESULT), "files_hashed": len(MANIFEST_FILES)}))
     return 0
 
 

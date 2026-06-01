@@ -1,17 +1,18 @@
 # CNS Release Gate Contract
 
-This static report defines the repository contract for the CNS release gate. Runtime JSON evidence is generated under `results/`.
+This report is intentionally static and small. Dynamic evidence is generated under `results/` by the release-gate tools.
 
-## Checks
+## Required checks
 
 - protocol config validation
-- manifest creation
+- manifest build
 - manifest verification
-- report presence validation
+- reports contract validation
 - weighted quality decision
 
-## Boundaries
+## Non-goals
 
-- release gate only
-- no runtime performance assertion
-- no permanent JSON evidence committed to source control
+- no clinical claim
+- no psychological diagnosis
+- no trading performance claim
+- no generated evidence treated as permanent truth
