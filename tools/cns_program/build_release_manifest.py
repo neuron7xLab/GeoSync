@@ -39,7 +39,10 @@ def main() -> int:
     )
     print(
         json.dumps(
-            {"manifest": str(RELEASE_MANIFEST_RESULT), "files_hashed": len(MANIFEST_FILES)}
+            {
+                "manifest": str(RELEASE_MANIFEST_RESULT),
+                "files_hashed": len(MANIFEST_FILES),
+            }
         )
     )
     return 0
