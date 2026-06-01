@@ -4,7 +4,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from tools.cns_program.verify_reports_contract import verify_reports
 
@@ -25,7 +25,7 @@ def load_json_object(text: str) -> dict[str, Any]:
     payload = json.loads(text)
     if not isinstance(payload, dict):
         raise AssertionError("expected JSON object")
-    return cast(dict[str, Any], payload)
+    return {str(key): value for key, value in payload.items()}
 
 
 def test_release_gate_chain_passes() -> None:
