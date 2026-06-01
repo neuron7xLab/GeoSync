@@ -36,6 +36,10 @@ python -m pytest -q tests/cns_program
 - `results/cns_reports_contract.json`
 - `results/cns_quality_gate.json`
 
+## Proof boundary
+
+The generated JSON files are transient evidence for the current checkout. They are not permanent truth, not a release certificate, and not a substitute for rerunning the gate after any relevant source change.
+
 ## Merge policy
 
 Merge is valid only when the GitHub Actions CNS Release Gate is green on Python 3.11 and 3.12.
