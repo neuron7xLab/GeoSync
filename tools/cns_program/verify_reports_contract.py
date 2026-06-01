@@ -4,13 +4,14 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from tools.cns_program.cns_contract import REPORTS_CONTRACT_RESULT, REQUIRED_REPORTS
 
 
 def verify_reports(
     required_reports: tuple[Path, ...] = REQUIRED_REPORTS,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     errors: list[str] = []
     checked = 0
     for path in required_reports:
@@ -41,7 +42,7 @@ def main() -> int:
         json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
     )
     print(json.dumps(payload, sort_keys=True))
-    return 0 if payload["valid"] else 1
+    return 0 if bool(payload["valid"]) else 1
 
 
 if __name__ == "__main__":
