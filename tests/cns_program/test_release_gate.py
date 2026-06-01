@@ -50,10 +50,12 @@ def test_manifest_verifier_fails_on_digest_mismatch(tmp_path: Path) -> None:
     assert run(["tools/cns_program/build_release_manifest.py"]).returncode == 0
     manifest_path = ROOT / "results/cns_release_manifest.json"
     data = load_json_object(manifest_path.read_text(encoding="utf-8"))
-    sha_map = data["sha256"]
-    assert isinstance(sha_map, dict)
+    raw_sha_map = data["sha256"]
+    assert isinstance(raw_sha_map, dict)
+    sha_map = {str(key): str(value) for key, value in raw_sha_map.items()}
     first = next(iter(sha_map))
     sha_map[first] = "0" * 64
+    data["sha256"] = sha_map
     bad_manifest = tmp_path / "bad_manifest.json"
     bad_manifest.write_text(json.dumps(data), encoding="utf-8")
     completed = run(
