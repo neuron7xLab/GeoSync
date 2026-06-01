@@ -31,7 +31,9 @@ def test_release_gate_chain_passes() -> None:
         completed = run(args)
         assert completed.returncode == 0, completed.stderr or completed.stdout
 
-    payload = json.loads((ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "results/cns_quality_gate.json").read_text(encoding="utf-8")
+    )
     assert payload["passed"] is True
     assert payload["quality_score"] == 1.0
 
@@ -45,11 +47,15 @@ def test_manifest_verifier_fails_on_digest_mismatch(tmp_path: Path) -> None:
     data["sha256"][first] = "0" * 64
     bad_manifest = tmp_path / "bad_manifest.json"
     bad_manifest.write_text(json.dumps(data), encoding="utf-8")
-    completed = run(["tools/cns_program/verify_release_manifest.py", "--manifest", str(bad_manifest)])
+    completed = run(
+        ["tools/cns_program/verify_release_manifest.py", "--manifest", str(bad_manifest)]
+    )
     assert completed.returncode != 0
     payload = json.loads(completed.stdout)
     assert payload["valid"] is False
-    assert any(error.startswith("artifact_hash_mismatch:") for error in payload["errors"])
+    assert any(
+        error.startswith("artifact_hash_mismatch:") for error in payload["errors"]
+    )
 
 
 def test_reports_contract_fails_on_missing_report() -> None:
