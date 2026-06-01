@@ -6,7 +6,11 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from tools.cns_program.cns_contract import DEPLOY_GATE_RESULT, MANIFEST_FILES, RELEASE_MANIFEST_RESULT
+from tools.cns_program.cns_contract import (
+    DEPLOY_GATE_RESULT,
+    MANIFEST_FILES,
+    RELEASE_MANIFEST_RESULT,
+)
 
 
 def sha256_file(path: Path) -> str:
