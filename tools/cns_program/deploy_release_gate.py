@@ -44,9 +44,7 @@ def main() -> int:
         "deploy_ready": bool(protocol["valid"]),
         "protocol": protocol,
     }
-    DEPLOY_GATE_RESULT.write_text(
-        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    DEPLOY_GATE_RESULT.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     print(json.dumps(payload, sort_keys=True))
     return 0 if payload["deploy_ready"] else 1
 
