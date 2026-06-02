@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "geosync"
 dynamic = ["version", "readme"]
-description = "Advanced algorithmic trading framework with geometric market indicators"
+description = "Verification-first quantitative research platform for falsifiable market-structure hypotheses"
 authors = [{ name = "GeoSync Contributors" }]
 license = { text = "MIT" }
 requires-python = ">=3.11,<3.13"
-keywords = ["trading", "quant", "algorithmic", "markets", "analytics"]
+keywords = ["verification", "quantitative-research", "market-structure", "falsification", "invariants"]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Financial and Insurance Industry",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
