@@ -190,7 +190,9 @@ def _hurst_dfa(x: NDArray[np.float64]) -> tuple[float, float]:
     H_raw, b = np.polyfit(ln, lF, 1)
     ss_res = float(np.sum((lF - (H_raw * ln + b)) ** 2))
     ss_tot = float(np.sum((lF - lF.mean()) ** 2))
+    # bounds: R2 is a coefficient of determination; contract keeps it in [0, 1].
     r2 = float(np.clip(1 - ss_res / ss_tot if ss_tot > 1e-12 else 0.0, 0.0, 1.0))
+    # bounds: finite-sample DFA H is exported only inside the open unit interval.
     return float(np.clip(H_raw, 0.01, 0.99)), r2
 
 
@@ -290,6 +292,7 @@ def _adaptive_energy_threshold(actual: State) -> float:
     evidence_quality = 0.5 + actual.r2
     risk_capacity = 0.5 + actual.rs
     threshold = FREE_ENERGY_CRITICAL * evidence_quality * risk_capacity / phase_transition_pressure
+    # bounds: adaptive energy gate is limited by the exported floor/ceiling contract.
     return round(float(np.clip(threshold, VARIATIONAL_ENERGY_FLOOR, VARIATIONAL_ENERGY_CEILING)), 6)
 
 
@@ -305,6 +308,7 @@ def _variational_energy(error: float, belief_mean: float, belief_variance: float
 def _update_belief_variance(previous: float, error: float, actual: State) -> float:
     context_floor = max(EPSILON_H * EPSILON_H, (1.0 - actual.r2 + 1e-6) * 0.05)
     updated = 0.85 * previous + 0.15 * max(error * error, context_floor)
+    # bounds: belief variance is kept finite for Gaussian surrogate stability.
     return round(float(np.clip(updated, 1e-6, 4.0)), 6)
 
 
