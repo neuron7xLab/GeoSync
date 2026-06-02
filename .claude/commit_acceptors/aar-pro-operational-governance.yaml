@@ -37,4 +37,3 @@ memory_update_type: append
 signal_artifact: artifacts/aar_pro/action_result_comparator_pytest.txt
 evidence:
 - path: artifacts/aar_pro/action_result_comparator_pytest.txt
-  sha256: b4ad2ec82508f70e9662cb1784219d87b15ec92aad7c86b19cf9fb1d3d2f4111
