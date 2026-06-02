@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
-# SPDX-License-Identifier: MIT
-"""One-command deterministic AAR-PRO-V1 operational smoke check.
-
-The script intentionally uses no wall-clock, random source, network, or file IO.
-It emits a canonical JSON verdict that can be replayed byte-for-byte for the
-same code and inputs.
-"""
+"""Deterministic AAR-PRO smoke check."""
 
 from __future__ import annotations
 
@@ -18,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from geosync_hpc.control import (
+from geosync_hpc.control import (  # noqa: E402
     ExpectedResultModel,
     ObservedActionResult,
     accept_action_result,
