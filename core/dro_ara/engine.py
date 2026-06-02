@@ -25,10 +25,10 @@ References:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
 import json
 import math
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Final, Iterator, NamedTuple
 
