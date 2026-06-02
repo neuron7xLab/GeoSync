@@ -5,6 +5,7 @@ promise: AAR-PRO lint config is explicit and diff-bound.
 diff_scope:
   changed_files:
   - path: ruff.toml
+  - path: .claude/commit_acceptors/aar-pro-lint.yaml
   forbidden_paths: []
 required_python_symbols: []
 expected_signal: Ruff config remains scoped to AAR-PRO scripts.
@@ -20,3 +21,4 @@ report_path: artifacts/aar_pro/action_result_acceptor_audit.md
 signal_artifact: ruff.toml
 evidence:
 - path: ruff.toml
+- path: .claude/commit_acceptors/aar-pro-lint.yaml
