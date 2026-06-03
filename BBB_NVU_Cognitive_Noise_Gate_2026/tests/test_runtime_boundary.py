@@ -1,3 +1,5 @@
+# ruff: noqa: I001
+
 import json
 from pathlib import Path
 
@@ -46,11 +48,11 @@ def test_runtime_boundary_batch_is_deterministic():
 @requirement("R002")
 def test_runtime_boundary_request_rejects_extra_fields():
     try:
-        RuntimeRequest.model_validate({"input_doc": SAMPLE_INPUT, "source_id": "x.json", "extra": "blocked"})
+        RuntimeRequest.model_validate({"input_doc": SAMPLE_INPUT, "source_id": "x.json", "extra": "value"})
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
     else:
-        raise AssertionError("runtime request extra field bypassed boundary")
+        raise AssertionError("runtime request accepted an extra field")
 
 
 @requirement("R003")
