@@ -16,8 +16,7 @@ try:
     import yaml
 except ImportError as exc:  # pragma: no cover - exercised in minimal envs only
     raise SystemExit(
-        "PyYAML is required for the connectome gate. Install with: "
-        "python -m pip install PyYAML"
+        "PyYAML is required for the connectome gate. Install with: " "python -m pip install PyYAML"
     ) from exc
 
 DEFAULT_CONTRACT = Path("docs/architecture/connectome.yaml")
@@ -111,15 +110,11 @@ def _as_string_list(value: object, *, field: str, domain: str) -> tuple[str, ...
     if value is None:
         return ()
     if not isinstance(value, list):
-        raise SystemExit(
-            f"[-] Critical: domain {domain!r} field {field!r} must be a list[str]"
-        )
+        raise SystemExit(f"[-] Critical: domain {domain!r} field {field!r} must be a list[str]")
     items: list[str] = []
     for item in value:
         if not isinstance(item, str):
-            raise SystemExit(
-                f"[-] Critical: domain {domain!r} field {field!r} must be a list[str]"
-            )
+            raise SystemExit(f"[-] Critical: domain {domain!r} field {field!r} must be a list[str]")
         items.append(item)
     return tuple(items)
 
@@ -128,9 +123,7 @@ def load_contract(contract_path: Path = DEFAULT_CONTRACT) -> Mapping[str, object
     """Load and minimally validate the connectome YAML contract."""
 
     if not contract_path.exists():
-        raise SystemExit(
-            f"[-] Critical: Architectural contract not found at {contract_path}"
-        )
+        raise SystemExit(f"[-] Critical: Architectural contract not found at {contract_path}")
     with contract_path.open("r", encoding="utf-8") as handle:
         raw_contract = yaml.safe_load(handle)
     if not isinstance(raw_contract, dict):
@@ -142,9 +135,7 @@ def load_contract(contract_path: Path = DEFAULT_CONTRACT) -> Mapping[str, object
         if field not in contract:
             raise SystemExit(f"[-] Critical: Connectome contract missing field: {field}")
     if not isinstance(contract["domains"], dict) or not contract["domains"]:
-        raise SystemExit(
-            "[-] Critical: Connectome contract field 'domains' must be non-empty"
-        )
+        raise SystemExit("[-] Critical: Connectome contract field 'domains' must be non-empty")
     return contract
 
 
@@ -154,9 +145,7 @@ def _domain_paths(meta: Mapping[str, object], *, domain: str) -> tuple[Path, ...
     elif "path" in meta:
         path = meta.get("path")
         if not isinstance(path, str):
-            raise SystemExit(
-                f"[-] Critical: domain {domain!r} field 'path' must be a string"
-            )
+            raise SystemExit(f"[-] Critical: domain {domain!r} field 'path' must be a string")
         paths = (path,)
     else:
         raise SystemExit(f"[-] Critical: domain {domain!r} missing 'path' or 'paths'")
@@ -176,9 +165,7 @@ def build_domains(contract: Mapping[str, object]) -> dict[str, Domain]:
 
     raw_domains = contract["domains"]
     if not isinstance(raw_domains, dict):
-        raise SystemExit(
-            "[-] Critical: Connectome contract field 'domains' must be a mapping"
-        )
+        raise SystemExit("[-] Critical: Connectome contract field 'domains' must be a mapping")
 
     domains: dict[str, Domain] = {}
     seen_import_prefixes: dict[str, str] = {}
@@ -189,13 +176,9 @@ def build_domains(contract: Mapping[str, object]) -> dict[str, Domain]:
         owner = meta.get("owner")
         state = meta.get("state", "active")
         if not isinstance(role, str) or not role.strip():
-            raise SystemExit(
-                f"[-] Critical: domain {domain_name!r} missing non-empty role"
-            )
+            raise SystemExit(f"[-] Critical: domain {domain_name!r} missing non-empty role")
         if not isinstance(owner, str) or "@" not in owner:
-            raise SystemExit(
-                f"[-] Critical: domain {domain_name!r} missing institutional owner"
-            )
+            raise SystemExit(f"[-] Critical: domain {domain_name!r} missing institutional owner")
         if not isinstance(state, str) or state not in VALID_DOMAIN_STATES:
             raise SystemExit(
                 f"[-] Critical: domain {domain_name!r} has invalid state {state!r}; "
@@ -269,9 +252,7 @@ def get_domain_for_path(filepath: Path, domains: Mapping[str, Domain]) -> Domain
     ]
     if len(matches) > 1:
         names = ", ".join(sorted({domain.name for domain in matches}))
-        raise SystemExit(
-            f"[-] Critical: ambiguous connectome ownership for {filepath}: {names}"
-        )
+        raise SystemExit(f"[-] Critical: ambiguous connectome ownership for {filepath}: {names}")
     return matches[0] if matches else None
 
 
@@ -332,11 +313,7 @@ def _literal_dynamic_import_aliases(tree: ast.AST) -> ImportAliases:
             for alias in node.names:
                 if alias.name == "importlib":
                     importlib_modules.add(alias.asname or alias.name)
-        elif (
-            isinstance(node, ast.ImportFrom)
-            and node.level == 0
-            and node.module == "importlib"
-        ):
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module == "importlib":
             for alias in node.names:
                 if alias.name == "import_module":
                     import_module_callables.add(alias.asname or alias.name)
@@ -482,9 +459,7 @@ def _scan_roots_from_contract(contract: Mapping[str, object]) -> tuple[Path, ...
     raw_roots = contract.get("scan_roots")
     if raw_roots is None:
         return DEFAULT_SCAN_ROOTS
-    if not isinstance(raw_roots, list) or not all(
-        isinstance(item, str) for item in raw_roots
-    ):
+    if not isinstance(raw_roots, list) or not all(isinstance(item, str) for item in raw_roots):
         raise SystemExit("[-] Critical: connectome field 'scan_roots' must be a list[str]")
     return tuple(Path(item) for item in raw_roots)
 
@@ -499,29 +474,21 @@ def validate_repository(
 
     contract = load_contract(contract_path)
     domains = build_domains(contract)
-    scan_roots = (
-        tuple(roots) if roots is not None else _scan_roots_from_contract(contract)
-    )
+    scan_roots = tuple(roots) if roots is not None else _scan_roots_from_contract(contract)
     candidates = list(paths) if paths is not None else list(iter_python_files(scan_roots))
     violations: list[Violation] = []
     for filepath in candidates:
         if filepath.suffix != ".py":
             continue
         if not filepath.exists():
-            raise SystemExit(
-                f"[-] Critical: requested validation path does not exist: {filepath}"
-            )
+            raise SystemExit(f"[-] Critical: requested validation path does not exist: {filepath}")
         violations.extend(validate_file(filepath, domains))
     return violations
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Validate GeoSync connectome import boundaries."
-    )
-    parser.add_argument(
-        "paths", nargs="*", type=Path, help="Optional Python files to validate"
-    )
+    parser = argparse.ArgumentParser(description="Validate GeoSync connectome import boundaries.")
+    parser.add_argument("paths", nargs="*", type=Path, help="Optional Python files to validate")
     parser.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT)
     parser.add_argument("--root", action="append", type=Path, dest="roots")
     parser.add_argument("--format", choices=("text", "json"), default="text")
