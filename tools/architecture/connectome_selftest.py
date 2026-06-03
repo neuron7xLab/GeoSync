@@ -69,7 +69,13 @@ def _module(root: Path, rel: str, source: str) -> None:
     path.write_text(source, encoding="utf-8")
 
 
-def _case(name: str, source_path: str, source: str, expected: int, expected_fragment: str) -> None:
+def _case(
+    name: str,
+    source_path: str,
+    source: str,
+    expected: int,
+    expected_fragment: str,
+) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         contract = root / "connectome.yaml"
@@ -78,11 +84,18 @@ def _case(name: str, source_path: str, source: str, expected: int, expected_frag
         violations = validate_repository(contract_path=contract)
         actual = len(violations)
         if actual != expected:
-            raise AssertionError(f"{name}: expected {expected} violations, got {actual}: {violations!r}")
+            raise AssertionError(
+                f"{name}: expected {expected} violations, got {actual}: {violations!r}"
+            )
         if expected_fragment:
-            payload = json.dumps([violation.to_json() for violation in violations], sort_keys=True)
+            payload = json.dumps(
+                [violation.to_json() for violation in violations],
+                sort_keys=True,
+            )
             if expected_fragment not in payload:
-                raise AssertionError(f"{name}: expected fragment {expected_fragment!r} in {payload}")
+                raise AssertionError(
+                    f"{name}: expected fragment {expected_fragment!r} in {payload}"
+                )
 
 
 def run() -> None:
