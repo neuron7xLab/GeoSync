@@ -216,12 +216,11 @@ def test_13_raw_ope_is_euclidean_norm() -> None:
     assert math.isclose(witness.outcome_prediction_error, 5.0, abs_tol=1e-12)
 
 
-def test_14b_precision_inversion_is_falsifiable(
-    variance: tuple[float, float] = (1.0, 4.0),
-    observed: tuple[float, float] = (1.0, 4.0),
-    expected_pwope: float = math.sqrt(5.0),
-    inverted_pwope: float = math.sqrt(65.0),
-) -> None:
+def test_14b_precision_inversion_is_falsifiable() -> None:
+    variance = (1.0, 4.0)
+    observed = (1.0, 4.0)
+    expected_pwope = math.sqrt(5.0)
+    inverted_pwope = math.sqrt(65.0)
     expected = _make_expected(
         expected_result=(0.0, 0.0),
         expected_result_variance=variance,
