@@ -301,7 +301,7 @@ def test_24_witness_is_frozen() -> None:
     witness = accept_action_result(_make_expected(), _make_observed())
 
     with pytest.raises(dataclasses.FrozenInstanceError):
-        witness.status = ActionResultStatus.UPDATE_REQUIRED  # type: ignore[misc]
+        setattr(witness, "status", ActionResultStatus.UPDATE_REQUIRED)
 
 
 def test_26_no_created_before_action_field() -> None:
