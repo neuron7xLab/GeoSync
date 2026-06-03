@@ -198,7 +198,7 @@ skip_covered = false
 target-version = ["py311"]
 line-length = 100
 force-exclude = '''
-^/tests/
+(^/tests/|/tests/)
 '''
 
 [tool.ruff]
