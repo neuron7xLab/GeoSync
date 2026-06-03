@@ -116,7 +116,11 @@ def _check_observer() -> dict[str, Any]:
     if verdict["belief_variance"] <= 0.0:
         raise SystemExit("AAR_PRO_READINESS_FAIL: belief variance must stay positive")
     if verdict["free_energy_circuit_breaker"]:
-        if verdict["regime"] != "INVALID" or verdict["signal"] != "REDUCE" or verdict["risk_scalar"] != 0.0:
+        if (
+            verdict["regime"] != "INVALID"
+            or verdict["signal"] != "REDUCE"
+            or verdict["risk_scalar"] != 0.0
+        ):
             raise SystemExit("AAR_PRO_READINESS_FAIL: circuit breaker did not force INVALID/REDUCE/0")
         if verdict["recovery_action"] != "REDUCE_RISK":
             raise SystemExit("AAR_PRO_READINESS_FAIL: breaker must emit REDUCE_RISK")
