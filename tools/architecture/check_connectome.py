@@ -482,7 +482,9 @@ def _scan_roots_from_contract(contract: Mapping[str, object]) -> tuple[Path, ...
     raw_roots = contract.get("scan_roots")
     if raw_roots is None:
         return DEFAULT_SCAN_ROOTS
-    if not isinstance(raw_roots, list) or not all(isinstance(item, str) for item in raw_roots):
+    if not isinstance(raw_roots, list) or not all(
+        isinstance(item, str) for item in raw_roots
+    ):
         raise SystemExit("[-] Critical: connectome field 'scan_roots' must be a list[str]")
     return tuple(Path(item) for item in raw_roots)
 
@@ -497,7 +499,9 @@ def validate_repository(
 
     contract = load_contract(contract_path)
     domains = build_domains(contract)
-    scan_roots = tuple(roots) if roots is not None else _scan_roots_from_contract(contract)
+    scan_roots = (
+        tuple(roots) if roots is not None else _scan_roots_from_contract(contract)
+    )
     candidates = list(paths) if paths is not None else list(iter_python_files(scan_roots))
     violations: list[Violation] = []
     for filepath in candidates:
@@ -515,7 +519,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Validate GeoSync connectome import boundaries."
     )
-    parser.add_argument("paths", nargs="*", type=Path, help="Optional Python files to validate")
+    parser.add_argument(
+        "paths", nargs="*", type=Path, help="Optional Python files to validate"
+    )
     parser.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT)
     parser.add_argument("--root", action="append", type=Path, dest="roots")
     parser.add_argument("--format", choices=("text", "json"), default="text")
