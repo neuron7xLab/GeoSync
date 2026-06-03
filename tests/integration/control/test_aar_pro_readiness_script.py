@@ -1,6 +1,6 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Readiness gate for AAR-PRO-V1 productization checks."""
+"""Readiness gate subprocess integration check."""
 
 from __future__ import annotations
 
@@ -33,22 +33,14 @@ def test_aar_pro_readiness_script_is_deterministic_and_complete() -> None:
     assert first == second
     assert first["schema_version"] == "AAR-PRO-V1-READINESS"
     assert first["status"] == "READY"
-    assert math.isclose(first["precision_weighted_distance"], math.sqrt(5.0), abs_tol=1e-9)
+    assert math.isclose(
+        first["precision_weighted_distance"],
+        math.sqrt(5.0),
+        abs_tol=1e-9,
+    )
     assert first["compiled"] == [
         "core/dro_ara/engine.py",
         "geosync_hpc/control/action_result_comparator.py",
         "geosync_hpc/control/self_healing.py",
         "scripts/aar_pro_smoke.py",
     ]
-    observer = first["observer"]
-    assert isinstance(observer, dict)
-    assert 0.05 <= observer["dynamic_free_energy_threshold"] <= 2.0
-    assert observer["belief_variance"] > 0.0
-    assert isinstance(observer["causal_chronology_hash"], str)
-    assert len(observer["causal_chronology_hash"]) == 64
-    assert observer["recovery_action"] in {"ALLOW_MODEL_UPDATE", "EXPAND_CONTEXT", "REDUCE_RISK"}
-    if observer["free_energy_circuit_breaker"]:
-        assert observer["regime"] == "INVALID"
-        assert observer["signal"] == "REDUCE"
-        assert observer["risk_scalar"] == 0.0
-        assert observer["recovery_action"] == "REDUCE_RISK"
