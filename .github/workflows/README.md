@@ -12,7 +12,7 @@ for `main` stays auditable.
 | [`main-validation.yml`](./main-validation.yml) | `push` → `main` | Post-merge deep validation (slow/heavy suites, integration) | No |
 | [`codeql.yml`](./codeql.yml) | `push` → `main`, weekly cron, manual | CodeQL SAST — Python, JavaScript, Go | No (reports to Security tab) |
 | [`security-deep.yml`](./security-deep.yml) | Weekly cron, manual | Out-of-band security scans — `pip-audit`, `gitleaks`, `trivy-fs` | No |
-| [`connectome-gate.yml`](./connectome-gate.yml) | `pull_request` → `main`, `merge_group`, `push` → `main` | AST-enforced neuro-architectural import boundaries from `docs/architecture/connectome.yaml` | No (advisory until branch protection adopts `enforce-connectome`) |
+| [`connectome-gate.yml`](./connectome-gate.yml) | `pull_request` → `main`, `merge_group`, `push` → `main` | AST-enforced neuro-architectural import boundaries from `docs/architecture/connectome.yaml`; design model documented in [`../architecture/CONNECTOME_GATE.md`](../architecture/CONNECTOME_GATE.md) | No (advisory until branch protection adopts `enforce-connectome`) |
 
 Any additional workflow **must** define a distinct decision boundary that is
 not already covered by the four above. Overlapping gates are rejected.
