@@ -42,9 +42,9 @@ def test_audit_event_is_deterministic_jsonl(tmp_path):
     event = AuditEvent.from_output(output)
     line = event.to_jsonl()
     parsed = json.loads(line)
-    assert parsed["event_hash"] == event.event_hash
+    assert parsed["run_hash"] == event.run_hash
     out = tmp_path / "audit.jsonl"
-    write_audit_event(event, out)
+    write_audit_event(out, event)
     assert out.read_text(encoding="utf-8") == line
 
 
@@ -52,9 +52,10 @@ def test_audit_event_is_deterministic_jsonl(tmp_path):
 def test_replay_bundle_verifies_against_hashes():
     output = build_output()
     bundle = build_replay_bundle(output, SAMPLE_INPUT, RULES)
-    assert bundle["input_hash"] == output["input_hash"]
-    assert bundle["rules_hash"] == output["rules_hash"]
-    assert bundle["output_hash"]
+    assert bundle["expected"]["input_hash"] == output["input_hash"]
+    assert bundle["expected"]["rules_hash"] == output["rules_hash"]
+    assert bundle["expected"]["run_hash"] == output["run_hash"]
+    assert bundle["bundle_hash"]
     assert verify_replay_bundle(bundle)
 
 
@@ -62,5 +63,5 @@ def test_replay_bundle_verifies_against_hashes():
 def test_changed_replay_bundle_is_not_accepted():
     output = build_output()
     bundle = build_replay_bundle(output, SAMPLE_INPUT, RULES)
-    bundle["output_hash"] = "changed"
+    bundle["expected"]["run_hash"] = "changed"
     assert not verify_replay_bundle(bundle)
