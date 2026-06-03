@@ -68,6 +68,21 @@ def test_forbidden_import_is_reported(tmp_path: Path) -> None:
     assert "strictly forbidden" in violations[0].reason
 
 
+def test_import_from_child_alias_is_governed(tmp_path: Path) -> None:
+    contract_path = tmp_path / "connectome.yaml"
+    write_contract(contract_path, tmp_path)
+    module = tmp_path / "geosync/cortex/sensory/feed.py"
+    module.parent.mkdir(parents=True)
+    module.write_text("from geosync.cortex import motor\n", encoding="utf-8")
+
+    violations = validate_repository(contract_path=contract_path)
+
+    assert len(violations) == 1
+    assert violations[0].domain == "sensory"
+    assert violations[0].imported == "geosync.cortex.motor"
+    assert "strictly forbidden" in violations[0].reason
+
+
 def test_allowed_cross_domain_import_passes(tmp_path: Path) -> None:
     contract_path = tmp_path / "connectome.yaml"
     write_contract(contract_path, tmp_path)
@@ -125,6 +140,41 @@ def test_literal_dynamic_import_is_governed(tmp_path: Path) -> None:
     module.parent.mkdir(parents=True)
     module.write_text(
         "import importlib\nimportlib.import_module('geosync.cortex.motor.venue')\n",
+        encoding="utf-8",
+    )
+
+    violations = validate_repository(contract_path=contract_path)
+
+    assert len(violations) == 1
+    assert violations[0].statement == "dynamic import geosync.cortex.motor.venue"
+
+
+def test_importlib_alias_dynamic_import_is_governed(tmp_path: Path) -> None:
+    contract_path = tmp_path / "connectome.yaml"
+    write_contract(contract_path, tmp_path)
+    module = tmp_path / "geosync/cortex/sensory/feed.py"
+    module.parent.mkdir(parents=True)
+    module.write_text(
+        "import importlib as il\nil.import_module('geosync.cortex.motor.venue')\n",
+        encoding="utf-8",
+    )
+
+    violations = validate_repository(contract_path=contract_path)
+
+    assert len(violations) == 1
+    assert violations[0].statement == "dynamic import geosync.cortex.motor.venue"
+
+
+def test_import_module_callable_alias_dynamic_import_is_governed(tmp_path: Path) -> None:
+    contract_path = tmp_path / "connectome.yaml"
+    write_contract(contract_path, tmp_path)
+    module = tmp_path / "geosync/cortex/sensory/feed.py"
+    module.parent.mkdir(parents=True)
+    module.write_text(
+        (
+            "from importlib import import_module as load_module\n"
+            "load_module('geosync.cortex.motor.venue')\n"
+        ),
         encoding="utf-8",
     )
 
