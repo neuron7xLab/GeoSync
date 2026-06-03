@@ -6,11 +6,13 @@ from pathlib import Path
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.audit import (
     AuditEvent,
     build_replay_bundle,
-    replay_bundle,
     verify_replay_bundle,
     write_audit_event,
 )
-from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import DeterministicInferenceEngine, load_yaml
+from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import (
+    DeterministicInferenceEngine,
+    load_yaml,
+)
 from BBB_NVU_Cognitive_Noise_Gate_2026.tests.requirements import requirement
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,8 +59,8 @@ def test_replay_bundle_verifies_against_hashes():
 
 
 @requirement("R003")
-def test_tampered_replay_bundle_is_rejected():
+def test_changed_replay_bundle_is_not_accepted():
     output = build_output()
-    bundle = replay_bundle(output, SAMPLE_INPUT, RULES)
-    bundle["output_hash"] = "tampered"
+    bundle = build_replay_bundle(output, SAMPLE_INPUT, RULES)
+    bundle["output_hash"] = "changed"
     assert not verify_replay_bundle(bundle)
