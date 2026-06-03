@@ -15,7 +15,25 @@ from BBB_NVU_Cognitive_Noise_Gate_2026.tests.requirements import requirement
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = DeterministicInferenceEngine(ROOT / "config" / "risk_rules.yaml")
 DOMAIN_KEYS = ["BSI", "NRI", "VML", "GRS", "CNI"]
-GENERATIVE_VALUES = [-1_000_000.0, -0.1, 0.0, 24.9999, 25.0, 35.0, 40.0, 55.0, 60.0, 75.0, 80.0, 100.0, 100.1, 1_000_000.0, float("nan"), float("inf"), float("-inf")]
+GENERATIVE_VALUES = [
+    -1_000_000.0,
+    -0.1,
+    0.0,
+    24.9999,
+    25.0,
+    35.0,
+    40.0,
+    55.0,
+    60.0,
+    75.0,
+    80.0,
+    100.0,
+    100.1,
+    1_000_000.0,
+    float("nan"),
+    float("inf"),
+    float("-inf"),
+]
 
 
 def generated_domain_vectors(limit=500):
@@ -36,6 +54,15 @@ def generated_domain_vectors(limit=500):
         produced += 1
         if produced >= limit:
             return
+
+
+def recomposed_statement_digest(invariant):
+    digest = invariant["statement_digest"]
+    assert digest["algorithm"] == "sha256"
+    chunks = digest["chunks"]
+    assert len(chunks) == 8
+    assert all(isinstance(chunk, str) and len(chunk) == 8 for chunk in chunks)
+    return "".join(chunks)
 
 
 @requirement("R002")
@@ -96,4 +123,4 @@ def test_inv_yaml_invariants_are_executable_bound():
         assert invariant["requirement_id"].startswith("R")
         assert invariant["test_refs"]
         payload = f"{invariant['statement']}\n{invariant['enforcement']}".encode("utf-8")
-        assert invariant["statement_hash"] == hashlib.sha256(payload).hexdigest()
+        assert recomposed_statement_digest(invariant) == hashlib.sha256(payload).hexdigest()
