@@ -31,7 +31,7 @@ from typing import Iterable
 import pytest
 
 try:
-    from core.utils.determinism import THREAD_BOUND_ENV_VARS, apply_thread_determinism
+    from core.utils.determinism import apply_thread_determinism
 except ImportError:  # pragma: no cover - fallback when optional deps missing
     _determinism_path = pathlib.Path(__file__).parent / "core" / "utils" / "determinism.py"
     if not _determinism_path.is_file():
@@ -43,7 +43,6 @@ except ImportError:  # pragma: no cover - fallback when optional deps missing
         raise ImportError(msg)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    THREAD_BOUND_ENV_VARS = module.THREAD_BOUND_ENV_VARS
     apply_thread_determinism = module.apply_thread_determinism
 
 
@@ -345,7 +344,10 @@ def pytest_pyfunc_call(pyfuncitem):  # type: ignore[override]
     loop = asyncio.new_event_loop()
     try:
         asyncio.set_event_loop(loop)
-        kwargs = {arg: pyfuncitem.funcargs[arg] for arg in pyfuncitem._fixtureinfo.argnames}
+        kwargs = {
+            arg: pyfuncitem.funcargs[arg]
+            for arg in pyfuncitem._fixtureinfo.argnames
+        }
         loop.run_until_complete(testfunction(**kwargs))
     finally:
         try:
@@ -365,7 +367,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             tracker.register(item)
 
 
-def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[object]) -> None:  # type: ignore[override]
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo[object]
+) -> None:  # type: ignore[override]
     if call.when != "call":
         return
     tracker = getattr(item.config, "_geosync_flaky_tracker", None)
