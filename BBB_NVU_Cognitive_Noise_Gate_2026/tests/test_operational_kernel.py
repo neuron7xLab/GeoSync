@@ -1,3 +1,5 @@
+# ruff: noqa: I001
+
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -56,10 +58,13 @@ def test_operational_envelope_is_deterministic_and_replay_verified():
 
 @requirement("R004")
 def test_operational_envelope_contains_metrics_audit_and_incidents():
-    envelope = kernel().execute([
-        {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
-        {"input_doc": RED_INPUT, "source_id": "red.json"},
-    ], created_at=FIXED_TIME)
+    envelope = kernel().execute(
+        [
+            {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
+            {"input_doc": RED_INPUT, "source_id": "red.json"},
+        ],
+        created_at=FIXED_TIME,
+    )
 
     assert envelope.request_count == 2
     assert len(envelope.outputs) == 2
@@ -86,9 +91,7 @@ def test_operational_kernel_preserves_fail_closed_invalid_behavior():
 @requirement("R002")
 def test_operational_kernel_rejects_boundary_request_extra_fields():
     try:
-        kernel().execute([
-            {"input_doc": STABLE_INPUT, "source_id": "stable.json", "extra": "blocked"}
-        ], created_at=FIXED_TIME)
+        kernel().execute([{"input_doc": STABLE_INPUT, "source_id": "stable.json", "extra": "blocked"}], created_at=FIXED_TIME)
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
     else:
@@ -97,10 +100,13 @@ def test_operational_kernel_rejects_boundary_request_extra_fields():
 
 @requirement("R003")
 def test_operational_envelope_verifier_accepts_fresh_envelope():
-    envelope = kernel().execute([
-        {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
-        {"input_doc": RED_INPUT, "source_id": "red.json"},
-    ], created_at=FIXED_TIME)
+    envelope = kernel().execute(
+        [
+            {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
+            {"input_doc": RED_INPUT, "source_id": "red.json"},
+        ],
+        created_at=FIXED_TIME,
+    )
 
     assert verify_operational_envelope(envelope)
 
@@ -121,10 +127,10 @@ def test_operational_envelope_verifier_rejects_manifest_tampering():
     payload["manifest"]["replay_verified"] = [False]
     body = dict(payload)
     body.pop("envelope_hash")
-    # Keep envelope_hash aligned with the tampered body to prove manifest checks are independent.
     payload["envelope_hash"] = sha256_text(canonical(body))
 
     assert not verify_operational_envelope(payload)
+
 
 @requirement("R002")
 def test_operational_envelope_verifier_fails_closed_on_malformed_payload():
