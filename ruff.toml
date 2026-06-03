@@ -1,5 +1,5 @@
 line-length = 100
-extend-exclude = ["docs/notebooks", "tests"]
+extend-exclude = ["docs/notebooks", "tests", "**/tests"]
 force-exclude = true
 
 [lint]
