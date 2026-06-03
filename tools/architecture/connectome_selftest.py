@@ -57,8 +57,7 @@ domains:
     role: "execution"
     allowed_imports: []
     forbidden_imports: []
-""".strip()
-        + "\n",
+""".strip() + "\n",
         encoding="utf-8",
     )
 
