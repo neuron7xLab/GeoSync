@@ -16,20 +16,10 @@ diff_scope:
     - path: ".github/workflows/connectome-gate.yml"
     - path: "docs/architecture/connectome.schema.json"
     - path: "docs/architecture/connectome.yaml"
-    - path: "geosync/cortex/__init__.py"
-    - path: "geosync/cortex/amygdala/__init__.py"
-    - path: "geosync/cortex/basal_ganglia/__init__.py"
-    - path: "geosync/cortex/hippocampus/__init__.py"
-    - path: "geosync/cortex/motor/__init__.py"
-    - path: "geosync/cortex/prefrontal/__init__.py"
-    - path: "geosync/cortex/sensory/__init__.py"
-    - path: "tests/tools/__init__.py"
-    - path: "tests/tools/architecture/__init__.py"
     - path: "tests/tools/architecture/test_check_connectome.py"
     - path: "tests/tools/architecture/test_check_connectome_edge_cases.py"
     - path: "tests/tools/architecture/test_connectome_contract_shape.py"
     - path: "tests/tools/architecture/test_connectome_selftest.py"
-    - path: "tools/architecture/__init__.py"
     - path: "tools/architecture/check_connectome.py"
     - path: "tools/architecture/connectome_selftest.py"
   forbidden_paths:
@@ -62,7 +52,7 @@ falsifier:
     of allowing silent architecture leakage.
 
 rollback_command: >-
-  git checkout -- .github/workflows/connectome-gate.yml .github/workflows/README.md docs/architecture/connectome.yaml docs/architecture/connectome.schema.json geosync/cortex tests/tools/architecture tools/architecture/__init__.py tools/architecture/check_connectome.py tools/architecture/connectome_selftest.py .claude/commit_acceptors/connectome-gate-core.yaml
+  git checkout -- .github/workflows/connectome-gate.yml .github/workflows/README.md docs/architecture/connectome.yaml docs/architecture/connectome.schema.json tests/tools/architecture tools/architecture/check_connectome.py tools/architecture/connectome_selftest.py .claude/commit_acceptors/connectome-gate-core.yaml
 
 rollback_verification_command: >-
   git diff --exit-code
