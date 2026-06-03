@@ -49,6 +49,14 @@ class ImportEdge:
 
 
 @dataclass(frozen=True)
+class ImportAliases:
+    """Local aliases that may execute literal dynamic imports."""
+
+    importlib_modules: frozenset[str]
+    import_module_callables: frozenset[str]
+
+
+@dataclass(frozen=True)
 class Violation:
     """Connectome contract violation."""
 
@@ -182,7 +190,7 @@ def build_domains(contract: Mapping[str, object]) -> dict[str, Domain]:
         )
         import_prefixes = tuple(
             dict.fromkeys(
-                [*( _normalise_prefix(item) for item in raw_import_roots)]
+                [*(_normalise_prefix(item) for item in raw_import_roots)]
                 + [_path_to_import_prefix(path.as_posix()) for path in paths]
             )
         )
@@ -261,6 +269,49 @@ def _resolve_import_from(filepath: Path, node: ast.ImportFrom) -> str | None:
     return ".".join([*base_parts, *module_parts])
 
 
+def _import_from_edges(filepath: Path, node: ast.ImportFrom) -> list[ImportEdge]:
+    """Resolve ``from x import y`` as both the base package and imported children.
+
+    The child expansion catches boundary leaks such as ``from geosync.cortex
+    import motor``.  A base edge is still retained for star imports and for
+    conventional ``from geosync.cortex.motor import venue`` statements.
+    """
+
+    module = _resolve_import_from(filepath, node)
+    if not module:
+        return []
+
+    statement = f"from {module} import ..."
+    edges = [ImportEdge(module, node.lineno, statement)]
+    for alias in node.names:
+        if alias.name == "*":
+            continue
+        edges.append(ImportEdge(f"{module}.{alias.name}", node.lineno, statement))
+    return edges
+
+
+def _literal_dynamic_import_aliases(tree: ast.AST) -> ImportAliases:
+    """Collect import aliases that can call literal dynamic import APIs."""
+
+    importlib_modules = {"importlib"}
+    import_module_callables: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "importlib":
+                    importlib_modules.add(alias.asname or alias.name)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module == "importlib":
+            for alias in node.names:
+                if alias.name == "import_module":
+                    import_module_callables.add(alias.asname or alias.name)
+
+    return ImportAliases(
+        importlib_modules=frozenset(importlib_modules),
+        import_module_callables=frozenset(import_module_callables),
+    )
+
+
 def parse_imports_from_file(filepath: Path) -> list[ImportEdge]:
     """Extract static and literal-dynamic import statements from a Python file."""
 
@@ -274,31 +325,33 @@ def parse_imports_from_file(filepath: Path) -> list[ImportEdge]:
         raise SystemExit(f"[-] Syntax error in file {filepath}: {exc}") from exc
 
     imports: list[ImportEdge] = []
+    aliases = _literal_dynamic_import_aliases(tree)
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 imports.append(ImportEdge(alias.name, node.lineno, f"import {alias.name}"))
         elif isinstance(node, ast.ImportFrom):
-            module = _resolve_import_from(filepath, node)
-            if module:
-                imports.append(ImportEdge(module, node.lineno, f"from {module} import ..."))
+            imports.extend(_import_from_edges(filepath, node))
         elif isinstance(node, ast.Call):
-            literal = _literal_import_call(node)
+            literal = _literal_import_call(node, aliases)
             if literal is not None:
                 imports.append(ImportEdge(literal, node.lineno, f"dynamic import {literal}"))
     return imports
 
 
-def _literal_import_call(node: ast.Call) -> str | None:
+def _literal_import_call(node: ast.Call, aliases: ImportAliases) -> str | None:
     function = node.func
     is_importlib = (
         isinstance(function, ast.Attribute)
         and function.attr == "import_module"
         and isinstance(function.value, ast.Name)
-        and function.value.id == "importlib"
+        and function.value.id in aliases.importlib_modules
+    )
+    is_import_module_callable = (
+        isinstance(function, ast.Name) and function.id in aliases.import_module_callables
     )
     is_dunder_import = isinstance(function, ast.Name) and function.id == "__import__"
-    if not (is_importlib or is_dunder_import):
+    if not (is_importlib or is_import_module_callable or is_dunder_import):
         return None
     if not node.args or not isinstance(node.args[0], ast.Constant):
         return None
@@ -323,13 +376,27 @@ def validate_file(filepath: Path, domains: Mapping[str, Domain]) -> list[Violati
         return []
 
     violations: list[Violation] = []
+    violation_keys: set[tuple[str, str, int, str, str]] = set()
     registered_domain_prefixes = _domain_import_prefixes(domains, excluded=current_domain.name)
+
+    def add_violation(violation: Violation) -> None:
+        key = (
+            violation.path,
+            violation.domain,
+            violation.lineno,
+            violation.reason,
+            violation.statement,
+        )
+        if key not in violation_keys:
+            violation_keys.add(key)
+            violations.append(violation)
+
     for edge in parse_imports_from_file(filepath):
         imported = edge.module
         forbidden_hit = False
         for forbidden_prefix in current_domain.forbidden_imports:
             if _is_prefix(imported, forbidden_prefix):
-                violations.append(
+                add_violation(
                     Violation(
                         path=filepath.as_posix(),
                         domain=current_domain.name,
@@ -348,7 +415,7 @@ def validate_file(filepath: Path, domains: Mapping[str, Domain]) -> list[Violati
                 for allowed_prefix in current_domain.allowed_imports
             )
             if _is_prefix(imported, domain_prefix) and not allowed:
-                violations.append(
+                add_violation(
                     Violation(
                         path=filepath.as_posix(),
                         domain=current_domain.name,
