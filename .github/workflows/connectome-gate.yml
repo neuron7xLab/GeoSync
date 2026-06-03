@@ -49,3 +49,8 @@ jobs:
         run: |
           set -euo pipefail
           python tools/architecture/check_connectome.py
+
+      - name: Execute connectome contract regression tests
+        run: |
+          set -euo pipefail
+          python -m pytest tests/tools/architecture/test_check_connectome.py tests/tools/architecture/test_connectome_contract_shape.py -q
