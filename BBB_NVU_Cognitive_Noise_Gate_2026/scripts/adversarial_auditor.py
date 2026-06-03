@@ -5,6 +5,7 @@ This is intentionally deterministic and bounded for CI. It is not an LLM agent o
 networked microservice; it is the calibration sandbox that must pass before any
 future external adversarial service is promoted.
 """
+# ruff: noqa: I001
 
 from __future__ import annotations
 
@@ -65,7 +66,13 @@ class AdversarialAuditor:
             mutated["degradations"] = self.random.choice(CRITICAL_DEGRADATION_PAYLOADS)
         else:
             epsilon = 0.0001
-            mutated["domain_indices"] = {"BSI": 35 - epsilon, "NRI": 30 - epsilon, "VML": 35 - epsilon, "GRS": 55 + epsilon, "CNI": 30 - epsilon}
+            mutated["domain_indices"] = {
+                "BSI": 35 - epsilon,
+                "NRI": 30 - epsilon,
+                "VML": 35 - epsilon,
+                "GRS": 55 + epsilon,
+                "CNI": 30 - epsilon,
+            }
             mutated["degradations"] = ["UNKNOWN_PROVENANCE"]
 
         return mutated
