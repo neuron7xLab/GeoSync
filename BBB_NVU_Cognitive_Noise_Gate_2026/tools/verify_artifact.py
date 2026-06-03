@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """One-command verification harness for the BBB-NVU artifact."""
+# ruff: noqa: I001
 
 from __future__ import annotations
 
