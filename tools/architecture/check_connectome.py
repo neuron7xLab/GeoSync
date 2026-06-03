@@ -10,7 +10,7 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence, cast
 
 try:
     import yaml
@@ -121,11 +121,12 @@ def load_contract(contract_path: Path = DEFAULT_CONTRACT) -> Mapping[str, object
     if not contract_path.exists():
         raise SystemExit(f"[-] Critical: Architectural contract not found at {contract_path}")
     with contract_path.open("r", encoding="utf-8") as handle:
-        contract = yaml.safe_load(handle)
-    if not isinstance(contract, dict):
+        raw_contract = yaml.safe_load(handle)
+    if not isinstance(raw_contract, dict):
         raise SystemExit(
             f"[-] Critical: Connectome contract is not a YAML mapping: {contract_path}"
         )
+    contract = cast(dict[str, object], raw_contract)
     for field in ("version", "system_name", "domains"):
         if field not in contract:
             raise SystemExit(f"[-] Critical: Connectome contract missing field: {field}")
@@ -149,17 +150,24 @@ def _domain_paths(meta: Mapping[str, object], *, domain: str) -> tuple[Path, ...
     return tuple(Path(path) for path in paths)
 
 
+def _domain_mapping(value: object, *, domain: str) -> Mapping[str, object]:
+    if not isinstance(value, dict):
+        raise SystemExit(f"[-] Critical: domain {domain!r} must be a mapping")
+    return cast(dict[str, object], value)
+
+
 def build_domains(contract: Mapping[str, object]) -> dict[str, Domain]:
     """Convert raw YAML domain entries into validated domain records."""
 
     raw_domains = contract["domains"]
-    assert isinstance(raw_domains, dict)
+    if not isinstance(raw_domains, dict):
+        raise SystemExit("[-] Critical: Connectome contract field 'domains' must be a mapping")
+
     domains: dict[str, Domain] = {}
     seen_import_prefixes: dict[str, str] = {}
-    for name, meta in raw_domains.items():
+    for name, raw_meta in cast(dict[str, Any], raw_domains).items():
         domain_name = str(name)
-        if not isinstance(meta, dict):
-            raise SystemExit(f"[-] Critical: domain {domain_name!r} must be a mapping")
+        meta = _domain_mapping(raw_meta, domain=domain_name)
         role = meta.get("role")
         owner = meta.get("owner")
         state = meta.get("state", "active")
@@ -167,7 +175,7 @@ def build_domains(contract: Mapping[str, object]) -> dict[str, Domain]:
             raise SystemExit(f"[-] Critical: domain {domain_name!r} missing non-empty role")
         if not isinstance(owner, str) or "@" not in owner:
             raise SystemExit(f"[-] Critical: domain {domain_name!r} missing institutional owner")
-        if state not in VALID_DOMAIN_STATES:
+        if not isinstance(state, str) or state not in VALID_DOMAIN_STATES:
             raise SystemExit(
                 f"[-] Critical: domain {domain_name!r} has invalid state {state!r}; "
                 f"expected one of {sorted(VALID_DOMAIN_STATES)}"
@@ -273,7 +281,7 @@ def _import_from_edges(filepath: Path, node: ast.ImportFrom) -> list[ImportEdge]
     """Resolve ``from x import y`` as both the base package and imported children.
 
     The child expansion catches boundary leaks such as ``from geosync.cortex
-    import motor``.  A base edge is still retained for star imports and for
+    import motor``. A base edge is still retained for star imports and for
     conventional ``from geosync.cortex.motor import venue`` statements.
     """
 
