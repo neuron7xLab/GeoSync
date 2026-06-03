@@ -27,6 +27,7 @@ diff_scope:
     - path: "tests/tools/architecture/test_check_connectome_edge_cases.py"
     - path: "tests/tools/architecture/test_connectome_contract_shape.py"
     - path: "tests/tools/architecture/test_connectome_selftest.py"
+    - path: "tools/architecture/__init__.py"
     - path: "tools/architecture/check_connectome.py"
     - path: "tools/architecture/connectome_selftest.py"
   forbidden_paths:
@@ -59,7 +60,7 @@ falsifier:
     of allowing silent architecture leakage.
 
 rollback_command: >-
-  git checkout -- .github/workflows/connectome-gate.yml .github/workflows/README.md docs/architecture/connectome.yaml docs/architecture/connectome.schema.json geosync/cortex tests/tools/architecture tools/architecture/check_connectome.py tools/architecture/connectome_selftest.py .claude/commit_acceptors/connectome-gate-core.yaml
+  git checkout -- .github/workflows/connectome-gate.yml .github/workflows/README.md docs/architecture/connectome.yaml docs/architecture/connectome.schema.json geosync/cortex tests/tools/architecture tools/architecture/__init__.py tools/architecture/check_connectome.py tools/architecture/connectome_selftest.py .claude/commit_acceptors/connectome-gate-core.yaml
 
 rollback_verification_command: >-
   git diff --exit-code
