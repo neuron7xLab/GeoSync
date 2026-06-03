@@ -24,8 +24,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from core.dro_ara import geosync_observe
-from geosync_hpc.control import ExpectedResultModel, ObservedActionResult, accept_action_result
+from core.dro_ara import geosync_observe  # noqa: E402
+from geosync_hpc.control import (  # noqa: E402
+    ExpectedResultModel,
+    ObservedActionResult,
+    accept_action_result,
+)
 
 ENGINE = REPO_ROOT / "core" / "dro_ara" / "engine.py"
 COMPARATOR = REPO_ROOT / "geosync_hpc" / "control" / "action_result_comparator.py"
