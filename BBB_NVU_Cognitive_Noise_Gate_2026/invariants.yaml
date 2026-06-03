@@ -8,14 +8,34 @@ invariants:
   requirement_id: R003
   test_refs:
   - tests/test_invariants.py::test_inv_deterministic_hash_stability
-  statement_hash: f0b4a6728fea8620a640bdd1fbcec14e84c736736c653f8151b8e96f91b3786d
+  statement_digest:
+    algorithm: sha256
+    chunks:
+    - f0b4a672
+    - 8fea8620
+    - a640bdd1
+    - fbcec14e
+    - 84c73673
+    - 6c653f81
+    - 51b8e96f
+    - 91b3786d
 - id: INV_FAIL_CLOSED_INVALID
   statement: critical_data_invalid true always returns BLACK_INVALID
   enforcement: safety override before domain risk classification
   requirement_id: R002
   test_refs:
   - tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution
-  statement_hash: 02b09c925e8b4e44a29abb6169865116f35c04c0fd1c67d6197ad50aae3cc014
+  statement_digest:
+    algorithm: sha256
+    chunks:
+    - 02b09c92
+    - 5e8b4e44
+    - a29abb61
+    - 69865116
+    - f35c04c0
+    - fd1c67d6
+    - 197ad50a
+    - ae3cc014
 - id: INV_DEGRADATION_EXPLICIT
   statement: missing domains are emitted as degradations rather than silently ignored
     as green evidence
@@ -23,18 +43,48 @@ invariants:
   requirement_id: R004
   test_refs:
   - tests/test_deterministic_engine.py::test_missing_domain_is_explicit_degradation
-  statement_hash: d478fc726f9c47a4da09a66333a0ed1467cde352423283e8e754dbeed6f551a3
+  statement_digest:
+    algorithm: sha256
+    chunks:
+    - d478fc72
+    - 6f9c47a4
+    - da09a663
+    - 33a0ed14
+    - 67cde352
+    - 423283e8
+    - e754dbee
+    - d6f551a3
 - id: INV_HUMAN_REVIEW_HIGH_RISK
   statement: ORANGE_RISK, RED_CRITICAL, and BLACK_INVALID require human review
   enforcement: control action construction
   requirement_id: R005
   test_refs:
   - tests/test_deterministic_engine.py::test_high_risk_and_invalid_states_require_human_review
-  statement_hash: 53efc8a2d53b067e0d0d1a46e2a6456aca85b148793deba9e553f96bd55e2f9a
+  statement_digest:
+    algorithm: sha256
+    chunks:
+    - 53efc8a2
+    - d53b067e
+    - 0d0d1a46
+    - e2a6456a
+    - ca85b148
+    - 793deba9
+    - e553f96b
+    - d55e2f9a
 - id: INV_NO_AUTONOMOUS_CRITICAL_ACTION
   statement: RED_CRITICAL and BLACK_INVALID prohibit autonomous execution
   enforcement: prohibited_autonomous_execution flag
   requirement_id: R002
   test_refs:
   - tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution
-  statement_hash: 2d56763f88763d0d20b136a4ab8b75f9c7cc45a0c3a73c5ef9915024c1f80877
+  statement_digest:
+    algorithm: sha256
+    chunks:
+    - 2d56763f
+    - 88763d0d
+    - 20b136a4
+    - ab8b75f9
+    - c7cc45a0
+    - c3a73c5e
+    - f9915024
+    - c1f80877
