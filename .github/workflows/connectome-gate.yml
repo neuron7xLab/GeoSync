@@ -57,6 +57,11 @@ jobs:
           set -euo pipefail
           python -m pytest tests/tools/architecture/test_check_connectome.py -q --junitxml=build/connectome/ast-regression.xml
 
+      - name: Execute connectome edge-case tests
+        run: |
+          set -euo pipefail
+          python -m pytest tests/tools/architecture/test_check_connectome_edge_cases.py -q --junitxml=build/connectome/edge-cases.xml
+
       - name: Execute canonical connectome shape tests
         run: |
           set -euo pipefail
