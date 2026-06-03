@@ -165,9 +165,7 @@ def test_importlib_alias_dynamic_import_is_governed(tmp_path: Path) -> None:
     assert violations[0].statement == "dynamic import geosync.cortex.motor.venue"
 
 
-def test_import_module_callable_alias_dynamic_import_is_governed(
-    tmp_path: Path,
-) -> None:
+def test_import_module_callable_alias_dynamic_import_is_governed(tmp_path: Path) -> None:
     contract_path = tmp_path / "connectome.yaml"
     write_contract(contract_path, tmp_path)
     module = tmp_path / "geosync/cortex/sensory/feed.py"
