@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import dataclasses
 import math
+from typing import Any
 
 import pytest
 
@@ -21,6 +22,10 @@ from geosync_hpc.control import (
     compare_action_result,
     seal_action_result_evidence,
 )
+
+
+def _field_names(model: Any) -> set[str]:
+    return {field.name for field in dataclasses.fields(model)}
 
 
 def _make_expected(
@@ -305,24 +310,19 @@ def test_24_witness_is_frozen() -> None:
 
 
 def test_26_no_created_before_action_field() -> None:
-    field_names = {field.name for field in dataclasses.fields(ExpectedResultModel)}
-
-    assert "created_before_action" not in field_names
+    assert "created_before_action" not in _field_names(ExpectedResultModel)
 
 
 def test_27_no_prior_confidence_field() -> None:
-    field_names = {field.name for field in dataclasses.fields(ExpectedResultModel)}
-    witness_field_names = {field.name for field in dataclasses.fields(ActionResultWitness)}
-
-    assert "prior_confidence" not in field_names
-    assert "prior_confidence" not in witness_field_names
+    assert "prior_confidence" not in _field_names(ExpectedResultModel)
+    assert "prior_confidence" not in _field_names(ActionResultWitness)
 
 
 def test_30_no_forecast_or_trading_fields() -> None:
     forbidden = {"forecast", "trading_signal", "biological_equivalence"}
 
     for cls in (ExpectedResultModel, ObservedActionResult, ActionResultWitness):
-        names = {field.name for field in dataclasses.fields(cls)}
+        names = _field_names(cls)
         assert names.isdisjoint(forbidden), f"{cls.__name__} has forbidden field"
 
 
