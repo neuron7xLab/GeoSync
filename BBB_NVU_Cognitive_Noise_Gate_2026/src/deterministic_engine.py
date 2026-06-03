@@ -14,8 +14,16 @@ import sys
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictStr,
+    ValidationError,
+    field_validator,
+)
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, ValidationError, field_validator
 
 ENGINE_VERSION = "demo-0.5.0"
 DOMAIN_MIN = 0.0
@@ -38,7 +46,13 @@ CRITICAL_DEGRADATIONS = {
 
 DomainCode = Literal["BSI", "NRI", "VML", "GRS", "CNI"]
 SourceType = Literal[
-    "lab", "wearable", "cognitive_test", "imaging", "bbb_on_chip", "clinical_note", "manual_entry"
+    "lab",
+    "wearable",
+    "cognitive_test",
+    "imaging",
+    "bbb_on_chip",
+    "clinical_note",
+    "manual_entry",
 ]
 ObservationDomain = Literal[
     "barrier",
@@ -50,11 +64,24 @@ ObservationDomain = Literal[
     "qc",
 ]
 ProvenanceActivity = Literal[
-    "created", "measured", "imported", "normalized", "inferred", "reviewed", "updated", "deleted"
+    "created",
+    "measured",
+    "imported",
+    "normalized",
+    "inferred",
+    "reviewed",
+    "updated",
+    "deleted",
 ]
 EvidenceGrade = Literal["A", "B", "C", "D"]
-StrictDomainIndex = Annotated[float, Field(strict=True, ge=DOMAIN_MIN, le=DOMAIN_MAX, allow_inf_nan=False)]
-StrictConfidence = Annotated[float, Field(strict=True, ge=CONFIDENCE_MIN, le=CONFIDENCE_MAX, allow_inf_nan=False)]
+StrictDomainIndex = Annotated[
+    float,
+    Field(strict=True, ge=DOMAIN_MIN, le=DOMAIN_MAX, allow_inf_nan=False),
+]
+StrictConfidence = Annotated[
+    float,
+    Field(strict=True, ge=CONFIDENCE_MIN, le=CONFIDENCE_MAX, allow_inf_nan=False),
+]
 
 
 class StrictProvenance(BaseModel):
@@ -254,7 +281,10 @@ class DeterministicInferenceEngine:
         return cls(rules=rules, engine_hash=engine_hash)
 
     def evaluate_run(
-        self, input_doc: dict[str, Any], created_at: str | None = None, source_id: str = "memory.json"
+        self,
+        input_doc: dict[str, Any],
+        created_at: str | None = None,
+        source_id: str = "memory.json",
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         """Return risk and actions without raising on malformed inference payloads."""
         output = self.build_output(input_doc, source_id=source_id, created_at=created_at)
@@ -381,7 +411,10 @@ def apply_degradation_penalties(confidence: float, degradations: list[Any], rule
 
 
 def infer_state(
-    indices: dict[str, float], confidence: float, degradations: list[Any], rules: dict[str, Any]
+    indices: dict[str, float],
+    confidence: float,
+    degradations: list[Any],
+    rules: dict[str, Any],
 ) -> tuple[str, list[str], list[Any]]:
     """Infer non-invalid composite state from sanitized domain indices."""
     critical: list[str] = []
