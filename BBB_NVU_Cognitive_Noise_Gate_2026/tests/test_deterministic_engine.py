@@ -1,3 +1,5 @@
+# ruff: noqa: I001
+
 from pathlib import Path
 
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import build_output, evaluate, load_yaml
