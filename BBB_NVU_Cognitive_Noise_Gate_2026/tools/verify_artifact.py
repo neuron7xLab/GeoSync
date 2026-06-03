@@ -3,14 +3,18 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+import platform
 import py_compile
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parent
+VERIFY_ARTIFACT = REPO / "tmp" / "bbb_nvu_cng_verify_artifact.json"
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
@@ -23,6 +27,7 @@ PYTHON_FILES = [
     ROOT / "scripts" / "adversarial_auditor.py",
     ROOT / "tools" / "traceability.py",
     ROOT / "tools" / "compile_invariants.py",
+    ROOT / "tools" / "verify_artifact.py",
 ]
 
 TEST_FILES = [
@@ -38,27 +43,41 @@ TEST_FILES = [
 ]
 
 
-def run(command: list[str]) -> None:
+def run(command: list[str], report: dict[str, Any], key: str) -> None:
+    """Run a command and record its deterministic status in the report."""
     subprocess.run(command, cwd=REPO, check=True)
+    report[key] = {"status": "passed", "command": command}
 
 
-def parse_json_artifacts() -> None:
+def parse_json_artifacts() -> list[str]:
+    """Parse all committed JSON contract artifacts and return their repo paths."""
+    parsed: list[str] = []
     for path in [
         *sorted((ROOT / "schemas").glob("*.json")),
         *sorted((ROOT / "examples").glob("*.json")),
         ROOT / "tests" / "adversarial_golden_vectors.json",
     ]:
         json.loads(path.read_text(encoding="utf-8"))
+        parsed.append(str(path.relative_to(REPO)))
+    return parsed
 
 
-def compile_python() -> None:
+def compile_python() -> list[str]:
+    """Compile critical Python modules and return their repo paths."""
+    compiled: list[str] = []
     for path in PYTHON_FILES:
         py_compile.compile(str(path), doraise=True)
+        compiled.append(str(path.relative_to(REPO)))
+    return compiled
 
 
-def operational_smoke() -> None:
+def operational_smoke() -> dict[str, Any]:
+    """Execute the operational envelope smoke check and return hash material."""
     from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import load_yaml
-    from BBB_NVU_Cognitive_Noise_Gate_2026.src.operational_kernel import OperationalKernel, verify_operational_envelope
+    from BBB_NVU_Cognitive_Noise_Gate_2026.src.operational_kernel import (
+        OperationalKernel,
+        verify_operational_envelope,
+    )
 
     rules = load_yaml(ROOT / "config" / "risk_rules.yaml")
     request = {
@@ -78,16 +97,54 @@ def operational_smoke() -> None:
     assert envelope.manifest["replay_verified"] == [True]
     assert verify_operational_envelope(envelope)
     assert envelope.envelope_hash
+    return {
+        "status": "passed",
+        "envelope_hash": envelope.envelope_hash,
+        "risk_state": envelope.outputs[0]["risk"]["risk_state"],
+        "run_hash": envelope.outputs[0]["run_hash"],
+        "rules_hash": envelope.outputs[0]["rules_hash"],
+        "engine_hash": envelope.outputs[0]["engine_hash"],
+        "metrics_snapshot_id": envelope.metrics_snapshot["snapshot_id"],
+        "incident_count": len(envelope.incidents),
+    }
 
 
-def main() -> int:
-    run([sys.executable, str(ROOT / "tools" / "traceability.py")])
-    run([sys.executable, "-m", "pytest", "-q", "-W", "ignore::DeprecationWarning", *map(str, TEST_FILES)])
-    compile_python()
-    parse_json_artifacts()
-    operational_smoke()
-    run(["git", "diff", "--check", "--", str(ROOT.relative_to(REPO))])
-    print("verification ok")
+def write_report(report: dict[str, Any]) -> None:
+    """Write deterministic JSON verification evidence."""
+    VERIFY_ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
+    VERIFY_ARTIFACT.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the verifier CLI."""
+    parser = argparse.ArgumentParser(description="Verify the BBB-NVU artifact.")
+    parser.add_argument("--mode", choices=["full"], default="full")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run all bounded verification checks."""
+    build_parser().parse_args(argv)
+    report: dict[str, Any] = {
+        "artifact_id": "BBB-NVU-CNG-2026",
+        "status": "started",
+        "python_version": platform.python_version(),
+        "checks": {},
+    }
+
+    run([sys.executable, str(ROOT / "tools" / "traceability.py")], report["checks"], "traceability")
+    run(
+        [sys.executable, "-m", "pytest", "-q", "-W", "ignore::DeprecationWarning", *map(str, TEST_FILES)],
+        report["checks"],
+        "pytest",
+    )
+    report["checks"]["py_compile"] = {"status": "passed", "files": compile_python()}
+    report["checks"]["json_parse"] = {"status": "passed", "files": parse_json_artifacts()}
+    report["checks"]["operational_smoke"] = operational_smoke()
+    run(["git", "diff", "--check", "--", str(ROOT.relative_to(REPO))], report["checks"], "git_diff_check")
+    report["status"] = "passed"
+    write_report(report)
+    print(f"verification ok: {VERIFY_ARTIFACT.relative_to(REPO)}")
     return 0
 
 
