@@ -9,7 +9,7 @@ import ast
 import json
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterable, Mapping, Sequence, cast
+from typing import Iterable, Mapping, Sequence, cast
 
 try:
     import yaml
@@ -109,11 +109,18 @@ def _is_prefix(imported: str, prefix: str) -> bool:
 def _as_string_list(value: object, *, field: str, domain: str) -> tuple[str, ...]:
     if value is None:
         return ()
-    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+    if not isinstance(value, list):
         raise SystemExit(
             f"[-] Critical: domain {domain!r} field {field!r} must be a list[str]"
         )
-    return tuple(value)
+    items: list[str] = []
+    for item in value:
+        if not isinstance(item, str):
+            raise SystemExit(
+                f"[-] Critical: domain {domain!r} field {field!r} must be a list[str]"
+            )
+        items.append(item)
+    return tuple(items)
 
 
 def load_contract(contract_path: Path = DEFAULT_CONTRACT) -> Mapping[str, object]:
@@ -166,7 +173,7 @@ def build_domains(contract: Mapping[str, object]) -> dict[str, Domain]:
 
     domains: dict[str, Domain] = {}
     seen_import_prefixes: dict[str, str] = {}
-    for name, raw_meta in cast(dict[str, Any], raw_domains).items():
+    for name, raw_meta in cast(dict[str, object], raw_domains).items():
         domain_name = str(name)
         meta = _domain_mapping(raw_meta, domain=domain_name)
         role = meta.get("role")
