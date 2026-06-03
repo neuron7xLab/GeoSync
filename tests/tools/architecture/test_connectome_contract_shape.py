@@ -9,6 +9,14 @@ CONTRACT_PATH = Path("docs/architecture/connectome.yaml")
 SCHEMA_PATH = Path("docs/architecture/connectome.schema.json")
 
 
+def _is_prefix(left: str, right: str) -> bool:
+    return left == right or left.startswith(f"{right}.")
+
+
+def _overlaps(left: str, right: str) -> bool:
+    return _is_prefix(left, right) or _is_prefix(right, left)
+
+
 def test_connectome_schema_file_is_valid_json() -> None:
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 
@@ -43,7 +51,7 @@ def test_allowed_imports_resolve_to_registered_domains() -> None:
             owners = [
                 owner
                 for import_root, owner in import_root_to_domain.items()
-                if allowed_prefix == import_root or allowed_prefix.startswith(f"{import_root}.")
+                if _overlaps(allowed_prefix, import_root)
             ]
             assert owners, f"{domain.name} allows unknown prefix {allowed_prefix!r}"
 
@@ -62,8 +70,7 @@ def test_active_domains_do_not_allow_reserved_domains() -> None:
             continue
         for allowed_prefix in domain.allowed_imports:
             assert not any(
-                allowed_prefix == reserved or allowed_prefix.startswith(f"{reserved}.")
-                for reserved in reserved_prefixes
+                _overlaps(allowed_prefix, reserved) for reserved in reserved_prefixes
             ), f"active domain {domain.name} allows reserved prefix {allowed_prefix}"
 
 
@@ -73,8 +80,5 @@ def test_forbidden_imports_do_not_overlap_domain_own_roots() -> None:
     for domain in domains.values():
         for forbidden_prefix in domain.forbidden_imports:
             assert not any(
-                forbidden_prefix == own_root
-                or forbidden_prefix.startswith(f"{own_root}.")
-                or own_root.startswith(f"{forbidden_prefix}.")
-                for own_root in domain.import_prefixes
+                _overlaps(forbidden_prefix, own_root) for own_root in domain.import_prefixes
             ), f"{domain.name} forbids its own import root through {forbidden_prefix}"
