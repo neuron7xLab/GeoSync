@@ -1,0 +1,131 @@
+from pathlib import Path
+
+from pydantic import ValidationError
+
+from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import canonical, load_yaml, sha256_text
+from BBB_NVU_Cognitive_Noise_Gate_2026.src.operational_kernel import OperationalKernel, verify_operational_envelope
+from BBB_NVU_Cognitive_Noise_Gate_2026.tests.requirements import requirement
+
+ROOT = Path(__file__).resolve().parents[1]
+RULES = load_yaml(ROOT / "config" / "risk_rules.yaml")
+FIXED_TIME = "2026-06-03T00:00:00Z"
+FIXED_ENGINE_HASH = "engine-hash-for-operational-kernel-tests"
+
+STABLE_INPUT = {
+    "subject_id": "S-STABLE",
+    "critical_data_invalid": False,
+    "confidence": 0.95,
+    "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
+    "degradations": [],
+}
+RED_INPUT = {
+    "subject_id": "S-RED",
+    "critical_data_invalid": False,
+    "confidence": 0.90,
+    "domain_indices": {"BSI": 82, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
+    "degradations": [],
+}
+INVALID_INPUT = {
+    "subject_id": "S-INVALID",
+    "critical_data_invalid": True,
+    "confidence": 1.0,
+    "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
+    "degradations": [],
+}
+
+
+def kernel():
+    return OperationalKernel(RULES, engine_hash=FIXED_ENGINE_HASH)
+
+
+@requirement("R003")
+def test_operational_envelope_is_deterministic_and_replay_verified():
+    requests = [
+        {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
+        {"input_doc": RED_INPUT, "source_id": "red.json"},
+    ]
+
+    first = kernel().execute(requests, created_at=FIXED_TIME)
+    second = kernel().execute(requests, created_at=FIXED_TIME)
+
+    assert first.envelope_hash == second.envelope_hash
+    assert first.to_json() == second.to_json()
+    assert first.manifest["replay_verified"] == [True, True]
+    assert first.manifest["request_count"] == 2
+
+
+@requirement("R004")
+def test_operational_envelope_contains_metrics_audit_and_incidents():
+    envelope = kernel().execute([
+        {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
+        {"input_doc": RED_INPUT, "source_id": "red.json"},
+    ], created_at=FIXED_TIME)
+
+    assert envelope.request_count == 2
+    assert len(envelope.outputs) == 2
+    assert len(envelope.audit_events) == 2
+    assert len(envelope.replay_bundles) == 2
+    assert envelope.metrics_snapshot["risk_state_counts"]["GREEN_STABLE"] == 1
+    assert envelope.metrics_snapshot["risk_state_counts"]["RED_CRITICAL"] == 1
+    assert envelope.metrics_snapshot["incident_candidates"] == 1
+    assert envelope.incidents[0]["severity"] == "CRITICAL"
+    assert envelope.incidents[0]["prohibited_autonomous_execution"] is True
+
+
+@requirement("R002")
+def test_operational_kernel_preserves_fail_closed_invalid_behavior():
+    envelope = kernel().execute([{"input_doc": INVALID_INPUT, "source_id": "invalid.json"}], created_at=FIXED_TIME)
+
+    assert envelope.outputs[0]["risk"]["risk_state"] == "BLACK_INVALID"
+    assert envelope.outputs[0]["risk"]["confidence"] == 0.0
+    assert envelope.incidents[0]["severity"] == "CRITICAL"
+    assert envelope.incidents[0]["prohibited_autonomous_execution"] is True
+    assert envelope.manifest["replay_verified"] == [True]
+
+
+@requirement("R002")
+def test_operational_kernel_rejects_boundary_request_extra_fields():
+    try:
+        kernel().execute([
+            {"input_doc": STABLE_INPUT, "source_id": "stable.json", "extra": "blocked"}
+        ], created_at=FIXED_TIME)
+    except ValidationError as error:
+        assert error.errors()[0]["type"] == "extra_forbidden"
+    else:
+        raise AssertionError("operational request extra field bypassed boundary")
+
+
+@requirement("R003")
+def test_operational_envelope_verifier_accepts_fresh_envelope():
+    envelope = kernel().execute([
+        {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
+        {"input_doc": RED_INPUT, "source_id": "red.json"},
+    ], created_at=FIXED_TIME)
+
+    assert verify_operational_envelope(envelope)
+
+
+@requirement("R003")
+def test_operational_envelope_verifier_rejects_hash_tampering():
+    envelope = kernel().execute([{"input_doc": STABLE_INPUT, "source_id": "stable.json"}], created_at=FIXED_TIME)
+    payload = envelope.model_dump()
+    payload["outputs"][0]["risk"]["confidence"] = 0.10
+
+    assert not verify_operational_envelope(payload)
+
+
+@requirement("R003")
+def test_operational_envelope_verifier_rejects_manifest_tampering():
+    envelope = kernel().execute([{"input_doc": STABLE_INPUT, "source_id": "stable.json"}], created_at=FIXED_TIME)
+    payload = envelope.model_dump()
+    payload["manifest"]["replay_verified"] = [False]
+    body = dict(payload)
+    body.pop("envelope_hash")
+    # Keep envelope_hash aligned with the tampered body to prove manifest checks are independent.
+    payload["envelope_hash"] = sha256_text(canonical(body))
+
+    assert not verify_operational_envelope(payload)
+
+@requirement("R002")
+def test_operational_envelope_verifier_fails_closed_on_malformed_payload():
+    assert not verify_operational_envelope({"envelope_hash": "broken", "outputs": None})
