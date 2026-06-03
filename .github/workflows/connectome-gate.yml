@@ -43,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install 'PyYAML>=6.0.3' 'pytest>=8.0.0' 'numpy>=2.0.0'
+          python -m pip install 'PyYAML>=6.0.3' 'pytest>=8.0.0'
 
       - name: Execute AST structural inspection
         run: |
@@ -55,17 +55,17 @@ jobs:
       - name: Execute connectome AST regression tests
         run: |
           set -euo pipefail
-          python -m pytest tests/tools/architecture/test_check_connectome.py -q --junitxml=build/connectome/ast-regression.xml
+          python -m pytest --noconftest tests/tools/architecture/test_check_connectome.py tests/tools/architecture/test_connectome_selftest.py -q --junitxml=build/connectome/ast-regression.xml
 
       - name: Execute connectome edge-case tests
         run: |
           set -euo pipefail
-          python -m pytest tests/tools/architecture/test_check_connectome_edge_cases.py -q --junitxml=build/connectome/edge-cases.xml
+          python -m pytest --noconftest tests/tools/architecture/test_check_connectome_edge_cases.py -q --junitxml=build/connectome/edge-cases.xml
 
       - name: Execute canonical connectome shape tests
         run: |
           set -euo pipefail
-          python -m pytest tests/tools/architecture/test_connectome_contract_shape.py -q --junitxml=build/connectome/contract-shape.xml
+          python -m pytest --noconftest tests/tools/architecture/test_connectome_contract_shape.py -q --junitxml=build/connectome/contract-shape.xml
 
       - name: Emit connectome evidence manifest
         run: |
