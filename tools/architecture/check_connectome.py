@@ -7,7 +7,6 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Mapping, Sequence, cast
@@ -111,7 +110,9 @@ def _as_string_list(value: object, *, field: str, domain: str) -> tuple[str, ...
     if value is None:
         return ()
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        raise SystemExit(f"[-] Critical: domain {domain!r} field {field!r} must be a list[str]")
+        raise SystemExit(
+            f"[-] Critical: domain {domain!r} field {field!r} must be a list[str]"
+        )
     return tuple(value)
 
 
@@ -309,7 +310,11 @@ def _literal_dynamic_import_aliases(tree: ast.AST) -> ImportAliases:
             for alias in node.names:
                 if alias.name == "importlib":
                     importlib_modules.add(alias.asname or alias.name)
-        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module == "importlib":
+        elif (
+            isinstance(node, ast.ImportFrom)
+            and node.level == 0
+            and node.module == "importlib"
+        ):
             for alias in node.names:
                 if alias.name == "import_module":
                     import_module_callables.add(alias.asname or alias.name)
