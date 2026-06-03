@@ -5,13 +5,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 REGISTRY = Path("docs/operations/aar_pro_v1_invariants.yaml")
 
 
-def _registry() -> dict[str, object]:
+def _registry() -> dict[str, Any]:
     return yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
 
 
