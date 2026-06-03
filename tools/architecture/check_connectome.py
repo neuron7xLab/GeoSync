@@ -7,9 +7,10 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Iterable, Mapping, Sequence, cast
+from typing import cast
 
 try:
     import yaml
@@ -127,7 +128,9 @@ def load_contract(contract_path: Path = DEFAULT_CONTRACT) -> Mapping[str, object
     """Load and minimally validate the connectome YAML contract."""
 
     if not contract_path.exists():
-        raise SystemExit(f"[-] Critical: Architectural contract not found at {contract_path}")
+        raise SystemExit(
+            f"[-] Critical: Architectural contract not found at {contract_path}"
+        )
     with contract_path.open("r", encoding="utf-8") as handle:
         raw_contract = yaml.safe_load(handle)
     if not isinstance(raw_contract, dict):
@@ -139,7 +142,9 @@ def load_contract(contract_path: Path = DEFAULT_CONTRACT) -> Mapping[str, object
         if field not in contract:
             raise SystemExit(f"[-] Critical: Connectome contract missing field: {field}")
     if not isinstance(contract["domains"], dict) or not contract["domains"]:
-        raise SystemExit("[-] Critical: Connectome contract field 'domains' must be non-empty")
+        raise SystemExit(
+            "[-] Critical: Connectome contract field 'domains' must be non-empty"
+        )
     return contract
 
 
@@ -149,7 +154,9 @@ def _domain_paths(meta: Mapping[str, object], *, domain: str) -> tuple[Path, ...
     elif "path" in meta:
         path = meta.get("path")
         if not isinstance(path, str):
-            raise SystemExit(f"[-] Critical: domain {domain!r} field 'path' must be a string")
+            raise SystemExit(
+                f"[-] Critical: domain {domain!r} field 'path' must be a string"
+            )
         paths = (path,)
     else:
         raise SystemExit(f"[-] Critical: domain {domain!r} missing 'path' or 'paths'")
@@ -169,7 +176,9 @@ def build_domains(contract: Mapping[str, object]) -> dict[str, Domain]:
 
     raw_domains = contract["domains"]
     if not isinstance(raw_domains, dict):
-        raise SystemExit("[-] Critical: Connectome contract field 'domains' must be a mapping")
+        raise SystemExit(
+            "[-] Critical: Connectome contract field 'domains' must be a mapping"
+        )
 
     domains: dict[str, Domain] = {}
     seen_import_prefixes: dict[str, str] = {}
@@ -180,9 +189,13 @@ def build_domains(contract: Mapping[str, object]) -> dict[str, Domain]:
         owner = meta.get("owner")
         state = meta.get("state", "active")
         if not isinstance(role, str) or not role.strip():
-            raise SystemExit(f"[-] Critical: domain {domain_name!r} missing non-empty role")
+            raise SystemExit(
+                f"[-] Critical: domain {domain_name!r} missing non-empty role"
+            )
         if not isinstance(owner, str) or "@" not in owner:
-            raise SystemExit(f"[-] Critical: domain {domain_name!r} missing institutional owner")
+            raise SystemExit(
+                f"[-] Critical: domain {domain_name!r} missing institutional owner"
+            )
         if not isinstance(state, str) or state not in VALID_DOMAIN_STATES:
             raise SystemExit(
                 f"[-] Critical: domain {domain_name!r} has invalid state {state!r}; "
@@ -256,7 +269,9 @@ def get_domain_for_path(filepath: Path, domains: Mapping[str, Domain]) -> Domain
     ]
     if len(matches) > 1:
         names = ", ".join(sorted({domain.name for domain in matches}))
-        raise SystemExit(f"[-] Critical: ambiguous connectome ownership for {filepath}: {names}")
+        raise SystemExit(
+            f"[-] Critical: ambiguous connectome ownership for {filepath}: {names}"
+        )
     return matches[0] if matches else None
 
 
@@ -489,13 +504,17 @@ def validate_repository(
         if filepath.suffix != ".py":
             continue
         if not filepath.exists():
-            raise SystemExit(f"[-] Critical: requested validation path does not exist: {filepath}")
+            raise SystemExit(
+                f"[-] Critical: requested validation path does not exist: {filepath}"
+            )
         violations.extend(validate_file(filepath, domains))
     return violations
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Validate GeoSync connectome import boundaries.")
+    parser = argparse.ArgumentParser(
+        description="Validate GeoSync connectome import boundaries."
+    )
     parser.add_argument("paths", nargs="*", type=Path, help="Optional Python files to validate")
     parser.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT)
     parser.add_argument("--root", action="append", type=Path, dest="roots")
