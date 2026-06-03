@@ -4,9 +4,10 @@ claim_type: refactor
 promise: >-
   Diff-bound governance acceptor for the architectural connectome gate. The
   change introduces a machine-checkable domain-boundary contract, AST import
-  validator, canonical contract shape tests, edge-case controls, and a CI gate
-  that emits executable evidence for static import-topology compliance. It does
-  not promote runtime, market, biological, or causal-safety claims.
+  validator, executable selftest runner, canonical contract shape tests,
+  edge-case controls, and a CI gate that emits executable evidence for static
+  import-topology compliance. It does not promote runtime, market, biological,
+  or causal-safety claims.
 
 diff_scope:
   changed_files:
@@ -26,7 +27,9 @@ diff_scope:
     - path: "tests/tools/architecture/test_check_connectome.py"
     - path: "tests/tools/architecture/test_check_connectome_edge_cases.py"
     - path: "tests/tools/architecture/test_connectome_contract_shape.py"
+    - path: "tests/tools/architecture/test_connectome_selftest.py"
     - path: "tools/architecture/check_connectome.py"
+    - path: "tools/architecture/connectome_selftest.py"
   forbidden_paths:
     - "application/"
     - "backtest/"
@@ -45,7 +48,7 @@ expected_signal: >-
   topology or when the canonical connectome contract shape regresses.
 
 measurement_command: >-
-  python tools/architecture/check_connectome.py && python tools/architecture/check_connectome.py --format json && python -m pytest tests/tools/architecture/test_check_connectome.py tests/tools/architecture/test_check_connectome_edge_cases.py tests/tools/architecture/test_connectome_contract_shape.py -q
+  python tools/architecture/check_connectome.py && python tools/architecture/check_connectome.py --format json && python tools/architecture/connectome_selftest.py && python -m pytest --noconftest tests/tools/architecture/test_check_connectome.py tests/tools/architecture/test_connectome_selftest.py tests/tools/architecture/test_check_connectome_edge_cases.py tests/tools/architecture/test_connectome_contract_shape.py -q
 
 signal_artifact: "build/connectome/manifest.json"
 
@@ -57,7 +60,7 @@ falsifier:
     of allowing silent architecture leakage.
 
 rollback_command: >-
-  git checkout -- .github/workflows/connectome-gate.yml .github/workflows/README.md conftest.py docs/architecture/connectome.yaml docs/architecture/connectome.schema.json geosync/cortex tests/tools/architecture tools/architecture/check_connectome.py .claude/commit_acceptors/connectome-gate-core.yaml
+  git checkout -- .github/workflows/connectome-gate.yml .github/workflows/README.md conftest.py docs/architecture/connectome.yaml docs/architecture/connectome.schema.json geosync/cortex tests/tools/architecture tools/architecture/check_connectome.py tools/architecture/connectome_selftest.py .claude/commit_acceptors/connectome-gate-core.yaml
 
 rollback_verification_command: >-
   git diff --exit-code
