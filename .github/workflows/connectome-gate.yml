@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: MIT
+#
+# Architectural Connectome Gate — neuro-physical boundary contract.
+#
+# This workflow fails closed when a Python module inside the canonical cortex
+# packages imports across a forbidden brain-zone boundary declared in
+# docs/architecture/connectome.yaml.
+name: Architectural Connectome Gate
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+concurrency:
+  group: connectome-gate-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  enforce-connectome:
+    name: enforce-connectome
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Code Base
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install gate dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install 'PyYAML>=6.0.3'
+
+      - name: Execute AST structural inspection
+        run: |
+          set -euo pipefail
+          python tools/architecture/check_connectome.py
