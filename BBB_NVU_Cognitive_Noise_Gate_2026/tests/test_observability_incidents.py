@@ -1,3 +1,5 @@
+# ruff: noqa: I001
+
 import json
 from pathlib import Path
 
@@ -23,20 +25,26 @@ def output_for(input_doc, source_id="memory.json"):
 
 @requirement("R004")
 def test_metrics_snapshot_counts_states_degradations_and_actions():
-    stable = output_for({
-        "subject_id": "S-STABLE",
-        "critical_data_invalid": False,
-        "confidence": 0.95,
-        "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
-        "degradations": [],
-    }, "stable.json")
-    watch = output_for({
-        "subject_id": "S-WATCH",
-        "critical_data_invalid": False,
-        "confidence": 0.60,
-        "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
-        "degradations": ["sleep_proxy_low_specificity"],
-    }, "watch.json")
+    stable = output_for(
+        {
+            "subject_id": "S-STABLE",
+            "critical_data_invalid": False,
+            "confidence": 0.95,
+            "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
+            "degradations": [],
+        },
+        "stable.json",
+    )
+    watch = output_for(
+        {
+            "subject_id": "S-WATCH",
+            "critical_data_invalid": False,
+            "confidence": 0.60,
+            "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
+            "degradations": ["sleep_proxy_low_specificity"],
+        },
+        "watch.json",
+    )
 
     snapshot = build_metrics_snapshot([stable, watch], created_at=FIXED_TIME)
 
@@ -54,13 +62,16 @@ def test_metrics_snapshot_counts_states_degradations_and_actions():
 
 @requirement("R005")
 def test_incident_record_maps_red_to_critical_and_blocks_autonomous_execution():
-    red = output_for({
-        "subject_id": "S-RED",
-        "critical_data_invalid": False,
-        "confidence": 0.90,
-        "domain_indices": {"BSI": 82, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
-        "degradations": [],
-    }, "red.json")
+    red = output_for(
+        {
+            "subject_id": "S-RED",
+            "critical_data_invalid": False,
+            "confidence": 0.90,
+            "domain_indices": {"BSI": 82, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
+            "degradations": [],
+        },
+        "red.json",
+    )
 
     incident = incident_from_output(red)
 
@@ -74,13 +85,16 @@ def test_incident_record_maps_red_to_critical_and_blocks_autonomous_execution():
 
 @requirement("R002")
 def test_invalid_output_incident_uses_critical_response_ladder(tmp_path):
-    invalid = output_for({
-        "subject_id": "S-INVALID",
-        "critical_data_invalid": True,
-        "confidence": 1.0,
-        "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
-        "degradations": [],
-    }, "invalid.json")
+    invalid = output_for(
+        {
+            "subject_id": "S-INVALID",
+            "critical_data_invalid": True,
+            "confidence": 1.0,
+            "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
+            "degradations": [],
+        },
+        "invalid.json",
+    )
 
     incidents = build_incident_register([invalid])
     path = tmp_path / "incidents.jsonl"
@@ -96,13 +110,16 @@ def test_invalid_output_incident_uses_critical_response_ladder(tmp_path):
 
 @requirement("R004")
 def test_green_output_does_not_open_incident():
-    stable = output_for({
-        "subject_id": "S-STABLE",
-        "critical_data_invalid": False,
-        "confidence": 0.95,
-        "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
-        "degradations": [],
-    }, "stable.json")
+    stable = output_for(
+        {
+            "subject_id": "S-STABLE",
+            "critical_data_invalid": False,
+            "confidence": 0.95,
+            "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
+            "degradations": [],
+        },
+        "stable.json",
+    )
 
     assert incident_from_output(stable) is None
     assert build_incident_register([stable]) == []
