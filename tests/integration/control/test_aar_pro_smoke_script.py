@@ -8,12 +8,13 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SMOKE_SCRIPT = REPO_ROOT / "scripts" / "aar_pro_smoke.py"
 
 
-def _run_smoke() -> dict[str, bool | int | str]:
+def _run_smoke() -> dict[str, Any]:
     result = subprocess.run(
         [sys.executable, str(SMOKE_SCRIPT)],
         cwd=REPO_ROOT,
