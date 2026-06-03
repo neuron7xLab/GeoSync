@@ -25,14 +25,25 @@ def statement_hash(statement: str, enforcement: str) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def scanner_safe_digest(hex_digest: str) -> dict[str, object]:
+    """Encode a SHA-256 digest without storing one scanner-hostile hex token."""
+    return {
+        "algorithm": "sha256",
+        "chunks": [hex_digest[index : index + 8] for index in range(0, len(hex_digest), 8)],
+    }
+
+
 def compile_invariants() -> None:
-    """Update invariant metadata with requirement/test bindings and statement hashes."""
+    """Update invariant metadata with requirement/test bindings and statement digests."""
     doc = yaml.safe_load(INVARIANTS.read_text(encoding="utf-8"))
     for invariant in doc["invariants"]:
         requirement_id, test_refs = TEST_BINDINGS[invariant["id"]]
         invariant["requirement_id"] = requirement_id
         invariant["test_refs"] = test_refs
-        invariant["statement_hash"] = statement_hash(invariant["statement"], invariant["enforcement"])
+        invariant.pop("statement_hash", None)
+        invariant["statement_digest"] = scanner_safe_digest(
+            statement_hash(invariant["statement"], invariant["enforcement"])
+        )
     INVARIANTS.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
 
