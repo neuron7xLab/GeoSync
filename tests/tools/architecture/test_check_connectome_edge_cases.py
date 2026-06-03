@@ -43,7 +43,7 @@ def test_forbidden_import_dominates_broad_allowed_import(tmp_path: Path) -> None
     text = contract_path.read_text(encoding="utf-8")
     text = text.replace(
         "    allowed_imports: []\n    forbidden_imports:",
-        "    allowed_imports:\n      - \"geosync/cortex\"\n    forbidden_imports:",
+        '    allowed_imports:\n      - "geosync/cortex"\n    forbidden_imports:',
         1,
     )
     contract_path.write_text(text, encoding="utf-8")
