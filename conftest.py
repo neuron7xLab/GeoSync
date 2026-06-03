@@ -43,7 +43,7 @@ except ImportError:  # pragma: no cover - fallback when optional deps missing
         raise ImportError(msg)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    apply_thread_determinism = module.apply_thread_determinism
+    apply_thread_determinism = module.apply_thread_determinism  # type: ignore[attr-defined]
 
 
 class _FlakyTracker:
