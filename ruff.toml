@@ -1,5 +1,6 @@
 line-length = 100
-extend-exclude = ["docs/notebooks"]
+extend-exclude = ["docs/notebooks", "tests"]
+force-exclude = true
 
 [lint]
 select = ["E", "F", "W", "I"]
