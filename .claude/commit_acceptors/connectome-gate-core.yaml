@@ -23,6 +23,8 @@ diff_scope:
     - path: "geosync/cortex/motor/__init__.py"
     - path: "geosync/cortex/prefrontal/__init__.py"
     - path: "geosync/cortex/sensory/__init__.py"
+    - path: "tests/tools/__init__.py"
+    - path: "tests/tools/architecture/__init__.py"
     - path: "tests/tools/architecture/test_check_connectome.py"
     - path: "tests/tools/architecture/test_check_connectome_edge_cases.py"
     - path: "tests/tools/architecture/test_connectome_contract_shape.py"
