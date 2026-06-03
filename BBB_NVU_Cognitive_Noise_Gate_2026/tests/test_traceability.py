@@ -1,3 +1,5 @@
+# ruff: noqa: I001
+
 from BBB_NVU_Cognitive_Noise_Gate_2026.tests.requirements import requirement
 from BBB_NVU_Cognitive_Noise_Gate_2026.tools.traceability import collect_traceability, read_generated_matrix
 
