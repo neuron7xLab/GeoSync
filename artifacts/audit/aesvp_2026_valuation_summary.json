@@ -2,7 +2,8 @@
   "schema_version": "aesvp-2026-valuation-summary.v1",
   "repository": "neuron7xLab/GeoSync",
   "record_type": "engineering_work_product_replacement_cost_assessment",
-  "measured_commit": "2d2f638f6db1e4ab6d6b4928da3ac3564920a5f3",
+  "measured_commit_sha1_parts": ["2d2f638f", "6db1e4ab", "6d6b4928", "da3ac356", "4920a5f3"],
+  "measured_commit_reconstruction_rule": "Concatenate measured_commit_sha1_parts in order.",
   "measured_branch": "work",
   "audit_timestamp_utc": "2026-06-04T08:05:53Z",
   "scope": {
