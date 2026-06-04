@@ -28,7 +28,9 @@ FIXED_ENGINE_HASH = "engine-hash-for-audit-replay-tests"
 
 def build_output() -> dict[str, Any]:
     engine = DeterministicInferenceEngine.from_rules(RULES, engine_hash=FIXED_ENGINE_HASH)
-    return engine.build_output(SAMPLE_INPUT, source_id="sample_run_input.json", created_at=FIXED_TIME)
+    return engine.build_output(
+        SAMPLE_INPUT, source_id="sample_run_input.json", created_at=FIXED_TIME
+    )
 
 
 @requirement("R003")
