@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""BBB–NVU Cognitive Noise Gate deterministic demo engine.
+"""BBB-NVU Cognitive Noise Gate deterministic demo engine.
 
 Research-use repo seed. Not a medical device.
 """
@@ -12,8 +12,9 @@ import json
 import math
 import sys
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, cast
 
+import yaml
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -23,7 +24,6 @@ from pydantic import (
     ValidationError,
     field_validator,
 )
-import yaml
 
 ENGINE_VERSION = "demo-0.5.0"
 DOMAIN_MIN = 0.0
@@ -32,7 +32,13 @@ CONFIDENCE_MIN = 0.0
 CONFIDENCE_MAX = 1.0
 HIGH_REVIEW_STATES = {"ORANGE_RISK", "RED_CRITICAL", "BLACK_INVALID"}
 AUTONOMOUS_PROHIBITED_STATES = {"RED_CRITICAL", "BLACK_INVALID"}
-VALID_STATES = {"GREEN_STABLE", "YELLOW_WATCH", "ORANGE_RISK", "RED_CRITICAL", "BLACK_INVALID"}
+VALID_STATES = {
+    "GREEN_STABLE",
+    "YELLOW_WATCH",
+    "ORANGE_RISK",
+    "RED_CRITICAL",
+    "BLACK_INVALID",
+}
 CRITICAL_DEGRADATIONS = {
     "SOURCE_CONFLICT",
     "RULE_VERSION_MISMATCH",
@@ -42,7 +48,6 @@ CRITICAL_DEGRADATIONS = {
     "MATH_CORRUPTION",
     "SCHEMA_INVALID",
 }
-
 
 DomainCode = Literal["BSI", "NRI", "VML", "GRS", "CNI"]
 SourceType = Literal[
@@ -117,7 +122,10 @@ class StrictObservation(BaseModel):
     method: StrictStr
     provenance: StrictProvenance
     evidence_grade: EvidenceGrade | None = None
-    quality_score: Annotated[float, Field(strict=True, ge=0.0, le=1.0, allow_inf_nan=False)] | None = None
+    quality_score: Annotated[
+        float,
+        Field(strict=True, ge=0.0, le=1.0, allow_inf_nan=False),
+    ] | None = None
     notes: StrictStr | None = None
 
     @field_validator("value")
@@ -153,14 +161,23 @@ class StrictInferenceInput(BaseModel):
             "subject_id": self.subject_id,
             "critical_data_invalid": self.critical_data_invalid,
             "confidence": float(self.confidence),
-            "domain_indices": {str(k): float(v) for k, v in sorted(self.domain_indices.items())},
+            "domain_indices": {
+                str(key): float(value)
+                for key, value in sorted(self.domain_indices.items())
+            },
             "degradations": list(self.degradations),
         }
 
 
 def canonical(obj: Any) -> str:
     """Return deterministic JSON text for hashing with strict JSON constants."""
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+    return json.dumps(
+        obj,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
 
 
 def canonicalize_jcs(obj: Any) -> str:
@@ -181,11 +198,11 @@ def source_code_hash(path: str | Path = __file__) -> str:
 def hashable_json_value(value: Any) -> Any:
     """Convert non-JSON numeric sentinels into deterministic strings for audit hashing."""
     if isinstance(value, dict):
-        return {str(k): hashable_json_value(v) for k, v in value.items()}
+        return {str(key): hashable_json_value(item) for key, item in value.items()}
     if isinstance(value, list):
-        return [hashable_json_value(v) for v in value]
+        return [hashable_json_value(item) for item in value]
     if isinstance(value, tuple):
-        return [hashable_json_value(v) for v in value]
+        return [hashable_json_value(item) for item in value]
     if isinstance(value, float) and not math.isfinite(value):
         return f"__NON_FINITE_FLOAT__:{value!r}"
     return value
@@ -202,12 +219,17 @@ def load_yaml(path: str | Path) -> dict[str, Any]:
     loaded = yaml.safe_load(text)
     if not isinstance(loaded, dict):
         raise ValueError("risk rules must load as a mapping")
-    return loaded
+    return cast(dict[str, Any], loaded)
 
 
 def utc_now_iso() -> str:
     """Return a UTC timestamp with second precision."""
-    return datetime.datetime.now(datetime.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        datetime.datetime.now(datetime.UTC)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def clamp_confidence(value: float) -> float:
@@ -276,7 +298,11 @@ class DeterministicInferenceEngine:
         self.engine_hash = engine_hash or source_code_hash()
 
     @classmethod
-    def from_rules(cls, rules: dict[str, Any], engine_hash: str | None = None) -> "DeterministicInferenceEngine":
+    def from_rules(
+        cls,
+        rules: dict[str, Any],
+        engine_hash: str | None = None,
+    ) -> "DeterministicInferenceEngine":
         """Build an engine from already-loaded rules; no file-system rule loading."""
         return cls(rules=rules, engine_hash=engine_hash)
 
@@ -290,7 +316,12 @@ class DeterministicInferenceEngine:
         output = self.build_output(input_doc, source_id=source_id, created_at=created_at)
         return output["risk"], output["actions"]
 
-    def build_output(self, input_doc: dict[str, Any], source_id: str, created_at: str | None = None) -> dict[str, Any]:
+    def build_output(
+        self,
+        input_doc: dict[str, Any],
+        source_id: str,
+        created_at: str | None = None,
+    ) -> dict[str, Any]:
         """Build a complete inference transaction with provenance and stable run hash."""
         risk, actions = self.evaluate(input_doc)
         input_hash = audit_hash(input_doc)
@@ -379,20 +410,29 @@ class DeterministicInferenceEngine:
                 "confidence=0.00",
             ]
         else:
-            state, explanations, degradations = infer_state(sanitized_indices, confidence, degradations, self.rules)
+            state, explanations, degradations = infer_state(
+                sanitized_indices,
+                confidence,
+                degradations,
+                self.rules,
+            )
             explanations.insert(0, "l1_data_quality_gate=passed")
 
         risk_out = {
             "risk_state": state,
             "confidence": confidence,
-            "domain_indices": {k: sanitized_indices[k] for k in sorted(sanitized_indices)},
+            "domain_indices": {key: sanitized_indices[key] for key in sorted(sanitized_indices)},
             "explanations": explanations,
             "degradations": sorted(set(degradations)),
         }
         return risk_out, build_actions(state, self.rules)
 
 
-def apply_degradation_penalties(confidence: float, degradations: list[Any], rules: dict[str, Any]) -> float:
+def apply_degradation_penalties(
+    confidence: float,
+    degradations: list[Any],
+    rules: dict[str, Any],
+) -> float:
     """Apply explicit confidence penalties for degradation control signals."""
     penalties = rules.get("confidence", {})
     adjusted = confidence
@@ -455,7 +495,10 @@ def infer_state(
     return state, explanations, degradations
 
 
-def evaluate(input_doc: dict[str, Any], rules: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def evaluate(
+    input_doc: dict[str, Any],
+    rules: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Compatibility wrapper around the deterministic engine."""
     engine = DeterministicInferenceEngine.from_rules(rules)
     return engine.evaluate(input_doc)
@@ -463,7 +506,7 @@ def evaluate(input_doc: dict[str, Any], rules: dict[str, Any]) -> tuple[dict[str
 
 def build_actions(state: str, rules: dict[str, Any]) -> list[dict[str, Any]]:
     """Build state-triggered control actions."""
-    actions = []
+    actions: list[dict[str, Any]] = []
     for idx, action in enumerate(rules["actions"].get(state, []), start=1):
         action_class = "DATA_CONTROL" if state == "BLACK_INVALID" else "OPERATIONAL_CONTROL"
         if "clinical" in action:
@@ -483,7 +526,11 @@ def build_actions(state: str, rules: dict[str, Any]) -> list[dict[str, Any]]:
     return actions
 
 
-def build_output(input_doc: dict[str, Any], input_path: str, rules: dict[str, Any]) -> dict[str, Any]:
+def build_output(
+    input_doc: dict[str, Any],
+    input_path: str,
+    rules: dict[str, Any],
+) -> dict[str, Any]:
     """Compatibility wrapper for building an inference transaction."""
     engine = DeterministicInferenceEngine.from_rules(rules)
     return engine.build_output(input_doc, source_id=input_path)
@@ -498,7 +545,13 @@ def main() -> int:
     input_path = sys.argv[1]
     input_doc = json.loads(Path(input_path).read_text(encoding="utf-8"))
     engine = DeterministicInferenceEngine(sys.argv[2])
-    print(json.dumps(engine.build_output(input_doc, source_id=input_path), indent=2, ensure_ascii=False))
+    print(
+        json.dumps(
+            engine.build_output(input_doc, source_id=input_path),
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 
