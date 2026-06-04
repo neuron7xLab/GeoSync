@@ -14,7 +14,8 @@
     "evidence_required",
     "control_gates",
     "enforcement",
-    "provenance"
+    "provenance",
+    "threat_model"
   ],
   "properties": {
     "record_id": {"type": "string", "pattern": "^ER-[1-9][0-9]*$"},
@@ -75,6 +76,29 @@
         "tamper_boundary": {
           "type": "string",
           "enum": ["repository_history_and_external_signature"]
+        }
+      }
+    },
+    "threat_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["failure_modes", "negative_controls", "residual_risk"],
+      "properties": {
+        "failure_modes": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "negative_controls": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "residual_risk": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "unknown"]
         }
       }
     }
