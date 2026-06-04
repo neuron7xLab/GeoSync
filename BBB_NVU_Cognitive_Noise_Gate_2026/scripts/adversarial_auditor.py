@@ -87,15 +87,13 @@ class AdversarialAuditor:
     ) -> None:
         """Assert that adversarial payloads cannot hide as GREEN_STABLE."""
         if input_vector.get("critical_data_invalid"):
-            assert risk["risk_state"] == "BLACK_INVALID", (
-                "critical_data_invalid bypassed fail-closed gate"
-            )
+            assert (
+                risk["risk_state"] == "BLACK_INVALID"
+            ), "critical_data_invalid bypassed fail-closed gate"
             assert risk["confidence"] == 0.0, "invalid input did not zero confidence"
 
         if input_vector.get("degradations"):
-            assert risk["risk_state"] != "GREEN_STABLE", (
-                "degradation payload produced GREEN_STABLE"
-            )
+            assert risk["risk_state"] != "GREEN_STABLE", "degradation payload produced GREEN_STABLE"
 
         if risk["risk_state"] in {"BLACK_INVALID", "RED_CRITICAL"}:
             assert actions
@@ -124,9 +122,7 @@ class AdversarialAuditor:
 def main() -> int:
     from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import hashable_json_value
 
-    parser = argparse.ArgumentParser(
-        description="Run deterministic adversarial sandbox campaign."
-    )
+    parser = argparse.ArgumentParser(description="Run deterministic adversarial sandbox campaign.")
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
