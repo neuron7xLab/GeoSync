@@ -3,6 +3,7 @@
 This module is intentionally thin: it isolates integration-facing API shape from
 CLI/file-system adapters while delegating all risk logic to deterministic_engine.
 """
+# fmt: off
 # ruff: noqa: I001
 
 from __future__ import annotations
