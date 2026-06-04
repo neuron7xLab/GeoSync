@@ -2,8 +2,12 @@
 
 import json
 from pathlib import Path
+from typing import Any, cast
 
-from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import DeterministicInferenceEngine, load_yaml
+from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import (
+    DeterministicInferenceEngine,
+    load_yaml,
+)
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.observability import (
     build_incident_register,
     build_metrics_snapshot,
@@ -18,7 +22,7 @@ FIXED_TIME = "2026-06-03T00:00:00Z"
 FIXED_ENGINE_HASH = "engine-hash-for-observability-tests"
 
 
-def output_for(input_doc, source_id="memory.json"):
+def output_for(input_doc: dict[str, Any], source_id: str = "memory.json") -> dict[str, Any]:
     engine = DeterministicInferenceEngine.from_rules(RULES, engine_hash=FIXED_ENGINE_HASH)
     return engine.build_output(input_doc, source_id=source_id, created_at=FIXED_TIME)
 
@@ -84,7 +88,7 @@ def test_incident_record_maps_red_to_critical_and_blocks_autonomous_execution():
 
 
 @requirement("R002")
-def test_invalid_output_incident_uses_critical_response_ladder(tmp_path):
+def test_invalid_output_incident_uses_critical_response_ladder(tmp_path: Path):
     invalid = output_for(
         {
             "subject_id": "S-INVALID",
@@ -99,7 +103,7 @@ def test_invalid_output_incident_uses_critical_response_ladder(tmp_path):
     incidents = build_incident_register([invalid])
     path = tmp_path / "incidents.jsonl"
     write_incidents(path, incidents)
-    parsed = json.loads(path.read_text(encoding="utf-8"))
+    parsed = cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
     assert len(incidents) == 1
     assert parsed["severity"] == "CRITICAL"
