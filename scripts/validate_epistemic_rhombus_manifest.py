@@ -62,18 +62,24 @@ def format_schema_error(error: ValidationError) -> str:
 
 
 def command_target_exists(command: Iterable[str], repo_root: Path) -> bool:
-    """Return whether the first command token resolves to a repository file or executable name.
+    """Return whether the first command token resolves to a file or executable name.
 
-    Manifest records may point to workflow files (for external CI gates) or a
+    Manifest records may point to workflow files, repository-local commands, or a
     command name resolved by the execution environment. File paths are checked
     locally; bare command names are accepted as externally resolved.
     """
     command_parts = list(command)
     if not command_parts:
         return False
+
     target = command_parts[0]
-    if target.startswith(("./", "/")) or "/" in target:
-        return (repo_root / target).exists() if not target.startswith("/") else Path(target).exists()
+    if not isinstance(target, str):
+        return False
+
+    if target.startswith("/"):
+        return Path(target).exists()
+    if target.startswith("./") or "/" in target:
+        return (repo_root / target).exists()
     return True
 
 
@@ -82,45 +88,71 @@ def validate_manifest(manifest_path: Path, schema_path: Path, repo_root: Path) -
     schema = load_schema(schema_path)
     validator = Draft202012Validator(schema)
     axes_required = required_axes(schema)
-    axes_seen: set[str] = set()
+    axes_seen: dict[str, int] = {}
+    record_ids_seen: dict[str, int] = {}
     errors: list[str] = []
     record_count = 0
 
     for line_number, record in iter_jsonl(manifest_path):
         record_count += 1
-        record_id = record.get("record_id", f"line {line_number}")
+        record_id_value = record.get("record_id")
+        record_id = record_id_value if isinstance(record_id_value, str) else f"line {line_number}"
         prefix = f"line {line_number} ({record_id})"
 
-        for error in sorted(validator.iter_errors(record), key=lambda item: list(item.absolute_path)):
+        for error in sorted(
+            validator.iter_errors(record),
+            key=lambda item: list(item.absolute_path),
+        ):
             errors.append(f"{prefix}: {format_schema_error(error)}")
+
+        if isinstance(record_id_value, str):
+            first_line = record_ids_seen.get(record_id_value)
+            if first_line is not None:
+                errors.append(
+                    f"{prefix}: duplicate record_id {record_id_value!r} "
+                    f"(first seen on line {first_line})"
+                )
+            else:
+                record_ids_seen[record_id_value] = line_number
 
         axis = record.get("axis")
         if isinstance(axis, str):
-            if axis in axes_seen:
-                errors.append(f"{prefix}: duplicate axis {axis!r}")
-            axes_seen.add(axis)
+            first_line = axes_seen.get(axis)
+            if first_line is not None:
+                errors.append(
+                    f"{prefix}: duplicate axis {axis!r} "
+                    f"(first seen on line {first_line})"
+                )
+            else:
+                axes_seen[axis] = line_number
 
         enforcement = record.get("enforcement")
         if isinstance(enforcement, dict):
             command = enforcement.get("command")
-            if isinstance(command, list) and not command_target_exists(command, repo_root):
-                errors.append(f"{prefix}: enforcement command target does not exist: {command[0]}")
+            if (
+                isinstance(command, list)
+                and all(isinstance(part, str) for part in command)
+                and not command_target_exists(command, repo_root)
+            ):
+                errors.append(
+                    f"{prefix}: enforcement command target does not exist: {command[0]}"
+                )
 
     if record_count == 0:
         errors.append("manifest: no records found")
 
-    missing_axes = sorted(axes_required - axes_seen)
+    missing_axes = sorted(axes_required - set(axes_seen))
     if missing_axes:
         errors.append(f"manifest: missing axes: {', '.join(missing_axes)}")
     return errors
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest", nargs="?", default=DEFAULT_MANIFEST, type=Path)
     parser.add_argument("--schema", default=DEFAULT_SCHEMA, type=Path)
     parser.add_argument("--repo-root", default=Path.cwd(), type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
         errors = validate_manifest(args.manifest, args.schema, args.repo_root)
