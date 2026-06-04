@@ -133,7 +133,7 @@ def build_metrics_snapshot(outputs: list[dict[str, Any]], *, created_at: str) ->
             key = str(action.get("action_class", "UNKNOWN"))
             action_class_counts[key] = action_class_counts.get(key, 0) + 1
 
-    body = {
+    snapshot_body = {
         "created_at": created_at,
         "total_runs": len(outputs),
         "risk_state_counts": risk_state_counts,
@@ -144,7 +144,19 @@ def build_metrics_snapshot(outputs: list[dict[str, Any]], *, created_at: str) ->
         "low_confidence_runs": low_confidence_runs,
         "incident_candidates": incident_candidates,
     }
-    return MetricsSnapshot(snapshot_id="metrics-" + sha256_text(canonical(body))[:12], **body)
+    snapshot_id = "metrics-" + sha256_text(canonical(snapshot_body))[:12]
+    return MetricsSnapshot(
+        snapshot_id=snapshot_id,
+        created_at=created_at,
+        total_runs=len(outputs),
+        risk_state_counts=risk_state_counts,
+        degradation_counts=dict(sorted(degradation_counts.items())),
+        action_class_counts=dict(sorted(action_class_counts.items())),
+        human_review_required=human_review_required,
+        autonomous_execution_prohibited=autonomous_execution_prohibited,
+        low_confidence_runs=low_confidence_runs,
+        incident_candidates=incident_candidates,
+    )
 
 
 def incident_from_output(output: dict[str, Any]) -> IncidentRecord | None:
