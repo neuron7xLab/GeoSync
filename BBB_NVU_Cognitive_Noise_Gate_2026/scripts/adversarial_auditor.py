@@ -21,11 +21,6 @@ REPO_ROOT = ROOT.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import (
-    DeterministicInferenceEngine,
-    hashable_json_value,
-)
-
 DEFAULT_RULES = ROOT / "config" / "risk_rules.yaml"
 DEFAULT_OUTPUT = ROOT / "tests" / "adversarial_golden_vectors.json"
 CRITICAL_DEGRADATION_PAYLOADS = [
@@ -41,6 +36,10 @@ class AdversarialAuditor:
     """Creator/verifier loop for semantically poisoned but schema-shaped vectors."""
 
     def __init__(self, rules_path: str | Path = DEFAULT_RULES, seed: int = 20260603):
+        from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import (
+            DeterministicInferenceEngine,
+        )
+
         self.engine = DeterministicInferenceEngine(rules_path)
         self.random = random.Random(seed)
         self.base_vector: dict[str, Any] = {
@@ -123,6 +122,8 @@ class AdversarialAuditor:
 
 
 def main() -> int:
+    from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import hashable_json_value
+
     parser = argparse.ArgumentParser(
         description="Run deterministic adversarial sandbox campaign."
     )
