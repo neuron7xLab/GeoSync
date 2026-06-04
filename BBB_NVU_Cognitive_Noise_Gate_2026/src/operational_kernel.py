@@ -123,7 +123,11 @@ def _replay_bundle_hash_is_valid(bundle: Mapping[str, Any]) -> bool:
 def verify_operational_envelope(envelope: OperationalEnvelope | Mapping[str, Any]) -> bool:
     """Verify envelope hash, manifest hashes, replay checks, and cardinalities."""
     try:
-        data = envelope.model_dump() if isinstance(envelope, OperationalEnvelope) else dict(envelope)
+        data = (
+            envelope.model_dump()
+            if isinstance(envelope, OperationalEnvelope)
+            else dict(envelope)
+        )
         expected_hash = str(data.get("envelope_hash", ""))
         body = dict(data)
         body.pop("envelope_hash", None)
