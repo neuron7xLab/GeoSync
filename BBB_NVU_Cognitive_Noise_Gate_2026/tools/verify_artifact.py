@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """One-command verification harness for the BBB-NVU artifact."""
-# ruff: noqa: I001
 
 from __future__ import annotations
 
@@ -11,7 +10,7 @@ import py_compile
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parent
@@ -44,10 +43,10 @@ TEST_FILES = [
 ]
 
 
-def run(command: list[str], report: dict[str, Any], key: str) -> None:
+def run(command: list[str], checks: dict[str, Any], key: str) -> None:
     """Run a command and record its deterministic status in the report."""
     subprocess.run(command, cwd=REPO, check=True)
-    report[key] = {"status": "passed", "command": command}
+    checks[key] = {"status": "passed", "command": command}
 
 
 def parse_json_artifacts() -> list[str]:
@@ -81,7 +80,7 @@ def operational_smoke() -> dict[str, Any]:
     )
 
     rules = load_yaml(ROOT / "config" / "risk_rules.yaml")
-    request = {
+    request: dict[str, Any] = {
         "input_doc": {
             "subject_id": "S-SMOKE",
             "critical_data_invalid": False,
@@ -92,7 +91,8 @@ def operational_smoke() -> dict[str, Any]:
         "source_id": "smoke.json",
     }
     envelope = OperationalKernel(rules, engine_hash="verification-smoke").execute(
-        [request], created_at="2026-06-03T00:00:00Z"
+        [request],
+        created_at="2026-06-03T00:00:00Z",
     )
     assert envelope.outputs[0]["risk"]["risk_state"] == "YELLOW_WATCH"
     assert envelope.manifest["replay_verified"] == [True]
@@ -113,7 +113,10 @@ def operational_smoke() -> dict[str, Any]:
 def write_report(report: dict[str, Any]) -> None:
     """Write deterministic JSON verification evidence."""
     VERIFY_ARTIFACT.parent.mkdir(parents=True, exist_ok=True)
-    VERIFY_ARTIFACT.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    VERIFY_ARTIFACT.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -126,25 +129,35 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     """Run all bounded verification checks."""
     build_parser().parse_args(argv)
+    checks: dict[str, Any] = {}
     report: dict[str, Any] = {
         "artifact_id": "BBB-NVU-CNG-2026",
         "status": "started",
         "python_version": platform.python_version(),
-        "checks": {},
+        "checks": checks,
     }
 
-    run([sys.executable, str(ROOT / "tools" / "traceability.py")], report["checks"], "traceability")
-    run(
-        [sys.executable, "-m", "pytest", "-q", "-W", "ignore::DeprecationWarning", *map(str, TEST_FILES)],
-        report["checks"],
+    run([sys.executable, str(ROOT / "tools" / "traceability.py")], checks, "traceability")
+    pytest_command = [
+        sys.executable,
+        "-m",
         "pytest",
+        "-q",
+        "-W",
+        "ignore::DeprecationWarning",
+        *[str(path) for path in TEST_FILES],
+    ]
+    run(pytest_command, checks, "pytest")
+    checks["py_compile"] = {"status": "passed", "files": compile_python()}
+    checks["json_parse"] = {"status": "passed", "files": parse_json_artifacts()}
+    checks["operational_smoke"] = operational_smoke()
+    run(
+        ["git", "diff", "--check", "--", str(ROOT.relative_to(REPO))],
+        checks,
+        "git_diff_check",
     )
-    report["checks"]["py_compile"] = {"status": "passed", "files": compile_python()}
-    report["checks"]["json_parse"] = {"status": "passed", "files": parse_json_artifacts()}
-    report["checks"]["operational_smoke"] = operational_smoke()
-    run(["git", "diff", "--check", "--", str(ROOT.relative_to(REPO))], report["checks"], "git_diff_check")
     report["status"] = "passed"
-    write_report(report)
+    write_report(cast(dict[str, Any], report))
     print(f"verification ok: {VERIFY_ARTIFACT.relative_to(REPO)}")
     return 0
 
