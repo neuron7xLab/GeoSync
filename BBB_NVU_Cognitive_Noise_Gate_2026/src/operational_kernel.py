@@ -1,4 +1,5 @@
 """Canonical operational envelope for BBB-NVU deterministic inference."""
+# fmt: off
 
 from __future__ import annotations
 
