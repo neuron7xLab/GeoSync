@@ -49,8 +49,12 @@ class AuditEvent(BaseModel):
             confidence=float(output["risk"]["confidence"]),
             degradations=[str(item) for item in output["risk"].get("degradations", [])],
             action_ids=[str(action["action_id"]) for action in actions],
-            requires_human_review=any(bool(action.get("requires_human_review")) for action in actions),
-            prohibited_autonomous_execution=any(bool(action.get("prohibited_autonomous_execution")) for action in actions),
+            requires_human_review=any(
+                bool(action.get("requires_human_review")) for action in actions
+            ),
+            prohibited_autonomous_execution=any(
+                bool(action.get("prohibited_autonomous_execution")) for action in actions
+            ),
         )
 
     def to_jsonl(self) -> str:
@@ -64,7 +68,11 @@ def write_audit_event(path: str | Path, event: AuditEvent) -> None:
         handle.write(event.to_jsonl())
 
 
-def build_replay_bundle(output: dict[str, Any], input_doc: dict[str, Any], rules: dict[str, Any]) -> dict[str, Any]:
+def build_replay_bundle(
+    output: dict[str, Any],
+    input_doc: dict[str, Any],
+    rules: dict[str, Any],
+) -> dict[str, Any]:
     """Build a deterministic replay bundle for one inference run."""
     bundle = {
         "bundle_version": "BBB-NVU-CNG-replay.1",
@@ -87,10 +95,13 @@ def build_replay_bundle(output: dict[str, Any], input_doc: dict[str, Any], rules
 def replay_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     """Replay a bundle and return a fresh inference output."""
     engine = DeterministicInferenceEngine.from_rules(
-        dict(bundle["rules"]), engine_hash=str(bundle["expected"]["engine_hash"])
+        dict(bundle["rules"]),
+        engine_hash=str(bundle["expected"]["engine_hash"]),
     )
     return engine.build_output(
-        dict(bundle["input_doc"]), source_id=str(bundle["source_id"]), created_at=str(bundle["created_at"])
+        dict(bundle["input_doc"]),
+        source_id=str(bundle["source_id"]),
+        created_at=str(bundle["created_at"]),
     )
 
 
