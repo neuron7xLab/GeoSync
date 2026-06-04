@@ -40,6 +40,7 @@
     "control_gates": {
       "type": "array",
       "items": {"type": "string", "pattern": "^G[1-9][0-9]*$"},
+      "minItems": 1,
       "uniqueItems": true
     },
     "enforcement": {
@@ -53,7 +54,7 @@
           "items": {"type": "string", "minLength": 1},
           "minItems": 1
         },
-        "blocks_on_failure": {"type": "boolean"}
+        "blocks_on_failure": {"type": "boolean", "const": true}
       }
     },
     "provenance": {
