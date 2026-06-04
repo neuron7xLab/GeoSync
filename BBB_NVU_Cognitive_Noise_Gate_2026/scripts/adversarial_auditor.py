@@ -5,7 +5,6 @@ This is intentionally deterministic and bounded for CI. It is not an LLM agent o
 networked microservice; it is the calibration sandbox that must pass before any
 future external adversarial service is promoted.
 """
-# ruff: noqa: I001
 
 from __future__ import annotations
 
@@ -22,7 +21,11 @@ REPO_ROOT = ROOT.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import DeterministicInferenceEngine, hashable_json_value
+from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import (
+    DeterministicInferenceEngine,
+    hashable_json_value,
+)
+
 DEFAULT_RULES = ROOT / "config" / "risk_rules.yaml"
 DEFAULT_OUTPUT = ROOT / "tests" / "adversarial_golden_vectors.json"
 CRITICAL_DEGRADATION_PAYLOADS = [
@@ -77,14 +80,23 @@ class AdversarialAuditor:
 
         return mutated
 
-    def verify_defense(self, input_vector: dict[str, Any], risk: dict[str, Any], actions: list[dict[str, Any]]) -> None:
+    def verify_defense(
+        self,
+        input_vector: dict[str, Any],
+        risk: dict[str, Any],
+        actions: list[dict[str, Any]],
+    ) -> None:
         """Assert that adversarial payloads cannot hide as GREEN_STABLE."""
         if input_vector.get("critical_data_invalid"):
-            assert risk["risk_state"] == "BLACK_INVALID", "critical_data_invalid bypassed fail-closed gate"
+            assert risk["risk_state"] == "BLACK_INVALID", (
+                "critical_data_invalid bypassed fail-closed gate"
+            )
             assert risk["confidence"] == 0.0, "invalid input did not zero confidence"
 
         if input_vector.get("degradations"):
-            assert risk["risk_state"] != "GREEN_STABLE", "degradation payload produced GREEN_STABLE"
+            assert risk["risk_state"] != "GREEN_STABLE", (
+                "degradation payload produced GREEN_STABLE"
+            )
 
         if risk["risk_state"] in {"BLACK_INVALID", "RED_CRITICAL"}:
             assert actions
@@ -95,24 +107,41 @@ class AdversarialAuditor:
 
     def run_campaign(self, iterations: int = 100) -> list[dict[str, Any]]:
         """Run a deterministic adversarial campaign and return accepted golden vectors."""
-        golden_vectors = []
+        golden_vectors: list[dict[str, Any]] = []
         for iteration in range(iterations):
             attack_vector = self.generate_attack_vector(iteration)
             risk, actions = self.engine.evaluate_run(attack_vector, "2026-06-03T00:00:00Z")
             self.verify_defense(attack_vector, risk, actions)
-            golden_vectors.append({"input": attack_vector, "risk_state": risk["risk_state"], "confidence": risk["confidence"]})
+            golden_vectors.append(
+                {
+                    "input": attack_vector,
+                    "risk_state": risk["risk_state"],
+                    "confidence": risk["confidence"],
+                }
+            )
         return golden_vectors
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run deterministic adversarial sandbox campaign.")
+    parser = argparse.ArgumentParser(
+        description="Run deterministic adversarial sandbox campaign."
+    )
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
 
     vectors = AdversarialAuditor().run_campaign(args.iterations)
-    args.output.write_text(json.dumps(hashable_json_value(vectors), indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
-    print(json.dumps({"iterations": args.iterations, "bypasses": 0, "output": str(args.output)}, ensure_ascii=False))
+    args.output.write_text(
+        json.dumps(hashable_json_value(vectors), indent=2, ensure_ascii=False, allow_nan=False)
+        + "\n",
+        encoding="utf-8",
+    )
+    print(
+        json.dumps(
+            {"iterations": args.iterations, "bypasses": 0, "output": str(args.output)},
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 
