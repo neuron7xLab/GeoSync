@@ -1,11 +1,15 @@
 # ruff: noqa: I001
 
 from pathlib import Path
+from typing import Any, cast
 
 from pydantic import ValidationError
 
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import canonical, load_yaml, sha256_text
-from BBB_NVU_Cognitive_Noise_Gate_2026.src.operational_kernel import OperationalKernel, verify_operational_envelope
+from BBB_NVU_Cognitive_Noise_Gate_2026.src.operational_kernel import (
+    OperationalKernel,
+    verify_operational_envelope,
+)
 from BBB_NVU_Cognitive_Noise_Gate_2026.tests.requirements import requirement
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,21 +17,21 @@ RULES = load_yaml(ROOT / "config" / "risk_rules.yaml")
 FIXED_TIME = "2026-06-03T00:00:00Z"
 FIXED_ENGINE_HASH = "engine-hash-for-operational-kernel-tests"
 
-STABLE_INPUT = {
+STABLE_INPUT: dict[str, Any] = {
     "subject_id": "S-STABLE",
     "critical_data_invalid": False,
     "confidence": 0.95,
     "domain_indices": {"BSI": 20, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
     "degradations": [],
 }
-RED_INPUT = {
+RED_INPUT: dict[str, Any] = {
     "subject_id": "S-RED",
     "critical_data_invalid": False,
     "confidence": 0.90,
     "domain_indices": {"BSI": 82, "NRI": 20, "VML": 20, "GRS": 80, "CNI": 20},
     "degradations": [],
 }
-INVALID_INPUT = {
+INVALID_INPUT: dict[str, Any] = {
     "subject_id": "S-INVALID",
     "critical_data_invalid": True,
     "confidence": 1.0,
@@ -36,8 +40,12 @@ INVALID_INPUT = {
 }
 
 
-def kernel():
+def kernel() -> OperationalKernel:
     return OperationalKernel(RULES, engine_hash=FIXED_ENGINE_HASH)
+
+
+def as_payload(value: object) -> dict[str, Any]:
+    return cast(dict[str, Any], value)
 
 
 @requirement("R003")
@@ -79,7 +87,10 @@ def test_operational_envelope_contains_metrics_audit_and_incidents():
 
 @requirement("R002")
 def test_operational_kernel_preserves_fail_closed_invalid_behavior():
-    envelope = kernel().execute([{"input_doc": INVALID_INPUT, "source_id": "invalid.json"}], created_at=FIXED_TIME)
+    envelope = kernel().execute(
+        [{"input_doc": INVALID_INPUT, "source_id": "invalid.json"}],
+        created_at=FIXED_TIME,
+    )
 
     assert envelope.outputs[0]["risk"]["risk_state"] == "BLACK_INVALID"
     assert envelope.outputs[0]["risk"]["confidence"] == 0.0
@@ -91,7 +102,10 @@ def test_operational_kernel_preserves_fail_closed_invalid_behavior():
 @requirement("R002")
 def test_operational_kernel_rejects_boundary_request_extra_fields():
     try:
-        kernel().execute([{"input_doc": STABLE_INPUT, "source_id": "stable.json", "extra": "blocked"}], created_at=FIXED_TIME)
+        kernel().execute(
+            [{"input_doc": STABLE_INPUT, "source_id": "stable.json", "extra": "blocked"}],
+            created_at=FIXED_TIME,
+        )
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
     else:
@@ -113,18 +127,26 @@ def test_operational_envelope_verifier_accepts_fresh_envelope():
 
 @requirement("R003")
 def test_operational_envelope_verifier_rejects_hash_tampering():
-    envelope = kernel().execute([{"input_doc": STABLE_INPUT, "source_id": "stable.json"}], created_at=FIXED_TIME)
-    payload = envelope.model_dump()
-    payload["outputs"][0]["risk"]["confidence"] = 0.10
+    envelope = kernel().execute(
+        [{"input_doc": STABLE_INPUT, "source_id": "stable.json"}],
+        created_at=FIXED_TIME,
+    )
+    payload = as_payload(envelope.model_dump())
+    outputs = cast(list[dict[str, Any]], payload["outputs"])
+    outputs[0]["risk"]["confidence"] = 0.10
 
     assert not verify_operational_envelope(payload)
 
 
 @requirement("R003")
 def test_operational_envelope_verifier_rejects_manifest_tampering():
-    envelope = kernel().execute([{"input_doc": STABLE_INPUT, "source_id": "stable.json"}], created_at=FIXED_TIME)
-    payload = envelope.model_dump()
-    payload["manifest"]["replay_verified"] = [False]
+    envelope = kernel().execute(
+        [{"input_doc": STABLE_INPUT, "source_id": "stable.json"}],
+        created_at=FIXED_TIME,
+    )
+    payload = as_payload(envelope.model_dump())
+    manifest = cast(dict[str, Any], payload["manifest"])
+    manifest["replay_verified"] = [False]
     body = dict(payload)
     body.pop("envelope_hash")
     payload["envelope_hash"] = sha256_text(canonical(body))
