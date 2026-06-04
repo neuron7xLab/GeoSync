@@ -25,7 +25,11 @@ SEVERITY_BY_STATE: dict[str, str] = {
 RESPONSE_BY_SEVERITY: dict[str, list[str]] = {
     "WARN": ["collect_more_data", "repeat_low_quality_measurements"],
     "ERROR": ["open_human_review", "activate_mitigation_protocol", "track_until_closed"],
-    "CRITICAL": ["block_autonomous_execution", "open_urgent_human_review", "freeze_dependent_automation"],
+    "CRITICAL": [
+        "block_autonomous_execution",
+        "open_urgent_human_review",
+        "freeze_dependent_automation",
+    ],
 }
 
 
@@ -88,7 +92,9 @@ def _risk_state(output: dict[str, Any]) -> str:
 
 def _requires_human_review(output: dict[str, Any]) -> bool:
     state = _risk_state(output)
-    return state in HIGH_REVIEW_STATES or any(bool(action.get("requires_human_review")) for action in _actions(output))
+    return state in HIGH_REVIEW_STATES or any(
+        bool(action.get("requires_human_review")) for action in _actions(output)
+    )
 
 
 def _prohibits_autonomous_execution(output: dict[str, Any]) -> bool:
@@ -178,7 +184,10 @@ def incident_from_output(output: dict[str, Any]) -> IncidentRecord | None:
 def build_incident_register(outputs: list[dict[str, Any]]) -> list[IncidentRecord]:
     """Return deterministic incidents for all non-green outputs."""
     incidents = [incident_from_output(output) for output in outputs]
-    return sorted((incident for incident in incidents if incident is not None), key=lambda item: item.incident_id)
+    return sorted(
+        (incident for incident in incidents if incident is not None),
+        key=lambda item: item.incident_id,
+    )
 
 
 def write_incidents(path: str | Path, incidents: list[IncidentRecord]) -> None:
