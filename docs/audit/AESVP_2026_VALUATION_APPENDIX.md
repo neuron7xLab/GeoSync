@@ -1,29 +1,44 @@
-# AESVP-2026 valuation appendix — GeoSync
+# AESVP-2026 Engineering Work-Product Valuation Record — GeoSync
 
-This appendix is a static documentation record of one repository valuation run. It is intentionally not a command transcript, generated JSON dump, or product pitch.
+**Status:** canonical repository audit record  
+**Scope:** engineering work-product replacement-cost assessment  
+**Repository:** `neuron7xLab/GeoSync`  
+**Measured commit:** `2d2f638f6db1e4ab6d6b4928da3ac3564920a5f3`  
+**Measured branch:** `work`  
+**Audit timestamp:** `2026-06-04T08:05:53Z` UTC  
+**Companion machine record:** `artifacts/audit/aesvp_2026_valuation_summary.json`
+
+This record preserves one deterministic AESVP-2026 valuation run as repository evidence. It is a fixed engineering-cost assessment of the measured repository state, not a product pitch, not a sale-price opinion, not a startup valuation, and not an official GAAP capitalization opinion.
+
+---
 
 ## 1. Claim boundary
 
-| Item | Statement |
+| Field | Canonical statement |
 | --- | --- |
-| Supported claim | Estimated engineering cost to rebuild the measured repository state from zero. |
-| Explicitly excluded | Product sale price, startup valuation, revenue potential, token/market value, strategic premium, and official US-GAAP capitalization. |
-| Measured repository state | Commit `2d2f638f6db1e4ab6d6b4928da3ac3564920a5f3`, branch `work`. |
-| Audit timestamp | `2026-06-04T08:05:53Z` UTC. |
+| Supported claim | Estimated engineering cost to recreate the measured repository state from zero under declared AESVP assumptions. |
+| Explicitly excluded | Product sale price, startup equity value, revenue potential, token/market value, strategic premium, customer valuation, and official accounting capitalization. |
 | Measurement scope | 100% of files returned by `git ls-files` during the audit run. |
-| Environment note | Python `3.14.4`; `cloc`, `tokei`, and `scc` were unavailable. |
-| Confidence | Medium. Metrics are internally consistent, but generated/vendor classification and accounting evidence remain unresolved. |
+| Reproducibility class | Static audit snapshot. Later commits must re-run metrics before reusing these values. |
+| Confidence | Medium. Metrics are internally consistent; generated/vendor classification and accounting-stage evidence remain unresolved. |
+| Central use | Repository-level engineering work-product valuation and future audit comparison baseline. |
 
-## 2. Core result
+---
 
-| Result | Amount |
-| --- | ---: |
-| AESVP engineering TCAV, central scenario | $45,220,234 |
-| Practical enterprise rebuild cost | $2,789,200 |
-| Full tracked-tree reconstruction cost | $6,116,480 |
-| Engineering capitalizable candidate, not GAAP | $1,213,302 |
+## 2. Executive result
 
-Interpretation: the repository has substantial measured engineering mass, but the valuation is capped by high-complexity debt, low property-test density, missing accounting-stage traceability, and unresolved generated/vendor disclosure.
+| Result | Value | Interpretation |
+| --- | ---: | --- |
+| AESVP engineering TCAV, low | $25,436,381 | Lower scenario using reduced labor and effort multiplier. |
+| **AESVP engineering TCAV, central** | **$45,220,234** | Main formula-bound engineering valuation. |
+| AESVP engineering TCAV, high | $70,656,615 | Upper scenario using higher labor and effort multiplier. |
+| Practical enterprise rebuild cost | $2,789,200 | Staffing cross-check for core, tests, CI, audit, and docs. |
+| Full tracked-tree reconstruction cost | $6,116,480 | Human rebuild cross-check for all tracked surfaces. |
+| Engineering capitalizable candidate, not GAAP | $1,213,302 | Internal engineering classification only; not an official accounting conclusion. |
+
+**Inference:** GeoSync has substantial measured engineering mass and audit/governance density. The central AESVP result is high because the formula uses full tracked source KSLOC, COCOMO-style replacement effort, senior US labor assumptions, and an architectural quality index. The score is capped by complexity debt, low property-test density, missing accounting-stage traceability, and unresolved generated/vendor classification.
+
+---
 
 ## 3. Measured repository facts
 
@@ -60,6 +75,8 @@ Interpretation: the repository has substantial measured engineering mass, but th
 | Property-test density | 0.042432814710 |
 | Documentation-to-source ratio | 0.162866930787 |
 
+---
+
 ## 4. Source SLOC by extension
 
 | Extension | SLOC |
@@ -82,16 +99,18 @@ Interpretation: the repository has substantial measured engineering mass, but th
 | `.j2` | 146 |
 | `.avsc` | 103 |
 
+---
+
 ## 5. Engineering valuation model
 
-### 5.1 Replacement cost
+### 5.1 Replacement-cost contour
 
 ```text
 V_RC = A × KSLOC_equ^E × EM × H_pm × R_labor
 E = 1.01 + 0.01 × ΣSF
 ```
 
-| Parameter | Value | Class |
+| Parameter | Value | Evidence class |
 | --- | ---: | --- |
 | `A` | 2.94 | Declared model assumption |
 | `SF` vector | `[1.24, 5.07, 1.41, 1.10, 1.56]` | Declared model assumption |
@@ -116,9 +135,9 @@ C_inv    = property_test_files / critical_function_heuristic
 | `D_idx` | `1 - (26 + 811) / 40,366` | 0.979264727741 |
 | `V_bounds` | `1 - (26 + 0) / (189 + 330)` | 0.949903660886 |
 | `C_inv` | `150 / 3,535` | 0.042432814710 |
-| `Ψ_AQI` | Weighted sum | 0.734780376084 |
+| **`Ψ_AQI`** | Weighted sum | **0.734780376084** |
 
-### 5.3 Technical debt discount
+### 5.3 Technical-debt discount
 
 ```text
 Ω_TDB = V_RC × debt_factor
@@ -132,12 +151,14 @@ C_inv    = property_test_files / critical_function_heuristic
 | TODO/FIXME | `0.02 × 50 / 100` | 0.010000000000 | $644,157 |
 | **Total debt factor** |  | **0.032773746614** | **$2,111,143** |
 
-### 5.4 Risk dividend
+### 5.4 Risk-mitigation dividend
 
 | Item | Amount | Treatment |
 | --- | ---: | --- |
-| Verified risk-mitigation dividend | $0 | Used in TCAV. No verified incident probability register is included here. |
+| Verified risk-mitigation dividend | $0 | Used in central TCAV. No verified incident probability register is included in this record. |
 | Declared incident-risk scenario | $9,035 | Recorded only as non-central scenario data; excluded from central result. |
+
+---
 
 ## 6. Valuation outputs
 
@@ -147,6 +168,8 @@ C_inv    = property_test_files / critical_function_heuristic
 | Central | $120/h | 1.00 | $64,415,679 | $2,111,143 | $45,220,234 |
 | High | $150/h | 1.25 | $100,649,498 | $3,298,661 | $70,656,615 |
 
+---
+
 ## 7. Practical rebuild model
 
 | Model | Boundary | Cost |
@@ -155,13 +178,15 @@ C_inv    = property_test_files / critical_function_heuristic
 | Enterprise rebuild | Core, tests, CI, audit, and docs | $2,789,200 |
 | Full tracked-tree reconstruction | All tracked source, tests, docs, configs, and governance surfaces | $6,116,480 |
 
-This model is a human staffing cross-check, not a sale valuation. It remains below the AESVP central engineering TCAV.
+The practical rebuild model is a staffing cross-check. It remains below the AESVP central engineering TCAV because it models a competent rebuild path rather than formulaic full-source effort expansion.
 
-## 8. Capitalization filter
+---
 
-Engineering classification only. This is not an official accounting conclusion.
+## 8. Engineering capitalization filter
 
-| Surface | Candidate | Allocation | Candidate amount | Blocker |
+Engineering classification only. This section does not claim official accounting capitalization.
+
+| Surface | Candidate | Allocation | Candidate amount | Primary blocker |
 | --- | --- | ---: | ---: | --- |
 | Development / implemented software | Partial | $1,171,464 | $820,025 | Missing owner approval, time records, and accounting-stage evidence. |
 | Testing / verification | Partial | $446,272 | $223,136 | Some tests unavailable in environment; property-test density is low. |
@@ -171,7 +196,9 @@ Engineering classification only. This is not an official accounting conclusion.
 | Maintenance / technical debt | No | $167,352 | $0 | Debt remediation is excluded. |
 | **Total candidate** |  |  | **$1,213,302** | Official capitalization not claimed. |
 
-## 9. Gate status
+---
+
+## 9. G1–G11 gate status
 
 | Gate | Status | Primary blocker |
 | --- | --- | --- |
@@ -187,9 +214,19 @@ Engineering classification only. This is not an official accounting conclusion.
 | G10 Technical debt control | Fail | 811 functions exceed complexity 10. |
 | G11 Accounting stage traceability | Partial | No full research/development accounting ledger. |
 
-## 10. Use and falsification
+---
 
-Use this appendix as a fixed documentation snapshot of the audit result. Do not use it as proof that the current branch still has the same metrics after later commits.
+## 10. Repository integration policy
+
+This record belongs under `docs/audit/` because it is a human-readable audit appendix. The companion JSON belongs under `artifacts/audit/` because it is the machine-readable valuation record. The two files must move together in future revisions.
+
+Future updates must not overwrite this snapshot silently. Add a new dated record if the measured commit, scope, formula inputs, or central valuation changes.
+
+---
+
+## 11. Use and falsification
+
+Use this appendix as a fixed documentation snapshot of the AESVP result. Do not use it as proof that a later branch or commit still has the same metrics.
 
 Invalidate this appendix if any of the following are true:
 
@@ -197,3 +234,10 @@ Invalidate this appendix if any of the following are true:
 2. Source SLOC includes generated or vendor artifacts without disclosure.
 3. CI, test, or security passing is claimed without fresh evidence.
 4. The appendix is used as a sale-price, startup-value, revenue, or official capitalization claim.
+5. The companion JSON record diverges from the numeric tables in this markdown file.
+
+---
+
+## 12. Final supported statement
+
+GeoSync has a measured AESVP-2026 central engineering TCAV of **$45,220,234** for the stated audit snapshot. The defensible claim is a formula-bound engineering replacement-cost assessment of the measured repository state. The unsupported claims are sale price, revenue value, startup valuation, and official accounting capitalization.
