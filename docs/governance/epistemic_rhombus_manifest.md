@@ -27,15 +27,19 @@ policy criteria and external gates that must supply the actual evidence.
 Each JSONL record in `governance/epistemic_rhombus_manifest.jsonl` must satisfy
 `schemas/governance/epistemic_rhombus_manifest.schema.json` and contain:
 
-- `record_id`: stable identifier for the criterion record; the numeric suffix is unbounded.
-- `axis`: one of the four Rhombus criteria defined by the schema enum.
+- `record_id`: stable unique identifier for the criterion record; the numeric
+  suffix is unbounded.
+- `axis`: one of the four Rhombus criteria defined by the schema enum; each
+  schema-declared axis must appear exactly once.
 - `criterion`: the acceptance statement.
 - `invariant_or_contract`: the named invariant, data contract, or logic contract.
 - `validation_gate`: the acceptance or rejection rule expressed for operators.
 - `fail_closed_condition`: the condition that blocks deployment.
-- `evidence_required`: artifact classes required before promotion.
-- `control_gates`: side-effect gates covered by the criterion, using the schema-defined `G<n>` pattern.
-- `enforcement`: the external workflow or command that owns executable gate logic.
+- `evidence_required`: non-empty artifact classes required before promotion.
+- `control_gates`: non-empty side-effect gates covered by the criterion, using
+  the schema-defined `G<n>` pattern.
+- `enforcement`: the external workflow or command that owns executable gate logic;
+  `blocks_on_failure` must be `true`.
 - `provenance`: required signed identity boundary for the record's evidence.
 
 ## Validation command
@@ -45,7 +49,16 @@ python scripts/validate_epistemic_rhombus_manifest.py
 ```
 
 The validator streams JSONL records, applies the JSON schema directly, checks
-that every schema-declared axis appears exactly once, and verifies that external
+that every schema-declared axis appears exactly once, rejects duplicate
+`record_id` values, rejects empty gate coverage, and verifies that external
 file-backed enforcement targets exist. It does not validate signatures or replace
 Git object integrity; signature verification remains the responsibility of the
 referenced external gates.
+
+## CI gate
+
+`.github/workflows/epistemic-rhombus-gate.yml` runs the live manifest validation
+and `tests/scripts/test_validate_epistemic_rhombus_manifest.py` on Python 3.11
+and 3.12 whenever the manifest, schema, validator, documentation, claim ledger,
+or the gate itself changes. This keeps the Rhombus from drifting into non-executable
+governance metadata.
