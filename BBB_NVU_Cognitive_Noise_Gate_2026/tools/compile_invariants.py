@@ -1,4 +1,5 @@
-"""Compile human-readable invariants into hash-bound executable metadata."""
+"""Compile human-readable invariants into executable metadata."""
+# fmt: off
 
 from __future__ import annotations
 
@@ -26,7 +27,7 @@ def statement_hash(statement: str, enforcement: str) -> str:
 
 
 def scanner_safe_digest(hex_digest: str) -> dict[str, object]:
-    """Encode a SHA-256 digest without storing one scanner-hostile hex token."""
+    """Encode a digest without storing one scanner-hostile token."""
     return {
         "algorithm": "sha256",
         "chunks": [hex_digest[index : index + 8] for index in range(0, len(hex_digest), 8)],
