@@ -2,10 +2,14 @@
 
 import json
 from pathlib import Path
+from typing import Any, cast
 
 from pydantic import ValidationError
 
-from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import DeterministicInferenceEngine, load_yaml
+from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import (
+    DeterministicInferenceEngine,
+    load_yaml,
+)
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.runtime_boundary import RuntimeBoundary, RuntimeRequest
 from BBB_NVU_Cognitive_Noise_Gate_2026.tests.requirements import requirement
 
@@ -20,9 +24,33 @@ FIXED_ENGINE_HASH = "engine-hash-for-runtime-boundary-tests"
 def test_runtime_boundary_uses_explicit_timestamp_and_profiles():
     boundary = RuntimeBoundary(RULES, engine_hash=FIXED_ENGINE_HASH)
 
-    full = boundary.evaluate_run(SAMPLE_INPUT, source_id="sample.json", created_at=FIXED_TIME, profile="full")
-    risk = boundary.evaluate_run(SAMPLE_INPUT, source_id="sample.json", created_at=FIXED_TIME, profile="risk")
-    actions = boundary.evaluate_run(SAMPLE_INPUT, source_id="sample.json", created_at=FIXED_TIME, profile="actions")
+    full = cast(
+        dict[str, Any],
+        boundary.evaluate_run(
+            SAMPLE_INPUT,
+            source_id="sample.json",
+            created_at=FIXED_TIME,
+            profile="full",
+        ),
+    )
+    risk = cast(
+        dict[str, Any],
+        boundary.evaluate_run(
+            SAMPLE_INPUT,
+            source_id="sample.json",
+            created_at=FIXED_TIME,
+            profile="risk",
+        ),
+    )
+    actions = cast(
+        list[dict[str, Any]],
+        boundary.evaluate_run(
+            SAMPLE_INPUT,
+            source_id="sample.json",
+            created_at=FIXED_TIME,
+            profile="actions",
+        ),
+    )
 
     assert full["created_at"] == FIXED_TIME
     assert full["risk"] == risk
@@ -38,8 +66,8 @@ def test_runtime_boundary_batch_is_deterministic():
         RuntimeRequest(input_doc=SAMPLE_INPUT, source_id="b.json"),
     ]
 
-    first = boundary.evaluate_batch(requests, created_at=FIXED_TIME)
-    second = boundary.evaluate_batch(requests, created_at=FIXED_TIME)
+    first = cast(list[dict[str, Any]], boundary.evaluate_batch(requests, created_at=FIXED_TIME))
+    second = cast(list[dict[str, Any]], boundary.evaluate_batch(requests, created_at=FIXED_TIME))
 
     assert first == second
     assert [item["provenance"]["source_id"] for item in first] == ["a.json", "b.json"]
@@ -48,7 +76,9 @@ def test_runtime_boundary_batch_is_deterministic():
 @requirement("R002")
 def test_runtime_boundary_request_rejects_extra_fields():
     try:
-        RuntimeRequest.model_validate({"input_doc": SAMPLE_INPUT, "source_id": "x.json", "extra": "value"})
+        RuntimeRequest.model_validate(
+            {"input_doc": SAMPLE_INPUT, "source_id": "x.json", "extra": "value"}
+        )
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
     else:
