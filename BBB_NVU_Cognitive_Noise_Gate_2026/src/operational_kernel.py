@@ -1,18 +1,22 @@
 """Canonical operational envelope for BBB-NVU deterministic inference."""
-# fmt: off
-# ruff: noqa: I001
-# mypy: ignore-errors
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
-from BBB_NVU_Cognitive_Noise_Gate_2026.src.audit import AuditEvent, build_replay_bundle, verify_replay_bundle
+from BBB_NVU_Cognitive_Noise_Gate_2026.src.audit import (
+    AuditEvent,
+    build_replay_bundle,
+    verify_replay_bundle,
+)
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import canonical, sha256_text
-from BBB_NVU_Cognitive_Noise_Gate_2026.src.observability import build_incident_register, build_metrics_snapshot
+from BBB_NVU_Cognitive_Noise_Gate_2026.src.observability import (
+    build_incident_register,
+    build_metrics_snapshot,
+)
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.runtime_boundary import RuntimeBoundary, RuntimeRequest
 
 OPERATIONAL_ENVELOPE_VERSION = "BBB-NVU-CNG-operational-envelope.1"
@@ -53,9 +57,13 @@ class OperationalKernel:
         created_at: str,
     ) -> OperationalEnvelope:
         """Run inference and return outputs, audit, replay, metrics, incidents, and manifest."""
-        normalized_requests = [
-            request if isinstance(request, RuntimeRequest) else RuntimeRequest.model_validate(request) for request in requests
-        ]
+        normalized_requests: list[RuntimeRequest] = []
+        for request in requests:
+            if isinstance(request, RuntimeRequest):
+                normalized_requests.append(request)
+            else:
+                normalized_requests.append(RuntimeRequest.model_validate(request))
+
         outputs = [
             self.boundary.engine.build_output(
                 request.input_doc,
@@ -71,15 +79,17 @@ class OperationalKernel:
         ]
         metrics_snapshot = build_metrics_snapshot(outputs, created_at=created_at)
         incidents = build_incident_register(outputs)
-        manifest_body = {
+        manifest_body: dict[str, Any] = {
             "output_hashes": [sha256_text(canonical(output)) for output in outputs],
-            "audit_event_hashes": [sha256_text(event.to_jsonl().rstrip("\n")) for event in audit_events],
+            "audit_event_hashes": [
+                sha256_text(event.to_jsonl().rstrip("\n")) for event in audit_events
+            ],
             "replay_bundle_hashes": [bundle["bundle_hash"] for bundle in replay_bundles],
             "metrics_snapshot_id": metrics_snapshot.snapshot_id,
             "incident_ids": [incident.incident_id for incident in incidents],
             "replay_verified": [verify_replay_bundle(bundle) for bundle in replay_bundles],
         }
-        manifest = {
+        manifest: dict[str, Any] = {
             "manifest_version": "BBB-NVU-CNG-manifest.1",
             "created_at": created_at,
             "rules_version": self.rules.get("rules_version", "unknown"),
@@ -87,7 +97,7 @@ class OperationalKernel:
             "request_count": len(normalized_requests),
             **manifest_body,
         }
-        envelope_body = {
+        envelope_body: dict[str, Any] = {
             "envelope_version": OPERATIONAL_ENVELOPE_VERSION,
             "created_at": created_at,
             "request_count": len(normalized_requests),
@@ -98,10 +108,13 @@ class OperationalKernel:
             "incidents": [incident.model_dump() for incident in incidents],
             "manifest": manifest,
         }
-        return OperationalEnvelope(envelope_hash=sha256_text(canonical(envelope_body)), **envelope_body)
+        return OperationalEnvelope(
+            envelope_hash=sha256_text(canonical(envelope_body)),
+            **envelope_body,
+        )
 
 
-def _replay_bundle_hash_is_valid(bundle: dict[str, Any]) -> bool:
+def _replay_bundle_hash_is_valid(bundle: Mapping[str, Any]) -> bool:
     body = dict(bundle)
     expected = str(body.pop("bundle_hash", ""))
     return bool(expected) and sha256_text(canonical(body)) == expected
@@ -117,12 +130,12 @@ def verify_operational_envelope(envelope: OperationalEnvelope | Mapping[str, Any
         if not expected_hash or sha256_text(canonical(body)) != expected_hash:
             return False
 
-        outputs = list(data.get("outputs", []))
-        audit_events = list(data.get("audit_events", []))
-        replay_bundles = list(data.get("replay_bundles", []))
-        incidents = list(data.get("incidents", []))
-        metrics_snapshot = dict(data.get("metrics_snapshot", {}))
-        manifest = dict(data.get("manifest", {}))
+        outputs = cast(list[dict[str, Any]], list(data.get("outputs", [])))
+        audit_events = cast(list[dict[str, Any]], list(data.get("audit_events", [])))
+        replay_bundles = cast(list[dict[str, Any]], list(data.get("replay_bundles", [])))
+        incidents = cast(list[dict[str, Any]], list(data.get("incidents", [])))
+        metrics_snapshot = cast(dict[str, Any], dict(data.get("metrics_snapshot", {})))
+        manifest = cast(dict[str, Any], dict(data.get("manifest", {})))
 
         if data.get("request_count") != len(outputs):
             return False
@@ -133,10 +146,13 @@ def verify_operational_envelope(envelope: OperationalEnvelope | Mapping[str, Any
 
         return (
             manifest.get("output_hashes") == [sha256_text(canonical(output)) for output in outputs]
-            and manifest.get("audit_event_hashes") == [sha256_text(canonical(event)) for event in audit_events]
-            and manifest.get("replay_bundle_hashes") == [bundle.get("bundle_hash") for bundle in replay_bundles]
-            and all(_replay_bundle_hash_is_valid(dict(bundle)) for bundle in replay_bundles)
-            and manifest.get("replay_verified") == [verify_replay_bundle(dict(bundle)) for bundle in replay_bundles]
+            and manifest.get("audit_event_hashes")
+            == [sha256_text(canonical(event)) for event in audit_events]
+            and manifest.get("replay_bundle_hashes")
+            == [bundle.get("bundle_hash") for bundle in replay_bundles]
+            and all(_replay_bundle_hash_is_valid(bundle) for bundle in replay_bundles)
+            and manifest.get("replay_verified")
+            == [verify_replay_bundle(bundle) for bundle in replay_bundles]
             and manifest.get("metrics_snapshot_id") == metrics_snapshot.get("snapshot_id")
             and manifest.get("incident_ids") == [incident.get("incident_id") for incident in incidents]
         )
