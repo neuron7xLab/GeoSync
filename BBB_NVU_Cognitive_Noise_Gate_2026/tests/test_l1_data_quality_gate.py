@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any, cast
 
 from pydantic import ValidationError
 
@@ -12,18 +13,25 @@ from BBB_NVU_Cognitive_Noise_Gate_2026.tests.requirements import requirement
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = DeterministicInferenceEngine(ROOT / "config" / "risk_rules.yaml")
+FIXED_TIME = "2026-06-03T00:00:00Z"
 
 
-def sample_observation():
-    return json.loads((ROOT / "examples" / "sample_observation.json").read_text(encoding="utf-8"))
+def sample_observation() -> dict[str, Any]:
+    return cast(
+        dict[str, Any],
+        json.loads((ROOT / "examples" / "sample_observation.json").read_text(encoding="utf-8")),
+    )
 
 
-def sample_inference_input():
-    return json.loads((ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8"))
+def sample_inference_input() -> dict[str, Any]:
+    return cast(
+        dict[str, Any],
+        json.loads((ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8")),
+    )
 
 
 @requirement("R001")
-def test_l1_observation_gate_accepts_numeric_metric_with_iso_datetimes():
+def test_l1_observation_gate_accepts_numeric_metric_with_iso_datetimes() -> None:
     observation = validate_observation(sample_observation())
     assert observation.value == 0.42
     assert observation.timestamp.tzinfo is not None
@@ -31,7 +39,7 @@ def test_l1_observation_gate_accepts_numeric_metric_with_iso_datetimes():
 
 
 @requirement("R001")
-def test_l1_observation_gate_rejects_polymorphic_value_and_extra_fields():
+def test_l1_observation_gate_rejects_polymorphic_value_and_extra_fields() -> None:
     observation = sample_observation()
     observation["value"] = "0.42"
     try:
@@ -52,7 +60,7 @@ def test_l1_observation_gate_rejects_polymorphic_value_and_extra_fields():
 
 
 @requirement("R002")
-def test_l1_inference_gate_rejects_coercion_and_engine_fails_closed():
+def test_l1_inference_gate_rejects_coercion_and_engine_fails_closed() -> None:
     input_doc = sample_inference_input()
     input_doc["confidence"] = "0.74"
 
@@ -63,7 +71,7 @@ def test_l1_inference_gate_rejects_coercion_and_engine_fails_closed():
     else:
         raise AssertionError("string confidence bypassed L1 inference gate")
 
-    risk, actions = ENGINE.evaluate_run(input_doc, "2026-06-03T00:00:00Z")
+    risk, actions = ENGINE.evaluate_run(input_doc, FIXED_TIME)
     assert risk["risk_state"] == "BLACK_INVALID"
     assert risk["confidence"] == 0.0
     assert "SCHEMA_INVALID" in risk["degradations"]
@@ -71,15 +79,16 @@ def test_l1_inference_gate_rejects_coercion_and_engine_fails_closed():
 
 
 @requirement("R002")
-def test_l1_inference_gate_rejects_unknown_domain_and_extra_fields():
+def test_l1_inference_gate_rejects_unknown_domain_and_extra_fields() -> None:
     input_doc = sample_inference_input()
-    input_doc["domain_indices"]["UNKNOWN"] = 10
-    risk, _actions = ENGINE.evaluate_run(input_doc, "2026-06-03T00:00:00Z")
+    domain_indices = cast(dict[str, Any], input_doc["domain_indices"])
+    domain_indices["UNKNOWN"] = 10
+    risk, _actions = ENGINE.evaluate_run(input_doc, FIXED_TIME)
     assert risk["risk_state"] == "BLACK_INVALID"
     assert any("domain_indices.UNKNOWN" in explanation for explanation in risk["explanations"])
 
     input_doc = sample_inference_input()
     input_doc["extra"] = "not_allowed"
-    risk, _actions = ENGINE.evaluate_run(input_doc, "2026-06-03T00:00:00Z")
+    risk, _actions = ENGINE.evaluate_run(input_doc, FIXED_TIME)
     assert risk["risk_state"] == "BLACK_INVALID"
     assert any("extra" in explanation for explanation in risk["explanations"])
