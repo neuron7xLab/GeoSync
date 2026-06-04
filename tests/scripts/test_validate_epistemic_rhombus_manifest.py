@@ -58,6 +58,28 @@ def _validate_tmp(
     return rhombus.validate_manifest(manifest, SCHEMA_PATH, repo_root)
 
 
+def _write_workflow(repo_root: Path, name: str, body: str) -> str:
+    workflow = repo_root / ".github" / "workflows" / name
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(body, encoding="utf-8")
+    return f".github/workflows/{name}"
+
+
+def _minimal_gate_workflow() -> str:
+    return """name: synthetic gate
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
+"""
+
+
 def test_live_manifest_passes(rhombus: Any) -> None:
     assert rhombus.validate_manifest(MANIFEST_PATH, SCHEMA_PATH, ROOT) == []
 
@@ -90,6 +112,15 @@ def test_schema_requires_external_gates_to_block_on_failure(rhombus: Any) -> Non
     assert blocks_on_failure["const"] is True
 
 
+def test_schema_requires_threat_model(rhombus: Any) -> None:
+    schema = rhombus.load_schema(SCHEMA_PATH)
+    threat_model = schema["properties"]["threat_model"]
+
+    assert "threat_model" in schema["required"]
+    assert threat_model["properties"]["failure_modes"]["minItems"] == 1
+    assert threat_model["properties"]["negative_controls"]["minItems"] == 1
+
+
 def test_rejects_duplicate_record_id(
     rhombus: Any,
     live_records: list[dict[str, Any]],
@@ -100,6 +131,18 @@ def test_rejects_duplicate_record_id(
     errors = _validate_tmp(rhombus, tmp_path, live_records)
 
     assert any("duplicate record_id" in error for error in errors)
+
+
+def test_rejects_axis_record_id_mismatch(
+    rhombus: Any,
+    live_records: list[dict[str, Any]],
+    tmp_path: Path,
+) -> None:
+    live_records[0]["record_id"] = "ER-99"
+
+    errors = _validate_tmp(rhombus, tmp_path, live_records)
+
+    assert any("must use record_id 'ER-1'" in error for error in errors)
 
 
 def test_rejects_duplicate_axis(
@@ -142,6 +185,18 @@ def test_rejects_empty_control_gate_coverage(
     assert any("control_gates" in error for error in errors)
 
 
+def test_rejects_duplicate_control_gate_across_records(
+    rhombus: Any,
+    live_records: list[dict[str, Any]],
+    tmp_path: Path,
+) -> None:
+    live_records[1]["control_gates"] = [live_records[0]["control_gates"][0]]
+
+    errors = _validate_tmp(rhombus, tmp_path, live_records)
+
+    assert any("duplicate control gate 'G1'" in error for error in errors)
+
+
 def test_rejects_missing_file_backed_enforcement_target(
     rhombus: Any,
     live_records: list[dict[str, Any]],
@@ -156,6 +211,85 @@ def test_rejects_missing_file_backed_enforcement_target(
     assert any("enforcement command target does not exist" in error for error in errors)
 
 
+def test_rejects_external_gate_outside_workflow_directory(
+    rhombus: Any,
+    live_records: list[dict[str, Any]],
+    tmp_path: Path,
+) -> None:
+    live_records[0]["enforcement"]["command"] = ["scripts/not-a-workflow.py"]
+
+    errors = _validate_tmp(rhombus, tmp_path, live_records)
+
+    assert any("external_gate command must target" in error for error in errors)
+
+
+def test_rejects_external_gate_with_pull_request_target(
+    rhombus: Any,
+    live_records: list[dict[str, Any]],
+    tmp_path: Path,
+) -> None:
+    target = _write_workflow(
+        tmp_path,
+        "unsafe.yml",
+        """name: unsafe
+on:
+  pull_request_target:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unsafe
+""",
+    )
+    live_records[0]["enforcement"]["command"] = [target]
+
+    errors = _validate_tmp(rhombus, tmp_path, live_records, repo_root=tmp_path)
+
+    assert any("must not use pull_request_target" in error for error in errors)
+
+
+def test_rejects_external_gate_without_readonly_contents_permission(
+    rhombus: Any,
+    live_records: list[dict[str, Any]],
+    tmp_path: Path,
+) -> None:
+    target = _write_workflow(
+        tmp_path,
+        "write-permission.yml",
+        """name: write permission
+on:
+  pull_request:
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unsafe
+""",
+    )
+    live_records[0]["enforcement"]["command"] = [target]
+
+    errors = _validate_tmp(rhombus, tmp_path, live_records, repo_root=tmp_path)
+
+    assert any("permissions.contents=read" in error for error in errors)
+
+
+def test_accepts_minimal_safe_external_gate_workflow(
+    rhombus: Any,
+    live_records: list[dict[str, Any]],
+    tmp_path: Path,
+) -> None:
+    target = _write_workflow(tmp_path, "safe.yml", _minimal_gate_workflow())
+    live_records[0]["enforcement"]["command"] = [target]
+    for record in live_records[1:]:
+        record["enforcement"]["command"] = [target]
+
+    assert _validate_tmp(rhombus, tmp_path, live_records, repo_root=tmp_path) == []
+
+
 def test_malformed_command_reports_schema_error_without_crashing(
     rhombus: Any,
     live_records: list[dict[str, Any]],
@@ -166,6 +300,35 @@ def test_malformed_command_reports_schema_error_without_crashing(
     errors = _validate_tmp(rhombus, tmp_path, live_records)
 
     assert any("enforcement.command.0" in error for error in errors)
+
+
+def test_build_report_is_deterministic_and_hashes_inputs(rhombus: Any) -> None:
+    errors: list[str] = []
+    report = rhombus.build_report(MANIFEST_PATH, SCHEMA_PATH, ROOT, errors)
+
+    assert report["status"] == "PASS"
+    assert report["record_count"] == 4
+    assert len(report["manifest_sha256"]) == 64
+    assert len(report["schema_sha256"]) == 64
+    assert report["axes"] == [
+        "axiomatic_basis",
+        "structural_integrity",
+        "operational_determinism",
+        "provenance_governance",
+    ]
+
+
+def test_main_writes_report(
+    rhombus: Any,
+    tmp_path: Path,
+) -> None:
+    report_path = tmp_path / "reports" / "rhombus.json"
+
+    assert rhombus.main(["--report", str(report_path)]) == 0
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "PASS"
+    assert report["record_count"] == 4
 
 
 def test_main_exits_zero_on_live_manifest(rhombus: Any) -> None:
