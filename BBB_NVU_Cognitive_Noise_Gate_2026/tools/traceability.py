@@ -52,7 +52,9 @@ def read_generated_matrix(path: Path = GENERATED_MATRIX) -> list[tuple[str, str,
     """Read generated traceability rows from disk."""
     with path.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
-        return sorted((row["requirement_id"], row["test"], int(row["line"])) for row in reader)
+        return sorted(
+            (row["requirement_id"], row["test"], int(row["line"])) for row in reader
+        )
 
 
 if __name__ == "__main__":
