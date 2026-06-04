@@ -29,7 +29,7 @@
 | C-PHYS-KERNEL | "Physics-inspired research platform with partially machine-checkable invariant layer" | `MEASURED` | `physics-kernel-gate.yml`, `BASELINE.md` | 2026-04-30 |
 | C-TLA-PROOF | "Four-barrier admission gate model-checked in TLA⁺ with 3 invariants" | `FACT` | `formal/tla/AdmissionGate.tla`, `formal-verification.yml` | 2026-04-30 |
 | C-SYSRISK-PHASE | "Interbank phase-locking precedes banking-crisis events" | `HYPOTHESIS` | `research/systemic_risk/falsification.py` v2: pre-registered Mann-Whitney AUC with stratified percentile-bootstrap CI (n=10000) + one-sided permutation p + Bonferroni FWER. `HARD_PASS` requires `auc_ci_low` ≥ 0.70 AND `p_BONF` ≤ 0.01 on ≥ 2 crises; `HARD_FAIL` if any AUC ≤ 0.55 OR any `auc_ci_low` ≤ 0.5. Asymmetric directed coupling via `coupling_from_exposures`; BA null calibrated by MLE per `fit_barabasi_albert` (Clauset-Shalizi-Newman 2009, *SIAM Rev.* 51: 661). `research/systemic_risk/README.md` | 2026-05-08 |
-| C-EPI-RHOMBUS | "Epistemic Rhombus manifest maps 4 governance criteria to schema-validated external gates" | `MEASURED` | `python scripts/validate_epistemic_rhombus_manifest.py` validates `governance/epistemic_rhombus_manifest.jsonl` against `schemas/governance/epistemic_rhombus_manifest.schema.json`. | 2026-06-04 |
+| C-EPI-RHOMBUS | "Epistemic Rhombus manifest maps 4 governance criteria to schema-validated external gates" | `FACT` | `python scripts/validate_epistemic_rhombus_manifest.py`, `.github/workflows/epistemic-rhombus-gate.yml`, and `tests/scripts/test_validate_epistemic_rhombus_manifest.py` validate `governance/epistemic_rhombus_manifest.jsonl` against `schemas/governance/epistemic_rhombus_manifest.schema.json`. | 2026-06-04 |
 
 ## Retired claims (pending re-validation under tier rules)
 
