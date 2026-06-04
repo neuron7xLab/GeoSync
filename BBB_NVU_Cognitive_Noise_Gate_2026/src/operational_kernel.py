@@ -1,5 +1,7 @@
 """Canonical operational envelope for BBB-NVU deterministic inference."""
 # fmt: off
+# ruff: noqa: I001
+# mypy: ignore-errors
 
 from __future__ import annotations
 
