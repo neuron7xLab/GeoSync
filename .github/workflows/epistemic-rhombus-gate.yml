@@ -4,7 +4,7 @@
 #
 # Fails closed when the repository-level governance manifest drifts away from
 # its JSON schema, loses exactly-once axis coverage, drops a record identity,
-# or points at a missing external enforcement target.
+# points at an unsafe external enforcement target, or loses its threat model.
 
 name: Epistemic Rhombus Gate
 
@@ -19,6 +19,7 @@ on:
       - "scripts/validate_epistemic_rhombus_manifest.py"
       - "tests/scripts/test_validate_epistemic_rhombus_manifest.py"
       - ".github/workflows/epistemic-rhombus-gate.yml"
+  merge_group:
   push:
     branches: [main]
     paths:
@@ -35,13 +36,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: epistemic-rhombus-gate-${{ github.ref }}
+  group: epistemic-rhombus-gate-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:
   validate:
-    name: Validate Rhombus manifest
+    name: Validate Rhombus manifest / Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -57,11 +59,23 @@ jobs:
 
       - name: Install validator dependencies
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           python -m pip install jsonschema pytest
 
-      - name: Validate live manifest
-        run: python scripts/validate_epistemic_rhombus_manifest.py
+      - name: Validate live manifest and write audit report
+        run: |
+          set -euo pipefail
+          mkdir -p reports/governance
+          python scripts/validate_epistemic_rhombus_manifest.py \
+            --report reports/governance/epistemic_rhombus_manifest.validation.json
 
-      - name: Run validator tests
+      - name: Run validator negative-control tests
         run: python -m pytest tests/scripts/test_validate_epistemic_rhombus_manifest.py -q
+
+      - name: Upload Rhombus validation report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epistemic-rhombus-report-py${{ matrix.python-version }}
+          path: reports/governance/epistemic_rhombus_manifest.validation.json
+          if-no-files-found: error
