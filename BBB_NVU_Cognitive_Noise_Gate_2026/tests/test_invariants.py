@@ -81,7 +81,8 @@ def test_inv_fail_closed_on_corrupted_math():
         assert risk_output["risk_state"] in VALID_STATES
         has_corrupted_math = any(not math.isfinite(float(v)) for v in indices.values())
         has_out_of_contract_math = any(
-            math.isfinite(float(v)) and (float(v) < 0 or float(v) > 100) for v in indices.values()
+            math.isfinite(float(v)) and (float(v) < 0 or float(v) > 100)
+            for v in indices.values()
         )
         if has_corrupted_math or has_out_of_contract_math:
             assert risk_output["risk_state"] == "BLACK_INVALID"
