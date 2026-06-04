@@ -4,8 +4,7 @@
 
 These tests exercise the comparator through real package boundaries:
     1. fail-closed contract on a missing expected model
-       (in contrast to nak_controller/aar which may fabricate a default
-       Prediction; this module does NOT)
+       (no post-factum default Prediction fabrication)
     2. full lifecycle ordering with sanctioned match
     3. ledger validator subprocess
     4. import-time module isolation (no forbidden runtime modules)
@@ -35,10 +34,9 @@ COMPARATOR_SRC: Path = REPO_ROOT / "geosync_hpc" / "control" / "action_result_co
 def test_strict_comparator_rejects_missing_expected_model() -> None:
     """The strict comparator fails closed on a missing expected model.
 
-    Documentation: ``nak_controller/aar`` may fabricate a default
-    Prediction when the caller forgets to register one. This comparator
-    does NOT — a missing expected model is a hard contract violation
-    and the witness reports ``INVALID_INPUT``.
+    A missing expected model is a hard contract violation: the witness
+    reports ``INVALID_INPUT`` and requests rollback instead of fabricating
+    a default prediction.
     """
 
     observed = ObservedActionResult(
@@ -49,6 +47,7 @@ def test_strict_comparator_rejects_missing_expected_model() -> None:
     witness = accept_action_result(None, observed)
     assert witness.status is ActionResultStatus.INVALID_INPUT
     assert witness.accepted is False
+    assert witness.rollback_required is True
     assert witness.reason.startswith("INVALID_EXPECTED_MODEL")
 
 
@@ -138,6 +137,8 @@ def test_import_boundary_no_forbidden_modules() -> None:
 _ALLOWED_TOP_LEVEL_IMPORTS: frozenset[str] = frozenset(
     {
         "math",
+        "hashlib",
+        "json",
         "enum",
         "dataclasses",
         "typing",

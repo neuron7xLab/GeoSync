@@ -608,6 +608,28 @@ def _load_acceptors(
     return out
 
 
+def _filter_acceptors_by_id(
+    acceptors: list[tuple[Path, dict[str, Any]]], acceptor_ids: Sequence[str] | None
+) -> list[tuple[Path, dict[str, Any]]]:
+    """Return only acceptors whose ``id`` is explicitly requested.
+
+    This keeps repository-wide validation as the default while allowing PR-local
+    evidence gates to validate a scoped acceptor without surfacing unrelated
+    historical evidence warnings. Missing requested IDs are treated as malformed
+    invocation errors by the CLI.
+    """
+
+    if not acceptor_ids:
+        return acceptors
+    requested = tuple(dict.fromkeys(acceptor_ids))
+    selected = [(path, accept) for path, accept in acceptors if accept.get("id") in requested]
+    found = {str(accept.get("id")) for _path, accept in selected}
+    missing = [acceptor_id for acceptor_id in requested if acceptor_id not in found]
+    if missing:
+        raise RuntimeError(f"acceptor id(s) not found: {', '.join(missing)}")
+    return selected
+
+
 # ---------------------------------------------------------------------------
 # JSON output (Step 4F)
 # ---------------------------------------------------------------------------
@@ -680,6 +702,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--template",
         default=".claude/commit_acceptor_template.yaml",
         help="Path to template acceptor (validated as DRAFT).",
+    )
+    p.add_argument(
+        "--acceptor-id",
+        action="append",
+        default=None,
+        help="Validate only the acceptor with this id; repeat to include multiple ids.",
     )
     return p
 
@@ -759,7 +787,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         template_path = tp if tp.is_file() else None
 
     try:
-        acceptors = _load_acceptors(acceptors_dir, template_path)
+        acceptors = _filter_acceptors_by_id(
+            _load_acceptors(acceptors_dir, template_path), args.acceptor_id
+        )
     except RuntimeError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

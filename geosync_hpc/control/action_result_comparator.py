@@ -33,14 +33,24 @@ Design corrections relative to the prior "acceptor":
        comparator never fabricates a default ``Prediction``.
     7. Logged observation alone (``reverse_afferentation_present=False``)
        can never be sanctioned.
+
+Status semantics:
+    * ``SANCTIONED_MATCH``: accepted and dissolved; no update or rollback.
+    * ``UPDATE_REQUIRED``: accepted as a real action-result pair, not dissolved;
+      the model must adapt before equivalent repetition.
+    * ``ROLLBACK_REQUIRED`` / ``INVALID_INPUT`` / action-id mismatch: not
+      accepted; rollback or isolation is mandatory.
 """
 
 from __future__ import annotations
 
 import enum
+import hashlib
+import json
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Any
 
 
 class ActionResultStatus(enum.StrEnum):
@@ -134,6 +144,33 @@ class ObservedActionResult:
 
     def __post_init__(self) -> None:
         _validate_observed(self)
+
+
+@dataclass(frozen=True, slots=True)
+class ActionResultEvidence:
+    """Deterministic replay envelope for one action-result comparison.
+
+    The evidence object is a pure product artifact: it binds the sealed
+    expected model, observed afferentation, and comparator witness into stable
+    SHA-256 digests.  It carries no wall-clock timestamp, random nonce, IO
+    handle, or policy side effect, so identical inputs replay to identical
+    fingerprints across processes.
+    """
+
+    expected_action_id: str
+    observed_action_id: str
+    status: ActionResultStatus
+    accepted: bool
+    rollback_required: bool
+    update_required: bool
+    model_created_seq: int
+    action_started_seq: int
+    observed_seq: int
+    expected_digest: str
+    observed_digest: str
+    witness_digest: str
+    evidence_digest: str
+    schema_version: str = "AAR-PRO-V1-EVIDENCE"
 
 
 @dataclass(frozen=True, slots=True)
@@ -299,21 +336,90 @@ def _precision_weighted_euclidean(
     expected: tuple[float, ...],
     variance: tuple[float, ...],
 ) -> float:
-    """Inverse-variance weighted Euclidean error.
+    """Inverse-variance precision-weighted Euclidean error.
 
-    Defined as ``sqrt( sum(p_i * (o_i - e_i)^2) / sum(p_i) )`` where
-    ``p_i = 1 / variance_i``. Variance entries are guaranteed strictly
-    positive at construction time.
+    Implements the AAR-PRO-V1 comparator invariant:
+
+    ``sqrt(sum((observed_i - expected_i)^2 / (variance_i + EPS)))``.
+
+    Variance entries are still required to be strictly positive at model
+    construction time; ``EPS`` is a deterministic guard against floating-point
+    denominator collapse rather than permission to pass zero variance.
     """
 
+    eps = 1e-9
     weighted_squared = 0.0
-    weight_total = 0.0
     for o, e, v in zip(observed, expected, variance, strict=True):
-        precision = 1.0 / v
         diff = o - e
-        weighted_squared += precision * diff * diff
-        weight_total += precision
-    return math.sqrt(weighted_squared / weight_total)
+        weighted_squared += (diff * diff) / (v + eps)
+    return math.sqrt(weighted_squared)
+
+
+def _canonical_json_bytes(payload: dict[str, Any]) -> bytes:
+    return json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+
+
+def _sha256_payload(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
+
+
+def _expected_payload(expected: ExpectedResultModel) -> dict[str, Any]:
+    return {
+        "action_id": expected.action_id,
+        "action_type": expected.action_type,
+        "expected_result": expected.expected_result,
+        "expected_result_variance": expected.expected_result_variance,
+        "context_signature": expected.context_signature,
+        "model_created_seq": expected.model_created_seq,
+        "action_started_seq": expected.action_started_seq,
+        "error_threshold": expected.error_threshold,
+        "rollback_threshold": expected.rollback_threshold,
+        "expected_value": expected.expected_value,
+        "expected_latency_ms": expected.expected_latency_ms,
+        "predicted_action_signature": expected.predicted_action_signature,
+        "action_mismatch_threshold": expected.action_mismatch_threshold,
+        "value_mismatch_threshold": expected.value_mismatch_threshold,
+        "timing_mismatch_threshold_ms": expected.timing_mismatch_threshold_ms,
+    }
+
+
+def _observed_payload(observed: ObservedActionResult) -> dict[str, Any]:
+    return {
+        "action_id": observed.action_id,
+        "observed_seq": observed.observed_seq,
+        "observed_result": observed.observed_result,
+        "observed_value": observed.observed_value,
+        "observed_latency_ms": observed.observed_latency_ms,
+        "executed_action_signature": observed.executed_action_signature,
+        "success": observed.success,
+        "reverse_afferentation_present": observed.reverse_afferentation_present,
+    }
+
+
+def _witness_payload(witness: ActionResultWitness) -> dict[str, Any]:
+    return {
+        "status": witness.status.value,
+        "accepted": witness.accepted,
+        "dissolved": witness.dissolved,
+        "rollback_required": witness.rollback_required,
+        "update_required": witness.update_required,
+        "inhibit_repetition": witness.inhibit_repetition,
+        "outcome_prediction_error": witness.outcome_prediction_error,
+        "precision_weighted_outcome_error": witness.precision_weighted_outcome_error,
+        "comparator_error": witness.comparator_error,
+        "value_prediction_error": witness.value_prediction_error,
+        "action_prediction_error": witness.action_prediction_error,
+        "timing_prediction_error": witness.timing_prediction_error,
+        "adapted_error_threshold": witness.adapted_error_threshold,
+        "next_context_expansion_required": witness.next_context_expansion_required,
+        "reason": witness.reason,
+        "falsifier": witness.falsifier,
+    }
 
 
 def _invalid_input_witness(reason: str, falsifier: str) -> ActionResultWitness:
@@ -321,7 +427,7 @@ def _invalid_input_witness(reason: str, falsifier: str) -> ActionResultWitness:
         status=ActionResultStatus.INVALID_INPUT,
         accepted=False,
         dissolved=False,
-        rollback_required=False,
+        rollback_required=True,
         update_required=False,
         inhibit_repetition=True,
         outcome_prediction_error=None,
@@ -331,7 +437,7 @@ def _invalid_input_witness(reason: str, falsifier: str) -> ActionResultWitness:
         action_prediction_error=None,
         timing_prediction_error=None,
         adapted_error_threshold=0.0,
-        next_context_expansion_required=False,
+        next_context_expansion_required=True,
         reason=reason,
         falsifier=falsifier,
     )
@@ -358,6 +464,112 @@ def _insufficient_witness(
         reason=reason,
         falsifier=falsifier,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class ActionResultComparator:
+    """Stateless deterministic façade for action-result comparison.
+
+    The class gives production callers an explicit injectable comparator object
+    without introducing mutable state, clocks, IO, random inputs, or policy
+    side effects.  It intentionally delegates to :func:`accept_action_result`
+    so the function remains the single source of decision-cascade truth.
+    """
+
+    def compare(
+        self,
+        expected: ExpectedResultModel | None,
+        observed: ObservedActionResult,
+    ) -> ActionResultWitness:
+        """Compare one sealed expected model with one observed result."""
+
+        return accept_action_result(expected, observed)
+
+    def seal_evidence(
+        self,
+        expected: ExpectedResultModel,
+        observed: ObservedActionResult,
+        witness: ActionResultWitness | None = None,
+    ) -> ActionResultEvidence:
+        """Return the deterministic replay envelope for a comparison."""
+
+        return seal_action_result_evidence(expected, observed, witness)
+
+
+def seal_action_result_evidence(
+    expected: ExpectedResultModel,
+    observed: ObservedActionResult,
+    witness: ActionResultWitness | None = None,
+) -> ActionResultEvidence:
+    """Seal one comparison into a deterministic, tamper-evident envelope.
+
+    If ``witness`` is supplied, it must exactly match the witness produced by
+    :func:`accept_action_result` for ``expected`` and ``observed``.  This guards
+    product integrations against logging a correct model/outcome pair with a
+    stale or forged verdict.
+    """
+
+    if expected is None:
+        raise ValueError("INVALID_EXPECTED_MODEL: evidence sealing requires a sealed model")
+    if not isinstance(expected, ExpectedResultModel):
+        raise ValueError("INVALID_EXPECTED_MODEL: expected must be ExpectedResultModel")
+    if not isinstance(observed, ObservedActionResult):
+        raise ValueError("INVALID_OBSERVED_RESULT: observed must be ObservedActionResult")
+
+    computed = accept_action_result(expected, observed)
+    if witness is None:
+        witness = computed
+    elif not isinstance(witness, ActionResultWitness):
+        raise ValueError("INVALID_WITNESS: witness must be ActionResultWitness")
+    elif witness != computed:
+        raise ValueError(
+            "EVIDENCE_WITNESS_MISMATCH: supplied witness does not match deterministic "
+            "comparator output"
+        )
+
+    expected_digest = _sha256_payload(_expected_payload(expected))
+    observed_digest = _sha256_payload(_observed_payload(observed))
+    witness_digest = _sha256_payload(_witness_payload(witness))
+    evidence_payload = {
+        "schema_version": "AAR-PRO-V1-EVIDENCE",
+        "expected_action_id": expected.action_id,
+        "observed_action_id": observed.action_id,
+        "status": witness.status.value,
+        "accepted": witness.accepted,
+        "rollback_required": witness.rollback_required,
+        "update_required": witness.update_required,
+        "model_created_seq": expected.model_created_seq,
+        "action_started_seq": expected.action_started_seq,
+        "observed_seq": observed.observed_seq,
+        "expected_digest": expected_digest,
+        "observed_digest": observed_digest,
+        "witness_digest": witness_digest,
+    }
+    evidence_digest = _sha256_payload(evidence_payload)
+    return ActionResultEvidence(
+        expected_action_id=expected.action_id,
+        observed_action_id=observed.action_id,
+        status=witness.status,
+        accepted=witness.accepted,
+        rollback_required=witness.rollback_required,
+        update_required=witness.update_required,
+        model_created_seq=expected.model_created_seq,
+        action_started_seq=expected.action_started_seq,
+        observed_seq=observed.observed_seq,
+        expected_digest=expected_digest,
+        observed_digest=observed_digest,
+        witness_digest=witness_digest,
+        evidence_digest=evidence_digest,
+    )
+
+
+def compare_action_result(
+    expected: ExpectedResultModel | None,
+    observed: ObservedActionResult,
+) -> ActionResultWitness:
+    """Backward-compatible pure alias for :func:`accept_action_result`."""
+
+    return accept_action_result(expected, observed)
 
 
 def accept_action_result(
@@ -403,6 +615,15 @@ def accept_action_result(
             falsifier=(
                 "Caller mutated ExpectedResultModel internals or bypassed __post_init__; "
                 "comparator would proceed with malformed contract."
+            ),
+        )
+
+    if not isinstance(observed, ObservedActionResult):
+        return _invalid_input_witness(
+            reason="INVALID_OBSERVED_RESULT: observed must be ObservedActionResult",
+            falsifier=(
+                "Caller passed a non-ObservedActionResult object; comparator must not "
+                "read ad-hoc attributes from an unsealed observation."
             ),
         )
 
@@ -457,8 +678,8 @@ def accept_action_result(
             status=ActionResultStatus.ACTION_MISMATCH,
             accepted=False,
             dissolved=False,
-            rollback_required=False,
-            update_required=True,
+            rollback_required=True,
+            update_required=False,
             inhibit_repetition=True,
             outcome_prediction_error=None,
             precision_weighted_outcome_error=None,
@@ -469,7 +690,7 @@ def accept_action_result(
             adapted_error_threshold=expected.error_threshold,
             next_context_expansion_required=True,
             reason=(
-                f"ACTION_ID_MISMATCH: expected={expected.action_id!r} "
+                f"ACTION_ID_MISMATCH: SECURITY_VIOLATION expected={expected.action_id!r} "
                 f"observed={observed.action_id!r}"
             ),
             falsifier=(
@@ -663,7 +884,7 @@ def accept_action_result(
     if comparator_error > expected.error_threshold:
         return ActionResultWitness(
             status=ActionResultStatus.UPDATE_REQUIRED,
-            accepted=False,
+            accepted=True,
             dissolved=False,
             rollback_required=False,
             update_required=True,
@@ -714,9 +935,11 @@ def accept_action_result(
 
 
 __all__ = [
+    "ActionResultComparator",
     "ActionResultStatus",
     "ActionResultWitness",
     "ExpectedResultModel",
     "ObservedActionResult",
     "accept_action_result",
+    "compare_action_result",
 ]

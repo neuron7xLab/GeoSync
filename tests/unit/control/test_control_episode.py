@@ -27,6 +27,7 @@ import ast
 import dataclasses
 import hashlib
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -49,6 +50,10 @@ from geosync_hpc.control import (
 
 REPO_ROOT: Path = Path(__file__).resolve().parents[3]
 EPISODE_SRC: Path = REPO_ROOT / "geosync_hpc" / "control" / "control_episode.py"
+
+
+def _field_names(model: Any) -> set[str]:
+    return {field.name for field in dataclasses.fields(model)}
 
 
 def _make_expected(
@@ -193,22 +198,30 @@ def test_11_receive_afferentation_seq_mismatch_raises() -> None:
         receive_afferentation(episode, observed, 5)
 
 
-def test_12_receive_afferentation_seq_not_after_action_seq_raises() -> None:
-    """12: observed_seq <= action_started_seq is rejected even if matched."""
+def test_12_out_of_order_afferentation_annuls_episode_with_invalid_witness() -> None:
+    """12: observed_seq <= action_started_seq closes with rollback witness."""
     episode = start_episode("e", b"intent", 1)
-    # Build expected where action_started_seq=3 but try observed_seq=3 too.
     expected = _make_expected(model_seq=2, action_seq=3)
     episode = seal_model(episode, expected, 2)
     episode = dispatch_action(episode, b"action", 3)
-    # ObservedActionResult with observed_seq=3 (== action_started_seq) — also
-    # the seq strictly-after rule would catch it; force a fresh observed.
     observed = ObservedActionResult(
         action_id="a-1",
         observed_seq=3,
         observed_result=(1.0, 0.0),
     )
-    with pytest.raises(ValueError):
-        receive_afferentation(episode, observed, 3)
+
+    rejected = receive_afferentation(episode, observed, 3)
+
+    assert rejected.closed is True
+    assert rejected.witness is not None
+    assert rejected.witness.status is ActionResultStatus.INVALID_INPUT
+    assert rejected.witness.rollback_required is True
+    assert rejected.witness.reason.startswith("SEQUENCE_ORDER_INVALID")
+    assert rejected.records[-2].phase is EpisodePhase.AFFERENTATION_RECEIVED
+    assert rejected.records[-1].phase is EpisodePhase.ERROR_COMPUTED
+    assert verify_chain(rejected) is True
+    with pytest.raises(ValueError, match="episode is closed"):
+        render_decision(rejected, rejected.records[-1].seq + 1)
 
 
 def test_13_compute_error_before_afferentation_raises() -> None:
@@ -240,7 +253,6 @@ def test_15_compute_error_exact_match_yields_sanctioned() -> None:
 
 def test_16_compute_error_far_breach_yields_rollback() -> None:
     """16: far-out observation -> ROLLBACK_REQUIRED witness."""
-    # error_threshold=0.1, rollback_threshold=0.5; supply distance >> 0.5.
     episode = _drive_full_chain(
         expected_result=(1.0, 0.0),
         observed_result=(10.0, 10.0),
@@ -286,8 +298,6 @@ def test_20_closed_episode_rejects_all_phase_calls() -> None:
     observed = _make_observed(observed_seq=10)
 
     with pytest.raises(ValueError):
-        # start_episode does not take an episode argument; instead try to
-        # extend the closed episode by every other phase function.
         seal_model(episode, expected, 8)
     with pytest.raises(ValueError):
         dispatch_action(episode, b"x", 8)
@@ -299,9 +309,6 @@ def test_20_closed_episode_rejects_all_phase_calls() -> None:
         render_decision(episode, 8)
     with pytest.raises(ValueError):
         persist_memory(episode, 8)
-    # start_episode itself is independent of any prior episode object, so we
-    # cover the seventh function by asserting it remains callable; the closed
-    # flag belongs to the episode instance, not to the module.
     fresh = start_episode("fresh", b"intent", 0)
     assert fresh.closed is False
 
@@ -310,7 +317,6 @@ def test_21_seq_must_strictly_increase_across_phases() -> None:
     """21: equal seq across consecutive phases is rejected."""
     episode = start_episode("e", b"intent", 5)
     expected = _make_expected(model_seq=5, action_seq=6)
-    # model_created_seq=5 conflicts with intent_seq=5 (same value).
     with pytest.raises(ValueError):
         seal_model(episode, expected, 5)
 
@@ -327,13 +333,10 @@ def test_22_determinism_identical_inputs_yield_identical_chain_hashes() -> None:
 def test_23_tamper_detection_payload_digest_alteration() -> None:
     """23: forging a payload_digest breaks verify_chain."""
     episode = _drive_full_chain()
-    # Replace record at index 3 (AFFERENTATION_RECEIVED) payload_digest.
     forged_digest = hashlib.sha256(b"forged").hexdigest()
     target = episode.records[3]
     forged_record = dataclasses.replace(target, payload_digest=forged_digest)
     forged_records = episode.records[:3] + (forged_record,) + episode.records[4:]
-    # Building a ControlEpisode from these forged records would fail
-    # __post_init__ — bypass by constructing object.__new__ then field set.
     forged_episode = object.__new__(ControlEpisode)
     object.__setattr__(forged_episode, "episode_id", episode.episode_id)
     object.__setattr__(forged_episode, "records", forged_records)
@@ -342,7 +345,6 @@ def test_23_tamper_detection_payload_digest_alteration() -> None:
     object.__setattr__(forged_episode, "witness", episode.witness)
     object.__setattr__(forged_episode, "closed", episode.closed)
     assert verify_chain(forged_episode) is False
-    # Original still passes.
     assert verify_chain(episode) is True
 
 
@@ -375,7 +377,7 @@ def test_26_episode_is_frozen_dataclass() -> None:
     """26: attempting to mutate records on a frozen episode raises."""
     episode = start_episode("e", b"intent", 0)
     with pytest.raises(dataclasses.FrozenInstanceError):
-        episode.records = ()  # type: ignore[misc]
+        setattr(episode, "records", ())
 
 
 def test_27_phase_functions_return_new_episodes_input_unchanged() -> None:
@@ -409,8 +411,7 @@ def test_29_no_forbidden_legacy_fields_present() -> None:
     """29: no created_before_action / prior_confidence / reentry_threshold."""
     forbidden = {"created_before_action", "prior_confidence", "reentry_threshold"}
     for klass in (ControlEpisode, EpisodeRecord):
-        names = {f.name for f in dataclasses.fields(klass)}
-        leaked = names & forbidden
+        leaked = _field_names(klass) & forbidden
         assert not leaked, f"{klass.__name__} leaked forbidden field: {leaked}"
 
 

@@ -21,6 +21,10 @@ trading signal through a bounded Action Result Acceptor (ARA) loop.
 | **INV-DRO3** | conditional | `regime == INVALID ⇔ (¬stationary ∨ r² < 0.90)` | P0 | Dickey–Fuller 1979 |
 | **INV-DRO4** | conditional | `signal == LONG ⇒ regime == CRITICAL ∧ rs > 0.33 ∧ trend ∈ {CONVERGING, STABLE}` | P0 | internal |
 | **INV-DRO5** | universal   | NaN/Inf/constant/rank/short input ⇒ `ValueError` (fail-closed) | P0 | internal |
+| **INV-DRO6** | conditional | `free_energy > dynamic_free_energy_threshold ⇒ regime == INVALID ∧ signal == REDUCE ∧ rs == 0` | P0 | internal |
+| **INV-DRO7** | universal | DRO-ARA internal comparator chronology is allocated by a monotone SHA-256 event chain, not by `3*step_index` arithmetic | P0 | internal |
+| **INV-DRO8** | universal | `belief_variance > 0` and `dynamic_free_energy_threshold ∈ [VARIATIONAL_ENERGY_FLOOR, VARIATIONAL_ENERGY_CEILING]` | P0 | internal |
+| **INV-DRO9** | universal | Retained DRO-ARA error and variational-energy buffers have length `≤ STABLE_RUNS`; minimum contract length emits finite `free_energy` | P0 | internal |
 
 ## Test mapping
 
@@ -31,6 +35,10 @@ trading signal through a bounded Action Result Acceptor (ARA) loop.
 | INV-DRO3  | `test_invariants.py::test_classify_invalid_when_not_stationary`, `::test_classify_invalid_when_r2_below_gate` |
 | INV-DRO4  | `test_falsification.py::test_signal_never_long_on_gbm`; signal logic checked in `test_invariants.py::test_observe_deterministic` |
 | INV-DRO5  | `test_invariants.py::test_observe_rejects_nan`, `::test_observe_rejects_inf`, `::test_observe_rejects_constant`, `::test_observe_rejects_too_short`, `::test_observe_rejects_2d` |
+| INV-DRO6  | `test_falsification.py::test_free_energy_circuit_breaker_forces_invalid_reduce` |
+| INV-DRO7  | `test_falsification.py::test_dro_ara_exposes_dynamic_belief_and_causal_chronology` |
+| INV-DRO8  | `test_falsification.py::test_dro_ara_exposes_dynamic_belief_and_causal_chronology` |
+| INV-DRO9  | `test_falsification.py::test_dro_ara_minimum_contract_length_has_finite_energy`, `::test_dro_ara_ara_state_keeps_bounded_energy_window` |
 
 ## Falsification battery (known-regime sanity checks)
 

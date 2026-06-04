@@ -11,8 +11,8 @@
 #      structure matching its invariant type (L3), emits a 5-field
 #      error message on failure (L4), and derives thresholds from
 #      theory rather than magic literals (L5).
-#   3. Production physics code in core/ does not silently clamp or
-#      clip physical quantities without logging or an INV-* comment
+#   3. Production physics code in changed core/ Python files does not silently
+#      clamp or clip physical quantities without logging or an INV-* comment
 #      (C1, C2 audit).
 #
 # The gate is fail-closed for changed physics tests and changed core code.
@@ -39,6 +39,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # kernel-self-check
+  # ---------------------------------------------------------------------------
   kernel-self-check:
     name: physics-kernel-self-check
     runs-on: ubuntu-latest
@@ -154,15 +157,25 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Audit core/ for silent clamps and undocumented bounds
+      - name: Audit changed core/ files for silent clamps and undocumented bounds
         run: |
           set -euo pipefail
           if [ -n "${GITHUB_BASE_REF:-}" ]; then
             changed=$(git diff --name-only "origin/${GITHUB_BASE_REF}"...HEAD)
-            echo "${changed}"
-            if ! echo "${changed}" | grep -q '^core/'; then
-              echo "No core/ changes in this PR; skipping core code audit."
-              exit 0
-            fi
+          else
+            changed=$(git diff-tree --no-commit-id --name-only -r "${GITHUB_SHA}")
           fi
-          python .claude/physics/validate_tests.py core/ --audit-code --summary
+          echo "${changed}"
+          mapfile -t core_py_files < <(printf '%s\n' "${changed}" | grep -E '^core/.*\.py$' || true)
+          if [ "${#core_py_files[@]}" -eq 0 ]; then
+            echo "No changed core/*.py files in this PR; skipping core code audit."
+            exit 0
+          fi
+          for file in "${core_py_files[@]}"; do
+            if [ ! -f "${file}" ]; then
+              continue
+            fi
+            echo "::group::physics-code-audit: ${file}"
+            python .claude/physics/validate_tests.py "${file}" --audit-code --summary
+            echo "::endgroup::"
+          done

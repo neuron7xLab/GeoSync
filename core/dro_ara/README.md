@@ -40,8 +40,14 @@ places for deterministic replay):
 | `risk_scalar`  | float | `max(0, 1 − |γ − 1|)`, `0` under `INVALID`.               |
 | `stationary`   | bool  | Outcome of the lag-augmented ADF test at 5%.              |
 | `signal`       | str   | `LONG` / `SHORT` / `HOLD` / `REDUCE`.                     |
-| `free_energy`  | float | Mean ARA error over the last `STABLE_RUNS` iterations.    |
-| `ara_steps`    | int   | Number of ARA updates executed.                           |
+| `free_energy`  | float | Mean variational energy over the last `STABLE_RUNS` iterations. |
+| `free_energy_circuit_breaker` | bool | `True` iff free energy exceeds the dynamic threshold. |
+| `dynamic_free_energy_threshold` | float | Context-conditioned threshold derived from H/R²/risk state. |
+| `belief_mean` | float | Recursive Gaussian recognition mean for `gamma`. |
+| `belief_variance` | float | Recursive Gaussian recognition variance for comparator error. |
+| `causal_chronology_hash` | str | SHA-256 hash-chain tip for internal ARA event ordering. |
+| `recovery_action` | str | `ALLOW_MODEL_UPDATE`, `EXPAND_CONTEXT`, or `REDUCE_RISK` from bounded generative recovery. |
+| `ara_steps`    | int   | Number of ARA updates executed; retained error/energy buffers are bounded to `STABLE_RUNS`. |
 | `converged`    | bool  | `True` iff ARA reached `STABLE_RUNS` consecutive hits.    |
 | `trend`        | str\|None | `CONVERGING` / `STABLE` / `DIVERGING`.                |
 | `alpha_ema`    | float | EMA gain `2 / (N + 1)`, with `N = (len − window) / step`. |
@@ -64,13 +70,16 @@ table below.
 | `signal = SHORT`             | `DRIFT` **and** trend = `DIVERGING`.                                    |
 | `signal = HOLD`              | Default when trend ∈ {CONVERGING, STABLE} and `LONG` guard not tripped. |
 | `signal = REDUCE`            | Otherwise — includes all `INVALID` and diverging paths not covered.     |
+| Variational free-energy proxy | Gaussian surprise + complexity over comparator error and belief state. |
+| Dynamic circuit breaker       | If `free_energy > dynamic_free_energy_threshold`, force `INVALID`, `REDUCE`, `rs=0`. |
 | Input contract               | 1-D finite non-constant array, length ≥ `window + step`.                |
 | Degenerate input             | `ValueError`; never silent repair.                                      |
 
 All bound constants (`R2_MIN`, `H_CRITICAL`, `H_DRIFT`, `RS_LONG_THRESH`,
 `ADF_CV_5PCT`, `ADF_MAX_LAGS`, `EPSILON_H`, `STABLE_RUNS`, `MAX_DEPTH`,
-`MIN_WINDOW`) are exported from the package and must only be changed together
-with their test fixtures.
+`MIN_WINDOW`, `FREE_ENERGY_CRITICAL`, `VARIATIONAL_ENERGY_FLOOR`,
+`VARIATIONAL_ENERGY_CEILING`) are exported from the package and must only be
+changed together with their test fixtures.
 
 ## Complexity
 

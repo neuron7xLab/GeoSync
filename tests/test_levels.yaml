@@ -55,6 +55,7 @@ levels:
       - tests/analytics/**
       - tests/core/**
       - core/**/tests/**
+      - nak_controller/tests/**
       - tools/**/tests/**
       - tests/data/**
       - tests/generated/**

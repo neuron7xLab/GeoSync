@@ -24,6 +24,7 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
+import core.dro_ara.engine as dro_engine
 from core.dro_ara import Regime, geosync_observe
 
 SEED = 42
@@ -141,9 +142,91 @@ def test_output_schema_complete() -> None:
         "stationary",
         "signal",
         "free_energy",
+        "free_energy_circuit_breaker",
+        "dynamic_free_energy_threshold",
+        "belief_mean",
+        "belief_variance",
+        "causal_chronology_hash",
+        "recovery_action",
         "ara_steps",
         "converged",
         "trend",
         "alpha_ema",
     }
     assert required <= set(out.keys()), f"missing keys: {required - set(out.keys())}"
+
+
+def test_free_energy_circuit_breaker_forces_invalid_reduce(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Injected comparator-error cascade must force fail-closed risk reduction."""
+
+    def high_error(_predicted_gamma: float, _actual: object, _step_index: int) -> float:
+        return dro_engine.FREE_ENERGY_CRITICAL * 4.0
+
+    monkeypatch.setattr(dro_engine, "_ara_comparator_error", high_error)
+    out = dro_engine.geosync_observe(_ou_prices(SEED, N_SAMPLES), window=WINDOW, step=STEP)
+
+    assert out["free_energy"] > out["dynamic_free_energy_threshold"]
+    assert out["free_energy_circuit_breaker"] is True
+    assert out["regime"] == Regime.INVALID.value
+    assert out["risk_scalar"] == 0.0
+    assert out["signal"] == "REDUCE"
+    assert out["recovery_action"] == "REDUCE_RISK"
+    assert out["converged"] is False
+
+
+def test_dro_ara_exposes_dynamic_belief_and_causal_chronology() -> None:
+    out = geosync_observe(_ou_prices(SEED, N_SAMPLES), window=WINDOW, step=STEP)
+
+    assert 0.05 <= out["dynamic_free_energy_threshold"] <= 2.0
+    assert isinstance(out["belief_mean"], float)
+    assert out["belief_variance"] > 0.0
+    assert isinstance(out["causal_chronology_hash"], str)
+    assert len(out["causal_chronology_hash"]) == 64
+    assert out["recovery_action"] in {"ALLOW_MODEL_UPDATE", "EXPAND_CONTEXT", "REDUCE_RISK"}
+
+
+def test_dro_ara_no_synthetic_step_index_chronology() -> None:
+    source = dro_engine.__loader__.get_source(dro_engine.__name__)  # type: ignore[union-attr]
+    assert source is not None
+    assert "3 * step_index" not in source
+    assert "_CausalChronology" in source
+
+
+def test_dro_ara_minimum_contract_length_has_finite_energy() -> None:
+    price = _ou_prices(SEED, WINDOW + STEP)
+    out = geosync_observe(price, window=WINDOW, step=STEP)
+
+    assert out["free_energy"] == 0.0
+    assert out["free_energy_circuit_breaker"] is False
+    assert out["ara_steps"] == 0
+    assert out["recovery_action"] == "ALLOW_MODEL_UPDATE"
+
+
+def test_dro_ara_ara_state_keeps_bounded_energy_window() -> None:
+    chronology = dro_engine._CausalChronology()
+    state = dro_engine.State(
+        gamma=1.01,
+        H=0.005,
+        r2=0.99,
+        regime=Regime.CRITICAL,
+        rs=0.99,
+        stationary=True,
+    )
+    ara = dro_engine._ARA(
+        pred=1.0,
+        regime=Regime.CRITICAL,
+        errors=(),
+        variational_energy=(),
+        stable=0,
+        belief_mean=1.0,
+        belief_variance=0.1,
+        adaptive_threshold=dro_engine._adaptive_energy_threshold(state),
+    )
+
+    for _ in range(dro_engine.STABLE_RUNS + 3):
+        ara = dro_engine._ara_step(ara, state, 0.5, chronology)
+
+    assert len(ara.errors) == dro_engine.STABLE_RUNS
+    assert len(ara.variational_energy) == dro_engine.STABLE_RUNS
+    assert all(isinstance(value, float) for value in ara.errors)
+    assert all(isinstance(value, float) for value in ara.variational_energy)
