@@ -13,8 +13,8 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
-from jsonschema.exceptions import ValidationError
+from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
+from jsonschema.exceptions import ValidationError  # type: ignore[import-untyped]
 
 DEFAULT_MANIFEST = Path("governance/epistemic_rhombus_manifest.jsonl")
 DEFAULT_SCHEMA = Path("schemas/governance/epistemic_rhombus_manifest.schema.json")
@@ -320,7 +320,7 @@ def main(argv: list[str] | None = None) -> int:
     if errors:
         print("manifest validation failed:", file=sys.stderr)
         for error in errors:
-            print(f"- {error}", file=sys.stderr)
+            print(f"- {error}")
         return 1
 
     print(f"validated Epistemic Rhombus manifest: {args.manifest}")
