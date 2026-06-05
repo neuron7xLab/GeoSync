@@ -107,14 +107,12 @@ def test_operational_kernel_preserves_fail_closed_invalid_behavior() -> None:
 @requirement("R002")
 def test_operational_kernel_rejects_boundary_request_extra_fields() -> None:
     try:
-        requests: list[RequestPayload] = [
-            request(STABLE_INPUT, "stable.json", extra="blocked")
-        ]
+        requests: list[RequestPayload] = [request(STABLE_INPUT, "stable.json", extra="value")]
         kernel().execute(requests, created_at=FIXED_TIME)
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
     else:
-        raise AssertionError("operational request extra field bypassed boundary")
+        raise AssertionError("operational request accepted an extra field")
 
 
 @requirement("R003")
