@@ -107,9 +107,7 @@ def test_operational_kernel_preserves_fail_closed_invalid_behavior() -> None:
 @requirement("R002")
 def test_operational_kernel_rejects_boundary_request_extra_fields() -> None:
     try:
-        requests: list[RequestMapping] = [
-            request(STABLE_INPUT, "stable.json", extra="value")
-        ]
+        requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json", extra="value")]
         kernel().execute(requests, created_at=FIXED_TIME)
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
@@ -129,7 +127,7 @@ def test_operational_envelope_verifier_accepts_fresh_envelope() -> None:
 
 
 @requirement("R003")
-def test_operational_envelope_verifier_rejects_hash_tampering() -> None:
+def test_operational_envelope_verifier_rejects_hash_mismatch() -> None:
     requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json")]
     envelope = kernel().execute(requests, created_at=FIXED_TIME)
     payload = as_payload(envelope.model_dump())
@@ -141,7 +139,7 @@ def test_operational_envelope_verifier_rejects_hash_tampering() -> None:
 
 
 @requirement("R003")
-def test_operational_envelope_verifier_rejects_manifest_tampering() -> None:
+def test_operational_envelope_verifier_rejects_manifest_mismatch() -> None:
     requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json")]
     envelope = kernel().execute(requests, created_at=FIXED_TIME)
     payload = as_payload(envelope.model_dump())
@@ -155,5 +153,5 @@ def test_operational_envelope_verifier_rejects_manifest_tampering() -> None:
 
 
 @requirement("R002")
-def test_operational_envelope_verifier_fails_closed_on_malformed_payload() -> None:
-    assert not verify_operational_envelope({"envelope_hash": "broken", "outputs": None})
+def test_operational_envelope_verifier_fails_closed_on_bad_payload() -> None:
+    assert not verify_operational_envelope({"envelope_hash": "bad", "outputs": None})
