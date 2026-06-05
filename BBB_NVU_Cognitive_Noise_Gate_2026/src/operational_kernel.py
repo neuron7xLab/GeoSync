@@ -148,17 +148,21 @@ def verify_operational_envelope(envelope: OperationalEnvelope | Mapping[str, Any
         if manifest.get("request_count") != len(outputs):
             return False
 
+        output_hashes = [sha256_text(canonical(output)) for output in outputs]
+        audit_event_hashes = [sha256_text(canonical(event)) for event in audit_events]
+        replay_bundle_hashes = [bundle.get("bundle_hash") for bundle in replay_bundles]
+        replay_verified = [verify_replay_bundle(bundle) for bundle in replay_bundles]
+        metric_snapshot_id = metrics_snapshot.get("snapshot_id")
+        incident_ids = [incident.get("incident_id") for incident in incidents]
+
         return (
-            manifest.get("output_hashes") == [sha256_text(canonical(output)) for output in outputs]
-            and manifest.get("audit_event_hashes")
-            == [sha256_text(canonical(event)) for event in audit_events]
-            and manifest.get("replay_bundle_hashes")
-            == [bundle.get("bundle_hash") for bundle in replay_bundles]
+            manifest.get("output_hashes") == output_hashes
+            and manifest.get("audit_event_hashes") == audit_event_hashes
+            and manifest.get("replay_bundle_hashes") == replay_bundle_hashes
             and all(_replay_bundle_hash_is_valid(bundle) for bundle in replay_bundles)
-            and manifest.get("replay_verified")
-            == [verify_replay_bundle(bundle) for bundle in replay_bundles]
-            and manifest.get("metrics_snapshot_id") == metrics_snapshot.get("snapshot_id")
-            and manifest.get("incident_ids") == [incident.get("incident_id") for incident in incidents]
+            and manifest.get("replay_verified") == replay_verified
+            and manifest.get("metrics_snapshot_id") == metric_snapshot_id
+            and manifest.get("incident_ids") == incident_ids
         )
     except (KeyError, TypeError, ValueError):
         return False
