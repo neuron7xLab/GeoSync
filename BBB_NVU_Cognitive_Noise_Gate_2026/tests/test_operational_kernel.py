@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = load_yaml(ROOT / "config" / "risk_rules.yaml")
 FIXED_TIME = "2026-06-03T00:00:00Z"
 FIXED_ENGINE_HASH = "engine-hash-for-operational-kernel-tests"
+RequestPayload = dict[str, Any]
 
 STABLE_INPUT: dict[str, Any] = {
     "subject_id": "S-STABLE",
@@ -44,6 +45,10 @@ INVALID_INPUT: dict[str, Any] = {
 }
 
 
+def request(input_doc: dict[str, Any], source_id: str, **extra: Any) -> RequestPayload:
+    return {"input_doc": input_doc, "source_id": source_id, **extra}
+
+
 def kernel() -> OperationalKernel:
     return OperationalKernel(RULES, engine_hash=FIXED_ENGINE_HASH)
 
@@ -54,9 +59,9 @@ def as_payload(value: object) -> dict[str, Any]:
 
 @requirement("R003")
 def test_operational_envelope_is_deterministic_and_replay_verified() -> None:
-    requests = [
-        {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
-        {"input_doc": RED_INPUT, "source_id": "red.json"},
+    requests: list[RequestPayload] = [
+        request(STABLE_INPUT, "stable.json"),
+        request(RED_INPUT, "red.json"),
     ]
 
     first = kernel().execute(requests, created_at=FIXED_TIME)
@@ -70,13 +75,11 @@ def test_operational_envelope_is_deterministic_and_replay_verified() -> None:
 
 @requirement("R004")
 def test_operational_envelope_contains_metrics_audit_and_incidents() -> None:
-    envelope = kernel().execute(
-        [
-            {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
-            {"input_doc": RED_INPUT, "source_id": "red.json"},
-        ],
-        created_at=FIXED_TIME,
-    )
+    requests: list[RequestPayload] = [
+        request(STABLE_INPUT, "stable.json"),
+        request(RED_INPUT, "red.json"),
+    ]
+    envelope = kernel().execute(requests, created_at=FIXED_TIME)
 
     assert envelope.request_count == 2
     assert len(envelope.outputs) == 2
@@ -91,10 +94,8 @@ def test_operational_envelope_contains_metrics_audit_and_incidents() -> None:
 
 @requirement("R002")
 def test_operational_kernel_preserves_fail_closed_invalid_behavior() -> None:
-    envelope = kernel().execute(
-        [{"input_doc": INVALID_INPUT, "source_id": "invalid.json"}],
-        created_at=FIXED_TIME,
-    )
+    requests: list[RequestPayload] = [request(INVALID_INPUT, "invalid.json")]
+    envelope = kernel().execute(requests, created_at=FIXED_TIME)
 
     assert envelope.outputs[0]["risk"]["risk_state"] == "BLACK_INVALID"
     assert envelope.outputs[0]["risk"]["confidence"] == 0.0
@@ -106,16 +107,10 @@ def test_operational_kernel_preserves_fail_closed_invalid_behavior() -> None:
 @requirement("R002")
 def test_operational_kernel_rejects_boundary_request_extra_fields() -> None:
     try:
-        kernel().execute(
-            [
-                {
-                    "input_doc": STABLE_INPUT,
-                    "source_id": "stable.json",
-                    "extra": "blocked",
-                }
-            ],
-            created_at=FIXED_TIME,
-        )
+        requests: list[RequestPayload] = [
+            request(STABLE_INPUT, "stable.json", extra="blocked")
+        ]
+        kernel().execute(requests, created_at=FIXED_TIME)
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
     else:
@@ -124,23 +119,19 @@ def test_operational_kernel_rejects_boundary_request_extra_fields() -> None:
 
 @requirement("R003")
 def test_operational_envelope_verifier_accepts_fresh_envelope() -> None:
-    envelope = kernel().execute(
-        [
-            {"input_doc": STABLE_INPUT, "source_id": "stable.json"},
-            {"input_doc": RED_INPUT, "source_id": "red.json"},
-        ],
-        created_at=FIXED_TIME,
-    )
+    requests: list[RequestPayload] = [
+        request(STABLE_INPUT, "stable.json"),
+        request(RED_INPUT, "red.json"),
+    ]
+    envelope = kernel().execute(requests, created_at=FIXED_TIME)
 
     assert verify_operational_envelope(envelope)
 
 
 @requirement("R003")
 def test_operational_envelope_verifier_rejects_hash_tampering() -> None:
-    envelope = kernel().execute(
-        [{"input_doc": STABLE_INPUT, "source_id": "stable.json"}],
-        created_at=FIXED_TIME,
-    )
+    requests: list[RequestPayload] = [request(STABLE_INPUT, "stable.json")]
+    envelope = kernel().execute(requests, created_at=FIXED_TIME)
     payload = as_payload(envelope.model_dump())
     outputs = cast(list[dict[str, Any]], payload["outputs"])
     risk = cast(dict[str, Any], outputs[0]["risk"])
@@ -151,10 +142,8 @@ def test_operational_envelope_verifier_rejects_hash_tampering() -> None:
 
 @requirement("R003")
 def test_operational_envelope_verifier_rejects_manifest_tampering() -> None:
-    envelope = kernel().execute(
-        [{"input_doc": STABLE_INPUT, "source_id": "stable.json"}],
-        created_at=FIXED_TIME,
-    )
+    requests: list[RequestPayload] = [request(STABLE_INPUT, "stable.json")]
+    envelope = kernel().execute(requests, created_at=FIXED_TIME)
     payload = as_payload(envelope.model_dump())
     manifest = cast(dict[str, Any], payload["manifest"])
     manifest["replay_verified"] = [False]
