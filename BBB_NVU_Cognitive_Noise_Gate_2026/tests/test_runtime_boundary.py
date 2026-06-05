@@ -1,7 +1,6 @@
 # ruff: noqa: I001
 
 import json
-from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
@@ -65,8 +64,9 @@ def test_runtime_boundary_uses_explicit_timestamp_and_profiles() -> None:
 @requirement("R003")
 def test_runtime_boundary_batch_is_deterministic() -> None:
     boundary = RuntimeBoundary(RULES, engine_hash=FIXED_ENGINE_HASH)
-    requests: list[RuntimeRequest | Mapping[str, Any]] = [
-        {"input_doc": SAMPLE_INPUT, "source_id": "a.json"},
+    dict_request: dict[str, Any] = {"input_doc": SAMPLE_INPUT, "source_id": "a.json"}
+    requests: list[RuntimeRequest | dict[str, Any]] = [
+        dict_request,
         RuntimeRequest(input_doc=SAMPLE_INPUT, source_id="b.json"),
     ]
 
