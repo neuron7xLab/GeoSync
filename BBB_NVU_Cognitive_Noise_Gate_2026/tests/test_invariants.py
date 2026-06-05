@@ -126,14 +126,10 @@ def test_inv_critical_invalid_zeroes_confidence_and_blocks_execution() -> None:
 def test_inv_yaml_invariants_are_executable_bound() -> None:
     invariants = cast(
         dict[str, Any],
-        yaml.safe_load(
-            (ROOT / "invariants.yaml").read_text(encoding="utf-8")
-        ),
+        yaml.safe_load((ROOT / "invariants.yaml").read_text(encoding="utf-8")),
     )
     for invariant in cast(list[InvariantDoc], invariants["invariants"]):
         assert str(invariant["requirement_id"]).startswith("R")
         assert invariant["test_refs"]
         payload = f"{invariant['statement']}\n{invariant['enforcement']}".encode("utf-8")
-        assert recomposed_statement_digest(invariant) == hashlib.sha256(
-            payload
-        ).hexdigest()
+        assert recomposed_statement_digest(invariant) == hashlib.sha256(payload).hexdigest()
