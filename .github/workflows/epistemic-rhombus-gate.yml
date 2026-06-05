@@ -61,7 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install jsonschema pytest
+          python -m pip install jsonschema numpy pytest
 
       - name: Validate live manifest and write audit report
         run: |
