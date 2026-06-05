@@ -162,8 +162,7 @@ class StrictInferenceInput(BaseModel):
             "critical_data_invalid": self.critical_data_invalid,
             "confidence": float(self.confidence),
             "domain_indices": {
-                str(key): float(value)
-                for key, value in sorted(self.domain_indices.items())
+                str(key): float(value) for key, value in sorted(self.domain_indices.items())
             },
             "degradations": list(self.degradations),
         }
