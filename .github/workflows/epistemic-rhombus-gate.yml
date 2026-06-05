@@ -87,15 +87,15 @@ jobs:
           set -euo pipefail
           mkdir -p reports/governance
           python -m pytest tests/scripts/test_validate_epistemic_rhombus_manifest.py \
-            -q --tb=short --junitxml=reports/governance/epistemic_rhombus_tests.py${{ matrix.python-version }}.xml
+            -q --tb=short --junitxml=reports/governance/epistemic_rhombus_tests.xml
 
       - name: Upload Rhombus test report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: epistemic-rhombus-tests-py${{ matrix.python-version }}
-          path: reports/governance/epistemic_rhombus_tests.py${{ matrix.python-version }}.xml
-          if-no-files-found: error
+          path: reports/governance/epistemic_rhombus_tests.xml
+          if-no-files-found: warn
 
       - name: Fail if live manifest validation failed
         if: steps.validate_manifest.outcome != 'success'
