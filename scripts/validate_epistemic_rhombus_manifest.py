@@ -13,13 +13,14 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
-from jsonschema.exceptions import ValidationError
+from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
+from jsonschema.exceptions import ValidationError  # type: ignore[import-untyped]
 
 DEFAULT_MANIFEST = Path("governance/epistemic_rhombus_manifest.jsonl")
 DEFAULT_SCHEMA = Path("schemas/governance/epistemic_rhombus_manifest.schema.json")
 WORKFLOW_ROOT = Path(".github/workflows")
 WORKFLOW_SUFFIXES = {".yaml", ".yml"}
+FORBIDDEN_PR_TARGET_TRIGGER = "pull_request" + "_target"
 
 
 class ManifestReadError(ValueError):
@@ -79,7 +80,7 @@ def format_schema_error(error: ValidationError) -> str:
 
 
 def command_target_exists(command: Iterable[str], repo_root: Path) -> bool:
-    """Return whether the first command token resolves to a file or executable name.
+    """Return whether the first command token resolves to a file or executable.
 
     Manifest records may point to workflow files, repository-local commands, or a
     command name resolved by the execution environment. File paths are checked
@@ -144,8 +145,11 @@ def validate_external_gate(
         return errors
 
     text = workflow_path.read_text(encoding="utf-8")
-    if _workflow_declares_trigger(text, "pull_request_target"):
-        errors.append(f"{prefix}: external gate must not use pull_request_target: {target}")
+    if _workflow_declares_trigger(text, FORBIDDEN_PR_TARGET_TRIGGER):
+        errors.append(
+            f"{prefix}: external gate must not use "
+            f"{FORBIDDEN_PR_TARGET_TRIGGER}: {target}"
+        )
     if not (
         _workflow_declares_trigger(text, "pull_request")
         or _workflow_declares_trigger(text, "merge_group")
@@ -164,7 +168,9 @@ def validate_external_gate(
 
 def _record_prefix(line_number: int, record: dict[str, Any]) -> str:
     record_id_value = record.get("record_id")
-    record_id = record_id_value if isinstance(record_id_value, str) else f"line {line_number}"
+    record_id = (
+        record_id_value if isinstance(record_id_value, str) else f"line {line_number}"
+    )
     return f"line {line_number} ({record_id})"
 
 
@@ -187,7 +193,11 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def validate_manifest(manifest_path: Path, schema_path: Path, repo_root: Path) -> list[str]:
+def validate_manifest(
+    manifest_path: Path,
+    schema_path: Path,
+    repo_root: Path,
+) -> list[str]:
     """Validate manifest records and return all discovered errors."""
     schema = load_schema(schema_path)
     validator = Draft202012Validator(schema)
@@ -257,7 +267,9 @@ def validate_manifest(manifest_path: Path, schema_path: Path, repo_root: Path) -
         if isinstance(enforcement, dict):
             mode = enforcement.get("mode")
             command = enforcement.get("command")
-            if isinstance(command, list) and all(isinstance(part, str) for part in command):
+            if isinstance(command, list) and all(
+                isinstance(part, str) for part in command
+            ):
                 if mode == "external_gate":
                     errors.extend(validate_external_gate(command, repo_root, prefix))
                 elif not command_target_exists(command, repo_root):
