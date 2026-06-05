@@ -20,7 +20,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = load_yaml(ROOT / "config" / "risk_rules.yaml")
 SAMPLE_INPUT = cast(
     dict[str, Any],
-    json.loads((ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8")),
+    json.loads(
+        (ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8")
+    ),
 )
 FIXED_TIME = "2026-06-03T00:00:00Z"
 FIXED_ENGINE_HASH = "engine-hash-for-audit-replay-tests"
