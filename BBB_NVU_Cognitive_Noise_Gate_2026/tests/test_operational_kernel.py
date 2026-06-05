@@ -12,6 +12,7 @@ from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import (
 )
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.operational_kernel import (
     OperationalKernel,
+    RequestMapping,
     verify_operational_envelope,
 )
 from BBB_NVU_Cognitive_Noise_Gate_2026.tests.requirements import requirement
@@ -20,7 +21,6 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = load_yaml(ROOT / "config" / "risk_rules.yaml")
 FIXED_TIME = "2026-06-03T00:00:00Z"
 FIXED_ENGINE_HASH = "engine-hash-for-operational-kernel-tests"
-RequestPayload = dict[str, Any]
 
 STABLE_INPUT: dict[str, Any] = {
     "subject_id": "S-STABLE",
@@ -45,7 +45,7 @@ INVALID_INPUT: dict[str, Any] = {
 }
 
 
-def request(input_doc: dict[str, Any], source_id: str, **extra: Any) -> RequestPayload:
+def request(input_doc: dict[str, Any], source_id: str, **extra: Any) -> RequestMapping:
     return {"input_doc": input_doc, "source_id": source_id, **extra}
 
 
@@ -59,7 +59,7 @@ def as_payload(value: object) -> dict[str, Any]:
 
 @requirement("R003")
 def test_operational_envelope_is_deterministic_and_replay_verified() -> None:
-    requests: list[RequestPayload] = [
+    requests: list[RequestMapping] = [
         request(STABLE_INPUT, "stable.json"),
         request(RED_INPUT, "red.json"),
     ]
@@ -75,7 +75,7 @@ def test_operational_envelope_is_deterministic_and_replay_verified() -> None:
 
 @requirement("R004")
 def test_operational_envelope_contains_metrics_audit_and_incidents() -> None:
-    requests: list[RequestPayload] = [
+    requests: list[RequestMapping] = [
         request(STABLE_INPUT, "stable.json"),
         request(RED_INPUT, "red.json"),
     ]
@@ -94,7 +94,7 @@ def test_operational_envelope_contains_metrics_audit_and_incidents() -> None:
 
 @requirement("R002")
 def test_operational_kernel_preserves_fail_closed_invalid_behavior() -> None:
-    requests: list[RequestPayload] = [request(INVALID_INPUT, "invalid.json")]
+    requests: list[RequestMapping] = [request(INVALID_INPUT, "invalid.json")]
     envelope = kernel().execute(requests, created_at=FIXED_TIME)
 
     assert envelope.outputs[0]["risk"]["risk_state"] == "BLACK_INVALID"
@@ -107,7 +107,7 @@ def test_operational_kernel_preserves_fail_closed_invalid_behavior() -> None:
 @requirement("R002")
 def test_operational_kernel_rejects_boundary_request_extra_fields() -> None:
     try:
-        requests: list[RequestPayload] = [request(STABLE_INPUT, "stable.json", extra="value")]
+        requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json", extra="value")]
         kernel().execute(requests, created_at=FIXED_TIME)
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
@@ -117,7 +117,7 @@ def test_operational_kernel_rejects_boundary_request_extra_fields() -> None:
 
 @requirement("R003")
 def test_operational_envelope_verifier_accepts_fresh_envelope() -> None:
-    requests: list[RequestPayload] = [
+    requests: list[RequestMapping] = [
         request(STABLE_INPUT, "stable.json"),
         request(RED_INPUT, "red.json"),
     ]
@@ -128,7 +128,7 @@ def test_operational_envelope_verifier_accepts_fresh_envelope() -> None:
 
 @requirement("R003")
 def test_operational_envelope_verifier_rejects_hash_tampering() -> None:
-    requests: list[RequestPayload] = [request(STABLE_INPUT, "stable.json")]
+    requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json")]
     envelope = kernel().execute(requests, created_at=FIXED_TIME)
     payload = as_payload(envelope.model_dump())
     outputs = cast(list[dict[str, Any]], payload["outputs"])
@@ -140,7 +140,7 @@ def test_operational_envelope_verifier_rejects_hash_tampering() -> None:
 
 @requirement("R003")
 def test_operational_envelope_verifier_rejects_manifest_tampering() -> None:
-    requests: list[RequestPayload] = [request(STABLE_INPUT, "stable.json")]
+    requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json")]
     envelope = kernel().execute(requests, created_at=FIXED_TIME)
     payload = as_payload(envelope.model_dump())
     manifest = cast(dict[str, Any], payload["manifest"])
