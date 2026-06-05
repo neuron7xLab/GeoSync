@@ -1,0 +1,39 @@
+# Diff-bound acceptor for the Epistemic Rhombus governance validation layer.
+
+id: epistemic-rhombus-governance
+status: ACTIVE
+claim_type: governance
+promise: "GeoSync exposes the Epistemic Rhombus as a schema-validated, fail-closed governance manifest with deterministic validation evidence and negative-control tests."
+diff_scope:
+  changed_files:
+    - path: ".github/workflows/epistemic-rhombus-gate.yml"
+    - path: "CLAIMS.md"
+    - path: "docs/governance/epistemic_rhombus_manifest.md"
+    - path: "governance/epistemic_rhombus_manifest.jsonl"
+    - path: "pyproject.toml"
+    - path: "schemas/governance/epistemic_rhombus_manifest.schema.json"
+    - path: "scripts/validate_epistemic_rhombus_manifest.py"
+    - path: "tests/scripts/test_validate_epistemic_rhombus_manifest.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols:
+  - "validate_manifest"
+  - "validate_external_gate"
+  - "build_report"
+  - "write_report"
+  - "required_axes"
+expected_signal: "Epistemic Rhombus manifest validates and negative-control tests exercise fail-closed behavior."
+measurement_command: "python scripts/validate_epistemic_rhombus_manifest.py --report reports/governance/epistemic_rhombus_manifest.validation.json && python -m pytest tests/scripts/test_validate_epistemic_rhombus_manifest.py --confcutdir=tests/scripts -q"
+signal_artifact: "reports/governance/epistemic_rhombus_manifest.validation.json"
+falsifier:
+  command: "python -m pytest tests/scripts/test_validate_epistemic_rhombus_manifest.py -q -k 'rejects_duplicate_axis or rejects_missing_file_backed_enforcement_target'"
+  description: "Negative controls must reject duplicated Rhombus axes and missing external enforcement targets."
+rollback_command: "git checkout -- .github/workflows/epistemic-rhombus-gate.yml CLAIMS.md docs/governance/epistemic_rhombus_manifest.md governance/epistemic_rhombus_manifest.jsonl pyproject.toml schemas/governance/epistemic_rhombus_manifest.schema.json scripts/validate_epistemic_rhombus_manifest.py tests/scripts/test_validate_epistemic_rhombus_manifest.py .claude/commit_acceptors/epistemic-rhombus-governance.yaml"
+rollback_verification_command: "git diff --exit-code"
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/epistemic-rhombus-governance.yaml"
+report_path: "docs/governance/epistemic_rhombus_manifest.md"
+evidence: []
