@@ -17,9 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = load_yaml(ROOT / "config" / "risk_rules.yaml")
 SAMPLE_INPUT = cast(
     dict[str, Any],
-    json.loads(
-        (ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8")
-    ),
+    json.loads((ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8")),
 )
 FIXED_TIME = "2026-06-03T00:00:00Z"
 FIXED_ENGINE_HASH = "engine-hash-for-runtime-boundary-tests"
@@ -72,14 +70,8 @@ def test_runtime_boundary_batch_is_deterministic() -> None:
         RuntimeRequest(input_doc=SAMPLE_INPUT, source_id="b.json"),
     ]
 
-    first = cast(
-        list[dict[str, Any]],
-        boundary.evaluate_batch(requests, created_at=FIXED_TIME),
-    )
-    second = cast(
-        list[dict[str, Any]],
-        boundary.evaluate_batch(requests, created_at=FIXED_TIME),
-    )
+    first = cast(list[dict[str, Any]], boundary.evaluate_batch(requests, created_at=FIXED_TIME))
+    second = cast(list[dict[str, Any]], boundary.evaluate_batch(requests, created_at=FIXED_TIME))
 
     assert first == second
     assert [item["provenance"]["source_id"] for item in first] == ["a.json", "b.json"]
