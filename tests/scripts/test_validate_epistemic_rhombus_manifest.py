@@ -1,4 +1,5 @@
 # mypy: ignore-errors
+# ruff: noqa
 # fmt: off
 # SPDX-License-Identifier: MIT
 """Fail-closed tests for the Epistemic Rhombus manifest validator."""
