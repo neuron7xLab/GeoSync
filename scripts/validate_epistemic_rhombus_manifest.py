@@ -118,7 +118,7 @@ def _workflow_declares_trigger(text: str, trigger: str) -> bool:
 def _workflow_declares_readonly_contents(text: str) -> bool:
     return (
         re.search(r"(?m)^permissions\s*:\s*$", text) is not None
-        and re.search(r"(?m)^\s{{2}}contents\s*:\s*read\s*$", text) is not None
+        and re.search(r"(?m)^\s{2}contents\s*:\s*read\s*$", text) is not None
     )
 
 
