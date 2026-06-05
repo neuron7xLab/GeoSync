@@ -81,10 +81,30 @@ jobs:
           if-no-files-found: error
 
       - name: Run validator negative-control tests
-        run: python -m pytest tests/scripts/test_validate_epistemic_rhombus_manifest.py -q
+        id: negative_tests
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p reports/governance
+          python -m pytest tests/scripts/test_validate_epistemic_rhombus_manifest.py \
+            -q --tb=short --junitxml=reports/governance/epistemic_rhombus_tests.py${{ matrix.python-version }}.xml
+
+      - name: Upload Rhombus test report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: epistemic-rhombus-tests-py${{ matrix.python-version }}
+          path: reports/governance/epistemic_rhombus_tests.py${{ matrix.python-version }}.xml
+          if-no-files-found: error
 
       - name: Fail if live manifest validation failed
         if: steps.validate_manifest.outcome != 'success'
         run: |
           echo "Live manifest validation failed; see uploaded Rhombus validation report."
+          exit 1
+
+      - name: Fail if negative-control tests failed
+        if: steps.negative_tests.outcome != 'success'
+        run: |
+          echo "Rhombus negative-control tests failed; see uploaded JUnit report."
           exit 1
