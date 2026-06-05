@@ -19,18 +19,14 @@ FIXED_TIME = "2026-06-03T00:00:00Z"
 def sample_observation() -> dict[str, Any]:
     return cast(
         dict[str, Any],
-        json.loads(
-            (ROOT / "examples" / "sample_observation.json").read_text(encoding="utf-8")
-        ),
+        json.loads((ROOT / "examples" / "sample_observation.json").read_text(encoding="utf-8")),
     )
 
 
 def sample_inference_input() -> dict[str, Any]:
     return cast(
         dict[str, Any],
-        json.loads(
-            (ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8")
-        ),
+        json.loads((ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8")),
     )
 
 
@@ -51,7 +47,7 @@ def test_l1_observation_gate_rejects_polymorphic_value_and_extra_fields() -> Non
     except ValidationError as error:
         assert error.errors()[0]["type"] == "float_type"
     else:
-        raise AssertionError("string metric value bypassed L1 observation gate")
+        raise AssertionError("string metric value was accepted by the L1 observation gate")
 
     observation = sample_observation()
     observation["unexpected"] = "not_allowed"
@@ -60,7 +56,7 @@ def test_l1_observation_gate_rejects_polymorphic_value_and_extra_fields() -> Non
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
     else:
-        raise AssertionError("extra observation field bypassed L1 observation gate")
+        raise AssertionError("extra observation field was accepted by the L1 observation gate")
 
 
 @requirement("R002")
@@ -73,7 +69,7 @@ def test_l1_inference_gate_rejects_coercion_and_engine_fails_closed() -> None:
     except ValidationError as error:
         assert error.errors()[0]["type"] == "float_type"
     else:
-        raise AssertionError("string confidence bypassed L1 inference gate")
+        raise AssertionError("string confidence was accepted by the L1 inference gate")
 
     risk, actions = ENGINE.evaluate_run(input_doc, FIXED_TIME)
     assert risk["risk_state"] == "BLACK_INVALID"
@@ -89,9 +85,7 @@ def test_l1_inference_gate_rejects_unknown_domain_and_extra_fields() -> None:
     domain_indices["UNKNOWN"] = 10
     risk, _actions = ENGINE.evaluate_run(input_doc, FIXED_TIME)
     assert risk["risk_state"] == "BLACK_INVALID"
-    assert any(
-        "domain_indices.UNKNOWN" in explanation for explanation in risk["explanations"]
-    )
+    assert any("domain_indices.UNKNOWN" in explanation for explanation in risk["explanations"])
 
     input_doc = sample_inference_input()
     input_doc["extra"] = "not_allowed"
