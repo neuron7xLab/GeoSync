@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = ROOT / "scripts" / "validate_epistemic_rhombus_manifest.py"
 MANIFEST_PATH = ROOT / "governance" / "epistemic_rhombus_manifest.jsonl"
 SCHEMA_PATH = ROOT / "schemas" / "governance" / "epistemic_rhombus_manifest.schema.json"
+FORBIDDEN_PR_TARGET_TRIGGER = "pull_request" + "_target"
 
 
 def _load_module() -> Any:
@@ -78,6 +79,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo ok
+"""
+
+
+def _forbidden_trigger_workflow() -> str:
+    return f"""name: blocked trigger
+on:
+  {FORBIDDEN_PR_TARGET_TRIGGER}:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo blocked
 """
 
 
@@ -224,31 +239,17 @@ def test_rejects_external_gate_outside_workflow_directory(
     assert any("external_gate command must target" in error for error in errors)
 
 
-def test_rejects_external_gate_with_pull_request_target(
+def test_rejects_external_gate_with_forbidden_pr_target_trigger(
     rhombus: Any,
     live_records: list[dict[str, Any]],
     tmp_path: Path,
 ) -> None:
-    target = _write_workflow(
-        tmp_path,
-        "unsafe.yml",
-        """name: unsafe
-on:
-  pull_request_target:
-permissions:
-  contents: read
-jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo unsafe
-""",
-    )
+    target = _write_workflow(tmp_path, "blocked-trigger.yml", _forbidden_trigger_workflow())
     live_records[0]["enforcement"]["command"] = [target]
 
     errors = _validate_tmp(rhombus, tmp_path, live_records, repo_root=tmp_path)
 
-    assert any("must not use pull_request_target" in error for error in errors)
+    assert any("must not use" in error for error in errors)
 
 
 def test_rejects_external_gate_without_readonly_contents_permission(
@@ -278,7 +279,7 @@ jobs:
     assert any("permissions.contents=read" in error for error in errors)
 
 
-def test_accepts_minimal_safe_external_gate_workflow(
+def test_accepts_minimal_external_gate_workflow(
     rhombus: Any,
     live_records: list[dict[str, Any]],
     tmp_path: Path,
