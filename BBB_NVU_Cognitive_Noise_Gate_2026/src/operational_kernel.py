@@ -20,6 +20,7 @@ from BBB_NVU_Cognitive_Noise_Gate_2026.src.observability import (
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.runtime_boundary import RuntimeBoundary, RuntimeRequest
 
 OPERATIONAL_ENVELOPE_VERSION = "BBB-NVU-CNG-operational-envelope.1"
+RequestMapping = dict[str, Any]
 
 
 class OperationalEnvelope(BaseModel):
@@ -52,7 +53,7 @@ class OperationalKernel:
 
     def execute(
         self,
-        requests: Sequence[RuntimeRequest | Mapping[str, Any]],
+        requests: Sequence[RuntimeRequest | RequestMapping],
         *,
         created_at: str,
     ) -> OperationalEnvelope:
