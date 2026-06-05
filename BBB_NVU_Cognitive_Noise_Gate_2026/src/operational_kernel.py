@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import Any, TypeAlias, cast
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
@@ -20,7 +20,7 @@ from BBB_NVU_Cognitive_Noise_Gate_2026.src.observability import (
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.runtime_boundary import RuntimeBoundary, RuntimeRequest
 
 OPERATIONAL_ENVELOPE_VERSION = "BBB-NVU-CNG-operational-envelope.1"
-RequestMapping = dict[str, Any]
+RequestMapping: TypeAlias = dict[str, Any]
 
 
 class OperationalEnvelope(BaseModel):
@@ -124,7 +124,11 @@ def _replay_bundle_hash_is_valid(bundle: Mapping[str, Any]) -> bool:
 def verify_operational_envelope(envelope: OperationalEnvelope | Mapping[str, Any]) -> bool:
     """Verify envelope hash, manifest hashes, replay checks, and cardinalities."""
     try:
-        data = envelope.model_dump() if isinstance(envelope, OperationalEnvelope) else dict(envelope)
+        data = (
+            envelope.model_dump()
+            if isinstance(envelope, OperationalEnvelope)
+            else dict(envelope)
+        )
         expected_hash = str(data.get("envelope_hash", ""))
         body = dict(data)
         body.pop("envelope_hash", None)
