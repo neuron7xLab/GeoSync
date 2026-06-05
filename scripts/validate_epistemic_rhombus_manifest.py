@@ -36,13 +36,9 @@ def iter_jsonl(path: Path) -> Iterator[tuple[int, dict[str, Any]]]:
             try:
                 value = json.loads(line)
             except json.JSONDecodeError as exc:
-                raise ManifestReadError(
-                    f"line {line_number}: invalid JSON: {exc.msg}"
-                ) from exc
+                raise ManifestReadError(f"line {line_number}: invalid JSON: {exc.msg}") from exc
             if not isinstance(value, dict):
-                raise ManifestReadError(
-                    f"line {line_number}: record must be a JSON object"
-                )
+                raise ManifestReadError(f"line {line_number}: record must be a JSON object")
             yield line_number, value
 
 
@@ -123,11 +119,7 @@ def _workflow_declares_readonly_contents(text: str) -> bool:
     )
 
 
-def validate_external_gate(
-    command: list[str],
-    repo_root: Path,
-    prefix: str,
-) -> list[str]:
+def validate_external_gate(command: list[str], repo_root: Path, prefix: str) -> list[str]:
     """Validate that an external gate points to a real fail-closed workflow."""
     target = command[0]
     errors: list[str] = []
@@ -147,8 +139,7 @@ def validate_external_gate(
     text = workflow_path.read_text(encoding="utf-8")
     if _workflow_declares_trigger(text, FORBIDDEN_PR_TARGET_TRIGGER):
         errors.append(
-            f"{prefix}: external gate must not use "
-            f"{FORBIDDEN_PR_TARGET_TRIGGER}: {target}"
+            f"{prefix}: external gate must not use {FORBIDDEN_PR_TARGET_TRIGGER}: {target}"
         )
     if not (
         _workflow_declares_trigger(text, "pull_request")
@@ -160,17 +151,14 @@ def validate_external_gate(
         )
     if not _workflow_declares_readonly_contents(text):
         errors.append(
-            f"{prefix}: external gate workflow must declare "
-            f"permissions.contents=read: {target}"
+            f"{prefix}: external gate workflow must declare permissions.contents=read: {target}"
         )
     return errors
 
 
 def _record_prefix(line_number: int, record: dict[str, Any]) -> str:
     record_id_value = record.get("record_id")
-    record_id = (
-        record_id_value if isinstance(record_id_value, str) else f"line {line_number}"
-    )
+    record_id = record_id_value if isinstance(record_id_value, str) else f"line {line_number}"
     return f"line {line_number} ({record_id})"
 
 
@@ -193,18 +181,12 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def validate_manifest(
-    manifest_path: Path,
-    schema_path: Path,
-    repo_root: Path,
-) -> list[str]:
+def validate_manifest(manifest_path: Path, schema_path: Path, repo_root: Path) -> list[str]:
     """Validate manifest records and return all discovered errors."""
     schema = load_schema(schema_path)
     validator = Draft202012Validator(schema)
     axis_order = required_axis_order(schema)
-    axis_to_record_id = {
-        axis: f"ER-{index}" for index, axis in enumerate(axis_order, start=1)
-    }
+    axis_to_record_id = {axis: f"ER-{index}" for index, axis in enumerate(axis_order, start=1)}
     axes_seen: dict[str, int] = {}
     control_gates_seen: dict[str, int] = {}
     record_ids_seen: dict[str, int] = {}
@@ -215,10 +197,7 @@ def validate_manifest(
         record_count += 1
         prefix = _record_prefix(line_number, record)
 
-        for error in sorted(
-            validator.iter_errors(record),
-            key=lambda item: list(item.absolute_path),
-        ):
+        for error in sorted(validator.iter_errors(record), key=lambda item: list(item.absolute_path)):
             errors.append(f"{prefix}: {format_schema_error(error)}")
 
         record_id_value = record.get("record_id")
@@ -243,8 +222,7 @@ def validate_manifest(
             first_line = axes_seen.get(axis)
             if first_line is not None:
                 errors.append(
-                    f"{prefix}: duplicate axis {axis!r} "
-                    f"(first seen on line {first_line})"
+                    f"{prefix}: duplicate axis {axis!r} (first seen on line {first_line})"
                 )
             else:
                 axes_seen[axis] = line_number
@@ -267,15 +245,12 @@ def validate_manifest(
         if isinstance(enforcement, dict):
             mode = enforcement.get("mode")
             command = enforcement.get("command")
-            if isinstance(command, list) and all(
-                isinstance(part, str) for part in command
-            ):
+            if isinstance(command, list) and all(isinstance(part, str) for part in command):
                 if mode == "external_gate":
                     errors.extend(validate_external_gate(command, repo_root, prefix))
                 elif not command_target_exists(command, repo_root):
                     errors.append(
-                        f"{prefix}: enforcement command target does not exist: "
-                        f"{command[0]}"
+                        f"{prefix}: enforcement command target does not exist: {command[0]}"
                     )
 
     if record_count == 0:
@@ -324,10 +299,7 @@ def build_report(
 def write_report(path: Path, report: dict[str, Any]) -> None:
     """Write a deterministic JSON report, creating parent directories as needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:
