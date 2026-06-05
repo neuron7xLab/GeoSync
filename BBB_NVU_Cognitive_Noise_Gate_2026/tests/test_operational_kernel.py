@@ -107,7 +107,9 @@ def test_operational_kernel_preserves_fail_closed_invalid_behavior() -> None:
 @requirement("R002")
 def test_operational_kernel_rejects_boundary_request_extra_fields() -> None:
     try:
-        requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json", extra="value")]
+        requests: list[RequestMapping] = [
+            request(STABLE_INPUT, "stable.json", extra="value")
+        ]
         kernel().execute(requests, created_at=FIXED_TIME)
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
