@@ -87,7 +87,9 @@ class AdversarialAuditor:
     ) -> None:
         """Assert that adversarial payloads cannot hide as GREEN_STABLE."""
         if input_vector.get("critical_data_invalid"):
-            assert risk["risk_state"] == "BLACK_INVALID", "critical_data_invalid bypassed fail-closed gate"
+            assert risk["risk_state"] == "BLACK_INVALID", (
+                "critical_data_invalid bypassed fail-closed gate"
+            )
             assert risk["confidence"] == 0.0, "invalid input did not zero confidence"
 
         if input_vector.get("degradations"):
