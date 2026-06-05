@@ -1,0 +1,27 @@
+id: epistemic-rhombus-supplemental
+status: ACTIVE
+claim_type: governance
+promise: "Supplemental files bind the Rhombus claim matrix row and isolated script-test pytest configuration to this PR."
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/epistemic-rhombus-supplemental.yaml"
+    - path: "docs/claim_source_matrix.json"
+    - path: "tests/scripts/pytest.ini"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols: []
+expected_signal: "Bibliography claim matrix recognizes C-EPI-RHOMBUS and script tests avoid repo-wide conftest bootstrap."
+measurement_command: "python scripts/validate_epistemic_rhombus_manifest.py && python -m pytest tests/scripts/test_validate_epistemic_rhombus_manifest.py --confcutdir=tests/scripts -q"
+signal_artifact: "docs/claim_source_matrix.json"
+falsifier:
+  command: "python -m pytest tests/scripts/test_validate_epistemic_rhombus_manifest.py --confcutdir=tests/scripts -q -k rejects_duplicate_axis"
+  description: "Rhombus negative-control tests must remain executable without importing the repository-wide conftest stack."
+rollback_command: "git checkout -- docs/claim_source_matrix.json tests/scripts/pytest.ini .claude/commit_acceptors/epistemic-rhombus-supplemental.yaml"
+rollback_verification_command: "git diff --exit-code"
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/epistemic-rhombus-supplemental.yaml"
+report_path: "docs/claim_source_matrix.json"
+evidence: []
