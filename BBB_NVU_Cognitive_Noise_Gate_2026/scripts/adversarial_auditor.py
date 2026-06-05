@@ -93,7 +93,9 @@ class AdversarialAuditor:
             assert risk["confidence"] == 0.0, "invalid input did not zero confidence"
 
         if input_vector.get("degradations"):
-            assert risk["risk_state"] != "GREEN_STABLE", "degradation payload produced GREEN_STABLE"
+            assert risk["risk_state"] != "GREEN_STABLE", (
+                "degradation payload produced GREEN_STABLE"
+            )
 
         if risk["risk_state"] in {"BLACK_INVALID", "RED_CRITICAL"}:
             assert actions
