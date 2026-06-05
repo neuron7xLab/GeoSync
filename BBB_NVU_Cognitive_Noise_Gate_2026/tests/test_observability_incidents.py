@@ -28,7 +28,7 @@ def output_for(input_doc: dict[str, Any], source_id: str = "memory.json") -> dic
 
 
 @requirement("R004")
-def test_metrics_snapshot_counts_states_degradations_and_actions():
+def test_metrics_snapshot_counts_states_degradations_and_actions() -> None:
     stable = output_for(
         {
             "subject_id": "S-STABLE",
@@ -65,7 +65,7 @@ def test_metrics_snapshot_counts_states_degradations_and_actions():
 
 
 @requirement("R005")
-def test_incident_record_maps_red_to_critical_and_blocks_autonomous_execution():
+def test_incident_record_maps_red_to_critical_and_blocks_autonomous_execution() -> None:
     red = output_for(
         {
             "subject_id": "S-RED",
@@ -88,7 +88,7 @@ def test_incident_record_maps_red_to_critical_and_blocks_autonomous_execution():
 
 
 @requirement("R002")
-def test_invalid_output_incident_uses_critical_response_ladder(tmp_path: Path):
+def test_invalid_output_incident_uses_critical_response_ladder(tmp_path: Path) -> None:
     invalid = output_for(
         {
             "subject_id": "S-INVALID",
@@ -103,7 +103,10 @@ def test_invalid_output_incident_uses_critical_response_ladder(tmp_path: Path):
     incidents = build_incident_register([invalid])
     path = tmp_path / "incidents.jsonl"
     write_incidents(path, incidents)
-    parsed = cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
+    parsed = cast(
+        dict[str, Any],
+        json.loads(path.read_text(encoding="utf-8")),
+    )
 
     assert len(incidents) == 1
     assert parsed["severity"] == "CRITICAL"
@@ -113,7 +116,7 @@ def test_invalid_output_incident_uses_critical_response_ladder(tmp_path: Path):
 
 
 @requirement("R004")
-def test_green_output_does_not_open_incident():
+def test_green_output_does_not_open_incident() -> None:
     stable = output_for(
         {
             "subject_id": "S-STABLE",
