@@ -103,10 +103,7 @@ def test_invalid_output_incident_uses_critical_response_ladder(tmp_path: Path) -
     incidents = build_incident_register([invalid])
     path = tmp_path / "incidents.jsonl"
     write_incidents(path, incidents)
-    parsed = cast(
-        dict[str, Any],
-        json.loads(path.read_text(encoding="utf-8")),
-    )
+    parsed = cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
     assert len(incidents) == 1
     assert parsed["severity"] == "CRITICAL"
