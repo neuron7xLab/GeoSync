@@ -13,8 +13,8 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
-from jsonschema.exceptions import ValidationError  # type: ignore[import-untyped]
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError
 
 DEFAULT_MANIFEST = Path("governance/epistemic_rhombus_manifest.jsonl")
 DEFAULT_SCHEMA = Path("schemas/governance/epistemic_rhombus_manifest.schema.json")
@@ -71,25 +71,17 @@ def required_axes(schema: dict[str, Any]) -> set[str]:
 def format_schema_error(error: ValidationError) -> str:
     """Return a compact, deterministic message for a schema validation error."""
     location = ".".join(str(part) for part in error.absolute_path)
-    prefix = f"{location}: " if location else ""
-    return f"{prefix}{error.message}"
+    return f"{location}: {error.message}" if location else error.message
 
 
 def command_target_exists(command: Iterable[str], repo_root: Path) -> bool:
-    """Return whether the first command token resolves to a file or executable.
-
-    Manifest records may point to workflow files, repository-local commands, or a
-    command name resolved by the execution environment. File paths are checked
-    locally; bare command names are accepted as externally resolved.
-    """
+    """Return whether the first command token resolves to a file or executable."""
     command_parts = list(command)
     if not command_parts:
         return False
-
     target = command_parts[0]
     if not isinstance(target, str):
         return False
-
     if target.startswith("/"):
         return Path(target).exists()
     if target.startswith("./") or "/" in target:
@@ -123,23 +115,20 @@ def validate_external_gate(command: list[str], repo_root: Path, prefix: str) -> 
     """Validate that an external gate points to a real fail-closed workflow."""
     target = command[0]
     errors: list[str] = []
-
     if not _is_workflow_target(target):
-        errors.append(
+        return [
             f"{prefix}: external_gate command must target "
             f".github/workflows/*.yml or *.yaml, got: {target}"
-        )
-        return errors
+        ]
 
     workflow_path = repo_root / target
     if not workflow_path.exists():
-        errors.append(f"{prefix}: enforcement command target does not exist: {target}")
-        return errors
+        return [f"{prefix}: enforcement command target does not exist: {target}"]
 
     text = workflow_path.read_text(encoding="utf-8")
     if _workflow_declares_trigger(text, FORBIDDEN_PR_TARGET_TRIGGER):
         errors.append(
-            f"{prefix}: external gate must not use {FORBIDDEN_PR_TARGET_TRIGGER}: {target}"
+            f"{prefix}: external gate must not use " f"{FORBIDDEN_PR_TARGET_TRIGGER}: {target}"
         )
     if not (
         _workflow_declares_trigger(text, "pull_request")
@@ -151,7 +140,7 @@ def validate_external_gate(command: list[str], repo_root: Path, prefix: str) -> 
         )
     if not _workflow_declares_readonly_contents(text):
         errors.append(
-            f"{prefix}: external gate workflow must declare permissions.contents=read: {target}"
+            f"{prefix}: external gate workflow must declare " f"permissions.contents=read: {target}"
         )
     return errors
 
@@ -196,20 +185,22 @@ def validate_manifest(manifest_path: Path, schema_path: Path, repo_root: Path) -
     for line_number, record in iter_jsonl(manifest_path):
         record_count += 1
         prefix = _record_prefix(line_number, record)
-
-        for error in sorted(validator.iter_errors(record), key=lambda item: list(item.absolute_path)):
+        for error in sorted(
+            validator.iter_errors(record),
+            key=lambda item: list(item.absolute_path),
+        ):
             errors.append(f"{prefix}: {format_schema_error(error)}")
 
         record_id_value = record.get("record_id")
         if isinstance(record_id_value, str):
             first_line = record_ids_seen.get(record_id_value)
-            if first_line is not None:
+            if first_line is None:
+                record_ids_seen[record_id_value] = line_number
+            else:
                 errors.append(
                     f"{prefix}: duplicate record_id {record_id_value!r} "
                     f"(first seen on line {first_line})"
                 )
-            else:
-                record_ids_seen[record_id_value] = line_number
 
         axis = record.get("axis")
         if isinstance(axis, str):
@@ -220,12 +211,12 @@ def validate_manifest(manifest_path: Path, schema_path: Path, repo_root: Path) -
                     f"{expected_record_id!r}, got {record_id_value!r}"
                 )
             first_line = axes_seen.get(axis)
-            if first_line is not None:
-                errors.append(
-                    f"{prefix}: duplicate axis {axis!r} (first seen on line {first_line})"
-                )
-            else:
+            if first_line is None:
                 axes_seen[axis] = line_number
+            else:
+                errors.append(
+                    f"{prefix}: duplicate axis {axis!r} " f"(first seen on line {first_line})"
+                )
 
         control_gates = record.get("control_gates")
         if isinstance(control_gates, list):
@@ -233,13 +224,13 @@ def validate_manifest(manifest_path: Path, schema_path: Path, repo_root: Path) -
                 if not isinstance(gate, str):
                     continue
                 first_line = control_gates_seen.get(gate)
-                if first_line is not None:
+                if first_line is None:
+                    control_gates_seen[gate] = line_number
+                else:
                     errors.append(
                         f"{prefix}: duplicate control gate {gate!r} "
                         f"(first seen on line {first_line})"
                     )
-                else:
-                    control_gates_seen[gate] = line_number
 
         enforcement = record.get("enforcement")
         if isinstance(enforcement, dict):
@@ -250,7 +241,7 @@ def validate_manifest(manifest_path: Path, schema_path: Path, repo_root: Path) -
                     errors.extend(validate_external_gate(command, repo_root, prefix))
                 elif not command_target_exists(command, repo_root):
                     errors.append(
-                        f"{prefix}: enforcement command target does not exist: {command[0]}"
+                        f"{prefix}: enforcement command target does not exist: " f"{command[0]}"
                     )
 
     if record_count == 0:
@@ -269,18 +260,16 @@ def build_report(
     errors: list[str],
 ) -> dict[str, Any]:
     """Build a deterministic validation report for CI logs and audit bundles."""
-    records = []
-    for line_number, record in iter_jsonl(manifest_path):
-        records.append(
-            {
-                "axis": record.get("axis"),
-                "control_gates": record.get("control_gates"),
-                "enforcement_target": _enforcement_target(record),
-                "line": line_number,
-                "record_id": record.get("record_id"),
-            }
-        )
-
+    records = [
+        {
+            "axis": record.get("axis"),
+            "control_gates": record.get("control_gates"),
+            "enforcement_target": _enforcement_target(record),
+            "line": line_number,
+            "record_id": record.get("record_id"),
+        }
+        for line_number, record in iter_jsonl(manifest_path)
+    ]
     return {
         "schema_version": 1,
         "status": "PASS" if not errors else "FAIL",
@@ -299,7 +288,10 @@ def build_report(
 def write_report(path: Path, report: dict[str, Any]) -> None:
     """Write a deterministic JSON report, creating parent directories as needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -317,8 +309,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         errors = validate_manifest(args.manifest, args.schema, args.repo_root)
         if args.report is not None:
-            report = build_report(args.manifest, args.schema, args.repo_root, errors)
-            write_report(args.report, report)
+            write_report(
+                args.report,
+                build_report(args.manifest, args.schema, args.repo_root, errors),
+            )
     except (OSError, ValueError) as exc:
         print(f"manifest validation failed: {exc}", file=sys.stderr)
         return 2
