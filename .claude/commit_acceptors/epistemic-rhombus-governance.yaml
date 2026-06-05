@@ -7,6 +7,7 @@ promise: "GeoSync exposes the Epistemic Rhombus as a schema-validated, fail-clos
 diff_scope:
   changed_files:
     - path: ".github/workflows/epistemic-rhombus-gate.yml"
+    - path: ".claude/commit_acceptors/epistemic-rhombus-governance.yaml"
     - path: "CLAIMS.md"
     - path: "docs/governance/epistemic_rhombus_manifest.md"
     - path: "governance/epistemic_rhombus_manifest.jsonl"
