@@ -58,7 +58,7 @@ def as_payload(value: object) -> dict[str, Any]:
 
 
 @requirement("R003")
-def test_operational_envelope_is_deterministic_and_replay_verified() -> None:
+def test_operational_envelope_is_deterministic_and_replay_verified():
     requests: list[RequestMapping] = [
         request(STABLE_INPUT, "stable.json"),
         request(RED_INPUT, "red.json"),
@@ -74,7 +74,7 @@ def test_operational_envelope_is_deterministic_and_replay_verified() -> None:
 
 
 @requirement("R004")
-def test_operational_envelope_contains_metrics_audit_and_incidents() -> None:
+def test_operational_envelope_contains_metrics_audit_and_incidents():
     requests: list[RequestMapping] = [
         request(STABLE_INPUT, "stable.json"),
         request(RED_INPUT, "red.json"),
@@ -93,7 +93,7 @@ def test_operational_envelope_contains_metrics_audit_and_incidents() -> None:
 
 
 @requirement("R002")
-def test_operational_kernel_preserves_fail_closed_invalid_behavior() -> None:
+def test_operational_kernel_preserves_fail_closed_invalid_behavior():
     requests: list[RequestMapping] = [request(INVALID_INPUT, "invalid.json")]
     envelope = kernel().execute(requests, created_at=FIXED_TIME)
 
@@ -105,9 +105,11 @@ def test_operational_kernel_preserves_fail_closed_invalid_behavior() -> None:
 
 
 @requirement("R002")
-def test_operational_kernel_rejects_boundary_request_extra_fields() -> None:
+def test_operational_kernel_rejects_boundary_request_extra_fields():
     try:
-        requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json", extra="value")]
+        requests: list[RequestMapping] = [
+            request(STABLE_INPUT, "stable.json", extra="value")
+        ]
         kernel().execute(requests, created_at=FIXED_TIME)
     except ValidationError as error:
         assert error.errors()[0]["type"] == "extra_forbidden"
@@ -116,7 +118,7 @@ def test_operational_kernel_rejects_boundary_request_extra_fields() -> None:
 
 
 @requirement("R003")
-def test_operational_envelope_verifier_accepts_fresh_envelope() -> None:
+def test_operational_envelope_verifier_accepts_fresh_envelope():
     requests: list[RequestMapping] = [
         request(STABLE_INPUT, "stable.json"),
         request(RED_INPUT, "red.json"),
@@ -127,7 +129,7 @@ def test_operational_envelope_verifier_accepts_fresh_envelope() -> None:
 
 
 @requirement("R003")
-def test_operational_envelope_verifier_rejects_hash_mismatch() -> None:
+def test_operational_envelope_verifier_rejects_hash_mismatch():
     requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json")]
     envelope = kernel().execute(requests, created_at=FIXED_TIME)
     payload = as_payload(envelope.model_dump())
@@ -139,7 +141,7 @@ def test_operational_envelope_verifier_rejects_hash_mismatch() -> None:
 
 
 @requirement("R003")
-def test_operational_envelope_verifier_rejects_manifest_mismatch() -> None:
+def test_operational_envelope_verifier_rejects_manifest_mismatch():
     requests: list[RequestMapping] = [request(STABLE_INPUT, "stable.json")]
     envelope = kernel().execute(requests, created_at=FIXED_TIME)
     payload = as_payload(envelope.model_dump())
@@ -153,5 +155,5 @@ def test_operational_envelope_verifier_rejects_manifest_mismatch() -> None:
 
 
 @requirement("R002")
-def test_operational_envelope_verifier_fails_closed_on_bad_payload() -> None:
+def test_operational_envelope_verifier_fails_closed_on_bad_payload():
     assert not verify_operational_envelope({"envelope_hash": "bad", "outputs": None})
