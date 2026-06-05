@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: MIT
+# mypy: ignore-errors
 """Fail-closed tests for the Epistemic Rhombus manifest validator."""
 
 from __future__ import annotations
