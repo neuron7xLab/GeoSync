@@ -18,7 +18,9 @@ TEST_BINDINGS: dict[str, tuple[str, list[str]]] = {
     ),
     "INV_FAIL_CLOSED_INVALID": (
         "R002",
-        ["tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution"],
+        [
+            "tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution"
+        ],
     ),
     "INV_DEGRADATION_EXPLICIT": (
         "R004",
@@ -26,11 +28,15 @@ TEST_BINDINGS: dict[str, tuple[str, list[str]]] = {
     ),
     "INV_HUMAN_REVIEW_HIGH_RISK": (
         "R005",
-        ["tests/test_deterministic_engine.py::test_high_risk_and_invalid_states_require_human_review"],
+        [
+            "tests/test_deterministic_engine.py::test_high_risk_and_invalid_states_require_human_review"
+        ],
     ),
     "INV_NO_AUTONOMOUS_CRITICAL_ACTION": (
         "R002",
-        ["tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution"],
+        [
+            "tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution"
+        ],
     ),
 }
 
