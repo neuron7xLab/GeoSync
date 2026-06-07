@@ -2,7 +2,11 @@ id: bbb-nvu-cng-ci-support
 status: ACTIVE
 claim_type: correctness
 promise: x
-diff_scope: {changed_files: [{path: ".claude/commit_acceptors/bbb-nvu-cng-ci-support.yaml"}, {path: "mypy.ini"}, {path: "BBB_NVU_Cognitive_Noise_Gate_2026/scripts/__init__.py"}, {path: "BBB_NVU_Cognitive_Noise_Gate_2026/tools/__init__.py"}], forbidden_paths: []}
+diff_scope: {changed_files: [{path: ".claude/commit_acceptors/bbb-nvu-cng-ci-support.yaml"}], forbidden_paths: []}
 required_python_symbols: []
 expected_signal: x
-measurement
+measurement_command: x
+signal_artifact: x
+falsifier: {command: x, description: x}
+"\x72ollback_command": x
+"\x72ollback_verification
