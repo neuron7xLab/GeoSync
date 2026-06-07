@@ -14,4 +14,4 @@ falsifier:
   command: x
   description: x
 rollback_command: x
-rollback_verification_command
+rollback
