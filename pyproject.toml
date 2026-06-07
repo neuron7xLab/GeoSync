@@ -126,6 +126,7 @@ geosync-sync = "scripts.resilient_data_sync:main"
 geosync-db = "scripts.db_migrate:cli"
 geosync-server = "application.runtime.server:main"
 tp-kuramoto = "core.kuramoto.cli:main"
+geosync-research = "tools.research.research_cli:main"
 
 [tool.setuptools.dynamic]
 readme = { file = "README.md", content-type = "text/markdown" }

@@ -84,6 +84,20 @@ Until that gateway is fully implemented, the schema gate is the repository-level
 python tools/research/validate_ricci_artifact_schema.py --schema schemas/research/ricci_microstructure_artifact.schema.json --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
 ```
 
+## Release Evidence Harness
+
+Every release validation must leave machine-readable evidence, raw logs, commands, and exit codes. The harness is semantic: clean install is required by default, and non-empty git status/diff output is RED even when git exits 0:
+
+```bash
+python tools/release_evidence_harness.py
+# deterministic metadata/log timestamps for reproducibility checks:
+python tools/release_evidence_harness.py --fixed-timestamp-utc 2026-01-01T00:00:00Z
+# verify raw-log integrity after generation or archive transfer:
+python tools/release_evidence_harness.py --verify-manifest artifacts/evidence_bundle/manifest.json
+```
+
+The harness writes `release_gate.yaml` plus `artifacts/evidence_bundle/manifest.json`, raw logs, a CycloneDX SBOM (`sbom.cdx.json`), CI status JSON, Prometheus/DataDog telemetry exports, and a dependency-free PDF audit report. Gates execute through the asyncio runner unless a caller uses the lower-level `_run_gate` helper directly. For release signing, pass `--gpg-key <KEYID>` and verify with `--verify-manifest artifacts/evidence_bundle/manifest.json --require-gpg-signature`; unsigned manifests are acceptable only for local development smoke runs. Environment drift checks can be calibrated with `--write-environment-baseline baseline.json` and enforced later with `--environment-baseline baseline.json`; `--skip-clean-install` is forbidden in CI and requires the explicit development-only `--allow-tainted-env` opt-in outside CI. These are generated release artifacts, not source files; commit them only in an explicit release-evidence branch or archive. A release claim without those files, or with any required RED gate, is not considered evidence.
+
 ## Required Gates
 
 Protected-branch policy must require these checks before evidence-bearing changes merge:

@@ -47,3 +47,49 @@ def test_schema_rejects_synthetic_promotion_without_required_fields(tmp_path) ->
 
     assert any("git_sha" in error for error in errors)
     assert any("decision" in error for error in errors)
+
+
+def test_schema_validator_fallback_works_without_jsonschema(monkeypatch) -> None:
+    # INV-BOOT1: clean installs must validate canonical artifacts without optional deps.
+    import importlib.util
+
+    real_find_spec = importlib.util.find_spec
+
+    def no_jsonschema(name: str, *args: object, **kwargs: object):
+        if name == "jsonschema":
+            return None
+        return real_find_spec(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib.util, "find_spec", no_jsonschema)
+
+    errors = validate_artifact(
+        schema_path=Path("schemas/research/ricci_microstructure_artifact.schema.json"),
+        artifact_path=Path("artifacts/runs/ricci_microstructure_v1/example_artifact.json"),
+    )
+
+    assert errors == []
+
+
+def test_schema_validator_fallback_rejects_missing_critical_field(monkeypatch, tmp_path: Path) -> None:
+    # Fallback validation must fail closed on critical contract fields when jsonschema is unavailable.
+    import importlib.util
+
+    real_find_spec = importlib.util.find_spec
+
+    def no_jsonschema(name: str, *args: object, **kwargs: object):
+        if name == "jsonschema":
+            return None
+        return real_find_spec(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib.util, "find_spec", no_jsonschema)
+    source = json.loads(Path("artifacts/runs/ricci_microstructure_v1/example_artifact.json").read_text(encoding="utf-8"))
+    del source["data_sha256"]
+    artifact = tmp_path / "missing-critical.json"
+    artifact.write_text(json.dumps(source), encoding="utf-8")
+
+    errors = validate_artifact(
+        schema_path=Path("schemas/research/ricci_microstructure_artifact.schema.json"),
+        artifact_path=artifact,
+    )
+
+    assert any("data_sha256" in error and "critical property" in error for error in errors)
