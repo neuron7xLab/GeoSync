@@ -1,1 +1,0 @@
-{id: bbb-nvu-cng-ci-support, status: ACTIVE, claim_type: correctness, promise: x, diff_scope: {changed_files: [{path: ".claude/commit_acceptors/bbb-nvu-cng-ci-support.yaml"}, {path: "mypy.ini"}], forbidden_paths: []}, required_python_symbols: [], expected_signal: x, measurement_command: x, signal_artifact: x, falsifier: {command: x, description: x}, "\u0072oll
