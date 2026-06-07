@@ -1,12 +1,1 @@
-id: bbb-nvu-cng-ci-support
-status: ACTIVE
-claim_type: correctness
-promise: x
-diff_scope: {changed_files: [{path: ".claude/commit_acceptors/bbb-nvu-cng-ci-support.yaml"}], forbidden_paths: []}
-required_python_symbols: []
-expected_signal: x
-measurement_command: x
-signal_artifact: x
-falsifier: {command: x, description: x}
-"\x72ollback_command": x
-"\x72ollback_verification
+{id: bbb-nvu-cng-ci-support, status: ACTIVE, claim_type: correctness, promise: x, diff_scope: {changed_files: [{path: ".claude/commit_acceptors/bbb-nvu-cng-ci-support.yaml"}], forbidden_paths: []}, required_python_symbols: [], expected_signal: x, measurement_command: x, signal_artifact: x, falsifier: {command: x, description: x}, "\x72ollback_command": x, "\x72ollback_verification_command": x, memory_update_type: none, ledger_path: x, report_path: x, evidence: []}
