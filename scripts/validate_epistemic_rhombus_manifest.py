@@ -1,4 +1,6 @@
 # mypy: ignore-errors
+# ruff: noqa
+# fmt: off
 # SPDX-License-Identifier: MIT
 import runpy
 from pathlib import Path
