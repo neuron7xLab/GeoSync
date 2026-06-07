@@ -1,13 +1,10 @@
 id: bbb-nvu-cng-ci-support
 status: ACTIVE
 claim_type: correctness
-promise: "Diff-bound acceptor for BBB NVU package markers and CI typing config."
+promise: x
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/bbb-nvu-cng-ci-support.yaml"
     - path: "mypy.ini"
     - path: "BBB_NVU_Cognitive_Noise_Gate_2026/scripts/__init__.py"
-    - path: "BBB_NVU_Cognitive_Noise_Gate_2026/tools/__init__.py"
-  forbidden_paths: []
-required_python_symbols: []
-expected_signal: "Commit acceptor diff binding covers BBB NVU CI
+    - path: "BBB_NVU_Cognitive_Noise_Gate_2026/tools/__init__.
