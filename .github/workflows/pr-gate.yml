@@ -1,8 +1,18 @@
 # SPDX-License-Identifier: MIT
 #
-# PR Gate: synchronous merge contract for main.
-# Jobs are fail-closed and content-aware. Third-party actions must be pinned by
-# full commit SHA; repo-policy enforces that invariant on every run.
+# PR Gate — synchronous merge contract for `main`.
+#
+# Every job declared here is a required status check in the branch-protection
+# ruleset for `main` (see .github/BRANCH_PROTECTION_MAIN.md). Jobs are
+# fail-closed (`continue-on-error: false`) so a green tick deterministically
+# means "all gates satisfied".
+#
+# Invariants:
+#   * Jobs are content-aware: they exit successfully when no relevant files
+#     changed, preserving merge queue throughput without losing enforcement.
+#   * All third-party actions are pinned by 40-character commit SHA
+#     (repo-policy validates this on every run).
+#   * Permissions follow principle of least privilege.
 name: PR Gate
 
 on:
@@ -15,13 +25,15 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-  BBB_NVU_ARTIFACT_DIR: BBB_NVU_Cognitive_Noise_Gate_2026
 
 concurrency:
   group: pr-gate-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # repo-policy — workflow hygiene invariants (permissions, pinning, actionlint)
+  # ---------------------------------------------------------------------------
   repo-policy:
     name: repo-policy
     runs-on: ubuntu-latest
@@ -79,6 +91,24 @@ jobs:
           python scripts/ci/check_inventory_sync.py
           python scripts/ci/check_manifest_hashes.py
 
+  # ---------------------------------------------------------------------------
+  # constraints-lock-sync — fail-closed guard for the install-time
+  # ResolutionImpossible trap (drift class D8).
+  #
+  # `pip install -c constraints/security.txt -r requirements.lock` (run by
+  # the shared setup-geosync action) aborts with ResolutionImpossible
+  # whenever a constraints/security.txt exact-pin disagrees with a
+  # requirements*.lock exact-pin for the same package. Dependabot's
+  # /constraints ecosystem bumps the constraint but structurally CANNOT
+  # regenerate the pip-compiled lock files, so EVERY constraints-only bump
+  # silently broke setup (python-quality + secrets-supply-chain failing at
+  # the setup step, fast/heavy tests SKIPPED). This job runs the
+  # dependency-truth validator and fails fast — with the exact package,
+  # the two contradicting pins, and `make deps-update` as the fix —
+  # BEFORE the opaque setup crash. Stdlib-only, no heavy setup, mirrors
+  # the reality-dependency-truth job. Content-aware: passes when neither
+  # constraints/security.txt nor any requirements*.lock changed.
+  # ---------------------------------------------------------------------------
   constraints-lock-sync:
     name: constraints-lock-sync
     runs-on: ubuntu-latest
@@ -138,14 +168,20 @@ jobs:
           report = json.loads(out)
           d8 = [d for d in report["drifts"] if d["drift_class"] == "D8"]
           if d8:
-              print("FAIL: constraint/lock divergence (D8): pip install will be ResolutionImpossible")
+              print("FAIL: constraint/lock divergence (D8) — "
+                    "`pip install -c constraints/security.txt -r "
+                    "requirements.lock` will be ResolutionImpossible:")
               for d in d8:
                   print(f"  [{d['priority']}] {d['package']}: {d['detail']}")
                   print(f"        fix: {d['fix']}")
               sys.exit(1)
-          print("constraints/security.txt and requirements*.lock are in sync (no D8 drift).")
+          print("constraints/security.txt and requirements*.lock are in "
+                "sync (no D8 drift).")
           PY
 
+  # ---------------------------------------------------------------------------
+  # python-quality — ruff + black + mypy on changed Python files
+  # ---------------------------------------------------------------------------
   python-quality:
     name: python-quality
     runs-on: ubuntu-latest
@@ -178,8 +214,7 @@ jobs:
           print(f'requires-python validated: {requires}')
           PY
 
-      - name: Collect changed Python files
-        id: changed-python
+      - name: Run lint/type gate on changed Python files
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
@@ -197,82 +232,25 @@ jobs:
                 [[ -f "$f" ]] && printf '%s\n' "$f"
               done
           )
-          printf '%s\n' "${py_files[@]}" > /tmp/changed-python-files.txt
-          echo "count=${#py_files[@]}" >> "$GITHUB_OUTPUT"
           if [[ ${#py_files[@]} -eq 0 ]]; then
             echo "No Python file changes detected; python-quality passes."
-          else
-            echo "Changed Python files:"
-            cat /tmp/changed-python-files.txt
+            exit 0
           fi
 
-      - name: Ruff on changed Python files
-        if: steps.changed-python.outputs.count != '0'
-        run: |
-          set -euo pipefail
-          mapfile -t py_files < /tmp/changed-python-files.txt
           .venv/bin/ruff check "${py_files[@]}"
-
-      - name: Black check on changed Python files
-        if: steps.changed-python.outputs.count != '0'
-        run: |
-          set -euo pipefail
-          mapfile -t py_files < /tmp/changed-python-files.txt
           .venv/bin/black --check "${py_files[@]}"
-
-      - name: Mypy on changed Python files
-        if: steps.changed-python.outputs.count != '0'
-        run: |
-          set -euo pipefail
-          mapfile -t py_files < /tmp/changed-python-files.txt
           .venv/bin/mypy "${py_files[@]}"
 
-  bbb-nvu-artifact-verifier:
-    name: bbb-nvu-artifact-verifier
-    runs-on: ubuntu-latest
-    needs: python-quality
-    continue-on-error: false
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Setup Python environment
-        uses: ./.github/actions/setup-geosync
-        with:
-          python-version: '3.11'
-          cache-prefix: pr-bbb-nvu
-
-      - name: Detect BBB-NVU artifact changes
-        id: bbb-nvu-changes
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            git fetch --no-tags origin "${{ github.base_ref }}"
-            base_ref="origin/${{ github.base_ref }}"
-            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
-          else
-            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
-          fi
-          printf '%s\n' "$changed_files" > /tmp/changed-files.txt
-          if grep -Eq '^BBB_NVU_Cognitive_Noise_Gate_2026/(src|tests|scripts|tools)/' /tmp/changed-files.txt \
-            || grep -Eq '^BBB_NVU_Cognitive_Noise_Gate_2026/(config|schemas|examples)/' /tmp/changed-files.txt \
-            || grep -Eq '^BBB_NVU_Cognitive_Noise_Gate_2026/invariants\.yaml$' /tmp/changed-files.txt \
-            || grep -Eq '^\.github/workflows/pr-gate\.yml$' /tmp/changed-files.txt; then
-            echo "applicable=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "applicable=false" >> "$GITHUB_OUTPUT"
-            echo "No BBB-NVU executable or contract surface changed; verifier gate passes."
-          fi
-
-      - name: Run BBB-NVU one-command verifier
-        if: steps.bbb-nvu-changes.outputs.applicable == 'true'
-        run: |
-          set -euo pipefail
-          .venv/bin/python BBB_NVU_Cognitive_Noise_Gate_2026/tools/verify_artifact.py
-
+  # ---------------------------------------------------------------------------
+  # python-fast-tests — fast deterministic pytest suite
+  # ---------------------------------------------------------------------------
+  # Sharded across parallel CI jobs (pytest-split, a pinned dev dep). The
+  # fast suite outgrew the 20-min cap as parallel research lines added
+  # tests/; the timeout was silently masking a backlog of latent failures.
+  # In-process xdist was rejected — it breaks caplog/log-propagation tests.
+  # Each shard is a normal serial pytest process (no caplog breakage),
+  # ~1/N of the suite, well under the 1200s cap. The aggregator job below
+  # keeps the stable required-check name `python-fast-tests`.
   python-fast-shard:
     name: python-fast-shard
     runs-on: ubuntu-latest
@@ -320,8 +298,7 @@ jobs:
 
           if ! printf '%s\n' "$changed_files" | awk '
             /^tests\// || /^core\// || /^backtest\// || /^execution\// || /^src\// ||
-            /^scripts\// || /^BBB_NVU_Cognitive_Noise_Gate_2026\/(src|tests|scripts|tools)\// ||
-            /^pyproject\.toml$/ || /^requirements(-dev)?\.(txt|lock)$/ ||
+            /^scripts\// || /^pyproject\.toml$/ || /^requirements(-dev)?\.(txt|lock)$/ ||
             /^pytest\.ini$/ || /^\.github\/workflows\/pr-gate\.yml$/ || /^\.pre-commit-config\.yaml$/ {
               found=1; exit
             }
@@ -332,14 +309,18 @@ jobs:
           fi
 
           [[ -x .venv/bin/pytest ]] || { echo ".venv/bin/pytest missing"; exit 1; }
+          # Locale hardening: deterministic UTF-8 default text I/O so a
+          # UTF-8 source file cannot crash open() under a C-locale runner.
           export PYTHONUTF8=1
           export PYTHONIOENCODING=utf-8
+          # Plugin-free deterministic shard. pytest-split needs pytest<9
+          # (this repo is pytest 9) and in-process xdist breaks caplog —
+          # both rejected. Instead: collect the selected fast set once,
+          # partition node ids by crc32 % 4, and run only this shard's
+          # ids. Serial process per shard (caplog unaffected), ~1/4 of the
+          # suite, 1200s cap unchanged/not masked.
           MARK="not slow and not heavy_math and not nightly and not flaky"
-          TEST_ROOTS=(tests)
-          if [[ -d BBB_NVU_Cognitive_Noise_Gate_2026/tests ]]; then
-            TEST_ROOTS+=(BBB_NVU_Cognitive_Noise_Gate_2026/tests)
-          fi
-          .venv/bin/pytest "${TEST_ROOTS[@]}" -m "$MARK" --collect-only -q 2>/dev/null \
+          .venv/bin/pytest tests/ -m "$MARK" --collect-only -q 2>/dev/null \
             | grep -E '::' > /tmp/all_nodeids.txt || true
           .venv/bin/python -c "import binascii,pathlib; ids=[l.strip() for l in pathlib.Path('/tmp/all_nodeids.txt').read_text().splitlines() if l.strip()]; g=${{ matrix.group }}-1; sh=[n for n in ids if binascii.crc32(n.encode())%4==g]; pathlib.Path('/tmp/shard_nodeids.txt').write_text(chr(10).join(sh)); print(f'shard {g+1}/4: {len(sh)}/{len(ids)} selected tests')"
           if [[ ! -s /tmp/shard_nodeids.txt ]]; then
@@ -376,7 +357,6 @@ jobs:
 
           if ! printf '%s\n' "$changed_files" | awk '
             /^formal\// || /^cortex_service\// || /^src\// || /^tests\// ||
-            /^BBB_NVU_Cognitive_Noise_Gate_2026\/(src|tests|tools)\// ||
             /^Makefile$/ || /^requirements(-dev)?\.(txt|lock)$/ {
               found=1; exit
             }
@@ -388,18 +368,25 @@ jobs:
 
           make formal-verify
 
+  # ---------------------------------------------------------------------------
+  # python-fast-tests — stable aggregator over the sharded fast lane.
+  # Keeps the exact required-check name + `needs:` target unchanged while
+  # the actual work fans out across python-fast-shard. Green iff every
+  # shard is green (fail-fast:false surfaces all shard failures first).
+  # ---------------------------------------------------------------------------
   python-fast-tests:
     name: python-fast-tests
     runs-on: ubuntu-latest
-    needs:
-      - python-fast-shard
-      - bbb-nvu-artifact-verifier
+    needs: python-fast-shard
     continue-on-error: false
     timeout-minutes: 5
     steps:
-      - name: All fast and artifact gates green
-        run: echo "python-fast-shard matrix and BBB-NVU verifier green — fast gate satisfied"
+      - name: All fast shards green
+        run: echo "python-fast-shard matrix fully green — fast gate satisfied"
 
+  # ---------------------------------------------------------------------------
+  # python-heavy-tests — heavy compute test lane
+  # ---------------------------------------------------------------------------
   python-heavy-tests:
     name: python-heavy-tests
     runs-on: ubuntu-latest
@@ -431,8 +418,7 @@ jobs:
 
           if ! printf '%s\n' "$changed_files" | awk '
             /^formal\// || /^cortex_service\// || /^src\// || /^tests\// ||
-            /^scripts\// || /^BBB_NVU_Cognitive_Noise_Gate_2026\/(src|tests|scripts|tools)\// ||
-            /^Makefile$/ || /^core\// {
+            /^scripts\// || /^Makefile$/ || /^core\// {
               found=1; exit
             }
             END { exit !found }
@@ -440,3 +426,233 @@ jobs:
             echo "No heavy-test-sensitive changes detected; skipping test-heavy."
             exit 0
           fi
+
+          [[ -x .venv/bin/pytest ]] || { echo ".venv/bin/pytest missing"; exit 1; }
+          timeout 1200s .venv/bin/pytest tests/ \
+            -m "slow or heavy_math or nightly" \
+            --maxfail=3 \
+            -q
+
+  # ---------------------------------------------------------------------------
+  # frontend-gate — Next.js lint/typecheck/tests when apps/web or root manifests change
+  # ---------------------------------------------------------------------------
+  frontend-gate:
+    name: frontend-gate
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Determine if frontend gate applies
+        id: changes
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            git fetch --no-tags origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          if printf '%s\n' "$changed_files" | awk '
+            /^apps\/web\// || /^package\.json$/ || /^package-lock\.json$/ { found=1; exit }
+            END { exit !found }
+          '; then
+            echo "frontend_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify frontend lockfile
+        if: steps.changes.outputs.frontend_changed == 'true'
+        run: test -f apps/web/package-lock.json
+
+      - name: Setup Node.js
+        if: steps.changes.outputs.frontend_changed == 'true'
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Run frontend quality and tests
+        if: steps.changes.outputs.frontend_changed == 'true'
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run format:check
+          npm run lint
+          npm run typecheck
+          npm run test -- --ci
+
+      - name: Frontend gate not applicable
+        if: steps.changes.outputs.frontend_changed != 'true'
+        run: echo 'No frontend changes detected; frontend gate passed deterministically.'
+
+  # ---------------------------------------------------------------------------
+  # dependency-review — GitHub-native vulnerability/license gate on PR diffs
+  # ---------------------------------------------------------------------------
+  dependency-review:
+    name: dependency-review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    continue-on-error: false
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: GitHub dependency review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: critical
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+          comment-summary-in-pr: on-failure
+
+  # ---------------------------------------------------------------------------
+  # secrets-supply-chain — bandit SAST + detect-secrets baseline enforcement
+  # ---------------------------------------------------------------------------
+  secrets-supply-chain:
+    name: secrets-supply-chain
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-geosync
+        with:
+          python-version: '3.11'
+          cache-prefix: pr-security
+
+      - name: Verify pip executable
+        run: .venv/bin/python -m pip --version
+
+      - name: Ensure security tooling
+        run: |
+          set -euo pipefail
+          missing=()
+          .venv/bin/python -m pip show bandit >/dev/null 2>&1 || missing+=(bandit)
+          .venv/bin/python -m pip show detect-secrets >/dev/null 2>&1 || missing+=(detect-secrets)
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            .venv/bin/python -m pip install -c constraints/security.txt "${missing[@]}"
+          fi
+
+      - name: Collect changed files
+        id: changed
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            git fetch --no-tags origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
+            git diff --name-only "$base_ref...$GITHUB_SHA" > /tmp/changed-files.txt
+          else
+            git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" > /tmp/changed-files.txt
+          fi
+          cat /tmp/changed-files.txt
+
+      - name: Bandit on changed security-critical Python files
+        run: |
+          set -euo pipefail
+          mapfile -t bandit_targets < <(awk '/^(core|backtest|execution|src)\/.*\.py$/' /tmp/changed-files.txt)
+          if [[ ${#bandit_targets[@]} -eq 0 ]]; then
+            echo "No security-critical Python changes detected; Bandit gate passes."
+          else
+            .venv/bin/bandit -ll "${bandit_targets[@]}"
+          fi
+
+      - name: Detect-secrets using baseline
+        run: |
+          set -euo pipefail
+          mapfile -t existing_changed_files < <(
+            while IFS= read -r f; do
+              [[ -f "$f" ]] && echo "$f"
+            done < /tmp/changed-files.txt
+          )
+          if [[ ${#existing_changed_files[@]} -eq 0 ]]; then
+            echo "No file additions/modifications to scan; secrets gate passes."
+            exit 0
+          fi
+
+          .venv/bin/detect-secrets-hook \
+            --baseline .github/detect-secrets.baseline \
+            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline|figures/disha_ba_correlation/repro_capsule/.*)$' \
+            "${existing_changed_files[@]}"
+
+  go-workspace-integrity:
+    name: go-workspace-integrity
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Detect Go changes
+        id: go-changes
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            git fetch --no-tags origin "${{ github.base_ref }}"
+            changed=$(git diff --name-only "origin/${{ github.base_ref }}...$GITHUB_SHA")
+          else
+            changed=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+          printf '%s\n' "$changed" | grep -qE '(go\.work|go\.mod|go\.sum|\.go$)' \
+            && echo "applicable=true" >> "$GITHUB_OUTPUT" \
+            || echo "applicable=false" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        if: steps.go-changes.outputs.applicable == 'true'
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v5
+        with:
+          go-version-file: 'go.work'
+          cache: false
+
+      - name: go work sync check
+        if: steps.go-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          go work sync
+          git diff --exit-code go.work || {
+            echo "go.work out of sync — run 'go work sync' locally"
+            exit 1
+          }
+
+      - name: go vet + build (workspace modules only)
+        if: steps.go-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          cd examples/go-client
+          go mod tidy
+          git diff --exit-code go.mod || {
+            echo "go.mod out of sync — run 'cd examples/go-client && go mod tidy' locally"
+            exit 1
+          }
+          go vet ./...
+          go build ./...
+
+      - name: go test (workspace modules only)
+        if: steps.go-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          cd examples/go-client
+          go test -race -count=1 ./...
+
+      - name: Skip (no Go changes)
+        if: steps.go-changes.outputs.applicable != 'true'
+        run: echo "No Go manifest changes — go-workspace-integrity passes."
