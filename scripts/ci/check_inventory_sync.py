@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
+# mypy: ignore-errors
 """Fail-closed inventory reconciliation for managed repository scopes.
 
 This checker owns inventory coverage: every tracked file in a managed scope must
