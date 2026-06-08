@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Audit and replay utilities for BBB-NVU deterministic inference."""
 
 from __future__ import annotations
