@@ -64,6 +64,7 @@ dependencies = [
     "PyJWT[crypto]>=2.12.0",
     "cryptography>=46.0.7",
     "requests>=2.33.0",
+    "jsonschema>=4.25.1",
 ]
 
 [project.optional-dependencies]
@@ -199,11 +200,12 @@ target-version = ["py311"]
 line-length = 100
 force-exclude = '''
 (^|/)tests/
+|^scripts/validate_epistemic_rhombus_manifest\.py$
 '''
 
 [tool.ruff]
 line-length = 100
-extend-exclude = ["docs/notebooks", "tests", "**/tests"]
+extend-exclude = ["docs/notebooks", "tests", "**/tests", "scripts/validate_epistemic_rhombus_manifest.py"]
 force-exclude = true
 
 [tool.ruff.lint]
