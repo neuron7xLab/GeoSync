@@ -179,7 +179,7 @@ hypothesis==6.151.13
     # via geosync (pyproject.toml)
 id==1.5.0
     # via twine
-idna==3.11
+idna==3.18
     # via
     #   -c constraints/security.txt
     #   anyio
