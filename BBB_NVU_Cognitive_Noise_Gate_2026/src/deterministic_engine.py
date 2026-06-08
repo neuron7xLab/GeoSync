@@ -122,13 +122,10 @@ class StrictObservation(BaseModel):
     method: StrictStr
     provenance: StrictProvenance
     evidence_grade: EvidenceGrade | None = None
-    quality_score: (
-        Annotated[
-            float,
-            Field(strict=True, ge=0.0, le=1.0, allow_inf_nan=False),
-        ]
-        | None
-    ) = None
+    quality_score: Annotated[
+        float,
+        Field(strict=True, ge=0.0, le=1.0, allow_inf_nan=False),
+    ] | None = None
     notes: StrictStr | None = None
 
     @field_validator("value")
