@@ -70,11 +70,7 @@ def resolve_env(
 
     libname = _candidate_library_names(ldlibrary)[0]
     pyo3_rustflags = f"-L native={libdir_path} -l {libname}"
-    rustflags = (
-        f"{existing_rustflags} {pyo3_rustflags}"
-        if existing_rustflags
-        else pyo3_rustflags
-    )
+    rustflags = f"{existing_rustflags} {pyo3_rustflags}" if existing_rustflags else pyo3_rustflags
     ld_library_path = (
         f"{libdir_path}:{existing_ld_library_path}"
         if existing_ld_library_path

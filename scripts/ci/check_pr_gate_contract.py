@@ -54,7 +54,9 @@ REQUIRED_JOB_LINE = re.compile(r"^\s*\d+\.\s+`(?P<job>[A-Za-z0-9_-]+)`\s*$")
 SECTION_HEADING = re.compile(r"^##\s+")
 PR_GATE_CONTRACT_COMMAND = "python scripts/ci/check_pr_gate_contract.py"
 ACTIONLINT_COMMAND = "python scripts/ci/run_actionlint.py"
-DEPENDENCY_REVIEW_MERGE_GROUP_PASS = "echo \"dependency-review is pull_request-only; merge_group emits deterministic pass.\""
+DEPENDENCY_REVIEW_MERGE_GROUP_PASS = (
+    'echo "dependency-review is pull_request-only; merge_group emits deterministic pass."'
+)
 RUST_TOOLCHAIN_VERSION = "1.95.0"
 REQUIRED_WORKFLOW_TRIGGERS = ("pull_request:", "merge_group:")
 BRANCH_REQUIRED_HEADING = "## Required status checks (strict, fail-closed)"
@@ -133,9 +135,7 @@ def read_text(path: Path) -> str:
 
 
 def strip_full_line_comments(text: str) -> str:
-    return "\n".join(
-        line for line in text.splitlines() if not line.lstrip().startswith("#")
-    )
+    return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
 
 
 def top_level_keys(document: str) -> tuple[str, ...]:
@@ -222,9 +222,7 @@ def has_line(block: str, text: str) -> bool:
 
 def semantic_lines(block: str) -> tuple[str, ...]:
     return tuple(
-        line.strip()
-        for line in strip_full_line_comments(block).splitlines()
-        if line.strip()
+        line.strip() for line in strip_full_line_comments(block).splitlines() if line.strip()
     )
 
 
@@ -239,8 +237,7 @@ def has_uses_reference(block: str, reference: str) -> bool:
 
 def has_run_command(block: str, command: str) -> bool:
     return any(
-        line in {command, f"run: {command}", f"- run: {command}"}
-        for line in semantic_lines(block)
+        line in {command, f"run: {command}", f"- run: {command}"} for line in semantic_lines(block)
     )
 
 
@@ -275,9 +272,7 @@ def section_body(document: str, heading: str) -> str:
 def extract_required_jobs(document: str, heading: str) -> tuple[str, ...]:
     body = section_body(document, heading)
     return tuple(
-        match.group("job")
-        for line in body.splitlines()
-        if (match := REQUIRED_JOB_LINE.match(line))
+        match.group("job") for line in body.splitlines() if (match := REQUIRED_JOB_LINE.match(line))
     )
 
 
@@ -489,10 +484,26 @@ def validate_rust_accel_gate(workflow: str) -> list[Violation]:
         (has_run_command(block, RUST_ACCEL_CLIPPY), RUST_ACCEL_CLIPPY),
         (has_run_command(block, RUST_ACCEL_TEST), RUST_ACCEL_TEST),
         (has_run_command(block, RUST_ACCEL_BENCH), RUST_ACCEL_BENCH),
-        (has_run_command(block, "rustup toolchain install 1.95.0 --profile minimal --component clippy"), "rustup toolchain install 1.95.0 --profile minimal --component clippy"),
-        (has_uses_reference(block, "actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809"), "actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809"),
-        (has_run_command(block, "cargo fetch --locked --manifest-path rust/geosync-accel/Cargo.toml"), "cargo fetch --locked --manifest-path rust/geosync-accel/Cargo.toml"),
-        ('[[ "${GITHUB_EVENT_NAME}" == "merge_group" ]]' in strip_full_line_comments(block), "merge_group diff range"),
+        (
+            has_run_command(
+                block, "rustup toolchain install 1.95.0 --profile minimal --component clippy"
+            ),
+            "rustup toolchain install 1.95.0 --profile minimal --component clippy",
+        ),
+        (
+            has_uses_reference(block, "actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809"),
+            "actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809",
+        ),
+        (
+            has_run_command(
+                block, "cargo fetch --locked --manifest-path rust/geosync-accel/Cargo.toml"
+            ),
+            "cargo fetch --locked --manifest-path rust/geosync-accel/Cargo.toml",
+        ),
+        (
+            '[[ "${GITHUB_EVENT_NAME}" == "merge_group" ]]' in strip_full_line_comments(block),
+            "merge_group diff range",
+        ),
         ("MERGE_GROUP_BASE_SHA" in strip_full_line_comments(block), "MERGE_GROUP_BASE_SHA"),
         ("MERGE_GROUP_HEAD_SHA" in strip_full_line_comments(block), "MERGE_GROUP_HEAD_SHA"),
         (RUST_CHANGE_PATTERN in strip_full_line_comments(block), RUST_CHANGE_PATTERN),
@@ -615,9 +626,7 @@ def validate_rust_accel_contract_manifest(contract_text: str) -> list[Violation]
 
     readiness = contract.get("readiness", {})
     if not isinstance(readiness, dict):
-        violations.append(
-            Violation("rust-accel-contract-readiness", "readiness must be an object")
-        )
+        violations.append(Violation("rust-accel-contract-readiness", "readiness must be an object"))
     else:
         if readiness.get("status") != "contract_specified":
             violations.append(

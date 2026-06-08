@@ -77,9 +77,7 @@ def collect_tool_versions() -> dict[str, dict[str, object]]:
 def load_contract_validator() -> ModuleType:
     """Load the repository contract validator without requiring package setup."""
 
-    spec = importlib.util.spec_from_file_location(
-        "check_pr_gate_contract", CONTRACT_VALIDATOR
-    )
+    spec = importlib.util.spec_from_file_location("check_pr_gate_contract", CONTRACT_VALIDATOR)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"unable to load validator module from {CONTRACT_VALIDATOR}")
     module = importlib.util.module_from_spec(spec)
@@ -136,17 +134,13 @@ def select_criteria(
     if not selected_ids:
         return tuple(criteria)
     by_id = {criterion.id: criterion for criterion in criteria}
-    missing = tuple(
-        criterion_id for criterion_id in selected_ids if criterion_id not in by_id
-    )
+    missing = tuple(criterion_id for criterion_id in selected_ids if criterion_id not in by_id)
     if missing:
         raise RuntimeError(f"unknown acceptance criterion id(s): {', '.join(missing)}")
     return tuple(by_id[criterion_id] for criterion_id in selected_ids)
 
 
-def run_criterion(
-    criterion: AcceptanceCriterion, *, dry_run: bool
-) -> dict[str, object]:
+def run_criterion(criterion: AcceptanceCriterion, *, dry_run: bool) -> dict[str, object]:
     """Run one criterion and return a structured evidence record."""
 
     started_at = utc_now()
