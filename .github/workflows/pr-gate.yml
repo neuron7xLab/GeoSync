@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # repo-policy — workflow hygiene invariants (permissions, pinning, actionlint)
+  # repo-policy — workflow hygiene invariants (permissions, pinning, CI contract)
   # ---------------------------------------------------------------------------
   repo-policy:
     name: repo-policy
@@ -80,10 +80,15 @@ jobs:
           print('Pinned action policy passed.')
           PY
 
-      - name: Actionlint validation
+      - name: Validate GitHub Actions syntax
         run: |
           set -euo pipefail
-          docker run --rm -v "$PWD":/repo -w /repo rhysd/actionlint:1.7.8 -color
+          python scripts/ci/run_actionlint.py
+
+      - name: Validate PR gate contract
+        run: |
+          set -euo pipefail
+          python scripts/ci/check_pr_gate_contract.py
 
       - name: Inventory and manifest integrity checks
         run: |
@@ -494,13 +499,121 @@ jobs:
         if: steps.changes.outputs.frontend_changed != 'true'
         run: echo 'No frontend changes detected; frontend gate passed deterministically.'
 
+
+  # ---------------------------------------------------------------------------
+  # rust-accel-gate — Rust accelerator lint contract from README required gates
+  # ---------------------------------------------------------------------------
+  rust-accel-gate:
+    name: rust-accel-gate
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Detect Rust accelerator changes
+        id: rust-changes
+        env:
+          PR_BASE_REF: ${{ github.base_ref }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            git fetch --no-tags origin "$PR_BASE_REF"
+            changed=$(git diff --name-only "origin/${PR_BASE_REF}...$GITHUB_SHA")
+          elif [[ "${GITHUB_EVENT_NAME}" == "merge_group" ]]; then
+            changed=$(git diff --name-only "${MERGE_GROUP_BASE_SHA}...${MERGE_GROUP_HEAD_SHA}")
+          elif [[ -n "${BEFORE_SHA}" && "${BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]]; then
+            changed=$(git diff --name-only "${BEFORE_SHA}...${GITHUB_SHA}")
+          else
+            changed=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+          if printf '%s\n' "$changed" | grep -qE '^(rust/geosync-accel/|Cargo\.(toml|lock)$|.*\.rs$)'; then
+            echo "applicable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "applicable=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python for PyO3
+        if: steps.rust-changes.outputs.applicable == 'true'
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.13'
+
+      - name: Install pinned Rust toolchain with Clippy
+        if: steps.rust-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.95.0 --profile minimal --component clippy
+          rustup default 1.95.0
+          rustc --version
+          cargo --version
+          cargo clippy --version
+          python --version
+
+      - name: Restore Cargo cache
+        if: steps.rust-changes.outputs.applicable == 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/geosync-accel/target
+          key: ${{ runner.os }}-rust-accel-${{ hashFiles('rust-toolchain.toml', 'rust/geosync-accel/Cargo.lock', 'rust/geosync-accel/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-rust-accel-
+
+      - name: Prefetch Rust dependencies
+        if: steps.rust-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          cargo fetch --locked --manifest-path rust/geosync-accel/Cargo.toml
+
+      - name: Install Python runtime dependency for PyO3 tests
+        if: steps.rust-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          python -m pip install numpy==2.3.3
+
+      - name: Resolve PyO3 test linker environment
+        if: steps.rust-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          python scripts/ci/emit_pyo3_env.py
+
+      - name: cargo clippy (warnings denied)
+        if: steps.rust-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          cargo clippy --locked --manifest-path rust/geosync-accel/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: cargo test (all features)
+        if: steps.rust-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          cargo test --locked --manifest-path rust/geosync-accel/Cargo.toml --all-features
+
+      - name: cargo bench smoke (criterion)
+        if: steps.rust-changes.outputs.applicable == 'true'
+        run: |
+          set -euo pipefail
+          cargo bench --locked --manifest-path rust/geosync-accel/Cargo.toml --bench numeric -- --sample-size 10 --warm-up-time 1 --measurement-time 2
+
+      - name: Skip (no Rust accelerator changes)
+        if: steps.rust-changes.outputs.applicable != 'true'
+        run: echo "No Rust accelerator changes — rust-accel-gate passes."
+
   # ---------------------------------------------------------------------------
   # dependency-review — GitHub-native vulnerability/license gate on PR diffs
   # ---------------------------------------------------------------------------
   dependency-review:
     name: dependency-review
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     continue-on-error: false
     timeout-minutes: 15
     permissions:
@@ -511,11 +624,16 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: GitHub dependency review
+        if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
-          fail-on-severity: critical
+          fail-on-severity: high
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
           comment-summary-in-pr: on-failure
+
+      - name: Merge-group deterministic pass
+        if: github.event_name == 'merge_group'
+        run: echo "dependency-review is pull_request-only; merge_group emits deterministic pass."
 
   # ---------------------------------------------------------------------------
   # secrets-supply-chain — bandit SAST + detect-secrets baseline enforcement
