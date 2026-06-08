@@ -40,6 +40,16 @@
       "boundary": "Must remain HYPOTHESIS until real directed exposure data, crisis windows, null baselines, bootstrap CI, and multiplicity correction produce a signed HARD_PASS."
     },
     {
+      "claim_id": "C-EPI-RHOMBUS",
+      "claim_status": "active",
+      "claim_tier": "FACT",
+      "claim_summary": "Epistemic Rhombus manifest maps four governance criteria to schema-validated external gates.",
+      "sources": [],
+      "source_policy": "local-governance-contract",
+      "local_evidence": ["governance/epistemic_rhombus_manifest.jsonl", "schemas/governance/epistemic_rhombus_manifest.schema.json", "scripts/validate_epistemic_rhombus_manifest.py", "tests/scripts/test_validate_epistemic_rhombus_manifest.py", ".github/workflows/epistemic-rhombus-gate.yml"],
+      "boundary": "This is a repository-local governance fact: it validates manifest structure, gate binding, threat-model metadata, and deterministic report emission; it does not prove scientific truth or external signature validity."
+    },
+    {
       "claim_id": "R-VERIFIED-PHYS",
       "claim_status": "retired",
       "claim_tier": "RETIRED",

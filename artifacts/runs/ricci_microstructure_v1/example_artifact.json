@@ -1,0 +1,15 @@
+{
+  "run_id": "RFC-2026-MARKET-RICCI-V1",
+  "git_sha": "0000000000000000000000000000000000000000",
+  "git_dirty": false,
+  "data_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "config_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "seed": 1337,
+  "timestamp_utc": "2026-05-31T20:27:00Z",
+  "input_window_sec": 30,
+  "score": 0.742,
+  "uncertainty": 0.031,
+  "decision": "NO_TRADE",
+  "claim_tier": "HYPOTHESIS",
+  "falsification_status": "PASS"
+}

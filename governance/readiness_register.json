@@ -1,0 +1,38 @@
+{
+  "schema_version": "readiness.v1",
+  "system": "GeoSync",
+  "current_level": "L4-minus",
+  "target_direction": "L5-candidate",
+  "entries": [
+    {
+      "id": "RD-001",
+      "status": "open",
+      "summary": "Real-data validation remains incomplete for stronger market-facing research claims.",
+      "required_artifacts": ["dataset_hash", "provenance_note", "evaluation_report"]
+    },
+    {
+      "id": "QA-001",
+      "status": "open",
+      "summary": "Whole-repository quality evidence is not yet guaranteed by every content-aware pull-request check.",
+      "required_artifacts": ["full_repo_quality_report", "retained_ci_evidence"]
+    },
+    {
+      "id": "GOV-001",
+      "status": "open",
+      "summary": "Report-only review surfaces need explicit closure rules before stronger readiness claims.",
+      "required_artifacts": ["blocking_check", "waiver_protocol"]
+    },
+    {
+      "id": "OPS-001",
+      "status": "open",
+      "summary": "Operational readiness evidence needs retained drills and recovery documentation.",
+      "required_artifacts": ["runbook", "recovery_drill_report"]
+    },
+    {
+      "id": "EXT-001",
+      "status": "open",
+      "summary": "Independent review should map findings to remediation evidence.",
+      "required_artifacts": ["review_report", "remediation_map"]
+    }
+  ]
+}

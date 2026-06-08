@@ -2,9 +2,9 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 #
-# Deterministic reproduction script for the GeoSync canonical-seven
+# Fail-closed deterministic verification script for the GeoSync canonical-seven
 # release candidate. From a clean clone, runs the same checks the
-# author runs and emits EXPECTED_OUTPUTS_actual.json for diff
+# author runs in verify mode and emits EXPECTED_OUTPUTS_actual.json for diff
 # against EXPECTED_OUTPUTS.json.
 
 set -euo pipefail
@@ -14,11 +14,11 @@ cd "$REPO_ROOT"
 
 # 1. Static analysis
 python -m mypy --strict research/systemic_risk/ tools/ \
-    > REPRODUCIBILITY_CAPSULE/MYPY_REPORT_actual.txt 2>&1 || true
+    > REPRODUCIBILITY_CAPSULE/MYPY_REPORT_actual.txt 2>&1
 python -m ruff check research/systemic_risk/ tools/ tests/ \
-    > REPRODUCIBILITY_CAPSULE/RUFF_REPORT_actual.txt 2>&1 || true
+    > REPRODUCIBILITY_CAPSULE/RUFF_REPORT_actual.txt 2>&1
 python -m black --check research/systemic_risk/ tools/ tests/ \
-    > REPRODUCIBILITY_CAPSULE/BLACK_REPORT_actual.txt 2>&1 || true
+    > REPRODUCIBILITY_CAPSULE/BLACK_REPORT_actual.txt 2>&1
 
 # 2. Test suite — produce junit XML for stable diff
 mkdir -p REPRODUCIBILITY_CAPSULE/test_artefacts
@@ -28,13 +28,13 @@ python -m pytest \
     tests/negative_controls/ \
     -q \
     --junitxml=REPRODUCIBILITY_CAPSULE/test_artefacts/TEST_REPORT_actual.xml \
-    > REPRODUCIBILITY_CAPSULE/test_artefacts/PYTEST_STDOUT_actual.txt 2>&1 || true
+    > REPRODUCIBILITY_CAPSULE/test_artefacts/PYTEST_STDOUT_actual.txt 2>&1
 
 # 3. Research-integrity gates
 python tools/check_public_symbol_matrix.py \
-    > REPRODUCIBILITY_CAPSULE/test_artefacts/SYMBOL_MATRIX_actual.txt 2>&1 || true
+    > REPRODUCIBILITY_CAPSULE/test_artefacts/SYMBOL_MATRIX_actual.txt 2>&1
 python tools/compile_claims.py --fail-on-floating \
-    > REPRODUCIBILITY_CAPSULE/test_artefacts/CLAIMS_COMPILE_actual.txt 2>&1 || true
+    > REPRODUCIBILITY_CAPSULE/test_artefacts/CLAIMS_COMPILE_actual.txt 2>&1
 
 # 4. X-9R smoke run
 python -c "
@@ -50,7 +50,7 @@ mod._build_clean_dataset(Path('REPRODUCIBILITY_CAPSULE/x9r_smoke'))
 python -m research.systemic_risk.protocol_x9r run \
     --dataset-dir REPRODUCIBILITY_CAPSULE/x9r_smoke/dataset_dir \
     --output REPRODUCIBILITY_CAPSULE/x9r_smoke/empirical_falsification_capsule \
-    > REPRODUCIBILITY_CAPSULE/test_artefacts/X9R_RUN_actual.json 2>&1 || true
+    > REPRODUCIBILITY_CAPSULE/test_artefacts/X9R_RUN_actual.json 2>&1
 
 # 5. Synthesise EXPECTED_OUTPUTS_actual.json from the artefacts
 python - <<'PY'

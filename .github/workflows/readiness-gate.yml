@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: MIT
+name: Readiness Gate
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+
+permissions:
+  contents: read
+
+jobs:
+  readiness-register:
+    name: readiness-register
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install test runner
+        run: |
+          set -euo pipefail
+          python -m pip install --user pytest
+
+      - name: Check readiness register
+        run: |
+          set -euo pipefail
+          python tools/check_readiness_register.py
+
+      - name: Test readiness register contract
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/governance/test_readiness_register.py --confcutdir=tests/governance

@@ -5,7 +5,6 @@ edition = "2021"
 description = "Rust accelerators for GeoSync numeric primitives"
 authors = ["GeoSync Contributors"]
 license = "MIT"
-license-file = "../../LICENSE"
 readme = "README.md"
 
 [features]

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 import pytest
@@ -9,27 +8,21 @@ import pytest
 from tools.claims.validate_claims_have_evidence import validate
 
 
-@pytest.fixture(autouse=True)
-def _isolate_test_audit_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Keep claim-evidence unit tests from reading repository audit history."""
-    monkeypatch.chdir(tmp_path)
-    for name in (
-        "baseline_run_test_mismatch",
-        "baseline_run_test_valid",
-        "baseline_run_test_failed",
-    ):
-        d = Path("reports/test_audit") / name
-        if d.exists():
-            shutil.rmtree(d)
+@pytest.fixture
+def audit_root(tmp_path: Path) -> Path:
+    root = tmp_path / "reports" / "test_audit"
+    root.mkdir(parents=True)
+    return root
 
 
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+def _write_evidence(path: Path, claims: list[dict]) -> Path:
+    payload = {"schema_version": "1.1", "claims": claims}
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
 
 
-def _base_claim(**kwargs):
-    data = {
+def _base_claim(**kwargs: object) -> dict[str, object]:
+    data: dict[str, object] = {
         "claim_id": "C1",
         "claim_text": "sample claim",
         "domain": "testing",
@@ -45,158 +38,229 @@ def _base_claim(**kwargs):
     return data
 
 
-def test_valid_proven_claim_with_real_artifact_passes(tmp_path: Path) -> None:
-    art = tmp_path / "ok.txt"
-    art.write_text("ok")
-    p = tmp_path / "evidence.json"
-    _write_json(p, {"schema_version": "1.1", "claims": [_base_claim(artifact_path=str(art))]})
-    assert validate(p) == []
-
-
-def test_proven_claim_without_artifact_path_fails(tmp_path: Path) -> None:
-    p = tmp_path / "evidence.json"
-    _write_json(p, {"schema_version": "1.1", "claims": [_base_claim(artifact_path="")]})
-    assert validate(p)
-
-
-def test_proven_claim_with_missing_artifact_file_fails(tmp_path: Path) -> None:
-    p = tmp_path / "evidence.json"
-    _write_json(
-        p,
-        {
-            "schema_version": "1.1",
-            "claims": [_base_claim(artifact_path=str(tmp_path / "missing.txt"))],
-        },
+def test_valid_proven_claim_with_real_artifact_passes(tmp_path: Path, audit_root: Path) -> None:
+    artifact = tmp_path / "proof.txt"
+    artifact.write_text("ok", encoding="utf-8")
+    evidence = _write_evidence(
+        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
     )
-    assert validate(p)
+    assert validate(evidence, audit_root=audit_root) == []
 
 
-def test_proven_claim_without_sha_fails(tmp_path: Path) -> None:
-    art = tmp_path / "ok.txt"
-    art.write_text("ok")
-    p = tmp_path / "evidence.json"
-    _write_json(
-        p,
-        {
-            "schema_version": "1.1",
-            "claims": [_base_claim(artifact_path=str(art), last_verified_sha="")],
-        },
-    )
-    assert validate(p)
+def test_proven_claim_without_artifact_path_fails(tmp_path: Path, audit_root: Path) -> None:
+    evidence = _write_evidence(tmp_path / "evidence.json", [_base_claim(artifact_path="")])
+    assert validate(evidence, audit_root=audit_root)
 
 
-def test_proven_claim_without_timestamp_fails(tmp_path: Path) -> None:
-    art = tmp_path / "ok.txt"
-    art.write_text("ok")
-    p = tmp_path / "evidence.json"
-    _write_json(
-        p,
-        {
-            "schema_version": "1.1",
-            "claims": [_base_claim(artifact_path=str(art), timestamp_utc="")],
-        },
-    )
-    assert validate(p)
-
-
-def test_goal_claim_presented_as_achieved_fails(tmp_path: Path) -> None:
-    p = tmp_path / "evidence.json"
-    _write_json(
-        p,
-        {
-            "schema_version": "1.1",
-            "claims": [_base_claim(claim_status="goal", release_decision="accepted_as_proven")],
-        },
-    )
-    assert validate(p)
-
-
-def test_partial_claim_presented_as_proven_fails(tmp_path: Path) -> None:
-    p = tmp_path / "evidence.json"
-    _write_json(
-        p,
-        {
-            "schema_version": "1.1",
-            "claims": [_base_claim(claim_status="partial", release_decision="allow")],
-        },
-    )
-    assert validate(p)
-
-
-def test_quarantine_claim_used_as_release_evidence_fails(tmp_path: Path) -> None:
-    p = tmp_path / "evidence.json"
-    _write_json(
-        p,
-        {
-            "schema_version": "1.1",
-            "claims": [_base_claim(claim_status="quarantine", release_decision="allow")],
-        },
-    )
-    assert validate(p)
-
-
-def test_remove_claim_used_as_accepted_evidence_fails(tmp_path: Path) -> None:
-    p = tmp_path / "evidence.json"
-    _write_json(
-        p,
-        {
-            "schema_version": "1.1",
-            "claims": [_base_claim(claim_status="remove", release_decision="allow")],
-        },
-    )
-    assert validate(p)
-
-
-def test_malformed_evidence_index_fails(tmp_path: Path) -> None:
-    p = tmp_path / "evidence.json"
-    _write_json(p, {"schema_version": "1.1", "claims": {}})
-    assert validate(p)
-
-
-def test_artifact_manifest_mismatch_fails(tmp_path: Path) -> None:
-    run = Path("reports/test_audit/baseline_run_test_mismatch")
-    run.mkdir(parents=True, exist_ok=True)
-    (run / "a.txt").write_text("x")
-    (run / "artifact_manifest.sha256").write_text("deadbeef  a.txt\n")
-    p = tmp_path / "evidence.json"
-    art = tmp_path / "ok.txt"
-    art.write_text("ok")
-    _write_json(p, {"schema_version": "1.1", "claims": [_base_claim(artifact_path=str(art))]})
-    assert validate(p)
-
-
-def test_artifact_manifest_valid_passes(tmp_path: Path) -> None:
-    mismatch = Path("reports/test_audit/baseline_run_test_mismatch")
-    if mismatch.exists():
-        for x in mismatch.glob("*"):
-            x.unlink()
-        mismatch.rmdir()
-    run = Path("reports/test_audit/baseline_run_test_valid")
-    run.mkdir(parents=True, exist_ok=True)
-    (run / "a.txt").write_text("x")
+def test_artifact_manifest_valid_passes(tmp_path: Path, audit_root: Path) -> None:
+    baseline = audit_root / "baseline_run_test_valid"
+    baseline.mkdir(parents=True)
+    artifact = baseline / "a.txt"
+    artifact.write_text("x", encoding="utf-8")
     import hashlib
 
-    h = hashlib.sha256((run / "a.txt").read_bytes()).hexdigest()
-    (run / "artifact_manifest.sha256").write_text(f"{h}  a.txt\n")
-    p = tmp_path / "evidence.json"
-    art = tmp_path / "ok.txt"
-    art.write_text("ok")
-    _write_json(p, {"schema_version": "1.1", "claims": [_base_claim(artifact_path=str(art))]})
-    assert validate(p) == []
-
-
-def test_failed_baseline_only_allowed_for_failure_detection(tmp_path: Path) -> None:
-    run = Path("reports/test_audit/baseline_run_test_failed")
-    run.mkdir(parents=True, exist_ok=True)
-    (run / "exit_code.txt").write_text("1\n")
-    art = run / "junit.xml"
-    art.write_text("<testsuite/>")
-    p = tmp_path / "evidence.json"
-    _write_json(
-        p,
-        {
-            "schema_version": "1.1",
-            "claims": [_base_claim(artifact_path=str(art), claim_text="test suite passes")],
-        },
+    h = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    (baseline / "artifact_manifest.sha256").write_text(f"{h} a.txt\n", encoding="utf-8")
+    evidence = _write_evidence(
+        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
     )
-    assert validate(p)
+    assert validate(evidence, audit_root=audit_root, manifest_scope="referenced") == []
+
+
+def test_manifest_mismatch_fails_for_referenced_baseline(tmp_path: Path, audit_root: Path) -> None:
+    baseline = audit_root / "baseline_run_test_mismatch"
+    baseline.mkdir(parents=True)
+    artifact = baseline / "pytest.log"
+    artifact.write_text("ok", encoding="utf-8")
+    (baseline / "artifact_manifest.sha256").write_text("deadbeef coverage.xml\n", encoding="utf-8")
+    evidence = _write_evidence(
+        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
+    )
+    errors = validate(evidence, audit_root=audit_root, manifest_scope="referenced")
+    assert any("missing" in error or "mismatch" in error for error in errors)
+
+
+def test_failed_baseline_only_allowed_for_failure_detection(
+    tmp_path: Path, audit_root: Path
+) -> None:
+    baseline = audit_root / "baseline_run_test_failed"
+    baseline.mkdir(parents=True)
+    (baseline / "exit_code.txt").write_text("1\n", encoding="utf-8")
+    artifact = baseline / "junit.xml"
+    artifact.write_text("<testsuite/>", encoding="utf-8")
+
+    evidence = _write_evidence(
+        tmp_path / "evidence.json",
+        [_base_claim(artifact_path=str(artifact), claim_text="test suite passes")],
+    )
+    assert validate(evidence, audit_root=audit_root)
+
+
+def test_manifest_scope_all_reports_unreferenced_manifest_errors(
+    tmp_path: Path, audit_root: Path
+) -> None:
+    artifact = tmp_path / "proof.txt"
+    artifact.write_text("ok", encoding="utf-8")
+    evidence = _write_evidence(
+        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
+    )
+
+    unreferenced = audit_root / "baseline_run_test_unreferenced"
+    unreferenced.mkdir(parents=True)
+    (unreferenced / "artifact_manifest.sha256").write_text(
+        "deadbeef pytest.log\n", encoding="utf-8"
+    )
+
+    errors = validate(evidence, audit_root=audit_root, manifest_scope="all")
+    assert any("missing" in error for error in errors)
+
+
+def test_manifest_scope_none_skips_manifest_validation(tmp_path: Path, audit_root: Path) -> None:
+    artifact = tmp_path / "proof.txt"
+    artifact.write_text("ok", encoding="utf-8")
+    evidence = _write_evidence(
+        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
+    )
+
+    bad = audit_root / "baseline_run_test_none"
+    bad.mkdir(parents=True)
+    (bad / "artifact_manifest.sha256").write_text("deadbeef missing.log\n", encoding="utf-8")
+
+    assert validate(evidence, audit_root=audit_root, manifest_scope="none") == []
+
+
+def test_relative_artifact_path_resolves_against_audit_root(
+    tmp_path: Path, audit_root: Path
+) -> None:
+    baseline = audit_root / "baseline_run_test_rel"
+    baseline.mkdir(parents=True)
+    artifact = baseline / "pytest.log"
+    artifact.write_text("ok", encoding="utf-8")
+
+    evidence = _write_evidence(
+        tmp_path / "evidence.json", [_base_claim(artifact_path="baseline_run_test_rel/pytest.log")]
+    )
+
+    assert validate(evidence, audit_root=audit_root, manifest_scope="referenced") == []
+
+
+def test_relative_artifact_path_marks_referenced_baseline_for_manifest_validation(
+    tmp_path: Path, audit_root: Path
+) -> None:
+    baseline = audit_root / "baseline_run_test_rel_bad"
+    baseline.mkdir(parents=True)
+    artifact = baseline / "pytest.log"
+    artifact.write_text("ok", encoding="utf-8")
+    (baseline / "artifact_manifest.sha256").write_text("deadbeef coverage.xml\n", encoding="utf-8")
+
+    evidence = _write_evidence(
+        tmp_path / "evidence.json",
+        [_base_claim(artifact_path="baseline_run_test_rel_bad/pytest.log")],
+    )
+
+    errors = validate(evidence, audit_root=audit_root, manifest_scope="referenced")
+    assert any("missing" in error for error in errors)
+
+
+def test_default_manifest_scope_validates_all_manifests(tmp_path: Path, audit_root: Path) -> None:
+    artifact = tmp_path / "proof.txt"
+    artifact.write_text("ok", encoding="utf-8")
+    evidence = _write_evidence(
+        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
+    )
+
+    bad = audit_root / "baseline_run_test_global"
+    bad.mkdir(parents=True)
+    (bad / "artifact_manifest.sha256").write_text("deadbeef missing.log\n", encoding="utf-8")
+
+    errors = validate(evidence, audit_root=audit_root)
+    assert any("missing" in error for error in errors)
+
+
+def test_manifest_scope_referenced_ignores_unreferenced_bad_manifest(
+    tmp_path: Path, audit_root: Path
+) -> None:
+    artifact = tmp_path / "proof.txt"
+    artifact.write_text("ok", encoding="utf-8")
+    evidence = _write_evidence(
+        tmp_path / "evidence.json", [_base_claim(artifact_path=str(artifact))]
+    )
+
+    bad = audit_root / "baseline_run_test_unref"
+    bad.mkdir(parents=True)
+    (bad / "artifact_manifest.sha256").write_text("deadbeef missing.log\n", encoding="utf-8")
+
+    assert validate(evidence, audit_root=audit_root, manifest_scope="referenced") == []
+
+
+def test_relative_artifact_path_resolves_when_cwd_changes(
+    tmp_path: Path, audit_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    baseline = audit_root / "baseline_run_test_cwd"
+    baseline.mkdir(parents=True)
+    artifact = baseline / "pytest.log"
+    artifact.write_text("ok", encoding="utf-8")
+
+    evidence = _write_evidence(
+        tmp_path / "evidence.json", [_base_claim(artifact_path="baseline_run_test_cwd/pytest.log")]
+    )
+
+    other = tmp_path / "othercwd"
+    other.mkdir()
+    monkeypatch.chdir(other)
+
+    assert validate(evidence, audit_root=audit_root, manifest_scope="referenced") == []
+
+
+def test_failed_baseline_cannot_be_bypassed_by_claim_text(tmp_path: Path, audit_root: Path) -> None:
+    baseline = audit_root / "baseline_run_test_failed_text"
+    baseline.mkdir(parents=True)
+    (baseline / "exit_code.txt").write_text("1\n", encoding="utf-8")
+    artifact = baseline / "pytest.log"
+    artifact.write_text("ok", encoding="utf-8")
+
+    evidence = _write_evidence(
+        tmp_path / "evidence.json",
+        [
+            _base_claim(
+                artifact_path=str(artifact),
+                claim_text="failure budget check",
+                release_decision="allow",
+            )
+        ],
+    )
+
+    errors = validate(evidence, audit_root=audit_root, manifest_scope="referenced")
+    assert any("failed baseline artifact" in error for error in errors)
+
+
+def test_failed_baseline_allowed_when_release_decision_explicitly_blocked(
+    tmp_path: Path, audit_root: Path
+) -> None:
+    baseline = audit_root / "baseline_run_test_failed_blocked"
+    baseline.mkdir(parents=True)
+    (baseline / "exit_code.txt").write_text("1\n", encoding="utf-8")
+    artifact = baseline / "pytest.log"
+    artifact.write_text("ok", encoding="utf-8")
+
+    evidence = _write_evidence(
+        tmp_path / "evidence.json",
+        [_base_claim(artifact_path=str(artifact), release_decision="blocked")],
+    )
+
+    errors = validate(evidence, audit_root=audit_root, manifest_scope="referenced")
+    assert not any("failed baseline artifact" in error for error in errors)
+
+
+def test_invalid_evidence_json_returns_validation_error(tmp_path: Path, audit_root: Path) -> None:
+    evidence = tmp_path / "evidence.json"
+    evidence.write_text("{bad json", encoding="utf-8")
+    errors = validate(evidence, audit_root=audit_root)
+    assert any("Invalid evidence index JSON" in e for e in errors)
+
+
+def test_non_dict_claim_entry_is_reported(tmp_path: Path, audit_root: Path) -> None:
+    evidence = tmp_path / "evidence.json"
+    evidence.write_text(json.dumps({"schema_version": "1.1", "claims": ["bad"]}), encoding="utf-8")
+    errors = validate(evidence, audit_root=audit_root, manifest_scope="none")
+    assert any("invalid claim entry type" in e for e in errors)

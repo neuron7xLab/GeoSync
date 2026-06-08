@@ -1,786 +1,114 @@
-<div align="center">
+# GeoSync Claim Contract
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.svg">
-  <source media="(prefers-color-scheme: light)" srcset=".github/assets/banner-light.svg">
-  <img alt="GeoSync — Geometric Market Intelligence" src=".github/assets/banner-dark.svg" width="100%">
-</picture>
+**Positioning:** Verification-first quantitative research platform for falsifiable market-structure hypotheses.
 
-<br><br>
+This repository is not a live execution platform, not an alpha product, and not a proof that market dynamics obey any asserted physical law. It is a research platform whose claims are allowed only when they are tied to explicit invariants, data contracts, falsifiers, and reproducible artifacts.
 
-[![modules-15](https://img.shields.io/badge/modules-15-blueviolet?style=for-the-badge)](docs/ARCHITECTURE.md)
-[![invariants-97](https://img.shields.io/badge/invariants-97-critical?style=for-the-badge)](CLAUDE.md)
-[![tests-11446](https://img.shields.io/badge/tests-11%2C446-brightgreen?style=for-the-badge)](tests/)
-[![indicators-17](https://img.shields.io/badge/indicators-17-gold?style=for-the-badge)](core/indicators/)
-[![ADRs-16](https://img.shields.io/badge/ADRs-16-blue?style=for-the-badge)](docs/adr/)
-[![license-MIT](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)](LICENSE)
+## Current Sprint Boundary
 
-<br>
+The only sprint-level evidence spine is `ricci_microstructure_v1` over crypto perpetual order-book data. Other research lines remain either infrastructure, protocol sketches, or archived evidence surfaces until they pass the same contract stack.
 
-```
-Kuramoto synchronization  ·  Ricci curvature flow  ·  Free-energy thermodynamics  ·  Cryptobiosis
-```
+## Claim Tier Matrix
 
-*Physics-inspired quantitative research platform with a registry-tracked invariant layer.*
-*Every promoted claim must map to an evidence tier, a gate, or a documented boundary.*
+| Claim Tier | Evidence | Falsifier | Status |
+| --- | --- | --- | --- |
+| Invariant Registry | FACT: script/check coverage of registered invariants | Missing invariant count or unlinked witness | Active |
+| Systemic-Risk Phase Signal | HYPOTHESIS: protocol and synthetic/controlled checks only | Real-data gate failure | Not Measured |
+| Ricci Microstructure Predictor | LIMITED EMPIRICAL: one crypto-perps L2 session | Multi-session failure, cost-model failure, or null superiority | Not Deployable |
 
-<br>
+## Promotion Rule
 
-[![PR Gate](https://github.com/neuron7xLab/GeoSync/actions/workflows/pr-gate.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/pr-gate.yml)
-[![CodeQL](https://github.com/neuron7xLab/GeoSync/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/codeql.yml)
-[![Main Validation](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml/badge.svg)](https://github.com/neuron7xLab/GeoSync/actions/workflows/main-validation.yml)
-[![Formal Verification](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml/badge.svg?branch=main)](https://github.com/neuron7xLab/GeoSync/actions/workflows/formal-verification.yml)
-[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![Security](https://img.shields.io/badge/NIST%20SP%20800--53-aligned-red?style=flat)](docs/security/)
-[![Physics Gate](https://img.shields.io/badge/physics_gate-97_invariants-critical?style=flat)](CLAUDE.md)
-[![Coverage](https://img.shields.io/badge/line_coverage-71%25-yellowgreen?style=flat)](BASELINE.md)
+A research line can move forward only through this sequence:
 
-</div>
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## The Signal
-
-GeoSync implements research-grade mechanisms inspired by **computational neuroscience**, **differential geometry**, **thermodynamics**, and **synchronization theory** inside a verification-first quantitative infrastructure.
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-```
- Order Parameter R(t)
- 1.0 ┤                    ╭──────
-     │                 ╭──╯
- 0.8 ┤              ╭──╯
-     │           ╭──╯
- 0.6 ┤        ╭──╯
-     │     ╭──╯
- 0.4 ┤  ╭──╯
-     │╭─╯
- 0.2 ┤╯
-     │
- 0.0 ┼──────────────────────────
-     0    200   400   600   800  t
+```text
+Hypothesis -> Preregistration -> Data Contract -> Inference Contract -> Null Baselines -> Empirical Validation -> Immutable Artifact -> Claim Tier Signoff
 ```
 
-</td>
-<td width="50%" valign="top">
+Synthetic data may instrument or test plumbing, but it cannot promote a claim to measured status. Promotion beyond `INSTRUMENTED` requires a real-data artifact whose dataset hash, configuration hash, git state, seed, and falsification result are recorded.
 
-**The core question:** when do markets synchronize?
+## Layered State Machine
 
-The **Kuramoto order parameter** `R(t)` quantifies instantaneous phase coherence across assets:
+| Layer | Contract | Blocking Condition |
+| --- | --- | --- |
+| 0 Doctrine / Claims | Falsifiable claim and forbidden-claim registry | Claim lacks falsifier or uses forbidden language |
+| 1 Data / Substrate | Immutable dataset manifest with SHA-256 | Data hash missing or mutable source unresolved |
+| 2 Inference Kernel | Deterministic transformation contract | Output omits canonical fields or dirty git state is not disclosed |
+| 3 Falsification / Nulls | Null baselines and stress tests | Null matches or exceeds claimed signal |
+| 4 Artifact / Evidence | JSON artifact validated against schema | Schema validation failure |
+| 5 Gates / Release | CI checks for integrity and schema contracts | Any required gate fails |
+| 6 Product / Interface | Single command gateway | Run/verify path unavailable |
+| 7 External Witness | Independent reproduction capsule | Reproduction exits non-zero or cannot verify hashes |
 
-- `R → 0` desynchronized, independent motion
-- `R → 1` full phase-lock, regime transition
+## Research Line State Machine
 
-When `R` approaches critical coupling `Kc`, the model flags a **candidate synchronization regime** — a geometric hypothesis tested against conventional baselines, not assumed as market law.
-
-```
-dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
-```
-
-</td>
-</tr>
-</table>
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Architecture
-
-```
-                    ┌─────────────────────────────────────────────────────┐
-                    │                   G E O S Y N C                     │
-                    │          Geometric Market Intelligence               │
-                    └─────────────┬───────────────────┬───────────────────┘
-                                  │                   │
-              ┌───────────────────┼───────────────────┼───────────────────┐
-              │                   │                   │                   │
-     ┌────────▼────────┐ ┌───────▼────────┐ ┌────────▼────────┐ ┌───────▼────────┐
-     │  DATA INGESTION │ │ FEATURE  STORE │ │ STRATEGY ENGINE │ │  RISK MANAGER  │
-     │  CCXT · Alpaca  │ │ Redis · Feast  │ │ Policy  Router  │ │  TACL · Gates  │
-     │  Polygon · WS   │ │ Parquet · PG   │ │ Walk-Forward    │ │  Kill Switch   │
-     └────────┬────────┘ └───────┬────────┘ └────────┬────────┘ └───────┬────────┘
-              │                  │                    │                  │
-              └──────────────────┼────────────────────┼──────────────────┘
-                                 │                    │
-                    ┌────────────▼────────────────────▼────────────┐
-                    │            EXECUTION  FABRIC                  │
-                    │    OMS · Smart Routing · Capital Optimizer    │
-                    │    Paper Trading · Compliance · Audit Trail   │
-                    └──────────────────────┬───────────────────────┘
-                                           │
-                    ┌──────────────────────▼───────────────────────┐
-                    │          OBSERVABILITY  STACK                 │
-                    │  Prometheus · OpenTelemetry · 400-day Audit   │
-                    │  Reliability Tests · Deterministic Replay     │
-                    └──────────────────────────────────────────────┘
+```text
+[IDEA] -> [HYPOTHESIS] -> [PREREGISTERED] -> [INSTRUMENTED] -> [TESTED_SYNTHETIC]
+                                                               |
+[VALIDATED] <- [REPLICATED] <- [MEASURED] <- [TESTED_REAL_MULTI] <- [TESTED_REAL_SINGLE]
 ```
 
-<table>
-<tr>
-<td align="center" width="10%"><b>Module</b></td>
-<td align="center" width="20%"><b>Path</b></td>
-<td align="center" width="8%"><b>Lang</b></td>
-<td align="center" width="62%"><b>Purpose</b></td>
-</tr>
-<tr><td><code>CORE</code></td><td><code>core/indicators/</code></td><td>Python</td><td>17 geometric and technical indicators — Kuramoto, Ricci, entropy, fractal, Hurst</td></tr>
-<tr><td><code>KURAMOTO</code></td><td><code>core/kuramoto/</code></td><td>Python</td><td>RK4 · JAX/GPU · Sparse · Adaptive · Delayed · SecondOrder simulation engines</td></tr>
-<tr><td><code>BACKTEST</code></td><td><code>backtest/</code></td><td>Python</td><td>Event-driven engine, walk-forward, Monte Carlo, property-based validation</td></tr>
-<tr><td><code>EXECUTION</code></td><td><code>execution/</code></td><td>Python</td><td>OMS, smart routing, Kelly/MV sizing, compliance, paper trading</td></tr>
-<tr><td><code>RUNTIME</code></td><td><code>runtime/</code></td><td>Python</td><td>Live orchestration, kill switch, CNS stabilizer, recovery agent</td></tr>
-<tr><td><code>TACL</code></td><td><code>tacl/</code></td><td>Python</td><td>Thermodynamic autonomic control — free energy descent, protocol hot-swap</td></tr>
-<tr><td><code>NEURO</code></td><td><code>core/neuro/</code></td><td>Python</td><td>Dopamine TD-learning, serotonin ODE stability, GABA inhibition gate, cryptobiosis survival</td></tr>
-<tr><td><code>OBSERVE</code></td><td><code>observability/</code></td><td>Python</td><td>Prometheus, OpenTelemetry, structured audit logging, dashboards</td></tr>
-<tr><td><code>ACCEL</code></td><td><code>rust/geosync-accel/</code></td><td>Rust</td><td>High-performance compute kernels for hot-path acceleration</td></tr>
-<tr><td><code>UI</code></td><td><code>ui/dashboard/</code></td><td>TypeScript</td><td>React web interface — canonical interactive dashboard</td></tr>
-</table>
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Physics Kernel
-
-> **Claim boundary:** GeoSync is a research-code platform, not a verified physical market system.  
-> Active and retired claims are governed by [`CLAIMS.md`](CLAIMS.md); baseline truth is tracked in [`BASELINE.md`](BASELINE.md).
-
-GeoSync is a **physics-inspired quantitative research platform with a partially machine-checkable invariant layer**, not a "verified physical system" — that stronger claim was retracted on 2026-04-30 after an external audit ([CLAIMS.md](CLAIMS.md), [ALTERNATIVE_HYPOTHESES.md](.claude/physics/ALTERNATIVE_HYPOTHESES.md)). The physics kernel (`.claude/physics/`) declares **97 machine-checkable invariants** across the modules listed in [`INVARIANTS.yaml`](.claude/physics/INVARIANTS.yaml). Tests grounded in `INV-*` ids are *mathematical witnesses* of a specific invariant; the `BASELINE.md` ledger tracks how many of them currently exist (it is intentionally smaller than the registry — coverage growth is gated, not assumed).
-
-Control-plane safety properties are additionally **model-checked in TLA⁺** — see [`formal/tla/AdmissionGate.tla`](formal/tla/AdmissionGate.tla) for the four-barrier admission gate with three TLC-checkable invariants (`TypeOK`, `SafeFirstRejectionWins`, `RejectCodeMatchesBarrier`). CI runs TLC on every PR via [`formal-verification.yml`](.github/workflows/formal-verification.yml).
-
-```
-                     ┌──────────────────────────────────────┐
-                     │   97 INVARIANTS  ·  registry-tracked  │
-                     │   Every assert derives its tolerance  │
-                     │   from the law's formula, not from    │
-                     │   a magic literal.                    │
-                     └──────────┬───────────────────────────┘
-                                │
-          ┌─────────────────────┼─────────────────────────┐
-          │                     │                         │
-  ┌───────▼────────┐   ┌───────▼────────┐   ┌────────────▼──────────┐
-  │ GENERATORS     │   │ SUSTAINERS     │   │ PROTECTORS            │
-  │ Kuramoto (K1-7)│   │ ECS (FE1-2)   │   │ GABA (GABA1-5)       │
-  │ Dopamine (DA1-7)│  │ Serotonin tonic│   │ Serotonin veto (5HT7)│
-  │ HPC (HPC1-2)  │   │ (5HT1-6)      │   │ Cryptobiosis (CB1-8) │
-  │ Kelly (KELLY1-3)│  │ Thermo (TH1-2)│   │                       │
-  └────────────────┘   └───────────────┘   └───────────────────────┘
-```
-
-**Protectors have unconditional priority over Generators.** A system without a gradient cannot use a gradient. See [`CLAUDE.md`](CLAUDE.md) §0 for the full gradient ontology.
-
-| Metric | Value | Source |
-|--------|-------|--------|
-| Physics invariants declared | **97 in `.claude/physics/INVARIANTS.yaml`** (single source of truth) | `python scripts/count_invariants.py` |
-| Physics invariants grounded by tests | tracked in [`BASELINE.md`](BASELINE.md) — **deliberately smaller than declared count**; coverage growth is gated, not assumed | `BASELINE.md` ledger |
-| C1/C2 code audit | **0** undocumented physics clamps in `core/` | `physics-kernel-gate.yml` |
-| CI gates | physics-kernel-gate · invariant-count-sync · formal-verification (TLA⁺) · claims-evidence-gate | `.github/workflows/` |
-| OOS walk-forward alpha | **claim retracted pending signed audit artefact** at `artifacts/audit/SCIENTIFIC_VERIFICATION_REPORT.json` (see [CLAIMS.md](CLAIMS.md) · audit 2026-04-30) | scientific-verification-report job |
-
-**Key invariants:**
-
-| ID | Law | Module |
-|----|-----|--------|
-| `INV-K2` | K < K_c ⟹ R → 0 (subcritical decay, ε = 3/√N) | Kuramoto |
-| `INV-5HT7` | stress ≥ 1 OR \|drawdown\| ≥ 0.5 → veto | Serotonin |
-| `INV-CB1` | DORMANT ⟹ multiplier == 0.0 EXACTLY | Cryptobiosis |
-| `INV-FE1` | Free energy non-increasing under active inference | ECS |
-| `INV-DA7` | ∂δ/∂r = 1 (RPE linear in reward) | Dopamine |
-| `INV-RC1` | Ollivier-Ricci κ ≤ 1 (universal upper bound) | Ricci |
-
-### Neuro-primitive Catalog
-
-- **RebusGate** (`runtime.rebus_gate`) is a Layer 2–3 guardrail primitive:
-  - Layer 2 (protected gradient): bounded exploration with fail-closed activation.
-  - Layer 3 (preserved gradient): mandatory terminal restore before returning to inactive state.
-
-### RebusGate Contract (REBUS)
-
-`runtime.rebus_gate.RebusGate` is confirmation-gated on both boundaries:
-
-- **Activation boundary** requires `apply_attenuated_priors` confirmation before the gate is allowed to enter `ATTENUATION`.
-- **Contract input boundary** accepts only finite real numeric values for coherence/entropy checks and requires `prior_weights` to be a readable key/value mapping of finite real values (`bool` and numeric text are rejected; invalid boundary values raise `ExplorationContractError`).
-- **Terminal boundary** (`reintegrate` / `emergency_exit`) requires `apply_restored_priors` confirmation before terminal success/failure events are emitted and state resets to `INACTIVE`.
-- If either callback does not confirm apply (or raises), the gate remains fail-closed and emits a failure event instead of a false success claim.
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Geometric Indicators
-
-<table>
-<tr>
-<td align="center" width="16%">
-
-```
-    ╭─╮
-   ╱ θ ╲
-  │phase│
-   ╲   ╱
-    ╰─╯
-```
-<b>Kuramoto</b><br>
-<sub>Phase synchrony</sub>
-
-</td>
-<td align="center" width="16%">
-
-```
-   ╭───╮
-  ╱ Ric ╲
- │curva- │
- │ ture  │
-  ╲     ╱
-   ╰───╯
-```
-<b>Ricci Flow</b><br>
-<sub>Regime geometry</sub>
-
-</td>
-<td align="center" width="16%">
-
-```
-   ┌───┐
-   │ H │
-   │ = │
-   │ Σ │
-   │-pln│
-   └───┘
-```
-<b>Entropy</b><br>
-<sub>Shannon / Tsallis</sub>
-
-</td>
-<td align="center" width="16%">
-
-```
-   ╱╲╱╲
-  ╱╲╱╲╱╲
- ╱╲╱╲╱╲╱╲
-╱╲╱╲╱╲╱╲╱╲
-   fractal
-```
-<b>Fractal</b><br>
-<sub>Multi-scale self-similarity</sub>
-
-</td>
-<td align="center" width="16%">
-
-```
-   ┌─────┐
-   │ H(q)│
-   │  ↕  │
-   │0←→1 │
-   └─────┘
-```
-<b>Hurst</b><br>
-<sub>Long-range dependence</sub>
-
-</td>
-<td align="center" width="16%">
-
-```
-   t₁─┐
-   t₂─┤►Σ
-   t₃─┘
-  multi
-  scale
-```
-<b>Multi-Scale</b><br>
-<sub>Timeframe decomposition</sub>
-
-</td>
-</tr>
-</table>
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## TACL — Thermodynamic Autonomic Control
-
-The governing brain of system stability. Every autonomous change must respect **Monotonic Free Energy Descent**.
-
-```
-  Free Energy F = U − T·S
-
-  where   U = Σᵢ wᵢ · penalty(metricᵢ)       internal energy
-          T = 0.60                              control temperature
-          S = stability headroom                entropy term
-
-  Envelope:  F ≤ 1.35   (12% safety margin)
-  Rest:      F = 1.00   (stabilised baseline)
-  Kill:      F > 1.35   (emergency halt)
-```
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-**Monitored Metrics**
-
-| Metric | Threshold | Weight |
-|--------|-----------|--------|
-| `latency_p95` | 85 ms | 1.6 |
-| `latency_p99` | 120 ms | 1.9 |
-| `coherency_drift` | 0.08 | 1.2 |
-| `cpu_burn` | 0.75 | 0.9 |
-| `mem_cost` | 6.5 GiB | 0.8 |
-| `queue_depth` | 32 msg | 0.7 |
-| `packet_loss` | 0.005 | 1.4 |
-
-</td>
-<td width="50%" valign="top">
-
-**Safety State Machine**
-
-```
-              ┌──────────────┐
-              │   NOMINAL    │ F ≤ 1.00
-              └──────┬───────┘
-                     │ F ↑
-              ┌──────▼───────┐
-              │   STRESSED   │ 1.00 < F ≤ 1.35
-              └──────┬───────┘
-                     │ F > 1.35
-              ┌──────▼───────┐
-              │  KILL SWITCH │ dual-approval
-              │   ENGAGED    │ or auto-rollback
-              └──────────────┘
-```
-
-</td>
-</tr>
-</table>
-
-**Protocol Hot-Swap** — dynamic switching between RDMA, CRDT, gRPC, Shared Memory, Gossip with admissibility guards. Any swap that increases `F` beyond tolerance triggers automatic reversion within 30s.
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Quick Start
-
-```bash
-git clone https://github.com/neuron7xLab/GeoSync.git
-cd GeoSync
-python -m venv .venv && source .venv/bin/activate
-make install
-```
-
-### First Analysis
-
-```python
-from core.indicators.kuramoto_ricci_composite import GeoSyncCompositeEngine
-import numpy as np, pandas as pd
-
-index  = pd.date_range("2024-01-01", periods=720, freq="5min")
-prices = 100 + np.cumsum(np.random.normal(0, 0.6, 720))
-volume = np.random.lognormal(9.5, 0.35, 720)
-bars   = pd.DataFrame({"close": prices, "volume": volume}, index=index)
-
-engine   = GeoSyncCompositeEngine()
-snapshot = engine.analyze_market(bars)
-
-print(f"Phase:      {snapshot.phase.value}")
-print(f"Confidence: {snapshot.confidence:.3f}")
-print(f"Entry:      {snapshot.entry_signal:.3f}")
-```
-
-```
-=== GeoSync Market Analysis ===
-Phase:      transition
-Confidence: 0.893
-Entry:      0.000
-```
-
-### Kuramoto Simulation
-
-```python
-from core.kuramoto import KuramotoConfig, run_simulation
-
-cfg = KuramotoConfig(N=50, K=3.0, dt=0.01, steps=1000, seed=42)
-result = run_simulation(cfg)
-
-print(f"Trajectory: {result.phases.shape}")       # (1001, 50)
-print(f"Final R:    {result.order_parameter[-1]:.4f}")
-```
-
-### Backtest
-
-```python
-from backtest.event_driven import EventDrivenBacktestEngine
-from core.indicators import KuramotoIndicator
-
-indicator = KuramotoIndicator(window=80, coupling=0.9)
-prices = 100 + np.cumsum(np.random.default_rng(42).normal(0, 1, 500))
-
-def signal(series):
-    order = indicator.compute(series)
-    s = np.where(order > 0.75, 1.0, np.where(order < 0.25, -1.0, 0.0))
-    s[:min(indicator.window, s.size)] = 0.0
-    return s
-
-result = EventDrivenBacktestEngine().run(prices, signal, initial_capital=100_000)
-```
-
-### CLI
-
-```bash
-tp-kuramoto simulate --N 50 --K 3.0 --steps 2000 --seed 42
-geosync-server --allow-plaintext --host 127.0.0.1 --port 8000
-```
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## L2 Microstructure — Ricci cross-sectional edge
-
-Ten-axis empirical validation of a cross-sectional curvature edge on
-Binance USDT-M perp L2 depth streams. One-command reproduction:
-
-```bash
-make l2-demo           # full pipeline + figures + HTML dashboard (~85 s)
-make l2-help           # list all L2 targets
-```
-
-Runs all 9 iterations end-to-end, renders five canonical demo figures,
-emits `results/L2_FULL_CYCLE_MANIFEST.json` with SHA-256 replay hashes,
-and generates a self-contained HTML dashboard at
-`results/figures/index.html`.
-
-Downstream-friendly flat metrics:
-`results/L2_HEADLINE_METRICS.json` — 44 primitive keys covering every
-axis + ablation + verdict. Ingestion-ready for dashboards and
-warehouses without parsing variable-structure artifacts.
-
-Protection: `.github/workflows/l2-demo-gate.yml` runs full test suite
-+ demo-smoke gate on every PR that touches the L2 surface.
-
-| Axis | Finding | Artifact |
-|---|---|---|
-| 1. Kill test | IC = 0.122 at p = 0.002 | `L2_KILLTEST_VERDICT.json` |
-| 2. Bootstrap CI | 95% CI [0.029, 0.210] excludes 0 | `L2_ROBUSTNESS.json` |
-| 3. Deflated Sharpe | DSR = 15.1, Pr(real) = 1.0 | `L2_ROBUSTNESS.json` |
-| 4. Purged K-fold CV | 5/5 folds positive, mean = 0.122 | `L2_PURGED_CV.json` |
-| 5. Mutual information | 0.078 nats concordant with Spearman | `L2_ROBUSTNESS.json` |
-| 6. Spectral β | β = 1.80 RED regime | `L2_SPECTRAL.json` |
-| 7. DFA Hurst | H = 1.014, R² = 0.982, STRONG_PERSISTENT | `L2_HURST.json` |
-| 8. Transfer entropy | 45/45 pairs BIDIRECTIONAL, p < 0.05 | `L2_TRANSFER_ENTROPY.json` |
-| 9. Conditional TE | 33/36 PRIVATE_FLOW after BTC-conditioning | `L2_CONDITIONAL_TE.json` |
-| 10. Walk-forward stability | 82% of 40-min windows positive, STABLE_POSITIVE | `L2_WALK_FORWARD_SUMMARY.json` |
-
-See [`research/microstructure/FINDINGS.md`](research/microstructure/FINDINGS.md)
-for the full synthesis and honest-limitations section.
-
-Generated figures (`results/figures/`):
-
-- `fig0_cover.png` — single-page demo cover: 10-axis verdict + PROCEED badge
-- `fig1_signal_validation.png` — signal existence + statistical robustness
-- `fig2_dynamics.png` — spectral · DFA · diurnal · autocorrelation
-- `fig3_coupling.png` — TE · CTE · regime Markov · break-even
-- `fig4_stability.png` — walk-forward IC timeseries · distribution · perm-p · verdict
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Kuramoto ODE Engine
-
-Six specialized integrators for every scale:
-
-| Engine | Method | Use Case |
-|--------|--------|----------|
-| **Standard** | RK4 | General-purpose, N < 10K |
-| **JAX** | XLA-compiled | GPU/TPU acceleration |
-| **Sparse** | O(E) coupling | Large networks, sparse topology |
-| **Adaptive** | Dormand-Prince / LSODA | Error-controlled step size |
-| **Delayed** | DDE | Time-delayed coupling |
-| **SecondOrder** | Inertia + damping | Swing equations, power grids |
-
-```
-Standard ODE:    dθᵢ/dt = ωᵢ + (K/N) · Σⱼ≠ᵢ sin(θⱼ − θᵢ)
-Adjacency ODE:   dθᵢ/dt = ωᵢ + K · Σⱼ Aᵢⱼ sin(θⱼ − θᵢ)
-Order Parameter: R(t) = |1/N · Σⱼ exp(iθⱼ)| ∈ [0, 1]
-```
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `N` | 10 | Coupled oscillators (int >= 2) |
-| `K` | 1.0 | Global coupling strength |
-| `omega` | N(0,1) | Natural frequencies (rad/time) |
-| `dt` | 0.01 | RK4 integration step |
-| `steps` | 1000 | Integration steps |
-| `adjacency` | None | Weighted coupling matrix |
-| `theta0` | U(0, 2pi) | Initial phases |
-| `seed` | None | RNG seed for reproducibility |
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Testing & Quality
-
-```
- 11,446 collected  ·  ≥99.9% fast-tier passing  ·  71% line coverage  ·  67 physics invariants  ·  0 mypy errors
-```
-
-<table>
-<tr>
-<td align="center" width="16%"><b>Unit</b><br><sub>tests/unit/</sub></td>
-<td align="center" width="16%"><b>Integration</b><br><sub>tests/integration/</sub></td>
-<td align="center" width="16%"><b>Property</b><br><sub>tests/property/</sub></td>
-<td align="center" width="16%"><b>Fuzz</b><br><sub>tests/fuzz/</sub></td>
-<td align="center" width="16%"><b>Contract</b><br><sub>tests/contracts/</sub></td>
-<td align="center" width="16%"><b>Mutation</b><br><sub>mutmut</sub></td>
-</tr>
-</table>
-
-```bash
-pytest tests/                          # full suite
-pytest tests/ -m "not slow"            # fast feedback
-pytest tests/property/                 # hypothesis-driven
-mutmut run --use-coverage              # mutation testing
-cd ui/dashboard && npm test            # UI smoke
-```
-
-**CI Merge Gates**: ruff, mypy (strict), bandit, pip-audit, CodeQL, Semgrep, TruffleHog, CycloneDX SBOM generation.
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Performance
-
-> Design targets — NOT measured results. See [METRICS_CONTRACT.md](docs/METRICS_CONTRACT.md).
-
-```
-  Backtesting throughput     1M+ bars/second
-  Order latency              < 5 ms (exchange-dependent)
-  Signal generation          < 1 ms (cached indicators)
-  Memory steady-state        ~ 200 MB live trading
-  Hot-path budget            > 30% → Rust accelerator fallback
-```
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Security
-
-```
-  Framework       NIST SP 800-53  ·  ISO 27001  (design aligned)
-  Encryption      AES-256 at rest  ·  TLS 1.3 in transit
-  Secrets         HashiCorp Vault  ·  AWS Secrets Manager
-  Auth            JWT + MFA for admin operations
-  Compliance      GDPR · CCPA · SEC · FINRA patterns
-  Audit           400-day immutable append-only log
-  Supply chain    pinned SHA actions · dependency hash verification
-  CVE target      < 7-day remediation
-  Type safety     mypy strict · Pydantic 2.0 · 0 type errors
-```
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Deployment
-
-```bash
-# Docker Compose (dev/staging)
-cp .env.example .env && docker compose up -d
-
-# Kubernetes (production)
-terraform -chdir=infra/terraform/eks apply -var-file=environments/production.tfvars
-kubectl apply -k deploy/kustomize/overlays/production
-```
-
-**Configuration** via [Hydra](https://hydra.cc) — `conf/`, `config/`, `configs/`, `envs/`, `.env`. Override anything from CLI:
-
-```bash
-geosync run strategy.capital=200000 data.timeframe=4h
-```
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Technology Stack
-
-```
-  NUMERICAL       NumPy 2.3  ·  SciPy 1.16  ·  Pandas 2.3  ·  Numba 0.60
-  ML              PyTorch 2.1  ·  scikit-learn  ·  Optuna
-  GRAPH           NetworkX 3.5
-  API             FastAPI 0.120  ·  Strawberry GraphQL
-  DATABASE        PostgreSQL + SQLAlchemy 2.0  ·  Alembic
-  CACHE           Redis 7.0
-  MESSAGING       Apache Kafka (aiokafka)
-  OBSERVABILITY   Prometheus  ·  OpenTelemetry
-  CONFIGURATION   Hydra-core 1.3  ·  OmegaConf 2.3
-  VALIDATION      Pydantic 2.12  ·  Pandera 0.20
-  INFRASTRUCTURE  Docker  ·  Kubernetes  ·  Helm  ·  Terraform
-  ACCELERATION    Rust (geosync-accel)  ·  CuPy (GPU optional)
-  QUALITY         ruff · black · mypy · pytest · Hypothesis · mutmut
-```
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Project Status
-
-```
-  VERSION         v0.1.0   Pre-Production Beta
-  CORE ENGINE     stable   ANCHORED — 19 invariants gated in CI
-  INDICATORS      stable   50+ geometric + technical
-  BACKTESTING     stable   event-driven, walk-forward
-  LIVE TRADING    beta     paper-trading only — caveat L-1
-  DASHBOARD       alpha    early preview
-  DOCUMENTATION   85%      170+ files
-```
-
-Each row is tier-labelled per [IERD-PAI-FPS-UX-001](docs/governance/IERD-PAI-FPS-UX-001.md). The CORE ENGINE row is anchored by [`claim_id=kuramoto-order-parameter-bounded`](docs/CLAIMS.yaml) and 18 sibling P0/P1 entries — see [INV-K1] through [INV-DRO5] in [`CLAUDE.md`](CLAUDE.md) plus [`scripts/ci/check_claims.py`](scripts/ci/check_claims.py), [`scripts/ci/compute_pai.py`](scripts/ci/compute_pai.py), and [`scripts/ci/compute_fps_audit.py`](scripts/ci/compute_fps_audit.py) for the gates that block merge. Known caveats: [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) (L-1..L-10). External-audit response: [`docs/yana-response.md`](docs/yana-response.md).
-
-**Roadmap**
-
-```
-  Q1 2026         v1.0 production release
-  Q2 2026         options & derivatives support
-  Q3-Q4 2026      multi-asset portfolio optimization
-```
-
-**Path to v1.0**: 98% coverage gate activation, dashboard auth hardening, external security audit, P99 benchmark suite, SBOM publication, IERD Phase 1–4 (PAI ≥ 0.90 per-module · OpenAPI 3.1 · UXRS ≥ 0.95 · ECC ≥ 0.90 · all four E2E latency layers green).
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Documentation
-
-<table>
-<tr>
-<td valign="top" width="50%">
-
-**Getting Started**
-- [Environment Setup](SETUP.md)
-- [Quickstart Guide](docs/quickstart.md)
-- [CLI Reference](docs/geosync_cli_reference.md)
-- [User Interaction Guide](docs/USER_INTERACTION_GUIDE.md)
-
-**Architecture**
-- [System Architecture](docs/ARCHITECTURE.md)
-- [Architecture Map](docs/ARCHITECTURE_MAP.md)
-- [ADR Records (19)](docs/adr/)
-- [Independent Models](docs/architecture/independent_models.md)
-
-</td>
-<td valign="top" width="50%">
-
-**Operations**
-- [Deployment Guide](DEPLOYMENT.md)
-- [Live Trading Runbook](docs/runbook_live_trading.md)
-- [Kill Switch Failover](docs/runbook_kill_switch_failover.md)
-- [Disaster Recovery](docs/runbook_disaster_recovery.md)
-
-**Research**
-- [Bibliography](docs/BIBLIOGRAPHY.md)
-- [Indicator Library](docs/indicators.md)
-- [TACL Documentation](docs/TACL.md)
-- [Metrics Contract](docs/METRICS_CONTRACT.md)
-
-**Honesty set** — read before you trust a number
-- [Known Limitations](docs/KNOWN_LIMITATIONS.md)
-- [Performance Ledger](docs/PERFORMANCE_LEDGER.md)
-- [Baseline](BASELINE.md)
-
-</td>
-</tr>
-</table>
-
-[Institutional Overview](INSTITUTIONAL_OVERVIEW.md) | [Roadmap](ROADMAP.md) | [Security Framework](docs/security/) | [Contributing](CONTRIBUTING.md) | [Full Documentation](docs/)
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Contributing
-
-```bash
-git clone https://github.com/neuron7xLab/GeoSync.git && cd GeoSync
-python -m venv .venv && source .venv/bin/activate
-make dev-install
-
-make test          # core test suite
-make lint          # ruff + mypy + bandit
-make format        # black + isort
-make audit         # security audit
-make golden-path   # full workflow demo
-make help          # all commands
-```
-
-[Contributing Guide](CONTRIBUTING.md) | [Code of Conduct](CODE_OF_CONDUCT.md) | [Good First Issues](https://github.com/neuron7xLab/GeoSync/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-## Citation
-
-If you use GeoSync in academic research, industry reports, or derivative work, please cite it. A machine-readable manifest lives in [`CITATION.cff`](CITATION.cff); GitHub renders a ready-to-copy citation in the sidebar of the repository page.
-
-```bibtex
-@software{geosync_2026,
-  title   = {GeoSync: Geometric Market Intelligence Platform},
-  author  = {Vasylenko, Yaroslav},
-  year    = {2026},
-  version = {1.0.0},
-  url     = {https://github.com/neuron7xLab/GeoSync},
-  license = {MIT}
+Terminal archive states are `REJECTED`, `BLOCKED_DATA`, `BLOCKED_REPRO`, `BLOCKED_NULL`, `BLOCKED_COST_MODEL`, and `RETIRED`. Terminal records are preserved rather than deleted.
+
+## Canonical Artifact Contract
+
+Every inference artifact for an evidence-bearing line must validate as JSON and include the deterministic fields enforced by `schemas/research/ricci_microstructure_artifact.schema.json`:
+
+```json
+{
+  "run_id": "RFC-2026-MARKET-RICCI-V1",
+  "git_sha": "0000000000000000000000000000000000000000",
+  "git_dirty": false,
+  "data_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "config_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "seed": 1337,
+  "timestamp_utc": "2026-05-31T20:27:00Z",
+  "input_window_sec": 30,
+  "score": 0.742,
+  "uncertainty": 0.031,
+  "decision": "NO_TRADE",
+  "claim_tier": "HYPOTHESIS",
+  "falsification_status": "PASS"
 }
 ```
 
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
+## Golden Path
 
-## Risk Disclosure
-
-Trading financial instruments involves substantial risk of loss. GeoSync provides quantitative research infrastructure and execution tooling — it does not constitute investment advice, and no component guarantees profitable performance. Live trading modules are in pre-production beta. Backtested results do not guarantee future performance. Users bear full regulatory responsibility.
-
-<p align="center">
-  <img src=".github/assets/divider.svg" width="100%">
-</p>
-
-<div align="center">
-
-```
-                            *       .        *       .       *
-                 .      *        .        *        .      *
-              *     .        *        .        *     .        *
-           .     *     .        *        .     *     .
-              *     .     *        .     *     .     *
-                 .     *     .     *     .     *
-                    *     .     *     .     *
-                       .     *     .     *
-                          *     .     *
-                             .     *
-                                *
+```bash
+geosync-research run --line ricci_microstructure_v1 --config conf/research/ricci_v1.yaml --data data/manifest.json --out artifacts/runs/
+geosync-research verify artifacts/runs/<run_id>
 ```
 
-<br>
+Until that gateway is fully implemented, the schema gate is the repository-level enforcement point:
 
-**GeoSync** — Geometric Market Intelligence
+```bash
+python tools/research/validate_ricci_artifact_schema.py --schema schemas/research/ricci_microstructure_artifact.schema.json --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
+```
 
-`neuron7xLab` · Poltava, Ukraine 🇺🇦
+## Release Evidence Harness
 
-[![MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat)](LICENSE)
+Every release validation must leave machine-readable evidence, raw logs, commands, and exit codes. The harness is semantic: clean install is required by default, and non-empty git status/diff output is RED even when git exits 0:
 
-<sub>Built on peer-reviewed science. Physics-first, 97 invariants loaded from `.claude/physics/INVARIANTS.yaml`, every clamp documented.</sub>
+```bash
+python tools/release_evidence_harness.py
+# deterministic metadata/log timestamps for reproducibility checks:
+python tools/release_evidence_harness.py --fixed-timestamp-utc 2026-01-01T00:00:00Z
+# verify raw-log integrity after generation or archive transfer:
+python tools/release_evidence_harness.py --verify-manifest artifacts/evidence_bundle/manifest.json
+```
 
-</div>
+The harness writes `release_gate.yaml` plus `artifacts/evidence_bundle/manifest.json`, raw logs, a CycloneDX SBOM (`sbom.cdx.json`), CI status JSON, Prometheus/DataDog telemetry exports, and a dependency-free PDF audit report. Gates execute through the asyncio runner unless a caller uses the lower-level `_run_gate` helper directly. For release signing, pass `--gpg-key <KEYID>` and verify with `--verify-manifest artifacts/evidence_bundle/manifest.json --require-gpg-signature`; unsigned manifests are acceptable only for local development smoke runs. Environment drift checks can be calibrated with `--write-environment-baseline baseline.json` and enforced later with `--environment-baseline baseline.json`; `--skip-clean-install` is forbidden in CI and requires the explicit development-only `--allow-tainted-env` opt-in outside CI. These are generated release artifacts, not source files; commit them only in an explicit release-evidence branch or archive. A release claim without those files, or with any required RED gate, is not considered evidence.
+
+## Required Gates
+
+Protected-branch policy must require these checks before evidence-bearing changes merge:
+
+- `research-integrity-gate`
+- `physics-kernel-self-check`
+- `claim-evidence-gate`
+- `rust-accel-gate` with `cargo clippy -- -D warnings`
+- `go-workspace-integrity`
+- `dependency-review` with `fail-on-severity: high`
+
+## Scope Control
+
+See `FORBIDDEN_CLAIMS.md` for prohibited wording and permitted status language. A claim that cannot identify its falsifier is not a claim; it is backlog text.

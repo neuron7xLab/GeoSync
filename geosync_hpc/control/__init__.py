@@ -12,11 +12,21 @@ proof in ``control_episode``.
 from __future__ import annotations
 
 from geosync_hpc.control.action_result_comparator import (
+    ActionResultComparator,
+    ActionResultEvidence,
     ActionResultStatus,
     ActionResultWitness,
     ExpectedResultModel,
     ObservedActionResult,
     accept_action_result,
+    compare_action_result,
+    seal_action_result_evidence,
+)
+from geosync_hpc.control.self_healing import (
+    RecoveryAction,
+    RecoveryPlan,
+    estimate_entropy_risk,
+    prescribe_recovery,
 )
 from geosync_hpc.control.control_episode import (
     ControlEpisode,
@@ -33,6 +43,8 @@ from geosync_hpc.control.control_episode import (
 )
 
 __all__ = [
+    "ActionResultComparator",
+    "ActionResultEvidence",
     "ActionResultStatus",
     "ActionResultWitness",
     "ControlEpisode",
@@ -40,7 +52,13 @@ __all__ = [
     "EpisodeRecord",
     "ExpectedResultModel",
     "ObservedActionResult",
+    "prescribe_recovery",
+    "estimate_entropy_risk",
+    "RecoveryPlan",
+    "RecoveryAction",
     "accept_action_result",
+    "compare_action_result",
+    "seal_action_result_evidence",
     "compute_error",
     "dispatch_action",
     "persist_memory",

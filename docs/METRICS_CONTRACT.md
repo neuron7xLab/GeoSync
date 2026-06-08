@@ -1,7 +1,7 @@
 ---
 owner: docs@geosync
 review_cadence: monthly
-last_reviewed: 2026-05-22
+last_reviewed: 2025-12-25
 status: active
 links:
   - ../DOCUMENTATION_SUMMARY.md
@@ -15,10 +15,17 @@ links:
 > All coverage, performance, security, and compliance claims in README.md, TESTING.md, SECURITY.md,
 > and docs/** must reference this document for their evidence status.
 >
-> **Last Updated**: 2026-05-22
+> **Last Updated**: 2025-12-25
 > **Maintainer**: GeoSync Team
 
 ## ⚠️ Important Disclaimers
+
+## Stage 2 Coverage Closure
+
+- Stage 2A introduces coverage surface targets and validation contract tooling.
+- 98% coverage remains a goal unless artifact-backed coverage proves it.
+- Surface thresholds are contract targets, not achieved metrics.
+- No coverage claim is promoted by this PR.
 
 1. **This is NOT a legal document.** It does not constitute a warranty, guarantee, or contractual commitment.
 2. **This document requires regular maintenance.** Claims and statuses must be updated after documentation changes, releases, and evidence collection.
@@ -35,7 +42,6 @@ links:
 | `partial` | Partial evidence (old log, not in CI, or incomplete coverage) | ⚠️ Partial |
 | `goal` | Target/roadmap item, no technical proof yet | ❌ No |
 | `remove` | Claim too bold/unprovable, should be removed from docs | ❌ N/A |
-| `quarantine` | Claim potentially useful but not admissible as release evidence | ⚠️ No |
 
 **Legacy statuses** (mapped to above):
 - `enforced` → `proven` (CI gate active)
@@ -45,19 +51,6 @@ links:
 - `planned` → `goal`
 
 ---
-
-
-## Stage 1 Evidence Grounding
-
-PR #782 bootstraps Stage 1 evidence grounding but does not by itself prove full test-suite health.
-
-A non-zero baseline exit code blocks Stage 1 closure.
-
-Artifacts:
-- `reports/test_audit/post_merge_triage_20260522.md`
-- `reports/test_audit/evidence_index.json`
-- `docs/testing/canonical_commands.md`
-- `scripts/test_audit/run_evidence_baseline.sh`
 
 ## CI Workflow Notes
 
@@ -81,6 +74,7 @@ Artifacts:
 | id | domain | claim | measurement_command | evidence_path | status | notes |
 |----|--------|-------|---------------------|---------------|--------|-------|
 | COV_98_CI_GATE | coverage | 98% CI coverage gate enforced on all PRs | `pytest tests/ --cov=core --cov=backtest --cov=execution --cov-fail-under=98` | `.github/workflows/tests.yml`, `reports/coverage/` | goal | Target gate, currently not met. See actual coverage below. |
+| COV_SURFACE_TARGETS_2026 | coverage | Surface-based coverage contract with module thresholds and artifact evidence | `python tools/coverage/validate_coverage_targets.py --coverage reports/coverage/coverage.xml --targets configs/quality/coverage_targets.toml` | `configs/quality/coverage_targets.toml`, `reports/coverage/coverage_summary.json`, `reports/coverage/module_coverage.json` | partial | Introduced in Stage 2 to prevent overclaiming raw global coverage percentages. |
 | COV_BACKTEST_74 | coverage | backtest/ module ~74% coverage | `pytest tests/unit/backtest tests/integration/test_backtest.py tests/integration/test_golden_path_backtest.py --cov=backtest --cov-report=term` | `reports/coverage/index.html` | proven | Measured 2025-12-10: 73.85%. Key files: engine.py (95%), performance.py (96%), dopamine_td.py (92%) |
 | COV_EXECUTION_44 | coverage | execution/ module ~44% coverage | `pytest tests/unit/execution tests/integration/ --cov=execution --cov-report=term -m "not slow"` | `reports/coverage/index.html` | proven | Measured 2025-12-10: 43.61%. Key files: paper_trading.py (98%), connectors.py (68%), order_lifecycle.py (74%) |
 | COV_CORE_32 | coverage | core modules ~32% coverage | `pytest tests/unit/core tests/integration/ --cov=core --cov-report=term -m "not slow"` | `reports/coverage/index.html` | proven | Measured 2025-12-10: 32.05%. High coverage: engine/core.py (95%), orchestrator (96%), maintenance/backups (95%) |

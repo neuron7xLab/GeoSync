@@ -11,14 +11,12 @@
 #      structure matching its invariant type (L3), emits a 5-field
 #      error message on failure (L4), and derives thresholds from
 #      theory rather than magic literals (L5).
-#   3. Production physics code in core/ does not silently clamp or
-#      clip physical quantities without logging or an INV-* comment
+#   3. Production physics code in changed core/ Python files does not silently
+#      clamp or clip physical quantities without logging or an INV-* comment
 #      (C1, C2 audit).
 #
-# The gate is fail-closed. If the kernel self-check fails OR any test
-# validation issue is reported OR any code-audit violation is found,
-# the PR cannot merge. Orphan (pre-migration) tests are tracked but do
-# not block merging yet — the migration path is tracked in BASELINE.md.
+# The gate is fail-closed for changed physics tests and changed core code.
+# Repo-wide grounding remains informational until the migration backlog closes.
 name: Physics Kernel Gate
 
 on:
@@ -42,8 +40,7 @@ concurrency:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # kernel-self-check — verify the physics kernel is internally consistent.
-  # Fast (<1s), no deps beyond the standard library; runs on every PR.
+  # kernel-self-check
   # ---------------------------------------------------------------------------
   kernel-self-check:
     name: physics-kernel-self-check
@@ -51,7 +48,7 @@ jobs:
     continue-on-error: false
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
@@ -63,12 +60,6 @@ jobs:
           set -euo pipefail
           python .claude/physics/validate_tests.py --self-check
 
-  # ---------------------------------------------------------------------------
-  # test-validation — run L1–L5 checks on physics tests.
-  # Reports issues; blocks merge on validation regressions relative to
-  # tracked migrated files (listed below). Orphan tests outside the
-  # tracked set are informational until migration completes.
-  # ---------------------------------------------------------------------------
   test-validation:
     name: physics-test-validation
     runs-on: ubuntu-latest
@@ -76,24 +67,18 @@ jobs:
     continue-on-error: false
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.12'
 
-      # Strict-list enforcement: files that MUST validate clean at every
-      # level (L1 through L5, zero issues of any kind). Add a file here
-      # only after every single test function in it is grounded to an
-      # INV-* invariant and the kernel validator prints
-      # "All physics tests pass validation."
-      #
-      # A file with partial-migration status (some tests grounded,
-      # others still orphans) goes in PARTIAL_MIGRATED below instead,
-      # which is checked for L2/L3/L4/L5 regressions only — those are
-      # the levels that affect existing INV-* witnesses. L1 is allowed
-      # to be non-zero for partial files.
+      - name: Validate physics witness sidecar map
+        run: |
+          set -euo pipefail
+          python .claude/physics/validate_witness_map.py
+
       - name: Validate fully-migrated physics tests (strict, fail-closed)
         run: |
           set -euo pipefail
@@ -121,10 +106,6 @@ jobs:
           done
           exit "${exit_code}"
 
-      # Partial-migration list: files with at least one INV-* witness but
-      # still carrying pre-migration orphans. Enforcement ensures no
-      # regression in the grounded witnesses (no new L2/L3/L4/L5 issue),
-      # but tolerates the remaining L1 backlog while migration continues.
       - name: Validate partial-migration files (no L2-L5 regression)
         run: |
           set -euo pipefail
@@ -137,8 +118,6 @@ jobs:
           exit_code=0
           for file in "${PARTIAL_MIGRATED[@]}"; do
             echo "::group::partial: ${file}"
-            # The validator exits non-zero when any L1-L5 issue exists.
-            # We re-examine its output and fail only on L2-L5 regressions.
             report=$(python .claude/physics/validate_tests.py "${file}" 2>&1 || true)
             echo "${report}"
             regressed=0
@@ -156,17 +135,12 @@ jobs:
           done
           exit "${exit_code}"
 
-      # Repo-wide sweep: informational today (orphan tests are not blocking)
-      # but emitted so reviewers can see total grounding progress.
       - name: Repo-wide physics grounding report (informational)
         if: always()
         run: |
           set -euo pipefail
           python .claude/physics/validate_tests.py tests/ --summary || true
 
-  # ---------------------------------------------------------------------------
-  # code-audit — C1/C2: silent clamps and undocumented bounds in physics code
-  # ---------------------------------------------------------------------------
   code-audit:
     name: physics-code-audit
     runs-on: ubuntu-latest
@@ -174,17 +148,34 @@ jobs:
     continue-on-error: false
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.12'
 
-      # The C1/C2 audit is currently run in report-only mode (|| true) until
-      # the backlog of silent clamps in core/ is resolved. Flip the `|| true`
-      # to a hard failure once the audit count reaches zero.
-      - name: Audit core/ for silent clamps and undocumented bounds
+      - name: Audit changed core/ files for silent clamps and undocumented bounds
         run: |
           set -euo pipefail
-          python .claude/physics/validate_tests.py core/ --audit-code --summary || true
+          if [ -n "${GITHUB_BASE_REF:-}" ]; then
+            changed=$(git diff --name-only "origin/${GITHUB_BASE_REF}"...HEAD)
+          else
+            changed=$(git diff-tree --no-commit-id --name-only -r "${GITHUB_SHA}")
+          fi
+          echo "${changed}"
+          mapfile -t core_py_files < <(printf '%s\n' "${changed}" | grep -E '^core/.*\.py$' || true)
+          if [ "${#core_py_files[@]}" -eq 0 ]; then
+            echo "No changed core/*.py files in this PR; skipping core code audit."
+            exit 0
+          fi
+          for file in "${core_py_files[@]}"; do
+            if [ ! -f "${file}" ]; then
+              continue
+            fi
+            echo "::group::physics-code-audit: ${file}"
+            python .claude/physics/validate_tests.py "${file}" --audit-code --summary
+            echo "::endgroup::"
+          done

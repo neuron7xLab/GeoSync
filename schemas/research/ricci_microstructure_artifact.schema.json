@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://geosync.local/schemas/research/ricci_microstructure_artifact.schema.json",
+  "title": "Ricci Microstructure Canonical Inference Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "git_sha",
+    "git_dirty",
+    "data_sha256",
+    "config_sha256",
+    "seed",
+    "timestamp_utc",
+    "input_window_sec",
+    "score",
+    "uncertainty",
+    "decision",
+    "claim_tier",
+    "falsification_status"
+  ],
+  "properties": {
+    "run_id": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{2,127}$"},
+    "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "git_dirty": {"type": "boolean"},
+    "data_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "seed": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "timestamp_utc": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "input_window_sec": {"type": "integer", "minimum": 1, "maximum": 86400},
+    "score": {"type": "number", "minimum": -1.0, "maximum": 1.0},
+    "uncertainty": {"type": "number", "minimum": 0.0},
+    "decision": {"type": "string", "enum": ["NO_TRADE", "OBSERVE", "REJECT"]},
+    "claim_tier": {"type": "string", "enum": ["HYPOTHESIS", "INSTRUMENTED", "MEASURED_SINGLE", "MEASURED_MULTI", "LIMITED_EMPIRICAL", "REJECTED", "BLOCKED_COST_MODEL"]},
+    "falsification_status": {"type": "string", "enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN"]}
+  }
+}

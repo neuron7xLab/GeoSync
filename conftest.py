@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import inspect
 import json
 import os
 import pathlib
@@ -338,7 +339,7 @@ def pytest_pyfunc_call(pyfuncitem):  # type: ignore[override]
         return None
 
     testfunction = pyfuncitem.obj
-    if not asyncio.iscoroutinefunction(testfunction):
+    if not inspect.iscoroutinefunction(testfunction):
         return None
 
     loop = asyncio.new_event_loop()

@@ -251,6 +251,40 @@ def _append_record(
     )
 
 
+def _annul_with_invalid_observation(
+    episode: ControlEpisode,
+    observed: ObservedActionResult,
+    witness: ActionResultWitness,
+) -> ControlEpisode:
+    """Bind a rejected observation and close the episode deterministically.
+
+    This is the fail-closed path for asynchronous/out-of-order afferentation:
+    the invalid observation is still hash-bound as evidence, the comparator
+    witness is hash-bound exactly once, and the returned episode is closed so
+    no later phase can update model weights from a broken chronology.
+    """
+
+    if not witness.rollback_required:
+        raise ValueError("PHASE_REJECTED: invalid observation witness must request rollback")
+    rejection_seq = episode.records[-1].seq + 1
+    rejected = _append_record(
+        episode,
+        EpisodePhase.AFFERENTATION_RECEIVED,
+        rejection_seq,
+        _digest_payload(_canonical_observed_bytes(observed)),
+        observed=observed,
+    )
+    witness_seq = rejection_seq + 1
+    return _append_record(
+        rejected,
+        EpisodePhase.ERROR_COMPUTED,
+        witness_seq,
+        _digest_payload(_canonical_witness_bytes(witness)),
+        witness=witness,
+        closed=True,
+    )
+
+
 def start_episode(episode_id: str, intent_payload: bytes, seq: int) -> ControlEpisode:
     """Open a new episode at phase ``INTENT_DECLARED``."""
 
@@ -343,23 +377,21 @@ def receive_afferentation(
 
     _require_open(episode)
     _require_phase(episode, EpisodePhase.ACTION_DISPATCHED)
-    _require_seq_strictly_after(episode, seq)
     if observed is None:
         raise ValueError("PHASE_REJECTED: observed must not be None at AFFERENTATION_RECEIVED")
     if not isinstance(observed, ObservedActionResult):
         raise ValueError("PHASE_REJECTED: observed must be ObservedActionResult")
     if episode.expected is None:
         raise ValueError("PHASE_REJECTED: expected must be sealed before afferentation")
+    if observed.observed_seq <= episode.expected.action_started_seq:
+        witness = accept_action_result(episode.expected, observed)
+        return _annul_with_invalid_observation(episode, observed, witness)
+
+    _require_seq_strictly_after(episode, seq)
     if observed.observed_seq != seq:
         raise ValueError(
             "PHASE_REJECTED: seq must equal observed.observed_seq "
             f"({seq} != {observed.observed_seq})"
-        )
-    if observed.observed_seq <= episode.expected.action_started_seq:
-        raise ValueError(
-            "PHASE_REJECTED: observed.observed_seq must strictly exceed "
-            f"action_started_seq ({observed.observed_seq} "
-            f"<= {episode.expected.action_started_seq})"
         )
 
     payload_digest = _digest_payload(_canonical_observed_bytes(observed))

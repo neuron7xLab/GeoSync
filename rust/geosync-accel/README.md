@@ -20,6 +20,39 @@ Once installed the Python package automatically dispatches to the Rust implement
 whenever it is importable. If the extension is missing, the high level APIs fall back to
 NumPy or pure-Python implementations so the platform remains fully functional.
 
+
+## Validation layers
+
+The Rust accelerator contract is specified in
+[`validation_contract.json`](./validation_contract.json). It has four bounded
+validation layers:
+
+1. Unit tests cover fixed edge cases for sliding windows, quantiles, and
+   convolution modes.
+2. Deterministic property tests generate 256 finite signal/kernel pairs from a
+   fixed seed and compare every `full`, `same`, and `valid` convolution result
+   against an independent reference implementation. This keeps the property
+   test reproducible under `cargo test --locked`.
+3. Criterion benchmarks run locally and in `rust-accel-gate` as a smoke-level
+   CPU regression sentinel for convolution and numeric kernels.
+4. A deterministic byte-derived fuzz-smoke test runs under `cargo test`; the
+   `cargo-fuzz` target under `fuzz/` remains available for deeper local or
+   scheduled fuzzing without adding fuzz-only dependencies to the release gate.
+
+```bash
+python scripts/ci/run_rust_accel_contract.py --dry-run --format json
+python scripts/ci/run_rust_accel_contract.py --only contract_rest_state --format json
+cargo test --locked --manifest-path rust/geosync-accel/Cargo.toml --all-features
+cargo bench --locked --manifest-path rust/geosync-accel/Cargo.toml \
+  --bench numeric -- --sample-size 10 --warm-up-time 1 --measurement-time 2
+# optional deep fuzzing, requires cargo-fuzz:
+cd rust/geosync-accel && cargo fuzz run numeric_primitives
+```
+
+The contract runner validates the manifest before execution, can emit a JSON
+dry-run plan for CI evidence, and exits nonzero if any selected acceptance
+criterion fails. Use `--only <criterion_id>` for a bounded repair loop.
+
 ## Microbenchmarks
 
 The crate ships with [Criterion](https://bheisler.github.io/criterion.rs/book/index.html)

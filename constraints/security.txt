@@ -13,9 +13,9 @@
 # PYSEC-2024-230: Removed GLOBALTRUST root certificates due to compliance issues
 # Version 2026.4.22 is the current secure version
 # NOTE: Using exact pin (==) for security-critical package to ensure consistent behavior
-certifi==2026.4.22
+certifi==2026.5.20
 charset-normalizer==3.4.4
-idna==3.11
+idna==3.18
 requests==2.34.2
 urllib3==2.7.0
 
@@ -46,7 +46,7 @@ PyYAML==6.0.3
 # ============================================================================
 # SQLAlchemy: ORM for SQL databases, SQL injection prevention
 # Multiple security fixes in 2.0 series
-SQLAlchemy==2.0.44
+SQLAlchemy==2.0.50
 
 # pydantic: Data validation, critical for API input validation
 # Security fixes for ReDoS and validation bypass
@@ -81,8 +81,8 @@ twisted==26.4.0
 # CVE-2025-52316: DoS via crafted Range header in FileResponse
 # fastapi: Web framework built on starlette, requires compatible starlette version
 # Pin to ensure secure versions are used
-starlette>=1.0.0
-fastapi>=0.136.1,<1.0.0
+starlette>=1.2.1
+fastapi>=0.136.3,<1.0.0
 
 # ============================================================================
 # Additional Brotli encoding support - Required for urllib3 decompression
