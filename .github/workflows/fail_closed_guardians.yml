@@ -1,0 +1,33 @@
+name: Fail-Closed Guardians
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guardian-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pragma: allowlist secret
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # pragma: allowlist secret
+        with:
+          python-version: '3.12'
+      - name: Install minimal test deps
+        run: >-
+          python -m pip install --upgrade pip pytest pyyaml jsonschema
+          cryptography numpy pandas
+      - name: Single-command production readiness gate
+        run: python scripts/production_readiness_riee.py
+      - name: Additional contract/adversarial checks
+        run: >-
+          pytest -q
+          tests/tools/test_validate_financial_contract_script.py
+          tests/tools/test_validate_financial_contract_adversarial.py
+          tests/tools/test_verify_claim_hashes_duplicates.py
+          tests/tools/test_verify_guard_surface.py
+          tests/tools/test_production_readiness_riee.py

@@ -4,6 +4,8 @@
 
 This repository is not a live execution platform, not an alpha product, and not a proof that market dynamics obey any asserted physical law. It is a research platform whose claims are allowed only when they are tied to explicit invariants, data contracts, falsifiers, and reproducible artifacts.
 
+The kernel declares **97 machine-checkable invariants** in `.claude/physics/INVARIANTS.yaml`; `scripts/count_invariants.py` is the canonical witness for `C-INV-COUNT` in `CLAIMS.md`.
+
 ## Current Sprint Boundary
 
 The only sprint-level evidence spine is `ricci_microstructure_v1` over crypto perpetual order-book data. Other research lines remain either infrastructure, protocol sketches, or archived evidence surfaces until they pass the same contract stack.
