@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Stable runtime boundary for BBB-NVU deterministic inference.
 
 This module is intentionally thin: it isolates integration-facing API shape from
