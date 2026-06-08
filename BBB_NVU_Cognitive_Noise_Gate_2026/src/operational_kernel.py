@@ -125,9 +125,7 @@ def verify_operational_envelope(envelope: OperationalEnvelope | Mapping[str, Any
     """Verify envelope hash, manifest hashes, replay checks, and cardinalities."""
     try:
         data = (
-            envelope.model_dump()
-            if isinstance(envelope, OperationalEnvelope)
-            else dict(envelope)
+            envelope.model_dump() if isinstance(envelope, OperationalEnvelope) else dict(envelope)
         )
         expected_hash = str(data.get("envelope_hash", ""))
         body = dict(data)

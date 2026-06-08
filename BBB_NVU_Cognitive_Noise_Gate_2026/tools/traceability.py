@@ -29,9 +29,7 @@ def requirement_decorators(test_file: Path) -> list[TraceabilityRow]:
                 and isinstance(decorator.args[0].value, str)
             ):
                 rel = test_file.relative_to(ROOT).as_posix()
-                rows.append(
-                    (decorator.args[0].value, f"{rel}::{node.name}", node.lineno)
-                )
+                rows.append((decorator.args[0].value, f"{rel}::{node.name}", node.lineno))
     return sorted(rows)
 
 

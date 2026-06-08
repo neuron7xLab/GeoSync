@@ -28,7 +28,9 @@ TEST_BINDINGS: dict[str, tuple[str, list[str]]] = {
     ),
     "INV_HUMAN_REVIEW_HIGH_RISK": (
         "R005",
-        ["tests/test_deterministic_engine.py::test_high_risk_and_invalid_states_require_human_review"],
+        [
+            "tests/test_deterministic_engine.py::test_high_risk_and_invalid_states_require_human_review"
+        ],
     ),
     "INV_NO_AUTONOMOUS_CRITICAL_ACTION": (
         "R002",
@@ -49,9 +51,7 @@ def scanner_safe_digest(hex_digest: str) -> dict[str, object]:
     """Encode a digest as short chunks."""
     return {
         "algorithm": "sha256",
-        "chunks": [
-            hex_digest[index : index + 8] for index in range(0, len(hex_digest), 8)
-        ],
+        "chunks": [hex_digest[index : index + 8] for index in range(0, len(hex_digest), 8)],
     }
 
 
