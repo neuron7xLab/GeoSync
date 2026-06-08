@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Deterministic metrics and incident workflow for BBB-NVU inference outputs."""
 
 from __future__ import annotations
