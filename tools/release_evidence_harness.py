@@ -18,12 +18,12 @@ import math
 import os
 import platform
 import re
-import time
+import selectors
 import shlex
 import shutil
-import selectors
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -37,7 +37,9 @@ SECRET_PATTERNS = [
     re.compile(r"(?i)(authorization:\s*bearer\s+)[^\s]+"),
     re.compile(r"(?i)((?:token|password|secret|api[_-]?key)=)[^\s]+"),
 ]
-HIGH_ENTROPY_TOKEN_PATTERN = re.compile(r"(?<![A-Za-z0-9+/=_-])([A-Za-z0-9+/=_-]{20,})(?![A-Za-z0-9+/=_-])")
+HIGH_ENTROPY_TOKEN_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9+/=_-])([A-Za-z0-9+/=_-]{20,})(?![A-Za-z0-9+/=_-])"
+)
 SECRET_ENTROPY_THRESHOLD = 3.7
 SECRET_MIN_TOKEN_LENGTH = 20
 SECRET_WHITELIST_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
@@ -46,7 +48,13 @@ MIN_TIMESTAMP_UTC = datetime(2026, 1, 1)
 MAX_TIMESTAMP_UTC = datetime(2030, 1, 1)
 CYCLONEDX_BOM_FORMAT = "CycloneDX"
 CYCLONEDX_SPEC_VERSION = "1.5"
-BUNDLE_TOP_LEVEL_ARTIFACTS = {"manifest.json", "manifest.json.asc", "sbom.cdx.json", "audit_report.pdf", "ci_status.json"}
+BUNDLE_TOP_LEVEL_ARTIFACTS = {
+    "manifest.json",
+    "manifest.json.asc",
+    "sbom.cdx.json",
+    "audit_report.pdf",
+    "ci_status.json",
+}
 GPG_BINARY_ALLOWLIST = {"/usr/bin/gpg", "/bin/gpg", "/usr/local/bin/gpg", "/opt/homebrew/bin/gpg"}
 
 
@@ -108,7 +116,10 @@ def _fixed_clock(timestamp_utc: str) -> Callable[[], str]:
 def _shannon_entropy(value: str) -> float:
     if not value:
         return 0.0
-    return -sum((count / len(value)) * math.log2(count / len(value)) for count in (value.count(char) for char in set(value)))
+    return -sum(
+        (count / len(value)) * math.log2(count / len(value))
+        for count in (value.count(char) for char in set(value))
+    )
 
 
 def _looks_like_secret_token(token: str) -> bool:
@@ -148,6 +159,7 @@ def _validate_gate_name(name: str) -> str:
 def _file_sha256(path: Path) -> tuple[str, int]:
     data = path.read_bytes()
     return hashlib.sha256(data).hexdigest(), len(data)
+
 
 @contextmanager
 def _file_lock(lock_path: Path) -> Iterator[None]:
@@ -238,7 +250,9 @@ def _run_process_to_log(
                 saw_output = True
                 remaining_bytes = max_log_bytes - written
                 if remaining_bytes > 0:
-                    decoded = _redact_text(chunk[:remaining_bytes].decode("utf-8", errors="replace"))
+                    decoded = _redact_text(
+                        chunk[:remaining_bytes].decode("utf-8", errors="replace")
+                    )
                     handle.write(decoded)
                     written += len(chunk[:remaining_bytes])
                 if len(chunk) > max(remaining_bytes, 0):
@@ -265,7 +279,10 @@ def _environment_fingerprint(command: list[str]) -> dict[str, object]:
         resolved = shutil.which(command[0])
         if resolved:
             candidates.append(Path(resolved).resolve())
-    for optional in (Path("pyproject.toml"), Path("schemas/research/ricci_microstructure_artifact.schema.json")):
+    for optional in (
+        Path("pyproject.toml"),
+        Path("schemas/research/ricci_microstructure_artifact.schema.json"),
+    ):
         if optional.exists():
             candidates.append(optional.resolve())
     files = []
@@ -305,7 +322,9 @@ def _write_environment_baseline(path: Path, results: list[GateResult]) -> None:
         {
             "schema_version": 1,
             "generated_utc": _utc_now(),
-            "gate_environment_sha256": {result.name: result.environment_sha256 for result in results},
+            "gate_environment_sha256": {
+                result.name: result.environment_sha256 for result in results
+            },
         },
     )
 
@@ -333,13 +352,18 @@ def _run_gate(
             handle.write(f"started_utc={started}\n")
             handle.write(f"command={_quote_command(gate.command)}\n")
             handle.write(f"environment_sha256={environment_sha256}\n\n")
-            if expected_environment_sha256 is not None and expected_environment_sha256 != environment_sha256:
+            if (
+                expected_environment_sha256 is not None
+                and expected_environment_sha256 != environment_sha256
+            ):
                 environment_status = "DRIFT"
                 environment_failure = "environment fingerprint drift before gate execution"
                 semantic_failure = environment_failure
                 exit_code = 1
                 output_truncated = False
-                handle.write(f"ENVIRONMENT_DRIFT expected={expected_environment_sha256} actual={environment_sha256}\n")
+                handle.write(
+                    f"ENVIRONMENT_DRIFT expected={expected_environment_sha256} actual={environment_sha256}\n"
+                )
             else:
                 exit_code, saw_output, output_truncated = _run_process_to_log(
                     gate.command,
@@ -386,6 +410,7 @@ def _validate_unique_gate_names(gates: list[Gate]) -> None:
     if duplicates:
         raise ValueError(f"duplicate gate names are not safe for parallel execution: {duplicates}")
 
+
 async def _run_gates_async(
     gates: list[Gate],
     log_dir: Path,
@@ -421,6 +446,7 @@ def _run_gates(
     return asyncio.run(
         _run_gates_async(gates, log_dir, timeout_sec, clock, max_log_bytes, environment_baseline)
     )
+
 
 def _write_json(path: Path, payload: object) -> None:
     _atomic_write_text(path, json.dumps(payload, indent=2, sort_keys=False) + "\n")
@@ -471,12 +497,21 @@ def _write_release_gate_yaml(
 
 def _installed_components() -> list[dict[str, object]]:
     components: list[dict[str, object]] = []
-    for distribution in sorted(importlib.metadata.distributions(), key=lambda item: item.metadata.get("Name", "").lower()):
+    for distribution in sorted(
+        importlib.metadata.distributions(), key=lambda item: item.metadata.get("Name", "").lower()
+    ):
         name = distribution.metadata.get("Name")
         version = distribution.version
         if not name:
             continue
-        components.append({"type": "library", "name": name, "version": version, "purl": f"pkg:pypi/{name}@{version}"})
+        components.append(
+            {
+                "type": "library",
+                "name": name,
+                "version": version,
+                "purl": f"pkg:pypi/{name}@{version}",
+            }
+        )
     return components
 
 
@@ -509,7 +544,11 @@ def _minimal_pdf_bytes(title: str, lines: list[str]) -> bytes:
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream",
+        b"<< /Length "
+        + str(len(stream)).encode("ascii")
+        + b" >>\nstream\n"
+        + stream
+        + b"\nendstream",
     ]
     pdf = bytearray(b"%PDF-1.4\n")
     offsets = [0]
@@ -522,11 +561,17 @@ def _minimal_pdf_bytes(title: str, lines: list[str]) -> bytes:
     pdf.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("ascii"))
     for offset in offsets[1:]:
         pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
-    pdf.extend(f"trailer << /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode("ascii"))
+    pdf.extend(
+        f"trailer << /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode(
+            "ascii"
+        )
+    )
     return bytes(pdf)
 
 
-def _write_audit_pdf(path: Path, manifest: dict[str, object], results: list[GateResult]) -> tuple[str, int]:
+def _write_audit_pdf(
+    path: Path, manifest: dict[str, object], results: list[GateResult]
+) -> tuple[str, int]:
     lines = [
         f"generated_utc: {manifest.get('generated_utc')}",
         f"valid_gates: {', '.join(str(item) for item in manifest.get('valid_gates', []))}",
@@ -534,13 +579,17 @@ def _write_audit_pdf(path: Path, manifest: dict[str, object], results: list[Gate
         f"sbom: {manifest.get('sbom', {}).get('path') if isinstance(manifest.get('sbom'), dict) else None}",
     ]
     for result in results:
-        lines.append(f"{result.name}: {result.status} exit={result.exit_code} evidence={result.evidence.name}")
+        lines.append(
+            f"{result.name}: {result.status} exit={result.exit_code} evidence={result.evidence.name}"
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(_minimal_pdf_bytes("GeoSync Release Evidence Audit Report", lines))
     return _file_sha256(path)
 
 
-def _write_telemetry(evidence_dir: Path, results: list[GateResult], *, clock: Callable[[], str]) -> dict[str, object]:
+def _write_telemetry(
+    evidence_dir: Path, results: list[GateResult], *, clock: Callable[[], str]
+) -> dict[str, object]:
     telemetry_dir = evidence_dir / "telemetry"
     telemetry_dir.mkdir(parents=True, exist_ok=True)
     prometheus = telemetry_dir / "release_gates.prom"
@@ -549,8 +598,18 @@ def _write_telemetry(evidence_dir: Path, results: list[GateResult], *, clock: Ca
     events = []
     for result in results:
         value = 1 if result.status == "GREEN" else 0
-        prom_lines.append(f'geosync_release_gate_status{{gate="{result.name}",required="{str(result.required).lower()}"}} {value}')
-        events.append({"title": f"GeoSync gate {result.name} {result.status}", "status": result.status, "gate": result.name, "exit_code": result.exit_code, "timestamp_utc": clock()})
+        prom_lines.append(
+            f'geosync_release_gate_status{{gate="{result.name}",required="{str(result.required).lower()}"}} {value}'
+        )
+        events.append(
+            {
+                "title": f"GeoSync gate {result.name} {result.status}",
+                "status": result.status,
+                "gate": result.name,
+                "exit_code": result.exit_code,
+                "timestamp_utc": clock(),
+            }
+        )
     _atomic_write_text(prometheus, "\n".join(prom_lines) + "\n")
     _write_json(datadog, {"series": events})
     prom_sha, prom_bytes = _file_sha256(prometheus)
@@ -591,12 +650,26 @@ def _resolve_gpg_binary(gpg_binary: str) -> Path:
         raise ValueError(f"gpg binary is not in allowlist: {candidate}")
     return candidate
 
-def _sign_manifest(manifest_path: Path, signature_path: Path, *, gpg_binary: str, gpg_key: str) -> tuple[bool, str | None, str | None]:
+
+def _sign_manifest(
+    manifest_path: Path, signature_path: Path, *, gpg_binary: str, gpg_key: str
+) -> tuple[bool, str | None, str | None]:
     try:
         resolved_gpg = _resolve_gpg_binary(gpg_binary)
     except ValueError as exc:
         return False, None, str(exc)
-    command = [resolved_gpg.as_posix(), "--batch", "--yes", "--armor", "--detach-sign", "--local-user", gpg_key, "--output", str(signature_path), str(manifest_path)]
+    command = [
+        resolved_gpg.as_posix(),
+        "--batch",
+        "--yes",
+        "--armor",
+        "--detach-sign",
+        "--local-user",
+        gpg_key,
+        "--output",
+        str(signature_path),
+        str(manifest_path),
+    ]
     completed = subprocess.run(command, check=False, capture_output=True, text=True)
     if completed.returncode != 0:
         return False, None, _redact_text((completed.stderr or completed.stdout).strip())
@@ -604,16 +677,26 @@ def _sign_manifest(manifest_path: Path, signature_path: Path, *, gpg_binary: str
     return True, signature_sha, None
 
 
-def _verify_gpg_signature(manifest_path: Path, signature_path: Path, *, gpg_binary: str) -> str | None:
+def _verify_gpg_signature(
+    manifest_path: Path, signature_path: Path, *, gpg_binary: str
+) -> str | None:
     if not signature_path.is_file():
         return f"missing GPG signature: {signature_path}"
     try:
         resolved_gpg = _resolve_gpg_binary(gpg_binary)
     except ValueError as exc:
         return str(exc)
-    completed = subprocess.run([resolved_gpg.as_posix(), "--batch", "--verify", str(signature_path), str(manifest_path)], check=False, capture_output=True, text=True)
+    completed = subprocess.run(
+        [resolved_gpg.as_posix(), "--batch", "--verify", str(signature_path), str(manifest_path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
     if completed.returncode != 0:
-        return _redact_text((completed.stderr or completed.stdout).strip()) or "GPG signature verification failed"
+        return (
+            _redact_text((completed.stderr or completed.stdout).strip())
+            or "GPG signature verification failed"
+        )
     return None
 
 
@@ -631,10 +714,10 @@ def _clean_install_command(clean_python: str) -> list[str]:
         "bash",
         "-lc",
         "set -euo pipefail; tmp=${TMPDIR:-/tmp}/geosync-release-venv; "
-        "rm -rf \"$tmp\"; "
-        f"{quoted_python} -m venv \"$tmp\"; "
-        "\"$tmp/bin/python\" -m pip install -e .; "
-        "\"$tmp/bin/geosync-research\" --help",
+        'rm -rf "$tmp"; '
+        f'{quoted_python} -m venv "$tmp"; '
+        '"$tmp/bin/python" -m pip install -e .; '
+        '"$tmp/bin/geosync-research" --help',
     ]
 
 
@@ -642,12 +725,28 @@ def _default_gates(python: str, clean_python: str, skip_clean_install: bool) -> 
     gates = [
         Gate(
             "diff_summary_clean",
-            ["git", "diff", "--stat", "--", ".", ":!release_gate.yaml", ":!artifacts/evidence_bundle"],
+            [
+                "git",
+                "diff",
+                "--stat",
+                "--",
+                ".",
+                ":!release_gate.yaml",
+                ":!artifacts/evidence_bundle",
+            ],
             fail_on_output=True,
         ),
         Gate(
             "working_tree_clean",
-            ["git", "status", "--short", "--", ".", ":!release_gate.yaml", ":!artifacts/evidence_bundle"],
+            [
+                "git",
+                "status",
+                "--short",
+                "--",
+                ".",
+                ":!release_gate.yaml",
+                ":!artifacts/evidence_bundle",
+            ],
             fail_on_output=True,
         ),
         Gate(
@@ -755,7 +854,10 @@ def _verify_artifact_record(
     if record.get("bytes") != actual_bytes:
         errors.append(f"{label}: bytes mismatch")
 
-def verify_evidence_manifest(manifest_path: Path, *, require_gpg_signature: bool = False, gpg_binary: str = "gpg") -> list[str]:
+
+def verify_evidence_manifest(
+    manifest_path: Path, *, require_gpg_signature: bool = False, gpg_binary: str = "gpg"
+) -> list[str]:
     """Return integrity errors for a release evidence manifest and its raw logs."""
     raw_logs_dir = manifest_path.parent / "raw_logs"
     if raw_logs_dir.is_symlink():
@@ -844,8 +946,12 @@ def verify_evidence_manifest(manifest_path: Path, *, require_gpg_signature: bool
     _verify_artifact_record(manifest_path, manifest.get("ci_status"), "ci_status", errors)
     telemetry = manifest.get("telemetry")
     if isinstance(telemetry, dict):
-        _verify_artifact_record(manifest_path, telemetry.get("prometheus"), "telemetry.prometheus", errors)
-        _verify_artifact_record(manifest_path, telemetry.get("datadog"), "telemetry.datadog", errors)
+        _verify_artifact_record(
+            manifest_path, telemetry.get("prometheus"), "telemetry.prometheus", errors
+        )
+        _verify_artifact_record(
+            manifest_path, telemetry.get("datadog"), "telemetry.datadog", errors
+        )
     else:
         errors.append("telemetry must be an object")
 
@@ -867,8 +973,16 @@ def verify_evidence_manifest(manifest_path: Path, *, require_gpg_signature: bool
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--verify-manifest", type=Path, help="Verify an existing evidence manifest and raw logs without running gates.")
-    parser.add_argument("--require-gpg-signature", action="store_true", help="Require and verify manifest.json.asc when verifying a manifest.")
+    parser.add_argument(
+        "--verify-manifest",
+        type=Path,
+        help="Verify an existing evidence manifest and raw logs without running gates.",
+    )
+    parser.add_argument(
+        "--require-gpg-signature",
+        action="store_true",
+        help="Require and verify manifest.json.asc when verifying a manifest.",
+    )
     parser.add_argument("--gpg-binary", default="gpg")
     parser.add_argument("--gpg-key", help="GPG key ID/email used to detach-sign manifest.json.")
     parser.add_argument("--evidence-dir", type=Path, default=Path("artifacts/evidence_bundle"))
@@ -882,11 +996,25 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Use one UTC timestamp for generated metadata and gate log timestamps.",
     )
     parser.add_argument("--skip-clean-install", action="store_true")
-    parser.add_argument("--allow-tainted-env", action="store_true", help="Development-only opt-out required with --skip-clean-install outside CI.")
+    parser.add_argument(
+        "--allow-tainted-env",
+        action="store_true",
+        help="Development-only opt-out required with --skip-clean-install outside CI.",
+    )
     parser.add_argument("--allow-failures", action="store_true")
-    parser.add_argument("--ci", action="store_true", help="Emit CI status JSON and keep stdout machine-readable.")
-    parser.add_argument("--environment-baseline", type=Path, help="JSON baseline of expected gate environment fingerprints.")
-    parser.add_argument("--write-environment-baseline", type=Path, help="Write observed gate environment fingerprints for future drift checks.")
+    parser.add_argument(
+        "--ci", action="store_true", help="Emit CI status JSON and keep stdout machine-readable."
+    )
+    parser.add_argument(
+        "--environment-baseline",
+        type=Path,
+        help="JSON baseline of expected gate environment fingerprints.",
+    )
+    parser.add_argument(
+        "--write-environment-baseline",
+        type=Path,
+        help="Write observed gate environment fingerprints for future drift checks.",
+    )
     return parser.parse_args(argv)
 
 
@@ -902,7 +1030,11 @@ def main(argv: list[str] | None = None) -> int:
             for error in errors:
                 print(f"release-evidence: {error}", file=sys.stderr)
             return 1
-        print(json.dumps({"manifest": args.verify_manifest.as_posix(), "verified": True}, sort_keys=True))
+        print(
+            json.dumps(
+                {"manifest": args.verify_manifest.as_posix(), "verified": True}, sort_keys=True
+            )
+        )
         return 0
     try:
         clock = _fixed_clock(args.fixed_timestamp_utc) if args.fixed_timestamp_utc else _utc_now
@@ -911,10 +1043,16 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     ci_mode = bool(args.ci or os.environ.get("CI"))
     if args.skip_clean_install and ci_mode:
-        print("release-evidence: --skip-clean-install is forbidden in CI/production mode", file=sys.stderr)
+        print(
+            "release-evidence: --skip-clean-install is forbidden in CI/production mode",
+            file=sys.stderr,
+        )
         return 2
     if args.skip_clean_install and not args.allow_tainted_env:
-        print("release-evidence: --skip-clean-install requires --allow-tainted-env for development runs", file=sys.stderr)
+        print(
+            "release-evidence: --skip-clean-install requires --allow-tainted-env for development runs",
+            file=sys.stderr,
+        )
         return 2
 
     evidence_dir: Path = args.evidence_dir
@@ -956,9 +1094,19 @@ def main(argv: list[str] | None = None) -> int:
         "max_log_bytes": args.max_log_bytes,
         "execution_mode": "asyncio",
         "ci": ci_mode,
-        "sbom": {"format": CYCLONEDX_BOM_FORMAT, "spec_version": CYCLONEDX_SPEC_VERSION, "path": sbom_path.as_posix(), "sha256": sbom_sha, "bytes": sbom_bytes},
+        "sbom": {
+            "format": CYCLONEDX_BOM_FORMAT,
+            "spec_version": CYCLONEDX_SPEC_VERSION,
+            "path": sbom_path.as_posix(),
+            "sha256": sbom_sha,
+            "bytes": sbom_bytes,
+        },
         "telemetry": telemetry,
-        "gpg_signature": {"path": (evidence_dir / "manifest.json.asc").as_posix(), "status": "PENDING"} if args.gpg_key else None,
+        "gpg_signature": (
+            {"path": (evidence_dir / "manifest.json.asc").as_posix(), "status": "PENDING"}
+            if args.gpg_key
+            else None
+        ),
         "results": [
             {
                 "name": result.name,
@@ -988,7 +1136,12 @@ def main(argv: list[str] | None = None) -> int:
     manifest["ci_status"] = {"path": ci_status_path.as_posix(), "sha256": ci_sha, "bytes": ci_bytes}
     audit_pdf_path = evidence_dir / "audit_report.pdf"
     audit_sha, audit_bytes = _write_audit_pdf(audit_pdf_path, manifest, results)
-    manifest["audit_report"] = {"format": "PDF-1.4", "path": audit_pdf_path.as_posix(), "sha256": audit_sha, "bytes": audit_bytes}
+    manifest["audit_report"] = {
+        "format": "PDF-1.4",
+        "path": audit_pdf_path.as_posix(),
+        "sha256": audit_sha,
+        "bytes": audit_bytes,
+    }
     manifest_path = evidence_dir / "manifest.json"
     if args.gpg_key:
         signature_path = evidence_dir / "manifest.json.asc"
@@ -998,8 +1151,24 @@ def main(argv: list[str] | None = None) -> int:
             manifest_path, signature_path, gpg_binary=args.gpg_binary, gpg_key=args.gpg_key
         )
         if not signed:
-            manifest["gpg_signature"] = {"path": signature_path.as_posix(), "status": "RED", "error": signature_error}
-            failed_required.append(GateResult("gpg_signature", "RED", [args.gpg_binary], 1, signature_path, True, clock(), clock(), signature_error))
+            manifest["gpg_signature"] = {
+                "path": signature_path.as_posix(),
+                "status": "RED",
+                "error": signature_error,
+            }
+            failed_required.append(
+                GateResult(
+                    "gpg_signature",
+                    "RED",
+                    [args.gpg_binary],
+                    1,
+                    signature_path,
+                    True,
+                    clock(),
+                    clock(),
+                    signature_error,
+                )
+            )
             manifest["failed_required"] = [result.name for result in failed_required]
             _write_json(manifest_path, manifest)
     else:
