@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Local sandbox adversarial auditor for the deterministic BBB-NVU engine.
-
-This is intentionally deterministic and bounded for CI. It is not an LLM agent or
-networked microservice; it is the calibration sandbox that must pass before any
-future external adversarial service is promoted.
-"""
+"""Local sandbox adversarial auditor for the deterministic BBB-NVU engine."""
 
 from __future__ import annotations
 
@@ -33,7 +28,7 @@ CRITICAL_DEGRADATION_PAYLOADS = [
 
 
 class AdversarialAuditor:
-    """Creator/verifier loop for semantically poisoned but schema-shaped vectors."""
+    """Creator/verifier loop for schema-shaped adversarial vectors."""
 
     def __init__(self, rules_path: str | Path = DEFAULT_RULES, seed: int = 20260603):
         from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import (
@@ -51,7 +46,7 @@ class AdversarialAuditor:
         }
 
     def generate_attack_vector(self, iteration: int) -> dict[str, Any]:
-        """Generate deterministic adversarial mutations around known bypass surfaces."""
+        """Generate deterministic adversarial mutations around known surfaces."""
         mutated = deepcopy(self.base_vector)
         attack_type = iteration % 6
 
@@ -87,21 +82,27 @@ class AdversarialAuditor:
     ) -> None:
         """Assert that adversarial payloads cannot hide as GREEN_STABLE."""
         if input_vector.get("critical_data_invalid"):
-            assert risk["risk_state"] == "BLACK_INVALID", "critical_data_invalid bypassed fail-closed gate"
+            assert risk["risk_state"] == "BLACK_INVALID", (
+                "critical_data_invalid bypassed fail-closed gate"
+            )
             assert risk["confidence"] == 0.0, "invalid input did not zero confidence"
 
         if input_vector.get("degradations"):
-            assert risk["risk_state"] != "GREEN_STABLE", "degradation payload produced GREEN_STABLE"
+            assert risk["risk_state"] != "GREEN_STABLE", (
+                "degradation payload produced GREEN_STABLE"
+            )
 
         if risk["risk_state"] in {"BLACK_INVALID", "RED_CRITICAL"}:
             assert actions
             assert all(action["prohibited_autonomous_execution"] for action in actions)
 
         if risk["confidence"] < 0.70:
-            assert risk["risk_state"] != "GREEN_STABLE", "low confidence produced GREEN_STABLE"
+            assert risk["risk_state"] != "GREEN_STABLE", (
+                "low confidence produced GREEN_STABLE"
+            )
 
     def run_campaign(self, iterations: int = 100) -> list[dict[str, Any]]:
-        """Run a deterministic adversarial campaign and return accepted golden vectors."""
+        """Run a deterministic adversarial campaign and return golden vectors."""
         golden_vectors: list[dict[str, Any]] = []
         for iteration in range(iterations):
             attack_vector = self.generate_attack_vector(iteration)
@@ -120,7 +121,9 @@ class AdversarialAuditor:
 def main() -> int:
     from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import hashable_json_value
 
-    parser = argparse.ArgumentParser(description="Run deterministic adversarial sandbox campaign.")
+    parser = argparse.ArgumentParser(
+        description="Run deterministic adversarial sandbox campaign."
+    )
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
