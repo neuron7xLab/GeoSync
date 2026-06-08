@@ -200,11 +200,12 @@ target-version = ["py311"]
 line-length = 100
 force-exclude = '''
 (^|/)tests/
+|^scripts/validate_epistemic_rhombus_manifest\.py$
 '''
 
 [tool.ruff]
 line-length = 100
-extend-exclude = ["docs/notebooks", "tests", "**/tests"]
+extend-exclude = ["docs/notebooks", "tests", "**/tests", "scripts/validate_epistemic_rhombus_manifest.py"]
 force-exclude = true
 
 [tool.ruff.lint]
