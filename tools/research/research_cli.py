@@ -179,7 +179,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     run_parser.add_argument("--seed", type=int, default=1337)
     run_parser.add_argument("--timestamp-utc", default=DEFAULT_TIMESTAMP_UTC)
     run_parser.add_argument("--input-window-sec", type=int, default=30)
-    run_parser.add_argument("--force", action="store_true", help="Overwrite an existing run artifact.")
+    run_parser.add_argument(
+        "--force", action="store_true", help="Overwrite an existing run artifact."
+    )
     run_parser.set_defaults(func=_run)
 
     verify_parser = subparsers.add_parser("verify", help="Validate an artifact or run directory")

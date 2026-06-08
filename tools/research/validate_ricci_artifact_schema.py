@@ -69,7 +69,7 @@ def _json_type_matches(value: object, expected: str) -> bool:
     if expected == "integer":
         return isinstance(value, int) and not isinstance(value, bool)
     if expected == "number":
-        return (isinstance(value, int | float) and not isinstance(value, bool))
+        return isinstance(value, int | float) and not isinstance(value, bool)
     return True
 
 
@@ -85,7 +85,6 @@ def _validate_datetime_z(value: str) -> bool:
     except ValueError:
         return False
     return True
-
 
 
 def _hardcoded_critical_validate(artifact: object, artifact_path: Path) -> list[str]:
@@ -106,9 +105,17 @@ def _hardcoded_critical_validate(artifact: object, artifact_path: Path) -> list[
         if not valid_type:
             errors.append(f"{artifact_path}: {field}: critical type mismatch")
             continue
-        if field in HEX64_FIELDS and isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        if (
+            field in HEX64_FIELDS
+            and isinstance(value, str)
+            and re.fullmatch(r"[0-9a-f]{64}", value) is None
+        ):
             errors.append(f"{artifact_path}: {field}: expected lowercase sha256 hex")
-        if field == "git_sha" and isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value) is None:
+        if (
+            field == "git_sha"
+            and isinstance(value, str)
+            and re.fullmatch(r"[0-9a-f]{40}", value) is None
+        ):
             errors.append(f"{artifact_path}: {field}: expected lowercase git sha")
         if field == "timestamp_utc" and isinstance(value, str) and not _validate_datetime_z(value):
             errors.append(f"{artifact_path}: {field}: expected UTC date-time")
@@ -116,6 +123,7 @@ def _hardcoded_critical_validate(artifact: object, artifact_path: Path) -> list[
         if enum is not None and value not in enum:
             errors.append(f"{artifact_path}: {field}: {value!r} is not one of {sorted(enum)!r}")
     return errors
+
 
 def _fallback_validate(schema: dict[str, Any], artifact: object, artifact_path: Path) -> list[str]:
     """Validate the repository's simple Ricci schema without third-party deps."""
@@ -150,7 +158,11 @@ def _fallback_validate(schema: dict[str, Any], artifact: object, artifact_path: 
             errors.append(f"{artifact_path}: {field}: expected {expected_type}")
             continue
         pattern = rules.get("pattern")
-        if isinstance(pattern, str) and isinstance(value, str) and re.search(pattern, value) is None:
+        if (
+            isinstance(pattern, str)
+            and isinstance(value, str)
+            and re.search(pattern, value) is None
+        ):
             errors.append(f"{artifact_path}: {field}: {value!r} does not match {pattern!r}")
         enum = rules.get("enum")
         if isinstance(enum, list) and value not in enum:
@@ -161,12 +173,18 @@ def _fallback_validate(schema: dict[str, Any], artifact: object, artifact_path: 
         maximum = rules.get("maximum")
         if isinstance(maximum, int | float) and isinstance(value, int | float) and value > maximum:
             errors.append(f"{artifact_path}: {field}: {value!r} is greater than {maximum!r}")
-        if rules.get("format") == "date-time" and isinstance(value, str) and not _validate_datetime_z(value):
+        if (
+            rules.get("format") == "date-time"
+            and isinstance(value, str)
+            and not _validate_datetime_z(value)
+        ):
             errors.append(f"{artifact_path}: {field}: {value!r} is not a UTC date-time")
     return errors
 
 
-def _jsonschema_validate(schema: dict[str, Any], artifact: object, artifact_path: Path) -> list[str]:
+def _jsonschema_validate(
+    schema: dict[str, Any], artifact: object, artifact_path: Path
+) -> list[str]:
     from jsonschema import Draft202012Validator, FormatChecker
 
     validator = Draft202012Validator(schema, format_checker=FormatChecker())

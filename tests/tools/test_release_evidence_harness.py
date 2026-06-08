@@ -536,7 +536,7 @@ def test_timestamp_range_rejects_underflow_and_overflow() -> None:
 def test_high_entropy_tokens_are_redacted(tmp_path: Path) -> None:
     from tools import release_evidence_harness as harness
 
-    secret = "QWxhZGRpbjpvcGVuIHNlc2FtZTEyMzQ1Njc4OTA="
+    secret = "QWxhZGRpbjpvcGVuIHNlc2FtZTEyMzQ1Njc4OTA="  # pragma: allowlist secret
     result = harness._run_gate(
         Gate("entropy", [sys.executable, "-c", f"print('{secret}')"]),
         tmp_path / "logs",
