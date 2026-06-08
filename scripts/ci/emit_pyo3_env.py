@@ -80,7 +80,11 @@ def resolve_env(
         if existing_ld_library_path
         else str(libdir_path)
     )
-    return Pyo3Env(pyo3_python=sys.executable, rustflags=rustflags, ld_library_path=ld_library_path)
+    return Pyo3Env(
+        pyo3_python=sys.executable,
+        rustflags=rustflags,
+        ld_library_path=ld_library_path,
+    )
 
 
 def write_github_env(env: Pyo3Env, env_path: Path) -> None:
@@ -116,7 +120,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     github_env = os.environ.get("GITHUB_ENV")
     if not github_env:
-        print("ERROR: GITHUB_ENV is not set; use --print for local shells", file=sys.stderr)
+        print(
+            "ERROR: GITHUB_ENV is not set; use --print for local shells",
+            file=sys.stderr,
+        )
         return 1
     write_github_env(env, Path(github_env))
     print(f"PyO3 linker environment resolved for {env.pyo3_python}")
