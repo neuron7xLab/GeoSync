@@ -34,7 +34,7 @@ cryptography==48.0.0
 deap==1.4.3
 exchange-calendars==4.11.3
 extra-streamlit-components==0.1.81
-fastapi==0.136.1
+fastapi==0.136.3
 frozenlist==1.8.0
 gitdb==4.0.12
 gitpython==3.1.45
