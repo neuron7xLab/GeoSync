@@ -1,8 +1,4 @@
-"""Stable runtime boundary for BBB-NVU deterministic inference.
-
-This module is intentionally thin: it isolates integration-facing API shape from
-CLI/file-system adapters while delegating all risk logic to deterministic_engine.
-"""
+"""Runtime API for BBB-NVU inference."""
 
 from __future__ import annotations
 
@@ -21,7 +17,7 @@ RuntimeResult = dict[str, Any] | list[dict[str, Any]]
 
 
 class RuntimeRequest(BaseModel):
-    """Single request accepted by the integration runtime boundary."""
+    """Single request accepted by the runtime API."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -30,7 +26,7 @@ class RuntimeRequest(BaseModel):
 
 
 class RuntimeBoundary:
-    """Integration-facing runtime API with explicit timestamp and output profile."""
+    """Runtime API with explicit timestamp and output profile."""
 
     def __init__(self, rules: Mapping[str, Any], engine_hash: str | None = None):
         self.engine = DeterministicInferenceEngine.from_rules(
@@ -44,7 +40,7 @@ class RuntimeBoundary:
         rules_path: str,
         engine_hash: str | None = None,
     ) -> "RuntimeBoundary":
-        """Build a runtime boundary from a pinned rules file; file I/O stays here."""
+        """Build a runtime boundary from a rule file."""
         return cls(load_yaml(rules_path), engine_hash=engine_hash)
 
     def evaluate_run(
@@ -55,8 +51,12 @@ class RuntimeBoundary:
         created_at: str,
         profile: OutputProfile = "full",
     ) -> RuntimeResult:
-        """Evaluate one input using an explicit UTC timestamp and output profile."""
-        output = self.engine.build_output(input_doc, source_id=source_id, created_at=created_at)
+        """Evaluate one input."""
+        output = self.engine.build_output(
+            input_doc,
+            source_id=source_id,
+            created_at=created_at,
+        )
         if profile == "full":
             return output
         if profile == "risk":
@@ -70,7 +70,7 @@ class RuntimeBoundary:
         created_at: str,
         profile: OutputProfile = "full",
     ) -> list[RuntimeResult]:
-        """Evaluate a deterministic batch; each request is validated at the boundary."""
+        """Evaluate a deterministic batch."""
         outputs: list[RuntimeResult] = []
         for request in requests:
             if isinstance(request, RuntimeRequest):
