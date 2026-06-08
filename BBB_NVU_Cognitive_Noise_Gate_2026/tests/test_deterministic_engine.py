@@ -35,19 +35,31 @@ def input_doc(
 def test_golden_risk_vectors() -> None:
     cases: list[tuple[InputDoc, str]] = [
         (
-            input_doc({"BSI": 20, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20}, 0.90),
+            input_doc(
+                {"BSI": 20, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20},
+                0.90,
+            ),
             "GREEN_STABLE",
         ),
         (
-            input_doc({"BSI": 20, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20}, 0.62),
+            input_doc(
+                {"BSI": 20, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20},
+                0.62,
+            ),
             "YELLOW_WATCH",
         ),
         (
-            input_doc({"BSI": 65, "NRI": 15, "VML": 61, "GRS": 70, "CNI": 20}, 0.85),
+            input_doc(
+                {"BSI": 65, "NRI": 15, "VML": 61, "GRS": 70, "CNI": 20},
+                0.85,
+            ),
             "ORANGE_RISK",
         ),
         (
-            input_doc({"BSI": 82, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20}, 0.90),
+            input_doc(
+                {"BSI": 82, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20},
+                0.90,
+            ),
             "RED_CRITICAL",
         ),
         (input_doc({}, 0.0, critical_data_invalid=True), "BLACK_INVALID"),
@@ -70,8 +82,14 @@ def test_missing_domain_is_explicit_degradation() -> None:
 @requirement("R005")
 def test_high_risk_and_invalid_states_require_human_review() -> None:
     cases = [
-        input_doc({"BSI": 65, "NRI": 15, "VML": 61, "GRS": 70, "CNI": 20}, 0.85),
-        input_doc({"BSI": 82, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20}, 0.90),
+        input_doc(
+            {"BSI": 65, "NRI": 15, "VML": 61, "GRS": 70, "CNI": 20},
+            0.85,
+        ),
+        input_doc(
+            {"BSI": 82, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20},
+            0.90,
+        ),
         input_doc({}, 0.0, critical_data_invalid=True),
     ]
     for doc in cases:
@@ -82,7 +100,10 @@ def test_high_risk_and_invalid_states_require_human_review() -> None:
 
 @requirement("R003")
 def test_run_hash_is_stable_for_same_input_rules_and_engine() -> None:
-    doc = input_doc({"BSI": 20, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20}, 0.90)
+    doc = input_doc(
+        {"BSI": 20, "NRI": 15, "VML": 25, "GRS": 75, "CNI": 20},
+        0.90,
+    )
     first = build_output(doc, "memory.json", RULES)
     second = build_output(doc, "memory.json", RULES)
     assert first["run_hash"] == second["run_hash"]
