@@ -1,8 +1,18 @@
 {
   "algorithm": "sha256",
-  "count": 4,
+  "count": 5,
   "encoding": "hex_chunks_8",
   "hashes": {
+    "C-EPI-RHOMBUS": [
+      "41d30546",
+      "976537ae",
+      "c0983c3d",
+      "a3d85248",
+      "242081f3",
+      "dd84cb11",
+      "e0e4f8f6",
+      "63f12af8"
+    ],
     "C-INV-COUNT": [
       "bbcd9ec4",
       "b94f070b",
