@@ -37,10 +37,12 @@ Required check names (must match `pr-gate.yml` job names exactly):
 2. `python-quality`
 3. `python-fast-tests`
 4. `frontend-gate`
-5. `dependency-review`
-6. `secrets-supply-chain`
+5. `rust-accel-gate`
+6. `dependency-review`
+7. `secrets-supply-chain`
+8. `go-workspace-integrity`
 
-All six are fail-closed (`continue-on-error: false` in `pr-gate.yml`).
+All eight are fail-closed (`continue-on-error: false` in `pr-gate.yml`).
 
 ## Branch safety
 
@@ -76,8 +78,20 @@ They surface findings in the Security tab and fail their own runs:
 
 The `repo-policy` job in `pr-gate.yml` enforces:
 
+- every workflow file passes actionlint syntax/expression validation
 - every workflow file declares a `permissions:` block
 - no workflow uses `pull_request_target`
 - every `uses:` reference is pinned to a 40-character commit SHA
+- `pr-gate.yml`, this branch-protection manifest, and
+  `.github/workflows/README.md` agree on required job names and counts
+- `dependency-review` fails on `high` severity
+- `rust-accel-gate` keeps its Rust/PyO3 clippy-and-test contract intact
 
-Any PR that breaks these invariants fails `repo-policy` and cannot merge.
+Run the same contract check locally before editing the merge gate:
+
+```bash
+python scripts/ci/check_pr_gate_contract.py
+```
+
+A valid artifact emits `state=REST action_potential=0`. Any PR that breaks
+these invariants fails `repo-policy` and cannot merge.

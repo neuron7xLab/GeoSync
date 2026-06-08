@@ -239,9 +239,10 @@ fn convolve_range(signal: &[f64], kernel: &[f64], start: usize, length: usize) -
         let signal_end = full_idx.min(sig_len - 1);
         let mut acc = 0.0f64;
 
-        for signal_idx in signal_start..=signal_end {
+        for (offset, &sample) in signal[signal_start..=signal_end].iter().enumerate() {
+            let signal_idx = signal_start + offset;
             let kernel_idx = full_idx - signal_idx;
-            acc = signal[signal_idx].mul_add(kernel[kernel_idx], acc);
+            acc = sample.mul_add(kernel[kernel_idx], acc);
         }
         *slot = acc;
     }
@@ -258,6 +259,86 @@ impl From<NumericError> for PyErr {
 #[cfg(test)]
 mod core_tests {
     use super::*;
+
+    fn reference_full_convolution(signal: &[f64], kernel: &[f64]) -> Vec<f64> {
+        if signal.is_empty() || kernel.is_empty() {
+            return Vec::new();
+        }
+        let mut output = vec![0.0; signal.len() + kernel.len() - 1];
+        for (signal_idx, &signal_value) in signal.iter().enumerate() {
+            for (kernel_idx, &kernel_value) in kernel.iter().enumerate() {
+                output[signal_idx + kernel_idx] += signal_value * kernel_value;
+            }
+        }
+        output
+    }
+
+    fn assert_close(actual: &[f64], expected: &[f64]) {
+        assert_eq!(actual.len(), expected.len());
+        for (idx, (&left, &right)) in actual.iter().zip(expected).enumerate() {
+            let tolerance = 1.0e-10 * (1.0 + left.abs().max(right.abs()));
+            assert!(
+                (left - right).abs() <= tolerance,
+                "mismatch at {idx}: actual={left}, expected={right}, tolerance={tolerance}"
+            );
+        }
+    }
+
+    #[derive(Clone)]
+    struct DeterministicRng(u64);
+
+    impl DeterministicRng {
+        fn new(seed: u64) -> Self {
+            Self(seed)
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            self.0 = self
+                .0
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            self.0
+        }
+
+        fn next_len(&mut self, max: usize) -> usize {
+            (self.next_u64() as usize % max) + 1
+        }
+
+        fn next_f64(&mut self) -> f64 {
+            let bucket = (self.next_u64() % 20_001) as i64 - 10_000;
+            bucket as f64 / 997.0
+        }
+
+        fn finite_vec(&mut self, len: usize) -> Vec<f64> {
+            (0..len).map(|_| self.next_f64()).collect()
+        }
+    }
+
+    fn bytes_to_finite_vec(bytes: &[u8], len: usize) -> Vec<f64> {
+        bytes
+            .chunks_exact(8)
+            .take(len)
+            .map(|chunk| {
+                let mut raw = [0u8; 8];
+                raw.copy_from_slice(chunk);
+                let value = f64::from_le_bytes(raw);
+                if value.is_finite() {
+                    value.clamp(-1.0e6, 1.0e6)
+                } else {
+                    0.0
+                }
+            })
+            .collect()
+    }
+
+    fn deterministic_fuzz_bytes(rng: &mut DeterministicRng, len: usize) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(len);
+        while bytes.len() < len {
+            bytes.extend_from_slice(&rng.next_u64().to_le_bytes());
+        }
+        bytes.truncate(len);
+        bytes
+    }
 
     #[test]
     fn full_convolution_matches_reference() {
@@ -330,6 +411,70 @@ mod core_tests {
         let valid_len = signal.len().max(kernel.len()) - signal.len().min(kernel.len()) + 1;
         let valid_start = signal.len().min(kernel.len()) - 1;
         assert_eq!(valid, full[valid_start..valid_start + valid_len].to_vec());
+    }
+
+    #[test]
+    fn convolve_core_property_matches_reference_full_slices() {
+        let mut rng = DeterministicRng::new(0x5eed_c0de_f00d_beef);
+        for _case in 0..256 {
+            let signal_len = rng.next_len(48);
+            let kernel_len = rng.next_len(32);
+            let signal = rng.finite_vec(signal_len);
+            let kernel = rng.finite_vec(kernel_len);
+            let full_reference = reference_full_convolution(&signal, &kernel);
+
+            let full = convolve_core(&signal, &kernel, ConvolutionMode::Full).unwrap();
+            assert_close(&full, &full_reference);
+
+            let same = convolve_core(&signal, &kernel, ConvolutionMode::Same).unwrap();
+            let same_len = signal_len.max(kernel_len);
+            let same_start = (full_reference.len() - same_len) / 2;
+            assert_close(&same, &full_reference[same_start..same_start + same_len]);
+
+            let valid = convolve_core(&signal, &kernel, ConvolutionMode::Valid).unwrap();
+            let valid_len = signal_len.max(kernel_len) - signal_len.min(kernel_len) + 1;
+            let valid_start = signal_len.min(kernel_len) - 1;
+            assert_close(
+                &valid,
+                &full_reference[valid_start..valid_start + valid_len],
+            );
+        }
+    }
+
+    #[test]
+    fn deterministic_fuzz_smoke_exercises_numeric_primitives() {
+        let mut rng = DeterministicRng::new(0xf17a_f00d_dead_beef);
+        for _case in 0..128 {
+            let signal_len = rng.next_len(32);
+            let kernel_len = rng.next_len(32);
+            let bytes = deterministic_fuzz_bytes(&mut rng, (signal_len + kernel_len) * 8);
+            let split = signal_len * 8;
+            let signal = bytes_to_finite_vec(&bytes[..split], signal_len);
+            let kernel = bytes_to_finite_vec(&bytes[split..], kernel_len);
+
+            let _ = sliding_windows_core(&signal, rng.next_len(16), rng.next_len(8));
+            let quantiles = quantiles_core(&signal, &[0.0, 0.25, 0.5, 0.75, 1.0]).unwrap();
+            assert_eq!(quantiles.len(), 5);
+
+            assert_eq!(
+                convolve_core(&signal, &kernel, ConvolutionMode::Full)
+                    .unwrap()
+                    .len(),
+                signal_len + kernel_len - 1,
+            );
+            assert_eq!(
+                convolve_core(&signal, &kernel, ConvolutionMode::Same)
+                    .unwrap()
+                    .len(),
+                signal_len.max(kernel_len),
+            );
+            assert_eq!(
+                convolve_core(&signal, &kernel, ConvolutionMode::Valid)
+                    .unwrap()
+                    .len(),
+                signal_len.max(kernel_len) - signal_len.min(kernel_len) + 1,
+            );
+        }
     }
 
     #[test]
@@ -433,22 +578,34 @@ mod tests {
     fn python_api_roundtrip() {
         pyo3::prepare_freethreaded_python();
         Python::with_gil(|py| -> PyResult<()> {
-            let module = PyModule::new_bound(py, "geosync_accel")?;
+            if let Err(err) = py.import("numpy") {
+                let missing_numpy = err
+                    .get_type(py)
+                    .name()
+                    .map(|name| name == "ModuleNotFoundError")
+                    .unwrap_or(false);
+                let local_missing_numpy_allowed =
+                    std::env::var_os("GEOSYNC_ALLOW_MISSING_NUMPY_FOR_LOCAL_TESTS").is_some();
+                if missing_numpy && local_missing_numpy_allowed {
+                    eprintln!("skipping python_api_roundtrip: explicitly allowed missing numpy");
+                    return Ok(());
+                }
+                return Err(err);
+            }
+
+            let module = PyModule::new(py, "geosync_accel")?;
             geosync_accel(py, &module)?;
 
             let data = vec![1.0, 2.0, 3.0, 4.0];
             let sliding = module.call_method1(
                 "sliding_windows",
-                (data.clone().to_pyarray_bound(py), 2usize, 1usize),
+                (data.clone().to_pyarray(py), 2usize, 1usize),
             )?;
             let windows = sliding.downcast::<PyArray2<f64>>()?;
             assert_eq!(windows.shape(), &[3, 2]);
 
             let quantiles_vec: Vec<f64> = module
-                .call_method1(
-                    "quantiles",
-                    (data.clone().to_pyarray_bound(py), vec![0.5, 1.0]),
-                )?
+                .call_method1("quantiles", (data.clone().to_pyarray(py), vec![0.5, 1.0]))?
                 .extract()?;
             assert_eq!(quantiles_vec.len(), 2);
             assert!((quantiles_vec[0] - 2.5).abs() < f64::EPSILON);
@@ -458,8 +615,8 @@ mod tests {
                 .call_method1(
                     "convolve",
                     (
-                        vec![1.0, 2.0, 3.0].to_pyarray_bound(py),
-                        vec![0.5, 0.5].to_pyarray_bound(py),
+                        [1.0, 2.0, 3.0].to_pyarray(py),
+                        [0.5, 0.5].to_pyarray(py),
                         "valid",
                     ),
                 )?

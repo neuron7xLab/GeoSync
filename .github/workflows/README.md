@@ -15,7 +15,7 @@ for `main` stays auditable.
 | [`connectome-gate.yml`](./connectome-gate.yml) | `pull_request` → `main`, `merge_group`, `push` → `main` | AST-enforced neuro-architectural import boundaries from `docs/architecture/connectome.yaml`; design model documented in [`../architecture/CONNECTOME_GATE.md`](../architecture/CONNECTOME_GATE.md) | No (advisory until branch protection adopts `enforce-connectome`) |
 
 Any additional workflow **must** define a distinct decision boundary that is
-not already covered by the four above. Overlapping gates are rejected.
+not already covered by the workflows above. Overlapping gates are rejected.
 
 ## Required status checks for `main`
 
@@ -26,11 +26,29 @@ The branch-protection ruleset enforces exactly the job names emitted by
 2. `python-quality`
 3. `python-fast-tests`
 4. `frontend-gate`
-5. `dependency-review`
-6. `secrets-supply-chain`
+5. `rust-accel-gate`
+6. `dependency-review`
+7. `secrets-supply-chain`
+8. `go-workspace-integrity`
 
-All six jobs are fail-closed (`continue-on-error: false`). Merge queue is
+All eight jobs are fail-closed (`continue-on-error: false`). Merge queue is
 supported because every required job declares the `merge_group` trigger.
+
+
+## Local contract validation
+
+Before changing `pr-gate.yml`, `.github/BRANCH_PROTECTION_MAIN.md`, or this
+README, run the repository-local contract validator from the repository root:
+
+```bash
+python scripts/ci/check_pr_gate_contract.py
+```
+
+A valid artifact emits `state=REST action_potential=0`. Any ACTION state is
+policy drift and must be fixed before merge. The contract validator is intentionally self-contained for branch-protection
+drift checks, while `repo-policy` also invokes `python scripts/ci/run_actionlint.py`
+for real GitHub Actions syntax/expression validation when an actionlint binary
+or Docker runtime is available.
 
 ## Runtime hardening
 

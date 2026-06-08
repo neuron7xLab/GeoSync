@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "2008a318ebef58cb641cc75d90ba464606d071d879a182de067b2cd8a2a69e16"
+      "sha256": "b439d2ebf518dd141b3346734d8a2305d50a99fb514b9eeedf8392d358ae7c1f"
     },
     {
       "path": "scripts/ci/check_central_files_touched.py",
@@ -38,6 +38,10 @@
       "sha256": "afa5e44d9253dc6f9fc7f006b998cb912e174ae08778aab54c03f898536bc44c"
     },
     {
+      "path": "scripts/ci/check_pr_gate_contract.py",
+      "sha256": "c84a4b7d6dc2f596a083e366540e1b4a01ac4731d875644f407dbe93f5d3c75a"
+    },
+    {
       "path": "scripts/ci/compute_fps_audit.py",
       "sha256": "e35b695eb92648ce61d04318bdfd27e76a7ea9222316f8e244f87b43c6a4f06c"
     },
@@ -46,12 +50,20 @@
       "sha256": "7c687cd68ac5a79898cb8caebf6c3742390e719fd2f249992ba88ae4acbf052e"
     },
     {
+      "path": "scripts/ci/emit_pyo3_env.py",
+      "sha256": "ce168805179993615b4b1ab1f7ca2786e23d4b011ed2b83c66db0dcc811b8aa5"
+    },
+    {
       "path": "scripts/ci/lint_forbidden_terms.py",
       "sha256": "d65c2bc782e1223dbd1c8379fad5bdcf92ad8fd6775cb37978e53b0f3e2da7b2"
     },
     {
       "path": "scripts/ci/run_actionlint.py",
       "sha256": "a21ae0beda169a249063bf76ad48578fb22b91d73d49aced82dfd50accb1663c"
+    },
+    {
+      "path": "scripts/ci/run_rust_accel_contract.py",
+      "sha256": "6395f7c299d338a6089515d8563c969b0e99ce9115ca60cc776dabffd31857b2"
     },
     {
       "path": "scripts/ci/update_inventory.py",
