@@ -46,7 +46,7 @@ def statement_hash(statement: str, enforcement: str) -> str:
 
 
 def scanner_safe_digest(hex_digest: str) -> dict[str, object]:
-    """Encode a digest without storing one scanner-hostile token."""
+    """Encode a digest as short chunks."""
     return {
         "algorithm": "sha256",
         "chunks": [
@@ -57,7 +57,10 @@ def scanner_safe_digest(hex_digest: str) -> dict[str, object]:
 
 def compile_invariants() -> None:
     """Update invariant metadata with requirement/test bindings and statement digests."""
-    doc = cast(dict[str, Any], yaml.safe_load(INVARIANTS.read_text(encoding="utf-8")))
+    doc = cast(
+        dict[str, Any],
+        yaml.safe_load(INVARIANTS.read_text(encoding="utf-8")),
+    )
     invariants = cast(list[dict[str, Any]], doc["invariants"])
     for invariant in invariants:
         requirement_id, test_refs = TEST_BINDINGS[str(invariant["id"])]
@@ -65,7 +68,10 @@ def compile_invariants() -> None:
         invariant["test_refs"] = test_refs
         invariant.pop("statement_hash", None)
         invariant["statement_digest"] = scanner_safe_digest(
-            statement_hash(str(invariant["statement"]), str(invariant["enforcement"]))
+            statement_hash(
+                str(invariant["statement"]),
+                str(invariant["enforcement"]),
+            )
         )
     INVARIANTS.write_text(
         yaml.safe_dump(doc, sort_keys=False, allow_unicode=True),
