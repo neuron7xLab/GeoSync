@@ -19,14 +19,18 @@ FIXED_TIME = "2026-06-03T00:00:00Z"
 def sample_observation() -> dict[str, Any]:
     return cast(
         dict[str, Any],
-        json.loads((ROOT / "examples" / "sample_observation.json").read_text(encoding="utf-8")),
+        json.loads(
+            (ROOT / "examples" / "sample_observation.json").read_text(encoding="utf-8")
+        ),
     )
 
 
 def sample_inference_input() -> dict[str, Any]:
     return cast(
         dict[str, Any],
-        json.loads((ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8")),
+        json.loads(
+            (ROOT / "examples" / "sample_run_input.json").read_text(encoding="utf-8")
+        ),
     )
 
 
@@ -85,7 +89,9 @@ def test_l1_inference_gate_rejects_unknown_domain_and_extra_fields() -> None:
     domain_indices["UNKNOWN"] = 10
     risk, _actions = ENGINE.evaluate_run(input_doc, FIXED_TIME)
     assert risk["risk_state"] == "BLACK_INVALID"
-    assert any("domain_indices.UNKNOWN" in explanation for explanation in risk["explanations"])
+    assert any(
+        "domain_indices.UNKNOWN" in explanation for explanation in risk["explanations"]
+    )
 
     input_doc = sample_inference_input()
     input_doc["extra"] = "not_allowed"
