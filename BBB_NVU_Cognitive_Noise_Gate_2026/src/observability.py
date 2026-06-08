@@ -1,11 +1,19 @@
-"""Deterministic metrics and incident workflow for BBB-NVU inference outputs."""
+"""Metrics and incident records for BBB-NVU inference outputs."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StrictStr
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictFloat,
+    StrictInt,
+    StrictStr,
+)
 
 from BBB_NVU_Cognitive_Noise_Gate_2026.src.deterministic_engine import (
     AUTONOMOUS_PROHIBITED_STATES,
@@ -24,7 +32,11 @@ SEVERITY_BY_STATE: dict[str, str] = {
 }
 RESPONSE_BY_SEVERITY: dict[str, list[str]] = {
     "WARN": ["collect_more_data", "repeat_low_quality_measurements"],
-    "ERROR": ["open_human_review", "activate_mitigation_protocol", "track_until_closed"],
+    "ERROR": [
+        "open_human_review",
+        "activate_mitigation_protocol",
+        "track_until_closed",
+    ],
     "CRITICAL": [
         "block_autonomous_execution",
         "open_urgent_human_review",
@@ -104,7 +116,11 @@ def _prohibits_autonomous_execution(output: dict[str, Any]) -> bool:
     )
 
 
-def build_metrics_snapshot(outputs: list[dict[str, Any]], *, created_at: str) -> MetricsSnapshot:
+def build_metrics_snapshot(
+    outputs: list[dict[str, Any]],
+    *,
+    created_at: str,
+) -> MetricsSnapshot:
     """Build deterministic counters from a batch of inference outputs."""
     risk_state_counts = {state: 0 for state in sorted(VALID_STATES)}
     degradation_counts: dict[str, int] = {}
