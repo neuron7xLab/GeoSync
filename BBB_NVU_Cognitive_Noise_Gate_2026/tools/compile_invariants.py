@@ -18,7 +18,9 @@ TEST_BINDINGS: dict[str, tuple[str, list[str]]] = {
     ),
     "INV_FAIL_CLOSED_INVALID": (
         "R002",
-        ["tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution"],
+        [
+            "tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution"
+        ],
     ),
     "INV_DEGRADATION_EXPLICIT": (
         "R004",
@@ -30,7 +32,9 @@ TEST_BINDINGS: dict[str, tuple[str, list[str]]] = {
     ),
     "INV_NO_AUTONOMOUS_CRITICAL_ACTION": (
         "R002",
-        ["tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution"],
+        [
+            "tests/test_invariants.py::test_inv_critical_invalid_zeroes_confidence_and_blocks_execution"
+        ],
     ),
 }
 
@@ -45,7 +49,9 @@ def scanner_safe_digest(hex_digest: str) -> dict[str, object]:
     """Encode a digest without storing one scanner-hostile token."""
     return {
         "algorithm": "sha256",
-        "chunks": [hex_digest[index : index + 8] for index in range(0, len(hex_digest), 8)],
+        "chunks": [
+            hex_digest[index : index + 8] for index in range(0, len(hex_digest), 8)
+        ],
     }
 
 
