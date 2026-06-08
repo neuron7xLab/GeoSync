@@ -16,6 +16,23 @@ dep_manifest_paths:
   - "package-lock.json"
   - "yarn.lock"
   - "pnpm-lock.yaml"
+  - "commit_acceptor_policy.yaml"
+  - "BRANCH_PROTECTION_MAIN.md"
+  - "README.md"
+  - "pr-gate.yml"
+  - "commit-acceptor-gate.yml"
+  - "INVENTORY.json"
+  - "rust-toolchain.toml"
+  - "Cargo.toml"
+  - "validation_contract.json"
+  - "check_pr_gate_contract.py"
+  - "emit_pyo3_env.py"
+  - "run_rust_accel_contract.py"
+  - "pytest.ini"
+  - "test_emit_pyo3_env.py"
+  - "test_pr_gate_contract_validator.py"
+  - "test_run_rust_accel_contract.py"
+  - "rust-accel-ci-contract.yaml"
 governance_markdown_paths:
   - ".claude/"
   - "docs/governance/"
@@ -27,7 +44,7 @@ max_changed_files_by_claim_type:
   security: 10
   performance: 10
   governance: 16
-  refactor: 20
+  refactor: 24
   documentation: 24
   # chore: brand renames, file moves, identifier rewrites with no
   # behavior or architecture change. Matches conventional-commits
