@@ -34,6 +34,10 @@
       "sha256": "a0e4a2d58f0d7ec3020436e654fd3397769a15c8165ec32c53eba5f1f162f187"
     },
     {
+      "path": "scripts/ci/check_import_architecture.py",
+      "sha256": "58ffb28ba07ac7529c9a3e66a2914906508511ba8889ca81f26fc9d3024ad642"
+    },
+    {
       "path": "scripts/ci/check_inventory_sync.py",
       "sha256": "f81d851eb4e27d0d8ee182a9c06341707cfdf540854566b567baa27466e9f5b2"
     },
