@@ -1454,9 +1454,14 @@ class IdempotentRetryExecutor:
 class DefaultPortfolioRiskAnalyzer(PortfolioRiskAnalyzer):
     """Portfolio risk analyzer compatible with :func:`portfolio_heat`.
 
-    The analyzer mirrors the directional heat aggregation described in
-    ``docs/risk_ml_observability.md`` and provides a lightweight default for
-    CLI tooling and notebooks.
+    The analyzer mirrors the gross (absolute) exposure aggregation described
+    in ``docs/risk_ml_observability.md`` and provides a lightweight default
+    for CLI tooling and notebooks.
+
+    Heat is intentionally *gross*: long and short legs both consume risk
+    budget, so they add as positive exposure rather than netting. Netting
+    would under-state capital-at-risk, which is the opposite of a fail-closed
+    risk monitor. ``side`` is therefore not a sign on the heat contribution.
     """
 
     def heat(self, positions: Iterable[Mapping[str, float]]) -> float:
@@ -1465,9 +1470,8 @@ class DefaultPortfolioRiskAnalyzer(PortfolioRiskAnalyzer):
             qty = float(pos.get("qty", 0.0))
             price = float(pos.get("price", 0.0))
             risk_weight = float(pos.get("risk_weight", 1.0))
-            side = pos.get("side", "long")
-            direction = 1.0 if side == "long" else -1.0
-            total += abs(qty * price * risk_weight * direction)
+            # Gross exposure: |notional| regardless of side (see class docstring).
+            total += abs(qty * price * risk_weight)
         return float(total)
 
 
