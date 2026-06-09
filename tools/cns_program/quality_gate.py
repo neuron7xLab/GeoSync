@@ -51,7 +51,12 @@ def main() -> int:
     metrics = [
         {"name": name, "value": value, "weight": weight} for name, value, weight in metric_specs
     ]
-    score = sum(value * weight for _, value, weight in metric_specs)
+    # Weights sum to 1.0 mathematically, but IEEE-754 summation drifts by ~1e-16
+    # (0.35 + 0.30 + 0.20 + 0.15 == 0.9999999999999999), which made the downstream
+    # exact-equality gate `quality_score == 1.0` flake. Round to 6 decimals so the
+    # reported score is deterministic; `passed` is decided independently from the
+    # exact per-metric 1.0/0.0 literals, so rounding cannot mask a real failure.
+    score = round(sum(value * weight for _, value, weight in metric_specs), 6)
     passed = score >= 0.80 and all(value == 1.0 for _, value, _ in metric_specs)
     payload = {
         "timestamp_utc": datetime.now(UTC).isoformat(),
