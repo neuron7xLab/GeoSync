@@ -86,6 +86,24 @@ Until that gateway is fully implemented, the schema gate is the repository-level
 python tools/research/validate_ricci_artifact_schema.py --schema schemas/research/ricci_microstructure_artifact.schema.json --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
 ```
 
+## MFN Dependency-Light Gateway
+
+`geosync.mfn` is a standard-library-only operation path (`simulate → extract → detect → forecast → compare → report`) that produces a self-contained, hash-manifested artifact bundle at the `INSTRUMENTED` tier — no predictive or trading claim is promoted. It exists to keep packaging, console entrypoints, and a one-command smoke path machine-verifiable before any heavyweight scientific dependency is installed.
+
+```bash
+mfn --out artifacts/runs/mfn_integration run
+mfn validate --bundle artifacts/runs/mfn_integration
+```
+
+Bundles are byte-reproducible when `SOURCE_DATE_EPOCH` is pinned. A hermetic clean-venv check installs the editable package with the canonical setuptools backend (no backend swap), proves the gateway is dependency-light (`--no-deps`), and exercises imports/entrypoints/run/validate from outside the repository working directory so accidental path leakage cannot mask a failure:
+
+```bash
+python tools/verify_mfn_clean_install.py --python python3.12 --report artifacts/runs/mfn_product_state.json
+make release-gate   # lint + type + tests + clean-install proof
+```
+
+This is a focused install/entrypoint smoke; full signed release evidence (SBOM, manifest, telemetry) remains the job of the Release Evidence Harness below.
+
 ## Release Evidence Harness
 
 Every release validation must leave machine-readable evidence, raw logs, commands, and exit codes. The harness is semantic: clean install is required by default, and non-empty git status/diff output is RED even when git exits 0:

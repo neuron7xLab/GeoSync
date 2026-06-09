@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: MIT
+name: MFN Release Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/mfn-release-gate.yml"
+      - "geosync/mfn/**"
+      - "tools/verify_mfn_clean_install.py"
+      - "tests/unit/mfn/**"
+      - "pyproject.toml"
+      - "Makefile"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/mfn-release-gate.yml"
+      - "geosync/mfn/**"
+      - "tools/verify_mfn_clean_install.py"
+      - "tests/unit/mfn/**"
+      - "pyproject.toml"
+      - "Makefile"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  SOURCE_DATE_EPOCH: '1700000000'
+
+concurrency:
+  group: mfn-release-gate-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  mfn-clean-install:
+    name: mfn-clean-install / python-${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0  # setuptools_scm needs tags/history for version derivation
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Hermetic check: a fresh venv installs the editable package with the real
+      # setuptools backend (no backend swap), --no-deps proves the MFN gateway is
+      # dependency-light, and import/entrypoints/run/validate are exercised from
+      # OUTSIDE the repo cwd so accidental path leakage cannot mask a failure.
+      - name: Clean-venv entrypoint smoke (idea a)
+        run: |
+          python tools/verify_mfn_clean_install.py \
+            --python python \
+            --report "$RUNNER_TEMP/product_state.json"
+          echo "---- product_state.json ----"
+          cat "$RUNNER_TEMP/product_state.json"
+
+      - name: MFN unit tests (dependency-light)
+        if: matrix.python-version == '3.12'
+        run: |
+          python -m pip install pytest
+          # --noconftest keeps this step dependency-light: the repo-root conftest
+          # pulls numpy/scipy, but the MFN tests are stdlib-only by contract.
+          PYTHONPATH=. python -m pytest -q --noconftest -p no:cacheprovider tests/unit/mfn
+
+      - name: Byte-reproducibility of the bundle
+        if: matrix.python-version == '3.12'
+        run: |
+          python -m geosync.mfn.cli --out "$RUNNER_TEMP/b1" run >/dev/null
+          python -m geosync.mfn.cli --out "$RUNNER_TEMP/b2" run >/dev/null
+          if ! diff -q "$RUNNER_TEMP/b1/SHA256SUMS" "$RUNNER_TEMP/b2/SHA256SUMS" >/dev/null; then
+            echo "::error::MFN bundle is not byte-reproducible under pinned SOURCE_DATE_EPOCH"
+            exit 1
+          fi
+          echo "reproducible_bundle=ok"
