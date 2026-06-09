@@ -238,7 +238,7 @@ def test_entropy_gpu_backend_falls_back_to_cpu(monkeypatch: pytest.MonkeyPatch) 
 
     class DummyLogger:
         def __init__(self) -> None:
-            self.warnings: list[tuple[str, tuple]] = []
+            self.warnings: list[tuple[str, dict[str, object]]] = []
 
         def operation(self, *_args, **_kwargs):  # noqa: D401 - contextmanager interface
             class _Context:
@@ -250,8 +250,8 @@ def test_entropy_gpu_backend_falls_back_to_cpu(monkeypatch: pytest.MonkeyPatch) 
 
             return _Context()
 
-        def warning(self, msg: str, *args: object) -> None:
-            self.warnings.append((msg, args))
+        def warning(self, msg: str, **kwargs: object) -> None:
+            self.warnings.append((msg, kwargs))
 
     dummy_logger = DummyLogger()
     monkeypatch.setattr(entropy_module, "_logger", dummy_logger)

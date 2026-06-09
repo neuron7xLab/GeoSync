@@ -662,9 +662,9 @@ def _shortest_path_length_safe(G: nx.Graph, x: int, y: int) -> float:
     except ValueError as exc:
         if _log_debug_enabled():
             _logger.debug(
-                "ricci.shortest_path: falling back to unweighted distance for edge (%s,%s)",
-                x,
-                y,
+                "ricci.shortest_path: falling back to unweighted distance for edge",
+                x=str(x),
+                y=str(y),
                 error=str(exc),
             )
         try:

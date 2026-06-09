@@ -217,7 +217,7 @@ def _resolve_code_version() -> str:
         if head:
             return head
     except Exception as exc:  # pragma: no cover - gitless environments
-        _logger.debug("Unable to read git HEAD, falling back to VERSION file: %s", exc)
+        _logger.debug("Unable to read git HEAD, falling back to VERSION file", error=str(exc))
 
     version_file = git_dir / "VERSION"
     if version_file.exists():
