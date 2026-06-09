@@ -170,6 +170,27 @@ def test_g1_save_cell_writes_atomic_and_persists(tmp_path: Path) -> None:
     assert not p.with_suffix(p.suffix + ".tmp").exists()
 
 
+def test_g1_checkpoint_is_owner_only(tmp_path: Path) -> None:
+    """Persisted checkpoint must be owner-only (0o600).
+
+    A sweep checkpoint may carry parameter grids and partial research
+    results; group/other read access is a needless exposure. Regression
+    guard for CodeQL py/overly-permissive-file (#831).
+    """
+    import stat
+
+    p = tmp_path / "ckpt.json"
+    mgr = CheckpointManager(p, _config(), code_sha="abc123")
+    mgr.load_or_create()
+    k = cell_key((50, 0.5, "block", "tau"))
+    mgr.save_cell(k, _result(k))
+    mode = stat.S_IMODE(p.stat().st_mode)
+    assert mode & 0o077 == 0, (
+        f"checkpoint world/group-accessible: mode={oct(mode)} "
+        f"expected owner-only (0o600); group/other bits must be clear"
+    )
+
+
 def test_g1_save_cell_idempotent(tmp_path: Path) -> None:
     p = tmp_path / "ckpt.json"
     mgr = CheckpointManager(p, _config(), code_sha="abc123")
