@@ -612,10 +612,13 @@ class CheckpointManager:
             allow_nan=False,
         ).encode("utf-8")
         # Open with O_WRONLY|O_CREAT|O_TRUNC; write; flush; fsync.
+        # Mode 0o600 (owner-only): a sweep checkpoint may carry parameter
+        # grids and partial research results that should not be world- or
+        # group-readable. Closes CodeQL py/overly-permissive-file (#831).
         fd = os.open(
             tmp_path,
             os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
-            0o644,
+            0o600,
         )
         try:
             with os.fdopen(fd, "wb", closefd=True) as fh:

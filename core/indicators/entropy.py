@@ -227,9 +227,9 @@ def entropy(
                 return result
             except Exception as exc:  # pragma: no cover - defensive logging
                 _logger.warning(
-                    "GPU entropy backend '%s' failed (%s); falling back to CPU.",
-                    selected_backend,
-                    exc,
+                    "GPU entropy backend failed; falling back to CPU.",
+                    backend=selected_backend,
+                    error=str(exc),
                 )
                 _LAST_ENTROPY_BACKEND = "cpu"
 

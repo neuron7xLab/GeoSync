@@ -35,7 +35,7 @@ __all__ = [
     "ModuleInteractionOrchestrator",
     "ModeOrchestrator",
     "ModeOrchestratorConfig",
-    "ModePhase",
     "ModeState",
+    "ModulePhase",
     "TimeoutConfig",
 ]
