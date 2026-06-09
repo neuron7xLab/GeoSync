@@ -7,6 +7,11 @@
 # ----------------------------------------------------------------------------
 PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
 PYTEST := $(shell if [ -x .venv/bin/pytest ]; then echo .venv/bin/pytest; else echo pytest; fi)
+# Interpreter used to build the hermetic clean venv for the MFN release gate.
+MFN_RELEASE_PYTHON ?= python3.12
+# Pin the timestamp so the MFN evidence bundle is byte-reproducible by default.
+SOURCE_DATE_EPOCH ?= 1700000000
+export SOURCE_DATE_EPOCH
 
 # ============================================================================
 # Standard Entry Points - Use these commands for development
@@ -336,6 +341,18 @@ release: clean
 	python -m build --sdist --wheel --outdir dist
 	twine check dist/*
 	@echo "✅ Release packages built (run 'twine upload dist/*' to publish)"
+
+.PHONY: release-gate
+release-gate:
+	@echo "🚦 MFN release gate (SOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH))..."
+	$(PYTHON) -m ruff check geosync/mfn tools/verify_mfn_clean_install.py
+	$(PYTHON) -m mypy --strict geosync/mfn tools/verify_mfn_clean_install.py
+	$(PYTEST) -q tests/unit/mfn
+	$(PYTHON) tools/verify_mfn_clean_install.py \
+	    --python $(MFN_RELEASE_PYTHON) \
+	    --report artifacts/runs/mfn_product_state.json
+	@echo "✅ MFN gate green → artifacts/runs/mfn_product_state.json"
+	@echo "ℹ️  full signed release evidence: $(PYTHON) tools/release_evidence_harness.py"
 
 # ============================================================================
 # Specialized Targets (Legacy/Advanced)
