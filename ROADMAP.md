@@ -68,8 +68,9 @@ project:
 - [ ] Autonomous hypothesis generation and testing loop (neuro-symbolic
       agent proposing new signals, backtester validating them, RL-based
       capital allocation).
-- [ ] Live trading with paper-trading safety net and formal verification
-      of the kill-switch state machine.
+- [ ] Execution-realism harness (paper/replay) with formal verification
+      of the kill-switch state machine — research instrumentation, not a
+      live-trading product.
 - [ ] Distributed Kuramoto simulation on multi-GPU / TPU clusters
       (already scaffolded via `JaxKuramotoEngine`).
 - [ ] Ingestion of alternative data (satellite, on-chain, text) with

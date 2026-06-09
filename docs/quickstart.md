@@ -291,7 +291,7 @@ Now that you're up and running, explore:
 - **[Performance Guide](performance.md)** - Memory optimization and execution profiling
 - **[Indicators Guide](indicators.md)** - Learn about available indicators
 - **[Backtesting Guide](backtest.md)** - Advanced backtesting features
-- **[Execution Guide](execution.md)** - Live trading setup
+- **[Execution Guide](execution.md)** - Execution-realism harness (paper/replay) setup
 - **[Extending GeoSync](extending.md)** - Add custom indicators and strategies
 - **[Integration API](integration-api.md)** - Connect to exchanges
 

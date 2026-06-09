@@ -12,7 +12,7 @@
 
 ## Executive Summary
 
-GeoSync is an advanced quantitative trading infrastructure platform combining novel geometric signal generation with institutional-grade execution, risk management, and observability. The platform's signal layer is built on mathematical mechanisms sourced from peer-reviewed scientific literature — Kuramoto phase synchronization, Ricci curvature flow on graph manifolds, and thermodynamic free-energy principles — providing a structural alpha source distinct from conventional factor models or price-momentum heuristics.
+GeoSync is a verification-first quantitative research platform for falsifiable market-structure hypotheses, paired with an execution-realism harness, risk instrumentation, and observability. The research-observable layer is built on mathematical mechanisms sourced from peer-reviewed scientific literature — Kuramoto phase synchronization, Ricci curvature flow on graph manifolds, and thermodynamic free-energy principles — studied as structural market-microstructure descriptors. GeoSync is not a live-trading product, asserts no out-of-sample edge, and promotes no claim beyond its declared evidence tier (see `README.md`, `PRODUCT_CATEGORY.md`).
 
 The engineering foundation targets institutional scale: event-driven order management, Kubernetes-native deployment, Prometheus/OpenTelemetry telemetry, NIST SP 800-53–aligned security controls, and a 97,000-line codebase validated by a 681-test quality suite with an enforced 98% coverage gate on critical execution paths.
 
@@ -52,7 +52,7 @@ Full citation map: [`docs/BIBLIOGRAPHY.md`](docs/BIBLIOGRAPHY.md) · [`docs/CITA
 
 ## Platform Capabilities
 
-### Signal Generation
+### Research-Observable Computation
 
 ```
 core/indicators/
@@ -171,7 +171,7 @@ Infrastructure:    Docker multi-stage · Kubernetes/Helm · Terraform (pinned pr
 | Backtesting Engine | ✅ Stable | Deterministic; walk-forward validated |
 | Order Management System | ✅ Stable | Full lifecycle; 25 execution modules |
 | Risk Management Layer | ✅ Stable | Pre-trade checks; circuit breakers |
-| Live Trading Connectors | 🔄 Beta | Paper-trading parity; live activation guarded |
+| Execution-Realism Harness | 🔄 Research | Paper/replay parity; live-venue execution out of scope |
 | Observability Stack | ✅ Stable | Prometheus; OpenTelemetry; audit log |
 | Web Dashboard | 🚧 Pre-production | Auth hardening and UX polish in progress |
 | GPU Acceleration | ⏳ Planned | CuPy/Numba path stubbed; activation in v1.1 |
