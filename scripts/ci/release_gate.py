@@ -1,0 +1,487 @@
+#!/usr/bin/env python3
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
+"""Verification-first release gate — the single machine entrypoint.
+
+The canonical principle: a repository's value is not its complexity, its
+timelines, or the beauty of its architecture — it is the *reproducible
+ability to survive falsification and leave behind a verified artifact*.
+This gate refuses to let that judgement be made in prose. Each A–R section
+of the release contract is reduced to a probe that returns a machine
+result; the overall verdict is GREEN only if every gating probe is GREEN.
+
+A probe returns one of:
+
+* ``GREEN``   — machine-verified pass, with the evidence command/value.
+* ``RED``     — machine-verified failure (the artifact contradicts the claim).
+* ``MANUAL``  — requires a human/domain artifact this gate cannot synthesise.
+                Per the absolute rule ("no item closed with words"), an
+                unresolved MANUAL item is *not* GREEN and forces the release
+                RED until a real artifact is supplied.
+
+Heavy probes (clean-room wheel build + install) run only under ``--deep``
+so the fast lane stays under a CI minute; the provenance cold-verify is
+cheap and always runs.
+
+Usage::
+
+    python scripts/ci/release_gate.py            # fast probes
+    python scripts/ci/release_gate.py --deep      # + wheel build/install
+    python scripts/ci/release_gate.py --json out.json
+
+Exit codes::
+
+    0  — every gating probe GREEN and no unresolved MANUAL gating item
+    1  — at least one gating probe RED or MANUAL (release is RED)
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import subprocess
+import sys
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Callable
+
+ROOT = Path(__file__).resolve().parents[2]
+
+GREEN = "GREEN"
+RED = "RED"
+MANUAL = "MANUAL"
+
+# Directories that are not first-party runtime source for the import-hygiene
+# probes (tests legitimately manipulate sys.path / import test fixtures).
+_NON_SOURCE_PREFIXES: tuple[str, ...] = (
+    "tests/",
+    "test/",
+    ".git/",
+    "build/",
+    "dist/",
+    "node_modules/",
+)
+
+_SRC_IMPORT_RE = re.compile(r"^\s*(from|import)\s+src(\.|\s|$)")
+_PATH_HACK_RE = re.compile(r"sys\.path\.(insert|append)\s*\(")
+
+
+@dataclass
+class Probe:
+    pid: str
+    section: str
+    title: str
+    gating: bool
+    run: Callable[[bool], tuple[str, str]]
+
+
+@dataclass
+class Result:
+    pid: str
+    section: str
+    title: str
+    gating: bool
+    status: str
+    evidence: str
+
+
+# --------------------------------------------------------------------------
+# Helpers
+# --------------------------------------------------------------------------
+def _tracked_files() -> list[str]:
+    proc = subprocess.run(
+        ["git", "ls-files"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return [line for line in proc.stdout.splitlines() if line.strip()]
+
+
+def _first_party_py() -> list[str]:
+    out: list[str] = []
+    for rel in _tracked_files():
+        if not rel.endswith(".py"):
+            continue
+        if any(rel.startswith(p) for p in _NON_SOURCE_PREFIXES):
+            continue
+        out.append(rel)
+    return out
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _exists(*names: str) -> bool:
+    return any((ROOT / n).exists() for n in names)
+
+
+# --------------------------------------------------------------------------
+# A. Product claim boundary
+# --------------------------------------------------------------------------
+def probe_a_claim_files(deep: bool) -> tuple[str, str]:
+    boundary = _exists("CLAIM_BOUNDARY.md", "PRODUCT_CATEGORY.md")
+    forbidden = _exists("FORBIDDEN_CLAIMS.md")
+    if boundary and forbidden:
+        return GREEN, "claim-boundary + FORBIDDEN_CLAIMS docs present"
+    missing = []
+    if not boundary:
+        missing.append("CLAIM_BOUNDARY.md/PRODUCT_CATEGORY.md")
+    if not forbidden:
+        missing.append("FORBIDDEN_CLAIMS.md")
+    return RED, "missing: " + ", ".join(missing)
+
+
+def probe_a_claim_gate(deep: bool) -> tuple[str, str]:
+    script = ROOT / "scripts" / "ci" / "check_claim_boundary.py"
+    if not script.exists():
+        return RED, "scripts/ci/check_claim_boundary.py absent (claim gate not installed)"
+    proc = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode == 0:
+        return GREEN, proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "exit 0"
+    return RED, "check_claim_boundary.py exited nonzero"
+
+
+# --------------------------------------------------------------------------
+# B. Package / import architecture
+# --------------------------------------------------------------------------
+def probe_b_src_imports(deep: bool) -> tuple[str, str]:
+    hits = [
+        rel
+        for rel in _first_party_py()
+        if any(
+            _SRC_IMPORT_RE.search(line)
+            for line in (ROOT / rel).read_text(encoding="utf-8", errors="replace").splitlines()
+        )
+    ]
+    if not hits:
+        return GREEN, "no first-party `src.*` imports"
+    return RED, f"{len(hits)} first-party files import `src.*` (e.g. {hits[0]})"
+
+
+def probe_b_path_hacks(deep: bool) -> tuple[str, str]:
+    hits = [
+        rel
+        for rel in _first_party_py()
+        if rel.rsplit("/", 1)[-1] != "conftest.py"
+        and any(
+            _PATH_HACK_RE.search(line)
+            for line in (ROOT / rel).read_text(encoding="utf-8", errors="replace").splitlines()
+        )
+    ]
+    if not hits:
+        return GREEN, "no runtime sys.path hacks in first-party source"
+    return RED, f"{len(hits)} first-party files mutate sys.path (e.g. {hits[0]})"
+
+
+def probe_b_single_package(deep: bool) -> tuple[str, str]:
+    dual = (ROOT / "geosync").is_dir() and (ROOT / "src" / "geosync").is_dir()
+    if dual:
+        return RED, "both geosync/ and src/geosync/ exist (dual canonical package)"
+    return GREEN, "single geosync package root"
+
+
+def probe_b_wheel(deep: bool) -> tuple[str, str]:
+    if not deep:
+        return MANUAL, "skipped (run with --deep for clean-room wheel build/install)"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        tdp = Path(td)
+        arch = tdp / "src.tar"
+        with arch.open("wb") as fh:
+            subprocess.run(
+                ["git", "archive", "--format=tar", "HEAD"],
+                cwd=ROOT,
+                stdout=fh,
+                check=True,
+            )
+        srcdir = tdp / "src_tree"
+        srcdir.mkdir()
+        subprocess.run(["tar", "-xf", str(arch), "-C", str(srcdir)], check=True)
+        wheeldir = tdp / "wheel"
+        build = subprocess.run(
+            [sys.executable, "-m", "pip", "wheel", "--no-deps", "-w", str(wheeldir), str(srcdir)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        wheels = list(wheeldir.glob("*.whl"))
+        if build.returncode != 0 or not wheels:
+            return RED, "wheel build failed from clean git archive"
+        import zipfile
+
+        with zipfile.ZipFile(wheels[0]) as zf:
+            tops = sorted({n.split("/")[0] for n in zf.namelist()})
+        pkgs = [t for t in tops if not t.endswith(".dist-info")]
+        non_geosync = [t for t in pkgs if not t.startswith("geosync")]
+        if non_geosync:
+            return RED, (
+                f"wheel ships {len(pkgs)} top-level packages, "
+                f"{len(non_geosync)} outside geosync* (e.g. {', '.join(non_geosync[:6])})"
+            )
+        return GREEN, f"wheel ships only geosync* ({len(pkgs)} packages)"
+
+
+# --------------------------------------------------------------------------
+# C. Dependency truth
+# --------------------------------------------------------------------------
+def probe_c_lock(deep: bool) -> tuple[str, str]:
+    if _exists("requirements.lock"):
+        return GREEN, "requirements.lock present"
+    return RED, "no requirements.lock"
+
+
+def probe_c_dep_truth(deep: bool) -> tuple[str, str]:
+    val = ROOT / "tools" / "deps" / "validate_dependency_truth.py"
+    if not val.exists():
+        return MANUAL, "tools/deps/validate_dependency_truth.py absent"
+    proc = subprocess.run(
+        [sys.executable, str(val), "--exit-on-drift"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode == 0:
+        return GREEN, "dependency-truth validator: no drift"
+    return RED, "dependency-truth validator reports drift"
+
+
+# --------------------------------------------------------------------------
+# D. Provenance / evidence bundle
+# --------------------------------------------------------------------------
+def probe_d_manifest_coldverify(deep: bool) -> tuple[str, str]:
+    manifest = ROOT / "MANIFEST.sha256"
+    if not manifest.exists():
+        return RED, "MANIFEST.sha256 absent"
+    mismatch = 0
+    missing = 0
+    total = 0
+    first_bad = ""
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split(None, 1)
+        if len(parts) != 2:
+            continue
+        want, rel = parts
+        rel = rel.lstrip("*").lstrip("./")
+        target = ROOT / rel
+        total += 1
+        if not target.exists():
+            missing += 1
+            if not first_bad:
+                first_bad = f"missing:{rel}"
+            continue
+        if _sha256(target) != want:
+            mismatch += 1
+            if not first_bad:
+                first_bad = f"mismatch:{rel}"
+    bad = mismatch + missing
+    if bad == 0:
+        return GREEN, f"MANIFEST.sha256 cold-verify clean ({total} entries)"
+    return RED, (
+        f"MANIFEST.sha256 cold-verify FAILED: {bad}/{total} entries broken "
+        f"({mismatch} mismatch, {missing} missing; e.g. {first_bad})"
+    )
+
+
+# --------------------------------------------------------------------------
+# F. Invariant grounding
+# --------------------------------------------------------------------------
+def probe_f_invariants(deep: bool) -> tuple[str, str]:
+    script = ROOT / "scripts" / "count_invariants.py"
+    if not script.exists():
+        return RED, "scripts/count_invariants.py absent"
+    proc = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode == 0:
+        last = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "exit 0"
+        return GREEN, f"invariant registry consistent ({last})"
+    return RED, "count_invariants.py exited nonzero (registry/header drift)"
+
+
+# --------------------------------------------------------------------------
+# P. Test maturity (presence floor)
+# --------------------------------------------------------------------------
+def probe_p_tests(deep: bool) -> tuple[str, str]:
+    n = sum(1 for rel in _tracked_files() if "/test_" in f"/{rel}" and rel.endswith(".py"))
+    if n > 0:
+        return GREEN, f"{n} test files tracked"
+    return RED, "no test files"
+
+
+# --------------------------------------------------------------------------
+# MANUAL gating items — require domain artifacts this gate cannot synthesise.
+# Surfaced honestly as MANUAL so they force RED until a real artifact lands.
+# --------------------------------------------------------------------------
+def _manual(note: str) -> Callable[[bool], tuple[str, str]]:
+    def _run(deep: bool) -> tuple[str, str]:
+        return MANUAL, note
+
+    return _run
+
+
+PROBES: list[Probe] = [
+    Probe(
+        "A.claim_files",
+        "A",
+        "Claim-boundary + forbidden-claims docs exist",
+        True,
+        probe_a_claim_files,
+    ),
+    Probe("A.claim_gate", "A", "Claim-boundary doc scanner passes", True, probe_a_claim_gate),
+    Probe("B.src_imports", "B", "No first-party `src.*` imports", True, probe_b_src_imports),
+    Probe("B.path_hacks", "B", "No runtime sys.path hacks", True, probe_b_path_hacks),
+    Probe("B.single_pkg", "B", "Single canonical geosync package", True, probe_b_single_package),
+    Probe("B.wheel", "B", "Wheel ships only geosync* (clean-room)", True, probe_b_wheel),
+    Probe("C.lock", "C", "requirements.lock present", True, probe_c_lock),
+    Probe("C.dep_truth", "C", "Dependency-truth validator clean", True, probe_c_dep_truth),
+    Probe(
+        "D.manifest", "D", "MANIFEST.sha256 cold-verify clean", True, probe_d_manifest_coldverify
+    ),
+    Probe("F.invariants", "F", "Invariant registry consistent", True, probe_f_invariants),
+    Probe("P.tests", "P", "Test suite present", True, probe_p_tests),
+    Probe(
+        "E.clean_clone",
+        "E",
+        "Clean-clone wheel install + CLI entrypoints run",
+        True,
+        _manual(
+            "requires --deep wheel install + per-entrypoint smoke (see B.wheel); not yet machine-proven"
+        ),
+    ),
+    Probe(
+        "G.real_data",
+        "G",
+        "Multi-session/day/venue real-data evidence tracks",
+        True,
+        _manual(
+            "requires dataset manifests with license/provenance + OOS/leakage reports; not synthesised here"
+        ),
+    ),
+    Probe(
+        "H.falsification",
+        "H",
+        "Null/topology/cost/factor-neutral controls + kill-condition ledger",
+        True,
+        _manual(
+            "controls partially present (bootstrap/surrogate/shuffle) but no null-baseline/kill-condition ledger gate"
+        ),
+    ),
+    Probe(
+        "K.execution",
+        "K",
+        "Execution contract: fills/slippage/adverse-selection/recovery",
+        True,
+        _manual(
+            "execution realism modelling not gate-verified; declare out-of-scope or supply contract tests"
+        ),
+    ),
+    Probe(
+        "M.benchmarks",
+        "M",
+        "Latency/throughput/memory + CPU/GPU parity with regression budget",
+        True,
+        _manual("benchmark spine with hardware baselines + regression gate not present"),
+    ),
+    Probe(
+        "Q.replication",
+        "Q",
+        "Reviewer packet + cold-rerun + signed verification + repro capsule",
+        True,
+        _manual("external replication packet with expected-output hashes not present"),
+    ),
+]
+
+
+def evaluate(deep: bool) -> list[Result]:
+    results: list[Result] = []
+    for p in PROBES:
+        try:
+            status, evidence = p.run(deep)
+        except Exception as exc:  # noqa: BLE001 - a crashing probe is itself a RED
+            status, evidence = RED, f"probe raised: {exc!r}"
+        results.append(Result(p.pid, p.section, p.title, p.gating, status, evidence))
+    return results
+
+
+def render(results: list[Result]) -> str:
+    icon = {GREEN: "GREEN", RED: "RED ", MANUAL: "MANL"}
+    lines = ["", "GeoSync Verification-First Release Gate", "=" * 64]
+    for r in results:
+        gate = "gate" if r.gating else "adv "
+        lines.append(f"[{icon[r.status]}] {gate} {r.pid:<16} {r.title}")
+        lines.append(f"           └─ {r.evidence}")
+    return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Verification-first release gate.")
+    parser.add_argument(
+        "--deep", action="store_true", help="Run heavy clean-room probes (wheel build/install)."
+    )
+    parser.add_argument(
+        "--json", default=None, help="Write machine-readable scorecard to this path."
+    )
+    args = parser.parse_args(argv)
+
+    results = evaluate(args.deep)
+    print(render(results))
+
+    gating = [r for r in results if r.gating]
+    green = [r for r in gating if r.status == GREEN]
+    red = [r for r in gating if r.status == RED]
+    manual = [r for r in gating if r.status == MANUAL]
+    verdict = GREEN if not red and not manual else RED
+
+    print("=" * 64)
+    print(
+        f"Gating: {len(green)} GREEN / {len(red)} RED / {len(manual)} MANUAL "
+        f"of {len(gating)} — VERDICT: {verdict}"
+    )
+    if verdict == RED:
+        print(
+            "Per the absolute rule, any RED or unresolved MANUAL gating item "
+            "makes the whole release RED. No 'almost ready'."
+        )
+
+    if args.json:
+        payload = {
+            "verdict": verdict,
+            "counts": {
+                "green": len(green),
+                "red": len(red),
+                "manual": len(manual),
+                "gating_total": len(gating),
+            },
+            "results": [asdict(r) for r in results],
+        }
+        Path(args.json).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    return 0 if verdict == GREEN else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -62,6 +62,10 @@
       "sha256": "47e975016c3a2cf56b43c6e5c99ca04a0d9bdedbceacdd9fd61056cf18d75d47"
     },
     {
+      "path": "scripts/ci/release_gate.py",
+      "sha256": "24e08e7ffe5d1e9ef9718f912e0c38689545954be85670729cb9abdc4d452ade"
+    },
+    {
       "path": "scripts/ci/run_actionlint.py",
       "sha256": "a21ae0beda169a249063bf76ad48578fb22b91d73d49aced82dfd50accb1663c"
     },
