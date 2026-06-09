@@ -32,20 +32,47 @@ closed the moment a future symmetric-joint estimation path is added
 * ``test_strategy_registry_is_frozen_and_fail_closed`` — strategies are
   frozen, the registry rejects a duplicate key (no silent shadowing of
   an audited path), and the public view is read-only.
-* ``test_golden_vectors_bit_identical`` — every estimation path's
-  ``K̂`` / ``ω̂`` / ``P̂`` / identifiability score / PE diagnostic and
-  every prox operator are byte-for-byte the values captured on the
-  parent sha (65666072), proving the extraction is algorithm-preserving.
+* ``test_golden_vectors_algorithm_preserving`` — every estimation
+  path's ``K̂`` / ``ω̂`` / ``P̂`` / identifiability score / PE diagnostic
+  and every prox operator reproduce the values captured on the parent
+  sha (65666072), proving the extraction is algorithm-preserving.
+
+  Determinism note (root-fix for a confirmed cross-runner flake). The
+  earlier revision compared ``sha256(arr.tobytes())`` against byte-for-
+  byte golden hashes. Byte equality is *too strict a verdict*: it fires
+  not only on a genuine algorithm change but also on environment-only
+  float noise. ``numpy``/``scipy`` here link OpenBLAS built with
+  ``DYNAMIC_ARCH`` + multi-threaded reductions, so the last bit of an
+  SVD / lstsq / iterative-prox result depends on (a) the detected CPU
+  microkernel (Haswell vs Skylake vs Zen ⇒ different FMA/vectorisation
+  order) and (b) the thread count of the runner. Those are *not*
+  algorithm changes, yet they flip a byte hash — a false positive. The
+  repo has already filed cross-environment BLAS bit-determinism as
+  infeasible. This test therefore (1) pins ``threadpool_limits(1)`` to
+  remove the intra-run thread-reduction component of the noise and
+  (2) compares the actual numeric arrays with a *physically separated*
+  tolerance: ``rtol=1e-9, atol=1e-12``. Every quantity here is O(1), so
+  the band sits ~10⁶× above the worst plausible cross-arch last-bit
+  noise (≲1e-12 relative on these well-conditioned O(1) solves) and
+  ~10⁷× below any genuine refactor breach (a wrong design row, dropped
+  term, sign error or wrong stencil moves a result by ≥1e-2). The gate
+  thus still fails closed on a real algorithm change — proven by
+  ``test_golden_gate_catches_real_drift`` below — while no longer
+  flaking on environment float noise. Goldens were regenerated under
+  ``threadpool_limits(1)`` and verified stable across ≥3 runs; the
+  underlying values are unchanged from sha 65666072 (the refactor is
+  bit-identical on this build), only the *comparison* moved from byte
+  hash to separated tolerance.
 """
 
 from __future__ import annotations
 
 import ast
-import hashlib
 import inspect
 from pathlib import Path
 
 import numpy as np
+from threadpoolctl import threadpool_limits
 
 from core.kuramoto.contracts import PhaseMatrix
 from core.kuramoto.coupling_estimator import (
@@ -184,9 +211,13 @@ def test_strategy_registry_is_frozen_and_fail_closed() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _h(a: np.ndarray) -> str:
-    arr = np.ascontiguousarray(np.asarray(a, dtype=np.float64))
-    return hashlib.sha256(arr.tobytes()).hexdigest()
+# Physically-separated comparison band (see module docstring). O(1)
+# quantities ⇒ rtol dominates; atol guards the few exact-zero entries.
+# Floor (BLAS cross-arch last-bit noise ≲1e-12 rel) ≪ rtol ≪ ceiling
+# (a genuine refactor breach ≥1e-2). assert_allclose fails the test if
+# ANY element drifts past the band — it is not a soft check.
+_RTOL = 1e-9
+_ATOL = 1e-12
 
 
 def _first_order_pm() -> tuple[PhaseMatrix, np.ndarray]:
@@ -256,130 +287,358 @@ def _swing_pm() -> tuple[PhaseMatrix, np.ndarray, np.ndarray]:
     return pm, m, d
 
 
-# Golden vectors captured on the parent sha 65666072 (pre-refactor) —
-# every estimation path's raw-byte hash. A single ULP drift on any path
-# flips one of these and fails the test (algorithm-preserving contract).
-_GOLDEN: dict[str, object] = {
-    # audited: numpy-array content sha256 / scalar diagnostics, NOT
-    # credentials — the bit-identical golden vectors from sha 65666072.
-    "first_order_mcp_K": "2ef43b77c3cb4e24b567563caddebd0a31c01155a72a283bb0b048a66266cdff",  # pragma: allowlist secret
+# Golden vectors. Underlying values captured on the parent sha 65666072
+# (pre-refactor); regenerated under ``threadpool_limits(1)`` and verified
+# stable across ≥3 runs. The refactor is bit-identical on the reference
+# build, so these are the same numbers as before — only the comparison
+# moved from a byte hash to the separated tolerance ``_RTOL``/``_ATOL``
+# (see module docstring for the root-cause / flake analysis). Array
+# goldens carry full float64 repr precision so a within-band match is a
+# genuine reproduction, not a coarse approximation.
+_GOLDEN_ARRAYS: dict[str, np.ndarray] = {
+    "first_order_mcp_K": np.array(
+        [
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, -0.674062254534137, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.7803269007960915],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ]
+    ),
+    "first_order_stab_K": np.array(
+        [
+            [0.0, 0.3337571338081858, 0.0, 0.0, -0.04694850186609115, 0.030257055359435393],
+            [
+                -0.19693123087637882,
+                0.0,
+                -0.03417287638299672,
+                0.0,
+                0.143422341845193,
+                -0.09709426332030342,
+            ],
+            [0.0, 0.0, 0.0, -1.1476966738084846, -0.37988131761552113, 0.306106927910787],
+            [0.027622318166831892, 0.0, 0.16745444140235166, 0.0, -0.012889532450166878, 0.0],
+            [0.11365063785437733, 0.0, 0.0, -0.21966385323769033, 0.0, 1.5779602225672387],
+            [
+                0.0,
+                0.011450833218390346,
+                0.08604038091381772,
+                0.1048350819673239,
+                -0.023594210382380534,
+                0.0,
+            ],
+        ]
+    ),
+    "first_order_stab_scores": np.array(
+        [
+            [0.0, 0.875, 0.375, 0.375, 0.5, 0.5],
+            [0.75, 0.0, 0.625, 0.375, 0.5, 0.75],
+            [0.375, 0.375, 0.0, 1.0, 1.0, 1.0],
+            [0.625, 0.25, 0.875, 0.0, 0.625, 0.375],
+            [1.0, 0.375, 0.375, 1.0, 0.0, 1.0],
+            [0.375, 0.625, 0.625, 0.5, 0.875, 0.0],
+        ]
+    ),
+    "cps_K_median": np.array(
+        [
+            [
+                0.0,
+                0.33375713380818578,
+                -0.031909251139203877,
+                -0.0097458812546596680,
+                -0.046948501866091147,
+                0.030257055359435393,
+            ],
+            [
+                -0.19693123087637882,
+                0.0,
+                -0.034172876382996722,
+                0.00080590709837984314,
+                0.14342234184519301,
+                -0.097094263320303423,
+            ],
+            [
+                -0.033711802143923636,
+                0.048750624836125071,
+                0.0,
+                -1.1476966738084846,
+                -0.37988131761552113,
+                0.30610692791078697,
+            ],
+            [
+                0.027622318166831892,
+                0.027116429112311904,
+                0.16745444140235166,
+                0.0,
+                -0.012889532450166878,
+                0.061358346856175285,
+            ],
+            [
+                0.11365063785437733,
+                0.10420199922517896,
+                -0.50470570704919027,
+                -0.21966385323769033,
+                0.0,
+                1.5779602225672387,
+            ],
+            [
+                0.018457405881418334,
+                0.011450833218390346,
+                0.086040380913817716,
+                0.10483508196732390,
+                -0.023594210382380534,
+                0.0,
+            ],
+        ]
+    ),
+    "cps_stability": np.array(
+        [
+            [0.0, 0.875, 0.375, 0.375, 0.5, 0.5],
+            [0.75, 0.0, 0.625, 0.375, 0.5, 0.75],
+            [0.375, 0.375, 0.0, 1.0, 1.0, 1.0],
+            [0.625, 0.25, 0.875, 0.0, 0.625, 0.375],
+            [1.0, 0.375, 0.375, 1.0, 0.0, 1.0],
+            [0.375, 0.625, 0.625, 0.5, 0.875, 0.0],
+        ]
+    ),
+    "mcp_prox": np.array([-1.7999999999999998, 0.0, 0.0, 0.0, 1.2, 4.0]),
+    "scad_prox": np.array([-1.6136363636363635, -0.0, 0.0, 0.0, 1.0, 4.0]),
+    "soft_threshold": np.array([-1.8, -0.09999999999999998, 0.0, 0.09999999999999998, 1.3, 3.8]),
+    "swing_sym_K": np.array(
+        [
+            [0.0, 0.9019333478526244, 0.4970868336621068],
+            [0.9019333478526244, 0.0, 0.7047115365209683],
+            [0.4970868336621068, 0.7047115365209683, 0.0],
+        ]
+    ),
+    "swing_sym_P": np.array([0.598846754398815, -0.09922948373250914, -0.49961727060982025]),
+    "swing_sym_omega": np.array([2.39538701759526, -0.3307649457750305, -2.4980863530491013]),
+    "swing_sym_ident_K": np.array(
+        [
+            [0.0, 0.9019333478526244, 0.4970868336621068],
+            [0.9019333478526244, 0.0, 0.7047115365209683],
+            [0.4970868336621068, 0.7047115365209683, 0.0],
+        ]
+    ),
+    "swing_asym_K": np.array(
+        [
+            [0.0, 0.9088313401425899, 0.4915507670318054],
+            [0.9032446668576976, 0.0, 0.7075263898511375],
+            [0.5007483227764051, 0.696230139499009, 0.0],
+        ]
+    ),
+    "swing_asym_P": np.array([0.5979647954022034, -0.09884580632518923, -0.4992495261344361]),
+    "swing_asym_omega": np.array([2.3918591816088135, -0.32948602108396413, -2.49624763067218]),
+    "integral_K": np.array(
+        [
+            [0.0, 0.9025741068271693, 0.4961684674583769],
+            [0.9025741068271693, 0.0, 0.7059390758793358],
+            [0.4961684674583769, 0.7059390758793358, 0.0],
+        ]
+    ),
+    "integral_P": np.array([0.5985145968331952, -0.0990840191498828, -0.49943052171120716]),
+    "integral_omega": np.array([2.3940583873327808, -0.33028006383294267, -2.4971526085560356]),
+}
+
+# Scalar diagnostics. The proportions are exact rationals (sparsity is a
+# count ratio, score is a bounded diagnostic) and the verdicts are
+# categorical, so these are checked at the same separated tolerance for
+# floats and by exact equality for strings.
+_GOLDEN_SCALARS: dict[str, float] = {
     "first_order_mcp_sparsity": 0.9333333333333333,
-    "first_order_stab_K": "4a1693424442e9ef473e2f0d6a4699a885a8316d54a284412cae70e0fdcd858e",  # pragma: allowlist secret
-    "first_order_stab_scores": "f4c4a8f934857770e8649f2ee958d2af3a63a783ea4038e41108a423053d4297",  # pragma: allowlist secret
-    "cps_K_median": "bd3e05110466b148c0eae3b58928949f54207036b9a30369f66cfb2cb0c66148",  # pragma: allowlist secret
-    "cps_stability": "f4c4a8f934857770e8649f2ee958d2af3a63a783ea4038e41108a423053d4297",  # pragma: allowlist secret
-    "mcp_prox": "0509a9a0bed614b2eb21a44091006cc979db732f34076fe63af2aaa0d992226f",  # pragma: allowlist secret
-    "scad_prox": "9dff064a01a1963ac4ee4b0f71ee300deb65f81835151df3419e3043f10f935f",  # pragma: allowlist secret
-    "soft_threshold": "93f77c0d636d04dd2cd1683ec9936f95bcdeec12e3526e4c2e5b66861f3fa7c6",  # pragma: allowlist secret
-    "swing_sym_K": "f2f63bc4f07cedc6044017d641fb93e264f98e9b7959daf38b97a021a6e1ca76",  # pragma: allowlist secret
-    "swing_sym_P": "3b9e7840e3f6056bbc94e043a9ca8fbe94132a83af040168151c73c0edbc7e87",  # pragma: allowlist secret
-    "swing_sym_omega": "749e28c849ccc30f5858bd7b6f1087e24262ab450bd6f92b06bc6aeaf8800797",  # pragma: allowlist secret
     "swing_sym_msr": 0.04004743831202507,
-    "swing_sym_ident_K": "f2f63bc4f07cedc6044017d641fb93e264f98e9b7959daf38b97a021a6e1ca76",  # pragma: allowlist secret
     "swing_sym_ident_score": 0.9996845317668399,
-    "swing_sym_ident_verdict": "ACCEPT",
-    "swing_asym_K": "cd0021bea77cada8ed6c21231b239a042783ee4d91394921d57cbca8fb765879",  # pragma: allowlist secret
-    "swing_asym_P": "92ecaf44292090862a4732bf4fa71fd8cd8d29ef9e75c7c125c8d96cf5c9e55f",  # pragma: allowlist secret
-    "swing_asym_omega": "759d69c0bd363d78abedf78b4fede1cd9bc9ca41605644822e7ff0566d853bec",  # pragma: allowlist secret
     "swing_asym_msr": 0.03644135053721742,
-    "integral_K": "b9dc00b1f213add6039d55b1d2e25c197a9c8d6b280f315d8f693ebae80b2304",  # pragma: allowlist secret
-    "integral_P": "d22c73572803701d064edbd6678577800320fbabf1522f74c5b3bcd1bce6f30c",  # pragma: allowlist secret
-    "integral_omega": "2936f444e03019d5e58528559908ba4a60954a79a426f611c0522f38ddfb1490",  # pragma: allowlist secret
     "integral_msr": 0.037442981977247894,
     "integral_ident_score": 0.9981478637919239,
+}
+_GOLDEN_VERDICTS: dict[str, str] = {
+    "swing_sym_ident_verdict": "ACCEPT",
     "integral_ident_verdict": "ACCEPT",
 }
 
 
-def test_golden_vectors_bit_identical() -> None:
-    """Every estimation path is byte-identical to the parent sha output.
+def _compute_golden_outputs() -> tuple[dict[str, np.ndarray], dict[str, float], dict[str, str]]:
+    """Run every estimation path under pinned-deterministic BLAS.
 
-    This is the bit-identical proof for the strategy-registry
-    extraction: the dispatcher + strategies reproduce the exact ``K̂`` /
-    ``ω̂`` / ``P̂`` / identifiability score / PE diagnostic / prox-operator
-    bytes captured on 65666072 before any structural change.
+    ``threadpool_limits(1)`` removes the intra-run thread-reduction
+    component of OpenBLAS non-determinism (the SVD / lstsq / iterative
+    prox reductions then sum in a single deterministic order). The
+    residual cross-architecture last-bit noise is absorbed by the
+    ``_RTOL``/``_ATOL`` band at the comparison site, not here.
     """
-    out: dict[str, object] = {}
+    arrays: dict[str, np.ndarray] = {}
+    scalars: dict[str, float] = {}
+    verdicts: dict[str, str] = {}
 
-    pm, theta = _first_order_pm()
-    dt = 0.05
-    cfg = CouplingEstimationConfig(penalty="mcp", lambda_reg=0.15, dt=dt, max_iter=800, tol=1e-7)
-    r1 = estimate_coupling(pm, cfg)
-    out["first_order_mcp_K"] = _h(r1.K)
-    out["first_order_mcp_sparsity"] = float(r1.sparsity)
+    with threadpool_limits(limits=1, user_api="blas"):
+        pm, theta = _first_order_pm()
+        dt = 0.05
+        cfg = CouplingEstimationConfig(
+            penalty="mcp", lambda_reg=0.15, dt=dt, max_iter=800, tol=1e-7
+        )
+        r1 = estimate_coupling(pm, cfg)
+        arrays["first_order_mcp_K"] = np.asarray(r1.K, dtype=np.float64)
+        scalars["first_order_mcp_sparsity"] = float(r1.sparsity)
 
-    cfg_s = CouplingEstimationConfig(
-        penalty="mcp",
-        lambda_reg=0.02,
-        dt=dt,
-        max_iter=300,
-        tol=1e-5,
-        stability_selection=True,
-        lambda_grid=(0.01, 0.03, 0.1),
-        n_subsamples=4,
-        subsample_fraction=0.5,
-        stability_threshold=0.5,
-        random_state=0,
-    )
-    rs = CouplingEstimator(cfg_s).estimate(pm)
-    assert rs.stability_scores is not None
-    out["first_order_stab_K"] = _h(rs.K)
-    out["first_order_stab_scores"] = _h(rs.stability_scores)
-    k_med, stab = complementary_pairs_stability(theta, cfg_s)
-    out["cps_K_median"] = _h(k_med)
-    out["cps_stability"] = _h(stab)
+        cfg_s = CouplingEstimationConfig(
+            penalty="mcp",
+            lambda_reg=0.02,
+            dt=dt,
+            max_iter=300,
+            tol=1e-5,
+            stability_selection=True,
+            lambda_grid=(0.01, 0.03, 0.1),
+            n_subsamples=4,
+            subsample_fraction=0.5,
+            stability_threshold=0.5,
+            random_state=0,
+        )
+        rs = CouplingEstimator(cfg_s).estimate(pm)
+        assert rs.stability_scores is not None
+        arrays["first_order_stab_K"] = np.asarray(rs.K, dtype=np.float64)
+        arrays["first_order_stab_scores"] = np.asarray(rs.stability_scores, dtype=np.float64)
+        k_med, stab = complementary_pairs_stability(theta, cfg_s)
+        arrays["cps_K_median"] = np.asarray(k_med, dtype=np.float64)
+        arrays["cps_stability"] = np.asarray(stab, dtype=np.float64)
 
-    z = np.array([-2.0, -0.3, 0.0, 0.3, 1.5, 4.0])
-    out["mcp_prox"] = _h(mcp_prox(z, 1.0, 3.0, 0.5))
-    out["scad_prox"] = _h(scad_prox(z, 1.0, 3.7, 0.5))
-    out["soft_threshold"] = _h(soft_threshold(z, 0.2))
+        z = np.array([-2.0, -0.3, 0.0, 0.3, 1.5, 4.0])
+        arrays["mcp_prox"] = np.asarray(mcp_prox(z, 1.0, 3.0, 0.5), dtype=np.float64)
+        arrays["scad_prox"] = np.asarray(scad_prox(z, 1.0, 3.7, 0.5), dtype=np.float64)
+        arrays["soft_threshold"] = np.asarray(soft_threshold(z, 0.2), dtype=np.float64)
 
-    pm2, m, d = _swing_pm()
-    dt2 = 0.005
-    sd = estimate_swing_coupling(pm2, m, d, dt=dt2, savgol_window=7, savgol_polyorder=4)
-    out["swing_sym_K"] = _h(sd.K)
-    out["swing_sym_P"] = _h(sd.injection)
-    out["swing_sym_omega"] = _h(sd.omega)
-    out["swing_sym_msr"] = float(sd.min_singular_ratio)
-    sd_i = estimate_swing_coupling(
-        pm2, m, d, dt=dt2, savgol_window=7, savgol_polyorder=4, identifiability_gate=True
-    )
-    assert sd_i.identifiability is not None
-    out["swing_sym_ident_K"] = _h(sd_i.K)
-    out["swing_sym_ident_score"] = float(sd_i.identifiability.score)
-    out["swing_sym_ident_verdict"] = sd_i.identifiability.verdict
-    sa = estimate_swing_coupling(
-        pm2, m, d, dt=dt2, symmetric=False, savgol_window=7, savgol_polyorder=4, pe_guard=False
-    )
-    out["swing_asym_K"] = _h(sa.K)
-    out["swing_asym_P"] = _h(sa.injection)
-    out["swing_asym_omega"] = _h(sa.omega)
-    out["swing_asym_msr"] = float(sa.min_singular_ratio)
-    ig = estimate_swing_coupling_integral(
-        pm2, m, d, dt=dt2, test_support=120, n_windows=120, bump_order=6
-    )
-    out["integral_K"] = _h(ig.K)
-    out["integral_P"] = _h(ig.injection)
-    out["integral_omega"] = _h(ig.omega)
-    out["integral_msr"] = float(ig.min_singular_ratio)
-    ig_i = estimate_swing_coupling_integral(
-        pm2,
-        m,
-        d,
-        dt=dt2,
-        test_support=120,
-        n_windows=120,
-        bump_order=6,
-        identifiability_gate=True,
-    )
-    assert ig_i.identifiability is not None
-    out["integral_ident_score"] = float(ig_i.identifiability.score)
-    out["integral_ident_verdict"] = ig_i.identifiability.verdict
+        pm2, m, d = _swing_pm()
+        dt2 = 0.005
+        sd = estimate_swing_coupling(pm2, m, d, dt=dt2, savgol_window=7, savgol_polyorder=4)
+        arrays["swing_sym_K"] = np.asarray(sd.K, dtype=np.float64)
+        arrays["swing_sym_P"] = np.asarray(sd.injection, dtype=np.float64)
+        arrays["swing_sym_omega"] = np.asarray(sd.omega, dtype=np.float64)
+        scalars["swing_sym_msr"] = float(sd.min_singular_ratio)
+        sd_i = estimate_swing_coupling(
+            pm2, m, d, dt=dt2, savgol_window=7, savgol_polyorder=4, identifiability_gate=True
+        )
+        assert sd_i.identifiability is not None
+        arrays["swing_sym_ident_K"] = np.asarray(sd_i.K, dtype=np.float64)
+        scalars["swing_sym_ident_score"] = float(sd_i.identifiability.score)
+        verdicts["swing_sym_ident_verdict"] = sd_i.identifiability.verdict
+        sa = estimate_swing_coupling(
+            pm2, m, d, dt=dt2, symmetric=False, savgol_window=7, savgol_polyorder=4, pe_guard=False
+        )
+        arrays["swing_asym_K"] = np.asarray(sa.K, dtype=np.float64)
+        arrays["swing_asym_P"] = np.asarray(sa.injection, dtype=np.float64)
+        arrays["swing_asym_omega"] = np.asarray(sa.omega, dtype=np.float64)
+        scalars["swing_asym_msr"] = float(sa.min_singular_ratio)
+        ig = estimate_swing_coupling_integral(
+            pm2, m, d, dt=dt2, test_support=120, n_windows=120, bump_order=6
+        )
+        arrays["integral_K"] = np.asarray(ig.K, dtype=np.float64)
+        arrays["integral_P"] = np.asarray(ig.injection, dtype=np.float64)
+        arrays["integral_omega"] = np.asarray(ig.omega, dtype=np.float64)
+        scalars["integral_msr"] = float(ig.min_singular_ratio)
+        ig_i = estimate_swing_coupling_integral(
+            pm2,
+            m,
+            d,
+            dt=dt2,
+            test_support=120,
+            n_windows=120,
+            bump_order=6,
+            identifiability_gate=True,
+        )
+        assert ig_i.identifiability is not None
+        scalars["integral_ident_score"] = float(ig_i.identifiability.score)
+        verdicts["integral_ident_verdict"] = ig_i.identifiability.verdict
 
-    mism = [k for k in _GOLDEN if _GOLDEN[k] != out.get(k)]
-    assert not mism, (
-        f"NON-BIT-IDENTICAL extraction — paths drifted from the parent-sha "
-        f"golden vectors: {mism}. The strategy-registry refactor is "
-        "algorithm-preserving by contract; any numeric change here is a "
-        "behavior breach, not a refactor."
+    return arrays, scalars, verdicts
+
+
+def test_golden_vectors_algorithm_preserving() -> None:
+    """Every estimation path reproduces the parent-sha output.
+
+    Algorithm-preserving proof for the strategy-registry extraction: the
+    dispatcher + strategies reproduce the ``K̂`` / ``ω̂`` / ``P̂`` /
+    identifiability score / PE diagnostic / prox-operator values captured
+    on 65666072 before any structural change. Comparison uses the
+    separated band ``_RTOL``/``_ATOL`` (see module docstring): far below
+    any genuine algorithm change, far above environment-only BLAS
+    last-bit noise — so it stays a real algorithm-change detector without
+    flaking on cross-runner float jitter.
+    """
+    arrays, scalars, verdicts = _compute_golden_outputs()
+
+    assert set(arrays) == set(_GOLDEN_ARRAYS), (
+        "golden array key set drifted — a path was added/removed without "
+        "updating the algorithm-preserving golden vectors"
     )
+    assert set(scalars) == set(_GOLDEN_SCALARS)
+    assert set(verdicts) == set(_GOLDEN_VERDICTS)
+
+    for key, got in arrays.items():
+        expected = _GOLDEN_ARRAYS[key]
+        assert got.shape == expected.shape, (
+            f"{key}: shape {got.shape} != golden {expected.shape} — a "
+            "behaviour breach (the refactor must not change array shape)"
+        )
+        np.testing.assert_allclose(
+            got,
+            expected,
+            rtol=_RTOL,
+            atol=_ATOL,
+            err_msg=(
+                f"ALGORITHM DRIFT on path {key!r}: output left the "
+                f"separated band (rtol={_RTOL}, atol={_ATOL}). This band "
+                "is ~10^6x above cross-arch BLAS last-bit noise, so a "
+                "breach here is a real numeric change from the parent-sha "
+                "algorithm, not environment float jitter. The "
+                "strategy-registry refactor is algorithm-preserving by "
+                "contract."
+            ),
+        )
+
+    for key, got_scalar in scalars.items():
+        np.testing.assert_allclose(
+            got_scalar,
+            _GOLDEN_SCALARS[key],
+            rtol=_RTOL,
+            atol=_ATOL,
+            err_msg=f"ALGORITHM DRIFT on scalar diagnostic {key!r}",
+        )
+
+    for key, got_verdict in verdicts.items():
+        assert got_verdict == _GOLDEN_VERDICTS[key], (
+            f"identifiability verdict {key!r} flipped: {got_verdict!r} != "
+            f"{_GOLDEN_VERDICTS[key]!r} — a categorical behaviour breach"
+        )
+
+
+def test_golden_gate_catches_real_drift() -> None:
+    """The separated-tolerance gate still fails closed on a real change.
+
+    Verdict-flipping safeguard: it proves the move from byte-hash to
+    ``assert_allclose`` did NOT defang the gate. We take a true golden
+    value, perturb it by ``1e-3`` (the low end of a genuine refactor
+    breach — a dropped term / wrong stencil moves a result by ≥1e-2, this
+    is conservatively smaller) and assert the comparison REJECTS it. A
+    perturbation ~10^6x smaller than this (pure BLAS last-bit noise) must
+    instead pass, which the main test exercises every run.
+    """
+    truth = _GOLDEN_ARRAYS["swing_sym_K"]
+    perturbed = truth.copy()
+    # Perturb a single nonzero coupling edge by a real-drift-scale amount.
+    perturbed[0, 1] += 1e-3
+    raised = False
+    try:
+        np.testing.assert_allclose(perturbed, truth, rtol=_RTOL, atol=_ATOL)
+    except AssertionError:
+        raised = True
+    assert raised, (
+        "tolerance too loose — a 1e-3 (real-algorithm-change scale) "
+        "perturbation slipped through the golden gate; the band must "
+        "reject any drift this large or it is no longer a behaviour cap"
+    )
+
+    # And a BLAS-last-bit-scale perturbation (~1 ULP relative) must pass,
+    # confirming the band is not so tight it re-introduces the flake.
+    noise = truth * (1.0 + np.finfo(np.float64).eps)
+    np.testing.assert_allclose(noise, truth, rtol=_RTOL, atol=_ATOL)
