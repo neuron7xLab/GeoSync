@@ -8,7 +8,7 @@ aiodns==3.5.0
     # via ccxt
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.5
+aiohttp==3.14.0
     # via ccxt
 aiokafka==0.12.0
     # via geosync (pyproject.toml)
@@ -145,7 +145,7 @@ fsspec==2025.12.0
     # via torch
 gitdb==4.0.12
     # via gitpython
-gitpython==3.1.45
+gitpython==3.1.50
     # via streamlit
 googleapis-common-protos==1.70.0
     # via
@@ -238,7 +238,7 @@ linkify-it-py==2.0.3
     # via markdown-it-py
 llvmlite==0.46.0
     # via numba
-mako==1.3.10
+mako==1.3.12
     # via alembic
 markdown-it-py[linkify,plugins]==4.0.0
     # via
@@ -451,7 +451,7 @@ py-cpuinfo==9.0.0
     # via pytest-benchmark
 py-spy==0.4.1
     # via geosync (pyproject.toml)
-pyarrow==21.0.0
+pyarrow==23.0.1
     # via
     #   geosync (pyproject.toml)
     #   streamlit
@@ -487,7 +487,7 @@ pygments==2.19.2
     #   readme-renderer
     #   rich
     #   textual
-pyjwt[crypto]==2.12.0
+pyjwt[crypto]==2.13.0
     # via
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
@@ -536,7 +536,7 @@ python-dateutil==2.9.0.post0
     #   strawberry-graphql
 python-dotenv==1.2.2
     # via pydantic-settings
-python-multipart==0.0.26
+python-multipart==0.0.27
     # via strawberry-graphql
 pytokens==0.4.0
     # via black
@@ -622,7 +622,7 @@ starlette==1.2.1
     #   fastapi
 stevedore==5.5.0
     # via bandit
-strawberry-graphql[fastapi]==0.315.2
+strawberry-graphql[fastapi]==0.315.7
     # via geosync (pyproject.toml)
 streamlit==1.54.0
     # via
