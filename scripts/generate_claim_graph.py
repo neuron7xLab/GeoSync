@@ -30,8 +30,17 @@ def main() -> int:
     nodes = parse_claim_nodes(text)
     edges: list[dict[str, str]] = []
     ids = {n["id"] for n in nodes}
-    if "C-PHYS-KERNEL" in ids and "C-INV-COUNT" in ids:
-        edges.append({"from": "C-PHYS-KERNEL", "to": "C-INV-COUNT", "type": "depends_on"})
+    # Explicit dependency edges. C-PHYS-KERNEL is the root claim; every other
+    # registered claim either composes or is constrained by it.
+    dependency_pairs: list[tuple[str, str]] = [
+        ("C-PHYS-KERNEL", "C-INV-COUNT"),
+        ("C-TLA-PROOF", "C-PHYS-KERNEL"),
+        ("C-SYSRISK-PHASE", "C-PHYS-KERNEL"),
+        ("C-EPI-RHOMBUS", "C-PHYS-KERNEL"),
+    ]
+    for src, dst in dependency_pairs:
+        if src in ids and dst in ids:
+            edges.append({"from": src, "to": dst, "type": "depends_on"})
     graph = {
         "generated_at_utc": "2026-05-26T00:00:00Z",
         "nodes": nodes,

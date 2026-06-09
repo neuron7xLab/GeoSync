@@ -32,12 +32,35 @@
       "evidence": [
         "`research/systemic_risk/falsification.py` v2: pre-registered Mann-Whitney AUC with stratified percentile-bootstrap CI (n=10000) + one-sided permutation p + Bonferroni FWER. `HARD_PASS` requires `auc_ci_low` \u2265 0.70 AND `p_BONF` \u2264 0.01 on \u2265 2 crises; `HARD_FAIL` if any AUC \u2264 0.55 OR any `auc_ci_low` \u2264 0.5. Asymmetric directed coupling via `coupling_from_exposures`; BA null calibrated by MLE per `fit_barabasi_albert` (Clauset-Shalizi-Newman 2009, *SIAM Rev.* 51: 661). `research/systemic_risk/README.md`"
       ]
+    },
+    {
+      "id": "C-EPI-RHOMBUS",
+      "tier": "FACT",
+      "claim": "Epistemic Rhombus manifest maps 4 governance criteria to schema-validated external gates",
+      "evidence": [
+        "`python scripts/validate_epistemic_rhombus_manifest.py`, `.github/workflows/epistemic-rhombus-gate.yml`, and `tests/scripts/test_validate_epistemic_rhombus_manifest.py` validate `governance/epistemic_rhombus_manifest.jsonl` against `schemas/governance/epistemic_rhombus_manifest.schema.json`."
+      ]
     }
   ],
   "edges": [
     {
       "from": "C-PHYS-KERNEL",
       "to": "C-INV-COUNT",
+      "type": "depends_on"
+    },
+    {
+      "from": "C-TLA-PROOF",
+      "to": "C-PHYS-KERNEL",
+      "type": "depends_on"
+    },
+    {
+      "from": "C-SYSRISK-PHASE",
+      "to": "C-PHYS-KERNEL",
+      "type": "depends_on"
+    },
+    {
+      "from": "C-EPI-RHOMBUS",
+      "to": "C-PHYS-KERNEL",
       "type": "depends_on"
     }
   ],

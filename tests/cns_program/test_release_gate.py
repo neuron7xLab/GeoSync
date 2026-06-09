@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -11,9 +12,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def run(args: list[str]) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "PYTHONPATH": str(ROOT)}
     return subprocess.run(
         [sys.executable, *args],
         cwd=ROOT,
+        env=env,
         text=True,
         capture_output=True,
         check=False,
