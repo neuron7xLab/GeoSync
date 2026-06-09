@@ -1,0 +1,103 @@
+[
+  {
+    "classification": "MACHINE_VERIFIED",
+    "command": [
+      "/root/.pyenv/versions/3.14.4/bin/python",
+      "tools/verify_mfn_clean_install.py",
+      "--python",
+      "python3.12",
+      "--report",
+      "/workspace/GeoSync/artifacts/release_evidence/product_state.json"
+    ],
+    "id": "clean_install_fact",
+    "output_file": "import_results.txt",
+    "passed": true,
+    "returncode": 0
+  },
+  {
+    "classification": "MACHINE_VERIFIED",
+    "command": [
+      "/root/.pyenv/versions/3.14.4/bin/python",
+      "-m",
+      "pytest",
+      "tests/unit/mfn",
+      "-q"
+    ],
+    "id": "mfn_tests",
+    "output_file": "test_results.txt",
+    "passed": true,
+    "returncode": 0
+  },
+  {
+    "classification": "MACHINE_VERIFIED",
+    "command": [
+      "/root/.pyenv/versions/3.14.4/bin/python",
+      "-m",
+      "ruff",
+      "check",
+      "tools/build_backend.py",
+      "tools/verify_mfn_clean_install.py",
+      "geosync/mfn",
+      "conftest.py"
+    ],
+    "id": "ruff",
+    "output_file": "lint_results.txt",
+    "passed": true,
+    "returncode": 0
+  },
+  {
+    "classification": "MACHINE_VERIFIED",
+    "command": [
+      "/root/.pyenv/versions/3.14.4/bin/python",
+      "-m",
+      "compileall",
+      "-q",
+      "geosync/mfn",
+      "conftest.py",
+      "tests/unit/mfn",
+      "tools/build_backend.py",
+      "tools/verify_mfn_clean_install.py"
+    ],
+    "id": "compileall",
+    "output_file": "compile_results.txt",
+    "passed": true,
+    "returncode": 0
+  },
+  {
+    "classification": "MACHINE_VERIFIED",
+    "command": [
+      "/root/.pyenv/versions/3.14.4/bin/python",
+      "scripts/check_single_entrypoint.py"
+    ],
+    "id": "entrypoint_guard",
+    "output_file": "entrypoint_results.txt",
+    "passed": true,
+    "returncode": 0
+  },
+  {
+    "classification": "MACHINE_VERIFIED",
+    "command": [
+      "/root/.pyenv/versions/3.14.4/bin/python",
+      "scripts/check_python_matrix.py"
+    ],
+    "id": "python_matrix",
+    "output_file": "tooling_results.txt",
+    "passed": true,
+    "returncode": 0
+  },
+  {
+    "classification": "MACHINE_VERIFIED",
+    "command": [
+      "/root/.pyenv/versions/3.14.4/bin/python",
+      "-m",
+      "geosync.mfn.cli",
+      "--out",
+      "/tmp/mfn-release-evidence",
+      "run"
+    ],
+    "id": "operation_direct",
+    "output_file": "operation_results.txt",
+    "passed": true,
+    "returncode": 0
+  }
+]

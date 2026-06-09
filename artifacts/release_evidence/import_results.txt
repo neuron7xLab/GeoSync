@@ -1,0 +1,83 @@
+$ /root/.pyenv/versions/3.14.4/bin/python tools/verify_mfn_clean_install.py --python python3.12 --report /workspace/GeoSync/artifacts/release_evidence/product_state.json
+# returncode=0
+
+## stdout
+$ python3.12 -m venv /tmp/geosync-mfn-clean-jjc8pzjw/venv
+$ /tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/python -m pip install -e /workspace/GeoSync --no-deps
+Obtaining file:///workspace/GeoSync
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: geosync
+  Building editable for geosync (pyproject.toml): started
+  Building editable for geosync (pyproject.toml): finished with status 'done'
+  Created wheel for geosync: filename=geosync-0.1.0-py3-none-any.whl size=1894 sha256=300a74bffe20ab945e3f7a903d6b3f1fc2bd094b892ef53e2a724768a74a090e
+  Stored in directory: /tmp/pip-ephem-wheel-cache-cg1hlokb/wheels/cd/22/07/dd720ea06a74c76d7d119df965caa2cb7d98e4687e2e615973
+Successfully built geosync
+Installing collected packages: geosync
+Successfully installed geosync-0.1.0
+$ /tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/python -c import core, geosync, geosync.mfn; print('import_ok', geosync.__name__, geosync.mfn.__name__, core.__name__)
+import_ok geosync geosync.mfn core
+command_v_mfn=/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn
+$ /tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn --help
+usage: mfn [-h] [--out OUT] [--seed SEED] [--points POINTS]
+           {run,validate,simulate,extract,detect,forecast,compare,report} ...
+
+Dependency-light MFN integration artifact runner.
+
+positional arguments:
+  {run,validate,simulate,extract,detect,forecast,compare,report}
+    run                 Run simulate→extract→detect→forecast→compare→report.
+    validate            Validate an MFN output bundle.
+    simulate            Run the simulate stage.
+    extract             Run the extract stage.
+    detect              Run the detect stage.
+    forecast            Run the forecast stage.
+    compare             Run the compare stage.
+    report              Run the report stage.
+
+options:
+  -h, --help            show this help message and exit
+  --out OUT             Output bundle directory.
+  --seed SEED           Deterministic synthetic seed.
+  --points POINTS       Number of simulated observations.
+command_v_mfn-api=/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-api
+$ /tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-api --help
+usage: mfn-api [-h] [--format {text,json}]
+
+Dependency-light MFN integration artifact runner.
+
+options:
+  -h, --help            show this help message and exit
+  --format {text,json}
+command_v_mfn-validate=/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-validate
+$ /tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-validate --help
+usage: mfn-validate [-h] [--bundle BUNDLE]
+
+Dependency-light MFN integration artifact runner.
+
+options:
+  -h, --help       show this help message and exit
+  --bundle BUNDLE
+$ /tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn --out /tmp/geosync-mfn-clean-jjc8pzjw/bundle run
+output_bundle=/tmp/geosync-mfn-clean-jjc8pzjw/bundle
+simulate=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/simulate.json
+extract=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/extract.json
+detect=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/detect.json
+forecast=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/forecast.json
+compare=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/compare.json
+report=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/report.json
+runbook=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/runbook.md
+manifest=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/manifest.json
+sha256_manifest=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/SHA256SUMS
+first_file_to_open=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/manifest.json
+$ /tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-validate --bundle /tmp/geosync-mfn-clean-jjc8pzjw/bundle
+validated_bundle=/tmp/geosync-mfn-clean-jjc8pzjw/bundle
+first_file_to_open=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/manifest.json
+verified_clean_bundle=/tmp/geosync-mfn-clean-jjc8pzjw/bundle
+product_state_report=/workspace/GeoSync/artifacts/release_evidence/product_state.json
+
+## stderr

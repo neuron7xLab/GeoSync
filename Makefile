@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 PYTHON := $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
 PYTEST := $(shell if [ -x .venv/bin/pytest ]; then echo .venv/bin/pytest; else echo pytest; fi)
+MFN_RELEASE_PYTHON ?= python3.12
 
 # ============================================================================
 # Standard Entry Points - Use these commands for development
@@ -329,6 +330,13 @@ docs:
 	@echo "📚 Building documentation..."
 	mkdocs build
 	@echo "✅ Documentation built"
+
+.PHONY: release-gate
+release-gate:
+	@echo "🚦 Running MFN release evidence gate..."
+	$(PYTHON) tools/generate_release_evidence.py --python $(MFN_RELEASE_PYTHON)
+	$(PYTHON) tools/validate_release_evidence.py artifacts/release_evidence
+	@echo "✅ MFN release evidence gate passed"
 
 .PHONY: release
 release: clean

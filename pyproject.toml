@@ -1,6 +1,7 @@
 [build-system]
-requires = ["setuptools>=69", "setuptools_scm>=8", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = []
+build-backend = "tools.build_backend"
+backend-path = ["."]
 
 [project]
 name = "geosync"
@@ -127,6 +128,9 @@ geosync-sync = "scripts.resilient_data_sync:main"
 geosync-db = "scripts.db_migrate:cli"
 geosync-server = "application.runtime.server:main"
 tp-kuramoto = "core.kuramoto.cli:main"
+mfn = "geosync.mfn.cli:main"
+mfn-api = "geosync.mfn.cli:api_main"
+mfn-validate = "geosync.mfn.cli:validate_main"
 
 [tool.setuptools.dynamic]
 readme = { file = "README.md", content-type = "text/markdown" }

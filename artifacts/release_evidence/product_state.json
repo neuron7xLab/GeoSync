@@ -1,0 +1,224 @@
+{
+  "bundle": "/tmp/geosync-mfn-clean-jjc8pzjw/bundle",
+  "checks": [
+    {
+      "command": [
+        "python3.12",
+        "-m",
+        "venv",
+        "/tmp/geosync-mfn-clean-jjc8pzjw/venv"
+      ],
+      "cwd": "/workspace/GeoSync",
+      "id": "create_clean_venv",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "command": [
+        "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "-e",
+        "/workspace/GeoSync",
+        "--no-deps"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "editable_install",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "Obtaining file:///workspace/GeoSync\n  Checking if build backend supports build_editable: started\n  Checking if build backend supports build_editable: finished with status 'done'\n  Getting requirements to build editable: started\n  Getting requirements to build editable: finished with status 'done'\n  Preparing editable metadata (pyproject.toml): started\n  Preparing editable metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: geosync\n  Building editable for geosync (pyproject.toml): started\n  Building editable for geosync (pyproject.toml): finished with status 'done'\n  Created wheel for geosync: filename=geosync-0.1.0-py3-none-any.whl size=1894 sha256=300a74bffe20ab945e3f7a903d6b3f1fc2bd094b892ef53e2a724768a74a090e\n  Stored in directory: /tmp/pip-ephem-wheel-cache-cg1hlokb/wheels/cd/22/07/dd720ea06a74c76d7d119df965caa2cb7d98e4687e2e615973\nSuccessfully built geosync\nInstalling collected packages: geosync\nSuccessfully installed geosync-0.1.0\n"
+    },
+    {
+      "command": [
+        "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/python",
+        "-c",
+        "import core, geosync, geosync.mfn; print('import_ok', geosync.__name__, geosync.mfn.__name__, core.__name__)"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "import_geosync_mfn",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "import_ok geosync geosync.mfn core\n"
+    },
+    {
+      "command": [
+        "command",
+        "-v",
+        "mfn"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "command_v_mfn",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn\n"
+    },
+    {
+      "command": [
+        "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn",
+        "--help"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "mfn_help",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "usage: mfn [-h] [--out OUT] [--seed SEED] [--points POINTS]\n           {run,validate,simulate,extract,detect,forecast,compare,report} ...\n\nDependency-light MFN integration artifact runner.\n\npositional arguments:\n  {run,validate,simulate,extract,detect,forecast,compare,report}\n    run                 Run simulate\u2192extract\u2192detect\u2192forecast\u2192compare\u2192report.\n    validate            Validate an MFN output bundle.\n    simulate            Run the simulate stage.\n    extract             Run the extract stage.\n    detect              Run the detect stage.\n    forecast            Run the forecast stage.\n    compare             Run the compare stage.\n    report              Run the report stage.\n\noptions:\n  -h, --help            show this help message and exit\n  --out OUT             Output bundle directory.\n  --seed SEED           Deterministic synthetic seed.\n  --points POINTS       Number of simulated observations.\n"
+    },
+    {
+      "command": [
+        "command",
+        "-v",
+        "mfn-api"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "command_v_mfn-api",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-api\n"
+    },
+    {
+      "command": [
+        "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-api",
+        "--help"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "mfn-api_help",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "usage: mfn-api [-h] [--format {text,json}]\n\nDependency-light MFN integration artifact runner.\n\noptions:\n  -h, --help            show this help message and exit\n  --format {text,json}\n"
+    },
+    {
+      "command": [
+        "command",
+        "-v",
+        "mfn-validate"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "command_v_mfn-validate",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-validate\n"
+    },
+    {
+      "command": [
+        "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-validate",
+        "--help"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "mfn-validate_help",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "usage: mfn-validate [-h] [--bundle BUNDLE]\n\nDependency-light MFN integration artifact runner.\n\noptions:\n  -h, --help       show this help message and exit\n  --bundle BUNDLE\n"
+    },
+    {
+      "command": [
+        "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn",
+        "--out",
+        "/tmp/geosync-mfn-clean-jjc8pzjw/bundle",
+        "run"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "mfn_run",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "output_bundle=/tmp/geosync-mfn-clean-jjc8pzjw/bundle\nsimulate=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/simulate.json\nextract=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/extract.json\ndetect=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/detect.json\nforecast=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/forecast.json\ncompare=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/compare.json\nreport=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/report.json\nrunbook=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/runbook.md\nmanifest=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/manifest.json\nsha256_manifest=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/SHA256SUMS\nfirst_file_to_open=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/manifest.json\n"
+    },
+    {
+      "command": [
+        "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-validate",
+        "--bundle",
+        "/tmp/geosync-mfn-clean-jjc8pzjw/bundle"
+      ],
+      "cwd": "/tmp/geosync-mfn-clean-jjc8pzjw/outside-cwd",
+      "id": "mfn_validate",
+      "level": "MACHINE_VERIFIED",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "validated_bundle=/tmp/geosync-mfn-clean-jjc8pzjw/bundle\nfirst_file_to_open=/tmp/geosync-mfn-clean-jjc8pzjw/bundle/manifest.json\n"
+    }
+  ],
+  "entrypoints": {
+    "mfn": "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn",
+    "mfn-api": "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-api",
+    "mfn-validate": "/tmp/geosync-mfn-clean-jjc8pzjw/venv/bin/mfn-validate"
+  },
+  "generated_utc": "2026-06-09T07:14:19Z",
+  "project_state_delta": {
+    "artifact_contract": {
+      "first_file_to_open_printed": true,
+      "manifest_created": true,
+      "output_bundle_created": true,
+      "reproducible_clean_run": true,
+      "runbook_created": true,
+      "sha256_manifest_created": true
+    },
+    "cli_contract": {
+      "command_exit_codes_deterministic": true,
+      "help_commands_pass": true,
+      "mfn_api_available": true,
+      "mfn_available": true,
+      "mfn_validate_available": true
+    },
+    "import_contract": {
+      "no_module_not_found": true,
+      "top_level_import_passes": true
+    },
+    "operation_contract": {
+      "compare_passes": true,
+      "detect_passes": true,
+      "extract_passes": true,
+      "forecast_passes": true,
+      "report_passes": true,
+      "simulate_passes": true
+    },
+    "packaging_contract": {
+      "editable_install_passes": true,
+      "entrypoints_installed": true
+    },
+    "production_readiness": {
+      "blocking_nodes": [
+        "full_dependency_lockfile_install_not_verified_by_this_mfn_smoke"
+      ],
+      "final_status": "YELLOW",
+      "human_review_only_claims": [
+        "predictive_edge_or_alpha",
+        "full_dependency_lockfile_release_readiness",
+        "scientific_validity_of_market_hypotheses"
+      ],
+      "machine_verified": true,
+      "score_0_100": 79,
+      "score_basis": {
+        "cap_reason": "full_dependency_lockfile_install_not_verified",
+        "passed_checks": 11,
+        "raw_machine_score": 100,
+        "total_checks": 11
+      }
+    }
+  },
+  "python_executable": "python3.12",
+  "repo_root": "/workspace/GeoSync",
+  "schema_version": "geosync.mfn.product_state.v1",
+  "verification_level": "MACHINE_VERIFIED"
+}

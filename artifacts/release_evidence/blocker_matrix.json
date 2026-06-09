@@ -1,0 +1,112 @@
+[
+  {
+    "blocker_severity": "LOW",
+    "classification": "MACHINE_VERIFIED",
+    "command_used": "python tools/verify_mfn_clean_install.py --python python3.12 --report artifacts/release_evidence/product_state.json",
+    "confidence": "HIGH",
+    "expected_behavior": "Clean editable install succeeds without network build dependencies.",
+    "node": "A. Packaging contract",
+    "observed_behavior": "MFN clean verifier installs editable package in a fresh Python 3.12 venv with --no-deps.",
+    "root_cause_hypothesis": "Previous setuptools/wheel build isolation dependency was removed via local backend.",
+    "signal": "PASS"
+  },
+  {
+    "blocker_severity": "LOW",
+    "classification": "MACHINE_VERIFIED",
+    "command_used": "fresh venv python -c import core, geosync, geosync.mfn",
+    "confidence": "HIGH",
+    "expected_behavior": "Installed environment can import geosync, geosync.mfn, and core.",
+    "node": "B. Import contract",
+    "observed_behavior": "Captured by clean verifier import_geosync_mfn check.",
+    "root_cause_hypothesis": "Editable install exposes repository packages through generated .pth.",
+    "signal": "PASS"
+  },
+  {
+    "blocker_severity": "LOW",
+    "classification": "MACHINE_VERIFIED",
+    "command_used": "command -v mfn && command -v mfn-api && command -v mfn-validate inside clean venv PATH",
+    "confidence": "HIGH",
+    "expected_behavior": "Installed PATH resolves mfn, mfn-api, and mfn-validate.",
+    "node": "C. Entrypoint contract",
+    "observed_behavior": "Clean verifier records command_v checks for all MFN entrypoints.",
+    "root_cause_hypothesis": "pyproject [project.scripts] entrypoints are emitted into editable wheel metadata.",
+    "signal": "PASS"
+  },
+  {
+    "blocker_severity": "LOW",
+    "classification": "MACHINE_VERIFIED",
+    "command_used": "mfn --help; mfn-api --help; mfn-validate --help",
+    "confidence": "HIGH",
+    "expected_behavior": "MFN help commands exit 0 deterministically.",
+    "node": "D. CLI command contract",
+    "observed_behavior": "Clean verifier executes --help for every MFN entrypoint.",
+    "root_cause_hypothesis": "argparse CLI surface is dependency-light and installed.",
+    "signal": "PASS"
+  },
+  {
+    "blocker_severity": "LOW",
+    "classification": "MACHINE_VERIFIED",
+    "command_used": "mfn --out <bundle> run; mfn-validate --bundle <bundle>",
+    "confidence": "HIGH",
+    "expected_behavior": "Installed mfn command creates an instrumented bundle and mfn-validate accepts it.",
+    "node": "E. Operation pipeline contract",
+    "observed_behavior": "Clean verifier runs installed mfn and installed mfn-validate.",
+    "root_cause_hypothesis": "MFN pipeline is standard-library-only and writes required artifacts/manifests.",
+    "signal": "PASS"
+  },
+  {
+    "blocker_severity": "MEDIUM",
+    "classification": "MACHINE_VERIFIED",
+    "command_used": "python -m pytest tests/unit/mfn -q",
+    "confidence": "HIGH",
+    "expected_behavior": "Focused MFN unit tests pass; full repository suite is not claimed.",
+    "node": "F. Test contract",
+    "observed_behavior": "Focused MFN tests pass; full suite remains outside this evidence bundle.",
+    "root_cause_hypothesis": "Contract tests cover MFN CLI and build backend; full suite may require heavyweight deps.",
+    "signal": "PASS"
+  },
+  {
+    "blocker_severity": "MEDIUM",
+    "classification": "MACHINE_VERIFIED",
+    "command_used": "ruff/compileall/check_single_entrypoint/check_python_matrix",
+    "confidence": "HIGH",
+    "expected_behavior": "Referenced focused tooling is executable.",
+    "node": "G. Tooling contract",
+    "observed_behavior": "Ruff, compileall, namespace and python-matrix checks pass for focused scope.",
+    "root_cause_hypothesis": "Focused tooling exists in active environment; full dev extra install is not claimed.",
+    "signal": "PASS"
+  },
+  {
+    "blocker_severity": "MEDIUM",
+    "classification": "MACHINE_ASSISTED",
+    "command_used": "baseline uv.lock detection; no full dependency install claimed",
+    "confidence": "HIGH",
+    "expected_behavior": "Canonical lockfile is consistent if claimed.",
+    "node": "H. Lockfile contract",
+    "observed_behavior": "uv.lock is absent; pip/requirements lock remains existing but full lock install is not verified here.",
+    "root_cause_hypothesis": "Repository dependency surface is larger than focused MFN smoke path.",
+    "signal": "BLOCKED"
+  },
+  {
+    "blocker_severity": "LOW",
+    "classification": "MACHINE_VERIFIED",
+    "command_used": "python tools/generate_release_evidence.py",
+    "confidence": "HIGH",
+    "expected_behavior": "Evidence bundle has manifest and SHA256SUMS.",
+    "node": "I. Release artifact contract",
+    "observed_behavior": "This tool writes release_manifest.json and SHA256SUMS after command capture.",
+    "root_cause_hypothesis": "Evidence generation is local and deterministic for captured files.",
+    "signal": "PASS"
+  },
+  {
+    "blocker_severity": "LOW",
+    "classification": "MACHINE_ASSISTED",
+    "command_used": "static README inspection plus clean verifier execution",
+    "confidence": "MEDIUM",
+    "expected_behavior": "README command matches executable verifier command.",
+    "node": "J. Documentation/runbook contract",
+    "observed_behavior": "README documents MFN run, validate, and clean verification report command.",
+    "root_cause_hypothesis": "Documented commands map to installed MFN verifier path.",
+    "signal": "PASS"
+  }
+]

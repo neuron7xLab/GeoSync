@@ -1,0 +1,15 @@
+$ /root/.pyenv/versions/3.14.4/bin/python scripts/check_python_matrix.py
+# returncode=0
+
+## stdout
+🐍 Python Version Matrix Guard
+============================================================
+✓ pyproject.toml requires-python: >=3.11,<3.13
+
+Checking Dockerfiles...
+Checking GitHub workflows...
+
+✅ SUCCESS: All Python versions are consistent with pyproject.toml
+   Supported range: >=3.11,<3.13
+
+## stderr

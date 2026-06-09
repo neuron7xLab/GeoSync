@@ -1,0 +1,7 @@
+$ /root/.pyenv/versions/3.14.4/bin/python -m ruff check tools/build_backend.py tools/verify_mfn_clean_install.py geosync/mfn conftest.py
+# returncode=0
+
+## stdout
+All checks passed!
+
+## stderr

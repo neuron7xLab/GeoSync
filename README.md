@@ -73,12 +73,27 @@ Every inference artifact for an evidence-bearing line must validate as JSON and 
 
 ## Golden Path
 
+The dependency-light MFN integration gateway is the canonical machine-smoke path for creating an `INSTRUMENTED` bundle without promoting a predictive or trading claim:
+
+```bash
+mfn --out artifacts/runs/mfn_integration run
+mfn validate --bundle artifacts/runs/mfn_integration
+```
+
+Clean-install verification for this gateway is executable with:
+
+```bash
+python tools/verify_mfn_clean_install.py --python python3.12 --report artifacts/runs/mfn_integration/product_state.json
+```
+
+The research-line gateway remains the target interface for evidence-bearing Ricci runs:
+
 ```bash
 geosync-research run --line ricci_microstructure_v1 --config conf/research/ricci_v1.yaml --data data/manifest.json --out artifacts/runs/
 geosync-research verify artifacts/runs/<run_id>
 ```
 
-Until that gateway is fully implemented, the schema gate is the repository-level enforcement point:
+Until that research-line gateway is fully implemented, the schema gate is the repository-level enforcement point:
 
 ```bash
 python tools/research/validate_ricci_artifact_schema.py --schema schemas/research/ricci_microstructure_artifact.schema.json --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json

@@ -1,0 +1,7 @@
+$ /root/.pyenv/versions/3.14.4/bin/python -m pytest tests/unit/mfn -q
+# returncode=0
+
+## stdout
+.....                                                                    [100%]
+
+## stderr

@@ -1,0 +1,17 @@
+$ /root/.pyenv/versions/3.14.4/bin/python -m geosync.mfn.cli --out /tmp/mfn-release-evidence run
+# returncode=0
+
+## stdout
+output_bundle=/tmp/mfn-release-evidence
+simulate=/tmp/mfn-release-evidence/simulate.json
+extract=/tmp/mfn-release-evidence/extract.json
+detect=/tmp/mfn-release-evidence/detect.json
+forecast=/tmp/mfn-release-evidence/forecast.json
+compare=/tmp/mfn-release-evidence/compare.json
+report=/tmp/mfn-release-evidence/report.json
+runbook=/tmp/mfn-release-evidence/runbook.md
+manifest=/tmp/mfn-release-evidence/manifest.json
+sha256_manifest=/tmp/mfn-release-evidence/SHA256SUMS
+first_file_to_open=/tmp/mfn-release-evidence/manifest.json
+
+## stderr

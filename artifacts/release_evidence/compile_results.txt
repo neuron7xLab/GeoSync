@@ -1,0 +1,6 @@
+$ /root/.pyenv/versions/3.14.4/bin/python -m compileall -q geosync/mfn conftest.py tests/unit/mfn tools/build_backend.py tools/verify_mfn_clean_install.py
+# returncode=0
+
+## stdout
+
+## stderr
