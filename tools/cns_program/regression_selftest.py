@@ -8,7 +8,10 @@ import tempfile
 from pathlib import Path
 from typing import Any, cast
 
-from tools.cns_program.verify_reports_contract import verify_reports
+if __package__ in (None, ""):  # allow `python tools/cns_program/<script>.py` from repo root
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from tools.cns_program.verify_reports_contract import verify_reports  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 
