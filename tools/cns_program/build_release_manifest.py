@@ -3,10 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from tools.cns_program.cns_contract import (
+if __package__ in (None, ""):  # allow `python tools/cns_program/<script>.py` from repo root
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from tools.cns_program.cns_contract import (  # noqa: E402
     DEPLOY_GATE_RESULT,
     MANIFEST_FILES,
     RELEASE_MANIFEST_RESULT,

@@ -2,11 +2,18 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from tools.cns_program.cns_contract import REPORTS_CONTRACT_RESULT, REQUIRED_REPORTS
+if __package__ in (None, ""):  # allow `python tools/cns_program/<script>.py` from repo root
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from tools.cns_program.cns_contract import (  # noqa: E402
+    REPORTS_CONTRACT_RESULT,
+    REQUIRED_REPORTS,
+)
 
 
 def verify_reports(
