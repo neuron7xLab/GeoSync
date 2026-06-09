@@ -482,6 +482,8 @@ def build_price_graph(prices: np.ndarray, delta: float = 0.005) -> nx.Graph:
         raw_levels = np.round((p - base) / (scale * delta))
     raw_levels = np.nan_to_num(raw_levels, nan=0.0, posinf=0.0, neginf=0.0)
     max_int = np.iinfo(np.int64).max // 2
+    # INV-HPC2 / bounds: clip to ±(int64_max//2) so the .astype(int) cast
+    # cannot overflow on extreme price deltas (finite-in → finite-out).
     levels = np.clip(raw_levels, -max_int, max_int).astype(int)
     G = nx.Graph()
     for i, lv in enumerate(levels):
