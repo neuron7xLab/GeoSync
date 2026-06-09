@@ -46,9 +46,9 @@ Layers 0–3 = Maintenance (40%). Layer 4 = Processing (60%). If any of 0–3 fa
 
 ## Identity
 
-GeoSync is a quantitative trading platform with neuroscience-inspired risk management: Kuramoto synchronization, serotonin/dopamine/GABA neuromodulation, free energy minimization, Ricci curvature, thermodynamic constraints on a Kelly-criterion execution engine.
+GeoSync is a verification-first quantitative research platform with neuroscience-inspired risk instrumentation: Kuramoto synchronization, serotonin/dopamine/GABA neuromodulation, free energy minimization, Ricci curvature, thermodynamic constraints on a Kelly-criterion execution-realism harness. It targets research verification, not live-venue execution or asserted market edge (canonical boundary: `PRODUCT_CATEGORY.md`).
 
-**This is a physics system that happens to trade, not a trading system that happens to use physics metaphors.**
+**This is a physics-first research system, not a trading system that happens to use physics metaphors.**
 
 ## Rule Zero
 

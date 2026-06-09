@@ -2,6 +2,19 @@
 
 GeoSync claims are limited to falsifiable research statements with explicit evidence, nulls, and failure modes. This document is a repository-level claim-space firewall for README text, PR bodies, release notes, papers, and generated artifacts.
 
+## Product Category Boundary
+
+This firewall governs *status* wording. The orthogonal **product-category**
+boundary — GeoSync is a verification-first research platform, **not** a
+live-trading system, alpha engine, or investment-advice product — is declared
+canonically in [`PRODUCT_CATEGORY.md`](PRODUCT_CATEGORY.md) and enforced over
+the whole canonical doc surface by `scripts/ci/check_claim_boundary.py`
+(workflow: `.github/workflows/claim-boundary-gate.yml`). Product-level
+phrasing such as `live trading`, `trading signal`, `signal generation`, or
+`alpha engine/product/signal` is admissible only as reviewed *mechanism*
+(code symbols, ops runbooks, research disclaimers, honest negations) recorded
+in `.github/claim_boundary_allow.json`; new unreviewed occurrences fail CI.
+
 ## Banned Status Language
 
 The following phrases are forbidden unless they appear inside this policy file as examples of prohibited wording:

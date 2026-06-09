@@ -81,7 +81,7 @@ The project is in the final preparation phase before its first major release wit
    - 🚧 Performance benchmarks - design targets, not measured
 
 2. **Documentation:**
-   - 🚧 Live trading operations guide needs refinement
+   - 🚧 Execution-harness operations guide needs refinement
    - 🚧 Governance documents need updates
    - 🚧 Onboarding guides need structured review
 
@@ -188,7 +188,7 @@ The project is in the final preparation phase before its first major release wit
 
 **Areas for Improvement:**
 - Review compliance: 78% vs 90% target
-- Live trading operations guide needs refinement
+- Execution-harness operations guide needs refinement
 - Some documentation claims need verification (tracked in METRICS_CONTRACT.md)
 
 ### 5. Security (⭐⭐⭐⭐⭐ 95%)
@@ -242,7 +242,7 @@ The project is in the final preparation phase before its first major release wit
    - Add performance benchmarks
 
 2. **Documentation** - complete critical gaps
-   - Live trading operations guide
+   - Execution-harness operations guide
    - Onboarding guide structured review
    - Architecture Decision Records
 
@@ -285,7 +285,7 @@ The project is in the final preparation phase before its first major release wit
 - Core Architecture: ██████████████████████ 95%
 - Backtesting Engine: ████████████████████░░ 90%
 - Execution Layer: ██████████████████░░░░░ 85%
-- Live Trading: ███████████████░░░░░░░░░ 70%
+- Execution-Realism Harness: paper/replay (research instrumentation; no live-venue claim)
 - Dashboard/UI: ██████████░░░░░░░░░░░░░ 50%
 - Documentation: █████████████████░░░░░░ 85%
 - Testing: ███████████████░░░░░░░░░░ 75%
@@ -324,7 +324,7 @@ The project is in the final preparation phase before its first major release wit
 #### Critical Priority (P0):
 1. **Achieve 98% test coverage** - this is a CI gate requirement
 2. **Complete dashboard hardening** - production auth and observability
-3. **Finalize live trading documentation** - operational readiness
+3. **Finalize execution-harness documentation** - operational readiness
 4. **Create first git tag** - activate version management
 
 #### High Priority (P1):
@@ -363,7 +363,7 @@ The project is in the final preparation phase before its first major release wit
 ### For the Team:
 
 - **Testing Team**: focus on coverage expansion (98% target)
-- **Docs Team**: live trading operations guide and onboarding review
+- **Docs Team**: execution-harness operations guide and onboarding review
 - **DevOps Team**: staging validation and release gate activation
 - **Product Team**: dashboard hardening roadmap and prioritization
 - **Security Team**: external audit planning and vulnerability disclosure process

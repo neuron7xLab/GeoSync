@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: MIT
+#
+# Product-category claim-boundary gate — fail-closed.
+#
+# GeoSync is a verification-first research platform, NOT a live-trading
+# system or alpha product (canonical: PRODUCT_CATEGORY.md). This gate
+# scans the canonical doc surface (top-level *.md + docs/) and fails on
+# any unreviewed product-category claim. Reviewed mechanism / ops /
+# research-disclaimer / honest-negation references live in
+# .github/claim_boundary_allow.json. Stdlib-only; no install step.
+#
+# Path-filtered: a PR that touches no markdown, the script, the
+# allowlist, the tests, or this workflow skips the job entirely.
+name: Claim Boundary Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/*.md"
+      - "scripts/ci/check_claim_boundary.py"
+      - ".github/claim_boundary_allow.json"
+      - "tests/scripts/test_check_claim_boundary.py"
+      - ".github/workflows/claim-boundary-gate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**/*.md"
+      - "scripts/ci/check_claim_boundary.py"
+      - ".github/claim_boundary_allow.json"
+      - "tests/scripts/test_check_claim_boundary.py"
+      - ".github/workflows/claim-boundary-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: claim-boundary-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Enforce product-category claim boundary
+        run: python scripts/ci/check_claim_boundary.py

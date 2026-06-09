@@ -126,7 +126,7 @@ Add change fragments to `newsfragments/` for each Pull Request.
 - Synchronized versioning and configs.
 
 ### ⚠️ Known Limitations
-- Live trading is in beta; test thoroughly in paper mode before production.
+- Execution runs in the paper/replay realism harness only; live-venue execution is out of scope and unverified.
 - Web dashboard is in early preview (alpha).
 - Some advanced indicators require optional dependencies (`pip install ".[neuro_advanced]"`).
 

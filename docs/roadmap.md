@@ -2,7 +2,7 @@
 
 The roadmap translates the long-term improvement plan into a time-phased delivery schedule. It highlights the initiatives
 required to keep GeoSync production-grade while enabling sustainable growth. Progress should be reviewed monthly and the
-roadmap updated after every major milestone. For a gap analysis of what is still missing for live trading, consult the
+roadmap updated after every major milestone. For a gap analysis of the execution-realism harness, consult the
 [Production Readiness Assessment](production-readiness.md) and keep the deliverables in that checklist aligned with the
 quarterly milestones captured here.
 
@@ -19,7 +19,7 @@ quarterly milestones captured here.
 | Quarter | Focus Areas | Status |
 | --- | --- | --- |
 | **Q1-Q2 2025** | Test Coverage, Documentation, Core Engine | ✅ **Completed**: 351 core tests (100% pass rate), 683 source files with zero type errors, 150+ markdown documents. |
-| **Q3 2025** | Live Trading Beta, Security Hardening | ✅ **Completed**: Zero critical vulnerabilities, CodeQL/Semgrep scanning, reliability tests (40+ scenarios). |
+| **Q3 2025** | Execution-Realism Harness, Security Hardening | ✅ **Completed**: Zero critical vulnerabilities, CodeQL/Semgrep scanning, reliability tests (40+ scenarios). |
 | **Q4 2025** | Pre-Production Beta, Dashboard Hardening | 🚧 **In Progress**: Coverage at ~71% (target 98%), dashboard hardening pending, release checklist in preparation. |
 
 ## Q1 2026 Roadmap
