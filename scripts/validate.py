@@ -20,6 +20,12 @@ from geosync_hpc.execution import Execution
 from geosync_hpc.walkforward import walkforward
 
 
+def _load_yaml(path: str) -> dict:
+    """Load a YAML config, closing the file handle deterministically."""
+    with open(path, encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
+
+
 def summarize(res_df: pd.DataFrame, label: str) -> dict[str, float | int | str]:
     if len(res_df) == 0:
         return {
@@ -53,7 +59,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
     args = parser.parse_args()
-    cfg = yaml.safe_load(open(args.config))
+    cfg = _load_yaml(args.config)
 
     unit: dict[str, str] = {}
     try:
@@ -130,8 +136,8 @@ def main() -> None:
         eqs.append(eq)
     naive_res = pd.DataFrame({"pnl": pnls, "eq": eqs, "pos": np.nan})
 
-    wf_cfg = yaml.safe_load(open("configs/wf.yaml"))
-    base_cfg = yaml.safe_load(open(wf_cfg.get("extends", "configs/demo.yaml")))
+    wf_cfg = _load_yaml("configs/wf.yaml")
+    base_cfg = _load_yaml(wf_cfg.get("extends", "configs/demo.yaml"))
     base_cfg.update(wf_cfg.get("overrides", {}))
     wf_df = read_ticks_csv(base_cfg["data"]["path"], base_cfg["data"]["time_col"])
     wf_res = walkforward(

@@ -191,7 +191,10 @@ class StrategyBatchEvaluator:
             duration = time.perf_counter() - start
             self._record_metrics(collector, strategy, None, duration, exc)
             return EvaluationResult(strategy, None, duration, exc)
-        except BaseException as exc:  # pragma: no cover - defensive
+        except (KeyboardInterrupt, SystemExit):
+            # Interrupts must propagate — never swallowed into a result.
+            raise
+        except Exception as exc:  # pragma: no cover - defensive
             duration = time.perf_counter() - start
             self._record_metrics(collector, strategy, None, duration, exc)
             return EvaluationResult(strategy, None, duration, exc)

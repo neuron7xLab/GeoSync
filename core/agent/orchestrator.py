@@ -222,7 +222,9 @@ class StrategyOrchestrator:
 
                 try:
                     results[name] = future.result()
-                except BaseException as exc:  # pragma: no cover - defensive
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                except Exception as exc:  # pragma: no cover - defensive
                     errors[name] = exc
                     cancel_pending = True
 

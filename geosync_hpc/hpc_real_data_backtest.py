@@ -22,7 +22,7 @@ try:
         ArrayDataHandler,
         EventDrivenBacktestEngine,
     )
-    from backtest.events import MarketEvent, SignalEvent
+    from backtest.events import MarketEvent
     from backtest.performance import compute_performance_metrics  # noqa: F401
 
     BACKTEST_AVAILABLE = True
@@ -38,12 +38,22 @@ except ImportError:
             self.step = step
             self.volume = 1000000.0
 
-    class SignalEvent:
-        def __init__(self, symbol, signal_type, strength, price):
-            self.symbol = symbol
-            self.signal_type = signal_type
-            self.strength = strength
-            self.price = price
+
+@dataclass
+class StrategySignal:
+    """Signal emitted by :class:`HPCStrategy` for the simplified backtest.
+
+    Deliberately decoupled from ``backtest.events.SignalEvent`` (whose
+    constructor is ``(symbol, target_position, step)``): this strategy and
+    ``SimplifiedBacktest`` speak a ``signal_type``/``strength`` contract, and
+    constructing the real event-driven ``SignalEvent`` with those kwargs would
+    raise ``TypeError`` whenever the backtest package is importable.
+    """
+
+    symbol: str
+    signal_type: str
+    strength: float
+    price: float
 
 
 @dataclass
@@ -90,7 +100,7 @@ class HPCAIStrategy:
         self.price_history = []
         self.volume_history = []
 
-    def on_market_data(self, event: MarketEvent) -> Optional[SignalEvent]:
+    def on_market_data(self, event: MarketEvent) -> Optional[StrategySignal]:
         """
         Process market data and generate trading signal.
 
@@ -98,7 +108,7 @@ class HPCAIStrategy:
             event: Market event with price data
 
         Returns:
-            SignalEvent if action is BUY or SELL, None if HOLD
+            StrategySignal if action is BUY or SELL, None if HOLD
         """
         # Store price history
         self.price_history.append(event.price)
@@ -132,14 +142,14 @@ class HPCAIStrategy:
 
         # Convert to signal
         if action == 1:  # BUY
-            return SignalEvent(
+            return StrategySignal(
                 symbol=event.symbol,
                 signal_type="LONG",
                 strength=self.position_size,
                 price=event.price,
             )
         elif action == 2:  # SELL
-            return SignalEvent(
+            return StrategySignal(
                 symbol=event.symbol,
                 signal_type="SHORT",
                 strength=self.position_size,
