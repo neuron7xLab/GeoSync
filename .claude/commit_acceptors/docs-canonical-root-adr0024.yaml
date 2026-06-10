@@ -64,7 +64,7 @@ signal_artifact: "tmp/docs_consistency.log"
 falsifier:
   command: >-
     bash -c '
-      printf "## Canonical package\n- **Root:** `src/geosync`\n" > docs/_falsify_canonical_root.md
+      printf "Root: src/geosync is the canonical package\n" > docs/_falsify_canonical_root.md
       python scripts/ci/check_docs_consistency.py >/dev/null 2>&1
       rc=$?
       rm -f docs/_falsify_canonical_root.md
