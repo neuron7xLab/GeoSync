@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-_PUBLIC_TOTP_SEED = "JBSWY3DPEHPK3PXP"
+_PUBLIC_TOTP_SEED = "JBSWY3DPEHPK3PXP"  # pragma: allowlist secret  # public pyotp example seed
 _SECRET_ENV = (
     "GEOSYNC_TWO_FACTOR_SECRET",
     "GEOSYNC_AUDIT_SECRET",
@@ -61,9 +61,12 @@ def test_production_profile_with_real_secret_does_not_raise_on_guard(
     # A real operator-supplied secret must pass the guard (the public seed is
     # explicitly excluded by being operator-chosen, not the default fallback).
     monkeypatch.setenv("GEOSYNC_PROFILE", "production")
-    real_secret = "ORSXG5BNMRSWG4TFOQ======"  # base32, operator-provided
+    real_secret = "ORSXG5BNMRSWG4TFOQ======"  # pragma: allowlist secret  # base32 test value
     monkeypatch.setenv("GEOSYNC_TWO_FACTOR_SECRET", real_secret)
-    monkeypatch.setenv("GEOSYNC_AUDIT_SECRET", "an-operator-audit-secret")
+    monkeypatch.setenv(
+        "GEOSYNC_AUDIT_SECRET",
+        "an-operator-audit-secret",  # pragma: allowlist secret  # test value
+    )
     module = _init_module()
 
     # The guard itself must not raise; downstream init may fail for unrelated
