@@ -17,7 +17,7 @@ from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from application.secrets.manager import SecretManagerError
-from application.security.two_factor import verify_totp_code
+from application.security.two_factor import TotpReplayGuard, find_totp_counter
 from application.settings import ApiSecuritySettings
 from src.admin.remote_control import AdminIdentity
 
@@ -405,6 +405,7 @@ def require_two_factor(
     algorithm: str,
     identity_dependency: Callable[..., Awaitable[AdminIdentity]] | None = None,
     clock: Callable[[], datetime] | None = None,
+    replay_guard: TotpReplayGuard | None = None,
 ) -> Callable[[Request, AdminIdentity], Awaitable[AdminIdentity]]:
     """Return a dependency that enforces TOTP-based two-factor authentication."""
 
@@ -415,6 +416,11 @@ def require_two_factor(
     if drift_windows < 0:
         raise ValueError("drift_windows must be non-negative")
     dependency = identity_dependency or verify_request_identity()
+    # One guard instance per dependency (per app), shared across requests, so an
+    # accepted code is single-use until its time window expires.
+    guard = replay_guard or TotpReplayGuard(
+        period_seconds=period_seconds, drift_windows=drift_windows
+    )
 
     async def _dependency(
         request: Request,
@@ -434,7 +440,7 @@ def require_two_factor(
                 detail="Two-factor authentication secret is unavailable.",
             ) from exc
         moment = clock() if clock is not None else datetime.now(timezone.utc)
-        if not verify_totp_code(
+        matched_counter = find_totp_counter(
             secret,
             code,
             timestamp=moment,
@@ -442,10 +448,17 @@ def require_two_factor(
             digits=digits,
             drift_windows=drift_windows,
             algorithm=algorithm,
-        ):
+        )
+        if matched_counter is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired two-factor authentication code.",
+            )
+        # Reject reuse of an already-accepted code within its validity window.
+        if not guard.register(identity.subject, matched_counter, now=moment):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Two-factor authentication code has already been used.",
             )
         return identity
 
