@@ -63,7 +63,7 @@ def main() -> None:
         hurst_exponent(data, use_float32=True)
 
     def run_phase(data: np.ndarray) -> None:
-        compute_phase(data, coupling=0.3, use_float32=True)
+        compute_phase(data, use_float32=True)
 
     def run_ricci(data: np.ndarray) -> None:
         prices = data[:4_096]  # Ricci requires smaller graph for stability

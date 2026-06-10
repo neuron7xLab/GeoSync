@@ -124,7 +124,7 @@ def main():
     print("🎯 Calculating position limits...")
     current_volatility = np.std(returns[-20:])
     position_limit = risk_manager.update_position_limits(
-        symbol="BTCUSD", volatility=current_volatility
+        market_state_or_symbol="BTCUSD", volatility=current_volatility
     )
 
     print(f"   Symbol: {position_limit.symbol}")

@@ -137,7 +137,7 @@ class JsonLinesAuditStore:
         previous_chain = _GENESIS_HASH
         expected_sequence = 0
         if not self._path.exists():
-            return []
+            return
         with self._path.open("r", encoding="utf-8") as handle:
             for line_number, line in enumerate(handle, start=1):
                 line = line.strip()
