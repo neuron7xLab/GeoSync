@@ -49,8 +49,7 @@ diff_scope:
     - "core/physics/"
     - "core/kuramoto/"
 required_python_symbols:
-  - module: "application/api/security.py"
-    symbol: "require_two_factor"
+  - "application/api/security.py::require_two_factor"
 expected_signal: >-
   `pytest tests/runtime/test_admin_secret_fail_closed.py tests/security/test_totp_replay.py`
   passes: unset/production profiles fail closed without injecting the seed; a GET

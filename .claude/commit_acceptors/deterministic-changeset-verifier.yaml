@@ -39,8 +39,7 @@ diff_scope:
     - "core/physics/"
     - "core/kuramoto/"
 required_python_symbols:
-  - module: "scripts/ci/verify_changeset.py"
-    symbol: "verify"
+  - "scripts/ci/verify_changeset.py::verify"
 expected_signal: >-
   `python scripts/ci/verify_changeset.py` prints a per-gate PASS/FAIL/SKIP table
   and exits 0 only when no gate is FAIL or UNVERIFIED; `pytest

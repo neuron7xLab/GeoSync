@@ -39,10 +39,8 @@ diff_scope:
     - "core/physics/"
     - "core/kuramoto/"
 required_python_symbols:
-  - module: "application/security/two_factor.py"
-    symbol: "TotpReplayGuard"
-  - module: "application/security/two_factor.py"
-    symbol: "find_totp_counter"
+  - "application/security/two_factor.py::TotpReplayGuard"
+  - "application/security/two_factor.py::find_totp_counter"
 expected_signal: >-
   `python -m pytest tests/security/test_totp_replay.py -q` passes (7 tests): the
   guard accepts a (subject, counter) once then rejects the replay, is per-subject,
