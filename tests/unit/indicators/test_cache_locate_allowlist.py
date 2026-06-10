@@ -31,8 +31,10 @@ from core.indicators.cache import _decode_structure, _locate, _module_is_safe
     ],
 )
 def test_locate_rejects_unsafe_modules(symbol: str) -> None:
-    with pytest.raises(ValueError, match="Refusing to (import|load)"):
+    with pytest.raises(ValueError, match="Refusing to (import|load)") as exc:
         _locate(symbol)
+    # The refusal must name the offending module so the rejection is auditable.
+    assert "Refusing" in str(exc.value)
 
 
 @pytest.mark.parametrize(
@@ -46,6 +48,9 @@ def test_locate_rejects_unsafe_modules(symbol: str) -> None:
 def test_locate_allows_safe_modules(symbol: str, expected_name: str) -> None:
     resolved = _locate(symbol)
     assert resolved.__name__ == expected_name
+    # The resolved object's own home module must be on the allowlist (guards the
+    # dotted-qualname-pivot defence, not just the requested module name).
+    assert _module_is_safe(symbol.split(":", 1)[0])
 
 
 @pytest.mark.parametrize(
