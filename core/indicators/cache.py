@@ -27,6 +27,7 @@ import json
 import os
 import pickle  # nosec B403 - guarded by restricted unpickler
 import shutil
+import types
 from dataclasses import dataclass, fields, is_dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -161,6 +162,14 @@ def _module_is_safe(module: str) -> bool:
     )
 
 
+def _object_home_module(obj: Any) -> str | None:
+    """Return the module an object is defined in (``__name__`` for a module)."""
+
+    if isinstance(obj, types.ModuleType):
+        return obj.__name__
+    return getattr(obj, "__module__", None)
+
+
 def _locate(symbol: str) -> type[Any]:
     module_name, _, qualname = symbol.partition(":")
     # Fail closed: only import allowlisted modules / safe builtins so a tampered
@@ -176,6 +185,19 @@ def _locate(symbol: str) -> type[Any]:
     attr: Any = module
     for part in qualname.split("."):
         attr = getattr(attr, part)
+    # A dotted qualname can traverse OUT of the allowlisted module into an
+    # arbitrary one (e.g. ``core.indicators.cache:os.system`` resolves
+    # ``os.system`` because cache imports ``os``). Re-validate the *resolved*
+    # object's defining module so the allowlist cannot be pivoted through.
+    home = _object_home_module(attr)
+    if home == "builtins":
+        name = getattr(attr, "__name__", "")
+        if name not in _CACHE_SAFE_BUILTINS:
+            raise ValueError(f"Refusing to resolve unsafe builtin via cache symbol '{symbol}'")
+    elif home is not None and not _module_is_safe(home):
+        raise ValueError(
+            f"Refusing to resolve object from unsafe module '{home}' via cache symbol '{symbol}'"
+        )
     return attr
 
 

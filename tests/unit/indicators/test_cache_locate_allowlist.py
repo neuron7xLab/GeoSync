@@ -48,6 +48,24 @@ def test_locate_allows_safe_modules(symbol: str, expected_name: str) -> None:
     assert resolved.__name__ == expected_name
 
 
+@pytest.mark.parametrize(
+    "symbol",
+    [
+        # Dotted qualname traversal OUT of an allowlisted module into a dangerous
+        # one — the module-name guard alone would pass these.
+        "core.indicators.cache:os.system",
+        "core.indicators.cache:builtins.eval",
+        "core.indicators.cache:builtins.exec",
+        "core.indicators.cache:importlib.import_module",
+        "core.indicators.cache:shutil.rmtree",
+        "core.indicators.cache:os",
+    ],
+)
+def test_locate_rejects_dotted_qualname_pivot(symbol: str) -> None:
+    with pytest.raises(ValueError, match="Refusing to (resolve|import|load)"):
+        _locate(symbol)
+
+
 def test_module_is_safe_contract() -> None:
     assert _module_is_safe("numpy")
     assert _module_is_safe("pandas.core.series")
