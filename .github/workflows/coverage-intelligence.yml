@@ -1,0 +1,107 @@
+# SPDX-License-Identifier: MIT
+#
+# Coverage Intelligence Gate.
+#
+# Two jobs with deliberately different cadence:
+#
+#   instrument-selfcheck  (every PR + push)
+#       Guards the coverage AUTHORITY itself — the instrument, the canonical
+#       release_90.coveragerc, and the gate-relationship tests. Cheap: it runs
+#       only the tool's own falsification suite, so it cannot break the PR
+#       latency budget (the fast-test lane has a ~20-min cap).
+#
+#   release-coverage-90  (push to main + nightly + manual)
+#       Runs the FULL production-surface measurement and enforces the 90%
+#       release gate, the critical surface, and the claim falsifier matrix.
+#       This is intentionally NOT on every PR: a full-surface coverage run is
+#       too heavy for the PR gate, so it runs where latency is not the
+#       constraint. This tradeoff is explicit on purpose — a silent "covered
+#       everywhere" that only ran a subset is the exact lie this gate exists
+#       to prevent.
+
+name: Coverage Intelligence Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/coverage/**"
+      - "configs/quality/**coverage**"
+      - "configs/quality/release_90.coveragerc"
+      - "configs/quality/critical_surface.toml"
+      - "tests/tools/test_coverage_intelligence.py"
+      - "tests/audit/test_coverage_honesty.py"
+      - "tests/test_coverage_threshold_sync.py"
+      - ".github/workflows/coverage-intelligence.yml"
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  instrument-selfcheck:
+    name: Coverage authority self-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+      - name: Install sci-core deps
+        # The repo conftest imports the sci-core stack at collection time, so
+        # even this lightweight job needs it loadable.
+        run: pip install numpy scipy pandas networkx pyyaml jsonschema pytest
+      - name: Falsify the coverage authority
+        run: |
+          python -m pytest \
+            tests/tools/test_coverage_intelligence.py \
+            tests/audit/test_coverage_honesty.py \
+            tests/test_coverage_threshold_sync.py \
+            tests/tools/test_coverage_surface_contract.py \
+            -q -p no:cacheprovider
+
+  release-coverage-90:
+    name: Release coverage gate (90%)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]" || pip install -r requirements.txt || true
+          pip install pytest pytest-cov pyyaml
+      - name: Measure full production surface
+        run: make coverage-baseline
+      - name: Enforce release gate + critical surface
+        run: |
+          python -m tools.coverage.geosync_coverage_intelligence \
+            --coverage reports/coverage/coverage.xml \
+            --junit reports/coverage/junit.xml \
+            --targets configs/quality/coverage_targets.toml \
+            --critical configs/quality/critical_surface.toml \
+            --claims docs/CLAIMS.yaml \
+            --out reports/coverage \
+            --no-check-staleness \
+            --enforce-release-90 --enforce-critical
+      - name: Upload coverage evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: coverage-intelligence-reports
+          path: |
+            reports/coverage/coverage.xml
+            reports/coverage/junit.xml
+            reports/coverage/coverage_summary.json
+            reports/coverage/coverage_gap_map.md
+            reports/coverage/risk_weighted_coverage.json
+            reports/coverage/claim_test_matrix.json
+            reports/coverage/next_tests.md

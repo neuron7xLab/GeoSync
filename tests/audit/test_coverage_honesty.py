@@ -146,3 +146,44 @@ def test_omit_only_targets_non_source_paths() -> None:
     omits = _parse_coveragerc_section(text, "run", "omit")
     bad = [o for o in omits if _omit_erases_source(o, sources)]
     assert not bad, f"omit erases declared source: {bad}"
+
+
+# --------------------------------------------------------------------------- #
+# The canonical RELEASE profile (release_90.coveragerc) must obey the same
+# honesty contract as .coveragerc — it is the single authority for the 90 gate,
+# so a lie smuggled into ITS omit is the higher-stakes lie.
+# --------------------------------------------------------------------------- #
+RELEASE_COVERAGERC = REPO_ROOT / "configs" / "quality" / "release_90.coveragerc"
+
+
+def test_release_coveragerc_exists() -> None:
+    assert RELEASE_COVERAGERC.exists(), "canonical release_90.coveragerc is missing"
+
+
+def test_release_run_source_is_non_empty() -> None:
+    text = RELEASE_COVERAGERC.read_text(encoding="utf-8")
+    sources = _parse_coveragerc_section(text, "run", "source")
+    assert sources, "release_90 [run] source must declare at least one path"
+
+
+@pytest.mark.parametrize("section", ["run", "report"])
+def test_release_no_omit_erases_declared_source(section: str) -> None:
+    text = RELEASE_COVERAGERC.read_text(encoding="utf-8")
+    sources = _parse_coveragerc_section(text, "run", "source")
+    omits = _parse_coveragerc_section(text, section, "omit")
+    erasing = [o for o in omits if _omit_erases_source(o, sources)]
+    assert not erasing, (
+        f"release_90 [{section}] omit erases declared source — the canonical "
+        f"profile must not lie.\n  source: {sources}\n  erasing omit: {erasing}"
+    )
+
+
+def test_release_run_and_report_omit_agree() -> None:
+    text = RELEASE_COVERAGERC.read_text(encoding="utf-8")
+    run_omit = sorted(_parse_coveragerc_section(text, "run", "omit"))
+    report_omit = sorted(_parse_coveragerc_section(text, "report", "omit"))
+    assert run_omit == report_omit, (
+        "release_90 [run] omit and [report] omit must match exactly:\n"
+        f"  in [run] only:    {sorted(set(run_omit) - set(report_omit))}\n"
+        f"  in [report] only: {sorted(set(report_omit) - set(run_omit))}"
+    )

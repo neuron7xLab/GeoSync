@@ -257,6 +257,55 @@ test-ci-full:
 		--html=reports/full-test-suite-report.html --self-contained-html
 	@echo "✅ Full test suite passed with 98% coverage"
 
+# --------------------------------------------------------------------------- #
+# Coverage Intelligence Gate (single coverage authority, 90% release gate).
+# coverage-baseline : measure the full production surface + emit evidence.
+# coverage-90       : enforce the release gate + critical surface (fail closed).
+# coverage-next     : print the prioritized list of missing tests.
+# --------------------------------------------------------------------------- #
+.PHONY: coverage-baseline
+coverage-baseline:
+	@echo "📊 Measuring full production surface (release_90 profile)..."
+	@mkdir -p reports/coverage
+	pytest tests/ \
+		-m "not flaky and not nightly" \
+		--cov-config=configs/quality/release_90.coveragerc \
+		--cov --cov-branch \
+		--cov-report=xml:reports/coverage/coverage.xml \
+		--cov-report=html:htmlcov \
+		--junitxml=reports/coverage/junit.xml
+	python -m tools.coverage.geosync_coverage_intelligence \
+		--coverage reports/coverage/coverage.xml \
+		--junit reports/coverage/junit.xml \
+		--targets configs/quality/coverage_targets.toml \
+		--critical configs/quality/critical_surface.toml \
+		--claims docs/CLAIMS.yaml \
+		--out reports/coverage
+
+.PHONY: coverage-90
+coverage-90: coverage-baseline
+	@echo "🚦 Enforcing release gate (90%) + critical surface..."
+	python -m tools.coverage.geosync_coverage_intelligence \
+		--coverage reports/coverage/coverage.xml \
+		--junit reports/coverage/junit.xml \
+		--targets configs/quality/coverage_targets.toml \
+		--critical configs/quality/critical_surface.toml \
+		--claims docs/CLAIMS.yaml \
+		--out reports/coverage \
+		--enforce-release-90 --enforce-critical
+	@echo "✅ Release coverage gate satisfied"
+
+.PHONY: coverage-next
+coverage-next:
+	python -m tools.coverage.geosync_coverage_intelligence \
+		--coverage reports/coverage/coverage.xml \
+		--junit reports/coverage/junit.xml \
+		--targets configs/quality/coverage_targets.toml \
+		--critical configs/quality/critical_surface.toml \
+		--claims docs/CLAIMS.yaml \
+		--out reports/coverage --suggest-tests
+	@echo "📂 reports/coverage/next_tests.md"
+
 .PHONY: test-fast
 test-fast:
 	@echo "🧪 Running fast tests (PR gate, excludes flaky)..."
