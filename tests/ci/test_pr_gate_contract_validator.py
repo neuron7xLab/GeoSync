@@ -60,7 +60,7 @@ def workflow_text(
     steps:
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
-          python-version: '3.13'
+          python-version: '3.12'
       - run: |
           if [[ "${{GITHUB_EVENT_NAME}}" == "merge_group" ]]; then
             changed=$(git diff --name-only "${{MERGE_GROUP_BASE_SHA}}...${{MERGE_GROUP_HEAD_SHA}}")
