@@ -42,8 +42,7 @@ diff_scope:
     - "core/physics/"
     - "core/kuramoto/"
 required_python_symbols:
-  - module: "src/admin/remote_control.py"
-    symbol: "_peer_is_trusted"
+  - "src/admin/remote_control.py::_peer_is_trusted"
 expected_signal: >-
   `pytest tests/unit/api/test_service_helpers.py tests/admin/test_remote_control.py`
   passes: forwarded headers are honoured from a trusted peer and IGNORED from an

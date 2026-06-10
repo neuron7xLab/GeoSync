@@ -56,10 +56,8 @@ diff_scope:
     - "core/physics/"
     - "core/kuramoto/"
 required_python_symbols:
-  - module: "tools/audit/false_confidence_detector.py"
-    symbol: "_is_excluded"
-  - module: "scripts/ci/verify_changeset.py"
-    symbol: "verify"
+  - "tools/audit/false_confidence_detector.py::_is_excluded"
+  - "scripts/ci/verify_changeset.py::verify"
 expected_signal: >-
   `pytest tests/audit/test_false_confidence_detector.py tests/ci/test_verify_changeset.py`
   passes (37): _is_excluded skips build/worktree/cache paths but not first-party

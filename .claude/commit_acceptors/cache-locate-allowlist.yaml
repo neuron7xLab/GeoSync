@@ -41,8 +41,7 @@ diff_scope:
     - "core/physics/"
     - "core/kuramoto/"
 required_python_symbols:
-  - module: "core/indicators/cache.py"
-    symbol: "_module_is_safe"
+  - "core/indicators/cache.py::_module_is_safe"
 expected_signal: >-
   `pytest tests/unit/indicators/test_cache_locate_allowlist.py` passes (13):
   _locate rejects os/subprocess/builtins:exec etc., allows decimal/pathlib/
