@@ -1110,22 +1110,25 @@ class LiveExecutionLoop:
                 continue
             try:
                 remote = context.connector.fetch_order(order.order_id)
-            except OrderError as exc:
+            except (TransientOrderError, ConnectionError, TimeoutError) as exc:
+                # Must precede the broader `except OrderError`: TransientOrderError
+                # subclasses OrderError, so the generic clause would otherwise
+                # shadow this transient-retry path and mis-log it as fetch_failed.
                 self._logger.warning(
-                    "Failed to fetch order state",
+                    "Transient error while polling order",
                     extra={
-                        "event": "live_loop.fetch_failed",
+                        "event": "live_loop.poll_retry",
                         "venue": context.name,
                         "order_id": order.order_id,
                         "error": str(exc),
                     },
                 )
                 continue
-            except (TransientOrderError, ConnectionError, TimeoutError) as exc:
+            except OrderError as exc:
                 self._logger.warning(
-                    "Transient error while polling order",
+                    "Failed to fetch order state",
                     extra={
-                        "event": "live_loop.poll_retry",
+                        "event": "live_loop.fetch_failed",
                         "venue": context.name,
                         "order_id": order.order_id,
                         "error": str(exc),
