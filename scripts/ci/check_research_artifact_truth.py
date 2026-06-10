@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 """Semantic truth gate for research artifacts (second-layer hardening).
 
-The JSON schema (``schemas/research/ricci_microstructure_artifact.schema.json``)
+The JSON schema (``schemas/research/research_inference_artifact.schema.json``)
 proves *shape*: that an artifact has the right fields of the right types. It
 cannot prove *truth*: a hand-typed ``score`` of 0.742 with an all-zero data hash
 and ``falsification_status: PASS`` is schema-valid and a lie.

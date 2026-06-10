@@ -1,6 +1,9 @@
 {
+  "conforms_to": "https://schemas.neuron7xlab.org/research/research_inference_artifact.schema.json",
+  "schema_version": "1.0.0",
+  "research_line": "synthetic_plumbing",
   "run_id": "SYNTHETIC-PLUMBING-V1",
-  "git_sha": "66a00ad1cb3f8057d6f8244a627ce25269bd29cf",
+  "git_sha": "c49dec230152167fb1a939ba99c673d289587209",
   "git_dirty": false,
   "data_sha256": "3584a75682ce2a39f5ca4246139a6aea084a97a3f299617020f06ab4851bb269",
   "config_sha256": "86fefc5b1fd1c37cce174fbd07ead0d14f35b149b686e1e27ffce00cfd90f62a",

@@ -33,7 +33,7 @@ def test_research_run_creates_schema_valid_hypothesis_artifact(tmp_path: Path) -
     assert payload["falsification_status"] == "NOT_RUN"
     assert payload["decision"] == "OBSERVE"
     assert (
-        validate_artifact(Path("schemas/research/ricci_microstructure_artifact.schema.json"), artifact)
+        validate_artifact(Path("schemas/research/research_inference_artifact.schema.json"), artifact)
         == []
     )
 

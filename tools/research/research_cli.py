@@ -133,6 +133,13 @@ def _run(args: argparse.Namespace) -> int:
     run_dir = args.out / run_id
     artifact_path = run_dir / "artifact.json"
     payload: dict[str, object] = {
+        "conforms_to": (
+            "https://schemas.neuron7xlab.org/research/research_inference_artifact.schema.json"
+        ),
+        "schema_version": "1.0.0",
+        # research_line is the line identity (e.g. 'ricci_microstructure'); strip the
+        # trailing _v<N> revision suffix the CLI uses for the line argument.
+        "research_line": args.line.rsplit("_v", 1)[0],
         "run_id": run_id,
         "git_sha": _git_sha(),
         "git_dirty": _git_dirty(),

@@ -50,6 +50,9 @@ REPLAY_COMMAND = "python scripts/research/generate_synthetic_plumbing_artifact.p
 RUN_ID = "SYNTHETIC-PLUMBING-V1"
 TIMESTAMP_UTC = "1970-01-01T00:00:00Z"  # fixed: this artifact is reproducible, not timed
 SEED = 42
+CONFORMS_TO = "https://schemas.neuron7xlab.org/research/research_inference_artifact.schema.json"
+SCHEMA_VERSION = "1.0.0"
+RESEARCH_LINE = "synthetic_plumbing"
 
 
 def synthetic_returns() -> NDArray[np.float64]:
@@ -106,6 +109,9 @@ def build() -> dict[str, object]:
     null_score = cyclic_shift_null(panel)
 
     return {
+        "conforms_to": CONFORMS_TO,
+        "schema_version": SCHEMA_VERSION,
+        "research_line": RESEARCH_LINE,
         "run_id": RUN_ID,
         "git_sha": _git_sha(),
         "git_dirty": False,

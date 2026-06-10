@@ -1,4 +1,7 @@
 {
+  "conforms_to": "https://schemas.neuron7xlab.org/research/research_inference_artifact.schema.json",
+  "schema_version": "1.0.0",
+  "research_line": "ricci_microstructure",
   "run_id": "RFC-2026-MARKET-RICCI-V1",
   "git_sha": "0000000000000000000000000000000000000000",
   "git_dirty": false,

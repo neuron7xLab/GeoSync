@@ -26,7 +26,7 @@ inference_contract:
   deterministic: true
   seed_required: true
   input_window_sec: 1
-  canonical_schema: schemas/research/ricci_microstructure_artifact.schema.json
+  canonical_schema: schemas/research/research_inference_artifact.schema.json
   allowed_decisions:
     - OBSERVE
     - REJECT

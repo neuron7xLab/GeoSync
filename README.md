@@ -53,7 +53,7 @@ Terminal archive states are `REJECTED`, `BLOCKED_DATA`, `BLOCKED_REPRO`, `BLOCKE
 
 ## Canonical Artifact Contract
 
-Every inference artifact for an evidence-bearing line must validate as JSON and include the deterministic fields enforced by `schemas/research/ricci_microstructure_artifact.schema.json`. The committed example (`artifacts/runs/ricci_microstructure_v1/example_artifact.json`) is an **illustrative placeholder**: its data hash is all-zero, `score`/`uncertainty` are inert, `score_source` is `placeholder`, and `falsification_status` is `NOT_RUN` — it demonstrates the schema shape, not a measured result:
+Every inference artifact for an evidence-bearing line must validate as JSON and include the deterministic fields enforced by `schemas/research/research_inference_artifact.schema.json`. The committed example (`artifacts/runs/ricci_microstructure_v1/example_artifact.json`) is an **illustrative placeholder**: its data hash is all-zero, `score`/`uncertainty` are inert, `score_source` is `placeholder`, and `falsification_status` is `NOT_RUN` — it demonstrates the schema shape, not a measured result:
 
 ```json
 {
@@ -93,7 +93,7 @@ geosync-research verify artifacts/runs/<run_id>
 Until that gateway is fully implemented, the schema gate is the repository-level enforcement point:
 
 ```bash
-python tools/research/validate_ricci_artifact_schema.py --schema schemas/research/ricci_microstructure_artifact.schema.json --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
+python tools/research/validate_ricci_artifact_schema.py --schema schemas/research/research_inference_artifact.schema.json --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
 ```
 
 ## MFN Dependency-Light Gateway
