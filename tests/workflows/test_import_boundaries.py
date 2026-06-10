@@ -36,13 +36,25 @@ def lint_imports_available() -> bool:
 
 
 def _run_lint_imports(cwd: Path) -> subprocess.CompletedProcess[str]:
+    # Force UTF-8 decoding: lint-imports prints a box-drawing banner, which a
+    # subprocess inheriting an ascii locale (as on some CI runners) cannot decode
+    # under text=True's default encoding. errors="replace" keeps the captured
+    # output usable for the assertions below.
     return subprocess.run(
         ["lint-imports", "--no-cache"],
         cwd=cwd,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
+
+
+def _expected_contract_count(repo_root: Path) -> int:
+    """Number of contracts declared in .importlinter (derived, not hardcoded)."""
+    config = (repo_root / ".importlinter").read_text(encoding="utf-8")
+    return sum(1 for line in config.splitlines() if line.startswith("[importlinter:contract:"))
 
 
 def test_importlinter_config_exists() -> None:
@@ -59,9 +71,10 @@ def test_shipping_contracts_are_kept(lint_imports_available: bool) -> None:
         f"--- stdout ---\n{result.stdout}\n"
         f"--- stderr ---\n{result.stderr}"
     )
+    expected = _expected_contract_count(REPO_ROOT)
     assert (
-        "Contracts: 5 kept, 0 broken" in result.stdout
-    ), f"expected exactly 5 contracts kept and 0 broken; got:\n{result.stdout}"
+        f"Contracts: {expected} kept, 0 broken" in result.stdout
+    ), f"expected exactly {expected} contracts kept and 0 broken; got:\n{result.stdout}"
 
 
 def test_intentional_violation_is_detected(tmp_path: Path, lint_imports_available: bool) -> None:
