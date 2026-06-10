@@ -32,6 +32,7 @@
     "uncertainty": {"type": "number", "minimum": 0.0},
     "decision": {"type": "string", "enum": ["NO_TRADE", "OBSERVE", "REJECT"]},
     "claim_tier": {"type": "string", "enum": ["HYPOTHESIS", "INSTRUMENTED", "MEASURED_SINGLE", "MEASURED_MULTI", "LIMITED_EMPIRICAL", "REJECTED", "BLOCKED_COST_MODEL"]},
-    "falsification_status": {"type": "string", "enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN"]}
+    "falsification_status": {"type": "string", "enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN"]},
+    "artifact_role": {"type": "string", "enum": ["evidence", "placeholder"], "description": "Honest self-label. 'placeholder' = illustrative schema example with no real data; never evidence-bearing, never PASS. Absent defaults to 'evidence' for semantic-truth checks."}
   }
 }

@@ -1,0 +1,57 @@
+id: evidence-truth-gates
+status: ACTIVE
+claim_type: governance
+promise: >-
+  Second-layer hardening so the repository cannot lie through schema-valid but
+  semantically fake evidence. Adds the research-artifact truth gate, the
+  claim-to-artifact graph gate, a non-vacuous manifest-hash proof mode, and a
+  one-command repo-integrity proof, all CI-wired via research-integrity-gate.
+  Diagnosis converted into durable, tested controls. No empirical claim is
+  promoted; the Ricci line stays an honest HYPOTHESIS placeholder.
+diff_scope:
+  changed_files:
+  - path: scripts/ci/check_research_artifact_truth.py
+  - path: scripts/ci/check_claim_artifact_graph.py
+  - path: scripts/ci/check_manifest_hashes.py
+  - path: scripts/ci/prove_repo_integrity.sh
+  - path: tests/ci/test_research_artifact_truth.py
+  - path: tests/ci/test_claim_artifact_graph.py
+  - path: tests/ci/test_manifest_hashes.py
+  - path: .github/workflows/research-integrity-gate.yml
+  - path: scripts/ci/check_pr_gate_contract.py
+  - path: tests/ci/test_pr_gate_contract_validator.py
+  - path: CURRENT_DIFF_SUMMARY.md
+  - path: MODEL_AUDIT_BENCHMARK.md
+  - path: POST_AUDIT_EXECUTION_REPORT.md
+  - path: .claude/commit_acceptors/evidence-truth-gates.yaml
+  forbidden_paths: []
+required_python_symbols: []
+expected_signal: >-
+  check_research_artifact_truth, check_claim_artifact_graph, and the semantic
+  Ricci validator reject a zero-hash + PASS artifact and accept the honest
+  placeholder; bash scripts/ci/prove_repo_integrity.sh exits 0 printing
+  REPO_INTEGRITY: PROVEN with MANIFEST_PROOF: NOT_PROVEN.
+measurement_command: bash scripts/ci/prove_repo_integrity.sh
+signal_artifact: scripts/ci/prove_repo_integrity.sh
+falsifier:
+  command: python scripts/ci/check_research_artifact_truth.py && python scripts/ci/check_claim_artifact_graph.py
+  description: >-
+    Must fail if any research artifact becomes schema-valid but semantically
+    fake (zero-hash PASS, HYPOTHESIS PASS, placeholder score on a PASS, or a
+    contract claiming a tier its artifact does not back).
+rollback_command: >-
+  git checkout origin/main -- scripts/ci/check_manifest_hashes.py
+  .github/workflows/research-integrity-gate.yml &&
+  git rm -f scripts/ci/check_research_artifact_truth.py
+  scripts/ci/check_claim_artifact_graph.py scripts/ci/prove_repo_integrity.sh
+  tests/ci/test_research_artifact_truth.py tests/ci/test_claim_artifact_graph.py
+  tests/ci/test_manifest_hashes.py
+  .claude/commit_acceptors/evidence-truth-gates.yaml
+rollback_verification_command: >-
+  git diff --exit-code scripts/ci/check_manifest_hashes.py
+  .github/workflows/research-integrity-gate.yml
+memory_update_type: append
+ledger_path: .claude/commit_acceptors/evidence-truth-gates.yaml
+report_path: scripts/ci/prove_repo_integrity.sh
+evidence:
+- path: scripts/ci/prove_repo_integrity.sh

@@ -27,6 +27,17 @@ on:
       - 'tools/check_public_symbol_matrix.py'
       - 'tools/compile_claims.py'
       - '.github/workflows/research-integrity-gate.yml'
+      # Second-layer evidence-truth controls (post-audit hardening):
+      - 'scripts/ci/check_research_artifact_truth.py'
+      - 'scripts/ci/check_claim_artifact_graph.py'
+      - 'scripts/ci/check_manifest_hashes.py'
+      - 'scripts/ci/prove_repo_integrity.sh'
+      - 'tools/research/validate_ricci_artifact_schema.py'
+      - 'research_lines/**'
+      - 'artifacts/runs/**'
+      - 'schemas/research/**'
+      - 'tests/ci/**'
+      - 'tests/research_lines/**'
   push:
     branches: [main]
   workflow_dispatch:
@@ -73,6 +84,22 @@ jobs:
 
       - name: pytest — negative_controls
         run: python -m pytest tests/negative_controls/ -q --maxfail=1
+
+      # --- Second-layer evidence-truth controls (schema-valid != true) ---
+      - name: Research-artifact truth gate
+        run: python scripts/ci/check_research_artifact_truth.py
+
+      - name: Claim-to-artifact graph gate
+        run: python scripts/ci/check_claim_artifact_graph.py
+
+      - name: Semantic Ricci artifact validation
+        run: |
+          python tools/research/validate_ricci_artifact_schema.py --semantic \
+            --schema schemas/research/ricci_microstructure_artifact.schema.json \
+            --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
+
+      - name: pytest — evidence-truth gates + research-line contracts
+        run: python -m pytest tests/ci tests/research_lines -q --maxfail=1
 
       - name: mypy --strict on audited surface
         run: |

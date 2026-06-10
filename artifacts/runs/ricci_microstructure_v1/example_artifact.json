@@ -9,7 +9,8 @@
   "input_window_sec": 30,
   "score": 0.0,
   "uncertainty": 0.0,
-  "decision": "NO_TRADE",
+  "decision": "OBSERVE",
   "claim_tier": "HYPOTHESIS",
-  "falsification_status": "NOT_RUN"
+  "falsification_status": "NOT_RUN",
+  "artifact_role": "placeholder"
 }

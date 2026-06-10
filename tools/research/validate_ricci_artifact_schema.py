@@ -206,6 +206,40 @@ def validate_artifact(schema_path: Path, artifact_path: Path) -> list[str]:
     return _fallback_validate(schema, artifact, artifact_path)
 
 
+def _load_truth_gate() -> Any:
+    """Path-load the canonical semantic-truth gate (single source of rules)."""
+    gate_path = (
+        Path(__file__).resolve().parents[2] / "scripts" / "ci" / "check_research_artifact_truth.py"
+    )
+    spec = importlib.util.spec_from_file_location("_research_artifact_truth", gate_path)
+    if spec is None or spec.loader is None:  # pragma: no cover - import plumbing
+        _die(f"cannot load semantic-truth gate at {gate_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def validate_artifact_semantics(schema_path: Path, artifact_path: Path) -> list[str]:
+    """Validate an artifact for SHAPE (schema) then TRUTH (semantics).
+
+    Schema validity proves the artifact has the right fields; it cannot stop a
+    hand-typed score with a zero data hash and ``falsification_status: PASS``.
+    This runs schema validation first (short-circuiting on shape errors) and
+    then the canonical semantic-truth rules so that schema-valid fakes are
+    rejected. An evidence-bearing artifact may not use zero hashes; a zero-hash
+    artifact must label itself an honest, non-PASS placeholder.
+    """
+    schema_errors = validate_artifact(schema_path, artifact_path)
+    if schema_errors:
+        return schema_errors
+    artifact = _load_json(artifact_path)
+    if not isinstance(artifact, dict):  # pragma: no cover - schema already guards this
+        return [f"{artifact_path}: <root>: expected object"]
+    gate = _load_truth_gate()
+    semantic_errors: list[str] = gate.evaluate_artifact(artifact_path, artifact)
+    return semantic_errors
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--schema", type=Path, default=DEFAULT_SCHEMA)
@@ -216,6 +250,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default=None,
         help="Artifact JSON to validate. May be passed more than once.",
     )
+    parser.add_argument(
+        "--semantic",
+        action="store_true",
+        help="Also enforce semantic-truth rules (schema-valid is not enough).",
+    )
     return parser.parse_args(argv)
 
 
@@ -225,14 +264,18 @@ def main(argv: list[str] | None = None) -> int:
 
     failures: list[str] = []
     for artifact_path in artifacts:
-        failures.extend(validate_artifact(args.schema, artifact_path))
+        if args.semantic:
+            failures.extend(validate_artifact_semantics(args.schema, artifact_path))
+        else:
+            failures.extend(validate_artifact(args.schema, artifact_path))
 
     if failures:
         for failure in failures:
             print(failure, file=sys.stderr)
         return 1
 
-    print(f"Validated {len(artifacts)} Ricci artifact(s) against {args.schema}")
+    mode = "semantically + schema" if args.semantic else "schema"
+    print(f"Validated {len(artifacts)} Ricci artifact(s) ({mode}) against {args.schema}")
     return 0
 
 

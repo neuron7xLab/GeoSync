@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: MIT
 """Standalone public API for the GeoSync FPMA model."""
 
-from src.adapters.local import (
+from analytics.fpma.src.adapters.local import (
     FilePersistence,
     InMemoryPersistence,
     LocalOptimizer,
     LocalRiskModel,
     LocalSum,
 )
-from src.core import (
+from analytics.fpma.src.core import (
     FractalPortfolioAnalyzer,
     FractalWeights,
     MarketRegime,
@@ -19,7 +19,7 @@ from src.core import (
     detect_regime,
     wavelet_decomposition,
 )
-from src.ports.ports import (
+from analytics.fpma.src.ports.ports import (
     DataRetrievalPort,
     OptimizationPort,
     PersistencePort,

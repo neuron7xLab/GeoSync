@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: MIT
 """Standalone public API for the GeoSync Regime model."""
 
-from src.consensus import (
+from analytics.regime.src.consensus import (
     AgentVote,
     ConsensusDecision,
     HNCMConsensusAdapter,
     ews_to_vote,
 )
-from src.core import (
+from analytics.regime.src.core import (
     BacktestConfig,
     BacktestSummary,
     CausalGuard,
@@ -54,7 +54,7 @@ from src.core import (
     estimate_hurst_rs,
     result_to_json,
 )
-from src.ports.ports import (
+from analytics.regime.src.ports.ports import (
     FeatureExtractionPort,
     RegimeClassifierPort,
     RegimePersistencePort,

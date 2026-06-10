@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Standalone public API for the GeoSync order-book model."""
 
-from src import (
+from markets.orderbook.src import (
     AppliedDiff,
     ConsistencyError,
     ConsistencyValidator,
