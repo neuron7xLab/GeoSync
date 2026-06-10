@@ -52,6 +52,10 @@ def _real_evidence(**overrides: object) -> dict[str, object]:
         "decision": "OBSERVE",
         "claim_tier": "MEASURED_SINGLE",
         "falsification_status": "PASS",
+        "method_version": "ricci-ollivier-v1.0",
+        "score_source": "computed",
+        "baseline": "permutation_null_v1",
+        "replay_command": "geosync-research run --line ricci_microstructure_v1 --config c --data d --out o",
     }
     doc.update(overrides)
     return doc
@@ -96,6 +100,26 @@ class TruthGateRejections(unittest.TestCase):
         errs = gate.evaluate_artifact(ARTIFACT_PATH, _real_evidence(score=0.742))
         self.assertTrue(any("placeholder score" in e for e in errs), errs)
 
+    def test_pass_requires_replay_command(self) -> None:
+        doc = _real_evidence()
+        del doc["replay_command"]
+        errs = gate.evaluate_artifact(ARTIFACT_PATH, doc)
+        self.assertTrue(any("replay_command" in e for e in errs), errs)
+
+    def test_pass_requires_baseline(self) -> None:
+        doc = _real_evidence()
+        del doc["baseline"]
+        errs = gate.evaluate_artifact(ARTIFACT_PATH, doc)
+        self.assertTrue(any("baseline" in e for e in errs), errs)
+
+    def test_pass_requires_computed_score_source(self) -> None:
+        errs = gate.evaluate_artifact(ARTIFACT_PATH, _real_evidence(score_source="external"))
+        self.assertTrue(any("score_source=computed" in e for e in errs), errs)
+
+    def test_placeholder_cannot_claim_computed(self) -> None:
+        errs = gate.evaluate_artifact(PLACEHOLDER_PATH, _placeholder(score_source="computed"))
+        self.assertTrue(any("score_source=computed contradicts" in e for e in errs), errs)
+
     def test_rejects_zero_data_not_marked_placeholder(self) -> None:
         # HYPOTHESIS + NOT_RUN + zero hashes, but NOT marked placeholder → reject.
         doc = _placeholder()
@@ -121,8 +145,14 @@ class TruthGateAcceptances(unittest.TestCase):
         self.assertEqual(gate.evaluate_artifact(ARTIFACT_PATH, _real_evidence()), [])
 
     def test_non_placeholder_requires_real_hashes(self) -> None:
-        # A non-placeholder artifact with real hashes and NOT_RUN is fine (provenance run).
-        doc = _real_evidence(falsification_status="NOT_RUN", claim_tier="INSTRUMENTED")
+        # A non-placeholder artifact with real hashes and NOT_RUN is fine (provenance
+        # run): data is loaded but inference has not run, so score is not computed.
+        doc = _real_evidence(
+            falsification_status="NOT_RUN",
+            claim_tier="INSTRUMENTED",
+            score=0.0,
+            score_source="placeholder",
+        )
         self.assertEqual(gate.evaluate_artifact(ARTIFACT_PATH, doc), [])
 
 

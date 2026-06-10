@@ -149,7 +149,10 @@ class GraphGateAcceptance(unittest.TestCase):
                    artifact=_artifact(data_sha256=REAL64, config_sha256=REAL64B, git_sha=REAL40,
                                       score=0.31, uncertainty=0.02, decision="OBSERVE",
                                       claim_tier="MEASURED_SINGLE", falsification_status="PASS",
-                                      artifact_role="evidence"))
+                                      artifact_role="evidence", score_source="computed",
+                                      method_version="ricci-ollivier-v1.0",
+                                      baseline="permutation_null_v1",
+                                      replay_command="geosync-research run --line x --data d --out o"))
             self.assertEqual(gate.check(root), [])
 
 

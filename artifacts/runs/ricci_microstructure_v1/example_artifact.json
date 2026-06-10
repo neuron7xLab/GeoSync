@@ -12,5 +12,6 @@
   "decision": "OBSERVE",
   "claim_tier": "HYPOTHESIS",
   "falsification_status": "NOT_RUN",
-  "artifact_role": "placeholder"
+  "artifact_role": "placeholder",
+  "score_source": "placeholder"
 }

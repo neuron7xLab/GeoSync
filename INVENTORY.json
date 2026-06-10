@@ -59,7 +59,7 @@
     },
     {
       "path": "scripts/ci/check_research_artifact_truth.py",
-      "sha256": "2faf65304fbc7fe0be8fa6f4e6657aba9440b5c3a8dc7b02a9e0f6c84b32e1a5"
+      "sha256": "1ab14129121dc06d6583e44970ada9af1cddb14ba710c41bde69ffbd7ce833c1"
     },
     {
       "path": "scripts/ci/compute_fps_audit.py",
