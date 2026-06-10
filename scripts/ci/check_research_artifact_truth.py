@@ -95,7 +95,14 @@ def evaluate_artifact(path: Path, doc: Mapping[str, Any]) -> list[str]:
     zero_data = data_sha in (None, "", ZERO_SHA256)
     zero_git = git_sha in (None, "", ZERO_SHA1_GIT)
 
-    # Rule 1 — a PASS is a claim of evidence and must be backed by real lineage.
+    score_source = doc.get("score_source")
+    replay_command = doc.get("replay_command")
+    baseline = doc.get("baseline")
+
+    # Rule 1 — a PASS is a claim of evidence and must be backed by real lineage:
+    # real hashes, a pinned method, a computed score, a baseline it was judged
+    # against, and a command that reproduces it. A claim you cannot replay or
+    # falsify is not evidence.
     if status == "PASS":
         if zero_data:
             errors.append(f"{rel}: falsification_status=PASS with zero data_sha256")
@@ -107,6 +114,18 @@ def evaluate_artifact(path: Path, doc: Mapping[str, Any]) -> list[str]:
             errors.append(f"{rel}: falsification_status=PASS with placeholder score={score}")
         if not _has_reproducible_lineage(doc):
             errors.append(f"{rel}: falsification_status=PASS without reproducible lineage")
+        if score_source != "computed":
+            errors.append(
+                f"{rel}: falsification_status=PASS requires score_source=computed, "
+                f"got {score_source!r}"
+            )
+        if not (isinstance(replay_command, str) and replay_command.strip()):
+            errors.append(f"{rel}: falsification_status=PASS requires a non-empty replay_command")
+        if not (isinstance(baseline, str) and baseline.strip()):
+            errors.append(
+                f"{rel}: falsification_status=PASS requires a baseline "
+                "(a result with no null/baseline is asserted, not falsified)"
+            )
 
     # Rule 2 — zero data hash means no run happened; it must say so honestly.
     if zero_data:
@@ -137,6 +156,14 @@ def evaluate_artifact(path: Path, doc: Mapping[str, Any]) -> list[str]:
         errors.append(
             f"{rel}: zero-data artifact must be explicitly marked placeholder "
             "(filename '*placeholder*' or field artifact_role: placeholder)"
+        )
+
+    # Rule 6 — score provenance must match reality: an artifact that ran nothing
+    # (NOT_RUN) or is a placeholder cannot claim its score was computed.
+    if score_source == "computed" and (status == "NOT_RUN" or placeholder):
+        errors.append(
+            f"{rel}: score_source=computed contradicts "
+            f"{'placeholder role' if placeholder else 'falsification_status=NOT_RUN'}"
         )
 
     return errors

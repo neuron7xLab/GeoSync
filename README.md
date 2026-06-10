@@ -53,7 +53,7 @@ Terminal archive states are `REJECTED`, `BLOCKED_DATA`, `BLOCKED_REPRO`, `BLOCKE
 
 ## Canonical Artifact Contract
 
-Every inference artifact for an evidence-bearing line must validate as JSON and include the deterministic fields enforced by `schemas/research/ricci_microstructure_artifact.schema.json`. The committed example (`artifacts/runs/ricci_microstructure_v1/example_artifact.json`) is an **illustrative placeholder**: its data hash is all-zero, `score`/`uncertainty` are inert, and `falsification_status` is `NOT_RUN` — it demonstrates the schema shape, not a measured result:
+Every inference artifact for an evidence-bearing line must validate as JSON and include the deterministic fields enforced by `schemas/research/ricci_microstructure_artifact.schema.json`. The committed example (`artifacts/runs/ricci_microstructure_v1/example_artifact.json`) is an **illustrative placeholder**: its data hash is all-zero, `score`/`uncertainty` are inert, `score_source` is `placeholder`, and `falsification_status` is `NOT_RUN` — it demonstrates the schema shape, not a measured result:
 
 ```json
 {
@@ -67,11 +67,21 @@ Every inference artifact for an evidence-bearing line must validate as JSON and 
   "input_window_sec": 30,
   "score": 0.0,
   "uncertainty": 0.0,
-  "decision": "NO_TRADE",
+  "decision": "OBSERVE",
   "claim_tier": "HYPOTHESIS",
-  "falsification_status": "NOT_RUN"
+  "falsification_status": "NOT_RUN",
+  "artifact_role": "placeholder",
+  "score_source": "placeholder"
 }
 ```
+
+### Lineage contract for evidence
+
+Schema validity proves *shape*, not *truth* (`scripts/ci/check_research_artifact_truth.py` enforces the latter). An evidence-bearing artifact — `falsification_status: PASS` — must carry the full lineage so the result is attributable, falsifiable, and reproducible:
+
+`dataset hash → config hash → git SHA → method_version → score_source: computed → baseline → falsification_status → decision → replay_command`
+
+The truth gate rejects a `PASS` that lacks any of `method_version`, `score_source: computed`, `baseline`, or a non-empty `replay_command`: **a claim you cannot replay or falsify is not evidence.** Until those exist for a real, hash-pinned session, the line stays `HYPOTHESIS` / `NOT_RUN` / `OBSERVE` — honest, not decorative.
 
 ## Golden Path
 
