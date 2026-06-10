@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import re
@@ -44,7 +45,23 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--min-artifacts",
+        type=int,
+        default=0,
+        help="Fail if fewer than N artifact digests were verified. Proof mode: a "
+        "vacuous pass over 0 artifacts is not proof of integrity.",
+    )
+    parser.add_argument(
+        "--require-artifacts",
+        action="store_true",
+        help="Shorthand for --min-artifacts 1.",
+    )
+    args = parser.parse_args(argv)
+    min_artifacts = max(args.min_artifacts, 1 if args.require_artifacts else 0)
+
     failures: list[str] = []
     checked = 0
 
@@ -80,6 +97,14 @@ def main() -> int:
         print("Manifest hash verification failed:")
         for failure in failures:
             print(f"  - {failure}")
+        return 1
+
+    if checked < min_artifacts:
+        print(
+            f"Manifest hash verification NOT PROVEN: {checked} artifact(s) verified, "
+            f"--min-artifacts={min_artifacts} required. A vacuous pass over zero "
+            "tracked manifest artifacts is not proof of integrity."
+        )
         return 1
 
     print(f"Manifest hash verification passed ({checked} artifacts).")

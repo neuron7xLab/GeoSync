@@ -3,8 +3,13 @@
 
 The gateway intentionally does only two things:
 
-* ``run`` creates a deterministic, schema-valid Ricci research artifact from
-  explicit config/data inputs without claiming empirical validation.
+* ``run`` is a **provenance stamp only**. It records dataset/config hashes, git
+  state, seed, and window into a schema-valid artifact at the ``HYPOTHESIS``
+  tier with ``falsification_status="NOT_RUN"``. It runs **no** empirical Ricci
+  inference, so ``score``/``uncertainty`` are inert placeholders — never read
+  them as a measured result. Promotion past ``HYPOTHESIS`` requires a real,
+  hash-pinned session evaluated through the falsification gates (see
+  ``research_lines/ricci_microstructure_v1/contract.yaml``).
 * ``verify`` validates an artifact path or run directory against the canonical
   JSON schema.
 """
@@ -136,6 +141,8 @@ def _run(args: argparse.Namespace) -> int:
         "seed": args.seed,
         "timestamp_utc": timestamp_utc,
         "input_window_sec": args.input_window_sec,
+        # Inert placeholders — this gateway computes no empirical inference.
+        # score/uncertainty are NOT measured values; falsification is NOT_RUN.
         "score": 0.0,
         "uncertainty": 0.0,
         "decision": "OBSERVE",

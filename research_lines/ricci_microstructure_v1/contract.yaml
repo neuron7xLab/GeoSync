@@ -2,15 +2,20 @@ schema_version: research-line-contract.v1
 line_id: ricci_microstructure_v1
 sprint_focus: true
 owner: research-platform
-state: TESTED_REAL_SINGLE
+# INSTRUMENTED, not TESTED_REAL_SINGLE: no real order-book session has been
+# committed. The gateway (tools/research/research_cli.py) stamps provenance and
+# emits a schema-valid HYPOTHESIS artifact; it runs no empirical inference.
+state: INSTRUMENTED
 terminal_state: null
 claim:
-  tier: LIMITED_EMPIRICAL
-  status: Not Deployable
+  tier: HYPOTHESIS
+  status: Not Measured
   statement: >-
-    Ricci curvature features over crypto perpetual order-book microstructure are a
-    falsifiable predictor candidate, limited to one recorded session until
-    multi-session real-data replication passes the same gates.
+    Ricci curvature features over crypto perpetual order-book microstructure are
+    proposed as a falsifiable predictor candidate. No real order-book session has
+    been recorded or evaluated; the line is provenance-instrumented only and
+    cannot promote past HYPOTHESIS until a real, hash-pinned session passes the
+    falsification gates below.
   falsifier: >-
     Reject or block promotion if multi-session validation fails, if a null
     baseline matches or exceeds the signal, or if net PnL after the declared

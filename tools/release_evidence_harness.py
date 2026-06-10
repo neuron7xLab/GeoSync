@@ -759,15 +759,20 @@ def _default_gates(python: str, clean_python: str, skip_clean_install: bool) -> 
         ),
         Gate("research_entrypoint_help", [python, "-m", "tools.research.research_cli", "--help"]),
         Gate(
-            "ricci_schema",
+            "ricci_schema_semantic",
             [
                 python,
                 "tools/research/validate_ricci_artifact_schema.py",
+                "--semantic",
                 "--schema",
                 "schemas/research/ricci_microstructure_artifact.schema.json",
                 "--artifact",
                 "artifacts/runs/ricci_microstructure_v1/example_artifact.json",
             ],
+        ),
+        Gate(
+            "research_artifact_truth",
+            [python, "scripts/ci/check_research_artifact_truth.py"],
         ),
         Gate(
             "pytest_release_smoke",

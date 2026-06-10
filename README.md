@@ -8,7 +8,7 @@ The kernel declares **97 machine-checkable invariants** in `.claude/physics/INVA
 
 ## Current Sprint Boundary
 
-The only sprint-level evidence spine is `ricci_microstructure_v1` over crypto perpetual order-book data. Other research lines remain either infrastructure, protocol sketches, or archived evidence surfaces until they pass the same contract stack.
+The sprint-focus research line is `ricci_microstructure_v1` over crypto perpetual order-book data. It is currently **HYPOTHESIS-tier and provenance-instrumented only**: the gateway (`tools/research/research_cli.py`) stamps dataset/config/git provenance into a schema-valid artifact but runs no empirical inference, and no real order-book session has been committed — so it is **not** an evidence-bearing line yet. The operationalized Ricci computation that does have working code (`src/geosync/features/ricci.py::RicciCurvatureGraph.fit_transform`) runs on **cross-asset return-correlation graphs**, not L2 order-book microstructure; L2-microstructure Ricci remains unimplemented and stays at HYPOTHESIS until a depth-5 session with a real data hash is recorded. Other research lines remain either infrastructure, protocol sketches, or archived evidence surfaces until they pass the same contract stack.
 
 ## Claim Tier Matrix
 
@@ -16,7 +16,7 @@ The only sprint-level evidence spine is `ricci_microstructure_v1` over crypto pe
 | --- | --- | --- | --- |
 | Invariant Registry | FACT: script/check coverage of registered invariants | Missing invariant count or unlinked witness | Active |
 | Systemic-Risk Phase Signal | HYPOTHESIS: protocol and synthetic/controlled checks only | Real-data gate failure | Not Measured |
-| Ricci Microstructure Predictor | LIMITED EMPIRICAL: one crypto-perps L2 session | Multi-session failure, cost-model failure, or null superiority | Not Deployable |
+| Ricci Microstructure Predictor | HYPOTHESIS: provenance-instrumented only; no real session committed, gateway runs no inference | Multi-session failure, cost-model failure, or null superiority | Not Measured |
 
 ## Promotion Rule
 
@@ -53,7 +53,7 @@ Terminal archive states are `REJECTED`, `BLOCKED_DATA`, `BLOCKED_REPRO`, `BLOCKE
 
 ## Canonical Artifact Contract
 
-Every inference artifact for an evidence-bearing line must validate as JSON and include the deterministic fields enforced by `schemas/research/ricci_microstructure_artifact.schema.json`:
+Every inference artifact for an evidence-bearing line must validate as JSON and include the deterministic fields enforced by `schemas/research/ricci_microstructure_artifact.schema.json`. The committed example (`artifacts/runs/ricci_microstructure_v1/example_artifact.json`) is an **illustrative placeholder**: its data hash is all-zero, `score`/`uncertainty` are inert, and `falsification_status` is `NOT_RUN` — it demonstrates the schema shape, not a measured result:
 
 ```json
 {
@@ -65,11 +65,11 @@ Every inference artifact for an evidence-bearing line must validate as JSON and 
   "seed": 1337,
   "timestamp_utc": "2026-05-31T20:27:00Z",
   "input_window_sec": 30,
-  "score": 0.742,
-  "uncertainty": 0.031,
+  "score": 0.0,
+  "uncertainty": 0.0,
   "decision": "NO_TRADE",
   "claim_tier": "HYPOTHESIS",
-  "falsification_status": "PASS"
+  "falsification_status": "NOT_RUN"
 }
 ```
 
