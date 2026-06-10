@@ -66,6 +66,44 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_EXEMPTION_MANIFEST = REPO_ROOT / ".claude" / "audit" / "false_confidence_exemptions.yaml"
 
+# Directory segments that are NOT first-party source: build artifacts, caches,
+# VCS internals, and agent worktrees. CI scans a clean checkout (tracked files
+# only), so any scan that descends into these produces findings that exist only
+# on a developer's machine and diverge from CI. Every file-walking scan below
+# must honour this set so the detector is deterministic regardless of local
+# clutter (e.g. an untracked ``build/`` from ``python -m build`` or stale
+# ``.claude/worktrees/`` copies).
+_EXCLUDED_DIR_PARTS: frozenset[str] = frozenset(
+    {
+        ".venv",
+        "venv",
+        "node_modules",
+        "__pycache__",
+        "build",
+        "dist",
+        ".git",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".pytest_cache",
+        "worktrees",
+        "site-packages",
+    }
+)
+
+
+def _is_excluded(path: Path, repo_root: Path) -> bool:
+    """Return ``True`` when *path* lies under a non-source artifact/cache dir."""
+
+    try:
+        parts = path.relative_to(repo_root).parts
+    except ValueError:
+        parts = path.parts
+    if any(part in _EXCLUDED_DIR_PARTS or part.endswith(".egg-info") for part in parts):
+        return True
+    # ``.claude`` holds agent worktrees, caches, and ledgers — none are the
+    # first-party source the detector reasons about.
+    return ".claude" in parts
+
 
 # ---------------------------------------------------------------------------
 # Detector configuration. Thresholds were chosen against the 2026-04-26
@@ -228,6 +266,8 @@ def _detect_c2_scanner_path_mismatch(repo_root: Path) -> list[Finding]:
     findings: list[Finding] = []
     df_paths: list[tuple[str, str]] = []
     for df in sorted(repo_root.rglob("Dockerfile*")):
+        if _is_excluded(df, repo_root):
+            continue
         try:
             text = df.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -354,6 +394,8 @@ def _detect_c3_test_name_overclaim(repo_root: Path) -> list[Finding]:
     suspicious_names = ("secure", "_auth_", "unauthorized", "safe", "_locked")
     assert_re = re.compile(r"^\s*(?:assert|with\s+pytest\.raises)\b")
     for path in sorted((repo_root / "tests").rglob("test_*.py")):
+        if _is_excluded(path, repo_root):
+            continue
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -414,6 +456,8 @@ def _detect_c4_doc_overclaim(repo_root: Path) -> list[Finding]:
         "physics-invariants": (".github/workflows/physics-invariants.yml",),
     }
     for md in sorted(docs_dir.rglob("*.md")):
+        if _is_excluded(md, repo_root):
+            continue
         try:
             text = md.read_text(encoding="utf-8", errors="ignore").lower()
         except OSError:
@@ -528,9 +572,8 @@ def _scan_concentration(
     repayment: str,
 ) -> list[Finding]:
     findings: list[Finding] = []
-    skip_dirs = {".venv", "node_modules", "__pycache__", "build", "dist", ".git"}
     for path in sorted(repo_root.rglob("*.py")):
-        if any(part in skip_dirs for part in path.parts):
+        if _is_excluded(path, repo_root):
             continue
         try:
             text = path.read_text(encoding="utf-8")

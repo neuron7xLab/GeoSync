@@ -298,3 +298,15 @@ exemptions:
   reason: '# pragma: no cover concentration on platform-specific or environment-conditional branches (e.g.
     async ingestion guards, kafka transports, fallback executors). Each pragma audited 2026-04-27; replacement
     with explicit branch tests is tracked as coverage-deepening backlog.'
+- finding_id: C3-tests/unit/indicators/test_cache_locate_allowlist.py-test_locate_rejects_unsafe_modules
+  reason: >-
+    Parametrized security regression test from the JSON-cache allowlist fix (PR 907). The single
+    pytest.raises body executes across six attacker inputs (os, subprocess, builtins exec/eval, shutil,
+    importlib); the C3 assert-count heuristic miscounts parametrized bodies. Added 2026-06-10, postdating
+    the 2026-04-27 baseline; widening to explicit per-case asserts is tracked as test-clarity backlog.
+- finding_id: C3-tests/unit/indicators/test_cache_locate_allowlist.py-test_locate_allows_safe_modules
+  reason: >-
+    Parametrized positive-path test from the JSON-cache allowlist fix (PR 907). The single assert body
+    executes across three allowlisted inputs (decimal Decimal, pathlib PurePosixPath, collections
+    OrderedDict); the C3 assert-count heuristic miscounts parametrized bodies. Added 2026-06-10, postdating
+    the 2026-04-27 baseline; widening to explicit per-case asserts is tracked as test-clarity backlog.

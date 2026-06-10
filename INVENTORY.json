@@ -91,7 +91,7 @@
     },
     {
       "path": "scripts/ci/verify_changeset.py",
-      "sha256": "0449a497a26d91de5b7de0b7c49bf15eb5669b94d22aa16ced556662b0cfda6a"
+      "sha256": "6ef1463d0f6328ee2da921de07f1c2e13332aa04c0e937cd068dcfbbdcda36c5"
     },
     {
       "path": "scripts/generate_stakeholder_assets.py",

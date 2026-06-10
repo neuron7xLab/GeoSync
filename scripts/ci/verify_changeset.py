@@ -23,8 +23,21 @@ Mirrored gates (CI job in parentheses):
 * detect-secrets-hook against the baseline                  (secrets-supply-chain)
 * commit-acceptor diff-binding                              (commit-acceptor-gate)
 * import-architecture ratchet                              (import-architecture-gate)
-* INVENTORY sync + manifest hashes                         (repo-policy)
-* docs-consistency (ADR-0024 canonical root)               (docs-consistency-gate)
+* INVENTORY sync + manifest hashes + pr-gate-contract       (repo-policy / pr-gate)
+* architectural connectome                                 (connectome-gate)
+* claim-boundary + claims-evidence + evidence-grounding     (claim/evidence gates)
+* false-confidence regression                              (reality-validators-gate)
+* dependency-truth                                         (reality-validators-gate)
+* public-symbol-matrix + compile-claims                    (research-integrity-gate)
+* readiness-register                                       (readiness-gate)
+* docs-consistency (ADR-0024 canonical root, if .md changed) (docs-consistency-gate)
+* actionlint (if a workflow changed and the binary is present) (pr-gate)
+
+NOT covered (run in CI — too heavy or non-deterministic locally): the pytest
+fast/heavy shards, the cns/mfn release-build gates (clean-wheel install), the
+rust-accel and frontend gates. This tool mirrors the *fast deterministic* gate
+surface — the class that previously failed "green locally, red in CI" — not the
+full suite. It says so rather than implying total coverage.
 
 Usage::
 
@@ -116,23 +129,32 @@ def _script_gate(name: str, args: list[str], *, applicable: bool = True) -> Gate
     return GateResult(name, status, _tail(out) if code != 0 else "", cmd)
 
 
+def _actionlint_gate(*, workflows_changed: bool) -> GateResult:
+    if not workflows_changed:
+        return GateResult("actionlint", SKIP, "no workflow change")
+    if shutil.which("actionlint") is None:
+        # Workflow YAML changed but we cannot lint it locally — fail closed.
+        return GateResult(
+            "actionlint", UNVERIFIED, "actionlint binary not installed; cannot lint workflows"
+        )
+    return _script_gate("actionlint", ["scripts/ci/run_actionlint.py"])
+
+
 def verify(base_ref: str) -> list[GateResult]:
     changed = _changed_files(base_ref)
     py_files = [f for f in changed if f.endswith(".py")]
     bandit_files = [f for f in py_files if f.startswith(_BANDIT_PREFIXES)]
     has_py = bool(py_files)
     has_md = any(f.endswith(".md") for f in changed)
+    workflows_changed = any(f.startswith(".github/workflows/") for f in changed)
 
     results: list[GateResult] = [
+        # — code quality (python-quality) —
         _tool_gate("ruff", "ruff", ["check", *py_files], applicable=has_py),
         _tool_gate("black", "black", ["--check", *py_files], applicable=has_py),
         _tool_gate("mypy", "mypy", py_files, applicable=has_py),
-        _tool_gate(
-            "bandit",
-            "bandit",
-            ["-ll", *bandit_files],
-            applicable=bool(bandit_files),
-        ),
+        # — security (secrets-supply-chain) —
+        _tool_gate("bandit", "bandit", ["-ll", *bandit_files], applicable=bool(bandit_files)),
         _tool_gate(
             "detect-secrets",
             "detect-secrets-hook",
@@ -145,6 +167,7 @@ def verify(base_ref: str) -> list[GateResult]:
             ],
             applicable=bool(changed),
         ),
+        # — diff integrity (repo-policy / commit-acceptor / import-architecture) —
         _script_gate(
             "commit-acceptor",
             [
@@ -159,11 +182,27 @@ def verify(base_ref: str) -> list[GateResult]:
         _script_gate("import-architecture", ["scripts/ci/check_import_architecture.py"]),
         _script_gate("inventory-sync", ["scripts/ci/check_inventory_sync.py"]),
         _script_gate("manifest-hashes", ["scripts/ci/check_manifest_hashes.py"]),
+        _script_gate("pr-gate-contract", ["scripts/ci/check_pr_gate_contract.py"]),
+        _script_gate("connectome", ["tools/architecture/check_connectome.py"]),
+        # — epistemic / reality gates (claim-boundary, reality-validators, …) —
+        _script_gate("claim-boundary", ["scripts/ci/check_claim_boundary.py"]),
+        _script_gate("claims-evidence", ["scripts/ci/check_claims.py"]),
+        _script_gate("evidence-grounding", ["tools/claims/validate_claims_have_evidence.py"]),
+        _script_gate(
+            "false-confidence",
+            ["tools/audit/false_confidence_detector.py", "--exit-on-finding"],
+        ),
+        _script_gate("dependency-truth", ["tools/deps/validate_dependency_truth.py"]),
+        _script_gate("public-symbol-matrix", ["tools/check_public_symbol_matrix.py"]),
+        _script_gate("compile-claims", ["tools/compile_claims.py"]),
+        _script_gate("readiness-register", ["tools/check_readiness_register.py"]),
+        # — conditional —
         _script_gate(
             "docs-consistency",
             ["scripts/ci/check_docs_consistency.py"],
             applicable=has_md,
         ),
+        _actionlint_gate(workflows_changed=workflows_changed),
     ]
     return results
 
