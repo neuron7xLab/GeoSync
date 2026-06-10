@@ -1,10 +1,15 @@
 # ADR-0017 · Dual-Tree Consolidation: `core/` → `src/geosync/`
 
-* **Status**: Accepted (planning phase)
+* **Status**: Superseded by [ADR 0024](0024-import-architecture-canonicalization.md)
 * **Date**: 2026-04-18
 * **Deciders**: neuron7xLab
 * **Supersedes**: —
-* **Superseded by**: —
+* **Superseded by**: ADR 0024 (2026-06-09)
+
+> **Superseded.** This ADR made `src/geosync/` the canonical src-layout target.
+> ADR 0024 reversed that decision: the canonical install root is now top-level
+> `geosync/`, and `src/geosync/` is the **retired fork** being migrated out. The
+> historical reasoning below is kept for the record only.
 
 ## Context
 
@@ -13,7 +18,7 @@ The repository carries two parallel Python package trees:
 | Tree | Role | Size | Status |
 |------|------|------|--------|
 | `core/` | Legacy namespace, predates the canonical src-layout | ~6.3 MB, ~1 500 files | Frozen for new code, kept for backward compatibility |
-| `src/geosync/` | Canonical src-layout for the ``geosync`` distribution | ~2.1 MB, growing | Target for all new code |
+| `src/geosync/` | Canonical src-layout for the ``geosync`` distribution (this ADR's now-superseded decision) | ~2.1 MB, growing | **Retired fork** per ADR 0024 — do not add new code |
 
 `core/` exists because the project predates PEP 660 / modern src-layout
 tooling, and it continued to accumulate modules during the period when

@@ -60,7 +60,7 @@ will close. Until then, **assume no live-capital track record**.
 The repository carries two parallel Python packages:
 
 * `core/` — the legacy tree, predates the canonical layout.
-* `src/geosync/` — the canonical tree, where new code must land.
+* `src/geosync/` — the retired fork (see [ADR 0024](adr/0024-import-architecture-canonicalization.md)); top-level `geosync/` is now the canonical tree where new code must land.
 
 For a long-lived migration, every module in `core/` should have a
 thin shim that re-exports from `src/geosync/core/...` (see
