@@ -674,6 +674,17 @@ class ApiSecuritySettings(BaseSettings):
         ),
         min_length=1,
     )
+    trusted_proxies: list[str] = Field(
+        default_factory=list,
+        description=(
+            "IPs or CIDR networks of upstream proxies/load balancers whose "
+            "X-Forwarded-For / X-Real-IP headers may be trusted for client-IP "
+            "resolution (rate limiting, audit). When empty (default), forwarded "
+            "headers are IGNORED and the direct peer address is used, so a client "
+            "cannot spoof its source IP to evade per-IP limits. Configure this with "
+            "the actual proxy addresses in front of the gateway."
+        ),
+    )
     max_request_bytes: PositiveInt = Field(
         1_000_000,
         description="Maximum request payload size, in bytes, accepted by the gateway.",

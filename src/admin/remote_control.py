@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 from collections import deque
+from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Deque, Dict
 
@@ -163,22 +164,52 @@ class AdminRateLimiter:
         )
 
 
-def _resolve_ip(request: Request) -> str:
-    """Return the originating IP address for the request."""
+def _peer_is_trusted(peer: str | None, trusted_proxies: Collection[str]) -> bool:
+    """Return ``True`` when *peer* matches a trusted-proxy IP or CIDR network."""
 
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        for part in forwarded_for.split(","):
-            candidate = _normalize_ip(part)
-            if candidate is not None:
-                return candidate
+    if peer is None or not trusted_proxies:
+        return False
+    try:
+        peer_addr = ipaddress.ip_address(peer)
+    except ValueError:
+        return False
+    for entry in trusted_proxies:
+        try:
+            if "/" in entry:
+                if peer_addr in ipaddress.ip_network(entry, strict=False):
+                    return True
+            elif peer_addr == ipaddress.ip_address(entry):
+                return True
+        except ValueError:
+            continue
+    return False
 
-    real_ip = _normalize_ip(request.headers.get("X-Real-IP"))
-    if real_ip is not None:
-        return real_ip
 
-    if request.client is not None and request.client.host:
-        return request.client.host
+def _resolve_ip(request: Request, *, trusted_proxies: Collection[str] = ()) -> str:
+    """Return the originating IP address for the request.
+
+    ``X-Forwarded-For`` / ``X-Real-IP`` are only honoured when the *direct* peer
+    is a configured trusted proxy; otherwise a client could spoof its source IP
+    to evade per-IP rate limiting. With no trusted proxies configured (default),
+    the direct peer address is always used.
+    """
+
+    peer = request.client.host if request.client is not None and request.client.host else None
+
+    if _peer_is_trusted(peer, trusted_proxies):
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if forwarded_for:
+            for part in forwarded_for.split(","):
+                candidate = _normalize_ip(part)
+                if candidate is not None:
+                    return candidate
+
+        real_ip = _normalize_ip(request.headers.get("X-Real-IP"))
+        if real_ip is not None:
+            return real_ip
+
+    if peer is not None:
+        return peer
     return "unknown"
 
 
@@ -224,6 +255,7 @@ def create_remote_control_router(
     read_permission: Callable[..., AdminIdentity | Awaitable[AdminIdentity]] | None = None,
     execute_permission: Callable[..., AdminIdentity | Awaitable[AdminIdentity]] | None = None,
     reset_permission: Callable[..., AdminIdentity | Awaitable[AdminIdentity]] | None = None,
+    trusted_proxies: Collection[str] = (),
 ) -> APIRouter:
     """Create a router exposing secure administrative endpoints."""
 
@@ -261,8 +293,10 @@ def create_remote_control_router(
     execute_dependency = execute_permission or identity_dependency
     reset_dependency = reset_permission or execute_dependency
 
+    resolved_trusted_proxies = tuple(trusted_proxies)
+
     async def enforce_admin_rate_limit(request: Request) -> None:
-        identifier = _resolve_ip(request)
+        identifier = _resolve_ip(request, trusted_proxies=resolved_trusted_proxies)
         await limiter.check(identifier)
 
     @router.post(

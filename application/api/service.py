@@ -7,9 +7,11 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import inspect
+import ipaddress
 import json
 import logging
 import os
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from json import JSONDecodeError
@@ -1213,20 +1215,44 @@ class PayloadGuardMiddleware(BaseHTTPMiddleware):
         return False
 
 
-def _resolve_ip(request: Request) -> str:
-    forwarded_for = request.headers.get("x-forwarded-for")
-    if forwarded_for:
-        for part in forwarded_for.split(","):
-            candidate = part.strip().split()[0]
-            if candidate:
-                return candidate
+def _peer_is_trusted_proxy(peer: str | None, trusted_proxies: Collection[str]) -> bool:
+    """Return ``True`` when *peer* matches a trusted-proxy IP or CIDR network."""
 
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip.strip()
+    if peer is None or not trusted_proxies:
+        return False
+    try:
+        peer_addr = ipaddress.ip_address(peer)
+    except ValueError:
+        return False
+    for entry in trusted_proxies:
+        try:
+            if "/" in entry:
+                if peer_addr in ipaddress.ip_network(entry, strict=False):
+                    return True
+            elif peer_addr == ipaddress.ip_address(entry):
+                return True
+        except ValueError:
+            continue
+    return False
 
-    if request.client and request.client.host:
-        return request.client.host
+
+def _resolve_ip(request: Request, *, trusted_proxies: Collection[str] = ()) -> str:
+    peer = request.client.host if request.client and request.client.host else None
+
+    if _peer_is_trusted_proxy(peer, trusted_proxies):
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            for part in forwarded_for.split(","):
+                candidate = part.strip().split()[0]
+                if candidate:
+                    return candidate
+
+        real_ip = request.headers.get("x-real-ip")
+        if real_ip:
+            return real_ip.strip()
+
+    if peer is not None:
+        return peer
     return "unknown"
 
 
@@ -1693,6 +1719,7 @@ def create_app(
             read_permission=kill_switch_read_permission,
             execute_permission=kill_switch_execute_permission,
             reset_permission=kill_switch_execute_permission,
+            trusted_proxies=resolved_security_settings.trusted_proxies,
         )
     )
     app.state.risk_manager = risk_manager_facade.risk_manager
@@ -1775,7 +1802,9 @@ def create_app(
     async def _apply_rate_limit(
         request: Request, identity: AdminIdentity | None
     ) -> AdminIdentity | None:
-        ip_address = _resolve_ip(request)
+        ip_address = _resolve_ip(
+            request, trusted_proxies=resolved_security_settings.trusted_proxies
+        )
         subject = identity.subject if identity is not None else None
         await limiter.check(subject=subject, ip_address=ip_address)
         return identity
@@ -2408,7 +2437,7 @@ def create_app(
         credentials = HTTPAuthorizationCredentials(scheme=scheme, credentials=token)
         settings = get_api_security_settings()
         identity = await require_bearer(request, credentials, settings)
-        ip_address = _resolve_ip(request)
+        ip_address = _resolve_ip(request, trusted_proxies=settings.trusted_proxies)
         await limiter.check(subject=identity.subject, ip_address=ip_address)
         websocket.scope.setdefault("state", {})["identity"] = identity
         return identity
