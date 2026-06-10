@@ -17,11 +17,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _load(name: str, rel: str) -> object:
+def _load(name: str, rel: str) -> Any:
     spec = importlib.util.spec_from_file_location(name, ROOT / rel)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
@@ -44,14 +45,14 @@ def _artifact() -> dict[str, object]:
 
 class SyntheticArtifactValid(unittest.TestCase):
     def test_passes_truth_gate(self) -> None:
-        errs = truth.evaluate_artifact(  # type: ignore[attr-defined]
+        errs = truth.evaluate_artifact(
             ARTIFACT_PATH.relative_to(ROOT), _artifact()
         )
         self.assertEqual(errs, [])
 
     def test_repository_graph_includes_and_accepts_the_line(self) -> None:
         # The live graph gate must accept the synthetic line end-to-end.
-        self.assertEqual(graph.check(ROOT), [])  # type: ignore[attr-defined]
+        self.assertEqual(graph.check(ROOT), [])
 
     def test_is_honestly_non_empirical(self) -> None:
         a = _artifact()
@@ -63,8 +64,8 @@ class SyntheticArtifactValid(unittest.TestCase):
 
 class SyntheticArtifactReproducible(unittest.TestCase):
     def test_replay_reproduces_data_hash_exactly(self) -> None:
-        panel = gen.synthetic_returns()  # type: ignore[attr-defined]
-        csv = gen.canonical_csv(panel)  # type: ignore[attr-defined]
+        panel = gen.synthetic_returns()
+        csv = gen.canonical_csv(panel)
         recomputed = hashlib.sha256(csv.encode("utf-8")).hexdigest()
         self.assertEqual(recomputed, _artifact()["data_sha256"])
 
@@ -73,13 +74,13 @@ class SyntheticArtifactReproducible(unittest.TestCase):
         self.assertEqual(on_disk, _artifact()["data_sha256"])
 
     def test_replay_reproduces_score_within_tolerance(self) -> None:
-        panel = gen.synthetic_returns()  # type: ignore[attr-defined]
-        recomputed = gen.mean_abs_offdiag_corr(panel)  # type: ignore[attr-defined]
+        panel = gen.synthetic_returns()
+        recomputed = gen.mean_abs_offdiag_corr(panel)
         self.assertAlmostEqual(recomputed, float(_artifact()["score"]), places=9)
 
     def test_replay_command_is_present_and_real(self) -> None:
         a = _artifact()
-        self.assertEqual(a["replay_command"], gen.REPLAY_COMMAND)  # type: ignore[attr-defined]
+        self.assertEqual(a["replay_command"], gen.REPLAY_COMMAND)
         self.assertTrue(str(a["replay_command"]).strip())
 
 
@@ -94,13 +95,13 @@ class SyntheticArtifactFailClosed(unittest.TestCase):
     def test_empirical_overclaim_from_synthetic_is_rejected(self) -> None:
         a = _artifact()
         a["claim_tier"] = "LIMITED_EMPIRICAL"  # synthetic data must not claim empirical
-        errs = truth.evaluate_artifact(ARTIFACT_PATH.relative_to(ROOT), a)  # type: ignore[attr-defined]
+        errs = truth.evaluate_artifact(ARTIFACT_PATH.relative_to(ROOT), a)
         self.assertTrue(any("cannot carry empirical claim_tier" in e for e in errs), errs)
 
     def test_not_applicable_without_computed_is_rejected(self) -> None:
         a = _artifact()
         a["score_source"] = "placeholder"
-        errs = truth.evaluate_artifact(ARTIFACT_PATH.relative_to(ROOT), a)  # type: ignore[attr-defined]
+        errs = truth.evaluate_artifact(ARTIFACT_PATH.relative_to(ROOT), a)
         self.assertTrue(any("NOT_APPLICABLE requires score_source=computed" in e for e in errs), errs)
 
     def test_synthetic_cannot_masquerade_as_pass_evidence(self) -> None:
@@ -124,7 +125,7 @@ class SyntheticArtifactFailClosed(unittest.TestCase):
                 "artifact:\n  example: artifacts/runs/synthetic_plumbing_v1/artifact.json\n",
                 encoding="utf-8",
             )
-            violations = graph.check(root)  # type: ignore[attr-defined]
+            violations = graph.check(root)
             self.assertTrue(any("cannot ship a PASS artifact" in e for e in violations), violations)
 
 
