@@ -178,6 +178,7 @@ def test_payload_guard_middleware_handles_invalid_json() -> None:
     ],
 )
 def test_resolve_ip_prefers_forwarded_headers(headers: dict[str, str], expected: str) -> None:
+    # Forwarded headers are honoured only when the direct peer is a trusted proxy.
     scope: dict[str, Any] = {
         "type": "http",
         "method": "GET",
@@ -193,7 +194,35 @@ def test_resolve_ip_prefers_forwarded_headers(headers: dict[str, str], expected:
         pass
 
     request = Request(scope, receive=receive)
-    assert _resolve_ip(request) == expected
+    assert _resolve_ip(request, trusted_proxies=("127.0.0.1",)) == expected
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"x-forwarded-for": "203.0.113.4"},
+        {"x-forwarded-for": " 198.51.100.10, 203.0.113.5"},
+        {"x-real-ip": "192.0.2.8"},
+    ],
+)
+def test_resolve_ip_ignores_forwarded_headers_from_untrusted_peer(
+    headers: dict[str, str],
+) -> None:
+    # No trusted proxies configured: a client cannot spoof its source IP — the
+    # direct peer address wins regardless of forwarded headers.
+    scope: dict[str, Any] = {
+        "type": "http",
+        "method": "GET",
+        "path": "/",
+        "headers": [(key.encode(), value.encode()) for key, value in headers.items()],
+        "client": ("203.0.113.250", 12345),
+    }
+
+    async def receive() -> dict[str, Any]:  # pragma: no cover - handshake stub
+        return {"type": "http.request", "body": b""}
+
+    request = Request(scope, receive=receive)
+    assert _resolve_ip(request) == "203.0.113.250"
 
 
 def test_resolve_ip_falls_back_to_client_host() -> None:

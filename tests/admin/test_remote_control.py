@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.testclient import TestClient
 from starlette.requests import Request as StarletteRequest
 
-from execution.risk import RiskLimits, RiskManager
+from geosync.risk import RiskLimits, RiskManager
 from src.admin.remote_control import (
     AdminIdentity,
     AdminRateLimiter,
@@ -321,14 +321,27 @@ def _request_from_headers(headers: dict[str, str]) -> Request:
     return StarletteRequest(scope)
 
 
-def test_resolve_ip_prefers_forwarded_header() -> None:
+def test_resolve_ip_prefers_forwarded_header_from_trusted_proxy() -> None:
     request = _request_from_headers(
         {
             "X-Forwarded-For": " 203.0.113.7 , 10.0.0.1",
             "X-Real-IP": "198.51.100.5",
         }
     )
-    assert _resolve_ip(request) == "203.0.113.7"
+    # The direct peer (10.0.0.99) is a trusted proxy, so its forwarded chain wins.
+    assert _resolve_ip(request, trusted_proxies=("10.0.0.0/24",)) == "203.0.113.7"
+
+
+def test_resolve_ip_ignores_forwarded_header_from_untrusted_peer() -> None:
+    request = _request_from_headers(
+        {
+            "X-Forwarded-For": " 203.0.113.7 , 10.0.0.1",
+            "X-Real-IP": "198.51.100.5",
+        }
+    )
+    # No trusted proxies: the spoofable forwarded headers are ignored and the
+    # direct peer address (10.0.0.99) is used — defeats source-IP spoofing.
+    assert _resolve_ip(request) == "10.0.0.99"
 
 
 def test_normalize_ip_strips_port_and_zone() -> None:
