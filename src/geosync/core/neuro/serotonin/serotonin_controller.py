@@ -2133,7 +2133,6 @@ class SerotoninController:
         """
         if not self._perf_tracking_enabled or self._step_count == 0:
             return {}
-        elapsed = self._last_step_time
         veto_rate = self._veto_count / self._step_count if self._step_count > 0 else 0.0
         return {
             "total_steps": float(self._step_count),
