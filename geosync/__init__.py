@@ -19,20 +19,18 @@ from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING
 
-_PROFILE = os.environ.get("GEOSYNC_PROFILE", os.environ.get("APP_ENV", "dev")).lower()
-
-# Provide a benign default for the admin API two-factor secret only in local/test
-# environments. Production-like profiles must supply real secrets explicitly.
+# Inject the public development TOTP seed ONLY for an EXPLICITLY declared
+# dev-class profile. An unset or production-like profile must never receive the
+# well-known default — the required ``two_factor_secret`` setting then fails
+# closed downstream if the operator did not configure a real secret. (The profile
+# previously defaulted to "dev", so a default production deployment that imported
+# geosync silently received the public seed as its admin second factor.) We do not
+# raise here because ``import geosync`` runs at test-collection time before any
+# secret fixture; the fail-closed enforcement lives in the required settings field.
+_PROFILE = os.environ.get("GEOSYNC_PROFILE", os.environ.get("APP_ENV", "")).lower()
 if _PROFILE in {"dev", "development", "test", "ci", "local"}:
     os.environ.setdefault("GEOSYNC_TWO_FACTOR_SECRET", "JBSWY3DPEHPK3PXP")
     os.environ.setdefault("ADMIN_API_SETTINGS__two_factor_secret", "JBSWY3DPEHPK3PXP")
-else:
-    if (
-        "GEOSYNC_TWO_FACTOR_SECRET" not in os.environ
-        and "ADMIN_API_SETTINGS__two_factor_secret" not in os.environ
-    ):
-        msg = "Two-factor secret must be configured for non-development profiles"
-        raise RuntimeError(msg)
 
 os.environ.setdefault("GEOSYNC_BOOTSTRAP_STRATEGY", "lazy")
 

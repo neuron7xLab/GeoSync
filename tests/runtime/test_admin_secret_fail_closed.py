@@ -55,6 +55,24 @@ def test_production_profile_fails_closed_without_secret(
     assert "GEOSYNC_TWO_FACTOR_SECRET" not in os.environ
 
 
+def test_unset_profile_is_production_safe_and_fails_closed(
+    clean_secret_env: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # An UNSET profile must behave like production: no public seed injected, and
+    # fail closed when no real secret is configured. (Default deployments never
+    # set a profile — defaulting to "dev" silently injected the public seed.)
+    monkeypatch.delenv("GEOSYNC_PROFILE", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+    module = _init_module()
+
+    with pytest.raises(RuntimeError, match="non-development profiles"):
+        module.initialize_control_platform()
+
+    for name in _SECRET_ENV:
+        assert os.environ.get(name) != _PUBLIC_TOTP_SEED, name
+    assert "GEOSYNC_TWO_FACTOR_SECRET" not in os.environ
+
+
 def test_production_profile_with_real_secret_does_not_raise_on_guard(
     clean_secret_env: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:

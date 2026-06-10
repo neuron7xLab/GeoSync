@@ -30,6 +30,14 @@ from typing import Iterable
 
 import pytest
 
+# GeoSync injects the benign development TOTP seed only for an EXPLICIT dev-class
+# ``GEOSYNC_PROFILE`` (see ``geosync/__init__.py``); an unset/production profile
+# stays fail-closed with no insecure default. The test session is a dev-class
+# environment — declare it here, before any test module imports ``geosync`` at
+# collection time, so the well-known test-vector secret is available to tests
+# without a real secret while production deployments remain fail-closed.
+os.environ.setdefault("GEOSYNC_PROFILE", "test")
+
 try:
     from core.utils.determinism import THREAD_BOUND_ENV_VARS, apply_thread_determinism
 except ImportError:  # pragma: no cover - fallback when optional deps missing

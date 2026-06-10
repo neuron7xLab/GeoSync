@@ -130,13 +130,15 @@ def initialize_control_platform(
 ) -> ControlPlatformInitResult:
     """Initialize config, controllers, observability, and app."""
 
-    # Provide benign admin-secret defaults ONLY in local/test profiles. Production-
-    # like profiles MUST supply real secrets explicitly — never silently fall back
-    # to the public pyotp example TOTP seed (which would make the admin second
-    # factor forgeable by anyone). This mirrors the fail-closed guard in
-    # geosync/__init__.py; without it this entrypoint (server.run -> here) ran the
-    # setdefaults unconditionally, defeating that guard on the production path.
-    _profile = os.environ.get("GEOSYNC_PROFILE", os.environ.get("APP_ENV", "dev")).lower()
+    # Provide benign admin-secret defaults ONLY for an EXPLICITLY declared
+    # dev-class profile. An unset or production-like profile MUST supply real
+    # secrets explicitly — never silently fall back to the public pyotp example
+    # TOTP seed (which would make the admin second factor forgeable by anyone).
+    # The profile previously defaulted to "dev", so a default production
+    # deployment (server.run -> here, with no profile set) silently injected the
+    # public seed; unset now means production-safe (no insecure default) and fails
+    # closed below. `AdminApiSettings` reads only the GEOSYNC_-prefixed names.
+    _profile = os.environ.get("GEOSYNC_PROFILE", os.environ.get("APP_ENV", "")).lower()
     if _profile in {"dev", "development", "test", "ci", "local"}:
         os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "test-audit-secret")
         os.environ.setdefault("GEOSYNC_TWO_FACTOR_SECRET", "JBSWY3DPEHPK3PXP")
@@ -146,13 +148,13 @@ def initialize_control_platform(
             name
             for name in ("GEOSYNC_TWO_FACTOR_SECRET", "GEOSYNC_AUDIT_SECRET")
             if not os.environ.get(name)
-            and not os.environ.get("ADMIN_API_SETTINGS__" + name.removeprefix("GEOSYNC_").lower())
         ]
         if _missing:
             msg = (
                 "Admin secrets must be configured for non-development profiles "
-                f"(GEOSYNC_PROFILE={_profile!r}); missing: {', '.join(_missing)}. "
-                "Refusing to fall back to public development defaults."
+                f"(GEOSYNC_PROFILE={_profile or '<unset>'!r}); missing: "
+                f"{', '.join(_missing)}. Refusing to fall back to public "
+                "development defaults."
             )
             raise RuntimeError(msg)
 
