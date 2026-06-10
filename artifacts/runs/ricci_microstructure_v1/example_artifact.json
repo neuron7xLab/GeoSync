@@ -7,9 +7,9 @@
   "seed": 1337,
   "timestamp_utc": "2026-05-31T20:27:00Z",
   "input_window_sec": 30,
-  "score": 0.742,
-  "uncertainty": 0.031,
+  "score": 0.0,
+  "uncertainty": 0.0,
   "decision": "NO_TRADE",
   "claim_tier": "HYPOTHESIS",
-  "falsification_status": "PASS"
+  "falsification_status": "NOT_RUN"
 }

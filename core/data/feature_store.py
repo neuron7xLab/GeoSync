@@ -17,12 +17,14 @@ from datetime import UTC
 from decimal import Decimal, InvalidOperation
 from io import StringIO
 from pathlib import Path
-from typing import Any, Callable, Literal, Mapping, Protocol
+from typing import TYPE_CHECKING, Any, Callable, Literal, Mapping, Protocol
 from urllib.parse import urlparse
 
 import pandas as pd
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pandas.api import types as pd_types
+
+if TYPE_CHECKING:  # heavy optional dep — imported lazily at call sites (see _aesgcm_cls)
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 if not hasattr(pd, "_pandas_datetime_CAPI"):  # pragma: no cover - runtime shim
     pd._pandas_datetime_CAPI = None
@@ -410,15 +412,27 @@ class SQLiteEncryptionConfig:
                 raise ValueError("fallback key identifiers must not exceed 255 bytes when encoded")
 
 
+def _aesgcm_cls() -> type[AESGCM]:
+    """Import AESGCM lazily so the module loads without ``cryptography`` present.
+
+    Only the SQLite encryption envelope needs it; leaf consumers that merely
+    import :mod:`core.data.feature_store` must not pull in the heavy stack.
+    """
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    return AESGCM
+
+
 class _SQLiteEncryptionEnvelope:
     """Encrypt and decrypt SQLite payloads with authenticated envelopes."""
 
     def __init__(self, config: SQLiteEncryptionConfig) -> None:
+        aesgcm_cls = _aesgcm_cls()
         self._config = config
-        self._primary_key = AESGCM(_derive_aes_key(config.key_material))
+        self._primary_key = aesgcm_cls(_derive_aes_key(config.key_material))
         self._key_id_bytes = config.key_id.encode("utf-8")
         self._fallback: dict[str, AESGCM] = {
-            key_id: AESGCM(_derive_aes_key(material))
+            key_id: aesgcm_cls(_derive_aes_key(material))
             for key_id, material in config.fallback_keys.items()
         }
         self._allow_plaintext = config.allow_plaintext_fallback

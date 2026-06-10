@@ -9,9 +9,18 @@ import logging
 import smtplib
 import ssl
 from email.message import EmailMessage
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
-import httpx
+if TYPE_CHECKING:  # heavy HTTP dep — imported lazily so leaf importers stay light
+    import httpx
+
+
+def _new_async_client(timeout: float) -> httpx.AsyncClient:
+    """Construct an ``httpx.AsyncClient`` lazily, importing httpx on demand."""
+    import httpx
+
+    return httpx.AsyncClient(timeout=timeout)
+
 
 __all__ = [
     "EmailSender",
@@ -110,7 +119,7 @@ class SlackNotifier:
         self._channel = channel
         self._username = username
         self._timeout = timeout
-        self._client = client or httpx.AsyncClient(timeout=timeout)
+        self._client = client or _new_async_client(timeout)
         self._owns_client = client is None
 
     async def send(
@@ -151,7 +160,7 @@ class TeamsNotifier:
         self._webhook_url = webhook_url
         self._theme_color = theme_color.upper() if theme_color else None
         self._timeout = timeout
-        self._client = client or httpx.AsyncClient(timeout=timeout)
+        self._client = client or _new_async_client(timeout)
         self._owns_client = client is None
 
     async def send(
