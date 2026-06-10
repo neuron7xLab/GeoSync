@@ -40,7 +40,7 @@ CRITICAL_ENUMS = {
         "REJECTED",
         "BLOCKED_COST_MODEL",
     },
-    "falsification_status": {"PASS", "FAIL", "BLOCKED", "NOT_RUN"},
+    "falsification_status": {"PASS", "FAIL", "BLOCKED", "NOT_RUN", "NOT_APPLICABLE"},
 }
 HEX64_FIELDS = {"data_sha256", "config_sha256"}
 
