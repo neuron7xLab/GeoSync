@@ -65,3 +65,13 @@ def test_ok_when_all_pass_or_skip(monkeypatch, tmp_path) -> None:  # type: ignor
     assert vc.main(["--json", str(out)]) == 0
     assert out.is_file()
     assert '"ok": true' in out.read_text(encoding="utf-8")
+
+
+def test_actionlint_gate_skips_without_workflow_change() -> None:
+    assert vc._actionlint_gate(workflows_changed=False).status == vc.SKIP
+
+
+def test_actionlint_gate_unverified_when_binary_missing(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(vc.shutil, "which", lambda _name: None)
+    r = vc._actionlint_gate(workflows_changed=True)
+    assert r.status == vc.UNVERIFIED
