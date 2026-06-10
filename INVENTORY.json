@@ -90,6 +90,10 @@
       "sha256": "177334d75a0a0eecfc8ab02b302ce173b5ede84d9030e934cb732a2963cfefa2"
     },
     {
+      "path": "scripts/ci/verify_changeset.py",
+      "sha256": "0449a497a26d91de5b7de0b7c49bf15eb5669b94d22aa16ced556662b0cfda6a"
+    },
+    {
       "path": "scripts/generate_stakeholder_assets.py",
       "sha256": "ba5b8ad1e8b05f950d009553a6f5141468f7c278676964bd37d5a41d538f9dab"
     },

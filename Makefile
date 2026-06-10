@@ -197,6 +197,11 @@ arch-validate:
 	python scripts/check_config_single_source.py
 	@echo "✅ Architecture guardrails passed"
 
+.PHONY: verify
+verify:
+	@echo "🔎 Deterministic PR-gate mirror (changeset vs origin/main)..."
+	python scripts/ci/verify_changeset.py $(if $(BASE),--base-ref $(BASE),)
+
 .PHONY: clean
 clean:
 	@echo "🧹 Cleaning cache and build artifacts..."
