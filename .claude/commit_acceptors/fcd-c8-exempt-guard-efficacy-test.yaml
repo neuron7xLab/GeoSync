@@ -28,4 +28,4 @@ ledger_path: ".claude/commit_acceptors/fcd-c8-exempt-guard-efficacy-test.yaml"
 report_path: ".claude/audit/false_confidence_exemptions.yaml"
 evidence:
   - path: ".claude/audit/false_confidence_exemptions.yaml"
-    sha256: "35c1a03f48e07a1fe2be1888415737236f2a734341c9e482d6b825ed4610389b"
+    sha256: "35c1a03f48e07a1fe2be1888415737236f2a734341c9e482d6b825ed4610389b"  # pragma: allowlist secret -- content hash of the exemption manifest, not a credential
