@@ -31,6 +31,10 @@ __all__ = [
 
 _bearer_scheme = HTTPBearer(auto_error=False, scheme_name="OAuth2Bearer")
 
+# Safe, idempotent HTTP methods that verify the TOTP but do not consume it, so a
+# single in-window code can serve a read and a subsequent state-changing write.
+_REPLAY_EXEMPT_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
 
 @dataclass(slots=True)
 class _JWKSCacheEntry:
@@ -454,12 +458,18 @@ def require_two_factor(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired two-factor authentication code.",
             )
-        # Reject reuse of an already-accepted code within its validity window.
-        if not guard.register(identity.subject, matched_counter, now=moment):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Two-factor authentication code has already been used.",
-            )
+        # Single-use enforcement applies to STATE-CHANGING requests only. A TOTP
+        # code is constant within its ~30s window, so consuming it on safe,
+        # idempotent reads (GET/HEAD/OPTIONS) would make it impossible to perform
+        # a read and a write in the same window. Reads verify the code but do not
+        # burn it; writes register it, so a captured code cannot be replayed into
+        # a second state change.
+        if request.method.upper() not in _REPLAY_EXEMPT_METHODS:
+            if not guard.register(identity.subject, matched_counter, now=moment):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Two-factor authentication code has already been used.",
+                )
         return identity
 
     return _dependency

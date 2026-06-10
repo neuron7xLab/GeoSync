@@ -81,10 +81,10 @@ def test_find_counter_matches_verify() -> None:
 # --- require_two_factor end-to-end replay rejection ----------------------------
 
 
-def _make_request(headers: dict[str, str]) -> Request:
+def _make_request(headers: dict[str, str], method: str = "POST") -> Request:
     scope = {
         "type": "http",
-        "method": "POST",
+        "method": method,
         "path": "/admin/kill-switch",
         "headers": [
             (key.lower().encode("ascii"), value.encode("utf-8"))
@@ -126,6 +126,40 @@ async def test_dependency_accepts_once_then_rejects_replay() -> None:
         await dependency(request, identity=await _identity())
     assert exc.value.status_code == 401
     assert "already been used" in exc.value.detail
+
+
+@pytest.mark.asyncio
+async def test_safe_method_read_does_not_burn_code_then_write_succeeds() -> None:
+    # A TOTP code is constant within its window. A read (GET) must verify but not
+    # consume it, so the holder can still perform a write (POST) in the same
+    # window with the same code; a SECOND write then replays and is rejected.
+    moment = datetime(2026, 6, 10, 12, 0, 0, tzinfo=timezone.utc)
+    code = generate_totp_code(_SECRET, timestamp=moment)
+    dependency = require_two_factor(
+        secret_provider=lambda: _SECRET,
+        header_name=_HEADER,
+        digits=6,
+        period_seconds=30,
+        drift_windows=1,
+        algorithm="SHA1",
+        identity_dependency=_identity,
+        clock=lambda: moment,
+    )
+
+    # GET: verified, not consumed (repeatable).
+    await dependency(_make_request({_HEADER: code}, method="GET"), identity=await _identity())
+    await dependency(_make_request({_HEADER: code}, method="GET"), identity=await _identity())
+
+    # POST: first write with the same in-window code succeeds.
+    identity = await dependency(
+        _make_request({_HEADER: code}, method="POST"), identity=await _identity()
+    )
+    assert identity.subject == "admin-1"
+
+    # Second write replays the now-consumed code → rejected.
+    with pytest.raises(HTTPException) as exc:
+        await dependency(_make_request({_HEADER: code}, method="POST"), identity=await _identity())
+    assert exc.value.status_code == 401
 
 
 @pytest.mark.asyncio
