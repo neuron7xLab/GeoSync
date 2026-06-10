@@ -18,6 +18,21 @@ cd "$(dirname "$0")/../.."
 export PYTHONPATH="${PYTHONPATH:-.}:."
 PY="${PYTHON:-python3}"
 
+# Preflight: this proof runs on a clean clone with only the sci-core stack.
+# If a dependency is missing, say exactly what to install instead of dying on a
+# cryptic ModuleNotFoundError three steps in — "one command" must be honest.
+if ! "$PY" - <<'PY' 2>/dev/null
+import importlib.util as u
+missing = [m for m in ("numpy", "scipy", "pandas", "networkx", "yaml", "jsonschema", "pytest")
+           if u.find_spec(m) is None]
+raise SystemExit(1 if missing else 0)
+PY
+then
+  echo "MISSING DEPENDENCIES. This proof needs only the sci-core stack:" >&2
+  echo "  pip install numpy scipy pandas networkx pyyaml jsonschema pytest" >&2
+  exit 2
+fi
+
 echo "[1/8] invariant witness"
 test "$("$PY" scripts/count_invariants.py)" = "97"
 
@@ -46,10 +61,13 @@ echo "[7/8] claim-to-artifact graph"
 "$PY" scripts/ci/check_claim_artifact_graph.py >/dev/null
 
 echo "[8/8] gate + contract tests"
-# 'not concurrent' deselects one wall-clock timing assertion in the release
-# harness suite that is sensitive to runner load (environmental, not an
-# integrity signal); every gate/contract/semantic test still runs.
-"$PY" -m pytest tests/research_lines tests/tools tests/ci \
-  -q -p no:cacheprovider -k "not concurrent" >/dev/null
+# Scope: the integrity surface — the truth/graph/manifest gates (tests/ci) and
+# the research-line schema+semantic contracts (tests/research_lines). These run
+# on a clean clone with only the sci-core stack. tests/tools (release-packaging
+# harness) is deliberately NOT here: it needs pydantic/cryptography/httpx and is
+# release machinery, not lie-prevention — including it would break the
+# clean-clone, one-command guarantee. The release harness keeps its own CI job.
+"$PY" -m pytest tests/research_lines tests/ci \
+  -q -p no:cacheprovider >/dev/null
 
 echo "REPO_INTEGRITY: PROVEN"

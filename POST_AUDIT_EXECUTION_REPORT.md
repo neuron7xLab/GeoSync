@@ -87,10 +87,14 @@ python tools/commit_acceptor/validate_commit_acceptor.py [--require-acceptor-for
 - `check_manifest_hashes.py --min-artifacts 1` → exit 1, `NOT_PROVEN`. **By
   design**: there is no real hash-pinned artifact yet. The proof script reports
   this honestly and still proves the rest.
-- `tests/tools/test_release_evidence_harness.py::…_concurrently` → a wall-clock
-  `assert elapsed < 0.55` flakes on this resource-limited host (~0.70s). It is an
-  environmental timing assertion, not an integrity signal; the proof script
-  deselects it with `-k "not concurrent"`. All other harness tests pass.
+- `tests/tools` (release-packaging harness) is **excluded** from the integrity
+  proof. It needs `pydantic` / `cryptography` / `httpx`, so including it would
+  break the clean-clone, one-command guarantee — and it is release machinery,
+  not lie-prevention. It keeps its own CI job. The proof's `[8/8]` step runs
+  only the integrity surface (`tests/ci` + `tests/research_lines`), which a fresh
+  clone passes with the sci-core stack alone. Verified end-to-end:
+  `git clone … && pip install numpy scipy pandas networkx pyyaml jsonschema pytest
+  && bash scripts/ci/prove_repo_integrity.sh` → `REPO_INTEGRITY: PROVEN`, exit 0.
 
 ## 7. Remaining honest UNKNOWNs
 
