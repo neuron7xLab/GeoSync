@@ -233,12 +233,9 @@ class TestPiAgentProperties:
     def test_instability_trigger_emits_log(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """TD-009: a threshold crossing is observable — it emits an attributable
         transition record rather than flipping silently."""
-        import core.agent.strategy as strategy_mod
-
         events: list[tuple[str, dict[str, object]]] = []
         monkeypatch.setattr(
-            strategy_mod._logger,
-            "warning",
+            "core.agent.strategy._logger.warning",
             lambda event, **fields: events.append((event, fields)),
         )
 
