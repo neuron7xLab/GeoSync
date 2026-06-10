@@ -25,7 +25,14 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationError,
+    field_validator,
+)
 from typing_extensions import Annotated
 
 # Acceptor IDs use a relaxed pattern compared to claim IDs: existing
@@ -153,6 +160,31 @@ class CommitAcceptor(BaseModel):
     required_python_symbols: tuple[str, ...] = Field(default_factory=tuple)
     evidence: tuple[EvidenceEntry, ...] = Field(default_factory=tuple)
 
+    @field_validator("required_python_symbols", mode="before")
+    @classmethod
+    def _reject_mapping_symbol_form(cls, value: Any) -> Any:
+        # Forward-proof against the most common authoring drift: a list of
+        # ``{module: ..., symbol: ...}`` mappings instead of canonical
+        # ``file::symbol`` strings. Pydantic's native error for this is the
+        # opaque ``Input should be a valid string`` — which once cost a
+        # 46-minute coverage lane to diagnose (stale run 27294986826).
+        # We intercept the structured form *before* coercion and re-emit a
+        # message that names the canonical shape, so the next drift fails
+        # legibly in seconds. Fail-closed: we do NOT silently normalize —
+        # one canonical on-disk form is the invariant.
+        if isinstance(value, (list, tuple)):
+            for i, item in enumerate(value):
+                if isinstance(item, dict):
+                    module = item.get("module", "<module>")
+                    symbol = item.get("symbol", "<symbol>")
+                    raise ValueError(
+                        f"required_python_symbols.{i} is a mapping "
+                        f"{{module, symbol}}; the canonical form is a single "
+                        f'"file::symbol" string. Replace with '
+                        f'"{module}::{symbol}".'
+                    )
+        return value
+
     @field_validator("required_python_symbols")
     @classmethod
     def _symbol_shape(cls, value: tuple[str, ...]) -> tuple[str, ...]:
@@ -175,7 +207,13 @@ def load_commit_acceptor(path: str | Path) -> CommitAcceptor:
     raw: Any = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise ValueError(f"{path}: top-level must be a mapping, got {type(raw).__name__}")
-    return CommitAcceptor.model_validate(raw)
+    try:
+        return CommitAcceptor.model_validate(raw)
+    except ValidationError as exc:
+        # Name the offending file in the message itself; pydantic's default
+        # surfaces only the field path, leaving the operator to grep across
+        # 200+ acceptors to find which file drifted.
+        raise ValueError(f"{path}: invalid commit acceptor: {exc}") from exc
 
 
 def load_all_commit_acceptors(directory: str | Path) -> tuple[CommitAcceptor, ...]:
