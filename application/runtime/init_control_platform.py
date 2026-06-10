@@ -130,9 +130,31 @@ def initialize_control_platform(
 ) -> ControlPlatformInitResult:
     """Initialize config, controllers, observability, and app."""
 
-    # Provide benign defaults for local/test environments to avoid mandatory secret errors.
-    os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "test-audit-secret")
-    os.environ.setdefault("GEOSYNC_TWO_FACTOR_SECRET", "JBSWY3DPEHPK3PXP")
+    # Provide benign admin-secret defaults ONLY in local/test profiles. Production-
+    # like profiles MUST supply real secrets explicitly — never silently fall back
+    # to the public pyotp example TOTP seed (which would make the admin second
+    # factor forgeable by anyone). This mirrors the fail-closed guard in
+    # geosync/__init__.py; without it this entrypoint (server.run -> here) ran the
+    # setdefaults unconditionally, defeating that guard on the production path.
+    _profile = os.environ.get("GEOSYNC_PROFILE", os.environ.get("APP_ENV", "dev")).lower()
+    if _profile in {"dev", "development", "test", "ci", "local"}:
+        os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "test-audit-secret")
+        os.environ.setdefault("GEOSYNC_TWO_FACTOR_SECRET", "JBSWY3DPEHPK3PXP")
+        os.environ.setdefault("ADMIN_API_SETTINGS__two_factor_secret", "JBSWY3DPEHPK3PXP")
+    else:
+        _missing = [
+            name
+            for name in ("GEOSYNC_TWO_FACTOR_SECRET", "GEOSYNC_AUDIT_SECRET")
+            if not os.environ.get(name)
+            and not os.environ.get("ADMIN_API_SETTINGS__" + name.removeprefix("GEOSYNC_").lower())
+        ]
+        if _missing:
+            msg = (
+                "Admin secrets must be configured for non-development profiles "
+                f"(GEOSYNC_PROFILE={_profile!r}); missing: {', '.join(_missing)}. "
+                "Refusing to fall back to public development defaults."
+            )
+            raise RuntimeError(msg)
 
     if app_factory is None:
         from application.api.service import create_app as _create_app
