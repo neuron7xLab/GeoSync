@@ -166,6 +166,24 @@ def evaluate_artifact(path: Path, doc: Mapping[str, Any]) -> list[str]:
             f"{'placeholder role' if placeholder else 'falsification_status=NOT_RUN'}"
         )
 
+    # Rule 7 — NOT_APPLICABLE is the honest status for a real score computed on
+    # NON-empirical inputs (synthetic / instrumented plumbing): a number was
+    # produced, but no falsification or evidence is claimed. It must say exactly
+    # that and nothing more — never an empirical tier, always a computed score.
+    # (Real-data requirement is enforced by Rule 2: zero data forces NOT_RUN/
+    # BLOCKED, so a NOT_APPLICABLE artifact cannot have a zero data hash.)
+    if status == "NOT_APPLICABLE":
+        if tier in EVIDENCE_TIERS:
+            errors.append(
+                f"{rel}: falsification_status=NOT_APPLICABLE cannot carry empirical "
+                f"claim_tier {tier!r} — a computed-but-unfalsified result is not evidence"
+            )
+        if score_source != "computed":
+            errors.append(
+                f"{rel}: falsification_status=NOT_APPLICABLE requires score_source=computed "
+                f"(it marks a computed, non-evidence result), got {score_source!r}"
+            )
+
     return errors
 
 
