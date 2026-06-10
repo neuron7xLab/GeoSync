@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: MIT
+#
+# Repo Integrity Gate — the single end-to-end proof.
+#
+# research-integrity-gate runs the truth/graph/semantic gates individually.
+# This job runs the holistic one-command proof (scripts/ci/prove_repo_integrity.sh)
+# so that "one clean clone, one command" is itself enforced on every PR: the
+# whole chain — invariants → python matrix → namespace → claim boundary →
+# manifest proof → artifact truth → claim/artifact graph → gate+contract tests —
+# must pass together, on the sci-core stack alone.
+#
+# Honest by design: the script prints MANIFEST_PROOF: NOT_PROVEN until a real
+# hash-pinned artifact graph exists, and still proves the rest. It never fakes
+# success.
+name: Repo Integrity Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/ci/prove_repo_integrity.sh'
+      - 'scripts/ci/check_research_artifact_truth.py'
+      - 'scripts/ci/check_claim_artifact_graph.py'
+      - 'scripts/ci/check_manifest_hashes.py'
+      - 'scripts/ci/check_claim_boundary.py'
+      - 'scripts/check_python_matrix.py'
+      - 'scripts/check_namespace_policy.py'
+      - 'scripts/count_invariants.py'
+      - 'schemas/research/**'
+      - 'research_lines/**'
+      - 'artifacts/runs/**'
+      - 'tools/research/**'
+      - 'tests/ci/**'
+      - 'tests/research_lines/**'
+      - '.github/workflows/repo-integrity-gate.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repo-integrity-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repo-integrity-gate:
+    name: repo-integrity-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install sci-core stack (the only deps the proof needs)
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install numpy scipy pandas networkx pyyaml jsonschema pytest
+
+      - name: Prove repository integrity (one command)
+        run: bash scripts/ci/prove_repo_integrity.sh
