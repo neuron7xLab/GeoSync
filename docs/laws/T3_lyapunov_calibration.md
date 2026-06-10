@@ -46,6 +46,46 @@ INV-CAL3 | universal    | K* > 0 always; hard search bound (K_min > 0    | P0
                        | violation raises ValueError; fail-closed.
 ```
 
+## 3.1 Corollary T3.1 — supercritical λ₁-invariance ⇒ inverse non-injectivity
+
+```
+Corollary T3.1 | algebraic | K > K_c ⇒ λ₁(K·A_κ; ω) is constant in K to    | P1
+                           | machine precision. The λ→K inverse is therefore
+                           | a constant-to-interval map (non-injective). The
+                           | calibrator's promise is on the λ-residual, never
+                           | on K-recovery. A THEOREM derived from Laws T1+T2,
+                           | not a new constitutional invariant (count stays 97).
+         Tests:  tests/unit/physics/test_T3_noninjectivity.py
+```
+
+**Statement.** Above the synchronisation threshold the network phase-locks. On
+that branch the leading Lyapunov exponent is the slowest *transverse* exponent of
+the locked manifold, fixed by the intrinsic-frequency dispersion of `ω`; the
+coupling term contributes a sign-definite, K-scaled Hessian that shifts the bulk
+spectrum but **leaves λ₁ stationary**. Hence `λ₁(K·A_κ; ω) ≡ const` for `K > K_c`.
+
+**Constructive witness (deterministic, x64).** For the canonical battery fixture
+(`n=4`, Lorentzian `ω`, `γ=0.5`, `seed=15`):
+
+| K / K_c | K | λ₁ |
+|---|---|---|
+| 3.0 | 1.0000 | −1.1552453009e-02 |
+| 5.0 | 1.6667 | −1.1552453009e-02 |
+| 8.0 | 2.6667 | −1.1552453009e-02 |
+
+Across a `2.67×` coupling span the spread in λ₁ is `≈ 4e-17` (≈ 2 ULP at 1e-2).
+Three couplings, one exponent: `λ→K` is non-injective **by physics**, not by
+numerical noise.
+
+**Consequence (and why this is a law, not a bug).** A calibration asked for the
+plateau value returns *some* `K` in the degenerate interval, `CONVERGED`, with a
+λ-residual at tolerance — exactly the T3 contract. Any test that demanded the
+recovered `K`'s from two supercritical targets to *differ* was asserting a
+quantity the dynamics forbid; its historical CI fragility was this corollary
+announcing itself. INV-CAL4 turns that surprise into a guarded, falsifiable
+statement: should λ₁ ever become K-dependent on the locked branch, the battery
+fires and Law T3 must be re-derived.
+
 ## 4. Public surface
 
 | Symbol | Role |
