@@ -30,6 +30,10 @@
       "sha256": "0da684ef26189993918c8ef0611dc305e2a2ab5de7997b9ffa48d259e2fa93c5"
     },
     {
+      "path": "scripts/ci/check_docs_consistency.py",
+      "sha256": "59b4843e29dfd2bc77e8150ba08b99f3b19517fc8d321520dc6f01f8b0b18fb9"
+    },
+    {
       "path": "scripts/ci/check_examples_manifest.py",
       "sha256": "a0e4a2d58f0d7ec3020436e654fd3397769a15c8165ec32c53eba5f1f162f187"
     },
@@ -39,7 +43,7 @@
     },
     {
       "path": "scripts/ci/check_inventory_sync.py",
-      "sha256": "f81d851eb4e27d0d8ee182a9c06341707cfdf540854566b567baa27466e9f5b2"
+      "sha256": "d07faf335bfd1085912d862e74a2b657251efb428956430f82a85f65e7fa6801"
     },
     {
       "path": "scripts/ci/check_manifest_hashes.py",
@@ -47,7 +51,7 @@
     },
     {
       "path": "scripts/ci/check_pr_gate_contract.py",
-      "sha256": "c84a4b7d6dc2f596a083e366540e1b4a01ac4731d875644f407dbe93f5d3c75a"
+      "sha256": "f13eb6157edbf0ad2ce17c36cfdc5d3373ae1b74fdf8ff1c1997ebd8c71d9aa7"
     },
     {
       "path": "scripts/ci/compute_fps_audit.py",
@@ -59,7 +63,7 @@
     },
     {
       "path": "scripts/ci/emit_pyo3_env.py",
-      "sha256": "ce168805179993615b4b1ab1f7ca2786e23d4b011ed2b83c66db0dcc811b8aa5"
+      "sha256": "dbebaf4c7a76f3adc16f7cb3553a8bd837de674f03424810735f86b2d7f30247"
     },
     {
       "path": "scripts/ci/lint_forbidden_terms.py",
@@ -79,7 +83,7 @@
     },
     {
       "path": "scripts/ci/run_rust_accel_contract.py",
-      "sha256": "6395f7c299d338a6089515d8563c969b0e99ce9115ca60cc776dabffd31857b2"
+      "sha256": "f15af48197435f3257b418a69742f494dc754643175004c35989c12eaff0a680"
     },
     {
       "path": "scripts/ci/update_inventory.py",

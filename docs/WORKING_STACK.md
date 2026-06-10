@@ -70,8 +70,12 @@ python -m build
 
 1. **111 test failures** in full suite — all pre-existing, none affect golden path.
    Categories: property tests (Hypothesis), serotonin controller, GABA gate, workflow YAML tests.
-2. **Namespace drift**: `core/` labeled "legacy" but is the active import surface for examples/tests.
-   `src/geosync/` marked canonical but not used by golden path. Both coexist.
+2. **Namespace drift (ADR 0024, in migration)**: canonical install root is top-level
+   `geosync/`; `src/geosync/` is the retired fork still carrying legacy
+   `__CANONICAL__ = True` markers. `core/` is labeled "legacy" but remains an active
+   import surface for examples/tests. The import-architecture ratchet
+   (`scripts/ci/check_import_architecture.py`) freezes the `src.*`/path-hack debt so
+   it can only shrink as the staged collapse proceeds.
 3. **Torch CUDA**: torch is installed with CUDA 12.8 support. On CPU-only machines, some
    torch-dependent test modules emit collection warnings (handled by `--continue-on-collection-errors`).
 4. **Not a git repo**: The working directory is not initialized as a git repo.
