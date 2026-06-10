@@ -43,9 +43,12 @@ try:  # SciPy is optional in lightweight environments
 except Exception:  # pragma: no cover - executed when SciPy unavailable
     _signal = None
 
+from ..utils.logging import get_logger
 from . import fractal_gcl as _fractal_gcl
 from .base import BaseFeature, FeatureResult
 from .cache import FileSystemIndicatorCache, hash_input_data
+
+_logger = get_logger(__name__)
 
 
 class TimeFrame(Enum):
@@ -352,6 +355,12 @@ class WaveletWindowSelector:
             raise ValueError("cannot select window from empty price series")
         if self.max_samples is not None and values.size > self.max_samples:
             values = values[-self.max_samples :]
+        # TD-003: a constant / degenerate series carries no oscillatory energy, so the
+        # ricker CWT returns an all-zero spectrum whose argmax collapses to min_window —
+        # the smallest, noisiest scale. Guard it explicitly: return the stable mid-range
+        # fallback window instead of amplifying noise on illiquid/flat input.
+        if not np.isfinite(values).all() or float(np.ptp(values)) == 0.0:
+            return self._fallback_window
         if _signal is None:
             return self._fallback_window
 
@@ -499,6 +508,17 @@ class MultiScaleKuramoto:
             series = record.get("series")
             if isinstance(series, pd.Series):
                 timeframe_series[timeframe] = series
+
+        # TD-002: skipped scales (insufficient samples / window < min_samples_per_scale)
+        # are not silent — they surface both structurally (MultiScaleResult.skipped_timeframes)
+        # and as an observable warning so an opaque all-zero consensus is attributable.
+        if skipped:
+            _logger.warning(
+                "multiscale_timeframes_skipped",
+                skipped=[tf.name for tf in skipped],
+                analyzed=[tf.name for tf in timeframe_results],
+                min_samples_per_scale=self.min_samples_per_scale,
+            )
 
         if timeframe_results:
             R_values = np.array(

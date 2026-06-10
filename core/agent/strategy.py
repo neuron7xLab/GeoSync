@@ -43,6 +43,10 @@ import pandas as pd
 
 from observability.tracing import pipeline_span
 
+from ..utils.logging import get_logger
+
+_logger = get_logger(__name__)
+
 
 @dataclass
 class Strategy:
@@ -208,6 +212,16 @@ class PiAgent:
         triggered = (hard_trigger or self._instability_score > threshold) and self._cooldown == 0
         if triggered:
             self._cooldown = 3
+            # TD-009: the threshold crossing is observable, not silent — pairs the
+            # hysteresis/cooldown debounce with an attributable transition record so
+            # state flips can be audited rather than inferred.
+            _logger.warning(
+                "agent_instability_triggered",
+                instability_score=round(self._instability_score, 6),
+                threshold=float(threshold),
+                hard_trigger=hard_trigger,
+                cooldown=self._cooldown,
+            )
         elif self._cooldown > 0:
             self._cooldown -= 1
         return triggered

@@ -350,3 +350,12 @@ def test_mean_ricci_async_recovers_when_loop_running(
     assert created_loop is True
     with pytest.raises(RuntimeError):
         ricci_module.asyncio.get_running_loop()
+
+
+def test_w1_fallback_emits_runtime_warning() -> None:
+    """TD-017: the SciPy-unavailable Wasserstein fallback degrades loudly — it emits
+    a RuntimeWarning so the degraded-accuracy path is observable, not silent."""
+    # pytest.warns installs an "always" filter, which _maybe_warn_w1 honours via
+    # _is_runtime_warning_forced regardless of whether SciPy is actually present.
+    with pytest.warns(RuntimeWarning, match="SciPy unavailable"):
+        ricci_module._maybe_warn_w1()

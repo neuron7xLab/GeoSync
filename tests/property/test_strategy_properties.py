@@ -210,6 +210,48 @@ class TestPiAgentProperties:
         # During cooldown, should return False
         # After cooldown, could trigger again
 
+    def test_subthreshold_jitter_does_not_flip_flop(self) -> None:
+        """TD-009: hysteresis (EMA-smoothed score + cooldown debounce) keeps the
+        agent stable under small jitter — a sub-threshold state perturbed by noise
+        must not produce a rapid sequence of state flips."""
+        agent = PiAgent(
+            strategy=Strategy(name="test", params={"instability_threshold": 0.5}),
+            hysteresis=0.05,
+        )
+        rng = np.random.default_rng(7)
+        triggers = 0
+        for _ in range(200):
+            jitter = float(rng.normal(0.0, 0.01))
+            # R just below the contribution needed to cross threshold 0.5
+            state = {"R": 0.78 + jitter, "delta_H": 0.0, "kappa_mean": 0.0}
+            if agent.detect_instability(state):
+                triggers += 1
+        # Without hysteresis/cooldown this near-boundary input would chatter on
+        # most steps; the debounce must keep flips sparse.
+        assert triggers <= 200 // 3
+
+    def test_instability_trigger_emits_log(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """TD-009: a threshold crossing is observable — it emits an attributable
+        transition record rather than flipping silently."""
+        import core.agent.strategy as strategy_mod
+
+        events: list[tuple[str, dict[str, object]]] = []
+        monkeypatch.setattr(
+            strategy_mod._logger,
+            "warning",
+            lambda event, **fields: events.append((event, fields)),
+        )
+
+        agent = PiAgent(
+            strategy=Strategy(name="test", params={"instability_threshold": 0.1, "hysteresis": 0.0})
+        )
+        triggered = agent.detect_instability({"R": 0.95, "delta_H": -0.5, "kappa_mean": -0.5})
+
+        assert triggered is True
+        trigger_events = [e for e in events if e[0] == "agent_instability_triggered"]
+        assert trigger_events, "expected an instability-trigger log"
+        assert "instability_score" in trigger_events[0][1]
+
 
 class TestStrategyEdgeCases:
     """Edge case tests for Strategy."""

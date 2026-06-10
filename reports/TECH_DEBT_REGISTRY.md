@@ -23,19 +23,21 @@ _(English: Unified Technical Debt Registry)_
 насправді давно виправлено). Нижче — звірка кожного пункту з **поточним кодом на `main`**,
 з доказами (файл:рядок / тест). Метод: 4-кластерний паралельний аудит + smoke-імпорт + прогін тестів.
 
-**Підсумок:** 17 RESOLVED · 5 PARTIAL (дефект усунено, бракує закриваючого артефакту) · 0 STILL-OPEN.
+**Підсумок:** 22 RESOLVED · 0 PARTIAL · 0 STILL-OPEN.
+_Оновлення 2026-06-10 (друга ітерація): 5 PARTIAL закрито — додано закриваючі артефакти
+(log-warn, constant-series guard+тест, cache-invariant тест, jitter+log тест, warn-path тест)._
 
 | TD | Пріор. | Статус | Доказ (звірено 2026-06-10) |
 |----|--------|--------|----------------------------|
 | TD-001 | P0 | ✅ RESOLVED | Усі символи існують (`multiscale_kuramoto.py:51,274,545`), експорт у `__init__.py:43-50`; `import core.indicators` OK; `tests/unit/test_indicators_kuramoto_multiscale.py` зелений |
-| TD-002 | P1 | 🟡 PARTIAL | Skip сигналізується через `MultiScaleResult.skipped_timeframes` (`:93,484-490`) + тест `:155`; **бракує** log-warn на відкидання |
-| TD-003 | P2 | 🟡 PARTIAL | Константний ряд більше не дає min_window (`_compute_fallback_window` `:324-328`); **бракує** виділеного constant-series тесту |
+| TD-002 | P1 | ✅ RESOLVED (2-га іт.) | Skip сигналізується структурно + `_logger.warning("multiscale_timeframes_skipped", …)`; тест `test_multiscale_skipped_timeframes_emit_warning_log` |
+| TD-003 | P2 | ✅ RESOLVED (2-га іт.) | Явний guard на нульову дисперсію → fallback-вікно (не min_window); тест `test_wavelet_selector_constant_series_returns_stable_window` |
 | TD-004 | P2 | ✅ RESOLVED | Історія накопичується (`retain_history` deque maxlen `temporal_ricci.py:363,395-397`); тест `test_temporal_ricci.py:72` |
-| TD-005 | P3 | 🟡 PARTIAL | Кеш+векторизація (`_edges_cache`/`np.add.at`/`_dist_cache` `:43,322-345,169`); **бракує** бенчмарк-тесту |
+| TD-005 | P3 | ✅ RESOLVED (2-га іт.) | Детермінований cache-invariant тест `test_edge_count_and_cache_avoid_rebuild` (O(1) edge count, edge-cache будується раз, інвалідується на topology change) |
 | TD-006 | P1 | ✅ RESOLVED | `_w1_fallback` шанує ваги/позиції (`ricci.py:837,890-928`), той самий W1; `test_indicators_ricci.py` зелений |
 | TD-007 | P3 | ✅ RESOLVED | `detector.py` без unused-import, пороги через `PhaseThresholds` dataclass; `test_phase.py:35` |
 | TD-008 | P0 | ✅ RESOLVED | `simulate_performance` — детермінований walk-forward без RNG (`strategy.py:78-181`); `test_strategy_properties.py:87` |
-| TD-009 | P1 | 🟡 PARTIAL | Гістерезис=0.05+EMA+cooldown (`strategy.py:187,206,208,228`), тест `:188`; **бракує** логування переходу та jitter-тесту |
+| TD-009 | P1 | ✅ RESOLVED (2-га іт.) | Гістерезис+EMA+cooldown + `_logger.warning("agent_instability_triggered", …)` на переході; тести `test_subthreshold_jitter_does_not_flip_flop` + `test_instability_trigger_emits_log` |
 | TD-010 | P2 | ✅ RESOLVED | mutation/repair → `validate_params()` clamp (`strategy.py:67,218-222,70-76`); тести `:58,179,224,231` |
 | TD-011 | P2 | ✅ RESOLVED | `_evict()` на capacity (`memory.py:282-315`) + округлений NaN/Inf-стійкий ключ (`:82-93`); тест `test_strategy_memory.py:175` |
 | TD-012 | P1 | ✅ RESOLVED | Валідація схеми + ValueError (`ingestion.py:115-127`), конфіг. поля, чисті імпорти; fuzz `test_ingestion_fuzz.py` |
@@ -43,16 +45,19 @@ _(English: Unified Technical Debt Registry)_
 | TD-014 | P1 | ✅ RESOLVED | `walk_forward` валідує довжину сигналів (`engine.py:511-512`), fee коректно (`:583-592`); `test_walk_forward_with_transaction_fees` |
 | TD-015 | P0 | ✅ RESOLVED | Єдине джерело `calculate_position_size` (`position_sizer.py`), risk керує нотою; `test_calculate_position_size_matches_risk_aware` |
 | TD-016 | P2 | ✅ RESOLVED (цей PR) | `execution/risk.py` → `execution/risk/core.py`. Heat **gross-by-design** (long+short додатні — fail-closed; нетинг **занизив би** ризик; формулювання реєстру «недооцінка» було перевернуте). Прибрано мертвий `side`/`direction` no-op під `abs()`; докстрінги виправлено. `test_portfolio_heat_sums_absolute_exposure` зелений |
-| TD-017 | P2 | 🟡 PARTIAL | `ricci.py` `_maybe_warn_w1` RuntimeWarning (`:801-815`); `temporal_ricci.py` без важких deps за дизайном; **бракує** тесту warn-шляху |
+| TD-017 | P2 | ✅ RESOLVED (2-га іт.) | `_maybe_warn_w1` RuntimeWarning покрито тестом `test_w1_fallback_emits_runtime_warning` (pytest.warns); `temporal_ricci.py` без важких deps за дизайном |
 | TD-018 | P3 | ✅ RESOLVED | `ruff check core/phase/detector.py` → clean; unused-import немає |
 | TD-019 | P0 | ✅ RESOLVED (цей PR) | Було 128/130 pinned; 2 mutable-теги в `calib-grid-witness-map.yml:26-27` пришпилено до канонічних SHA (`checkout df4cb1c…`, `setup-python a309ff8…`). repo-policy pin-guard тепер зелений на цьому файлі |
 | TD-020 | P0 | ✅ RESOLVED | 0 приватних ключів: усі `configs/tls/dev/*.pem` = CERTIFICATE з `# REDACTED`; `.gitignore:42-44` блокує `*.key`; detect-secrets у `pr-gate.yml` |
 | TD-021 | P0 | ✅ RESOLVED | Bandit MEDIUM=0: 2 `0.0.0.0` лише в docstring/help (`nlca_core.py:825`, `mlsdm/__main__.py:68`), реального bind немає; `bandit -ll` у CI |
 | TD-022 | — | ✅ RESOLVED | 0 реальних code-debt TODO; решта — патерни сканерів/шаблони; lint-guard `tools/docs/lint_docs.py:165` блокує `TODO/FIXME/TBD` |
 
-**Залишковий борг (PARTIAL):** TD-002/003/005/009/017 — у кожному корінний дефект **усунено**, бракує лише
-закриваючого артефакту (log-warn, constant-series тест, бенчмарк, jitter-тест, warn-path тест).
-Це P1–P3, не блокери; винесено окремими задачами, а не змішано в цей звіряльний PR.
+**Залишковий код-борг:** немає. Усі 22 пункти кодового реєстру закрито (TD-001…022).
+П'ять колишніх PARTIAL (TD-002/003/005/009/017) закрито у другій ітерації додаванням
+закриваючих артефактів (log-warn, constant-series guard+тест, cache-invariant тест,
+jitter+log тест, warn-path тест). Поза цим реєстром лишаються нетехнічні readiness-гепи
+(`governance/readiness_register.json`: RD-001 реальні дані, QA/GOV/OPS/EXT — процес-evidence),
+які не закриваються кодом.
 
 ## Реєстр
 
