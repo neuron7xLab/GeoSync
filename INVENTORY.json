@@ -83,7 +83,7 @@
     },
     {
       "path": "scripts/ci/prove_repo_integrity.sh",
-      "sha256": "a0b1836854591eb1fbea57f97c6b234816c2b3cb9a8fd622c70de941a77ad9ba"
+      "sha256": "a7a2e0ea1a4c07a6b6e94bcbcd41cd06b3d658e5a2a4d09a253e962cf3c95a81"
     },
     {
       "path": "scripts/ci/release_gate.py",
