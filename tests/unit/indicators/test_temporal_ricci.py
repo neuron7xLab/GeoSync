@@ -35,6 +35,34 @@ class TestLightGraph:
         assert graph.shortest_path_length(0, 3) == 3
         assert graph.is_connected()
 
+    def test_edge_count_and_cache_avoid_rebuild(self) -> None:
+        """TD-005: the graph utilities are cached, not recomputed per call.
+
+        ``number_of_edges`` must be O(1) off the running ``_edge_count`` without
+        materialising the edge list, and ``edges()`` must build its cache exactly
+        once and invalidate it only when the topology changes. This pins the
+        optimisation invariant deterministically — no wall-clock flake."""
+        graph = LightGraph(64)
+        for i in range(63):
+            graph.add_edge(i, i + 1, weight=1.0)
+
+        # Counting never materialises the edge-list cache.
+        assert graph.number_of_edges() == 63
+        assert graph._edges_cache is None
+
+        # First edges() builds the cache; second call reuses the same backing list.
+        first = graph.edges()
+        assert graph._edges_cache is not None
+        backing_after_first = graph._edges_cache
+        second = graph.edges()
+        assert graph._edges_cache is backing_after_first  # not rebuilt
+        assert first == second
+
+        # A topology change invalidates the cache (and only then).
+        graph.add_edge(0, 5, weight=1.0)
+        assert graph._edges_cache is None
+        assert graph.number_of_edges() == 64
+
 
 class TestPriceLevelGraph:
     def test_build_graph_with_volume_weights(self) -> None:

@@ -302,3 +302,47 @@ def test_timeframe_cache_reuses_resampled_series(
 
     assert cache.store_calls
     assert cache.backfill_calls
+
+
+def test_multiscale_skipped_timeframes_emit_warning_log(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """TD-002: dropped scales are observable, not silent — a warning is emitted
+    naming the skipped timeframes so an opaque all-zero consensus is attributable."""
+    warnings_seen: list[tuple[str, dict[str, object]]] = []
+
+    def _spy_warning(event: str, **fields: object) -> None:
+        warnings_seen.append((event, fields))
+
+    monkeypatch.setattr(kuramoto_mod._logger, "warning", _spy_warning)
+
+    df = _synth_dataframe(periods=90)
+    analyzer = MultiScaleKuramoto(
+        timeframes=(TimeFrame.M1, TimeFrame.M15),
+        use_adaptive_window=False,
+        base_window=64,
+        min_samples_per_scale=20,
+    )
+    result = analyzer.analyze(df)
+
+    assert TimeFrame.M15 in result.skipped_timeframes
+    skip_events = [e for e in warnings_seen if e[0] == "multiscale_timeframes_skipped"]
+    assert skip_events, "expected a skipped-timeframes warning"
+    assert "M15" in skip_events[0][1]["skipped"]
+
+
+def test_wavelet_selector_constant_series_returns_stable_window() -> None:
+    """TD-003: a flat / constant series carries no oscillatory energy; the selector
+    must NOT collapse to the smallest, noisiest window — it returns the stable
+    mid-range fallback instead of amplifying noise on degenerate input."""
+    selector = WaveletWindowSelector(min_window=8, max_window=256)
+
+    constant = selector.select_window(np.ones(2000, dtype=float))
+    near_flat = selector.select_window(np.full(2000, 42.0, dtype=float))
+
+    assert constant == selector._fallback_window
+    assert constant > selector.min_window
+    assert near_flat == selector._fallback_window
+    # A genuinely oscillatory series is still free to pick any bounded scale.
+    osc = selector.select_window(np.sin(np.linspace(0, 40 * np.pi, 2000)))
+    assert selector.min_window <= osc <= selector.max_window
