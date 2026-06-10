@@ -446,3 +446,34 @@ def test_falsifier_removing_manifest_entry_re_emits_finding(
     empty = _write_manifest(tmp_path / "empty_list.yaml", [])
     restored = fcd.collect(repo, exemption_manifest=empty)
     assert any(f.finding_id == target_id for f in restored.findings)
+
+
+def test_is_excluded_skips_artifacts_and_worktrees(fcd: ModuleType, tmp_path: Path) -> None:
+    repo = tmp_path
+    assert fcd._is_excluded(repo / "build" / "lib" / "x.py", repo)
+    assert fcd._is_excluded(repo / ".claude" / "worktrees" / "agent" / "core" / "x.py", repo)
+    assert fcd._is_excluded(repo / ".venv" / "lib" / "site-packages" / "y.py", repo)
+    assert fcd._is_excluded(repo / "geosync.egg-info" / "z.txt", repo)
+    # Real first-party source is NOT excluded.
+    assert not fcd._is_excluded(repo / "core" / "indicators" / "cache.py", repo)
+    assert not fcd._is_excluded(repo / "tests" / "unit" / "test_x.py", repo)
+
+
+def test_clutter_does_not_produce_findings(fcd: ModuleType, tmp_path: Path) -> None:
+    # An untracked build artifact + stale agent worktree, each carrying patterns
+    # that WOULD trip the detector if scanned, must be ignored — CI sees a clean
+    # checkout, so the local run must match it deterministically.
+    repo = tmp_path
+    broad = "\n".join(["try:", "    pass", "except Exception:", "    pass"] * 6)
+    for sub in ("build/lib/sandbox", ".claude/worktrees/agent-x/core/data"):
+        d = repo / sub
+        d.mkdir(parents=True)
+        (d / "leaky.py").write_text(broad, encoding="utf-8")
+    (repo / "build" / "lib" / "sandbox" / "Dockerfile").write_text(
+        "FROM python:3.12\nRUN pip install -r requirements.txt\n", encoding="utf-8"
+    )
+    report = fcd.collect(repo, exemption_manifest=repo / "missing.yaml")
+    offenders = [
+        f for f in report.findings if "build/" in f.evidence_path or ".claude/" in f.evidence_path
+    ]
+    assert offenders == [], offenders
