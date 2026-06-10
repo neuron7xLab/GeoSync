@@ -135,3 +135,20 @@ forbidden_modules =
     application
 ignore_imports =
     # No exemptions today.
+
+# ---------------------------------------------------------------------------
+# Contract 6 — leaf indicator math is import-light. core.indicators must not
+# pull in the data/IO persistence layer (which transitively requires pydantic
+# + cryptography), so that pure-numerical modules such as
+# core.indicators.temporal_ricci import with only numpy/scipy/pandas/networkx.
+# Regression guard for the B3 dependency-direction fix.
+# ---------------------------------------------------------------------------
+[importlinter:contract:indicators-no-feature-store]
+name = core.indicators does not import core.data.feature_store
+type = forbidden
+source_modules =
+    core.indicators
+forbidden_modules =
+    core.data.feature_store
+ignore_imports =
+    # No exemptions today.
