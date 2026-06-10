@@ -11,11 +11,15 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "49f7b6e44e99368dc8d6ba54109390f73be62d0d8ac7f17657c1385ec6db03c1"
+      "sha256": "aa72449426d05fbbd4c8bac512715f9187251c2865b88659e9c76eceab1a40e8"
     },
     {
       "path": "scripts/ci/check_central_files_touched.py",
       "sha256": "c5506dbb167eaa14a97f4f8b96aebc9365d4d54e2cbba9f96aeb6f404a20f5b8"
+    },
+    {
+      "path": "scripts/ci/check_claim_artifact_graph.py",
+      "sha256": "353444b91b90b2018c3c09ace911051597b884851e8677e55ddabec0a9a20b62"
     },
     {
       "path": "scripts/ci/check_claim_boundary.py",
@@ -47,11 +51,15 @@
     },
     {
       "path": "scripts/ci/check_manifest_hashes.py",
-      "sha256": "afa5e44d9253dc6f9fc7f006b998cb912e174ae08778aab54c03f898536bc44c"
+      "sha256": "5b2afe9b355891c3e4f9bd65ee3faed9d20d2c6406db811841c7ee8953a09c76"
     },
     {
       "path": "scripts/ci/check_pr_gate_contract.py",
-      "sha256": "f13eb6157edbf0ad2ce17c36cfdc5d3373ae1b74fdf8ff1c1997ebd8c71d9aa7"
+      "sha256": "991ed2c3479aaf8ee8acd75d9a65dc565f8e3136d2b03075b438f8747076e77b"
+    },
+    {
+      "path": "scripts/ci/check_research_artifact_truth.py",
+      "sha256": "2faf65304fbc7fe0be8fa6f4e6657aba9440b5c3a8dc7b02a9e0f6c84b32e1a5"
     },
     {
       "path": "scripts/ci/compute_fps_audit.py",
@@ -72,6 +80,10 @@
     {
       "path": "scripts/ci/pr_quality_sentinel.py",
       "sha256": "47e975016c3a2cf56b43c6e5c99ca04a0d9bdedbceacdd9fd61056cf18d75d47"
+    },
+    {
+      "path": "scripts/ci/prove_repo_integrity.sh",
+      "sha256": "a0b1836854591eb1fbea57f97c6b234816c2b3cb9a8fd622c70de941a77ad9ba"
     },
     {
       "path": "scripts/ci/release_gate.py",

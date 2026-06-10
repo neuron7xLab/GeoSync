@@ -18,6 +18,7 @@ diff_scope:
   - path: tests/ci/test_claim_artifact_graph.py
   - path: tests/ci/test_manifest_hashes.py
   - path: .github/workflows/research-integrity-gate.yml
+  - path: scripts/ci/check_pr_gate_contract.py
   - path: CURRENT_DIFF_SUMMARY.md
   - path: MODEL_AUDIT_BENCHMARK.md
   - path: POST_AUDIT_EXECUTION_REPORT.md

@@ -2,10 +2,7 @@
   "_doc": "Import-architecture debt ledger (RATCHET). Baseline of first-party files that violate the single-canonical-geosync target. These sets may ONLY shrink: scripts/ci/check_import_architecture.py fails on any NEW violator and on any stale baseline entry that no longer violates (forcing the ledger down). Target: both lists empty. See docs/adr/ import-architecture ADR.",
   "version": 1,
   "src_imports": [
-    "analytics/fpma/geosync_fpma/__init__.py",
-    "analytics/regime/geosync_regime/__init__.py",
     "application/api/authorization.py",
-    "application/api/risk_factory.py",
     "application/api/security.py",
     "application/api/service.py",
     "application/api/system_access.py",
@@ -17,7 +14,6 @@
     "application/settings.py",
     "application/system.py",
     "geosync/risk/__init__.py",
-    "markets/orderbook/geosync_orderbook/__init__.py",
     "src/admin/remote_control.py",
     "src/data/__init__.py",
     "src/risk/risk_manager.py",

@@ -472,7 +472,7 @@ def validate_rust_accel_gate(workflow: str) -> list[Violation]:
     violations: list[Violation] = []
     checks = (
         (has_uses_reference(block, PINNED_SETUP_PYTHON), PINNED_SETUP_PYTHON),
-        (has_line(block, "python-version: '3.13'"), "python-version: '3.13'"),
+        (has_line(block, "python-version: '3.12'"), "python-version: '3.12'"),
         (
             has_run_command(block, "python -m pip install numpy==2.3.3"),
             "python -m pip install numpy==2.3.3",

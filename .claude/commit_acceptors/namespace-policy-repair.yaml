@@ -16,6 +16,7 @@ diff_scope:
   - path: markets/orderbook/geosync_orderbook/__init__.py
   - path: application/api/risk_factory.py
   - path: tests/unit/scripts/test_namespace_shims_importable.py
+  - path: .github/import_architecture_baseline.json
   - path: .claude/commit_acceptors/namespace-policy-repair.yaml
   forbidden_paths: []
 required_python_symbols: []
