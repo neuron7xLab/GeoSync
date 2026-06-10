@@ -144,6 +144,60 @@ def test_commit_acceptor_rejects_unknown_field() -> None:
     assert "surprise_field" in str(excinfo.value)
 
 
+def test_commit_acceptor_rejects_mapping_symbol_form() -> None:
+    """Dict-form ``required_python_symbols`` fails legibly, not cryptically.
+
+    Regression for stale run 27294986826: an acceptor authored its
+    symbols as ``{module, symbol}`` mappings instead of canonical
+    ``file::symbol`` strings. Pydantic's native error was the opaque
+    ``Input should be a valid string``, which buried the cause inside a
+    46-minute coverage lane. The ``mode='before'`` guard must re-emit a
+    message that (a) names the canonical form and (b) shows the exact
+    replacement string.
+    """
+    acceptors = load_all_commit_acceptors(ACCEPTORS_DIR)
+    payload = acceptors[0].model_dump()
+    payload["required_python_symbols"] = [
+        {"module": "application/runtime/init_control_platform.py", "symbol": "initialize_control_platform"}
+    ]
+    with pytest.raises(ValidationError) as excinfo:
+        CommitAcceptor.model_validate(payload)
+    message = str(excinfo.value)
+    assert "file::symbol" in message
+    assert "application/runtime/init_control_platform.py::initialize_control_platform" in message
+
+
+def test_load_commit_acceptor_names_offending_file() -> None:
+    """A malformed acceptor surfaces its file path in the loader error.
+
+    Pydantic alone reports only the field path; with 200+ acceptors on
+    disk the operator otherwise has to grep to find which file drifted.
+    """
+    import yaml
+
+    sample_path = next(ACCEPTORS_DIR.glob("*.yaml"))
+    raw = yaml.safe_load(sample_path.read_text(encoding="utf-8"))
+    raw["required_python_symbols"] = [{"module": "m.py", "symbol": "f"}]
+    bad = tmp_acceptor(raw)
+    with pytest.raises(ValueError) as excinfo:
+        load_commit_acceptor(bad)
+    assert str(bad) in str(excinfo.value)
+
+
+def tmp_acceptor(raw: dict) -> Path:
+    """Write *raw* to a throwaway acceptor file and return its path."""
+    import tempfile
+
+    import yaml
+
+    fd = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False, encoding="utf-8"
+    )
+    yaml.safe_dump(raw, fd)
+    fd.close()
+    return Path(fd.name)
+
+
 def test_ledger_rejects_unsupported_schema_version() -> None:
     raw = {
         "schema_version": 99,
