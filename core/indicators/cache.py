@@ -27,6 +27,7 @@ import json
 import os
 import pickle  # nosec B403 - guarded by restricted unpickler
 import shutil
+import types
 from dataclasses import dataclass, fields, is_dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -105,12 +106,98 @@ def _encode_structure(value: Any) -> Any:
     return {"__type__": "repr", "value": repr(value)}
 
 
+# Allowlist shared by the JSON structure decoder (``_locate``) and the restricted
+# unpickler (``_restricted_unpickle``): only these modules may be imported when
+# materialising a cached object. A tampered cache file therefore cannot name an
+# arbitrary ``module:Class`` to import (triggering import-time side effects) or
+# instantiate. Single source of truth for both deserialisation paths.
+_CACHE_SAFE_BUILTINS: frozenset[str] = frozenset(
+    {
+        "complex",
+        "dict",
+        "frozenset",
+        "list",
+        "set",
+        "tuple",
+        "int",
+        "float",
+        "bool",
+        "str",
+        "bytes",
+        "bytearray",
+        "memoryview",
+        "range",
+        "slice",
+        "NoneType",
+    }
+)
+_CACHE_SAFE_MODULE_PREFIXES: tuple[str, ...] = (
+    "collections",
+    "datetime",
+    "decimal",
+    "fractions",
+    "numpy",
+    "pandas",
+    "core.indicators",
+)
+_CACHE_SAFE_MODULES: frozenset[str] = frozenset(
+    {
+        "uuid",
+        "math",
+        "statistics",
+        "pathlib",
+        "types",
+    }
+)
+
+
+def _module_is_safe(module: str) -> bool:
+    """Return ``True`` when *module* is on the cache deserialisation allowlist."""
+
+    if module in _CACHE_SAFE_MODULES:
+        return True
+    return any(
+        module == prefix or module.startswith(f"{prefix}.")
+        for prefix in _CACHE_SAFE_MODULE_PREFIXES
+    )
+
+
+def _object_home_module(obj: Any) -> str | None:
+    """Return the module an object is defined in (``__name__`` for a module)."""
+
+    if isinstance(obj, types.ModuleType):
+        return obj.__name__
+    return getattr(obj, "__module__", None)
+
+
 def _locate(symbol: str) -> type[Any]:
     module_name, _, qualname = symbol.partition(":")
+    # Fail closed: only import allowlisted modules / safe builtins so a tampered
+    # cache payload cannot import an arbitrary module via a `dataclass`/`enum`
+    # marker (mirrors the restricted unpickler's find_class guard).
+    if module_name == "builtins":
+        root = qualname.split(".", 1)[0]
+        if root not in _CACHE_SAFE_BUILTINS:
+            raise ValueError(f"Refusing to load unsafe builtin '{qualname}' from cache")
+    elif not _module_is_safe(module_name):
+        raise ValueError(f"Refusing to import unsafe module '{module_name}' from cache")
     module = importlib.import_module(module_name)
     attr: Any = module
     for part in qualname.split("."):
         attr = getattr(attr, part)
+    # A dotted qualname can traverse OUT of the allowlisted module into an
+    # arbitrary one (e.g. ``core.indicators.cache:os.system`` resolves
+    # ``os.system`` because cache imports ``os``). Re-validate the *resolved*
+    # object's defining module so the allowlist cannot be pivoted through.
+    home = _object_home_module(attr)
+    if home == "builtins":
+        name = getattr(attr, "__name__", "")
+        if name not in _CACHE_SAFE_BUILTINS:
+            raise ValueError(f"Refusing to resolve unsafe builtin via cache symbol '{symbol}'")
+    elif home is not None and not _module_is_safe(home):
+        raise ValueError(
+            f"Refusing to resolve object from unsafe module '{home}' via cache symbol '{symbol}'"
+        )
     return attr
 
 
@@ -336,53 +423,14 @@ class FileSystemIndicatorCache:
     @staticmethod
     def _restricted_unpickle(handle: Any) -> Any:
         class _SafeUnpickler(pickle.Unpickler):
-            _SAFE_BUILTINS = {
-                "complex",
-                "dict",
-                "frozenset",
-                "list",
-                "set",
-                "tuple",
-                "int",
-                "float",
-                "bool",
-                "str",
-                "bytes",
-                "bytearray",
-                "memoryview",
-                "range",
-                "slice",
-                "NoneType",
-            }
-
-            _SAFE_MODULE_PREFIXES = (
-                "collections",
-                "datetime",
-                "decimal",
-                "fractions",
-                "numpy",
-                "pandas",
-                "core.indicators",
-            )
-
-            _SAFE_MODULES = {
-                "uuid",
-                "math",
-                "statistics",
-                "pathlib",
-                "types",
-            }
-
             def find_class(self, module: str, name: str) -> Any:
-                if module == "builtins" and name in self._SAFE_BUILTINS:
+                # Shares the module-level allowlist with ``_locate`` so both
+                # deserialisation paths fail closed on the same rule set.
+                if module == "builtins" and name in _CACHE_SAFE_BUILTINS:
                     return getattr(builtins, name)
-                if module in self._SAFE_MODULES:
+                if _module_is_safe(module):
                     mod = importlib.import_module(module)
                     return getattr(mod, name)
-                for prefix in self._SAFE_MODULE_PREFIXES:
-                    if module == prefix or module.startswith(f"{prefix}."):
-                        mod = importlib.import_module(module)
-                        return getattr(mod, name)
                 raise pickle.UnpicklingError(
                     f"Attempted to load unsafe module '{module}.{name}' from cache"
                 )
