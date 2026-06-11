@@ -56,6 +56,9 @@ def _real_evidence(**overrides: object) -> dict[str, object]:
         "score_source": "computed",
         "baseline": "permutation_null_v1",
         "replay_command": "geosync-research run --line ricci_microstructure_v1 --config c --data d --out o",
+        "env_sha256": "e" * 64,
+        "output_sha256": "f" * 64,
+        "agent": "ci:research-integrity-gate@" + ("a" * 40),
     }
     doc.update(overrides)
     return doc
@@ -119,6 +122,35 @@ class TruthGateRejections(unittest.TestCase):
     def test_placeholder_cannot_claim_computed(self) -> None:
         errs = gate.evaluate_artifact(PLACEHOLDER_PATH, _placeholder(score_source="computed"))
         self.assertTrue(any("score_source=computed contradicts" in e for e in errs), errs)
+
+    def test_pass_requires_env_sha256(self) -> None:
+        doc = _real_evidence()
+        del doc["env_sha256"]
+        errs = gate.evaluate_artifact(ARTIFACT_PATH, doc)
+        self.assertTrue(any("env_sha256" in e for e in errs), errs)
+
+    def test_pass_requires_output_sha256(self) -> None:
+        doc = _real_evidence()
+        del doc["output_sha256"]
+        errs = gate.evaluate_artifact(ARTIFACT_PATH, doc)
+        self.assertTrue(any("output_sha256" in e for e in errs), errs)
+
+    def test_pass_requires_agent(self) -> None:
+        doc = _real_evidence()
+        del doc["agent"]
+        errs = gate.evaluate_artifact(ARTIFACT_PATH, doc)
+        self.assertTrue(any("agent attribution" in e for e in errs), errs)
+
+    def test_tier_status_matrix_rejects_instrumented_pass(self) -> None:
+        # INSTRUMENTED may only carry NOT_APPLICABLE/NOT_RUN, never an evidence status.
+        errs = gate.evaluate_artifact(
+            ARTIFACT_PATH, _real_evidence(claim_tier="INSTRUMENTED")
+        )
+        self.assertTrue(any("incompatible with" in e for e in errs), errs)
+
+    def test_tier_status_matrix_rejects_rejected_with_pass(self) -> None:
+        errs = gate.evaluate_artifact(ARTIFACT_PATH, _real_evidence(claim_tier="REJECTED"))
+        self.assertTrue(any("incompatible with" in e for e in errs), errs)
 
     def test_rejects_zero_data_not_marked_placeholder(self) -> None:
         # HYPOTHESIS + NOT_RUN + zero hashes, but NOT marked placeholder → reject.

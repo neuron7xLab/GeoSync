@@ -152,7 +152,9 @@ class GraphGateAcceptance(unittest.TestCase):
                                       artifact_role="evidence", score_source="computed",
                                       method_version="ricci-ollivier-v1.0",
                                       baseline="permutation_null_v1",
-                                      replay_command="geosync-research run --line x --data d --out o"))
+                                      replay_command="geosync-research run --line x --data d --out o",
+                                      env_sha256="e" * 64, output_sha256="f" * 64,
+                                      agent="ci:research-integrity-gate@" + ("a" * 40)))
             self.assertEqual(gate.check(root), [])
 
 
