@@ -126,6 +126,28 @@ def evaluate_artifact(path: Path, doc: Mapping[str, Any]) -> list[str]:
                 f"{rel}: falsification_status=PASS requires a baseline "
                 "(a result with no null/baseline is asserted, not falsified)"
             )
+        # Evidence-grade lineage (SLSA resolvedDependencies / ACM Results-Reproduced
+        # / PROV wasAttributedTo): a PASS must pin its environment, fix the exact
+        # output it reproduces, and name the responsible agent — otherwise "replay"
+        # proves nothing across machines and the claim has no owner.
+        env_sha256 = doc.get("env_sha256")
+        output_sha256 = doc.get("output_sha256")
+        agent = doc.get("agent")
+        if env_sha256 in (None, "", ZERO_SHA256):
+            errors.append(
+                f"{rel}: falsification_status=PASS requires a non-zero env_sha256 "
+                "(pinned dependency/BLAS closure; replay is not portable without it)"
+            )
+        if output_sha256 in (None, "", ZERO_SHA256):
+            errors.append(
+                f"{rel}: falsification_status=PASS requires output_sha256 "
+                "(verifies reproduction of the result, not mere re-execution)"
+            )
+        if not (isinstance(agent, str) and agent.strip()):
+            errors.append(
+                f"{rel}: falsification_status=PASS requires an agent attribution "
+                "(ci:<workflow>@<sha> | local:<host> | human:<id>)"
+            )
 
     # Rule 2 — zero data hash means no run happened; it must say so honestly.
     if zero_data:
@@ -183,6 +205,21 @@ def evaluate_artifact(path: Path, doc: Mapping[str, Any]) -> list[str]:
                 f"{rel}: falsification_status=NOT_APPLICABLE requires score_source=computed "
                 f"(it marks a computed, non-evidence result), got {score_source!r}"
             )
+
+    # Rule 8 — tier↔status compatibility matrix: a terminal/instrumented tier must
+    # carry a status consistent with its meaning, so the two cannot contradict
+    # (PROV-DM §5.6 qualified-relation completeness; FAIR R1.2 self-consistency).
+    tier_status_ok: dict[str, frozenset[str]] = {
+        "REJECTED": frozenset({"FAIL", "NOT_APPLICABLE"}),
+        "BLOCKED_COST_MODEL": frozenset({"BLOCKED"}),
+        "INSTRUMENTED": frozenset({"NOT_APPLICABLE", "NOT_RUN"}),
+    }
+    allowed = tier_status_ok.get(tier) if isinstance(tier, str) else None
+    if allowed is not None and status not in allowed:
+        errors.append(
+            f"{rel}: claim_tier={tier!r} is incompatible with "
+            f"falsification_status={status!r} (expected one of {sorted(allowed)})"
+        )
 
     return errors
 
