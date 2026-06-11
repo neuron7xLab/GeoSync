@@ -22,6 +22,8 @@ on:
       - 'scripts/ci/check_research_artifact_truth.py'
       - 'scripts/ci/check_claim_artifact_graph.py'
       - 'scripts/ci/check_manifest_hashes.py'
+      - 'scripts/reproduce/mfn_capsule.py'
+      - 'artifacts/reproducible_capsules/**'
       - 'scripts/ci/check_claim_boundary.py'
       - 'scripts/check_python_matrix.py'
       - 'scripts/check_namespace_policy.py'

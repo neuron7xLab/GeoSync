@@ -1,0 +1,60 @@
+{
+  "artifact_role": "reproducible_integration_capsule",
+  "artifacts": [
+    {
+      "bytes": 551,
+      "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/SHA256SUMS",
+      "sha256": "f2fbccef424145fa81fd7a7b737ca725e56f9eb0dd3e5fc3f8ae7edfa48bd5b8"
+    },
+    {
+      "bytes": 491,
+      "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/compare.json",
+      "sha256": "0f3b75f20c3bab433d3690c739d29dceaf1f8862c068333e3db83951e2281d99"
+    },
+    {
+      "bytes": 358,
+      "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/detect.json",
+      "sha256": "c9279a45aed4356f17a533eca6c573213282f5103870d447f755cbe472b0606f"
+    },
+    {
+      "bytes": 449,
+      "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/extract.json",
+      "sha256": "dece7459a5b2644067abc57b5b5dc11935533e3ed0e903016403d7a1f08d4f0c"
+    },
+    {
+      "bytes": 404,
+      "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/forecast.json",
+      "sha256": "5b46f23f3823d5b0e2fe2de34ee29db3bf3058eefa59d7c8b9a254a5c72a08f3"
+    },
+    {
+      "bytes": 1079,
+      "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/manifest.json",
+      "sha256": "715c49395bac2fd7f6111ac3febfae205ec21131bbbdda5a4fb0c82f5331bdfd"
+    },
+    {
+      "bytes": 441,
+      "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/report.json",
+      "sha256": "2a2a311c4c7a56091fb65ec4eaff518bdf05b8e49b02ee7fabfe907ee57f30c0"
+    },
+    {
+      "bytes": 266,
+      "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/runbook.md",
+      "sha256": "d7102930b2b3f85e51f58b88e4e95dc40cd7418ebdf9d0b8973d2d662f4d1f36"
+    },
+    {
+      "bytes": 20867,
+      "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/simulate.json",
+      "sha256": "5d8609fbbe7baec28923c1e9990696736eea0c935366e15f7c47d29447bf0d98"
+    }
+  ],
+  "claim_tier": "INSTRUMENTED",
+  "evidence_class": "integrity_and_reproducibility",
+  "generator": "SOURCE_DATE_EPOCH=1700000000 python -m geosync.mfn.cli --out <dir> --seed 7 --points 256 run",
+  "honesty_note": "Byte-deterministic output of the dependency-light MFN gateway. This proves artifact integrity and reproducibility, not market alpha or empirical inference. The bundle self-labels INSTRUMENTED / OBSERVE / BLOCKED; it makes no falsifiable scientific claim.",
+  "is_empirical_evidence": false,
+  "points": 256,
+  "schema_version": "geosync.reproducible_capsule.v1",
+  "seed": 7,
+  "source_date_epoch": 1700000000,
+  "verify_command": "python scripts/reproduce/mfn_capsule.py --verify"
+}

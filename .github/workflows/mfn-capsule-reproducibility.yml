@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: MIT
+#
+# MFN Capsule Reproducibility Gate.
+#
+# The repo-integrity gate proves MANIFEST_PROOF by checking that committed
+# artifact digests match the files on disk (a static integrity proof). This gate
+# proves the stronger property the manifest claims: that the committed bundle
+# *regenerates bit-for-bit* from its declared command under the pinned seed and
+# SOURCE_DATE_EPOCH. A stale or hand-edited capsule fails closed here.
+#
+# Dependency-light by contract: the MFN gateway is stdlib-only, so this lane
+# installs no scientific stack.
+name: MFN Capsule Reproducibility
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/reproduce/mfn_capsule.py"
+      - "artifacts/reproducible_capsules/**"
+      - "geosync/mfn/**"
+      - ".github/workflows/mfn-capsule-reproducibility.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/reproduce/mfn_capsule.py"
+      - "artifacts/reproducible_capsules/**"
+      - "geosync/mfn/**"
+      - ".github/workflows/mfn-capsule-reproducibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mfn-capsule-reproducibility-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  capsule-reproducibility:
+    name: capsule-reproducibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      # Regenerate the bundle into a temp dir and fail closed on any digest drift
+      # against the committed capsule and its manifest. No scientific deps needed.
+      - name: Verify capsule reproducibility (fail-closed)
+        run: python scripts/reproduce/mfn_capsule.py --verify
