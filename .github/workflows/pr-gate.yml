@@ -704,13 +704,13 @@ jobs:
             exit 0
           fi
 
-          # synthetic_plumbing_v1 is a deterministic generated lineage artifact:
-          # its data_sha256 / config_sha256 / git_sha are public content hashes by
-          # design, never credentials. Excluded so the hex-entropy plugin does not
-          # false-positive on reproducible provenance.
+          # synthetic_plumbing_v1 and reproducible_capsules are deterministic
+          # generated artifacts: their SHA-256 manifest digests are public content
+          # hashes by design, never credentials. Excluded so the hex-entropy plugin
+          # does not false-positive on reproducible provenance.
           .venv/bin/detect-secrets-hook \
             --baseline .github/detect-secrets.baseline \
-            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline|figures/disha_ba_correlation/repro_capsule/.*|artifacts/runs/synthetic_plumbing_v1/.*)$' \
+            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline|figures/disha_ba_correlation/repro_capsule/.*|artifacts/runs/synthetic_plumbing_v1/.*|artifacts/reproducible_capsules/.*)$' \
             "${existing_changed_files[@]}"
 
   go-workspace-integrity:
