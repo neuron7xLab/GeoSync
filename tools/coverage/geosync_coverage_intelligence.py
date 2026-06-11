@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import tomllib
 import xml.etree.ElementTree as ET
@@ -132,7 +133,85 @@ def _rate_to_percent(value: str | None) -> float:
     return raw * 100.0 if raw <= 1.0 else raw
 
 
-def parse_coverage_xml(path: Path) -> tuple[list[FileCoverage], EvidenceStatus]:
+def _source_prefixes(root: ET.Element) -> list[str]:
+    """Repo-relative prefixes implied by the ``<sources>`` block.
+
+    coverage.py, when given several top-level ``source`` directories, emits one
+    ``<source>`` per root and stores each ``class@filename`` *relative to its
+    matched root* — so ``execution/oms.py`` is written as ``oms.py`` and the
+    ``execution/`` prefix is lost. To rebuild a repo-relative path we need the
+    set of stripped prefixes; they are exactly the source roots relative to
+    their common ancestor (the repository root on the machine that produced the
+    report). A single source root is already unambiguous, so we return nothing
+    and the filenames are trusted as-is.
+    """
+    sources = [s.text.strip() for s in root.iter("source") if s.text and s.text.strip()]
+    if len(sources) < 2:
+        return []
+    norm = [s.replace("\\", "/").rstrip("/") for s in sources]
+    try:
+        common = os.path.commonpath(norm)
+    except ValueError:
+        # Mixed absolute/relative roots have no common path; fall back to
+        # treating each non-empty root as its own prefix.
+        return sorted({s for s in norm if s and s != "."})
+    prefixes: set[str] = set()
+    for s in norm:
+        rel = os.path.relpath(s, common).replace("\\", "/")
+        if rel and rel != ".":
+            prefixes.add(rel)
+    return sorted(prefixes)
+
+
+_line_count_cache: dict[str, int] = {}
+
+
+def _physical_line_count(file_path: Path) -> int:
+    key = str(file_path)
+    cached = _line_count_cache.get(key)
+    if cached is not None:
+        return cached
+    try:
+        with file_path.open("rb") as fh:
+            count = sum(1 for _ in fh)
+    except OSError:
+        count = -1
+    _line_count_cache[key] = count
+    return count
+
+
+def _resolve_repo_path(
+    filename: str, prefixes: list[str], repo_root: Path, max_line: int = 0
+) -> str:
+    """Map a (possibly source-root-stripped) coverage filename back to a
+    repo-relative path.
+
+    Trusts the filename when it already resolves at the repo root, otherwise
+    re-attaches the source-root prefix that makes the file exist on disk. When
+    the same stripped path exists under more than one source root (e.g.
+    ``core/security/tls.py`` and ``application/security/tls.py`` both collapse
+    to ``security/tls.py``), the ambiguity is broken by physical length: a file
+    cannot carry coverage for a line beyond its last line, so any candidate
+    shorter than ``max_line`` is rejected. If exactly one candidate survives it
+    is used; otherwise we fail closed to the unprefixed path rather than guess.
+    """
+    norm = _normalize(filename)
+    if not prefixes:
+        return norm
+    if (repo_root / norm).exists():
+        return norm
+    candidates = [f"{pre}/{norm}" for pre in prefixes if (repo_root / f"{pre}/{norm}").exists()]
+    if not candidates:
+        return norm
+    if len(candidates) == 1:
+        return candidates[0]
+    viable = [c for c in candidates if _physical_line_count(repo_root / c) >= max_line]
+    return viable[0] if len(viable) == 1 else norm
+
+
+def parse_coverage_xml(
+    path: Path, repo_root: Path | None = None
+) -> tuple[list[FileCoverage], EvidenceStatus]:
     """Parse coverage.xml into per-file records, failing closed on bad input."""
     if not path.exists():
         return [], EvidenceStatus(False, [f"coverage xml missing: {path}"])
@@ -144,6 +223,8 @@ def parse_coverage_xml(path: Path) -> tuple[list[FileCoverage], EvidenceStatus]:
     except ET.ParseError as exc:
         return [], EvidenceStatus(False, [f"coverage xml malformed: {exc}"])
 
+    base = repo_root if repo_root is not None else _REPO_ROOT
+    prefixes = _source_prefixes(root)
     files: list[FileCoverage] = []
     for cls in root.iter("class"):
         filename = cls.attrib.get("filename")
@@ -155,11 +236,13 @@ def parse_coverage_xml(path: Path) -> tuple[list[FileCoverage], EvidenceStatus]:
         covered = 0
         branches = 0
         branches_covered = 0
+        max_line = 0
         if lines_el is not None:
             for line in lines_el.findall("line"):
                 statements += 1
                 hits = int(line.attrib.get("hits", "0"))
                 number = int(line.attrib.get("number", "0"))
+                max_line = max(max_line, number)
                 if hits > 0:
                     covered += 1
                     covered_lines.add(number)
@@ -172,7 +255,7 @@ def parse_coverage_xml(path: Path) -> tuple[list[FileCoverage], EvidenceStatus]:
         branch_rate = (branches_covered / branches * 100.0) if branches else 0.0
         files.append(
             FileCoverage(
-                path=_normalize(filename),
+                path=_resolve_repo_path(filename, prefixes, base, max_line),
                 statements=statements,
                 covered=covered,
                 branches=branches,
@@ -734,9 +817,9 @@ def run(args: argparse.Namespace) -> int:
     coverage_xml = Path(args.coverage)
     out_dir = Path(args.out)
 
-    files, evidence = parse_coverage_xml(coverage_xml)
+    files, evidence = parse_coverage_xml(coverage_xml, repo_root)
     # Record miss lines for diff intersection: re-parse to capture non-covered.
-    _populate_miss_lines(coverage_xml)
+    _populate_miss_lines(coverage_xml, repo_root)
 
     if evidence.valid and args.check_staleness:
         stale = check_staleness(files, coverage_xml, repo_root, args.staleness_skew_seconds)
@@ -824,7 +907,7 @@ def run(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
-def _populate_miss_lines(coverage_xml: Path) -> None:
+def _populate_miss_lines(coverage_xml: Path, repo_root: Path | None = None) -> None:
     _miss_lines.clear()
     if not coverage_xml.exists():
         return
@@ -832,6 +915,8 @@ def _populate_miss_lines(coverage_xml: Path) -> None:
         root = ET.fromstring(coverage_xml.read_text(encoding="utf-8", errors="replace"))
     except ET.ParseError:
         return
+    base = repo_root if repo_root is not None else _REPO_ROOT
+    prefixes = _source_prefixes(root)
     for cls in root.iter("class"):
         filename = cls.attrib.get("filename")
         if not filename:
@@ -839,13 +924,16 @@ def _populate_miss_lines(coverage_xml: Path) -> None:
         lines_el = cls.find("lines")
         if lines_el is None:
             continue
+        all_numbers = [int(line.attrib.get("number", "0")) for line in lines_el.findall("line")]
         misses = {
             int(line.attrib.get("number", "0"))
             for line in lines_el.findall("line")
             if int(line.attrib.get("hits", "0")) == 0
         }
         if misses:
-            _miss_lines[_normalize(filename)] = misses
+            max_line = max(all_numbers) if all_numbers else 0
+            resolved = _resolve_repo_path(filename, prefixes, base, max_line)
+            _miss_lines[resolved] = misses
 
 
 def _print_verdict(

@@ -77,7 +77,11 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: |
-          pip install -e ".[dev]" || pip install -r requirements.txt || true
+          # [contract] pulls schemathesis so the api-contract claim falsifier
+          # (tests/api/test_schemathesis_contract.py) actually runs in this
+          # lane — otherwise it is silently uncollected and the claim matrix
+          # reports api-contract-openapi-coverage as incomplete.
+          pip install -e ".[dev,contract]" || pip install -e ".[dev]" || pip install -r requirements.txt || true
           pip install pytest pytest-cov pyyaml
       - name: Measure full production surface
         run: make coverage-baseline

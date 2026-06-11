@@ -279,7 +279,7 @@ claims:
       - core/kuramoto/ott_antonsen.py
       - tests/unit/physics/test_T23_ott_antonsen_chimera.py
     falsifier:
-      test_id: tests/unit/physics/test_T23_ott_antonsen_chimera.py::test_ott_antonsen_steady_state
+      test_id: tests/unit/physics/test_T23_ott_antonsen_chimera.py::test_ott_antonsen_order_parameter_bounded
       invariants_cited:
         - INV-K1
         - INV-OA1
@@ -303,7 +303,7 @@ claims:
       - core/physics/lyapunov_exponent.py
       - tests/unit/physics/test_T22_lyapunov_spectral.py
     falsifier:
-      test_id: tests/unit/physics/test_T22_lyapunov_spectral.py::test_mle_finite_for_bounded_input
+      test_id: tests/unit/physics/test_T22_lyapunov_spectral.py::test_mle_finite_on_diverse_inputs
       invariants_cited:
         - INV-LE1
         - INV-LE2
@@ -363,7 +363,7 @@ claims:
       - tests/test_dopamine_controller.py
       - tests/unit/physics/test_T11_dopamine_algebraic.py
     falsifier:
-      test_id: tests/unit/physics/test_T11_dopamine_algebraic.py::test_dopamine_partial_derivative_unity
+      test_id: tests/unit/physics/test_T11_dopamine_algebraic.py::test_td_error_is_linear_in_reward
       invariants_cited:
         - INV-DA1
         - INV-DA3
@@ -388,7 +388,7 @@ claims:
       - tests/test_gaba_inhibition_gate.py
       - tests/unit/core/neuro/test_gaba_position_gate.py
     falsifier:
-      test_id: tests/test_gaba_inhibition_gate.py::test_gate_within_unit_interval
+      test_id: tests/test_gaba_inhibition_gate.py::test_forward_bounds_and_no_nan
       invariants_cited:
         - INV-GABA1
         - INV-GABA2
@@ -410,7 +410,7 @@ claims:
       - tests/unit/physics/test_T10_ricci_bounds.py
       - tests/test_augmented_ricci.py
     falsifier:
-      test_id: tests/unit/physics/test_T10_ricci_bounds.py::test_ricci_upper_bound_universal
+      test_id: tests/unit/physics/test_T10_ricci_bounds.py::test_ollivier_ricci_upper_bound_is_universal
       invariants_cited:
         - INV-RC1
         - INV-RC3
@@ -512,7 +512,7 @@ claims:
       - core/neuro/cryptobiosis.py
       - tests/unit/physics/test_T17_cryptobiosis.py
     falsifier:
-      test_id: tests/unit/physics/test_T17_cryptobiosis.py::test_dormant_multiplier_exact_zero
+      test_id: tests/unit/physics/test_T17_cryptobiosis.py::test_dormant_multiplier_is_exactly_zero
       invariants_cited:
         - INV-CB1
         - INV-CB2
