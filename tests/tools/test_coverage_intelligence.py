@@ -367,3 +367,93 @@ def test_verdict_human_review_only_written_on_bad_evidence(tmp_path: Path) -> No
     summary = json.loads((Path(env["out"]) / "coverage_summary.json").read_text())
     assert summary["verdict"] == gci.VERDICT_HUMAN
     assert summary["evidence_valid"] is False
+
+
+# --------------------------------------------------------------------------- #
+# Multi-source-root path reconstruction (regression: PR #916 shipped a gate
+# whose fixtures used repo-relative filenames, while the real release_90
+# coverage.xml — generated with twelve top-level `source` dirs — emits each
+# filename *relative to its matched source root* (`execution/oms.py` written
+# as `oms.py`). The gate then matched nothing: all critical targets read None
+# and 87% of files fell out of every surface. These tests pin the real format.
+# --------------------------------------------------------------------------- #
+def _multisource_xml(filename: str, hits: list[int], sources: list[str]) -> str:
+    line_xml = "".join(f'<line number="{i + 1}" hits="{h}"/>' for i, h in enumerate(hits))
+    src_xml = "".join(f"<source>{s}</source>" for s in sources)
+    return textwrap.dedent(
+        f"""\
+        <?xml version="1.0" ?>
+        <coverage line-rate="0.5" branch-rate="0.0" version="7.0">
+          <sources>{src_xml}</sources>
+          <packages>
+            <package name="x">
+              <classes>
+                <class filename="{filename}"><lines>{line_xml}</lines></class>
+              </classes>
+            </package>
+          </packages>
+        </coverage>
+        """
+    )
+
+
+def test_source_root_stripped_filename_is_reattached(tmp_path: Path) -> None:
+    # coverage collapsed execution/oms.py -> oms.py under multiple source roots.
+    (tmp_path / "execution").mkdir()
+    (tmp_path / "execution" / "oms.py").write_text("a\nb\nc\nd\n", encoding="utf-8")
+    cov = tmp_path / "cov.xml"
+    cov.write_text(
+        _multisource_xml(
+            "oms.py", [1, 1, 0, 1], sources=[str(tmp_path / "core"), str(tmp_path / "execution")]
+        ),
+        encoding="utf-8",
+    )
+    files, status = gci.parse_coverage_xml(cov, tmp_path)
+    assert status.valid is True
+    assert [f.path for f in files] == ["execution/oms.py"]
+
+
+def test_single_source_filename_is_trusted_as_is(tmp_path: Path) -> None:
+    # One source root => already repo-relative; no reconstruction, no disk probe.
+    cov = tmp_path / "cov.xml"
+    cov.write_text(
+        _multisource_xml("execution/oms.py", [1, 1], sources=[str(tmp_path)]),
+        encoding="utf-8",
+    )
+    files, _ = gci.parse_coverage_xml(cov, tmp_path)
+    assert [f.path for f in files] == ["execution/oms.py"]
+
+
+def test_ambiguous_collapse_resolved_by_physical_length(tmp_path: Path) -> None:
+    # security/tls.py exists under BOTH core/ and application/. The measured
+    # class references line 5; the short application/ file (3 lines) cannot
+    # carry it, so the long core/ file must be the real one — alphabetical
+    # tie-break ("application" first) would have been wrong.
+    for root, length in (("application", 3), ("core", 9)):
+        d = tmp_path / root / "security"
+        d.mkdir(parents=True)
+        (d / "tls.py").write_text("\n".join("x" for _ in range(length)) + "\n", encoding="utf-8")
+    cov = tmp_path / "cov.xml"
+    cov.write_text(
+        _multisource_xml(
+            "security/tls.py",
+            [1, 1, 1, 1, 0],  # last referenced line number = 5
+            sources=[str(tmp_path / "application"), str(tmp_path / "core")],
+        ),
+        encoding="utf-8",
+    )
+    files, _ = gci.parse_coverage_xml(cov, tmp_path)
+    assert [f.path for f in files] == ["core/security/tls.py"]
+
+
+def test_unresolvable_collapse_fails_closed_to_unprefixed(tmp_path: Path) -> None:
+    # No source root contains the file on disk => do not invent a path.
+    cov = tmp_path / "cov.xml"
+    cov.write_text(
+        _multisource_xml(
+            "ghost.py", [1, 0], sources=[str(tmp_path / "core"), str(tmp_path / "execution")]
+        ),
+        encoding="utf-8",
+    )
+    files, _ = gci.parse_coverage_xml(cov, tmp_path)
+    assert [f.path for f in files] == ["ghost.py"]
