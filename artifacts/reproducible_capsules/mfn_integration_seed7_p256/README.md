@@ -12,7 +12,10 @@ existence is what flips `scripts/ci/prove_repo_integrity.sh` from
 - **Reproducibility** — the bundle regenerates **bit-for-bit** from its declared
   command. `scripts/reproduce/mfn_capsule.py --verify` re-runs the MFN gateway
   into a temp dir and fails closed on any digest drift. CI enforces this in
-  `.github/workflows/mfn-capsule-reproducibility.yml`.
+  `.github/workflows/reproducible-capsule.yml` (clean-clone, foreign-cwd).
+- **Schema** — the manifest is validated against
+  `schemas/reproducible_capsule.schema.json`; see
+  `docs/REPRODUCIBLE_CAPSULE_CONTRACT.md`.
 
 ## What this does NOT prove
 
@@ -26,7 +29,7 @@ gateway over a synthetic seed. It self-labels honestly:
 | `decision` | `OBSERVE` |
 | `falsification_status` | `BLOCKED` |
 
-`evidence_class` in `manifest.json` is `integrity_and_reproducibility`, and
+`evidence_class` in `manifest.json` is `REPRODUCIBLE_INFRASTRUCTURE_PROOF`, and
 `is_empirical_evidence` is `false`. Treating this capsule as proof of alpha,
 inference, or scientific result would be a category error — the same kind the
 repo's truth gates exist to prevent.

@@ -647,3 +647,16 @@ l2-ablations:
 l2-test:
 	$(call L2_BANNER,l2-test,every tests/test_l2_*.py file)
 	@python -m pytest tests/test_l2_*.py -q --timeout=60
+
+# ============================================================================
+# Evidence Gate (TASK 936) — the single canonical release verification command.
+# evidence-gate      : full 13-layer proof (integrity + capsule + claim + coverage).
+# evidence-gate-core : layers 1-11 only (sci-core stack, no heavy coverage run).
+# ============================================================================
+.PHONY: evidence-gate
+evidence-gate:
+	@bash scripts/ci/evidence_gate.sh
+
+.PHONY: evidence-gate-core
+evidence-gate-core:
+	@bash scripts/ci/evidence_gate.sh --skip-coverage

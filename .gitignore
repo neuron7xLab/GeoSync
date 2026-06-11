@@ -178,3 +178,4 @@ data/
 !research/reconstruction/allocator/data/*.csv
 logs/
 tmp/
+reports/evidence_gate/

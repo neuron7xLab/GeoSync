@@ -14,6 +14,14 @@
       "sha256": "7e4d778e762b20ac1833a01c4d9c300812edde0f5eff9e175d0de635e38f2688"
     },
     {
+      "path": "scripts/ci/capsule_verification_report.py",
+      "sha256": "b2a4f9f0eb7679aecd9b0236519ec9d4c7edc9cdc00a0755909859b2de65df3e"
+    },
+    {
+      "path": "scripts/ci/check_capsule_schema.py",
+      "sha256": "3a7fcff1179b37db7006df3fb9f9c52e6227895d2333718233308c94c02adec6"
+    },
+    {
       "path": "scripts/ci/check_central_files_touched.py",
       "sha256": "c5506dbb167eaa14a97f4f8b96aebc9365d4d54e2cbba9f96aeb6f404a20f5b8"
     },
@@ -72,6 +80,10 @@
     {
       "path": "scripts/ci/emit_pyo3_env.py",
       "sha256": "dbebaf4c7a76f3adc16f7cb3553a8bd837de674f03424810735f86b2d7f30247"
+    },
+    {
+      "path": "scripts/ci/evidence_gate.sh",
+      "sha256": "fef89930014d6c6110549d503b2775a44e76b7876877d9daebdd12d12eb25888"
     },
     {
       "path": "scripts/ci/lint_forbidden_terms.py",
