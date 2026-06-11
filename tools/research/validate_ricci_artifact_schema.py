@@ -12,9 +12,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, NoReturn
 
-DEFAULT_SCHEMA = Path("schemas/research/ricci_microstructure_artifact.schema.json")
+DEFAULT_SCHEMA = Path("schemas/research/research_inference_artifact.schema.json")
 DEFAULT_ARTIFACT = Path("artifacts/runs/ricci_microstructure_v1/example_artifact.json")
 CRITICAL_RICCI_FIELDS = {
+    "conforms_to": str,
+    "schema_version": str,
+    "research_line": str,
     "run_id": str,
     "git_sha": str,
     "git_dirty": bool,
@@ -30,7 +33,7 @@ CRITICAL_RICCI_FIELDS = {
     "falsification_status": str,
 }
 CRITICAL_ENUMS = {
-    "decision": {"NO_TRADE", "OBSERVE", "REJECT"},
+    "decision": {"ABSTAIN", "OBSERVE", "REJECT"},
     "claim_tier": {
         "HYPOTHESIS",
         "INSTRUMENTED",

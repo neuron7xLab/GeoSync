@@ -128,7 +128,7 @@ class TruthGateRejections(unittest.TestCase):
         self.assertTrue(any("must be explicitly marked placeholder" in e for e in errs), errs)
 
     def test_rejects_zero_data_with_trade_decision(self) -> None:
-        errs = gate.evaluate_artifact(PLACEHOLDER_PATH, _placeholder(decision="NO_TRADE"))
+        errs = gate.evaluate_artifact(PLACEHOLDER_PATH, _placeholder(decision="ABSTAIN"))
         self.assertTrue(any("decision in" in e for e in errs), errs)
 
 

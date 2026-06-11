@@ -16,7 +16,7 @@ diff_scope:
   - path: research_lines/synthetic_plumbing_v1/contract.yaml
   - path: artifacts/runs/synthetic_plumbing_v1/artifact.json
   - path: tests/ci/test_synthetic_plumbing_artifact.py
-  - path: schemas/research/ricci_microstructure_artifact.schema.json
+  - path: schemas/research/research_inference_artifact.schema.json
   - path: scripts/ci/check_research_artifact_truth.py
   - path: tools/research/validate_ricci_artifact_schema.py
   - path: .claude/commit_acceptors/synthetic-plumbing-proof.yaml
@@ -38,7 +38,7 @@ falsifier:
     committed synthetic panel — i.e. if synthetic plumbing could masquerade as
     empirical evidence.
 rollback_command: >-
-  git checkout origin/main -- schemas/research/ricci_microstructure_artifact.schema.json
+  git checkout origin/main -- schemas/research/research_inference_artifact.schema.json
   scripts/ci/check_research_artifact_truth.py tools/research/validate_ricci_artifact_schema.py &&
   git rm -rf research_lines/synthetic_plumbing_v1 artifacts/runs/synthetic_plumbing_v1
   scripts/research/generate_synthetic_plumbing_artifact.py

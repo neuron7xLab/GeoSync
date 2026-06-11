@@ -281,7 +281,7 @@ def _environment_fingerprint(command: list[str]) -> dict[str, object]:
             candidates.append(Path(resolved).resolve())
     for optional in (
         Path("pyproject.toml"),
-        Path("schemas/research/ricci_microstructure_artifact.schema.json"),
+        Path("schemas/research/research_inference_artifact.schema.json"),
     ):
         if optional.exists():
             candidates.append(optional.resolve())
@@ -765,7 +765,7 @@ def _default_gates(python: str, clean_python: str, skip_clean_install: bool) -> 
                 "tools/research/validate_ricci_artifact_schema.py",
                 "--semantic",
                 "--schema",
-                "schemas/research/ricci_microstructure_artifact.schema.json",
+                "schemas/research/research_inference_artifact.schema.json",
                 "--artifact",
                 "artifacts/runs/ricci_microstructure_v1/example_artifact.json",
             ],

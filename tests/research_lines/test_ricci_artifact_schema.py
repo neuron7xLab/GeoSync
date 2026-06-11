@@ -8,13 +8,13 @@ from tools.research.validate_ricci_artifact_schema import (
     validate_artifact_semantics,
 )
 
-SCHEMA = Path("schemas/research/ricci_microstructure_artifact.schema.json")
+SCHEMA = Path("schemas/research/research_inference_artifact.schema.json")
 
 
 def test_example_ricci_artifact_satisfies_schema() -> None:
     # INV-RC1 / INV-DET1: canonical Ricci evidence artifacts must be schema-valid.
     errors = validate_artifact(
-        schema_path=Path("schemas/research/ricci_microstructure_artifact.schema.json"),
+        schema_path=Path("schemas/research/research_inference_artifact.schema.json"),
         artifact_path=Path("artifacts/runs/ricci_microstructure_v1/example_artifact.json"),
     )
 
@@ -46,7 +46,7 @@ def test_schema_rejects_synthetic_promotion_without_required_fields(tmp_path) ->
     )
 
     errors = validate_artifact(
-        schema_path=Path("schemas/research/ricci_microstructure_artifact.schema.json"),
+        schema_path=Path("schemas/research/research_inference_artifact.schema.json"),
         artifact_path=artifact,
     )
 
@@ -68,7 +68,7 @@ def test_schema_validator_fallback_works_without_jsonschema(monkeypatch) -> None
     monkeypatch.setattr(importlib.util, "find_spec", no_jsonschema)
 
     errors = validate_artifact(
-        schema_path=Path("schemas/research/ricci_microstructure_artifact.schema.json"),
+        schema_path=Path("schemas/research/research_inference_artifact.schema.json"),
         artifact_path=Path("artifacts/runs/ricci_microstructure_v1/example_artifact.json"),
     )
 
@@ -93,7 +93,7 @@ def test_schema_validator_fallback_rejects_missing_critical_field(monkeypatch, t
     artifact.write_text(json.dumps(source), encoding="utf-8")
 
     errors = validate_artifact(
-        schema_path=Path("schemas/research/ricci_microstructure_artifact.schema.json"),
+        schema_path=Path("schemas/research/research_inference_artifact.schema.json"),
         artifact_path=artifact,
     )
 
@@ -103,6 +103,11 @@ def test_schema_validator_fallback_rejects_missing_critical_field(monkeypatch, t
 def _fake_evidence() -> dict[str, object]:
     """The original lie: zero hashes + hand-typed score + PASS, schema-valid."""
     return {
+        "conforms_to": (
+            "https://schemas.neuron7xlab.org/research/research_inference_artifact.schema.json"
+        ),
+        "schema_version": "1.0.0",
+        "research_line": "ricci_microstructure",
         "run_id": "RFC-2026-MARKET-RICCI-V1",
         "git_sha": "0" * 40,
         "git_dirty": False,
@@ -113,7 +118,7 @@ def _fake_evidence() -> dict[str, object]:
         "input_window_sec": 30,
         "score": 0.742,
         "uncertainty": 0.031,
-        "decision": "NO_TRADE",
+        "decision": "ABSTAIN",
         "claim_tier": "HYPOTHESIS",
         "falsification_status": "PASS",
     }
