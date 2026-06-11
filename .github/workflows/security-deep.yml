@@ -115,3 +115,26 @@ jobs:
             --no-progress \
             --scanners vuln,secret,misconfig \
             .
+
+  # ---------------------------------------------------------------------------
+  # capsule-secret-boundary — deterministic structural validation of the
+  # reproducible-capsule tree (TASK 931). The capsule folder is excluded from the
+  # entropy-based detect-secrets scan (its digests are public content hashes), so
+  # this gate guarantees the exclude zone stays structurally clean: no private
+  # keys, credentials, binaries, hidden files, symlinks, or unbound tokens.
+  # ---------------------------------------------------------------------------
+  capsule-secret-boundary:
+    name: capsule-secret-boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Validate capsule secret boundary (fail-closed, stdlib-only)
+        run: python tools/security/validate_capsule_secret_boundary.py
