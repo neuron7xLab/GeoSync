@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: MIT
 """XML evidence readers for the coverage gate."""
+
 from __future__ import annotations
 
-from pathlib import Path
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 
 def read_xml(path: str) -> ET.Element:
