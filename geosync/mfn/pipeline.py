@@ -386,7 +386,11 @@ def validate_bundle(output_dir: Path) -> list[str]:
         if document.get("stage") != stage:
             errors.append(f"{stage}.json has wrong stage")
 
-    manifest_doc = read_json(manifest)
+    try:
+        manifest_doc = read_json(manifest)
+    except ValueError as exc:
+        errors.append(f"manifest.json is invalid: {exc}")
+        return errors
     if manifest_doc.get("schema_version") != MANIFEST_SCHEMA_VERSION:
         errors.append("manifest.json has unsupported schema_version")
     files = manifest_doc.get("files")
