@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
-from tools.run_autonomy_cycle import _decision, build_payload
+from tools.run_autonomy_cycle import _decision, _run, build_payload
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -36,6 +37,12 @@ def test_autonomy_cycle_payload_shape(tmp_path: Path, monkeypatch) -> None:
     assert payload["decision"]["state"] == "READY_FOR_NEXT_CYCLE"
     assert [item["phase"] for item in payload["phases"]] == ["observe", "validate", "receipt"]
     assert len(calls) == 3
+
+
+def test_run_uses_declared_root(tmp_path: Path) -> None:
+    result = _run(["python", "-c", "from pathlib import Path; print(Path.cwd())"], tmp_path)
+    assert result["returncode"] == 0
+    assert result["stdout"].strip() == str(tmp_path)
 
 
 def test_autonomy_cycle_schema_file_is_parseable() -> None:
