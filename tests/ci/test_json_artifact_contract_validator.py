@@ -73,6 +73,13 @@ def test_missing_top_level_field_is_reported() -> None:
     assert "missing_top_level:execution_plan" in validate_contract(payload)
 
 
+def test_contract_type_must_be_known() -> None:
+    payload = _candidate()
+    payload["contract_type"] = "invented"
+
+    assert "invalid_contract_type" in validate_contract(payload)
+
+
 @pytest.mark.parametrize(
     ("field", "value", "expected"),
     [
@@ -113,6 +120,38 @@ def test_evidence_fields_have_machine_types(field: str, value: object, expected:
     assert expected in validate_contract(payload)
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    [
+        ("required", "true", "runner_required_must_be_bool"),
+        ("entrypoint", " ", "runner_entrypoint_must_be_nonempty_string"),
+        ("commands", "python", "runner_commands_must_be_list"),
+        ("timeout_seconds", 0, "runner_timeout_seconds_must_be_positive_int"),
+    ],
+)
+def test_python_runner_contract_has_machine_types(field: str, value: object, expected: str) -> None:
+    payload = _candidate()
+    runner = payload["python_runner_contract"]
+    assert isinstance(runner, dict)
+    runner[field] = value
+
+    assert expected in validate_contract(payload)
+
+
+def test_top_level_collection_fields_have_machine_types() -> None:
+    payload = _candidate()
+    payload["validation_tests"] = {}
+
+    assert "validation_tests_must_be_list" in validate_contract(payload)
+
+
+def test_next_action_must_be_nonempty_string() -> None:
+    payload = _candidate()
+    payload["next_deterministic_action"] = " "
+
+    assert "next_deterministic_action_must_be_nonempty_string" in validate_contract(payload)
+
+
 def test_output_constraints_are_required_true_values() -> None:
     payload = _candidate()
     constraints = payload["output_constraints"]
@@ -120,6 +159,15 @@ def test_output_constraints_are_required_true_values() -> None:
     constraints["json_only"] = False
 
     assert "constraint_not_true:json_only" in validate_contract(payload)
+
+
+def test_minimize_tokens_constraint_is_required() -> None:
+    payload = _candidate()
+    constraints = payload["output_constraints"]
+    assert isinstance(constraints, dict)
+    constraints.pop("minimize_tokens")
+
+    assert "constraint_not_true:minimize_tokens" in validate_contract(payload)
 
 
 def test_main_writes_validation_result(tmp_path: Path) -> None:
