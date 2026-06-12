@@ -204,6 +204,10 @@ def _write_report(path: Path | None, state: VerificationState) -> None:
     print(f"product_state_report={path}")
 
 
+def _exit_code(exc: SystemExit) -> int:
+    return exc.code if isinstance(exc.code, int) else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     state = VerificationState(python_executable=args.python)
@@ -215,10 +219,6 @@ def main(argv: list[str] | None = None) -> int:
         _run(state, "create_clean_venv", [args.python, "-m", "venv", str(venv)], cwd=REPO_ROOT)
         python = venv / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
         bin_dir = python.parent
-        # Install only the canonical (setuptools) build backend, then build the
-        # editable wheel with isolation disabled. This proves the dependency-light
-        # gateway installs without pulling any runtime third-party dependency
-        # (--no-deps) and without swapping the real build backend.
         _run(
             state,
             "install_build_backend",
@@ -298,6 +298,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"verified_clean_bundle={bundle}")
         _write_report(args.report, state)
         return 0
+    except SystemExit as exc:
+        _write_report(args.report, state)
+        return _exit_code(exc)
     finally:
         if args.keep:
             print(f"kept_clean_env={workdir}")
