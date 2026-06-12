@@ -64,6 +64,19 @@ GeoSync treats research as engineered infrastructure, not as a decorative chart 
 
 ---
 
+## Repository Map
+
+| Surface | Purpose |
+| --- | --- |
+| [`PRODUCT_CATEGORY.md`](PRODUCT_CATEGORY.md) | Canonical product-category boundary. |
+| [`CLAIMS.md`](CLAIMS.md) | Claim tier ledger and evidence pointers. |
+| [`FORBIDDEN_CLAIMS.md`](FORBIDDEN_CLAIMS.md) | Status-language firewall and promotion invariants. |
+| [`docs/REPOSITORY_SYSTEM.md`](docs/REPOSITORY_SYSTEM.md) | Operational map for reviewers, auditors, and implementation agents. |
+
+The README is the front door. The repository system document is the spine. The claim ledger is the courtroom. Naturally, the courtroom matters more than the wallpaper.
+
+---
+
 ## Current Sprint Boundary
 
 The active research line is:
