@@ -7,6 +7,8 @@ import pytest
 
 from tools.validate_json_artifact_contract import main, validate_contract
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 def _candidate() -> dict[str, object]:
     return {
@@ -64,6 +66,13 @@ def _candidate() -> dict[str, object]:
 
 def test_candidate_contract_is_accepted() -> None:
     assert validate_contract(_candidate()) == []
+
+
+def test_repository_fixture_is_accepted() -> None:
+    fixture = ROOT / "examples/json_artifact_contract.candidate.json"
+    data = json.loads(fixture.read_text(encoding="utf-8"))
+
+    assert validate_contract(data) == []
 
 
 def test_missing_top_level_field_is_reported() -> None:
