@@ -52,6 +52,33 @@ def test_forecast_rejects_bad_last_price(tmp_path: Path, value: object) -> None:
 
 
 @pytest.mark.parametrize("value", ["missing", None, "not-a-number"])
+def test_compare_rejects_bad_last_price(tmp_path: Path, value: object) -> None:
+    out = tmp_path / "bundle"
+    features = {}
+    if value != "missing":
+        features["last_price"] = value
+    write_json(
+        out / "extract.json",
+        {
+            "schema_version": "mfn.integration.v1",
+            "stage": "extract",
+            "features": features,
+        },
+    )
+    write_json(
+        out / "forecast.json",
+        {
+            "schema_version": "mfn.integration.v1",
+            "stage": "forecast",
+            "predicted_next_price": 100.0,
+        },
+    )
+
+    with pytest.raises(ValueError, match="last_price"):
+        compare(out, contract=MFNContract())
+
+
+@pytest.mark.parametrize("value", ["missing", None, "not-a-number"])
 def test_compare_rejects_bad_prediction_value(tmp_path: Path, value: object) -> None:
     out = tmp_path / "bundle"
     write_json(
