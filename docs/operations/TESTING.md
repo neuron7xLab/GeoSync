@@ -39,7 +39,7 @@ Scenarios tagged with [`@pytest.mark.slow`](../../pytest.ini) remain available f
 
 ```
 tests/
-├── unit/                    # Module-level tests (core.*, backtest.*, execution.*, ...)
+├── unit/                    # Module-level tests (core.*, backtest.*, execution.*, geosync.*, ...)
 ├── integration/             # Workflow-level tests (pipelines, backtests, protocol adapters)
 ├── property/                # Property-based suites powered by Hypothesis
 ├── fuzz/                    # Fuzz harnesses targeting ingestion and message handling
@@ -65,6 +65,7 @@ Module coverage goals (not enforced, verify with `make test-coverage`):
 - `core/indicators/`: ≥90% (goal)
 - `core/metrics/`: ≥95% (goal)
 - `core/phase/`: ≥95% (goal)
+- `geosync/`: governed by `pyproject.toml` coverage source and MFN release gate
 
 📊 **Full claims mapping**: [docs/METRICS_CONTRACT.md](../METRICS_CONTRACT.md)
 
@@ -89,7 +90,7 @@ pytest tests/
 Run with coverage guardrail:
 ```bash
 pytest tests/ \
-  --cov=core --cov=backtest --cov=execution \
+  --cov=core --cov=backtest --cov=execution --cov=geosync \
   --cov-config=configs/quality/critical_surface.coveragerc \
   --cov-report=term-missing --cov-report=xml
 
@@ -105,13 +106,13 @@ The Makefile exposes convenience targets that wrap the most common pytest invoca
 | Target | Description | Underlying command |
 | --- | --- | --- |
 | `make test:fast` | Fast feedback loop that skips heavyweight suites | `pytest tests/ -m "not slow and not heavy_math and not nightly"` |
-| `make test:all` | Full coverage-enabled suite matching CI defaults | `pytest tests/ --cov=core --cov=backtest --cov=execution --cov-config=configs/quality/critical_surface.coveragerc --cov-report=term-missing --cov-report=xml && python -m tools.coverage.guardrail --config configs/quality/critical_surface.toml --coverage coverage.xml` |
+| `make test:all` | Full coverage-enabled suite matching CI defaults | `pytest tests/ --cov=core --cov=backtest --cov=execution --cov=geosync --cov-config=configs/quality/critical_surface.coveragerc --cov-report=term-missing --cov-report=xml && python -m tools.coverage.guardrail --config configs/quality/critical_surface.toml --coverage coverage.xml` |
 | `make test:heavy` | Executes the slow, heavy math, and nightly gates | `pytest tests/ -m "slow or heavy_math or nightly"` |
 
 Generate HTML coverage report:
 ```bash
 pytest tests/ \
-  --cov=core --cov=backtest --cov=execution \
+  --cov=core --cov=backtest --cov=execution --cov=geosync \
   --cov-config=configs/quality/critical_surface.coveragerc \
   --cov-report=html
 # Open htmlcov/index.html in browser
@@ -126,7 +127,7 @@ the Python and Go analyzers configured for the project:
 make lint
 ```
 
-- `flake8` enforces the Python style guide across `analytics/`, `core/`, `execution/`, `tests/`, and other runtime packages.
+- `flake8` enforces the Python style guide across `analytics/`, `core/`, `execution/`, `geosync/`, `tests/`, and other runtime packages.
 - `mypy` checks type safety with the settings captured in [`mypy.ini`](../../mypy.ini).
 - `golangci-lint` validates the Go services defined under [`go/`](../../go/) using the
   shared [`.golangci.yml`](../../.golangci.yml) policy.
