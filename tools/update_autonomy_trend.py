@@ -93,6 +93,11 @@ def _next_sequence(entries: list[dict[str, Any]]) -> int:
     return (max(numeric) if numeric else 0) + 1
 
 
+def _rooted(root: Path, value: str) -> Path:
+    path = Path(value)
+    return path if path.is_absolute() else root / path
+
+
 def build_ledger(cycle_path: Path, ledger_path: Path, limit: int) -> dict[str, Any]:
     if limit <= 0:
         raise ValueError("limit must be positive")
@@ -106,12 +111,14 @@ def build_ledger(cycle_path: Path, ledger_path: Path, limit: int) -> dict[str, A
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--root", default=".")
     parser.add_argument("--cycle", default="artifacts/validation/autonomy_cycle.json")
     parser.add_argument("--ledger", default="artifacts/validation/autonomy_trend.json")
     parser.add_argument("--limit", type=int, default=20)
     args = parser.parse_args(argv)
-    cycle_path = Path(args.cycle)
-    ledger_path = Path(args.ledger)
+    root = Path(args.root).resolve()
+    cycle_path = _rooted(root, args.cycle)
+    ledger_path = _rooted(root, args.ledger)
     payload = build_ledger(cycle_path, ledger_path, args.limit)
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
     ledger_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
