@@ -137,10 +137,12 @@ def extract(output_dir: Path, *, contract: MFNContract) -> Path:
 
     source = read_json(output_dir / "simulate.json")
     observations = source.get("observations")
-    if not isinstance(observations, list) or len(observations) < 2:
-        raise ValueError("simulate.json must contain at least two observations")
+    if not isinstance(observations, list):
+        raise ValueError("simulate.json must contain observations")
 
     prices = [float(item["price"]) for item in observations if isinstance(item, dict)]
+    if len(prices) < 2:
+        raise ValueError("simulate.json must contain at least two price observations")
     returns = [round(prices[i] - prices[i - 1], 8) for i in range(1, len(prices))]
     mean_return = sum(returns) / len(returns)
     variance = sum((item - mean_return) ** 2 for item in returns) / len(returns)
