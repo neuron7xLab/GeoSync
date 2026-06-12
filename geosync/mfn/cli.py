@@ -143,7 +143,7 @@ def _with_bundle_default(args: argparse.Namespace) -> argparse.Namespace:
 def _dispatch(args: argparse.Namespace, *, prog: str) -> int:
     try:
         return int(args.func(args))
-    except (FileNotFoundError, ValueError) as exc:
+    except (FileNotFoundError, ValueError, KeyError, TypeError) as exc:
         print(f"{prog}: {exc}", file=sys.stderr)
         return 1
 
