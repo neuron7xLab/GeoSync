@@ -47,6 +47,8 @@ python -m tools.coverage.guardrail \
   --coverage coverage.xml
 ```
 
+Release coverage authority is the `coverage-baseline` / `coverage-90` lane, which uses `configs/quality/release_90.coveragerc`. Convenience targets are local helpers and must stay aligned with the canonical release coverage config before their output is used as release evidence.
+
 Convenience targets:
 
 ```bash
@@ -110,4 +112,4 @@ Do not document colon-style targets such as `make test:fast`. They are not Makef
 
 ## Claim Rule
 
-Coverage, quality, or readiness claims must match the enforcing workflow and metrics contract. Documentation is not evidence. Passing commands, generated reports, and CI artifacts are evidence. Humanity continues to rediscover this, apparently with surprise.
+Coverage, quality, or readiness claims must match the enforcing workflow and metrics contract. Passing commands, generated reports, and CI artifacts are evidence.
