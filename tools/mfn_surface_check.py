@@ -120,6 +120,7 @@ def json_contract_markers(root: Path) -> Row:
         "tools/validate_json_artifact_contract.py": ["validate_contract", "score_requires_external_evidence"],
         "tools/check_json_contract_evidence_policy.py": ["check_policy", "status_mismatch"],
         "schemas/json_artifact_contract.schema.json": ["contract_type", "evidence_status"],
+        "schemas/json_artifact_evidence_policy.schema.json": ["blocked_contract", "CANDIDATE_NOT_VALIDATED"],
         "examples/json_artifact_contract.candidate.json": ["CANDIDATE_NOT_VALIDATED"],
     }
     missing: list[str] = []
