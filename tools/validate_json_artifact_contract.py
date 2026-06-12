@@ -27,6 +27,15 @@ REQUIRED_TOP_LEVEL = (
     "final_verdict",
 )
 
+VALID_CONTRACT_TYPES = {
+    "executable_task_contract",
+    "external_validation_contract",
+    "system_prompt_contract",
+    "repository_repair_contract",
+    "scoring_contract",
+    "blocked_contract",
+}
+
 VALID_STATUSES = {
     "EXTERNAL_VERIFIED",
     "CI_VERIFIED",
@@ -54,6 +63,29 @@ VALIDATED_STATUSES = {
     "HUMAN_REVIEWED",
 }
 
+OBJECT_FIELDS = (
+    "objective",
+    "inputs",
+    "python_runner_contract",
+    "evidence_status",
+    "output_constraints",
+    "final_verdict",
+)
+
+LIST_FIELDS = (
+    "execution_plan",
+    "validation_tests",
+    "failure_register",
+)
+
+RUNNER_LIST_FIELDS = (
+    "commands",
+    "expected_artifacts",
+    "success_criteria",
+    "failure_criteria",
+)
+
+
 
 def _load(path: Path) -> tuple[dict[str, Any] | None, list[str]]:
     try:
@@ -67,12 +99,55 @@ def _load(path: Path) -> tuple[dict[str, Any] | None, list[str]]:
     return data, []
 
 
+def _is_nonempty_string(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _validate_top_level_shape(data: dict[str, Any], errors: list[str]) -> None:
+    contract_type = data.get("contract_type")
+    if contract_type not in VALID_CONTRACT_TYPES:
+        errors.append("invalid_contract_type")
+
+    for key in OBJECT_FIELDS:
+        if key in data and not isinstance(data[key], dict):
+            errors.append(f"{key}_must_be_object")
+
+    for key in LIST_FIELDS:
+        if key in data and not isinstance(data[key], list):
+            errors.append(f"{key}_must_be_list")
+
+    if not _is_nonempty_string(data.get("next_deterministic_action")):
+        errors.append("next_deterministic_action_must_be_nonempty_string")
+
+
+def _validate_runner_contract(data: dict[str, Any], errors: list[str]) -> None:
+    runner = data.get("python_runner_contract")
+    if not isinstance(runner, dict):
+        return
+
+    if not isinstance(runner.get("required"), bool):
+        errors.append("runner_required_must_be_bool")
+    if not _is_nonempty_string(runner.get("entrypoint")):
+        errors.append("runner_entrypoint_must_be_nonempty_string")
+
+    for key in RUNNER_LIST_FIELDS:
+        if not isinstance(runner.get(key), list):
+            errors.append(f"runner_{key}_must_be_list")
+
+    timeout = runner.get("timeout_seconds")
+    if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout <= 0:
+        errors.append("runner_timeout_seconds_must_be_positive_int")
+
+
 def validate_contract(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
 
     for key in REQUIRED_TOP_LEVEL:
         if key not in data:
             errors.append(f"missing_top_level:{key}")
+
+    _validate_top_level_shape(data, errors)
+    _validate_runner_contract(data, errors)
 
     evidence = data.get("evidence_status")
     verdict = data.get("final_verdict")
@@ -99,11 +174,14 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
     final_status = verdict.get("status")
     tests_executed = evidence.get("tests_executed")
     tests_not_executed = evidence.get("tests_not_executed")
+    evidence_required = verdict.get("evidence_required")
 
     if evidence_status not in VALID_STATUSES:
         errors.append("invalid_evidence_status")
     if final_status not in VALID_STATUSES:
         errors.append("invalid_final_status")
+    if not isinstance(evidence_required, list):
+        errors.append("final_evidence_required_must_be_list")
 
     if not isinstance(tests_executed, list):
         errors.append("tests_executed_must_be_list")
@@ -146,6 +224,7 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
             "no_self_scoring",
             "no_simulated_tests",
             "no_validation_without_evidence",
+            "minimize_tokens",
         ):
             if constraints.get(key) is not True:
                 errors.append(f"constraint_not_true:{key}")
