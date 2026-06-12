@@ -140,22 +140,30 @@ def _with_bundle_default(args: argparse.Namespace) -> argparse.Namespace:
     return args
 
 
+def _dispatch(args: argparse.Namespace, *, prog: str) -> int:
+    try:
+        return int(args.func(args))
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"{prog}: {exc}", file=sys.stderr)
+        return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    return int(args.func(args))
+    return _dispatch(args, prog="mfn")
 
 
 def api_main(argv: list[str] | None = None) -> int:
     parser = build_parser(api_mode=True)
     args = parser.parse_args(argv)
-    return int(args.func(args))
+    return _dispatch(args, prog="mfn-api")
 
 
 def validate_main(argv: list[str] | None = None) -> int:
     parser = build_parser(validate_mode=True)
     args = parser.parse_args(argv)
-    return int(args.func(args))
+    return _dispatch(args, prog="mfn-validate")
 
 
 if __name__ == "__main__":
