@@ -68,8 +68,15 @@ def test_candidate_contract_is_accepted() -> None:
     assert validate_contract(_candidate()) == []
 
 
-def test_repository_fixture_is_accepted() -> None:
+def test_repository_candidate_fixture_is_accepted() -> None:
     fixture = ROOT / "examples/json_artifact_contract.candidate.json"
+    data = json.loads(fixture.read_text(encoding="utf-8"))
+
+    assert validate_contract(data) == []
+
+
+def test_repository_blocked_fixture_is_accepted() -> None:
+    fixture = ROOT / "examples/json_artifact_contract.blocked.json"
     data = json.loads(fixture.read_text(encoding="utf-8"))
 
     assert validate_contract(data) == []
