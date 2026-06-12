@@ -385,6 +385,7 @@ def main(argv: list[str] | None = None) -> int:
 
     text = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if args.out:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(text, encoding="utf-8")
     else:
         sys.stdout.write(text)
