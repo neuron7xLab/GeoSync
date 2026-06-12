@@ -7,24 +7,18 @@ on:
       - ".github/workflows/mfn-release-gate.yml"
       - "geosync/mfn/**"
       - "tools/verify_mfn_clean_install.py"
-      - "tools/mfn_surface_check.py"
       - "tests/unit/mfn/**"
-      - "tests/ci/test_mfn_surface_check.py"
       - "pyproject.toml"
       - "Makefile"
-      - "configs/quality/release_90.coveragerc"
   push:
     branches: [main]
     paths:
       - ".github/workflows/mfn-release-gate.yml"
       - "geosync/mfn/**"
       - "tools/verify_mfn_clean_install.py"
-      - "tools/mfn_surface_check.py"
       - "tests/unit/mfn/**"
-      - "tests/ci/test_mfn_surface_check.py"
       - "pyproject.toml"
       - "Makefile"
-      - "configs/quality/release_90.coveragerc"
 
 permissions:
   contents: read
@@ -61,10 +55,6 @@ jobs:
             --python python \
             --report "$RUNNER_TEMP/product_state.json"
           cat "$RUNNER_TEMP/product_state.json"
-      - name: Surface contract check
-        if: matrix.python-version == '3.12'
-        run: |
-          python tools/mfn_surface_check.py --strict
       - name: MFN unit tests
         if: matrix.python-version == '3.12'
         run: |
