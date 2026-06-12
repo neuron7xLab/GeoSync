@@ -82,6 +82,8 @@ def _cmd_api(args: argparse.Namespace) -> int:
     else:
         print("MFN API v1")
         print("status=INSTRUMENTED")
+        print(f"default_bundle={payload['default_bundle']}")
+        print(f"min_points={payload['min_points']}")
         print("commands=" + ",".join(payload["commands"]))
     return 0
 
