@@ -115,6 +115,27 @@ def contract_markers(root: Path) -> Row:
     return Row("contract_markers", OK, "contract markers present", rel)
 
 
+def json_contract_markers(root: Path) -> Row:
+    required = {
+        "tools/validate_json_artifact_contract.py": ["validate_contract", "score_requires_external_evidence"],
+        "tools/check_json_contract_evidence_policy.py": ["check_policy", "status_mismatch"],
+        "schemas/json_artifact_contract.schema.json": ["contract_type", "evidence_status"],
+        "examples/json_artifact_contract.candidate.json": ["CANDIDATE_NOT_VALIDATED"],
+    }
+    missing: list[str] = []
+    for rel, markers in required.items():
+        text = read_text(root, rel)
+        if text is None:
+            missing.append(rel)
+            continue
+        absent = [marker for marker in markers if marker not in text]
+        if absent:
+            missing.append(rel + ":" + ",".join(absent))
+    if missing:
+        return Row("json_contract_markers", RED, "missing: " + "; ".join(missing), "tools")
+    return Row("json_contract_markers", OK, "json contract markers present", "tools")
+
+
 def collect(root: Path) -> list[Row]:
     return [
         makefile_cov(root),
@@ -123,6 +144,7 @@ def collect(root: Path) -> list[Row]:
         pipeline_markers(root),
         cli_markers(root),
         contract_markers(root),
+        json_contract_markers(root),
     ]
 
 
