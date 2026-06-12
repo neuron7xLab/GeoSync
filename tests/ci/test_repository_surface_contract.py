@@ -111,3 +111,9 @@ def test_testing_guide_matches_python_contract() -> None:
     guide = _read("docs/operations/TESTING.md")
     assert ">=3.11,<3.13" in guide
     assert "3.11–3.13" not in guide
+
+
+def test_testing_guide_keeps_geosync_in_local_coverage_commands() -> None:
+    guide = _read("docs/operations/TESTING.md")
+    assert "--cov=geosync" in guide
+    assert "`geosync/`" in guide
