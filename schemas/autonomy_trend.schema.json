@@ -2,7 +2,7 @@
   "title": "Autonomy Trend Ledger",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "entries"],
+  "required": ["schema_version", "entries", "summary"],
   "properties": {
     "schema_version": {"const": "autonomy_trend.v1"},
     "entries": {
@@ -19,6 +19,17 @@
           "status_vector": {"type": "array", "items": {"type": "string"}},
           "phase_count": {"type": "integer", "minimum": 0}
         }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total_cycles", "decision_counts", "latest_decision_state", "latest_cycle_sha256"],
+      "properties": {
+        "total_cycles": {"type": "integer", "minimum": 0},
+        "decision_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}},
+        "latest_decision_state": {"type": ["string", "null"]},
+        "latest_cycle_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}
       }
     }
   }
