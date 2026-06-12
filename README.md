@@ -1,32 +1,129 @@
-# GeoSync Claim Contract
+<div align="center">
 
-**Positioning:** Verification-first quantitative research platform for falsifiable market-structure hypotheses.
+# GeoSync
 
-This repository is not a live execution platform, not an alpha product, and not a proof that market dynamics obey any asserted physical law. It is a research platform whose claims are allowed only when they are tied to explicit invariants, data contracts, falsifiers, and reproducible artifacts.
+### Verification-first quantitative research infrastructure for falsifiable market-structure hypotheses.
 
-The kernel declares **97 machine-checkable invariants** in `.claude/physics/INVARIANTS.yaml`; `scripts/count_invariants.py` is the canonical witness for `C-INV-COUNT` in `CLAIMS.md`.
+<br/>
+
+<img src="https://img.shields.io/badge/status-research_kernel-111111?style=for-the-badge" />
+<img src="https://img.shields.io/badge/claims-falsifiable-111111?style=for-the-badge" />
+<img src="https://img.shields.io/badge/evidence-machine_checkable-111111?style=for-the-badge" />
+<img src="https://img.shields.io/badge/ricci-hypothesis_tier-111111?style=for-the-badge" />
+
+<br/><br/>
+
+**GeoSync is not a trading bot.**  
+**GeoSync is not an alpha product.**  
+**GeoSync is not a proof that markets obey any asserted physical law.**
+
+It is a research platform where claims are permitted only when they are bound to explicit invariants, data contracts, falsifiers, reproducible artifacts, and release evidence.
+
+</div>
+
+---
+
+## ∴ Research Kernel
+
+Most market-research repositories optimize for narrative confidence.
+
+GeoSync optimizes for something less fashionable and more useful:
+
+> **A claim may exist only when it can identify its invariant, data source, method, artifact, falsifier, and replay path.**
+
+No replay.  
+No falsifier.  
+No evidence.  
+No claim.
+
+---
+
+## System Spine
+
+```text
+DOCTRINE / FORBIDDEN CLAIMS
+        ↓
+CLAIM REGISTRY
+        ↓
+97 MACHINE-CHECKABLE INVARIANTS
+        ↓
+DATA CONTRACT
+        ↓
+INFERENCE CONTRACT
+        ↓
+NULL BASELINES / FALSIFIERS
+        ↓
+ARTIFACT VALIDATION
+        ↓
+RELEASE EVIDENCE HARNESS
+        ↓
+EXTERNAL REPRODUCTION
+```
+
+GeoSync treats research as engineered infrastructure, not as a decorative chart factory wearing a lab coat.
+
+---
 
 ## Current Sprint Boundary
 
-The sprint-focus research line is `ricci_microstructure_v1` over crypto perpetual order-book data. It is currently **HYPOTHESIS-tier and provenance-instrumented only**: the gateway (`tools/research/research_cli.py`) stamps dataset/config/git provenance into a schema-valid artifact but runs no empirical inference, and no real order-book session has been committed — so it is **not** an evidence-bearing line yet. The operationalized Ricci computation that does have working code (`src/geosync/features/ricci.py::RicciCurvatureGraph.fit_transform`) runs on **cross-asset return-correlation graphs**, not L2 order-book microstructure; L2-microstructure Ricci remains unimplemented and stays at HYPOTHESIS until a depth-5 session with a real data hash is recorded. Other research lines remain either infrastructure, protocol sketches, or archived evidence surfaces until they pass the same contract stack.
+The active research line is:
+
+```text
+ricci_microstructure_v1
+```
+
+Current state:
+
+```text
+HYPOTHESIS-tier
+PROVENANCE-INSTRUMENTED
+NOT EVIDENCE-BEARING YET
+```
+
+The gateway stamps dataset, config, and git provenance into a schema-valid artifact, but it does **not** run empirical inference yet. No real order-book session has been committed.
+
+The implemented Ricci computation currently operates on **cross-asset return-correlation graphs** via:
+
+```text
+src/geosync/features/ricci.py::RicciCurvatureGraph.fit_transform
+```
+
+L2 order-book microstructure Ricci remains unimplemented and must stay at `HYPOTHESIS` until a real depth-5 session with a real data hash is recorded.
+
+---
 
 ## Claim Tier Matrix
 
 | Claim Tier | Evidence | Falsifier | Status |
 | --- | --- | --- | --- |
-| Invariant Registry | FACT: script/check coverage of registered invariants | Missing invariant count or unlinked witness | Active |
-| Systemic-Risk Phase Signal | HYPOTHESIS: protocol and synthetic/controlled checks only | Real-data gate failure | Not Measured |
-| Ricci Microstructure Predictor | HYPOTHESIS: provenance-instrumented only; no real session committed, gateway runs no inference | Multi-session failure, cost-model failure, or null superiority | Not Measured |
+| Invariant Registry | Script/check coverage of registered invariants | Missing invariant count or unlinked witness | Active |
+| Systemic-Risk Phase Signal | Protocol and synthetic/controlled checks only | Real-data gate failure | Not Measured |
+| Ricci Microstructure Predictor | Provenance-instrumented only; no real session committed | Multi-session failure, cost-model failure, or null superiority | Not Measured |
+
+---
 
 ## Promotion Rule
 
-A research line can move forward only through this sequence:
-
 ```text
-Hypothesis -> Preregistration -> Data Contract -> Inference Contract -> Null Baselines -> Empirical Validation -> Immutable Artifact -> Claim Tier Signoff
+Hypothesis
+  → Preregistration
+  → Data Contract
+  → Inference Contract
+  → Null Baselines
+  → Empirical Validation
+  → Immutable Artifact
+  → Claim Tier Signoff
 ```
 
-Synthetic data may instrument or test plumbing, but it cannot promote a claim to measured status. Promotion beyond `INSTRUMENTED` requires a real-data artifact whose dataset hash, configuration hash, git state, seed, and falsification result are recorded.
+Synthetic data may instrument plumbing.
+
+Synthetic data may test schemas.
+
+Synthetic data may prove the machine can walk.
+
+Synthetic data may **not** promote a research claim to measured status.
+
+---
 
 ## Layered State Machine
 
@@ -34,26 +131,53 @@ Synthetic data may instrument or test plumbing, but it cannot promote a claim to
 | --- | --- | --- |
 | 0 Doctrine / Claims | Falsifiable claim and forbidden-claim registry | Claim lacks falsifier or uses forbidden language |
 | 1 Data / Substrate | Immutable dataset manifest with SHA-256 | Data hash missing or mutable source unresolved |
-| 2 Inference Kernel | Deterministic transformation contract | Output omits canonical fields or dirty git state is not disclosed |
+| 2 Inference Kernel | Deterministic transformation contract | Output omits canonical fields or dirty git state is undisclosed |
 | 3 Falsification / Nulls | Null baselines and stress tests | Null matches or exceeds claimed signal |
 | 4 Artifact / Evidence | JSON artifact validated against schema | Schema validation failure |
 | 5 Gates / Release | CI checks for integrity and schema contracts | Any required gate fails |
-| 6 Product / Interface | Single command gateway | Run/verify path unavailable |
+| 6 Product / Interface | Single-command gateway | Run/verify path unavailable |
 | 7 External Witness | Independent reproduction capsule | Reproduction exits non-zero or cannot verify hashes |
 
-## Research Line State Machine
+---
+
+## Research Line Automaton
 
 ```text
-[IDEA] -> [HYPOTHESIS] -> [PREREGISTERED] -> [INSTRUMENTED] -> [TESTED_SYNTHETIC]
-                                                               |
-[VALIDATED] <- [REPLICATED] <- [MEASURED] <- [TESTED_REAL_MULTI] <- [TESTED_REAL_SINGLE]
+[IDEA] → [HYPOTHESIS] → [PREREGISTERED] → [INSTRUMENTED] → [TESTED_SYNTHETIC]
+                                                            │
+[VALIDATED] ← [REPLICATED] ← [MEASURED] ← [TESTED_REAL_MULTI] ← [TESTED_REAL_SINGLE]
 ```
 
-Terminal archive states are `REJECTED`, `BLOCKED_DATA`, `BLOCKED_REPRO`, `BLOCKED_NULL`, `BLOCKED_COST_MODEL`, and `RETIRED`. Terminal records are preserved rather than deleted.
+Terminal archive states are preserved rather than deleted:
+
+```text
+REJECTED
+BLOCKED_DATA
+BLOCKED_REPRO
+BLOCKED_NULL
+BLOCKED_COST_MODEL
+RETIRED
+```
+
+Failure is not embarrassment here. Failure is evidence with manners.
+
+---
 
 ## Canonical Artifact Contract
 
-Every inference artifact for an evidence-bearing line must validate as JSON and include the deterministic fields enforced by `schemas/research/research_inference_artifact.schema.json`. The committed example (`artifacts/runs/ricci_microstructure_v1/example_artifact.json`) is an **illustrative placeholder**: its data hash is all-zero, `score`/`uncertainty` are inert, `score_source` is `placeholder`, and `falsification_status` is `NOT_RUN` — it demonstrates the schema shape, not a measured result:
+Every evidence-bearing inference artifact must validate as JSON and include the deterministic fields enforced by:
+
+```text
+schemas/research/research_inference_artifact.schema.json
+```
+
+The committed example at:
+
+```text
+artifacts/runs/ricci_microstructure_v1/example_artifact.json
+```
+
+is an illustrative placeholder, not a measured result.
 
 ```json
 {
@@ -75,70 +199,157 @@ Every inference artifact for an evidence-bearing line must validate as JSON and 
 }
 ```
 
-### Lineage contract for evidence
+Schema validity proves **shape**, not **truth**.
 
-Schema validity proves *shape*, not *truth* (`scripts/ci/check_research_artifact_truth.py` enforces the latter). An evidence-bearing artifact — `falsification_status: PASS` — must carry the full lineage so the result is attributable, falsifiable, and reproducible:
+Truth requires lineage:
 
-`dataset hash → config hash → git SHA → method_version → score_source: computed → baseline → falsification_status → decision → replay_command`
+```text
+dataset_hash
+  → config_hash
+  → git_sha
+  → method_version
+  → score_source: computed
+  → baseline
+  → falsification_status
+  → decision
+  → replay_command
+```
 
-The truth gate rejects a `PASS` that lacks any of `method_version`, `score_source: computed`, `baseline`, or a non-empty `replay_command`: **a claim you cannot replay or falsify is not evidence.** Until those exist for a real, hash-pinned session, the line stays `HYPOTHESIS` / `NOT_RUN` / `OBSERVE` — honest, not decorative.
+A `PASS` without `method_version`, computed score source, baseline, and replay command is rejected by the truth gate.
+
+---
 
 ## Golden Path
 
 ```bash
-geosync-research run --line ricci_microstructure_v1 --config conf/research/ricci_v1.yaml --data data/manifest.json --out artifacts/runs/
+geosync-research run \
+  --line ricci_microstructure_v1 \
+  --config conf/research/ricci_v1.yaml \
+  --data data/manifest.json \
+  --out artifacts/runs/
+
 geosync-research verify artifacts/runs/<run_id>
 ```
 
-Until that gateway is fully implemented, the schema gate is the repository-level enforcement point:
+Until the gateway is fully implemented, the repository-level schema enforcement point is:
 
 ```bash
-python tools/research/validate_ricci_artifact_schema.py --schema schemas/research/research_inference_artifact.schema.json --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
+python tools/research/validate_ricci_artifact_schema.py \
+  --schema schemas/research/research_inference_artifact.schema.json \
+  --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
 ```
+
+---
 
 ## MFN Dependency-Light Gateway
 
-`geosync.mfn` is a standard-library-only operation path (`simulate → extract → detect → forecast → compare → report`) that produces a self-contained, hash-manifested artifact bundle at the `INSTRUMENTED` tier — no predictive or trading claim is promoted. It exists to keep packaging, console entrypoints, and a one-command smoke path machine-verifiable before any heavyweight scientific dependency is installed.
+`geosync.mfn` is a standard-library-only operation path:
+
+```text
+simulate → extract → detect → forecast → compare → report
+```
+
+It produces a self-contained, hash-manifested artifact bundle at the `INSTRUMENTED` tier. It does not promote predictive or trading claims.
+
+Run:
 
 ```bash
 mfn --out artifacts/runs/mfn_integration run
 mfn validate --bundle artifacts/runs/mfn_integration
 ```
 
-Bundles are byte-reproducible when `SOURCE_DATE_EPOCH` is pinned. A hermetic clean-venv check installs the editable package with the canonical setuptools backend (no backend swap), proves the gateway is dependency-light (`--no-deps`), and exercises imports/entrypoints/run/validate from outside the repository working directory so accidental path leakage cannot mask a failure:
+Clean install proof:
 
 ```bash
-python tools/verify_mfn_clean_install.py --python python3.12 --report artifacts/runs/mfn_product_state.json
-make release-gate   # lint + type + tests + clean-install proof
+python tools/verify_mfn_clean_install.py \
+  --python python3.12 \
+  --report artifacts/runs/mfn_product_state.json
+
+make release-gate
 ```
 
-This is a focused install/entrypoint smoke; full signed release evidence (SBOM, manifest, telemetry) remains the job of the Release Evidence Harness below.
+Purpose:
+
+```text
+prove packaging
+prove console entrypoints
+prove dependency-light operation
+prove artifact reproducibility
+prevent local path leakage from hiding failure
+```
+
+---
 
 ## Release Evidence Harness
 
-Every release validation must leave machine-readable evidence, raw logs, commands, and exit codes. The harness is semantic: clean install is required by default, and non-empty git status/diff output is RED even when git exits 0:
+Every release validation must leave machine-readable evidence, raw logs, commands, and exit codes.
 
 ```bash
 python tools/release_evidence_harness.py
-# deterministic metadata/log timestamps for reproducibility checks:
 python tools/release_evidence_harness.py --fixed-timestamp-utc 2026-01-01T00:00:00Z
-# verify raw-log integrity after generation or archive transfer:
 python tools/release_evidence_harness.py --verify-manifest artifacts/evidence_bundle/manifest.json
 ```
 
-The harness writes `release_gate.yaml` plus `artifacts/evidence_bundle/manifest.json`, raw logs, a CycloneDX SBOM (`sbom.cdx.json`), CI status JSON, Prometheus/DataDog telemetry exports, and a dependency-free PDF audit report. Gates execute through the asyncio runner unless a caller uses the lower-level `_run_gate` helper directly. For release signing, pass `--gpg-key <KEYID>` and verify with `--verify-manifest artifacts/evidence_bundle/manifest.json --require-gpg-signature`; unsigned manifests are acceptable only for local development smoke runs. Environment drift checks can be calibrated with `--write-environment-baseline baseline.json` and enforced later with `--environment-baseline baseline.json`; `--skip-clean-install` is forbidden in CI and requires the explicit development-only `--allow-tainted-env` opt-in outside CI. These are generated release artifacts, not source files; commit them only in an explicit release-evidence branch or archive. A release claim without those files, or with any required RED gate, is not considered evidence.
+Expected evidence surface:
+
+```text
+release_gate.yaml
+artifacts/evidence_bundle/manifest.json
+raw logs
+CycloneDX SBOM
+CI status JSON
+Prometheus telemetry export
+DataDog telemetry export
+dependency-free PDF audit report
+environment drift checks
+optional GPG signature
+```
+
+A green terminal is not a release proof.
+
+A release claim without generated evidence files, or with any required RED gate, is not evidence.
+
+---
 
 ## Required Gates
 
-Protected-branch policy must require these checks before evidence-bearing changes merge:
+Protected-branch policy must require:
 
-- `research-integrity-gate`
-- `physics-kernel-self-check`
-- `claim-evidence-gate`
-- `rust-accel-gate` with `cargo clippy -- -D warnings`
-- `go-workspace-integrity`
-- `dependency-review` with `fail-on-severity: high`
+```text
+research-integrity-gate
+physics-kernel-self-check
+claim-evidence-gate
+rust-accel-gate with cargo clippy -- -D warnings
+go-workspace-integrity
+dependency-review with fail-on-severity: high
+```
+
+---
 
 ## Scope Control
 
-See `FORBIDDEN_CLAIMS.md` for prohibited wording and permitted status language. A claim that cannot identify its falsifier is not a claim; it is backlog text.
+Forbidden wording and permitted status language live in:
+
+```text
+FORBIDDEN_CLAIMS.md
+```
+
+A claim that cannot identify its falsifier is not a claim.
+
+It is backlog text trying to look important.
+
+---
+
+<div align="center">
+
+## Design Principle
+
+**Evidence before status.**  
+**Falsification before belief.**  
+**Reproduction before authority.**
+
+<br/>
+
+### GeoSync is built for systems that refuse to lie politely.
+
+</div>
