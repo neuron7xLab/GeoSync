@@ -96,7 +96,7 @@ def cli_markers(root: Path) -> Row:
     text = read_text(root, rel)
     if text is None:
         return Row("cli_markers", UNKNOWN, "missing file", rel)
-    markers = ["_dispatch", "FileNotFoundError", "ValueError", "KeyError", "TypeError", "mfn:"]
+    markers = ["_dispatch", "FileNotFoundError", "ValueError", "KeyError", "TypeError", "prog=\"mfn\""]
     missing = [marker for marker in markers if marker not in text]
     if missing:
         return Row("cli_markers", RED, "missing: " + ", ".join(missing), rel)
@@ -115,6 +115,37 @@ def contract_markers(root: Path) -> Row:
     return Row("contract_markers", OK, "contract markers present", rel)
 
 
+def roadmap_contract(root: Path) -> Row:
+    rel = "docs/MFN_VERIFICATION_ROADMAP.json"
+    text = read_text(root, rel)
+    if text is None:
+        return Row("roadmap_contract", UNKNOWN, "missing file", rel)
+    try:
+        document = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return Row("roadmap_contract", RED, f"invalid JSON: {exc.msg}", rel)
+    if not isinstance(document, dict):
+        return Row("roadmap_contract", RED, "roadmap must be a JSON object", rel)
+    if document.get("contract_type") != "repository_repair_contract":
+        return Row("roadmap_contract", RED, "unexpected contract_type", rel)
+    evidence = document.get("evidence_status")
+    verdict = document.get("final_verdict")
+    if not isinstance(evidence, dict) or not isinstance(verdict, dict):
+        return Row("roadmap_contract", RED, "missing evidence_status or final_verdict object", rel)
+    if evidence.get("status") != "CANDIDATE_NOT_VALIDATED":
+        return Row("roadmap_contract", RED, "roadmap must remain candidate without evidence", rel)
+    if verdict.get("status") != "CANDIDATE_NOT_VALIDATED":
+        return Row("roadmap_contract", RED, "final verdict must remain candidate", rel)
+    if evidence.get("score") is not None:
+        return Row("roadmap_contract", RED, "roadmap must not self-score", rel)
+    if evidence.get("confidence", 1.0) > 0.65:
+        return Row("roadmap_contract", RED, "candidate confidence exceeds bound", rel)
+    schema_rel = "schemas/mfn_verification_roadmap.schema.json"
+    if read_text(root, schema_rel) is None:
+        return Row("roadmap_contract", UNKNOWN, "missing schema", schema_rel)
+    return Row("roadmap_contract", OK, "machine-readable roadmap contract present", rel)
+
+
 def collect(root: Path) -> list[Row]:
     return [
         makefile_cov(root),
@@ -123,6 +154,7 @@ def collect(root: Path) -> list[Row]:
         pipeline_markers(root),
         cli_markers(root),
         contract_markers(root),
+        roadmap_contract(root),
     ]
 
 

@@ -1,0 +1,20 @@
+{
+  "all_digests_match": true,
+  "all_files_exist": true,
+  "duplicate_entries": [],
+  "errors": [],
+  "manifest_paths_safe": true,
+  "runbook_has_first_file_guidance": true,
+  "runbook_has_validation_command": true,
+  "sha256sums_matches_manifest": true,
+  "stage_documents": {
+    "compare": true,
+    "detect": true,
+    "extract": true,
+    "forecast": true,
+    "report": true,
+    "simulate": true
+  },
+  "status": "PASS",
+  "timestamp_utc": "2026-06-12T13:52:55Z"
+}

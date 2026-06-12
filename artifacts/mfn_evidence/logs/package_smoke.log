@@ -1,0 +1,44 @@
+[2026-06-12T13:53:05Z] $ python -m pip install build
+exit_code=1 duration_seconds=9.052
+--- stdout ---
+
+--- stderr ---
+WARNING: Retrying (Retry(total=4, connect=None, read=None, redirect=None, status=None)) after connection broken by 'OSError('Tunnel connection failed: 403 Forbidden')': /simple/build/
+WARNING: Retrying (Retry(total=3, connect=None, read=None, redirect=None, status=None)) after connection broken by 'OSError('Tunnel connection failed: 403 Forbidden')': /simple/build/
+WARNING: Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'OSError('Tunnel connection failed: 403 Forbidden')': /simple/build/
+WARNING: Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'OSError('Tunnel connection failed: 403 Forbidden')': /simple/build/
+WARNING: Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'OSError('Tunnel connection failed: 403 Forbidden')': /simple/build/
+ERROR: Could not find a version that satisfies the requirement build (from versions: none)
+
+[notice] A new release of pip is available: 26.1 -> 26.1.2
+[notice] To update, run: pip install --upgrade pip
+ERROR: No matching distribution found for build
+
+
+[2026-06-12T13:53:05Z] $ python -m build
+exit_code=1 duration_seconds=0.068
+--- stdout ---
+
+--- stderr ---
+/root/.pyenv/versions/3.14.4/bin/python: No module named build
+
+
+[2026-06-12T13:53:12Z] $ python -m venv /tmp/mfn_wheel_env
+exit_code=0 duration_seconds=7.141
+--- stdout ---
+
+--- stderr ---
+
+
+[2026-06-12T13:53:12Z] $ /tmp/mfn_wheel_env/bin/python -c import geosync; print(geosync.__file__)
+exit_code=1 duration_seconds=0.159
+--- stdout ---
+
+--- stderr ---
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import geosync; print(geosync.__file__)
+    ^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'geosync'
+
+

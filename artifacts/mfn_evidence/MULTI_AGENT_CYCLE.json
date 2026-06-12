@@ -1,0 +1,457 @@
+{
+  "agent_outputs": {
+    "falsifier": {
+      "adversarial_cases": [
+        "Import from /tmp after failed install must fail rather than fall back to repo-local path."
+      ],
+      "attacked_surfaces": [
+        "package install proof",
+        "wheel/sdist proof",
+        "local import isolation",
+        "claim tier boundary",
+        "replay manifest"
+      ],
+      "contradictions": [
+        "Replay and manifest checks pass, but installed-package proof is absent; readiness cannot be PASS."
+      ],
+      "failure_proofs": [
+        "/tmp/mfn_clean_env/bin/python -m pip install . exited 1",
+        "python -m pip install build exited 1",
+        "/tmp/mfn_wheel_env/bin/mfn --help unavailable"
+      ],
+      "required_repairs": [
+        "Provide build dependencies or internal wheelhouse.",
+        "Rerun clean-install and package-smoke without PYTHONPATH."
+      ],
+      "role": "falsifier",
+      "status": "BROKEN"
+    },
+    "integrator": {
+      "conflicts_remaining": [
+        "No installed package or wheel/sdist smoke proof exists."
+      ],
+      "conflicts_resolved": [
+        "Replay success and package-smoke blockage are represented separately; status is BLOCKED, not PASS."
+      ],
+      "interface_map": [
+        {
+          "from": "MFN replay bundle",
+          "to": "manifest integrity report"
+        },
+        {
+          "from": "command logs",
+          "to": "EVIDENCE_BUNDLE.commands"
+        },
+        {
+          "from": "blocked package steps",
+          "to": "EVIDENCE_BUNDLE.failures"
+        }
+      ],
+      "merge_candidate": {
+        "path": "artifacts/mfn_evidence/EVIDENCE_BUNDLE.json",
+        "status": "BLOCKED"
+      },
+      "merged_artifacts": [
+        "baseline_state.json",
+        "roadmap_contract_validation.json",
+        "replay_report.json",
+        "manifest_integrity_report.json",
+        "clean_install_report.json",
+        "package_smoke_report.json",
+        "EVIDENCE_BUNDLE.json"
+      ],
+      "rejected_artifacts": [],
+      "role": "integrator",
+      "status": "PARTIAL"
+    },
+    "local_code_builder": {
+      "artifacts_created": [
+        "artifacts/mfn_evidence/baseline_state.json",
+        "artifacts/mfn_evidence/clean_install_report.json",
+        "artifacts/mfn_evidence/logs/baseline_git_branch.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_git_branch.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_git_rev_parse_head.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_git_rev_parse_head.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_git_status_short.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_git_status_short.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_pip_version.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_pip_version.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_python_version.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_python_version.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_relevant_files.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_relevant_files.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_state.log",
+        "artifacts/mfn_evidence/logs/clean_import_geosync_file.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_import_geosync_file.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_import_geosync_version.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_import_geosync_version.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_install.log",
+        "artifacts/mfn_evidence/logs/clean_module_cli_help.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_module_cli_help.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_module_pipeline_help.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_module_pipeline_help.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_pip_install_project.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_pip_install_project.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_pip_upgrade.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_pip_upgrade.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_venv_create.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_venv_create.stdout.log",
+        "artifacts/mfn_evidence/logs/commands.log",
+        "artifacts/mfn_evidence/logs/final_git_status_short.stderr.log",
+        "artifacts/mfn_evidence/logs/final_git_status_short.stdout.log",
+        "artifacts/mfn_evidence/logs/package_build.stderr.log",
+        "artifacts/mfn_evidence/logs/package_build.stdout.log",
+        "artifacts/mfn_evidence/logs/package_install_build.stderr.log",
+        "artifacts/mfn_evidence/logs/package_install_build.stdout.log",
+        "artifacts/mfn_evidence/logs/package_smoke.log",
+        "artifacts/mfn_evidence/logs/replay.log",
+        "artifacts/mfn_evidence/logs/replay_mfn_cli_run.stderr.log",
+        "artifacts/mfn_evidence/logs/replay_mfn_cli_run.stdout.log",
+        "artifacts/mfn_evidence/logs/replay_validate_bundle.stderr.log",
+        "artifacts/mfn_evidence/logs/replay_validate_bundle.stdout.log",
+        "artifacts/mfn_evidence/logs/roadmap_claim_boundary.stderr.log",
+        "artifacts/mfn_evidence/logs/roadmap_claim_boundary.stdout.log",
+        "artifacts/mfn_evidence/logs/roadmap_contract_validation.log",
+        "artifacts/mfn_evidence/logs/roadmap_forbidden_terms.stderr.log",
+        "artifacts/mfn_evidence/logs/roadmap_forbidden_terms.stdout.log",
+        "artifacts/mfn_evidence/logs/roadmap_pytest_contracts.stderr.log",
+        "artifacts/mfn_evidence/logs/roadmap_pytest_contracts.stdout.log",
+        "artifacts/mfn_evidence/logs/roadmap_surface_check.stderr.log",
+        "artifacts/mfn_evidence/logs/roadmap_surface_check.stdout.log",
+        "artifacts/mfn_evidence/logs/wheel_import_geosync_file.stderr.log",
+        "artifacts/mfn_evidence/logs/wheel_import_geosync_file.stdout.log",
+        "artifacts/mfn_evidence/logs/wheel_venv_create.stderr.log",
+        "artifacts/mfn_evidence/logs/wheel_venv_create.stdout.log",
+        "artifacts/mfn_evidence/manifest_integrity_report.json",
+        "artifacts/mfn_evidence/package_smoke_report.json",
+        "artifacts/mfn_evidence/replay_bundle/SHA256SUMS",
+        "artifacts/mfn_evidence/replay_bundle/compare.json",
+        "artifacts/mfn_evidence/replay_bundle/detect.json",
+        "artifacts/mfn_evidence/replay_bundle/extract.json",
+        "artifacts/mfn_evidence/replay_bundle/forecast.json",
+        "artifacts/mfn_evidence/replay_bundle/manifest.json",
+        "artifacts/mfn_evidence/replay_bundle/report.json",
+        "artifacts/mfn_evidence/replay_bundle/runbook.md",
+        "artifacts/mfn_evidence/replay_bundle/simulate.json",
+        "artifacts/mfn_evidence/replay_report.json",
+        "artifacts/mfn_evidence/roadmap_contract_validation.json",
+        "schemas/mfn_evidence_bundle.schema.json"
+      ],
+      "commands_run": [
+        "git status --short",
+        "git rev-parse HEAD",
+        "python --version",
+        "python -m pip --version",
+        "find docs schemas tools geosync/mfn tests -maxdepth 3 -type f | sort",
+        "git rev-parse --abbrev-ref HEAD",
+        "python tools/mfn_surface_check.py --root . --strict",
+        "pytest tests/ci/test_mfn_surface_check.py tests/ci/test_mfn_surface_payload_contract.py tests/ci/test_mfn_roadmap_contract.py tests/unit/mfn -q",
+        "python scripts/ci/check_claim_boundary.py",
+        "python scripts/ci/lint_forbidden_terms.py --paths README.md docs/REPOSITORY_SYSTEM.md docs/MFN_VERIFICATION_ROADMAP.json .github/claim_boundary_allow.json",
+        "python -m venv /tmp/mfn_clean_env",
+        "/tmp/mfn_clean_env/bin/python -m pip install --upgrade pip",
+        "/tmp/mfn_clean_env/bin/python -m pip install .",
+        "/tmp/mfn_clean_env/bin/python -c import geosync; print(geosync.__file__)",
+        "/tmp/mfn_clean_env/bin/python -c import importlib.metadata as m; print(m.version(\"geosync\"))",
+        "/tmp/mfn_clean_env/bin/python -m geosync.mfn.cli --help",
+        "/tmp/mfn_clean_env/bin/python -m geosync.mfn.pipeline --help",
+        "/tmp/mfn_clean_env/bin/mfn --help",
+        "python -m geosync.mfn.cli --out /workspace/GeoSync/artifacts/mfn_evidence/replay_bundle --seed 7 --points 16 run",
+        "python -c from pathlib import Path; from geosync.mfn.pipeline import validate_bundle; errors = validate_bundle(Path('artifacts/mfn_evidence/replay_bundle')); print(errors); raise SystemExit(1 if errors else 0)",
+        "python -m pip install build",
+        "python -m build",
+        "python -m venv /tmp/mfn_wheel_env",
+        "pip install dist/*.whl",
+        "/tmp/mfn_wheel_env/bin/python -c import geosync; print(geosync.__file__)",
+        "/tmp/mfn_wheel_env/bin/mfn --help",
+        "git status --short"
+      ],
+      "exit_codes": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        127,
+        0,
+        0,
+        1,
+        1,
+        0,
+        127,
+        1,
+        127,
+        0
+      ],
+      "failures_remaining": [
+        {
+          "cause": "pip install . could not fetch isolated build dependency setuptools>=69 through environment proxy; no installed package or mfn entrypoint proof produced",
+          "status": "BLOCKED",
+          "step": "clean_install"
+        },
+        {
+          "cause": "python -m pip install build could not fetch build package through environment proxy; no wheel/sdist smoke proof produced",
+          "status": "BLOCKED",
+          "step": "package_smoke"
+        }
+      ],
+      "files_changed": [
+        "artifacts/mfn_evidence/EVIDENCE_BUNDLE.json",
+        "artifacts/mfn_evidence/replay_bundle/manifest.json",
+        "artifacts/mfn_evidence/replay_bundle/SHA256SUMS",
+        "schemas/mfn_evidence_bundle.schema.json"
+      ],
+      "raw_logs": [
+        "artifacts/mfn_evidence/logs/baseline_git_status_short.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_git_status_short.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_git_rev_parse_head.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_git_rev_parse_head.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_python_version.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_python_version.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_pip_version.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_pip_version.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_relevant_files.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_relevant_files.stderr.log",
+        "artifacts/mfn_evidence/logs/baseline_git_branch.stdout.log",
+        "artifacts/mfn_evidence/logs/baseline_git_branch.stderr.log",
+        "artifacts/mfn_evidence/logs/roadmap_surface_check.stdout.log",
+        "artifacts/mfn_evidence/logs/roadmap_surface_check.stderr.log",
+        "artifacts/mfn_evidence/logs/roadmap_pytest_contracts.stdout.log",
+        "artifacts/mfn_evidence/logs/roadmap_pytest_contracts.stderr.log",
+        "artifacts/mfn_evidence/logs/roadmap_claim_boundary.stdout.log",
+        "artifacts/mfn_evidence/logs/roadmap_claim_boundary.stderr.log",
+        "artifacts/mfn_evidence/logs/roadmap_forbidden_terms.stdout.log",
+        "artifacts/mfn_evidence/logs/roadmap_forbidden_terms.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_venv_create.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_venv_create.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_pip_upgrade.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_pip_upgrade.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_pip_install_project.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_pip_install_project.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_import_geosync_file.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_import_geosync_file.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_import_geosync_version.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_import_geosync_version.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_module_cli_help.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_module_cli_help.stderr.log",
+        "artifacts/mfn_evidence/logs/clean_module_pipeline_help.stdout.log",
+        "artifacts/mfn_evidence/logs/clean_module_pipeline_help.stderr.log",
+        "artifacts/mfn_evidence/logs/replay_mfn_cli_run.stdout.log",
+        "artifacts/mfn_evidence/logs/replay_mfn_cli_run.stderr.log",
+        "artifacts/mfn_evidence/logs/replay_validate_bundle.stdout.log",
+        "artifacts/mfn_evidence/logs/replay_validate_bundle.stderr.log",
+        "artifacts/mfn_evidence/logs/package_install_build.stdout.log",
+        "artifacts/mfn_evidence/logs/package_install_build.stderr.log",
+        "artifacts/mfn_evidence/logs/package_build.stdout.log",
+        "artifacts/mfn_evidence/logs/package_build.stderr.log",
+        "artifacts/mfn_evidence/logs/wheel_venv_create.stdout.log",
+        "artifacts/mfn_evidence/logs/wheel_venv_create.stderr.log",
+        "artifacts/mfn_evidence/logs/wheel_import_geosync_file.stdout.log",
+        "artifacts/mfn_evidence/logs/wheel_import_geosync_file.stderr.log",
+        "artifacts/mfn_evidence/logs/final_git_status_short.stdout.log",
+        "artifacts/mfn_evidence/logs/final_git_status_short.stderr.log"
+      ],
+      "role": "local_code_builder",
+      "status": "BLOCKED"
+    },
+    "orchestrator": {
+      "agent_assignments": [
+        "local_code_builder",
+        "verifier",
+        "falsifier",
+        "validator_calibrator"
+      ],
+      "execution_order": [
+        "capture",
+        "execute",
+        "validate",
+        "falsify",
+        "calibrate"
+      ],
+      "intent_contract": {
+        "claim_tier_change": "none",
+        "scope": "MFN gateway evidence highway",
+        "stop_condition": "EXTERNAL_VERIFIED, BLOCKED, or REJECTED with logs"
+      },
+      "merge_gate": {
+        "first_file_to_open": "artifacts/mfn_evidence/EVIDENCE_BUNDLE.json"
+      },
+      "role": "orchestrator",
+      "status": "BLOCKED",
+      "stop_conditions": [
+        "package dependency fetch blocked clean-install and package-smoke proof"
+      ],
+      "task_graph": [
+        "baseline_state",
+        "roadmap_contract_validation",
+        "clean_install",
+        "replay_bundle",
+        "manifest_integrity",
+        "package_smoke",
+        "evidence_bundle"
+      ]
+    },
+    "validator_calibrator": {
+      "confidence_limit": 0.9,
+      "cost_risk": {
+        "E_stress": "reduced by first-file pointer and exact blocker",
+        "H_entropy": "reduced by command records and hashes",
+        "epsilon_error": "reduced by raw logs",
+        "token_cost": "moderate due committed logs"
+      },
+      "next_deterministic_action": "Provide package build dependencies or an internal wheelhouse, then rerun clean-install and package-smoke evidence commands without PYTHONPATH.",
+      "objective_alignment": [
+        "Positive: evidence is inspectable and failures are preserved.",
+        "Negative: package proof blockage prevents operational readiness."
+      ],
+      "priority_patch": [
+        "Do not promote MFN state.",
+        "Fix package dependency availability before any release gate."
+      ],
+      "role": "validator_calibrator",
+      "status": "BLOCKED",
+      "value_gain": {
+        "V_artifact_quality": "schema-backed evidence bundle",
+        "V_autonomy": "partial; replay is automated but package proof blocked",
+        "V_system": "higher observability",
+        "V_verified_progress": "blocked with exact logs"
+      }
+    },
+    "verifier": {
+      "commands_required": [
+        "python tools/mfn_surface_check.py --root . --strict",
+        "pytest tests/ci/test_mfn_surface_check.py tests/ci/test_mfn_surface_payload_contract.py tests/ci/test_mfn_roadmap_contract.py tests/unit/mfn -q",
+        "python scripts/ci/check_claim_boundary.py",
+        "python scripts/ci/lint_forbidden_terms.py --paths README.md docs/REPOSITORY_SYSTEM.md docs/MFN_VERIFICATION_ROADMAP.json .github/claim_boundary_allow.json"
+      ],
+      "contract_checked": "schemas/mfn_evidence_bundle.schema.json",
+      "contract_failures": [
+        "clean-install proof blocked",
+        "package wheel/sdist smoke proof blocked"
+      ],
+      "evidence_available": [
+        "artifacts/mfn_evidence/logs",
+        "artifacts/mfn_evidence/replay_report.json",
+        "artifacts/mfn_evidence/manifest_integrity_report.json"
+      ],
+      "evidence_required": [
+        "clean-install log",
+        "package-smoke log",
+        "replay log",
+        "schema-validation log"
+      ],
+      "role": "verifier",
+      "status": "BLOCKED",
+      "verification_tests": [
+        "schema validation",
+        "surface checker",
+        "pytest MFN tests",
+        "claim boundary",
+        "forbidden terms",
+        "replay validate_bundle",
+        "manifest hash checks"
+      ]
+    },
+    "web_evidence_agent": {
+      "claims_checked": [],
+      "contradictions": [],
+      "external_assumptions": [
+        "Package fetch failure is evidenced by local pip stderr logs, not web research."
+      ],
+      "freshness_status": "NOT_REQUIRED_FOR_LOCAL_EVIDENCE_BUNDLE",
+      "role": "web_evidence_agent",
+      "sources": [],
+      "status": "BLOCKED",
+      "unsupported_claims": [
+        "No external web claim was required or promoted."
+      ]
+    }
+  },
+  "artifact_delta": [
+    "artifacts/mfn_evidence/MULTI_AGENT_CYCLE.json",
+    "schemas/mfn_multi_agent_cycle.schema.json",
+    "tests/ci/test_mfn_multi_agent_cycle.py"
+  ],
+  "cycle_id": "mfn_external_evidence_cycle_2026_06_12",
+  "evidence_status": {
+    "confidence": 0.9,
+    "evidence_source": "python_runner",
+    "external_evidence_available": true,
+    "score": null,
+    "status": "BLOCKED",
+    "tests_executed": [
+      "git status --short",
+      "git rev-parse HEAD",
+      "python --version",
+      "python -m pip --version",
+      "find docs schemas tools geosync/mfn tests -maxdepth 3 -type f | sort",
+      "git rev-parse --abbrev-ref HEAD",
+      "python tools/mfn_surface_check.py --root . --strict",
+      "pytest tests/ci/test_mfn_surface_check.py tests/ci/test_mfn_surface_payload_contract.py tests/ci/test_mfn_roadmap_contract.py tests/unit/mfn -q",
+      "python scripts/ci/check_claim_boundary.py",
+      "python scripts/ci/lint_forbidden_terms.py --paths README.md docs/REPOSITORY_SYSTEM.md docs/MFN_VERIFICATION_ROADMAP.json .github/claim_boundary_allow.json",
+      "python -m venv /tmp/mfn_clean_env",
+      "/tmp/mfn_clean_env/bin/python -m pip install --upgrade pip",
+      "/tmp/mfn_clean_env/bin/python -m pip install .",
+      "/tmp/mfn_clean_env/bin/python -c import geosync; print(geosync.__file__)",
+      "/tmp/mfn_clean_env/bin/python -m geosync.mfn.cli --help",
+      "/tmp/mfn_clean_env/bin/mfn --help",
+      "python -m geosync.mfn.cli --out /workspace/GeoSync/artifacts/mfn_evidence/replay_bundle --seed 7 --points 16 run",
+      "python -c from pathlib import Path; from geosync.mfn.pipeline import validate_bundle; errors = validate_bundle(Path('artifacts/mfn_evidence/replay_bundle')); print(errors); raise SystemExit(1 if errors else 0)",
+      "python -m pip install build",
+      "python -m build",
+      "python -m venv /tmp/mfn_wheel_env",
+      "pip install dist/*.whl",
+      "/tmp/mfn_wheel_env/bin/python -c import geosync; print(geosync.__file__)",
+      "/tmp/mfn_wheel_env/bin/mfn --help",
+      "git status --short"
+    ],
+    "tests_not_executed": []
+  },
+  "final_gate": {
+    "evidence_required": [
+      "successful clean-install log",
+      "successful wheel/sdist build log",
+      "successful installed mfn entrypoint log"
+    ],
+    "reason": "MFN replay and manifest checks passed, but package install and wheel/sdist smoke proof are blocked by unavailable build dependencies.",
+    "status": "BLOCKED"
+  },
+  "next_deterministic_action": "Provide package build dependencies or an internal wheelhouse, then rerun clean-install and package-smoke evidence commands without PYTHONPATH.",
+  "objective": {
+    "action_vector": "earn -> exit -> build systems",
+    "current_state": "MFN roadmap and replay evidence exist; package clean-install and wheel/sdist smoke are blocked by package dependency fetch failures.",
+    "target_state": "MFN readiness is externally inspectable through evidence artifacts, raw logs, schemas, and explicit blockers.",
+    "transformation": "Map the MFN evidence bundle into the seven-role reversible multi-agent runtime without claim-tier promotion."
+  },
+  "reverse_trace": [
+    {
+      "cause": "pip could not fetch isolated build dependency setuptools>=69 through environment proxy",
+      "component": "package clean-install evidence",
+      "evidence": "artifacts/mfn_evidence/logs/clean_pip_install_project.stderr.log",
+      "failure": "clean install proof unavailable",
+      "patch": "provide package build dependencies or internal wheelhouse",
+      "test": "/tmp/mfn_clean_env/bin/python -m pip install . && /tmp/mfn_clean_env/bin/mfn --help"
+    },
+    {
+      "cause": "python -m pip install build could not fetch build package through environment proxy",
+      "component": "package smoke evidence",
+      "evidence": "artifacts/mfn_evidence/logs/package_install_build.stderr.log",
+      "failure": "wheel/sdist smoke proof unavailable",
+      "patch": "provide build package or offline build backend dependencies",
+      "test": "python -m build && /tmp/mfn_wheel_env/bin/python -m pip install dist/*.whl && /tmp/mfn_wheel_env/bin/mfn --help"
+    }
+  ]
+}

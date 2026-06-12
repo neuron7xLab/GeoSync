@@ -1,0 +1,71 @@
+{
+  "commands": [
+    {
+      "command": "python -m pip install build",
+      "duration_seconds": 9.052,
+      "exit_code": 1,
+      "name": "package_install_build",
+      "result": "FAIL",
+      "stderr_log": "artifacts/mfn_evidence/logs/package_install_build.stderr.log",
+      "stdout_log": "artifacts/mfn_evidence/logs/package_install_build.stdout.log",
+      "timed_out": false
+    },
+    {
+      "command": "python -m build",
+      "duration_seconds": 0.068,
+      "exit_code": 1,
+      "name": "package_build",
+      "result": "FAIL",
+      "stderr_log": "artifacts/mfn_evidence/logs/package_build.stderr.log",
+      "stdout_log": "artifacts/mfn_evidence/logs/package_build.stdout.log",
+      "timed_out": false
+    },
+    {
+      "command": "python -m venv /tmp/mfn_wheel_env",
+      "duration_seconds": 7.141,
+      "exit_code": 0,
+      "name": "wheel_venv_create",
+      "result": "PASS",
+      "stderr_log": "artifacts/mfn_evidence/logs/wheel_venv_create.stderr.log",
+      "stdout_log": "artifacts/mfn_evidence/logs/wheel_venv_create.stdout.log",
+      "timed_out": false
+    },
+    {
+      "command": "pip install dist/*.whl",
+      "duration_seconds": 0,
+      "exit_code": 127,
+      "name": "wheel_install",
+      "result": "BLOCKED",
+      "stderr_log": "",
+      "stdout_log": "",
+      "timed_out": false
+    },
+    {
+      "command": "/tmp/mfn_wheel_env/bin/python -c import geosync; print(geosync.__file__)",
+      "duration_seconds": 0.159,
+      "exit_code": 1,
+      "name": "wheel_import_geosync_file",
+      "result": "FAIL",
+      "stderr_log": "artifacts/mfn_evidence/logs/wheel_import_geosync_file.stderr.log",
+      "stdout_log": "artifacts/mfn_evidence/logs/wheel_import_geosync_file.stdout.log",
+      "timed_out": false
+    },
+    {
+      "command": "/tmp/mfn_wheel_env/bin/mfn --help",
+      "duration_seconds": 0,
+      "exit_code": 127,
+      "name": "wheel_console_mfn_help",
+      "result": "BLOCKED",
+      "stderr_log": "",
+      "stdout_log": "",
+      "timed_out": false
+    }
+  ],
+  "entrypoint_status": "MISSING",
+  "failure_cause": "blocked: python -m pip install build could not fetch build package through environment proxy; wheel/sdist not produced",
+  "raw_log": "artifacts/mfn_evidence/logs/package_smoke.log",
+  "sdist": "",
+  "status": "BLOCKED",
+  "timestamp_utc": "2026-06-12T13:53:12Z",
+  "wheel": ""
+}

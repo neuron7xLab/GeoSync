@@ -1,0 +1,26 @@
+[2026-06-12T13:52:55Z] $ python -m geosync.mfn.cli --out /workspace/GeoSync/artifacts/mfn_evidence/replay_bundle --seed 7 --points 16 run
+exit_code=0 duration_seconds=0.237
+--- stdout ---
+output_bundle=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle
+simulate=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/simulate.json
+extract=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/extract.json
+detect=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/detect.json
+forecast=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/forecast.json
+compare=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/compare.json
+report=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/report.json
+runbook=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/runbook.md
+manifest=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/manifest.json
+sha256_manifest=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/SHA256SUMS
+first_file_to_open=/workspace/GeoSync/artifacts/mfn_evidence/replay_bundle/manifest.json
+
+--- stderr ---
+
+
+[2026-06-12T13:52:55Z] $ python -c from pathlib import Path; from geosync.mfn.pipeline import validate_bundle; errors = validate_bundle(Path('artifacts/mfn_evidence/replay_bundle')); print(errors); raise SystemExit(1 if errors else 0)
+exit_code=0 duration_seconds=0.201
+--- stdout ---
+[]
+
+--- stderr ---
+
+
