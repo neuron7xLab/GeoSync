@@ -75,6 +75,14 @@ def _stage_payload(stage: str, contract: MFNContract, body: Mapping[str, Any]) -
     }
 
 
+def _is_sha256_hex(value: str) -> bool:
+    return len(value) == SHA256_HEX_LENGTH and all(char in "0123456789abcdef" for char in value)
+
+
+def _is_safe_relative_path(value: str) -> bool:
+    return bool(value) and not value.startswith("/") and ".." not in Path(value).parts
+
+
 def _parse_sha256_manifest(path: Path) -> tuple[dict[str, str], list[str]]:
     """Parse a SHA-256 manifest into ``relative_path -> digest`` entries."""
 
@@ -88,10 +96,10 @@ def _parse_sha256_manifest(path: Path) -> tuple[dict[str, str], list[str]]:
             errors.append(f"SHA256SUMS line {line_number} must use two-space separator")
             continue
         digest, rel = line.split("  ", 1)
-        if len(digest) != SHA256_HEX_LENGTH or any(char not in "0123456789abcdef" for char in digest):
+        if not _is_sha256_hex(digest):
             errors.append(f"SHA256SUMS line {line_number} has invalid digest")
             continue
-        if not rel or rel.startswith("/") or ".." in Path(rel).parts:
+        if not _is_safe_relative_path(rel):
             errors.append(f"SHA256SUMS line {line_number} has invalid path")
             continue
         if rel in entries:
@@ -275,7 +283,7 @@ def report(output_dir: Path, *, contract: MFNContract) -> Path:
         "```",
         "",
     ]
-    (output_dir / "runbook.md").write_text("\n".join(lines), encoding="utf-8")
+    (output_dir / "runbook.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return report_path
 
 
@@ -349,6 +357,12 @@ def validate_bundle(output_dir: Path) -> list[str]:
         digest = entry.get("sha256")
         if not isinstance(rel, str) or not isinstance(digest, str):
             errors.append("manifest entry path and sha256 must be strings")
+            continue
+        if not _is_safe_relative_path(rel):
+            errors.append(f"manifest entry has invalid path: {rel}")
+            continue
+        if not _is_sha256_hex(digest):
+            errors.append(f"manifest entry has invalid digest: {rel}")
             continue
         if rel in manifest_hashes:
             errors.append(f"manifest duplicate entry: {rel}")
