@@ -14,7 +14,10 @@ def test_patch_text_replaces_expected_surface() -> None:
     patched, count = patch_text(_makefile_text())
 
     assert count == EXPECTED_REPLACEMENTS
-    assert OLD not in patched
+    # OLD is a prefix of NEW, so it necessarily remains a substring after
+    # the append. The real invariant is that every shortcut now carries
+    # the geosync coverage flag.
+    assert "--cov=geosync" in patched
     assert patched.count(NEW) == EXPECTED_REPLACEMENTS
 
 

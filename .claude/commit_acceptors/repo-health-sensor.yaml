@@ -10,7 +10,7 @@
 
 id: repo-health-sensor
 status: ACTIVE
-claim_type: correctness
+claim_type: refactor
 promise: >-
   After this PR lands, tools/repo_health_sensor.py rolls the independent
   surface sub-sensors (mfn_surface, reproducible_capsules,
@@ -32,6 +32,11 @@ diff_scope:
     - path: "tests/ci/test_mfn_surface_payload_contract.py"
     - path: "scripts/check_epistemic_drift.py"
     - path: ".github/claim_boundary_allow.json"
+    - path: "tools/patch_makefile_geosync_coverage.py"
+    - path: "tests/ci/test_patch_makefile_geosync_coverage.py"
+    - path: "scripts/ci/prove_repo_integrity.sh"
+    - path: "Makefile"
+    - path: "docs/operations/TESTING.md"
   forbidden_paths:
     - "trading/"
     - "execution/"

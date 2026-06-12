@@ -128,14 +128,20 @@ def contract_markers(root: Path) -> Row:
 
 def json_contract_markers(root: Path) -> Row:
     required = {
-        "tools/validate_json_artifact_contract.py": ["validate_contract", "score_requires_external_evidence"],
+        "tools/validate_json_artifact_contract.py": [
+            "validate_contract",
+            "score_requires_external_evidence",
+        ],
         "tools/check_json_contract_evidence_policy.py": ["check_policy", "status_mismatch"],
         "tools/json_contract_receipt.py": ["sha256", "receipt"],
         "tools/run_json_artifact_checks.py": ["FIXTURES", "json_artifact_checks.v1"],
         "tools/run_autonomy_cycle.py": ["autonomy_cycle.v1", "READY_FOR_NEXT_CYCLE"],
         "tools/update_autonomy_trend.py": ["autonomy_trend.v1", "summary", "decision_counts"],
         "schemas/json_artifact_contract.schema.json": ["contract_type", "evidence_status"],
-        "schemas/json_artifact_evidence_policy.schema.json": ["blocked_contract", "CANDIDATE_NOT_VALIDATED"],
+        "schemas/json_artifact_evidence_policy.schema.json": [
+            "blocked_contract",
+            "CANDIDATE_NOT_VALIDATED",
+        ],
         "schemas/autonomy_cycle.schema.json": ["autonomy_cycle.v1", "READY_FOR_NEXT_CYCLE"],
         "schemas/autonomy_trend.schema.json": ["autonomy_trend.v1", "summary", "decision_counts"],
         "examples/json_artifact_contract.candidate.json": ["CANDIDATE_NOT_VALIDATED"],

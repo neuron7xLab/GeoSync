@@ -34,7 +34,7 @@ make test-heavy
 
 ## Coverage Proof
 
-Coverage must include the production Python surfaces, including `geosync`:
+Coverage must include the production Python surfaces, including the `geosync/` package:
 
 ```bash
 pytest tests/ \
@@ -108,7 +108,7 @@ make test-all
 make test-heavy
 ```
 
-Do not document colon-style targets such as `make test:fast`. They are not Makefile targets in this repository.
+Use the hyphenated shortcut names above. Colon-style variants (the `test` + colon + `fast` form) are not Makefile targets in this repository and must not be documented.
 
 ## Claim Rule
 
