@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +30,7 @@ def _read_object(path: Path) -> dict[str, Any]:
 
 def _read_ledger(path: Path) -> dict[str, Any]:
     if not path.exists():
-        return {"schema_version": SCHEMA_VERSION, "entries": []}
+        return {"schema_version": SCHEMA_VERSION, "entries": [], "summary": _summary([])}
     ledger = _read_object(path)
     if ledger.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("ledger schema_version mismatch")
@@ -57,6 +58,17 @@ def _entry(cycle_path: Path, cycle: dict[str, Any], sequence: int) -> dict[str, 
     }
 
 
+def _summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
+    counts = Counter(str(item.get("decision_state", "UNKNOWN")) for item in entries if isinstance(item, dict))
+    latest = entries[-1] if entries else None
+    return {
+        "total_cycles": len(entries),
+        "decision_counts": dict(sorted(counts.items())),
+        "latest_decision_state": None if latest is None else latest.get("decision_state"),
+        "latest_cycle_sha256": None if latest is None else latest.get("cycle_sha256"),
+    }
+
+
 def build_ledger(cycle_path: Path, ledger_path: Path, limit: int) -> dict[str, Any]:
     if limit <= 0:
         raise ValueError("limit must be positive")
@@ -65,7 +77,7 @@ def build_ledger(cycle_path: Path, ledger_path: Path, limit: int) -> dict[str, A
     entries = list(ledger["entries"])
     entries.append(_entry(cycle_path, cycle, len(entries) + 1))
     entries = entries[-limit:]
-    return {"schema_version": SCHEMA_VERSION, "entries": entries}
+    return {"schema_version": SCHEMA_VERSION, "entries": entries, "summary": _summary(entries)}
 
 
 def main(argv: list[str] | None = None) -> int:
