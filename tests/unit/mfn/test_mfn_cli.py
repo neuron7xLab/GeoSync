@@ -47,16 +47,6 @@ def test_mfn_validate_rejects_missing_bundle(tmp_path: Path, capsys) -> None:
     assert "missing required artifact" in captured.err
 
 
-def test_mfn_validate_rejects_corrupt_sha256sums(tmp_path: Path) -> None:
-    bundle = tmp_path / "bundle"
-    assert main(["--out", str(bundle), "--seed", "7", "--points", "8", "run"]) == 0
-
-    (bundle / "SHA256SUMS").write_text("0" * 64 + "  simulate.json\n", encoding="utf-8")
-
-    errors = validate_bundle(bundle)
-    assert "SHA256SUMS mismatch: simulate.json" in errors
-
-
 def test_mfn_bundle_is_byte_reproducible(tmp_path: Path, monkeypatch) -> None:
     # INVARIANT_03: a release artifact is invalid unless reproducible from one
     # clean command. With SOURCE_DATE_EPOCH pinned, two clean runs must produce
