@@ -25,14 +25,21 @@ PHASES = (
     },
     {
         "phase": "receipt",
-        "command": [sys.executable, "tools/json_contract_receipt.py", "--out", "artifacts/validation/json_contract_receipt.json"],
+        "command": [
+            sys.executable,
+            "tools/json_contract_receipt.py",
+            "--out",
+            "artifacts/validation/json_contract_receipt.json",
+        ],
         "artifact": "artifacts/validation/json_contract_receipt.json",
     },
 )
 
 
 def _run(command: list[str], cwd: Path) -> dict[str, Any]:
-    proc = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, cwd=cwd)
+    proc = subprocess.run(
+        command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, cwd=cwd
+    )
     return {
         "command": command,
         "returncode": proc.returncode,

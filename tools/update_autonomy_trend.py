@@ -64,7 +64,9 @@ def _entry(cycle_path: Path, cycle: dict[str, Any], sequence: int) -> dict[str, 
 
 
 def _summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
-    decision_counts = Counter(str(item.get("decision_state", "UNKNOWN")) for item in entries if isinstance(item, dict))
+    decision_counts = Counter(
+        str(item.get("decision_state", "UNKNOWN")) for item in entries if isinstance(item, dict)
+    )
     status_counts: Counter[str] = Counter()
     phase_count_total = 0
     for item in entries:
@@ -72,7 +74,9 @@ def _summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
             continue
         counts = item.get("status_counts")
         if isinstance(counts, dict):
-            status_counts.update({str(key): int(value) for key, value in counts.items() if isinstance(value, int)})
+            status_counts.update(
+                {str(key): int(value) for key, value in counts.items() if isinstance(value, int)}
+            )
         phase_count = item.get("phase_count")
         if isinstance(phase_count, int) and not isinstance(phase_count, bool):
             phase_count_total += phase_count

@@ -23,6 +23,12 @@ diff_scope:
     - path: ".claude/commit_acceptors/architecture-debt-inference.yaml"
     - path: "tools/architecture_debt_inference.py"
     - path: "tests/ci/test_architecture_debt_inference.py"
+    - path: "tools/generate_json_contract_validation_bundle.py"
+    - path: "tools/json_contract_receipt.py"
+    - path: "tools/run_json_artifact_checks.py"
+    - path: "tools/run_autonomy_cycle.py"
+    - path: "tools/update_autonomy_trend.py"
+    - path: "tools/validate_json_artifact_contract.py"
   forbidden_paths:
     - "trading/"
     - "execution/"

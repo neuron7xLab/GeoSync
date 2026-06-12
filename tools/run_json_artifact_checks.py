@@ -15,7 +15,9 @@ SCHEMA_VERSION = "json_artifact_checks.v1"
 
 
 def run(cmd: list[str], cwd: Path) -> dict[str, Any]:
-    proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, cwd=cwd)
+    proc = subprocess.run(
+        cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, cwd=cwd
+    )
     return {"cmd": cmd, "code": proc.returncode, "stdout": proc.stdout, "stderr": proc.stderr}
 
 
@@ -23,9 +25,18 @@ def build_payload(root: Path) -> dict[str, Any]:
     results: list[dict[str, Any]] = []
     for name in FIXTURES:
         fixture = f"examples/json_artifact_contract.{name}.json"
-        results.append(run([sys.executable, "tools/validate_json_artifact_contract.py", fixture], root))
-        results.append(run([sys.executable, "tools/check_json_contract_evidence_policy.py", fixture], root))
-    receipt_cmd = [sys.executable, "tools/json_contract_receipt.py", "--out", "artifacts/validation/json_contract_receipt.json"]
+        results.append(
+            run([sys.executable, "tools/validate_json_artifact_contract.py", fixture], root)
+        )
+        results.append(
+            run([sys.executable, "tools/check_json_contract_evidence_policy.py", fixture], root)
+        )
+    receipt_cmd = [
+        sys.executable,
+        "tools/json_contract_receipt.py",
+        "--out",
+        "artifacts/validation/json_contract_receipt.json",
+    ]
     results.append(run(receipt_cmd, root))
     status = "OK" if all(item["code"] == 0 for item in results) else "ERROR"
     return {"schema_version": SCHEMA_VERSION, "status": status, "results": results}
