@@ -14,3 +14,12 @@ def test_points_argument_requires_number(capsys) -> None:
     captured = capsys.readouterr()
     assert exc_info.value.code == 2
     assert "points must be an integer" in captured.err
+
+
+def test_points_argument_rejects_zero(capsys) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--points", "0", "run"])
+
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 2
+    assert "points must be >= 4" in captured.err
