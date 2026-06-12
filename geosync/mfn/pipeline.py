@@ -83,6 +83,16 @@ def _is_safe_relative_path(value: str) -> bool:
     return bool(value) and not value.startswith("/") and ".." not in Path(value).parts
 
 
+def _finite_float(value: object, *, field: str, source: str) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{source} {field} must be numeric") from exc
+    if not math.isfinite(number):
+        raise ValueError(f"{source} {field} must be finite")
+    return number
+
+
 def _parse_sha256_manifest(path: Path) -> tuple[dict[str, str], list[str]]:
     """Parse a SHA-256 manifest into ``relative_path -> digest`` entries."""
 
@@ -148,7 +158,13 @@ def extract(output_dir: Path, *, contract: MFNContract) -> Path:
     if not isinstance(observations, list):
         raise ValueError("simulate.json must contain observations")
 
-    prices = [float(item["price"]) for item in observations if isinstance(item, dict)]
+    prices: list[float] = []
+    for index, item in enumerate(observations):
+        if not isinstance(item, dict):
+            continue
+        if "price" not in item:
+            raise ValueError(f"simulate.json observations[{index}] price is required")
+        prices.append(_finite_float(item["price"], field="price", source="simulate.json"))
     if len(prices) < 2:
         raise ValueError("simulate.json must contain at least two price observations")
     returns = [round(prices[i] - prices[i - 1], 8) for i in range(1, len(prices))]
