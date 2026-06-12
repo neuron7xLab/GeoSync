@@ -73,6 +73,17 @@ def test_mfn_bundle_is_byte_reproducible(tmp_path: Path, monkeypatch) -> None:
         )
 
 
+def test_mfn_api_text_lists_contract_fields(capsys) -> None:
+    exit_code = api_main([])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "status=INSTRUMENTED" in captured.out
+    assert "default_bundle=" in captured.out
+    assert "min_points=4" in captured.out
+    assert "commands=" in captured.out
+
+
 def test_mfn_api_json_lists_required_commands(capsys) -> None:
     exit_code = api_main(["--format", "json"])
 
