@@ -69,6 +69,7 @@ def _cmd_api(args: argparse.Namespace) -> int:
         "schema_version": "mfn.api.v1",
         "commands": list(MFN_COMMANDS),
         "default_bundle": str(DEFAULT_OUT),
+        "min_points": MIN_POINTS,
         "status": "INSTRUMENTED",
     }
     if args.format == "json":
