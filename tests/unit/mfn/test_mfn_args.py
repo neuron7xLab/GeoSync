@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 
 from geosync.mfn.cli import build_parser, main
+from geosync.mfn.contract import MFN_COMMANDS
+from geosync.mfn.pipeline import STAGE_ORDER
 
 
 def test_points_argument_requires_number(capsys) -> None:
@@ -28,3 +30,8 @@ def test_points_argument_rejects_zero(capsys) -> None:
 def test_points_argument_accepts_minimum() -> None:
     args = build_parser().parse_args(["--points", "4", "run"])
     assert args.points == 4
+
+
+def test_command_contract_tracks_stage_order() -> None:
+    assert MFN_COMMANDS[: len(STAGE_ORDER)] == STAGE_ORDER
+    assert MFN_COMMANDS[-2:] == ("run", "validate")
