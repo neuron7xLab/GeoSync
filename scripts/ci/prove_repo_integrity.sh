@@ -33,19 +33,19 @@ then
   exit 2
 fi
 
-echo "[1/10] invariant witness"
+echo "[1/11] invariant witness"
 test "$("$PY" scripts/count_invariants.py)" = "97"
 
-echo "[2/10] python version matrix"
+echo "[2/11] python version matrix"
 "$PY" scripts/check_python_matrix.py >/dev/null
 
-echo "[3/10] namespace policy"
+echo "[3/11] namespace policy"
 "$PY" scripts/check_namespace_policy.py >/dev/null
 
-echo "[4/10] claim boundary"
+echo "[4/11] claim boundary"
 "$PY" scripts/ci/check_claim_boundary.py >/dev/null
 
-echo "[5/10] manifest hashes (proof mode)"
+echo "[5/11] manifest hashes (proof mode)"
 if "$PY" scripts/ci/check_manifest_hashes.py --min-artifacts 1 >/dev/null 2>&1; then
   echo "      MANIFEST_PROOF: PROVEN"
 else
@@ -54,21 +54,26 @@ else
   echo "      MANIFEST_PROOF: NOT_PROVEN (no real hash-pinned artifacts committed)"
 fi
 
-echo "[6/10] research-artifact truth"
+echo "[6/11] research-artifact truth"
 "$PY" scripts/ci/check_research_artifact_truth.py >/dev/null
 
-echo "[7/10] claim-to-artifact graph"
+echo "[7/11] claim-to-artifact graph"
 "$PY" scripts/ci/check_claim_artifact_graph.py >/dev/null
 
-echo "[8/10] mfn surface sensor"
+echo "[8/11] mfn surface sensor"
 "$PY" tools/mfn_surface_check.py --strict >/dev/null
 
-echo "[9/10] json artifact contract"
+echo "[9/11] json artifact contract"
 "$PY" tools/validate_json_artifact_contract.py \
   examples/json_artifact_contract.candidate.json \
   --out artifacts/validation/json_artifact_contract.result.json >/dev/null
 
-echo "[10/10] gate + contract tests"
+echo "[10/11] json evidence policy"
+"$PY" tools/check_json_contract_evidence_policy.py \
+  examples/json_artifact_contract.candidate.json \
+  --out artifacts/validation/json_artifact_policy.result.json >/dev/null
+
+echo "[11/11] gate + contract tests"
 # Scope: the integrity surface — the truth/graph/manifest gates (tests/ci) and
 # the research-line schema+semantic contracts (tests/research_lines). These run
 # on a clean clone with only the sci-core stack. tests/tools (release-packaging
