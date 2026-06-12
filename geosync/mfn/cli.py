@@ -13,6 +13,14 @@ from . import pipeline
 from .contract import MFN_COMMANDS, MFNContract
 
 DEFAULT_OUT = Path("artifacts") / "runs" / "mfn_integration"
+MIN_POINTS = 4
+
+
+def _points(value: str) -> int:
+    points = int(value)
+    if points < MIN_POINTS:
+        raise argparse.ArgumentTypeError(f"points must be >= {MIN_POINTS}")
+    return points
 
 
 def _print_artifacts(artifacts: dict[str, Path]) -> None:
@@ -92,7 +100,7 @@ def build_parser(*, api_mode: bool = False, validate_mode: bool = False) -> argp
 
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="Output bundle directory.")
     parser.add_argument("--seed", type=int, default=1337, help="Deterministic synthetic seed.")
-    parser.add_argument("--points", type=int, default=16, help="Number of simulated observations.")
+    parser.add_argument("--points", type=_points, default=16, help="Number of simulated observations.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser(
