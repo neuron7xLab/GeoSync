@@ -29,3 +29,12 @@ def test_surface_checker_loads_public_api() -> None:
     assert module.OK
     assert module.RED
     assert module.UNKNOWN
+
+
+def test_surface_checker_tracks_autonomy_cycle_files() -> None:
+    module = _load_module()
+
+    row = module.json_contract_markers(ROOT)
+
+    assert row.status == module.OK
+    assert row.name == "json_contract_markers"
