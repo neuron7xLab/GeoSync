@@ -31,6 +31,7 @@ on:
       - 'tools/patch_makefile_geosync_coverage.py'
       - 'tools/validate_json_artifact_contract.py'
       - 'tools/check_json_contract_evidence_policy.py'
+      - 'tools/json_contract_receipt.py'
       - 'tests/ci/**'
       - 'tests/research_lines/**'
       - '.github/workflows/repo-integrity-gate.yml'
