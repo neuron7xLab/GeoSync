@@ -95,6 +95,8 @@ def test_repo_integrity_workflow_runs_on_public_surface_changes() -> None:
         "FORBIDDEN_CLAIMS.md",
         "AGENTS.md",
         "docs/**/*.md",
+        "geosync/**",
+        "tests/unit/**",
         "tests/ci/**",
     ]:
         assert target in workflow
