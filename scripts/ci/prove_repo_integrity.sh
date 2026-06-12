@@ -1,30 +1,14 @@
 #!/usr/bin/env bash
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-#
-# prove_repo_integrity.sh — one command that proves the repository cannot lie
-# through schema-valid but semantically fake evidence.
-#
-# It runs the reproducibility + claim-integrity chain end to end:
-#   invariant witness · python matrix · namespace policy · claim boundary ·
-#   manifest hashes · research-artifact truth · claim→artifact graph · tests.
-#
-# Honesty contract: the manifest-hash proof is reported as MANIFEST_PROOF:
-# NOT_PROVEN until a real (non-placeholder) hash-pinned artifact graph exists.
-# That sub-signal is informational and never faked. REPO_INTEGRITY: PROVEN is
-# printed only when every reproducibility + truth gate passes.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 export PYTHONPATH="${PYTHONPATH:-.}:."
 PY="${PYTHON:-python3}"
 
-# Preflight: this proof runs on a clean clone with only the sci-core stack.
-# If a dependency is missing, say exactly what to install instead of dying on a
-# cryptic ModuleNotFoundError three steps in — "one command" must be honest.
 if ! "$PY" - <<'PY' 2>/dev/null
 import importlib.util as u
-missing = [m for m in ("numpy", "scipy", "pandas", "networkx", "yaml", "jsonschema", "pytest")
-           if u.find_spec(m) is None]
+missing = [m for m in ("numpy", "scipy", "pandas", "networkx", "yaml", "jsonschema", "pytest") if u.find_spec(m) is None]
 raise SystemExit(1 if missing else 0)
 PY
 then
@@ -33,37 +17,35 @@ then
   exit 2
 fi
 
-echo "[1/12] invariant witness"
+echo "[1/13] invariant witness"
 test "$("$PY" scripts/count_invariants.py)" = "97"
 
-echo "[2/12] python version matrix"
+echo "[2/13] python version matrix"
 "$PY" scripts/check_python_matrix.py >/dev/null
 
-echo "[3/12] namespace policy"
+echo "[3/13] namespace policy"
 "$PY" scripts/check_namespace_policy.py >/dev/null
 
-echo "[4/12] claim boundary"
+echo "[4/13] claim boundary"
 "$PY" scripts/ci/check_claim_boundary.py >/dev/null
 
-echo "[5/12] manifest hashes (proof mode)"
+echo "[5/13] manifest hashes proof mode"
 if "$PY" scripts/ci/check_manifest_hashes.py --min-artifacts 1 >/dev/null 2>&1; then
   echo "      MANIFEST_PROOF: PROVEN"
 else
-  # No real hash-pinned artifact graph exists yet. This is the honest state,
-  # not a failure of the script — say so explicitly and do not fake success.
-  echo "      MANIFEST_PROOF: NOT_PROVEN (no real hash-pinned artifacts committed)"
+  echo "      MANIFEST_PROOF: NOT_PROVEN"
 fi
 
-echo "[6/12] research-artifact truth"
+echo "[6/13] research artifact truth"
 "$PY" scripts/ci/check_research_artifact_truth.py >/dev/null
 
-echo "[7/12] claim-to-artifact graph"
+echo "[7/13] claim artifact graph"
 "$PY" scripts/ci/check_claim_artifact_graph.py >/dev/null
 
-echo "[8/12] mfn surface sensor"
+echo "[8/13] mfn surface sensor"
 "$PY" tools/mfn_surface_check.py --strict >/dev/null
 
-echo "[9/12] json artifact contract"
+echo "[9/13] json artifact contract"
 for fixture in candidate blocked; do
   "$PY" tools/validate_json_artifact_contract.py \
     "examples/json_artifact_contract.${fixture}.json" \
@@ -73,22 +55,20 @@ for fixture in candidate blocked; do
     --out "artifacts/validation/json_artifact_policy_${fixture}.result.json" >/dev/null
 done
 
-echo "[10/12] json evidence policy"
+echo "[10/13] json evidence policy"
 "$PY" tools/check_json_contract_evidence_policy.py \
   examples/json_artifact_contract.candidate.json \
   --out artifacts/validation/json_artifact_policy.result.json >/dev/null
 
-echo "[11/12] json contract receipt"
+echo "[11/13] json contract receipt"
 "$PY" tools/json_contract_receipt.py \
   --out artifacts/validation/json_contract_receipt.json >/dev/null
 
-echo "[12/12] gate + contract tests"
-# Scope: the integrity surface — the truth/graph/manifest gates (tests/ci) and
-# the research-line schema+semantic contracts (tests/research_lines). These run
-# on a clean clone with only the sci-core stack. tests/tools (release-packaging
-# harness) is deliberately NOT here: it needs pydantic/cryptography/httpx and is
-# release machinery, not lie-prevention — including it would break the
-# clean-clone, one-command guarantee. The release harness keeps its own CI job.
+echo "[12/13] autonomy cycle"
+"$PY" tools/run_autonomy_cycle.py \
+  --out artifacts/validation/autonomy_cycle.json >/dev/null
+
+echo "[13/13] gate + contract tests"
 "$PY" -m pytest tests/research_lines tests/ci \
   -q -p no:cacheprovider >/dev/null
 
