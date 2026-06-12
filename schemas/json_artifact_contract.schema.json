@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/neuron7xLab/GeoSync/schemas/json_artifact_contract.schema.json",
+  "title": "Deterministic JSON Artifact Contract",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "contract_type",
+    "objective",
+    "inputs",
+    "execution_plan",
+    "python_runner_contract",
+    "validation_tests",
+    "failure_register",
+    "evidence_status",
+    "output_constraints",
+    "next_deterministic_action",
+    "final_verdict"
+  ],
+  "properties": {
+    "contract_type": {
+      "type": "string",
+      "enum": [
+        "executable_task_contract",
+        "external_validation_contract",
+        "system_prompt_contract",
+        "repository_repair_contract",
+        "scoring_contract",
+        "blocked_contract"
+      ]
+    },
+    "objective": {
+      "type": "object",
+      "required": ["target_state", "current_state", "transformation", "action_vector", "optimization"],
+      "properties": {
+        "target_state": {"type": "string", "minLength": 1},
+        "current_state": {"type": "string", "minLength": 1},
+        "transformation": {"type": "string", "minLength": 1},
+        "action_vector": {"type": "string", "minLength": 1},
+        "optimization": {
+          "type": "object",
+          "required": ["minimize", "maximize"],
+          "properties": {
+            "minimize": {"type": "array"},
+            "maximize": {"type": "array"}
+          }
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "required": ["required", "provided", "missing", "assumptions"],
+      "properties": {
+        "required": {"type": "array"},
+        "provided": {"type": "array"},
+        "missing": {"type": "array"},
+        "assumptions": {"type": "array"}
+      }
+    },
+    "execution_plan": {"type": "array"},
+    "python_runner_contract": {
+      "type": "object",
+      "required": ["required", "entrypoint", "commands", "expected_artifacts", "timeout_seconds", "success_criteria", "failure_criteria"],
+      "properties": {
+        "required": {"type": "boolean"},
+        "entrypoint": {"type": "string", "minLength": 1},
+        "commands": {"type": "array"},
+        "expected_artifacts": {"type": "array"},
+        "timeout_seconds": {"type": "integer", "minimum": 1},
+        "success_criteria": {"type": "array"},
+        "failure_criteria": {"type": "array"}
+      }
+    },
+    "validation_tests": {"type": "array"},
+    "failure_register": {"type": "array"},
+    "evidence_status": {
+      "type": "object",
+      "required": ["external_evidence_available", "evidence_source", "tests_executed", "tests_not_executed", "score", "confidence", "status"],
+      "properties": {
+        "external_evidence_available": {"type": "boolean"},
+        "evidence_source": {
+          "type": "string",
+          "enum": ["unavailable", "python_runner", "tool_log", "ci_log", "parser_output", "benchmark_output", "human_review"]
+        },
+        "tests_executed": {"type": "array"},
+        "tests_not_executed": {"type": "array"},
+        "score": {"type": ["number", "null"]},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "status": {
+          "type": "string",
+          "enum": ["EXTERNAL_VERIFIED", "CI_VERIFIED", "TOOL_VERIFIED", "HUMAN_REVIEWED", "CANDIDATE_NOT_VALIDATED", "BLOCKED", "REJECTED"]
+        }
+      }
+    },
+    "output_constraints": {
+      "type": "object",
+      "required": ["json_only", "no_markdown", "no_prose", "no_self_scoring", "no_simulated_tests", "no_validation_without_evidence", "minimize_tokens"],
+      "properties": {
+        "json_only": {"const": true},
+        "no_markdown": {"const": true},
+        "no_prose": {"const": true},
+        "no_self_scoring": {"const": true},
+        "no_simulated_tests": {"const": true},
+        "no_validation_without_evidence": {"const": true},
+        "minimize_tokens": {"const": true}
+      }
+    },
+    "next_deterministic_action": {"type": "string", "minLength": 1},
+    "final_verdict": {
+      "type": "object",
+      "required": ["status", "reason", "evidence_required"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["EXTERNAL_VERIFIED", "CI_VERIFIED", "TOOL_VERIFIED", "HUMAN_REVIEWED", "CANDIDATE_NOT_VALIDATED", "BLOCKED", "REJECTED"]
+        },
+        "reason": {"type": "string", "minLength": 1},
+        "evidence_required": {"type": "array"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_status": {
+            "properties": {"external_evidence_available": {"const": false}}
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_status": {
+            "properties": {
+              "score": {"type": "null"},
+              "confidence": {"maximum": 0.65},
+              "status": {"const": "CANDIDATE_NOT_VALIDATED"}
+            }
+          },
+          "final_verdict": {
+            "properties": {"status": {"const": "CANDIDATE_NOT_VALIDATED"}}
+          }
+        }
+      }
+    }
+  ]
+}
