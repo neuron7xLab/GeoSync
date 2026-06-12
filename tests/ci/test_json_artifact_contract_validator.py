@@ -90,6 +90,22 @@ def test_final_verdict_without_evidence_must_remain_candidate() -> None:
     assert "final_status_must_be_candidate_without_evidence" in validate_contract(payload)
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    [
+        ("score", "high", "score_must_be_number_or_null"),
+        ("tests_executed", "T1", "tests_executed_must_be_list"),
+        ("tests_not_executed", "T2", "tests_not_executed_must_be_list"),
+    ],
+)
+def test_evidence_fields_have_machine_types(field: str, value: object, expected: str) -> None:
+    payload = _candidate()
+    evidence = payload["evidence_status"]
+    assert isinstance(evidence, dict)
+    evidence[field] = value
+    assert expected in validate_contract(payload)
+
+
 def test_main_writes_validation_result(tmp_path: Path) -> None:
     src = tmp_path / "contract.json"
     out = tmp_path / "result.json"
