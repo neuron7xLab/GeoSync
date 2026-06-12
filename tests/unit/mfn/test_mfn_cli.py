@@ -158,6 +158,7 @@ def test_mfn_api_json_lists_required_commands(capsys) -> None:
     captured = capsys.readouterr()
     assert exit_code == 0
     payload = json.loads(captured.out)
+    assert payload["schema_version"] == "mfn.api.v1"
     assert payload["status"] == "INSTRUMENTED"
     assert payload["min_points"] == 4
     assert set(MFN_COMMANDS) <= set(payload["commands"])
