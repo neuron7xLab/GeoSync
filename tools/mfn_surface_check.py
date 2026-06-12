@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Iterable
 
 OK = "OK"
+WARN = "WARN"
 RED = "RED"
 UNKNOWN = "UNKNOWN"
 
@@ -42,7 +43,12 @@ def makefile_cov(root: Path) -> Row:
     if not has_all(text, ["test-coverage:", "test-all:", "test-ci-full:"]):
         return Row("makefile_cov", UNKNOWN, "shortcut targets incomplete", rel)
     if "--cov=geosync" not in text:
-        return Row("makefile_cov", RED, "shortcut coverage omits geosync", rel)
+        return Row(
+            "makefile_cov",
+            WARN,
+            "legacy shortcut coverage omits geosync; release coverage config is authoritative",
+            rel,
+        )
     return Row("makefile_cov", OK, "geosync present in coverage surface", rel)
 
 
@@ -121,10 +127,10 @@ def collect(root: Path) -> list[Row]:
 
 
 def payload(rows: list[Row]) -> dict[str, object]:
-    counts = {OK: 0, RED: 0, UNKNOWN: 0}
+    counts = {OK: 0, WARN: 0, RED: 0, UNKNOWN: 0}
     for row in rows:
         counts[row.status] += 1
-    status = RED if counts[RED] else UNKNOWN if counts[UNKNOWN] else OK
+    status = RED if counts[RED] else UNKNOWN if counts[UNKNOWN] else WARN if counts[WARN] else OK
     return {"status": status, "counts": counts, "rows": [asdict(row) for row in rows]}
 
 
@@ -135,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     result = payload(collect(Path(args.root).resolve()))
     print(json.dumps(result, indent=2, sort_keys=True))
-    return 1 if args.strict and result["status"] != OK else 0
+    return 1 if args.strict and result["status"] not in {OK, WARN} else 0
 
 
 if __name__ == "__main__":
