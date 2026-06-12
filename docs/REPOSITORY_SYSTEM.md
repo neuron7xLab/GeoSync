@@ -29,7 +29,6 @@ The repository is not optimized for persuasive language. It is optimized for con
 | [`schemas/`](../schemas) | Machine-readable contracts for artifacts and governance records. |
 | [`scripts/ci/`](../scripts/ci) | Enforcement scripts for claim boundary, gates, and release discipline. |
 | [`artifacts/`](../artifacts) | Generated or committed evidence surfaces. Placeholder artifacts must identify themselves as placeholders. |
-| [`artifacts/governance/pre_release_convergence_task_graph.json`](../artifacts/governance/pre_release_convergence_task_graph.json) | Candidate-only pre-release convergence task graph for role-owned evidence closure. |
 
 All other documents must conform to these surfaces. New text that upgrades a claim without updating `CLAIMS.md` is drift.
 

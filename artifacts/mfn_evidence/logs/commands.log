@@ -1,8 +1,0 @@
-[2026-06-12T13:53:12Z] $ git status --short
-exit_code=0 duration_seconds=0.055
---- stdout ---
-?? artifacts/mfn_evidence/
-
---- stderr ---
-
-

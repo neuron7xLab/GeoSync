@@ -432,7 +432,9 @@ def validate_bundle(output_dir: Path) -> list[str]:
 
     _validate_runbook(runbook.read_text(encoding="utf-8"), errors)
 
-    expected_manifest_paths = {path.relative_to(output_dir).as_posix() for path in required_artifacts}
+    expected_manifest_paths = {
+        path.relative_to(output_dir).as_posix() for path in required_artifacts
+    }
     expected_stage_schema = MFNContract().schema_version
     for stage in STAGE_ORDER:
         path = output_dir / f"{stage}.json"

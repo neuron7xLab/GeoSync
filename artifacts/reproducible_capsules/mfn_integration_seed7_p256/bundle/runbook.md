@@ -1,6 +1,6 @@
 # MFN Integration Runbook
 
-Status: INSTRUMENTED — no predictive or trading claim is promoted.
+Status: INSTRUMENTED.
 Decision: OBSERVE
 Falsification status: BLOCKED
 
@@ -12,3 +12,4 @@ Reproduce:
 mfn --out <bundle-dir> run
 mfn validate --bundle <bundle-dir>
 ```
+

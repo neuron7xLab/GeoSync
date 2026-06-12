@@ -1,1 +1,0 @@
-/tmp/mfn_clean_env/bin/python: Error while finding module specification for 'geosync.mfn.cli' (ModuleNotFoundError: No module named 'geosync')
