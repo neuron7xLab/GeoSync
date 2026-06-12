@@ -60,7 +60,6 @@ def _phase_result(root: Path, spec: dict[str, Any]) -> dict[str, Any]:
         "phase": spec["phase"],
         "status": status,
         "artifact": spec["artifact"],
-        "artifact_exists": artifact.exists(),
         "command": executed["command"],
         "returncode": executed["returncode"],
         "stderr": executed["stderr"],
@@ -85,7 +84,6 @@ def build_payload(root: Path) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "objective": "observe_diverge_converge_artifact_validation_surface",
-        "root": str(root),
         "phases": phases,
         "decision": _decision(phases),
     }
