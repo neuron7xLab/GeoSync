@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from geosync.mfn.cli import api_main, main, validate_main
+from geosync.mfn.contract import MFN_COMMANDS
 from geosync.mfn.pipeline import read_json, validate_bundle
 
 
@@ -59,9 +60,6 @@ def test_mfn_validate_rejects_missing_bundle(tmp_path: Path, capsys) -> None:
 
 
 def test_mfn_bundle_is_byte_reproducible(tmp_path: Path, monkeypatch) -> None:
-    # INVARIANT_03: a release artifact is invalid unless reproducible from one
-    # clean command. With SOURCE_DATE_EPOCH pinned, two clean runs must produce
-    # byte-identical bundles (identical SHA256SUMS).
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1700000000")
     first = tmp_path / "first"
     second = tmp_path / "second"
@@ -82,6 +80,4 @@ def test_mfn_api_json_lists_required_commands(capsys) -> None:
     payload = json.loads(captured.out)
     assert payload["status"] == "INSTRUMENTED"
     assert payload["min_points"] == 4
-    assert {"simulate", "extract", "detect", "forecast", "compare", "report"} <= set(
-        payload["commands"]
-    )
+    assert set(MFN_COMMANDS) <= set(payload["commands"])
