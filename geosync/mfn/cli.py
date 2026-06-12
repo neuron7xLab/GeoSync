@@ -17,7 +17,10 @@ MIN_POINTS = 4
 
 
 def _points(value: str) -> int:
-    points = int(value)
+    try:
+        points = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("points must be an integer") from exc
     if points < MIN_POINTS:
         raise argparse.ArgumentTypeError(f"points must be >= {MIN_POINTS}")
     return points
