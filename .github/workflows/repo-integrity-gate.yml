@@ -1,23 +1,17 @@
 # SPDX-License-Identifier: MIT
-#
-# Repo Integrity Gate — the single end-to-end proof.
-#
-# research-integrity-gate runs the truth/graph/semantic gates individually.
-# This job runs the holistic one-command proof (scripts/ci/prove_repo_integrity.sh)
-# so that "one clean clone, one command" is itself enforced on every PR: the
-# whole chain — invariants → python matrix → namespace → claim boundary →
-# manifest proof → artifact truth → claim/artifact graph → gate+contract tests —
-# must pass together, on the sci-core stack alone.
-#
-# Honest by design: the script prints MANIFEST_PROOF: NOT_PROVEN until a real
-# hash-pinned artifact graph exists, and still proves the rest. It never fakes
-# success.
 name: Repo Integrity Gate
 
 on:
   pull_request:
     branches: [main]
     paths:
+      - 'README.md'
+      - 'PRODUCT_CATEGORY.md'
+      - 'CLAIMS.md'
+      - 'FORBIDDEN_CLAIMS.md'
+      - 'AGENTS.md'
+      - 'BASELINE.md'
+      - 'docs/**/*.md'
       - 'scripts/ci/prove_repo_integrity.sh'
       - 'scripts/ci/check_research_artifact_truth.py'
       - 'scripts/ci/check_claim_artifact_graph.py'
@@ -60,11 +54,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install sci-core stack (the only deps the proof needs)
+      - name: Install sci-core stack
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
           python -m pip install numpy scipy pandas networkx pyyaml jsonschema pytest
 
-      - name: Prove repository integrity (one command)
+      - name: Prove repository integrity
         run: bash scripts/ci/prove_repo_integrity.sh
