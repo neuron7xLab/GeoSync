@@ -89,16 +89,38 @@ def build_payload(root: Path) -> dict[str, Any]:
     }
 
 
+def _update_trend(root: Path, cycle_path: Path, ledger_path: Path) -> dict[str, Any]:
+    return _run(
+        [
+            sys.executable,
+            "tools/update_autonomy_trend.py",
+            "--cycle",
+            str(cycle_path.relative_to(root)),
+            "--ledger",
+            str(ledger_path.relative_to(root)),
+        ],
+        root,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=".")
     parser.add_argument("--out", default="artifacts/validation/autonomy_cycle.json")
+    parser.add_argument("--trend-ledger", default="artifacts/validation/autonomy_trend.json")
+    parser.add_argument("--no-trend", action="store_true")
     args = parser.parse_args(argv)
     root = Path(args.root).resolve()
     out = root / args.out
     out.parent.mkdir(parents=True, exist_ok=True)
     payload = build_payload(root)
     out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    trend = None if args.no_trend else _update_trend(root, out, root / args.trend_ledger)
+    if trend is not None:
+        payload["trend_update"] = {"returncode": trend["returncode"], "stderr": trend["stderr"]}
+        out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if trend is not None and trend["returncode"] != 0:
+        return 1
     return 0 if payload["decision"]["state"] in {"READY_FOR_NEXT_CYCLE", "OBSERVE_WITH_DEBT"} else 1
 
 
