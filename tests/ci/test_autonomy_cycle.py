@@ -49,3 +49,12 @@ def test_autonomy_cycle_schema_file_is_parseable() -> None:
     schema = json.loads((ROOT / "schemas" / "autonomy_cycle.schema.json").read_text(encoding="utf-8"))
     assert schema["properties"]["schema_version"]["const"] == "autonomy_cycle.v1"
     assert "REPAIR_REQUIRED" in schema["properties"]["decision"]["properties"]["state"]["enum"]
+    assert schema["properties"]["trend_update"]["required"] == ["returncode", "stderr"]
+
+
+def test_autonomy_cycle_schema_accepts_written_trend_update_shape() -> None:
+    schema = json.loads((ROOT / "schemas" / "autonomy_cycle.schema.json").read_text(encoding="utf-8"))
+    trend = schema["properties"]["trend_update"]
+    assert trend["additionalProperties"] is False
+    assert trend["properties"]["returncode"]["type"] == "integer"
+    assert trend["properties"]["stderr"]["type"] == "string"
