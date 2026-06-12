@@ -7,6 +7,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from geosync.mfn.cli import api_main, main, validate_main
 from geosync.mfn.pipeline import read_json, validate_bundle
 
@@ -35,6 +37,15 @@ def test_mfn_run_creates_bundle_contract(tmp_path: Path, capsys) -> None:
         "report.json",
         "runbook.md",
     } <= files
+
+
+def test_mfn_rejects_too_few_points(capsys) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--points", "3", "run"])
+
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 2
+    assert "points must be >= 4" in captured.err
 
 
 def test_mfn_validate_rejects_missing_bundle(tmp_path: Path, capsys) -> None:
