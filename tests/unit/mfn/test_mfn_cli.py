@@ -11,7 +11,7 @@ import pytest
 
 from geosync.mfn.cli import api_main, main, validate_main
 from geosync.mfn.contract import MFN_COMMANDS
-from geosync.mfn.pipeline import read_json, validate_bundle
+from geosync.mfn.pipeline import read_json, validate_bundle, write_json
 
 
 def test_mfn_run_creates_bundle_contract(tmp_path: Path, capsys) -> None:
@@ -71,6 +71,36 @@ def test_mfn_bundle_is_byte_reproducible(tmp_path: Path, monkeypatch) -> None:
         assert (first / name).read_text(encoding="utf-8") == (second / name).read_text(
             encoding="utf-8"
         )
+
+
+def test_mfn_runbook_has_stable_final_newline(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+
+    assert main(["--out", str(bundle), "--seed", "7", "--points", "8", "run"]) == 0
+
+    assert (bundle / "runbook.md").read_bytes().endswith(b"\n\n")
+
+
+def test_mfn_manifest_rejects_invalid_path_entry(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+    assert main(["--out", str(bundle), "--seed", "7", "--points", "8", "run"]) == 0
+
+    manifest = read_json(bundle / "manifest.json")
+    manifest["files"][0]["path"] = "/not-relative.json"
+    write_json(bundle / "manifest.json", manifest)
+
+    assert any("invalid path" in item for item in validate_bundle(bundle))
+
+
+def test_mfn_manifest_rejects_invalid_digest_entry(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+    assert main(["--out", str(bundle), "--seed", "7", "--points", "8", "run"]) == 0
+
+    manifest = read_json(bundle / "manifest.json")
+    manifest["files"][0]["sha256"] = "0" * 63
+    write_json(bundle / "manifest.json", manifest)
+
+    assert any("invalid digest" in item for item in validate_bundle(bundle))
 
 
 def test_mfn_api_text_lists_contract_fields(capsys) -> None:
