@@ -64,9 +64,14 @@ echo "[8/11] mfn surface sensor"
 "$PY" tools/mfn_surface_check.py --strict >/dev/null
 
 echo "[9/11] json artifact contract"
-"$PY" tools/validate_json_artifact_contract.py \
-  examples/json_artifact_contract.candidate.json \
-  --out artifacts/validation/json_artifact_contract.result.json >/dev/null
+for fixture in candidate blocked; do
+  "$PY" tools/validate_json_artifact_contract.py \
+    "examples/json_artifact_contract.${fixture}.json" \
+    --out "artifacts/validation/json_artifact_contract_${fixture}.result.json" >/dev/null
+  "$PY" tools/check_json_contract_evidence_policy.py \
+    "examples/json_artifact_contract.${fixture}.json" \
+    --out "artifacts/validation/json_artifact_policy_${fixture}.result.json" >/dev/null
+done
 
 echo "[10/11] json evidence policy"
 "$PY" tools/check_json_contract_evidence_policy.py \
