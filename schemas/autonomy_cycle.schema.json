@@ -33,6 +33,15 @@
         "state": {"enum": ["READY_FOR_NEXT_CYCLE", "OBSERVE_WITH_DEBT", "EVIDENCE_GAP", "REPAIR_REQUIRED"]},
         "status_vector": {"type": "array", "items": {"enum": ["OK", "WARN", "RED", "UNKNOWN", "ERROR"]}}
       }
+    },
+    "trend_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["returncode", "stderr"],
+      "properties": {
+        "returncode": {"type": "integer"},
+        "stderr": {"type": "string"}
+      }
     }
   }
 }
