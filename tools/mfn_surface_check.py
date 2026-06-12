@@ -46,7 +46,7 @@ def makefile_cov(root: Path) -> Row:
         return Row(
             "makefile_cov",
             WARN,
-            "legacy shortcut coverage omits geosync; release coverage config is authoritative",
+            "legacy shortcut coverage omits geosync; run tools/patch_makefile_geosync_coverage.py",
             rel,
         )
     return Row("makefile_cov", OK, "geosync present in coverage surface", rel)
