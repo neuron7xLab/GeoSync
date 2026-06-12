@@ -30,6 +30,7 @@ on:
       - 'tools/mfn_surface_check.py'
       - 'tools/patch_makefile_geosync_coverage.py'
       - 'tools/validate_json_artifact_contract.py'
+      - 'tools/check_json_contract_evidence_policy.py'
       - 'tests/ci/**'
       - 'tests/research_lines/**'
       - '.github/workflows/repo-integrity-gate.yml'
