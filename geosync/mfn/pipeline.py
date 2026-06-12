@@ -189,8 +189,12 @@ def detect(output_dir: Path, *, contract: MFNContract) -> Path:
     features = source.get("features")
     if not isinstance(features, dict):
         raise ValueError("extract.json must contain features")
-    mean_return = float(features["mean_return"])
-    volatility = float(features["volatility"])
+    mean_return = _finite_float(
+        features.get("mean_return"), field="mean_return", source="extract.json features"
+    )
+    volatility = _finite_float(
+        features.get("volatility"), field="volatility", source="extract.json features"
+    )
     if volatility > 0.12:
         regime = "volatile"
     elif mean_return > 0:
@@ -220,8 +224,12 @@ def forecast(output_dir: Path, *, contract: MFNContract) -> Path:
     features = features_doc.get("features")
     if not isinstance(features, dict):
         raise ValueError("extract.json must contain features")
-    mean_return = float(features["mean_return"])
-    last_price = float(features["last_price"])
+    mean_return = _finite_float(
+        features.get("mean_return"), field="mean_return", source="extract.json features"
+    )
+    last_price = _finite_float(
+        features.get("last_price"), field="last_price", source="extract.json features"
+    )
     risk_flag = bool(detect_doc.get("risk_flag"))
     predicted_price = round(last_price + mean_return, 6)
     decision = "OBSERVE" if not risk_flag else "NO_TRADE"
@@ -246,8 +254,14 @@ def compare(output_dir: Path, *, contract: MFNContract) -> Path:
     features = features_doc.get("features")
     if not isinstance(features, dict):
         raise ValueError("extract.json must contain features")
-    last_price = float(features["last_price"])
-    predicted = float(forecast_doc["predicted_next_price"])
+    last_price = _finite_float(
+        features.get("last_price"), field="last_price", source="extract.json features"
+    )
+    predicted = _finite_float(
+        forecast_doc.get("predicted_next_price"),
+        field="predicted_next_price",
+        source="forecast.json",
+    )
     model_delta = abs(predicted - last_price)
     null_delta = 0.0
     null_superiority = null_delta <= model_delta
