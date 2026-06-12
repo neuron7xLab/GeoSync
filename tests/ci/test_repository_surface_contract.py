@@ -95,6 +95,10 @@ def test_repo_integrity_workflow_runs_on_public_surface_changes() -> None:
         "FORBIDDEN_CLAIMS.md",
         "AGENTS.md",
         "docs/**/*.md",
+        "tools/mfn_surface_check.py",
+        "tools/patch_makefile_geosync_coverage.py",
+        "tools/validate_json_artifact_contract.py",
+        "tools/check_json_contract_evidence_policy.py",
         "tests/ci/**",
     ]:
         assert target in workflow
@@ -102,6 +106,11 @@ def test_repo_integrity_workflow_runs_on_public_surface_changes() -> None:
 
 def test_repo_integrity_script_runs_contract_test_directories() -> None:
     script = _read("scripts/ci/prove_repo_integrity.sh")
+    assert "tools/mfn_surface_check.py --strict" in script
+    assert "tools/validate_json_artifact_contract.py" in script
+    assert "tools/check_json_contract_evidence_policy.py" in script
+    assert "json_artifact_contract.result.json" in script
+    assert "json_artifact_policy.result.json" in script
     assert "tests/research_lines" in script
     assert "tests/ci" in script
     assert "pytest" in script
@@ -137,10 +146,13 @@ def test_mfn_release_workflow_uses_installed_package_path() -> None:
     assert "tests/unit/mfn" in workflow
 
 
-def test_mfn_release_workflow_does_not_block_on_surface_probe() -> None:
+def test_mfn_release_workflow_runs_surface_checker() -> None:
     workflow = _read(".github/workflows/mfn-release-gate.yml")
-    strict_probe = "mfn_" + "surface" + "_check.py --" + "strict"
-    assert strict_probe not in workflow
+    tool_path = "tools/" + "mfn_surface_check.py"
+    assert tool_path in workflow
+    assert tool_path + " --" + "strict" in workflow
+    assert "tests/ci/test_mfn_surface_check.py" in workflow
+    assert "tests/ci/test_mfn_surface_payload_contract.py" in workflow
 
 
 def test_mfn_release_workflow_checks_reproducible_bundle_files() -> None:

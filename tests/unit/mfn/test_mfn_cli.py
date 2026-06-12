@@ -146,6 +146,7 @@ def test_mfn_api_text_lists_contract_fields(capsys) -> None:
 
     captured = capsys.readouterr()
     assert exit_code == 0
+    assert "schema_version=mfn.api.v1" in captured.out
     assert "status=INSTRUMENTED" in captured.out
     assert "default_bundle=" in captured.out
     assert "min_points=4" in captured.out

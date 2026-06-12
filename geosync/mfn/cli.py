@@ -81,6 +81,7 @@ def _cmd_api(args: argparse.Namespace) -> int:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print("MFN API v1")
+        print(f"schema_version={payload['schema_version']}")
         print("status=INSTRUMENTED")
         print(f"default_bundle={payload['default_bundle']}")
         print(f"min_points={payload['min_points']}")
