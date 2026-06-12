@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.update_autonomy_trend import build_ledger
+from tools.update_autonomy_trend import _rooted, build_ledger
 
 
 def _cycle(path: Path, state: str = "READY_FOR_NEXT_CYCLE", statuses: list[str] | None = None) -> None:
@@ -101,6 +101,15 @@ def test_build_ledger_aggregates_status_counts(tmp_path: Path) -> None:
     assert ledger["entries"][-1]["sequence"] == 5
     assert ledger["summary"]["status_counts"] == {"OK": 2, "RED": 2, "WARN": 1}
     assert ledger["summary"]["phase_count_total"] == 5
+
+
+def test_rooted_keeps_absolute_path(tmp_path: Path) -> None:
+    absolute = tmp_path / "cycle.json"
+    assert _rooted(tmp_path / "repo", str(absolute)) == absolute
+
+
+def test_rooted_resolves_relative_path(tmp_path: Path) -> None:
+    assert _rooted(tmp_path, "artifacts/trend.json") == tmp_path / "artifacts" / "trend.json"
 
 
 def test_build_ledger_rejects_non_positive_limit(tmp_path: Path) -> None:
