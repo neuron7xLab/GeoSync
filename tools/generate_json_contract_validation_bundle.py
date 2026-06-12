@@ -50,13 +50,21 @@ def build(paths: list[Path]) -> dict[str, object]:
                 "policy_errors": policy_errors,
             }
         )
-    return {"schema_version": "json_contract_validation_bundle.v1", "status": overall, "items": items}
+    return {
+        "schema_version": "json_contract_validation_bundle.v1",
+        "status": overall,
+        "items": items,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*", type=Path)
-    parser.add_argument("--out", type=Path, default=Path("artifacts/validation/json_contract_validation_bundle.json"))
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=Path("artifacts/validation/json_contract_validation_bundle.json"),
+    )
     args = parser.parse_args(argv)
 
     result = build(args.paths or list(DEFAULT_INPUTS))

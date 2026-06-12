@@ -70,7 +70,9 @@ def build(paths: list[Path]) -> dict[str, object]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*", type=Path)
-    parser.add_argument("--out", type=Path, default=Path("artifacts/validation/json_contract_receipt.json"))
+    parser.add_argument(
+        "--out", type=Path, default=Path("artifacts/validation/json_contract_receipt.json")
+    )
     args = parser.parse_args(argv)
     result = build(args.paths or list(DEFAULT_INPUTS))
     text = json.dumps(result, indent=2, sort_keys=True) + "\n"

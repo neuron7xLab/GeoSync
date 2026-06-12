@@ -162,7 +162,9 @@ def _is_nonempty_string(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
-def _require_string_fields(prefix: str, obj: dict[str, Any], fields: tuple[str, ...], errors: list[str]) -> None:
+def _require_string_fields(
+    prefix: str, obj: dict[str, Any], fields: tuple[str, ...], errors: list[str]
+) -> None:
     for field in fields:
         if not _is_nonempty_string(obj.get(field)):
             errors.append(f"{prefix}_{field}_must_be_nonempty_string")
@@ -371,7 +373,11 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
     elif not external:
         if score is not None:
             errors.append("score_requires_external_evidence")
-        if confidence is not None and isinstance(confidence, (int, float)) and not isinstance(confidence, bool):
+        if (
+            confidence is not None
+            and isinstance(confidence, (int, float))
+            and not isinstance(confidence, bool)
+        ):
             if float(confidence) > 0.65:
                 errors.append("confidence_too_high_without_evidence")
         if evidence_status != "CANDIDATE_NOT_VALIDATED":
