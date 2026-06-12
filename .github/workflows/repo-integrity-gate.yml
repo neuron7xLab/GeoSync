@@ -26,6 +26,8 @@ on:
       - 'research_lines/**'
       - 'artifacts/runs/**'
       - 'tools/research/**'
+      - 'tools/mfn_surface_check.py'
+      - 'tools/validate_json_artifact_contract.py'
       - 'tests/ci/**'
       - 'tests/research_lines/**'
       - '.github/workflows/repo-integrity-gate.yml'
