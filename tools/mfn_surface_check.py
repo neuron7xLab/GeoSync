@@ -57,7 +57,9 @@ def release_cov(root: Path) -> Row:
     text = read_text(root, rel)
     if text is None:
         return Row("release_cov", UNKNOWN, "missing file", rel)
-    return Row("release_cov", OK if "geosync" in text else RED, "release coverage config checked", rel)
+    return Row(
+        "release_cov", OK if "geosync" in text else RED, "release coverage config checked", rel
+    )
 
 
 def workflow_import_path(root: Path) -> Row:
@@ -69,7 +71,9 @@ def workflow_import_path(root: Path) -> Row:
     if hidden_path_token in text:
         return Row("workflow_import_path", RED, "workflow uses path override", rel)
     if "python -m pip install -e ." not in text:
-        return Row("workflow_import_path", RED, "workflow does not install package before tests", rel)
+        return Row(
+            "workflow_import_path", RED, "workflow does not install package before tests", rel
+        )
     return Row("workflow_import_path", OK, "workflow installs package before tests", rel)
 
 
@@ -81,9 +85,9 @@ def pipeline_markers(root: Path) -> Row:
     markers = [
         "MANIFEST_SCHEMA_VERSION",
         "_finite_float",
-        "_validate_manifest_entry",
-        "_validate_stage_document",
-        "_validate_runbook",
+        "validate_bundle",
+        "_parse_sha256_manifest",
+        "_is_sha256_hex",
     ]
     missing = [marker for marker in markers if marker not in text]
     if missing:
@@ -96,7 +100,14 @@ def cli_markers(root: Path) -> Row:
     text = read_text(root, rel)
     if text is None:
         return Row("cli_markers", UNKNOWN, "missing file", rel)
-    markers = ["_dispatch", "FileNotFoundError", "ValueError", "KeyError", "TypeError", "mfn:"]
+    markers = [
+        "_dispatch",
+        "FileNotFoundError",
+        "ValueError",
+        "KeyError",
+        "TypeError",
+        "mfn-validate:",
+    ]
     missing = [marker for marker in markers if marker not in text]
     if missing:
         return Row("cli_markers", RED, "missing: " + ", ".join(missing), rel)
@@ -117,14 +128,20 @@ def contract_markers(root: Path) -> Row:
 
 def json_contract_markers(root: Path) -> Row:
     required = {
-        "tools/validate_json_artifact_contract.py": ["validate_contract", "score_requires_external_evidence"],
+        "tools/validate_json_artifact_contract.py": [
+            "validate_contract",
+            "score_requires_external_evidence",
+        ],
         "tools/check_json_contract_evidence_policy.py": ["check_policy", "status_mismatch"],
         "tools/json_contract_receipt.py": ["sha256", "receipt"],
         "tools/run_json_artifact_checks.py": ["FIXTURES", "json_artifact_checks.v1"],
         "tools/run_autonomy_cycle.py": ["autonomy_cycle.v1", "READY_FOR_NEXT_CYCLE"],
         "tools/update_autonomy_trend.py": ["autonomy_trend.v1", "summary", "decision_counts"],
         "schemas/json_artifact_contract.schema.json": ["contract_type", "evidence_status"],
-        "schemas/json_artifact_evidence_policy.schema.json": ["blocked_contract", "CANDIDATE_NOT_VALIDATED"],
+        "schemas/json_artifact_evidence_policy.schema.json": [
+            "blocked_contract",
+            "CANDIDATE_NOT_VALIDATED",
+        ],
         "schemas/autonomy_cycle.schema.json": ["autonomy_cycle.v1", "READY_FOR_NEXT_CYCLE"],
         "schemas/autonomy_trend.schema.json": ["autonomy_trend.v1", "summary", "decision_counts"],
         "examples/json_artifact_contract.candidate.json": ["CANDIDATE_NOT_VALIDATED"],

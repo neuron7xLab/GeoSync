@@ -56,6 +56,9 @@ for fixture in candidate blocked; do
 done
 
 echo "[10/13] json evidence policy"
+"$PY" tools/validate_json_artifact_contract.py \
+  examples/json_artifact_contract.candidate.json \
+  --out artifacts/validation/json_artifact_contract.result.json >/dev/null
 "$PY" tools/check_json_contract_evidence_policy.py \
   examples/json_artifact_contract.candidate.json \
   --out artifacts/validation/json_artifact_policy.result.json >/dev/null

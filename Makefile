@@ -222,7 +222,7 @@ test-coverage:
 	@echo "📊 Generating coverage report..."
 	@mkdir -p reports/coverage
 	pytest tests/ \
-		--cov=core --cov=backtest --cov=execution \
+		--cov=core --cov=backtest --cov=execution --cov=geosync \
 		--cov-report=term-missing \
 		--cov-report=html:reports/coverage \
 		--cov-report=xml:reports/coverage/coverage.xml \
@@ -235,7 +235,7 @@ test-coverage:
 test-all:
 	@echo "🧪 Running full test suite with coverage..."
 	pytest tests/ \
-		--cov=core --cov=backtest --cov=execution \
+		--cov=core --cov=backtest --cov=execution --cov=geosync \
 		--cov-config=configs/quality/critical_surface.coveragerc \
 		--cov-report=term-missing --cov-report=xml
 	python -m tools.coverage.guardrail \
@@ -249,7 +249,7 @@ test-ci-full:
 	@mkdir -p reports
 	pytest tests/ \
 		-m "not flaky" \
-		--cov=core --cov=backtest --cov=execution \
+		--cov=core --cov=backtest --cov=execution --cov=geosync \
 		--cov-branch \
 		--cov-report=xml --cov-report=term-missing --cov-report=html:coverage_html \
 		--cov-fail-under=98 \

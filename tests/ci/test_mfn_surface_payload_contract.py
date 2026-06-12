@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 from types import ModuleType
 
@@ -16,6 +17,9 @@ def _load_module() -> ModuleType:
     assert spec is not None
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
+    # Register before exec so the module's dataclass field annotations resolve
+    # their own namespace on Python 3.12 (sys.modules lookup in dataclasses).
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
