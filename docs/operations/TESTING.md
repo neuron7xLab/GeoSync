@@ -29,14 +29,11 @@ automated coverage that protects them.
 
 ## Continuous Integration Gates
 
-Every pull request fans out across Python 3.11–3.13. Each run provisions a shared
-virtual environment via `uv`, executes the coverage-enforced unit/integration suite,
-and now executes the end-to-end smoke harness (`pytest tests/e2e/ -m "not slow and not flaky"`).
+The primary PR gate currently runs the main Python quality and test lanes on Python 3.11, while repository-integrity proof runs on Python 3.12. This matches the project runtime contract `>=3.11,<3.13`. Python 3.13 is outside the current declared support window.
 
-Scenarios tagged with [`@pytest.mark.slow`](../../pytest.ini) (such as the full pipeline
-regression) remain available for manual and nightly execution without slowing down
-PR feedback, while the smoke path still guards against regressions in CLI wiring
-and reporting.
+The fast lane executes the deterministic pytest suite with slow, heavy-math, nightly, and flaky tests excluded. Heavy, formal, frontend, Rust, Go, dependency, and security gates run under their own content-aware jobs.
+
+Scenarios tagged with [`@pytest.mark.slow`](../../pytest.ini) remain available for manual, heavy, or nightly execution without slowing down PR feedback, while the smoke path still guards against regressions in CLI wiring and reporting.
 
 ## Test Structure
 
@@ -58,7 +55,7 @@ scripts/
 
 ## Coverage Requirements
 
-**CI Gate**: 98% coverage enforced on all PRs (via `--cov-fail-under=98` in `.github/workflows/tests.yml`)
+Coverage and quality claims are governed by [`docs/METRICS_CONTRACT.md`](../METRICS_CONTRACT.md) and the active CI configuration. Do not upgrade a coverage statement in this guide unless the enforcing workflow and metrics contract agree.
 
 Module coverage goals (not enforced, verify with `make test-coverage`):
 - `backtest/`: 100% (goal)
