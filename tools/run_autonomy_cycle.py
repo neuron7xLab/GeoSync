@@ -31,8 +31,8 @@ PHASES = (
 )
 
 
-def _run(command: list[str]) -> dict[str, Any]:
-    proc = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+def _run(command: list[str], cwd: Path) -> dict[str, Any]:
+    proc = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, cwd=cwd)
     return {
         "command": command,
         "returncode": proc.returncode,
@@ -50,7 +50,7 @@ def _read_json(path: Path) -> dict[str, Any] | None:
 
 
 def _phase_result(root: Path, spec: dict[str, Any]) -> dict[str, Any]:
-    executed = _run(spec["command"])
+    executed = _run(spec["command"], root)
     artifact = root / spec["artifact"]
     parsed = _read_json(artifact)
     status = "OK" if executed["returncode"] == 0 else "RED"
@@ -60,6 +60,7 @@ def _phase_result(root: Path, spec: dict[str, Any]) -> dict[str, Any]:
         "phase": spec["phase"],
         "status": status,
         "artifact": spec["artifact"],
+        "artifact_exists": artifact.exists(),
         "command": executed["command"],
         "returncode": executed["returncode"],
         "stderr": executed["stderr"],
@@ -84,6 +85,7 @@ def build_payload(root: Path) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "objective": "observe_diverge_converge_artifact_validation_surface",
+        "root": str(root),
         "phases": phases,
         "decision": _decision(phases),
     }
