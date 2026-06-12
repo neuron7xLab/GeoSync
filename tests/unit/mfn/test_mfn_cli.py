@@ -81,6 +81,7 @@ def test_mfn_api_json_lists_required_commands(capsys) -> None:
     assert exit_code == 0
     payload = json.loads(captured.out)
     assert payload["status"] == "INSTRUMENTED"
+    assert payload["min_points"] == 4
     assert {"simulate", "extract", "detect", "forecast", "compare", "report"} <= set(
         payload["commands"]
     )
