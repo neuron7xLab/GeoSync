@@ -27,6 +27,7 @@ on:
       - 'artifacts/runs/**'
       - 'tools/research/**'
       - 'tools/mfn_surface_check.py'
+      - 'tools/patch_makefile_geosync_coverage.py'
       - 'tools/validate_json_artifact_contract.py'
       - 'tests/ci/**'
       - 'tests/research_lines/**'
