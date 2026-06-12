@@ -97,11 +97,21 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
     confidence = evidence.get("confidence")
     evidence_status = evidence.get("status")
     final_status = verdict.get("status")
+    tests_executed = evidence.get("tests_executed")
+    tests_not_executed = evidence.get("tests_not_executed")
 
     if evidence_status not in VALID_STATUSES:
         errors.append("invalid_evidence_status")
     if final_status not in VALID_STATUSES:
         errors.append("invalid_final_status")
+
+    if not isinstance(tests_executed, list):
+        errors.append("tests_executed_must_be_list")
+    if not isinstance(tests_not_executed, list):
+        errors.append("tests_not_executed_must_be_list")
+
+    if score is not None and (not isinstance(score, (int, float)) or isinstance(score, bool)):
+        errors.append("score_must_be_number_or_null")
 
     if not isinstance(confidence, (int, float)) or isinstance(confidence, bool):
         errors.append("confidence_must_be_number")
@@ -122,14 +132,21 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
     if external:
         if source == "unavailable":
             errors.append("external_evidence_source_required")
-        if final_status in VALIDATED_STATUSES and not evidence.get("tests_executed"):
+        if final_status in VALIDATED_STATUSES and not tests_executed:
             errors.append("validated_status_requires_tests_executed")
 
     constraints = data.get("output_constraints")
     if not isinstance(constraints, dict):
         errors.append("output_constraints_must_be_object")
     else:
-        for key in ("json_only", "no_markdown", "no_prose", "no_self_scoring", "no_simulated_tests", "no_validation_without_evidence"):
+        for key in (
+            "json_only",
+            "no_markdown",
+            "no_prose",
+            "no_self_scoring",
+            "no_simulated_tests",
+            "no_validation_without_evidence",
+        ):
             if constraints.get(key) is not True:
                 errors.append(f"constraint_not_true:{key}")
 
