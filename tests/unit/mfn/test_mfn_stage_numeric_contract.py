@@ -12,14 +12,18 @@ from geosync.mfn.contract import MFNContract
 from geosync.mfn.pipeline import compare, detect, forecast, write_json
 
 
-def test_detect_rejects_missing_mean_return(tmp_path: Path) -> None:
+@pytest.mark.parametrize("value", ["missing", None, "not-a-number"])
+def test_detect_rejects_bad_mean_return(tmp_path: Path, value: object) -> None:
     out = tmp_path / "bundle"
+    features = {"volatility": 0.1}
+    if value != "missing":
+        features["mean_return"] = value
     write_json(
         out / "extract.json",
         {
             "schema_version": "mfn.integration.v1",
             "stage": "extract",
-            "features": {"volatility": 0.1},
+            "features": features,
         },
     )
 
@@ -27,14 +31,18 @@ def test_detect_rejects_missing_mean_return(tmp_path: Path) -> None:
         detect(out, contract=MFNContract())
 
 
-def test_forecast_rejects_missing_last_price(tmp_path: Path) -> None:
+@pytest.mark.parametrize("value", ["missing", None, "not-a-number"])
+def test_forecast_rejects_bad_last_price(tmp_path: Path, value: object) -> None:
     out = tmp_path / "bundle"
+    features = {"mean_return": 0.1}
+    if value != "missing":
+        features["last_price"] = value
     write_json(
         out / "extract.json",
         {
             "schema_version": "mfn.integration.v1",
             "stage": "extract",
-            "features": {"mean_return": 0.1},
+            "features": features,
         },
     )
     write_json(out / "detect.json", {"schema_version": "mfn.integration.v1", "stage": "detect"})
@@ -43,7 +51,8 @@ def test_forecast_rejects_missing_last_price(tmp_path: Path) -> None:
         forecast(out, contract=MFNContract())
 
 
-def test_compare_rejects_bad_prediction_value(tmp_path: Path) -> None:
+@pytest.mark.parametrize("value", ["missing", None, "not-a-number"])
+def test_compare_rejects_bad_prediction_value(tmp_path: Path, value: object) -> None:
     out = tmp_path / "bundle"
     write_json(
         out / "extract.json",
@@ -53,14 +62,10 @@ def test_compare_rejects_bad_prediction_value(tmp_path: Path) -> None:
             "features": {"last_price": 100.0},
         },
     )
-    write_json(
-        out / "forecast.json",
-        {
-            "schema_version": "mfn.integration.v1",
-            "stage": "forecast",
-            "predicted_next_price": "not-a-number",
-        },
-    )
+    forecast_payload = {"schema_version": "mfn.integration.v1", "stage": "forecast"}
+    if value != "missing":
+        forecast_payload["predicted_next_price"] = value
+    write_json(out / "forecast.json", forecast_payload)
 
     with pytest.raises(ValueError, match="predicted_next_price"):
         compare(out, contract=MFNContract())
