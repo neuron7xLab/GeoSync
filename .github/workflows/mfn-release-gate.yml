@@ -6,7 +6,10 @@ on:
     paths:
       - ".github/workflows/mfn-release-gate.yml"
       - "geosync/mfn/**"
+      - "tools/mfn_surface_check.py"
       - "tools/verify_mfn_clean_install.py"
+      - "tests/ci/test_mfn_surface_check.py"
+      - "tests/ci/test_mfn_surface_payload_contract.py"
       - "tests/unit/mfn/**"
       - "pyproject.toml"
       - "Makefile"
@@ -15,7 +18,10 @@ on:
     paths:
       - ".github/workflows/mfn-release-gate.yml"
       - "geosync/mfn/**"
+      - "tools/mfn_surface_check.py"
       - "tools/verify_mfn_clean_install.py"
+      - "tests/ci/test_mfn_surface_check.py"
+      - "tests/ci/test_mfn_surface_payload_contract.py"
       - "tests/unit/mfn/**"
       - "pyproject.toml"
       - "Makefile"
@@ -49,6 +55,10 @@ jobs:
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Surface contract check
+        if: matrix.python-version == '3.12'
+        run: |
+          python tools/mfn_surface_check.py --strict
       - name: Clean-venv entrypoint smoke
         run: |
           python tools/verify_mfn_clean_install.py \
