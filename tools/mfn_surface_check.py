@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""Local MFN surface checker."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Iterable
+
+OK = "OK"
+RED = "RED"
+UNKNOWN = "UNKNOWN"
+
+
+@dataclass(frozen=True)
+class Row:
+    name: str
+    status: str
+    detail: str
+    path: str
+
+
+def read_text(root: Path, rel_path: str) -> str | None:
+    try:
+        return (root / rel_path).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None
+
+
+def has_all(text: str, values: Iterable[str]) -> bool:
+    return all(value in text for value in values)
+
+
+def makefile_cov(root: Path) -> Row:
+    rel = "Makefile"
+    text = read_text(root, rel)
+    if text is None:
+        return Row("makefile_cov", UNKNOWN, "missing file", rel)
+    if not has_all(text, ["test-coverage:", "test-all:", "test-ci-full:"]):
+        return Row("makefile_cov", UNKNOWN, "shortcut targets incomplete", rel)
+    if "--cov=geosync" not in text:
+        return Row("makefile_cov", RED, "shortcut coverage omits geosync", rel)
+    return Row("makefile_cov", OK, "geosync present in coverage surface", rel)
+
+
+def release_cov(root: Path) -> Row:
+    rel = "configs/quality/release_90.coveragerc"
+    text = read_text(root, rel)
+    if text is None:
+        return Row("release_cov", UNKNOWN, "missing file", rel)
+    return Row("release_cov", OK if "geosync" in text else RED, "release coverage config checked", rel)
+
+
+def workflow_import_path(root: Path) -> Row:
+    rel = ".github/workflows/mfn-release-gate.yml"
+    text = read_text(root, rel)
+    if text is None:
+        return Row("workflow_import_path", UNKNOWN, "missing file", rel)
+    hidden_path_token = "PYTHON" + "PATH=."
+    if hidden_path_token in text:
+        return Row("workflow_import_path", RED, "workflow uses path override", rel)
+    if "python -m pip install -e ." not in text:
+        return Row("workflow_import_path", RED, "workflow does not install package before tests", rel)
+    return Row("workflow_import_path", OK, "workflow installs package before tests", rel)
+
+
+def pipeline_markers(root: Path) -> Row:
+    rel = "geosync/mfn/pipeline.py"
+    text = read_text(root, rel)
+    if text is None:
+        return Row("pipeline_markers", UNKNOWN, "missing file", rel)
+    markers = [
+        "MANIFEST_SCHEMA_VERSION",
+        "_finite_float",
+        "_validate_manifest_entry",
+        "_validate_stage_document",
+        "_validate_runbook",
+    ]
+    missing = [marker for marker in markers if marker not in text]
+    if missing:
+        return Row("pipeline_markers", RED, "missing: " + ", ".join(missing), rel)
+    return Row("pipeline_markers", OK, "pipeline markers present", rel)
+
+
+def cli_markers(root: Path) -> Row:
+    rel = "geosync/mfn/cli.py"
+    text = read_text(root, rel)
+    if text is None:
+        return Row("cli_markers", UNKNOWN, "missing file", rel)
+    markers = ["_dispatch", "FileNotFoundError", "ValueError", "KeyError", "TypeError", "mfn:"]
+    missing = [marker for marker in markers if marker not in text]
+    if missing:
+        return Row("cli_markers", RED, "missing: " + ", ".join(missing), rel)
+    return Row("cli_markers", OK, "cli markers present", rel)
+
+
+def contract_markers(root: Path) -> Row:
+    rel = "geosync/mfn/contract.py"
+    text = read_text(root, rel)
+    if text is None:
+        return Row("contract_markers", UNKNOWN, "missing file", rel)
+    markers = ["__post_init__", "schema_version", "seed", "input_window_sec", "claim_tier"]
+    missing = [marker for marker in markers if marker not in text]
+    if missing:
+        return Row("contract_markers", RED, "missing: " + ", ".join(missing), rel)
+    return Row("contract_markers", OK, "contract markers present", rel)
+
+
+def collect(root: Path) -> list[Row]:
+    return [
+        makefile_cov(root),
+        release_cov(root),
+        workflow_import_path(root),
+        pipeline_markers(root),
+        cli_markers(root),
+        contract_markers(root),
+    ]
+
+
+def payload(rows: list[Row]) -> dict[str, object]:
+    counts = {OK: 0, RED: 0, UNKNOWN: 0}
+    for row in rows:
+        counts[row.status] += 1
+    status = RED if counts[RED] else UNKNOWN if counts[UNKNOWN] else OK
+    return {"status": status, "counts": counts, "rows": [asdict(row) for row in rows]}
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", default=".")
+    parser.add_argument("--strict", action="store_true")
+    args = parser.parse_args(argv)
+    result = payload(collect(Path(args.root).resolve()))
+    print(json.dumps(result, indent=2, sort_keys=True))
+    return 1 if args.strict and result["status"] != OK else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
