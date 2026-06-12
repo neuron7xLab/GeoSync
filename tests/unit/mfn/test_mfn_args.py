@@ -35,3 +35,12 @@ def test_points_argument_accepts_minimum() -> None:
 def test_command_contract_tracks_stage_order() -> None:
     assert MFN_COMMANDS[: len(STAGE_ORDER)] == STAGE_ORDER
     assert MFN_COMMANDS[-2:] == ("run", "validate")
+
+
+def test_stage_prerequisite_error_is_controlled(tmp_path, capsys) -> None:
+    exit_code = main(["--out", str(tmp_path / "bundle"), "extract"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "mfn:" in captured.err
+    assert "simulate.json" in captured.err
