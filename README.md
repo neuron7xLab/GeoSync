@@ -72,6 +72,7 @@ GeoSync treats research as engineered infrastructure, not as a decorative chart 
 | [`CLAIMS.md`](CLAIMS.md) | Claim tier ledger and evidence pointers. |
 | [`FORBIDDEN_CLAIMS.md`](FORBIDDEN_CLAIMS.md) | Status-language firewall and promotion invariants. |
 | [`docs/REPOSITORY_SYSTEM.md`](docs/REPOSITORY_SYSTEM.md) | Operational map for reviewers, auditors, and implementation agents. |
+| [`AGENTS.md`](AGENTS.md) | Root implementation contract for Claude, Codex, and automation agents. |
 
 The README is the front door. The repository system document is the spine. The claim ledger is the courtroom. Naturally, the courtroom matters more than the wallpaper.
 
