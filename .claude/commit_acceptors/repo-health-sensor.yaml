@@ -104,4 +104,7 @@ rollback_verification_command: >-
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/repo-health-sensor.yaml"
 report_path: "tmp/repo_health_sensor.log"
-evidence: []
+evidence:
+- path: tools/repo_health_sensor.py
+- path: tests/ci/test_repo_health_sensor.py
+- path: tools/mfn_surface_check.py

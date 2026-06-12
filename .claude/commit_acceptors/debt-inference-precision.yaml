@@ -72,4 +72,5 @@ rollback_verification_command: >-
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/debt-inference-precision.yaml"
 report_path: "tmp/debt_inference_precision.log"
-evidence: []
+evidence:
+- path: tools/architecture_debt_inference.py

@@ -112,3 +112,65 @@ def test_main_json_runs(capsys) -> None:
     data = json.loads(capsys.readouterr().out)
     assert "debt_classes" in data
     assert rc in (0, 1)
+
+
+# --- debt ratchet -------------------------------------------------------
+def test_ratchet_holds_at_budget(tmp_path) -> None:
+    import json
+
+    m = _load()
+    result = m.infer()
+    budget = {c["id"]: c["count"] for c in result["debt_classes"]
+              if not c["by_design"] and c["count"] >= 0}
+    assert m.ratchet(result, budget) == []
+
+
+def test_ratchet_flags_growth() -> None:
+    m = _load()
+    result = m.infer()
+    over = {c["id"]: 0 for c in result["debt_classes"]
+            if not c["by_design"] and c["count"] > 0}
+    regressions = m.ratchet(result, over)
+    assert regressions
+    assert all(r["over_by"] > 0 for r in regressions)
+
+
+def test_ratchet_exempts_by_design_and_unknown() -> None:
+    m = _load()
+    result = m.infer()
+    # by_design classes are never regressions even at budget 0
+    zero = {c["id"]: 0 for c in result["debt_classes"]}
+    flagged = {r["id"] for r in m.ratchet(result, zero)}
+    by_design_ids = {c.id for c in m.CLASSES if c.by_design}
+    assert not (flagged & by_design_ids)
+
+
+def test_load_budget_reads_committed_file() -> None:
+    from pathlib import Path
+
+    m = _load()
+    budget = m.load_budget(ROOT / "tools" / "debt_budget.json")
+    assert budget["type_ignore_suppressions"] > 0
+    assert isinstance(budget, dict)
+
+
+def test_committed_budget_holds_on_current_tree() -> None:
+    m = _load()
+    budget = m.load_budget(ROOT / "tools" / "debt_budget.json")
+    assert m.ratchet(m.infer(), budget) == [], (
+        "debt grew past the committed budget — reduce it or lower the budget"
+    )
+
+
+def test_check_mode_exit_codes(tmp_path, capsys) -> None:
+    import json
+
+    m = _load()
+    ok_budget = tmp_path / "ok.json"
+    counts = {c["id"]: c["count"] for c in m.infer()["debt_classes"]}
+    ok_budget.write_text(json.dumps({"budget": counts}))
+    assert m.main(["--check", str(ok_budget)]) == 0
+    capsys.readouterr()
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps({"budget": {"todo_markers": 0}}))
+    assert m.main(["--check", str(bad)]) == 1
