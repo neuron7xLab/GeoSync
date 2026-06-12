@@ -117,3 +117,13 @@ def test_testing_guide_keeps_geosync_in_local_coverage_commands() -> None:
     guide = _read("docs/operations/TESTING.md")
     assert "--cov=geosync" in guide
     assert "`geosync/`" in guide
+
+
+def test_testing_guide_uses_existing_make_shortcut_names() -> None:
+    guide = _read("docs/operations/TESTING.md")
+    assert "make test-fast" in guide
+    assert "make test-all" in guide
+    assert "make test-heavy" in guide
+    assert "make test:fast" not in guide
+    assert "make test:all" not in guide
+    assert "make test:heavy" not in guide
