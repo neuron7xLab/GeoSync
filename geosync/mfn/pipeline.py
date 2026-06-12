@@ -362,17 +362,17 @@ def validate_bundle(output_dir: Path) -> list[str]:
     manifest = output_dir / "manifest.json"
     sha_manifest = output_dir / "SHA256SUMS"
     runbook = output_dir / "runbook.md"
-    for required in [
-        manifest,
-        sha_manifest,
+    required_artifacts = [
         runbook,
         *(output_dir / f"{stage}.json" for stage in STAGE_ORDER),
-    ]:
+    ]
+    for required in [manifest, sha_manifest, *required_artifacts]:
         if not required.exists():
             errors.append(f"missing required artifact: {required.name}")
     if errors:
         return errors
 
+    expected_manifest_paths = {path.relative_to(output_dir).as_posix() for path in required_artifacts}
     manifest_doc = read_json(manifest)
     if manifest_doc.get("schema_version") != MANIFEST_SCHEMA_VERSION:
         errors.append("manifest.json has unsupported schema_version")
@@ -414,6 +414,11 @@ def validate_bundle(output_dir: Path) -> list[str]:
         actual = sha256_file(target)
         if actual != digest:
             errors.append(f"manifest hash mismatch: {rel}")
+
+    for rel in sorted(expected_manifest_paths - set(manifest_hashes)):
+        errors.append(f"manifest missing required entry: {rel}")
+    for rel in sorted(set(manifest_hashes) - expected_manifest_paths):
+        errors.append(f"manifest unexpected entry: {rel}")
 
     sha_hashes, sha_errors = _parse_sha256_manifest(sha_manifest)
     errors.extend(sha_errors)
