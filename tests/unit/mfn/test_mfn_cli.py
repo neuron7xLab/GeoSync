@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 
 from geosync.mfn.cli import api_main, main, validate_main
-from geosync.mfn.contract import MFN_COMMANDS
-from geosync.mfn.pipeline import read_json, validate_bundle, write_json
+from geosync.mfn.contract import MFN_COMMANDS, MFNContract
+from geosync.mfn.pipeline import extract, read_json, validate_bundle, write_json
 
 
 def test_mfn_run_creates_bundle_contract(tmp_path: Path, capsys) -> None:
@@ -101,6 +101,44 @@ def test_mfn_manifest_rejects_invalid_digest_entry(tmp_path: Path) -> None:
     write_json(bundle / "manifest.json", manifest)
 
     assert any("invalid digest" in item for item in validate_bundle(bundle))
+
+
+@pytest.mark.parametrize(
+    ("price", "message"),
+    [
+        (None, "numeric"),
+        ("nan", "finite"),
+        ("inf", "finite"),
+    ],
+)
+def test_mfn_extract_rejects_bad_price_values(tmp_path: Path, price: object, message: str) -> None:
+    bundle = tmp_path / "bundle"
+    write_json(
+        bundle / "simulate.json",
+        {
+            "schema_version": "mfn.integration.v1",
+            "stage": "simulate",
+            "observations": [{"price": 100.0}, {"price": price}],
+        },
+    )
+
+    with pytest.raises(ValueError, match=message):
+        extract(bundle, contract=MFNContract())
+
+
+def test_mfn_extract_requires_price_key(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+    write_json(
+        bundle / "simulate.json",
+        {
+            "schema_version": "mfn.integration.v1",
+            "stage": "simulate",
+            "observations": [{"price": 100.0}, {"volume": 1.0}],
+        },
+    )
+
+    with pytest.raises(ValueError, match="price is required"):
+        extract(bundle, contract=MFNContract())
 
 
 def test_mfn_api_text_lists_contract_fields(capsys) -> None:
