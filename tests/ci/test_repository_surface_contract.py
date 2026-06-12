@@ -137,10 +137,13 @@ def test_mfn_release_workflow_uses_installed_package_path() -> None:
     assert "tests/unit/mfn" in workflow
 
 
-def test_mfn_release_workflow_does_not_block_on_surface_probe() -> None:
+def test_mfn_release_workflow_runs_surface_checker() -> None:
     workflow = _read(".github/workflows/mfn-release-gate.yml")
-    strict_probe = "mfn_" + "surface" + "_check.py --" + "strict"
-    assert strict_probe not in workflow
+    tool_path = "tools/" + "mfn_surface_check.py"
+    assert tool_path in workflow
+    assert tool_path + " --" + "strict" in workflow
+    assert "tests/ci/test_mfn_surface_check.py" in workflow
+    assert "tests/ci/test_mfn_surface_payload_contract.py" in workflow
 
 
 def test_mfn_release_workflow_checks_reproducible_bundle_files() -> None:
