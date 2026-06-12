@@ -372,6 +372,12 @@ def validate_bundle(output_dir: Path) -> list[str]:
     if errors:
         return errors
 
+    runbook_text = runbook.read_text(encoding="utf-8")
+    if "First file to open: manifest.json" not in runbook_text:
+        errors.append("runbook.md missing first-file guidance")
+    if "mfn validate --bundle <bundle-dir>" not in runbook_text:
+        errors.append("runbook.md missing validation command")
+
     expected_manifest_paths = {path.relative_to(output_dir).as_posix() for path in required_artifacts}
     expected_stage_schema = MFNContract().schema_version
     for stage in STAGE_ORDER:
