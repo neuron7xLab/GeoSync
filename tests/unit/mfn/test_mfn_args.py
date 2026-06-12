@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from geosync.mfn.cli import main
+from geosync.mfn.cli import build_parser, main
 
 
 def test_points_argument_requires_number(capsys) -> None:
@@ -23,3 +23,8 @@ def test_points_argument_rejects_zero(capsys) -> None:
     captured = capsys.readouterr()
     assert exc_info.value.code == 2
     assert "points must be >= 4" in captured.err
+
+
+def test_points_argument_accepts_minimum() -> None:
+    args = build_parser().parse_args(["--points", "4", "run"])
+    assert args.points == 4
