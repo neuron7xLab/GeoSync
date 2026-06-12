@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT
+
+from __future__ import annotations
+
+import pytest
+
+from geosync.mfn.cli import main
+
+
+def test_points_argument_requires_number(capsys) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--points", "abc", "run"])
+
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 2
+    assert "points must be an integer" in captured.err
