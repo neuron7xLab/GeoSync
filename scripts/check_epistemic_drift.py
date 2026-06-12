@@ -17,6 +17,10 @@ def _extract_readme_invariants(text: str) -> int:
     patterns = [
         r"invariants-(\d+)",
         r"declares \*\*(\d+) machine-checkable invariants\*\*",
+        # Canonical README banner form (the badge was retired when the
+        # README adopted the ASCII brand banner): "97 MACHINE-CHECKABLE
+        # INVARIANTS". The count is still authoritative — read it here.
+        r"(\d+)\s+MACHINE-CHECKABLE INVARIANTS",
     ]
     for pattern in patterns:
         m = re.search(pattern, text)

@@ -30,6 +30,8 @@ diff_scope:
     - path: "tests/ci/test_repo_health_sensor.py"
     - path: "tests/ci/test_mfn_surface_check.py"
     - path: "tests/ci/test_mfn_surface_payload_contract.py"
+    - path: "scripts/check_epistemic_drift.py"
+    - path: ".github/claim_boundary_allow.json"
   forbidden_paths:
     - "trading/"
     - "execution/"

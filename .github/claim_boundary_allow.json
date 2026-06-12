@@ -9,8 +9,8 @@
     },
     {
       "file": "README.md",
-      "match": "this repository is not a live execution platform, not an alpha product, and not a proof that market dynamics obey any asserted physical law. it is a research platform whose claims are allowed only when they are tied to explicit invariants, data contracts, falsifiers, and reproducible artifacts.",
-      "reason": "honest-negation: explicit boundary disclaimer, not a product claim"
+      "match": "geosync is not an alpha product.",
+      "reason": "honest-negation: explicit boundary disclaimer (brand-banner bullet), not a product claim"
     },
     {
       "file": "ROADMAP.md",
