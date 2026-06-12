@@ -57,7 +57,9 @@ def release_cov(root: Path) -> Row:
     text = read_text(root, rel)
     if text is None:
         return Row("release_cov", UNKNOWN, "missing file", rel)
-    return Row("release_cov", OK if "geosync" in text else RED, "release coverage config checked", rel)
+    return Row(
+        "release_cov", OK if "geosync" in text else RED, "release coverage config checked", rel
+    )
 
 
 def workflow_import_path(root: Path) -> Row:
@@ -69,7 +71,9 @@ def workflow_import_path(root: Path) -> Row:
     if hidden_path_token in text:
         return Row("workflow_import_path", RED, "workflow uses path override", rel)
     if "python -m pip install -e ." not in text:
-        return Row("workflow_import_path", RED, "workflow does not install package before tests", rel)
+        return Row(
+            "workflow_import_path", RED, "workflow does not install package before tests", rel
+        )
     return Row("workflow_import_path", OK, "workflow installs package before tests", rel)
 
 
@@ -81,9 +85,9 @@ def pipeline_markers(root: Path) -> Row:
     markers = [
         "MANIFEST_SCHEMA_VERSION",
         "_finite_float",
-        "_validate_manifest_entry",
-        "_validate_stage_document",
-        "_validate_runbook",
+        "validate_bundle",
+        "_parse_sha256_manifest",
+        "_is_sha256_hex",
     ]
     missing = [marker for marker in markers if marker not in text]
     if missing:
@@ -96,7 +100,14 @@ def cli_markers(root: Path) -> Row:
     text = read_text(root, rel)
     if text is None:
         return Row("cli_markers", UNKNOWN, "missing file", rel)
-    markers = ["_dispatch", "FileNotFoundError", "ValueError", "KeyError", "TypeError", "mfn:"]
+    markers = [
+        "_dispatch",
+        "FileNotFoundError",
+        "ValueError",
+        "KeyError",
+        "TypeError",
+        "mfn-validate:",
+    ]
     missing = [marker for marker in markers if marker not in text]
     if missing:
         return Row("cli_markers", RED, "missing: " + ", ".join(missing), rel)
