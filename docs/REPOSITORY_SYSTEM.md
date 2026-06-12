@@ -23,6 +23,7 @@ The repository is not optimized for persuasive language. It is optimized for con
 | [`PRODUCT_CATEGORY.md`](../PRODUCT_CATEGORY.md) | Canonical product-category boundary. Defines what GeoSync is and is not. |
 | [`CLAIMS.md`](../CLAIMS.md) | Single source of truth for claim tiers and evidence pointers. |
 | [`FORBIDDEN_CLAIMS.md`](../FORBIDDEN_CLAIMS.md) | Status-language firewall and promotion invariants. |
+| [`AGENTS.md`](../AGENTS.md) | Root implementation contract for Claude, Codex, and automation agents. |
 | [`BASELINE.md`](../BASELINE.md) | Baseline evidence and comparison reference when present. |
 | [`schemas/`](../schemas) | Machine-readable contracts for artifacts and governance records. |
 | [`scripts/ci/`](../scripts/ci) | Enforcement scripts for claim boundary, gates, and release discipline. |
@@ -206,9 +207,10 @@ A reviewer should inspect the repository in this order:
 3. FORBIDDEN_CLAIMS.md
 4. README.md
 5. docs/REPOSITORY_SYSTEM.md
-6. schemas/
-7. scripts/ci/
-8. artifacts/
+6. AGENTS.md
+7. schemas/
+8. scripts/ci/
+9. artifacts/
 ```
 
 Then ask five questions:
@@ -237,6 +239,12 @@ Do not weaken schema requirements to make a run pass.
 Do not bypass claim-boundary checks by moving language to another document.
 Do not introduce dependency-heavy paths into the MFN gateway.
 Do not call a release valid without an evidence bundle.
+```
+
+For the full root contract, see:
+
+```text
+AGENTS.md
 ```
 
 Expected modification pattern:
