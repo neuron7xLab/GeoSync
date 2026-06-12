@@ -27,6 +27,7 @@ STAGE_ORDER: tuple[str, ...] = (
 
 JSON_INDENT = 2
 SHA256_HEX_LENGTH = 64
+MANIFEST_SCHEMA_VERSION = "mfn.bundle.v1"
 
 
 def utc_now() -> str:
@@ -314,7 +315,7 @@ def write_manifests(output_dir: Path, files: Iterable[Path]) -> tuple[Path, Path
         entries.append({"path": rel, "sha256": digest, "bytes": path.stat().st_size})
         sha_lines.append(f"{digest}  {rel}")
     manifest = write_json(
-        output_dir / "manifest.json", {"schema_version": "mfn.bundle.v1", "files": entries}
+        output_dir / "manifest.json", {"schema_version": MANIFEST_SCHEMA_VERSION, "files": entries}
     )
     sha_manifest = output_dir / "SHA256SUMS"
     sha_manifest.write_text("\n".join(sha_lines) + "\n", encoding="utf-8")
@@ -359,6 +360,8 @@ def validate_bundle(output_dir: Path) -> list[str]:
         return errors
 
     manifest_doc = read_json(manifest)
+    if manifest_doc.get("schema_version") != MANIFEST_SCHEMA_VERSION:
+        errors.append("manifest.json has unsupported schema_version")
     files = manifest_doc.get("files")
     if not isinstance(files, list):
         errors.append("manifest.json files must be a list")
@@ -371,8 +374,12 @@ def validate_bundle(output_dir: Path) -> list[str]:
             continue
         rel = entry.get("path")
         digest = entry.get("sha256")
+        size = entry.get("bytes")
         if not isinstance(rel, str) or not isinstance(digest, str):
             errors.append("manifest entry path and sha256 must be strings")
+            continue
+        if not isinstance(size, int) or size < 0:
+            errors.append(f"manifest entry has invalid bytes: {rel}")
             continue
         if not _is_safe_relative_path(rel):
             errors.append(f"manifest entry has invalid path: {rel}")
@@ -388,6 +395,8 @@ def validate_bundle(output_dir: Path) -> list[str]:
         if not target.exists():
             errors.append(f"manifest target missing: {rel}")
             continue
+        if target.stat().st_size != size:
+            errors.append(f"manifest size mismatch: {rel}")
         actual = sha256_file(target)
         if actual != digest:
             errors.append(f"manifest hash mismatch: {rel}")
