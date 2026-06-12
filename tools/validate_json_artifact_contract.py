@@ -63,6 +63,31 @@ VALIDATED_STATUSES = {
     "HUMAN_REVIEWED",
 }
 
+VALID_TEST_TYPES = {
+    "schema",
+    "unit",
+    "integration",
+    "regression",
+    "parser",
+    "repository",
+    "security",
+    "artifact",
+    "behavioral",
+}
+
+VALID_RUNNERS = {
+    "python",
+    "pytest",
+    "jsonschema",
+    "ruff",
+    "mypy",
+    "shell",
+    "ci",
+    "human_review",
+}
+
+VALID_SEVERITIES = {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
+
 OBJECT_FIELDS = (
     "objective",
     "inputs",
@@ -85,6 +110,33 @@ RUNNER_LIST_FIELDS = (
     "failure_criteria",
 )
 
+PLAN_FIELDS = (
+    "step_id",
+    "action",
+    "input",
+    "output",
+    "tool_required",
+    "failure_condition",
+)
+
+TEST_FIELDS = (
+    "test_id",
+    "test_type",
+    "input",
+    "expected_output",
+    "runner",
+    "pass_criteria",
+    "fail_criteria",
+)
+
+FAILURE_FIELDS = (
+    "failure",
+    "cause",
+    "impact",
+    "detection",
+    "mitigation",
+    "severity",
+)
 
 
 def _load(path: Path) -> tuple[dict[str, Any] | None, list[str]]:
@@ -103,6 +155,12 @@ def _is_nonempty_string(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _require_string_fields(prefix: str, obj: dict[str, Any], fields: tuple[str, ...], errors: list[str]) -> None:
+    for field in fields:
+        if not _is_nonempty_string(obj.get(field)):
+            errors.append(f"{prefix}_{field}_must_be_nonempty_string")
+
+
 def _validate_top_level_shape(data: dict[str, Any], errors: list[str]) -> None:
     contract_type = data.get("contract_type")
     if contract_type not in VALID_CONTRACT_TYPES:
@@ -118,6 +176,75 @@ def _validate_top_level_shape(data: dict[str, Any], errors: list[str]) -> None:
 
     if not _is_nonempty_string(data.get("next_deterministic_action")):
         errors.append("next_deterministic_action_must_be_nonempty_string")
+
+
+def _validate_objective(data: dict[str, Any], errors: list[str]) -> None:
+    objective = data.get("objective")
+    if not isinstance(objective, dict):
+        return
+
+    _require_string_fields(
+        "objective",
+        objective,
+        ("target_state", "current_state", "transformation", "action_vector"),
+        errors,
+    )
+
+    optimization = objective.get("optimization")
+    if not isinstance(optimization, dict):
+        errors.append("objective_optimization_must_be_object")
+        return
+    for key in ("minimize", "maximize"):
+        if not isinstance(optimization.get(key), list):
+            errors.append(f"objective_optimization_{key}_must_be_list")
+
+
+def _validate_inputs(data: dict[str, Any], errors: list[str]) -> None:
+    inputs = data.get("inputs")
+    if not isinstance(inputs, dict):
+        return
+    for key in ("required", "provided", "missing", "assumptions"):
+        if not isinstance(inputs.get(key), list):
+            errors.append(f"inputs_{key}_must_be_list")
+
+
+def _validate_execution_plan(data: dict[str, Any], errors: list[str]) -> None:
+    plan = data.get("execution_plan")
+    if not isinstance(plan, list):
+        return
+    for idx, step in enumerate(plan):
+        if not isinstance(step, dict):
+            errors.append(f"execution_plan_{idx}_must_be_object")
+            continue
+        _require_string_fields(f"execution_plan_{idx}", step, PLAN_FIELDS, errors)
+
+
+def _validate_tests(data: dict[str, Any], errors: list[str]) -> None:
+    tests = data.get("validation_tests")
+    if not isinstance(tests, list):
+        return
+    for idx, test in enumerate(tests):
+        if not isinstance(test, dict):
+            errors.append(f"validation_tests_{idx}_must_be_object")
+            continue
+        _require_string_fields(f"validation_tests_{idx}", test, TEST_FIELDS, errors)
+        if test.get("test_type") not in VALID_TEST_TYPES:
+            errors.append(f"validation_tests_{idx}_invalid_test_type")
+        if test.get("runner") not in VALID_RUNNERS:
+            errors.append(f"validation_tests_{idx}_invalid_runner")
+
+
+def _validate_failure_register(data: dict[str, Any], errors: list[str]) -> None:
+    register = data.get("failure_register")
+    if not isinstance(register, list):
+        return
+    for idx, item in enumerate(register):
+        if not isinstance(item, dict):
+            errors.append(f"failure_register_{idx}_must_be_object")
+            continue
+        _require_string_fields(f"failure_register_{idx}", item, FAILURE_FIELDS, errors)
+        if item.get("severity") not in VALID_SEVERITIES:
+            errors.append(f"failure_register_{idx}_invalid_severity")
 
 
 def _validate_runner_contract(data: dict[str, Any], errors: list[str]) -> None:
@@ -147,6 +274,11 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
             errors.append(f"missing_top_level:{key}")
 
     _validate_top_level_shape(data, errors)
+    _validate_objective(data, errors)
+    _validate_inputs(data, errors)
+    _validate_execution_plan(data, errors)
+    _validate_tests(data, errors)
+    _validate_failure_register(data, errors)
     _validate_runner_contract(data, errors)
 
     evidence = data.get("evidence_status")
@@ -182,6 +314,8 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
         errors.append("invalid_final_status")
     if not isinstance(evidence_required, list):
         errors.append("final_evidence_required_must_be_list")
+    if not _is_nonempty_string(verdict.get("reason")):
+        errors.append("final_reason_must_be_nonempty_string")
 
     if not isinstance(tests_executed, list):
         errors.append("tests_executed_must_be_list")
