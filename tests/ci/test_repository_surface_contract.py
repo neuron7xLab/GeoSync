@@ -127,3 +127,23 @@ def test_testing_guide_uses_existing_make_shortcut_names() -> None:
     assert "make test:fast" not in guide
     assert "make test:all" not in guide
     assert "make test:heavy" not in guide
+
+
+def test_mfn_release_workflow_uses_installed_package_path() -> None:
+    workflow = _read(".github/workflows/mfn-release-gate.yml")
+    hidden_path_token = "PYTHON" + "PATH=."
+    assert hidden_path_token not in workflow
+    assert "python -m pip install -e ." in workflow
+    assert "tests/unit/mfn" in workflow
+
+
+def test_mfn_release_workflow_does_not_block_on_surface_probe() -> None:
+    workflow = _read(".github/workflows/mfn-release-gate.yml")
+    strict_probe = "mfn_" + "surface" + "_check.py --" + "strict"
+    assert strict_probe not in workflow
+
+
+def test_mfn_release_workflow_checks_reproducible_bundle_files() -> None:
+    workflow = _read(".github/workflows/mfn-release-gate.yml")
+    for artifact_name in ["SHA256SUMS", "manifest.json", "runbook.md"]:
+        assert artifact_name in workflow
