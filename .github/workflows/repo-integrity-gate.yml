@@ -12,6 +12,7 @@ on:
       - 'AGENTS.md'
       - 'BASELINE.md'
       - 'docs/**/*.md'
+      - 'examples/**/*.json'
       - 'scripts/ci/prove_repo_integrity.sh'
       - 'scripts/ci/check_research_artifact_truth.py'
       - 'scripts/ci/check_claim_artifact_graph.py'
