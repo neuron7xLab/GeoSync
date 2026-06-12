@@ -95,6 +95,9 @@ def test_repo_integrity_workflow_runs_on_public_surface_changes() -> None:
         "FORBIDDEN_CLAIMS.md",
         "AGENTS.md",
         "docs/**/*.md",
+        "tools/mfn_surface_check.py",
+        "tools/patch_makefile_geosync_coverage.py",
+        "tools/validate_json_artifact_contract.py",
         "tests/ci/**",
     ]:
         assert target in workflow
@@ -102,6 +105,7 @@ def test_repo_integrity_workflow_runs_on_public_surface_changes() -> None:
 
 def test_repo_integrity_script_runs_contract_test_directories() -> None:
     script = _read("scripts/ci/prove_repo_integrity.sh")
+    assert "tools/mfn_surface_check.py --strict" in script
     assert "tests/research_lines" in script
     assert "tests/ci" in script
     assert "pytest" in script
