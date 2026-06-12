@@ -69,13 +69,19 @@ def _summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _next_sequence(entries: list[dict[str, Any]]) -> int:
+    values = [item.get("sequence") for item in entries if isinstance(item, dict)]
+    numeric = [value for value in values if isinstance(value, int) and not isinstance(value, bool)]
+    return (max(numeric) if numeric else 0) + 1
+
+
 def build_ledger(cycle_path: Path, ledger_path: Path, limit: int) -> dict[str, Any]:
     if limit <= 0:
         raise ValueError("limit must be positive")
     cycle = _read_object(cycle_path)
     ledger = _read_ledger(ledger_path)
     entries = list(ledger["entries"])
-    entries.append(_entry(cycle_path, cycle, len(entries) + 1))
+    entries.append(_entry(cycle_path, cycle, _next_sequence(entries)))
     entries = entries[-limit:]
     return {"schema_version": SCHEMA_VERSION, "entries": entries, "summary": _summary(entries)}
 
