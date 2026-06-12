@@ -138,6 +138,13 @@ FAILURE_FIELDS = (
     "severity",
 )
 
+DEFINITION_FIELDS = (
+    "term",
+    "operational_definition",
+    "failure_condition",
+    "validation_method",
+)
+
 
 def _load(path: Path) -> tuple[dict[str, Any] | None, list[str]]:
     try:
@@ -174,6 +181,10 @@ def _validate_top_level_shape(data: dict[str, Any], errors: list[str]) -> None:
         if key in data and not isinstance(data[key], list):
             errors.append(f"{key}_must_be_list")
 
+    definitions = data.get("definitions")
+    if definitions is not None and not isinstance(definitions, list):
+        errors.append("definitions_must_be_list")
+
     if not _is_nonempty_string(data.get("next_deterministic_action")):
         errors.append("next_deterministic_action_must_be_nonempty_string")
 
@@ -206,6 +217,19 @@ def _validate_inputs(data: dict[str, Any], errors: list[str]) -> None:
     for key in ("required", "provided", "missing", "assumptions"):
         if not isinstance(inputs.get(key), list):
             errors.append(f"inputs_{key}_must_be_list")
+
+
+def _validate_definitions(data: dict[str, Any], errors: list[str]) -> None:
+    definitions = data.get("definitions")
+    if definitions is None:
+        return
+    if not isinstance(definitions, list):
+        return
+    for idx, item in enumerate(definitions):
+        if not isinstance(item, dict):
+            errors.append(f"definitions_{idx}_must_be_object")
+            continue
+        _require_string_fields(f"definitions_{idx}", item, DEFINITION_FIELDS, errors)
 
 
 def _validate_execution_plan(data: dict[str, Any], errors: list[str]) -> None:
@@ -276,10 +300,15 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
     _validate_top_level_shape(data, errors)
     _validate_objective(data, errors)
     _validate_inputs(data, errors)
+    _validate_definitions(data, errors)
     _validate_execution_plan(data, errors)
     _validate_tests(data, errors)
     _validate_failure_register(data, errors)
     _validate_runner_contract(data, errors)
+
+    contract_type = data.get("contract_type")
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    missing_inputs = inputs.get("missing") if isinstance(inputs, dict) else None
 
     evidence = data.get("evidence_status")
     verdict = data.get("final_verdict")
@@ -330,7 +359,16 @@ def validate_contract(data: dict[str, Any]) -> list[str]:
     elif not 0 <= float(confidence) <= 1:
         errors.append("confidence_out_of_range")
 
-    if not external:
+    if contract_type == "blocked_contract":
+        if not isinstance(missing_inputs, list) or not missing_inputs:
+            errors.append("blocked_contract_requires_missing_inputs")
+        if evidence_status != "BLOCKED":
+            errors.append("blocked_contract_evidence_status_must_be_blocked")
+        if final_status != "BLOCKED":
+            errors.append("blocked_contract_final_status_must_be_blocked")
+        if score is not None:
+            errors.append("score_requires_external_evidence")
+    elif not external:
         if score is not None:
             errors.append("score_requires_external_evidence")
         if confidence is not None and isinstance(confidence, (int, float)) and not isinstance(confidence, bool):
