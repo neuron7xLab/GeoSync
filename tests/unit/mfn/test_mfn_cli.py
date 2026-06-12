@@ -67,9 +67,10 @@ def test_mfn_bundle_is_byte_reproducible(tmp_path: Path, monkeypatch) -> None:
     assert main(["--out", str(first), "--seed", "7", "--points", "8", "run"]) == 0
     assert main(["--out", str(second), "--seed", "7", "--points", "8", "run"]) == 0
 
-    assert (first / "SHA256SUMS").read_text(encoding="utf-8") == (
-        second / "SHA256SUMS"
-    ).read_text(encoding="utf-8")
+    for name in ("SHA256SUMS", "manifest.json", "runbook.md"):
+        assert (first / name).read_text(encoding="utf-8") == (second / name).read_text(
+            encoding="utf-8"
+        )
 
 
 def test_mfn_api_json_lists_required_commands(capsys) -> None:
