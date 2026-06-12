@@ -33,19 +33,19 @@ then
   exit 2
 fi
 
-echo "[1/8] invariant witness"
+echo "[1/9] invariant witness"
 test "$("$PY" scripts/count_invariants.py)" = "97"
 
-echo "[2/8] python version matrix"
+echo "[2/9] python version matrix"
 "$PY" scripts/check_python_matrix.py >/dev/null
 
-echo "[3/8] namespace policy"
+echo "[3/9] namespace policy"
 "$PY" scripts/check_namespace_policy.py >/dev/null
 
-echo "[4/8] claim boundary"
+echo "[4/9] claim boundary"
 "$PY" scripts/ci/check_claim_boundary.py >/dev/null
 
-echo "[5/8] manifest hashes (proof mode)"
+echo "[5/9] manifest hashes (proof mode)"
 if "$PY" scripts/ci/check_manifest_hashes.py --min-artifacts 1 >/dev/null 2>&1; then
   echo "      MANIFEST_PROOF: PROVEN"
 else
@@ -54,13 +54,16 @@ else
   echo "      MANIFEST_PROOF: NOT_PROVEN (no real hash-pinned artifacts committed)"
 fi
 
-echo "[6/8] research-artifact truth"
+echo "[6/9] research-artifact truth"
 "$PY" scripts/ci/check_research_artifact_truth.py >/dev/null
 
-echo "[7/8] claim-to-artifact graph"
+echo "[7/9] claim-to-artifact graph"
 "$PY" scripts/ci/check_claim_artifact_graph.py >/dev/null
 
-echo "[8/8] gate + contract tests"
+echo "[8/9] mfn surface sensor"
+"$PY" tools/mfn_surface_check.py --strict >/dev/null
+
+echo "[9/9] gate + contract tests"
 # Scope: the integrity surface — the truth/graph/manifest gates (tests/ci) and
 # the research-line schema+semantic contracts (tests/research_lines). These run
 # on a clean clone with only the sci-core stack. tests/tools (release-packaging
