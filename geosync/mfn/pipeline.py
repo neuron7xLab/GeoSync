@@ -1,12 +1,6 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Deterministic MFN integration pipeline.
-
-This module provides a small, dependency-light operation path that turns the
-repository's research contract into a machine-checkable artifact bundle. It is
-not a trading engine and does not promote any market claim beyond the
-``INSTRUMENTED`` tier.
-"""
+"""Deterministic MFN integration pipeline."""
 
 from __future__ import annotations
 
@@ -32,15 +26,11 @@ STAGE_ORDER: tuple[str, ...] = (
 )
 
 JSON_INDENT = 2
+SHA256_HEX_LENGTH = 64
 
 
 def utc_now() -> str:
-    """Return an ISO-8601 UTC timestamp with a ``Z`` suffix.
-
-    Honours ``SOURCE_DATE_EPOCH`` (the reproducible-builds convention) so a
-    release bundle and its SHA256 manifest are byte-identical across clean runs
-    when the epoch is pinned. Falls back to wall-clock UTC otherwise.
-    """
+    """Return an ISO-8601 UTC timestamp with a ``Z`` suffix."""
 
     epoch = os.environ.get("SOURCE_DATE_EPOCH")
     if epoch is not None:
@@ -85,8 +75,34 @@ def _stage_payload(stage: str, contract: MFNContract, body: Mapping[str, Any]) -
     }
 
 
+def _parse_sha256_manifest(path: Path) -> tuple[dict[str, str], list[str]]:
+    """Parse a SHA-256 manifest into ``relative_path -> digest`` entries."""
+
+    entries: dict[str, str] = {}
+    errors: list[str] = []
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        line = raw_line.strip()
+        if not line:
+            continue
+        if "  " not in line:
+            errors.append(f"SHA256SUMS line {line_number} must use two-space separator")
+            continue
+        digest, rel = line.split("  ", 1)
+        if len(digest) != SHA256_HEX_LENGTH or any(char not in "0123456789abcdef" for char in digest):
+            errors.append(f"SHA256SUMS line {line_number} has invalid digest")
+            continue
+        if not rel or rel.startswith("/") or ".." in Path(rel).parts:
+            errors.append(f"SHA256SUMS line {line_number} has invalid path")
+            continue
+        if rel in entries:
+            errors.append(f"SHA256SUMS duplicate entry: {rel}")
+            continue
+        entries[rel] = digest
+    return entries, errors
+
+
 def simulate(output_dir: Path, *, seed: int, points: int, contract: MFNContract) -> Path:
-    """Create a deterministic synthetic market-observation series."""
+    """Create a deterministic synthetic observation series."""
 
     if points < 4:
         raise ValueError("points must be >= 4")
@@ -196,7 +212,7 @@ def forecast(output_dir: Path, *, contract: MFNContract) -> Path:
 
 
 def compare(output_dir: Path, *, contract: MFNContract) -> Path:
-    """Compare the forecast against a null baseline without promoting a claim."""
+    """Compare the forecast against a null baseline without tier promotion."""
 
     features_doc = read_json(output_dir / "extract.json")
     forecast_doc = read_json(output_dir / "forecast.json")
@@ -243,7 +259,7 @@ def report(output_dir: Path, *, contract: MFNContract) -> Path:
     lines = [
         "# MFN Integration Runbook",
         "",
-        "Status: INSTRUMENTED — no predictive or trading claim is promoted.",
+        "Status: INSTRUMENTED.",
         f"Decision: {forecast_doc.get('decision')}",
         f"Falsification status: {compare_doc.get('falsification_status')}",
         "",
@@ -321,6 +337,8 @@ def validate_bundle(output_dir: Path) -> list[str]:
     if not isinstance(files, list):
         errors.append("manifest.json files must be a list")
         return errors
+
+    manifest_hashes: dict[str, str] = {}
     for entry in files:
         if not isinstance(entry, dict):
             errors.append("manifest entry must be an object")
@@ -330,6 +348,10 @@ def validate_bundle(output_dir: Path) -> list[str]:
         if not isinstance(rel, str) or not isinstance(digest, str):
             errors.append("manifest entry path and sha256 must be strings")
             continue
+        if rel in manifest_hashes:
+            errors.append(f"manifest duplicate entry: {rel}")
+            continue
+        manifest_hashes[rel] = digest
         target = output_dir / rel
         if not target.exists():
             errors.append(f"manifest target missing: {rel}")
@@ -337,4 +359,24 @@ def validate_bundle(output_dir: Path) -> list[str]:
         actual = sha256_file(target)
         if actual != digest:
             errors.append(f"manifest hash mismatch: {rel}")
+
+    sha_hashes, sha_errors = _parse_sha256_manifest(sha_manifest)
+    errors.extend(sha_errors)
+    if sha_hashes != manifest_hashes:
+        for rel in sorted(set(manifest_hashes) - set(sha_hashes)):
+            errors.append(f"SHA256SUMS missing entry: {rel}")
+        for rel in sorted(set(sha_hashes) - set(manifest_hashes)):
+            errors.append(f"SHA256SUMS unexpected entry: {rel}")
+        for rel in sorted(set(manifest_hashes) & set(sha_hashes)):
+            if sha_hashes[rel] != manifest_hashes[rel]:
+                errors.append(f"SHA256SUMS hash mismatch: {rel}")
+
+    for rel, digest in sha_hashes.items():
+        target = output_dir / rel
+        if not target.exists():
+            errors.append(f"SHA256SUMS target missing: {rel}")
+            continue
+        actual = sha256_file(target)
+        if actual != digest:
+            errors.append(f"SHA256SUMS target hash mismatch: {rel}")
     return errors
