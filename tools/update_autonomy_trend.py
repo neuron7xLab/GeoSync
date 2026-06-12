@@ -40,30 +40,48 @@ def _read_ledger(path: Path) -> dict[str, Any]:
     return ledger
 
 
+def _status_vector(phases: Any) -> list[str]:
+    if not isinstance(phases, list):
+        raise ValueError("cycle phases must be a list")
+    return [str(item.get("status", "UNKNOWN")) for item in phases if isinstance(item, dict)]
+
+
 def _entry(cycle_path: Path, cycle: dict[str, Any], sequence: int) -> dict[str, Any]:
     decision = cycle.get("decision")
     phases = cycle.get("phases")
     if not isinstance(decision, dict):
         raise ValueError("cycle decision must be an object")
-    if not isinstance(phases, list):
-        raise ValueError("cycle phases must be a list")
-    vector = [str(item.get("status", "UNKNOWN")) for item in phases if isinstance(item, dict)]
+    vector = _status_vector(phases)
     return {
         "sequence": sequence,
         "cycle_schema_version": str(cycle.get("schema_version", "")),
         "cycle_sha256": _sha256(cycle_path),
         "decision_state": str(decision.get("state", "UNKNOWN")),
         "status_vector": vector,
+        "status_counts": dict(sorted(Counter(vector).items())),
         "phase_count": len(phases),
     }
 
 
 def _summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
-    counts = Counter(str(item.get("decision_state", "UNKNOWN")) for item in entries if isinstance(item, dict))
+    decision_counts = Counter(str(item.get("decision_state", "UNKNOWN")) for item in entries if isinstance(item, dict))
+    status_counts: Counter[str] = Counter()
+    phase_count_total = 0
+    for item in entries:
+        if not isinstance(item, dict):
+            continue
+        counts = item.get("status_counts")
+        if isinstance(counts, dict):
+            status_counts.update({str(key): int(value) for key, value in counts.items() if isinstance(value, int)})
+        phase_count = item.get("phase_count")
+        if isinstance(phase_count, int) and not isinstance(phase_count, bool):
+            phase_count_total += phase_count
     latest = entries[-1] if entries else None
     return {
         "total_cycles": len(entries),
-        "decision_counts": dict(sorted(counts.items())),
+        "decision_counts": dict(sorted(decision_counts.items())),
+        "status_counts": dict(sorted(status_counts.items())),
+        "phase_count_total": phase_count_total,
         "latest_decision_state": None if latest is None else latest.get("decision_state"),
         "latest_cycle_sha256": None if latest is None else latest.get("cycle_sha256"),
     }
