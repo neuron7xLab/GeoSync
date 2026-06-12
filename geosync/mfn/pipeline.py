@@ -373,6 +373,19 @@ def validate_bundle(output_dir: Path) -> list[str]:
         return errors
 
     expected_manifest_paths = {path.relative_to(output_dir).as_posix() for path in required_artifacts}
+    expected_stage_schema = MFNContract().schema_version
+    for stage in STAGE_ORDER:
+        path = output_dir / f"{stage}.json"
+        try:
+            document = read_json(path)
+        except ValueError as exc:
+            errors.append(f"{stage}.json is invalid: {exc}")
+            continue
+        if document.get("schema_version") != expected_stage_schema:
+            errors.append(f"{stage}.json has unsupported schema_version")
+        if document.get("stage") != stage:
+            errors.append(f"{stage}.json has wrong stage")
+
     manifest_doc = read_json(manifest)
     if manifest_doc.get("schema_version") != MANIFEST_SCHEMA_VERSION:
         errors.append("manifest.json has unsupported schema_version")
