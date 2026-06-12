@@ -105,3 +105,9 @@ def test_repo_integrity_script_runs_contract_test_directories() -> None:
     assert "tests/research_lines" in script
     assert "tests/ci" in script
     assert "pytest" in script
+
+
+def test_testing_guide_matches_python_contract() -> None:
+    guide = _read("docs/operations/TESTING.md")
+    assert ">=3.11,<3.13" in guide
+    assert "3.11–3.13" not in guide
