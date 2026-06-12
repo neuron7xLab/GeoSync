@@ -66,6 +66,13 @@ def test_candidate_contract_is_accepted() -> None:
     assert validate_contract(_candidate()) == []
 
 
+def test_missing_top_level_field_is_reported() -> None:
+    payload = _candidate()
+    payload.pop("execution_plan")
+
+    assert "missing_top_level:execution_plan" in validate_contract(payload)
+
+
 @pytest.mark.parametrize(
     ("field", "value", "expected"),
     [
@@ -104,6 +111,15 @@ def test_evidence_fields_have_machine_types(field: str, value: object, expected:
     assert isinstance(evidence, dict)
     evidence[field] = value
     assert expected in validate_contract(payload)
+
+
+def test_output_constraints_are_required_true_values() -> None:
+    payload = _candidate()
+    constraints = payload["output_constraints"]
+    assert isinstance(constraints, dict)
+    constraints["json_only"] = False
+
+    assert "constraint_not_true:json_only" in validate_contract(payload)
 
 
 def test_main_writes_validation_result(tmp_path: Path) -> None:
