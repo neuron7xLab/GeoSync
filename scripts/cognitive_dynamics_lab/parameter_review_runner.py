@@ -14,7 +14,19 @@ DEFAULT_OUT = "artifacts/cognitive_dynamics_lab"
 CLAIM_TIER = "simulation-only"
 REVIEW_MODE = "deterministic_parameter_review"
 VERIFICATION = "deterministic_replay_only"
-CSV_FIELDS = ["parameter", "value", "signal_delta", "limit_delta", "verdict"]
+UNIT_SCALE = "0..1"
+SIGNAL_REFERENCE = 4.5
+LIMIT_REFERENCE = 1.0
+CSV_FIELDS = [
+    "parameter",
+    "value",
+    "normalized_value",
+    "signal_delta",
+    "normalized_signal_delta",
+    "limit_delta",
+    "normalized_limit_delta",
+    "verdict",
+]
 
 PARAMS: ParamTable = {
     "alpha_error": 0.35,
@@ -31,6 +43,22 @@ PARAMS: ParamTable = {
     "w_realism": 0.30,
     "w_stability": 0.20,
 }
+
+
+def clamp_unit(value: float) -> float:
+    return round(max(0.0, min(1.0, value)), 6)
+
+
+def normalize_value(value: float) -> float:
+    return clamp_unit(value)
+
+
+def normalize_signal(value: float) -> float:
+    return clamp_unit(value / SIGNAL_REFERENCE)
+
+
+def normalize_limit(value: float) -> float:
+    return clamp_unit(value / LIMIT_REFERENCE)
 
 
 def score_baseline(value: float) -> float:
@@ -56,11 +84,15 @@ def review_param(name: str, value: float) -> ReviewRow:
     return {
         "parameter": name,
         "value": value,
+        "normalized_value": normalize_value(value),
         "baseline_score": baseline,
         "muted_score": muted,
         "raised_score": raised,
         "signal_delta": signal_delta,
+        "normalized_signal_delta": normalize_signal(signal_delta),
         "limit_delta": limit_delta,
+        "normalized_limit_delta": normalize_limit(limit_delta),
+        "metric_scale": UNIT_SCALE,
         "verdict": choose_verdict(signal_delta, limit_delta),
         "verification": VERIFICATION,
     }
@@ -74,10 +106,16 @@ def build_summary(rows: list[ReviewRow]) -> ReviewSummary:
     return {
         "mode": REVIEW_MODE,
         "claim_tier": CLAIM_TIER,
+        "metric_scale": UNIT_SCALE,
         "parameters_tested": len(rows),
         "scheduled_for_review": sum(row["verdict"] != "pass" for row in rows),
         "entropy_residual": 0.0,
         "reproducibility": 1.0,
+        "normalized_fields": [
+            "normalized_value",
+            "normalized_signal_delta",
+            "normalized_limit_delta",
+        ],
         "outputs": ["parameter_review.json", "parameter_review.csv"],
     }
 
@@ -93,8 +131,11 @@ def csv_row(row: ReviewRow) -> list[str | float]:
     return [
         row["parameter"],
         row["value"],
+        row["normalized_value"],
         row["signal_delta"],
+        row["normalized_signal_delta"],
         row["limit_delta"],
+        row["normalized_limit_delta"],
         row["verdict"],
     ]
 
