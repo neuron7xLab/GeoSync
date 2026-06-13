@@ -24,7 +24,7 @@ urllib3==2.7.0
 # ============================================================================
 # cryptography: Core crypto library, has critical CVEs in versions < 42.0.0
 # CVE-2023-50782, CVE-2024-26130, CVE-2024-0727 in older versions
-cryptography==48.0.0
+cryptography==49.0.0
 
 # ============================================================================
 # VCS tooling - RCE / path-traversal critical
@@ -56,13 +56,13 @@ PyYAML==6.0.3
 # while the (stale) SBOM masked them. Pinned to the patched fix versions.
 # ============================================================================
 # aiohttp < 3.14.0: GHSA-jg22-mg44-37j8, GHSA-hg6j-4rv6-33pg
-aiohttp==3.14.0
+aiohttp==3.14.1
 # Mako < 1.3.12: GHSA-2h4p-vjrc-8xpq (ReDoS)
 Mako==1.3.12
 # pyarrow < 23.0.1: PYSEC-2026-113
-pyarrow==23.0.1
+pyarrow==24.0.0
 # python-multipart < 0.0.27: GHSA-pp6c-gr5w-3c5g (DoS)
-python-multipart==0.0.27
+python-multipart==0.0.32
 # strawberry-graphql < 0.315.7: GHSA-x97m-qp5c-w9xj, GHSA-fr49-mhgj-crfc, GHSA-qfwv-87qj-98xq
 strawberry-graphql==0.316.0
 
@@ -106,7 +106,7 @@ twisted==26.4.0
 # CVE-2025-52316: DoS via crafted Range header in FileResponse
 # fastapi: Web framework built on starlette, requires compatible starlette version
 # Pin to ensure secure versions are used
-starlette>=1.2.1
+starlette>=1.3.1
 fastapi>=0.136.3,<1.0.0
 
 # ============================================================================

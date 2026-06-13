@@ -204,7 +204,7 @@ numpy==2.4.6
     #   scikit-learn
     #   scipy
     #   streamlit
-nvidia-cublas==13.1.0.3
+nvidia-cublas==13.5.1.27
     # via
     #   cuda-toolkit
     #   nvidia-cudnn-cu13
@@ -221,7 +221,7 @@ nvidia-cufft==12.0.0.61
     # via cuda-toolkit
 nvidia-cufile==1.15.1.6
     # via cuda-toolkit
-nvidia-curand==10.4.0.35
+nvidia-curand==10.4.3.29
     # via cuda-toolkit
 nvidia-cusolver==12.0.4.66
     # via cuda-toolkit
@@ -403,7 +403,7 @@ sqlalchemy==2.0.50
     #   alembic
     #   geosync (pyproject.toml)
     #   optuna
-starlette==1.2.1
+starlette==1.3.1
     # via
     #   -c constraints/security.txt
     #   fastapi
@@ -482,13 +482,13 @@ urllib3==2.7.0
     # via
     #   -c constraints/security.txt
     #   requests
-uvicorn==0.44.0
+uvicorn==0.49.0
     # via geosync (pyproject.toml)
 watchdog==6.0.0
     # via streamlit
 websockets==15.0.1
     # via geosync (pyproject.toml)
-yarl==1.22.0
+yarl==1.24.2
     # via
     #   aiohttp
     #   ccxt
