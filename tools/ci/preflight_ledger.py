@@ -234,9 +234,7 @@ def append_ledger(report_path: Path, ledger_path: Path) -> dict[str, Any]:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Append PR preflight inference ledger entry."
-    )
+    parser = argparse.ArgumentParser(description="Append PR preflight inference ledger entry.")
     parser.add_argument("--report", required=True, help="Path to preflight_report.json")
     parser.add_argument("--ledger", help="Ledger JSONL path. Defaults next to report.")
     parser.add_argument(
