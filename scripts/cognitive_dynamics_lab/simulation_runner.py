@@ -28,6 +28,7 @@ METHOD_VERSION = "cognitive-dynamics-lab-v0.1"
 SEED = 20260613
 CLAIM_TIER = "simulation-only"
 DEFAULT_OUT = "artifacts/cognitive_dynamics_lab"
+UNIT_SCALE = "0..1"
 
 AGGREGATE_METRICS = {
     "mean_mae": 0.189113,
@@ -38,6 +39,15 @@ AGGREGATE_METRICS = {
     "mean_stability_margin": 0.736609,
 }
 
+NORMALIZATION_REFERENCES = {
+    "mean_mae": 1.0,
+    "mean_realism_gap": 1.0,
+    "mean_ei_balance": 1.0,
+    "mean_outside_ei_fraction": 1.0,
+    "mean_energy_efficiency": 0.001,
+    "mean_stability_margin": 1.0,
+}
+
 CONFIDENCE = {
     "level": 0.60,
     "reason": (
@@ -46,6 +56,22 @@ CONFIDENCE = {
     ),
     "cannot_claim": ["external validation", "production readiness"],
 }
+
+
+def clamp_unit(value: float) -> float:
+    """Clamp a metric to the shared unit interval."""
+    return round(max(0.0, min(1.0, value)), 6)
+
+
+def normalize_metric(name: str, value: float) -> float:
+    """Normalize a raw metric into the common 0..1 scale."""
+    reference = NORMALIZATION_REFERENCES[name]
+    return clamp_unit(value / reference)
+
+
+def build_normalized_metrics(metrics: dict[str, float]) -> dict[str, float]:
+    """Return normalized aggregate metrics using explicit references."""
+    return {name: normalize_metric(name, value) for name, value in metrics.items()}
 
 
 def replay_command() -> str:
@@ -68,7 +94,10 @@ def build_summary() -> Summary:
         "runs": len(CASES),
         "cases": CASES,
         "replay_command": replay_command(),
+        "metric_scale": UNIT_SCALE,
+        "normalization_references": NORMALIZATION_REFERENCES,
         "aggregate_metrics": AGGREGATE_METRICS,
+        "normalized_metrics": build_normalized_metrics(AGGREGATE_METRICS),
         "detected_holes_frequency": {"H5": 7, "H6": 1, "H10": 1},
         "confidence": CONFIDENCE,
     }
@@ -83,6 +112,7 @@ def run_case(case: CaseName) -> RunRecord:
         "run_id": f"CDL-{case}",
         "case": case,
         "claim_tier": CLAIM_TIER,
+        "metric_scale": UNIT_SCALE,
     }
 
 
@@ -106,9 +136,9 @@ def write_metrics_table(out: Path) -> None:
     """Write a compact CSV index of deterministic run records."""
     with (out / "metrics_table.csv").open("w", encoding="utf-8", newline="") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["case", "claim_tier"])
+        writer.writerow(["case", "claim_tier", "metric_scale"])
         for case in CASES:
-            writer.writerow([case, CLAIM_TIER])
+            writer.writerow([case, CLAIM_TIER, UNIT_SCALE])
 
 
 def write_outputs(out: Path) -> None:
