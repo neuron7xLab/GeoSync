@@ -11,7 +11,10 @@
     "artifact_role",
     "claim_tier",
     "replay_command",
+    "metric_scale",
+    "normalization_references",
     "aggregate_metrics",
+    "normalized_metrics",
     "detected_holes_frequency",
     "confidence"
   ],
@@ -23,6 +26,20 @@
     "artifact_role": {"type": "string", "enum": ["simulation_evidence", "design_contract"]},
     "claim_tier": {"type": "string", "enum": ["simulation-only", "replay-validated", "external-validated"]},
     "replay_command": {"type": "string"},
+    "metric_scale": {"type": "string", "enum": ["0..1"]},
+    "normalization_references": {
+      "type": "object",
+      "required": ["mean_mae", "mean_realism_gap", "mean_ei_balance", "mean_outside_ei_fraction", "mean_energy_efficiency", "mean_stability_margin"],
+      "properties": {
+        "mean_mae": {"type": "number", "exclusiveMinimum": 0},
+        "mean_realism_gap": {"type": "number", "exclusiveMinimum": 0},
+        "mean_ei_balance": {"type": "number", "exclusiveMinimum": 0},
+        "mean_outside_ei_fraction": {"type": "number", "exclusiveMinimum": 0},
+        "mean_energy_efficiency": {"type": "number", "exclusiveMinimum": 0},
+        "mean_stability_margin": {"type": "number", "exclusiveMinimum": 0}
+      },
+      "additionalProperties": false
+    },
     "aggregate_metrics": {
       "type": "object",
       "required": ["mean_mae", "mean_realism_gap", "mean_ei_balance", "mean_outside_ei_fraction", "mean_energy_efficiency", "mean_stability_margin"],
@@ -33,6 +50,19 @@
         "mean_outside_ei_fraction": {"type": "number"},
         "mean_energy_efficiency": {"type": "number"},
         "mean_stability_margin": {"type": "number"}
+      },
+      "additionalProperties": false
+    },
+    "normalized_metrics": {
+      "type": "object",
+      "required": ["mean_mae", "mean_realism_gap", "mean_ei_balance", "mean_outside_ei_fraction", "mean_energy_efficiency", "mean_stability_margin"],
+      "properties": {
+        "mean_mae": {"type": "number", "minimum": 0, "maximum": 1},
+        "mean_realism_gap": {"type": "number", "minimum": 0, "maximum": 1},
+        "mean_ei_balance": {"type": "number", "minimum": 0, "maximum": 1},
+        "mean_outside_ei_fraction": {"type": "number", "minimum": 0, "maximum": 1},
+        "mean_energy_efficiency": {"type": "number", "minimum": 0, "maximum": 1},
+        "mean_stability_margin": {"type": "number", "minimum": 0, "maximum": 1}
       },
       "additionalProperties": false
     },
