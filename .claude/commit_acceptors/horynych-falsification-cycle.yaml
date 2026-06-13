@@ -19,6 +19,9 @@ required_python_symbols:
 expected_signal: "dependency-free weight-cycle replay writes deterministic JSON and CSV artifacts"
 measurement_command: "python scripts/cognitive_dynamics_lab/falsification_cycle.py --out artifacts/cognitive_dynamics_lab"
 signal_artifact: "artifacts/cognitive_dynamics_lab/falsification_summary.json"
+falsifier:
+  command: "python scripts/cognitive_dynamics_lab/falsification_cycle.py --out artifacts/cognitive_dynamics_lab && test -f artifacts/cognitive_dynamics_lab/falsification_summary.json && test -f artifacts/cognitive_dynamics_lab/falsification_cycle.json && test -f artifacts/cognitive_dynamics_lab/falsification_table.csv"
+  description: "Replay must produce deterministic weight-cycle artifacts without importing trading, execution, forecast, or policy modules."
 rollback_command: "git rm .claude/commit_acceptors/horynych-falsification-cycle.yaml docs/cognitive_dynamics/HORYNYCH_FALSIFICATION_CYCLE.md schemas/cognitive_dynamics_falsification.schema.json scripts/cognitive_dynamics_lab/falsification_cycle.py"
 rollback_verification_command: "git diff --exit-code"
 memory_update_type: append
