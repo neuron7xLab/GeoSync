@@ -15,6 +15,8 @@ The answer is expressed through process exit code, per-check logs, and `artifact
 5. `--skip-install` may test control flow, but it is not a full preflight pass.
 6. Coverage observation must not substitute for quick test success.
 7. The JSON report must be written even when the run fails, blocks, or times out.
+8. The report contract must be treated as a machine contract, not decorative output.
+9. Repository-system documentation must not be truncated by full-file edits.
 
 ## User-facing command
 
@@ -55,7 +57,26 @@ The report must include: `schema_version`, `status`, `root`, `started_at`, `fini
 
 Each check entry must include enough evidence to reproduce the decision: `id`, `name`, `critical`, `status`, `command`, `exit_code`, `duration_seconds`, `stdout_log`, `stderr_log`, and `failure_reason`.
 
+Extended check metadata should remain stable when present: `tool_available`, `cwd`, `timeout_seconds`, `success_exit_codes`, and `optional_if_missing`.
+
 The report is the first diagnostic artifact. Individual stdout and stderr logs are the second diagnostic layer.
+
+## Report contract guard
+
+The runner should fail closed if its own evidence shape drifts.
+
+A machine guard for the report contract must verify:
+
+1. all required top-level report keys exist;
+2. final `status` is one of `PASS`, `FAIL`, or `BLOCKED`;
+3. every check status is one of `PASS`, `FAIL`, `SKIPPED_OPTIONAL`, `BLOCKED`, or `TIMEOUT`;
+4. no critical check is `SKIPPED_OPTIONAL`;
+5. `summary` counts match the actual check statuses;
+6. `failure_count` equals the number of critical checks that are not `PASS`;
+7. `first_file_to_open` points to the report path;
+8. stdout and stderr log paths are non-empty strings.
+
+If this guard fails, the runner itself is broken. Do not treat the emitted report as trusted evidence until the contract is repaired.
 
 ## Status model
 
@@ -135,7 +156,29 @@ Log paths are stored inside each check result. Prefer the report over guessing f
 | Timeout | `TIMEOUT` | Inspect logs and decide whether command scope or timeout is wrong. |
 | Optional tool absent | `SKIPPED_OPTIONAL` | Accept only for `detect_secrets` absence. |
 | Report absent | Runner bug or interrupted process | Fix report-writing path before trusting the gate. |
+| Report schema drift | report guard failure | Restore the report contract before trusting any result. |
 | stderr suppressed | Governance regression | Restore stderr preservation. |
+
+## Repository map anti-truncation guard
+
+`docs/REPOSITORY_SYSTEM.md` is a canonical map and must retain its full structure.
+
+A test or review guard should verify that the file still contains:
+
+```text
+## 1. Canonical Surfaces
+## 2. System Layers
+## 3. Claim Promotion Automaton
+## 4. Evidence-Bearing Artifact Requirements
+## 5. Ricci Microstructure Boundary
+## 6. MFN Gateway Boundary
+## 7. Release Evidence Boundary
+## 8. Reviewer Protocol
+## 9. Implementation-Agent Rules
+## 10. Definition of Repository Completion
+```
+
+It should also verify that `docs/PR_PREFLIGHT_RUNBOOK.md` remains linked from the canonical surfaces table and reviewer protocol. This guard exists because full-file edits can silently amputate lower sections. Apparently documents also require seatbelts now.
 
 ## Local validation contract
 
@@ -161,6 +204,8 @@ The test suite should preserve these invariants:
 10. report JSON is written on failure.
 11. stdout and stderr logs are preserved.
 12. wrapper forwards the Python runner exit code.
+13. report contract drift is rejected by a machine guard.
+14. repository-system truncation is caught before merge.
 
 ## Acceptance boundary
 
@@ -174,6 +219,8 @@ A runner change is acceptable only when:
 6. Missing optional `detect-secrets` is explicit, not silent.
 7. No critical unknown state is treated as success.
 8. Behavioral tests prove the exit semantics.
+9. The report contract guard rejects invalid status, summary drift, and critical optional skip.
+10. The repository map retains sections 1 through 10 after any documentation update.
 
 A documentation-only change is acceptable only when it does not alter runtime code and its acceptor binds exactly the changed files.
 
@@ -191,6 +238,6 @@ For this runbook alone, rollback is limited to removing the runbook and its acce
 
 ## Anti-regression rules
 
-Do not introduce unconditional success fallbacks around critical checks, exit-neutral lint mode, stderr suppression around critical checks, wrapper success regardless of runner status, coverage as a quick-test replacement, or missing critical executables treated as success.
+Do not introduce unconditional success fallbacks around critical checks, exit-neutral lint mode, stderr suppression around critical checks, wrapper success regardless of runner status, coverage as a quick-test replacement, missing critical executables treated as success, schema drift in `preflight_report.json`, or truncated canonical repository maps.
 
 The runner is allowed to be small. It is not allowed to be ambiguous.
