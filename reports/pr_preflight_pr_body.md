@@ -85,7 +85,7 @@ First failing stderr log from the review run:
 artifacts/pr_preflight_pr_review/logs/ruff.stderr.log
 ```
 
-Current repository-local preflight reports are intentionally non-green because existing broad checks fail. The generated reports preserve those failures instead of hiding them. This is a review-ready candidate. It does not assert deployment validation, complete CI equivalence, guaranteed security coverage, or release-level proof.
+Current repository-local preflight reports are intentionally non-green because existing broad checks fail. The structured preflight currently preserves existing broad-check failures instead of hiding them. This is expected evidence behavior, not a fake green claim. This PR is review-ready, not production-validated. It does not assert deployment validation, complete CI equivalence, guaranteed security coverage, or release-level proof.
 
 ## Test plan
 
