@@ -204,7 +204,7 @@ numpy==2.4.6
     #   scikit-learn
     #   scipy
     #   streamlit
-nvidia-cublas==13.1.0.3
+nvidia-cublas==13.5.1.27
     # via
     #   cuda-toolkit
     #   nvidia-cudnn-cu13
