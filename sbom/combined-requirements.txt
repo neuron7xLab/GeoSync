@@ -49,7 +49,7 @@ cachetools==6.2.1
     # via streamlit
 captcha==0.7.1
     # via streamlit-authenticator
-ccxt==4.5.12
+ccxt==4.5.58
     # via geosync (pyproject.toml)
 certifi==2026.5.20
     # via
