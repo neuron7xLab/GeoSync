@@ -32,6 +32,32 @@ FINAL_BLOCKED = "BLOCKED"
 
 ALLOWED_CHECK_STATUSES = {PASS, FAIL, SKIPPED_OPTIONAL, BLOCKED, TIMEOUT}
 ALLOWED_FINAL_STATUSES = {FINAL_PASS, FINAL_FAIL, FINAL_BLOCKED}
+REQUIRED_REPORT_KEYS = {
+    "schema_version",
+    "status",
+    "root",
+    "started_at",
+    "finished_at",
+    "duration_seconds",
+    "checks",
+    "summary",
+    "failure_count",
+    "next_action",
+    "first_file_to_open",
+}
+REQUIRED_CHECK_KEYS = {
+    "id",
+    "name",
+    "critical",
+    "status",
+    "command",
+    "exit_code",
+    "duration_seconds",
+    "stdout_log",
+    "stderr_log",
+    "failure_reason",
+}
+REQUIRED_SUMMARY_KEYS = {"passed", "failed", "skipped_optional", "blocked", "timeouts"}
 
 
 @dataclass(frozen=True)
@@ -442,6 +468,56 @@ def first_failure(checks: list[dict[str, Any]]) -> str:
     return "No critical failures."
 
 
+def _require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
+def validate_report_contract(report: dict[str, Any]) -> None:
+    missing_report_keys = sorted(REQUIRED_REPORT_KEYS - set(report))
+    _require(not missing_report_keys, f"report missing keys: {missing_report_keys}")
+    _require(report["schema_version"] == 1, "schema_version must be 1")
+    _require(report["status"] in ALLOWED_FINAL_STATUSES, "invalid final status")
+    _require(isinstance(report["checks"], list), "checks must be a list")
+
+    checks = report["checks"]
+    for index, check in enumerate(checks):
+        missing_check_keys = sorted(REQUIRED_CHECK_KEYS - set(check))
+        _require(not missing_check_keys, f"check {index} missing keys: {missing_check_keys}")
+        _require(
+            check["status"] in ALLOWED_CHECK_STATUSES,
+            f"invalid check status: {check['status']}",
+        )
+        _require(isinstance(check["critical"], bool), f"check {check['id']} critical must be bool")
+        _require(isinstance(check["command"], list), f"check {check['id']} command must be list")
+        _require(
+            isinstance(check["duration_seconds"], int | float),
+            f"check {check['id']} duration_seconds must be numeric",
+        )
+        _require(isinstance(check["stdout_log"], str) and check["stdout_log"], "stdout_log missing")
+        _require(isinstance(check["stderr_log"], str) and check["stderr_log"], "stderr_log missing")
+        _require(
+            not (check["critical"] and check["status"] == SKIPPED_OPTIONAL),
+            f"critical check skipped optional: {check['id']}",
+        )
+
+    summary = report["summary"]
+    _require(isinstance(summary, dict), "summary must be a dict")
+    missing_summary_keys = sorted(REQUIRED_SUMMARY_KEYS - set(summary))
+    _require(not missing_summary_keys, f"summary missing keys: {missing_summary_keys}")
+    _require(summary == summarize(checks), "summary does not match check statuses")
+
+    expected_failure_count = sum(
+        1 for check in checks if check["critical"] and check["status"] != PASS
+    )
+    _require(report["failure_count"] == expected_failure_count, "failure_count mismatch")
+    _require(
+        isinstance(report["first_file_to_open"], str)
+        and report["first_file_to_open"].endswith("preflight_report.json"),
+        "first_file_to_open must point to preflight_report.json",
+    )
+
+
 def build_report(
     root: Path,
     report_dir: Path,
@@ -478,6 +554,7 @@ def run_preflight(root: Path, report_dir: Path, skip_install: bool = False) -> d
     ]
     report = build_report(root, report_dir, checks, started_at)
     report["duration_seconds"] = round(time.monotonic() - started, 6)
+    validate_report_contract(report)
     _write_text(report_dir / "preflight_report.json", json.dumps(report, indent=2, sort_keys=True))
     return report
 
