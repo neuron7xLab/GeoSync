@@ -1,10 +1,10 @@
-# Horynych Falsification Cycle
+# Weight Falsification Cycle
 
-This document defines the bounded falsification layer for the cognitive dynamics lab. Horynych is treated as an alias for the local simulation substrate, not as a new production system and not as an AGI claim.
+This document defines a bounded weight-cycle layer for the cognitive dynamics lab. The name Horynych is treated only as a local label for this simulation-only replay surface.
 
 ## Objective
 
-Destroy unsupported weight assumptions through deterministic replay until only minimally justified synthetic weights remain.
+Prune unsupported weight assumptions through deterministic replay until only minimally justified synthetic weights remain.
 
 ## Scope
 
@@ -14,10 +14,10 @@ Included:
 - objective weights for realism, accuracy, diversity, stability, and energy.
 
 Excluded:
-- live trading.
-- production policy.
-- external validation claims.
-- identity or consciousness claims.
+- market execution.
+- decision policy.
+- external deployment claims.
+- human-state claims.
 
 ## Cycle
 
@@ -37,12 +37,12 @@ Excluded:
 Within this synthetic replay only:
 - entropy_residual equals 0.0.
 - reproducibility equals 1.0.
-- every weight has a falsification verdict.
-- no production claim is promoted.
+- every weight has a verdict.
+- no claim tier is promoted.
 
 ## Key blocker
 
-The blocker is not lack of theory. The blocker is whether each weight creates measurable signal without creating uncontrolled risk.
+The blocker is whether each weight creates measurable signal without creating uncontrolled risk.
 
 ## Risk control
 
