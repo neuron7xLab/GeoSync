@@ -30,11 +30,18 @@ SEED = 20260613
 CLAIM_TIER = "simulation-only"
 DEFAULT_OUT = "artifacts/cognitive_dynamics_lab"
 UNIT_SCALE = "0..1"
+CALIBRATION_PROFILE = {
+    "version": "calibration-v0.1",
+    "sensitivity": "balanced",
+    "low_upper": 0.25,
+    "high_lower": 0.75,
+    "precision_digits": 6,
+}
 QUANTIZED_STATES = ["low", "medium", "high"]
 QUANTIZATION_BINS = {
-    "low": [0.0, 0.333333],
-    "medium": [0.333334, 0.666666],
-    "high": [0.666667, 1.0],
+    "low": [0.0, CALIBRATION_PROFILE["low_upper"]],
+    "medium": [CALIBRATION_PROFILE["low_upper"], CALIBRATION_PROFILE["high_lower"]],
+    "high": [CALIBRATION_PROFILE["high_lower"], 1.0],
 }
 
 AGGREGATE_METRICS = {
@@ -67,7 +74,8 @@ CONFIDENCE = {
 
 def clamp_unit(value: float) -> float:
     """Clamp a metric to the shared unit interval."""
-    return round(max(0.0, min(1.0, value)), 6)
+    digits = int(CALIBRATION_PROFILE["precision_digits"])
+    return round(max(0.0, min(1.0, value)), digits)
 
 
 def normalize_metric(name: str, value: float) -> float:
@@ -82,22 +90,22 @@ def build_normalized_metrics(metrics: dict[str, float]) -> dict[str, float]:
 
 
 def quantize_unit(value: float) -> str:
-    """Map a unit-scaled continuous value to a discrete state."""
-    if value < 0.333334:
+    """Map a unit-scaled continuous value to a calibrated discrete state."""
+    if value <= float(CALIBRATION_PROFILE["low_upper"]):
         return "low"
-    if value < 0.666667:
+    if value < float(CALIBRATION_PROFILE["high_lower"]):
         return "medium"
     return "high"
 
 
 def quantize_metric(name: str, value: float) -> QuantizedMetric:
-    """Return both the normalized value and its discrete state."""
+    """Return both the normalized value and its calibrated discrete state."""
     normalized = normalize_metric(name, value)
     return {"value": normalized, "state": quantize_unit(normalized)}
 
 
 def build_quantized_metrics(metrics: dict[str, float]) -> dict[str, QuantizedMetric]:
-    """Return discrete states for normalized aggregate metrics."""
+    """Return calibrated discrete states for normalized aggregate metrics."""
     return {name: quantize_metric(name, value) for name, value in metrics.items()}
 
 
@@ -122,6 +130,7 @@ def build_summary() -> Summary:
         "cases": CASES,
         "replay_command": replay_command(),
         "metric_scale": UNIT_SCALE,
+        "calibration_profile": CALIBRATION_PROFILE,
         "normalization_references": NORMALIZATION_REFERENCES,
         "quantization_bins": QUANTIZATION_BINS,
         "quantized_states": QUANTIZED_STATES,
@@ -143,6 +152,7 @@ def run_case(case: CaseName) -> RunRecord:
         "case": case,
         "claim_tier": CLAIM_TIER,
         "metric_scale": UNIT_SCALE,
+        "calibration": str(CALIBRATION_PROFILE["version"]),
         "quantization": "enabled",
     }
 
@@ -167,9 +177,9 @@ def write_metrics_table(out: Path) -> None:
     """Write a compact CSV index of deterministic run records."""
     with (out / "metrics_table.csv").open("w", encoding="utf-8", newline="") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["case", "claim_tier", "metric_scale", "quantization"])
+        writer.writerow(["case", "claim_tier", "metric_scale", "calibration", "quantization"])
         for case in CASES:
-            writer.writerow([case, CLAIM_TIER, UNIT_SCALE, "enabled"])
+            writer.writerow([case, CLAIM_TIER, UNIT_SCALE, CALIBRATION_PROFILE["version"], "enabled"])
 
 
 def write_outputs(out: Path) -> None:
@@ -178,20 +188,20 @@ def write_outputs(out: Path) -> None:
     write_run_records(out)
     write_json(out / "summary.json", SUMMARY)
     write_metrics_table(out)
+    print(json.dumps(SUMMARY, indent=2, sort_keys=True))
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments for the replay runner."""
+    """Parse CLI arguments for the replay emitter."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=DEFAULT_OUT)
     return parser.parse_args()
 
 
 def main() -> int:
+    """Run the deterministic artifact emitter."""
     args = parse_args()
-    out = Path(args.out)
-    write_outputs(out)
-    print(json.dumps(SUMMARY, indent=2, sort_keys=True))
+    write_outputs(Path(args.out))
     return 0
 
 
