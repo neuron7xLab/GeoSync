@@ -409,7 +409,7 @@ starlette==1.2.1
     #   fastapi
 strawberry-graphql[fastapi]==0.315.7
     # via geosync (pyproject.toml)
-streamlit==1.54.0
+streamlit==1.58.0
     # via
     #   extra-streamlit-components
     #   geosync (pyproject.toml)
