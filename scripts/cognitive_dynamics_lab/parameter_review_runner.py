@@ -8,7 +8,7 @@ from pathlib import Path
 
 ParamTable = dict[str, float]
 ReviewRow = dict[str, str | float]
-ReviewSummary = dict[str, str | int | float | list[str]]
+ReviewSummary = dict[str, str | int | float | list[str] | dict[str, str | float | int]]
 
 DEFAULT_OUT = "artifacts/cognitive_dynamics_lab"
 CLAIM_TIER = "simulation-only"
@@ -17,11 +17,20 @@ VERIFICATION = "deterministic_replay_only"
 UNIT_SCALE = "0..1"
 SIGNAL_REFERENCE = 4.5
 LIMIT_REFERENCE = 1.0
+CALIBRATION_PROFILE = {
+    "version": "calibration-v0.1",
+    "sensitivity": "balanced",
+    "low_upper": 0.25,
+    "high_lower": 0.75,
+    "precision_digits": 6,
+    "signal_pass_min": 1.5,
+    "limit_pass_max": 0.5,
+}
 QUANTIZED_STATES = ["low", "medium", "high"]
 QUANTIZATION_BINS = {
-    "low": [0.0, 0.333333],
-    "medium": [0.333334, 0.666666],
-    "high": [0.666667, 1.0],
+    "low": [0.0, CALIBRATION_PROFILE["low_upper"]],
+    "medium": [CALIBRATION_PROFILE["low_upper"], CALIBRATION_PROFILE["high_lower"]],
+    "high": [CALIBRATION_PROFILE["high_lower"], 1.0],
 }
 CSV_FIELDS = [
     "parameter",
@@ -34,6 +43,7 @@ CSV_FIELDS = [
     "limit_delta",
     "normalized_limit_delta",
     "quantized_limit_delta",
+    "calibration",
     "verdict",
 ]
 
@@ -55,13 +65,14 @@ PARAMS: ParamTable = {
 
 
 def clamp_unit(value: float) -> float:
-    return round(max(0.0, min(1.0, value)), 6)
+    digits = int(CALIBRATION_PROFILE["precision_digits"])
+    return round(max(0.0, min(1.0, value)), digits)
 
 
 def quantize_unit(value: float) -> str:
-    if value < 0.333334:
+    if value <= float(CALIBRATION_PROFILE["low_upper"]):
         return "low"
-    if value < 0.666667:
+    if value < float(CALIBRATION_PROFILE["high_lower"]):
         return "medium"
     return "high"
 
@@ -99,7 +110,9 @@ def score_raised(value: float) -> float:
 
 
 def choose_verdict(signal_delta: float, limit_delta: float) -> str:
-    if signal_delta >= 1.5 and limit_delta <= 0.5:
+    signal_pass_min = float(CALIBRATION_PROFILE["signal_pass_min"])
+    limit_pass_max = float(CALIBRATION_PROFILE["limit_pass_max"])
+    if signal_delta >= signal_pass_min and limit_delta <= limit_pass_max:
         return "pass"
     return "review"
 
@@ -109,7 +122,7 @@ def review_param(name: str, value: float) -> ReviewRow:
     muted = 0.0
     raised = score_raised(value)
     signal_delta = round(baseline - muted, 6)
-    limit_delta = round(max(0.0, raised - 4.5), 6)
+    limit_delta = round(max(0.0, raised - SIGNAL_REFERENCE), 6)
     return {
         "parameter": name,
         "value": value,
@@ -126,6 +139,7 @@ def review_param(name: str, value: float) -> ReviewRow:
         "quantized_limit_delta": quantize_limit(limit_delta),
         "metric_scale": UNIT_SCALE,
         "quantization_bins": str(QUANTIZATION_BINS),
+        "calibration": str(CALIBRATION_PROFILE["version"]),
         "verdict": choose_verdict(signal_delta, limit_delta),
         "verification": VERIFICATION,
     }
@@ -140,6 +154,7 @@ def build_summary(rows: list[ReviewRow]) -> ReviewSummary:
         "mode": REVIEW_MODE,
         "claim_tier": CLAIM_TIER,
         "metric_scale": UNIT_SCALE,
+        "calibration_profile": CALIBRATION_PROFILE,
         "quantized_states": QUANTIZED_STATES,
         "parameters_tested": len(rows),
         "scheduled_for_review": sum(row["verdict"] != "pass" for row in rows),
@@ -178,6 +193,7 @@ def csv_row(row: ReviewRow) -> list[str | float]:
         row["limit_delta"],
         row["normalized_limit_delta"],
         row["quantized_limit_delta"],
+        row["calibration"],
         row["verdict"],
     ]
 
