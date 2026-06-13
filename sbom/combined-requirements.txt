@@ -20,7 +20,7 @@ alembic==1.17.0
     # via
     #   geosync (pyproject.toml)
     #   optuna
-altair==5.5.0
+altair==6.2.1
     # via streamlit
 annotated-doc==0.0.4
     # via fastapi
@@ -49,7 +49,7 @@ cachetools==6.2.1
     # via streamlit
 captcha==0.7.1
     # via streamlit-authenticator
-ccxt==4.5.12
+ccxt==4.5.58
     # via geosync (pyproject.toml)
 certifi==2026.5.20
     # via
@@ -183,13 +183,13 @@ mypy-extensions==1.1.0
     # via typing-inspect
 narwhals==2.9.0
     # via altair
-networkx==3.5
+networkx==3.6.1
     # via
     #   geosync (pyproject.toml)
     #   torch
 numba==0.63.1
     # via geosync (pyproject.toml)
-numpy==2.3.3
+numpy==2.4.6
     # via
     #   deap
     #   exchange-calendars
@@ -289,7 +289,7 @@ packaging==25.0
     #   pandera
     #   strawberry-graphql
     #   streamlit
-pandas==2.3.3
+pandas==3.0.3
     # via
     #   exchange-calendars
     #   geosync (pyproject.toml)
@@ -383,9 +383,9 @@ rpds-py==0.27.1
     # via
     #   jsonschema
     #   referencing
-scikit-learn==1.8.0
+scikit-learn==1.9.0
     # via geosync (pyproject.toml)
-scipy==1.16.2
+scipy==1.17.1
     # via
     #   geosync (pyproject.toml)
     #   jax
@@ -409,7 +409,7 @@ starlette==1.2.1
     #   fastapi
 strawberry-graphql[fastapi]==0.315.7
     # via geosync (pyproject.toml)
-streamlit==1.54.0
+streamlit==1.58.0
     # via
     #   extra-streamlit-components
     #   geosync (pyproject.toml)
@@ -428,7 +428,7 @@ toml==0.10.2
     # via streamlit
 toolz==1.0.0
     # via exchange-calendars
-torch==2.11.0
+torch==2.12.0
     # via geosync (pyproject.toml)
 tornado==6.5.6
     # via streamlit

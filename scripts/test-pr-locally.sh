@@ -14,15 +14,17 @@ if command -v python3 >/dev/null 2>&1; then
 elif command -v python >/dev/null 2>&1; then
     PYTHON_BIN="python"
 else
-    mkdir -p "${REPORT_DIR}"
     echo "ERROR: python3 or python is required to run PR preflight" >&2
-    echo "FIRST_FILE_TO_OPEN=${REPORT_PATH}"
+    # No runner could execute, so no evidence report exists — do not point
+    # callers at a non-existent artifact.
     exit 1
 fi
 
 "${PYTHON_BIN}" "${ROOT}/tools/ci/pr_preflight.py" --root "${ROOT}" --report-dir "${REPORT_DIR}" "$@"
 exit_code=$?
 
+# Append the inference-ledger entry only when the runner actually produced its
+# evidence report; on a BLOCKED/crash run the report is absent.
 if [[ -f "${REPORT_PATH}" ]]; then
     "${PYTHON_BIN}" "${ROOT}/tools/ci/preflight_ledger.py" --report "${REPORT_PATH}" --ledger "${LEDGER_PATH}"
     ledger_exit=$?
@@ -34,5 +36,9 @@ elif [[ "${exit_code}" -eq 0 ]]; then
     exit_code=1
 fi
 
-echo "FIRST_FILE_TO_OPEN=${REPORT_PATH}"
+# Only advertise the evidence artifact when it was actually written (fail-closed
+# triage: never point callers at a missing file on the BLOCKED path).
+if [[ -f "${REPORT_PATH}" ]]; then
+    echo "FIRST_FILE_TO_OPEN=${REPORT_PATH}"
+fi
 exit "${exit_code}"
