@@ -42,8 +42,20 @@ Quantized states:
 - parameter review includes quantized_signal_delta
 - parameter review includes quantized_limit_delta
 
+Optimization profile:
+- version: objective-v0.1
+- simulation summary includes optimization_profile
+- simulation summary includes optimized_metrics
+- simulation summary includes objective_score
+- simulation summary includes objective_state
+- minimized metrics: mean_mae, mean_realism_gap, mean_outside_ei_fraction
+- maximized metrics: mean_ei_balance, mean_energy_efficiency, mean_stability_margin
+- parameter review includes objective_contribution
+- parameter review includes recommended_action
+- parameter review summary includes recommended_actions
+
 Boundaries:
 - claim tier stays simulation-only
 - production trading and execution paths are outside this stack
 
-Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research and replay layer with governance binding, replay commands, normalized metric outputs, calibrated quantized state outputs, parameter review outputs, and rollback scope.
+Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research and replay layer with governance binding, replay commands, normalized metric outputs, calibrated quantized state outputs, objective optimization outputs, parameter review actions, and rollback scope.
