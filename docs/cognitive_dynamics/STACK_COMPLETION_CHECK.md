@@ -26,8 +26,16 @@ Normalized scale:
 - parameter review includes normalized_signal_delta
 - parameter review includes normalized_limit_delta
 
+Quantized states:
+- simulation summary includes quantization_bins
+- simulation summary includes quantized_states low, medium, high
+- simulation summary includes quantized_metrics
+- parameter review includes quantized_value
+- parameter review includes quantized_signal_delta
+- parameter review includes quantized_limit_delta
+
 Boundaries:
 - claim tier stays simulation-only
 - production trading and execution paths are outside this stack
 
-Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research and replay layer with governance binding, replay commands, normalized metric outputs, parameter review outputs, and rollback scope.
+Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research and replay layer with governance binding, replay commands, normalized metric outputs, quantized discrete state outputs, parameter review outputs, and rollback scope.
