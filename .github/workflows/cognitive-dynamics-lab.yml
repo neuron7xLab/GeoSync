@@ -17,15 +17,21 @@ on:
       - '.claude/commit_acceptors/cognitive-dynamics-lab.yaml'
       - '.github/workflows/cognitive-dynamics-lab.yml'
 
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
 
@@ -51,7 +57,7 @@ jobs:
           test -f artifacts/cognitive_dynamics_lab_benchmark/benchmark_table.csv
 
       - name: Upload verification artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cognitive-dynamics-lab-verification
           path: |
