@@ -158,3 +158,127 @@ This supports graph-level structural computation. It does not by itself establis
 ## 6. MFN Gateway Boundary
 
 The MFN path is a dependency-light operational gateway:
+
+```text
+simulate → extract → detect → forecast → compare → report
+```
+
+Its job is to prove:
+
+```text
+packaging
+console entrypoints
+dependency-light execution
+artifact bundle shape
+hash-manifest discipline
+local reproducibility
+```
+
+It may produce `INSTRUMENTED` artifacts. It may not promote a research statement beyond its evidence tier.
+
+---
+
+## 7. Release Evidence Boundary
+
+A release gate is valid only when it leaves machine-readable evidence:
+
+```text
+commands
+raw_logs
+exit_codes
+manifest
+checksums
+schema_validation
+CI_status
+SBOM_when_available
+telemetry_exports_when_available
+environment_drift_result
+```
+
+A green terminal line is an observation. A release evidence bundle is an artifact.
+
+---
+
+## 8. Reviewer Protocol
+
+A reviewer should inspect the repository in this order:
+
+```text
+1. PRODUCT_CATEGORY.md
+2. CLAIMS.md
+3. FORBIDDEN_CLAIMS.md
+4. README.md
+5. docs/REPOSITORY_SYSTEM.md
+6. docs/PR_PREFLIGHT_RUNBOOK.md
+7. AGENTS.md
+8. schemas/
+9. scripts/ci/
+10. artifacts/
+```
+
+Then ask five questions:
+
+```text
+What exactly is claimed?
+What tier is the claim assigned?
+Which artifact supports it?
+Which falsifier can reject it?
+Can the artifact be replayed from the recorded command?
+```
+
+If any answer is missing, the claim does not move upward.
+
+---
+
+## 9. Implementation-Agent Rules
+
+Any implementation agent modifying this repository must obey:
+
+```text
+Do not promote claim language without updating CLAIMS.md.
+Do not create placeholder evidence that pretends to be measured evidence.
+Do not hide negative outcomes.
+Do not weaken schema requirements to make a run pass.
+Do not bypass claim-boundary checks by moving language to another document.
+Do not introduce dependency-heavy paths into the MFN gateway.
+Do not call a release valid without an evidence bundle.
+```
+
+For the full root contract, see:
+
+```text
+AGENTS.md
+```
+
+Expected modification pattern:
+
+```text
+read canonical surface
+make minimal coherent change
+update schema or claim ledger when required
+add or update validation
+record evidence path
+leave replay command
+```
+
+---
+
+## 10. Definition of Repository Completion
+
+GeoSync is complete for a given research line only when:
+
+```text
+claim tier is declared
+input data is immutable
+method version is pinned
+artifact validates against schema
+nulls and falsifiers are executed
+baseline is recorded
+replay command succeeds
+CI gate passes
+release evidence is emitted
+CLAIMS.md is updated
+retired or failed states are preserved
+```
+
+Anything less is not completion. It is a folder with ambition.
