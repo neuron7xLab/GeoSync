@@ -51,11 +51,23 @@ sys.exit(int(os.environ.get("STUB_PROJECT_INSTALL_EXIT", "0")))
     return _write_executable(bin_dir / "python", body)
 
 
+def _write_git_stub(bin_dir: Path, files: tuple[str, ...]) -> Path:
+    body = f"""
+import sys
+
+if "ls-files" in sys.argv[1:]:
+    sys.stdout.write("\\0".join({list(files)!r}))
+sys.exit(0)
+"""
+    return _write_executable(bin_dir / "git", body)
+
+
 def _prepare_repo(
     tmp_path: Path,
     monkeypatch,
     detect_secrets: bool = False,
     omit_tools: tuple[str, ...] = (),
+    secrets_files: tuple[str, ...] = (),
 ) -> tuple[Path, Path]:
     root = tmp_path / "repo"
     root.mkdir()
@@ -74,7 +86,11 @@ def _prepare_repo(
         if tool_name not in omit_tools:
             _write_tool_stub(bin_dir, tool_name, env_prefix)
     if detect_secrets:
-        _write_tool_stub(bin_dir, "detect-secrets", "STUB_DETECT_SECRETS")
+        _write_tool_stub(bin_dir, "detect-secrets-hook", "STUB_DETECT_SECRETS")
+    if secrets_files:
+        (root / ".github").mkdir(parents=True, exist_ok=True)
+        (root / ".github" / "detect-secrets.baseline").write_text("{}\n", encoding="utf-8")
+        _write_git_stub(bin_dir, secrets_files)
 
     monkeypatch.setenv("PATH", str(bin_dir))
     monkeypatch.setenv("PR_PREFLIGHT_PYTHON", str(python_stub))
@@ -160,8 +176,12 @@ def test_engine_fails_when_project_dependency_install_fails(tmp_path, monkeypatc
     assert _check(report, "project_dependencies")["status"] == "FAIL"
 
 
-def test_engine_skips_detect_secrets_when_missing(tmp_path, monkeypatch):
-    root, report_dir = _prepare_repo(tmp_path, monkeypatch, detect_secrets=False)
+def test_engine_skips_detect_secrets_when_hook_missing(tmp_path, monkeypatch):
+    # Surface files + baseline exist, so a command is built, but the
+    # detect-secrets-hook executable is absent → optional skip (not blocked).
+    root, report_dir = _prepare_repo(
+        tmp_path, monkeypatch, detect_secrets=False, secrets_files=("core/sample.py",)
+    )
 
     exit_code, report = _run_engine(root, report_dir)
 
@@ -172,8 +192,40 @@ def test_engine_skips_detect_secrets_when_missing(tmp_path, monkeypatch):
     assert detect["tool_available"] is False
 
 
-def test_engine_fails_detect_secrets_when_present_and_failing(tmp_path, monkeypatch):
+def test_engine_skips_detect_secrets_when_no_surface_files(tmp_path, monkeypatch):
+    # No baseline / no git-tracked surface files → empty command → clean skip,
+    # never a stale `scan` that would silently pass on a new secret.
     root, report_dir = _prepare_repo(tmp_path, monkeypatch, detect_secrets=True)
+
+    exit_code, report = _run_engine(root, report_dir)
+
+    detect = _check(report, "detect_secrets")
+    assert exit_code == 0
+    assert detect["status"] == "SKIPPED_OPTIONAL"
+
+
+def test_engine_uses_baseline_hook_not_scan(tmp_path, monkeypatch):
+    # The command must mirror the CI gate: detect-secrets-hook + canonical
+    # baseline + exclude (never `detect-secrets scan`, which exits 0 on a new
+    # secret and would give a local false-green).
+    root, _ = _prepare_repo(
+        tmp_path, monkeypatch, detect_secrets=True, secrets_files=("core/sample.py",)
+    )
+
+    spec = next(s for s in pr_preflight.build_check_registry(root) if s.id == "detect_secrets")
+
+    assert spec.command[0] == "detect-secrets-hook"
+    assert "scan" not in spec.command
+    assert "--baseline" in spec.command
+    assert ".github/detect-secrets.baseline" in spec.command
+    assert "--exclude-files" in spec.command
+    assert "core/sample.py" in spec.command
+
+
+def test_engine_fails_detect_secrets_when_present_and_failing(tmp_path, monkeypatch):
+    root, report_dir = _prepare_repo(
+        tmp_path, monkeypatch, detect_secrets=True, secrets_files=("core/sample.py",)
+    )
     monkeypatch.setenv("STUB_DETECT_SECRETS_EXIT", "7")
 
     exit_code, report = _run_engine(root, report_dir)
@@ -264,4 +316,40 @@ def test_shell_wrapper_forwards_python_runner_exit_code(tmp_path):
     )
 
     assert result.returncode == 37
-    assert "FIRST_FILE_TO_OPEN=" in result.stdout
+    # The stub wrote no report, so the wrapper must NOT advertise a
+    # non-existent evidence artifact (fail-closed triage on the BLOCKED path).
+    assert "FIRST_FILE_TO_OPEN=" not in result.stdout
+
+
+def test_shell_wrapper_prints_first_file_only_when_report_written(tmp_path):
+    repo = tmp_path / "repo"
+    scripts_dir = repo / "scripts"
+    bin_dir = tmp_path / "bin"
+    scripts_dir.mkdir(parents=True)
+    bin_dir.mkdir()
+    source_wrapper = Path(__file__).resolve().parents[2] / "scripts" / "test-pr-locally.sh"
+    target_wrapper = scripts_dir / "test-pr-locally.sh"
+    target_wrapper.write_text(source_wrapper.read_text(encoding="utf-8"), encoding="utf-8")
+    target_wrapper.chmod(0o755)
+    # A runner that writes the report into the report dir before exiting.
+    _write_executable(
+        bin_dir / "python3",
+        "import os, sys\n"
+        "rd = sys.argv[sys.argv.index('--report-dir') + 1]\n"
+        "os.makedirs(rd, exist_ok=True)\n"
+        "open(os.path.join(rd, 'preflight_report.json'), 'w').write('{}')\n"
+        "sys.exit(0)\n",
+    )
+    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}"}
+
+    result = subprocess.run(
+        ["bash", str(target_wrapper)],
+        cwd=str(repo),
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert f"FIRST_FILE_TO_OPEN={repo}/artifacts/pr_preflight/preflight_report.json" in result.stdout
