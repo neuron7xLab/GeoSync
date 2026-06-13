@@ -76,7 +76,7 @@ def _prepare_repo(
     if detect_secrets:
         _write_tool_stub(bin_dir, "detect-secrets", "STUB_DETECT_SECRETS")
 
-    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}")
+    monkeypatch.setenv("PATH", str(bin_dir))
     monkeypatch.setenv("PR_PREFLIGHT_PYTHON", str(python_stub))
     return root, root / "artifacts" / "pr_preflight"
 
