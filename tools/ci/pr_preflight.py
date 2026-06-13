@@ -125,6 +125,57 @@ def _requirements_install_command(root: Path, python_executable: str) -> list[st
     return []
 
 
+# Mirror the secrets gate in .github/workflows/pr-gate.yml: the CI step runs
+# ``detect-secrets-hook --baseline .github/detect-secrets.baseline`` (which exits
+# non-zero on a secret that is NOT already in the baseline) — NOT ``scan`` (which
+# only creates/updates a baseline and exits 0, giving a false-green locally).
+_SECRETS_BASELINE = ".github/detect-secrets.baseline"
+_SECRETS_EXCLUDE = (
+    r"^(INVENTORY\.json|\.github/detect-secrets\.baseline|"
+    r"figures/disha_ba_correlation/repro_capsule/.*|"
+    r"artifacts/runs/synthetic_plumbing_v1/.*|artifacts/reproducible_capsules/.*)$"
+)
+_SECRETS_SURFACES = ("core", "backtest", "execution", "src", "application")
+
+
+def _detect_secrets_command(root: Path) -> list[str]:
+    """Build the fail-closed detect-secrets-hook command for the local preflight.
+
+    Scans git-tracked files under the security-relevant surfaces against the
+    canonical baseline, mirroring the CI gate's hook + baseline + exclude. An
+    empty command (no git/no tracked surface files) makes the check skip cleanly
+    rather than silently pass on a stale ``scan``. The baseline must exist or the
+    hook would treat every existing secret as new.
+    """
+
+    if not (root / _SECRETS_BASELINE).exists():
+        return []
+    try:
+        completed = subprocess.run(
+            ["git", "ls-files", "-z", "--", *_SECRETS_SURFACES],
+            cwd=str(root),
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    if completed.returncode != 0:
+        return []
+    files = [name for name in completed.stdout.split("\0") if name]
+    if not files:
+        return []
+    return [
+        "detect-secrets-hook",
+        "--baseline",
+        _SECRETS_BASELINE,
+        "--exclude-files",
+        _SECRETS_EXCLUDE,
+        *files,
+    ]
+
+
 def build_check_registry(root: Path, skip_install: bool = False) -> list[CheckSpec]:
     python_executable = _python_executable()
     if skip_install:
@@ -199,20 +250,11 @@ def build_check_registry(root: Path, skip_install: bool = False) -> list[CheckSp
         ),
         CheckSpec(
             id="detect_secrets",
-            name="Detect secrets scan",
-            command=[
-                "detect-secrets",
-                "scan",
-                "core",
-                "backtest",
-                "execution",
-                "src",
-                "application",
-                "--baseline",
-                ".secrets.baseline",
-            ],
+            name="Detect secrets (baseline hook)",
+            command=_detect_secrets_command(root),
             critical=True,
             optional_if_missing=True,
+            skip_reason="no git-tracked surface files or missing detect-secrets baseline",
             timeout_seconds=300,
         ),
         CheckSpec(
