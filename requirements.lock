@@ -318,7 +318,7 @@ psycopg[binary]==3.2.11
     # via geosync (pyproject.toml)
 psycopg-binary==3.2.11
     # via psycopg
-pyarrow==23.0.1
+pyarrow==24.0.0
     # via
     #   geosync (pyproject.toml)
     #   streamlit
