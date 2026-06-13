@@ -451,7 +451,7 @@ py-cpuinfo==9.0.0
     # via pytest-benchmark
 py-spy==0.4.1
     # via geosync (pyproject.toml)
-pyarrow==23.0.1
+pyarrow==24.0.0
     # via
     #   geosync (pyproject.toml)
     #   streamlit

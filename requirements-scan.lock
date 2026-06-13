@@ -81,7 +81,7 @@ propcache==0.4.1
 protobuf==6.33.5
 psycopg==3.3.2
 psycopg-binary==3.3.2
-pyarrow==23.0.1
+pyarrow==24.0.0
 pycares==4.11.0
 pycparser==2.23
 pydantic==2.13.4
