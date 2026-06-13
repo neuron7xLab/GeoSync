@@ -174,3 +174,15 @@ def test_check_mode_exit_codes(tmp_path, capsys) -> None:
     bad = tmp_path / "bad.json"
     bad.write_text(json.dumps({"budget": {"todo_markers": 0}}))
     assert m.main(["--check", str(bad)]) == 1
+
+
+def test_evidence_ledger_is_tracked_not_ratcheted() -> None:
+    # empty_evidence_ledger grows with every new acceptor by construction;
+    # it must be reported but never hard-gated by the ratchet.
+    m = _load()
+    result = m.infer()
+    f = next(x for x in result["debt_classes"] if x["id"] == "empty_evidence_ledger")
+    assert f["ratchet"] is False
+    # even with a budget of 0, it is not a regression
+    assert not any(r["id"] == "empty_evidence_ledger"
+                   for r in m.ratchet(result, {"empty_evidence_ledger": 0}))
