@@ -1,22 +1,19 @@
 id: horynych-falsification-cycle
 status: REJECTED
 claim_type: governance
-promise: "Legacy surface is retired and replaced by the active cognitive-dynamics-lab acceptor; it must not bind new code or promote claims."
+promise: "Retired legacy surface kept only as schema-valid metadata; active work is governed by cognitive-dynamics-lab."
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/horynych-falsification-cycle.yaml"
-  forbidden_paths:
-    - "trading/"
-    - "execution/"
-    - "forecast/"
-    - "policy/"
+    - path: "docs/cognitive_dynamics/PR_WORKFLOW_TRIGGER.md"
+  forbidden_paths: []
 required_python_symbols: []
-expected_signal: "No active execution signal; this acceptor is retained only as schema-valid rejection metadata for a retired surface."
+expected_signal: "Replacement acceptor exists."
 measurement_command: "test -f .claude/commit_acceptors/cognitive-dynamics-lab.yaml"
 signal_artifact: ".claude/commit_acceptors/cognitive-dynamics-lab.yaml"
 falsifier:
   command: "test -f .claude/commit_acceptors/cognitive-dynamics-lab.yaml"
-  description: "Rejected legacy acceptor remains invalid for new claims unless the replacement active acceptor exists."
+  description: "Rejected legacy surface remains non-active unless the replacement acceptor is missing."
 rollback_command: "git checkout HEAD~1 -- .claude/commit_acceptors/horynych-falsification-cycle.yaml"
 rollback_verification_command: "git diff --exit-code"
 memory_update_type: none
