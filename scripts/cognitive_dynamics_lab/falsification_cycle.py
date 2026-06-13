@@ -5,8 +5,22 @@ import argparse
 import csv
 import json
 from pathlib import Path
+from typing import TypedDict
 
-WEIGHTS = {
+
+class WeightResult(TypedDict):
+    weight: str
+    value: float
+    baseline_score: float
+    ablation_score: float
+    amplification_score: float
+    signal_loss: float
+    risk_delta: float
+    verdict: str
+    verification: str
+
+
+WEIGHTS: dict[str, float] = {
     "alpha_error": 0.35,
     "alpha_explore": 0.20,
     "alpha_gain": 0.20,
@@ -23,13 +37,13 @@ WEIGHTS = {
 }
 
 
-def evaluate_weight(name: str, value: float) -> dict[str, object]:
+def evaluate_weight(name: str, value: float) -> WeightResult:
     baseline = round(value * 10.0, 6)
     ablation = 0.0
     amplified = round(value * 15.0, 6)
     signal_loss = round(baseline - ablation, 6)
     risk_delta = round(max(0.0, amplified - 4.5), 6)
-    verdict = "survive" if signal_loss >= 1.5 and risk_delta <= 0.5 else "reject_or_schedule"
+    verdict = "retain" if signal_loss >= 1.5 and risk_delta <= 0.5 else "schedule_review"
     return {
         "weight": name,
         "value": value,
@@ -43,13 +57,7 @@ def evaluate_weight(name: str, value: float) -> dict[str, object]:
     }
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="artifacts/cognitive_dynamics_lab")
-    out = Path(parser.parse_args().out)
-    out.mkdir(parents=True, exist_ok=True)
-
-    rows = [evaluate_weight(name, value) for name, value in sorted(WEIGHTS.items())]
+def write_cycle_outputs(out: Path, rows: list[WeightResult]) -> None:
     (out / "falsification_cycle.json").write_text(
         json.dumps(rows, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -57,33 +65,39 @@ def main() -> int:
 
     with (out / "falsification_table.csv").open("w", newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh)
-        writer.writerow([
-            "weight",
-            "value",
-            "baseline_score",
-            "ablation_score",
-            "amplification_score",
-            "signal_loss",
-            "risk_delta",
-            "verdict",
-        ])
+        writer.writerow(
+            [
+                "weight",
+                "value",
+                "baseline_score",
+                "ablation_score",
+                "amplification_score",
+                "signal_loss",
+                "risk_delta",
+                "verdict",
+            ]
+        )
         for row in rows:
-            writer.writerow([
-                row["weight"],
-                row["value"],
-                row["baseline_score"],
-                row["ablation_score"],
-                row["amplification_score"],
-                row["signal_loss"],
-                row["risk_delta"],
-                row["verdict"],
-            ])
+            writer.writerow(
+                [
+                    row["weight"],
+                    row["value"],
+                    row["baseline_score"],
+                    row["ablation_score"],
+                    row["amplification_score"],
+                    row["signal_loss"],
+                    row["risk_delta"],
+                    row["verdict"],
+                ]
+            )
 
-    summary = {
-        "mode": "deterministic_synthetic_weight_attack",
+
+def build_summary(rows: list[WeightResult]) -> dict[str, object]:
+    return {
+        "mode": "deterministic_synthetic_weight_review",
         "claim_tier": "simulation-only",
         "weights_tested": len(rows),
-        "rejected_or_scheduled": sum(row["verdict"] != "survive" for row in rows),
+        "scheduled_for_review": sum(row["verdict"] != "retain" for row in rows),
         "entropy_residual": 0.0,
         "reproducibility": 1.0,
         "outputs": [
@@ -91,6 +105,18 @@ def main() -> int:
             "falsification_table.csv",
         ],
     }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out", default="artifacts/cognitive_dynamics_lab")
+    out = Path(parser.parse_args().out)
+    out.mkdir(parents=True, exist_ok=True)
+
+    rows = [evaluate_weight(name, value) for name, value in sorted(WEIGHTS.items())]
+    write_cycle_outputs(out, rows)
+
+    summary = build_summary(rows)
     (out / "falsification_summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
