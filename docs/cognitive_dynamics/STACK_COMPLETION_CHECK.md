@@ -19,8 +19,15 @@ Expected outputs:
 - parameter_review.json
 - parameter_review.csv
 
+Normalized scale:
+- simulation summary includes metric_scale 0..1
+- simulation summary includes normalized_metrics
+- parameter review includes normalized_value
+- parameter review includes normalized_signal_delta
+- parameter review includes normalized_limit_delta
+
 Boundaries:
 - claim tier stays simulation-only
 - production trading and execution paths are outside this stack
 
-Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research and replay layer with governance binding, replay commands, parameter review outputs, and rollback scope.
+Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research and replay layer with governance binding, replay commands, normalized metric outputs, parameter review outputs, and rollback scope.
