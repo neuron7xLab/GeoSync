@@ -7,10 +7,12 @@ Active governance file: .claude/commit_acceptors/cognitive-dynamics-lab.yaml
 Active executable files:
 - scripts/cognitive_dynamics_lab/simulation_runner.py
 - scripts/cognitive_dynamics_lab/parameter_review_runner.py
+- scripts/cognitive_dynamics_lab/benchmark_runner.py
 
 Replay commands:
 - python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab
 - python scripts/cognitive_dynamics_lab/parameter_review_runner.py --out artifacts/cognitive_dynamics_lab
+- python scripts/cognitive_dynamics_lab/benchmark_runner.py --out artifacts/cognitive_dynamics_lab_benchmark
 
 Expected outputs:
 - summary.json
@@ -18,6 +20,16 @@ Expected outputs:
 - parameter_review_summary.json
 - parameter_review.json
 - parameter_review.csv
+- benchmark_summary.json
+- benchmark_table.csv
+- benchmark_report.md
+
+Benchmark profile:
+- version: benchmark-v0.1
+- methodology: stdlib microbenchmark inspired by pyperf and hyperfine-style repeated timing
+- references: local JSON write baseline, local CSV write baseline, simulation artifact write, parameter review artifact write
+- measured fields: median_seconds, mean_seconds, stdev_seconds, min_seconds, max_seconds, peak_bytes_median, artifacts_per_second, relative_to_json_baseline
+- claim tier: local microbenchmark only
 
 Normalized scale:
 - simulation summary includes metric_scale 0..1
@@ -55,7 +67,8 @@ Optimization profile:
 - parameter review summary includes recommended_actions
 
 Boundaries:
-- claim tier stays simulation-only
+- claim tier stays simulation-only for replay outputs
+- benchmark claim tier stays local_microbenchmark_only
 - production trading and execution paths are outside this stack
 
-Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research and replay layer with governance binding, replay commands, normalized metric outputs, calibrated quantized state outputs, objective optimization outputs, parameter review actions, and rollback scope.
+Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research, replay, parameter-review, optimization, and local benchmark layer with governance binding, replay commands, normalized metric outputs, calibrated quantized state outputs, objective optimization outputs, parameter review actions, benchmark ratios, and rollback scope.
