@@ -130,21 +130,33 @@ def test_parallel_feature_block_process_uses_executor(
     assert captured and all(isinstance(item, FeatureResult) for item in captured)
 
 
-def test_parallel_feature_block_handles_running_event_loop(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import core.indicators.base as base_module
+def test_parallel_feature_block_is_loop_agnostic() -> None:
+    """A thread-mode block must evaluate identically in a bare script AND inside
+    an already-running event loop (Jupyter / FastAPI / Celery).
 
-    def fake_asyncio_run(coro):
-        coro.close()
-        raise RuntimeError("event loop is running")
+    Regression guard: the prior asyncio driver raised
+    ``RuntimeError: asyncio.run() cannot be called from a running event loop``
+    from any nested-loop runtime (its fallback tried to drive a second loop on
+    the same thread). The thread-pool implementation has no loop dependency.
+    """
+    import asyncio
 
-    monkeypatch.setattr(base_module.asyncio, "run", fake_asyncio_run)
+    block = ParallelFeatureBlock(
+        [_SumFeature(name="a"), _SumFeature(name="b")], mode="thread", max_workers=2
+    )
+    data = np.ones(5, dtype=np.float32)
 
-    block = ParallelFeatureBlock([_SumFeature(name="sum")], mode="thread")
-    outputs = block.run(np.ones(5, dtype=np.float32))
+    plain = block.run(data)
+    assert plain["a"] == pytest.approx(5.0, rel=FLOAT_REL_TOL, abs=FLOAT_ABS_TOL)
 
-    assert outputs["sum"] == pytest.approx(5.0, rel=FLOAT_REL_TOL, abs=FLOAT_ABS_TOL)
+    async def _nested() -> Mapping[str, Any]:
+        return block.run(data)
+
+    nested = asyncio.run(_nested())
+    assert nested == plain
+
+    with pytest.raises(RuntimeError):
+        asyncio.get_running_loop()
 
 
 def test_entropy_parallel_modes_match_cpu() -> None:
