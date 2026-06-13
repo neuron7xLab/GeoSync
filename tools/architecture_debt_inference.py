@@ -136,6 +136,11 @@ class DebtClass:
     measure: Callable[[], int]
     note: str
     by_design: bool = False
+    # Hard-ratcheted only when the class is genuinely monotonic-reducible.
+    # empty_evidence_ledger grows by construction with every new acceptor
+    # (new acceptors default to evidence: []), so ratcheting it would
+    # punish every PR that adds an acceptor — it is tracked, not gated.
+    ratchet: bool = True
 
 
 # The catalogue. Thresholds are explicit budgets; exceeding them flags debt.
@@ -149,7 +154,9 @@ CLASSES: tuple[DebtClass, ...] = (
         note="evidence: [] is schema-VALID (the field is optional and the "
         "validator only warns). Flagged as a policy gap, not a schema "
         "violation: the populated-evidence-ledger operating invariant expects "
-        "materialized proof, and these acceptors defer it.",
+        "materialized proof, and these acceptors defer it. Tracked, not "
+        "ratcheted — it grows with every new acceptor by construction.",
+        ratchet=False,
     ),
     DebtClass(
         "type_ignore_suppressions",
@@ -236,6 +243,7 @@ def infer() -> dict[str, object]:
                 "threshold": c.threshold,
                 "status": status,
                 "by_design": c.by_design,
+                "ratchet": c.ratchet,
                 "note": c.note,
                 **extra,
             }
@@ -262,7 +270,7 @@ def ratchet(result: dict[str, object], budget: dict[str, int]) -> list[dict[str,
     ``by_design`` classes are exempt; UNKNOWN counts never regress."""
     regressions: list[dict[str, object]] = []
     for f in cast("list[dict[str, object]]", result["debt_classes"]):
-        if f["by_design"]:
+        if f["by_design"] or not f.get("ratchet", True):
             continue
         count = cast(int, f["count"])
         if count < 0:  # UNKNOWN
