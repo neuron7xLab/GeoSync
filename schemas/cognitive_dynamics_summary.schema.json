@@ -13,12 +13,16 @@
     "replay_command",
     "metric_scale",
     "calibration_profile",
+    "optimization_profile",
     "normalization_references",
     "quantization_bins",
     "quantized_states",
     "aggregate_metrics",
     "normalized_metrics",
     "quantized_metrics",
+    "optimized_metrics",
+    "objective_score",
+    "objective_state",
     "detected_holes_frequency",
     "confidence"
   ],
@@ -77,6 +81,35 @@
         "limit_pass_max": {"type": "number"}
       },
       "additionalProperties": false
+    },
+    "optimization_profile": {
+      "type": "object",
+      "required": ["version", "mode", "objective_scale"],
+      "properties": {
+        "version": {"type": "string"},
+        "mode": {"type": "string"},
+        "objective_scale": {
+          "type": "string",
+          "enum": ["0..1"]
+        },
+        "metric_directions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["maximize", "minimize"]
+          }
+        },
+        "metric_weights": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "decision_thresholds": {"type": "object"}
+      },
+      "additionalProperties": true
     },
     "normalization_references": {
       "type": "object",
@@ -164,6 +197,63 @@
         },
         "additionalProperties": false
       }
+    },
+    "optimized_metrics": {
+      "type": "object",
+      "required": [
+        "mean_mae",
+        "mean_realism_gap",
+        "mean_ei_balance",
+        "mean_outside_ei_fraction",
+        "mean_energy_efficiency",
+        "mean_stability_margin"
+      ],
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "direction",
+          "normalized_value",
+          "utility",
+          "weight",
+          "weighted_utility"
+        ],
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": ["maximize", "minimize"]
+          },
+          "normalized_value": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "utility": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "weighted_utility": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "objective_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "objective_state": {
+      "type": "string",
+      "enum": ["optimize", "watch", "stable"]
     },
     "detected_holes_frequency": {
       "type": "object",
