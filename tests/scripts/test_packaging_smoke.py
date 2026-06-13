@@ -13,12 +13,13 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 PYPROJECT = ROOT / "pyproject.toml"
 
 
-def _pyproject() -> dict[str, object]:
+def _pyproject() -> dict[str, Any]:
     return tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
 
 
@@ -30,14 +31,14 @@ def _entrypoint_module(target: str) -> str:
 
 def test_scripts_console_entrypoints_are_packaged() -> None:
     payload = _pyproject()
-    scripts = payload["project"]["scripts"]  # type: ignore[index]
+    scripts = payload["project"]["scripts"]
     include = set(
-        payload["tool"]["setuptools"]["packages"]["find"]["include"]  # type: ignore[index]
+        payload["tool"]["setuptools"]["packages"]["find"]["include"]
     )
 
     script_modules = {
         _entrypoint_module(target)
-        for target in scripts.values()  # type: ignore[union-attr]
+        for target in scripts.values()
         if _entrypoint_module(target).startswith("scripts.")
     }
 
@@ -58,7 +59,7 @@ def test_scripts_console_entrypoints_are_packaged() -> None:
 
 def test_ci_entrypoints_are_explicitly_registered() -> None:
     payload = _pyproject()
-    scripts = payload["project"]["scripts"]  # type: ignore[index]
+    scripts = payload["project"]["scripts"]
 
     assert scripts["geosync-release-gate"] == "scripts.ci.release_gate:main"
     assert scripts["geosync-import-architecture"] == "scripts.ci.check_import_architecture:main"
