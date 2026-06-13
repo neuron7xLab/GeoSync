@@ -12,6 +12,7 @@ from typing import Any
 CaseName = str
 RunRecord = dict[str, str]
 Summary = dict[str, Any]
+QuantizedMetric = dict[str, float | str]
 
 CASES: list[CaseName] = [
     "baseline",
@@ -29,6 +30,12 @@ SEED = 20260613
 CLAIM_TIER = "simulation-only"
 DEFAULT_OUT = "artifacts/cognitive_dynamics_lab"
 UNIT_SCALE = "0..1"
+QUANTIZED_STATES = ["low", "medium", "high"]
+QUANTIZATION_BINS = {
+    "low": [0.0, 0.333333],
+    "medium": [0.333334, 0.666666],
+    "high": [0.666667, 1.0],
+}
 
 AGGREGATE_METRICS = {
     "mean_mae": 0.189113,
@@ -74,6 +81,26 @@ def build_normalized_metrics(metrics: dict[str, float]) -> dict[str, float]:
     return {name: normalize_metric(name, value) for name, value in metrics.items()}
 
 
+def quantize_unit(value: float) -> str:
+    """Map a unit-scaled continuous value to a discrete state."""
+    if value < 0.333334:
+        return "low"
+    if value < 0.666667:
+        return "medium"
+    return "high"
+
+
+def quantize_metric(name: str, value: float) -> QuantizedMetric:
+    """Return both the normalized value and its discrete state."""
+    normalized = normalize_metric(name, value)
+    return {"value": normalized, "state": quantize_unit(normalized)}
+
+
+def build_quantized_metrics(metrics: dict[str, float]) -> dict[str, QuantizedMetric]:
+    """Return discrete states for normalized aggregate metrics."""
+    return {name: quantize_metric(name, value) for name, value in metrics.items()}
+
+
 def replay_command() -> str:
     """Return the canonical replay command exposed in the summary artifact."""
     return (
@@ -96,8 +123,11 @@ def build_summary() -> Summary:
         "replay_command": replay_command(),
         "metric_scale": UNIT_SCALE,
         "normalization_references": NORMALIZATION_REFERENCES,
+        "quantization_bins": QUANTIZATION_BINS,
+        "quantized_states": QUANTIZED_STATES,
         "aggregate_metrics": AGGREGATE_METRICS,
         "normalized_metrics": build_normalized_metrics(AGGREGATE_METRICS),
+        "quantized_metrics": build_quantized_metrics(AGGREGATE_METRICS),
         "detected_holes_frequency": {"H5": 7, "H6": 1, "H10": 1},
         "confidence": CONFIDENCE,
     }
@@ -113,6 +143,7 @@ def run_case(case: CaseName) -> RunRecord:
         "case": case,
         "claim_tier": CLAIM_TIER,
         "metric_scale": UNIT_SCALE,
+        "quantization": "enabled",
     }
 
 
@@ -136,9 +167,9 @@ def write_metrics_table(out: Path) -> None:
     """Write a compact CSV index of deterministic run records."""
     with (out / "metrics_table.csv").open("w", encoding="utf-8", newline="") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["case", "claim_tier", "metric_scale"])
+        writer.writerow(["case", "claim_tier", "metric_scale", "quantization"])
         for case in CASES:
-            writer.writerow([case, CLAIM_TIER, UNIT_SCALE])
+            writer.writerow([case, CLAIM_TIER, UNIT_SCALE, "enabled"])
 
 
 def write_outputs(out: Path) -> None:
