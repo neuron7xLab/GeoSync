@@ -85,9 +85,7 @@ def _python_executable() -> str:
 
 def _requirements_install_command(root: Path, python_executable: str) -> list[str]:
     requirements = [
-        name
-        for name in ("requirements.txt", "requirements-dev.txt")
-        if (root / name).exists()
+        name for name in ("requirements.txt", "requirements-dev.txt") if (root / name).exists()
     ]
     if requirements:
         command = [python_executable, "-m", "pip", "install"]
@@ -411,7 +409,7 @@ def run_check(spec: CheckSpec, root: Path, report_dir: Path) -> dict[str, Any]:
                 "status": BLOCKED,
                 "duration_seconds": round(time.monotonic() - started, 6),
                 "failure_reason": f"could not execute command: {exc}",
-                "tool_available": False,
+                "tool_available": True,
             }
         )
         return result
@@ -421,9 +419,7 @@ def summarize(checks: list[dict[str, Any]]) -> dict[str, int]:
     return {
         "passed": sum(1 for check in checks if check["status"] == PASS),
         "failed": sum(1 for check in checks if check["status"] == FAIL),
-        "skipped_optional": sum(
-            1 for check in checks if check["status"] == SKIPPED_OPTIONAL
-        ),
+        "skipped_optional": sum(1 for check in checks if check["status"] == SKIPPED_OPTIONAL),
         "blocked": sum(1 for check in checks if check["status"] == BLOCKED),
         "timeouts": sum(1 for check in checks if check["status"] == TIMEOUT),
     }
@@ -477,7 +473,9 @@ def run_preflight(root: Path, report_dir: Path, skip_install: bool = False) -> d
     started_at = _utc_now()
     root = root.resolve()
     report_dir = report_dir.resolve()
-    checks = [run_check(spec, root, report_dir) for spec in build_check_registry(root, skip_install)]
+    checks = [
+        run_check(spec, root, report_dir) for spec in build_check_registry(root, skip_install)
+    ]
     report = build_report(root, report_dir, checks, started_at)
     report["duration_seconds"] = round(time.monotonic() - started, 6)
     _write_text(report_dir / "preflight_report.json", json.dumps(report, indent=2, sort_keys=True))
@@ -486,7 +484,9 @@ def run_preflight(root: Path, report_dir: Path, skip_install: bool = False) -> d
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the structured GeoSync PR preflight gate.")
-    parser.add_argument("--root", default=".", help="Repository root. Defaults to current directory.")
+    parser.add_argument(
+        "--root", default=".", help="Repository root. Defaults to current directory."
+    )
     parser.add_argument(
         "--report-dir",
         default="artifacts/pr_preflight",
