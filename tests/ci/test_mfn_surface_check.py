@@ -35,6 +35,24 @@ def test_surface_checker_loads_public_api() -> None:
     assert module.UNKNOWN
 
 
+def test_surface_checker_makefile_coverage_is_aligned() -> None:
+    module = _load_module()
+
+    row = module.makefile_cov(ROOT)
+
+    assert row.status == module.OK
+    assert row.path == "Makefile"
+
+
+def test_surface_checker_roadmap_contract_is_machine_readable() -> None:
+    module = _load_module()
+
+    row = module.roadmap_contract(ROOT)
+
+    assert row.status == module.OK
+    assert row.path == "docs/MFN_VERIFICATION_ROADMAP.json"
+
+
 def test_surface_checker_tracks_autonomy_cycle_files() -> None:
     module = _load_module()
 

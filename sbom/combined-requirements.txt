@@ -430,7 +430,7 @@ toolz==1.0.0
     # via exchange-calendars
 torch==2.11.0
     # via geosync (pyproject.toml)
-tornado==6.5.5
+tornado==6.5.6
     # via streamlit
 tqdm==4.67.1
     # via optuna

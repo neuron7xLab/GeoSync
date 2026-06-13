@@ -23,7 +23,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -64,20 +64,48 @@ def m_empty_evidence_ledger() -> tuple[int, int]:
 
 
 def m_type_ignore() -> int:
-    return _grep_count(r"type:\s*ignore")
+    # Comment-form only — a `# type: ignore` suppression, not the phrase in
+    # a docstring or string literal (this module mentions it as data).
+    return _grep_count(r"#\s*type:\s*ignore")
 
 
 def m_noqa() -> int:
     return _grep_count(r"\bnoqa\b")
 
 
+# A skip whose reason matches one of these is an environment/availability
+# gate (optional dependency, absent fixture/data, platform capability) —
+# the test runs wherever the precondition holds, so it is NOT actionable
+# debt. Empirically validated: with hypothesis/z3/PyWavelets installed,
+# every dep-gated property/formal/fuzz test passes.
+_CONDITIONAL_SKIP = re.compile(
+    r"not installed|not available|dependency is not|is not installed|"
+    r"required for|requires |absent|not present|not on PATH|not supported|"
+    r"not importable|fixtures unavailable|file not found|not staged|"
+    r"not yet committed|getter path unavailable|EXCHANGE_CANARY|SSL|"
+    r"only when|nothing to compare",
+    re.IGNORECASE,
+)
+
+_SKIP_LINE = re.compile(
+    r"pytest\.(?:mark\.)?skip(?:if)?\([^)]*?" r"(?:reason\s*=\s*)?[\"']([^\"']+)[\"']"
+)
+
+
 def m_test_skips() -> int:
-    rx = re.compile(r"pytest\.mark\.skip(if)?\b")
-    return sum(
-        1
-        for f in (ROOT / "tests").rglob("*.py")
-        if (ROOT / "tests").exists() and rx.search(f.read_text(encoding="utf-8"))
-    )
+    """Count *actionable* skips only — skips whose reason is not an
+    environment/availability gate. Marker-counting overcounts; a skip
+    that fires only when an optional dep or data fixture is absent is
+    conditional coverage, not debt."""
+    tests = ROOT / "tests"
+    if not tests.exists():
+        return 0
+    actionable = 0
+    for f in tests.rglob("*.py"):
+        for reason in _SKIP_LINE.findall(f.read_text(encoding="utf-8")):
+            if not _CONDITIONAL_SKIP.search(reason):
+                actionable += 1
+    return actionable
 
 
 def m_test_slow() -> int:
@@ -108,6 +136,11 @@ class DebtClass:
     measure: Callable[[], int]
     note: str
     by_design: bool = False
+    # Hard-ratcheted only when the class is genuinely monotonic-reducible.
+    # empty_evidence_ledger grows by construction with every new acceptor
+    # (new acceptors default to evidence: []), so ratcheting it would
+    # punish every PR that adds an acceptor — it is tracked, not gated.
+    ratchet: bool = True
 
 
 # The catalogue. Thresholds are explicit budgets; exceeding them flags debt.
@@ -118,8 +151,12 @@ CLASSES: tuple[DebtClass, ...] = (
         HIGH,
         threshold=0,
         measure=lambda: m_empty_evidence_ledger()[0],
-        note="Per the populated-evidence-ledger invariant, evidence: [] is "
-        "unbacked governance — the acceptor promises but carries no proof.",
+        note="evidence: [] is schema-VALID (the field is optional and the "
+        "validator only warns). Flagged as a policy gap, not a schema "
+        "violation: the populated-evidence-ledger operating invariant expects "
+        "materialized proof, and these acceptors defer it. Tracked, not "
+        "ratcheted — it grows with every new acceptor by construction.",
+        ratchet=False,
     ),
     DebtClass(
         "type_ignore_suppressions",
@@ -139,12 +176,14 @@ CLASSES: tuple[DebtClass, ...] = (
         note="Lint exceptions; track the trend, do not let it grow silently.",
     ),
     DebtClass(
-        "test_skip_files",
-        "Test files carrying skip/skipif markers",
+        "actionable_test_skips",
+        "Skips whose reason is not an environment/availability gate",
         MEDIUM,
-        threshold=30,
+        threshold=10,
         measure=m_test_skips,
-        note="Skipped tests are coverage the suite claims but does not run.",
+        note="Excludes optional-dependency, absent-fixture, and platform "
+        "gates (those run wherever the precondition holds). Only skips that "
+        "represent genuinely deferred coverage are counted.",
     ),
     DebtClass(
         "test_slow_files",
@@ -204,6 +243,7 @@ def infer() -> dict[str, object]:
                 "threshold": c.threshold,
                 "status": status,
                 "by_design": c.by_design,
+                "ratchet": c.ratchet,
                 "note": c.note,
                 **extra,
             }
@@ -215,6 +255,34 @@ def infer() -> dict[str, object]:
     }
 
 
+def load_budget(path: Path) -> dict[str, int]:
+    """Load the per-class debt ceiling. Unknown keys are ignored; a class
+    absent from the budget is treated as ceiling 0 (no new debt classes
+    may appear unbudgeted)."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    raw = data.get("budget", data)
+    return {k: int(v) for k, v in raw.items() if isinstance(v, int)}
+
+
+def ratchet(result: dict[str, object], budget: dict[str, int]) -> list[dict[str, object]]:
+    """Return one regression record per class whose count exceeds its
+    budget ceiling. Empty list == debt did not grow (ratchet holds).
+    ``by_design`` classes are exempt; UNKNOWN counts never regress."""
+    regressions: list[dict[str, object]] = []
+    for f in cast("list[dict[str, object]]", result["debt_classes"]):
+        if f["by_design"] or not f.get("ratchet", True):
+            continue
+        count = cast(int, f["count"])
+        if count < 0:  # UNKNOWN
+            continue
+        ceiling = budget.get(str(f["id"]), 0)
+        if count > ceiling:
+            regressions.append(
+                {"id": f["id"], "count": count, "budget": ceiling, "over_by": count - ceiling}
+            )
+    return regressions
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="machine-readable")
@@ -223,21 +291,44 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="exit non-zero if any actionable HIGH debt class is over threshold",
     )
+    parser.add_argument(
+        "--check",
+        metavar="BUDGET",
+        help="fail-closed ratchet: exit non-zero if any class exceeds the "
+        "per-class ceiling in the BUDGET json (debt may shrink, never grow)",
+    )
     args = parser.parse_args(argv)
     result = infer()
+
+    if args.check:
+        budget = load_budget(Path(args.check))
+        regressions = ratchet(result, budget)
+        if args.json:
+            print(json.dumps({"regressions": regressions}, indent=2, sort_keys=True))
+        else:
+            if not regressions:
+                print("debt ratchet: OK (no class grew past its budget)")
+            for r in regressions:
+                print(
+                    f"REGRESSION {r['id']}: {r['count']} > budget {r['budget']} "
+                    f"(+{r['over_by']}) — reduce the debt or lower nothing; "
+                    f"the budget only moves down"
+                )
+        return 1 if regressions else 0
+    classes = cast("list[dict[str, object]]", result["debt_classes"])
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
-        for f in result["debt_classes"]:  # type: ignore[union-attr]
+        for f in classes:
             flag = "·" if f["status"] == "OK" else f["status"]
             print(
                 f"[{f['severity']:<6}] {flag:<7} {f['count']:>5} " f"(>{f['threshold']}) {f['id']}"
             )
         print(f"worst_severity: {result['worst_severity']}")
-        print(f"actionable: {', '.join(result['actionable']) or 'none'}")  # type: ignore[arg-type]
+        actionable = cast("list[str]", result["actionable"])
+        print(f"actionable: {', '.join(actionable) or 'none'}")
     has_high = any(
-        f["status"] == "DEBT" and f["severity"] == HIGH and not f["by_design"]
-        for f in result["debt_classes"]  # type: ignore[union-attr]
+        f["status"] == "DEBT" and f["severity"] == HIGH and not f["by_design"] for f in classes
     )
     return 1 if args.strict and has_high else 0
 

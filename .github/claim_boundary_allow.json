@@ -9,8 +9,8 @@
     },
     {
       "file": "README.md",
-      "match": "geosync is not an alpha product.",
-      "reason": "honest-negation: explicit boundary disclaimer (brand-banner bullet), not a product claim"
+      "match": "**geosync is not an alpha product.**",
+      "reason": "honest-negation: explicit README product-category boundary, not an alpha-product claim"
     },
     {
       "file": "ROADMAP.md",

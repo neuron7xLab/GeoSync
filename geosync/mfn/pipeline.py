@@ -355,6 +355,64 @@ def run_all(output_dir: Path, *, seed: int, points: int) -> dict[str, Path]:
     return artifacts
 
 
+def _validate_runbook(runbook_text: str, errors: list[str]) -> None:
+    """Validate stable human replay guidance in ``runbook.md``."""
+
+    if "First file to open: manifest.json" not in runbook_text:
+        errors.append("runbook.md missing first-file guidance")
+    if "mfn validate --bundle <bundle-dir>" not in runbook_text:
+        errors.append("runbook.md missing validation command")
+
+
+def _validate_stage_document(
+    document: Mapping[str, Any], *, stage: str, expected_schema: str, errors: list[str]
+) -> None:
+    """Validate one stage artifact document against the MFN stage contract."""
+
+    if document.get("schema_version") != expected_schema:
+        errors.append(f"{stage}.json has unsupported schema_version")
+    if document.get("stage") != stage:
+        errors.append(f"{stage}.json has wrong stage")
+
+
+def _validate_manifest_entry(
+    entry: object, *, output_dir: Path, manifest_hashes: dict[str, str], errors: list[str]
+) -> None:
+    """Validate one manifest entry and record its digest when admissible."""
+
+    if not isinstance(entry, dict):
+        errors.append("manifest entry must be an object")
+        return
+    rel = entry.get("path")
+    digest = entry.get("sha256")
+    size = entry.get("bytes")
+    if not isinstance(rel, str) or not isinstance(digest, str):
+        errors.append("manifest entry path and sha256 must be strings")
+        return
+    if not isinstance(size, int) or size < 0:
+        errors.append(f"manifest entry has invalid bytes: {rel}")
+        return
+    if not _is_safe_relative_path(rel):
+        errors.append(f"manifest entry has invalid path: {rel}")
+        return
+    if not _is_sha256_hex(digest):
+        errors.append(f"manifest entry has invalid digest: {rel}")
+        return
+    if rel in manifest_hashes:
+        errors.append(f"manifest duplicate entry: {rel}")
+        return
+    manifest_hashes[rel] = digest
+    target = output_dir / rel
+    if not target.exists():
+        errors.append(f"manifest target missing: {rel}")
+        return
+    if target.stat().st_size != size:
+        errors.append(f"manifest size mismatch: {rel}")
+    actual = sha256_file(target)
+    if actual != digest:
+        errors.append(f"manifest hash mismatch: {rel}")
+
+
 def validate_bundle(output_dir: Path) -> list[str]:
     """Return validation errors for an MFN output bundle."""
 
@@ -372,13 +430,11 @@ def validate_bundle(output_dir: Path) -> list[str]:
     if errors:
         return errors
 
-    runbook_text = runbook.read_text(encoding="utf-8")
-    if "First file to open: manifest.json" not in runbook_text:
-        errors.append("runbook.md missing first-file guidance")
-    if "mfn validate --bundle <bundle-dir>" not in runbook_text:
-        errors.append("runbook.md missing validation command")
+    _validate_runbook(runbook.read_text(encoding="utf-8"), errors)
 
-    expected_manifest_paths = {path.relative_to(output_dir).as_posix() for path in required_artifacts}
+    expected_manifest_paths = {
+        path.relative_to(output_dir).as_posix() for path in required_artifacts
+    }
     expected_stage_schema = MFNContract().schema_version
     for stage in STAGE_ORDER:
         path = output_dir / f"{stage}.json"
@@ -387,10 +443,9 @@ def validate_bundle(output_dir: Path) -> list[str]:
         except ValueError as exc:
             errors.append(f"{stage}.json is invalid: {exc}")
             continue
-        if document.get("schema_version") != expected_stage_schema:
-            errors.append(f"{stage}.json has unsupported schema_version")
-        if document.get("stage") != stage:
-            errors.append(f"{stage}.json has wrong stage")
+        _validate_stage_document(
+            document, stage=stage, expected_schema=expected_stage_schema, errors=errors
+        )
 
     try:
         manifest_doc = read_json(manifest)
@@ -406,37 +461,9 @@ def validate_bundle(output_dir: Path) -> list[str]:
 
     manifest_hashes: dict[str, str] = {}
     for entry in files:
-        if not isinstance(entry, dict):
-            errors.append("manifest entry must be an object")
-            continue
-        rel = entry.get("path")
-        digest = entry.get("sha256")
-        size = entry.get("bytes")
-        if not isinstance(rel, str) or not isinstance(digest, str):
-            errors.append("manifest entry path and sha256 must be strings")
-            continue
-        if not isinstance(size, int) or size < 0:
-            errors.append(f"manifest entry has invalid bytes: {rel}")
-            continue
-        if not _is_safe_relative_path(rel):
-            errors.append(f"manifest entry has invalid path: {rel}")
-            continue
-        if not _is_sha256_hex(digest):
-            errors.append(f"manifest entry has invalid digest: {rel}")
-            continue
-        if rel in manifest_hashes:
-            errors.append(f"manifest duplicate entry: {rel}")
-            continue
-        manifest_hashes[rel] = digest
-        target = output_dir / rel
-        if not target.exists():
-            errors.append(f"manifest target missing: {rel}")
-            continue
-        if target.stat().st_size != size:
-            errors.append(f"manifest size mismatch: {rel}")
-        actual = sha256_file(target)
-        if actual != digest:
-            errors.append(f"manifest hash mismatch: {rel}")
+        _validate_manifest_entry(
+            entry, output_dir=output_dir, manifest_hashes=manifest_hashes, errors=errors
+        )
 
     for rel in sorted(expected_manifest_paths - set(manifest_hashes)):
         errors.append(f"manifest missing required entry: {rel}")

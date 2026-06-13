@@ -24,6 +24,7 @@ The repository is not optimized for persuasive language. It is optimized for con
 | [`CLAIMS.md`](../CLAIMS.md) | Single source of truth for claim tiers and evidence pointers. |
 | [`FORBIDDEN_CLAIMS.md`](../FORBIDDEN_CLAIMS.md) | Status-language firewall and promotion invariants. |
 | [`AGENTS.md`](../AGENTS.md) | Root implementation contract for Claude, Codex, and automation agents. |
+| [`docs/MFN_VERIFICATION_ROADMAP.json`](MFN_VERIFICATION_ROADMAP.json) | MFN gateway machine-readable verification roadmap contract. |
 | [`BASELINE.md`](../BASELINE.md) | Baseline evidence and comparison reference when present. |
 | [`schemas/`](../schemas) | Machine-readable contracts for artifacts and governance records. |
 | [`scripts/ci/`](../scripts/ci) | Enforcement scripts for claim boundary, gates, and release discipline. |
