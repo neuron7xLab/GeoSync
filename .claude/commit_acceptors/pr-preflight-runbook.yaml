@@ -1,7 +1,7 @@
 id: pr-preflight-runbook
 status: ACTIVE
 claim_type: governance
-promise: "The structured PR preflight runner has a minimal developer runbook explaining command surface, evidence artifacts, statuses, and fail-closed interpretation."
+promise: "The structured PR preflight runner has an operational developer runbook explaining command surface, evidence artifacts, status semantics, report contract, triage flow, failure classes, validation boundary, rollback, and anti-regression rules."
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/pr-preflight-runbook.yaml"
@@ -21,14 +21,20 @@ required_text_signals:
   - "SKIPPED_OPTIONAL"
   - "BLOCKED"
   - "TIMEOUT"
-expected_signal: "Runbook explains wrapper command, direct runner commands, evidence outputs, status model, check registry, local validation contract, and fail-closed failure interpretation."
-measurement_command: "grep -R \"artifacts/pr_preflight/preflight_report.json\" docs/PR_PREFLIGHT_RUNBOOK.md && grep -R \"SKIPPED_OPTIONAL\" docs/PR_PREFLIGHT_RUNBOOK.md"
+  - "Report contract"
+  - "Triage decision tree"
+  - "Failure class mapping"
+  - "Acceptance boundary"
+  - "Rollback protocol"
+  - "Anti-regression rules"
+expected_signal: "Runbook explains wrapper command, direct runner commands, evidence outputs, status model, check registry, report schema, triage decision tree, failure class mapping, behavioral expectations, acceptance boundary, rollback protocol, and anti-regression rules."
+measurement_command: "grep -R \"Report contract\" docs/PR_PREFLIGHT_RUNBOOK.md && grep -R \"Triage decision tree\" docs/PR_PREFLIGHT_RUNBOOK.md && grep -R \"Acceptance boundary\" docs/PR_PREFLIGHT_RUNBOOK.md"
 signal_artifact: "docs/PR_PREFLIGHT_RUNBOOK.md"
 falsifier:
   command: 'grep -REn "VALIDATED|PRODUCTION_READY|ELITE" docs/PR_PREFLIGHT_RUNBOOK.md'
   description: "Runbook must not claim forbidden final states."
-rollback_command: "git rm -f docs/PR_PREFLIGHT_RUNBOOK.md .claude/commit_acceptors/pr-preflight-runbook.yaml"
-rollback_verification_command: "git diff --exit-code -- docs/PR_PREFLIGHT_RUNBOOK.md .claude/commit_acceptors/pr-preflight-runbook.yaml"
+rollback_command: "remove docs/PR_PREFLIGHT_RUNBOOK.md and .claude/commit_acceptors/pr-preflight-runbook.yaml, then verify both paths are absent from the diff"
+rollback_verification_command: "verify no remaining diff exists for docs/PR_PREFLIGHT_RUNBOOK.md and .claude/commit_acceptors/pr-preflight-runbook.yaml"
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/pr-preflight-runbook.yaml"
 report_path: "docs/PR_PREFLIGHT_RUNBOOK.md"
