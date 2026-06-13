@@ -71,7 +71,7 @@ def workflow_text(
       - run: python -m pip install numpy==2.3.3
       - run: python scripts/ci/emit_pyo3_env.py
       - run: rustup toolchain install 1.95.0 --profile minimal --component clippy
-      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       - run: cargo fetch --locked --manifest-path rust/geosync-accel/Cargo.toml
       - run: {validator.RUST_ACCEL_CLIPPY}
       - run: {validator.RUST_ACCEL_TEST}
