@@ -488,7 +488,7 @@ watchdog==6.0.0
     # via streamlit
 websockets==15.0.1
     # via geosync (pyproject.toml)
-yarl==1.22.0
+yarl==1.24.2
     # via
     #   aiohttp
     #   ccxt
