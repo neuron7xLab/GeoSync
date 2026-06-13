@@ -91,12 +91,27 @@ def validate_report_semantics(report: dict[str, Any]) -> None:
     for index, check in enumerate(checks):
         _require(isinstance(check, dict), f"check {index} must be an object")
         _require(check.get("id"), f"check {index} id is required")
-        _require(isinstance(check.get("critical"), bool), f"check {index} critical must be bool")
-        _require(check.get("status") in ALLOWED_CHECK_STATUSES, f"invalid check status at {index}")
-        _require(isinstance(check.get("stdout_log"), str) and check.get("stdout_log"), "stdout_log missing")
-        _require(isinstance(check.get("stderr_log"), str) and check.get("stderr_log"), "stderr_log missing")
         _require(
-            not (check.get("critical") is True and check.get("status") == "SKIPPED_OPTIONAL"),
+            isinstance(check.get("critical"), bool),
+            f"check {index} critical must be bool",
+        )
+        _require(
+            check.get("status") in ALLOWED_CHECK_STATUSES,
+            f"invalid check status at {index}",
+        )
+        _require(
+            isinstance(check.get("stdout_log"), str) and check.get("stdout_log"),
+            "stdout_log missing",
+        )
+        _require(
+            isinstance(check.get("stderr_log"), str) and check.get("stderr_log"),
+            "stderr_log missing",
+        )
+        _require(
+            not (
+                check.get("critical") is True
+                and check.get("status") == "SKIPPED_OPTIONAL"
+            ),
             f"critical check skipped optional: {check['id']}",
         )
 
@@ -121,7 +136,10 @@ def validate_report_semantics(report: dict[str, Any]) -> None:
         _require(has_blocked_critical, "BLOCKED report has no blocked critical checks")
     else:
         _require(critical_failures > 0, "FAIL report has no critical failures")
-        _require(not has_blocked_critical, "FAIL report contains blocked critical checks")
+        _require(
+            not has_blocked_critical,
+            "FAIL report contains blocked critical checks",
+        )
 
 
 def load_report(report_path: Path) -> dict[str, Any]:
@@ -129,14 +147,21 @@ def load_report(report_path: Path) -> dict[str, Any]:
     _require(isinstance(report, dict), "preflight report must be a JSON object")
     missing = sorted(REQUIRED_REPORT_KEYS - set(report))
     _require(not missing, f"preflight report missing keys: {missing}")
-    _require(report["status"] in ALLOWED_FINAL_STATUSES, "invalid preflight final status")
+    _require(
+        report["status"] in ALLOWED_FINAL_STATUSES,
+        "invalid preflight final status",
+    )
     _require(isinstance(report["checks"], list), "preflight checks must be a list")
     validate_report_semantics(report)
     return report
 
 
 def _ids_with_status(checks: list[dict[str, Any]], status: str) -> list[str]:
-    return [str(check.get("id", "")) for check in checks if check.get("status") == status]
+    return [
+        str(check.get("id", ""))
+        for check in checks
+        if check.get("status") == status
+    ]
 
 
 def build_ledger_entry(report: dict[str, Any], report_path: Path) -> dict[str, Any]:
@@ -174,7 +199,10 @@ def validate_ledger_entry(entry: dict[str, Any]) -> None:
     _require(entry["event_type"] == "pr_preflight_run", "invalid ledger event_type")
     _require(entry["status"] in ALLOWED_FINAL_STATUSES, "invalid ledger status")
     _require(isinstance(entry["failure_count"], int), "failure_count must be int")
-    _require(entry["failure_count"] == len(entry["critical_failure_ids"]), "ledger failure_count mismatch")
+    _require(
+        entry["failure_count"] == len(entry["critical_failure_ids"]),
+        "ledger failure_count mismatch",
+    )
     _require(
         not (entry["status"] == "PASS" and entry["critical_failure_ids"]),
         "PASS ledger contains critical failures",
@@ -186,8 +214,14 @@ def validate_ledger_entry(entry: dict[str, Any]) -> None:
         "skipped_optional_ids",
     ):
         _require(isinstance(entry[key], list), f"{key} must be list")
-        _require(all(isinstance(value, str) for value in entry[key]), f"{key} values must be str")
-    _require(entry["first_file_to_open"].endswith("preflight_report.json"), "bad first_file_to_open")
+        _require(
+            all(isinstance(value, str) for value in entry[key]),
+            f"{key} values must be str",
+        )
+    _require(
+        entry["first_file_to_open"].endswith("preflight_report.json"),
+        "bad first_file_to_open",
+    )
 
 
 def append_ledger(report_path: Path, ledger_path: Path) -> dict[str, Any]:
@@ -200,17 +234,27 @@ def append_ledger(report_path: Path, ledger_path: Path) -> dict[str, Any]:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Append PR preflight inference ledger entry.")
+    parser = argparse.ArgumentParser(
+        description="Append PR preflight inference ledger entry."
+    )
     parser.add_argument("--report", required=True, help="Path to preflight_report.json")
     parser.add_argument("--ledger", help="Ledger JSONL path. Defaults next to report.")
-    parser.add_argument("--json", action="store_true", help="Print appended ledger entry as JSON")
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print appended ledger entry as JSON",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     report_path = Path(args.report).resolve()
-    ledger_path = Path(args.ledger).resolve() if args.ledger else report_path.parent / "inference_ledger.jsonl"
+    ledger_path = (
+        Path(args.ledger).resolve()
+        if args.ledger
+        else report_path.parent / "inference_ledger.jsonl"
+    )
     try:
         entry = append_ledger(report_path, ledger_path)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
