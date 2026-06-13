@@ -11,6 +11,7 @@ diff_scope:
     - "execution/"
     - "forecast/"
     - "policy/"
+required_python_symbols: []
 required_text_signals:
   - "scripts/test-pr-locally.sh"
   - "tools/ci/pr_preflight.py"
@@ -24,7 +25,7 @@ expected_signal: "Runbook explains wrapper command, direct runner commands, evid
 measurement_command: "grep -R \"artifacts/pr_preflight/preflight_report.json\" docs/PR_PREFLIGHT_RUNBOOK.md && grep -R \"SKIPPED_OPTIONAL\" docs/PR_PREFLIGHT_RUNBOOK.md"
 signal_artifact: "docs/PR_PREFLIGHT_RUNBOOK.md"
 falsifier:
-  command: "grep -R \"VALIDATED\|PRODUCTION_READY\|ELITE\" docs/PR_PREFLIGHT_RUNBOOK.md"
+  command: 'grep -REn "VALIDATED|PRODUCTION_READY|ELITE" docs/PR_PREFLIGHT_RUNBOOK.md'
   description: "Runbook must not claim forbidden final states."
 rollback_command: "git rm -f docs/PR_PREFLIGHT_RUNBOOK.md .claude/commit_acceptors/pr-preflight-runbook.yaml"
 rollback_verification_command: "git diff --exit-code -- docs/PR_PREFLIGHT_RUNBOOK.md .claude/commit_acceptors/pr-preflight-runbook.yaml"
