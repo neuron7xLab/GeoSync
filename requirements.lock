@@ -407,7 +407,7 @@ starlette==1.2.1
     # via
     #   -c constraints/security.txt
     #   fastapi
-strawberry-graphql[fastapi]==0.315.7
+strawberry-graphql[fastapi]==0.316.0
     # via geosync (pyproject.toml)
 streamlit==1.54.0
     # via
