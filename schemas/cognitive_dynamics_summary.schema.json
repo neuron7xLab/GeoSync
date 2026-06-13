@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/neuron7xLab/GeoSync/schemas/cognitive_dynamics_summary.schema.json",
+  "title": "CognitiveDynamicsSummary",
+  "type": "object",
+  "required": [
+    "run_id",
+    "method_version",
+    "seed",
+    "status",
+    "artifact_role",
+    "claim_tier",
+    "replay_command",
+    "aggregate_metrics",
+    "detected_holes_frequency",
+    "confidence"
+  ],
+  "properties": {
+    "run_id": {"type": "string"},
+    "method_version": {"type": "string"},
+    "seed": {"type": "integer"},
+    "status": {"type": "string", "enum": ["ARTIFACT_BUILT", "PARTIAL", "FAILED"]},
+    "artifact_role": {"type": "string", "enum": ["simulation_evidence", "design_contract"]},
+    "claim_tier": {"type": "string", "enum": ["simulation-only", "replay-validated", "external-validated"]},
+    "replay_command": {"type": "string"},
+    "aggregate_metrics": {
+      "type": "object",
+      "required": ["mean_mae", "mean_realism_gap", "mean_ei_balance", "mean_outside_ei_fraction", "mean_energy_efficiency", "mean_stability_margin"],
+      "properties": {
+        "mean_mae": {"type": "number"},
+        "mean_realism_gap": {"type": "number"},
+        "mean_ei_balance": {"type": "number"},
+        "mean_outside_ei_fraction": {"type": "number"},
+        "mean_energy_efficiency": {"type": "number"},
+        "mean_stability_margin": {"type": "number"}
+      },
+      "additionalProperties": false
+    },
+    "detected_holes_frequency": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "confidence": {
+      "type": "object",
+      "required": ["level", "reason", "cannot_claim"],
+      "properties": {
+        "level": {"type": "number", "minimum": 0, "maximum": 0.75},
+        "reason": {"type": "string"},
+        "cannot_claim": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}
