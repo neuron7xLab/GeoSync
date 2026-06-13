@@ -8,7 +8,7 @@ from tools.ci import pr_preflight
 
 
 def _write_executable(path: Path, body: str) -> Path:
-    path.write_text(f"#!{sys.executable}\n{body}", encoding="utf-8")
+    path.write_text(f"#!{sys.executable} -S\n{body}", encoding="utf-8")
     path.chmod(0o755)
     return path
 
