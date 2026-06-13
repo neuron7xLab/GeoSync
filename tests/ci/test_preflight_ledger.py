@@ -1,13 +1,14 @@
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from tools.ci import preflight_ledger
 
 
-def _report(status: str = "FAIL") -> dict:
-    checks = [
+def _report(status: str = "FAIL") -> dict[str, Any]:
+    checks: list[dict[str, Any]] = [
         {
             "id": "ruff",
             "name": "Ruff lint",
@@ -54,13 +55,13 @@ def _report(status: str = "FAIL") -> dict:
     }
 
 
-def _write_report(tmp_path: Path, report: dict) -> Path:
+def _write_report(tmp_path: Path, report: dict[str, Any]) -> Path:
     report_path = tmp_path / "preflight_report.json"
     report_path.write_text(json.dumps(report), encoding="utf-8")
     return report_path
 
 
-def test_ledger_appends_failure_entry(tmp_path):
+def test_ledger_appends_failure_entry(tmp_path: Path) -> None:
     report_path = _write_report(tmp_path, _report())
     ledger_path = tmp_path / "inference_ledger.jsonl"
 
@@ -75,7 +76,7 @@ def test_ledger_appends_failure_entry(tmp_path):
     assert json.loads(lines[0]) == entry
 
 
-def test_ledger_appends_pass_entry_without_critical_failures(tmp_path):
+def test_ledger_appends_pass_entry_without_critical_failures(tmp_path: Path) -> None:
     report_path = _write_report(tmp_path, _report(status="PASS"))
     ledger_path = tmp_path / "inference_ledger.jsonl"
 
@@ -86,7 +87,7 @@ def test_ledger_appends_pass_entry_without_critical_failures(tmp_path):
     assert entry["critical_failure_ids"] == []
 
 
-def test_ledger_rejects_missing_report_key(tmp_path):
+def test_ledger_rejects_missing_report_key(tmp_path: Path) -> None:
     report = _report()
     report.pop("checks")
     report_path = _write_report(tmp_path, report)
@@ -95,7 +96,7 @@ def test_ledger_rejects_missing_report_key(tmp_path):
         preflight_ledger.append_ledger(report_path, tmp_path / "ledger.jsonl")
 
 
-def test_ledger_rejects_bad_check_status(tmp_path):
+def test_ledger_rejects_bad_check_status(tmp_path: Path) -> None:
     report = _report()
     report["checks"][0]["status"] = "UNKNOWN"
     report_path = _write_report(tmp_path, report)
@@ -104,7 +105,7 @@ def test_ledger_rejects_bad_check_status(tmp_path):
         preflight_ledger.append_ledger(report_path, tmp_path / "ledger.jsonl")
 
 
-def test_ledger_cli_writes_default_path(tmp_path):
+def test_ledger_cli_writes_default_path(tmp_path: Path) -> None:
     report_path = _write_report(tmp_path, _report(status="PASS"))
 
     exit_code = preflight_ledger.main(["--report", str(report_path)])
