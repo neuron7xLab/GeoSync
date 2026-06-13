@@ -484,7 +484,10 @@ def validate_report_contract(report: dict[str, Any]) -> None:
     for index, check in enumerate(checks):
         missing_check_keys = sorted(REQUIRED_CHECK_KEYS - set(check))
         _require(not missing_check_keys, f"check {index} missing keys: {missing_check_keys}")
-        _require(check["status"] in ALLOWED_CHECK_STATUSES, f"invalid check status: {check['status']}")
+        _require(
+            check["status"] in ALLOWED_CHECK_STATUSES,
+            f"invalid check status: {check['status']}",
+        )
         _require(isinstance(check["critical"], bool), f"check {check['id']} critical must be bool")
         _require(isinstance(check["command"], list), f"check {check['id']} command must be list")
         _require(
@@ -504,7 +507,9 @@ def validate_report_contract(report: dict[str, Any]) -> None:
     _require(not missing_summary_keys, f"summary missing keys: {missing_summary_keys}")
     _require(summary == summarize(checks), "summary does not match check statuses")
 
-    expected_failure_count = sum(1 for check in checks if check["critical"] and check["status"] != PASS)
+    expected_failure_count = sum(
+        1 for check in checks if check["critical"] and check["status"] != PASS
+    )
     _require(report["failure_count"] == expected_failure_count, "failure_count mismatch")
     _require(
         isinstance(report["first_file_to_open"], str)
