@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Replayable stdlib-only artifact emitter for cognitive dynamics lab."""
+
 from __future__ import annotations
 
 import argparse
