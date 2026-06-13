@@ -1,0 +1,27 @@
+id: horynych-falsification-cycle
+status: ACTIVE
+claim_type: governance
+promise: "Adds a bounded deterministic weight-cycle replay surface for cognitive dynamics only."
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/horynych-falsification-cycle.yaml"
+    - path: "docs/cognitive_dynamics/HORYNYCH_FALSIFICATION_CYCLE.md"
+    - path: "schemas/cognitive_dynamics_falsification.schema.json"
+    - path: "scripts/cognitive_dynamics_lab/falsification_cycle.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols:
+  - "main"
+  - "evaluate_weight"
+expected_signal: "dependency-free weight-cycle replay writes deterministic JSON and CSV artifacts"
+measurement_command: "python scripts/cognitive_dynamics_lab/falsification_cycle.py --out artifacts/cognitive_dynamics_lab"
+signal_artifact: "artifacts/cognitive_dynamics_lab/falsification_summary.json"
+rollback_command: "git rm .claude/commit_acceptors/horynych-falsification-cycle.yaml docs/cognitive_dynamics/HORYNYCH_FALSIFICATION_CYCLE.md schemas/cognitive_dynamics_falsification.schema.json scripts/cognitive_dynamics_lab/falsification_cycle.py"
+rollback_verification_command: "git diff --exit-code"
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/horynych-falsification-cycle.yaml"
+report_path: "docs/cognitive_dynamics/HORYNYCH_FALSIFICATION_CYCLE.md"
+evidence: []
