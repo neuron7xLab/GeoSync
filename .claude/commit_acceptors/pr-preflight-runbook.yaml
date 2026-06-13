@@ -1,0 +1,34 @@
+id: pr-preflight-runbook
+status: ACTIVE
+claim_type: governance
+promise: "The structured PR preflight runner has a minimal developer runbook explaining command surface, evidence artifacts, statuses, and fail-closed interpretation."
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/pr-preflight-runbook.yaml"
+    - path: "docs/PR_PREFLIGHT_RUNBOOK.md"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_text_signals:
+  - "scripts/test-pr-locally.sh"
+  - "tools/ci/pr_preflight.py"
+  - "artifacts/pr_preflight/preflight_report.json"
+  - "PASS"
+  - "FAIL"
+  - "SKIPPED_OPTIONAL"
+  - "BLOCKED"
+  - "TIMEOUT"
+expected_signal: "Runbook explains wrapper command, direct runner commands, evidence outputs, status model, check registry, local validation contract, and fail-closed failure interpretation."
+measurement_command: "grep -R \"artifacts/pr_preflight/preflight_report.json\" docs/PR_PREFLIGHT_RUNBOOK.md && grep -R \"SKIPPED_OPTIONAL\" docs/PR_PREFLIGHT_RUNBOOK.md"
+signal_artifact: "docs/PR_PREFLIGHT_RUNBOOK.md"
+falsifier:
+  command: "grep -R \"VALIDATED\|PRODUCTION_READY\|ELITE\" docs/PR_PREFLIGHT_RUNBOOK.md"
+  description: "Runbook must not claim forbidden final states."
+rollback_command: "git rm -f docs/PR_PREFLIGHT_RUNBOOK.md .claude/commit_acceptors/pr-preflight-runbook.yaml"
+rollback_verification_command: "git diff --exit-code -- docs/PR_PREFLIGHT_RUNBOOK.md .claude/commit_acceptors/pr-preflight-runbook.yaml"
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/pr-preflight-runbook.yaml"
+report_path: "docs/PR_PREFLIGHT_RUNBOOK.md"
+evidence: []
