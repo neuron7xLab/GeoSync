@@ -44,7 +44,10 @@ def evaluate_weight(name: str, value: float) -> WeightResult:
     amplified = round(value * 15.0, 6)
     signal_loss = round(baseline - ablation, 6)
     risk_delta = round(max(0.0, amplified - 4.5), 6)
-    verdict = "retain" if signal_loss >= 1.5 and risk_delta <= 0.5 else "schedule_review"
+    if signal_loss >= 1.5 and risk_delta <= 0.5:
+        verdict = "retain"
+    else:
+        verdict = "schedule_review"
     return {
         "weight": name,
         "value": value,
