@@ -50,7 +50,11 @@ def _report(status: str = "FAIL") -> dict[str, Any]:
             "timeouts": 0,
         },
         "failure_count": 0 if status == "PASS" else 1,
-        "next_action": "No critical failures." if status == "PASS" else "Fix ruff: exit code 1",
+        "next_action": (
+            "No critical failures."
+            if status == "PASS"
+            else "Fix ruff: exit code 1"
+        ),
         "first_file_to_open": "artifacts/pr_preflight/preflight_report.json",
     }
 
