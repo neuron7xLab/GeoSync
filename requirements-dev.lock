@@ -100,7 +100,7 @@ coverage[toml]==7.10.7
     # via pytest-cov
 cross-web==0.6.0
     # via strawberry-graphql
-cryptography==48.0.0
+cryptography==49.0.0
     # via
     #   -c constraints/security.txt
     #   ccxt
