@@ -30,6 +30,9 @@ FINAL_PASS = "PASS"
 FINAL_FAIL = "FAIL"
 FINAL_BLOCKED = "BLOCKED"
 
+ALLOWED_CHECK_STATUSES = {PASS, FAIL, SKIPPED_OPTIONAL, BLOCKED, TIMEOUT}
+ALLOWED_FINAL_STATUSES = {FINAL_PASS, FINAL_FAIL, FINAL_BLOCKED}
+
 
 @dataclass(frozen=True)
 class CheckSpec:
@@ -41,7 +44,15 @@ class CheckSpec:
     cwd: str = "."
     timeout_seconds: int = 300
     success_exit_codes: list[int] = field(default_factory=lambda: [0])
+    stdout_log: str = ""
+    stderr_log: str = ""
     skip_reason: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.stdout_log:
+            object.__setattr__(self, "stdout_log", f"logs/{self.id}.stdout.log")
+        if not self.stderr_log:
+            object.__setattr__(self, "stderr_log", f"logs/{self.id}.stderr.log")
 
 
 def _utc_now() -> str:
@@ -73,7 +84,11 @@ def _python_executable() -> str:
 
 
 def _requirements_install_command(root: Path, python_executable: str) -> list[str]:
-    requirements = [name for name in ("requirements.txt", "requirements-dev.txt") if (root / name).exists()]
+    requirements = [
+        name
+        for name in ("requirements.txt", "requirements-dev.txt")
+        if (root / name).exists()
+    ]
     if requirements:
         command = [python_executable, "-m", "pip", "install"]
         if (root / "constraints" / "security.txt").exists():
@@ -212,6 +227,36 @@ def _tool_available(command: list[str]) -> tuple[bool, str]:
     return resolved is not None, resolved or executable
 
 
+def _log_path(report_dir: Path, relative_log_path: str) -> Path:
+    return report_dir / relative_log_path
+
+
+def _base_result(
+    spec: CheckSpec,
+    root: Path,
+    stdout_log: Path,
+    stderr_log: Path,
+    critical: bool,
+) -> dict[str, Any]:
+    return {
+        "id": spec.id,
+        "name": spec.name,
+        "critical": critical,
+        "status": BLOCKED,
+        "command": list(spec.command),
+        "exit_code": None,
+        "duration_seconds": 0.0,
+        "stdout_log": _display_path(stdout_log, root),
+        "stderr_log": _display_path(stderr_log, root),
+        "failure_reason": "",
+        "tool_available": False,
+        "cwd": spec.cwd,
+        "timeout_seconds": spec.timeout_seconds,
+        "success_exit_codes": list(spec.success_exit_codes),
+        "optional_if_missing": spec.optional_if_missing,
+    }
+
+
 def _empty_check_result(
     spec: CheckSpec,
     root: Path,
@@ -225,25 +270,21 @@ def _empty_check_result(
 ) -> dict[str, Any]:
     _write_text(stdout_log, "")
     _write_text(stderr_log, "")
-    return {
-        "id": spec.id,
-        "name": spec.name,
-        "critical": critical,
-        "status": status,
-        "command": spec.command,
-        "exit_code": None,
-        "duration_seconds": round(duration_seconds, 6),
-        "stdout_log": _display_path(stdout_log, root),
-        "stderr_log": _display_path(stderr_log, root),
-        "failure_reason": failure_reason,
-        "tool_available": tool_available,
-    }
+    result = _base_result(spec, root, stdout_log, stderr_log, critical)
+    result.update(
+        {
+            "status": status,
+            "duration_seconds": round(duration_seconds, 6),
+            "failure_reason": failure_reason,
+            "tool_available": tool_available,
+        }
+    )
+    return result
 
 
 def run_check(spec: CheckSpec, root: Path, report_dir: Path) -> dict[str, Any]:
-    logs_dir = report_dir / "logs"
-    stdout_log = logs_dir / f"{spec.id}.stdout.log"
-    stderr_log = logs_dir / f"{spec.id}.stderr.log"
+    stdout_log = _log_path(report_dir, spec.stdout_log)
+    stderr_log = _log_path(report_dir, spec.stderr_log)
     started = time.monotonic()
 
     if spec.id == "coverage_artifact":
@@ -253,19 +294,17 @@ def run_check(spec: CheckSpec, root: Path, report_dir: Path) -> dict[str, Any]:
         _write_text(stderr_log, "")
         status = PASS if coverage_path.exists() else SKIPPED_OPTIONAL
         reason = "" if coverage_path.exists() else spec.skip_reason
-        return {
-            "id": spec.id,
-            "name": spec.name,
-            "critical": False,
-            "status": status,
-            "command": spec.command,
-            "exit_code": 0 if coverage_path.exists() else None,
-            "duration_seconds": round(time.monotonic() - started, 6),
-            "stdout_log": _display_path(stdout_log, root),
-            "stderr_log": _display_path(stderr_log, root),
-            "failure_reason": reason,
-            "tool_available": True,
-        }
+        result = _base_result(spec, root, stdout_log, stderr_log, critical=False)
+        result.update(
+            {
+                "status": status,
+                "exit_code": 0 if coverage_path.exists() else None,
+                "duration_seconds": round(time.monotonic() - started, 6),
+                "failure_reason": reason,
+                "tool_available": True,
+            }
+        )
+        return result
 
     if not spec.command:
         return _empty_check_result(
@@ -280,8 +319,22 @@ def run_check(spec: CheckSpec, root: Path, report_dir: Path) -> dict[str, Any]:
             duration_seconds=time.monotonic() - started,
         )
 
-    available, executable = _tool_available(spec.command)
     critical = spec.critical
+    cwd = (root / spec.cwd).resolve()
+    if not cwd.exists():
+        return _empty_check_result(
+            spec=spec,
+            root=root,
+            stdout_log=stdout_log,
+            stderr_log=stderr_log,
+            status=BLOCKED,
+            critical=critical,
+            failure_reason=f"cwd does not exist: {cwd}",
+            tool_available=True,
+            duration_seconds=time.monotonic() - started,
+        )
+
+    available, executable = _tool_available(spec.command)
     if not available and spec.optional_if_missing:
         return _empty_check_result(
             spec=spec,
@@ -310,7 +363,7 @@ def run_check(spec: CheckSpec, root: Path, report_dir: Path) -> dict[str, Any]:
     try:
         completed = subprocess.run(
             spec.command,
-            cwd=str(root / spec.cwd),
+            cwd=str(cwd),
             capture_output=True,
             text=True,
             timeout=spec.timeout_seconds,
@@ -325,58 +378,52 @@ def run_check(spec: CheckSpec, root: Path, report_dir: Path) -> dict[str, Any]:
         reason = ""
         if status == FAIL:
             reason = f"exit code {exit_code} not in success codes {spec.success_exit_codes}"
-        return {
-            "id": spec.id,
-            "name": spec.name,
-            "critical": critical,
-            "status": status,
-            "command": spec.command,
-            "exit_code": exit_code,
-            "duration_seconds": round(time.monotonic() - started, 6),
-            "stdout_log": _display_path(stdout_log, root),
-            "stderr_log": _display_path(stderr_log, root),
-            "failure_reason": reason,
-            "tool_available": True,
-        }
+        result = _base_result(spec, root, stdout_log, stderr_log, critical)
+        result.update(
+            {
+                "status": status,
+                "exit_code": exit_code,
+                "duration_seconds": round(time.monotonic() - started, 6),
+                "failure_reason": reason,
+                "tool_available": True,
+            }
+        )
+        return result
     except subprocess.TimeoutExpired as exc:
         _write_text(stdout_log, _coerce_text(exc.stdout))
         _write_text(stderr_log, _coerce_text(exc.stderr))
-        return {
-            "id": spec.id,
-            "name": spec.name,
-            "critical": critical,
-            "status": TIMEOUT,
-            "command": spec.command,
-            "exit_code": None,
-            "duration_seconds": round(time.monotonic() - started, 6),
-            "stdout_log": _display_path(stdout_log, root),
-            "stderr_log": _display_path(stderr_log, root),
-            "failure_reason": f"timed out after {spec.timeout_seconds} seconds",
-            "tool_available": True,
-        }
+        result = _base_result(spec, root, stdout_log, stderr_log, critical)
+        result.update(
+            {
+                "status": TIMEOUT,
+                "duration_seconds": round(time.monotonic() - started, 6),
+                "failure_reason": f"timed out after {spec.timeout_seconds} seconds",
+                "tool_available": True,
+            }
+        )
+        return result
     except OSError as exc:
         _write_text(stdout_log, "")
         _write_text(stderr_log, str(exc))
-        return {
-            "id": spec.id,
-            "name": spec.name,
-            "critical": critical,
-            "status": BLOCKED,
-            "command": spec.command,
-            "exit_code": None,
-            "duration_seconds": round(time.monotonic() - started, 6),
-            "stdout_log": _display_path(stdout_log, root),
-            "stderr_log": _display_path(stderr_log, root),
-            "failure_reason": f"could not execute command: {exc}",
-            "tool_available": False,
-        }
+        result = _base_result(spec, root, stdout_log, stderr_log, critical)
+        result.update(
+            {
+                "status": BLOCKED,
+                "duration_seconds": round(time.monotonic() - started, 6),
+                "failure_reason": f"could not execute command: {exc}",
+                "tool_available": False,
+            }
+        )
+        return result
 
 
 def summarize(checks: list[dict[str, Any]]) -> dict[str, int]:
     return {
         "passed": sum(1 for check in checks if check["status"] == PASS),
         "failed": sum(1 for check in checks if check["status"] == FAIL),
-        "skipped_optional": sum(1 for check in checks if check["status"] == SKIPPED_OPTIONAL),
+        "skipped_optional": sum(
+            1 for check in checks if check["status"] == SKIPPED_OPTIONAL
+        ),
         "blocked": sum(1 for check in checks if check["status"] == BLOCKED),
         "timeouts": sum(1 for check in checks if check["status"] == TIMEOUT),
     }
@@ -399,7 +446,12 @@ def first_failure(checks: list[dict[str, Any]]) -> str:
     return "No critical failures."
 
 
-def build_report(root: Path, report_dir: Path, checks: list[dict[str, Any]], started_at: str) -> dict[str, Any]:
+def build_report(
+    root: Path,
+    report_dir: Path,
+    checks: list[dict[str, Any]],
+    started_at: str,
+) -> dict[str, Any]:
     finished_at = _utc_now()
     summary = summarize(checks)
     status = final_status(checks)
