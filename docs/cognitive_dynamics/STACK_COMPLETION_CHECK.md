@@ -26,8 +26,16 @@ Normalized scale:
 - parameter review includes normalized_signal_delta
 - parameter review includes normalized_limit_delta
 
+Calibration profile:
+- version: calibration-v0.1
+- sensitivity: balanced
+- low state upper threshold: 0.25
+- high state lower threshold: 0.75
+- parameter signal pass minimum: 1.5
+- parameter limit pass maximum: 0.5
+
 Quantized states:
-- simulation summary includes quantization_bins
+- simulation summary includes calibrated quantization_bins
 - simulation summary includes quantized_states low, medium, high
 - simulation summary includes quantized_metrics
 - parameter review includes quantized_value
@@ -38,4 +46,4 @@ Boundaries:
 - claim tier stays simulation-only
 - production trading and execution paths are outside this stack
 
-Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research and replay layer with governance binding, replay commands, normalized metric outputs, quantized discrete state outputs, parameter review outputs, and rollback scope.
+Verdict: the cognitive dynamics stack is integrated into main as a bounded deterministic research and replay layer with governance binding, replay commands, normalized metric outputs, calibrated quantized state outputs, parameter review outputs, and rollback scope.
