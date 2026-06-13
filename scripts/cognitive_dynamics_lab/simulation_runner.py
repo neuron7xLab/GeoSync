@@ -13,6 +13,7 @@ CaseName = str
 RunRecord = dict[str, str]
 Summary = dict[str, Any]
 QuantizedMetric = dict[str, float | str]
+OptimizedMetric = dict[str, float | str]
 
 CASES: list[CaseName] = [
     "baseline",
@@ -62,6 +63,32 @@ NORMALIZATION_REFERENCES = {
     "mean_stability_margin": 1.0,
 }
 
+OPTIMIZATION_PROFILE = {
+    "version": "objective-v0.1",
+    "mode": "bounded_weighted_utility",
+    "objective_scale": UNIT_SCALE,
+    "metric_directions": {
+        "mean_mae": "minimize",
+        "mean_realism_gap": "minimize",
+        "mean_ei_balance": "maximize",
+        "mean_outside_ei_fraction": "minimize",
+        "mean_energy_efficiency": "maximize",
+        "mean_stability_margin": "maximize",
+    },
+    "metric_weights": {
+        "mean_mae": 0.20,
+        "mean_realism_gap": 0.20,
+        "mean_ei_balance": 0.15,
+        "mean_outside_ei_fraction": 0.15,
+        "mean_energy_efficiency": 0.15,
+        "mean_stability_margin": 0.15,
+    },
+    "decision_thresholds": {
+        "optimize_below": 0.60,
+        "stable_at_or_above": 0.75,
+    },
+}
+
 CONFIDENCE = {
     "level": 0.60,
     "reason": (
@@ -109,6 +136,62 @@ def build_quantized_metrics(metrics: dict[str, float]) -> dict[str, QuantizedMet
     return {name: quantize_metric(name, value) for name, value in metrics.items()}
 
 
+def metric_direction(name: str) -> str:
+    """Return the configured optimization direction for a metric."""
+    directions = OPTIMIZATION_PROFILE["metric_directions"]
+    return str(directions[name])
+
+
+def metric_weight(name: str) -> float:
+    """Return the configured objective weight for a metric."""
+    weights = OPTIMIZATION_PROFILE["metric_weights"]
+    return float(weights[name])
+
+
+def metric_utility(name: str, normalized: float) -> float:
+    """Return utility contribution before applying the metric weight."""
+    direction = metric_direction(name)
+    if direction == "minimize":
+        return clamp_unit(1.0 - normalized)
+    return clamp_unit(normalized)
+
+
+def optimize_metric(name: str, value: float) -> OptimizedMetric:
+    """Return objective terms for one metric."""
+    normalized = normalize_metric(name, value)
+    utility = metric_utility(name, normalized)
+    weight = metric_weight(name)
+    contribution = clamp_unit(utility * weight)
+    return {
+        "direction": metric_direction(name),
+        "normalized_value": normalized,
+        "utility": utility,
+        "weight": weight,
+        "weighted_utility": contribution,
+    }
+
+
+def build_optimized_metrics(metrics: dict[str, float]) -> dict[str, OptimizedMetric]:
+    """Return per-metric objective terms."""
+    return {name: optimize_metric(name, value) for name, value in metrics.items()}
+
+
+def build_objective_score(metrics: dict[str, float]) -> float:
+    """Return bounded weighted objective score on the shared unit scale."""
+    optimized = build_optimized_metrics(metrics)
+    return clamp_unit(sum(float(row["weighted_utility"]) for row in optimized.values()))
+
+
+def objective_state(score: float) -> str:
+    """Return a discrete state for the objective score."""
+    thresholds = OPTIMIZATION_PROFILE["decision_thresholds"]
+    if score < float(thresholds["optimize_below"]):
+        return "optimize"
+    if score < float(thresholds["stable_at_or_above"]):
+        return "watch"
+    return "stable"
+
+
 def replay_command() -> str:
     """Return the canonical replay command exposed in the summary artifact."""
     return (
@@ -119,6 +202,7 @@ def replay_command() -> str:
 
 def build_summary() -> Summary:
     """Build the deterministic top-level summary artifact."""
+    objective_score = build_objective_score(AGGREGATE_METRICS)
     return {
         "run_id": RUN_ID,
         "method_version": METHOD_VERSION,
@@ -131,12 +215,16 @@ def build_summary() -> Summary:
         "replay_command": replay_command(),
         "metric_scale": UNIT_SCALE,
         "calibration_profile": CALIBRATION_PROFILE,
+        "optimization_profile": OPTIMIZATION_PROFILE,
         "normalization_references": NORMALIZATION_REFERENCES,
         "quantization_bins": QUANTIZATION_BINS,
         "quantized_states": QUANTIZED_STATES,
         "aggregate_metrics": AGGREGATE_METRICS,
         "normalized_metrics": build_normalized_metrics(AGGREGATE_METRICS),
         "quantized_metrics": build_quantized_metrics(AGGREGATE_METRICS),
+        "optimized_metrics": build_optimized_metrics(AGGREGATE_METRICS),
+        "objective_score": objective_score,
+        "objective_state": objective_state(objective_score),
         "detected_holes_frequency": {"H5": 7, "H6": 1, "H10": 1},
         "confidence": CONFIDENCE,
     }
@@ -153,6 +241,7 @@ def run_case(case: CaseName) -> RunRecord:
         "claim_tier": CLAIM_TIER,
         "metric_scale": UNIT_SCALE,
         "calibration": str(CALIBRATION_PROFILE["version"]),
+        "optimization": str(OPTIMIZATION_PROFILE["version"]),
         "quantization": "enabled",
     }
 
@@ -177,9 +266,27 @@ def write_metrics_table(out: Path) -> None:
     """Write a compact CSV index of deterministic run records."""
     with (out / "metrics_table.csv").open("w", encoding="utf-8", newline="") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["case", "claim_tier", "metric_scale", "calibration", "quantization"])
+        writer.writerow(
+            [
+                "case",
+                "claim_tier",
+                "metric_scale",
+                "calibration",
+                "optimization",
+                "quantization",
+            ]
+        )
         for case in CASES:
-            writer.writerow([case, CLAIM_TIER, UNIT_SCALE, CALIBRATION_PROFILE["version"], "enabled"])
+            writer.writerow(
+                [
+                    case,
+                    CLAIM_TIER,
+                    UNIT_SCALE,
+                    CALIBRATION_PROFILE["version"],
+                    OPTIMIZATION_PROFILE["version"],
+                    "enabled",
+                ]
+            )
 
 
 def write_outputs(out: Path) -> None:
