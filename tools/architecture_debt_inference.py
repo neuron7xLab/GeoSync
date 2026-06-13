@@ -23,7 +23,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -64,7 +64,9 @@ def m_empty_evidence_ledger() -> tuple[int, int]:
 
 
 def m_type_ignore() -> int:
-    return _grep_count(r"type:\s*ignore")
+    # Comment-form only — a `# type: ignore` suppression, not the phrase in
+    # a docstring or string literal (this module mentions it as data).
+    return _grep_count(r"#\s*type:\s*ignore")
 
 
 def m_noqa() -> int:
@@ -245,6 +247,34 @@ def infer() -> dict[str, object]:
     }
 
 
+def load_budget(path: Path) -> dict[str, int]:
+    """Load the per-class debt ceiling. Unknown keys are ignored; a class
+    absent from the budget is treated as ceiling 0 (no new debt classes
+    may appear unbudgeted)."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    raw = data.get("budget", data)
+    return {k: int(v) for k, v in raw.items() if isinstance(v, int)}
+
+
+def ratchet(result: dict[str, object], budget: dict[str, int]) -> list[dict[str, object]]:
+    """Return one regression record per class whose count exceeds its
+    budget ceiling. Empty list == debt did not grow (ratchet holds).
+    ``by_design`` classes are exempt; UNKNOWN counts never regress."""
+    regressions: list[dict[str, object]] = []
+    for f in cast("list[dict[str, object]]", result["debt_classes"]):
+        if f["by_design"]:
+            continue
+        count = cast(int, f["count"])
+        if count < 0:  # UNKNOWN
+            continue
+        ceiling = budget.get(str(f["id"]), 0)
+        if count > ceiling:
+            regressions.append(
+                {"id": f["id"], "count": count, "budget": ceiling, "over_by": count - ceiling}
+            )
+    return regressions
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="machine-readable")
@@ -253,21 +283,44 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="exit non-zero if any actionable HIGH debt class is over threshold",
     )
+    parser.add_argument(
+        "--check",
+        metavar="BUDGET",
+        help="fail-closed ratchet: exit non-zero if any class exceeds the "
+        "per-class ceiling in the BUDGET json (debt may shrink, never grow)",
+    )
     args = parser.parse_args(argv)
     result = infer()
+
+    if args.check:
+        budget = load_budget(Path(args.check))
+        regressions = ratchet(result, budget)
+        if args.json:
+            print(json.dumps({"regressions": regressions}, indent=2, sort_keys=True))
+        else:
+            if not regressions:
+                print("debt ratchet: OK (no class grew past its budget)")
+            for r in regressions:
+                print(
+                    f"REGRESSION {r['id']}: {r['count']} > budget {r['budget']} "
+                    f"(+{r['over_by']}) — reduce the debt or lower nothing; "
+                    f"the budget only moves down"
+                )
+        return 1 if regressions else 0
+    classes = cast("list[dict[str, object]]", result["debt_classes"])
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
-        for f in result["debt_classes"]:  # type: ignore[union-attr]
+        for f in classes:
             flag = "·" if f["status"] == "OK" else f["status"]
             print(
                 f"[{f['severity']:<6}] {flag:<7} {f['count']:>5} " f"(>{f['threshold']}) {f['id']}"
             )
         print(f"worst_severity: {result['worst_severity']}")
-        print(f"actionable: {', '.join(result['actionable']) or 'none'}")  # type: ignore[arg-type]
+        actionable = cast("list[str]", result["actionable"])
+        print(f"actionable: {', '.join(actionable) or 'none'}")
     has_high = any(
-        f["status"] == "DEBT" and f["severity"] == HIGH and not f["by_design"]
-        for f in result["debt_classes"]  # type: ignore[union-attr]
+        f["status"] == "DEBT" and f["severity"] == HIGH and not f["by_design"] for f in classes
     )
     return 1 if args.strict and has_high else 0
 
