@@ -6,7 +6,17 @@ import csv
 import json
 from pathlib import Path
 
-PARAMS: dict[str, float] = {
+ParamTable = dict[str, float]
+ReviewRow = dict[str, str | float]
+ReviewSummary = dict[str, str | int | float | list[str]]
+
+DEFAULT_OUT = "artifacts/cognitive_dynamics_lab"
+CLAIM_TIER = "simulation-only"
+REVIEW_MODE = "deterministic_parameter_review"
+VERIFICATION = "deterministic_replay_only"
+CSV_FIELDS = ["parameter", "value", "signal_delta", "limit_delta", "verdict"]
+
+PARAMS: ParamTable = {
     "alpha_error": 0.35,
     "alpha_explore": 0.20,
     "alpha_gain": 0.20,
@@ -23,13 +33,26 @@ PARAMS: dict[str, float] = {
 }
 
 
-def review_param(name: str, value: float) -> dict[str, str | float]:
-    baseline = round(value * 10.0, 6)
+def score_baseline(value: float) -> float:
+    return round(value * 10.0, 6)
+
+
+def score_raised(value: float) -> float:
+    return round(value * 15.0, 6)
+
+
+def choose_verdict(signal_delta: float, limit_delta: float) -> str:
+    if signal_delta >= 1.5 and limit_delta <= 0.5:
+        return "pass"
+    return "review"
+
+
+def review_param(name: str, value: float) -> ReviewRow:
+    baseline = score_baseline(value)
     muted = 0.0
-    raised = round(value * 15.0, 6)
+    raised = score_raised(value)
     signal_delta = round(baseline - muted, 6)
     limit_delta = round(max(0.0, raised - 4.5), 6)
-    verdict = "pass" if signal_delta >= 1.5 and limit_delta <= 0.5 else "review"
     return {
         "parameter": name,
         "value": value,
@@ -38,46 +61,71 @@ def review_param(name: str, value: float) -> dict[str, str | float]:
         "raised_score": raised,
         "signal_delta": signal_delta,
         "limit_delta": limit_delta,
-        "verdict": verdict,
-        "verification": "deterministic_replay_only",
+        "verdict": choose_verdict(signal_delta, limit_delta),
+        "verification": VERIFICATION,
     }
 
 
-def write_outputs(out: Path, rows: list[dict[str, str | float]]) -> None:
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "parameter_review.json").write_text(
-        json.dumps(rows, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    with (out / "parameter_review.csv").open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.writer(fh)
-        writer.writerow(["parameter", "value", "signal_delta", "limit_delta", "verdict"])
-        for row in rows:
-            writer.writerow(
-                [row["parameter"], row["value"], row["signal_delta"], row["limit_delta"], row["verdict"]]
-            )
-    summary = {
-        "mode": "deterministic_parameter_review",
-        "claim_tier": "simulation-only",
+def build_rows(params: ParamTable) -> list[ReviewRow]:
+    return [review_param(name, value) for name, value in sorted(params.items())]
+
+
+def build_summary(rows: list[ReviewRow]) -> ReviewSummary:
+    return {
+        "mode": REVIEW_MODE,
+        "claim_tier": CLAIM_TIER,
         "parameters_tested": len(rows),
         "scheduled_for_review": sum(row["verdict"] != "pass" for row in rows),
         "entropy_residual": 0.0,
         "reproducibility": 1.0,
         "outputs": ["parameter_review.json", "parameter_review.csv"],
     }
-    (out / "parameter_review_summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n",
+
+
+def write_json(path: Path, payload: object) -> None:
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def csv_row(row: ReviewRow) -> list[str | float]:
+    return [
+        row["parameter"],
+        row["value"],
+        row["signal_delta"],
+        row["limit_delta"],
+        row["verdict"],
+    ]
+
+
+def write_csv(path: Path, rows: list[ReviewRow]) -> None:
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(CSV_FIELDS)
+        for row in rows:
+            writer.writerow(csv_row(row))
+
+
+def write_outputs(out: Path, rows: list[ReviewRow]) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    write_json(out / "parameter_review.json", rows)
+    write_csv(out / "parameter_review.csv", rows)
+    summary = build_summary(rows)
+    write_json(out / "parameter_review_summary.json", summary)
     print(json.dumps(summary, indent=2, sort_keys=True))
 
 
-def main() -> int:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="artifacts/cognitive_dynamics_lab")
-    out = Path(parser.parse_args().out)
-    rows = [review_param(name, value) for name, value in sorted(PARAMS.items())]
-    write_outputs(out, rows)
+    parser.add_argument("--out", default=DEFAULT_OUT)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    rows = build_rows(PARAMS)
+    write_outputs(Path(args.out), rows)
     return 0
 
 
