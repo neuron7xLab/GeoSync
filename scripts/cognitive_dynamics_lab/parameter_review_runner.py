@@ -26,6 +26,15 @@ CALIBRATION_PROFILE = {
     "signal_pass_min": 1.5,
     "limit_pass_max": 0.5,
 }
+OPTIMIZATION_PROFILE = {
+    "version": "objective-v0.1",
+    "mode": "bounded_parameter_review",
+    "objective_scale": UNIT_SCALE,
+    "increase_if_signal_below": 0.333333,
+    "decrease_if_limit_above": 0.5,
+    "keep_if_signal_at_or_above": 0.333333,
+    "keep_if_limit_at_or_below": 0.5,
+}
 QUANTIZED_STATES = ["low", "medium", "high"]
 QUANTIZATION_BINS = {
     "low": [0.0, CALIBRATION_PROFILE["low_upper"]],
@@ -43,7 +52,10 @@ CSV_FIELDS = [
     "limit_delta",
     "normalized_limit_delta",
     "quantized_limit_delta",
+    "objective_contribution",
+    "recommended_action",
     "calibration",
+    "optimization",
     "verdict",
 ]
 
@@ -117,12 +129,28 @@ def choose_verdict(signal_delta: float, limit_delta: float) -> str:
     return "review"
 
 
+def objective_contribution(normalized_signal: float, normalized_limit: float) -> float:
+    signal_utility = normalized_signal
+    limit_utility = 1.0 - normalized_limit
+    return clamp_unit((signal_utility + limit_utility) / 2.0)
+
+
+def recommended_action(normalized_signal: float, normalized_limit: float) -> str:
+    if normalized_limit > float(OPTIMIZATION_PROFILE["decrease_if_limit_above"]):
+        return "decrease"
+    if normalized_signal < float(OPTIMIZATION_PROFILE["increase_if_signal_below"]):
+        return "increase"
+    return "keep"
+
+
 def review_param(name: str, value: float) -> ReviewRow:
     baseline = score_baseline(value)
     muted = 0.0
     raised = score_raised(value)
     signal_delta = round(baseline - muted, 6)
     limit_delta = round(max(0.0, raised - SIGNAL_REFERENCE), 6)
+    normalized_signal = normalize_signal(signal_delta)
+    normalized_limit = normalize_limit(limit_delta)
     return {
         "parameter": name,
         "value": value,
@@ -132,14 +160,17 @@ def review_param(name: str, value: float) -> ReviewRow:
         "muted_score": muted,
         "raised_score": raised,
         "signal_delta": signal_delta,
-        "normalized_signal_delta": normalize_signal(signal_delta),
+        "normalized_signal_delta": normalized_signal,
         "quantized_signal_delta": quantize_signal(signal_delta),
         "limit_delta": limit_delta,
-        "normalized_limit_delta": normalize_limit(limit_delta),
+        "normalized_limit_delta": normalized_limit,
         "quantized_limit_delta": quantize_limit(limit_delta),
+        "objective_contribution": objective_contribution(normalized_signal, normalized_limit),
+        "recommended_action": recommended_action(normalized_signal, normalized_limit),
         "metric_scale": UNIT_SCALE,
         "quantization_bins": str(QUANTIZATION_BINS),
         "calibration": str(CALIBRATION_PROFILE["version"]),
+        "optimization": str(OPTIMIZATION_PROFILE["version"]),
         "verdict": choose_verdict(signal_delta, limit_delta),
         "verification": VERIFICATION,
     }
@@ -150,14 +181,22 @@ def build_rows(params: ParamTable) -> list[ReviewRow]:
 
 
 def build_summary(rows: list[ReviewRow]) -> ReviewSummary:
+    objective_score = sum(float(row["objective_contribution"]) for row in rows) / len(rows)
     return {
         "mode": REVIEW_MODE,
         "claim_tier": CLAIM_TIER,
         "metric_scale": UNIT_SCALE,
         "calibration_profile": CALIBRATION_PROFILE,
+        "optimization_profile": OPTIMIZATION_PROFILE,
+        "objective_score": clamp_unit(objective_score),
         "quantized_states": QUANTIZED_STATES,
         "parameters_tested": len(rows),
         "scheduled_for_review": sum(row["verdict"] != "pass" for row in rows),
+        "recommended_actions": {
+            "increase": sum(row["recommended_action"] == "increase" for row in rows),
+            "decrease": sum(row["recommended_action"] == "decrease" for row in rows),
+            "keep": sum(row["recommended_action"] == "keep" for row in rows),
+        },
         "entropy_residual": 0.0,
         "reproducibility": 1.0,
         "normalized_fields": [
@@ -170,6 +209,7 @@ def build_summary(rows: list[ReviewRow]) -> ReviewSummary:
             "quantized_signal_delta",
             "quantized_limit_delta",
         ],
+        "optimized_fields": ["objective_contribution", "recommended_action"],
         "outputs": ["parameter_review.json", "parameter_review.csv"],
     }
 
@@ -193,7 +233,10 @@ def csv_row(row: ReviewRow) -> list[str | float]:
         row["limit_delta"],
         row["normalized_limit_delta"],
         row["quantized_limit_delta"],
+        row["objective_contribution"],
+        row["recommended_action"],
         row["calibration"],
+        row["optimization"],
         row["verdict"],
     ]
 
