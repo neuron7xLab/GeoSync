@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: MIT
 """CI command modules packaged for GeoSync script entrypoints.
 
-This package marker is intentionally boring. Its job is to make
-``scripts.ci.*`` console-script targets importable after a normal wheel or
-editable install, instead of relying on the repository root accidentally being
-on ``PYTHONPATH``. Humanity may continue, narrowly.
+This package marker makes ``scripts.ci.*`` console-script targets importable
+after a normal wheel or editable install, instead of relying on the repository
+root accidentally being present on ``PYTHONPATH``.
 """
 
 from __future__ import annotations
