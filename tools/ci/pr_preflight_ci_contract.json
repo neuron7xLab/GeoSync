@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "system": "pr_preflight_ci_contract",
+  "checks": {
+    "pip_bootstrap": {
+      "ci_equivalent": "dependency installation phase in PR workflows or local make pr-preflight",
+      "local_only_reason": ""
+    },
+    "project_dependencies": {
+      "ci_equivalent": "dependency installation phase using requirements.txt and requirements-dev.txt",
+      "local_only_reason": ""
+    },
+    "ruff": {
+      "ci_equivalent": "make lint / ruff check gate",
+      "local_only_reason": ""
+    },
+    "black": {
+      "ci_equivalent": "make format check / black --check gate",
+      "local_only_reason": ""
+    },
+    "mypy": {
+      "ci_equivalent": "type-check gate / mypy --no-error-summary",
+      "local_only_reason": ""
+    },
+    "detect_secrets": {
+      "ci_equivalent": "security scan gate when detect-secrets is installed",
+      "local_only_reason": ""
+    },
+    "quick_tests": {
+      "ci_equivalent": "make test-fast / pytest quick PR gate",
+      "local_only_reason": ""
+    },
+    "coverage_artifact": {
+      "ci_equivalent": "coverage artifact observation in test-coverage gates",
+      "local_only_reason": "optional observation, not a critical local gate"
+    }
+  }
+}

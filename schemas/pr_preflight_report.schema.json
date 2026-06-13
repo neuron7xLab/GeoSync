@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neuron7xlab.local/schemas/pr_preflight_report.schema.json",
+  "title": "GeoSync PR preflight report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "root",
+    "started_at",
+    "finished_at",
+    "duration_seconds",
+    "checks",
+    "summary",
+    "failure_count",
+    "next_action",
+    "first_file_to_open",
+    "first_failing_log"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "started_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "finished_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "duration_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "critical",
+          "status",
+          "command",
+          "exit_code",
+          "duration_seconds",
+          "stdout_log",
+          "stderr_log",
+          "failure_reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "SKIPPED_OPTIONAL",
+              "BLOCKED",
+              "TIMEOUT"
+            ]
+          },
+          "command": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exit_code": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "duration_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "stdout_log": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stderr_log": {
+            "type": "string",
+            "minLength": 1
+          },
+          "failure_reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "failed",
+        "skipped_optional",
+        "blocked",
+        "timeouts"
+      ],
+      "properties": {
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped_optional": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeouts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "failure_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "next_action": {
+      "type": "string"
+    },
+    "first_file_to_open": {
+      "type": "string",
+      "minLength": 1
+    },
+    "first_failing_log": {
+      "type": "string"
+    }
+  }
+}

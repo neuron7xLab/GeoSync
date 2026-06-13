@@ -43,6 +43,7 @@ help:
 	@echo "  make test-all      - Run full test suite with coverage"
 	@echo "  make test-ci-full  - Run full suite with 98% coverage gate (CI match)"
 	@echo "  make test-fast     - Run fast unit tests only (PR gate)"
+	@echo "  make pr-preflight  - Run structured local PR preflight gate"
 	@echo "  make test-heavy    - Run slow/heavy tests"
 	@echo "  make perf          - Run performance benchmarks"
 	@echo "  make e2e           - Run end-to-end smoke tests"
@@ -66,6 +67,12 @@ help:
 # ============================================================================
 # Standard Targets
 # ============================================================================
+
+.PHONY: pr-preflight
+pr-preflight:
+	@echo "🧪 Running structured PR preflight..."
+	scripts/test-pr-locally.sh
+
 
 .PHONY: install
 install:

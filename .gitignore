@@ -179,3 +179,4 @@ data/
 logs/
 tmp/
 reports/evidence_gate/
+artifacts/pr_preflight*/
