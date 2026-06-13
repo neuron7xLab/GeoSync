@@ -44,7 +44,11 @@ def evaluate_weight(name: str, value: float) -> WeightResult:
     amplified = round(value * 15.0, 6)
     signal_loss = round(baseline - ablation, 6)
     risk_delta = round(max(0.0, amplified - 4.5), 6)
-    verdict = "retain" if signal_loss >= 1.5 and risk_delta <= 0.5 else "schedule_review"
+    verdict = (
+        "retain"
+        if signal_loss >= 1.5 and risk_delta <= 0.5
+        else "schedule_review"
+    )
     return {
         "weight": name,
         "value": value,
@@ -64,7 +68,8 @@ def write_cycle_outputs(out: Path, rows: list[WeightResult]) -> None:
         encoding="utf-8",
     )
 
-    with (out / "falsification_table.csv").open("w", newline="", encoding="utf-8") as fh:
+    table_path = out / "falsification_table.csv"
+    with table_path.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh)
         writer.writerow(
             [
