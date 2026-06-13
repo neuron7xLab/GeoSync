@@ -14,6 +14,10 @@
       "sha256": "1beb9ff7718fa27e318f8dd97ad5ccad2ca5cf32891b67dfaeb1b19d77ddd1fb"
     },
     {
+      "path": "scripts/ci/__init__.py",
+      "sha256": "120122f1da54c908eb859877e383324e7c284fc3f03f73c221b59de9c9e83954"
+    },
+    {
       "path": "scripts/ci/capsule_verification_report.py",
       "sha256": "b2a4f9f0eb7679aecd9b0236519ec9d4c7edc9cdc00a0755909859b2de65df3e"
     },
