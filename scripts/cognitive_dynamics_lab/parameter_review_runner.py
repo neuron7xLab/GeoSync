@@ -17,14 +17,23 @@ VERIFICATION = "deterministic_replay_only"
 UNIT_SCALE = "0..1"
 SIGNAL_REFERENCE = 4.5
 LIMIT_REFERENCE = 1.0
+QUANTIZED_STATES = ["low", "medium", "high"]
+QUANTIZATION_BINS = {
+    "low": [0.0, 0.333333],
+    "medium": [0.333334, 0.666666],
+    "high": [0.666667, 1.0],
+}
 CSV_FIELDS = [
     "parameter",
     "value",
     "normalized_value",
+    "quantized_value",
     "signal_delta",
     "normalized_signal_delta",
+    "quantized_signal_delta",
     "limit_delta",
     "normalized_limit_delta",
+    "quantized_limit_delta",
     "verdict",
 ]
 
@@ -49,6 +58,14 @@ def clamp_unit(value: float) -> float:
     return round(max(0.0, min(1.0, value)), 6)
 
 
+def quantize_unit(value: float) -> str:
+    if value < 0.333334:
+        return "low"
+    if value < 0.666667:
+        return "medium"
+    return "high"
+
+
 def normalize_value(value: float) -> float:
     return clamp_unit(value)
 
@@ -59,6 +76,18 @@ def normalize_signal(value: float) -> float:
 
 def normalize_limit(value: float) -> float:
     return clamp_unit(value / LIMIT_REFERENCE)
+
+
+def quantize_value(value: float) -> str:
+    return quantize_unit(normalize_value(value))
+
+
+def quantize_signal(value: float) -> str:
+    return quantize_unit(normalize_signal(value))
+
+
+def quantize_limit(value: float) -> str:
+    return quantize_unit(normalize_limit(value))
 
 
 def score_baseline(value: float) -> float:
@@ -85,14 +114,18 @@ def review_param(name: str, value: float) -> ReviewRow:
         "parameter": name,
         "value": value,
         "normalized_value": normalize_value(value),
+        "quantized_value": quantize_value(value),
         "baseline_score": baseline,
         "muted_score": muted,
         "raised_score": raised,
         "signal_delta": signal_delta,
         "normalized_signal_delta": normalize_signal(signal_delta),
+        "quantized_signal_delta": quantize_signal(signal_delta),
         "limit_delta": limit_delta,
         "normalized_limit_delta": normalize_limit(limit_delta),
+        "quantized_limit_delta": quantize_limit(limit_delta),
         "metric_scale": UNIT_SCALE,
+        "quantization_bins": str(QUANTIZATION_BINS),
         "verdict": choose_verdict(signal_delta, limit_delta),
         "verification": VERIFICATION,
     }
@@ -107,6 +140,7 @@ def build_summary(rows: list[ReviewRow]) -> ReviewSummary:
         "mode": REVIEW_MODE,
         "claim_tier": CLAIM_TIER,
         "metric_scale": UNIT_SCALE,
+        "quantized_states": QUANTIZED_STATES,
         "parameters_tested": len(rows),
         "scheduled_for_review": sum(row["verdict"] != "pass" for row in rows),
         "entropy_residual": 0.0,
@@ -115,6 +149,11 @@ def build_summary(rows: list[ReviewRow]) -> ReviewSummary:
             "normalized_value",
             "normalized_signal_delta",
             "normalized_limit_delta",
+        ],
+        "quantized_fields": [
+            "quantized_value",
+            "quantized_signal_delta",
+            "quantized_limit_delta",
         ],
         "outputs": ["parameter_review.json", "parameter_review.csv"],
     }
@@ -132,10 +171,13 @@ def csv_row(row: ReviewRow) -> list[str | float]:
         row["parameter"],
         row["value"],
         row["normalized_value"],
+        row["quantized_value"],
         row["signal_delta"],
         row["normalized_signal_delta"],
+        row["quantized_signal_delta"],
         row["limit_delta"],
         row["normalized_limit_delta"],
+        row["quantized_limit_delta"],
         row["verdict"],
     ]
 
