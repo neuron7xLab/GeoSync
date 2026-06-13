@@ -56,7 +56,7 @@ PyYAML==6.0.3
 # while the (stale) SBOM masked them. Pinned to the patched fix versions.
 # ============================================================================
 # aiohttp < 3.14.0: GHSA-jg22-mg44-37j8, GHSA-hg6j-4rv6-33pg
-aiohttp==3.14.0
+aiohttp==3.14.1
 # Mako < 1.3.12: GHSA-2h4p-vjrc-8xpq (ReDoS)
 Mako==1.3.12
 # pyarrow < 23.0.1: PYSEC-2026-113
