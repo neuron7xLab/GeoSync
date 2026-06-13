@@ -22,7 +22,6 @@ coordinate with the governance guardrails documented in ``docs/monitoring.md``.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import warnings
 from collections.abc import Mapping
@@ -690,8 +689,9 @@ def mean_ricci(
         chunk_size: Optional batch size for edge iteration to bound memory usage.
         use_float32: When ``True``, accumulate in ``float32`` as a performance
             trade-off.
-        parallel: Execution strategy. Set to ``"async"`` to evaluate edges via an
-            asyncio-backed thread pool, mirroring the scaling guidance in
+        parallel: Execution strategy. Set to ``"async"`` to evaluate edges via a
+            loop-agnostic thread pool (safe under any runtime, including an
+            already-running event loop), mirroring the scaling guidance in
             ``docs/execution.md``.
         max_workers: Upper bound for the thread pool when ``parallel`` is async.
 
@@ -754,50 +754,42 @@ def mean_ricci(
         return float(np.mean(arr))
 
 
+def _ricci_edge_worker(
+    G: nx.Graph,
+    distributions: Mapping[int, NodeDistribution] | None,
+    edge: tuple[int, int],
+) -> float:
+    """Compute the Ricci curvature of a single edge (thread-pool worker)."""
+
+    u, v = edge
+    return ricci_curvature_edge(G, int(u), int(v), distributions=distributions)
+
+
 def _run_ricci_async(
     G: nx.Graph,
     edges: list[tuple[int, int]],
     max_workers: int | None,
     distributions: Mapping[int, NodeDistribution] | None,
 ) -> list[float]:
-    """Evaluate curvature across edges concurrently using asyncio threads."""
+    """Evaluate curvature across edges concurrently using a thread pool.
 
-    async def _runner() -> list[float]:
-        loop = asyncio.get_running_loop()
-        executor: ThreadPoolExecutor | None = None
-        try:
-            if max_workers is not None:
-                executor = ThreadPoolExecutor(max_workers=max_workers)
-            futures = [
-                loop.run_in_executor(
-                    executor,
-                    partial(
-                        ricci_curvature_edge,
-                        G,
-                        int(u),
-                        int(v),
-                        distributions=distributions,
-                    ),
-                )
-                for u, v in edges
-            ]
-            return await asyncio.gather(*futures)
-        finally:
-            if executor is not None:
-                executor.shutdown(wait=True)
+    Loop-agnostic by construction: it uses a plain :class:`ThreadPoolExecutor`
+    and never creates or drives an asyncio event loop, so the result is
+    identical whether called from a bare script, a Jupyter kernel, a
+    FastAPI/Starlette handler, a Celery worker, or any other context that
+    already owns a running event loop. ``executor.map`` yields results in edge
+    order, keeping the curvature sequence deterministic for the downstream mean.
 
-    try:
-        return asyncio.run(_runner())
-    except RuntimeError as exc:
-        if "event loop is running" not in str(exc):
-            raise
-        new_loop = asyncio.new_event_loop()
-        try:
-            asyncio.set_event_loop(new_loop)
-            return new_loop.run_until_complete(_runner())
-        finally:
-            asyncio.set_event_loop(None)
-            new_loop.close()
+    Threads (not processes) are intentional: the hot inner work
+    (``ricci_curvature_edge`` → shortest paths + the Numba/NumPy W1 transport)
+    releases the GIL, whereas a process pool would force pickling the whole
+    graph for every edge. No event loop, asyncgen finalizer, or executor handle
+    can leak — the ``with`` block joins all workers before returning.
+    """
+
+    worker = partial(_ricci_edge_worker, G, distributions)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        return list(executor.map(worker, edges))
 
 
 def _maybe_warn_w1() -> None:
@@ -958,8 +950,8 @@ class MeanRicciFeature(BaseFeature):
             delta: Price quantisation granularity.
             chunk_size: Process edges in chunks for large graphs.
             use_float32: Use ``float32`` precision for memory efficiency.
-            parallel_async: Execute curvature computations concurrently via
-                asyncio thread pools.
+            parallel_async: Execute curvature computations concurrently via a
+                loop-agnostic thread pool.
             max_workers: Optional cap for the async worker pool when
                 ``parallel_async`` is enabled.
             name: Optional custom name.

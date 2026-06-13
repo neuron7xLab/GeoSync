@@ -319,37 +319,60 @@ def test_shortest_path_length_safe_returns_inf_when_unweighted_fails() -> None:
     assert math.isinf(distance)
 
 
-def test_mean_ricci_async_recovers_when_loop_running(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_mean_ricci_async_is_loop_agnostic() -> None:
+    """parallel='async' must match the serial path AND work inside an
+    already-running event loop (Jupyter / FastAPI / Celery), with no leaked
+    loop or unawaited coroutine.
+
+    Regression guard: the prior asyncio-driver re-raised
+    ``RuntimeError: asyncio.run() cannot be called from a running event loop``
+    in any nested-loop runtime (its fallback matched the wrong error string and
+    could not nest loops on one thread anyway). The thread-pool implementation
+    is loop-agnostic, so both contexts return the identical curvature.
+    """
     prices = np.array([100.0, 101.0, 102.5, 101.8], dtype=float)
     graph = build_price_graph(prices, delta=0.01)
-
     baseline = mean_ricci(graph)
 
-    original_new_loop = ricci_module.asyncio.new_event_loop
-    created_loop = False
+    # 1) Plain (no running loop) context.
+    assert mean_ricci(graph, parallel="async", max_workers=2) == pytest.approx(baseline)
 
-    def patched_new_event_loop() -> asyncio.AbstractEventLoop:
-        nonlocal created_loop
-        created_loop = True
-        return original_new_loop()
+    # 2) Nested running-loop context — this is what previously raised.
+    async def _nested() -> float:
+        return mean_ricci(graph, parallel="async", max_workers=2)
 
-    def failing_run(coro: Coroutine[Any, Any, Any]) -> None:
-        try:
-            coro.close()
-        finally:
-            raise RuntimeError("event loop is running")
+    assert asyncio.run(_nested()) == pytest.approx(baseline)
 
-    monkeypatch.setattr(ricci_module.asyncio, "run", failing_run)
-    monkeypatch.setattr(ricci_module.asyncio, "new_event_loop", patched_new_event_loop)
-
-    async_result = mean_ricci(graph, parallel="async")
-
-    assert async_result == pytest.approx(baseline)
-    assert created_loop is True
+    # The async path must not leave a running loop bound to this thread.
     with pytest.raises(RuntimeError):
-        ricci_module.asyncio.get_running_loop()
+        asyncio.get_running_loop()
+
+
+def test_mean_ricci_async_preserves_edge_order_and_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The thread pool yields results in edge order, so the async mean equals
+    the serial mean deterministically regardless of worker scheduling."""
+    prices = np.linspace(100.0, 110.0, 24)
+    graph = build_price_graph(prices, delta=0.01)
+    serial = mean_ricci(graph, parallel="none")
+
+    captured: list[float] = []
+    real_runner = ricci_module._run_ricci_async
+
+    def spy(graph_arg, edges, workers, distributions):
+        result = real_runner(graph_arg, edges, workers, distributions)
+        captured.extend(result)
+        return result
+
+    monkeypatch.setattr(ricci_module, "_run_ricci_async", spy)
+    async_value = mean_ricci(graph, parallel="async", max_workers=4)
+
+    assert async_value == pytest.approx(serial)
+    serial_edge_values = [
+        ricci_module.ricci_curvature_edge(graph, int(u), int(v)) for u, v in graph.edges()
+    ]
+    assert captured == pytest.approx(serial_edge_values)
 
 
 def test_w1_fallback_emits_runtime_warning() -> None:
