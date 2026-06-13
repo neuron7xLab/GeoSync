@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "7e4d778e762b20ac1833a01c4d9c300812edde0f5eff9e175d0de635e38f2688"
+      "sha256": "1beb9ff7718fa27e318f8dd97ad5ccad2ca5cf32891b67dfaeb1b19d77ddd1fb"
     },
     {
       "path": "scripts/ci/capsule_verification_report.py",
@@ -86,6 +86,10 @@
       "sha256": "fef89930014d6c6110549d503b2775a44e76b7876877d9daebdd12d12eb25888"
     },
     {
+      "path": "scripts/ci/external_run_intake.py",
+      "sha256": "2f384ef49ee8051cb157a24387985a54361d8402db5ff01880bfdac64f7dbb22"
+    },
+    {
       "path": "scripts/ci/lint_forbidden_terms.py",
       "sha256": "d65c2bc782e1223dbd1c8379fad5bdcf92ad8fd6775cb37978e53b0f3e2da7b2"
     },
@@ -95,7 +99,7 @@
     },
     {
       "path": "scripts/ci/prove_repo_integrity.sh",
-      "sha256": "a7a2e0ea1a4c07a6b6e94bcbcd41cd06b3d658e5a2a4d09a253e962cf3c95a81"
+      "sha256": "3acdc54be2e65f995663ab18e60f46e9691507a8aef1e1c7bee20bb63baef8ee"
     },
     {
       "path": "scripts/ci/release_gate.py",
