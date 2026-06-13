@@ -331,13 +331,18 @@ def test_shell_wrapper_prints_first_file_only_when_report_written(tmp_path):
     target_wrapper = scripts_dir / "test-pr-locally.sh"
     target_wrapper.write_text(source_wrapper.read_text(encoding="utf-8"), encoding="utf-8")
     target_wrapper.chmod(0o755)
-    # A runner that writes the report into the report dir before exiting.
+    # A stub that serves both python invocations the wrapper makes: the
+    # preflight runner (writes the report) and the inference-ledger appender
+    # (no --report-dir; just succeeds). Both must exit 0 so the wrapper reaches
+    # the FIRST_FILE_TO_OPEN print on the report-written path.
     _write_executable(
         bin_dir / "python3",
         "import os, sys\n"
-        "rd = sys.argv[sys.argv.index('--report-dir') + 1]\n"
-        "os.makedirs(rd, exist_ok=True)\n"
-        "open(os.path.join(rd, 'preflight_report.json'), 'w').write('{}')\n"
+        "argv = sys.argv\n"
+        "if '--report-dir' in argv:\n"
+        "    rd = argv[argv.index('--report-dir') + 1]\n"
+        "    os.makedirs(rd, exist_ok=True)\n"
+        "    open(os.path.join(rd, 'preflight_report.json'), 'w').write('{}')\n"
         "sys.exit(0)\n",
     )
     env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}"}

@@ -73,9 +73,7 @@ def _status_count(checks: list[dict[str, Any]], status: str) -> int:
 
 def _critical_failure_count(checks: list[dict[str, Any]]) -> int:
     return sum(
-        1
-        for check in checks
-        if check.get("critical") is True and check.get("status") != "PASS"
+        1 for check in checks if check.get("critical") is True and check.get("status") != "PASS"
     )
 
 
@@ -108,10 +106,7 @@ def validate_report_semantics(report: dict[str, Any]) -> None:
             "stderr_log missing",
         )
         _require(
-            not (
-                check.get("critical") is True
-                and check.get("status") == "SKIPPED_OPTIONAL"
-            ),
+            not (check.get("critical") is True and check.get("status") == "SKIPPED_OPTIONAL"),
             f"critical check skipped optional: {check['id']}",
         )
 
@@ -127,8 +122,7 @@ def validate_report_semantics(report: dict[str, Any]) -> None:
 
     final_status = report["status"]
     has_blocked_critical = any(
-        check.get("critical") is True and check.get("status") == "BLOCKED"
-        for check in checks
+        check.get("critical") is True and check.get("status") == "BLOCKED" for check in checks
     )
     if final_status == "PASS":
         _require(critical_failures == 0, "PASS report contains critical failures")
@@ -157,11 +151,7 @@ def load_report(report_path: Path) -> dict[str, Any]:
 
 
 def _ids_with_status(checks: list[dict[str, Any]], status: str) -> list[str]:
-    return [
-        str(check.get("id", ""))
-        for check in checks
-        if check.get("status") == status
-    ]
+    return [str(check.get("id", "")) for check in checks if check.get("status") == status]
 
 
 def build_ledger_entry(report: dict[str, Any], report_path: Path) -> dict[str, Any]:
@@ -234,9 +224,7 @@ def append_ledger(report_path: Path, ledger_path: Path) -> dict[str, Any]:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Append PR preflight inference ledger entry."
-    )
+    parser = argparse.ArgumentParser(description="Append PR preflight inference ledger entry.")
     parser.add_argument("--report", required=True, help="Path to preflight_report.json")
     parser.add_argument("--ledger", help="Ledger JSONL path. Defaults next to report.")
     parser.add_argument(
