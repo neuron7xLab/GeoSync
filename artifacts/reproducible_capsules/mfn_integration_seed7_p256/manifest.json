@@ -4,7 +4,7 @@
     {
       "bytes": 551,
       "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/SHA256SUMS",
-      "sha256": "f2fbccef424145fa81fd7a7b737ca725e56f9eb0dd3e5fc3f8ae7edfa48bd5b8"
+      "sha256": "385d6559248ba440f1c52bc088bb1abf66c6e03879378fa4426b4188c785e47f"
     },
     {
       "bytes": 491,
@@ -29,7 +29,7 @@
     {
       "bytes": 1079,
       "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/manifest.json",
-      "sha256": "715c49395bac2fd7f6111ac3febfae205ec21131bbbdda5a4fb0c82f5331bdfd"
+      "sha256": "3920e4f1d579f474894fc79bba58b61697d72eca7586c80cc4aef94a58e897a3"
     },
     {
       "bytes": 441,
@@ -37,9 +37,9 @@
       "sha256": "2a2a311c4c7a56091fb65ec4eaff518bdf05b8e49b02ee7fabfe907ee57f30c0"
     },
     {
-      "bytes": 266,
+      "bytes": 220,
       "path": "artifacts/reproducible_capsules/mfn_integration_seed7_p256/bundle/runbook.md",
-      "sha256": "d7102930b2b3f85e51f58b88e4e95dc40cd7418ebdf9d0b8973d2d662f4d1f36"
+      "sha256": "89734c013759077bca5b96842948f3644a1268632fe4a7e7f82a196f37a92199"
     },
     {
       "bytes": 20867,
@@ -52,10 +52,10 @@
   "created_at_utc": "2023-11-14T22:13:20Z",
   "evidence_class": "REPRODUCIBLE_INFRASTRUCTURE_PROOF",
   "generator": "SOURCE_DATE_EPOCH=1700000000 python -m geosync.mfn.cli --out <dir> --seed 7 --points 256 run",
-  "git_sha": "a9d16d2afa5bd058407d352cf08d7e63d2269984",
+  "git_sha": "27b1c5c15a57ae5b71d90d64ab46d2a4e33f9f67",
   "is_empirical_evidence": false,
   "schema_version": "geosync.reproducible_capsule.v1",
-  "sha256_manifest": "f2fbccef424145fa81fd7a7b737ca725e56f9eb0dd3e5fc3f8ae7edfa48bd5b8",
+  "sha256_manifest": "385d6559248ba440f1c52bc088bb1abf66c6e03879378fa4426b4188c785e47f",
   "source_date_epoch": 1700000000,
   "verify_command": "python scripts/reproduce/mfn_capsule.py --verify"
 }
