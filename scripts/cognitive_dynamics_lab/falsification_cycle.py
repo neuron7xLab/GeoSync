@@ -44,11 +44,7 @@ def evaluate_weight(name: str, value: float) -> WeightResult:
     amplified = round(value * 15.0, 6)
     signal_loss = round(baseline - ablation, 6)
     risk_delta = round(max(0.0, amplified - 4.5), 6)
-    verdict = (
-        "retain"
-        if signal_loss >= 1.5 and risk_delta <= 0.5
-        else "schedule_review"
-    )
+    verdict = "retain" if signal_loss >= 1.5 and risk_delta <= 0.5 else "schedule_review"
     return {
         "weight": name,
         "value": value,
@@ -106,10 +102,7 @@ def build_summary(rows: list[WeightResult]) -> dict[str, object]:
         "scheduled_for_review": sum(row["verdict"] != "retain" for row in rows),
         "entropy_residual": 0.0,
         "reproducibility": 1.0,
-        "outputs": [
-            "falsification_cycle.json",
-            "falsification_table.csv",
-        ],
+        "outputs": ["falsification_cycle.json", "falsification_table.csv"],
     }
 
 
