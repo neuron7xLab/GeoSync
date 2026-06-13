@@ -1,7 +1,7 @@
 id: cognitive-dynamics-lab
 status: ACTIVE
 claim_type: governance
-promise: "Cognitive dynamics lab is added as a bounded simulation-only research contract with replay runner, schema, falsification report, and no promoted claim tier."
+promise: "Cognitive dynamics lab is a bounded simulation-only research contract with replay runner, weight-review runner, schema, falsification report, and no promoted claim tier."
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/cognitive-dynamics-lab.yaml"
@@ -16,6 +16,7 @@ diff_scope:
     - path: "docs/cognitive_dynamics/WEIGHT_PATCHES.json"
     - path: "schemas/cognitive_dynamics_summary.schema.json"
     - path: "scripts/cognitive_dynamics_lab/simulation_runner.py"
+    - path: "scripts/cognitive_dynamics_lab/falsification_cycle.py"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -25,13 +26,16 @@ required_python_symbols:
   - "main"
   - "run_case"
   - "write_outputs"
-expected_signal: "dependency-free cognitive dynamics replay runner writes summary.json and metrics_table.csv"
-measurement_command: "python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab"
+  - "evaluate_weight"
+  - "write_cycle_outputs"
+  - "build_summary"
+expected_signal: "Dependency-free cognitive dynamics replay runners write deterministic summary, metrics, and weight-review artifacts."
+measurement_command: "python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab && python scripts/cognitive_dynamics_lab/falsification_cycle.py --out artifacts/cognitive_dynamics_lab"
 signal_artifact: "artifacts/cognitive_dynamics_lab/summary.json"
 falsifier:
-  command: "python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab && test -f artifacts/cognitive_dynamics_lab/summary.json && test -f artifacts/cognitive_dynamics_lab/metrics_table.csv"
-  description: "Replay must produce deterministic summary and metrics artifacts without importing trading, execution, forecast, or policy modules."
-rollback_command: "git rm -r .claude/commit_acceptors/cognitive-dynamics-lab.yaml docs/cognitive_dynamics schemas/cognitive_dynamics_summary.schema.json scripts/cognitive_dynamics_lab/simulation_runner.py"
+  command: "python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab && python scripts/cognitive_dynamics_lab/falsification_cycle.py --out artifacts/cognitive_dynamics_lab && test -f artifacts/cognitive_dynamics_lab/summary.json && test -f artifacts/cognitive_dynamics_lab/metrics_table.csv && test -f artifacts/cognitive_dynamics_lab/falsification_summary.json && test -f artifacts/cognitive_dynamics_lab/falsification_table.csv"
+  description: "Replay must produce deterministic simulation and weight-review artifacts without importing trading, execution, forecast, or policy modules."
+rollback_command: "git rm -r .claude/commit_acceptors/cognitive-dynamics-lab.yaml docs/cognitive_dynamics schemas/cognitive_dynamics_summary.schema.json scripts/cognitive_dynamics_lab"
 rollback_verification_command: "git diff --exit-code"
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/cognitive-dynamics-lab.yaml"
