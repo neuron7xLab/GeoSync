@@ -122,6 +122,10 @@ gpu = ["numba>=0.62.1", "cupy>=13.6.0"]
 contract = ["schemathesis>=4.0,<5"]
 
 [project.scripts]
+geosync-scripts = "scripts.cli:main"
+geosync-release-gate = "scripts.ci.release_gate:main"
+geosync-import-architecture = "scripts.ci.check_import_architecture:main"
+geosync-pai = "scripts.ci.compute_pai:main"
 geosync-sync = "scripts.resilient_data_sync:main"
 geosync-db = "scripts.db_migrate:cli"
 geosync-server = "application.runtime.server:main"
@@ -173,6 +177,8 @@ include = [
     "observability.*",
     "tools",
     "tools.*",
+    "scripts",
+    "scripts.*",
     "src",
     "src.*",
 ]
