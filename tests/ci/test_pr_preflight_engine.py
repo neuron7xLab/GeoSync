@@ -7,6 +7,18 @@ from pathlib import Path
 from tools.ci import pr_preflight
 
 
+REQUIRED_CHECK_IDS = [
+    "pip_bootstrap",
+    "project_dependencies",
+    "ruff",
+    "black",
+    "mypy",
+    "detect_secrets",
+    "quick_tests",
+    "coverage_artifact",
+]
+
+
 def _write_executable(path: Path, body: str) -> Path:
     path.write_text(f"#!{sys.executable} -S\n{body}", encoding="utf-8")
     path.chmod(0o755)
@@ -39,7 +51,12 @@ sys.exit(int(os.environ.get("STUB_PROJECT_INSTALL_EXIT", "0")))
     return _write_executable(bin_dir / "python", body)
 
 
-def _prepare_repo(tmp_path: Path, monkeypatch, detect_secrets: bool = False) -> tuple[Path, Path]:
+def _prepare_repo(
+    tmp_path: Path,
+    monkeypatch,
+    detect_secrets: bool = False,
+    omit_tools: tuple[str, ...] = (),
+) -> tuple[Path, Path]:
     root = tmp_path / "repo"
     root.mkdir()
     (root / "pyproject.toml").write_text("[project]\nname = 'stub'\n", encoding="utf-8")
@@ -48,10 +65,14 @@ def _prepare_repo(tmp_path: Path, monkeypatch, detect_secrets: bool = False) -> 
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     python_stub = _write_python_stub(bin_dir)
-    _write_tool_stub(bin_dir, "ruff", "STUB_RUFF")
-    _write_tool_stub(bin_dir, "black", "STUB_BLACK")
-    _write_tool_stub(bin_dir, "mypy", "STUB_MYPY")
-    _write_tool_stub(bin_dir, "pytest", "STUB_PYTEST")
+    for tool_name, env_prefix in (
+        ("ruff", "STUB_RUFF"),
+        ("black", "STUB_BLACK"),
+        ("mypy", "STUB_MYPY"),
+        ("pytest", "STUB_PYTEST"),
+    ):
+        if tool_name not in omit_tools:
+            _write_tool_stub(bin_dir, tool_name, env_prefix)
     if detect_secrets:
         _write_tool_stub(bin_dir, "detect-secrets", "STUB_DETECT_SECRETS")
 
@@ -68,6 +89,19 @@ def _run_engine(root: Path, report_dir: Path) -> tuple[int, dict]:
 
 def _check(report: dict, check_id: str) -> dict:
     return next(check for check in report["checks"] if check["id"] == check_id)
+
+
+def test_registry_contains_required_ids_and_log_paths(tmp_path, monkeypatch):
+    root, _ = _prepare_repo(tmp_path, monkeypatch)
+
+    specs = pr_preflight.build_check_registry(root)
+
+    assert [spec.id for spec in specs] == REQUIRED_CHECK_IDS
+    for spec in specs:
+        assert spec.stdout_log == f"logs/{spec.id}.stdout.log"
+        assert spec.stderr_log == f"logs/{spec.id}.stderr.log"
+        assert spec.timeout_seconds > 0
+        assert spec.success_exit_codes == [0]
 
 
 def test_engine_passes_when_all_critical_stubs_pass(tmp_path, monkeypatch):
@@ -151,6 +185,20 @@ def test_engine_fails_detect_secrets_when_present_and_failing(tmp_path, monkeypa
     assert detect["status"] == "FAIL"
 
 
+def test_engine_blocks_when_critical_tool_is_missing(tmp_path, monkeypatch):
+    root, report_dir = _prepare_repo(tmp_path, monkeypatch, omit_tools=("ruff",))
+
+    exit_code, report = _run_engine(root, report_dir)
+
+    ruff = _check(report, "ruff")
+    assert exit_code == 1
+    assert report["status"] == "BLOCKED"
+    assert ruff["status"] == "BLOCKED"
+    assert ruff["critical"] is True
+    assert ruff["tool_available"] is False
+    assert "required executable missing" in ruff["failure_reason"]
+
+
 def test_engine_writes_report_json_on_failure(tmp_path, monkeypatch):
     root, report_dir = _prepare_repo(tmp_path, monkeypatch)
     monkeypatch.setenv("STUB_PYTEST_EXIT", "4")
@@ -174,6 +222,23 @@ def test_engine_preserves_stdout_and_stderr_logs(tmp_path, monkeypatch):
     ruff = _check(report, "ruff")
     assert (root / ruff["stdout_log"]).read_text(encoding="utf-8") == "ruff-out\n"
     assert (root / ruff["stderr_log"]).read_text(encoding="utf-8") == "ruff-err\n"
+
+
+def test_engine_report_preserves_execution_metadata(tmp_path, monkeypatch):
+    root, report_dir = _prepare_repo(tmp_path, monkeypatch)
+
+    exit_code, report = _run_engine(root, report_dir)
+
+    assert exit_code == 0
+    assert report["schema_version"] == 1
+    assert report["status"] in pr_preflight.ALLOWED_FINAL_STATUSES
+    for check in report["checks"]:
+        assert check["status"] in pr_preflight.ALLOWED_CHECK_STATUSES
+        assert check["cwd"] == "."
+        assert check["timeout_seconds"] > 0
+        assert check["success_exit_codes"] == [0]
+        assert check["stdout_log"].endswith(f"{check['id']}.stdout.log")
+        assert check["stderr_log"].endswith(f"{check['id']}.stderr.log")
 
 
 def test_shell_wrapper_forwards_python_runner_exit_code(tmp_path):
