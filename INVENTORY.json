@@ -90,6 +90,10 @@
       "sha256": "fef89930014d6c6110549d503b2775a44e76b7876877d9daebdd12d12eb25888"
     },
     {
+      "path": "scripts/ci/external_run_intake.py",
+      "sha256": "2f384ef49ee8051cb157a24387985a54361d8402db5ff01880bfdac64f7dbb22"
+    },
+    {
       "path": "scripts/ci/lint_forbidden_terms.py",
       "sha256": "d65c2bc782e1223dbd1c8379fad5bdcf92ad8fd6775cb37978e53b0f3e2da7b2"
     },
