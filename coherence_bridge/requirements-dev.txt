@@ -3,4 +3,4 @@ mypy==2.1.0
 pip-tools==7.5.0
 pytest==9.0.3
 pytest-timeout==2.4.0
-ruff==0.15.15
+ruff==0.15.17
