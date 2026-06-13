@@ -24,6 +24,13 @@ REQUIRED_REPORT_KEYS = {
     "next_action",
     "first_file_to_open",
 }
+REQUIRED_SUMMARY_KEYS = {
+    "passed",
+    "failed",
+    "skipped_optional",
+    "blocked",
+    "timeouts",
+}
 REQUIRED_LEDGER_KEYS = {
     "schema_version",
     "event_type",
@@ -42,6 +49,13 @@ REQUIRED_LEDGER_KEYS = {
 }
 ALLOWED_FINAL_STATUSES = {"PASS", "FAIL", "BLOCKED"}
 ALLOWED_CHECK_STATUSES = {"PASS", "FAIL", "SKIPPED_OPTIONAL", "BLOCKED", "TIMEOUT"}
+SUMMARY_STATUS_MAP = {
+    "passed": "PASS",
+    "failed": "FAIL",
+    "skipped_optional": "SKIPPED_OPTIONAL",
+    "blocked": "BLOCKED",
+    "timeouts": "TIMEOUT",
+}
 
 
 def _utc_now() -> str:
@@ -53,6 +67,63 @@ def _require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
+def _status_count(checks: list[dict[str, Any]], status: str) -> int:
+    return sum(1 for check in checks if check.get("status") == status)
+
+
+def _critical_failure_count(checks: list[dict[str, Any]]) -> int:
+    return sum(
+        1
+        for check in checks
+        if check.get("critical") is True and check.get("status") != "PASS"
+    )
+
+
+def validate_report_semantics(report: dict[str, Any]) -> None:
+    """Reject reports whose aggregate fields contradict check-level evidence."""
+
+    checks = report["checks"]
+    summary = report["summary"]
+    _require(isinstance(summary, dict), "preflight summary must be an object")
+    missing_summary = sorted(REQUIRED_SUMMARY_KEYS - set(summary))
+    _require(not missing_summary, f"preflight summary missing keys: {missing_summary}")
+
+    for index, check in enumerate(checks):
+        _require(isinstance(check, dict), f"check {index} must be an object")
+        _require(check.get("id"), f"check {index} id is required")
+        _require(isinstance(check.get("critical"), bool), f"check {index} critical must be bool")
+        _require(check.get("status") in ALLOWED_CHECK_STATUSES, f"invalid check status at {index}")
+        _require(isinstance(check.get("stdout_log"), str) and check.get("stdout_log"), "stdout_log missing")
+        _require(isinstance(check.get("stderr_log"), str) and check.get("stderr_log"), "stderr_log missing")
+        _require(
+            not (check.get("critical") is True and check.get("status") == "SKIPPED_OPTIONAL"),
+            f"critical check skipped optional: {check['id']}",
+        )
+
+    expected_summary = {
+        summary_key: _status_count(checks, check_status)
+        for summary_key, check_status in SUMMARY_STATUS_MAP.items()
+    }
+    _require(summary == expected_summary, "preflight summary does not match checks")
+
+    critical_failures = _critical_failure_count(checks)
+    _require(isinstance(report["failure_count"], int), "failure_count must be int")
+    _require(report["failure_count"] == critical_failures, "failure_count mismatch")
+
+    final_status = report["status"]
+    has_blocked_critical = any(
+        check.get("critical") is True and check.get("status") == "BLOCKED"
+        for check in checks
+    )
+    if final_status == "PASS":
+        _require(critical_failures == 0, "PASS report contains critical failures")
+    elif final_status == "BLOCKED":
+        _require(has_blocked_critical, "BLOCKED report has no blocked critical checks")
+    else:
+        _require(critical_failures > 0, "FAIL report has no critical failures")
+        _require(not has_blocked_critical, "FAIL report contains blocked critical checks")
+
+
 def load_report(report_path: Path) -> dict[str, Any]:
     report = json.loads(report_path.read_text(encoding="utf-8"))
     _require(isinstance(report, dict), "preflight report must be a JSON object")
@@ -60,6 +131,7 @@ def load_report(report_path: Path) -> dict[str, Any]:
     _require(not missing, f"preflight report missing keys: {missing}")
     _require(report["status"] in ALLOWED_FINAL_STATUSES, "invalid preflight final status")
     _require(isinstance(report["checks"], list), "preflight checks must be a list")
+    validate_report_semantics(report)
     return report
 
 
@@ -69,10 +141,6 @@ def _ids_with_status(checks: list[dict[str, Any]], status: str) -> list[str]:
 
 def build_ledger_entry(report: dict[str, Any], report_path: Path) -> dict[str, Any]:
     checks = report["checks"]
-    for index, check in enumerate(checks):
-        _require(isinstance(check, dict), f"check {index} must be an object")
-        _require(check.get("status") in ALLOWED_CHECK_STATUSES, f"invalid check status at {index}")
-
     critical_failure_ids = [
         str(check.get("id", ""))
         for check in checks
@@ -106,6 +174,11 @@ def validate_ledger_entry(entry: dict[str, Any]) -> None:
     _require(entry["event_type"] == "pr_preflight_run", "invalid ledger event_type")
     _require(entry["status"] in ALLOWED_FINAL_STATUSES, "invalid ledger status")
     _require(isinstance(entry["failure_count"], int), "failure_count must be int")
+    _require(entry["failure_count"] == len(entry["critical_failure_ids"]), "ledger failure_count mismatch")
+    _require(
+        not (entry["status"] == "PASS" and entry["critical_failure_ids"]),
+        "PASS ledger contains critical failures",
+    )
     for key in (
         "critical_failure_ids",
         "blocked_check_ids",
