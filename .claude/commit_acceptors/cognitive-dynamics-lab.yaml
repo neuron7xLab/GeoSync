@@ -1,0 +1,39 @@
+id: cognitive-dynamics-lab
+status: ACTIVE
+claim_type: governance
+promise: "Cognitive dynamics lab is added as a bounded simulation-only research contract with replay runner, schema, falsification report, and no promoted claim tier."
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/cognitive-dynamics-lab.yaml"
+    - path: "docs/cognitive_dynamics/DEFINITIONS.md"
+    - path: "docs/cognitive_dynamics/EXPERIMENT_MATRIX.json"
+    - path: "docs/cognitive_dynamics/FALSIFICATION_REPORT.json"
+    - path: "docs/cognitive_dynamics/METRICS_SPEC.json"
+    - path: "docs/cognitive_dynamics/MODEL_SPEC.md"
+    - path: "docs/cognitive_dynamics/NEXT_ITERATION_PLAN.md"
+    - path: "docs/cognitive_dynamics/README.md"
+    - path: "docs/cognitive_dynamics/SIMULATION_PROTOCOL.md"
+    - path: "docs/cognitive_dynamics/WEIGHT_PATCHES.json"
+    - path: "schemas/cognitive_dynamics_summary.schema.json"
+    - path: "scripts/cognitive_dynamics_lab/simulation_runner.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols:
+  - "main"
+  - "run_case"
+  - "write_outputs"
+expected_signal: "dependency-free cognitive dynamics replay runner writes summary.json and metrics_table.csv"
+measurement_command: "python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab"
+signal_artifact: "artifacts/cognitive_dynamics_lab/summary.json"
+falsifier:
+  command: "python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab && test -f artifacts/cognitive_dynamics_lab/summary.json && test -f artifacts/cognitive_dynamics_lab/metrics_table.csv"
+  description: "Replay must produce deterministic summary and metrics artifacts without importing trading, execution, forecast, or policy modules."
+rollback_command: "git rm -r .claude/commit_acceptors/cognitive-dynamics-lab.yaml docs/cognitive_dynamics schemas/cognitive_dynamics_summary.schema.json scripts/cognitive_dynamics_lab/simulation_runner.py"
+rollback_verification_command: "git diff --exit-code"
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/cognitive-dynamics-lab.yaml"
+report_path: "docs/cognitive_dynamics/FALSIFICATION_REPORT.json"
+evidence: []
