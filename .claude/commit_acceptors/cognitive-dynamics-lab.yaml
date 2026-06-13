@@ -1,7 +1,7 @@
 id: cognitive-dynamics-lab
 status: ACTIVE
 claim_type: governance
-promise: "Cognitive dynamics lab is a bounded simulation-only research contract with replay runner, typed parameter-review runner, schemas, reports, normalized 0..1 metric scale, calibrated low/medium/high state thresholds, and no promoted claim tier."
+promise: "Cognitive dynamics lab is a bounded simulation-only research contract with replay runner, typed parameter-review runner, schemas, reports, normalized 0..1 metric scale, calibrated low/medium/high state thresholds, objective scoring, bounded parameter actions, and no promoted claim tier."
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/cognitive-dynamics-lab.yaml"
@@ -33,13 +33,17 @@ required_python_symbols:
   - "quantize_metric"
   - "quantize_value"
   - "CALIBRATION_PROFILE"
+  - "OPTIMIZATION_PROFILE"
+  - "build_objective_score"
+  - "objective_contribution"
+  - "recommended_action"
   - "choose_verdict"
-expected_signal: "Dependency-free cognitive dynamics replay runners write deterministic summary, normalized metrics, calibrated metric states, and normalized plus calibrated parameter-review artifacts."
+expected_signal: "Dependency-free cognitive dynamics replay runners write deterministic summary, normalized metrics, calibrated metric states, objective score, bounded parameter actions, and normalized plus calibrated parameter-review artifacts."
 measurement_command: "python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab && python scripts/cognitive_dynamics_lab/parameter_review_runner.py --out artifacts/cognitive_dynamics_lab"
 signal_artifact: "artifacts/cognitive_dynamics_lab/summary.json"
 falsifier:
-  command: "python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab && python scripts/cognitive_dynamics_lab/parameter_review_runner.py --out artifacts/cognitive_dynamics_lab && test -f artifacts/cognitive_dynamics_lab/summary.json && test -f artifacts/cognitive_dynamics_lab/metrics_table.csv && test -f artifacts/cognitive_dynamics_lab/parameter_review_summary.json && test -f artifacts/cognitive_dynamics_lab/parameter_review.csv && grep -q calibration_profile artifacts/cognitive_dynamics_lab/summary.json && grep -q calibration_profile artifacts/cognitive_dynamics_lab/parameter_review_summary.json && grep -q normalized_metrics artifacts/cognitive_dynamics_lab/summary.json && grep -q quantized_metrics artifacts/cognitive_dynamics_lab/summary.json && grep -q normalized_value artifacts/cognitive_dynamics_lab/parameter_review.csv && grep -q quantized_value artifacts/cognitive_dynamics_lab/parameter_review.csv && grep -q calibration artifacts/cognitive_dynamics_lab/parameter_review.csv"
-  description: "Replay must produce deterministic simulation and parameter-review artifacts on a common 0..1 metric scale with calibrated low/medium/high state mapping, without importing trading, execution, forecast, or policy modules."
+  command: "python scripts/cognitive_dynamics_lab/simulation_runner.py --out artifacts/cognitive_dynamics_lab && python scripts/cognitive_dynamics_lab/parameter_review_runner.py --out artifacts/cognitive_dynamics_lab && test -f artifacts/cognitive_dynamics_lab/summary.json && test -f artifacts/cognitive_dynamics_lab/metrics_table.csv && test -f artifacts/cognitive_dynamics_lab/parameter_review_summary.json && test -f artifacts/cognitive_dynamics_lab/parameter_review.csv && grep -q calibration_profile artifacts/cognitive_dynamics_lab/summary.json && grep -q optimization_profile artifacts/cognitive_dynamics_lab/summary.json && grep -q optimized_metrics artifacts/cognitive_dynamics_lab/summary.json && grep -q objective_score artifacts/cognitive_dynamics_lab/summary.json && grep -q normalized_metrics artifacts/cognitive_dynamics_lab/summary.json && grep -q quantized_metrics artifacts/cognitive_dynamics_lab/summary.json && grep -q calibration_profile artifacts/cognitive_dynamics_lab/parameter_review_summary.json && grep -q optimization_profile artifacts/cognitive_dynamics_lab/parameter_review_summary.json && grep -q recommended_actions artifacts/cognitive_dynamics_lab/parameter_review_summary.json && grep -q normalized_value artifacts/cognitive_dynamics_lab/parameter_review.csv && grep -q quantized_value artifacts/cognitive_dynamics_lab/parameter_review.csv && grep -q objective_contribution artifacts/cognitive_dynamics_lab/parameter_review.csv && grep -q recommended_action artifacts/cognitive_dynamics_lab/parameter_review.csv"
+  description: "Replay must produce deterministic simulation and parameter-review artifacts on a common 0..1 metric scale with calibrated low/medium/high state mapping, bounded objective scoring, parameter actions, and no trading, execution, forecast, or policy imports."
 rollback_command: "git rm -r .claude/commit_acceptors/cognitive-dynamics-lab.yaml docs/cognitive_dynamics schemas/cognitive_dynamics_summary.schema.json scripts/cognitive_dynamics_lab"
 rollback_verification_command: "git diff --exit-code"
 memory_update_type: append
