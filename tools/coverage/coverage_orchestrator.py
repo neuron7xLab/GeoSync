@@ -277,7 +277,8 @@ def run_orchestration_plan(
 
 def write_manifest(manifest: OrchestrationManifest, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(asdict(manifest), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    payload = json.dumps(asdict(manifest), indent=2, sort_keys=True) + "\n"
+    path.write_text(payload, encoding="utf-8")
 
 
 def run_orchestrator(
@@ -326,7 +327,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--calibration-out", default="reports/coverage/calibration")
     parser.add_argument("--matrix-out", default="reports/coverage/matrix")
     parser.add_argument("--manifest", default="reports/coverage/orchestration.json")
-    parser.add_argument("--stage", choices=("short_term", "mid_term", "final"), default="mid_term")
+    parser.add_argument(
+        "--stage",
+        choices=("short_term", "mid_term", "final"),
+        default="mid_term",
+    )
     parser.add_argument("--limit", type=int, default=8)
     parser.add_argument("--skip-intelligence", action="store_true")
     args = parser.parse_args(argv)
