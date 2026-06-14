@@ -13,7 +13,7 @@ from fastapi import HTTPException
 os.environ.setdefault("GEOSYNC_ADMIN_TOKEN", "test-admin-token")
 os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "test-audit-secret")
 
-from application.api.service import (  # noqa: E402
+from application.api.service import (
     _filter_feature_values,
     _paginate_frame,
     _parse_confidence_param,
