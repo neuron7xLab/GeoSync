@@ -611,6 +611,11 @@
       "file": "docs/testing/pr_validation_matrix.md",
       "match": "| portfolio + execution pipeline | full ingest → signal → execution cycle | synthetic cli-driven pipeline builds artifacts end-to-end, validating reporting exports and idempotent writes【f:tests/e2e/test_full_pipeline.py†l1-l78】; live trading cycle simulation asserts oms state, connector responses, and pnl accounting【f:tests/e2e/test_trading_cycle.py†l1-l117】 | extend coverage for cross-venue hedging and partial fill recovery, currently modelled only for single-venue binance sandbox |",
       "reason": "mechanism: internal pipeline-stage / test-matrix description (ingest->signal->execution)"
+    },
+    {
+      "file": "docs/PHYSICS_BOUNDARY_AUDIT.md",
+      "match": "the readme blocks trading-bot, alpha-product, and physical-law proof interpretations",
+      "reason": "honest-negation: restates the README product-category boundary (the README *blocks* alpha-product interpretation), not an alpha-product claim"
     }
   ]
 }

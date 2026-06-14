@@ -64,8 +64,8 @@ def m_empty_evidence_ledger() -> tuple[int, int]:
 
 
 def m_type_ignore() -> int:
-    # Comment-form only — a `# type: ignore` suppression, not the phrase in
-    # a docstring or string literal (this module mentions it as data).
+    # Comment-form only — an inline `type: ignore` suppression, not the phrase in
+    # a docstring or string literal (this module must not match its own example).
     return _grep_count(r"#\s*type:\s*ignore")
 
 
@@ -321,9 +321,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         for f in classes:
             flag = "·" if f["status"] == "OK" else f["status"]
-            print(
-                f"[{f['severity']:<6}] {flag:<7} {f['count']:>5} " f"(>{f['threshold']}) {f['id']}"
-            )
+            print(f"[{f['severity']:<6}] {flag:<7} {f['count']:>5} (>{f['threshold']}) {f['id']}")
         print(f"worst_severity: {result['worst_severity']}")
         actionable = cast("list[str]", result["actionable"])
         print(f"actionable: {', '.join(actionable) or 'none'}")

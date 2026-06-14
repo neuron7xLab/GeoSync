@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
+from typing import cast
 
 from tools.run_autonomy_cycle import _decision, _run, build_payload
 
@@ -21,7 +22,7 @@ def test_autonomy_cycle_payload_shape(tmp_path: Path, monkeypatch) -> None:
     calls: list[list[str]] = []
 
     def fake_phase(root: Path, spec: dict[str, object]) -> dict[str, object]:
-        calls.append(spec["command"])  # type: ignore[arg-type]
+        calls.append(cast("list[str]", spec["command"]))
         return {
             "phase": spec["phase"],
             "status": "OK",

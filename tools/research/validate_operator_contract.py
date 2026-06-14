@@ -84,9 +84,7 @@ def _require_named_items(
 
     missing_items = sorted(required_items - set(values))
     if missing_items:
-        errors.append(
-            f"{operator_name} operator missing {field_name}: {', '.join(missing_items)}"
-        )
+        errors.append(f"{operator_name} operator missing {field_name}: {', '.join(missing_items)}")
 
 
 def validate_operator_contract(path: Path) -> dict[str, Any]:
@@ -138,7 +136,9 @@ def validate_operator_contract(path: Path) -> dict[str, Any]:
             errors.append(f"{key} must contain only non-empty strings")
 
     commands = payload.get("validation_commands")
-    if isinstance(commands, list) and not any("validate_operator_contract.py" in cmd for cmd in commands):
+    if isinstance(commands, list) and not any(
+        "validate_operator_contract.py" in cmd for cmd in commands
+    ):
         errors.append("validation_commands must include validate_operator_contract.py")
 
     _require_named_items(payload, "inputs", OPERATOR_REQUIRED_INPUTS, errors)

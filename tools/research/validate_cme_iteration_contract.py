@@ -95,12 +95,16 @@ def validate_contract(path: Path) -> dict[str, Any]:
             errors.append(f"{list_key} must be a non-empty list")
 
     commands = payload.get("validation_commands")
-    if isinstance(commands, list) and not any("validate_cme_iteration_contract.py" in cmd for cmd in commands):
+    if isinstance(commands, list) and not any(
+        "validate_cme_iteration_contract.py" in cmd for cmd in commands
+    ):
         errors.append("validation_commands must include validate_cme_iteration_contract.py")
 
     first_missing = payload.get("first_missing_condition")
     if isinstance(first_missing, str) and " and " in first_missing.lower():
-        errors.append("first_missing_condition must stay singular and should not chain priorities with 'and'")
+        errors.append(
+            "first_missing_condition must stay singular and should not chain priorities with 'and'"
+        )
 
     governance = payload.get("claim_governance")
     if not isinstance(governance, dict):

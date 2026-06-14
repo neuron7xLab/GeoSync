@@ -128,7 +128,9 @@ def profile_matrix(matrix: dict[str, Any]) -> MatrixProfile:
         warn_rows=_count(rows, "state", "WARN"),
         fail_rows=_count(rows, "state", "FAIL"),
         unknown_rows=_count(rows, "state", "UNKNOWN"),
-        highest_priority_surface=None if highest is None else str(highest.get("surface", "unknown")),
+        highest_priority_surface=(
+            None if highest is None else str(highest.get("surface", "unknown"))
+        ),
         highest_priority=0.0 if highest is None else round(float(highest.get("priority", 0.0)), 6),
     )
 

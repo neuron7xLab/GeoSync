@@ -129,7 +129,9 @@ def build_coverage_matrix(
         )
         action = planned_actions.get(name)
         if action is None:
-            action = "hold calibrated floor" if state == "PASS" else "regenerate evidence before ratchet"
+            action = (
+                "hold calibrated floor" if state == "PASS" else "regenerate evidence before ratchet"
+            )
         rows.append(
             MatrixRow(
                 surface=name,
