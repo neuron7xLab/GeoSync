@@ -3,9 +3,9 @@
 """Guardrail edge tests for execution.oms.
 
 These tests target behavior that matters operationally: fail-closed rejection,
-legacy recovery safety, and deterministic state ownership.  They are deliberately
-small because coverage is useful only when it protects invariants rather than
-inflating a percentage for the ritual spreadsheet goblin.
+legacy recovery safety, and deterministic state ownership. They are deliberately
+small so each assertion protects an explicit invariant rather than merely
+increasing aggregate coverage.
 """
 
 from __future__ import annotations
@@ -196,7 +196,9 @@ def test_legacy_snapshot_without_fingerprints_is_rehydrated(tmp_path: Path) -> N
 
     assert oms.correlation_for("legacy-001") == "corr-legacy"
     assert oms.order_for_broker("legacy-001") is not None
-    assert oms._fingerprints["corr-legacy"] == oms._fingerprint(oms._orders["legacy-001"])
+    assert oms._fingerprints["corr-legacy"] == oms._fingerprint(
+        oms._orders["legacy-001"]
+    )
 
 
 def test_warning_compliance_audits_but_still_queues_order(tmp_path: Path) -> None:
@@ -226,7 +228,7 @@ def test_open_circuit_breaker_rejects_before_risk_validation(tmp_path: Path) -> 
     assert order.status == OrderStatus.REJECTED
     assert order.rejection_reason == "Circuit breaker is OPEN: venue_outage"
     assert risk.validations == []
-    assert oms._queue == oms._queue.__class__()
+    assert len(oms._queue) == 0
     assert "corr-circuit-open" not in oms._fingerprints
     assert audit.events[-1]["event"] == "risk_check"
     assert audit.events[-1]["status"] == "blocked"
