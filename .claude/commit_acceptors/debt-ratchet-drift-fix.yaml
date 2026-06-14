@@ -5,6 +5,7 @@ claim_type: governance
 promise: "Architecture-debt ratchet returns to budget by fixing suppressions (and a counter self-match), never by raising the budget."
 diff_scope:
   changed_files:
+    - path: ".claude/commit_acceptors/debt-ratchet-drift-fix.yaml"
     - path: "tools/architecture_debt_inference.py"
     - path: "tests/ci/test_autonomy_cycle.py"
     - path: "tests/test_physics_boundary_report_schema.py"
