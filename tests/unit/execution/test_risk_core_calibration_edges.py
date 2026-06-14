@@ -69,7 +69,7 @@ def test_risk_limits_normalise_safety_thresholds() -> None:
 def test_json_risk_state_store_sanitises_blank_symbols(tmp_path: Path) -> None:
     path = tmp_path / "risk_state.json"
     path.write_text(
-        '{"positions":{" BTCUSDT ":"2.5",":"7"},'
+        '{"positions":{" BTCUSDT ":"2.5","  ":"7"},'
         '"last_notional":{"BTCUSDT":"50000","  ":"13"}}'
     )
 
