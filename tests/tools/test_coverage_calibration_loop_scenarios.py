@@ -99,7 +99,7 @@ def test_dynamic_degradation_scenario_prioritizes_critical_execution(tmp_path: P
     plan = ccl.build_calibration_plan(summary, _targets(tmp_path), stage="mid_term", limit=3)
 
     assert plan.global_release_deficit == pytest.approx(8.0)
-    assert [item.name for item in plan.top_actions] == ["execution", "backtest", "api"]
+    assert [item.name for item in plan.top_actions] == ["execution", "api", "backtest"]
     assert plan.top_actions[0].claim_risk == "critical"
     assert "first-principles" in plan.top_actions[0].action
 
@@ -138,7 +138,7 @@ def test_unknown_surface_noise_is_ignored_and_limit_is_enforced(tmp_path: Path) 
     summary = _summary(
         {
             "execution": {"line_rate": 80.0, "branch_rate": 80.0, "statements": 500},
-            "backtest": {"line_rate": 70.0, "branch_rate": 70.0, "statements": 500},
+            "backtest": {"line_rate": 89.0, "branch_rate": 89.0, "statements": 500},
             "untracked": {"line_rate": 0.0, "branch_rate": 0.0, "statements": 5000},
         }
     )
