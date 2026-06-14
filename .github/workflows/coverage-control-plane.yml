@@ -9,12 +9,14 @@ on:
       - "tools/coverage/coverage_orchestrator.py"
       - "tools/coverage/coverage_quality_system.py"
       - "tools/coverage/coverage_state_aggregator.py"
+      - "tools/coverage/coverage_behavior_profiler.py"
       - "tools/coverage/geosync_coverage_intelligence.py"
       - "tests/tools/test_coverage_control_plane.py"
       - "tests/tools/test_coverage_matrix_engine.py"
       - "tests/tools/test_coverage_orchestrator.py"
       - "tests/tools/test_coverage_quality_system.py"
       - "tests/tools/test_coverage_state_aggregator.py"
+      - "tests/tools/test_coverage_behavior_profiler.py"
       - ".github/workflows/coverage-control-plane.yml"
   push:
     branches: [main]
@@ -25,12 +27,14 @@ on:
       - "tools/coverage/coverage_orchestrator.py"
       - "tools/coverage/coverage_quality_system.py"
       - "tools/coverage/coverage_state_aggregator.py"
+      - "tools/coverage/coverage_behavior_profiler.py"
       - "tools/coverage/geosync_coverage_intelligence.py"
       - "tests/tools/test_coverage_control_plane.py"
       - "tests/tools/test_coverage_matrix_engine.py"
       - "tests/tools/test_coverage_orchestrator.py"
       - "tests/tools/test_coverage_quality_system.py"
       - "tests/tools/test_coverage_state_aggregator.py"
+      - "tests/tools/test_coverage_behavior_profiler.py"
       - ".github/workflows/coverage-control-plane.yml"
   workflow_dispatch:
 
@@ -67,4 +71,5 @@ jobs:
             tests/tools/test_coverage_orchestrator.py \
             tests/tools/test_coverage_quality_system.py \
             tests/tools/test_coverage_state_aggregator.py \
+            tests/tools/test_coverage_behavior_profiler.py \
             -q -p no:cacheprovider
