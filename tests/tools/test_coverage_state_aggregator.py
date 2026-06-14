@@ -14,6 +14,8 @@ _COMPONENT_PATHS = [
     "tools/coverage/coverage_control_plane.py",
     "tools/coverage/coverage_calibration_loop.py",
     "tools/coverage/coverage_matrix_engine.py",
+    "tools/coverage/coverage_state_aggregator.py",
+    "tools/coverage/coverage_behavior_profiler.py",
     "tools/coverage/geosync_coverage_intelligence.py",
 ]
 
@@ -48,6 +50,8 @@ def test_quality_state_aggregates_components_commands_and_workflows(tmp_path: Pa
         "coverage_control_plane",
         "coverage_calibration_loop",
         "coverage_matrix_engine",
+        "coverage_state_aggregator",
+        "coverage_behavior_profiler",
         "coverage_intelligence",
     }
     assert all(component.present for component in envelope.components)
@@ -61,7 +65,13 @@ def test_quality_state_aggregates_components_commands_and_workflows(tmp_path: Pa
         "quality_system",
         "orchestrator",
         "matrix",
+        "behavior_profiler",
     ]
+    assert {artifact.name for artifact in envelope.artifacts} >= {
+        "coverage_matrix_json",
+        "behavior_profile_json",
+        "control_plane_manifest",
+    }
     assert "fresh remote execution evidence is not complete" in envelope.notes
 
 
@@ -108,4 +118,5 @@ def test_write_quality_state_emits_json_contract(tmp_path: Path) -> None:
         "coverage_quality_system",
         "coverage_orchestrator",
         "coverage_matrix_engine",
+        "coverage_behavior_profiler",
     }
