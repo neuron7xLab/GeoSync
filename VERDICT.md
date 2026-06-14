@@ -30,11 +30,53 @@ That means the repository can inspect final artifacts, but cannot yet verify the
 state_t -> operation_t -> decision_t -> artifact_delta_t -> state_t_plus_1
 ```
 
+## Role 2 — Trajectory Trace Implementer
+
+Result: **IMPLEMENTED AS REPO ARTIFACT / NOT YET S1_TESTED**
+
+Role 2 added the missing persisted trajectory trace surface:
+
+```text
+schemas/cme_trajectory_trace.schema.json
+data/cme_trajectory_trace_example.json
+tools/research/record_cme_trajectory_trace.py
+tests/test_cme_trajectory_trace_schema.py
+```
+
+It also updated:
+
+```text
+docs/CME_PHYSICS_RND_LOOP.md
+VERDICT.md
+```
+
+The implemented trace fields are:
+
+```text
+trace_id
+state_t
+operation_t
+candidate_t
+score_t
+decision_t
+artifact_delta_t
+rollback_condition_t
+state_t_plus_1
+verifiers
+claim_status
+```
+
+Role 2 converts the Role 1 missing condition into a state-space record:
+
+```text
+state_t -> operation_t -> candidate_t -> score_t -> decision_t -> artifact_delta_t -> rollback_condition_t -> state_t_plus_1
+```
+
 ## Validation status
 
 The required validation commands are recorded but were not executed against the live GitHub repository in this connector session.
 
-Required commands:
+Required Role 1 commands:
 
 ```bash
 python -m pytest tests/test_physics_boundary_report_schema.py -q
@@ -42,6 +84,15 @@ python -m pytest -q
 ruff check .
 python -m cme.cli bibliography validate || true
 python -m cme.cli verdict . || true
+```
+
+Required Role 2 commands:
+
+```bash
+python tools/research/record_cme_trajectory_trace.py data/cme_trajectory_trace_example.json
+python -m pytest tests/test_cme_trajectory_trace_schema.py -q
+python -m pytest -q
+ruff check .
 ```
 
 Known command-surface issue:
@@ -56,42 +107,41 @@ python -m cme.cli ... is requested by the CME prompt, but pyproject.toml exposes
 - No market-performance claim was added.
 - No physical-law claim was added.
 - No proxy metric was reported as measurement.
-- Role 1 remains an audit artifact, not release evidence.
+- Role 1 remains an audit artifact.
+- Role 2 remains a trajectory-contract artifact until commands produce persisted evidence.
 
-## Role 2 handoff
+## Role 3 handoff
 
-Role 2: `TRAJECTORY_TRACE_IMPLEMENTER`
+Role 3: `EVIDENCE_BUNDLE_IMPLEMENTER`
 
 Create:
 
 ```text
-schemas/cme_trajectory_trace.schema.json
-data/cme_trajectory_trace_example.json
-tools/research/record_cme_trajectory_trace.py
-tests/test_cme_trajectory_trace_schema.py
+schemas/cme_evidence_bundle.schema.json
+data/cme_evidence_bundle_example.json
+tools/research/build_cme_evidence_bundle.py
+tests/test_cme_evidence_bundle_schema.py
 ```
 
 Modify:
 
 ```text
-docs/CME_PHYSICS_RND_LOOP.md
 VERDICT.md
+docs/CME_PHYSICS_RND_LOOP.md
 ```
 
-Pass only if every trace record persists:
+Role 3 must connect validation commands to persisted evidence records:
 
 ```text
+command
+exit_code
+stdout_path
+stderr_path
+artifact_paths
 trace_id
-state_t
-operation_t
-candidate_t
-score_t
-decision_t
-artifact_delta_t
-rollback_condition_t
-state_t_plus_1
+verifier_status
 ```
 
 ## Final verdict
 
-Role 1 is complete as a boundary audit artifact, but the system verdict is **FAIL** until Role 2 implements persisted trajectory tracing and the validation commands produce evidence.
+Role 1 is complete as a boundary audit artifact. Role 2 is implemented as a trajectory trace contract. The system verdict remains **FAIL** until local or CI execution produces persisted evidence for the validation commands.
