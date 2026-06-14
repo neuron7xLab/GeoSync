@@ -2,7 +2,7 @@
 id: repo-policy-pin-coverage-workflows
 status: DRAFT
 claim_type: governance
-promise: "Coverage workflows pin every GitHub Action by 40-char SHA (repo-policy invariant); no @vN floating refs remain."
+promise: "Coverage workflows pin every GitHub Action by 40-char SHA (repo-policy invariant) and install project deps so their pytest conftest (numpy) loads; they pass when triggered."
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/repo-policy-pin-coverage-workflows.yaml"
