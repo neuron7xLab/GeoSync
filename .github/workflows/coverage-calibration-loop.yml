@@ -1,0 +1,40 @@
+name: Coverage Calibration Loop
+
+on:
+  pull_request:
+    paths:
+      - "tools/coverage/coverage_calibration_loop.py"
+      - "tests/tools/test_coverage_calibration_loop*.py"
+      - "configs/quality/coverage_targets.toml"
+      - ".github/workflows/coverage-calibration-loop.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/coverage/coverage_calibration_loop.py"
+      - "tests/tools/test_coverage_calibration_loop*.py"
+      - "configs/quality/coverage_targets.toml"
+      - ".github/workflows/coverage-calibration-loop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  calibration-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip pytest
+
+      - name: Run calibration loop contract and scenario tests
+        run: |
+          python -m pytest tests/tools/test_coverage_calibration_loop*.py -q -p no:cacheprovider

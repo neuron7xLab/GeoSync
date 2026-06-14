@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: MIT
+name: Coverage Ratchet Edge Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/coverage/**"
+      - "configs/quality/**"
+      - "tests/tools/test_coverage_intelligence_ratchet_edges.py"
+      - ".github/workflows/coverage-ratchet-edges.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/coverage/**"
+      - "configs/quality/**"
+      - "tests/tools/test_coverage_intelligence_ratchet_edges.py"
+      - ".github/workflows/coverage-ratchet-edges.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ratchet-edge-falsifiers:
+    name: Coverage ratchet edge falsifiers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+      - name: Install minimal test dependencies
+        run: pip install numpy scipy pandas networkx pyyaml jsonschema pytest
+      - name: Run ratchet edge falsifiers
+        run: python -m pytest tests/tools/test_coverage_intelligence_ratchet_edges.py -q -p no:cacheprovider

@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "1beb9ff7718fa27e318f8dd97ad5ccad2ca5cf32891b67dfaeb1b19d77ddd1fb"
+      "sha256": "7bfc47e33f792bdfa05e37e7408856738e54e79f4252df0ee6c4c40058f183db"
     },
     {
       "path": "scripts/ci/__init__.py",
@@ -67,7 +67,7 @@
     },
     {
       "path": "scripts/ci/check_pr_gate_contract.py",
-      "sha256": "991ed2c3479aaf8ee8acd75d9a65dc565f8e3136d2b03075b438f8747076e77b"
+      "sha256": "d474e8af748173b26158e1dba6d0846ff03a44c985dc2b5a14ca24d8a7de2ba4"
     },
     {
       "path": "scripts/ci/check_research_artifact_truth.py",

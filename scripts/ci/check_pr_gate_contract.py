@@ -491,8 +491,8 @@ def validate_rust_accel_gate(workflow: str) -> list[Violation]:
             "rustup toolchain install 1.95.0 --profile minimal --component clippy",
         ),
         (
-            has_uses_reference(block, "actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809"),
-            "actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809",
+            has_uses_reference(block, "actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae"),
+            "actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae",
         ),
         (
             has_run_command(
