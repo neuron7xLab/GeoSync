@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from tools.ci import pr_preflight
 
 
@@ -358,3 +360,86 @@ def test_shell_wrapper_prints_first_file_only_when_report_written(tmp_path):
 
     assert result.returncode == 0
     assert f"FIRST_FILE_TO_OPEN={repo}/artifacts/pr_preflight/preflight_report.json" in result.stdout
+
+
+def test_exit_code_matches_final_status(tmp_path, monkeypatch):
+    # REQ-PREFLIGHT-003: the process exit code is a pure function of the final
+    # report status — PASS -> 0, FAIL -> 1, BLOCKED -> 1. Never a green exit on a
+    # non-PASS report.
+    pass_dir = tmp_path / "pass"
+    pass_dir.mkdir()
+    root, report_dir = _prepare_repo(pass_dir, monkeypatch)
+    exit_code, report = _run_engine(root, report_dir)
+    assert report["status"] == "PASS"
+    assert exit_code == 0
+
+    # BLOCKED: a critical tool is missing.
+    blocked_dir = tmp_path / "blocked"
+    blocked_dir.mkdir()
+    root, report_dir = _prepare_repo(blocked_dir, monkeypatch, omit_tools=("mypy",))
+    exit_code, report = _run_engine(root, report_dir)
+    assert report["status"] == "BLOCKED"
+    assert exit_code == 1
+
+    # FAIL: a critical check exits nonzero.
+    fail_dir = tmp_path / "fail"
+    fail_dir.mkdir()
+    root, report_dir = _prepare_repo(fail_dir, monkeypatch)
+    monkeypatch.setenv("STUB_RUFF_EXIT", "1")
+    exit_code, report = _run_engine(root, report_dir)
+    assert report["status"] == "FAIL"
+    assert exit_code == 1
+
+
+def test_critical_skipped_optional_is_impossible(tmp_path, monkeypatch):
+    # REQ-PREFLIGHT-005: a SKIPPED_OPTIONAL check is never critical — neither in a
+    # produced report (detect_secrets/coverage skip non-critically) nor as an
+    # accepted shape (the contract refuses a forged critical optional skip).
+    root, report_dir = _prepare_repo(tmp_path, monkeypatch)
+    _, report = _run_engine(root, report_dir)
+
+    skipped = [check for check in report["checks"] if check["status"] == "SKIPPED_OPTIONAL"]
+    assert skipped, "expected at least one SKIPPED_OPTIONAL check (detect_secrets/coverage)"
+    for check in report["checks"]:
+        assert not (check["critical"] and check["status"] == "SKIPPED_OPTIONAL")
+
+    forged = json.loads((report_dir / "preflight_report.json").read_text(encoding="utf-8"))
+    target = next(check for check in forged["checks"] if check["status"] == "SKIPPED_OPTIONAL")
+    target["critical"] = True
+    with pytest.raises(ValueError):
+        pr_preflight.validate_report_contract(forged)
+
+
+def test_engine_blocks_when_report_cannot_be_written(tmp_path, monkeypatch, capsys):
+    # REQ-PREFLIGHT-009: a report-write failure (report dir is a file) prints a
+    # reason to stderr and exits nonzero — never a silent PASS.
+    root, _ = _prepare_repo(tmp_path, monkeypatch)
+    report_dir = tmp_path / "report_is_a_file"
+    report_dir.write_text("", encoding="utf-8")
+
+    exit_code = pr_preflight.main(["--root", str(root), "--report-dir", str(report_dir)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "could not write evidence report" in captured.err
+    assert "PR_PREFLIGHT_STATUS=PASS" not in captured.out
+    assert report_dir.is_file()
+
+
+def test_engine_blocks_invalid_root_and_writes_report(tmp_path, monkeypatch):
+    # REQ-PREFLIGHT-009: a non-directory root yields a single invalid_root BLOCKED
+    # check, a BLOCKED report, and a nonzero exit.
+    bad_root = tmp_path / "not_a_dir"
+    bad_root.write_text("", encoding="utf-8")
+    report_dir = tmp_path / "out"
+
+    exit_code = pr_preflight.main(["--root", str(bad_root), "--report-dir", str(report_dir)])
+    report = json.loads((report_dir / "preflight_report.json").read_text(encoding="utf-8"))
+
+    assert exit_code == 1
+    assert report["status"] == "BLOCKED"
+    assert [check["id"] for check in report["checks"]] == ["invalid_root"]
+    check = report["checks"][0]
+    assert check["status"] == "BLOCKED"
+    assert check["critical"] is True
+    assert report["failure_count"] == 1
