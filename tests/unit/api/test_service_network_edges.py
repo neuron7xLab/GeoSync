@@ -41,7 +41,10 @@ def test_peer_trust_accepts_exact_ip_and_cidr_entries() -> None:
 def test_peer_trust_rejects_invalid_peer_and_ignores_invalid_proxy_entries() -> None:
     assert _peer_is_trusted_proxy(None, {"10.0.0.0/8"}) is False
     assert _peer_is_trusted_proxy("not-an-ip", {"10.0.0.0/8"}) is False
-    assert _peer_is_trusted_proxy("203.0.113.7", {"bad-cidr", "10.0.0.0/8"}) is False
+    assert (
+        _peer_is_trusted_proxy("203.0.113.7", {"bad-cidr", "10.0.0.0/8"})
+        is False
+    )
 
 
 def test_resolve_ip_ignores_forwarded_headers_from_untrusted_peer() -> None:
@@ -53,11 +56,17 @@ def test_resolve_ip_ignores_forwarded_headers_from_untrusted_peer() -> None:
         },
     )
 
-    assert _resolve_ip(request, trusted_proxies={"10.0.0.0/8"}) == "198.51.100.44"
+    assert (
+        _resolve_ip(request, trusted_proxies={"10.0.0.0/8"})
+        == "198.51.100.44"
+    )
 
 
 def test_resolve_ip_prefers_first_forwarded_for_from_trusted_proxy() -> None:
-    request = _request("10.0.0.5", {"x-forwarded-for": "203.0.113.9, 198.51.100.1"})
+    request = _request(
+        "10.0.0.5",
+        {"x-forwarded-for": "203.0.113.9, 198.51.100.1"},
+    )
 
     assert _resolve_ip(request, trusted_proxies={"10.0.0.0/8"}) == "203.0.113.9"
 
