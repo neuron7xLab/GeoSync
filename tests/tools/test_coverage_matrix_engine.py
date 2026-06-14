@@ -39,7 +39,9 @@ def _targets(tmp_path: Path) -> CoverageTargets:
     )
 
 
-def test_matrix_marks_critical_deficit_as_fail_and_carries_calibration_action(tmp_path: Path) -> None:
+def test_matrix_marks_critical_deficit_as_fail_and_carries_calibration_action(
+    tmp_path: Path,
+) -> None:
     summary = {
         "verdict": "MACHINE_ASSISTED",
         "evidence_valid": True,
@@ -126,8 +128,7 @@ def test_write_matrix_emits_json_and_markdown(tmp_path: Path) -> None:
     cme.write_matrix(matrix, tmp_path)
 
     payload = json.loads((tmp_path / "coverage_matrix.json").read_text(encoding="utf-8"))
+    markdown = (tmp_path / "coverage_matrix.md").read_text(encoding="utf-8")
     assert payload["schema_version"] == "1.0"
     assert payload["rows"][0]["surface"] in {"execution", "api"}
-    assert "| rank | state | surface |" in (tmp_path / "coverage_matrix.md").read_text(
-        encoding="utf-8"
-    )
+    assert "| rank | state | surface |" in markdown
