@@ -239,7 +239,7 @@ def test_risk_compliance_rejection_records_breach_and_cleans_idempotency(
 ) -> None:
     audit = CaptureAudit()
     breaker = OpenCircuitBreaker()
-    setattr(breaker, "can_execute", lambda: True)
+    breaker.can_execute = lambda: True  # type: ignore[method-assign]
     oms = _make_oms(
         tmp_path,
         risk_compliance=RejectingRiskCompliance(),
