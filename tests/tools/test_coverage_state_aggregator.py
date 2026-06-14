@@ -109,4 +109,3 @@ def test_write_quality_state_emits_json_contract(tmp_path: Path) -> None:
         "coverage_orchestrator",
         "coverage_matrix_engine",
     }
-}
