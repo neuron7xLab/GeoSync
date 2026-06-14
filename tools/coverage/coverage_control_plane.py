@@ -3,13 +3,14 @@
 # SPDX-License-Identifier: MIT
 """Unified coverage control plane.
 
-This module composes the coverage authority and calibration optimizer into one
-operator-facing deterministic pipeline:
+This module composes the coverage authority, calibration optimizer, and operating
+matrix into one operator-facing deterministic pipeline:
 
 1. build coverage-intelligence evidence from coverage.xml + junit.xml;
 2. transform evidence into a ranked calibration plan;
-3. verify the required output artifacts exist and are non-empty;
-4. emit a compact control-plane manifest for CI and human audit.
+3. normalize the plan into an operating matrix;
+4. verify the required output artifacts exist and are non-empty;
+5. emit a compact control-plane manifest for CI and human audit.
 """
 
 from __future__ import annotations
@@ -90,12 +91,14 @@ def _artifact_status(path: Path, *, root: Path) -> ArtifactStatus:
     return ArtifactStatus(path=_display_path(path, root=root), exists=exists, bytes=size)
 
 
-def _required_artifacts(out_dir: Path, calibration_dir: Path) -> list[Path]:
+def _required_artifacts(out_dir: Path, calibration_dir: Path, matrix_dir: Path) -> list[Path]:
     return [
         out_dir / "coverage_summary.json",
         out_dir / "coverage_intelligence.md",
         calibration_dir / "calibration_plan.json",
         calibration_dir / "calibration_plan.md",
+        matrix_dir / "coverage_matrix.json",
+        matrix_dir / "coverage_matrix.md",
     ]
 
 
@@ -108,6 +111,7 @@ def build_phase_commands(
     claims: Path,
     out_dir: Path,
     calibration_dir: Path,
+    matrix_dir: Path,
     stage: str,
     limit: int,
     run_intelligence: bool,
@@ -150,6 +154,23 @@ def build_phase_commands(
             str(limit),
         ]
     )
+    commands.append(
+        [
+            sys.executable,
+            "-m",
+            "tools.coverage.coverage_matrix_engine",
+            "--summary",
+            str(out_dir / "coverage_summary.json"),
+            "--targets",
+            str(targets),
+            "--plan",
+            str(calibration_dir / "calibration_plan.json"),
+            "--out",
+            str(matrix_dir),
+            "--stage",
+            stage,
+        ]
+    )
     return commands
 
 
@@ -163,6 +184,7 @@ def run_control_plane(
     claims: Path,
     out_dir: Path,
     calibration_dir: Path,
+    matrix_dir: Path,
     stage: str,
     limit: int,
     run_intelligence: bool = True,
@@ -170,6 +192,7 @@ def run_control_plane(
     root = root.resolve()
     _absolute_under_root(out_dir, root=root).mkdir(parents=True, exist_ok=True)
     _absolute_under_root(calibration_dir, root=root).mkdir(parents=True, exist_ok=True)
+    _absolute_under_root(matrix_dir, root=root).mkdir(parents=True, exist_ok=True)
 
     phases: list[PhaseResult] = []
     for command in build_phase_commands(
@@ -180,6 +203,7 @@ def run_control_plane(
         claims=claims,
         out_dir=out_dir,
         calibration_dir=calibration_dir,
+        matrix_dir=matrix_dir,
         stage=stage,
         limit=limit,
         run_intelligence=run_intelligence,
@@ -189,7 +213,7 @@ def run_control_plane(
         if phase.returncode != 0:
             artifacts = [
                 _artifact_status(path, root=root)
-                for path in _required_artifacts(out_dir, calibration_dir)
+                for path in _required_artifacts(out_dir, calibration_dir, matrix_dir)
             ]
             return ControlPlaneManifest(
                 schema_version="1.0",
@@ -200,7 +224,7 @@ def run_control_plane(
 
     artifacts = [
         _artifact_status(path, root=root)
-        for path in _required_artifacts(out_dir, calibration_dir)
+        for path in _required_artifacts(out_dir, calibration_dir, matrix_dir)
     ]
     verdict = "PASS" if all(item.exists and item.bytes > 0 for item in artifacts) else "FAIL"
     return ControlPlaneManifest(
@@ -226,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--claims", default="docs/CLAIMS.yaml")
     parser.add_argument("--out", default="reports/coverage/intelligence")
     parser.add_argument("--calibration-out", default="reports/coverage/calibration")
+    parser.add_argument("--matrix-out", default="reports/coverage/matrix")
     parser.add_argument("--manifest", default="reports/coverage/control_plane.json")
     parser.add_argument("--stage", choices=("short_term", "mid_term", "final"), default="mid_term")
     parser.add_argument("--limit", type=int, default=8)
@@ -242,6 +267,7 @@ def main(argv: list[str] | None = None) -> int:
         claims=Path(args.claims),
         out_dir=Path(args.out),
         calibration_dir=Path(args.calibration_out),
+        matrix_dir=Path(args.matrix_out),
         stage=args.stage,
         limit=args.limit,
         run_intelligence=not args.skip_intelligence,
