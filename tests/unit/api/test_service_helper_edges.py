@@ -22,7 +22,10 @@ from application.api.service import (  # noqa: E402
 
 
 def test_idempotency_key_is_trimmed_and_preserves_allowed_charset() -> None:
-    assert _validate_idempotency_key("  order-ABC_123.:retry  ") == "order-ABC_123.:retry"
+    assert (
+        _validate_idempotency_key("  order-ABC_123.:retry  ")
+        == "order-ABC_123.:retry"
+    )
 
 
 @pytest.mark.parametrize("raw", ["", "   ", "bad/key", "x" * 129])
@@ -60,7 +63,11 @@ def test_filter_feature_values_combines_prefix_and_explicit_keys() -> None:
     )
 
     macd_values = _filter_feature_values(vector, feature_prefix="macd", feature_keys=())
-    keyed_values = _filter_feature_values(vector, feature_prefix=None, feature_keys=("rsi", "missing"))
+    keyed_values = _filter_feature_values(
+        vector,
+        feature_prefix=None,
+        feature_keys=("rsi", "missing"),
+    )
     combined_values = _filter_feature_values(
         vector,
         feature_prefix="macd",
