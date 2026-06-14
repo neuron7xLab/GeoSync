@@ -14,7 +14,6 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Literal, Sequence
@@ -74,8 +73,7 @@ def _missing(paths: Sequence[Path], *, root: Path) -> list[Path]:
 
 def _non_empty_outputs(paths: Sequence[Path], *, root: Path) -> bool:
     return all(
-        _absolute(path, root=root).is_file()
-        and _absolute(path, root=root).stat().st_size > 0
+        _absolute(path, root=root).is_file() and _absolute(path, root=root).stat().st_size > 0
         for path in paths
     )
 
