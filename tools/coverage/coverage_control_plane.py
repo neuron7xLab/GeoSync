@@ -47,6 +47,12 @@ class ControlPlaneManifest:
     artifacts: list[ArtifactStatus]
 
 
+def _phase_name(command: Sequence[str]) -> str:
+    if len(command) > 2 and command[1] == "-m":
+        return command[2]
+    return Path(command[0]).name
+
+
 def _run_command(command: Sequence[str], *, cwd: Path) -> PhaseResult:
     completed = subprocess.run(
         list(command),
@@ -57,7 +63,7 @@ def _run_command(command: Sequence[str], *, cwd: Path) -> PhaseResult:
         check=False,
     )
     return PhaseResult(
-        name=Path(command[2]).name if len(command) > 2 and command[1] == "-m" else Path(command[0]).name,
+        name=_phase_name(command),
         command=list(command),
         returncode=completed.returncode,
         stdout=completed.stdout,
@@ -65,10 +71,23 @@ def _run_command(command: Sequence[str], *, cwd: Path) -> PhaseResult:
     )
 
 
+def _absolute_under_root(path: Path, *, root: Path) -> Path:
+    return path if path.is_absolute() else root / path
+
+
+def _display_path(path: Path, *, root: Path) -> str:
+    absolute = _absolute_under_root(path, root=root)
+    try:
+        return str(absolute.relative_to(root))
+    except ValueError:
+        return str(absolute)
+
+
 def _artifact_status(path: Path, *, root: Path) -> ArtifactStatus:
-    exists = path.exists()
-    size = path.stat().st_size if exists and path.is_file() else 0
-    return ArtifactStatus(path=str(path.relative_to(root)), exists=exists, bytes=size)
+    absolute = _absolute_under_root(path, root=root)
+    exists = absolute.exists()
+    size = absolute.stat().st_size if exists and absolute.is_file() else 0
+    return ArtifactStatus(path=_display_path(path, root=root), exists=exists, bytes=size)
 
 
 def _required_artifacts(out_dir: Path, calibration_dir: Path) -> list[Path]:
@@ -148,8 +167,9 @@ def run_control_plane(
     limit: int,
     run_intelligence: bool = True,
 ) -> ControlPlaneManifest:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    calibration_dir.mkdir(parents=True, exist_ok=True)
+    root = root.resolve()
+    _absolute_under_root(out_dir, root=root).mkdir(parents=True, exist_ok=True)
+    _absolute_under_root(calibration_dir, root=root).mkdir(parents=True, exist_ok=True)
 
     phases: list[PhaseResult] = []
     for command in build_phase_commands(
@@ -167,7 +187,10 @@ def run_control_plane(
         phase = _run_command(command, cwd=root)
         phases.append(phase)
         if phase.returncode != 0:
-            artifacts = [_artifact_status(path, root=root) for path in _required_artifacts(out_dir, calibration_dir)]
+            artifacts = [
+                _artifact_status(path, root=root)
+                for path in _required_artifacts(out_dir, calibration_dir)
+            ]
             return ControlPlaneManifest(
                 schema_version="1.0",
                 verdict="FAIL",
@@ -175,7 +198,10 @@ def run_control_plane(
                 artifacts=artifacts,
             )
 
-    artifacts = [_artifact_status(path, root=root) for path in _required_artifacts(out_dir, calibration_dir)]
+    artifacts = [
+        _artifact_status(path, root=root)
+        for path in _required_artifacts(out_dir, calibration_dir)
+    ]
     verdict = "PASS" if all(item.exists and item.bytes > 0 for item in artifacts) else "FAIL"
     return ControlPlaneManifest(
         schema_version="1.0",
