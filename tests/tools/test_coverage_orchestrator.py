@@ -70,7 +70,10 @@ def test_build_orchestration_plan_can_start_from_existing_evidence() -> None:
     )
 
     assert [phase.name for phase in phases] == ["calibration_optimizer", "matrix_normalizer"]
-    assert phases[0].requires == [Path("intelligence/coverage_summary.json"), Path("targets.toml")]
+    assert phases[0].requires == [
+        Path("intelligence/coverage_summary.json"),
+        Path("targets.toml"),
+    ]
 
 
 def test_orchestrator_fails_before_command_when_inputs_are_missing(tmp_path: Path) -> None:
@@ -168,4 +171,3 @@ def test_orchestrator_passes_and_writes_manifest(tmp_path: Path) -> None:
     assert payload["verdict"] == "PASS"
     assert payload["phases"][0]["requires"] == ["input.json"]
     assert payload["phases"][0]["produces"] == ["output.json"]
-}
