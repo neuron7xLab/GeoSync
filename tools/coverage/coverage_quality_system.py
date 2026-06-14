@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from tools.coverage import coverage_control_plane as ccp
 
@@ -68,14 +68,20 @@ class CoverageQualitySystem:
         return manifest
 
 
-def run_quality_system(config: QualitySystemConfig | None = None) -> ccp.ControlPlaneManifest:
+def run_quality_system(
+    config: QualitySystemConfig | None = None,
+) -> ccp.ControlPlaneManifest:
     return CoverageQualitySystem(config).run()
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".")
-    parser.add_argument("--stage", choices=("short_term", "mid_term", "final"), default="mid_term")
+    parser.add_argument(
+        "--stage",
+        choices=("short_term", "mid_term", "final"),
+        default="mid_term",
+    )
     parser.add_argument("--limit", type=int, default=8)
     parser.add_argument("--skip-intelligence", action="store_true")
     parser.add_argument("--manifest", default="reports/coverage/control_plane.json")
@@ -84,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest = run_quality_system(
         QualitySystemConfig(
             root=Path(args.root),
-            stage=args.stage,
+            stage=cast(QualityStage, args.stage),
             limit=args.limit,
             run_intelligence=not args.skip_intelligence,
             manifest=Path(args.manifest),
