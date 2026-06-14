@@ -33,8 +33,8 @@ def test_quality_system_facade_hides_internal_artifact_paths(
     written: dict[str, Path] = {}
 
     def fake_write_manifest(manifest: ccp.ControlPlaneManifest, path: Path) -> None:
+        assert manifest.verdict == "PASS"
         written["path"] = path
-        written["verdict"] = Path(manifest.verdict)
 
     monkeypatch.setattr(cqs.ccp, "run_control_plane", fake_run_control_plane)
     monkeypatch.setattr(cqs.ccp, "write_manifest", fake_write_manifest)
@@ -96,6 +96,10 @@ def test_quality_system_cli_keeps_operator_surface_small(
 def test_quality_system_cli_returns_nonzero_on_fail(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(cqs, "run_quality_system", lambda config=None: _manifest("FAIL"))
+    monkeypatch.setattr(
+        cqs,
+        "run_quality_system",
+        lambda config=None: _manifest("FAIL"),
+    )
 
     assert cqs.main([]) == 1
