@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from domain import Order, OrderStatus
@@ -45,7 +46,7 @@ class AllowingRiskCompliance:
 
 
 def test_allowed_risk_compliance_receives_calibrated_portfolio_state(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     risk = PortfolioRiskController()
     risk_compliance = AllowingRiskCompliance()
@@ -72,7 +73,9 @@ def test_allowed_risk_compliance_receives_calibrated_portfolio_state(
     ]
 
 
-def test_requeue_order_clears_remote_lookup_and_restores_pending_identity(tmp_path) -> None:
+def test_requeue_order_clears_remote_lookup_and_restores_pending_identity(
+    tmp_path: Path,
+) -> None:
     oms = _make_oms(tmp_path)
     oms.submit(_order(), correlation_id="corr-live")
     routed = oms.process_next()
