@@ -168,6 +168,20 @@ def build_quality_state(
             role="normalized operating matrix",
         ),
         _component(
+            "coverage_state_aggregator",
+            "aggregator",
+            "tools/coverage/coverage_state_aggregator.py",
+            root=root,
+            role="single state envelope for the quality system",
+        ),
+        _component(
+            "coverage_behavior_profiler",
+            "profiler",
+            "tools/coverage/coverage_behavior_profiler.py",
+            root=root,
+            role="behavior profile and aggregation benchmark layer",
+        ),
+        _component(
             "coverage_intelligence",
             "authority",
             "tools/coverage/geosync_coverage_intelligence.py",
@@ -203,6 +217,12 @@ def build_quality_state(
             root=root,
             role="normalized operating matrix",
         ),
+        _artifact(
+            "behavior_profile_json",
+            Path("reports/coverage/behavior_profile.json"),
+            root=root,
+            role="behavior profile and benchmark report",
+        ),
         _artifact("control_plane_manifest", cfg.manifest, root=root, role="pipeline manifest"),
     ]
 
@@ -222,6 +242,11 @@ def build_quality_state(
             command=["python", "-m", "tools.coverage.coverage_matrix_engine"],
             role="matrix-only regeneration entrypoint",
         ),
+        CommandState(
+            name="behavior_profiler",
+            command=["python", "-m", "tools.coverage.coverage_behavior_profiler"],
+            role="behavior profiling and benchmark entrypoint",
+        ),
     ]
 
     workflows = [
@@ -229,7 +254,7 @@ def build_quality_state(
             name="coverage_control_plane",
             path=".github/workflows/coverage-control-plane.yml",
             present=_exists(Path(".github/workflows/coverage-control-plane.yml"), root=root),
-            role="contract tests for control-plane, facade, orchestrator, and matrix",
+            role="contract tests for control-plane, facade, orchestrator, matrix, and profiler",
         ),
         WorkflowState(
             name="coverage_calibration_loop",
