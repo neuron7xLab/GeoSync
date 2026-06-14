@@ -1,5 +1,6 @@
 name: Coverage Calibration Isolated Sandbox
 
+# Runs calibration-loop tests and synthetic plan generation in a temp copy of the repository.
 on:
   pull_request:
     paths:
