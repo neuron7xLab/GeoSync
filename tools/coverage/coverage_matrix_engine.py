@@ -146,7 +146,13 @@ def build_coverage_matrix(
             )
         )
 
-    rows.sort(key=lambda row: ({"FAIL": 0, "WARN": 1, "UNKNOWN": 2, "PASS": 3}[row.state], -row.priority, row.surface))
+    rows.sort(
+        key=lambda row: (
+            {"FAIL": 0, "WARN": 1, "UNKNOWN": 2, "PASS": 3}[row.state],
+            -row.priority,
+            row.surface,
+        )
+    )
     return CoverageMatrix(
         schema_version="1.0",
         stage=stage,
@@ -183,7 +189,8 @@ def write_matrix(matrix: CoverageMatrix, out_dir: Path) -> None:
         lines.append(
             f"| {index} | {row.state} | {row.surface} | {row.risk} | "
             f"{row.line_rate:.2f} | {row.branch_rate:.2f} | {row.target:.2f} | "
-            f"{row.line_deficit:.2f} | {row.branch_deficit:.2f} | {row.priority:.2f} | {row.action} |"
+            f"{row.line_deficit:.2f} | {row.branch_deficit:.2f} | {row.priority:.2f} | "
+            f"{row.action} |"
         )
     (out_dir / "coverage_matrix.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
