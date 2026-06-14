@@ -170,3 +170,49 @@ def test_run_control_plane_passes_with_complete_integrated_artifacts(
 
     assert manifest.verdict == "PASS"
     assert all(artifact.exists and artifact.bytes > 0 for artifact in manifest.artifacts)
+
+
+def test_control_plane_resolves_relative_artifacts_against_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def fake_run(command: list[str], *, cwd: Path) -> ccp.PhaseResult:
+        return ccp.PhaseResult(
+            name="phase",
+            command=command,
+            returncode=0,
+            stdout="ok",
+            stderr="",
+        )
+
+    monkeypatch.setattr(ccp, "_run_command", fake_run)
+    for path in [
+        tmp_path / "reports/coverage/intelligence/coverage_summary.json",
+        tmp_path / "reports/coverage/intelligence/coverage_intelligence.md",
+        tmp_path / "reports/coverage/calibration/calibration_plan.json",
+        tmp_path / "reports/coverage/calibration/calibration_plan.md",
+    ]:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("ok\n", encoding="utf-8")
+
+    manifest = ccp.run_control_plane(
+        root=tmp_path,
+        coverage=Path("reports/coverage/coverage.xml"),
+        junit=Path("reports/coverage/junit.xml"),
+        targets=Path("configs/quality/coverage_targets.toml"),
+        critical=Path("configs/quality/critical_surface.toml"),
+        claims=Path("docs/CLAIMS.yaml"),
+        out_dir=Path("reports/coverage/intelligence"),
+        calibration_dir=Path("reports/coverage/calibration"),
+        stage="mid_term",
+        limit=8,
+        run_intelligence=False,
+    )
+
+    assert manifest.verdict == "PASS"
+    assert {artifact.path for artifact in manifest.artifacts} == {
+        "reports/coverage/intelligence/coverage_summary.json",
+        "reports/coverage/intelligence/coverage_intelligence.md",
+        "reports/coverage/calibration/calibration_plan.json",
+        "reports/coverage/calibration/calibration_plan.md",
+    }
