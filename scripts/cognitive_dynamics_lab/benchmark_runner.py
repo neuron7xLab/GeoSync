@@ -12,7 +12,7 @@ import tempfile
 import time
 import tracemalloc
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 DEFAULT_OUT = "artifacts/cognitive_dynamics_lab_benchmark"
 BENCHMARK_VERSION = "benchmark-v0.1"
@@ -78,7 +78,9 @@ def simulation_write() -> int:
 
 def parameter_review_write() -> int:
     root = repo_root()
-    module = load_module(root / "scripts/cognitive_dynamics_lab/parameter_review_runner.py", "cdl_param")
+    module = load_module(
+        root / "scripts/cognitive_dynamics_lab/parameter_review_runner.py", "cdl_param"
+    )
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp)
         rows = module.build_rows(module.PARAMS)
@@ -127,7 +129,9 @@ def run_benchmark(name: str, fn: BenchmarkFn, samples: int, warmups: int) -> Ben
 
 
 def add_relative_scores(rows: list[BenchmarkRow]) -> list[BenchmarkRow]:
-    json_baseline = float(next(row["median_seconds"] for row in rows if row["name"] == "reference_json_write"))
+    json_baseline = float(
+        next(row["median_seconds"] for row in rows if row["name"] == "reference_json_write")
+    )
     for row in rows:
         median = float(row["median_seconds"])
         row["relative_to_json_baseline"] = round(median / max(json_baseline, 1e-12), 6)
@@ -207,8 +211,9 @@ def main() -> int:
     rows = summary["benchmarks"]
     if not isinstance(rows, list):
         raise RuntimeError("invalid benchmark rows")
+    benchmark_rows = cast("list[BenchmarkRow]", rows)
     write_json(out / "benchmark_summary.json", summary)
-    write_csv_rows(out / "benchmark_table.csv", rows)  # type: ignore[arg-type]
+    write_csv_rows(out / "benchmark_table.csv", benchmark_rows)
     write_markdown(out / "benchmark_report.md", summary)
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
