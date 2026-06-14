@@ -5,16 +5,20 @@ on:
     paths:
       - "tools/coverage/coverage_control_plane.py"
       - "tools/coverage/coverage_calibration_loop.py"
+      - "tools/coverage/coverage_matrix_engine.py"
       - "tools/coverage/geosync_coverage_intelligence.py"
       - "tests/tools/test_coverage_control_plane.py"
+      - "tests/tools/test_coverage_matrix_engine.py"
       - ".github/workflows/coverage-control-plane.yml"
   push:
     branches: [main]
     paths:
       - "tools/coverage/coverage_control_plane.py"
       - "tools/coverage/coverage_calibration_loop.py"
+      - "tools/coverage/coverage_matrix_engine.py"
       - "tools/coverage/geosync_coverage_intelligence.py"
       - "tests/tools/test_coverage_control_plane.py"
+      - "tests/tools/test_coverage_matrix_engine.py"
       - ".github/workflows/coverage-control-plane.yml"
   workflow_dispatch:
 
@@ -43,6 +47,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest pyyaml tomli
 
-      - name: Run control-plane contract tests
+      - name: Run control-plane and matrix contract tests
         run: |
-          python -m pytest tests/tools/test_coverage_control_plane.py -q -p no:cacheprovider
+          python -m pytest tests/tools/test_coverage_control_plane.py tests/tools/test_coverage_matrix_engine.py -q -p no:cacheprovider
