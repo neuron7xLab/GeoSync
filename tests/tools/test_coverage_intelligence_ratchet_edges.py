@@ -94,7 +94,8 @@ def test_critical_target_absent_from_evidence_fails_closed(tmp_path: Path) -> No
     cov = tmp_path / "coverage.xml"
     cov.write_text(
         '<coverage><packages><package name="x"><classes>'
-        '<class filename="execution/other.py"><lines><line number="1" hits="1"/></lines></class>'
+        '<class filename="execution/other.py"><lines>'
+        '<line number="1" hits="1"/></lines></class>'
         "</classes></package></packages></coverage>",
         encoding="utf-8",
     )
@@ -106,7 +107,9 @@ def test_critical_target_absent_from_evidence_fails_closed(tmp_path: Path) -> No
     assert result.ok is False
 
 
-def test_diff_coverage_counts_changed_executable_misses(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_diff_coverage_counts_changed_executable_misses(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     files = [
         gci.FileCoverage(
             path="execution/oms.py",
@@ -119,24 +122,6 @@ def test_diff_coverage_counts_changed_executable_misses(monkeypatch: pytest.Monk
             branch_rate=0.0,
         )
     ]
-    targets = gci.CoverageTargets(
-        global_thresholds={
-            "current_release_gate": 90.0,
-            "final_aspirational_gate": 98.0,
-            "diff_coverage_gate": 90.0,
-        },
-        surfaces={
-            "execution": gci.CoverageSurface(
-                name="execution",
-                paths=("execution/",),
-                short_term=80.0,
-                mid_term=90.0,
-                final=95.0,
-                claim_risk="critical",
-                rationale="execution",
-            )
-        },
-    )
     monkeypatch.setattr(
         gci,
         "changed_python_lines",
@@ -144,7 +129,7 @@ def test_diff_coverage_counts_changed_executable_misses(monkeypatch: pytest.Monk
     )
     monkeypatch.setitem(gci._miss_lines, "execution/oms.py", {2, 4})
 
-    diff = gci.diff_coverage(files, "origin/main", Path.cwd(), targets)
+    diff = gci.diff_coverage(files, "origin/main", tmp_path, _targets(tmp_path))
 
     assert diff.applicable is True
     assert diff.total_changed == 3
