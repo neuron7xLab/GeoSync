@@ -99,12 +99,47 @@ The physics/SciML import is methodological, not metaphysical.
 | Differentiable/runtime thinking | expose trajectory, logs, gradients where valid | evidence bundle with commands and artifacts |
 | Scientific backend discipline | typed contracts and scalable validation | pytest, mypy, ruff, schema validation, benchmark |
 
+## Trajectory Trace Contract
+
+Role 2 adds a persisted trace contract for one CME state transformation:
+
+```text
+state_t
+operation_t
+candidate_t
+score_t
+decision_t
+artifact_delta_t
+rollback_condition_t
+state_t_plus_1
+```
+
+Repository locations:
+
+```text
+schemas/cme_trajectory_trace.schema.json
+data/cme_trajectory_trace_example.json
+tools/research/record_cme_trajectory_trace.py
+tests/test_cme_trajectory_trace_schema.py
+```
+
+The trace contract prevents a final artifact from pretending to explain the process that created it. A CME iteration is only trajectory-aware when the transformation path is persisted and validated.
+
+Trajectory records remain `S5_PROXY` until validation commands are executed and their outputs are preserved as evidence.
+
 ## Validation Surface
 
 The loop is admissible only if the machine-readable iteration contract validates with:
 
 ```bash
 python tools/research/validate_cme_iteration_contract.py docs/CME_ITERATION_0001.json
+```
+
+The Role 2 trajectory trace contract validates with:
+
+```bash
+python tools/research/record_cme_trajectory_trace.py data/cme_trajectory_trace_example.json
+python -m pytest tests/test_cme_trajectory_trace_schema.py -q
 ```
 
 Recommended full local gate:
@@ -114,6 +149,7 @@ python -m pytest -q
 mypy --strict
 ruff check .
 python tools/research/validate_cme_iteration_contract.py docs/CME_ITERATION_0001.json
+python tools/research/record_cme_trajectory_trace.py data/cme_trajectory_trace_example.json
 ```
 
 ## Release Honesty
