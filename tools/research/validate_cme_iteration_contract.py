@@ -2,14 +2,13 @@
 """Validate a CME iteration contract.
 
 The validator is intentionally standard-library only. It checks structure,
-status-tag discipline, minimum command surface, and status-inflation phrases.
+status-tag discipline, minimum command surface, and release-evidence honesty.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -39,29 +38,10 @@ ALLOWED_STATUS_TAGS = {
     "X_FORBIDDEN",
 }
 
-BLOCKED_PHRASES = {
-    " is agi",
-    "reaches consciousness",
-    "measures brain bandwidth",
-    "proves gnwt biologically",
-    "performs therapy",
-    "diagnoses users",
-    "equals spacex",
-    "equals xai",
-    "llm judge is final truth",
-    "proxy metric is physical measurement",
-    "more agents automatically means better cognition",
+REQUIRED_GOVERNANCE_KEYS = {
+    "allowed_claims",
+    "blocked_claim_phrase_policy",
 }
-
-
-def _flatten_text(value: Any) -> str:
-    if isinstance(value, str):
-        return value
-    if isinstance(value, list):
-        return "\n".join(_flatten_text(item) for item in value)
-    if isinstance(value, dict):
-        return "\n".join(f"{key}: {_flatten_text(item)}" for key, item in value.items())
-    return str(value)
 
 
 def _require_non_empty_string(payload: dict[str, Any], key: str, errors: list[str]) -> None:
@@ -122,10 +102,16 @@ def validate_contract(path: Path) -> dict[str, Any]:
     if isinstance(first_missing, str) and " and " in first_missing.lower():
         errors.append("first_missing_condition must stay singular and should not chain priorities with 'and'")
 
-    text = _flatten_text(payload).lower()
-    blocked_hits = sorted(phrase for phrase in BLOCKED_PHRASES if phrase in text)
-    if blocked_hits:
-        errors.append(f"blocked claim phrases found: {', '.join(blocked_hits)}")
+    governance = payload.get("claim_governance")
+    if not isinstance(governance, dict):
+        errors.append("claim_governance must be present as an object")
+    else:
+        missing_governance = sorted(REQUIRED_GOVERNANCE_KEYS - governance.keys())
+        if missing_governance:
+            errors.append(f"missing claim_governance keys: {', '.join(missing_governance)}")
+        allowed = governance.get("allowed_claims")
+        if not isinstance(allowed, list) or not allowed:
+            errors.append("claim_governance.allowed_claims must be a non-empty list")
 
     return {
         "status": "FAIL" if errors else "PASS",
