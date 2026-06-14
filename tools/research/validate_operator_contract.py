@@ -48,11 +48,45 @@ REQUIRED_LIST_FIELDS = {
     "validation_commands",
 }
 
+OPERATOR_REQUIRED_OUTPUTS = {
+    "integrate": {"integration_contract", "smoke_path", "rollback_path"},
+    "validate": {"validation_report", "pass_fail_decision", "evidence_record"},
+    "normalize": {"normalized_values", "normalization_metadata", "loss_report"},
+}
+
+OPERATOR_REQUIRED_INPUTS = {
+    "integrate": {"modules_or_services", "input_output_contracts", "validation_commands"},
+    "validate": {"candidate_result", "expected_contract", "validation_method"},
+    "normalize": {"raw_values", "scale_contract", "provenance_record"},
+}
+
 
 def _require_non_empty_string(payload: dict[str, Any], key: str, errors: list[str]) -> None:
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
         errors.append(f"{key} must be a non-empty string")
+
+
+def _require_named_items(
+    payload: dict[str, Any],
+    field_name: str,
+    expected: dict[str, set[str]],
+    errors: list[str],
+) -> None:
+    operator_name = payload.get("name")
+    required_items = expected.get(operator_name)
+    if not required_items:
+        return
+
+    values = payload.get(field_name)
+    if not isinstance(values, list):
+        return
+
+    missing_items = sorted(required_items - set(values))
+    if missing_items:
+        errors.append(
+            f"{operator_name} operator missing {field_name}: {', '.join(missing_items)}"
+        )
 
 
 def validate_operator_contract(path: Path) -> dict[str, Any]:
@@ -107,13 +141,8 @@ def validate_operator_contract(path: Path) -> dict[str, Any]:
     if isinstance(commands, list) and not any("validate_operator_contract.py" in cmd for cmd in commands):
         errors.append("validation_commands must include validate_operator_contract.py")
 
-    if payload.get("name") == "integrate":
-        required_outputs = {"integration_contract", "smoke_path", "rollback_path"}
-        outputs = payload.get("outputs")
-        if isinstance(outputs, list):
-            missing_outputs = sorted(required_outputs - set(outputs))
-            if missing_outputs:
-                errors.append(f"integrate operator missing outputs: {', '.join(missing_outputs)}")
+    _require_named_items(payload, "inputs", OPERATOR_REQUIRED_INPUTS, errors)
+    _require_named_items(payload, "outputs", OPERATOR_REQUIRED_OUTPUTS, errors)
 
     return {
         "status": "FAIL" if errors else "PASS",
