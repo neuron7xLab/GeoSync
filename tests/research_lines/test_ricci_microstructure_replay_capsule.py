@@ -40,9 +40,11 @@ import pytest
 
 from tools.research.ricci_preregistration_guard import evaluate_promotion
 
-_BASE = Path(__file__).resolve().parents[2] / "research_lines" / "ricci_microstructure_v1"
+_REPO = Path(__file__).resolve().parents[2]
+_BASE = _REPO / "research_lines" / "ricci_microstructure_v1"
 _DATASET = _BASE / "preregistration" / "dataset.example.json"
 _CONFIG = _BASE / "preregistration" / "config.example.json"
+_MANIFEST = _REPO / "artifacts" / "runs" / "ricci_microstructure_v1" / "replay_capsule_manifest.json"
 
 # Provenance pins over the committed synthetic fixtures (Phase-2 evidence).
 # These are sha256 content hashes of public synthetic fixtures, not secrets.
@@ -117,3 +119,48 @@ def test_capsule_is_synthetic_and_credential_free(field: str) -> None:
         assert dataset["is_synthetic"] is True
     else:
         assert dataset["data_sha256"] == "0" * 64, "capsule must not embed real data hash"
+
+
+def test_manifest_is_consistent_with_capsule() -> None:
+    """The published manifest must pin exactly what this capsule already asserts.
+
+    The manifest is the externally-reproducible front door; it must not drift
+    from the in-test pins, and it must keep the claim ceiling at INSTRUMENTED
+    while declaring the capsule synthetic-only. Fail closed on any mismatch.
+    """
+    manifest = json.loads(_MANIFEST.read_text(encoding="utf-8"))
+
+    # Provenance and decision pins must match the capsule's pins exactly.
+    assert manifest["data_sha256"] == EXPECTED_DATA_SHA256
+    assert manifest["config_sha256"] == EXPECTED_CONFIG_SHA256
+    assert manifest["decision_sha256"] == EXPECTED_DECISION_SHA256
+    assert tuple(manifest["expected_blockers"]) == EXPECTED_BLOCKERS
+
+    # The pinned negative verdict must match what the guard actually returns.
+    dataset = json.loads(_DATASET.read_text(encoding="utf-8"))
+    config = json.loads(_CONFIG.read_text(encoding="utf-8"))
+    decision = evaluate_promotion(dataset, config, None)
+    assert manifest["expected_decision"]["allowed"] == decision.allowed is False
+    assert manifest["expected_decision"]["claim_tier"] == decision.claim_tier == "HYPOTHESIS"
+    assert manifest["expected_decision"]["decision"] == decision.decision == "OBSERVE"
+    assert (
+        manifest["expected_decision"]["falsification_status"]
+        == decision.falsification_status
+        == "NOT_RUN"
+    )
+
+    # Claim boundary: never promoted, never pretends to be real-data evidence.
+    assert manifest["claim_ceiling"] == "INSTRUMENTED"
+    assert manifest["synthetic_only"] is True
+    assert manifest["credential_free"] is True
+
+    # The one-command replay path must point back at this very capsule.
+    assert manifest["replay_command"] == (
+        "python -m pytest tests/research_lines/"
+        "test_ricci_microstructure_replay_capsule.py -q"
+    )
+
+    # The note must keep the limitation explicit (no market/edge promotion).
+    note = manifest["note"].lower()
+    assert "does not prove" in note
+    assert "market" in note

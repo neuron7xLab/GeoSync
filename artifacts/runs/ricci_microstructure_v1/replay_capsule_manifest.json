@@ -1,0 +1,30 @@
+{
+  "schema_version": "ricci_microstructure_v1.replay_capsule_manifest.v1",
+  "line_id": "ricci_microstructure_v1",
+  "capsule_test": "tests/research_lines/test_ricci_microstructure_replay_capsule.py",
+  "guard_schema": "tools.research.ricci_preregistration_guard.PromotionDecision",
+  "input_fixtures": {
+    "dataset": "research_lines/ricci_microstructure_v1/preregistration/dataset.example.json",
+    "config": "research_lines/ricci_microstructure_v1/preregistration/config.example.json"
+  },
+  "data_sha256": "b1da972d910a7ed5897e2a28461f6cf238652d6150c9e8c771b4b7dcfc4f0d5e",
+  "config_sha256": "ca499750aa18d54f2bf152eed40333b2198ee1aa7abde6d4c2bc97a93a3cfc6e",
+  "decision_sha256": "2686e7687c75e7bbe991a987353f7f5abfca6a19eb369413bc9637c1eceb8427",
+  "expected_blockers": [
+    "no real data hash (placeholder/zero data_sha256)",
+    "synthetic data caps state at INSTRUMENTED; cannot promote claim tier",
+    "insufficient data depth (< 3600s)"
+  ],
+  "expected_decision": {
+    "allowed": false,
+    "claim_tier": "HYPOTHESIS",
+    "decision": "OBSERVE",
+    "falsification_status": "NOT_RUN"
+  },
+  "replay_command": "python -m pytest tests/research_lines/test_ricci_microstructure_replay_capsule.py -q",
+  "make_target": "make replay-ricci-capsule",
+  "credential_free": true,
+  "synthetic_only": true,
+  "claim_ceiling": "INSTRUMENTED",
+  "note": "This manifest pins the credential-free public replay capsule for the ricci_microstructure_v1 research line. Running the replay_command on the committed synthetic fixtures deterministically reproduces the pinned PromotionDecision (decision_sha256) and preserves the exact negative-evidence blocker tuple byte-for-byte. This capsule proves ONLY two things: (1) deterministic blocked-replay of the promotion guard on committed synthetic placeholder data, and (2) byte-for-byte preservation of the negative (blocked) verdict. It does NOT prove empirical L2 Ricci microstructure, any market signal, or any trading edge. The claim tier stays capped at INSTRUMENTED and is NOT promoted. EXTERNALLY_REPRODUCIBLE for the L2 Ricci market claim remains BLOCKED: it still requires a real, hash-pinned order-book session plus human-witness review, neither of which this capsule supplies. If any pinned hash or blocker drifts, fail closed and review whether a committed fixture or the guard logic changed before trusting any artifact built on this line."
+}
