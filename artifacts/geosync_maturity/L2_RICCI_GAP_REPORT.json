@@ -1,0 +1,26 @@
+{
+  "committed_placeholder": {
+    "data_sha256_is_zero": true,
+    "is_synthetic": true
+  },
+  "evidence_present": [
+    "deterministic depth-5 dataset/config schemas",
+    "fail-closed promotion guard (15 passing witnesses)"
+  ],
+  "missing_evidence": [
+    "non-zero data_sha256 (committed placeholder is zero-hash)",
+    "is_synthetic == false (committed placeholder is synthetic)",
+    "passed nulls + positive net-of-cost result"
+  ],
+  "next_patch": "Land one real hash-pinned depth-5 crypto-perp session (>= 1h), run run_l2_full_cycle.py, and re-run this generator to record the earned tier.",
+  "pipeline_present": [
+    "scripts/collect_binance_perp_l2.py",
+    "scripts/fetch_dukascopy_l2.py",
+    "scripts/run_l2_full_cycle.py",
+    "core/indicators/ricci.py",
+    "core/indicators/temporal_ricci.py",
+    "tools/research/validate_ricci_artifact_schema.py"
+  ],
+  "schema": "geosync_maturity/l2_ricci_gap@1",
+  "status": "INSTRUMENTED_HYPOTHESIS"
+}

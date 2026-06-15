@@ -1,0 +1,165 @@
+{
+  "claim_tier_vocabulary": [
+    "Not Measured",
+    "Instrumented",
+    "Measured-Single",
+    "Measured-Multi",
+    "Blocked",
+    "Not Deployable"
+  ],
+  "contract_path": "physics_contracts/market_limits.yaml",
+  "limits": [
+    {
+      "falsifier_required": "multi_session_replay",
+      "forbidden_claims": [
+        "conserved market energy",
+        "closed-form dissipation of market stress"
+      ],
+      "invalid_when": [
+        "descriptor is treated as a conserved or globally comparable quantity",
+        "cross-session levels are compared without re-normalization"
+      ],
+      "limit_id": "market.non_conservative",
+      "mathematical_object": "any energy/Lyapunov-style descriptor V(state)",
+      "max_claim_tier_violated": "Instrumented",
+      "valid_when": [
+        "descriptor is reported as a relative, within-session score",
+        "no claim of energy conservation or closed-form dissipation is attached"
+      ],
+      "witness_required": "tests/physics_contracts/test_market_limits.py::test_no_conservation_claim"
+    },
+    {
+      "falsifier_required": "lag_sweep_no_future_data",
+      "forbidden_claims": [
+        "stationary market parameter",
+        "time-invariant predictor"
+      ],
+      "invalid_when": [
+        "in-window fit quality is reported as out-of-sample skill",
+        "a single window is generalized to a regime it did not observe"
+      ],
+      "limit_id": "market.non_stationary",
+      "mathematical_object": "any estimator fit on a window [t0, t1]",
+      "max_claim_tier_violated": "Instrumented",
+      "valid_when": [
+        "estimate carries its observation window and is re-fit out-of-window",
+        "out-of-sample evaluation uses a later, disjoint window"
+      ],
+      "witness_required": "tests/physics_contracts/test_market_limits.py::test_window_is_declared"
+    },
+    {
+      "falsifier_required": "permutation_null",
+      "forbidden_claims": [
+        "fixed market coupling constant",
+        "participant-invariant dynamics"
+      ],
+      "invalid_when": [
+        "couplings are assumed constant across a strategy-crowding shift",
+        "the aggregate is back-tested as if participants did not react to it"
+      ],
+      "limit_id": "market.agent_driven",
+      "mathematical_object": "mean-field / order-parameter aggregate over participants",
+      "max_claim_tier_violated": "Instrumented",
+      "valid_when": [
+        "aggregate is used descriptively, with no assumption of fixed couplings",
+        "reflexivity (signal changes the system it measures) is acknowledged"
+      ],
+      "witness_required": "tests/physics_contracts/test_market_limits.py::test_no_fixed_coupling_claim"
+    },
+    {
+      "falsifier_required": "multi_session_replay",
+      "forbidden_claims": [
+        "continuous liquidity surface",
+        "smooth order-book manifold"
+      ],
+      "invalid_when": [
+        "smoothness of the book is assumed across a liquidity gap",
+        "curvature is computed over a degenerate (empty/one-level) book"
+      ],
+      "limit_id": "market.liquidity_discontinuous",
+      "mathematical_object": "depth-level order-book graph and its edge weights",
+      "max_claim_tier_violated": "Blocked",
+      "valid_when": [
+        "empty / single-level books are handled explicitly and fail closed",
+        "edge weights derive from observed depth, not interpolated continuity"
+      ],
+      "witness_required": "tests/physics_contracts/test_market_limits.py::test_degenerate_book_fails_closed"
+    },
+    {
+      "falsifier_required": "multi_session_replay",
+      "forbidden_claims": [
+        "regime-invariant geometric flow",
+        "shock-robust curvature trajectory"
+      ],
+      "invalid_when": [
+        "a flow result from a calm session is generalized across a shock",
+        "shock and calm sessions are pooled without stratification"
+      ],
+      "limit_id": "market.regime_shock",
+      "mathematical_object": "smooth geometric flow (e.g. Ricci flow) over the graph",
+      "max_claim_tier_violated": "Measured-Single",
+      "valid_when": [
+        "flow is restricted to a declared, shock-free observation window",
+        "shock sessions are evaluated as a distinct, separately-reported stratum"
+      ],
+      "witness_required": "tests/physics_contracts/test_market_limits.py::test_shock_calm_stratified"
+    },
+    {
+      "falsifier_required": "lag_sweep_no_future_data",
+      "forbidden_claims": [
+        "closed order-flow system",
+        "conserved order-flow"
+      ],
+      "invalid_when": [
+        "the order-flow process is treated as a closed, self-contained system"
+      ],
+      "limit_id": "market.order_flow_open_system",
+      "mathematical_object": "order-flow imbalance / micro-price descriptors",
+      "max_claim_tier_violated": "Instrumented",
+      "valid_when": [
+        "exogenous order flow is acknowledged as an unmodeled input",
+        "no closed-system conservation is asserted over the flow"
+      ],
+      "witness_required": "tests/physics_contracts/test_market_limits.py::test_open_system_acknowledged"
+    },
+    {
+      "falsifier_required": "permutation_null",
+      "forbidden_claims": [
+        "causal market graph from correlation",
+        "proven causal link"
+      ],
+      "invalid_when": [
+        "graph edges are read as causal links without an identification strategy",
+        "intervention conclusions are drawn from a correlation graph"
+      ],
+      "limit_id": "market.correlation_not_causal",
+      "mathematical_object": "correlation / coherence graph over assets or nodes",
+      "max_claim_tier_violated": "Instrumented",
+      "valid_when": [
+        "edges are labeled as association, not causal influence",
+        "any causal language is gated behind an explicit identification test"
+      ],
+      "witness_required": "tests/physics_contracts/test_market_limits.py::test_no_causal_from_correlation"
+    },
+    {
+      "falsifier_required": "multi_session_replay",
+      "forbidden_claims": [
+        "structural descriptor guarantees price direction",
+        "geometry-implies-prediction"
+      ],
+      "invalid_when": [
+        "structural output is presented as a predictive guarantee",
+        "a descriptor is promoted past Instrumented without a passed falsifier"
+      ],
+      "limit_id": "market.descriptor_not_predictor",
+      "mathematical_object": "Ricci / Kuramoto / topology output as a feature",
+      "max_claim_tier_violated": "Instrumented",
+      "valid_when": [
+        "predictive use is gated behind an out-of-sample null-beating falsifier",
+        "descriptor and predictor claims are reported as distinct tiers"
+      ],
+      "witness_required": "tests/physics_contracts/test_market_limits.py::test_descriptor_needs_falsifier"
+    }
+  ],
+  "schema": "geosync_maturity/physics_limits@1"
+}

@@ -1,0 +1,80 @@
+{
+  "claim_id": "ricci_microstructure_v1",
+  "matrix": [
+    {
+      "blocked_reason": "no real hash-pinned session committed yet",
+      "claim_id": "ricci_microstructure_v1",
+      "dataset_class": "same_symbol_diff_sessions",
+      "executable_now": false,
+      "expected_failure_condition": "null IC >= signal IC, or signal IC <= 0",
+      "falsifier_id": "ricci_micro.same_symbol_diff_sessions",
+      "inconclusive_condition": "insufficient depth (< 3600s) or missing session",
+      "null_baseline": "multi_session_replay",
+      "pass_condition": "signal OOS IC > 0 and beats null net-of-cost across >= 2 sessions"
+    },
+    {
+      "blocked_reason": "no real hash-pinned session committed yet",
+      "claim_id": "ricci_microstructure_v1",
+      "dataset_class": "diff_symbols_same_period",
+      "executable_now": false,
+      "expected_failure_condition": "null IC >= signal IC, or signal IC <= 0",
+      "falsifier_id": "ricci_micro.diff_symbols_same_period",
+      "inconclusive_condition": "insufficient depth (< 3600s) or missing session",
+      "null_baseline": "permutation_null",
+      "pass_condition": "signal OOS IC > 0 and beats null net-of-cost across >= 2 sessions"
+    },
+    {
+      "blocked_reason": "no real hash-pinned session committed yet",
+      "claim_id": "ricci_microstructure_v1",
+      "dataset_class": "shock_vs_calm_session",
+      "executable_now": false,
+      "expected_failure_condition": "null IC >= signal IC, or signal IC <= 0",
+      "falsifier_id": "ricci_micro.shock_vs_calm_session",
+      "inconclusive_condition": "insufficient depth (< 3600s) or missing session",
+      "null_baseline": "multi_session_replay",
+      "pass_condition": "signal OOS IC > 0 and beats null net-of-cost across >= 2 sessions"
+    },
+    {
+      "blocked_reason": "no real hash-pinned session committed yet",
+      "claim_id": "ricci_microstructure_v1",
+      "dataset_class": "low_vs_high_liquidity",
+      "executable_now": false,
+      "expected_failure_condition": "null IC >= signal IC, or signal IC <= 0",
+      "falsifier_id": "ricci_micro.low_vs_high_liquidity",
+      "inconclusive_condition": "insufficient depth (< 3600s) or missing session",
+      "null_baseline": "cost_model",
+      "pass_condition": "signal OOS IC > 0 and beats null net-of-cost across >= 2 sessions"
+    },
+    {
+      "blocked_reason": "no real hash-pinned session committed yet",
+      "claim_id": "ricci_microstructure_v1",
+      "dataset_class": "missing_data_session",
+      "executable_now": false,
+      "expected_failure_condition": "null IC >= signal IC, or signal IC <= 0",
+      "falsifier_id": "ricci_micro.missing_data_session",
+      "inconclusive_condition": "insufficient depth (< 3600s) or missing session",
+      "null_baseline": "lag_sweep_no_future_data",
+      "pass_condition": "signal OOS IC > 0 and beats null net-of-cost across >= 2 sessions"
+    },
+    {
+      "blocked_reason": "no real hash-pinned session committed yet",
+      "claim_id": "ricci_microstructure_v1",
+      "dataset_class": "replayed_cached_session",
+      "executable_now": false,
+      "expected_failure_condition": "null IC >= signal IC, or signal IC <= 0",
+      "falsifier_id": "ricci_micro.replayed_cached_session",
+      "inconclusive_condition": "insufficient depth (< 3600s) or missing session",
+      "null_baseline": "multi_session_replay",
+      "pass_condition": "signal OOS IC > 0 and beats null net-of-cost across >= 2 sessions"
+    }
+  ],
+  "negative_evidence_policy": "Rejected lines archived as sha-pinned negative artifacts (prereg section 13); not deleted.",
+  "negative_evidence_preserved": true,
+  "registered_nulls": [
+    "permutation_null",
+    "lag_sweep_no_future_data",
+    "cost_model",
+    "multi_session_replay"
+  ],
+  "schema": "geosync_maturity/falsifier_matrix@1"
+}

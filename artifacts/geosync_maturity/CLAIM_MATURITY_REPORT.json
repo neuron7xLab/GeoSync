@@ -1,0 +1,32 @@
+{
+  "claims": [
+    {
+      "claim_id": "ricci_microstructure_v1",
+      "claim_text": "Ollivier-Ricci curvature over crypto-perp L2 order-book microstructure carries falsifiable OOS signal for short-horizon mid-price direction beyond order-flow imbalance + persistence nulls.",
+      "current_status": "HYPOTHESIS",
+      "decision": "OBSERVE",
+      "evidence_present": [
+        "docs/research/ricci_microstructure_v1_PREREGISTRATION.md",
+        "tools/research/ricci_preregistration_guard.py",
+        "schemas/research/ricci_microstructure_v1_config.schema.json",
+        "schemas/research/ricci_microstructure_v1_dataset.schema.json"
+      ],
+      "falsification_status": "NOT_RUN",
+      "missing_evidence": [
+        "real hash-pinned depth-5 L2 session (>= 3600s)",
+        "replayable inference artifact beating all four nulls net-of-cost",
+        "multi_session_replay across >= 2 independent sessions"
+      ],
+      "promotion_allowed": false,
+      "promotion_blockers": [
+        "no real data hash (placeholder/zero data_sha256)",
+        "synthetic data caps state at INSTRUMENTED; cannot promote claim tier",
+        "insufficient data depth (< 3600s)"
+      ],
+      "safe_next_status": "TESTED_REAL_SINGLE (only after one real, gate-passing session)"
+    }
+  ],
+  "note": "Tiers are computed by evaluate_promotion() on the committed placeholder inputs. No tier was hand-assigned.",
+  "retired_claims_preserved": true,
+  "schema": "geosync_maturity/claim_maturity@1"
+}
