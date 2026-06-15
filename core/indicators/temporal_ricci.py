@@ -1,13 +1,21 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Temporal Ricci curvature analysis for price time series.
+"""Temporal Ricci structural descriptor over discretised price levels.
 
-This module provides a lightweight approximation of the Ollivier–Ricci
-curvature on discretised price levels together with a temporal summariser that
-tracks how the local graph structure evolves through time.  The implementation
-does not depend on ``networkx`` and is intentionally self-contained so it can
-run inside property-based tests and CI environments without optional
-dependencies.
+This module computes a lightweight approximation of the Ollivier–Ricci
+curvature on a graph of discretised price levels together with a temporal
+summariser that describes how the local graph structure evolves through time.
+The outputs are **structural-geometric descriptors** of an observed series:
+they characterise graph topology and its drift, and make no predictive,
+directional, or financial-advice claim.  The Ricci curvature κ is a universal
+structural quantity bounded by κ ≤ 1 (INV-RC1); it is *not* a market signal,
+a forecast, or a trading instruction.  See ``CLAIM_BOUNDARY`` and
+``TemporalRicciResult.descriptor_metadata`` for the explicit machine-readable
+claim-boundary declaration.
+
+The implementation does not depend on ``networkx`` and is intentionally
+self-contained so it can run inside property-based tests and CI environments
+without optional dependencies.
 """
 
 from __future__ import annotations
@@ -15,7 +23,8 @@ from __future__ import annotations
 import warnings
 from collections import deque
 from dataclasses import dataclass
-from typing import Deque, Dict, List, Literal, Optional, Tuple
+from types import MappingProxyType
+from typing import Deque, Dict, List, Literal, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -26,6 +35,30 @@ from ..utils.metrics import get_metrics_collector
 _logger = get_logger(__name__)
 _metrics = get_metrics_collector()
 _VOLUME_MODES = {"none", "linear", "sqrt", "log"}
+
+# ---------------------------------------------------------------------------
+# Claim-boundary declaration (additive, descriptor-only)
+# ---------------------------------------------------------------------------
+#
+# Explicit, machine-readable statement of what this module's outputs ARE and
+# are NOT.  The temporal-Ricci outputs are structural-geometric descriptors of
+# an observed graph topology, bounded by the universal κ ≤ 1 contract
+# (INV-RC1).  They carry no predictive, directional, or financial-advice
+# semantics.  Surfaced read-only via ``TemporalRicciResult.descriptor_metadata``
+# and consumed by the claim-boundary CI gate; it does not enter any runtime
+# math path.
+_BoundaryValue = Union[str, bool]
+CLAIM_BOUNDARY: Mapping[str, _BoundaryValue] = MappingProxyType(
+    {
+        "method": "ollivier_ricci_lite_temporal_summariser",
+        "claim_boundary": "descriptor_only_not_predictor",
+        "descriptor_kind": "structural_graph_curvature",
+        "curvature_bound": "kappa_le_1_INV_RC1",
+        "not_predictive_claim": True,
+        "not_financial_advice": True,
+        "not_a_trading_signal": True,
+    }
+)
 
 # ---------------------------------------------------------------------------
 # Lightweight graph abstraction
@@ -143,6 +176,24 @@ class TemporalRicciResult:
     graph_snapshots: List[GraphSnapshot]
     structural_stability: float
     edge_persistence: float
+
+    def descriptor_metadata(self) -> Dict[str, _BoundaryValue | int]:
+        """Return read-only provenance + claim-boundary metadata.
+
+        Purely descriptive accessor: it reports the descriptor method, the
+        input-derived counts (number of graph snapshots and the total edges
+        observed across them), and the explicit ``descriptor_only_not_predictor``
+        claim boundary.  It performs no curvature computation and does not alter
+        any field of the result; callers may use it to firewall these structural
+        descriptors from any predictive or trading interpretation.
+        """
+
+        n_snapshots = len(self.graph_snapshots)
+        n_edges = sum(snap.graph.number_of_edges() for snap in self.graph_snapshots)
+        metadata: Dict[str, _BoundaryValue | int] = dict(CLAIM_BOUNDARY)
+        metadata["n_snapshots"] = int(n_snapshots)
+        metadata["n_edges_observed"] = int(n_edges)
+        return metadata
 
 
 # ---------------------------------------------------------------------------
@@ -675,6 +726,7 @@ PriceLevelGraphBuilder = PriceLevelGraph
 
 
 __all__ = [
+    "CLAIM_BOUNDARY",
     "GraphSnapshot",
     "LightGraph",
     "OllivierRicciCurvature",
