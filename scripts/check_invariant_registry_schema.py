@@ -63,11 +63,16 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
         if not ID_RE.match(inv_id):
             errors.append(f"{row_path}: invalid invariant id {inv_id!r}")
         elif inv_id in seen:
-            errors.append(f"{row_path}: duplicate invariant id {inv_id} first seen at {seen[inv_id]}")
+            errors.append(
+                f"{row_path}: duplicate invariant id {inv_id} "
+                f"first seen at {seen[inv_id]}"
+            )
         else:
             seen[inv_id] = row_path
         if row.get("priority") not in PRIORITIES:
-            errors.append(f"{row_path}: {inv_id}: invalid priority {row.get('priority')!r}")
+            errors.append(
+                f"{row_path}: {inv_id}: invalid priority {row.get('priority')!r}"
+            )
         related = row.get("related", [])
         if isinstance(related, str):
             related = [related]
@@ -77,10 +82,18 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
             else:
                 for ref in related:
                     if ref not in ids:
-                        errors.append(f"{row_path}: {inv_id}: unresolved related invariant {ref!r}")
+                        errors.append(
+                            f"{row_path}: {inv_id}: "
+                            f"unresolved related invariant {ref!r}"
+                        )
 
     score = 1.0 if possible == 0 else present / possible
-    return {"path": str(path), "rows": len(rows), "quality_score": score, "errors": errors}
+    return {
+        "path": str(path),
+        "rows": len(rows),
+        "quality_score": score,
+        "errors": errors,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -93,7 +106,8 @@ def main(argv: list[str] | None = None) -> int:
     result = validate_registry(args.path)
     if result["quality_score"] < args.min_quality_score:
         result["errors"].append(
-            f"quality_score {result['quality_score']:.6f} < {args.min_quality_score:.6f}"
+            f"quality_score {result['quality_score']:.6f} "
+            f"< {args.min_quality_score:.6f}"
         )
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
