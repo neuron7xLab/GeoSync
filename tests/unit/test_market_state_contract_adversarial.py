@@ -82,6 +82,17 @@ def test_public_export_wired():
     assert {"compile_market_state", "MarketStateContract", "MarketRegime", "EntryState"} <= set(ci.__all__)
 
 
+def test_canonical_namespace_export_wired():
+    # geosync.indicators is the canonical public package surface (__CANONICAL__).
+    import geosync.indicators as gi
+
+    assert gi.compile_market_state is compile_market_state
+    assert gi.MarketStateContract is MarketStateContract
+    assert gi.MarketRegime is MarketRegime
+    assert gi.EntryState is EntryState
+    assert {"compile_market_state", "MarketStateContract", "MarketRegime", "EntryState"} <= set(gi.__all__)
+
+
 def test_nan_everywhere_fails_closed():
     nan = float("nan")
     sig = make(MarketPhase.CHAOTIC, confidence=nan, consensus_R=nan,

@@ -29,6 +29,7 @@ promise: >-
 diff_scope:
   changed_files:
     - path: "core/indicators/market_state_contract.py"
+    - path: "src/geosync/indicators/__init__.py"
     - path: "tests/unit/test_market_state_contract_adversarial.py"
     - path: ".claude/commit_acceptors/market-state-contract-tested.yaml"
   forbidden_paths:
