@@ -292,3 +292,48 @@ class TestCrossMethodAgreement:
     def test_shape_mismatch_raises(self) -> None:
         with pytest.raises(ValueError, match="shape mismatch"):
             cross_method_agreement(np.zeros((10, 2)), np.zeros((10, 3)))
+
+
+class TestNanGapTolerance:
+    """The advertised ``max_nan_fraction`` tolerance must be real: a few missing
+    samples must not smear across the whole column under filtfilt/Hilbert.
+
+    Reproduces a latent defect — a single NaN previously poisoned the entire
+    column (100% loss) because the Q3 gate ran AFTER filtering. Short gaps
+    (≤ tolerance) are now interpolated before filtering; larger gaps stay NaN
+    for Q3 to flag; clean input is bit-identical.
+    """
+
+    @staticmethod
+    def _band_signal(n_rows: int = 400, n_cols: int = 2) -> np.ndarray:
+        rng = np.random.default_rng(0)
+        t = np.arange(n_rows)
+        base = np.sin(2.0 * np.pi * 0.05 * t)[:, None] * np.ones((1, n_cols))
+        return base + 0.01 * rng.standard_normal((n_rows, n_cols))
+
+    def test_clean_input_is_bit_identical(self) -> None:
+        cfg = PhaseExtractionConfig()
+        signal = self._band_signal()
+        theta_a, _ = extract_phases_hilbert(signal, cfg)
+        theta_b, _ = extract_phases_hilbert(signal.copy(), cfg)
+        assert np.array_equal(theta_a, theta_b)
+        assert np.all(np.isfinite(theta_a))
+
+    def test_small_gap_within_tolerance_is_repaired(self) -> None:
+        """≤ max_nan_fraction NaNs → finite phase (was all-NaN before)."""
+        cfg = PhaseExtractionConfig()  # default max_nan_fraction = 0.05
+        signal = self._band_signal()
+        signal[50:60, 0] = np.nan  # 10/400 = 2.5% ≤ 5%
+        theta, _ = extract_phases_hilbert(signal, cfg)
+        assert np.all(np.isfinite(theta[:, 0]))
+        assert np.all(np.isfinite(theta[:, 1]))
+
+    def test_large_gap_left_for_q3_and_neighbours_unaffected(self) -> None:
+        """> max_nan_fraction NaNs → that column stays NaN (Q3 flags it) while a
+        clean neighbour column is unaffected — no silent whole-matrix repair."""
+        cfg = PhaseExtractionConfig()
+        signal = self._band_signal()
+        signal[50:130, 0] = np.nan  # 80/400 = 20% > 5%
+        theta, _ = extract_phases_hilbert(signal, cfg)
+        assert np.all(np.isnan(theta[:, 0]))
+        assert np.all(np.isfinite(theta[:, 1]))
