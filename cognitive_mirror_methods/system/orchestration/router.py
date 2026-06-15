@@ -31,11 +31,23 @@ def _response(
     }
 
 
+def blocked_response(request: dict[str, Any], errors: list[str]) -> dict[str, Any]:
+    """Canonical BLOCKED response — fail closed, never raise, never leak shape."""
+    return _response(request, STATUS_BLOCKED, {}, errors)
+
+
 def route_request(request: dict[str, Any]) -> dict[str, Any]:
     module_id = str(request.get("module", ""))
     if not module_exists(module_id):
-        return _response(request, STATUS_BLOCKED, {}, ["unknown module"])
-    text = str(request.get("input", {}).get("text", ""))
+        return blocked_response(request, ["unknown module"])
+    # Fail closed on malformed input: a non-object `input` (string/list/null) or a
+    # non-string `input.text` becomes a canonical BLOCKED, never a runtime exception.
+    raw_input = request.get("input", {})
+    if not isinstance(raw_input, dict):
+        return blocked_response(request, ["invalid input: expected object"])
+    text = raw_input.get("text", "")
+    if not isinstance(text, str):
+        return blocked_response(request, ["invalid input.text: expected string"])
     return _response(
         request,
         STATUS_PASS,
