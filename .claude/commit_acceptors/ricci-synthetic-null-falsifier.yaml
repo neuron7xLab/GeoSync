@@ -46,7 +46,7 @@ expected_signal: >-
   reports 3 passed; the permutation_null fires (descriptor_ic <= null_p95,
   p-value >= 0.05); ruff and mypy --strict on the test are clean.
 measurement_command: >-
-  bash -c 'python -m pytest
+  bash -c 'mkdir -p tmp && python -m pytest
   tests/research_lines/test_ricci_microstructure_synthetic_falsifier.py -q
   > tmp/ricci_synthetic_null_falsifier.log 2>&1
   && grep -q "3 passed" tmp/ricci_synthetic_null_falsifier.log'
