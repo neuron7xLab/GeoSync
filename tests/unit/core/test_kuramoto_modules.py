@@ -25,7 +25,8 @@ from core.kuramoto.config import KuramotoConfig
 from core.kuramoto.delayed import DelayedKuramotoEngine
 from core.kuramoto.early_stopping import EarlyStoppingEngine
 from core.kuramoto.metrics import order_parameter
-from core.kuramoto.ott_antonsen import OttAntonsenEngine
+from core.kuramoto.ott_antonsen import OttAntonsenEngine, detect_chimera
+from core.kuramoto.phase_transition import PhaseTransitionAnalyzer
 from core.kuramoto.second_order import SecondOrderKuramotoEngine
 from core.kuramoto.sparse import SparseKuramotoEngine
 
@@ -412,3 +413,49 @@ class TestFinitenessFailClosed:
         r = order_parameter(theta, axis=1)
         assert r.shape == (2,)
         assert np.all((r >= 0.0) & (r <= 1.0))
+
+
+class TestDegenerateInputFailClosed:
+    """Degenerate-input guards found by a computational audit: a single-point
+    sweep, a flat (never-crossing) R curve, and negative/empty chimera sector
+    labels each previously produced an opaque crash or a silently-wrong result.
+    """
+
+    def test_find_critical_k_single_point_raises(self) -> None:
+        """_find_critical_K previously raised an opaque np.gradient IndexError."""
+        with pytest.raises(ValueError, match="≥2 sweep points"):
+            PhaseTransitionAnalyzer._find_critical_K(np.array([2.0]), np.array([0.5]))
+
+    def test_find_critical_k_flat_curve_signals_no_transition(self) -> None:
+        """A flat R curve has no transition: return NaN, not a spurious K_c=0."""
+        k_c = PhaseTransitionAnalyzer._find_critical_K(
+            np.linspace(0.0, 5.0, 5), np.full(5, 0.1)
+        )
+        assert math.isnan(k_c)
+
+    def test_find_critical_k_real_crossing_unchanged(self) -> None:
+        """Regression: a genuine threshold crossing still interpolates K_c."""
+        k_c = PhaseTransitionAnalyzer._find_critical_K(
+            np.array([0.0, 1.0, 2.0, 3.0]), np.array([0.1, 0.2, 0.5, 0.9])
+        )
+        assert 1.0 < k_c < 2.0
+
+    def test_detect_chimera_rejects_negative_sectors(self) -> None:
+        """Negative sector labels were silently dropped from per-sector stats."""
+        with pytest.raises(ValueError, match="non-negative"):
+            detect_chimera(
+                np.array([0.0, 0.1, 3.0, 3.1]),
+                np.array([-1, -1, 0, 0], dtype=np.int64),
+            )
+
+    def test_detect_chimera_rejects_empty(self) -> None:
+        with pytest.raises(ValueError, match="non-empty"):
+            detect_chimera(np.array([]), np.array([], dtype=np.int64))
+
+    def test_detect_chimera_valid_sectors_unchanged(self) -> None:
+        """Regression: a valid 0-indexed assignment still produces a report."""
+        report = detect_chimera(
+            np.array([0.0, 0.1, 3.0, 3.1]),
+            np.array([0, 0, 1, 1], dtype=np.int64),
+        )
+        assert report.sector_R.shape == (2,)
