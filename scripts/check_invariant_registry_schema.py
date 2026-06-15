@@ -64,15 +64,12 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
             errors.append(f"{row_path}: invalid invariant id {inv_id!r}")
         elif inv_id in seen:
             errors.append(
-                f"{row_path}: duplicate invariant id {inv_id} "
-                f"first seen at {seen[inv_id]}"
+                f"{row_path}: duplicate invariant id {inv_id} " f"first seen at {seen[inv_id]}"
             )
         else:
             seen[inv_id] = row_path
         if row.get("priority") not in PRIORITIES:
-            errors.append(
-                f"{row_path}: {inv_id}: invalid priority {row.get('priority')!r}"
-            )
+            errors.append(f"{row_path}: {inv_id}: invalid priority {row.get('priority')!r}")
         related = row.get("related", [])
         if isinstance(related, str):
             related = [related]
@@ -83,8 +80,7 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
                 for ref in related:
                     if ref not in ids:
                         errors.append(
-                            f"{row_path}: {inv_id}: "
-                            f"unresolved related invariant {ref!r}"
+                            f"{row_path}: {inv_id}: " f"unresolved related invariant {ref!r}"
                         )
 
     score = 1.0 if possible == 0 else present / possible
@@ -106,8 +102,7 @@ def main(argv: list[str] | None = None) -> int:
     result = validate_registry(args.path)
     if result["quality_score"] < args.min_quality_score:
         result["errors"].append(
-            f"quality_score {result['quality_score']:.6f} "
-            f"< {args.min_quality_score:.6f}"
+            f"quality_score {result['quality_score']:.6f} " f"< {args.min_quality_score:.6f}"
         )
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
