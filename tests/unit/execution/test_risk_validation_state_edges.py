@@ -17,6 +17,12 @@ def test_position_rejection_does_not_consume_rate_slot_or_mutate_exposure() -> N
             max_orders_per_interval=1,
             interval_seconds=60.0,
             kill_switch_violation_threshold=99,
+            # The 1.5x attempt (0.5 held + 1.0) would hit the severity-trip path
+            # (abs(new) >= max_position * kill_switch_limit_multiplier, default
+            # 1.5x), engaging the kill-switch and masking the rate-slot/exposure
+            # invariant under test. Lift the multiplier so the breach stays a
+            # plain LimitViolation, not a catastrophic instant kill-switch.
+            kill_switch_limit_multiplier=99.0,
         ),
         time_source=lambda: 100.0,
     )
