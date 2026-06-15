@@ -56,7 +56,7 @@ GeoSync is a verification-first quantitative research platform with neuroscience
 
 ---
 
-## INVARIANT REGISTRY — 103 invariants loaded by kernel self-check
+## INVARIANT REGISTRY — 106 invariants loaded by kernel self-check
 
 > **Single source of truth:** `.claude/physics/INVARIANTS.yaml` (`python scripts/count_invariants.py`). The 2026-04-30 external audit corrected a four-way drift (`57 / 66 / 67 / 87`); CI gate `invariant-count-sync` now fail-closes on any future divergence between this header, README badges, BASELINE.md, and the registry.
 
@@ -285,6 +285,22 @@ INV-TH1 | conservation | Energy change = work + dissipation            | P1
 INV-TH2 | universal    | Entropy production ≥ 0                       | P1
 ```
 
+### Stochastic Thermodynamics (Law T8 — exact fluctuation theorems)
+
+```
+INV-ST1 | statistical | Equipartition: Var(x) = kT/k for stationary    | P0
+                      | overdamped Langevin in V=½kx². tol 0.10.
+INV-ST2 | statistical | Jarzynski equality ⟨e^(−βW)⟩ = e^(−βΔF);      | P0
+                      | target sqrt(k_i/k_f)=0.5. tol 0.05, meas ≤0.004.
+                      | ΔF = −(1/2β)·ln(k_i/k_f).
+INV-ST3 | statistical | Second law ⟨W⟩ ≥ ΔF, and dissipation          | P1
+                      | monotonic: ⟨W⟩(τ=2.0) < ⟨W⟩(τ=0.5).
+         Pure statistical mechanics — NOT a market model.
+         Source: core/physics/stochastic_thermodynamics.py
+         Tests:  tests/unit/physics/test_T8_stochastic_thermodynamics.py
+         Law:    docs/laws/T8_stochastic_thermodynamics.md
+```
+
 ### Ricci Curvature
 
 ```
@@ -469,6 +485,7 @@ assert result.order > 0      # no INV, no context
 | `*gaba*`, `*inhibit*` | INV-GABA1..5 |
 | `*energy*`, `*lyapunov*`, `*ecs*` | INV-FE1..2 |
 | `*thermo*`, `*conservation*` | INV-TH1..2 |
+| `*stochastic_thermodynamics*`, `*langevin*`, `*jarzynski*`, `*law_T8*` | INV-ST1..3 |
 | `*ricci*`, `*curvature*` | INV-RC1..3 |
 | `*determinism_kit*`, `*law_T6*`, `*replay_manifest*` | INV-DET1..3 |
 | `*kelly*`, `*sizing*` | INV-KELLY1..3 |
