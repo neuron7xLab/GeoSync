@@ -39,6 +39,10 @@ def run_pipeline(request: dict[str, Any]) -> dict[str, Any]:
         "artifacts": [],
         "errors": [],
         "warnings": [],
-        "validation": {"schema_valid": True, "contract_valid": True, "tests_passed": []},
+        "validation": {
+            "schema_valid": True,
+            "contract_valid": True,
+            "tests_passed": [],
+        },
         "next_action": "create artifact",
     }
