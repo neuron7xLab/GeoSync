@@ -1078,6 +1078,7 @@ pncc:
     priority: P1
     source: core/physics/simulation_falsification.py
     tests: tests/unit/physics/test_simulation_falsification.py
+    falsifier_test: tests/unit/physics/test_simulation_falsification.py::test_point_eval_above_threshold_rules_out_with_reason
     references:
       - "Bekenstein, J. D. (1981). Universal upper bound on the entropy-to-energy ratio for bounded systems. Phys. Rev. D 23, 287."
       - "'t Hooft, G. (1993). Dimensional reduction in quantum gravity. arXiv:gr-qc/9310026."
@@ -1113,6 +1114,7 @@ pncc:
     provenance: SPECULATIVE
     source: core/physics/observer_bandwidth.py
     tests: tests/unit/physics/test_observer_bandwidth.py
+    falsifier_test: tests/unit/physics/test_observer_bandwidth.py::test_bound_violated_when_gamma_above_bandwidth
     references:
       - "Zurek, W. H. (2003). Decoherence, einselection, and the quantum origins of the classical. Rev. Mod. Phys. 75, 715."
       - "Lieb, E. H. & Robinson, D. W. (1972). The finite group velocity of quantum spin systems. Comm. Math. Phys. 28, 251."
@@ -1128,6 +1130,7 @@ pncc:
     provenance: EXTRAPOLATED
     source: core/physics/cosmological_compute_bound.py
     tests: tests/unit/physics/test_cosmological_compute_bound.py
+    falsifier_test: tests/unit/physics/test_cosmological_compute_bound.py::test_compute_claim_above_budget_violation
     references:
       - "Bekenstein, J. D. (1973). Black holes and entropy. Phys. Rev. D 7, 2333."
       - "'t Hooft, G. (1993). Dimensional reduction in quantum gravity. arXiv:gr-qc/9310026."
@@ -1151,6 +1154,7 @@ pncc:
     provenance: EXTRAPOLATED
     source: core/physics/jacobson_observer_coherence.py
     tests: tests/unit/physics/test_jacobson_observer_coherence.py
+    falsifier_test: tests/unit/physics/test_jacobson_observer_coherence.py::test_witness_extended_inconsistent_when_correction_breaks_balance
     references:
       - "Jacobson, T. (1995). Thermodynamics of spacetime: the Einstein equation of state. Phys. Rev. Lett. 75, 1260. arXiv:gr-qc/9504004."
       - "Padmanabhan, T. (2010). Thermodynamical aspects of gravity: new insights. Rep. Prog. Phys. 73, 046901. arXiv:0911.5004."

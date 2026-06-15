@@ -64,22 +64,24 @@ def render_matrix(invariants: dict[str, dict[str, str]]) -> str:
     lines.append("")
     lines.append(
         "| INV ID | Tier | Priority | Source | Unit Test | "
-        "Integration Test | Runtime | Source ✓ | Unit ✓ | Integ ✓ |"
+        "Integration Test | Falsifier Node | Runtime | Source ✓ | Unit ✓ | Integ ✓ |"
     )
-    lines.append("|---|---|---|---|---|---|---|:---:|:---:|:---:|")
+    lines.append("|---|---|---|---|---|---|---|---|:---:|:---:|:---:|")
     for inv_id, data in invariants.items():
         tier = data.get("provenance", "—") or "—"
         priority = data.get("priority", "—") or "—"
         source = data.get("source", "—") or "—"
         unit_test = data.get("tests", "—") or "—"
         integration = data.get("integration_test", "—") or "—"
+        falsifier = data.get("falsifier_test", "—") or "—"
         runtime = _yes_no(data.get("runtime_evaluable", ""))
         source_ok = "✓" if _path_exists(source) else ("—" if source == "—" else "✗")
         unit_ok = "✓" if _path_exists(unit_test) else ("—" if unit_test == "—" else "✗")
         integ_ok = "✓" if _path_exists(integration) else ("—" if integration == "—" else "✗")
         lines.append(
             f"| {inv_id} | {tier} | {priority} | `{source}` | `{unit_test}` | "
-            f"`{integration}` | {runtime} | {source_ok} | {unit_ok} | {integ_ok} |"
+            f"`{integration}` | `{falsifier}` | {runtime} | "
+            f"{source_ok} | {unit_ok} | {integ_ok} |"
         )
     lines.append("")
     lines.append(f"Total invariants registered: {len(invariants)}")
