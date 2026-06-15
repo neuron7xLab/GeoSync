@@ -14,6 +14,8 @@ Mathematical invariants tested:
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pytest
 from scipy import sparse
@@ -22,6 +24,8 @@ from core.kuramoto.adaptive import AdaptiveKuramotoEngine
 from core.kuramoto.config import KuramotoConfig
 from core.kuramoto.delayed import DelayedKuramotoEngine
 from core.kuramoto.early_stopping import EarlyStoppingEngine
+from core.kuramoto.metrics import order_parameter
+from core.kuramoto.ott_antonsen import OttAntonsenEngine
 from core.kuramoto.second_order import SecondOrderKuramotoEngine
 from core.kuramoto.sparse import SparseKuramotoEngine
 
@@ -346,3 +350,65 @@ class TestCrossModuleMathProperties:
         r1 = AdaptiveKuramotoEngine(cfg1).run()
         r2 = AdaptiveKuramotoEngine(cfg2).run()
         np.testing.assert_allclose(r1.phases, r2.phases, atol=1e-10)
+
+
+class TestFinitenessFailClosed:
+    """Fail-closed finiteness guards: non-finite input must never leak past the
+    documented order-parameter bounds (INV-OA1 |z|≤1, INV-K1 R∈[0,1]).
+
+    Each test reproduces a latent defect found by a computational manifold
+    audit: NaN-blind comparison guards (``abs(z) > 1.0`` is False for NaN) used
+    to propagate NaN/Inf silently, and the Ott-Antonsen integrator silently
+    renormalised a blown-up RK4 step onto the unit circle — inverting the
+    synchronization verdict (subcritical K<2Δ reported as full sync R=1).
+    """
+
+    def test_oa_unstable_step_fails_closed_not_silent_full_sync(self) -> None:
+        """INV-OA1/OA3: a blown-up RK4 step must raise, not report spurious sync.
+
+        K=0.5 < K_c=2Δ=4 is subcritical (INV-OA3: R→0). With dt past the RK4
+        stability limit the old code silently renormalised the divergence to
+        |z|=1 and returned R[-1]=1.0 (a full-sync verdict, the exact opposite
+        regime). Fail-closed now raises FloatingPointError.
+        """
+        engine = OttAntonsenEngine(K=0.5, delta=2.0, omega0=0.0)
+        with pytest.raises(FloatingPointError):
+            engine.integrate(T=50.0, dt=2.5, R0=0.5)
+
+    def test_oa_rejects_non_finite_initial_condition(self) -> None:
+        """INV-OA1: R0=NaN previously produced an all-NaN trajectory."""
+        engine = OttAntonsenEngine(K=2.0, delta=0.5)
+        with pytest.raises(ValueError):
+            engine.integrate(T=1.0, dt=0.1, R0=float("nan"))
+
+    def test_oa_rejects_non_finite_parameters(self) -> None:
+        """INV-OA1: non-finite K/delta/omega0 must fail-closed at construction."""
+        with pytest.raises(ValueError):
+            OttAntonsenEngine(K=float("inf"), delta=0.5)
+        with pytest.raises(ValueError):
+            OttAntonsenEngine(K=1.0, delta=float("nan"))
+        with pytest.raises(ValueError):
+            OttAntonsenEngine(K=1.0, delta=0.5, omega0=float("inf"))
+
+    def test_oa_legitimate_supercritical_still_exact(self) -> None:
+        """Regression: a stable supercritical run still matches INV-OA2 exactly.
+
+        K=6, Δ=0.5 ⟹ K_c=1, R_∞ = √(1 − K_c/K) = √(5/6).
+        """
+        engine = OttAntonsenEngine(K=6.0, delta=0.5, omega0=0.0)
+        result = engine.integrate(T=50.0, dt=0.01, R0=0.1)
+        assert result.is_supercritical
+        assert abs(result.R[-1] - math.sqrt(1.0 - 1.0 / 6.0)) < 1e-3
+
+    def test_order_parameter_rejects_non_finite_phases(self) -> None:
+        """INV-K1: a NaN phase previously leaked NaN past R∈[0,1]."""
+        theta = np.array([[0.0, np.nan, 1.0], [0.1, 0.2, 0.3]])
+        with pytest.raises(ValueError):
+            order_parameter(theta, axis=1)
+
+    def test_order_parameter_finite_phases_bounded(self) -> None:
+        """Regression: finite phases yield R∈[0,1] as before."""
+        theta = np.array([[0.0, 0.1, 0.2], [1.0, 1.1, 0.9]])
+        r = order_parameter(theta, axis=1)
+        assert r.shape == (2,)
+        assert np.all((r >= 0.0) & (r <= 1.0))
