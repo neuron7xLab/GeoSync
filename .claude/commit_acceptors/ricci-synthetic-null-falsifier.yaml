@@ -47,7 +47,7 @@ expected_signal: >-
   p-value >= 0.05); ruff and mypy --strict on the test are clean.
 measurement_command: >-
   bash -c 'mkdir -p tmp && python -m pytest
-  tests/research_lines/test_ricci_microstructure_synthetic_falsifier.py -q
+  tests/research_lines/test_ricci_microstructure_synthetic_falsifier.py
   > tmp/ricci_synthetic_null_falsifier.log 2>&1
   && grep -q "3 passed" tmp/ricci_synthetic_null_falsifier.log'
 signal_artifact: "tmp/ricci_synthetic_null_falsifier.log"
