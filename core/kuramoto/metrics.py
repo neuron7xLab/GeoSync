@@ -106,7 +106,15 @@ def order_parameter(theta: np.ndarray, axis: int = 1) -> np.ndarray:
     ``|(1/N) Σ_k exp(i θ_k(t))|`` computed along ``axis`` (default:
     node axis). For a shape-``(T, N)`` phase matrix the output has
     shape ``(T,)``.
+
+    Fail-closed on non-finite phases: ``np.exp(1j*nan)`` is NaN, which would
+    leak past INV-K1 (R ∈ [0, 1]) — ``np.abs`` of a NaN mean is NaN, not a
+    valid order parameter. A non-finite phase is a contract violation, so we
+    raise rather than emit a silently out-of-bounds R.
     """
+    theta = np.asarray(theta, dtype=np.float64)
+    if not bool(np.all(np.isfinite(theta))):
+        raise ValueError("order_parameter: theta must be finite (INV-K1 R∈[0,1])")
     z = np.mean(np.exp(1j * theta), axis=axis)
     return np.asarray(np.abs(z), dtype=np.float64)
 
@@ -154,6 +162,8 @@ def rolling_csd(R: np.ndarray, window: int) -> tuple[np.ndarray, np.ndarray]:
     var = np.empty(T, dtype=np.float64)
     ac1 = np.empty(T, dtype=np.float64)
     for t in range(T):
+        # bounds: rolling-window lower index, clamped to 0 at the series start
+        # (array indexing, not a physics quantity).
         lo = max(0, t - window + 1)
         seg = R[lo : t + 1]
         if seg.shape[0] < 2:

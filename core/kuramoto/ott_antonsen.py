@@ -112,8 +112,15 @@ class OttAntonsenEngine:
         omega0 : float
             Center of frequency distribution (default 0).
         """
-        if delta <= 0:
-            raise ValueError(f"delta must be > 0, got {delta}")
+        # Fail-closed finiteness contract: a non-finite parameter would let the
+        # NaN-blind |z| guard in integrate() silently propagate NaN/Inf past
+        # INV-OA1 (|z| ≤ 1). Reject at construction.
+        if not math.isfinite(K):
+            raise ValueError(f"K must be finite, got {K}")
+        if not (math.isfinite(delta) and delta > 0):
+            raise ValueError(f"delta must be finite and > 0, got {delta}")
+        if not math.isfinite(omega0):
+            raise ValueError(f"omega0 must be finite, got {omega0}")
         self.K = float(K)
         self.delta = float(delta)
         self.omega0 = float(omega0)
@@ -171,12 +178,24 @@ class OttAntonsenEngine:
         -------
         OttAntonsenResult
         """
+        # Fail-closed integration contract (no silent numeric repair).
+        if not (math.isfinite(dt) and dt > 0):
+            raise ValueError(f"dt must be finite and > 0, got {dt}")
+        if not (math.isfinite(T) and T > 0):
+            raise ValueError(f"T must be finite and > 0, got {T}")
+        if not math.isfinite(R0):
+            raise ValueError(f"R0 must be finite, got {R0}")
+        if not math.isfinite(psi0):
+            raise ValueError(f"psi0 must be finite, got {psi0}")
+
         n_steps = int(T / dt)
+        if n_steps < 1:
+            raise ValueError(f"T/dt must yield ≥ 1 step, got T={T}, dt={dt}")
         time = np.linspace(0.0, T, n_steps + 1)
         z_arr = np.empty(n_steps + 1, dtype=np.complex128)
 
         # Initial condition
-        # INV-OA1: |z| ≤ 1
+        # INV-OA1: |z| ≤ 1 (R0 is finite by the guard above)
         R0 = min(R0, 1.0)
         z = complex(R0 * math.cos(psi0), R0 * math.sin(psi0))
         z_arr[0] = z
@@ -189,9 +208,27 @@ class OttAntonsenEngine:
             k4 = self._dz_dt(z + dt * k3)
             z = z + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
 
-            # INV-OA1: project back to unit disk if numerical drift
-            if abs(z) > 1.0:
-                z = z / abs(z)
+            # INV-OA1: |z| ≤ 1. The previous guard `if abs(z) > 1.0: z/=abs(z)`
+            # was NaN-blind (nan > 1.0 is False, so NaN leaked) AND silently
+            # renormalised a blown-up RK4 step onto the unit circle — turning a
+            # subcritical run (K < 2Δ ⟹ R→0) into a spurious |z|=1 full-sync
+            # verdict. Fail-closed instead: only round-off drift may be
+            # projected; genuine instability / non-finite state raises.
+            z_mag = abs(z)
+            if not math.isfinite(z_mag):
+                raise FloatingPointError(
+                    f"INV-OA1: OA integration produced non-finite |z| at step "
+                    f"{step} (K={self.K}, delta={self.delta}, dt={dt}); "
+                    f"check inputs / reduce dt."
+                )
+            if z_mag > 1.0 + 1e-8:
+                raise FloatingPointError(
+                    f"INV-OA1 VIOLATED: OA integration unstable, |z|={z_mag:.3e} "
+                    f"> 1 at step {step} (K={self.K}, delta={self.delta}, dt={dt}); "
+                    f"RK4 past stability limit — reduce dt."
+                )
+            if z_mag > 1.0:
+                z = z / z_mag  # round-off-only projection onto unit disk
 
             z_arr[step + 1] = z
 
