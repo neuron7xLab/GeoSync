@@ -125,6 +125,10 @@ def test_degenerate_book_fails_closed(contract: MarketLimitsContract) -> None:
 def test_shock_calm_stratified(contract: MarketLimitsContract) -> None:
     limit = _limit(contract, "market.regime_shock")
     assert limit.falsifier_required == "multi_session_replay"
+    # Fail-closed: an invalid shock-regime interpretation must not retain a
+    # real-data measured tier — it caps at Instrumented, never Measured-*.
+    assert limit.max_claim_tier_violated == "Instrumented"
+    assert "Measured" not in limit.max_claim_tier_violated
 
 
 def test_open_system_acknowledged(contract: MarketLimitsContract) -> None:

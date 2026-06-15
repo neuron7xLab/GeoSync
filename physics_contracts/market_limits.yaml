@@ -116,7 +116,10 @@ limits:
     forbidden_claims:
       - "regime-invariant geometric flow"
       - "shock-robust curvature trajectory"
-    max_claim_tier_violated: Measured-Single
+    # Fail-closed: an invalid shock-regime interpretation (pooled, or a calm
+    # result generalized across a shock) must NOT retain a real-data measured
+    # tier; it caps at Instrumented like every other invalid interpretation here.
+    max_claim_tier_violated: Instrumented
 
   - limit_id: market.order_flow_open_system
     mathematical_object: "order-flow imbalance / micro-price descriptors"
