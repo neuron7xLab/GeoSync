@@ -568,3 +568,96 @@ def test_swing_integrator_jacobian_is_symplectic() -> None:
         f"At N={n}, K={k_coupling}, d=0, dt={dt}, seed={seed}. "
         f"Physical reasoning: a symplectic map has unit Jacobian determinant."
     )
+
+
+# ---------------------------------------------------------------------------
+# INV-K8/K10: long-horizon energy bound (Benettin-Giorgilli)
+#   Symplecticity (INV-K10) implies the energy error is BOUNDED over
+#   exponentially long times, NOT secular. The bounded drift does not grow
+#   with the number of steps — a non-symplectic integrator's would.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.heavy_math
+def test_swing_energy_bounded_over_long_horizon() -> None:
+    """INV-K8/K10: symplectic energy drift is bounded, not secular, long-term.
+
+    Backward-error analysis gives a shadow Hamiltonian conserved over times
+    t ~ exp(c/dt) (Benettin-Giorgilli), so the true-energy error stays BOUNDED
+    and does not grow with the number of integration steps. We integrate the
+    same undamped system at two horizons 4x apart and assert the bounded-drift
+    ratio ≈ 1 (Verlet) rather than ≈ 4 (linear secular growth of a
+    non-symplectic step). This is the long-time consequence of INV-K10
+    symplecticity, beyond the fixed-dt amplitude (INV-K8) and order (INV-K9).
+    """
+    # INV-K8/K10: long-horizon parameters
+    n_oscillators = 8  # N=8
+    k_coupling = 3.0  # K=3.0
+    mass = 1.0  # uniform inertia
+    dt = 0.02  # tolerance: standard integration step
+    seed = 5
+    short_steps = 20_000
+    long_steps = 80_000  # 4x horizon
+
+    rng = np.random.default_rng(seed)
+    omega = np.zeros(n_oscillators)  # INV-K8/K10 condition: undamped autonomous
+    theta0 = rng.uniform(0.0, 2.0 * math.pi, n_oscillators)
+    velocity0 = 0.3 * rng.standard_normal(n_oscillators)
+    e_scale = 0.5 * k_coupling * n_oscillators  # potential well depth scale
+
+    def _bounded_drift(steps: int) -> tuple[float, float]:
+        cfg = KuramotoConfig(
+            N=n_oscillators,
+            K=k_coupling,
+            omega=omega,
+            theta0=theta0,
+            dt=dt,
+            steps=steps,
+            seed=seed,
+        )
+        result = SecondOrderKuramotoEngine(
+            cfg, mass=mass, damping=0.0, velocity0=velocity0
+        ).run()
+        energy = _swing_energy(
+            result.velocities, result.order_parameter, mass, k_coupling, n_oscillators
+        )
+        idx = np.arange(energy.size, dtype=np.float64)
+        secular = abs(float(np.polyfit(idx, energy, 1)[0])) * energy.size / e_scale
+        return float(energy.max() - energy.min()) / e_scale, secular
+
+    drifts: list[float] = []
+    seculars: list[float] = []
+    for horizon_steps in (short_steps, long_steps):
+        d, s = _bounded_drift(horizon_steps)
+        drifts.append(d)
+        seculars.append(s)
+    drift_short, drift_long = drifts
+    secular_short, secular_long = seculars
+    ratio = drift_long / drift_short
+
+    # tolerance: Verlet ratio ≈ 1.0; a non-symplectic (Euler) step grows ≈ 3.65
+    # over a 4x horizon, so 1.5 cleanly separates bounded from secular.
+    ratio_bound = 1.5  # epsilon: bounded-drift growth ceiling (linear would be ≈4)
+
+    assert ratio < ratio_bound, (
+        f"INV-K10 VIOLATED: energy drift grew with horizon, ratio(long/short)="
+        f"{ratio:.3f} > tol={ratio_bound:.1f} (drift_short={drift_short:.3e}, "
+        f"drift_long={drift_long:.3e}). Expected a bounded shadow-Hamiltonian "
+        f"error (ratio≈1); growth ≈4x indicates secular, non-symplectic drift. "
+        f"At N={n_oscillators}, K={k_coupling}, d=0, dt={dt}, "
+        f"steps={short_steps}->{long_steps}, seed={seed}. "
+        f"Physical reasoning: a symplectic flow conserves a modified energy "
+        f"over exponentially long times (Benettin-Giorgilli)."
+    )
+
+    # tolerance: bounded absolute drift and negligible secular trend at horizon
+    drift_bound = 1e-2  # epsilon: bounded-drift magnitude tolerance
+    secular_bound = 1e-3  # epsilon: net secular-trend tolerance
+    assert drift_long < drift_bound and max(secular_short, secular_long) < secular_bound, (
+        f"INV-K8 VIOLATED: long-horizon drift={drift_long:.3e} "
+        f"(tol={drift_bound:.1e}) or secular={max(secular_short, secular_long):.3e} "
+        f"(tol={secular_bound:.1e}) exceeded. Expected bounded, non-secular "
+        f"energy over the full horizon. "
+        f"At N={n_oscillators}, K={k_coupling}, d=0, dt={dt}, steps={long_steps}, "
+        f"seed={seed}. Physical reasoning: symplectic flow has no secular drift."
+    )
