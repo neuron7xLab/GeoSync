@@ -103,6 +103,17 @@ kuramoto:
     condition: "All ω_i = 0 (identical frequencies)"
     priority: P1
 
+  swing_energy_balance:
+    id: INV-K8
+    type: conservation  # second-order (swing-equation) energy
+    statement: "Second-order (swing-equation) total energy E = ½·Σ mᵢ·θ̇ᵢ² + V(θ), with V(θ) = -½·Σ_ij A_ij·cos(θⱼ − θᵢ), obeys dE/dt = Σ ωᵢ·θ̇ᵢ − Σ dᵢ·θ̇ᵢ². With ωᵢ ≡ 0: E is conserved when dᵢ ≡ 0 and non-increasing when dᵢ ≥ 0. For the all-to-all coupling A_ij = K/N, V = -(K·N/2)·R² + const — the INV-K7 potential, so E is observable black-box from velocities and R alone."
+    test_type: conservation  # before/after + trajectory
+    condition: "ω_i ≡ 0. Undamped (conservation) clause requires d_i ≡ 0; damped (dissipation) clause requires d_i > 0. A transient must be forced via an unlocked θ0 and non-zero velocity0 — the conservation law is sharpest exactly at this degenerate slice (ω=0, d=0) that the suite never instantiated for energy."
+    falsification: "Replacing Störmer–Verlet with non-symplectic Euler injects secular energy growth (observed bounded-drift range/E_scale ≈ 0.39 vs Verlet ≈ 3e-5, a 4-order gap); flipping the damping sign (−d·θ̇ → +d·θ̇) converts dissipation into energy injection (E diverges by ~10⁶ over the same horizon). Both regressions survive every prior second-order assertion (R∈[0,1], finiteness, shapes) — the docstring claim 'symplectic, energy-conserving' had zero falsifiable backing before INV-K8. Same blind-manifold class as the Ott–Antonsen z̄ ω₀=0 conjugate defect (PR #745)."
+    priority: P1
+    source: core/kuramoto/second_order.py
+    tests: tests/unit/physics/test_T18_kuramoto_p1.py
+
   sakaguchi_frustration_sign:
     id: INV-SAK1
     type: qualitative
