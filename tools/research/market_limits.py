@@ -36,6 +36,14 @@ REQUIRED_FIELDS: tuple[str, ...] = (
     "max_claim_tier_violated",
 )
 
+# A promotion-relevant limit is one whose `invalid_when` could otherwise let a
+# real-data claim advance a claim tier. Such a limit's named falsifier is not a
+# falsifier unless it can actually be run, so it MUST carry an EXECUTABLE
+# falsifier: either a runnable `falsifier_command` (command / pytest node id) or
+# a `falsifier_artifact_path` (a path to a frozen result artifact). The contract
+# load fails closed when a promotion-relevant limit declares neither. Non-
+# promotion limits keep the prior behavior (no executable falsifier required).
+
 # The four pre-registered nulls a falsifier_required entry must name. Mirrors
 # ``tools/research/ricci_preregistration_guard.REQUIRED_NULLS`` so the contract
 # cannot drift to a falsifier that the prereg pipeline does not run.
@@ -57,6 +65,14 @@ class MarketLimit:
     falsifier_required: str
     forbidden_claims: tuple[str, ...]
     max_claim_tier_violated: str
+    promotion_relevant: bool = False
+    falsifier_command: str | None = None
+    falsifier_artifact_path: str | None = None
+
+    @property
+    def has_executable_falsifier(self) -> bool:
+        """True iff this limit names a runnable falsifier command or artifact."""
+        return bool(self.falsifier_command) or bool(self.falsifier_artifact_path)
 
 
 @dataclass(frozen=True)
@@ -78,6 +94,15 @@ def _as_str_tuple(value: Any) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError(f"expected a list[str], got {value!r}")
     return tuple(value)
+
+
+def _as_optional_nonblank_str(value: Any, *, field: str, limit_id: str) -> str | None:
+    """Coerce an optional executable-falsifier field; reject blank/non-str."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"limit {limit_id!r}: {field} must be a non-blank string, got {value!r}")
+    return value
 
 
 def load_contract(path: Path | None = None) -> MarketLimitsContract:
@@ -105,9 +130,35 @@ def load_contract(path: Path | None = None) -> MarketLimitsContract:
             raise ValueError(
                 f"limit {entry.get('limit_id', '<unknown>')!r} missing fields: {missing}"
             )
+        limit_id = str(entry["limit_id"])
+
+        promotion_relevant_raw = entry.get("promotion_relevant", False)
+        if not isinstance(promotion_relevant_raw, bool):
+            raise ValueError(
+                f"limit {limit_id!r}: promotion_relevant must be a bool, "
+                f"got {promotion_relevant_raw!r}"
+            )
+        falsifier_command = _as_optional_nonblank_str(
+            entry.get("falsifier_command"), field="falsifier_command", limit_id=limit_id
+        )
+        falsifier_artifact_path = _as_optional_nonblank_str(
+            entry.get("falsifier_artifact_path"),
+            field="falsifier_artifact_path",
+            limit_id=limit_id,
+        )
+
+        # Fail-closed: a named falsifier is not a falsifier unless it can be run.
+        # A promotion-relevant limit must carry an executable falsifier path.
+        if promotion_relevant_raw and not (falsifier_command or falsifier_artifact_path):
+            raise ValueError(
+                f"limit {limit_id!r} is promotion_relevant but declares neither "
+                f"falsifier_command nor falsifier_artifact_path: its required falsifier "
+                f"{str(entry['falsifier_required'])!r} is not executable/locatable"
+            )
+
         limits.append(
             MarketLimit(
-                limit_id=str(entry["limit_id"]),
+                limit_id=limit_id,
                 mathematical_object=str(entry["mathematical_object"]),
                 market_interpretation=str(entry["market_interpretation"]),
                 valid_when=_as_str_tuple(entry["valid_when"]),
@@ -116,6 +167,9 @@ def load_contract(path: Path | None = None) -> MarketLimitsContract:
                 falsifier_required=str(entry["falsifier_required"]),
                 forbidden_claims=_as_str_tuple(entry["forbidden_claims"]),
                 max_claim_tier_violated=str(entry["max_claim_tier_violated"]),
+                promotion_relevant=promotion_relevant_raw,
+                falsifier_command=falsifier_command,
+                falsifier_artifact_path=falsifier_artifact_path,
             )
         )
 
