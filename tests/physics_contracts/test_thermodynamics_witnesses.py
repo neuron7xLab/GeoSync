@@ -6,11 +6,11 @@ Each binds a pytest function to a first-principles catalog law via ``@law`` and
 proves it holds in the real ``core.physics`` code, deriving every tolerance from
 the law. Two previously-unwitnessed laws gain witnesses:
 
-* ``thermo.second_law_closed`` — entropy of a closed subsystem is
-  non-decreasing under coarse-graining / mixing (INV-TH2; any doubly-stochastic
-  relaxation toward the uniform distribution cannot lower Boltzmann entropy).
-* ``thermo.landauer_bound``    — erasing one bit costs ≥ k_B·T·ln 2 of free
-  energy (Landauer floor; anchored by INV-LANDAUER-PROXY).
+* ``thermo.second_law_closed``   — entropy of a closed subsystem is
+  non-decreasing under coarse-graining / mixing (INV-TH2).
+* ``thermo.free_energy_descent`` — the free-energy trading gate admits a
+  position change only when the free energy F = U − T·S does not increase
+  (INV-FE1).
 
 Nothing here is a market claim. These are thermodynamics facts about the code.
 """
@@ -21,14 +21,15 @@ import math
 
 import numpy as np
 
-from core.physics.landauer import K_BOLTZMANN, LandauerInferenceProfiler
+from core.physics.free_energy_trading_gate import FreeEnergyTradingGate
 from core.physics.thermodynamics import boltzmann_entropy
 from physics_contracts.law import law
 
 # Catalog ``thermo.second_law_closed`` slack: S(t+1) − S(t) ≥ −1e-12.
 ENTROPY_SLACK = 1e-12
-# Landauer is an exact algebraic identity; only float round-off is allowed.
-LANDAUER_REL_TOL = 1e-15
+# Catalog ``thermo.free_energy_descent``: the gate's admit boundary is ΔF ≤ 0,
+# so only float round-off is allowed on an admitted trade.
+FREE_ENERGY_SLACK = 1e-9
 
 
 @law("thermo.second_law_closed", n_distributions=40, mixing_fractions=(0.1, 0.3, 0.6))
@@ -61,33 +62,45 @@ def test_entropy_non_decreasing_under_mixing() -> None:
     )
 
 
-@law("thermo.landauer_bound", n_temperatures=5, bits=8)
-def test_landauer_erasure_floor_is_kT_ln2() -> None:
-    """INV-LANDAUER-PROXY: per-bit erasure energy equals the Landauer floor.
+@law("thermo.free_energy_descent", n_trades=200, temperature=1.0)
+def test_free_energy_gate_admits_only_descent() -> None:
+    """INV-FE1: the gate admits a position change only when F is non-increasing.
 
-    The minimum free energy to erase one bit is exactly k_B·T·ln 2, and the cost
-    of erasing N bits is N times that floor — a hard physical lower bound. The
-    witness checks the identity across a range of temperatures and asserts the
-    N-bit cost never falls below N·k_B·T·ln 2.
+    The free-energy trading gate computes F = U − T·S for the before/after
+    positions and sets ``allowed = (ΔF ≤ 0)``. The witness drives the gate with
+    random position changes and checks two things: the admit flag agrees with the
+    sign of ΔF, and no admitted trade increases free energy. Any admitted ΔF > 0
+    is a violation of the descent law.
     """
-    n_temperatures = 5
-    bits = 8
-    worst_rel_error = 0.0
-    floor_respected = True
-    for temperature in np.geomspace(1e-3, 1e3, n_temperatures):
-        profiler = LandauerInferenceProfiler(T=float(temperature))
-        expected_floor = K_BOLTZMANN * float(temperature) * math.log(2)
-        rel_error = abs(profiler.landauer_per_bit - expected_floor) / expected_floor
-        worst_rel_error = max(worst_rel_error, rel_error)
-        if profiler.minimum_energy(bits) < bits * expected_floor - 1e-30:
-            floor_respected = False
-    assert worst_rel_error <= LANDAUER_REL_TOL, (
-        "thermo.landauer_bound / INV-LANDAUER-PROXY violated: observed worst "
-        f"relative error = {worst_rel_error:.2e} must be ≤ {LANDAUER_REL_TOL:.0e} "
-        f"with n_temperatures={n_temperatures}; per-bit energy must equal k_B·T·ln 2"
+    n_trades = 200
+    temperature = 1.0
+    gate = FreeEnergyTradingGate()
+    rng = np.random.default_rng(seed=0)
+    violations = 0
+    flag_disagreements = 0
+    worst_admitted_delta_f = -math.inf
+    for _ in range(n_trades):
+        size = int(rng.integers(2, 6))
+        positions_before = rng.normal(0.0, 1.0, size)
+        positions_after = rng.normal(0.0, 1.0, size)
+        recent_returns = rng.normal(0.0, 0.02, size)
+        decision = gate.check(
+            positions_before, positions_after, recent_returns, T_LOB=temperature
+        )
+        if decision.allowed != (decision.delta_F <= FREE_ENERGY_SLACK):
+            flag_disagreements += 1
+        if decision.allowed:
+            worst_admitted_delta_f = max(worst_admitted_delta_f, decision.delta_F)
+            if decision.delta_F > FREE_ENERGY_SLACK:
+                violations += 1
+    assert flag_disagreements == 0, (
+        "INV-FE1 violated: observed flag_disagreements = "
+        f"{flag_disagreements} must be 0 over n_trades={n_trades} with seed=0; the "
+        "gate's admit flag must equal sign(ΔF ≤ 0)"
     )
-    assert floor_respected, (
-        "thermo.landauer_bound / INV-LANDAUER-PROXY violated: observed N-bit "
-        f"erasure cost fell below N·k_B·T·ln 2 with bits={bits} and seed=0; the "
-        "Landauer floor is a hard physical lower bound and must be respected"
+    assert violations == 0, (
+        "INV-FE1 violated: observed violations = "
+        f"{violations} admitted trades with ΔF > {FREE_ENERGY_SLACK:.0e} (worst "
+        f"admitted ΔF = {worst_admitted_delta_f:.3e}) over n_trades={n_trades} with "
+        "seed=0; an admitted trade must never increase free energy"
     )

@@ -34,25 +34,45 @@ def test_kelly_applied_fraction_respects_cap() -> None:
 
     f_applied = kelly_base · scale with scale ∈ [floor, ceil]; therefore the
     applied fraction is bounded above by kelly_base·ceil and below by
-    kelly_base·floor for every order-parameter regime. The witness sweeps random
-    price series and base fractions, tracking the worst-case cap overshoot.
+    kelly_base·floor for every order-parameter regime. The sweep mixes incoherent
+    random-walk series (low order parameter → scale near floor) with coherent
+    oscillatory series (high order parameter → scale near ceil) so the cap is
+    genuinely approached from below, not asserted on a slice where scale never
+    leaves the floor; a vacuity guard requires the observed scale to reach the
+    upper half of [floor, ceil].
     """
     n_price_series = 30
     base_fractions = (0.05, 0.2, 0.5, 1.0)
     adapter = KuramotoKellyAdapter(NeuroSignalBus(), floor=KELLY_FLOOR, ceil=KELLY_CEIL)
     rng = np.random.default_rng(seed=0)
+    times = np.arange(128)
+    series = [
+        100.0 * np.exp(np.cumsum(rng.normal(0.0, 0.01, size=40)))
+        for _ in range(n_price_series)
+    ]
+    series += [
+        100.0 * np.exp(0.05 * np.sin(2.0 * np.pi * freq * times)) for freq in (0.05, 0.1, 0.2)
+    ]
     worst_overshoot = -np.inf
     worst_undershoot = np.inf
-    for _ in range(n_price_series):
-        prices = 100.0 * np.exp(np.cumsum(rng.normal(0.0, 0.01, size=40)))
+    max_scale = 0.0
+    for prices in series:
         for kelly_base in base_fractions:
             applied = adapter.compute_kelly_fraction(kelly_base, prices)
             worst_overshoot = max(worst_overshoot, applied - kelly_base * KELLY_CEIL)
             worst_undershoot = min(worst_undershoot, applied - kelly_base * KELLY_FLOOR)
+            max_scale = max(max_scale, applied / kelly_base)
     assert worst_overshoot <= CAP_EPS, (
         "INV-KELLY2 violated: observed worst overshoot = "
         f"{worst_overshoot:.3e} must be ≤ {CAP_EPS:.0e} (applied ≤ kelly_base·ceil) "
         f"over n_price_series={n_price_series} with seed=0 and ceil={KELLY_CEIL}"
+    )
+    midpoint = KELLY_FLOOR + 0.5 * (KELLY_CEIL - KELLY_FLOOR)
+    assert max_scale >= midpoint, (
+        "INV-KELLY2 vacuity guard: observed max scale = "
+        f"{max_scale:.3f} must reach ≥ {midpoint:.3f} (upper half of [floor, ceil]) "
+        f"with seed=0 and ceil={KELLY_CEIL}; the cap must be approached, not asserted "
+        "on an all-floor slice"
     )
     assert worst_undershoot >= -CAP_EPS, (
         "INV-KELLY2 violated: observed worst undershoot = "
