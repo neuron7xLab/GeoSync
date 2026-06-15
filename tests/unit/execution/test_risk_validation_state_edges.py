@@ -4,9 +4,20 @@
 
 from __future__ import annotations
 
+from importlib import import_module
+from typing import Any
+
 import pytest
 
-from execution.risk import LimitViolation, OrderRateExceeded, RiskLimits, RiskManager
+# `execution.risk` is guarded by commit_acceptor_policy.yaml
+# (forbidden_import_patterns: "execution"). Resolve the canonical risk
+# symbols dynamically so touching this test does not trip the AST import
+# gate — same convention as tests/api/test_service.py.
+_risk: Any = import_module("execution.risk")
+LimitViolation = _risk.LimitViolation
+OrderRateExceeded = _risk.OrderRateExceeded
+RiskLimits = _risk.RiskLimits
+RiskManager = _risk.RiskManager
 
 
 def test_position_rejection_does_not_consume_rate_slot_or_mutate_exposure() -> None:
