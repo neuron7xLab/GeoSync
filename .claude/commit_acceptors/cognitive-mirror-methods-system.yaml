@@ -4,6 +4,7 @@ claim_type: documentation
 promise: "Adds a bounded Cognitive Mirror Methods system slice with public contracts and integration docs."
 diff_scope:
   changed_files:
+    - path: "cognitive_mirror_methods/__init__.py"
     - path: "cognitive_mirror_methods/README.md"
     - path: "cognitive_mirror_methods/artifacts/consolidation/CONSOLIDATION_REPORT.json"
     - path: "cognitive_mirror_methods/contracts/request.json"
@@ -19,7 +20,6 @@ diff_scope:
     - path: "cognitive_mirror_methods/system/artifacts/integration_report.json"
     - path: "cognitive_mirror_methods/system/docs/integration_map.md"
     - path: "cognitive_mirror_methods/system/docs/module_contracts.md"
-    - path: "cognitive_mirror_methods/system/docs/validation.md"
     - path: "cognitive_mirror_methods/system/interfaces/public_api.py"
     - path: "cognitive_mirror_methods/system/orchestration/pipeline.py"
     - path: "cognitive_mirror_methods/system/orchestration/registry.py"
