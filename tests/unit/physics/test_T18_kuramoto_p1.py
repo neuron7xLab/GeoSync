@@ -18,6 +18,16 @@ Three physically distinct P1 invariants tested against the production
   V = -(K*N/2)*R^2 is non-increasing along trajectories with identical
   natural frequencies (all omega_i = 0), confirming gradient descent
   on the Kuramoto potential landscape.
+
+* **INV-K8** (conservation / trajectory): the *second-order* swing-equation
+  total energy E = (1/2)*sum(m*theta_dot^2) + V is conserved under the
+  Stoermer-Verlet integrator when undamped (omega=0, d=0) and is monotone
+  non-increasing when damped (omega=0, d>0). For the all-to-all model
+  V = -(K*N/2)*R^2 + const (the INV-K7 potential), so E is observable
+  black-box from velocities and R. Defends the "symplectic, energy-conserving"
+  docstring claim in ``core.kuramoto.second_order`` against the two regression
+  classes that survive every prior assertion: non-symplectic (Euler) drift
+  and damping-sign inversion (anti-damping = energy injection).
 """
 
 from __future__ import annotations
@@ -29,6 +39,7 @@ import pytest
 
 from core.kuramoto.config import KuramotoConfig
 from core.kuramoto.engine import KuramotoEngine
+from core.kuramoto.second_order import SecondOrderKuramotoEngine
 
 # ---------------------------------------------------------------------------
 # INV-K4: R_inf(K1) <= R_inf(K2) when K1 < K2  (sweep / conditional)
@@ -198,4 +209,171 @@ def test_lyapunov_functional_non_increasing_identical_frequencies() -> None:
         f"At N={n_oscillators}, K={k_coupling}, steps={steps}, seed={seed}. "
         f"Physical reasoning: with omega_i=0 for all i, "
         f"Kuramoto is a gradient system and V is a strict Lyapunov function."
+    )
+
+
+# ---------------------------------------------------------------------------
+# INV-K8: second-order swing-equation energy balance
+#   E = (1/2) sum(m*theta_dot^2) + V,   V_all-to-all = -(K*N/2)*R^2 + const
+#   omega=0, d=0  ->  dE/dt = 0          (conservation, Stoermer-Verlet)
+#   omega=0, d>0  ->  dE/dt = -sum(d*theta_dot^2) <= 0   (dissipation)
+# ---------------------------------------------------------------------------
+
+
+def _swing_energy(
+    velocities: np.ndarray, r_trajectory: np.ndarray, mass: float, k_coupling: float, n: int
+) -> np.ndarray:
+    """Total swing energy per timestep for the all-to-all second-order model.
+
+    E(t) = (1/2) * mass * sum_i v_i(t)^2  +  V(t),  with the all-to-all
+    potential V(t) = -(K*N/2) * R(t)^2 (the INV-K7 potential, up to an
+    additive constant K/2 that cancels in every drift / monotonicity check).
+    """
+    kinetic = 0.5 * mass * np.sum(velocities**2, axis=1)
+    potential = -0.5 * k_coupling * n * r_trajectory**2
+    return kinetic + potential
+
+
+def test_swing_energy_conserved_undamped() -> None:
+    """INV-K8 (conservation): undamped swing energy is constant under Verlet.
+
+    With omega_i = 0 and d = 0 the autonomous swing equation is conservative,
+    so a symplectic (Stoermer-Verlet) integrator keeps E within a bounded
+    O(dt^2) oscillation with no secular trend. We force a genuine transient
+    (unlocked theta0 + non-zero velocity0) because the conservation law is
+    sharpest exactly at this degenerate (omega=0, d=0) slice. The bound
+    range/E_scale < 1e-2 sits ~300x above the observed Verlet drift (~3e-5)
+    yet ~40x below the non-symplectic Euler drift (~0.39): it is a true
+    falsifier for loss of symplecticity, not a magic number.
+    """
+    # INV-K8: undamped trajectory parameters
+    n_oscillators = 64  # N=64
+    k_coupling = 4.0  # K=4.0
+    mass = 1.0  # uniform inertia
+    steps = 6000
+    seed = 0
+    dt = 0.01  # tolerance: standard integration step
+
+    rng = np.random.default_rng(seed)
+    omega = np.zeros(n_oscillators)  # INV-K8 condition: zero natural frequency
+    theta0 = rng.uniform(0.0, 2.0 * math.pi, n_oscillators)  # unlocked -> transient
+    velocity0 = 0.3 * rng.standard_normal(n_oscillators)  # kinetic seed
+
+    cfg = KuramotoConfig(
+        N=n_oscillators,
+        K=k_coupling,
+        omega=omega,
+        theta0=theta0,
+        dt=dt,
+        steps=steps,
+        seed=seed,
+    )
+    result = SecondOrderKuramotoEngine(
+        cfg, mass=mass, damping=0.0, velocity0=velocity0
+    ).run()
+
+    energy = _swing_energy(
+        result.velocities, result.order_parameter, mass, k_coupling, n_oscillators
+    )
+    e_scale = 0.5 * k_coupling * n_oscillators  # potential well depth scale
+    bounded_drift = float(energy.max() - energy.min())
+    rel_drift = bounded_drift / e_scale
+    # tolerance: empirically Verlet gives ~3e-5, Euler ~0.39 over this horizon
+    drift_bound = 1e-2  # epsilon: symplectic bounded-drift tolerance
+
+    assert rel_drift < drift_bound, (
+        f"INV-K8 VIOLATED: undamped swing energy drifted range={bounded_drift:.3e} "
+        f"(range/E_scale={rel_drift:.3e}) > tolerance={drift_bound:.1e}. "
+        f"Expected bounded O(dt^2) oscillation with no secular trend; this "
+        f"magnitude indicates loss of symplecticity (e.g. Euler integration). "
+        f"At N={n_oscillators}, K={k_coupling}, d=0, steps={steps}, seed={seed}. "
+        f"Physical reasoning: omega=0, d=0 -> dE/dt=0, conservative dynamics."
+    )
+
+    # Secular-trend guard: a symplectic scheme has zero net energy drift.
+    initial = float(energy[0])
+    final = float(energy[-1])
+    step_index = np.arange(energy.size, dtype=np.float64)
+    secular_slope = float(np.polyfit(step_index, energy, 1)[0])
+    secular_total = abs(secular_slope) * energy.size
+    rel_secular = secular_total / e_scale
+    # tolerance: Verlet secular drift ~2e-4/E_scale; Euler is orders larger
+    secular_bound = 1e-2  # epsilon: net (secular) energy drift tolerance
+
+    assert rel_secular < secular_bound, (
+        f"INV-K8 VIOLATED: undamped swing energy shows a secular trend "
+        f"total={secular_total:.3e} (total/E_scale={rel_secular:.3e}) > "
+        f"tolerance={secular_bound:.1e}. Expected a stationary E(t) with zero "
+        f"net drift (initial={initial:.3e}, final={final:.3e}); a monotone trend "
+        f"indicates non-symplectic integration. "
+        f"At N={n_oscillators}, K={k_coupling}, d=0, steps={steps}, seed={seed}. "
+        f"Physical reasoning: conservative swing flow -> E(t) is stationary."
+    )
+
+
+def test_swing_energy_dissipated_damped() -> None:
+    """INV-K8 (dissipation): damped swing energy is monotone non-increasing.
+
+    With omega_i = 0 and d > 0, dE/dt = -sum(d*theta_dot^2) <= 0, so E must
+    not increase along the trajectory and must net-decrease while there is
+    motion to dissipate. This clause is the falsifier for a damping-sign
+    inversion (-d*theta_dot -> +d*theta_dot), which converts dissipation
+    into energy injection and makes E diverge (~10^6 over this horizon).
+    """
+    # INV-K8: damped trajectory parameters
+    n_oscillators = 64  # N=64
+    k_coupling = 4.0  # K=4.0
+    mass = 1.0  # uniform inertia
+    damping = 0.2  # d>0: strictly dissipative
+    steps = 6000
+    seed = 0
+    dt = 0.01  # tolerance: standard integration step
+
+    rng = np.random.default_rng(seed)
+    omega = np.zeros(n_oscillators)  # INV-K8 condition: zero natural frequency
+    theta0 = rng.uniform(0.0, 2.0 * math.pi, n_oscillators)  # unlocked -> transient
+    velocity0 = 0.3 * rng.standard_normal(n_oscillators)  # kinetic seed to dissipate
+
+    cfg = KuramotoConfig(
+        N=n_oscillators,
+        K=k_coupling,
+        omega=omega,
+        theta0=theta0,
+        dt=dt,
+        steps=steps,
+        seed=seed,
+    )
+    result = SecondOrderKuramotoEngine(
+        cfg, mass=mass, damping=damping, velocity0=velocity0
+    ).run()
+
+    energy = _swing_energy(
+        result.velocities, result.order_parameter, mass, k_coupling, n_oscillators
+    )
+    e_scale = 0.5 * k_coupling * n_oscillators  # potential well depth scale
+    de = np.diff(energy)
+    # tolerance: observed max per-step change is negative; allow tiny float slack
+    fp_tolerance = 1e-6 * e_scale  # epsilon: floating-point monotonicity slack
+    increases = de[de > fp_tolerance]
+    n_increases = len(increases)
+
+    assert n_increases == 0, (
+        f"INV-K8 VIOLATED: damped swing energy increased {n_increases} times "
+        f"(max step dE={float(np.max(de)):.3e} > tol={fp_tolerance:.3e}). "
+        f"Expected dE/dt = -sum(d*theta_dot^2) <= 0; a positive step indicates "
+        f"a damping-sign inversion (anti-damping = energy injection). "
+        f"At N={n_oscillators}, K={k_coupling}, d={damping}, steps={steps}, seed={seed}. "
+        f"Physical reasoning: positive damping can only remove kinetic energy."
+    )
+
+    # Net dissipation must actually occur (guards a no-op / near-zero damping path).
+    initial = float(energy[0])
+    final = float(energy[-1])
+    net_change = final - initial
+    assert net_change < -fp_tolerance, (
+        f"INV-K8 VIOLATED: damped swing energy did not net-decrease "
+        f"(observed final-initial={net_change:.3e} >= -tol={-fp_tolerance:.3e}). "
+        f"With d={damping}>0 and a seeded transient, dissipation must reduce E. "
+        f"At N={n_oscillators}, K={k_coupling}, steps={steps}, seed={seed}. "
+        f"Physical reasoning: sustained motion under positive damping bleeds energy."
     )
