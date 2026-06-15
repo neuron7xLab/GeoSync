@@ -264,13 +264,14 @@ def test_p0_claim_with_missing_evidence_fails_gate(
     assert "totally/missing/path.py" in failures[0].reason
 
 
-def test_v3_falsifier_optional_warn_only_when_missing(
+def test_v3_falsifier_absent_is_parse_clean_but_gated_by_main(
     tmp_path: Path,
     cc: Any,
 ) -> None:
-    """Phase 1.0 (per ADR 0021): v3 ANCHORED without falsifier is
-    warn-only, not gating. The schema accepts the entry; main()
-    emits a WARN line on stderr."""
+    """Schema admits an ANCHORED claim with no falsifier (parse layer
+    stays permissive), but the falsifier coverage gate lives in main(),
+    not in _validate_evidence. So _validate_evidence still returns []
+    while main() fails it — see the main() gate tests below."""
     body = _minimal_valid()
     body["schema_version"] = 3
     body["claims"][0]["tier"] = "ANCHORED"
@@ -280,7 +281,69 @@ def test_v3_falsifier_optional_warn_only_when_missing(
     claims = cc._parse_claims(registry)
     assert claims[0].falsifier is None
     failures = cc._validate_evidence(claims[0], ROOT)
-    assert failures == []  # Phase 1.0 — warn-only
+    assert failures == []  # evidence-path gate is orthogonal to falsifier gate
+
+
+def test_v3_p0_anchored_without_falsifier_fails_main(
+    tmp_path: Path,
+    cc: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Phase 1.1 (ADR 0021): a P0/P1 ANCHORED claim with no v3 falsifier
+    block is now a hard build failure — "no falsifier ⇒ no claim". The
+    error must name the offending claim id."""
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["id"] = "unfalsified-anchored"
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["priority"] = "P0"
+    path = _write_registry(tmp_path, body)
+    monkeypatch.setattr(cc, "CLAIMS_PATH", path)
+    rc = cc.main([])
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "falsifier" in err
+    assert "unfalsified-anchored" in err
+
+
+def test_v3_p0_anchored_with_falsifier_passes_main(
+    tmp_path: Path,
+    cc: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A P0 ANCHORED claim carrying a well-formed falsifier block clears
+    the gate (exit 0)."""
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "ANCHORED"
+    body["claims"][0]["priority"] = "P0"
+    body["claims"][0]["falsifier"] = {
+        "test_id": "tests/test_x.py::test_invariant",
+        "invariants_cited": ["INV-K1"],
+        "failure_signature": "any |z| > 1 raises INV-OA1",
+    }
+    path = _write_registry(tmp_path, body)
+    monkeypatch.setattr(cc, "CLAIMS_PATH", path)
+    assert cc.main([]) == 0
+
+
+def test_v3_extrapolated_without_falsifier_does_not_gate_main(
+    tmp_path: Path,
+    cc: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Scope guard: the falsifier gate is ANCHORED-only. An EXTRAPOLATED
+    P0 claim without a falsifier must NOT fail main() — its tier already
+    declares the evidence gap, so gating it would conflate 'not yet
+    proven' with 'claimed but unbacked'."""
+    body = _minimal_valid()
+    body["schema_version"] = 3
+    body["claims"][0]["tier"] = "EXTRAPOLATED"
+    body["claims"][0]["priority"] = "P0"
+    path = _write_registry(tmp_path, body)
+    monkeypatch.setattr(cc, "CLAIMS_PATH", path)
+    assert cc.main([]) == 0
 
 
 def test_v3_falsifier_block_parses_when_present(

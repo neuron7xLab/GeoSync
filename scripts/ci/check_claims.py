@@ -20,8 +20,10 @@ Run locally before push:
 
 Exit codes:
 
-    0  — all gated claims have intact evidence
-    1  — schema violation OR missing evidence on a P0/P1 claim
+    0  — all gated claims have intact evidence and (v3) every P0/P1
+         ANCHORED claim carries a falsifier block
+    1  — schema violation, missing evidence on a P0/P1 claim, OR a
+         P0/P1 ANCHORED claim with no v3 falsifier block
 
 The intent is the inverse of an aspirational README: the registry
 states what the repository claims to be, and the CI gate refuses to
@@ -273,25 +275,48 @@ def main(argv: list[str] | None = None) -> int:
 
     tier_summary = ", ".join(f"{t}={tier_counts[t]}" for t in sorted(TIERS_VALID))
 
-    # v3 falsifier coverage — warn-only in Phase 1.0 per ADR 0021.
+    # v3 falsifier coverage — FAIL-CLOSED for P0/P1 ANCHORED claims
+    # (ADR 0021, Phase 1.1; supersedes the Phase 1.0 warn-only path).
+    #
+    # Doctrine (CLAUDE.md / FORBIDDEN_CLAIMS): "No falsifier means no
+    # claim." ANCHORED is the strongest evidence tier the registry can
+    # assert; an ANCHORED claim with no structural falsifier block is
+    # indistinguishable from an aspirational README line. The gate now
+    # refuses it instead of merely warning.
+    #
+    # Scope is deliberately ANCHORED ∩ {P0, P1}:
+    #   * EXTRAPOLATED/SPECULATIVE/UNKNOWN tiers are *not yet anchored*;
+    #     the tier itself already declares the evidence gap, so a missing
+    #     falsifier there is expected, not a lie. Gating them would
+    #     conflate "not yet proven" with "claimed but unbacked".
+    #   * P2 claims are informational and never gated (parity with the
+    #     evidence-path gate above).
+    # Structural presence is enforced here; test_id → live pytest node
+    # resolution remains the job of compute_fps_audit (see header note).
+    falsifier_summary = ""
     if schema_version >= 3:
-        anchored_total = sum(1 for c in claims if c.tier == "ANCHORED")
-        anchored_with_falsifier = sum(
-            1 for c in claims if c.tier == "ANCHORED" and c.falsifier is not None
-        )
-        anchored_without = anchored_total - anchored_with_falsifier
-        if anchored_without:
-            missing = [c.id for c in claims if c.tier == "ANCHORED" and c.falsifier is None]
+        gated_anchored = [
+            c for c in claims if c.tier == "ANCHORED" and c.priority in PRIORITIES_GATED
+        ]
+        without_falsifier = [c for c in gated_anchored if c.falsifier is None]
+        if without_falsifier:
             print(
-                f"WARN(v3): {anchored_without}/{anchored_total} ANCHORED claim(s) "
-                f"lack falsifier block (Phase 1.0 warn-only): {missing}",
+                f"FAIL: {len(without_falsifier)}/{len(gated_anchored)} P0/P1 ANCHORED "
+                f"claim(s) lack a v3 falsifier block (no falsifier ⇒ no claim):",
                 file=sys.stderr,
             )
+            for c in without_falsifier:
+                print(
+                    f"  [{c.id}] ({c.priority}/{c.tier}) missing falsifier block — add "
+                    f"falsifier.{{test_id, invariants_cited, failure_signature}} "
+                    f"or demote the tier.",
+                    file=sys.stderr,
+                )
+            return 1
+        with_falsifier = len(gated_anchored) - len(without_falsifier)
         falsifier_summary = (
-            f"; falsifier coverage: {anchored_with_falsifier}/{anchored_total} ANCHORED"
+            f"; falsifier coverage: {with_falsifier}/{len(gated_anchored)} P0/P1 ANCHORED"
         )
-    else:
-        falsifier_summary = ""
 
     print(
         f"PASS: schema v{schema_version}; "
