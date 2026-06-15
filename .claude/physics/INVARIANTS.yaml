@@ -114,6 +114,17 @@ kuramoto:
     source: core/kuramoto/second_order.py
     tests: tests/unit/physics/test_T18_kuramoto_p1.py
 
+  swing_energy_convergence_order:
+    id: INV-K9
+    type: conservation  # backward-error / shadow-Hamiltonian convergence order
+    statement: "The Störmer–Verlet integrator of the second-order swing equation conserves a modified (shadow) Hamiltonian H̃ = H + O(dt²), so the true-energy error is BOUNDED (no secular trend) and scales as max|ΔE| ∝ dt^p with convergence order p = 2. The falsifiable signature is the least-squares log-log slope of max|ΔE| vs dt over a geometric ladder: symplectic ⟹ slope ≈ 2; any non-symplectic or order-degraded step ⟹ slope ≤ 1 and/or secular growth."
+    test_type: conservation  # dt-ladder sweep + bounded-drift comparison
+    condition: "ω_i ≡ 0, d_i ≡ 0 (autonomous conservative regime); unlocked θ0 + non-zero velocity0; dt swept over a geometric ×2 ladder at fixed physical horizon; order recovered as the log-log slope of bounded energy drift."
+    falsification: "Replacing Störmer–Verlet with explicit Euler collapses the recovered order from ≈2.01 to ≈0.81 and turns bounded drift into secular growth (|ΔE| larger by ~4 orders at equal dt). A fixed-dt amplitude test (INV-K8) can miss a subtle order degradation that still has small drift at the tested dt; INV-K9 measures the order directly and is strictly stronger. Theory: Hairer–Lubich–Wanner, Geometric Numerical Integration; Benettin–Giorgilli long-time energy bounds."
+    priority: P1
+    source: core/kuramoto/second_order.py
+    tests: tests/unit/physics/test_T18_kuramoto_p1.py
+
   sakaguchi_frustration_sign:
     id: INV-SAK1
     type: qualitative

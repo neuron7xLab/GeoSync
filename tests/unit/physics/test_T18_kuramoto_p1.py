@@ -377,3 +377,91 @@ def test_swing_energy_dissipated_damped() -> None:
         f"At N={n_oscillators}, K={k_coupling}, steps={steps}, seed={seed}. "
         f"Physical reasoning: sustained motion under positive damping bleeds energy."
     )
+
+
+# ---------------------------------------------------------------------------
+# INV-K9: backward-error convergence order of the swing-equation integrator
+#   Verlet conserves a shadow Hamiltonian H~ = H + O(dt^2), so the energy
+#   error is BOUNDED and scales as max|dE| ~ dt^p with order p = 2.
+#   Falsifiable signature: log-log slope of max|dE| vs dt equals the order.
+# ---------------------------------------------------------------------------
+
+
+def test_swing_energy_convergence_order_symplectic() -> None:
+    """INV-K9: Stoermer-Verlet energy error scales as max|dE| ~ dt^2 (bounded).
+
+    Backward-error analysis (Hairer-Lubich-Wanner, Geometric Numerical
+    Integration): a symplectic integrator exactly conserves a modified
+    (shadow) Hamiltonian H~ = H + O(dt^2), so the true-energy error is BOUNDED
+    (no secular trend) and its amplitude scales as dt^p with p = the method
+    order (2 for velocity-Verlet). We recover p as the least-squares log-log
+    slope of bounded energy drift over a geometric dt-ladder and assert it
+    matches the theoretical order. This is strictly stronger than the fixed-dt
+    amplitude bound of INV-K8: a subtle order degradation (Verlet -> Euler)
+    collapses the recovered slope from ~2.01 to ~0.81 and reintroduces secular
+    growth, which a single-dt amplitude check can miss.
+    """
+    # INV-K9: convergence-order parameters
+    n_oscillators = 32  # N=32
+    k_coupling = 3.0  # K=3.0
+    mass = 1.0  # uniform inertia
+    horizon = 40.0  # fixed physical time; steps = horizon/dt per ladder rung
+    seed = 11
+    dt_ladder = [0.02, 0.01, 0.005, 0.0025]  # geometric x2 refinement
+
+    rng = np.random.default_rng(seed)
+    omega = np.zeros(n_oscillators)  # INV-K9 condition: autonomous conservative
+    theta0 = rng.uniform(0.0, 2.0 * math.pi, n_oscillators)  # unlocked transient
+    velocity0 = 0.35 * rng.standard_normal(n_oscillators)  # kinetic seed
+    e_scale = 0.5 * k_coupling * n_oscillators  # potential well depth scale
+
+    drifts: list[float] = []
+    max_secular = 0.0
+    for dt in dt_ladder:
+        steps = int(round(horizon / dt))
+        cfg = KuramotoConfig(
+            N=n_oscillators,
+            K=k_coupling,
+            omega=omega,
+            theta0=theta0,
+            dt=dt,
+            steps=steps,
+            seed=seed,
+        )
+        result = SecondOrderKuramotoEngine(
+            cfg, mass=mass, damping=0.0, velocity0=velocity0
+        ).run()
+        energy = _swing_energy(
+            result.velocities, result.order_parameter, mass, k_coupling, n_oscillators
+        )
+        drifts.append(float(energy.max() - energy.min()))
+        idx = np.arange(energy.size, dtype=np.float64)
+        secular = abs(float(np.polyfit(idx, energy, 1)[0])) * energy.size
+        max_secular = max(max_secular, secular / e_scale)
+
+    # Recovered convergence order = log-log slope of bounded drift vs dt.
+    order = float(np.polyfit(np.log(dt_ladder), np.log(drifts), 1)[0])
+    theoretical_order = 2.0  # velocity-Verlet is second order
+    # tolerance: Verlet recovers ~2.01; Euler collapses to ~0.81 (|deviation|>1)
+    order_tol = 0.3  # epsilon: order-recovery band around the theoretical p=2
+
+    assert abs(order - theoretical_order) < order_tol, (
+        f"INV-K9 VIOLATED: recovered energy-error convergence order p={order:.3f} "
+        f"deviates from theoretical p={theoretical_order:.1f} by more than "
+        f"tol={order_tol:.1f}. Expected symplectic O(dt^2) scaling; a low order "
+        f"indicates loss of symplecticity (Euler collapses p to ~0.8). "
+        f"At N={n_oscillators}, K={k_coupling}, d=0, horizon={horizon}, seed={seed}, "
+        f"drifts={['%.2e' % d for d in drifts]}. "
+        f"Physical reasoning: Verlet conserves a shadow Hamiltonian H~=H+O(dt^2)."
+    )
+
+    # tolerance: bounded (non-secular) drift; Verlet ~6e-6, Euler O(1)
+    secular_bound = 1e-3  # epsilon: net secular-trend tolerance over the ladder
+    assert max_secular < secular_bound, (
+        f"INV-K9 VIOLATED: energy error shows a secular trend "
+        f"max(secular/E_scale)={max_secular:.3e} > tol={secular_bound:.1e}. "
+        f"Expected bounded oscillation around the shadow Hamiltonian with zero "
+        f"net drift; a secular trend indicates non-symplectic integration. "
+        f"At N={n_oscillators}, K={k_coupling}, d=0, horizon={horizon}, seed={seed}. "
+        f"Physical reasoning: symplectic flow has no secular energy drift."
+    )
