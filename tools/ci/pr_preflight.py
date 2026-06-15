@@ -586,11 +586,47 @@ def build_report(
     }
 
 
+def _invalid_root_check(root: Path, report_dir: Path) -> dict[str, Any]:
+    """Build a single fail-closed BLOCKED check for a non-directory root.
+
+    A non-directory root cannot host any real check, so the engine refuses to
+    run the registry and emits one critical ``invalid_root`` BLOCKED check. This
+    keeps the report contract intact while guaranteeing the run can never report
+    PASS on an invalid root.
+    """
+
+    spec = CheckSpec(
+        id="invalid_root",
+        name="Repository root validation",
+        command=[],
+        critical=True,
+    )
+    return _empty_check_result(
+        spec=spec,
+        root=root,
+        stdout_log=_log_path(report_dir, spec.stdout_log),
+        stderr_log=_log_path(report_dir, spec.stderr_log),
+        status=BLOCKED,
+        critical=True,
+        failure_reason=f"root is not a directory: {root}",
+        tool_available=False,
+    )
+
+
 def run_preflight(root: Path, report_dir: Path, skip_install: bool = False) -> dict[str, Any]:
     started = time.monotonic()
     started_at = _utc_now()
     root = root.resolve()
     report_dir = report_dir.resolve()
+    if not root.is_dir():
+        checks = [_invalid_root_check(root, report_dir)]
+        report = build_report(root, report_dir, checks, started_at)
+        report["duration_seconds"] = round(time.monotonic() - started, 6)
+        validate_report_contract(report)
+        _write_text(
+            report_dir / "preflight_report.json", json.dumps(report, indent=2, sort_keys=True)
+        )
+        return report
     checks = [
         run_check(spec, root, report_dir) for spec in build_check_registry(root, skip_install)
     ]
@@ -625,7 +661,13 @@ def main(argv: list[str] | None = None) -> int:
     root = Path(args.root).resolve()
     report_dir_arg = Path(args.report_dir)
     report_dir = report_dir_arg if report_dir_arg.is_absolute() else root / report_dir_arg
-    report = run_preflight(root=root, report_dir=report_dir, skip_install=args.skip_install)
+    try:
+        report = run_preflight(root=root, report_dir=report_dir, skip_install=args.skip_install)
+    except OSError as exc:
+        # Fail closed on a report-write failure (report dir is a file / unwritable):
+        # print the reason to stderr and exit nonzero — never a silent PASS.
+        print(f"PR_PREFLIGHT_ERROR=could not write evidence report: {exc}", file=sys.stderr)
+        return 1
     report_json = json.dumps(report, indent=2, sort_keys=True)
     if args.json:
         print(report_json)

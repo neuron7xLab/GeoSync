@@ -12,7 +12,7 @@ from starlette.requests import Request
 os.environ.setdefault("GEOSYNC_ADMIN_TOKEN", "test-admin-token")
 os.environ.setdefault("GEOSYNC_AUDIT_SECRET", "test-audit-secret")
 
-from application.api.service import _peer_is_trusted_proxy, _resolve_ip  # noqa: E402
+from application.api.service import _peer_is_trusted_proxy, _resolve_ip
 
 
 def _request(peer: str | None, headers: Mapping[str, str] | None = None) -> Request:

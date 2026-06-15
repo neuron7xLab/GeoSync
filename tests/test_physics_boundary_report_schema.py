@@ -85,7 +85,7 @@ def test_physics_boundary_report_matches_schema() -> None:
     report = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
 
     try:
-        import jsonschema  # type: ignore[import-not-found]
+        import jsonschema
     except Exception:
         _validate(schema, report)
     else:
