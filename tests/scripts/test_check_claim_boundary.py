@@ -102,6 +102,29 @@ def test_composite_module_has_no_trading_product_wording(mod: Any) -> None:
                 assert suppressed, f"{rel}:{lineno} unreviewed [{why}]: {norm[:100]}"
 
 
+@pytest.mark.parametrize(
+    "rel",
+    [
+        "core/indicators/hurst.py",
+        "core/indicators/entropy.py",
+    ],
+)
+def test_descriptor_modules_have_no_trading_product_wording(mod: Any, rel: str) -> None:
+    """Regression (Instrument E): the Hurst and Entropy descriptor modules must
+    carry no unreviewed product-category phrasing on their own prose surface,
+    mirroring the composite-module guard. These are descriptor-only modules and
+    must stay on the firewalled claim-boundary surface."""
+    assert rel in mod.CODE_SURFACE_FILES, f"{rel} must be on the firewall surface list"
+    path = mod.ROOT / Path(rel)
+    allow = mod._load_allowlist()
+    for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        norm = mod._normalise(raw)
+        for pattern, why in mod._COMPILED:
+            if pattern.search(norm):
+                suppressed = any(e.file == rel and e.match in norm for e in allow)
+                assert suppressed, f"{rel}:{lineno} unreviewed [{why}]: {norm[:100]}"
+
+
 def test_injected_code_surface_claim_is_flagged_by_main(
     mod: Any,
     tmp_path: Path,
