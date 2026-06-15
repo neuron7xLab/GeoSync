@@ -165,6 +165,35 @@ def _wrap_phase(theta: np.ndarray) -> np.ndarray:
     return np.asarray(np.mod(theta, _TWO_PI), dtype=np.float64)
 
 
+def _fill_short_nan_gaps(x: np.ndarray, max_nan_fraction: float) -> np.ndarray:
+    """Linearly interpolate per-column non-finite gaps within tolerance.
+
+    Zero-phase ``filtfilt`` and the Hilbert transform smear a single NaN across
+    the entire column, so the advertised ``max_nan_fraction`` tolerance is
+    unenforceable unless the gaps are filled *before* filtering. For each column
+    whose non-finite fraction is in ``(0, max_nan_fraction]`` we linearly
+    interpolate the missing samples (a logged short-gap repair). Columns with no
+    gaps are returned untouched (bit-identical), and columns whose non-finite
+    fraction *exceeds* the tolerance are left as-is so they surface NaN output
+    and are flagged by the Q3 quality diagnostic rather than silently repaired.
+    """
+    if bool(np.all(np.isfinite(x))):
+        return x  # clean input — bit-identical, the common path
+    out = x.copy()
+    n_rows = x.shape[0]
+    rows = np.arange(n_rows, dtype=np.float64)
+    for col in range(x.shape[1]):
+        finite = np.isfinite(out[:, col])
+        n_finite = int(finite.sum())
+        nan_fraction = 1.0 - n_finite / n_rows
+        # bounds: only short gaps (≤ max_nan_fraction, ≥2 anchors) are repaired;
+        # larger gaps stay NaN for the Q3 diagnostic to flag (no silent repair).
+        if nan_fraction == 0.0 or nan_fraction > max_nan_fraction or n_finite < 2:
+            continue
+        out[:, col] = np.interp(rows, rows[finite], out[finite, col])
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Primary method — Bandpass + Hilbert
 # ---------------------------------------------------------------------------
@@ -195,6 +224,10 @@ def extract_phases_hilbert(
     if signal.ndim != 2:
         raise ValueError(f"signal must be 2-D (T,N); got {signal.ndim}-D")
     x = np.asarray(signal, dtype=np.float64)
+    # Repair short non-finite gaps BEFORE filtering so a few missing samples do
+    # not smear across the whole column under filtfilt/Hilbert (delivers the
+    # advertised max_nan_fraction tolerance; clean input is unchanged).
+    x = _fill_short_nan_gaps(x, cfg.max_nan_fraction)
     x = _detrend(x, cfg.detrend_window)
     x = _bandpass(x, cfg)
     z = hilbert(x, axis=0)
