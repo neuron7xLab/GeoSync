@@ -123,11 +123,25 @@ class FreeEnergyTradingGate:
             m = np.asarray(order_book_sizes, dtype=np.float64)
             if v.size == 0:
                 return self._T_base
+            # INV-FE2: order-book sizes are masses ≥ 0; reject negative input
+            # rather than letting a negative kinetic energy be silently floored.
+            if not (
+                bool(np.all(np.isfinite(v)))
+                and bool(np.all(np.isfinite(m)))
+                and bool(np.all(m >= 0.0))
+            ):
+                raise ValueError("INV-FE2: order_book_sizes must be finite and ≥ 0 (masses)")
             kinetic = 0.5 * np.sum(m * v**2)
             T = 2.0 * kinetic / max(v.size, 1)
+            # INV-FE2: kinetic temperature is ≥ 0; floor guards float underflow.
             return max(float(T), 1e-6)
 
         if realized_volatility is not None:
+            # INV-FE2: realized volatility is non-negative (σ ≥ 0).
+            if not (np.isfinite(realized_volatility) and realized_volatility >= 0.0):
+                raise ValueError(
+                    f"INV-FE2: realized_volatility must be finite and ≥ 0, got {realized_volatility}"
+                )
             ratio = realized_volatility / self._vol_ref
             return self._T_base * ratio**2
 
@@ -183,6 +197,10 @@ class FreeEnergyTradingGate:
         # Temperature
         if T_LOB is None:
             T_LOB = self.compute_T_LOB(realized_volatility=realized_volatility)
+        # INV-FE2: the temperature component must be finite and ≥ 0 (a negative
+        # temperature is unphysical and would invert the ΔF entropy term).
+        if not (np.isfinite(T_LOB) and T_LOB >= 0.0):
+            raise ValueError(f"INV-FE2: T_LOB must be finite and ≥ 0, got {T_LOB}")
 
         # Risk exposure
         U_before = self.compute_risk_exposure(pos_before, returns)
