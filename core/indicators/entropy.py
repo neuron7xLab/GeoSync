@@ -1,16 +1,21 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Entropy-based market uncertainty indicators.
+"""Entropy-based distributional descriptors.
 
-This module provides Shannon entropy and delta entropy calculations for
-quantifying market uncertainty and regime changes.
+This module provides Shannon entropy and delta entropy calculations. Both are
+bounded, research-only descriptors of a finite sample under the declared bins
+and window. They are NOT predictive, NOT regime-transition signals, and NOT
+financial advice. Any such promotion requires an explicit event definition and
+a null baseline first (see CLAIMS.yaml / FORBIDDEN_CLAIMS.md).
 
-Shannon entropy measures the randomness or unpredictability in price data.
-Higher entropy indicates more chaotic or random behavior, while lower entropy
-suggests more structured or predictable patterns.
+Shannon entropy is the binned distributional uncertainty of the sample under
+the declared bins. Higher entropy means probability mass is spread more evenly
+across bins; lower entropy means mass is concentrated in fewer bins. Low
+entropy is concentration of mass, NOT "predictability" of future values.
 
-Delta entropy (ΔH) measures the change in entropy over time, which can signal
-regime transitions in the market.
+Delta entropy (ΔH) is the change in that binned-entropy descriptor between two
+windows. It is a change in a descriptor, NOT a proven regime-transition signal:
+asserting a regime transition requires an event definition plus a null baseline.
 
 References:
     - Shannon, C. E. (1948). A mathematical theory of communication.
@@ -116,17 +121,18 @@ def entropy(
            H = -∑ᵢ₌₁ᴮ pᵢ · log(pᵢ)
 
     Physical Interpretation:
-        H = 0:        Zero entropy (deterministic/constant signal)
-        H = log(B):   Maximum entropy (uniform distribution over B bins)
-        0 < H < log(B): Partial structure
+        H = 0:        Zero entropy (deterministic/constant sample)
+        H = log(B):   Maximum entropy (uniform mass over B bins)
+        0 < H < log(B): Mass partially concentrated across bins
 
-    In Financial Context:
-        - High H → High market uncertainty/randomness (chaotic regime)
-        - Low H → Low uncertainty/predictability (trending regime)
-        - ΔH > 0 → Increasing chaos (regime transition signal)
-        - ΔH < 0 → Decreasing chaos (consolidation signal)
+    Descriptor Interpretation (descriptor-only, NOT predictive):
+        - High H → mass spread evenly across bins (high binned uncertainty)
+        - Low H → mass concentrated in fewer bins (NOT predictability of values)
+        - ΔH > 0 → mass spreading out over time (a descriptor change, not a
+          proven regime-transition signal)
+        - ΔH < 0 → mass concentrating over time (a descriptor change)
 
-    Entropy quantifies the uncertainty or randomness in the data distribution.
+    Entropy quantifies the binned distributional uncertainty of the sample.
     The series is normalized and binned, then Shannon entropy is computed as:
 
         H = -Σ p(i) * log(p(i))
@@ -153,7 +159,7 @@ def entropy(
 
     Returns:
         Shannon entropy value H ≥ 0 in nats (natural logarithm base).
-        Higher values indicate more randomness/chaos.
+        Higher values indicate mass spread more evenly across bins.
         Returns 0.0 for empty or invalid input.
 
     Numerical Stability:
@@ -478,23 +484,23 @@ def delta_entropy(series: np.ndarray, window: int = 100, bins_range=(10, 50)) ->
             H(t₂) = -∑ᵢ p₂,ᵢ · log(p₂,ᵢ)  [entropy of second window]
             ΔH = H(t₂) - H(t₁)
 
-    Physical Interpretation:
-        ΔH > 0: Increasing entropy → market becoming more chaotic/uncertain
-        ΔH = 0: Constant entropy → stable regime
-        ΔH < 0: Decreasing entropy → market becoming more structured/predictable
+    Descriptor Interpretation (descriptor-only, NOT predictive):
+        ΔH > 0: binned mass spreading out between the two windows
+        ΔH = 0: binned uncertainty unchanged between the two windows
+        ΔH < 0: binned mass concentrating between the two windows
 
-    Applications in Regime Detection:
-        - |ΔH| > threshold: Regime transition signal
-        - ΔH ≫ 0 with low H(t₁): Trending → Random walk transition
-        - ΔH ≪ 0 with high H(t₁): Random walk → Trending transition
+    Boundary note (NOT a regime-detection claim):
+        A large |ΔH| is a change in the binned-entropy descriptor only. It is
+        NOT a proven regime-transition signal: any such claim requires an
+        explicit event definition plus a null baseline before promotion.
 
-    Delta entropy (ΔH) measures the rate of change in market uncertainty by
-    comparing entropy between two consecutive time windows:
+    Delta entropy (ΔH) is the change in the binned-entropy descriptor between
+    two consecutive windows:
 
         ΔH = H(t) - H(t-τ)
 
-    where τ is the window size. Positive ΔH indicates increasing chaos,
-    negative ΔH suggests decreasing uncertainty.
+    where τ is the window size. Positive ΔH means mass spread out, negative ΔH
+    means mass concentrated; neither is a forecast of future values.
 
     Args:
         series: 1D array of numeric data (typically prices)
@@ -507,8 +513,8 @@ def delta_entropy(series: np.ndarray, window: int = 100, bins_range=(10, 50)) ->
 
     Returns:
         Delta entropy value ΔH (can be positive, negative, or zero).
-        Positive values indicate increasing uncertainty (↑ chaos),
-        negative values indicate decreasing uncertainty (↑ structure).
+        Positive values indicate mass spreading across bins,
+        negative values indicate mass concentrating across bins.
         Returns 0.0 if insufficient data (need at least 2 * window points).
 
     Numerical Stability:
@@ -521,18 +527,19 @@ def delta_entropy(series: np.ndarray, window: int = 100, bins_range=(10, 50)) ->
         Space: O(B) for histogram bins
 
     Example:
-        >>> prices = np.linspace(100, 110, 300)  # Trending market
+        >>> prices = np.linspace(100, 110, 300)  # monotone sample
         >>> dH = delta_entropy(prices, window=100)
         >>> if dH > 0.5:
-        ...     print("Market becoming more chaotic")
+        ...     print("Binned mass spread out between windows")
         ... elif dH < -0.5:
-        ...     print("Market becoming more structured")
+        ...     print("Binned mass concentrated between windows")
 
     Note:
         - Requires at least 2 * window data points
         - Bins are adaptively chosen based on window size: B ∈ [B_min, B_max]
-        - Useful for detecting regime transitions and structural breaks
-        - Sign of ΔH indicates direction of uncertainty change
+        - Describes a change in the binned-entropy descriptor only; it is not a
+          regime-transition claim without an event definition + null baseline
+        - Sign of ΔH indicates direction of the binned-uncertainty change
 
     References:
         - Pincus, S. M. (1991). Approximate entropy as a measure of system
@@ -665,9 +672,11 @@ class EntropyFeature(BaseFeature):
 class DeltaEntropyFeature(BaseFeature):
     """Feature wrapper for delta entropy (rate of entropy change).
 
-    This feature computes the change in Shannon entropy over time by comparing
-    entropy between consecutive time windows. Useful for detecting regime
-    transitions and changes in market dynamics.
+    This feature computes the change in the binned Shannon-entropy descriptor
+    over time by comparing entropy between consecutive windows. It is a
+    descriptor change only — NOT predictive, NOT a regime-transition signal,
+    and NOT financial advice; any such claim requires an event definition plus
+    a null baseline first.
 
     Attributes:
         window: Size of each time window
@@ -679,13 +688,13 @@ class DeltaEntropyFeature(BaseFeature):
         >>> import numpy as np
         >>>
         >>> feature = DeltaEntropyFeature(window=100, bins_range=(10, 50))
-        >>> prices = np.linspace(100, 110, 300)  # Trending market
+        >>> prices = np.linspace(100, 110, 300)  # monotone sample
         >>> result = feature.transform(prices)
         >>>
         >>> if result.value > 0.5:
-        ...     print("Market becoming more chaotic")
+        ...     print("Binned mass spread out between windows")
         ... elif result.value < -0.5:
-        ...     print("Market becoming more structured")
+        ...     print("Binned mass concentrated between windows")
     """
 
     def __init__(

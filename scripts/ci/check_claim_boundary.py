@@ -59,6 +59,8 @@ SCAN_GLOBS: tuple[str, ...] = ("*.md", "docs/**/*.md")
 CODE_SURFACE_FILES: tuple[str, ...] = (
     "core/indicators/kuramoto_ricci_composite.py",
     "core/indicators/market_state_contract.py",
+    "core/indicators/hurst.py",
+    "core/indicators/entropy.py",
 )
 EXCLUDE_DIR_PREFIXES: tuple[str, ...] = (
     "docs/archive/",  # frozen legacy reports
