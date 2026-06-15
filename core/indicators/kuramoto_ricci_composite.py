@@ -2,9 +2,14 @@
 # SPDX-License-Identifier: MIT
 """Kuramoto-Ricci composite market phase analyzer.
 
-This module provides a sophisticated market regime classification system that combines
+This module provides a market regime classification system that combines
 Kuramoto synchronization analysis with Ricci flow curvature metrics to identify
-distinct market phases and generate actionable trading signals.
+distinct market phases.
+
+Outputs are bounded structural-state descriptors for research and verification
+only. They are NOT financial advice, NOT a trading instruction, and NOT
+predictive evidence of price. Any downstream promotion to a claim requires
+replay, falsifier, and provenance (see CLAIMS.yaml / FORBIDDEN_CLAIMS.md).
 
 The composite engine fuses multi-scale Kuramoto oscillator analysis with temporal
 Ricci flow to classify markets into five distinct phases:
@@ -16,14 +21,16 @@ Ricci flow to classify markets into five distinct phases:
 
 Key Components:
     MarketPhase: Enumeration of market regime states
-    CompositeSignal: Complete signal output with phase, confidence, and trading signals
-    KuramotoRicciComposite: Core analyzer that produces signals from raw metrics
-    GeoSyncCompositeEngine: High-level API for market analysis
+    CompositeSignal: Bounded structural-state descriptor (phase, confidence,
+        and bounded entry/exit/risk descriptor fields)
+    KuramotoRicciComposite: Core analyzer that produces structural descriptors
+        from raw metrics
+    GeoSyncCompositeEngine: High-level API for structural market-state analysis
 
 Example:
     >>> engine = GeoSyncCompositeEngine()
-    >>> signal = engine.analyze_market(price_df)
-    >>> print(f"Phase: {signal.phase.value}, Entry: {signal.entry_signal}")
+    >>> state = engine.analyze_market(price_df)
+    >>> print(f"Phase: {state.phase.value}, entry_descriptor={state.entry_signal}")
 """
 
 from dataclasses import dataclass, field
@@ -47,6 +54,17 @@ class MarketPhase(Enum):
 
 @dataclass
 class CompositeSignal:
+    """Bounded structural-state descriptor emitted by the composite analyzer.
+
+    Every field is a research-only structural descriptor, not a trading
+    instruction, financial advice, or predictive evidence of price. The
+    fields ``entry_signal``, ``exit_signal`` and ``risk_multiplier`` are
+    retained for backward compatibility but denote bounded structural
+    quantities (clamped to ``[-1, 1]``, ``[0, 1]`` and ``[0.1, 2.0]``
+    respectively), never an order, size, or directional market call.
+    Promotion to any claim requires replay, falsifier, and provenance.
+    """
+
     phase: MarketPhase
     confidence: float
     kuramoto_R: float
@@ -116,7 +134,7 @@ class KuramotoRicciComposite:
         if phase == MarketPhase.STRONG_EMERGENT:
             s = np.clip(
                 -kt, 0.0, 1.0
-            )  # more negative -> stronger long  # INV-RC1: curvature signal clipped to [0,1] for directional strength
+            )  # more negative curvature -> larger structural directional descriptor  # INV-RC1: curvature descriptor clipped to [0,1] for directional strength
         elif phase == MarketPhase.PROTO_EMERGENT:
             s = 0.5 * R
         elif phase == MarketPhase.POST_EMERGENT:
@@ -150,7 +168,7 @@ class KuramotoRicciComposite:
             base = 0.2
         return float(
             np.clip(base * coh, 0.1, 2.0)
-        )  # bounds: position-scaling multiplier clamped to [0.1, 2.0] operating range
+        )  # bounds: structural risk descriptor multiplier clamped to [0.1, 2.0] operating range
 
     def analyze(
         self,
