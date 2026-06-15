@@ -160,3 +160,51 @@ class TestInputValidation:
     def test_bad_vol_ref(self):
         with pytest.raises(ValueError):
             FreeEnergyTradingGate(vol_reference=0)
+
+
+class TestFE2TemperatureNonNegative:
+    """INV-FE2: the temperature component must be finite and ≥ 0.
+
+    A negative T_LOB was previously accepted by ``check`` (and a negative
+    order-book mass was silently floored), inverting the ΔF entropy term.
+    """
+
+    @staticmethod
+    def _positions() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return (
+            np.array([0.1, 0.2, 0.3]),
+            np.array([0.15, 0.25, 0.2]),
+            np.array([0.01, -0.02, 0.015]),
+        )
+
+    def test_check_rejects_negative_temperature(self) -> None:
+        """INV-FE2: a negative T_LOB passed to check must fail closed."""
+        pb, pa, r = self._positions()
+        with pytest.raises(ValueError, match="INV-FE2"):
+            FreeEnergyTradingGate().check(pb, pa, r, T_LOB=-5.0)
+
+    def test_check_rejects_non_finite_temperature(self) -> None:
+        """INV-FE2: a non-finite T_LOB must fail closed."""
+        pb, pa, r = self._positions()
+        with pytest.raises(ValueError, match="INV-FE2"):
+            FreeEnergyTradingGate().check(pb, pa, r, T_LOB=float("nan"))
+
+    def test_compute_rejects_negative_volatility(self) -> None:
+        """INV-FE2: σ < 0 is unphysical and must be rejected by compute_T_LOB."""
+        with pytest.raises(ValueError, match="INV-FE2"):
+            FreeEnergyTradingGate().compute_T_LOB(realized_volatility=-3.0)
+
+    def test_compute_rejects_negative_masses(self) -> None:
+        """INV-FE2: order-book masses < 0 must be rejected (not floored)."""
+        with pytest.raises(ValueError, match="INV-FE2"):
+            FreeEnergyTradingGate().compute_T_LOB(
+                order_book_velocities=np.array([1.0, 2.0]),
+                order_book_sizes=np.array([-5.0, -5.0]),
+            )
+
+    def test_valid_temperature_path_unchanged(self) -> None:
+        """INV-FE2 regression: a valid non-negative T_LOB still passes through."""
+        pb, pa, r = self._positions()
+        decision = FreeEnergyTradingGate().check(pb, pa, r, T_LOB=2.0)
+        assert decision.T_LOB == 2.0
+        assert np.isfinite(decision.F_after)
