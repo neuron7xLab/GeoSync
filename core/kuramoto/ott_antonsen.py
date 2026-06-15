@@ -279,6 +279,16 @@ def detect_chimera(
     """
     phases = np.asarray(phases, dtype=np.float64)
     sectors = np.asarray(sector_assignments, dtype=np.int64)
+    # Fail-closed: n_sectors = max()+1 silently drops any oscillator with a
+    # negative label (it matches no `sectors == s` mask), making the global and
+    # per-sector order parameters mutually inconsistent. Require a non-empty,
+    # 0-indexed non-negative assignment.
+    if sectors.size == 0:
+        raise ValueError("sector_assignments must be non-empty")
+    if int(sectors.min()) < 0:
+        raise ValueError(
+            f"sector_assignments must be 0-indexed non-negative; got min={int(sectors.min())}"
+        )
     n_sectors = int(sectors.max()) + 1
 
     if sector_labels is None:

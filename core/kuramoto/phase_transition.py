@@ -185,12 +185,23 @@ class PhaseTransitionAnalyzer:
         R_values: NDArray[np.float64],
         threshold: float = 0.3,
     ) -> float:
-        """Find K where R first crosses threshold (linear interpolation)."""
+        """Find K where R first crosses threshold (linear interpolation).
+
+        Fail-closed on a single-point sweep (no slope to locate K_c) and signal
+        an absent transition explicitly (NaN) for a flat, never-crossing R
+        curve rather than silently returning the left endpoint.
+        """
+        if len(R_values) < 2:
+            raise ValueError(f"need ≥2 sweep points to locate K_c; got {len(R_values)}")
         for i in range(1, len(R_values)):
             if R_values[i - 1] < threshold <= R_values[i]:
                 # Linear interpolation
                 frac = (threshold - R_values[i - 1]) / (R_values[i] - R_values[i - 1] + 1e-15)
                 return float(K_values[i - 1] + frac * (K_values[i] - K_values[i - 1]))
-        # Fallback: return K at max dR/dK
+        # No crossing: a flat R curve has no transition in this window — signal
+        # it explicitly instead of reporting a spurious K_c at the left endpoint.
+        if float(np.ptp(R_values)) < 1e-9:
+            return float("nan")
+        # Fallback: return K at max dR/dK (a real but unthresholded transition).
         dR = np.gradient(R_values, K_values)
         return float(K_values[np.argmax(dR)])
