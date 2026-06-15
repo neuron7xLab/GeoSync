@@ -1,6 +1,3 @@
-# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
-# SPDX-License-Identifier: MIT
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -83,7 +80,10 @@ def test_schema_gate_rejects_unresolved_related_reference(tmp_path: Path) -> Non
 
     result = validate_registry(registry)
 
-    assert any("unresolved related invariant 'INV-MISSING'" in err for err in result["errors"])
+    assert any(
+        "unresolved related invariant 'INV-MISSING'" in err
+        for err in result["errors"]
+    )
 
 
 def test_schema_gate_accepts_valid_fixture(tmp_path: Path) -> None:
