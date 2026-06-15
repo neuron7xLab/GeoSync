@@ -49,6 +49,13 @@ def test_bounds_hold_under_adversarial_input(phase, **fields):
     for v in (d["phase"], d["confidence"], d["risk"]):
         assert math.isfinite(v)
 
+def test_contract_has_exact_public_keys():
+    sig = make(MarketPhase.STRONG_EMERGENT, confidence=0.9, consensus_R=0.82,
+               entry_signal=0.6, risk_multiplier=1.2)
+    d = compile_market_state(sig).to_dict()
+    assert set(d) == {"phase", "confidence", "regime", "entry", "exit", "risk", "evidence"}
+
+
 def test_determinism_same_input_same_output():
     sig = make(MarketPhase.STRONG_EMERGENT, confidence=0.9, consensus_R=0.82,
                entry_signal=0.6, risk_multiplier=1.2)
