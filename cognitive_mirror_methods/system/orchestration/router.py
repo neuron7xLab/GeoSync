@@ -8,7 +8,12 @@ STATUS_BLOCKED = "BLOCKED"
 STATUS_PASS = "PASS"
 
 
-def _response(request: dict[str, Any], status: str, output: dict[str, Any], errors: list[str] | None = None) -> dict[str, Any]:
+def _response(
+    request: dict[str, Any],
+    status: str,
+    output: dict[str, Any],
+    errors: list[str] | None = None,
+) -> dict[str, Any]:
     return {
         "request_id": str(request.get("request_id", "")),
         "module": str(request.get("module", "")),
@@ -31,4 +36,8 @@ def route_request(request: dict[str, Any]) -> dict[str, Any]:
     if not module_exists(module_id):
         return _response(request, STATUS_BLOCKED, {}, ["unknown module"])
     text = str(request.get("input", {}).get("text", ""))
-    return _response(request, STATUS_PASS, {"text": " ".join(text.split()), "module": module_id})
+    return _response(
+        request,
+        STATUS_PASS,
+        {"text": " ".join(text.split()), "module": module_id},
+    )
