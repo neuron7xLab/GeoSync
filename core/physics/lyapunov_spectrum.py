@@ -41,11 +41,19 @@ n_steps, qr_every, n_exp)`` on same hardware/JAX version (INV-HPC1).
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import jax
 import jax.numpy as jnp
 from jax import Array
+
+# INV-LY1/LY2 require float64 (1e-3 / 1e-6 precision; Σλ=0 to 1e-3). Enable x64
+# at import so the estimator's precision does NOT depend on whether an unrelated
+# module (e.g. lyapunov_calibration) happened to enable it first. Idempotent.
+# (Called via an Any-typed alias: jax.config.update is untyped, and a bare call
+# would trip mypy --strict no-untyped-call without adding a debt suppression.)
+_jax_config: Any = jax.config
+_jax_config.update("jax_enable_x64", True)
 
 # Public API ------------------------------------------------------------------
 
@@ -108,8 +116,9 @@ def lyapunov_spectrum(
         via ``jax.jacfwd`` once per midpoint substep.
     x0:
         Initial condition, shape ``(n,)``. ``dtype`` propagates to all
-        outputs; pass ``float64`` for production-grade precision (set
-        ``jax.config.update("jax_enable_x64", True)`` first).
+        outputs; pass ``float64`` for production-grade precision. This module
+        enables ``jax_enable_x64`` at import, so float64 holds regardless of
+        import order (INV-LY1/LY2 depend on it).
     dt:
         Integration timestep. Must satisfy ``dt > 0``.
     n_steps:
