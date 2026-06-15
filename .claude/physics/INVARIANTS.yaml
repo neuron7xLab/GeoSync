@@ -415,12 +415,14 @@ ricci:
   price_graph_bounds:
     id: INV-RC3
     type: universal
-    statement: "κ(i,j) ∈ [−1, 1] for every edge of a price graph built via core.indicators.ricci.build_price_graph"
+    statement: "κ(i,j) ∈ [−1, 1] for every edge of a build_price_graph output IN THE COMMENSURATE-METRIC REGIME (path-like graphs whose consecutive price levels differ by unit steps). The bound is CONDITIONAL, not universal: build_price_graph measures W₁ in the positional (price-level) metric but the geodesic d in the |Δp|+1 weighted-graph metric, so when those metrics diverge (large inter-step level jumps from volatile series or large δ) κ = 1 − W₁/d descends below −1."
     test_type: property_test
     parameters:
-      scope: "build_price_graph output only — adjacent integer price-level nodes with unit delta in the 1D embedding"
-      tighter_than_RC1: "This is the tightened Ollivier bound that requires (a) consecutive integer node IDs and (b) lazy random walk with α = 1/(deg+1), both guaranteed by the price-graph constructor"
-    falsification: "κ outside [−1, 1] on any edge of a build_price_graph() output with a finite, bounded price series"
+      scope: "build_price_graph output in the path-like regime — short/low-jump series at default δ where the 1D positional embedding stays commensurate with the |Δp|+1 weighted geodesic"
+      conditional_not_universal: "Corrected 2026-06-15: the prior version asserted that consecutive integer node IDs and unit positional spacing are constructor-guaranteed; that is FALSE — price levels jump by >1 on volatile series, so the positional metric (W₁) and the weighted geodesic (d) are incommensurate and κ can reach ≈ −6 at δ=0.05. The [−1, 1] envelope holds only while W₁/d ≤ 2 (the algebraic equivalent of κ ≥ −1)."
+      tighter_than_RC1: "Where it holds, this is the tightened Ollivier bound; INV-RC1's κ ≤ 1 remains universal because W₁ ≥ 0."
+    evidence: "tests/physics_contracts/test_ricci_ollivier_identity_boundary.py — proves κ = 1 − W₁/d to 0.0 error and that W₁/d > 2 (κ < −1) occurs on real build_price_graph edges; tests/physics_contracts/test_ricci_geometry_witnesses.py asserts the bound only in the path-like regime with a vacuity guard."
+    falsification: "κ outside [−1, 1] on an edge of a build_price_graph() output WITHIN the declared path-like / commensurate-metric regime. Out-of-regime κ < −1 (jumpy/volatile series, large δ) is the EXPECTED, witnessed behavior, not a falsification."
     priority: P1
 
 # ═══════════════════════════════════════════════════
