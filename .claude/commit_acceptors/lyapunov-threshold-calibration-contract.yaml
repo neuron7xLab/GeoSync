@@ -1,7 +1,7 @@
 # Diff-bound commit acceptor: Lyapunov threshold calibration contract.
 id: lyapunov-threshold-calibration-contract
 status: ACTIVE
-claim_type: calibration_contract
+claim_type: determinism
 promise: "Lyapunov threshold selection uses a deterministic fixed grid, calibration/validation split, holdout metric reporting, sensitivity sweep metadata, and fail-closed invalid input handling without adding prediction or trading claims."
 diff_scope:
   changed_files:
