@@ -72,3 +72,52 @@ def test_allowlist_entry_suppresses(mod: Any) -> None:
 def test_patterns_are_compiled_and_nonempty(mod: Any) -> None:
     assert mod._COMPILED, "boundary patterns must not be empty"
     assert any("live" in p.pattern for p, _ in mod._COMPILED)
+
+
+# ---------------------------------------------------------------------------
+# Instrument B — code-surface coverage (composite trading-signal firewall)
+# ---------------------------------------------------------------------------
+
+
+def test_code_surfaces_are_scanned(mod: Any) -> None:
+    """The claim-bearing indicator modules must be part of the scanned
+    surface — not just the markdown docs. This is what makes the gate a
+    firewall against trading-product wording reappearing in code."""
+    scanned = {p.relative_to(mod.ROOT).as_posix() for p in mod._iter_surface()}
+    for rel in mod.CODE_SURFACE_FILES:
+        assert rel in scanned, f"{rel} is not on the scanned claim-boundary surface"
+
+
+def test_composite_module_has_no_trading_product_wording(mod: Any) -> None:
+    """Regression: the composite indicator module must carry no unreviewed
+    product-category phrasing on its own prose surface."""
+    composite = mod.ROOT / "core" / "indicators" / "kuramoto_ricci_composite.py"
+    allow = mod._load_allowlist()
+    rel = composite.relative_to(mod.ROOT).as_posix()
+    for lineno, raw in enumerate(composite.read_text(encoding="utf-8").splitlines(), 1):
+        norm = mod._normalise(raw)
+        for pattern, why in mod._COMPILED:
+            if pattern.search(norm):
+                suppressed = any(e.file == rel and e.match in norm for e in allow)
+                assert suppressed, f"{rel}:{lineno} unreviewed [{why}]: {norm[:100]}"
+
+
+def test_injected_code_surface_claim_is_flagged_by_main(
+    mod: Any,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """If a banned phrase is injected into a scanned code surface, main()
+    must fail (exit 1) — proving the firewall actually gates code, not only
+    docs. We point the gate at a temp ROOT carrying a poisoned module so the
+    real tree is never mutated."""
+    surface = tmp_path / "evil_module.py"
+    surface.write_text(
+        '"""This module emits actionable trading signals."""\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(mod, "ROOT", tmp_path)
+    monkeypatch.setattr(mod, "ALLOWLIST_PATH", tmp_path / "missing_allow.json")
+    monkeypatch.setattr(mod, "SCAN_GLOBS", ())
+    monkeypatch.setattr(mod, "CODE_SURFACE_FILES", ("evil_module.py",))
+    assert mod.main() == 1

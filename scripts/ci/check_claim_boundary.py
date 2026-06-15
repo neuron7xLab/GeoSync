@@ -49,6 +49,17 @@ ALLOWLIST_PATH = ROOT / ".github" / "claim_boundary_allow.json"
 # and archived legacy reports) are excluded — scanning them would flag the
 # very quotes that document the problem.
 SCAN_GLOBS: tuple[str, ...] = ("*.md", "docs/**/*.md")
+# Claim-bearing *code* surfaces: indicator modules whose docstrings and
+# comments describe outputs to a reader. That prose is product-positioning
+# just like the docs, so the same boundary patterns apply. Scanned with the
+# identical normalise + allowlist + stale machinery. Note: identifier names
+# (``entry_signal``, ``risk_multiplier`` …) do not match the phrase patterns
+# below — only prose like "actionable trading signals" does — so the public
+# API is unaffected by this gate.
+CODE_SURFACE_FILES: tuple[str, ...] = (
+    "core/indicators/kuramoto_ricci_composite.py",
+    "core/indicators/market_state_contract.py",
+)
 EXCLUDE_DIR_PREFIXES: tuple[str, ...] = (
     "docs/archive/",  # frozen legacy reports
     "docs/audit/",  # audit findings quote banned phrasing as evidence
@@ -134,6 +145,11 @@ def _iter_surface() -> list[Path]:
             if path not in seen:
                 seen.add(path)
                 files.append(path)
+    for rel in CODE_SURFACE_FILES:
+        path = ROOT / rel
+        if path.is_file() and path not in seen:
+            seen.add(path)
+            files.append(path)
     return files
 
 
@@ -187,8 +203,9 @@ def main() -> int:
         return 1
 
     print(
-        f"Claim-boundary gate passed: {len(_iter_surface())} canonical docs "
-        f"scanned, {len(used_allow)} reviewed mechanism/record references."
+        f"Claim-boundary gate passed: {len(_iter_surface())} canonical surfaces "
+        f"(docs + claim-bearing code) scanned, "
+        f"{len(used_allow)} reviewed mechanism/record references."
     )
     return 0
 
