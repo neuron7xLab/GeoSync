@@ -62,12 +62,12 @@ laws:
   # ─────────────────────────── Ricci ───────────────────────────
   - id: ricci.ollivier_bounds
     module: ricci
-    statement: "Ollivier–Ricci curvature of any edge lies in [−1, 1]."
-    formula: "κ(x,y) = 1 − W_1(m_x, m_y) / d(x,y)  ⇒  −1 ≤ κ ≤ 1"
+    statement: "Ollivier–Ricci edge curvature satisfies the universal upper bound κ ≤ 1; the symmetric band κ ∈ [−1, 1] holds only for build_price_graph output, not for arbitrary topologies."
+    formula: "κ(x,y) = 1 − W_1(m_x, m_y) / d(x,y)  ⇒  κ ≤ 1 always (W_1 ≥ 0). κ ≥ −1 holds only when the embedding distance matches the combinatorial metric (build_price_graph: consecutive integer node IDs)."
     variables: {W_1: Wasserstein-1 distance, m_x: 1-step lazy random walk from x, d: graph distance}
-    tolerance: "strict"
-    validity: "connected graph, positive edge weights"
-    source: "Ollivier J. Funct. Anal. 2009; core/physics/forman_ricci.py docstring"
+    tolerance: "strict on the universal upper bound κ ≤ 1; the lower bound −1 is conditional on build_price_graph output"
+    validity: "Universal upper bound κ ≤ 1: any connected graph, positive edge weights (INV-RC1, P0). Symmetric band κ ∈ [−1, 1]: build_price_graph output only — consecutive integer node IDs so the 1-D positional embedding equals the combinatorial distance (INV-RC3, P1). The implementation in core/indicators/ricci.py uses a 1-D positional embedding (offset/scale from graph attrs) with α = 1/(deg+1); under that embedding κ can descend below −1 for non-price-graph topologies with large positional spread (e.g. a 12-node cycle gives κ = −2 on the wrap-around edge whose endpoints are 11 apart in the integer embedding but graph-distance 1)."
+    source: "Ollivier J. Funct. Anal. 2009; .claude/physics/INVARIANTS.yaml ricci.curvature_bounds (INV-RC1) and ricci.price_graph_bounds (INV-RC3); core/indicators/ricci.py ricci_curvature_edge docstring"
     severity: block
 
   - id: ricci.flow_monotonicity

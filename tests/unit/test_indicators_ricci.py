@@ -53,12 +53,115 @@ def test_local_distribution_normalizes_probabilities() -> None:
 
 
 def test_ricci_curvature_bounded_between_minus_one_and_one() -> None:
+    # INV-RC3 (P1): the symmetric band κ ∈ [−1, 1] holds for build_price_graph
+    # output specifically — its consecutive integer node IDs make the 1-D
+    # positional embedding equal to the combinatorial distance.
     prices = np.array([100, 100.5, 101.0, 101.5, 102.0], dtype=float)
     graph = build_price_graph(prices, delta=0.005)
     edges = list(graph.edges())
     for u, v in edges:
         kappa = ricci_curvature_edge(graph, u, v)
         assert -1.0 <= kappa <= 1.0, f"Curvature {kappa} outside bounds"
+
+
+def _build_cycle_graph(n: int) -> Any:
+    """Build a non-price-graph topology: an n-node cycle with consecutive
+    integer IDs and a wrap-around edge (n-1, 0).
+
+    This is NOT build_price_graph output. The wrap-around edge connects two
+    nodes that are graph-distance 1 apart but (n-1) apart in the default 1-D
+    positional embedding (offset=0, scale=1), so its Wasserstein transport cost
+    is large and κ descends below −1. This exercises the construction-conditional
+    nature of the lower bound documented in INV-RC1 / INV-RC3.
+    """
+    graph = ricci_module.nx.Graph()
+    for i in range(n):
+        graph.add_edge(i, (i + 1) % n, weight=1.0)
+    return graph
+
+
+def test_ricci_universal_upper_bound_holds_on_non_price_topology() -> None:
+    """INV-RC1 (P0, universal): κ ≤ 1 for every edge of every connected graph.
+
+    The 12-node cycle is a deliberately non-price-graph topology whose
+    wrap-around edge produces κ = −2 under the 1-D positional embedding. The
+    universal upper bound κ ≤ 1 must still hold on every edge — it is a
+    definitional consequence of κ = 1 − W₁/d with W₁ ≥ 0, independent of
+    topology or walk laziness.
+    """
+    n_nodes = 12
+    graph = _build_cycle_graph(n_nodes)
+    edges = [(int(u), int(v)) for u, v in graph.edges()]
+    assert len(edges) > 0, (
+        f"INV-RC1 setup: cycle graph must have edges, observed n_edges=0 "
+        f"must produce edges with n_nodes={n_nodes}"
+    )
+    kappas = [ricci_curvature_edge(graph, u, v) for u, v in edges]
+
+    for (u, v), kappa in zip(edges, kappas):
+        assert kappa <= 1.0 + 1e-9, (
+            f"INV-RC1 VIOLATED: observed κ={kappa:.6f} > 1.0 on edge ({u},{v}) "
+            f"of a non-price cycle graph; κ must not exceed the universal "
+            f"upper bound 1.0. "
+            f"κ = 1 − W₁/d and W₁ ≥ 0 always, so κ ≤ 1 is topology-independent "
+            f"(no lazy-walk assumption). "
+            f"with n_nodes={n_nodes}, n_edges={len(edges)}, min_kappa={min(kappas):.6f}"
+        )
+
+
+def test_ricci_lower_bound_band_conditional_on_price_graph() -> None:
+    """INV-RC3 (P1): κ ∈ [−1, 1] holds for build_price_graph output but NOT
+    necessarily for arbitrary topologies.
+
+    (a) build_price_graph output satisfies the symmetric band [−1, 1].
+    (b) A non-price-graph topology (12-node cycle) legitimately produces κ < −1
+        under the 1-D positional embedding, so the lower bound −1 is
+        construction-conditional and is NOT a universal invariant.
+    """
+    # (a) price-graph output: full symmetric band holds (INV-RC3).
+    delta = 0.005
+    prices = np.array([100.0, 100.5, 101.0, 101.5, 102.0], dtype=float)
+    price_graph = build_price_graph(prices, delta=delta)
+    price_edges = [(int(u), int(v)) for u, v in price_graph.edges()]
+    assert len(price_edges) > 0, (
+        f"INV-RC3 setup: build_price_graph must yield edges, observed n_edges=0 "
+        f"must produce edges with delta={delta}"
+    )
+    for u, v in price_edges:
+        kappa = ricci_curvature_edge(price_graph, u, v)
+        assert -1.0 <= kappa <= 1.0 + 1e-9, (
+            f"INV-RC3 VIOLATED: observed κ={kappa:.6f} outside [−1, 1] on edge "
+            f"({u},{v}) of build_price_graph output; price-graph κ must stay in "
+            f"the symmetric band. "
+            f"Price graphs have consecutive integer node IDs, so the 1-D "
+            f"positional embedding equals the combinatorial distance, giving "
+            f"the tightened Ollivier band [−1, 1]. "
+            f"with delta={delta}, n_edges={len(price_edges)}"
+        )
+
+    # (b) non-price topology: lower bound −1 is NOT universal.
+    n_nodes = 12
+    cycle = _build_cycle_graph(n_nodes)
+    cycle_kappas = [
+        ricci_curvature_edge(cycle, int(u), int(v)) for u, v in cycle.edges()
+    ]
+    min_kappa = min(cycle_kappas)
+    assert min_kappa < -1.0, (
+        f"INV-RC3 scope check: observed min_kappa={min_kappa:.6f} should be < -1.0 "
+        f"on a non-price-graph topology to confirm the lower bound is "
+        f"construction-conditional and NOT universal. "
+        f"The symmetric band [−1, 1] is INV-RC3 (build_price_graph only); only "
+        f"κ ≤ 1 (INV-RC1) is universal. "
+        f"with n_nodes={n_nodes}, n_edges={len(cycle_kappas)}"
+    )
+    # And the universal upper bound still holds on this topology.
+    max_kappa = max(cycle_kappas)
+    assert max_kappa <= 1.0 + 1e-9, (
+        f"INV-RC1 VIOLATED: observed max_kappa={max_kappa:.6f} > 1.0 on a "
+        f"non-price cycle graph; κ ≤ 1 must hold regardless of topology. "
+        f"κ = 1 − W₁/d and W₁ ≥ 0 always. "
+        f"with n_nodes={n_nodes}, n_edges={len(cycle_kappas)}"
+    )
 
 
 def test_compute_node_distributions_matches_local_distribution() -> None:
