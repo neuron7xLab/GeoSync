@@ -794,13 +794,19 @@ ott_antonsen:
   supercritical_steady_state:
     id: INV-OA2
     type: algebraic
-    statement: "K > 2Δ ⟹ R_∞ = √(1 − 2Δ/K) matches ODE integration to < 1e-3"
+    statement: "K > 2Δ ⟹ R_∞ = √(1 − 2Δ/K); RK4 meets the exact normal form R_∞² = 1 − K_c/K to machine precision (< 1e-10); near onset R_∞ ∝ (K − K_c)^(1/2), mean-field β = 1/2"
     test_type: property_test
     parameters:
       formula: "R_∞ = sqrt(1 - K_c/K) where K_c = 2Δ"
+      normal_form: "R_∞² = 1 − K_c/K (exact fixed point of dz/dt = -Δz + (K/2)(z − z|z|²) at ω₀=0)"
+      machine_precision_tol: "1e-10 (empirically ~1e-14)"
+      critical_exponent: "β = 1/2 over ε=(K−K_c)/K_c ∈ [1e-3, 3e-2]; near-onset excluded by critical slowing-down (relaxation ~ 1/(K−K_c))"
       cross_validation: "N-body Kuramoto with Lorentzian ω matches within 3/√N"
-    falsification: "|R_numerical - R_analytical| > 1e-3 after T=100"
+    falsification: "|R_numerical² - (1 − K_c/K)| > 1e-10, OR fitted β deviates from 1/2 by > 0.06, OR N-body R deviates from mean-field by > 3/√N"
     priority: P0
+    tests:
+      - "tests/unit/physics/test_T23_ott_antonsen_chimera.py"
+      - "tests/unit/physics/test_T23b_ott_antonsen_analytical.py"
 
   subcritical_decay:
     id: INV-OA3
