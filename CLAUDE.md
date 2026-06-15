@@ -56,7 +56,7 @@ GeoSync is a verification-first quantitative research platform with neuroscience
 
 ---
 
-## INVARIANT REGISTRY — 99 invariants loaded by kernel self-check
+## INVARIANT REGISTRY — 100 invariants loaded by kernel self-check
 
 > **Single source of truth:** `.claude/physics/INVARIANTS.yaml` (`python scripts/count_invariants.py`). The 2026-04-30 external audit corrected a four-way drift (`57 / 66 / 67 / 87`); CI gate `invariant-count-sync` now fail-closes on any future divergence between this header, README badges, BASELINE.md, and the registry.
 
@@ -93,6 +93,11 @@ INV-K9 | conservation  | swing energy error ∝ dt^p, order p=2 (Verlet),     | 
          bounded (no secular). Shadow-Hamiltonian H̃=H+O(dt²).
          FALSIFICATION: Euler collapses log-log slope 2.01→0.81 + secular.
          Strictly stronger than INV-K8 fixed-dt amplitude bound.
+         Source: core/kuramoto/second_order.py
+INV-K10| conservation  | Verlet swing map symplectic: MᵀJM=J (machine ε),   | P1
+         det(M)=1 (Liouville). ROOT of INV-K8/K9 (energy = theorem).
+         FALSIFICATION: Euler gives O(dt²)≈1e-4 residual vs Verlet 2e-16.
+         Damped: det(M)=exp(−(Σd/m)dt) phase-space contraction.
          Source: core/kuramoto/second_order.py
 ```
 
@@ -444,7 +449,7 @@ assert result.order > 0      # no INV, no context
 | Files matching... | Invariants |
 |---|---|
 | `*gradient_vital_signs*`, `*maintenance_hierarchy*` | INV-YV1 |
-| `*kuramoto*`, `*sync*`, `*phase*` | INV-K1..K9 |
+| `*kuramoto*`, `*sync*`, `*phase*` | INV-K1..K10 |
 | `*explosive*`, `*hysteresis*` | INV-ES1..2 |
 | `*ott_antonsen*`, `*chimera*` | INV-OA1..3 |
 | `*lyapunov_exponent*`, `*mle*` | INV-LE1..2 |
