@@ -328,6 +328,15 @@ dopamine:
     scope_note: "Holds for DopamineController.compute_rpe (raw TD, no normalisation). Does NOT hold for DopamineExecutionAdapter.compute_rpe which applies tanh(scale * raw_rpe) — that path has ∂δ/∂r = sech²(·) ≠ 1. Witnesses must target the controller, not the adapter."
     priority: P0
 
+  adapter_bounded_signal:
+    id: INV-DA8
+    type: universal
+    statement: "The DopamineExecutionAdapter emits a saturating bounded signal: |δ| = |tanh(scale · raw_rpe)| ≤ 1 and δ is finite for every finite input (closed bound; tanh saturates to ±1 in float64 at extreme argument)."
+    test_type: property_test
+    falsification: "DopamineExecutionAdapter.compute_rpe returns |δ| > 1, or a non-finite δ, for some finite (realized_pnl, predicted_return, slippage) input."
+    scope_note: "Distinct from and complementary to INV-DA7: INV-DA7 governs the RAW controller (∂δ/∂r = 1, unbounded linear TD); INV-DA8 governs the ADAPTER output bound that the tanh squashing provides. The adapter is deliberately NOT linear-in-reward — that non-linearity is precisely why it needs its own bound invariant rather than inheriting INV-DA7."
+    priority: P0
+
 # ═══════════════════════════════════════════════════
 # GABA INHIBITION GATE
 # ═══════════════════════════════════════════════════
@@ -392,6 +401,15 @@ free_energy:
     falsification: "core.physics.free_energy_trading_gate.FreeEnergyTradingGate.check returns U_before or U_after < 0, or T_LOB < 0, or S_q_before or S_q_after < 0 on any valid input"
     priority: P0
 
+  ecs_conditional_descent:
+    id: INV-FE3
+    type: conditional
+    statement: "ECSLyapunovRegulator.step enforces CONDITIONAL Lyapunov descent: whenever V_before > V_floor (=1e-12) the corrected RK4 update satisfies V_after ≤ V_before (dV/dt ≤ 0). At the floor V ≤ V_floor the guarantee is suspended by physics — V = 0.5·FE² + λ·CF² + μ·SI² ≥ 0 cannot descend below zero, so a stress injection from the origin necessarily raises V."
+    test_type: trajectory_test
+    falsification: "For any step taken from a state with V_before > 1e-12, V_after > V_before — i.e. the post-hoc binary-search correction (core/neuro/ecs_lyapunov.py) failed to enforce descent or the α=0 no-move fallback."
+    scope_note: "Sharper, honest sibling of INV-FE1: it states the explicit non-negativity-floor exclusion that makes the descent guarantee truthful (a universal 'dV/dt ≤ 0' claim is falsified at the origin where the only admissible move is up). The correction guarantees at worst α=0 (no move, dV=0) whenever V_before > 1e-12. Numerically verified: 9000 corrected steps, worst dV_dt = 0.0."
+    priority: P0
+
 # ═══════════════════════════════════════════════════
 # THERMODYNAMIC CONSTRAINTS
 # ═══════════════════════════════════════════════════
@@ -410,6 +428,15 @@ thermodynamics:
     statement: "Entropy production ≥ 0 in irreversible processes"
     test_type: property_test
     priority: P1
+
+  landauer_erasure_floor:
+    id: INV-TH3
+    type: algebraic
+    statement: "Per-bit information erasure costs exactly the Landauer floor E_bit = k_B·T·ln 2, and the N-bit minimum E_min(N) = N·E_bit is a hard lower bound (N-bit cost ≥ N·k_B·T·ln 2, equality at the quasi-static limit)."
+    test_type: property_test
+    falsification: "core.physics.landauer.LandauerInferenceProfiler.landauer_per_bit ≠ k_B·T·ln 2 to float precision, or minimum_energy(N) < N·k_B·T·ln 2 for some integer N ≥ 0."
+    scope_note: "Quasi-static erasure against a thermalised reservoir at temperature proxy T (Landauer 1961). This is the per-bit identity plus the additive N-bit floor; it is distinct from INV-TAU2, which reuses the same k_B·T·ln 2 constant as a predictability-horizon energy budget E_min = k_B·T·ln(Δ/δ₀) rather than as a bit-erasure cost."
+    priority: P0
 
 # ═══════════════════════════════════════════════════
 # RICCI CURVATURE
