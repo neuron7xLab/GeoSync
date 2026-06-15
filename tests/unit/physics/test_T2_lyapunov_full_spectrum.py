@@ -149,6 +149,43 @@ def test_INV_LY2_harmonic_oscillator_sum_is_zero() -> None:
     )
 
 
+def test_INV_LY2_stiff_breakdown_scales_as_fourth_power() -> None:
+    """INV-LY2 is CONDITIONAL on stiffness, not universal.
+
+    The variational (tangent) integrator is non-symplectic, so for an
+    under-resolved fast mode the ``Σλ = 0`` bound breaks and the error grows as
+    ``O((ω·dt)^4)``. We characterise that breakdown as a quantified, falsifiable
+    law rather than asserting a false-universal bound: the log-log slope of
+    ``|Σλ|`` vs ``ω·dt`` is ≈ 4 (measured 3.998). The resolved-regime bound
+    (ω·dt = 0.01) is verified in the test above. Corrected from a false-universal
+    P0 claim (audit 2026-06; cf. INV-RC3 #1023).
+    """
+    dt = 0.01
+    n_steps = 2000  # fixed; a multiple of qr_every (INV-LY3 divisibility)
+    omega_dts: list[float] = []
+    sums: list[float] = []
+    for omega in (10.0, 20.0, 30.0, 40.0):  # ω·dt = 0.1 .. 0.4, under-resolved
+        rhs, _ = _harmonic_oscillator(omega=omega)
+        rep = lyapunov_spectrum(
+            rhs, jnp.array([1.0, 0.0]), dt=dt, n_steps=n_steps, qr_every=10
+        )
+        omega_dts.append(omega * dt)
+        sums.append(abs(float(jnp.sum(rep.spectrum))))
+
+    slope = float(np.polyfit(np.log(omega_dts), np.log(sums), 1)[0])
+    assert 3.5 < slope < 4.5, (
+        f"INV-LY2 breakdown order off: measured slope = {slope:.3f}, expected ≈ 4 "
+        f"(O((ω·dt)^4) non-symplectic-tangent error). omega_dts={omega_dts}, "
+        f"sums={[f'{s:.2e}' for s in sums]}. The Σλ=0 bound is CONDITIONAL on a "
+        f"resolved ω·dt, not universal."
+    )
+    assert sums[-1] > 1e-2, (
+        f"INV-LY2: expected a visible breakdown at ω·dt={omega_dts[-1]:.2f}, got "
+        f"|Σλ|={sums[-1]:.2e}; the former false-universal 1e-3 bound does not "
+        f"hold in the under-resolved regime."
+    )
+
+
 # ── INV-LE3 compat: Lorenz-63 reference spectrum ─────────────────────────────
 
 
