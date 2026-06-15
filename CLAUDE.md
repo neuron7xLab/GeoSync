@@ -163,8 +163,13 @@ INV-KR3 | conservation | with ω_i = 0, coupling potential V is         | P0
 ```
 INV-LY1 | algebraic    | linear ẋ = A x: sort_desc(spectrum) ==           | P0
                        | sort_desc(Re(eigvals(A))) to 1e-3 at T=50.
-INV-LY2 | conservation | Hamiltonian flow ⇒ Σ λ_k = 0 to 1e-3            | P0
-                       | (harmonic oscillator, ≈16 periods).
+INV-LY2 | conditional  | RESOLVED Hamiltonian flow ⇒ Σ λ_k = 0 to 1e-3   | P0
+                       | (harmonic, ≈16 periods, ω·dt ≲ 0.05). The variational
+                       | (tangent) integrator is non-symplectic, so the Σλ
+                       | error grows as O((ω·dt)⁴) — measured slope 3.998: the
+                       | bound holds ONLY when the fastest mode is time-resolved.
+                       | NOT universal; corrected from false-universal 2026-06
+                       | (audit; cf. INV-RC3 #1023).
 INV-LY3 | universal    | every contract violation (dt≤0, n_steps≤0,      | P0
                        | qr_every∤n_steps, n_exp∉[1,n], non-1D x0) →
                        | ValueError. Fail-closed; no silent repair.
