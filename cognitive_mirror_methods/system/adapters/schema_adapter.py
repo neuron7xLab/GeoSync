@@ -2,8 +2,27 @@ from __future__ import annotations
 
 from typing import Any
 
-REQUEST_KEYS = {"request_id", "module", "operation", "input", "context", "constraints", "output_format", "language"}
-RESPONSE_KEYS = {"request_id", "module", "status", "output", "artifacts", "errors", "warnings", "validation", "next_action"}
+REQUEST_KEYS = {
+    "request_id",
+    "module",
+    "operation",
+    "input",
+    "context",
+    "constraints",
+    "output_format",
+    "language",
+}
+RESPONSE_KEYS = {
+    "request_id",
+    "module",
+    "status",
+    "output",
+    "artifacts",
+    "errors",
+    "warnings",
+    "validation",
+    "next_action",
+}
 
 
 def validate_request_shape(request: dict[str, Any]) -> tuple[bool, list[str]]:
