@@ -45,11 +45,12 @@ _DATASET = _BASE / "preregistration" / "dataset.example.json"
 _CONFIG = _BASE / "preregistration" / "config.example.json"
 
 # Provenance pins over the committed synthetic fixtures (Phase-2 evidence).
-EXPECTED_DATA_SHA256 = "b1da972d910a7ed5897e2a28461f6cf238652d6150c9e8c771b4b7dcfc4f0d5e"
-EXPECTED_CONFIG_SHA256 = "ca499750aa18d54f2bf152eed40333b2198ee1aa7abde6d4c2bc97a93a3cfc6e"
+# These are sha256 content hashes of public synthetic fixtures, not secrets.
+EXPECTED_DATA_SHA256 = "b1da972d910a7ed5897e2a28461f6cf238652d6150c9e8c771b4b7dcfc4f0d5e"  # pragma: allowlist secret
+EXPECTED_CONFIG_SHA256 = "ca499750aa18d54f2bf152eed40333b2198ee1aa7abde6d4c2bc97a93a3cfc6e"  # pragma: allowlist secret
 
 # Deterministic-replay pin over the canonical serialization of the decision.
-EXPECTED_DECISION_SHA256 = "2686e7687c75e7bbe991a987353f7f5abfca6a19eb369413bc9637c1eceb8427"
+EXPECTED_DECISION_SHA256 = "2686e7687c75e7bbe991a987353f7f5abfca6a19eb369413bc9637c1eceb8427"  # pragma: allowlist secret
 
 # Negative-evidence pin: the exact, preserved blocked verdict (Phase-4 fallback).
 EXPECTED_BLOCKERS = (
