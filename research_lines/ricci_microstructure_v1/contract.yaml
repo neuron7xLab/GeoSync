@@ -49,6 +49,28 @@ promotion_limits:
   real_single_state: TESTED_REAL_SINGLE
   real_multi_required_for: MEASURED
   deployable_state_required: REPLICATED
+external_reproducibility:
+  status: PARTIAL
+  fallback_quality: PUBLIC_PLACEHOLDER
+  public_or_cached_input: artifacts/runs/ricci_microstructure_v1/example_artifact.json
+  schema: schemas/research/research_inference_artifact.schema.json
+  replay_command: >-
+    python tools/research/validate_ricci_artifact_schema.py --semantic
+    --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
+  expected_result: >-
+    Placeholder artifact passes schema and semantic-truth checks while preserving
+    HYPOTHESIS / NOT_RUN status; this proves the public fallback path, not a real
+    L2 microstructure result.
+  known_limits:
+    - placeholder artifact uses zero data hash and zero git hash by design
+    - public fallback validates provenance discipline, not empirical Ricci signal quality
+    - promotion remains blocked until real hash-pinned order-book sessions exist
+  promotion_locked_until:
+    - real depth5 order-book session with non-zero data_sha256
+    - non-zero git_sha, config_sha256, env_sha256, and output_sha256
+    - replay_command for the real artifact
+    - null baseline and multi-session replay
+    - human witness review for L2 microstructure interpretation
 artifact:
   required: true
   immutable: true
