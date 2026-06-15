@@ -79,6 +79,16 @@ def estimate_natural_frequencies_from_theta(
         raise ValueError(f"dt must be > 0; got {dt}")
     if theta.ndim != 2:
         raise ValueError(f"theta must be 2-D (T, N); got {theta.ndim}-D")
+    if theta.shape[0] < 3:
+        # np.gradient needs ≥2 samples; require ≥3 for a meaningful frequency
+        # (raise a clear contract error instead of an opaque numpy message).
+        raise ValueError(f"theta must have ≥3 timesteps; got T={theta.shape[0]}")
+    if not bool(np.all(np.isfinite(theta))):
+        # Fail-closed: a non-finite phase is a contract violation, not an
+        # outlier. `np.median` is NOT nan-aware, so a single NaN would silently
+        # poison the whole-column estimate — the "tolerates 50% outliers" claim
+        # holds only for FINITE phase-slips, not NaN/Inf.
+        raise ValueError("theta must be finite (non-finite phase is not an outlier)")
     omega_inst = _instantaneous_frequencies(theta, dt)
 
     if method == "median":
