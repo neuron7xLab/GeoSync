@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -164,7 +165,7 @@ def test_falsifier_fires_on_planted_signal() -> None:
     assert r.p_value < cfg.alpha
 
 
-def test_cli_emits_artifact_and_zero_exit(tmp_path) -> None:  # type: ignore[no-untyped-def]
+def test_cli_emits_artifact_and_zero_exit(tmp_path: Path) -> None:
     from tools.research.ricci_synthetic_null import main
 
     out = tmp_path / "synthetic_null_falsifier.json"
