@@ -179,6 +179,23 @@ def test_fully_satisfied_real_multi_run_may_promote(config: dict[str, Any]) -> N
     assert decision.falsification_status == "PASS"
 
 
+def test_single_real_session_caps_below_measured(config: dict[str, Any]) -> None:
+    # Negative control / promotion blocker for `real_multi_required_for: MEASURED`.
+    # A real, all-gate-passing session that is NOT multi-session must clear every
+    # falsifier (allowed + PASS) yet stop at TESTED_REAL_SINGLE — MEASURED is
+    # reserved for real_multi. Pins the contract's multi-session requirement so a
+    # single session can never be silently promoted to MEASURED.
+    single_config = copy.deepcopy(config)
+    single_config["data_source"] = "real_single"
+    real = {"data_sha256": "d" * 64, "is_synthetic": False, "min_data_depth_sec": 7200}
+    result = {"net_pnl_after_costs": 42.0, "oos_ic": 0.11}
+    decision = evaluate_promotion(real, single_config, result)
+    assert decision.allowed is True
+    assert decision.falsification_status == "PASS"
+    assert decision.claim_tier == "TESTED_REAL_SINGLE"
+    assert decision.claim_tier != "MEASURED"
+
+
 # --------------------------------------------------------------------------- #
 # The line itself stays unpromoted until real data exists
 # --------------------------------------------------------------------------- #
