@@ -1,0 +1,78 @@
+# Diff-bound commit acceptor for the thermodynamics physical-law witnesses.
+#
+# Adds ONE test module binding two previously-unwitnessed catalog laws to
+# executable @law witnesses. Promotes no claim, changes no runtime behavior,
+# touches no schema/guard, uses no real data.
+#
+#   thermo.second_law_closed — Boltzmann entropy non-decreasing under mixing
+#                              (INV-TH2).
+#   thermo.landauer_bound    — per-bit erasure energy = k_B·T·ln 2 floor
+#                              (INV-LANDAUER-PROXY).
+#
+# Locally verified on origin/main base (2253a6a):
+#   * pytest tests/physics_contracts/test_thermodynamics_witnesses.py: 2 passed
+#   * .claude/physics/validate_tests.py <file>: 0 issues (L1..L5), EXIT 0
+#   * ruff / mypy --strict clean ; zero new `# type: ignore`
+id: thermodynamics-law-witnesses
+status: ACTIVE
+claim_type: governance
+promise: >-
+  After this PR lands, tests/physics_contracts/test_thermodynamics_witnesses.py
+  binds the catalog laws thermo.second_law_closed and thermo.landauer_bound to
+  @law-decorated witnesses that pass .claude/physics/validate_tests with zero
+  issues. The entropy witness asserts Boltzmann entropy is non-decreasing under
+  a doubly-stochastic mixing step (INV-TH2) within 1e-12 slack; the Landauer
+  witness asserts per-bit erasure energy equals k_B·T·ln 2 across temperatures
+  and that the N-bit cost never falls below the floor (INV-LANDAUER-PROXY). No
+  market claim; no runtime, schema, or guard change.
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/thermodynamics-law-witnesses.yaml"
+    - path: "tests/physics_contracts/test_thermodynamics_witnesses.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+    - "application/"
+    - "core/"
+    - "src/"
+    - "geosync_hpc/"
+    - "physics_contracts/catalog.yaml"
+required_python_symbols: []
+expected_signal: >-
+  `python -m pytest tests/physics_contracts/test_thermodynamics_witnesses.py`
+  reports 2 passed; `python .claude/physics/validate_tests.py
+  tests/physics_contracts/test_thermodynamics_witnesses.py` exits 0 with no
+  L1..L5 issues; ruff and mypy --strict on the file are clean.
+measurement_command: >-
+  bash -c 'mkdir -p tmp && python -m pytest
+  tests/physics_contracts/test_thermodynamics_witnesses.py
+  > tmp/thermodynamics_law_witnesses.log 2>&1
+  && grep -q "2 passed" tmp/thermodynamics_law_witnesses.log'
+signal_artifact: "tmp/thermodynamics_law_witnesses.log"
+falsifier:
+  command: >-
+    bash -c 'python -c "
+    import math
+    from core.physics.landauer import LandauerInferenceProfiler, K_BOLTZMANN
+    p = LandauerInferenceProfiler(T=300.0)
+    expected = K_BOLTZMANN * 300.0 * math.log(2)
+    rel = abs(p.landauer_per_bit - expected) / expected
+    import sys; sys.exit(0 if rel > 1e-15 else 1)"'
+  description: >-
+    Inverse probe of the Landauer floor. It exits 0 (fires) iff the per-bit
+    erasure energy deviates from k_B·T·ln 2 beyond float round-off — i.e. the
+    physical lower bound is broken in real code. While the identity holds the
+    probe exits 1. If it ever exits 0, the thermodynamics witness is no longer
+    truthful and the change must be reverted, not patched green.
+rollback_command: >-
+  git rm -f
+  tests/physics_contracts/test_thermodynamics_witnesses.py
+  .claude/commit_acceptors/thermodynamics-law-witnesses.yaml
+rollback_verification_command: >-
+  bash -c 'test ! -f tests/physics_contracts/test_thermodynamics_witnesses.py'
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/thermodynamics-law-witnesses.yaml"
+report_path: "tmp/thermodynamics_law_witnesses.log"
+evidence: []
