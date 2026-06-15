@@ -24,6 +24,7 @@ from core.kuramoto.adaptive import AdaptiveKuramotoEngine
 from core.kuramoto.config import KuramotoConfig
 from core.kuramoto.delayed import DelayedKuramotoEngine
 from core.kuramoto.early_stopping import EarlyStoppingEngine
+from core.kuramoto.engine import KuramotoEngine
 from core.kuramoto.metrics import order_parameter
 from core.kuramoto.ott_antonsen import OttAntonsenEngine
 from core.kuramoto.second_order import SecondOrderKuramotoEngine
@@ -412,3 +413,48 @@ class TestFinitenessFailClosed:
         r = order_parameter(theta, axis=1)
         assert r.shape == (2,)
         assert np.all((r >= 0.0) & (r <= 1.0))
+
+
+class TestRK4ConvergenceOrder:
+    """Validate the first-order KuramotoEngine RK4 integrator to its defining
+    global order p = 4 (the analogue of INV-K9/K10 for the second-order Verlet
+    engine). The classical RK4 step has local error O(dt^5) and global error
+    O(dt^4): the log-log slope of the state error vs dt must be ≈ 4.
+    """
+
+    def test_rk4_global_error_is_fourth_order(self) -> None:
+        """Global error of the complex order parameter z(T) scales as dt^4.
+
+        We measure the error of z(T) = mean(exp(i*theta(T))) against a fine
+        reference solution (the smooth z avoids phase-wrapping artefacts) over a
+        geometric dt-ladder. The recovered log-log slope ≈ 4 confirms the
+        integrator runs at its full RK4 order; a degraded step (e.g. Euler ->
+        order 1) would collapse the slope.
+        """
+        n = 12
+        k_coupling = 2.0
+        horizon = 5.0
+        seed = 0
+        rng = np.random.default_rng(seed)
+        omega = rng.standard_normal(n)
+        theta0 = rng.uniform(0.0, 2.0 * math.pi, n)
+
+        def z_at_T(dt: float) -> complex:
+            steps = int(round(horizon / dt))
+            cfg = KuramotoConfig(
+                N=n, K=k_coupling, omega=omega, theta0=theta0, dt=dt, steps=steps, seed=seed
+            )
+            theta_final = KuramotoEngine(cfg).run().phases[-1]
+            return complex(np.mean(np.exp(1j * theta_final)))
+
+        z_ref = z_at_T(0.0003125)  # 16x finer than the finest ladder rung
+        dt_ladder = [0.02, 0.01, 0.005]
+        errors = [abs(z_at_T(dt) - z_ref) for dt in dt_ladder]
+        order = float(np.polyfit(np.log(dt_ladder), np.log(errors), 1)[0])
+
+        assert 3.5 < order < 4.5, (
+            f"RK4 convergence order off: measured slope = {order:.3f}, expected "
+            f"≈ 4 (RK4 global error O(dt^4)). dt_ladder={dt_ladder}, "
+            f"errors={[f'{e:.2e}' for e in errors]}. A lower order indicates a "
+            f"degraded integrator (e.g. Euler -> order 1)."
+        )
