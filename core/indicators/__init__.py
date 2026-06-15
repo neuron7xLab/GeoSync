@@ -50,6 +50,11 @@ _EXPORTS: dict[str, str] = {
     "GeoSyncCompositeEngine": "kuramoto_ricci_composite",
     "KuramotoRicciComposite": "kuramoto_ricci_composite",
     "MarketPhase": "kuramoto_ricci_composite",
+    # market_state_contract
+    "EntryState": "market_state_contract",
+    "MarketRegime": "market_state_contract",
+    "MarketStateContract": "market_state_contract",
+    "compile_market_state": "market_state_contract",
     # multiscale_kuramoto
     "KuramotoResult": "multiscale_kuramoto",
     "MultiScaleKuramoto": "multiscale_kuramoto",
@@ -135,6 +140,10 @@ if TYPE_CHECKING:  # eager names for static analysers / IDEs only.
     from .kuramoto_ricci_composite import GeoSyncCompositeEngine as GeoSyncCompositeEngine
     from .kuramoto_ricci_composite import KuramotoRicciComposite as KuramotoRicciComposite
     from .kuramoto_ricci_composite import MarketPhase as MarketPhase
+    from .market_state_contract import EntryState as EntryState
+    from .market_state_contract import MarketRegime as MarketRegime
+    from .market_state_contract import MarketStateContract as MarketStateContract
+    from .market_state_contract import compile_market_state as compile_market_state
     from .multiscale_kuramoto import KuramotoResult as KuramotoResult
     from .multiscale_kuramoto import MultiScaleKuramoto as MultiScaleKuramoto
     from .multiscale_kuramoto import MultiScaleKuramotoFeature as MultiScaleKuramotoFeature
