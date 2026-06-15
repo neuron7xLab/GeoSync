@@ -23,8 +23,24 @@
 #   invalid_when         conditions that void the descriptor's interpretation
 #   witness_required     the test/check that must exist to use the descriptor
 #   falsifier_required   the named falsifier that can reject the interpretation
+#   promotion_relevant   true when an invalid_when on this limit could otherwise
+#                        let a real-data claim advance a claim tier. Such a limit
+#                        MUST carry an EXECUTABLE falsifier (see below): a named
+#                        falsifier is not a falsifier unless it can be run.
+#   falsifier_command    a runnable command / pytest node id that EXECUTES the
+#                        required falsifier. Locatability/executability is the
+#                        contract — the path must resolve and run; it is NOT a
+#                        claim that the falsifier already passed on real data.
+#   falsifier_artifact_path  alternatively, a path to a frozen result artifact
+#                        produced by that falsifier. Either falsifier_command OR
+#                        falsifier_artifact_path is required for a
+#                        promotion_relevant limit; both is allowed.
 #   forbidden_claims     phrasings this limit forbids (research-boundary terms)
 #   max_claim_tier_violated  tier ceiling when any invalid_when holds
+#
+# Fail-closed rule (enforced in tools/research/market_limits.py): loading the
+# contract RAISES if any promotion_relevant limit lacks both falsifier_command
+# and falsifier_artifact_path. Non-promotion limits keep prior behavior.
 ---
 version: 1
 # Allowed claim-tier vocabulary, mirrored from FORBIDDEN_CLAIMS.md so witnesses
@@ -49,6 +65,8 @@ limits:
       - "cross-session levels are compared without re-normalization"
     witness_required: "tests/physics_contracts/test_market_limits.py::test_no_conservation_claim"
     falsifier_required: "multi_session_replay"
+    promotion_relevant: true
+    falsifier_command: "python -m pytest tests/research_lines/test_ricci_microstructure_replay_capsule.py::test_replay_is_deterministic_and_blocked -q"
     forbidden_claims:
       - "conserved market energy"
       - "closed-form dissipation of market stress"
@@ -65,6 +83,8 @@ limits:
       - "a single window is generalized to a regime it did not observe"
     witness_required: "tests/physics_contracts/test_market_limits.py::test_window_is_declared"
     falsifier_required: "lag_sweep_no_future_data"
+    promotion_relevant: true
+    falsifier_command: "python -m pytest tests/research_lines/test_ricci_lookahead_leak_falsifier.py::test_injected_lookahead_leak_is_flagged -q"
     forbidden_claims:
       - "stationary market parameter"
       - "time-invariant predictor"
@@ -81,6 +101,8 @@ limits:
       - "the aggregate is back-tested as if participants did not react to it"
     witness_required: "tests/physics_contracts/test_market_limits.py::test_no_fixed_coupling_claim"
     falsifier_required: "permutation_null"
+    promotion_relevant: true
+    falsifier_command: "python -m pytest tests/research_lines/test_ricci_microstructure_synthetic_falsifier.py::test_permutation_null_fires_on_synthetic_noise -q"
     forbidden_claims:
       - "fixed market coupling constant"
       - "participant-invariant dynamics"
@@ -97,6 +119,8 @@ limits:
       - "curvature is computed over a degenerate (empty/one-level) book"
     witness_required: "tests/physics_contracts/test_market_limits.py::test_degenerate_book_fails_closed"
     falsifier_required: "multi_session_replay"
+    promotion_relevant: true
+    falsifier_command: "python -m pytest tests/research_lines/test_ricci_microstructure_replay_capsule.py::test_replay_is_deterministic_and_blocked -q"
     forbidden_claims:
       - "continuous liquidity surface"
       - "smooth order-book manifold"
@@ -113,6 +137,8 @@ limits:
       - "shock and calm sessions are pooled without stratification"
     witness_required: "tests/physics_contracts/test_market_limits.py::test_shock_calm_stratified"
     falsifier_required: "multi_session_replay"
+    promotion_relevant: true
+    falsifier_command: "python -m pytest tests/research_lines/test_ricci_microstructure_replay_capsule.py::test_replay_is_deterministic_and_blocked -q"
     forbidden_claims:
       - "regime-invariant geometric flow"
       - "shock-robust curvature trajectory"
@@ -131,6 +157,8 @@ limits:
       - "the order-flow process is treated as a closed, self-contained system"
     witness_required: "tests/physics_contracts/test_market_limits.py::test_open_system_acknowledged"
     falsifier_required: "lag_sweep_no_future_data"
+    promotion_relevant: true
+    falsifier_command: "python -m pytest tests/research_lines/test_ricci_lookahead_leak_falsifier.py::test_injected_lookahead_leak_is_flagged -q"
     forbidden_claims:
       - "closed order-flow system"
       - "conserved order-flow"
@@ -147,6 +175,8 @@ limits:
       - "intervention conclusions are drawn from a correlation graph"
     witness_required: "tests/physics_contracts/test_market_limits.py::test_no_causal_from_correlation"
     falsifier_required: "permutation_null"
+    promotion_relevant: true
+    falsifier_command: "python -m pytest tests/research_lines/test_ricci_microstructure_synthetic_falsifier.py::test_permutation_null_fires_on_synthetic_noise -q"
     forbidden_claims:
       - "causal market graph from correlation"
       - "proven causal link"
@@ -163,6 +193,8 @@ limits:
       - "a descriptor is promoted past Instrumented without a passed falsifier"
     witness_required: "tests/physics_contracts/test_market_limits.py::test_descriptor_needs_falsifier"
     falsifier_required: "multi_session_replay"
+    promotion_relevant: true
+    falsifier_command: "python -m pytest tests/research_lines/test_ricci_microstructure_replay_capsule.py::test_replay_is_deterministic_and_blocked -q"
     forbidden_claims:
       - "structural descriptor guarantees price direction"
       - "geometry-implies-prediction"
