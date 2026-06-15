@@ -390,6 +390,72 @@ thermodynamics:
     priority: P1
 
 # ═══════════════════════════════════════════════════
+# STOCHASTIC THERMODYNAMICS (Law T8 — exact fluctuation theorems)
+# Overdamped Langevin in a harmonic well V = ½ k x²; Euler-Maruyama,
+# Sekimoto work convention dW = ½ x² dk. Pure statistical mechanics —
+# NOT a market model, no financial claim. The free energy is the
+# Gaussian partition-function result F(k) = −(1/2β)·ln(2π/(βk)), so a
+# stiffness ramp k_i→k_f has ΔF = −(1/2β)·ln(k_i/k_f).
+# ═══════════════════════════════════════════════════
+
+stochastic_thermodynamics:
+  equipartition_boltzmann:
+    id: INV-ST1
+    type: statistical
+    statement: "Stationary samples of the overdamped Langevin in V = ½ k x² satisfy equipartition: Var(x) = kT/k (Boltzmann / detailed-balance steady state)."
+    test_type: statistical_test
+    parameters:
+      tolerance: "0.10 (relative; measured ≈0.017 at ensemble=40000, relax_steps=2000)"
+      relation: "Var(x) = kT/k = (1/βk); zero-mean Gaussian p(x) ∝ exp(−βV)"
+      ensemble: "40000 trajectories, dt=0.005, gamma=1.0, seeds {1,7,42}"
+    falsification: "|Var(x) − kT/k| / (kT/k) > 0.10 for any tested stiffness after relaxation to the stationary distribution."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/stochastic_thermodynamics.py
+    tests: tests/unit/physics/test_T8_stochastic_thermodynamics.py
+    references:
+      - "Sekimoto, K. (1998). Langevin equation and thermodynamics. Prog. Theor. Phys. Suppl. 130, 17."
+    related: [INV-ST2, INV-ST3]
+
+  jarzynski_equality:
+    id: INV-ST2
+    type: statistical
+    statement: "Jarzynski equality holds exactly in expectation over the non-equilibrium work distribution: ⟨e^(−βW)⟩ = e^(−βΔF), with e^(−βΔF) = sqrt(k_i/k_f) for the harmonic stiffness ramp."
+    test_type: ensemble_test
+    parameters:
+      tolerance: "0.05 (relative to target e^(−βΔF); measured ≤0.004 at ensemble=40000)"
+      target: "e^(−βΔF) = sqrt(k_i/k_f) = 0.5000 for k_i=1, k_f=4, kT=1"
+      mean_estimator: "np.mean(np.exp(−βW)) over ensemble work array; ΔF = −(1/2β)·ln(k_i/k_f)"
+      ensemble: "40000 trajectories, tau=1.0, dt=0.005, gamma=1.0, seeds {1,7,42,123}"
+    falsification: "|⟨e^(−βW)⟩ − e^(−βΔF)| / e^(−βΔF) > 0.05 for the reference ramp on any tested seed."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/stochastic_thermodynamics.py
+    tests: tests/unit/physics/test_T8_stochastic_thermodynamics.py
+    references:
+      - "Jarzynski, C. (1997). Nonequilibrium equality for free energy differences. Phys. Rev. Lett. 78, 2690."
+      - "Crooks, G. E. (1999). Entropy production fluctuation theorem and the nonequilibrium work relation for free energy differences. Phys. Rev. E 60, 2721."
+    related: [INV-ST1, INV-ST3]
+
+  second_law_dissipation:
+    id: INV-ST3
+    type: statistical
+    statement: "Second law (Jensen on Jarzynski): mean work ⟨W⟩ ≥ ΔF, and dissipated work is monotonic in protocol speed — ⟨W⟩ at tau=2.0 < ⟨W⟩ at tau=0.5 (slower ramp dissipates less)."
+    test_type: statistical_test
+    parameters:
+      relation: "⟨W⟩ ≥ ΔF (= 0.693 for the reference ramp); ⟨W⟩_slow < ⟨W⟩_fast"
+      measured: "⟨W⟩ ≈ 0.93 at tau=1.0; ⟨W⟩(tau=2.0) ≈ 0.84 < ⟨W⟩(tau=0.5) ≈ 1.08"
+      ensemble: "40000 trajectories, dt=0.005, gamma=1.0, seed=42"
+    falsification: "⟨W⟩ < ΔF on the reference ramp, OR ⟨W⟩(tau=2.0) ≥ ⟨W⟩(tau=0.5) (dissipation not monotonic in protocol speed)."
+    priority: P1
+    provenance: ANCHORED
+    source: core/physics/stochastic_thermodynamics.py
+    tests: tests/unit/physics/test_T8_stochastic_thermodynamics.py
+    references:
+      - "Jarzynski, C. (1997). Phys. Rev. Lett. 78, 2690 (⟨W⟩ ≥ ΔF by Jensen)."
+    related: [INV-ST1, INV-ST2]
+
+# ═══════════════════════════════════════════════════
 # RICCI CURVATURE
 # ═══════════════════════════════════════════════════
 
