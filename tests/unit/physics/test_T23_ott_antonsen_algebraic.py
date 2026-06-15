@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
 import pytest
 
 from core.kuramoto.ott_antonsen import OttAntonsenEngine
@@ -239,4 +240,52 @@ def test_inv_oa2_omega0_integration_locks_at_R_inf(omega0: float) -> None:
         f"ω₀={omega0}, expected √(1−2Δ/K) = {R_expected:.6f} "
         f"(K={K}, Δ={delta}). A collapse to ~0 for ω₀≠0 is the "
         f"conjugate-coupling defect; the magnitude must be ω₀-invariant."
+    )
+
+
+def _oa_transient_exact(t: np.ndarray, K: float, delta: float, r0: float) -> np.ndarray:
+    """Closed-form OA order-parameter transient R(t) for ω₀ = 0.
+
+    With ω₀=0 and real R, the OA flow reduces to the Bernoulli ODE
+    dR/dt = a·R − b·R³ (a = K/2 − Δ, b = K/2). Substituting u = R² gives the
+    logistic equation du/dt = 2a·u − 2b·u², solved in closed form:
+        u(t) = u₀·e^{2at} / (1 + (b/a)·u₀·(e^{2at} − 1))   (a ≠ 0).
+    The supercritical fixed point u∞ = a/b = 1 − 2Δ/K recovers INV-OA2.
+    """
+    a = K / 2.0 - delta
+    b = K / 2.0
+    u0 = r0 * r0
+    if abs(a) < 1e-14:
+        u = u0 / (1.0 + 2.0 * b * u0 * t)
+    else:
+        exp2at = np.exp(2.0 * a * t)
+        u = u0 * exp2at / (1.0 + (b / a) * u0 * (exp2at - 1.0))
+    return np.sqrt(np.clip(u, 0.0, None))
+
+
+@pytest.mark.parametrize(
+    "K, delta, r0",
+    [(6.0, 0.5, 0.1), (3.0, 0.5, 0.05), (1.0, 2.0, 0.8)],  # super, super, subcritical
+)
+def test_inv_oa2_full_transient_matches_closed_form(K: float, delta: float, r0: float) -> None:
+    """INV-OA2 (transient): the integrator matches the exact R(t) everywhere.
+
+    Beyond the fixed point R_∞ = √(1−2Δ/K), the WHOLE OA transient has the
+    closed-form Bernoulli/logistic solution. We integrate and compare the entire
+    R(t) trajectory to the analytic form — a far stronger check than the
+    steady-state value alone. Expected agreement is at machine precision
+    (observed max error ≈ 1e-13).
+    """
+    engine = OttAntonsenEngine(K=K, delta=delta, omega0=0.0)
+    result = engine.integrate(T=20.0, dt=0.001, R0=r0)
+    r_exact = _oa_transient_exact(result.time, K, delta, r0)
+    max_err = float(np.max(np.abs(result.R - r_exact)))
+    # tolerance: RK4 at dt=1e-3 tracks the analytic transient to ~1e-13
+    transient_tol = 1e-9  # epsilon: full-trajectory transient agreement
+    assert max_err < transient_tol, (
+        f"INV-OA2 TRANSIENT VIOLATED: max|R_num − R_exact| = {max_err:.3e} "
+        f"> tol = {transient_tol:.1e} over the full trajectory. Expected the "
+        f"integrator to track the closed-form Bernoulli/logistic R(t). "
+        f"At K={K}, Δ={delta}, R0={r0}, ω₀=0, T=20, dt=1e-3. "
+        f"Physical reasoning: ω₀=0 reduces OA to dR/dt = aR − bR³ (exact)."
     )
