@@ -85,7 +85,13 @@ def load_points(path: Path) -> list[Point]:
             lyapunov = float(row["lyapunov"])
             if not math.isfinite(lyapunov):
                 raise ValueError("lyapunov must be finite")
-            points.append(Point(step=step, lyapunov=lyapunov, label=str(row["regime_label"])))
+            points.append(
+                Point(
+                    step=step,
+                    lyapunov=lyapunov,
+                    label=str(row["regime_label"]),
+                )
+            )
         return points
 
 
@@ -112,7 +118,9 @@ def threshold_metrics(points: list[Point], threshold: float) -> ThresholdMetrics
 
     lead_times: list[int] = []
     for transition in transitions:
-        candidates = [p.step for p in points if p.step < transition and p.lyapunov >= threshold]
+        candidates = [
+            p.step for p in points if p.step < transition and p.lyapunov >= threshold
+        ]
         if not candidates:
             continue
         lead_times.append(transition - max(candidates))
@@ -128,8 +136,14 @@ def threshold_metrics(points: list[Point], threshold: float) -> ThresholdMetrics
     )
 
 
-def build_candidate_grid(min_threshold: float, max_threshold: float, step_size: float) -> tuple[float, ...]:
-    if not all(math.isfinite(value) for value in (min_threshold, max_threshold, step_size)):
+def build_candidate_grid(
+    min_threshold: float,
+    max_threshold: float,
+    step_size: float,
+) -> tuple[float, ...]:
+    if not all(
+        math.isfinite(value) for value in (min_threshold, max_threshold, step_size)
+    ):
         raise ValueError("candidate range values must be finite")
     if step_size <= 0:
         raise ValueError("step_size must be positive")
@@ -146,7 +160,10 @@ def build_candidate_grid(min_threshold: float, max_threshold: float, step_size: 
     return tuple(values)
 
 
-def validate_candidates(candidates: Iterable[float], allowed_range: tuple[float, float]) -> tuple[float, ...]:
+def validate_candidates(
+    candidates: Iterable[float],
+    allowed_range: tuple[float, float],
+) -> tuple[float, ...]:
     lower, upper = allowed_range
     if not math.isfinite(lower) or not math.isfinite(upper) or lower > upper:
         raise ValueError("allowed_range must be finite and ordered")
@@ -213,7 +230,8 @@ def calibrate_threshold(
     )
 
     calibration_scores: dict[float, ThresholdMetrics] = {
-        candidate: threshold_metrics(calibration, candidate) for candidate in candidate_values
+        candidate: threshold_metrics(calibration, candidate)
+        for candidate in candidate_values
     }
     if all(metrics.coverage == 0 for metrics in calibration_scores.values()):
         raise ValueError("calibration split has no threshold coverage")
@@ -282,11 +300,17 @@ def main() -> None:
     parser.add_argument("--step", dest="step_size", type=float, default=0.01)
     parser.add_argument("--calibration-fraction", type=float, default=0.6)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--json", action="store_true", help="emit calibration metadata as JSON")
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="emit calibration metadata as JSON",
+    )
     args = parser.parse_args()
 
     points = load_points(args.csv)
-    candidates = build_candidate_grid(args.min_threshold, args.max_threshold, args.step_size)
+    candidates = build_candidate_grid(
+        args.min_threshold, args.max_threshold, args.step_size
+    )
     result = calibrate_threshold(
         points,
         candidates=candidates,
