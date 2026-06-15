@@ -23,7 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = REPO_ROOT / ".claude/physics/INVARIANTS.yaml"
 REQUIRED = ("id", "type", "statement", "test_type", "priority")
 PRIORITIES = {"P0", "P1", "P2", "P3"}
-ID_RE = re.compile(r"^INV-[A-Z0-9][A-Z0-9-]*$")
+ID_RE = re.compile(r"^INV-[A-Za-z0-9][A-Za-z0-9-]*$")
 
 
 def _walk(node: Any, path: str = "$") -> list[tuple[str, dict[str, Any]]]:
