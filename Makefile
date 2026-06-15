@@ -660,3 +660,8 @@ evidence-gate:
 .PHONY: evidence-gate-core
 evidence-gate-core:
 	@bash scripts/ci/evidence_gate.sh --skip-coverage
+
+## replay-ricci-capsule: credential-free synthetic-negative Ricci replay capsule (no claim promotion)
+.PHONY: replay-ricci-capsule
+replay-ricci-capsule:
+	@python -m pytest tests/research_lines/test_ricci_microstructure_replay_capsule.py -q
