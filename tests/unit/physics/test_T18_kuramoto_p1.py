@@ -465,3 +465,106 @@ def test_swing_energy_convergence_order_symplectic() -> None:
         f"At N={n_oscillators}, K={k_coupling}, d=0, horizon={horizon}, seed={seed}. "
         f"Physical reasoning: symplectic flow has no secular energy drift."
     )
+
+
+# ---------------------------------------------------------------------------
+# INV-K10: the swing-equation velocity-Verlet map is SYMPLECTIC (root property)
+#   The Jacobian M of one undamped (ω=0, d=0) step preserves the symplectic
+#   form, MᵀJM = J, to machine precision; equivalently det(M)=1 (Liouville
+#   phase-space-volume preservation). Energy conservation (INV-K8) and bounded
+#   O(dt²) error (INV-K9) follow as theorems from this single defining property.
+# ---------------------------------------------------------------------------
+
+
+def test_swing_integrator_jacobian_is_symplectic() -> None:
+    """INV-K10: velocity-Verlet swing map is symplectic, MᵀJM=J (machine ε).
+
+    Symplecticity is the ROOT property of the integrator; INV-K8 (energy
+    conservation) and INV-K9 (bounded O(dt²) error, no secular drift) are
+    consequences (Hairer-Lubich-Wanner, Geometric Numerical Integration). We
+    build the Jacobian M of one step by complex-step differentiation — exact to
+    machine precision, no truncation error — after confirming the complex-safe
+    one-step replica reproduces the production SecondOrderKuramotoEngine
+    bit-exactly, then assert M preserves the standard symplectic form
+    J=[[0,I],[-I,0]] and that det(M)=1 (Liouville volume preservation).
+    """
+    # INV-K10: Jacobian / symplecticity parameters
+    n = 5  # 2n=10 phase-space dimension
+    k_coupling = 3.0
+    mass = 1.0
+    dt = 0.01
+    seed = 3
+
+    rng = np.random.default_rng(seed)
+    theta0 = rng.uniform(0.0, 2.0 * math.pi, n)
+    velocity0 = 0.3 * rng.standard_normal(n)
+    omega = np.zeros(n)  # INV-K10 condition: undamped autonomous (ω=0, d=0)
+    adj = np.full((n, n), k_coupling / n)
+    np.fill_diagonal(adj, 0.0)
+
+    def verlet_step(state: np.ndarray) -> np.ndarray:
+        """Complex-safe one-step velocity-Verlet map (undamped), replicating
+        core.kuramoto.second_order.SecondOrderKuramotoEngine.run()."""
+        theta, v = state[:n], state[n:]
+        accel = (adj * np.sin(theta[None, :] - theta[:, None])).sum(axis=1) / mass
+        theta_new = theta + v * dt + 0.5 * accel * dt * dt
+        accel_new = (adj * np.sin(theta_new[None, :] - theta_new[:, None])).sum(axis=1) / mass
+        v_new = v + 0.5 * (accel + accel_new) * dt
+        return np.concatenate([theta_new, v_new])
+
+    # Bind the replica to the production integrator: one step must match bit-exactly.
+    cfg = KuramotoConfig(
+        N=n, K=k_coupling, omega=omega, theta0=theta0, dt=dt, steps=1, seed=seed
+    )
+    result = SecondOrderKuramotoEngine(
+        cfg, mass=mass, damping=0.0, velocity0=velocity0
+    ).run()
+    z_engine = np.concatenate([result.phases[1], result.velocities[1]])
+    z_replica = verlet_step(np.concatenate([theta0, velocity0]))
+    replica_gap = float(np.max(np.abs(z_engine - z_replica)))
+    assert np.array_equal(z_engine, z_replica), (
+        f"INV-K10 VIOLATED: complex-safe replica diverged from the production "
+        f"velocity-Verlet engine by {replica_gap:.3e} (expected 0.0 bit-exact). "
+        f"Expected the symplectic-Jacobian probe to test the real integrator. "
+        f"At N={n}, K={k_coupling}, d=0, dt={dt}, seed={seed}. "
+        f"Physical reasoning: the Jacobian must be that of the shipped step map."
+    )
+
+    # Complex-step Jacobian M (machine-precision, no subtractive cancellation).
+    z0 = np.concatenate([theta0, velocity0]).astype(np.complex128)
+    eps = 1e-200
+    jac = np.empty((2 * n, 2 * n), dtype=np.float64)
+    for col in range(2 * n):
+        zp = z0.copy()
+        zp[col] += 1j * eps
+        jac[:, col] = verlet_step(zp).imag / eps
+
+    sform = np.block(
+        [
+            [np.zeros((n, n)), np.eye(n)],
+            [-np.eye(n), np.zeros((n, n))],
+        ]
+    )
+    symplectic_residual = float(np.max(np.abs(jac.T @ sform @ jac - sform)))
+    det_jac = float(np.linalg.det(jac))
+    # tolerance: machine-precision; velocity-Verlet is EXACTLY symplectic so the
+    # residual is O(machine ε)≈2e-16, while a non-symplectic step (Euler) gives
+    # an O(dt²)≈1e-4 residual — a 12-order separation.
+    symplectic_tol = 1e-12  # epsilon: symplectic-form preservation tolerance
+
+    assert symplectic_residual < symplectic_tol, (
+        f"INV-K10 VIOLATED: Jacobian is not symplectic, max|MᵀJM − J|="
+        f"{symplectic_residual:.3e} > tol={symplectic_tol:.1e}. Expected exact "
+        f"symplectic-form preservation (Verlet is symplectic); a non-zero "
+        f"residual indicates a non-symplectic integrator (e.g. Euler ~1e-4). "
+        f"At N={n}, K={k_coupling}, d=0, dt={dt}, seed={seed}. "
+        f"Physical reasoning: symplecticity is the root of INV-K8/K9."
+    )
+    assert abs(det_jac - 1.0) < symplectic_tol, (
+        f"INV-K10 VIOLATED: phase-space volume not preserved, det(M)="
+        f"{det_jac:.15f} (expected 1.0, |Δ|={abs(det_jac - 1.0):.3e} > "
+        f"tol={symplectic_tol:.1e}). Expected Liouville volume preservation for "
+        f"the undamped Hamiltonian flow. "
+        f"At N={n}, K={k_coupling}, d=0, dt={dt}, seed={seed}. "
+        f"Physical reasoning: a symplectic map has unit Jacobian determinant."
+    )

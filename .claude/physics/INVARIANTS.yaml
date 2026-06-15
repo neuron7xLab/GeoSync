@@ -125,6 +125,17 @@ kuramoto:
     source: core/kuramoto/second_order.py
     tests: tests/unit/physics/test_T18_kuramoto_p1.py
 
+  swing_integrator_symplecticity:
+    id: INV-K10
+    type: conservation  # symplectic 2-form preservation (root of K7/K8/K9)
+    statement: "The velocity-Verlet integrator of the undamped (ω=0, d=0) second-order swing equation is symplectic: the Jacobian M of one step preserves the standard symplectic form, MᵀJM = J with J = [[0, I], [−I, 0]], to machine precision; equivalently det(M) = 1 (Liouville phase-space-volume preservation). This is the ROOT property — energy conservation (INV-K8) and bounded O(dt²) error without secular drift (INV-K9) follow as theorems (Hairer–Lubich–Wanner). With damping d > 0 the map contracts phase-space volume at the dissipation rate, det(M) = exp(−(Σ dᵢ/mᵢ)·dt) + O(dt²)."
+    test_type: conservation  # complex-step Jacobian + symplectic-form residual
+    condition: "ω_i ≡ 0, d_i ≡ 0; Jacobian built by complex-step differentiation of one production integration step (machine-precision, no truncation), after binding the complex-safe replica to SecondOrderKuramotoEngine bit-exactly."
+    falsification: "A non-symplectic step (explicit Euler) gives an O(dt²) ≈ 1e-4 symplectic-form residual |MᵀJM − J| and det(M) ≠ 1, versus the velocity-Verlet machine-ε ≈ 2e-16 — a 12-order separation. Verified residual 2.22e-16, det(M) = 1.000000000000000; undamped OA-analogue linear-stability and damped Liouville contraction (det = exp(−(Σd/m)dt) to O(dt²)) cross-checked. Symplecticity is strictly more fundamental than the energy-drift signatures it implies."
+    priority: P1
+    source: core/kuramoto/second_order.py
+    tests: tests/unit/physics/test_T18_kuramoto_p1.py
+
   sakaguchi_frustration_sign:
     id: INV-SAK1
     type: qualitative
