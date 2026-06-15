@@ -580,8 +580,17 @@ def ricci_curvature_edge(
             (avoids redundant neighbor probability calculations).
 
     Returns:
-        float: Curvature value κ(x, y) ∈ (-∞, 1]. Typically κ ∈ [-2, 1] for
-        well-behaved price graphs. Returns 0.0 for invalid/missing edges.
+        float: Curvature value κ(x, y). The universal upper bound κ ≤ 1 holds
+        for every edge of every connected graph (INV-RC1, P0), since
+        κ = 1 − W₁/d and W₁ ≥ 0. The symmetric band κ ∈ [−1, 1] holds ONLY for
+        build_price_graph output (INV-RC3, P1): its consecutive integer node IDs
+        make the 1-D positional embedding equal to the combinatorial distance.
+        This function uses a 1-D positional embedding (offset/scale from graph
+        attrs) with α = 1/(deg+1), so the lower bound is construction-conditional
+        — for arbitrary (non-price-graph) topologies with large positional spread
+        κ can descend below −1 (e.g. a 12-node cycle yields κ = −2 on its
+        wrap-around edge: endpoints 11 apart in the integer embedding but
+        graph-distance 1). Returns 0.0 for invalid/missing edges.
 
     Numerical Stability:
         - Non-finite edge weights handled gracefully
