@@ -1,15 +1,28 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Bounded market-state compiler contract for Kuramoto/Ricci signals.
+"""Bounded market-state compiler contract for Kuramoto/Ricci descriptors.
 
 The functions in this module turn the existing ``CompositeSignal`` runtime
-object into a strict, auditable market-state envelope.  The envelope is a
-research signal contract, not financial advice and not a profitability claim.
+object into a strict, auditable structural-state envelope.  The envelope is a
+research descriptor contract, not financial advice and not a profitability
+claim.  It records *structure* (synchronization, curvature, bounded regime
+labels); it does not forecast prices, recommend positions, or assert edge.
+
+Provenance / evidence firewall
+------------------------------
+Every compiled envelope carries an additive, descriptor-only
+:class:`ProvenanceMetadata` block.  That block names the structural methods
+and source descriptors that fed the envelope, counts the bounded inputs, and
+declares an explicit claim boundary
+(``claim_boundary="descriptor_only_not_predictor"``).  The metadata is
+additive provenance only: it changes no runtime math and asserts no
+predictive capability.  These fields exist precisely so a downstream reader
+cannot mistake a structural descriptor for a forecast.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Mapping
 
@@ -20,6 +33,34 @@ from .kuramoto_ricci_composite import CompositeSignal, MarketPhase
 PHASE_BOUNDS = (-np.pi, np.pi)
 PROBABILITY_BOUNDS = (0.0, 1.0)
 RISK_MULTIPLIER_BOUNDS = (0.1, 2.0)
+
+# --- Provenance / evidence firewall (descriptor-only metadata) -------------
+# Deterministic descriptor names for the structural methods that compile an
+# envelope. These are provenance labels, not capability claims.
+PROVENANCE_METHOD_DESCRIPTORS: tuple[str, ...] = (
+    "bounded_phase_angle",
+    "classify_regime",
+    "classify_entry",
+    "normalize_risk",
+    "build_evidence",
+)
+# Deterministic descriptor names for the ``CompositeSignal`` source fields
+# consumed when compiling an envelope (structural inputs only).
+PROVENANCE_SOURCE_DESCRIPTORS: tuple[str, ...] = (
+    "kuramoto_R",
+    "consensus_R",
+    "cross_scale_coherence",
+    "static_ricci",
+    "temporal_ricci",
+    "topological_transition",
+    "entry_signal",
+    "exit_signal",
+    "risk_multiplier",
+    "confidence",
+)
+# Frozen claim-boundary declaration applied to every compiled envelope. The
+# wording is fixed so the boundary cannot drift per-call.
+CLAIM_BOUNDARY: str = "descriptor_only_not_predictor"
 
 
 class MarketRegime(Enum):
@@ -42,8 +83,61 @@ class EntryState(Enum):
 
 
 @dataclass(frozen=True, slots=True)
+class ProvenanceMetadata:
+    """Additive, descriptor-only provenance / evidence block.
+
+    Records which structural methods and source descriptors fed an envelope,
+    how many bounded inputs were consumed, and an explicit claim boundary.
+    This block makes no predictive claim: the fields are provenance labels
+    and firewall declarations, never an assertion of forecast capability.
+    """
+
+    method_descriptors: tuple[str, ...]
+    source_descriptors: tuple[str, ...]
+    method_count: int
+    source_count: int
+    claim_boundary: str
+    not_predictive_claim: bool
+    not_financial_advice: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "method_descriptors": list(self.method_descriptors),
+            "source_descriptors": list(self.source_descriptors),
+            "method_count": self.method_count,
+            "source_count": self.source_count,
+            "claim_boundary": self.claim_boundary,
+            "not_predictive_claim": self.not_predictive_claim,
+            "not_financial_advice": self.not_financial_advice,
+        }
+
+
+def build_provenance() -> ProvenanceMetadata:
+    """Return the deterministic descriptor-only provenance block.
+
+    The block is identical for every envelope (descriptor labels are fixed at
+    module scope) and asserts no predictive capability.
+    """
+
+    return ProvenanceMetadata(
+        method_descriptors=PROVENANCE_METHOD_DESCRIPTORS,
+        source_descriptors=PROVENANCE_SOURCE_DESCRIPTORS,
+        method_count=len(PROVENANCE_METHOD_DESCRIPTORS),
+        source_count=len(PROVENANCE_SOURCE_DESCRIPTORS),
+        claim_boundary=CLAIM_BOUNDARY,
+        not_predictive_claim=True,
+        not_financial_advice=True,
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class MarketStateContract:
-    """Strict market-state envelope compiled from ``CompositeSignal``."""
+    """Strict structural-state envelope compiled from ``CompositeSignal``.
+
+    The envelope is a bounded structural descriptor, not a forecast and not a
+    recommendation. The additive ``provenance`` field records descriptor-only
+    method/source metadata and the fixed claim boundary.
+    """
 
     phase: float
     confidence: float
@@ -52,6 +146,7 @@ class MarketStateContract:
     exit: bool
     risk: float
     evidence: Mapping[str, Mapping[str, Any]]
+    provenance: ProvenanceMetadata = field(default_factory=build_provenance)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -62,6 +157,7 @@ class MarketStateContract:
             "exit": self.exit,
             "risk": self.risk,
             "evidence": {key: dict(value) for key, value in self.evidence.items()},
+            "provenance": self.provenance.to_dict(),
         }
 
 
@@ -182,15 +278,21 @@ def compile_market_state(signal: CompositeSignal) -> MarketStateContract:
         exit=bool(_clip01(signal.exit_signal) >= 0.5),
         risk=normalize_risk(signal),
         evidence=evidence,
+        provenance=build_provenance(),
     )
 
 
 __all__ = [
+    "CLAIM_BOUNDARY",
+    "PROVENANCE_METHOD_DESCRIPTORS",
+    "PROVENANCE_SOURCE_DESCRIPTORS",
     "EntryState",
     "MarketRegime",
     "MarketStateContract",
+    "ProvenanceMetadata",
     "bounded_phase_angle",
     "build_evidence",
+    "build_provenance",
     "classify_entry",
     "classify_regime",
     "compile_market_state",
