@@ -4,19 +4,31 @@ from __future__ import annotations
 
 import importlib.metadata
 import importlib.util
+import json
 import logging
 import os
 import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
+from types import ModuleType
 from typing import Any, Iterable, Iterator, Sequence
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import pandas as pd
 import pytest
 import yaml  # type: ignore[import-untyped]
 
 _BOOTSTRAP_LOGGER = logging.getLogger("tests.bootstrap")
+_PANDAS_DATETIME_CAPI = "_pandas_datetime_CAPI"
+
+
+@dataclass(frozen=True)
+class _LoadedModule:
+    module: ModuleType
+    name: str
+    previous: ModuleType | None
+
 
 # ---------------------------------------------------------------------------
 # Pandas compatibility gate
@@ -28,53 +40,79 @@ _BOOTSTRAP_LOGGER = logging.getLogger("tests.bootstrap")
 # ``pd.Timestamp.now(tz=...)`` works end-to-end so that the test session
 # aborts with a clear message instead of failing deep inside a fixture.
 _PANDAS_MIN = (2, 3, 0)
+
+
+def _parse_pandas_version(raw: str) -> tuple[int, ...]:
+    try:
+        return tuple(int(part) for part in raw.split(".")[:3] if part.isdigit())
+    except ValueError as exc:  # pragma: no cover - defensive: malformed pandas version
+        raise pytest.UsageError(f"Unable to parse installed pandas version {raw!r}") from exc
+
+
+def _ensure_pandas_compatible(raw: str, version: tuple[int, ...]) -> None:
+    if version < _PANDAS_MIN:
+        raise pytest.UsageError(
+            f"GeoSync test suite requires pandas >= {'.'.join(map(str, _PANDAS_MIN))}, "
+            f"got {raw}"
+        )
+
+    if not hasattr(pd, _PANDAS_DATETIME_CAPI):  # pragma: no cover - environment guard
+        # Preserve the historical workaround verbatim: a subset of our extension
+        # dependencies read this attribute on import. Removing the shim silently
+        # regresses test collection on fresh venvs, so we keep it until pandas
+        # itself exposes the symbol again. ``setattr`` sidesteps the
+        # ``attr-defined`` complaint on pandas builds that no longer expose the
+        # sentinel statically while keeping the runtime effect identical.
+        setattr(pd, _PANDAS_DATETIME_CAPI, None)
+
+    try:
+        pd.Timestamp.now(tz="UTC")
+    except Exception as exc:  # pragma: no cover - environment smoke test
+        raise pytest.UsageError(
+            "pandas Timestamp smoke-test failed — tz-aware timestamp cannot be "
+            f"constructed with pandas {raw}. Reinstall a clean build."
+        ) from exc
+
+
 _PANDAS_RAW = importlib.metadata.version("pandas")
-try:
-    _PANDAS_VERSION: tuple[int, ...] = tuple(
-        int(part) for part in _PANDAS_RAW.split(".")[:3] if part.isdigit()
-    )
-except ValueError as exc:  # pragma: no cover - defensive: malformed pandas version
-    raise pytest.UsageError(f"Unable to parse installed pandas version {_PANDAS_RAW!r}") from exc
-if _PANDAS_VERSION < _PANDAS_MIN:
-    raise pytest.UsageError(
-        f"GeoSync test suite requires pandas >= {'.'.join(map(str, _PANDAS_MIN))}, "
-        f"got {_PANDAS_RAW}"
-    )
-if not hasattr(pd, "_pandas_datetime_CAPI"):  # pragma: no cover - environment guard
-    # Preserve the historical workaround verbatim: a subset of our extension
-    # dependencies read this attribute on import. Removing the shim silently
-    # regresses test collection on fresh venvs, so we keep it until pandas
-    # itself exposes the symbol again. ``setattr`` sidesteps the
-    # ``attr-defined`` complaint on pandas builds that no longer expose the
-    # sentinel statically while keeping the runtime effect identical.
-    setattr(pd, "_pandas_datetime_CAPI", None)
-try:
-    pd.Timestamp.now(tz="UTC")
-except Exception as exc:  # pragma: no cover - environment smoke test
-    raise pytest.UsageError(
-        "pandas Timestamp smoke-test failed — tz-aware timestamp cannot be "
-        f"constructed with pandas {_PANDAS_RAW}. Reinstall a clean build."
-    ) from exc
+_PANDAS_VERSION = _parse_pandas_version(_PANDAS_RAW)
+_ensure_pandas_compatible(_PANDAS_RAW, _PANDAS_VERSION)
 _BOOTSTRAP_LOGGER.info("pandas compatibility gate passed (pandas=%s)", _PANDAS_RAW)
 
-_audit_trail_path = Path("observability/audit/trail.py")
-_audit_spec = importlib.util.spec_from_file_location(
-    "geosync_observability_audit_trail", _audit_trail_path
+
+def _load_module_from_path(module_name: str, path: Path, label: str) -> _LoadedModule:
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Unable to load {label} from {path}")
+
+    module = importlib.util.module_from_spec(spec)
+    registered_name = spec.name
+    previous = sys.modules.get(registered_name)
+
+    # ``registered_name`` must be present before ``exec_module`` so that the
+    # loader can honour ``__package__``. The session-scoped restoration fixture
+    # below removes this controlled bootstrap mutation after the test run.
+    sys.modules[registered_name] = module
+    spec.loader.exec_module(module)
+    return _LoadedModule(module=module, name=registered_name, previous=previous)
+
+
+def _restore_module_registration(name: str, previous: ModuleType | None) -> None:
+    if previous is None:
+        sys.modules.pop(name, None)
+    else:
+        sys.modules[name] = previous
+
+
+_audit_loaded = _load_module_from_path(
+    "geosync_observability_audit_trail",
+    Path("observability/audit/trail.py"),
+    "audit trail module",
 )
-if _audit_spec is None or _audit_spec.loader is None:
-    raise ImportError(f"Unable to load audit trail module from {_audit_trail_path}")
-_audit_module = importlib.util.module_from_spec(_audit_spec)
-# ``_audit_spec.name`` must be registered in ``sys.modules`` before exec_module
-# so that the loader can honour ``__package__``. This mutation happens exactly
-# once at collection time; the session-scoped ``_sys_modules_registrations``
-# fixture below records the original value (if any) and restores it so that a
-# test run does not leak the shim into a subsequent in-process session.
-_AUDIT_MODULE_NAME = _audit_spec.name
-_PRE_AUDIT_MODULE = sys.modules.get(_AUDIT_MODULE_NAME)
-sys.modules[_AUDIT_MODULE_NAME] = _audit_module
-_audit_spec.loader.exec_module(_audit_module)
-get_access_audit_trail = _audit_module.get_access_audit_trail
-get_system_audit_trail = _audit_module.get_system_audit_trail
+_AUDIT_MODULE_NAME = _audit_loaded.name
+_PRE_AUDIT_MODULE = _audit_loaded.previous
+get_access_audit_trail = _audit_loaded.module.get_access_audit_trail
+get_system_audit_trail = _audit_loaded.module.get_system_audit_trail
 
 # Production-like environment variables are injected through the ``_test_env``
 # session-scoped autouse fixture below so that the change is restored at the
@@ -89,6 +127,11 @@ _TEST_ENV_DEFAULTS: dict[str, str] = {
     "THERMO_DUAL_SECRET": "test-secret",  # pragma: allowlist secret
 }
 
+
+def _public_fixture_exports(module: ModuleType) -> dict[str, Any]:
+    return {name: getattr(module, name) for name in dir(module) if not name.startswith("__")}
+
+
 # Surface the shared fixtures from ``tests/fixtures/conftest.py`` at this
 # higher-level conftest so ``autouse=True`` fixtures (e.g. ``_set_seed``)
 # propagate to every test module.
@@ -100,22 +143,22 @@ _TEST_ENV_DEFAULTS: dict[str, str] = {
 # The importlib.util load-by-path below mirrors the auto-discovery behaviour
 # without double registration. The ``sys.modules`` write is recorded for
 # restoration by ``_sys_modules_registrations``.
-_fixture_path = Path(__file__).parent / "fixtures" / "conftest.py"
-_fixture_spec = importlib.util.spec_from_file_location("geosync_tests_fixtures", _fixture_path)
-if _fixture_spec is None or _fixture_spec.loader is None:
-    raise ImportError(f"Unable to load fixtures from {_fixture_path}")
-_fixture_module = importlib.util.module_from_spec(_fixture_spec)
-_FIXTURE_MODULE_NAME = _fixture_spec.name
-_PRE_FIXTURE_MODULE = sys.modules.get(_FIXTURE_MODULE_NAME)
-sys.modules[_FIXTURE_MODULE_NAME] = _fixture_module
-_fixture_spec.loader.exec_module(_fixture_module)
-globals().update(
-    {
-        name: getattr(_fixture_module, name)
-        for name in dir(_fixture_module)
-        if not name.startswith("__")
-    }
+_fixture_loaded = _load_module_from_path(
+    "geosync_tests_fixtures",
+    Path(__file__).parent / "fixtures" / "conftest.py",
+    "fixtures",
 )
+_FIXTURE_MODULE_NAME = _fixture_loaded.name
+_PRE_FIXTURE_MODULE = _fixture_loaded.previous
+globals().update(_public_fixture_exports(_fixture_loaded.module))
+
+
+def _restore_environment(previous: dict[str, str | None]) -> None:
+    for key, original in previous.items():
+        if original is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = original
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -134,23 +177,12 @@ def _test_env() -> Iterator[None]:
     try:
         yield
     finally:
-        for key, original in previous.items():
-            if original is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = original
+        _restore_environment(previous)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _sys_modules_registrations() -> Iterator[None]:
-    """Restore ``sys.modules`` entries created at collection time.
-
-    The two ``sys.modules[...] = ...`` writes earlier in this file are
-    required at import time (before any test collects), so they cannot
-    move inside a fixture. What we *can* do is remember the previous
-    values and restore them at session teardown, which makes the
-    conftest's global footprint zero after the run.
-    """
+    """Restore ``sys.modules`` entries created at collection time."""
     try:
         yield
     finally:
@@ -158,10 +190,7 @@ def _sys_modules_registrations() -> Iterator[None]:
             (_AUDIT_MODULE_NAME, _PRE_AUDIT_MODULE),
             (_FIXTURE_MODULE_NAME, _PRE_FIXTURE_MODULE),
         ):
-            if previous is None:
-                sys.modules.pop(name, None)
-            else:
-                sys.modules[name] = previous
+            _restore_module_registration(name, previous)
 
 
 _LEVEL_DESCRIPTIONS: dict[str, str] = {
@@ -201,6 +230,58 @@ def _normalize(path: Path) -> Path:
         return path
 
 
+def _ensure_level(name: str) -> str:
+    if name not in _LEVEL_DESCRIPTIONS:
+        raise pytest.UsageError(f"Unknown GeoSync level '{name}' referenced in {_CONFIG_PATH}.")
+    return name
+
+
+def _coerce_path_patterns(raw_patterns: Any, level: str) -> tuple[str, ...]:
+    if not isinstance(raw_patterns, Sequence) or isinstance(raw_patterns, (str, bytes)):
+        raise pytest.UsageError(f"Patterns for level {level} must be a sequence in {_CONFIG_PATH}.")
+    return tuple(
+        PurePosixPath(str(pattern).strip()).as_posix().lstrip("./")
+        for pattern in raw_patterns
+        if str(pattern).strip()
+    )
+
+
+def _coerce_fallback_roots(raw_roots: Any) -> tuple[str, ...]:
+    if not isinstance(raw_roots, Sequence) or isinstance(raw_roots, (str, bytes)):
+        raise pytest.UsageError(f"fallback_roots in {_CONFIG_PATH} must be a sequence of paths.")
+    return tuple(
+        PurePosixPath(str(root).strip()).as_posix().strip("/")
+        for root in raw_roots
+        if str(root).strip()
+    )
+
+
+def _load_level_rules(raw_levels: Any) -> tuple[_LevelRule, ...]:
+    rules: list[_LevelRule] = []
+    for entry in raw_levels:
+        if not isinstance(entry, dict) or "level" not in entry:
+            raise pytest.UsageError(
+                f"Invalid rule entry {entry!r} in {_CONFIG_PATH}; expected mapping with 'level'."
+            )
+        level = _ensure_level(str(entry["level"]))
+        rules.append(_LevelRule(level=level, patterns=_coerce_path_patterns(entry.get("patterns", []), level)))
+    return tuple(rules)
+
+
+def _load_level_overrides(root: Path, raw_overrides: Any) -> dict[Path, str]:
+    if not isinstance(raw_overrides, dict):
+        raise pytest.UsageError(f"overrides in {_CONFIG_PATH} must be a mapping of paths to levels.")
+
+    overrides: dict[Path, str] = {}
+    for location, level_name in raw_overrides.items():
+        if not isinstance(location, str):
+            raise pytest.UsageError(
+                f"Override path keys must be strings in {_CONFIG_PATH}, got {location!r}."
+            )
+        overrides[_normalize(root / location)] = _ensure_level(str(level_name))
+    return overrides
+
+
 def _load_level_config(root: Path) -> _LevelConfig:
     if not _CONFIG_PATH.exists():
         raise pytest.UsageError(
@@ -208,63 +289,15 @@ def _load_level_config(root: Path) -> _LevelConfig:
         )
 
     raw = yaml.safe_load(_CONFIG_PATH.read_text(encoding="utf-8")) or {}
-
-    def _ensure_level(name: str) -> str:
-        if name not in _LEVEL_DESCRIPTIONS:
-            raise pytest.UsageError(f"Unknown GeoSync level '{name}' referenced in {_CONFIG_PATH}.")
-        return name
-
     fallback_level = raw.get("fallback_level")
     if fallback_level is not None:
         fallback_level = _ensure_level(str(fallback_level))
-    fallback_roots_raw = raw.get("fallback_roots", ["tests"])
-    if not isinstance(fallback_roots_raw, Sequence) or isinstance(fallback_roots_raw, (str, bytes)):
-        raise pytest.UsageError(f"fallback_roots in {_CONFIG_PATH} must be a sequence of paths.")
-    fallback_roots = tuple(
-        PurePosixPath(str(root).strip()).as_posix().strip("/")
-        for root in fallback_roots_raw
-        if str(root).strip()
-    )
-
-    rules: list[_LevelRule] = []
-    for entry in raw.get("levels", []):
-        if not isinstance(entry, dict) or "level" not in entry:
-            raise pytest.UsageError(
-                f"Invalid rule entry {entry!r} in {_CONFIG_PATH}; expected mapping with 'level'."
-            )
-        level = _ensure_level(str(entry["level"]))
-        patterns = entry.get("patterns", [])
-        if not isinstance(patterns, Sequence) or isinstance(patterns, (str, bytes)):
-            raise pytest.UsageError(
-                f"Patterns for level {level} must be a sequence in {_CONFIG_PATH}."
-            )
-        normalized_patterns = tuple(
-            PurePosixPath(str(pattern).strip()).as_posix().lstrip("./")
-            for pattern in patterns
-            if str(pattern).strip()
-        )
-        rules.append(_LevelRule(level=level, patterns=normalized_patterns))
-
-    overrides_raw = raw.get("overrides", {})
-    if not isinstance(overrides_raw, dict):
-        raise pytest.UsageError(
-            f"overrides in {_CONFIG_PATH} must be a mapping of paths to levels."
-        )
-
-    overrides: dict[Path, str] = {}
-    for location, level_name in overrides_raw.items():
-        if not isinstance(location, str):
-            raise pytest.UsageError(
-                f"Override path keys must be strings in {_CONFIG_PATH}, got {location!r}."
-            )
-        level = _ensure_level(str(level_name))
-        overrides[_normalize(root / location)] = level
 
     return _LevelConfig(
-        overrides=overrides,
-        rules=tuple(rules),
+        overrides=_load_level_overrides(root, raw.get("overrides", {})),
+        rules=_load_level_rules(raw.get("levels", [])),
         fallback_level=fallback_level,
-        fallback_roots=fallback_roots,
+        fallback_roots=_coerce_fallback_roots(raw.get("fallback_roots", ["tests"])),
     )
 
 
@@ -281,6 +314,21 @@ def _match_patterns(relative: PurePosixPath, rules: Iterable[_LevelRule]) -> str
     return None
 
 
+def _relative_test_path(root: Path, normalized: Path) -> PurePosixPath:
+    try:
+        return PurePosixPath(normalized.relative_to(root).as_posix())
+    except ValueError:
+        return PurePosixPath(normalized.as_posix())
+
+
+def _matches_fallback_root(relative: PurePosixPath, fallback_roots: Iterable[str]) -> bool:
+    relative_posix = relative.as_posix()
+    return any(
+        relative_posix == root or relative_posix.startswith(f"{root}/")
+        for root in fallback_roots
+    )
+
+
 def _determine_level(root: Path, path: Path) -> str:
     config = _cached_level_config(root)
     normalized = _normalize(path)
@@ -289,22 +337,13 @@ def _determine_level(root: Path, path: Path) -> str:
     if override_level is not None:
         return override_level
 
-    try:
-        relative = PurePosixPath(normalized.relative_to(root).as_posix())
-    except ValueError:
-        relative = PurePosixPath(normalized.as_posix())
-
+    relative = _relative_test_path(root, normalized)
     matched_level = _match_patterns(relative, config.rules)
     if matched_level is not None:
         return matched_level
 
-    if config.fallback_level is not None:
-        relative_posix = relative.as_posix()
-        if any(
-            relative_posix == root or relative_posix.startswith(f"{root}/")
-            for root in config.fallback_roots
-        ):
-            return config.fallback_level
+    if config.fallback_level is not None and _matches_fallback_root(relative, config.fallback_roots):
+        return config.fallback_level
 
     raise pytest.UsageError(
         "Unable to classify test {path} with GeoSync level. "
@@ -365,36 +404,42 @@ def _reset_kill_switch() -> Iterator[None]:
     KillSwitchManager.reset_instance()
 
 
+def _declared_levels(item: pytest.Item) -> list[str]:
+    return [mark.name for mark in item.iter_markers() if mark.name in _LEVEL_DESCRIPTIONS]
+
+
+def _resolve_item_level(item: pytest.Item, level_from_config: str, existing_levels: Sequence[str]) -> str:
+    if not existing_levels:
+        item.add_marker(level_from_config)
+        return level_from_config
+
+    unique_levels = {level.upper() for level in existing_levels}
+    if len(unique_levels) > 1:
+        raise pytest.UsageError(
+            f"Test {item.nodeid} has conflicting GeoSync levels: {sorted(unique_levels)}"
+        )
+
+    (declared_level,) = unique_levels
+    if declared_level != level_from_config:
+        raise pytest.UsageError(
+            "Test {nodeid} is marked as {declared} but mapped to {computed} in tests/test_levels.yaml. "
+            "Update the marker or adjust the mapping.".format(
+                nodeid=item.nodeid,
+                declared=declared_level,
+                computed=level_from_config,
+            )
+        )
+    return declared_level
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     root = _normalize(Path(config.rootpath))
     for item in items:
-        existing_levels = [
-            mark.name for mark in item.iter_markers() if mark.name in _LEVEL_DESCRIPTIONS
-        ]
-
-        level_from_config = _determine_level(root, Path(item.fspath))
-
-        if existing_levels:
-            unique_levels = {level.upper() for level in existing_levels}
-            if len(unique_levels) > 1:
-                raise pytest.UsageError(
-                    f"Test {item.nodeid} has conflicting GeoSync levels: {sorted(unique_levels)}"
-                )
-            (declared_level,) = unique_levels
-            if declared_level != level_from_config:
-                raise pytest.UsageError(
-                    "Test {nodeid} is marked as {declared} but mapped to {computed} in tests/test_levels.yaml. "
-                    "Update the marker or adjust the mapping.".format(
-                        nodeid=item.nodeid,
-                        declared=declared_level,
-                        computed=level_from_config,
-                    )
-                )
-            level = declared_level
-        else:
-            level = level_from_config
-            item.add_marker(level)
-
+        level = _resolve_item_level(
+            item=item,
+            level_from_config=_determine_level(root, Path(item.fspath)),
+            existing_levels=_declared_levels(item),
+        )
         item.user_properties.append(("geosync_level", level))
 
 
@@ -416,8 +461,6 @@ sensitive_body_keys = ["apiKey", "secret", "signature", "passphrase"]
 
 
 def scrub_request(request: Any) -> Any:
-    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-
     u = urlsplit(request.uri)
     q = []
     for k, v in parse_qsl(u.query, keep_blank_values=True):
@@ -432,36 +475,41 @@ def scrub_request(request: Any) -> Any:
     return request
 
 
-def scrub_response(response: Any) -> Any:
-    import json
+def _cleanse_sensitive_body(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        return {
+            key: ("REDACTED" if key in sensitive_body_keys else _cleanse_sensitive_body(value))
+            for key, value in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_cleanse_sensitive_body(value) for value in obj]
+    return obj
 
+
+def scrub_response(response: Any) -> Any:
     ctype = response["headers"].get("Content-Type", [""])[0]
     if "application/json" in ctype:
         try:
             data = json.loads(response["body"]["string"])
-
-            def cleanse(obj: Any) -> Any:
-                if isinstance(obj, dict):
-                    return {
-                        k: ("REDACTED" if k in sensitive_body_keys else cleanse(v))
-                        for k, v in obj.items()
-                    }
-                if isinstance(obj, list):
-                    return [cleanse(x) for x in obj]
-                return obj
-
-            data = cleanse(data)
-            response["body"]["string"] = json.dumps(data).encode()
+            response["body"]["string"] = json.dumps(_cleanse_sensitive_body(data)).encode()
         except Exception:
             pass
     return response
+
+
+def _is_adapter_test(request: pytest.FixtureRequest) -> bool:
+    return request.path.suffix == ".py" and "tests/adapters" in request.path.as_posix()
+
+
+def _cassette_name(nodeid: str) -> str:
+    return nodeid.replace("::", "__").replace("/", "_").replace("\\", "_") + ".yaml"
 
 
 @pytest.fixture(autouse=True)
 def _vcr_adapter_tests(request: pytest.FixtureRequest) -> Iterator[None]:
     """Auto-apply VCR to adapter tests."""
     # Only apply VCR to tests in tests/adapters directory
-    if request.path.suffix == ".py" and "tests/adapters" in request.path.as_posix():
+    if _is_adapter_test(request):
         try:
             import vcr
         except ImportError:
@@ -476,10 +524,7 @@ def _vcr_adapter_tests(request: pytest.FixtureRequest) -> Iterator[None]:
             decode_compressed_response=True,
         )
 
-        cassette_name = (
-            request.node.nodeid.replace("::", "__").replace("/", "_").replace("\\", "_") + ".yaml"
-        )
-        with vcr_default.use_cassette(cassette_name):
+        with vcr_default.use_cassette(_cassette_name(request.node.nodeid)):
             yield
     else:
         yield
