@@ -264,7 +264,7 @@ tree.
 - **LINEAGE / PR** · PR #770 — `fix(calib): F3 — deterministic-reduction
   harness + derived forward ε; cross-runner bit-exactness proven
   infeasible`
-- **SHA** · `9c8f5396` *(diagnosis-bearing tree; the impossibility
+- **SHA** · `9c8f539679a08e68c64cbc421907433a78e36b7a` *(diagnosis-bearing tree; the impossibility
   reproducer below runs verbatim from this anchor — the closing PR adds
   only the harness, the forward bound and this headstone)*
 - **ARTIFACT** · `research/calibration/grid_kuramoto/_deterministic.py`
