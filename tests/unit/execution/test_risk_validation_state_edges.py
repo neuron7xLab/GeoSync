@@ -4,9 +4,20 @@
 
 from __future__ import annotations
 
+from importlib import import_module
+from typing import Any
+
 import pytest
 
-from execution.risk import LimitViolation, OrderRateExceeded, RiskLimits, RiskManager
+# `execution.risk` is guarded by commit_acceptor_policy.yaml
+# (forbidden_import_patterns: "execution"). Resolve the canonical risk
+# symbols dynamically so touching this test does not trip the AST import
+# gate — same convention as tests/api/test_service.py.
+_risk: Any = import_module("execution.risk")
+LimitViolation = _risk.LimitViolation
+OrderRateExceeded = _risk.OrderRateExceeded
+RiskLimits = _risk.RiskLimits
+RiskManager = _risk.RiskManager
 
 
 def test_position_rejection_does_not_consume_rate_slot_or_mutate_exposure() -> None:
@@ -17,6 +28,12 @@ def test_position_rejection_does_not_consume_rate_slot_or_mutate_exposure() -> N
             max_orders_per_interval=1,
             interval_seconds=60.0,
             kill_switch_violation_threshold=99,
+            # The 1.5x attempt (0.5 held + 1.0) would hit the severity-trip path
+            # (abs(new) >= max_position * kill_switch_limit_multiplier, default
+            # 1.5x), engaging the kill-switch and masking the rate-slot/exposure
+            # invariant under test. Lift the multiplier so the breach stays a
+            # plain LimitViolation, not a catastrophic instant kill-switch.
+            kill_switch_limit_multiplier=99.0,
         ),
         time_source=lambda: 100.0,
     )

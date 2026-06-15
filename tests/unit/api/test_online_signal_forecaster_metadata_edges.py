@@ -88,7 +88,13 @@ def test_missing_optional_features_default_to_neutral_contributions() -> None:
     assert contributions["volatility_risk"] == pytest.approx(0.0)
 
 
-def test_extreme_bearish_score_clamps_confidence_to_one() -> None:
+def test_extreme_bearish_score_yields_high_balance_capped_confidence() -> None:
+    # Extreme bearish features drive a strong SELL, but confidence is the
+    # documented map confidence = min(1.0, |score| / 0.85). It does NOT saturate
+    # to 1.0: the three MACD components saturate at -0.26/-0.22/-0.18 (tanh) and
+    # the balance-correction leg has a structural positive floor (~+0.16) that
+    # opposes one-sided runaway, so |score| is bounded ~0.78 < 0.85 for any
+    # input. Asserting the real contract instead of an unreachable clamp value.
     series = pd.Series(
         {
             "macd": -3.5,
@@ -105,4 +111,5 @@ def test_extreme_bearish_score_clamps_confidence_to_one() -> None:
 
     assert score < 0
     assert signal.action is SignalAction.SELL
-    assert signal.confidence == pytest.approx(1.0)
+    assert signal.confidence == pytest.approx(min(1.0, abs(score) / 0.85))
+    assert signal.confidence > 0.85  # extreme inputs → high, balance-capped
