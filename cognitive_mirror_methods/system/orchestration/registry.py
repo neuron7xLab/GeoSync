@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-MODULES: dict[str, dict[str, object]] = {
+from typing import TypedDict
+
+
+class ModuleInfo(TypedDict):
+    version: str
+    order: int
+
+
+MODULES: dict[str, ModuleInfo] = {
     "intent": {"version": "0.1.0", "order": 10},
     "reflection": {"version": "0.1.0", "order": 20},
     "introspection": {"version": "0.1.0", "order": 30},
@@ -16,4 +24,4 @@ def module_exists(module_id: str) -> bool:
 
 
 def ordered_modules() -> list[str]:
-    return [name for name, _ in sorted(MODULES.items(), key=lambda item: int(item[1]["order"]))]
+    return [name for name, _ in sorted(MODULES.items(), key=lambda item: item[1]["order"])]
