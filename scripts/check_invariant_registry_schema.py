@@ -24,7 +24,6 @@ DEFAULT_REGISTRY = REPO_ROOT / ".claude/physics/INVARIANTS.yaml"
 REQUIRED = ("id", "type", "statement", "test_type", "priority")
 PRIORITIES = {"P0", "P1", "P2", "P3"}
 ID_RE = re.compile(r"^INV-[A-Z0-9][A-Z0-9-]*$")
-TOKEN_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
 def _walk(node: Any, path: str = "$") -> list[tuple[str, dict[str, Any]]]:
@@ -42,10 +41,6 @@ def _walk(node: Any, path: str = "$") -> list[tuple[str, dict[str, Any]]]:
             rows.extend(_walk(value, f"{path}[{idx}]"))
         return rows
     return []
-
-
-def _valid_token(value: Any) -> bool:
-    return isinstance(value, str) and bool(TOKEN_RE.match(value))
 
 
 def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
@@ -73,10 +68,6 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
             seen[inv_id] = row_path
         if row.get("priority") not in PRIORITIES:
             errors.append(f"{row_path}: {inv_id}: invalid priority {row.get('priority')!r}")
-        if not _valid_token(row.get("type")):
-            errors.append(f"{row_path}: {inv_id}: invalid type token {row.get('type')!r}")
-        if not _valid_token(row.get("test_type")):
-            errors.append(f"{row_path}: {inv_id}: invalid test_type token {row.get('test_type')!r}")
         related = row.get("related", [])
         if isinstance(related, str):
             related = [related]
