@@ -11,6 +11,8 @@ SPDX-License-Identifier: MIT
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 from scipy.signal import butter, hilbert, sosfilt
 
@@ -42,6 +44,16 @@ class KuramotoKellyAdapter:
         R_low: float = 0.3,
         R_high: float = 0.7,
     ) -> None:
+        # Fail-closed config contract: an inverted or degenerate band would make
+        # the R-normalisation `(R - R_low)/(R_high - R_low)` divide by zero
+        # (R_low == R_high) or silently invert the sizing response (R_low >
+        # R_high). Reject at construction rather than mid-trade.
+        if not (math.isfinite(floor) and math.isfinite(ceil) and 0.0 <= floor <= ceil):
+            raise ValueError(f"require 0 <= floor <= ceil (finite), got floor={floor}, ceil={ceil}")
+        if not (math.isfinite(R_low) and math.isfinite(R_high) and 0.0 <= R_low < R_high <= 1.0):
+            raise ValueError(
+                f"require 0 <= R_low < R_high <= 1, got R_low={R_low}, R_high={R_high}"
+            )
         self._bus = bus
         self._floor = floor
         self._ceil = ceil
@@ -65,6 +77,19 @@ class KuramotoKellyAdapter:
         float
             Adjusted Kelly fraction ∈ [floor * kelly_base, kelly_base].
         """
+        # Fail-closed: a zero / non-finite price makes `diff / price[:-1]`
+        # produce NaN/Inf that propagates as the position multiplier while the
+        # bus masks it as a healthy R=1.0 (`max(0, min(1, nan))` == 1.0). A NaN
+        # must never reach sizing — reject the degenerate price series here.
+        prices = np.asarray(prices, dtype=np.float64)
+        if prices.ndim != 1 or prices.size < 3:
+            raise ValueError(f"prices must be 1-D with ≥3 elements, got shape {prices.shape}")
+        if not bool(np.all(np.isfinite(prices))):
+            raise ValueError("prices must be finite (NaN must not reach Kelly sizing)")
+        if bool(np.any(prices[:-1] <= 0.0)):
+            raise ValueError("prices must be strictly positive (returns = diff / price[:-1])")
+        if not math.isfinite(kelly_base):
+            raise ValueError(f"kelly_base must be finite, got {kelly_base}")
         returns = np.diff(prices) / prices[:-1]
         R = self.compute_order_parameter(returns)
         self._bus.publish_kuramoto(R)

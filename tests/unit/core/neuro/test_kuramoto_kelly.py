@@ -144,3 +144,45 @@ class TestRealishMarketReturns:
         R = adapter.compute_order_parameter(returns)
         regime = adapter.classify_regime(R)
         assert regime in {"chaotic", "transitional", "coherent"}
+
+
+class TestKellyFailClosed:
+    """Fail-closed guards: a NaN must never reach Kelly position sizing, and a
+    degenerate normalisation band must be rejected at construction.
+
+    Reproduces a latent defect found by a computational audit: a zero/non-finite
+    price made ``diff / price[:-1]`` produce NaN that propagated as the position
+    multiplier, while the signal bus masked it as a healthy R=1.0
+    (``max(0, min(1, nan)) == 1.0``) — the fault hid at the observability layer.
+    """
+
+    def test_zero_price_rejected(self, adapter) -> None:
+        """A zero in the price series previously yielded a NaN Kelly fraction."""
+        with pytest.raises(ValueError):
+            adapter.compute_kelly_fraction(2.0, np.array([100.0, 0.0, 102.0, 103.0]))
+
+    def test_non_finite_price_rejected(self, adapter) -> None:
+        with pytest.raises(ValueError):
+            adapter.compute_kelly_fraction(2.0, np.array([100.0, np.nan, 102.0, 103.0]))
+
+    def test_too_short_price_rejected(self, adapter) -> None:
+        with pytest.raises(ValueError):
+            adapter.compute_kelly_fraction(2.0, np.array([100.0, 101.0]))
+
+    def test_degenerate_band_rejected_at_construction(self, bus) -> None:
+        """R_low == R_high previously raised ZeroDivisionError mid-trade."""
+        with pytest.raises(ValueError):
+            KuramotoKellyAdapter(bus, R_low=0.5, R_high=0.5)
+
+    def test_inverted_band_rejected_at_construction(self, bus) -> None:
+        """R_low > R_high previously silently inverted the sizing response."""
+        with pytest.raises(ValueError):
+            KuramotoKellyAdapter(bus, R_low=0.7, R_high=0.3)
+
+    def test_valid_path_still_finite_and_bounded(self, adapter) -> None:
+        """Regression: a clean positive price series still sizes finitely."""
+        frac = adapter.compute_kelly_fraction(
+            2.0, np.array([100.0, 101.0, 99.0, 102.0, 103.0, 104.0])
+        )
+        assert np.isfinite(frac)
+        assert 0.0 <= frac <= 2.0
