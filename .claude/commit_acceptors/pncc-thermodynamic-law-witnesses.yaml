@@ -1,0 +1,86 @@
+# Diff-bound commit acceptor for the PNCC thermodynamic-control law witnesses.
+#
+# Adds ONE test module binding two previously-unwitnessed catalog laws to
+# executable @law witnesses. Promotes no claim, changes no runtime behavior,
+# touches no schema/guard, uses no real data.
+#
+#   pncc.reversible_gate_byte_exact — reversible rollback recovers byte-exact
+#                                     pre-state (INV-REVERSIBLE-GATE).
+#   pncc.landauer_proxy_dominance   — C_irr >= C_rev, strict when score > 0
+#                                     (INV-LANDAUER-PROXY).
+#
+# Locally verified on origin/main base:
+#   * pytest tests/physics_contracts/test_pncc_thermodynamic_witnesses.py: 2 passed
+#   * .claude/physics/validate_tests.py <file>: 0 issues (L1..L5), EXIT 0
+#   * ruff / mypy --strict clean ; zero new `# type: ignore`
+id: pncc-thermodynamic-law-witnesses
+status: ACTIVE
+claim_type: governance
+promise: >-
+  After this PR lands, tests/physics_contracts/test_pncc_thermodynamic_witnesses.py
+  binds the catalog laws pncc.reversible_gate_byte_exact and
+  pncc.landauer_proxy_dominance to @law-decorated witnesses that pass
+  .claude/physics/validate_tests with zero issues. The reversible-gate witness
+  asserts rollback of a reversible action recovers the pre-state byte-for-byte
+  over many random actions (INV-REVERSIBLE-GATE); the landauer witness asserts
+  the irreversible proxy cost dominates its reversible alternative, strictly when
+  the irreversibility score is positive (INV-LANDAUER-PROXY). No market claim; no
+  runtime, schema, or guard change.
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/pncc-thermodynamic-law-witnesses.yaml"
+    - path: "tests/physics_contracts/test_pncc_thermodynamic_witnesses.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+    - "application/"
+    - "core/"
+    - "src/"
+    - "geosync_hpc/"
+    - "physics_contracts/catalog.yaml"
+    - ".claude/physics/INVARIANTS.yaml"
+required_python_symbols: []
+expected_signal: >-
+  `python -m pytest tests/physics_contracts/test_pncc_thermodynamic_witnesses.py`
+  reports 2 passed; `python .claude/physics/validate_tests.py
+  tests/physics_contracts/test_pncc_thermodynamic_witnesses.py` exits 0 with no
+  L1..L5 issues; ruff and mypy --strict on the file are clean.
+measurement_command: >-
+  bash -c 'mkdir -p tmp && python -m pytest
+  tests/physics_contracts/test_pncc_thermodynamic_witnesses.py
+  > tmp/pncc_thermodynamic_law_witnesses.log 2>&1
+  && grep -q "2 passed" tmp/pncc_thermodynamic_law_witnesses.log'
+signal_artifact: "tmp/pncc_thermodynamic_law_witnesses.log"
+falsifier:
+  command: >-
+    bash -c 'python -c "
+    import random
+    from core.physics.reversible_gate import ReversibleGate, ReversibleGateConfig
+    cfg = ReversibleGateConfig(); gate = ReversibleGate(cfg); rng = random.Random(42)
+    breached = False
+    for i in range(200):
+        pre = bytes(rng.randint(0,255) for _ in range(rng.randint(0,48)))
+        post = bytes(rng.randint(0,255) for _ in range(rng.randint(0,48)))
+        payload = bytes(rng.randint(0,255) for _ in range(rng.randint(0,32)))
+        score = rng.uniform(0.0, cfg.irreversibility_threshold)
+        tr = gate.gate(action_id=f\"a{i}\", pre_state=pre, action_payload=payload, post_state=post, irreversibility_score=score, timestamp_ns=i, rollback_payload=pre)
+        if gate.rollback(tr.audit_hash).state_bytes != pre: breached = True
+    import sys; sys.exit(0 if breached else 1)"'
+  description: >-
+    Inverse probe of byte-exact reversibility. It exits 0 (fires) iff any
+    reversible action's rollback fails to recover the pre-state byte-for-byte —
+    i.e. reversibility is broken in real code. While every rollback is exact the
+    probe exits 1. If it ever exits 0, the PNCC witness is no longer truthful and
+    the change must be reverted, not patched green.
+rollback_command: >-
+  git rm -f
+  tests/physics_contracts/test_pncc_thermodynamic_witnesses.py
+  .claude/commit_acceptors/pncc-thermodynamic-law-witnesses.yaml
+rollback_verification_command: >-
+  bash -c 'test ! -f tests/physics_contracts/test_pncc_thermodynamic_witnesses.py'
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/pncc-thermodynamic-law-witnesses.yaml"
+report_path: "tmp/pncc_thermodynamic_law_witnesses.log"
+evidence: []
