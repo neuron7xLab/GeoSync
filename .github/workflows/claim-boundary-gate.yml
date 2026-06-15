@@ -4,8 +4,9 @@
 #
 # GeoSync is a verification-first research platform, NOT a live-trading
 # system or alpha product (canonical: PRODUCT_CATEGORY.md). This gate
-# scans the canonical doc surface (top-level *.md + docs/) and fails on
-# any unreviewed product-category claim. Reviewed mechanism / ops /
+# scans the canonical surface — top-level *.md + docs/ plus the
+# claim-bearing code modules in CODE_SURFACE_FILES (core/indicators/**) —
+# and fails on any unreviewed product-category claim. Reviewed mechanism / ops /
 # research-disclaimer / honest-negation references live in
 # .github/claim_boundary_allow.json. Stdlib-only; no install step.
 #
@@ -22,6 +23,9 @@ on:
       - ".github/claim_boundary_allow.json"
       - "tests/scripts/test_check_claim_boundary.py"
       - ".github/workflows/claim-boundary-gate.yml"
+      # Claim-bearing code surfaces gated by CODE_SURFACE_FILES — an edit
+      # to an indicator module *alone* must still trigger the boundary gate.
+      - "core/indicators/**"
   push:
     branches: [main]
     paths:
@@ -30,6 +34,7 @@ on:
       - ".github/claim_boundary_allow.json"
       - "tests/scripts/test_check_claim_boundary.py"
       - ".github/workflows/claim-boundary-gate.yml"
+      - "core/indicators/**"
 
 permissions:
   contents: read
