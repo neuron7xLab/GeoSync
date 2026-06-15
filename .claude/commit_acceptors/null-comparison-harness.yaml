@@ -1,0 +1,129 @@
+# Diff-bound commit acceptor for the deterministic descriptor-vs-null
+# comparison harness.
+#
+# Adds analytics/signals/null_comparison.py: a pure, deterministic harness
+# that locates a single observed scalar descriptor statistic within a null /
+# surrogate ensemble (for example one produced by
+# analytics/signals/null_baseline.py, which it imports and does NOT modify).
+# The single public function compare_to_null(observed, null_samples, *, band)
+# returns an immutable NullComparison dataclass carrying the mid-rank
+# percentile, the integer rank, the surviving finite-null count n_null, the
+# band, is_outside_null_band, the method, an optional pass-through seed, and
+# the boundary disclaimers (claim_boundary="descriptor_only_not_predictor",
+# not_predictive_claim, not_financial_advice, research_only).
+#
+# The percentile is a STRUCTURAL position against a declared null baseline.
+# It is not a p-value-as-truth, not a significance verdict, not alpha, and
+# not a predictive or financial claim. An empty null, a null with no finite
+# sample, a non-finite observed value, and a band outside the open interval
+# (0, 0.5) each fail closed with ValueError; non-finite samples inside an
+# otherwise-usable null are dropped and counted through n_null.
+#
+# Promotes NO claim tier, adds NO invariant, changes NO existing runtime
+# behaviour, modifies NO existing file (null_baseline.py is imported only),
+# adds NO dependency (numpy only). Descriptor-only research infrastructure.
+#
+# Locally verified on origin/main fork base:
+#   * python -m compileall analytics/signals/null_comparison.py: ok
+#   * pytest tests/unit/analytics/test_null_comparison.py: 27 passed
+#   * ruff check: clean; ruff format --check / black --check: clean
+#     (tests/ is force-excluded from formatters by repo pyproject config)
+#   * mypy --strict analytics/signals/null_comparison.py: no issues
+#   * mypy --strict tests/unit/analytics/test_null_comparison.py: no issues
+#   * python scripts/ci/check_claim_boundary.py: PASS
+#   * python scripts/ci/check_claims.py: PASS
+#   * detect-secrets-hook (baseline): clean
+#   * zero suppression-comment tokens across both new files
+id: null-comparison-harness
+status: ACTIVE
+claim_type: governance
+promise: >-
+  analytics.signals.null_comparison exposes one pure, deterministic
+  function compare_to_null(observed, null_samples, *, band) that imports
+  (and never modifies) analytics.signals.null_baseline and returns an
+  immutable NullComparison dataclass. The result locates the observed
+  scalar within the null by mid-rank percentile in [0, 100] (strictly-below
+  count plus half the ties, over the surviving finite-null count), reports
+  the integer rank, n_null, the band, is_outside_null_band (True iff the
+  percentile is in the lower or upper band tail), the method, an optional
+  pass-through seed, and the disclaimers
+  claim_boundary="descriptor_only_not_predictor", not_predictive_claim=True,
+  not_financial_advice=True, research_only=True. The function is a pure
+  function of its inputs (equal inputs -> equal results, no randomness, no
+  global state); an empty null, an all-non-finite null, a non-finite
+  observed value, and a band outside the open interval (0, 0.5) each fail
+  closed with ValueError; non-finite samples inside a usable null are
+  dropped and the survivor count is reported through n_null. No claim tier
+  is promoted; no runtime behaviour changes; no existing file is touched;
+  the percentile is a structural position against a declared null, not a
+  significance, predictive, or financial claim.
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/null-comparison-harness.yaml"
+    - path: "analytics/signals/null_comparison.py"
+    - path: "tests/unit/analytics/test_null_comparison.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "core/"
+    - "src/"
+required_python_symbols:
+  - file: "analytics/signals/null_comparison.py"
+    symbol: "compare_to_null"
+  - file: "analytics/signals/null_comparison.py"
+    symbol: "NullComparison"
+expected_signal: >-
+  `python -m pytest tests/unit/analytics/test_null_comparison.py` reports
+  27 passed; compare_to_null is deterministic for equal inputs, computes
+  the documented mid-rank percentile on a known null, declares the
+  descriptor-only boundary in its result and metadata, drops and counts
+  non-finite null samples, and rejects an empty/all-non-finite null, a
+  non-finite observed value, and an out-of-range band with ValueError.
+measurement_command: >-
+  bash -c 'mkdir -p tmp && python -m pytest
+  tests/unit/analytics/test_null_comparison.py -v --no-header -o addopts=""
+  -p no:cacheprovider 2>&1 | grep -E "PASSED|FAILED|ERROR"
+  | sed -E "s/ +\[[0-9 ]+%\]//" > tmp/null_comparison_pytest.log
+  && test "$(grep -c PASSED tmp/null_comparison_pytest.log)" = "27"'
+signal_artifact: "tmp/null_comparison_pytest.log"
+falsifier:
+  command: >-
+    python -c 'import sys, subprocess, numpy as np;
+    from analytics.signals.null_comparison import compare_to_null;
+    null = np.arange(0.0, 100.0);
+    det = compare_to_null(50.0, null, band=0.05)
+    == compare_to_null(50.0, null, band=0.05);
+    pct_ok = abs(compare_to_null(50.0, null, band=0.05).percentile - 50.5)
+    < 1e-9;
+    boundary_ok = compare_to_null(1.0, null, band=0.05).claim_boundary
+    == "descriptor_only_not_predictor";
+    empty_fails = subprocess.run([sys.executable, "-c",
+    "import numpy as np;
+    from analytics.signals.null_comparison import compare_to_null;
+    compare_to_null(1.0, np.array([], dtype=np.float64))"]).returncode != 0;
+    sys.exit(0 if (not det or not pct_ok or not boundary_ok
+    or not empty_fails) else 1)'
+  description: >-
+    Inverse probe of the descriptor-vs-null contract. It exits 0 (fires)
+    iff compare_to_null stops being deterministic for equal inputs, OR the
+    mid-rank percentile of 50.0 within arange(0,100) drifts from 50.5, OR
+    the descriptor-only boundary disappears from the result, OR an empty
+    null is accepted instead of failing closed. While the contract holds
+    the probe exits 1. An exit 0 means the harness has lost determinism,
+    percentile correctness, its boundary disclaimer, or its fail-closed
+    guarantee and must be repaired, not patched green.
+rollback_command: >-
+  bash -c 'git rm -f analytics/signals/null_comparison.py
+  tests/unit/analytics/test_null_comparison.py
+  .claude/commit_acceptors/null-comparison-harness.yaml'
+rollback_verification_command: >-
+  bash -c 'test ! -f analytics/signals/null_comparison.py
+  && test ! -f tests/unit/analytics/test_null_comparison.py'
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/null-comparison-harness.yaml"
+report_path: "tmp/null_comparison_pytest.log"
+evidence:
+  - path: "tmp/null_comparison_pytest.log"
+    sha256: "34f997c3678c72addbe931af1f6917378f3c83a625f14a891e91a37e7ab1632c"  # pragma: allowlist secret
+    note: "pytest tests/unit/analytics/test_null_comparison.py -v => 27 passed"
