@@ -155,8 +155,9 @@ class TestRowSolver:
 
 
 class TestSyntheticRecovery:
+    @staticmethod
     @pytest.fixture(scope="class")
-    def ground_truth(self) -> tuple[np.ndarray, np.ndarray, PhaseMatrix]:
+    def ground_truth() -> tuple[np.ndarray, np.ndarray, PhaseMatrix]:
         """Small, well-identified sparse Kuramoto instance.
 
         Eight oscillators, six ground-truth edges (≈89% sparsity on the

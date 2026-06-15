@@ -271,10 +271,9 @@ class TestSimulateForward:
 
 
 class TestEvaluateOOS:
+    @staticmethod
     @pytest.fixture(scope="class")
-    def engine_and_phases(
-        self,
-    ) -> tuple[NetworkKuramotoEngine, PhaseMatrix]:
+    def engine_and_phases() -> tuple[NetworkKuramotoEngine, PhaseMatrix]:
         gt = generate_sakaguchi_kuramoto(
             SyntheticConfig(
                 N=4,
