@@ -99,6 +99,31 @@ class TestNaturalFrequency:
         assert omega.shape == (cfg.N,)
         assert np.max(np.abs(omega - gt.true_omega)) < 0.05
 
+    def test_rejects_non_finite_phase(self) -> None:
+        """Fail-closed: a single NaN previously poisoned the whole-column median
+        (np.median is not nan-aware) while the docstring claimed 50%-outlier
+        tolerance — which holds only for FINITE phase-slips, not NaN/Inf."""
+        theta = np.cumsum(np.full((50, 2), 0.1), axis=0).astype(np.float64)
+        theta[10, 0] = np.nan
+        with pytest.raises(ValueError, match="finite"):
+            estimate_natural_frequencies_from_theta(theta, dt=1.0, method="median")
+
+    def test_rejects_too_few_timesteps(self) -> None:
+        """T<3 previously raised an opaque numpy np.gradient message."""
+        with pytest.raises(ValueError, match="≥3 timesteps"):
+            estimate_natural_frequencies_from_theta(np.zeros((1, 3)), dt=1.0)
+        with pytest.raises(ValueError, match="≥3 timesteps"):
+            estimate_natural_frequencies_from_theta(np.zeros((2, 3)), dt=1.0)
+
+    def test_median_still_robust_to_finite_outliers(self) -> None:
+        """Regression: the 50%-outlier-tolerance contract holds for FINITE
+        phase-slip artefacts (only NaN/Inf is now rejected)."""
+        ramp = np.cumsum(np.full((60, 2), 0.1), axis=0).astype(np.float64)
+        ramp[5, 0] += 50.0  # large finite phase-slip outliers
+        ramp[20, 0] -= 80.0
+        omega = estimate_natural_frequencies_from_theta(ramp, dt=1.0, method="median")
+        assert np.allclose(omega, 0.1, atol=1e-9)
+
 
 # ---------------------------------------------------------------------------
 # M3.1 — synthetic ground truth
