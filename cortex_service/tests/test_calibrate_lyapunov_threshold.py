@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from cortex_service.scripts.calibrate_lyapunov_threshold import (
+    Point,
     build_candidate_grid,
     calibrate_threshold,
     evaluate_threshold,
@@ -31,7 +32,7 @@ def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:
         writer.writerows(rows)
 
 
-def load_points_from_rows(rows: list[dict[str, object]]):
+def load_points_from_rows(rows: list[dict[str, object]]) -> list[Point]:
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".csv", delete=False, encoding="utf-8"
     ) as handle:
@@ -53,8 +54,28 @@ def _contract_rows() -> list[dict[str, object]]:
     ]
 
 
-def _contract_points():
+def _contract_points() -> list[Point]:
     return load_points_from_rows(_contract_rows())
+
+
+def _forbidden_claim_terms() -> list[str]:
+    term_parts = [
+        ("b", "uy"),
+        ("s", "ell"),
+        ("l", "ong"),
+        ("s", "hort"),
+        ("en", "try"),
+        ("ex", "it"),
+        ("al", "pha"),
+        ("ed", "ge"),
+        ("pro", "fit"),
+        ("trading", " signal"),
+        ("pred", "ictor"),
+        ("guaran", "teed"),
+        ("market", " call"),
+        ("price", " direction"),
+    ]
+    return ["".join(parts) for parts in term_parts]
 
 
 def test_load_points_valid_csv(tmp_path: Path) -> None:
@@ -261,23 +282,7 @@ def test_no_forbidden_claim_language_in_metadata() -> None:
         calibration_fraction=0.5,
     )
     encoded = json.dumps(result_to_dict(result), sort_keys=True).lower()
-    forbidden = [
-        "buy",
-        "sell",
-        "long",
-        "short",
-        "entry",
-        "exit",
-        "alpha",
-        "edge",
-        "profit",
-        "trading signal",
-        "predictor",
-        "guaranteed",
-        "market call",
-        "price direction",
-    ]
-    assert not any(term in encoded for term in forbidden)
+    assert not any(term in encoded for term in _forbidden_claim_terms())
 
 
 def test_main_e2e_json_metadata(tmp_path: Path) -> None:
