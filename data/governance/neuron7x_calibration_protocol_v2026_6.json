@@ -1,0 +1,114 @@
+{
+  "id": "neuron7x-calibration-protocol-v2026-6",
+  "name": "Neuron7X Calibration Protocol",
+  "version": "2026.6",
+  "scope": "governance_only",
+  "purpose": "Calibrate precision, thresholds, weights, sensitivity bands, and promotion rules for Neuron7X and FVPS governance artifacts.",
+  "boundary": {
+    "allowed_claims": [
+      "Defines governance calibration thresholds and sensitivity rules",
+      "Maps normalized value metrics to rank bands",
+      "Caps output rank when mandatory evidence or failure-boundary guards fail"
+    ],
+    "blocked_claims": [
+      "runtime behavior change",
+      "physics validation",
+      "trading readiness",
+      "market prediction",
+      "model weight update during inference",
+      "empirical cognitive validation"
+    ]
+  },
+  "metric_vector": {
+    "S": "signal_capture",
+    "I": "intent_compression",
+    "C": "constraint_extraction",
+    "M": "mechanism_validity",
+    "E": "evidence_binding",
+    "F": "failure_boundary_exposure",
+    "N": "value_node_clarity",
+    "A": "artifact_executability",
+    "L": "feedback_ledger_quality",
+    "G": "governance_control"
+  },
+  "score_function": {
+    "formula": "V = 0.10S + 0.10I + 0.10C + 0.12M + 0.12E + 0.10F + 0.12N + 0.12A + 0.06L + 0.06G",
+    "weights": {
+      "S": 0.10,
+      "I": 0.10,
+      "C": 0.10,
+      "M": 0.12,
+      "E": 0.12,
+      "F": 0.10,
+      "N": 0.12,
+      "A": 0.12,
+      "L": 0.06,
+      "G": 0.06
+    }
+  },
+  "rank_bands": [
+    {"rank": "R0_NOISE", "min": 0.0, "max_exclusive": 0.30},
+    {"rank": "R1_FORMATTED", "min": 0.30, "max_exclusive": 0.45},
+    {"rank": "R2_OPERATIONAL", "min": 0.45, "max_exclusive": 0.60},
+    {"rank": "R3_VERIFIABLE", "min": 0.60, "max_exclusive": 0.72},
+    {"rank": "R4_AGENTIC", "min": 0.72, "max_exclusive": 0.82},
+    {"rank": "R5_RESEARCH_GRADE", "min": 0.82, "max_exclusive": 0.90},
+    {"rank": "R6_GOVERNANCE_GRADE", "min": 0.90, "max_exclusive": 0.96},
+    {"rank": "R7_MAX_INFERENCE", "min": 0.96, "max_exclusive": 1.01}
+  ],
+  "promotion_guards": {
+    "R3_VERIFIABLE": {"M": 0.65, "A": 0.65},
+    "R4_AGENTIC": {"M": 0.72, "F": 0.70, "A": 0.72},
+    "R5_RESEARCH_GRADE": {"M": 0.80, "E": 0.75, "F": 0.75, "A": 0.80},
+    "R6_GOVERNANCE_GRADE": {"M": 0.86, "E": 0.86, "F": 0.82, "G": 0.85},
+    "R7_MAX_INFERENCE": {"M": 0.92, "E": 0.92, "F": 0.90, "A": 0.92, "G": 0.90}
+  },
+  "sensitivity_profiles": {
+    "conservative": {
+      "threshold_shift": 0.04,
+      "minimum_evidence_binding_for_R6": 0.86,
+      "false_promotion_tolerance": 0,
+      "intended_use": ["release", "security", "physics", "scientific", "safety_sensitive"]
+    },
+    "balanced": {
+      "threshold_shift": 0.0,
+      "false_promotion_tolerance": 0,
+      "intended_use": ["governance_artifact", "engineering_planning"]
+    },
+    "exploratory": {
+      "threshold_shift": -0.04,
+      "maximum_allowed_label": "PLAUSIBLE",
+      "forbidden_promotions": ["VERIFIED", "CI_VERIFIED", "OPERATIONAL_READY"],
+      "intended_use": ["ideation", "research_framing"]
+    }
+  },
+  "penalties": [
+    {"condition": "missing_evidence_link", "delta": -0.12},
+    {"condition": "missing_rollback_path", "delta": -0.08},
+    {"condition": "missing_failure_boundary", "delta": -0.10},
+    {"condition": "unfalsifiable_claim", "rank_cap": "R2_OPERATIONAL"},
+    {"condition": "metaphor_used_as_mechanism", "rank_cap": "R1_FORMATTED"},
+    {"condition": "runtime_or_physics_claim_without_executable_test", "rank_cap": "R2_OPERATIONAL"},
+    {"condition": "stale_pr_body", "rank_cap": "R3_VERIFIABLE"},
+    {"condition": "same_sha_ci_missing_for_merge_claim", "rank_cap": "R4_AGENTIC"}
+  ],
+  "claim_state_mapping": [
+    "FALSE",
+    "UNTESTED",
+    "PARTIAL",
+    "LOCAL_VERIFIED",
+    "CI_VERIFIED",
+    "EVIDENCE_BEARING"
+  ],
+  "required_output_fields": [
+    "rank",
+    "score",
+    "profile",
+    "active_thresholds",
+    "guards_failed",
+    "penalties_applied",
+    "allowed_claim",
+    "blocked_claims",
+    "next_action"
+  ]
+}
