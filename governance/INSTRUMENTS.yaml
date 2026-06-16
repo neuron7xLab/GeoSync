@@ -31,7 +31,7 @@ claim_boundary_required: "descriptor_only_not_predictor"
 instruments:
   - id: state-quantization
     pr: 1046
-    merge_commit: "d0bf7eea4f46447fa69f0eb4028b57db0d06b9e0"
+    merge_commit: "d0bf7eea4f46447fa69f0eb4028b57db0d06b9e0"  # pragma: allowlist secret
     module: "analytics/signals/state_quantization.py"
     source_sha256: "93385960cf7cf8296efa1ea36552edde7ae6d2ce76e2d5c106d6a25eef20d1b1"  # pragma: allowlist secret
     test_file: "tests/unit/analytics/test_state_quantization.py"
@@ -43,7 +43,7 @@ instruments:
 
   - id: threshold-calibration
     pr: 1048
-    merge_commit: "2c3ea591d55ca2b292e4bb4a60544206074f0ea0"
+    merge_commit: "2c3ea591d55ca2b292e4bb4a60544206074f0ea0"  # pragma: allowlist secret
     module: "analytics/signals/threshold_calibration.py"
     source_sha256: "2d0cf2e2bd51ed95eb6ed2c8f58daa337cb90b2d5e98699daefce450680b446c"  # pragma: allowlist secret
     test_file: "tests/unit/analytics/test_threshold_calibration.py"
@@ -55,7 +55,7 @@ instruments:
 
   - id: null-baseline
     pr: 1058
-    merge_commit: "4503a8b19dc35841a1ffc947ef95dc26d8fb4704"
+    merge_commit: "4503a8b19dc35841a1ffc947ef95dc26d8fb4704"  # pragma: allowlist secret
     module: "analytics/signals/null_baseline.py"
     source_sha256: "e111e5c2b162bf26dcd093634877a075e4d04e4248c81f8c663fccda5ff043d5"  # pragma: allowlist secret
     test_file: "tests/unit/analytics/test_null_baseline.py"
@@ -67,7 +67,7 @@ instruments:
 
   - id: null-comparison
     pr: 1065
-    merge_commit: "2b512a099e00073787563e6120eec76a0529da43"
+    merge_commit: "2b512a099e00073787563e6120eec76a0529da43"  # pragma: allowlist secret
     module: "analytics/signals/null_comparison.py"
     source_sha256: "cb63f8a7d96d3be19c2ba00cb64b4fa5d845c4cdfc6f52b59704439ba4927a9f"  # pragma: allowlist secret
     test_file: "tests/unit/analytics/test_null_comparison.py"
@@ -79,7 +79,7 @@ instruments:
 
   - id: descriptor-metadata
     pr: 1067
-    merge_commit: "8f1ee0039e71a368d0588c331b3fd53d7f87fba2"
+    merge_commit: "8f1ee0039e71a368d0588c331b3fd53d7f87fba2"  # pragma: allowlist secret
     module: "analytics/signals/descriptor_metadata.py"
     source_sha256: "4a7027930c805416a1e698f61cca793bc42da345379683e81baba7c9c42df6f3"  # pragma: allowlist secret
     test_file: "tests/unit/analytics/test_descriptor_metadata.py"
@@ -91,7 +91,7 @@ instruments:
 
   - id: replay-descriptor-capsule
     pr: 1069
-    merge_commit: "6a87942e399be25e3320e031c6b5b9a63c507349"
+    merge_commit: "6a87942e399be25e3320e031c6b5b9a63c507349"  # pragma: allowlist secret
     module: "scripts/replay_descriptor_capsule.py"
     source_sha256: "b10c9b7a6243b2e2b1cc3070fe6beda8bb9715381de36d1c2e55186fe859e7fd"  # pragma: allowlist secret
     test_file: "tests/unit/analytics/test_replay_descriptor_capsule.py"
@@ -103,7 +103,7 @@ instruments:
 
   - id: market-state-contract
     pr: 1055
-    merge_commit: "7737c2148d80996b348e4bc487676fe1e5c630b2"
+    merge_commit: "7737c2148d80996b348e4bc487676fe1e5c630b2"  # pragma: allowlist secret
     module: "core/indicators/market_state_contract.py"
     source_sha256: "d7cbd429ff753fafdc57a4d632d3a16c4aec9c8c6bf996edd98c01b816bcef92"  # pragma: allowlist secret
     test_file: "tests/unit/indicators/test_market_state_provenance.py"
