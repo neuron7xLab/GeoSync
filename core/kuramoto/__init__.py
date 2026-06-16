@@ -49,6 +49,12 @@ from .coupling_estimator import (
     scad_prox,
     soft_threshold,
 )
+from .coupling_spec import (
+    CLAIM_ATTRACTIVE,
+    CLAIM_SIGNED,
+    CouplingMode,
+    CouplingSpec,
+)
 from .delay_estimator import (
     DelayEstimationConfig,
     DelayEstimator,
@@ -162,6 +168,11 @@ __all__ = [
     "mcp_prox",
     "scad_prox",
     "soft_threshold",
+    # Coupling representation contract (Stream 1 — coupling appears once)
+    "CouplingSpec",
+    "CouplingMode",
+    "CLAIM_ATTRACTIVE",
+    "CLAIM_SIGNED",
     # M1.4 — Natural frequency
     "estimate_natural_frequencies",
     "estimate_natural_frequencies_from_theta",
