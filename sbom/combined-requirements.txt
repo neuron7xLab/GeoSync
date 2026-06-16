@@ -75,7 +75,7 @@ colorlog==6.10.1
     # via optuna
 cross-web==0.6.0
     # via strawberry-graphql
-cryptography==48.0.0
+cryptography==48.0.1
     # via
     #   -c constraints/security.txt
     #   ccxt
