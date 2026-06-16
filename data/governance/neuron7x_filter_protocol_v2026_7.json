@@ -1,0 +1,86 @@
+{
+  "id": "neuron7x-filter-protocol-v2026-7",
+  "version": "2026.7",
+  "artifact_type": "governance_filter_contract",
+  "scope": "governance_only",
+  "non_claims": [
+    "runtime_behavior_change",
+    "physics_validation",
+    "market_prediction",
+    "trading_readiness",
+    "model_weight_update_during_inference"
+  ],
+  "transformation": [
+    "raw_signal_set",
+    "normalize",
+    "classify_signal",
+    "remove_invalid",
+    "deduplicate",
+    "boundary_check",
+    "retain_minimal_evidence",
+    "emit_filtered_artifact"
+  ],
+  "signal_classes": {
+    "KEEP": "Mechanism-bound, evidence-linked, actionable, scoped, non-duplicated.",
+    "COMPRESS": "Useful but verbose, redundant, or excessively formatted.",
+    "QUARANTINE": "Plausible but missing proof, source, command, artifact, or CI link.",
+    "DROP": "Invalid, unsupported, stale, contradictory, decorative, or outside boundary."
+  },
+  "filter_dimensions": [
+    "semantic_noise",
+    "claim_overreach",
+    "missing_evidence",
+    "stale_context",
+    "duplicate_artifact",
+    "undefined_metric",
+    "non_computable_claim",
+    "boundary_violation",
+    "format_padding",
+    "low_value_output"
+  ],
+  "score_function": {
+    "formula": "F = 0.18R + 0.16E + 0.14M + 0.12B + 0.12D + 0.10C + 0.10V + 0.08A",
+    "variables": {
+      "R": "relevance",
+      "E": "evidence_linkage",
+      "M": "mechanism_clarity",
+      "B": "boundary_compliance",
+      "D": "duplication_penalty_inverse",
+      "C": "computability",
+      "V": "measurable_value",
+      "A": "actionability"
+    }
+  },
+  "thresholds": [
+    {"range": "F < 0.35", "action": "DROP"},
+    {"range": "0.35 <= F < 0.55", "action": "QUARANTINE"},
+    {"range": "0.55 <= F < 0.75", "action": "COMPRESS"},
+    {"range": "F >= 0.75", "action": "KEEP"}
+  ],
+  "pass_requires_one_of": [
+    "mechanism",
+    "source_ref",
+    "test_ref",
+    "command_ref",
+    "artifact_ref",
+    "same_sha_ci_proof",
+    "explicit_boundary_label",
+    "explicit_rollback_path"
+  ],
+  "drop_when": [
+    "speculation_promoted_as_verified",
+    "metaphor_used_as_mechanism",
+    "runtime_claim_from_governance_docs",
+    "physics_validation_claim_from_descriptors",
+    "trading_readiness_without_evidence",
+    "duplicate_artifact_without_new_value",
+    "vague_value_language_without_measurable_function"
+  ],
+  "output_contract": [
+    "FILTERED_SIGNAL",
+    "REMOVED_SIGNAL",
+    "QUARANTINED_SIGNAL",
+    "BOUNDARY",
+    "NEXT_ACTION"
+  ]
+}
