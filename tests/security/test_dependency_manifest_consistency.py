@@ -60,3 +60,29 @@ def test_pyproject_security_floors_consistent_with_policy() -> None:
     assert strict == [], "pyproject.toml security floors lag constraints/security.txt: " + ", ".join(
         str(v) for v in strict
     )
+
+
+def test_all_manifests_consistent_with_security_floor() -> None:
+    """Live all-strict invariant (P0-1): no manifest — pyproject.toml,
+    requirements.txt, or requirements-backend.txt — admits a security-critical
+    version below the constraints/security.txt floor. The advisory carve-out for
+    requirements*.txt (PR #1111 ownership) is closed, so every install path is
+    floor-consistent."""
+    strict, advisory = _mod.evaluate()
+    offenders = strict + advisory
+    assert offenders == [], "manifest security floors lag constraints/security.txt: " + ", ".join(
+        str(v) for v in offenders
+    )
+
+
+def test_main_is_strict_by_default() -> None:
+    """The default CLI invocation enforces every manifest (exit 0 only when all
+    manifests are floor-consistent), with no flag required."""
+    assert _mod.main([]) == 0
+
+
+def test_advisory_requirements_flag_downgrades_requirements() -> None:
+    """The deprecated --advisory-requirements escape hatch still parses and, on a
+    floor-consistent tree, also passes — proving the flag is a reporting-mode
+    toggle, not a correctness bypass."""
+    assert _mod.main(["--advisory-requirements"]) == 0

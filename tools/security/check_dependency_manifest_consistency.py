@@ -12,14 +12,15 @@ This gate parses the declared lower bound for each security-critical package in
 each manifest and fails closed if any manifest admits a version *below* the
 ``constraints/security.txt`` floor.
 
-Scope (issue #1107 / dependency policy):
-    strict   : pyproject.toml — enforced (exit 1 on violation). This is the
-               ``pip install .`` source of truth.
-    advisory : requirements.txt / requirements-backend.txt — reported only.
-               Their security floors are owned by the security-sweep lane
-               (PR #1111); promoting these to strict here would create a
-               cross-branch write conflict. Tighten to strict once #1111 lands
-               (see docs/security/dependency_policy.md).
+Scope (issue #1107 / dependency policy — all-strict since PR #1111 landed):
+    Every manifest is enforced strict (exit 1 on violation). ``pyproject.toml``
+    is the ``pip install .`` source of truth; ``requirements.txt`` and
+    ``requirements-backend.txt`` are the deployment install paths. No manifest
+    may admit a security-critical version below the ``constraints/security.txt``
+    floor — the cross-branch ownership that previously kept requirements*.txt
+    advisory (PR #1111) has landed, so the advisory carve-out is closed.
+    ``--advisory-requirements`` restores the legacy reporting-only mode for
+    requirements*.txt (deprecated; see docs/security/dependency_policy.md).
 
 Run::
 
@@ -168,27 +169,37 @@ def evaluate() -> tuple[list[Violation], list[Violation]]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--all-strict",
+        "--advisory-requirements",
         action="store_true",
-        help="Treat requirements manifests as strict too (use after PR #1111 lands).",
+        help=(
+            "Legacy mode: report requirements*.txt floor gaps as advisory only. "
+            "Default is strict for every manifest (constraints/security.txt is the "
+            "single source of truth; PR #1111 has landed)."
+        ),
     )
+    # Backward-compatible no-op: strict-for-all is now the default behaviour.
+    parser.add_argument("--all-strict", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
 
+    requirements_strict = not args.advisory_requirements
     strict, advisory = evaluate()
     for v in advisory:
-        marker = "ERROR" if args.all_strict else "ADVISORY"
+        marker = "ERROR" if requirements_strict else "ADVISORY"
         print(f"[{marker}] {v}")
     for v in strict:
         print(f"[ERROR] {v}")
 
-    failed = strict + (advisory if args.all_strict else [])
+    failed = strict + (advisory if requirements_strict else [])
     if failed:
         print(f"\nFAIL: {len(failed)} security-floor inconsistency(ies).")
         return 1
     print(
-        "PASS: pyproject.toml security floors are consistent with "
-        "constraints/security.txt"
-        + (" (requirements treated advisory; see dependency_policy.md)" if advisory else "")
+        "PASS: all dependency manifests are consistent with constraints/security.txt"
+        + (
+            " (requirements treated advisory; see dependency_policy.md)"
+            if advisory and not requirements_strict
+            else ""
+        )
         + "."
     )
     return 0
