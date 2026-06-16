@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -46,7 +46,10 @@ __all__ = [
     "SecondOrderDivergenceError",
     "SecondOrderKuramotoEngine",
     "SecondOrderResult",
+    "SecondOrderStabilityReport",
 ]
+
+_MetaValue = Union[str, int, float, bool, None]
 
 _logger = logging.getLogger(__name__)
 
@@ -156,6 +159,82 @@ class SecondOrderResult:
             if np.std(v[k]) > final_spread + threshold:
                 return float(t[min(k + 1, len(t) - 1)])
         return 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class SecondOrderStabilityReport:
+    """Offline numerical-stability audit of an integrated second-order run.
+
+    This complements the engine's *runtime* fail-closed guard (non-finite +
+    optional RoCoF, ``SecondOrderResult.audit_scope``): it is a post-hoc
+    analysis of a completed trajectory that closes the gaps the runtime guard
+    leaves open (issue #1109). Every field is a measured diagnostic, not an
+    asserted physical law:
+
+    energy_like_drift
+        Relative drift of the swing energy
+        ``E = ½Σ mᵢθ̇ᵢ² − Σ ωᵢθᵢ − ½Σ adjᵢⱼ cos(θⱼ−θᵢ)`` over the trajectory,
+        ``(max E − min E)/max|E|``. In the conservative regime (ω≡0, d≡0) the
+        symplectic Störmer–Verlet map keeps this bounded (INV-K8/K9/K10).
+    energy_conservative_regime
+        Whether ω≡0 and d≡0, i.e. energy is expected to be (near-)conserved.
+    phase_spread_bound
+        Maximum over time of ``max_i θᵢ − min_i θᵢ`` (raw, unwrapped phases).
+    stiffness_ratio
+        ``ω_fast · dt`` where ``ω_fast = √(λ_max(L_adj)/m_min)`` is the fastest
+        linearised swing mode about synchrony (L_adj = Laplacian of the
+        coupling matrix). Explicit fixed-step integration only resolves modes
+        with ``ω·dt ≪ 1``.
+    cross_solver_max_deviation
+        Max state deviation between the engine's Verlet trajectory and an
+        independent explicit RK4 integration of the same IVP over the audit
+        horizon — a genuine cross-implementation check.
+    cross_solver_max_deviation
+        Endpoint deviation (at the audit horizon) — kept for back-compat.
+    trajectory_wide_cross_solver_max
+        Max state deviation between Verlet and RK4 over EVERY step in
+        ``[0, horizon]``, not just the endpoint. Strictly ≥
+        ``cross_solver_max_deviation``: an endpoint that happens to re-converge
+        can hide a mid-trajectory divergence, so agreement is judged on this.
+    remaining_gaps
+        Stability properties this audit still does NOT cover.
+    metric_validity_flags
+        Per-metric validity gates. ``energy_model_valid`` is True only when the
+        coupling matrix is symmetric and unsigned — the swing-energy
+        ``V = −½Σ adjᵢⱼ cos(Δθ)`` is a conserved potential only then; an
+        asymmetric or signed adjacency makes ``energy_like_drift`` physically
+        meaningless and must not be read as a conservation result.
+    audit_passed
+        True iff every IN-SCOPE bounded check held (energy bounded where a valid
+        conservation claim is made, phase spread finite, trajectory-wide
+        cross-solver agreement). A measured pass of the partial audit — NOT a
+        stability certificate.
+    failure_reason
+        Names of the checks that failed; empty iff ``audit_passed``.
+    promotion_allowed
+        ``audit_passed AND remaining_gaps == ()``. Because ``remaining_gaps`` is
+        non-empty by construction, this is ALWAYS False: an offline diagnostic
+        with open gaps can never promote second-order S7 stability. The firewall
+        against the "full audit ⇒ certified stable" overclaim.
+    """
+
+    audit_scope: str
+    energy_like_drift: float
+    energy_conservative_regime: bool
+    phase_spread_bound: float
+    phase_spread_finite: bool
+    stiffness_ratio: float
+    stiffness_regime: str
+    cross_solver_reference: str
+    cross_solver_max_deviation: float
+    trajectory_wide_cross_solver_max: float
+    cross_solver_agrees: bool
+    solver_metadata: dict[str, _MetaValue]
+    metric_validity_flags: dict[str, bool]
+    audit_passed: bool
+    failure_reason: tuple[str, ...]
+    promotion_allowed: bool
+    remaining_gaps: tuple[str, ...]
 
 
 class SecondOrderKuramotoEngine:
@@ -300,6 +379,194 @@ class SecondOrderKuramotoEngine:
             config=cfg,
         )
         return SecondOrderResult(base=base, velocities=velocities)
+
+    def audit(
+        self,
+        *,
+        cross_solver_steps: int = 200,
+        agreement_tol: float = 1e-3,
+        energy_drift_tol: float = 1e-3,
+    ) -> SecondOrderStabilityReport:
+        """Run the engine and produce a bounded numerical-stability audit (#1109).
+
+        Closes the gaps the runtime guard leaves open: energy drift, phase
+        spread, solver metadata, stiffness regime, and an independent
+        trajectory-wide cross-solver agreement check. This is a SCOPE-LIMITED
+        diagnostic, NOT a full S7 stability certificate: ``remaining_gaps``
+        stays non-empty and ``promotion_allowed`` is therefore always False.
+        Does not mutate or weaken the dynamics.
+        """
+        result = self.run()
+        theta = result.base.phases
+        vel = result.velocities
+        cfg = self._cfg
+        dt = cfg.dt
+        m, d, omega, adj = self._mass, self._damping, self._omega, self._adj
+
+        # --- energy-like drift: swing energy over the trajectory ---
+        kinetic = 0.5 * (m * vel * vel).sum(axis=1)
+        drive = -(omega * theta).sum(axis=1)
+        delta = theta[:, None, :] - theta[:, :, None]
+        v_coup = -0.5 * np.einsum("ij,tij->t", adj, np.cos(delta))
+        energy = kinetic + drive + v_coup
+        e_scale = float(np.abs(energy).max()) + 1e-12
+        energy_like_drift = float((energy.max() - energy.min()) / e_scale)
+        conservative = bool(np.allclose(omega, 0.0) and np.allclose(d, 0.0))
+
+        # --- phase spread (raw, unwrapped) ---
+        spread = theta.max(axis=1) - theta.min(axis=1)
+        phase_spread_bound = float(spread.max())
+        phase_spread_finite = bool(np.isfinite(spread).all())
+
+        # --- stiffness: fastest linearised swing mode vs dt ---
+        adj_sym = 0.5 * (adj + adj.T)
+        laplacian = np.diag(adj_sym.sum(axis=1)) - adj_sym
+        lam_max = float(np.linalg.eigvalsh(laplacian).max())
+        # bounds: a graph Laplacian is positive semi-definite, so λ_max ≥ 0 in
+        # exact arithmetic; eigvalsh can return a tiny negative due to rounding.
+        # Floor at 0 keeps the sqrt real — a numerical guard, not a physics clamp.
+        lam_max_nonneg = max(lam_max, 0.0)
+        omega_fast = float(np.sqrt(lam_max_nonneg / float(m.min())))
+        stiffness_ratio = float(omega_fast * dt)
+        if stiffness_ratio <= 0.1:
+            stiffness_regime = "resolved"
+        elif stiffness_ratio <= 1.0:
+            stiffness_regime = "marginally_resolved"
+        else:
+            stiffness_regime = "underresolved_stiff"
+
+        # --- cross-solver: independent explicit RK4 over the audit horizon ---
+        # bounds: clamp the cross-solver horizon to [1, run length]. At least one
+        # step is required to compare; capping at cfg.steps keeps the index in
+        # range. A configuration guard, not a physics clamp — no INV applies.
+        horizon = max(1, min(int(cross_solver_steps), cfg.steps))
+        rk_theta_traj, rk_v_traj = self._rk4_trajectory(horizon)
+        # Endpoint deviation (kept for back-compat reporting).
+        deviation = float(
+            max(
+                np.abs(rk_theta_traj[horizon] - theta[horizon]).max(),
+                np.abs(rk_v_traj[horizon] - vel[horizon]).max(),
+            )
+        )
+        # Trajectory-wide max over EVERY step in [0, horizon]: an endpoint that
+        # re-converges can mask a mid-trajectory divergence, so agreement is
+        # judged on the worst step, not the last one.
+        traj_theta_dev = float(np.abs(rk_theta_traj - theta[: horizon + 1]).max())
+        traj_v_dev = float(np.abs(rk_v_traj - vel[: horizon + 1]).max())
+        trajectory_wide_cross_solver_max = max(traj_theta_dev, traj_v_dev)
+        cross_solver_agrees = bool(
+            np.isfinite(trajectory_wide_cross_solver_max)
+            and trajectory_wide_cross_solver_max <= agreement_tol
+        )
+
+        solver_metadata: dict[str, _MetaValue] = {
+            "integrator": "stoermer_verlet",
+            "order": 2,
+            "symplectic": True,
+            "adaptive": False,
+            "fixed_step": True,
+            "dt": float(dt),
+            "steps": int(cfg.steps),
+            "rtol": None,
+            "atol": None,
+            "mass_min": float(m.min()),
+            "mass_max": float(m.max()),
+            "damping_min": float(d.min()),
+            "damping_max": float(d.max()),
+        }
+
+        # --- metric validity: the swing-energy conservation diagnostic is only
+        # meaningful for a symmetric, unsigned coupling matrix (the potential
+        # V = −½Σ adj cos(Δθ) is conserved only then). An asymmetric/signed
+        # adjacency makes energy_like_drift physically uninterpretable. ---
+        adjacency_symmetric = bool(np.allclose(adj, adj.T))
+        adjacency_unsigned = bool((adj >= 0.0).all())
+        energy_model_valid = adjacency_symmetric and adjacency_unsigned
+        metric_validity_flags: dict[str, bool] = {
+            "adjacency_symmetric": adjacency_symmetric,
+            "adjacency_unsigned": adjacency_unsigned,
+            "energy_model_valid": energy_model_valid,
+            "phase_spread_finite": phase_spread_finite,
+            "cross_solver_trajectory_wide": cross_solver_agrees,
+        }
+
+        # --- audit verdict: fail closed on any in-scope check that did not hold. ---
+        failures: list[str] = []
+        if conservative and energy_model_valid:
+            if not (np.isfinite(energy_like_drift) and energy_like_drift <= energy_drift_tol):
+                failures.append("energy_drift_exceeds_tol")
+        if conservative and not energy_model_valid:
+            failures.append("energy_conservation_claimed_on_invalid_model")
+        if not phase_spread_finite:
+            failures.append("phase_spread_nonfinite")
+        if not cross_solver_agrees:
+            failures.append("cross_solver_trajectory_disagreement")
+        audit_passed = not failures
+
+        remaining_gaps = (
+            "full_lyapunov_spectrum",
+            "long_horizon_secular_growth",
+            "heterogeneous_damping_modal_analysis",
+        )
+        # Promotion firewall: a passing partial audit is NOT a stability
+        # certificate. With remaining_gaps non-empty this is always False.
+        promotion_allowed = bool(audit_passed and not remaining_gaps)
+
+        return SecondOrderStabilityReport(
+            audit_scope="energy_phase_solver_stiffness_crosssolver",
+            energy_like_drift=energy_like_drift,
+            energy_conservative_regime=conservative,
+            phase_spread_bound=phase_spread_bound,
+            phase_spread_finite=phase_spread_finite,
+            stiffness_ratio=stiffness_ratio,
+            stiffness_regime=stiffness_regime,
+            cross_solver_reference="explicit_rk4",
+            cross_solver_max_deviation=deviation,
+            trajectory_wide_cross_solver_max=trajectory_wide_cross_solver_max,
+            cross_solver_agrees=cross_solver_agrees,
+            solver_metadata=solver_metadata,
+            metric_validity_flags=metric_validity_flags,
+            audit_passed=audit_passed,
+            failure_reason=tuple(failures),
+            promotion_allowed=promotion_allowed,
+            remaining_gaps=remaining_gaps,
+        )
+
+    def _rk4_trajectory(self, steps: int) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        """Independent explicit RK4 integration of the same IVP (cross-check).
+
+        Returns the FULL ``(steps+1, N)`` theta/velocity trajectories. A
+        different integrator than the engine's symplectic Verlet, so close
+        agreement at every step (not just the endpoint) is evidence the Verlet
+        trajectory is correct rather than a self-consistent artefact.
+        """
+        dt = self._cfg.dt
+        inv_m = 1.0 / self._mass
+        omega, d = self._omega, self._damping
+        n = self._cfg.N
+
+        def deriv(
+            theta: NDArray[np.float64], v: NDArray[np.float64]
+        ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+            accel: NDArray[np.float64] = inv_m * (omega + self._coupling(theta) - d * v)
+            return v, accel
+
+        theta_traj = np.empty((steps + 1, n), dtype=np.float64)
+        v_traj = np.empty((steps + 1, n), dtype=np.float64)
+        theta = self._theta0.copy()
+        v = self._v0.copy()
+        theta_traj[0] = theta
+        v_traj[0] = v
+        for k in range(steps):
+            k1t, k1v = deriv(theta, v)
+            k2t, k2v = deriv(theta + 0.5 * dt * k1t, v + 0.5 * dt * k1v)
+            k3t, k3v = deriv(theta + 0.5 * dt * k2t, v + 0.5 * dt * k2v)
+            k4t, k4v = deriv(theta + dt * k3t, v + dt * k3v)
+            theta = theta + (dt / 6.0) * (k1t + 2.0 * k2t + 2.0 * k3t + k4t)
+            v = v + (dt / 6.0) * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
+            theta_traj[k + 1] = theta
+            v_traj[k + 1] = v
+        return theta_traj, v_traj
 
     def _coupling(self, theta: NDArray[np.float64]) -> NDArray[np.float64]:
         """Compute coupling forces Σ_j A_ij sin(θ_j - θ_i)."""
