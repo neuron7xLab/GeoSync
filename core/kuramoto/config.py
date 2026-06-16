@@ -4,10 +4,13 @@
 
 from __future__ import annotations
 
-from typing import Any
+import warnings
+from typing import Any, Literal
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from .coupling_spec import CLAIM_ATTRACTIVE, CLAIM_SIGNED
 
 
 class KuramotoConfig(BaseModel):
@@ -33,6 +36,25 @@ class KuramotoConfig(BaseModel):
         description=(
             "Optional N×N weighted coupling matrix. Diagonal values are accepted but ignored "
             "during integration (no-self-coupling)."
+        ),
+    )
+    adjacency_kind: Literal["normalized_topology", "full_weight"] | None = Field(
+        default=None,
+        description=(
+            "Declares how 'adjacency' relates to the effective coupling C summed in the ODE, "
+            "closing the silent double-scaling path. 'normalized_topology': adjacency is a "
+            "topology A that K scales (C = K·A); any K is admissible. 'full_weight': adjacency "
+            "already carries physical magnitudes (C = adjacency); K must be 1.0. None (legacy, "
+            "deprecated): the convention is undeclared — with K != 1.0 this is ambiguous and "
+            "may double-scale. Prefer KuramotoConfig.from_coupling_spec(...)."
+        ),
+    )
+    claim_boundary: str = Field(
+        default=CLAIM_ATTRACTIVE,
+        description=(
+            "What may be asserted about the dynamics. Attractive coupling (K ≥ 0, weights ≥ 0) "
+            "carries the standard synchronization theorems; signed/repulsive coupling cannot. "
+            "Propagated from CouplingSpec by from_coupling_spec()."
         ),
     )
     theta0: np.ndarray | None = Field(
@@ -81,7 +103,65 @@ class KuramotoConfig(BaseModel):
                 raise ValueError("'adjacency' contains non-finite values (NaN or Inf).")
             object.__setattr__(self, "adjacency", adj)
 
+        self._enforce_coupling_convention()
+        self._enforce_claim_boundary()
         return self
+
+    def _enforce_coupling_convention(self) -> None:
+        """Close the silent double-scaling path of the bare ``(K, adjacency)`` ctor.
+
+        The effective coupling summed in the ODE is ``C = K · adjacency``. If
+        ``adjacency`` is a *normalized topology* ``A`` this is the intended
+        ``C = K·A``; if it is already a *physical weight matrix* ``W`` the extra
+        ``K`` double-scales (``C = K·W``). The constructor cannot tell ``A`` from
+        ``W`` by inspection, so the caller must declare which via
+        ``adjacency_kind`` whenever ``K != 1.0``. ``from_coupling_spec`` is the
+        canonical path and sets this automatically.
+        """
+        if self.adjacency is None or self.K == 1.0:
+            # K == 1.0 ⇒ C = adjacency regardless of convention; no ambiguity.
+            return
+        if self.adjacency_kind == "full_weight":
+            raise ValueError(
+                "adjacency_kind='full_weight' means 'adjacency' already carries physical "
+                f"coupling magnitudes (C = adjacency); the scalar K must be exactly 1.0 to "
+                f"avoid double-scaling (C = K·W). Got K={self.K!r}. Declare "
+                "adjacency_kind='normalized_topology' if K is meant to scale the matrix, or "
+                "build via KuramotoConfig.from_coupling_spec(...)."
+            )
+        if self.adjacency_kind is None:
+            warnings.warn(
+                "KuramotoConfig(K != 1.0, adjacency=...) with undeclared adjacency_kind is "
+                "ambiguous: if 'adjacency' is already a physical weight matrix, C = K·adjacency "
+                "double-scales the coupling. Declare adjacency_kind='normalized_topology' or "
+                "'full_weight', or use KuramotoConfig.from_coupling_spec(...). This legacy path "
+                "is deprecated.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+    def _enforce_claim_boundary(self) -> None:
+        """A signed/repulsive coupling can never claim attractive Kuramoto physics."""
+        if self.claim_boundary not in (CLAIM_ATTRACTIVE, CLAIM_SIGNED):
+            raise ValueError(
+                f"claim_boundary must be one of {CLAIM_ATTRACTIVE!r} or {CLAIM_SIGNED!r}; "
+                f"got {self.claim_boundary!r}."
+            )
+        if self.claim_boundary != CLAIM_ATTRACTIVE:
+            return
+        if self.K < 0.0:
+            raise ValueError(
+                f"claim_boundary={CLAIM_ATTRACTIVE!r} forbids a negative global K "
+                f"(repulsive); got K={self.K!r}. Declare claim_boundary={CLAIM_SIGNED!r}."
+            )
+        if self.adjacency is not None:
+            min_w = float(np.asarray(self.adjacency, dtype=np.float64).min())
+            if min_w < 0.0:
+                raise ValueError(
+                    f"claim_boundary={CLAIM_ATTRACTIVE!r} forbids negative coupling weights "
+                    f"(found min {min_w:.6g}); signed/repulsive coupling must declare "
+                    f"claim_boundary={CLAIM_SIGNED!r}."
+                )
 
     @classmethod
     def from_coupling_spec(
@@ -116,6 +196,8 @@ class KuramotoConfig(BaseModel):
             dt=dt,
             steps=steps,
             adjacency=effective,
+            adjacency_kind="full_weight",
+            claim_boundary=spec.claim_boundary,
             theta0=theta0,
             seed=seed,
         )
@@ -134,6 +216,8 @@ class KuramotoConfig(BaseModel):
             "dt": self.dt,
             "steps": self.steps,
             "adjacency": self.adjacency.tolist() if self.adjacency is not None else None,
+            "adjacency_kind": self.adjacency_kind,
+            "claim_boundary": self.claim_boundary,
             "theta0": self.theta0.tolist() if self.theta0 is not None else None,
             "seed": self.seed,
             "coupling_mode": self.coupling_mode,
