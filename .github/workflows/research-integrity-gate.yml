@@ -58,6 +58,11 @@ on:
       - 'governance/NEGATIVE_EVIDENCE.yaml'
       - 'scripts/ci/check_negative_evidence.py'
       - 'tests/scripts/test_check_negative_evidence.py'
+      # Claim-maturity promotion gate (registry over the #1094 ladder):
+      - 'governance/CLAIM_MATURITY.yaml'
+      - 'analytics/signals/claim_maturity.py'
+      - 'scripts/ci/check_claim_maturity.py'
+      - 'tests/scripts/test_check_claim_maturity.py'
   push:
     branches: [main]
   workflow_dispatch:
@@ -136,6 +141,12 @@ jobs:
 
       - name: pytest — negative-evidence gate
         run: python -m pytest tests/scripts/test_check_negative_evidence.py -q
+
+      - name: Claim-maturity promotion gate (registry)
+        run: python scripts/ci/check_claim_maturity.py
+
+      - name: pytest — claim-maturity registry gate
+        run: python -m pytest tests/scripts/test_check_claim_maturity.py -q
 
       - name: Claim-to-artifact graph gate
         run: python scripts/ci/check_claim_artifact_graph.py
