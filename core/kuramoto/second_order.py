@@ -72,9 +72,31 @@ class SecondOrderDivergenceError(ValueError):
         self.kind = kind
 
 
+# Partial-audit honesty (issue #1107). The second-order engine fails closed on
+# non-finite states and an opted-in RoCoF bound only — it is NOT a full
+# stability audit. These constants declare exactly that scope and enumerate the
+# checks still missing, so passing CI cannot be read as a complete numerical
+# stability validation. Full coverage is tracked as a follow-up
+# SecondOrderStabilityAudit object (issue #1109; protocol #1107).
+_AUDIT_SCOPE = "nonfinite_and_rocof_only"
+_REMAINING_AUDIT_GAPS: tuple[str, ...] = (
+    "energy_like_drift",
+    "phase_spread_bound",
+    "solver_metadata",
+    "stiffness_assumption",
+    "cross_solver_reference",
+)
+
+
 @dataclass
 class SecondOrderResult:
-    """Extended result wrapping KuramotoResult with velocity trajectories."""
+    """Extended result wrapping KuramotoResult with velocity trajectories.
+
+    The numerical guard implemented here is partial: ``audit_scope`` is
+    ``"nonfinite_and_rocof_only"`` and ``remaining_audit_gaps`` lists the checks
+    a full :class:`SecondOrderStabilityAudit` would still need. These are
+    declarative provenance, not numeric outputs.
+    """
 
     base: KuramotoResult
     velocities: NDArray[np.float64]
@@ -82,6 +104,16 @@ class SecondOrderResult:
     def __post_init__(self) -> None:
         if self.velocities.size > 0:
             self.base.summary.update(self._compute_frequency_metrics())
+
+    @property
+    def audit_scope(self) -> str:
+        """Declared scope of the fail-closed numerical guard (partial)."""
+        return _AUDIT_SCOPE
+
+    @property
+    def remaining_audit_gaps(self) -> tuple[str, ...]:
+        """Stability checks NOT covered here — explicitly preserved, not hidden."""
+        return _REMAINING_AUDIT_GAPS
 
     @property
     def phases(self) -> NDArray[np.float64]:

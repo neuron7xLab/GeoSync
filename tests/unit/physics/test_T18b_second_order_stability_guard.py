@@ -334,3 +334,34 @@ def test_invalid_rocof_max_rejected(bad_bound: float) -> None:
     )
     with pytest.raises(ValueError, match="rocof_max"):
         SecondOrderKuramotoEngine(cfg, rocof_max=bad_bound)
+
+
+# ---------------------------------------------------------------------------
+# Issue #1107 — the guard is PARTIAL, and says so. Passing CI must not be read
+# as a complete numerical stability audit.
+# ---------------------------------------------------------------------------
+
+
+def _run_small() -> object:
+    cfg = KuramotoConfig(N=4, K=1.0, omega=np.zeros(4), dt=0.01, steps=5, seed=0)
+    return SecondOrderKuramotoEngine(cfg, mass=1.0, damping=0.1).run()
+
+
+def test_second_order_audit_scope_is_partial() -> None:
+    result = _run_small()
+    assert result.audit_scope == "nonfinite_and_rocof_only"
+    # It must NOT advertise itself as a full stability audit.
+    assert result.audit_scope != "full_stability_audit"
+
+
+def test_second_order_remaining_gaps_are_declared() -> None:
+    result = _run_small()
+    gaps = result.remaining_audit_gaps
+    for gap in (
+        "energy_like_drift",
+        "phase_spread_bound",
+        "solver_metadata",
+        "stiffness_assumption",
+        "cross_solver_reference",
+    ):
+        assert gap in gaps, f"unclosed stability check '{gap}' must stay declared"

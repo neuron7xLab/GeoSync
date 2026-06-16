@@ -220,3 +220,37 @@ class TestKuramotoProxyHonesty:
             obj.R.to_numpy(), result["R"].to_numpy(), rtol=0, atol=0
         )
         pd.testing.assert_series_equal(obj.labels, result["labels"])
+
+
+class TestKuramotoDownstreamClaim:
+    """Issue #1107 — the proxy descriptor cannot self-promote into a
+    predictive / tradeable / validated signal downstream."""
+
+    _FORBIDDEN = (
+        "validated",
+        "alpha",
+        "market consensus",
+        "predictive validity",
+        "trading signal",
+        "causal market",
+    )
+
+    def test_proxy_feature_cannot_claim_predictive_or_trading_validity(self) -> None:
+        detector = KuramotoSynchrony(window=30)
+        res = detector.result(_synced_prices())
+        assert res.predictive_claim is False
+        assert res.trading_claim is False
+        assert res.validation_status == "descriptor_only"
+        assert res.validation_status != "validated"
+
+    def test_feature_result_metadata_preserves_descriptor_only_status(self) -> None:
+        detector = KuramotoSynchrony(window=30)
+        out = detector.fit_transform(_synced_prices())
+        # Metadata that travels to a downstream consumer.
+        assert out["predictive_claim"] is False
+        assert out["trading_claim"] is False
+        assert out["validation_status"] == "descriptor_only"
+        # Public-language guard: no string field advertises an unsupported claim.
+        blob = " ".join(v for v in out.values() if isinstance(v, str)).lower()
+        for forbidden in self._FORBIDDEN:
+            assert forbidden not in blob, f"unsupported claim '{forbidden}' leaked"

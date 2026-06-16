@@ -417,3 +417,25 @@ def test_descriptor_labels_do_not_change_numeric_output() -> None:
         float(np.mean(r_values)), rel=FLOAT_REL_TOL, abs=FLOAT_ABS_TOL
     )
     assert 0.0 <= result.cross_scale_coherence <= 1.0
+
+
+def test_multiscale_output_cannot_claim_network_or_market_consensus() -> None:
+    """Issue #1107 — the single-series descriptor must not be read as the
+    asset-network Kuramoto model nor as a 'market consensus' claim."""
+    df = _synth_dataframe(periods=4096)
+    result = MultiScaleKuramoto().analyze(df)
+
+    assert result.is_network_model is False
+    assert result.single_series is True
+    assert result.claim_boundary == "descriptor_only_not_predictor"
+    # Public-language guard: the declarative string fields must not advertise a
+    # network model, market consensus, or predictive validity.
+    blob = f"{result.layer} {result.claim_boundary}".lower()
+    for forbidden in (
+        "network model",
+        "asset-network",
+        "market consensus",
+        "predictive validity",
+        "alpha",
+    ):
+        assert forbidden not in blob, f"unsupported claim '{forbidden}' leaked"
