@@ -1,0 +1,133 @@
+{
+  "artifact_id": "fvps_mirp_v2026_4",
+  "title": "FVPS-MIRP v2026.4 Max-Inference Rank Prompt",
+  "artifact_type": "prompt_governance_contract",
+  "scope": "governance_only",
+  "runtime_behavior_changed": false,
+  "physics_behavior_changed": false,
+  "market_or_trading_claim": false,
+  "purpose": "Convert raw human intent into verified, rankable, executable, high-value artifacts through intent compression, constraint extraction, mechanism validation, value calculus, failure attack, rank quantization, and artifact synthesis.",
+  "prime_transition": [
+    "RAW_INPUT",
+    "OBJECT_EXTRACTION",
+    "INTENT_COMPRESSION",
+    "CONSTRAINT_MAP",
+    "MECHANISM_GRAPH",
+    "VALUE_CALCULUS",
+    "FAILURE_ATTACK",
+    "RANK_QUANTIZATION",
+    "ARTIFACT_SYNTHESIS"
+  ],
+  "rank_hierarchy": [
+    {
+      "rank": "R0_NOISE",
+      "definition": "Decorative, vague, non-operational, or unfalsifiable."
+    },
+    {
+      "rank": "R1_FORMATTED",
+      "definition": "Readable structure exists, but mechanism or evidence is weak."
+    },
+    {
+      "rank": "R2_OPERATIONAL",
+      "definition": "The artifact can be used, but verification is partial."
+    },
+    {
+      "rank": "R3_VERIFIABLE",
+      "definition": "Source, mechanism, test, command, and failure mode exist."
+    },
+    {
+      "rank": "R4_AGENTIC",
+      "definition": "The artifact can guide execution, adaptation, and error correction."
+    },
+    {
+      "rank": "R5_RESEARCH_GRADE",
+      "definition": "Includes falsification path, negative evidence, reproducibility, and boundary conditions."
+    },
+    {
+      "rank": "R6_GOVERNANCE_GRADE",
+      "definition": "Prevents false promotion of claims and binds output to evidence, CI, rollback, and ledger."
+    },
+    {
+      "rank": "R7_MAX_INFERENCE",
+      "definition": "Compresses ambiguity into a verified artifact, exposes the next regime boundary, and creates measurable leverage without inflating unsupported claims."
+    }
+  ],
+  "quality_function": {
+    "formula": "Q = 0.16I + 0.14C + 0.16M + 0.12T + 0.14V + 0.14F + 0.14A",
+    "dimensions": {
+      "I": "intent_compression",
+      "C": "constraint_extraction",
+      "M": "mechanism_validity",
+      "T": "testability_computability",
+      "V": "value_clarity",
+      "F": "failure_boundary_exposure",
+      "A": "artifact_executability"
+    },
+    "quantization": [
+      {"min": 0.0, "max": 0.39, "rank": "R0_NOISE"},
+      {"min": 0.40, "max": 0.54, "rank": "R1_FORMATTED"},
+      {"min": 0.55, "max": 0.68, "rank": "R2_OPERATIONAL"},
+      {"min": 0.69, "max": 0.79, "rank": "R3_VERIFIABLE"},
+      {"min": 0.80, "max": 0.87, "rank": "R4_AGENTIC"},
+      {"min": 0.88, "max": 0.93, "rank": "R5_RESEARCH_GRADE"},
+      {"min": 0.94, "max": 0.97, "rank": "R6_GOVERNANCE_GRADE"},
+      {"min": 0.98, "max": 1.0, "rank": "R7_MAX_INFERENCE"}
+    ]
+  },
+  "cognitive_value_operators": [
+    "intent_compression",
+    "constraint_extraction",
+    "mechanism_validation",
+    "cognitive_function_mapping",
+    "value_node_detection",
+    "failure_boundary_detection",
+    "artifact_synthesis"
+  ],
+  "layer_model": [
+    "physical_layer",
+    "informational_layer",
+    "computational_layer",
+    "cognitive_layer",
+    "value_layer"
+  ],
+  "validation_gates": [
+    "factuality_gate",
+    "mechanism_gate",
+    "computability_gate",
+    "value_gate",
+    "failure_gate",
+    "boundary_gate",
+    "action_gate"
+  ],
+  "fatal_gate_failures": [
+    "unfalsifiable_claim",
+    "missing_mechanism",
+    "metaphor_promoted_as_evidence",
+    "no_artifact",
+    "no_failure_boundary",
+    "unsupported_certainty"
+  ],
+  "allowed_status_labels": [
+    "VERIFIED",
+    "PLAUSIBLE",
+    "SPECULATIVE",
+    "METAPHORICAL",
+    "INVALID",
+    "SYSTEMIC_WASTE",
+    "THEORETICAL_INCOMPLETE",
+    "OPERATIONAL_READY"
+  ],
+  "blocked_claims": [
+    "model_weight_update_during_inference",
+    "cognitive_validation",
+    "physical_law_validation",
+    "predictive_performance",
+    "autonomous_safety_proof",
+    "runtime_behavior_change",
+    "market_or_trading_readiness"
+  ],
+  "artifact_files": [
+    "docs/prompts/fvps_max_inference_rank_prompt_v2026_4.md",
+    "data/governance/fvps_max_inference_rank_prompt_v2026_4.json"
+  ]
+}
