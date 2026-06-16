@@ -56,6 +56,7 @@ Worked example
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Any, Literal, Mapping
 
@@ -196,7 +197,7 @@ def _as_graph_density(value: Any) -> float | None:
             f"resolution-auditor: graph_density must be a float in [0, 1] or None, got {value!r}"
         )
     density = float(value)
-    if not (density == density) or density in (float("inf"), float("-inf")):  # NaN / inf guard
+    if not math.isfinite(density):  # rejects NaN and ±inf
         raise ValueError(f"resolution-auditor: graph_density must be finite, got {value!r}")
     if not 0.0 <= density <= 1.0:
         raise ValueError(f"resolution-auditor: graph_density must lie in [0, 1], got {density}")

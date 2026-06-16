@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
-from scipy.stats import spearmanr
 
 from tests.research_lines.test_ricci_microstructure_synthetic_falsifier import (
     DATA_SEED,

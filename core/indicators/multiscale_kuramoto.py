@@ -72,7 +72,6 @@ except Exception:  # pragma: no cover - executed when SciPy unavailable
     _signal = None
 
 from ..utils.logging import get_logger
-from . import fractal_gcl as _fractal_gcl
 from .base import BaseFeature, FeatureResult
 from .cache import FileSystemIndicatorCache, hash_input_data
 
@@ -821,7 +820,11 @@ def fractal_gcl_novelty(
 ) -> tuple[float, float]:
     """Convenience wrapper exposing fractal novelty estimates to FHMC."""
 
-    return _fractal_gcl.fractal_gcl_novelty(graph, embeddings_i, embeddings_j)
+    # Imported lazily inside the function to avoid a module-level import cycle
+    # within the ``core.indicators`` package (py/unsafe-cyclic-import).
+    from .fractal_gcl import fractal_gcl_novelty as _fractal_gcl_novelty
+
+    return _fractal_gcl_novelty(graph, embeddings_i, embeddings_j)
 
 
 __all__ = [

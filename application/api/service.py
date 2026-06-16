@@ -14,7 +14,6 @@ import os
 from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from json import JSONDecodeError
 from time import perf_counter
 from typing import Any, Awaitable, Callable, Literal, Mapping, TypeVar
 
@@ -1170,7 +1169,7 @@ class PayloadGuardMiddleware(BaseHTTPMiddleware):
                 if body:
                     try:
                         parsed = json.loads(body)
-                    except (JSONDecodeError, UnicodeDecodeError):
+                    except (json.JSONDecodeError, UnicodeDecodeError):
                         # JSONDecodeError: malformed JSON syntax.
                         # UnicodeDecodeError: bytes that are not decodable as the
                         # advertised encoding (default utf-8). Both are 400-class

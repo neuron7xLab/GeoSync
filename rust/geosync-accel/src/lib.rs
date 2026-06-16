@@ -564,7 +564,10 @@ fn geosync_accel(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
         "Rust accelerators for GeoSync numeric primitives",
     )?;
     module.add("PYTHON_IMPLEMENTATION", "rust")?;
-    module.add("PYTHON_VERSION", py.version())?;
+    // pyo3 0.29 deprecates Python::version(); version_str() only lands in 0.30.
+    // Read the interpreter version from sys to stay deprecation-free under clippy -D warnings.
+    let python_version: String = py.import("sys")?.getattr("version")?.extract()?;
+    module.add("PYTHON_VERSION", python_version)?;
     Ok(())
 }
 
@@ -576,8 +579,8 @@ mod tests {
 
     #[test]
     fn python_api_roundtrip() {
-        pyo3::prepare_freethreaded_python();
-        Python::with_gil(|py| -> PyResult<()> {
+        pyo3::Python::initialize();
+        Python::attach(|py| -> PyResult<()> {
             if let Err(err) = py.import("numpy") {
                 let missing_numpy = err
                     .get_type(py)
@@ -601,7 +604,7 @@ mod tests {
                 "sliding_windows",
                 (data.clone().to_pyarray(py), 2usize, 1usize),
             )?;
-            let windows = sliding.downcast::<PyArray2<f64>>()?;
+            let windows = sliding.cast::<PyArray2<f64>>()?;
             assert_eq!(windows.shape(), &[3, 2]);
 
             let quantiles_vec: Vec<f64> = module

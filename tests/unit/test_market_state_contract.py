@@ -1,7 +1,5 @@
 import math
-import numpy as np
 import pandas as pd
-import pytest
 from hypothesis import given, settings, strategies as st
 
 from core.indicators.kuramoto_ricci_composite import CompositeSignal, MarketPhase
@@ -53,7 +51,18 @@ def test_contract_has_exact_public_keys():
     sig = make(MarketPhase.STRONG_EMERGENT, confidence=0.9, consensus_R=0.82,
                entry_signal=0.6, risk_multiplier=1.2)
     d = compile_market_state(sig).to_dict()
-    assert set(d) == {"phase", "confidence", "regime", "entry", "exit", "risk", "evidence"}
+    # "provenance" is part of the public envelope as of the MarketState
+    # provenance evidence fields + claim-boundary firewall (#1055).
+    assert set(d) == {
+        "phase",
+        "confidence",
+        "regime",
+        "entry",
+        "exit",
+        "risk",
+        "evidence",
+        "provenance",
+    }
 
 
 def test_determinism_same_input_same_output():

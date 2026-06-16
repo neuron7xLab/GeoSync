@@ -95,6 +95,8 @@ def test_production_profile_with_real_secret_does_not_raise_on_guard(
     except RuntimeError as exc:  # pragma: no cover - defensive
         assert "non-development profiles" not in str(exc)
     except Exception:
+        # Unrelated init failures (config/controllers) are irrelevant here; this
+        # test only asserts the secret-guard behaviour checked below.
         pass
 
     assert os.environ["GEOSYNC_TWO_FACTOR_SECRET"] == real_secret
@@ -114,6 +116,8 @@ def test_dev_profiles_get_benign_defaults(
     except RuntimeError as exc:  # pragma: no cover - defensive
         assert "non-development profiles" not in str(exc)
     except Exception:
+        # Unrelated init failures (config/controllers) are irrelevant here; this
+        # test only asserts the dev-default seeding checked below.
         pass
 
     assert os.environ.get("GEOSYNC_TWO_FACTOR_SECRET") == _PUBLIC_TOTP_SEED

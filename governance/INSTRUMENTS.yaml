@@ -153,7 +153,7 @@ instruments:
     pr: 1090
     merge_commit: "c5ac4aceaf45b1c923bb9cdc0427fe0d5ec002b7"  # pragma: allowlist secret
     module: "analytics/signals/resolution_auditor.py"
-    source_sha256: "8057923bd4985be0728b42f83355280861031613955685a27c037228e8957e4e"  # pragma: allowlist secret
+    source_sha256: "2212ce7195a7179733c1a470cb17972376224a8e791a73a959daee2b323d5a14"  # pragma: allowlist secret
     test_file: "tests/unit/analytics/test_resolution_auditor.py"
     acceptor: ".claude/commit_acceptors/resolution-auditor-contract.yaml"
     claim_boundary: "descriptor_only_not_predictor"

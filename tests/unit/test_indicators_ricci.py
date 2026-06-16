@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import math
-from typing import Any, Coroutine
+from typing import Any
 
 import numpy as np
 import pytest
