@@ -39,6 +39,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "schemas" / "research" / "l2_ricci_session.schema.json"
+REGISTRY_PATH = ROOT / "config" / "research" / "l2_ricci_registry.yaml"
 
 SCHEMA_ID = "https://schemas.neuron7xlab.org/research/l2_ricci_session.schema.json"
 ZERO_SHA256 = "0" * 64
@@ -52,6 +53,11 @@ REQUIRED_FALSIFICATION_CLAIMS: frozenset[str] = frozenset({"null_model", "lookah
 #: Statuses that assert evidentiary weight and therefore demand real inputs.
 EVIDENCE_STATUSES: frozenset[str] = frozenset({"PASS"})
 
+#: A replay_command is executable only if it actually invokes the recorder.
+#: Anything else (a prose note, a bare path, a placeholder stub) is non-runnable
+#: and must instead be honestly flagged replay_blocked.
+_EXECUTABLE_REPLAY_PREFIXES: tuple[str, ...] = ("python ", "python3 ")
+
 
 def _shared_validator() -> Any:
     """Path-load the canonical schema validator (single source of shape rules).
@@ -64,6 +70,22 @@ def _shared_validator() -> Any:
     spec = importlib.util.spec_from_file_location("_l2_ricci_schema_validator", module_path)
     if spec is None or spec.loader is None:  # pragma: no cover - import plumbing
         raise RuntimeError(f"cannot load schema validator at {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _registry_checker() -> Any:
+    """Path-load the registry-resolution checker (single source of the rule).
+
+    Reuses ``check_l2_registry_refs.resolve_session_refs`` so this gate and the
+    standalone ``check_l2_registry_refs.py`` tool share one resolver rather than
+    forking a second, drift-prone copy of the baseline/null/falsifier rule.
+    """
+    module_path = Path(__file__).resolve().parent / "check_l2_registry_refs.py"
+    spec = importlib.util.spec_from_file_location("_l2_ricci_registry_refs", module_path)
+    if spec is None or spec.loader is None:  # pragma: no cover - import plumbing
+        raise RuntimeError(f"cannot load registry checker at {module_path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -93,7 +115,8 @@ def skeleton() -> dict[str, Any]:
         "baseline_id": "baseline_unset",
         "null_model_id": "null_model_unset",
         "falsifier_id": "falsifier_unset",
-        "replay_command": "python tools/research/run_l2_ricci_session.py --artifact <path>",
+        "replay_command": "<no real depth-5 capture to recompute; fill in once recorded>",
+        "replay_blocked": True,
         "negative_evidence": [
             {
                 "claim": "depth-5 Ricci information coefficient survives a null model",
@@ -145,6 +168,7 @@ def validate_session_semantics(artifact: dict[str, Any], artifact_path: Path) ->
     errors: list[str] = []
     status = artifact.get("semantic_validation_status")
     claims_evidence = status in EVIDENCE_STATUSES
+    replay_blocked = bool(artifact.get("replay_blocked", False))
 
     if claims_evidence:
         if not _is_real_git_sha(artifact.get("git_sha")):
@@ -159,6 +183,23 @@ def validate_session_semantics(artifact: dict[str, Any], artifact_path: Path) ->
             errors.append(
                 f"{artifact_path}: config_sha256: evidence session requires a real (non-zero) config hash"
             )
+        # An evidence session must be replayable: the command has to actually
+        # invoke the recorder, and a session that flags its replay as blocked
+        # cannot, by definition, be evidence (a blocked replay is not a replay).
+        if replay_blocked:
+            errors.append(
+                f"{artifact_path}: replay_blocked: an evidence session cannot have a blocked replay"
+            )
+        replay = artifact.get("replay_command")
+        if not isinstance(replay, str) or not replay.startswith(_EXECUTABLE_REPLAY_PREFIXES):
+            errors.append(
+                f"{artifact_path}: replay_command: evidence session requires an executable "
+                "'python'/'python3' replay command"
+            )
+        # baseline / null / falsifier ids must resolve to the reference registry.
+        registry = _registry_checker()
+        sections = registry.load_registry(REGISTRY_PATH)
+        errors.extend(registry.resolve_session_refs(artifact, sections, artifact_path))
 
     start = _parse_z_datetime(artifact.get("session_start_utc"))
     end = _parse_z_datetime(artifact.get("session_end_utc"))
@@ -195,11 +236,40 @@ def validate_session_semantics(artifact: dict[str, Any], artifact_path: Path) ->
                     "BLOCKED attempts (nothing was actually adversarially tested)"
                 )
 
-    if status == "PLACEHOLDER" and _is_real_sha256(artifact.get("data_sha256")):
-        errors.append(
-            f"{artifact_path}: semantic_validation_status: a PLACEHOLDER must not carry a real data hash "
-            "(label it PENDING/PASS or zero the hash)"
-        )
+    if status == "PLACEHOLDER":
+        # A placeholder is a schema-shaped skeleton with NO real data. A real
+        # depth-5 fixture cannot run in placeholder mode: any real provenance
+        # hash (data, config, or git) means this is not a placeholder and must
+        # be re-labelled PENDING/PASS (or the hash zeroed). This forbids
+        # dressing a real-data session as an inert skeleton to dodge the gates.
+        if _is_real_sha256(artifact.get("data_sha256")):
+            errors.append(
+                f"{artifact_path}: semantic_validation_status: a PLACEHOLDER must not carry a real "
+                "data hash (label it PENDING/PASS or zero the hash)"
+            )
+        if _is_real_sha256(artifact.get("config_sha256")):
+            errors.append(
+                f"{artifact_path}: semantic_validation_status: a PLACEHOLDER must not carry a real "
+                "config hash (label it PENDING/PASS or zero the hash)"
+            )
+        if _is_real_git_sha(artifact.get("git_sha")):
+            errors.append(
+                f"{artifact_path}: semantic_validation_status: a PLACEHOLDER must not carry a real "
+                "git sha (label it PENDING/PASS or zero the sha)"
+            )
+
+    # Replay honesty for any non-evidence session: a replay_command that is not
+    # an executable recorder invocation must be explicitly flagged
+    # replay_blocked. A command that neither runs nor admits it cannot run is a
+    # silently-non-runnable command and is rejected.
+    if not claims_evidence:
+        replay = artifact.get("replay_command")
+        executable = isinstance(replay, str) and replay.startswith(_EXECUTABLE_REPLAY_PREFIXES)
+        if not executable and not replay_blocked:
+            errors.append(
+                f"{artifact_path}: replay_command: not an executable 'python'/'python3' command; "
+                "set replay_blocked: true to declare it not-yet-runnable"
+            )
 
     return errors
 

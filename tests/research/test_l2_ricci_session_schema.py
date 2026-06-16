@@ -155,6 +155,15 @@ def _evidence_payload() -> dict[str, Any]:
     payload["session_start_utc"] = "2026-06-16T09:00:00Z"
     payload["session_end_utc"] = "2026-06-16T10:00:00Z"
     payload["semantic_validation_status"] = "PASS"
+    # Replay must be an executable recorder invocation and not blocked; the
+    # ids must resolve to config/research/l2_ricci_registry.yaml.
+    payload["replay_blocked"] = False
+    payload["replay_command"] = (
+        "python tools/research/run_l2_ricci_session.py --artifact session.json"
+    )
+    payload["baseline_id"] = "no_lookahead_persistence"
+    payload["null_model_id"] = "permutation_null"
+    payload["falsifier_id"] = "lookahead_leak_falsifier"
     payload["negative_evidence"] = [
         {
             "claim": "depth-5 Ricci IC survives a permutation null model",
@@ -191,3 +200,68 @@ def test_evidence_session_all_blocked_is_rejected(tmp_path: Path) -> None:
     artifact = _write(tmp_path, payload)
     errors = tool.validate_artifact(artifact)
     assert any("negative_evidence" in error for error in errors)
+
+
+# --- P1-3 hardening: placeholder/replay/registry resolution ------------------
+
+
+def test_skeleton_replay_is_blocked_not_silently_unrunnable() -> None:
+    skeleton = tool.skeleton()
+    # The skeleton has no real capture to recompute, so its replay must be
+    # honestly flagged blocked rather than masquerading as runnable.
+    assert skeleton["replay_blocked"] is True
+
+
+def test_placeholder_with_real_config_hash_is_rejected(tmp_path: Path) -> None:
+    payload = tool.skeleton()
+    payload["config_sha256"] = "c" * 64
+    artifact = _write(tmp_path, payload)
+    errors = tool.validate_artifact(artifact)
+    assert any("config hash" in error for error in errors)
+
+
+def test_placeholder_with_real_git_sha_is_rejected(tmp_path: Path) -> None:
+    payload = tool.skeleton()
+    payload["git_sha"] = "a" * 40
+    artifact = _write(tmp_path, payload)
+    errors = tool.validate_artifact(artifact)
+    assert any("git sha" in error for error in errors)
+
+
+def test_non_evidence_silently_unrunnable_replay_is_rejected(tmp_path: Path) -> None:
+    payload = tool.skeleton()
+    payload["semantic_validation_status"] = "PENDING"
+    payload["replay_command"] = "see internal notes"
+    payload["replay_blocked"] = False
+    artifact = _write(tmp_path, payload)
+    errors = tool.validate_artifact(artifact)
+    assert any("replay_command" in error for error in errors)
+
+
+def test_evidence_session_with_blocked_replay_is_rejected(tmp_path: Path) -> None:
+    payload = _evidence_payload()
+    payload["replay_blocked"] = True
+    artifact = _write(tmp_path, payload)
+    errors = tool.validate_artifact(artifact)
+    assert any("replay_blocked" in error for error in errors)
+
+
+def test_evidence_session_with_non_executable_replay_is_rejected(tmp_path: Path) -> None:
+    payload = _evidence_payload()
+    payload["replay_command"] = "rerun the pipeline manually"
+    payload["replay_blocked"] = False
+    artifact = _write(tmp_path, payload)
+    errors = tool.validate_artifact(artifact)
+    assert any("replay_command" in error for error in errors)
+
+
+def test_evidence_session_with_unresolved_ids_is_rejected(tmp_path: Path) -> None:
+    payload = _evidence_payload()
+    payload["baseline_id"] = "baseline_unset"
+    payload["null_model_id"] = "null_model_unset"
+    payload["falsifier_id"] = "falsifier_unset"
+    artifact = _write(tmp_path, payload)
+    errors = tool.validate_artifact(artifact)
+    assert any("baseline_id" in error for error in errors)
+    assert any("null_model_id" in error for error in errors)
+    assert any("falsifier_id" in error for error in errors)

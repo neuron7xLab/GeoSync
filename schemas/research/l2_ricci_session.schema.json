@@ -85,7 +85,11 @@
     "replay_command": {
       "type": "string",
       "minLength": 1,
-      "description": "Exact shell command that recomputes this session from committed inputs (data_sha256, config_sha256, git_sha). Claims recomputation, not cross-environment bit-equality (the repo's CALIB-GRID F3 result shows cross-BLAS bit-identity is not guaranteed). Required for promotion: a result that cannot be replayed is not evidence."
+      "description": "Exact shell command that recomputes this session from committed inputs (data_sha256, config_sha256, git_sha). Claims recomputation, not cross-environment bit-equality (the repo's CALIB-GRID F3 result shows cross-BLAS bit-identity is not guaranteed). For an evidence session the command must be executable (begin with 'python ' or 'python3 '); for a placeholder/pending session it must be honestly marked as not-yet-runnable by setting replay_blocked: true. A silently-non-runnable command (neither executable nor blocked) is rejected by the validator. Required for promotion: a result that cannot be replayed is not evidence."
+    },
+    "replay_blocked": {
+      "type": "boolean",
+      "description": "Honest flag that the replay_command cannot yet be run (e.g. no real depth-5 capture exists, so the recompute would have nothing to recompute). When true, the session is barred from any evidence status: a blocked replay is not a replay. When absent or false, the validator requires replay_command to be an executable 'python'/'python3' invocation. Default false."
     },
     "negative_evidence": {
       "type": "array",
