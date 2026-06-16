@@ -58,8 +58,11 @@ dimensions:
 
   - name: negative_evidence_ledger
     required: true
-    state: UNTESTED
-    evidence: ""        # WP-07 — not built yet.
+    state: CI_VERIFIED
+    evidence: >-
+      governance/NEGATIVE_EVIDENCE.yaml enforced by scripts/ci/check_negative_evidence.py,
+      wired as a fail-closed step in .github/workflows/research-integrity-gate.yml
+      (run line) with tests/scripts/test_check_negative_evidence.py.
 
   - name: artifact_replayability
     required: true
