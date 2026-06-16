@@ -3,8 +3,8 @@
 """Tests for the security-floor manifest-consistency gate.
 
 Proves the gate (a) catches a manifest floor below the security policy and
-(b) confirms pyproject.toml — the ``pip install .`` source of truth — is
-consistent with constraints/security.txt on the live tree.
+(b) confirms all dependency manifests no longer admit a security-critical floor
+below constraints/security.txt.
 """
 
 from __future__ import annotations
@@ -59,4 +59,14 @@ def test_pyproject_security_floors_consistent_with_policy() -> None:
     strict, _advisory = _mod.evaluate()
     assert strict == [], "pyproject.toml security floors lag constraints/security.txt: " + ", ".join(
         str(v) for v in strict
+    )
+
+
+def test_all_security_manifest_floors_consistent_with_policy() -> None:
+    """Live invariant for the all-strict lane: every checked manifest must reject
+    security-critical lower-bound drift against constraints/security.txt."""
+    strict, advisory = _mod.evaluate()
+    violations = strict + advisory
+    assert violations == [], "dependency security floors lag constraints/security.txt: " + ", ".join(
+        str(v) for v in violations
     )
