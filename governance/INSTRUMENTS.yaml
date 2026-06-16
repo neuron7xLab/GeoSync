@@ -160,3 +160,15 @@ instruments:
     falsifiers:
       - "tests/unit/analytics/test_resolution_auditor.py::test_p1_deterministic_for_same_metadata"
       - "tests/unit/analytics/test_resolution_auditor.py::test_failclosed_inconsistent_counts"
+
+  - id: claim-maturity
+    pr: 1094
+    merge_commit: "8175f53f87bb486f6902be04f2f4c534373525ac"  # pragma: allowlist secret
+    module: "analytics/signals/claim_maturity.py"
+    source_sha256: "19129ce9930cd5b1c169d1cf67afa1b0d559f0b83dbedbcc85c1ac9d6313a75a"  # pragma: allowlist secret
+    test_file: "tests/unit/analytics/test_claim_maturity.py"
+    acceptor: ".claude/commit_acceptors/claim-maturity-contract.yaml"
+    claim_boundary: "descriptor_only_not_predictor"
+    falsifiers:
+      - "tests/unit/analytics/test_claim_maturity.py::test_deterministic_for_same_arguments"
+      - "tests/unit/analytics/test_claim_maturity.py::test_failclosed_unknown_evidence_token"
