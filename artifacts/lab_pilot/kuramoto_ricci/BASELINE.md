@@ -1,5 +1,5 @@
 # BASELINE — lab-pilot/kuramoto-ricci-contracts
-captured_on_commit: 53f21b3b1bf047e0ec93d67ec10435eb7dcf41c6
+captured_on_commit: 53f21b3b
 
 ## python -V
 Python 3.12.3

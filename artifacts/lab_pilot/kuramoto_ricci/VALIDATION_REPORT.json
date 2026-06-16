@@ -1,7 +1,7 @@
 {
   "pilot": "kuramoto-ricci-contracts",
   "stream": "1_coupling_contract",
-  "base_commit": "53f21b3b1bf047e0ec93d67ec10435eb7dcf41c6",
+  "base_commit": "53f21b3b",
   "branch": "lab-pilot/kuramoto-ricci-contracts",
   "tooling": {
     "python": "3.12.3",
