@@ -55,6 +55,35 @@ def test_declared_invariants_are_present_in_module_source() -> None:
             assert inv in present, f"{entry['module']} does not reference {inv}"
 
 
+def test_phantom_invariant_is_rejected_by_checker() -> None:
+    """check() must flag a declared invariant absent from the module source.
+
+    Mutation-killing guard: this exercises the checker LOGIC (not just the data),
+    so disabling the ``inv not in present`` branch makes this test fail.
+    """
+    phantom = {
+        "version": 1,
+        "coverage_floor": 0,
+        "scope_roots": ["core/kuramoto"],
+        "modules": [
+            {
+                "module": "core/kuramoto/second_order.py",
+                "invariants": ["INV-K8", "INV-FAKE999"],  # second is phantom
+                "role": "generator",
+                "layer": "L4",
+                "failure_mode": "synthetic entry for the phantom-invariant guard test only",
+                "blast_radius": "synthetic entry for the phantom-invariant guard test only",
+                "degradation_mode": "synthetic guard-test entry",
+                "recovery_command": "raise on contract violation",
+                "fail_closed": True,
+            }
+        ],
+    }
+    result = check(contract=phantom)
+    assert result["passed"] is False
+    assert any("INV-FAKE999" in v for v in result["hard_violations"]), result["hard_violations"]
+
+
 def test_ratchet_floor_does_not_exceed_covered() -> None:
     result = check()
     assert result["coverage_floor"] <= result["covered_count"]
