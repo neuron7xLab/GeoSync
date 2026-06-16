@@ -12,7 +12,9 @@ Usage::
     import scipy.sparse as sp
 
     adj = sp.random(100_000, 100_000, density=0.001, format="csr")
-    config = KuramotoConfig(N=100_000, K=2.0, adjacency=adj)
+    config = KuramotoConfig(
+        N=100_000, K=2.0, adjacency=adj, adjacency_kind="normalized_topology"
+    )
     result = SparseKuramotoEngine(config).run()
 """
 

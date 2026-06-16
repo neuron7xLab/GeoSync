@@ -74,7 +74,15 @@ class TestKuramotoIntegration:
         A = lcm.compute(prices, volumes)
         N = A.shape[0]
 
-        cfg = KuramotoConfig(N=N, K=2.0, adjacency=A, dt=0.01, steps=200, seed=42)
+        cfg = KuramotoConfig(
+            N=N,
+            K=2.0,
+            adjacency=A,
+            adjacency_kind="normalized_topology",
+            dt=0.01,
+            steps=200,
+            seed=42,
+        )
         result = KuramotoEngine(cfg).run()
         assert 0 <= result.order_parameter[-1] <= 1
         assert np.all(np.isfinite(result.phases))

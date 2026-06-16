@@ -172,10 +172,13 @@ class TestValidation:
             omega=np.array([0.1, -0.2]),
             theta0=np.array([0.0, 1.0]),
             adjacency=adj,
+            adjacency_kind="normalized_topology",
         )
         payload = cfg.to_dict()
         assert payload["coupling_mode"] == "adjacency"
         assert payload["adjacency"] == adj.tolist()
+        assert payload["adjacency_kind"] == "normalized_topology"
+        assert payload["claim_boundary"] == "physical_attractive_kuramoto_only"
         assert payload["omega"] == [0.1, -0.2]
         assert payload["theta0"] == [0.0, 1.0]
 
@@ -220,7 +223,14 @@ class TestAdjacencySemantics:
         omega = np.array([1.0, 2.0, 3.0, 4.0])
         theta0 = np.zeros(N)
         cfg = KuramotoConfig(
-            N=N, K=5.0, dt=0.1, steps=5, omega=omega, theta0=theta0, adjacency=np.zeros((N, N))
+            N=N,
+            K=5.0,
+            dt=0.1,
+            steps=5,
+            omega=omega,
+            theta0=theta0,
+            adjacency=np.zeros((N, N)),
+            adjacency_kind="normalized_topology",
         )
         result = run_simulation(cfg)
         np.testing.assert_allclose(result.phases[-1], theta0 + omega * 0.5, rtol=1e-5, atol=1e-5)

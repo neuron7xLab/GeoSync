@@ -201,7 +201,15 @@ class LiquidityCouplingMatrix:
 
             # Liquidity coupling
             A_liq = self.compute(p_win, v_win)
-            cfg = KuramotoConfig(N=n, K=K, adjacency=A_liq, dt=0.01, steps=steps, seed=42)
+            cfg = KuramotoConfig(
+                N=n,
+                K=K,
+                adjacency=A_liq,
+                adjacency_kind="normalized_topology",
+                dt=0.01,
+                steps=steps,
+                seed=42,
+            )
             R_liq = KuramotoEngine(cfg).run().order_parameter[-1]
             liquidity_Rs.append(R_liq)
 

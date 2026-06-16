@@ -152,6 +152,7 @@ def simulate(
             omega=omega,
             theta0=theta0,
             adjacency=adjacency,
+            adjacency_kind="normalized_topology" if adjacency is not None else None,
         )
     except Exception as exc:
         raise click.ClickException(f"Configuration error: {exc}") from exc

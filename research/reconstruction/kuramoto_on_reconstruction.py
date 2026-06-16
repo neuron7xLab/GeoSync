@@ -165,6 +165,7 @@ def _r_infinity(
         dt=dt,
         steps=steps,
         adjacency=w_normalised,
+        adjacency_kind="normalized_topology",
         theta0=theta0,
         seed=seed,
     )

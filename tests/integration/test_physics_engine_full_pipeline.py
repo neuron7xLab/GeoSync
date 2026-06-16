@@ -170,6 +170,7 @@ class TestKuramotoIntegration:
             N=n_assets,
             K=2.0,
             adjacency=adj,
+            adjacency_kind="normalized_topology",
             dt=0.01,
             steps=500,
             seed=42,
