@@ -5,25 +5,23 @@
 ``constraints/security.txt`` is the single source of truth for the patched
 floor of every security-critical package. A manifest that declares a *lower*
 lower-bound silently re-admits a vulnerable version: ``pip install .`` resolves
-against ``pyproject.toml``, so a stale ``pyproject`` floor bypasses the floors
-raised in ``requirements.txt``.
+against ``pyproject.toml``, while requirements manifests drive service and CI
+install paths.
 
 This gate parses the declared lower bound for each security-critical package in
 each manifest and fails closed if any manifest admits a version *below* the
 ``constraints/security.txt`` floor.
 
-Scope (issue #1107 / dependency policy):
-    strict   : pyproject.toml — enforced (exit 1 on violation). This is the
-               ``pip install .`` source of truth.
-    advisory : requirements.txt / requirements-backend.txt — reported only.
-               Their security floors are owned by the security-sweep lane
-               (PR #1111); promoting these to strict here would create a
-               cross-branch write conflict. Tighten to strict once #1111 lands
-               (see docs/security/dependency_policy.md).
+Scope:
+    strict      : pyproject.toml — enforced by default because it is the
+                  ``pip install .`` source of truth.
+    all-strict  : pyproject.toml / requirements.txt / requirements-backend.txt —
+                  enforced with ``--all-strict`` for the Task 2 closure lane.
 
 Run::
 
     python tools/security/check_dependency_manifest_consistency.py
+    python tools/security/check_dependency_manifest_consistency.py --all-strict
 """
 
 from __future__ import annotations
@@ -152,7 +150,7 @@ def check_manifest(
 
 
 def evaluate() -> tuple[list[Violation], list[Violation]]:
-    """Return (strict_violations, advisory_violations)."""
+    """Return (strict_violations, advisory_or_all_strict_violations)."""
     policy = _parse_constraint_floors()
     strict = check_manifest("pyproject.toml", _parse_pyproject_floors(), policy)
     advisory: list[Violation] = []
@@ -170,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--all-strict",
         action="store_true",
-        help="Treat requirements manifests as strict too (use after PR #1111 lands).",
+        help="Treat requirements manifests as strict dependency-security floors too.",
     )
     args = parser.parse_args(argv)
 
@@ -185,12 +183,9 @@ def main(argv: list[str] | None = None) -> int:
     if failed:
         print(f"\nFAIL: {len(failed)} security-floor inconsistency(ies).")
         return 1
-    print(
-        "PASS: pyproject.toml security floors are consistent with "
-        "constraints/security.txt"
-        + (" (requirements treated advisory; see dependency_policy.md)" if advisory else "")
-        + "."
-    )
+    scope = "all checked manifests" if args.all_strict else "pyproject.toml"
+    suffix = "" if args.all_strict or not advisory else " (requirements treated advisory)."
+    print(f"PASS: {scope} security floors are consistent with constraints/security.txt{suffix}.")
     return 0
 
 
