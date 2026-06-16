@@ -466,10 +466,9 @@ class TestDegreePreservingRewire:
 
 
 class TestNetworkKuramotoEngine:
+    @staticmethod
     @pytest.fixture(scope="class")
-    def synthetic_state(
-        self,
-    ) -> tuple[NetworkEngineConfig, "SyntheticGroundTruth"]:
+    def synthetic_state() -> tuple[NetworkEngineConfig, "SyntheticGroundTruth"]:
         cfg_gen = SyntheticConfig(
             N=5,
             T=3000,

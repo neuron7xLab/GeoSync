@@ -98,7 +98,11 @@ def _parse_metrics_payload(payload: str) -> dict[str, list[dict[str, object]]]:
         for family in text_string_to_metric_families(payload):
             parsed.setdefault(family.name, [])
             for sample in family.samples:
-                record = {"labels": dict(sample.labels or {}), "value": float(sample.value)}
+                record = {
+                    "labels": dict(sample.labels or {}),
+                    "value": float(sample.value),
+                    "name": sample.name,
+                }
                 parsed[family.name].append(record)
                 if sample.name != family.name:
                     parsed.setdefault(sample.name, []).append(record)
@@ -127,8 +131,37 @@ def _parse_metrics_payload(payload: str) -> dict[str, list[dict[str, object]]]:
         else:
             name = left
             labels = {}
-        metrics.setdefault(name, []).append({"labels": labels, "value": value_f})
+        metrics.setdefault(name, []).append({"labels": labels, "value": value_f, "name": name})
     return metrics
+
+
+_HISTOGRAM_BOOKKEEPING_SUFFIXES: tuple[str, ...] = (
+    "_bucket",
+    "_count",
+    "_sum",
+    "_created",
+    "_gcount",
+    "_gsum",
+)
+
+
+def _is_value_sample(sample: dict[str, object]) -> bool:
+    """Return True if ``sample`` carries a metric value (vs. histogram tally).
+
+    Histogram/summary exposition emits cumulative bookkeeping series — ``_bucket``
+    counts (carrying an ``le`` label), ``_count``, ``_sum``, ``_created`` — that
+    grow with traffic and are not observation magnitudes. Numeric min/max bounds
+    only apply to genuine value samples (gauges, counters, and the direct
+    observation series), so those tallies must be excluded from bound checks.
+    """
+    labels = sample.get("labels")
+    if isinstance(labels, dict) and "le" in labels:
+        # Histogram bucket counts (cumulative tallies), never observation values.
+        return False
+    name = sample.get("name")
+    if isinstance(name, str) and name.endswith(_HISTOGRAM_BOOKKEEPING_SUFFIXES):
+        return False
+    return True
 
 
 def _sample_value(
@@ -402,6 +435,13 @@ def run_expectations(
         upper = rule.get("max")
         if lower is not None or upper is not None:
             for sample in samples_second:
+                if not _is_value_sample(sample):
+                    # Histogram/summary bookkeeping samples (_bucket/_count/_sum/
+                    # _created and any le-bucketed series) are cumulative tallies
+                    # that grow with traffic, not metric values. Bounding them
+                    # against a fixed min/max is a category error that fails the
+                    # gate once enough requests accrue on a shared registry.
+                    continue
                 value = float(sample["value"])
                 if lower is not None and value < lower:
                     issues.append(
