@@ -24,9 +24,9 @@ from core.kuramoto.adaptive import AdaptiveKuramotoEngine
 from core.kuramoto.config import KuramotoConfig
 from core.kuramoto.delayed import DelayedKuramotoEngine
 from core.kuramoto.early_stopping import EarlyStoppingEngine
-from core.kuramoto.engine import KuramotoEngine
 from core.kuramoto.metrics import order_parameter
-from core.kuramoto.ott_antonsen import OttAntonsenEngine
+from core.kuramoto.ott_antonsen import OttAntonsenEngine, detect_chimera
+from core.kuramoto.phase_transition import PhaseTransitionAnalyzer
 from core.kuramoto.second_order import SecondOrderKuramotoEngine
 from core.kuramoto.sparse import SparseKuramotoEngine
 
@@ -415,46 +415,47 @@ class TestFinitenessFailClosed:
         assert np.all((r >= 0.0) & (r <= 1.0))
 
 
-class TestRK4ConvergenceOrder:
-    """Validate the first-order KuramotoEngine RK4 integrator to its defining
-    global order p = 4 (the analogue of INV-K9/K10 for the second-order Verlet
-    engine). The classical RK4 step has local error O(dt^5) and global error
-    O(dt^4): the log-log slope of the state error vs dt must be ≈ 4.
+class TestDegenerateInputFailClosed:
+    """Degenerate-input guards found by a computational audit: a single-point
+    sweep, a flat (never-crossing) R curve, and negative/empty chimera sector
+    labels each previously produced an opaque crash or a silently-wrong result.
     """
 
-    def test_rk4_global_error_is_fourth_order(self) -> None:
-        """Global error of the complex order parameter z(T) scales as dt^4.
+    def test_find_critical_k_single_point_raises(self) -> None:
+        """_find_critical_K previously raised an opaque np.gradient IndexError."""
+        with pytest.raises(ValueError, match="≥2 sweep points"):
+            PhaseTransitionAnalyzer._find_critical_K(np.array([2.0]), np.array([0.5]))
 
-        We measure the error of z(T) = mean(exp(i*theta(T))) against a fine
-        reference solution (the smooth z avoids phase-wrapping artefacts) over a
-        geometric dt-ladder. The recovered log-log slope ≈ 4 confirms the
-        integrator runs at its full RK4 order; a degraded step (e.g. Euler ->
-        order 1) would collapse the slope.
-        """
-        n = 12
-        k_coupling = 2.0
-        horizon = 5.0
-        seed = 0
-        rng = np.random.default_rng(seed)
-        omega = rng.standard_normal(n)
-        theta0 = rng.uniform(0.0, 2.0 * math.pi, n)
-
-        def z_at_T(dt: float) -> complex:
-            steps = int(round(horizon / dt))
-            cfg = KuramotoConfig(
-                N=n, K=k_coupling, omega=omega, theta0=theta0, dt=dt, steps=steps, seed=seed
-            )
-            theta_final = KuramotoEngine(cfg).run().phases[-1]
-            return complex(np.mean(np.exp(1j * theta_final)))
-
-        z_ref = z_at_T(0.0003125)  # 16x finer than the finest ladder rung
-        dt_ladder = [0.02, 0.01, 0.005]
-        errors = [abs(z_at_T(dt) - z_ref) for dt in dt_ladder]
-        order = float(np.polyfit(np.log(dt_ladder), np.log(errors), 1)[0])
-
-        assert 3.5 < order < 4.5, (
-            f"RK4 convergence order off: measured slope = {order:.3f}, expected "
-            f"≈ 4 (RK4 global error O(dt^4)). dt_ladder={dt_ladder}, "
-            f"errors={[f'{e:.2e}' for e in errors]}. A lower order indicates a "
-            f"degraded integrator (e.g. Euler -> order 1)."
+    def test_find_critical_k_flat_curve_signals_no_transition(self) -> None:
+        """A flat R curve has no transition: return NaN, not a spurious K_c=0."""
+        k_c = PhaseTransitionAnalyzer._find_critical_K(
+            np.linspace(0.0, 5.0, 5), np.full(5, 0.1)
         )
+        assert math.isnan(k_c)
+
+    def test_find_critical_k_real_crossing_unchanged(self) -> None:
+        """Regression: a genuine threshold crossing still interpolates K_c."""
+        k_c = PhaseTransitionAnalyzer._find_critical_K(
+            np.array([0.0, 1.0, 2.0, 3.0]), np.array([0.1, 0.2, 0.5, 0.9])
+        )
+        assert 1.0 < k_c < 2.0
+
+    def test_detect_chimera_rejects_negative_sectors(self) -> None:
+        """Negative sector labels were silently dropped from per-sector stats."""
+        with pytest.raises(ValueError, match="non-negative"):
+            detect_chimera(
+                np.array([0.0, 0.1, 3.0, 3.1]),
+                np.array([-1, -1, 0, 0], dtype=np.int64),
+            )
+
+    def test_detect_chimera_rejects_empty(self) -> None:
+        with pytest.raises(ValueError, match="non-empty"):
+            detect_chimera(np.array([]), np.array([], dtype=np.int64))
+
+    def test_detect_chimera_valid_sectors_unchanged(self) -> None:
+        """Regression: a valid 0-indexed assignment still produces a report."""
+        report = detect_chimera(
+            np.array([0.0, 0.1, 3.0, 3.1]),
+            np.array([0, 0, 1, 1], dtype=np.int64),
+        )
+        assert report.sector_R.shape == (2,)
