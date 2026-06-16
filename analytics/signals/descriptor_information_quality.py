@@ -112,7 +112,10 @@ def _js_divergence_bits(p: np.ndarray, q: np.ndarray) -> float:
         mask = a > 0.0
         return float(np.sum(a[mask] * np.log2(a[mask] / (b[mask] + _EPS))))
 
-    return float(0.5 * _kl(p, m) + 0.5 * _kl(q, m))
+    js = 0.5 * _kl(p, m) + 0.5 * _kl(q, m)
+    # bounds: JS divergence is analytically in [0, 1] bits; clamp float noise
+    # (sub-ulp negatives from the _EPS floor) into the closed interval.
+    return float(min(1.0, max(0.0, js)))
 
 
 def compute_information_quality(

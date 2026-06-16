@@ -91,8 +91,15 @@ def build_capsule(config: Mapping[str, Any]) -> dict[str, Any]:
     null_q = quantize_states(null_series.tolist(), thresholds=thresholds, labels=labels)
     vocab = [*labels, DEFAULT_INVALID_STATE]
 
-    # Stage 3 — locate the observed mean within the null ensemble.
-    observed_stat = float(np.mean(observed))
+    # Stage 3 — locate the observed mean within the null ensemble. Non-finite
+    # observations are already counted as invalid states in stage 2; the
+    # located statistic summarises the FINITE observations so a partially
+    # invalid series is described rather than rejected. An all-invalid series
+    # has no statistic to locate and fails closed.
+    finite_observed = observed[np.isfinite(observed)]
+    if finite_observed.size == 0:
+        raise ValueError("descriptor-capsule: 'observed' has no finite values to locate")
+    observed_stat = float(np.mean(finite_observed))
     cmp = compare_to_null(observed_stat, null_series, band=band)
 
     # Stage 4 — information-quality of the observed states vs the null states.
