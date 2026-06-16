@@ -42,7 +42,7 @@ from core.utils.dataframe_io import read_dataframe, write_dataframe
 from core.utils.logging import get_logger
 
 if TYPE_CHECKING:  # pragma: no cover - used only for type checking
-    from .multiscale_kuramoto import TimeFrame
+    from .timeframe import TimeFrame
 
 _logger = get_logger(__name__)
 
