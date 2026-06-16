@@ -1,0 +1,89 @@
+# Physics Release Scorecard
+#
+# One discrete readiness state per release-critical dimension. A release may be
+# labelled *physics-ready* ONLY when every dimension with `required: true` is in
+# state CI_VERIFIED or EVIDENCE_BEARING. The checker
+# (tools/release/check_physics_release_scorecard.py) refuses to upgrade a
+# PARTIAL dimension by assertion, and refuses a CI_VERIFIED/EVIDENCE_BEARING
+# state whose `binding` artifact does not exist on disk (anti-theater).
+#
+# This file is a HONEST snapshot, not an aspiration: dimensions still maturing
+# are recorded as PARTIAL/UNTESTED, which is why the repository is NOT physics-
+# ready by its own scorecard today. That refusal is the instrument working.
+#
+# See docs/reports/physics_release_scorecard.md.
+schema_version: 1
+allowed_states:
+  - "FALSE"            # contradicted by source / test / artifact
+  - "UNTESTED"         # claim exists, no executable test
+  - "PARTIAL"          # some proof exists, chain incomplete
+  - "LOCAL_VERIFIED"   # local source + test + command pass
+  - "CI_VERIFIED"      # local proof + same-SHA CI green
+  - "EVIDENCE_BEARING" # real data + replay + baseline + falsifier + semantic validation
+dimensions:
+  - id: dependency_security_gate
+    required: true
+    state: CI_VERIFIED
+    binding: tools/security/check_dependency_manifest_consistency.py
+    evidence_command: "python tools/security/check_dependency_manifest_consistency.py"
+    note: "All manifests strict vs constraints/security.txt (PR #1120)."
+  - id: codeql_gate
+    required: true
+    state: CI_VERIFIED
+    binding: .github/workflows/codeql.yml
+    evidence_command: "gh workflow view codeql.yml"
+    note: "CodeQL code-scanning workflow active on main."
+  - id: scorecard_gate
+    required: false
+    state: UNTESTED
+    binding: null
+    evidence_command: null
+    note: "OpenSSF Scorecard workflow not present on GeoSync; tracked, not required for physics-readiness."
+  - id: claim_boundary_gate
+    required: true
+    state: CI_VERIFIED
+    binding: .github/workflows/claim-boundary-gate.yml
+    evidence_command: "gh workflow view claim-boundary-gate.yml"
+    note: "Claim-boundary gate enforces tier discipline."
+  - id: kuramoto_k_ownership
+    required: true
+    state: CI_VERIFIED
+    binding: core/kuramoto/config.py
+    evidence_command: "python -m pytest tests/unit/core/test_config_coupling_migration.py"
+    note: "Coupling-scale contract: no public path silently double-scales (PR #1118)."
+  - id: ricci_l2_evidence_protocol
+    required: true
+    state: PARTIAL
+    binding: tools/research/run_l2_ricci_session.py
+    evidence_command: "python tools/research/run_l2_ricci_session.py --dry-run"
+    note: "HYPOTHESIS-tier promotion path only (PR #1116); not evidence-bearing without real depth-5 data. Hardening tracked in P1-3."
+  - id: second_order_stability_audit
+    required: true
+    state: PARTIAL
+    binding: core/kuramoto/second_order.py
+    evidence_command: "python -m pytest tests/unit/physics/test_second_order_stability_audit.py"
+    note: "Diagnostics-only (PR #1115); full S7 audit (energy drift, phase spread, cross-solver) open in issue #1109."
+  - id: descriptor_promotion_firewall
+    required: true
+    state: CI_VERIFIED
+    binding: tools/claims/check_descriptor_promotion.py
+    evidence_command: "python tools/claims/check_descriptor_promotion.py"
+    note: "Descriptor->physics promotion firewall (PR #1117)."
+  - id: negative_evidence_ledger
+    required: true
+    state: CI_VERIFIED
+    binding: scripts/ci/check_negative_evidence.py
+    evidence_command: "python scripts/ci/check_negative_evidence.py"
+    note: "Negative-evidence registry is gate-enforced."
+  - id: artifact_replayability
+    required: false
+    state: PARTIAL
+    binding: tools/release_evidence_harness.py
+    evidence_command: "python tools/release_evidence_harness.py --help"
+    note: "Release-evidence harness exists; not all artifacts carry a verified replay command yet."
+  - id: same_sha_ci_proof
+    required: true
+    state: PARTIAL
+    binding: tools/release_evidence_harness.py
+    evidence_command: "python tools/release_evidence_harness.py --help"
+    note: "Harness records exit codes/logs; same-SHA enforcement at release time is not yet a blocking gate."

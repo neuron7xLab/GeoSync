@@ -1,0 +1,44 @@
+id: task7-physics-release-scorecard
+status: ACTIVE
+claim_type: governance
+promise: >-
+  Adds physics_release_scorecard.yml (one discrete readiness state per
+  release-critical dimension) and tools/release/check_physics_release_scorecard.py,
+  which validates the schema, enforces anti-theater (a CI_VERIFIED/EVIDENCE_BEARING
+  state with a missing binding artifact is a hard error), and the readiness gate
+  (--assert-physics-ready exits 1 while any required dimension is below
+  CI_VERIFIED). The repository is honestly NOT physics-ready today (Ricci L2,
+  second-order audit, same-SHA proof are PARTIAL).
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/task7-physics-release-scorecard.yaml"
+    - path: "physics_release_scorecard.yml"
+    - path: "tools/release/check_physics_release_scorecard.py"
+    - path: "tests/tools/test_physics_release_scorecard.py"
+    - path: "docs/reports/physics_release_scorecard.md"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols:
+  - "load_scorecard"
+  - "readiness_blockers"
+  - "check_bindings"
+expected_signal: >-
+  check_physics_release_scorecard.py exits 0 (valid scorecard) and exits 1 under
+  --assert-physics-ready (honestly not ready); the test suite is green; ruff +
+  black + mypy --strict clean; descriptor-promotion firewall EXIT 0.
+measurement_command: "python tools/release/check_physics_release_scorecard.py && python -m pytest tests/tools/test_physics_release_scorecard.py"
+signal_artifact: "tmp/physics_release_scorecard.json"
+falsifier:
+  command: "python tools/release/check_physics_release_scorecard.py --assert-physics-ready"
+  description: >-
+    With a required dimension at PARTIAL, the readiness gate MUST exit non-zero;
+    if --assert-physics-ready ever exits 0 while a required dimension is below
+    CI_VERIFIED the fail-closed readiness rule has regressed.
+rollback_command: "git revert --no-edit <merge_sha>"
+rollback_verification_command: "python -m pytest tests/tools/test_physics_release_scorecard.py"
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/task7-physics-release-scorecard.yaml"
+report_path: "docs/reports/physics_release_scorecard.md"
