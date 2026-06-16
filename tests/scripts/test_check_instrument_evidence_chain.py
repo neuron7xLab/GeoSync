@@ -105,7 +105,7 @@ def test_missing_module_fails(gate: Any, live_registry: dict[str, Any], tmp_path
 
 def test_unknown_merge_commit_fails(gate: Any, live_registry: dict[str, Any], tmp_path: Path) -> None:
     inst = _valid_instrument(live_registry)
-    inst["merge_commit"] = "0123456789abcdef0123456789abcdef01234567"
+    inst["merge_commit"] = "0123456789abcdef0123456789abcdef01234567"  # pragma: allowlist secret
     assert _run(gate, _write_registry(tmp_path, [inst])) == 1
 
 
