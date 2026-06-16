@@ -218,3 +218,64 @@ class TestInputValidation:
     def test_bad_steps(self):
         with pytest.raises(ValueError):
             HigherOrderKuramotoEngine(steps=0)
+
+
+class TestSimplicialRepresentationHonesty:
+    """Metamorphic locks for the declared unsigned 2-skeleton semantics.
+
+    These tests do not change behaviour; they pin the *actual* semantics of
+    the ``|ρ| > threshold`` structure-building step so the module cannot
+    silently claim a signed simplicial model it does not implement. Sign
+    erasure is asserted-and-declared rather than hidden.
+    """
+
+    def test_provenance_fields_declare_unsigned_higher_order(self) -> None:
+        engine = HigherOrderKuramotoEngine(
+            sigma1=1.0, sigma2=0.5, dt=0.01, steps=20, correlation_threshold=0.3
+        )
+        n = 4
+        corr = np.full((n, n), 0.8)
+        np.fill_diagonal(corr, 1.0)
+        result = engine.run(corr, seed=1)
+        assert result.signed is False
+        assert result.higher_order is True
+        assert result.representation == "simplicial_2skeleton"
+        assert "correlation_sign" in result.information_loss
+        assert "triadic_edge_weight" in result.information_loss
+
+    def test_sign_erasure_is_recorded_dynamics_identical(self) -> None:
+        # |ρ| > threshold and the |ρ|-weighted RHS are sign-independent, so a
+        # full sign flip of the correlation matrix yields bit-identical
+        # dynamics. This information loss must be declared (signed=False /
+        # "correlation_sign"), not silently produce a "signed simplicial" claim.
+        engine = HigherOrderKuramotoEngine(
+            sigma1=1.0, sigma2=0.5, dt=0.01, steps=50, correlation_threshold=0.3
+        )
+        n = 4
+        pos = np.full((n, n), 0.8)
+        np.fill_diagonal(pos, 1.0)
+        neg = -pos.copy()
+        np.fill_diagonal(neg, 1.0)  # keep unit diagonal; off-diagonal ρ -> -ρ
+        r_pos = engine.run(pos, seed=7)
+        r_neg = engine.run(neg, seed=7)
+        np.testing.assert_array_equal(r_pos.phases, r_neg.phases)
+        np.testing.assert_array_equal(r_pos.order_parameter, r_neg.order_parameter)
+        assert r_pos.n_triangles == r_neg.n_triangles
+        assert r_pos.signed is False
+        assert "correlation_sign" in r_pos.information_loss
+
+    def test_triadic_term_is_not_pairwise_reducible(self) -> None:
+        # The higher-order claim that survives: with triangles present, the
+        # σ₂ triadic term changes the trajectory vs σ₂=0. This is the genuine
+        # (non-erased) part of the model and must stay true.
+        n = 4
+        corr = np.full((n, n), 0.8)
+        np.fill_diagonal(corr, 1.0)
+        with_tri = HigherOrderKuramotoEngine(
+            sigma1=1.0, sigma2=0.8, dt=0.01, steps=80, correlation_threshold=0.3
+        ).run(corr, seed=3)
+        no_tri = HigherOrderKuramotoEngine(
+            sigma1=1.0, sigma2=0.0, dt=0.01, steps=80, correlation_threshold=0.3
+        ).run(corr, seed=3)
+        assert with_tri.n_triangles > 0
+        assert not np.array_equal(with_tri.order_parameter, no_tri.order_parameter)

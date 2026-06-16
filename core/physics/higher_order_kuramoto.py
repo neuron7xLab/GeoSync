@@ -24,6 +24,19 @@ Simplicial structure:
 No XGI dependency required: we build triangle list directly from
 adjacency matrix using A³ diagonal trick.
 
+Representation & information loss:
+    The 2-skeleton is built from ``|ρ_ij| > threshold``, so correlation
+    **sign is discarded**: an anti-correlated triple (ρ < 0) collapses onto
+    the same simplex as a co-correlated one. The pairwise term is magnitude-
+    weighted by ``|ρ|``; the triadic term is unit-weighted per triangle and
+    carries no sign. This is therefore an *unsigned-coherence higher-order
+    projection*, not a signed simplicial model, and every result declares it
+    via ``HigherOrderKuramotoResult.signed`` / ``.information_loss``. The
+    triadic term ``sin(2θ_j − θ_k − θ_i)`` is a genuine 3-phase coupling that
+    does NOT reduce to a sum of pairwise ``sin(θ_a − θ_b)`` terms — the
+    higher-order claim is about the coupling *form*, independent of the
+    unsigned structure-building step.
+
 References:
     Skardal & Arenas "Higher order interactions" Commun. Phys. (2020)
     Millán et al. "Explosive higher-order Kuramoto" PRL (2020)
@@ -37,16 +50,37 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
+#: Provenance constants for the unsigned-coherence 2-skeleton this engine
+#: builds. ``|ρ| > threshold`` discards correlation sign, and the triadic
+#: term is unit-weighted per triangle, so every result declares the same
+#: representation and information loss.
+_REPRESENTATION: str = "simplicial_2skeleton"
+_INFORMATION_LOSS: tuple[str, ...] = ("correlation_sign", "triadic_edge_weight")
+
 
 @dataclass(frozen=True, slots=True)
 class HigherOrderKuramotoResult:
-    """Result of higher-order Kuramoto simulation."""
+    """Result of higher-order Kuramoto simulation.
+
+    The provenance fields make the structure honest and machine-auditable:
+    the 2-skeleton is built by thresholding ``|ρ|`` so it is unsigned
+    (``signed=False``) although higher-order (``higher_order=True``), and
+    ``information_loss`` records what the ``|ρ| > threshold`` projection and
+    the unit-weighted triadic term discard. They are constants for this
+    estimator, not tunable outputs. The triadic coupling itself is a genuine
+    non-pairwise-reducible 3-phase term — only the structure-building step is
+    unsigned.
+    """
 
     phases: NDArray[np.float64]  # (steps+1, N)
     order_parameter: NDArray[np.float64]  # (steps+1,)
     time: NDArray[np.float64]  # (steps+1,)
     n_triangles: int
     triadic_contribution: NDArray[np.float64]  # (steps+1,) magnitude of σ₂ term
+    representation: str = _REPRESENTATION
+    signed: bool = False
+    higher_order: bool = True
+    information_loss: tuple[str, ...] = _INFORMATION_LOSS
 
 
 def find_triangles(adj: NDArray[np.bool_]) -> list[tuple[int, int, int]]:
