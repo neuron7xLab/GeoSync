@@ -1,7 +1,7 @@
 # Diff-bound commit acceptor for the fractal/neuro-cognitive governance contract PR.
 #
 # Purpose:
-#   Bind this governance-only PR to explicit evidence, rollback, and claim boundary.
+#   Bind this governance-only PR to explicit evidence, rollback, calibration, and claim boundary.
 #   This acceptor intentionally does not validate cognition, physics, prediction,
 #   market readiness, or model-weight update claims.
 
@@ -11,10 +11,10 @@ claim_type: governance
 promise: >-
   After this PR lands, GeoSync contains machine-readable and human-readable
   governance artifacts for claim-state quantization, fractal neuro-cognitive
-  prompt contracts, FVPS value-function contracts, and Neuron7X value-function
-  scoring. The PR adds governance data, schemas, docs, a deterministic claim-state
-  quantizer, and tests. It does not change runtime, physics, market, or trading
-  behavior.
+  prompt contracts, FVPS value-function contracts, Neuron7X value-function
+  scoring, and Neuron7X calibration thresholds. The PR adds governance data,
+  schemas, docs, a deterministic claim-state quantizer, and tests. It does not
+  change runtime, physics, market, or trading behavior.
 
 diff_scope:
   changed_files:
@@ -34,6 +34,8 @@ diff_scope:
     - path: "data/governance/fvps_max_inference_rank_prompt_v2026_4.json"
     - path: "docs/prompts/neuron7x_value_functions_v2026_5.md"
     - path: "data/governance/neuron7x_value_functions_v2026_5.json"
+    - path: "docs/prompts/neuron7x_calibration_protocol_v2026_6.md"
+    - path: "data/governance/neuron7x_calibration_protocol_v2026_6.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -59,7 +61,9 @@ required_python_symbols:
 expected_signal: >-
   The governance claim-state quantizer deterministically maps evidence envelopes
   into the discrete states FALSE, UNTESTED, PARTIAL, LOCAL_VERIFIED, CI_VERIFIED,
-  or EVIDENCE_BEARING, and rejects upward declared-state drift.
+  or EVIDENCE_BEARING, rejects upward declared-state drift, and the governance
+  prompt/data artifacts define value-function scoring plus calibration thresholds
+  without claiming runtime, physics, market, or trading behavior changes.
 
 measurement_command: >-
   bash -c '
@@ -108,12 +112,16 @@ rollback_command: >-
       data/governance/fvps_max_inference_rank_prompt_v2026_4.json
       docs/prompts/neuron7x_value_functions_v2026_5.md
       data/governance/neuron7x_value_functions_v2026_5.json
+      docs/prompts/neuron7x_calibration_protocol_v2026_6.md
+      data/governance/neuron7x_calibration_protocol_v2026_6.json
   '
 
 rollback_verification_command: >-
   bash -c '
     test ! -e tools/governance/quantize_claim_state.py
     && test ! -e tests/governance/test_claim_state_quantum_input.py
+    && test ! -e docs/prompts/neuron7x_calibration_protocol_v2026_6.md
+    && test ! -e data/governance/neuron7x_calibration_protocol_v2026_6.json
   '
 
 memory_update_type: append
