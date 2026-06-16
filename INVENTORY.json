@@ -42,6 +42,10 @@
       "sha256": "1353ba0690a45843c390116e93fb2e98bdbe02bcb71e431cd27821209db696e1"
     },
     {
+      "path": "scripts/ci/check_claim_maturity.py",
+      "sha256": "a806ff3b73ed908990e7f8255bb4c80695475592ba7cdf59f5c6d9aee8f56f0a"
+    },
+    {
       "path": "scripts/ci/check_claims.py",
       "sha256": "a665d6d250a1512d93db0df5512693514f453a0c07882e9d8c22f95863cee1fa"
     },
