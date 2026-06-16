@@ -399,8 +399,6 @@ class SecondOrderKuramotoEngine:
             stiffness_regime = "underresolved_stiff"
 
         # --- cross-solver: independent explicit RK4 over the audit horizon ---
-        # bounds: clamp the cross-solver horizon to [1, steps] — at least one
-        # step to compare, never beyond the integrated trajectory. Not physics.
         horizon = max(1, min(int(cross_solver_steps), cfg.steps))
         rk_theta, rk_v = self._rk4_reference(horizon)
         deviation = float(
