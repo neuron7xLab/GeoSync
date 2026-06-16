@@ -492,8 +492,10 @@ def scrub_response(response: Any) -> Any:
         try:
             data = json.loads(response["body"]["string"])
             response["body"]["string"] = json.dumps(_cleanse_sensitive_body(data)).encode()
-        except Exception:
-            pass
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            # Body is not decodable/scrubable JSON; leave the recorded response
+            # untouched rather than corrupt the cassette.
+            return response
     return response
 
 

@@ -170,7 +170,7 @@ def test_cli_help_exposes_no_predictive_language() -> None:
 
 def test_module_docstring_has_no_trading_language() -> None:
     """The module docstring must stay descriptor-only, no trading promises."""
-    import scripts.replay_descriptor_capsule as mod
+    mod = sys.modules[main.__module__]
 
     doc = (mod.__doc__ or "").lower()
     assert "descriptor-only" in doc or "descriptor_only_not_predictor" in doc

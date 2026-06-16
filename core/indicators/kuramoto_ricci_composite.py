@@ -130,7 +130,7 @@ class KuramotoRicciComposite:
     def _entry(self, phase: MarketPhase, R: float, kt: float, conf: float) -> float:
         if conf < self.min_conf:
             return 0.0
-        s = 0.0
+        s: float
         if phase == MarketPhase.STRONG_EMERGENT:
             s = np.clip(
                 -kt, 0.0, 1.0
