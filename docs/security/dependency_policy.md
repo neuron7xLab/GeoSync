@@ -28,20 +28,24 @@ pyjwt  cryptography  aiohttp  starlette  tornado  python-multipart  fastapi
 | --- | --- | --- |
 | `constraints/security.txt` | security policy | source of truth |
 | `pyproject.toml` | this gate | **strict** (exit 1 on violation) |
-| `requirements.txt` | security-sweep lane (PR #1111) | advisory (reported) |
-| `requirements-backend.txt` | security-sweep lane (PR #1111) | advisory (reported) |
+| `requirements.txt` | this gate | **strict** (exit 1 on violation) |
+| `requirements-backend.txt` | this gate | **strict** (exit 1 on violation) |
 
-`requirements*.txt` floors are raised by the in-flight security-sweep PR #1111.
-Promoting them to strict in this gate while #1111 is open would create a
-cross-branch write conflict, so they are **advisory** here. Once #1111 merges,
-run the gate with `--all-strict` and tighten the live test to assert zero
-advisory violations.
+**All-strict (P0-1).** The security-sweep lane (PR #1111) that previously owned
+`requirements*.txt` has landed, so the advisory carve-out is closed: every
+manifest is now enforced strict. No install path — `pip install .` via
+`pyproject.toml`, or `pip install -r requirements*.txt` for deployment — may
+resolve a security-critical package below its `constraints/security.txt` floor.
+The live test `test_all_manifests_consistent_with_security_floor` asserts zero
+violations across all manifests, and the CLI is strict by default. The
+deprecated `--advisory-requirements` flag restores reporting-only mode for
+`requirements*.txt` (diagnostics, not a correctness bypass).
 
 ## Gate
 
 ```bash
-python tools/security/check_dependency_manifest_consistency.py            # strict pyproject
-python tools/security/check_dependency_manifest_consistency.py --all-strict # + requirements
+python tools/security/check_dependency_manifest_consistency.py              # strict, all manifests
+python tools/security/check_dependency_manifest_consistency.py --advisory-requirements  # legacy reporting mode
 pytest -q tests/security/test_dependency_manifest_consistency.py
 ```
 
