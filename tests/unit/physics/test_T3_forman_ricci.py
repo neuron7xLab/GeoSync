@@ -220,3 +220,82 @@ class TestRepresentationHonesty:
         assert result.edge_curvatures == {}
         assert result.weighted is False
         assert result.information_loss == ("edge_weight_magnitude", "correlation_sign")
+
+
+class TestNonfiniteProvenance:
+    """NaN/inf are invalid measurements — excluded and counted, never zero-filled.
+
+    Before the fix, ``compute_from_prices`` ran ``np.nan_to_num(corr, nan=0.0)``,
+    which (a) collapsed undefined correlations to a finite zero relation and
+    (b) turned ``inf`` into a huge finite value that crossed the threshold and
+    injected a phantom edge. Both destroy provenance: an invalid measurement is
+    not the same as a measured absence of relation.
+    """
+
+    def test_nonfinite_correlation_not_silently_erased(self, frc) -> None:
+        # frc threshold 0.3; the NaN pair would, under zero-fill, become a
+        # finite 0.0 (a fabricated "no relation") with no record. Now it is
+        # excluded AND counted.
+        corr = np.array(
+            [
+                [1.0, np.nan, 0.1],
+                [np.nan, 1.0, 0.1],
+                [0.1, 0.1, 1.0],
+            ]
+        )
+        result = frc.compute_from_correlation(corr)
+        assert (0, 1) not in result.edge_curvatures
+        assert result.nonfinite_input_count == 2  # (0,1) and (1,0)
+        assert result.nan_policy == "nonfinite_excluded_and_recorded"
+
+    def test_inf_does_not_create_phantom_edges(self, frc) -> None:
+        # |inf| > threshold is True; without the finite mask this fabricates an
+        # edge from an undefined correlation. It must be excluded and counted.
+        corr = np.array(
+            [
+                [1.0, np.inf, 0.1],
+                [np.inf, 1.0, 0.1],
+                [0.1, 0.1, 1.0],
+            ]
+        )
+        result = frc.compute_from_correlation(corr)
+        assert (0, 1) not in result.edge_curvatures, "inf must not create a phantom edge"
+        assert result.edge_curvatures == {}
+        assert result.nonfinite_input_count == 2
+
+    def test_finite_zero_is_distinct_from_nonfinite(self, frc) -> None:
+        # A genuine measured zero correlation is finite and recorded as 0 in the
+        # count — proving the count tracks *invalidity*, not merely "no edge".
+        corr = np.array(
+            [
+                [1.0, 0.0, 0.1],
+                [0.0, 1.0, 0.1],
+                [0.1, 0.1, 1.0],
+            ]
+        )
+        result = frc.compute_from_correlation(corr)
+        assert result.nonfinite_input_count == 0
+
+    def test_compute_from_prices_degenerate_window_records_nonfinite(self, frc) -> None:
+        # A zero-variance (constant) series yields NaN correlations from
+        # np.corrcoef. The pre-fix zero-fill hid this; now the invalid entries
+        # reach compute_from_correlation, are excluded, and are counted.
+        rng = np.random.default_rng(0)
+        prices = rng.uniform(50.0, 100.0, size=(40, 3))
+        prices[:, 2] = 75.0  # constant column -> zero variance -> NaN corr
+        result = frc.compute_from_prices(prices, window=30)
+        assert isinstance(result, FormanRicciResult)
+        assert result.nonfinite_input_count > 0
+        # The constant node cannot form a finite-correlation edge.
+        assert all(2 not in edge for edge in result.edge_curvatures)
+
+    def test_forman_result_declares_descriptor_not_physics(self, frc, complete_graph_corr) -> None:
+        # Layer-B descriptor honesty: unweighted, unsigned, sign+weight loss
+        # declared, nonfinite policy explicit. No physical/predictive claim.
+        result = frc.compute_from_correlation(complete_graph_corr)
+        assert result.weighted is False
+        assert result.signed is False
+        assert result.representation == "graph"
+        assert "edge_weight_magnitude" in result.information_loss
+        assert "correlation_sign" in result.information_loss
+        assert result.nan_policy == "nonfinite_excluded_and_recorded"

@@ -1,0 +1,70 @@
+# Diff-bound acceptor: preserve Forman-Ricci nonfinite provenance.
+#
+# compute_from_prices ran np.nan_to_num(corr, nan=0.0), which (a) collapsed
+# undefined (NaN) correlations into a finite zero "no relation" and (b) turned
+# inf into a huge finite value that crossed the threshold and injected a phantom
+# edge. Both destroy provenance: an invalid measurement is not a measured
+# absence of relation. The fix removes the zero-fill, excludes nonfinite entries
+# at graph construction (so inf cannot create phantom edges), and records the
+# excluded count via the new nan_policy / nonfinite_input_count fields. Extends
+# the #1098 weighted/signed/information_loss provenance vocabulary; no invariant
+# added or changed; Layer-B descriptor honesty preserved.
+
+id: forman-ricci-nonfinite-provenance
+status: ACTIVE
+claim_type: correctness
+promise: >-
+  Removes np.nan_to_num zero-fill from FormanRicciCurvature.compute_from_prices
+  so NaN/inf correlations reach the exclusion-and-counting path; masks nonfinite
+  entries in _correlation_to_adjacency so inf cannot fabricate phantom edges;
+  adds nan_policy ("nonfinite_excluded_and_recorded") and nonfinite_input_count
+  to FormanRicciResult. Adds TestNonfiniteProvenance proving nonfinite values
+  are excluded and counted (not zero-filled), inf creates no phantom edge,
+  finite zero is distinct from nonfinite, the degenerate-window price path
+  records nonfinite, and the result stays a Layer-B unweighted/unsigned
+  descriptor (weighted=False, signed=False, physical-claim-free). No invariant
+  added or changed.
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/forman-ricci-nonfinite-provenance.yaml"
+    - path: "core/physics/forman_ricci.py"
+    - path: "tests/unit/physics/test_T3_forman_ricci.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols:
+  - "FormanRicciCurvature"
+  - "FormanRicciResult"
+expected_signal: >-
+  tests/unit/physics/test_T3_forman_ricci.py passes 22/22 including
+  test_inf_does_not_create_phantom_edges, test_nonfinite_correlation_not_
+  silently_erased, and test_compute_from_prices_degenerate_window_records_
+  nonfinite. ruff/black/mypy --strict clean; downstream ricci regression green;
+  claim-boundary and check_claims gates pass.
+measurement_command: >-
+  PYTHONPATH=. python -m pytest tests/unit/physics/test_T3_forman_ricci.py -v
+signal_artifact: "tmp/forman_ricci_nonfinite_pytest.log"
+falsifier:
+  command: >-
+    PYTHONPATH=. python -m pytest tests/unit/physics/test_T3_forman_ricci.py
+    -v -k "inf_does_not_create_phantom_edges or nonfinite_correlation_not_silently_erased"
+  description: >-
+    Restoring np.nan_to_num (or dropping the np.isfinite mask in
+    _correlation_to_adjacency) turns inf into a huge finite value above the
+    threshold, fabricating a phantom edge — test_inf_does_not_create_phantom_edges
+    fails. Zero-filling NaN also drops nonfinite_input_count to 0, failing
+    test_nonfinite_correlation_not_silently_erased. Each guard has a test that
+    fails before the patch.
+rollback_command: >-
+  git checkout HEAD~1 --
+  core/physics/forman_ricci.py
+  tests/unit/physics/test_T3_forman_ricci.py
+  .claude/commit_acceptors/forman-ricci-nonfinite-provenance.yaml
+rollback_verification_command: >-
+  git diff --exit-code core/physics/forman_ricci.py
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/forman-ricci-nonfinite-provenance.yaml"
+report_path: "docs/reports/diff_bound_commit_acceptor_layer.md"
+evidence: []

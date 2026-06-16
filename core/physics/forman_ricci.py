@@ -62,6 +62,11 @@ from numpy.typing import NDArray
 #: correlation sign, so every result declares the same representation and loss.
 _REPRESENTATION: str = "graph"  # unsigned, unweighted simple graph
 _INFORMATION_LOSS: tuple[str, ...] = ("edge_weight_magnitude", "correlation_sign")
+#: Declared handling of nonfinite (NaN/inf) correlation entries. NaN and inf are
+#: invalid/undefined measurements, not a measured "zero relation": they are
+#: excluded from graph construction and counted in
+#: ``FormanRicciResult.nonfinite_input_count`` — never silently zero-filled.
+_NAN_POLICY: str = "nonfinite_excluded_and_recorded"
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,7 +77,11 @@ class FormanRicciResult:
     the underlying graph is built by thresholding ``|ρ|``, so it is unsigned
     (``signed=False``) and unweighted (``weighted=False``), and
     ``information_loss`` records exactly what the ``|ρ| > threshold`` projection
-    discards. They are constants for this estimator, not tunable outputs.
+    discards. ``nan_policy`` / ``nonfinite_input_count`` record how invalid
+    (NaN/inf) correlation entries are handled: excluded from the graph and
+    counted, preserving the failed measurement as evidence rather than
+    collapsing it to a finite zero. These are constants/diagnostics for this
+    estimator, not tunable outputs.
     """
 
     edge_curvatures: dict[tuple[int, int], float]
@@ -84,6 +93,8 @@ class FormanRicciResult:
     weighted: bool = False
     signed: bool = False
     information_loss: tuple[str, ...] = _INFORMATION_LOSS
+    nan_policy: str = _NAN_POLICY
+    nonfinite_input_count: int = 0
 
 
 class FormanRicciCurvature:
@@ -121,8 +132,15 @@ class FormanRicciCurvature:
 
     @staticmethod
     def _correlation_to_adjacency(corr: NDArray[np.float64], threshold: float) -> NDArray[np.bool_]:
-        """Threshold absolute correlation into binary adjacency."""
-        adj = np.abs(corr) > threshold
+        """Threshold absolute correlation into binary adjacency.
+
+        Nonfinite entries (NaN/inf) are invalid measurements and are excluded:
+        an edge requires a *finite* ``|ρ_ij| > threshold``. Without the finite
+        mask, ``|inf| > threshold`` is ``True`` and would inject a phantom edge
+        from an undefined correlation.
+        """
+        with np.errstate(invalid="ignore"):
+            adj = np.isfinite(corr) & (np.abs(corr) > threshold)
         np.fill_diagonal(adj, False)
         return adj
 
@@ -159,6 +177,11 @@ class FormanRicciCurvature:
         if corr.shape != (n, n):
             raise ValueError(f"Correlation must be square, got {corr.shape}")
 
+        # Record invalid (NaN/inf) measurements as evidence. Only off-diagonal
+        # entries matter for edge construction, so the diagonal is ignored.
+        off_diagonal = ~np.eye(n, dtype=bool)
+        nonfinite_input_count = int(np.count_nonzero(off_diagonal & ~np.isfinite(corr)))
+
         adj = self._correlation_to_adjacency(corr, self._threshold)
         degrees = adj.sum(axis=1).astype(int)
         triangles = self._count_triangles_per_edge(adj)
@@ -176,6 +199,7 @@ class FormanRicciCurvature:
                 kappa_mean=0.0,
                 kappa_max=0.0,
                 herding_index=0.0,
+                nonfinite_input_count=nonfinite_input_count,
             )
 
         values = np.array(list(edge_curvatures.values()))
@@ -185,6 +209,7 @@ class FormanRicciCurvature:
             kappa_mean=float(values.mean()),
             kappa_max=float(values.max()),
             herding_index=float(np.mean(values > 0)),
+            nonfinite_input_count=nonfinite_input_count,
         )
 
     def compute_from_prices(
@@ -212,7 +237,11 @@ class FormanRicciCurvature:
 
         with np.errstate(invalid="ignore"):
             corr = np.corrcoef(tail, rowvar=False)
-        corr_arr: NDArray[np.float64] = np.asarray(np.nan_to_num(corr, nan=0.0), dtype=np.float64)
+        # Do NOT zero-fill: NaN/inf from degenerate windows (zero-variance
+        # series, constant prices) are invalid measurements, not zero relations.
+        # Pass them through so compute_from_correlation excludes and counts them
+        # per the declared nan_policy instead of fabricating finite zeros.
+        corr_arr: NDArray[np.float64] = np.asarray(corr, dtype=np.float64)
         return self.compute_from_correlation(corr_arr)
 
 
