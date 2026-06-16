@@ -19,10 +19,34 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).parent
 INVARIANTS_PATH = SCRIPT_DIR / "INVARIANTS.yaml"
 INV_PATTERN = re.compile(r"INV-[A-Z0-9][A-Z0-9-]*")
+# Honest-provenance contract (PR #414, sha d48bacf3). Discrete epistemic tiers
+# only — never a float "truth-coherence score". ANCHORED = derivable from
+# peer-reviewed established physics; EXTRAPOLATED = research direction with >=1
+# anchor but a non-derivable leap; SPECULATIVE = schema only, no cited model.
+_VALID_PROVENANCE_TIERS = frozenset({"ANCHORED", "EXTRAPOLATED", "SPECULATIVE"})
+_AUTHORITY_PRIORITIES = frozenset({"P0", "P1"})
 PHYSICS_KEYWORDS = {
-    "physics", "kuramoto", "serotonin", "dopamine", "gaba", "energy", "thermo",
-    "sync", "lyapunov", "ricci", "regime", "conservation", "entropy", "free_energy",
-    "order_param", "inhibit", "ecs", "hpc", "pwpe", "active_inference", "freeenergy",
+    "physics",
+    "kuramoto",
+    "serotonin",
+    "dopamine",
+    "gaba",
+    "energy",
+    "thermo",
+    "sync",
+    "lyapunov",
+    "ricci",
+    "regime",
+    "conservation",
+    "entropy",
+    "free_energy",
+    "order_param",
+    "inhibit",
+    "ecs",
+    "hpc",
+    "pwpe",
+    "active_inference",
+    "freeenergy",
 }
 
 
@@ -99,22 +123,37 @@ def _has_negative_slice(node: ast.AST) -> bool:
             lower = n.slice.lower
             if isinstance(lower, ast.UnaryOp) and isinstance(lower.op, ast.USub):
                 return True
-            if isinstance(lower, ast.Constant) and isinstance(lower.value, (int, float)) and lower.value < 0:
+            if (
+                isinstance(lower, ast.Constant)
+                and isinstance(lower.value, (int, float))
+                and lower.value < 0
+            ):
                 return True
     return False
 
 
 def _has_small_epsilon(node: ast.AST) -> bool:
-    return any(isinstance(n, ast.Constant) and isinstance(n.value, float) and 0 < abs(n.value) < 1e-6 for n in ast.walk(node))
+    return any(
+        isinstance(n, ast.Constant) and isinstance(n.value, float) and 0 < abs(n.value) < 1e-6
+        for n in ast.walk(node)
+    )
 
 
 def _has_large_int(node: ast.AST, threshold: int = 100) -> bool:
-    return any(isinstance(n, ast.Constant) and isinstance(n.value, int) and n.value > threshold for n in ast.walk(node))
+    return any(
+        isinstance(n, ast.Constant) and isinstance(n.value, int) and n.value > threshold
+        for n in ast.walk(node)
+    )
 
 
 def _ok_universal(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[bool, str]:
     calls = _collect_call_names(func)
-    if _has_decorator(func, "given") or _has_for_loop(func) or calls & {"all", "np.all", "np.testing.assert_array_less"} or _count_asserts(func) >= 3:
+    if (
+        _has_decorator(func, "given")
+        or _has_for_loop(func)
+        or calls & {"all", "np.all", "np.testing.assert_array_less"}
+        or _count_asserts(func) >= 3
+    ):
         return True, ""
     return False, "expected many-input, loop, array, or property-style check"
 
@@ -122,7 +161,12 @@ def _ok_universal(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[bool, s
 def _ok_asymptotic(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[bool, str]:
     calls = _collect_call_names(func)
     names = _collect_names(func)
-    if _has_negative_slice(func) or names & {"final", "steady", "late", "converged", "trajectory", "steps"} or calls & {"simulate", "run", "evolve", "integrate"} or _has_large_int(func, 100):
+    if (
+        _has_negative_slice(func)
+        or names & {"final", "steady", "late", "converged", "trajectory", "steps"}
+        or calls & {"simulate", "run", "evolve", "integrate"}
+        or _has_large_int(func, 100)
+    ):
         return True, ""
     return False, "expected late-time or converged trajectory check"
 
@@ -138,7 +182,14 @@ def _ok_statistical(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[bool,
     calls = _collect_call_names(func)
     if calls & {"mean", "np.mean", "std", "np.std", "np.var", "np.average"}:
         return True, ""
-    if _has_for_loop(func) and _collect_names(func) & {"seed", "seeds", "trial", "trials", "realization", "realizations"}:
+    if _has_for_loop(func) and _collect_names(func) & {
+        "seed",
+        "seeds",
+        "trial",
+        "trials",
+        "realization",
+        "realizations",
+    }:
         return True, ""
     if any(isinstance(n, ast.ListComp) for n in ast.walk(func)):
         return True, ""
@@ -147,7 +198,12 @@ def _ok_statistical(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[bool,
 
 def _ok_algebraic(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[bool, str]:
     calls = _collect_call_names(func)
-    if calls & {"assert_allclose", "np.testing.assert_allclose", "approx", "isclose"} or _has_small_epsilon(func):
+    if calls & {
+        "assert_allclose",
+        "np.testing.assert_allclose",
+        "approx",
+        "isclose",
+    } or _has_small_epsilon(func):
         return True, ""
     return False, "expected exact or tolerance-bounded comparison"
 
@@ -160,14 +216,27 @@ def _ok_qualitative(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[bool,
 
 def _ok_conservation(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[bool, str]:
     names = _collect_names(func)
-    if len(names & {"before", "after", "initial", "final", "total_before", "total_after"}) >= 2 or _has_for_loop(func):
+    if len(
+        names & {"before", "after", "initial", "final", "total_before", "total_after"}
+    ) >= 2 or _has_for_loop(func):
         return True, ""
     return False, "expected before/after quantity comparison"
 
 
 def _ok_distributional(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[bool, str]:
     calls = _collect_call_names(func)
-    if calls & {"rayleigh", "kstest", "ks_2samp", "chisquare", "histogram", "np.histogram", "mean", "np.mean", "std", "np.std"} or _has_for_loop(func):
+    if calls & {
+        "rayleigh",
+        "kstest",
+        "ks_2samp",
+        "chisquare",
+        "histogram",
+        "np.histogram",
+        "mean",
+        "np.mean",
+        "std",
+        "np.std",
+    } or _has_for_loop(func):
         return True, ""
     return False, "expected distribution or moment check"
 
@@ -259,11 +328,19 @@ def _check_error_msg_quality(msg_source: str) -> list[str]:
     missing: list[str] = []
     if not INV_PATTERN.search(msg_source):
         missing.append("INV-* ID")
-    if not re.search(r"[=:]\s*[-+]?\d|actual|observed|got|result|R=|R_final|delta=|level=", msg_source, re.IGNORECASE):
+    if not re.search(
+        r"[=:]\s*[-+]?\d|actual|observed|got|result|R=|R_final|delta=|level=",
+        msg_source,
+        re.IGNORECASE,
+    ):
         missing.append("observed value")
-    if not re.search(r"expect|should|must|theory|predicted|required|outside", msg_source, re.IGNORECASE):
+    if not re.search(
+        r"expect|should|must|theory|predicted|required|outside", msg_source, re.IGNORECASE
+    ):
         missing.append("expected behavior")
-    if not re.search(r"[NK]=\d|seed=|steps=|at\s+\w+=|with\s+\w+=|gamma=|K_c=", msg_source, re.IGNORECASE):
+    if not re.search(
+        r"[NK]=\d|seed=|steps=|at\s+\w+=|with\s+\w+=|gamma=|K_c=", msg_source, re.IGNORECASE
+    ):
         missing.append("parameters")
     return missing
 
@@ -278,7 +355,9 @@ def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list
         return [Issue("L0", 0, "<file>", f"syntax error in {filepath}")]
 
     for node in ast.walk(tree):
-        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or not node.name.startswith("test_"):
+        if not isinstance(
+            node, (ast.FunctionDef, ast.AsyncFunctionDef)
+        ) or not node.name.startswith("test_"):
             continue
         docstring = ast.get_docstring(node) or ""
         if _is_non_physics_doc(docstring):
@@ -289,7 +368,9 @@ def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list
             continue
         for inv_id in inv_refs:
             if registry and inv_id not in registry:
-                issues.append(Issue("L2", node.lineno, node.name, f"{inv_id} not found in INVARIANTS.yaml."))
+                issues.append(
+                    Issue("L2", node.lineno, node.name, f"{inv_id} not found in INVARIANTS.yaml.")
+                )
         for inv_id in inv_refs:
             if inv_id not in registry:
                 continue
@@ -297,7 +378,9 @@ def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list
             if checker_fn is not None:
                 ok, reason = checker_fn(node)
                 if not ok:
-                    issues.append(Issue("L3", node.lineno, node.name, f"{inv_id} has {label}. {reason}"))
+                    issues.append(
+                        Issue("L3", node.lineno, node.name, f"{inv_id} has {label}. {reason}")
+                    )
 
         has_any_msg = False
         has_no_msg = False
@@ -309,13 +392,25 @@ def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list
                 continue
             has_any_msg = True
             assert_start = child.lineno - 1
-            assert_end = min(getattr(child.msg, "end_lineno", child.msg.lineno) or child.msg.lineno, len(source_lines))
+            assert_end = min(
+                getattr(child.msg, "end_lineno", child.msg.lineno) or child.msg.lineno,
+                len(source_lines),
+            )
             msg_source = "\n".join(source_lines[assert_start:assert_end])
             missing = _check_error_msg_quality(msg_source)
             if missing:
-                issues.append(Issue("L4", child.lineno, node.name, f"Assert message missing: {', '.join(missing)}."))
+                issues.append(
+                    Issue(
+                        "L4",
+                        child.lineno,
+                        node.name,
+                        f"Assert message missing: {', '.join(missing)}.",
+                    )
+                )
         if has_no_msg and not has_any_msg:
-            issues.append(Issue("L4", node.lineno, node.name, "All assertions lack error messages."))
+            issues.append(
+                Issue("L4", node.lineno, node.name, "All assertions lack error messages.")
+            )
 
         for child in ast.walk(node):
             if not isinstance(child, ast.Assert) or child.lineno > len(source_lines):
@@ -323,20 +418,51 @@ def check_test_file(filepath: Path, registry: dict[str, dict[str, str]]) -> list
             line = source_lines[child.lineno - 1].strip()
             if not re.search(r"assert.*[<>=]\s*0\.\d+", line):
                 continue
-            context = "\n".join(source_lines[max(0, child.lineno - 4): child.lineno]).lower()
-            if not any(pat in context for pat in ("sqrt", "np.sqrt", "math.sqrt", "k_c", "kc", "pi", "np.pi", "epsilon", "eps", "tolerance", "tol")):
-                issues.append(Issue("L5", child.lineno, node.name, f"Possible magic number threshold. Line: {line[:80]}"))
+            context = "\n".join(source_lines[max(0, child.lineno - 4) : child.lineno]).lower()
+            if not any(
+                pat in context
+                for pat in (
+                    "sqrt",
+                    "np.sqrt",
+                    "math.sqrt",
+                    "k_c",
+                    "kc",
+                    "pi",
+                    "np.pi",
+                    "epsilon",
+                    "eps",
+                    "tolerance",
+                    "tol",
+                )
+            ):
+                issues.append(
+                    Issue(
+                        "L5",
+                        child.lineno,
+                        node.name,
+                        f"Possible magic number threshold. Line: {line[:80]}",
+                    )
+                )
     return issues
 
 
 CLAMP_PATTERNS = [
-    re.compile(r"np\.clip\s*\("), re.compile(r"max\s*\(\s*[\d.]+\s*,\s*min\s*\("),
-    re.compile(r"min\s*\(\s*[\d.]+\s*,\s*max\s*\("), re.compile(r"=\s*max\s*\(\s*[\d.]+"),
-    re.compile(r"=\s*min\s*\(\s*[\d.]+"), re.compile(r"\.clamp\s*\("), re.compile(r"\.clip\s*\("),
+    re.compile(r"np\.clip\s*\("),
+    re.compile(r"max\s*\(\s*[\d.]+\s*,\s*min\s*\("),
+    re.compile(r"min\s*\(\s*[\d.]+\s*,\s*max\s*\("),
+    re.compile(r"=\s*max\s*\(\s*[\d.]+"),
+    re.compile(r"=\s*min\s*\(\s*[\d.]+"),
+    re.compile(r"\.clamp\s*\("),
+    re.compile(r"\.clip\s*\("),
 ]
 LOG_PATTERNS = [
-    re.compile(r"log(ger|ging)?\."), re.compile(r"warn(ing)?\s*\("), re.compile(r"_log\s*\("),
-    re.compile(r"emit\s*\("), re.compile(r"telemetry"), re.compile(r"tacl\."), re.compile(r"#\s*bounds:"),
+    re.compile(r"log(ger|ging)?\."),
+    re.compile(r"warn(ing)?\s*\("),
+    re.compile(r"_log\s*\("),
+    re.compile(r"emit\s*\("),
+    re.compile(r"telemetry"),
+    re.compile(r"tacl\."),
+    re.compile(r"#\s*bounds:"),
 ]
 
 
@@ -350,13 +476,31 @@ def audit_code_file(filepath: Path) -> list[Issue]:
         stripped = line.strip()
         if stripped.startswith("#") or not any(p.search(stripped) for p in CLAMP_PATTERNS):
             continue
-        context = "\n".join(source_lines[max(0, i - 4): min(len(source_lines), i + 3)])
+        context = "\n".join(source_lines[max(0, i - 4) : min(len(source_lines), i + 3)])
         has_log = any(p.search(context) for p in LOG_PATTERNS)
         has_inv_ref = bool(INV_PATTERN.search(context))
         if not has_log and not has_inv_ref:
-            issues.append(Issue("C1", i, filepath.stem, f"Clamp or clip lacks log, telemetry, bounds note, or INV reference. Line: {stripped[:80]}"))
-        if re.search(r"clip\s*\(\s*\w+\s*,\s*[\d.]+\s*,\s*[\d.]+", stripped) and not has_inv_ref and not has_log:
-            issues.append(Issue("C2", i, filepath.stem, f"Numeric bounds need a note or INV reference. Line: {stripped[:80]}"))
+            issues.append(
+                Issue(
+                    "C1",
+                    i,
+                    filepath.stem,
+                    f"Clamp or clip lacks log, telemetry, bounds note, or INV reference. Line: {stripped[:80]}",
+                )
+            )
+        if (
+            re.search(r"clip\s*\(\s*\w+\s*,\s*[\d.]+\s*,\s*[\d.]+", stripped)
+            and not has_inv_ref
+            and not has_log
+        ):
+            issues.append(
+                Issue(
+                    "C2",
+                    i,
+                    filepath.stem,
+                    f"Numeric bounds need a note or INV reference. Line: {stripped[:80]}",
+                )
+            )
     return issues
 
 
@@ -371,13 +515,17 @@ def _test_count_excluding_non_physics(path: Path) -> int:
         return 0
     count = 0
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith(
+            "test_"
+        ):
             if not _is_non_physics_doc(ast.get_docstring(node) or ""):
                 count += 1
     return count
 
 
-def _run_test_validation(files: list[Path], registry: dict[str, dict[str, str]], summary_mode: bool) -> None:
+def _run_test_validation(
+    files: list[Path], registry: dict[str, dict[str, str]], summary_mode: bool
+) -> None:
     total_issues: dict[str, int] = {}
     physics_files = 0
     total_tests = 0
@@ -400,7 +548,13 @@ def _run_test_validation(files: list[Path], registry: dict[str, dict[str, str]],
     print(f"Files scanned:    {physics_files}")
     print(f"Test functions:   {total_tests}\n")
     levels = ["L1", "L2", "L3", "L4", "L5"]
-    labels = {"L1": "Missing INV-* reference", "L2": "Invalid INV-* ID (not in YAML)", "L3": "Test type != invariant type", "L4": "Missing/poor error messages", "L5": "Possible magic number threshold"}
+    labels = {
+        "L1": "Missing INV-* reference",
+        "L2": "Invalid INV-* ID (not in YAML)",
+        "L3": "Test type != invariant type",
+        "L4": "Missing/poor error messages",
+        "L5": "Possible magic number threshold",
+    }
     print("Issues by level:")
     for lv in levels:
         print(f"  [{lv}] {labels[lv] + ':':<36s} {total_issues.get(lv, 0)}")
@@ -448,6 +602,45 @@ def _run_audit_code(files: list[Path], summary_mode: bool) -> None:
         sys.exit(1)
 
 
+def check_provenance(reg: dict[str, dict[str, str]]) -> list[str]:
+    """Self-check 5 — honest-provenance contract, fail-closed.
+
+    Restored: PR #414 (sha d48bacf3) shipped an enforcing check 5; a later
+    validator rewrite silently regressed it to an unconditional ``print(...
+    PASS)``, so for several commits any invariant could be relabelled
+    ``ANCHORED`` with zero gate resistance. This re-derives the verdict.
+
+    Two rules over every invariant that *declares* a ``provenance`` tier:
+      1. the tier is one of the three discrete levels — no free-text tiers,
+         no fake-precision float standing in for an epistemic level;
+      2. a SPECULATIVE tier (schema only, no specific cited model) may not
+         carry P0/P1 authority — P2 informational is the ceiling.
+
+    Invariants with no ``provenance`` key are out of scope (legacy registry
+    entries predating the tier system). This check never *invents* a tier;
+    it only refuses to let a declared one lie.
+    """
+    errors: list[str] = []
+    for inv_id, data in reg.items():
+        prov_raw = data.get("provenance")
+        if prov_raw is None:
+            continue
+        prov = prov_raw.upper()
+        if prov not in _VALID_PROVENANCE_TIERS:
+            errors.append(
+                f"{inv_id}: provenance '{prov_raw}' is not a discrete tier "
+                f"{sorted(_VALID_PROVENANCE_TIERS)}"
+            )
+            continue
+        priority = data.get("priority", "").upper()
+        if prov == "SPECULATIVE" and priority in _AUTHORITY_PRIORITIES:
+            errors.append(
+                f"{inv_id}: SPECULATIVE invariant at {priority} — a schema with "
+                "no cited model may not carry P0/P1 authority (max P2)"
+            )
+    return errors
+
+
 def _self_check() -> None:
     reg = load_invariants()
     if not reg:
@@ -458,7 +651,9 @@ def _self_check() -> None:
     for inv_id, data in reg.items():
         checker, _ = resolve_l3_checker(data)
         if checker is None:
-            errors.append(f"{inv_id}: type='{data.get('type')}' test_type='{data.get('test_type')}' has no L3 checker")
+            errors.append(
+                f"{inv_id}: type='{data.get('type')}' test_type='{data.get('test_type')}' has no L3 checker"
+            )
     if errors:
         print(f"2. FAIL: {len(errors)} types without checker")
         for err in errors[:20]:
@@ -467,7 +662,13 @@ def _self_check() -> None:
     print("2. All invariant types have L3 checkers")
     print("3. INV_PATTERN matches registered ID format")
     print("4. Cross-ref OK: registry loaded")
-    print("5. Provenance/priority OK: delegated to registry governance")
+    prov_errors = check_provenance(reg)
+    if prov_errors:
+        print(f"5. FAIL: {len(prov_errors)} provenance-tier violations")
+        for err in prov_errors[:20]:
+            print(f"   {err}")
+        sys.exit(1)
+    print("5. Provenance OK: tiers discrete; no SPECULATIVE invariant at P0/P1")
     print("6. Regression guard OK: compact validator loaded")
     print("7. Source/tests path integrity delegated to evidence matrix generator")
     print("\nPhysics kernel self-check PASSED")
@@ -485,7 +686,11 @@ def main() -> None:
     summary_mode = "--summary" in args
     audit_code = "--audit-code" in args
     registry = load_invariants()
-    print(f"Loaded {len(registry)} invariants from {INVARIANTS_PATH.name}" if registry else "WARNING: No invariants loaded, L2/L3 checks disabled")
+    print(
+        f"Loaded {len(registry)} invariants from {INVARIANTS_PATH.name}"
+        if registry
+        else "WARNING: No invariants loaded, L2/L3 checks disabled"
+    )
     if not target.exists():
         print(f"Not found: {target}")
         sys.exit(1)
