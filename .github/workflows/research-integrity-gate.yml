@@ -42,6 +42,13 @@ on:
       - 'RIP/TOMBSTONES.md'
       - 'scripts/ci/check_tombstone_preservation.py'
       - 'tests/scripts/test_check_tombstone_preservation.py'
+      # Mainline instrument evidence-chain reconciliation (7 instruments):
+      - 'governance/INSTRUMENTS.yaml'
+      - 'scripts/ci/check_instrument_evidence_chain.py'
+      - 'tests/scripts/test_check_instrument_evidence_chain.py'
+      - 'analytics/signals/**'
+      - 'core/indicators/market_state_contract.py'
+      - 'scripts/replay_descriptor_capsule.py'
   push:
     branches: [main]
   workflow_dispatch:
@@ -61,6 +68,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          # Full history: the instrument evidence-chain gate resolves each
+          # instrument's merge_commit against git history (cat-file + show).
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
@@ -98,6 +109,12 @@ jobs:
 
       - name: pytest — tombstone preservation gate
         run: python -m pytest tests/scripts/test_check_tombstone_preservation.py -q
+
+      - name: Instrument evidence-chain reconciliation gate (7 instruments)
+        run: python scripts/ci/check_instrument_evidence_chain.py
+
+      - name: pytest — instrument evidence-chain gate
+        run: python -m pytest tests/scripts/test_check_instrument_evidence_chain.py -q
 
       - name: Claim-to-artifact graph gate
         run: python scripts/ci/check_claim_artifact_graph.py
