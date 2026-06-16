@@ -31,8 +31,31 @@ HIGH, MEDIUM, LOW, INFO = "HIGH", "MEDIUM", "LOW", "INFO"
 UNKNOWN = "UNKNOWN"
 
 
+#: Directory names that are never repository content for debt accounting.
+#: ``.venv`` is the local virtualenv; ``.git`` holds VCS internals; nested
+#: git worktrees / agent checkouts live under ``.claude/worktrees`` and are
+#: *other branches'* working copies, not this tree's source. Counting them
+#: double-counts the repository and makes the metric depend on which local
+#: worktrees happen to exist — so the same commit reports different debt on
+#: CI (no worktrees) than on a developer box mid-fan-out. Excluding them makes
+#: the inference deterministic and location-independent.
+_EXCLUDED_DIR_PARTS: frozenset[str] = frozenset({".venv", ".git"})
+
+
+def _is_excluded(path: Path) -> bool:
+    """True if ``path`` lies in a non-source tree (venv, git, nested worktree)."""
+    parts = path.parts
+    if any(part in _EXCLUDED_DIR_PARTS for part in parts):
+        return True
+    # ``.claude/worktrees/<name>/...`` — a nested checkout of another branch.
+    for i in range(len(parts) - 1):
+        if parts[i] == ".claude" and parts[i + 1] == "worktrees":
+            return True
+    return False
+
+
 def _py_files() -> list[Path]:
-    return [p for p in ROOT.rglob("*.py") if ".venv" not in p.parts]
+    return [p for p in ROOT.rglob("*.py") if not _is_excluded(p)]
 
 
 def _grep_count(pattern: str) -> int:
@@ -102,6 +125,8 @@ def m_test_skips() -> int:
         return 0
     actionable = 0
     for f in tests.rglob("*.py"):
+        if _is_excluded(f):
+            continue
         for reason in _SKIP_LINE.findall(f.read_text(encoding="utf-8")):
             if not _CONDITIONAL_SKIP.search(reason):
                 actionable += 1
@@ -113,7 +138,9 @@ def m_test_slow() -> int:
     return sum(
         1
         for f in (ROOT / "tests").rglob("*.py")
-        if (ROOT / "tests").exists() and rx.search(f.read_text(encoding="utf-8"))
+        if (ROOT / "tests").exists()
+        and not _is_excluded(f)
+        and rx.search(f.read_text(encoding="utf-8"))
     )
 
 

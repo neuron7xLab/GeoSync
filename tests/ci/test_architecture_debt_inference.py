@@ -176,6 +176,32 @@ def test_check_mode_exit_codes(tmp_path, capsys) -> None:
     assert m.main(["--check", str(bad)]) == 1
 
 
+def test_py_files_exclude_nested_worktrees_and_venv() -> None:
+    # The metric must be location-independent: nested git worktrees / agent
+    # checkouts under .claude/worktrees, the local .venv, and .git internals
+    # are not this tree's source and must never be counted.
+    m = _load()
+    for p in m._py_files():
+        parts = p.parts
+        assert ".venv" not in parts
+        assert ".git" not in parts
+        assert not any(
+            parts[i] == ".claude" and parts[i + 1] == "worktrees"
+            for i in range(len(parts) - 1)
+        ), f"nested worktree leaked into debt scan: {p}"
+
+
+def test_is_excluded_predicate() -> None:
+    m = _load()
+    base = m.ROOT
+    assert m._is_excluded(base / ".claude" / "worktrees" / "agent-x" / "core" / "a.py")
+    assert m._is_excluded(base / ".venv" / "lib" / "x.py")
+    assert m._is_excluded(base / ".git" / "hooks" / "x.py")
+    assert not m._is_excluded(base / "core" / "physics" / "forman_ricci.py")
+    # a legitimate source file that merely mentions the word elsewhere in path
+    assert not m._is_excluded(base / "core" / "claude_adapter.py")
+
+
 def test_evidence_ledger_is_tracked_not_ratcheted() -> None:
     # empty_evidence_ledger grows with every new acceptor by construction;
     # it must be reported but never hard-gated by the ratchet.
