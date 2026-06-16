@@ -1,10 +1,12 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Issue #1109 — full SecondOrderStabilityAudit.
+"""Issue #1109 — bounded SecondOrderStabilityAudit + promotion firewall.
 
 Closes the gaps the runtime guard (non-finite + RoCoF) leaves open. Each test
 pins a measured numerical-stability diagnostic of the symplectic Störmer–Verlet
-second-order Kuramoto integrator and would fail if that property degraded.
+second-order Kuramoto integrator and would fail if that property degraded. The
+firewall tests pin that the audit can never silently promote S7 stability and
+that an invalid energy model fails closed rather than emitting a hollow pass.
 """
 
 from __future__ import annotations
@@ -136,3 +138,85 @@ def test_report_is_frozen_and_complete() -> None:
     assert "full_lyapunov_spectrum" in report.remaining_gaps
     with pytest.raises((AttributeError, TypeError)):
         setattr(report, "energy_like_drift", 0.0)
+
+
+def _signed_asymmetric_engine() -> SecondOrderKuramotoEngine:
+    """Conservative regime BUT an asymmetric, signed coupling matrix.
+
+    The swing-energy potential V = −½Σ adjᵢⱼ cos(Δθ) is conserved only for a
+    symmetric, unsigned adjacency, so the energy diagnostic is invalid here.
+    """
+    n = 4
+    adj = np.array(
+        [
+            [0.0, 1.0, -0.5, 0.0],
+            [0.2, 0.0, 1.0, 0.0],  # asymmetric (0.2 ≠ 1.0) and signed (−0.5)
+            [-0.5, 1.0, 0.0, 1.0],
+            [0.0, 0.0, 1.0, 0.0],
+        ]
+    )
+    cfg = KuramotoConfig(
+        N=n,
+        K=1.0,
+        omega=np.zeros(n),
+        theta0=np.linspace(0.0, 1.0, n),
+        adjacency=adj,
+        dt=0.005,
+        steps=200,
+        seed=0,
+    )
+    return SecondOrderKuramotoEngine(cfg, mass=1.0, damping=0.0, velocity0=0.05 * np.ones(n))
+
+
+def test_failed_audit_blocks_stability_promotion() -> None:
+    """promotion_allowed is structurally False, and a failing check sets it too.
+
+    Even a clean conservative run is never promotable (remaining_gaps non-empty),
+    and an audit that fails an in-scope check has audit_passed=False with a
+    named reason — no silent pass.
+    """
+    clean = _conservative_engine().audit()
+    assert clean.audit_passed is True
+    assert clean.promotion_allowed is False  # open gaps ⇒ never a stability cert
+    assert clean.failure_reason == ()
+
+    failed = _signed_asymmetric_engine().audit()
+    assert failed.audit_passed is False
+    assert failed.promotion_allowed is False
+    assert "energy_conservation_claimed_on_invalid_model" in failed.failure_reason
+
+
+def test_cross_solver_trajectory_wide_max() -> None:
+    """Agreement is judged trajectory-wide, not at the endpoint alone.
+
+    The trajectory-wide max spans every step in [0, horizon], so it is always
+    ≥ the endpoint deviation — an endpoint that re-converges cannot hide a
+    mid-trajectory divergence.
+    """
+    report = _conservative_engine().audit(cross_solver_steps=100, agreement_tol=1e-3)
+    assert np.isfinite(report.trajectory_wide_cross_solver_max)
+    assert report.trajectory_wide_cross_solver_max >= report.cross_solver_max_deviation
+    assert report.trajectory_wide_cross_solver_max <= 1e-3
+    assert report.metric_validity_flags["cross_solver_trajectory_wide"] is True
+
+
+def test_energy_model_validity_flags() -> None:
+    """A symmetric, unsigned adjacency yields a valid energy model."""
+    flags = _conservative_engine().audit().metric_validity_flags
+    assert flags["adjacency_symmetric"] is True
+    assert flags["adjacency_unsigned"] is True
+    assert flags["energy_model_valid"] is True
+
+
+def test_asymmetric_or_signed_adjacency_invalidates_energy_claim() -> None:
+    """Asymmetric/signed coupling invalidates the conservation diagnostic.
+
+    energy_model_valid must be False and, in the conservative regime, the audit
+    must fail closed rather than emit a meaningless energy-drift pass.
+    """
+    report = _signed_asymmetric_engine().audit()
+    assert report.metric_validity_flags["adjacency_symmetric"] is False
+    assert report.metric_validity_flags["adjacency_unsigned"] is False
+    assert report.metric_validity_flags["energy_model_valid"] is False
+    assert report.audit_passed is False
+    assert "energy_conservation_claimed_on_invalid_model" in report.failure_reason
