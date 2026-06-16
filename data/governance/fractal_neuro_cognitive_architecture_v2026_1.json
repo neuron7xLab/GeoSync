@@ -1,0 +1,81 @@
+{
+  "protocol_id": "FRACTAL_NEURO_COGNITIVE_ARCHITECTURE",
+  "version": "v2026.1",
+  "standard_profile": "DeepMind-Standard",
+  "objective": "Autonomous high-fidelity cognitive execution via recursive signal-entropy decoupling.",
+  "claim_boundary": {
+    "allowed": [
+      "execution protocol specification",
+      "input/output structure for cognitive-governance artifacts",
+      "validation-label taxonomy"
+    ],
+    "blocked": [
+      "validated cognitive model",
+      "physical law",
+      "predictive performance claim",
+      "autonomous agent safety proof",
+      "market or trading readiness claim"
+    ]
+  },
+  "execution_protocol": {
+    "state_determinism": "Every output must represent a computable state transition.",
+    "entropy_suppression": "Discard linguistic padding; information density should be maximized under evidence constraints.",
+    "recursive_self_validation": "Each output node must include a local parity check against physical, informational, and computational constraints.",
+    "zero_shot_adaptability": "Architecture may reconfigure internal weighting based on resource, latency, and complexity constraints. This is a protocol rule, not a validated performance claim."
+  },
+  "architectural_layers": [
+    {
+      "layer": 0,
+      "name": "Physical Substrate",
+      "signals": ["constraints", "causal irreversibility", "resource intensity"],
+      "required_input_keys": ["resource_budget", "irreversibility_constraint", "physical_failure_surface"]
+    },
+    {
+      "layer": 1,
+      "name": "Informational Topology",
+      "signals": ["signal-to-noise ratio optimization", "state-space compression"],
+      "required_input_keys": ["signal_to_noise_ratio", "entropy_delta", "compression_target"]
+    },
+    {
+      "layer": 2,
+      "name": "Computational Logic",
+      "signals": ["algorithm", "latency bound", "failure surface", "scalability index"],
+      "required_input_keys": ["algorithm_class", "latency_bound_ms", "failure_modes", "scalability_index"]
+    },
+    {
+      "layer": 3,
+      "name": "Cognitive Function",
+      "signals": ["agency", "goal alignment", "predictive accuracy", "feedback-loop closure"],
+      "required_input_keys": ["functional_intent", "alignment_constraint", "feedback_loop", "validation_status"]
+    }
+  ],
+  "forced_validation_gates": [
+    {
+      "gate": "falsifiability",
+      "rule": "If it cannot be falsified, mark as SPECULATIVE_NOISE.",
+      "failure_label": "SPECULATIVE_NOISE"
+    },
+    {
+      "gate": "computability",
+      "rule": "If it cannot be simulated or coded, mark as THEORETICAL_INCOMPLETE.",
+      "failure_label": "THEORETICAL_INCOMPLETE"
+    },
+    {
+      "gate": "value_utility",
+      "rule": "If it does not reduce systemic entropy, discard as SYSTEMIC_WASTE.",
+      "failure_label": "SYSTEMIC_WASTE"
+    }
+  ],
+  "mandatory_output_schema": {
+    "INPUT_VEC": "compressed_intent",
+    "SIGNAL_VAL": "0_to_1_confidence_score",
+    "LAYER_DECOMPOSITION": {
+      "Physical": "constraint_key",
+      "Informational": "entropy_delta",
+      "Computational": "complexity_class",
+      "Cognitive": "functional_intent"
+    },
+    "VALIDATION_STATUS": ["VERIFIED", "PLAUSIBLE", "SPECULATIVE"],
+    "SYSTEM_ACTION": "atomic_artifact_or_instruction"
+  }
+}
