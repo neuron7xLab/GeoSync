@@ -103,7 +103,16 @@ The implemented Ricci computation currently operates on **cross-asset return-cor
 src/geosync/features/ricci.py::RicciCurvatureGraph.fit_transform
 ```
 
-L2 order-book microstructure Ricci remains unimplemented and must stay at `HYPOTHESIS` until a real depth-5 session with a real data hash is recorded.
+Executable proof — claim → source → test → command:
+
+```text
+claim:   correlation-graph Ricci adapter with fail-closed / neutral / fixed-graph / non-finite contract
+source:  src/geosync/features/ricci.py::RicciCurvatureGraph
+test:    tests/features/test_ricci_curvature_graph.py
+command: pytest -q tests/features/test_ricci_curvature_graph.py
+```
+
+The adapter's contract is pinned by dedicated deterministic tests: insufficient-window fail-closed (`ValueError`), zero-edge neutral output (`kappa_min == 0.0`, `edge_kappa == {}`), a fixed two-node graph with `kappa == 0.5`, non-finite input excluded (no phantom edges), and a claim-boundary lock (the result exposes no L2/microstructure/predictive field). This is graph-topology provenance over correlation structure — **not** an evidence-bearing L2 market-microstructure result. L2 order-book microstructure Ricci remains unimplemented and must stay at `HYPOTHESIS` until a real depth-5 session with a real data hash is recorded.
 
 ---
 
