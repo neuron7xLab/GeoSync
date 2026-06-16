@@ -62,6 +62,31 @@ from numpy.typing import NDArray
 #: correlation sign, so every result declares the same representation and loss.
 _REPRESENTATION: str = "graph"  # unsigned, unweighted simple graph
 _INFORMATION_LOSS: tuple[str, ...] = ("edge_weight_magnitude", "correlation_sign")
+#: Layer ownership and claim-boundary provenance. This is a market-state
+#: structural descriptor (Layer B), not a physical-model output: it asserts no
+#: oscillator state, prediction, or financial edge. These fields are a
+#: DECLARATIVE provenance contract, not enforcement: a consumer that reads
+#: ``physical_claim`` learns the value is descriptor-only, but nothing forces
+#: that read. In particular :class:`DualTrackRicciMonitor` (``margin_multiplier``
+#: / ``is_herding``) consumes the descriptor WITHOUT checking these fields, so
+#: that path remains an un-enforced descriptor→action promotion — documented
+#: here as a known gap, not closed by the label.
+_LAYER: str = "market_descriptor"
+_CLAIM_BOUNDARY: str = "derived_unsigned_unweighted_topology_descriptor"
+_PROJECTION_POLICY: str = "abs_correlation_threshold_binary"
+#: Non-finite (NaN/inf) correlations are excluded from the graph (never an
+#: edge — ``np.abs(inf) > threshold`` would otherwise create a phantom edge)
+#: and their count is recorded in ``nonfinite_input_count`` rather than being
+#: silently coerced to zero.
+_NAN_POLICY: str = "nonfinite_excluded_and_recorded"
+#: Boundary a *consumer* of the descriptor must honour. :class:`DualTrackRicciMonitor`
+#: turns the descriptor into a margin/herding signal; this constant marks that
+#: such outputs are advisory transforms of a Layer-B descriptor, NOT a validated
+#: physical model or trading edge. It is a machine-readable label on the consumer
+#: so the descriptor→action promotion is named at the boundary, not only in prose.
+_DESCRIPTOR_CONSUMER_BOUNDARY: str = (
+    "advisory_transform_of_layer_b_descriptor__not_validated_physical_or_trading_claim"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,6 +109,16 @@ class FormanRicciResult:
     weighted: bool = False
     signed: bool = False
     information_loss: tuple[str, ...] = _INFORMATION_LOSS
+    layer: str = _LAYER
+    physical_claim: bool = False
+    claim_boundary: str = _CLAIM_BOUNDARY
+    projection_policy: str = _PROJECTION_POLICY
+    nan_policy: str = _NAN_POLICY
+    #: Count of off-diagonal **matrix entries** (directed, not unordered pairs)
+    #: whose correlation was non-finite (NaN/inf) and therefore excluded from the
+    #: graph. A symmetric NaN at both (i,j) and (j,i) counts as 2; a one-sided
+    #: NaN counts as 1. Zero ⟺ every off-diagonal correlation was finite.
+    nonfinite_input_count: int = 0
 
 
 class FormanRicciCurvature:
@@ -121,8 +156,15 @@ class FormanRicciCurvature:
 
     @staticmethod
     def _correlation_to_adjacency(corr: NDArray[np.float64], threshold: float) -> NDArray[np.bool_]:
-        """Threshold absolute correlation into binary adjacency."""
-        adj = np.abs(corr) > threshold
+        """Threshold absolute correlation into binary adjacency.
+
+        Non-finite correlations (NaN/inf) are never edges. ``np.abs(inf) >
+        threshold`` evaluates ``True`` and would otherwise create a phantom
+        edge from an undefined correlation; requiring finiteness excludes both
+        NaN and inf explicitly. Their count is recorded by the caller
+        (``nonfinite_input_count``) so the exclusion is auditable, not silent.
+        """
+        adj = (np.abs(corr) > threshold) & np.isfinite(corr)
         np.fill_diagonal(adj, False)
         return adj
 
@@ -159,6 +201,13 @@ class FormanRicciCurvature:
         if corr.shape != (n, n):
             raise ValueError(f"Correlation must be square, got {corr.shape}")
 
+        # Record off-diagonal non-finite correlations rather than letting them
+        # silently vanish (NaN) or fabricate an edge (inf). The diagonal is the
+        # self-correlation (1.0) and is excluded from the graph regardless.
+        finite_mask = np.isfinite(corr)
+        np.fill_diagonal(finite_mask, True)
+        nonfinite_input_count = int(np.size(finite_mask) - np.count_nonzero(finite_mask))
+
         adj = self._correlation_to_adjacency(corr, self._threshold)
         degrees = adj.sum(axis=1).astype(int)
         triangles = self._count_triangles_per_edge(adj)
@@ -176,6 +225,7 @@ class FormanRicciCurvature:
                 kappa_mean=0.0,
                 kappa_max=0.0,
                 herding_index=0.0,
+                nonfinite_input_count=nonfinite_input_count,
             )
 
         values = np.array(list(edge_curvatures.values()))
@@ -185,6 +235,7 @@ class FormanRicciCurvature:
             kappa_mean=float(values.mean()),
             kappa_max=float(values.max()),
             herding_index=float(np.mean(values > 0)),
+            nonfinite_input_count=nonfinite_input_count,
         )
 
     def compute_from_prices(
@@ -212,15 +263,27 @@ class FormanRicciCurvature:
 
         with np.errstate(invalid="ignore"):
             corr = np.corrcoef(tail, rowvar=False)
-        corr_arr: NDArray[np.float64] = np.asarray(np.nan_to_num(corr, nan=0.0), dtype=np.float64)
+        # Do NOT silently coerce NaN→0 here: a zero-variance (constant) column
+        # yields a NaN correlation row, and nan_to_num would hide it as a
+        # below-threshold zero. Pass the raw correlation through so
+        # compute_from_correlation excludes the non-finite entries from the
+        # graph and records their count in nonfinite_input_count. The edge set
+        # (and therefore the curvature) is unchanged for finite inputs.
+        corr_arr: NDArray[np.float64] = np.atleast_2d(np.asarray(corr, dtype=np.float64))
         return self.compute_from_correlation(corr_arr)
 
 
 class DualTrackRicciMonitor:
-    """Production fragility monitor: Forman (full) + Ollivier (MST).
+    """Advisory fragility monitor over a Layer-B descriptor: Forman (full) + Ollivier (MST).
 
-    Forman on full graph for speed. Ollivier on MST for accuracy.
-    Composite fragility signal from both.
+    Forman on full graph for speed. Ollivier on MST for accuracy. This is a
+    *consumer* of :class:`FormanRicciResult` — an unsigned/unweighted structural
+    descriptor — and re-expresses it as margin/herding language. Those outputs
+    (``margin_multiplier``, ``is_herding``, ``fragility_trend``) are advisory
+    transforms of that descriptor, NOT a validated physical model or trading
+    edge; the boundary is declared machine-readably on
+    :attr:`descriptor_consumer_boundary`. "Fragility"/"margin"/"herding" here are
+    names for descriptor regimes, not asserted market outcomes.
 
     Parameters
     ----------
@@ -233,6 +296,11 @@ class DualTrackRicciMonitor:
     margin_sensitivity : float
         How much margin increases per unit κ increase toward 0 (default 2.0).
     """
+
+    #: Machine-readable boundary every consumer of this monitor's outputs must
+    #: honour: margin/herding values are advisory transforms of a Layer-B
+    #: descriptor, never a validated physical or trading claim.
+    descriptor_consumer_boundary: str = _DESCRIPTOR_CONSUMER_BOUNDARY
 
     def __init__(
         self,
@@ -276,6 +344,12 @@ class DualTrackRicciMonitor:
 
         The +2 offset means: κ_min > -2 triggers escalation.
         At κ_min = 0 (herding): multiplier = base · (1 + 2·sensitivity).
+
+        Boundary: this consumes a Layer-B structural descriptor and does NOT
+        read ``result.physical_claim`` / ``result.claim_boundary``. The
+        returned multiplier is descriptor-derived and is not a validated
+        trading signal; promoting it to a live margin policy requires separate
+        validation. This is the known un-enforced descriptor→action path.
         """
         if result is None:
             if not self._history:
@@ -287,7 +361,11 @@ class DualTrackRicciMonitor:
         return self._margin_base * max(1.0, 1.0 + self._margin_sensitivity * kappa_shifted)
 
     def is_herding(self, result: FormanRicciResult | None = None) -> bool:
-        """Detect herding: κ_min approaching 0 or positive."""
+        """Detect herding: κ_min approaching 0 or positive.
+
+        Descriptor-only: a structural-coherence flag, not a validated market
+        prediction; this does not read ``result.physical_claim``.
+        """
         if result is None:
             if not self._history:
                 return False
