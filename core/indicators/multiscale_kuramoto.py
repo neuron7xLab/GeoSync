@@ -59,7 +59,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
 
 import networkx as nx
@@ -74,6 +73,7 @@ except Exception:  # pragma: no cover - executed when SciPy unavailable
 from ..utils.logging import get_logger
 from .base import BaseFeature, FeatureResult
 from .cache import FileSystemIndicatorCache, hash_input_data
+from .timeframe import TimeFrame  # re-exported for backward-compatible imports
 
 _logger = get_logger(__name__)
 
@@ -84,30 +84,6 @@ _logger = get_logger(__name__)
 # stack is core.kuramoto.network_engine.
 _LAYER: str = "market_descriptor"
 _CLAIM_BOUNDARY: str = "descriptor_only_not_predictor"
-
-
-class TimeFrame(Enum):
-    """Discrete trading horizons expressed in seconds."""
-
-    M1 = 60
-    M5 = 300
-    M15 = 900
-    H1 = 3600
-
-    @property
-    def pandas_freq(self) -> str:
-        """Return the pandas frequency string for resampling."""
-
-        return f"{int(self.value)}s"
-
-    @property
-    def seconds(self) -> int:
-        """Expose the time frame in seconds for downstream consumers."""
-
-        return int(self.value)
-
-    def __str__(self) -> str:  # pragma: no cover - tiny helper
-        return self.name
 
 
 @dataclass(slots=True)
