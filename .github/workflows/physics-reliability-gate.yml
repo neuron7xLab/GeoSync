@@ -49,7 +49,10 @@ jobs:
           python-version: '3.11'
 
       - name: Install contract dependencies
-        run: python -m pip install --upgrade pyyaml jsonschema pytest
+        # numpy is needed only because the repo-root conftest.py imports
+        # core/utils/determinism.py at collection time; the contract code itself
+        # depends only on pyyaml + jsonschema.
+        run: python -m pip install --upgrade pyyaml jsonschema pytest numpy
 
       - name: Reliability contract gate (fail-closed on declared entries + ratchet)
         run: python tools/physics/check_physics_reliability.py
