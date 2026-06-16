@@ -53,11 +53,12 @@ that are valid but evidentially dishonest.
 | `symbol` | Captured instrument symbol. |
 | `depth_level` | Pinned to `5` — this contract is exclusively the depth-5 session. |
 | `session_start_utc` / `session_end_utc` | UTC capture window; end ≥ start (validator-enforced). |
-| `baseline_id` | Reference the score is judged against; no baseline ⇒ asserted, not falsified. |
-| `null_model_id` | Registered null the session is tested against; a signal that beats no null is not evidence. |
-| `falsifier_id` | Executable falsifier that could have killed the hypothesis. |
-| `replay_command` | Command that recomputes the session from committed inputs. |
-| `negative_evidence` | Recorded falsification attempts (survival paths and kills), ≥ 1 entry. |
+| `baseline_id` | Reference the score is judged against; must **resolve** to `config/research/l2_ricci_registry.yaml` `baselines`. No baseline ⇒ asserted, not falsified. |
+| `null_model_id` | Registered null the session is tested against; must **resolve** to the registry `null_models`. A signal that beats no null is not evidence. |
+| `falsifier_id` | Executable falsifier that could have killed the hypothesis; must **resolve** to the registry `falsifiers`. |
+| `replay_command` | Command that recomputes the session from committed inputs. For an evidence session must be executable (`python`/`python3 …`); otherwise must be honestly flagged `replay_blocked: true`. |
+| `replay_blocked` | Optional boolean. `true` ⇒ the replay cannot yet be run (no real capture). A blocked replay bars any evidence status. Default `false`. |
+| `negative_evidence` | Recorded falsification attempts (survival paths and kills), ≥ 1 entry; must cover the `null_model` and `lookahead` axes for an evidence session. |
 | `semantic_validation_status` | Honest evidentiary self-label; only `PASS` authorises promotion. |
 
 ## 4. Promotion gates (all must hold)
@@ -65,18 +66,34 @@ that are valid but evidentially dishonest.
 A session may promote past `HYPOTHESIS` only when **all** hold:
 
 1. **Real data** — `data_sha256`, `config_sha256` non-zero; `git_sha` non-zero.
-2. **Replay** — `replay_command` recomputes the session from committed inputs.
-3. **Baseline** — `baseline_id` names a reference the score is judged against.
-4. **Null model** — `null_model_id` names a registered null, and the
-   `null_model` falsification axis appears in `negative_evidence`.
-5. **Falsifier** — `falsifier_id` names an executable falsifier, and the
-   `lookahead` (no-future-data) axis appears in `negative_evidence`.
+2. **Replay** — `replay_command` is an executable `python`/`python3` invocation
+   that recomputes the session from committed inputs, and `replay_blocked` is
+   not `true` (a blocked replay is not a replay).
+3. **Baseline** — `baseline_id` **resolves** to a described `baselines` entry in
+   `config/research/l2_ricci_registry.yaml`.
+4. **Null model** — `null_model_id` **resolves** to a described `null_models`
+   entry, and the `null_model` falsification axis appears in `negative_evidence`.
+5. **Falsifier** — `falsifier_id` **resolves** to a described `falsifiers`
+   entry, and the `lookahead` (no-future-data) axis appears in `negative_evidence`.
 6. **Negative evidence** — at least one non-`BLOCKED` attempt is recorded; an
    all-`BLOCKED` session has not been adversarially tested.
 7. **Honest status** — `semantic_validation_status: PASS`; a `PLACEHOLDER` must
-   not carry a real data hash.
+   not carry a real data, config, or git hash (a real-data session cannot run in
+   placeholder mode).
 
 Any unmet gate keeps the artifact at `HYPOTHESIS`. The validator is fail-closed.
+
+### 4a. Registry resolution (P1-3 hardening)
+
+`baseline_id`, `null_model_id`, and `falsifier_id` are provenance only if they
+name something real. `config/research/l2_ricci_registry.yaml` is the reference
+registry of baselines, null models, and falsifiers; an id that does not resolve
+to a described entry there is an unfalsifiable placeholder and is rejected by
+`tools/research/check_l2_registry_refs.py` (and by the evidence gate, which
+reuses the same resolver). The `*_unset` ids the `--dry-run` skeleton emits are
+deliberately **not** registered: a placeholder must not resolve to a real
+reference. Registering a baseline is **not** registering a result — the line
+stays `HYPOTHESIS` until a real depth-5 capture exists.
 
 ## 5. Rejection (the line can kill itself)
 
@@ -95,6 +112,10 @@ python tools/research/run_l2_ricci_session.py --dry-run
 # Validate a recorded session (shape + promotion-readiness):
 python tools/research/run_l2_ricci_session.py --artifact path/to/session.json
 
+# Resolve baseline/null/falsifier ids against the reference registry:
+python tools/research/check_l2_registry_refs.py --artifact path/to/session.json
+
 # Contract tests:
 pytest -q tests/research/test_l2_ricci_session_schema.py
+pytest -q tests/research/test_l2_registry_refs.py
 ```
