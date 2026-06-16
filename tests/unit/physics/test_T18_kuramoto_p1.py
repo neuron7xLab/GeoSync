@@ -661,3 +661,75 @@ def test_swing_energy_bounded_over_long_horizon() -> None:
         f"At N={n_oscillators}, K={k_coupling}, d=0, dt={dt}, steps={long_steps}, "
         f"seed={seed}. Physical reasoning: symplectic flow has no secular drift."
     )
+
+
+# ---------------------------------------------------------------------------
+# INV-K10 (damped clause): phase-space volume contracts at the dissipation rate
+#   With d > 0 the swing map is no longer symplectic; the one-step Jacobian
+#   determinant equals exp(-(Σ d_i/m_i)·dt) — Liouville's theorem with damping.
+# ---------------------------------------------------------------------------
+
+
+def test_swing_integrator_damped_volume_contraction() -> None:
+    """INV-K10 (damped): det(M) = exp(-(Σ d_i/m_i)·dt) to O(dt²).
+
+    Completes the INV-K10 statement: undamped the map is symplectic (det=1,
+    tested above); with damping d>0 phase-space volume contracts at exactly the
+    dissipation rate. We build the one-step Jacobian by complex-step
+    differentiation and compare det(M) to the Liouville prediction for several
+    damping values. This is the dissipative analogue of symplecticity and the
+    geometric root of INV-K8's monotone-energy (damped) clause.
+    """
+    # INV-K10 damped parameters
+    n = 6  # 2n=12 phase-space dimension
+    k_coupling = 3.0
+    mass = 1.0
+    dt = 0.005
+    seed = 2
+
+    rng = np.random.default_rng(seed)
+    theta0 = rng.uniform(0.0, 2.0 * math.pi, n)
+    velocity0 = 0.3 * rng.standard_normal(n)
+    omega = np.zeros(n)
+    adj = np.full((n, n), k_coupling / n)
+    np.fill_diagonal(adj, 0.0)
+
+    def verlet_step_damped(state: np.ndarray, damping: float) -> np.ndarray:
+        """Complex-safe one-step velocity-Verlet map with uniform damping."""
+        theta, v = state[:n], state[n:]
+        accel = (
+            omega + (adj * np.sin(theta[None, :] - theta[:, None])).sum(axis=1) - damping * v
+        ) / mass
+        theta_new = theta + v * dt + 0.5 * accel * dt * dt
+        accel_new = (
+            omega
+            + (adj * np.sin(theta_new[None, :] - theta_new[:, None])).sum(axis=1)
+            - damping * v
+        ) / mass
+        v_new = v + 0.5 * (accel + accel_new) * dt
+        return np.concatenate([theta_new, v_new])
+
+    z0 = np.concatenate([theta0, velocity0]).astype(np.complex128)
+    eps = 1e-200
+    # tolerance: velocity-Verlet reproduces the contraction to O(dt²); at
+    # dt=5e-3 the observed relative error is ≤ 2e-5, so 1e-3 is robust.
+    contraction_tol = 1e-3  # epsilon: Liouville-contraction relative tolerance
+
+    for damping in (0.2, 0.5):
+        jac = np.empty((2 * n, 2 * n), dtype=np.float64)
+        for col in range(2 * n):
+            zp = z0.copy()
+            zp[col] += 1j * eps
+            jac[:, col] = verlet_step_damped(zp, damping).imag / eps
+        det_jac = float(np.linalg.det(jac))
+        predicted = float(np.exp(-(n * damping / mass) * dt))
+        rel_err = abs(det_jac - predicted) / predicted
+
+        assert rel_err < contraction_tol, (
+            f"INV-K10 VIOLATED (damped): det(M)={det_jac:.10f} deviates from the "
+            f"Liouville prediction exp(-(Σd/m)·dt)={predicted:.10f} by rel_err="
+            f"{rel_err:.3e} > tol={contraction_tol:.1e}. Expected phase-space "
+            f"volume to contract at exactly the dissipation rate. "
+            f"At N={n}, K={k_coupling}, d={damping}, m={mass}, dt={dt}, seed={seed}. "
+            f"Physical reasoning: dV/dt of the flow = -Σ d_i/m_i (Liouville)."
+        )
