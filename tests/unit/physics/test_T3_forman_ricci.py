@@ -156,3 +156,67 @@ class TestInputValidation:
     def test_insufficient_prices(self, frc):
         with pytest.raises(ValueError):
             frc.compute_from_prices(np.ones((1, 5)))
+
+
+class TestRepresentationHonesty:
+    """Metamorphic locks for the declared unweighted/unsigned semantics.
+
+    These tests do not change behaviour; they pin the *actual* semantics of
+    the binarized ``|ρ| > threshold`` graph so the module cannot silently
+    drift to claiming weight- or sign-sensitivity it does not have. The
+    provenance fields are asserted to declare exactly the information the
+    projection discards.
+    """
+
+    def test_provenance_fields_declare_unweighted_unsigned(self) -> None:
+        frc = FormanRicciCurvature(threshold=0.3)
+        corr = np.full((4, 4), 0.8)
+        np.fill_diagonal(corr, 1.0)
+        result = frc.compute_from_correlation(corr)
+        assert result.weighted is False
+        assert result.signed is False
+        assert result.representation == "graph"
+        assert "edge_weight_magnitude" in result.information_loss
+        assert "correlation_sign" in result.information_loss
+
+    def test_weight_insensitivity_is_declared_not_hidden(self) -> None:
+        # Two graphs with IDENTICAL above-threshold topology but different
+        # magnitudes must produce identical curvature — the honest signature
+        # of an unweighted method. The result declares weighted=False so this
+        # invariance is documented, not a masked "weighted" claim.
+        frc = FormanRicciCurvature(threshold=0.3)
+        n = 4
+        weak = np.full((n, n), 0.4)
+        np.fill_diagonal(weak, 1.0)
+        strong = np.full((n, n), 0.95)
+        np.fill_diagonal(strong, 1.0)
+        r_weak = frc.compute_from_correlation(weak)
+        r_strong = frc.compute_from_correlation(strong)
+        assert r_weak.edge_curvatures == r_strong.edge_curvatures
+        assert r_weak.weighted is False and r_strong.weighted is False
+
+    def test_sign_erasure_is_recorded(self) -> None:
+        # ρ = +0.8 and ρ = −0.8 collapse to the same edge under |ρ|, so the
+        # anti-correlation case yields identical output. This is real
+        # information loss and must be declared via information_loss / signed.
+        frc = FormanRicciCurvature(threshold=0.3)
+        n = 4
+        pos = np.full((n, n), 0.8)
+        np.fill_diagonal(pos, 1.0)
+        neg = -np.full((n, n), 0.8)
+        np.fill_diagonal(neg, 1.0)
+        r_pos = frc.compute_from_correlation(pos)
+        r_neg = frc.compute_from_correlation(neg)
+        assert r_pos.edge_curvatures == r_neg.edge_curvatures
+        assert r_pos.signed is False
+        assert "correlation_sign" in r_pos.information_loss
+
+    def test_empty_graph_result_also_declares_provenance(self) -> None:
+        # A below-threshold (edgeless) correlation matrix still returns a
+        # provenance-bearing result, not a bare zero with no declared loss.
+        frc = FormanRicciCurvature(threshold=0.9)
+        corr = np.eye(3) + 0.1 * (np.ones((3, 3)) - np.eye(3))
+        result = frc.compute_from_correlation(corr)
+        assert result.edge_curvatures == {}
+        assert result.weighted is False
+        assert result.information_loss == ("edge_weight_magnitude", "correlation_sign")
