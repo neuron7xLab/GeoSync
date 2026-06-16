@@ -86,10 +86,18 @@ def _schema_validate(contract: dict[str, Any]) -> list[str]:
     ]
 
 
-def check(*, strict_coverage: bool = False) -> dict[str, Any]:
-    """Run the contract check and return a structured result."""
+def check(
+    *, strict_coverage: bool = False, contract: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Run the contract check and return a structured result.
+
+    ``contract`` defaults to the on-disk PHYSICS_RELIABILITY.yaml; passing a dict
+    lets callers (and mutation tests) exercise the detection logic on synthetic
+    contracts — e.g. an entry citing a phantom invariant the module lacks.
+    """
     hard: list[str] = []
-    contract = _load_yaml(CONTRACT_PATH)
+    if contract is None:
+        contract = _load_yaml(CONTRACT_PATH)
     hard.extend(_schema_validate(contract))
 
     scope_roots = contract.get("scope_roots", []) if not hard else []
