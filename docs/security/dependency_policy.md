@@ -69,7 +69,13 @@ on first exception).
 - `scripts/security/check_dependency_drift.py` — validates manifest specifiers
   against the **lockfile** (orthogonal: lock satisfaction, not cross-manifest
   floor consistency).
-- `tests/security/test_checkpoint_loading.py` — enforces `torch.load(...,
-  weights_only=True)`; the repository contains no `torch.jit.{script,trace,load}`
-  usage, so the torch deserialization advisory dismissal is enforced by that
-  test rather than a separate scanner.
+- `tests/security/test_checkpoint_loading.py` — asserts the `geosync_*`
+  checkpoint loaders pass `torch.load(..., weights_only=True)` at runtime
+  (behavioural, two call sites).
+- `tools/security/check_forbidden_torch_jit.py` — repo-wide **static** gate
+  (P0-3) that fails closed on `torch.jit.{script,trace,load}` and on any
+  `torch.load` call lacking the literal `weights_only=True`. This is the
+  control that *enforces* the torch deserialization-advisory dismissal across
+  every call site, not just the two covered by the behavioural test. Policy:
+  `docs/security/forbidden_torch_jit_policy.md`; reviewed exemptions:
+  `tools/security/forbidden_torch_jit_allowlist.json`.
