@@ -81,6 +81,14 @@ from .relativity import (
     time_dilation_factor,
     velocity_addition,
 )
+from .stochastic_thermodynamics import (
+    delta_free_energy,
+    harmonic_free_energy,
+    jarzynski_average,
+    langevin_ensemble_step,
+    stationary_samples,
+    stiffness_ramp_work,
+)
 from .thermodynamic_risk import ThermodynamicRiskGate
 from .thermodynamics import (
     boltzmann_entropy,
@@ -184,4 +192,11 @@ __all__ = [
     "DiffusionVolatilityPredictor",
     "VolatilityFrontPrediction",
     "DiffusionBacktestResult",
+    # Stochastic thermodynamics — Jarzynski / equipartition / second law (T8)
+    "harmonic_free_energy",
+    "delta_free_energy",
+    "langevin_ensemble_step",
+    "stiffness_ramp_work",
+    "stationary_samples",
+    "jarzynski_average",
 ]
