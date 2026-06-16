@@ -220,3 +220,124 @@ class TestRepresentationHonesty:
         assert result.edge_curvatures == {}
         assert result.weighted is False
         assert result.information_loss == ("edge_weight_magnitude", "correlation_sign")
+
+
+class TestLayerBoundaryAndNanPolicy:
+    """Layer-B labeling, claim boundary, and non-finite-input honesty.
+
+    Extends the representation-honesty contract: the result declares its layer
+    and claim boundary so ``herding_index`` cannot be read as a physics or
+    trading claim without validation, and non-finite correlations are recorded
+    and excluded rather than silently erased (or fabricating a phantom edge).
+    """
+
+    def test_layer_and_claim_boundary_declared(self) -> None:
+        frc = FormanRicciCurvature(threshold=0.3)
+        corr = np.full((4, 4), 0.8)
+        np.fill_diagonal(corr, 1.0)
+        result = frc.compute_from_correlation(corr)
+        assert result.layer == "market_descriptor"
+        assert result.physical_claim is False
+        assert result.claim_boundary == "derived_unsigned_unweighted_topology_descriptor"
+        assert result.projection_policy == "abs_correlation_threshold_binary"
+        assert result.nan_policy == "nonfinite_excluded_and_recorded"
+
+    def test_herding_index_carries_descriptor_boundary(self) -> None:
+        # Declarative provenance (not enforcement): any result exposing
+        # herding_index also exposes physical_claim=False + the descriptor
+        # claim_boundary, so a consumer that READS them learns the value is
+        # descriptor-only. Nothing forces that read — DualTrackRicciMonitor is
+        # the known un-enforced descriptor->action path.
+        frc = FormanRicciCurvature(threshold=0.3)
+        corr = np.full((4, 4), 0.8)
+        np.fill_diagonal(corr, 1.0)
+        result = frc.compute_from_correlation(corr)
+        assert result.herding_index >= 0.0
+        assert result.physical_claim is False
+        assert "descriptor" in result.claim_boundary
+
+    def test_nan_corr_not_silently_erased(self) -> None:
+        # A NaN and an inf correlation must be recorded (nonfinite_input_count)
+        # and excluded from the graph — NOT silently dropped, and critically
+        # NOT fabricating an edge: np.abs(inf) > threshold is True, so without
+        # the finiteness guard an inf would create a phantom edge.
+        frc = FormanRicciCurvature(threshold=0.5)
+        n = 4
+        corr = np.full((n, n), 0.9)  # all finite strong edges by default
+        np.fill_diagonal(corr, 1.0)
+        corr[0, 1] = corr[1, 0] = np.nan
+        corr[2, 3] = corr[3, 2] = np.inf
+        result = frc.compute_from_correlation(corr)
+        # 2 symmetric off-diagonal pairs = 4 non-finite entries recorded
+        assert result.nonfinite_input_count == 4
+        # neither the NaN pair nor the inf pair is an edge
+        assert (0, 1) not in result.edge_curvatures
+        assert (2, 3) not in result.edge_curvatures
+        # a genuinely finite strong edge survives
+        assert (0, 2) in result.edge_curvatures
+
+    def test_inf_correlation_does_not_create_phantom_edge(self) -> None:
+        # Isolated regression for the latent bug: a lone inf among otherwise
+        # sub-threshold correlations must yield NO edges, not one phantom edge.
+        frc = FormanRicciCurvature(threshold=0.5)
+        n = 3
+        corr = np.full((n, n), 0.1)
+        np.fill_diagonal(corr, 1.0)
+        corr[0, 1] = corr[1, 0] = np.inf
+        result = frc.compute_from_correlation(corr)
+        assert result.edge_curvatures == {}
+        assert result.nonfinite_input_count == 2
+
+    def test_finite_inputs_unchanged_count_zero(self) -> None:
+        # Regression: a fully finite correlation matrix records zero non-finite
+        # and produces the same curvature as before the hardening.
+        frc = FormanRicciCurvature(threshold=0.3)
+        corr = np.full((4, 4), 0.8)
+        np.fill_diagonal(corr, 1.0)
+        result = frc.compute_from_correlation(corr)
+        assert result.nonfinite_input_count == 0
+        assert all(v > 0 for v in result.edge_curvatures.values())
+
+    def test_nonfinite_count_is_directed_entries_not_pairs(self) -> None:
+        # Semantics lock (PR #1102 review): nonfinite_input_count counts matrix
+        # ENTRIES, not unordered pairs. A one-sided NaN (only (0,1), not (1,0))
+        # counts as exactly 1.
+        frc = FormanRicciCurvature(threshold=0.3)
+        corr = np.full((3, 3), 0.8)
+        np.fill_diagonal(corr, 1.0)
+        corr[0, 1] = np.nan  # asymmetric: (1, 0) stays finite
+        result = frc.compute_from_correlation(corr)
+        assert result.nonfinite_input_count == 1
+
+
+class TestMonitorConsumerBoundary:
+    """The descriptor *consumer* (monitor) must declare its own boundary.
+
+    PR #1102 review (P1 semantic leak): ``DualTrackRicciMonitor`` re-expresses a
+    Layer-B descriptor as margin/herding language, so it must carry a
+    machine-readable boundary marking those outputs as advisory transforms, not
+    a validated physical or trading claim.
+    """
+
+    def test_monitor_declares_descriptor_consumer_boundary(self) -> None:
+        monitor = DualTrackRicciMonitor()
+        boundary = monitor.descriptor_consumer_boundary
+        assert "advisory" in boundary
+        assert "not_validated" in boundary
+        # class-level so static consumers can read it without instantiating
+        assert DualTrackRicciMonitor.descriptor_consumer_boundary == boundary
+
+    def test_degenerate_price_input_recorded_not_crashed(self) -> None:
+        # A constant (zero-variance) column yields NaN correlations from
+        # corrcoef. They must be excluded and counted, not crash and not
+        # zero-filled into phantom no-edges. Output stays a finite descriptor.
+        frc = FormanRicciCurvature(threshold=0.3)
+        rng = np.random.default_rng(0)
+        prices = 100 + np.cumsum(rng.normal(0, 1, (40, 4)), axis=0)
+        prices[:, 1] = 100.0  # degenerate constant column
+        result = frc.compute_from_prices(prices, window=20)
+        assert isinstance(result, FormanRicciResult)
+        assert np.isfinite(result.kappa_mean)
+        # the degenerate column's correlations are undefined → recorded, excluded
+        assert result.nonfinite_input_count > 0
+        assert all(1 not in edge for edge in result.edge_curvatures)
