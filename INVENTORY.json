@@ -74,6 +74,10 @@
       "sha256": "5b2afe9b355891c3e4f9bd65ee3faed9d20d2c6406db811841c7ee8953a09c76"
     },
     {
+      "path": "scripts/ci/check_negative_evidence.py",
+      "sha256": "8d1fc0d696924ea87c8355b5492f5c4f822d344da14eae4f8f3e7921e85772e2"
+    },
+    {
       "path": "scripts/ci/check_pr_gate_contract.py",
       "sha256": "d474e8af748173b26158e1dba6d0846ff03a44c985dc2b5a14ca24d8a7de2ba4"
     },
@@ -99,7 +103,7 @@
     },
     {
       "path": "scripts/ci/evidence_gate.sh",
-      "sha256": "b5e30016a0b8e210a82ce32d81a158f767357f21be0ca5c0af2c2ad55c635722"
+      "sha256": "46220dbbcd3cf9d3b2e2a36d3cfdc51fdea41de943bfa62a4c332e467c6c9b95"
     },
     {
       "path": "scripts/ci/external_run_intake.py",
@@ -115,7 +119,7 @@
     },
     {
       "path": "scripts/ci/prove_repo_integrity.sh",
-      "sha256": "bda7c467ea6aac793532b67120e86c3eedacef3ba987b822a93bc9faeac21658"
+      "sha256": "93ed5e4e68a3ec582542d8abb9af45798c248b4fbb60ac76e6c8c946d9beb4fc"
     },
     {
       "path": "scripts/ci/release_gate.py",

@@ -54,6 +54,10 @@ on:
       - 'scripts/ci/check_calibration_drift.py'
       - 'tests/scripts/test_check_calibration_drift.py'
       - 'analytics/signals/threshold_calibration.py'
+      # Negative-evidence registry (4 categories):
+      - 'governance/NEGATIVE_EVIDENCE.yaml'
+      - 'scripts/ci/check_negative_evidence.py'
+      - 'tests/scripts/test_check_negative_evidence.py'
   push:
     branches: [main]
   workflow_dispatch:
@@ -126,6 +130,12 @@ jobs:
 
       - name: pytest — calibration drift gate
         run: python -m pytest tests/scripts/test_check_calibration_drift.py -q
+
+      - name: Negative-evidence registry gate (4 categories)
+        run: python scripts/ci/check_negative_evidence.py
+
+      - name: pytest — negative-evidence gate
+        run: python -m pytest tests/scripts/test_check_negative_evidence.py -q
 
       - name: Claim-to-artifact graph gate
         run: python scripts/ci/check_claim_artifact_graph.py
