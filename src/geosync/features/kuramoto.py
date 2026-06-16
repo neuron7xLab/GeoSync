@@ -60,6 +60,13 @@ PROXY_INFORMATION_LOSS = (
     "phase_unwrapping",
     "oscillator_frequency",
 )
+# Downstream claim status (issue #1107). These travel with the result so a
+# consumer cannot read the proxy synchrony as predictive, tradeable, or
+# validated. ``validation_status`` is the single token a downstream feature
+# pipeline checks before any signal use: it is NEVER "validated" for this proxy.
+PROXY_PREDICTIVE_CLAIM = False
+PROXY_TRADING_CLAIM = False
+PROXY_VALIDATION_STATUS = "descriptor_only"
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +99,13 @@ class KuramotoResult:
         Kind of the ``labels`` field (``descriptor_regime``).
     information_loss : tuple[str, ...]
         What the proxy angle discards relative to a true analytic-signal phase.
+    predictive_claim : bool
+        Always ``False``: this descriptor asserts no predictive validity.
+    trading_claim : bool
+        Always ``False``: this descriptor is not a trading signal.
+    validation_status : str
+        Always ``"descriptor_only"`` — never "validated"; a downstream consumer
+        must treat it as unvalidated provenance, not a signal.
     """
 
     R: Series
@@ -102,6 +116,9 @@ class KuramotoResult:
     claim_boundary: str = PROXY_CLAIM_BOUNDARY
     regime_kind: str = PROXY_REGIME_KIND
     information_loss: tuple[str, ...] = PROXY_INFORMATION_LOSS
+    predictive_claim: bool = PROXY_PREDICTIVE_CLAIM
+    trading_claim: bool = PROXY_TRADING_CLAIM
+    validation_status: str = PROXY_VALIDATION_STATUS
 
 
 class KuramotoSynchrony:
@@ -196,6 +213,9 @@ class KuramotoSynchrony:
             "claim_boundary": PROXY_CLAIM_BOUNDARY,
             "regime_kind": PROXY_REGIME_KIND,
             "information_loss": PROXY_INFORMATION_LOSS,
+            "predictive_claim": PROXY_PREDICTIVE_CLAIM,
+            "trading_claim": PROXY_TRADING_CLAIM,
+            "validation_status": PROXY_VALIDATION_STATUS,
         }
 
     def result(self, prices: DataFrame) -> KuramotoResult:
