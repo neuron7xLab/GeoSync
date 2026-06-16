@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -46,7 +46,10 @@ __all__ = [
     "SecondOrderDivergenceError",
     "SecondOrderKuramotoEngine",
     "SecondOrderResult",
+    "SecondOrderStabilityReport",
 ]
+
+_MetaValue = Union[str, int, float, bool, None]
 
 _logger = logging.getLogger(__name__)
 
@@ -156,6 +159,52 @@ class SecondOrderResult:
             if np.std(v[k]) > final_spread + threshold:
                 return float(t[min(k + 1, len(t) - 1)])
         return 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class SecondOrderStabilityReport:
+    """Offline numerical-stability audit of an integrated second-order run.
+
+    This complements the engine's *runtime* fail-closed guard (non-finite +
+    optional RoCoF, ``SecondOrderResult.audit_scope``): it is a post-hoc
+    analysis of a completed trajectory that closes the gaps the runtime guard
+    leaves open (issue #1109). Every field is a measured diagnostic, not an
+    asserted physical law:
+
+    energy_like_drift
+        Relative drift of the swing energy
+        ``E = ½Σ mᵢθ̇ᵢ² − Σ ωᵢθᵢ − ½Σ adjᵢⱼ cos(θⱼ−θᵢ)`` over the trajectory,
+        ``(max E − min E)/max|E|``. In the conservative regime (ω≡0, d≡0) the
+        symplectic Störmer–Verlet map keeps this bounded (INV-K8/K9/K10).
+    energy_conservative_regime
+        Whether ω≡0 and d≡0, i.e. energy is expected to be (near-)conserved.
+    phase_spread_bound
+        Maximum over time of ``max_i θᵢ − min_i θᵢ`` (raw, unwrapped phases).
+    stiffness_ratio
+        ``ω_fast · dt`` where ``ω_fast = √(λ_max(L_adj)/m_min)`` is the fastest
+        linearised swing mode about synchrony (L_adj = Laplacian of the
+        coupling matrix). Explicit fixed-step integration only resolves modes
+        with ``ω·dt ≪ 1``.
+    cross_solver_max_deviation
+        Max state deviation between the engine's Verlet trajectory and an
+        independent explicit RK4 integration of the same IVP over the audit
+        horizon — a genuine cross-implementation check.
+    remaining_gaps
+        Stability properties this audit still does NOT cover.
+    """
+
+    audit_scope: str
+    energy_like_drift: float
+    energy_conservative_regime: bool
+    phase_spread_bound: float
+    phase_spread_finite: bool
+    stiffness_ratio: float
+    stiffness_regime: str
+    cross_solver_reference: str
+    cross_solver_max_deviation: float
+    cross_solver_agrees: bool
+    solver_metadata: dict[str, _MetaValue]
+    remaining_gaps: tuple[str, ...]
 
 
 class SecondOrderKuramotoEngine:
@@ -300,6 +349,130 @@ class SecondOrderKuramotoEngine:
             config=cfg,
         )
         return SecondOrderResult(base=base, velocities=velocities)
+
+    def audit(
+        self, *, cross_solver_steps: int = 200, agreement_tol: float = 1e-3
+    ) -> SecondOrderStabilityReport:
+        """Run the engine and produce a full numerical-stability audit (#1109).
+
+        Closes the gaps the runtime guard leaves open: energy drift, phase
+        spread, solver metadata, stiffness regime, and an independent
+        cross-solver agreement check. Does not mutate or weaken the dynamics.
+        """
+        result = self.run()
+        theta = result.base.phases
+        vel = result.velocities
+        cfg = self._cfg
+        dt = cfg.dt
+        m, d, omega, adj = self._mass, self._damping, self._omega, self._adj
+
+        # --- energy-like drift: swing energy over the trajectory ---
+        kinetic = 0.5 * (m * vel * vel).sum(axis=1)
+        drive = -(omega * theta).sum(axis=1)
+        delta = theta[:, None, :] - theta[:, :, None]
+        v_coup = -0.5 * np.einsum("ij,tij->t", adj, np.cos(delta))
+        energy = kinetic + drive + v_coup
+        e_scale = float(np.abs(energy).max()) + 1e-12
+        energy_like_drift = float((energy.max() - energy.min()) / e_scale)
+        conservative = bool(np.allclose(omega, 0.0) and np.allclose(d, 0.0))
+
+        # --- phase spread (raw, unwrapped) ---
+        spread = theta.max(axis=1) - theta.min(axis=1)
+        phase_spread_bound = float(spread.max())
+        phase_spread_finite = bool(np.isfinite(spread).all())
+
+        # --- stiffness: fastest linearised swing mode vs dt ---
+        adj_sym = 0.5 * (adj + adj.T)
+        laplacian = np.diag(adj_sym.sum(axis=1)) - adj_sym
+        lam_max = float(np.linalg.eigvalsh(laplacian).max())
+        # bounds: a graph Laplacian is positive semi-definite, so λ_max ≥ 0 in
+        # exact arithmetic; eigvalsh can return a tiny negative due to rounding.
+        # Floor at 0 keeps the sqrt real — a numerical guard, not a physics clamp.
+        lam_max_nonneg = max(lam_max, 0.0)
+        omega_fast = float(np.sqrt(lam_max_nonneg / float(m.min())))
+        stiffness_ratio = float(omega_fast * dt)
+        if stiffness_ratio <= 0.1:
+            stiffness_regime = "resolved"
+        elif stiffness_ratio <= 1.0:
+            stiffness_regime = "marginally_resolved"
+        else:
+            stiffness_regime = "underresolved_stiff"
+
+        # --- cross-solver: independent explicit RK4 over the audit horizon ---
+        # bounds: clamp the cross-solver horizon to [1, steps] — at least one
+        # step to compare, never beyond the integrated trajectory. Not physics.
+        horizon = max(1, min(int(cross_solver_steps), cfg.steps))
+        rk_theta, rk_v = self._rk4_reference(horizon)
+        deviation = float(
+            max(
+                np.abs(rk_theta - theta[horizon]).max(),
+                np.abs(rk_v - vel[horizon]).max(),
+            )
+        )
+        cross_solver_agrees = bool(np.isfinite(deviation) and deviation <= agreement_tol)
+
+        solver_metadata: dict[str, _MetaValue] = {
+            "integrator": "stoermer_verlet",
+            "order": 2,
+            "symplectic": True,
+            "adaptive": False,
+            "fixed_step": True,
+            "dt": float(dt),
+            "steps": int(cfg.steps),
+            "rtol": None,
+            "atol": None,
+            "mass_min": float(m.min()),
+            "mass_max": float(m.max()),
+            "damping_min": float(d.min()),
+            "damping_max": float(d.max()),
+        }
+
+        return SecondOrderStabilityReport(
+            audit_scope="energy_phase_solver_stiffness_crosssolver",
+            energy_like_drift=energy_like_drift,
+            energy_conservative_regime=conservative,
+            phase_spread_bound=phase_spread_bound,
+            phase_spread_finite=phase_spread_finite,
+            stiffness_ratio=stiffness_ratio,
+            stiffness_regime=stiffness_regime,
+            cross_solver_reference="explicit_rk4",
+            cross_solver_max_deviation=deviation,
+            cross_solver_agrees=cross_solver_agrees,
+            solver_metadata=solver_metadata,
+            remaining_gaps=(
+                "full_lyapunov_spectrum",
+                "long_horizon_secular_growth",
+                "heterogeneous_damping_modal_analysis",
+            ),
+        )
+
+    def _rk4_reference(self, steps: int) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        """Independent explicit RK4 integration of the same IVP (cross-check).
+
+        A different integrator than the engine's symplectic Verlet, so close
+        agreement is evidence the Verlet trajectory is correct rather than a
+        self-consistent artefact.
+        """
+        dt = self._cfg.dt
+        inv_m = 1.0 / self._mass
+        omega, d = self._omega, self._damping
+
+        def deriv(
+            theta: NDArray[np.float64], v: NDArray[np.float64]
+        ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+            accel: NDArray[np.float64] = inv_m * (omega + self._coupling(theta) - d * v)
+            return v, accel
+
+        theta = self._theta0.copy()
+        v = self._v0.copy()
+        for _ in range(steps):
+            k1t, k1v = deriv(theta, v)
+            k2t, k2v = deriv(theta + 0.5 * dt * k1t, v + 0.5 * dt * k1v)
+            k3t, k3v = deriv(theta + 0.5 * dt * k2t, v + 0.5 * dt * k2v)
+            k4t, k4v = deriv(theta + dt * k3t, v + dt * k3v)
+            theta = theta + (dt / 6.0) * (k1t + 2.0 * k2t + 2.0 * k3t + k4t)
+            v = v + (dt / 6.0) * (k1v + 2.0 * k2v + 2.0 * k3v + k4v)
+        return theta, v
 
     def _coupling(self, theta: NDArray[np.float64]) -> NDArray[np.float64]:
         """Compute coupling forces Σ_j A_ij sin(θ_j - θ_i)."""
