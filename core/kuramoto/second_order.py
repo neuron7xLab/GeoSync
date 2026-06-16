@@ -42,9 +42,34 @@ from numpy.typing import NDArray
 from .config import KuramotoConfig
 from .engine import KuramotoResult, _order_parameter
 
-__all__ = ["SecondOrderKuramotoEngine", "SecondOrderResult"]
+__all__ = [
+    "SecondOrderDivergenceError",
+    "SecondOrderKuramotoEngine",
+    "SecondOrderResult",
+]
 
 _logger = logging.getLogger(__name__)
+
+
+class SecondOrderDivergenceError(ValueError):
+    """Fail-closed signal that the integrated state stopped being admissible.
+
+    Raised by :meth:`SecondOrderKuramotoEngine.run` under the INV-HPC2
+    ``finite in → finite out, else fail closed`` discipline:
+
+    * a non-finite (NaN/Inf) phase or velocity appeared at a step, or
+    * an opted-in ``rocof_max`` rate-of-change-of-frequency bound was
+      exceeded (|θ̈_i| · ... — see ``rocof_max`` below).
+
+    Subclasses :class:`ValueError` so existing ``except ValueError`` contract
+    handlers keep working; the carried attributes name the offending step and
+    the divergence so the failure is diagnosable rather than silent.
+    """
+
+    def __init__(self, message: str, *, step: int, kind: str) -> None:
+        super().__init__(message)
+        self.step = step
+        self.kind = kind
 
 
 @dataclass
@@ -114,6 +139,14 @@ class SecondOrderKuramotoEngine:
         Damping coefficient(s).  Scalar or array(N).
     velocity0 : NDArray | None
         Initial angular velocities.  Default: zeros (standstill).
+    rocof_max : float | None
+        Optional fail-closed bound on the instantaneous rate-of-change-of-
+        frequency, max_i |θ̇_i(k+1) − θ̇_i(k)| / dt (the same quantity reported
+        descriptively as ``max_rocof`` in the summary).  Default ``None`` leaves
+        the bound OFF, so a healthy run is byte-identical to prior behaviour.
+        When set to a finite positive value, a step whose RoCoF exceeds it
+        raises :class:`SecondOrderDivergenceError` instead of letting an
+        unphysical frequency excursion propagate into the summary (INV-HPC2).
     """
 
     def __init__(
@@ -122,11 +155,18 @@ class SecondOrderKuramotoEngine:
         mass: float | NDArray[np.float64] = 1.0,
         damping: float | NDArray[np.float64] = 0.1,
         velocity0: NDArray[np.float64] | None = None,
+        rocof_max: float | None = None,
     ) -> None:
         self._cfg = config
         N = config.N
         self._omega, self._theta0 = self._resolve_ic(config)
         self._adj = self._resolve_adj(config)
+
+        if rocof_max is not None and not (np.isfinite(rocof_max) and rocof_max > 0.0):
+            raise ValueError(
+                f"'rocof_max' must be a finite positive float when provided; got {rocof_max!r}."
+            )
+        self._rocof_max = float(rocof_max) if rocof_max is not None else None
 
         # Broadcast mass and damping to per-oscillator arrays
         self._mass = np.broadcast_to(np.asarray(mass, dtype=np.float64), (N,)).copy()
@@ -170,15 +210,49 @@ class SecondOrderKuramotoEngine:
         m = self._mass
         d = self._damping
         inv_m = 1.0 / m
+        rocof_max = self._rocof_max
+        inv_dt = 1.0 / dt
 
         for k in range(steps):
             # Compute acceleration: a = (1/m)(ω + coupling - d·v)
             accel = inv_m * (self._omega + self._coupling(theta) - d * v)
 
-            # Velocity Verlet integration (symplectic, energy-conserving)
+            # Velocity Verlet integration (symplectic, energy-conserving).
+            # INV-K8/K9/K10: integrator math is untouched; the guards below only
+            # read the post-step state and never feed back into the dynamics.
             theta_new = theta + v * dt + 0.5 * accel * dt * dt
             accel_new = inv_m * (self._omega + self._coupling(theta_new) - d * v)
             v_new = v + 0.5 * (accel + accel_new) * dt
+
+            # INV-HPC2: finite in -> finite out, else fail closed. A non-finite
+            # state can never produce meaningful phases/summary, so stop here and
+            # name the step rather than propagate NaN/Inf silently.
+            if not (np.isfinite(theta_new).all() and np.isfinite(v_new).all()):
+                raise SecondOrderDivergenceError(
+                    f"INV-HPC2 VIOLATED: non-finite second-order state at step {k} "
+                    f"(theta finite={bool(np.isfinite(theta_new).all())}, "
+                    f"velocity finite={bool(np.isfinite(v_new).all())}). "
+                    f"Integration diverged (NaN/Inf); refusing to emit a "
+                    f"non-finite trajectory. At N={N}, K={cfg.K:.4f}, dt={dt}, "
+                    f"steps={steps}.",
+                    step=k,
+                    kind="non_finite",
+                )
+
+            # Optional opted-in RoCoF bound (default OFF => byte-identical run).
+            if rocof_max is not None:
+                step_rocof = float(np.max(np.abs(v_new - v)) * inv_dt)
+                if step_rocof > rocof_max:
+                    raise SecondOrderDivergenceError(
+                        f"INV-HPC2 VIOLATED: RoCoF {step_rocof:.6g} exceeded bound "
+                        f"rocof_max={rocof_max:.6g} at step {k}. The frequency "
+                        f"changed faster than the configured stability limit; "
+                        f"failing closed instead of reporting an unphysical "
+                        f"max_rocof. At N={N}, K={cfg.K:.4f}, dt={dt}, "
+                        f"steps={steps}.",
+                        step=k,
+                        kind="rocof_exceeded",
+                    )
 
             theta = theta_new
             v = v_new
