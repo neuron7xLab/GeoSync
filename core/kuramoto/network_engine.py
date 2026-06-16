@@ -140,7 +140,22 @@ class NetworkKuramotoEngine:
     # phase buffer or wants to cache phases across calls.
     # ------------------------------------------------------------------
     def identify(self, phases: PhaseMatrix) -> NetworkEngineReport:
-        """Run the full pipeline on a pre-extracted phase matrix."""
+        """Run the full pipeline on a pre-extracted phase matrix.
+
+        A genuine asset-network Sakaguchi–Kuramoto model requires at least
+        two oscillators (``N ≥ 2``); a single series yields a degenerate
+        ``1×1`` "network" with no inter-asset coupling to identify. The
+        guard is fail-closed: ``N < 2`` raises ``ValueError`` rather than
+        returning a meaningless one-node state. For the single-series
+        cross-scale phase-coherence descriptor use
+        :class:`core.indicators.multiscale_kuramoto.MultiScaleKuramoto`.
+        """
+        if phases.N < 2:
+            raise ValueError(
+                f"NetworkKuramotoEngine requires N ≥ 2 oscillators; got N={phases.N}. "
+                "A single series has no asset-network coupling to identify; use the "
+                "single-series descriptor core.indicators.multiscale_kuramoto instead."
+            )
         cfg = self.config
         dt = float(phases.timestamps[1] - phases.timestamps[0])
 
@@ -174,9 +189,22 @@ class NetworkKuramotoEngine:
     ) -> NetworkEngineReport:
         """End-to-end: extract phases from log-returns, then identify.
 
-        ``returns`` must have shape ``(T, N)``. The phase extractor
-        is called with the configured method (default: Hilbert).
+        ``returns`` must have shape ``(T, N)`` with ``N ≥ 2``. A single
+        series (``N < 2``) cannot instantiate an asset-network model and is
+        rejected fail-closed before phase extraction; use the single-series
+        descriptor :mod:`core.indicators.multiscale_kuramoto` instead. The
+        phase extractor is called with the configured method (default:
+        Hilbert).
         """
+        returns_arr = np.asarray(returns)
+        n_assets = int(returns_arr.shape[1]) if returns_arr.ndim == 2 else returns_arr.ndim
+        if returns_arr.ndim != 2 or n_assets < 2:
+            raise ValueError(
+                "NetworkKuramotoEngine.identify_from_returns requires a 2-D returns "
+                f"array of shape (T, N) with N ≥ 2; got shape {returns_arr.shape}. "
+                "A single series has no asset-network coupling to identify; use the "
+                "single-series descriptor core.indicators.multiscale_kuramoto instead."
+            )
         phases = self._phase.extract(
             signal=returns,
             asset_ids=asset_ids,

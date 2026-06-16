@@ -1,22 +1,50 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Multi-scale Kuramoto synchronization analyzer for market microstructure.
+"""Cross-scale phase-coherence descriptor for a single price series.
 
-This module implements a hierarchical Kuramoto oscillator model that analyzes market
-synchronization patterns across multiple time horizons. It leverages phase coherence
-of price oscillations to detect emergent market structures and regime shifts.
+What this module ACTUALLY computes
+-----------------------------------
+This module computes a **cross-scale phase-coherence descriptor of one
+univariate price series** (Layer-B). It is **not** a physical
+asset-network Kuramoto model: there is no ``N×N`` coupling graph, there are
+no asset nodes, and no coupling matrix is inferred. The honest object being
+measured is the temporal phase coherence of a *single* series resampled to
+several time horizons, plus the agreement of those per-horizon order
+parameters across scales.
 
-The Kuramoto model treats each timeframe as a coupled oscillator. When oscillators
-synchronize (high order parameter R), it indicates strong market consensus and
-directional movement. Cross-scale coherence measures how well different timeframes
-align, providing insight into the robustness of market trends.
+Concretely, for each horizon (1m, 5m, 15m, 1h) the single series is
+resampled and the **Kuramoto order parameter** ``R = |⟨exp(iθ)⟩|`` is taken
+over the instantaneous Hilbert phases *within that horizon's window*. The
+"oscillators" being averaged are the time samples of one series at one
+horizon — not separate market participants. ``consensus_R`` is the mean of
+those per-horizon ``R`` values and ``cross_scale_coherence`` is
+``1 − std(R_across_horizons)`` clamped to ``[0, 1]``. Both are descriptive
+summaries of a single series.
+
+Two consequences are declared as machine-readable provenance on
+:class:`MultiScaleResult` (``layer="market_descriptor"``,
+``claim_boundary="descriptor_only_not_predictor"``,
+``single_series=True``, ``is_network_model=False``) rather than hidden:
+
+* the genuine **asset-network** Sakaguchi–Kuramoto identification stack lives
+  in :mod:`core.kuramoto.network_engine`, which infers an ``N×N`` coupling
+  matrix from ``N ≥ 2`` series. This module is the single-series descriptor
+  and must not be read as that network model;
+* the descriptor is **descriptive, not predictive**: the declarative
+  Layer-B label is a *statement of scope*, **not** an enforcement mechanism.
+  Nothing here gates, verifies, or asserts predictive or financial meaning;
+  the label simply records what the numbers are (and are not).
+
+The historical "coupled oscillator network" / "market consensus" framing
+overstated the construct and is corrected here without changing any numeric
+output.
 
 Key Components:
     TimeFrame: Enumeration of standard trading horizons (1m, 5m, 15m, 1h)
     KuramotoResult: Per-timeframe synchronization metrics
     MultiScaleResult: Aggregated consensus across all analyzed timeframes
     FractalResampler: Efficient hierarchical data resampling with caching
-    MultiScaleKuramoto: Main analyzer class for computing order parameters
+    MultiScaleKuramoto: Single-series cross-scale phase-coherence descriptor
 
 The implementation includes energy-aware caching to minimize computational overhead
 during backtesting and supports adaptive windowing for different market conditions.
@@ -49,6 +77,14 @@ from .base import BaseFeature, FeatureResult
 from .cache import FileSystemIndicatorCache, hash_input_data
 
 _logger = get_logger(__name__)
+
+# Machine-readable Layer-B provenance for :class:`MultiScaleResult`. These are
+# declarative scope statements, NOT enforcement: they record that the result is
+# a cross-scale phase-coherence descriptor of a single price series, not an
+# inferred N×N asset-network Kuramoto model. The genuine network identification
+# stack is core.kuramoto.network_engine.
+_LAYER: str = "market_descriptor"
+_CLAIM_BOUNDARY: str = "descriptor_only_not_predictor"
 
 
 class TimeFrame(Enum):
@@ -86,7 +122,27 @@ class KuramotoResult:
 
 @dataclass(slots=True)
 class MultiScaleResult:
-    """Aggregate multi-scale consensus metrics produced by the analyzer."""
+    """Cross-scale phase-coherence descriptor of a single price series.
+
+    The aggregate metrics summarise the per-horizon Kuramoto order
+    parameters of **one** univariate series resampled to several horizons.
+    This is a Layer-B *descriptor*, not an inferred asset-network model: the
+    provenance fields declare that scope.
+
+    Provenance (declarative, not enforcement)
+    -----------------------------------------
+    layer
+        ``"market_descriptor"`` — Layer-B structural descriptor.
+    claim_boundary
+        ``"descriptor_only_not_predictor"`` — the value describes the input
+        series; it makes no predictive or financial claim.
+    single_series
+        ``True`` — computed from one univariate series across horizons.
+    is_network_model
+        ``False`` — there is no ``N×N`` coupling graph or asset nodes here;
+        the genuine network identification stack is
+        :class:`core.kuramoto.network_engine.NetworkKuramotoEngine`.
+    """
 
     consensus_R: float
     cross_scale_coherence: float
@@ -97,6 +153,10 @@ class MultiScaleResult:
     timeframe_endpoints: Mapping[TimeFrame, pd.Timestamp] = field(default_factory=dict)
     timeframe_series: Mapping[TimeFrame, pd.Series] = field(default_factory=dict)
     energy_profile: Mapping[str, float] = field(default_factory=dict)
+    layer: str = _LAYER
+    claim_boundary: str = _CLAIM_BOUNDARY
+    single_series: bool = True
+    is_network_model: bool = False
 
 
 @dataclass(slots=True)
@@ -381,7 +441,15 @@ class WaveletWindowSelector:
 
 
 class MultiScaleKuramoto:
-    """Compute Kuramoto synchronization metrics across multiple horizons."""
+    """Single-series cross-scale phase-coherence descriptor.
+
+    Computes the Kuramoto order parameter ``R = |⟨exp(iθ)⟩|`` of one
+    univariate price series at each configured horizon and summarises their
+    agreement across scales. This is a Layer-B descriptor — it does **not**
+    infer an ``N×N`` coupling matrix and is **not** the asset-network
+    Sakaguchi–Kuramoto model in :mod:`core.kuramoto.network_engine`. See the
+    module docstring and the provenance fields on :class:`MultiScaleResult`.
+    """
 
     def __init__(
         self,
@@ -619,6 +687,13 @@ class MultiScaleKuramotoFeature(BaseFeature):
             metadata["dominant_timeframe"] = result.dominant_scale.name
         metadata["cross_scale_coherence"] = result.cross_scale_coherence
         metadata["energy_profile"] = dict(result.energy_profile)
+        # Layer-B provenance: declarative scope, not enforcement. Surfaces the
+        # descriptor-only / single-series / not-a-network-model boundary to
+        # every downstream consumer of the FeatureResult metadata.
+        metadata["layer"] = result.layer
+        metadata["claim_boundary"] = result.claim_boundary
+        metadata["single_series"] = result.single_series
+        metadata["is_network_model"] = result.is_network_model
         return metadata
 
     def _store_timeframe_cache(

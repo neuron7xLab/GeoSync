@@ -525,6 +525,53 @@ class TestNetworkKuramotoEngine:
             assert float(arr.min()) >= 0.0
             assert float(arr.max()) <= 1.0
 
+    def test_identify_rejects_single_series_phase_matrix(self) -> None:
+        """Fail-closed N≥2: a 1-oscillator PhaseMatrix cannot be identified.
+
+        A genuine asset-network Sakaguchi–Kuramoto model has no inter-asset
+        coupling for N=1; the engine must raise rather than return a
+        degenerate 1×1 "network". The single-series descriptor lives in
+        core.indicators.multiscale_kuramoto.
+        """
+        from core.kuramoto.contracts import PhaseMatrix
+
+        T = 64
+        theta = np.mod(np.linspace(0.0, 6.0, T), 2.0 * np.pi).reshape(T, 1)
+        phases = PhaseMatrix(
+            theta=theta,
+            timestamps=np.arange(T, dtype=np.float64),
+            asset_ids=("solo",),
+            extraction_method="hilbert",
+            frequency_band=(0.5, 1.5),
+        )
+        assert phases.N == 1
+        engine = NetworkKuramotoEngine()
+        with pytest.raises(ValueError, match=r"N ≥ 2"):
+            engine.identify(phases)
+
+    def test_identify_from_returns_rejects_single_series(self) -> None:
+        """Fail-closed N≥2 on the raw-returns entry point.
+
+        A single column (or a 1-D returns array) cannot instantiate an
+        asset-network model and must be rejected before phase extraction.
+        """
+        rng = np.random.default_rng(0)
+        T = 256
+        single_col = rng.standard_normal((T, 1))
+        engine = NetworkKuramotoEngine()
+        with pytest.raises(ValueError, match=r"N ≥ 2"):
+            engine.identify_from_returns(
+                returns=single_col,
+                asset_ids=("solo",),
+                timestamps=np.arange(T, dtype=np.float64),
+            )
+        with pytest.raises(ValueError, match=r"N ≥ 2"):
+            engine.identify_from_returns(
+                returns=rng.standard_normal(T),
+                asset_ids=("solo",),
+                timestamps=np.arange(T, dtype=np.float64),
+            )
+
     def test_identify_from_returns_end_to_end(self) -> None:
         """Run the full raw-returns entry point on a band-limited signal."""
         rng = np.random.default_rng(0)
