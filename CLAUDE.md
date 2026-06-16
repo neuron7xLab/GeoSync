@@ -56,7 +56,7 @@ GeoSync is a verification-first quantitative research platform with neuroscience
 
 ---
 
-## INVARIANT REGISTRY — 101 invariants loaded by kernel self-check
+## INVARIANT REGISTRY — 103 invariants loaded by kernel self-check
 
 > **Single source of truth:** `.claude/physics/INVARIANTS.yaml` (`python scripts/count_invariants.py`). The 2026-04-30 external audit corrected a four-way drift (`57 / 66 / 67 / 87`); CI gate `invariant-count-sync` now fail-closes on any future divergence between this header, README badges, BASELINE.md, and the registry.
 
@@ -88,6 +88,16 @@ INV-K8 | conservation  | swing energy E=½Σmθ̇²+V: conserved (ω=0,d=0), | P
          non-increasing (ω=0,d≥0). All-to-all V=-(K·N/2)R²+const.
          FALSIFICATION: Euler→secular growth; +d·θ̇ sign-flip→injection.
          Force transient via unlocked θ0 + velocity0≠0.
+         Source: core/kuramoto/second_order.py
+INV-K9 | conservation  | swing energy error ∝ dt^p, order p=2 (Verlet),     | P1
+         bounded (no secular). Shadow-Hamiltonian H̃=H+O(dt²).
+         FALSIFICATION: Euler collapses log-log slope 2.01→0.81 + secular.
+         Strictly stronger than INV-K8 fixed-dt amplitude bound.
+         Source: core/kuramoto/second_order.py
+INV-K10| conservation  | Verlet swing map symplectic: MᵀJM=J (machine ε),   | P1
+         det(M)=1 (Liouville). ROOT of INV-K8/K9 (energy = theorem).
+         FALSIFICATION: Euler gives O(dt²)≈1e-4 residual vs Verlet 2e-16.
+         Damped: det(M)=exp(−(Σd/m)dt) phase-space contraction.
          Source: core/kuramoto/second_order.py
 ```
 
@@ -153,8 +163,13 @@ INV-KR3 | conservation | with ω_i = 0, coupling potential V is         | P0
 ```
 INV-LY1 | algebraic    | linear ẋ = A x: sort_desc(spectrum) ==           | P0
                        | sort_desc(Re(eigvals(A))) to 1e-3 at T=50.
-INV-LY2 | conservation | Hamiltonian flow ⇒ Σ λ_k = 0 to 1e-3            | P0
-                       | (harmonic oscillator, ≈16 periods).
+INV-LY2 | conditional  | RESOLVED Hamiltonian flow ⇒ Σ λ_k = 0 to 1e-3   | P0
+                       | (harmonic, ≈16 periods, ω·dt ≲ 0.05). The variational
+                       | (tangent) integrator is non-symplectic, so the Σλ
+                       | error grows as O((ω·dt)⁴) — measured slope 3.998: the
+                       | bound holds ONLY when the fastest mode is time-resolved.
+                       | NOT universal; corrected from false-universal 2026-06
+                       | (audit; cf. INV-RC3 #1023).
 INV-LY3 | universal    | every contract violation (dt≤0, n_steps≤0,      | P0
                        | qr_every∤n_steps, n_exp∉[1,n], non-1D x0) →
                        | ValueError. Fail-closed; no silent repair.
@@ -268,22 +283,6 @@ INV-FE2 | universal  | Components non-negative: U≥0, T≥0, S_q≥0       | P0
 ```
 INV-TH1 | conservation | Energy change = work + dissipation            | P1
 INV-TH2 | universal    | Entropy production ≥ 0                       | P1
-```
-
-### Stochastic Thermodynamics (Law T8 — exact fluctuation theorems)
-
-```
-INV-ST1 | statistical | Equipartition: Var(x) = kT/k for stationary    | P0
-                      | overdamped Langevin in V=½kx². tol 0.10.
-INV-ST2 | statistical | Jarzynski equality ⟨e^(−βW)⟩ = e^(−βΔF);      | P0
-                      | target sqrt(k_i/k_f)=0.5. tol 0.05, meas ≤0.004.
-                      | ΔF = −(1/2β)·ln(k_i/k_f).
-INV-ST3 | statistical | Second law ⟨W⟩ ≥ ΔF, and dissipation          | P1
-                      | monotonic: ⟨W⟩(τ=2.0) < ⟨W⟩(τ=0.5).
-         Pure statistical mechanics — NOT a market model.
-         Source: core/physics/stochastic_thermodynamics.py
-         Tests:  tests/unit/physics/test_T8_stochastic_thermodynamics.py
-         Law:    docs/laws/T8_stochastic_thermodynamics.md
 ```
 
 ### Ricci Curvature
@@ -455,7 +454,7 @@ assert result.order > 0      # no INV, no context
 | Files matching... | Invariants |
 |---|---|
 | `*gradient_vital_signs*`, `*maintenance_hierarchy*` | INV-YV1 |
-| `*kuramoto*`, `*sync*`, `*phase*` | INV-K1..K8 |
+| `*kuramoto*`, `*sync*`, `*phase*` | INV-K1..K10 |
 | `*explosive*`, `*hysteresis*` | INV-ES1..2 |
 | `*ott_antonsen*`, `*chimera*` | INV-OA1..3 |
 | `*lyapunov_exponent*`, `*mle*` | INV-LE1..2 |
@@ -470,7 +469,6 @@ assert result.order > 0      # no INV, no context
 | `*gaba*`, `*inhibit*` | INV-GABA1..5 |
 | `*energy*`, `*lyapunov*`, `*ecs*` | INV-FE1..2 |
 | `*thermo*`, `*conservation*` | INV-TH1..2 |
-| `*stochastic_thermodynamics*`, `*langevin*`, `*jarzynski*`, `*law_T8*` | INV-ST1..3 |
 | `*ricci*`, `*curvature*` | INV-RC1..3 |
 | `*determinism_kit*`, `*law_T6*`, `*replay_manifest*` | INV-DET1..3 |
 | `*kelly*`, `*sizing*` | INV-KELLY1..3 |
