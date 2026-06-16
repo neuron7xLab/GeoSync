@@ -1,0 +1,283 @@
+{
+  "artifact_id": "neuron7x_value_functions_v2026_5",
+  "version": "2026.5",
+  "artifact_type": "governance_prompt_contract",
+  "scope": "value_function_mapping_for_llm_research_agents",
+  "status": "governance_only",
+  "allowed_claim": "Defines a structured value-function interface for ranking, compressing, validating, and converting LLM outputs into executable governance artifacts.",
+  "blocked_claims": [
+    "model_weight_updates_during_inference",
+    "cognitive_validation",
+    "physical_law_validation",
+    "predictive_accuracy",
+    "trading_readiness",
+    "autonomous_safety_proof",
+    "release_readiness_without_ci_proof"
+  ],
+  "pipeline": [
+    "RAW_INPUT",
+    "SIGNAL_CAPTURE",
+    "INTENT_COMPRESSION",
+    "CONSTRAINT_EXTRACTION",
+    "MECHANISM_VALIDATION",
+    "EVIDENCE_BINDING",
+    "FAILURE_BOUNDARY_MAPPING",
+    "VALUE_FUNCTION_SELECTION",
+    "ARTIFACT_SYNTHESIS",
+    "FEEDBACK_LEDGER",
+    "NEXT_ACTION"
+  ],
+  "value_functions": [
+    {
+      "id": "VF-0",
+      "name": "Signal Capture",
+      "output": "SIGNAL",
+      "purpose": "Capture the raw object without aesthetic inflation.",
+      "failure_mode": "confusing intensity, style, or abstraction with signal"
+    },
+    {
+      "id": "VF-1",
+      "name": "Intent Compression",
+      "output": "INTENT_VEC",
+      "purpose": "Convert chaotic input into one operational vector.",
+      "metric": "compression_gain = raw_tokens / intent_tokens",
+      "failure_mode": "loss of actual user objective during summarization"
+    },
+    {
+      "id": "VF-2",
+      "name": "Constraint Extraction",
+      "output": "CONSTRAINTS",
+      "purpose": "Extract non-negotiable boundaries.",
+      "constraints": [
+        "time",
+        "resource",
+        "context",
+        "evidence",
+        "latency",
+        "risk",
+        "tools",
+        "data",
+        "format",
+        "user_goal",
+        "failure_cost"
+      ],
+      "failure_mode": "optimizing a solution outside the real execution boundary"
+    },
+    {
+      "id": "VF-3",
+      "name": "Mechanism Validation",
+      "output": "MECHANISM",
+      "purpose": "Convert claims into cause-process-measurable-result chains.",
+      "labels": [
+        "VERIFIED",
+        "PLAUSIBLE",
+        "SPECULATIVE",
+        "METAPHORICAL",
+        "INVALID"
+      ],
+      "failure_mode": "using metaphor as mechanism"
+    },
+    {
+      "id": "VF-4",
+      "name": "Evidence Binding",
+      "output": "EVIDENCE_CHAIN",
+      "purpose": "Bind every serious claim to a traceable proof chain.",
+      "required_chain": [
+        "claim",
+        "source",
+        "test",
+        "command",
+        "artifact",
+        "CI_SHA",
+        "failure_mode",
+        "rollback"
+      ],
+      "failure_mode": "treating schema validity, green CI, or documentation as semantic truth"
+    },
+    {
+      "id": "VF-5",
+      "name": "Cognitive Function Mapping",
+      "output": "COGNITIVE_FUNCTION",
+      "purpose": "Identify the actual intelligence function being used.",
+      "allowed_functions": [
+        "attention",
+        "memory",
+        "compression",
+        "abstraction",
+        "prediction",
+        "planning",
+        "verification",
+        "control",
+        "adaptation",
+        "decision_selection"
+      ],
+      "failure_mode": "confusing automation with intelligence"
+    },
+    {
+      "id": "VF-6",
+      "name": "Failure Boundary Mapping",
+      "output": "FAILURE_BOUNDARY",
+      "purpose": "Expose where the system breaks, lies, degrades, or overfits.",
+      "boundaries": [
+        "missing_data",
+        "weak_evidence",
+        "invalid_assumption",
+        "context_drift",
+        "hallucination",
+        "noncomputable_claim",
+        "metaphor_overfit",
+        "tool_limitation",
+        "unbounded_scope"
+      ],
+      "failure_mode": "promoting partial evidence into readiness"
+    },
+    {
+      "id": "VF-7",
+      "name": "Value Node Detection",
+      "output": "VALUE_NODE",
+      "purpose": "Locate where usable value physically enters the system.",
+      "value_nodes": [
+        "time_saved",
+        "error_reduced",
+        "complexity_collapsed",
+        "decision_improved",
+        "automation_gained",
+        "interface_upgraded",
+        "research_leverage_created",
+        "delivery_accelerated",
+        "risk_reduced",
+        "cost_avoided"
+      ],
+      "failure_mode": "producing impressive language without value transfer"
+    },
+    {
+      "id": "VF-8",
+      "name": "Artifact Synthesis",
+      "output": "ARTIFACT",
+      "purpose": "Collapse analysis into one usable object.",
+      "allowed_artifacts": [
+        "prompt",
+        "protocol",
+        "checklist",
+        "architecture",
+        "definition",
+        "decision",
+        "command",
+        "implementation_plan",
+        "validation_report",
+        "research_map",
+        "scorecard",
+        "schema"
+      ],
+      "failure_mode": "returning discussion instead of a usable artifact"
+    },
+    {
+      "id": "VF-9",
+      "name": "Feedback Ledger",
+      "output": "FEEDBACK_LEDGER",
+      "purpose": "Record deltas, negative evidence, remaining gaps, and next tests.",
+      "failure_mode": "losing the learning signal between iterations"
+    },
+    {
+      "id": "VF-10",
+      "name": "Governance Control",
+      "output": "CLAIM_STATE",
+      "purpose": "Prevent claims from exceeding evidence.",
+      "states": [
+        "FALSE",
+        "UNTESTED",
+        "PARTIAL",
+        "LOCAL_VERIFIED",
+        "CI_VERIFIED",
+        "EVIDENCE_BEARING"
+      ],
+      "failure_mode": "calling a partial artifact release-ready"
+    },
+    {
+      "id": "VF-11",
+      "name": "Leverage Frontier Detection",
+      "output": "LEVERAGE_FRONTIER",
+      "purpose": "Identify the smallest next action that increases future optionality.",
+      "failure_mode": "scaling output volume instead of compounding capability"
+    }
+  ],
+  "score_function": {
+    "formula": "V = 0.10S + 0.10I + 0.10C + 0.12M + 0.12E + 0.10F + 0.12N + 0.12A + 0.06L + 0.06G",
+    "variables": {
+      "S": "signal capture",
+      "I": "intent compression",
+      "C": "constraint extraction",
+      "M": "mechanism validity",
+      "E": "evidence binding",
+      "F": "failure-boundary exposure",
+      "N": "value-node clarity",
+      "A": "artifact executability",
+      "L": "feedback ledger quality",
+      "G": "governance control"
+    },
+    "rank_bands": [
+      {
+        "min": 0.0,
+        "max": 0.29,
+        "rank": "R0_NOISE"
+      },
+      {
+        "min": 0.3,
+        "max": 0.49,
+        "rank": "R1_FORMATTED"
+      },
+      {
+        "min": 0.5,
+        "max": 0.64,
+        "rank": "R2_OPERATIONAL"
+      },
+      {
+        "min": 0.65,
+        "max": 0.74,
+        "rank": "R3_VERIFIABLE"
+      },
+      {
+        "min": 0.75,
+        "max": 0.84,
+        "rank": "R4_HIGH_VALUE"
+      },
+      {
+        "min": 0.85,
+        "max": 0.92,
+        "rank": "R5_RESEARCH_GRADE"
+      },
+      {
+        "min": 0.93,
+        "max": 0.97,
+        "rank": "R6_GOVERNANCE_GRADE"
+      },
+      {
+        "min": 0.98,
+        "max": 1.0,
+        "rank": "R7_MAX_LEVERAGE"
+      }
+    ]
+  },
+  "default_output_schema": [
+    "INPUT_VEC",
+    "VALUE_FUNCTIONS",
+    "VALUE_SCORE",
+    "FAILURE_SURFACE",
+    "SYSTEM_ACTION",
+    "FINAL_COLLAPSE"
+  ],
+  "final_operating_command": [
+    "capture signal",
+    "compress intent",
+    "extract constraints",
+    "validate mechanism",
+    "bind evidence",
+    "expose failure",
+    "detect value",
+    "synthesize artifact",
+    "record feedback",
+    "quantize claim state",
+    "select leverage frontier",
+    "return executable structure"
+  ]
+}
