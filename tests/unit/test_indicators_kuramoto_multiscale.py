@@ -346,3 +346,74 @@ def test_wavelet_selector_constant_series_returns_stable_window() -> None:
     # A genuinely oscillatory series is still free to pick any bounded scale.
     osc = selector.select_window(np.sin(np.linspace(0, 40 * np.pi, 2000)))
     assert selector.min_window <= osc <= selector.max_window
+
+
+# ---------------------------------------------------------------------------
+# Layer-B descriptor honesty (S5): the multiscale result must declare that it
+# is a single-series cross-scale phase-coherence descriptor, NOT an inferred
+# N×N asset-network Kuramoto model. The labels are declarative scope, not
+# enforcement; these tests lock the declaration and confirm it does not alter
+# the numeric output of a valid analysis.
+# ---------------------------------------------------------------------------
+
+
+def test_multiscale_result_declares_layer_b_descriptor_boundary() -> None:
+    """MultiScaleResult carries machine-readable Layer-B provenance.
+
+    Honest scope: layer == "market_descriptor",
+    claim_boundary == "descriptor_only_not_predictor",
+    single_series is True, is_network_model is False. This declares that the
+    object is a single-series descriptor and NOT the asset-network model in
+    core.kuramoto.network_engine.
+    """
+    df = _synth_dataframe(periods=4096)
+    analyzer = MultiScaleKuramoto()
+    result = analyzer.analyze(df)
+
+    assert result.layer == "market_descriptor"
+    assert result.claim_boundary == "descriptor_only_not_predictor"
+    assert result.single_series is True
+    assert result.is_network_model is False
+
+
+def test_multiscale_feature_metadata_surfaces_descriptor_boundary() -> None:
+    """The FeatureResult metadata propagates the Layer-B descriptor labels.
+
+    Downstream consumers that read only the feature metadata must still see
+    the descriptor-only / single-series / not-a-network-model boundary.
+    """
+    df = _synth_dataframe(periods=4096)
+    feature = MultiScaleKuramotoFeature()
+    out = feature.transform(df)
+
+    assert out.metadata["layer"] == "market_descriptor"
+    assert out.metadata["claim_boundary"] == "descriptor_only_not_predictor"
+    assert out.metadata["single_series"] is True
+    assert out.metadata["is_network_model"] is False
+
+
+def test_descriptor_labels_do_not_change_numeric_output() -> None:
+    """Regression: the honesty labels are additive; the numbers are unchanged.
+
+    The descriptor's numeric summaries (consensus_R, cross_scale_coherence,
+    per-horizon order parameters) for a valid series are exactly the values
+    the analyzer computes from the phases, independent of the provenance
+    fields. consensus_R is, by construction, the mean of the per-horizon
+    order parameters; this reconstructs it from timeframe_results to confirm
+    the label additions did not perturb the computation.
+    """
+    df = _synth_dataframe(periods=4096)
+    analyzer = MultiScaleKuramoto()
+    result = analyzer.analyze(df)
+
+    # INV-K1: every per-horizon order parameter stays in [0, 1].
+    r_values = [res.order_parameter for res in result.timeframe_results.values()]
+    assert r_values, "expected at least one analyzed timeframe"
+    for r in r_values:
+        assert 0.0 <= r <= 1.0
+    # consensus_R is the mean of the per-horizon order parameters — unchanged
+    # by the additive provenance fields.
+    assert result.consensus_R == pytest.approx(
+        float(np.mean(r_values)), rel=FLOAT_REL_TOL, abs=FLOAT_ABS_TOL
+    )
+    assert 0.0 <= result.cross_scale_coherence <= 1.0
