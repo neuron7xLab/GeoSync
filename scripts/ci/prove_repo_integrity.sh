@@ -18,7 +18,7 @@ then
 fi
 
 echo "[1/13] invariant witness"
-test "$("$PY" scripts/count_invariants.py)" = "101"
+test "$("$PY" scripts/count_invariants.py)" = "106"
 
 echo "[2/13] python version matrix"
 "$PY" scripts/check_python_matrix.py >/dev/null
