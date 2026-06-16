@@ -1,35 +1,31 @@
-# Diff-bound acceptor: security-floor manifest-consistency gate + pyproject fix.
+# Diff-bound acceptor: dependency all-strict floor consistency.
 #
-# constraints/security.txt pins patched floors, but pyproject.toml admitted
-# PyJWT>=2.12.0 / cryptography>=46.0.7 / fastapi>=0.135.3 — below the security
-# pins. pip install . resolves against pyproject, so the floors raised elsewhere
-# were bypassable. This raises the lagging pyproject security floors to the
-# constraints pins and adds a fail-closed cross-manifest consistency gate.
-# Distinct from scripts/security/check_dependency_drift.py (which validates
-# specifiers against the lockfile, not cross-manifest floor consistency).
+# constraints/security.txt is the source of truth for security-critical floors.
+# The previous gate enforced pyproject strictly while requirements*.txt could
+# still lag as advisory findings. Task 2 closes that gap for release evidence:
+# --all-strict must reject drift across pyproject.toml, requirements.txt, and
+# requirements-backend.txt.
 
 id: dependency-manifest-floor-consistency
 status: ACTIVE
 claim_type: security
 promise: >-
-  Raises pyproject.toml security-critical floors to match constraints/security.txt
-  (PyJWT[crypto]>=2.13.0, cryptography>=49.0.0, fastapi>=0.136.3). Adds
-  tools/security/check_dependency_manifest_consistency.py: for SECURITY_CRITICAL
-  packages (pyjwt, cryptography, aiohttp, starlette, tornado, python-multipart,
-  fastapi) it fails closed if a manifest floor is below the constraints/security.txt
-  floor. pyproject is strict (exit 1); requirements*.txt are advisory (owned by
-  the security-sweep PR #1111, tighten to --all-strict after it lands). Adds
-  tests/security/test_dependency_manifest_consistency.py (catches a lagging floor;
-  asserts pyproject is live-consistent) and docs/security/dependency_policy.md
-  (source-of-truth, ownership, exception policy). No runtime code changed; only
-  dependency floors + a new gate.
+  Aligns requirements.txt fastapi to the constraints/security.txt floor
+  (fastapi>=0.136.3,<1.0.0) and tightens the dependency manifest consistency
+  evidence path. tools/security/check_dependency_manifest_consistency.py still
+  keeps default pyproject strict mode for fast diagnosis, but --all-strict is
+  the release-grade gate for pyproject.toml, requirements.txt, and
+  requirements-backend.txt. tests/security/test_dependency_manifest_consistency.py
+  now asserts that strict plus advisory/all-strict violations are empty on the
+  live tree. docs/security/dependency_policy.md documents the closed Task 2
+  all-strict boundary. No runtime behavior or numerical output is changed.
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/dependency-manifest-floor-consistency.yaml"
     - path: "tools/security/check_dependency_manifest_consistency.py"
     - path: "tests/security/test_dependency_manifest_consistency.py"
     - path: "docs/security/dependency_policy.md"
-    - path: "pyproject.toml"
+    - path: "requirements.txt"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -39,30 +35,32 @@ required_python_symbols:
   - "check_manifest"
   - "evaluate"
 expected_signal: >-
-  python tools/security/check_dependency_manifest_consistency.py exits 0 (pyproject
-  consistent; requirements advisory). --all-strict exits 1 listing the requirements
-  floors PR #1111 raises. pytest tests/security/test_dependency_manifest_consistency.py
-  passes 5/5 including the live pyproject invariant. ruff/black/mypy --strict clean.
+  python tools/security/check_dependency_manifest_consistency.py --all-strict
+  exits 0, and pytest -q tests/security/test_dependency_manifest_consistency.py
+  passes including test_all_security_manifest_floors_consistent_with_policy.
+  Reverting requirements.txt fastapi to a floor below constraints/security.txt
+  makes --all-strict fail and makes the live all-manifest pytest invariant fail.
 measurement_command: >-
   PYTHONPATH=. python -m pytest tests/security/test_dependency_manifest_consistency.py -v
 signal_artifact: "tmp/dependency_manifest_consistency_pytest.log"
 falsifier:
   command: >-
-    PYTHONPATH=. python tools/security/check_dependency_manifest_consistency.py
+    PYTHONPATH=. python tools/security/check_dependency_manifest_consistency.py --all-strict
   description: >-
-    Reverting any pyproject security floor below its constraints/security.txt pin
-    (e.g. PyJWT back to >=2.12.0) makes the strict pyproject check report an ERROR
-    and exit 1, and test_pyproject_security_floors_consistent_with_policy fails.
-    The gate fails before the fix and passes after it.
+    On the pre-patch tree, requirements.txt admitted fastapi below the
+    constraints/security.txt floor, so --all-strict reported an ERROR for
+    requirements.txt and exited non-zero. After the patch, the same gate is
+    expected to exit 0. The pytest live invariant pins the behavior so a future
+    manifest drift fails before release promotion.
 rollback_command: >-
   git checkout HEAD~1 --
-  pyproject.toml
+  requirements.txt
   tools/security/check_dependency_manifest_consistency.py
   tests/security/test_dependency_manifest_consistency.py
   docs/security/dependency_policy.md
   .claude/commit_acceptors/dependency-manifest-floor-consistency.yaml
 rollback_verification_command: >-
-  git diff --exit-code pyproject.toml
+  git diff --exit-code requirements.txt
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/dependency-manifest-floor-consistency.yaml"
 report_path: "docs/reports/diff_bound_commit_acceptor_layer.md"
