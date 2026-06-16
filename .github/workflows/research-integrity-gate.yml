@@ -49,6 +49,11 @@ on:
       - 'analytics/signals/**'
       - 'core/indicators/market_state_contract.py'
       - 'scripts/replay_descriptor_capsule.py'
+      # Calibration sensitivity-drift gate:
+      - 'governance/CALIBRATIONS.yaml'
+      - 'scripts/ci/check_calibration_drift.py'
+      - 'tests/scripts/test_check_calibration_drift.py'
+      - 'analytics/signals/threshold_calibration.py'
   push:
     branches: [main]
   workflow_dispatch:
@@ -115,6 +120,12 @@ jobs:
 
       - name: pytest — instrument evidence-chain gate
         run: python -m pytest tests/scripts/test_check_instrument_evidence_chain.py -q
+
+      - name: Calibration sensitivity-drift gate
+        run: python scripts/ci/check_calibration_drift.py
+
+      - name: pytest — calibration drift gate
+        run: python -m pytest tests/scripts/test_check_calibration_drift.py -q
 
       - name: Claim-to-artifact graph gate
         run: python scripts/ci/check_claim_artifact_graph.py
