@@ -148,3 +148,15 @@ instruments:
     falsifiers:
       - "tests/unit/analytics/test_descriptor_scenarios.py::test_run_all_is_deterministic"
       - "tests/unit/analytics/test_descriptor_scenarios.py::test_unknown_scenario_fails_closed"
+
+  - id: resolution-auditor
+    pr: 1090
+    merge_commit: "c5ac4aceaf45b1c923bb9cdc0427fe0d5ec002b7"  # pragma: allowlist secret
+    module: "analytics/signals/resolution_auditor.py"
+    source_sha256: "8057923bd4985be0728b42f83355280861031613955685a27c037228e8957e4e"  # pragma: allowlist secret
+    test_file: "tests/unit/analytics/test_resolution_auditor.py"
+    acceptor: ".claude/commit_acceptors/resolution-auditor-contract.yaml"
+    claim_boundary: "descriptor_only_not_predictor"
+    falsifiers:
+      - "tests/unit/analytics/test_resolution_auditor.py::test_p1_deterministic_for_same_metadata"
+      - "tests/unit/analytics/test_resolution_auditor.py::test_failclosed_inconsistent_counts"
