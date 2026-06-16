@@ -2,8 +2,9 @@
 #
 # Purpose:
 #   Bind this governance-only PR to explicit evidence, rollback, calibration,
-#   filtering, and claim boundary. This acceptor intentionally does not validate
-#   cognition, physics, prediction, market readiness, or model-weight update claims.
+#   filtering, verification, and claim boundary. This acceptor intentionally does
+#   not validate cognition, physics, prediction, market readiness, or
+#   model-weight update claims.
 
 id: fractal-neuro-cognitive-governance-contract
 status: ACTIVE
@@ -12,10 +13,10 @@ promise: >-
   After this PR lands, GeoSync contains machine-readable and human-readable
   governance artifacts for claim-state quantization, fractal neuro-cognitive
   prompt contracts, FVPS value-function contracts, Neuron7X value-function
-  scoring, Neuron7X calibration thresholds, and Neuron7X signal filtering rules.
-  The PR adds governance data, schemas, docs, a deterministic claim-state
-  quantizer, and tests. It does not change runtime, physics, market, or trading
-  behavior.
+  scoring, Neuron7X calibration thresholds, Neuron7X signal filtering rules,
+  and Neuron7X verification/conformance rules. The PR adds governance data,
+  schemas, docs, a deterministic claim-state quantizer, and tests. It does not
+  change runtime, physics, market, or trading behavior.
 
 diff_scope:
   changed_files:
@@ -39,6 +40,8 @@ diff_scope:
     - path: "data/governance/neuron7x_calibration_protocol_v2026_6.json"
     - path: "docs/prompts/neuron7x_filter_protocol_v2026_7.md"
     - path: "data/governance/neuron7x_filter_protocol_v2026_7.json"
+    - path: "docs/prompts/neuron7x_verification_protocol_v2026_8.md"
+    - path: "data/governance/neuron7x_verification_protocol_v2026_8.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -66,8 +69,8 @@ expected_signal: >-
   into the discrete states FALSE, UNTESTED, PARTIAL, LOCAL_VERIFIED, CI_VERIFIED,
   or EVIDENCE_BEARING, rejects upward declared-state drift, and the governance
   prompt/data artifacts define value-function scoring, calibration thresholds,
-  and signal filtering rules without claiming runtime, physics, market, or
-  trading behavior changes.
+  signal filtering rules, and verification/conformance rules without claiming
+  runtime, physics, market, or trading behavior changes.
 
 measurement_command: >-
   bash -c '
@@ -120,6 +123,8 @@ rollback_command: >-
       data/governance/neuron7x_calibration_protocol_v2026_6.json
       docs/prompts/neuron7x_filter_protocol_v2026_7.md
       data/governance/neuron7x_filter_protocol_v2026_7.json
+      docs/prompts/neuron7x_verification_protocol_v2026_8.md
+      data/governance/neuron7x_verification_protocol_v2026_8.json
   '
 
 rollback_verification_command: >-
@@ -130,6 +135,8 @@ rollback_verification_command: >-
     && test ! -e data/governance/neuron7x_calibration_protocol_v2026_6.json
     && test ! -e docs/prompts/neuron7x_filter_protocol_v2026_7.md
     && test ! -e data/governance/neuron7x_filter_protocol_v2026_7.json
+    && test ! -e docs/prompts/neuron7x_verification_protocol_v2026_8.md
+    && test ! -e data/governance/neuron7x_verification_protocol_v2026_8.json
   '
 
 memory_update_type: append
