@@ -83,6 +83,43 @@ class KuramotoConfig(BaseModel):
 
         return self
 
+    @classmethod
+    def from_coupling_spec(
+        cls,
+        spec: Any,
+        *,
+        omega: np.ndarray | None = None,
+        dt: float = 0.01,
+        steps: int = 1000,
+        theta0: np.ndarray | None = None,
+        seed: int | None = None,
+    ) -> KuramotoConfig:
+        """Build a config whose coupling is scaled exactly once.
+
+        ``spec`` is a :class:`core.kuramoto.coupling_spec.CouplingSpec`. Its
+        :meth:`~core.kuramoto.coupling_spec.CouplingSpec.effective_matrix` —
+        the matrix in which the scale has already been applied once — is stored
+        as ``adjacency`` with ``K`` pinned to ``1.0``. The engine then computes
+        ``K · adjacency = 1.0 · C = C``, so the coupling strength enters the
+        dynamics exactly once. This closes the double-scaling path that the bare
+        ``(K, adjacency)`` constructor leaves open.
+        """
+        from .coupling_spec import CouplingSpec
+
+        if not isinstance(spec, CouplingSpec):
+            raise TypeError(f"from_coupling_spec expects a CouplingSpec; got {type(spec).__name__}")
+        effective = spec.effective_matrix()
+        return cls(
+            N=spec.n_oscillators,
+            K=1.0,
+            omega=omega,
+            dt=dt,
+            steps=steps,
+            adjacency=effective,
+            theta0=theta0,
+            seed=seed,
+        )
+
     @property
     def coupling_mode(self) -> str:
         """Return active coupling semantics label for summaries/serialization."""
