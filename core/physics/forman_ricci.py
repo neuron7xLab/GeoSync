@@ -2,16 +2,36 @@
 # SPDX-License-Identifier: MIT
 """T3 — Forman-Ricci Curvature as real-time fragility monitor.
 
-Forman-Ricci curvature for weighted graphs (Sreejith et al. 2016):
+What this module ACTUALLY computes
+-----------------------------------
+This implementation computes the **unweighted, combinatorial** Forman-Ricci
+curvature on a **binary** graph::
+
+    κ_F(i,j) = 4 - d_i - d_j + 3·|{triangles containing (i,j)}|
+
+where d_i, d_j are node degrees on an adjacency built by thresholding the
+**absolute** correlation, ``|ρ_ij| > threshold``. Two consequences follow,
+and both are declared as machine-readable provenance on
+:class:`FormanRicciResult` (``weighted=False``, ``signed=False``,
+``information_loss``) rather than hidden:
+
+* **edge-weight magnitude is discarded** — once an edge clears the
+  threshold its correlation magnitude does not enter the curvature, so two
+  graphs with identical above-threshold topology but different magnitudes
+  produce identical output. This is NOT the weighted Sreejith curvature.
+* **correlation sign is discarded** — ``|ρ|`` collapses ρ = +0.8 and
+  ρ = −0.8 onto the same edge, so anti-correlation structure is erased; the
+  output is a *derived unsigned, unweighted topology descriptor*.
+
+The general **weighted** Forman-Ricci of Sreejith et al. (2016) is::
 
     κ_F(e_{ij}) = w_{ij} · (w_i⁻¹ + w_j⁻¹)
                   - w_{ij} · Σ_{e∈parallel(e_{ij})} (w_{ij}⁻¹ + w_e⁻¹)
 
-Simplified for financial correlation networks:
-    κ_F(i,j) = 4 - d_i - d_j + 3·|{triangles containing (i,j)}|
-
-where d_i, d_j = node degrees. O(1) per edge after degree precomputation
-vs O(Δ³) for Ollivier-Ricci (Δ = max degree).
+and is retained below only as the reference definition — it is **not** what
+this O(1)-per-edge combinatorial monitor evaluates. The combinatorial form
+is O(1) per edge after degree precomputation vs O(Δ³) for Ollivier-Ricci
+(Δ = max degree).
 
 Composite signal:
     κ_min(t) → 0  =  herding  =  raise margin requirements
@@ -37,25 +57,47 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
+#: Provenance constants for the binarized, unweighted correlation graph this
+#: monitor builds. ``|ρ| > threshold`` discards both edge-weight magnitude and
+#: correlation sign, so every result declares the same representation and loss.
+_REPRESENTATION: str = "graph"  # unsigned, unweighted simple graph
+_INFORMATION_LOSS: tuple[str, ...] = ("edge_weight_magnitude", "correlation_sign")
+
 
 @dataclass(frozen=True, slots=True)
 class FormanRicciResult:
-    """Result of Forman-Ricci computation."""
+    """Result of the unweighted combinatorial Forman-Ricci computation.
+
+    The provenance fields make the representation honest and machine-auditable:
+    the underlying graph is built by thresholding ``|ρ|``, so it is unsigned
+    (``signed=False``) and unweighted (``weighted=False``), and
+    ``information_loss`` records exactly what the ``|ρ| > threshold`` projection
+    discards. They are constants for this estimator, not tunable outputs.
+    """
 
     edge_curvatures: dict[tuple[int, int], float]
     kappa_min: float
     kappa_mean: float
     kappa_max: float
     herding_index: float  # fraction of edges with κ > 0
+    representation: str = _REPRESENTATION
+    weighted: bool = False
+    signed: bool = False
+    information_loss: tuple[str, ...] = _INFORMATION_LOSS
 
 
 class FormanRicciCurvature:
-    """O(E) Forman-Ricci curvature for weighted correlation networks.
+    """O(E) **unweighted** combinatorial Forman-Ricci over a binarized graph.
 
-    For an unweighted graph, the Forman curvature of edge (i,j) is:
+    The graph is built from a correlation matrix by ``|ρ_ij| > threshold``, so
+    it is unsigned and unweighted; the Forman curvature of edge (i,j) is:
         κ_F(i,j) = 4 - d_i - d_j + 3·T_ij
 
-    where T_ij = number of triangles containing edge (i,j).
+    where T_ij = number of triangles containing edge (i,j). Edge weights and
+    correlation signs do not enter — see the module docstring and the
+    ``weighted`` / ``signed`` / ``information_loss`` provenance fields on
+    :class:`FormanRicciResult`. This is deliberately not the weighted Sreejith
+    curvature.
 
     This captures the same geometric intuition as Ollivier-Ricci
     (positive curvature = well-connected neighborhood = herding)
