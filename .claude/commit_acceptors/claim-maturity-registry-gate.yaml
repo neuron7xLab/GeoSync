@@ -50,8 +50,7 @@ diff_scope:
     - "execution/"
     - "forecast/"
 required_python_symbols:
-  - file: "scripts/ci/check_claim_maturity.py"
-    symbol: "main"
+  - "scripts/ci/check_claim_maturity.py::main"
 expected_signal: >-
   `python scripts/ci/check_claim_maturity.py` prints one [PASS] line per claim
   and `OK: all N claims sit at a fully-supported maturity rung`, exiting 0; the
@@ -101,4 +100,3 @@ report_path: "tmp/claim_maturity_gate_pytest.log"
 evidence:
   - path: "tmp/claim_maturity_gate_pytest.log"
     sha256: "cdd438c628afdcbd4ae38dd14727a6c29e606bfe57ab03de9318682731288086"  # pragma: allowlist secret
-    note: "pytest tests/scripts/test_check_claim_maturity.py -v => 8 passed"

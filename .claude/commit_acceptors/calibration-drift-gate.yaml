@@ -50,8 +50,7 @@ diff_scope:
     - "execution/"
     - "forecast/"
 required_python_symbols:
-  - file: "scripts/ci/check_calibration_drift.py"
-    symbol: "main"
+  - "scripts/ci/check_calibration_drift.py::main"
 expected_signal: >-
   `python scripts/ci/check_calibration_drift.py` prints one [PASS] line per
   governed calibration and `OK: all N governed calibrations resolve; no silent
@@ -104,4 +103,3 @@ report_path: "tmp/calibration_drift_pytest.log"
 evidence:
   - path: "tmp/calibration_drift_pytest.log"
     sha256: "bc801aa929906eb768b312bd17b3c747d3470e3dbde541198ee50d6c72b4cf72"  # pragma: allowlist secret
-    note: "pytest tests/scripts/test_check_calibration_drift.py -v => 9 passed"

@@ -46,10 +46,8 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "analytics/signals/threshold_calibration.py"
-    symbol: "calibrate_threshold"
-  - file: "analytics/signals/threshold_calibration.py"
-    symbol: "ThresholdCalibrationResult"
+  - "analytics/signals/threshold_calibration.py::calibrate_threshold"
+  - "analytics/signals/threshold_calibration.py::ThresholdCalibrationResult"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_threshold_calibration.py` reports
   17 passed; calibrate_threshold is deterministic, selects only from the
@@ -100,4 +98,3 @@ report_path: "tmp/threshold_calibration_pytest.log"
 evidence:
   - path: "tmp/threshold_calibration_pytest.log"
     sha256: "16519ec6a104515b30c63299fbab938913d5ee5732097176d0c65485a45663e4"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_threshold_calibration.py -v => 17 passed"

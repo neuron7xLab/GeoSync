@@ -46,10 +46,8 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "analytics/signals/state_quantization.py"
-    symbol: "quantize_states"
-  - file: "analytics/signals/state_quantization.py"
-    symbol: "QuantizationStateResult"
+  - "analytics/signals/state_quantization.py::quantize_states"
+  - "analytics/signals/state_quantization.py::QuantizationStateResult"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_state_quantization.py` reports
   19 passed; quantize_states is deterministic for fixed config, emits only
@@ -98,4 +96,3 @@ report_path: "tmp/state_quantization_pytest.log"
 evidence:
   - path: "tmp/state_quantization_pytest.log"
     sha256: "9941153c2350ed751220e3cecb953beb3cb7930abd152f5312e0b46054ba2860"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_state_quantization.py -v => 19 passed"

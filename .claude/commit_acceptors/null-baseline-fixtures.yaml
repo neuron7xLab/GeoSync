@@ -55,12 +55,9 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "analytics/signals/null_baseline.py"
-    symbol: "make_gaussian_null"
-  - file: "analytics/signals/null_baseline.py"
-    symbol: "make_constant_null"
-  - file: "analytics/signals/null_baseline.py"
-    symbol: "make_phase_shuffled_surrogate"
+  - "analytics/signals/null_baseline.py::make_gaussian_null"
+  - "analytics/signals/null_baseline.py::make_constant_null"
+  - "analytics/signals/null_baseline.py::make_phase_shuffled_surrogate"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_null_baseline.py` reports
   19 passed; the generators are deterministic for a fixed seed, never emit
@@ -105,4 +102,3 @@ report_path: "tmp/null_baseline_pytest.log"
 evidence:
   - path: "tmp/null_baseline_pytest.log"
     sha256: "e8dc5a65c4d4cbb43fdd357196b4d09eeb8fa2f004494612e24bdf457fad8c10"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_null_baseline.py -v => 19 passed"

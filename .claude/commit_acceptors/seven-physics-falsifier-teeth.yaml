@@ -119,4 +119,3 @@ report_path: "tmp/seven_physics_falsifier_teeth.log"
 evidence:
   - path: "tmp/seven_physics_falsifier_teeth.log"
     sha256: "fbeb39d942d770328666ae75f3d93123a1bd3ee6091a32d48d4d29f8e5b7fff2"  # pragma: allowlist secret
-    note: "pytest tests/unit/physics/test_falsifier_resolution.py -v => 17 passed"

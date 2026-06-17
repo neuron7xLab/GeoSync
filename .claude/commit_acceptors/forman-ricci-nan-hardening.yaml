@@ -70,10 +70,8 @@ diff_scope:
     - "forecast/"
     - "src/"
 required_python_symbols:
-  - file: "core/physics/forman_ricci.py"
-    symbol: "FormanRicciResult"
-  - file: "core/physics/forman_ricci.py"
-    symbol: "FormanRicciCurvature"
+  - "core/physics/forman_ricci.py::FormanRicciResult"
+  - "core/physics/forman_ricci.py::FormanRicciCurvature"
 expected_signal: >-
   `python -m pytest tests/unit/physics/test_T3_forman_ricci.py` reports
   25 passed; the result declares layer/physical_claim/claim_boundary/
@@ -120,4 +118,3 @@ report_path: "tmp/forman_ricci_nan_pytest.log"
 evidence:
   - path: "tmp/forman_ricci_nan_pytest.log"
     sha256: "d56f66ecd3226bf953afe051e280bd1c14299b44d5d6862df98fa81beecab923"  # pragma: allowlist secret
-    note: "pytest tests/unit/physics/test_T3_forman_ricci.py -v => 25 passed"

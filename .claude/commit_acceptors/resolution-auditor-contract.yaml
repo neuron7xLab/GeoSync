@@ -64,10 +64,8 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "analytics/signals/resolution_auditor.py"
-    symbol: "audit_resolution"
-  - file: "analytics/signals/resolution_auditor.py"
-    symbol: "ResolutionAudit"
+  - "analytics/signals/resolution_auditor.py::audit_resolution"
+  - "analytics/signals/resolution_auditor.py::ResolutionAudit"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_resolution_auditor.py` reports
   28 passed; the auditor is deterministic for identical metadata, derives
@@ -122,4 +120,3 @@ report_path: "tmp/resolution_auditor_pytest.log"
 evidence:
   - path: "tmp/resolution_auditor_pytest.log"
     sha256: "9c948a9e1aa9b3a82ac3a5b233296b20dbe08c3ac95d1e258bb37a007c13daa2"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_resolution_auditor.py -v => 28 passed"

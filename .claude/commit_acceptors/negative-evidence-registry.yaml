@@ -53,8 +53,7 @@ diff_scope:
     - "execution/"
     - "forecast/"
 required_python_symbols:
-  - file: "scripts/ci/check_negative_evidence.py"
-    symbol: "main"
+  - "scripts/ci/check_negative_evidence.py::main"
 expected_signal: >-
   `python scripts/ci/check_negative_evidence.py` prints one [PASS] line per
   entry (4 total, all four categories covered) and `OK: all 4 negative-evidence
@@ -107,4 +106,3 @@ report_path: "tmp/negative_evidence_pytest.log"
 evidence:
   - path: "tmp/negative_evidence_pytest.log"
     sha256: "44d3902a577049d1b44b5cad3d97dedb6e6f2aec8f56f193e53734f9beda6191"  # pragma: allowlist secret
-    note: "pytest tests/scripts/test_check_negative_evidence.py -v => 9 passed"

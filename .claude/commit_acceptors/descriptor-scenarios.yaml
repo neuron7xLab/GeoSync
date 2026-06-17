@@ -63,10 +63,8 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "analytics/signals/descriptor_scenarios.py"
-    symbol: "run_scenario"
-  - file: "analytics/signals/descriptor_scenarios.py"
-    symbol: "run_all_scenarios"
+  - "analytics/signals/descriptor_scenarios.py::run_scenario"
+  - "analytics/signals/descriptor_scenarios.py::run_all_scenarios"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_descriptor_scenarios.py` reports
   9 passed; the harness runs all six regimes reproducibly, the degenerate
@@ -112,4 +110,3 @@ report_path: "tmp/descriptor_scenarios_pytest.log"
 evidence:
   - path: "tmp/descriptor_scenarios_pytest.log"
     sha256: "9c97aae634857d9634e908c369a46654d4e599b1b1c8b01a7832d103d9adc9f0"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_descriptor_scenarios.py -v => 9 passed"

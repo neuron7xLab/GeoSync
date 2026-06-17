@@ -67,10 +67,8 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "analytics/signals/claim_maturity.py"
-    symbol: "evaluate_promotion"
-  - file: "analytics/signals/claim_maturity.py"
-    symbol: "PromotionVerdict"
+  - "analytics/signals/claim_maturity.py::evaluate_promotion"
+  - "analytics/signals/claim_maturity.py::PromotionVerdict"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_claim_maturity.py` reports
   19 passed; promotion is deterministic, allowed only when no rung is
@@ -131,4 +129,3 @@ report_path: "tmp/claim_maturity_pytest.log"
 evidence:
   - path: "tmp/claim_maturity_pytest.log"
     sha256: "d4bf9b05b33db4de987874d160696e4383dd4441831061731d91f73ab8335295"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_claim_maturity.py -v => 19 passed"
