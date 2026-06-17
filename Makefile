@@ -165,21 +165,15 @@ format:
 
 .PHONY: audit
 audit:
-	@echo "🔒 Running security audits..."
-	@echo "Note: pip-audit may report vulnerabilities that need review"
-	python -m pip_audit -r sbom/combined-requirements.txt -r requirements-dev.lock || echo "⚠️  pip-audit found issues - review above output"
+	@echo "🔒 Running security audits (fail-closed)..."
+	python scripts/dependency_audit.py --requirement sbom/combined-requirements.txt --requirement requirements-dev.lock
 	python -m bandit -r core/ backtest/ execution/ src/ -ll -q
 	@echo "✅ Security audit complete"
 
 .PHONY: deps-audit
 deps-audit:
-	@echo "🔒 Auditing Python dependencies for known vulnerabilities..."
-	@echo "Checking runtime dependencies (requirements.lock)..."
-	python -m pip_audit -r requirements.lock --desc || true
-	@echo ""
-	@echo "Checking dev dependencies (requirements-dev.lock)..."
-	python -m pip_audit -r requirements-dev.lock --desc || true
-	@echo ""
+	@echo "🔒 Auditing Python dependencies for known vulnerabilities (fail-closed)..."
+	python scripts/dependency_audit.py --requirement requirements.lock --requirement requirements-dev.lock --extra-arg=--desc
 	@echo "✅ Dependency audit complete"
 	@echo "📖 See https://pypi.org/project/pip-audit/ for more info"
 
