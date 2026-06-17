@@ -71,10 +71,8 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "analytics/signals/descriptor_information_quality.py"
-    symbol: "compute_information_quality"
-  - file: "analytics/signals/descriptor_information_quality.py"
-    symbol: "InformationQuality"
+  - "analytics/signals/descriptor_information_quality.py::compute_information_quality"
+  - "analytics/signals/descriptor_information_quality.py::InformationQuality"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_descriptor_information_quality.py`
   reports 19 passed; compute_information_quality is deterministic, maximises
@@ -129,4 +127,3 @@ report_path: "tmp/descriptor_information_quality_pytest.log"
 evidence:
   - path: "tmp/descriptor_information_quality_pytest.log"
     sha256: "7ddec13e7032e144b6985ed561ac62f5de2a334dbd449021a497dc45c7695d5f"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_descriptor_information_quality.py -v => 19 passed"

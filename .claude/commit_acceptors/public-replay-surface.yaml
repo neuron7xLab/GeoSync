@@ -64,10 +64,8 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "scripts/replay_descriptor_capsule.py"
-    symbol: "replay"
-  - file: "scripts/replay_descriptor_capsule.py"
-    symbol: "main"
+  - "scripts/replay_descriptor_capsule.py::replay"
+  - "scripts/replay_descriptor_capsule.py::main"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_replay_descriptor_capsule.py`
   reports 18 passed; replay() is deterministic for a fixed config, pins the
@@ -114,4 +112,3 @@ report_path: "tmp/replay_descriptor_pytest.log"
 evidence:
   - path: "tmp/replay_descriptor_pytest.log"
     sha256: "0999bf073864175b241072d8679cd49fc1c3d495f7e1a2e34ed4c918677b46df"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_replay_descriptor_capsule.py => 18 passed (timing-free)"

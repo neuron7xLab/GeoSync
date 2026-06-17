@@ -64,10 +64,8 @@ diff_scope:
     - "forecast/"
     - "src/"
 required_python_symbols:
-  - file: "core/physics/higher_order_kuramoto.py"
-    symbol: "HigherOrderKuramotoResult"
-  - file: "core/physics/higher_order_kuramoto.py"
-    symbol: "HigherOrderKuramotoEngine"
+  - "core/physics/higher_order_kuramoto.py::HigherOrderKuramotoResult"
+  - "core/physics/higher_order_kuramoto.py::HigherOrderKuramotoEngine"
 expected_signal: >-
   `python -m pytest tests/unit/physics/test_T4_higher_order_kuramoto.py`
   reports 18 passed; the result declares signed=False / higher_order=True with
@@ -115,4 +113,3 @@ report_path: "tmp/higher_order_kuramoto_pytest.log"
 evidence:
   - path: "tmp/higher_order_kuramoto_pytest.log"
     sha256: "50131db3010d0e4768eb255c5361368c0c6265c2f11df41d2cb5e60df1eb302b"  # pragma: allowlist secret
-    note: "pytest tests/unit/physics/test_T4_higher_order_kuramoto.py -v => 18 passed"

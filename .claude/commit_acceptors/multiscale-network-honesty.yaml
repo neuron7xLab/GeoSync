@@ -76,12 +76,9 @@ diff_scope:
     - "forecast/"
     - "src/"
 required_python_symbols:
-  - file: "core/indicators/multiscale_kuramoto.py"
-    symbol: "MultiScaleResult"
-  - file: "core/indicators/multiscale_kuramoto.py"
-    symbol: "MultiScaleKuramoto"
-  - file: "core/kuramoto/network_engine.py"
-    symbol: "NetworkKuramotoEngine"
+  - "core/indicators/multiscale_kuramoto.py::MultiScaleResult"
+  - "core/indicators/multiscale_kuramoto.py::MultiScaleKuramoto"
+  - "core/kuramoto/network_engine.py::NetworkKuramotoEngine"
 expected_signal: >-
   `python -m pytest tests/unit/test_indicators_kuramoto_multiscale.py
   tests/unit/core/test_kuramoto_network_engine.py -v` reports 52 passed; the
@@ -141,4 +138,3 @@ report_path: "tmp/multiscale_network_honesty_pytest.log"
 evidence:
   - path: "tmp/multiscale_network_honesty_pytest.log"
     sha256: "2d76782d9045ba58150e0f1b463148499df917cdedcc2ff5de2e8ab6a8196fce"  # pragma: allowlist secret
-    note: "pytest multiscale + network_engine suites -v => 52 passed"

@@ -55,8 +55,7 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "analytics/signals/descriptor_capsule.py"
-    symbol: "build_capsule"
+  - "analytics/signals/descriptor_capsule.py::build_capsule"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_descriptor_capsule.py` reports
   10 passed; build_capsule is deterministic (equal config -> equal manifest and
@@ -107,4 +106,3 @@ report_path: "tmp/descriptor_capsule_pytest.log"
 evidence:
   - path: "tmp/descriptor_capsule_pytest.log"
     sha256: "b1fbf0a741ef79ee3741526d1001463647c009a2c573fc5579f1fc80f14ba612"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_descriptor_capsule.py -v => 10 passed"

@@ -56,8 +56,7 @@ diff_scope:
     - "execution/"
     - "forecast/"
 required_python_symbols:
-  - file: "scripts/ci/check_instrument_evidence_chain.py"
-    symbol: "main"
+  - "scripts/ci/check_instrument_evidence_chain.py::main"
 expected_signal: >-
   `python scripts/ci/check_instrument_evidence_chain.py` prints one [PASS]
   line per instrument (7 total) and `OK: all 7 instruments have a fully
@@ -111,4 +110,3 @@ report_path: "tmp/instrument_evidence_chain.log"
 evidence:
   - path: "tmp/instrument_evidence_chain.log"
     sha256: "bc789646e53c29ea3df1c247df0d5d238c281ce1337527e7d74b041d7336e559"  # pragma: allowlist secret
-    note: "check_instrument_evidence_chain.py => all 7 PASS, exit 0"

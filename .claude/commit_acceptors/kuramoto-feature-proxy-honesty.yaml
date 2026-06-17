@@ -77,10 +77,8 @@ diff_scope:
     - "forecast/"
     - "core/kuramoto/"
 required_python_symbols:
-  - file: "src/geosync/features/kuramoto.py"
-    symbol: "KuramotoResult"
-  - file: "src/geosync/features/kuramoto.py"
-    symbol: "KuramotoSynchrony"
+  - "src/geosync/features/kuramoto.py::KuramotoResult"
+  - "src/geosync/features/kuramoto.py::KuramotoSynchrony"
 expected_signal: >-
   `python -m pytest tests/unit/geosync/features/test_kuramoto.py` reports
   9 passed; the emitted dict and the KuramotoResult both declare proxy=True with
@@ -136,4 +134,3 @@ report_path: "tmp/kuramoto_feature_proxy_pytest.log"
 evidence:
   - path: "tmp/kuramoto_feature_proxy_pytest.log"
     sha256: "69ae8ef5b4de3c98cb2433d0e103208c31f08dc4580f2701cd0711594eb24c2b"  # pragma: allowlist secret
-    note: "pytest tests/unit/geosync/features/test_kuramoto.py -v => 9 passed"

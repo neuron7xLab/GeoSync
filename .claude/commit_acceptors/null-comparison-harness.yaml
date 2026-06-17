@@ -69,10 +69,8 @@ diff_scope:
     - "core/"
     - "src/"
 required_python_symbols:
-  - file: "analytics/signals/null_comparison.py"
-    symbol: "compare_to_null"
-  - file: "analytics/signals/null_comparison.py"
-    symbol: "NullComparison"
+  - "analytics/signals/null_comparison.py::compare_to_null"
+  - "analytics/signals/null_comparison.py::NullComparison"
 expected_signal: >-
   `python -m pytest tests/unit/analytics/test_null_comparison.py` reports
   27 passed; compare_to_null is deterministic for equal inputs, computes
@@ -126,4 +124,3 @@ report_path: "tmp/null_comparison_pytest.log"
 evidence:
   - path: "tmp/null_comparison_pytest.log"
     sha256: "34f997c3678c72addbe931af1f6917378f3c83a625f14a891e91a37e7ab1632c"  # pragma: allowlist secret
-    note: "pytest tests/unit/analytics/test_null_comparison.py -v => 27 passed"

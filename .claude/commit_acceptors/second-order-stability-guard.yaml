@@ -67,10 +67,8 @@ diff_scope:
     - "forecast/"
     - "src/"
 required_python_symbols:
-  - file: "core/kuramoto/second_order.py"
-    symbol: "SecondOrderDivergenceError"
-  - file: "core/kuramoto/second_order.py"
-    symbol: "SecondOrderKuramotoEngine"
+  - "core/kuramoto/second_order.py::SecondOrderDivergenceError"
+  - "core/kuramoto/second_order.py::SecondOrderKuramotoEngine"
 expected_signal: >-
   `python -m pytest tests/unit/physics/test_T18b_second_order_stability_guard.py`
   reports 10 passed; a non-finite (NaN/Inf) integrated state and an exceeded
@@ -138,4 +136,3 @@ report_path: "tmp/second_order_stability_guard_pytest.log"
 evidence:
   - path: "tmp/second_order_stability_guard_pytest.log"
     sha256: "29872a03b84d46f4ddba11928331c84d82e01cdd58e47f0659a1f6d5150ded8b"  # pragma: allowlist secret
-    note: "pytest tests/unit/physics/test_T18b_second_order_stability_guard.py -v => 10 passed"
