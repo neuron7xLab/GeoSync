@@ -325,11 +325,33 @@ jobs:
           # ids. Serial process per shard (caplog unaffected), ~1/4 of the
           # suite, 1200s cap unchanged/not masked.
           MARK="not slow and not heavy_math and not nightly and not flaky"
-          .venv/bin/pytest tests/ -m "$MARK" --collect-only -q 2>/dev/null \
-            | grep -E '::' > /tmp/all_nodeids.txt || true
+          # Collect node ids for the selected fast set.
+          #
+          # CRITICAL: pytest.ini addopts already carries `-q`. Passing a SECOND
+          # `-q` here raises verbosity to -2, which flips `--collect-only` output
+          # from per-test node ids ("tests/foo.py::test_bar") to a per-FILE
+          # summary ("tests/foo.py: 6"). The `grep '::'` then matched nothing,
+          # /tmp/all_nodeids.txt was empty, and EVERY shard reported
+          # "0/0 selected tests — shard passes". The entire fast lane
+          # (~17.6k tests) was green-by-vacuum on main and every PR. Keep exactly
+          # ONE level of quiet (from the ini) — do NOT re-add `-q` on this line.
+          .venv/bin/pytest tests/ -m "$MARK" --collect-only 2>/dev/null \
+            | grep -E '^tests/.*::' > /tmp/all_nodeids.txt || true
+          total_ids=$(wc -l < /tmp/all_nodeids.txt | tr -d ' ')
+          # Fail-closed: we only reach here because the diff touched Python
+          # test surface (awk filter above). Zero collected ids therefore means
+          # collection is broken — refuse to pass vacuously, the way the old
+          # `-q` bug did.
+          if [[ "$total_ids" -eq 0 ]]; then
+            echo "FATAL: test-surface changed but 0 fast tests collected." >&2
+            echo "Collection is broken (import error or output-format regression); refusing to pass vacuously." >&2
+            exit 1
+          fi
           .venv/bin/python -c "import binascii,pathlib; ids=[l.strip() for l in pathlib.Path('/tmp/all_nodeids.txt').read_text().splitlines() if l.strip()]; g=${{ matrix.group }}-1; sh=[n for n in ids if binascii.crc32(n.encode())%4==g]; pathlib.Path('/tmp/shard_nodeids.txt').write_text(chr(10).join(sh)); print(f'shard {g+1}/4: {len(sh)}/{len(ids)} selected tests')"
           if [[ ! -s /tmp/shard_nodeids.txt ]]; then
-            echo "empty shard (no selected tests) — shard passes"; exit 0
+            # Legit: this crc32 bucket can be empty when total ids < 4. The
+            # non-vacuous guarantee is the total_ids>0 check above, not this one.
+            echo "empty shard (no ids in this crc32 bucket) — shard passes"; exit 0
           fi
           mapfile -t SHARD_IDS < /tmp/shard_nodeids.txt
           timeout 1200s .venv/bin/pytest \
