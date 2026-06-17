@@ -17,26 +17,30 @@ The honest, anti-theatre construction:
   are not scored against it (penalising an endpoint for a state that
   cannot exist for it is dishonest measurement, exactly as in Q5).
 * A cell is ``covered`` only if it cites a **real, resolvable**
-  test — a concrete pytest node (``path::func``) or a whole test
-  module (``path``) that genuinely exercises that state for that
-  endpoint class. ``tests/edge_cases/test_edge_case_matrix.py``
-  statically verifies every cited target still exists (file present
-  and, for ``path::func``, the function defined), so deleting or
-  renaming a cited test fails the gate — the matrix has teeth.
+  test — a concrete pytest node (``path::func``), a whole test module
+  (``path``), or a Playwright spec cell
+  (``path.spec.ts::<endpoint>::<state>``) that genuinely exercises that
+  state for that endpoint class. ``test_edge_case_matrix.py`` statically
+  verifies every cited target still exists (pytest: file + ``def``;
+  Playwright: file + ``test(`` block + the cited ``<endpoint>`` and
+  ``probe-state-<state>`` markers), so deleting or renaming a cited test
+  fails the gate — the matrix has teeth for both layers.
 * Cells with no genuine test yet are listed explicitly as
   ``UNCOVERED`` with a reason. No cell is silently assumed.
 
-Phase-4 ENTRY (this revision): the honest ECC is ~0.78 (loading and
-cancelled are pure client in-flight/abort states with no genuine test
-until the frontend pages consume the endpoints; per-probe server_error
-is untested). The gate therefore runs informationally
-(``continue-on-error: true``) while the two §532 *hard* sub-
-requirements — network_failure **and** timeout tested for every
-applicable endpoint, and simulation_diverged correlated with
-INV-DRO5 — are asserted fail-closed because they are genuinely met
-today. Phase-4 EXIT lands Playwright route-interception specs for
-loading / cancelled / per-probe server_error, lifting ECC ≥ 0.90 and
-flipping the gate fail-closed (claim ANCHORED).
+Phase-4 EXIT (this revision): ECC = 1.00. The client-only states
+(loading, cancelled, per-probe server_error) that had no genuine test
+at ENTRY are now exercised by Playwright route-interception specs in
+``apps/web/tests/edge-case-probe.spec.ts`` — each state is driven by
+``page.route`` (delayed fulfil for loading, ``route.abort('failed')``
+for network_failure, a hung route past the client deadline for timeout,
+``fulfill`` status 500 per probe for server_error, a non-finite forecast
+envelope for the INV-DRO5 simulation_diverged guard) or a genuine user
+cancel, against the ``/edge-probe`` harness that issues a real ``fetch``.
+The two §532 *hard* sub-requirements — network_failure **and** timeout
+tested for every applicable endpoint, and simulation_diverged correlated
+with INV-DRO5 — remain asserted fail-closed, and the ECC ≥ 0.90 gate is
+now fail-closed too (claim ANCHORED).
 """
 
 from __future__ import annotations
@@ -150,7 +154,17 @@ _COVERAGE: Final[dict[tuple[str, str], str]] = {
         "collection",
         "simulation_diverged",
     ): "tests/unit/physics/test_inv_dro5_fail_closed.py::test_inv_dro5_rejects_nan_in_input",
-    # loading, cancelled → UNCOVERED (client in-flight / abort; Q7 EXIT)
+    # Q7 EXIT: client in-flight / user-abort states are now genuinely
+    # exercised by Playwright route-interception specs against the
+    # /edge-probe harness (real fetch; page.route drives each state).
+    (
+        "collection",
+        "loading",
+    ): "apps/web/tests/edge-case-probe.spec.ts::/features::loading",
+    (
+        "collection",
+        "cancelled",
+    ): "apps/web/tests/edge-case-probe.spec.ts::/features::cancelled",
     # ---- command ----
     (
         "command",
@@ -172,7 +186,16 @@ _COVERAGE: Final[dict[tuple[str, str], str]] = {
         "command",
         "network_failure",
     ): "tests/connectors/test_fail_closed_connectors.py",
-    # loading, cancelled → UNCOVERED (Q7 EXIT)
+    # Q7 EXIT: in-flight / user-abort now covered for the command class
+    # via the same /edge-probe route-interception spec.
+    (
+        "command",
+        "loading",
+    ): "apps/web/tests/edge-case-probe.spec.ts::/admin/kill-switch::loading",
+    (
+        "command",
+        "cancelled",
+    ): "apps/web/tests/edge-case-probe.spec.ts::/admin/kill-switch::cancelled",
     # ---- probe ----
     (
         "probe",
@@ -186,7 +209,12 @@ _COVERAGE: Final[dict[tuple[str, str], str]] = {
         "probe",
         "network_failure",
     ): "tests/connectors/test_fail_closed_connectors.py",
-    # server_error → UNCOVERED (no per-probe 500 assertion; Q7 EXIT)
+    # Q7 EXIT: per-probe 500 is now asserted by the route-interception
+    # spec (page.route fulfil status 500 against /health and /metrics).
+    (
+        "probe",
+        "server_error",
+    ): "apps/web/tests/edge-case-probe.spec.ts::/health::server_error",
 }
 
 
@@ -236,29 +264,60 @@ def cited_targets() -> set[str]:
 
 
 def resolve_target(target: str) -> tuple[Path, str | None]:
-    """Split ``path::func`` (or ``path``) into (absolute path, func|None)."""
+    """Split ``path::selector`` (or ``path``) into (absolute path, selector).
+
+    For pytest targets the selector is ``func``. For Playwright spec
+    targets (``*.spec.ts``) the selector is ``<endpoint>::<state>`` — two
+    literals that must both appear in the spec file, giving the TS cells
+    the same rename/delete teeth as the pytest cells.
+    """
     if "::" in target:
-        rel, func = target.split("::", 1)
+        rel, selector = target.split("::", 1)
     else:
-        rel, func = target, None
-    return REPO_ROOT / rel, func
+        rel, selector = target, None
+    return REPO_ROOT / rel, selector
+
+
+def _spec_target_exists(file_path: Path, selector: str | None) -> bool:
+    """Falsify a Playwright ``*.spec.ts`` cell without running a browser.
+
+    The file must define at least one ``test(`` block, and — when a
+    ``<endpoint>::<state>`` selector is given — must literally reference
+    both the probed endpoint path and the ``probe-state-<state>`` testid
+    the spec asserts on. Renaming the endpoint loop, deleting the state
+    assertion, or removing the spec all flip the cell to UNCOVERED.
+    """
+    source = file_path.read_text(encoding="utf-8")
+    if re.search(r"\btest\(", source) is None:
+        return False
+    if selector is None:
+        return True
+    parts = selector.split("::")
+    if len(parts) != 2:
+        return False
+    endpoint, state = parts
+    return endpoint in source and f"probe-state-{state}" in source
 
 
 def target_exists(target: str) -> bool:
     """Static, dependency-free existence check for a cited test target.
 
-    Real falsification without invoking pytest collection (which would
-    drag optional deps): the file must exist and, when a function is
-    named, be defined in it; a whole-module cite must contain at least
-    one ``def test_``.
+    Real falsification without invoking pytest collection / a browser
+    (which would drag optional deps): the file must exist and the cited
+    selector must genuinely resolve inside it. Pytest targets check the
+    ``def`` (or, for a whole-module cite, any ``def test_``); Playwright
+    spec targets check the ``test(`` block plus the cited
+    ``<endpoint>::<state>`` markers.
     """
-    file_path, func = resolve_target(target)
+    file_path, selector = resolve_target(target)
     if not file_path.is_file():
         return False
+    if file_path.suffix == ".ts":
+        return _spec_target_exists(file_path, selector)
     source = file_path.read_text(encoding="utf-8")
-    if func is None:
+    if selector is None:
         return re.search(r"^\s*def test_\w+", source, re.MULTILINE) is not None
-    return re.search(rf"^\s*def {re.escape(func)}\b", source, re.MULTILINE) is not None
+    return re.search(rf"^\s*def {re.escape(selector)}\b", source, re.MULTILINE) is not None
 
 
 def compute_ecc() -> tuple[int, int, float, list[tuple[str, str, str, str]]]:
