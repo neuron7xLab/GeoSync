@@ -7,19 +7,20 @@
 # neuron7x-fvps-governance-contract.yaml.
 #
 # Purpose:
-#   Bind this governance-only PR to explicit evidence, rollback, and claim
-#   boundary. This acceptor intentionally does not validate cognition,
-#   physics, prediction, market readiness, or model-weight update claims.
+#   Bind this governance-only surface to explicit evidence, rollback, and claim
+#   boundary. This acceptor intentionally does not validate cognition, physics,
+#   prediction, market readiness, or model-weight update claims.
 
 id: fractal-neuro-cognitive-governance-contract
 status: ACTIVE
 claim_type: governance
 promise: >-
-  After this PR lands, GeoSync contains machine-readable and human-readable
-  governance artifacts for the fractal neuro-cognitive architecture and for
-  claim-state quantization. The PR adds governance data, schemas, docs, a
-  deterministic claim-state quantizer, and tests. It does not change runtime,
-  physics, market, or trading behavior.
+  GeoSync contains machine-readable and human-readable governance artifacts for
+  the fractal neuro-cognitive architecture and claim-state quantization. The
+  claim-state quantizer maps evidence envelopes into discrete proof states,
+  requires same-SHA green CI before EVIDENCE_BEARING promotion, and rejects
+  upward declared-state drift. The schema is fail-closed for envelope shape. This
+  surface does not change runtime, physics, market, or trading behavior.
 
 diff_scope:
   changed_files:
@@ -52,15 +53,17 @@ required_python_symbols:
   - "tests/governance/test_claim_state_quantum_input.py::test_empty_envelope_is_untested"
   - "tests/governance/test_claim_state_quantum_input.py::test_missing_links_are_partial"
   - "tests/governance/test_claim_state_quantum_input.py::test_same_sha_green_ci_is_ci_verified"
+  - "tests/governance/test_claim_state_quantum_input.py::test_scientific_vector_without_same_sha_ci_is_not_evidence_bearing"
   - "tests/governance/test_claim_state_quantum_input.py::test_real_data_replay_baseline_falsifier_semantic_validation_is_evidence_bearing"
   - "tests/governance/test_claim_state_quantum_input.py::test_declared_state_cannot_round_up"
+  - "tests/governance/test_claim_state_quantum_input.py::test_schema_is_fail_closed_for_claim_envelope_shape"
 
 expected_signal: >-
   The governance claim-state quantizer deterministically maps evidence envelopes
-  into the discrete states FALSE, UNTESTED, PARTIAL, LOCAL_VERIFIED, CI_VERIFIED,
-  or EVIDENCE_BEARING, rejects upward declared-state drift, and the fractal
-  neuro-cognitive architecture/schema artifacts define the execution contract
-  without claiming runtime, physics, market, or trading behavior changes.
+  into FALSE, UNTESTED, PARTIAL, LOCAL_VERIFIED, CI_VERIFIED, or
+  EVIDENCE_BEARING; it requires both a complete scientific evidence vector and
+  same-SHA green CI for EVIDENCE_BEARING, rejects upward declared-state drift,
+  and the input schema fails closed on unexpected or unstructured envelope data.
 
 measurement_command: >-
   bash -c '
@@ -74,44 +77,46 @@ falsifier:
   command: >-
     bash -c '
       python - <<"PY"
-      from tools.governance.quantize_claim_state import validate_declared_state
+      from tools.governance.quantize_claim_state import ClaimState, quantize_claim_state
       envelope = {
-          "claim_id": "upward-drift-probe",
-          "claim_text": "partial evidence must not be promoted",
-          "declared_state": "CI_VERIFIED",
+          "claim_id": "evidence-bearing-without-ci-probe",
+          "claim_text": "scientific vector alone must not promote",
           "source_refs": ["source"],
+          "test_refs": ["test"],
+          "commands": [{"cmd": "pytest", "output_ref": "local", "exit_code": 0}],
+          "artifacts": ["artifact.json"],
+          "ci_proof": {"same_sha": False, "required_checks_green": False},
+          "failure_mode": "same-SHA CI missing",
+          "rollback": "revert",
+          "claim_boundary": {"allowed": ["governance"], "blocked": ["domain validation"]},
+          "negative_evidence": ["no CI proof"],
+          "scientific_evidence": {
+              "real_data": True,
+              "replay": True,
+              "baseline": True,
+              "falsifier": True,
+              "semantic_validation": True,
+          },
       }
-      result = validate_declared_state(envelope)
-      raise SystemExit(0 if result["upward_drift"] else 1)
+      raise SystemExit(0 if quantize_claim_state(envelope) is not ClaimState.EVIDENCE_BEARING else 1)
       PY
     '
   description: >-
-    Probes that a partial evidence envelope declared as CI_VERIFIED is rejected
-    as upward state drift. The falsifier succeeds only when the promotion
-    firewall is active.
+    Probes that a complete scientific evidence vector without same-SHA green CI
+    is not promoted to EVIDENCE_BEARING.
 
 rollback_command: >-
   bash -c '
-    git rm -f
+    git checkout HEAD~1 --
       .claude/commit_acceptors/fractal-neuro-cognitive-governance-contract.yaml
-      data/governance/fractal_neuro_cognitive_architecture_v2026_1.json
-      docs/architecture/fractal_neuro_cognitive_architecture_v2026_1.md
-      schemas/governance/fractal_neuro_cognitive_execution.schema.json
-      docs/governance/claim_state_quantum_input.md
       schemas/governance/claim_state_quantum_input.schema.json
       tools/governance/quantize_claim_state.py
       tests/governance/test_claim_state_quantum_input.py
-      docs/prompts/fractal_neuro_cognitive_research_agent_v2026_1.md
-      data/governance/fractal_neuro_cognitive_research_agent_v2026_1.json
   '
 
 rollback_verification_command: >-
   bash -c '
-    test ! -e tools/governance/quantize_claim_state.py
-    && test ! -e tests/governance/test_claim_state_quantum_input.py
-    && test ! -e schemas/governance/fractal_neuro_cognitive_execution.schema.json
-    && test ! -e data/governance/fractal_neuro_cognitive_architecture_v2026_1.json
-    && test ! -e docs/prompts/fractal_neuro_cognitive_research_agent_v2026_1.md
+    python -m pytest -q tests/governance/test_claim_state_quantum_input.py
   '
 
 memory_update_type: append
