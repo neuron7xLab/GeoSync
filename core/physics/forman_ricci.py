@@ -87,6 +87,14 @@ _NAN_POLICY: str = "nonfinite_excluded_and_recorded"
 _DESCRIPTOR_CONSUMER_BOUNDARY: str = (
     "advisory_transform_of_layer_b_descriptor__not_validated_physical_or_trading_claim"
 )
+#: κ_min value at which the margin policy *begins* to escalate. This is a policy
+#: choice — the escalation onset — NOT a lower bound on the Forman curvature.
+#: The combinatorial Forman-Ricci κ_F = 4 - d_i - d_j + 3·T_ij is UNBOUNDED below
+#: (a hub edge of degree d with no triangles gives κ_F = 4 - 2d, e.g. -96 at
+#: d=50), so any κ_min ≤ this onset is treated as "fragmented → base margin" by
+#: design. Using a named constant keeps the magic number and the false-bound
+#: comment that previously sat at the call site out of the code.
+_MARGIN_ESCALATION_ONSET: float = -2.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -338,12 +346,17 @@ class DualTrackRicciMonitor:
         """Compute margin requirement multiplier from curvature.
 
         κ_min → 0  means herding → increase margin.
-        κ_min << 0 means fragmented → normal margin.
+        κ_min ≤ onset means fragmented → base margin.
 
-        Multiplier = base · max(1, 1 + sensitivity · max(0, κ_min + 2))
+        Multiplier = base · max(1, 1 + sensitivity · max(0, κ_min − onset))
 
-        The +2 offset means: κ_min > -2 triggers escalation.
-        At κ_min = 0 (herding): multiplier = base · (1 + 2·sensitivity).
+        ``onset`` (:data:`_MARGIN_ESCALATION_ONSET`, default −2) is the κ_min at
+        which escalation begins; it is a *policy choice*, not a bound on κ_F
+        (the combinatorial Forman curvature is unbounded below). For
+        κ_min ≤ onset the inner ``max(0, …)`` saturates to 0, so the multiplier
+        floors at ``base`` — the documented "fragmented → base margin" regime,
+        not a silently discarded value.
+        At κ_min = 0 (herding): multiplier = base · (1 − sensitivity·onset).
 
         Boundary: this consumes a Layer-B structural descriptor and does NOT
         read ``result.physical_claim`` / ``result.claim_boundary``. The
@@ -356,8 +369,10 @@ class DualTrackRicciMonitor:
                 return self._margin_base
             result = self._history[-1]
 
-        # bounds: shift κ_min into non-negative range for margin scaling (κ_F ≥ -2 typical)
-        kappa_shifted = max(0.0, result.kappa_min + 2.0)
+        # bounds: escalation onset, NOT a bound on κ_F (combinatorial
+        # Forman-Ricci is unbounded below). This max() is the policy floor
+        # "κ_min ≤ onset → base margin", not a claim that κ_F ≥ onset.
+        kappa_shifted = max(0.0, result.kappa_min - _MARGIN_ESCALATION_ONSET)
         return self._margin_base * max(1.0, 1.0 + self._margin_sensitivity * kappa_shifted)
 
     def is_herding(self, result: FormanRicciResult | None = None) -> bool:
