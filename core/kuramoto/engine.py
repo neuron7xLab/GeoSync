@@ -2,14 +2,31 @@
 # SPDX-License-Identifier: MIT
 """Kuramoto ODE simulation engine.
 
-Coupling semantics implemented by this module:
+Coupling semantics implemented by this module (FP-1: one equation, one owner
+of scale). The canonical Kuramoto right-hand side is::
+
+    θ̇_i = ω_i + K · Σ_j A_norm[i,j] · sin(θ_j − θ_i)
+
+where ``K`` is the **only** scalar coupling gain and ``A_norm`` is topology /
+affinity only (zero diagonal, no hidden ``K``). The single owner of scale is
+the RHS: :func:`_dtheta_dt` multiplies the topology sum by ``K`` explicitly.
 
 - Global all-to-all mode (no explicit adjacency):
-  ``dθ_i/dt = ω_i + (K/N) * Σ_{j != i} sin(θ_j - θ_i)``
+  ``A_norm[i,j] = 1/N`` for ``i != j`` (topology), so
+  ``θ̇_i = ω_i + (K/N) · Σ_{j != i} sin(θ_j - θ_i)``.
 - Explicit adjacency mode:
-  ``dθ_i/dt = ω_i + K * Σ_j A_ij sin(θ_j - θ_i)``
+  ``A_norm = cfg.adjacency`` with zero diagonal (topology only), so
+  ``θ̇_i = ω_i + K · Σ_j A_ij sin(θ_j - θ_i)``.
 
-In both modes, no-self-coupling is enforced by zeroing diagonal weights.
+In both modes, no-self-coupling is enforced by zeroing diagonal weights and
+``K`` enters the dynamics exactly once.
+
+Back-compatibility: a caller that historically pre-multiplied its adjacency by
+``K`` before handing it to the engine can set
+``KuramotoConfig.legacy_pre_scaled_adjacency=True``. The engine then treats the
+matrix as already-scaled effective coupling ``C = K·A`` and applies a unit gain
+in the RHS, reproducing the pre-FP-1 numerical trajectory bit-for-bit. The
+default (``False``) is the canonical single-owner-of-scale path.
 """
 
 from __future__ import annotations
@@ -98,6 +115,21 @@ class KuramotoEngine:
         self._cfg = config
         self._omega, self._theta0 = self._resolve_initial_conditions(config)
         self._adj = self._resolve_adjacency(config)
+        # FP-1: K is the sole owner of coupling scale and lives in the RHS.
+        # In the legacy pre-scaled path the matrix already carries K (C = K·A),
+        # so the RHS gain must be unity to avoid double-scaling.
+        self._coupling_gain: float = 1.0 if config.legacy_pre_scaled_adjacency else float(config.K)
+        # FP-1 fail-closed: a negative coupling gain is repulsive and cannot
+        # claim attractive Kuramoto physics. The canonical single-owner path
+        # rejects it at construction. (The legacy pre-scaled path folds the sign
+        # into the supplied matrix, so the gain it uses is the unit 1.0 above.)
+        if self._coupling_gain < 0.0:
+            raise ValueError(
+                "FP-1: coupling gain K must be non-negative for the canonical "
+                f"single-owner-of-scale path; got K={config.K!r}. A repulsive/signed "
+                "coupling must be expressed via a signed adjacency with "
+                "legacy_pre_scaled_adjacency or a CLAIM_SIGNED coupling spec."
+            )
         self._validate_runtime_inputs(self._omega, self._theta0, self._adj)
 
     def run(self) -> KuramotoResult:
@@ -113,6 +145,8 @@ class KuramotoEngine:
         R_arr = np.empty(steps + 1, dtype=np.float64)
         time_arr = np.arange(steps + 1, dtype=np.float64) * dt
 
+        gain = self._coupling_gain
+
         theta = self._theta0.copy()
         phases[0] = theta
         R_arr[0] = _order_parameter(theta)
@@ -127,7 +161,7 @@ class KuramotoEngine:
         )
 
         for k in range(steps):
-            theta = _rk4_step(theta, omega, adj, dt)
+            theta = _rk4_step(theta, omega, adj, dt, K=gain)
             if not np.isfinite(theta).all():
                 raise FloatingPointError(f"Non-finite phase values encountered at step={k + 1}.")
             phases[k + 1] = theta
@@ -155,15 +189,41 @@ class KuramotoEngine:
 
     @staticmethod
     def _resolve_adjacency(cfg: KuramotoConfig) -> NDArray[np.float64]:
-        """Build effective coupling matrix used in derivatives."""
+        """Build the topology-only coupling matrix ``A_norm`` (FP-1).
+
+        Returns affinity/topology with zero diagonal and **no** embedded scalar
+        gain ``K`` — the gain is applied once in the RHS (:func:`_dtheta_dt`).
+
+        - Explicit adjacency (``cfg.adjacency is not None``): ``A_norm`` is the
+          supplied matrix with its diagonal zeroed (no-self-coupling). The RHS
+          then forms ``K · Σ_j A_norm[i,j] · sin(θ_j − θ_i)``.
+        - Global all-to-all (``cfg.adjacency is None``): ``A_norm[i,j] = 1/N``
+          for ``i != j``. The ``1/N`` is the all-to-all normalisation (part of
+          the topology), not the coupling gain; combined with the RHS gain it
+          reproduces the mean-field ``(K/N) · Σ_{j != i} sin(θ_j − θ_i)``.
+
+        Legacy back-compat (``cfg.legacy_pre_scaled_adjacency=True``): the
+        matrix is treated as already-scaled effective coupling ``C = K·A`` and
+        returned pre-multiplied by ``K`` (diagonal zeroed); the engine then
+        applies a unit RHS gain, reproducing the pre-FP-1 trajectory exactly.
+        """
         N = cfg.N
-        K = cfg.K
+        if cfg.legacy_pre_scaled_adjacency:
+            K = cfg.K
+            if cfg.adjacency is not None:
+                legacy_adj = K * cfg.adjacency.astype(np.float64, copy=True)
+                np.fill_diagonal(legacy_adj, 0.0)
+                return legacy_adj
+            legacy_global = np.full((N, N), K / N, dtype=np.float64)
+            np.fill_diagonal(legacy_global, 0.0)
+            return legacy_global
+
         if cfg.adjacency is not None:
-            adj = K * cfg.adjacency.astype(np.float64, copy=True)
+            adj = cfg.adjacency.astype(np.float64, copy=True)
             np.fill_diagonal(adj, 0.0)
             return adj
 
-        adj = np.full((N, N), K / N, dtype=np.float64)
+        adj = np.full((N, N), 1.0 / N, dtype=np.float64)
         np.fill_diagonal(adj, 0.0)
         return adj
 
@@ -192,11 +252,20 @@ def _dtheta_dt(
     theta: NDArray[np.float64],
     omega: NDArray[np.float64],
     adj: NDArray[np.float64],
+    *,
+    K: float = 1.0,
 ) -> NDArray[np.float64]:
-    """Evaluate Kuramoto RHS for a single phase vector."""
+    """Evaluate the Kuramoto RHS for a single phase vector (FP-1).
+
+    Computes ``θ̇_i = ω_i + K · Σ_j adj[i,j] · sin(θ_j − θ_i)`` where ``K`` is
+    the single scalar coupling gain (the sole owner of scale) and ``adj`` is
+    topology-only affinity ``A_norm`` with zero diagonal. ``K`` defaults to
+    ``1.0`` so a caller that supplies an already-scaled effective matrix
+    ``C = K·A`` (legacy convention) gets the identical, un-double-scaled result.
+    """
     diff = theta[np.newaxis, :] - theta[:, np.newaxis]
     sin_diff = np.sin(diff)
-    coupling = (adj * sin_diff).sum(axis=1)
+    coupling = K * (adj * sin_diff).sum(axis=1)
     out: NDArray[np.float64] = omega + coupling
     if not np.isfinite(out).all():
         raise FloatingPointError("Non-finite derivative values produced by Kuramoto RHS.")
@@ -208,12 +277,14 @@ def _rk4_step(
     omega: NDArray[np.float64],
     adj: NDArray[np.float64],
     dt: float,
+    *,
+    K: float = 1.0,
 ) -> NDArray[np.float64]:
-    """Advance one Runge-Kutta 4 integration step."""
-    k1 = _dtheta_dt(theta, omega, adj)
-    k2 = _dtheta_dt(theta + 0.5 * dt * k1, omega, adj)
-    k3 = _dtheta_dt(theta + 0.5 * dt * k2, omega, adj)
-    k4 = _dtheta_dt(theta + dt * k3, omega, adj)
+    """Advance one Runge-Kutta 4 integration step (FP-1 single-owner gain ``K``)."""
+    k1 = _dtheta_dt(theta, omega, adj, K=K)
+    k2 = _dtheta_dt(theta + 0.5 * dt * k1, omega, adj, K=K)
+    k3 = _dtheta_dt(theta + 0.5 * dt * k2, omega, adj, K=K)
+    k4 = _dtheta_dt(theta + dt * k3, omega, adj, K=K)
     return theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
 
