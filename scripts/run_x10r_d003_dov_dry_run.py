@@ -63,10 +63,12 @@ import numpy as np
 from research.reconstruction.positive_control import (
     GroundTruthRecoveryCertificate,
 )
+from research.reconstruction.prereg import emit_prereg
 from research.reconstruction.recovery_audit import (
     DomainOfValidityStatus,
     check_domain_of_validity,
 )
+from research.reconstruction.ro_crate import emit_ro_crate
 
 
 def _representative_synthetic_marginals(seed: int = 42) -> dict[str, Any]:
@@ -245,6 +247,17 @@ def run_dry_run(
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(capsule, indent=2))
+
+    # Publication-readiness packaging (epic #640): emit machine-readable
+    # provenance + preregistration templates alongside the capsule. These
+    # are descriptive only and make no validity claim beyond `scoped_tier`.
+    artifact_dir = out_path.parent
+    crate_path = emit_ro_crate(capsule, artifact_dir)
+    prereg_paths = emit_prereg(capsule, artifact_dir)
+    capsule["ro_crate_metadata_path"] = str(crate_path)
+    capsule["osf_prereg_path"] = str(prereg_paths["osf"])
+    capsule["aspredicted_prereg_path"] = str(prereg_paths["aspredicted"])
+
     return capsule
 
 
