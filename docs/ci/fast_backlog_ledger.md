@@ -33,7 +33,7 @@ surfaced the latent backlog the vacuum had hidden.
 | `numerical_policy_unregistered_clamps` | 1 | [#1173](https://github.com/neuron7xLab/GeoSync/issues/1173) | physics-numerical-policy | quarantined |
 | `tools_import_shadowing` | 1 (14 tests) | [#1178](https://github.com/neuron7xLab/GeoSync/issues/1178) | ci-import-architecture | quarantined |
 | `namespace_canonical_policy` | 2 | [#1179](https://github.com/neuron7xLab/GeoSync/issues/1179) | ci-import-architecture | quarantined |
-| `contradiction_ledger_stale` | 1 | [#1180](https://github.com/neuron7xLab/GeoSync/issues/1180) | governance-ledger | quarantined |
+| `contradiction_ledger_stale` | 1 | [#1180](https://github.com/neuron7xLab/GeoSync/issues/1180) | governance-ledger | **drained** |
 | `d002g_lock_anchor_stale` | 1 | [#1183](https://github.com/neuron7xLab/GeoSync/issues/1183) | governance-lock | quarantined |
 
 **Cluster-count correction (was "1").** The original measurement reported a
@@ -135,14 +135,18 @@ returns 0 and architecture-guards reports zero violations; drained in #1179.
 ### contradiction_ledger_stale
 
 `tests/audit/test_contradiction_ledger.py::test_every_falsifier_confirms_its_claim_against_live_source`
-fails: entry **C-NEURO-003**'s falsifier
+had failed: entry **C-NEURO-003**'s old falsifier
 `[ "$(grep -c dopamine_serotonin_correlation_min core/validation/neuro_integrity.py)" -le 2 ]`
-now returns 1 (expected 0) — the field has been wired into a `validate_*` path
-(>2 mentions), so the ledger's "still dead" position is no longer true and the
-crown invariant correctly demands the entry flip to RESOLVED. This is the
-contradiction ledger working as designed, not a test bug. **Expiry:**
-C-NEURO-003 marked RESOLVED with evidence and the falsifier matches live source;
-drained in #1180.
+returned 1 (expected 0) — the field had been wired into a `validate_*` path
+(>2 mentions), so the ledger's "still dead" position was no longer true and the
+crown invariant correctly demanded the entry flip to RESOLVED. This was the
+contradiction ledger working as designed, not a test bug. **DRAINED:**
+C-NEURO-003 is now `RESOLVED` with a `resolution_ref` (the enforcement at
+`core/validation/neuro_integrity.py:412,433` + the correlation-witness acceptor),
+and its falsifier was rewritten to the anti-regression form
+`[ "$(grep -c ... )" -ge 3 ]` (expect_exit 0) which matches live source. The
+quarantine line is removed and the full ledger suite (17 tests) is green
+unquarantined.
 
 ### d002g_lock_anchor_stale
 

@@ -43,14 +43,16 @@ adopts three established academic standards so that every claim is *defended* an
 Verified against real source on 2026-06-17. The remediation program anticipated
 many contradictions; most are **already bounded** by the repo's own canon. Only
 **C-ENERGY-001** was a true HIGH violation (now **RESOLVED** via #1146 + #1149)
-and only **C-NEURO-003** is a genuinely-actionable MEDIUM. The rest are LOW
+and **C-NEURO-003** was a genuinely-actionable MEDIUM, now **RESOLVED** (#1180):
+the declared dopamine/serotonin correlation invariant is enforced in
+`validate_*` and its falsifier matches live source. The rest are LOW
 (naming nits), `UNSUPPORTED` (mechanism already exists), or bounded at the
 documentation layer.
 
 | id | severity | status | source | owner lane | resolution |
 |----|----------|--------|--------|------------|------------|
 | **C-ENERGY-001** | HIGH | CONTRADICTED | `core/energy.py` | lane-2-energy-contract | RESOLVED (#1146,#1149) |
-| **C-NEURO-003** | MEDIUM | CONTRADICTED | `core/validation/neuro_integrity.py:146` | lane-3-neuromodulator-semantics | OPEN |
+| **C-NEURO-003** | MEDIUM | CONTRADICTED | `core/validation/neuro_integrity.py:412` | lane-3-neuromodulator-semantics | RESOLVED (#1180) |
 | **C-NEURO-001** | LOW | CONTRADICTED | `core/neuro/serotonin_ode.py:118` | lane-3-neuromodulator-semantics | OPEN |
 | **C-NEURO-002** | LOW | PLAUSIBLE | `core/neuro/gaba_position_gate.py:102` | lane-3-neuromodulator-semantics | OPEN |
 | **C-TACL-001** | LOW | UNSUPPORTED | `core/neuro/ecs_regulator.py:380` | lane-4-tacl-delta-f | WONTFIX |
@@ -65,20 +67,22 @@ Derived mechanically from the ledger; see `claim_status` / `resolution_state`.
 |--------|-------|
 | total contradictions tracked | 7 |
 | VERIFIED-HIGH open | **0** |
-| CONTRADICTED | 3 (1 resolved, 2 open) |
+| CONTRADICTED | 3 (2 resolved, 1 open) |
 | PLAUSIBLE | 2 |
 | UNSUPPORTED | 2 |
-| RESOLVED | 1 (C-ENERGY-001) |
+| RESOLVED | 2 (C-ENERGY-001, C-NEURO-003) |
 | WONTFIX (anticipated-but-unsupported) | 2 |
-| OPEN / IN_PROGRESS | 4 |
-| dead invariants still open | **1** (C-NEURO-003) |
+| OPEN / IN_PROGRESS | 3 |
+| dead invariants still open | **0** |
 | every claim has executable falsifier | yes (7/7 exit 0 in CI) |
 
-**Verdict: `PARTIAL`.** The one true HIGH physics contradiction is closed and
-falsifier-proven (`no VERIFIED-HIGH open` gate met). The program is **not** `PASS`
-because the `dead invariants = 0` gate is not yet met: **C-NEURO-003** remains
-OPEN. Three LOW naming/comment nits also remain OPEN as bounded metaphors. No
-overclaim: this verdict is computed from the ledger, not asserted.
+**Verdict: `PARTIAL`.** Both actionable physics contradictions are closed and
+falsifier-proven: the HIGH energy-contract violation (C-ENERGY-001) and the
+MEDIUM dead-invariant (C-NEURO-003). Both load-bearing gates are now met —
+`no VERIFIED-HIGH open` **and** `dead invariants = 0`. The program is still not
+`PASS` only because three LOW naming/comment nits remain OPEN as bounded
+metaphors (no severity, no enforcement gap). No overclaim: this verdict is
+computed from the ledger, not asserted.
 
 ## Entries
 
