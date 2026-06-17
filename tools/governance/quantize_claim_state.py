@@ -50,6 +50,26 @@ def _nonempty(value: Any) -> bool:
     return True
 
 
+def _same_sha_ci_green(envelope: dict[str, Any]) -> bool:
+    ci = envelope.get("ci_proof", {})
+    if not isinstance(ci, dict):
+        return False
+    return ci.get("same_sha") is True and ci.get("required_checks_green") is True
+
+
+def _scientific_vector_complete(envelope: dict[str, Any]) -> bool:
+    scientific = envelope.get("scientific_evidence", {})
+    if not isinstance(scientific, dict):
+        return False
+    return (
+        scientific.get("real_data") is True
+        and scientific.get("replay") is True
+        and scientific.get("baseline") is True
+        and scientific.get("falsifier") is True
+        and scientific.get("semantic_validation") is True
+    )
+
+
 def missing_required_links(envelope: dict[str, Any]) -> list[str]:
     """Return missing proof-chain links in stable order."""
 
@@ -72,19 +92,13 @@ def quantize_claim_state(envelope: dict[str, Any]) -> ClaimState:
     if missing:
         return ClaimState.PARTIAL
 
-    ci = envelope.get("ci_proof", {})
-    scientific = envelope.get("scientific_evidence", {})
+    same_sha_ci_green = _same_sha_ci_green(envelope)
+    scientific_vector_complete = _scientific_vector_complete(envelope)
 
-    if (
-        scientific.get("real_data") is True
-        and scientific.get("replay") is True
-        and scientific.get("baseline") is True
-        and scientific.get("falsifier") is True
-        and scientific.get("semantic_validation") is True
-    ):
+    if scientific_vector_complete and same_sha_ci_green:
         return ClaimState.EVIDENCE_BEARING
 
-    if ci.get("same_sha") is True and ci.get("required_checks_green") is True:
+    if same_sha_ci_green:
         return ClaimState.CI_VERIFIED
 
     return ClaimState.LOCAL_VERIFIED
