@@ -1,0 +1,64 @@
+id: gauss-bonnet-self-verification
+status: ACTIVE
+claim_type: fail_closed
+promise: >-
+  Diff-bound acceptor for the discrete Gauss-Bonnet self-verification
+  substrate. Adds a pure-mathematics module (NumPy + hashlib only) that
+  enforces the discrete Gauss-Bonnet identity Σ K(v) = 2πχ on closed
+  triangulated 2-manifolds and fails closed on topological corruption,
+  curvature-field tamper, and forged VERIFIED certificates. It introduces
+  no trading/execution/forecast/policy logic and makes no deployable or
+  production claim.
+
+diff_scope:
+  changed_files:
+    - path: "core/physics/gauss_bonnet.py"
+    - path: "core/physics/__init__.py"
+    - path: "tests/unit/physics/test_gauss_bonnet.py"
+    - path: ".claude/commit_acceptors/gauss-bonnet-self-verification.yaml"
+  forbidden_paths:
+    - "application/"
+    - "backtest/"
+    - "execution/"
+    - "markets/"
+    - "runtime/"
+
+required_python_symbols:
+  - "core.physics.gauss_bonnet.verify_gauss_bonnet"
+  - "core.physics.gauss_bonnet.assert_certificate_integrity"
+  - "core.physics.gauss_bonnet.inverse_curvature_probe"
+
+expected_signal: >-
+  On a closed manifold the certificate carries ClaimStatus.VERIFIED with a
+  residual within 1e-9 of zero and a 64-hex-char SHA-256 field digest; every
+  adversarial corruption (open surface, injected curvature anomaly, forged
+  certificate) raises GaussBonnetViolation.
+
+measurement_command: >-
+  python -m pytest -q tests/unit/physics/test_gauss_bonnet.py
+  --confcutdir=tests/unit/physics
+
+signal_artifact: "tests/unit/physics/test_gauss_bonnet.py"
+
+falsifier:
+  command: >-
+    python -m pytest -q tests/unit/physics/test_gauss_bonnet.py
+    --confcutdir=tests/unit/physics
+  description: >-
+    The inverse-probe and fail-closed tests must reject a tampered curvature
+    field, an open (non-manifold) surface, and a forged VERIFIED certificate;
+    if any corruption is silently accepted the suite fails and the acceptor is
+    falsified.
+
+rollback_command: >-
+  git checkout -- core/physics/gauss_bonnet.py core/physics/__init__.py
+  tests/unit/physics/test_gauss_bonnet.py
+  .claude/commit_acceptors/gauss-bonnet-self-verification.yaml
+
+rollback_verification_command: >-
+  git diff --exit-code
+
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/gauss-bonnet-self-verification.yaml"
+report_path: "tests/unit/physics/test_gauss_bonnet.py"
+evidence: []

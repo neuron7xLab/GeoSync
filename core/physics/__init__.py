@@ -43,6 +43,17 @@ from .engine import GeoSyncPhysicsEngine, PhysicsEngineResult
 from .explosive_sync import ESCircuitBreaker, ESProximityResult, ExplosiveSyncDetector
 from .forman_ricci import DualTrackRicciMonitor, FormanRicciCurvature, FormanRicciResult
 from .free_energy_trading_gate import FreeEnergyTradeDecision, FreeEnergyTradingGate, GateStatistics
+from .gauss_bonnet import (
+    ClaimStatus,
+    GaussBonnetCertificate,
+    GaussBonnetViolation,
+    TriangulatedSurface,
+    angular_defects,
+    assert_certificate_integrity,
+    canonical_field_digest,
+    inverse_curvature_probe,
+    verify_gauss_bonnet,
+)
 from .gravitational_coupling import GravitationalCouplingMatrix
 from .gravity import (
     compute_market_gravity,
@@ -199,4 +210,14 @@ __all__ = [
     "stiffness_ramp_work",
     "stationary_samples",
     "jarzynski_average",
+    # Discrete Gauss-Bonnet — fail-closed self-verification substrate
+    "TriangulatedSurface",
+    "GaussBonnetCertificate",
+    "GaussBonnetViolation",
+    "ClaimStatus",
+    "angular_defects",
+    "canonical_field_digest",
+    "verify_gauss_bonnet",
+    "assert_certificate_integrity",
+    "inverse_curvature_probe",
 ]
