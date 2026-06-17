@@ -147,7 +147,125 @@ Stop immediately and mark the capsule failed if:
 - any governance score bypasses weakest-link clamp;
 - any market/trading claim is emitted from this pipeline.
 
-## 8. Current Execution Verdict
+## 8. Integrated Operational Decision Model
+
+This section connects symptoms, data, context, constraints, and roles into one execution model. Its purpose is to prevent the reconstruction lane from degenerating into disconnected tests, isolated physics metaphors, or heroic narrative drift. Humans do love turning architecture into incense; this model is the exhaust fan.
+
+### 8.1 Symptom Graph
+
+| Symptom | Operational meaning | Required response |
+| --- | --- | --- |
+| Missing executable pipeline | The capsule is still a contract, not a reconstruction system | Implement `research.reconstruction.x10r_reconstruct` before any completion claim |
+| Missing artifact hashes | Results are not reproducible evidence | Emit `manifest.json` with SHA-256 for every output |
+| Missing CI evidence | Local or connector-only changes are not verified | Mark verdict `BLOCKED_BY_MISSING_EVIDENCE` |
+| Non-zero Gauss-Bonnet residual | Topological integrity failed | Abort the run, emit failed residual witness |
+| Invalid graph domain | Physics contract is being applied outside its declared domain | Reject before curvature, synchronization, or energy computation |
+| Negative or double-owned coupling scale | Kuramoto dynamics are semantically corrupted | Reject negative `K`; enforce one explicit adjacency normalization owner |
+| Energy-sign ambiguity | Canonical free energy and operational cost are being conflated | Run entropy-sign falsifier and fail on semantic collision |
+| Neuro-control flat/positive correlation where inverse relation is required | Claimed control invariant is unsupported | Emit contradiction ledger entry and fail the neuro-control gate |
+
+### 8.2 Data Spine
+
+The run must preserve a single evidence spine:
+
+```text
+market_or_synthetic_input
+  -> finite_simple_weighted_graph
+  -> exact_topology_witnesses
+  -> curvature_observables
+  -> normalized_adjacency
+  -> kuramoto_phase_trajectory
+  -> synchronization_observables
+  -> free_energy_and_operational_cost_landscape
+  -> neuro_control_trace
+  -> falsifier_results
+  -> governance_verdict
+  -> manifest_hashes
+  -> ro_crate_metadata
+```
+
+No stage may silently repair or reinterpret upstream invalidity. If a predecessor stage fails, downstream stages must receive an explicit blocked state instead of fabricated defaults.
+
+### 8.3 Context Model
+
+The repository context is verification-first research infrastructure. Therefore every physics layer is treated as an executable hypothesis operator, not as market mysticism. The correct operating frame is:
+
+```text
+physics-inspired observable + declared domain + falsifier + hash-pinned artifact + governance verdict
+```
+
+The incorrect operating frame is:
+
+```text
+market data + physics vocabulary + attractive charts + implied trading edge
+```
+
+Completion is not measured by conceptual elegance. Completion is measured by executable invariants, failing inverse tests, reproducible artifacts, and an honest verdict.
+
+### 8.4 Constraint Lattice
+
+| Constraint class | Blocking rule |
+| --- | --- |
+| Domain constraints | Only finite simple undirected graphs may enter exact Gauss-Bonnet enforcement |
+| Numerical constraints | Phases, frequencies, weights, energies, and trajectories must be finite |
+| Semantic constraints | Policy thresholds must not be advertised as physical constants |
+| Dynamical constraints | `R(t)` must remain bounded in `[0, 1]`; negative coupling must be rejected pre-integration |
+| Thermodynamic constraints | `thermo_free_energy` and `operational_cost_energy` must remain separate contracts |
+| Governance constraints | A missing witness clamps the verdict no matter how high the aggregate score is |
+| Provenance constraints | An output without SHA-256 is not evidence |
+| Claim constraints | The pipeline must not emit profitability, alpha, or universal-law claims |
+
+### 8.5 Role Topology
+
+| Role | Authority | Deliverable |
+| --- | --- | --- |
+| Physics owner | Defines valid observable domains and falsifiers | Curvature, synchronization, and energy contracts with inverse tests |
+| Implementation owner | Converts the capsule into executable code | CLI module, fixtures, deterministic seeds, artifact writer |
+| Verification owner | Blocks unsupported claims | Test suite, CI evidence, failed-state witnesses |
+| Governance owner | Applies weakest-link evaluation | `verdict.json`, conformance bands, negative-evidence ledger |
+| Provenance owner | Preserves reproducibility | `manifest.json`, hashes, RO-Crate metadata |
+| Research operator | Reads the verdict without promotion bias | `PASS`, `FAIL`, or `BLOCKED_BY_MISSING_EVIDENCE` only |
+
+A single human or agent may perform multiple roles, but the artifacts must remain role-separated. Role collapse without artifact separation is just multitasking wearing a lab coat.
+
+### 8.6 Decision Automaton
+
+```text
+START
+  -> validate_input_domain
+    -> if invalid: FAIL_DOMAIN
+  -> build_graph_and_hash_input
+  -> compute_exact_topology
+    -> if residual != 0: FAIL_TOPOLOGY
+  -> compute_curvature_observables
+  -> run_kuramoto_dynamics
+    -> if K < 0 or R outside [0,1]: FAIL_DYNAMICS
+  -> compute_energy_landscape
+    -> if entropy signs collide: FAIL_ENERGY_ONTOLOGY
+  -> compute_neuro_control_trace
+    -> if required inverse witness missing: FAIL_NEURO_CONTROL
+  -> run_inverse_falsifiers
+    -> if falsifiers do not fire: FAIL_FALSIFIABILITY
+  -> write_artifacts_and_hashes
+    -> if any hash missing: FAIL_PROVENANCE
+  -> evaluate_governance
+    -> if any required witness missing: BLOCKED_BY_MISSING_EVIDENCE
+  -> PASS
+```
+
+### 8.7 Current Integrated Verdict
+
+```text
+MODEL_STATE=INTEGRATED_OPERATIONAL_CONTRACT
+CODE_STATE=NOT_IMPLEMENTED_IN_THIS_PR
+EVIDENCE_STATE=CI_NOT_ATTACHED
+DECISION_STATE=BLOCKED_BY_MISSING_EVIDENCE_UNTIL_EXECUTABLE_PIPELINE_EXISTS
+NEXT_ACTION=IMPLEMENT_X10R_RECONSTRUCTION_CLI_WITH_FIXTURES_FALSIFIERS_HASHED_ARTIFACTS_AND_CI_GATE
+```
+
+This is the unified operating model: symptoms identify failure modes, data forms the evidence spine, context blocks category errors, constraints define hard gates, and roles prevent responsibility from dissolving into inspirational fog.
+
+## 9. Current Execution Verdict
 
 ```text
 CAPSULE_SPEC_CREATED
