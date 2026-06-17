@@ -62,6 +62,10 @@
       "sha256": "a0e4a2d58f0d7ec3020436e654fd3397769a15c8165ec32c53eba5f1f162f187"
     },
     {
+      "path": "scripts/ci/check_governance_kernel_binding.py",
+      "sha256": "eea202a181002cf72f8dccf7da1133a7e62cd5d6bc511fd1b470964bbeda153d"
+    },
+    {
       "path": "scripts/ci/check_import_architecture.py",
       "sha256": "58ffb28ba07ac7529c9a3e66a2914906508511ba8889ca81f26fc9d3024ad642"
     },
