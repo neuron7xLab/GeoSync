@@ -63,6 +63,10 @@ on:
       - 'analytics/signals/claim_maturity.py'
       - 'scripts/ci/check_claim_maturity.py'
       - 'tests/scripts/test_check_claim_maturity.py'
+      # Post-vacuous-oracle revalidation ledger (DEBT_5):
+      - 'governance/REVALIDATION_LEDGER.yaml'
+      - 'scripts/ci/check_revalidation_ledger.py'
+      - 'tests/scripts/test_check_revalidation_ledger.py'
   push:
     branches: [main]
   workflow_dispatch:
@@ -147,6 +151,12 @@ jobs:
 
       - name: pytest — claim-maturity registry gate
         run: python -m pytest tests/scripts/test_check_claim_maturity.py -q
+
+      - name: Post-vacuous-oracle revalidation ledger gate (DEBT_5)
+        run: python scripts/ci/check_revalidation_ledger.py
+
+      - name: pytest — revalidation ledger gate
+        run: python -m pytest tests/scripts/test_check_revalidation_ledger.py -q
 
       - name: Claim-to-artifact graph gate
         run: python scripts/ci/check_claim_artifact_graph.py
