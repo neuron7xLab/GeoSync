@@ -1,0 +1,37 @@
+{
+  "title": "Claim-State Quantum Input",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "claim_id",
+    "claim_text",
+    "source_refs",
+    "test_refs",
+    "commands",
+    "artifacts",
+    "ci_proof",
+    "failure_mode",
+    "rollback",
+    "claim_boundary",
+    "negative_evidence"
+  ],
+  "properties": {
+    "claim_id": {"type": "string", "minLength": 1},
+    "claim_text": {"type": "string", "minLength": 1},
+    "declared_state": {
+      "type": "string",
+      "enum": ["FALSE", "UNTESTED", "PARTIAL", "LOCAL_VERIFIED", "CI_VERIFIED", "EVIDENCE_BEARING"]
+    },
+    "contradicted": {"type": "boolean"},
+    "source_refs": {"type": "array", "items": {"type": "string"}},
+    "test_refs": {"type": "array", "items": {"type": "string"}},
+    "commands": {"type": "array"},
+    "artifacts": {"type": "array", "items": {"type": "string"}},
+    "ci_proof": {"type": "object"},
+    "scientific_evidence": {"type": "object"},
+    "failure_mode": {"type": "string", "minLength": 1},
+    "rollback": {"type": "string", "minLength": 1},
+    "claim_boundary": {"type": "object"},
+    "negative_evidence": {"type": "array", "items": {"type": "string"}}
+  }
+}
