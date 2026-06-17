@@ -55,25 +55,12 @@ expected_signal: >-
   its #1158 owner. Before this PR the shard logged '0/0 selected tests — shard
   passes' and ran no tests.
 
-measurement_command: >-
-  bash -c '
-    set -e
-    test -f tests/ci/fast_quarantine.txt
-    && ! { grep -vE "^\s*#|^\s*$" tests/ci/fast_quarantine.txt | grep -qvE "issue=#[0-9]+"; }
-    && grep -q "collected" docs/ci/fast_backlog_ledger.md
-    && grep -qiE "0 .*collected|collection.*fatal|refusing to pass vacuously|FATAL" .github/workflows/pr-gate.yml
-    && echo "fast-shard-oracle-restore: quarantine issue-bound + zero-collection guard present"
-      | tee tmp/fast_shard_oracle_restore.log
-  '
+measurement_command: "bash -c 'set -e; test -f tests/ci/fast_quarantine.txt; ! { grep -vE \"^[[:space:]]*#|^[[:space:]]*$\" tests/ci/fast_quarantine.txt | grep -qvE \"issue=#[0-9]+\"; }; grep -q \"collected\" docs/ci/fast_backlog_ledger.md; grep -qiE \"0 .*collected|collection.*fatal|refusing to pass vacuously|FATAL\" .github/workflows/pr-gate.yml; echo \"fast-shard-oracle-restore: quarantine issue-bound + zero-collection guard present\" | tee tmp/fast_shard_oracle_restore.log'"
 
 signal_artifact: "tmp/fast_shard_oracle_restore.log"
 
 falsifier:
-  command: >-
-    bash -c '
-      grep -vE "^\s*#|^\s*$" tests/ci/fast_quarantine.txt | grep -qvE "issue=#[0-9]+"
-      && exit 0 || exit 1
-    '
+  command: "bash -c 'if grep -vE \"^[[:space:]]*#|^[[:space:]]*$\" tests/ci/fast_quarantine.txt | grep -qvE \"issue=#[0-9]+\"; then exit 0; else exit 1; fi'"
   description: >-
     Succeeds (exit 0, falsification) only if some active quarantine line lacks an
     issue ref — i.e. a silent, untracked quarantine. On the green ledger every
