@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 from typing import Final, Iterable
 
-from count_invariants import REPO_ROOT, collect_invariant_ids
+from scripts.count_invariants import REPO_ROOT, collect_invariant_ids
 
 # Headline patterns only — historical/migration narrative ("the kernel had 34
 # invariants", "this PR adds 10 invariants") describes a past state and is
@@ -124,5 +124,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
     raise SystemExit(main())

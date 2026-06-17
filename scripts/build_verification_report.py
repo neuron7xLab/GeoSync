@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Final
 
-from count_invariants import REPO_ROOT, collect_invariant_ids
+from scripts.count_invariants import REPO_ROOT, collect_invariant_ids
 
 DEFAULT_OUTPUT: Final[Path] = (
     REPO_ROOT / "artifacts" / "audit" / "SCIENTIFIC_VERIFICATION_REPORT.json"
@@ -209,5 +209,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
     raise SystemExit(main())

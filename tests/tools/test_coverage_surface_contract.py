@@ -112,7 +112,8 @@ def test_cli_exits_0_for_valid_contract(tmp_path: Path) -> None:
     run = subprocess.run(
         [
             sys.executable,
-            "tools/coverage/validate_coverage_targets.py",
+            "-m",
+            "tools.coverage.validate_coverage_targets",
             "--targets",
             str(target_path),
         ],
@@ -129,7 +130,8 @@ def test_cli_exits_1_for_invalid_contract(tmp_path: Path) -> None:
     run = subprocess.run(
         [
             sys.executable,
-            "tools/coverage/validate_coverage_targets.py",
+            "-m",
+            "tools.coverage.validate_coverage_targets",
             "--targets",
             str(target_path),
         ],
@@ -148,7 +150,8 @@ def test_json_output_written_when_requested(tmp_path: Path) -> None:
     run = subprocess.run(
         [
             sys.executable,
-            "tools/coverage/validate_coverage_targets.py",
+            "-m",
+            "tools.coverage.validate_coverage_targets",
             "--targets",
             str(target_path),
             "--files",
@@ -180,7 +183,8 @@ def test_cli_json_includes_weights(tmp_path: Path) -> None:
     run = subprocess.run(
         [
             sys.executable,
-            "tools/coverage/validate_coverage_targets.py",
+            "-m",
+            "tools.coverage.validate_coverage_targets",
             "--targets",
             str(target_path),
             "--json-out",
@@ -269,7 +273,8 @@ def test_cli_missing_files_input_returns_structured_error(tmp_path: Path) -> Non
     run = subprocess.run(
         [
             sys.executable,
-            "tools/coverage/validate_coverage_targets.py",
+            "-m",
+            "tools.coverage.validate_coverage_targets",
             "--targets",
             str(target_path),
             "--files",
@@ -294,7 +299,8 @@ def test_cli_missing_files_input_includes_path_in_error(tmp_path: Path) -> None:
     run = subprocess.run(
         [
             sys.executable,
-            "tools/coverage/validate_coverage_targets.py",
+            "-m",
+            "tools.coverage.validate_coverage_targets",
             "--targets",
             str(target_path),
             "--files",

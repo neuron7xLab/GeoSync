@@ -11,12 +11,35 @@ accidental repository-root ``PYTHONPATH``.
 
 from __future__ import annotations
 
+import importlib
+import re
 import tomllib
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 PYPROJECT = ROOT / "pyproject.toml"
+
+# Modules migrated off repo-root ``sys.path`` hacks onto packaged imports
+# (issue #945 ratchet drain). Each must import by its canonical dotted path —
+# i.e. resolve as a packaged module, not via an accidental script-dir insert —
+# and must carry no runtime path mutation in its source.
+_MIGRATED_PACKAGED_MODULES: tuple[str, ...] = (
+    "scripts.build_verification_report",
+    "scripts.calibrate_controllers",
+    "scripts.check_invariant_count_sync",
+    "scripts.generate_openapi",
+    "tools.cns_program.build_release_manifest",
+    "tools.cns_program.deploy_release_gate",
+    "tools.cns_program.quality_gate",
+    "tools.cns_program.regression_selftest",
+    "tools.cns_program.verify_release_manifest",
+    "tools.cns_program.verify_reports_contract",
+    "tools.coverage.validate_coverage_targets",
+    "tools.reset_wave_offline_benchmark",
+)
+
+_PATH_HACK_RE = re.compile(r"sys\.path\.(insert|append)\s*\(")
 
 
 def _pyproject() -> dict[str, Any]:
@@ -55,6 +78,28 @@ def test_scripts_console_entrypoints_are_packaged() -> None:
         for depth in range(1, len(package_parts) + 1):
             package_init = ROOT.joinpath(*package_parts[:depth], "__init__.py")
             assert package_init.exists(), f"missing package marker for {module}: {package_init}"
+
+
+def test_migrated_modules_import_as_packaged() -> None:
+    """Each migrated entrypoint resolves by its canonical dotted path.
+
+    A successful ``import_module`` proves the module no longer relies on a
+    self-inserted repo-root path to find its first-party dependencies.
+    """
+    for module in _MIGRATED_PACKAGED_MODULES:
+        imported = importlib.import_module(module)
+        assert imported.__name__ == module
+
+
+def test_migrated_modules_carry_no_path_hack() -> None:
+    """Migrated modules must not mutate ``sys.path`` at runtime."""
+    for module in _MIGRATED_PACKAGED_MODULES:
+        source = ROOT.joinpath(*module.split(".")).with_suffix(".py")
+        assert source.exists(), f"migrated module source missing: {source}"
+        text = source.read_text(encoding="utf-8")
+        assert not _PATH_HACK_RE.search(text), (
+            f"{module} still mutates sys.path; the #945 ratchet forbids re-adding it"
+        )
 
 
 def test_ci_entrypoints_are_explicitly_registered() -> None:
