@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neuron7xlab.github.io/GeoSync/schemas/audit/contradiction_ledger.schema.json",
+  "title": "Neuro-Physics Contradiction Ledger",
+  "description": "Machine-readable registry of neuro/physics claims and their contradictions. Every claim carries a source path, status, severity, owner lane, evidence, and an honest resolution state. No closure without evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "claim_status_vocab",
+    "severity_vocab",
+    "resolution_vocab",
+    "contradictions"
+  ],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "description": { "type": "string" },
+    "claim_status_vocab": {
+      "type": "array",
+      "items": { "enum": ["VERIFIED", "PLAUSIBLE", "UNSUPPORTED", "CONTRADICTED"] },
+      "minItems": 4,
+      "uniqueItems": true
+    },
+    "severity_vocab": {
+      "type": "array",
+      "items": { "enum": ["HIGH", "MEDIUM", "LOW"] },
+      "minItems": 3,
+      "uniqueItems": true
+    },
+    "resolution_vocab": {
+      "type": "array",
+      "items": { "enum": ["OPEN", "IN_PROGRESS", "RESOLVED", "WONTFIX"] },
+      "minItems": 4,
+      "uniqueItems": true
+    },
+    "contradictions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/contradiction" }
+    }
+  },
+  "$defs": {
+    "contradiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "source_path",
+        "contradiction",
+        "severity",
+        "claim_status",
+        "owner_lane",
+        "evidence",
+        "resolution_state"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^C-[A-Z0-9]+-[0-9]{3}$" },
+        "title": { "type": "string", "minLength": 8 },
+        "source_path": { "type": "string", "minLength": 3 },
+        "source_lines": { "type": "string" },
+        "contradiction": { "type": "string", "minLength": 16 },
+        "severity": { "enum": ["HIGH", "MEDIUM", "LOW"] },
+        "claim_status": { "enum": ["VERIFIED", "PLAUSIBLE", "UNSUPPORTED", "CONTRADICTED"] },
+        "owner_lane": { "type": "string" },
+        "evidence": { "type": "string", "minLength": 8 },
+        "resolution_state": { "enum": ["OPEN", "IN_PROGRESS", "RESOLVED", "WONTFIX"] },
+        "resolution_ref": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "$comment": "HIGH/MEDIUM contradictions must name a non-empty owner lane.",
+          "if": { "properties": { "severity": { "enum": ["HIGH", "MEDIUM"] } } },
+          "then": { "properties": { "owner_lane": { "minLength": 3 } } }
+        },
+        {
+          "$comment": "No fake closure: RESOLVED requires a resolution_ref.",
+          "if": { "properties": { "resolution_state": { "const": "RESOLVED" } } },
+          "then": { "required": ["resolution_ref"], "properties": { "resolution_ref": { "minLength": 2 } } }
+        }
+      ]
+    }
+  }
+}
