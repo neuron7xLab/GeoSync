@@ -5,14 +5,10 @@ import argparse
 import hashlib
 import json
 import re
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-if __package__ in (None, ""):  # allow `python tools/cns_program/<script>.py` from repo root
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-from tools.cns_program.cns_contract import MANIFEST_VERIFICATION_RESULT  # noqa: E402
+from tools.cns_program.cns_contract import MANIFEST_VERIFICATION_RESULT
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 ManifestPayload = dict[str, object]

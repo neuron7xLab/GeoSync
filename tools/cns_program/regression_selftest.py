@@ -8,10 +8,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, cast
 
-if __package__ in (None, ""):  # allow `python tools/cns_program/<script>.py` from repo root
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-from tools.cns_program.verify_reports_contract import verify_reports  # noqa: E402
+from tools.cns_program.verify_reports_contract import verify_reports
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -41,11 +38,11 @@ def assert_ok(args: list[str]) -> None:
 
 def verify_release_chain() -> None:
     for args in [
-        ["tools/cns_program/deploy_release_gate.py"],
-        ["tools/cns_program/build_release_manifest.py"],
-        ["tools/cns_program/verify_release_manifest.py"],
-        ["tools/cns_program/verify_reports_contract.py"],
-        ["tools/cns_program/quality_gate.py"],
+        ["-m", "tools.cns_program.deploy_release_gate"],
+        ["-m", "tools.cns_program.build_release_manifest"],
+        ["-m", "tools.cns_program.verify_release_manifest"],
+        ["-m", "tools.cns_program.verify_reports_contract"],
+        ["-m", "tools.cns_program.quality_gate"],
     ]:
         assert_ok(args)
 
@@ -58,8 +55,8 @@ def verify_release_chain() -> None:
 
 
 def verify_manifest_altered_case() -> None:
-    assert_ok(["tools/cns_program/deploy_release_gate.py"])
-    assert_ok(["tools/cns_program/build_release_manifest.py"])
+    assert_ok(["-m", "tools.cns_program.deploy_release_gate"])
+    assert_ok(["-m", "tools.cns_program.build_release_manifest"])
     manifest_path = ROOT / "results/cns_release_manifest.json"
     data = load_json_object(manifest_path.read_text(encoding="utf-8"))
     sha_map = data.get("sha256")
@@ -72,7 +69,8 @@ def verify_manifest_altered_case() -> None:
         candidate = Path(tmpdir) / "candidate.json"
         candidate.write_text(json.dumps(data), encoding="utf-8")
         args = [
-            "tools/cns_program/verify_release_manifest.py",
+            "-m",
+            "tools.cns_program.verify_release_manifest",
             "--manifest",
             str(candidate),
         ]

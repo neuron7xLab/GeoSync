@@ -29,11 +29,16 @@ def load_json_object(text: str) -> dict[str, object]:
 
 def test_release_gate_chain_passes() -> None:
     for args in [
-        ["tools/cns_program/deploy_release_gate.py"],
-        ["tools/cns_program/build_release_manifest.py"],
-        ["tools/cns_program/verify_release_manifest.py"],
-        ["tools/cns_program/verify_reports_contract.py"],
-        ["tools/cns_program/quality_gate.py"],
+        ["-m",
+        "tools.cns_program.deploy_release_gate"],
+        ["-m",
+        "tools.cns_program.build_release_manifest"],
+        ["-m",
+        "tools.cns_program.verify_release_manifest"],
+        ["-m",
+        "tools.cns_program.verify_reports_contract"],
+        ["-m",
+        "tools.cns_program.quality_gate"],
     ]:
         completed = run(args)
         assert completed.returncode == 0, completed.stderr or completed.stdout
@@ -44,8 +49,10 @@ def test_release_gate_chain_passes() -> None:
 
 
 def test_manifest_verifier_fails_on_digest_mismatch(tmp_path: Path) -> None:
-    assert run(["tools/cns_program/deploy_release_gate.py"]).returncode == 0
-    assert run(["tools/cns_program/build_release_manifest.py"]).returncode == 0
+    assert run(["-m",
+        "tools.cns_program.deploy_release_gate"]).returncode == 0
+    assert run(["-m",
+        "tools.cns_program.build_release_manifest"]).returncode == 0
     manifest_path = ROOT / "results/cns_release_manifest.json"
     data = load_json_object(manifest_path.read_text(encoding="utf-8"))
     raw_digest_map = data["sha256"]
@@ -57,7 +64,8 @@ def test_manifest_verifier_fails_on_digest_mismatch(tmp_path: Path) -> None:
     edited_file = tmp_path / "edited_release_manifest.json"
     edited_file.write_text(json.dumps(data), encoding="utf-8")
     completed = run(
-        ["tools/cns_program/verify_release_manifest.py", "--manifest", str(edited_file)]
+        ["-m",
+        "tools.cns_program.verify_release_manifest", "--manifest", str(edited_file)]
     )
     assert completed.returncode != 0
     payload = load_json_object(completed.stdout)

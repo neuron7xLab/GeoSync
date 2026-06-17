@@ -58,11 +58,11 @@ jobs:
       - name: "Fail-closed: documentation must match registry count"
         run: |
           set -euo pipefail
-          PYTHONPATH=scripts python scripts/check_invariant_count_sync.py
+          python -m scripts.check_invariant_count_sync
 
       - name: Regenerate scientific verification report (advisory)
         run: |
           set -euo pipefail
-          PYTHONPATH=scripts python scripts/build_verification_report.py
+          python -m scripts.build_verification_report
           echo "—"
           python -c "import json,sys; d=json.load(open('artifacts/audit/SCIENTIFIC_VERIFICATION_REPORT.json')); print('inv:', d['invariant_registry']['count']); print('retracted:', d['retracted_claims'])"

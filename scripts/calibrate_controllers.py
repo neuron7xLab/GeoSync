@@ -26,34 +26,14 @@ from typing import Any
 
 import yaml
 
-# Import calibration_constants module
-# Note: This script is intended to be run from the repository root
-# For development, use: pip install -e .
-try:
-    os.environ.setdefault("GEOSYNC_LIGHT_DATA_IMPORT", "1")
-    from core.data.dataset_contracts import contract_by_path
-    from core.data.fingerprint import record_run_fingerprint
-    from core.neuro.calibration_constants import (
-        DopamineParameterRanges,
-        NAKParameterRanges,
-        RegimeAdaptiveParameterRanges,
-        RiskEngineParameterRanges,
-        SerotoninParameterRanges,
-        validate_parameter_invariants,
-    )
-except ImportError:
-    # Fallback for when running directly from scripts directory
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from core.data.dataset_contracts import contract_by_path  # noqa: F401
-    from core.data.fingerprint import record_run_fingerprint  # noqa: F401
-    from core.neuro.calibration_constants import (  # noqa: F401
-        DopamineParameterRanges,
-        NAKParameterRanges,
-        RegimeAdaptiveParameterRanges,
-        RiskEngineParameterRanges,
-        SerotoninParameterRanges,
-        validate_parameter_invariants,
-    )
+# Import calibration_constants from the canonical ``core`` package.
+# Install the project first (``pip install -e .``) so these resolve.
+os.environ.setdefault("GEOSYNC_LIGHT_DATA_IMPORT", "1")
+from core.data.dataset_contracts import contract_by_path  # noqa: E402
+from core.data.fingerprint import record_run_fingerprint  # noqa: E402
+from core.neuro.calibration_constants import (  # noqa: E402
+    validate_parameter_invariants,
+)
 
 # Configure logging
 logging.basicConfig(

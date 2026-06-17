@@ -3,9 +3,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 from typing import Any
+
+from tools.coverage.surface_contract import (
+    list_unmapped_files,
+    load_coverage_targets,
+    map_file_to_surface,
+    validate_target_contract,
+)
 
 CRITICAL_PREFIXES = (
     "core/",
@@ -77,17 +83,6 @@ def main() -> int:
     parser.add_argument("--files", type=Path, required=False)
     parser.add_argument("--json-out", type=Path, required=False)
     args = parser.parse_args()
-
-    repo_root = Path(__file__).resolve().parents[2]
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-
-    from tools.coverage.surface_contract import (  # noqa: PLC0415
-        list_unmapped_files,
-        load_coverage_targets,
-        map_file_to_surface,
-        validate_target_contract,
-    )
 
     errors: list[str] = []
     unmapped_files: list[str] = []

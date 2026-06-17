@@ -56,11 +56,11 @@ jobs:
 
       - name: Run deterministic CNS release gate
         run: |
-          python tools/cns_program/deploy_release_gate.py
-          python tools/cns_program/build_release_manifest.py
-          python tools/cns_program/verify_release_manifest.py
-          python tools/cns_program/verify_reports_contract.py
-          python tools/cns_program/quality_gate.py
+          python -m tools.cns_program.deploy_release_gate
+          python -m tools.cns_program.build_release_manifest
+          python -m tools.cns_program.verify_release_manifest
+          python -m tools.cns_program.verify_reports_contract
+          python -m tools.cns_program.quality_gate
 
       - name: Run CNS tests
         if: matrix.python-version == '3.12'
