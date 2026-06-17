@@ -17,10 +17,12 @@ surfaced the latent backlog the vacuum had hidden.
 
 - total collected: **~17,617** fast node ids
 - selected per shard: 4494 / 4373 / 4302 / 4448
-- failure clusters: **8**
-- enumeration method: full kept set (17,670 ids after subtracting 10 quarantine
-  files) run locally in one pass, `--maxfail=100` **not** hit (17 failures) — so
-  the quarantined set below is the *complete* known backlog, not a prefix.
+- failure clusters: **9**
+- enumeration method: full kept set run locally in one pass per layer
+  (`--ignore` the quarantined files), `--maxfail` **not** hit — so the
+  quarantined set below is the *complete* known backlog at each layer, not a
+  prefix. Re-enumerated on main @ 04798776 after #1182: exactly 1 remaining
+  failure (the D-002G lock, layer 3).
 
 | cluster | files | issue | lane | status |
 |---|---|---|---|---|
@@ -32,6 +34,7 @@ surfaced the latent backlog the vacuum had hidden.
 | `tools_import_shadowing` | 1 (14 tests) | [#1178](https://github.com/neuron7xLab/GeoSync/issues/1178) | ci-import-architecture | quarantined |
 | `namespace_canonical_policy` | 2 | [#1179](https://github.com/neuron7xLab/GeoSync/issues/1179) | ci-import-architecture | quarantined |
 | `contradiction_ledger_stale` | 1 | [#1180](https://github.com/neuron7xLab/GeoSync/issues/1180) | governance-ledger | quarantined |
+| `d002g_lock_anchor_stale` | 1 | [#1183](https://github.com/neuron7xLab/GeoSync/issues/1183) | governance-lock | quarantined |
 
 **Cluster-count correction (was "1").** The original measurement reported a
 single cluster because the four `cli_import_shadowing` import errors aborted
@@ -140,6 +143,19 @@ crown invariant correctly demands the entry flip to RESOLVED. This is the
 contradiction ledger working as designed, not a test bug. **Expiry:**
 C-NEURO-003 marked RESOLVED with evidence and the falsifier matches live source;
 drained in #1180.
+
+### d002g_lock_anchor_stale
+
+`tests/systemic_risk/test_d002g_m2_locked_governance_untouched.py::test_locked_governance_files_unchanged_at_m2_anchor`
+fails: #1174 ('repair 139 corrupted commands') rewrote inline commands in the
+D-002G/M2 **locked** acceptor `x10r-d002g-p1-strike-scaffolding.yaml` to satisfy
+the new acceptor-command-syntax gate, but the M2 lock anchor SHA was not updated.
+The lock test correctly caught a locked-file mutation. This is **not** a silent
+quarantine target — the resolution (re-anchor the M2 manifest to the repaired
+SHA, or revert the file and exempt it) is a governance decision tracked in #1183.
+This quarantine only keeps main real-green while that decision is pending.
+**Expiry:** `x10r-d002g-p1-strike-scaffolding.yaml` re-anchored or reverted;
+drained in #1183.
 
 ## Invariant
 
