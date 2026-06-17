@@ -409,6 +409,35 @@ class NeuroIntegrity:
         report.metrics["min_coherence"] = float(np.min(coherences))
         report.metrics["max_coherence"] = float(np.max(coherences))
 
+        # Dopamine/serotonin inverse-correlation invariant (audit C-NEURO-003).
+        #
+        # config.dopamine_serotonin_correlation_min was declared but never
+        # enforced — a dead integrity invariant with no witness. Correlation is
+        # a property of a *trajectory*, never a single PathwayState, so the
+        # witness belongs here and cannot live in validate_state(). Healthy
+        # neuromodulation keeps reward-seeking (dopamine) and risk-aversion
+        # (serotonin) in antagonism: corr(dopamine, serotonin) must stay at or
+        # below config.dopamine_serotonin_correlation_min.
+        dopamine_series = np.array([s.dopamine for s in states], dtype=float)
+        serotonin_series = np.array([s.serotonin for s in states], dtype=float)
+        # No witness without variation: a flat channel cannot evidence a
+        # correlation. Record the gap (NaN) rather than silently pass an
+        # unfalsifiable input as healthy.
+        if np.std(dopamine_series) < 1e-9 or np.std(serotonin_series) < 1e-9:
+            report.metrics["dopamine_serotonin_correlation"] = float("nan")
+        else:
+            corr = compute_pathway_correlation(dopamine_series, serotonin_series)
+            report.metrics["dopamine_serotonin_correlation"] = corr
+            if corr > self.config.dopamine_serotonin_correlation_min:
+                report.add_violation(
+                    "C-NEURO-003 VIOLATED: dopamine/serotonin correlation "
+                    f"{corr:.4f} exceeds expected inverse threshold "
+                    f"{self.config.dopamine_serotonin_correlation_min:.4f} "
+                    "(corr must be <= threshold). Pathways co-vary instead of "
+                    f"antagonising over the {len(states)}-state trajectory; "
+                    "reward/risk balance lost."
+                )
+
         return report
 
 
