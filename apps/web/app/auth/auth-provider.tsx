@@ -38,7 +38,7 @@ type AuthContextValue = {
   refresh: () => Promise<void>
 }
 
-const PUBLIC_ROUTES = ['/signin']
+const PUBLIC_ROUTES = ['/signin', '/edge-probe']
 const AUTH_BROADCAST_CHANNEL = 'gs.auth:channel'
 const REFRESH_THRESHOLD_MS = 60_000
 const CSRF_COOKIE_NAME = 'gs.csrfToken'
