@@ -176,6 +176,10 @@ data/
 !research/reconstruction/allocator/data/__init__.py
 !research/reconstruction/allocator/data/*.tsv
 !research/reconstruction/allocator/data/*.csv
+# Neuro-physics contradiction ledger: data/ is blanket-ignored, so the
+# machine-readable canon is tracked explicitly via `git add -f`
+# (data/audit/neuro_physics_contradiction_ledger.json). It is read by
+# tests/audit/test_contradiction_ledger.py and MUST ship in the repo.
 logs/
 tmp/
 reports/evidence_gate/

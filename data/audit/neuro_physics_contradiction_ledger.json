@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "description": "Machine-readable neuro/physics contradiction ledger for GeoSync. Each entry is grounded in a source path + line evidence and mapped to an owner remediation lane. Closure requires evidence (resolution_ref); claims without evidence are UNSUPPORTED, not silently passed. Verified against real source on 2026-06-17 against the repo's own canon — most anticipated contradictions are already bounded; only one is a true HIGH violation.",
+  "claim_status_vocab": ["VERIFIED", "PLAUSIBLE", "UNSUPPORTED", "CONTRADICTED"],
+  "severity_vocab": ["HIGH", "MEDIUM", "LOW"],
+  "resolution_vocab": ["OPEN", "IN_PROGRESS", "RESOLVED", "WONTFIX"],
+  "contradictions": [
+    {
+      "id": "C-ENERGY-001",
+      "title": "system_free_energy fuses thermodynamic free energy with operational cost",
+      "source_path": "core/energy.py",
+      "source_lines": "13,75,79,113-118,147",
+      "contradiction": "system_free_energy() composes a Boltzmann-scaled term (K_BOLTZMANN_EFFECTIVE=1.38e-23, _KT_PRODUCT) with operational/DevOps costs (latency_cost, incoherence_cost) and adds entropy as a penalty under the name 'free energy', colliding with canon F=U-T*S (INV-FE2) where entropy LOWERS F. Two distinct ontologies are summed; neither stays unit-consistent.",
+      "severity": "HIGH",
+      "claim_status": "CONTRADICTED",
+      "owner_lane": "lane-2-energy-contract",
+      "evidence": "core/energy.py:75 K_BOLTZMANN_EFFECTIVE=1.38e-23; :147 free_energy = internal_energy + resource_term + entropy_term; canon INV-FE2 ThermodynamicState.gibbs_energy. RESOLVED by #1146 (merge 3a510870): operational-cost vs thermodynamic free energy split into distinct unit-contracted quantities; entropy no longer summed as a free-energy penalty.",
+      "resolution_state": "RESOLVED",
+      "resolution_ref": "#1146 / merge 3a510870"
+    },
+    {
+      "id": "C-NEURO-003",
+      "title": "Declared dopamine/serotonin correlation invariant is never checked (dead invariant)",
+      "source_path": "core/validation/neuro_integrity.py",
+      "source_lines": "137,146,208",
+      "contradiction": "The config field dopamine_serotonin_correlation_min=-0.8 is documented as a 'Minimum inverse correlation expectation' invariant, but validate_state() (line 208) never references it. A declared integrity invariant that is not enforced is a silent claim with no witness.",
+      "severity": "MEDIUM",
+      "claim_status": "CONTRADICTED",
+      "owner_lane": "lane-3-neuromodulator-semantics",
+      "evidence": "core/validation/neuro_integrity.py:146 field default -0.8; grep of validate_state body shows no use of dopamine_serotonin_correlation_min",
+      "resolution_state": "OPEN"
+    },
+    {
+      "id": "C-NEURO-001",
+      "title": "Scalar [0,1] clamp comment labelled 'biological plausibility'",
+      "source_path": "core/neuro/serotonin_ode.py",
+      "source_lines": "118",
+      "contradiction": "A clamp of the serotonin level to [0,1] is justified in-comment as 'biological plausibility'. A bounded scalar is a normalisation choice, not biophysical evidence (no receptor kinetics, concentration units, or physiological range). Comment-level overclaim of the model class; the dynamics themselves are bio-inspired bounded heuristics.",
+      "severity": "LOW",
+      "claim_status": "CONTRADICTED",
+      "owner_lane": "lane-3-neuromodulator-semantics",
+      "evidence": "core/neuro/serotonin_ode.py:118 '# Clamp level to [0, 1] for biological plausibility'",
+      "resolution_state": "OPEN"
+    },
+    {
+      "id": "C-NEURO-002",
+      "title": "'STDP-like' label on RPE-gated weight in one metaphor module",
+      "source_path": "core/neuro/gaba_position_gate.py",
+      "source_lines": "102-112",
+      "contradiction": "gaba_position_gate calls RPE-sign weight adaptation 'STDP-like plasticity' with no spike-timing relation. This is a metaphor label in one module ONLY: real spike-timing STDP exists in modules/gaba_inhibition_gate.py (stdp_tau_plus_ms=16.8, a_plus, exp(-delta_t_ms/tau_plus) at line 325). Actionable scope is a rename/clarification of the metaphor, not a missing mechanism.",
+      "severity": "LOW",
+      "claim_status": "PLAUSIBLE",
+      "owner_lane": "lane-3-neuromodulator-semantics",
+      "evidence": "core/neuro/gaba_position_gate.py:102 'STDP-like plasticity' (RPE sign); modules/gaba_inhibition_gate.py:325 real exp(-delta_t_ms/stdp_tau_plus_ms)",
+      "resolution_state": "OPEN"
+    },
+    {
+      "id": "C-TACL-001",
+      "title": "Monotonic-descent / delta-F gate is ALREADY implemented (anticipated gap unsupported)",
+      "source_path": "core/neuro/ecs_regulator.py",
+      "source_lines": "380,611",
+      "contradiction": "The program anticipates 'monotonic descent asserted without an explicit delta-F transition gate'. Verification shows the gate already exists: ecs_regulator._enforce_strict_monotonic_descent(new_fe, previous_fe) (line 380, applied at 611) plus core.energy.delta_free_energy(F_prev, F_now, dt) plus INV-FE1/FE3 already enforce dF<=0. No remediation PR is warranted.",
+      "severity": "LOW",
+      "claim_status": "UNSUPPORTED",
+      "owner_lane": "lane-4-tacl-delta-f",
+      "evidence": "core/neuro/ecs_regulator.py:380 _enforce_strict_monotonic_descent; :611 application; core/energy.py:151 delta_free_energy; INV-FE1/FE3",
+      "resolution_state": "WONTFIX"
+    },
+    {
+      "id": "C-KURAMOTO-001",
+      "title": "R / Ricci structure-vs-alpha boundary is bounded by product canon, not an enforced invariant",
+      "source_path": "core/kuramoto/capital_weighted.py",
+      "source_lines": "7,40,43",
+      "contradiction": "The no-alpha boundary lives in a module docstring and is reinforced by PRODUCT_CATEGORY.md / CLAUDE.md ('research verification, not asserted market edge'). It is therefore bounded at the documentation layer, but no executable invariant test asserts repo-wide that Kuramoto R / Ricci are structure and that any Kelly/alpha scaling requires an empirical IC/backtest gate. Optional hardening, not an open violation.",
+      "severity": "LOW",
+      "claim_status": "PLAUSIBLE",
+      "owner_lane": "lane-5-kuramoto-ricci-structure",
+      "evidence": "core/kuramoto/capital_weighted.py:7,40,43 no-alpha disclaimer; PRODUCT_CATEGORY.md research-not-edge boundary; core/physics/free_energy_trading_gate.py F->portfolio bridge",
+      "resolution_state": "OPEN"
+    },
+    {
+      "id": "C-ORCH-001",
+      "title": "Orchestrator-as-neural-controller claim not present in current code",
+      "source_path": "core/agent/orchestrator.py",
+      "source_lines": "1-40",
+      "contradiction": "The program anticipates an 'orchestrator is a neural controller / basal ganglia' overclaim. A grep across core/agent/orchestrator.py and core/orchestrator/ finds no 'controller', 'basal ganglia', or 'neural controller' assertion (only a NEUROMODULATION enum label in interaction_sequencer.py). The contradiction is not evidenced in the current tree; lane-6 is preventive only.",
+      "severity": "LOW",
+      "claim_status": "UNSUPPORTED",
+      "owner_lane": "lane-6-orchestrator-boundary",
+      "evidence": "grep -niE 'controller|basal|neural controller' core/agent/orchestrator.py core/orchestrator/ -> only interaction_sequencer.py:24 NEUROMODULATION enum",
+      "resolution_state": "WONTFIX"
+    }
+  ]
+}

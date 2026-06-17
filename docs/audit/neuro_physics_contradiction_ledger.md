@@ -19,13 +19,13 @@ by `tests/audit/test_contradiction_ledger.py`.
 
 Verified against real source on 2026-06-17. The remediation program anticipated
 many contradictions; most are **already bounded** by the repo's own canon. Only
-**C-ENERGY-001** is a true HIGH violation (already in progress on #1146) and only
+**C-ENERGY-001** was a true HIGH violation (now **RESOLVED** by #1146) and only
 **C-NEURO-003** is a genuinely-actionable MEDIUM. The rest are LOW (naming nits),
 `UNSUPPORTED` (mechanism already exists), or bounded at the documentation layer.
 
 | id | severity | status | source | owner lane | resolution |
 |----|----------|--------|--------|------------|------------|
-| **C-ENERGY-001** | HIGH | CONTRADICTED | `core/energy.py:147` | lane-2-energy-contract | IN_PROGRESS (#1146) |
+| **C-ENERGY-001** | HIGH | CONTRADICTED | `core/energy.py:147` | lane-2-energy-contract | RESOLVED (#1146 / merge 3a510870) |
 | **C-NEURO-003** | MEDIUM | CONTRADICTED | `core/validation/neuro_integrity.py:146` | lane-3-neuromodulator-semantics | OPEN |
 | **C-NEURO-001** | LOW | CONTRADICTED | `core/neuro/serotonin_ode.py:118` | lane-3-neuromodulator-semantics | OPEN |
 | **C-NEURO-002** | LOW | PLAUSIBLE | `core/neuro/gaba_position_gate.py:102` | lane-3-neuromodulator-semantics | OPEN |
@@ -40,7 +40,10 @@ many contradictions; most are **already bounded** by the repo's own canon. Only
 (`K_BOLTZMANN_EFFECTIVE=1.38e-23`, `_KT_PRODUCT`) with operational/DevOps costs
 (`latency_cost`, `incoherence_cost`) and adds entropy as a *penalty* under the
 name "free energy", colliding with canon `F = U − T·S` (INV-FE2) where entropy
-*lowers* F. **Owner:** Lane 2 (Energy Contract), in progress on #1146.
+*lowers* F. **Owner:** Lane 2 (Energy Contract). **RESOLVED** by #1146
+(merge `3a510870`): operational cost and thermodynamic free energy are split into
+distinct, unit-contracted quantities and entropy is no longer summed as a
+free-energy penalty.
 
 ### C-NEURO-003 — declared correlation invariant is never checked (MEDIUM, the real gap)
 `core/validation/neuro_integrity.py:146` declares

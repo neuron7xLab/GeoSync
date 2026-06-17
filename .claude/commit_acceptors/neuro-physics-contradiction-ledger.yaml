@@ -22,6 +22,7 @@ diff_scope:
     - path: "data/audit/neuro_physics_contradiction_ledger.json"
     - path: "docs/audit/neuro_physics_contradiction_ledger.md"
     - path: "tests/audit/test_contradiction_ledger.py"
+    - path: ".gitignore"
   forbidden_paths:
     - "core/"
     - "src/"
