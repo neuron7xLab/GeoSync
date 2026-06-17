@@ -1,27 +1,69 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""T7 — Graph diffusion volatility front predictor.
+"""T7 — Heat-kernel RANK-PROPAGATION volatility front predictor.
 
-Propagation equation:
-    ρ(t) = exp(-D · L(κ) · t) · ρ₀
+Provenance tier: EXTRAPOLATED. This module is a heuristic ranking
+relaxation, not a validated physical-diffusion model. The name
+"diffusion" here is historical/topological (heat kernel on a graph),
+NOT physical (Fickian) diffusion. See the NOT-FICKIAN note below.
+
+Per-step operator (what the code actually computes):
+    ρ(t) = R( exp(-D · L(κ) · t) · ρ₀ )
 
 where:
-    L(κ)  = graph Laplacian with Ricci-modulated diffusion
+    L(κ)  = graph Laplacian with Ricci-modulated edge weights
     D_ij  = D₀ · exp(κ_ij)   (Ricci curvature scaling)
-    ρ₀    = initial volatility density (recent realised vol per asset)
+    ρ₀    = initial score density (recent realised vol per asset,
+            L1-normalised to the probability simplex)
+    R(·)  = clamp-to-≥0 then L1-renormalise to sum 1
+            (projection back onto the probability simplex)
 
-Volatility front = assets where ρ_i(t+1) > θ.
+`exp(-L·t)·ρ₀` alone is the graph heat kernel; the surrounding `R(·)`
+projects the result back onto the simplex. The output is therefore a
+normalised RANKING SCORE that relaxes toward the graph's stationary
+distribution, not a free, unbounded heat distribution.
 
-Backtest metric: ROC-AUC for front prediction vs realised vol spikes
-at horizon t+1 to t+3.
+NOT FICKIAN DIFFUSION (the load-bearing correction):
+    This operator is a relaxation toward equilibrium on a FINITE graph,
+    NOT physical (Fickian) diffusion on an unbounded medium. Free Fickian
+    diffusion has a mean-square displacement that grows ⟨x²⟩ = 2Dt without
+    bound (scaling exponent 1). Here, two facts break that:
 
-Validated framework: Kikuchi (2025) graph diffusion for information
-propagation. Financial backtest of volatility prediction is novel.
+      1. Finite-graph boundary (dominant): the heat kernel exp(-Lt) on a
+         finite line/lattice cannot spread past the end nodes. ρ relaxes to
+         the graph's stationary (uniform, for a connected unweighted graph)
+         distribution, so the MSD SATURATES at the stationary-distribution
+         variance — the long-horizon scaling exponent collapses toward 0,
+         NOT 1. On an infinite line exp(-Lt) WOULD give ⟨x²⟩=2Dt; on this
+         finite graph it does not.
 
-The key insight: information (and volatility) spreads faster on
-positively curved edges (well-connected neighborhoods) and slower
-on negatively curved edges (bottleneck regions). This is empirically
-validated in network science (Sandhu 2016).
+      2. Simplex projection R (a guard, mostly inactive): for a valid graph
+         Laplacian and a non-negative ρ₀ on the simplex, exp(-Lt) already
+         conserves mass (Σρ=1) and stays non-negative, so R(·) is a no-op
+         to machine precision. R only changes the result when the kernel
+         emits negative mass — i.e. round-off or a non-Laplacian L — at
+         which point it clamps and L1-renormalises so the output stays a
+         valid ranking on the simplex. It is a fail-safe that pins the
+         object to a RANKING, not the cause of the non-Fickian behaviour.
+
+    Net: this is a graph relaxation / rank propagation whose MSD saturates,
+    so it is emphatically NOT mass-conserving free diffusion. Pinned in-code
+    by test_msd_exponent_is_non_fickian in the T7 test module, which
+    measures the saturating MSD exponent on a known line graph.
+
+Volatility front = assets where the propagated score ρ_i(t+1) > θ.
+
+Backtest metric: ROC-AUC for front ranking vs realised vol spikes at
+horizon t+1 to t+3. The relative ordering of the scores is the only
+quantity consumed downstream; the simplex normalisation is a monotone-
+preserving convenience, not a conservation law.
+
+Topological motivation (heuristic, not a validated financial law):
+    On the heat kernel, score leaks faster across positively curved
+    edges (well-connected neighbourhoods) and slower across negatively
+    curved edges (bottlenecks). The graph-curvature intuition is from
+    network science (Sandhu 2016); its predictive value for volatility
+    fronts is an EXTRAPOLATED hypothesis tested only by backtest here.
 
 References:
     Kikuchi "Graph diffusion for network analysis" (2025)
@@ -43,11 +85,16 @@ _LOGGER = logging.getLogger("geosync.physics.diffusion")
 
 @dataclass(frozen=True, slots=True)
 class VolatilityFrontPrediction:
-    """Prediction of volatility front propagation."""
+    """Prediction of the volatility front (simplex ranking scores).
 
-    predicted_front: list[int]  # asset indices predicted to spike
-    density_t1: NDArray[np.float64]  # propagated density at t+1
-    density_t3: NDArray[np.float64]  # propagated density at t+3
+    `density_*` fields are L1-normalised RANKING SCORES on the probability
+    simplex (sum to 1 by the per-step renormalisation R), NOT a conserved
+    physical mass distribution. See module docstring (NOT FICKIAN).
+    """
+
+    predicted_front: list[int]  # asset indices ranked above threshold θ
+    density_t1: NDArray[np.float64]  # propagated score at t+1 (sum=1)
+    density_t3: NDArray[np.float64]  # propagated score at t+3 (sum=1)
     initial_density: NDArray[np.float64]
     threshold: float
 
@@ -65,7 +112,17 @@ class BacktestResult:
 
 
 class DiffusionVolatilityPredictor:
-    """Predict volatility propagation via graph diffusion.
+    """Predict the volatility front via heat-kernel RANK PROPAGATION.
+
+    Despite the historical class name, this is a ranking relaxation on the
+    probability simplex, not physical (Fickian) diffusion: the per-step
+    operator is R ∘ exp(-Lt) (heat kernel followed by clamp + L1 renorm),
+    whose mean-square displacement SATURATES rather than growing ∝ t. The
+    public class/symbol names are retained to avoid churning the
+    `core.physics.__init__` exports and consumers; the honest framing lives
+    in these docstrings. The MSD saturates on any finite graph (boundary
+    relaxation), not because of the renorm — see module docstring for the
+    exact mechanism. Provenance tier: EXTRAPOLATED.
 
     Parameters
     ----------
@@ -114,7 +171,17 @@ class DiffusionVolatilityPredictor:
         L: NDArray[np.float64],
         t: float,
     ) -> NDArray[np.float64]:
-        """ρ(t) = exp(-L·t) · ρ₀ with renormalisation."""
+        """ρ(t) = R( exp(-L·t) · ρ₀ ): heat kernel + simplex projection R.
+
+        The clamp + L1 renormalisation R(·) below is a fail-safe that keeps
+        the output a valid ranking on the probability simplex. For a valid
+        graph Laplacian and a non-negative ρ₀ on the simplex it is a no-op
+        to machine precision (exp(-Lt) already conserves mass and stays
+        ≥ 0); it only bites when the kernel emits negative mass (round-off
+        or a non-Laplacian L). The non-Fickian, MSD-saturating behaviour
+        comes from the finite-graph boundary, not from this renorm — see the
+        module docstring. Do not read this as mass-conserving free diffusion.
+        """
         if t <= 0:
             return rho_0.copy()
         propagator = expm(-L * t)
@@ -301,7 +368,13 @@ class DiffusionVolatilityPredictor:
             roc_auc_t3=auc_t3,
             precision_t1=prec_t1,
             recall_t1=rec_t1,
-            mean_lead_time=1.0,  # by construction, prediction is 1 step ahead
+            # FIXED CONSTRUCTION CONSTANT — NOT a measured/empirical lead
+            # time. The predictor emits a 1-step-ahead score by design, so
+            # this field is hardcoded to that horizon (1 step) and carries
+            # no information about how far ahead predictions actually lead
+            # observed spikes. Any "lead time" interpretation as an
+            # empirical result would be unfounded.
+            mean_lead_time=1.0,
         )
 
     @staticmethod
