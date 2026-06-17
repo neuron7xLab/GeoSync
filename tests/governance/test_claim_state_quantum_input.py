@@ -28,7 +28,7 @@ def _envelope() -> dict[str, object]:
         ],
         "artifacts": ["claim_state_report.json"],
         "ci_proof": {
-            "sha": "181f97160a407c8e4c7262d351c1f0d6658bbe87",
+            "sha": "0000000000000000000000000000000000000000",
             "same_sha": False,
             "required_checks_green": False,
         },
@@ -62,7 +62,7 @@ def test_complete_without_ci_is_local_verified() -> None:
 def test_same_sha_green_ci_is_ci_verified() -> None:
     envelope = _envelope()
     envelope["ci_proof"] = {
-        "sha": "181f97160a407c8e4c7262d351c1f0d6658bbe87",
+        "sha": "0000000000000000000000000000000000000000",
         "same_sha": True,
         "required_checks_green": True,
     }
@@ -84,7 +84,7 @@ def test_scientific_vector_without_same_sha_ci_is_not_evidence_bearing() -> None
 def test_real_data_replay_baseline_falsifier_semantic_validation_is_evidence_bearing() -> None:
     envelope = _envelope()
     envelope["ci_proof"] = {
-        "sha": "181f97160a407c8e4c7262d351c1f0d6658bbe87",
+        "sha": "0000000000000000000000000000000000000000",
         "same_sha": True,
         "required_checks_green": True,
     }
