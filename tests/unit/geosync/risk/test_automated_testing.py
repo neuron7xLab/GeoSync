@@ -2,39 +2,18 @@
 # SPDX-License-Identifier: MIT
 """Tests for automated risk testing module."""
 
-# Import directly from module file to avoid torch dependency issues
-import importlib.util
-import sys
-from pathlib import Path
-
 import numpy as np
 
-# First load risk_core
-risk_core_spec = importlib.util.spec_from_file_location(
-    "risk_core",
-    Path(__file__).parent.parent.parent.parent.parent / "src/geosync/risk/risk_core.py",
+from geosync.risk.automated_testing import (
+    AutomatedRiskTester,
+    MonteCarloConfig,
+    RiskScenario,
+    ScenarioType,
+    generate_flash_crash_scenarios,
+    generate_liquidity_crisis_scenarios,
+    generate_market_stress_scenarios,
+    validate_risk_metrics,
 )
-risk_core_module = importlib.util.module_from_spec(risk_core_spec)
-sys.modules["geosync.risk.risk_core"] = risk_core_module
-risk_core_spec.loader.exec_module(risk_core_module)
-
-# Then load automated_testing
-auto_test_spec = importlib.util.spec_from_file_location(
-    "geosync.risk.automated_testing",
-    Path(__file__).parent.parent.parent.parent.parent / "src/geosync/risk/automated_testing.py",
-)
-auto_test_module = importlib.util.module_from_spec(auto_test_spec)
-sys.modules["geosync.risk.automated_testing"] = auto_test_module
-auto_test_spec.loader.exec_module(auto_test_module)
-
-AutomatedRiskTester = auto_test_module.AutomatedRiskTester
-MonteCarloConfig = auto_test_module.MonteCarloConfig
-RiskScenario = auto_test_module.RiskScenario
-ScenarioType = auto_test_module.ScenarioType
-generate_flash_crash_scenarios = auto_test_module.generate_flash_crash_scenarios
-generate_liquidity_crisis_scenarios = auto_test_module.generate_liquidity_crisis_scenarios
-generate_market_stress_scenarios = auto_test_module.generate_market_stress_scenarios
-validate_risk_metrics = auto_test_module.validate_risk_metrics
 
 
 class TestRiskScenario:

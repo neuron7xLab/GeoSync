@@ -2,25 +2,16 @@
 # SPDX-License-Identifier: MIT
 """Tests for risk core module."""
 
-# Import directly from module file
-import importlib.util
-from pathlib import Path
-
 import numpy as np
 import pytest
 
-spec = importlib.util.spec_from_file_location(
-    "risk_core",
-    Path(__file__).parent.parent.parent.parent.parent / "src/geosync/risk/risk_core.py",
+from geosync.risk.risk_core import (
+    RiskConfig,
+    check_risk_breach,
+    compute_final_size,
+    kelly_shrink,
+    var_es,
 )
-risk_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(risk_module)
-
-var_es = risk_module.var_es
-kelly_shrink = risk_module.kelly_shrink
-compute_final_size = risk_module.compute_final_size
-check_risk_breach = risk_module.check_risk_breach
-RiskConfig = risk_module.RiskConfig
 
 
 class TestVarES:

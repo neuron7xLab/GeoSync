@@ -1,57 +1,46 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""GeoSync risk management module.
+"""Deprecated shim — the canonical risk package is :mod:`geosync.risk`.
 
-This module provides risk management capabilities for trading strategies,
-including position sizing, risk limits, and automated risk testing.
+``automated_testing`` and ``risk_core`` were moved out of this ``src.geosync.risk``
+shadow into the canonical top-level ``geosync.risk`` package as part of the
+single-canonical-package import-architecture ratchet. This module now re-exports
+the canonical symbols so any legacy ``from src.geosync.risk import ...`` caller
+keeps working, while introducing no ``src.*`` imports of its own.
 
-Example:
-    >>> from geosync.risk import RiskManager, RiskLimits
-    >>> limits = RiskLimits(max_notional=100_000, max_position=10)
-    >>> manager = RiskManager(limits)
-    >>> manager.validate_order("BTC-USD", "buy", 1, 50000.0)
+Prefer importing from ``geosync.risk`` directly.
 """
 
-__CANONICAL__ = True
-
-# Import RiskManager and related classes from execution.risk
-from execution.risk import (
+from geosync.risk import (
+    AutomatedRiskTester,
     KillSwitch,
     LimitViolation,
+    MonteCarloConfig,
     OrderRateExceeded,
+    RiskConfig,
     RiskError,
     RiskLimits,
     RiskManager,
-    portfolio_heat,
-)
-
-from .automated_testing import (
-    AutomatedRiskTester,
-    MonteCarloConfig,
     RiskScenario,
     ScenarioType,
     StressTestResult,
+    check_risk_breach,
+    compute_final_size,
     generate_flash_crash_scenarios,
     generate_liquidity_crisis_scenarios,
     generate_market_stress_scenarios,
-    validate_risk_metrics,
-)
-from .risk_core import (
-    RiskConfig,
-    check_risk_breach,
-    compute_final_size,
     kelly_shrink,
+    portfolio_heat,
+    validate_risk_metrics,
     var_es,
 )
 
 __all__ = [
-    # Core risk functions
     "var_es",
     "kelly_shrink",
     "compute_final_size",
     "check_risk_breach",
     "RiskConfig",
-    # Risk Manager
     "RiskManager",
     "RiskLimits",
     "RiskError",
@@ -59,7 +48,6 @@ __all__ = [
     "OrderRateExceeded",
     "KillSwitch",
     "portfolio_heat",
-    # Automated testing
     "AutomatedRiskTester",
     "RiskScenario",
     "ScenarioType",

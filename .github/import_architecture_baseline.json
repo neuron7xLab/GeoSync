@@ -13,7 +13,6 @@
     "application/security/rbac.py",
     "application/settings.py",
     "application/system.py",
-    "geosync/risk/__init__.py",
     "src/admin/remote_control.py",
     "src/data/__init__.py",
     "src/risk/risk_manager.py",
