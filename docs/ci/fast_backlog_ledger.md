@@ -17,7 +17,10 @@ surfaced the latent backlog the vacuum had hidden.
 
 - total collected: **~17,617** fast node ids
 - selected per shard: 4494 / 4373 / 4302 / 4448
-- failure clusters: **5**
+- failure clusters: **8**
+- enumeration method: full kept set (17,670 ids after subtracting 10 quarantine
+  files) run locally in one pass, `--maxfail=100` **not** hit (17 failures) — so
+  the quarantined set below is the *complete* known backlog, not a prefix.
 
 | cluster | files | issue | lane | status |
 |---|---|---|---|---|
@@ -26,6 +29,9 @@ surfaced the latent backlog the vacuum had hidden.
 | `analytics_import_shadowing` | 1 | [#1171](https://github.com/neuron7xLab/GeoSync/issues/1171) | ci-import-architecture | quarantined |
 | `adversarial_invariant_count` | 1 | [#1172](https://github.com/neuron7xLab/GeoSync/issues/1172) | governance-registry | quarantined |
 | `numerical_policy_unregistered_clamps` | 1 | [#1173](https://github.com/neuron7xLab/GeoSync/issues/1173) | physics-numerical-policy | quarantined |
+| `tools_import_shadowing` | 1 (14 tests) | [#1178](https://github.com/neuron7xLab/GeoSync/issues/1178) | ci-import-architecture | quarantined |
+| `namespace_canonical_policy` | 2 | [#1179](https://github.com/neuron7xLab/GeoSync/issues/1179) | ci-import-architecture | quarantined |
+| `contradiction_ledger_stale` | 1 | [#1180](https://github.com/neuron7xLab/GeoSync/issues/1180) | governance-ledger | quarantined |
 
 **Cluster-count correction (was "1").** The original measurement reported a
 single cluster because the four `cli_import_shadowing` import errors aborted
@@ -100,6 +106,40 @@ numerical-policy registry: `core/kuramoto/engine.py:295` (`saturate_clip`) and
 Forman-Ricci work that merged under the vacuous oracle. **Expiry:** the physics
 tree has zero unregistered clamps (each registered with a declared bound, or
 refactored if unjustified); drained in #1173.
+
+### tools_import_shadowing
+
+All 14 tests in `tests/ci/test_pr_preflight_engine.py` fail at **collection**
+with `ModuleNotFoundError: No module named 'tools'` (`from tools.ci import
+pr_preflight`). Same import-architecture class as `cli_import_shadowing` /
+`analytics_import_shadowing`: the `tools` package is not declared in
+`[tool.setuptools.packages.find]`, so it is absent under the CI editable
+install. **Expiry:** `tools.ci.pr_preflight` imports under the CI editable
+install; drained in #1178.
+
+### namespace_canonical_policy
+
+`tests/test_architecture_guards.py::test_namespace_integrity_has_no_violations`
+reports 23 violations (e.g. `src/geosync/risk/__init__.py` missing
+`__CANONICAL__ = True`) and
+`tests/unit/scripts/test_namespace_shims_importable.py::test_namespace_policy_gate_passes`
+fails because `scripts/check_namespace_policy.py` `main()` returns 1 (legacy
+`src.*` imports outside the curated allowlist). Canonical namespace is
+`geosync.*`. Likely subsumed by the in-flight import-architecture consolidation
+(#1159) — cross-reference before draining. **Expiry:** namespace policy gate
+returns 0 and architecture-guards reports zero violations; drained in #1179.
+
+### contradiction_ledger_stale
+
+`tests/audit/test_contradiction_ledger.py::test_every_falsifier_confirms_its_claim_against_live_source`
+fails: entry **C-NEURO-003**'s falsifier
+`[ "$(grep -c dopamine_serotonin_correlation_min core/validation/neuro_integrity.py)" -le 2 ]`
+now returns 1 (expected 0) — the field has been wired into a `validate_*` path
+(>2 mentions), so the ledger's "still dead" position is no longer true and the
+crown invariant correctly demands the entry flip to RESOLVED. This is the
+contradiction ledger working as designed, not a test bug. **Expiry:**
+C-NEURO-003 marked RESOLVED with evidence and the falsifier matches live source;
+drained in #1180.
 
 ## Invariant
 
