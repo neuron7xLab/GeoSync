@@ -1,6 +1,11 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""T4 — Thermodynamic Entropy Control for Risk Manager.
+"""T4 — Free-energy-analog risk gate (Lyapunov control objective).
+
+PROVENANCE TIER: EXTRAPOLATED (control heuristic, NOT an anchored law).
+This module borrows the *form* of Helmholtz free energy as a control
+Lyapunov candidate. It is not a derivation of a physical law and must not
+be cited as one. See the "What this is NOT" note below.
 
 Shannon entropy:
     S = -Σ w_i · log(w_i)   where w_i = |pos_i| / Σ|pos_j|
@@ -18,15 +23,29 @@ Ricci curvature coupling:
     Negative curvature → higher T → more entropy allowed → looser gate.
     Positive curvature → lower T → tighter gate → more conservative.
 
-Free energy gate:
+Free-energy-analog gate (control objective, not a law):
     F = U - T_eff · S_q
-    dF/dt ≤ 0 required for position update.
+    The gate ADMITS a position update iff dF ≤ 0. F is a control Lyapunov
+    *candidate* that the controller actively drives down by rejecting
+    updates with dF > 0 — it is NOT a quantity nature conserves or
+    monotonically increases. dS may be of either sign and the gate is
+    designed to handle both:
+        dS > 0 (diversification) → −T·dS lowers F → easier to admit.
+        dS < 0 (concentration)   → −T·dS raises F → penalised, harder to
+                                    admit. This is the gate's job.
 
-Lyapunov stability proof sketch:
-    dF/dt = dU/dt - T·dS/dt
-    dU/dt bounded by Kelly-optimal sizing
-    dS/dt ≥ 0 by second-law analog (diversification increases entropy)
-    → dF/dt ≤ dU/dt ≤ 0 when Kelly is respected
+What this is NOT:
+    * NOT a second law. "dS ≥ 0" does NOT hold for portfolio weight
+      entropy: a rebalance toward concentration gives dS < 0 (see
+      shannon_entropy on a concentrated vs uniform book). The previous
+      docstring asserted a "second-law analog (diversification increases
+      entropy)" — that is false for this quantity and is removed. The
+      gate never relied on dS ≥ 0; it accepts arbitrary-sign dS as a free
+      input and the −T·dS term supplies the penalty.
+    * NOT dimensionally a physical free energy. T_eff is a dimensionless
+      control temperature, S is in nats, dU is a P&L/return delta; there
+      is no k_B and no energy scale. F is a unitless control potential.
+      Treat the units as nondimensional control quantities, not joules.
 
 T_base=0.60: derived from TACL calibration in tacl/energy_model.py,
 not from intuition. The value matches the production temperature used
@@ -107,7 +126,12 @@ class ThermodynamicRiskGate:
 
     @staticmethod
     def free_energy(U: float, T: float, S: float) -> float:
-        """F = U - T·S (Helmholtz free energy)."""
+        """F = U - T·S (Helmholtz-analog control potential, dimensionless).
+
+        Not a physical free energy: T is a dimensionless control
+        temperature, S is in nats, no k_B. Used only as a Lyapunov
+        candidate the gate drives down.
+        """
         return U - T * S
 
     def gate(self, dU: float, dS: float, kappa_min: float = 0.0) -> bool:
@@ -124,7 +148,10 @@ class ThermodynamicRiskGate:
 
         Returns
         -------
-        True if dF/dt ≤ 0 (position update allowed).
+        True if dF ≤ 0 (position update admitted). dS may be of either
+        sign: concentration (dS < 0) is penalised via −T·dS, not assumed
+        away. The gate enforces the control objective; it does not assert
+        a second law.
         """
         T_eff = self.ricci_temperature(kappa_min)
         dF = dU - T_eff * dS

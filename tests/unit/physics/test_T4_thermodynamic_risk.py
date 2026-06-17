@@ -1,8 +1,10 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""T4 — Thermodynamic Entropy Control tests.
+"""T4 — Free-energy-analog risk gate tests (Lyapunov control objective).
 
-Shannon/Tsallis entropy, Ricci temperature coupling, Lyapunov stability.
+Shannon/Tsallis entropy, Ricci temperature coupling, and the control
+objective F = U − T·S. F is a Lyapunov candidate the gate drives down, NOT
+a conserved/second-law quantity — see TestSecondLawDoesNotHold.
 """
 
 from __future__ import annotations
@@ -76,19 +78,25 @@ class TestRicciTemperatureCouplingSign:
 
 
 class TestLyapunovStabilityNumerical:
-    """Simulate 1000 steps; F must be monotonically non-increasing
-    when Kelly sizing is respected (dU ≤ 0)."""
+    """F is a CONTROL Lyapunov candidate, not a conserved/monotone law.
 
-    def test_free_energy_monotone_decreasing(self, gate):
+    This is a CONDITIONAL property test: F decreases monotonically ONLY in
+    the constructed admissible regime (dU ≤ 0 AND dS ≥ 0). It does NOT
+    assert a second law — dS ≥ 0 here is an imposed scenario, not a
+    guarantee about portfolio entropy. The companion test
+    TestSecondLawDoesNotHold proves the unconstrained case.
+    """
+
+    def test_free_energy_monotone_decreasing_in_admissible_regime(self, gate):
         rng = np.random.default_rng(42)
         F_values = []
         U = 1.0
         S = 0.5
 
         for _ in range(1000):
-            # Kelly-bounded: dU ≤ 0 (small losses or gains within bound)
+            # Constructed admissible regime: Kelly-bounded dU ≤ 0 ...
             dU = -abs(rng.normal(0, 0.01))
-            # Entropy non-decreasing (2nd law analog)
+            # ... and dS ≥ 0 IMPOSED here (not a law — see companion test).
             dS = abs(rng.normal(0, 0.005))
             U += dU
             S += dS
@@ -97,11 +105,52 @@ class TestLyapunovStabilityNumerical:
 
         F_arr = np.array(F_values)
         diffs = np.diff(F_arr)
-        # F should be monotonically non-increasing
+        # F non-increasing ONLY because we imposed dU≤0 ∧ dS≥0 above.
         assert np.all(diffs <= 1e-10), (
             f"Free energy increased at {np.sum(diffs > 1e-10)} steps "
             f"(max increase: {np.max(diffs):.6e})"
         )
+
+
+class TestSecondLawDoesNotHold:
+    """Falsification: portfolio entropy is NOT governed by a second law.
+
+    A rebalance toward concentration lowers entropy (dS < 0), so the
+    free-energy-analog F is not monotone in general. The gate's contract
+    is a control objective that PENALISES such moves, not a law that
+    forbids dS < 0 as input. These tests pin the honest framing so the
+    removed "second-law analog" claim cannot silently return.
+    """
+
+    def test_concentration_lowers_entropy(self, gate):
+        uniform = np.array([0.25, 0.25, 0.25, 0.25])
+        concentrated = np.array([0.97, 0.01, 0.01, 0.01])
+        dS = gate.shannon_entropy(concentrated) - gate.shannon_entropy(uniform)
+        assert dS < 0.0, (
+            "Concentration must lower portfolio entropy (dS<0); a "
+            "'second law' dS>=0 is false for this quantity. "
+            f"dS={dS:.6f}, S_uniform=ln4={np.log(4):.6f}"
+        )
+
+    def test_free_energy_rises_under_concentration(self, gate):
+        # Same scalar dU, opposite-sign dS: concentration (dS<0) yields a
+        # STRICTLY LARGER F than diversification (dS>0). If F were governed
+        # by a second law this could not happen.
+        dU = 0.0
+        T = gate.T_base
+        F_concentrate = gate.free_energy(dU, T, -0.3)
+        F_diversify = gate.free_energy(dU, T, +0.3)
+        assert F_concentrate > F_diversify, (
+            f"F under concentration ({F_concentrate:.4f}) must exceed F "
+            f"under diversification ({F_diversify:.4f}) — no monotone law."
+        )
+
+    def test_gate_accepts_negative_dS_as_free_input(self, gate):
+        # The gate must handle dS<0 without error and penalise it: with
+        # dU=0 a concentrating move (dS<0 → dF>0) is rejected, while a
+        # diversifying move (dS>0 → dF<0) is admitted.
+        assert gate.gate(dU=0.0, dS=-0.2, kappa_min=0.0) is False
+        assert gate.gate(dU=0.0, dS=+0.2, kappa_min=0.0) is True
 
 
 class TestTsallisProperties:
