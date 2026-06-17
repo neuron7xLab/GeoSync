@@ -57,6 +57,19 @@ class KuramotoConfig(BaseModel):
             "Propagated from CouplingSpec by from_coupling_spec()."
         ),
     )
+    legacy_pre_scaled_adjacency: bool = Field(
+        default=False,
+        description=(
+            "FP-1 back-compatibility switch. When False (default, canonical "
+            "single-owner-of-scale): 'adjacency' is topology A_norm only and the "
+            "engine applies the gain K once in the RHS — θ̇_i = ω_i + K·Σ_j "
+            "A_norm[i,j]·sin(θ_j−θ_i). When True: 'adjacency' is treated as the "
+            "already-K-scaled effective coupling C = K·A and the RHS uses unit "
+            "gain, reproducing the pre-FP-1 trajectory bit-for-bit for external "
+            "callers that pre-multiplied their matrix by K. New code should leave "
+            "this False."
+        ),
+    )
     theta0: np.ndarray | None = Field(
         default=None,
         description="Initial phases [rad]; length N. Drawn from U(0, 2π) if None.",
@@ -218,6 +231,7 @@ class KuramotoConfig(BaseModel):
             "adjacency": self.adjacency.tolist() if self.adjacency is not None else None,
             "adjacency_kind": self.adjacency_kind,
             "claim_boundary": self.claim_boundary,
+            "legacy_pre_scaled_adjacency": self.legacy_pre_scaled_adjacency,
             "theta0": self.theta0.tolist() if self.theta0 is not None else None,
             "seed": self.seed,
             "coupling_mode": self.coupling_mode,
