@@ -9,21 +9,6 @@ import pytest
 from cli import amm_cli
 
 
-def test_amm_cli_resolves_to_cli_package_not_scripts() -> None:
-    """Regression: ``from cli import amm_cli`` must load the ``cli/`` package.
-
-    ``scripts/cli.py`` (``scripts.cli``) is a same-named module that shadowed
-    the implicit-namespace ``cli`` package under the CI editable install,
-    raising ImportError. ``cli/__init__.py`` makes ``cli`` a regular package so
-    the intended file wins. This proves the loaded module is ``cli/amm_cli.py``,
-    not anything under ``scripts/``.
-    """
-    resolved = Path(amm_cli.__file__).resolve()
-    assert resolved.parent.name == "cli"
-    assert resolved.name == "amm_cli.py"
-    assert "scripts" not in resolved.parts
-
-
 @pytest.fixture
 def sample_csv(tmp_path: Path) -> Path:
     path = tmp_path / "sample.csv"

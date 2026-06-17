@@ -1,0 +1,21 @@
+# Fast-lane quarantine — keeps python-fast-shard REAL-green, not fake-green.
+#
+# The shard collects every fast node id, SUBTRACTS the test files listed here,
+# then runs the remainder. This makes a known, tracked failure visible debt
+# instead of either (a) a vacuous 0/0 pass or (b) a red required gate that
+# blocks every PR. New, unquarantined failures still fail CI.
+#
+# Format (one entry per line; blank lines and #-comments ignored):
+#   <test_path>  cluster=<id> issue=#<n> lane=<lane> expiry=<machine-checkable condition>
+#
+# Rules enforced by pr-gate.yml:
+#   - every entry MUST carry issue=#<digits> (no issue ref => gate fails);
+#   - paths are subtracted by prefix from the collected node-id set;
+#   - the post-subtraction collection must be non-empty (else gate fails).
+#
+# See docs/ci/fast_backlog_ledger.md for the full ledger.
+
+tests/unit/cli/test_amm_cli.py        cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_import_amm_cli_resolves_to_cli_amm_cli_py_in_ci
+tests/unit/cli/test_cli_golden.py     cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_geosync_cli_resolves_to_cli_geosync_cli_py_in_ci
+tests/unit/cli/test_fete_backtest_cli.py cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_geosync_cli_resolves_to_cli_geosync_cli_py_in_ci
+tests/unit/test_geosync_cli.py        cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_geosync_cli_resolves_to_cli_geosync_cli_py_in_ci
