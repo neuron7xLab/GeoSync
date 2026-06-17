@@ -20,6 +20,20 @@ LOGGER = logging.getLogger(__name__)
 
 IGNORED_PREFIXES = ("-r ", "--", "http://", "https://", "git+", "svn+", "hg+")
 
+# pip treats a ``#`` preceded by whitespace as the start of an inline comment
+# (PEP 508 / pip's ``COMMENT_RE``). Full-line comments are filtered separately.
+_INLINE_COMMENT_RE = re.compile(r"\s+#.*$")
+
+
+def _strip_inline_comment(line: str) -> str:
+    """Remove a pip-style trailing ``# ...`` inline comment from a manifest line.
+
+    URL/VCS lines (which may carry ``#egg=`` fragments) are filtered by
+    ``IGNORED_PREFIXES`` before this is called, so stripping is unambiguous for
+    the PEP 508 requirement lines that remain.
+    """
+    return _INLINE_COMMENT_RE.sub("", line).strip()
+
 
 class DependencyHealthError(RuntimeError):
     """Raised when dependency health checks cannot be executed."""
@@ -96,6 +110,9 @@ def load_requirement_specs(
                 continue
             if line.startswith(IGNORED_PREFIXES):
                 continue
+            line = _strip_inline_comment(line)
+            if not line:
+                continue
             try:
                 requirement = Requirement(line)
             except InvalidRequirement as exc:
@@ -120,6 +137,9 @@ def load_locked_dependencies(path: Path) -> dict[str, list[LockedDependency]]:
         if not line or line.startswith("#"):
             continue
         if line.startswith(IGNORED_PREFIXES):
+            continue
+        line = _strip_inline_comment(line)
+        if not line:
             continue
         try:
             requirement = Requirement(line)
