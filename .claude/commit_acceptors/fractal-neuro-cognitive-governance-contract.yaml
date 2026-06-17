@@ -1,22 +1,25 @@
 # Diff-bound commit acceptor for the fractal/neuro-cognitive governance contract PR.
 #
+# Split per claim-type cap (governance <=16): this acceptor binds the
+# fractal-neuro-cognitive architecture + claim-state quantizer surface
+# (the executable core). The FVPS + Neuron7X value/calibration/filter/
+# verification prompt+data artifacts are bound by the companion acceptor
+# neuron7x-fvps-governance-contract.yaml.
+#
 # Purpose:
-#   Bind this governance-only PR to explicit evidence, rollback, calibration,
-#   filtering, verification, and claim boundary. This acceptor intentionally does
-#   not validate cognition, physics, prediction, market readiness, or
-#   model-weight update claims.
+#   Bind this governance-only PR to explicit evidence, rollback, and claim
+#   boundary. This acceptor intentionally does not validate cognition,
+#   physics, prediction, market readiness, or model-weight update claims.
 
 id: fractal-neuro-cognitive-governance-contract
 status: ACTIVE
 claim_type: governance
 promise: >-
   After this PR lands, GeoSync contains machine-readable and human-readable
-  governance artifacts for claim-state quantization, fractal neuro-cognitive
-  prompt contracts, FVPS value-function contracts, Neuron7X value-function
-  scoring, Neuron7X calibration thresholds, Neuron7X signal filtering rules,
-  and Neuron7X verification/conformance rules. The PR adds governance data,
-  schemas, docs, a deterministic claim-state quantizer, and tests. It does not
-  change runtime, physics, market, or trading behavior.
+  governance artifacts for the fractal neuro-cognitive architecture and for
+  claim-state quantization. The PR adds governance data, schemas, docs, a
+  deterministic claim-state quantizer, and tests. It does not change runtime,
+  physics, market, or trading behavior.
 
 diff_scope:
   changed_files:
@@ -30,18 +33,6 @@ diff_scope:
     - path: "tests/governance/test_claim_state_quantum_input.py"
     - path: "docs/prompts/fractal_neuro_cognitive_research_agent_v2026_1.md"
     - path: "data/governance/fractal_neuro_cognitive_research_agent_v2026_1.json"
-    - path: "docs/prompts/fvps_agent_v2026_3.md"
-    - path: "data/governance/fvps_agent_v2026_3.json"
-    - path: "docs/prompts/fvps_max_inference_rank_prompt_v2026_4.md"
-    - path: "data/governance/fvps_max_inference_rank_prompt_v2026_4.json"
-    - path: "docs/prompts/neuron7x_value_functions_v2026_5.md"
-    - path: "data/governance/neuron7x_value_functions_v2026_5.json"
-    - path: "docs/prompts/neuron7x_calibration_protocol_v2026_6.md"
-    - path: "data/governance/neuron7x_calibration_protocol_v2026_6.json"
-    - path: "docs/prompts/neuron7x_filter_protocol_v2026_7.md"
-    - path: "data/governance/neuron7x_filter_protocol_v2026_7.json"
-    - path: "docs/prompts/neuron7x_verification_protocol_v2026_8.md"
-    - path: "data/governance/neuron7x_verification_protocol_v2026_8.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -67,10 +58,9 @@ required_python_symbols:
 expected_signal: >-
   The governance claim-state quantizer deterministically maps evidence envelopes
   into the discrete states FALSE, UNTESTED, PARTIAL, LOCAL_VERIFIED, CI_VERIFIED,
-  or EVIDENCE_BEARING, rejects upward declared-state drift, and the governance
-  prompt/data artifacts define value-function scoring, calibration thresholds,
-  signal filtering rules, and verification/conformance rules without claiming
-  runtime, physics, market, or trading behavior changes.
+  or EVIDENCE_BEARING, rejects upward declared-state drift, and the fractal
+  neuro-cognitive architecture/schema artifacts define the execution contract
+  without claiming runtime, physics, market, or trading behavior changes.
 
 measurement_command: >-
   bash -c '
@@ -113,30 +103,15 @@ rollback_command: >-
       tests/governance/test_claim_state_quantum_input.py
       docs/prompts/fractal_neuro_cognitive_research_agent_v2026_1.md
       data/governance/fractal_neuro_cognitive_research_agent_v2026_1.json
-      docs/prompts/fvps_agent_v2026_3.md
-      data/governance/fvps_agent_v2026_3.json
-      docs/prompts/fvps_max_inference_rank_prompt_v2026_4.md
-      data/governance/fvps_max_inference_rank_prompt_v2026_4.json
-      docs/prompts/neuron7x_value_functions_v2026_5.md
-      data/governance/neuron7x_value_functions_v2026_5.json
-      docs/prompts/neuron7x_calibration_protocol_v2026_6.md
-      data/governance/neuron7x_calibration_protocol_v2026_6.json
-      docs/prompts/neuron7x_filter_protocol_v2026_7.md
-      data/governance/neuron7x_filter_protocol_v2026_7.json
-      docs/prompts/neuron7x_verification_protocol_v2026_8.md
-      data/governance/neuron7x_verification_protocol_v2026_8.json
   '
 
 rollback_verification_command: >-
   bash -c '
     test ! -e tools/governance/quantize_claim_state.py
     && test ! -e tests/governance/test_claim_state_quantum_input.py
-    && test ! -e docs/prompts/neuron7x_calibration_protocol_v2026_6.md
-    && test ! -e data/governance/neuron7x_calibration_protocol_v2026_6.json
-    && test ! -e docs/prompts/neuron7x_filter_protocol_v2026_7.md
-    && test ! -e data/governance/neuron7x_filter_protocol_v2026_7.json
-    && test ! -e docs/prompts/neuron7x_verification_protocol_v2026_8.md
-    && test ! -e data/governance/neuron7x_verification_protocol_v2026_8.json
+    && test ! -e schemas/governance/fractal_neuro_cognitive_execution.schema.json
+    && test ! -e data/governance/fractal_neuro_cognitive_architecture_v2026_1.json
+    && test ! -e docs/prompts/fractal_neuro_cognitive_research_agent_v2026_1.md
   '
 
 memory_update_type: append
