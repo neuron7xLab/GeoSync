@@ -1,0 +1,80 @@
+# Diff-bound commit acceptor for Integration Systems Architect Kernel v1.0.
+#
+# Purpose:
+#   Bind the integration kernel governance artifact to explicit files, JSON
+#   parseability, claim boundary, rollback, and same-SHA CI proof.
+
+id: integration-systems-architect-kernel
+status: ACTIVE
+claim_type: governance
+promise: >-
+  After this PR lands, GeoSync contains a human-readable and machine-readable
+  governance kernel for integration architecture. It defines interfaces,
+  contracts, dependency graphing, compatibility gates, adapter synthesis,
+  failure isolation, validation stack, observability gate, rollback protocol,
+  and a final PASS rule requiring install, config, contract-test,
+  integration-test, smoke, observability, and rollback evidence. It does not
+  claim runtime integration, production readiness, scientific validation,
+  physics validity, trading readiness, or market prediction.
+
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/integration-systems-architect-kernel.yaml"
+    - path: "docs/prompts/integration_systems_architect_kernel_v1_0.md"
+    - path: "data/governance/integration_systems_architect_kernel_v1_0.json"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+    - "core/"
+    - "runtime/"
+    - "application/"
+    - "analytics/"
+    - "research/"
+
+required_python_symbols: []
+
+expected_signal: >-
+  The integration systems architect kernel is present as governance-only
+  prompt documentation and machine-readable JSON. The JSON parses, contains
+  the output contract, and blocks runtime, production, scientific, physics,
+  trading, and market-prediction claims.
+
+measurement_command: >-
+  bash -c '
+    test -s docs/prompts/integration_systems_architect_kernel_v1_0.md
+    && python -c "import json; data=json.load(open('"'"'data/governance/integration_systems_architect_kernel_v1_0.json'"'"')); assert data['"'"'artifact_id'"'"']== '"'"'integration-systems-architect-kernel-v1.0'"'"'; assert '"'"'runtime integration completed'"'"' in data['"'"'scope'"'"']['"'"'blocked_claims'"'"']"
+  '
+
+signal_artifact: "tmp/integration_systems_architect_kernel.log"
+
+falsifier:
+  command: >-
+    bash -c '
+      test ! -e data/governance/integration_systems_architect_kernel_v1_0.json
+    '
+  description: >-
+    Probes that the machine-readable kernel data artifact exists. The falsifier
+    succeeds only if the required artifact is absent, which would mean the
+    integration kernel has been rolled back or omitted.
+
+rollback_command: >-
+  bash -c '
+    git rm -f
+      .claude/commit_acceptors/integration-systems-architect-kernel.yaml
+      docs/prompts/integration_systems_architect_kernel_v1_0.md
+      data/governance/integration_systems_architect_kernel_v1_0.json
+  '
+
+rollback_verification_command: >-
+  bash -c '
+    test ! -e .claude/commit_acceptors/integration-systems-architect-kernel.yaml
+    && test ! -e docs/prompts/integration_systems_architect_kernel_v1_0.md
+    && test ! -e data/governance/integration_systems_architect_kernel_v1_0.json
+  '
+
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/integration-systems-architect-kernel.yaml"
+report_path: "tmp/integration_systems_architect_kernel.log"
+evidence: []
