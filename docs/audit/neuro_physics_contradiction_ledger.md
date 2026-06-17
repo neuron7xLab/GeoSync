@@ -50,7 +50,7 @@ documentation layer.
 | id | severity | status | source | owner lane | resolution |
 |----|----------|--------|--------|------------|------------|
 | **C-ENERGY-001** | HIGH | CONTRADICTED | `core/energy.py` | lane-2-energy-contract | RESOLVED (#1146,#1149) |
-| **C-NEURO-003** | MEDIUM | CONTRADICTED | `core/validation/neuro_integrity.py:146` | lane-3-neuromodulator-semantics | OPEN |
+| **C-NEURO-003** | MEDIUM | CONTRADICTED | `core/validation/neuro_integrity.py:146` | lane-3-neuromodulator-semantics | RESOLVED (#1154) |
 | **C-NEURO-001** | LOW | CONTRADICTED | `core/neuro/serotonin_ode.py:118` | lane-3-neuromodulator-semantics | OPEN |
 | **C-NEURO-002** | LOW | PLAUSIBLE | `core/neuro/gaba_position_gate.py:102` | lane-3-neuromodulator-semantics | OPEN |
 | **C-TACL-001** | LOW | UNSUPPORTED | `core/neuro/ecs_regulator.py:380` | lane-4-tacl-delta-f | WONTFIX |
@@ -65,20 +65,22 @@ Derived mechanically from the ledger; see `claim_status` / `resolution_state`.
 |--------|-------|
 | total contradictions tracked | 7 |
 | VERIFIED-HIGH open | **0** |
-| CONTRADICTED | 3 (1 resolved, 2 open) |
+| CONTRADICTED | 3 (2 resolved, 1 open) |
 | PLAUSIBLE | 2 |
 | UNSUPPORTED | 2 |
-| RESOLVED | 1 (C-ENERGY-001) |
+| RESOLVED | 2 (C-ENERGY-001, C-NEURO-003) |
 | WONTFIX (anticipated-but-unsupported) | 2 |
-| OPEN / IN_PROGRESS | 4 |
-| dead invariants still open | **1** (C-NEURO-003) |
+| OPEN / IN_PROGRESS | 3 |
+| dead invariants still open | **0** |
 | every claim has executable falsifier | yes (7/7 exit 0 in CI) |
 
-**Verdict: `PARTIAL`.** The one true HIGH physics contradiction is closed and
-falsifier-proven (`no VERIFIED-HIGH open` gate met). The program is **not** `PASS`
-because the `dead invariants = 0` gate is not yet met: **C-NEURO-003** remains
-OPEN. Three LOW naming/comment nits also remain OPEN as bounded metaphors. No
-overclaim: this verdict is computed from the ledger, not asserted.
+**Verdict: `PARTIAL`.** Both gates that block a physics-debt PASS are now met:
+`no VERIFIED-HIGH open` (the energy contradiction is closed, #1146/#1149) and
+`dead invariants = 0` (the dopamine/serotonin correlation invariant is now wired
+with a witness, #1154). The program is held at `PARTIAL` — **not** `PASS` —
+because three LOW bounded-metaphor nits (C-NEURO-001 comment overclaim, C-NEURO-002
+STDP label, C-KURAMOTO-001 structure-not-alpha) remain OPEN. No overclaim: this
+verdict is computed from the ledger, not asserted.
 
 ## Entries
 
@@ -90,13 +92,18 @@ separating `operational_cost_energy` (cost functional) from `thermo_free_energy`
 (`U − T·S`) with an `ENERGY_UNITS="dimensionless"` unit contract (#1146, repaired
 by #1149). Falsifier proves the separation is present on disk.
 
-### C-NEURO-003 — declared correlation invariant is never checked (MEDIUM, the real gap)
-`core/validation/neuro_integrity.py:146` declares
+### C-NEURO-003 — declared correlation invariant now wired (MEDIUM → RESOLVED #1154)
+`core/validation/neuro_integrity.py:146` declared
 `dopamine_serotonin_correlation_min = -0.8` as a "Minimum inverse correlation
-expectation", but no `validate_*` path references it — a declared integrity
-invariant with no witness (dead invariant), even though `compute_pathway_correlation()`
-already exists. **Owner:** Lane 3 (wire a trajectory-correlation check or drop the
-field). Falsifier: field mentions ≤ 2 ⇒ still dead.
+expectation", but no `validate_*` path referenced it — a declared integrity
+invariant with no witness (dead invariant). **Resolved (#1154):**
+`validate_trajectory` now computes the dopamine/serotonin correlation via the
+existing `compute_pathway_correlation`, records it as a metric, and warns when it
+is weaker than the configured inverse floor (message carries the observed
+correlation and threshold). Zero-variance trajectories report UNKNOWN (NaN), never
+a silent healthy pass. Engineering invariant, not a CNS-biology claim. Witness
+tests in `tests/unit/validation/test_neuro_integrity.py`. Falsifier flips to
+`field mentions ≥ 3 ⇒ wired`.
 
 ### C-NEURO-001 — `[0,1]` clamp comment labelled "biological plausibility" (LOW)
 A scalar clamp to `[0,1]` is a normalisation choice, not biophysical evidence.

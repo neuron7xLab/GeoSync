@@ -11,9 +11,23 @@
       "W3C PROV-O: The Provenance Ontology (2013)"
     ]
   },
-  "claim_status_vocab": ["VERIFIED", "PLAUSIBLE", "UNSUPPORTED", "CONTRADICTED"],
-  "severity_vocab": ["HIGH", "MEDIUM", "LOW"],
-  "resolution_vocab": ["OPEN", "IN_PROGRESS", "RESOLVED", "WONTFIX"],
+  "claim_status_vocab": [
+    "VERIFIED",
+    "PLAUSIBLE",
+    "UNSUPPORTED",
+    "CONTRADICTED"
+  ],
+  "severity_vocab": [
+    "HIGH",
+    "MEDIUM",
+    "LOW"
+  ],
+  "resolution_vocab": [
+    "OPEN",
+    "IN_PROGRESS",
+    "RESOLVED",
+    "WONTFIX"
+  ],
   "contradictions": [
     {
       "id": "C-ENERGY-001",
@@ -52,11 +66,11 @@
       "severity": "MEDIUM",
       "claim_status": "CONTRADICTED",
       "owner_lane": "lane-3-neuromodulator-semantics",
-      "evidence": "core/validation/neuro_integrity.py:146 field default -0.8; only 2 textual mentions (docstring + field), none in any validate_* body; compute_pathway_correlation defined at :415 but unused by the validator.",
+      "evidence": "core/validation/neuro_integrity.py:146 field default -0.8; validate_trajectory now computes the dopamine/serotonin correlation via compute_pathway_correlation, records it as a metric, and warns when it is above the inverse floor (>=3 field references). Witness tests in tests/unit/validation/test_neuro_integrity.py::TestValidateTrajectory.",
       "argument": {
         "warrant": "A configuration threshold described as an 'invariant' that no validation path reads cannot constrain anything; the integrity guarantee it implies is unbacked.",
         "backing": "core/validation/neuro_integrity.py:415 compute_pathway_correlation (the unused enforcement primitive); the validator's own contract that declared invariants are enforced.",
-        "rebuttal": "Overturned when validate_trajectory wires compute_pathway_correlation against the threshold (the field becomes read; mentions rise above 2)."
+        "rebuttal": "Overturned if the validate_trajectory enforcement is removed, dropping the field back below 3 references (dead again)."
       },
       "provenance": {
         "asserted_by": "neuro-physics-audit (Claude Opus 4.8)",
@@ -64,11 +78,12 @@
         "method": "grep occurrence count of the field across the module; read of validate_state/validate_trajectory bodies"
       },
       "falsifier": {
-        "command": "[ \"$(grep -c dopamine_serotonin_correlation_min core/validation/neuro_integrity.py)\" -le 2 ]",
+        "command": "[ \"$(grep -c dopamine_serotonin_correlation_min core/validation/neuro_integrity.py)\" -ge 3 ]",
         "expect_exit": 0,
-        "interpretation": "Exit 0 while the field appears <=2 times (declaration + docstring only) proves it is still dead. Wiring it into a validate_* path adds a third mention and flips this to non-zero, forcing the entry to RESOLVED."
+        "interpretation": "Exit 0 when the field is referenced >=3 times (declaration + docstring + the validate_trajectory enforcement), proving the invariant is now wired. If the enforcement is removed it regresses below 3 and this re-opens the entry."
       },
-      "resolution_state": "OPEN"
+      "resolution_state": "RESOLVED",
+      "resolution_ref": "lane-3-neuro-integrity-dead-invariant"
     },
     {
       "id": "C-NEURO-001",
