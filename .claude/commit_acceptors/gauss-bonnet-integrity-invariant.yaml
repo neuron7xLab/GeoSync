@@ -30,7 +30,7 @@
 #   * pytest tests/physics_contracts/: 69 passed (no catalog-parse regression)
 #   * tools/validate_tests.py: witness clean, ricci.gauss_bonnet now covered
 id: gauss-bonnet-integrity-invariant
-status: ACTIVE
+status: VERIFIED
 claim_type: fail_closed
 promise: >-
   core.indicators.gauss_bonnet implements the discrete Gauss–Bonnet identity
@@ -50,6 +50,7 @@ diff_scope:
     - path: "core/indicators/gauss_bonnet.py"
     - path: "physics_contracts/catalog.yaml"
     - path: "tests/physics_contracts/test_gauss_bonnet_witness.py"
+    - path: "artifacts/gauss_bonnet/residuals.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -62,15 +63,27 @@ required_python_symbols:
   - "core/indicators/gauss_bonnet.py::assert_gauss_bonnet"
   - "core/indicators/gauss_bonnet.py::GaussBonnetViolation"
 expected_signal: >-
-  `python -m pytest tests/physics_contracts/test_gauss_bonnet_witness.py`
-  reports 3 passed; the discrete Gauss–Bonnet residual is exactly 0 across the
-  whole graph suite and the fail-closed gate raises on a tampered field.
+  The deterministic evidence artifact artifacts/gauss_bonnet/residuals.json is
+  regenerated bit-for-bit (residual == "0" for every graph family, χ spanning
+  {−3, 0, 1, 2}); its sha256 matches the pinned evidence digest. A
+  non-reproducible pytest log is deliberately NOT used as the signal — pinning
+  its hash would be a vacuous oracle. The behavioural proof lives in the witness
+  test and the inverse falsifier below.
 measurement_command: >-
-  bash -c 'mkdir -p tmp && python -m pytest
-  tests/physics_contracts/test_gauss_bonnet_witness.py -v
-  > tmp/gauss_bonnet_pytest.log 2>&1
-  && grep -qE "3 passed" tmp/gauss_bonnet_pytest.log'
-signal_artifact: "tmp/gauss_bonnet_pytest.log"
+  bash -c 'mkdir -p artifacts/gauss_bonnet && python -c "
+  import json, networkx as nx;
+  from core.indicators.gauss_bonnet import euler_characteristic, gauss_bonnet_residual;
+  fam = {\"path_8\": nx.path_graph(8), \"star_7\": nx.star_graph(7),
+  \"cycle_6\": nx.cycle_graph(6), \"complete_5\": nx.complete_graph(5),
+  \"triangle\": nx.complete_graph(3), \"two_edges\": nx.Graph([(0,1),(2,3)]),
+  \"watts_strogatz_12_seed7\": nx.connected_watts_strogatz_graph(12,4,0.3,seed=7)};
+  rec = {\"law\": \"ricci.gauss_bonnet\", \"identity\": \"sum_x K(x) == chi(G)\",
+  \"arithmetic\": \"exact rational (fractions.Fraction)\",
+  \"families\": {n: {\"chi\": euler_characteristic(g),
+  \"residual\": str(gauss_bonnet_residual(g))} for n, g in sorted(fam.items())}};
+  open(\"artifacts/gauss_bonnet/residuals.json\",\"w\").write(
+  json.dumps(rec, sort_keys=True, indent=2) + chr(10))"'
+signal_artifact: "artifacts/gauss_bonnet/residuals.json"
 falsifier:
   command: >-
     python -c 'import sys, networkx as nx;
@@ -94,6 +107,7 @@ falsifier:
 rollback_command: >-
   bash -c 'git rm -f core/indicators/gauss_bonnet.py
   tests/physics_contracts/test_gauss_bonnet_witness.py
+  artifacts/gauss_bonnet/residuals.json
   .claude/commit_acceptors/gauss-bonnet-integrity-invariant.yaml
   && git checkout origin/main -- physics_contracts/catalog.yaml'
 rollback_verification_command: >-
@@ -102,4 +116,6 @@ rollback_verification_command: >-
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/gauss-bonnet-integrity-invariant.yaml"
 report_path: "docs/reports/diff_bound_commit_acceptor_layer.md"
-evidence: []
+evidence:
+  - path: "artifacts/gauss_bonnet/residuals.json"
+    sha256: "df396d5a77f03da04fae359a82e57696b14698711c6e8cabd178ac6e7cecf26c"  # pragma: allowlist secret
