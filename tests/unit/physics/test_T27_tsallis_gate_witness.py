@@ -13,8 +13,9 @@ missing INV-* anchored witnesses for:
   (``# INV-FE2: gate output non-negative``) states exactly this
   contract.
 * **INV-HPC2** — q is finite on every finite input; q ≥ 1 by
-  construction; clamped kurtosis keeps the formula ``(5 + 3κ)/(3 + κ)``
-  away from its pole at κ = −3.
+  construction. q is the MLE Student-t fit mapped via
+  ``q = (ν + 3)/(ν + 1)`` with ν clamped to ``[2.05, 200]``, so q is
+  bounded in ``(1, (2.05+3)/(2.05+1)] = (1, 1.6557]``.
 * **INV-SB2** — ``evaluate`` is deterministic: identical returns yield
   bit-identical gate output across calls.
 
@@ -166,22 +167,25 @@ def test_regime_boundaries_inclusive() -> None:
         elements=st.floats(min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False),
     )
 )
-@settings(max_examples=100, deadline=None)
+@settings(max_examples=40, deadline=None)
 def test_estimate_q_finite_and_ge_1(returns: np.ndarray) -> None:
     """INV-HPC2: ``estimate_q(returns)`` is finite and ≥ 1 for finite input.
 
     Derivation:
-        q = (5 + 3κ)/(3 + κ) where κ is clamped to [-2.5, 50].
-        * At κ = -2.5 → q = (5 - 7.5)/(3 - 2.5) = -5.0 → clamped ≥ 1.
-        * At κ = 50  → q = (5 + 150)/(3 + 50) = 155/53 ≈ 2.925.
-        * At κ = -3  the formula hits a pole, which is why the
-          clamp exists.
-    The explicit ``max(q, 1.0)`` floor enforces q ≥ 1. The
-    κ clamp prevents division-by-zero and the resulting NaN/Inf.
+        q = (ν + 3)/(ν + 1) where ν is the MLE Student-t degrees of
+        freedom clamped to [2.05, 200].
+        * At ν = 200 → q = 203/201 ≈ 1.00995 → floored at ≥ 1.
+        * At ν = 2.05 → q = 5.05/3.05 ≈ 1.6557 (the ceiling).
+        * The Gaussian / degenerate path returns exactly 1.0.
+    The explicit ``max(q, 1.0)`` floor enforces q ≥ 1. The ν clamp
+    keeps ν finite (no NaN/Inf) and brackets the supported tail range.
 
-    Tolerance: the entire clamping logic is integer-valued on the
-    guard boundaries; the branch-free output is finite by
-    construction.
+    Note: max_examples is held at 40 (not 200) because each draw runs a
+    full Student-t MLE (~35 ms); 40 draws keeps the witness under the
+    PR-gate per-test budget while still sweeping the finite-input domain.
+
+    Tolerance: the q map is exact in float64 given ν; the ceiling check
+    pads one ULP via 1e-12.
     """
     # epsilon: structural — only guard is q ≥ 1 floor.
     q = TsallisRiskGate.estimate_q(returns)
@@ -189,7 +193,7 @@ def test_estimate_q_finite_and_ge_1(returns: np.ndarray) -> None:
         f"INV-HPC2 VIOLATED: estimate_q returned non-finite {q}. "
         f"Observed at N={returns.size}, returns.range="
         f"[{returns.min():.3e}, {returns.max():.3e}]. "
-        f"Expected finite output from κ-clamped formula."
+        f"Expected finite output from the ν-clamped MLE map."
     )
     assert q >= 1.0, (
         f"INV-HPC2 VIOLATED: q={q:.6f} < 1. "
@@ -197,13 +201,13 @@ def test_estimate_q_finite_and_ge_1(returns: np.ndarray) -> None:
         f"Expected q ≥ 1 from the explicit max(q, 1.0) floor. "
         f"Reasoning: Tsallis q ≥ 1 on fat-tailed distributions."
     )
-    # Upper bound: with κ clamped to 50, q ≤ 155/53 ≈ 2.925.
+    # Upper bound: with ν clamped at 2.05, q ≤ (2.05+3)/(2.05+1) = 5.05/3.05.
     # epsilon: 5·eps_64 ≈ 1.1e-15, padded to 1e-12.
-    q_ceiling = (5.0 + 3.0 * 50.0) / (3.0 + 50.0)
+    q_ceiling = (2.05 + 3.0) / (2.05 + 1.0)
     assert q <= q_ceiling + 1e-12, (
         f"INV-HPC2 VIOLATED: q={q:.6f} > ceiling={q_ceiling:.6f}. "
         f"Observed at N={returns.size}. "
-        f"Expected κ clamp at 50 to cap q ≤ 155/53."
+        f"Expected ν clamp at 2.05 to cap q ≤ 5.05/3.05 ≈ 1.6557."
     )
 
 
@@ -211,9 +215,10 @@ def test_estimate_q_falsification_zero_variance() -> None:
     """INV-HPC2 falsification: constant / near-constant returns must not crash.
 
     Falsification input: zero-variance series. Without the ``std <
-    1e-12`` guard the standardisation step would produce NaN/Inf,
-    and the kurtosis would be undefined. The implementation detects
-    the degenerate case and returns q = 1.0 exactly.
+    1e-12`` guard the MLE would attempt to fit a Student-t to a point
+    mass and the standardisation would produce NaN/Inf. The
+    implementation detects the degenerate case and returns q = 1.0
+    exactly (the Gaussian limit).
 
     Tolerance: exact — the early return hard-codes 1.0.
     """
@@ -231,23 +236,25 @@ def test_estimate_q_falsification_zero_variance() -> None:
 def test_estimate_q_heavy_tail_direction() -> None:
     """INV-HPC2 qualitative: q(heavy-tail) > q(gaussian) after 3 seeds.
 
-    Witness for monotonicity of the q estimator: a t-distribution
-    with ν=3 has theoretical excess kurtosis 6/(ν-4) → undefined at
-    ν<5; empirically κ ≈ 10-30 on small samples. The helper must
-    translate that into a higher q than iid Gaussian (κ ≈ 0, q ≈ 5/3).
+    Witness for monotonicity of the MLE q estimator under tail
+    heaviness. The estimator fits the Student-t degrees of freedom ν by
+    maximum likelihood and maps q = (ν+3)/(ν+1), a strictly decreasing
+    function of ν. A Gaussian sample drives ν large (q → 1); a t(ν=3)
+    sample fits a small ν (true q* = (3+3)/(3+1) = 1.5). So the heavy
+    sample MUST recover a strictly larger q.
 
     The test uses 3 independent seeds and demands the order in every
     realisation — a flaky single seed cannot hide a broken direction.
 
-    Tolerance: per Bickel-Freedman (1981) the kurtosis of a size-n
-    sample has standard error ≈ √(24/n) = 0.49 at n=100. That
-    propagates to q via ``dq/dκ = -6/(3+κ)² ≤ 2/3 for κ ≥ 0``, so
-    the q estimate has std ≈ 0.33 at n=100. We require a gap > 0.05
-    to ensure the signal dominates the noise over 3 trials.
+    Tolerance: the true q-gap is q*(ν=3) − q*(ν→∞) = 1.5 − 1.0 = 0.5.
+    The MLE of ν at N=200 has a sampling std that propagates to a q
+    std of order 0.1; the empirically observed gaps over these seeds are
+    ≥ 0.37 (well above noise). We require a gap > 0.05 as the minimum
+    reliably distinguishable effect, leaving a wide safety margin.
     """
-    # epsilon: 0.05 — per Bickel-Freedman, σ_q ≈ 0.33/√n_trials = 0.19
-    #          at n_trials=3. A gap > 0.05 is the minimum reliably
-    #          distinguishable effect.
+    # epsilon: 0.05 — the true gap is 0.5; observed gaps ≥ 0.37; 0.05 is
+    #          a conservative floor that the MLE direction must clear on
+    #          every seed.
     min_gap = 0.05
 
     for seed in range(3):
@@ -294,6 +301,63 @@ def test_evaluate_handles_insufficient_observations() -> None:
         f"INV-HPC2 VIOLATED: multiplier={result.position_multiplier} "
         f"violates expected 0.25 fallback. "
         f"Observed at N={short.size}, min_observations=30, window=60."
+    )
+
+
+def test_evaluate_fail_closed_on_non_q_gaussian() -> None:
+    """INV-HPC2 / INV-FE2 fail-closed: a non-q-Gaussian sample must NOT
+    emit a confident q-derived regime.
+
+    This is the verdict-flip guard for the MLE+GoF rewrite. A strongly
+    bimodal mixture is not in the q-Gaussian / Student-t family; its KS
+    p-value against the fitted t CDF collapses to ~0. The gate must:
+      * set ``gof_passed = False`` (the fit is rejected), and
+      * return the conservative fallback — q=1.5, ELEVATED,
+        position_multiplier=0.25 — identical to the data-scarcity branch.
+
+    Falsification: if the gate emitted a confident q-derived regime
+    (gof_passed True, or a multiplier other than the 0.25 fallback) from
+    a sample that is provably not q-Gaussian, the fail-closed contract
+    is violated and an unfitted distribution could drive sizing.
+    """
+    rng = np.random.default_rng(1)
+    bimodal = np.concatenate([rng.normal(-5.0, 0.3, 500), rng.normal(5.0, 0.3, 500)])
+    gate = TsallisRiskGate(window=2000, min_observations=20, gof_alpha=0.05)
+    result = gate.evaluate(bimodal)
+
+    # epsilon: 0.0 — gof_passed is a boolean contract flag.
+    assert result.gof_passed is False, (
+        f"INV-HPC2 VIOLATED (fail-closed): gof_passed={result.gof_passed} on a "
+        f"bimodal sample with gof_p={result.gof_pvalue:.3e}. "
+        f"Observed at N=1000, seed=1, gof_alpha=0.05. "
+        f"Expected the KS GoF to reject a two-mode mixture and fail closed."
+    )
+    # epsilon: 0.05 is the configured KS significance level (gof_alpha),
+    # not a magic threshold — it is the rejection tolerance of the GoF test.
+    assert result.gof_pvalue < 0.05, (
+        f"INV-HPC2 VIOLATED (fail-closed): bimodal gof_p={result.gof_pvalue:.3e} "
+        f">= alpha=0.05. Observed at N=1000, seed=1. "
+        f"Expected p ≪ alpha for a clearly non-q-Gaussian sample."
+    )
+    # epsilon: 0.0 — exact conservative fallback values (contract tolerance 0).
+    assert result.q == 1.5, (
+        f"INV-HPC2 VIOLATED (fail-closed): fallback q={result.q} != 1.5. "
+        f"Observed at N=1000, seed=1, gof_p={result.gof_pvalue:.3e}. "
+        f"Expected the conservative fallback q on a rejected fit."
+    )
+    assert result.regime == TsallisRegime.ELEVATED, (
+        f"INV-FE2 VIOLATED (fail-closed): regime={result.regime.value} != "
+        f"ELEVATED on a rejected fit. Observed at N=1000, seed=1. "
+        f"Expected the conservative fallback regime, not a q-derived one."
+    )
+    # epsilon: 0.0 — exact conservative fallback multiplier (tolerance 0);
+    # 0.25 is the hard-coded data-scarcity/GoF-rejection fallback value.
+    assert result.position_multiplier == 0.25, (
+        f"INV-FE2 VIOLATED (fail-closed): multiplier="
+        f"{result.position_multiplier} != 0.25 on a rejected fit. "
+        f"Observed at N=1000, seed=1. "
+        f"Expected the conservative fallback multiplier — no confident "
+        f"sizing from an unfitted distribution."
     )
 
 

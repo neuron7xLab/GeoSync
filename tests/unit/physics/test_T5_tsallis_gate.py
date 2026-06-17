@@ -1,11 +1,24 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""T5 — Tsallis entropy risk gate tests."""
+"""T5 — Tsallis entropy risk gate tests (MLE-fitted q, GoF-gated).
+
+q is estimated by maximum-likelihood on the Student-t equivalence
+q = (ν + 3) / (ν + 1) (Souza & Tsallis 1997; Tsallis 2009 Ch. 4), NOT by
+kurtosis moment-matching. The fit is goodness-of-fit gated by a
+Kolmogorov-Smirnov test: a sample that is not a q-Gaussian fails closed to
+the conservative fallback. These tests pin both the anchored fit and the
+fail-closed behaviour.
+"""
 
 import numpy as np
 import pytest
 
 from core.physics.tsallis_gate import TsallisGateResult, TsallisRegime, TsallisRiskGate
+
+
+def _q_from_nu(nu: float) -> float:
+    """q = (ν + 3) / (ν + 1) — the Student-t ↔ q-Gaussian map."""
+    return (nu + 3.0) / (nu + 1.0)
 
 
 @pytest.fixture
@@ -14,33 +27,142 @@ def gate() -> TsallisRiskGate:
 
 
 class TestQEstimation:
-    """q estimated from kurtosis: q = (5+3κ)/(3+κ)."""
+    """q estimated by MLE on the Student-t equivalence q=(ν+3)/(ν+1)."""
 
-    def test_gaussian_returns_near_5_3(self):
+    def test_gaussian_returns_near_1(self):
+        """Gaussian ⟹ ν → large ⟹ q → 1 (Gaussian limit of q-Gaussian).
+
+        Unlike the legacy kurtosis estimator (which mapped κ≈0 to q≈5/3),
+        the MLE recovers the true tail index: a Gaussian is the ν→∞ limit
+        of the t-family, so q must collapse toward 1.
+        """
         rng = np.random.default_rng(42)
         returns = rng.normal(0, 0.01, 10000)
         q = TsallisRiskGate.estimate_q(returns)
-        # Gaussian: κ≈0 → q≈5/3≈1.67
-        assert 1.4 < q < 2.0
+        # At N=10000 the fitted ν is large; q sits just above 1.0. We bound
+        # well below the NORMAL cutoff 1.35 — a Gaussian cannot be crisis.
+        assert 1.0 <= q < 1.10, (
+            f"INV-HPC2: Gaussian q={q:.4f} not in [1.0, 1.10). "
+            f"Expected q→1 (ν→∞ limit). N=10000, seed=42. "
+            f"MLE t-equivalence q=(ν+3)/(ν+1)."
+        )
 
     def test_heavy_tails_higher_q(self):
+        """Heavy tails ⟹ smaller ν ⟹ higher q than a Gaussian sample."""
         rng = np.random.default_rng(42)
         normal = rng.normal(0, 0.01, 1000)
         heavy = rng.standard_t(3, 1000) * 0.01  # t-distribution, heavy tails
 
         q_normal = TsallisRiskGate.estimate_q(normal)
         q_heavy = TsallisRiskGate.estimate_q(heavy)
-        assert q_heavy > q_normal, "Heavy tails should have higher q"
+        assert q_heavy > q_normal, (
+            f"INV-HPC2: q_heavy={q_heavy:.4f} !> q_normal={q_normal:.4f}. "
+            f"Expected heavier tails → smaller ν → higher q. "
+            f"N=1000, seed=42. MLE Student-t fit."
+        )
+
+    def test_known_q_recovery_student_t(self):
+        """ANCHORED: MLE recovers a KNOWN q from a Student-t with known ν.
+
+        Generate t(ν) samples with ν ∈ {3, 5, 8, 30}; the true Tsallis
+        index is q* = (ν+3)/(ν+1). At N=20000 the MLE recovers q* to a
+        tight statistical tolerance. This is the falsifiable anchor of the
+        whole change: a broken/moment-match estimator misses these targets.
+        """
+        for df, tol in ((3, 0.02), (5, 0.03), (8, 0.03), (30, 0.02)):
+            rng = np.random.default_rng(7)
+            sample = rng.standard_t(df, 20000)
+            q_hat = TsallisRiskGate.estimate_q(sample)
+            q_true = _q_from_nu(float(df))
+            assert abs(q_hat - q_true) < tol, (
+                f"INV-HPC2: recovered q={q_hat:.4f} vs true q*={q_true:.4f} "
+                f"(ν={df}) exceeds tol={tol}. "
+                f"N=20000, seed=7. MLE must recover the known tail index; "
+                f"a kurtosis moment-match would fail here (κ diverges)."
+            )
 
     def test_constant_returns_q_1(self):
-        """No variance → q = 1.0 (Gaussian limit)."""
+        """No variance → q = 1.0 (Gaussian limit, degenerate fit)."""
         returns = np.zeros(100)
         q = TsallisRiskGate.estimate_q(returns)
-        assert q == 1.0
+        assert q == 1.0, (
+            f"INV-HPC2: zero-variance q={q} != 1.0. "
+            f"Expected degenerate Gaussian limit. N=100, all-zero."
+        )
 
     def test_insufficient_data(self):
         q = TsallisRiskGate.estimate_q(np.array([0.01, 0.02]))
-        assert q == 1.0
+        assert q == 1.0, (
+            f"INV-HPC2: insufficient-data q={q} != 1.0. "
+            f"Expected Gaussian-limit fallback for N<4. N=2."
+        )
+
+
+class TestGoodnessOfFitFailClosed:
+    """A non-q-Gaussian sample must fail closed — no confident regime."""
+
+    def test_bimodal_fails_closed(self):
+        """FAIL-CLOSED: a clearly bimodal sample is not a q-Gaussian.
+
+        gof_passed must be False, and the gate must emit the conservative
+        fallback (q=1.5, ELEVATED, multiplier 0.25) — NOT a confident
+        q-derived regime. This is the verdict-flip guard: an unfitted
+        sample can never drive a confident position decision.
+        """
+        rng = np.random.default_rng(1)
+        bimodal = np.concatenate(
+            [rng.normal(-5.0, 0.3, 500), rng.normal(5.0, 0.3, 500)]
+        )
+        gate = TsallisRiskGate(window=2000, min_observations=20, gof_alpha=0.05)
+        result = gate.evaluate(bimodal)
+        assert result.gof_passed is False, (
+            f"INV-HPC2 fail-closed: bimodal gof_passed={result.gof_passed} "
+            f"(gof_p={result.gof_pvalue:.2e}) must be False. "
+            f"N=1000, seed=1. A two-mode mixture is not a q-Gaussian."
+        )
+        assert result.regime == TsallisRegime.ELEVATED, (
+            f"INV-HPC2 fail-closed: bimodal regime={result.regime.value} "
+            f"must be conservative ELEVATED fallback, not q-derived. "
+            f"N=1000, seed=1, gof_p={result.gof_pvalue:.2e}."
+        )
+        assert result.position_multiplier == 0.25, (
+            f"INV-FE2 fail-closed: bimodal multiplier="
+            f"{result.position_multiplier} must be conservative 0.25. "
+            f"N=1000, seed=1. No confident sizing from an unfitted sample."
+        )
+
+    def test_strong_skew_fails_closed(self):
+        """FAIL-CLOSED: a strongly skewed (exponential) sample is not q-Gaussian."""
+        rng = np.random.default_rng(2)
+        skewed = rng.exponential(1.0, 1000) - 1.0
+        gate = TsallisRiskGate(window=2000, min_observations=20, gof_alpha=0.05)
+        result = gate.evaluate(skewed)
+        assert result.gof_passed is False, (
+            f"INV-HPC2 fail-closed: skewed gof_passed={result.gof_passed} "
+            f"(gof_p={result.gof_pvalue:.2e}) must be False. "
+            f"N=1000, seed=2. A skewed exponential is not a symmetric q-Gaussian."
+        )
+        assert result.position_multiplier == 0.25, (
+            f"INV-FE2 fail-closed: skewed multiplier="
+            f"{result.position_multiplier} must be conservative 0.25. "
+            f"N=1000, seed=2, gof_p={result.gof_pvalue:.2e}."
+        )
+
+    def test_clean_t_passes_gof(self):
+        """A clean Student-t sample passes GoF and emits a q-derived regime."""
+        rng = np.random.default_rng(11)
+        clean = rng.standard_t(5, 400) * 0.01
+        gate = TsallisRiskGate(window=2000, min_observations=20, gof_alpha=0.05)
+        result = gate.evaluate(clean)
+        assert result.gof_passed is True, (
+            f"INV-HPC2: clean t(5) gof_passed={result.gof_passed} "
+            f"(gof_p={result.gof_pvalue:.3f}) must be True. "
+            f"N=400, seed=11. A genuine t-sample must not fail closed."
+        )
+        assert result.gof_pvalue >= 0.05, (
+            f"INV-HPC2: clean t(5) gof_p={result.gof_pvalue:.3f} < alpha 0.05. "
+            f"N=400, seed=11."
+        )
 
 
 class TestRegimeClassification:
@@ -82,6 +204,10 @@ class TestGateEvaluation:
         result = gate.evaluate(returns)
         assert isinstance(result, TsallisGateResult)
         assert result.position_multiplier > 0
+        assert result.gof_passed is True, (
+            f"INV-HPC2: a Gaussian low-vol sample must fit. "
+            f"gof_passed={result.gof_passed}, gof_p={result.gof_pvalue:.3f}."
+        )
 
     def test_history_recorded(self, gate):
         rng = np.random.default_rng(42)
@@ -109,10 +235,16 @@ class TestDrawdownReduction:
 
     def test_crisis_returns_reduce_position(self, gate):
         rng = np.random.default_rng(42)
-        # Simulate crisis: heavy-tailed returns with high kurtosis
+        # Simulate crisis: heavy-tailed returns with high kurtosis.
+        # t(2.5) is a genuine q-Gaussian-family sample (it passes GoF), so
+        # the gate emits a CONFIDENT crisis regime — not a fail-closed one.
         crisis = rng.standard_t(2.5, 200) * 0.05
         result = gate.evaluate(crisis)
-        assert result.position_multiplier < 1.0, "Crisis should reduce position"
+        assert result.position_multiplier < 1.0, (
+            f"INV-FE2: crisis multiplier={result.position_multiplier} "
+            f"must be < 1.0. q={result.q:.4f}, gof_p={result.gof_pvalue:.3f}, "
+            f"N=30 (window), seed=42. Heavy tails → high q → reduced position."
+        )
 
 
 class TestInputValidation:
@@ -123,6 +255,12 @@ class TestInputValidation:
     def test_bad_q_order(self):
         with pytest.raises(ValueError):
             TsallisRiskGate(q_normal=1.55, q_crisis=1.35)
+
+    def test_bad_gof_alpha(self):
+        with pytest.raises(ValueError):
+            TsallisRiskGate(gof_alpha=0.0)
+        with pytest.raises(ValueError):
+            TsallisRiskGate(gof_alpha=1.0)
 
     def test_insufficient_prices(self, gate):
         with pytest.raises(ValueError):

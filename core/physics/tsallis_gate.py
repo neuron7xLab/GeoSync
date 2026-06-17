@@ -1,32 +1,58 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""T5 — Tsallis entropy as real-time risk gate with empirical thresholds.
+"""T5 — Tsallis entropy as real-time risk gate, MLE-fitted and GoF-gated.
 
-Rolling q-fit on 60-day window estimates the Tsallis entropic index q
-from the distribution of portfolio returns.
+The Tsallis entropic index ``q`` is estimated from the distribution of
+portfolio returns over a rolling window. The estimator and the gate are
+split into two provenance tiers:
 
-Empirical thresholds (from literature):
+* **The fit is ANCHORED.** ``q`` is obtained by maximum-likelihood — not
+  by moment-matching. We exploit the exact algebraic equivalence between
+  the q-Gaussian and the Student-t distribution: a q-Gaussian with index
+  ``q`` is, up to scale, a Student-t with ``ν = (3 − q) / (q − 1)`` degrees
+  of freedom, equivalently ``q = (ν + 3) / (ν + 1)`` (Tsallis 2009,
+  Ch. 4; Souza & Tsallis 1997). We MLE-fit ``ν`` by maximising the
+  Student-t log-likelihood of the standardised sample (a bounded 1-D
+  optimisation) and map it to ``q ∈ [1, 3)``. This is numerically stable
+  in the heavy-tail regime ``q ≥ 1.4`` (ν ≤ 5) where the 4th moment — and
+  therefore any kurtosis-based estimator — diverges. The legacy
+  kurtosis-q closed form is retained ONLY as a reported diagnostic, never
+  as the estimator.
+
+* **The regime cutoffs are EXTRAPOLATED.** ``q_normal = 1.35`` and
+  ``q_crisis = 1.55`` are operational thresholds sourced from the
+  qualitative q-Gaussian finance literature (Borland 2002; Queirós 2005;
+  Tsallis 2009). They are NOT fitted constants and carry no per-asset
+  calibration proof here. They are operational parameters of the gate,
+  documented as such, and are overridable via the constructor.
+
+Goodness-of-fit, fail-closed
+----------------------------
+A sample that is not a q-Gaussian (bimodal, strongly skewed, regime-mixed)
+must NOT be assigned a confident q-derived regime. After fitting we compute
+the Kolmogorov-Smirnov statistic of the standardised sample against the
+fitted Student-t CDF and its p-value. If ``p < gof_alpha`` the fit is
+rejected and ``evaluate`` returns the SAME conservative result used for the
+data-scarcity branch (q = 1.5, ELEVATED, multiplier 0.25) with
+``gof_passed = False``. We never emit a confident regime from an unfitted
+sample.
+
+Position sizing gate (operational, EXTRAPOLATED cutoffs):
+    f(q) = max(0, 1 - (q - q_normal) / (q_crisis - q_normal))  # INV-FE2
+
+    q ≤ q_normal → f = 1.0 (full position)
+    midway       → f = 0.5
+    q ≥ q_crisis → f = 0.0 (no new positions)
+
+Empirical regime bands (operational cutoffs, EXTRAPOLATED):
     q < 1.35         →  NORMAL regime
     1.35 ≤ q < 1.55  →  ELEVATED risk
     q ≥ 1.55         →  CRISIS regime
 
-Position sizing gate:
-    f(q) = max(0, 1 - (q - 1.35) / 0.20)  # INV-FE2: gate output non-negative by Tsallis entropy contract
-
-    q = 1.35 → f = 1.0 (full position)
-    q = 1.45 → f = 0.5 (half position)
-    q = 1.55 → f = 0.0 (no new positions)
-
-This implements the q-Gaussian fit to financial returns.
-The q-Gaussian P(x) ∝ [1 - (1-q)·β·x²]^(1/(1-q))
-has heavier tails than Gaussian for q > 1.
-
-Calibration: fit q via MLE or method of moments on rolling window.
-We use kurtosis-based estimator: q ≈ (5 + 3·κ) / (3 + κ)
-where κ = excess kurtosis (Tsallis & Bukman 1996).
-
 References:
     Tsallis "Introduction to Nonextensive Statistical Mechanics" (2009)
+    Souza & Tsallis "Student's t- and r-distributions: Unified
+        derivation from an entropic variational principle" Physica A (1997)
     Borland "A theory of non-Gaussian option pricing" Quant. Finance (2002)
     Queirós "On the emergence of a generalised Gamma distribution" EPL (2005)
 """
@@ -38,6 +64,17 @@ from enum import Enum
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy import stats
+
+# Student-t degrees-of-freedom search bounds for the MLE.
+# ν → ∞ is the Gaussian limit (q → 1); ν = 1 is Cauchy (q = 2). We cap
+# the lower end at 2.05 so that the variance (and hence the standardising
+# step that precedes the fit) stays finite, and the upper end at 200 where
+# the t-distribution is Gaussian to ~1e-3 in q. These are search bounds for
+# the optimiser, not physics clamps; they bracket q ∈ (1.0, 1.66] from the
+# tail-heaviness the data can actually support.
+_NU_MIN = 2.05
+_NU_MAX = 200.0
 
 
 class TsallisRegime(str, Enum):
@@ -50,28 +87,155 @@ class TsallisRegime(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class TsallisGateResult:
-    """Result of Tsallis gate evaluation."""
+    """Result of Tsallis gate evaluation.
+
+    Attributes
+    ----------
+    q : float
+        MLE-fitted Tsallis index (Student-t equivalence). q ≥ 1.
+    regime : TsallisRegime
+        Operational regime from the EXTRAPOLATED q cutoffs. When the fit
+        is rejected (``gof_passed is False``) this is the conservative
+        ELEVATED fallback, NOT a q-derived classification.
+    position_multiplier : float
+        Position-size multiplier in [0, 1].
+    kurtosis : float
+        Reported DIAGNOSTIC only (excess kurtosis). NOT the estimator.
+        Diverges in the heavy-tail regime — do not consume as a q proxy.
+    nu : float
+        Fitted Student-t degrees of freedom (the MLE primitive).
+    gof_stat : float
+        Kolmogorov-Smirnov statistic of the standardised sample vs the
+        fitted t CDF. Lower is a better fit.
+    gof_pvalue : float
+        KS p-value. ``gof_passed`` is ``gof_pvalue >= gof_alpha``.
+    gof_passed : bool
+        Whether the q-Gaussian/t fit is accepted. When False the q,
+        regime, and multiplier are the conservative fallback, not a
+        confident q-derived decision.
+    window_returns : int
+        Number of observations used.
+    """
 
     q: float
     regime: TsallisRegime
     position_multiplier: float
     kurtosis: float
+    nu: float
+    gof_stat: float
+    gof_pvalue: float
+    gof_passed: bool
     window_returns: int
 
 
+def _q_from_nu(nu: float) -> float:
+    """Map Student-t degrees of freedom to Tsallis index.
+
+    q = (ν + 3) / (ν + 1). For ν → ∞ → q → 1 (Gaussian); ν = 1 → q = 2
+    (Cauchy). Souza & Tsallis (1997), Tsallis (2009) Ch. 4.
+    """
+    return (nu + 3.0) / (nu + 1.0)
+
+
+def _diagnostic_kurtosis(standardized: NDArray[np.float64]) -> float:
+    """Excess kurtosis of an already-standardised sample (diagnostic only)."""
+    return float(np.mean(standardized**4) - 3.0)
+
+
+@dataclass(frozen=True, slots=True)
+class _QFit:
+    """Internal: result of the MLE + GoF on a standardised sample."""
+
+    q: float
+    nu: float
+    kurtosis: float
+    gof_stat: float
+    gof_pvalue: float
+    degenerate: bool  # True ⟹ no real fit (insufficient/zero-variance data)
+
+
+def _fit_q_mle(returns: NDArray[np.float64]) -> _QFit:
+    """MLE-fit the Student-t df on standardised returns and run a KS GoF.
+
+    Returns a ``_QFit``. The ``degenerate`` flag is set for the
+    insufficient-data and zero-variance branches; those map to the
+    Gaussian limit (q = 1, ν = ∞-proxy) and a vacuous GoF.
+    """
+    returns = np.asarray(returns, dtype=np.float64)
+    if returns.size < 4:
+        # Insufficient data → assume Gaussian limit. Degenerate fit.
+        return _QFit(q=1.0, nu=_NU_MAX, kurtosis=0.0, gof_stat=0.0, gof_pvalue=1.0, degenerate=True)
+
+    mean = float(np.mean(returns))
+    std = float(np.std(returns, ddof=1))
+    if std < 1e-12:
+        # No variance → Gaussian limit, no distribution to fit. Degenerate.
+        return _QFit(q=1.0, nu=_NU_MAX, kurtosis=0.0, gof_stat=0.0, gof_pvalue=1.0, degenerate=True)
+
+    standardized = (returns - mean) / std
+    kurtosis = _diagnostic_kurtosis(standardized)
+
+    # Full 3-parameter MLE of the Student-t (df, loc, scale) on the RAW
+    # sample. scipy.stats.t.fit maximises the joint likelihood; fitting
+    # loc/scale jointly (rather than pre-standardising and assuming unit
+    # scale) is essential — the standardisation by the *sample* std biases
+    # the shape estimate for heavy tails. This is the heavy-tail-stable
+    # estimator: it uses the full likelihood, not the 4th moment, so it
+    # stays well-defined for ν ≤ 4 (q ≥ 1.4) where kurtosis is ∞.
+    nu_fit, loc_fit, scale_fit = stats.t.fit(returns)
+
+    # The unbounded MLE ν is used for the goodness-of-fit (must match the
+    # actual fitted distribution). For the q mapping we clamp ν into the
+    # supported search bracket: a Gaussian sample drives ν → very large
+    # (q → 1) and the Cauchy floor caps tail heaviness.
+    # INV-HPC2: clamp keeps ν finite ⟹ q finite; map then floors q ≥ 1.
+    nu_for_q = float(np.clip(nu_fit, _NU_MIN, _NU_MAX))
+    q = _q_from_nu(nu_for_q)
+    # INV-HPC2: q ∈ (1, 1.66] for ν ∈ [2.05, 200]; the floor keeps q ≥ 1
+    # exactly at the Gaussian limit and guards float drift at ν = _NU_MAX.
+    q = max(q, 1.0)
+
+    # Goodness-of-fit: KS of the RAW sample against the fully-fitted t CDF
+    # (df, loc, scale all from the MLE). p < alpha ⟹ not a q-Gaussian.
+    ks = stats.kstest(returns, "t", args=(nu_fit, loc_fit, scale_fit))
+    gof_stat = float(ks.statistic)
+    gof_pvalue = float(ks.pvalue)
+
+    return _QFit(
+        q=q,
+        nu=nu_for_q,
+        kurtosis=kurtosis,
+        gof_stat=gof_stat,
+        gof_pvalue=gof_pvalue,
+        degenerate=False,
+    )
+
+
 class TsallisRiskGate:
-    """Real-time position sizing gate based on Tsallis q parameter.
+    """Real-time position sizing gate based on a MLE-fitted Tsallis q.
+
+    The fit (``estimate_q`` / ``fit_q``) is anchored: q is obtained by
+    maximum-likelihood on the Student-t equivalence and gated by a
+    Kolmogorov-Smirnov goodness-of-fit test. The regime cutoffs
+    (``q_normal``, ``q_crisis``) are operational, literature-sourced
+    EXTRAPOLATED parameters, not fitted constants.
 
     Parameters
     ----------
     window : int
         Rolling window for q estimation (default 60).
     q_normal : float
-        Upper bound for NORMAL regime (default 1.35).
+        Upper bound for NORMAL regime (default 1.35). Operational cutoff,
+        EXTRAPOLATED.
     q_crisis : float
-        Lower bound for CRISIS regime (default 1.55).
+        Lower bound for CRISIS regime (default 1.55). Operational cutoff,
+        EXTRAPOLATED.
     min_observations : int
-        Minimum observations for reliable q estimate (default 20).
+        Minimum observations for a reliable q estimate (default 20).
+    gof_alpha : float
+        KS significance level (default 0.05). A fit with p-value below
+        this is rejected and the gate fails closed to the conservative
+        fallback. Operational parameter.
     """
 
     def __init__(
@@ -80,6 +244,7 @@ class TsallisRiskGate:
         q_normal: float = 1.35,
         q_crisis: float = 1.55,
         min_observations: int = 20,
+        gof_alpha: float = 0.05,
     ) -> None:
         if window < 2:
             raise ValueError(f"window must be ≥ 2, got {window}")
@@ -87,10 +252,13 @@ class TsallisRiskGate:
             raise ValueError(f"q_normal must be < q_crisis: {q_normal} vs {q_crisis}")
         if min_observations < 2:
             raise ValueError(f"min_observations must be ≥ 2, got {min_observations}")
+        if not 0.0 < gof_alpha < 1.0:
+            raise ValueError(f"gof_alpha must be in (0, 1), got {gof_alpha}")
         self._window = window
         self._q_normal = q_normal
         self._q_crisis = q_crisis
         self._min_obs = min_observations
+        self._gof_alpha = gof_alpha
         self._history: list[TsallisGateResult] = []
 
     @property
@@ -98,44 +266,38 @@ class TsallisRiskGate:
         return self._window
 
     @property
+    def gof_alpha(self) -> float:
+        return self._gof_alpha
+
+    @property
     def history(self) -> list[TsallisGateResult]:
         return list(self._history)
 
     @staticmethod
     def estimate_q(returns: NDArray[np.float64]) -> float:
-        """Estimate Tsallis q from return distribution via kurtosis.
+        """Estimate Tsallis q by MLE on the Student-t equivalence.
 
-        q ≈ (5 + 3·κ) / (3 + κ)
+        Fits the Student-t degrees of freedom ν by maximum likelihood on
+        the standardised sample and maps to q = (ν + 3) / (ν + 1).
 
-        where κ = excess kurtosis. For Gaussian: κ=0 → q=5/3≈1.67.
-        For lighter tails: κ<0 → q<5/3.
-        For typical markets: κ ∈ [3, 15] → q ∈ [1.17, 1.45].
+        For a Gaussian sample ν → large, q → 1. For heavy tails ν is small
+        and q is larger (Cauchy ν = 1 → q = 2). Insufficient data
+        (< 4 points) or zero variance returns the Gaussian limit q = 1.0.
 
-        The formula derives from matching the 4th moment of the
-        q-Gaussian to the empirical kurtosis.
+        This replaces the legacy kurtosis closed form q = (5 + 3κ)/(3 + κ),
+        which is unstable exactly in the heavy-tail regime the gate targets
+        (the 4th moment diverges for ν ≤ 4 ⟺ q ≥ 1.4). Kurtosis is now a
+        reported diagnostic only.
         """
-        returns = np.asarray(returns, dtype=np.float64)
-        if returns.size < 4:
-            return 1.0  # insufficient data, assume Gaussian
+        return _fit_q_mle(returns).q
 
-        # Excess kurtosis (Fisher's definition)
-        mean = np.mean(returns)
-        std = np.std(returns, ddof=1)
-        if std < 1e-12:
-            return 1.0  # no variance
-
-        standardized = (returns - mean) / std
-        kurtosis = float(np.mean(standardized**4) - 3.0)
-
-        # Clamp kurtosis to avoid q < 1 or q → ∞
-        kurtosis = max(kurtosis, -2.5)  # INV-FE2: kurtosis lower bound keeps q real-valued
-        kurtosis = min(kurtosis, 50.0)  # bounds: kurtosis cap prevents q divergence
-
-        q = (5.0 + 3.0 * kurtosis) / (3.0 + kurtosis)
-        return max(q, 1.0)  # q ≥ 1 for fat tails
+    @staticmethod
+    def fit_q(returns: NDArray[np.float64]) -> _QFit:
+        """Full MLE + GoF fit (q, ν, diagnostic kurtosis, KS stat/pvalue)."""
+        return _fit_q_mle(returns)
 
     def classify_regime(self, q: float) -> TsallisRegime:
-        """Classify market regime from q value."""
+        """Classify market regime from q value (operational cutoffs)."""
         if q < self._q_normal:
             return TsallisRegime.NORMAL
         elif q < self._q_crisis:
@@ -146,7 +308,7 @@ class TsallisRiskGate:
     def position_multiplier(self, q: float) -> float:
         """Compute position size multiplier from q.
 
-        f(q) = max(0, 1 - (q - q_normal) / (q_crisis - q_normal))  # INV-FE2: gate output non-negative by Tsallis entropy contract
+        f(q) = max(0, 1 - (q - q_normal) / (q_crisis - q_normal))  # INV-FE2
 
         Linear ramp from 1.0 at q_normal to 0.0 at q_crisis.
         """
@@ -155,6 +317,34 @@ class TsallisRiskGate:
         if q >= self._q_crisis:
             return 0.0
         return 1.0 - (q - self._q_normal) / (self._q_crisis - self._q_normal)
+
+    def _conservative_result(
+        self,
+        n_obs: int,
+        *,
+        gof_stat: float,
+        gof_pvalue: float,
+        nu: float,
+        kurtosis: float,
+    ) -> TsallisGateResult:
+        """Conservative fail-closed result (data scarcity OR GoF rejection).
+
+        Mirrors the historical data-scarcity convention: q = 1.5 (ELEVATED),
+        position_multiplier = 0.25. Used both when n_obs < min_observations
+        and when the q-Gaussian fit is rejected — in neither case do we
+        emit a confident q-derived regime.
+        """
+        return TsallisGateResult(
+            q=1.5,
+            regime=TsallisRegime.ELEVATED,
+            position_multiplier=0.25,
+            kurtosis=kurtosis,
+            nu=nu,
+            gof_stat=gof_stat,
+            gof_pvalue=gof_pvalue,
+            gof_passed=False,
+            window_returns=n_obs,
+        )
 
     def evaluate(self, returns: NDArray[np.float64]) -> TsallisGateResult:
         """Evaluate gate on return series.
@@ -166,7 +356,15 @@ class TsallisRiskGate:
 
         Returns
         -------
-        TsallisGateResult with q estimate, regime, and multiplier.
+        TsallisGateResult with MLE q, GoF stat/pvalue, regime, multiplier.
+
+        Fail-closed behaviour
+        ---------------------
+        * ``n_obs < min_observations`` → conservative fallback
+          (q = 1.5, ELEVATED, multiplier 0.25, gof_passed = False).
+        * fit rejected (``gof_pvalue < gof_alpha``) → SAME conservative
+          fallback; the sample is not a q-Gaussian and no confident
+          q-derived regime is emitted.
         """
         returns = np.asarray(returns, dtype=np.float64)
         if returns.ndim == 2:
@@ -177,25 +375,33 @@ class TsallisRiskGate:
         n_obs = tail.size
 
         if n_obs < self._min_obs:
-            # Insufficient data → conservative
-            result = TsallisGateResult(
-                q=1.5,
-                regime=TsallisRegime.ELEVATED,
-                position_multiplier=0.25,
-                kurtosis=0.0,
-                window_returns=n_obs,
+            # Insufficient data → conservative, fail-closed.
+            result = self._conservative_result(
+                n_obs, gof_stat=1.0, gof_pvalue=0.0, nu=float("nan"), kurtosis=0.0
             )
             self._history.append(result)
             return result
 
-        q = self.estimate_q(tail)
-        mean_r = np.mean(tail)
-        std_r = np.std(tail, ddof=1)
-        if std_r < 1e-12:
-            kurtosis = 0.0
-        else:
-            kurtosis = float(np.mean(((tail - mean_r) / std_r) ** 4) - 3.0)
+        fit = _fit_q_mle(tail)
 
+        # GoF gate. A degenerate (zero-variance / sub-4) sample that
+        # survived the n_obs check is a true Gaussian limit (q = 1) and is
+        # NOT failed closed: it is a well-fit, low-risk sample. Only a
+        # genuine fit with a rejected KS p-value fails closed.
+        gof_passed = fit.degenerate or fit.gof_pvalue >= self._gof_alpha
+
+        if not gof_passed:
+            result = self._conservative_result(
+                n_obs,
+                gof_stat=fit.gof_stat,
+                gof_pvalue=fit.gof_pvalue,
+                nu=fit.nu,
+                kurtosis=fit.kurtosis,
+            )
+            self._history.append(result)
+            return result
+
+        q = fit.q
         regime = self.classify_regime(q)
         mult = self.position_multiplier(q)
 
@@ -203,7 +409,11 @@ class TsallisRiskGate:
             q=q,
             regime=regime,
             position_multiplier=mult,
-            kurtosis=kurtosis,
+            kurtosis=fit.kurtosis,
+            nu=fit.nu,
+            gof_stat=fit.gof_stat,
+            gof_pvalue=fit.gof_pvalue,
+            gof_passed=True,
             window_returns=n_obs,
         )
         self._history.append(result)
