@@ -572,6 +572,66 @@ class TestNetworkKuramotoEngine:
                 timestamps=np.arange(T, dtype=np.float64),
             )
 
+    def test_network_engine_requires_asset_nodes_and_nxn_coupling(self) -> None:
+        """ORHSA S4/S5/S7 (#1107): a network model needs ≥2 asset nodes and
+        emits an N×N coupling matrix.
+
+        Two halves of the same descriptor-honesty contract:
+
+        * **Asset-node floor.** ``N < 2`` is rejected fail-closed on both
+          entry points — there is no inter-asset coupling to identify for a
+          single series (that is the single-series ``multiscale_kuramoto``
+          descriptor, not a network model).
+        * **N×N coupling.** When ``N ≥ 2`` the engine produces a genuine
+          ``N×N`` coupling matrix over exactly those asset nodes, with a zero
+          diagonal (no self-coupling), so the network claim is structurally
+          backed rather than asserted.
+        """
+        from core.kuramoto.contracts import PhaseMatrix
+
+        # Asset-node floor: N=1 PhaseMatrix is rejected.
+        T = 64
+        solo = np.mod(np.linspace(0.0, 6.0, T), 2.0 * np.pi).reshape(T, 1)
+        phases_solo = PhaseMatrix(
+            theta=solo,
+            timestamps=np.arange(T, dtype=np.float64),
+            asset_ids=("solo",),
+            extraction_method="hilbert",
+            frequency_band=(0.5, 1.5),
+        )
+        assert phases_solo.N == 1
+        engine = NetworkKuramotoEngine()
+        with pytest.raises(ValueError, match=r"N ≥ 2"):
+            engine.identify(phases_solo)
+
+        # N×N coupling: a valid ≥2-asset run yields a square coupling matrix
+        # over exactly the asset nodes, with zero self-coupling.
+        rng = np.random.default_rng(0)
+        T2, N = 600, 4
+        fs = 10.0
+        t = np.arange(T2) / fs
+        phases0 = np.array([0.0, 0.5, 1.0, 2.5])
+        returns = np.stack(
+            [
+                np.sin(2 * np.pi * 1.0 * t + phases0[k]) + 0.1 * rng.standard_normal(T2)
+                for k in range(N)
+            ],
+            axis=1,
+        )
+        asset_ids = tuple(f"a{i}" for i in range(N))
+        report = NetworkKuramotoEngine(
+            NetworkEngineConfig(
+                phase=PhaseExtractionConfig(fs=fs, f_low=0.5, f_high=1.5, detrend_window=None),
+                coupling=CouplingEstimationConfig(
+                    penalty="mcp", lambda_reg=0.1, dt=1 / fs, max_iter=500, tol=1e-5
+                ),
+                delay=DelayEstimationConfig(max_lag=2, dt=1 / fs),
+            )
+        ).identify_from_returns(returns=returns, asset_ids=asset_ids, timestamps=t)
+        assert report.state.coupling.K.shape == (N, N)
+        assert report.state.coupling.asset_ids == asset_ids
+        assert bool(np.all(np.diag(report.state.coupling.K) == 0.0))
+
     def test_identify_from_returns_end_to_end(self) -> None:
         """Run the full raw-returns entry point on a band-limited signal."""
         rng = np.random.default_rng(0)
