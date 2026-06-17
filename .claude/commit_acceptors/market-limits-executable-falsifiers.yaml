@@ -72,7 +72,7 @@ measurement_command: >-
   && grep -q "20 passed" tmp/market_limits_executable_falsifiers.log'
 signal_artifact: "tmp/market_limits_executable_falsifiers.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from tools.research.market_limits import load_contract;
     c = load_contract();

@@ -47,7 +47,7 @@ measurement_command: >-
   && grep -q "1 passed" tmp/dro_ara_regime_gate_witness.log'
 signal_artifact: "tmp/dro_ara_regime_gate_witness.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np, warnings; warnings.filterwarnings(\"ignore\")
     from core.dro_ara.engine import R2_MIN, Regime, geosync_observe

@@ -128,7 +128,7 @@ measurement_command: >-
   && test -f docs/governance/D002C_LAUNCH_PROTOCOL.md'
 signal_artifact: "tests/research/systemic_risk/test_d002c_verdict.py"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     from pathlib import Path
     from research.systemic_risk.d002c_preregistration import load_and_lock

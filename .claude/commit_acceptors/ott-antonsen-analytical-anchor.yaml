@@ -49,7 +49,7 @@ measurement_command: >-
   && grep -qE "5 passed" tmp/ott_antonsen_analytical_anchor.log'
 signal_artifact: "tmp/ott_antonsen_analytical_anchor.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np;
     from core.kuramoto.ott_antonsen import OttAntonsenEngine;

@@ -166,7 +166,7 @@ measurement_command: >-
   tests/audit/test_false_confidence_detector.py -q'
 signal_artifact: "tests/research/systemic_risk/test_d002c_null_audit_aggregator.py"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import hashlib, json, tempfile
     from pathlib import Path

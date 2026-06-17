@@ -50,16 +50,13 @@ expected_signal: >-
   ValidationError citing input_value='chore'.
 measurement_command: >-
   bash -c '
-    mypy --strict application/governance/commit_acceptor.py
-    && python -m pytest tests/governance/test_typed_models.py -q
+    mypy --strict application/governance/commit_acceptor.py && python -m pytest tests/governance/test_typed_models.py -q
   '
 signal_artifact: "tmp/governance_claimtype_chore.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c '
-      python -c "from application.governance.commit_acceptor import ClaimType; assert ClaimType.CHORE.value == \"chore\"" 2>/dev/null
-      && exit 1
-      || exit 0
+      python -c "from application.governance.commit_acceptor import ClaimType; assert ClaimType.CHORE.value == \"chore\"" 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that ClaimType.CHORE exists and equals "chore". The
@@ -70,7 +67,7 @@ rollback_command: >-
   bash -c 'git checkout HEAD~1 --
     application/governance/commit_acceptor.py
     .claude/commit_acceptors/governance-claimtype-chore.yaml'
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "from application.governance.commit_acceptor import ClaimType; assert not hasattr(ClaimType, \"CHORE\")"
   '

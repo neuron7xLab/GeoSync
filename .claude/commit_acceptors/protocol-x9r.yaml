@@ -63,26 +63,23 @@ measurement_command: >-
   bash -c '
     mypy --strict
       research/systemic_risk/protocol_x9r.py
-      tests/research/systemic_risk/test_protocol_x9r.py
-    && python -m pytest tests/research/systemic_risk/test_protocol_x9r.py -q
+      tests/research/systemic_risk/test_protocol_x9r.py && python -m pytest tests/research/systemic_risk/test_protocol_x9r.py -q
   '
 
 signal_artifact: "tmp/protocol_x9r.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      from research.systemic_risk.protocol_x9r import (
-          GateName, ProtocolVerdict, MaxClaimTier, run_protocol_x9r, rerun_capsule
-      )
-      assert len(list(GateName)) == 9
-      assert ProtocolVerdict.PASS.value == 'PASS'
-      assert ProtocolVerdict.FAIL.value == 'FAIL'
-      assert ProtocolVerdict.BLOCKED_BY_DATA_ACCESS.value == 'BLOCKED_BY_DATA_ACCESS'
-      " 2>/dev/null
-      && exit 1
-      || exit 0
+    from research.systemic_risk.protocol_x9r import (
+        GateName, ProtocolVerdict, MaxClaimTier, run_protocol_x9r, rerun_capsule
+    )
+    assert len(list(GateName)) == 9
+    assert ProtocolVerdict.PASS.value == 'PASS'
+    assert ProtocolVerdict.FAIL.value == 'FAIL'
+    assert ProtocolVerdict.BLOCKED_BY_DATA_ACCESS.value == 'BLOCKED_BY_DATA_ACCESS'
+      " 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes the 9-gate roster + 3-verdict alphabet are exposed.
@@ -98,15 +95,15 @@ rollback_command: >-
       .claude/commit_acceptors/protocol-x9r.yaml
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
-    try:
-        from research.systemic_risk.protocol_x9r import run_protocol_x9r
-    except ImportError:
-        pass
-    else:
-        raise SystemExit(1)
+  try:
+      from research.systemic_risk.protocol_x9r import run_protocol_x9r
+  except ImportError:
+      pass
+  else:
+      raise SystemExit(1)
     "
   '
 

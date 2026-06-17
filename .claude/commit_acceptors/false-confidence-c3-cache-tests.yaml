@@ -48,8 +48,7 @@ signal_artifact: "tmp/false_confidence_c3.log"
 falsifier:
   command: >-
     bash -c '
-      grep -c "assert _module_is_safe(symbol.split" tests/unit/indicators/test_cache_locate_allowlist.py
-        | grep -q "^0$"
+      grep -c "assert _module_is_safe(symbol.split" tests/unit/indicators/test_cache_locate_allowlist.py | grep -q "^0$"
     '
   description: >-
     Checks that the second strengthening assertion is present. The falsifier
@@ -57,8 +56,7 @@ falsifier:
     to a single assertion and would re-trip the C3 heuristic. With the fix in
     place the grep count is non-zero, so the falsifier fails.
 rollback_command: >-
-  bash -c 'git checkout origin/main -- tests/unit/indicators/test_cache_locate_allowlist.py
-    && rm -f .claude/commit_acceptors/false-confidence-c3-cache-tests.yaml'
+  bash -c 'git checkout origin/main -- tests/unit/indicators/test_cache_locate_allowlist.py && rm -f .claude/commit_acceptors/false-confidence-c3-cache-tests.yaml'
 rollback_verification_command: >-
   bash -c '! test -f .claude/commit_acceptors/false-confidence-c3-cache-tests.yaml'
 memory_update_type: append

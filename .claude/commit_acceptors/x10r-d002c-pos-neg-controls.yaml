@@ -190,7 +190,7 @@ measurement_command: >-
 signal_artifact: "tests/research/systemic_risk/test_d002c_pos_control.py"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import math, json, tempfile
     from pathlib import Path

@@ -67,8 +67,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    python -m compileall -q tools tests schemas data docs
-    && python -m pytest -q tests/governance/test_claim_state_quantum_input.py
+    python -m compileall -q tools tests schemas data docs && python -m pytest -q tests/governance/test_claim_state_quantum_input.py
   '
 
 signal_artifact: "tmp/fractal_neuro_cognitive_governance_contract.log"

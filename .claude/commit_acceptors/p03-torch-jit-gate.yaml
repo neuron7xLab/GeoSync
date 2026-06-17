@@ -60,18 +60,15 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    mypy --strict tools/security/check_forbidden_torch_jit.py
-    && python tools/security/check_forbidden_torch_jit.py
-    && python -m pytest tests/tools/test_forbidden_torch_jit.py -q
+    mypy --strict tools/security/check_forbidden_torch_jit.py && python tools/security/check_forbidden_torch_jit.py && python -m pytest tests/tools/test_forbidden_torch_jit.py -q
   '
 
 signal_artifact: "tmp/p03_torch_jit_gate.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
-      printf "import torch\nm = torch.jit.script(f)\n" > /tmp/p03_probe.py
-      && python -c "
+      printf "import torch\nm = torch.jit.script(f)\n" > /tmp/p03_probe.py && python -c "
     import sys
     from tools.security import check_forbidden_torch_jit as g
     src = open(\"/tmp/p03_probe.py\").read()

@@ -50,8 +50,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    mypy --strict application/api/service.py
-    && python -m pytest
+    mypy --strict application/api/service.py && python -m pytest
       tests/api/test_service.py::test_invalid_utf8_body_returns_400_not_500 -q
   '
 
@@ -60,9 +59,7 @@ signal_artifact: "tmp/api_utf8_decode_guard.log"
 falsifier:
   command: >-
     bash -c '
-      grep -q "(JSONDecodeError, UnicodeDecodeError)" application/api/service.py 2>/dev/null
-      && exit 1
-      || exit 0
+      grep -q "(JSONDecodeError, UnicodeDecodeError)" application/api/service.py 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the except clause in the body-parser middleware catches
@@ -71,15 +68,12 @@ falsifier:
 
 rollback_command: >-
   bash -c '
-    git checkout HEAD~1 -- application/api/service.py tests/api/test_service.py
-    && git rm -f .claude/commit_acceptors/api-utf8-decode-guard.yaml
+    git checkout HEAD~1 -- application/api/service.py tests/api/test_service.py && git rm -f .claude/commit_acceptors/api-utf8-decode-guard.yaml
   '
 
 rollback_verification_command: >-
   bash -c '
-    grep -q "(JSONDecodeError, UnicodeDecodeError)" application/api/service.py
-    && exit 1
-    || exit 0
+    grep -q "(JSONDecodeError, UnicodeDecodeError)" application/api/service.py && exit 1 || exit 0
   '
 
 memory_update_type: append

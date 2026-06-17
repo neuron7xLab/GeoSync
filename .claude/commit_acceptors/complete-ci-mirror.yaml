@@ -66,8 +66,7 @@ expected_signal: >-
   returns 0 findings even with build/ and .claude/worktrees/ present.
 measurement_command: >-
   bash -c '
-    python -m pytest tests/audit/test_false_confidence_detector.py tests/ci/test_verify_changeset.py -q
-    && python scripts/ci/verify_changeset.py --base-ref origin/main
+    python -m pytest tests/audit/test_false_confidence_detector.py tests/ci/test_verify_changeset.py -q && python scripts/ci/verify_changeset.py --base-ref origin/main
   '
 signal_artifact: "tmp/complete_ci_mirror.log"
 falsifier:
@@ -88,8 +87,7 @@ rollback_command: >-
     tools/audit/false_confidence_detector.py
     scripts/ci/verify_changeset.py
     tests/audit/test_false_confidence_detector.py
-    tests/ci/test_verify_changeset.py
-    && rm -f .claude/commit_acceptors/complete-ci-mirror.yaml'
+    tests/ci/test_verify_changeset.py && rm -f .claude/commit_acceptors/complete-ci-mirror.yaml'
 rollback_verification_command: >-
   bash -c '! test -f .claude/commit_acceptors/complete-ci-mirror.yaml'
 memory_update_type: append

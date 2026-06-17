@@ -103,10 +103,7 @@ measurement_command: >-
       core/kuramoto/coupling_estimator.py
       research/calibration/grid_kuramoto/identifiability/
       tests/unit/core/test_kuramoto_identifiability.py
-      tests/research/calibration/test_grid_kuramoto.py
-    && ruff check core/kuramoto research/calibration tests
-    && black --check core/kuramoto research/calibration tests/unit/core/test_kuramoto_identifiability.py tests/research/calibration
-    && python -m pytest tests/research/calibration/ tests/unit/core/test_kuramoto_identifiability.py -q -m "not slow"
+      tests/research/calibration/test_grid_kuramoto.py && ruff check core/kuramoto research/calibration tests && black --check core/kuramoto research/calibration tests/unit/core/test_kuramoto_identifiability.py tests/research/calibration && python -m pytest tests/research/calibration/ tests/unit/core/test_kuramoto_identifiability.py -q -m "not slow"
   '
 signal_artifact: "tmp/swing_identifiability_gate.log"
 falsifier:
@@ -118,8 +115,7 @@ falsifier:
       tests/research/calibration/test_grid_kuramoto.py::test_front_gate_first_order_path_bit_stable
       tests/unit/core/test_kuramoto_identifiability.py::test_threshold_provenance_no_peek
       tests/unit/core/test_kuramoto_identifiability.py::test_identifiability_gate_is_additive_bit_stable
-      -q >/tmp/_swing_idgate_rails.log 2>&1
-      && ! grep -q "5 passed" /tmp/_swing_idgate_rails.log
+      -q >/tmp/_swing_idgate_rails.log 2>&1 && ! grep -q "5 passed" /tmp/_swing_idgate_rails.log
     '
   description: >-
     Probes five load-bearing rails: noiseless ACCEPT / sigma=0.02
@@ -132,16 +128,13 @@ falsifier:
 rollback_command: >-
   bash -c 'git checkout origin/main --
     core/kuramoto/coupling_estimator.py
-    tests/research/calibration/test_grid_kuramoto.py
-    && rm -rf
+    tests/research/calibration/test_grid_kuramoto.py && rm -rf
     core/kuramoto/identifiability.py
     research/calibration/grid_kuramoto/identifiability
     tests/unit/core/test_kuramoto_identifiability.py
     .claude/commit_acceptors/swing-identifiability-gate.yaml'
 rollback_verification_command: >-
-  bash -c '! test -f core/kuramoto/identifiability.py
-    && ! test -d research/calibration/grid_kuramoto/identifiability
-    && ! grep -q identifiability_gate core/kuramoto/coupling_estimator.py'
+  bash -c '! test -f core/kuramoto/identifiability.py && ! test -d research/calibration/grid_kuramoto/identifiability && ! grep -q identifiability_gate core/kuramoto/coupling_estimator.py'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/swing-identifiability-gate.yaml"
 report_path: "tmp/swing_identifiability_gate.log"

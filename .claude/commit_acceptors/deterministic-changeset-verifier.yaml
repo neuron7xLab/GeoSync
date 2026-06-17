@@ -47,8 +47,7 @@ expected_signal: >-
   an UNVERIFIED (missing tool) or any FAIL gate.
 measurement_command: >-
   bash -c '
-    python -m pytest tests/ci/test_verify_changeset.py -q
-    && python scripts/ci/verify_changeset.py --base-ref origin/main
+    python -m pytest tests/ci/test_verify_changeset.py -q && python scripts/ci/verify_changeset.py --base-ref origin/main
   '
 signal_artifact: "tmp/changeset_verifier.log"
 falsifier:
@@ -65,8 +64,7 @@ falsifier:
     UNVERIFIED gate. With the fail-closed contract intact the test passes (exit
     0), so `test $? -ne 0` exits 1 and the falsifier fails.
 rollback_command: >-
-  bash -c 'git checkout origin/main -- Makefile
-    && rm -f
+  bash -c 'git checkout origin/main -- Makefile && rm -f
     scripts/ci/verify_changeset.py
     tests/ci/test_verify_changeset.py
     .claude/commit_acceptors/deterministic-changeset-verifier.yaml'

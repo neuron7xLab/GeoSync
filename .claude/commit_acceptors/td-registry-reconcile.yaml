@@ -48,23 +48,19 @@ expected_signal: >-
   the diff; `test_portfolio_heat_sums_absolute_exposure` passes (gross heat
   over a long+short pair equals 250.0, unchanged); the local pin-guard mirror
   of repo-policy reports 0 unpinned `uses:` across .github/workflows/*.yml.
-measurement_command: >-
+measurement_command: |-
   bash -c '
-    mypy --strict execution/risk/core.py
-    && ruff check execution/risk/core.py
-    && black --check execution/risk/core.py
-    && python -m pytest tests/unit/test_execution.py -k heat -q
-    && python -c "import re,sys;from pathlib import Path;p=re.compile(r\"^\s*uses:\s*([^\s#]+)\");v=[f\"{w}:{i}\" for w in sorted(Path(\".github/workflows\").glob(\"*.yml\")) for i,l in enumerate(w.read_text().splitlines(),1) if (m:=p.search(l)) and not m.group(1).startswith((\"./\",\"docker://\")) and not re.search(r\"@[a-f0-9]{40}$\",m.group(1))];sys.exit(1 if v else 0)"
+    mypy --strict execution/risk/core.py && ruff check execution/risk/core.py && black --check execution/risk/core.py && python -m pytest tests/unit/test_execution.py -k heat -q && python -c "import re,sys;from pathlib import Path;p=re.compile(r\"^\s*uses:\s*([^\s#]+)\");v=[f\"{w}:{i}\" for w in sorted(Path(\".github/workflows\").glob(\"*.yml\")) for i,l in enumerate(w.read_text().splitlines(),1) if (m:=p.search(l)) and not m.group(1).startswith((\"./\",\"docker://\")) and not re.search(r\"@[a-f0-9]{40}$\",m.group(1))];sys.exit(1 if v else 0)"
   '
 signal_artifact: "tmp/td_registry_reconcile.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      from execution.risk.core import portfolio_heat
-      h = portfolio_heat([{\"qty\": 2.0, \"price\": 100.0}, {\"qty\": -1.0, \"price\": 50.0}])
-      import sys
-      sys.exit(0 if abs(h - 250.0) > 1e-9 else 1)
+    from execution.risk.core import portfolio_heat
+    h = portfolio_heat([{\"qty\": 2.0, \"price\": 100.0}, {\"qty\": -1.0, \"price\": 50.0}])
+    import sys
+    sys.exit(0 if abs(h - 250.0) > 1e-9 else 1)
       "
     '
   description: >-
@@ -76,8 +72,7 @@ rollback_command: >-
   bash -c 'git checkout origin/main --
     execution/risk/core.py
     .github/workflows/calib-grid-witness-map.yml
-    reports/TECH_DEBT_REGISTRY.md
-    && rm -f .claude/commit_acceptors/td-registry-reconcile.yaml'
+    reports/TECH_DEBT_REGISTRY.md && rm -f .claude/commit_acceptors/td-registry-reconcile.yaml'
 rollback_verification_command: >-
   bash -c '! test -f .claude/commit_acceptors/td-registry-reconcile.yaml'
 memory_update_type: append

@@ -60,7 +60,7 @@ measurement_command: >-
   && grep -qE "19 passed" tmp/state_quantization_pytest.log'
 signal_artifact: "tmp/state_quantization_pytest.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from analytics.signals.state_quantization import quantize_states
     import math, sys

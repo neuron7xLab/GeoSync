@@ -66,10 +66,7 @@ expected_signal: >-
   rail both pass.
 measurement_command: >-
   bash -c '
-    mypy --strict research/systemic_risk/ tests/research/systemic_risk/
-    && ruff check research/systemic_risk/ tests/research/systemic_risk/
-    && black --check research/systemic_risk/ tests/research/systemic_risk/
-    && python -m pytest tests/research/systemic_risk/ -q
+    mypy --strict research/systemic_risk/ tests/research/systemic_risk/ && ruff check research/systemic_risk/ tests/research/systemic_risk/ && black --check research/systemic_risk/ tests/research/systemic_risk/ && python -m pytest tests/research/systemic_risk/ -q
   '
 signal_artifact: "tmp/adversarial_ladder.log"
 falsifier:
@@ -79,8 +76,7 @@ falsifier:
       tests/research/systemic_risk/test_adversarial_ladder.py::TestLadderVerdictDefaults::test_default_verdict_is_guilty_under_random_signal
       tests/research/systemic_risk/test_adversarial_ladder.py::TestLadderVerdictDefaults::test_one_loss_anywhere_yields_guilty
       tests/research/systemic_risk/test_adversarial_ladder.py::TestRunNullAudit::test_pins_every_surrogate_to_rung_two
-      -q >/tmp/_ladder_rails.log 2>&1
-      && ! grep -q "3 passed" /tmp/_ladder_rails.log
+      -q >/tmp/_ladder_rails.log 2>&1 && ! grep -q "3 passed" /tmp/_ladder_rails.log
     '
   description: >-
     Probes three load-bearing rails: default-GUILTY under random
@@ -93,8 +89,7 @@ rollback_command: >-
     research/systemic_risk/adversarial_ladder.py
     research/systemic_risk/ADVERSARIAL_LADDER.md
     tests/research/systemic_risk/test_adversarial_ladder.py
-    .claude/commit_acceptors/adversarial-ladder.yaml
-    && git checkout HEAD --
+    .claude/commit_acceptors/adversarial-ladder.yaml && git checkout HEAD --
     research/systemic_risk/__init__.py
     research/systemic_risk/CHANGELOG.md'
 rollback_verification_command: >-

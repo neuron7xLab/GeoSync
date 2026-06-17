@@ -73,7 +73,7 @@ measurement_command: >-
   && grep -qE "23 passed" tmp/ricci_curvature_bound_reconciliation.log'
 signal_artifact: "tmp/ricci_curvature_bound_reconciliation.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import networkx as nx;
     from core.indicators.ricci import ricci_curvature_edge;

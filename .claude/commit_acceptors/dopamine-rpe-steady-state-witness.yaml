@@ -48,7 +48,7 @@ measurement_command: >-
   && grep -q "1 passed" tmp/dopamine_rpe_steady_state_witness.log'
 signal_artifact: "tmp/dopamine_rpe_steady_state_witness.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np
     from core.neuro.signal_bus import NeuroSignalBus

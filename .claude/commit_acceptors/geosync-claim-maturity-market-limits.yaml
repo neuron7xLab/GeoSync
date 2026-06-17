@@ -76,7 +76,7 @@ measurement_command: >-
   && grep -q "21 passed" tmp/geosync_claim_maturity_market_limits.log'
 signal_artifact: "tmp/geosync_claim_maturity_market_limits.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from tools.research.market_limits import load_contract, KNOWN_FALSIFIERS;
     c = load_contract();

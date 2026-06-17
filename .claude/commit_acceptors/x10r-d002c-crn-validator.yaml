@@ -161,7 +161,7 @@ measurement_command: >-
   tests/research/systemic_risk/test_d002c_crn_validator.py -q'
 signal_artifact: "tests/research/systemic_risk/test_d002c_crn_validator.py"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import math, json, tempfile
     from pathlib import Path

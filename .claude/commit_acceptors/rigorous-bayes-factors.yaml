@@ -71,22 +71,19 @@ measurement_command: >-
   bash -c '
     mypy --strict
       research/systemic_risk/bayes_rigorous.py
-      tests/research/systemic_risk/test_bayes_rigorous.py
-    && python -m pytest tests/research/systemic_risk/test_bayes_rigorous.py -q
+      tests/research/systemic_risk/test_bayes_rigorous.py && python -m pytest tests/research/systemic_risk/test_bayes_rigorous.py -q
   '
 
 signal_artifact: "tmp/rigorous_bayes_factors.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
-      python -c "
-      from research.systemic_risk.bayes_rigorous import auc_per_crisis_bf_rigorous
-      bf = auc_per_crisis_bf_rigorous(0.5, n_pos=10, n_neg=10)
-      assert bf < 1.0, f'Lindley penalty must yield BF<1 at AUC=0.5; got {bf}'
-      " 2>/dev/null
-      && exit 1
-      || exit 0
+    python -c "
+    from research.systemic_risk.bayes_rigorous import auc_per_crisis_bf_rigorous
+    bf = auc_per_crisis_bf_rigorous(0.5, n_pos=10, n_neg=10)
+    assert bf < 1.0, f\"Lindley penalty must yield BF<1 at AUC=0.5; got {bf}\"
+    " 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the rigorous BF observes the Lindley penalty (BF < 1
@@ -99,8 +96,7 @@ rollback_command: >-
     git rm -f
       research/systemic_risk/bayes_rigorous.py
       tests/research/systemic_risk/test_bayes_rigorous.py
-      .claude/commit_acceptors/rigorous-bayes-factors.yaml
-    && git checkout HEAD~1 -- research/systemic_risk/__init__.py
+      .claude/commit_acceptors/rigorous-bayes-factors.yaml && git checkout HEAD~1 -- research/systemic_risk/__init__.py
   '
 
 rollback_verification_command: >-

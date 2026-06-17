@@ -58,7 +58,7 @@ measurement_command: >-
   && grep -q "2 passed" tmp/pncc_thermodynamic_law_witnesses.log'
 signal_artifact: "tmp/pncc_thermodynamic_law_witnesses.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np, sys
     from core.physics.reversible_gate import ReversibleGate, ReversibleGateConfig

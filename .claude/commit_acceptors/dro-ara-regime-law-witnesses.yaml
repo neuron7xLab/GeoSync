@@ -53,7 +53,7 @@ measurement_command: >-
   && grep -q "3 passed" tmp/dro_ara_regime_law_witnesses.log'
 signal_artifact: "tmp/dro_ara_regime_law_witnesses.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np
     from core.dro_ara.engine import derive_gamma

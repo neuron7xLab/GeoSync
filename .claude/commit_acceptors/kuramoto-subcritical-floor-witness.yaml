@@ -62,7 +62,7 @@ measurement_command: >-
   && grep -q "1 passed" tmp/kuramoto_subcritical_floor_witness.log'
 signal_artifact: "tmp/kuramoto_subcritical_floor_witness.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import math, numpy as np, sys
     from core.kuramoto.config import KuramotoConfig

@@ -61,7 +61,7 @@ measurement_command: >-
   && grep -q "9 passed" tmp/temporal_ricci_boundary.log'
 signal_artifact: "tmp/temporal_ricci_boundary.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from core.indicators.temporal_ricci import CLAIM_BOUNDARY;
     import sys;

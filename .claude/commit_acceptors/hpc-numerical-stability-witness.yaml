@@ -48,7 +48,7 @@ measurement_command: >-
   && grep -q "1 passed" tmp/hpc_numerical_stability_witness.log'
 signal_artifact: "tmp/hpc_numerical_stability_witness.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import math, numpy as np
     from geosync_hpc.evaluation import sharpe, cvar, max_drawdown

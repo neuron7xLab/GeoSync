@@ -61,9 +61,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    python -m compileall -q tools/governance/check_fake_closure_claims.py
-    && PYTHONPATH=. python -m pytest -q tests/governance/test_fake_closure_claims.py
-       | tee tmp/fake_closure_scanner.log
+    python -m compileall -q tools/governance/check_fake_closure_claims.py && PYTHONPATH=. python -m pytest -q tests/governance/test_fake_closure_claims.py | tee tmp/fake_closure_scanner.log
   '
 
 signal_artifact: "tmp/fake_closure_scanner.log"
@@ -96,15 +94,12 @@ rollback_command: >-
       tests/governance/test_fake_closure_claims.py
       .claude/commit_acceptors/fake-closure-scanner.yaml
       docs/governance/fake_closure_scanner.md
-      docs/reports/closure_ledger.md
-    && git rm -rf tests/fixtures/fake_closure
+      docs/reports/closure_ledger.md && git rm -rf tests/fixtures/fake_closure
   '
 
 rollback_verification_command: >-
   bash -c '
-    test ! -e tools/governance/check_fake_closure_claims.py
-    && test ! -e tests/governance/test_fake_closure_claims.py
-    && test ! -e .claude/commit_acceptors/fake-closure-scanner.yaml
+    test ! -e tools/governance/check_fake_closure_claims.py && test ! -e tests/governance/test_fake_closure_claims.py && test ! -e .claude/commit_acceptors/fake-closure-scanner.yaml
   '
 
 memory_update_type: append

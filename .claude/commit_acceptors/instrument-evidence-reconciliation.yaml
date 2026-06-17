@@ -65,12 +65,11 @@ expected_signal: >-
   uncollectable-falsifier-node negative.
 measurement_command: >-
   bash -c 'mkdir -p tmp && python scripts/ci/check_instrument_evidence_chain.py
-  > tmp/instrument_evidence_chain.log 2>&1
-  && test "$(grep -c "\[PASS\]" tmp/instrument_evidence_chain.log)" = "7"'
+  > tmp/instrument_evidence_chain.log 2>&1 && test "$(grep -c "\[PASS\]" tmp/instrument_evidence_chain.log)" = "7"'
 signal_artifact: "tmp/instrument_evidence_chain.log"
 falsifier:
-  command: >-
-    bash -c 'python - <<PY
+  command: |-
+    bash -c 'python - <<'\''PY'\''
     import sys, tempfile, pathlib, importlib.util, yaml
     root = pathlib.Path(".").resolve()
     spec = importlib.util.spec_from_file_location(
@@ -99,11 +98,9 @@ rollback_command: >-
   bash -c 'git rm -f governance/INSTRUMENTS.yaml
   scripts/ci/check_instrument_evidence_chain.py
   tests/scripts/test_check_instrument_evidence_chain.py
-  .claude/commit_acceptors/instrument-evidence-reconciliation.yaml
-  && git checkout .github/workflows/research-integrity-gate.yml INVENTORY.json'
+  .claude/commit_acceptors/instrument-evidence-reconciliation.yaml && git checkout .github/workflows/research-integrity-gate.yml INVENTORY.json'
 rollback_verification_command: >-
-  bash -c 'test ! -f scripts/ci/check_instrument_evidence_chain.py
-  && test ! -f governance/INSTRUMENTS.yaml'
+  bash -c 'test ! -f scripts/ci/check_instrument_evidence_chain.py && test ! -f governance/INSTRUMENTS.yaml'
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/instrument-evidence-reconciliation.yaml"
 report_path: "tmp/instrument_evidence_chain.log"

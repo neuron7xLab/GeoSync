@@ -37,8 +37,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    python tools/architecture_debt_inference.py --check tools/debt_budget.json
-    && python -m pytest -q tests/ci/test_architecture_debt_inference.py
+    python tools/architecture_debt_inference.py --check tools/debt_budget.json && python -m pytest -q tests/ci/test_architecture_debt_inference.py
   '
 
 signal_artifact: "tmp/debt_ratchet_scope.log"
@@ -48,8 +47,7 @@ falsifier:
     bash -c '
       python -m pytest -q
         tests/ci/test_architecture_debt_inference.py::test_evidence_ledger_is_tracked_not_ratcheted
-        >/dev/null 2>&1
-      && exit 1 || exit 0
+        >/dev/null 2>&1 && exit 1 || exit 0
     '
   description: >-
     Inverts the scoping guarantee: succeeds only when empty_evidence_ledger
@@ -59,8 +57,7 @@ falsifier:
 rollback_command: >-
   bash -c '
     git checkout origin/main -- tools/architecture_debt_inference.py
-      tools/debt_budget.json tests/ci/test_architecture_debt_inference.py
-    && git rm -f .claude/commit_acceptors/debt-ratchet-scope.yaml
+      tools/debt_budget.json tests/ci/test_architecture_debt_inference.py && git rm -f .claude/commit_acceptors/debt-ratchet-scope.yaml
   '
 
 rollback_verification_command: >-

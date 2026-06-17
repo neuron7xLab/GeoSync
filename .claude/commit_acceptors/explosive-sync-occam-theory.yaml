@@ -69,8 +69,7 @@ measurement_command: >-
       research/systemic_risk/kuramoto_extensions.py
       research/systemic_risk/occam_penalty.py
       tests/research/systemic_risk/test_kuramoto_extensions.py
-      tests/research/systemic_risk/test_occam_penalty.py
-    && python -m pytest
+      tests/research/systemic_risk/test_occam_penalty.py && python -m pytest
       tests/research/systemic_risk/test_kuramoto_extensions.py
       tests/research/systemic_risk/test_occam_penalty.py -q
   '
@@ -78,18 +77,16 @@ measurement_command: >-
 signal_artifact: "tmp/explosive_sync_occam_theory.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      from research.systemic_risk import (
-          sakaguchi_kuramoto_step, triadic_kuramoto_step,
-          explosive_sync_sweep, occam_winner,
-      )
-      assert all([sakaguchi_kuramoto_step, triadic_kuramoto_step,
-                  explosive_sync_sweep, occam_winner])
-      " 2>/dev/null
-      && exit 1
-      || exit 0
+    from research.systemic_risk import (
+        sakaguchi_kuramoto_step, triadic_kuramoto_step,
+        explosive_sync_sweep, occam_winner,
+    )
+    assert all([sakaguchi_kuramoto_step, triadic_kuramoto_step,
+                explosive_sync_sweep, occam_winner])
+      " 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that all four headline functions are exposed on the public
@@ -104,19 +101,18 @@ rollback_command: >-
       research/systemic_risk/THEORY_PROOFS.md
       tests/research/systemic_risk/test_kuramoto_extensions.py
       tests/research/systemic_risk/test_occam_penalty.py
-      .claude/commit_acceptors/explosive-sync-occam-theory.yaml
-    && git checkout HEAD~1 -- research/systemic_risk/__init__.py
+      .claude/commit_acceptors/explosive-sync-occam-theory.yaml && git checkout HEAD~1 -- research/systemic_risk/__init__.py
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
-    try:
-        from research.systemic_risk import sakaguchi_kuramoto_step
-    except ImportError:
-        pass
-    else:
-        raise SystemExit(1)
+  try:
+      from research.systemic_risk import sakaguchi_kuramoto_step
+  except ImportError:
+      pass
+  else:
+      raise SystemExit(1)
     "
   '
 

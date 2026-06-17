@@ -95,23 +95,20 @@ expected_signal: >-
 measurement_command: >-
   bash -c 'mypy --strict --follow-imports=silent
   scripts/run_x10r_gate6_certification_sweep.py
-  tests/reconstruction/test_x10r_gate6_certification_driver.py
-  && ruff check
+  tests/reconstruction/test_x10r_gate6_certification_driver.py && ruff check
   scripts/run_x10r_gate6_certification_sweep.py
-  tests/reconstruction/test_x10r_gate6_certification_driver.py
-  && black --check
+  tests/reconstruction/test_x10r_gate6_certification_driver.py && black --check
   scripts/run_x10r_gate6_certification_sweep.py
-  tests/reconstruction/test_x10r_gate6_certification_driver.py
-  && pytest tests/reconstruction/test_x10r_gate6_certification_driver.py -q'
+  tests/reconstruction/test_x10r_gate6_certification_driver.py && pytest tests/reconstruction/test_x10r_gate6_certification_driver.py -q'
 signal_artifact: "tmp/x10r_gate6_certification_sweep.json"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import importlib.util
     spec = importlib.util.spec_from_file_location(\"d\", \"scripts/run_x10r_gate6_certification_sweep.py\")
     m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
     from research.reconstruction.sensitivity_surface import SensitivityCell, SensitivitySurface
-    # Hand-craft a NOT_CERTIFIED-shape surface matching this PR's
+    # Hand-craft a NOT_CERTIFIED-shape surface matching this PR'\''s
     # empirical pilot finding (all N <= 200 sub-MDE; FPR fail-closed).
     cells = []
     for n in (50, 100, 200):
@@ -127,7 +124,7 @@ falsifier:
         n_seeds=20, cells=tuple(cells), fpr_estimate=0.0,
         mde_lambda_per_n={50: float(\"inf\"), 100: float(\"inf\"), 200: float(\"inf\")})
     v, m_ = m._classify(s)
-    # The driver's _classify is the unscoped path; the SCOPED
+    # The driver'\''s _classify is the unscoped path; the SCOPED
     # N <= 200 verdict is computed in the report pipeline. The
     # falsifier asserts the driver classifier behaves correctly
     # on the empirically-observed sub-MDE shape.
@@ -144,16 +141,12 @@ falsifier:
     layer projection over the N <= 200 subset of this same shape;
     by construction the driver classifier feeds the scoped report.
 rollback_command: >-
-  bash -c 'git checkout HEAD~1 --
-  && rm -f scripts/run_x10r_gate6_certification_sweep.py
+  bash -c 'git checkout HEAD~1 -- && rm -f scripts/run_x10r_gate6_certification_sweep.py
   tests/reconstruction/test_x10r_gate6_certification_driver.py
   X10R_GATE6_CERTIFICATION_REPORT.md
   .claude/commit_acceptors/x10r-gate6-certification.yaml'
 rollback_verification_command: >-
-  bash -c 'test ! -f scripts/run_x10r_gate6_certification_sweep.py
-  && test ! -f tests/reconstruction/test_x10r_gate6_certification_driver.py
-  && test ! -f X10R_GATE6_CERTIFICATION_REPORT.md
-  && test ! -f .claude/commit_acceptors/x10r-gate6-certification.yaml'
+  bash -c 'test ! -f scripts/run_x10r_gate6_certification_sweep.py && test ! -f tests/reconstruction/test_x10r_gate6_certification_driver.py && test ! -f X10R_GATE6_CERTIFICATION_REPORT.md && test ! -f .claude/commit_acceptors/x10r-gate6-certification.yaml'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/x10r-gate6-certification.yaml"
 report_path: "tmp/x10r_gate6_certification_sweep.json"

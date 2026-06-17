@@ -71,7 +71,7 @@ measurement_command: >-
   && grep -q "17 passed" tmp/seven_physics_falsifier_teeth.log'
 signal_artifact: "tmp/seven_physics_falsifier_teeth.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import ast, pathlib, sys
     sys.path.insert(0, \".claude/physics\")

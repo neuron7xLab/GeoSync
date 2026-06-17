@@ -59,8 +59,7 @@ measurement_command: >-
     mypy --strict
       research/systemic_risk/cli.py
       research/systemic_risk/synthetic.py
-      tests/research/systemic_risk/test_cli_and_synthetic.py
-    && python -m pytest tests/research/systemic_risk/test_cli_and_synthetic.py -q
+      tests/research/systemic_risk/test_cli_and_synthetic.py && python -m pytest tests/research/systemic_risk/test_cli_and_synthetic.py -q
   '
 
 signal_artifact: "tmp/cli_and_pre_registration.log"
@@ -70,9 +69,7 @@ falsifier:
     bash -c '
       python -m research.systemic_risk.cli evaluate \
           --claim-id CLAIM_FALSIFIER_PROBE --data synthetic --seed 7 \
-          --n-banks 8 --n-days 5 > /dev/null 2>&1
-      && exit 1
-      || exit 0
+          --n-banks 8 --n-days 5 > /dev/null 2>&1 && exit 1 || exit 0
     '
   description: >-
     Probes that the CLI runs end-to-end on synthetic data. Falsifier
@@ -88,11 +85,10 @@ rollback_command: >-
       research/systemic_risk/PRE_REGISTRATION_TEMPLATE.md
       research/systemic_risk/REPRODUCIBILITY_QUICKSTART.md
       tests/research/systemic_risk/test_cli_and_synthetic.py
-      .claude/commit_acceptors/cli-and-pre-registration.yaml
-    && git checkout HEAD~1 -- research/systemic_risk/__init__.py
+      .claude/commit_acceptors/cli-and-pre-registration.yaml && git checkout HEAD~1 -- research/systemic_risk/__init__.py
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
     try:

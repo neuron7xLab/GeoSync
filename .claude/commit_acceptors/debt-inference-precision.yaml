@@ -40,8 +40,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    python tools/architecture_debt_inference.py --json >/dev/null
-    && python -m pytest -q tests/ci/test_architecture_debt_inference.py
+    python tools/architecture_debt_inference.py --json >/dev/null && python -m pytest -q tests/ci/test_architecture_debt_inference.py
   '
 
 signal_artifact: "tmp/debt_inference_precision.log"
@@ -51,8 +50,7 @@ falsifier:
     bash -c '
       python -m pytest -q
         tests/ci/test_architecture_debt_inference.py::test_failing_measure_is_unknown_not_ok
-        >/dev/null 2>&1
-      && exit 1 || exit 0
+        >/dev/null 2>&1 && exit 1 || exit 0
     '
   description: >-
     Inverts the fail-closed guarantee: succeeds only when a crashed measure
@@ -60,8 +58,7 @@ falsifier:
 
 rollback_command: >-
   bash -c '
-    git checkout origin/main -- tools/architecture_debt_inference.py
-    && git rm -f .claude/commit_acceptors/debt-inference-precision.yaml
+    git checkout origin/main -- tools/architecture_debt_inference.py && git rm -f .claude/commit_acceptors/debt-inference-precision.yaml
   '
 
 rollback_verification_command: >-

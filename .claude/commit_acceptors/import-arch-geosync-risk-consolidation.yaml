@@ -62,15 +62,11 @@ expected_signal: >-
   geosync.risk.automated_testing and geosync.risk.risk_core import without any
   src.* dependency; the import-architecture baseline lists 19 src.* imports and
   does not contain geosync/risk/__init__.py; ruff + black + mypy --strict clean.
-measurement_command: >-
+measurement_command: |-
   bash -c 'mkdir -p tmp && python -m pytest
   tests/unit/geosync/risk/test_risk_core.py
   tests/unit/geosync/risk/test_automated_testing.py
-  > tmp/import_arch_geosync_risk.log 2>&1
-  && python scripts/ci/check_import_architecture.py >> tmp/import_arch_geosync_risk.log 2>&1
-  && grep -q "passed" tmp/import_arch_geosync_risk.log
-  && grep -q "19 src.\* imports" tmp/import_arch_geosync_risk.log
-  && PYTHONPATH=. python -c "
+  > tmp/import_arch_geosync_risk.log 2>&1 && python scripts/ci/check_import_architecture.py >> tmp/import_arch_geosync_risk.log 2>&1 && grep -q "passed" tmp/import_arch_geosync_risk.log && grep -q "19 src.\* imports" tmp/import_arch_geosync_risk.log && PYTHONPATH=. python -c "
   import ast
   from pathlib import Path
   t = ast.parse(Path(\"geosync/risk/__init__.py\").read_text())
@@ -83,7 +79,7 @@ measurement_command: >-
   assert not bad, bad" >> tmp/import_arch_geosync_risk.log 2>&1'
 signal_artifact: "tmp/import_arch_geosync_risk.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import sys, json, ast
     from pathlib import Path
@@ -122,13 +118,9 @@ rollback_command: >-
   bash -c 'git checkout origin/main -- geosync/risk/__init__.py
   src/geosync/risk/__init__.py tests/unit/geosync/risk/test_automated_testing.py
   tests/unit/geosync/risk/test_risk_core.py examples/automated_risk_testing_demo.py
-  .github/import_architecture_baseline.json
-  && git rm -f geosync/risk/automated_testing.py geosync/risk/risk_core.py
-  && git checkout origin/main -- src/geosync/risk/automated_testing.py src/geosync/risk/risk_core.py
-  && git rm -f .claude/commit_acceptors/import-arch-geosync-risk-consolidation.yaml'
+  .github/import_architecture_baseline.json && git rm -f geosync/risk/automated_testing.py geosync/risk/risk_core.py && git checkout origin/main -- src/geosync/risk/automated_testing.py src/geosync/risk/risk_core.py && git rm -f .claude/commit_acceptors/import-arch-geosync-risk-consolidation.yaml'
 rollback_verification_command: >-
-  bash -c 'test -f src/geosync/risk/risk_core.py
-  && ! test -f geosync/risk/risk_core.py'
+  bash -c 'test -f src/geosync/risk/risk_core.py && ! test -f geosync/risk/risk_core.py'
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/import-arch-geosync-risk-consolidation.yaml"
 report_path: "tmp/import_arch_geosync_risk.log"

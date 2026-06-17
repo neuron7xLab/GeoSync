@@ -69,25 +69,21 @@ measurement_command: >-
   bash -c '
     mypy --strict
       research/systemic_risk/minimal.py
-      tests/research/systemic_risk/test_minimal.py
-    && python -m pytest tests/research/systemic_risk/test_minimal.py -q
-    && [ "$(wc -l < research/systemic_risk/minimal.py)" -le 800 ]
+      tests/research/systemic_risk/test_minimal.py && python -m pytest tests/research/systemic_risk/test_minimal.py -q && [ "$(wc -l < research/systemic_risk/minimal.py)" -le 800 ]
   '
 
 signal_artifact: "tmp/minimal_canonical_seven.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      from research.systemic_risk.minimal import (
-          Claim, evaluate, initial_claim, KILL, REJECTED,
-      )
-      c = evaluate(initial_claim('C'), replication_matched=False)
-      assert c.tier == REJECTED and c.last_action == KILL
-      " 2>/dev/null
-      && exit 1
-      || exit 0
+    from research.systemic_risk.minimal import (
+        Claim, evaluate, initial_claim, KILL, REJECTED,
+    )
+    c = evaluate(initial_claim('C'), replication_matched=False)
+    assert c.tier == REJECTED and c.last_action == KILL
+      " 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the minimal evaluate wires KILL→REJECTED. Falsifier
@@ -99,19 +95,18 @@ rollback_command: >-
     git rm -f
       research/systemic_risk/minimal.py
       tests/research/systemic_risk/test_minimal.py
-      .claude/commit_acceptors/minimal-canonical-seven.yaml
-    && git checkout HEAD~1 -- research/systemic_risk/__init__.py
+      .claude/commit_acceptors/minimal-canonical-seven.yaml && git checkout HEAD~1 -- research/systemic_risk/__init__.py
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
-    try:
-        from research.systemic_risk.minimal import evaluate
-    except ImportError:
-        pass
-    else:
-        raise SystemExit(1)
+  try:
+      from research.systemic_risk.minimal import evaluate
+  except ImportError:
+      pass
+  else:
+      raise SystemExit(1)
     "
   '
 

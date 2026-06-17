@@ -49,7 +49,7 @@ measurement_command: >-
   && grep -q "1 passed" tmp/kuramoto_entrainment_witness.log'
 signal_artifact: "tmp/kuramoto_entrainment_witness.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np
     from tests.physics_contracts.test_kuramoto_entrainment_witness import _simulate_effective_frequencies, K_C, LOCKED_SPREAD_COEFF

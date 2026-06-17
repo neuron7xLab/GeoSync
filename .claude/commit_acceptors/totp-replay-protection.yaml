@@ -49,8 +49,7 @@ expected_signal: >-
   existing tests/api/test_security_dependency.py suite still passes.
 measurement_command: >-
   bash -c '
-    python -m pytest tests/security/test_totp_replay.py -q
-    && python -m pytest tests/api/test_security_dependency.py -q
+    python -m pytest tests/security/test_totp_replay.py -q && python -m pytest tests/api/test_security_dependency.py -q
   '
 signal_artifact: "tmp/totp_replay.log"
 falsifier:
@@ -69,13 +68,11 @@ falsifier:
 rollback_command: >-
   bash -c 'git checkout origin/main --
     application/security/two_factor.py
-    application/api/security.py
-    && rm -f
+    application/api/security.py && rm -f
     tests/security/test_totp_replay.py
     .claude/commit_acceptors/totp-replay-protection.yaml'
 rollback_verification_command: >-
-  bash -c '! test -f .claude/commit_acceptors/totp-replay-protection.yaml
-    && ! test -f tests/security/test_totp_replay.py'
+  bash -c '! test -f .claude/commit_acceptors/totp-replay-protection.yaml && ! test -f tests/security/test_totp_replay.py'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/totp-replay-protection.yaml"
 report_path: "tmp/totp_replay.log"

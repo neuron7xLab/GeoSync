@@ -69,7 +69,7 @@ expected_signal: >-
   non-reproducible pytest log is deliberately NOT used as the signal — pinning
   its hash would be a vacuous oracle. The behavioural proof lives in the witness
   test and the inverse falsifier below.
-measurement_command: >-
+measurement_command: |-
   bash -c 'mkdir -p artifacts/gauss_bonnet && python -c "
   import json, networkx as nx;
   from core.indicators.gauss_bonnet import euler_characteristic, gauss_bonnet_residual;
@@ -85,11 +85,10 @@ measurement_command: >-
   json.dumps(rec, sort_keys=True, indent=2) + chr(10))"'
 signal_artifact: "artifacts/gauss_bonnet/residuals.json"
 falsifier:
-  command: >-
+  command: |-
     python -c 'import sys, networkx as nx;
     from fractions import Fraction;
-    from core.indicators.gauss_bonnet import knill_vertex_curvature,
-    assert_gauss_bonnet, GaussBonnetViolation;
+    from core.indicators.gauss_bonnet import knill_vertex_curvature, assert_gauss_bonnet, GaussBonnetViolation;
     g = nx.complete_graph(5);
     c = dict(knill_vertex_curvature(g));
     k = next(iter(c)); c[k] = c[k] + Fraction(1);
@@ -108,11 +107,9 @@ rollback_command: >-
   bash -c 'git rm -f core/indicators/gauss_bonnet.py
   tests/physics_contracts/test_gauss_bonnet_witness.py
   artifacts/gauss_bonnet/residuals.json
-  .claude/commit_acceptors/gauss-bonnet-integrity-invariant.yaml
-  && git checkout origin/main -- physics_contracts/catalog.yaml'
+  .claude/commit_acceptors/gauss-bonnet-integrity-invariant.yaml && git checkout origin/main -- physics_contracts/catalog.yaml'
 rollback_verification_command: >-
-  bash -c 'test ! -f core/indicators/gauss_bonnet.py
-  && ! grep -q "ricci.gauss_bonnet" physics_contracts/catalog.yaml'
+  bash -c 'test ! -f core/indicators/gauss_bonnet.py && ! grep -q "ricci.gauss_bonnet" physics_contracts/catalog.yaml'
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/gauss-bonnet-integrity-invariant.yaml"
 report_path: "docs/reports/diff_bound_commit_acceptor_layer.md"

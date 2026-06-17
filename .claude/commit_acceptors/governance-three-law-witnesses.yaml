@@ -84,7 +84,7 @@ measurement_command: >-
   && grep -q "= .103." scripts/ci/prove_repo_integrity.sh'
 signal_artifact: "tmp/governance_three_law_witnesses.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import math, sys
     from core.physics.landauer import LandauerInferenceProfiler, K_BOLTZMANN

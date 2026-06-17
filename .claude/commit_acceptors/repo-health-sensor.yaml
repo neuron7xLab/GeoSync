@@ -60,8 +60,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    python tools/repo_health_sensor.py --root . >/dev/null
-    && python -m pytest -q
+    python tools/repo_health_sensor.py --root . >/dev/null && python -m pytest -q
        tests/ci/test_repo_health_sensor.py
        tests/ci/test_mfn_surface_check.py
        tests/ci/test_mfn_surface_payload_contract.py
@@ -74,9 +73,7 @@ falsifier:
     bash -c '
       python -m pytest -q
         tests/ci/test_repo_health_sensor.py::test_worst_wins_precedence
-        >/dev/null 2>&1
-      && exit 1
-      || exit 0
+        >/dev/null 2>&1 && exit 1 || exit 0
     '
   description: >-
     Inverts the worst-wins guarantee: it succeeds (exit 0) only when the
@@ -89,8 +86,7 @@ rollback_command: >-
     git rm -f
       tools/repo_health_sensor.py
       tests/ci/test_repo_health_sensor.py
-      .claude/commit_acceptors/repo-health-sensor.yaml
-    && git checkout origin/main --
+      .claude/commit_acceptors/repo-health-sensor.yaml && git checkout origin/main --
       tools/mfn_surface_check.py
       tests/ci/test_mfn_surface_check.py
       tests/ci/test_mfn_surface_payload_contract.py

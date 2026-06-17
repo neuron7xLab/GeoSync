@@ -46,7 +46,7 @@ measurement_command: >-
   && grep -q "8 passed" tmp/physics_provenance_enforcement.log'
 signal_artifact: "tmp/physics_provenance_enforcement.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import importlib.util
     spec = importlib.util.spec_from_file_location(

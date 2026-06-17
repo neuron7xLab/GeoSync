@@ -45,8 +45,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    python tools/architecture_debt_inference.py --check tools/debt_budget.json
-    && python -m pytest -q tests/ci/test_architecture_debt_inference.py
+    python tools/architecture_debt_inference.py --check tools/debt_budget.json && python -m pytest -q tests/ci/test_architecture_debt_inference.py
   '
 
 signal_artifact: "tmp/debt_ratchet_gate.log"
@@ -56,8 +55,7 @@ falsifier:
     bash -c '
       python -m pytest -q
         tests/ci/test_architecture_debt_inference.py::test_committed_budget_holds_on_current_tree
-        >/dev/null 2>&1
-      && exit 1 || exit 0
+        >/dev/null 2>&1 && exit 1 || exit 0
     '
   description: >-
     Inverts the ratchet guarantee: succeeds only when the committed budget
@@ -68,8 +66,7 @@ rollback_command: >-
   bash -c '
     git rm -f tools/debt_budget.json
       .github/workflows/architecture-debt-ratchet.yml
-      .claude/commit_acceptors/debt-ratchet-gate.yaml
-    && git checkout origin/main -- tools/architecture_debt_inference.py
+      .claude/commit_acceptors/debt-ratchet-gate.yaml && git checkout origin/main -- tools/architecture_debt_inference.py
        tests/ci/test_architecture_debt_inference.py
   '
 

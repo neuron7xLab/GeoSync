@@ -117,7 +117,7 @@ measurement_command: >-
   && pytest tests/research/systemic_risk/test_d002c_preregistration.py -q'
 signal_artifact: "tests/research/systemic_risk/test_d002c_preregistration.py"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import tempfile
     from pathlib import Path

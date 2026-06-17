@@ -85,7 +85,7 @@ measurement_command: >-
   && python -m pytest tests/governance/test_typed_models.py -q'
 signal_artifact: "tmp/governance_typed_models.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "from application.governance import ClaimEntry; from pydantic import ValidationError; import sys; sample={\"id\": \"t\", \"priority\": \"P0\", \"tier\": \"ANCHORED\", \"description\": \"x\", \"added_utc\": \"2026-05-07\", \"surprise\": True};
     try:
       ClaimEntry.model_validate(sample); sys.exit(1)

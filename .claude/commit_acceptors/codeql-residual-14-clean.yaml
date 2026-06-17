@@ -53,10 +53,7 @@ expected_signal: >-
   34/0 and validate_i18n reports "demo.html clean".
 measurement_command: >-
   bash -c '
-    python -m pytest tests/property/test_strategy_properties.py -k "trigger_emits_log or jitter" -q
-    && node --check ui/dashboard/src/core/formatters.js
-    && node --test ui/dashboard/tests/html_strip.test.js
-    && node ui/dashboard/scripts/validate_i18n.js
+    python -m pytest tests/property/test_strategy_properties.py -k "trigger_emits_log or jitter" -q && node --check ui/dashboard/src/core/formatters.js && node --test ui/dashboard/tests/html_strip.test.js && node ui/dashboard/scripts/validate_i18n.js
   '
 signal_artifact: "tmp/codeql_residual_14.log"
 falsifier:
@@ -73,8 +70,7 @@ rollback_command: >-
   bash -c 'git checkout origin/main --
     tests/property/test_strategy_properties.py
     ui/dashboard/demo.html
-    ui/dashboard/src/core/formatters.js
-    && rm -f .claude/commit_acceptors/codeql-residual-14-clean.yaml'
+    ui/dashboard/src/core/formatters.js && rm -f .claude/commit_acceptors/codeql-residual-14-clean.yaml'
 rollback_verification_command: >-
   bash -c '! test -f .claude/commit_acceptors/codeql-residual-14-clean.yaml'
 memory_update_type: append

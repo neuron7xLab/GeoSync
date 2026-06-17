@@ -82,27 +82,24 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    mypy --strict tools/build_disha_ba_correlation_figures.py
-    && python -m pytest tests/research/systemic_risk/test_disha_ba_correlation_figures.py -q
+    mypy --strict tools/build_disha_ba_correlation_figures.py && python -m pytest tests/research/systemic_risk/test_disha_ba_correlation_figures.py -q
   '
 
 signal_artifact: "tmp/disha_ba_correlation.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      from tools.build_disha_ba_correlation_figures import (
-          build_article_artifact, compute_ba_comparison,
-          build_correlation_matrix, compute_risk_concentration,
-      )
-      assert callable(build_article_artifact)
-      assert callable(compute_ba_comparison)
-      assert callable(build_correlation_matrix)
-      assert callable(compute_risk_concentration)
-      " 2>/dev/null
-      && exit 1
-      || exit 0
+    from tools.build_disha_ba_correlation_figures import (
+        build_article_artifact, compute_ba_comparison,
+        build_correlation_matrix, compute_risk_concentration,
+    )
+    assert callable(build_article_artifact)
+    assert callable(compute_ba_comparison)
+    assert callable(build_correlation_matrix)
+    assert callable(compute_risk_concentration)
+      " 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the public BA + correlation API symbols are exposed
@@ -116,19 +113,18 @@ rollback_command: >-
       tools/build_disha_ba_correlation_figures.py
       tests/research/systemic_risk/test_disha_ba_correlation_figures.py
       .claude/commit_acceptors/disha-ba-correlation-figures.yaml
-      DISHA_BA_CORRELATION_FINAL_REPORT.md
-    && rm -rf figures/disha_ba_correlation/
+      DISHA_BA_CORRELATION_FINAL_REPORT.md && rm -rf figures/disha_ba_correlation/
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
-    try:
-        from tools.build_disha_ba_correlation_figures import build_article_artifact
-    except ImportError:
-        pass
-    else:
-        raise SystemExit(1)
+  try:
+      from tools.build_disha_ba_correlation_figures import build_article_artifact
+  except ImportError:
+      pass
+  else:
+      raise SystemExit(1)
     "
   '
 

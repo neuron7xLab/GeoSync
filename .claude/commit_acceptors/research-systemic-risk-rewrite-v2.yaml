@@ -112,10 +112,7 @@ expected_signal: >-
   with every outcome.auc_ci_low >= 0.70.
 measurement_command: >-
   bash -c '
-    mypy --strict research/systemic_risk/ tests/research/systemic_risk/
-    && ruff check research/systemic_risk/ tests/research/systemic_risk/
-    && black --check research/systemic_risk/ tests/research/systemic_risk/
-    && python -m pytest tests/research/systemic_risk/ -q
+    mypy --strict research/systemic_risk/ tests/research/systemic_risk/ && ruff check research/systemic_risk/ tests/research/systemic_risk/ && black --check research/systemic_risk/ tests/research/systemic_risk/ && python -m pytest tests/research/systemic_risk/ -q
   '
 signal_artifact: "tmp/research_systemic_risk_v2.log"
 falsifier:
@@ -124,8 +121,7 @@ falsifier:
       python -m pytest
       tests/research/systemic_risk/test_falsification.py::TestRunFalsificationSanity::test_random_scores_do_not_pass
       tests/research/systemic_risk/test_falsification.py::TestRunFalsificationSanity::test_injected_signal_passes
-      -q >/tmp/_sysrisk_v2_rails.log 2>&1
-      && ! grep -q "2 passed" /tmp/_sysrisk_v2_rails.log
+      -q >/tmp/_sysrisk_v2_rails.log 2>&1 && ! grep -q "2 passed" /tmp/_sysrisk_v2_rails.log
     '
   description: >-
     Probes both rails of the v2 falsification battery: the null-rail

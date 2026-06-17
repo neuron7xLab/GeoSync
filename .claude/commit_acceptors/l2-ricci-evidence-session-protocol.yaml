@@ -59,7 +59,7 @@ measurement_command: >-
 signal_artifact: "tmp/l2_ricci_session_protocol.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import importlib.util, json, sys, tempfile, pathlib;
     spec = importlib.util.spec_from_file_location(\"m\", \"tools/research/run_l2_ricci_session.py\");

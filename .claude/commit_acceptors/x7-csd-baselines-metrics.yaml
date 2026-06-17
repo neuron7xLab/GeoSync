@@ -75,10 +75,7 @@ expected_signal: >-
   returns passed=True with overclaim_hits=().
 measurement_command: >-
   bash -c '
-    mypy --strict research/systemic_risk/ tests/research/systemic_risk/
-    && ruff check research/systemic_risk/ tests/research/systemic_risk/
-    && black --check research/systemic_risk/ tests/research/systemic_risk/
-    && python -m pytest tests/research/systemic_risk/ -q
+    mypy --strict research/systemic_risk/ tests/research/systemic_risk/ && ruff check research/systemic_risk/ tests/research/systemic_risk/ && black --check research/systemic_risk/ tests/research/systemic_risk/ && python -m pytest tests/research/systemic_risk/ -q
   '
 signal_artifact: "tmp/x7_csd_baselines_metrics.log"
 falsifier:
@@ -87,8 +84,7 @@ falsifier:
       python -m pytest
       tests/research/systemic_risk/test_critical_slowing_down.py::TestNoLookaheadLeakage::test_csd_has_no_lookahead_leakage
       tests/research/systemic_risk/test_governance.py::TestRunPremergeScienceGate::test_real_module_passes_overclaim_grep
-      -q >/tmp/_x7_rails.log 2>&1
-      && ! grep -q "2 passed" /tmp/_x7_rails.log
+      -q >/tmp/_x7_rails.log 2>&1 && ! grep -q "2 passed" /tmp/_x7_rails.log
     '
   description: >-
     Probes the two load-bearing rails: the no-lookahead-leakage
@@ -113,8 +109,7 @@ rollback_command: >-
     tests/research/systemic_risk/test_baselines.py
     tests/research/systemic_risk/test_critical_slowing_down.py
     tests/research/systemic_risk/test_metrics.py
-    .claude/commit_acceptors/x7-csd-baselines-metrics.yaml
-    && git checkout HEAD -- research/systemic_risk/__init__.py'
+    .claude/commit_acceptors/x7-csd-baselines-metrics.yaml && git checkout HEAD -- research/systemic_risk/__init__.py'
 rollback_verification_command: >-
   bash -c '! test -f research/systemic_risk/critical_slowing_down.py'
 memory_update_type: append

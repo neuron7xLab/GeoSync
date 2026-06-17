@@ -48,12 +48,9 @@ expected_signal: >-
   without a resolution_ref is rejected by both the pure-Python guard and the
   JSON Schema.
 
-measurement_command: >-
+measurement_command: |-
   bash -c '
-    python -m compileall -q tests/audit/test_contradiction_ledger.py
-    && python -c "import json; json.load(open(\"data/audit/neuro_physics_contradiction_ledger.json\")); json.load(open(\"schemas/audit/contradiction_ledger.schema.json\"))"
-    && PYTHONPATH=. python -m pytest -q tests/audit/test_contradiction_ledger.py
-       | tee tmp/neuro_physics_contradiction_ledger.log
+    python -m compileall -q tests/audit/test_contradiction_ledger.py && python -c "import json; json.load(open(\"data/audit/neuro_physics_contradiction_ledger.json\")); json.load(open(\"schemas/audit/contradiction_ledger.schema.json\"))" && PYTHONPATH=. python -m pytest -q tests/audit/test_contradiction_ledger.py | tee tmp/neuro_physics_contradiction_ledger.log
   '
 
 signal_artifact: "tmp/neuro_physics_contradiction_ledger.log"
@@ -89,9 +86,7 @@ rollback_command: >-
 
 rollback_verification_command: >-
   bash -c '
-    test ! -e data/audit/neuro_physics_contradiction_ledger.json
-    && test ! -e schemas/audit/contradiction_ledger.schema.json
-    && test ! -e tests/audit/test_contradiction_ledger.py
+    test ! -e data/audit/neuro_physics_contradiction_ledger.json && test ! -e schemas/audit/contradiction_ledger.schema.json && test ! -e tests/audit/test_contradiction_ledger.py
   '
 
 memory_update_type: append

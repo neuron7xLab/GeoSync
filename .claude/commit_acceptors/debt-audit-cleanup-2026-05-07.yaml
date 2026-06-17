@@ -75,11 +75,8 @@ expected_signal: >-
   exceeds maximum 100.0', 'metric':
   'geosync_api_request_latency_seconds'}]`).
 measurement_command: >-
-  bash -c 'python scripts/count_invariants.py
-  && grep -L "invariants-87" README.md
-  && grep -q "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd"
-       .github/workflows/commit-acceptor-gate.yml
-  && python -m pytest tests/api/test_latency_budget_server_compute.py
+  bash -c 'python scripts/count_invariants.py && grep -L "invariants-87" README.md && grep -q "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd"
+       .github/workflows/commit-acceptor-gate.yml && python -m pytest tests/api/test_latency_budget_server_compute.py
        tests/observability/test_metrics_expectations.py -q'
 signal_artifact: "tmp/debt_audit_cleanup_2026_05_07.log"
 falsifier:

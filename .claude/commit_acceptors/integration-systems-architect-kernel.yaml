@@ -53,9 +53,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    test -s docs/prompts/integration_systems_architect_kernel_v1_0.md
-    && python -m compileall -q data docs schemas tests
-    && python -m pytest -q tests/governance/test_integration_systems_architect_kernel.py
+    test -s docs/prompts/integration_systems_architect_kernel_v1_0.md && python -m compileall -q data docs schemas tests && python -m pytest -q tests/governance/test_integration_systems_architect_kernel.py
   '
 
 signal_artifact: "tmp/integration_systems_architect_kernel.log"
@@ -87,11 +85,7 @@ rollback_command: >-
 
 rollback_verification_command: >-
   bash -c '
-    test ! -e .claude/commit_acceptors/integration-systems-architect-kernel.yaml
-    && test ! -e docs/prompts/integration_systems_architect_kernel_v1_0.md
-    && test ! -e data/governance/integration_systems_architect_kernel_v1_0.json
-    && test ! -e schemas/governance/integration_systems_architect_kernel.schema.json
-    && test ! -e tests/governance/test_integration_systems_architect_kernel.py
+    test ! -e .claude/commit_acceptors/integration-systems-architect-kernel.yaml && test ! -e docs/prompts/integration_systems_architect_kernel_v1_0.md && test ! -e data/governance/integration_systems_architect_kernel_v1_0.json && test ! -e schemas/governance/integration_systems_architect_kernel.schema.json && test ! -e tests/governance/test_integration_systems_architect_kernel.py
   '
 
 memory_update_type: append

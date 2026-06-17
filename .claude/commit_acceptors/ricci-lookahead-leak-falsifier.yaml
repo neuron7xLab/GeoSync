@@ -52,7 +52,7 @@ measurement_command: >-
   && grep -q "4 passed" tmp/ricci_lookahead_leak_falsifier.log'
 signal_artifact: "tmp/ricci_lookahead_leak_falsifier.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np;
     import tests.research_lines.test_ricci_lookahead_leak_falsifier as t;

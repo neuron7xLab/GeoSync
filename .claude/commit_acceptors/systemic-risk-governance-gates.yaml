@@ -85,10 +85,7 @@ expected_signal: >-
   returns passed=True with overclaim_hits=().
 measurement_command: >-
   bash -c '
-    mypy --strict research/systemic_risk/ tests/research/systemic_risk/
-    && ruff check research/systemic_risk/ tests/research/systemic_risk/
-    && black --check research/systemic_risk/ tests/research/systemic_risk/
-    && python -m pytest tests/research/systemic_risk/ -q
+    mypy --strict research/systemic_risk/ tests/research/systemic_risk/ && ruff check research/systemic_risk/ tests/research/systemic_risk/ && black --check research/systemic_risk/ tests/research/systemic_risk/ && python -m pytest tests/research/systemic_risk/ -q
   '
 signal_artifact: "tmp/systemic_risk_governance_gates.log"
 falsifier:
@@ -97,8 +94,7 @@ falsifier:
       python -m pytest
       tests/research/systemic_risk/test_governance.py::TestRunPremergeScienceGate::test_real_module_passes_overclaim_grep
       tests/research/systemic_risk/test_falsification.py::TestScopeExplicitAliases::test_end_to_end_falsification_fails_closed
-      -q >/tmp/_governance_rails.log 2>&1
-      && ! grep -q "2 passed" /tmp/_governance_rails.log
+      -q >/tmp/_governance_rails.log 2>&1 && ! grep -q "2 passed" /tmp/_governance_rails.log
     '
   description: >-
     Probes the two load-bearing rails of the governance layer: the
@@ -113,8 +109,7 @@ rollback_command: >-
     research/systemic_risk/README.md
     research/systemic_risk/__init__.py
     research/systemic_risk/falsification.py
-    research/systemic_risk/network_fitting.py
-    && rm -f
+    research/systemic_risk/network_fitting.py && rm -f
     research/systemic_risk/governance.py
     research/systemic_risk/temporal_panel.py
     tests/research/systemic_risk/test_governance.py
