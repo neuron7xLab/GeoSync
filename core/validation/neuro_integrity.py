@@ -409,6 +409,32 @@ class NeuroIntegrity:
         report.metrics["min_coherence"] = float(np.min(coherences))
         report.metrics["max_coherence"] = float(np.max(coherences))
 
+        # Enforce the dopamine/serotonin inverse-correlation expectation across the
+        # trajectory. The config field dopamine_serotonin_correlation_min declares
+        # the LEAST-negative correlation considered healthy (default -0.8): the two
+        # pathways are expected to be anti-correlated, so an observed correlation
+        # ABOVE the floor (weaker inverse, or positive co-activation) is a
+        # trajectory-level integrity warning. Without trajectory variance the
+        # correlation is undefined and reported UNKNOWN rather than silently passed.
+        dopamine_series = np.array([s.dopamine for s in states], dtype=float)
+        serotonin_series = np.array([s.serotonin for s in states], dtype=float)
+        if np.std(dopamine_series) < 1e-10 or np.std(serotonin_series) < 1e-10:
+            report.metrics["dopamine_serotonin_correlation"] = float("nan")
+            report.add_warning(
+                "dopamine/serotonin correlation UNKNOWN: insufficient pathway variance "
+                "over the trajectory to evaluate the inverse-correlation expectation"
+            )
+        else:
+            correlation = compute_pathway_correlation(dopamine_series, serotonin_series)
+            report.metrics["dopamine_serotonin_correlation"] = correlation
+            if correlation > self.config.dopamine_serotonin_correlation_min:
+                report.add_warning(
+                    f"dopamine/serotonin correlation {correlation:.3f} is weaker than the "
+                    f"configured inverse expectation "
+                    f"(min {self.config.dopamine_serotonin_correlation_min:.3f}): pathways "
+                    f"are not anti-correlated as expected over this trajectory"
+                )
+
         return report
 
 

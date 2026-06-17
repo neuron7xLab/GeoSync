@@ -1,0 +1,98 @@
+# Diff-bound commit acceptor — wire the dead dopamine/serotonin correlation invariant.
+#
+# core/validation/neuro_integrity.py declared NeuroIntegrityConfig.
+# dopamine_serotonin_correlation_min = -0.8 ("Minimum inverse correlation
+# expectation") but no validate_* path read it — a declared integrity invariant
+# with no witness (C-NEURO-003 in the neuro-physics contradiction ledger), even
+# though compute_pathway_correlation() already existed.
+#
+# Fix (TASK_B2 — implement, since validate_trajectory + a trajectory of states
+# exist): validate_trajectory now computes the dopamine/serotonin Pearson
+# correlation over the trajectory and, when it is ABOVE the configured inverse
+# floor (weaker inverse / positive co-activation), raises a trajectory-level
+# warning carrying the observed correlation and the threshold. Zero-variance
+# trajectories are reported UNKNOWN (NaN), never silently passed. Warnings only —
+# is_valid is unchanged, so existing callers keep their verdicts.
+#
+# Locally verified:
+#   * pytest tests/unit/validation/test_neuro_integrity.py
+#       tests/core/validation/test_neuro_integrity.py: all pass
+#   * mypy --strict core/validation/neuro_integrity.py: 0 errors
+#   * ruff + black on changed files: clean
+
+id: neuro-integrity-dead-invariant
+status: ACTIVE
+claim_type: correctness
+promise: >-
+  The previously-dead NeuroIntegrityConfig.dopamine_serotonin_correlation_min
+  invariant now has an executable witness: validate_trajectory evaluates the
+  dopamine/serotonin correlation over a trajectory, records it as a metric, warns
+  when it is weaker than the configured inverse expectation (message includes the
+  observed correlation and the threshold), and reports UNKNOWN (NaN) on
+  zero-variance trajectories instead of silently passing. is_valid semantics are
+  unchanged (warnings only).
+
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/neuro-integrity-dead-invariant.yaml"
+    - path: "core/validation/neuro_integrity.py"
+    - path: "tests/unit/validation/test_neuro_integrity.py"
+    - path: "data/audit/neuro_physics_contradiction_ledger.json"
+    - path: "docs/audit/neuro_physics_contradiction_ledger.md"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "runtime/"
+    - "core/energy.py"
+
+required_python_symbols:
+  - "core/validation/neuro_integrity.py::NeuroIntegrity.validate_trajectory"
+  - "tests/unit/validation/test_neuro_integrity.py::TestValidateTrajectory.test_positive_correlation_raises_witness_warning"
+
+expected_signal: >-
+  pytest reports the new trajectory-correlation witnesses passing: an
+  anti-correlated trajectory raises no correlation warning, a positively
+  co-activated trajectory raises a warning containing the observed correlation and
+  the -0.800 threshold, and a zero-variance trajectory yields a NaN metric plus an
+  UNKNOWN warning. Before this PR the field was referenced by no validation path.
+
+measurement_command: >-
+  bash -c '
+    mypy --strict core/validation/neuro_integrity.py
+    && PYTHONPATH=. python -m pytest -q
+       tests/unit/validation/test_neuro_integrity.py
+       tests/core/validation/test_neuro_integrity.py
+       | tee tmp/neuro_integrity_dead_invariant.log
+  '
+
+signal_artifact: "tmp/neuro_integrity_dead_invariant.log"
+
+falsifier:
+  command: >-
+    bash -c '
+      [ "$(grep -c dopamine_serotonin_correlation_min core/validation/neuro_integrity.py)" -ge 3 ]
+      && exit 1 || exit 0
+    '
+  description: >-
+    Succeeds (exit 0, falsification) only if the field is referenced fewer than 3
+    times — i.e. it is still dead. On the fixed module the field is declared,
+    documented, AND read by validate_trajectory (>=3 mentions), so this exits 1,
+    proving the invariant is now wired.
+
+rollback_command: >-
+  bash -c '
+    git checkout HEAD~1 -- core/validation/neuro_integrity.py
+      tests/unit/validation/test_neuro_integrity.py
+    && git rm -f .claude/commit_acceptors/neuro-integrity-dead-invariant.yaml
+  '
+
+rollback_verification_command: >-
+  bash -c '
+    [ "$(grep -c dopamine_serotonin_correlation_min core/validation/neuro_integrity.py)" -le 2 ]
+  '
+
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/neuro-integrity-dead-invariant.yaml"
+report_path: "tmp/neuro_integrity_dead_invariant.log"
+evidence: []

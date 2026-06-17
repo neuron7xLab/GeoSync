@@ -510,6 +510,64 @@ class TestValidateTrajectory:
         assert "min_coherence" in report.metrics
         assert "max_coherence" in report.metrics
 
+    def test_inverse_correlation_satisfies_expectation(self) -> None:
+        """Strongly anti-correlated pathways: no correlation warning, metric recorded."""
+        validator = NeuroIntegrity()
+        states = [
+            PathwayState(
+                dopamine=0.1 + 0.08 * i,
+                serotonin=0.9 - 0.08 * i,
+                excitation=0.5,
+                inhibition=0.5,
+                coherence=0.5,
+            )
+            for i in range(8)
+        ]
+        report = validator.validate_trajectory(states)
+        assert report.metrics["dopamine_serotonin_correlation"] < -0.8
+        assert not any("correlation" in w for w in report.warnings)
+
+    def test_positive_correlation_raises_witness_warning(self) -> None:
+        """Pathological co-activation: the previously-dead invariant now fires."""
+        validator = NeuroIntegrity()
+        states = [
+            PathwayState(
+                dopamine=0.1 + 0.08 * i,
+                serotonin=0.1 + 0.08 * i,
+                excitation=0.5,
+                inhibition=0.5,
+                coherence=0.5,
+            )
+            for i in range(8)
+        ]
+        report = validator.validate_trajectory(states)
+        corr = report.metrics["dopamine_serotonin_correlation"]
+        assert corr > validator.config.dopamine_serotonin_correlation_min
+        warnings = [w for w in report.warnings if "correlation" in w]
+        assert warnings, "positive dopamine/serotonin correlation must raise a warning"
+        # Error message must include the observed correlation and the threshold.
+        assert f"{corr:.3f}" in warnings[0]
+        assert "-0.800" in warnings[0]
+
+    def test_zero_variance_trajectory_is_unknown_not_silent_pass(self) -> None:
+        """Constant pathways: correlation is UNKNOWN (NaN), never silently OK."""
+        import math
+
+        validator = NeuroIntegrity()
+        states = [
+            PathwayState(
+                dopamine=0.5,
+                serotonin=0.5,
+                excitation=0.5,
+                inhibition=0.5,
+                coherence=0.4 + 0.05 * i,
+            )
+            for i in range(5)
+        ]
+        report = validator.validate_trajectory(states)
+        assert math.isnan(report.metrics["dopamine_serotonin_correlation"])
+        assert any("UNKNOWN" in w for w in report.warnings)
+
 
 class TestComputePathwayCorrelation:
     """Tests for compute_pathway_correlation function."""
