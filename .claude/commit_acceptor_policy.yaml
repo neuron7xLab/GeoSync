@@ -41,6 +41,12 @@ governance_markdown_paths:
   - ".claude/"
   - "docs/governance/"
   - "docs/architecture/"
+  # Prompt contracts are prose governance specs (value-function, calibration,
+  # filter, verification rules) — documentation, not executable code. Like the
+  # other governance-markdown roots, their .md files are exempt from per-PR
+  # acceptor binding; the deterministic code they describe (tools/, tests/,
+  # schemas/, data/) is NOT exempt and remains bound.
+  - "docs/prompts/"
 max_changed_files_by_claim_type:
   correctness: 12
   determinism: 12
