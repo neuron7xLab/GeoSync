@@ -505,6 +505,39 @@ stochastic_thermodynamics:
     related: [INV-ST1, INV-ST2]
 
 # ═══════════════════════════════════════════════════
+# GABOR TIME-FREQUENCY UNCERTAINTY LIMIT
+# Scope: core/physics/uncertainty.py, core/indicators/physics.py
+# ═══════════════════════════════════════════════════
+# Replaces the prior fabricated "Heisenberg ΔxΔp ≥ ℏ/2" framing (2026-06-17).
+# That code dressed the classical product std(price)·std(diff(price)) as the
+# quantum uncertainty relation using a fabricated ℏ=1.0 (constants.PLANCK_REDUCED),
+# so the "bound" ℏ/2 was just the number 0.5 — a category error: price and its
+# first difference are JOINTLY OBSERVABLE, with no commutator [x̂,p̂]=iℏ and no
+# Fourier-conjugate pairing. The Gabor limit is the correct, anchored uncertainty
+# theorem for a sampled time series: time and frequency ARE a Fourier-conjugate
+# pair, and 1/(4π) is an exact mathematical constant requiring no Planck constant.
+
+gabor_uncertainty:
+  time_frequency_limit:
+    id: INV-GABOR1
+    type: algebraic
+    statement: "Δt · Δf ≥ 1/(4π) for a WELL-RESOLVED finite-energy sampled signal (time-localized inside the window, band-limited away from Nyquist), with equality (saturation) for a Gaussian envelope. Δt = √(second moment of normalized time-domain power |x|² about its centroid, in sample units); Δf = √(second moment of normalized power spectrum |FFT(x)|² about its centroid, in cycles/sample, on the np.fft.fftfreq axis). 1/(4π) ≈ 0.0795774715 is an EXACT mathematical constant — no Planck constant, no fabricated ℏ/2. SCOPE NOTE: 1/(4π) is the CONTINUOUS Gabor bound; the naive discrete second-moment estimator can dip below it for under-resolved / near-Nyquist short signals because the fftfreq axis wraps at ±0.5 and underestimates true spectral spread. The invariant is therefore asserted in the well-resolved regime where the discrete estimator faithfully realizes the continuous theorem — NOT over arbitrary short noise."
+    test_type: property_test
+    parameters:
+      bound: "1/(4π) = 0.07957747154594767 (exact, defined as core.physics.uncertainty.GABOR_LIMIT)"
+      saturation: "Gaussian window x(n)=exp(-(n-c)²/(2σ²)), analyzed AS GIVEN (no mean removal — demeaning squares the negative lobes into side energy and breaks saturation), hits Δt·Δf → 1/(4π); scale-invariant in σ (Δt∝σ, Δf∝1/σ). Measured ≈0.0796 within atol 2e-3 at n=4096, σ∈{120,200,250,400}."
+      well_resolved_sweep: "200 Gaussian-windowed band-limited signals (seed 42, n∈[256,1024]) + 50 noisy sinusoids inside a Gaussian window (seed 7) + lowpass-smoothed noise all satisfy Δt·Δf ≥ 1/(4π)·(1−1e-9). Measured min ≈0.18."
+      fail_closed: "empty / <2 samples / non-1-D / non-finite / constant (zero variance) input → ValueError; no silent numeric repair."
+    falsification: "time_frequency_spread returns Δt·Δf < 1/(4π) for any WELL-RESOLVED signal, OR a Gaussian envelope fails to saturate to 1/(4π) within tolerance, OR a degenerate/constant input fails to raise ValueError."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/uncertainty.py
+    tests: tests/unit/physics/test_uncertainty.py
+    references:
+      - "Gabor, D. (1946). Theory of communication. J. Inst. Electr. Eng. 93(3), 429–457 (Δt·Δf ≥ 1/(4π), Gaussian minimizer)."
+      - "Folland, G. B. & Sitaram, A. (1997). The uncertainty principle: a mathematical survey. J. Fourier Anal. Appl. 3(3), 207–238."
+
+# ═══════════════════════════════════════════════════
 # RICCI CURVATURE
 # ═══════════════════════════════════════════════════
 

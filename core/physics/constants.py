@@ -56,16 +56,13 @@ class PhysicsConstants:
     # Reference frame velocity threshold
     VELOCITY_THRESHOLD: Final[float] = 0.1
 
-    # Heisenberg Uncertainty
-    # Reduced Planck constant analog for market uncertainty
-    # ℏ = 1.055e-34 J·s in SI, normalized to 1.0 for markets
-    PLANCK_REDUCED: Final[float] = 1.0
-
-    # Minimum uncertainty in position (price)
-    MIN_POSITION_UNCERTAINTY: Final[float] = 1e-4
-
-    # Minimum uncertainty in momentum (price change rate)
-    MIN_MOMENTUM_UNCERTAINTY: Final[float] = 1e-4
+    # Time-frequency uncertainty (Gabor limit)
+    # Removed 2026-06-17: PLANCK_REDUCED / MIN_POSITION_UNCERTAINTY /
+    # MIN_MOMENTUM_UNCERTAINTY were a fabricated ℏ=1.0 dressing a classical
+    # std-product as Heisenberg ΔxΔp ≥ ℏ/2. core/physics/uncertainty.py now
+    # implements the exact, anchored Gabor bound Δt·Δf ≥ 1/(4π) (INV-GABOR1),
+    # which needs no Planck constant — the bound is the pure-math constant
+    # 1/(4π), defined in uncertainty.py as GABOR_LIMIT.
 
 
 __all__ = ["PhysicsConstants"]

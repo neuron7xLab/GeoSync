@@ -9,7 +9,7 @@ This module provides indicator implementations based on fundamental physics laws
 - Thermodynamic equilibrium detection
 - Wave propagation indicators (Maxwell)
 - Reference frame transformations (Relativity)
-- Uncertainty quantification (Heisenberg)
+- Time-frequency uncertainty quantification (Gabor limit)
 
 These indicators ground market analysis in physical principles, reducing noise
 and improving interpretability.
@@ -36,7 +36,7 @@ from core.physics.thermodynamics import (
     compute_market_temperature,
     is_thermodynamic_equilibrium,
 )
-from core.physics.uncertainty import position_momentum_uncertainty
+from core.physics.uncertainty import time_frequency_spread
 
 
 class MarketMomentumIndicator(BaseFeature):
@@ -355,10 +355,21 @@ class MarketFieldDivergenceIndicator(BaseFeature):
 
 
 class UncertaintyQuantificationIndicator(BaseFeature):
-    """Uncertainty quantification based on Heisenberg's principle.
+    """Time-frequency uncertainty quantification via the Gabor limit.
 
-    Computes position-momentum uncertainty product to quantify fundamental
-    prediction limits in the market.
+    Computes the time-frequency localization product Δt·Δf of the price
+    fluctuation, which obeys the exact Gabor bound Δt·Δf ≥ 1/(4π)
+    (INV-GABOR1). Unlike the previous Heisenberg framing, this uses no
+    fabricated Planck constant: time and frequency are a genuine
+    Fourier-conjugate pair, so 1/(4π) is a real, derivable lower bound.
+
+    The reported ``value`` is the product Δt·Δf of the price FLUCTUATION
+    (the series with its mean removed). The mean (price level) is a pure DC
+    component carrying no time-frequency localization — left in, it dominates
+    the spectrum's f=0 bin, pins Δf → 0, and pushes the product below the
+    Gabor bound, so the indicator analyzes ``prices − ⟨prices⟩``. A value
+    close to 1/(4π) means the fluctuation is maximally compact in
+    time-frequency; a large value means it is spread out / broadband.
 
     Attributes:
         name: Feature identifier
@@ -366,39 +377,50 @@ class UncertaintyQuantificationIndicator(BaseFeature):
     Example:
         >>> indicator = UncertaintyQuantificationIndicator()
         >>> result = indicator.transform(prices)
-        >>> print(f"Uncertainty: {result.value:.4f}")
+        >>> print(f"Time-frequency product Δt·Δf: {result.value:.4f}")
     """
 
     def __init__(self, *, name: str | None = None) -> None:
         super().__init__(name or "uncertainty_quantification")
 
     def transform(self, data: np.ndarray, **kwargs: Any) -> FeatureResult:
-        """Compute uncertainty product.
+        """Compute the Gabor time-frequency product Δt·Δf.
 
         Args:
             data: Price array
             **kwargs: Unused
 
         Returns:
-            FeatureResult with uncertainty product
+            FeatureResult with the time-frequency product. Degenerate inputs
+            (fewer than 2 samples, or a constant series with zero fluctuation
+            energy) return value 0.0 with an explanatory metadata flag rather
+            than raising — the indicator surface stays total for callers.
         """
         prices = np.asarray(data, dtype=float)
 
         if prices.size < 2:
             return FeatureResult(name=self.name, value=0.0, metadata={"samples": prices.size})
 
-        # Compute momentum (velocity)
-        velocities = compute_price_velocity(prices)
+        # Analyze the price FLUCTUATION: the mean (price level) is pure DC and
+        # carries no time-frequency localization (see class docstring).
+        fluctuation = prices - float(prices.mean())
 
-        # Compute uncertainties
-        delta_x, delta_p, product = position_momentum_uncertainty(prices, velocities)
+        try:
+            time_spread, freq_spread, product = time_frequency_spread(fluctuation)
+        except ValueError:
+            # Constant / non-finite series: no time-frequency localization.
+            return FeatureResult(
+                name=self.name,
+                value=0.0,
+                metadata={"samples": prices.size, "degenerate": True},
+            )
 
         return FeatureResult(
             name=self.name,
             value=float(product),
             metadata={
-                "position_uncertainty": float(delta_x),
-                "momentum_uncertainty": float(delta_p),
+                "time_spread": float(time_spread),
+                "freq_spread": float(freq_spread),
                 "samples": prices.size,
             },
         )

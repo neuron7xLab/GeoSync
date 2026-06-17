@@ -100,12 +100,10 @@ from .thermodynamics import (
 )
 from .tsallis_gate import TsallisGateResult, TsallisRegime, TsallisRiskGate
 from .uncertainty import (
-    check_uncertainty_principle,
-    heisenberg_uncertainty,
-    information_limit,
-    minimum_uncertainty_product,
-    optimal_measurement_tradeoff,
-    position_momentum_uncertainty,
+    GABOR_LIMIT,
+    check_gabor_limit,
+    gabor_lower_bound,
+    time_frequency_spread,
 )
 from .wave_propagation import GraphDiffusionEngine
 
@@ -151,13 +149,11 @@ __all__ = [
     "compute_relative_time",
     "velocity_addition",
     "time_dilation_factor",
-    # Heisenberg Uncertainty
-    "heisenberg_uncertainty",
-    "minimum_uncertainty_product",
-    "position_momentum_uncertainty",
-    "check_uncertainty_principle",
-    "optimal_measurement_tradeoff",
-    "information_limit",
+    # Gabor time-frequency uncertainty limit
+    "GABOR_LIMIT",
+    "gabor_lower_bound",
+    "time_frequency_spread",
+    "check_gabor_limit",
     # Physics Engine v2 — T1-T7
     "GravitationalCouplingMatrix",
     "NewtonianPriceDynamics",
