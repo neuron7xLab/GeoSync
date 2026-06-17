@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 from core.kuramoto.config import KuramotoConfig
+from core.kuramoto.coupling_spec import CLAIM_SIGNED
 from core.kuramoto.second_order import (
     SecondOrderKuramotoEngine,
     SecondOrderStabilityReport,
@@ -161,6 +162,12 @@ def _signed_asymmetric_engine() -> SecondOrderKuramotoEngine:
         omega=np.zeros(n),
         theta0=np.linspace(0.0, 1.0, n),
         adjacency=adj,
+        # The signed/asymmetric adjacency above is the whole point of this
+        # fixture (it invalidates the swing-energy claim), so it must declare
+        # the signed claim boundary: the attractive-only default rejects
+        # negative weights at construction (a later-merged KuramotoConfig
+        # validator), which would otherwise mask the audit logic under test.
+        claim_boundary=CLAIM_SIGNED,
         dt=0.005,
         steps=200,
         seed=0,

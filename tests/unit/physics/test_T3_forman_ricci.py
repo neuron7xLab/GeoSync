@@ -341,3 +341,86 @@ class TestMonitorConsumerBoundary:
         # the degenerate column's correlations are undefined → recorded, excluded
         assert result.nonfinite_input_count > 0
         assert all(1 not in edge for edge in result.edge_curvatures)
+
+
+class TestIssue1101DescriptorContract:
+    """Issue #1101 verbatim descriptor-contract tests (GAP-001..004).
+
+    Thin, exact-named locks over behaviour already covered by the
+    representation-honesty / layer-boundary suites above. They exist so the
+    machine-readable claim-boundary, non-finite, undefined-correlation and
+    descriptor-consumer contracts named in #1101 are each pinned under their
+    issue-canonical name. No source behaviour changes — these assert the
+    current, already-implemented contract.
+    """
+
+    def test_result_declares_layer_claim_boundary_and_projection_policy(self) -> None:
+        """GAP-001: the result carries layer, claim-boundary and projection
+        policy so ``herding_index`` cannot be read as a physical or trading
+        claim without an explicit validation artifact."""
+        frc = FormanRicciCurvature(threshold=0.3)
+        corr = np.full((4, 4), 0.8)
+        np.fill_diagonal(corr, 1.0)
+        result = frc.compute_from_correlation(corr)
+        assert result.layer == "market_descriptor"
+        assert result.physical_claim is False
+        assert result.claim_boundary == "derived_unsigned_unweighted_topology_descriptor"
+        assert result.projection_policy == "abs_correlation_threshold_binary"
+
+    def test_nonfinite_correlation_rejected_before_projection(self) -> None:
+        """GAP-002: non-finite (NaN/inf) correlations are not projected into the
+        topology silently.
+
+        The implementation chose the issue's OR-clause ("emit explicit
+        nonfinite_policy metadata") over the ValueError option: non-finite
+        inputs are excluded from the adjacency BEFORE projection and recorded
+        via ``nonfinite_input_count``, with the policy declared on
+        ``nan_policy``. This is the auditable-exclusion contract, NOT a raised
+        error — critically, an ``inf`` (where ``np.abs(inf) > threshold`` is
+        True) must never fabricate a phantom edge.
+        """
+        frc = FormanRicciCurvature(threshold=0.5)
+        n = 4
+        corr = np.full((n, n), 0.9)
+        np.fill_diagonal(corr, 1.0)
+        corr[0, 1] = corr[1, 0] = np.nan
+        corr[2, 3] = corr[3, 2] = np.inf
+        result = frc.compute_from_correlation(corr)
+        assert result.nan_policy == "nonfinite_excluded_and_recorded"
+        # 2 symmetric off-diagonal pairs = 4 non-finite entries recorded.
+        assert result.nonfinite_input_count == 4
+        # Neither the NaN nor the inf pair becomes an edge (no phantom edge).
+        assert (0, 1) not in result.edge_curvatures
+        assert (2, 3) not in result.edge_curvatures
+        # A genuinely finite strong edge survives the exclusion.
+        assert (0, 2) in result.edge_curvatures
+
+    def test_undefined_correlation_not_silently_zeroed_without_policy(self) -> None:
+        """GAP-003: an undefined correlation (zero-variance column → NaN from
+        ``corrcoef``) is not silently zero-filled below threshold.
+
+        ``compute_from_prices`` passes the raw correlation through rather than
+        ``nan_to_num``, so the undefined entries are excluded and counted
+        (``nonfinite_input_count > 0``) under the declared ``nan_policy`` — the
+        provenance is explicit, not a masked below-threshold zero.
+        """
+        frc = FormanRicciCurvature(threshold=0.3)
+        rng = np.random.default_rng(0)
+        prices = 100 + np.cumsum(rng.normal(0, 1, (40, 4)), axis=0)
+        prices[:, 1] = 100.0  # degenerate constant column → undefined corr
+        result = frc.compute_from_prices(prices, window=20)
+        assert result.nan_policy == "nonfinite_excluded_and_recorded"
+        assert result.nonfinite_input_count > 0
+        # The undefined column never silently becomes a zero-weight edge.
+        assert all(1 not in edge for edge in result.edge_curvatures)
+
+    def test_dual_track_monitor_exposes_descriptor_consumer_boundary(self) -> None:
+        """GAP-004: the descriptor consumer declares, machine-readably, that its
+        margin/herding outputs are advisory transforms — not physics validation
+        or trading readiness."""
+        monitor = DualTrackRicciMonitor()
+        boundary = monitor.descriptor_consumer_boundary
+        assert "advisory" in boundary
+        assert "not_validated" in boundary
+        # Readable statically without instantiating, for consumers at the boundary.
+        assert DualTrackRicciMonitor.descriptor_consumer_boundary == boundary
