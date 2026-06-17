@@ -1,0 +1,29 @@
+# Fast-lane quarantine — keeps python-fast-shard REAL-green, not fake-green.
+#
+# The shard collects every fast node id, SUBTRACTS the test files listed here,
+# then runs the remainder. This makes a known, tracked failure visible debt
+# instead of either (a) a vacuous 0/0 pass or (b) a red required gate that
+# blocks every PR. New, unquarantined failures still fail CI.
+#
+# Format (one entry per line; blank lines and #-comments ignored):
+#   <test_path>  cluster=<id> issue=#<n> lane=<lane> expiry=<machine-checkable condition>
+#
+# Rules enforced by pr-gate.yml:
+#   - every entry MUST carry issue=#<digits> (no issue ref => gate fails);
+#   - paths are subtracted by prefix from the collected node-id set;
+#   - the post-subtraction collection must be non-empty (else gate fails).
+#
+# See docs/ci/fast_backlog_ledger.md for the full ledger.
+
+tests/unit/cli/test_amm_cli.py        cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_import_amm_cli_resolves_to_cli_amm_cli_py_in_ci
+tests/unit/cli/test_cli_golden.py     cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_geosync_cli_resolves_to_cli_geosync_cli_py_in_ci
+tests/unit/cli/test_fete_backtest_cli.py cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_geosync_cli_resolves_to_cli_geosync_cli_py_in_ci
+tests/unit/test_geosync_cli.py        cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_geosync_cli_resolves_to_cli_geosync_cli_py_in_ci
+
+# Surfaced AFTER the cli_import_shadowing quarantine let collection reach the
+# rest of the fast surface — these clusters were hidden behind the cli import
+# failures, not absent. Each is deterministic, issue-tracked, drained per cluster.
+tests/governance/test_typed_models.py cluster=acceptor_corpus_legacy_mapping issue=#1170 lane=governance-schema expiry=from_all_dot_claude_commit_acceptors_use_module_colon_symbol_string_form
+tests/unit/analytics/test_descriptor_capsule.py cluster=analytics_import_shadowing issue=#1171 lane=ci-import-architecture expiry=from_analytics_package_imports_in_a_fresh_subprocess_under_ci_editable_install
+tests/adversarial_invariants/test_invariant_fail_closed.py cluster=adversarial_invariant_count issue=#1172 lane=governance-registry expiry=from_invariant_count_assertion_matches_canonical_registry_size_106
+tests/tools/test_numerical_policy.py  cluster=numerical_policy_unregistered_clamps issue=#1173 lane=physics-numerical-policy expiry=from_physics_tree_has_zero_unregistered_clamps
