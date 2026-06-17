@@ -72,7 +72,7 @@ measurement_command: >-
   && pytest tests/reconstruction/test_weighted_allocation_under_cimini_regime.py -q'
 signal_artifact: "tmp/x10r_weighted_allocation_operational_regime.json"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np
     from research.reconstruction.cimini_squartini import (

@@ -66,7 +66,7 @@ measurement_command: >-
   && python scripts/ci/check_claims.py'
 signal_artifact: "tmp/market_limits_falsifier.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from core.physics.predictability_horizon import (
         landauer_min_initial_precision, predictability_horizon_under_budget,

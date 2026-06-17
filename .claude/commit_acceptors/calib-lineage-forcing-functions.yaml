@@ -101,15 +101,11 @@ measurement_command: >-
     rm -rf .mypy_cache &&
     mypy --strict --follow-imports=silent
       tests/research/calibration/test_calib_lineage_forcing_functions.py
-      tests/research/calibration/test_calib_substrate_consolidation.py
-    && ruff check
+      tests/research/calibration/test_calib_substrate_consolidation.py && ruff check
        tests/research/calibration/test_calib_lineage_forcing_functions.py
-       tests/research/calibration/test_calib_substrate_consolidation.py
-    && black --check
+       tests/research/calibration/test_calib_substrate_consolidation.py && black --check
        tests/research/calibration/test_calib_lineage_forcing_functions.py
-       tests/research/calibration/test_calib_substrate_consolidation.py
-    && git diff --exit-code tests/research/calibration/test_grid_kuramoto.py
-    && python -m pytest
+       tests/research/calibration/test_calib_substrate_consolidation.py && git diff --exit-code tests/research/calibration/test_grid_kuramoto.py && python -m pytest
        tests/research/calibration/test_calib_lineage_forcing_functions.py
        tests/research/calibration/test_grid_kuramoto.py
        tests/research/calibration/test_calib_substrate_consolidation.py -q
@@ -121,8 +117,7 @@ falsifier:
       python -m pytest
       "tests/research/calibration/test_calib_lineage_forcing_functions.py::test_no_frozen_sha_literal_outside_substrate_registry"
       "tests/research/calibration/test_calib_lineage_forcing_functions.py::test_deep_close_tolerance_is_pinned_single_valued_and_sharp"
-      -q >/tmp/_calib_ff_rails.log 2>&1
-      && ! grep -q "2 passed" /tmp/_calib_ff_rails.log
+      -q >/tmp/_calib_ff_rails.log 2>&1 && ! grep -q "2 passed" /tmp/_calib_ff_rails.log
     '
   description: >-
     Probes the two load-bearing forcing functions: the provenance-
@@ -131,14 +126,12 @@ falsifier:
     i.e. the generative mechanism re-opened.
 rollback_command: >-
   bash -c 'git checkout origin/main --
-    tests/research/calibration/test_calib_substrate_consolidation.py
-    && rm -f
+    tests/research/calibration/test_calib_substrate_consolidation.py && rm -f
     tests/research/calibration/test_calib_lineage_forcing_functions.py
     .claude/commit_acceptors/calib-lineage-forcing-functions.yaml'
 rollback_verification_command: >-
   bash -c '! test -f
-    tests/research/calibration/test_calib_lineage_forcing_functions.py
-    && git diff --exit-code origin/main --
+    tests/research/calibration/test_calib_lineage_forcing_functions.py && git diff --exit-code origin/main --
     tests/research/calibration/test_calib_substrate_consolidation.py'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/calib-lineage-forcing-functions.yaml"

@@ -65,14 +65,7 @@ expected_signal: >-
   tests/governance/test_readiness_register.py passes.
 measurement_command: >-
   bash -c '
-    python tools/check_readiness_register.py
-    && python -m tools.readiness.verify_evidence
-    && python -m tools.readiness.run_recovery_drill
-    && git diff --exit-code governance/evidence/ops001_recovery_drill_report.json
-    && mypy --strict tools/readiness/
-    && ruff check tools/readiness/
-    && black --check tools/readiness/
-    && python -m pytest -q tests/governance/test_readiness_register.py
+    python tools/check_readiness_register.py && python -m tools.readiness.verify_evidence && python -m tools.readiness.run_recovery_drill && git diff --exit-code governance/evidence/ops001_recovery_drill_report.json && mypy --strict tools/readiness/ && ruff check tools/readiness/ && black --check tools/readiness/ && python -m pytest -q tests/governance/test_readiness_register.py
   '
 signal_artifact: "tmp/readiness_l5_closure.log"
 falsifier:
@@ -89,8 +82,7 @@ falsifier:
 rollback_command: >-
   bash -c 'git checkout origin/main --
     governance/readiness_register.json
-    .github/workflows/readiness-gate.yml
-    && rm -rf tools/readiness governance/evidence
+    .github/workflows/readiness-gate.yml && rm -rf tools/readiness governance/evidence
     docs/governance/waiver_protocol.md
     .claude/commit_acceptors/readiness-l5-closure.yaml'
 rollback_verification_command: >-

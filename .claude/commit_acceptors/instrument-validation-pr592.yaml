@@ -80,27 +80,24 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    mypy --strict instrument_validation/ tools/disha_artifact/ tools/build_disha_ba_correlation_figures.py
-    && python -m pytest tests/instrument_validation/ tests/disha_artifact_v2/ -q
+    mypy --strict instrument_validation/ tools/disha_artifact/ tools/build_disha_ba_correlation_figures.py && python -m pytest tests/instrument_validation/ tests/disha_artifact_v2/ -q
   '
 
 signal_artifact: "tmp/instrument_validation_pr592.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      from instrument_validation import (
-          Verdict, ClaimTier, ClaimType, emit_verdict,
-          scope_match, validate_instrument, run_negative_controls,
-          discriminate, claim_boundary_check, rerun_strict,
-          country_aggregate_default_scope,
-      )
-      assert Verdict.INVALID_INSTRUMENT.value == 'invalid_instrument'
-      assert Verdict.OUT_OF_SCOPE.value == 'out_of_scope'
-      " 2>/dev/null
-      && exit 1
-      || exit 0
+    from instrument_validation import (
+        Verdict, ClaimTier, ClaimType, emit_verdict,
+        scope_match, validate_instrument, run_negative_controls,
+        discriminate, claim_boundary_check, rerun_strict,
+        country_aggregate_default_scope,
+    )
+    assert Verdict.INVALID_INSTRUMENT.value == 'invalid_instrument'
+    assert Verdict.OUT_OF_SCOPE.value == 'out_of_scope'
+      " 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes the closed-enum verdict alphabet + public chokepoint API.
@@ -109,19 +106,18 @@ falsifier:
 
 rollback_command: >-
   bash -c '
-    rm -rf instrument_validation tools/disha_artifact tests/instrument_validation tests/disha_artifact_v2
-    && rm -f .claude/commit_acceptors/instrument-validation-pr592.yaml DISHA_SAFE_120_WORDS_v2.md
+    rm -rf instrument_validation tools/disha_artifact tests/instrument_validation tests/disha_artifact_v2 && rm -f .claude/commit_acceptors/instrument-validation-pr592.yaml DISHA_SAFE_120_WORDS_v2.md
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
-    try:
-        from instrument_validation import emit_verdict
-    except ImportError:
-        pass
-    else:
-        raise SystemExit(1)
+  try:
+      from instrument_validation import emit_verdict
+  except ImportError:
+      pass
+  else:
+      raise SystemExit(1)
     "
   '
 

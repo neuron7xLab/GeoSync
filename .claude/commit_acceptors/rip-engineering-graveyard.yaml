@@ -100,22 +100,13 @@ expected_signal: >-
   `grep -rE "neuron7x[^L@]" RIP/` returns nothing.
 measurement_command: >-
   bash -c '
-    test "$(find RIP -name "*.py" | wc -l)" = "0"
-    && git diff --exit-code tests/research/calibration/test_grid_kuramoto.py
-    && ! grep -rE "neuron7x[^L@]" RIP/
-    && python -m pytest --collect-only -q 2>/dev/null
-       | grep -cE "::"
+    test "$(find RIP -name "*.py" | wc -l)" = "0" && git diff --exit-code tests/research/calibration/test_grid_kuramoto.py && ! grep -rE "neuron7x[^L@]" RIP/ && python -m pytest --collect-only -q 2>/dev/null | grep -cE "::"
   '
 signal_artifact: "tmp/rip_engineering_graveyard.log"
 falsifier:
   command: >-
     bash -c '
-      test "$(find RIP -name "*.py" | wc -l)" != "0"
-      || ! git diff --quiet tests/research/calibration/test_grid_kuramoto.py
-      || grep -rqE "neuron7x[^L@]" RIP/
-      || grep -riE "breakthrough|proven science|\bvalidated\b" RIP/HONORS.md
-         | grep -viE "ENGINEERING-VALIDATED|\"validated\"|\"breakthrough\"|\"proven science\"|forbidden"
-         | grep -q .
+      test "$(find RIP -name "*.py" | wc -l)" != "0" || ! git diff --quiet tests/research/calibration/test_grid_kuramoto.py || grep -rqE "neuron7x[^L@]" RIP/ || grep -riE "breakthrough|proven science|\bvalidated\b" RIP/HONORS.md | grep -viE "ENGINEERING-VALIDATED|\"validated\"|\"breakthrough\"|\"proven science\"|forbidden" | grep -q .
     '
   description: >-
     The falsifier succeeds (exit 0) iff the non-interference invariant
@@ -127,11 +118,9 @@ falsifier:
     excluded). Any of these means RIP/ is no longer inert / no longer
     admissibility-honest and the diff must be rejected.
 rollback_command: >-
-  bash -c 'rm -rf RIP
-    && rm -f .claude/commit_acceptors/rip-engineering-graveyard.yaml'
+  bash -c 'rm -rf RIP && rm -f .claude/commit_acceptors/rip-engineering-graveyard.yaml'
 rollback_verification_command: >-
-  bash -c '! test -d RIP
-    && ! test -f .claude/commit_acceptors/rip-engineering-graveyard.yaml'
+  bash -c '! test -d RIP && ! test -f .claude/commit_acceptors/rip-engineering-graveyard.yaml'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/rip-engineering-graveyard.yaml"
 report_path: "tmp/rip_engineering_graveyard.log"

@@ -52,31 +52,28 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    mypy --strict tools/disha_artifact/ tools/build_disha_ba_correlation_figures.py
-    && python -m pytest tests/disha_artifact_v2/ -q
+    mypy --strict tools/disha_artifact/ tools/build_disha_ba_correlation_figures.py && python -m pytest tests/disha_artifact_v2/ -q
   '
 
 signal_artifact: "tmp/disha_artifact_v2_pr592.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      from tools.disha_artifact.discrimination_v2 import (
-          discriminate_ba_vs_er_six_metrics,
-      )
-      from tools.disha_artifact.risk_concentration_v2 import (
-          filter_risk_concentration,
-          lehman_pair_correlations_block_headline,
-      )
-      from tools.disha_artifact.summary_compiler import compile_safe_summary
-      assert callable(discriminate_ba_vs_er_six_metrics)
-      assert callable(filter_risk_concentration)
-      assert callable(lehman_pair_correlations_block_headline)
-      assert callable(compile_safe_summary)
-      " 2>/dev/null
-      && exit 1
-      || exit 0
+    from tools.disha_artifact.discrimination_v2 import (
+        discriminate_ba_vs_er_six_metrics,
+    )
+    from tools.disha_artifact.risk_concentration_v2 import (
+        filter_risk_concentration,
+        lehman_pair_correlations_block_headline,
+    )
+    from tools.disha_artifact.summary_compiler import compile_safe_summary
+    assert callable(discriminate_ba_vs_er_six_metrics)
+    assert callable(filter_risk_concentration)
+    assert callable(lehman_pair_correlations_block_headline)
+    assert callable(compile_safe_summary)
+      " 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the public Disha v2 API symbols are exposed at the
@@ -86,22 +83,20 @@ falsifier:
 
 rollback_command: >-
   bash -c '
-    rm -rf tools/disha_artifact tests/disha_artifact_v2
-    && rm -f .claude/commit_acceptors/disha-artifact-v2-pr592.yaml DISHA_SAFE_120_WORDS_v2.md
-    && git checkout HEAD -- tools/build_disha_ba_correlation_figures.py
+    rm -rf tools/disha_artifact tests/disha_artifact_v2 && rm -f .claude/commit_acceptors/disha-artifact-v2-pr592.yaml DISHA_SAFE_120_WORDS_v2.md && git checkout HEAD -- tools/build_disha_ba_correlation_figures.py
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
-    try:
-        from tools.disha_artifact.discrimination_v2 import (
-            discriminate_ba_vs_er_six_metrics,
-        )
-    except ImportError:
-        pass
-    else:
-        raise SystemExit(1)
+  try:
+      from tools.disha_artifact.discrimination_v2 import (
+          discriminate_ba_vs_er_six_metrics,
+      )
+  except ImportError:
+      pass
+  else:
+      raise SystemExit(1)
     "
   '
 

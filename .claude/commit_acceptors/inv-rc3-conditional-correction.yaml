@@ -56,7 +56,7 @@ measurement_command: >-
   && grep -q "in sync" tmp/inv_rc3_correction.log'
 signal_artifact: "tmp/inv_rc3_correction.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import yaml
     d = yaml.safe_load(open(\".claude/physics/INVARIANTS.yaml\"))

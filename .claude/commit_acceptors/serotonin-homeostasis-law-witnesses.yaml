@@ -52,7 +52,7 @@ measurement_command: >-
   && grep -q "2 passed" tmp/serotonin_homeostasis_law_witnesses.log'
 signal_artifact: "tmp/serotonin_homeostasis_law_witnesses.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from core.neuro.serotonin_ode import SerotoninODE, SerotoninODEParams
     ode = SerotoninODE(SerotoninODEParams(), level=1.0)

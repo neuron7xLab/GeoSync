@@ -55,7 +55,7 @@ measurement_command: >-
   && grep -q "2 passed" tmp/signalbus_fanout_law_witnesses.log'
 signal_artifact: "tmp/signalbus_fanout_law_witnesses.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from dataclasses import asdict, fields
     from core.neuro.signal_bus import NeuroSignalBus

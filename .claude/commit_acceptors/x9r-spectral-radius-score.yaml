@@ -53,25 +53,22 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    mypy --strict research/systemic_risk/protocol_x9r.py
-    && python -m pytest tests/research/systemic_risk/ -q
+    mypy --strict research/systemic_risk/protocol_x9r.py && python -m pytest tests/research/systemic_risk/ -q
   '
 
 signal_artifact: "tmp/x9r_spectral_radius.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      from research.systemic_risk.protocol_x9r import (
-          _CANDIDATE_SCORE_METHOD_SPECTRAL_RADIUS,
-          _spectral_radius_per_snapshot,
-      )
-      assert _CANDIDATE_SCORE_METHOD_SPECTRAL_RADIUS == 'spectral_radius_of_coupling'
-      assert callable(_spectral_radius_per_snapshot)
-      " 2>/dev/null
-      && exit 1
-      || exit 0
+    from research.systemic_risk.protocol_x9r import (
+        _CANDIDATE_SCORE_METHOD_SPECTRAL_RADIUS,
+        _spectral_radius_per_snapshot,
+    )
+    assert _CANDIDATE_SCORE_METHOD_SPECTRAL_RADIUS == 'spectral_radius_of_coupling'
+    assert callable(_spectral_radius_per_snapshot)
+      " 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes the spectral-radius constant + function are exposed at

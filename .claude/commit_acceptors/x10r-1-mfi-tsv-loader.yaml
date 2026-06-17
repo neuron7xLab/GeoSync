@@ -73,7 +73,7 @@ measurement_command: >-
   && pytest tests/reconstruction/allocator/ -q'
 signal_artifact: "tmp/x10r_1_mfi_loader.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from research.reconstruction.allocator import (
         load_mfi_registry, SizeWeightedPrior,

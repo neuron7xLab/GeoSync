@@ -65,7 +65,7 @@ expected_signal: >
   audit_critical_centers() returns 7/7 passed.
   reset-wave-phase-synchronization claim in CLAIMS.yaml v3 with
   falsifier block validates under check_claims.py.
-measurement_command: >-
+measurement_command: |-
   python -m pytest tests/test_reset_wave_engine.py
                    tests/test_reset_wave_physics_laws.py
                    tests/test_reset_wave_stress_validation.py
@@ -75,7 +75,7 @@ measurement_command: >-
   python -c "from geosync.neuroeconomics.reset_wave_engine import audit_critical_centers; assert all(a.passed for a in audit_critical_centers())"
 signal_artifact: "tmp/reset_wave_integration_evidence.log"
 falsifier:
-  command: >-
+  command: |-
     python -c "
     from geosync.neuroeconomics.reset_wave_engine import ResetWaveConfig, run_reset_wave;
     out = run_reset_wave([10.0, -10.0], [0.0, 0.0], ResetWaveConfig(max_phase_error=0.5));

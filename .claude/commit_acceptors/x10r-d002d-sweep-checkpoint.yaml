@@ -91,7 +91,7 @@ measurement_command: >-
   && pytest tests/research/systemic_risk/test_sweep_checkpoint.py -q'
 signal_artifact: "tests/research/systemic_risk/test_sweep_checkpoint.py"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import tempfile, json
     from pathlib import Path

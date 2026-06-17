@@ -57,7 +57,7 @@ measurement_command: >-
   && grep -q "7 passed" tmp/gradient_ontology_quintessence.log'
 signal_artifact: "tmp/gradient_ontology_quintessence.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np
     from core.neuro.gradient_vital_signs import GradientHealthMonitor

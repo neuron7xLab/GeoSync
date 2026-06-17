@@ -135,12 +135,9 @@ measurement_command: >-
     rm -rf .mypy_cache &&
     mypy --strict --follow-imports=silent
       core/kuramoto/coupling_estimator.py
-      tests/unit/core/test_kuramoto_coupling_strategy_registry.py
-    && ruff check core/kuramoto/coupling_estimator.py
-       tests/unit/core/test_kuramoto_coupling_strategy_registry.py
-    && black --check core/kuramoto/coupling_estimator.py
-       tests/unit/core/test_kuramoto_coupling_strategy_registry.py
-    && python -m pytest
+      tests/unit/core/test_kuramoto_coupling_strategy_registry.py && ruff check core/kuramoto/coupling_estimator.py
+       tests/unit/core/test_kuramoto_coupling_strategy_registry.py && black --check core/kuramoto/coupling_estimator.py
+       tests/unit/core/test_kuramoto_coupling_strategy_registry.py && python -m pytest
        tests/unit/core/test_kuramoto_coupling_strategy_registry.py
        tests/unit/core/test_kuramoto_coupling_estimator.py
        tests/unit/core/test_kuramoto_integral_estimator.py
@@ -160,8 +157,7 @@ falsifier:
       "tests/unit/core/test_kuramoto_coupling_strategy_registry.py::test_every_symmetric_joint_path_dispatches_through_registry"
       "tests/unit/core/test_kuramoto_integral_estimator.py::test_differential_paths_bit_identical_after_integral_added"
       "tests/research/calibration/test_grid_kuramoto.py::test_r1_results_json_matches_committed_artifact"
-      -q >/tmp/_cesr_rails.log 2>&1
-      && ! grep -q "4 passed" /tmp/_cesr_rails.log
+      -q >/tmp/_cesr_rails.log 2>&1 && ! grep -q "4 passed" /tmp/_cesr_rails.log
     '
   description: >-
     Probes the load-bearing behavior-preserving rails: every estimation
@@ -174,13 +170,11 @@ falsifier:
     the registry.
 rollback_command: >-
   bash -c 'git checkout origin/main --
-    core/kuramoto/coupling_estimator.py
-    && rm -f
+    core/kuramoto/coupling_estimator.py && rm -f
     tests/unit/core/test_kuramoto_coupling_strategy_registry.py
     .claude/commit_acceptors/coupling-estimator-strategy-registry.yaml'
 rollback_verification_command: >-
-  bash -c '! grep -q _dispatch_swing core/kuramoto/coupling_estimator.py
-    && ! test -f tests/unit/core/test_kuramoto_coupling_strategy_registry.py'
+  bash -c '! grep -q _dispatch_swing core/kuramoto/coupling_estimator.py && ! test -f tests/unit/core/test_kuramoto_coupling_strategy_registry.py'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/coupling-estimator-strategy-registry.yaml"
 report_path: "tmp/coupling_estimator_strategy_registry.log"

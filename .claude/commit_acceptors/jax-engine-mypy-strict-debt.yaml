@@ -130,11 +130,7 @@ expected_signal: >-
 measurement_command: >-
   bash -c '
     rm -rf .mypy_cache &&
-    mypy --strict --follow-imports=silent core/kuramoto/jax_engine.py
-    && ruff check core/kuramoto/jax_engine.py
-    && black --check core/kuramoto/jax_engine.py
-    && git diff --exit-code tests/research/calibration/test_grid_kuramoto.py
-    && python -m pytest
+    mypy --strict --follow-imports=silent core/kuramoto/jax_engine.py && ruff check core/kuramoto/jax_engine.py && black --check core/kuramoto/jax_engine.py && git diff --exit-code tests/research/calibration/test_grid_kuramoto.py && python -m pytest
        tests/unit/physics/test_T2_explosive_sync.py
        tests/unit/physics/test_T23_ott_antonsen_chimera.py
        tests/research/calibration/test_grid_kuramoto.py
@@ -145,9 +141,7 @@ falsifier:
   command: >-
     bash -c '
       rm -rf /tmp/_jaxdebt_cache &&
-      grep -q "type: ignore\[misc\]$" core/kuramoto/jax_engine.py
-      || grep -q "type: ignore\[no-any-return\]$" core/kuramoto/jax_engine.py
-      || grep -q "5 pre-existing core/kuramoto/jax_engine errors persist"
+      grep -q "type: ignore\[misc\]$" core/kuramoto/jax_engine.py || grep -q "type: ignore\[no-any-return\]$" core/kuramoto/jax_engine.py || grep -q "5 pre-existing core/kuramoto/jax_engine errors persist"
          .claude/commit_acceptors/adversarial-ladder.yaml
     '
   description: >-
@@ -159,11 +153,9 @@ falsifier:
 rollback_command: >-
   bash -c 'git checkout origin/main --
     core/kuramoto/jax_engine.py
-    .claude/commit_acceptors/adversarial-ladder.yaml
-    && rm -f .claude/commit_acceptors/jax-engine-mypy-strict-debt.yaml'
+    .claude/commit_acceptors/adversarial-ladder.yaml && rm -f .claude/commit_acceptors/jax-engine-mypy-strict-debt.yaml'
 rollback_verification_command: >-
-  bash -c 'grep -q "type: ignore\[misc\]$" core/kuramoto/jax_engine.py
-    && ! test -f .claude/commit_acceptors/jax-engine-mypy-strict-debt.yaml'
+  bash -c 'grep -q "type: ignore\[misc\]$" core/kuramoto/jax_engine.py && ! test -f .claude/commit_acceptors/jax-engine-mypy-strict-debt.yaml'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/jax-engine-mypy-strict-debt.yaml"
 report_path: "tmp/jax_engine_mypy_strict_debt.log"

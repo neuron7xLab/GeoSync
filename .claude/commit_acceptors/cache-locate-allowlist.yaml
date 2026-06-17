@@ -49,8 +49,7 @@ expected_signal: >-
   while still decoding safe markers. The existing cache suites stay green.
 measurement_command: >-
   bash -c '
-    python -m pytest tests/unit/indicators/test_cache_locate_allowlist.py -q
-    && python -m pytest tests/unit/test_indicator_cache.py tests/unit/indicators/test_cache_extended.py -q
+    python -m pytest tests/unit/indicators/test_cache_locate_allowlist.py -q && python -m pytest tests/unit/test_indicator_cache.py tests/unit/indicators/test_cache_extended.py -q
   '
 signal_artifact: "tmp/cache_locate_allowlist.log"
 falsifier:
@@ -67,8 +66,7 @@ falsifier:
     With the allowlist in place the test passes (exit 0), so `test $? -ne 0` exits
     1 and the falsifier fails, confirming the import is gated.
 rollback_command: >-
-  bash -c 'git checkout origin/main -- core/indicators/cache.py
-    && rm -f
+  bash -c 'git checkout origin/main -- core/indicators/cache.py && rm -f
     tests/unit/indicators/test_cache_locate_allowlist.py
     .claude/commit_acceptors/cache-locate-allowlist.yaml'
 rollback_verification_command: >-

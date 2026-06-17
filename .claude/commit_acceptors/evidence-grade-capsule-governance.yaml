@@ -60,8 +60,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    bash scripts/ci/evidence_gate.sh --skip-coverage
-    && python -m pytest tests/reproducible tests/reproduce
+    bash scripts/ci/evidence_gate.sh --skip-coverage && python -m pytest tests/reproducible tests/reproduce
        tests/security/test_capsule_secret_boundary.py -q -p no:cacheprovider
   '
 
@@ -70,11 +69,7 @@ signal_artifact: "tmp/evidence_grade_capsule.log"
 falsifier:
   command: >-
     bash -c '
-      python scripts/ci/check_capsule_schema.py >/dev/null 2>&1
-      && python scripts/reproduce/mfn_capsule.py --verify >/dev/null 2>&1
-      && python tools/security/validate_capsule_secret_boundary.py >/dev/null 2>&1
-      && exit 1
-      || exit 0
+      python scripts/ci/check_capsule_schema.py >/dev/null 2>&1 && python scripts/reproduce/mfn_capsule.py --verify >/dev/null 2>&1 && python tools/security/validate_capsule_secret_boundary.py >/dev/null 2>&1 && exit 1 || exit 0
     '
   description: >-
     Inverts the three capsule gates: it succeeds (exit 0) only when schema

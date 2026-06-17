@@ -67,19 +67,15 @@ measurement_command: >-
     mypy --strict
       research/systemic_risk/verdict_lattice.py
       research/systemic_risk/death_conditions.py
-      tests/research/systemic_risk/test_verdict_lattice.py
-    && python -m pytest tests/research/systemic_risk/test_verdict_lattice.py -q
-    && python -m pytest tests/research/systemic_risk/test_death_conditions.py -q
+      tests/research/systemic_risk/test_verdict_lattice.py && python -m pytest tests/research/systemic_risk/test_verdict_lattice.py -q && python -m pytest tests/research/systemic_risk/test_death_conditions.py -q
   '
 
 signal_artifact: "tmp/verdict_lattice.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
-      python -c "from research.systemic_risk.verdict_lattice import TierLattice, join; assert join(TierLattice.KILL, TierLattice.DEMOTE) == TierLattice.KILL" 2>/dev/null
-      && exit 1
-      || exit 0
+      python -c "from research.systemic_risk.verdict_lattice import TierLattice, join; assert join(TierLattice.KILL, TierLattice.DEMOTE) == TierLattice.KILL" 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the lattice ``join`` returns the more destructive
@@ -92,13 +88,12 @@ rollback_command: >-
     git rm -f
       research/systemic_risk/verdict_lattice.py
       tests/research/systemic_risk/test_verdict_lattice.py
-      .claude/commit_acceptors/verdict-lattice.yaml
-    && git checkout HEAD~1 --
+      .claude/commit_acceptors/verdict-lattice.yaml && git checkout HEAD~1 --
       research/systemic_risk/__init__.py
       research/systemic_risk/death_conditions.py
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
     try:

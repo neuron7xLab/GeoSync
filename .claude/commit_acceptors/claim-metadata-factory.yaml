@@ -63,7 +63,7 @@ measurement_command: >-
   && grep -q "48 passed" tmp/claim_metadata_factory.log'
 signal_artifact: "tmp/claim_metadata_factory.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from analytics.signals.descriptor_metadata import build_descriptor_metadata
     broken = False

@@ -126,13 +126,10 @@ expected_signal: >-
   CI of ΔR excluding [-0.05, +0.05].
 measurement_command: >-
   bash -c 'mypy --strict --follow-imports=silent
-  research/reconstruction/ tests/reconstruction/
-  && ruff check research/reconstruction/ tests/reconstruction/
-  && black --check research/reconstruction/ tests/reconstruction/
-  && python -m pytest tests/reconstruction/ -q'
+  research/reconstruction/ tests/reconstruction/ && ruff check research/reconstruction/ tests/reconstruction/ && black --check research/reconstruction/ tests/reconstruction/ && python -m pytest tests/reconstruction/ -q'
 signal_artifact: "tmp/x10r_cimini_squartini.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from research.reconstruction.negative_control import run_all_negative_controls, NegFalsePositiveError
     try:
@@ -142,8 +139,7 @@ falsifier:
         exit(1)
     except NegFalsePositiveError:
         exit(0)
-    " 2>&1 | tail -3
-    && false || true'
+    " 2>&1 | tail -3 && false || true'
   description: >-
     Probes the discriminativity invariant of the recovery instrument:
     if ANY of the three lattice nulls (ring, path, 2D grid) passes
@@ -153,13 +149,10 @@ falsifier:
     triggers the discriminativity check. Real-data verdicts are blocked
     until the instrument proves it can reject lattice topology.
 rollback_command: >-
-  bash -c 'git checkout HEAD~1 --
-  && rm -rf research/reconstruction/ tests/reconstruction/
+  bash -c 'git checkout HEAD~1 -- && rm -rf research/reconstruction/ tests/reconstruction/
   .claude/commit_acceptors/x10r-cimini-squartini-reconstruction.yaml'
 rollback_verification_command: >-
-  bash -c 'test ! -d research/reconstruction
-  && test ! -d tests/reconstruction
-  && test ! -f .claude/commit_acceptors/x10r-cimini-squartini-reconstruction.yaml'
+  bash -c 'test ! -d research/reconstruction && test ! -d tests/reconstruction && test ! -f .claude/commit_acceptors/x10r-cimini-squartini-reconstruction.yaml'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/x10r-cimini-squartini-reconstruction.yaml"
 report_path: "tmp/x10r_cimini_squartini.log"

@@ -54,22 +54,19 @@ measurement_command: >-
   bash -c '
     mypy --strict
       research/systemic_risk/quick_round.py
-      tests/research/systemic_risk/test_quick_round.py
-    && python -m pytest tests/research/systemic_risk/test_quick_round.py -q
+      tests/research/systemic_risk/test_quick_round.py && python -m pytest tests/research/systemic_risk/test_quick_round.py -q
   '
 
 signal_artifact: "tmp/quick_round_ergonomics.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      from research.systemic_risk import quick_round, GovernanceFSM
-      out = quick_round(fsm_before=GovernanceFSM.initial(), replication_matched=False)
-      assert out.fsm_after.state == 'REJECTED'
-      " 2>/dev/null
-      && exit 1
-      || exit 0
+    from research.systemic_risk import quick_round, GovernanceFSM
+    out = quick_round(fsm_before=GovernanceFSM.initial(), replication_matched=False)
+    assert out.fsm_after.state == 'REJECTED'
+      " 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that quick_round wires the KILL path correctly: a
@@ -83,19 +80,18 @@ rollback_command: >-
     git rm -f
       research/systemic_risk/quick_round.py
       tests/research/systemic_risk/test_quick_round.py
-      .claude/commit_acceptors/quick-round-ergonomics.yaml
-    && git checkout HEAD~1 -- research/systemic_risk/__init__.py
+      .claude/commit_acceptors/quick-round-ergonomics.yaml && git checkout HEAD~1 -- research/systemic_risk/__init__.py
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
-    try:
-        from research.systemic_risk import quick_round
-    except ImportError:
-        pass
-    else:
-        raise SystemExit(1)
+  try:
+      from research.systemic_risk import quick_round
+  except ImportError:
+      pass
+  else:
+      raise SystemExit(1)
     "
   '
 

@@ -72,6 +72,7 @@ diff_scope:
     - path: "research/reconstruction/sensitivity_surface.py"
     - path: "tests/reconstruction/test_gate6_sensitivity_surface.py"
     - path: "X10R_GATE6_SENSITIVITY_SURFACE.md"
+    - path: "scripts/ci/gate6_sensitivity_surface_falsifier.py"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -97,39 +98,17 @@ expected_signal: >-
 measurement_command: >-
   bash -c 'mypy --strict --follow-imports=silent
   research/reconstruction/sensitivity_surface.py
-  tests/reconstruction/test_gate6_sensitivity_surface.py
-  && ruff check research/reconstruction/sensitivity_surface.py tests/reconstruction/test_gate6_sensitivity_surface.py
-  && black --check research/reconstruction/sensitivity_surface.py tests/reconstruction/test_gate6_sensitivity_surface.py
-  && pytest tests/reconstruction/test_gate6_sensitivity_surface.py -q'
+  tests/reconstruction/test_gate6_sensitivity_surface.py && ruff check research/reconstruction/sensitivity_surface.py tests/reconstruction/test_gate6_sensitivity_surface.py && black --check research/reconstruction/sensitivity_surface.py tests/reconstruction/test_gate6_sensitivity_surface.py && pytest tests/reconstruction/test_gate6_sensitivity_surface.py -q'
 signal_artifact: "tmp/x10r_gate6_sensitivity_surface.json"
 falsifier:
-  command: >-
-    bash -c 'python -c "
-    import math
-    from research.reconstruction.sensitivity_surface import (
-        compute_sensitivity_surface,
-    )
-    s = compute_sensitivity_surface(
-        n_grid=(50,), lambda_grid=(0.0, 1.0),
-        n_seeds=5, n_bootstrap=4,
-    )
-    zero = s.cell(n=50, lambda_mix=0.0)
-    one = s.cell(n=50, lambda_mix=1.0)
-    assert zero is not None, 'lambda=0 cell missing'
-    assert one is not None, 'lambda=1 cell missing'
-    assert math.isfinite(s.fpr_estimate), 'fpr_estimate not finite'
-    assert s.fpr_estimate <= 0.30, (
-        f'pilot fail-closed broken: FPR={s.fpr_estimate:.3f} > 0.30'
-    )
-    mde = s.mde_lambda_per_n.get(50)
-    assert mde is not None, 'MDE key missing for N=50'
-    payload = s.to_dict()
-    assert len(payload['cells']) == 2, 'cell serialisation lost cells'
-    serialised_mde = payload['mde_lambda_per_n'][50]
-    assert serialised_mde is None or isinstance(serialised_mde, float), (
-        'inf→None coercion broken'
-    )
-    "'
+  # NOTE: this probe was extracted from an inline ``python -c`` payload to a
+  # committed single-purpose script (scripts/ci/gate6_sensitivity_surface_falsifier.py).
+  # The inline form could not survive the acceptor YAML round-trip: a folded
+  # block scalar collapsed its newlines, and its single-quoted Python string
+  # literals lived inside the outer ``bash -c '...'`` wrapper and broke it.
+  # A script invoked by name is round-trip-stable (cf. gauss_bonnet_evidence.py).
+  command: |-
+    bash -c 'PYTHONPATH=. python scripts/ci/gate6_sensitivity_surface_falsifier.py'
   description: >-
     Probes the D-002A pilot contract empirically: at the pilot
     budget (N=50, n_seeds=5, n_bootstrap=4) the surface must (a)
@@ -142,16 +121,12 @@ falsifier:
     the D-002A infrastructure or fail-closed pilot envelope
     regressed.
 rollback_command: >-
-  bash -c 'git checkout HEAD~1 --
-  && rm -f research/reconstruction/sensitivity_surface.py
+  bash -c 'git checkout HEAD~1 -- && rm -f research/reconstruction/sensitivity_surface.py
   tests/reconstruction/test_gate6_sensitivity_surface.py
   X10R_GATE6_SENSITIVITY_SURFACE.md
   .claude/commit_acceptors/x10r-gate6-sensitivity-surface.yaml'
 rollback_verification_command: >-
-  bash -c 'test ! -f research/reconstruction/sensitivity_surface.py
-  && test ! -f tests/reconstruction/test_gate6_sensitivity_surface.py
-  && test ! -f X10R_GATE6_SENSITIVITY_SURFACE.md
-  && test ! -f .claude/commit_acceptors/x10r-gate6-sensitivity-surface.yaml'
+  bash -c 'test ! -f research/reconstruction/sensitivity_surface.py && test ! -f tests/reconstruction/test_gate6_sensitivity_surface.py && test ! -f X10R_GATE6_SENSITIVITY_SURFACE.md && test ! -f .claude/commit_acceptors/x10r-gate6-sensitivity-surface.yaml'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/x10r-gate6-sensitivity-surface.yaml"
 report_path: "tmp/x10r_gate6_sensitivity_surface.json"

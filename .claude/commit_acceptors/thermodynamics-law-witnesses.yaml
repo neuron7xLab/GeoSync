@@ -52,7 +52,7 @@ measurement_command: >-
   && grep -q "2 passed" tmp/thermodynamics_law_witnesses.log'
 signal_artifact: "tmp/thermodynamics_law_witnesses.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np
     from core.physics.free_energy_trading_gate import FreeEnergyTradingGate

@@ -53,7 +53,7 @@ measurement_command: >-
   && grep -q "2 passed" tmp/ricci_ollivier_identity_boundary.log'
 signal_artifact: "tmp/ricci_ollivier_identity_boundary.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np, networkx as nx
     from scipy.stats import wasserstein_distance

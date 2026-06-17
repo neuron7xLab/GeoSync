@@ -86,7 +86,7 @@ measurement_command: >-
   && pytest tests/reconstruction/ -m "not slow" -q'
 signal_artifact: "tmp/x10r_2_reciprocity.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from research.reconstruction.positive_control import (
         compute_reciprocity_ratio, ground_truth_core_periphery,

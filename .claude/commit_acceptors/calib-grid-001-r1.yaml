@@ -85,10 +85,7 @@ measurement_command: >-
     mypy --strict --follow-imports=silent
       core/kuramoto/coupling_estimator.py
       research/calibration/grid_kuramoto/
-      tests/research/calibration/test_grid_kuramoto.py
-    && ruff check core/kuramoto research/calibration tests/research/calibration
-    && black --check core/kuramoto research/calibration tests/research/calibration
-    && python -m pytest tests/research/calibration/ -q -m "not slow"
+      tests/research/calibration/test_grid_kuramoto.py && ruff check core/kuramoto research/calibration tests/research/calibration && black --check core/kuramoto research/calibration tests/research/calibration && python -m pytest tests/research/calibration/ -q -m "not slow"
   '
 signal_artifact: "tmp/calib_grid_001_r1.log"
 falsifier:
@@ -99,8 +96,7 @@ falsifier:
       tests/research/calibration/test_grid_kuramoto.py::test_r1_first_order_path_is_bit_stable
       tests/research/calibration/test_grid_kuramoto.py::test_gate_thresholds_are_frozen_values
       tests/research/calibration/test_grid_kuramoto.py::test_swing_pe_guard_fires_on_phase_locked_input
-      -q >/tmp/_calib_r1_rails.log 2>&1
-      && ! grep -q "4 passed" /tmp/_calib_r1_rails.log
+      -q >/tmp/_calib_r1_rails.log 2>&1 && ! grep -q "4 passed" /tmp/_calib_r1_rails.log
     '
   description: >-
     Probes four load-bearing R1 rails: the swing path flips
@@ -115,13 +111,11 @@ rollback_command: >-
     core/kuramoto/coupling_estimator.py
     research/calibration/grid_kuramoto/calibration.py
     research/calibration/grid_kuramoto/run.py
-    tests/research/calibration/test_grid_kuramoto.py
-    && rm -rf
+    tests/research/calibration/test_grid_kuramoto.py && rm -rf
     research/calibration/grid_kuramoto/r1
     .claude/commit_acceptors/calib-grid-001-r1.yaml'
 rollback_verification_command: >-
-  bash -c '! test -d research/calibration/grid_kuramoto/r1
-    && ! grep -q estimate_swing_coupling core/kuramoto/coupling_estimator.py'
+  bash -c '! test -d research/calibration/grid_kuramoto/r1 && ! grep -q estimate_swing_coupling core/kuramoto/coupling_estimator.py'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/calib-grid-001-r1.yaml"
 report_path: "tmp/calib_grid_001_r1.log"

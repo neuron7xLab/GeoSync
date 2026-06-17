@@ -111,7 +111,7 @@ measurement_command: >-
   -q'
 signal_artifact: "tmp/x10r_d002c_writer_sha_alignment.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from pathlib import Path
     import hashlib, json, tempfile

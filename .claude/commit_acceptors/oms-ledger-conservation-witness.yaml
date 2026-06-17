@@ -50,7 +50,7 @@ measurement_command: >-
   && grep -q "2 passed" tmp/oms_ledger_conservation_witness.log'
 signal_artifact: "tmp/oms_ledger_conservation_witness.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np
     from geosync_hpc.ledger import apply_fill, conservation_holds, initial_state, scale_bps, scale_price, scale_qty

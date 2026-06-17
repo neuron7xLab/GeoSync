@@ -52,8 +52,7 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    python tools/architecture_debt_inference.py --json >/dev/null
-    && python -m pytest -q tests/ci/test_architecture_debt_inference.py
+    python tools/architecture_debt_inference.py --json >/dev/null && python -m pytest -q tests/ci/test_architecture_debt_inference.py
   '
 
 signal_artifact: "tmp/architecture_debt_inference.log"
@@ -63,9 +62,7 @@ falsifier:
     bash -c '
       python -m pytest -q
         tests/ci/test_architecture_debt_inference.py::test_failing_measure_is_unknown_not_ok
-        >/dev/null 2>&1
-      && exit 1
-      || exit 0
+        >/dev/null 2>&1 && exit 1 || exit 0
     '
   description: >-
     Inverts the fail-closed guarantee: it succeeds (exit 0) only when the

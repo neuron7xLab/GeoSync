@@ -52,7 +52,7 @@ measurement_command: >-
   && grep -q "3 passed" tmp/ricci_synthetic_null_falsifier.log'
 signal_artifact: "tmp/ricci_synthetic_null_falsifier.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np;
     import tests.research_lines.test_ricci_microstructure_synthetic_falsifier as t;

@@ -58,10 +58,7 @@ expected_signal: >-
   files report all-passing with the 5 new closure tests included.
 measurement_command: >-
   bash -c '
-    mypy --strict core/indicators/multiscale_kuramoto.py core/agent/strategy.py
-    && ruff check core/indicators/multiscale_kuramoto.py core/agent/strategy.py
-    && black --check core/indicators/multiscale_kuramoto.py core/agent/strategy.py
-    && python -m pytest
+    mypy --strict core/indicators/multiscale_kuramoto.py core/agent/strategy.py && ruff check core/indicators/multiscale_kuramoto.py core/agent/strategy.py && black --check core/indicators/multiscale_kuramoto.py core/agent/strategy.py && python -m pytest
         tests/unit/test_indicators_kuramoto_multiscale.py
         tests/property/test_strategy_properties.py
         tests/unit/indicators/test_temporal_ricci.py
@@ -69,15 +66,15 @@ measurement_command: >-
   '
 signal_artifact: "tmp/close_partial_td.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      import numpy as np
-      from core.indicators.multiscale_kuramoto import WaveletWindowSelector
-      sel = WaveletWindowSelector(min_window=8, max_window=256)
-      w = sel.select_window(np.ones(2000, dtype=float))
-      import sys
-      sys.exit(0 if w <= sel.min_window else 1)
+    import numpy as np
+    from core.indicators.multiscale_kuramoto import WaveletWindowSelector
+    sel = WaveletWindowSelector(min_window=8, max_window=256)
+    w = sel.select_window(np.ones(2000, dtype=float))
+    import sys
+    sys.exit(0 if w <= sel.min_window else 1)
       "
     '
   description: >-
@@ -92,8 +89,7 @@ rollback_command: >-
     tests/unit/test_indicators_kuramoto_multiscale.py
     tests/property/test_strategy_properties.py
     tests/unit/indicators/test_temporal_ricci.py
-    tests/unit/test_indicators_ricci.py
-    && rm -f .claude/commit_acceptors/close-partial-td-002-003-005-009-017.yaml'
+    tests/unit/test_indicators_ricci.py && rm -f .claude/commit_acceptors/close-partial-td-002-003-005-009-017.yaml'
 rollback_verification_command: >-
   bash -c '! test -f .claude/commit_acceptors/close-partial-td-002-003-005-009-017.yaml'
 memory_update_type: append

@@ -98,10 +98,7 @@ measurement_command: >-
   bash -c '
     rm -rf .mypy_cache &&
     mypy --strict --follow-imports=silent
-      tests/meta/test_feedback_guards_are_live.py
-    && ruff check tests/meta/test_feedback_guards_are_live.py
-    && black --check tests/meta/test_feedback_guards_are_live.py
-    && git diff --exit-code origin/main --
+      tests/meta/test_feedback_guards_are_live.py && ruff check tests/meta/test_feedback_guards_are_live.py && black --check tests/meta/test_feedback_guards_are_live.py && git diff --exit-code origin/main --
        research/calibration/grid_kuramoto
        core/kuramoto/jax_engine.py
        core/kuramoto/coupling_estimator.py
@@ -112,8 +109,7 @@ measurement_command: >-
        tests/research/calibration/test_calib_amendment_001.py
        tests/research/calibration/test_calib_deterministic_reduction_f3.py
        tests/unit/core/test_kuramoto_coupling_strategy_registry.py
-       RIP
-    && python -m pytest tests/meta/test_feedback_guards_are_live.py -q
+       RIP && python -m pytest tests/meta/test_feedback_guards_are_live.py -q
   '
 signal_artifact: "tmp/adversarial_verify_feedback_guards.log"
 falsifier:
@@ -121,8 +117,7 @@ falsifier:
     bash -c '
       python -m pytest
       tests/meta/test_feedback_guards_are_live.py -q
-      >/tmp/_meta_guards.log 2>&1
-      ; ! grep -q "10 passed" /tmp/_meta_guards.log
+      >/tmp/_meta_guards.log 2>&1 ; ! grep -q "10 passed" /tmp/_meta_guards.log
     '
   description: >-
     Succeeds (exit 0) only when the meta-suite does NOT report all 10
@@ -135,8 +130,7 @@ rollback_command: >-
     tests/meta/test_feedback_guards_are_live.py
     .claude/commit_acceptors/adversarial-verify-feedback-guards.yaml'
 rollback_verification_command: >-
-  bash -c '! test -f tests/meta/test_feedback_guards_are_live.py
-    && ! test -f
+  bash -c '! test -f tests/meta/test_feedback_guards_are_live.py && ! test -f
     .claude/commit_acceptors/adversarial-verify-feedback-guards.yaml'
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/adversarial-verify-feedback-guards.yaml"

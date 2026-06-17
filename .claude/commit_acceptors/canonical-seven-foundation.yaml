@@ -81,8 +81,7 @@ measurement_command: >-
       research/systemic_risk/leakage_sentinel.py
       tests/research/systemic_risk/test_death_conditions.py
       tests/research/systemic_risk/test_evidence_ledger.py
-      tests/research/systemic_risk/test_leakage_sentinel.py
-    && python -m pytest
+      tests/research/systemic_risk/test_leakage_sentinel.py && python -m pytest
       tests/research/systemic_risk/test_death_conditions.py
       tests/research/systemic_risk/test_evidence_ledger.py
       tests/research/systemic_risk/test_leakage_sentinel.py -q
@@ -91,11 +90,9 @@ measurement_command: >-
 signal_artifact: "tmp/canonical_seven_foundation.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
-      python -c "from research.systemic_risk import EvidenceLedger, DeathConditionsRegistry, run_leakage_audit; assert EvidenceLedger is not None and DeathConditionsRegistry is not None and run_leakage_audit is not None" 2>/dev/null
-      && exit 1
-      || exit 0
+      python -c "from research.systemic_risk import EvidenceLedger, DeathConditionsRegistry, run_leakage_audit; assert EvidenceLedger is not None and DeathConditionsRegistry is not None and run_leakage_audit is not None" 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the three foundation primitives are exported from the
@@ -113,11 +110,10 @@ rollback_command: >-
       tests/research/systemic_risk/test_death_conditions.py
       tests/research/systemic_risk/test_evidence_ledger.py
       tests/research/systemic_risk/test_leakage_sentinel.py
-      .claude/commit_acceptors/canonical-seven-foundation.yaml
-    && git checkout HEAD~1 -- research/systemic_risk/__init__.py
+      .claude/commit_acceptors/canonical-seven-foundation.yaml && git checkout HEAD~1 -- research/systemic_risk/__init__.py
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
     try:

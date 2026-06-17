@@ -56,14 +56,14 @@ expected_signal: >-
   rules, and verification/conformance rules without claiming runtime, physics,
   market, or trading behavior changes.
 
-measurement_command: >-
+measurement_command: |-
   bash -c '
-    for f in
-      data/governance/fvps_agent_v2026_3.json
-      data/governance/fvps_max_inference_rank_prompt_v2026_4.json
-      data/governance/neuron7x_value_functions_v2026_5.json
-      data/governance/neuron7x_calibration_protocol_v2026_6.json
-      data/governance/neuron7x_filter_protocol_v2026_7.json
+    for f in \
+      data/governance/fvps_agent_v2026_3.json \
+      data/governance/fvps_max_inference_rank_prompt_v2026_4.json \
+      data/governance/neuron7x_value_functions_v2026_5.json \
+      data/governance/neuron7x_calibration_protocol_v2026_6.json \
+      data/governance/neuron7x_filter_protocol_v2026_7.json \
       data/governance/neuron7x_verification_protocol_v2026_8.json; do
       python -c "import json,sys; json.load(open(sys.argv[1]))" "$f" || exit 1
     done
@@ -115,11 +115,7 @@ rollback_command: >-
 
 rollback_verification_command: >-
   bash -c '
-    test ! -e data/governance/fvps_agent_v2026_3.json
-    && test ! -e data/governance/neuron7x_value_functions_v2026_5.json
-    && test ! -e data/governance/neuron7x_calibration_protocol_v2026_6.json
-    && test ! -e data/governance/neuron7x_filter_protocol_v2026_7.json
-    && test ! -e data/governance/neuron7x_verification_protocol_v2026_8.json
+    test ! -e data/governance/fvps_agent_v2026_3.json && test ! -e data/governance/neuron7x_value_functions_v2026_5.json && test ! -e data/governance/neuron7x_calibration_protocol_v2026_6.json && test ! -e data/governance/neuron7x_filter_protocol_v2026_7.json && test ! -e data/governance/neuron7x_verification_protocol_v2026_8.json
   '
 
 memory_update_type: append

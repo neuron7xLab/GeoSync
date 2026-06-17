@@ -64,7 +64,7 @@ measurement_command: >-
   && pytest tests/reconstruction/allocator/ -q'
 signal_artifact: "tmp/x10r_1_bank_level_audit.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np
     from research.reconstruction.allocator import (

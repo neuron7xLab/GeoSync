@@ -75,10 +75,7 @@ measurement_command: >-
   bash -c '
     mypy --strict --follow-imports=silent
       research/calibration/grid_kuramoto/
-      tests/research/calibration/test_grid_kuramoto.py
-    && ruff check research/calibration tests/research/calibration
-    && black --check research/calibration tests/research/calibration
-    && python -m pytest tests/research/calibration/ -q -m "not slow"
+      tests/research/calibration/test_grid_kuramoto.py && ruff check research/calibration tests/research/calibration && black --check research/calibration tests/research/calibration && python -m pytest tests/research/calibration/ -q -m "not slow"
   '
 signal_artifact: "tmp/calib_grid_001.log"
 falsifier:
@@ -88,8 +85,7 @@ falsifier:
       tests/research/calibration/test_grid_kuramoto.py::test_wscc9_verdict_is_negative_and_localized
       tests/research/calibration/test_grid_kuramoto.py::test_preregistration_matches_code
       tests/research/calibration/test_grid_kuramoto.py::test_identifiability_sweep_weak_regime
-      -q >/tmp/_calib_rails.log 2>&1
-      && ! grep -q "3 passed" /tmp/_calib_rails.log
+      -q >/tmp/_calib_rails.log 2>&1 && ! grep -q "3 passed" /tmp/_calib_rails.log
     '
   description: >-
     Probes three load-bearing rails: the WSCC-9 verdict is NEGATIVE

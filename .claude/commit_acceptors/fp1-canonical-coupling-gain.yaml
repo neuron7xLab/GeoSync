@@ -75,7 +75,7 @@ measurement_command: >-
   && grep -q "39 passed" tmp/fp1_canonical_coupling_gain.log'
 signal_artifact: "tmp/fp1_canonical_coupling_gain.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np, sys
     from core.kuramoto import KuramotoConfig, KuramotoEngine

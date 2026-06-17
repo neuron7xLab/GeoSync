@@ -95,7 +95,7 @@ measurement_command: >-
   python -m pytest tests/scripts/test_check_claims.py -v
 signal_artifact: "tmp/ierd_phase0_adoption_evidence.log"
 falsifier:
-  command: >-
+  command: |-
     python -c "
     import yaml, sys
     from pathlib import Path

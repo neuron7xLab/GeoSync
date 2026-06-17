@@ -172,7 +172,7 @@ measurement_command: >-
   tests/research/systemic_risk/test_d002c_sweep_runner.py -q'
 signal_artifact: "tests/research/systemic_risk/test_d002c_sweep_runner_preflight_integration.py"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import hashlib, json
     from pathlib import Path

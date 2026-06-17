@@ -60,13 +60,11 @@ expected_signal: >-
 measurement_command: >-
   bash -c 'mkdir -p tmp && python -m pytest
   tests/scripts/test_check_calibration_drift.py -v --no-header -o addopts=""
-  -p no:cacheprovider 2>&1 | grep -E "PASSED|FAILED|ERROR"
-  | sed -E "s/ +\[[0-9 ]+%\]//" > tmp/calibration_drift_pytest.log
-  && test "$(grep -c PASSED tmp/calibration_drift_pytest.log)" = "9"'
+  -p no:cacheprovider 2>&1 | grep -E "PASSED|FAILED|ERROR" | sed -E "s/ +\[[0-9 ]+%\]//" > tmp/calibration_drift_pytest.log && test "$(grep -c PASSED tmp/calibration_drift_pytest.log)" = "9"'
 signal_artifact: "tmp/calibration_drift_pytest.log"
 falsifier:
-  command: >-
-    bash -c 'python - <<PY
+  command: |-
+    bash -c 'python - <<'\''PY'\''
     import sys, tempfile, pathlib, importlib.util, yaml
     root = pathlib.Path(".").resolve()
     spec = importlib.util.spec_from_file_location(
@@ -92,11 +90,9 @@ rollback_command: >-
   bash -c 'git rm -f governance/CALIBRATIONS.yaml
   scripts/ci/check_calibration_drift.py
   tests/scripts/test_check_calibration_drift.py
-  .claude/commit_acceptors/calibration-drift-gate.yaml
-  && git checkout .github/workflows/research-integrity-gate.yml INVENTORY.json'
+  .claude/commit_acceptors/calibration-drift-gate.yaml && git checkout .github/workflows/research-integrity-gate.yml INVENTORY.json'
 rollback_verification_command: >-
-  bash -c 'test ! -f scripts/ci/check_calibration_drift.py
-  && test ! -f governance/CALIBRATIONS.yaml'
+  bash -c 'test ! -f scripts/ci/check_calibration_drift.py && test ! -f governance/CALIBRATIONS.yaml'
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/calibration-drift-gate.yaml"
 report_path: "tmp/calibration_drift_pytest.log"

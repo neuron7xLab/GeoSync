@@ -45,8 +45,7 @@ measurement_command: >-
   bash -c '
     PYTHONPATH=. python -m pytest -q
       tests/unit/validation/test_neuro_integrity.py
-      tests/core/validation/test_neuro_integrity.py
-      | tee tmp/neuro_integrity_correlation_witness.log
+      tests/core/validation/test_neuro_integrity.py | tee tmp/neuro_integrity_correlation_witness.log
   '
 
 signal_artifact: "tmp/neuro_integrity_correlation_witness.log"
@@ -80,14 +79,12 @@ rollback_command: >-
     git checkout origin/main --
       core/validation/neuro_integrity.py
       tests/unit/validation/test_neuro_integrity.py
-      tests/core/validation/test_neuro_integrity.py
-    && git rm -f .claude/commit_acceptors/neuro-integrity-correlation-witness.yaml
+      tests/core/validation/test_neuro_integrity.py && git rm -f .claude/commit_acceptors/neuro-integrity-correlation-witness.yaml
   '
 
 rollback_verification_command: >-
   bash -c '
-    test ! -e .claude/commit_acceptors/neuro-integrity-correlation-witness.yaml
-    && git diff --exit-code origin/main -- core/validation/neuro_integrity.py
+    test ! -e .claude/commit_acceptors/neuro-integrity-correlation-witness.yaml && git diff --exit-code origin/main -- core/validation/neuro_integrity.py
   '
 
 memory_update_type: none

@@ -93,7 +93,7 @@ measurement_command: >-
   && grep -qE "52 passed" tmp/multiscale_network_honesty_pytest.log'
 signal_artifact: "tmp/multiscale_network_honesty_pytest.log"
 falsifier:
-  command: >-
+  command: |-
     python -c 'import sys, numpy as np;
     from core.indicators.multiscale_kuramoto import MultiScaleResult;
     from core.kuramoto.network_engine import NetworkKuramotoEngine;

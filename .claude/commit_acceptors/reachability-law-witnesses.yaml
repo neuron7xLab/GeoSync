@@ -65,7 +65,7 @@ measurement_command: >-
   && grep -q "2 passed" tmp/reachability_law_witnesses.log'
 signal_artifact: "tmp/reachability_law_witnesses.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import numpy as np, sys
     from core.dro_ara.engine import RS_LONG_THRESH, Regime, Signal, geosync_observe

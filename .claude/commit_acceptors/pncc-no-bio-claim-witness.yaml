@@ -50,7 +50,7 @@ measurement_command: >-
   && grep -q "1 passed" tmp/pncc_no_bio_claim_witness.log'
 signal_artifact: "tmp/pncc_no_bio_claim_witness.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import tempfile, pathlib
     from tacl.evidence_ledger import scan_source_for_bio_claims

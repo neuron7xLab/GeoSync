@@ -59,18 +59,15 @@ measurement_command: >-
   bash -c '
     mypy --strict
       research/systemic_risk/canonical_seven.py
-      tests/research/systemic_risk/test_canonical_seven.py
-    && python -m pytest tests/research/systemic_risk/test_canonical_seven.py -q
+      tests/research/systemic_risk/test_canonical_seven.py && python -m pytest tests/research/systemic_risk/test_canonical_seven.py -q
   '
 
 signal_artifact: "tmp/canonical_seven_orchestrator.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
-      python -c "from research.systemic_risk import run_canonical_seven, CanonicalSevenInputs, GovernanceFSM; assert run_canonical_seven(inputs=CanonicalSevenInputs(), fsm_before=GovernanceFSM.initial()).fsm_after.state == \"IDEA\"" 2>/dev/null
-      && exit 1
-      || exit 0
+      python -c "from research.systemic_risk import run_canonical_seven, CanonicalSevenInputs, GovernanceFSM; assert run_canonical_seven(inputs=CanonicalSevenInputs(), fsm_before=GovernanceFSM.initial()).fsm_after.state == \"IDEA\"" 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the orchestrator runs end-to-end on empty inputs and
@@ -82,11 +79,10 @@ rollback_command: >-
     git rm -f
       research/systemic_risk/canonical_seven.py
       tests/research/systemic_risk/test_canonical_seven.py
-      .claude/commit_acceptors/canonical-seven-orchestrator.yaml
-    && git checkout HEAD~1 -- research/systemic_risk/__init__.py
+      .claude/commit_acceptors/canonical-seven-orchestrator.yaml && git checkout HEAD~1 -- research/systemic_risk/__init__.py
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
     try:

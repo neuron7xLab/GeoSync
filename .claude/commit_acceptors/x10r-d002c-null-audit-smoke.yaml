@@ -154,7 +154,7 @@ measurement_command: >-
   tests/research/systemic_risk/test_d002c_smoke_test.py -q'
 signal_artifact: "tests/research/systemic_risk/test_d002c_null_audit.py"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import numpy as np
     from research.systemic_risk.d002c_null_audit import (

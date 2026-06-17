@@ -61,19 +61,16 @@ expected_signal: >-
 
 measurement_command: >-
   bash -c '
-    mypy --strict core/energy.py
-    && python -m pytest
+    mypy --strict core/energy.py && python -m pytest
       tests/physics/test_energy_contract.py tests/test_energy.py -q
   '
 
 signal_artifact: "tmp/energy_ontology_contract.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
-      python -c "from core.energy import thermo_free_energy, operational_cost_energy, system_free_energy, ENERGY_UNITS; assert system_free_energy is operational_cost_energy; assert ENERGY_UNITS == \"dimensionless\"; assert thermo_free_energy(1.0,300.0,0.9) < thermo_free_energy(1.0,300.0,0.1)" 2>/dev/null
-      && exit 1
-      || exit 0
+      python -c "from core.energy import thermo_free_energy, operational_cost_energy, system_free_energy, ENERGY_UNITS; assert system_free_energy is operational_cost_energy; assert ENERGY_UNITS == \"dimensionless\"; assert thermo_free_energy(1.0,300.0,0.9) < thermo_free_energy(1.0,300.0,0.1)" 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the canonical thermo free energy decreases in entropy, the
@@ -82,16 +79,13 @@ falsifier:
 
 rollback_command: >-
   bash -c '
-    git checkout HEAD~1 -- core/energy.py
-    && git rm -f tests/physics/test_energy_contract.py
+    git checkout HEAD~1 -- core/energy.py && git rm -f tests/physics/test_energy_contract.py
       .claude/commit_acceptors/energy-ontology-contract.yaml
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
-    python -c "from core.energy import thermo_free_energy" 2>/dev/null
-    && exit 1
-    || exit 0
+    python -c "from core.energy import thermo_free_energy" 2>/dev/null && exit 1 || exit 0
   '
 
 memory_update_type: append

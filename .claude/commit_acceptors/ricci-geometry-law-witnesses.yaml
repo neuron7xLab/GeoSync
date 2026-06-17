@@ -54,7 +54,7 @@ measurement_command: >-
   && grep -q "2 passed" tmp/ricci_geometry_law_witnesses.log'
 signal_artifact: "tmp/ricci_geometry_law_witnesses.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     import networkx as nx;
     import tests.physics_contracts.test_ricci_geometry_witnesses as t;

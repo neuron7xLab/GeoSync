@@ -69,29 +69,29 @@ measurement_command: >-
 signal_artifact: "tmp/fractal_audit_clock_di.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
       python -c "
-      import ast, pathlib, sys
-      OFFENDERS = (
-          \"runtime/kill_switch.py\",
-          \"runtime/rebus_gate.py\",
-          \"runtime/adaptive_system_manager.py\",
-          \"runtime/thermo_controller.py\",
-          \"core/neuro/cryptobiosis.py\",
-          \"core/engine/core.py\",
-      )
-      bad = []
-      for f in OFFENDERS:
-          src = pathlib.Path(f).read_text()
-          tree = ast.parse(src)
-          for node in ast.walk(tree):
-              if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
-                  if node.value.id == \"time\" and node.attr in {\"time\", \"monotonic\", \"perf_counter\"}:
-                      bad.append((f, node.lineno))
-                  if node.value.id == \"datetime\" and node.attr in {\"now\", \"utcnow\"}:
-                      bad.append((f, node.lineno))
-      sys.exit(0 if bad else 1)
+    import ast, pathlib, sys
+    OFFENDERS = (
+        \"runtime/kill_switch.py\",
+        \"runtime/rebus_gate.py\",
+        \"runtime/adaptive_system_manager.py\",
+        \"runtime/thermo_controller.py\",
+        \"core/neuro/cryptobiosis.py\",
+        \"core/engine/core.py\",
+    )
+    bad = []
+    for f in OFFENDERS:
+        src = pathlib.Path(f).read_text()
+        tree = ast.parse(src)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+                if node.value.id == \"time\" and node.attr in {\"time\", \"monotonic\", \"perf_counter\"}:
+                    bad.append((f, node.lineno))
+                if node.value.id == \"datetime\" and node.attr in {\"now\", \"utcnow\"}:
+                    bad.append((f, node.lineno))
+    sys.exit(0 if bad else 1)
       "
     '
   description: >-
@@ -109,8 +109,7 @@ rollback_command: >-
       runtime/adaptive_system_manager.py
       runtime/kill_switch.py
       runtime/rebus_gate.py
-      runtime/thermo_controller.py
-    && git rm -f
+      runtime/thermo_controller.py && git rm -f
       formal/micro_dynamic_bug_fractal_audit.md
       tests/integration/test_fractal_audit_determinism.py
       .claude/commit_acceptors/fractal-audit-clock-di.yaml
@@ -118,8 +117,7 @@ rollback_command: >-
 
 rollback_verification_command: >-
   bash -c '
-    grep -Eq "(^|[^_a-zA-Z0-9])time\.time\(\)" runtime/kill_switch.py
-    && grep -Eq "datetime\.now\(timezone\.utc\)" core/engine/core.py
+    grep -Eq "(^|[^_a-zA-Z0-9])time\.time\(\)" runtime/kill_switch.py && grep -Eq "datetime\.now\(timezone\.utc\)" core/engine/core.py
   '
 
 memory_update_type: append

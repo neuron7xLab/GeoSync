@@ -22,6 +22,10 @@
       "sha256": "b2a4f9f0eb7679aecd9b0236519ec9d4c7edc9cdc00a0755909859b2de65df3e"
     },
     {
+      "path": "scripts/ci/check_acceptor_command_syntax.py",
+      "sha256": "02e7509bc4f3bea8f6576aea0b8b297baf71ce5c829e8ff382de0737a0f667c8"
+    },
+    {
       "path": "scripts/ci/check_calibration_drift.py",
       "sha256": "e2ffd3ad4aa8e4c2969687fb60ccb0ca0cb56d6e95d06e42d1faa14d7d531e30"
     },
@@ -120,6 +124,10 @@
     {
       "path": "scripts/ci/external_run_intake.py",
       "sha256": "2f384ef49ee8051cb157a24387985a54361d8402db5ff01880bfdac64f7dbb22"
+    },
+    {
+      "path": "scripts/ci/gate6_sensitivity_surface_falsifier.py",
+      "sha256": "c9ca39139bc360c742f06350e23c086cb8c8a9eeea4d1d09b7998d16d1d0acdf"
     },
     {
       "path": "scripts/ci/lint_forbidden_terms.py",

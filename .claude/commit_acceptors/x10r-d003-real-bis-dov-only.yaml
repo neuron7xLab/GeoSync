@@ -112,7 +112,7 @@ measurement_command: >-
   && pytest tests/reconstruction/test_x10r_d003_dov_dry_run.py -q'
 signal_artifact: "tmp/x10r_d003_dov_dry_run_capsule.json"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import importlib.util, json, tempfile
     from pathlib import Path
@@ -126,11 +126,12 @@ falsifier:
         capsule = m.run_dry_run(
             marginals_path=None, certificate_path=None, out_path=out_path
         )
-    assert capsule[\"scoped_tier\"] in {
+    tier = capsule[\"scoped_tier\"]
+    assert tier in {
         \"within_validated_domain\",
         \"out_of_validated_domain\",
         \"insufficient_certificate\",
-    }, f\"forbidden tier emitted: {capsule[\\\"scoped_tier\\\"]}\"
+    }, f\"forbidden tier emitted: {tier}\"
     assert capsule[\"gate_6_invoked\"] is False, \"Gate 6 was invoked\"
     assert capsule[\"bank_level_claim_emitted\"] is False, \"bank-level claim emitted\"
     assert capsule[\"inv_identification_1_status\"] == \"globally_active\", \"INV-IDENTIFICATION-1 not globally_active\"

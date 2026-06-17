@@ -66,18 +66,15 @@ measurement_command: >-
   bash -c '
     mypy --strict
       research/systemic_risk/governance_fsm.py
-      tests/research/systemic_risk/test_governance_fsm.py
-    && python -m pytest tests/research/systemic_risk/test_governance_fsm.py -q
+      tests/research/systemic_risk/test_governance_fsm.py && python -m pytest tests/research/systemic_risk/test_governance_fsm.py -q
   '
 
 signal_artifact: "tmp/governance_fsm.log"
 
 falsifier:
-  command: >-
+  command: |-
     bash -c '
-      python -c "from research.systemic_risk import GovernanceFSM, PROMOTABLE_LADDER; assert len(PROMOTABLE_LADDER) >= 6 and GovernanceFSM.initial().state == \"IDEA\"" 2>/dev/null
-      && exit 1
-      || exit 0
+      python -c "from research.systemic_risk import GovernanceFSM, PROMOTABLE_LADDER; assert len(PROMOTABLE_LADDER) >= 6 and GovernanceFSM.initial().state == \"IDEA\"" 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes the FSM and ladder are exposed and the initial state is
@@ -90,11 +87,10 @@ rollback_command: >-
     git rm -f
       research/systemic_risk/governance_fsm.py
       tests/research/systemic_risk/test_governance_fsm.py
-      .claude/commit_acceptors/governance-fsm.yaml
-    && git checkout HEAD~1 -- research/systemic_risk/__init__.py
+      .claude/commit_acceptors/governance-fsm.yaml && git checkout HEAD~1 -- research/systemic_risk/__init__.py
   '
 
-rollback_verification_command: >-
+rollback_verification_command: |-
   bash -c '
     python -c "
     try:

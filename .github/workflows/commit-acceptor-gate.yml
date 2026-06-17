@@ -24,6 +24,8 @@ jobs:
           python -m pip install pyyaml types-PyYAML black ruff mypy pytest pydantic
       - name: Validate acceptors (static schema)
         run: python tools/commit_acceptor/validate_commit_acceptor.py
+      - name: Validate acceptor command syntax (python + bash)
+        run: python scripts/ci/check_acceptor_command_syntax.py
       - name: Validate diff binding (require acceptor)
         run: |
           git fetch origin main:refs/remotes/origin/main || true

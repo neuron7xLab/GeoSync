@@ -60,7 +60,7 @@ measurement_command: >-
   && grep -qE "17 passed" tmp/threshold_calibration_pytest.log'
 signal_artifact: "tmp/threshold_calibration_pytest.log"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'python -c "
     from analytics.signals.threshold_calibration import calibrate_threshold
     import sys

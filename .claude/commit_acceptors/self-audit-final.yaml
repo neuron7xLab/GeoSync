@@ -59,9 +59,7 @@ signal_artifact: "tmp/self_audit_final.log"
 falsifier:
   command: >-
     bash -c '
-      grep -q "Outstanding gaps" research/systemic_risk/LIMITATIONS.md 2>/dev/null
-      && exit 1
-      || exit 0
+      grep -q "Outstanding gaps" research/systemic_risk/LIMITATIONS.md 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that LIMITATIONS § 6 was added. Falsifier inverts: it
@@ -72,8 +70,7 @@ rollback_command: >-
   bash -c '
     git rm -f
       research/systemic_risk/SELF_AUDIT_2026-05-08.md
-      .claude/commit_acceptors/self-audit-final.yaml
-    && git checkout HEAD~1 -- research/systemic_risk/LIMITATIONS.md
+      .claude/commit_acceptors/self-audit-final.yaml && git checkout HEAD~1 -- research/systemic_risk/LIMITATIONS.md
   '
 
 rollback_verification_command: >-

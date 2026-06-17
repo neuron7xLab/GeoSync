@@ -145,7 +145,7 @@ measurement_command: >-
   && test -f docs/governance/D002C_NULL_AUDIT_DATA_CONTRACT.md'
 signal_artifact: "tests/research/systemic_risk/test_d002c_null_audit_aggregator_integration.py"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import os, json, hashlib, tempfile
     from pathlib import Path

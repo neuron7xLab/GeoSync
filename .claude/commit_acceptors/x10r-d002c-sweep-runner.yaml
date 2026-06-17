@@ -181,7 +181,7 @@ measurement_command: >-
   tests/audit/test_false_confidence_detector.py -q'
 signal_artifact: "tests/research/systemic_risk/test_d002c_sweep_runner.py"
 falsifier:
-  command: >-
+  command: |-
     bash -c 'PYTHONPATH=. python -c "
     import math, tempfile
     from pathlib import Path

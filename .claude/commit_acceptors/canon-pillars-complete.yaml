@@ -53,9 +53,7 @@ signal_artifact: "tmp/canon_pillars_complete.log"
 falsifier:
   command: >-
     bash -c '
-      grep -q "Canonical Seven — Complete" research/systemic_risk/CANON.md 2>/dev/null
-      && exit 1
-      || exit 0
+      grep -q "Canonical Seven — Complete" research/systemic_risk/CANON.md 2>/dev/null && exit 1 || exit 0
     '
   description: >-
     Probes that the title was updated. Falsifier inverts: it succeeds
@@ -64,8 +62,7 @@ falsifier:
 
 rollback_command: >-
   bash -c '
-    git checkout HEAD~1 -- research/systemic_risk/CANON.md
-    && git rm -f .claude/commit_acceptors/canon-pillars-complete.yaml
+    git checkout HEAD~1 -- research/systemic_risk/CANON.md && git rm -f .claude/commit_acceptors/canon-pillars-complete.yaml
   '
 
 rollback_verification_command: >-
