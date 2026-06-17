@@ -59,7 +59,7 @@ _PREREG = (
 
 
 def test_wscc9_contract_invariants() -> None:
-    """WSCC-9 fixture is a valid 3-node symmetric lossless system."""
+    """NON_PHYSICS: grid-fixture contract validation (shape/symmetry), not a registered physics invariant. WSCC-9 fixture is a valid 3-node symmetric lossless system."""
     sys = wscc_9_bus()
     assert sys.n == 3
     assert sys.susceptance.shape == (3, 3)
@@ -73,7 +73,7 @@ def test_wscc9_contract_invariants() -> None:
 
 
 def test_ieee39_contract_invariants() -> None:
-    """IEEE-39 fixture is a valid 10-node symmetric system."""
+    """NON_PHYSICS: grid-fixture contract validation, not a registered physics invariant. IEEE-39 fixture is a valid 10-node symmetric system."""
     sys = ieee_39_new_england()
     assert sys.n == 10
     np.testing.assert_allclose(sys.susceptance, sys.susceptance.T, atol=1e-12)
@@ -84,7 +84,7 @@ def test_ieee39_contract_invariants() -> None:
 
 @pytest.mark.parametrize("bad", ["susceptance", "voltage", "inertia"])
 def test_gridsystem_rejects_malformed(bad: str) -> None:
-    """GridSystem fails closed on contract violations."""
+    """NON_PHYSICS: GridSystem fail-closed input guard, not a registered physics invariant. GridSystem fails closed on contract violations."""
     sys = wscc_9_bus()
     kw: dict[str, Any] = {
         "name": sys.name,
@@ -115,7 +115,7 @@ def test_gridsystem_rejects_malformed(bad: str) -> None:
 
 
 def test_coupling_formula_exact() -> None:
-    """K_ij = |V_i||V_j|B_ij to float precision (Dörfler–Bullo Eq. (2))."""
+    """NON_PHYSICS: Dorfler-Bullo coupling-reduction algebra (calibration formula), not a registered physics invariant. K_ij = |V_i||V_j|B_ij to float precision (Dörfler–Bullo Eq. (2))."""
     sys = wscc_9_bus()
     k = coupling_from_susceptance(sys.susceptance, sys.voltage)
     for i in range(sys.n):
@@ -129,7 +129,7 @@ def test_coupling_formula_exact() -> None:
 
 
 def test_natural_frequency_mean_centred() -> None:
-    """ω_i = P_i/d_i, then mean-removed (rotating reference gauge)."""
+    """NON_PHYSICS: natural-frequency gauge reduction (calibration formula), not a registered physics invariant. ω_i = P_i/d_i, then mean-removed (rotating reference gauge)."""
     sys = wscc_9_bus()
     w = natural_frequency_from_injection(sys.injection, sys.damping)
     assert abs(float(np.mean(w))) < 1e-12
@@ -139,7 +139,7 @@ def test_natural_frequency_mean_centred() -> None:
 
 
 def test_dorfler_bullo_uniform_scale_invariance() -> None:
-    """s_crit scales exactly as 1/s under uniform K↦sK (Eq. (3))."""
+    """NON_PHYSICS: critical-coupling scale-invariance algebra (calibration formula), not a registered physics invariant. s_crit scales exactly as 1/s under uniform K↦sK (Eq. (3))."""
     sys = wscc_9_bus()
     k = coupling_from_susceptance(sys.susceptance, sys.voltage)
     w = natural_frequency_from_injection(sys.injection, sys.damping)
@@ -150,7 +150,7 @@ def test_dorfler_bullo_uniform_scale_invariance() -> None:
 
 
 def test_dorfler_bullo_disconnected_fails_closed() -> None:
-    """Disconnected coupling graph → ValueError (no silent best-effort)."""
+    """NON_PHYSICS: disconnected-graph fail-closed guard, not a registered physics invariant. Disconnected coupling graph → ValueError (no silent best-effort)."""
     k = np.zeros((4, 4), dtype=np.float64)
     k[0, 1] = k[1, 0] = 1.0  # {0,1} isolated from {2,3}
     w = np.array([0.1, -0.1, 0.2, -0.2], dtype=np.float64)
@@ -187,7 +187,8 @@ def _first_order_traj(k: np.ndarray, w: np.ndarray, dt: float, n: int, seed: int
 @settings(max_examples=8, deadline=None)
 @given(seed=st.integers(min_value=0, max_value=2**31 - 1))
 def test_property_weak_coupling_topology_recovered(seed: int) -> None:
-    """In the estimator's design regime (weak, non-locked, matched
+    """NON_PHYSICS: estimator topology-recovery soundness (calibration instrument), not a registered physics invariant.
+    In the estimator's design regime (weak, non-locked, matched
     first-order model) the *topology support* of a 3-node chain is
     recovered: the present edge survives, the absent edge stays absent.
 
@@ -227,7 +228,7 @@ def test_property_weak_coupling_topology_recovered(seed: int) -> None:
 
 
 def test_preregistration_matches_code() -> None:
-    """PREREGISTRATION.md gate table mirrors gates.py byte-for-numeric."""
+    """NON_PHYSICS: pre-registration vs code agreement (admissibility infra), not a registered physics invariant. PREREGISTRATION.md gate table mirrors gates.py byte-for-numeric."""
     text = _PREREG.read_text(encoding="utf-8")
     for gate in (*NOISELESS_GATES, *NOISY_GATES):
         # The gate name and its threshold must both appear in the doc,
@@ -246,7 +247,7 @@ def test_preregistration_matches_code() -> None:
 
 
 def test_gate_thresholds_are_frozen_values() -> None:
-    """Lock the exact pre-registered numbers (post-data edit detector)."""
+    """NON_PHYSICS: frozen-gate post-data-edit detector (admissibility infra), not a registered physics invariant. Lock the exact pre-registered numbers (post-data edit detector)."""
     nl = {g.name: (g.operator, g.threshold) for g in NOISELESS_GATES}
     ny = {g.name: (g.operator, g.threshold) for g in NOISY_GATES}
     assert nl == {
@@ -267,7 +268,7 @@ def test_gate_thresholds_are_frozen_values() -> None:
 
 @pytest.mark.slow
 def test_calibration_deterministic() -> None:
-    """Seeded calibration is bit-reproducible across two runs."""
+    """NON_PHYSICS: calibration-loop determinism (reproducibility infra), not a registered physics invariant. Seeded calibration is bit-reproducible across two runs."""
     sys = wscc_9_bus()
     cfg = SimConfig()
     a = run_calibration(sys, cfg, noisy=False)
@@ -279,7 +280,8 @@ def test_calibration_deterministic() -> None:
 
 @pytest.mark.slow
 def test_wscc9_verdict_is_negative_and_localized() -> None:
-    """The pre-registered WSCC-9 calibration lands a NEGATIVE artifact
+    """NON_PHYSICS: pinned NEGATIVE calibration verdict (admissibility ledger), not a registered physics invariant.
+    The pre-registered WSCC-9 calibration lands a NEGATIVE artifact
     whose failing gates name a concrete refinement target.
 
     This asserts the *honest* outcome: topology support is recovered
@@ -310,7 +312,7 @@ def test_wscc9_verdict_is_negative_and_localized() -> None:
 
 
 def test_ledger_is_machine_readable_and_sha_pinned() -> None:
-    """build_ledger emits a JSON-serialisable, sha-pinned NEGATIVE ledger."""
+    """NON_PHYSICS: sha-pinned ledger serialization (admissibility infra), not a registered physics invariant. build_ledger emits a JSON-serialisable, sha-pinned NEGATIVE ledger."""
     sys = wscc_9_bus()
     ledger = build_ledger(sys, SimConfig())
     blob = json.dumps(ledger, sort_keys=True)
@@ -327,7 +329,8 @@ def test_ledger_is_machine_readable_and_sha_pinned() -> None:
 
 @pytest.mark.slow
 def test_identifiability_sweep_weak_regime() -> None:
-    """The estimator *does* recover K in its design regime.
+    """NON_PHYSICS: estimator design-regime recovery (calibration instrument), not a registered physics invariant.
+    The estimator *does* recover K in its design regime.
 
     Weak coupling on a *matched first-order* model keeps the trajectory
     non-phase-locked (persistently excited); the row design then has
@@ -367,7 +370,8 @@ def test_identifiability_sweep_weak_regime() -> None:
 
 @pytest.mark.slow
 def test_ieee39_calibration_runs_and_is_scored() -> None:
-    """Heavy IEEE-39 fixture runs end-to-end and produces finite metrics.
+    """NON_PHYSICS: IEEE-39 calibration end-to-end smoke (instrument scaling), not a registered physics invariant.
+    Heavy IEEE-39 fixture runs end-to-end and produces finite metrics.
 
     Not part of the pre-registered WSCC-9 verdict; this only checks the
     loop scales to a 10-machine system and the ledger stays well-formed.
@@ -441,7 +445,8 @@ def _wrap_pm(traj: np.ndarray, dt: float, ids: tuple[str, ...]) -> PhaseMatrix:
 @settings(max_examples=6, deadline=None)
 @given(seed=st.integers(min_value=0, max_value=2**31 - 1))
 def test_property_swing_exact_recovery_matched_noiseless(seed: int) -> None:
-    """Noiseless, *matched* full-swing data → tight (K, P, ω) recovery.
+    """NON_PHYSICS: swing-estimator recovery soundness (calibration instrument), not a registered physics invariant.
+    Noiseless, *matched* full-swing data → tight (K, P, ω) recovery.
 
     On a well-excited (non-phase-locked) trajectory generated by the
     exact swing model, the swing-aware symmetric estimator recovers the
@@ -492,7 +497,8 @@ def test_property_swing_exact_recovery_matched_noiseless(seed: int) -> None:
 
 
 def test_swing_pe_guard_fires_on_phase_locked_input() -> None:
-    """A constructed phase-locked trajectory trips the PE guard.
+    """NON_PHYSICS: persistent-excitation fail-closed guard, not a registered physics invariant.
+    A constructed phase-locked trajectory trips the PE guard.
 
     When every relative angle is constant the regressor columns
     ``sin(θ_i−θ_j)`` are constant: the design is rank-deficient and the
@@ -521,7 +527,7 @@ def test_swing_pe_guard_fires_on_phase_locked_input() -> None:
 
 
 def test_swing_estimator_contract_fail_closed() -> None:
-    """Swing estimator rejects contract violations (no silent repair)."""
+    """NON_PHYSICS: swing-estimator contract guard, not a registered physics invariant. Swing estimator rejects contract violations (no silent repair)."""
     pm = _wrap_pm(
         _swing_traj(
             np.array([[0.0, 0.5], [0.5, 0.0]]),
@@ -547,7 +553,8 @@ def test_swing_estimator_contract_fail_closed() -> None:
 
 @pytest.mark.slow
 def test_r1_swing_path_closes_noiseless_frobenius_gate() -> None:
-    """R1 fact-pin: the swing path flips `noiseless.frobenius` to PASS.
+    """NON_PHYSICS: R1 gate fact-pin (admissibility ledger), not a registered physics invariant.
+    R1 fact-pin: the swing path flips `noiseless.frobenius` to PASS.
 
     Estimator-only change, frozen gates. This pins the *measured* R1
     outcome so a future regression of the swing path is caught: the
@@ -576,7 +583,8 @@ def test_r1_swing_path_closes_noiseless_frobenius_gate() -> None:
 
 
 def test_r1_first_order_path_is_bit_stable() -> None:
-    """The frozen first-order NEGATIVE artifact is unchanged by R1.
+    """NON_PHYSICS: frozen-artifact bit-stability detector (admissibility infra), not a registered physics invariant.
+    The frozen first-order NEGATIVE artifact is unchanged by R1.
 
     The default `estimator_path="first_order"` must reproduce the
     pre-registered parent metrics so the frozen-gate drift discipline
@@ -594,7 +602,8 @@ def test_r1_first_order_path_is_bit_stable() -> None:
 
 @pytest.mark.slow
 def test_r1_ledger_is_machine_readable_and_sha_pinned() -> None:
-    """build_r1_ledger emits a JSON-serialisable, sha-pinned R1 ledger.
+    """NON_PHYSICS: R1 sha-pinned ledger serialization (admissibility infra), not a registered physics invariant.
+    build_r1_ledger emits a JSON-serialisable, sha-pinned R1 ledger.
 
     Cites the frozen pre-registration and parent ledger sha; the gate
     thresholds are read (not redefined) so the verdict cannot drift.
@@ -646,7 +655,8 @@ def _deep_close(a: Any, b: Any, *, rel: float = 1e-6, abs_: float = 1e-9) -> boo
 
 
 def test_r1_results_json_matches_committed_artifact() -> None:
-    """The committed r1/RESULTS.json verdict/gates match a fresh build.
+    """NON_PHYSICS: committed-artifact post-data-edit detector (admissibility infra), not a registered physics invariant.
+    The committed r1/RESULTS.json verdict/gates match a fresh build.
 
     Determinism + post-data-edit detector for the R1 artifact: the
     sha-pinned file must reproduce (gate names, observed values, pass
@@ -675,7 +685,8 @@ def test_r1_results_json_matches_committed_artifact() -> None:
 
 @pytest.mark.slow
 def test_front_gate_accepts_noiseless_refuses_noisy() -> None:
-    """The two pre-registered cases: noiseless ACCEPT, σ=0.02 REFUSE.
+    """NON_PHYSICS: identifiability front-gate envelope (calibration instrument), not a registered physics invariant.
+    The two pre-registered cases: noiseless ACCEPT, σ=0.02 REFUSE.
 
     Instrument-honesty validation (MEASURED tier). It does NOT touch the
     frozen pre-registration/gates/seeds/σ/θ₀ and does NOT close the
@@ -721,7 +732,8 @@ def test_front_gate_accepts_noiseless_refuses_noisy() -> None:
 
 @pytest.mark.slow
 def test_front_gate_does_not_close_frozen_noisy_gate() -> None:
-    """The frozen `noisy.frobenius` gate STAYS NEGATIVE (not closed).
+    """NON_PHYSICS: frozen-gate non-interference rail (admissibility infra), not a registered physics invariant.
+    The frozen `noisy.frobenius` gate STAYS NEGATIVE (not closed).
 
     Explicit honesty rail: the upgrade makes the noisy failure
     self-evident; it must NOT improve the frozen metric. The swing
@@ -759,7 +771,8 @@ def test_front_gate_does_not_close_frozen_noisy_gate() -> None:
 
 @pytest.mark.slow
 def test_front_gate_first_order_path_bit_stable() -> None:
-    """The default first-order frozen artifact is byte-unchanged.
+    """NON_PHYSICS: frozen first-order artifact bit-stability detector (admissibility infra), not a registered physics invariant.
+    The default first-order frozen artifact is byte-unchanged.
 
     The identifiability gate is opt-in and only on the symmetric swing
     path; the frozen first-order CALIB-GRID-001 ledger must reproduce
@@ -777,7 +790,8 @@ def test_front_gate_first_order_path_bit_stable() -> None:
 
 @pytest.mark.slow
 def test_identifiability_results_json_matches_committed_artifact() -> None:
-    """Committed identifiability/RESULTS.json reproduces (post-edit detector).
+    """NON_PHYSICS: committed identifiability-artifact detector (admissibility infra), not a registered physics invariant.
+    Committed identifiability/RESULTS.json reproduces (post-edit detector).
 
     Structure-exact, numeric-tolerant: verdicts and scores must
     reproduce; ``branch_sha`` / ``ledger_sha256`` legitimately move with
@@ -819,7 +833,8 @@ _CG002_PREREG = (
 
 
 def test_cg002_preregistration_matches_code() -> None:
-    """No-peek: PREREGISTRATION_002.yaml mirrors cg002.py constants.
+    """NON_PHYSICS: CG002 pre-registration vs code agreement (admissibility infra), not a registered physics invariant.
+    No-peek: PREREGISTRATION_002.yaml mirrors cg002.py constants.
 
     Binds the frozen weak-form solver constants and every gate
     threshold to the pre-registered document. Changing either side
@@ -852,7 +867,7 @@ def test_cg002_preregistration_matches_code() -> None:
 
 
 def test_cg002_gate_thresholds_are_frozen_values() -> None:
-    """Lock the exact pre-registered CG002 numbers (post-data detector)."""
+    """NON_PHYSICS: CG002 frozen-gate post-data detector (admissibility infra), not a registered physics invariant. Lock the exact pre-registered CG002 numbers (post-data detector)."""
     from research.calibration.grid_kuramoto.cg002.cg002 import (
         CG002_NOISELESS_GATES,
         CG002_NOISY_GATES,
@@ -875,7 +890,8 @@ def test_cg002_gate_thresholds_are_frozen_values() -> None:
 
 
 def test_cg002_does_not_touch_frozen_calib_grid_001_gates() -> None:
-    """CALIB-GRID-002 is a NEW lineage; the frozen R1 gates are unchanged.
+    """NON_PHYSICS: cross-lineage frozen-gate non-interference rail (admissibility infra), not a registered physics invariant.
+    CALIB-GRID-002 is a NEW lineage; the frozen R1 gates are unchanged.
 
     Frozen-gate non-interference rail: the five CALIB-GRID-001 / R1
     thresholds must still be exactly the pre-registered values and the
@@ -896,7 +912,8 @@ def test_cg002_does_not_touch_frozen_calib_grid_001_gates() -> None:
 
 @pytest.mark.slow
 def test_cg002_verdict_is_negative_and_localized() -> None:
-    """The integral form does NOT close the frozen noisy regime.
+    """NON_PHYSICS: CG002 pinned NEGATIVE verdict (admissibility ledger), not a registered physics invariant.
+    The integral form does NOT close the frozen noisy regime.
 
     Pins the honest sha-pinned NEGATIVE: noiseless Frobenius PASSES
     (≤0.10, no regression vs R1's 0.0666) and the noisy Frobenius is
@@ -931,7 +948,8 @@ def test_cg002_verdict_is_negative_and_localized() -> None:
 
 @pytest.mark.slow
 def test_cg002_front_gate_refuse_under_differential_and_integral() -> None:
-    """Before→after rail: σ=0.02 REFUSEs under BOTH estimator classes.
+    """NON_PHYSICS: CG002 before/after REFUSE rail (calibration instrument), not a registered physics invariant.
+    Before→after rail: σ=0.02 REFUSEs under BOTH estimator classes.
 
     The pre-registered claim was that the integral form would flip the
     front-gate to ACCEPT at σ=0.02. It does NOT — the regressor-level
@@ -973,7 +991,8 @@ def test_cg002_front_gate_refuse_under_differential_and_integral() -> None:
 
 @pytest.mark.slow
 def test_cg002_null_battery_specificity_reported() -> None:
-    """The null battery runs and its FPR is reported (not silently hidden).
+    """NON_PHYSICS: CG002 null-battery FPR reporting (specificity infra), not a registered physics invariant.
+    The null battery runs and its FPR is reported (not silently hidden).
 
     The pre-registered FPR target is ≤0.05; the measured value (≈0.10
     on the 3-edge WSCC-9 small graph) is a reported specificity
@@ -991,7 +1010,8 @@ def test_cg002_null_battery_specificity_reported() -> None:
 
 @pytest.mark.slow
 def test_cg002_results_json_matches_committed_artifact() -> None:
-    """Committed cg002/RESULTS.json reproduces (post-data-edit detector).
+    """NON_PHYSICS: committed CG002-artifact post-data detector (admissibility infra), not a registered physics invariant.
+    Committed cg002/RESULTS.json reproduces (post-data-edit detector).
 
     Structure-exact, numeric-tolerant: verdict and gate pass-flags must
     reproduce; ``ledger_sha256`` legitimately moves with the commit
