@@ -37,6 +37,20 @@ function routeGlob(endpoint: string): string {
   return `**${endpoint}`
 }
 
+type Gate = { wait: Promise<void>; release: () => void }
+
+/** A deferred promise the route handler awaits so the request stays in
+ * flight until the test deterministically releases it. Definite
+ * assignment keeps `release` strictly typed as a callable (the executor
+ * runs synchronously inside the Promise constructor). */
+function createGate(): Gate {
+  let release!: () => void
+  const wait = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  return { wait, release }
+}
+
 async function gotoProbe(page: Page, endpoint: string): Promise<void> {
   await page.goto(`/edge-probe?endpoint=${encodeURIComponent(endpoint)}`, {
     waitUntil: 'domcontentloaded',
@@ -55,12 +69,9 @@ async function fulfilJson(route: Route, status: number, body: unknown): Promise<
 test.describe('IERD-Q7 edge-case probe — loading (in-flight)', () => {
   for (const endpoint of [...COLLECTION_ENDPOINTS, COMMAND_ENDPOINT]) {
     test(`shows loading while ${endpoint} is in flight`, async ({ page }) => {
-      let release: (() => void) | null = null
-      const gate = new Promise<void>((resolve) => {
-        release = resolve
-      })
+      const gate = createGate()
       await page.route(routeGlob(endpoint), async (route) => {
-        await gate
+        await gate.wait
         await fulfilJson(route, 200, { count: 1 })
       })
 
@@ -69,7 +80,7 @@ test.describe('IERD-Q7 edge-case probe — loading (in-flight)', () => {
 
       await expect(page.getByTestId('probe-state-loading')).toBeVisible()
 
-      release?.()
+      gate.release()
       await expect(page.getByTestId('probe-state-success')).toBeVisible()
     })
   }
@@ -78,12 +89,9 @@ test.describe('IERD-Q7 edge-case probe — loading (in-flight)', () => {
 test.describe('IERD-Q7 edge-case probe — cancelled (user abort)', () => {
   for (const endpoint of [...COLLECTION_ENDPOINTS, COMMAND_ENDPOINT]) {
     test(`recovers to a cancelled surface when the user aborts ${endpoint}`, async ({ page }) => {
-      let release: (() => void) | null = null
-      const gate = new Promise<void>((resolve) => {
-        release = resolve
-      })
+      const gate = createGate()
       await page.route(routeGlob(endpoint), async (route) => {
-        await gate
+        await gate.wait
         await fulfilJson(route, 200, { count: 1 })
       })
 
@@ -99,7 +107,7 @@ test.describe('IERD-Q7 edge-case probe — cancelled (user abort)', () => {
       await expect(cancelled).toHaveAttribute('data-recoverable', 'true')
       await expect(page.getByTestId('probe-retry')).toBeVisible()
 
-      release?.()
+      gate.release()
     })
   }
 })
