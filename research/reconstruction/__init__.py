@@ -53,6 +53,11 @@ from research.reconstruction.positive_control import (
     run_reciprocity_aware_recovery,
     run_recovery_on_substrate,
 )
+from research.reconstruction.prereg import (
+    build_aspredicted_prereg,
+    build_osf_secondary_data_prereg,
+    emit_prereg,
+)
 from research.reconstruction.reconstruction_capsule import (
     ReconstructionCapsule,
     ReconstructionStatus,
@@ -71,6 +76,10 @@ from research.reconstruction.recovery_audit import (
     audit_recovery,
     check_domain_of_validity,
     conservation_of_mass_passes,
+)
+from research.reconstruction.ro_crate import (
+    build_ro_crate_metadata,
+    emit_ro_crate,
 )
 from research.reconstruction.weighted_allocation import (
     allocate_weights,
@@ -99,12 +108,17 @@ __all__ = [
     "assert_real_data_status_legal",
     "assert_synthetic_status_legal",
     "audit_recovery",
+    "build_aspredicted_prereg",
+    "build_osf_secondary_data_prereg",
     "build_reconstruction_capsule",
+    "build_ro_crate_metadata",
     "calibrate_density_z",
     "check_domain_of_validity",
     "compute_reciprocity_ratio",
     "conservation_of_mass_passes",
     "density_bound_passes",
+    "emit_prereg",
+    "emit_ro_crate",
     "fit_cimini_squartini",
     "gate_6_precursor_discriminative",
     "ground_truth_ba",
