@@ -94,6 +94,10 @@
       "sha256": "98e90c6aa0a2677e968be5efbf7c72fb488bd79f66aeef843ca197f7f9180f42"
     },
     {
+      "path": "scripts/ci/check_revalidation_ledger.py",
+      "sha256": "da7161c99bb1ebe86e028cf64465a622c37858aedc738d210f606be6e1b11744"
+    },
+    {
       "path": "scripts/ci/check_tombstone_preservation.py",
       "sha256": "cf13aba1ea21c88342178ddad96672043fe5cef5312b71f8cc2018521c3de4e2"
     },
