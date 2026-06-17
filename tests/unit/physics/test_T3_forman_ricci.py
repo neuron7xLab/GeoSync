@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from core.physics.forman_ricci import (
+    _MARGIN_ESCALATION_ONSET,
     DualTrackRicciMonitor,
     FormanRicciCurvature,
     FormanRicciResult,
@@ -101,6 +102,53 @@ class TestDualTrackMonitor:
             herding_index=0.0,
         )
         assert monitor.margin_multiplier(herding) > monitor.margin_multiplier(normal)
+
+    def test_escalation_floor_is_intentional_not_silent_clamp(self):
+        """Below the escalation onset the multiplier floors at base *by design*.
+
+        Combinatorial Forman-Ricci is unbounded below, so κ_min ≪ onset is
+        expected, not anomalous. The ``max(0, κ_min − onset)`` is the documented
+        "fragmented → base margin" policy floor: two structures far below the
+        onset (κ_min = −2.0 and κ_min = −96.0) must both return exactly the base
+        multiplier. This pins the floor as a deliberate policy choice so it
+        cannot be mistaken for, or "fixed" as, a silent clamp.
+        """
+        base = 1.5
+        monitor = DualTrackRicciMonitor(margin_multiplier_base=base, margin_sensitivity=2.0)
+
+        def _at(kappa_min: float) -> FormanRicciResult:
+            return FormanRicciResult(
+                edge_curvatures={(0, 1): kappa_min},
+                kappa_min=kappa_min,
+                kappa_mean=kappa_min,
+                kappa_max=kappa_min,
+                herding_index=0.0,
+            )
+
+        # The onset is a policy threshold, not a curvature bound.
+        assert _MARGIN_ESCALATION_ONSET == -2.0
+        # At the onset and far below it, the multiplier saturates at base.
+        assert monitor.margin_multiplier(_at(_MARGIN_ESCALATION_ONSET)) == base
+        assert monitor.margin_multiplier(_at(-96.0)) == base
+        # Distinct fragile structures map to the identical floored multiplier:
+        # the floor is intentional, and the un-escalated κ_min is preserved on
+        # the result (kappa_min) rather than discarded.
+        assert monitor.margin_multiplier(_at(-2.0)) == monitor.margin_multiplier(_at(-50.0))
+
+    def test_margin_escalates_smoothly_above_onset(self):
+        """Just above the onset escalation is linear in (κ_min − onset)."""
+        base, sens = 1.0, 2.0
+        monitor = DualTrackRicciMonitor(margin_multiplier_base=base, margin_sensitivity=sens)
+        result = FormanRicciResult(
+            edge_curvatures={(0, 1): 0.0},
+            kappa_min=0.0,
+            kappa_mean=0.0,
+            kappa_max=0.0,
+            herding_index=0.0,
+        )
+        # κ_min = 0 ⇒ shift = 0 − onset = 2.0 ⇒ base·(1 + sens·2.0).
+        expected = base * (1.0 + sens * (0.0 - _MARGIN_ESCALATION_ONSET))
+        assert monitor.margin_multiplier(result) == pytest.approx(expected)
 
     def test_is_herding(self):
         monitor = DualTrackRicciMonitor()
