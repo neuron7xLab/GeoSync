@@ -237,11 +237,16 @@ class TestNeuroIntegrity:
             validator.validate_transition(valid_state, valid_state, dt=0.0)
 
     def test_validate_trajectory(self, validator):
-        """Test trajectory validation."""
+        """Test trajectory validation.
+
+        Healthy trajectory: dopamine rises while serotonin falls (inverse
+        antagonism), so the C-NEURO-003 correlation invariant is satisfied
+        (corr <= dopamine_serotonin_correlation_min).
+        """
         states = [
-            PathwayState(dopamine=0.5, serotonin=0.4, excitation=0.5, inhibition=0.5),
+            PathwayState(dopamine=0.5, serotonin=0.44, excitation=0.5, inhibition=0.5),
             PathwayState(dopamine=0.52, serotonin=0.42, excitation=0.51, inhibition=0.49),
-            PathwayState(dopamine=0.54, serotonin=0.44, excitation=0.52, inhibition=0.48),
+            PathwayState(dopamine=0.54, serotonin=0.40, excitation=0.52, inhibition=0.48),
         ]
         timestamps = [0.0, 1000.0, 2000.0]
         report = validator.validate_trajectory(states, timestamps)
