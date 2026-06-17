@@ -1,0 +1,90 @@
+# Diff-bound commit acceptor — restore the fast-test CI oracle.
+#
+# Purpose:
+#   python-fast-shard had been passing vacuously (0 tests collected) on main and
+#   every PR: pytest.ini already carries -q, and the shard added a second -q to
+#   --collect-only, flipping node-id output to a per-file summary so the grep
+#   matched nothing. This restores real collection, adds a fail-closed guard
+#   (zero total collection after the test-surface filter is FATAL), and fixes
+#   the first failure the restored oracle surfaced: the `cli` namespace package
+#   being shadowed by scripts/cli.py.
+
+id: fast-gate-oracle-restore
+status: ACTIVE
+claim_type: fail_closed
+promise: >-
+  python-fast-shard collects real node ids (never 0/0 silently when the diff
+  touches Python test surface) and `from cli import amm_cli` resolves to the
+  cli/ package, not scripts/cli.py; a zero total collection now fails the shard
+  instead of passing vacuously.
+
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/fast-gate-oracle-restore.yaml"
+    - path: ".github/workflows/pr-gate.yml"
+    - path: "cli/__init__.py"
+    - path: "tests/unit/cli/test_amm_cli.py"
+  forbidden_paths:
+    - "core/"
+    - "src/"
+    - "runtime/"
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+
+required_python_symbols:
+  - "tests/unit/cli/test_amm_cli.py::test_amm_cli_resolves_to_cli_package_not_scripts"
+
+expected_signal: >-
+  The cli unit tests import amm_cli from the cli/ package and pass; the
+  regression test asserts amm_cli.__file__ is cli/amm_cli.py with no 'scripts'
+  path component.
+
+measurement_command: >-
+  bash -c '
+    PYTHONPATH=. python -m pytest -q
+      tests/unit/cli/test_amm_cli.py
+      | tee tmp/fast_gate_oracle_restore.log
+  '
+
+signal_artifact: "tmp/fast_gate_oracle_restore.log"
+
+falsifier:
+  command: >-
+    bash -c '
+      PYTHONPATH=. python - <<"PY"
+      from pathlib import Path
+      from cli import amm_cli
+      resolved = Path(amm_cli.__file__).resolve()
+      # Exit 0 (falsification detected) ONLY if the shadowing bug is back:
+      # amm_cli loaded from somewhere under scripts/ rather than the cli/
+      # package. On the green tree it resolves to cli/amm_cli.py, so this
+      # exits 1 — the falsifier fails on the green path.
+      shadowed = "scripts" in resolved.parts or resolved.parent.name != "cli"
+      raise SystemExit(0 if shadowed else 1)
+      PY
+    '
+  description: >-
+    Probes whether `from cli import amm_cli` resolves outside the cli/ package
+    (the shadowing bug). Succeeds only when the bug is present; on the green
+    tree it fails.
+
+rollback_command: >-
+  bash -c '
+    git checkout origin/main -- .github/workflows/pr-gate.yml
+    && git rm -f cli/__init__.py
+       .claude/commit_acceptors/fast-gate-oracle-restore.yaml
+    && git checkout origin/main -- tests/unit/cli/test_amm_cli.py
+  '
+
+rollback_verification_command: >-
+  bash -c '
+    test ! -e cli/__init__.py
+    && git diff --exit-code origin/main -- .github/workflows/pr-gate.yml
+  '
+
+memory_update_type: none
+ledger_path: ".github/workflows/pr-gate.yml"
+report_path: "docs/reports/diff_bound_commit_acceptor_layer.md"
+evidence: []

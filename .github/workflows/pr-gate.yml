@@ -354,10 +354,14 @@ jobs:
             echo "empty shard (no ids in this crc32 bucket) — shard passes"; exit 0
           fi
           mapfile -t SHARD_IDS < /tmp/shard_nodeids.txt
+          # --maxfail=20: this gate has just been restored from a vacuous state
+          # (it collected 0 tests for the whole repo history). A fail-fast of 1
+          # would surface only one failure per shard and hide the backlog shape.
+          # 20 lets us measure clusters per shard while still bounding runaway.
           timeout 1200s .venv/bin/pytest \
             -m "$MARK" \
             "${SHARD_IDS[@]}" \
-            --maxfail=1 \
+            --maxfail=20 \
             -q
 
       - name: Run mandatory connector hygiene tests
