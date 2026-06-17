@@ -9,7 +9,14 @@ Coupling semantics implemented by this module:
 - Explicit adjacency mode:
   ``dθ_i/dt = ω_i + K * Σ_j A_ij sin(θ_j - θ_i)``
 
-In both modes, no-self-coupling is enforced by zeroing diagonal weights.
+FP-1 (single owner of scale, Issue #1096): ``K`` is the *only* scalar coupling
+gain and it is applied exactly once, inside the RHS (:func:`_dtheta_dt`). The
+resolved adjacency ``A_norm`` carries topology/affinity only — it never has a
+hidden global ``K`` folded into it. Global mode stores ``1/N`` off-diagonal
+weights; explicit mode stores the caller's topology verbatim. In both modes,
+no-self-coupling is enforced by zeroing diagonal weights, so the boundary
+spectral scale ``K · λ_max(A_norm)`` and the integrated RHS agree on the same
+``K`` and the same ``A_norm``.
 """
 
 from __future__ import annotations
@@ -96,6 +103,7 @@ class KuramotoEngine:
 
     def __init__(self, config: KuramotoConfig) -> None:
         self._cfg = config
+        self._K = float(config.K)
         self._omega, self._theta0 = self._resolve_initial_conditions(config)
         self._adj = self._resolve_adjacency(config)
         self._validate_runtime_inputs(self._omega, self._theta0, self._adj)
@@ -108,6 +116,7 @@ class KuramotoEngine:
         dt = cfg.dt
         omega = self._omega
         adj = self._adj
+        K = self._K
 
         phases = np.empty((steps + 1, N), dtype=np.float64)
         R_arr = np.empty(steps + 1, dtype=np.float64)
@@ -127,7 +136,7 @@ class KuramotoEngine:
         )
 
         for k in range(steps):
-            theta = _rk4_step(theta, omega, adj, dt)
+            theta = _rk4_step(theta, omega, adj, dt, K=K)
             if not np.isfinite(theta).all():
                 raise FloatingPointError(f"Non-finite phase values encountered at step={k + 1}.")
             phases[k + 1] = theta
@@ -155,15 +164,21 @@ class KuramotoEngine:
 
     @staticmethod
     def _resolve_adjacency(cfg: KuramotoConfig) -> NDArray[np.float64]:
-        """Build effective coupling matrix used in derivatives."""
+        """Resolve the topology-only affinity matrix ``A_norm``.
+
+        FP-1: this returns topology/affinity *without* the scalar gain ``K``.
+        ``K`` is the single owner of scale and is applied once in the RHS
+        (:func:`_dtheta_dt`); folding it in here would hide a second copy of the
+        gain and break boundary/RHS agreement. The diagonal is always zeroed so
+        no node self-couples.
+        """
         N = cfg.N
-        K = cfg.K
         if cfg.adjacency is not None:
-            adj = K * cfg.adjacency.astype(np.float64, copy=True)
+            adj = cfg.adjacency.astype(np.float64, copy=True)
             np.fill_diagonal(adj, 0.0)
             return adj
 
-        adj = np.full((N, N), K / N, dtype=np.float64)
+        adj = np.full((N, N), 1.0 / N, dtype=np.float64)
         np.fill_diagonal(adj, 0.0)
         return adj
 
@@ -192,11 +207,20 @@ def _dtheta_dt(
     theta: NDArray[np.float64],
     omega: NDArray[np.float64],
     adj: NDArray[np.float64],
+    *,
+    K: float = 1.0,
 ) -> NDArray[np.float64]:
-    """Evaluate Kuramoto RHS for a single phase vector."""
+    """Evaluate Kuramoto RHS for a single phase vector.
+
+    FP-1: ``K`` is the single scalar coupling gain and is applied here, once,
+    over the topology-only affinity ``adj`` (``A_norm``). ``K`` defaults to
+    ``1.0`` so callers that pass an already-effective coupling matrix (e.g. a
+    Ricci-derived or pre-scaled matrix) get identity scaling and unchanged
+    dynamics.
+    """
     diff = theta[np.newaxis, :] - theta[:, np.newaxis]
     sin_diff = np.sin(diff)
-    coupling = (adj * sin_diff).sum(axis=1)
+    coupling = K * (adj * sin_diff).sum(axis=1)
     out: NDArray[np.float64] = omega + coupling
     if not np.isfinite(out).all():
         raise FloatingPointError("Non-finite derivative values produced by Kuramoto RHS.")
@@ -208,12 +232,14 @@ def _rk4_step(
     omega: NDArray[np.float64],
     adj: NDArray[np.float64],
     dt: float,
+    *,
+    K: float = 1.0,
 ) -> NDArray[np.float64]:
-    """Advance one Runge-Kutta 4 integration step."""
-    k1 = _dtheta_dt(theta, omega, adj)
-    k2 = _dtheta_dt(theta + 0.5 * dt * k1, omega, adj)
-    k3 = _dtheta_dt(theta + 0.5 * dt * k2, omega, adj)
-    k4 = _dtheta_dt(theta + dt * k3, omega, adj)
+    """Advance one Runge-Kutta 4 integration step (single ``K`` owner)."""
+    k1 = _dtheta_dt(theta, omega, adj, K=K)
+    k2 = _dtheta_dt(theta + 0.5 * dt * k1, omega, adj, K=K)
+    k3 = _dtheta_dt(theta + 0.5 * dt * k2, omega, adj, K=K)
+    k4 = _dtheta_dt(theta + dt * k3, omega, adj, K=K)
     return theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
 

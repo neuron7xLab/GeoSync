@@ -1,0 +1,104 @@
+# Diff-bound commit acceptor — FP-1 single coupling owner (Issue #1096, Lane A).
+#
+# Purpose:
+#   Bind the canonical Kuramoto engine refactor that makes the scalar coupling
+#   gain K the single owner of scale. K is no longer folded into the resolved
+#   adjacency matrix; A_norm is topology-only and K is applied exactly once in
+#   the RHS. This acceptor asserts a numerical-correctness invariant only — it
+#   makes no physics-discovery, market, runtime, or trading-readiness claim.
+
+id: fp1-kuramoto-single-coupling-owner
+status: ACTIVE
+claim_type: correctness
+promise: >-
+  KuramotoEngine resolves a topology-only affinity A_norm (zero diagonal, no
+  embedded K) and applies the scalar gain K exactly once in the RHS, preserving
+  the canonical trajectory within float reassociation noise.
+
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/fp1-kuramoto-single-coupling-owner.yaml"
+    - path: "core/kuramoto/engine.py"
+    - path: "tests/unit/core/test_kuramoto_engine.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+    - "schemas/governance/"
+    - "tools/governance/"
+    - "data/governance/"
+    - "docs/prompts/"
+    - "core/kuramoto/early_stopping.py"
+    - "core/kuramoto/ricci_flow_engine.py"
+    - "core/kuramoto/sparse.py"
+    - "core/kuramoto/jax_engine.py"
+    - "core/kuramoto/config.py"
+
+required_python_symbols:
+  - "core/kuramoto/engine.py::KuramotoEngine"
+  - "core/kuramoto/engine.py::_dtheta_dt"
+  - "core/kuramoto/engine.py::_rk4_step"
+  - "core/kuramoto/engine.py::run_simulation"
+  - "tests/unit/core/test_kuramoto_engine.py::TestFP1SingleCouplingOwner"
+
+expected_signal: >-
+  The FP-1 test class passes: A_norm is independent of K and zero-diagonal in
+  both global and explicit modes, K scales the RHS coupling exactly linearly,
+  the boundary spectral scale K*lambda_max(A_norm) equals lambda_max of the
+  effective coupling K*A_norm, the K=1.0 default leaves pre-scaled callers
+  unchanged, and the golden final_R values are preserved within 1e-9.
+
+measurement_command: >-
+  bash -c '
+    python -m compileall -q core/kuramoto/engine.py
+    && PYTHONPATH=. python -m pytest -q
+       tests/unit/core/test_kuramoto_engine.py::TestFP1SingleCouplingOwner
+       | tee tmp/fp1_kuramoto_single_coupling_owner.log
+  '
+
+signal_artifact: "tmp/fp1_kuramoto_single_coupling_owner.log"
+
+falsifier:
+  command: >-
+    bash -c '
+      PYTHONPATH=. python - <<"PY"
+      import numpy as np
+      from core.kuramoto import KuramotoConfig, KuramotoEngine
+      rng = np.random.default_rng(11)
+      a = rng.random((6, 6)); a = (a + a.T) / 2.0; np.fill_diagonal(a, 0.0)
+      e2 = KuramotoEngine(KuramotoConfig(N=6, K=2.0, dt=0.01, steps=1, seed=0,
+              adjacency=a, adjacency_kind="normalized_topology"))
+      e4 = KuramotoEngine(KuramotoConfig(N=6, K=4.0, dt=0.01, steps=1, seed=0,
+              adjacency=a, adjacency_kind="normalized_topology"))
+      # Exits 0 (falsification detected) ONLY if K is embedded in A_norm,
+      # i.e. doubling K doubles the stored matrix. On the fixed green path the
+      # two matrices are identical, so this probe exits 1 (fails) as required.
+      embedded = np.allclose(e4._adj, 2.0 * e2._adj) and not np.allclose(e4._adj, e2._adj)
+      raise SystemExit(0 if embedded else 1)
+      PY
+    '
+  description: >-
+    Probes whether the scalar gain K is embedded in the resolved adjacency by
+    checking if doubling K doubles the stored matrix. Succeeds only when the
+    FP-1 violation is present; on the fixed single-owner path it fails, proving
+    the promise is falsifiable.
+
+rollback_command: >-
+  bash -c '
+    git checkout origin/main --
+      core/kuramoto/engine.py
+      tests/unit/core/test_kuramoto_engine.py
+    && git rm -f .claude/commit_acceptors/fp1-kuramoto-single-coupling-owner.yaml
+  '
+
+rollback_verification_command: >-
+  bash -c '
+    git diff --exit-code origin/main -- core/kuramoto/engine.py
+    && test ! -e .claude/commit_acceptors/fp1-kuramoto-single-coupling-owner.yaml
+  '
+
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/fp1-kuramoto-single-coupling-owner.yaml"
+report_path: "docs/reports/diff_bound_commit_acceptor_layer.md"
+evidence: []

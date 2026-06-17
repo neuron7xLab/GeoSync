@@ -348,3 +348,124 @@ class TestSummaryAndHelpers:
         adj = np.zeros((4, 4))
         np.testing.assert_array_equal(_dtheta_dt(theta, omega, adj), omega)
         np.testing.assert_array_almost_equal(_rk4_step(theta, omega, adj, dt=0.1), theta)
+
+
+class TestFP1SingleCouplingOwner:
+    """FP-1 (Issue #1096): ``K`` is the single owner of coupling scale.
+
+    ``A_norm`` resolved by the engine must be topology-only (no hidden ``K``),
+    ``K`` must be applied exactly once in the RHS, and the canonical
+    ``KuramotoEngine`` output must be preserved within numerical tolerance.
+    """
+
+    @staticmethod
+    def _symmetric_topology(n: int, seed: int) -> np.ndarray:
+        rng = np.random.default_rng(seed)
+        a = rng.random((n, n))
+        a = (a + a.T) / 2.0
+        np.fill_diagonal(a, 0.0)
+        return a
+
+    def test_K_not_embedded_in_adjacency(self) -> None:
+        # Explicit mode: resolved A_norm must equal the caller topology and be
+        # independent of K (no K folded into the stored matrix).
+        a = self._symmetric_topology(8, seed=1)
+        eng_lo = KuramotoEngine(
+            KuramotoConfig(
+                N=8, K=0.3, dt=0.01, steps=1, seed=0,
+                adjacency=a, adjacency_kind="normalized_topology",
+            )
+        )
+        eng_hi = KuramotoEngine(
+            KuramotoConfig(
+                N=8, K=9.0, dt=0.01, steps=1, seed=0,
+                adjacency=a, adjacency_kind="normalized_topology",
+            )
+        )
+        expected = a.copy()
+        np.fill_diagonal(expected, 0.0)
+        np.testing.assert_array_equal(eng_lo._adj, expected)
+        np.testing.assert_array_equal(eng_hi._adj, expected)
+        # Same topology, different K ⇒ identical A_norm (K is NOT embedded).
+        np.testing.assert_array_equal(eng_lo._adj, eng_hi._adj)
+
+    def test_global_mode_adjacency_is_topology_only(self) -> None:
+        # Global mode: off-diagonal weight is 1/N, never K/N.
+        n = 10
+        for k in (0.5, 4.0):
+            eng = KuramotoEngine(KuramotoConfig(N=n, K=k, dt=0.01, steps=1, seed=0))
+            off = eng._adj[~np.eye(n, dtype=bool)]
+            np.testing.assert_allclose(off, 1.0 / n, rtol=0.0, atol=0.0)
+
+    def test_zero_diagonal_enforced(self) -> None:
+        a = self._symmetric_topology(6, seed=2)
+        np.fill_diagonal(a, 0.7)  # caller diagonal must be stripped
+        eng_expl = KuramotoEngine(
+            KuramotoConfig(
+                N=6, K=1.0, dt=0.01, steps=1, seed=0,
+                adjacency=a, adjacency_kind="normalized_topology",
+            )
+        )
+        eng_glob = KuramotoEngine(KuramotoConfig(N=6, K=2.0, dt=0.01, steps=1, seed=0))
+        np.testing.assert_array_equal(np.diag(eng_expl._adj), np.zeros(6))
+        np.testing.assert_array_equal(np.diag(eng_glob._adj), np.zeros(6))
+
+    def test_explicit_adjacency_rhs_uses_single_K(self) -> None:
+        # K applied once over topology == K folded into the matrix once (K=1).
+        a = self._symmetric_topology(7, seed=3)
+        theta = np.linspace(0.0, 2.0, 7)
+        omega = np.zeros(7)
+        k = 3.1
+        single_owner = _dtheta_dt(theta, omega, a, K=k)
+        baked_once = _dtheta_dt(theta, omega, k * a, K=1.0)
+        np.testing.assert_allclose(single_owner, baked_once, rtol=1e-12, atol=1e-14)
+
+    def test_K_not_double_scaled(self) -> None:
+        # Doubling K must scale the coupling term exactly linearly (no K²).
+        a = self._symmetric_topology(7, seed=4)
+        theta = np.linspace(0.1, 3.0, 7)
+        omega = np.zeros(7)
+        base = _dtheta_dt(theta, omega, a, K=1.0)
+        doubled = _dtheta_dt(theta, omega, a, K=2.0)
+        np.testing.assert_allclose(doubled, 2.0 * base, rtol=1e-12, atol=1e-14)
+
+    def test_boundary_rhs_consistency(self) -> None:
+        # The boundary spectral scale K·λ_max(A_norm) must equal λ_max of the
+        # effective coupling K·A_norm that the RHS integrates.
+        a = self._symmetric_topology(9, seed=5)
+        eng = KuramotoEngine(
+            KuramotoConfig(
+                N=9, K=2.7, dt=0.01, steps=1, seed=0,
+                adjacency=a, adjacency_kind="normalized_topology",
+            )
+        )
+        lam_anorm = float(np.max(np.linalg.eigvalsh(eng._adj)))
+        lam_effective = float(np.max(np.linalg.eigvalsh(eng._K * eng._adj)))
+        np.testing.assert_allclose(eng._K * lam_anorm, lam_effective, rtol=1e-12, atol=1e-14)
+
+    def test_default_K_identity_preserves_prescaled_callers(self) -> None:
+        # Callers passing an already-effective matrix (early_stopping / ricci_flow)
+        # rely on the K=1.0 default leaving dynamics unchanged.
+        a = self._symmetric_topology(5, seed=6)
+        effective = 2.5 * a
+        theta = np.linspace(0.2, 1.7, 5)
+        omega = np.zeros(5)
+        np.testing.assert_array_equal(
+            _dtheta_dt(theta, omega, effective),
+            _dtheta_dt(theta, omega, effective, K=1.0),
+        )
+
+    def test_golden_equivalence_output_preserved(self) -> None:
+        # Output-preserving: refactoring K into the RHS keeps the canonical
+        # trajectory invariant within float reassociation noise (~1e-13).
+        # Golden constants captured from pre-refactor origin/main engine.
+        g = run_simulation(KuramotoConfig(N=12, K=2.5, dt=0.01, steps=300, seed=7))
+        np.testing.assert_allclose(g.summary["final_R"], 0.9623362223, rtol=0.0, atol=1e-9)
+        a = self._symmetric_topology(8, seed=3)
+        e = run_simulation(
+            KuramotoConfig(
+                N=8, K=1.7, dt=0.01, steps=250, seed=4,
+                adjacency=a, adjacency_kind="normalized_topology",
+            )
+        )
+        np.testing.assert_allclose(e.summary["final_R"], 0.9852126793, rtol=0.0, atol=1e-9)
