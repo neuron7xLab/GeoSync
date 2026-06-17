@@ -12,7 +12,8 @@ double-scales (``C = K·W``).
 The guard requires the caller to declare ``adjacency_kind`` whenever ``K != 1.0``:
 
 * ``adjacency_kind='full_weight'`` + ``K != 1.0`` is **rejected** (would double-scale);
-* an **undeclared** convention + ``K != 1.0`` **warns** (deprecated legacy path);
+* an **undeclared** convention + ``K != 1.0`` is **rejected fail-closed** (FP-1 residual
+  double-scale hole, closed post-#1143: the ambiguity must not pass silently);
 * ``KuramotoConfig.from_coupling_spec(...)`` is the canonical, scale-once path;
 * a signed/repulsive coupling can never advertise the attractive-Kuramoto boundary.
 """
@@ -37,10 +38,16 @@ def _normalized_topology(n: int = 4) -> np.ndarray:
     return np.asarray(a, dtype=np.float64)
 
 
-def test_legacy_adjacency_double_scaling_warns_or_fails() -> None:
-    """Undeclared convention with K != 1.0 must not pass silently."""
+def test_undeclared_adjacency_kind_with_nonunit_K_is_rejected() -> None:
+    """Undeclared convention with K != 1.0 is rejected fail-closed (no silent double-scale).
+
+    FP-1 residual hole (closed post-#1143): a caller passing a physical weight matrix W with
+    K != 1.0 and no ``adjacency_kind`` would have C = K·W double-scaled. The constructor cannot
+    distinguish a normalized topology A from a physical weight matrix W, so the only sound
+    behaviour is to reject the ambiguity rather than warn-and-continue.
+    """
     a = _normalized_topology()
-    with pytest.warns(DeprecationWarning, match="double-scale"):
+    with pytest.raises(ValueError, match="ambiguous and is rejected fail-closed"):
         KuramotoConfig(N=a.shape[0], K=2.0, adjacency=a)
 
 
@@ -113,6 +120,21 @@ def test_declared_normalized_topology_is_silent_and_scales_in_engine() -> None:
             N=a.shape[0], K=3.0, adjacency=a, adjacency_kind="normalized_topology"
         )
     assert cfg.K == 3.0
+    assert cfg.adjacency_kind == "normalized_topology"
+    assert cfg.adjacency is not None
+    np.testing.assert_allclose(np.asarray(cfg.adjacency), a)
+
+
+def test_declared_normalized_topology_with_nonunit_K_constructs() -> None:
+    """No false-positive: declaring 'normalized_topology' with K != 1.0 constructs cleanly.
+
+    Companion to ``test_undeclared_adjacency_kind_with_nonunit_K_is_rejected``: the fail-closed
+    rejection fires only on the *undeclared* ambiguity. Once the caller declares the convention,
+    the same (K != 1.0, adjacency) pair is admissible and C = K·A is the intended single scaling.
+    """
+    a = _normalized_topology()
+    cfg = KuramotoConfig(N=a.shape[0], K=2.0, adjacency=a, adjacency_kind="normalized_topology")
+    assert cfg.K == 2.0
     assert cfg.adjacency_kind == "normalized_topology"
     assert cfg.adjacency is not None
     np.testing.assert_allclose(np.asarray(cfg.adjacency), a)

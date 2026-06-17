@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import warnings
 from typing import Any, Literal
 
 import numpy as np
@@ -44,9 +43,10 @@ class KuramotoConfig(BaseModel):
             "Declares how 'adjacency' relates to the effective coupling C summed in the ODE, "
             "closing the silent double-scaling path. 'normalized_topology': adjacency is a "
             "topology A that K scales (C = K·A); any K is admissible. 'full_weight': adjacency "
-            "already carries physical magnitudes (C = adjacency); K must be 1.0. None (legacy, "
-            "deprecated): the convention is undeclared — with K != 1.0 this is ambiguous and "
-            "may double-scale. Prefer KuramotoConfig.from_coupling_spec(...)."
+            "already carries physical magnitudes (C = adjacency); K must be 1.0. None: the "
+            "convention is undeclared — admissible only when K == 1.0 (no ambiguity); with "
+            "K != 1.0 it is rejected fail-closed because C = K·adjacency may double-scale. "
+            "Prefer KuramotoConfig.from_coupling_spec(...)."
         ),
     )
     claim_boundary: str = Field(
@@ -143,14 +143,15 @@ class KuramotoConfig(BaseModel):
                 "build via KuramotoConfig.from_coupling_spec(...)."
             )
         if self.adjacency_kind is None:
-            warnings.warn(
+            raise ValueError(
                 "KuramotoConfig(K != 1.0, adjacency=...) with undeclared adjacency_kind is "
-                "ambiguous: if 'adjacency' is already a physical weight matrix, C = K·adjacency "
-                "double-scales the coupling. Declare adjacency_kind='normalized_topology' or "
-                "'full_weight', or use KuramotoConfig.from_coupling_spec(...). This legacy path "
-                "is deprecated.",
-                DeprecationWarning,
-                stacklevel=2,
+                f"ambiguous and is rejected fail-closed (got K={self.K!r}): if 'adjacency' is a "
+                "normalized topology A the intent is C = K·A, but if it is already a physical "
+                "weight matrix W then C = K·W double-scales the coupling, and the constructor "
+                "cannot tell A from W by inspection. Declare adjacency_kind='normalized_topology' "
+                "(K scales the matrix, C = K·A) or adjacency_kind='full_weight' (matrix already "
+                "carries magnitudes, requires K=1.0), or build via "
+                "KuramotoConfig.from_coupling_spec(...)."
             )
 
     def _enforce_claim_boundary(self) -> None:
