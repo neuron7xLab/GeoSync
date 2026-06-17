@@ -860,37 +860,37 @@ claims:
 
   - id: edge-case-coverage-matrix
     priority: P1
-    tier: EXTRAPOLATED
+    tier: ANCHORED
     description: >
       Edge-case coverage matrix (endpoint × state × test_id) at
       ECC ≥ 0.90, with mocked-failure E2E tests for network failure
       and timeout, and a user-visible recoverable path for simulation
-      divergence. Status (Phase-4 ENTRY 2026-05-16): EXTRAPOLATED —
-      tests/edge_cases/coverage_matrix.py now defines the canonical
-      matrix (ten §5/#532 states × gated public operations, classified
-      collection/command/probe with documented applicability mirroring
-      the IERD-Q5 discipline) and tests/edge_cases/
-      test_edge_case_matrix.py gates it via
-      .github/workflows/edge-case-matrix.yml. Every covered cell cites
-      a real resolvable test, statically verified by
-      test_every_cited_test_target_resolves (a deleted/renamed cited
-      test fails the gate). The two §532 hard sub-requirements run
-      fail-closed in the global lanes and are genuinely met today:
+      divergence. Status (Phase-4 EXIT 2026-06-17): ANCHORED — the
+      previously-UNCOVERED client-only cells (loading, cancelled,
+      per-probe server_error) are now genuinely exercised. A real client
+      surface (apps/web/app/(public)/edge-probe) issues a genuine fetch
+      to a probed public endpoint and resolves every edge-case state,
+      and the Playwright route-interception specs in
+      apps/web/tests/edge-case-probe.spec.ts drive each state via
+      page.route — a delayed fulfil for loading, route.abort('failed')
+      for network_failure, a hung route past the client deadline for
+      timeout, fulfill status 500 per probe for server_error, and a
+      non-finite forecast envelope for the INV-DRO5 simulation_diverged
+      guard — or a genuine user cancel for cancelled.
+      tests/edge_cases/coverage_matrix.py registers those cells and
+      resolves Playwright spec targets (path.spec.ts::<endpoint>::<state>)
+      with real teeth: the file must contain the test( block AND the
+      cited <endpoint> + probe-state-<state> markers, so a deleted /
+      renamed spec flips the cell UNCOVERED (verified). ECC = 1.0000
+      (89/89). The two §532 hard sub-requirements remain fail-closed:
       network_failure AND timeout are covered for every applicable
-      endpoint (RequestTimeoutMiddleware behavioural test + fail-closed
-      connector suite), and simulation_diverged correlates with the
-      INV-DRO5 fail-closed suite. Honest ECC = 0.7753 (69/89): the
-      uncovered cells are loading + cancelled (pure client in-flight /
-      abort, no genuine test until the frontend pages consume the
-      endpoints) and per-probe server_error. The ECC ≥ 0.90 threshold
-      runs informationally at Phase-4 ENTRY (workflow
-      continue-on-error: true; sub-test guarded by
-      GEOSYNC_EDGE_CASE_GATE so it skips the global lanes). Reset-wave
-      kernel edge cases remain covered exhaustively. Missing evidence:
-      Playwright route-interception E2E specs for loading / cancelled /
-      per-probe server_error. Re-classify ANCHORED on Phase-4 EXIT,
-      when those land, ECC ≥ 0.90, and the gate flips fail-closed.
-      Tracked by issue IERD-Q7 (#532).
+      endpoint, and simulation_diverged correlates with the INV-DRO5
+      fail-closed suite and has a user-visible recoverable path. The
+      env guard and continue-on-error are removed:
+      test_ecc_meets_threshold now runs unguarded and fail-closed in
+      every lane via .github/workflows/edge-case-matrix.yml. Reset-wave
+      kernel edge cases remain covered exhaustively. Tracked by issue
+      IERD-Q7 (#532).
     evidence_paths:
       - docs/yana-response.md
       - tests/test_reset_wave_engine.py
@@ -898,10 +898,27 @@ claims:
       - tests/test_reset_wave_stress_validation.py
       - tests/edge_cases/coverage_matrix.py
       - tests/edge_cases/test_edge_case_matrix.py
+      - apps/web/tests/edge-case-probe.spec.ts
       - .github/workflows/edge-case-matrix.yml
       - tests/unit/physics/test_inv_dro5_fail_closed.py
+    falsifier:
+      test_id: tests/edge_cases/test_edge_case_matrix.py::test_ecc_meets_threshold
+      invariants_cited:
+        - INV-DRO5
+      failure_signature: >
+        ECC = covered/applicable over the applicable
+        collection/command/probe state matrix drops below 0.90 because a
+        genuine cell regressed: a cited pytest node or Playwright spec
+        cell (path.spec.ts::<endpoint>::<state>) no longer resolves —
+        the spec file deleted/renamed, its test( block removed, or the
+        cited <endpoint> / probe-state-<state> markers stripped — or a
+        §532 hard sub-requirement broke (network_failure or timeout no
+        longer covered for an applicable endpoint, or simulation_diverged
+        no longer citing the INV-DRO5 fail-closed suite). Phase-4 EXIT:
+        the workflow run step is fail-closed (no continue-on-error, no
+        env guard), so any of these blocks merge.
     added_utc: "2026-05-03"
-    last_updated_utc: "2026-05-16"
+    last_updated_utc: "2026-06-17"
 
   # ---------------------------------------------------------------
   # System-level composite tier (Wave 5, 2026-05-03).

@@ -1,27 +1,27 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""IERD-Q7 edge-case coverage gate (Phase-4 ENTRY — informational ECC).
+"""IERD-Q7 edge-case coverage gate (Phase-4 EXIT — fail-closed ECC).
 
 Asserts the ``(endpoint × state × test_id)`` matrix is well-formed and
-honest, scores ECC, and fail-closes the two §532 *hard* sub-
-requirements that are genuinely met today (network_failure + timeout
-per applicable endpoint; simulation_diverged ↔ INV-DRO5). The ECC ≥
-0.90 threshold is asserted but runs informationally at Phase-4 ENTRY
-(workflow ``continue-on-error: true``) because the honest ECC is ~0.78
-— loading / cancelled / per-probe server_error have no genuine test
-until the frontend pages consume the endpoints. Phase-4 EXIT lands the
-Playwright route-interception specs and flips this fail-closed.
+honest, scores ECC, and fail-closes every §532 requirement: the two
+*hard* sub-requirements (network_failure + timeout per applicable
+endpoint; simulation_diverged ↔ INV-DRO5) **and** the ECC ≥ 0.90
+threshold itself.
+
+Phase-4 EXIT: the previously-UNCOVERED client-only cells (loading,
+cancelled, per-probe server_error) are now genuinely exercised by the
+Playwright route-interception specs in
+``apps/web/tests/edge-case-probe.spec.ts`` against the ``/edge-probe``
+harness — every state is driven by ``page.route`` (delayed fulfil,
+abort, fulfil 500) or a real user cancel, never faked. ECC = 1.00, so
+``test_ecc_meets_threshold`` runs unguarded and fail-closed in every
+lane; the claim ``edge-case-coverage-matrix`` re-classifies ANCHORED.
 
 Tracks claim ``edge-case-coverage-matrix`` and GitHub issue
 IERD-Q7 (#532).
 """
 
 from __future__ import annotations
-
-import os
-from typing import Final
-
-import pytest
 
 from tests.edge_cases.coverage_matrix import (
     ECC_THRESHOLD,
@@ -69,7 +69,7 @@ def test_matrix_is_well_formed_and_total() -> None:
 
 
 def test_network_failure_and_timeout_covered_for_every_endpoint() -> None:
-    """§532 hard requirement — fail-closed even at Phase-4 ENTRY.
+    """§532 hard requirement — fail-closed.
 
     Network failure and timeout must be tested for *every* endpoint for
     which they are applicable. This is genuinely satisfied today
@@ -108,33 +108,14 @@ def test_simulation_diverged_correlates_with_inv_dro5() -> None:
     assert target_exists(target), f"cited INV-DRO5 test missing: {target}"
 
 
-# ECC ≥ 0.90 is red by design at Phase-4 ENTRY (honest ECC ≈ 0.78:
-# loading / cancelled / per-probe server_error have no genuine test
-# until the frontend consumes the endpoints). The global
-# python-fast-tests / python-heavy-tests lanes collect tests/ with
-# fixed -m filters, so a bare marker would only move the failure
-# between lanes; guard the sub-test with an env flag set ONLY on the
-# dedicated edge-case-matrix workflow (which carries
-# continue-on-error: true). The four genuinely-green tests above run
-# unguarded in the global lanes. Identical isolation posture to the
-# IERD-Q5 ENTRY gate. Phase-4 EXIT removes this guard with the
-# fail-closed flip.
-_EDGE_CASE_GATE_ENV: Final[str] = "GEOSYNC_EDGE_CASE_GATE"
-_ecc_gate_only = pytest.mark.skipif(
-    os.environ.get(_EDGE_CASE_GATE_ENV) != "1",
-    reason=(
-        "IERD-Q7 Phase-4 ENTRY informational ECC gate; runs only in the "
-        "dedicated edge-case-matrix workflow "
-        f"({_EDGE_CASE_GATE_ENV}=1, continue-on-error). Phase-4 EXIT "
-        "lifts this guard when loading/cancelled/per-probe server_error "
-        "land."
-    ),
-)
-
-
-@_ecc_gate_only
+# Phase-4 EXIT: ECC ≥ 0.90 is now genuinely met (ECC = 1.00) because the
+# previously client-only states (loading / cancelled / per-probe
+# server_error) are exercised by the Playwright route-interception specs
+# in apps/web/tests/edge-case-probe.spec.ts against the /edge-probe
+# harness. The sub-test therefore runs unguarded and fail-closed in
+# every lane — no env flag, no continue-on-error.
 def test_ecc_meets_threshold() -> None:
-    """ECC ≥ 0.90. Informational at Phase-4 ENTRY (workflow continue-on-error)."""
+    """ECC ≥ 0.90 — fail-closed (Phase-4 EXIT, claim ANCHORED)."""
     covered, applicable, ecc, rows = compute_ecc()
     for cell, state, status, target in rows:
         print(f"\n[ecc] {cell:24s} {state:20s} {status:9s} {target}")
@@ -145,8 +126,8 @@ def test_ecc_meets_threshold() -> None:
     assert ecc >= ECC_THRESHOLD, (
         f"IERD-Q7 §5 ECC below threshold: observed ECC={ecc:.4f} < "
         f"{ECC_THRESHOLD:.2f} (covered {covered} of {applicable} genuine "
-        f"applicable cells). Phase-4 EXIT lands Playwright route-"
-        f"interception specs for loading / cancelled / per-probe "
-        f"server_error and flips this gate fail-closed. Do NOT relax the "
-        f"matrix or cite non-exercising tests to inflate ECC."
+        f"applicable cells). The Playwright route-interception specs in "
+        f"apps/web/tests/edge-case-probe.spec.ts back the client-only "
+        f"cells; do NOT relax the matrix or cite non-exercising tests to "
+        f"inflate ECC."
     )
