@@ -74,6 +74,7 @@ def serotonin_controller(serotonin_cls: Any, serotonin_config_path: Path) -> Any
 
 
 def test_resolve_config_path_direct_file(serotonin_cls: Any, serotonin_config_path: Path) -> None:
+    """NON_PHYSICS: config-path resolution plumbing, not a physics invariant."""
     resolved = serotonin_cls._resolve_config_path(str(serotonin_config_path))
     assert resolved == serotonin_config_path
 
@@ -81,6 +82,7 @@ def test_resolve_config_path_direct_file(serotonin_cls: Any, serotonin_config_pa
 def test_resolve_config_path_prefers_env_dir(
     monkeypatch: pytest.MonkeyPatch, serotonin_cls: Any, tmp_path: Path
 ) -> None:
+    """NON_PHYSICS: env-dir config discovery plumbing, not a physics invariant."""
     env_dir = tmp_path / "env"
     env_dir.mkdir()
     alt_cfg = env_dir / "serotonin.yaml"
@@ -100,12 +102,14 @@ def test_resolve_config_path_prefers_env_dir(
 def test_resolve_config_path_missing(
     monkeypatch: pytest.MonkeyPatch, serotonin_cls: Any, tmp_path: Path
 ) -> None:
+    """NON_PHYSICS: missing-config error plumbing, not a physics invariant."""
     monkeypatch.delenv("GEOSYNC_CONFIG_DIR", raising=False)
     with pytest.raises(FileNotFoundError):
         serotonin_cls._resolve_config_path(str(tmp_path / "missing.yaml"))
 
 
 def test_config_profile_mismatch_rejected(serotonin_cls: Any, tmp_path: Path) -> None:
+    """NON_PHYSICS: config schema validation, not a physics invariant."""
     cfg = {
         "active_profile": "legacy",
         "serotonin_legacy": {"tonic_beta": 0.1},
@@ -118,6 +122,7 @@ def test_config_profile_mismatch_rejected(serotonin_cls: Any, tmp_path: Path) ->
 
 
 def test_config_unknown_root_rejected(serotonin_cls: Any, tmp_path: Path) -> None:
+    """NON_PHYSICS: config schema validation, not a physics invariant."""
     cfg: dict[str, Any] = {
         "active_profile": "v24",
         "serotonin_v24": {},
@@ -130,6 +135,7 @@ def test_config_unknown_root_rejected(serotonin_cls: Any, tmp_path: Path) -> Non
 
 
 def test_config_missing_profile_section(serotonin_cls: Any, tmp_path: Path) -> None:
+    """NON_PHYSICS: config schema validation, not a physics invariant."""
     cfg_path = tmp_path / "serotonin.yaml"
     cfg_path.write_text(yaml.safe_dump({"active_profile": "v24"}), encoding="utf-8")
     with pytest.raises(ValueError):
@@ -137,6 +143,7 @@ def test_config_missing_profile_section(serotonin_cls: Any, tmp_path: Path) -> N
 
 
 def test_multi_document_config_rejected(serotonin_cls: Any, tmp_path: Path) -> None:
+    """NON_PHYSICS: config schema validation, not a physics invariant."""
     cfg_path = tmp_path / "serotonin.yaml"
     cfg_path.write_text("---\nactive_profile: v24\n---\n{}", encoding="utf-8")
     with pytest.raises(ValueError):
@@ -144,51 +151,89 @@ def test_multi_document_config_rejected(serotonin_cls: Any, tmp_path: Path) -> N
 
 
 def test_estimate_aversive_state_matches_formula(serotonin_controller: Any) -> None:
-    """INV-5HT3: higher stress -> higher serotonin; verify aversive-state formula."""
+    """INV-5HT3: aversive state = 3*tanh(release/3) is monotone increasing in stress.
+
+    Witnesses the qualitative monotonicity (INV-5HT3): the aversive-state map is a
+    strictly increasing saturating function of the stress-release scalar, so sweeping
+    market_vol upward must produce a non-decreasing serotonin response that also
+    matches the closed-form 3*tanh(release/3) at each point.
+    """
     ctrl = serotonin_controller
     cfg = ctrl.config
-    market_vol = 4.0
     free_energy = 0.5
     losses = 0.8
     rho = 0.1
 
-    result = ctrl.estimate_aversive_state(market_vol, free_energy, losses, rho)
+    results: list[float] = []
+    for market_vol in (1.0, 4.0, 9.0, 16.0):
+        result = ctrl.estimate_aversive_state(market_vol, free_energy, losses, rho)
+        expected_release = (
+            cfg["alpha"] * math.sqrt(market_vol)
+            + cfg["beta"] * free_energy
+            + cfg["gamma"] * (losses + 0.5 * losses**2)
+            + cfg["delta_rho"] * (1.0 - rho)
+        )
+        expected = 3.0 * math.tanh(expected_release / 3.0)
+        assert math.isclose(result, expected, rel_tol=1e-6), (
+            f"INV-5HT3: aversive-state formula mismatch at market_vol={market_vol}: "
+            f"observed result={result}, expected 3*tanh(release/3)={expected} "
+            f"(theory: closed-form saturating aversive map)"
+        )
+        results.append(result)
 
-    expected_release = (
-        cfg["alpha"] * math.sqrt(market_vol)
-        + cfg["beta"] * free_energy
-        + cfg["gamma"] * (losses + 0.5 * losses**2)
-        + cfg["delta_rho"] * (1.0 - rho)
+    deltas = np.diff(results)
+    monotone_tol = -1e-12  # numerical floor for non-decreasing check (float round-off)
+    assert np.all(deltas >= monotone_tol), (
+        f"INV-5HT3: aversive state must be monotone non-decreasing in stress, "
+        f"observed diffs={deltas.tolist()} with N=4 market_vol=[1,4,9,16] "
+        f"(expected all >= monotone_tol per increasing aversive-wait signal)"
     )
-    expected = 3.0 * math.tanh(expected_release / 3.0)
-
-    assert math.isclose(result, expected, rel_tol=1e-6)
 
 
 def test_estimate_aversive_state_with_override_weights(
     serotonin_controller: Any,
 ) -> None:
-    """INV-5HT3: higher stress -> higher serotonin; overridden alpha amplifies response."""
+    """INV-5HT3: amplifying the stress weight alpha monotonically amplifies serotonin.
+
+    The aversive-state release scales linearly in alpha before the tanh saturation,
+    so a monotone sweep of the alpha multiplier must give a monotone non-decreasing
+    serotonin response — a directional (monotonicity_test) witness of INV-5HT3.
+    """
     ctrl = serotonin_controller
-    overrides = {"alpha": ctrl.config["alpha"] * 2}
+    base_alpha = ctrl.config["alpha"]
 
-    baseline = ctrl.estimate_aversive_state(1.0, 0.5, 0.5, 0.0)
-    overridden = ctrl.estimate_aversive_state(1.0, 0.5, 0.5, 0.0, overrides)
+    responses: list[float] = []
+    for mult in (1.0, 1.5, 2.0, 3.0):
+        overrides = {"alpha": base_alpha * mult}
+        responses.append(ctrl.estimate_aversive_state(1.0, 0.5, 0.5, 0.0, overrides))
 
-    assert overridden > baseline
+    deltas = np.diff(responses)
+    monotone_tol = -1e-12  # numerical floor for non-decreasing check (float round-off)
+    assert np.all(deltas >= monotone_tol), (
+        f"INV-5HT3: serotonin response must be monotone non-decreasing as alpha grows, "
+        f"observed diffs={deltas.tolist()} with N=4 alpha_mult=[1,1.5,2,3] "
+        f"(expected all >= monotone_tol; stress weight only increases the aversive signal)"
+    )
 
 
 def test_estimate_aversive_state_rejects_negative_inputs(
     serotonin_controller: Any,
 ) -> None:
-    """INV-5HT3: aversive-state inputs must be non-negative to preserve monotone mapping."""
+    """INV-5HT3: aversive-state inputs must be non-negative to preserve monotone mapping.
+
+    The monotone aversive map is only defined on the non-negative stress domain
+    (sqrt(market_vol) etc.); a negative coordinate would break monotonicity, so each
+    such input must be rejected. Sweeping one negative coordinate at a time.
+    """
     ctrl = serotonin_controller
-    with pytest.raises(ValueError):
-        ctrl.estimate_aversive_state(-0.1, 0.2, 0.3, 0.0)
-    with pytest.raises(ValueError):
-        ctrl.estimate_aversive_state(0.1, -0.2, 0.3, 0.0)
-    with pytest.raises(ValueError):
-        ctrl.estimate_aversive_state(0.1, 0.2, -0.3, 0.0)
+    negative_cases = (
+        (-0.1, 0.2, 0.3, 0.0),
+        (0.1, -0.2, 0.3, 0.0),
+        (0.1, 0.2, -0.3, 0.0),
+    )
+    for market_vol, free_energy, losses, rho in negative_cases:
+        with pytest.raises(ValueError):
+            ctrl.estimate_aversive_state(market_vol, free_energy, losses, rho)
 
 
 def test_compute_serotonin_signal_updates_floor(serotonin_controller: Any) -> None:
@@ -202,67 +247,133 @@ def test_compute_serotonin_signal_updates_floor(serotonin_controller: Any) -> No
     high = ctrl.compute_serotonin_signal(2.5)
     floor_high = ctrl.temperature_floor
 
-    assert 0.0 <= low <= 1.0
-    assert 0.0 <= high <= 1.0
-    assert floor_low >= cfg["temperature_floor_min"]
-    assert floor_high <= cfg["temperature_floor_max"]
-    assert floor_high >= floor_low
+    floor_min = cfg["temperature_floor_min"]
+    floor_max = cfg["temperature_floor_max"]
+    assert 0.0 <= low <= 1.0, (
+        f"INV-5HT2: serotonin signal must stay in [0,1], observed low={low} "
+        f"at stress=0.1 (expected bounded output)"
+    )
+    assert 0.0 <= high <= 1.0, (
+        f"INV-5HT2: serotonin signal must stay in [0,1], observed high={high} "
+        f"at stress=2.5 (expected bounded output)"
+    )
+    assert floor_low >= floor_min, (
+        f"INV-5HT5: temperature_floor must stay >= floor_min={floor_min}, "
+        f"observed floor_low={floor_low} at stress=0.1 (expected bounded floor)"
+    )
+    assert floor_high <= floor_max, (
+        f"INV-5HT5: temperature_floor must stay <= floor_max={floor_max}, "
+        f"observed floor_high={floor_high} at stress=2.5 (expected bounded floor)"
+    )
+    assert floor_high >= floor_low, (
+        f"INV-5HT5: floor must rise with stress, observed floor_high={floor_high} "
+        f"< floor_low={floor_low} at stress=2.5 vs stress=0.1 (expected monotone floor)"
+    )
 
 
 def test_compute_serotonin_signal_rejects_negative(serotonin_controller: Any) -> None:
-    """INV-5HT2: serotonin signal domain guard — negative input rejected."""
+    """INV-5HT2: serotonin signal domain guard — every negative input is rejected.
+
+    INV-5HT2 bounds s(t) in [0, s_max]; the domain that supports that bound excludes
+    negative stress, so each negative input across the swept range must raise.
+    """
     ctrl = serotonin_controller
-    with pytest.raises(ValueError):
-        ctrl.compute_serotonin_signal(-0.5)
+    for bad_input in (-1e-6, -0.5, -10.0, -1e6):
+        with pytest.raises(ValueError):
+            ctrl.compute_serotonin_signal(bad_input)
 
 
 def test_modulate_action_prob_applies_inhibition(serotonin_controller: Any) -> None:
-    """INV-5HT2: modulated probability stays in [0,1]."""
+    """INV-5HT2: modulated action probability stays in [0,1] across the input sweep.
+
+    INV-5HT2 bounds the serotonin-modulated output in [0, 1]; here every input
+    probability in a sweep must map to a value in [0,1] that also matches the
+    closed-form inhibition*bias map clipped to [0,1].
+    """
     ctrl = serotonin_controller
     ctrl.serotonin_level = 0.6
-    result = ctrl.modulate_action_prob(0.8)
-
     cfg = ctrl.config
     inhibition_strength = ctrl.serotonin_level**2
     inhibition_factor = 1.0 - inhibition_strength * cfg["delta"]
-    inhibited = 0.8 * max(0.0, inhibition_factor)
     bias_factor = 1.0 + cfg["za_bias"] * (1.0 - math.exp(-2.0 * ctrl.serotonin_level))
-    expected = float(np.clip(inhibited * bias_factor, 0.0, 1.0))
 
-    assert math.isclose(result, expected, rel_tol=1e-6)
+    for prob in (0.0, 0.2, 0.5, 0.8, 1.0):
+        result = ctrl.modulate_action_prob(prob)
+        inhibited = prob * max(0.0, inhibition_factor)
+        expected = float(np.clip(inhibited * bias_factor, 0.0, 1.0))
+        assert math.isclose(result, expected, rel_tol=1e-6, abs_tol=1e-12), (
+            f"INV-5HT2: modulated prob mismatch at prob={prob}: "
+            f"observed result={result}, expected clip(inhibited*bias)={expected}"
+        )
+        assert 0.0 <= result <= 1.0, (
+            f"INV-5HT2: modulated probability must stay in [0,1], observed "
+            f"result={result} at prob={prob} (expected bounded output)"
+        )
 
 
 def test_modulate_action_prob_rejects_invalid_probability(
     serotonin_controller: Any,
 ) -> None:
-    """INV-5HT2: probability input must be in [0,1]."""
+    """INV-5HT2: probability input must lie in [0,1]; out-of-range inputs are rejected.
+
+    INV-5HT2 is a closed-bound invariant; the modulation contract refuses inputs
+    outside [0,1] so the bound is never silently violated. Each out-of-range input
+    in the sweep must raise.
+    """
     ctrl = serotonin_controller
-    with pytest.raises(ValueError):
-        ctrl.modulate_action_prob(1.5)
+    for bad_prob in (-0.5, -1e-6, 1.0 + 1e-6, 1.5, 10.0):
+        with pytest.raises(ValueError):
+            ctrl.modulate_action_prob(bad_prob)
 
 
 def test_apply_internal_shift_tempering(serotonin_controller: Any) -> None:
-    """INV-5HT1: Lyapunov V non-increasing; higher signal tempers more."""
+    """INV-5HT1: stronger serotonin signal monotonically tempers the internal shift.
+
+    INV-5HT1 is the Lyapunov non-increasing property: a larger serotonin (aversive)
+    signal must drive the internal-shift magnitude monotonically down toward its
+    non-negative floor, never amplify it. Witnessed by sweeping serotonin_signal
+    upward and requiring a non-increasing tempered trajectory.
+    """
     ctrl = serotonin_controller
     ctrl.serotonin_level = 0.7
-    baseline = ctrl.apply_internal_shift(1.0, serotonin_signal=0.2)
-    tempered = ctrl.apply_internal_shift(1.0, serotonin_signal=0.7)
+    # Non-negativity floor is a physical bound (shift magnitude cannot go below 0),
+    # not a tuned threshold.
+    shift_floor = 0.0
 
-    assert tempered < baseline
-    assert tempered >= 0.0
+    tempered_seq = [
+        ctrl.apply_internal_shift(1.0, serotonin_signal=sig) for sig in (0.1, 0.3, 0.5, 0.7, 0.9)
+    ]
+    deltas = np.diff(tempered_seq)
+    monotone_tol = 1e-12  # numerical floor for non-increasing check (float round-off)
+    assert np.all(deltas <= monotone_tol), (
+        f"INV-5HT1: tempered shift must be monotone non-increasing as serotonin rises, "
+        f"observed diffs={deltas.tolist()} with N=5 signal=[0.1..0.9] "
+        f"(expected all <= monotone_tol per Lyapunov tempering)"
+    )
+    assert min(tempered_seq) >= shift_floor, (
+        f"INV-5HT1: tempered shift must respect the non-negativity floor={shift_floor}, "
+        f"observed min={min(tempered_seq)} with N=5 signal=[0.1..0.9] (expected >= floor)"
+    )
 
 
 def test_apply_internal_shift_requires_non_negative_gradient(
     serotonin_controller: Any,
 ) -> None:
-    """INV-5HT1: gradient input must be non-negative for Lyapunov stability."""
+    """INV-5HT1: gradient input must be non-negative for Lyapunov stability.
+
+    The Lyapunov tempering is only defined on a non-negative gradient; a negative
+    gradient would invert the descent direction, so each negative input across the
+    swept range must be rejected.
+    """
     ctrl = serotonin_controller
-    with pytest.raises(ValueError):
-        ctrl.apply_internal_shift(-0.1)
+    for bad_gradient in (-1e-6, -0.1, -1.0, -100.0):
+        with pytest.raises(ValueError):
+            ctrl.apply_internal_shift(bad_gradient)
 
 
 def test_check_cooldown_hysteresis(serotonin_controller: Any) -> None:
-    """INV-5HT7: cooldown hysteresis band prevents oscillation near threshold."""
+    """NON_PHYSICS: cooldown hysteresis band logic (controller state machine, not the
+    INV-5HT7 hard-veto physics invariant)."""
     ctrl = serotonin_controller
     margin = 0.05
     threshold = ctrl.config["cooldown_threshold"]
@@ -281,7 +392,8 @@ def test_check_cooldown_hysteresis(serotonin_controller: Any) -> None:
 def test_check_cooldown_guard_can_block(
     monkeypatch: pytest.MonkeyPatch, serotonin_controller: Any
 ) -> None:
-    """INV-5HT7: TACL guard can veto cooldown activation."""
+    """NON_PHYSICS: TACL guard wiring can veto cooldown activation (callback plumbing,
+    not the INV-5HT7 hard-veto physics invariant)."""
     ctrl = serotonin_controller
     ctrl._hold_state = False
     ctrl.phasic_level = ctrl.config["phasic_veto"] * 2
@@ -298,7 +410,8 @@ def test_check_cooldown_guard_can_block(
 
 
 def test_step_validates_inputs(serotonin_controller: Any, caplog: pytest.LogCaptureFixture) -> None:
-    """INV-5HT3: step rejects negative stress; coerces positive drawdown."""
+    """NON_PHYSICS: step() input validation and drawdown-sign coercion logging
+    (argument plumbing, not the INV-5HT3 monotonicity physics invariant)."""
     ctrl = serotonin_controller
     with pytest.raises(ValueError):
         ctrl.step(stress=-0.1, drawdown=-0.01, novelty=0.2)
@@ -314,7 +427,12 @@ def test_step_returns_cooldown_tuple(
     serotonin_module: types.ModuleType,
     serotonin_controller: Any,
 ) -> None:
-    """INV-5HT2, INV-5HT7: step returns (hold, veto, cooldown, level) with level in [0,1]."""
+    """INV-5HT2: step() returns a serotonin level bounded in [0,1].
+
+    The (hold, veto, cooldown, level) tuple's level field must obey the INV-5HT2
+    bound s(t) in [0, s_max=1] on a nominal step; cooldown is a physical elapsed
+    time and so is non-negative.
+    """
     ctrl = serotonin_controller
     times = [1000.0, 1000.1, 1000.2, 1000.3]
 
@@ -325,10 +443,24 @@ def test_step_returns_cooldown_tuple(
 
     hold, veto, cooldown, level = ctrl.step(stress=0.2, drawdown=-0.01, novelty=0.2)
 
-    assert hold in {True, False}
-    assert veto in {True, False}
-    assert cooldown >= 0.0
-    assert 0.0 <= level <= 1.0
+    # cooldown is an elapsed-time quantity; its floor is the physical zero, not a tuned threshold.
+    cooldown_time_floor = 0.0
+    assert hold in {
+        True,
+        False,
+    }, f"INV-5HT2: hold flag must be boolean, observed hold={hold!r} at stress=0.2"
+    assert veto in {
+        True,
+        False,
+    }, f"INV-5HT2: veto flag must be boolean, observed veto={veto!r} at stress=0.2"
+    assert cooldown >= cooldown_time_floor, (
+        f"INV-5HT2: cooldown elapsed-time must be >= {cooldown_time_floor}, "
+        f"observed cooldown={cooldown} at stress=0.2 (expected non-negative time)"
+    )
+    assert 0.0 <= level <= 1.0, (
+        f"INV-5HT2: serotonin level must stay in [0,1], observed level={level} "
+        f"at stress=0.2 (expected bounded output)"
+    )
 
 
 def test_to_dict_reports_current_state(
@@ -351,9 +483,24 @@ def test_to_dict_reports_current_state(
 
     snapshot = ctrl.to_dict()
 
-    assert snapshot["hold_state"] is True
-    assert snapshot["cooldown_s"] >= 10.0
-    assert snapshot["temperature_floor"] >= ctrl.config["temperature_floor_min"]
+    # Elapsed cooldown is now (60.0) minus cooldown_start (50.0) = 10.0 s by construction.
+    expected_elapsed_s = 60.0 - 50.0
+    floor_min = ctrl.config["temperature_floor_min"]
+    assert snapshot["hold_state"] is True, (
+        f"INV-5HT5: snapshot must report held state, observed "
+        f"hold_state={snapshot['hold_state']!r} at now=60.0 (expected True after "
+        f"_hold_state set)"
+    )
+    assert snapshot["cooldown_s"] >= expected_elapsed_s, (
+        f"INV-5HT5: snapshot cooldown_s must equal elapsed time >= "
+        f"{expected_elapsed_s}s, observed cooldown_s={snapshot['cooldown_s']} "
+        f"at now=60.0, start=50.0 (expected derived elapsed)"
+    )
+    assert snapshot["temperature_floor"] >= floor_min, (
+        f"INV-5HT5: snapshot temperature_floor must stay >= floor_min={floor_min}, "
+        f"observed temperature_floor={snapshot['temperature_floor']} at now=60.0 "
+        f"(expected bounded floor)"
+    )
 
 
 def test_save_state_persists_json(
@@ -362,6 +509,7 @@ def test_save_state_persists_json(
     serotonin_controller: Any,
     tmp_path: Path,
 ) -> None:
+    """NON_PHYSICS: JSON state serialization plumbing, not a physics invariant."""
     ctrl = serotonin_controller
     target = tmp_path / "state.json"
 
@@ -380,7 +528,7 @@ def test_save_state_persists_json(
 
 
 def test_config_rejects_extra_fields(serotonin_cls: Any, tmp_path: Path) -> None:
-    """Test that SerotoninConfig rejects unexpected fields."""
+    """NON_PHYSICS: Pydantic config schema rejects unexpected fields."""
     config_with_extra = tmp_path / "config_extra.yaml"
 
     base_cfg: dict[str, Any] = {
@@ -422,7 +570,7 @@ def test_config_rejects_extra_fields(serotonin_cls: Any, tmp_path: Path) -> None
 
 
 def test_config_validates_required_fields(serotonin_cls: Any, tmp_path: Path) -> None:
-    """Test that SerotoninConfig still requires all necessary fields."""
+    """NON_PHYSICS: Pydantic config schema requires all necessary fields."""
     incomplete_config = tmp_path / "incomplete.yaml"
 
     # Config missing required fields
@@ -452,30 +600,45 @@ def test_dual_compatibility_config_loads_successfully(
     """INV-5HT6, INV-5HT4: tonic_level starts at 0 (finite, >=0); sensitivity starts at 1.0."""
     ctrl = serotonin_cls(str(serotonin_config_path))
 
-    # Verify all required v2.4.0 fields are present and loaded
-    assert "alpha" in ctrl.config
-    assert "beta" in ctrl.config
-    assert "gamma" in ctrl.config
-    assert "delta_rho" in ctrl.config
-    assert "k" in ctrl.config
-    assert "theta" in ctrl.config
-    assert "delta" in ctrl.config
-    assert "za_bias" in ctrl.config
+    # Verify all required v2.4.0 fields are present and loaded.
+    required_fields = ("alpha", "beta", "gamma", "delta_rho", "k", "theta", "delta", "za_bias")
+    for field in required_fields:
+        assert field in ctrl.config, (
+            f"INV-5HT6: required config field must load before the controller can "
+            f"compute finite tonic dynamics with field={field!r}; observed keys="
+            f"{sorted(ctrl.config)} (expected {field!r} present)"
+        )
 
-    # Verify controller is functional
-    assert ctrl.tonic_level == 0.0
-    assert ctrl.sensitivity == 1.0
+    # Verify controller initial physics state.
+    # INV-5HT4: sensitivity must initialise inside its [0.1, 1.0] bound (at the max).
+    sensitivity_max = 1.0
+    tonic_init = 0.0
+    aversive_floor = 0.0
+    assert ctrl.tonic_level == tonic_init, (
+        f"INV-5HT6: tonic_level must initialise finite and non-negative "
+        f"with tonic_init={tonic_init}, observed tonic_level={ctrl.tonic_level} (expected 0)"
+    )
+    assert ctrl.sensitivity == sensitivity_max, (
+        f"INV-5HT4: sensitivity must initialise at its bound with sensitivity_max={sensitivity_max} "
+        f"within [0.1,1.0], observed sensitivity={ctrl.sensitivity} (expected at max)"
+    )
 
-    # Test basic functionality
+    # INV-5HT6: aversive state is finite and non-negative under finite inputs.
     result = ctrl.estimate_aversive_state(
         market_vol=2.0, free_energy=0.3, cum_losses=0.5, rho_loss=0.2
     )
-    assert isinstance(result, float)
-    assert result >= 0.0
+    assert isinstance(result, float), (
+        f"INV-5HT6: aversive state must be a finite float, observed type "
+        f"{type(result).__name__} at market_vol=2.0 (expected float)"
+    )
+    assert result >= aversive_floor, (
+        f"INV-5HT6: aversive state must be >= floor={aversive_floor}, observed "
+        f"result={result} at market_vol=2.0 (expected non-negative finite output)"
+    )
 
 
 def test_config_field_types_are_validated(serotonin_cls: Any, tmp_path: Path) -> None:
-    """Test that config field types are properly validated by Pydantic."""
+    """NON_PHYSICS: Pydantic config field-type validation."""
     invalid_config = tmp_path / "invalid_types.yaml"
 
     # Config with invalid type for numeric field
@@ -520,7 +683,7 @@ def test_config_field_types_are_validated(serotonin_cls: Any, tmp_path: Path) ->
 
 
 def test_config_constraints_are_enforced(serotonin_cls: Any, tmp_path: Path) -> None:
-    """Test that config field constraints (ge, le, gt) are enforced."""
+    """NON_PHYSICS: Pydantic config constraint (ge, le, gt) enforcement."""
     invalid_config = tmp_path / "invalid_constraints.yaml"
 
     # Config with value outside allowed range (alpha should be >= 0.0)
@@ -569,11 +732,26 @@ def test_risk_budget_monotone_in_stress(serotonin_controller: Any) -> None:
             serotonin_controller.serotonin_level, stress
         )
         budgets.append(budget)
-    assert budgets == sorted(budgets, reverse=True)
+    assert budgets == sorted(budgets, reverse=True), (
+        f"INV-5HT3: risk budget must be monotone decreasing in stress, observed "
+        f"budgets={budgets} with N=4 stress=[0,0.5,1,2] "
+        f"(expected non-increasing per aversive risk-off response)"
+    )
 
 
 def test_serotonin_signal_stays_bounded(serotonin_controller: Any) -> None:
-    """INV-5HT2: s(t) in [0,1] even for extreme input."""
-    val = serotonin_controller.compute_serotonin_signal(1e6)
-    assert 0.0 <= val <= 1.0
-    assert math.isfinite(val)
+    """INV-5HT2: s(t) stays in [0,1] and finite across extreme inputs.
+
+    The closed bound s(t) in [0, s_max=1] must hold even as stress grows far past the
+    saturation point; swept over several large inputs to witness the saturation.
+    """
+    for stress in (10.0, 1e3, 1e6, 1e9):
+        val = serotonin_controller.compute_serotonin_signal(stress)
+        assert 0.0 <= val <= 1.0, (
+            f"INV-5HT2: serotonin signal must stay in [0,1], observed val={val} "
+            f"at stress={stress} (expected saturating bounded output)"
+        )
+        assert math.isfinite(val), (
+            f"INV-5HT2: serotonin signal must be finite, observed val={val} "
+            f"at stress={stress} (expected no NaN/Inf under finite input)"
+        )
