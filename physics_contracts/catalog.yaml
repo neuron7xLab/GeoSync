@@ -80,6 +80,20 @@ laws:
     source: "Perelman 2002; Ni–Lin–Luo 2019"
     severity: block
 
+  - id: ricci.gauss_bonnet
+    module: ricci
+    statement: "For the clique complex of any finite simple graph, the sum of Knill vertex curvatures equals the Euler characteristic (discrete Gauss–Bonnet). A non-zero residual against an externally supplied curvature field is exact evidence of corrupted/tampered topology, rejected fail-closed."
+    formula: "Σ_{x∈V} K(x) = χ(G);  K(x) = Σ_k (−1)^k V_k(x)/(k+1);  χ(G) = Σ_k (−1)^k v_k  ⇒  residual = Σ_x K(x) − χ(G) = 0 exactly (over ℚ)"
+    variables:
+      K_x: "Knill vertex curvature of x, computed with exact Fraction arithmetic"
+      V_k_x: "number of (k+1)-cliques containing x (V_0=1, V_1=deg, V_2=triangles at x, …)"
+      v_k: "number of (k+1)-cliques in G (v_0=vertices, v_1=edges, v_2=triangles, …)"
+      chi: "Euler characteristic of the clique complex, an exact integer"
+    tolerance: "exact: residual == 0 over the rationals; no floating-point slack admitted (curvature carried as fractions.Fraction)"
+    validity: "finite simple undirected graph (no self-loops, no multi/directed edges); the clique complex is taken to the graph's clique number. Out-of-domain inputs are refused, not coerced."
+    source: "Knill O., 'A graph theoretical Gauss-Bonnet theorem', arXiv:1111.5395 (2011); core/indicators/gauss_bonnet.py"
+    severity: block
+
   # ────────────────────── Thermodynamics / ECS ──────────────────────
   - id: thermo.second_law_closed
     module: ecs
