@@ -5,10 +5,12 @@ This module validates prompt-as-code artifacts as deterministic CI contracts.
 It intentionally avoids live LLM calls; provider-backed evaluation belongs behind
 an explicit shadow runner with cost, secret, and regression controls.
 """
+
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import re
 import sys
@@ -17,12 +19,15 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+yaml: Any = None
 try:  # YAML support is optional locally, installed in CI.
-    import yaml  # type: ignore[import-not-found]
+    yaml = importlib.import_module("yaml")
 except Exception:  # pragma: no cover - exercised when PyYAML is absent.
     yaml = None
 
-CONTRACT_SCHEMA_ID = "https://neuron7xlab.local/schemas/promptops/system_prompt_contract.schema.json"
+CONTRACT_SCHEMA_ID = (
+    "https://neuron7xlab.local/schemas/promptops/system_prompt_contract.schema.json"
+)
 ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{2,127}$")
 TEST_ID_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 REF_RE = re.compile(r"<ref:([A-Za-z0-9_.-]+)>")
@@ -32,7 +37,9 @@ MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 SECRET_PATTERNS = {
     "openai_key": re.compile(r"sk-[A-Za-z0-9_-]{20,}"),
     "aws_access_key": re.compile(r"AKIA[0-9A-Z]{16}"),
-    "generic_token": re.compile(r"(api[_-]?key|token|secret)\s*[:=]\s*['\"]?[A-Za-z0-9_./+=-]{16,}", re.IGNORECASE),
+    "generic_token": re.compile(
+        r"(api[_-]?key|token|secret)\s*[:=]\s*['\"]?[A-Za-z0-9_./+=-]{16,}", re.IGNORECASE
+    ),
 }
 INJECTION_PATTERNS = {
     "ignore_previous": re.compile(r"ignore\s+(all\s+)?previous\s+instructions?", re.IGNORECASE),
@@ -60,7 +67,7 @@ class ValidationReport:
     version: str | None = None
     source_sha256: str | None = None
 
-    def fail(self, code: str, message: str, path: str = "$." ) -> None:
+    def fail(self, code: str, message: str, path: str = "$.") -> None:
         self.ok = False
         self.issues.append(ValidationIssue(path=path, code=code, message=message))
 
@@ -71,7 +78,12 @@ class ValidationReport:
             "version": self.version,
             "source_sha256": self.source_sha256,
             "ok": self.ok,
-            "issues": [issue.__dict__ for issue in sorted(self.issues, key=lambda item: (item.path, item.code, item.message))],
+            "issues": [
+                issue.__dict__
+                for issue in sorted(
+                    self.issues, key=lambda item: (item.path, item.code, item.message)
+                )
+            ],
         }
 
 
@@ -130,14 +142,26 @@ def validate_messages(report: ValidationReport, messages: Any) -> None:
         role = message.get("role")
         content = message.get("content")
         if role not in ALLOWED_ROLES:
-            report.fail("invalid_role", f"role must be one of {sorted(ALLOWED_ROLES)}", f"$.messages[{i}].role")
+            report.fail(
+                "invalid_role",
+                f"role must be one of {sorted(ALLOWED_ROLES)}",
+                f"$.messages[{i}].role",
+            )
         else:
             roles.append(role)
         if not isinstance(content, str) or not content.strip():
-            report.fail("empty_content", "message.content must be a non-empty string", f"$.messages[{i}].content")
+            report.fail(
+                "empty_content",
+                "message.content must be a non-empty string",
+                f"$.messages[{i}].content",
+            )
 
     if "system" not in roles and "developer" not in roles:
-        report.fail("missing_authoritative_instruction", "messages must include at least one system or developer instruction", "$.messages")
+        report.fail(
+            "missing_authoritative_instruction",
+            "messages must include at least one system or developer instruction",
+            "$.messages",
+        )
 
 
 def validate_references(report: ValidationReport, references: Any) -> set[str]:
@@ -156,11 +180,19 @@ def validate_references(report: ValidationReport, references: Any) -> set[str]:
         if not isinstance(ref_id, str) or not TEST_ID_RE.fullmatch(ref_id):
             report.fail("invalid_reference_id", "reference id is invalid", f"$.references[{i}].id")
         elif ref_id in declared_refs:
-            report.fail("duplicate_reference_id", f"Duplicate reference id: {ref_id}", f"$.references[{i}].id")
+            report.fail(
+                "duplicate_reference_id",
+                f"Duplicate reference id: {ref_id}",
+                f"$.references[{i}].id",
+            )
         else:
             declared_refs.add(ref_id)
         if not isinstance(href, str) or not valid_url(href):
-            report.fail("invalid_reference_href", "reference href must be http(s) URI", f"$.references[{i}].href")
+            report.fail(
+                "invalid_reference_href",
+                "reference href must be http(s) URI",
+                f"$.references[{i}].href",
+            )
     return declared_refs
 
 
@@ -186,7 +218,11 @@ def validate_security(report: ValidationReport, text_nodes: list[str]) -> None:
     for label, pattern in INJECTION_PATTERNS.items():
         for text in text_nodes:
             if pattern.search(text):
-                report.fail("prompt_injection_phrase", f"Potential prompt-injection phrase detected: {label}", "$.text")
+                report.fail(
+                    "prompt_injection_phrase",
+                    f"Potential prompt-injection phrase detected: {label}",
+                    "$.text",
+                )
                 break
 
 
@@ -194,33 +230,59 @@ def validate_test_collections(report: ValidationReport, data: dict[str, Any]) ->
     for collection_name in ("unit_tests", "shadow_tests"):
         collection = data.get(collection_name)
         if not isinstance(collection, list) or not collection:
-            report.fail("invalid_test_collection", f"{collection_name} must be a non-empty array", f"$.{collection_name}")
+            report.fail(
+                "invalid_test_collection",
+                f"{collection_name} must be a non-empty array",
+                f"$.{collection_name}",
+            )
             continue
 
         seen: set[str] = set()
-        required = ("input", "assertions") if collection_name == "unit_tests" else ("input", "baseline_expectations", "quality_gates")
+        required = (
+            ("input", "assertions")
+            if collection_name == "unit_tests"
+            else ("input", "baseline_expectations", "quality_gates")
+        )
         for i, case in enumerate(collection):
             if not isinstance(case, dict):
-                report.fail("invalid_test_case", "test case must be an object", f"$.{collection_name}[{i}]")
+                report.fail(
+                    "invalid_test_case", "test case must be an object", f"$.{collection_name}[{i}]"
+                )
                 continue
             case_id = case.get("id")
             if not isinstance(case_id, str) or not TEST_ID_RE.fullmatch(case_id):
                 report.fail("invalid_test_id", "test id is invalid", f"$.{collection_name}[{i}].id")
                 continue
             if case_id in seen:
-                report.fail("duplicate_test_id", f"Duplicate test id: {case_id}", f"$.{collection_name}[{i}].id")
+                report.fail(
+                    "duplicate_test_id",
+                    f"Duplicate test id: {case_id}",
+                    f"$.{collection_name}[{i}].id",
+                )
             seen.add(case_id)
             for key in required:
                 if key not in case:
-                    report.fail("missing_test_key", f"Missing {key} in {collection_name} case", f"$.{collection_name}[{i}].{key}")
+                    report.fail(
+                        "missing_test_key",
+                        f"Missing {key} in {collection_name} case",
+                        f"$.{collection_name}[{i}].{key}",
+                    )
 
             if collection_name == "shadow_tests":
                 gates = case.get("quality_gates")
                 if not isinstance(gates, list) or not gates:
-                    report.fail("invalid_quality_gates", "shadow_tests quality_gates must be a non-empty array", f"$.{collection_name}[{i}].quality_gates")
+                    report.fail(
+                        "invalid_quality_gates",
+                        "shadow_tests quality_gates must be a non-empty array",
+                        f"$.{collection_name}[{i}].quality_gates",
+                    )
                 expectations = case.get("baseline_expectations")
                 if not isinstance(expectations, (dict, list, str)):
-                    report.fail("invalid_baseline_expectations", "baseline_expectations must be object, array, or string", f"$.{collection_name}[{i}].baseline_expectations")
+                    report.fail(
+                        "invalid_baseline_expectations",
+                        "baseline_expectations must be object, array, or string",
+                        f"$.{collection_name}[{i}].baseline_expectations",
+                    )
 
 
 def validate_artifact(path: Path) -> ValidationReport:
@@ -246,7 +308,11 @@ def validate_artifact(path: Path) -> ValidationReport:
         return report
 
     if data.get("artifact_type") != "system_prompt_contract":
-        report.fail("invalid_artifact_type", "artifact_type must be system_prompt_contract", "$.artifact_type")
+        report.fail(
+            "invalid_artifact_type",
+            "artifact_type must be system_prompt_contract",
+            "$.artifact_type",
+        )
 
     artifact_id = data.get("id")
     if not isinstance(artifact_id, str) or not ID_RE.fullmatch(artifact_id):
@@ -254,11 +320,17 @@ def validate_artifact(path: Path) -> ValidationReport:
 
     version = data.get("version")
     if not isinstance(version, str) or not SEMVER_RE.fullmatch(version):
-        report.fail("invalid_version", "version must be strict semver: MAJOR.MINOR.PATCH", "$.version")
+        report.fail(
+            "invalid_version", "version must be strict semver: MAJOR.MINOR.PATCH", "$.version"
+        )
 
     objective = data.get("objective")
     if objective is not None and (not isinstance(objective, str) or len(objective.strip()) < 16):
-        report.fail("invalid_objective", "objective must be at least 16 non-whitespace characters", "$.objective")
+        report.fail(
+            "invalid_objective",
+            "objective must be at least 16 non-whitespace characters",
+            "$.objective",
+        )
 
     validate_messages(report, data.get("messages"))
 
@@ -268,7 +340,11 @@ def validate_artifact(path: Path) -> ValidationReport:
     mentioned_refs = {match.group(1) for text in text_nodes for match in REF_RE.finditer(text)}
     missing_refs = mentioned_refs - declared_refs
     if missing_refs:
-        report.fail("missing_reference_declaration", f"Referenced IDs are not declared: {sorted(missing_refs)}", "$.references")
+        report.fail(
+            "missing_reference_declaration",
+            f"Referenced IDs are not declared: {sorted(missing_refs)}",
+            "$.references",
+        )
 
     validate_url_closure(report, text_nodes)
     validate_security(report, text_nodes)
@@ -282,7 +358,9 @@ def discover(paths: list[str]) -> list[Path]:
     for raw in paths:
         path = Path(raw)
         if path.is_dir():
-            out.extend(sorted(p for p in path.rglob("*") if p.suffix.lower() in {".json", ".yaml", ".yml"}))
+            out.extend(
+                sorted(p for p in path.rglob("*") if p.suffix.lower() in {".json", ".yaml", ".yml"})
+            )
         elif path.exists():
             out.append(path)
     return sorted(set(out), key=lambda item: item.as_posix())
@@ -338,7 +416,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.report:
         Path(args.report).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.report).write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        Path(args.report).write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
 
     print(json.dumps(payload, indent=2, ensure_ascii=False))
     return 0 if payload["ok"] else 1

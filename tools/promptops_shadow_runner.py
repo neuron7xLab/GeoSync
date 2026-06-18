@@ -6,25 +6,35 @@ provider-free shadow pass. It does not pretend to be a real LLM evaluator.
 It gives CI a stable regression surface before a later provider-backed job is
 allowed to spend tokens, leak secrets, or summon the usual distributed gremlins.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import re
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from promptops_validate import (
+    build_payload,
+    discover,
+    load_artifact,
+    validate_artifact,
+)
 
-from tools.promptops_validate import build_payload, discover, load_artifact, validate_artifact  # noqa: E402
-
-SECRET_RE = re.compile(r"sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|(api[_-]?key|token|secret)\s*[:=]\s*['\"]?[A-Za-z0-9_./+=-]{16,}", re.IGNORECASE)
-INJECTION_RE = re.compile(r"(ignore\s+(all\s+)?previous\s+instructions?|reveal\s+(the\s+)?(system\s+)?prompt|developer\s+mode)", re.IGNORECASE)
-MISSING_REF_RE = re.compile(r"(missing\s+referenced?\s+id|missing\s+reference|<ref:missing>|undeclared\s+ref)", re.IGNORECASE)
+SECRET_RE = re.compile(
+    r"sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|(api[_-]?key|token|secret)\s*[:=]\s*['\"]?[A-Za-z0-9_./+=-]{16,}",
+    re.IGNORECASE,
+)
+INJECTION_RE = re.compile(
+    r"(ignore\s+(all\s+)?previous\s+instructions?|reveal\s+(the\s+)?(system\s+)?prompt|developer\s+mode)",
+    re.IGNORECASE,
+)
+MISSING_REF_RE = re.compile(
+    r"(missing\s+referenced?\s+id|missing\s+reference|<ref:missing>|undeclared\s+ref)",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -157,7 +167,11 @@ def run_shadow(paths: list[str]) -> dict[str, Any]:
             "artifact_count": len(artifacts),
             "case_count": len(case_results),
             "failed_cases": sum(1 for result in case_results if not result.ok),
-            "pass_rate": 1.0 if not case_results else round(sum(1 for result in case_results if result.ok) / len(case_results), 6),
+            "pass_rate": (
+                1.0
+                if not case_results
+                else round(sum(1 for result in case_results if result.ok) / len(case_results), 6)
+            ),
         },
         "cases": [result.as_dict() for result in case_results],
     }
@@ -172,7 +186,9 @@ def main(argv: list[str] | None = None) -> int:
     payload = run_shadow(args.paths)
     if args.report:
         Path(args.report).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.report).write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        Path(args.report).write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
 
     print(json.dumps(payload, indent=2, ensure_ascii=False))
     return 0 if payload["ok"] else 1
