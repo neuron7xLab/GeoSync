@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "670c2dcea278f92fb2bac69e2636b4bf10fc93eed794ff399029caef6a8db5b7"
+      "sha256": "3f3613bf8501448a2a70deda8c4324788d31dc531052525785b1454396753dd0"
     },
     {
       "path": "scripts/ci/__init__.py",
@@ -74,6 +74,10 @@
       "sha256": "58ffb28ba07ac7529c9a3e66a2914906508511ba8889ca81f26fc9d3024ad642"
     },
     {
+      "path": "scripts/ci/check_inference_transformer_contract.py",
+      "sha256": "1d85e018a5fc97d1e68d99a01cffe7b359986a9020da7efe09a5cb69bfef8ca0"
+    },
+    {
       "path": "scripts/ci/check_instrument_evidence_chain.py",
       "sha256": "50caf2f64e0c12ad18eed19bd44e1c2cd8be23da9058441cf8e5700b158a5de4"
     },
@@ -87,7 +91,11 @@
     },
     {
       "path": "scripts/ci/check_math_boundaries.py",
-      "sha256": "90c5e999cc5c2dd086fa68bdc1db62a98cd44597fab5cf1e049c3e4b17e3d1d0"
+      "sha256": "317000852fa2c3482cbe8a2a1f48f41073b17cf07d34632f35f85d2f121fb095"
+    },
+    {
+      "path": "scripts/ci/check_n7x_value_functions.py",
+      "sha256": "9e461d0dc18942ab2fba792f6dfec773b0ceeed66b6e1aca83b52307e5bd3d59"
     },
     {
       "path": "scripts/ci/check_negative_evidence.py",
@@ -100,6 +108,10 @@
     {
       "path": "scripts/ci/check_research_artifact_truth.py",
       "sha256": "98e90c6aa0a2677e968be5efbf7c72fb488bd79f66aeef843ca197f7f9180f42"
+    },
+    {
+      "path": "scripts/ci/check_research_standard_contract.py",
+      "sha256": "eb6ee56702cca09591489f9e645418acdd8334361eb9be5b0356a96ab92ce8a2"
     },
     {
       "path": "scripts/ci/check_revalidation_ledger.py",
