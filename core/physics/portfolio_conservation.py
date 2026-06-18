@@ -1,22 +1,37 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""T3 — Conservation Laws for Portfolio Energy.
+"""T3 — Portfolio Energy-Budget Tolerance Check.
 
-Defines portfolio energy:
-    E_kinetic   = ½ · Σ(position_i · velocity_i²)
-        where velocity_i = 5-period price return
+Provenance tier: EXTRAPOLATED (heuristic, not an anchored physical law).
+
+Defines a descriptive scalar "energy" for a portfolio configuration:
+    E_kinetic   = ½ · Σ(|position_i| · return_i²)
+        where return_i = 5-period price return (a velocity proxy)
     E_potential = -Σ(position_i · expected_return_i)
-        where expected_return from Kuramoto coherence signal
+        where expected_return comes from a Kuramoto coherence signal
     E_total     = E_kinetic + E_potential
 
-Conservation constraint:
-    ΔE_total per rebalance ≤ ε (transaction cost threshold)
+Budget-tolerance check (NOT a conservation law):
+    |ΔE_total| per rebalance ≤ ε  (ε is a tunable threshold, default 0.05)
 
-This is NOT claiming physical energy conservation.
-It IS claiming: portfolio rebalancing is energy-conservative unless
-an explicit regime signal overrides it. This is testable. This is honest.
+What this is NOT
+----------------
+This is NOT a Noether conservation law. There is no continuous symmetry
+of the portfolio dynamics and no associated conserved current, so nothing
+is "conserved" in the physical sense and the rebalance does not "preserve"
+any quantity. E_total is a hand-assembled descriptive scalar, not a
+Hamiltonian; the negative sign on E_potential is a heuristic stability
+ranking (aligned positions score lower), not a gravitational potential.
 
-Violation = energy injection from external force (regime change signal).
+What this IS
+------------
+A budget tolerance: |ΔE| ≤ ε flags rebalances whose descriptive-energy
+change exceeds the band ε. ε is a free, tunable threshold (it requires
+calibration via transaction-cost analysis); it is NOT a derived physical
+constant, and the comparison verdict carries no conservation-law authority.
+
+A flagged move (|ΔE| > ε) is read as a large/regime-driven reconfiguration
+relative to the chosen budget, not as a violation of any law of physics.
 """
 
 from __future__ import annotations
@@ -30,15 +45,22 @@ _logger = logging.getLogger(__name__)
 
 
 class PortfolioEnergyConservation:
-    """Track and enforce portfolio energy conservation.
+    """Energy-budget tolerance check for portfolio rebalances.
+
+    EXTRAPOLATED heuristic, NOT a Noether conservation law: there is no
+    continuous symmetry and no associated current. The class name and the
+    ``check_conservation`` method name are retained only for API/consumer
+    stability; the underlying semantics are a tolerance band ``|ΔE| ≤ ε``
+    on a descriptive scalar, not a preserved physical quantity.
 
     Parameters
     ----------
     epsilon : float
-        Maximum allowed |ΔE| per rebalance (default 0.05).
-        Free parameter — requires calibration via transaction cost analysis.
+        Budget tolerance: maximum allowed |ΔE| per rebalance (default 0.05).
+        Tunable threshold — NOT a derived physical constant; requires
+        calibration via transaction-cost analysis.
     return_window : int
-        Window for computing price returns as velocity proxy (default 5).
+        Window for computing price returns as a velocity proxy (default 5).
     """
 
     def __init__(self, epsilon: float = 0.05, return_window: int = 5) -> None:
@@ -82,8 +104,10 @@ class PortfolioEnergyConservation:
     ) -> float:
         """E_potential = -Σ(position_i · expected_return_i).
 
-        Negative sign: aligned positions with expected returns → lower potential
-        → more stable configuration. This mirrors gravitational potential.
+        Negative sign is a heuristic stability ranking: positions aligned with
+        expected returns score lower ("more stable"). This is a descriptive
+        scoring convention, NOT a physical potential and NOT a gravitational
+        potential — there is no field, no force, and no conserved energy here.
         """
         positions = np.asarray(positions, dtype=np.float64)
         expected_returns = np.asarray(expected_returns, dtype=np.float64)
@@ -110,17 +134,22 @@ class PortfolioEnergyConservation:
         E_before: float,
         E_after: float,
     ) -> bool:
-        """Check |ΔE| ≤ ε.
+        """Check the budget tolerance |ΔE| ≤ ε (NOT a conservation law).
 
-        If violated, increments internal counter and logs warning.
-        Returns True if conservation holds.
+        Returns True when the descriptive-energy change is within the tunable
+        budget ε. If |ΔE| exceeds ε, increments an internal counter and logs a
+        warning — this flags a large/regime-driven reconfiguration relative to
+        the chosen budget, not a violated physical law. Method name kept for
+        consumer/API stability.
         """
         delta = abs(E_after - E_before)
+        # |ΔE| ≤ ε budget tolerance (byte-identical comparison; ε is a tunable
+        # threshold, not a derived constant). Within-band → no flag.
         conserved = delta <= self._epsilon
         if not conserved:
             self._violation_count += 1
             _logger.warning(
-                "Energy conservation violated: ΔE=%.6f > ε=%.6f (violation #%d)",
+                "Energy budget tolerance exceeded: ΔE=%.6f > ε=%.6f (flag #%d)",
                 delta,
                 self._epsilon,
                 self._violation_count,
@@ -128,7 +157,7 @@ class PortfolioEnergyConservation:
         return conserved
 
     def reset_violations(self) -> None:
-        """Reset violation counter."""
+        """Reset the budget-tolerance flag counter."""
         self._violation_count = 0
 
 

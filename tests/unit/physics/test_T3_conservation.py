@@ -7,9 +7,12 @@ Tests for portfolio energy conservation.
 
 from __future__ import annotations
 
+import inspect
+
 import numpy as np
 import pytest
 
+import core.physics.portfolio_conservation as pc_module
 from core.physics.portfolio_conservation import PortfolioEnergyConservation
 
 
@@ -112,3 +115,69 @@ class TestPotentialEnergy:
     def test_shape_mismatch_raises(self, conserv):
         with pytest.raises(ValueError, match="must match"):
             conserv.compute_potential(np.array([1.0]), np.array([1.0, 2.0]))
+
+
+class TestHonestBudgetToleranceFraming:
+    """Pins the truth-in-labeling reframe: this is a tunable |ΔE| ≤ ε budget
+    tolerance on a descriptive scalar, NOT a Noether conservation law.
+
+    EXTRAPOLATED heuristic — no continuous symmetry, no conserved current.
+    """
+
+    def test_check_is_a_budget_tolerance_band_at_epsilon(self, conserv):
+        """A move with |ΔE| just above ε is flagged; just below/at ε is allowed.
+
+        This is the operational meaning of a budget tolerance: the verdict is
+        a threshold comparison against the tunable ε, with no appeal to any
+        conserved quantity.
+        """
+        eps = conserv.epsilon
+        # Just below the band: allowed (within budget).
+        assert conserv.check_conservation(0.0, eps - 1e-6) is True
+        # Exactly at the band edge (≤ comparison): allowed.
+        assert conserv.check_conservation(0.0, eps) is True
+        # Just above the band: flagged (over budget) — and counted.
+        before_flags = conserv.violation_count
+        assert conserv.check_conservation(0.0, eps + 1e-6) is False
+        assert conserv.violation_count == before_flags + 1
+
+    def test_epsilon_is_a_tunable_threshold_not_a_constant(self):
+        """ε is a free, caller-set threshold — the band moves when ε moves."""
+        loose = PortfolioEnergyConservation(epsilon=1.0)
+        tight = PortfolioEnergyConservation(epsilon=0.001)
+        # Same |ΔE| = 0.1: inside the loose budget, outside the tight one.
+        assert loose.check_conservation(0.0, 0.1) is True
+        assert tight.check_conservation(0.0, 0.1) is False
+
+    def test_public_docstrings_disclaim_conservation_law_framing(self):
+        """The module/class/method docstrings must NOT assert a conservation
+        law, energy preservation, or a gravitational potential — and MUST
+        state the honest budget-tolerance framing and EXTRAPOLATED tier.
+        """
+        # Collapse internal whitespace so newline-wrapped phrases still match.
+        def _norm(text: str) -> str:
+            return " ".join(text.split()).lower()
+
+        module_doc = pc_module.__doc__ or ""
+        module_lower = _norm(module_doc)
+        class_doc = PortfolioEnergyConservation.__doc__ or ""
+        potential_doc = inspect.getdoc(PortfolioEnergyConservation.compute_potential) or ""
+        potential_lower = _norm(potential_doc)
+
+        # The conservation-law / Noether framing must appear only in DISOWNED
+        # (negated) form. The bare positive claim "preserves energy" must be
+        # absent; the disclaimer "not a Noether conservation law" must be present.
+        assert "not a noether conservation law" in module_lower
+        assert "preserves energy" not in module_lower
+        assert "preserves any" not in module_lower
+        # The original "mirrors gravitational potential" claim is gone and is
+        # explicitly disowned in compute_potential.
+        assert "mirrors gravitational potential" not in potential_lower
+        assert "not a gravitational potential" in potential_lower
+
+        # Honest budget-tolerance framing and provenance tier are present.
+        assert "budget" in module_lower
+        assert "tolerance" in module_lower
+        assert "tunable" in module_lower
+        assert "EXTRAPOLATED" in module_doc
+        assert "budget tolerance" in class_doc.lower()
