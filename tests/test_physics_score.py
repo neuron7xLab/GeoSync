@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,9 @@ def _load_physics_score() -> Any:
     assert spec is not None
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
+    # Register before exec so @dataclass can resolve module globals under
+    # `from __future__ import annotations` (py3.12 looks up sys.modules[__module__]).
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
