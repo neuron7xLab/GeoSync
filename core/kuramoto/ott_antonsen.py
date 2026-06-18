@@ -44,15 +44,41 @@ Invariants:
     INV-OA1: |z(t)| ≤ 1 always (order parameter bound)
     INV-OA2: K > 2Δ ⟹ R_∞ = √(1 − 2Δ/K) (analytical steady state)
     INV-OA3: K < 2Δ ⟹ R → 0 (subcritical decay, matches INV-K2)
+
+INV-OA2 as a runtime oracle:
+    The supercritical steady state R_∞ = √(1 − 2Δ/K) is the EXACT fixed point
+    of the OA ODE (Ott & Antonsen 2008, Eq. 2.13). It is not a target the
+    integrator aims at — it is the closed-form answer the integrator MUST
+    reproduce. Disagreement between the late-time integrated R and √(1 − 2Δ/K)
+    is therefore not "numerical drift to tolerate" but a step-size / CFL
+    failure: the RK4 step has crossed its stability limit and is returning a
+    physically wrong state. integrate() turns this into a fail-closed oracle —
+    after a supercritical run it raises FloatingPointError(INV-OA2 ...) if the
+    converged |z| departs from the closed form by more than ORACLE_TOL.
 """
 
 from __future__ import annotations
 
 import math
+import sys
 from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
+
+# Machine epsilon for IEEE-754 float64 used by the integrator state.
+_EPS: float = sys.float_info.epsilon  # ≈ 2.22e-16
+
+# INV-OA2 runtime oracle tolerance. The exact supercritical fixed point
+# R_∞ = √(1 − 2Δ/K) is reproduced by a *stable* RK4 step to ~1e-12 or better
+# (empirically ~1e-14 in tests/unit/physics/test_T23b_*). ORACLE_TOL = 1e-3 is
+# a conservative ceiling: it passes every stable integration with vast margin
+# yet rejects a CFL-violating step, whose late-time R departs from the closed
+# form by O(0.1–1) (it either over-saturates onto |z|=1 or collapses). The gap
+# between "stable ~1e-12" and "unstable ~1e-1" is ~10 orders of magnitude, so
+# the precise value of ORACLE_TOL is not load-bearing — any threshold in that
+# void separates the two regimes. Documented bound, not a magic number.
+ORACLE_TOL: float = 1e-3
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,6 +220,24 @@ class OttAntonsenEngine:
         time = np.linspace(0.0, T, n_steps + 1)
         z_arr = np.empty(n_steps + 1, dtype=np.complex128)
 
+        # ----- INV-OA1 overshoot gate, tied to RK4 local truncation error -----
+        # The unit disk |z| ≤ 1 is the exact invariant manifold of the OA ODE.
+        # A *stable* RK4 step lands on it up to its local truncation error, which
+        # for a smooth ODE is O((L·dt)^5) per step, where L is the dominant
+        # Jacobian scale of the RHS dz/dt = -(Δ+iω₀)z + (K/2)(z − z|z|²). On the
+        # disk the linear part scales as Δ and the coupling/cubic part as K, so
+        # L = max(Δ, K) bounds the response rate. The legitimate overshoot a
+        # round-off projection may absorb is therefore
+        #     overshoot_bound = max(8·ε_mach, (L·dt)^5)
+        # — the 8·ε_mach floor covers pure float64 round-off when (L·dt)^5
+        # underflows it, and (L·dt)^5 covers a stable-but-coarse step. A genuine
+        # CFL violation drives |z| past 1 by O(1), which is exponentially larger
+        # than (L·dt)^5 for any L·dt near the stability limit, so true
+        # instability still fails closed. This replaces the magic 1e-8 constant
+        # with a bound derived from the integrator's own error order.
+        rhs_scale = max(self.delta, abs(self.K))
+        overshoot_bound = max(8.0 * _EPS, (rhs_scale * dt) ** 5)
+
         # Initial condition
         # INV-OA1: |z| ≤ 1 (R0 is finite by the guard above)
         R0 = min(R0, 1.0)
@@ -221,19 +265,77 @@ class OttAntonsenEngine:
                     f"{step} (K={self.K}, delta={self.delta}, dt={dt}); "
                     f"check inputs / reduce dt."
                 )
-            if z_mag > 1.0 + 1e-8:
+            if z_mag > 1.0 + overshoot_bound:
                 raise FloatingPointError(
-                    f"INV-OA1 VIOLATED: OA integration unstable, |z|={z_mag:.3e} "
-                    f"> 1 at step {step} (K={self.K}, delta={self.delta}, dt={dt}); "
-                    f"RK4 past stability limit — reduce dt."
+                    f"INV-OA1 VIOLATED: OA integration unstable, |z|={z_mag:.6e} "
+                    f"> 1 + {overshoot_bound:.3e} at step {step} "
+                    f"(K={self.K}, delta={self.delta}, dt={dt}); RK4 past stability "
+                    f"limit (overshoot beyond local truncation error) — reduce dt."
                 )
             if z_mag > 1.0:
-                z = z / z_mag  # round-off-only projection onto unit disk
+                # INV-OA1: |z| ≤ 1 on the unit disk. Only sub-overshoot-bound
+                # round-off reaches here (true overshoot already raised above);
+                # project it back to the disk rather than letting it accumulate.
+                z = z / z_mag
 
             z_arr[step + 1] = z
 
         R = np.abs(z_arr).astype(np.float64)
         psi = np.angle(z_arr).astype(np.float64)
+
+        # ----- INV-OA2 runtime oracle: CONVERGED steady state == closed form ---
+        # For K > K_c the EXACT fixed point is R_∞ = √(1 − 2Δ/K). The oracle's
+        # job is to catch a CFL / step-size failure: a dt past the RK4 stability
+        # limit returns a stationary-but-WRONG state (over-saturated toward
+        # |z|=1, or collapsed) instead of the closed form. It must NOT condemn a
+        # numerically-stable run that simply has not finished relaxing — near
+        # onset the relaxation time diverges as ~1/(K − K_c) (critical
+        # slowing-down), so at finite T a stable trajectory can still be en route
+        # to R_∞ with the integration step itself perfectly valid.
+        #
+        # The discriminator is STATIONARITY: a CFL-failed state is settled on the
+        # wrong value (flat tail — empirically peak-to-peak drift ≈ 0 to machine
+        # precision, far from R_∞); an under-converged near-onset run still has a
+        # visibly drifting tail whose remaining drift is comparable to its
+        # remaining distance-to-target (exponential relaxation). We therefore fire
+        # only when the tail has truly stopped moving (peak-to-peak drift ≤
+        # STATIONARITY_TOL = ORACLE_TOL/10) AND the settled value disagrees with
+        # the closed form by more than ORACLE_TOL. The stationarity bar is set an
+        # order of magnitude below the residual gate so a slow but still-relaxing
+        # trajectory (drift ~ residual) is never misread as "settled on the wrong
+        # value": critical slowing-down (relaxation time ~ 1/(K − K_c)) is a
+        # legitimate finite-T artefact, not a CFL failure. A stable-but-still-
+        # relaxing run is left to the per-step |z| gate above (true blow-up) and
+        # to the caller's T/dt choice.
+        #
+        # R0 = 0 exactly is excluded: the incoherent state z = 0 is the UNSTABLE
+        # fixed point of the supercritical ODE (dz/dt = 0 there). Seeded exactly
+        # on the repeller, the deterministic trajectory never leaves it, so it
+        # settles at R = 0 ≠ R_∞ legitimately — that is the unstable branch, not
+        # a CFL failure. The closed-form attractor R_∞ is reached only from
+        # R0 > 0 (the documented "small perturbation" seed), so the oracle binds
+        # the stable branch and abstains on the measure-zero R0 = 0 equilibrium.
+        if self.K > self.K_c and R0 > 0.0:
+            # bounds: tail window is the last 20% of samples, floored at 2 points
+            # so peak-to-peak drift is well-defined (not a physics clamp).
+            tail_n = max(2, (n_steps + 1) // 5)
+            tail = R[-tail_n:]
+            R_converged = float(np.mean(tail))
+            tail_drift = float(np.max(tail) - np.min(tail))
+            R_closed_form = self.R_steady  # = √(1 − 2Δ/K)
+            oracle_residual = abs(R_converged - R_closed_form)
+            tail_is_stationary = tail_drift <= ORACLE_TOL / 10.0
+            if tail_is_stationary and oracle_residual > ORACLE_TOL:
+                raise FloatingPointError(
+                    f"INV-OA2 VIOLATED: settled steady state R={R_converged:.6e} "
+                    f"(tail drift {tail_drift:.3e}) disagrees with the exact closed "
+                    f"form √(1 − 2Δ/K)={R_closed_form:.6e} by {oracle_residual:.3e} "
+                    f"> {ORACLE_TOL:.0e} (K={self.K}, delta={self.delta}, dt={dt}, "
+                    f"T={T}). The trajectory has stopped moving on the WRONG value: "
+                    f"the supercritical fixed point is exact, so a stationary "
+                    f"mismatch is a step-size/CFL failure — reduce dt. Do not trust "
+                    f"this R."
+                )
 
         return OttAntonsenResult(
             time=time,
