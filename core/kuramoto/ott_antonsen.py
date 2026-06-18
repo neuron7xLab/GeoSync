@@ -316,6 +316,8 @@ class OttAntonsenEngine:
         # R0 > 0 (the documented "small perturbation" seed), so the oracle binds
         # the stable branch and abstains on the measure-zero R0 = 0 equilibrium.
         if self.K > self.K_c and R0 > 0.0:
+            # bounds: tail window is the last 20% of samples, floored at 2 points
+            # so peak-to-peak drift is well-defined (not a physics clamp).
             tail_n = max(2, (n_steps + 1) // 5)
             tail = R[-tail_n:]
             R_converged = float(np.mean(tail))
