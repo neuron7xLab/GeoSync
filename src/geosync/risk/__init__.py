@@ -11,6 +11,13 @@ keeps working, while introducing no ``src.*`` imports of its own.
 Prefer importing from ``geosync.risk`` directly.
 """
 
+# This package is NOT canonical: the source of truth is top-level
+# ``geosync.risk``. It only re-exports those symbols for legacy callers, so the
+# namespace-integrity guard exempts it from the ``__CANONICAL__ = True`` rule
+# that applies to genuine ``src/geosync`` packages. Marking it canonical would
+# be a false claim of authorship. See scripts/check_namespace_integrity.py.
+__DEPRECATED_SHIM__ = True
+
 from geosync.risk import (
     AutomatedRiskTester,
     KillSwitch,

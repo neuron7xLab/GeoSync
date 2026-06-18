@@ -8,6 +8,22 @@ Rules enforced:
 - Shim namespaces (e.g. top-level ``geosync``) must declare
   ``__CANONICAL__ = False``.
 - No other module outside the canonical root may claim to be canonical.
+
+Deprecated-shim exemption
+-------------------------
+A package physically located under ``src/geosync`` is normally canonical. The
+exception is a *deprecated re-export shim*: a package whose canonical
+implementation was moved to a DIFFERENT package (e.g. ``src/geosync/risk`` is a
+shim whose real implementation now lives in top-level ``geosync.risk``). Such a
+shim is NOT canonical — forcing ``__CANONICAL__ = True`` on it would be a false
+claim that the module is the source of truth when it merely re-exports another
+package. These modules instead declare ``__DEPRECATED_SHIM__ = True`` and are
+exempt from the ``__CANONICAL__ = True`` requirement.
+
+The exemption is opt-in and explicit: it only skips modules that self-declare
+``__DEPRECATED_SHIM__ = True``. A genuinely-canonical package that merely forgot
+its ``__CANONICAL__`` flag carries no such marker and is still flagged, so the
+exemption cannot mask a real missing-canonical violation.
 """
 
 from __future__ import annotations
@@ -36,25 +52,41 @@ def _iter_canonical_inits(root: Path) -> Iterable[Path]:
     yield from (root / "src" / "geosync").rglob("__init__.py")
 
 
-def _has_flag(path: Path, expected: bool) -> bool:
+def _module_flag(path: Path, name: str) -> bool | None:
+    """Return the module-level boolean constant ``name``, or ``None`` if absent.
+
+    Only top-level ``name = <constant>`` / ``name: <type> = <constant>``
+    assignments are considered (module-scope flags, not nested ones).
+    """
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"))
     except (FileNotFoundError, SyntaxError, UnicodeDecodeError):
-        return False
+        return None
     for node in tree.body:
         if isinstance(node, ast.Assign):
-            if any(
-                isinstance(target, ast.Name) and target.id == "__CANONICAL__"
-                for target in node.targets
-            ):
+            if any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
                 if isinstance(node.value, ast.Constant):
-                    return bool(node.value.value) is expected
+                    return bool(node.value.value)
         elif isinstance(node, ast.AnnAssign):
             target = node.target
-            if isinstance(target, ast.Name) and target.id == "__CANONICAL__":
+            if isinstance(target, ast.Name) and target.id == name:
                 if isinstance(node.value, ast.Constant):
-                    return bool(node.value.value) is expected
-    return False
+                    return bool(node.value.value)
+    return None
+
+
+def _has_flag(path: Path, expected: bool) -> bool:
+    return _module_flag(path, "__CANONICAL__") is expected
+
+
+def _is_deprecated_shim(path: Path) -> bool:
+    """A module that explicitly self-declares ``__DEPRECATED_SHIM__ = True``.
+
+    Such modules live physically under ``src/geosync`` but only re-export a
+    canonical implementation that lives in a different package, so they are
+    exempt from the ``__CANONICAL__ = True`` requirement (see module docstring).
+    """
+    return _module_flag(path, "__DEPRECATED_SHIM__") is True
 
 
 def check_namespace_integrity(repo_root: Path = REPO_ROOT) -> list[Violation]:
@@ -66,6 +98,11 @@ def check_namespace_integrity(repo_root: Path = REPO_ROOT) -> list[Violation]:
         return violations
 
     for init_file in _iter_canonical_inits(repo_root):
+        # Deprecated re-export shims (explicitly self-declared) are NOT canonical
+        # — their real implementation lives in another package. Marking them
+        # __CANONICAL__ = True would be a false claim, so they are exempt.
+        if _is_deprecated_shim(init_file):
+            continue
         if not _has_flag(init_file, True):
             violations.append(
                 Violation(
