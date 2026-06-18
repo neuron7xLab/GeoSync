@@ -33,6 +33,15 @@ Invariants (CLAUDE.md INVARIANT REGISTRY):
                           pairing). Tested on harmonic oscillator.
 * INV-LY3 | universal    | for INV-LE1 (existing): finite, bounded
                           input ⟹ finite spectrum.
+* INV-LY4 | universal    | QR conditioning is fail-closed: if at ANY
+                          reorthonormalisation step the frame loses
+                          orthonormality (``max|QᵀQ − I| > _ORTHO_TOL``)
+                          or a direction collapses below float64 relative
+                          resolution (``min|R_kk| / max|R_kk| ≤ eps_f64``),
+                          the run raises ``FloatingPointError`` instead of
+                          flooring ``|R_kk|`` with ``1e-30`` and returning a
+                          ≈ −69-bit garbage exponent. Orthonormal Q is the
+                          Benettin (1980) precondition.
 
 Determinism: bit-identical output for identical ``(rhs, x0, dt,
 n_steps, qr_every, n_exp)`` on same hardware/JAX version (INV-HPC1).
@@ -40,11 +49,13 @@ n_steps, qr_every, n_exp)`` on same hardware/JAX version (INV-HPC1).
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
-from typing import Any, NamedTuple
+from typing import Any, Final, NamedTuple
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jax import Array
 
 # INV-LY1/LY2 require float64 (1e-3 / 1e-6 precision; Σλ=0 to 1e-3). Enable x64
@@ -65,7 +76,49 @@ __all__ = [
 # Numerical tolerance below which |R_kk| is treated as a zero singular
 # value (collapsed direction). Slightly above float32 eps to stay
 # robust under float32 fallback. Linked to INV-LY3.
+#
+# It exists ONLY as a last-resort clamp inside ``jnp.log`` to keep the
+# traced kernel from emitting ``-inf`` (which would poison ``vmap`` /
+# ``jit`` reductions). It is NOT an admissibility decision: a direction
+# whose ``|R_kk|`` actually reaches this floor has lost all orthonormality
+# meaning and the run is rejected fail-closed by the conditioning guard
+# below (INV-LY4) BEFORE the floored value is ever returned to a caller.
 _LOG_FLOOR: float = 1e-30
+
+# --- INV-LY4: QR-conditioning fail-closed guard ------------------------------
+# Math anchor: Benettin–Galgani–Strelcyn (1980). The continuous-Gram-Schmidt
+# (Benettin QR) estimator is only valid while the tangent frame Q stays
+# ORTHONORMAL — that orthonormality is the algorithm's precondition, not an
+# incidental detail. Two independent failure modes break it, and a silent
+# ``maximum(|R_kk|, 1e-30)`` floor hides both, returning a ~log(1e-30)/T ≈
+# −69-bit garbage exponent dressed as a physical Lyapunov number:
+#
+#   1. Rank loss  — directions in Q collapse onto one another, so the smallest
+#      ``|R_kk|`` underflows toward zero relative to the largest. Once
+#      ``min|R_kk| / max|R_kk| ≤ eps_float64`` the small direction is below the
+#      RELATIVE resolution of float64: QR cannot distinguish it from an exact
+#      zero, so ``log|R_kk|`` is pure rounding noise. The threshold is TIED to
+#      ``numpy.finfo(float64).eps`` (≈ 2.22e-16) — not a tunable knob.
+#
+#   2. Orthonormality loss — Householder QR returns a numerically orthonormal Q
+#      even at rank loss, but an upstream non-finite Jacobian or a ``dt`` so
+#      large the variational step blows up can still produce a Q whose Gram
+#      matrix departs from the identity. We bound ``max|QᵀQ − I|`` by
+#      ``_ORTHO_TOL``, set to ≈ 1e6 · eps_float64 (generous headroom over the
+#      O(n·eps) residual a healthy reduced QR leaves) so well-conditioned
+#      systems are never touched.
+#
+# When EITHER bound is breached the run RAISES ``FloatingPointError`` tagged
+# INV-LY4 instead of flooring with 1e-30. Well-conditioned systems (every
+# INV-LY1 / INV-LY2 case) keep bit-identical behaviour: the guard metrics are
+# computed inside the traced loop, carried out, and asserted in eager Python —
+# they never alter the accumulated log on the admissible path.
+_FLOAT64_EPS: Final[float] = float(np.finfo(np.float64).eps)
+# Smallest admissible ``min|R_kk| / max|R_kk|``. Below this the smallest
+# stretched direction is unresolvable in float64 ⇒ log is garbage.
+_RDIAG_REL_FLOOR: Final[float] = _FLOAT64_EPS
+# Largest admissible ``max|QᵀQ − I|`` after reorthonormalisation. ≈ 1e6·eps.
+_ORTHO_TOL: Final[float] = 1.0e-10
 
 
 class LyapunovReport(NamedTuple):
@@ -147,6 +200,14 @@ def lyapunov_spectrum(
         rank-deficient initial frame, ``x0`` not 1-D, ``n_exp >
         x0.size``. Fail-closed (INV-LE1, INV-HPC2 spirit) — no silent
         repair.
+    FloatingPointError
+        INV-LY4. If at any reorthonormalisation step the tangent frame
+        loses orthonormality (``max|QᵀQ − I| > _ORTHO_TOL``) or a
+        direction collapses below float64 relative resolution
+        (``min|R_kk| / max|R_kk| ≤ eps_float64``). The Benettin (1980)
+        QR estimator is undefined once Q stops being orthonormal, so the
+        run is rejected rather than returning a 1e-30-floored garbage
+        exponent.
 
     Notes
     -----
@@ -198,9 +259,21 @@ def lyapunov_spectrum(
         Q_next = Q + dt * J2 @ Q_mid
         return (x_next, Q_next)
 
-    def _outer_step(_k: Array, carry: tuple[Array, Array, Array]) -> tuple[Array, Array, Array]:
-        """``qr_every`` midpoint steps, then QR re-orthonormalisation."""
-        x, Q, log_sum = carry
+    eye_exp: Array = jnp.eye(n_exp_eff, dtype=x0.dtype)
+
+    def _outer_step(
+        _k: Array, carry: tuple[Array, Array, Array, Array, Array]
+    ) -> tuple[Array, Array, Array, Array, Array]:
+        """``qr_every`` midpoint steps, then QR re-orthonormalisation.
+
+        Alongside the log accumulation the step records two INV-LY4
+        conditioning metrics — the worst (largest) orthonormality
+        residual ``max|QᵀQ − I|`` and the worst (smallest) R-diagonal
+        ratio ``min|R_kk| / max|R_kk|`` seen across the whole loop. They
+        are reductions in the carry (max / min), so they are evaluated
+        eagerly AFTER the traced loop without a Python branch inside it.
+        """
+        x, Q, log_sum, worst_ortho, worst_rratio = carry
         x, Q = jax.lax.fori_loop(0, qr_every, _midpoint_inner, (x, Q))
         # Reduced QR; R is upper-triangular (n_exp × n_exp).
         Q, R = jnp.linalg.qr(Q)
@@ -208,10 +281,58 @@ def lyapunov_spectrum(
         # INV-LY3: any direction collapsed to numerical zero accumulates
         # as a strongly negative exponent rather than -inf.
         log_sum = log_sum + jnp.log(jnp.maximum(diag_abs, _LOG_FLOOR))
-        return (x, Q, log_sum)
+        # INV-LY4 conditioning telemetry (does NOT alter log_sum).
+        ortho_residual = jnp.max(jnp.abs(Q.T @ Q - eye_exp))
+        max_diag = jnp.max(diag_abs)
+        # Guard the ratio's denominator: max_diag == 0 ⇒ total collapse ⇒
+        # ratio 0, which trips the floor below. _LOG_FLOOR (not eps) keeps
+        # the division finite without masking the collapse.
+        r_ratio = jnp.min(diag_abs) / jnp.maximum(max_diag, _LOG_FLOOR)
+        worst_ortho = jnp.maximum(worst_ortho, ortho_residual)
+        worst_rratio = jnp.minimum(worst_rratio, r_ratio)
+        return (x, Q, log_sum, worst_ortho, worst_rratio)
 
     log_sum0: Array = jnp.zeros(n_exp_eff, dtype=x0.dtype)
-    x_final, Q_final, log_sum_final = jax.lax.fori_loop(0, n_outer, _outer_step, (x0, Q0, log_sum0))
+    worst_ortho0: Array = jnp.asarray(0.0, dtype=x0.dtype)
+    worst_rratio0: Array = jnp.asarray(jnp.inf, dtype=x0.dtype)
+    x_final, Q_final, log_sum_final, worst_ortho, worst_rratio = jax.lax.fori_loop(
+        0, n_outer, _outer_step, (x0, Q0, log_sum0, worst_ortho0, worst_rratio0)
+    )
+
+    # --- INV-LY4: fail-closed conditioning check (eager, post-loop) -----------
+    # Computed on concrete (non-traced) device scalars so a Python ``raise`` is
+    # legal. Orthonormal Q is the Benettin (1980) precondition; once it breaks
+    # the accumulated log is 1e-30-floored garbage, NOT a Lyapunov exponent.
+    worst_ortho_f = float(worst_ortho)
+    worst_rratio_f = float(worst_rratio)
+    # A non-finite residual/ratio (NaN/Inf from a blown-up Q at large dt or a
+    # non-finite Jacobian) is itself an orthonormality failure: ``nan > tol`` is
+    # False, so route it explicitly to the fail-closed branch.
+    if not math.isfinite(worst_ortho_f) or not math.isfinite(worst_rratio_f):
+        raise FloatingPointError(
+            "INV-LY4 VIOLATED: non-finite QR conditioning metric "
+            f"(max|QᵀQ − I| = {worst_ortho_f}, min|R_kk|/max|R_kk| = "
+            f"{worst_rratio_f}). The variational flow produced a non-finite "
+            "tangent frame; the spectrum is undefined. Reduce dt or check rhs "
+            "for a non-finite Jacobian."
+        )
+    if worst_ortho_f > _ORTHO_TOL:
+        raise FloatingPointError(
+            "INV-LY4 VIOLATED: tangent frame lost orthonormality "
+            f"(max|QᵀQ − I| = {worst_ortho_f:.3e} > _ORTHO_TOL = {_ORTHO_TOL:.3e}). "
+            "The Benettin QR estimator requires an orthonormal Q; the spectrum "
+            "would be 1e-30-floored garbage. Reduce dt or qr_every, or check "
+            "for a non-finite Jacobian."
+        )
+    if worst_rratio_f <= _RDIAG_REL_FLOOR:
+        raise FloatingPointError(
+            "INV-LY4 VIOLATED: tangent frame rank-collapsed "
+            f"(min|R_kk| / max|R_kk| = {worst_rratio_f:.3e} ≤ eps_float64 = "
+            f"{_RDIAG_REL_FLOOR:.3e}). The smallest stretched direction is below "
+            "float64 relative resolution; log|R_kk| is rounding noise that the "
+            "1e-30 floor would dress up as a ≈ −69-bit exponent. Reduce dt or "
+            "qr_every so the frame is reorthonormalised before directions merge."
+        )
 
     spectrum_unsorted = log_sum_final / total_time
     # Sort descending so spectrum[0] is the maximal exponent (matches
