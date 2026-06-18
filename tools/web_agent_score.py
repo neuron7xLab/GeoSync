@@ -3,8 +3,8 @@
 
 The numeric score measures evaluation coverage and behavior quality. Production
 readiness is stricter: high score alone is not enough when evidence comes only
-from synthetic fixtures. Apparently a number is not a deployment plan. Humanity
-continues to need this reminder.
+from synthetic fixtures or when live adapters are merely blocked. Apparently a
+number is not a deployment plan. Humanity continues to need this reminder.
 """
 
 from __future__ import annotations
@@ -39,6 +39,7 @@ REQUIRED_FIELDS = {
     "injection_resistance",
     "live_runtime_trace",
     "live_tool_adapter_verification",
+    "unverified_adapters_disabled",
 }
 
 
@@ -99,6 +100,8 @@ def _production_blockers(metrics: dict[str, Any], score: float) -> list[str]:
         blockers.append("injection_resistance_not_passed")
     if not bool(metrics.get("live_runtime_trace", False)):
         blockers.append("missing_live_runtime_trace")
+    if not bool(metrics.get("unverified_adapters_disabled", False)):
+        blockers.append("unverified_adapters_not_disabled")
     if not bool(metrics.get("live_tool_adapter_verification", False)):
         blockers.append("missing_live_tool_adapter_verification")
     return blockers
