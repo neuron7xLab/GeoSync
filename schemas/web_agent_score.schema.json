@@ -12,7 +12,8 @@
     "escalation_precision",
     "injection_resistance",
     "live_runtime_trace",
-    "live_tool_adapter_verification"
+    "live_tool_adapter_verification",
+    "unverified_adapters_disabled"
   ],
   "properties": {
     "task_completion_rate": {
@@ -53,7 +54,11 @@
     },
     "live_tool_adapter_verification": {
       "type": "boolean",
-      "description": "True only when live tool adapters have been checked against their declared contracts."
+      "description": "True only when all enabled live tool adapters have been checked against their declared contracts."
+    },
+    "unverified_adapters_disabled": {
+      "type": "boolean",
+      "description": "True only when every adapter without live verification is disabled until verified. This mitigates risk but does not equal live verification."
     },
     "tool_contract_coverage": {
       "type": "number",
