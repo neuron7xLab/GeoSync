@@ -163,12 +163,21 @@ class GradientHealthMonitor:
         # ── 1. Sync health: MLE of R(t) trajectory ──
         if len(self._R_history) >= 50:
             R_arr = np.array(self._R_history, dtype=np.float64)
-            mle = maximal_lyapunov_exponent(R_arr, dim=3, tau=1, max_divergence_steps=20)
+            try:
+                mle = maximal_lyapunov_exponent(R_arr, dim=3, tau=1, max_divergence_steps=20)
+            except ValueError:
+                # INV-LE1 fail-closed: a degenerate R-window (constant /
+                # zero-variance — e.g. R frozen at full synchronization, R≡1)
+                # has no divergence to measure. A frozen order parameter is the
+                # MOST stable sync state, so map it to λ ≤ 0 (health = 1), not
+                # to the worst case. A genuinely non-finite estimate cannot
+                # occur: the estimator now raises instead of returning NaN/±Inf.
+                mle = 0.0
         else:
             mle = 0.0
 
         # MLE < 0 = stable (health=1), MLE > 1 = diverging (health=0)
-        # INV-LE1: MLE is finite
+        # INV-LE1: MLE is finite (the estimator fails closed otherwise, caught above)
         if not math.isfinite(mle):
             mle = 1.0  # treat non-finite as worst case
         sync_health = float(max(0.0, min(1.0, 1.0 - mle)))

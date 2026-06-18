@@ -11,20 +11,25 @@ This file closes that gap with two fixtures:
 
 1. **Adversarial corpus** — explicitly constructed pathological
    inputs that strain the Rosenstein nearest-neighbor algorithm:
-   single huge spikes, near-degenerate two-value series, ramps,
-   alternating extremes, near-overflow magnitudes. Each must
-   yield a finite MLE.
+   single huge spikes, ramps, near-overflow magnitudes, bimodal
+   clusters. Inputs that retain measurable divergence must yield a
+   finite MLE; two-value-collapsed inputs (whose Theiler-excluded
+   neighbors all sit at distance 0) have no divergence to measure
+   and MUST fail closed (Rosenstein 1993 §2.2).
 2. **Hypothesis fuzz** — randomly generated bounded series with
    widely-varying length, embedding dimension, and tau. The MLE
-   must remain finite across the input space.
+   must be a finite real, or — for a degenerate draw — fail closed
+   with an INV-LE1 ValueError. A non-finite return is never allowed.
 
 Why this matters
 ----------------
 
-INV-LE1 is universal (P0). A single non-finite MLE in a downstream
-pipeline propagates as NaN through Kelly sizing and risk gating,
-silently disabling the entire trading loop. Catching it at the
-estimator boundary is cheaper than catching it at the order-book.
+INV-LE1 is P0. A non-finite MLE — or a *spurious* λ=0 silently
+returned for a constant/zero-variance input — propagates through
+Kelly sizing and risk gating, in the constant case falsely labelling
+a frozen series as a "stable regime". The corrected contract fails
+closed on degenerate input; catching it at the estimator boundary is
+cheaper than catching it at the order-book.
 """
 
 from __future__ import annotations
@@ -32,6 +37,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
@@ -65,11 +71,18 @@ def test_inv_le1_single_huge_spike() -> None:
 
 
 def test_inv_le1_two_value_alternating() -> None:
-    """Near-degenerate alternation: only two unique values."""
+    """Degenerate alternation: only two unique values.
+
+    Contract correction: under the Theiler temporal-exclusion window every
+    nearest neighbor of a [0,1,0,1,...] series lands on a same-phase point at
+    distance 0, so the divergence rate is everywhere undefined (Rosenstein
+    1993 §2.2). This is the same zero-divergence class as a constant series —
+    the corrected INV-LE1 fails closed rather than masking it as λ=0.
+    """
     n = 600
     series = np.tile([0.0, 1.0], n // 2).astype(np.float64)
-    mle = maximal_lyapunov_exponent(series, dim=3, tau=1)
-    _assert_finite_mle("two_value_alternating", mle, n=n, dim=3, tau=1)
+    with pytest.raises(ValueError, match="INV-LE1"):
+        maximal_lyapunov_exponent(series, dim=3, tau=1)
 
 
 def test_inv_le1_linear_ramp() -> None:
@@ -81,11 +94,16 @@ def test_inv_le1_linear_ramp() -> None:
 
 
 def test_inv_le1_extreme_alternation() -> None:
-    """Alternating ±1e6 — extreme magnitude, predictable structure."""
+    """Alternating ±1e6 — extreme magnitude, two-value-collapsed structure.
+
+    Contract correction: like ``two_value_alternating`` this is a two-unique-
+    value series whose Theiler-excluded nearest neighbors collapse to distance
+    0, leaving no measurable divergence. The corrected INV-LE1 fails closed.
+    """
     n = 600
     series = np.tile([-1e6, 1e6], n // 2).astype(np.float64)
-    mle = maximal_lyapunov_exponent(series, dim=3, tau=1)
-    _assert_finite_mle("extreme_alternation", mle, n=n, dim=3, tau=1)
+    with pytest.raises(ValueError, match="INV-LE1"):
+        maximal_lyapunov_exponent(series, dim=3, tau=1)
 
 
 def test_inv_le1_near_overflow_magnitudes() -> None:
@@ -154,10 +172,23 @@ def test_inv_le1_negative_zero_mixture() -> None:
 def test_inv_le1_hypothesis_fuzz_keeps_mle_finite(
     seed: int, n: int, dim: int, tau: int, scale: float
 ) -> None:
-    """INV-LE1 universal: fuzz the input space, MLE always finite."""
+    """INV-LE1 universal: fuzz the input space.
+
+    Either the MLE is a finite real, or (for a degenerate draw whose embedded
+    points all collapse to one location) the estimator fails closed with a
+    ValueError naming INV-LE1. What is NEVER permitted is a non-finite return
+    value — that is the masking bug INV-LE1 exists to prevent.
+    """
     rng = np.random.default_rng(seed=seed)
     series = rng.normal(0.0, scale, size=n)
-    mle = maximal_lyapunov_exponent(series, dim=dim, tau=tau)
+    try:
+        mle = maximal_lyapunov_exponent(series, dim=dim, tau=tau)
+    except ValueError as exc:
+        assert "INV-LE1" in str(exc), (
+            f"hypothesis_fuzz raised a non-INV-LE1 ValueError at "
+            f"seed={seed}, n={n}, dim={dim}, tau={tau}, scale={scale}: {exc}"
+        )
+        return
     _assert_finite_mle(
         "hypothesis_fuzz",
         mle,

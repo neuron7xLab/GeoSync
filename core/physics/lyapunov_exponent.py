@@ -36,7 +36,14 @@ References:
     exponents from a time series." Physica D, 16(3), 285-317.
 
 Invariants:
-    INV-LE1: MLE is finite for any finite bounded input series
+    INV-LE1: ``maximal_lyapunov_exponent`` returns a finite real for every
+        *non-degenerate* bounded finite input, and FAILS CLOSED (raises
+        ``ValueError``) on a degenerate input for which the Rosenstein
+        divergence rate is mathematically undefined — a constant /
+        zero-variance / all-zeros / two-value-collapsed series (no
+        measurable neighbor divergence, Rosenstein 1993 §2.2) or an input
+        carrying NaN/±Inf. It NEVER returns NaN/±Inf and NEVER masks a
+        degenerate input as a spurious ``λ=0`` "stable regime".
     INV-LE2: MLE(noise) ≈ 0; MLE(stable oscillator) < 0; MLE(logistic chaos) > 0
 """
 
@@ -119,23 +126,53 @@ def maximal_lyapunov_exponent(
     -------
     float
         Estimated λ_max. Positive = chaos, negative = stability, ≈0 = marginal.
-        Returns 0.0 for series too short to estimate.
 
     Raises
     ------
     ValueError
-        If the series is too short for the requested embedding.
+        INV-LE1, fail-closed. Raised when the series is too short for the
+        requested embedding, when the input carries NaN/±Inf, or when the
+        input is degenerate (constant / zero-variance / all-zeros /
+        two-value-collapsed) so that every nearest-neighbor pair distance is
+        zero and the Rosenstein divergence rate (1993 §2.2) is undefined.
+        The estimator never returns NaN/±Inf and never reports a spurious
+        ``λ=0`` for a series that has no divergence to measure.
     """
     x = np.asarray(x, dtype=np.float64).ravel()
-    if x.size < 10:
-        return 0.0
+
+    # INV-LE1 (fail-closed): a non-finite input has no defined embedding and
+    # would propagate NaN through every distance/log. Reject at the boundary
+    # rather than emit a NaN MLE that silently disables downstream risk gating.
+    if not np.all(np.isfinite(x)):
+        raise ValueError(
+            "INV-LE1 violated: input series contains NaN/±Inf; the Rosenstein "
+            "MLE is undefined for a non-finite trajectory (likely cause: "
+            "NaN/Inf embedded in the source series). Fail closed — clean the "
+            "series before estimating λ_max."
+        )
+
+    # INV-LE1 (fail-closed): a series too short to delay-embed (e.g. a two-point
+    # degenerate input) admits no divergence curve; raise rather than return a
+    # placeholder 0.0 that reads as a "stable regime".
+    min_samples = (dim - 1) * tau + 1
+    if x.size < max(10, min_samples):
+        raise ValueError(
+            f"INV-LE1 violated: series length {x.size} is too short to estimate "
+            f"the Rosenstein MLE for dim={dim}, tau={tau} (need at least "
+            f"{max(10, min_samples)} samples; likely cause: two-point/degenerate "
+            "input). Fail closed."
+        )
 
     # Delay embedding
     embedded = delay_embed(x, dim=dim, tau=tau)
     n_points = embedded.shape[0]
 
     if n_points < 20:
-        return 0.0
+        raise ValueError(
+            f"INV-LE1 violated: only {n_points} delay-embedded points for "
+            f"dim={dim}, tau={tau} — too few for a non-degenerate "
+            "nearest-neighbor divergence fit (need ≥20). Fail closed."
+        )
 
     if max_divergence_steps is None:
         # bounds: Rosenstein algorithm parameter, not a physics quantity —
@@ -155,6 +192,12 @@ def maximal_lyapunov_exponent(
     # For production with N > 10k, replace with scipy.spatial.cKDTree.
     divergence_log = np.full(max_divergence_steps, np.nan, dtype=np.float64)
     counts = np.zeros(max_divergence_steps, dtype=np.int64)
+    # INV-LE1: a constant / zero-variance / all-zeros / two-value-collapsed
+    # series produces only zero-distance neighbor pairs. Track whether ANY
+    # strictly-positive pair distance was observed; if none, there is no
+    # divergence to measure (Rosenstein 1993 §2.2) and we must fail closed
+    # rather than fall through to a spurious 0.0.
+    saw_positive_divergence = False
 
     for i in range(n_points - max_divergence_steps):
         # Distance from point i to all other points
@@ -175,16 +218,38 @@ def maximal_lyapunov_exponent(
             if i + step >= n_points or j + step >= n_points:
                 break
             pair_dist = float(np.sqrt(np.sum((embedded[i + step] - embedded[j + step]) ** 2)))
-            if pair_dist > 0:
+            # Guard log(0): only finite, strictly-positive distances enter the
+            # log-divergence accumulator. A zero distance carries no divergence
+            # information and log(0) = −∞ would corrupt the slope fit.
+            if pair_dist > 0.0 and math.isfinite(pair_dist):
+                saw_positive_divergence = True
                 if np.isnan(divergence_log[step]):
                     divergence_log[step] = 0.0
                 divergence_log[step] += math.log(pair_dist)
                 counts[step] += 1
 
+    # INV-LE1 (fail-closed): zero measurable divergence ⇒ degenerate input.
+    # Every nearest-neighbor pair collapsed to distance 0 (constant /
+    # zero-variance / all-zeros / two-value-collapsed series). The Rosenstein
+    # divergence rate is undefined here — raise instead of masking it as λ=0.
+    if not saw_positive_divergence:
+        raise ValueError(
+            "INV-LE1 violated: no nearest-neighbor pair has a positive "
+            "divergence distance — every embedded point is identical (likely "
+            "cause: constant / zero-variance / all-zeros / two-value-collapsed "
+            "series). A series with no divergence has no Lyapunov exponent to "
+            "measure (Rosenstein 1993 §2.2). Fail closed."
+        )
+
     # Average the log-divergence curves
     valid = counts > 0
     if valid.sum() < 5:
-        return 0.0
+        raise ValueError(
+            "INV-LE1 violated: fewer than 5 divergence steps accumulated a "
+            "usable log-distance — the input is too degenerate for a "
+            "non-vacuous Rosenstein slope fit (likely cause: near-constant / "
+            "rank-deficient embedding). Fail closed."
+        )
 
     mean_log_div = np.where(valid, divergence_log / counts, np.nan)
 
@@ -206,7 +271,13 @@ def maximal_lyapunov_exponent(
     y_fit = y_fit[finite_mask]
 
     if len(t_fit) < 3:
-        return 0.0
+        # Fewer than 3 finite points survived after we already accumulated ≥5
+        # divergence steps ⇒ the log-divergence curve is itself degenerate.
+        raise ValueError(
+            "INV-LE1 violated: fewer than 3 finite log-divergence points remain "
+            "for the slope fit despite ≥5 accumulated steps (likely cause: "
+            "rank-deficient / near-constant embedding). Fail closed."
+        )
 
     # Least-squares slope
     t_mean = float(np.mean(t_fit))
@@ -217,13 +288,28 @@ def maximal_lyapunov_exponent(
         denominator = float(np.sum((t_fit - t_mean) ** 2))
 
     if denominator < 1e-30:
-        return 0.0
+        # The time abscissa has collapsed (e.g. dt≈0 or a single distinct
+        # fit index): the slope λ = num/denom would be ±Inf/NaN. Fail closed
+        # rather than emit a non-finite MLE.
+        raise ValueError(
+            "INV-LE1 violated: degenerate slope-fit denominator "
+            f"({denominator:.3e} < 1e-30) — the divergence-time abscissa has "
+            "collapsed (likely cause: dt≈0 or a single distinct fit index), so "
+            "λ_max would be non-finite. Fail closed."
+        )
 
     slope = numerator / denominator
 
-    # INV-LE1: MLE must be finite for finite bounded input
+    # INV-LE1 (fail-closed): the estimator must never return NaN/±Inf. A
+    # non-finite slope here is a residual degeneracy (constant / zero-variance /
+    # rank-deficient input) that escaped the upstream traps — surface it.
     if not math.isfinite(slope):
-        return 0.0
+        raise ValueError(
+            f"INV-LE1 violated: computed λ_max = {slope} is not finite (likely "
+            "cause: constant / zero-variance / rank-deficient input producing a "
+            "degenerate log-divergence fit). The Rosenstein MLE must be a finite "
+            "real for a valid trajectory; fail closed rather than emit NaN/±Inf."
+        )
 
     return float(slope)
 

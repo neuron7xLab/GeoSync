@@ -16,27 +16,35 @@ import math
 
 import networkx as nx
 import numpy as np
+import pytest
 
 from core.physics.lyapunov_exponent import (
     maximal_lyapunov_exponent,
     spectral_gap,
 )
 
-# ── INV-LE1: MLE finite for any finite bounded input ────────────────
+# ── INV-LE1: MLE finite for non-degenerate input, fail-closed otherwise ──
 
 
 def test_mle_finite_on_diverse_inputs() -> None:
-    """INV-LE1: MLE is finite for every finite bounded input series.
+    """INV-LE1: MLE is a finite real for every *non-degenerate* bounded input.
 
-    Sweeps white noise, constant, sine, random walk, and step function
-    inputs. MLE must be finite (not NaN/Inf) on each.
+    Sweeps white noise, sine, random walk, and step function inputs — each
+    has measurable nearest-neighbor divergence, so the Rosenstein MLE is
+    defined and must be finite (not NaN/Inf).
+
+    NOTE (contract correction): a perfectly *constant* series used to be in
+    this sweep and asserted finite. That was the silent-0.0 masking bug —
+    a constant series has no divergence to measure (Rosenstein 1993 §2.2),
+    so reporting λ=0 falsely labelled it a "stable regime". The corrected
+    INV-LE1 fails closed on degenerate input; the constant case now lives in
+    ``test_mle_fails_closed_on_constant_input`` below.
     """
     rng = np.random.default_rng(seed=0)
     n = 500
     # epsilon: finiteness is the invariant, no numeric tolerance needed
     series_bank: dict[str, np.ndarray] = {
         "white_noise": rng.normal(0, 1, n),
-        "constant": np.full(n, 42.0),
         "sine": np.sin(np.linspace(0, 20 * math.pi, n)),
         "random_walk": np.cumsum(rng.normal(0, 0.01, n)),
         "step": np.concatenate([np.zeros(n // 2), np.ones(n // 2)]),
@@ -46,11 +54,24 @@ def test_mle_finite_on_diverse_inputs() -> None:
         mle = maximal_lyapunov_exponent(series, dim=3, tau=1)
         assert math.isfinite(mle), (
             f"INV-LE1 VIOLATED on series={label}: MLE={mle} non-finite. "
-            f"Expected finite MLE for any finite bounded input. "
+            f"Expected finite MLE for any non-degenerate bounded input. "
             f"Observed at N={n}, dim=3, tau=1. "
             f"Physical reasoning: Rosenstein algorithm uses log(distance) "
             f"which is finite for non-zero distances between embedded points."
         )
+
+
+def test_mle_fails_closed_on_constant_input() -> None:
+    """INV-LE1 (fail-closed): a constant series MUST raise, not return 0.0.
+
+    A constant trajectory collapses every delay-embedded point onto a single
+    location, so all nearest-neighbor pair distances are zero and the
+    Rosenstein divergence rate is undefined (1993 §2.2). The estimator must
+    fail closed rather than emit a spurious λ=0 that downstream risk gating
+    would read as a stable regime.
+    """
+    with pytest.raises(ValueError, match="INV-LE1"):
+        maximal_lyapunov_exponent(np.full(500, 42.0), dim=3, tau=1)
 
 
 # ── INV-LE2: MLE sign matches dynamical regime ──────────────────────
