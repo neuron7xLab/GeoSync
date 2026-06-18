@@ -288,11 +288,59 @@ def _rk4_step(
     return theta + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
 
+# INV-K1 round-off tolerance. The Kuramoto order parameter is
+# ``R = |⟨e^{iθ}⟩|`` and Cauchy–Schwarz gives the EXACT bound ``R ≤ 1`` with
+# equality iff all phases are equal, so the only way ``R`` can exceed 1 in
+# IEEE-754 is the accumulation round-off of the complex mean. That round-off is
+# bounded by a few ULP of the magnitude-1 summands; ``1e-8`` is many orders of
+# magnitude above that floor, so any ``R`` beyond ``1 + 1e-8`` is NOT round-off
+# — it is a non-finite or divergent integrator state leaking through. We clip
+# genuine round-off (``R ≤ 1 + tol``) back into ``[0, 1]`` and FAIL CLOSED on
+# anything larger rather than silently repairing it.
+_INV_K1_ROUNDOFF_TOL: float = 1e-8
+
+
 def _order_parameter(theta: NDArray[np.float64]) -> float:
-    """Compute Kuramoto order parameter ``R = |mean(exp(iθ))|``."""
-    z = np.exp(1j * theta).mean()
-    # INV-K1: R = |mean(exp(iθ))| ∈ [0,1] by Cauchy-Schwarz
-    return float(np.clip(np.abs(z), 0.0, 1.0))
+    """Compute the Kuramoto order parameter ``R = |mean(exp(iθ))|`` (INV-K1).
+
+    INV-K1 (Cauchy–Schwarz): ``R = |⟨e^{iθ}⟩| ∈ [0, 1]`` exactly, with ``R = 1``
+    iff all phases are equal. This function is FAIL-CLOSED on any violation that
+    cannot be explained by floating-point round-off:
+
+    * a non-finite magnitude (NaN/±Inf — e.g. NaN/Inf phases) raises
+      :class:`ValueError`;
+    * a magnitude exceeding ``1 + 1e-8`` raises :class:`FloatingPointError`,
+      because beyond the documented round-off bound it signals integrator
+      divergence, not arithmetic noise;
+    * only genuine round-off (``R ≤ 1 + 1e-8``) is clipped into ``[0, 1]``.
+
+    Valid integrator output (``R`` already in ``[0, 1]``) is returned unchanged.
+    """
+    # Non-finite phases (NaN/±Inf) make ``exp`` emit an "invalid value"
+    # RuntimeWarning before producing the NaN we then detect and raise on; the
+    # detection IS the contract, so silence the redundant warning rather than
+    # let it leak (or be promoted to an error by a strict warning filter).
+    with np.errstate(invalid="ignore"):
+        mag = float(np.abs(np.exp(1j * theta).mean()))
+    if not np.isfinite(mag):
+        raise ValueError(
+            f"INV-K1 violated: order parameter magnitude is non-finite ({mag!r}); "
+            "Cauchy–Schwarz guarantees R = |mean(exp(iθ))| ∈ [0,1] for finite phases, "
+            "so a non-finite R is a divergent / non-finite integrator state."
+        )
+    if mag > 1.0 + _INV_K1_ROUNDOFF_TOL:
+        raise FloatingPointError(
+            f"INV-K1 violated: order parameter R={mag!r} exceeds 1 by more than the "
+            f"round-off tolerance {_INV_K1_ROUNDOFF_TOL!r}; Cauchy–Schwarz caps "
+            "R = |mean(exp(iθ))| at 1, so this magnitude signals integrator "
+            "divergence, not floating-point round-off."
+        )
+    # Only genuine round-off (mag ≤ 1 + tol) reaches here; clip it into [0, 1].
+    if mag > 1.0:
+        return 1.0
+    if mag < 0.0:  # pragma: no cover - |·| is never negative; defensive floor.
+        return 0.0
+    return mag
 
 
 def run_simulation(config: KuramotoConfig) -> KuramotoResult:
