@@ -24,5 +24,3 @@ tests/tools/test_numerical_policy.py  cluster=numerical_policy_unregistered_clam
 
 # Second layer: with layer-1 quarantined the oracle ran the full kept set
 # (17,670 ids, maxfail=100 not hit) and surfaced these — the complete remainder.
-tests/test_architecture_guards.py     cluster=namespace_canonical_policy issue=#1179 lane=ci-import-architecture expiry=from_check_namespace_integrity_returns_no_violations
-tests/unit/scripts/test_namespace_shims_importable.py cluster=namespace_canonical_policy issue=#1179 lane=ci-import-architecture expiry=from_check_namespace_policy_main_returns_zero

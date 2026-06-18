@@ -31,6 +31,7 @@ diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/editable-install-import-architecture.yaml"
     - path: "cli/__init__.py"
+    - path: "scripts/check_single_entrypoint.py"
     - path: "tests/unit/analytics/test_descriptor_capsule.py"
     - path: "tests/ci/fast_quarantine.txt"
     - path: "docs/ci/fast_backlog_ledger.md"
@@ -58,7 +59,7 @@ falsifier:
     i.e. the drain did not happen. On the green path all three are absent so this
     exits 1.
 rollback_command: >-
-  git checkout HEAD~1 -- cli/__init__.py tests/unit/analytics/test_descriptor_capsule.py
+  git checkout HEAD~1 -- cli/__init__.py scripts/check_single_entrypoint.py tests/unit/analytics/test_descriptor_capsule.py
   tests/ci/fast_quarantine.txt docs/ci/fast_backlog_ledger.md pyproject.toml
   .claude/commit_acceptors/editable-install-import-architecture.yaml
 rollback_verification_command: "git diff --exit-code tests/ci/fast_quarantine.txt"
