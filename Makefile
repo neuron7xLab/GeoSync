@@ -402,6 +402,12 @@ release-gate:
 	@echo "✅ MFN gate green → artifacts/runs/mfn_product_state.json"
 	@echo "ℹ️  full signed release evidence: $(PYTHON) tools/release_evidence_harness.py"
 
+.PHONY: evidence
+evidence:
+	@echo "🧾 Aggregating claim-governance gates → VERDICT.json ..."
+	$(PYTHON) scripts/ci/emit_verdict.py --output artifacts/audit/VERDICT.json
+	@echo "✅ release/no-release verdict → artifacts/audit/VERDICT.json"
+
 # ============================================================================
 # Specialized Targets (Legacy/Advanced)
 # ============================================================================
