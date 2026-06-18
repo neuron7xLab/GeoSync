@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml  # type: ignore[import-untyped]
 
+from scripts.count_invariants import collect_invariant_ids as canonical_invariant_ids
+
 DUMP_PATH = Path("reports/adversarial_invariants/fail_closed_dump.json")
 
 
@@ -31,7 +33,13 @@ def _fail_closed_invariant_check(invariant_id: str, injected_state: object) -> N
 def test_all_registered_invariants_have_negative_vector_fail_closed_under_50ms() -> None:
     registry = yaml.safe_load(Path(".claude/physics/INVARIANTS.yaml").read_text(encoding="utf-8"))
     invariant_ids = sorted(set(_collect_invariant_ids(registry)))
-    assert len(invariant_ids) == 97
+
+    # Count guard tracks the canonical registry, never a frozen literal: the
+    # single source of truth is scripts.count_invariants (the same INV-* parser
+    # the CI invariant-count gate uses), so this assertion cannot re-drift when
+    # invariants are added or removed.
+    canonical_count = len(set(canonical_invariant_ids()))
+    assert len(invariant_ids) == canonical_count
 
     fail_events: list[dict[str, object]] = []
     for invariant_id in invariant_ids:
