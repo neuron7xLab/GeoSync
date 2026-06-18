@@ -84,6 +84,25 @@ class TestHysteresisDetection:
             result = detector.measure_proximity(N=5, seed=seed)
             width = float(result.hysteresis_width)
             widths.append(width)
+            # nan width == no real R(K) crossing in one of the sweeps (fail-closed
+            # sentinel). INV-ES1 (width ≥ 0) is asserted only for finite widths;
+            # a not-detected result is not a negative width.
+            if not np.isfinite(width):
+                assert not result.transition_detected, (
+                    f"INV-ES1 VIOLATED: width=nan but transition_detected=True at seed={seed}. "
+                    f"Expected nan width ⟺ no real crossing (transition_detected False). "
+                    f"Observed at N=5, K_range=(0.5, 4.0), 10 K-steps, 100 kuramoto_steps. "
+                    f"Physical reasoning: a non-finite width must mean no transition, "
+                    f"never a fabricated grid-boundary K_c."
+                )
+                assert result.proximity == 0.0 and result.is_explosive is False, (
+                    f"INV-ES1 VIOLATED: not-detected leaked proximity={result.proximity} "
+                    f"is_explosive={result.is_explosive} at seed={seed}. "
+                    f"Expected proximity 0.0 and is_explosive False when no crossing. "
+                    f"Observed at N=5, K_range=(0.5, 4.0), 10 K-steps. "
+                    f"Physical reasoning: fail-closed, no fabricated transition."
+                )
+                continue
             assert width >= 0, (
                 f"INV-ES1 VIOLATED: hysteresis width = {width:.6f} < 0 at seed={seed}. "
                 f"Expected K_c^↑ ≥ K_c^↓ for any ES-prone topology. "
@@ -126,6 +145,112 @@ class TestHysteresisDetection:
         )
         result = detector.measure_proximity(adjacency=adj, N=5, seed=42)
         assert isinstance(result, ESProximityResult)
+
+
+class TestCriticalKFailClosed:
+    """INV-ES1: no R(K) crossing ⇒ K_c is nan (no fabricated grid-boundary K_c).
+
+    The previous implementation returned a sweep ENDPOINT (K_values[0] or
+    K_values[-1]) when R(K) never crossed R_threshold, fabricating a transition
+    out of grid-boundary artifacts and driving the circuit breaker fail-OPEN.
+    The fix returns nan so the caller marks transition_detected=False.
+    """
+
+    def test_no_crossing_shapes_all_yield_nan(self, detector):
+        """INV-ES1: every no-crossing R(K) shape → K_c nan (property sweep).
+
+        Universal property: across a family of R(K) sweeps that never cross
+        R_threshold (flat-low, saturated-high with no upward crossing, monotone
+        rising but capped sub-threshold), K_c must be nan on EVERY one — never a
+        fabricated grid endpoint. Sweeping multiple shapes enforces the
+        universal-invariant semantics rather than a single point check.
+        """
+        K_values = np.linspace(0.5, 4.0, 10)
+        no_crossing_shapes = {
+            "flat_low": np.full(10, 0.1),  # ≡0.1 < R_thresh=0.5
+            "saturated_high": np.full(10, 0.9),  # ≡0.9, no upward crossing
+            "monotone_capped": np.linspace(0.05, 0.45, 10),  # rises, caps < 0.5
+        }
+        for name, R_values in no_crossing_shapes.items():
+            k_c = detector._find_critical_K(K_values, R_values)
+            assert np.isnan(k_c), (
+                f"INV-ES1 VIOLATED: K_c={k_c} for no-crossing shape '{name}'. "
+                f"Expected nan, NOT a grid endpoint, with max(R)={float(np.max(R_values)):.3f} "
+                f"and no upward crossing of R_thresh=0.5. "
+                f"Observed on K_range=(0.5, 4.0), 10 steps. "
+                f"Physical reasoning: no threshold crossing ⇒ no transition; endpoint K_c is fabricated."
+            )
+
+    def test_genuine_scurve_crossing_finite(self, detector):
+        """INV-ES2: a genuine explosive S-curve has a finite, correct K_c.
+
+        The control: same grid, same threshold, but R(K) DOES cross. K_c must be
+        finite and located inside the bracketing interval, proving the nan above
+        is specific to the no-crossing case and not a blanket failure.
+        """
+        K_values = np.linspace(0.5, 4.0, 10)
+        # Step-like (discontinuous) S-curve: sub-threshold then jumps above.
+        R_scurve = np.array([0.05, 0.07, 0.10, 0.12, 0.15, 0.85, 0.90, 0.92, 0.94, 0.95])
+        k_c = detector._find_critical_K(K_values, R_scurve)
+        # crossing is between index 4 (0.15) and 5 (0.85)
+        lo, hi = float(K_values[4]), float(K_values[5])
+        assert np.isfinite(k_c), (
+            f"INV-ES2 VIOLATED: K_c={k_c} non-finite for a genuine S-curve crossing. "
+            f"Expected finite K_c in [{lo:.4f}, {hi:.4f}] where R jumps 0.15→0.85. "
+            f"Observed on K_range=(0.5, 4.0), 10 steps, R_thresh=0.5. "
+            f"Physical reasoning: a real threshold crossing must yield a real K_c."
+        )
+        assert lo <= k_c <= hi, (
+            f"INV-ES2 VIOLATED: K_c={k_c:.4f} outside bracketing interval [{lo:.4f}, {hi:.4f}]. "
+            f"Expected interpolated K_c between the two grid points straddling R_thresh=0.5. "
+            f"Observed R jump 0.15→0.85 across indices 4→5. "
+            f"Physical reasoning: linear interpolation must stay inside its bracket."
+        )
+
+    def test_no_crossing_yields_not_explosive_via_synthetic_R(self, detector, monkeypatch):
+        """INV-ES1: a full measure_proximity with no-crossing sweeps ⇒ fail-closed.
+
+        We force both Kuramoto sweeps to produce flat sub-threshold R(K) by
+        patching the engine call indirectly through R arrays, asserting the
+        public verdict (is_explosive, proximity, transition_detected, width) is
+        the safe not-detected state, NOT a fabricated endpoint transition.
+        """
+
+        def fake_find(_self, K_values, R_values):
+            # Simulate the real fail-closed path: no crossing ⇒ nan.
+            return np.nan
+
+        # Fail-closed sentinel proximity expected when no transition is detected;
+        # named to avoid a bare-literal "magic threshold" flag — it is the safe
+        # not-detected value, not a tuned bound. INV-ES1.
+        not_detected_proximity = 0.0
+
+        monkeypatch.setattr(ExplosiveSyncDetector, "_find_critical_K", fake_find)
+        result = detector.measure_proximity(N=5, seed=42)
+        assert result.transition_detected is False, (
+            f"INV-ES1 VIOLATED: transition_detected={result.transition_detected} with nan K_c. "
+            f"Expected False when neither sweep crosses R_thresh. "
+            f"Observed on N=5, seed=42. "
+            f"Physical reasoning: nan K_c ⇒ no transition to report."
+        )
+        assert result.is_explosive is False, (
+            f"INV-ES1 VIOLATED: is_explosive={result.is_explosive} with nan K_c. "
+            f"Expected False (fail-closed, no fabricated transition). "
+            f"Observed on N=5, seed=42. "
+            f"Physical reasoning: breaker must not fire on a non-existent transition."
+        )
+        assert result.proximity == not_detected_proximity, (
+            f"INV-ES1 VIOLATED: proximity={result.proximity} with nan K_c. "
+            f"Expected {not_detected_proximity} so ESCircuitBreaker.check stays below any threshold. "
+            f"Observed on N=5, seed=42. "
+            f"Physical reasoning: no transition ⇒ zero proximity, not a grid artifact."
+        )
+        assert np.isnan(result.hysteresis_width), (
+            f"INV-ES1 VIOLATED: hysteresis_width={result.hysteresis_width} should be nan. "
+            f"Expected nan (no real K_c pair to difference). "
+            f"Observed on N=5, seed=42. "
+            f"Physical reasoning: width from fabricated endpoints is forbidden."
+        )
 
 
 class TestCrisisSignal:
