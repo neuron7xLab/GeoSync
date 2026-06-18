@@ -24,12 +24,24 @@
     },
     "ChangedFile": {
       "additionalProperties": false,
-      "description": "One entry under ``diff_scope.changed_files:``.",
+      "description": "One entry under ``diff_scope.changed_files:``.\n\nSchema is ``{path, sha256?}`` per the acceptor template: ``sha256`` is an\noptional content pin (used by VERIFIED acceptors; absent/None for DRAFT).",
       "properties": {
         "path": {
           "minLength": 1,
           "title": "Path",
           "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
         }
       },
       "required": [
