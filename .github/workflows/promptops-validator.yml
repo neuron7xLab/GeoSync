@@ -6,6 +6,7 @@ on:
       - "examples/promptops/**"
       - "schemas/promptops/**"
       - "tools/promptops_validate.py"
+      - "tools/promptops_shadow_runner.py"
       - "tests/promptops/**"
       - ".github/workflows/promptops-validator.yml"
   workflow_dispatch:
@@ -31,18 +32,26 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest pyyaml
 
+      - name: Validate schema JSON
+        run: |
+          python -m json.tool schemas/promptops/system_prompt_contract.schema.json >/tmp/promptops_schema.json
+
       - name: Validate example prompt artifacts
         run: |
           python tools/promptops_validate.py examples/promptops --report artifacts/promptops/validation_report.json
+
+      - name: Run deterministic shadow tests
+        run: |
+          python tools/promptops_shadow_runner.py examples/promptops --report artifacts/promptops/shadow_report.json
 
       - name: Run PromptOps unit tests
         run: |
           python -m pytest tests/promptops -q
 
-      - name: Upload PromptOps report
+      - name: Upload PromptOps reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: promptops-validation-report
-          path: artifacts/promptops/validation_report.json
+          name: promptops-reports
+          path: artifacts/promptops/*.json
           if-no-files-found: ignore
