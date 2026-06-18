@@ -1,0 +1,30 @@
+{
+  "schema_version": "2026.06.18",
+  "status": "RICCI_BRIDGE_TEST_SURFACE_DEFINED",
+  "scope": "Ricci-to-adjacency bridge feeding canonical weighted Kuramoto",
+  "canonical_status": "EXPERIMENTAL_BRIDGE_NOT_CANONICAL",
+  "tested_properties": [
+    {
+      "property": "ricci_to_adjacency produces non-negative symmetric zero-diagonal A",
+      "test_file": "tests/physics/test_ricci_bridge.py"
+    },
+    {
+      "property": "signed curvature cannot enter phase_transition_boundary directly",
+      "test_file": "tests/physics/test_ricci_bridge.py"
+    },
+    {
+      "property": "matched null comparison is represented as a bridge smoke test",
+      "test_file": "tests/physics/test_ricci_bridge.py"
+    }
+  ],
+  "measurement_command": "python -m pytest tests/physics/test_ricci_bridge.py",
+  "computed_in_connector": false,
+  "ci_or_local_execution_required": true,
+  "remaining_limits": [
+    "market-data graph construction is not audited here",
+    "curvature estimator provenance is not fully traced here",
+    "matched null smoke does not prove predictive value",
+    "Ricci must remain non-canonical until full bridge evidence exists"
+  ],
+  "verdict": "BRIDGE_SURFACE_DEFINED_CANONICAL_PROMOTION_FORBIDDEN"
+}

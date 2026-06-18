@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "geosync.research_standard_layers.v1",
+  "source_status": "operator_brief_synthesis",
+  "purpose": "Machine-readable map for the GeoSync falsification-first public research standard layer.",
+  "standard_id": "geosync.research_standard.v1",
+  "research_line": "ricci_microstructure_v1",
+  "evidence_level": "HYPOTHESIS",
+  "waves": [
+    {
+      "id": "W1",
+      "name": "Governance and lineage",
+      "outputs": ["claim governance", "data lineage", "dynamic universe", "experiment registry"],
+      "exit_gate": "public language and data lineage are machine-checkable"
+    },
+    {
+      "id": "W2",
+      "name": "Method certification",
+      "outputs": ["method certificates", "numeric tolerance", "uncertainty", "downgrade reasons"],
+      "exit_gate": "method outputs carry domain and tolerance metadata"
+    },
+    {
+      "id": "W3",
+      "name": "Experimental epistemics",
+      "outputs": ["null controls", "baselines", "replay commands", "negative result register"],
+      "exit_gate": "each result has a falsification record and replay path"
+    },
+    {
+      "id": "W4",
+      "name": "External release",
+      "outputs": ["review packet", "archive readiness", "provenance", "release gates"],
+      "exit_gate": "release candidate is reproducible and auditable"
+    }
+  ],
+  "required_roles": [
+    "research_lead",
+    "methods_lead",
+    "data_lead",
+    "platform_lead",
+    "security_lead",
+    "external_reviewer"
+  ],
+  "next_agent_tasks": [
+    "implement research standard validator",
+    "add focused tests",
+    "wire focused CI workflow",
+    "keep ricci_microstructure_v1 at HYPOTHESIS",
+    "do not add network-dependent validation"
+  ]
+}
