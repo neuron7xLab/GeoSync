@@ -11,6 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts/ci/check_inference_transformer_contract.py"
+DEMO = ROOT / "tools/research/run_inference_transformer_demo.py"
 CONTRACTS = ROOT / "src/geosync/research/transformer/contracts.py"
 
 
@@ -29,6 +30,25 @@ def test_inference_transformer_contract_script_passes() -> None:
     payload = json.loads(result.stdout)
     assert payload["status"] == "PASS"
     assert payload["claim_tier"] == "HYPOTHESIS"
+
+
+def test_inference_transformer_demo_writes_placeholder(tmp_path: Path) -> None:
+    out = tmp_path / "placeholder.json"
+    result = subprocess.run(
+        [sys.executable, str(DEMO), "--output", str(out)],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    status = json.loads(result.stdout)
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert status["status"] == "PASS"
+    assert payload["decision"] == "ABSTAIN"
+    assert payload["claim_tier"] == "HYPOTHESIS"
+    assert payload["artifact_role"] == "placeholder"
+    assert status["output_sha256"] == payload["output_sha256"]
 
 
 def _geometry_state(module: ModuleType):
