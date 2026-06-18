@@ -4,7 +4,7 @@
     {
       "id": "C-INV-COUNT",
       "tier": "FACT",
-      "claim": "106 invariants in `.claude/physics/INVARIANTS.yaml`",
+      "claim": "107 invariants in `.claude/physics/INVARIANTS.yaml`",
       "evidence": [
         "`python scripts/count_invariants.py`"
       ]

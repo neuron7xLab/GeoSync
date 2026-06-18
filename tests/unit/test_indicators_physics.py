@@ -157,28 +157,49 @@ class TestMarketFieldDivergenceIndicator:
 
 
 class TestUncertaintyQuantificationIndicator:
-    """Test suite for UncertaintyQuantificationIndicator."""
+    """Test suite for UncertaintyQuantificationIndicator (Gabor framing)."""
 
     def test_basic_uncertainty(self):
-        """Test basic uncertainty quantification."""
+        """Time-frequency product Δt·Δf is positive with renamed Gabor metadata."""
         indicator = UncertaintyQuantificationIndicator()
-        prices = np.array([100, 102, 101, 103, 102, 104])
+        prices = np.array([100, 102, 101, 103, 102, 104, 103, 105], dtype=float)
 
         result = indicator.transform(prices)
 
-        # Uncertainty product should be positive
+        # Δt·Δf is a positive feature value; metadata uses the Gabor naming.
         assert result.value > 0
-        assert "position_uncertainty" in result.metadata
-        assert "momentum_uncertainty" in result.metadata
+        assert "time_spread" in result.metadata
+        assert "freq_spread" in result.metadata
+
+    def test_well_resolved_series_respects_gabor_bound(self):
+        """A well-resolved price-like series obeys INV-GABOR1: Δt·Δf ≥ 1/(4π)."""
+        indicator = UncertaintyQuantificationIndicator()
+        idx = np.arange(512, dtype=float)
+        env = np.exp(-((idx - 256.0) ** 2) / (2.0 * 80.0**2))
+        prices = 100.0 + env * np.sin(2.0 * np.pi * 0.05 * idx)
+
+        result = indicator.transform(prices)
+
+        assert result.value >= (1.0 / (4.0 * np.pi)) * (1.0 - 1e-9)
 
     def test_uncertainty_single_price(self):
-        """Test with single price."""
+        """Single sample → degenerate 0.0, no raise (indicator stays total)."""
         indicator = UncertaintyQuantificationIndicator()
-        prices = np.array([100])
+        prices = np.array([100], dtype=float)
 
         result = indicator.transform(prices)
 
         assert result.value == 0.0
+
+    def test_uncertainty_constant_series(self):
+        """Constant series has no fluctuation energy → degenerate 0.0 flagged."""
+        indicator = UncertaintyQuantificationIndicator()
+        prices = np.full(16, 100.0)
+
+        result = indicator.transform(prices)
+
+        assert result.value == 0.0
+        assert result.metadata.get("degenerate") is True
 
 
 if __name__ == "__main__":

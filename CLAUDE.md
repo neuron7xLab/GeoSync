@@ -56,7 +56,7 @@ GeoSync is a verification-first quantitative research platform with neuroscience
 
 ---
 
-## INVARIANT REGISTRY — 106 invariants loaded by kernel self-check
+## INVARIANT REGISTRY — 107 invariants loaded by kernel self-check
 
 > **Single source of truth:** `.claude/physics/INVARIANTS.yaml` (`python scripts/count_invariants.py`). The 2026-04-30 external audit corrected a four-way drift (`57 / 66 / 67 / 87`); CI gate `invariant-count-sync` now fail-closes on any future divergence between this header, README badges, BASELINE.md, and the registry.
 
@@ -301,6 +301,22 @@ INV-ST3 | statistical | Second law ⟨W⟩ ≥ ΔF, and dissipation          | P
          Law:    docs/laws/T8_stochastic_thermodynamics.md
 ```
 
+### Gabor Time-Frequency Uncertainty Limit
+
+```
+INV-GABOR1 | algebraic | Δt · Δf ≥ 1/(4π), saturated by Gaussian envelope | P0
+         Exact Fourier-analysis bound for a sampled signal. Δt = √(2nd
+         moment of normalized |x−⟨x⟩|² about time centroid); Δf = √(2nd
+         moment of normalized |FFT|² about freq centroid). 1/(4π)≈0.0796
+         is an EXACT constant — NO Planck constant, NO fabricated ℏ/2.
+         Replaces the prior category-error "Heisenberg ΔxΔp ≥ ℏ/2" framing
+         (price + diff(price) are jointly observable, not conjugate).
+         FALSIFICATION: Δt·Δf < 1/(4π) for any finite-energy signal, OR a
+         Gaussian fails to saturate, OR constant/empty input fails to raise.
+         Source: core/physics/uncertainty.py
+         Tests:  tests/unit/physics/test_uncertainty.py
+```
+
 ### Ricci Curvature
 
 ```
@@ -486,6 +502,7 @@ assert result.order > 0      # no INV, no context
 | `*energy*`, `*lyapunov*`, `*ecs*` | INV-FE1..2 |
 | `*thermo*`, `*conservation*` | INV-TH1..2 |
 | `*stochastic_thermodynamics*`, `*langevin*`, `*jarzynski*`, `*law_T8*` | INV-ST1..3 |
+| `*uncertainty*`, `*gabor*`, `*time_frequency*` | INV-GABOR1 |
 | `*ricci*`, `*curvature*` | INV-RC1..3 |
 | `*determinism_kit*`, `*law_T6*`, `*replay_manifest*` | INV-DET1..3 |
 | `*kelly*`, `*sizing*` | INV-KELLY1..3 |
