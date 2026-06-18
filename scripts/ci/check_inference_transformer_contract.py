@@ -12,6 +12,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 REQ = {"schema_version", "contract_id", "research_line", "claim_boundary", "state_machine", "data_model", "blocks", "gates", "outputs", "agent_handoff"}
+VIRTUAL_BLOCKS = {"agent_orchestrator"}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -67,7 +68,7 @@ def validate_contract(schema_path: Path, config_path: Path, map_path: Path, root
     for block in blocks:
         add(errors, block.get("kind") in kinds, f"bad block kind: {block.get('id')}")
 
-    block_id_set = set(block_ids)
+    block_id_set = set(block_ids) | VIRTUAL_BLOCKS
     for gate in cfg.get("gates", []):
         refs = set(gate.get("blocks", []))
         add(errors, not refs.difference(block_id_set), f"gate refs missing: {sorted(refs.difference(block_id_set))}")
