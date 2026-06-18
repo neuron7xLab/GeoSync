@@ -19,12 +19,16 @@ Scope of the discrete bound (honest)
 1/(4π) is the bound for the CONTINUOUS Fourier transform. The naive discrete
 second-moment estimator implemented here realizes it faithfully only for
 WELL-RESOLVED signals — time-localized within the window and band-limited away
-from Nyquist. For under-resolved / near-Nyquist short signals the estimator can
-dip below 1/(4π), because the ``np.fft.fftfreq`` axis wraps at ±0.5 cyc/sample
-and the wrapped second moment underestimates the true spectral spread. The
-module does not pretend otherwise: the universal sweep in the test-suite is over
-the well-resolved regime, and a Gaussian envelope is shown to saturate the bound
-exactly (INV-GABOR1).
+from Nyquist. For under-resolved / near-Nyquist short signals the discrete
+estimate can dip below 1/(4π), because the ``np.fft.fftfreq`` axis wraps at ±0.5
+cyc/sample and the wrapped second moment underestimates the true spectral
+spread. The module does not pretend such a number is a measurement: rather than
+silently returning a sub-bound product, :func:`time_frequency_spread`
+**fail-closes** (``ValueError``) when ``Δt·Δf`` lands below the theorem, because
+the only thing a sub-bound discrete product can mean is "this window is too
+under-resolved to localize". The universal sweep in the test-suite is over the
+well-resolved regime, and a Gaussian envelope saturates the bound exactly
+(INV-GABOR1).
 
 Why this replaces the previous "Heisenberg" framing
 ----------------------------------------------------
@@ -54,6 +58,15 @@ import numpy as np
 # Exact Gabor / Fourier uncertainty constant. Equality holds for a Gaussian
 # envelope. No Planck constant, no fabricated ℏ — this is 1/(4π) exactly.
 GABOR_LIMIT: Final[float] = 1.0 / (4.0 * math.pi)
+
+# Relative slack below the bound that still counts as "well-resolved saturation".
+# A genuinely well-resolved signal obeys Δt·Δf ≥ 1/(4π) (the theorem); the only
+# legitimate way to land *below* the bound is the discretization round-off of a
+# Gaussian sitting exactly on it — empirically ≤ 1.3e-4 below. Under-resolved /
+# near-Nyquist windows (power concentrated in one sample or one FFT bin) land far
+# below (ratio ≤ 0.75). 1e-2 separates the two with a ~100× margin over the
+# saturation dip, so it admits saturation yet fail-closes on degenerate windows.
+_RESOLUTION_REL_TOL: Final[float] = 1e-2
 
 
 def gabor_lower_bound() -> float:
@@ -142,8 +155,10 @@ def time_frequency_spread(signal: np.ndarray) -> tuple[float, float, float]:
 
     Raises:
         ValueError: if the signal is empty, has fewer than 2 samples, is not
-            1-D, contains non-finite values, or is constant (zero variance).
-            Fail-closed: no silent numeric repair.
+            1-D, contains non-finite values, is constant (zero variance), or is
+            an under-resolved / near-Nyquist window whose discrete product falls
+            below the Gabor theorem (``Δt·Δf < 1/(4π)``). Fail-closed: no silent
+            numeric repair, and no sub-bound product is ever returned.
 
     Example:
         >>> import numpy as np
@@ -186,6 +201,24 @@ def time_frequency_spread(signal: np.ndarray) -> tuple[float, float, float]:
     time_spread = _time_spread(time_power)
     freq_spread = _freq_spread(power_spectrum, arr.size)
     product = time_spread * freq_spread
+
+    # Fail-closed on under-resolved windows. The Gabor limit Δt·Δf ≥ 1/(4π) is a
+    # theorem of Fourier analysis: a well-resolved finite-energy signal cannot
+    # fall below it. A discrete product below the bound therefore signals an
+    # under-resolved / near-Nyquist window (e.g. a two-sample step whose power
+    # collapses into a single time sample or FFT bin), NOT a sub-bound physical
+    # discovery. Returning it would mislead a short-window caller (e.g. position
+    # sizing) into reading a degenerate window as a maximally compact / maximally
+    # confident measurement. Refuse it rather than silently report it.
+    if product < GABOR_LIMIT * (1.0 - _RESOLUTION_REL_TOL):
+        raise ValueError(
+            f"INV-GABOR1: Δt·Δf={product:.6e} < 1/(4π)={GABOR_LIMIT:.6e} "
+            f"(Δt={time_spread:.4e} samples, Δf={freq_spread:.4e} cyc/sample); "
+            f"the discrete second-moment estimate fell below the Gabor theorem, "
+            f"which can only mean an under-resolved / near-Nyquist window "
+            f"(size={arr.size}) with power concentrated in a single sample or "
+            f"bin — fail-closed, no sub-bound product is a valid measurement"
+        )
     return time_spread, freq_spread, product
 
 

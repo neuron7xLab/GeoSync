@@ -311,8 +311,14 @@ INV-GABOR1 | algebraic | Δt · Δf ≥ 1/(4π), saturated by Gaussian envelope 
          is an EXACT constant — NO Planck constant, NO fabricated ℏ/2.
          Replaces the prior category-error "Heisenberg ΔxΔp ≥ ℏ/2" framing
          (price + diff(price) are jointly observable, not conjugate).
-         FALSIFICATION: Δt·Δf < 1/(4π) for any finite-energy signal, OR a
-         Gaussian fails to saturate, OR constant/empty input fails to raise.
+         SCOPE: 1/(4π) is the CONTINUOUS bound; the discrete estimator only
+         realizes it for WELL-RESOLVED signals. Under-resolved/near-Nyquist
+         windows whose product would dip below the bound are rejected
+         (ValueError) — no sub-bound product is ever returned.
+         FALSIFICATION: time_frequency_spread RETURNS Δt·Δf < 1/(4π) for a
+         well-resolved signal, OR a Gaussian fails to saturate to 1/(4π)
+         within tolerance, OR a degenerate/under-resolved/constant/empty
+         input fails to raise ValueError.
          Source: core/physics/uncertainty.py
          Tests:  tests/unit/physics/test_uncertainty.py
 ```

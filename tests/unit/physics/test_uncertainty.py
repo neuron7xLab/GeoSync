@@ -228,6 +228,35 @@ class TestContractViolations:
                 f"got message='{exc_info.value}' with value={constant}, N=64"
             )
 
+    def test_under_resolved_window_below_bound_raises(self):
+        """INV-GABOR1 fail-closed: a sub-bound (under-resolved) window → ValueError.
+
+        The Gabor limit is a theorem; a discrete product below 1/(4π) can only
+        mean an under-resolved / near-Nyquist window (power collapsed into one
+        sample or bin), never a sub-bound discovery. Returning it would let a
+        short-window caller misread a degenerate window as a maximally compact,
+        maximally confident measurement — so it must fail-closed, not repair.
+        """
+        bound = gabor_lower_bound()
+        # Non-constant 2-sample windows whose power collapses below the theorem.
+        under_resolved: list[tuple[np.ndarray, str]] = [
+            (np.array([0.0, 1.0]), "two-sample step (Δt→0)"),
+            (np.array([1.0, 1.0001]), "near-constant ramp"),
+            (np.array([1.0, 2.0]), "two-sample ramp (ratio 0.75)"),
+        ]
+        for sig, label in under_resolved:
+            with pytest.raises(ValueError) as exc_info:
+                time_frequency_spread(sig)
+            msg = str(exc_info.value)
+            assert "INV-GABOR1" in msg and "1/(4π)" in msg, (
+                f"INV-GABOR1 VIOLATED: under-resolved window ({label}) did not "
+                f"fail-closed with a sub-bound ValueError. "
+                f"A discrete Δt·Δf below 1/(4π)={bound:.6f} is an under-resolution "
+                f"artefact, never a measurement. "
+                f"Fail-closed: refuse to report it. "
+                f"got message='{msg}' for signal={sig.tolist()}"
+            )
+
     def test_check_rejects_invalid_spreads(self):
         """INV-GABOR1 fail-closed: negative or non-finite spread → ValueError."""
         invalid_pairs: list[tuple[float, float, str]] = [

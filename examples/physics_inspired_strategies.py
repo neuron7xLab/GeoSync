@@ -19,6 +19,7 @@ from core.indicators.physics import (
     ThermodynamicEquilibriumIndicator,
     UncertaintyQuantificationIndicator,
 )
+from core.physics.uncertainty import gabor_lower_bound
 
 # TACL enhanced validation
 
@@ -149,38 +150,48 @@ def physics_regime_detection():
 
 
 def physics_uncertainty_analysis():
-    """Example: Uncertainty quantification using Heisenberg's Principle."""
+    """Example: time-frequency localization via the Gabor limit (INV-GABOR1)."""
     print("=" * 60)
-    print("Physics Uncertainty Analysis (Heisenberg's Principle)")
+    print("Gabor Time-Frequency Localization (Δt·Δf ≥ 1/(4π))")
     print("=" * 60)
 
     prices, _, _ = generate_sample_data(100)
 
-    # Uncertainty indicator
+    # Time-frequency uncertainty indicator (Gabor limit — NOT Heisenberg ℏ/2).
     uncertainty_indicator = UncertaintyQuantificationIndicator()
 
-    # Compute uncertainty
     result = uncertainty_indicator.transform(prices)
 
-    print("\nUncertainty Analysis:")
-    print(f"  Position Uncertainty (Δx): {result.metadata['position_uncertainty']:.4f}")
-    print(f"  Momentum Uncertainty (Δp): {result.metadata['momentum_uncertainty']:.4f}")
-    print(f"  Uncertainty Product: {result.value:.4f}")
+    gabor_bound = gabor_lower_bound()
 
-    # Interpret uncertainty
-    if result.value < 0.01:
-        print("\n✓ Low Uncertainty")
-        print("  - High confidence in predictions")
-        print("  - Suitable for precise entry/exit")
-    elif result.value < 0.1:
-        print("\n⚠️  Moderate Uncertainty")
-        print("  - Moderate confidence in predictions")
-        print("  - Use wider stops and targets")
+    # An under-resolved / degenerate window carries no time-frequency
+    # localization — the indicator flags it instead of reporting a misleading
+    # "maximally compact" product. Never read that as high confidence.
+    if result.metadata.get("degenerate"):
+        print("\n⚠️  Degenerate / under-resolved window")
+        print(f"  - {result.metadata.get('samples')} sample(s); no valid Δt·Δf")
+        print("  - Not a measurement — widen the window before sizing on it")
+        print()
+        return
+
+    print("\nTime-Frequency Analysis:")
+    print(f"  Time spread Δt:       {result.metadata['time_spread']:.4f} samples")
+    print(f"  Frequency spread Δf:  {result.metadata['freq_spread']:.4f} cyc/sample")
+    print(f"  Product Δt·Δf:        {result.value:.4f}")
+    print(f"  Gabor bound 1/(4π):   {gabor_bound:.4f} (exact lower bound)")
+
+    # The product is bounded BELOW by 1/(4π). Near the bound = maximally compact
+    # (tightly localized) fluctuation; far above = spread out / broadband. There
+    # is no sub-bound region, so "low product" is NOT "low uncertainty".
+    ratio = result.value / gabor_bound
+    if ratio <= 1.5:
+        print("\n✓ Near the Gabor bound — fluctuation is maximally localized")
+        print("  - Compact in time AND frequency (the theorem's tight corner)")
+    elif ratio <= 5.0:
+        print("\n⚠️  Moderately spread in time-frequency")
     else:
-        print("\n❌ High Uncertainty")
-        print("  - Low confidence in predictions")
-        print("  - Fundamental limits on predictability")
-        print("  - Consider reducing position size")
+        print("\n❌ Broadband / delocalized fluctuation")
+        print("  - Energy spread across many time-frequency cells")
 
     print()
 
