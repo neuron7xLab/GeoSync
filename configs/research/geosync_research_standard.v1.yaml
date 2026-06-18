@@ -17,7 +17,7 @@ layers:
     required_artifacts:
       - CLAIMS.md
       - FORBIDDEN_CLAIMS.md
-      - docs/research/RESEARCH_STANDARD_GOVERNANCE_CONTRACT.md
+      - docs/research/RESEARCH_STANDARD_CONTRACT.md
     exit_gate: unsupported public language is blocked before release
   - id: data_lineage
     purpose: Preserve point-in-time universe, source hash, membership, and proxy labeling.
@@ -38,10 +38,10 @@ layers:
     owner_role: platform_lead
     required_artifacts:
       - artifacts/runs/ricci_microstructure_v1/inference_transformer_placeholder.json
-      - docs/research/RESEARCH_STANDARD_GOVERNANCE_CONTRACT.md
+      - docs/research/RESEARCH_STANDARD_CONTRACT.md
     exit_gate: every result has a replay path and falsification status
   - id: release_provenance
-    purpose: Require archive readiness, action hygiene, secret hygiene, and independent-review packet before standard release.
+    purpose: Require archive readiness, action hygiene, scan hygiene, and independent-review packet before standard release.
     owner_role: security_lead
     required_artifacts:
       - .github/workflows/research-standard-contract.yml
@@ -84,4 +84,4 @@ handoff:
     - manifests/research/reproduction_badge.v1.json
     - manifests/research/release_provenance.v1.json
     - manifests/research/cost_latency_assumptions.v1.json
-    - docs/research/RESEARCH_STANDARD_GOVERNANCE_CONTRACT.md
+    - docs/research/RESEARCH_STANDARD_CONTRACT.md
