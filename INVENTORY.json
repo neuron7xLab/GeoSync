@@ -182,6 +182,10 @@
       "sha256": "6ef1463d0f6328ee2da921de07f1c2e13332aa04c0e937cd068dcfbbdcda36c5"
     },
     {
+      "path": "scripts/ci/verify_claims.py",
+      "sha256": "e1d15056c8ec4f938f5461585ed24777fd32fc5185d11f55978f56f2c802c148"
+    },
+    {
       "path": "scripts/generate_stakeholder_assets.py",
       "sha256": "ba5b8ad1e8b05f950d009553a6f5141468f7c278676964bd37d5a41d538f9dab"
     },
