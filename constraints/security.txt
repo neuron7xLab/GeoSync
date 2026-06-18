@@ -124,3 +124,13 @@ Brotli>=1.2.0
 # scientific/ML extras (e.g. torchvision-adjacent paths). Pin the floor
 # here so transitive resolution cannot regress below the fix line.
 pillow>=12.2.0
+
+# Security floors — CVE remediation (pip-audit 2026-06-19).
+# tornado: GHSA-3x9g-8vmp-wqvf, GHSA-cx3h-4qpv-8hc9, GHSA-mgf9-4vpg-hj56, GHSA-pw6j-qg29-8w7f
+tornado>=6.5.7
+# pygments: GHSA-5239-wwwm-4pmq
+pygments>=2.20.0
+# jaraco-context: GHSA-58pv-8j8x-9vj2
+jaraco-context>=6.1.0
+# wheel: GHSA-8rrh-rw8j-w5fx
+wheel>=0.46.2
