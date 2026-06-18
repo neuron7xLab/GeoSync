@@ -30,6 +30,9 @@ diff_scope:
     - path: "tests/unit/physics/test_T22_lyapunov_spectral.py"
     - path: "scripts/ci/prove_repo_integrity.sh"
     - path: "scripts/ci/evidence_gate.sh"
+    - path: "CLAIMS.md"
+    - path: "artifacts/claims_hashes.json"
+    - path: "docs/architecture/claim_graph.json"
   forbidden_paths:
     - "trading/"
     - "execution/"

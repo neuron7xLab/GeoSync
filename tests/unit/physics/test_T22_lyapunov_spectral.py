@@ -12,6 +12,8 @@ Two new physics diagnostics for GeoSync:
 
 from __future__ import annotations
 
+from typing import Any
+
 import math
 
 import networkx as nx
@@ -266,7 +268,7 @@ def test_le3_gate_only_demotes_never_fabricates() -> None:
     rng = np.random.default_rng(seed=11)
     n = 2000
     t = np.linspace(0.0, 100.0, n)
-    bank: dict[str, tuple[np.ndarray, dict[str, int]]] = {
+    bank: dict[str, tuple[np.ndarray, dict[str, Any]]] = {
         "logistic": (_logistic_r4(n), {"dim": 2, "tau": 1, "max_divergence_steps": 20}),
         "noise": (rng.normal(0.0, 1.0, n), {"dim": 5, "tau": 1}),
         "damped": (np.exp(-0.1 * t) * np.sin(t), {"dim": 3, "tau": 5}),
@@ -275,7 +277,7 @@ def test_le3_gate_only_demotes_never_fabricates() -> None:
     }
     for label, (series, kw) in bank.items():
         diag: dict[str, float] = {}
-        lam = maximal_lyapunov_exponent(series, diagnostics=diag, **kw)  # type: ignore[arg-type]
+        lam = maximal_lyapunov_exponent(series, diagnostics=diag, **kw)
         accepted = diag["scaling_ok"] == 1.0
         if not accepted:
             assert lam == 0.0, (
