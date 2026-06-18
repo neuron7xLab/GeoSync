@@ -1,10 +1,8 @@
 # SPDX-License-Identifier: MIT
 """Pure NumPy reference solver for the GeoSync weighted Kuramoto lane.
 
-This module intentionally avoids JAX and repository runtime helpers. It is a
-small independent implementation used only for replication tests. If this file
-starts importing the production solver, it stops being a reference and becomes a
-mirror with better branding, humanity's favorite category error.
+This module intentionally avoids JAX and production runtime helpers. It is a
+small independent implementation used only for replication tests.
 """
 
 from __future__ import annotations
@@ -15,14 +13,24 @@ from numpy.typing import NDArray
 FloatArray = NDArray[np.float64]
 
 
-def kuramoto_numpy_rhs(theta: FloatArray, omega: FloatArray, adjacency: FloatArray) -> FloatArray:
+def kuramoto_numpy_rhs(
+    theta: FloatArray,
+    omega: FloatArray,
+    adjacency: FloatArray,
+) -> FloatArray:
     """Return dtheta/dt for weighted graph Kuramoto dynamics."""
     delta = theta[None, :] - theta[:, None]
     coupling = np.sum(adjacency * np.sin(delta), axis=1)
     return omega + coupling
 
 
-def kuramoto_numpy_step(theta: FloatArray, *, dt: float, omega: FloatArray, adjacency: FloatArray) -> FloatArray:
+def kuramoto_numpy_step(
+    theta: FloatArray,
+    *,
+    dt: float,
+    omega: FloatArray,
+    adjacency: FloatArray,
+) -> FloatArray:
     """Single midpoint/RK2 step matching the production integration contract."""
     f1 = kuramoto_numpy_rhs(theta, omega, adjacency)
     midpoint = theta + 0.5 * dt * f1
@@ -54,7 +62,12 @@ def kuramoto_numpy_trajectory(
     theta = theta_0.astype(np.float64, copy=True)
     trajectory[0] = theta
     for step in range(n_steps):
-        theta = kuramoto_numpy_step(theta, dt=dt, omega=omega, adjacency=adjacency)
+        theta = kuramoto_numpy_step(
+            theta,
+            dt=dt,
+            omega=omega,
+            adjacency=adjacency,
+        )
         trajectory[step + 1] = theta
     return trajectory
 
