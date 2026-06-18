@@ -499,6 +499,201 @@ def build_price_graph(prices: np.ndarray, delta: float = 0.005) -> nx.Graph:
     return G
 
 
+#: Documented multiple of the unit price-level step at which the 1-D positional
+#: embedding stops being commensurate with the |Δp|+1 weighted geodesic. In the
+#: commensurate (path-like) regime consecutive ``build_price_graph`` levels move
+#: by unit steps, so the maximal inter-step level jump is 1. A jump beyond this
+#: multiple means a price gap large enough that the positional metric (in which
+#: W₁ is measured) and the combinatorial/weighted metric (in which d is measured)
+#: diverge — exactly the condition under which κ = 1 − W₁/d can fall below −1.
+#: This is the STRUCTURAL necessary condition; it is a fast pre-filter, NOT a
+#: sufficient one (a series that revisits levels can build a denser graph whose
+#: edges leave the band even when every consecutive jump is ≤ this multiple), so
+#: the regime certificate below ALSO verifies the exact per-edge bound κ ≥ −1.
+_COMMENSURATE_MAX_STEP_MULTIPLE: int = 1
+#: κ ≥ −1 ⇔ W₁/d ≤ 2. The lower bound of the INV-RC3 symmetric band; the gate
+#: never presents an edge with κ < −1 − tolerance as INV-RC3-valid.
+_RC3_LOWER_BOUND: float = -1.0
+#: Float round-off tolerance for the κ ≥ −1 boundary check (matches the
+#: identity-witness tolerance in tests/physics_contracts).
+_RC3_BOUND_TOLERANCE: float = 1e-9
+
+
+@dataclass(slots=True, frozen=True)
+class RicciRegimeCertificate:
+    """Runtime certificate of which Ricci curvature bound a graph actually obeys.
+
+    Ollivier (2009) defines κ(x,y) = 1 − W₁(μₓ, μᵧ) / d(x,y); the symmetric band
+    κ ∈ [−1, 1] (INV-RC3) is **not** universal — its lower bound κ ≥ −1 assumes
+    the graph-distance metric, i.e. that the positional embedding in which W₁ is
+    measured is commensurate with the combinatorial/weighted geodesic d. For a
+    :func:`build_price_graph` output that holds only in the path-like regime where
+    consecutive price levels move by unit steps. On a jumpy / gapped / volatile
+    series the two metrics diverge, W₁/d exceeds 2 on some edge, and κ descends
+    below −1 (≈ −6 at δ = 0.05). The prior runtime presented that out-of-regime κ
+    with no signal that the tight INV-RC3 band no longer applied.
+
+    This certificate closes that gap by recording, per graph:
+
+    * ``asserted_tier`` — ``"INV-RC3"`` only when the commensurate-metric regime
+      is verified (structural max-jump predicate AND every finite edge satisfies
+      κ ≥ −1). Otherwise it is **downgraded** to ``"INV-RC1"`` — the universal
+      κ ≤ 1 bound that always holds (W₁ ≥ 0) — and the deviation is recorded.
+    * ``commensurate`` — whether the regime held; ``False`` ⇒ downgraded.
+    * ``max_level_step`` — the maximal inter-step price-level jump (the structural
+      necessary condition; ``≤ _COMMENSURATE_MAX_STEP_MULTIPLE`` in regime).
+    * ``kappa_min`` — the witnessed minimum edge curvature.
+    * ``deviation`` — human-readable record of WHY the regime was rejected, or an
+      empty string when INV-RC3 holds.
+
+    The design mirrors the module's declarative claim-boundary contract: a
+    consumer that reads ``asserted_tier`` learns whether the tight band is
+    honestly claimable; an out-of-regime κ is never silently labelled INV-RC3.
+    """
+
+    asserted_tier: Literal["INV-RC1", "INV-RC3"]
+    commensurate: bool
+    max_level_step: int
+    kappa_min: float
+    n_edges_below_lower_bound: int
+    deviation: str
+
+
+def assert_ricci_regime(
+    G: nx.Graph,
+    *,
+    distributions: Mapping[int, NodeDistribution] | None = None,
+    raise_on_violation: bool = False,
+) -> RicciRegimeCertificate:
+    """Validate the commensurate-metric regime before asserting the INV-RC3 band.
+
+    INV-RC3's κ ∈ [−1, 1] is conditional on the positional embedding (in which
+    the Wasserstein mass W₁ is measured) being commensurate with the
+    combinatorial/weighted geodesic d (Ollivier, J. Funct. Anal. 2009: the band
+    assumes the graph-distance metric, not an arbitrary positional embedding).
+    For ``build_price_graph`` output that holds only when consecutive price levels
+    move by unit steps; a jumpy/gapped/volatile series breaks it and κ = 1 − W₁/d
+    descends below −1. This gate verifies the regime at runtime and, on violation,
+    **downgrades** the asserted tier INV-RC3 → INV-RC1 (universal κ ≤ 1 only) and
+    records the deviation, so an out-of-regime κ is never presented as
+    INV-RC3-valid.
+
+    The check has two legs and is fail-closed — INV-RC3 is asserted ONLY when both
+    hold:
+
+    1. STRUCTURAL (necessary): the maximal inter-step price-level jump is within
+       ``_COMMENSURATE_MAX_STEP_MULTIPLE`` of the unit step. A larger jump is a
+       price gap that breaks positional↔combinatorial commensurateness.
+    2. EXACT (binding): every finite edge satisfies κ ≥ −1 − tolerance
+       (equivalently W₁/d ≤ 2). This catches the cases the structural pre-filter
+       misses (e.g. level-revisiting series whose consecutive jumps are all unit
+       but whose denser graph still leaves the band).
+
+    A degenerate graph (empty / single node / no edges) cannot support the tight
+    band and is fail-closed to INV-RC1.
+
+    Args:
+        G: Graph, typically a :func:`build_price_graph` output.
+        distributions: Optional pre-computed node distributions (efficiency).
+        raise_on_violation: When ``True`` raise :class:`ValueError` instead of
+            downgrading. Default ``False`` keeps the declarative downgrade that
+            matches the module's claim-boundary design.
+
+    Returns:
+        RicciRegimeCertificate recording the asserted tier and any deviation.
+
+    Raises:
+        ValueError: If ``raise_on_violation`` is set and the regime is broken.
+    """
+    nodes = [int(n) for n in G.nodes()]
+    edges = [(int(u), int(v)) for u, v in G.edges()]
+
+    def _downgrade(
+        deviation: str, max_step: int, kappa_min: float, n_below: int
+    ) -> RicciRegimeCertificate:
+        if raise_on_violation:
+            raise ValueError(
+                f"Ricci commensurate-metric regime violated ({deviation}); "
+                "INV-RC3 κ ∈ [−1, 1] is not assertable — only the universal "
+                "INV-RC1 κ ≤ 1 holds"
+            )
+        return RicciRegimeCertificate(
+            asserted_tier="INV-RC1",
+            commensurate=False,
+            max_level_step=max_step,
+            kappa_min=kappa_min,
+            n_edges_below_lower_bound=n_below,
+            deviation=deviation,
+        )
+
+    if len(nodes) < 2 or not edges:
+        return _downgrade(
+            "degenerate graph (fewer than 2 nodes or no edges) cannot support "
+            "the commensurate-metric regime",
+            max_step=0,
+            kappa_min=float("nan"),
+            n_below=0,
+        )
+
+    # Leg 1 — STRUCTURAL: maximal inter-step price-level jump. Node IDs ARE the
+    # quantised price levels; the realised path visits them in edge order, but
+    # the worst-case inter-step jump is bounded below by the largest gap between
+    # any two level IDs that share an edge.
+    max_level_step = 0
+    for u, v in edges:
+        max_level_step = max(max_level_step, abs(u - v))
+    structural_ok = max_level_step <= _COMMENSURATE_MAX_STEP_MULTIPLE
+
+    # Leg 2 — EXACT: per-edge κ ≥ −1. This is the binding, fail-closed check.
+    if distributions is None:
+        distributions = compute_node_distributions(G)
+    kappa_min = float("inf")
+    n_below = 0
+    for u, v in edges:
+        kappa = ricci_curvature_edge(G, u, v, distributions=distributions)
+        if not np.isfinite(kappa):
+            continue
+        kappa_min = min(kappa_min, kappa)
+        if kappa < _RC3_LOWER_BOUND - _RC3_BOUND_TOLERANCE:
+            n_below += 1
+    if not np.isfinite(kappa_min):
+        return _downgrade(
+            "no finite edge curvature available; regime not verifiable",
+            max_step=max_level_step,
+            kappa_min=float("nan"),
+            n_below=0,
+        )
+
+    if not structural_ok:
+        return _downgrade(
+            f"max inter-step price-level jump {max_level_step} exceeds the "
+            f"commensurate unit-step multiple {_COMMENSURATE_MAX_STEP_MULTIPLE}; "
+            "positional and combinatorial metrics are incommensurate "
+            f"(witnessed κ_min = {kappa_min:.4f})",
+            max_step=max_level_step,
+            kappa_min=kappa_min,
+            n_below=n_below,
+        )
+    if n_below > 0:
+        return _downgrade(
+            f"{n_below} edge(s) violate κ ≥ −1 (W₁/d > 2): the positional "
+            "embedding left the graph-distance metric despite unit-step structure "
+            f"(witnessed κ_min = {kappa_min:.4f})",
+            max_step=max_level_step,
+            kappa_min=kappa_min,
+            n_below=n_below,
+        )
+
+    return RicciRegimeCertificate(
+        asserted_tier="INV-RC3",
+        commensurate=True,
+        max_level_step=max_level_step,
+        kappa_min=kappa_min,
+        n_edges_below_lower_bound=0,
+        deviation="",
+    )
+
+
 def local_distribution(G: nx.Graph, node: int, radius: int = 1) -> np.ndarray:
     """Return the degree-weighted probability mass over a node's neighbourhood.
 
@@ -1017,4 +1212,6 @@ __all__ = [
     "ricci_curvature_edge",
     "mean_ricci",
     "MeanRicciFeature",
+    "RicciRegimeCertificate",
+    "assert_ricci_regime",
 ]
