@@ -6,16 +6,16 @@
     {
       "pr_number": 1220,
       "title": "docs/tests: add NFI v3 physics validation lane",
-      "head_sha": "56ae2071dd9b64a4b773f0063f388b0fba340f13",
+      "head_ref": "github-pr-1220-head",
       "merged": true,
-      "merge_commit_sha": "a6558ea357a356419ab4a0da440e15a0fbf6d8f7"
+      "merge_ref": "github-pr-1220-merge"
     },
     {
       "pr_number": 1223,
       "title": "test: harden NFI physics score loader typing",
-      "head_sha": "4a90a7f65b8ac0a4369f625f95cab81ce495e187",
+      "head_ref": "github-pr-1223-head",
       "merged": true,
-      "merge_commit_sha": "3604a603dc554c218a0d9ff413575ae5e8e423b0"
+      "merge_ref": "github-pr-1223-merge"
     }
   ],
   "workflow_runs": [
@@ -28,8 +28,7 @@
     {"name": "Import Architecture Gate", "status": "completed", "conclusion": "success", "source_pr": 1220},
     {"name": "Claim Boundary Gate", "status": "completed", "conclusion": "success", "source_pr": 1220},
     {"name": "Docs Consistency Gate", "status": "completed", "conclusion": "success", "source_pr": 1220},
-    {"name": "python-quality", "status": "completed", "conclusion": "success", "source_pr": 1223},
-    {"name": "secrets-supply-chain", "status": "completed", "conclusion": "success", "source_pr": 1223}
+    {"name": "python-quality", "status": "completed", "conclusion": "success", "source_pr": 1223}
   ],
   "release_gate": {
     "pr_gate_success": false,
