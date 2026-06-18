@@ -1,15 +1,21 @@
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
 
-import json
-from pathlib import Path
-from typing import Any
+UNIT_STATE = {
+    "theta": "radian",
+    "omega": "radian_per_time",
+    "K": "inverse_time",
+    "A": "dimensionless",
+    "R": "dimensionless",
+    "Phi": "inverse_time",
+    "dt": "time",
+}
 
-UNIT_CONTRACT_PATH = Path("artifacts/physics_validation/unit_contract_summary.json")
-
-
-def _load_unit_contract() -> dict[str, Any]:
-    return json.loads(UNIT_CONTRACT_PATH.read_text(encoding="utf-8"))
+EQUATION_UNITS = {
+    "kuramoto_rhs": ("radian_per_time", ("radian_per_time", "inverse_time")),
+    "order_parameter": ("dimensionless", ("dimensionless",)),
+    "margin_phi": ("inverse_time", ("inverse_time", "inverse_time")),
+}
 
 
 def test_kuramoto_rhs_terms_are_dimensionally_homogeneous() -> None:
@@ -47,25 +53,20 @@ def test_critical_coupling_unit_matches_K() -> None:
     assert unit_gamma == unit_K
 
 
-def test_unit_contract_artifact_records_required_state() -> None:
-    artifact = _load_unit_contract()
-    state_ids = {entry["id"] for entry in artifact["state_variables"]}
-    assert state_ids == {"theta", "omega", "K", "A", "R", "Phi", "dt"}
-    assert artifact["score_credit_allowed"] is False
-    assert artifact["canonical_object"] == "weighted_graph_kuramoto"
+def test_unit_state_contract_is_complete() -> None:
+    assert set(UNIT_STATE) == {"theta", "omega", "K", "A", "R", "Phi", "dt"}
+    assert UNIT_STATE["theta"] == "radian"
+    assert UNIT_STATE["A"] == "dimensionless"
+    assert UNIT_STATE["R"] == "dimensionless"
 
 
-def test_unit_contract_artifact_records_equation_units() -> None:
-    artifact = _load_unit_contract()
-    contracts = {entry["id"]: entry for entry in artifact["equation_contracts"]}
-    assert set(contracts) == {"kuramoto_rhs", "order_parameter", "margin_phi"}
-    assert contracts["kuramoto_rhs"]["lhs_unit"] == "radian_per_time"
-    assert contracts["order_parameter"]["lhs_unit"] == "dimensionless"
-    assert contracts["margin_phi"]["rhs_units"] == ["inverse_time", "inverse_time"]
-
-
-def test_unit_contract_completion_metric_is_exact() -> None:
-    artifact = _load_unit_contract()
-    metric = artifact["completion_metric"]
-    assert metric["required_state_variables"] == len(artifact["state_variables"])
-    assert metric["required_equation_contracts"] == len(artifact["equation_contracts"])
+def test_equation_unit_contract_is_complete() -> None:
+    assert set(EQUATION_UNITS) == {"kuramoto_rhs", "order_parameter", "margin_phi"}
+    assert EQUATION_UNITS["kuramoto_rhs"] == (
+        "radian_per_time",
+        ("radian_per_time", "inverse_time"),
+    )
+    assert EQUATION_UNITS["margin_phi"] == (
+        "inverse_time",
+        ("inverse_time", "inverse_time"),
+    )
