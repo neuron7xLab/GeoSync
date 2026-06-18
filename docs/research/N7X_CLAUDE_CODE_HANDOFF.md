@@ -14,10 +14,20 @@ Claude Code must load and follow:
 .claude/system-prompts/N7X_COGNITIVE_ROLE_SPECIFICATION.md
 ```
 
-This contract defines deterministic execution, anti-fabrication, claim-tier discipline, and PARCH-FALSIFY-001.
+This contract defines priority ordering, blast-radius control, deterministic execution, anti-fabrication, claim-tier discipline, context economy, tool discipline, and PARCH-FALSIFY-001.
 
 The contract is an execution layer.
 It is not empirical evidence.
+
+Also read:
+
+```text
+docs/research/ANTHROPIC_DESIGN_STACK_ADAPTATION.md
+```
+
+That file is design context derived from operator-provided notes.
+It is marked `OPERATOR_PROVIDED_SOURCE / NOT_REVERIFIED_IN_THIS_PR`.
+Do not treat its external references as repository evidence unless separately retrieved and cited.
 
 ---
 
@@ -37,6 +47,7 @@ configs/research/geosync_inference_transformer.v1.yaml
 data/research/inference_transformer_blocks.v1.json
 docs/research/INFERENCE_TRANSFORMER_CONTROL_PLANE.md
 docs/research/INFERENCE_TRANSFORMER_IMPLEMENTATION_PLAN.md
+docs/research/ANTHROPIC_DESIGN_STACK_ADAPTATION.md
 .claude/commit_acceptors/inference-transformer-control-plane.yaml
 .claude/system-prompts/N7X_COGNITIVE_ROLE_SPECIFICATION.md
 docs/research/N7X_CLAUDE_CODE_HANDOFF.md
@@ -98,6 +109,8 @@ required_fields
 failure_modes
 claim_boundary
 verification_gate
+blast_radius
+reversibility
 ```
 
 ---
@@ -116,6 +129,8 @@ claim boundary is absent
 verification gate is absent
 unknown empirical tier is used
 research artifact lacks provenance fields
+blast-radius field is absent for contract mutation steps
+external-source claim lacks source status
 ```
 
 ---
@@ -140,9 +155,28 @@ UNVERIFIED_CONTEXT
 OPEN
 ```
 
+External design notes are allowed only as design context.
+They do not promote result status.
+
 ---
 
-## 8. PARCH-FALSIFY-001 Checklist
+## 8. Action Gate
+
+Before edits, classify action risk:
+
+```text
+LOW      local reads, local analysis, small feature-branch edits
+MEDIUM   schemas, docs, CI config, non-destructive contract changes
+HIGH     deletion, history rewrite, secret handling, release, merge, default-branch mutation
+```
+
+Low actions may proceed when requirements are clear.
+Medium actions must stay scoped and documented.
+High actions require explicit current authorization.
+
+---
+
+## 9. PARCH-FALSIFY-001 Checklist
 
 Before commit, run this audit:
 
@@ -151,14 +185,14 @@ P: Is the premise falsifiable?
 A: Which assumption breaks first?
 R: Are references real and retrievable?
 C: Does the implementation match schema/config/data-map?
-H: Are any filenames, metrics, or external claims invented?
+H: Are any filenames, metrics, APIs, model claims, or external references invented?
 ```
 
 If any answer fails, do not commit the implementation as complete.
 
 ---
 
-## 9. Local Verification Target
+## 10. Local Verification Target
 
 Minimum command target:
 
@@ -172,7 +206,7 @@ If the repository uses a different test runner, preserve equivalent gates and do
 
 ---
 
-## 10. Completion Output
+## 11. Completion Output
 
 Claude Code must finish with:
 
