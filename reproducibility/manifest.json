@@ -1,0 +1,28 @@
+{
+  "schema_version": "2026.06.18",
+  "status": "MANIFEST_DRAFT_NOT_CI_PROVEN",
+  "branch": "physics-validation-v3",
+  "scope": "GeoSync canonical weighted Kuramoto physics validation lane",
+  "commands": [
+    "python tools/physics_score.py --write",
+    "python -m pytest tests/test_physics_score.py -q",
+    "python -m pytest tests/unit/physics/test_T1_kuramoto_ricci_boundary.py tests/physics -q"
+  ],
+  "expected_artifacts": [
+    "artifacts/physics_validation/baseline_score.json",
+    "VERDICT.md"
+  ],
+  "required_inputs": [
+    "core/kuramoto/kuramoto_ricci_engine.py",
+    "docs/physics/geosync_core.md",
+    "docs/audit/claim_ledger.md",
+    "docs/audit/file_inventory.md",
+    "schemas/physics_metrics.schema.json"
+  ],
+  "blockers": [
+    "local command execution not observed in connector session",
+    "CI result not observed for new tests",
+    "BN-Syn and MFN+ immutable source refs not attached"
+  ],
+  "decision": "reproducibility surface exists; final reproducibility proof requires local or CI logs"
+}
