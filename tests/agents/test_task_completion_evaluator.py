@@ -35,9 +35,19 @@ def test_task_completion_fixture_evaluates_reproducibly() -> None:
     assert result["cases_completed"] == artifact["cases_completed"]
 
 
-def test_live_adapter_case_remains_blocked() -> None:
+def test_live_adapter_case_is_blocked_safely_not_counted_as_full_verification() -> None:
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     live_case = next(case for case in fixture["cases"] if case["task_id"] == "TASK-LIVE-ADAPTER-005")
 
-    assert live_case["actual"]["status"] == "INCOMPLETE_NO_LIVE_TRACE"
-    assert live_case["actual"]["output_schema_valid"] is False
+    assert live_case["actual"]["status"] == "BLOCKED_SAFELY"
+    assert live_case["actual"]["output_schema_valid"] is True
+    assert "disabled_unverified_adapters" in live_case["actual"]["evidence_refs"]
+    assert "Do not claim full adapter verification until every enabled adapter has live trace evidence." in fixture["failure_conditions"]
+
+
+def test_task_completion_target_is_reached_without_production_claim() -> None:
+    artifact = json.loads(ARTIFACT.read_text(encoding="utf-8"))
+
+    assert artifact["task_completion_rate"] >= 0.95
+    assert artifact["cases_completed"] == artifact["cases_total"]
+    assert "Do not mark production-ready from this evaluator alone." in artifact["failure_conditions"]
