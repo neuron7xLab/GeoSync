@@ -7,7 +7,10 @@ from pathlib import Path
 import jax.numpy as jnp
 import numpy as np
 
-from core.kuramoto.kuramoto_ricci_engine import kuramoto_ricci_trajectory, order_parameter
+from core.kuramoto.kuramoto_ricci_engine import (
+    kuramoto_ricci_trajectory,
+    order_parameter,
+)
 
 
 def _load_reference_solver():
@@ -29,9 +32,17 @@ def test_numpy_reference_solver_matches_jax_midpoint_trajectory() -> None:
     ref = _load_reference_solver()
     theta_0 = np.asarray([0.2, -0.1, 0.4, -0.3], dtype=np.float64)
     omega = np.asarray([0.03, -0.01, 0.02, -0.04], dtype=np.float64)
-    adjacency = 0.03 * (np.ones((4, 4), dtype=np.float64) - np.eye(4, dtype=np.float64))
+    adjacency = 0.03 * (
+        np.ones((4, 4), dtype=np.float64) - np.eye(4, dtype=np.float64)
+    )
 
-    numpy_traj = ref.kuramoto_numpy_trajectory(theta_0, dt=0.01, n_steps=50, omega=omega, adjacency=adjacency)
+    numpy_traj = ref.kuramoto_numpy_trajectory(
+        theta_0,
+        dt=0.01,
+        n_steps=50,
+        omega=omega,
+        adjacency=adjacency,
+    )
     jax_traj = kuramoto_ricci_trajectory(
         jnp.asarray(theta_0),
         dt=0.01,
@@ -40,7 +51,12 @@ def test_numpy_reference_solver_matches_jax_midpoint_trajectory() -> None:
         A=jnp.asarray(adjacency),
     )
 
-    np.testing.assert_allclose(np.asarray(jax_traj), numpy_traj, rtol=1e-6, atol=1e-6)
+    np.testing.assert_allclose(
+        np.asarray(jax_traj),
+        numpy_traj,
+        rtol=1e-6,
+        atol=1e-6,
+    )
 
 
 def test_numpy_reference_order_parameter_matches_jax_observable() -> None:
@@ -52,4 +68,7 @@ def test_numpy_reference_order_parameter_matches_jax_observable() -> None:
         ],
         dtype=np.float64,
     )
-    np.testing.assert_allclose(ref.order_parameter_numpy(theta), np.asarray(order_parameter(jnp.asarray(theta))))
+    np.testing.assert_allclose(
+        ref.order_parameter_numpy(theta),
+        np.asarray(order_parameter(jnp.asarray(theta))),
+    )
