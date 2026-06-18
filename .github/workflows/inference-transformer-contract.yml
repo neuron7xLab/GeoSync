@@ -8,10 +8,12 @@ on:
       - 'configs/research/geosync_inference_transformer.v1.yaml'
       - 'data/research/inference_transformer_blocks.v1.json'
       - 'scripts/ci/check_inference_transformer_contract.py'
+      - 'scripts/ci/check_n7x_value_functions.py'
       - 'tests/ci/test_inference_transformer_contract.py'
       - 'src/geosync/research/**'
       - 'tools/research/run_inference_transformer_demo.py'
       - 'artifacts/runs/ricci_microstructure_v1/inference_transformer_placeholder.json'
+      - '.claude/value_functions/n7x_value_functions.v1.yaml'
       - '.github/workflows/inference-transformer-contract.yml'
   workflow_dispatch:
 
@@ -43,6 +45,9 @@ jobs:
 
       - name: JSON schema parses
         run: python -m json.tool schemas/research/inference_transformer_contract.schema.json >/dev/null
+
+      - name: N7X value function check
+        run: python scripts/ci/check_n7x_value_functions.py
 
       - name: Contract seed check
         run: python scripts/ci/check_inference_transformer_contract.py
