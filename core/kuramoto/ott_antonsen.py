@@ -273,7 +273,10 @@ class OttAntonsenEngine:
                     f"limit (overshoot beyond local truncation error) — reduce dt."
                 )
             if z_mag > 1.0:
-                z = z / z_mag  # round-off-only projection onto unit disk
+                # INV-OA1: |z| ≤ 1 on the unit disk. Only sub-overshoot-bound
+                # round-off reaches here (true overshoot already raised above);
+                # project it back to the disk rather than letting it accumulate.
+                z = z / z_mag
 
             z_arr[step + 1] = z
 
