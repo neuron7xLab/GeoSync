@@ -1,0 +1,75 @@
+{
+  "version": "2026.2",
+  "status": "ascent_map_defined_not_score_credit",
+  "score_credit_allowed": false,
+  "current_score": 81.5,
+  "target_interval": [88.0, 92.0],
+  "rule": "Each value function needs claim, equation, code, test, artifact, CI record, and verdict linkage before score credit.",
+  "value_functions": [
+    {
+      "id": "VF-1",
+      "name": "canonical_equation_closure",
+      "gap": "GeoSync core exists; experimental bridge remains outside core score until provenance is complete.",
+      "target": "One canonical object per scored subsystem with equation, variables, parameters, units, code path, and test path.",
+      "proof_object": "docs/physics/geosync_core.md + docs/physics/equation_traceability.md",
+      "metric": "canonical_object_closure_ratio",
+      "next_gate": "link every scored claim to code and test"
+    },
+    {
+      "id": "VF-2",
+      "name": "typed_dimensional_consistency",
+      "gap": "Units are documented but not yet enforced as typed contracts.",
+      "target": "Executable unit contract for theta, omega, K, A, R, Phi, dt, and sampling interval.",
+      "proof_object": "docs/physics/units_table.md + tests/physics/test_dimensional_homogeneity.py",
+      "metric": "typed_unit_contract_coverage",
+      "next_gate": "add variable-level unit schema"
+    },
+    {
+      "id": "VF-3",
+      "name": "solver_convergence_and_replication",
+      "gap": "dt refinement and NumPy reference exist; replay evidence must bind to current commit.",
+      "target": "Convergence, tolerance, reference solver, and replay artifact pass on the scored commit.",
+      "proof_object": "tests/physics/test_convergence.py + tests/physics/test_replication.py",
+      "metric": "replication_tolerance_pass_rate",
+      "next_gate": "record exact tolerance surface"
+    },
+    {
+      "id": "VF-4",
+      "name": "null_model_and_invariant_matrix",
+      "gap": "Null tests and invariants exist but are not measured as a claim matrix.",
+      "target": "Each positive claim has null, invariant, observable, threshold, and expected behavior record.",
+      "proof_object": "tests/physics/test_geosync_nulls.py + tests/physics/test_invariants.py",
+      "metric": "claim_to_null_invariant_coverage",
+      "next_gate": "create null/invariant matrix artifact keyed by claim_id"
+    },
+    {
+      "id": "VF-5",
+      "name": "uncertainty_and_reproducibility_binding",
+      "gap": "UQ smoke exists; sensitivity-ranked parameters are not yet summarized.",
+      "target": "Declared source, sample budget, sensitivity summary, seed, replay command, and CI-bound artifact.",
+      "proof_object": "docs/physics/uq_plan.md + artifacts/physics_validation/uq_summary.json",
+      "metric": "uq_replayable_sensitivity_coverage",
+      "next_gate": "add small sensitivity summary for IC, omega, K, and dt"
+    },
+    {
+      "id": "VF-6",
+      "name": "experimental_bridge_provenance",
+      "gap": "Ricci bridge has smoke tests but lacks full graph construction provenance.",
+      "target": "Source definition, graph rule, curvature estimator, bounded transform, comparison records, and artifact summary.",
+      "proof_object": "tests/physics/test_ricci_bridge.py + artifacts/physics_validation/ricci_bridge_summary.json",
+      "metric": "bridge_provenance_completeness",
+      "next_gate": "add Ricci provenance ledger"
+    },
+    {
+      "id": "VF-7",
+      "name": "release_truth_and_readiness",
+      "gap": "Score and verdict exist; target rank remains blocked by PR Gate and source-scope blockers.",
+      "target": "Score, blockers, CI evidence, release verdict, and non-claims are consistent on the current commit.",
+      "proof_object": "VERDICT.md + artifacts/physics_validation/baseline_score.json",
+      "metric": "readiness_consistency_ratio",
+      "next_gate": "derive verdict only from computed score and current CI ledger"
+    }
+  ],
+  "ascent_order": ["VF-6", "VF-2", "VF-4", "VF-3", "VF-5", "VF-1", "VF-7"],
+  "non_claims": ["not_final_validation", "not_target_rank", "not_release_ready", "not_score_credit"]
+}
