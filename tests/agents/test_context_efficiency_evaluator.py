@@ -35,8 +35,12 @@ def test_context_efficiency_trace_evaluates_reproducibly() -> None:
     assert result["compaction_rate"] == artifact["compaction_rate"]
 
 
-def test_context_efficiency_is_measured_but_not_live_runtime() -> None:
+def test_context_efficiency_is_within_target_but_not_provider_telemetry() -> None:
     trace = json.loads(TRACE.read_text(encoding="utf-8"))
+    artifact = json.loads(ARTIFACT.read_text(encoding="utf-8"))
 
-    assert trace["measurement_mode"] == "synthetic_context_trace_not_live_runtime"
-    assert any(event["compaction_applied"] is False for event in trace["events"])
+    assert trace["measurement_mode"] == "synthetic_context_trace_with_compaction_gate_not_provider_telemetry"
+    assert artifact["context_efficiency"] <= artifact["target_ratio"]
+    assert artifact["compaction_rate"] == 1.0
+    assert all(event["compaction_applied"] is True for event in trace["events"])
+    assert "Do not treat synthetic token accounting as provider telemetry." in artifact["failure_conditions"]
