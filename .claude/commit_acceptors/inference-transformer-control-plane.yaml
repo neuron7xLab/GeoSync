@@ -1,5 +1,5 @@
 name: inference-transformer-control-plane
-version: 2
+version: 3
 scope:
   - schemas/research/inference_transformer_contract.schema.json
   - configs/research/geosync_inference_transformer.v1.yaml
@@ -9,6 +9,9 @@ scope:
   - src/geosync/research/__init__.py
   - src/geosync/research/transformer/__init__.py
   - src/geosync/research/transformer/contracts.py
+  - src/geosync/research/transformer/pipeline.py
+  - tools/research/run_inference_transformer_demo.py
+  - artifacts/runs/ricci_microstructure_v1/inference_transformer_placeholder.json
   - .claude/handoffs/inference-transformer-control-plane.md
   - docs/research/INFERENCE_TRANSFORMER_CONTROL_PLANE.md
   - docs/research/INFERENCE_TRANSFORMER_IMPLEMENTATION_PLAN.md
@@ -19,14 +22,16 @@ required_checks:
     command: python scripts/ci/check_inference_transformer_contract.py
   - name: inference-transformer-contract-tests
     command: pytest -q tests/ci/test_inference_transformer_contract.py
+  - name: inference-transformer-demo
+    command: python tools/research/run_inference_transformer_demo.py
 acceptance:
   claim_tier_impact: none
   research_line_state: HYPOTHESIS
   allowed_artifact_role: placeholder
-  implementation_next_step: add deterministic placeholder pipeline only after validator and typed contracts are green
+  implementation_next_step: wire these checks into CI after local green
 blockers:
   - claim tier promotion
   - schema weakening
   - dependency-heavy model path
   - network-dependent validation
-  - runtime execution surface
+  - non-placeholder runtime surface
