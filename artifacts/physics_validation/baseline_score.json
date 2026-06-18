@@ -1,190 +1,153 @@
 {
-  "S_total": 67.8,
+  "S_total": 77.82,
   "blockers": [
     {
-      "id": "BLOCK-LOCAL-001",
-      "reason": "local repo scan, pytest, and CI logs were not observed by this connector pass",
-      "required_action": "run python tools/physics_score.py --write and pytest tests/unit/physics/test_T1_kuramoto_ricci_boundary.py tests/physics -q",
-      "severity": "HIGH"
-    },
-    {
-      "id": "BLOCK-UQ-001",
-      "reason": "UQ source is declared but no UQ smoke execution artifact exists",
-      "required_action": "create tests/physics/test_uq_smoke.py and artifacts/physics_validation/uq_summary.json",
+      "id": "BLOCK-CI-001",
+      "reason": "new physics tests require CI or local pytest evidence",
+      "required_action": "run physics validation commands and persist logs",
       "severity": "HIGH"
     },
     {
       "id": "BLOCK-RICCI-001",
-      "reason": "Ricci bridge remains experimental until graph construction and matched-null evidence are audited",
-      "required_action": "validate kappa construction, f(kappa), boundedness, and Ricci matched nulls",
+      "reason": "Ricci bridge needs full graph provenance audit",
+      "required_action": "validate graph construction, curvature estimator, and matched nulls",
       "severity": "HIGH"
     },
     {
       "id": "BLOCK-BNSYN-MFN-001",
-      "reason": "BN-Syn and MFN+ source trees are not present in this GeoSync validation branch",
-      "required_action": "attach immutable repository refs before validating those subsystems",
+      "reason": "BN-Syn and MFN+ source trees are not present in this branch",
+      "required_action": "attach immutable source refs before validating those subsystems",
       "severity": "HIGH"
     }
   ],
   "branch": "physics-validation-v3",
-  "commit": "CONNECTOR_BOOTSTRAP_NOT_LOCAL_GIT_REV_PARSE",
+  "commit": "CONNECTOR_STATIC_ARTIFACT_PENDING_LOCAL_GIT_REV_PARSE",
   "metrics": [
     {
-      "evidence": [
-        "docs/physics/geosync_core.md",
-        "core/kuramoto/kuramoto_ricci_engine.py"
-      ],
-      "failure_condition": "no single canonical object or missing RHS/boundary/order parameter code",
+      "evidence": ["docs/physics/geosync_core.md", "core/kuramoto/kuramoto_ricci_engine.py"],
+      "failure_condition": "canonical object carrier missing",
       "id": "S_math_object",
-      "measurement_fn": "exists(docs/physics/geosync_core.md) && contains(T1 code symbols)",
-      "metric": "canonical mathematical object has equation/code carriers",
-      "score": 70.0,
-      "status": "PARTIAL_PASS",
-      "threshold": ">= 90 for final rank",
-      "weight": 0.12,
-      "weighted_score": 8.4
-    },
-    {
-      "evidence": [
-        "docs/physics/units_table.md",
-        "tests/physics/test_dimensional_homogeneity.py"
-      ],
-      "failure_condition": "range guards are mistaken for dimensional analysis",
-      "id": "S_dimensional_consistency",
-      "measurement_fn": "docs/physics/units_table.md + tests/physics/test_dimensional_homogeneity.py",
-      "metric": "units declared and dimension tests present",
-      "score": 65.0,
-      "status": "PARTIAL_PASS_NO_TYPED_UNITS",
-      "threshold": ">= 85 for final rank",
-      "weight": 0.1,
-      "weighted_score": 6.5
-    },
-    {
-      "evidence": [
-        "core/kuramoto/kuramoto_ricci_engine.py",
-        "tests/physics/test_convergence.py"
-      ],
-      "failure_condition": "solver fabricates physics or dt refinement is not measured",
-      "id": "S_numerical_stability",
-      "measurement_fn": "T1 trajectory/test presence plus dt refinement gate",
-      "metric": "trajectory implementation plus convergence/stability tests",
+      "measurement_fn": "canonical core plus T1 code symbols",
+      "metric": "canonical mathematical object has equation and code carriers",
       "score": 75.0,
-      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
-      "threshold": ">= 85 for final rank",
+      "status": "PARTIAL_PASS_TRACEABLE",
+      "threshold": ">= 90 for final rank",
       "weight": 0.12,
       "weighted_score": 9.0
     },
     {
-      "evidence": [
-        "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py",
-        "tests/physics/test_invariants.py"
-      ],
-      "failure_condition": "R outside [0,1], invalid Phi/Kc, non-finite theta, silent repair",
-      "id": "S_invariant_preservation",
-      "measurement_fn": "static test carrier detection; pytest execution required for final",
-      "metric": "R bounds, boundary behavior, homogeneous potential, determinism",
-      "score": 80.0,
-      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
-      "threshold": ">= 90 for final rank",
-      "weight": 0.12,
-      "weighted_score": 9.6
-    },
-    {
-      "evidence": [
-        "docs/audit/claim_ledger.md",
-        "tests/physics/test_geosync_nulls.py"
-      ],
-      "failure_condition": "positive signal survives K=0/shuffle/randomized nulls",
-      "id": "S_falsifiability",
-      "measurement_fn": "T1 negative controls plus dedicated null test matrix",
-      "metric": "nulls, H0/H1, negative controls, failure messages",
-      "score": 75.0,
-      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
-      "threshold": ">= 90 for final rank",
-      "weight": 0.14,
-      "weighted_score": 10.5
-    },
-    {
-      "evidence": [
-        "tests/physics/test_geosync_nulls.py"
-      ],
-      "failure_condition": "null model suite does not cover shuffled phases, ER matched graph, randomized omega",
-      "id": "S_baseline_models",
-      "measurement_fn": "K=0, phase shuffle, randomized omega, matched ER nulls",
-      "metric": "explicit null model factory coverage",
+      "evidence": ["docs/physics/units_table.md", "tests/physics/test_dimensional_homogeneity.py"],
+      "failure_condition": "unit contract carrier missing",
+      "id": "S_dimensional_consistency",
+      "measurement_fn": "units table plus dimensional tests",
+      "metric": "units declared and dimension tests present",
       "score": 70.0,
-      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
+      "status": "PARTIAL_PASS_NO_TYPED_UNITS",
       "threshold": ">= 85 for final rank",
       "weight": 0.1,
       "weighted_score": 7.0
     },
     {
-      "evidence": [
-        "docs/physics/uq_plan.md"
-      ],
-      "failure_condition": "confidence interval exists without prior/IC/noise/tolerance model",
+      "evidence": ["tests/physics/test_convergence.py", "tests/physics/test_replication.py"],
+      "failure_condition": "numerical carrier missing",
+      "id": "S_numerical_stability",
+      "measurement_fn": "dt refinement plus NumPy reference comparison",
+      "metric": "trajectory implementation plus convergence and replication gates",
+      "score": 82.0,
+      "status": "PARTIAL_PASS_RUNTIME_REQUIRED",
+      "threshold": ">= 85 for final rank",
+      "weight": 0.12,
+      "weighted_score": 9.84
+    },
+    {
+      "evidence": ["tests/unit/physics/test_T1_kuramoto_ricci_boundary.py", "tests/physics/test_invariants.py"],
+      "failure_condition": "invariant carrier missing",
+      "id": "S_invariant_preservation",
+      "measurement_fn": "boundary and invariant test carriers",
+      "metric": "R bounds, boundary behavior, potential, determinism",
+      "score": 80.0,
+      "status": "PARTIAL_PASS_RUNTIME_REQUIRED",
+      "threshold": ">= 90 for final rank",
+      "weight": 0.12,
+      "weighted_score": 9.6
+    },
+    {
+      "evidence": ["tests/physics/test_geosync_nulls.py", "tests/physics/test_ricci_bridge.py"],
+      "failure_condition": "falsification carrier missing",
+      "id": "S_falsifiability",
+      "measurement_fn": "null tests plus Ricci bridge tests",
+      "metric": "nulls, H0/H1, negative controls, Ricci bridge smoke tests",
+      "score": 82.0,
+      "status": "PARTIAL_PASS_RUNTIME_REQUIRED",
+      "threshold": ">= 90 for final rank",
+      "weight": 0.14,
+      "weighted_score": 11.48
+    },
+    {
+      "evidence": ["tests/physics/test_geosync_nulls.py", "artifacts/physics_validation/ricci_bridge_summary.json"],
+      "failure_condition": "baseline model carrier missing",
+      "id": "S_baseline_models",
+      "measurement_fn": "K0, shuffle, randomized omega, ER, Ricci bridge smoke",
+      "metric": "explicit null model factory coverage",
+      "score": 82.0,
+      "status": "PARTIAL_PASS_RUNTIME_REQUIRED",
+      "threshold": ">= 85 for final rank",
+      "weight": 0.1,
+      "weighted_score": 8.2
+    },
+    {
+      "evidence": ["docs/physics/uq_plan.md", "tests/physics/test_uq_smoke.py"],
+      "failure_condition": "UQ carrier missing",
       "id": "S_UQ",
-      "measurement_fn": "docs/physics/uq_plan.md and artifacts/physics_validation/uq_summary.json",
-      "metric": "uncertainty source and UQ smoke artifact",
-      "score": 35.0,
-      "status": "SOURCE_DECLARED_EXECUTION_MISSING",
+      "measurement_fn": "UQ plan plus UQ smoke artifact",
+      "metric": "uncertainty source, UQ smoke test, and artifact",
+      "score": 72.0,
+      "status": "PARTIAL_PASS_RUNTIME_REQUIRED",
       "threshold": ">= 70 for final rank",
       "weight": 0.08,
-      "weighted_score": 2.8
+      "weighted_score": 5.76
     },
     {
-      "evidence": [
-        "reproducibility/manifest.json",
-        "pyproject.toml"
-      ],
-      "failure_condition": "artifact cannot be rerun from commit and command",
+      "evidence": ["reproducibility/manifest.json", "reproducibility/reference_solvers/geosync_kuramoto_numpy.py"],
+      "failure_condition": "reproducibility carrier missing",
       "id": "S_reproducibility",
-      "measurement_fn": "reproducibility/manifest.json plus generated score artifact",
-      "metric": "manifest, command, seed, environment, generated artifacts",
-      "score": 50.0,
-      "status": "PARTIAL_PASS_CI_LOGS_MISSING",
+      "measurement_fn": "manifest plus independent reference solver artifact",
+      "metric": "manifest, command, seed, reference solver, artifacts",
+      "score": 78.0,
+      "status": "PARTIAL_PASS_CI_LOGS_REQUIRED",
       "threshold": ">= 85 for final rank",
       "weight": 0.08,
-      "weighted_score": 4.0
+      "weighted_score": 6.24
     },
     {
-      "evidence": [
-        "docs/physics/interface_contracts.md",
-        "tests/physics/test_interface_contracts.py"
-      ],
-      "failure_condition": "consumer accepts hidden or untyped conversion",
+      "evidence": ["docs/physics/interface_contracts.md", "tests/physics/test_interface_contracts.py"],
+      "failure_condition": "interface carrier missing",
       "id": "S_interface_contracts",
-      "measurement_fn": "docs/physics/interface_contracts.md + tests/physics/test_interface_contracts.py",
-      "metric": "shape/unit/range/sampling contracts across subsystem boundaries",
-      "score": 65.0,
-      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
+      "measurement_fn": "interface doc plus interface tests",
+      "metric": "shape, unit, range, sampling contracts",
+      "score": 70.0,
+      "status": "PARTIAL_PASS_RUNTIME_REQUIRED",
       "threshold": ">= 80 for final rank",
       "weight": 0.08,
-      "weighted_score": 5.2
+      "weighted_score": 5.6
     },
     {
-      "evidence": [
-        "docs/audit/claim_ledger.md",
-        "docs/physics/equation_traceability.md"
-      ],
-      "failure_condition": "claim lacks a carrier or source/code/test disagree",
+      "evidence": ["docs/audit/claim_ledger.md", "docs/physics/equation_traceability.md"],
+      "failure_condition": "traceability carrier missing",
       "id": "S_traceability",
-      "measurement_fn": "claim ledger, inventory, equation traceability index",
-      "metric": "claim -> equation -> code -> test -> failure condition mapping",
-      "score": 80.0,
-      "status": "PARTIAL_PASS_RUNTIME_REPORT_MISSING",
+      "measurement_fn": "claim ledger plus equation traceability index",
+      "metric": "claim to equation to code to test mapping",
+      "score": 85.0,
+      "status": "PARTIAL_PASS_RUNTIME_REPORT_PENDING",
       "threshold": ">= 85 for final rank",
       "weight": 0.06,
-      "weighted_score": 4.8
+      "weighted_score": 5.1
     }
   ],
   "schema_version": "2026.06.18",
-  "score_type": "static_evidence_oracle_not_pytest_result",
-  "status": "BOOTSTRAP_STATIC_BASELINE",
-  "target_interval": [
-    88.0,
-    92.0
-  ],
+  "score_type": "static_evidence_oracle_not_runtime_proof",
+  "status": "BOOTSTRAP_STATIC_PLUS_SMOKE_ARTIFACTS",
+  "target_interval": [88.0, 92.0],
   "verdict": "FAIL_BELOW_TARGET_BLOCKED_FOR_VALIDATION",
   "weights_sum": 1.0
 }
