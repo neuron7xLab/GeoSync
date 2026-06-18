@@ -6,11 +6,62 @@ import numpy as np
 
 from core.kuramoto.kuramoto_ricci_engine import kuramoto_ricci_trajectory, order_parameter
 
+NULL_MODEL_MATRIX = [
+    {
+        "id": "K_ZERO",
+        "observable": "late_order_parameter",
+        "expected_relation": "below_finite_size_bound",
+        "test_name": "test_null_k_zero_independent_oscillators_do_not_lock",
+    },
+    {
+        "id": "PHASE_SHUFFLE",
+        "observable": "single_step_order_parameter",
+        "expected_relation": "below_finite_size_bound",
+        "test_name": "test_null_phase_shuffle_preserves_finite_size_low_R",
+    },
+    {
+        "id": "WEAK_RANDOM_OMEGA",
+        "observable": "late_order_parameter",
+        "expected_relation": "below_sync_threshold",
+        "test_name": "test_null_randomized_omega_with_weak_coupling_does_not_fake_strong_sync",
+    },
+    {
+        "id": "MATCHED_ER_WEAK",
+        "observable": "late_order_parameter",
+        "expected_relation": "below_sync_threshold",
+        "test_name": "test_matched_er_null_has_bounded_order_parameter_under_weak_coupling",
+    },
+]
+
 
 def _omega(rng: np.random.Generator, n: int) -> jnp.ndarray:
     omega = rng.normal(0.0, 0.2, size=n)
     omega -= float(np.mean(omega))
     return jnp.asarray(omega)
+
+
+def test_null_model_matrix_lists_all_executable_cases() -> None:
+    ids = {entry["id"] for entry in NULL_MODEL_MATRIX}
+    tests = {entry["test_name"] for entry in NULL_MODEL_MATRIX}
+    assert ids == {"K_ZERO", "PHASE_SHUFFLE", "WEAK_RANDOM_OMEGA", "MATCHED_ER_WEAK"}
+    assert tests == {
+        "test_null_k_zero_independent_oscillators_do_not_lock",
+        "test_null_phase_shuffle_preserves_finite_size_low_R",
+        "test_null_randomized_omega_with_weak_coupling_does_not_fake_strong_sync",
+        "test_matched_er_null_has_bounded_order_parameter_under_weak_coupling",
+    }
+
+
+def test_null_model_matrix_has_observable_and_relation() -> None:
+    for entry in NULL_MODEL_MATRIX:
+        assert entry["observable"] in {
+            "late_order_parameter",
+            "single_step_order_parameter",
+        }
+        assert entry["expected_relation"] in {
+            "below_finite_size_bound",
+            "below_sync_threshold",
+        }
 
 
 def test_null_k_zero_independent_oscillators_do_not_lock() -> None:
