@@ -139,7 +139,15 @@ apply_thread_determinism(os.environ)
 # ---------------------------------------------------------------------------
 _TORCH_AVAILABLE = False
 try:
-    import torch as _torch_probe  # noqa: F401
+    # torch can emit an import-time DeprecationWarning (e.g. under Python 3.11);
+    # with pytest's ``-W error::DeprecationWarning`` that warning is raised as an
+    # exception that is NOT an ImportError/OSError/ValueError, so it would escape
+    # this probe and abort conftest collection (the whole fast lane reports
+    # "0 fast tests collected"). Suppress warnings for the probe import only —
+    # test-time warning strictness is unchanged.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        import torch as _torch_probe  # noqa: F401
 
     _TORCH_AVAILABLE = True
     del _torch_probe
