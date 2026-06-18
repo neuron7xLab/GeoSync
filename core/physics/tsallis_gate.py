@@ -37,6 +37,27 @@ data-scarcity branch (q = 1.5, ELEVATED, multiplier 0.25) with
 ``gof_passed = False``. We never emit a confident regime from an unfitted
 sample.
 
+Small-N MLE escape, fail-closed (one-directional)
+--------------------------------------------------
+``scipy.stats.t.fit`` ESCAPES to the Gaussian limit on genuine heavy-tailed
+samples at small N: the unbounded ν MLE returns ν ≳ 1e11 (clamped to
+``_NU_MAX``) ⟹ q ≈ 1.01 ⟹ NORMAL / full position. The KS GoF has too little
+power at small N to reject this, so a pre-crisis heavy tail would be sized at
+FULL exposure — a fail-OPEN in the dangerous direction. Measured on genuine
+t(ν=5) at the default window N=60: 16% of seeds escape to the Gaussian limit.
+A sample-size trust floor closes this, DEMOTE-ONLY (it can only make a read
+MORE conservative, never less): below ``n_mle_trust`` (default
+``_N_MLE_TRUST`` = 300, the smallest N at which the measured escape rate
+reaches 0%) a near-Gaussian (low-q) read cannot grant full position and is
+demoted to the conservative fallback. The sample size is the operative guard
+because the escape flag (``nu_fit > _NU_ESCAPE``) cannot itself distinguish a
+genuine Gaussian — which also drives ν→∞ at any N — from a heavy-tail escape;
+that distinction is purely a function of N. The escape flag is therefore kept
+only as a diagnostic. The guard fires only when the candidate sizing is more
+generous than the conservative fallback. A confident CRISIS read (high q,
+multiplier < 0.25) is NEVER weakened — cutting exposure on a resolved heavy
+tail is the safe direction and is preserved at ANY N.
+
 Position sizing gate (operational, EXTRAPOLATED cutoffs):
     f(q) = max(0, 1 - (q - q_normal) / (q_crisis - q_normal))  # INV-FE2
 
@@ -75,6 +96,41 @@ from scipy import stats
 # tail-heaviness the data can actually support.
 _NU_MIN = 2.05
 _NU_MAX = 200.0
+
+# Optimiser-escape detector. scipy.stats.t.fit on a small heavy-tailed
+# sample frequently ESCAPES to the Gaussian limit: the unbounded ν MLE
+# returns ν ≳ 1e11, which clamps to _NU_MAX and reads as a confident
+# q ≈ 1.01 (NORMAL / full position). That is a fail-OPEN: a genuine
+# pre-crisis heavy tail would be sized at full exposure. Any fit whose
+# UNCLAMPED ν exceeds this escape threshold is treated as "tail not
+# resolvable at this sample size", NOT as a confident Gaussian.
+# INV-HPC2 / fail-closed: 1e4 sits far above any ν the t-family supports
+# as a real heavy/medium tail (ν=1e4 ⟹ q−1 ≈ 2e-4, indistinguishable from
+# Gaussian) yet far below the ~1e11 escape values, so it never demotes a
+# real fit, only a degenerate escape.
+_NU_ESCAPE = 1.0e4
+
+# Minimum sample size for the MLE to be TRUSTED to grant the NORMAL /
+# full-position (low-q) verdict. Derived from the escape analysis on
+# genuine Student-t(ν=5) samples (the boundary heavy tail q≈1.333):
+#   N=60 → 16% escape, N=100 → 7%, N=150 → 4.5%, N=200 → 1.5%,
+#   N=250 → 0.5%, N≥300 → 0%  (200 seeds/point, nu_fit > 1e4).
+# Below this floor the small-N MLE cannot reliably resolve a heavy tail
+# from a Gaussian (the optimiser escapes to the Gaussian limit and reads
+# as q≈1 / full position — a fail-OPEN), so a near-Gaussian (low-q) result
+# is NOT trustworthy and must NOT grant full position. We pick 300, the
+# knee where the measured escape rate reaches 0% — i.e. the smallest N at
+# which a "this is a Gaussian / low-q" read is trustworthy enough to size
+# at full exposure. This floor is the SOLE operative guard and is
+# one-directional: it only DEMOTES an over-confident NORMAL/full read to
+# the conservative fallback. A confident CRISIS (high-q) read is preserved
+# at ANY N (cutting exposure on a heavy tail is the SAFE direction).
+# NOTE on _NU_ESCAPE: a TRUE Gaussian legitimately drives ν→∞ at any N, so
+# the escape flag alone cannot distinguish "genuine Gaussian" from "heavy
+# tail that escaped"; that distinction is purely a function of N. Hence the
+# escape flag is retained only as a diagnostic and the N floor does the
+# gating. INV-HPC2 / fail-closed; cf. acceptor tsallis-qmle-gof analysis.
+_N_MLE_TRUST = 300
 
 
 class TsallisRegime(str, Enum):
@@ -152,6 +208,7 @@ class _QFit:
     gof_stat: float
     gof_pvalue: float
     degenerate: bool  # True ⟹ no real fit (insufficient/zero-variance data)
+    escaped: bool  # True ⟹ optimiser escaped to Gaussian limit (nu_fit > _NU_ESCAPE)
 
 
 def _fit_q_mle(returns: NDArray[np.float64]) -> _QFit:
@@ -164,13 +221,29 @@ def _fit_q_mle(returns: NDArray[np.float64]) -> _QFit:
     returns = np.asarray(returns, dtype=np.float64)
     if returns.size < 4:
         # Insufficient data → assume Gaussian limit. Degenerate fit.
-        return _QFit(q=1.0, nu=_NU_MAX, kurtosis=0.0, gof_stat=0.0, gof_pvalue=1.0, degenerate=True)
+        return _QFit(
+            q=1.0,
+            nu=_NU_MAX,
+            kurtosis=0.0,
+            gof_stat=0.0,
+            gof_pvalue=1.0,
+            degenerate=True,
+            escaped=False,
+        )
 
     mean = float(np.mean(returns))
     std = float(np.std(returns, ddof=1))
     if std < 1e-12:
         # No variance → Gaussian limit, no distribution to fit. Degenerate.
-        return _QFit(q=1.0, nu=_NU_MAX, kurtosis=0.0, gof_stat=0.0, gof_pvalue=1.0, degenerate=True)
+        return _QFit(
+            q=1.0,
+            nu=_NU_MAX,
+            kurtosis=0.0,
+            gof_stat=0.0,
+            gof_pvalue=1.0,
+            degenerate=True,
+            escaped=False,
+        )
 
     standardized = (returns - mean) / std
     kurtosis = _diagnostic_kurtosis(standardized)
@@ -190,6 +263,12 @@ def _fit_q_mle(returns: NDArray[np.float64]) -> _QFit:
     # (q → 1) and the Cauchy floor caps tail heaviness.
     # INV-HPC2: clamp keeps ν finite ⟹ q finite; map then floors q ≥ 1.
     nu_for_q = float(np.clip(nu_fit, _NU_MIN, _NU_MAX))
+    # Escape detection BEFORE the clamp hides it: a genuine heavy tail at
+    # small N can drive the unbounded MLE ν to ~1e11 (Gaussian-limit
+    # escape), which clamps to _NU_MAX and masquerades as a confident
+    # q ≈ 1.01. Flag it so evaluate() can refuse to grant full position.
+    # INV-HPC2 / fail-closed; see _NU_ESCAPE.
+    escaped = bool(nu_fit > _NU_ESCAPE)
     q = _q_from_nu(nu_for_q)
     # INV-HPC2: q ∈ (1, 1.66] for ν ∈ [2.05, 200]; the floor keeps q ≥ 1
     # exactly at the Gaussian limit and guards float drift at ν = _NU_MAX.
@@ -208,6 +287,7 @@ def _fit_q_mle(returns: NDArray[np.float64]) -> _QFit:
         gof_stat=gof_stat,
         gof_pvalue=gof_pvalue,
         degenerate=False,
+        escaped=escaped,
     )
 
 
@@ -236,7 +316,21 @@ class TsallisRiskGate:
         KS significance level (default 0.05). A fit with p-value below
         this is rejected and the gate fails closed to the conservative
         fallback. Operational parameter.
+    n_mle_trust : int
+        Minimum sample size for the MLE to be trusted to grant the
+        NORMAL / full-position (low-q) verdict (default ``_N_MLE_TRUST`` =
+        250). Below this, a near-Gaussian (low-q) read is demoted to the
+        conservative fallback because the small-N Student-t MLE escapes to
+        the Gaussian limit on genuine heavy tails (fail-OPEN). One-
+        directional: it never weakens a confident CRISIS (high-q) read.
+        Operational parameter; basis documented at ``_N_MLE_TRUST``.
     """
+
+    # Position multiplier of the conservative fail-closed fallback. The
+    # small-N guard only demotes reads MORE generous than this; CRISIS
+    # reads (mult < this, e.g. 0.0) are preserved. Mirrors
+    # _conservative_result.
+    _conservative_multiplier: float = 0.25
 
     def __init__(
         self,
@@ -245,6 +339,7 @@ class TsallisRiskGate:
         q_crisis: float = 1.55,
         min_observations: int = 20,
         gof_alpha: float = 0.05,
+        n_mle_trust: int = _N_MLE_TRUST,
     ) -> None:
         if window < 2:
             raise ValueError(f"window must be ≥ 2, got {window}")
@@ -254,11 +349,14 @@ class TsallisRiskGate:
             raise ValueError(f"min_observations must be ≥ 2, got {min_observations}")
         if not 0.0 < gof_alpha < 1.0:
             raise ValueError(f"gof_alpha must be in (0, 1), got {gof_alpha}")
+        if n_mle_trust < 2:
+            raise ValueError(f"n_mle_trust must be ≥ 2, got {n_mle_trust}")
         self._window = window
         self._q_normal = q_normal
         self._q_crisis = q_crisis
         self._min_obs = min_observations
         self._gof_alpha = gof_alpha
+        self._N_MLE_TRUST = n_mle_trust
         self._history: list[TsallisGateResult] = []
 
     @property
@@ -404,6 +502,33 @@ class TsallisRiskGate:
         q = fit.q
         regime = self.classify_regime(q)
         mult = self.position_multiplier(q)
+
+        # SMALL-N FAIL-CLOSED GUARD (one-directional, demote-only).
+        # At small N the Student-t MLE ESCAPES to the Gaussian limit on a
+        # genuine heavy-tailed sample and the KS GoF lacks the power to reject
+        # it; the result is a confident NORMAL/full-position read on a
+        # pre-crisis tail — the dangerous fail-OPEN direction. The escape rate
+        # only reaches 0% at N≥_N_MLE_TRUST (see its derivation), and the
+        # escape flag cannot itself distinguish a genuine Gaussian (which also
+        # drives ν→∞ at any N) from a heavy-tail escape — so the SAMPLE SIZE is
+        # the operative guard. We refuse to grant a LESS-conservative position
+        # than the conservative fallback whenever n_obs < _N_MLE_TRUST. This
+        # only fires when the candidate sizing is MORE generous than the
+        # fallback (mult > 0.25): a genuine CRISIS read (high q, mult < 0.25,
+        # e.g. 0.0) is NEVER weakened — cutting exposure on a resolved heavy
+        # tail is the SAFE direction and is preserved at ANY N. INV-FE2 /
+        # INV-HPC2; see _N_MLE_TRUST for the escape-rate basis.
+        not_trustworthy = n_obs < self._N_MLE_TRUST
+        if not_trustworthy and mult > self._conservative_multiplier:
+            result = self._conservative_result(
+                n_obs,
+                gof_stat=fit.gof_stat,
+                gof_pvalue=fit.gof_pvalue,
+                nu=fit.nu,
+                kurtosis=fit.kurtosis,
+            )
+            self._history.append(result)
+            return result
 
         result = TsallisGateResult(
             q=q,

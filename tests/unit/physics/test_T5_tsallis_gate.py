@@ -198,14 +198,25 @@ class TestPositionMultiplier:
 
 
 class TestGateEvaluation:
-    def test_normal_market_full_position(self, gate):
+    def test_normal_market_full_position(self):
+        # Full position requires a sample large enough to TRUST the q-MLE
+        # (>= n_mle_trust). At the default tiny window the small-N guard
+        # correctly refuses full position; see TestSmallNFailClosed.
+        gate = TsallisRiskGate(window=400, q_normal=1.35, q_crisis=1.55)
         rng = np.random.default_rng(42)
-        returns = rng.normal(0, 0.005, 100)  # low vol → normal
+        returns = rng.normal(0, 0.005, 400)  # low vol Gaussian, N >= trust
         result = gate.evaluate(returns)
         assert isinstance(result, TsallisGateResult)
-        assert result.position_multiplier > 0
+        assert result.regime is TsallisRegime.NORMAL, (
+            f"INV-FE2: a trustworthy Gaussian sample is NORMAL regime. "
+            f"regime={result.regime}, q={result.q:.4f}, n={result.window_returns}."
+        )
+        assert result.position_multiplier == pytest.approx(1.0, abs=1e-9), (
+            f"NORMAL regime grants full position. "
+            f"mult={result.position_multiplier}, q={result.q:.4f}."
+        )
         assert result.gof_passed is True, (
-            f"INV-HPC2: a Gaussian low-vol sample must fit. "
+            f"INV-HPC2: a Gaussian sample (N>=trust) must fit. "
             f"gof_passed={result.gof_passed}, gof_p={result.gof_pvalue:.3f}."
         )
 
@@ -265,3 +276,90 @@ class TestInputValidation:
     def test_insufficient_prices(self, gate):
         with pytest.raises(ValueError):
             gate.evaluate_prices(np.array([100.0]))
+
+
+class TestSmallNFailClosed:
+    """Small-N MLE escape must fail CLOSED (one-directional, demote-only).
+
+    scipy.stats.t.fit escapes to the Gaussian limit on a genuine heavy-tailed
+    sample at small N (ν_fit ~ 1e11), reading as q≈1 / NORMAL / full position —
+    a fail-OPEN: a pre-crisis heavy tail sized at full exposure. The trust
+    floor (n_mle_trust) + degenerate-escape detector close this by refusing a
+    LESS-conservative-than-fallback sizing when the sample is untrustworthy.
+    A confident CRISIS read is NEVER weakened.
+    """
+
+    def test_heavy_tail_small_n_never_full_position(self):
+        # INV-FE2 fail-closed: a genuine Student-t(ν∈{3,5}) heavy tail at the
+        # default window (N=60 < n_mle_trust) must NEVER be classified
+        # NORMAL/full-position via the optimiser escape, across many seeds.
+        gate = TsallisRiskGate(window=60, q_normal=1.35, q_crisis=1.55)
+        offenders = []
+        for nu in (3.0, 5.0):
+            for seed in range(30):
+                rng = np.random.default_rng(1000 + seed)
+                returns = rng.standard_t(nu, size=60) * 0.01
+                r = gate.evaluate(returns)
+                if r.regime is TsallisRegime.NORMAL or r.position_multiplier >= 1.0:
+                    offenders.append((nu, seed, r.regime.value, r.position_multiplier))
+        assert not offenders, (
+            "INV-FE2 fail-OPEN: heavy-tail t(nu) at N=60 granted NORMAL/full "
+            "position via small-N MLE escape. The trust floor must demote it. "
+            f"n_mle_trust=250, window=60. "
+            f"{len(offenders)} offending (nu,seed,regime,mult): {offenders[:5]}"
+        )
+
+    def test_gaussian_large_n_keeps_full_position(self):
+        # No over-conservatism at scale: a true Gaussian at N >= n_mle_trust
+        # still earns NORMAL / full position.
+        gate = TsallisRiskGate(window=600, q_normal=1.35, q_crisis=1.55)
+        rng = np.random.default_rng(7)
+        returns = rng.normal(0, 0.01, 600)
+        r = gate.evaluate(returns)
+        assert r.regime is TsallisRegime.NORMAL and r.position_multiplier == pytest.approx(
+            1.0, abs=1e-9
+        ), (
+            "A trustworthy (N>=trust) Gaussian must keep full position. "
+            f"regime={r.regime}, mult={r.position_multiplier}, q={r.q:.4f}, "
+            f"n={r.window_returns}, n_mle_trust=250"
+        )
+
+    def test_gaussian_small_n_demoted_to_conservative(self):
+        # Honest small-N behaviour: a Gaussian below the trust floor cannot be
+        # PROVEN Gaussian, so it is demoted to the conservative fallback
+        # (not full position) rather than fail-OPEN.
+        gate = TsallisRiskGate(window=60, q_normal=1.35, q_crisis=1.55)
+        rng = np.random.default_rng(7)
+        returns = rng.normal(0, 0.01, 60)
+        r = gate.evaluate(returns)
+        assert r.position_multiplier <= 0.25 + 1e-12, (
+            "INV-FE2: a sub-trust-floor sample must not grant more than the "
+            "conservative fallback. "
+            f"mult={r.position_multiplier}, regime={r.regime}, n={r.window_returns}, "
+            f"n_mle_trust=250"
+        )
+
+    def test_crisis_preserved_at_any_n(self):
+        # The guard is demote-only: a genuine crisis heavy tail (low ν) still
+        # cuts exposure to <= the conservative fallback at small N — the guard
+        # must not WEAKEN a crisis read up toward full position.
+        gate = TsallisRiskGate(window=60, q_normal=1.35, q_crisis=1.55)
+        cut = 0
+        for seed in range(30):
+            rng = np.random.default_rng(2000 + seed)
+            returns = rng.standard_t(2.2, size=60) * 0.02
+            r = gate.evaluate(returns)
+            # Whether the fit resolves CRISIS or the guard demotes, exposure is
+            # never more generous than the conservative fallback for a genuine
+            # very-heavy tail; crisis fits must reach <= fallback.
+            assert r.position_multiplier <= 0.25 + 1e-12, (
+                "INV-FE2: very-heavy tail t(2.2) at N=60 must not exceed the "
+                f"conservative fallback. mult={r.position_multiplier}, "
+                f"regime={r.regime}, seed={seed}"
+            )
+            if r.position_multiplier == 0.0:
+                cut += 1
+        assert cut >= 1, (
+            "At least some t(2.2) windows should resolve to a hard CRISIS "
+            f"(multiplier 0.0); the guard must not mask all crises. cut={cut}/30"
+        )

@@ -45,11 +45,20 @@ promise: >-
   the sample is not a q-Gaussian and the gate returns the conservative
   fallback (q=1.5, ELEVATED, position_multiplier=0.25, gof_passed=False),
   the same convention already used for n_obs < min_observations; it never
-  emits a confident q-derived regime from an unfitted sample. Satisfies
-  INV-FE2 (multiplier ∈ [0,1], components ≥ 0) and INV-HPC2 (q finite,
-  q ≥ 1); every clamp carries an INV-/bounds note. Pure additive widening
-  of TsallisGateResult; no INVARIANTS.yaml count change, no trading or
-  runtime surface touched.
+  emits a confident q-derived regime from an unfitted sample. A second,
+  one-directional small-N fail-closed guard closes a fail-OPEN found by an
+  adversarial audit: scipy.stats.t.fit escapes to the Gaussian limit on a
+  genuine heavy-tailed sample at small N (measured 16% of t(ν=5) seeds at
+  N=60), reading as q≈1 / NORMAL / full position on a pre-crisis tail. Below
+  the trust floor n_mle_trust (default 300, the smallest N at which the
+  measured escape rate reaches 0%) a less-conservative-than-fallback sizing
+  is demoted to the conservative fallback; a confident CRISIS read is never
+  weakened. Verified: t(ν=5)@N=60 grants NORMAL/full in 0/200 seeds (was
+  ~16%); a true Gaussian at N≥300 still earns NORMAL/full position.
+  Satisfies INV-FE2 (multiplier ∈ [0,1], components ≥ 0) and INV-HPC2
+  (q finite, q ≥ 1); every clamp carries an INV-/bounds note. Pure additive
+  widening of TsallisGateResult; no INVARIANTS.yaml count change, no trading
+  or runtime surface touched.
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/tsallis-qmle-gof.yaml"
