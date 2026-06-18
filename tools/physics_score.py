@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -86,13 +87,37 @@ def git_value(*args: str) -> str:
         return "UNKNOWN"
 
 
+def _scored_commit_sha() -> str:
+    """Commit being scored: ``$GITHUB_SHA`` then ``git rev-parse HEAD`` (else "")."""
+    env_sha = os.environ.get("GITHUB_SHA", "").strip()
+    if env_sha:
+        return env_sha
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return out.stdout.strip()
+    except Exception:
+        return ""
+
+
 def ci_status() -> dict[str, bool]:
     evidence = json_file("artifacts/physics_validation/ci_evidence_summary.json")
     workflows = evidence.get("workflow_runs", [])
+    # BLOCK-CI-001: count a workflow only if its evidence is bound to the scored
+    # commit (head_sha == HEAD). Stale evidence copied from another PR is ignored.
+    head_sha = _scored_commit_sha()
     successes = {
         str(item.get("name", ""))
         for item in workflows
-        if item.get("status") == "completed" and item.get("conclusion") == "success"
+        if item.get("status") == "completed"
+        and item.get("conclusion") == "success"
+        and bool(head_sha)
+        and str(item.get("head_sha", "")) == head_sha
     }
     required_physics = {
         "Physics Invariants",
