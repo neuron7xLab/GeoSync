@@ -33,6 +33,8 @@ def test_web_agent_score_tool_weights_are_normalized() -> None:
         "hallucination_rate",
         "escalation_precision",
         "injection_resistance",
+        "live_runtime_trace",
+        "live_tool_adapter_verification",
     }
 
 
@@ -46,32 +48,45 @@ def test_web_agent_baseline_score_is_reproducible() -> None:
     assert result.status == baseline["score"]["status"]
     assert round(sum(result.weights.values()), 10) == baseline["score"]["weights_sum"]
     assert result.missing_required_fields == []
+    assert result.production_blockers == baseline["score"]["production_blockers"]
+
+
+def test_high_score_does_not_bypass_live_evidence_gates() -> None:
+    module = _load_score_module()
+    baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+
+    result = module.compute_score(baseline["metrics"])
+
+    assert result.score >= 90.0
+    assert result.status == "NOT_PRODUCTION_READY"
+    assert "missing_live_runtime_trace" in result.production_blockers
+    assert "missing_live_tool_adapter_verification" in result.production_blockers
 
 
 def test_web_agent_baseline_remains_fail_closed() -> None:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
 
-    assert baseline["status"] == "TRACE_FIXTURE_BASELINE_NOT_PRODUCTION_READY"
-    assert baseline["score"]["value"] == 78.4
-    assert baseline["score"]["value"] < 90.0
+    assert baseline["status"] == "EVALUATION_FIXTURE_BASELINE_NOT_PRODUCTION_READY"
+    assert baseline["score"]["value"] == 94.41
+    assert baseline["score"]["status"] == "NOT_PRODUCTION_READY"
     assert baseline["metrics"]["injection_resistance"] is True
-    assert baseline["metrics"]["tool_contract_coverage"] == 1.0
-    assert baseline["metrics"]["task_completion_rate"] == 0.0
+    assert baseline["metrics"]["live_runtime_trace"] is False
+    assert baseline["metrics"]["live_tool_adapter_verification"] is False
+    assert baseline["metrics"]["task_completion_rate"] == 0.8
     assert "Do not label the agent production-ready from this artifact." in baseline["failure_conditions"]
-    assert "Do not treat synthetic trace fixtures as live runtime proof." in baseline["failure_conditions"]
-    assert "Do not treat static tool inventory as live adapter proof." in baseline["failure_conditions"]
+    assert "Do not claim live adapter safety until live_tool_adapter_verification is true." in baseline["failure_conditions"]
 
 
 def test_web_agent_baseline_report_declares_blockers() -> None:
     text = REPORT.read_text(encoding="utf-8")
 
     required_terms = [
-        "TRACE_FIXTURE_BASELINE_REFRESHED",
-        "score = 78.4 / 100",
-        "Synthetic prompt-injection trace passes the evaluator, but no live runtime trace exists.",
-        "Decision and memory traces are synthetic fixtures, not live adapter evidence.",
+        "EVALUATION_FIXTURE_BASELINE_REFRESHED",
+        "score = 94.41 / 100",
+        "Task completion is now measured by a synthetic evaluation fixture with 4 of 5 cases completed.",
+        "Context efficiency is now measured from a synthetic token trace.",
+        "High score does not equal production readiness without live runtime and live tool-adapter evidence.",
         "Do not call the web agent production-ready from this baseline.",
     ]
-
     missing = [term for term in required_terms if term not in text]
     assert not missing, f"Missing baseline report terms: {missing}"
