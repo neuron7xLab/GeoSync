@@ -1,0 +1,4 @@
+schema_version: 1.0.0
+id: n7x.value_functions.v1
+source_status: operator_provided_not_repository_evidence
+completion_marker: "⊛"
