@@ -157,51 +157,37 @@ def build_metrics() -> list[Metric]:
     numerical_score = (
         86.0
         if physics_ci and convergence_test and replication_test
-        else 82.0
-        if t1_code and t1_tests and convergence_test and replication_test
-        else 0.0
+        else 82.0 if t1_code and t1_tests and convergence_test and replication_test else 0.0
     )
     invariant_score = (
         88.0
         if physics_ci and t1_tests and has_boundary_tests and invariant_test
-        else 80.0
-        if t1_tests and has_boundary_tests and invariant_test
-        else 0.0
+        else 80.0 if t1_tests and has_boundary_tests and invariant_test else 0.0
     )
     falsifiability_score = (
         86.0
         if physics_ci and has_nulls and null_test and claim_ledger and ricci_test
-        else 82.0
-        if has_nulls and null_test and claim_ledger and ricci_test
-        else 0.0
+        else 82.0 if has_nulls and null_test and claim_ledger and ricci_test else 0.0
     )
     baseline_score = (
         85.0
         if physics_ci and null_test and ricci_artifact
-        else 82.0
-        if null_test and ricci_artifact
-        else 0.0
+        else 82.0 if null_test and ricci_artifact else 0.0
     )
     uq_score = (
         74.0
         if physics_ci and uq_plan and uq_test and uq_artifact
-        else 72.0
-        if uq_plan and uq_test and uq_artifact
-        else 0.0
+        else 72.0 if uq_plan and uq_test and uq_artifact else 0.0
     )
     reproducibility_score = (
         83.0
         if physics_ci and manifest and reference_solver and replication_artifact
-        else 78.0
-        if manifest and reference_solver and replication_artifact
-        else 0.0
+        else 78.0 if manifest and reference_solver and replication_artifact else 0.0
     )
     interface_score = (
         78.0
         if physics_ci and interface_doc and interface_test
-        else 70.0
-        if interface_doc and interface_test
-        else 0.0
+        else 70.0 if interface_doc and interface_test else 0.0
     )
 
     return [
@@ -235,9 +221,11 @@ def build_metrics() -> list[Metric]:
             "T1 trajectory, dt refinement, independent NumPy reference, CI evidence ledger",
             ">= 85 for final rank",
             "solver fabricates physics or dt refinement is not measured",
-            "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
-            if physics_ci
-            else "PARTIAL_PASS_RUNTIME_REQUIRED",
+            (
+                "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
+                if physics_ci
+                else "PARTIAL_PASS_RUNTIME_REQUIRED"
+            ),
             (
                 "tests/physics/test_convergence.py",
                 "tests/physics/test_replication.py",
@@ -252,9 +240,11 @@ def build_metrics() -> list[Metric]:
             "static carriers plus physics CI evidence ledger",
             ">= 90 for final rank",
             "R outside [0,1], invalid Phi/Kc, non-finite theta, silent repair",
-            "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
-            if physics_ci
-            else "PARTIAL_PASS_RUNTIME_REQUIRED",
+            (
+                "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
+                if physics_ci
+                else "PARTIAL_PASS_RUNTIME_REQUIRED"
+            ),
             (
                 "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py",
                 "tests/physics/test_invariants.py",
@@ -269,9 +259,11 @@ def build_metrics() -> list[Metric]:
             "T1 negative controls plus dedicated null/Ricci tests and CI evidence ledger",
             ">= 90 for final rank",
             "positive signal survives K=0/shuffle/randomized nulls",
-            "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
-            if physics_ci
-            else "PARTIAL_PASS_RUNTIME_REQUIRED",
+            (
+                "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
+                if physics_ci
+                else "PARTIAL_PASS_RUNTIME_REQUIRED"
+            ),
             (
                 "tests/physics/test_geosync_nulls.py",
                 "tests/physics/test_ricci_bridge.py",
@@ -286,9 +278,11 @@ def build_metrics() -> list[Metric]:
             "K=0, phase shuffle, randomized omega, matched ER, Ricci bridge smoke",
             ">= 85 for final rank",
             "null model suite does not cover shuffled phases, ER graph, omega randomization",
-            "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
-            if physics_ci
-            else "PARTIAL_PASS_RUNTIME_REQUIRED",
+            (
+                "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
+                if physics_ci
+                else "PARTIAL_PASS_RUNTIME_REQUIRED"
+            ),
             (
                 "tests/physics/test_geosync_nulls.py",
                 "artifacts/physics_validation/ricci_bridge_summary.json",
@@ -302,9 +296,7 @@ def build_metrics() -> list[Metric]:
             "docs/physics/uq_plan.md, tests/physics/test_uq_smoke.py, uq_summary.json",
             ">= 70 for final rank",
             "confidence interval exists without prior/IC/noise/tolerance model",
-            "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
-            if physics_ci
-            else "SOURCE_DECLARED_ONLY",
+            "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED" if physics_ci else "SOURCE_DECLARED_ONLY",
             (
                 "docs/physics/uq_plan.md",
                 "tests/physics/test_uq_smoke.py",
@@ -319,9 +311,11 @@ def build_metrics() -> list[Metric]:
             "reproducibility manifest plus independent reference solver artifact plus CI evidence ledger",
             ">= 85 for final rank",
             "artifact cannot be rerun from commit and command",
-            "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
-            if physics_ci
-            else "PARTIAL_PASS_CI_LOGS_REQUIRED",
+            (
+                "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
+                if physics_ci
+                else "PARTIAL_PASS_CI_LOGS_REQUIRED"
+            ),
             (
                 "reproducibility/manifest.json",
                 "reproducibility/reference_solvers/geosync_kuramoto_numpy.py",
@@ -336,9 +330,11 @@ def build_metrics() -> list[Metric]:
             "docs/physics/interface_contracts.md, tests/physics/test_interface_contracts.py, CI evidence ledger",
             ">= 80 for final rank",
             "consumer accepts hidden or untyped conversion",
-            "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
-            if physics_ci
-            else "PARTIAL_PASS_RUNTIME_REQUIRED",
+            (
+                "RUNTIME_PARTIAL_PASS_PR_GATE_REQUIRED"
+                if physics_ci
+                else "PARTIAL_PASS_RUNTIME_REQUIRED"
+            ),
             (
                 "docs/physics/interface_contracts.md",
                 "tests/physics/test_interface_contracts.py",
@@ -353,9 +349,11 @@ def build_metrics() -> list[Metric]:
             "claim ledger, inventory, equation traceability index, CI evidence ledger",
             ">= 85 for final rank",
             "claim lacks a carrier or source/code/test disagree",
-            "PARTIAL_PASS_WITH_CI_EVIDENCE"
-            if ci_artifact
-            else "PARTIAL_PASS_RUNTIME_REPORT_PENDING",
+            (
+                "PARTIAL_PASS_WITH_CI_EVIDENCE"
+                if ci_artifact
+                else "PARTIAL_PASS_RUNTIME_REPORT_PENDING"
+            ),
             (
                 "docs/audit/claim_ledger.md",
                 "docs/physics/equation_traceability.md",
