@@ -6,7 +6,7 @@
   "config_sha256": "d5a9cf928ff45002fab604cb0d3d7af90cb91fdb422bf9f24e090bb29d2c964e",
   "conforms_to": "https://schemas.neuron7xlab.org/research/research_inference_artifact.schema.json",
   "data_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-  "decision": "ABSTAIN",
+  "decision": "OBSERVE",
   "env_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "falsification_status": "NOT_RUN",
   "git_dirty": false,
