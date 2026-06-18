@@ -50,7 +50,7 @@ def main() -> int:
     prices = _stable_decaying_prices()
     try:
         _, _, _, mu = _extract_amplitude_phase_omega(prices)
-    except Exception as exc:  # noqa: BLE001 - falsifier reports any failure as code 2
+    except (ValueError, FloatingPointError, ZeroDivisionError, RuntimeError, np.linalg.LinAlgError) as exc:
         print(f"FALSIFIER ERROR: estimator raised: {exc!r}")
         return 2
     if not np.all(np.isfinite(mu)):
