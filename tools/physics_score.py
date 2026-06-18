@@ -67,16 +67,9 @@ def contains(path: str, *needles: str) -> bool:
     return all(needle in body for needle in needles)
 
 
-def git_commit() -> str:
+def git_value(*args: str) -> str:
     try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    except Exception:
-        return "UNKNOWN"
-
-
-def git_branch() -> str:
-    try:
-        return subprocess.check_output(["git", "branch", "--show-current"], cwd=ROOT, text=True).strip()
+        return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
     except Exception:
         return "UNKNOWN"
 
@@ -87,6 +80,16 @@ def build_metrics() -> list[Metric]:
     t1_tests = exists("tests/unit/physics/test_T1_kuramoto_ricci_boundary.py")
     claim_ledger = exists("docs/audit/claim_ledger.md")
     file_inventory = exists("docs/audit/file_inventory.md")
+    units_table = exists("docs/physics/units_table.md")
+    dimensional_test = exists("tests/physics/test_dimensional_homogeneity.py")
+    convergence_test = exists("tests/physics/test_convergence.py")
+    invariant_test = exists("tests/physics/test_invariants.py")
+    null_test = exists("tests/physics/test_geosync_nulls.py")
+    uq_plan = exists("docs/physics/uq_plan.md")
+    interface_doc = exists("docs/physics/interface_contracts.md")
+    interface_test = exists("tests/physics/test_interface_contracts.py")
+    manifest = exists("reproducibility/manifest.json")
+    traceability = exists("docs/physics/equation_traceability.md")
 
     has_rhs = contains(
         "core/kuramoto/kuramoto_ricci_engine.py",
@@ -106,119 +109,118 @@ def build_metrics() -> list[Metric]:
         "test_INV_KR1_supercritical_phi_positive_yields_high_R",
     )
 
-    metrics: list[Metric] = [
+    return [
         Metric(
-            id="S_math_object",
-            weight=0.12,
-            score=70.0 if geosync_core and t1_code and has_rhs else 0.0,
-            metric="canonical mathematical object has equation/code carriers",
-            measurement_fn="exists(docs/physics/geosync_core.md) && contains(T1 code symbols)",
-            threshold=">= 90 for final rank",
-            failure_condition="no single canonical object or missing RHS/boundary/order parameter code",
-            status="PARTIAL_PASS" if geosync_core and t1_code and has_rhs else "FAIL",
-            evidence=("docs/physics/geosync_core.md", "core/kuramoto/kuramoto_ricci_engine.py"),
+            "S_math_object",
+            0.12,
+            70.0 if geosync_core and t1_code and has_rhs else 0.0,
+            "canonical mathematical object has equation/code carriers",
+            "exists(docs/physics/geosync_core.md) && contains(T1 code symbols)",
+            ">= 90 for final rank",
+            "no single canonical object or missing RHS/boundary/order parameter code",
+            "PARTIAL_PASS" if geosync_core and t1_code and has_rhs else "FAIL",
+            ("docs/physics/geosync_core.md", "core/kuramoto/kuramoto_ricci_engine.py"),
         ),
         Metric(
-            id="S_dimensional_consistency",
-            weight=0.10,
-            score=35.0 if geosync_core else 0.0,
-            metric="units declared and dimension tests present",
-            measurement_fn="units text present; tests/physics/test_dimensional_homogeneity.py required for >60",
-            threshold=">= 85 for final rank",
-            failure_condition="range guards are mistaken for dimensional analysis",
-            status="BLOCKED_NO_DIMENSIONAL_TEST",
-            evidence=("docs/physics/geosync_core.md",),
+            "S_dimensional_consistency",
+            0.10,
+            65.0 if units_table and dimensional_test else (35.0 if geosync_core else 0.0),
+            "units declared and dimension tests present",
+            "docs/physics/units_table.md + tests/physics/test_dimensional_homogeneity.py",
+            ">= 85 for final rank",
+            "range guards are mistaken for dimensional analysis",
+            "PARTIAL_PASS_NO_TYPED_UNITS" if units_table and dimensional_test else "BLOCKED_NO_DIMENSIONAL_TEST",
+            ("docs/physics/units_table.md", "tests/physics/test_dimensional_homogeneity.py"),
         ),
         Metric(
-            id="S_numerical_stability",
-            weight=0.12,
-            score=55.0 if t1_code and t1_tests else 0.0,
-            metric="trajectory implementation plus convergence/stability tests",
-            measurement_fn="T1 trajectory/test presence; dedicated convergence tests required for >70",
-            threshold=">= 85 for final rank",
-            failure_condition="solver fabricates physics or dt refinement is not measured",
-            status="PARTIAL_PASS_NO_CONVERGENCE_GATE",
-            evidence=("core/kuramoto/kuramoto_ricci_engine.py", "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py"),
+            "S_numerical_stability",
+            0.12,
+            75.0 if t1_code and t1_tests and convergence_test else (55.0 if t1_code and t1_tests else 0.0),
+            "trajectory implementation plus convergence/stability tests",
+            "T1 trajectory/test presence plus dt refinement gate",
+            ">= 85 for final rank",
+            "solver fabricates physics or dt refinement is not measured",
+            "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED" if convergence_test else "PARTIAL_PASS_NO_CONVERGENCE_GATE",
+            ("core/kuramoto/kuramoto_ricci_engine.py", "tests/physics/test_convergence.py"),
         ),
         Metric(
-            id="S_invariant_preservation",
-            weight=0.12,
-            score=70.0 if t1_tests and has_boundary_tests else 0.0,
-            metric="R bounds, boundary behavior, homogeneous potential, determinism",
-            measurement_fn="static test carrier detection; pytest execution required for final",
-            threshold=">= 90 for final rank",
-            failure_condition="R outside [0,1], invalid Phi/Kc, non-finite theta, silent repair",
-            status="IMPLEMENTED_NOT_RERUN",
-            evidence=("tests/unit/physics/test_T1_kuramoto_ricci_boundary.py",),
+            "S_invariant_preservation",
+            0.12,
+            80.0 if t1_tests and has_boundary_tests and invariant_test else (70.0 if t1_tests and has_boundary_tests else 0.0),
+            "R bounds, boundary behavior, homogeneous potential, determinism",
+            "static test carrier detection; pytest execution required for final",
+            ">= 90 for final rank",
+            "R outside [0,1], invalid Phi/Kc, non-finite theta, silent repair",
+            "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
+            ("tests/unit/physics/test_T1_kuramoto_ricci_boundary.py", "tests/physics/test_invariants.py"),
         ),
         Metric(
-            id="S_falsifiability",
-            weight=0.14,
-            score=65.0 if has_nulls and claim_ledger else 0.0,
-            metric="nulls, H0/H1, negative controls, failure messages",
-            measurement_fn="static negative-control/null carrier detection",
-            threshold=">= 90 for final rank",
-            failure_condition="positive signal survives K=0/shuffle/randomized nulls",
-            status="PARTIAL_PASS_DEDICATED_NULL_MATRIX_MISSING",
-            evidence=("docs/audit/claim_ledger.md", "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py"),
+            "S_falsifiability",
+            0.14,
+            75.0 if has_nulls and null_test and claim_ledger else (65.0 if has_nulls and claim_ledger else 0.0),
+            "nulls, H0/H1, negative controls, failure messages",
+            "T1 negative controls plus dedicated null test matrix",
+            ">= 90 for final rank",
+            "positive signal survives K=0/shuffle/randomized nulls",
+            "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
+            ("docs/audit/claim_ledger.md", "tests/physics/test_geosync_nulls.py"),
         ),
         Metric(
-            id="S_baseline_models",
-            weight=0.10,
-            score=45.0 if has_nulls else 0.0,
-            metric="explicit null model factory coverage",
-            measurement_fn="presence of K=0 and non-vacuity negative controls; dedicated factory missing",
-            threshold=">= 85 for final rank",
-            failure_condition="null model suite does not cover shuffled phases, ER matched graph, randomized omega",
-            status="PARTIAL_PASS_FACTORY_MISSING",
-            evidence=("tests/unit/physics/test_T1_kuramoto_ricci_boundary.py",),
+            "S_baseline_models",
+            0.10,
+            70.0 if null_test else (45.0 if has_nulls else 0.0),
+            "explicit null model factory coverage",
+            "K=0, phase shuffle, randomized omega, matched ER nulls",
+            ">= 85 for final rank",
+            "null model suite does not cover shuffled phases, ER matched graph, randomized omega",
+            "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED" if null_test else "PARTIAL_PASS_FACTORY_MISSING",
+            ("tests/physics/test_geosync_nulls.py",),
         ),
         Metric(
-            id="S_UQ",
-            weight=0.08,
-            score=0.0,
-            metric="uncertainty source and UQ smoke artifact",
-            measurement_fn="docs/physics/uq_plan.md and artifacts/physics_validation/uq_summary.json",
-            threshold=">= 70 for final rank",
-            failure_condition="confidence interval exists without prior/IC/noise/tolerance model",
-            status="FAIL_NO_STOCHASTIC_SOURCE",
-            evidence=(),
+            "S_UQ",
+            0.08,
+            35.0 if uq_plan else 0.0,
+            "uncertainty source and UQ smoke artifact",
+            "docs/physics/uq_plan.md and artifacts/physics_validation/uq_summary.json",
+            ">= 70 for final rank",
+            "confidence interval exists without prior/IC/noise/tolerance model",
+            "SOURCE_DECLARED_EXECUTION_MISSING" if uq_plan else "FAIL_NO_STOCHASTIC_SOURCE",
+            ("docs/physics/uq_plan.md",),
         ),
         Metric(
-            id="S_reproducibility",
-            weight=0.10,
-            score=25.0 if exists("pyproject.toml") else 0.0,
-            metric="manifest, command, seed, environment, generated artifacts",
-            measurement_fn="reproducibility/manifest.json plus generated score artifact required for >70",
-            threshold=">= 85 for final rank",
-            failure_condition="artifact cannot be rerun from commit and command",
-            status="BLOCKED_NO_MANIFEST",
-            evidence=("pyproject.toml",),
+            "S_reproducibility",
+            0.10,
+            50.0 if manifest else (25.0 if exists("pyproject.toml") else 0.0),
+            "manifest, command, seed, environment, generated artifacts",
+            "reproducibility/manifest.json plus generated score artifact",
+            ">= 85 for final rank",
+            "artifact cannot be rerun from commit and command",
+            "PARTIAL_PASS_CI_LOGS_MISSING" if manifest else "BLOCKED_NO_MANIFEST",
+            ("reproducibility/manifest.json", "pyproject.toml"),
         ),
         Metric(
-            id="S_interface_contracts",
-            weight=0.10,
-            score=20.0,
-            metric="shape/unit/range/sampling contracts across subsystem boundaries",
-            measurement_fn="tests/physics/test_interface_contracts.py required",
-            threshold=">= 80 for final rank",
-            failure_condition="consumer accepts hidden or untyped conversion",
-            status="FAIL_NO_INTERFACE_TESTS",
-            evidence=(),
+            "S_interface_contracts",
+            0.10,
+            65.0 if interface_doc and interface_test else 20.0,
+            "shape/unit/range/sampling contracts across subsystem boundaries",
+            "docs/physics/interface_contracts.md + tests/physics/test_interface_contracts.py",
+            ">= 80 for final rank",
+            "consumer accepts hidden or untyped conversion",
+            "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED" if interface_doc and interface_test else "FAIL_NO_INTERFACE_TESTS",
+            ("docs/physics/interface_contracts.md", "tests/physics/test_interface_contracts.py"),
         ),
         Metric(
-            id="S_traceability",
-            weight=0.12,
-            score=60.0 if claim_ledger and file_inventory else 0.0,
-            metric="claim -> equation -> code -> test -> failure condition mapping",
-            measurement_fn="claim ledger and inventory presence; equation traceability required for >80",
-            threshold=">= 85 for final rank",
-            failure_condition="claim lacks a carrier or source/code/test disagree",
-            status="PARTIAL_PASS_TRACEABILITY_INDEX_MISSING",
-            evidence=("docs/audit/claim_ledger.md", "docs/audit/file_inventory.md"),
+            "S_traceability",
+            0.12,
+            80.0 if claim_ledger and file_inventory and traceability else (60.0 if claim_ledger and file_inventory else 0.0),
+            "claim -> equation -> code -> test -> failure condition mapping",
+            "claim ledger, inventory, equation traceability index",
+            ">= 85 for final rank",
+            "claim lacks a carrier or source/code/test disagree",
+            "PARTIAL_PASS_RUNTIME_REPORT_MISSING" if traceability else "PARTIAL_PASS_TRACEABILITY_INDEX_MISSING",
+            ("docs/audit/claim_ledger.md", "docs/physics/equation_traceability.md"),
         ),
     ]
-    return metrics
 
 
 def build_score() -> dict[str, Any]:
@@ -229,32 +231,20 @@ def build_score() -> dict[str, Any]:
         {
             "id": "BLOCK-LOCAL-001",
             "severity": "HIGH",
-            "reason": "full local repo scan and pytest run not observed by this connector pass",
-            "required_action": "run python tools/physics_score.py --write and pytest tests/unit/physics/test_T1_kuramoto_ricci_boundary.py",
-        },
-        {
-            "id": "BLOCK-DIM-001",
-            "severity": "HIGH",
-            "reason": "no dedicated dimensional homogeneity test exists",
-            "required_action": "create tests/physics/test_dimensional_homogeneity.py and docs/physics/units_table.md",
-        },
-        {
-            "id": "BLOCK-CONV-001",
-            "severity": "HIGH",
-            "reason": "no dt/dt2/dt4 convergence gate exists",
-            "required_action": "create tests/physics/test_convergence.py with tolerance and expected order",
+            "reason": "local repo scan, pytest, and CI logs were not observed by this connector pass",
+            "required_action": "run python tools/physics_score.py --write and pytest tests/unit/physics/test_T1_kuramoto_ricci_boundary.py tests/physics -q",
         },
         {
             "id": "BLOCK-UQ-001",
             "severity": "HIGH",
-            "reason": "no stochastic source or UQ plan exists",
-            "required_action": "define prior/IC/noise/tolerance uncertainty before Monte Carlo",
+            "reason": "UQ source is declared but no UQ smoke execution artifact exists",
+            "required_action": "create tests/physics/test_uq_smoke.py and artifacts/physics_validation/uq_summary.json",
         },
         {
-            "id": "BLOCK-IFACE-001",
-            "severity": "MEDIUM",
-            "reason": "vertical interface contracts are not tested",
-            "required_action": "create docs/physics/interface_contracts.md and tests/physics/test_interface_contracts.py",
+            "id": "BLOCK-RICCI-001",
+            "severity": "HIGH",
+            "reason": "Ricci bridge remains experimental until graph construction and matched-null evidence are audited",
+            "required_action": "validate kappa construction, f(kappa), boundedness, and Ricci matched nulls",
         },
         {
             "id": "BLOCK-BNSYN-MFN-001",
@@ -268,8 +258,8 @@ def build_score() -> dict[str, Any]:
         "schema_version": "2026.06.18",
         "status": "BOOTSTRAP_STATIC_BASELINE",
         "score_type": "static_evidence_oracle_not_pytest_result",
-        "commit": git_commit(),
-        "branch": git_branch(),
+        "commit": git_value("rev-parse", "HEAD"),
+        "branch": git_value("branch", "--show-current"),
         "target_interval": TARGET_INTERVAL,
         "S_total": s_total,
         "weights_sum": weights_sum,
@@ -306,9 +296,7 @@ def write_outputs(score: dict[str, Any]) -> None:
         "|---|---:|---:|---:|---|",
     ])
     for metric in score["metrics"]:
-        lines.append(
-            f"| `{metric['id']}` | {metric['weight']} | {metric['score']} | {metric['weighted_score']} | {metric['status']} |"
-        )
+        lines.append(f"| `{metric['id']}` | {metric['weight']} | {metric['score']} | {metric['weighted_score']} | {metric['status']} |")
     lines.extend([
         "",
         "## Final decision",
