@@ -11,8 +11,16 @@ def _final_state(dt: float, total_time: float = 0.4) -> jnp.ndarray:
     n_steps = int(round(total_time / dt))
     theta_0 = jnp.asarray([0.2, -0.1, 0.4, -0.3], dtype=jnp.float32)
     omega = jnp.asarray([0.03, -0.01, 0.02, -0.04], dtype=jnp.float32)
-    A = 0.05 * (jnp.ones((4, 4), dtype=jnp.float32) - jnp.eye(4, dtype=jnp.float32))
-    return kuramoto_ricci_trajectory(theta_0, dt=dt, n_steps=n_steps, omega=omega, A=A)[-1]
+    adjacency = 0.05 * (
+        jnp.ones((4, 4), dtype=jnp.float32) - jnp.eye(4, dtype=jnp.float32)
+    )
+    return kuramoto_ricci_trajectory(
+        theta_0,
+        dt=dt,
+        n_steps=n_steps,
+        omega=omega,
+        A=adjacency,
+    )[-1]
 
 
 def _linf(a: jnp.ndarray, b: jnp.ndarray) -> float:
@@ -33,9 +41,20 @@ def test_midpoint_refinement_reduces_final_state_error() -> None:
 def test_k_zero_integrates_constant_velocity_exactly_within_float32_noise() -> None:
     theta_0 = jnp.asarray([0.1, -0.2, 0.3], dtype=jnp.float32)
     omega = jnp.asarray([0.01, -0.02, 0.03], dtype=jnp.float32)
-    A = jnp.zeros((3, 3), dtype=jnp.float32)
+    adjacency = jnp.zeros((3, 3), dtype=jnp.float32)
     dt = 0.05
     n_steps = 20
-    traj = kuramoto_ricci_trajectory(theta_0, dt=dt, n_steps=n_steps, omega=omega, A=A)
+    traj = kuramoto_ricci_trajectory(
+        theta_0,
+        dt=dt,
+        n_steps=n_steps,
+        omega=omega,
+        A=adjacency,
+    )
     expected = theta_0 + omega * dt * n_steps
-    np.testing.assert_allclose(np.asarray(traj[-1]), np.asarray(expected), rtol=1e-6, atol=1e-6)
+    np.testing.assert_allclose(
+        np.asarray(traj[-1]),
+        np.asarray(expected),
+        rtol=1e-6,
+        atol=1e-6,
+    )
