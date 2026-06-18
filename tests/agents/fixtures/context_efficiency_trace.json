@@ -1,0 +1,52 @@
+{
+  "artifact_id": "WEB_AGENT_CONTEXT_EFFICIENCY_TRACE_001",
+  "measurement_mode": "synthetic_context_trace_not_live_runtime",
+  "status": "MEASURABLE_NOT_PRODUCTION_PROOF",
+  "events": [
+    {
+      "task_id": "TASK-SEARCH-001",
+      "tokens_needed": 1200,
+      "tokens_used": 1420,
+      "required_signal_tokens": 980,
+      "noise_tokens_retained": 110,
+      "compaction_applied": true
+    },
+    {
+      "task_id": "TASK-FETCH-002",
+      "tokens_needed": 1400,
+      "tokens_used": 1700,
+      "required_signal_tokens": 1120,
+      "noise_tokens_retained": 140,
+      "compaction_applied": true
+    },
+    {
+      "task_id": "TASK-FILE-003",
+      "tokens_needed": 900,
+      "tokens_used": 1020,
+      "required_signal_tokens": 760,
+      "noise_tokens_retained": 70,
+      "compaction_applied": true
+    },
+    {
+      "task_id": "TASK-AMBIGUITY-004",
+      "tokens_needed": 800,
+      "tokens_used": 920,
+      "required_signal_tokens": 690,
+      "noise_tokens_retained": 40,
+      "compaction_applied": true
+    },
+    {
+      "task_id": "TASK-LIVE-ADAPTER-005",
+      "tokens_needed": 1000,
+      "tokens_used": 1406,
+      "required_signal_tokens": 820,
+      "noise_tokens_retained": 190,
+      "compaction_applied": false
+    }
+  ],
+  "failure_conditions": [
+    "Do not treat synthetic token accounting as model-provider telemetry.",
+    "Do not mark context efficiency production-grade until real runtime traces exist.",
+    "If tokens_used_over_needed exceeds 1.2, the context gate remains below target."
+  ]
+}
