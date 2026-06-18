@@ -159,7 +159,10 @@ def build_metrics() -> list[Metric]:
             ">= 90 for final rank",
             "R outside [0,1], invalid Phi/Kc, non-finite theta, silent repair",
             "PARTIAL_PASS_RUNTIME_REQUIRED",
-            ("tests/unit/physics/test_T1_kuramoto_ricci_boundary.py", "tests/physics/test_invariants.py"),
+            (
+                "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py",
+                "tests/physics/test_invariants.py",
+            ),
         ),
         Metric(
             "S_falsifiability",
@@ -181,7 +184,10 @@ def build_metrics() -> list[Metric]:
             ">= 85 for final rank",
             "null model suite does not cover shuffled phases, ER graph, omega randomization",
             "PARTIAL_PASS_RUNTIME_REQUIRED" if null_test else "FAIL",
-            ("tests/physics/test_geosync_nulls.py", "artifacts/physics_validation/ricci_bridge_summary.json"),
+            (
+                "tests/physics/test_geosync_nulls.py",
+                "artifacts/physics_validation/ricci_bridge_summary.json",
+            ),
         ),
         Metric(
             "S_UQ",
@@ -203,7 +209,10 @@ def build_metrics() -> list[Metric]:
             ">= 85 for final rank",
             "artifact cannot be rerun from commit and command",
             "PARTIAL_PASS_CI_LOGS_REQUIRED" if manifest and reference_solver else "FAIL",
-            ("reproducibility/manifest.json", "reproducibility/reference_solvers/geosync_kuramoto_numpy.py"),
+            (
+                "reproducibility/manifest.json",
+                "reproducibility/reference_solvers/geosync_kuramoto_numpy.py",
+            ),
         ),
         Metric(
             "S_interface_contracts",
