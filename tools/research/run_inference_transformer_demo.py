@@ -5,11 +5,19 @@ import argparse
 import importlib.util
 import json
 import sys
+import types
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PIPELINE = ROOT / "src/geosync/research/transformer/pipeline.py"
+BASE = ROOT / "src/geosync/research/transformer"
+PIPELINE = BASE / "pipeline.py"
 OUT = ROOT / "artifacts/runs/ricci_microstructure_v1/inference_transformer_placeholder.json"
+
+
+def shim(name: str, path: Path) -> None:
+    mod = types.ModuleType(name)
+    mod.__path__ = [str(path)]
+    sys.modules.setdefault(name, mod)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -17,6 +25,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, default=OUT)
     parser.add_argument("--git-sha", default="0" * 40)
     args = parser.parse_args(argv)
+    shim("src", ROOT / "src")
+    shim("src.geosync", ROOT / "src/geosync")
+    shim("src.geosync.research", ROOT / "src/geosync/research")
+    shim("src.geosync.research.transformer", BASE)
     spec = importlib.util.spec_from_file_location("src.geosync.research.transformer.pipeline", PIPELINE)
     if spec is None or spec.loader is None:
         raise RuntimeError("pipeline import failed")
