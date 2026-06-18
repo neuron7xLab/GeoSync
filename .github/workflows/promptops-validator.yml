@@ -40,13 +40,13 @@ jobs:
         run: |
           python tools/promptops_validate.py examples/promptops --report artifacts/promptops/validation_report.json
 
-      - name: Run deterministic shadow tests
+      - name: Run deterministic shadow cases
         run: |
           python tools/promptops_shadow_runner.py examples/promptops --report artifacts/promptops/shadow_report.json
 
-      - name: Run PromptOps unit tests
+      - name: Run isolated PromptOps tests
         run: |
-          python -m pytest tests/promptops -q
+          python -m pytest tests/promptops/test_promptops_validate.py tests/promptops/test_promptops_shadow_runner.py -q --confcutdir=tests/promptops
 
       - name: Upload PromptOps reports
         if: always()
