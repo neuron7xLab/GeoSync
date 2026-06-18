@@ -2,37 +2,83 @@
 
 ## Purpose
 
-This PR introduces the first operational PromptOps slice: prompt artifacts become
-versioned CI contracts instead of informal text blobs. The validator is
-fail-closed: a prompt artifact is accepted only when structure, references,
-security patterns, unit-test declarations, and shadow-test declarations pass.
+This PR turns prompt artifacts into deterministic CI contracts. The target is not
+better wording. The target is a merge gate where prompt intent is parsed,
+validated, tested, and shadow-checked before the branch is allowed to move.
 
-## Scope
+## Implemented control plane
 
-- `schemas/promptops/system_prompt_contract.schema.json` defines the public shape.
-- `tools/promptops_validate.py` performs deterministic validation without LLM calls.
-- `examples/promptops/system_prompt_contract.example.yaml` provides a canonical artifact.
-- `tests/promptops/test_promptops_validate.py` locks pass/fail behavior.
-- `.github/workflows/promptops-validator.yml` adds a PR gate for PromptOps changes.
+- `schemas/promptops/system_prompt_contract.schema.json` defines the public
+  system-prompt artifact shape.
+- `tools/promptops_validate.py` validates YAML and JSON artifacts fail-closed.
+- `tools/promptops_shadow_runner.py` executes deterministic local shadow cases
+  without provider calls.
+- `examples/promptops/system_prompt_contract.example.yaml` provides a canonical
+  contract.
+- `tests/promptops/` locks validator and shadow-runner behavior.
+- `.github/workflows/promptops-validator.yml` adds the PR gate.
 
-## Current boundary
+## Deterministic gates
 
-Shadow inference is represented as a required contract section, not as a live LLM
-call. That is deliberate. The first integration must verify that every artifact
-carries an executable shadow-test intent before later PRs bind the runner to a
-model provider behind explicit secrets and cost controls. Apparently even chaos
-needs a budget file now.
+The validator enforces:
+
+- required root keys: `artifact_type`, `id`, `version`, `messages`,
+  `unit_tests`, `shadow_tests`
+- strict artifact ID and semver format
+- at least one authoritative `system` or `developer` message
+- declared `<ref:...>` closure
+- HTTP(S) reference validation
+- sensitive-token pattern detection
+- unsafe override phrase detection
+- duplicate test IDs inside collections
+- duplicate artifact IDs across scanned files
+- JSON report emission with source SHA-256 fingerprints
+
+## Shadow runner boundary
+
+The local shadow runner is intentionally provider-free. It evaluates declared
+`shadow_tests` through deterministic issue-code simulation and quality gates.
+This gives CI a stable regression surface before any real model judge is wired
+behind cost controls and provider-specific nondeterminism.
+
+Supported PR1 expectations:
+
+- `must_fail: true|false`
+- `expected_issue: <issue-code>`
+- `forbidden_issue: <issue-code>`
+
+Supported PR1 quality gate semantics:
+
+- `no credential leakage`
+- `deterministic issue code emitted`
+- `latency budget recorded`
+
+Unknown gate labels are preserved and treated as non-blocking in PR1 so the
+contract vocabulary can evolve without breaking every experimental prompt. PR2
+can convert stabilized labels into strict handlers.
 
 ## Acceptance command
 
 ```bash
 python -m pip install pytest pyyaml
+python -m json.tool schemas/promptops/system_prompt_contract.schema.json >/tmp/promptops_schema.json
 python tools/promptops_validate.py examples/promptops --report artifacts/promptops/validation_report.json
+python tools/promptops_shadow_runner.py examples/promptops --report artifacts/promptops/shadow_report.json
 python -m pytest tests/promptops -q
+```
+
+Expected local result for this PR:
+
+```text
+8 passed
 ```
 
 ## Next integration
 
-PR2 should add a `tools/promptops_shadow_runner.py` that consumes the validated
-`shadow_tests` section, runs either a mocked local evaluator or a provider-backed
-judge, and emits regression metrics with explicit thresholds.
+PR2 should add provider-backed optional shadow inference:
+
+1. default CI remains local-mock and deterministic
+2. provider CI is opt-in via explicit runtime configuration
+3. model outputs are compared through bounded metrics
+4. failures produce issue codes, not prose confetti
+5. token spend, latency, and provider version are captured in the report
