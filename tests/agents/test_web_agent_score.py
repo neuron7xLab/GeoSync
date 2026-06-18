@@ -51,12 +51,14 @@ def test_web_agent_baseline_score_is_reproducible() -> None:
 def test_web_agent_baseline_remains_fail_closed() -> None:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
 
-    assert baseline["status"] == "BOOTSTRAP_BASELINE_NOT_PRODUCTION_READY"
-    assert baseline["score"]["value"] == 43.0
+    assert baseline["status"] == "TRACE_FIXTURE_BASELINE_NOT_PRODUCTION_READY"
+    assert baseline["score"]["value"] == 78.4
     assert baseline["score"]["value"] < 90.0
-    assert baseline["metrics"]["injection_resistance"] is False
+    assert baseline["metrics"]["injection_resistance"] is True
     assert baseline["metrics"]["tool_contract_coverage"] == 1.0
+    assert baseline["metrics"]["task_completion_rate"] == 0.0
     assert "Do not label the agent production-ready from this artifact." in baseline["failure_conditions"]
+    assert "Do not treat synthetic trace fixtures as live runtime proof." in baseline["failure_conditions"]
     assert "Do not treat static tool inventory as live adapter proof." in baseline["failure_conditions"]
 
 
@@ -64,10 +66,10 @@ def test_web_agent_baseline_report_declares_blockers() -> None:
     text = REPORT.read_text(encoding="utf-8")
 
     required_terms = [
-        "BOOTSTRAP_BASELINE_REFRESHED",
-        "score = 43.0 / 100",
-        "Adversarial prompt-injection fixture exists, but no runtime agent trace has passed.",
-        "Static tool contract inventory exists; live tool adapter behavior is still not proven.",
+        "TRACE_FIXTURE_BASELINE_REFRESHED",
+        "score = 78.4 / 100",
+        "Synthetic prompt-injection trace passes the evaluator, but no live runtime trace exists.",
+        "Decision and memory traces are synthetic fixtures, not live adapter evidence.",
         "Do not call the web agent production-ready from this baseline.",
     ]
 
