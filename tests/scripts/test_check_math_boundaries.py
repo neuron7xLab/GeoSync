@@ -4,9 +4,15 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+from pathlib import Path
 from typing import Any
 
 from scripts.ci.check_math_boundaries import REGISTRY_PATH, check_registry, main
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_GATE = _REPO_ROOT / "scripts" / "ci" / "check_math_boundaries.py"
 
 
 def _good_kernel() -> dict[str, Any]:
@@ -32,6 +38,29 @@ def test_repository_registry_is_consistent() -> None:
 
 def test_registry_file_present() -> None:
     assert REGISTRY_PATH.exists()
+
+
+def test_gate_runs_as_documented_path_invocation() -> None:
+    """Invoke the gate exactly as its shebang/acceptor documents.
+
+    ``python scripts/ci/check_math_boundaries.py`` from the repo root sets
+    ``sys.path[0]`` to ``scripts/ci`` — NOT the repo root. A package import of
+    ``scripts.count_invariants`` raises ``ModuleNotFoundError`` under that
+    invocation while still passing under pytest, so the in-process ``main()``
+    tests above cannot catch the regression. This runs the real command line.
+    """
+    proc = subprocess.run(
+        [sys.executable, str(_GATE)],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, (
+        f"documented path invocation must exit 0; got {proc.returncode}\n"
+        f"stdout={proc.stdout!r}\nstderr={proc.stderr!r}"
+    )
+    assert "Math-boundaries registry passed" in proc.stdout
 
 
 def test_valid_registry_has_no_errors(tmp_path: Any) -> None:

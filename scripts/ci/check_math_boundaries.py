@@ -20,16 +20,43 @@ Exit 0 ⇒ registry consistent; exit 1 ⇒ drift (with the offending entries nam
 
 from __future__ import annotations
 
+import importlib.util
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from scripts.count_invariants import collect_invariant_ids
-
 REPO_ROOT: Path = Path(__file__).resolve().parents[2]
 REGISTRY_PATH: Path = REPO_ROOT / "docs" / "math_boundaries.yaml"
+
+
+def _load_collect_invariant_ids() -> Callable[..., list[str]]:
+    """Load ``collect_invariant_ids`` from ``scripts/count_invariants.py`` by path.
+
+    Importing ``scripts.count_invariants`` as a package only resolves when the
+    repository root sits on ``sys.path`` — i.e. under ``pytest`` or
+    ``python -m``. When this gate is invoked exactly as its shebang/acceptor
+    documents, ``python scripts/ci/check_math_boundaries.py`` from the repo
+    root, Python sets ``sys.path[0]`` to ``scripts/ci`` and the package import
+    raises ``ModuleNotFoundError`` before a single check runs. We cannot patch
+    that with ``sys.path.insert`` — the release-gate ``probe_b_path_hacks``
+    fail-closes on any first-party ``sys.path`` mutation — and we must not
+    re-implement the parser, because ``count_invariants`` is the single source
+    of truth for the invariant set (the four-way drift it exists to prevent).
+    Loading the sibling module by its absolute file path satisfies all three
+    constraints with zero side effects on ``sys.path``.
+    """
+    module_path = REPO_ROOT / "scripts" / "count_invariants.py"
+    spec = importlib.util.spec_from_file_location("geosync_count_invariants", module_path)
+    if spec is None or spec.loader is None:  # pragma: no cover - defensive
+        raise ImportError(f"cannot load invariant registry module at {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    collector: Callable[..., list[str]] = module.collect_invariant_ids
+    return collector
+
 
 _REQUIRED_TEXT_FIELDS: tuple[str, ...] = (
     "name",
@@ -99,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
     """Validate the math-boundaries registry; return 0 if consistent else 1."""
     try:
         registry = _load_registry(REGISTRY_PATH)
-        known = set(collect_invariant_ids())
+        known = set(_load_collect_invariant_ids()())
     except (FileNotFoundError, ValueError, yaml.YAMLError) as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

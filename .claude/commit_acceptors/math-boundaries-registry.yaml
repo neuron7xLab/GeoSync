@@ -20,12 +20,19 @@ promise: >-
   fail-closed gate that verifies every entry is structurally complete, every
   source path exists, every referenced INV-* exists in the canonical invariant
   registry (via scripts.count_invariants.collect_invariant_ids), and every id is
-  unique. The gate is orthogonal to INVARIANTS.yaml (operating preconditions for
-  callers, not the mathematical invariants). Registered in INVENTORY.json. mypy
-  --strict clean, no type:ignore / noqa. tests/scripts/test_check_math_boundaries.py
-  adds 8 cases incl. the shipped registry passing its own gate and each failure
-  mode (missing field, unknown invariant, missing source, duplicate id). No
-  runtime path touched.
+  unique. The canonical invariant set is loaded from scripts/count_invariants.py
+  by absolute file path (importlib) rather than a `scripts.*` package import, so
+  the gate runs identically under pytest, `python -m`, and the documented
+  `python scripts/ci/check_math_boundaries.py` path invocation (whose sys.path[0]
+  is scripts/ci, not the repo root) — with no sys.path mutation (the release-gate
+  probe_b_path_hacks fail-closes on that) and no parser duplication (count_invariants
+  stays the single source of truth). The gate is orthogonal to INVARIANTS.yaml
+  (operating preconditions for callers, not the mathematical invariants). Registered
+  in INVENTORY.json. mypy --strict clean, no type:ignore / noqa.
+  tests/scripts/test_check_math_boundaries.py adds 9 cases incl. the shipped registry
+  passing its own gate, each failure mode (missing field, unknown invariant, missing
+  source, duplicate id), and a subprocess regression that runs the documented path
+  invocation end-to-end. No runtime path touched.
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/math-boundaries-registry.yaml"
@@ -42,10 +49,12 @@ required_python_symbols:
   - "main"
 expected_signal: >-
   python scripts/ci/check_math_boundaries.py exits 0 with "6 kernels, all sources
-  + invariants resolved"; pytest tests/scripts/test_check_math_boundaries.py is
-  green (8 cases) including the shipped registry passing and every failure mode
-  (empty kernels, missing text field, unknown invariant, missing source path,
-  duplicate id) being caught; mypy --strict / ruff / black clean;
+  + invariants resolved" — INCLUDING when run as a bare file path from the repo
+  root (sys.path[0] == scripts/ci), not only under pytest / python -m; pytest
+  tests/scripts/test_check_math_boundaries.py is green (9 cases) including the
+  shipped registry passing, every failure mode (empty kernels, missing text field,
+  unknown invariant, missing source path, duplicate id) being caught, and the
+  subprocess path-invocation regression; mypy --strict / ruff / black clean;
   check_inventory_sync exits 0 with check_math_boundaries.py registered.
 measurement_command: >-
   python -m pytest tests/scripts/test_check_math_boundaries.py -v
