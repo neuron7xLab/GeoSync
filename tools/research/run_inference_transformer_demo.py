@@ -29,14 +29,25 @@ def main(argv: list[str] | None = None) -> int:
     shim("src.geosync", ROOT / "src/geosync")
     shim("src.geosync.research", ROOT / "src/geosync/research")
     shim("src.geosync.research.transformer", BASE)
-    spec = importlib.util.spec_from_file_location("src.geosync.research.transformer.pipeline", PIPELINE)
+    spec = importlib.util.spec_from_file_location(
+        "src.geosync.research.transformer.pipeline", PIPELINE
+    )
     if spec is None or spec.loader is None:
         raise RuntimeError("pipeline import failed")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     artifact = module.write_placeholder_artifact(args.output, git_sha=args.git_sha)
-    print(json.dumps({"status": "PASS", "output": str(args.output), "output_sha256": artifact["output_sha256"]}, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "status": "PASS",
+                "output": str(args.output),
+                "output_sha256": artifact["output_sha256"],
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 
