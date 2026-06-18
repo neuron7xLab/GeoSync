@@ -52,10 +52,8 @@ diff_scope:
     - "forecast/"
     - "policy/"
 required_python_symbols:
-  - file: "geosync/risk/automated_testing.py"
-    symbol: "AutomatedRiskTester"
-  - file: "geosync/risk/risk_core.py"
-    symbol: "var_es"
+  - "geosync/risk/automated_testing.py::AutomatedRiskTester"
+  - "geosync/risk/risk_core.py::var_es"
 expected_signal: >-
   `python -m pytest tests/unit/geosync/risk/test_risk_core.py
   tests/unit/geosync/risk/test_automated_testing.py` passes; canonical

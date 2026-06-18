@@ -54,8 +54,7 @@ diff_scope:
     - "policy/"
     - "src/"
 required_python_symbols:
-  - file: "core/physics/forman_ricci.py"
-    symbol: "DualTrackRicciMonitor"
+  - "core/physics/forman_ricci.py::DualTrackRicciMonitor"
 expected_signal: >-
   `python -m pytest tests/unit/physics/test_T3_forman_ricci.py -k
   "escalation_floor or escalates_smoothly"` reports 2 passed; the escalation

@@ -48,8 +48,8 @@ measurement_command: "bash -c 'mkdir -p tmp && python -m pytest tests/unit/physi
 signal_artifact: "tmp/tsallis_q_robustness.log"
 falsifier:
   command: "bash -c 'mkdir -p tmp && python -c \"import numpy as np,sys; from core.physics.free_energy_trading_gate import FreeEnergyTradingGate as G; g=G(q=1.02); fired=False\ntry:\n g.tsallis_entropy(np.array([np.nan,0.0,0.0]))\nexcept ValueError:\n fired=True\nsys.exit(0 if fired else 1)\" > tmp/tsallis_q_falsifier.log 2>&1'"
-  falsifier_artifact: "tmp/tsallis_q_falsifier.log"
   description: >-
+    Falsifier evidence is written to tmp/tsallis_q_falsifier.log.
     Fail-closed teeth probe with the runner's polarity (exit 0 == green-state
     holds). Feeds a NaN weight and exits 0 IFF tsallis_entropy raises ValueError
     (the guard is live). If the silent-NaN path returns instead of raising, the

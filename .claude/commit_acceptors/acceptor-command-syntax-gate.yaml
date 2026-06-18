@@ -59,8 +59,8 @@ measurement_command: "bash -c 'mkdir -p tmp && python scripts/ci/check_acceptor_
 signal_artifact: "tmp/acceptor_command_syntax.log"
 falsifier:
   command: "bash -c 'mkdir -p tmp && python scripts/ci/check_acceptor_command_syntax.py --selftest > tmp/acceptor_command_syntax_selftest.log 2>&1'"
-  falsifier_artifact: "tmp/acceptor_command_syntax_selftest.log"
   description: >-
+    Falsifier evidence is written to tmp/acceptor_command_syntax_selftest.log.
     Fail-closed teeth probe with the polarity the runner enforces (exit 0 ==
     green-state precondition holds). --selftest builds a temp dir with one
     deliberately broken acceptor (python `import os from sys import path`) and
