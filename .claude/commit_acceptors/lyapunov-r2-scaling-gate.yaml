@@ -28,6 +28,7 @@ diff_scope:
     - path: ".claude/physics/INVARIANTS.yaml"
     - path: "core/physics/lyapunov_exponent.py"
     - path: "tests/unit/physics/test_T22_lyapunov_spectral.py"
+    - path: "tests/unit/physics/test_mle_finite_guard.py"
     - path: "scripts/ci/prove_repo_integrity.sh"
     - path: "scripts/ci/evidence_gate.sh"
     - path: "CLAIMS.md"
