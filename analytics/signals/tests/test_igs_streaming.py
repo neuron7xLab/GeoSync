@@ -16,7 +16,7 @@ def test_streaming_approx_batch(quantize_mode: str):
     np.random.seed(3)
     n = 1500
     prices = 100 + np.cumsum(np.random.randn(n))
-    idx = pd.date_range("2024-01-01", periods=n, freq="T")
+    idx = pd.date_range("2024-01-01", periods=n, freq="min")
     series = pd.Series(prices, index=idx)
 
     cfg = IGSConfig(

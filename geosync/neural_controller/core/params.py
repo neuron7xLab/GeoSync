@@ -5,6 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Mapping
 
+# Canonical facade re-export: ``SensoryConfig``/``PredictiveConfig`` physically
+# live in ``neuro_params`` but the package's public surface (``__init__``,
+# ``bridge``, ``sensory_pipeline`` and the test-suite) imports every config from
+# ``core.params``. Without these re-exports the whole ``neural_controller``
+# package fails to import. The redundant ``as`` alias marks them as an
+# intentional re-export (PEP 484) so linters do not flag them unused.
+from .neuro_params import OBSERVATION_KEYS as OBSERVATION_KEYS
+from .neuro_params import PredictiveConfig as PredictiveConfig
+from .neuro_params import SensoryConfig as SensoryConfig
+
 
 @dataclass(frozen=True)
 class Params:
