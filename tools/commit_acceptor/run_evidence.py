@@ -43,6 +43,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess  # nosec B404 - shell=True is documented and required by spec
 import sys
 from collections.abc import Callable
@@ -460,6 +461,36 @@ def _represent_dict_preserve(dumper: yaml.Dumper, data: dict[str, Any]) -> yaml.
 _OrderedDumper.add_representer(dict, _represent_dict_preserve)
 
 
+def _replace_top_level_block(text: str, key: str, rendered: str) -> str:
+    """Replace (or append) the top-level mapping ``key`` and its value block in
+    *text* with *rendered* (which must itself begin ``key:``), preserving every
+    other byte -- comments, blank lines, and all other scalars (notably the
+    literal-block command scalars) are left untouched.
+
+    A top-level key's value block spans its line plus every following line that
+    is blank, indented, or a block-sequence item (``- ...`` at column 0); it
+    ends at the next line starting with a non-space, non-dash character.
+    """
+    lines = text.split("\n")
+    start = next(
+        (i for i, ln in enumerate(lines) if re.match(rf"{re.escape(key)}:(\s|$)", ln)),
+        None,
+    )
+    rendered_lines = rendered.rstrip("\n").split("\n")
+    if start is None:
+        # Append as the last top-level key (deterministic location).
+        prefix = lines[:-1] if lines and lines[-1] == "" else lines
+        return "\n".join([*prefix, *rendered_lines, ""])
+    end = start + 1
+    while end < len(lines):
+        ln = lines[end]
+        if ln == "" or ln[0] in " \t" or ln.startswith("-"):
+            end += 1
+            continue
+        break
+    return "\n".join([*lines[:start], *rendered_lines, *lines[end:]])
+
+
 def update_acceptor_yaml(
     acceptor_path: Path,
     result: EvidenceResult,
@@ -467,11 +498,14 @@ def update_acceptor_yaml(
     promote_to_verified: bool,
 ) -> None:
     """Write evidence_sha256 (sorted artifact paths) and optional VERIFIED
-    promotion back to the acceptor YAML.
+    promotion back to the acceptor YAML by SURGICAL field update.
 
-    The function preserves the existing top-level key order. Comments are
-    stripped (PyYAML limitation); the acceptor file is otherwise byte-for-byte
-    deterministic between runs with identical inputs.
+    Only the ``status`` line and the ``evidence_sha256`` block are touched; every
+    other byte -- comment headers and the literal-block command scalars -- is
+    preserved verbatim. (The previous full ``yaml.dump`` round-trip stripped all
+    comments and could reflow multi-line command scalars, silently corrupting
+    the very falsifier/measurement commands the acceptor depends on.) The result
+    is byte-for-byte deterministic between runs with identical inputs.
     """
     text = acceptor_path.read_text(encoding="utf-8")
     loaded = yaml.safe_load(text)
@@ -504,19 +538,22 @@ def update_acceptor_yaml(
 
     # Sort the FINAL list alphabetically by artifact path (deterministic).
     sha_entries_sorted = sorted(sha_entries, key=lambda e: e["path"])
-    loaded["evidence_sha256"] = sha_entries_sorted
 
+    # Surgically update status in place (only on promote + success).
     if promote_to_verified and result.success:
-        loaded["status"] = "VERIFIED"
+        text = re.sub(r"^status:[^\n]*", "status: VERIFIED", text, count=1, flags=re.M)
 
-    out = yaml.dump(
-        loaded,
+    rendered = yaml.dump(
+        {"evidence_sha256": sha_entries_sorted},
         Dumper=_OrderedDumper,
         sort_keys=False,
         default_flow_style=False,
         allow_unicode=True,
     )
-    acceptor_path.write_text(out, encoding="utf-8")
+    text = _replace_top_level_block(text, "evidence_sha256", rendered)
+    if not text.endswith("\n"):
+        text += "\n"
+    acceptor_path.write_text(text, encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------

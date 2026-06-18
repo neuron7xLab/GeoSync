@@ -541,3 +541,65 @@ def test_evidence_result_summary_sorted_no_timestamp(tmp_path: Path) -> None:
     assert "generated_at" not in summary
     keys = list(summary["evidence_artifact_sha256"].keys())
     assert keys == sorted(keys)
+
+
+# ---------------------------------------------------------------------------
+# Test 24: update_acceptor_yaml is NON-DESTRUCTIVE -- comment headers and the
+# literal-block command scalars survive a promote round-trip verbatim. Locks in
+# the surgical writer (the old yaml.dump round-trip stripped comments and could
+# reflow `|-` command scalars, corrupting the very commands under test).
+# ---------------------------------------------------------------------------
+
+
+def test_update_yaml_preserves_comments_and_command_scalars(tmp_path: Path) -> None:
+    """promote round-trip must not strip comments or reflow `|-` commands."""
+    acc_text = (
+        "# integrity gate: do NOT delete this header comment.\n"
+        "# second comment line.\n"
+        "id: preserve-probe\n"
+        "status: ACTIVE\n"
+        "claim_type: governance\n"
+        "promise: keep me\n"
+        "diff_scope:\n"
+        "  changed_files:\n"
+        "    - path: tools/commit_acceptor/run_evidence.py\n"
+        "  forbidden_paths:\n"
+        "    - trading/\n"
+        "required_python_symbols:\n"
+        "  - run_acceptor\n"
+        "expected_signal: ok\n"
+        "measurement_command: echo signal\n"
+        "signal_artifact: tmp/signal.log\n"
+        "falsifier:\n"
+        "  command: |-\n"
+        '    bash -c \'python -c "\n'
+        "    import sys\n"
+        "    falsifier_ok = True\n"
+        "    sys.exit(0 if falsifier_ok else 1)\n"
+        "    \"'\n"
+        "  description: probe\n"
+        "  falsifier_artifact: tmp/falsifier.log\n"
+        "rollback_command: git checkout --\n"
+        "rollback_verification_command: git diff --exit-code\n"
+        "memory_update_type: append\n"
+        "ledger_path: .claude/commit_acceptors/preserve-probe.yaml\n"
+        "report_path: docs/reports/test.md\n"
+    )
+    acc_path = tmp_path / "preserve.yaml"
+    acc_path.write_text(acc_text, encoding="utf-8")
+
+    acc = yaml.safe_load(acc_text)
+    original_command = acc["falsifier"]["command"]
+    result = run_acceptor(acc, tmp_path, runner=_fake_runner())
+    update_acceptor_yaml(acc_path, result, promote_to_verified=True)
+
+    new_text = acc_path.read_text(encoding="utf-8")
+    # Comments survive verbatim.
+    assert "# integrity gate: do NOT delete this header comment." in new_text
+    assert "# second comment line." in new_text
+    # The literal-block command scalar is unchanged after reparse.
+    reloaded = yaml.safe_load(new_text)
+    assert reloaded["falsifier"]["command"] == original_command
+    # The mutated fields took effect.
+    assert reloaded["status"] == "VERIFIED"
+    assert isinstance(reloaded["evidence_sha256"], list)
