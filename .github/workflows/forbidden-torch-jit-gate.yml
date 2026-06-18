@@ -12,6 +12,10 @@
 # the test, the policy doc, or this workflow skips the job entirely.
 name: Forbidden Torch JIT Gate
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: [main]

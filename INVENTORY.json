@@ -90,6 +90,10 @@
       "sha256": "5b2afe9b355891c3e4f9bd65ee3faed9d20d2c6406db811841c7ee8953a09c76"
     },
     {
+      "path": "scripts/ci/check_math_boundaries.py",
+      "sha256": "317000852fa2c3482cbe8a2a1f48f41073b17cf07d34632f35f85d2f121fb095"
+    },
+    {
       "path": "scripts/ci/check_n7x_value_functions.py",
       "sha256": "9e461d0dc18942ab2fba792f6dfec773b0ceeed66b6e1aca83b52307e5bd3d59"
     },

@@ -10,6 +10,10 @@
 # or its tests skips the job entirely.
 name: Claim Evidence Gate
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: [main]
