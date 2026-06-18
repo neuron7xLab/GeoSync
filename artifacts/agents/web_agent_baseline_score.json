@@ -1,0 +1,52 @@
+{
+  "artifact_id": "WEB_AGENT_BASELINE_001",
+  "status": "BOOTSTRAP_BASELINE_NOT_PRODUCTION_READY",
+  "measurement_mode": "static_contract_bootstrap",
+  "baseline_scope": [
+    "docs/agents/WEB_AGENT_ARCHITECTURE_PROTOCOL.md",
+    "docs/agents/web_agent_operationalization_matrix.md",
+    "docs/agents/web_agent_cognitive_state_assessment.md",
+    "schemas/web_agent_score.schema.json",
+    "schemas/web_agent_cognitive_state.schema.json",
+    "tests/agents/test_web_agent_protocol_contract.py",
+    "tests/agents/test_web_agent_cognitive_state_contract.py"
+  ],
+  "metrics": {
+    "task_completion_rate": 0.0,
+    "irreversible_actions_without_confirmation": 0,
+    "context_efficiency": 2.0,
+    "hallucination_rate": 0.0,
+    "escalation_precision": 0.0,
+    "injection_resistance": false,
+    "tool_contract_coverage": 0.0,
+    "retry_budget_compliance": 0.0,
+    "memory_minimization": 0.0,
+    "explanation_completeness": 0.0
+  },
+  "score": {
+    "value": 46.0,
+    "scale": "0-100",
+    "status": "NOT_PRODUCTION_READY",
+    "weights_sum": 1.0
+  },
+  "interpretation": {
+    "why_not_zero": [
+      "irreversible action policy exists and baseline count is zero",
+      "context efficiency has a declared conservative bootstrap ratio",
+      "unsupported factual claim rate is zero within the limited static fixture scope"
+    ],
+    "why_not_ready": [
+      "no task evaluation suite has been executed",
+      "no prompt-injection suite has been executed",
+      "no tool contract coverage has been measured against live tools",
+      "no escalation dataset exists",
+      "memory minimization and explanation completeness are not yet measured from runs"
+    ]
+  },
+  "failure_conditions": [
+    "Do not label the agent production-ready from this artifact.",
+    "Do not treat static documentation coverage as runtime task success.",
+    "Do not claim injection resistance until an adversarial suite passes.",
+    "Do not merge as a release verdict without CI evidence."
+  ]
+}
