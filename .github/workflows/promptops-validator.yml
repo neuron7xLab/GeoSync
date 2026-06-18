@@ -1,0 +1,48 @@
+name: PromptOps Validator
+
+on:
+  pull_request:
+    paths:
+      - "examples/promptops/**"
+      - "schemas/promptops/**"
+      - "tools/promptops_validate.py"
+      - "tests/promptops/**"
+      - ".github/workflows/promptops-validator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  promptops-validator:
+    name: PromptOps contract gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pyyaml
+
+      - name: Validate example prompt artifacts
+        run: |
+          python tools/promptops_validate.py examples/promptops --report artifacts/promptops/validation_report.json
+
+      - name: Run PromptOps unit tests
+        run: |
+          python -m pytest tests/promptops -q
+
+      - name: Upload PromptOps report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptops-validation-report
+          path: artifacts/promptops/validation_report.json
+          if-no-files-found: ignore
