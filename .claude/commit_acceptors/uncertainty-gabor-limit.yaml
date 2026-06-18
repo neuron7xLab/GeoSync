@@ -53,11 +53,10 @@ diff_scope:
     - path: "core/indicators/physics.py"
     - path: "tests/unit/physics/test_uncertainty.py"
     - path: "tests/unit/test_indicators_physics.py"
-    - path: "CLAUDE.md"
-    - path: "BASELINE.md"
-    - path: "README.md"
     - path: "scripts/ci/prove_repo_integrity.sh"
     - path: "scripts/ci/evidence_gate.sh"
+    - path: "artifacts/claims_hashes.json"
+    - path: "docs/architecture/claim_graph.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -117,6 +116,9 @@ rollback_command: >-
   README.md
   scripts/ci/prove_repo_integrity.sh
   scripts/ci/evidence_gate.sh
+  CLAIMS.md
+  artifacts/claims_hashes.json
+  docs/architecture/claim_graph.json
   .claude/commit_acceptors/uncertainty-gabor-limit.yaml
 rollback_verification_command: >-
   git diff --exit-code core/physics/uncertainty.py
