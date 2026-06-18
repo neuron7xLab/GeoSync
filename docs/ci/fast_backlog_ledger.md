@@ -31,10 +31,10 @@ surfaced the latent backlog the vacuum had hidden.
 | `analytics_import_shadowing` | 1 | [#1171](https://github.com/neuron7xLab/GeoSync/issues/1171) | ci-import-architecture | quarantined |
 | `adversarial_invariant_count` | 1 | [#1172](https://github.com/neuron7xLab/GeoSync/issues/1172) | governance-registry | quarantined |
 | `numerical_policy_unregistered_clamps` | 1 | [#1173](https://github.com/neuron7xLab/GeoSync/issues/1173) | physics-numerical-policy | quarantined |
-| `tools_import_shadowing` | 1 (14 tests) | [#1178](https://github.com/neuron7xLab/GeoSync/issues/1178) | ci-import-architecture | quarantined |
+| `tools_import_shadowing` | 1 (20 tests) | [#1178](https://github.com/neuron7xLab/GeoSync/issues/1178) | ci-import-architecture | quarantined |
 | `namespace_canonical_policy` | 2 | [#1179](https://github.com/neuron7xLab/GeoSync/issues/1179) | ci-import-architecture | quarantined |
 | `contradiction_ledger_stale` | 1 | [#1180](https://github.com/neuron7xLab/GeoSync/issues/1180) | governance-ledger | **drained** |
-| `d002g_lock_anchor_stale` | 1 | [#1183](https://github.com/neuron7xLab/GeoSync/issues/1183) | governance-lock | quarantined |
+| `d002g_lock_anchor_stale` | 1 | [#1183](https://github.com/neuron7xLab/GeoSync/issues/1183) | governance-lock | **drained** |
 
 **Cluster-count correction (was "1").** The original measurement reported a
 single cluster because the four `cli_import_shadowing` import errors aborted
