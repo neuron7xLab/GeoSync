@@ -49,6 +49,12 @@ _DEFAULT_K_STEPS: Final[int] = 16
 _DEFAULT_INT_STEPS: Final[int] = 200
 _DEFAULT_DT: Final[float] = 0.05
 _AMPLITUDE_FLOOR: Final[float] = 0.0  # INV-SL1 hard bound
+# Numerical-stability clamp on the estimated linear growth rate μ. This is a
+# bounds: (not physics) clamp — μ=0 stays the genuine Hopf threshold inside the
+# band; the band only caps the explicit-Euler Stuart-Landau fixed point at
+# |z|*=√μ ≤ 1 (disk scale of the seeded ensemble) to forbid blow-up on
+# pathological inputs. Realistic per-bar log-amplitude rates are O(1e-2..1e-1).
+_MU_GROWTH_CLAMP: Final[float] = 1.0  # bounds: Euler-stable, |z|*≤1
 
 __all__ = [
     "StuartLandauResult",
@@ -142,24 +148,76 @@ def _validate_prices(prices: NDArray[np.float64], min_T: int = 8) -> None:
         )
 
 
+def _estimate_growth_rate(
+    amplitude_envelope: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Per-asset Stuart-Landau linear growth rate μ from a Hilbert amplitude envelope.
+
+    Derivation
+    ----------
+    The Stuart-Landau amplitude obeys the radial ODE
+
+        d|z|/dt = μ·|z| − |z|³.
+
+    Away from saturation (|z|² ≪ |μ|) the cubic term is negligible and the
+    envelope grows/decays exponentially: |z|(t) ≈ |z|₀·e^{μ·t}, i.e.
+
+        d(ln|z|)/dt = μ.
+
+    So μ is exactly the linear growth/decay rate of the LOG amplitude envelope.
+    We estimate it as the deterministic ordinary-least-squares slope of
+    ln A(t) regressed on bar index t (units: rate per bar). This makes μ a
+    genuine rate with μ < 0 ⟺ decaying (stable focus), μ > 0 ⟺ growing
+    (limit cycle), and μ = 0 the true Hopf threshold — replacing the prior
+    fabricated ``tanh(variance/var_max − 0.5)`` aesthetic map, which had no
+    derivation linking return variance to a growth rate and placed the
+    bifurcation arbitrarily at "half the max variance".
+
+    The OLS slope is closed-form (no iterative fit), hence fully
+    deterministic: μ_i = Σ_t (t−t̄)(lnA_i,t − lnĀ_i) / Σ_t (t−t̄)².
+
+    Reference: Stuart (1960); Landau (1944); Kuramoto (1984) §A.
+    """
+    n_t = amplitude_envelope.shape[0]
+    t = np.arange(n_t, dtype=np.float64)
+    t_centred = t - t.mean()
+    t_var = float((t_centred * t_centred).sum())
+    if t_var <= 0.0:
+        raise ValueError(
+            "INV-SL contract VIOLATED: growth-rate regression needs T≥3 "
+            f"envelope points with nonzero time variance, got n_t={n_t}. "
+            "Source: stuart_landau_es._estimate_growth_rate."
+        )
+    # ln of a strictly positive floored envelope; floor keeps the regression
+    # finite if the analytic amplitude touches zero on a bar.
+    # bounds: 1e-12 floor only guards log(0); does not bias the slope.
+    log_amp = np.log(np.maximum(amplitude_envelope, 1e-12))
+    log_amp_centred = log_amp - log_amp.mean(axis=0)
+    mu = (t_centred[:, None] * log_amp_centred).sum(axis=0) / t_var
+    mu_clamped = np.clip(  # bounds: Euler-stable ±1 (see _MU_GROWTH_CLAMP); μ=0 stays Hopf
+        mu, -_MU_GROWTH_CLAMP, _MU_GROWTH_CLAMP
+    )
+    return mu_clamped.astype(np.float64)
+
+
 def _extract_amplitude_phase_omega(
     prices: NDArray[np.float64],
 ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
     """Hilbert analytic signal of demeaned log-returns → amplitude, phase, ω, μ.
 
     Returns last-bar amplitude / phase, per-asset mean instantaneous frequency,
-    and a μ-estimator from amplitude variance scaled into [-1, 1].
+    and the per-asset linear growth rate μ estimated as the OLS slope of the
+    log analytic-amplitude envelope (see ``_estimate_growth_rate``).
     """
     log_returns = np.diff(np.log(prices), axis=0)
     centred = log_returns - log_returns.mean(axis=0)
     z = hilbert(centred, axis=0)
-    amplitude_last = np.abs(z[-1, :]).astype(np.float64)
+    amplitude_envelope = np.abs(z).astype(np.float64)
+    amplitude_last = amplitude_envelope[-1, :]
     phase_last = np.angle(z[-1, :]).astype(np.float64)
     phase_unwrapped = np.unwrap(np.angle(z), axis=0)
     omega = np.diff(phase_unwrapped, axis=0).mean(axis=0).astype(np.float64)
-    var_per_asset = np.var(log_returns, axis=0, ddof=1)
-    var_max = float(var_per_asset.max())
-    mu_signed = np.tanh(var_per_asset / max(var_max, 1e-12) - 0.5).astype(np.float64)
+    mu_signed = _estimate_growth_rate(amplitude_envelope)
     return amplitude_last, phase_last, omega, mu_signed
 
 
@@ -242,7 +300,9 @@ def fit_stuart_landau(
 
     Steps:
         1. log-returns → Hilbert analytic signal → (A, θ, ω) per asset
-        2. μ_i estimator: signed variance proxy in [-1, 1]
+        2. μ_i = OLS slope of ln(amplitude envelope) vs bar index = the
+           Stuart-Landau linear growth rate (μ<0 stable focus, μ>0 limit
+           cycle, μ=0 Hopf); clamped to ±1 for Euler stability
         3. K-sweep hysteresis on the fitted ensemble (forward + backward)
         4. ES proximity = clip(area / K_range, 0, 1)
 

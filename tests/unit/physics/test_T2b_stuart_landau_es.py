@@ -17,10 +17,113 @@ from scipy.signal import hilbert
 
 from core.physics.stuart_landau_es import (
     StuartLandauResult,
+    _estimate_growth_rate,
+    _extract_amplitude_phase_omega,
     crisis_signal_sl,
     fit_stuart_landau,
     rolling_es_proximity,
 )
+
+
+def _envelope_oscillator_prices(
+    growth_rate: float,
+    T: int = 96,
+    N: int = 4,
+    freq: float = 0.8,
+    amp0: float = 0.01,
+    seed: int = 0,
+) -> NDArray[np.float64]:
+    """Synthetic price panel whose log-return envelope grows/decays at ``growth_rate``.
+
+    Each asset's log-returns are an exponential-envelope sinusoid
+    r_j(t) = amp0 · e^{growth_rate · t} · sin(freq·t + φ_j) + tiny noise, so the
+    Hilbert amplitude envelope A_j(t) ∝ e^{growth_rate · t} and the Stuart-Landau
+    growth rate μ_j must recover ``growth_rate`` in sign:
+        growth_rate < 0 → decaying (stable focus, μ < 0)
+        growth_rate > 0 → growing (limit cycle, μ > 0).
+    """
+    rng = np.random.default_rng(seed)
+    t = np.arange(T - 1, dtype=np.float64)
+    env = np.exp(growth_rate * t)
+    log_rets = np.zeros((T - 1, N), dtype=np.float64)
+    for j in range(N):
+        log_rets[:, j] = amp0 * env * np.sin(freq * t + j) + rng.standard_normal(T - 1) * 1e-5
+    prices: NDArray[np.float64] = np.empty((T, N), dtype=np.float64)
+    prices[0, :] = 100.0
+    prices[1:, :] = 100.0 * np.exp(np.cumsum(log_rets, axis=0))
+    return prices
+
+
+def test_mu_negative_for_stable_decaying_oscillator() -> None:
+    """INV-SL1 substrate: decaying-envelope (stable focus) ⇒ growth rate μ < 0.
+
+    Stuart-Landau μ is the linear growth rate (d ln|z|/dt). A stable focus has a
+    decaying amplitude envelope, so the derived μ must be strictly negative —
+    the genuine Hopf threshold is μ = 0, not the prior fabricated
+    tanh(variance−0.5) map.
+    """
+    mus: list[float] = []
+    for seed in range(6):
+        prices = _envelope_oscillator_prices(growth_rate=-0.05, seed=seed)
+        _, _, _, mu = _extract_amplitude_phase_omega(prices)
+        mus.append(float(mu.max()))  # worst (least-negative) asset
+    worst = max(mus)
+    assert worst < 0.0, (
+        f"INV-SL μ-growth-rate VIOLATED: stable decaying oscillator gave "
+        f"max μ={worst:.6e} ≥ 0, expected μ<0 (decaying envelope = stable focus). "
+        f"μ = OLS slope of ln amplitude envelope; Hopf threshold at μ=0. "
+        f"Tested 6 seeds, growth_rate=-0.05, per-seed max μ={mus}."
+    )
+
+
+def test_mu_positive_for_growing_limit_cycle() -> None:
+    """INV-SL1 substrate: growing-envelope (limit cycle) ⇒ growth rate μ > 0.
+
+    A supercritical Hopf / limit cycle has a growing amplitude envelope, so the
+    derived μ must be strictly positive, mirror-imaging the stable case about
+    the μ=0 Hopf threshold.
+    """
+    mus: list[float] = []
+    for seed in range(6):
+        prices = _envelope_oscillator_prices(growth_rate=+0.05, seed=seed)
+        _, _, _, mu = _extract_amplitude_phase_omega(prices)
+        mus.append(float(mu.min()))  # worst (least-positive) asset
+    worst = min(mus)
+    assert worst > 0.0, (
+        f"INV-SL μ-growth-rate VIOLATED: growing limit-cycle signal gave "
+        f"min μ={worst:.6e} ≤ 0, expected μ>0 (growing envelope = limit cycle). "
+        f"μ = OLS slope of ln amplitude envelope; Hopf threshold at μ=0. "
+        f"Tested 6 seeds, growth_rate=+0.05, per-seed min μ={mus}."
+    )
+
+
+def test_mu_clamped_finite_and_bounded() -> None:
+    """μ stays finite and within the ±1 Euler-stability clamp on all regimes.
+
+    Guards that the growth-rate estimator never emits NaN/Inf and respects the
+    numerical-stability bound feeding the Stuart-Landau RHS (|z|*=√μ ≤ 1), so
+    INV-SL1/SL2 downstream cannot be corrupted by an unbounded μ.
+    """
+    bad: list[tuple[float, float]] = []
+    n_t, n_assets = 8, 3
+    t = np.arange(n_t, dtype=np.float64)
+    # Directly build finite log-envelopes A=e^{rate·t}: short window keeps even
+    # steep rates finite (exp(2·7)≈1.2e6), so the raw OLS slope == rate exactly.
+    # This isolates the estimator+clamp from price-construction overflow.
+    for raw_rate in (-2.0, -0.05, 0.0, 0.05, 2.0):
+        envelope = np.tile(np.exp(raw_rate * t)[:, None], (1, n_assets))
+        mu = _estimate_growth_rate(envelope)
+        if not np.all(np.isfinite(mu)) or np.any(np.abs(mu) > 1.0 + 1e-12):
+            bad.append((raw_rate, float(np.abs(mu).max())))
+        # |rate|>1 must be clamped exactly to the ±1 band, sign preserved
+        if abs(raw_rate) > 1.0 and not np.allclose(mu, np.sign(raw_rate) * 1.0):
+            bad.append((raw_rate, float(np.abs(mu).max())))
+    assert not bad, (
+        f"INV-SL μ bound VIOLATED: μ non-finite, |μ|>1, or steep rate unclamped "
+        f"in {len(bad)} cases. First: {bad[0] if bad else None}. "
+        f"μ clamp = ±1 (Euler-stable, |z|*=√μ≤1). "
+        f"Tested raw rates (-2,-0.05,0,0.05,2) × {n_assets} assets, n_t={n_t}."
+    )
 
 
 def _synthetic_prices(
