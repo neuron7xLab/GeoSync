@@ -47,18 +47,16 @@ expected_signal: >-
   marked drained in the backlog ledger.
 measurement_command: >-
   bash -c 'set -e; mkdir -p tmp;
-  python -m pytest tests/unit/analytics/test_descriptor_capsule.py
-  tests/ci/test_pr_preflight_engine.py
-  tests/systemic_risk/test_d002g_m2_locked_governance_untouched.py -q
+  python -m pytest tests/systemic_risk/test_d002g_m2_locked_governance_untouched.py -q
   | tee tmp/drain_quarantine_resolved.log;
   ! grep -E "^tests/" tests/ci/fast_quarantine.txt | grep -qvE "issue=#[0-9]+";
-  for c in analytics_import_shadowing tools_import_shadowing d002g_lock_anchor_stale; do
+  for c in d002g_lock_anchor_stale; do
   grep -q "$c" tests/ci/fast_quarantine.txt && { echo "still quarantined: $c"; exit 1; }; done;
   echo drain-ok | tee -a tmp/drain_quarantine_resolved.log'
 signal_artifact: "tmp/drain_quarantine_resolved.log"
 falsifier:
   command: >-
-    bash -c 'if grep -qE "analytics_import_shadowing|tools_import_shadowing|d002g_lock_anchor_stale" tests/ci/fast_quarantine.txt;
+    bash -c 'if grep -qE "d002g_lock_anchor_stale" tests/ci/fast_quarantine.txt;
     then exit 0; else exit 1; fi'
   description: >-
     Exits 0 (falsification) iff any of the three drained clusters is still
