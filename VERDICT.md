@@ -1,147 +1,55 @@
-# VERDICT
+# GeoSync Physics Validation Verdict
 
-## Role 1 — First-Principles Physics Auditor
+Status: GENERATED_BY_tools/physics_score.py
+Score type: `static_evidence_oracle_not_runtime_proof`
+S_total: `77.82`
+Target interval: `88.0-92.0`
+Verdict: `FAIL_BELOW_TARGET_BLOCKED_FOR_VALIDATION`
 
-Result: **FAIL**
-
-Total score: **54/90**
-
-## What was added
-
-- `docs/PHYSICS_BOUNDARY_AUDIT.md`
-- `data/physics_boundary_report.json`
-- `schemas/physics_boundary_report.schema.json`
-- `tests/test_physics_boundary_report_schema.py`
-- `VERDICT.md`
-
-## Repository-grounded finding
-
-GeoSync already has a strong claim boundary, claim ledger, research gateway, MFN gateway entrypoints, and release-evidence doctrine. The repo is not prose-only.
-
-The blocking condition is narrower and more important:
+## Evidence added in this iteration
 
 ```text
-A persisted CME trajectory trace contract is missing.
+UQ smoke test: tests/physics/test_uq_smoke.py
+UQ artifact: artifacts/physics_validation/uq_summary.json
+Independent reference solver: reproducibility/reference_solvers/geosync_kuramoto_numpy.py
+Replication test: tests/physics/test_replication.py
+Replication artifact: artifacts/physics_validation/replication_summary.json
+Ricci bridge tests: tests/physics/test_ricci_bridge.py
+Ricci bridge artifact: artifacts/physics_validation/ricci_bridge_summary.json
+Commit acceptors: .claude/commit_acceptors/nfi-physics-*.yaml
 ```
 
-That means the repository can inspect final artifacts, but cannot yet verify the full transformation path:
+## Remaining gates
+
+- CI or local pytest evidence for the new physics tests.
+- Full Ricci graph provenance audit before Ricci can leave experimental status.
+- Immutable BN-Syn and MFN+ source references before those systems can be scored here.
+
+## Metric table
+
+| metric | weight | score | weighted | status |
+|---|---:|---:|---:|---|
+| `S_math_object` | 0.12 | 75.0 | 9.0 | PARTIAL_PASS_TRACEABLE |
+| `S_dimensional_consistency` | 0.1 | 70.0 | 7.0 | PARTIAL_PASS_NO_TYPED_UNITS |
+| `S_numerical_stability` | 0.12 | 82.0 | 9.84 | PARTIAL_PASS_RUNTIME_REQUIRED |
+| `S_invariant_preservation` | 0.12 | 80.0 | 9.6 | PARTIAL_PASS_RUNTIME_REQUIRED |
+| `S_falsifiability` | 0.14 | 82.0 | 11.48 | PARTIAL_PASS_RUNTIME_REQUIRED |
+| `S_baseline_models` | 0.1 | 82.0 | 8.2 | PARTIAL_PASS_RUNTIME_REQUIRED |
+| `S_UQ` | 0.08 | 72.0 | 5.76 | PARTIAL_PASS_RUNTIME_REQUIRED |
+| `S_reproducibility` | 0.08 | 78.0 | 6.24 | PARTIAL_PASS_CI_LOGS_REQUIRED |
+| `S_interface_contracts` | 0.08 | 70.0 | 5.6 | PARTIAL_PASS_RUNTIME_REQUIRED |
+| `S_traceability` | 0.06 | 85.0 | 5.1 | PARTIAL_PASS_RUNTIME_REPORT_PENDING |
+
+## Final decision
 
 ```text
-state_t -> operation_t -> decision_t -> artifact_delta_t -> state_t_plus_1
+CONTROL_PLANE: BUILT
+UQ_SMOKE: ADDED
+INDEPENDENT_REPLICATION: ADDED
+RICCI_BRIDGE_SMOKE: ADDED
+COMMIT_ACCEPTORS: ADDED
+S_TOTAL: 77.82/100
+TARGET: 88-92
+FINAL_PHYSICS_VALIDATION: NO
+MERGE_READY: NO
 ```
-
-## Role 2 — Trajectory Trace Implementer
-
-Result: **IMPLEMENTED AS REPO ARTIFACT / NOT YET S1_TESTED**
-
-Role 2 added the missing persisted trajectory trace surface:
-
-```text
-schemas/cme_trajectory_trace.schema.json
-data/cme_trajectory_trace_example.json
-tools/research/record_cme_trajectory_trace.py
-tests/test_cme_trajectory_trace_schema.py
-```
-
-It also updated:
-
-```text
-docs/CME_PHYSICS_RND_LOOP.md
-VERDICT.md
-```
-
-The implemented trace fields are:
-
-```text
-trace_id
-state_t
-operation_t
-candidate_t
-score_t
-decision_t
-artifact_delta_t
-rollback_condition_t
-state_t_plus_1
-verifiers
-claim_status
-```
-
-Role 2 converts the Role 1 missing condition into a state-space record:
-
-```text
-state_t -> operation_t -> candidate_t -> score_t -> decision_t -> artifact_delta_t -> rollback_condition_t -> state_t_plus_1
-```
-
-## Validation status
-
-The required validation commands are recorded but were not executed against the live GitHub repository in this connector session.
-
-Required Role 1 commands:
-
-```bash
-python -m pytest tests/test_physics_boundary_report_schema.py -q
-python -m pytest -q
-ruff check .
-python -m cme.cli bibliography validate || true
-python -m cme.cli verdict . || true
-```
-
-Required Role 2 commands:
-
-```bash
-python tools/research/record_cme_trajectory_trace.py data/cme_trajectory_trace_example.json
-python -m pytest tests/test_cme_trajectory_trace_schema.py -q
-python -m pytest -q
-ruff check .
-```
-
-Known command-surface issue:
-
-```text
-python -m cme.cli ... is requested by the CME prompt, but pyproject.toml exposes GeoSync and MFN entrypoints, not a cme package entrypoint.
-```
-
-## Claim status impact
-
-- No research claim was promoted.
-- No market-performance claim was added.
-- No physical-law claim was added.
-- No proxy metric was reported as measurement.
-- Role 1 remains an audit artifact.
-- Role 2 remains a trajectory-contract artifact until commands produce persisted evidence.
-
-## Role 3 handoff
-
-Role 3: `EVIDENCE_BUNDLE_IMPLEMENTER`
-
-Create:
-
-```text
-schemas/cme_evidence_bundle.schema.json
-data/cme_evidence_bundle_example.json
-tools/research/build_cme_evidence_bundle.py
-tests/test_cme_evidence_bundle_schema.py
-```
-
-Modify:
-
-```text
-VERDICT.md
-docs/CME_PHYSICS_RND_LOOP.md
-```
-
-Role 3 must connect validation commands to persisted evidence records:
-
-```text
-command
-exit_code
-stdout_path
-stderr_path
-artifact_paths
-trace_id
-verifier_status
-```
-
-## Final verdict
-
-Role 1 is complete as a boundary audit artifact. Role 2 is implemented as a trajectory trace contract. The system verdict remains **FAIL** until local or CI execution produces persisted evidence for the validation commands.

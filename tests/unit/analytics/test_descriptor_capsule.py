@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import os
 import sys
 from pathlib import Path
 
@@ -90,10 +91,18 @@ def test_fail_closed_on_bad_config(bad: dict) -> None:
 def test_cli_smoke(tmp_path: Path) -> None:
     cfg = tmp_path / "cfg.json"
     cfg.write_text(json.dumps(BASE_CONFIG), encoding="utf-8")
+    # The repo is not editable-installed in CI; pytest's rootdir puts the repo on
+    # this process's sys.path but that does NOT propagate to a child process. Pass
+    # the repo root via PYTHONPATH so the subprocess can import `analytics`
+    # regardless of install mode (this is what made #1171 a CI-only failure).
+    repo_root = Path(__file__).resolve().parents[3]
+    env = {**os.environ, "PYTHONPATH": str(repo_root) + os.pathsep + os.environ.get("PYTHONPATH", "")}
     proc = subprocess.run(
         [sys.executable, "scripts/run_descriptor_capsule.py", "--config-file", str(cfg)],
         capture_output=True,
         text=True,
+        cwd=str(repo_root),
+        env=env,
     )
     assert proc.returncode == 0, proc.stderr
     out = json.loads(proc.stdout)

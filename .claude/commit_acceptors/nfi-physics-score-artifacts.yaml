@@ -1,0 +1,34 @@
+id: nfi-physics-score-artifacts
+status: DRAFT
+claim_type: correctness
+promise: "NFI physics score, schema, reproducibility manifest, and validation artifacts are bound to deterministic scoring and fail-closed blocker reporting."
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/nfi-physics-score-artifacts.yaml"
+    - path: "tools/physics_score.py"
+    - path: "schemas/physics_metrics.schema.json"
+    - path: "artifacts/physics_validation/baseline_score.json"
+    - path: "artifacts/physics_validation/uq_summary.json"
+    - path: "artifacts/physics_validation/replication_summary.json"
+    - path: "artifacts/physics_validation/ricci_bridge_summary.json"
+    - path: "reproducibility/manifest.json"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols:
+  - "build_score"
+  - "build_metrics"
+expected_signal: "physics score is computed from evidence carriers and remains fail-closed below the target interval"
+measurement_command: "python tools/physics_score.py --write && python -m pytest tests/test_physics_score.py"
+signal_artifact: "artifacts/physics_validation/baseline_score.json"
+falsifier:
+  command: "python -c \"import json; p='artifacts/physics_validation/baseline_score.json'; s=json.load(open(p)); raise SystemExit(0 if s['S_total'] < 88 and s['verdict'].startswith('FAIL') else 1)\""
+  description: "Fails if the score artifact claims target rank before HIGH blockers are closed."
+rollback_command: "git checkout -- tools/physics_score.py schemas/physics_metrics.schema.json artifacts/physics_validation/baseline_score.json artifacts/physics_validation/uq_summary.json artifacts/physics_validation/replication_summary.json artifacts/physics_validation/ricci_bridge_summary.json reproducibility/manifest.json .claude/commit_acceptors/nfi-physics-score-artifacts.yaml"
+rollback_verification_command: "git diff --exit-code tools/physics_score.py schemas/physics_metrics.schema.json artifacts/physics_validation/baseline_score.json artifacts/physics_validation/uq_summary.json artifacts/physics_validation/replication_summary.json artifacts/physics_validation/ricci_bridge_summary.json reproducibility/manifest.json .claude/commit_acceptors/nfi-physics-score-artifacts.yaml"
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/nfi-physics-score-artifacts.yaml"
+report_path: "VERDICT.md"
+evidence: []

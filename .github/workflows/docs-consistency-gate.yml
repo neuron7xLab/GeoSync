@@ -9,6 +9,10 @@
 # Path-filtered: a PR touching no Markdown, the checker, or the allowlist skips.
 name: Docs Consistency Gate
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: [main]

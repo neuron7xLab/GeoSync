@@ -9,6 +9,10 @@
 # skips entirely.
 name: Import Architecture Gate
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: [main]

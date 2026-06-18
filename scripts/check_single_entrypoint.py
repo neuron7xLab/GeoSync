@@ -51,6 +51,10 @@ def _discover_entrypoints(root: Path) -> set[Path]:
         target = root / directory
         if target.is_dir():
             for candidate in target.glob("*.py"):
+                # A package initializer is never a CLI entrypoint; skip it so a
+                # plain `__init__.py` (package marker) is not mis-flagged.
+                if candidate.name == "__init__.py":
+                    continue
                 discovered.add(candidate.resolve())
     for main_file in root.rglob("__main__.py"):
         # Skip files inside excluded directories (e.g. .venv third-party packages)
