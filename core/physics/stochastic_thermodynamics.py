@@ -78,11 +78,14 @@ Public surface
 * :func:`langevin_ensemble_step` — one vectorized Euler-Maruyama step of
   an ensemble in a harmonic well of given stiffness.
 * :func:`stiffness_ramp_work` — ensemble **work** array for a linear
-  stiffness-ramp protocol (the Jarzynski observable).
+  stiffness-ramp protocol (the Jarzynski observable). Fails closed on a
+  pre-ramp equipartition-witness violation (INV-ST1).
 * :func:`stationary_samples` — draws from the Boltzmann stationary
   distribution by relaxing an ensemble; the equipartition witness.
 * :func:`jarzynski_average` — :math:`\langle e^{-\beta W}\rangle` of a work
-  array.
+  array, with a fail-closed effective-sample-size underflow guard.
+* :func:`equipartition_band` — the 1/√M sampling-noise band used by the
+  pre-ramp equipartition witness.
 
 All functions are pure, NumPy-vectorized, deterministic for a given seed,
 and ``mypy --strict`` clean. No I/O, no hidden state.
@@ -112,6 +115,7 @@ __all__ = [
     "stiffness_ramp_work",
     "stationary_samples",
     "jarzynski_average",
+    "equipartition_band",
 ]
 
 FloatArray = npt.NDArray[np.float64]
@@ -122,11 +126,98 @@ _DEFAULT_ENSEMBLE: Final[int] = 40_000
 _DEFAULT_TAU: Final[float] = 1.0
 _DEFAULT_DT: Final[float] = 0.005
 
+# Pre-ramp equipartition witness (INV-ST1) band.
+#
+# For x ~ N(0, σ²) with σ² = kT/k_i, the unbiased sample-variance estimator
+# s² has, by the χ²_{M-1} sampling law, relative standard error
+#
+#     SE[s²] / σ² = sqrt( 2 / (M - 1) ),
+#
+# so the band on the relative deviation |s² − σ²|/σ² is grounded in 1/√M
+# (Monte-Carlo sampling noise), NOT a hand-tuned constant. We fail closed at
+# ``_EQUIPARTITION_NSIGMA`` standard errors: a draw whose variance lands beyond
+# that band signals a mis-specified initial ensemble (wrong σ², a degenerate
+# RNG, or a broken kT/k_i scaling) and is rejected before any work accrues.
+#
+# The witness requires a minimum ensemble: below ``_EQUIPARTITION_MIN_ENSEMBLE``
+# the 6-σ band exceeds 100 % of σ² and the test would be vacuous (it could not
+# distinguish a correct draw from a grossly wrong one), so we refuse to run the
+# Jarzynski protocol on an ensemble too small to carry the witness.
+_EQUIPARTITION_NSIGMA: Final[float] = 6.0
+_EQUIPARTITION_MIN_ENSEMBLE: Final[int] = 100
+
+# Jarzynski exponential-average outlier guard (INV-ST2 numerical hygiene).
+#
+# ⟨e^{−βW}⟩ is dominated by the rare low-W tail. If a handful of extreme-low
+# samples carry essentially all the weight, the estimator is statistically
+# under-resolved (its variance is governed by a few draws, not M of them).
+# We measure the normalised effective sample size
+#
+#     ESS / M = (Σ wᵢ)² / (M · Σ wᵢ²),   wᵢ = e^{−β(Wᵢ − W_min)},
+#
+# and emit a guard when the effective fraction collapses below this floor, so
+# silent tail-underflow cannot masquerade as convergence.
+_JARZYNSKI_MIN_ESS_FRACTION: Final[float] = 1.0e-3
+
 
 def _validate_positive(name: str, value: float) -> None:
     """Fail-closed guard: physical scales must be strictly positive and finite."""
     if not np.isfinite(value) or value <= 0.0:
         raise ValueError(f"{name} must be a positive finite float, got {value!r}")
+
+
+def equipartition_band(ensemble: int, *, n_sigma: float = _EQUIPARTITION_NSIGMA) -> float:
+    r"""Relative-deviation band for the pre-ramp equipartition witness (INV-ST1).
+
+    Returns ``n_sigma · sqrt(2 / (ensemble − 1))``, the ``n_sigma``-standard-error
+    band on the relative deviation of the sample variance from ``kT/k`` for a
+    Gaussian ensemble of size ``ensemble``. This is the 1/√M Monte-Carlo
+    sampling-noise scale, not a tuned tolerance.
+
+    Parameters
+    ----------
+    ensemble:
+        Number of independent samples ``M`` (must be ≥ 2).
+    n_sigma:
+        Number of sampling standard errors for the fail-closed band.
+    """
+    if ensemble < 2:
+        raise ValueError(f"ensemble must be ≥ 2 for a variance band, got {ensemble!r}")
+    return float(n_sigma) * float(np.sqrt(2.0 / (ensemble - 1)))
+
+
+def _assert_equipartition(
+    x: FloatArray,
+    *,
+    expected_var: float,
+    n_sigma: float = _EQUIPARTITION_NSIGMA,
+    context: str,
+) -> None:
+    r"""Fail-closed INV-ST1 witness on a drawn ensemble (raises ``ValueError``).
+
+    Checks that ``Var(x)`` matches the equipartition value ``expected_var =
+    kT/k`` within the 1/√M sampling band. Used as the *pre-ramp* witness so a
+    mis-initialised Jarzynski ensemble is rejected before any work accrues.
+    """
+    ensemble = int(x.shape[0])
+    if ensemble < _EQUIPARTITION_MIN_ENSEMBLE:
+        raise ValueError(
+            f"INV-ST1 witness requires ensemble ≥ {_EQUIPARTITION_MIN_ENSEMBLE} "
+            f"to be non-vacuous (the {n_sigma:.0f}-σ band exceeds 100 % below it), "
+            f"got ensemble={ensemble} for {context}."
+        )
+    observed_var = float(np.var(x))
+    rel_dev = abs(observed_var - expected_var) / expected_var
+    band = equipartition_band(ensemble, n_sigma=n_sigma)
+    if not (rel_dev < band):
+        raise ValueError(
+            f"INV-ST1 VIOLATED ({context}): Var(x)={observed_var:.6f} vs "
+            f"kT/k={expected_var:.6f}, rel_dev={rel_dev:.5f} exceeds the "
+            f"{n_sigma:.0f}-σ equipartition band={band:.5f} "
+            f"(= {n_sigma:.0f}·sqrt(2/(M−1)), M={ensemble}). The initial ensemble "
+            f"does not match the Boltzmann equilibrium Var(x)=kT/k of the initial "
+            f"well; the Jarzynski estimate would be biased. Refusing to ramp."
+        )
 
 
 def harmonic_free_energy(k: float, kT: float = 1.0) -> float:
@@ -295,10 +386,24 @@ def stiffness_ramp_work(
         raise ValueError(f"tau/dt must yield ≥1 step, got tau={tau}, dt={dt}")
 
     x = rng.standard_normal(ensemble) * float(np.sqrt(kT / ki))
+    # Fail-closed PRE-RAMP equipartition witness (INV-ST1): the initial ensemble
+    # MUST sit at the Boltzmann equilibrium of the initial well, Var(x)=kT/k_i,
+    # within the 1/√M sampling band. A mis-initialised ensemble silently biases
+    # ⟨e^{−βW}⟩; we reject it before a single unit of work is accumulated.
+    _assert_equipartition(
+        x,
+        expected_var=kT / ki,
+        context=f"pre-ramp init at ki={ki}, kT={kT}, seed={seed}",
+    )
     work = np.zeros(ensemble, dtype=np.float64)
     for i in range(n_steps):
         k_cur = ki + (kf - ki) * i / n_steps
         k_next = ki + (kf - ki) * (i + 1) / n_steps
+        # Sekimoto work increment dW = (∂V/∂k) dk = ½ x² dk. The ½ is
+        # load-bearing: dropping it (i.e. dW = x² dk, "off by a factor of 2")
+        # doubles every work value and collapses ⟨e^{−βW}⟩ from 0.5 to ≈0.31
+        # for the reference ramp — a ~38 % bias that the INV-ST2 anchor and the
+        # factor-2 adversarial test both detect.
         work += 0.5 * (k_next - k_cur) * x * x
         x = langevin_ensemble_step(x, k=k_next, dt=dt, kT=kT, gamma=gamma, rng=rng)
     return work
@@ -362,12 +467,35 @@ def stationary_samples(
     return x
 
 
-def jarzynski_average(work: FloatArray, kT: float = 1.0) -> float:
+def jarzynski_average(
+    work: FloatArray,
+    kT: float = 1.0,
+    *,
+    min_ess_fraction: float = _JARZYNSKI_MIN_ESS_FRACTION,
+) -> float:
     r"""Exponential work average :math:`\langle e^{-\beta W}\rangle`.
 
     The Jarzynski estimator of :math:`e^{-\beta \Delta F}`. Computed in a
     shifted-exponential form for numerical stability:
     :math:`\langle e^{-\beta(W - W_{\min})}\rangle\, e^{-\beta W_{\min}}`.
+
+    Outlier / underflow guard
+    -------------------------
+    ⟨e^{−βW}⟩ is dominated by the rare low-:math:`W` tail. When a handful of
+    extreme-low-work samples carry essentially all the exponential weight, the
+    estimator is statistically under-resolved and may silently *underflow* (the
+    bulk terms round to zero, leaving the mean determined by a few draws). We
+    measure the normalised effective sample size
+
+    .. math::
+
+        \mathrm{ESS}/M = \frac{(\sum_i w_i)^2}{M \sum_i w_i^2},
+        \qquad w_i = e^{-\beta (W_i - W_{\min})},
+
+    and raise :class:`ValueError` when it collapses below ``min_ess_fraction``.
+    This is a fail-closed numerical-hygiene check: a near-zero ESS means the
+    reported average is not a converged ensemble quantity and must not be
+    trusted as :math:`e^{-\beta\Delta F}`.
 
     Parameters
     ----------
@@ -375,11 +503,29 @@ def jarzynski_average(work: FloatArray, kT: float = 1.0) -> float:
         Ensemble work array.
     kT:
         Thermal energy, strictly positive.
+    min_ess_fraction:
+        Minimum tolerated ESS/M before the estimator is rejected as
+        tail-underflowed. The default ``1e-3`` admits the converged reference
+        runs (ESS/M ≈ 0.3–0.6) while rejecting degenerate single-draw weight.
     """
     _validate_positive("kT", kT)
     if work.size == 0:
         raise ValueError("work array must be non-empty")
+    if not np.all(np.isfinite(work)):
+        raise ValueError("work array must be finite (no NaN/inf)")
     beta = 1.0 / kT
     w_min = float(np.min(work))
-    shifted = float(np.mean(np.exp(-beta * (work - w_min))))
+    weights = np.exp(-beta * (work - w_min))  # ∈ (0, 1], anchored at the minimum
+    sum_w = float(np.sum(weights))
+    sum_w2 = float(np.sum(weights * weights))
+    ess_fraction = (sum_w * sum_w) / (float(work.size) * sum_w2)
+    if ess_fraction < min_ess_fraction:
+        raise ValueError(
+            f"Jarzynski estimator under-resolved: ESS/M={ess_fraction:.2e} below "
+            f"floor {min_ess_fraction:.2e}. The exponential average is carried by "
+            f"a vanishing fraction of the {work.size} samples (low-W tail "
+            f"underflow); ⟨e^(−βW)⟩ is not a converged ensemble quantity and is "
+            f"refused. Increase the ensemble or slow the protocol."
+        )
+    shifted = sum_w / float(work.size)
     return shifted * float(np.exp(-beta * w_min))
