@@ -46,9 +46,9 @@ diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/diffusion-rank-propagation-relabel.yaml"
     - path: "core/physics/diffusion_predictor.py"
-      sha256: "9dae70f063b807fc4cdcf2b36e3832b9d3e3907e440678665e27e75632f28999"
+      sha256: "9dae70f063b807fc4cdcf2b36e3832b9d3e3907e440678665e27e75632f28999"  # pragma: allowlist secret
     - path: "tests/unit/physics/test_T7_diffusion_predictor.py"
-      sha256: "e09db779887149ada123f84d620b5c5b5cbacb693fa7d92e5bd7a5868347d206"
+      sha256: "e09db779887149ada123f84d620b5c5b5cbacb693fa7d92e5bd7a5868347d206"  # pragma: allowlist secret
   forbidden_paths:
     - "trading/"
     - "execution/"
