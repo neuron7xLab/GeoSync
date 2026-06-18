@@ -5,7 +5,10 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from core.kuramoto.kuramoto_ricci_engine import phase_transition_boundary, ricci_to_adjacency
+from core.kuramoto.kuramoto_ricci_engine import (
+    phase_transition_boundary,
+    ricci_to_adjacency,
+)
 
 
 def test_ricci_to_adjacency_is_bounded_nonnegative_symmetric_zero_diagonal() -> None:
@@ -24,14 +27,13 @@ def test_ricci_to_adjacency_is_bounded_nonnegative_symmetric_zero_diagonal() -> 
     assert float(jnp.max(adjacency)) <= 1.0
 
 
-def test_signed_curvature_cannot_enter_boundary_without_mapping() -> None:
-    signed_kappa = jnp.asarray([[0.0, -0.2], [-0.2, 0.0]])
+def test_curvature_input_must_be_mapped_before_boundary_calculation() -> None:
+    kappa = jnp.asarray([[0.0, -0.2], [-0.2, 0.0]])
     with pytest.raises(ValueError, match="non-negative"):
-        phase_transition_boundary(K=1.0, lorentzian_half_width=0.4, A=signed_kappa)
+        phase_transition_boundary(K=1.0, lorentzian_half_width=0.4, A=kappa)
 
 
-def test_ricci_matched_null_keeps_canonical_boundary_interpretation_experimental() -> None:
-    """Ricci mapping may change lambda_max, but that is not a canonical proof."""
+def test_ricci_matched_comparison_keeps_bridge_experimental() -> None:
     kappa = jnp.asarray(
         [
             [0.0, 0.9, -0.4, 0.2],
@@ -48,8 +50,16 @@ def test_ricci_matched_null_keeps_canonical_boundary_interpretation_experimental
     for (i, j), weight in zip(edge_order, weights, strict=True):
         null_adjacency[i, j] = null_adjacency[j, i] = float(weight)
 
-    ricci_report = phase_transition_boundary(K=1.0, lorentzian_half_width=0.4, A=ricci_adjacency)
-    null_report = phase_transition_boundary(K=1.0, lorentzian_half_width=0.4, A=jnp.asarray(null_adjacency))
+    ricci_report = phase_transition_boundary(
+        K=1.0,
+        lorentzian_half_width=0.4,
+        A=ricci_adjacency,
+    )
+    null_report = phase_transition_boundary(
+        K=1.0,
+        lorentzian_half_width=0.4,
+        A=jnp.asarray(null_adjacency),
+    )
 
     assert ricci_report.lambda_max_A >= 0.0
     assert null_report.lambda_max_A >= 0.0
