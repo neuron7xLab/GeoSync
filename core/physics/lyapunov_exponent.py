@@ -45,18 +45,44 @@ Invariants:
         carrying NaN/±Inf. It NEVER returns NaN/±Inf and NEVER masks a
         degenerate input as a spurious ``λ=0`` "stable regime".
     INV-LE2: MLE(noise) ≈ 0; MLE(stable oscillator) < 0; MLE(logistic chaos) > 0
+    INV-LE3: the log-divergence linear fit must reach R² ≥ R2_MIN, otherwise
+             the divergence curve is not in a clean Rosenstein scaling region
+             and the slope is NOT a trustworthy λ — fail closed to the
+             "no reliable estimate" sentinel (0.0), never a silent slope.
 """
 
 from __future__ import annotations
 
 import logging
 import math
-from typing import Optional
+from typing import MutableMapping, Optional
 
 import numpy as np
 from numpy.typing import NDArray
 
 _LOGGER = logging.getLogger("geosync.physics.lyapunov")
+
+# INV-LE3: minimum coefficient of determination R² for the least-squares fit
+# of ln(divergence) vs time to be accepted as a Rosenstein scaling region.
+#
+# Basis. Rosenstein, Collins & De Luca (1993, Physica D 65:117) state the
+# largest Lyapunov exponent is the slope of the "most linear region" of the
+# average log-divergence curve ⟨ln d_j⟩ vs j·Δt; the method is only valid where
+# that curve is genuinely linear. A noisy or curved window yields a slope with
+# no dynamical meaning. R² = 1 − SS_res/SS_tot is the standard, unit-free
+# goodness-of-linear-fit measure on exactly those (t, ln d) points. We require
+# R² ≥ 0.80, i.e. the linear model must explain ≥ 80% of the variance of the
+# log-divergence curve before its slope is reported as λ. 0.80 is the common
+# "strong linear relationship" threshold used as the acceptance floor for
+# scaling-region fits in the nonlinear-time-series literature (and matches the
+# repo's own DRO regression floor R2_MIN = 0.90 family of fit gates; we use the
+# slightly looser 0.80 here because the Rosenstein curve is an ensemble average
+# over finitely many neighbor pairs and carries irreducible sampling noise even
+# in clean chaos). Below the floor the estimate is flagged non-scaling and the
+# function fails closed to 0.0 (the module's existing "no reliable estimate"
+# sentinel, identical to the short-series / degenerate-fit paths), so a
+# meaningless slope can never silently become a chaos/stability verdict.
+R2_MIN: float = 0.80
 
 
 def delay_embed(
@@ -100,6 +126,7 @@ def maximal_lyapunov_exponent(
     max_divergence_steps: Optional[int] = None,
     min_temporal_separation: Optional[int] = None,
     dt: float = 1.0,
+    diagnostics: Optional[MutableMapping[str, float]] = None,
 ) -> float:
     """Estimate the maximal Lyapunov exponent from a scalar time series.
 
@@ -121,11 +148,22 @@ def maximal_lyapunov_exponent(
     dt : float
         Time step between samples (default 1.0). Scales the exponent
         to physical units: λ has units of 1/dt.
+    diagnostics : MutableMapping[str, float], optional
+        If provided, populated with observability fields for the fit:
+        ``"r_squared"`` (R² of the log-divergence linear fit; NaN when no
+        fit was performed), ``"slope"`` (raw least-squares slope before the
+        INV-LE3 gate; NaN when no fit), ``"n_fit"`` (number of points in the
+        fit window), and ``"scaling_ok"`` (1.0 if R² ≥ R2_MIN and the slope
+        was accepted as λ, else 0.0). Does not change the float return.
 
     Returns
     -------
     float
         Estimated λ_max. Positive = chaos, negative = stability, ≈0 = marginal.
+        Returns 0.0 ("no reliable estimate" sentinel) for series too short to
+        estimate, degenerate fits, OR — INV-LE3 — when the log-divergence fit
+        fails the R² ≥ R2_MIN scaling-region gate (curve not linear → slope is
+        not a trustworthy λ; fail closed, never a silent slope).
 
     Raises
     ------
@@ -138,6 +176,15 @@ def maximal_lyapunov_exponent(
         The estimator never returns NaN/±Inf and never reports a spurious
         ``λ=0`` for a series that has no divergence to measure.
     """
+
+    def _record(r_squared: float, slope: float, n_fit: int, scaling_ok: bool) -> None:
+        if diagnostics is not None:
+            diagnostics["r_squared"] = r_squared
+            diagnostics["slope"] = slope
+            diagnostics["n_fit"] = float(n_fit)
+            diagnostics["scaling_ok"] = 1.0 if scaling_ok else 0.0
+
+    _record(math.nan, math.nan, 0, False)
     x = np.asarray(x, dtype=np.float64).ravel()
 
     # INV-LE1 (fail-closed): a non-finite input has no defined embedding and
@@ -311,6 +358,46 @@ def maximal_lyapunov_exponent(
             "real for a valid trajectory; fail closed rather than emit NaN/±Inf."
         )
 
+    # INV-LE3: goodness-of-fit / scaling-region gate.
+    # The Rosenstein slope is only a valid λ on the LINEAR scaling region of
+    # the log-divergence curve. Quantify linearity with the coefficient of
+    # determination R² = 1 − SS_res/SS_tot on the (t, ln d) fit points. A
+    # noisy or curved window gives a low R² and a meaningless slope.
+    intercept = y_mean - slope * t_mean
+    y_pred = slope * t_fit + intercept
+    ss_res = float(np.sum((y_fit - y_pred) ** 2))
+    ss_tot = float(np.sum((y_fit - y_mean) ** 2))
+    n_fit = int(t_fit.size)
+    # ss_tot == 0 ⟹ the log-divergence is flat (slope 0 already, no scaling):
+    # there is no linear structure to trust → fail closed.
+    if ss_tot < 1e-30:
+        _record(0.0, slope, n_fit, False)
+        return 0.0
+    r_squared = 1.0 - ss_res / ss_tot
+    if not math.isfinite(r_squared):
+        _record(math.nan, slope, n_fit, False)
+        return 0.0
+
+    if r_squared < R2_MIN:
+        # Fail closed: the divergence curve is not in a clean linear scaling
+        # region, so the slope is not a trustworthy λ. Return the module's
+        # existing "no reliable estimate" sentinel (0.0) — the same value the
+        # short-series / degenerate-fit paths return — rather than a silent,
+        # physically meaningless slope. Surface the event (OA-defect lesson:
+        # a demoted physical quantity must be observable, not hidden).
+        _LOGGER.warning(
+            "maximal_lyapunov_exponent: log-divergence fit R²=%.4f < R2_MIN=%.2f "
+            "(INV-LE3). Not a Rosenstein scaling region; demoting slope=%.4f to "
+            "the no-reliable-estimate sentinel 0.0 over n_fit=%d points.",
+            r_squared,
+            R2_MIN,
+            slope,
+            n_fit,
+        )
+        _record(r_squared, slope, n_fit, False)
+        return 0.0
+
+    _record(r_squared, slope, n_fit, True)
     return float(slope)
 
 

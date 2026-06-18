@@ -56,7 +56,7 @@ GeoSync is a verification-first quantitative research platform with neuroscience
 
 ---
 
-## INVARIANT REGISTRY — 107 invariants loaded by kernel self-check
+## INVARIANT REGISTRY — 108 invariants loaded by kernel self-check
 
 > **Single source of truth:** `.claude/physics/INVARIANTS.yaml` (`python scripts/count_invariants.py`). The 2026-04-30 external audit corrected a four-way drift (`57 / 66 / 67 / 87`); CI gate `invariant-count-sync` now fail-closes on any future divergence between this header, README badges, BASELINE.md, and the registry.
 
@@ -124,6 +124,12 @@ INV-OA3 | asymptotic  | K < 2Δ ⟹ R(t→∞) → 0 (matches INV-K2 subcritical
 ```
 INV-LE1 | universal   | MLE is finite for any bounded finite input series | P0
 INV-LE2 | qualitative | MLE(noise)≈0, MLE(stable)<0, MLE(chaos)>0       | P1
+INV-LE3 | algebraic   | R²(log-divergence linear fit) ≥ R2_MIN (=0.80) OR | P0
+                      | estimate flagged non-scaling and fails closed to
+                      | 0.0 (never a silent slope). Rosenstein is valid only
+                      | on the LINEAR scaling region; R²<R2_MIN ⟹ no
+                      | reliable λ. diagnostics dict exposes r_squared/
+                      | slope/n_fit/scaling_ok. Demotes only, never fabricates.
          Source: core/physics/lyapunov_exponent.py
          Tests:  tests/unit/physics/test_T22_lyapunov_spectral.py
 ```
@@ -495,7 +501,7 @@ assert result.order > 0      # no INV, no context
 | `*kuramoto*`, `*sync*`, `*phase*` | INV-K1..K10 |
 | `*explosive*`, `*hysteresis*` | INV-ES1..2 |
 | `*ott_antonsen*`, `*chimera*` | INV-OA1..3 |
-| `*lyapunov_exponent*`, `*mle*` | INV-LE1..2 |
+| `*lyapunov_exponent*`, `*mle*` | INV-LE1..3 |
 | `*lyapunov_spectrum*`, `*benettin*`, `*law_T2*` | INV-LY1..3 |
 | `*kuramoto_ricci*`, `*law_T1*`, `*sync_onset*` | INV-KR1..3 |
 | `*lyapunov_calibration*`, `*law_T3*`, `*calibrate_coupling*` | INV-CAL1..3 |

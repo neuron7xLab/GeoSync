@@ -894,13 +894,30 @@ lyapunov_exponent:
   mle_sign_semantics:
     id: INV-LE2
     type: qualitative
-    statement: "MLE(white noise) ≈ 0; MLE(damped oscillator) < 0; MLE(logistic map r=4) > 0"
+    statement: "MLE(white noise) ≈ 0; MLE(stable logistic r=2.8) < 0; MLE(logistic map r=4) > 0"
     test_type: sweep_test
     parameters:
       noise: "iid Gaussian → λ ≈ 0 (no predictable structure)"
-      stable: "damped sine → λ < 0 (converging trajectory)"
+      stable: "logistic map r=2.8 → fixed-point convergence → λ < 0 (clean scaling region)"
       chaotic: "logistic map x_{n+1} = 4x(1-x) → λ = ln(2) ≈ 0.693"
     falsification: "sign of MLE disagrees with known dynamical regime"
+    priority: P0
+
+  mle_scaling_region_gate:
+    id: INV-LE3
+    type: algebraic
+    statement: >-
+      R²(log-divergence linear fit) ≥ R2_MIN (=0.80) OR the estimate is flagged
+      non-scaling and fails closed to the no-reliable-estimate sentinel 0.0
+    test_type: property_test
+    parameters:
+      r2_min: "0.80 — strong-linear-relationship floor for the Rosenstein scaling region"
+      fail_closed: "R² < R2_MIN ⟹ scaling_ok=0 AND return 0.0 (never a silent slope)"
+      observability: "diagnostics dict exposes r_squared, slope, n_fit, scaling_ok"
+    falsification: >-
+      maximal_lyapunov_exponent returns a non-zero λ for an input whose
+      log-divergence fit has R² < R2_MIN (a confident slope from a non-linear,
+      non-scaling region)
     priority: P0
 
 # ═══════════════════════════════════════════════════

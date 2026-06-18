@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 from core.physics.lyapunov_exponent import (
+    R2_MIN,
     maximal_lyapunov_exponent,
     spectral_gap,
 )
@@ -82,20 +83,37 @@ def test_mle_sign_matches_dynamical_regime() -> None:
 
     Three canonical dynamical systems with known Lyapunov exponents:
     1. White noise: λ ≈ 0 (no deterministic structure)
-    2. Damped oscillator: λ < 0 (converging trajectory)
+    2. Stable logistic map (r=2.8): λ < 0 (converging to a fixed point)
     3. Logistic map (r=4): λ = ln(2) ≈ 0.693 (maximal chaos)
+
+    NOTE on the stable case (scaling-region / INV-LE3 aware): the prior test
+    used a damped sinusoid x(t)=e^{-0.1t}·sin(t) at dim=3,tau=5 and asserted
+    λ < 0. With the INV-LE3 scaling-region gate active, that fit is exposed as
+    R² ≈ 0.32 — it is NOT a clean Rosenstein scaling region (the Rosenstein
+    neighbor-divergence estimator measures transient phase-space stretching of
+    a sampled flow, not the global contraction, so the negative slope it
+    produced was an untrustworthy artifact that the new gate correctly demotes
+    to 0.0). The honest negative-λ witness is the logistic map in its stable
+    regime (r=2.8), whose neighbor pairs genuinely contract on a clean linear
+    scaling region (R² ≈ 1.0, λ ≈ −0.11).
     """
-    n = 2000
+    n = 3000
 
     # 1. White noise: MLE should be near zero (no predictable structure)
     rng = np.random.default_rng(seed=1)
     noise = rng.normal(0, 1, n)
     mle_noise = maximal_lyapunov_exponent(noise, dim=5, tau=1)
 
-    # 2. Damped oscillator: x(t) = exp(-0.1t) * sin(t) → MLE < 0
-    t = np.linspace(0, 100, n)
-    damped = np.exp(-0.1 * t) * np.sin(t)
-    mle_damped = maximal_lyapunov_exponent(damped, dim=3, tau=5)
+    # 2. Stable logistic map r=2.8: converges to a fixed point → λ < 0 on a
+    #    clean Rosenstein scaling region (passes INV-LE3).
+    stable = np.empty(n)
+    stable[0] = 0.3
+    for i in range(1, n):
+        stable[i] = 2.8 * stable[i - 1] * (1.0 - stable[i - 1])
+    diag_stable: dict[str, float] = {}
+    mle_stable = maximal_lyapunov_exponent(
+        stable, dim=3, tau=1, max_divergence_steps=30, diagnostics=diag_stable
+    )
 
     # 3. Logistic map r=4: x_{n+1} = 4·x·(1-x), theoretical λ = ln(2)
     logistic = np.empty(n)
@@ -107,7 +125,8 @@ def test_mle_sign_matches_dynamical_regime() -> None:
     mle_logistic = maximal_lyapunov_exponent(logistic, dim=2, tau=1, max_divergence_steps=20)
 
     print(
-        f"  MLE(noise)={mle_noise:.4f}, MLE(damped)={mle_damped:.4f}, MLE(logistic)={mle_logistic:.4f}"
+        f"  MLE(noise)={mle_noise:.4f}, MLE(stable)={mle_stable:.4f} "
+        f"(R²={diag_stable['r_squared']:.4f}), MLE(logistic)={mle_logistic:.4f}"
     )
 
     # Logistic chaos should have highest MLE
@@ -120,12 +139,20 @@ def test_mle_sign_matches_dynamical_regime() -> None:
         f"Physical reasoning: the logistic map at r=4 is maximally chaotic."
     )
 
-    # Damped oscillator should be negative
-    assert mle_damped < 0.0, (  # epsilon: theoretical λ < 0 for damped system
-        f"INV-LE2 VIOLATED: MLE(damped)={mle_damped:.4f} ≥ 0. "
-        f"Expected λ < 0 for exponentially damped oscillator. "
-        f"Observed at N={n}, dim=3, tau=5, damping=0.1. "
-        f"Physical reasoning: damped system converges → nearby "
+    # Stable logistic (r=2.8) should be negative AND pass the INV-LE3 gate
+    assert diag_stable["scaling_ok"] == 1.0, (
+        f"INV-LE3 precondition: stable r=2.8 fit flagged non-scaling "
+        f"(scaling_ok={diag_stable['scaling_ok']}, R²={diag_stable['r_squared']:.4f}). "
+        f"Expected a clean linear scaling region for a contracting map. "
+        f"Observed at N={n}, dim=3, tau=1, max_div=30. "
+        f"Physical reasoning: fixed-point convergence ⟹ monotone neighbor "
+        f"contraction ⟹ linear log-divergence ⟹ high R²."
+    )
+    assert mle_stable < 0.0, (  # epsilon: theoretical λ < 0 for stable fixed point
+        f"INV-LE2 VIOLATED: MLE(stable r=2.8)={mle_stable:.4f} ≥ 0. "
+        f"Expected λ < 0 for the logistic map converging to a fixed point. "
+        f"Observed at N={n}, dim=3, tau=1, max_div=30, R²={diag_stable['r_squared']:.4f}. "
+        f"Physical reasoning: stable regime converges → nearby "
         f"trajectories converge → λ < 0."
     )
 
@@ -138,6 +165,135 @@ def test_mle_sign_matches_dynamical_regime() -> None:
         f"Physical reasoning: logistic map has structured divergence, "
         f"noise has unstructured fluctuation."
     )
+
+
+# ── INV-LE3: log-divergence fit R² ≥ R2_MIN OR flagged non-scaling ──
+
+
+def _logistic_r4(n: int, x0: float = 0.1) -> np.ndarray:
+    """Logistic map x_{n+1} = 4·x·(1−x): canonical r=4 maximal chaos."""
+    out = np.empty(n)
+    out[0] = x0
+    for i in range(1, n):
+        out[i] = 4.0 * out[i - 1] * (1.0 - out[i - 1])
+    return out
+
+
+def test_le3_clean_chaos_passes_scaling_gate() -> None:
+    """INV-LE3 (a): a clean chaotic series sits in a linear scaling region.
+
+    Logistic map r=4 has a genuine exponential divergence regime, so the
+    log-divergence fit must reach R² ≥ R2_MIN and the gate must ACCEPT the
+    slope as a positive λ (λ ≈ ln 2). The scaling flag must be set.
+    """
+    n = 2000
+    logistic = _logistic_r4(n)
+    diag: dict[str, float] = {}
+    # dim=2 natural for a 1D map; short fit window captures the initial
+    # exponential growth before attractor saturation.
+    lam = maximal_lyapunov_exponent(
+        logistic, dim=2, tau=1, max_divergence_steps=20, diagnostics=diag
+    )
+
+    assert diag["r_squared"] >= R2_MIN, (
+        f"INV-LE3 VIOLATED: clean chaos R²={diag['r_squared']:.4f} < "
+        f"R2_MIN={R2_MIN:.2f}. "
+        f"Expected logistic r=4 to have a clean linear scaling region. "
+        f"Observed at N={n}, dim=2, tau=1, max_div=20, n_fit={diag['n_fit']:.0f}. "
+        f"Physical reasoning: r=4 logistic has a true exponential divergence "
+        f"regime → log-divergence vs time is linear → high R²."
+    )
+    assert diag["scaling_ok"] == 1.0, (
+        f"INV-LE3 VIOLATED: clean chaos flagged non-scaling "
+        f"(scaling_ok={diag['scaling_ok']}). "
+        f"Expected the gate to accept a clean scaling region. "
+        f"Observed R²={diag['r_squared']:.4f} ≥ R2_MIN={R2_MIN:.2f}. "
+        f"Physical reasoning: high-R² fit ⟹ trustworthy slope ⟹ accept."
+    )
+    assert lam > 0.0, (
+        f"INV-LE3+LE2 VIOLATED: accepted λ={lam:.4f} ≤ 0 for chaotic input. "
+        f"Expected λ > 0 (≈ ln 2 = {math.log(2.0):.4f}) for logistic r=4. "
+        f"Observed R²={diag['r_squared']:.4f}, scaling_ok={diag['scaling_ok']}. "
+        f"Physical reasoning: maximal chaos ⟹ positive divergence rate."
+    )
+
+
+def test_le3_nonscaling_input_fails_closed() -> None:
+    """INV-LE3 (b): a non-scaling input must be flagged, never a silent slope.
+
+    Pure white noise has no deterministic exponential divergence regime, so
+    the log-divergence curve is not linear: R² falls below R2_MIN. The gate
+    must FAIL CLOSED — flag scaling_ok=0 AND return the no-reliable-estimate
+    sentinel 0.0 (the module's existing convention), NOT the raw slope.
+    """
+    rng = np.random.default_rng(seed=7)
+    n = 2000
+    noise = rng.normal(0.0, 1.0, n)
+    diag: dict[str, float] = {}
+    lam = maximal_lyapunov_exponent(noise, dim=5, tau=1, diagnostics=diag)
+
+    assert diag["r_squared"] < R2_MIN, (
+        f"INV-LE3 test precondition: noise R²={diag['r_squared']:.4f} ≥ "
+        f"R2_MIN={R2_MIN:.2f} — expected a NON-scaling curve. "
+        f"Observed at N={n}, dim=5, tau=1, n_fit={diag['n_fit']:.0f}. "
+        f"Physical reasoning: iid noise has no exponential divergence regime."
+    )
+    assert diag["scaling_ok"] == 0.0, (
+        f"INV-LE3 VIOLATED: non-scaling noise NOT flagged "
+        f"(scaling_ok={diag['scaling_ok']}). "
+        f"Expected the gate to reject R²={diag['r_squared']:.4f} < "
+        f"R2_MIN={R2_MIN:.2f}. "
+        f"Physical reasoning: low-R² fit ⟹ untrustworthy slope ⟹ reject."
+    )
+    assert lam == 0.0, (
+        f"INV-LE3 VIOLATED: returned silent slope λ={lam:.6f} instead of the "
+        f"no-reliable-estimate sentinel 0.0 for a non-scaling input. "
+        f"Raw (rejected) slope was {diag['slope']:.6f}. "
+        f"Observed R²={diag['r_squared']:.4f} < R2_MIN={R2_MIN:.2f}, N={n}. "
+        f"Physical reasoning: a slope from a non-linear region is meaningless; "
+        f"fail closed rather than fabricate a chaos/stability verdict."
+    )
+
+
+def test_le3_gate_only_demotes_never_fabricates() -> None:
+    """INV-LE3 (c): the gate demotes untrustworthy estimates, never invents.
+
+    Sweep a bank of inputs. For every input the gate either (i) accepts with
+    R² ≥ R2_MIN, or (ii) flags scaling_ok=0 AND returns exactly 0.0. A
+    rejected input may NEVER return a non-zero λ. This is the falsifier
+    property: a confident λ from a non-scaling region is forbidden.
+    """
+    rng = np.random.default_rng(seed=11)
+    n = 2000
+    t = np.linspace(0.0, 100.0, n)
+    bank: dict[str, tuple[np.ndarray, dict[str, int]]] = {
+        "logistic": (_logistic_r4(n), {"dim": 2, "tau": 1, "max_divergence_steps": 20}),
+        "noise": (rng.normal(0.0, 1.0, n), {"dim": 5, "tau": 1}),
+        "damped": (np.exp(-0.1 * t) * np.sin(t), {"dim": 3, "tau": 5}),
+        "random_walk": (np.cumsum(rng.normal(0.0, 0.01, n)), {"dim": 3, "tau": 1}),
+        "sine": (np.sin(np.linspace(0.0, 20 * math.pi, n)), {"dim": 3, "tau": 1}),
+    }
+    for label, (series, kw) in bank.items():
+        diag: dict[str, float] = {}
+        lam = maximal_lyapunov_exponent(series, diagnostics=diag, **kw)  # type: ignore[arg-type]
+        accepted = diag["scaling_ok"] == 1.0
+        if not accepted:
+            assert lam == 0.0, (
+                f"INV-LE3 VIOLATED on series={label}: rejected fit "
+                f"(scaling_ok=0) still emitted non-zero λ={lam:.6f}. "
+                f"Expected the no-reliable-estimate sentinel 0.0. "
+                f"Observed R²={diag['r_squared']:.4f} < R2_MIN={R2_MIN:.2f}. "
+                f"Physical reasoning: non-scaling region ⟹ no trustworthy λ."
+            )
+        else:
+            assert diag["r_squared"] >= R2_MIN, (
+                f"INV-LE3 VIOLATED on series={label}: accepted "
+                f"(scaling_ok=1) with R²={diag['r_squared']:.4f} < "
+                f"R2_MIN={R2_MIN:.2f}. "
+                f"Expected acceptance only above the scaling-region floor. "
+                f"Observed λ={lam:.4f}, n_fit={diag['n_fit']:.0f}. "
+                f"Physical reasoning: acceptance requires a linear fit."
+            )
 
 
 # ── INV-SG1: λ₂ ≥ 0 always ─────────────────────────────────────────
