@@ -4,7 +4,10 @@ from __future__ import annotations
 import jax.numpy as jnp
 import numpy as np
 
-from core.kuramoto.kuramoto_ricci_engine import kuramoto_ricci_trajectory, order_parameter
+from core.kuramoto.kuramoto_ricci_engine import (
+    kuramoto_ricci_trajectory,
+    order_parameter,
+)
 
 
 def _scenario(seed: int, *, dt: float) -> float:
@@ -13,7 +16,11 @@ def _scenario(seed: int, *, dt: float) -> float:
     theta_0 = jnp.asarray(rng.uniform(-np.pi, np.pi, size=n), dtype=jnp.float32)
     omega = rng.normal(0.0, 0.12, size=n)
     omega -= float(np.mean(omega))
-    adjacency = 0.02 * (np.ones((n, n), dtype=np.float32) - np.eye(n, dtype=np.float32)) / n
+    adjacency = (
+        0.02
+        * (np.ones((n, n), dtype=np.float32) - np.eye(n, dtype=np.float32))
+        / n
+    )
     traj = kuramoto_ricci_trajectory(
         theta_0,
         dt=dt,
