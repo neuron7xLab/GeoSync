@@ -189,7 +189,7 @@ def build_metrics() -> list[Metric]:
         ),
         Metric(
             "S_reproducibility",
-            0.10,
+            0.08,
             50.0 if manifest else (25.0 if exists("pyproject.toml") else 0.0),
             "manifest, command, seed, environment, generated artifacts",
             "reproducibility/manifest.json plus generated score artifact",
@@ -200,7 +200,7 @@ def build_metrics() -> list[Metric]:
         ),
         Metric(
             "S_interface_contracts",
-            0.10,
+            0.08,
             65.0 if interface_doc and interface_test else 20.0,
             "shape/unit/range/sampling contracts across subsystem boundaries",
             "docs/physics/interface_contracts.md + tests/physics/test_interface_contracts.py",
@@ -211,7 +211,7 @@ def build_metrics() -> list[Metric]:
         ),
         Metric(
             "S_traceability",
-            0.12,
+            0.06,
             80.0 if claim_ledger and file_inventory and traceability else (60.0 if claim_ledger and file_inventory else 0.0),
             "claim -> equation -> code -> test -> failure condition mapping",
             "claim ledger, inventory, equation traceability index",
