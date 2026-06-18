@@ -13,12 +13,13 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 UNVERIFIED_STATUSES = {"NOT_VERIFIED", "NOT_VERIFIED_IN_THIS_CONNECTOR_PASS"}
 DISABLED_STATUS = "DISABLED_UNTIL_VERIFIED"
 
 
-def evaluate_live_evidence(trace_payload: dict[str, Any], adapter_payload: dict[str, Any]) -> dict[str, Any]:
+def evaluate_live_evidence(
+    trace_payload: dict[str, Any], adapter_payload: dict[str, Any]
+) -> dict[str, Any]:
     events = trace_payload.get("events", [])
     adapters = adapter_payload.get("adapters", [])
     if not isinstance(events, list) or not events:
@@ -59,7 +60,9 @@ def evaluate_live_evidence(trace_payload: dict[str, Any], adapter_payload: dict[
             disabled_count += 1
 
     critical_unmitigated = len(unverified_enabled) + len(enabled_without_trace) + len(bad_events)
-    full_live_adapter_verification = critical_unmitigated == 0 and disabled_count == 0 and verified_count == len(adapters)
+    full_live_adapter_verification = (
+        critical_unmitigated == 0 and disabled_count == 0 and verified_count == len(adapters)
+    )
 
     return {
         "artifact_id": "WEB_AGENT_LIVE_EVIDENCE_EVAL_001",
@@ -94,7 +97,9 @@ def evaluate_live_evidence(trace_payload: dict[str, Any], adapter_payload: dict[
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Evaluate live evidence boundary for the web-agent protocol.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate live evidence boundary for the web-agent protocol."
+    )
     parser.add_argument("--trace", type=Path, required=True)
     parser.add_argument("--adapter-matrix", type=Path, required=True)
     parser.add_argument("--output", type=Path)
