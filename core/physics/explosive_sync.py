@@ -29,10 +29,30 @@ References:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
+
+# Integration time-step handed to KuramotoConfig for every sweep. Kept as a
+# named module constant (not a bare literal) because it is ALSO the unit-bridge
+# denominator that converts a per-bar return into an angular frequency (see
+# _RETURN_TO_OMEGA below). Changing one without the other would silently break
+# the frequency normalization. The Kuramoto engine integrates phase as
+# θ̇ = ω + coupling, so ω has units of [rad / integration-time-unit].
+_INTEGRATION_DT: float = 0.01
+
+# Unit bridge: a return r_t is a dimensionless change measured PER BAR. To enter
+# the Kuramoto flow it must become an angular velocity ω in [rad / integration-
+# time-unit]. One bar advances the integrator by _INTEGRATION_DT time-units, so
+# the per-time-unit phase rate is r_t / _INTEGRATION_DT (= r_t · 100 at dt=0.01).
+# This is the documented derivation of the former magic "* 100": it is exactly
+# 1/dt, NOT a free tuning knob. It rescales O(1e-3..1e-2) bar returns onto the
+# same O(1) scale as the reference N(0,1) natural frequencies so the coupling
+# sweep K_range=(0.1, 5.0) brackets the transition.
+# bounds: pure unit conversion (per-bar → per-integration-time-unit); no clamp.
+_RETURN_TO_OMEGA: float = 1.0 / _INTEGRATION_DT
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,11 +62,12 @@ class ESProximityResult:
     R_forward: NDArray[np.float64]  # R(K) forward sweep
     R_backward: NDArray[np.float64]  # R(K) backward sweep
     K_values: NDArray[np.float64]  # coupling values swept
-    K_c_forward: float  # critical K (forward)
-    K_c_backward: float  # critical K (backward)
-    hysteresis_width: float  # K_c_forward - K_c_backward
-    proximity: float  # normalised proximity metric [0, 1]
+    K_c_forward: float  # critical K (forward); nan if no R(K) crossing
+    K_c_backward: float  # critical K (backward); nan if no R(K) crossing
+    hysteresis_width: float  # |K_c_forward - K_c_backward|; nan if either K_c is nan
+    proximity: float  # normalised proximity metric [0, 1]; 0.0 when no transition
     is_explosive: bool  # True if significant hysteresis detected
+    transition_detected: bool  # True iff BOTH sweeps had a real R(K) threshold crossing
 
 
 class ExplosiveSyncDetector:
@@ -131,7 +152,7 @@ class ExplosiveSyncDetector:
                 adjacency=adjacency,
                 adjacency_kind="normalized_topology",
                 theta0=theta_carry,
-                dt=0.01,
+                dt=_INTEGRATION_DT,
                 steps=self._steps,
                 seed=seed,
             )
@@ -149,7 +170,7 @@ class ExplosiveSyncDetector:
                 adjacency=adjacency,
                 adjacency_kind="normalized_topology",
                 theta0=theta_carry_back,
-                dt=0.01,
+                dt=_INTEGRATION_DT,
                 steps=self._steps,
                 seed=seed,
             )
@@ -157,13 +178,29 @@ class ExplosiveSyncDetector:
             R_backward[self._n_K - 1 - i] = result.order_parameter[-1]
             theta_carry_back = result.phases[-1].copy()
 
-        # Find critical K values
+        # Find critical K values. nan means "no real R(K) threshold crossing in
+        # this sweep" — NOT a transition at a grid endpoint (see _find_critical_K).
         K_c_fwd = self._find_critical_K(K_values, R_forward)
         K_c_bwd = self._find_critical_K(K_values, R_backward)
 
-        hysteresis = abs(K_c_fwd - K_c_bwd)
-        K_span = self._K_range[1] - self._K_range[0]
-        proximity = min(hysteresis / K_span, 1.0)
+        # Fail-closed: hysteresis is only meaningful when BOTH sweeps crossed the
+        # synchronization threshold. If either K_c is nan, there is no real
+        # transition to compare, so we do NOT fabricate a width from grid-boundary
+        # artifacts. We propagate nan width, proximity 0.0, and is_explosive=False
+        # so the circuit breaker treats it as "no transition detected" rather than
+        # firing on a boundary value (fail-OPEN to RESTRICTED). INV-ES1 (width ≥ 0)
+        # holds vacuously: a nan width is never reported as a negative number.
+        transition_detected = math.isfinite(K_c_fwd) and math.isfinite(K_c_bwd)
+        if transition_detected:
+            hysteresis = abs(K_c_fwd - K_c_bwd)  # INV-ES1: |·| ⇒ width ≥ 0
+            K_span = self._K_range[1] - self._K_range[0]
+            # bounds: proximity is a [0, 1] normalized ratio; cap at 1.0 only.
+            proximity = min(hysteresis / K_span, 1.0)
+            is_explosive = hysteresis > self._hyst_thresh
+        else:
+            hysteresis = math.nan
+            proximity = 0.0
+            is_explosive = False
 
         return ESProximityResult(
             R_forward=R_forward,
@@ -173,7 +210,8 @@ class ExplosiveSyncDetector:
             K_c_backward=K_c_bwd,
             hysteresis_width=hysteresis,
             proximity=proximity,
-            is_explosive=hysteresis > self._hyst_thresh,
+            is_explosive=is_explosive,
+            transition_detected=transition_detected,
         )
 
     def _find_critical_K(
@@ -181,17 +219,33 @@ class ExplosiveSyncDetector:
         K_values: NDArray[np.float64],
         R_values: NDArray[np.float64],
     ) -> float:
-        """Find K_c where R crosses threshold."""
+        """Find K_c where R crosses the synchronization threshold.
+
+        Returns the linearly-interpolated K at the first upward crossing of
+        ``R_threshold``. If R(K) never crosses the threshold (flat/monotone
+        sub-threshold, or already-saturated above threshold across the whole
+        sweep) there is NO observable transition on this grid, so we return
+        ``nan`` — a sentinel for "transition not detected".
+
+        Fail-closed rationale: the previous behaviour returned a sweep ENDPOINT
+        (``K_values[0]`` or ``K_values[-1]``) when no crossing existed. That
+        fabricated a K_c from the grid boundary, so the downstream hysteresis
+        ``|K_c_fwd − K_c_bwd|`` was computed from artifacts and could trip the
+        ESCircuitBreaker on a non-existent transition (fail-OPEN). Returning nan
+        forces the caller to mark the result as not-detected (is_explosive=False,
+        proximity=0.0) — no fabricated transition.
+        """
         crossings = np.where((R_values[:-1] < self._R_thresh) & (R_values[1:] >= self._R_thresh))[0]
         if crossings.size > 0:
             idx = crossings[0]
-            # Linear interpolation
+            # Linear interpolation between the two bracketing grid points.
             frac = (self._R_thresh - R_values[idx]) / max(R_values[idx + 1] - R_values[idx], 1e-12)
             return float(K_values[idx] + frac * (K_values[idx + 1] - K_values[idx]))
-        # If no crossing found, return endpoint
-        if R_values[-1] >= self._R_thresh:
-            return float(K_values[0])
-        return float(K_values[-1])
+        # No threshold crossing on this grid → no real transition. Fail closed:
+        # return nan sentinel instead of a grid-boundary K_c. bounds: nan is the
+        # explicit "transition not detected" signal; callers must not treat it as
+        # a finite K_c (see measure_proximity / transition_detected).
+        return math.nan
 
     def crisis_signal(
         self,
@@ -221,8 +275,12 @@ class ExplosiveSyncDetector:
         adj[adj < correlation_threshold] = 0.0
         np.fill_diagonal(adj, 0.0)
 
-        # Use return-derived natural frequencies
-        omega = np.mean(tail, axis=0) * 100  # scaled for Kuramoto dynamics
+        # Use return-derived natural frequencies. Each oscillator's mean per-bar
+        # return is converted to an angular velocity ω [rad / integration-time-
+        # unit] via the documented unit bridge ω = mean_return / _INTEGRATION_DT
+        # (= mean_return · _RETURN_TO_OMEGA). This is the derivation of the former
+        # magic "* 100": it is exactly 1/dt, NOT a tuning constant.
+        omega = np.mean(tail, axis=0) * _RETURN_TO_OMEGA
 
         return self.measure_proximity(adjacency=adj, omega=omega, N=N)
 
