@@ -32,7 +32,11 @@ def evaluate_context_trace(payload: dict[str, Any]) -> dict[str, Any]:
     ratio = round(total_used / total_needed, 4)
     return {
         "artifact_id": "WEB_AGENT_CONTEXT_EFFICIENCY_EVAL_001",
-        "status": "PASS_SYNTHETIC_CONTEXT_TRACE_NOT_LIVE_RUNTIME" if ratio <= 1.25 else "FAIL_CONTEXT_OVER_BUDGET",
+        "status": (
+            "PASS_SYNTHETIC_CONTEXT_TRACE_NOT_LIVE_RUNTIME"
+            if ratio <= 1.25
+            else "FAIL_CONTEXT_OVER_BUDGET"
+        ),
         "measurement_mode": payload.get("measurement_mode", "unknown"),
         "context_efficiency": ratio,
         "tokens_needed": total_needed,
