@@ -11,7 +11,18 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-REQ = {"schema_version", "contract_id", "research_line", "claim_boundary", "state_machine", "data_model", "blocks", "gates", "outputs", "agent_handoff"}
+REQ = {
+    "schema_version",
+    "contract_id",
+    "research_line",
+    "claim_boundary",
+    "state_machine",
+    "data_model",
+    "blocks",
+    "gates",
+    "outputs",
+    "agent_handoff",
+}
 VIRTUAL_BLOCKS = {"agent_orchestrator"}
 
 
@@ -30,7 +41,13 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 
 def schema_kinds(schema: dict[str, Any]) -> set[str]:
-    return set(schema.get("$defs", {}).get("block", {}).get("properties", {}).get("kind", {}).get("enum", []))
+    return set(
+        schema.get("$defs", {})
+        .get("block", {})
+        .get("properties", {})
+        .get("kind", {})
+        .get("enum", [])
+    )
 
 
 def add(errors: list[str], ok: bool, msg: str) -> None:
@@ -38,7 +55,9 @@ def add(errors: list[str], ok: bool, msg: str) -> None:
         errors.append(msg)
 
 
-def validate_contract(schema_path: Path, config_path: Path, map_path: Path, root: Path = ROOT) -> dict[str, Any]:
+def validate_contract(
+    schema_path: Path, config_path: Path, map_path: Path, root: Path = ROOT
+) -> dict[str, Any]:
     schema = load_json(schema_path)
     cfg = load_yaml(config_path)
     block_map = load_json(map_path)
@@ -71,13 +90,19 @@ def validate_contract(schema_path: Path, config_path: Path, map_path: Path, root
     block_id_set = set(block_ids) | VIRTUAL_BLOCKS
     for gate in cfg.get("gates", []):
         refs = set(gate.get("blocks", []))
-        add(errors, not refs.difference(block_id_set), f"gate refs missing: {sorted(refs.difference(block_id_set))}")
+        add(
+            errors,
+            not refs.difference(block_id_set),
+            f"gate refs missing: {sorted(refs.difference(block_id_set))}",
+        )
         add(errors, bool(str(gate.get("command", "")).strip()), "empty gate command")
 
     for out in cfg.get("outputs", []):
         add(errors, (root / out["path"]).exists(), f"missing output: {out['path']}")
 
-    add(errors, block_map.get("research_line") == cfg.get("research_line"), "research_line mismatch")
+    add(
+        errors, block_map.get("research_line") == cfg.get("research_line"), "research_line mismatch"
+    )
     add(errors, block_map.get("claim_tier") == boundary.get("tier"), "tier mismatch")
     add(errors, block_map.get("promotion_locked") is True, "lock drift")
     primitives = block_map.get("architecture_primitives", [])
@@ -100,9 +125,19 @@ def validate_contract(schema_path: Path, config_path: Path, map_path: Path, root
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--schema", type=Path, default=ROOT / "schemas/research/inference_transformer_contract.schema.json")
-    parser.add_argument("--config", type=Path, default=ROOT / "configs/research/geosync_inference_transformer.v1.yaml")
-    parser.add_argument("--map", type=Path, default=ROOT / "data/research/inference_transformer_blocks.v1.json")
+    parser.add_argument(
+        "--schema",
+        type=Path,
+        default=ROOT / "schemas/research/inference_transformer_contract.schema.json",
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=ROOT / "configs/research/geosync_inference_transformer.v1.yaml",
+    )
+    parser.add_argument(
+        "--map", type=Path, default=ROOT / "data/research/inference_transformer_blocks.v1.json"
+    )
     args = parser.parse_args(sys.argv[1:] if argv is None else argv)
     try:
         print(json.dumps(validate_contract(args.schema, args.config, args.map), sort_keys=True))
