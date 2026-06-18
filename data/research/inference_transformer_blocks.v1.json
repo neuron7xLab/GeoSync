@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "geosync.inference_transformer_blocks.v1",
+  "purpose": "Machine-readable seed map for the GeoSync inference transformer control plane. It defines the operational blocks Code Claude should turn into validated code, tests, and evidence artifacts. The term transformer means deterministic data transformation topology, not a neural language model.",
+  "research_line": "ricci_microstructure_v1",
+  "claim_tier": "HYPOTHESIS",
+  "promotion_locked": true,
+  "architecture_primitives": [
+    {
+      "id": "O0",
+      "name": "Claim Boundary Lock",
+      "input": ["README.md", "CLAIMS.md", "FORBIDDEN_CLAIMS.md", "research_lines/ricci_microstructure_v1/contract.yaml"],
+      "output": ["claim_boundary_certificate"],
+      "implementation_target": "scripts/ci/check_inference_transformer_contract.py",
+      "acceptance": "Fails if the contract uses promotion language without evidence-tier authority."
+    },
+    {
+      "id": "O1",
+      "name": "Immutable Substrate Adapter",
+      "input": ["raw market observations", "future order-book depth snapshots"],
+      "output": ["market_observation"],
+      "implementation_target": "src/geosync/research/transformer/substrate.py",
+      "acceptance": "Validates monotonic time, missingness, source id, venue, instrument, and sha256; emits fail-closed diagnostics on invalid input."
+    },
+    {
+      "id": "O2",
+      "name": "Graph Constructor",
+      "input": ["market_observation"],
+      "output": ["graph_snapshot"],
+      "implementation_target": "src/geosync/research/transformer/graph.py",
+      "acceptance": "Declares graph construction method, window, normalization, edge policy, and no-future-data guard."
+    },
+    {
+      "id": "O3",
+      "name": "Geometry Encoder",
+      "input": ["graph_snapshot"],
+      "output": ["ricci_summary", "geometry_state"],
+      "implementation_target": "src/geosync/research/transformer/geometry.py",
+      "acceptance": "Wraps Ricci output with method_version, metric_domain, downgrade_reason, and curvature bounds."
+    },
+    {
+      "id": "O4",
+      "name": "Synchronization Encoder",
+      "input": ["graph_snapshot"],
+      "output": ["kuramoto_summary"],
+      "implementation_target": "src/geosync/research/transformer/synchronization.py",
+      "acceptance": "R is exposed only as a regime feature and must not produce directional action fields."
+    },
+    {
+      "id": "O5",
+      "name": "Topology Extension Port",
+      "input": ["graph_snapshot"],
+      "output": ["topology_summary"],
+      "implementation_target": "src/geosync/research/transformer/topology.py",
+      "acceptance": "TDA and persistence fields remain NOT_IMPLEMENTED or QUARANTINED until executable tests and artifacts exist."
+    },
+    {
+      "id": "O6",
+      "name": "Uncertainty Encoder",
+      "input": ["geometry_state"],
+      "output": ["uncertainty_summary"],
+      "implementation_target": "src/geosync/research/transformer/uncertainty.py",
+      "acceptance": "Every regime certificate carries uncertainty and downgrade_reason; no silent confidence default above zero."
+    },
+    {
+      "id": "O7",
+      "name": "Causality Firewall",
+      "input": ["geometry_state", "uncertainty_summary"],
+      "output": ["regime_certificate"],
+      "implementation_target": "src/geosync/research/transformer/causality_firewall.py",
+      "acceptance": "Blocks causal or predictive wording unless a declared causal protocol artifact exists."
+    },
+    {
+      "id": "O8",
+      "name": "Falsification Matrix",
+      "input": ["regime_certificate"],
+      "output": ["falsification_record"],
+      "implementation_target": "src/geosync/research/transformer/falsification.py",
+      "acceptance": "Binds null id, baseline id, cost model id, lag sweep, and replay path before any promotion."
+    },
+    {
+      "id": "O9",
+      "name": "Evidence Emitter",
+      "input": ["regime_certificate", "falsification_record"],
+      "output": ["research_inference_artifact"],
+      "implementation_target": "src/geosync/research/transformer/evidence.py",
+      "acceptance": "Emits schema-valid artifact compatible with schemas/research/research_inference_artifact.schema.json and keeps placeholder artifacts honest."
+    }
+  ],
+  "code_claude_backlog": [
+    {
+      "step": 1,
+      "title": "Add contract validator",
+      "files": ["scripts/ci/check_inference_transformer_contract.py", "tests/ci/test_inference_transformer_contract.py"],
+      "done_when": "Validator loads YAML config and JSON block map, verifies required keys, checks forbidden language, and exits non-zero on malformed contracts."
+    },
+    {
+      "step": 2,
+      "title": "Add typed certificate dataclasses",
+      "files": ["src/geosync/research/transformer/contracts.py", "tests/research/transformer/test_contracts.py"],
+      "done_when": "RegimeCertificate and GeometryState round-trip to JSON with explicit claim_tier, domain, uncertainty, and downgrade_reason."
+    },
+    {
+      "step": 3,
+      "title": "Wire deterministic placeholder pipeline",
+      "files": ["src/geosync/research/transformer/pipeline.py", "tools/research/run_inference_transformer_demo.py"],
+      "done_when": "Demo emits an ABSTAIN/HYPOTHESIS artifact and never claims measured evidence."
+    },
+    {
+      "step": 4,
+      "title": "Connect CI gate",
+      "files": [".github/workflows/*", "scripts/ci/check_inference_transformer_contract.py"],
+      "done_when": "CI fails on contract drift and passes on the committed v1 seed files."
+    }
+  ],
+  "non_goals": [
+    "Do not implement a trading strategy.",
+    "Do not promote ricci_microstructure_v1 beyond HYPOTHESIS.",
+    "Do not call correlation-graph Ricci an order-book microstructure result.",
+    "Do not introduce network-dependent tests.",
+    "Do not add dependency-heavy transformer libraries for this contract seed."
+  ]
+}
