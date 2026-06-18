@@ -11,6 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts/ci/check_inference_transformer_contract.py"
+VALUE_SCRIPT = ROOT / "scripts/ci/check_n7x_value_functions.py"
 DEMO = ROOT / "tools/research/run_inference_transformer_demo.py"
 CONTRACTS = ROOT / "src/geosync/research/transformer/contracts.py"
 
@@ -22,6 +23,14 @@ def _load_contracts() -> ModuleType:
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def test_n7x_value_function_script_passes() -> None:
+    result = subprocess.run([sys.executable, str(VALUE_SCRIPT)], cwd=ROOT, text=True, capture_output=True, check=False)
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "PASS"
+    assert payload["values"] == 7
 
 
 def test_inference_transformer_contract_script_passes() -> None:
