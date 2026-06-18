@@ -15,16 +15,11 @@
 #
 # See docs/ci/fast_backlog_ledger.md for the full ledger.
 
-tests/unit/cli/test_amm_cli.py        cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_import_amm_cli_resolves_to_cli_amm_cli_py_in_ci
-tests/unit/cli/test_cli_golden.py     cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_geosync_cli_resolves_to_cli_geosync_cli_py_in_ci
-tests/unit/cli/test_fete_backtest_cli.py cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_geosync_cli_resolves_to_cli_geosync_cli_py_in_ci
-tests/unit/test_geosync_cli.py        cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=from_cli_geosync_cli_resolves_to_cli_geosync_cli_py_in_ci
 
 # Surfaced AFTER the cli_import_shadowing quarantine let collection reach the
 # rest of the fast surface — these clusters were hidden behind the cli import
 # failures, not absent. Each is deterministic, issue-tracked, drained per cluster.
 tests/governance/test_typed_models.py cluster=acceptor_corpus_legacy_mapping issue=#1170 lane=governance-schema expiry=from_all_dot_claude_commit_acceptors_use_module_colon_symbol_string_form
-tests/unit/analytics/test_descriptor_capsule.py cluster=analytics_import_shadowing issue=#1171 lane=ci-import-architecture expiry=from_analytics_package_declared_in_setuptools_packages_find_and_subprocess_import_resolves_in_ci
 tests/adversarial_invariants/test_invariant_fail_closed.py cluster=adversarial_invariant_count issue=#1172 lane=governance-registry expiry=from_invariant_count_assertion_matches_canonical_registry_size_106
 tests/tools/test_numerical_policy.py  cluster=numerical_policy_unregistered_clamps issue=#1173 lane=physics-numerical-policy expiry=from_physics_tree_has_zero_unregistered_clamps
 
@@ -32,4 +27,3 @@ tests/tools/test_numerical_policy.py  cluster=numerical_policy_unregistered_clam
 # (17,670 ids, maxfail=100 not hit) and surfaced these — the complete remainder.
 tests/test_architecture_guards.py     cluster=namespace_canonical_policy issue=#1179 lane=ci-import-architecture expiry=from_check_namespace_integrity_returns_no_violations
 tests/unit/scripts/test_namespace_shims_importable.py cluster=namespace_canonical_policy issue=#1179 lane=ci-import-architecture expiry=from_check_namespace_policy_main_returns_zero
-tests/ci/test_pr_preflight_engine.py  cluster=tools_import_shadowing issue=#1178 lane=ci-import-architecture expiry=from_tools_package_declared_in_setuptools_packages_find_and_imports_in_ci
