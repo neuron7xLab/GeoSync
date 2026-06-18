@@ -17,7 +17,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, default=OUT)
     parser.add_argument("--git-sha", default="0" * 40)
     args = parser.parse_args(argv)
-    spec = importlib.util.spec_from_file_location("itcp_pipeline", PIPELINE)
+    spec = importlib.util.spec_from_file_location("src.geosync.research.transformer.pipeline", PIPELINE)
     if spec is None or spec.loader is None:
         raise RuntimeError("pipeline import failed")
     module = importlib.util.module_from_spec(spec)
