@@ -6,6 +6,10 @@
 # touches the formal surface.
 name: formal-verification
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     paths:
