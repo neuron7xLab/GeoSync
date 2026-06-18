@@ -205,6 +205,86 @@ A PR is not ready because its story is coherent. A PR is ready only when its dom
 Атестувати -> provenance/checksum evidence exists.
 ```
 
+## Execution Acts of Work
+
+This section closes the operational run as an auditable work act. It records what this document is allowed to claim, what it is not allowed to claim, and which evidence gates must exist before the work is treated as complete.
+
+### Act 1 — Vocabulary-to-Operation Conversion
+
+| Field | Value |
+| --- | --- |
+| Operational need | Convert an uploaded system-thinking vocabulary into a repo-executable agent protocol. |
+| Dominant verb | Операціоналізувати. |
+| Supporting verbs | Дефінувати, Інтегрувати, Валідувати, Верифікувати. |
+| Performed action | Mapped each cognitive/technical verb to an operational meaning and required repository output. |
+| Evidence form | This document, PR metadata, same-head CI result, and docs-only diff scope. |
+| Acceptance condition | Every verb must produce an observable state transition, artifact, metric, gate, or decision. |
+| Boundary | No runtime implementation, scientific claim, model behavior, or CI policy is changed. |
+
+Argumentation: the uploaded vocabulary is useful only if it stops being a passive glossary. Repository agents require action semantics: intent, action, evidence, checkpoint, and next action. The conversion is valid because it binds language to observable repository states instead of allowing agent prose to masquerade as execution.
+
+### Act 2 — Missing Control-Layer Completion
+
+| Field | Value |
+| --- | --- |
+| Operational need | Add the verbs missing from the original vocabulary for safe repository execution. |
+| Added control layer | diagnosis, traceability, prioritization, instrumentation, canonicalization, classification, attribution, stabilization, contract, synchronization, quarantine, demotion, escalation, rollback, attestation, archival. |
+| Risk addressed | Untraceable claims, duplicate contracts, mixed PRs, unsafe merge paths, non-reproducible releases, and status inflation. |
+| Acceptance condition | Each added verb must include a guard that prevents narrative-only completion. |
+| Boundary | The additions govern execution behavior; they do not promote product, scientific, or performance claims. |
+
+Argumentation: repository failure usually does not begin with missing intelligence; it begins with missing control surfaces. A system that can integrate but cannot rollback, trace, demote, quarantine, or attest is not operationally mature. It is just eloquent fragility with commit access, a terrifyingly common species.
+
+### Act 3 — Forward and Reverse Execution Closure
+
+| Field | Value |
+| --- | --- |
+| Operational need | Force agents to execute and then audit their execution in reverse. |
+| Forward loop | Builds the solution through intention, definition, diagnosis, integration, operation, validation, testing, release, and iteration. |
+| Reverse loop | Attacks the solution from iteration back to intention to expose hidden gaps. |
+| Acceptance condition | A completed task must survive both forward execution and reverse audit. |
+| Boundary | Reverse audit is not optional commentary; it is the contradiction check for the forward chain. |
+
+Argumentation: forward execution alone proves only that an agent can produce movement. Reverse audit proves whether the movement was coherent, bounded, and evidence-bearing. This is the minimum adult supervision for autonomous repo work. Apparently software needs reverse digestion too.
+
+### Act 4 — PR Decomposition and Merge Readiness
+
+| Field | Value |
+| --- | --- |
+| Operational need | Prevent large, mixed, ambiguous PRs that blend documentation, runtime behavior, claims, and evidence. |
+| Rule | One dominant verb per PR, at most two supporting verbs. |
+| Merge readiness | A PR is ready only when the dominant verb has its required evidence. |
+| Acceptance condition | Same-head CI, clear scope, no forbidden claim promotion, no unresolved blocker, and explicit rollback path where relevant. |
+| Boundary | A coherent PR story is not evidence. CI and artifacts are evidence. Charming narratives can wait outside. |
+
+Argumentation: the rule reduces blast radius and makes review tractable. It also prevents agents from hiding risky runtime changes inside documentation or claim updates. The result is not bureaucratic overhead; it is operational containment.
+
+### Act 5 — Evidence and Status Discipline
+
+| Field | Value |
+| --- | --- |
+| Operational need | Prevent status inflation after documentation-only work. |
+| Allowed status | `OPERATIONS_DOCUMENTATION_ONLY`. |
+| Forbidden status | product readiness, scientific validation, performance improvement, runtime hardening, or claim-tier promotion. |
+| Acceptance condition | The PR may be merged only as an operations documentation artifact. |
+| Boundary | The document can guide future execution; it does not prove that future execution has already occurred. |
+
+Argumentation: a protocol is not the same thing as execution. This document improves the command grammar of future agents; it does not validate any physics kernel, data contract, or release artifact by itself. That distinction is the difference between governance and decorative confidence.
+
+## Final Acceptance Act
+
+```text
+VERB_APPLIED: Операціоналізувати
+INTENT: Convert a cognitive vocabulary into a repository execution protocol.
+ACTIONS: Defined task primitives, forward loop, reverse audit loop, PR decomposition rules, merge readiness rules, and repository-control verbs.
+EVIDENCE: Single docs-only operations file, PR diff scope, same-head CI requirement, no runtime changes.
+CHECKPOINTS: docs consistency, claim boundary, PR gate, commit acceptor, repo integrity.
+BLOCKERS: Any failed same-head CI, forbidden claim promotion, runtime mutation, or unresolved review blocker.
+REVERSE_AUDIT: Every verb must map back to intent, evidence, checkpoint, and stop rule.
+NEXT_VERB: Верифікувати through CI and merge metadata.
+FINAL_STATUS: OPERATIONS_DOCUMENTATION_READY_WHEN_SAME_HEAD_CI_GREEN.
+```
+
 ## Agent Final Response Format
 
 Every agent executing this map must return:
