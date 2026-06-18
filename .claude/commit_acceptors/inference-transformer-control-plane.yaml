@@ -1,6 +1,6 @@
 id: inference-transformer-control-plane
 status: DRAFT
-claim_type: governance
+claim_type: documentation
 promise: Inference transformer control-plane remains bounded to schema, config, typed research contracts, placeholder artifact, focused validation, and Claude handoff without empirical claim promotion.
 diff_scope:
   changed_files:
