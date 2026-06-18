@@ -99,17 +99,8 @@ rollback_command: >-
       .claude/commit_acceptors/rigorous-bayes-factors.yaml && git checkout HEAD~1 -- research/systemic_risk/__init__.py
   '
 
-rollback_verification_command: >-
-  bash -c '
-    python -c "
-    try:
-        from research.systemic_risk.bayes_rigorous import wagenmakers_bic_bayes_factor
-    except ImportError:
-        pass
-    else:
-        raise SystemExit(1)
-    "
-  '
+rollback_verification_command: |-
+  python -c "import importlib.util,importlib,sys; _p=lambda m: all(importlib.util.find_spec('.'.join(m.split('.')[:i+1])) for i in range(len(m.split('.')))); present=_p('research.systemic_risk.bayes_rigorous') and hasattr(importlib.import_module('research.systemic_risk.bayes_rigorous'),'wagenmakers_bic_bayes_factor'); sys.exit(1 if present else 0)"
 
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/rigorous-bayes-factors.yaml"
