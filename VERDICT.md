@@ -142,6 +142,77 @@ trace_id
 verifier_status
 ```
 
+## NFI v3 Physics Validation Lane
+
+Result: **FAIL_BELOW_TARGET_BLOCKED_FOR_VALIDATION**
+
+Computed bootstrap static score: **67.8/100**
+
+Target interval: **88–92/100**
+
+Score carrier:
+
+```text
+schemas/physics_metrics.schema.json
+tools/physics_score.py
+artifacts/physics_validation/baseline_score.json
+tests/test_physics_score.py
+```
+
+Core validation artifacts added:
+
+```text
+docs/audit/file_inventory.md
+docs/audit/claim_ledger.md
+docs/physics/geosync_core.md
+docs/physics/ricci_experimental.md
+docs/physics/units_table.md
+docs/physics/interface_contracts.md
+docs/physics/uq_plan.md
+docs/physics/equation_traceability.md
+reproducibility/manifest.json
+```
+
+Executable gate tests added:
+
+```text
+tests/physics/test_dimensional_homogeneity.py
+tests/physics/test_geosync_nulls.py
+tests/physics/test_invariants.py
+tests/physics/test_convergence.py
+tests/physics/test_interface_contracts.py
+```
+
+Canonical decision:
+
+```text
+GEOSYNC_CANONICAL_CORE: PURE_WEIGHTED_GRAPH_KURAMOTO
+RICCI_STATUS: EXPERIMENTAL_BRIDGE
+BN_SYN_STATUS: BLOCKED_EXTERNAL_SCOPE
+MFN_PLUS_STATUS: BLOCKED_EXTERNAL_SCOPE
+```
+
+Main blockers:
+
+```text
+BLOCK-LOCAL-001: local pytest/CI logs not observed in connector session
+BLOCK-UQ-001: UQ source declared, UQ smoke artifact missing
+BLOCK-RICCI-001: Ricci bridge lacks full graph-construction + matched-null validation
+BLOCK-BNSYN-MFN-001: BN-Syn and MFN+ source trees are not attached to this branch
+```
+
+Required NFI commands:
+
+```bash
+python tools/physics_score.py --write
+python -m pytest tests/test_physics_score.py -q
+python -m pytest tests/unit/physics/test_T1_kuramoto_ricci_boundary.py tests/physics -q
+```
+
 ## Final verdict
 
-Role 1 is complete as a boundary audit artifact. Role 2 is implemented as a trajectory trace contract. The system verdict remains **FAIL** until local or CI execution produces persisted evidence for the validation commands.
+Role 1 is complete as a boundary audit artifact. Role 2 is implemented as a trajectory trace contract.
+
+NFI v3 now has an executable validation control-plane, canonical GeoSync core, falsification/null tests, dimensional checks, convergence checks, interface contracts, traceability, scoring oracle, and bootstrap score artifact.
+
+The repository verdict remains **FAIL** until local or CI execution produces persisted evidence for the validation commands and closes all HIGH blockers. Physical rank claims remain forbidden.
