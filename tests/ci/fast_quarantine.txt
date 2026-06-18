@@ -33,8 +33,6 @@ tests/tools/test_numerical_policy.py  cluster=numerical_policy_unregistered_clam
 tests/ci/test_pr_preflight_engine.py  cluster=tools_import_shadowing issue=#1178 lane=ci-import-architecture expiry=from_tools_ci_pr_preflight_imports_under_ci_editable_install
 tests/test_architecture_guards.py     cluster=namespace_canonical_policy issue=#1179 lane=ci-import-architecture expiry=from_check_namespace_integrity_returns_no_violations
 tests/unit/scripts/test_namespace_shims_importable.py cluster=namespace_canonical_policy issue=#1179 lane=ci-import-architecture expiry=from_check_namespace_policy_main_returns_zero
-tests/audit/test_contradiction_ledger.py cluster=contradiction_ledger_stale issue=#1180 lane=governance-ledger expiry=from_C_NEURO_003_falsifier_matches_live_source_after_RESOLVED
-
 # Layer-3: concurrent-merge artifact. #1174 (acceptor-command syntax repair)
 # rewrote a D-002G/M2 LOCKED acceptor (x10r-d002g-p1-strike-scaffolding.yaml)
 # without re-anchoring its SHA, so the lock test fails. The lock is working as

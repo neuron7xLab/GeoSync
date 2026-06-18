@@ -47,12 +47,12 @@
       "id": "C-NEURO-003",
       "title": "Declared dopamine/serotonin correlation invariant is never checked (dead invariant)",
       "source_path": "core/validation/neuro_integrity.py",
-      "source_lines": "137,146,208,351",
+      "source_lines": "146,412,433",
       "contradiction": "Config field dopamine_serotonin_correlation_min=-0.8 is documented as a 'Minimum inverse correlation expectation' invariant, but neither validate_state() nor validate_trajectory() references it. A declared integrity invariant with no enforcement is a silent claim with no witness, even though compute_pathway_correlation() already exists to evaluate it.",
       "severity": "MEDIUM",
       "claim_status": "CONTRADICTED",
       "owner_lane": "lane-3-neuromodulator-semantics",
-      "evidence": "core/validation/neuro_integrity.py:146 field default -0.8; only 2 textual mentions (docstring + field), none in any validate_* body; compute_pathway_correlation defined at :415 but unused by the validator.",
+      "evidence": "RESOLVED: the rebuttal condition is met on live source. compute_pathway_correlation is now wired into validation and the dopamine_serotonin_correlation_min threshold is enforced at core/validation/neuro_integrity.py:412,433 (a C-NEURO-003 VIOLATED guard); textual mentions of the field rose from 2 to 6. The declared invariant now has an executable witness, so it is no longer a dead invariant.",
       "argument": {
         "warrant": "A configuration threshold described as an 'invariant' that no validation path reads cannot constrain anything; the integrity guarantee it implies is unbacked.",
         "backing": "core/validation/neuro_integrity.py:415 compute_pathway_correlation (the unused enforcement primitive); the validator's own contract that declared invariants are enforced.",
@@ -64,11 +64,12 @@
         "method": "grep occurrence count of the field across the module; read of validate_state/validate_trajectory bodies"
       },
       "falsifier": {
-        "command": "[ \"$(grep -c dopamine_serotonin_correlation_min core/validation/neuro_integrity.py)\" -le 2 ]",
+        "command": "[ \"$(grep -c dopamine_serotonin_correlation_min core/validation/neuro_integrity.py)\" -ge 3 ]",
         "expect_exit": 0,
-        "interpretation": "Exit 0 while the field appears <=2 times (declaration + docstring only) proves it is still dead. Wiring it into a validate_* path adds a third mention and flips this to non-zero, forcing the entry to RESOLVED."
+        "interpretation": "Exit 0 confirms the field is now wired into enforcement (>=3 mentions: field declaration + docstring + at least one validate_* path). This is the anti-regression witness for the RESOLVED state: if the enforcement is later removed and mentions drop to <=2, the falsifier flips to non-zero and this entry must reopen."
       },
-      "resolution_state": "OPEN"
+      "resolution_state": "RESOLVED",
+      "resolution_ref": "compute_pathway_correlation wired into validation with a C-NEURO-003 guard at core/validation/neuro_integrity.py:412,433; witness acceptor .claude/commit_acceptors/neuro-integrity-correlation-witness.yaml"
     },
     {
       "id": "C-NEURO-001",
