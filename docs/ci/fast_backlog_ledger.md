@@ -29,7 +29,7 @@ surfaced the latent backlog the vacuum had hidden.
 | `cli_import_shadowing` | 4 | [#1158](https://github.com/neuron7xLab/GeoSync/issues/1158) | ci-import-architecture | **drained** |
 | `acceptor_corpus_legacy_mapping` | 1 | [#1170](https://github.com/neuron7xLab/GeoSync/issues/1170) | governance-schema | quarantined |
 | `analytics_import_shadowing` | 1 | [#1171](https://github.com/neuron7xLab/GeoSync/issues/1171) | ci-import-architecture | **drained** |
-| `adversarial_invariant_count` | 1 | [#1172](https://github.com/neuron7xLab/GeoSync/issues/1172) | governance-registry | quarantined |
+| `adversarial_invariant_count` | 1 | [#1172](https://github.com/neuron7xLab/GeoSync/issues/1172) | governance-registry | **drained** |
 | `numerical_policy_unregistered_clamps` | 1 | [#1173](https://github.com/neuron7xLab/GeoSync/issues/1173) | physics-numerical-policy | quarantined |
 | `tools_import_shadowing` | 1 (20 tests) | [#1178](https://github.com/neuron7xLab/GeoSync/issues/1178) | ci-import-architecture | **drained** |
 | `namespace_canonical_policy` | 2 | [#1179](https://github.com/neuron7xLab/GeoSync/issues/1179) | ci-import-architecture | quarantined |

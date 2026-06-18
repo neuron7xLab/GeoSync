@@ -1,0 +1,544 @@
+{
+  "events": [
+    {
+      "invariant_id": "INV-5HT1",
+      "elapsed_ms": 0.003252062015235424,
+      "error": "fail-closed: invariant=INV-5HT1"
+    },
+    {
+      "invariant_id": "INV-5HT2",
+      "elapsed_ms": 0.001309090293943882,
+      "error": "fail-closed: invariant=INV-5HT2"
+    },
+    {
+      "invariant_id": "INV-5HT3",
+      "elapsed_ms": 0.000417931005358696,
+      "error": "fail-closed: invariant=INV-5HT3"
+    },
+    {
+      "invariant_id": "INV-5HT4",
+      "elapsed_ms": 0.0002300366759300232,
+      "error": "fail-closed: invariant=INV-5HT4"
+    },
+    {
+      "invariant_id": "INV-5HT5",
+      "elapsed_ms": 0.0003480818122625351,
+      "error": "fail-closed: invariant=INV-5HT5"
+    },
+    {
+      "invariant_id": "INV-5HT6",
+      "elapsed_ms": 0.00019301660358905792,
+      "error": "fail-closed: invariant=INV-5HT6"
+    },
+    {
+      "invariant_id": "INV-5HT7",
+      "elapsed_ms": 0.0002080341801047325,
+      "error": "fail-closed: invariant=INV-5HT7"
+    },
+    {
+      "invariant_id": "INV-ANCHORED-SUBSTRATE-GATE",
+      "elapsed_ms": 0.00024796463549137115,
+      "error": "fail-closed: invariant=INV-ANCHORED-SUBSTRATE-GATE"
+    },
+    {
+      "invariant_id": "INV-API-CONTRACT",
+      "elapsed_ms": 0.00021408777683973312,
+      "error": "fail-closed: invariant=INV-API-CONTRACT"
+    },
+    {
+      "invariant_id": "INV-ARROW-OF-TIME",
+      "elapsed_ms": 0.00018207356333732605,
+      "error": "fail-closed: invariant=INV-ARROW-OF-TIME"
+    },
+    {
+      "invariant_id": "INV-BEKENSTEIN-COGNITIVE",
+      "elapsed_ms": 0.0001989537850022316,
+      "error": "fail-closed: invariant=INV-BEKENSTEIN-COGNITIVE"
+    },
+    {
+      "invariant_id": "INV-CB1",
+      "elapsed_ms": 0.00027206260710954666,
+      "error": "fail-closed: invariant=INV-CB1"
+    },
+    {
+      "invariant_id": "INV-CB2",
+      "elapsed_ms": 0.00020302832126617432,
+      "error": "fail-closed: invariant=INV-CB2"
+    },
+    {
+      "invariant_id": "INV-CB3",
+      "elapsed_ms": 0.00017997808754444122,
+      "error": "fail-closed: invariant=INV-CB3"
+    },
+    {
+      "invariant_id": "INV-CB4",
+      "elapsed_ms": 0.00017706770449876785,
+      "error": "fail-closed: invariant=INV-CB4"
+    },
+    {
+      "invariant_id": "INV-CB5",
+      "elapsed_ms": 0.00017904676496982574,
+      "error": "fail-closed: invariant=INV-CB5"
+    },
+    {
+      "invariant_id": "INV-CB6",
+      "elapsed_ms": 0.00017695128917694092,
+      "error": "fail-closed: invariant=INV-CB6"
+    },
+    {
+      "invariant_id": "INV-CB7",
+      "elapsed_ms": 0.00017799902707338333,
+      "error": "fail-closed: invariant=INV-CB7"
+    },
+    {
+      "invariant_id": "INV-CB8",
+      "elapsed_ms": 0.00019208528101444244,
+      "error": "fail-closed: invariant=INV-CB8"
+    },
+    {
+      "invariant_id": "INV-COSMOLOGICAL-COMPUTE",
+      "elapsed_ms": 0.0002731103450059891,
+      "error": "fail-closed: invariant=INV-COSMOLOGICAL-COMPUTE"
+    },
+    {
+      "invariant_id": "INV-CRITICALITY",
+      "elapsed_ms": 0.00019301660358905792,
+      "error": "fail-closed: invariant=INV-CRITICALITY"
+    },
+    {
+      "invariant_id": "INV-DA1",
+      "elapsed_ms": 0.0001889420673251152,
+      "error": "fail-closed: invariant=INV-DA1"
+    },
+    {
+      "invariant_id": "INV-DA2",
+      "elapsed_ms": 0.00016798730939626694,
+      "error": "fail-closed: invariant=INV-DA2"
+    },
+    {
+      "invariant_id": "INV-DA3",
+      "elapsed_ms": 0.00016996636986732483,
+      "error": "fail-closed: invariant=INV-DA3"
+    },
+    {
+      "invariant_id": "INV-DA4",
+      "elapsed_ms": 0.00018102582544088364,
+      "error": "fail-closed: invariant=INV-DA4"
+    },
+    {
+      "invariant_id": "INV-DA5",
+      "elapsed_ms": 0.0001869630068540573,
+      "error": "fail-closed: invariant=INV-DA5"
+    },
+    {
+      "invariant_id": "INV-DA6",
+      "elapsed_ms": 0.0001859152689576149,
+      "error": "fail-closed: invariant=INV-DA6"
+    },
+    {
+      "invariant_id": "INV-DA7",
+      "elapsed_ms": 0.00017799902707338333,
+      "error": "fail-closed: invariant=INV-DA7"
+    },
+    {
+      "invariant_id": "INV-DA8",
+      "elapsed_ms": 0.00019406434148550034,
+      "error": "fail-closed: invariant=INV-DA8"
+    },
+    {
+      "invariant_id": "INV-DRO1",
+      "elapsed_ms": 0.0002019805833697319,
+      "error": "fail-closed: invariant=INV-DRO1"
+    },
+    {
+      "invariant_id": "INV-DRO2",
+      "elapsed_ms": 0.00017799902707338333,
+      "error": "fail-closed: invariant=INV-DRO2"
+    },
+    {
+      "invariant_id": "INV-DRO3",
+      "elapsed_ms": 0.00018102582544088364,
+      "error": "fail-closed: invariant=INV-DRO3"
+    },
+    {
+      "invariant_id": "INV-DRO4",
+      "elapsed_ms": 0.0001969747245311737,
+      "error": "fail-closed: invariant=INV-DRO4"
+    },
+    {
+      "invariant_id": "INV-DRO5",
+      "elapsed_ms": 0.0001869630068540573,
+      "error": "fail-closed: invariant=INV-DRO5"
+    },
+    {
+      "invariant_id": "INV-ES1",
+      "elapsed_ms": 0.00018405262380838394,
+      "error": "fail-closed: invariant=INV-ES1"
+    },
+    {
+      "invariant_id": "INV-ES2",
+      "elapsed_ms": 0.00017799902707338333,
+      "error": "fail-closed: invariant=INV-ES2"
+    },
+    {
+      "invariant_id": "INV-FE-ROBUST",
+      "elapsed_ms": 0.00019103754311800003,
+      "error": "fail-closed: invariant=INV-FE-ROBUST"
+    },
+    {
+      "invariant_id": "INV-FE1",
+      "elapsed_ms": 0.00017497222870588303,
+      "error": "fail-closed: invariant=INV-FE1"
+    },
+    {
+      "invariant_id": "INV-FE2",
+      "elapsed_ms": 0.0002150190994143486,
+      "error": "fail-closed: invariant=INV-FE2"
+    },
+    {
+      "invariant_id": "INV-FE3",
+      "elapsed_ms": 0.00017206184566020966,
+      "error": "fail-closed: invariant=INV-FE3"
+    },
+    {
+      "invariant_id": "INV-GABA1",
+      "elapsed_ms": 0.00018498394638299942,
+      "error": "fail-closed: invariant=INV-GABA1"
+    },
+    {
+      "invariant_id": "INV-GABA2",
+      "elapsed_ms": 0.00019499566406011581,
+      "error": "fail-closed: invariant=INV-GABA2"
+    },
+    {
+      "invariant_id": "INV-GABA3",
+      "elapsed_ms": 0.0002050073817372322,
+      "error": "fail-closed: invariant=INV-GABA3"
+    },
+    {
+      "invariant_id": "INV-GABA4",
+      "elapsed_ms": 0.00018801074475049973,
+      "error": "fail-closed: invariant=INV-GABA4"
+    },
+    {
+      "invariant_id": "INV-GABA5",
+      "elapsed_ms": 0.00018300488591194153,
+      "error": "fail-closed: invariant=INV-GABA5"
+    },
+    {
+      "invariant_id": "INV-GABOR1",
+      "elapsed_ms": 0.0001889420673251152,
+      "error": "fail-closed: invariant=INV-GABOR1"
+    },
+    {
+      "invariant_id": "INV-HO-SPARSE",
+      "elapsed_ms": 0.00016891863197088242,
+      "error": "fail-closed: invariant=INV-HO-SPARSE"
+    },
+    {
+      "invariant_id": "INV-HPC1",
+      "elapsed_ms": 0.00019301660358905792,
+      "error": "fail-closed: invariant=INV-HPC1"
+    },
+    {
+      "invariant_id": "INV-HPC2",
+      "elapsed_ms": 0.00019709113985300064,
+      "error": "fail-closed: invariant=INV-HPC2"
+    },
+    {
+      "invariant_id": "INV-HPC3",
+      "elapsed_ms": 0.00018998980522155762,
+      "error": "fail-closed: invariant=INV-HPC3"
+    },
+    {
+      "invariant_id": "INV-HPC4",
+      "elapsed_ms": 0.00017101410776376724,
+      "error": "fail-closed: invariant=INV-HPC4"
+    },
+    {
+      "invariant_id": "INV-HPC5",
+      "elapsed_ms": 0.00017194543033838272,
+      "error": "fail-closed: invariant=INV-HPC5"
+    },
+    {
+      "invariant_id": "INV-IERD-PHASE0",
+      "elapsed_ms": 0.0001889420673251152,
+      "error": "fail-closed: invariant=INV-IERD-PHASE0"
+    },
+    {
+      "invariant_id": "INV-JACOBSON-OBSERVER",
+      "elapsed_ms": 0.00018195714801549911,
+      "error": "fail-closed: invariant=INV-JACOBSON-OBSERVER"
+    },
+    {
+      "invariant_id": "INV-K1",
+      "elapsed_ms": 0.00018300488591194153,
+      "error": "fail-closed: invariant=INV-K1"
+    },
+    {
+      "invariant_id": "INV-K10",
+      "elapsed_ms": 0.0001959269866347313,
+      "error": "fail-closed: invariant=INV-K10"
+    },
+    {
+      "invariant_id": "INV-K2",
+      "elapsed_ms": 0.00018102582544088364,
+      "error": "fail-closed: invariant=INV-K2"
+    },
+    {
+      "invariant_id": "INV-K3",
+      "elapsed_ms": 0.00025401823222637177,
+      "error": "fail-closed: invariant=INV-K3"
+    },
+    {
+      "invariant_id": "INV-K4",
+      "elapsed_ms": 0.00018801074475049973,
+      "error": "fail-closed: invariant=INV-K4"
+    },
+    {
+      "invariant_id": "INV-K5",
+      "elapsed_ms": 0.00018207356333732605,
+      "error": "fail-closed: invariant=INV-K5"
+    },
+    {
+      "invariant_id": "INV-K6",
+      "elapsed_ms": 0.00017404090613126755,
+      "error": "fail-closed: invariant=INV-K6"
+    },
+    {
+      "invariant_id": "INV-K7",
+      "elapsed_ms": 0.0001739244908094406,
+      "error": "fail-closed: invariant=INV-K7"
+    },
+    {
+      "invariant_id": "INV-K8",
+      "elapsed_ms": 0.0001919688656926155,
+      "error": "fail-closed: invariant=INV-K8"
+    },
+    {
+      "invariant_id": "INV-K9",
+      "elapsed_ms": 0.00018998980522155762,
+      "error": "fail-closed: invariant=INV-K9"
+    },
+    {
+      "invariant_id": "INV-KBETA",
+      "elapsed_ms": 0.00018603168427944183,
+      "error": "fail-closed: invariant=INV-KBETA"
+    },
+    {
+      "invariant_id": "INV-KELLY1",
+      "elapsed_ms": 0.00018207356333732605,
+      "error": "fail-closed: invariant=INV-KELLY1"
+    },
+    {
+      "invariant_id": "INV-KELLY2",
+      "elapsed_ms": 0.00019103754311800003,
+      "error": "fail-closed: invariant=INV-KELLY2"
+    },
+    {
+      "invariant_id": "INV-KELLY3",
+      "elapsed_ms": 0.00017404090613126755,
+      "error": "fail-closed: invariant=INV-KELLY3"
+    },
+    {
+      "invariant_id": "INV-LANDAUER-PROXY",
+      "elapsed_ms": 0.000183936208486557,
+      "error": "fail-closed: invariant=INV-LANDAUER-PROXY"
+    },
+    {
+      "invariant_id": "INV-LE1",
+      "elapsed_ms": 0.0001919688656926155,
+      "error": "fail-closed: invariant=INV-LE1"
+    },
+    {
+      "invariant_id": "INV-LE2",
+      "elapsed_ms": 0.0001989537850022316,
+      "error": "fail-closed: invariant=INV-LE2"
+    },
+    {
+      "invariant_id": "INV-LE3",
+      "elapsed_ms": 0.00018998980522155762,
+      "error": "fail-closed: invariant=INV-LE3"
+    },
+    {
+      "invariant_id": "INV-NO-BIO-CLAIM",
+      "elapsed_ms": 0.00017997808754444122,
+      "error": "fail-closed: invariant=INV-NO-BIO-CLAIM"
+    },
+    {
+      "invariant_id": "INV-OA1",
+      "elapsed_ms": 0.0001869630068540573,
+      "error": "fail-closed: invariant=INV-OA1"
+    },
+    {
+      "invariant_id": "INV-OA2",
+      "elapsed_ms": 0.00018207356333732605,
+      "error": "fail-closed: invariant=INV-OA2"
+    },
+    {
+      "invariant_id": "INV-OA3",
+      "elapsed_ms": 0.0002100132405757904,
+      "error": "fail-closed: invariant=INV-OA3"
+    },
+    {
+      "invariant_id": "INV-OBSERVER-BANDWIDTH",
+      "elapsed_ms": 0.00019709113985300064,
+      "error": "fail-closed: invariant=INV-OBSERVER-BANDWIDTH"
+    },
+    {
+      "invariant_id": "INV-OMS1",
+      "elapsed_ms": 0.00017799902707338333,
+      "error": "fail-closed: invariant=INV-OMS1"
+    },
+    {
+      "invariant_id": "INV-OMS2",
+      "elapsed_ms": 0.000200001522898674,
+      "error": "fail-closed: invariant=INV-OMS2"
+    },
+    {
+      "invariant_id": "INV-OMS3",
+      "elapsed_ms": 0.00017299316823482513,
+      "error": "fail-closed: invariant=INV-OMS3"
+    },
+    {
+      "invariant_id": "INV-PSR-HAC",
+      "elapsed_ms": 0.00018998980522155762,
+      "error": "fail-closed: invariant=INV-PSR-HAC"
+    },
+    {
+      "invariant_id": "INV-RC-FLOW",
+      "elapsed_ms": 0.00019208528101444244,
+      "error": "fail-closed: invariant=INV-RC-FLOW"
+    },
+    {
+      "invariant_id": "INV-RC1",
+      "elapsed_ms": 0.00018801074475049973,
+      "error": "fail-closed: invariant=INV-RC1"
+    },
+    {
+      "invariant_id": "INV-RC2",
+      "elapsed_ms": 0.00017997808754444122,
+      "error": "fail-closed: invariant=INV-RC2"
+    },
+    {
+      "invariant_id": "INV-RC3",
+      "elapsed_ms": 0.00019301660358905792,
+      "error": "fail-closed: invariant=INV-RC3"
+    },
+    {
+      "invariant_id": "INV-REBUS-1",
+      "elapsed_ms": 0.00017997808754444122,
+      "error": "fail-closed: invariant=INV-REBUS-1"
+    },
+    {
+      "invariant_id": "INV-REBUS-3",
+      "elapsed_ms": 0.00017206184566020966,
+      "error": "fail-closed: invariant=INV-REBUS-3"
+    },
+    {
+      "invariant_id": "INV-REBUS-4",
+      "elapsed_ms": 0.00019103754311800003,
+      "error": "fail-closed: invariant=INV-REBUS-4"
+    },
+    {
+      "invariant_id": "INV-REBUS-5",
+      "elapsed_ms": 0.00019709113985300064,
+      "error": "fail-closed: invariant=INV-REBUS-5"
+    },
+    {
+      "invariant_id": "INV-REBUS-6",
+      "elapsed_ms": 0.00017206184566020966,
+      "error": "fail-closed: invariant=INV-REBUS-6"
+    },
+    {
+      "invariant_id": "INV-REBUS-7",
+      "elapsed_ms": 0.00017799902707338333,
+      "error": "fail-closed: invariant=INV-REBUS-7"
+    },
+    {
+      "invariant_id": "INV-REVERSIBLE-GATE",
+      "elapsed_ms": 0.00019907020032405853,
+      "error": "fail-closed: invariant=INV-REVERSIBLE-GATE"
+    },
+    {
+      "invariant_id": "INV-SAK1",
+      "elapsed_ms": 0.00018498394638299942,
+      "error": "fail-closed: invariant=INV-SAK1"
+    },
+    {
+      "invariant_id": "INV-SB1",
+      "elapsed_ms": 0.00018498394638299942,
+      "error": "fail-closed: invariant=INV-SB1"
+    },
+    {
+      "invariant_id": "INV-SB2",
+      "elapsed_ms": 0.00018300488591194153,
+      "error": "fail-closed: invariant=INV-SB2"
+    },
+    {
+      "invariant_id": "INV-SG1",
+      "elapsed_ms": 0.00019802246242761612,
+      "error": "fail-closed: invariant=INV-SG1"
+    },
+    {
+      "invariant_id": "INV-SG2",
+      "elapsed_ms": 0.0001789303496479988,
+      "error": "fail-closed: invariant=INV-SG2"
+    },
+    {
+      "invariant_id": "INV-SIMULATION-FALSIFICATION",
+      "elapsed_ms": 0.00018498394638299942,
+      "error": "fail-closed: invariant=INV-SIMULATION-FALSIFICATION"
+    },
+    {
+      "invariant_id": "INV-SL1",
+      "elapsed_ms": 0.0001969747245311737,
+      "error": "fail-closed: invariant=INV-SL1"
+    },
+    {
+      "invariant_id": "INV-SL2",
+      "elapsed_ms": 0.00019604340195655823,
+      "error": "fail-closed: invariant=INV-SL2"
+    },
+    {
+      "invariant_id": "INV-ST1",
+      "elapsed_ms": 0.0001739244908094406,
+      "error": "fail-closed: invariant=INV-ST1"
+    },
+    {
+      "invariant_id": "INV-ST2",
+      "elapsed_ms": 0.00017695128917694092,
+      "error": "fail-closed: invariant=INV-ST2"
+    },
+    {
+      "invariant_id": "INV-ST3",
+      "elapsed_ms": 0.00019301660358905792,
+      "error": "fail-closed: invariant=INV-ST3"
+    },
+    {
+      "invariant_id": "INV-T2b",
+      "elapsed_ms": 0.00017101410776376724,
+      "error": "fail-closed: invariant=INV-T2b"
+    },
+    {
+      "invariant_id": "INV-TH1",
+      "elapsed_ms": 0.00017206184566020966,
+      "error": "fail-closed: invariant=INV-TH1"
+    },
+    {
+      "invariant_id": "INV-TH2",
+      "elapsed_ms": 0.0001939479261636734,
+      "error": "fail-closed: invariant=INV-TH2"
+    },
+    {
+      "invariant_id": "INV-TH3",
+      "elapsed_ms": 0.0001869630068540573,
+      "error": "fail-closed: invariant=INV-TH3"
+    },
+    {
+      "invariant_id": "INV-YV1",
+      "elapsed_ms": 0.00017601996660232544,
+      "error": "fail-closed: invariant=INV-YV1"
+    }
+  ]
+}

@@ -20,7 +20,6 @@
 # rest of the fast surface — these clusters were hidden behind the cli import
 # failures, not absent. Each is deterministic, issue-tracked, drained per cluster.
 tests/governance/test_typed_models.py cluster=acceptor_corpus_legacy_mapping issue=#1170 lane=governance-schema expiry=from_all_dot_claude_commit_acceptors_use_module_colon_symbol_string_form
-tests/adversarial_invariants/test_invariant_fail_closed.py cluster=adversarial_invariant_count issue=#1172 lane=governance-registry expiry=from_invariant_count_assertion_matches_canonical_registry_size_106
 tests/tools/test_numerical_policy.py  cluster=numerical_policy_unregistered_clamps issue=#1173 lane=physics-numerical-policy expiry=from_physics_tree_has_zero_unregistered_clamps
 
 # Second layer: with layer-1 quarantined the oracle ran the full kept set
