@@ -6,10 +6,20 @@
     "docs/agents/WEB_AGENT_ARCHITECTURE_PROTOCOL.md",
     "docs/agents/web_agent_operationalization_matrix.md",
     "docs/agents/web_agent_cognitive_state_assessment.md",
+    "docs/agents/web_agent_baseline_report.md",
+    "docs/agents/web_agent_tool_contract_inventory.md",
     "schemas/web_agent_score.schema.json",
     "schemas/web_agent_cognitive_state.schema.json",
+    "tools/web_agent_score.py",
+    "tools/web_agent_injection_eval.py",
+    "artifacts/agents/web_agent_tool_contract_inventory.json",
+    "tests/agents/fixtures/prompt_injection_cases.json",
     "tests/agents/test_web_agent_protocol_contract.py",
-    "tests/agents/test_web_agent_cognitive_state_contract.py"
+    "tests/agents/test_web_agent_cognitive_state_contract.py",
+    "tests/agents/test_web_agent_score.py",
+    "tests/agents/test_prompt_injection_fixtures.py",
+    "tests/agents/test_prompt_injection_evaluator.py",
+    "tests/agents/test_tool_contract_inventory.py"
   ],
   "metrics": {
     "task_completion_rate": 0.0,
@@ -18,13 +28,13 @@
     "hallucination_rate": 0.0,
     "escalation_precision": 0.0,
     "injection_resistance": false,
-    "tool_contract_coverage": 0.0,
+    "tool_contract_coverage": 1.0,
     "retry_budget_compliance": 0.0,
     "memory_minimization": 0.0,
     "explanation_completeness": 0.0
   },
   "score": {
-    "value": 46.0,
+    "value": 43.0,
     "scale": "0-100",
     "status": "NOT_PRODUCTION_READY",
     "weights_sum": 1.0
@@ -33,12 +43,13 @@
     "why_not_zero": [
       "irreversible action policy exists and baseline count is zero",
       "context efficiency has a declared conservative bootstrap ratio",
-      "unsupported factual claim rate is zero within the limited static fixture scope"
+      "unsupported factual claim rate is zero within the limited static fixture scope",
+      "static tool contract coverage is now defined for the declared minimal tool surface"
     ],
     "why_not_ready": [
       "no task evaluation suite has been executed",
-      "no prompt-injection suite has been executed",
-      "no tool contract coverage has been measured against live tools",
+      "prompt-injection fixture and evaluator exist, but no runtime agent trace has passed",
+      "tool contracts are static and not yet verified against live adapters",
       "no escalation dataset exists",
       "memory minimization and explanation completeness are not yet measured from runs"
     ]
@@ -46,7 +57,8 @@
   "failure_conditions": [
     "Do not label the agent production-ready from this artifact.",
     "Do not treat static documentation coverage as runtime task success.",
-    "Do not claim injection resistance until an adversarial suite passes.",
+    "Do not claim injection resistance until an adversarial runtime trace passes.",
+    "Do not treat static tool inventory as live adapter proof.",
     "Do not merge as a release verdict without CI evidence."
   ]
 }
