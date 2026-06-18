@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "670c2dcea278f92fb2bac69e2636b4bf10fc93eed794ff399029caef6a8db5b7"
+      "sha256": "3f3613bf8501448a2a70deda8c4324788d31dc531052525785b1454396753dd0"
     },
     {
       "path": "scripts/ci/__init__.py",
@@ -74,6 +74,10 @@
       "sha256": "58ffb28ba07ac7529c9a3e66a2914906508511ba8889ca81f26fc9d3024ad642"
     },
     {
+      "path": "scripts/ci/check_inference_transformer_contract.py",
+      "sha256": "1d85e018a5fc97d1e68d99a01cffe7b359986a9020da7efe09a5cb69bfef8ca0"
+    },
+    {
       "path": "scripts/ci/check_instrument_evidence_chain.py",
       "sha256": "50caf2f64e0c12ad18eed19bd44e1c2cd8be23da9058441cf8e5700b158a5de4"
     },
@@ -86,6 +90,10 @@
       "sha256": "5b2afe9b355891c3e4f9bd65ee3faed9d20d2c6406db811841c7ee8953a09c76"
     },
     {
+      "path": "scripts/ci/check_n7x_value_functions.py",
+      "sha256": "9e461d0dc18942ab2fba792f6dfec773b0ceeed66b6e1aca83b52307e5bd3d59"
+    },
+    {
       "path": "scripts/ci/check_negative_evidence.py",
       "sha256": "8d1fc0d696924ea87c8355b5492f5c4f822d344da14eae4f8f3e7921e85772e2"
     },
@@ -96,6 +104,10 @@
     {
       "path": "scripts/ci/check_research_artifact_truth.py",
       "sha256": "98e90c6aa0a2677e968be5efbf7c72fb488bd79f66aeef843ca197f7f9180f42"
+    },
+    {
+      "path": "scripts/ci/check_research_standard_contract.py",
+      "sha256": "eb6ee56702cca09591489f9e645418acdd8334361eb9be5b0356a96ab92ce8a2"
     },
     {
       "path": "scripts/ci/check_revalidation_ledger.py",
@@ -123,7 +135,7 @@
     },
     {
       "path": "scripts/ci/evidence_gate.sh",
-      "sha256": "c6bda712b8791e837ab206ef0a9aaace54ccadc22230d7ad760e47faebd1e763"
+      "sha256": "180f2d8691e160229f51c3ec74bcc90e952b80cbe3114eb6605aaf0bf933aadf"
     },
     {
       "path": "scripts/ci/external_run_intake.py",
@@ -143,7 +155,7 @@
     },
     {
       "path": "scripts/ci/prove_repo_integrity.sh",
-      "sha256": "25a8f95f33c1912363d87e13dec10aa4fba4db98d66256f34c9e564ed5f63397"
+      "sha256": "967fba067542beaab1b9eb087219a253eb69072a13f4f6d980887275ff905936"
     },
     {
       "path": "scripts/ci/release_gate.py",
