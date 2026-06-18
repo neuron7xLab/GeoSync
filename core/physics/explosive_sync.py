@@ -64,10 +64,15 @@ class ESProximityResult:
     K_values: NDArray[np.float64]  # coupling values swept
     K_c_forward: float  # critical K (forward); nan if no R(K) crossing
     K_c_backward: float  # critical K (backward); nan if no R(K) crossing
-    hysteresis_width: float  # |K_c_forward - K_c_backward|; nan if either K_c is nan
+    hysteresis_width: float  # loop width; exact if both K_c finite, else a
+    # lower bound (K_c_forward - K_min) when the backward branch stays synced
+    # below the grid (see hysteresis_is_lower_bound); nan if no real transition
     proximity: float  # normalised proximity metric [0, 1]; 0.0 when no transition
     is_explosive: bool  # True if significant hysteresis detected
-    transition_detected: bool  # True iff BOTH sweeps had a real R(K) threshold crossing
+    transition_detected: bool  # True iff a real forward transition was observed
+    # (both branches cross, OR forward crosses and backward stays synchronized)
+    hysteresis_is_lower_bound: bool = False  # True ⟹ width is a lower bound
+    # (down-transition lies below K_min; grid cannot bracket it)
 
 
 class ExplosiveSyncDetector:
@@ -190,15 +195,35 @@ class ExplosiveSyncDetector:
         # so the circuit breaker treats it as "no transition detected" rather than
         # firing on a boundary value (fail-OPEN to RESTRICTED). INV-ES1 (width ≥ 0)
         # holds vacuously: a nan width is never reported as a negative number.
-        transition_detected = math.isfinite(K_c_fwd) and math.isfinite(K_c_bwd)
-        if transition_detected:
+        K_min = float(K_values[0])
+        hysteresis_is_lower_bound = False
+        if math.isfinite(K_c_fwd) and math.isfinite(K_c_bwd):
+            # Both branches cross on the grid → exact hysteresis loop width.
             hysteresis = abs(K_c_fwd - K_c_bwd)  # INV-ES1: |·| ⇒ width ≥ 0
+            transition_detected = True
+        elif math.isfinite(K_c_fwd) and float(R_backward[0]) >= self._R_thresh:
+            # Strong hysteresis: the forward up-transition is at K_c_fwd, but the
+            # backward branch is STILL synchronized at the grid floor (R_backward
+            # at K_min ≥ threshold), so the down-transition lies BELOW K_min and
+            # the grid cannot bracket it. This is genuine explosive evidence — the
+            # loop is at least (K_c_fwd − K_min) wide. We report that honest LOWER
+            # BOUND (flagged), NOT a fabricated grid-endpoint K_c: the down-branch
+            # is observed synchronized, it is not a boundary artifact. INV-ES2.
+            hysteresis = K_c_fwd - K_min  # INV-ES1: K_c_fwd ≥ K_min ⇒ width ≥ 0
+            transition_detected = True
+            hysteresis_is_lower_bound = True
+        else:
+            # No real transition (forward never crosses, or backward never
+            # synchronized) → fail closed, no fabricated width. INV-ES1 vacuous.
+            hysteresis = math.nan
+            transition_detected = False
+
+        if math.isfinite(hysteresis):
             K_span = self._K_range[1] - self._K_range[0]
             # bounds: proximity is a [0, 1] normalized ratio; cap at 1.0 only.
             proximity = min(hysteresis / K_span, 1.0)
             is_explosive = hysteresis > self._hyst_thresh
         else:
-            hysteresis = math.nan
             proximity = 0.0
             is_explosive = False
 
@@ -212,6 +237,7 @@ class ExplosiveSyncDetector:
             proximity=proximity,
             is_explosive=is_explosive,
             transition_detected=transition_detected,
+            hysteresis_is_lower_bound=hysteresis_is_lower_bound,
         )
 
     def _find_critical_K(
