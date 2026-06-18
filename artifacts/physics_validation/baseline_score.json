@@ -1,35 +1,23 @@
 {
-  "S_total": 52.2,
+  "S_total": 67.8,
   "blockers": [
     {
       "id": "BLOCK-LOCAL-001",
-      "reason": "full local repo scan and pytest run not observed by this connector pass",
-      "required_action": "run python tools/physics_score.py --write and pytest tests/unit/physics/test_T1_kuramoto_ricci_boundary.py",
-      "severity": "HIGH"
-    },
-    {
-      "id": "BLOCK-DIM-001",
-      "reason": "no dedicated dimensional homogeneity test exists",
-      "required_action": "create tests/physics/test_dimensional_homogeneity.py and docs/physics/units_table.md",
-      "severity": "HIGH"
-    },
-    {
-      "id": "BLOCK-CONV-001",
-      "reason": "no dt/dt2/dt4 convergence gate exists",
-      "required_action": "create tests/physics/test_convergence.py with tolerance and expected order",
+      "reason": "local repo scan, pytest, and CI logs were not observed by this connector pass",
+      "required_action": "run python tools/physics_score.py --write and pytest tests/unit/physics/test_T1_kuramoto_ricci_boundary.py tests/physics -q",
       "severity": "HIGH"
     },
     {
       "id": "BLOCK-UQ-001",
-      "reason": "no stochastic source or UQ plan exists",
-      "required_action": "define prior/IC/noise/tolerance uncertainty before Monte Carlo",
+      "reason": "UQ source is declared but no UQ smoke execution artifact exists",
+      "required_action": "create tests/physics/test_uq_smoke.py and artifacts/physics_validation/uq_summary.json",
       "severity": "HIGH"
     },
     {
-      "id": "BLOCK-IFACE-001",
-      "reason": "vertical interface contracts are not tested",
-      "required_action": "create docs/physics/interface_contracts.md and tests/physics/test_interface_contracts.py",
-      "severity": "MEDIUM"
+      "id": "BLOCK-RICCI-001",
+      "reason": "Ricci bridge remains experimental until graph construction and matched-null evidence are audited",
+      "required_action": "validate kappa construction, f(kappa), boundedness, and Ricci matched nulls",
+      "severity": "HIGH"
     },
     {
       "id": "BLOCK-BNSYN-MFN-001",
@@ -58,128 +46,136 @@
     },
     {
       "evidence": [
-        "docs/physics/geosync_core.md"
+        "docs/physics/units_table.md",
+        "tests/physics/test_dimensional_homogeneity.py"
       ],
       "failure_condition": "range guards are mistaken for dimensional analysis",
       "id": "S_dimensional_consistency",
-      "measurement_fn": "units text present; tests/physics/test_dimensional_homogeneity.py required for >60",
+      "measurement_fn": "docs/physics/units_table.md + tests/physics/test_dimensional_homogeneity.py",
       "metric": "units declared and dimension tests present",
-      "score": 35.0,
-      "status": "BLOCKED_NO_DIMENSIONAL_TEST",
+      "score": 65.0,
+      "status": "PARTIAL_PASS_NO_TYPED_UNITS",
       "threshold": ">= 85 for final rank",
       "weight": 0.1,
-      "weighted_score": 3.5
+      "weighted_score": 6.5
     },
     {
       "evidence": [
         "core/kuramoto/kuramoto_ricci_engine.py",
-        "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py"
+        "tests/physics/test_convergence.py"
       ],
       "failure_condition": "solver fabricates physics or dt refinement is not measured",
       "id": "S_numerical_stability",
-      "measurement_fn": "T1 trajectory/test presence; dedicated convergence tests required for >70",
+      "measurement_fn": "T1 trajectory/test presence plus dt refinement gate",
       "metric": "trajectory implementation plus convergence/stability tests",
-      "score": 55.0,
-      "status": "PARTIAL_PASS_NO_CONVERGENCE_GATE",
+      "score": 75.0,
+      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
       "threshold": ">= 85 for final rank",
       "weight": 0.12,
-      "weighted_score": 6.6
+      "weighted_score": 9.0
     },
     {
       "evidence": [
-        "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py"
+        "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py",
+        "tests/physics/test_invariants.py"
       ],
       "failure_condition": "R outside [0,1], invalid Phi/Kc, non-finite theta, silent repair",
       "id": "S_invariant_preservation",
       "measurement_fn": "static test carrier detection; pytest execution required for final",
       "metric": "R bounds, boundary behavior, homogeneous potential, determinism",
-      "score": 70.0,
-      "status": "IMPLEMENTED_NOT_RERUN",
+      "score": 80.0,
+      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
       "threshold": ">= 90 for final rank",
       "weight": 0.12,
-      "weighted_score": 8.4
+      "weighted_score": 9.6
     },
     {
       "evidence": [
         "docs/audit/claim_ledger.md",
-        "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py"
+        "tests/physics/test_geosync_nulls.py"
       ],
       "failure_condition": "positive signal survives K=0/shuffle/randomized nulls",
       "id": "S_falsifiability",
-      "measurement_fn": "static negative-control/null carrier detection",
+      "measurement_fn": "T1 negative controls plus dedicated null test matrix",
       "metric": "nulls, H0/H1, negative controls, failure messages",
-      "score": 65.0,
-      "status": "PARTIAL_PASS_DEDICATED_NULL_MATRIX_MISSING",
+      "score": 75.0,
+      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
       "threshold": ">= 90 for final rank",
       "weight": 0.14,
-      "weighted_score": 9.1
+      "weighted_score": 10.5
     },
     {
       "evidence": [
-        "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py"
+        "tests/physics/test_geosync_nulls.py"
       ],
       "failure_condition": "null model suite does not cover shuffled phases, ER matched graph, randomized omega",
       "id": "S_baseline_models",
-      "measurement_fn": "presence of K=0 and non-vacuity negative controls; dedicated factory missing",
+      "measurement_fn": "K=0, phase shuffle, randomized omega, matched ER nulls",
       "metric": "explicit null model factory coverage",
-      "score": 45.0,
-      "status": "PARTIAL_PASS_FACTORY_MISSING",
+      "score": 70.0,
+      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
       "threshold": ">= 85 for final rank",
       "weight": 0.1,
-      "weighted_score": 4.5
+      "weighted_score": 7.0
     },
     {
-      "evidence": [],
+      "evidence": [
+        "docs/physics/uq_plan.md"
+      ],
       "failure_condition": "confidence interval exists without prior/IC/noise/tolerance model",
       "id": "S_UQ",
       "measurement_fn": "docs/physics/uq_plan.md and artifacts/physics_validation/uq_summary.json",
       "metric": "uncertainty source and UQ smoke artifact",
-      "score": 0.0,
-      "status": "FAIL_NO_STOCHASTIC_SOURCE",
+      "score": 35.0,
+      "status": "SOURCE_DECLARED_EXECUTION_MISSING",
       "threshold": ">= 70 for final rank",
       "weight": 0.08,
-      "weighted_score": 0.0
+      "weighted_score": 2.8
     },
     {
       "evidence": [
+        "reproducibility/manifest.json",
         "pyproject.toml"
       ],
       "failure_condition": "artifact cannot be rerun from commit and command",
       "id": "S_reproducibility",
-      "measurement_fn": "reproducibility/manifest.json plus generated score artifact required for >70",
+      "measurement_fn": "reproducibility/manifest.json plus generated score artifact",
       "metric": "manifest, command, seed, environment, generated artifacts",
-      "score": 25.0,
-      "status": "BLOCKED_NO_MANIFEST",
+      "score": 50.0,
+      "status": "PARTIAL_PASS_CI_LOGS_MISSING",
       "threshold": ">= 85 for final rank",
-      "weight": 0.1,
-      "weighted_score": 2.5
+      "weight": 0.08,
+      "weighted_score": 4.0
     },
     {
-      "evidence": [],
+      "evidence": [
+        "docs/physics/interface_contracts.md",
+        "tests/physics/test_interface_contracts.py"
+      ],
       "failure_condition": "consumer accepts hidden or untyped conversion",
       "id": "S_interface_contracts",
-      "measurement_fn": "tests/physics/test_interface_contracts.py required",
+      "measurement_fn": "docs/physics/interface_contracts.md + tests/physics/test_interface_contracts.py",
       "metric": "shape/unit/range/sampling contracts across subsystem boundaries",
-      "score": 20.0,
-      "status": "FAIL_NO_INTERFACE_TESTS",
+      "score": 65.0,
+      "status": "PARTIAL_PASS_LOCAL_PYTEST_REQUIRED",
       "threshold": ">= 80 for final rank",
-      "weight": 0.1,
-      "weighted_score": 2.0
+      "weight": 0.08,
+      "weighted_score": 5.2
     },
     {
       "evidence": [
         "docs/audit/claim_ledger.md",
-        "docs/audit/file_inventory.md"
+        "docs/physics/equation_traceability.md"
       ],
       "failure_condition": "claim lacks a carrier or source/code/test disagree",
       "id": "S_traceability",
-      "measurement_fn": "claim ledger and inventory presence; equation traceability required for >80",
+      "measurement_fn": "claim ledger, inventory, equation traceability index",
       "metric": "claim -> equation -> code -> test -> failure condition mapping",
-      "score": 60.0,
-      "status": "PARTIAL_PASS_TRACEABILITY_INDEX_MISSING",
+      "score": 80.0,
+      "status": "PARTIAL_PASS_RUNTIME_REPORT_MISSING",
       "threshold": ">= 85 for final rank",
-      "weight": 0.12,
-      "weighted_score": 7.2
+      "weight": 0.06,
+      "weighted_score": 4.8
     }
   ],
   "schema_version": "2026.06.18",
