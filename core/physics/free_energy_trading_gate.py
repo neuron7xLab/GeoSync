@@ -148,13 +148,31 @@ class FreeEnergyTradingGate:
         return self._T_base
 
     def tsallis_entropy(self, weights: NDArray[np.float64]) -> float:
-        """S_q = (1 - Σ w_i^q) / (q-1) on normalised position weights."""
+        """S_q = (1 - Σ w_i^q) / (q-1) on normalised position weights.
+
+        Fail-closed (INV-FE2): the Tsallis entropy is non-negative for q>1 on
+        the probability simplex (Tsallis 1988) — a theorem, not a fluctuation.
+        Non-finite weights are rejected (rather than returning a silent NaN that
+        the ``total < 1e-12`` guard cannot catch, since ``NaN < 1e-12`` is
+        False), and a materially negative S_q is treated as an
+        implementation/parameter bug (raise) rather than clamped away.
+        """
         w = np.abs(np.asarray(weights, dtype=np.float64))
-        total = w.sum()
+        if not bool(np.all(np.isfinite(w))):
+            raise ValueError("INV-FE2: position weights must be finite (no NaN/Inf)")
+        total = float(w.sum())
         if total < 1e-12:
+            # Degenerate (no position mass): entropy is identically zero.
             return 0.0
         w = w / total
-        return (1.0 - float(np.sum(w**self._q))) / (self._q - 1.0)
+        s_q = (1.0 - float(np.sum(w**self._q))) / (self._q - 1.0)
+        # INV-FE2: S_q ≥ 0 for q>1 on the simplex; tolerate float round-off only.
+        if s_q < -1e-12:
+            raise ValueError(
+                f"INV-FE2: Tsallis entropy S_q={s_q:.3e} < 0 for q={self._q} on the "
+                f"simplex — a formula/implementation bug, not a fluctuation."
+            )
+        return max(0.0, s_q)
 
     def compute_risk_exposure(
         self,
