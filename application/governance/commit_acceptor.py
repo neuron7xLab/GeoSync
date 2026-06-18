@@ -85,11 +85,16 @@ class MemoryUpdateType(str, Enum):
 
 
 class ChangedFile(BaseModel):
-    """One entry under ``diff_scope.changed_files:``."""
+    """One entry under ``diff_scope.changed_files:``.
+
+    Schema is ``{path, sha256?}`` per the acceptor template: ``sha256`` is an
+    optional content pin (used by VERIFIED acceptors; absent/None for DRAFT).
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
     path: str = Field(min_length=1)
+    sha256: str | None = None
 
 
 class DiffScope(BaseModel):

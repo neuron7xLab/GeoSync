@@ -32,6 +32,7 @@ diff_scope:
     - path: ".claude/commit_acceptors/editable-install-import-architecture.yaml"
     - path: "cli/__init__.py"
     - path: "scripts/check_single_entrypoint.py"
+    - path: "application/governance/commit_acceptor.py"
     - path: "tests/unit/analytics/test_descriptor_capsule.py"
     - path: "tests/ci/fast_quarantine.txt"
     - path: "docs/ci/fast_backlog_ledger.md"
