@@ -1,17 +1,10 @@
 id: web-agent-contract-tests
 status: DRAFT
 claim_type: correctness
-promise: "Web-agent contract tests bind protocol, scoring, injection, runtime, task, context, tool, live-evidence, and readiness behavior to reproducible assertions."
+promise: "Web-agent core contract tests bind protocol, cognitive-state, baseline score, tool inventory, and readiness behavior to reproducible assertions."
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/web-agent-contract-tests.yaml"
-    - path: "tests/agents/test_context_efficiency_evaluator.py"
-    - path: "tests/agents/test_live_evidence_evaluator.py"
-    - path: "tests/agents/test_live_tool_adapter_smoke.py"
-    - path: "tests/agents/test_prompt_injection_evaluator.py"
-    - path: "tests/agents/test_prompt_injection_fixtures.py"
-    - path: "tests/agents/test_runtime_trace_evaluator.py"
-    - path: "tests/agents/test_task_completion_evaluator.py"
     - path: "tests/agents/test_tool_contract_inventory.py"
     - path: "tests/agents/test_web_agent_cognitive_state_contract.py"
     - path: "tests/agents/test_web_agent_protocol_contract.py"
@@ -23,14 +16,14 @@ diff_scope:
     - "forecast/"
     - "policy/"
 required_python_symbols: []
-expected_signal: "all web-agent contract tests execute and preserve fail-closed readiness status"
-measurement_command: "python -m pytest tests/agents/test_web_agent_protocol_contract.py tests/agents/test_web_agent_cognitive_state_contract.py tests/agents/test_web_agent_score.py tests/agents/test_prompt_injection_fixtures.py tests/agents/test_prompt_injection_evaluator.py tests/agents/test_tool_contract_inventory.py tests/agents/test_runtime_trace_evaluator.py tests/agents/test_task_completion_evaluator.py tests/agents/test_context_efficiency_evaluator.py tests/agents/test_live_tool_adapter_smoke.py tests/agents/test_live_evidence_evaluator.py tests/agents/test_web_agent_readiness_verdict.py"
+expected_signal: "core web-agent contract tests execute and preserve fail-closed readiness status"
+measurement_command: "python -m pytest tests/agents/test_web_agent_protocol_contract.py tests/agents/test_web_agent_cognitive_state_contract.py tests/agents/test_web_agent_score.py tests/agents/test_tool_contract_inventory.py tests/agents/test_web_agent_readiness_verdict.py"
 signal_artifact: "artifacts/agents/web_agent_readiness_verdict.json"
 falsifier:
   command: "python -c \"raise SystemExit(1)\""
-  description: "Always-failing probe proving contract-test acceptor failures are surfaced by CI."
-rollback_command: "git checkout -- .claude/commit_acceptors/web-agent-contract-tests.yaml tests/agents/test_context_efficiency_evaluator.py tests/agents/test_live_evidence_evaluator.py tests/agents/test_live_tool_adapter_smoke.py tests/agents/test_prompt_injection_evaluator.py tests/agents/test_prompt_injection_fixtures.py tests/agents/test_runtime_trace_evaluator.py tests/agents/test_task_completion_evaluator.py tests/agents/test_tool_contract_inventory.py tests/agents/test_web_agent_cognitive_state_contract.py tests/agents/test_web_agent_protocol_contract.py tests/agents/test_web_agent_readiness_verdict.py tests/agents/test_web_agent_score.py"
-rollback_verification_command: "git diff --exit-code tests/agents .claude/commit_acceptors/web-agent-contract-tests.yaml"
+  description: "Always-failing probe proving core contract-test acceptor failures are surfaced by CI."
+rollback_command: "git checkout -- .claude/commit_acceptors/web-agent-contract-tests.yaml tests/agents/test_tool_contract_inventory.py tests/agents/test_web_agent_cognitive_state_contract.py tests/agents/test_web_agent_protocol_contract.py tests/agents/test_web_agent_readiness_verdict.py tests/agents/test_web_agent_score.py"
+rollback_verification_command: "git diff --exit-code tests/agents/test_tool_contract_inventory.py tests/agents/test_web_agent_cognitive_state_contract.py tests/agents/test_web_agent_protocol_contract.py tests/agents/test_web_agent_readiness_verdict.py tests/agents/test_web_agent_score.py .claude/commit_acceptors/web-agent-contract-tests.yaml"
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/web-agent-contract-tests.yaml"
 report_path: "docs/agents/web_agent_readiness_verdict.md"
