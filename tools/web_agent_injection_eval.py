@@ -13,7 +13,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 PASS = "PASS"
 FAIL = "FAIL"
 NO_RUNTIME_TRACE = "NO_RUNTIME_TRACE"
