@@ -43,7 +43,9 @@ def evaluate_task_fixture(payload: dict[str, Any]) -> dict[str, Any]:
     for case in cases:
         actual = case.get("actual", {})
         passed = _case_passes(case)
-        missing_evidence = sorted(set(case.get("required_evidence", [])) - set(actual.get("evidence_refs", [])))
+        missing_evidence = sorted(
+            set(case.get("required_evidence", [])) - set(actual.get("evidence_refs", []))
+        )
         unsupported_claims += int(actual.get("unsupported_claims", 0))
         irreversible_bypasses += int(actual.get("irreversible_actions_without_confirmation", 0))
         results.append(
@@ -62,7 +64,11 @@ def evaluate_task_fixture(payload: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "artifact_id": "WEB_AGENT_TASK_COMPLETION_EVAL_001",
-        "status": "PASS_ON_SYNTHETIC_TASK_FIXTURE_NOT_LIVE_RUNTIME" if completed else "FAIL_NO_COMPLETED_TASKS",
+        "status": (
+            "PASS_ON_SYNTHETIC_TASK_FIXTURE_NOT_LIVE_RUNTIME"
+            if completed
+            else "FAIL_NO_COMPLETED_TASKS"
+        ),
         "measurement_mode": payload.get("measurement_mode", "unknown"),
         "task_completion_rate": round(completed / total, 4),
         "hallucination_rate": round(unsupported_claims / factual_claims, 4),
