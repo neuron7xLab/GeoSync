@@ -17,9 +17,14 @@ promise: >-
   reconstruction objective, execution lanes, acceptance gates, command contract,
   stop rules, execution verdict) and keeps its fail-closed honest state
   (HONEST_STATE=EXECUTION_CONTRACT_READY, DECISION_STATE=BLOCKED_BY_MISSING_EVIDENCE,
-  CODE_EXECUTION_NOT_PERFORMED_IN_THIS_COMMIT). The capsule is an execution
-  contract only; it makes no implementation, product-readiness, alpha, or
-  universal-law claim. No executable pipeline, fixture, or artifact is bound here.
+  CODE_EXECUTION_NOT_PERFORMED_IN_THIS_COMMIT). It also keeps schema validation
+  of every emitted artifact as a BLOCKING acceptance condition: the capsule must
+  state that each artifacts/x10r_reconstruction/*.json validates against
+  schemas/research/research_inference_artifact.schema.json with canonical
+  provenance fields, so a hash-pinned but schema-invalid artifact cannot promote
+  evidence (closes codex P2 on #1165). The capsule is an execution contract only;
+  it makes no implementation, product-readiness, alpha, or universal-law claim.
+  No executable pipeline, fixture, or artifact is bound here.
 
 diff_scope:
   changed_files:
@@ -36,10 +41,11 @@ diff_scope:
 required_python_symbols: []
 
 expected_signal: >-
-  All eight mandatory capsule sections are present and the three fail-closed
-  state lines are present; the doc still refuses ceremonial completion.
+  All eight mandatory capsule sections are present, the three fail-closed
+  state lines are present, AND the blocking schema-validation acceptance
+  condition is declared; the doc still refuses ceremonial completion.
 
-measurement_command: "bash -c 'set -e; f=research/reconstruction/X10R_CURVATURE_SYNCHRONIZATION_FREE_ENERGY_CAPSULE.md; mkdir -p tmp; for s in \"## 1. Claim Boundary\" \"## 2. First-Principles Source Map\" \"## 3. Reconstruction Objective\" \"## 4. Execution Lanes\" \"## 5. Acceptance Gates\" \"## 6. Minimal Command Contract\" \"## 7. Stop Rules\" \"## 9. Current Execution Verdict\" \"HONEST_STATE=EXECUTION_CONTRACT_READY\" \"DECISION_STATE=BLOCKED_BY_MISSING_EVIDENCE\" \"CODE_EXECUTION_NOT_PERFORMED_IN_THIS_COMMIT\"; do grep -qF \"$s\" \"$f\" || { echo \"MISSING: $s\"; exit 1; }; done; echo x10r-capsule-contract-ok | tee tmp/x10r_capsule_contract.log'"
+measurement_command: "bash -c 'set -e; f=research/reconstruction/X10R_CURVATURE_SYNCHRONIZATION_FREE_ENERGY_CAPSULE.md; mkdir -p tmp; for s in \"## 1. Claim Boundary\" \"## 2. First-Principles Source Map\" \"## 3. Reconstruction Objective\" \"## 4. Execution Lanes\" \"## 5. Acceptance Gates\" \"## 6. Minimal Command Contract\" \"## 7. Stop Rules\" \"## 9. Current Execution Verdict\" \"HONEST_STATE=EXECUTION_CONTRACT_READY\" \"DECISION_STATE=BLOCKED_BY_MISSING_EVIDENCE\" \"CODE_EXECUTION_NOT_PERFORMED_IN_THIS_COMMIT\" \"Schema validation is a BLOCKING acceptance condition\" \"research_inference_artifact.schema.json\"; do grep -qF \"$s\" \"$f\" || { echo \"MISSING: $s\"; exit 1; }; done; echo x10r-capsule-contract-ok | tee tmp/x10r_capsule_contract.log'"
 
 signal_artifact: "tmp/x10r_capsule_contract.log"
 

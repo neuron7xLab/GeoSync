@@ -54,7 +54,7 @@ artifacts/x10r_reconstruction/
   ro_crate_metadata.json
 ```
 
-The final verdict is valid only if all blocking gates pass and every generated artifact is SHA-256 pinned in `manifest.json`.
+The final verdict is valid only if all blocking gates pass, every generated artifact is SHA-256 pinned in `manifest.json`, AND every emitted `*.json` validates against `schemas/research/research_inference_artifact.schema.json` with all canonical provenance fields present. Hash-pinning proves immutability; schema validation proves conformance. Both are blocking — neither substitutes for the other.
 
 ## 4. Execution Lanes
 
@@ -114,7 +114,8 @@ A commit can call this capsule complete only when:
 7. Neuro-control invariants produce both positive witnesses and inverse falsifiers.
 8. Governance verdict is produced through `VerificationProtocol.evaluate`.
 9. Manifest includes SHA-256 for every output artifact.
-10. CI evidence is attached; otherwise the maximum honest state is `BLOCKED_BY_MISSING_EVIDENCE`.
+10. Every emitted `artifacts/x10r_reconstruction/*.json` validates against `schemas/research/research_inference_artifact.schema.json` AND carries all canonical provenance fields — `run_id`, `git_sha`, `data_sha256`, `config_sha256`, `seed`, `decision`, `claim_tier`, `falsification_status`. Schema validation is a BLOCKING acceptance condition (repo artifact contract, README Stage 4 "Artifact / Evidence"): a hash-pinned but schema-invalid or canonical-field-incomplete artifact fails closed and CANNOT promote evidence. A SHA-256 alone proves immutability, not conformance — both are required.
+11. CI evidence is attached; otherwise the maximum honest state is `BLOCKED_BY_MISSING_EVIDENCE`.
 
 ## 6. Minimal Command Contract
 
@@ -144,6 +145,7 @@ Stop immediately and mark the capsule failed if:
 - any exact topological residual is non-zero;
 - any physics contract is missing a witness;
 - any artifact lacks a hash;
+- any emitted artifact fails schema validation against `schemas/research/research_inference_artifact.schema.json` or omits a canonical provenance field (`run_id`, `git_sha`, `data_sha256`, `config_sha256`, `seed`, `decision`, `claim_tier`, `falsification_status`);
 - any governance score bypasses weakest-link clamp;
 - any market/trading claim is emitted from this pipeline.
 
