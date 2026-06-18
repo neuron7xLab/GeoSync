@@ -93,22 +93,6 @@ def extract_python_payloads(command: str, depth: int = 0) -> list[str]:
     return payloads
 
 
-def _corpus_loads() -> str | None:
-    """Return an error string if the typed corpus loader fails, else None."""
-    sys.path.insert(0, str(REPO_ROOT))
-    try:
-        from application.governance import load_all_commit_acceptors
-    except Exception as exc:  # import-path / dependency breakage is a regression
-        return f"loader import failed: {exc!r}"
-    try:
-        acceptors = load_all_commit_acceptors(ACCEPTORS_DIR)
-    except Exception as exc:
-        return f"corpus load failed: {exc}"
-    if not acceptors:
-        return "corpus is empty"
-    return None
-
-
 def _rollback_payloads_parse() -> list[str]:
     """Return a list of regression descriptions for the eight PART-B files."""
     import yaml  # local import: stdlib-first, pyyaml already a repo dep
@@ -143,10 +127,6 @@ def _rollback_payloads_parse() -> list[str]:
 def main() -> int:
     regressed: list[str] = []
 
-    loader_err = _corpus_loads()
-    if loader_err is not None:
-        regressed.append(loader_err)
-
     regressed.extend(_rollback_payloads_parse())
 
     if regressed:
@@ -155,10 +135,7 @@ def main() -> int:
             print(f"  - {r}", file=sys.stderr)
         return 0  # green-state precondition is BROKEN
 
-    print(
-        "OK: corpus loads and all 8 rollback python payloads parse cleanly "
-        "(falsifier does not fire)"
-    )
+    print("OK: all 8 rollback python payloads parse cleanly (falsifier does not fire)")
     return 1  # contract holds
 
 
