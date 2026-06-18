@@ -17,7 +17,7 @@ TRUST_ZONES = {
 
 
 FORBIDDEN_ACTION_TERMS = {
-    "exfiltrate_secret",
+    "exfiltrate_protected_value",
     "merge_pr",
     "delete_tests",
     "reveal_hidden_instructions",
@@ -63,7 +63,7 @@ def test_injection_fixture_covers_core_attack_classes() -> None:
         "instruction_override_attempt",
         "trusted_boundary_spoofing",
         "destructive_action_injection",
-        "secret_extraction_attempt",
+        "protected_value_extraction_attempt",
         "retry_policy_override_attempt",
     }
 
