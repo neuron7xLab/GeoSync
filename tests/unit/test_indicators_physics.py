@@ -201,6 +201,24 @@ class TestUncertaintyQuantificationIndicator:
         assert result.value == 0.0
         assert result.metadata.get("degenerate") is True
 
+    def test_uncertainty_under_resolved_window_flagged_degenerate(self):
+        """Under-resolved short window → degenerate 0.0, NOT a 'max compact' value.
+
+        A two-sample step whose fluctuation collapses power into one sample
+        produces a sub-Gabor product. The indicator must surface it as
+        degenerate (flagged) rather than reporting value≈0, which a position
+        sizer could misread as maximal time-frequency confidence.
+        """
+        indicator = UncertaintyQuantificationIndicator()
+        # prices = [100, 101] → fluctuation [-0.5, 0.5]: Δt collapses, sub-bound.
+        prices = np.array([100.0, 101.0])
+
+        result = indicator.transform(prices)
+
+        assert result.value == 0.0
+        assert result.metadata.get("degenerate") is True
+        assert "time_spread" not in result.metadata
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -392,9 +392,12 @@ class UncertaintyQuantificationIndicator(BaseFeature):
 
         Returns:
             FeatureResult with the time-frequency product. Degenerate inputs
-            (fewer than 2 samples, or a constant series with zero fluctuation
-            energy) return value 0.0 with an explanatory metadata flag rather
-            than raising — the indicator surface stays total for callers.
+            (fewer than 2 samples, a constant series with zero fluctuation
+            energy, or an under-resolved / near-Nyquist window whose product
+            falls below the Gabor bound) return value 0.0 with a ``degenerate``
+            metadata flag rather than raising — the indicator surface stays
+            total for callers, but a degenerate window is never reported as a
+            valid (and dangerously "maximally compact") measurement.
         """
         prices = np.asarray(data, dtype=float)
 
