@@ -335,7 +335,14 @@ jobs:
           # "0/0 selected tests — shard passes". The entire fast lane
           # (~17.6k tests) was green-by-vacuum on main and every PR. Keep exactly
           # ONE level of quiet (from the ini) — do NOT re-add `-q` on this line.
-          .venv/bin/pytest tests/ -m "$MARK" --collect-only 2>/dev/null \
+          # Capture collection stderr instead of discarding it. When collection
+          # breaks (an import error in any collected file), the old `2>/dev/null`
+          # threw away the ONE artifact needed to act: the traceback naming the
+          # broken file. Without it the sanctioned escape valve below
+          # (fast_quarantine.txt, which needs a file path) cannot be used and the
+          # backlog cannot be drained. Capture is observability-only — it does
+          # not change what passes or fails.
+          .venv/bin/pytest tests/ -m "$MARK" --collect-only 2>/tmp/collect_stderr.log \
             | grep -E '^tests/.*::' > /tmp/all_nodeids.txt || true
 
           # Quarantine subtraction: keep the gate REAL-green, not fake-green.
@@ -352,7 +359,15 @@ jobs:
               grep -vE '^\s*#|^\s*$' "$QUARANTINE" | grep -vE 'issue=#[0-9]+' >&2
               exit 1
             fi
-            grep -vE '^\s*#|^\s*$' "$QUARANTINE" | awk '{print $1}' > /tmp/quarantine_paths.txt
+            # ROOT CAUSE of the universal fast-shard red: when the quarantine
+            # has ZERO active entries (the backlog was drained to empty), this
+            # `grep -vE '^#|^$'` matches nothing and exits 1. Under the step's
+            # `set -o pipefail` that non-zero propagates through the pipe, and
+            # `set -e` then kills the shard with NO diagnostic — before the
+            # collection guard and before any pytest run. Draining the backlog
+            # to empty therefore silently reddened EVERY test-surface PR.
+            # `|| true` makes "no active quarantine" the clean no-op it should be.
+            grep -vE '^\s*#|^\s*$' "$QUARANTINE" | awk '{print $1}' > /tmp/quarantine_paths.txt || true
             before=$(wc -l < /tmp/all_nodeids.txt | tr -d ' ')
             grep -vFf /tmp/quarantine_paths.txt /tmp/all_nodeids.txt > /tmp/all_nodeids.kept || true
             mv /tmp/all_nodeids.kept /tmp/all_nodeids.txt
@@ -361,6 +376,7 @@ jobs:
           fi
 
           total_ids=$(wc -l < /tmp/all_nodeids.txt | tr -d ' ')
+          echo "[gate-probe] collected total_ids=$total_ids (post-quarantine)" >&2
           # Fail-closed: we only reach here because the diff touched Python
           # test surface (awk filter above). Zero collected ids therefore means
           # collection is broken (or quarantine swallowed everything) — refuse
@@ -368,6 +384,11 @@ jobs:
           if [[ "$total_ids" -eq 0 ]]; then
             echo "FATAL: test-surface changed but 0 fast tests collected (after quarantine)." >&2
             echo "Collection is broken (import error or output-format regression); refusing to pass vacuously." >&2
+            echo "---- captured collection stderr (root cause; last 80 lines) ----" >&2
+            tail -n 80 /tmp/collect_stderr.log >&2 2>/dev/null \
+              || echo "(no collection stderr was captured)" >&2
+            echo "---- end collection stderr ----" >&2
+            echo "Drain: add the failing test file to tests/ci/fast_quarantine.txt with an issue=#<n> ref." >&2
             exit 1
           fi
           .venv/bin/python -c "import binascii,pathlib; ids=[l.strip() for l in pathlib.Path('/tmp/all_nodeids.txt').read_text().splitlines() if l.strip()]; g=${{ matrix.group }}-1; sh=[n for n in ids if binascii.crc32(n.encode())%4==g]; pathlib.Path('/tmp/shard_nodeids.txt').write_text(chr(10).join(sh)); print(f'shard {g+1}/4: {len(sh)}/{len(ids)} selected tests')"
@@ -377,14 +398,33 @@ jobs:
             echo "empty shard (no ids in this crc32 bucket) — shard passes"; exit 0
           fi
           mapfile -t SHARD_IDS < /tmp/shard_nodeids.txt
+          echo "[gate-probe] launching pytest on ${#SHARD_IDS[@]} node ids" >&2
           # Known-broken files are quarantined out above, so the remaining set
           # is expected green: --maxfail=3 fails fast on a real regression while
           # tolerating a transient hiccup before bailing.
+          #
+          # Instrumentation: the shard run previously failed with NO visible
+          # pytest output (the failure produced no FAILED/ERROR lines in the
+          # log), so the global red could not be attributed to specific tests.
+          # We capture the run, preserve the exit code, and ALWAYS surface the
+          # failing node ids on stderr. Pass/fail semantics are unchanged —
+          # the shard still exits with pytest's own code.
+          set +e
           timeout 1200s .venv/bin/pytest \
             -m "$MARK" \
             "${SHARD_IDS[@]}" \
             --maxfail=3 \
-            -q
+            -rA -q | tee /tmp/shard_run.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "[gate-probe] pytest rc=$rc" >&2
+          if [[ "$rc" -ne 0 ]]; then
+            echo "---- shard FAILED (rc=$rc); failing node ids ----" >&2
+            grep -aE '^(FAILED|ERROR)' /tmp/shard_run.log >&2 \
+              || { echo "(no FAILED/ERROR lines — pytest may have aborted before running; last 40 lines:)" >&2; tail -n 40 /tmp/shard_run.log >&2; }
+            echo "---- end shard summary ----" >&2
+            exit "$rc"
+          fi
 
       - name: Run mandatory connector hygiene tests
         run: |
