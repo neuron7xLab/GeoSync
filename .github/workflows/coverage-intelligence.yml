@@ -21,9 +21,23 @@
 
 name: Coverage Intelligence Gate
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+# Concurrency is deliberately NOT set at workflow level: the two jobs have
+# opposite cancellation semantics and a shared cancel-in-progress would be
+# wrong for one of them. It is therefore declared per-job below.
+#
+#   instrument-selfcheck  -> cancel-in-progress: true
+#       A cheap PR/push self-check. A superseded commit's run carries no
+#       value, so killing it the moment a newer commit lands is correct.
+#
+#   release-coverage-90   -> cancel-in-progress: false
+#       The heavy push-to-main ENFORCEMENT lane (~25 min full-surface run).
+#       Cancelling it mid-flight is exactly the failure that produced
+#       run 27791727376: a busy main branch supersedes the gate before it
+#       ever measures the surface or emits coverage evidence, leaving a
+#       silent "covered everywhere" that never actually ran. An enforcement
+#       gate must COMPLETE. With cancel-in-progress:false the running gate is
+#       never killed; only the queued (not-yet-started) run is superseded by
+#       the newest main, so HEAD-of-main is always the one that gets measured.
 
 on:
   pull_request:
@@ -50,11 +64,16 @@ jobs:
   instrument-selfcheck:
     name: Coverage authority self-check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-selfcheck-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.12"
+          cache: pip
       - name: Install sci-core deps
         # The repo conftest imports the sci-core stack at collection time, so
         # even this lightweight job needs it loadable.
@@ -72,6 +91,13 @@ jobs:
     name: Release coverage gate (90%)
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    # ~25 min full-surface measurement + enforce; cap well above the
+    # observed baseline so a genuine hang fails closed instead of burning
+    # the 6-hour default, but never clips a healthy run.
+    timeout-minutes: 50
+    concurrency:
+      group: ${{ github.workflow }}-release-${{ github.ref }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -79,14 +105,68 @@ jobs:
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.12"
-      - name: Install dependencies
+          cache: pip
+      - name: Install dependencies (fail-closed environment)
         run: |
-          # [contract] pulls schemathesis so the api-contract claim falsifier
-          # (tests/api/test_schemathesis_contract.py) actually runs in this
-          # lane — otherwise it is silently uncollected and the claim matrix
-          # reports api-contract-openapi-coverage as incomplete.
-          pip install -e ".[dev,contract]" || pip install -e ".[dev]" || pip install -r requirements.txt || true
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          # Fail-closed, NOT optimistic. The previous form was an "install
+          # soup":
+          #   pip install -e ".[dev,contract]" || pip install -e ".[dev]" \
+          #     || pip install -r requirements.txt || true
+          # Each fallback masks the one before it and the trailing `|| true`
+          # swallows total failure, so the gate could go on to MEASURE
+          # coverage against a half-installed surface. A missing dependency
+          # silently shrinks the importable production surface, which INFLATES
+          # the coverage ratio (fewer modules measured -> higher %). That is
+          # the same vacuum lie this gate exists to prevent. One deterministic
+          # path; if it cannot resolve, the gate fails HERE.
+          #
+          # [contract] pulls schemathesis (NOT carried in requirements*.lock)
+          # so the api-contract claim falsifier
+          # (tests/api/test_schemathesis_contract.py) is actually collected —
+          # otherwise the claim matrix reports api-contract-openapi-coverage
+          # as incomplete.
+          pip install -e ".[dev,contract]"
           pip install pytest pytest-cov pyyaml
+      - name: Verify measurement environment (fail-closed preflight)
+        run: |
+          set -euo pipefail
+          # Provenance for the number this gate is about to trust: assert the
+          # surface it intends to measure is importable BEFORE measuring it. A
+          # dependency that silently failed to install would otherwise drop
+          # whole modules from the measured surface and inflate coverage %.
+          python - <<'PY'
+          import importlib
+          import sys
+
+          required = [
+              # measurement instrument + api-contract claim falsifier
+              "coverage",
+              "pytest_cov",
+              "schemathesis",
+              # sci-core production surface (conftest imports these at collection)
+              "numpy",
+              "scipy",
+              "pandas",
+              "networkx",
+              "jax",
+          ]
+          missing = []
+          for mod in required:
+              try:
+                  importlib.import_module(mod)
+              except Exception as exc:
+                  missing.append(f"{mod}: {exc!r}")
+
+          if missing:
+              print("FATAL: measurement environment incomplete — refusing to")
+              print("measure coverage against a half-installed surface:")
+              for entry in missing:
+                  print(f"  - {entry}")
+              sys.exit(1)
+          print("Measurement environment verified: required modules importable.")
+          PY
       - name: Measure full production surface
         run: make coverage-baseline
       - name: Enforce release gate + critical surface
