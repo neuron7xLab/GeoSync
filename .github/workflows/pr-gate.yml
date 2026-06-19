@@ -368,6 +368,7 @@ jobs:
           fi
 
           total_ids=$(wc -l < /tmp/all_nodeids.txt | tr -d ' ')
+          echo "[gate-probe] collected total_ids=$total_ids (post-quarantine)" >&2
           # Fail-closed: we only reach here because the diff touched Python
           # test surface (awk filter above). Zero collected ids therefore means
           # collection is broken (or quarantine swallowed everything) — refuse
@@ -389,14 +390,33 @@ jobs:
             echo "empty shard (no ids in this crc32 bucket) — shard passes"; exit 0
           fi
           mapfile -t SHARD_IDS < /tmp/shard_nodeids.txt
+          echo "[gate-probe] launching pytest on ${#SHARD_IDS[@]} node ids" >&2
           # Known-broken files are quarantined out above, so the remaining set
           # is expected green: --maxfail=3 fails fast on a real regression while
           # tolerating a transient hiccup before bailing.
+          #
+          # Instrumentation: the shard run previously failed with NO visible
+          # pytest output (the failure produced no FAILED/ERROR lines in the
+          # log), so the global red could not be attributed to specific tests.
+          # We capture the run, preserve the exit code, and ALWAYS surface the
+          # failing node ids on stderr. Pass/fail semantics are unchanged —
+          # the shard still exits with pytest's own code.
+          set +e
           timeout 1200s .venv/bin/pytest \
             -m "$MARK" \
             "${SHARD_IDS[@]}" \
             --maxfail=3 \
-            -q
+            -rA -q | tee /tmp/shard_run.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "[gate-probe] pytest rc=$rc" >&2
+          if [[ "$rc" -ne 0 ]]; then
+            echo "---- shard FAILED (rc=$rc); failing node ids ----" >&2
+            grep -aE '^(FAILED|ERROR)' /tmp/shard_run.log >&2 \
+              || { echo "(no FAILED/ERROR lines — pytest may have aborted before running; last 40 lines:)" >&2; tail -n 40 /tmp/shard_run.log >&2; }
+            echo "---- end shard summary ----" >&2
+            exit "$rc"
+          fi
 
       - name: Run mandatory connector hygiene tests
         run: |
