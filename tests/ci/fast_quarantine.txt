@@ -22,3 +22,14 @@
 
 # Second layer: with layer-1 quarantined the oracle ran the full kept set
 # (17,670 ids, maxfail=100 not hit) and surfaced these — the complete remainder.
+
+# cli_import_shadowing (issue #1158) — RE-QUARANTINED 2026-06-19.
+# Dropped from the quarantine while #1158 (cli package not declared in
+# [tool.setuptools.packages.find]; scripts/cli.py shadows the `cli` package
+# under the editable install) is still OPEN. Dropping them re-exposed their
+# collection ERROR (pytest rc=4), which reddened every test-surface shard.
+# Restored until #1158 lands. Surfaced by pr-gate instrumentation (PR #1238).
+tests/unit/cli/test_amm_cli.py            cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=cli-package-importable-in-CI
+tests/unit/cli/test_cli_golden.py         cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=cli-package-importable-in-CI
+tests/unit/cli/test_fete_backtest_cli.py  cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=cli-package-importable-in-CI
+tests/unit/test_geosync_cli.py            cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=cli-package-importable-in-CI
