@@ -1,6 +1,22 @@
 # SPDX-License-Identifier: MIT
 from __future__ import annotations
 
+UNIT_STATE = {
+    "theta": "radian",
+    "omega": "radian_per_time",
+    "K": "inverse_time",
+    "A": "dimensionless",
+    "R": "dimensionless",
+    "Phi": "inverse_time",
+    "dt": "time",
+}
+
+EQUATION_UNITS = {
+    "kuramoto_rhs": ("radian_per_time", ("radian_per_time", "inverse_time")),
+    "order_parameter": ("dimensionless", ("dimensionless",)),
+    "margin_phi": ("inverse_time", ("inverse_time", "inverse_time")),
+}
+
 
 def test_kuramoto_rhs_terms_are_dimensionally_homogeneous() -> None:
     """For dimensionless A, both RHS terms are angular-rate terms."""
@@ -35,3 +51,22 @@ def test_critical_coupling_unit_matches_K() -> None:
     unit_K = "1/time"
     assert unit_lambda == "dimensionless"
     assert unit_gamma == unit_K
+
+
+def test_unit_state_contract_is_complete() -> None:
+    assert set(UNIT_STATE) == {"theta", "omega", "K", "A", "R", "Phi", "dt"}
+    assert UNIT_STATE["theta"] == "radian"
+    assert UNIT_STATE["A"] == "dimensionless"
+    assert UNIT_STATE["R"] == "dimensionless"
+
+
+def test_equation_unit_contract_is_complete() -> None:
+    assert set(EQUATION_UNITS) == {"kuramoto_rhs", "order_parameter", "margin_phi"}
+    assert EQUATION_UNITS["kuramoto_rhs"] == (
+        "radian_per_time",
+        ("radian_per_time", "inverse_time"),
+    )
+    assert EQUATION_UNITS["margin_phi"] == (
+        "inverse_time",
+        ("inverse_time", "inverse_time"),
+    )
