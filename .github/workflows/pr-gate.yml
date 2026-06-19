@@ -359,7 +359,15 @@ jobs:
               grep -vE '^\s*#|^\s*$' "$QUARANTINE" | grep -vE 'issue=#[0-9]+' >&2
               exit 1
             fi
-            grep -vE '^\s*#|^\s*$' "$QUARANTINE" | awk '{print $1}' > /tmp/quarantine_paths.txt
+            # ROOT CAUSE of the universal fast-shard red: when the quarantine
+            # has ZERO active entries (the backlog was drained to empty), this
+            # `grep -vE '^#|^$'` matches nothing and exits 1. Under the step's
+            # `set -o pipefail` that non-zero propagates through the pipe, and
+            # `set -e` then kills the shard with NO diagnostic — before the
+            # collection guard and before any pytest run. Draining the backlog
+            # to empty therefore silently reddened EVERY test-surface PR.
+            # `|| true` makes "no active quarantine" the clean no-op it should be.
+            grep -vE '^\s*#|^\s*$' "$QUARANTINE" | awk '{print $1}' > /tmp/quarantine_paths.txt || true
             before=$(wc -l < /tmp/all_nodeids.txt | tr -d ' ')
             grep -vFf /tmp/quarantine_paths.txt /tmp/all_nodeids.txt > /tmp/all_nodeids.kept || true
             mv /tmp/all_nodeids.kept /tmp/all_nodeids.txt
