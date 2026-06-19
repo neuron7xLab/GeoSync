@@ -32,6 +32,7 @@ import pyarrow.parquet as pq
 from numpy.typing import NDArray
 from scipy.stats import spearmanr
 
+from core.kuramoto.falsification import iaaft_surrogate
 from core.physics.forman_ricci import FormanRicciCurvature
 from research.microstructure.l2_schema import N_LEVELS, l2_schema
 
@@ -45,6 +46,22 @@ _RICCI_THRESHOLD: float = 0.5
 _IC_GATE: float = 0.03
 _PERM_TRIALS: int = 500
 _PERM_PVALUE_GATE: float = 0.05
+# IAAFT linear-spectral null (Schreiber & Schmitz 1996). Surrogates preserve
+# the Ricci signal's power spectrum AND amplitude distribution exactly, so a
+# surviving IC cannot be explained by linear autocorrelation alone. Unlike
+# circular_shift this draws a full ensemble (no shift-count power loss), but it
+# is reported ADVISORY here — promotion to a gating null requires the separate
+# fail-closed positive-control audit (does it still recover a known edge?).
+_IAAFT_TRIALS: int = 200
+_IAAFT_ITERS: int = 80
+# IAAFT linear-spectral null (Schreiber & Schmitz 1996). Surrogates preserve
+# the Ricci signal's power spectrum AND amplitude distribution exactly, so a
+# surviving IC cannot be explained by linear autocorrelation alone. Unlike
+# circular_shift this draws a full ensemble (no shift-count power loss), but it
+# is reported ADVISORY here — promotion to a gating null requires the separate
+# fail-closed positive-control audit (does it still recover a known edge?).
+_IAAFT_TRIALS: int = 200
+_IAAFT_ITERS: int = 80
 
 
 @dataclass(frozen=True)
@@ -324,6 +341,52 @@ def _permutation_pvalue(
     return (count + 1) / (trials_done + 1)
 
 
+def _iaaft_pvalue(
+    signal_1d: NDArray[np.float64],
+    target_panel: NDArray[np.float64],
+    observed_ic: float,
+    n_symbols: int,
+    *,
+    row_mask: NDArray[np.bool_] | None = None,
+    trials: int = _IAAFT_TRIALS,
+    iters: int = _IAAFT_ITERS,
+    seed: int = SEED,
+) -> float:
+    """Empirical p-value under the IAAFT linear-spectral null.
+
+    Each surrogate replaces the 1-D cross-sectional Ricci signal with an IAAFT
+    draw (Schreiber & Schmitz 1996) over its finite support: the surrogate has
+    the *same power spectrum and the same amplitude distribution* but a phase-
+    randomized temporal structure. It is broadcast back to the per-symbol panel
+    (and re-masked identically to the observed signal) and scored against the
+    real forward-return target. p = Pr(|IC_surrogate| >= |IC_observed|): a small
+    p means the predictive IC survives a null that keeps the signal's entire
+    linear autocorrelation, so it cannot be a linear-spectral artifact.
+    """
+    finite_idx = np.flatnonzero(np.isfinite(signal_1d))
+    if finite_idx.size < 50:
+        return 1.0
+    base = signal_1d[finite_idx].astype(np.float64)
+    rng = np.random.default_rng(seed)
+    count = 0
+    trials_done = 0
+    for _ in range(trials):
+        surr_1d = np.full_like(signal_1d, np.nan, dtype=np.float64)
+        surr_1d[finite_idx] = iaaft_surrogate(base, n_iterations=iters, rng=rng)
+        surr_panel = np.repeat(surr_1d[:, None], n_symbols, axis=1)
+        if row_mask is not None:
+            surr_panel = np.where(row_mask[:, None], surr_panel, np.nan)
+        ic = _pooled_ic(surr_panel, target_panel)
+        if not np.isfinite(ic):
+            continue
+        if abs(ic) >= abs(observed_ic):
+            count += 1
+        trials_done += 1
+    if trials_done == 0:
+        return 1.0
+    return (count + 1) / (trials_done + 1)
+
+
 def _residualize(
     signal_panel: NDArray[np.float64],
     baselines_panel: dict[str, NDArray[np.float64]],
@@ -411,6 +474,16 @@ def run_killtest(
         ),
         "circular_shift": _permutation_pvalue(
             ricci_panel, target, ic_signal, seed=seed + 1, mode="circular"
+        ),
+        # IAAFT linear-spectral null — surrogates the 1-D Ricci signal preserving
+        # its power spectrum + amplitude distribution. Advisory (see _IAAFT_*).
+        "iaaft": _iaaft_pvalue(
+            ricci_signal_1d,
+            target,
+            ic_signal,
+            features.n_symbols,
+            row_mask=regime_mask,
+            seed=seed + 2,
         ),
     }
 
