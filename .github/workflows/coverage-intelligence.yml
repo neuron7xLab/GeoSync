@@ -108,12 +108,19 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: |
+          set -euo pipefail
           # [contract] pulls schemathesis so the api-contract claim falsifier
           # (tests/api/test_schemathesis_contract.py) actually runs in this
           # lane — otherwise it is silently uncollected and the claim matrix
           # reports api-contract-openapi-coverage as incomplete.
-          pip install -e ".[dev,contract]" || pip install -e ".[dev]" || pip install -r requirements.txt || true
-          pip install pytest pytest-cov pyyaml
+          python -m pip install -e ".[dev,contract]"
+          python -m pip install pytest pytest-cov pyyaml
+          python -m pip check
+      - name: Prepare coverage evidence directory
+        run: |
+          set -euo pipefail
+          mkdir -p reports/coverage
+          printf '%s\n' "coverage measurement has not completed" > reports/coverage/coverage_gap_map.md
       - name: Measure full production surface
         run: make coverage-baseline
       - name: Enforce release gate + critical surface
