@@ -19,6 +19,8 @@ from research.microstructure.killtest import (
     FeatureFrame,
     _compute_ofi,
     _compute_queue_imbalance,
+    _iaaft_pvalue,
+    _pooled_ic,
     _to_grid,
     cross_sectional_ricci_signal,
     run_killtest,
@@ -249,6 +251,92 @@ def test_run_killtest_survives_injected_edge() -> None:
     assert np.isfinite(verdict.ic_baselines["plain_ofi"])
     for h in (60, 120, 180, 240, 300):
         assert h in verdict.horizon_ic
+
+
+# ---------------------------------------------------------------------------
+# IAAFT linear-spectral null (advisory) — strengthens Day-4 falsification.
+# ---------------------------------------------------------------------------
+
+
+def _autocorrelated_signal(n: int, seed: int) -> np.ndarray:
+    """A strongly autocorrelated 1-D series (random walk) — the regime an
+    IAAFT null must preserve while destroying genuine target alignment."""
+    rng = np.random.default_rng(seed)
+    return np.asarray(rng.normal(0.0, 1.0, size=n).cumsum(), dtype=np.float64)
+
+
+def test_iaaft_pvalue_bounded_probability() -> None:
+    """p-value is always a valid probability, never degenerate to 0."""
+    n, n_sym = 800, 4
+    sig = _autocorrelated_signal(n, seed=1)
+    target = np.repeat(sig[:, None], n_sym, axis=1)
+    obs = _pooled_ic(np.repeat(sig[:, None], n_sym, axis=1), target)
+    p = _iaaft_pvalue(sig, target, obs, n_sym, trials=60, iters=40, seed=7)
+    assert 0.0 < p <= 1.0
+
+
+def test_iaaft_null_has_power_on_real_edge() -> None:
+    """Positive control: when the target IS the (autocorrelated) signal, the
+    observed IC must survive the IAAFT null (small p). This proves the null
+    does not trivially destroy a genuine edge — the precondition for ever
+    promoting it to a gating null."""
+    n, n_sym = 1000, 5
+    sig = _autocorrelated_signal(n, seed=11)
+    rng = np.random.default_rng(11)
+    target = np.repeat(sig[:, None], n_sym, axis=1) + rng.normal(0.0, 0.01, size=(n, n_sym))
+    obs = _pooled_ic(np.repeat(sig[:, None], n_sym, axis=1), target)
+    p = _iaaft_pvalue(sig, target, obs, n_sym, trials=100, iters=60, seed=3)
+    assert abs(obs) > 0.5, f"positive control IC too weak: {obs:.3f}"
+    assert p < 0.05, f"IAAFT null blind to a real edge: p={p:.4f}"
+
+
+def test_iaaft_null_not_significant_when_independent() -> None:
+    """Negative control: an autocorrelated signal that is INDEPENDENT of the
+    target must NOT survive the null more than a genuine edge does. Compared
+    relatively (robust to single-draw stochasticity): independent-p strictly
+    exceeds the positive-control-p from the matched-edge case."""
+    n, n_sym = 1000, 5
+    sig = _autocorrelated_signal(n, seed=21)
+    indep_target = np.repeat(_autocorrelated_signal(n, seed=99)[:, None], n_sym, axis=1)
+    obs_indep = _pooled_ic(np.repeat(sig[:, None], n_sym, axis=1), indep_target)
+    p_indep = _iaaft_pvalue(sig, indep_target, obs_indep, n_sym, trials=100, iters=60, seed=5)
+
+    matched_target = np.repeat(sig[:, None], n_sym, axis=1)
+    obs_matched = _pooled_ic(matched_target, matched_target)
+    p_matched = _iaaft_pvalue(sig, matched_target, obs_matched, n_sym, trials=100, iters=60, seed=5)
+    assert p_indep > p_matched
+
+
+def test_iaaft_pvalue_deterministic() -> None:
+    """Same seed → identical p-value (INV-HPC1 reproducibility)."""
+    n, n_sym = 600, 4
+    sig = _autocorrelated_signal(n, seed=2)
+    target = np.repeat(sig[:, None], n_sym, axis=1)
+    obs = _pooled_ic(target, target)
+    p1 = _iaaft_pvalue(sig, target, obs, n_sym, trials=50, iters=40, seed=13)
+    p2 = _iaaft_pvalue(sig, target, obs, n_sym, trials=50, iters=40, seed=13)
+    assert p1 == p2
+
+
+def test_iaaft_pvalue_short_support_fails_closed() -> None:
+    """Fewer than 50 finite samples → conservative p=1.0 (no false signal)."""
+    sig = np.full(40, np.nan, dtype=np.float64)
+    sig[:10] = np.arange(10, dtype=np.float64)
+    target = np.repeat(sig[:, None], 3, axis=1)
+    p = _iaaft_pvalue(sig, target, 0.5, 3, trials=20, iters=20, seed=0)
+    assert p == 1.0
+
+
+def test_run_killtest_reports_iaaft_null_without_changing_gate() -> None:
+    """`iaaft` is reported in null_test_pvalues but is advisory: the binary
+    verdict on a noise substrate stays KILL (driven by permutation_shuffle)."""
+    features = _build_features(n_rows=1500, n_sym=6, noise_seed=_SEED)
+    verdict = run_killtest(features)
+    assert "iaaft" in verdict.null_test_pvalues
+    assert 0.0 < verdict.null_test_pvalues["iaaft"] <= 1.0
+    assert verdict.verdict == "KILL"
+    # The advisory null is never one of the gate reasons.
+    assert not any("iaaft" in r for r in verdict.reasons)
 
 
 # ---------------------------------------------------------------------------

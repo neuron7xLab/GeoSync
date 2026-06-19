@@ -5,6 +5,23 @@ Ricci research stack on Binance USDT-M perp L2 substrate.
 
 ---
 
+## 2026-06-20 · IAAFT linear-spectral null (advisory)
+
+- `feat(killtest)` — wired the canonical IAAFT surrogate
+  (`core.kuramoto.falsification.iaaft_surrogate`, Schreiber & Schmitz 1996)
+  into `run_killtest` as a third, **advisory** null (`_iaaft_pvalue`). It
+  surrogates the 1-D cross-sectional Ricci signal over its finite support,
+  preserving the power spectrum **and** amplitude distribution exactly, then
+  recomputes the pooled IC against the real forward-return target. A surviving
+  IC therefore cannot be a linear-spectral artifact — a strictly stronger test
+  than `circular_shift`, which loses power on the autocorrelated Ricci signal.
+- Reported in `null_test_pvalues["iaaft"]`; **never gating**. The binary
+  PROCEED/KILL verdict is unchanged: promotion to a gating null requires a
+  separate fail-closed positive-control audit. Fails closed (p=1.0) on <50
+  finite samples. No published verdict (FINDINGS.md) is altered.
+
+---
+
 ## 2026-04-18 · Demo-readiness session
 
 End-to-end integration from 8-axis narrative to canonical, self-verifying,
