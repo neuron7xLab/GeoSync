@@ -127,8 +127,17 @@ jobs:
           # (tests/api/test_schemathesis_contract.py) is actually collected —
           # otherwise the claim matrix reports api-contract-openapi-coverage
           # as incomplete.
-          pip install -e ".[dev,contract]"
-          pip install pytest pytest-cov pyyaml
+          python -m pip install -e ".[dev,contract]"
+          python -m pip install pytest pytest-cov pyyaml
+          # Dependency-consistency gate: surface any broken or incompatible
+          # requirement set BEFORE measurement, complementing the import
+          # preflight below.
+          python -m pip check
+      - name: Prepare coverage evidence directory
+        run: |
+          set -euo pipefail
+          mkdir -p reports/coverage
+          printf '%s\n' "coverage measurement has not completed" > reports/coverage/coverage_gap_map.md
       - name: Verify measurement environment (fail-closed preflight)
         run: |
           set -euo pipefail
