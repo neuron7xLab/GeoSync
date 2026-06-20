@@ -4,8 +4,9 @@ gate decisions only; no marketing language.
 
 ## Current live bar count
 
-- Live bars completed: **15**
-- Spike paper-trader start date: 2026-04-11 (day-90 gate ≈ 2026-07-10)
+- Live bars completed: **37**
+- Spike paper-trader start date: 2026-04-11 (day-90 gate requires 90 completed live bars)
+- Remaining to truth gate: **53 business bars**
 
 ## Operational health
 
@@ -13,27 +14,28 @@ gate decisions only; no marketing language.
 - Operational incidents logged: **1**
 - Operationally unsafe (latest): **False**
 - Any invariant fail: **False**
+- Continuity-gap logging: **enabled for failed/skipped systemd runs and offline catch-up gaps**
 
 ## Live metrics
 
 | metric | value |
 |---|---:|
-| cumulative_net_return | -0.0401 |
-| annualized_return_live | -0.6869 |
-| annualized_vol_live | 0.1047 |
-| sharpe_live | -6.5606 |
-| max_dd_live | 0.0464 |
-| hit_rate_live | 0.1333 |
-| turnover_ann_live | 2.6999 |
-| cost_drag_bps_live | 27.0000 |
+| cumulative_net_return | -0.0539 |
+| annualized_return_live | -0.3774 |
+| annualized_vol_live | 0.0861 |
+| sharpe_live | -4.3816 |
+| max_dd_live | 0.0878 |
+| hit_rate_live | 0.0811 |
+| turnover_ann_live | 1.2512 |
+| cost_drag_bps_live | 12.5100 |
 
 ## Benchmark comparison
 
 | metric | value |
 |---|---:|
-| benchmark_cum_return | 0.1170 |
-| benchmark_sharpe_live | 5.6228 |
-| relative_return_vs_benchmark | -0.1571 |
+| benchmark_cum_return | -0.1286 |
+| benchmark_sharpe_live | -1.8256 |
+| relative_return_vs_benchmark | 0.0747 |
 
 ## Envelope position
 
@@ -56,12 +58,12 @@ paper-trader's own per-bar cost slot, cumulated over live bars.
   (`PIPELINE_AUDIT.md`).
 - DP3 data snapshot age >5 bdays vs current clock; this is
   expected for the spike snapshot and **is** the source of the
-  current `OPERATIONALLY_UNSAFE` label.
+  current `OPERATIONALLY_UNSAFE` label when stale.
 - Fold 3 (2022) Sharpe −1.15 historically; preserved.
 
 ## Current recommendation
 
-- **status_label:** `BUILDING_SAMPLE`
+- **status_label:** `UNDERWATCH`
 - **gate_decision:** `CONTINUE_SHADOW`
 
 Claude Code does not authorize capital deployment. The gate is
