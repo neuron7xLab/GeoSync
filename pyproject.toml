@@ -210,9 +210,9 @@ target-version = ["py311"]
 line-length = 100
 force-exclude = '''
 (^|/)tests/
-|^scripts/evaluate_cross_asset_kuramoto_shadow\.py$
-|^scripts/log_shadow_operational_incident\.py$
-|^scripts/render_cross_asset_kuramoto_shadow_report\.py$
+|(^|/)scripts/evaluate_cross_asset_kuramoto_shadow\.py$
+|(^|/)scripts/log_shadow_operational_incident\.py$
+|(^|/)scripts/render_cross_asset_kuramoto_shadow_report\.py$
 |^scripts/ci/check_pr_gate_contract\.py$
 |^scripts/validate_epistemic_rhombus_manifest\.py$
 '''
