@@ -31,6 +31,7 @@ LIVE_SCOREBOARD = SHADOW_DIR / "live_scoreboard.csv"
 PREDICTIVE_ENVELOPE = SHADOW_DIR / "predictive_envelope.csv"
 DRIFT_NOTE = SHADOW_DIR / "DRIFT_NOTE.md"
 LIVE_STATE = SHADOW_DIR / "LIVE_STATE.json"
+LEDGER_CONTINUITY_AUDIT = SHADOW_DIR / "LEDGER_CONTINUITY_AUDIT.json"
 OPS_INCIDENTS = SHADOW_DIR / "operational_incidents.csv"
 PAPER_EQUITY = Path.home() / "spikes" / "cross_asset_sync_regime" / "paper_state" / "equity.csv"
 DEMO_EQUITY = REPO / "results" / "cross_asset_kuramoto" / "demo" / "equity_curve.csv"
@@ -61,6 +62,16 @@ OPS_INCIDENT_COLUMNS = (
     "resolution_ts",
     "changed_artifacts_yes_no",
 )
+
+# Ledger-continuity guard (enforces ACCEPTANCE_GATES.md G1
+# "daily run success rate = 100%"). The live bar count must advance one
+# evaluation at a time: across consecutive evaluation dates it must be
+# non-decreasing (no counter reset) and must not jump by more than
+# MAX_BAR_STEP business days at once (a larger jump means the daily evaluator
+# did not run on the skipped bars — the 90-bar verdict would then be computed
+# over a ledger with an un-evaluated hole). MAX_BAR_STEP allows a short
+# catch-up after a holiday/outage while still flagging multi-week stalls.
+MAX_BAR_STEP = 5
 
 SCOREBOARD_COLUMNS = (
     "eval_date",
@@ -470,6 +481,66 @@ def _envelope_sub_p05_streak(board: pd.DataFrame) -> int:
     return n
 
 
+def audit_ledger_continuity(board: pd.DataFrame) -> tuple[bool, list[str]]:
+    """Fail-closed continuity audit of the live scoreboard ledger (G1).
+
+    Returns ``(ok, violations)``. The verdict cannot reach a deployment
+    candidate while the ledger is discontinuous: a gap, a reset, or a conflict
+    means the "daily run success rate = 100%" gate (``ACCEPTANCE_GATES.md`` G1)
+    was breached and the bar count overstates the number of *actually
+    evaluated* bars.
+
+    Checks (on the rows already on disk, before the current evaluation):
+
+    * **monotone** — ``live_bars_completed`` is non-decreasing across evaluation
+      dates (a counter reset is a writer/data fault);
+    * **no stall** — consecutive evaluation dates advance the bar count by at
+      most ``MAX_BAR_STEP`` (a larger jump means un-evaluated bars, e.g. a
+      multi-week daily-runner stall);
+    * **consistent** — the same ``(eval_date, live_bars_completed)`` never
+      carries conflicting metric values (duplicate appends must be idempotent).
+    """
+    violations: list[str] = []
+    if board.empty or "live_bars_completed" not in board.columns:
+        return True, violations
+    df = board.copy()
+    df["live_bars_completed"] = pd.to_numeric(df["live_bars_completed"], errors="coerce")
+    df = df.dropna(subset=["live_bars_completed", "eval_date"])
+    if df.empty:
+        return True, violations
+
+    # Conflicting duplicates: same (date, bar) carrying differing metrics.
+    metric_cols = [c for c in SCOREBOARD_COLUMNS if c not in ("eval_date", "live_bars_completed")]
+    for (date, bar), grp in df.groupby(["eval_date", "live_bars_completed"]):
+        if len(grp[metric_cols].drop_duplicates()) > 1:
+            violations.append(
+                f"conflicting rows for eval_date={date} bar={int(bar)}: duplicate "
+                f"appends are not idempotent (distinct metric tuples for one bar)"
+            )
+
+    # Per-date bar count (max if a date was re-evaluated), in chronological order
+    # (ISO eval_date strings sort chronologically).
+    per_date = df.groupby("eval_date")["live_bars_completed"].max().sort_index()
+    prev_date: str | None = None
+    prev_bar: int | None = None
+    for date, bar_val in per_date.items():
+        bar = int(bar_val)
+        if prev_bar is not None:
+            if bar < prev_bar:
+                violations.append(
+                    f"non-monotone bar count: {prev_date}={prev_bar} -> {date}={bar} "
+                    f"(counter reset / rewrite)"
+                )
+            elif bar - prev_bar > MAX_BAR_STEP:
+                violations.append(
+                    f"bar-count stall: {prev_date}={prev_bar} -> {date}={bar} "
+                    f"(+{bar - prev_bar} > MAX_BAR_STEP={MAX_BAR_STEP}; "
+                    f"{bar - prev_bar - 1} un-evaluated bars — G1 daily-run gap)"
+                )
+        prev_date, prev_bar = str(date), bar
+    return (len(violations) == 0), violations
+
+
 def _decide_status_and_gate(
     bars: int,
     metrics: dict[str, Any],
@@ -478,8 +549,13 @@ def _decide_status_and_gate(
     inv_fail: bool,
     sub_p05_streak: int,
     continuity_breach: bool = False,
+    ledger_discontinuous: bool = False,
 ) -> tuple[str, str]:
-    # Hard operational short-circuits
+    # Hard operational short-circuits. Ledger discontinuity is a G1
+    # ("daily run success rate = 100%") breach: the bar count cannot be trusted,
+    # so no gate may advance — least of all the 90-bar deployment candidate.
+    if ledger_discontinuous:
+        return "OPERATIONALLY_UNSAFE", "ESCALATE_REVIEW"
     if op_unsafe or inv_fail:
         return "OPERATIONALLY_UNSAFE", "ESCALATE_REVIEW"
 
@@ -579,6 +655,26 @@ def main(argv: list[str] | None = None) -> int:
     else:
         streak = 0
 
+    # G1 ledger-continuity guard (read-only on the existing scoreboard).
+    ledger_ok, ledger_violations = audit_ledger_continuity(board)
+    LEDGER_CONTINUITY_AUDIT.write_text(
+        json.dumps(
+            {
+                "audited_utc": _now_utc(),
+                "scoreboard_sha256": _sha256(LIVE_SCOREBOARD) if LIVE_SCOREBOARD.exists() else "",
+                "continuous": ledger_ok,
+                "max_bar_step": MAX_BAR_STEP,
+                "violations": ledger_violations,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    if not ledger_ok:
+        for v in ledger_violations:
+            print(f"LEDGER-DISCONTINUITY (G1): {v}", file=sys.stderr)
+
     op_unsafe = _latest_pipeline_unsafe()
     inv_fail = _any_invariant_fail()
 
@@ -595,6 +691,7 @@ def main(argv: list[str] | None = None) -> int:
         inv_fail=inv_fail,
         sub_p05_streak=streak,
         continuity_breach=bool(continuity["continuity_breach"]),
+        ledger_discontinuous=not ledger_ok,
     )
 
     assert status in STATUS_VOCAB, f"status {status!r} not in {sorted(STATUS_VOCAB)}"
@@ -677,6 +774,8 @@ def main(argv: list[str] | None = None) -> int:
                 "continuity_critical_gaps": int(continuity["n_critical_gaps"]),
                 "continuity_max_gap_bdays": int(continuity["max_gap_bdays"]),
                 "continuity_total_missing_bdays": int(continuity["total_missing_bdays"]),
+                "ledger_continuous": ledger_ok,
+                "ledger_continuity_violations": len(ledger_violations),
             },
             indent=2,
         )

@@ -24,7 +24,7 @@
     "core/cross_asset_kuramoto/invariants.py": "f5627c2ed1d25bab11f816c00f3af74bd23380725b1c01344f3b250e016e035e",
     "scripts/demo_cross_asset_kuramoto.py": "36041afa804e5ad46189eaa9166e064a0714aa6f47a6a16e4556054bc03deb79",
     "scripts/run_cross_asset_kuramoto_shadow.py": "1de3f495c7e657991ae63ad33a8342a6cbdbf814f4fa7fd8d2740f5aeb24b910",
-    "scripts/evaluate_cross_asset_kuramoto_shadow.py": "87a3bc054aa95ef28a8dc0eb0e5ba39d280627738d246d56a5a7cd4ee8099ec9",
+    "scripts/evaluate_cross_asset_kuramoto_shadow.py": "e9c9a79b024147677b7f1c0866888eb6c3a39bb841598cb725be3f67f1e316c4",
     "scripts/render_cross_asset_kuramoto_shadow_report.py": "b12b35a6989d61e7dbf1dadd08247f16fb0ab2a07659683eacf9553cf0425dbf",
     "scripts/push_shadow_evidence.sh": "33b91955c0ec61bd274e34d309421079b06dccd3026aa3109aaa8632614b442d",
     "ops/systemd/cross_asset_kuramoto_shadow.service": "673905e2206bacce78707a669d86f29b4a2f73eeb87a5fdfe820ae5460d54a44",
