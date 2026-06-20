@@ -5,6 +5,32 @@ Ricci research stack on Binance USDT-M perp L2 substrate.
 
 ---
 
+## 2026-06-20 · IAAFT gating audit — null certified ADVISORY (fail-closed)
+
+- `feat(audit)` — added `research.microstructure.iaaft_audit`, the fail-closed
+  positive-control audit that the advisory IAAFT null's docstring named as the
+  precondition for ever gating: *"does it still recover a known edge?"*. It runs
+  the **deployed** `killtest._iaaft_pvalue` (not a reimplementation) over many
+  seeded synthetic replications and measures its operating characteristics:
+  - **power** — positive control (signal predicts target through a temporal
+    alignment IAAFT phase-randomisation destroys); fraction with `p < alpha`.
+  - **fpr** — negative control (autocorrelated signal *independent* of target);
+    fraction with `p < alpha`, i.e. the false-positive rate.
+- **Canonical verdict** (`results/L2_IAAFT_GATING_AUDIT.json`, n=40 reps):
+  **power = 1.0** but **fpr = 0.25** (95% CI ≈ [0.12, 0.38]) against an
+  `fpr_ceiling = 0.10`. The null over-fires ~5× nominal α on the autocorrelated
+  (random-walk) regime → **INELIGIBLE** → IAAFT stays **advisory**.
+- `run_killtest` now resolves IAAFT gating from this committed artifact via
+  `iaaft_is_gating_eligible` (fail-closed on missing / malformed / wrong-schema /
+  ineligible) instead of a hand-set flag. Promotion is therefore **earned by a
+  reproducible audit, never asserted**. Because the artifact is ineligible the
+  binary PROCEED/KILL verdict is bit-identical to pre-PR behaviour.
+- **Boundary recorded, not hidden:** the FPR inflation is a real anti-conservative
+  failure of an IAAFT null on a *non-stationary* series — re-certification needs a
+  stationarity-aware null (e.g. difference-then-surrogate), tracked as future work.
+
+---
+
 ## 2026-06-20 · IAAFT linear-spectral null (advisory)
 
 - `feat(killtest)` — wired the canonical IAAFT surrogate
