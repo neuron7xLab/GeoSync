@@ -32,7 +32,37 @@ cd "$REPO"
 mkdir -p "$(dirname "$TRAJECTORY_LOG")"
 
 ts_utc() { date -u +%Y-%m-%dT%H:%M:%SZ; }
-bar_date_utc() { date -u +%Y-%m-%d; }
+
+scheduled_slot_utc() {
+  if [[ -n "${GEOSYNC_SCHEDULED_TIME_UTC:-}" ]]; then
+    printf '%s\n' "$GEOSYNC_SCHEDULED_TIME_UTC"
+    return
+  fi
+  "$PYTHON" - <<'PY'
+from datetime import datetime, timedelta, timezone
+
+now = datetime.now(timezone.utc).replace(microsecond=0)
+slot = now.replace(hour=22, minute=0, second=0)
+if now < slot:
+    slot -= timedelta(days=1)
+print(slot.strftime("%Y-%m-%dT%H:%M:%SZ"))
+PY
+}
+
+bar_date_from_scheduled_slot() {
+  SCHEDULED_TIME_UTC="$SCHEDULED_TIME_UTC" "$PYTHON" - <<'PY'
+from datetime import datetime
+import os
+
+scheduled = os.environ["SCHEDULED_TIME_UTC"]
+dt = datetime.fromisoformat(scheduled.replace("Z", "+00:00"))
+print(dt.date().isoformat())
+PY
+}
+
+RUN_STARTED_UTC="$(ts_utc)"
+SCHEDULED_TIME_UTC="$(scheduled_slot_utc)"
+BAR_DATE_UTC="$(bar_date_from_scheduled_slot)"
 
 emit() { printf '[shadow_daily_tick] %s %s\n' "$(ts_utc)" "$*" >&2; }
 
@@ -41,7 +71,10 @@ log_incident() {
   local recovery_status="$2"
   if [[ -f "$INCIDENT_LOGGER" ]]; then
     "$PYTHON" "$INCIDENT_LOGGER" \
-      --bar-date "$(bar_date_utc)" \
+      --timestamp "$(ts_utc)" \
+      --scheduled-time "$SCHEDULED_TIME_UTC" \
+      --actual-run-time "$RUN_STARTED_UTC" \
+      --bar-date "$BAR_DATE_UTC" \
       --reason "$reason" \
       --recovery-status "$recovery_status" || \
       emit "incident_logger: FAIL reason=$reason"
@@ -62,13 +95,15 @@ trap on_error ERR
 
 # systemd Persistent=true executes one catch-up after offline time, not one
 # replay per missed wall-clock day. Detect that continuity gap before any new
-# state is overwritten so the ledger records the blind interval.
+# state is overwritten so the ledger records the blind interval and separates
+# timer schedule time from actual delayed invocation time.
 CURRENT_STEP="offline_gap_detection"
 if [[ -f "$LIVE_STATE_PATH" ]]; then
   LAST_EVAL_UTC="$(LIVE_STATE_PATH="$LIVE_STATE_PATH" "$PYTHON" - <<'PY'
 import json
 import os
 from pathlib import Path
+
 p = Path(os.environ["LIVE_STATE_PATH"])
 try:
     state = json.loads(p.read_text())
@@ -79,16 +114,19 @@ PY
 )"
   if [[ -n "$LAST_EVAL_UTC" ]]; then
     GAP_HOURS="$("$PYTHON" - <<PY
-from datetime import datetime, timezone
+from datetime import datetime
+
 last = "$LAST_EVAL_UTC"
+scheduled = "$SCHEDULED_TIME_UTC"
 try:
-    t = datetime.fromisoformat(last.replace("Z", "+00:00"))
-    print(int((datetime.now(timezone.utc) - t).total_seconds() // 3600))
+    last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
+    scheduled_dt = datetime.fromisoformat(scheduled.replace("Z", "+00:00"))
+    print(int((scheduled_dt - last_dt).total_seconds() // 3600))
 except Exception:
     print(0)
 PY
 )"
-    if [[ "$GAP_HOURS" =~ ^[0-9]+$ ]] && (( GAP_HOURS > 36 )); then
+    if [[ "$GAP_HOURS" =~ ^-?[0-9]+$ ]] && (( GAP_HOURS > 36 )); then
       log_incident \
         "offline_catch_up_gap last_eval_utc=$LAST_EVAL_UTC gap_hours=$GAP_HOURS" \
         "catch_up_logged_before_state_refresh"
@@ -98,7 +136,7 @@ fi
 
 # 1. paper_trader --tick (advances paper-state by one bar; skips if today already ticked).
 CURRENT_STEP="tick"
-emit "step=tick paper_trader=$SPIKE_TRADER"
+emit "step=tick paper_trader=$SPIKE_TRADER scheduled_time=$SCHEDULED_TIME_UTC actual_run_time=$RUN_STARTED_UTC"
 if [[ -f "$SPIKE_TRADER" ]]; then
   "$PYTHON" "$SPIKE_TRADER" --tick || {
     rc=$?
