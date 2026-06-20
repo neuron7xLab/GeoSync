@@ -149,11 +149,40 @@ class TestPositionMultiplier:
         with_gaba = configured_bus.compute_position_multiplier()
         assert with_gaba < no_gaba
 
-    def test_crisis_regime_near_zero(self, configured_bus):
+    def test_crisis_regime_halts_position(self, configured_bus):
+        # Crisis is a Protector veto (INV-YV1 L2): it HALTS sizing, not dampens.
         configured_bus.publish_serotonin(level=0.9)
         configured_bus.publish_dopamine(rpe=-0.5)
+        assert configured_bus.should_hold() is True
         mult = configured_bus.compute_position_multiplier()
-        assert mult < 0.15
+        assert mult == 0.0
+
+    def test_protector_veto_overrides_generator(self, configured_bus):
+        """INV-YV1 L2: a firing Protector zeroes the position even when the
+        Generator wants maximum size (Protectors > Generators, unconditional).
+
+        High Kuramoto coherence + zero GABA means the Generator asks for a
+        large Kelly fraction; a serotonin level above the hold threshold is a
+        Protector veto that must HALT (multiplier 0), not merely dampen. The
+        prior code ignored should_hold() inside the multiplier and returned a
+        large positive size — the precedence was violated and the production
+        oracle (which multiplies this value) sized into an aversive state.
+        """
+        configured_bus.publish_kuramoto(R=0.95)  # Generator: full size
+        configured_bus.publish_gaba(inhibition=0.0)  # no braking
+        assert configured_bus.should_hold() is False
+        generator_size = configured_bus.compute_position_multiplier()
+        assert generator_size > 0.5  # Generator genuinely wants size
+
+        configured_bus.publish_serotonin(level=0.8)  # Protector veto fires
+        assert configured_bus.should_hold() is True
+        vetoed = configured_bus.compute_position_multiplier()
+        assert vetoed == 0.0, (
+            f"INV-YV1 VIOLATED: Protector veto active (should_hold) yet "
+            f"multiplier={vetoed:.4f} != 0. Protectors have unconditional "
+            f"priority over the Generator; a firing veto must zero the position. "
+            f"At R=0.95, gaba=0, serotonin=0.8 > hold_threshold=0.7."
+        )
 
     def test_multiplier_never_negative(self, bus):
         bus.publish_gaba(inhibition=1.0)
