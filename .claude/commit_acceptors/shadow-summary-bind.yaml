@@ -4,6 +4,7 @@ claim_type: documentation
 promise: bind summary
 diff_scope:
   changed_files:
+    - path: .claude/commit_acceptors/shadow-summary-bind.yaml
     - path: results/cross_asset_kuramoto/shadow_validation/SHADOW_SUMMARY.md
   forbidden_paths: []
 required_python_symbols: []
