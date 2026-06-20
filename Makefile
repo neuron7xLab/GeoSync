@@ -258,6 +258,20 @@ test-ci-full:
 # coverage-next     : print the prioritized list of missing tests.
 # --------------------------------------------------------------------------- #
 .PHONY: coverage-baseline
+# Co-located test suites that physically live under a production package
+# (so pytest's top-level `tests/` root never collects them) yet exercise real
+# release surface — analytics/regime/fpma/signals, core/neuro, neural_controller,
+# orderbook. They are run as a SECOND, --cov-append invocation rather than being
+# appended to the `tests/` argument list: under --import-mode=importlib several
+# share a basename with files under tests/ (test_core.py, test_engine.py, ...),
+# and a single combined collection raises "import file mismatch". Two isolated
+# collection roots accumulate into one .coverage file with zero collisions.
+# The canonical junit.xml is written by the `tests/` run (it carries the gated
+# claim falsifiers); the co-located run writes its own junit to avoid clobbering.
+COLOCATED_TESTS := core/neuro/tests analytics/tests analytics/fpma/tests \
+	analytics/regime/tests analytics/signals/tests markets/orderbook/tests \
+	geosync/neural_controller/tests
+
 coverage-baseline:
 	@echo "📊 Measuring full production surface (release_90 profile)..."
 	@mkdir -p reports/coverage
@@ -265,9 +279,15 @@ coverage-baseline:
 		-m "not flaky and not nightly" \
 		--cov-config=configs/quality/release_90.coveragerc \
 		--cov --cov-branch \
+		--cov-report= \
+		--junitxml=reports/coverage/junit.xml
+	pytest $(COLOCATED_TESTS) \
+		-m "not flaky and not nightly" \
+		--cov-config=configs/quality/release_90.coveragerc \
+		--cov --cov-append --cov-branch \
 		--cov-report=xml:reports/coverage/coverage.xml \
 		--cov-report=html:htmlcov \
-		--junitxml=reports/coverage/junit.xml
+		--junitxml=reports/coverage/junit_colocated.xml
 	python -m tools.coverage.geosync_coverage_intelligence \
 		--coverage reports/coverage/coverage.xml \
 		--junit reports/coverage/junit.xml \

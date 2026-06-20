@@ -38,8 +38,24 @@ CANONICAL_ROOT = REPO_ROOT / "src" / "geosync"
 SHIM_PATHS = {REPO_ROOT / "geosync" / "__init__.py"}
 
 # Directories to skip during the broad ``__CANONICAL__`` flag scan so that
-# third-party packages (e.g. inside ``.venv``) are not inadvertently flagged.
-_EXCLUDED_DIRS = frozenset({".venv", "venv", ".tox", "node_modules", "__pycache__"})
+# non-source trees are not inadvertently flagged. Two classes are excluded:
+#   * named build/vendor dirs (``venv``, ``node_modules``, ``__pycache__``);
+#   * ANY hidden directory (a path part starting with ``.``) — this covers
+#     ``.venv``, ``.tox``, ``.git``, ``.mypy_cache`` and, critically,
+#     ``.claude/worktrees/agent-*`` where ephemeral agent worktrees carry their
+#     own ``src/geosync`` tree. Canonical runtime source never lives in a hidden
+#     directory, so scanning them only produces false violations on dev machines
+#     (and is invisible on CI's clean checkout, masking the bug). See
+#     tests/test_architecture_guards.py::test_namespace_integrity_ignores_hidden_dirs.
+_EXCLUDED_DIRS = frozenset({"venv", "node_modules", "__pycache__", "build", "dist"})
+
+
+def _is_scannable(path: Path, repo_root: Path) -> bool:
+    """True iff ``path`` is inside a real source tree (not hidden/vendor)."""
+    rel_parts = path.relative_to(repo_root).parts
+    if any(part.startswith(".") for part in rel_parts):
+        return False
+    return not any(part in _EXCLUDED_DIRS for part in rel_parts)
 
 
 @dataclass(frozen=True)
@@ -121,9 +137,11 @@ def check_namespace_integrity(repo_root: Path = REPO_ROOT) -> list[Violation]:
             )
 
     for path in repo_root.rglob("*.py"):
-        # Skip third-party directories (e.g. .venv) – they must not declare
-        # __CANONICAL__ = True and we don't need to validate them.
-        if any(part in _EXCLUDED_DIRS for part in path.parts):
+        # Skip hidden/vendor trees (.venv, .git, .claude/worktrees, build, …) –
+        # they must not declare __CANONICAL__ = True and scanning them only
+        # yields false violations from ephemeral worktrees that carry their own
+        # src/geosync tree (see _is_scannable).
+        if not _is_scannable(path, repo_root):
             continue
         if path in SHIM_PATHS or path.is_relative_to(canonical_root):
             continue

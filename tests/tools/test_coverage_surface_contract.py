@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from tools.coverage.surface_contract import (
+    is_colocated_test_file,
     list_unmapped_files,
     load_coverage_targets,
     map_file_to_surface,
@@ -312,3 +313,50 @@ def test_cli_missing_files_input_includes_path_in_error(tmp_path: Path) -> None:
     )
     assert run.returncode == 1
     assert str(missing) in (run.stdout + run.stderr)
+
+
+# --------------------------------------------------------------------------- #
+# Co-located test files must NOT count as production surface (anti self-inflation)
+# --------------------------------------------------------------------------- #
+def test_colocated_test_file_is_detected() -> None:
+    assert is_colocated_test_file("core/neuro/tests/test_engine.py")
+    assert is_colocated_test_file("analytics/signals/tests/test_igs_core.py")
+    assert is_colocated_test_file("analytics/tests/__init__.py")
+    assert is_colocated_test_file("markets/orderbook/tests/conftest.py")
+    assert is_colocated_test_file("geosync/neural_controller/tests/foo_test.py")
+
+
+def test_production_module_with_test_substring_is_not_colocated_test() -> None:
+    # Genuine production modules that merely contain "test" must NOT be excluded.
+    assert not is_colocated_test_file("core/engine/backtest_runner.py")
+    assert not is_colocated_test_file("analytics/signals/test_harness.py")  # not under tests/
+    assert not is_colocated_test_file("core/tests_helpers/util.py")  # dir != "tests"
+
+
+def test_colocated_test_body_not_counted_as_production_surface(tmp_path: Path) -> None:
+    """A co-located test FILE under a source root must map to no surface.
+
+    Without this, the longest-prefix bucketing would credit
+    ``core/neuro/tests/test_engine.py`` (a test body) to the ``core`` surface,
+    self-inflating measured release coverage with test-on-test lines.
+    """
+    targets = load_coverage_targets(_write_targets(tmp_path / "t.toml", VALID_TOML))
+    # Production module under core/ still maps.
+    assert map_file_to_surface("core/neuro/engine.py", targets) == "core"
+    # Co-located test bodies under the SAME source root do not.
+    assert map_file_to_surface("core/neuro/tests/test_engine.py", targets) is None
+    assert map_file_to_surface("core/neuro/tests/__init__.py", targets) is None
+    assert map_file_to_surface("execution/tests/test_oms.py", targets) is None
+
+
+def test_colocated_test_files_listed_as_unmapped(tmp_path: Path) -> None:
+    targets = load_coverage_targets(_write_targets(tmp_path / "t.toml", VALID_TOML))
+    paths = [
+        "core/neuro/engine.py",
+        "core/neuro/tests/test_engine.py",
+        "execution/oms.py",
+    ]
+    unmapped = list_unmapped_files(paths, targets)
+    assert "core/neuro/tests/test_engine.py" in unmapped
+    assert "core/neuro/engine.py" not in unmapped
+    assert "execution/oms.py" not in unmapped
