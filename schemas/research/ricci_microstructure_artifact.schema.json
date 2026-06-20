@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.neuron7xlab.org/research/ricci_microstructure_artifact.v1.schema.json",
+  "title": "GeoSync Ricci Microstructure Artifact v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "schema_version",
+    "config_hash",
+    "data_sha256",
+    "git_sha",
+    "mean_curvature",
+    "p_value",
+    "cliffs_delta",
+    "effect_size_class",
+    "null_model_type",
+    "n_surrogates",
+    "falsification_status",
+    "replay_command",
+    "timestamp_utc",
+    "claim_tier"
+  ],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "schema_version": {"const": "ricci_microstructure_artifact.v1"},
+    "config_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "data_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "git_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$", "not": {"const": "0000000000000000000000000000000000000000"}},
+    "mean_curvature": {"type": "number"},
+    "p_value": {"type": "number", "minimum": 0, "maximum": 1},
+    "cliffs_delta": {"type": "number", "minimum": -1, "maximum": 1},
+    "effect_size_class": {"enum": ["negligible", "small", "medium", "large"]},
+    "null_model_type": {"enum": ["iaaft", "shuffled_timestamps", "random_walk", "volume_neutral"]},
+    "n_surrogates": {"type": "integer", "minimum": 1000},
+    "falsification_status": {"enum": ["SUPPORTED", "HYPOTHESIS_NOT_SUPPORTED", "INVALID"]},
+    "replay_command": {"type": "string", "pattern": "^geosync-research run --line ricci_microstructure_v1"},
+    "timestamp_utc": {"type": "string", "format": "date-time"},
+    "claim_tier": {"const": "T3/NOVEL/EXPLORATORY/FALSIFIABLE"}
+  }
+}
