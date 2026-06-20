@@ -88,7 +88,7 @@ cuda-pathfinder==1.5.2
     # via cuda-bindings
 cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2
     # via torch
-deap==1.4.3
+deap==1.4.4
     # via geosync (pyproject.toml)
 exchange-calendars==4.11.1
     # via geosync (pyproject.toml)
