@@ -244,10 +244,16 @@ class NeuroSignalBus:
         """Compute position size multiplier from integrated neuro signals.
 
         Formula:
+            if should_hold():  return 0.0     # Protector veto (INV-YV1 L2)
             mult = kelly_base
                    * coherence_scale(R)      # Kuramoto regime confidence
                    * (1 - gaba_inhibition)    # GABA braking
                    * regime_scale             # stress regime dampening
+
+        The Protector veto (serotonin aversion / crisis regime) has
+        UNCONDITIONAL priority over the Generator (Kelly sizing) per the
+        maintenance hierarchy (CLAUDE.md §0, INV-YV1 Layer 2): a firing
+        Protector zeroes the position, it does not merely dampen it.
 
         Returns:
             float ∈ [0, kelly_base]
@@ -255,6 +261,19 @@ class NeuroSignalBus:
         with self._lock:
             cfg = self._config
             s = self._signals
+
+            # 0. Protector veto — INV-YV1 maintenance hierarchy (CLAUDE.md §0):
+            #    Protectors have UNCONDITIONAL priority over Generators. The
+            #    serotonin aversive veto and the crisis regime must be able to
+            #    HALT sizing, not merely dampen it. Before this, should_hold()
+            #    was computed but never reached the multiplier the production
+            #    oracle multiplies (geosync_oracle.py), so the veto was advisory
+            #    only — a Generator could keep a full position while a Protector
+            #    was firing. RLock is reentrant, so should_hold() is safe here.
+            if self.should_hold():
+                if self._logger:
+                    self._logger("neuro.protector_veto", 0.0)
+                return 0.0
 
             # 1. Kuramoto coherence → Kelly fraction scaling
             #    R < floor → minimum fraction; R > ceil → full fraction
