@@ -714,3 +714,24 @@ evidence-gate-core:
 .PHONY: replay-ricci-capsule
 replay-ricci-capsule:
 	@python -m pytest tests/research_lines/test_ricci_microstructure_replay_capsule.py -q
+
+# ============================================================================
+# ricci_microstructure_v1 — empirical Ollivier-Ricci-on-L2 lane (T3 exploratory)
+# Augments PR #1242 with the real-data run + reproducibility gate.
+# ============================================================================
+RICCI_MANIFEST ?= data/l2_manifest.json
+RICCI_CONFIG   ?= configs/research/ricci_microstructure_v1.json
+RICCI_SEED     ?= 1337
+
+.PHONY: ricci-capsule
+ricci-capsule:
+	bash geosync_research/lines/ricci_microstructure_v1/REPRODUCIBILITY_CAPSULE.sh $(RICCI_MANIFEST) $(RICCI_CONFIG) $(RICCI_SEED)
+
+.PHONY: ricci-release-gate
+ricci-release-gate:
+	@echo "🚦 ricci_microstructure_v1 release gate (locally-verifiable subset)..."
+	$(PYTHON) -m ruff check geosync_research tools/research/research_cli.py
+	$(PYTHON) -m mypy --strict geosync_research/lines/ricci_microstructure_v1
+	$(PYTEST) -q tests/research_lines/test_ricci_microstructure_v1.py
+	$(MAKE) ricci-capsule
+	@echo "✅ ricci lane gate green (signed SLSA/cosign provenance runs in CI)"

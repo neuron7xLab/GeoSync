@@ -10,7 +10,9 @@ import pandas as pd
 from .nobi import nobi
 
 
-def build_l2_graph(row: pd.Series | dict[str, Any], *, depth: int, weight_mode: str = "nobi") -> nx.DiGraph:
+def build_l2_graph(
+    row: pd.Series | dict[str, Any], *, depth: int, weight_mode: str = "nobi"
+) -> nx.DiGraph:
     if depth < 1:
         raise ValueError("depth must be >= 1")
     record = row.to_dict() if hasattr(row, "to_dict") else dict(row)
@@ -37,14 +39,23 @@ def build_l2_graph(row: pd.Series | dict[str, Any], *, depth: int, weight_mode: 
             size=float(record[f"ask_sz_{idx}"]),
         )
 
-    distance_weight = abs(imbalance) + 1.0e-12
+    # Per-edge metric = absolute price gap between the two levels — a real,
+    # snapshot-varying geometric distance. The previous constant
+    # abs(imbalance)+eps made every edge identical AND was never read (the kernel
+    # used unweighted hop-count), so curvature collapsed to a fixed topological
+    # constant independent of the book. The price gap makes the Ollivier metric
+    # microstructure-sensitive; `edge_weight` still carries the NOBI feature.
+    def _gap(a: str, b: str) -> float:
+        return abs(float(graph.nodes[a]["price"]) - float(graph.nodes[b]["price"])) + 1.0e-12
+
     for idx in range(1, depth):
         for src, dst in ((f"bid_{idx}", f"bid_{idx + 1}"), (f"ask_{idx}", f"ask_{idx + 1}")):
-            graph.add_edge(src, dst, edge_weight=imbalance, weight=distance_weight)
-            graph.add_edge(dst, src, edge_weight=imbalance, weight=distance_weight)
+            graph.add_edge(src, dst, edge_weight=imbalance, weight=_gap(src, dst))
+            graph.add_edge(dst, src, edge_weight=imbalance, weight=_gap(src, dst))
     for idx in range(1, depth + 1):
-        graph.add_edge(f"bid_{idx}", f"ask_{idx}", edge_weight=imbalance, weight=distance_weight)
-        graph.add_edge(f"ask_{idx}", f"bid_{idx}", edge_weight=imbalance, weight=distance_weight)
+        bid_node, ask_node = f"bid_{idx}", f"ask_{idx}"
+        graph.add_edge(bid_node, ask_node, edge_weight=imbalance, weight=_gap(bid_node, ask_node))
+        graph.add_edge(ask_node, bid_node, edge_weight=imbalance, weight=_gap(ask_node, bid_node))
 
     for _, _, data in graph.edges(data=True):
         if data["edge_weight"] != data["edge_weight"]:

@@ -1,0 +1,11 @@
+{
+  "source": "BINANCE_FUTURES_DEPTH",
+  "venue": "binance-usdm-futures",
+  "symbol": "BTCUSDT",
+  "date": "2026-06-20",
+  "depth": 5,
+  "data_path": "raw/binance_btcusdt_depth10.csv",
+  "collector_version": "collect_binance_l2.v1",
+  "retrieval_url": "https://fapi.binance.com/fapi/v1/depth?symbol=BTCUSDT&limit=10",
+  "schema_version": "l2_manifest.v1"
+}

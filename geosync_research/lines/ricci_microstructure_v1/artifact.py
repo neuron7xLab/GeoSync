@@ -25,12 +25,17 @@ def load_schema(path: Path = SCHEMA_PATH) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def validate_artifact_payload(payload: dict[str, Any], *, schema_path: Path = SCHEMA_PATH) -> list[str]:
+def validate_artifact_payload(
+    payload: dict[str, Any], *, schema_path: Path = SCHEMA_PATH
+) -> list[str]:
     if payload.get("falsification_status") in FORBIDDEN_STATUSES:
         return [f"forbidden falsification_status: {payload['falsification_status']}"]
     schema = load_schema(schema_path)
     validator = Draft202012Validator(schema)
-    return [error.message for error in sorted(validator.iter_errors(payload), key=lambda item: item.path)]
+    return [
+        error.message
+        for error in sorted(validator.iter_errors(payload), key=lambda item: item.path)
+    ]
 
 
 def write_artifact(path: Path, payload: dict[str, Any], *, schema_path: Path = SCHEMA_PATH) -> str:
@@ -63,7 +68,11 @@ def write_minimal_pdf(path: Path, title: str, lines: list[str]) -> None:
         b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n",
         b"3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n",
         b"4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n",
-        b"5 0 obj << /Length " + str(len(stream)).encode() + b" >> stream\n" + stream + b"\nendstream endobj\n",
+        b"5 0 obj << /Length "
+        + str(len(stream)).encode()
+        + b" >> stream\n"
+        + stream
+        + b"\nendstream endobj\n",
     ]
     output = bytearray(b"%PDF-1.4\n")
     offsets = [0]

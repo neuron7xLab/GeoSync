@@ -39,7 +39,9 @@ if typer is not None:
     @app.command()
     def ingest(
         data: Path = typer.Option(..., "--data", help="Path to l2_manifest.v1 JSON."),
-        out: Path | None = typer.Option(None, "--out", help="Output directory; defaults to manifest dir."),
+        out: Path | None = typer.Option(
+            None, "--out", help="Output directory; defaults to manifest dir."
+        ),
     ) -> None:
         """Validate real L2 order-book data and materialize deterministic parquet output."""
         try:
@@ -50,24 +52,32 @@ if typer is not None:
 
     @app.command()
     def run(
-        line: str = typer.Option(..., "--line", help="Research line; must be ricci_microstructure_v1."),
+        line: str = typer.Option(
+            ..., "--line", help="Research line; must be ricci_microstructure_v1."
+        ),
         config: Path = typer.Option(..., "--config", help="JSON config path."),
         data: Path = typer.Option(..., "--data", help="Validated parquet/csv data path."),
         out: Path = typer.Option(..., "--out", help="Run output root."),
         seed: int = typer.Option(1337, "--seed", help="Deterministic random seed."),
-        dry_run: bool = typer.Option(False, "--dry-run", help="Plan the run without writing artifacts."),
+        dry_run: bool = typer.Option(
+            False, "--dry-run", help="Plan the run without writing artifacts."
+        ),
     ) -> None:
         """Run Ricci microstructure inference, null baselines, statistical gate, and artifact writing."""
         if line != "ricci_microstructure_v1":
             _die(f"unsupported research line: {line}")
         try:
-            result = run_pipeline(config_path=config, data_path=data, out_root=out, seed=seed, dry_run=dry_run)
+            result = run_pipeline(
+                config_path=config, data_path=data, out_root=out, seed=seed, dry_run=dry_run
+            )
         except Exception as exc:
             _die(str(exc))
         print(json.dumps(result, sort_keys=True))
 
     @app.command()
-    def verify(run_id: str = typer.Argument(..., help="RUN_ID, run directory, or artifact JSON path.")) -> None:
+    def verify(
+        run_id: str = typer.Argument(..., help="RUN_ID, run directory, or artifact JSON path.")
+    ) -> None:
         """Validate a Ricci microstructure artifact against JSON Schema Draft 2020-12."""
         candidate = Path(run_id)
         if not candidate.exists():

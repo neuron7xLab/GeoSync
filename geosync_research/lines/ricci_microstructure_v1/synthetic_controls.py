@@ -10,7 +10,19 @@ import pandas as pd
 from .graph_builder import build_l2_graph
 from .ricci_kernel import RicciKernelConfig, compute_ricci_curvature, edge_curvature_records
 
-NULL_MODELS = {"iaaft", "shuffled_timestamps", "random_walk", "volume_neutral"}
+# Each null destroys a specific hypothesised signal pathway (documented in
+# surrogate_frame). `iaaft` is the DEFAULT primary null — it perturbs the per-
+# level sizes the kernel actually consumes. `shuffled_timestamps` is retained for
+# completeness but is weak for a mean-curvature statistic (row reorder leaves the
+# mean invariant) and must not be the default.
+NULL_MODELS = {
+    "iaaft",
+    "shuffled_timestamps",
+    "random_walk",
+    "volume_neutral",
+    "size_permutation_within_side",
+    "block_bootstrap",
+}
 
 
 @dataclass(frozen=True)
@@ -19,11 +31,15 @@ class StatisticalGate:
     cliffs_delta_threshold: float = 0.147
 
 
-def curvature_series(frame: pd.DataFrame, *, depth: int, alpha: float, n_min_edges: int) -> np.ndarray:
+def curvature_series(
+    frame: pd.DataFrame, *, depth: int, alpha: float, n_min_edges: int
+) -> np.ndarray:
     values: list[float] = []
     for _, row in frame.iterrows():
         graph = build_l2_graph(row, depth=depth)
-        curved = compute_ricci_curvature(graph, config=RicciKernelConfig(alpha=alpha, n_min_edges=n_min_edges))
+        curved = compute_ricci_curvature(
+            graph, config=RicciKernelConfig(alpha=alpha, n_min_edges=n_min_edges)
+        )
         records = edge_curvature_records(curved)
         values.append(float(np.mean([record["ricciCurvature"] for record in records])))
     if not values:
@@ -31,7 +47,9 @@ def curvature_series(frame: pd.DataFrame, *, depth: int, alpha: float, n_min_edg
     return np.array(values, dtype=float)
 
 
-def iaaft_surrogate(series: np.ndarray, rng: np.random.Generator, iterations: int = 20) -> np.ndarray:
+def iaaft_surrogate(
+    series: np.ndarray, rng: np.random.Generator, iterations: int = 20
+) -> np.ndarray:
     target_sorted = np.sort(series)
     amplitudes = np.abs(np.fft.rfft(series))
     surrogate = rng.permutation(series)
@@ -62,6 +80,29 @@ def surrogate_frame(
         steps = rng.normal(0.0, float(out["price"].diff().dropna().std() or 1.0), size=len(out))
         out["price"] = float(out["price"].iloc[0]) + np.cumsum(steps)
         return out
+    if null_model == "size_permutation_within_side":
+        # Destroys: the level-ordering of depth. Per row, permute sizes ACROSS
+        # levels within each side (preserving total side volume + the price
+        # ladder). Kills the hypothesis that the specific depth-by-level size
+        # arrangement — not just gross imbalance — drives curvature.
+        for side in ("bid", "ask"):
+            cols = [f"{side}_sz_{idx}" for idx in range(1, depth + 1)]
+            block = out[cols].to_numpy(dtype=float)
+            for r in range(block.shape[0]):
+                block[r] = block[r][rng.permutation(block.shape[1])]
+            out.loc[:, cols] = block
+        return out
+    if null_model == "block_bootstrap":
+        # Destroys: long-range temporal alignment while preserving short-range
+        # autocorrelation. Resample contiguous time blocks (~sqrt(n)) of the full
+        # row, then restamp a monotonic timestamp grid so the schema holds.
+        n = len(out)
+        block = max(1, int(round(np.sqrt(n))))
+        starts = rng.integers(0, n, size=int(np.ceil(n / block)))
+        idx = np.concatenate([np.arange(s, s + block) % n for s in starts])[:n]
+        resampled = out.iloc[idx].reset_index(drop=True)
+        resampled["timestamp"] = out["timestamp"].to_numpy()[:n]
+        return resampled
     if null_model == "volume_neutral":
         columns = _size_columns(out, depth)
         flat = out[columns].to_numpy(dtype=float).reshape(-1)

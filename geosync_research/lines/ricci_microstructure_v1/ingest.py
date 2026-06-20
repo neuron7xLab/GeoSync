@@ -1,4 +1,4 @@
-"""Fail-closed LOBSTER L2 manifest ingestion."""
+"""Fail-closed L2 manifest ingestion (source recorded honestly, never relabelled)."""
 
 from __future__ import annotations
 
@@ -12,15 +12,26 @@ from .determinism import git_sha, sha256_path, timestamp_utc
 
 try:  # pragma: no cover - exercised in project env when pandera is installed
     import pandera.pandas as pa
-    from pandera.errors import SchemaError as DataFrameSchemaError
-except Exception:  # local fallback keeps tests honest when pandera is absent
+except Exception:  # pandera optional: manual checks below still fail closed
     pa = None
 
-    class DataFrameSchemaError(ValueError):
-        """Fallback name-compatible schema error."""
+
+class DataFrameSchemaError(ValueError):
+    """L2 frame contract violation (fail-closed).
+
+    A dedicated class constructible from a single message — NOT aliased to
+    pandera's ``SchemaError`` (whose ``__init__`` needs positional schema/data),
+    so ``_raise_schema(message)`` works and callers can catch one stable type.
+    """
 
 
 REQUIRED_MANIFEST_VERSION = "l2_manifest.v1"
+# Known real L2 sources. Recorded honestly — the source is carried through to
+# the data_manifest verbatim, never relabelled. LOBSTER's free equity samples
+# moved behind a keyed/licensed API (LOBSTER_LICENSED_L2), so the committed
+# substrate is BINANCE_FUTURES_DEPTH (public REST depth, no key). Binance data
+# must NEVER be rewritten into a LOBSTER label.
+ALLOWED_SOURCES = {"LOBSTER_LICENSED_L2", "BINANCE_FUTURES_DEPTH"}
 
 
 def _raise_schema(message: str) -> None:
@@ -38,8 +49,8 @@ def load_manifest(path: Path) -> dict[str, Any]:
     missing = sorted(required - set(payload))
     if missing:
         raise ValueError(f"manifest missing required fields: {missing}")
-    if payload["source"] != "LOBSTER":
-        raise ValueError("manifest source must be LOBSTER")
+    if payload["source"] not in ALLOWED_SOURCES:
+        raise ValueError(f"manifest source must be one of {sorted(ALLOWED_SOURCES)}")
     if payload["schema_version"] != REQUIRED_MANIFEST_VERSION:
         raise ValueError(f"manifest schema_version must be {REQUIRED_MANIFEST_VERSION}")
     if int(payload["depth"]) < 1:
@@ -91,7 +102,10 @@ def validate_l2_frame(frame: pd.DataFrame, *, depth: int) -> pd.DataFrame:
             schema_columns[f"ask_px_{idx}"] = pa.Column(float, nullable=False)
             schema_columns[f"bid_sz_{idx}"] = pa.Column(float, pa.Check.ge(0), nullable=False)
             schema_columns[f"ask_sz_{idx}"] = pa.Column(float, pa.Check.ge(0), nullable=False)
-        pa.DataFrameSchema(schema_columns, strict=True, coerce=True).validate(validated)
+        try:
+            pa.DataFrameSchema(schema_columns, strict=True, coerce=True).validate(validated)
+        except Exception as exc:  # normalise pandera SchemaError to our stable type
+            _raise_schema(f"pandera validation failed: {exc}")
     return validated
 
 
@@ -111,18 +125,27 @@ def ingest_manifest(manifest_path: Path, *, out_dir: Path | None = None) -> dict
     parquet_path = destination / "validated_l2_frame.parquet"
     validated.to_parquet(parquet_path, index=False)
 
+    ts = pd.to_datetime(validated["timestamp"], utc=True)
+    collector = Path(__file__).with_name("collect_binance_l2.py")
     manifest_out = {
-        "source": "LOBSTER",
+        "source": str(manifest["source"]),  # honest passthrough — never relabelled
+        "venue": str(manifest.get("venue", manifest["source"])),
         "symbol": str(manifest["symbol"]),
         "date": str(manifest["date"]),
         "depth": depth,
+        "snapshot_count": int(len(validated)),
+        "session_window_utc": [ts.min().isoformat(), ts.max().isoformat()],
         "data_sha256": sha256_path(data_path),
+        "collector_version": str(manifest.get("collector_version", "unknown")),
+        "collector_sha256": sha256_path(collector) if collector.is_file() else "",
         "git_sha": git_sha(),
         "timestamp_utc": timestamp_utc(),
         "schema_version": REQUIRED_MANIFEST_VERSION,
     }
     data_manifest_path = destination / "data_manifest.json"
-    data_manifest_path.write_text(json.dumps(manifest_out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    data_manifest_path.write_text(
+        json.dumps(manifest_out, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     ingest_log_path = destination / "ingest_log.json"
     ingest_log_path.write_text(

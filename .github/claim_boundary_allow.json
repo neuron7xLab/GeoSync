@@ -3,6 +3,11 @@
   "_doc": "Reviewed exceptions to the product-category claim-boundary gate. Each entry is a boundary-sensitive phrase that is MECHANISM (code symbols, ops runbooks, research disclaimers, honest negations) — not a claim that GeoSync IS a live-trading/alpha product. New unreviewed occurrences fail scripts/ci/check_claim_boundary.py. See PRODUCT_CATEGORY.md.",
   "allow": [
     {
+      "file": "docs/RICCI_MICROSTRUCTURE.md",
+      "match": "This is not validated alpha, not a production trading signal, and not confirmed market physics.",
+      "reason": "honest-negation: T3 research disclaimer explicitly denying alpha/production/physics claims, not a product-category claim"
+    },
+    {
       "file": "CONTRIBUTING.md",
       "match": "threshold: optional threshold for signal generation",
       "reason": "mechanism: internal engineering reference, not product-category positioning"

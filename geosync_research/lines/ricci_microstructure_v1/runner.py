@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +12,16 @@ import pandas as pd
 from .artifact import write_artifact, write_evidence_bundle
 from .determinism import git_sha, sha256_path, timestamp_utc
 from .ingest import validate_l2_frame
+from .ricci_kernel import KERNEL_VERSION
 from .synthetic_controls import NULL_MODELS, evaluate_null_gate
+
+
+def _git_dirty() -> bool:
+    completed = subprocess.run(
+        ["git", "status", "--porcelain"], check=False, capture_output=True, text=True
+    )
+    return completed.returncode != 0 or bool(completed.stdout.strip())
+
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "alpha": 0.5,
@@ -75,19 +85,32 @@ def run_pipeline(
     data_manifest_path = data_path.parent / "data_manifest.json"
     if not data_manifest_path.is_file():
         raise RuntimeError("data_manifest.json missing; run ingest before run")
+    data_manifest = json.loads(data_manifest_path.read_text(encoding="utf-8"))
+    status = str(stats["falsification_status"])
+    forbidden = {"ALPHA_FOUND", "MARKET_SIGNAL_PROVEN", "PRODUCTION_READY", "PHYSICS_CONFIRMED"}
     payload = {
         "run_id": run_id,
         "schema_version": "ricci_microstructure_artifact.v1",
+        "kernel_version": KERNEL_VERSION,
+        "source": str(data_manifest.get("source", "")),
         "config_hash": sha256_path(config_path),
+        "config_sha256": sha256_path(config_path),
         "data_sha256": sha256_path(data_path),
+        "collector_sha256": str(data_manifest.get("collector_sha256", "")),
         "git_sha": git_sha(),
+        "dirty_git": _git_dirty(),
+        "seed": int(seed),
         "mean_curvature": float(stats["mean_curvature"]),
+        "observed_count": int(stats["observed_count"]),
+        "null_mean": float(stats["null_mean"]),
+        "null_std": float(stats["null_std"]),
         "p_value": float(stats["p_value"]),
         "cliffs_delta": float(stats["cliffs_delta"]),
         "effect_size_class": str(stats["effect_size_class"]),
         "null_model_type": str(config["null_model_type"]),
         "n_surrogates": int(config["n_surrogates"]),
-        "falsification_status": str(stats["falsification_status"]),
+        "falsification_status": status,
+        "forbidden_claims_absent": status not in forbidden,
         "replay_command": replay_command,
         "timestamp_utc": timestamp_utc(),
         "claim_tier": "T3/NOVEL/EXPLORATORY/FALSIFIABLE",
