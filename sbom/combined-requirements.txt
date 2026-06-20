@@ -357,7 +357,7 @@ python-dotenv==1.2.2
     # via pydantic-settings
 python-multipart==0.0.31
     # via strawberry-graphql
-pytz==2025.2
+pytz==2026.2
     # via pandas
 pyyaml==6.0.3
     # via
