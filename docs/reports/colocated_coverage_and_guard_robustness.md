@@ -27,12 +27,33 @@ basename with files under `tests/`, so a single combined collection raises
 written by the `tests/` run (it carries the gated-claim falsifiers); the
 co-located run writes `junit_colocated.xml` to avoid clobbering it.
 
-Measured effect (CI `coverage.xml` ∪ co-located coverage): release line
-coverage **77.89% → 84.45%** (+6.56 pp; 4,920 previously-missing in-scope lines
-now covered). This does not by itself reach the 90% release gate — the residual
-is ~14k missing lines of genuine production logic (not demos/CLIs), a separate
-test-authoring campaign — but it removes the measurement-completeness defect
-that made the number meaningless.
+### Avoiding self-inflation (the honest-number fix)
+`release_90.coveragerc` declares `[run] source = core analytics markets geosync …`
+and its only test-omit (`tests/**`) is **root-anchored**. The co-located test
+files live *under* those source roots (e.g. `analytics/signals/tests/test_igs_core.py`
+is under `analytics`), so coverage.py records the execution of the **test file
+bodies themselves**, and the longest-prefix bucketing in
+`tools/coverage/surface_contract.map_file_to_surface` would map those test lines
+into the `analytics` / `core` / `markets` / `geosync` production surfaces — i.e.
+the suite would partly be *covering itself*. A naive `**/tests/**` omit is
+forbidden by `tests/audit/test_coverage_honesty.py` (an omit may not be a child
+of a `source` root). The correct fix is therefore in the surface mapper:
+`map_file_to_surface` now returns `None` (excluded) for any co-located test file
+(`*/tests/test_*.py`, `*/tests/*_test.py`, `*/tests/__init__.py`,
+`*/tests/conftest.py`) under a source root, via the new
+`is_colocated_test_file` predicate. Test bodies still *execute* production code
+(which is what we want counted) but no longer count as production lines.
+Regression tests in `tests/tools/test_coverage_surface_contract.py` pin both
+directions (production module still maps; co-located test body maps to `None`).
+
+Measured effect (CI `tests/` `coverage.xml` ∪ co-located coverage, surface
+honestly excluding co-located test bodies): release line coverage
+**77.89% → COVERAGE_TRUE_PCT** (re-derived from `make coverage-baseline`; see
+quality gates below). This does not by itself reach the 90% release gate — the
+residual is genuine production logic still untested, a separate test-authoring
+campaign — but it removes the measurement-completeness defect (suites never run)
+*and* the measurement-honesty defect (test bodies counted as production) that
+together made the number meaningless.
 
 ## 2. `neural_controller` package was un-importable
 `core/params.py` is the package's config facade — `__init__`, `bridge`,
@@ -58,20 +79,6 @@ those paths do not exist on CI's clean checkout, so the bug was invisible where
 the guard is enforced. The scan now skips any hidden directory (`startswith
 "."`) plus build/dist. Three regression tests pin both directions: hidden trees
 are ignored, visible rogue canonical markers are still flagged.
-
-## 5. Root `conftest.py` torch probe aborted the whole fast lane
-The torch-availability probe `import torch as _torch_probe` was guarded only by
-`except (ImportError, OSError, ValueError)`. Under Python 3.11 torch emits an
-import-time `DeprecationWarning`, and pytest's `-W error::DeprecationWarning`
-(from `pytest.ini`) re-raises it as an exception that is none of those types, so
-it escapes the probe and **aborts conftest collection** — every `python-fast-shard`
-job then collects 0 ids and fail-closes ("0 fast tests collected"). This blocks
-the fast lane on every PR on the CI runner (it does not reproduce on a 3.12 dev
-box whose torch build is quiet). Fixed by suppressing warnings for the probe
-import only (`warnings.catch_warnings()` + `simplefilter("ignore")`); test-time
-warning strictness is unchanged. (Same minimal fix as the in-flight
-`fix/fast-shard-torch-probe-deprecation` branch; included here so this PR's own
-fast lane is real-green rather than blocked by an unrelated environmental bug.)
 
 All of the above are integrity/correctness fixes. No market claim, no claim-tier
 promotion, no runtime behaviour change, no lint/type suppressions added.

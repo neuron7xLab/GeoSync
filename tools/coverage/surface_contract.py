@@ -108,8 +108,42 @@ def _prefix_matches(file_path: str, prefix: str) -> bool:
     return file_path == normalized_prefix or file_path.startswith(f"{normalized_prefix}/")
 
 
+def is_colocated_test_file(file_path: str) -> bool:
+    """True for a test file that physically lives inside a production package.
+
+    Co-located suites (e.g. ``analytics/signals/tests/test_igs_core.py``,
+    ``core/neuro/tests/__init__.py``) are run as a second ``--cov-append``
+    invocation so they exercise release surface. But because they sit UNDER a
+    ``[run] source`` root, coverage.py records their own line execution, and the
+    longest-prefix bucketing in :func:`map_file_to_surface` would otherwise
+    credit those *test* bodies as covered *production* lines — self-inflating the
+    measured surface. Excluding them here keeps the measured surface honest: the
+    test files still EXECUTE production code (which is what we want to count),
+    they just stop counting themselves.
+
+    The match is deliberately narrow — only canonical pytest file shapes under a
+    directory named exactly ``tests`` — so genuine production modules that merely
+    contain the substring "test" are never excluded.
+    """
+    normalized = _normalize_repo_path(file_path)
+    if "/tests/" not in normalized:
+        return False
+    basename = normalized.rsplit("/", 1)[-1]
+    return (
+        basename == "__init__.py"
+        or basename == "conftest.py"
+        or (basename.startswith("test_") and basename.endswith(".py"))
+        or basename.endswith("_test.py")
+    )
+
+
 def map_file_to_surface(file_path: str, targets: CoverageTargets) -> str | None:
     normalized = _normalize_repo_path(file_path)
+
+    # Co-located test files live under a source root but must NOT be counted as
+    # production surface (they would credit test-code as covered prod lines).
+    if is_colocated_test_file(normalized):
+        return None
 
     best_len = -1
     best_surface: str | None = None
