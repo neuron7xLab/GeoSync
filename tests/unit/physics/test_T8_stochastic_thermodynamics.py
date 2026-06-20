@@ -51,6 +51,35 @@ def test_INV_ST1_equipartition_variance_matches_boltzmann() -> None:
         )
 
 
+def test_INV_ST1_equipartition_is_gamma_invariant() -> None:
+    """INV-ST1: stationary Var(x) = kT/k is INDEPENDENT of friction gamma.
+
+    Fluctuation-dissipation ties the diffusion to the friction so that the
+    Boltzmann stationary variance kT/k carries no gamma dependence — gamma only
+    sets the relaxation timescale gamma/k, not the equilibrium spread. This
+    falsifies the regression where the Euler-Maruyama noise scale was written
+    sqrt(2*gamma*kT*dt) (gamma in the numerator) instead of sqrt(2*kT*dt/gamma):
+    that bug leaves Var = gamma^2 * kT/k, exact only at gamma=1 (which every
+    other T8 test uses, so it was masked). At gamma=4 the broken scale inflates
+    the variance ~16x.
+    """
+    kT = 1.0
+    tol = 0.10  # same registered INV-ST1 bound; measured ≈0.017 across gamma
+    seed = 7
+    stiffness = 2.0
+    expected_var = kT / stiffness
+    for gamma in (0.5, 1.0, 2.0, 4.0):
+        samples = stationary_samples(seed, k=stiffness, kT=kT, gamma=gamma)
+        observed_var = float(np.var(samples))
+        rel_dev = abs(observed_var - expected_var) / expected_var
+        assert rel_dev < tol, (
+            f"INV-ST1 VIOLATED (gamma-dependence): Var(x)={observed_var:.4f} vs "
+            f"kT/k={expected_var:.4f}, rel_dev={rel_dev:.4f} exceeds tol={tol:.2f}. "
+            f"Stationary variance must be gamma-invariant (fluctuation-dissipation). "
+            f"At gamma={gamma:.1f}, k={stiffness:.1f}, kT={kT:.1f}, seed={seed}."
+        )
+
+
 def test_INV_ST2_jarzynski_equality_holds_within_tolerance() -> None:
     """INV-ST2: ⟨e^(−βW)⟩ = e^(−βΔF) within relative tolerance 0.05.
 

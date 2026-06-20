@@ -28,7 +28,7 @@ Integrated with Euler-Maruyama at step ``dt``:
 .. math::
 
     x \leftarrow x - \frac{\mathrm{d}t}{\gamma} k\, x
-                 + \sqrt{2\gamma k_B T\, \mathrm{d}t}\; \mathcal N(0, 1).
+                 + \sqrt{2 k_B T\, \mathrm{d}t / \gamma}\; \mathcal N(0, 1).
 
 The equilibrium free energy of the harmonic well is the Gaussian
 partition-function result
@@ -293,7 +293,7 @@ def langevin_ensemble_step(
     .. math::
 
         x \leftarrow x - \frac{\mathrm{d}t}{\gamma} k\, x
-                     + \sqrt{2\gamma k_B T\, \mathrm{d}t}\; \mathcal N(0, 1).
+                     + \sqrt{2 k_B T\, \mathrm{d}t / \gamma}\; \mathcal N(0, 1).
 
     Parameters
     ----------
@@ -319,7 +319,15 @@ def langevin_ensemble_step(
     _validate_positive("dt", dt)
     _validate_positive("kT", kT)
     _validate_positive("gamma", gamma)
-    noise_scale = float(np.sqrt(2.0 * gamma * kT * dt))
+    # INV-ST1: the overdamped Langevin SDE for this module is
+    #   dx = -(1/gamma) V'(x) dt + sqrt(2 k_B T / gamma) dW
+    # so the Euler-Maruyama diffusion scale is sqrt(2 k_B T dt / gamma) — gamma
+    # in the DENOMINATOR, matching the (dt/gamma) drift below. The prior form
+    # sqrt(2*gamma*kT*dt) put gamma in the numerator, which left the stationary
+    # variance gamma^2-dependent (Var = gamma^2 * kT/k) instead of the
+    # fluctuation-dissipation result kT/k. It happened to be exact only at the
+    # gamma=1 used by every existing T8 test, so the error was masked.
+    noise_scale = float(np.sqrt(2.0 * kT * dt / gamma))
     drift = (dt / gamma) * k * x
     return np.asarray(x - drift + noise_scale * rng.standard_normal(x.shape), dtype=np.float64)
 
