@@ -6,7 +6,7 @@ import importlib.util
 import subprocess
 import sys
 from pathlib import Path
-from types import ModuleType
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -20,7 +20,7 @@ INCIDENTS = SHADOW / "operational_incidents.csv"
 LOGGER_SCRIPT = REPO / "scripts" / "log_shadow_operational_incident.py"
 
 
-def _load_logger() -> ModuleType:
+def _load_logger() -> Any:
     spec = importlib.util.spec_from_file_location("shadow_incident_logger", LOGGER_SCRIPT)
     assert spec is not None, f"spec_from_file_location returned None for {LOGGER_SCRIPT}"
     mod = importlib.util.module_from_spec(spec)
