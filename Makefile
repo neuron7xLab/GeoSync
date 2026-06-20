@@ -275,8 +275,22 @@ COLOCATED_TESTS := core/neuro/tests analytics/tests analytics/fpma/tests \
 coverage-baseline:
 	@echo "📊 Measuring full production surface (release_90 profile)..."
 	@mkdir -p reports/coverage
+	# An enforcement gate must COMPLETE — a release gate that never finishes
+	# silently stops enforcing, the exact "covered everywhere that never ran"
+	# vacuum this gate exists to prevent.
+	#
+	# -n auto --dist loadscope: the production surface now measures ~18k tests;
+	# serial instrumentation is ~94 min of CPU and overran the CI job timeout on
+	# every push (run 27866729780: the measure step was killed at the 50-min cap
+	# before it ever enforced). Parallel measurement brings wall-time back under
+	# budget WITHOUT shrinking the surface or relaxing the 90% threshold —
+	# pytest-cov combines per-worker coverage data, so the measured number is the
+	# same full surface. loadscope keeps a module's tests on one worker so
+	# module-scoped fixtures stay isolated. A total hang still fails closed via
+	# the CI job-level timeout-minutes backstop.
 	pytest tests/ \
 		-m "not flaky and not nightly" \
+		-n auto --dist loadscope \
 		--cov-config=configs/quality/release_90.coveragerc \
 		--cov --cov-branch \
 		--cov-report= \

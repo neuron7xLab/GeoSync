@@ -91,10 +91,15 @@ jobs:
     name: Release coverage gate (90%)
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    # ~25 min full-surface measurement + enforce; cap well above the
-    # observed baseline so a genuine hang fails closed instead of burning
-    # the 6-hour default, but never clips a healthy run.
-    timeout-minutes: 50
+    # The full-surface measurement is ~18k tests / ~94 min of serial CPU. The
+    # old serial run overran the 50-min cap on EVERY push (the measure step was
+    # killed mid-flight, the enforce step skipped, conclusion `cancelled` — a
+    # silent non-enforcement for days). The measurement is now parallel
+    # (Makefile coverage-baseline: -n auto), so wall-time is ~CPU/cores: on the
+    # GitHub 4-core runner ~30 min + setup. Cap is set with generous headroom
+    # over that so a genuine hang still fails closed instead of burning the
+    # 6-hour default, but a healthy run is never clipped.
+    timeout-minutes: 60
     concurrency:
       group: ${{ github.workflow }}-release-${{ github.ref }}
       cancel-in-progress: false
