@@ -14,7 +14,7 @@ gate decisions only; no marketing language.
 - Operational incidents logged: **1**
 - Operationally unsafe (latest): **False**
 - Any invariant fail: **False**
-- Continuity-gap logging: **enabled for failed/skipped systemd runs and offline catch-up gaps**
+- Continuity-gap logging: **enabled with separate scheduled_time and actual_run_time fields**
 
 ## Live metrics
 
