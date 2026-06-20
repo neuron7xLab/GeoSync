@@ -1,11 +1,3 @@
-"""Canonical append-only operational incident logger for GeoSync shadow runs.
-
-The systemd wrapper uses this tiny script because shell traps must be able to
-record failed/skipped scheduled runs even when the Python shadow pipeline dies
-before its own fail-closed ledger path is reached. No network. No interactive
-input. One row per incident.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -16,7 +8,14 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SHADOW_DIR = REPO / "results" / "cross_asset_kuramoto" / "shadow_validation"
 INCIDENTS = SHADOW_DIR / "operational_incidents.csv"
-FIELDNAMES = ("timestamp", "bar_date", "reason", "recovery_status")
+FIELDNAMES = (
+    "timestamp",
+    "scheduled_time",
+    "actual_run_time",
+    "bar_date",
+    "reason",
+    "recovery_status",
+)
 LEGACY_FIELDNAMES = (
     "incident_ts",
     "incident_type",
@@ -27,6 +26,7 @@ LEGACY_FIELDNAMES = (
     "resolution_ts",
     "changed_artifacts_yes_no",
 )
+CANONICAL_V1_FIELDNAMES = ("timestamp", "bar_date", "reason", "recovery_status")
 
 
 def now_utc() -> str:
@@ -38,7 +38,6 @@ def today_utc() -> str:
 
 
 def _normalise_existing_rows(path: Path) -> list[dict[str, str]]:
-    """Read current ledger and map legacy rows into the canonical schema."""
     if not path.exists() or path.stat().st_size == 0:
         return []
 
@@ -46,9 +45,25 @@ def _normalise_existing_rows(path: Path) -> list[dict[str, str]]:
         reader = csv.DictReader(fh)
         if reader.fieldnames == list(FIELDNAMES):
             return [{k: row.get(k, "") for k in FIELDNAMES} for row in reader]
-        if reader.fieldnames == list(LEGACY_FIELDNAMES):
+        if reader.fieldnames == list(CANONICAL_V1_FIELDNAMES):
             rows: list[dict[str, str]] = []
             for row in reader:
+                ts = row.get("timestamp", "")
+                rows.append(
+                    {
+                        "timestamp": ts,
+                        "scheduled_time": ts,
+                        "actual_run_time": ts,
+                        "bar_date": row.get("bar_date", ""),
+                        "reason": row.get("reason", ""),
+                        "recovery_status": row.get("recovery_status", ""),
+                    }
+                )
+            return rows
+        if reader.fieldnames == list(LEGACY_FIELDNAMES):
+            rows = []
+            for row in reader:
+                ts = row.get("incident_ts", "")
                 reason = row.get("incident_type", "legacy_incident")
                 desc = row.get("description", "")
                 if desc:
@@ -58,7 +73,9 @@ def _normalise_existing_rows(path: Path) -> list[dict[str, str]]:
                 recovery_status = f"legacy_resolved={resolved}; changed_artifacts={changed}".strip()
                 rows.append(
                     {
-                        "timestamp": row.get("incident_ts", ""),
+                        "timestamp": ts,
+                        "scheduled_time": ts,
+                        "actual_run_time": ts,
                         "bar_date": row.get("affected_run_date", ""),
                         "reason": reason,
                         "recovery_status": recovery_status,
@@ -73,19 +90,21 @@ def append_incident(
     reason: str,
     recovery_status: str,
     timestamp: str | None = None,
+    scheduled_time: str | None = None,
+    actual_run_time: str | None = None,
     bar_date: str | None = None,
     path: Path = INCIDENTS,
 ) -> None:
-    """Append a canonical operational incident row.
-
-    Existing legacy rows are migrated in-place on first write so the ledger has
-    one stable contract: timestamp, bar_date, reason, recovery_status.
-    """
+    incident_ts = timestamp or now_utc()
+    actual = actual_run_time or incident_ts
+    scheduled = scheduled_time or actual
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = _normalise_existing_rows(path)
     rows.append(
         {
-            "timestamp": timestamp or now_utc(),
+            "timestamp": incident_ts,
+            "scheduled_time": scheduled,
+            "actual_run_time": actual,
             "bar_date": bar_date or today_utc(),
             "reason": reason,
             "recovery_status": recovery_status,
@@ -100,6 +119,8 @@ def append_incident(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Append a GeoSync shadow operational incident")
     parser.add_argument("--timestamp", default=None)
+    parser.add_argument("--scheduled-time", default=None)
+    parser.add_argument("--actual-run-time", default=None)
     parser.add_argument("--bar-date", default=None)
     parser.add_argument("--reason", required=True)
     parser.add_argument("--recovery-status", required=True)
@@ -108,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
 
     append_incident(
         timestamp=args.timestamp,
+        scheduled_time=args.scheduled_time,
+        actual_run_time=args.actual_run_time,
         bar_date=args.bar_date,
         reason=args.reason,
         recovery_status=args.recovery_status,
