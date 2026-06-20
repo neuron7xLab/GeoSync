@@ -22,6 +22,7 @@ LIVE_STATE = SHADOW_DIR / "LIVE_STATE.json"
 ENVELOPE = SHADOW_DIR / "predictive_envelope.csv"
 INCIDENTS = SHADOW_DIR / "operational_incidents.csv"
 SUMMARY = SHADOW_DIR / "SHADOW_SUMMARY.md"
+TRUTH_GATE_BARS = 90
 
 
 def _latest_scoreboard_row() -> dict | None:
@@ -61,9 +62,11 @@ def _render_md() -> str:
         return "".join(lines)
 
     bars = int(float(row.get("live_bars_completed", 0)))
+    remaining = max(TRUTH_GATE_BARS - bars, 0)
     lines.append("## Current live bar count\n\n")
     lines.append(f"- Live bars completed: **{bars}**\n")
-    lines.append("- Spike paper-trader start date: 2026-04-11 " "(day-90 gate ≈ 2026-07-10)\n\n")
+    lines.append("- Spike paper-trader start date: 2026-04-11 (day-90 gate requires 90 completed live bars)\n")
+    lines.append(f"- Remaining to truth gate: **{remaining} business bars**\n\n")
 
     lines.append("## Operational health\n\n")
     lines.append(f"- Predictive envelope built: **{envelope_exists}**\n")
@@ -71,7 +74,10 @@ def _render_md() -> str:
     lines.append(
         f"- Operationally unsafe (latest): " f"**{state.get('operationally_unsafe', 'n/a')}**\n"
     )
-    lines.append(f"- Any invariant fail: **{state.get('any_invariant_fail', False)}**\n\n")
+    lines.append(f"- Any invariant fail: **{state.get('any_invariant_fail', False)}**\n")
+    lines.append(
+        "- Continuity-gap logging: **enabled for failed/skipped systemd runs and offline catch-up gaps**\n\n"
+    )
 
     def _f(v: object) -> str:
         try:
@@ -124,7 +130,7 @@ def _render_md() -> str:
         "  (`PIPELINE_AUDIT.md`).\n"
         "- DP3 data snapshot age >5 bdays vs current clock; this is\n"
         "  expected for the spike snapshot and **is** the source of the\n"
-        "  current `OPERATIONALLY_UNSAFE` label.\n"
+        "  current `OPERATIONALLY_UNSAFE` label when stale.\n"
         "- Fold 3 (2022) Sharpe −1.15 historically; preserved.\n\n"
     )
 
