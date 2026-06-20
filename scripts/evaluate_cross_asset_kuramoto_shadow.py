@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import importlib.util
 import json
 import sys
 from datetime import datetime, timezone
@@ -32,6 +33,7 @@ PREDICTIVE_ENVELOPE = SHADOW_DIR / "predictive_envelope.csv"
 DRIFT_NOTE = SHADOW_DIR / "DRIFT_NOTE.md"
 LIVE_STATE = SHADOW_DIR / "LIVE_STATE.json"
 OPS_INCIDENTS = SHADOW_DIR / "operational_incidents.csv"
+INCIDENT_LOGGER = REPO / "scripts" / "log_shadow_operational_incident.py"
 PAPER_EQUITY = Path.home() / "spikes" / "cross_asset_sync_regime" / "paper_state" / "equity.csv"
 DEMO_EQUITY = REPO / "results" / "cross_asset_kuramoto" / "demo" / "equity_curve.csv"
 
@@ -79,12 +81,88 @@ GATE_VOCAB = {
 }
 
 
+class LedgerContinuityError(RuntimeError):
+    """Raised when the live paper ledger has missing business-day bars."""
+
+
 def _now_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _incident_logger_module() -> Any:
+    spec = importlib.util.spec_from_file_location("shadow_incident_logger", INCIDENT_LOGGER)
+    assert spec is not None, f"spec_from_file_location returned None for {INCIDENT_LOGGER}"
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _normalised_ledger_dates(df: pd.DataFrame) -> pd.DatetimeIndex:
+    parsed = pd.to_datetime(df["date"], utc=True, errors="raise")
+    dates = parsed.dt.tz_convert(None).dt.normalize()
+    return pd.DatetimeIndex(sorted(pd.Series(dates).dropna().unique()))
+
+
+def _missing_business_dates_within_window(
+    df: pd.DataFrame,
+    *,
+    horizon_bars: int = ENVELOPE_HORIZON_BARS,
+) -> list[str]:
+    """Return missing business dates inside the observed 90-bar ledger window.
+
+    The shadow panel uses ``panel_calendar_freq=B``. This check does not
+    touch upstream panel construction; it only verifies that the append-only
+    paper ledger is sequential over the last validation window. Weekends are
+    excluded by construction, market holidays are not inferred here because
+    the project calendar contract is business-day frequency, not an exchange
+    holiday calendar.
+    """
+    if df.empty or "date" not in df.columns:
+        return []
+
+    actual = _normalised_ledger_dates(df)
+    if len(actual) < 2:
+        return []
+
+    start = actual[max(0, len(actual) - horizon_bars)]
+    end = actual[-1]
+    expected = pd.bdate_range(start=start, end=end, freq="B")
+    missing = expected.difference(actual)
+    return [d.strftime("%Y-%m-%d") for d in missing]
+
+
+def _record_missing_bar_and_fail_closed(
+    missing_dates: list[str],
+    *,
+    incidents_path: Path = OPS_INCIDENTS,
+    detected_at: str | None = None,
+) -> None:
+    detected = detected_at or _now_utc()
+    first_missing = missing_dates[0]
+    gap_size = len(missing_dates)
+    logger = _incident_logger_module()
+    logger.append_incident(
+        timestamp=detected,
+        scheduled_time=f"{first_missing}T22:00:00Z",
+        actual_run_time=detected,
+        bar_date=first_missing,
+        scheduled_date=first_missing,
+        detected_at=detected,
+        gap_size_bars=gap_size,
+        reason="missing_bar",
+        recovery_status="fail_closed_continuity_broken "
+        f"missing_dates={';'.join(missing_dates)}",
+        path=incidents_path,
+    )
+    raise LedgerContinuityError(
+        f"missing_bar continuity gap: scheduled_date={first_missing} "
+        f"gap_size_bars={gap_size}"
+    )
 
 
 # --------------------------------------------------------------------- #
@@ -184,8 +262,18 @@ def _write_drift_note(oos_len: int) -> None:
 # --------------------------------------------------------------------- #
 
 
-def _load_live_ledger(paper_equity: Path) -> pd.DataFrame:
-    """Read the spike paper-trader's append-only equity.csv ledger."""
+def _load_live_ledger(
+    paper_equity: Path,
+    *,
+    incidents_path: Path = OPS_INCIDENTS,
+    detected_at: str | None = None,
+) -> pd.DataFrame:
+    """Read the spike paper-trader's append-only equity.csv ledger.
+
+    Fail-closed when the last 90-bar business-day window is not sequential.
+    A missing date means shadow evidence is discontinuous; continuing would
+    silently promote a corrupt validation horizon.
+    """
     if not paper_equity.exists():
         return pd.DataFrame()
     df = pd.read_csv(paper_equity, parse_dates=["date"])
@@ -194,6 +282,13 @@ def _load_live_ledger(paper_equity: Path) -> pd.DataFrame:
     # Deduplicate by date: keep the LAST row per date (idempotent re-ticks)
     df = df.sort_values(["date", "day_n"]).drop_duplicates("date", keep="last")
     df = df.reset_index(drop=True)
+    missing = _missing_business_dates_within_window(df)
+    if missing:
+        _record_missing_bar_and_fail_closed(
+            missing,
+            incidents_path=incidents_path,
+            detected_at=detected_at,
+        )
     return df
 
 
@@ -288,7 +383,8 @@ def _benchmark_cum(live: pd.DataFrame) -> tuple[float, float]:
 
     The paper-state equity.csv includes a ``btc_equity`` column as the
     spike's built-in BTC benchmark; we use that (not a re-computation)
-    to stay read-only."""
+    to stay read-only.
+    """
     if "btc_equity" not in live.columns or live.empty:
         return float("nan"), float("nan")
     btc_eq = live["btc_equity"].astype(float).to_numpy()
