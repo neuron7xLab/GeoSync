@@ -49,19 +49,23 @@ _PERM_PVALUE_GATE: float = 0.05
 # IAAFT linear-spectral null (Schreiber & Schmitz 1996). Surrogates preserve
 # the Ricci signal's power spectrum AND amplitude distribution exactly, so a
 # surviving IC cannot be explained by linear autocorrelation alone. Unlike
-# circular_shift this draws a full ensemble (no shift-count power loss), but it
-# is reported ADVISORY here — promotion to a gating null requires the separate
-# fail-closed positive-control audit (does it still recover a known edge?).
+# circular_shift this draws a full ensemble (no shift-count power loss).
+#
+# Whether IAAFT GATES the verdict (vs. report-only ADVISORY) is decided by the
+# committed positive-control audit (research.microstructure.iaaft_audit), not by
+# a hand-set flag: run_killtest consults results/L2_IAAFT_GATING_AUDIT.json via
+# iaaft_is_gating_eligible and only gates if that audit certifies the null is
+# both powered AND calibrated. The current canonical audit reports power=1.0 but
+# FPR=0.25 on the autocorrelated regime (over-fires ~5x nominal alpha) →
+# INELIGIBLE → the null stays ADVISORY. Re-certify (e.g. a stationarity-aware
+# null) to flip eligibility; promotion is then earned by evidence, not asserted.
 _IAAFT_TRIALS: int = 200
 _IAAFT_ITERS: int = 80
-# IAAFT linear-spectral null (Schreiber & Schmitz 1996). Surrogates preserve
-# the Ricci signal's power spectrum AND amplitude distribution exactly, so a
-# surviving IC cannot be explained by linear autocorrelation alone. Unlike
-# circular_shift this draws a full ensemble (no shift-count power loss), but it
-# is reported ADVISORY here — promotion to a gating null requires the separate
-# fail-closed positive-control audit (does it still recover a known edge?).
-_IAAFT_TRIALS: int = 200
-_IAAFT_ITERS: int = 80
+
+# Frozen gating-eligibility artifact, resolved relative to the repo root.
+_IAAFT_AUDIT_ARTIFACT: Path = (
+    Path(__file__).resolve().parents[2] / "results" / "L2_IAAFT_GATING_AUDIT.json"
+)
 
 
 @dataclass(frozen=True)
@@ -419,6 +423,7 @@ def run_killtest(
     ic_gate: float = _IC_GATE,
     pvalue_gate: float = _PERM_PVALUE_GATE,
     regime_mask: NDArray[np.bool_] | None = None,
+    iaaft_gating: bool | None = None,
     seed: int = SEED,
 ) -> GateVerdict:
     """Execute the full fail-fast gate and emit a binary verdict.
@@ -428,6 +433,12 @@ def run_killtest(
     is still computed on the full contiguous time series (its rolling
     cross-sectional correlation needs consecutive rows) — the filter acts
     at scoring time, not feature-construction time.
+
+    `iaaft_gating` controls whether the IAAFT linear-spectral null contributes
+    a KILL reason (vs. report-only). `None` (default) resolves it from the
+    committed positive-control audit artifact via `iaaft_is_gating_eligible` —
+    fail-closed, so an absent/ineligible audit keeps IAAFT advisory and the
+    published verdict bit-identical. Pass an explicit bool to override (tests).
     """
     ricci_signal_1d = cross_sectional_ricci_signal(features.ofi)
     ricci_panel = np.repeat(ricci_signal_1d[:, None], features.n_symbols, axis=1)
@@ -514,6 +525,17 @@ def run_killtest(
     if shuffle_p > pvalue_gate:
         reasons.append(f"permutation_shuffle p={shuffle_p:.3f} > gate={pvalue_gate:.3f}")
 
+    # IAAFT gates only when the committed positive-control audit certifies it
+    # (powered AND calibrated). Fail-closed: absent/ineligible audit → advisory.
+    if iaaft_gating is None:
+        from research.microstructure.iaaft_audit import iaaft_is_gating_eligible
+
+        iaaft_gating = iaaft_is_gating_eligible(_IAAFT_AUDIT_ARTIFACT)
+    if iaaft_gating:
+        iaaft_p = null_pvalues["iaaft"]
+        if iaaft_p > pvalue_gate:
+            reasons.append(f"iaaft p={iaaft_p:.3f} > gate={pvalue_gate:.3f}")
+
     verdict = "PROCEED" if not reasons else "KILL"
 
     return GateVerdict(
@@ -540,6 +562,7 @@ def run_killtest(
             "corr_step_sec": _CORR_STEP_SEC,
             "ricci_threshold": _RICCI_THRESHOLD,
             "n_levels": N_LEVELS,
+            "iaaft_gating": bool(iaaft_gating),
         },
     )
 
