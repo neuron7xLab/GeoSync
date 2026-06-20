@@ -103,8 +103,12 @@ def test_gaba_inhibition_decreases_toward_zero_as_vix_decreases() -> None:
     gate = GABAPositionGate(bus=bus)
 
     vix_trajectory: List[float] = [80.0, 40.0, 20.0, 10.0, 5.0, 1.0, 0.1]
-    # INV-GABA4: decreasing VIX trajectory toward zero
-    convergence_threshold: float = 0.6  # tolerance: convergence bound at vix=0.1
+    # INV-GABA4: decreasing VIX trajectory toward zero. The gate uses a
+    # rectified sigmoid 2*sigmoid(z)-1 so a vanishing driver gives inhibition
+    # -> 0, NOT the 0.5 floor of a plain sigmoid; the convergence bound is
+    # therefore tight (a plain-sigmoid regression would leave final ~0.5 and
+    # fail this 0.05 bound).
+    convergence_threshold: float = 0.05
 
     trajectory: List[float] = []
     for vix in vix_trajectory:
@@ -134,6 +138,24 @@ def test_gaba_inhibition_decreases_toward_zero_as_vix_decreases() -> None:
         f"exceeds threshold={convergence_threshold:.2f}. "
         f"Expected inhibition -> 0 as vol -> 0. "
         f"steps={len(vix_trajectory)}, w_vix={gate.w_vix}"
+    )
+
+
+def test_gaba_dead_calm_market_has_zero_inhibition() -> None:
+    """INV-GABA4 (exact baseline): zero stress drivers => inhibition 0.
+
+    A plain sigmoid(z) floors the gate at sigmoid(0) = 0.5, permanently
+    inhibiting position size by half even when VIX, realized volatility and
+    the (rectified) RPE penalty are all zero. That contradicts INV-GABA4. The
+    rectified sigmoid 2*sigmoid(0)-1 = 0 sends a dead-calm market to no
+    inhibition. This test FAILS on the prior plain-sigmoid gate (returns 0.5).
+    """
+    gate = GABAPositionGate(bus=NeuroSignalBus())
+    inhibition = gate.update_inhibition(vix=0.0, volatility=0.0, rpe=0.0)
+    assert inhibition == 0.0, (
+        f"INV-GABA4 VIOLATED: dead-calm inhibition={inhibition:.6f}, expected 0.0. "
+        f"A non-zero baseline (e.g. the 0.5 plain-sigmoid floor) inhibits every "
+        f"calm-market position. At vix=0, volatility=0, rpe=0, w_vix={gate.w_vix}."
     )
 
 
