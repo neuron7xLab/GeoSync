@@ -19,7 +19,12 @@ jobs:
   python-full-validation:
     name: python-full-validation
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Serial full-suite (~18k tests under coverage) is ~75-95 min on the 4-core
+    # runner; the old 60-min cap killed it mid-suite (silent non-enforcement).
+    # Cap raised with headroom so a healthy serial run completes and the
+    # guardrail enforces; a genuine hang still fails closed well under the
+    # 6-hour default.
+    timeout-minutes: 150
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -42,19 +47,26 @@ jobs:
         run: .venv/bin/python -m pip --version
 
       - name: Run broader post-merge validation suite
+        env:
+          # Match the fast-shard recipe (pr-gate.yml): force UTF-8 so file reads
+          # never hit the runner's ASCII fallback. Repo source/tests contain
+          # UTF-8 (— ≤ κ → …); an open() without encoding= would otherwise raise
+          # UnicodeDecodeError.
+          PYTHONUTF8: '1'
+          PYTHONIOENCODING: 'utf-8'
         run: |
-          # An enforcement gate must COMPLETE. Run serially, this full-suite
-          # post-merge validation (~18k tests under coverage) overran the 60-min
-          # job cap on most pushes to main (e.g. run 27870261022:
-          # python-full-validation ran 60m15s and was killed mid-suite; the
-          # coverage guardrail step never ran; conclusion `cancelled` — a silent
-          # non-enforcement). Measure in parallel so wall-time is ~CPU/cores;
-          # pytest-cov combines per-worker data, so the measured
-          # core/backtest/execution surface is unchanged. loadscope keeps a
-          # module's tests on one worker. A total hang still fails closed via
-          # the job-level timeout-minutes backstop.
+          # An enforcement gate must COMPLETE — run SERIALLY. The earlier serial
+          # run overran the 60-min cap (run 27870261022: 60m15s, killed
+          # mid-suite, guardrail step skipped, conclusion `cancelled`). A first
+          # attempt to parallelize with `-n auto` (run 27872709126) completed in
+          # ~26 min but surfaced xdist-ONLY failures the timeout vacuum had
+          # hidden: pytest-benchmark yields no timing under xdist, and
+          # module-scoped logging/caplog tests fail by cross-worker ordering —
+          # artifacts of parallel execution, not real regressions. So this gate
+          # keeps the original SERIAL semantics and just gets enough budget to
+          # finish (timeout-minutes raised above). A total hang still fails
+          # closed via the job-level cap.
           .venv/bin/pytest tests/ -m "not nightly and not flaky" \
-            -n auto --dist loadscope \
             --cov=core \
             --cov=backtest \
             --cov=execution \

@@ -92,17 +92,23 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     # The full-surface measurement is ~18k tests / ~94 min of serial CPU. The
-    # old serial run overran the 50-min cap on EVERY push (the measure step was
-    # killed mid-flight, the enforce step skipped, conclusion `cancelled` — a
-    # silent non-enforcement for days). The measurement is now parallel
-    # (Makefile coverage-baseline: -n auto), so wall-time is ~CPU/cores: on the
-    # GitHub 4-core runner ~30 min + setup. Cap is set with generous headroom
-    # over that so a genuine hang still fails closed instead of burning the
-    # 6-hour default, but a healthy run is never clipped.
-    timeout-minutes: 60
+    # old 50-min cap killed the measure step mid-flight on EVERY push (enforce
+    # step skipped, conclusion `cancelled` — a silent non-enforcement for days).
+    # The measurement runs SERIALLY (a `-n auto` attempt surfaced xdist-only
+    # failures the vacuum had hidden — pytest-benchmark/caplog under parallel —
+    # so parallelism was reverted); the fix is this recalibrated cap with
+    # headroom over the ~94-min serial run, so a healthy run completes and
+    # enforces while a genuine hang still fails closed under the 6-hour default.
+    timeout-minutes: 150
     concurrency:
       group: ${{ github.workflow }}-release-${{ github.ref }}
       cancel-in-progress: false
+    env:
+      # Force UTF-8 (matches the fast-shard recipe in pr-gate.yml): repo
+      # source/tests contain UTF-8 (— ≤ κ → …), so a file open() without
+      # encoding= would hit the runner ASCII fallback and raise.
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
