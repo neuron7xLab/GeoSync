@@ -107,7 +107,7 @@ twisted==26.4.0
 # fastapi: Web framework built on starlette, requires compatible starlette version
 # Pin to ensure secure versions are used
 starlette>=1.3.1
-fastapi>=0.136.3,<1.0.0
+fastapi>=0.138.0,<1.0.0
 
 # ============================================================================
 # Additional Brotli encoding support - Required for urllib3 decompression
