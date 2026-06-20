@@ -1,2 +1,2 @@
-timestamp,bar_date,reason,recovery_status
-2026-04-21T22:47:24Z,2026-04-21,"manual_tick: Manual paper_trader.py --tick at user direction to refresh stale snapshot; network call to Binance+yfinance succeeded; day 9/90 appended to paper_state (hash 9dcd19d835a52d54).","legacy_resolved=yes; changed_artifacts=yes (spike paper_state/*.csv/.jsonl/.txt appended read-only; integrated module untouched)"
+timestamp,scheduled_time,actual_run_time,bar_date,reason,recovery_status
+2026-04-21T22:47:24Z,2026-04-21T22:47:24Z,2026-04-21T22:47:24Z,2026-04-21,"manual_tick: Manual paper_trader.py --tick at user direction to refresh stale snapshot; network call to Binance+yfinance succeeded; day 9/90 appended to paper_state (hash 9dcd19d835a52d54).","legacy_resolved=yes; changed_artifacts=yes (spike paper_state/*.csv/.jsonl/.txt appended read-only; integrated module untouched)"
