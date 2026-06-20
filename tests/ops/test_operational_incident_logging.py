@@ -1,4 +1,4 @@
-"""T8 · operational_incidents.csv is append-only with canonical schema."""
+"""T8 · operational_incidents.csv is append-only with canonical timing schema."""
 
 from __future__ import annotations
 
@@ -40,7 +40,9 @@ def test_incident_append_only(tmp_path: Path) -> None:
     mod = _load_logger()
     fake = tmp_path / "operational_incidents.csv"
     mod.append_incident(
-        timestamp="2026-04-22T00:00:00Z",
+        timestamp="2026-04-22T00:00:01Z",
+        scheduled_time="2026-04-22T22:00:00Z",
+        actual_run_time="2026-04-22T22:04:15Z",
         bar_date="2026-04-22",
         reason="unit_test_first_event",
         recovery_status="logged",
@@ -49,8 +51,10 @@ def test_incident_append_only(tmp_path: Path) -> None:
     a = pd.read_csv(fake)
     assert len(a) == 1
     mod.append_incident(
-        timestamp="2026-04-22T00:00:02Z",
-        bar_date="2026-04-22",
+        timestamp="2026-04-23T00:00:02Z",
+        scheduled_time="2026-04-23T22:00:00Z",
+        actual_run_time="2026-04-24T07:11:00Z",
+        bar_date="2026-04-23",
         reason="unit_test_second_event",
         recovery_status="logged",
         path=fake,
@@ -58,6 +62,31 @@ def test_incident_append_only(tmp_path: Path) -> None:
     b = pd.read_csv(fake)
     assert len(b) == 2
     assert list(b["reason"]) == ["unit_test_first_event", "unit_test_second_event"]
+
+
+def test_incident_records_scheduled_and_actual_run_time_separately(tmp_path: Path) -> None:
+    """A delayed Persistent=true catch-up must not hide timing drift."""
+    mod = _load_logger()
+    fake = tmp_path / "operational_incidents.csv"
+
+    mod.append_incident(
+        timestamp="2026-06-20T07:00:10Z",
+        scheduled_time="2026-06-19T22:00:00Z",
+        actual_run_time="2026-06-20T07:00:00Z",
+        bar_date="2026-06-19",
+        reason="offline_catch_up_gap last_eval_utc=2026-06-13T22:00:00Z gap_hours=144",
+        recovery_status="catch_up_logged_before_state_refresh",
+        path=fake,
+    )
+
+    df = pd.read_csv(fake)
+    row = df.iloc[0]
+    assert row["timestamp"] == "2026-06-20T07:00:10Z"
+    assert row["scheduled_time"] == "2026-06-19T22:00:00Z"
+    assert row["actual_run_time"] == "2026-06-20T07:00:00Z"
+    assert row["bar_date"] == "2026-06-19"
+    assert row["scheduled_time"] != row["actual_run_time"]
+    assert "offline_catch_up_gap" in row["reason"]
 
 
 def test_legacy_incident_ledger_is_migrated_to_canonical_schema(tmp_path: Path) -> None:
@@ -73,9 +102,11 @@ def test_legacy_incident_ledger_is_migrated_to_canonical_schema(tmp_path: Path) 
     )
 
     mod.append_incident(
-        timestamp="2026-06-20T22:00:00Z",
-        bar_date="2026-06-20",
-        reason="offline_catch_up_gap last_eval_utc=2026-06-13T22:00:00Z gap_hours=168",
+        timestamp="2026-06-20T07:00:10Z",
+        scheduled_time="2026-06-19T22:00:00Z",
+        actual_run_time="2026-06-20T07:00:00Z",
+        bar_date="2026-06-19",
+        reason="offline_catch_up_gap last_eval_utc=2026-06-13T22:00:00Z gap_hours=144",
         recovery_status="catch_up_logged_before_state_refresh",
         path=fake,
     )
@@ -84,10 +115,42 @@ def test_legacy_incident_ledger_is_migrated_to_canonical_schema(tmp_path: Path) 
     assert list(df.columns) == list(mod.FIELDNAMES)
     assert len(df) == 2
     assert df.iloc[0]["timestamp"] == "2026-04-21T22:47:24Z"
+    assert df.iloc[0]["scheduled_time"] == "2026-04-21T22:47:24Z"
+    assert df.iloc[0]["actual_run_time"] == "2026-04-21T22:47:24Z"
     assert df.iloc[0]["reason"].startswith("manual_tick:")
-    assert df.iloc[1]["bar_date"] == "2026-06-20"
+    assert df.iloc[1]["bar_date"] == "2026-06-19"
+    assert df.iloc[1]["scheduled_time"] == "2026-06-19T22:00:00Z"
+    assert df.iloc[1]["actual_run_time"] == "2026-06-20T07:00:00Z"
     assert "offline_catch_up_gap" in df.iloc[1]["reason"]
     assert df.iloc[1]["recovery_status"] == "catch_up_logged_before_state_refresh"
+
+
+def test_canonical_v1_ledger_is_migrated_to_timing_schema(tmp_path: Path) -> None:
+    """The previous 4-column PR schema upgrades without losing rows."""
+    mod = _load_logger()
+    fake = tmp_path / "operational_incidents.csv"
+    fake.write_text(
+        "timestamp,bar_date,reason,recovery_status\n"
+        "2026-06-19T22:05:00Z,2026-06-19,systemd_run_failed,logged\n",
+        encoding="utf-8",
+    )
+
+    mod.append_incident(
+        timestamp="2026-06-20T22:01:00Z",
+        scheduled_time="2026-06-20T22:00:00Z",
+        actual_run_time="2026-06-20T22:00:05Z",
+        bar_date="2026-06-20",
+        reason="paper_trader_skipped_missing",
+        recovery_status="skipped_logged_continue_with_shadow_evaluation",
+        path=fake,
+    )
+
+    df = pd.read_csv(fake)
+    assert list(df.columns) == list(mod.FIELDNAMES)
+    assert len(df) == 2
+    assert df.iloc[0]["scheduled_time"] == "2026-06-19T22:05:00Z"
+    assert df.iloc[0]["actual_run_time"] == "2026-06-19T22:05:00Z"
+    assert df.iloc[1]["scheduled_time"] == "2026-06-20T22:00:00Z"
 
 
 def test_renderer_runs_offline_and_without_input() -> None:
