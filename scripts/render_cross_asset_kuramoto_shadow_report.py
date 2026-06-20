@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
@@ -25,13 +26,13 @@ SUMMARY = SHADOW_DIR / "SHADOW_SUMMARY.md"
 TRUTH_GATE_BARS = 90
 
 
-def _latest_scoreboard_row() -> dict | None:
+def _latest_scoreboard_row() -> dict[str, Any] | None:
     if not SCOREBOARD.exists():
         return None
     df = pd.read_csv(SCOREBOARD)
     if df.empty:
         return None
-    return dict(df.iloc[-1])
+    return {str(k): v for k, v in df.iloc[-1].to_dict().items()}
 
 
 def _incident_count() -> int:
@@ -65,18 +66,23 @@ def _render_md() -> str:
     remaining = max(TRUTH_GATE_BARS - bars, 0)
     lines.append("## Current live bar count\n\n")
     lines.append(f"- Live bars completed: **{bars}**\n")
-    lines.append("- Spike paper-trader start date: 2026-04-11 (day-90 gate requires 90 completed live bars)\n")
+    lines.append(
+        "- Spike paper-trader start date: 2026-04-11 "
+        "(day-90 gate requires 90 completed live bars)\n"
+    )
     lines.append(f"- Remaining to truth gate: **{remaining} business bars**\n\n")
 
     lines.append("## Operational health\n\n")
     lines.append(f"- Predictive envelope built: **{envelope_exists}**\n")
     lines.append(f"- Operational incidents logged: **{inc}**\n")
     lines.append(
-        f"- Operationally unsafe (latest): " f"**{state.get('operationally_unsafe', 'n/a')}**\n"
+        "- Operationally unsafe (latest): "
+        f"**{state.get('operationally_unsafe', 'n/a')}**\n"
     )
     lines.append(f"- Any invariant fail: **{state.get('any_invariant_fail', False)}**\n")
     lines.append(
-        "- Continuity-gap logging: **enabled for failed/skipped systemd runs and offline catch-up gaps**\n\n"
+        "- Continuity-gap logging: **enabled for failed/skipped systemd runs "
+        "and offline catch-up gaps**\n\n"
     )
 
     def _f(v: object) -> str:
@@ -108,7 +114,7 @@ def _render_md() -> str:
 
     lines.append("## Envelope position\n\n")
     lines.append(
-        f"- Quantile band (live vs historical OOS block-bootstrap): "
+        "- Quantile band (live vs historical OOS block-bootstrap): "
         f"**{row.get('predictive_envelope_quantile', 'n/a')}**\n"
         "- Envelope source: demo-ready OOS integrated log returns\n"
         "  (`results/cross_asset_kuramoto/demo/equity_curve.csv`); seed and\n"
