@@ -43,7 +43,18 @@ jobs:
 
       - name: Run broader post-merge validation suite
         run: |
+          # An enforcement gate must COMPLETE. Run serially, this full-suite
+          # post-merge validation (~18k tests under coverage) overran the 60-min
+          # job cap on most pushes to main (e.g. run 27870261022:
+          # python-full-validation ran 60m15s and was killed mid-suite; the
+          # coverage guardrail step never ran; conclusion `cancelled` — a silent
+          # non-enforcement). Measure in parallel so wall-time is ~CPU/cores;
+          # pytest-cov combines per-worker data, so the measured
+          # core/backtest/execution surface is unchanged. loadscope keeps a
+          # module's tests on one worker. A total hang still fails closed via
+          # the job-level timeout-minutes backstop.
           .venv/bin/pytest tests/ -m "not nightly and not flaky" \
+            -n auto --dist loadscope \
             --cov=core \
             --cov=backtest \
             --cov=execution \
