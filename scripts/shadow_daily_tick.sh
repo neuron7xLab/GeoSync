@@ -65,10 +65,11 @@ trap on_error ERR
 # state is overwritten so the ledger records the blind interval.
 CURRENT_STEP="offline_gap_detection"
 if [[ -f "$LIVE_STATE_PATH" ]]; then
-  LAST_EVAL_UTC="$("$PYTHON" - <<'PY'
+  LAST_EVAL_UTC="$(LIVE_STATE_PATH="$LIVE_STATE_PATH" "$PYTHON" - <<'PY'
 import json
+import os
 from pathlib import Path
-p = Path("${LIVE_STATE_PATH}")
+p = Path(os.environ["LIVE_STATE_PATH"])
 try:
     state = json.loads(p.read_text())
     print(state.get("last_eval_utc") or state.get("last_run_utc") or "")
