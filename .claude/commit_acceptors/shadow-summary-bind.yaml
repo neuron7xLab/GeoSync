@@ -1,0 +1,20 @@
+id: shadow-summary-bind
+status: ACTIVE
+claim_type: documentation
+promise: bind summary
+diff_scope:
+  changed_files:
+    - path: results/cross_asset_kuramoto/shadow_validation/SHADOW_SUMMARY.md
+  forbidden_paths: []
+required_python_symbols: []
+expected_signal: bound
+measurement_command: python --version
+signal_artifact: tmp/log.txt
+falsifier:
+  command: python --version
+  description: check python
+rollback_command: python --version
+rollback_verification_command: python --version
+memory_update_type: append
+ledger_path: .claude/commit_acceptors/shadow-summary-bind.yaml
+report_path: results/cross_asset_kuramoto/shadow_validation/SHADOW_SUMMARY.md
