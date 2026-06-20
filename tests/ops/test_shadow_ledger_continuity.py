@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
-from types import ModuleType
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -20,7 +20,7 @@ REPO = Path(__file__).resolve().parents[2]
 EVAL_SCRIPT = REPO / "scripts" / "evaluate_cross_asset_kuramoto_shadow.py"
 
 
-def _load_module(path: Path, name: str) -> ModuleType:
+def _load_module(path: Path, name: str) -> Any:
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None, f"spec_from_file_location returned None for {path}"
     mod = importlib.util.module_from_spec(spec)
