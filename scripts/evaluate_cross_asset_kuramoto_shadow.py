@@ -42,6 +42,25 @@ ENVELOPE_HORIZON_BARS = 90
 BARS_PER_YEAR = 252.0
 DEMO_MAX_DD = 0.1676  # from risk_metrics.csv
 DD_GATE_MULT = 1.5  # G4 · 1.5x demo OOS max DD
+# Continuity gate. Bars are business-day-clocked (FX/BTC common business
+# day). One missing business day between consecutive ledger rows is
+# tolerated as a probable market holiday; two or more is a continuity
+# breach (e.g. a power/network outage dropped live bars from the sample).
+GAP_HOLIDAY_TOLERANCE_BDAYS = 1
+
+# operational_incidents.csv schema — MUST stay identical to the runner's
+# INCIDENT_COLUMNS so the single append-only ledger keeps one schema. A
+# drift guard test asserts this equality.
+OPS_INCIDENT_COLUMNS = (
+    "incident_ts",
+    "incident_type",
+    "severity",
+    "affected_run_date",
+    "description",
+    "resolved_yes_no",
+    "resolution_ts",
+    "changed_artifacts_yes_no",
+)
 
 SCOREBOARD_COLUMNS = (
     "eval_date",
@@ -197,6 +216,118 @@ def _load_live_ledger(paper_equity: Path) -> pd.DataFrame:
     return df
 
 
+def _detect_ledger_gaps(live: pd.DataFrame) -> list[dict[str, Any]]:
+    """Detect missing business-day bars in the append-only equity ledger.
+
+    Between two consecutive ledger rows the expected step is exactly one
+    business day. A larger step means one or more bars were never ingested
+    (e.g. a power or network outage during the 22:00 UTC run window). Each
+    gap is reported with the count of absent business days and a severity:
+    a single missing business day is a probable market holiday (WARNING);
+    two or more is a continuity breach (CRITICAL).
+    """
+    if live.empty or "date" not in live.columns or len(live) < 2:
+        return []
+    dates = pd.to_datetime(live["date"]).dt.normalize().to_numpy(dtype="datetime64[D]")
+    gaps: list[dict[str, Any]] = []
+    for prev, curr in zip(dates[:-1], dates[1:]):
+        missing = int(np.busday_count(prev, curr)) - 1
+        if missing > 0:
+            gaps.append(
+                {
+                    "prev_date": str(prev),
+                    "curr_date": str(curr),
+                    "missing_bdays": missing,
+                    "severity": (
+                        "WARNING" if missing <= GAP_HOLIDAY_TOLERANCE_BDAYS else "CRITICAL"
+                    ),
+                }
+            )
+    return gaps
+
+
+def _continuity_summary(live: pd.DataFrame) -> dict[str, Any]:
+    """Summarise continuity of the full shadow-validation sample.
+
+    ``continuity_breach`` is True when the sample contains at least one
+    CRITICAL gap — i.e. a stretch of two or more business days that the
+    paper-trader never wrote. A breach corrupts the i.i.d.-over-the-clock
+    assumption the predictive envelope rests on, so the gate must fail
+    closed on it (see :func:`_decide_status_and_gate`).
+    """
+    gaps = _detect_ledger_gaps(live)
+    breaches = [g for g in gaps if g["severity"] == "CRITICAL"]
+    return {
+        "continuity_breach": bool(breaches),
+        "n_gaps": len(gaps),
+        "n_critical_gaps": len(breaches),
+        "max_gap_bdays": max((int(g["missing_bdays"]) for g in gaps), default=0),
+        "total_missing_bdays": sum(int(g["missing_bdays"]) for g in gaps),
+    }
+
+
+def _append_incident(row: dict[str, Any]) -> None:
+    """Append-only write to operational_incidents.csv (shared with the runner)."""
+    new = not OPS_INCIDENTS.exists()
+    OPS_INCIDENTS.parent.mkdir(parents=True, exist_ok=True)
+    with OPS_INCIDENTS.open("a", encoding="utf-8", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=OPS_INCIDENT_COLUMNS, lineterminator="\n")
+        if new:
+            w.writeheader()
+        w.writerow({c: row.get(c, "") for c in OPS_INCIDENT_COLUMNS})
+
+
+def _gap_description(gap: dict[str, Any]) -> str:
+    """Deterministic, idempotent signature for a gap incident."""
+    return (
+        f"missing-bar gap {gap['prev_date']}->{gap['curr_date']}: "
+        f"{gap['missing_bdays']} business day(s) absent from ledger"
+    )
+
+
+def _already_logged_gaps() -> set[str]:
+    """Descriptions of gap_detected incidents already in the ledger."""
+    if not OPS_INCIDENTS.exists():
+        return set()
+    df = pd.read_csv(OPS_INCIDENTS)
+    if "incident_type" not in df.columns or "description" not in df.columns:
+        return set()
+    sub = df[df["incident_type"].astype(str) == "gap_detected"]
+    return set(sub["description"].astype(str))
+
+
+def _log_ledger_gaps(live: pd.DataFrame) -> int:
+    """Append a gap_detected incident for each not-yet-logged gap.
+
+    Idempotent: a gap whose deterministic signature is already in the
+    ledger is skipped, so re-running the daily evaluator never grows the
+    incident ledger with duplicates. Returns the number of new rows.
+    """
+    gaps = _detect_ledger_gaps(live)
+    if not gaps:
+        return 0
+    seen = _already_logged_gaps()
+    written = 0
+    for gap in gaps:
+        descr = _gap_description(gap)
+        if descr in seen:
+            continue
+        _append_incident(
+            {
+                "incident_ts": _now_utc(),
+                "incident_type": "gap_detected",
+                "severity": gap["severity"],
+                "affected_run_date": gap["curr_date"],
+                "description": descr,
+                "resolved_yes_no": "no",
+                "resolution_ts": "",
+                "changed_artifacts_yes_no": "no",
+            }
+        )
+        written += 1
+    return written
+
+
 def _load_pipeline_status_for_latest() -> dict[str, Any]:
     """Pull the most recent daily run's pipeline_status.csv."""
     if not DAILY_ROOT.is_dir():
@@ -346,10 +477,18 @@ def _decide_status_and_gate(
     op_unsafe: bool,
     inv_fail: bool,
     sub_p05_streak: int,
+    continuity_breach: bool = False,
 ) -> tuple[str, str]:
     # Hard operational short-circuits
     if op_unsafe or inv_fail:
         return "OPERATIONALLY_UNSAFE", "ESCALATE_REVIEW"
+
+    # Continuity gate — a missing-bar breach (two or more business days
+    # dropped from the sample) corrupts the envelope's clock assumption.
+    # Fail closed: a discontinuous sample can never advance to a deploy
+    # candidate, regardless of how favourable the surviving bars look.
+    if continuity_breach:
+        return "OPERATIONALLY_UNSAFE", "NO_DEPLOY"
 
     # Risk gate G4
     dd_live = metrics.get("max_dd_live") or 0.0
@@ -442,6 +581,12 @@ def main(argv: list[str] | None = None) -> int:
 
     op_unsafe = _latest_pipeline_unsafe()
     inv_fail = _any_invariant_fail()
+
+    # Continuity audit of the live ledger: detect and log any missing-bar
+    # gaps, then fail the gate closed if the sample is discontinuous.
+    continuity = _continuity_summary(live)
+    _log_ledger_gaps(live)
+
     status, gate = _decide_status_and_gate(
         bars=bars,
         metrics=metrics,
@@ -449,6 +594,7 @@ def main(argv: list[str] | None = None) -> int:
         op_unsafe=op_unsafe,
         inv_fail=inv_fail,
         sub_p05_streak=streak,
+        continuity_breach=bool(continuity["continuity_breach"]),
     )
 
     assert status in STATUS_VOCAB, f"status {status!r} not in {sorted(STATUS_VOCAB)}"
@@ -526,6 +672,11 @@ def main(argv: list[str] | None = None) -> int:
                 "gate_decision": gate,
                 "operationally_unsafe": op_unsafe,
                 "any_invariant_fail": inv_fail,
+                "continuity_breach": bool(continuity["continuity_breach"]),
+                "continuity_gaps": int(continuity["n_gaps"]),
+                "continuity_critical_gaps": int(continuity["n_critical_gaps"]),
+                "continuity_max_gap_bdays": int(continuity["max_gap_bdays"]),
+                "continuity_total_missing_bdays": int(continuity["total_missing_bdays"]),
             },
             indent=2,
         )
