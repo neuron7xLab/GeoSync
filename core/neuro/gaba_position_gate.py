@@ -96,8 +96,11 @@ class GABAPositionGate:
     ) -> float:
         """Compute and publish GABA inhibition from market state.
 
-        inhibition = sigmoid(w_vix * vix/30 + w_vol * vol/0.2
-                             + w_rpe * max(0, -rpe))
+        z          = w_vix * vix/30 + w_vol * vol/0.2 + w_rpe * max(0, -rpe)
+        inhibition = max(0, 2 * sigmoid(z) - 1)   # rectified: z=0 -> 0
+
+        The rectified sigmoid sends a dead-calm market (z = 0) to inhibition 0
+        rather than the 0.5 floor a plain sigmoid would impose (INV-GABA4).
 
         Also applies STDP-like plasticity: negative RPE increases
         the RPE weight (learn from pain).
@@ -111,12 +114,21 @@ class GABAPositionGate:
         if rpe < 0:
             self.w_rpe += self._plasticity_rate * abs(rpe)
 
+        # All stress drivers are non-negative (vix, volatility >= 0; the RPE
+        # term is rectified), so z >= 0 always. A plain sigmoid(z) would floor
+        # the gate at sigmoid(0) = 0.5 — a permanent 50% inhibition even in a
+        # dead-calm market, which violates INV-GABA4 (vol -> 0 => inhibition
+        # -> 0). The rectified form 2*sigmoid(z) - 1 maps z in [0, inf) onto
+        # [0, 1) with f(0) = 0 (INV-GABA4) and f(inf) -> 1 (INV-GABA5), while
+        # staying monotone in every driver (INV-GABA2).
         z = (
             self.w_vix * (vix / 30.0)
             + self.w_vol * (volatility / 0.2)
             + self.w_rpe * max(0.0, -rpe)
         )
-        inhibition = _sigmoid(z)
+        # INV-GABA1: clamp to [0, 1]; the max guards the pathological z < 0
+        # case (negative inputs), inactive for the physical z >= 0 regime.
+        inhibition = max(0.0, 2.0 * _sigmoid(z) - 1.0)
 
         self._bus.publish_gaba(inhibition)
         return inhibition
