@@ -264,3 +264,47 @@ def test_forbidden_claims_absent_must_be_true() -> None:
     payload["forbidden_claims_absent"] = False
     payload["falsification_status"] = "ALPHA_FOUND"
     assert validate_artifact_payload(payload)
+
+
+# --------------------------- V2 task 6: seed stability + correction -------------
+
+from geosync_research.lines.ricci_microstructure_v1.stability import (  # noqa: E402
+    bonferroni,
+    seed_stability,
+)
+
+
+def _seed_artifact(seed: int, status: str, p: float, delta: float) -> dict[str, object]:
+    return {"seed": seed, "falsification_status": status, "p_value": p, "cliffs_delta": delta, "mean_curvature": -0.1}
+
+
+def test_bonferroni_correction() -> None:
+    adj = bonferroni({"iaaft": 0.01, "volume_neutral": 0.2, "block_bootstrap": 0.5})
+    assert adj["iaaft"] == pytest.approx(0.03)
+    assert adj["volume_neutral"] == pytest.approx(0.6)
+    assert adj["block_bootstrap"] == 1.0  # clamped
+
+
+def test_seed_stability_consistent_not_supported() -> None:
+    arts = [_seed_artifact(s, "HYPOTHESIS_NOT_SUPPORTED", 0.4, 0.2) for s in (1337, 2026, 7719)]
+    v = seed_stability(arts)
+    assert v["stable"] is True
+    assert v["aggregate_status"] == "HYPOTHESIS_NOT_SUPPORTED"
+    assert v["required_seeds_present"] is True
+
+
+def test_seed_stability_demotes_on_disagreement() -> None:
+    arts = [
+        _seed_artifact(1337, "SUPPORTED", 0.001, 0.5),
+        _seed_artifact(2026, "HYPOTHESIS_NOT_SUPPORTED", 0.4, 0.1),
+        _seed_artifact(7719, "SUPPORTED", 0.002, 0.5),
+    ]
+    v = seed_stability(arts)
+    assert v["stable"] is False
+    assert v["aggregate_status"] == "HYPOTHESIS_NOT_SUPPORTED"  # fail-closed demotion
+
+
+def test_seed_stability_supported_only_if_all_pass() -> None:
+    arts = [_seed_artifact(s, "SUPPORTED", 0.001, 0.5) for s in (1337, 2026, 7719)]
+    v = seed_stability(arts)
+    assert v["aggregate_status"] == "SUPPORTED"

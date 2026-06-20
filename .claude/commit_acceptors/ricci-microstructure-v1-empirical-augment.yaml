@@ -43,6 +43,7 @@ diff_scope:
     - path: "geosync_research/lines/ricci_microstructure_v1/artifact.py"
     - path: "geosync_research/lines/ricci_microstructure_v1/synthetic_controls.py"
     - path: "geosync_research/lines/ricci_microstructure_v1/runner.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/stability.py"
     - path: "tools/research/research_cli.py"
     - path: "tests/research_lines/test_ricci_microstructure_v1.py"
     - path: "schemas/research/ricci_microstructure_artifact.schema.json"
