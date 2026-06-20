@@ -71,7 +71,7 @@ strawberry-graphql==0.316.0
 # ============================================================================
 # SQLAlchemy: ORM for SQL databases, SQL injection prevention
 # Multiple security fixes in 2.0 series
-SQLAlchemy==2.0.50
+SQLAlchemy==2.0.51
 
 # pydantic: Data validation, critical for API input validation
 # Security fixes for ReDoS and validation bypass
