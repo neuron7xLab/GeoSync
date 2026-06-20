@@ -76,7 +76,7 @@ SQLAlchemy==2.0.50
 # pydantic: Data validation, critical for API input validation
 # Security fixes for ReDoS and validation bypass
 pydantic==2.13.4
-pydantic-settings==2.14.1
+pydantic-settings==2.14.2
 
 # pandera: DataFrame validation, data quality and security
 pandera==0.31.1
