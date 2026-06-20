@@ -4,7 +4,7 @@
 #
 #    pip-compile --constraint=constraints/security.txt --output-file=requirements.lock pyproject.toml
 #
-aiodns==3.5.0
+aiodns==4.0.4
     # via ccxt
 aiohappyeyeballs==2.6.1
     # via aiohttp
