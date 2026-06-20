@@ -5,6 +5,7 @@ promise: "Shadow validation rejects discontinuous business-day ledgers by loggin
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/shadow-continuity-gap-logging.yaml"
+    - path: "pyproject.toml"
     - path: "results/cross_asset_kuramoto/shadow_validation/LIVE_STATE.json"
     - path: "scripts/evaluate_cross_asset_kuramoto_shadow.py"
     - path: "scripts/log_shadow_operational_incident.py"
@@ -30,7 +31,7 @@ signal_artifact: "tmp/shadow_continuity_gap_pytest.log"
 falsifier:
   command: "python -m pytest tests/ops/test_shadow_ledger_continuity.py -v -k missing_business_day"
   description: "Injected missing business-day bar must append missing_bar with scheduled_date/detected_at/gap_size_bars and raise LedgerContinuityError."
-rollback_command: "git checkout -- results/cross_asset_kuramoto/shadow_validation/LIVE_STATE.json results/cross_asset_kuramoto/shadow_validation/SHADOW_SUMMARY.md results/cross_asset_kuramoto/shadow_validation/operational_incidents.csv scripts/evaluate_cross_asset_kuramoto_shadow.py scripts/log_shadow_operational_incident.py scripts/render_cross_asset_kuramoto_shadow_report.py scripts/shadow_daily_tick.sh tests/ops/test_operational_incident_logging.py tests/ops/test_shadow_ledger_continuity.py && rm -f .claude/commit_acceptors/shadow-continuity-gap-logging.yaml"
+rollback_command: "git checkout -- pyproject.toml results/cross_asset_kuramoto/shadow_validation/LIVE_STATE.json results/cross_asset_kuramoto/shadow_validation/SHADOW_SUMMARY.md results/cross_asset_kuramoto/shadow_validation/operational_incidents.csv scripts/evaluate_cross_asset_kuramoto_shadow.py scripts/log_shadow_operational_incident.py scripts/render_cross_asset_kuramoto_shadow_report.py scripts/shadow_daily_tick.sh tests/ops/test_operational_incident_logging.py tests/ops/test_shadow_ledger_continuity.py && rm -f .claude/commit_acceptors/shadow-continuity-gap-logging.yaml"
 rollback_verification_command: "git diff --exit-code"
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/shadow-continuity-gap-logging.yaml"
