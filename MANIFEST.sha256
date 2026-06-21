@@ -1237,7 +1237,7 @@ e7a757f569ec28f8decc870b2df4c67f2bf26fca91e4f5a5d2c0e37592f38160  ./.github/PR_W
 f13276cda065d74c90e02e609cfdb69ccca1f04ab054d5657ec02948bbf20bfb  ./.github/pull_request_template.md
 320839ed7987068b8b9b0b7f0f3659ee0a3ce14c398e90f3814ab0f11e9dbfd1  ./.github/release-drafter.yml
 bf6c45007b4b7b31a3e99bd7405c42ee8beba5b0005486bd3ca52ecdacedbbf4  ./.github/REQUIRED_CHECKS_MAIN.md
-87d2e9231464f26d6e3c4ef19b04fe4344e889d48ce86f3f5d5976064391bd44  ./.github/scripts/pip_audit_high_gate.py
+2863e6992b39db9478a25a4b3c3684ed4a5bd959fa52af7041bf5adc03d07811  ./.github/scripts/pip_audit_high_gate.py
 b19e7e1069fca42682dd1a42531b4b9eeef6668a0c906d54c93d0d9f5f97cdf9  ./.github/SECURITY_TESTING.md
 23881f85ff876f3bb0030a16dadda830304c9b9227cc4c6c76f87ffdc72acd93  ./.github/workflows/codeql.yml
 e981817f8266e3752d1473e5bc5f476a6c0870f2083d6216f0e232fd948791f4  ./.github/workflows/main-validation.yml
