@@ -68,12 +68,16 @@ APPROVED_DIGEST_FIELDS: frozenset[str] = frozenset(
     }
 )
 
-# A token-like string: a long, separator-free base64/hex blob. The charset
-# deliberately excludes '_', '.', '/', ':' and whitespace, so config identifiers
+# A token-like string: a long base64/hex blob. The charset is exactly the
+# base64 alphabet (incl. '+' '/' '=') plus '-' (base64url), and deliberately
+# excludes '_', '.', ':' and whitespace, so config identifiers
 # ('reproducible_capsule.v1', 'last_price_persistence'), timestamps and repo
-# paths — all of which carry a separator — are never mistaken for credentials.
-# Real secrets are bare hex or bare base64 tokens.
-_TOKEN_RE = re.compile(r"^[A-Za-z0-9+=-]{24,}$")
+# paths — which carry one of those separators — are never mistaken for
+# credentials. '/' MUST be included: standard-alphabet base64 secrets (e.g. an
+# AWS secret-access-key shape 'wJalr.../...') contain '/', and excluding it left
+# them invisible to the JSON token walk. Real-path false positives are still
+# screened out by the '_'/'.'/':' exclusion above and the entropy floor below.
+_TOKEN_RE = re.compile(r"^[A-Za-z0-9+/=-]{24,}$")
 _HEX_RE = re.compile(r"^[A-Fa-f0-9]{32,}$")
 _MIN_ENTROPY_BITS = 3.5
 
@@ -89,7 +93,9 @@ _SECRET_SIGNATURES: tuple[tuple[str, re.Pattern[str]], ...] = (
         "credential assignment",
         re.compile(
             r"(?i)\b(api[_-]?key|secret|token|password|passwd|access[_-]?key)\b"
-            r"\s*[:=]\s*['\"]?[A-Za-z0-9+/_=-]{16,}"
+            # Tolerate a closing quote/space between the key and the separator so
+            # JSON ('"api_key": "…"') and YAML are covered, not only bare 'k=v'.
+            r"['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9+/_=-]{16,}"
         ),
     ),
 )
