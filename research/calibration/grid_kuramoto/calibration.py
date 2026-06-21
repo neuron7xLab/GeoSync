@@ -40,6 +40,7 @@ from core.kuramoto.coupling_estimator import (
 )
 from core.kuramoto.second_order import SecondOrderKuramotoEngine
 
+from . import frozen_replay
 from ._substrate import topology_f1 as _topology_f1
 from .grid_data import (
     GridSystem,
@@ -188,7 +189,23 @@ def simulate_phases(
         mass=system.inertia,
         damping=system.damping,
     )
-    result = engine.run()
+    # Epistemic-integrity insulation: the pre-registered ledgers reproduce the
+    # frozen experiment by replaying a committed trajectory snapshot, so the
+    # byte-frozen artifacts are decoupled from the live (BBK) integrator. A
+    # configuration absent from the snapshot falls through to the live engine.
+    # See frozen_replay.py.
+    key = frozen_replay.trajectory_key(
+        system_name=system.name,
+        inertia=np.asarray(system.inertia, dtype=np.float64),
+        damping=np.asarray(system.damping, dtype=np.float64),
+        k_true=np.asarray(k_true, dtype=np.float64),
+        omega_true=np.asarray(omega_true, dtype=np.float64),
+        dt=cfg.dt,
+        steps=cfg.steps,
+        seed=cfg.seed,
+        theta0_perturb=cfg.theta0_perturb,
+    )
+    result = frozen_replay.obtain_trajectory(key, engine.run)
 
     phases = np.asarray(result.phases, dtype=np.float64)
     velocities = np.asarray(result.velocities, dtype=np.float64)

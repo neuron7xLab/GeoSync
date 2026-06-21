@@ -733,3 +733,40 @@ def test_swing_integrator_damped_volume_contraction() -> None:
             f"At N={n}, K={k_coupling}, d={damping}, m={mass}, dt={dt}, seed={seed}. "
             f"Physical reasoning: dV/dt of the flow = -Σ d_i/m_i (Liouville)."
         )
+
+
+def test_INV_K10_engine_damped_velocity_is_second_order() -> None:
+    """INV-K9/K10: the PRODUCTION engine's damped map is order-2, not Euler.
+
+    The existing INV-K10 damped test exercises a *local* ``verlet_step_damped``
+    helper, so a production engine that integrated the velocity-dependent
+    friction by explicit Euler (evaluating −d·v at the OLD velocity) passed CI
+    while being only first-order. This test drives the real
+    ``SecondOrderKuramotoEngine.run`` on a pure-damping system (ω=0, K=0, so
+    θ̇(t) = v₀·exp(−(d/m)t) exactly) and asserts the global velocity error
+    converges as O(dt²). The Euler-damping regression yields slope ≈ 1 and
+    fails this bound.
+    """
+    d, mass, v0, horizon = 0.5, 1.0, 1.0, 2.0
+    dts = [0.04, 0.02, 0.01, 0.005]
+    errors: list[float] = []
+    for dt in dts:
+        steps = int(round(horizon / dt))
+        cfg = KuramotoConfig(
+            N=2, K=0.0, dt=dt, steps=steps, omega=np.zeros(2), theta0=np.zeros(2)
+        )
+        engine = SecondOrderKuramotoEngine(
+            cfg, mass=mass, damping=d, velocity0=np.array([v0, v0])
+        )
+        result = engine.run()
+        v_final = float(result.velocities[-1, 0])
+        analytic = v0 * math.exp(-(d / mass) * steps * dt)
+        errors.append(abs(v_final - analytic))
+
+    slope = float(np.polyfit(np.log(dts), np.log(errors), 1)[0])
+    assert slope >= 1.9, (
+        f"INV-K9/K10 VIOLATED: damped velocity convergence order={slope:.3f} < 1.9. "
+        f"Expected O(dt²) (velocity Verlet); explicit-Euler damping gives ≈1. "
+        f"Pure damping θ̇(t)=v₀·exp(−(d/m)t) at d={d}, m={mass}, T={horizon}. "
+        f"errors={['%.2e' % e for e in errors]} at dts={dts}."
+    )
