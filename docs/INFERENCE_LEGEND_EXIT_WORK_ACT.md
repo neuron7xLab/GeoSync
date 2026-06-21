@@ -21,7 +21,7 @@ GeoSync becomes high-rank only if every predictive claim is bound to measured ar
 A valid inference path must satisfy:
 
 ```text
-contextualize -> generate -> resist -> compute -> test -> integrate -> falsify -> recurse -> narrow claim -> preserve evidence -> promote rank
+contextualize -> generate -> resist -> compute -> test -> optimize -> integrate -> falsify -> recurse -> narrow claim -> preserve evidence -> promote rank
 ```
 
 The system must never promote a claim because the idea sounds advanced. Ricci curvature, Kuramoto synchronization, manifold dynamics, and market microstructure are only valid when connected to deterministic data contracts, explicit estimators, reproducible outputs, and failed-null evidence.
@@ -143,7 +143,45 @@ Acceptance gate:
 
 A component is test-admissible only if it can be run with a controlled input, an isolated execution boundary, a declared expected result, a reproducible command, and a failure artifact that prevents silent promotion.
 
-### 2.5 Integration operator
+### 2.5 Optimization operator
+
+Definition:
+
+To optimize is to iteratively move through a constrained parameter space in the direction that reduces a declared loss function, finding parameter values that minimize error without expanding the claim beyond the validated search boundary.
+
+Canonical form:
+
+```text
+parameter_space + loss_function + constraints -> iteration_trace -> selected_parameters -> validation_rerun
+```
+
+Optimization is valid only when the objective, search space, metric, constraints, stopping rule, and validation split are declared before the run. Lower loss is not scientific promotion by itself. A tuned parameter set becomes admissible only after replay, held-out validation, baseline comparison, and overfit checks.
+
+Required optimization invariants:
+
+1. The loss function must be explicit, computable, and aligned with the claim being tested.
+2. The parameter space must be bounded before search begins.
+3. The optimizer must emit an iteration trace, seed/config, selected parameters, and final loss.
+4. The selected parameters must be rerun through the same tests that admitted the component before optimization.
+5. Optimization must never tune thresholds to protect a preselected conclusion.
+6. Any gain must be compared against random search, null tuning, baseline models, and held-out/OOS data.
+7. If improvement disappears under replay or OOS validation, the optimization claim is downgraded to overfit or unstable.
+8. Frozen evidence artifacts must not be rewritten to absorb optimized outputs.
+
+GeoSync optimization chain:
+
+```text
+Ricci graph parameters -> curvature loss/residual metric -> bounded search -> held-out curvature validation
+Kuramoto coupling/inertia/damping -> phase stability loss -> BBK-tested rerun -> OOS regime check
+fusion weights -> fragility prediction loss -> null/baseline comparison -> cost-aware validation
+claim thresholds -> promotion loss guard -> no-threshold-tuning check -> claim-tier audit
+```
+
+Acceptance gate:
+
+An optimized parameter set is valid only if it has a declared loss, bounded search space, reproducible optimization trace, selected-parameter artifact, post-optimization test rerun, held-out/OOS survival, null/baseline superiority, and no retroactive mutation of frozen evidence.
+
+### 2.6 Integration operator
 
 Definition:
 
@@ -178,7 +216,7 @@ Acceptance gate:
 
 An integrated state is valid only if it produces a fused artifact whose evidence value exceeds standalone Ricci, standalone Kuramoto, naive microstructure features, and null-fusion controls under the same validation protocol.
 
-### 2.6 Recursive operator
+### 2.7 Recursive operator
 
 Definition:
 
