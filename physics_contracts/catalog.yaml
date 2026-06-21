@@ -400,3 +400,89 @@ laws:
     validity: "AST-grep + runtime guard via tacl.evidence_ledger.scan_source_for_bio_claims; test files (tests/**) and explicit disclaimer paragraphs are excluded by construction"
     source: "GeoSync PNCC CANONS §INV-NO-BIO-CLAIM; tacl/evidence_ledger.py; tests/tacl/test_evidence_ledger.py"
     severity: warn
+
+  # ───────────────── Physics v2 — Universal Synchronization Manifold ─────────────────
+  # Candidate (draft) laws proposed by the Physics v2 architecture handoff
+  # (docs/architecture/physics_v2_universal_synchronization_manifold.md §1).
+  # ALL are severity: warn — non-blocking, report-only. They carry no witness in
+  # this first slice by design: blocking laws must never enter without a
+  # mathematical witness, and numerical witnesses for the flow/scaling laws need
+  # a solver that lands in a later PR (architecture doc §4: "Do not start with
+  # solvers. Start with inventory."). The structural laws are exercised by the
+  # typed contracts in physics_contracts/manifold/ and their synthetic tests.
+
+  - id: manifold.metric_snapshot_schema
+    module: manifold
+    statement: "A market causal-graph snapshot is well-formed: monotonic interval, valid edge indices, unique nodes, and finite non-negative edge weights."
+    formula: "timestamp_end ≥ timestamp_start ∧ ∀(u,v)∈E: 0≤u,v<|V| ∧ u≠v ∧ |E|=|w| ∧ ∀wᵢ: 0≤wᵢ<∞"
+    variables:
+      V: "node set of the snapshot"
+      E: "edge set (ordered pairs of node indices)"
+      w: "edge-weight vector aligned with E"
+    tolerance: "strict — any schema violation raises ValueError; no silent repair"
+    validity: "every MarketCausalGraphSnapshot construction; structural only, no market claim"
+    source: "Physics v2 handoff §2 P2; physics_contracts/manifold/contracts.py::MarketCausalGraphSnapshot"
+    severity: warn
+
+  - id: manifold.causal_cutoff
+    module: manifold
+    statement: "Information never propagates faster than the data substrate allows: the causal cutoff is at least the latency floor, and no source event used to build a snapshot lies in its future."
+    formula: "causal_cutoff_seconds ≥ latency_floor_seconds ≥ 0 ∧ ∀ t_event: t_event ≤ timestamp_end"
+    variables:
+      latency_floor_seconds: "lower bound on information arrival imposed by the data substrate"
+      causal_cutoff_seconds: "enforced information-causality horizon for the snapshot"
+      t_event: "timestamp of a source event consumed by the builder"
+    tolerance: "strict — negative latency, cutoff below floor, or look-ahead event raises ValueError"
+    validity: "relativistic-INSPIRED causal cutoff only; NOT a relativistic market law (architecture doc §5)"
+    source: "Physics v2 handoff §2 P2, §5; physics_contracts/manifold/contracts.py::MarketCausalGraphSnapshot.assert_no_lookahead"
+    severity: warn
+
+  - id: manifold.provenance_replay_identity
+    module: manifold
+    statement: "Identical canonical inputs produce an identical content-address; the run id is a deterministic function of config hash, dataset fingerprint, and code commit."
+    formula: "snapshot_id = SHA256(canonical_json(fields)) ∧ run_id = SHA256(canonical_json(config_hash, dataset_fingerprint, code_commit))"
+    variables:
+      canonical_json: "JSON with sorted keys and fixed separators"
+      config_hash: "hash of the construction configuration"
+      dataset_fingerprint: "hash of the source dataset (zero/empty ⇒ no real data)"
+      code_commit: "git commit of the producing code"
+    tolerance: "byte-identical digest under replay; empty provenance field raises ValueError"
+    validity: "all manifold contracts; same interpreter (digest is canonical-JSON stable)"
+    source: "Physics v2 handoff §2 P6; physics_contracts/manifold/contracts.py::canonical_digest"
+    severity: warn
+
+  - id: manifold.curvature_transport_balance
+    module: manifold
+    statement: "Edge transport weights on a causal snapshot are finite and non-negative, so curvature is computed on a physically admissible weighted graph."
+    formula: "∀ edge weight wᵢ: 0 ≤ wᵢ < ∞"
+    variables:
+      w: "edge-weight vector of the causal market graph"
+    tolerance: "strict — a negative or non-finite weight raises ValueError"
+    validity: "structural precondition for any later curvature-flow layer; no market claim"
+    source: "Physics v2 handoff §2 P2/P3; physics_contracts/manifold/contracts.py::MarketCausalGraphSnapshot"
+    severity: warn
+
+  - id: ricci.flow_energy_nonincrease_declared_domain
+    module: manifold
+    statement: "On a closed static graph with no rewiring, a discrete curvature-flow energy functional is non-increasing within its declared numerical domain and tolerance."
+    formula: "dF/dt ≤ 0 within declared domain, F = Σ_e κ_e² (static graph, no surgery)"
+    variables:
+      F: "curvature-flow energy functional"
+      kappa_e: "edge curvature"
+    tolerance: "to be derived from the solver step size in a later PR; declared-domain only, NOT universal"
+    validity: "DRAFT — witness deferred until the curvature-flow solver lands (architecture doc §2 P3). Discrete graph domain only; no Ricci-flow theorem claim beyond it (§5)."
+    source: "Physics v2 handoff §1, §2 P3; cf. existing core/kuramoto/ricci_flow.py (Hamilton 1982; Chow & Luo 2003)"
+    severity: warn
+
+  - id: kuramoto.finite_size_scaling_with_causal_cutoff
+    module: manifold
+    statement: "The finite-size synchronization noise floor grows when a causal cutoff prevents full coupling: the effective floor scales with the coupled fraction of oscillators."
+    formula: "ε_effective = √(N_total / N_coupled) · (c / √N_total),  N_coupled ≤ N_total"
+    variables:
+      N_total: "total oscillator count"
+      N_coupled: "oscillators coupled within the causal cutoff"
+      c: "finite-size constant ≈ √(π/2) for Lorentzian ω"
+    tolerance: "DRAFT — to be derived from N and the Lorentzian half-width once a solver exists"
+    validity: "DRAFT — witness deferred to a later PR; extends kuramoto.subcritical_finite_size under a causal-cutoff constraint"
+    source: "Physics v2 handoff §1, §2 P4; extends Strogatz 2000 / Hong et al. PRE 2007 under causal cutoff"
+    severity: warn
