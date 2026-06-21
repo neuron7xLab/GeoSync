@@ -325,15 +325,24 @@ class SecondOrderKuramotoEngine:
         inv_dt = 1.0 / dt
 
         for k in range(steps):
-            # Compute acceleration: a = (1/m)(ω + coupling - d·v)
+            # Velocity Verlet for the swing equation m·θ̈ = (ω + coupling) − d·θ̇.
+            # INV-K9/K10: the position half-step uses the full acceleration
+            # a(θ, v) = (1/m)(ω + coupling(θ) − d·v).
             accel = inv_m * (self._omega + self._coupling(theta) - d * v)
-
-            # Velocity Verlet integration (symplectic, energy-conserving).
-            # INV-K8/K9/K10: integrator math is untouched; the guards below only
-            # read the post-step state and never feed back into the dynamics.
             theta_new = theta + v * dt + 0.5 * accel * dt * dt
-            accel_new = inv_m * (self._omega + self._coupling(theta_new) - d * v)
-            v_new = v + 0.5 * (accel + accel_new) * dt
+
+            # The velocity half-step must evaluate the velocity-dependent
+            # damping −d·v at the NEW velocity (BBK / semi-implicit velocity
+            # Verlet). Solving v_new = v + ½dt·(a(θ,v) + a(θ_new, v_new)) for
+            # v_new gives the closed form below. Evaluating −d·v at the OLD
+            # velocity instead integrates the friction by explicit Euler, which
+            # drops the damped map to first order and breaks the symplectic /
+            # det(M)=exp(−Σd/m·dt) contraction claim (INV-K10). Undamped (d=0)
+            # this reduces EXACTLY to standard velocity Verlet (half·d = 0).
+            force = self._omega + self._coupling(theta)
+            force_new = self._omega + self._coupling(theta_new)
+            half = 0.5 * dt * inv_m
+            v_new = (v + half * (force + force_new - d * v)) / (1.0 + half * d)
 
             # INV-HPC2: finite in -> finite out, else fail closed. A non-finite
             # state can never produce meaningful phases/summary, so stop here and

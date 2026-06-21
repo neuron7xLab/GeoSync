@@ -62,7 +62,7 @@ clamps:
   - core/kuramoto/phase_transition.py:199
   - core/kuramoto/ricci_flow_engine.py:601
   - core/kuramoto/ricci_flow_engine.py:614
-  - core/kuramoto/second_order.py:412
+  - core/kuramoto/second_order.py:421
   - core/kuramoto/synthetic.py:303
 - name: floor_builtin
   reason: A builtin max(x, lo) floors a scalar at zero or a tiny positive epsilon.
@@ -84,7 +84,7 @@ clamps:
   - core/kuramoto/identifiability.py:338
   - core/kuramoto/identifiability.py:414
   - core/kuramoto/metrics.py:167
-  - core/kuramoto/second_order.py:428
+  - core/kuramoto/second_order.py:437
   - core/physics/diffusion_predictor.py:426
   - core/physics/diffusion_predictor.py:427
   - core/physics/explosive_sync.py:268
@@ -261,7 +261,7 @@ clamps:
   - core/kuramoto/ricci_flow.py:213
   - core/kuramoto/ricci_flow.py:454
   - core/kuramoto/ricci_flow_engine.py:447
-  - core/kuramoto/second_order.py:422
+  - core/kuramoto/second_order.py:431
   - core/kuramoto/synthetic.py:174
   - core/physics/diffusion_predictor.py:163
   - core/physics/gravitational_coupling.py:145
