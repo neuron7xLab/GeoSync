@@ -64,19 +64,19 @@ pyarrow==24.0.0
 # python-multipart < 0.0.27: GHSA-pp6c-gr5w-3c5g (DoS)
 python-multipart==0.0.32
 # strawberry-graphql < 0.315.7: GHSA-x97m-qp5c-w9xj, GHSA-fr49-mhgj-crfc, GHSA-qfwv-87qj-98xq
-strawberry-graphql==0.316.0
+strawberry-graphql==0.318.1
 
 # ============================================================================
 # Data Validation & ORM - SQL injection and data integrity
 # ============================================================================
 # SQLAlchemy: ORM for SQL databases, SQL injection prevention
 # Multiple security fixes in 2.0 series
-SQLAlchemy==2.0.50
+SQLAlchemy==2.0.51
 
 # pydantic: Data validation, critical for API input validation
 # Security fixes for ReDoS and validation bypass
 pydantic==2.13.4
-pydantic-settings==2.14.1
+pydantic-settings==2.14.2
 
 # pandera: DataFrame validation, data quality and security
 pandera==0.31.1
@@ -107,7 +107,7 @@ twisted==26.4.0
 # fastapi: Web framework built on starlette, requires compatible starlette version
 # Pin to ensure secure versions are used
 starlette>=1.3.1
-fastapi>=0.136.3,<1.0.0
+fastapi>=0.138.0,<1.0.0
 
 # ============================================================================
 # Additional Brotli encoding support - Required for urllib3 decompression
