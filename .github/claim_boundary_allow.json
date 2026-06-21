@@ -616,6 +616,11 @@
       "file": "docs/PHYSICS_BOUNDARY_AUDIT.md",
       "match": "the readme blocks trading-bot, alpha-product, and physical-law proof interpretations",
       "reason": "honest-negation: restates the README product-category boundary (the README *blocks* alpha-product interpretation), not an alpha-product claim"
+    },
+    {
+      "file": "docs/architecture/physics_v2_positioning.md",
+      "match": "geosync is not an alpha engine",
+      "reason": "honest-negation: explicit research-boundary statement (GeoSync is NOT an alpha engine; it is a claim-validation engine), mirrors the README 'not an alpha product' allowlist precedent"
     }
   ]
 }
