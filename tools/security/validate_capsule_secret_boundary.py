@@ -111,11 +111,34 @@ def _shannon_entropy(value: str) -> float:
     return -sum((c / n) * math.log2(c / n) for c in counts.values())
 
 
+def _has_charclass_diversity(value: str) -> bool:
+    """True iff *value* draws on >=3 of {lowercase, uppercase, digit}.
+
+    A base64/base64url encoding of random bytes draws uniformly from a 64-symbol
+    alphabet, so for any realistic key length it contains lowercase AND uppercase
+    AND digits with overwhelming probability. Human-authored slash-bearing
+    strings — git refs ('refs/heads/fix/...'), kebab paths, slugs — are typically
+    single-case and miss this bar. Requiring it lets '/' stay in _TOKEN_RE (so
+    slash-bearing secrets are caught) without false-positiving on path/ref values
+    under a non-digest field.
+    """
+    classes = (
+        any(c.islower() for c in value)
+        + any(c.isupper() for c in value)
+        + any(c.isdigit() for c in value)
+    )
+    return classes >= 3
+
+
 def _is_token_like(value: str) -> bool:
     """True iff *value* looks like a credential/hash token (not a path or id)."""
     if _HEX_RE.match(value):
         return True
-    if _TOKEN_RE.match(value) and _shannon_entropy(value) >= _MIN_ENTROPY_BITS:
+    if (
+        _TOKEN_RE.match(value)
+        and _shannon_entropy(value) >= _MIN_ENTROPY_BITS
+        and _has_charclass_diversity(value)
+    ):
         return True
     return False
 
