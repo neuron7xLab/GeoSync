@@ -26,6 +26,33 @@ contextualize -> compute -> falsify -> recurse -> narrow claim -> preserve evide
 
 The system must never promote a claim because the idea sounds advanced. Ricci curvature, Kuramoto synchronization, manifold dynamics, and market microstructure are only valid when connected to deterministic data contracts, explicit estimators, reproducible outputs, and failed-null evidence.
 
+### 2.1 Recursive operator
+
+Definition:
+
+To recurse is to run the system output as a new constrained input of the same validation system, forcing the model, kernel, and claim layer to verify their own result through iterative self-refutation until a stable evidence state is reached.
+
+Canonical form:
+
+```text
+output_n -> evidence_n -> contradiction search_n -> residual map_n -> revised input_(n+1)
+```
+
+Recursion is valid only when the next iteration is stricter than the previous one. The previous answer is not allowed to validate itself. It must become a target for null challenge, residual analysis, replay, perturbation, and claim-boundary reduction.
+
+Required recursive invariants:
+
+1. The previous output is treated as suspect until reproduced.
+2. Every iteration must expose at least one measurable residual, failure mode, or stability condition.
+3. A claim can only survive recursion by becoming narrower, more evidenced, or more reproducible.
+4. No recursion may rewrite frozen artifacts to preserve a claim.
+5. Convergence means stable artifact hash, stable metric range, bounded uncertainty, and no unresolved contradiction above threshold.
+6. Non-convergent recursion downgrades the claim tier instead of extending the narrative.
+
+Acceptance gate:
+
+A recursive cycle is valid only if it emits one of: reproduced artifact hash, failed claim with cause, narrower claim boundary, stricter validation rule, updated residual-informed kernel input, or promoted claim with evidence pointer.
+
 ## 3. Current verified foundation
 
 The project already has the correct epistemic direction:
@@ -179,6 +206,22 @@ Loop:
 kernel output -> evidence artifact -> claim classifier -> null challenge -> residual analysis -> revised context -> next kernel run
 ```
 
+Recursive procedure:
+
+1. Capture the kernel output and freeze its artifact hash.
+2. Convert the output into a new validation input.
+3. Generate contradiction probes against the output claim.
+4. Run null, baseline, perturbation, replay, and residual checks.
+5. Compare the new evidence state against the previous claim boundary.
+6. Either reproduce, narrow, demote, or retire the claim.
+7. Continue until convergence or stop-rule activation.
+
+Convergence condition:
+
+```text
+stable_hash + stable_metric_band + bounded_uncertainty + failed_nulls + no_open_residual_above_threshold
+```
+
 Acceptance gate:
 Every recursion must produce one of:
 
@@ -186,6 +229,7 @@ Every recursion must produce one of:
 - failed claim with cause;
 - narrower claim boundary;
 - stricter validation rule;
+- residual-informed kernel update;
 - promoted claim with evidence pointer.
 
 ### WP-08 Claim-tier promotion governance
@@ -271,6 +315,7 @@ The work must stop or downgrade claim tier if:
 5. Results require hidden manual intervention.
 6. Frozen artifacts must be rewritten to preserve a claim.
 7. Evidence cannot be reproduced from the bundle.
+8. Recursive validation cycles without producing new evidence, a narrower claim, or a reproduced artifact.
 
 A failed claim is not a failed project. A hidden failure is a failed project.
 
@@ -281,8 +326,8 @@ The direction reaches top-rank only when this statement is true:
 ```text
 For fixed data, fixed context, fixed kernel, and fixed validation protocol,
 GeoSync produces reproducible Ricci-Kuramoto manifold artifacts that survive
-null challenge, baseline comparison, OOS validation, cost modeling, and external replay,
-while all claims remain bounded by machine-verifiable evidence.
+null challenge, baseline comparison, OOS validation, cost modeling, recursive self-refutation,
+and external replay, while all claims remain bounded by machine-verifiable evidence.
 ```
 
 Until then, the correct status is:
