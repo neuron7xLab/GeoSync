@@ -142,6 +142,28 @@ def test_json_quoted_credential_assignment_fails(tmp_path: Path) -> None:
     assert any("credential assignment" in v for v in violations)
 
 
+def test_git_ref_under_non_digest_field_is_not_flagged(tmp_path: Path) -> None:
+    """Regression: adding '/' to _TOKEN_RE (so slash-bearing secrets are caught)
+    must NOT false-positive on a git ref / kebab path. Such values are
+    single-case and fail the character-class-diversity bar, so a legitimate
+    capsule carrying provenance like a branch ref under a non-digest field stays
+    clean."""
+    (tmp_path / "prov.json").write_text(
+        '{"git_ref": "refs/heads/fix/kuramoto-damped-velocity-verlet-bbk"}\n',
+        encoding="utf-8",
+    )
+    assert vcsb.validate_file(tmp_path / "prov.json", tmp_path) == []
+
+
+def test_charclass_diversity_distinguishes_secret_from_path() -> None:
+    """A base64 random blob (lower+upper+digit) is token-like; a single-case
+    slash path/ref is not — even though both match the charset and clear the
+    entropy floor."""
+    secret_shape = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"  # pragma: allowlist secret
+    assert vcsb._is_token_like(secret_shape) is True
+    assert vcsb._is_token_like("refs/heads/fix/kuramoto-damped-velocity-verlet-bbk") is False
+
+
 def test_real_committed_capsule_is_clean() -> None:
     """The actual repository capsule must pass the boundary with zero violations."""
     capsule_root = ROOT / "artifacts" / "reproducible_capsules"
