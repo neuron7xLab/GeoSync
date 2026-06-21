@@ -29,7 +29,7 @@ but the package's binding/contract is incomplete. `GAP` — not implemented.
 | WP-04 | Ricci curvature field | EXISTS | `core/indicators/ricci.py`, `core/indicators/temporal_ricci.py`, `core/physics/forman_ricci.py`, `core/kuramoto/ricci_flow_engine.py` |
 | WP-05 | Kuramoto phase field | EXISTS | `core/kuramoto/kuramoto_ricci_engine.py`, `core/kuramoto/metrics.py` |
 | WP-06 | Fused Ricci-Kuramoto kernel | EXISTS | `core/indicators/kuramoto_ricci_composite.py`, `scripts/integrate_kuramoto_ricci.py` |
-| WP-07 | Recursive falsification loop | PARTIAL | `core/kuramoto/oos_validation.py` (walk-forward + Diebold-Mariano + SPA), `analytics/signals/null_baseline.py`, `geosync_hpc/nulls/dynamic_null_model.py`, `docs/research/D002J_NULL_MODEL_CONTRACTS.md`, `docs/research/D002J_NULL_MODEL_HIERARCHY.md` (components present; no single end-to-end recursive driver) |
+| WP-07 | Recursive falsification loop | PARTIAL | `tools/inference/recursive_falsification_driver.py` (binds null + claim-ladder into the loop; can refute; capped at MEASURED_SYNTHETIC), `core/kuramoto/oos_validation.py` (walk-forward + Diebold-Mariano + SPA), `analytics/signals/null_baseline.py`, `geosync_hpc/nulls/dynamic_null_model.py`, `docs/research/D002J_NULL_MODEL_CONTRACTS.md`, `docs/research/D002J_NULL_MODEL_HIERARCHY.md` (driver runs on synthetic input; real-data loop pending) |
 | WP-08 | Claim-tier promotion governance | EXISTS | `governance/CLAIM_MATURITY.yaml`, `analytics/signals/claim_maturity.py`, `application/governance/claim_ledger.py`, `scripts/ci/check_claim_maturity.py`, `docs/schemas/governance/claim_ledger.schema.json` |
 | WP-09 | Machine-verification bundle | PARTIAL | `tools/inference/assemble_evidence_bundle.py`, `manifests/research/release_provenance.v1.json` (assembler shipped: binds a validated manifest + a real null + a ladder-checked claim card into one hashed bundle; refuses an unearned tier. Gap: baseline/OOS/cost are `NOT_RUN` until a validated run fills them) |
 | WP-10 | External-rank path | GAP | — (no Zenodo DOI / JOSS draft) |
@@ -140,13 +140,14 @@ adopts it rather than introducing a second ladder.
       "title": "Recursive falsification loop",
       "status": "PARTIAL",
       "artifacts": [
+        "tools/inference/recursive_falsification_driver.py",
         "core/kuramoto/oos_validation.py",
         "analytics/signals/null_baseline.py",
         "geosync_hpc/nulls/dynamic_null_model.py",
         "docs/research/D002J_NULL_MODEL_CONTRACTS.md",
         "docs/research/D002J_NULL_MODEL_HIERARCHY.md"
       ],
-      "gap": "components present; no single end-to-end recursive driver binding them"
+      "gap": "recursive driver shipped (binds null + claim-ladder, can refute, capped at MEASURED_SYNTHETIC); runs on synthetic input — real-data loop pending"
     },
     {
       "id": "WP-08",
