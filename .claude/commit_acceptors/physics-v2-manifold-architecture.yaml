@@ -1,0 +1,60 @@
+id: physics-v2-manifold-architecture
+status: draft_handoff
+owner: Claude Code
+base_branch: main
+
+purpose: >-
+  Convert the Physics v2 Universal Synchronization Manifold idea into a safe,
+  falsifiable implementation sequence without introducing duplicate subsystems,
+  market-alpha claims, or unverified physical laws.
+
+required_reading:
+  - docs/architecture/physics_v2_universal_synchronization_manifold.md
+  - physics_contracts/README.md
+  - physics_contracts/catalog.yaml
+  - physics_contracts/law.py
+  - tools/validate_tests.py
+  - src/geosync/features/ricci.py
+  - core/physics/forman_ricci.py
+  - core/kuramoto/ricci_flow_engine.py
+  - core/config/kuramoto_ricci.py
+  - docs/research/l2_ricci_evidence_protocol.md
+  - paper/ricci_microstructure/Makefile
+
+first_pr_scope:
+  must_include:
+    - inventory artifact under artifacts/physics_v2/inventory.md or equivalent generated path
+    - proposed law entries with warn severity unless witnesses ship in the same PR
+    - typed MarketCausalGraphSnapshot schema or dataclass
+    - deterministic synthetic tests for timestamp monotonicity, hash determinism, and no-lookahead construction
+    - explicit fail-closed behavior for unavailable licensed L2 data
+  must_not_include:
+    - predictive alpha claim
+    - production trading integration
+    - silent fallback from real-data mode to synthetic data
+    - blocking law without at least one witness
+    - broad rewrite of existing Ricci or Kuramoto modules before inventory proves necessity
+
+acceptance_commands:
+  - python tools/validate_tests.py
+  - python -m pytest tests/physics_contracts -q
+  - python -m pytest tests/research tests/unit -q
+  - python -m ruff check .
+  - python -m mypy --strict src core physics_contracts tools
+
+claim_maturity_rules:
+  hypothesis: allowed with declared validity domain and falsifier plan
+  theory: requires at least one passing witness and one negative control
+  fact: forbidden for market-behavior claims in this lane unless independently replicated on multiple datasets
+
+fail_closed_conditions:
+  - licensed L2 data is missing
+  - dataset fingerprint is absent
+  - config hash is absent
+  - law witness references an unknown law id
+  - numerical tolerance is not derived from law variables or declared measurement resolution
+  - falsification report is missing for a positive claim
+
+final_invariant: >-
+  No physical market claim may enter the repo unless its validity domain,
+  falsifier, witness, and provenance capsule are present in the same reviewable chain.
