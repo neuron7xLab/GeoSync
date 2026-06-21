@@ -47,9 +47,7 @@ def test_clean_capsule_passes(tmp_path: Path) -> None:
 
 
 def test_digest_under_approved_field_passes(tmp_path: Path) -> None:
-    (tmp_path / "m.json").write_text(
-        '{"artifact_sha256": "' + "b" * 64 + '"}\n', encoding="utf-8"
-    )
+    (tmp_path / "m.json").write_text('{"artifact_sha256": "' + "b" * 64 + '"}\n', encoding="utf-8")
     assert vcsb.validate_file(tmp_path / "m.json", tmp_path) == []
 
 
@@ -114,6 +112,34 @@ def test_symlink_fails(tmp_path: Path) -> None:
     os.symlink(target, link)
     violations = vcsb.validate_file(link, tmp_path)
     assert any("symlinks are forbidden" in v for v in violations)
+
+
+def test_slash_base64_secret_under_non_digest_field_fails(tmp_path: Path) -> None:
+    """Regression: a standard-alphabet base64 secret (contains '/') under a
+    non-digest key must be caught by the JSON token walk.
+
+    Before the fix, _TOKEN_RE excluded '/', so an AWS secret-access-key shape
+    slipped through entirely (the gate reported the capsule clean)."""
+    (tmp_path / "leak.json").write_text(
+        # AWS secret-access-key shape: 40 chars, base64 alphabet incl. '/'.
+        '{"api_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}\n',  # pragma: allowlist secret
+        encoding="utf-8",
+    )
+    violations = vcsb.validate_file(tmp_path / "leak.json", tmp_path)
+    assert any("high-entropy token under non-digest field" in v for v in violations)
+
+
+def test_json_quoted_credential_assignment_fails(tmp_path: Path) -> None:
+    """Regression: a credential assignment in JSON form ('"api_key": "…"') must
+    be caught by the signature even when the value is below the token-walk
+    length floor. The closing quote between the key and the colon previously
+    defeated the signature regex."""
+    (tmp_path / "leak.json").write_text(
+        '{"api_key": "hunter2hunter2hunter2"}\n',  # pragma: allowlist secret
+        encoding="utf-8",
+    )
+    violations = vcsb.validate_file(tmp_path / "leak.json", tmp_path)
+    assert any("credential assignment" in v for v in violations)
 
 
 def test_real_committed_capsule_is_clean() -> None:
