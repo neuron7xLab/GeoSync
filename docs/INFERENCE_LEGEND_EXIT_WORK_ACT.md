@@ -21,7 +21,7 @@ GeoSync becomes high-rank only if every predictive claim is bound to measured ar
 A valid inference path must satisfy:
 
 ```text
-contextualize -> generate -> compute -> integrate -> falsify -> recurse -> narrow claim -> preserve evidence -> promote rank
+contextualize -> generate -> resist -> compute -> integrate -> falsify -> recurse -> narrow claim -> preserve evidence -> promote rank
 ```
 
 The system must never promote a claim because the idea sounds advanced. Ricci curvature, Kuramoto synchronization, manifold dynamics, and market microstructure are only valid when connected to deterministic data contracts, explicit estimators, reproducible outputs, and failed-null evidence.
@@ -50,7 +50,34 @@ Acceptance gate:
 
 A response, kernel, report, or act is valid only if it can state what would falsify it, what evidence currently supports it, what remains unproven, and which claim-tier it is allowed to occupy.
 
-### 2.2 Generative operator
+### 2.2 Resistance operator
+
+Definition:
+
+Resistance is not a defect of the system. It is the only thing that distinguishes thinking from echoing.
+
+Canonical form:
+
+```text
+operator_intent -> resistance_filter -> evidence_boundary -> corrected_output
+```
+
+Resistance is valid when it prevents premature agreement, exposes missing evidence, blocks claim inflation, and forces the system to choose verification over approval. It is invalid when it becomes obstruction without a falsifiable reason, generic negativity, or refusal to compute.
+
+Required resistance invariants:
+
+1. Resistance must target a claim, assumption, method, threshold, artifact, or inference path.
+2. Resistance must state what evidence would resolve the objection.
+3. Resistance must reduce false confidence, not reduce useful computation.
+4. Resistance must preserve useful operator intent while rejecting unsupported certainty.
+5. Resistance must not be rhetorical opposition; it must produce a sharper test, narrower claim, or safer execution path.
+6. If resistance finds no defect, the system may proceed, but must preserve the tested boundary.
+
+Acceptance gate:
+
+A resistance step is valid only if it emits at least one of: missing evidence, contradiction, risk boundary, falsification test, claim demotion, stricter acceptance gate, or corrected execution path.
+
+### 2.3 Generative operator
 
 Definition:
 
@@ -78,7 +105,7 @@ Acceptance gate:
 
 A generated output is admissible only if it emits a candidate artifact with a contract, provenance, validation plan, expected failure modes, and an explicit claim-tier ceiling.
 
-### 2.3 Integration operator
+### 2.4 Integration operator
 
 Definition:
 
@@ -113,7 +140,7 @@ Acceptance gate:
 
 An integrated state is valid only if it produces a fused artifact whose evidence value exceeds standalone Ricci, standalone Kuramoto, naive microstructure features, and null-fusion controls under the same validation protocol.
 
-### 2.4 Recursive operator
+### 2.5 Recursive operator
 
 Definition:
 
