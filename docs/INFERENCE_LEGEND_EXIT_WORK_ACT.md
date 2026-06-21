@@ -21,7 +21,7 @@ GeoSync becomes high-rank only if every predictive claim is bound to measured ar
 A valid inference path must satisfy:
 
 ```text
-contextualize -> generate -> resist -> compute -> integrate -> falsify -> recurse -> narrow claim -> preserve evidence -> promote rank
+contextualize -> generate -> resist -> compute -> test -> integrate -> falsify -> recurse -> narrow claim -> preserve evidence -> promote rank
 ```
 
 The system must never promote a claim because the idea sounds advanced. Ricci curvature, Kuramoto synchronization, manifold dynamics, and market microstructure are only valid when connected to deterministic data contracts, explicit estimators, reproducible outputs, and failed-null evidence.
@@ -105,7 +105,45 @@ Acceptance gate:
 
 A generated output is admissible only if it emits a candidate artifact with a contract, provenance, validation plan, expected failure modes, and an explicit claim-tier ceiling.
 
-### 2.4 Integration operator
+### 2.4 Testing operator
+
+Definition:
+
+To test is to feed a controlled signal into a system component and verify that the observed output matches the declared expectation while isolating that component from the rest of the system.
+
+Canonical form:
+
+```text
+controlled_input -> isolated_component -> observed_output -> expected_output_check -> pass_or_fail_artifact
+```
+
+Testing is valid only when the signal, boundary, expected output, tolerance, and failure meaning are declared before execution. A test is not a demonstration. A test is a controlled attempt to make one component expose whether its claimed behavior is true under defined conditions.
+
+Required testing invariants:
+
+1. The tested component must be isolated from unrelated modules, network state, hidden caches, and mutable external artifacts.
+2. The input signal must be controlled, deterministic, and reproducible.
+3. The expected output or invariant must be declared before the run.
+4. The tolerance must be explicit, justified, and narrower than the claim it protects.
+5. A passing test proves only the tested behavior under the tested boundary.
+6. A failing test emits a defect, not a narrative workaround.
+7. Regression tests must preserve the failure that originally justified their existence.
+8. Tests must be machine-runnable, command-addressable, and artifact-producing when they support a claim.
+
+GeoSync testing chain:
+
+```text
+synthetic oscillator signal -> SecondOrderKuramotoEngine -> phase/velocity invariant -> numerical-order check
+synthetic graph signal -> Ricci estimator -> curvature invariant -> null comparison
+frozen calibration input -> replay adapter -> byte-stable reproduction -> no-live-integrator check
+manifest fixture -> context validator -> admissibility verdict -> claim-tier boundary check
+```
+
+Acceptance gate:
+
+A component is test-admissible only if it can be run with a controlled input, an isolated execution boundary, a declared expected result, a reproducible command, and a failure artifact that prevents silent promotion.
+
+### 2.5 Integration operator
 
 Definition:
 
@@ -140,7 +178,7 @@ Acceptance gate:
 
 An integrated state is valid only if it produces a fused artifact whose evidence value exceeds standalone Ricci, standalone Kuramoto, naive microstructure features, and null-fusion controls under the same validation protocol.
 
-### 2.5 Recursive operator
+### 2.6 Recursive operator
 
 Definition:
 
