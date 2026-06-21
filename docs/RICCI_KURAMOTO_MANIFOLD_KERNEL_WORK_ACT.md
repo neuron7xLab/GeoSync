@@ -127,3 +127,91 @@ A valid extrapolated action must produce at least one of:
 4. a narrower claim boundary;
 5. a clearer next implementation unit.
 ```
+
+---
+
+## 6. Inference-Control Operation: Recurse
+
+Canonical operation:
+
+```text
+Recurse = feed the system output back into the same verification system as a new input until the claim either stabilizes or collapses.
+```
+
+Operational definition:
+
+```text
+To recurse is to force every generated kernel output, metric, score, claim, and artifact to become the next test object for the same pipeline, so that the system repeatedly attempts to disprove its own previous state.
+```
+
+For this workstream, recursion means:
+
+```text
+Ricci-Kuramoto output
+  → evidence artifact
+  → claim classifier
+  → null/baseline challenge
+  → replay validator
+  → residual/error analysis
+  → revised kernel input
+  → narrower or stronger next claim
+```
+
+The recursion target is not rhetorical refinement. The recursion target is epistemic convergence.
+
+Required recursive loop:
+
+```text
+Loop-0: build candidate kernel output.
+Loop-1: test against deterministic replay.
+Loop-2: test against shuffled-phase null.
+Loop-3: test against shuffled-edge/null-graph baseline.
+Loop-4: test against block-bootstrap session resampling.
+Loop-5: test against naive volatility / VAR / GARCH / HMM baselines.
+Loop-6: run walk-forward OOS split.
+Loop-7: apply cost/slippage model.
+Loop-8: classify admissible claim tier.
+Loop-9: emit next stricter work package or stop.
+```
+
+Stop rule:
+
+```text
+STOP_STABLE if three consecutive recursive runs produce:
+1. identical artifact hashes for deterministic replay;
+2. no claim-tier inflation;
+3. no failing null/baseline superiority gate;
+4. no unexplained residual concentration;
+5. no metric drift beyond configured tolerance.
+```
+
+Collapse rule:
+
+```text
+COLLAPSE if recursive validation shows that the signal disappears under nulls, costs, OOS splits, or replay constraints.
+```
+
+Promotion rule:
+
+```text
+A claim may move from HYPOTHESIS to MEASURED only if recursion produces stable evidence artifacts that survive replay, nulls, baselines, OOS, costs, and residual audit.
+```
+
+Failure mode:
+
+```text
+If recursion only rewrites language, it is narrative polishing.
+If recursion makes the next run harder to fake, it is verification pressure.
+If recursion destroys the claim, the system worked.
+```
+
+Acceptance rule:
+
+```text
+A valid recursive action must produce at least one of:
+1. a reproduced artifact hash;
+2. a failed claim with explicit cause;
+3. a stricter validation gate;
+4. a reduced claim boundary;
+5. an updated kernel input generated from measured residuals.
+```
