@@ -83,6 +83,7 @@ class OOSConfig:
     n_bootstrap: int = 500
     block_length: int = 20
     random_state: int = 0
+    embargo: int = 0
 
     def __post_init__(self) -> None:
         if not 0 < self.train_frac < 1:
@@ -97,6 +98,19 @@ class OOSConfig:
             raise ValueError("n_bootstrap must be ≥ 1")
         if self.block_length < 1:
             raise ValueError("block_length must be ≥ 1")
+        if self.embargo < 0:
+            raise ValueError("embargo must be ≥ 0")
+        # Leakage gate: a multi-step (overlapping-label) horizon must purge at
+        # least ``horizon - 1`` boundary observations between train and test, or
+        # the last training label overlaps the first test label and the OOS
+        # error is optimistically biased. At horizon == 1 the default embargo of
+        # 0 is admissible. This turns a silently-leaky multi-step OOS into an
+        # un-runnable one.
+        if self.embargo < self.horizon - 1:
+            raise ValueError(
+                f"embargo ({self.embargo}) must be ≥ horizon - 1 ({self.horizon - 1}) "
+                "to purge overlapping-label train/test leakage"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,13 +132,23 @@ class OOSResult:
 
 
 def temporal_split(
-    phases: PhaseMatrix, *, train_frac: float, val_frac: float
+    phases: PhaseMatrix, *, train_frac: float, val_frac: float, embargo: int = 0
 ) -> tuple[slice, slice, slice]:
-    """Return non-shuffling ``slice`` objects for train / val / test."""
+    """Return non-shuffling ``slice`` objects for train / val / test.
+
+    ``embargo`` purged observations are dropped at each boundary (after train,
+    after val) so an overlapping-label or autocorrelated trajectory cannot leak
+    the last training point into the first test point. ``embargo == 0`` (the
+    default, admissible only at horizon 1) reproduces the contiguous split.
+    """
     T = phases.theta.shape[0]
     t_train = int(train_frac * T)
     t_val = int((train_frac + val_frac) * T)
-    return slice(0, t_train), slice(t_train, t_val), slice(t_val, T)
+    return (
+        slice(0, t_train),
+        slice(min(t_train + embargo, t_val), t_val),
+        slice(min(t_val + embargo, T), T),
+    )
 
 
 def simulate_forward(
@@ -320,7 +344,7 @@ def evaluate_oos(
     dt = float(ts[1] - ts[0])
 
     train_s, val_s, test_s = temporal_split(
-        phases, train_frac=cfg.train_frac, val_frac=cfg.val_frac
+        phases, train_frac=cfg.train_frac, val_frac=cfg.val_frac, embargo=cfg.embargo
     )
 
     phases_train = PhaseMatrix(
