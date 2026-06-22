@@ -3,9 +3,9 @@
   "target": "Only canonical geosync.* in the distributable wheel, with zero packaged-module imports of unpackaged first-party namespaces. allowed_legacy_packages and import_debt may ONLY shrink.",
   "allowed_legacy_packages": {
     "analytics": "legacy entrypoint/import provider pending re-home (ADR-0024)",
-    "application": "legacy entrypoint/import provider pending re-home (ADR-0024)",
+    "application": "BLOCKED_IMPORT_GRAPH_GEOSYNC_SERVER_93M_RUNTIME (wrapper-first: geosync-server -> geosync.runtime.server delegates to application.runtime.server)",
     "backtest": "legacy entrypoint/import provider pending re-home (ADR-0024)",
-    "core": "legacy entrypoint/import provider pending re-home (ADR-0024)",
+    "core": "BLOCKED_IMPORT_GRAPH_TP_KURAMOTO_35M_21I_INV (wrapper-first: tp-kuramoto -> geosync.kuramoto.cli delegates to core.kuramoto.cli)",
     "domain": "legacy entrypoint/import provider pending re-home (ADR-0024)",
     "execution": "legacy entrypoint/import provider pending re-home (ADR-0024)",
     "interfaces": "legacy entrypoint/import provider pending re-home (ADR-0024)",
