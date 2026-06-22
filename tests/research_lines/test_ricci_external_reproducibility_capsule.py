@@ -31,7 +31,7 @@ from typing import Any
 
 import yaml
 
-from tools.research import validate_ricci_artifact_schema
+from geosync.research import validate_ricci_artifact_schema
 
 _ROOT = Path(__file__).resolve().parents[2]
 _LINE = _ROOT / "research_lines" / "ricci_microstructure_v1"
