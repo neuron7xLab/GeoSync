@@ -38,6 +38,11 @@ jobs:
           set -euo pipefail
           python scripts/guards/runtime_membrane_guard.py
 
+      - name: Invariant source/test binding gate
+        run: |
+          set -euo pipefail
+          python scripts/ci/check_invariant_source_binding.py
+
       - name: Invariant check (semantic gamma formula guard)
         run: |
           set -euo pipefail

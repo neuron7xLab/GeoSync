@@ -86,6 +86,10 @@
       "sha256": "50caf2f64e0c12ad18eed19bd44e1c2cd8be23da9058441cf8e5700b158a5de4"
     },
     {
+      "path": "scripts/ci/check_invariant_source_binding.py",
+      "sha256": "dcf7290f6c2b3503d7f25140d04a6fca4785c0089f6e056d0aaa453018fdc09f"
+    },
+    {
       "path": "scripts/ci/check_inventory_sync.py",
       "sha256": "d07faf335bfd1085912d862e74a2b657251efb428956430f82a85f65e7fa6801"
     },
