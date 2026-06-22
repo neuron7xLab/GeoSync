@@ -373,7 +373,6 @@
 0e9bbdd74da2bb821be36bf9ab91c9473da32f82a49aba25af6d235f50d7c74b  ./buf.yaml
 0e9c1be207f1feaf351677eb1181053c09e9586d535c0151c00f8ee2bb674c9d  ./.gitleaksignore
 0ea9867404ab54a0709db39a5c9d8ceaac5de5b1ef44d39e7a36dea670bc9cc1  ./research/kernels/ricci_regime_conditioned.py
-0ebb418cc43574ebeb59f92c10ed277a311d7cd83a03978f634964a3e2c74d93  ./requirements-scan.lock
 0ed517693223c2f20b65728cc619f8466bbd811455c23a8a767359a17765c3b7  ./tests/test_homeostatic_manifold_invariance.py
 0ed6465a87dd169714c3c52dfe6fcccd0e24711dafaee4c7b15e2d5a291cd565  ./results/wave1_fx/run_a_gross/portfolio_equity.csv
 0ed71389df79ffeacabaa6a41a6cf32df61b0e645824f338c836f5e61446db48  ./docs/operators/INTEGRATE.md
@@ -1236,6 +1235,7 @@
 3225885cf47a9b1faf6158941dc4c818b2011eb8fa90cafb937f82e73ab01aaf  ./.github/agents/IMPLEMENTATION_SUMMARY.md
 3225b718091f065075c2ffe2b8de98f547a89fdea2e69a2f171e8ec74545356c  ./examples/neuro_orchestrator_demo.py
 32314c9206e0b5ed143c5c5dd5b951561ded1d1c352793c9599884a2966fe5d2  ./tests/integration/test_backfill_gap_fill.py
+3235c70feed8961a1676b85d160826190ce421c3089703aee7f8f68dcafb6869  ./tools/deps/validate_dependency_truth.py
 32778446105d748ba414b7e183e69d49c15198285d57cd419dd3535c286c5a97  ./src/geosync/core/neuro/dopamine/dopamine_controller.py
 3279088376673dc14f63c328f2e7303ade0128ed1d5feed542378e02c3a50abe  ./research/calibration/grid_kuramoto/cg002/__init__.py
 327a2a7d7bdd9c108bbd5a053fa16721e824188f1859df15353c8a693afbc62c  ./tests/unit/physics/test_gravity.py
@@ -1245,6 +1245,7 @@
 3298c11ac68563fef24a2774401e2a2556bd1c94ffd22abe4d75555b89a155af  ./.claude/commit_acceptors/readiness-evidence-contract.yaml
 32a935dcd58ea25bfd309d951cc1fb67d76e43be56e9c91365526d1a94e45937  ./tests/property/test_entropy_phase_properties.py
 32b39b76d3e9745789e36c2dd70197bf9b0384abb0c364d22c890b90f60cab4a  ./tests/property/test_hncm_math_properties.py
+32c572db133baa59bcb7f8087d8accd93325f1ce8461d733e8b00e9861ff501d  ./.github/workflows/service-manifest-audit.yml
 32ccd0457dc658663dfe9e044a8604f360a1eb7d66f3fc7dcbe1b0e0b64febc4  ./research/ctc_falsify/c4/audit.py
 32d0aed70b2947f39f9dc7d87684be7afe89c560727c4e3e8c2ac33f2dac8b79  ./tools/commit_acceptor/__init__.py
 32e8086b63daeb9f2cfa91005b5b21f50e9051ff1f17421f38633e9b5a231dfc  ./src/geosync/core/__init__.py
@@ -2043,7 +2044,6 @@
 52a168eb9c7c8ba5140ccecb5181f16ba49a2a0eadd318a86b5aa3ef9dd345de  ./src/geosync/core/neuro/nak/metrics.py
 52ab6accc05358cd8fd12a305da4d9663cdcbe48aec50635cb1159b10685c471  ./configs/wf.yaml
 52cd8bc55ce6831070eacd7f5185e5cd1d606d18456b13da433772e2eae301d8  ./tests/ci/test_mfn_surface_check.py
-52ceec3b3908ab7592103e6905dbea06f2128a218d3c3702b88e680704ad641c  ./tools/deps/validate_dependency_truth.py
 52d1610e8664646f7a75da105e20fbca69f3a72b15e68ed9ebd320fe09c0ca7e  ./research/ctc_falsify/l2/gates_l2.py
 52e5a1e399929e69b09d73731b9d4b11acf678dd7ba9c50e5df82a210903907b  ./tests/fixtures/cassettes/polygon_agg.json
 52ebc3527c1e18a1aa9ddcb0a852325db709db67ae990d285081654556f46228  ./tests/unit/physics/test_ott_antonsen_oracle.py
@@ -2415,7 +2415,6 @@
 62375d339c34f9b79ecfd5633c8e6409fc8a985489ec9132a7f0022dda6b85f2  ./tests/unit/test_agents.py
 623c5fac1062a836d09d6f05661548d2c4125bed99125c9c1da9682498d0ad43  ./tests/test_nlca_core.py
 6246fffbfeaa91bd7d48c415a5e835cba7e9a7f625a91db95324e69d41294bc1  ./tests/unit/test_edge_cases.py
-625337c2e27ddadd7e59d3f0dd00b6aa3846c7b39b86279b0e7e76656ad0e513  ./BLOCKED.md
 6254a1ecc0815769377a74e731ac009a3c50195ab2400c01221db93e33640ea3  ./tests/fixtures/recordings/trending_down_btcusd_200ticks.jsonl
 6254e440689bfcf1c66d7d149a4aa6f618d13b26bcc62e008dd7f9dfc4d4489d  ./tests/property/test_execution_adapter_fuzz.py
 625e5ef37d402c1589f51c972347ad6efd1bf3cfa3a8cf2378599f43c4b9bd12  ./metrics/performance_profiler.py
@@ -2937,6 +2936,7 @@
 770dba761ff9fd26d557076418f5a490adbbff4dbd44ee14557f2b5ff0974bc5  ./results/askar_intermarket_ricci/prime_architect_vx_summary.json
 771d12e835d8c24532b0652a4eea262226959d05c0278d9e7a3a73b325ef8b0b  ./analytics/signals/README_IGS.md
 771e98dbf239b4c127715d088238848233af206f35834e359cc3856fb7c26401  ./docs/validation/pai_report_2026_05_03.md
+7723c462eafe8baee6904395e1823ea4d4dd44953b9da3bef44ca4ee171cf67e  ./BLOCKED.md
 772bd7f7fbd26b58d3aa82aead87f8d29ee834ae0e9dd96fe9cbd00068c205e8  ./results/askar_prime_architect_vx/audit_log_vX.json
 77370fdda90b4f8c838945f95fe6ecbd19ffd54bce4432cf13e2bb547f2a8ebc  ./src/geosync/regime/__init__.py
 773cc90326bdf56a1861deb63ca5a55a6ab23ad6dacbda1a501b3f5b9b48abbb  ./backtest/events.py
@@ -4750,6 +4750,7 @@ bfc17d396af1fbafb673a91bc7e8c28460aa1dc89aa2ad0d52cdfbca557a795f  ./cognitive_mi
 bfc6b49bcab3ad193243e24f9139bc157a73e6ed9b4e85c87206d28f19bdd690  ./tests/unit/domain/test_position.py
 bfd28fbe8e78c513c1a8a53b8c94c8725df676f8e47b9adb260f93761464bbf7  ./core/indicators/hierarchical_features.py
 bfd73d0ec32d59d4e994ec3356b3f74eac6fb944a5555dbc0dd98deb8ea60512  ./.claude/commit_acceptors/forman-ricci-margin-onset-honesty.yaml
+c02e479371bff5a7fb453e55a2158fc6d7a46a440a996335db309bdad3d1ce52  ./requirements-scan.lock
 c041a86fabbb05849f63c960da116e17059e144a8e13fff86533c424c45e570b  ./docs/reports/closure_ledger.md
 c04574ffac6eb19b6741484df73554adbebcfc580f99970ecc0911d57afb1a1d  ./tests/performance/test_profiling_bottlenecks.py
 c0527d899e176b1d244c629e844fee5b6ddb2263067cf039a8d06105ef89b295  ./execution/risk/README.md

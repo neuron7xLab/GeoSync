@@ -1,8 +1,8 @@
 {
   "verdict": "RED",
   "counts": {
-    "green": 11,
-    "red": 6,
+    "green": 12,
+    "red": 5,
     "manual": 0,
     "gating_total": 17
   },
@@ -68,8 +68,8 @@
       "section": "C",
       "title": "Dependency-truth validator clean",
       "gating": true,
-      "status": "RED",
-      "evidence": "dependency-truth validator reports drift"
+      "status": "GREEN",
+      "evidence": "dependency-truth validator: no drift"
     },
     {
       "pid": "D.manifest",
@@ -77,7 +77,7 @@
       "title": "MANIFEST.sha256 cold-verify clean",
       "gating": true,
       "status": "GREEN",
-      "evidence": "MANIFEST.sha256 cold-verify clean (6364 entries)"
+      "evidence": "MANIFEST.sha256 cold-verify clean (6365 entries)"
     },
     {
       "pid": "F.invariants",

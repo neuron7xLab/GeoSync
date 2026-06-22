@@ -175,10 +175,17 @@ def _read_plain_uppers(path: Path) -> dict[str, str]:
         stripped = raw.strip()
         if not stripped or stripped.startswith("#") or stripped.startswith("-r "):
             continue
-        name = _pep508_name(stripped)
+        # Drop the inline comment BEFORE scanning for an upper bound. Security
+        # pins frequently document the vulnerable range in a trailing comment
+        # (e.g. ``cryptography>=49.0.0  # <48.0.1 vulnerable``); without this
+        # split the "<48.0.1" inside the comment is misread as a strict upper
+        # bound, fabricating a D7 ResolutionImpossible drift. A real bound such
+        # as ``pydantic>=2.13.0,<3.0.0`` sits before the ``#`` and is kept.
+        code = stripped.split("#", 1)[0].strip()
+        name = _pep508_name(code)
         if not name:
             continue
-        m = _UPPER_BOUND.search(stripped)
+        m = _UPPER_BOUND.search(code)
         if m:
             uppers[name] = m.group(1)
     return uppers
