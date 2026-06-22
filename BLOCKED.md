@@ -118,9 +118,15 @@ are real campaigns, not session fixes. None were faked or papered over.
   flat multi-package layout under one root and rewriting hundreds of imports
   across the codebase + 1599 test files — a multi-week migration. Forcing it
   would either break everything or require weakening the probes (forbidden).
+* **Confirmed by the repo's own ratchet:** `scripts/ci/check_import_architecture.py`
+  is a *debt ratchet* that currently PASSES with "19 src.* imports + 70
+  path-hacks (target 0) — no new debt." The repository itself acknowledges this
+  exact debt and is paying it down **gradually**; the release gate (release law)
+  refuses to ship until it actually reaches zero. The two gates are consistent —
+  the migration is real and incremental by design, not a one-shot edit.
 * **Next action:** a dedicated package-consolidation epic (choose one canonical
   root; migrate infra namespaces; rewrite imports; restrict
-  `[tool.setuptools.packages.find]`).
+  `[tool.setuptools.packages.find]`), driving the ratchet to 0.
 
 ---
 
