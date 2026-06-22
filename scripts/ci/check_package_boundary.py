@@ -20,11 +20,16 @@ import-architecture ratchet applies to ``src.*`` imports:
 
 GROUNDING: the leak set is measured by **building the wheel from a clean
 ``git archive HEAD``** and reading its actual top-level packages — exactly what
-the release gate's ``B.wheel`` probe checks. An earlier version read
-``packages.find.include`` as a proxy; a real wheel build proved that proxy WRONG
-(``include-package-data`` / nested sub-projects drag dirs into the wheel that are
-not in ``include``), so editing only ``include`` would have reported false
-progress. The wheel is the only truth.
+the release gate's ``B.wheel`` probe checks. ``packages.find.include`` *does*
+control the wheel surface (verified: dropping ``markets``/``sandbox`` from
+``include`` and building clean drops them, 16 -> 14). We still measure the built
+wheel rather than parse ``include`` because (a) ``include`` alone misses files
+pulled in by other means — e.g. ``[tool.setuptools_scm].version_file`` causes a
+stray ``src`` top-level to ship even when ``src`` is not in ``include`` — and
+(b) it is immune to the local-dev hazard that a STALE ``build/`` directory
+(setuptools ``build_py`` reuses ``build/lib`` without cleaning) silently injects
+old packages into ``pip wheel .`` runs. Building from a fresh ``git archive``
+tempdir sidesteps both. The wheel is the only truth.
 
 Usage::
 
