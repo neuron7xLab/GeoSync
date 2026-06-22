@@ -128,8 +128,8 @@ geosync-import-architecture = "scripts.ci.check_import_architecture:main"
 geosync-pai = "scripts.ci.compute_pai:main"
 geosync-sync = "scripts.resilient_data_sync:main"
 geosync-db = "scripts.db_migrate:cli"
-geosync-server = "application.runtime.server:main"
-tp-kuramoto = "core.kuramoto.cli:main"
+geosync-server = "geosync.runtime.server:main"
+tp-kuramoto = "geosync.kuramoto.cli:main"
 geosync-research = "tools.research.research_cli:main"
 mfn = "geosync.mfn.cli:main"
 mfn-api = "geosync.mfn.cli:api_main"
@@ -147,8 +147,6 @@ where = ["."]
 include = [
     "analytics",
     "analytics.*",
-    "cli",
-    "cli.*",
     "application",
     "application.*",
     "backtest",
@@ -157,8 +155,6 @@ include = [
     "core.*",
     "domain",
     "domain.*",
-    "sandbox",
-    "sandbox.*",
     "execution",
     "execution.*",
     "interfaces",
@@ -169,8 +165,6 @@ include = [
     "geosync.*",
     "geosync_agent",
     "geosync_agent.*",
-    "markets",
-    "markets.*",
     "modules",
     "modules.*",
     "geosync_pro",

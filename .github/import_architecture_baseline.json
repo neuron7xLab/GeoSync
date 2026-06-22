@@ -87,7 +87,6 @@
     "tacl/release_gates.py",
     "test_kuramoto_full.py",
     "tools/check_public_symbol_matrix.py",
-    "tools/docs/generate_geosync_cli_docs.py",
     "tools/generate_cns_metrics.py",
     "tools/physics_evidence_matrix.py",
     "tools/profile_project.py",

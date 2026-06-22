@@ -47,6 +47,7 @@ _PATH_HACK_RE = re.compile(r"sys\.path\.(insert|append)\s*\(")
 _NON_SOURCE_PREFIXES: tuple[str, ...] = (
     "tests/",
     "test/",
+    "devtools/",
     ".git/",
     "build/",
     "dist/",

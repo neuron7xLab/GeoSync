@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "3f3613bf8501448a2a70deda8c4324788d31dc531052525785b1454396753dd0"
+      "sha256": "fd2fecdeae22380cd5e055c08ec16bff937e7be1dc22a4a54cb387dd191f54e8"
     },
     {
       "path": "scripts/ci/__init__.py",
@@ -66,12 +66,16 @@
       "sha256": "a0e4a2d58f0d7ec3020436e654fd3397769a15c8165ec32c53eba5f1f162f187"
     },
     {
+      "path": "scripts/ci/check_falsifier_ledger.py",
+      "sha256": "44bf8ddb16c3cd96a4dd2258ad35fe3734e022e0680f7587591d503f6c0c0986"
+    },
+    {
       "path": "scripts/ci/check_governance_kernel_binding.py",
       "sha256": "eea202a181002cf72f8dccf7da1133a7e62cd5d6bc511fd1b470964bbeda153d"
     },
     {
       "path": "scripts/ci/check_import_architecture.py",
-      "sha256": "58ffb28ba07ac7529c9a3e66a2914906508511ba8889ca81f26fc9d3024ad642"
+      "sha256": "d025c4ef24b437274284db4e3e0b6bff599a7e81cd66c22252186591a8f0ddf2"
     },
     {
       "path": "scripts/ci/check_inference_transformer_contract.py",
@@ -102,6 +106,10 @@
       "sha256": "8d1fc0d696924ea87c8355b5492f5c4f822d344da14eae4f8f3e7921e85772e2"
     },
     {
+      "path": "scripts/ci/check_package_boundary.py",
+      "sha256": "a4b18d2997847f144e2b3901290e7d14dd15f25f6cb7150cd7a85d7cc275db2d"
+    },
+    {
       "path": "scripts/ci/check_pr_gate_contract.py",
       "sha256": "d474e8af748173b26158e1dba6d0846ff03a44c985dc2b5a14ca24d8a7de2ba4"
     },
@@ -120,6 +128,10 @@
     {
       "path": "scripts/ci/check_tombstone_preservation.py",
       "sha256": "cf13aba1ea21c88342178ddad96672043fe5cef5312b71f8cc2018521c3de4e2"
+    },
+    {
+      "path": "scripts/ci/check_wheel_contract.py",
+      "sha256": "f45db0e80136ada6cbb8db33d4e068ea80284479108464e89fd63f805742502c"
     },
     {
       "path": "scripts/ci/compute_fps_audit.py",
@@ -163,7 +175,7 @@
     },
     {
       "path": "scripts/ci/release_gate.py",
-      "sha256": "24e08e7ffe5d1e9ef9718f912e0c38689545954be85670729cb9abdc4d452ade"
+      "sha256": "adb72b418dcd657a4ac853c4de2955af7432f3026e67446ca556a64c23671598"
     },
     {
       "path": "scripts/ci/run_actionlint.py",
@@ -240,6 +252,10 @@
     {
       "path": "tests/connectors/test_file_feed.py",
       "sha256": "4d1df307e2296b6564a7ff53ddef196cb9bbe07482787d58d7d6b97fd2f0493d"
+    },
+    {
+      "path": "tests/connectors/test_optional_dependency_guards.py",
+      "sha256": "39e33599408ce9a78f14af8fc110297e1e4fc602557757d7aa0db404d0fdd136"
     },
     {
       "path": "tests/connectors/test_polygon_adapter_reproducible.py",
