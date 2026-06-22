@@ -106,6 +106,10 @@
       "sha256": "8d1fc0d696924ea87c8355b5492f5c4f822d344da14eae4f8f3e7921e85772e2"
     },
     {
+      "path": "scripts/ci/check_package_boundary.py",
+      "sha256": "191f65f1c739155734fe144c6a0c56cb86a8b801af66ea4553bc4f3a74a68164"
+    },
+    {
       "path": "scripts/ci/check_pr_gate_contract.py",
       "sha256": "d474e8af748173b26158e1dba6d0846ff03a44c985dc2b5a14ca24d8a7de2ba4"
     },
