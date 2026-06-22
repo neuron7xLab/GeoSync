@@ -346,6 +346,51 @@ class TestEvaluateOOS:
         for r in results:
             assert 0.0 <= r.spa_p_value <= 1.0
 
+    def test_split_provenance_is_serialized(
+        self, engine_and_phases: tuple[NetworkKuramotoEngine, PhaseMatrix]
+    ) -> None:
+        """Task 19: every OOS result carries its split provenance."""
+        engine, phases = engine_and_phases
+        cfg = OOSConfig(train_frac=0.6, val_frac=0.2, n_bootstrap=30, block_length=10)
+        result = evaluate_oos(phases, engine, config=cfg)
+        prov = result.split_provenance
+        assert prov.split_method == "temporal_embargo"
+        assert prov.horizon == cfg.horizon
+        assert prov.embargo == cfg.embargo
+        assert prov.n_total == phases.theta.shape[0]
+        assert prov.train_span[0] == 0
+        assert prov.test_span[1] == prov.n_total
+        # contiguous at embargo 0
+        assert prov.train_span[1] == prov.val_span[0]
+        d = prov.to_dict()
+        assert d["split_method"] == "temporal_embargo" and d["train_span"] == [0, prov.train_span[1]]
+
+    def test_split_provenance_reflects_embargo(
+        self, engine_and_phases: tuple[NetworkKuramotoEngine, PhaseMatrix]
+    ) -> None:
+        """Stress: perturbing the embargo must move the recorded spans."""
+        engine, phases = engine_and_phases
+        base = evaluate_oos(
+            phases, engine, config=OOSConfig(n_bootstrap=20, block_length=10)
+        ).split_provenance
+        emb = evaluate_oos(
+            phases, engine, config=OOSConfig(embargo=10, n_bootstrap=20, block_length=10)
+        ).split_provenance
+        assert base.val_span[0] == base.train_span[1]  # embargo 0 → contiguous
+        assert emb.val_span[0] == emb.train_span[1] + 10  # embargo 10 → gap
+        assert emb.test_span[0] == emb.val_span[1] + 10
+
+    def test_degenerate_split_fails_closed(
+        self, engine_and_phases: tuple[NetworkKuramotoEngine, PhaseMatrix]
+    ) -> None:
+        """Stress: an embargo that empties a split fails closed, not IndexError."""
+        engine, phases = engine_and_phases
+        n = phases.theta.shape[0]
+        with pytest.raises(ValueError, match="degenerate split"):
+            evaluate_oos(
+                phases, engine, config=OOSConfig(embargo=n, n_bootstrap=20, block_length=10)
+            )
+
 
 class TestOOSConfig:
     def test_train_plus_val_must_be_less_than_one(self) -> None:

@@ -229,7 +229,7 @@ clamps:
   - core/kuramoto/falsification.py:283
   - core/kuramoto/identifiability.py:276
   - core/kuramoto/jax_engine.py:81
-  - core/kuramoto/oos_validation.py:189
+  - core/kuramoto/oos_validation.py:220
   - core/kuramoto/ricci_flow_engine.py:277
   - core/kuramoto/ricci_flow_engine.py:279
   - core/kuramoto/ricci_flow_engine.py:445

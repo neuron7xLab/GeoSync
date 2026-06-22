@@ -31,6 +31,7 @@ autocorrelation without requiring :mod:`arch`.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from scipy import stats
@@ -114,6 +115,35 @@ class OOSConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class SplitProvenance:
+    """How the train/val/test split was formed — serialized with every result.
+
+    Makes an OOS result self-auditable for leakage protection: a reader can see
+    the horizon, the embargo purge, the exact spans, the split method and the
+    total length without re-running. ``train_span`` etc. are ``[start, stop)``.
+    """
+
+    split_method: str
+    horizon: int
+    embargo: int
+    n_total: int
+    train_span: tuple[int, int]
+    val_span: tuple[int, int]
+    test_span: tuple[int, int]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "split_method": self.split_method,
+            "horizon": self.horizon,
+            "embargo": self.embargo,
+            "n_total": self.n_total,
+            "train_span": list(self.train_span),
+            "val_span": list(self.val_span),
+            "test_span": list(self.test_span),
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class OOSResult:
     """Aggregate OOS statistics for one train/val/test split."""
 
@@ -124,6 +154,7 @@ class OOSResult:
     dm_p_values: dict[str, float]
     spa_p_value: float
     passed_level_D: bool
+    split_provenance: SplitProvenance
 
 
 # ---------------------------------------------------------------------------
@@ -347,6 +378,28 @@ def evaluate_oos(
         phases, train_frac=cfg.train_frac, val_frac=cfg.val_frac, embargo=cfg.embargo
     )
 
+    # Fail closed: an embargo (or fraction) that empties any split would otherwise
+    # crash on ``theta[test_s][0]`` or yield a meaningless 0/1-row OOS metric. A
+    # claim must not be produced from a degenerate split.
+    n_total = theta.shape[0]
+    spans = {"train": train_s, "val": val_s, "test": test_s}
+    too_small = {name: s.stop - s.start for name, s in spans.items() if s.stop - s.start < 2}
+    if too_small:
+        raise ValueError(
+            f"degenerate split: {too_small} has < 2 rows after embargo={cfg.embargo} "
+            f"on n_total={n_total}; widen the series or reduce embargo/horizon"
+        )
+
+    provenance = SplitProvenance(
+        split_method="temporal_embargo",
+        horizon=cfg.horizon,
+        embargo=cfg.embargo,
+        n_total=n_total,
+        train_span=(train_s.start, train_s.stop),
+        val_span=(val_s.start, val_s.stop),
+        test_span=(test_s.start, test_s.stop),
+    )
+
     phases_train = PhaseMatrix(
         theta=theta[train_s],
         timestamps=ts[train_s],
@@ -419,6 +472,7 @@ def evaluate_oos(
         dm_p_values=dm_p,
         spa_p_value=spa_p,
         passed_level_D=bool(passed),
+        split_provenance=provenance,
     )
 
 
