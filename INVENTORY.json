@@ -130,6 +130,10 @@
       "sha256": "cf13aba1ea21c88342178ddad96672043fe5cef5312b71f8cc2018521c3de4e2"
     },
     {
+      "path": "scripts/ci/check_wheel_contract.py",
+      "sha256": "f45db0e80136ada6cbb8db33d4e068ea80284479108464e89fd63f805742502c"
+    },
+    {
       "path": "scripts/ci/compute_fps_audit.py",
       "sha256": "e35b695eb92648ce61d04318bdfd27e76a7ea9222316f8e244f87b43c6a4f06c"
     },
