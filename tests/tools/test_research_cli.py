@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from geosync.research.research_cli import main
-from geosync.research.validate_ricci_artifact_schema import validate_artifact
+from tools.research.research_cli import main
+from tools.research.validate_ricci_artifact_schema import validate_artifact
 
 
 def test_research_run_creates_schema_valid_hypothesis_artifact(tmp_path: Path) -> None:

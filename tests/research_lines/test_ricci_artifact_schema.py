@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from geosync.research.validate_ricci_artifact_schema import (
+from tools.research.validate_ricci_artifact_schema import (
     validate_artifact,
     validate_artifact_semantics,
 )
