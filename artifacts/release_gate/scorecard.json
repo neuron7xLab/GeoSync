@@ -1,8 +1,8 @@
 {
   "verdict": "RED",
   "counts": {
-    "green": 10,
-    "red": 7,
+    "green": 11,
+    "red": 6,
     "manual": 0,
     "gating_total": 17
   },
@@ -76,8 +76,8 @@
       "section": "D",
       "title": "MANIFEST.sha256 cold-verify clean",
       "gating": true,
-      "status": "RED",
-      "evidence": "MANIFEST.sha256 cold-verify FAILED: 1458/2827 entries broken (1356 mismatch, 102 missing; e.g. missing:\u0421\u0422\u0410\u041d_\u0420\u041e\u0417\u0412\u0418\u0422\u041a\u0423_\u041f\u0420\u041e\u0404\u041a\u0422\u0423.md)"
+      "status": "GREEN",
+      "evidence": "MANIFEST.sha256 cold-verify clean (6364 entries)"
     },
     {
       "pid": "F.invariants",
@@ -93,7 +93,7 @@
       "title": "Test suite present",
       "gating": true,
       "status": "GREEN",
-      "evidence": "1599 test files tracked"
+      "evidence": "1600 test files tracked"
     },
     {
       "pid": "E.clean_clone",

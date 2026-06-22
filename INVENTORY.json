@@ -214,6 +214,10 @@
       "sha256": "f2da38fe408e1830515b70fbb54cfa05b9ee0f9860727cd4ae65deecfd119f06"
     },
     {
+      "path": "scripts/ci/generate_manifest.py",
+      "sha256": "e99ef38a6683fc2cdc3ba87337fe0482900fcf080f12a2c782388a4d76f81fe7"
+    },
+    {
       "path": "scripts/ci/lint_forbidden_terms.py",
       "sha256": "d65c2bc782e1223dbd1c8379fad5bdcf92ad8fd6775cb37978e53b0f3e2da7b2"
     },
@@ -243,7 +247,7 @@
     },
     {
       "path": "scripts/ci/release_gate.py",
-      "sha256": "437e28b0a0db0bf7b8af954ea402621b7cac342f99f68639f2cc6617859b7617"
+      "sha256": "c3623b1b41870948749969e05166e1e35990d9bfdebc8730d3185057cef0cc74"
     },
     {
       "path": "scripts/ci/replication_packet.py",

@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "12e5cbd7b3d32a34e816f73501a1b21ad6e2bdcc2dbc4b75fe19305c268b47d1",
+  "artifact_sha256": "9fac68c4c730acc7ea077ec66f09533cdd7ae052ddee52c77a3f221bd07beb43",
   "controls": [
     {
       "command": "python -m scripts.ci.falsification_ledger --only permutation_null",
@@ -113,7 +113,7 @@
     }
   ],
   "git_dirty": true,
-  "git_sha": "6cb6e88aa9bc71001296a1efb1b6210b5090a8d4",
+  "git_sha": "db08d3587e6746d5d9d93b909efa895a6f40d871",
   "ledger_id": "geosync-falsification-ledger",
   "promotion_allowed": true,
   "schema_version": "1.0"

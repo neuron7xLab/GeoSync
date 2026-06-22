@@ -1,12 +1,12 @@
 {
-  "artifact_sha256": "40d14d0cd9d8b2e552f74ce653c5be36c7542b16b871e6f3fad77b6cf41f9a8f",
+  "artifact_sha256": "c321839115837c499563601d2de9b7803bf0e07e28e3310d43b8b09d915f23d8",
   "gate": "E.clean_clone",
   "git_dirty": true,
-  "git_sha": "6cb6e88aa9bc71001296a1efb1b6210b5090a8d4",
+  "git_sha": "db08d3587e6746d5d9d93b909efa895a6f40d871",
   "schema_version": "1.0",
   "stages": [
     {
-      "detail": "tar bytes=140206080",
+      "detail": "tar bytes=140318720",
       "ok": true,
       "stage": "git_archive"
     },
@@ -38,7 +38,7 @@
       ],
       "ok": true,
       "stage": "wheel_contents",
-      "wheel_sha256": "713b09e45adc27c1c7aa30f4049d6827c48dc193a86b15b301cb00c172402fdb"
+      "wheel_sha256": "c964aeeb3d21847c0e68ee0fe15274f334493a59a33078dc29a30d2b241f1b56"
     },
     {
       "detail": "installed",
@@ -46,7 +46,7 @@
       "stage": "wheel_install"
     },
     {
-      "detail": "resolved=/tmp/tmpoqs99af7/venv/lib/python3.12/site-packages/geosync/__init__.py",
+      "detail": "resolved=/tmp/tmpmiitsh7i/venv/lib/python3.12/site-packages/geosync/__init__.py",
       "ok": true,
       "stage": "import_geosync"
     },

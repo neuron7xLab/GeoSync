@@ -1,10 +1,10 @@
 {
-  "artifact_sha256": "47dd327f668c4544088d595551b536a0aced687f885d39d6c294fde9a11f47d1",
+  "artifact_sha256": "7f86221a2ddf4ebe927997018a0a191246cb56b9cbc9de1ac3dec4dcaf238188",
   "blocker": "no real-market-data manifest present \u2014 repository contains only synthetic single-session fixtures (data/sample_ohlc.csv is marked forbidden_use: not for live trading; all ingestion adapters are stub-only). Cannot attest MEASURED_SINGLE without real data.",
   "entries": [],
   "gate": "G.real_data",
   "git_dirty": true,
-  "git_sha": "6cb6e88aa9bc71001296a1efb1b6210b5090a8d4",
+  "git_sha": "db08d3587e6746d5d9d93b909efa895a6f40d871",
   "manifests_found": 0,
   "next_action": "Stage \u22651 real venue session under artifacts/evidence/real_data/<id>.json with non-zero data_sha256, license_provenance, replay_command, and git_dirty=false; re-run this probe.",
   "required_fields": [

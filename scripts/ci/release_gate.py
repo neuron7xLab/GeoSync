@@ -337,7 +337,14 @@ def probe_d_manifest_coldverify(deep: bool) -> tuple[str, str]:
         if len(parts) != 2:
             continue
         want, rel = parts
-        rel = rel.lstrip("*").lstrip("./")
+        # Strip an optional sha256sum binary marker and a single "./" path
+        # prefix. NB: use prefix-stripping, not str.lstrip("./") — the latter
+        # is character-based and eats the leading dot of dotfiles
+        # (".claude/x" -> "claude/x"), reporting them as falsely missing.
+        if rel.startswith("*"):
+            rel = rel[1:]
+        if rel.startswith("./"):
+            rel = rel[2:]
         target = ROOT / rel
         total += 1
         if not target.exists():
