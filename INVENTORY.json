@@ -114,6 +114,14 @@
       "sha256": "85708a51dd51f7e6e9423f0b43366e4fafef7096e451ddf8c3d750977ec328f3"
     },
     {
+      "path": "scripts/ci/check_physics_inference_readiness.py",
+      "sha256": "4c597088f976da1d1e39e4bc1818eb0c112bdd1ce4a79fc73e88ac860f3a1f36"
+    },
+    {
+      "path": "scripts/ci/check_physics_law_witness_index.py",
+      "sha256": "97c488379c3fd36b31a9bce75716245030f13457141383a79fd02434f7264e01"
+    },
+    {
       "path": "scripts/ci/check_pr_gate_contract.py",
       "sha256": "d474e8af748173b26158e1dba6d0846ff03a44c985dc2b5a14ca24d8a7de2ba4"
     },

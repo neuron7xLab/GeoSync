@@ -32,6 +32,7 @@
     "scripts/benchmark_bonds.py::runtime",
     "scripts/check_l2_collector_health.py::research",
     "scripts/ci/check_governance_kernel_binding.py::governance",
+    "scripts/ci/check_physics_inference_readiness.py::physics_contracts",
     "scripts/ci/gate6_sensitivity_surface_falsifier.py::research",
     "scripts/collect_binance_perp_l2.py::research",
     "scripts/l2_execution_cost_sweep.py::research",
