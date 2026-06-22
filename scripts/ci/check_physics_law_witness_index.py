@@ -43,11 +43,10 @@ from typing import Any
 
 import yaml
 
-from physics_contracts.law import Law, load_catalog
-
 ROOT = Path(__file__).resolve().parents[2]
 INDEX_PATH = ROOT / "artifacts" / "physics_v2" / "law_witness_index.json"
 INVARIANTS_PATH = ROOT / ".claude" / "physics" / "INVARIANTS.yaml"
+CATALOG_PATH = ROOT / "physics_contracts" / "catalog.yaml"
 TESTS_ROOT = ROOT / "tests"
 
 # A tolerance rationale that is *only* a number (optionally signed/scientific) is
@@ -113,30 +112,55 @@ def _load_invariants() -> list[dict[str, Any]]:
     return found
 
 
-def _catalog_entry(law: Law, witnesses: dict[str, list[str]]) -> dict[str, Any]:
-    bound = sorted(witnesses.get(law.id, []))
-    if not law.is_blocking():
+def _load_catalog() -> dict[str, dict[str, Any]]:
+    """Parse ``physics_contracts/catalog.yaml`` into ``{law_id: entry}``.
+
+    Read directly (not via ``physics_contracts.law.load_catalog``) so this CI
+    script imports no first-party non-shipped package — it stays clean under the
+    wheel-contract import ratchet while consuming the same source of truth.
+    """
+
+    raw = yaml.safe_load(CATALOG_PATH.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict) or "laws" not in raw:
+        raise ValueError(f"{CATALOG_PATH}: missing top-level 'laws' list")
+    catalog: dict[str, dict[str, Any]] = {}
+    for entry in raw["laws"]:
+        law_id = entry["id"]
+        if law_id in catalog:
+            raise ValueError(f"duplicate law id in catalog: {law_id}")
+        catalog[law_id] = entry
+    return catalog
+
+
+def _catalog_entry(law: dict[str, Any], witnesses: dict[str, list[str]]) -> dict[str, Any]:
+    law_id = law["id"]
+    severity = law.get("severity", "block")
+    formula = law["formula"]
+    tolerance = law["tolerance"]
+    validity = law["validity"]
+    bound = sorted(witnesses.get(law_id, []))
+    if severity != "block":
         status = "WARN_ONLY"
     elif bound:
         status = "COVERED"
     else:
         status = "MISSING"
     tolerance_derivation = (
-        f"Tolerance derived from the law formula '{law.formula}' and the catalog "
-        f"tolerance clause '{law.tolerance}'."
+        f"Tolerance derived from the law formula '{formula}' and the catalog "
+        f"tolerance clause '{tolerance}'."
     )
     falsifier = (
-        f"An observation violating '{law.formula}' beyond the declared tolerance "
-        f"('{law.tolerance}') in the validity domain '{law.validity}'."
+        f"An observation violating '{formula}' beyond the declared tolerance "
+        f"('{tolerance}') in the validity domain '{validity}'."
     )
     return {
-        "law_id": law.id,
-        "module": law.module,
-        "severity": law.severity,
-        "formula": law.formula,
-        "validity_domain": law.validity,
-        "source": law.source,
-        "tolerance": law.tolerance,
+        "law_id": law_id,
+        "module": law["module"],
+        "severity": severity,
+        "formula": formula,
+        "validity_domain": validity,
+        "source": law["source"],
+        "tolerance": tolerance,
         "tolerance_derivation": tolerance_derivation,
         "falsifier": falsifier,
         "status": status,
@@ -173,7 +197,7 @@ def _invariant_entry(inv: dict[str, Any]) -> dict[str, Any]:
 def build_index() -> dict[str, Any]:
     """Regenerate the full law→witness index from the live sources."""
 
-    catalog = load_catalog()
+    catalog = _load_catalog()
     witnesses = scan_law_witnesses(TESTS_ROOT)
     catalog_laws = [_catalog_entry(catalog[lid], witnesses) for lid in sorted(catalog)]
     invariants = [
