@@ -54,12 +54,13 @@ class MainWithStubbedBuildTest(unittest.TestCase):
                 json.dumps({"version": 2, "non_geosync_packages": baseline})
             )
             orig_leak, orig_base = gate._shipped_leak, gate.BASELINE_PATH
-            gate._shipped_leak = lambda: set(current)  # type: ignore[assignment]
+            setattr(gate, "_shipped_leak", lambda: set(current))
             gate.BASELINE_PATH = base_path
             try:
                 return gate.main([])
             finally:
-                gate._shipped_leak, gate.BASELINE_PATH = orig_leak, orig_base
+                setattr(gate, "_shipped_leak", orig_leak)
+                gate.BASELINE_PATH = orig_base
 
     def test_leak_equal_to_baseline_passes(self) -> None:
         self.assertEqual(self._run({"core", "tools"}, ["core", "tools"]), 0)

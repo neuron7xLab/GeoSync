@@ -39,6 +39,7 @@ import sys
 import tempfile
 import zipfile
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = ROOT / "artifacts" / "wheel_contract.json"
@@ -60,10 +61,10 @@ def _load_baseline() -> tuple[set[str], set[str]]:
 
 
 def _write_baseline(packages: set[str], import_failures: list[dict[str, str]]) -> None:
-    existing: dict[str, object] = {}
+    existing: dict[str, Any] = {}
     if BASELINE_PATH.exists():
         existing = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
-    prior_reasons = dict(existing.get("allowed_legacy_packages", {}))  # type: ignore[arg-type]
+    prior_reasons: dict[str, str] = dict(existing.get("allowed_legacy_packages", {}))
     allowed = {
         pkg: prior_reasons.get(pkg, "legacy entrypoint/import provider pending re-home (ADR-0024)")
         for pkg in sorted(packages)
