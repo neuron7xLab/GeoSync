@@ -29,6 +29,8 @@ on:
       - '.github/workflows/research-integrity-gate.yml'
       # Second-layer evidence-truth controls (post-audit hardening):
       - 'scripts/ci/check_research_artifact_truth.py'
+      - 'scripts/ci/check_phd_traceability.py'
+      - 'docs/phd/**'
       - 'scripts/ci/check_claim_artifact_graph.py'
       - 'scripts/ci/check_manifest_hashes.py'
       - 'scripts/ci/prove_repo_integrity.sh'
@@ -121,6 +123,9 @@ jobs:
       # --- Second-layer evidence-truth controls (schema-valid != true) ---
       - name: Research-artifact truth gate
         run: python scripts/ci/check_research_artifact_truth.py
+
+      - name: PhD claim-traceability gate
+        run: python scripts/ci/check_phd_traceability.py
 
       - name: Negative-evidence preservation gate (tombstones)
         run: python scripts/ci/check_tombstone_preservation.py
