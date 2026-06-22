@@ -107,7 +107,7 @@
     },
     {
       "path": "scripts/ci/check_package_boundary.py",
-      "sha256": "191f65f1c739155734fe144c6a0c56cb86a8b801af66ea4553bc4f3a74a68164"
+      "sha256": "0787a80d0f0ee7efb1982535b91c79605146a82d17b678a2790b50e4eaad3c5c"
     },
     {
       "path": "scripts/ci/check_pr_gate_contract.py",
@@ -171,7 +171,7 @@
     },
     {
       "path": "scripts/ci/release_gate.py",
-      "sha256": "4ef5918b6ff11888e7385f2165979e33fba2acca1ca82f379cc6210366d1a2ce"
+      "sha256": "adb72b418dcd657a4ac853c4de2955af7432f3026e67446ca556a64c23671598"
     },
     {
       "path": "scripts/ci/run_actionlint.py",

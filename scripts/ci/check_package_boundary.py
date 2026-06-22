@@ -4,11 +4,11 @@
 """Package-boundary ratchet — fail-closed, monotone-down wheel-surface ledger.
 
 GeoSync's canonical wheel namespace is ``geosync*``. Today the wheel still ships
-16 non-``geosync`` top-level packages (``core``, ``application``, ``scripts``,
+non-``geosync`` top-level packages (``core``, ``application``, ``scripts``,
 ``tools``, ...): nine console-script entry points still resolve into them, so a
 one-shot ``packages.find = geosync*`` would break the installed CLI. The
 canonical fix is the ADR-0024 migration (re-home runtime code under
-``geosync.*``, repoint entry points), which lands incrementally.
+``geosync.*``), which lands incrementally.
 
 This ratchet makes that migration *safe and monotone* — the same doctrine the
 import-architecture ratchet applies to ``src.*`` imports:
@@ -18,11 +18,13 @@ import-architecture ratchet applies to ``src.*`` imports:
 * a package re-homed out of the surface also fails, with a one-line fix
   (``--write``) — paying down must tighten the ledger so it trends to empty.
 
-Source of truth is ``[tool.setuptools.packages.find].include`` in
-``pyproject.toml`` — the exact knob that controls what the wheel ships. The
-release gate's ``B.wheel`` probe is the *aspirational* target (GREEN only at
-zero leak); this ratchet is the *anti-regression floor* that protects the path
-to it. Migration target: leak set empty, ``B.wheel`` GREEN.
+GROUNDING: the leak set is measured by **building the wheel from a clean
+``git archive HEAD``** and reading its actual top-level packages — exactly what
+the release gate's ``B.wheel`` probe checks. An earlier version read
+``packages.find.include`` as a proxy; a real wheel build proved that proxy WRONG
+(``include-package-data`` / nested sub-projects drag dirs into the wheel that are
+not in ``include``), so editing only ``include`` would have reported false
+progress. The wheel is the only truth.
 
 Usage::
 
@@ -33,32 +35,73 @@ Exit codes::
 
     0  — current leak set == baseline (no new leak, no stale entry)
     1  — a new non-geosync package entered, or a re-homed entry is stale
-    2  — pyproject.toml is missing the packages.find include list
+    2  — the wheel could not be built (cannot establish the surface; fail-closed)
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
-import tomllib
+import tempfile
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PYPROJECT = ROOT / "pyproject.toml"
 BASELINE_PATH = ROOT / ".github" / "package_boundary_baseline.json"
 
 
-def _shipped_leak() -> set[str]:
-    """Non-geosync top-level packages the wheel currently ships.
+class WheelBuildError(RuntimeError):
+    """Raised when the clean-room wheel cannot be built."""
 
-    Derived from ``[tool.setuptools.packages.find].include`` (the knob that
-    controls the wheel surface) intersected with real top-level directories.
+
+def _shipped_leak() -> set[str]:
+    """Non-geosync top-level packages the wheel actually ships.
+
+    Builds the wheel from a clean ``git archive HEAD`` (no working-tree cruft,
+    no stale egg-info) and reads the real top-level package names — the same
+    measurement as release_gate's B.wheel probe. Raises WheelBuildError if the
+    build fails (the surface cannot be established → fail closed).
     """
-    data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
-    include = data["tool"]["setuptools"]["packages"]["find"]["include"]
-    tops = {pattern.split(".", 1)[0] for pattern in include}
-    return {top for top in tops if not top.startswith("geosync") and (ROOT / top).is_dir()}
+    with tempfile.TemporaryDirectory() as td:
+        tdp = Path(td)
+        arch = tdp / "src.tar"
+        with arch.open("wb") as fh:
+            subprocess.run(
+                ["git", "archive", "--format=tar", "HEAD"],
+                cwd=ROOT,
+                stdout=fh,
+                check=True,
+            )
+        srcdir = tdp / "src_tree"
+        srcdir.mkdir()
+        subprocess.run(["tar", "-xf", str(arch), "-C", str(srcdir)], check=True)
+        wheeldir = tdp / "wheel"
+        build = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "wheel",
+                "--no-deps",
+                "--no-cache-dir",
+                "-w",
+                str(wheeldir),
+                str(srcdir),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        wheels = list(wheeldir.glob("*.whl"))
+        if build.returncode != 0 or not wheels:
+            raise WheelBuildError(build.stderr[-600:] or "wheel build produced no artifact")
+        with zipfile.ZipFile(wheels[0]) as zf:
+            tops = {n.split("/")[0] for n in zf.namelist()}
+        return {
+            top for top in tops if not top.endswith(".dist-info") and not top.startswith("geosync")
+        }
 
 
 def _load_baseline() -> set[str]:
@@ -76,14 +119,23 @@ def _write_baseline(leak: set[str]) -> None:
         "_doc": existing.get(
             "_doc",
             "Package-boundary debt ledger (RATCHET). Non-geosync top-level "
-            "packages still shipped in the wheel surface. This set may ONLY "
-            "shrink; check_package_boundary.py enforces it. Target: empty "
-            "(single geosync* namespace, release-gate B.wheel GREEN).",
+            "packages still shipped in the built wheel. This set may ONLY "
+            "shrink; check_package_boundary.py enforces it by building the wheel "
+            "from git archive HEAD. Target: empty (single geosync* namespace, "
+            "release-gate B.wheel GREEN).",
         ),
-        "version": 1,
+        "version": 2,
+        "measured_by": "wheel-build (git archive HEAD)",
         "non_geosync_packages": sorted(leak),
     }
     BASELINE_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def evaluate(cur: set[str], base: set[str]) -> tuple[bool, list[str], list[str]]:
+    """Pure ratchet comparison. Returns (failed, new_leaks, fixed)."""
+    new = sorted(cur - base)
+    fixed = sorted(base - cur)
+    return (bool(new or fixed), new, fixed)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -91,41 +143,31 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--write",
         action="store_true",
-        help="Regenerate the baseline from the current tree (tighten the ledger).",
+        help="Regenerate the baseline from the current built wheel (tighten the ledger).",
     )
     args = parser.parse_args(argv)
 
     try:
         cur = _shipped_leak()
-    except KeyError:
-        print(
-            "ERROR: pyproject.toml has no [tool.setuptools.packages.find].include list",
-            file=sys.stderr,
-        )
+    except (WheelBuildError, subprocess.CalledProcessError) as exc:
+        print(f"ERROR: could not build wheel to measure surface: {exc}", file=sys.stderr)
         return 2
 
     if args.write:
         _write_baseline(cur)
-        print(f"Baseline tightened: {len(cur)} non-geosync packages on the wheel surface.")
+        print(f"Baseline tightened: {len(cur)} non-geosync packages in the built wheel.")
         return 0
 
     base = _load_baseline()
-    new = sorted(cur - base)
-    fixed = sorted(base - cur)
-    failed = False
+    failed, new, fixed = evaluate(cur, base)
 
     if new:
-        failed = True
         print("ERROR: new package-boundary debt (the geosync* wheel ratchet only shrinks).")
         for pkg in new:
-            print(f"  + non-geosync package on wheel surface: {pkg}")
-        print(
-            "Fix: re-home the module under the canonical `geosync` namespace; "
-            "do not add new top-level packages to packages.find.include."
-        )
+            print(f"  + non-geosync package in wheel: {pkg}")
+        print("Fix: re-home the module under the canonical `geosync` namespace.")
 
     if fixed:
-        failed = True
         print(
             f"Boundary paid down ({len(fixed)} package(s) re-homed) but the ledger "
             "is stale. Tighten it so it stays honest:"
@@ -134,8 +176,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if not failed:
         print(
-            f"Package-boundary ratchet held: {len(cur)} non-geosync packages on the "
-            "wheel surface (target 0). No new debt."
+            f"Package-boundary ratchet held: {len(cur)} non-geosync packages in the "
+            "built wheel (target 0). No new debt."
         )
         if not cur:
             print("Ledger empty — single canonical geosync* wheel achieved.")
