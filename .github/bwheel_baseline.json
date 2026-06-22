@@ -5,7 +5,6 @@
     "analytics": "legacy entrypoint/import provider pending re-home (ADR-0024)",
     "application": "legacy entrypoint/import provider pending re-home (ADR-0024)",
     "backtest": "legacy entrypoint/import provider pending re-home (ADR-0024)",
-    "cli": "legacy entrypoint/import provider pending re-home (ADR-0024)",
     "core": "legacy entrypoint/import provider pending re-home (ADR-0024)",
     "domain": "legacy entrypoint/import provider pending re-home (ADR-0024)",
     "execution": "legacy entrypoint/import provider pending re-home (ADR-0024)",

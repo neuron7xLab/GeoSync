@@ -18,7 +18,7 @@ python scripts/ci/check_wheel_contract.py --strict       # post-migration TARGET
 
 | Metric | Value | Source |
 |---|---|---|
-| non-`geosync` packages in wheel | **14** | `artifacts/wheel_contract.json::non_geosync_packages` |
+| non-`geosync` packages in wheel | **13** | `artifacts/wheel_contract.json::non_geosync_packages` |
 | latent broken imports (packaged module → unpackaged first-party) | **70** | `::import_failures` |
 | dead console scripts | **0** | `::script_failures` |
 | ratchet verdict (debt frozen) | **PASS** | `--no-dynamic` |
@@ -59,7 +59,6 @@ import still resolves into it. Removal is sequenced in ADR-0024:
 | `core` | `tp-kuramoto` entrypoint + heavy import graph | WP-04 re-home → `geosync.kuramoto.cli` |
 | `tools` | `geosync-research` entrypoint + docs tooling | WP-03/WP-06 |
 | `scripts` | `geosync-scripts` + 5 dev entrypoints | WP-06/owner decision |
-| `cli` | doc generator imports `cli.geosync_cli` | WP-06 (re-home or exclude devtools) |
 | `src` | `setuptools_scm.version_file = src/_version.py` + stale fork | version_file relocation + import-arch ratchet |
 | others (`analytics`, `backtest`, `domain`, `execution`, `interfaces`, `libs`, `modules`, `observability`) | imported by the entrypoint-anchored packages above | drop after their importers re-home |
 

@@ -75,7 +75,7 @@
     },
     {
       "path": "scripts/ci/check_import_architecture.py",
-      "sha256": "58ffb28ba07ac7529c9a3e66a2914906508511ba8889ca81f26fc9d3024ad642"
+      "sha256": "d025c4ef24b437274284db4e3e0b6bff599a7e81cd66c22252186591a8f0ddf2"
     },
     {
       "path": "scripts/ci/check_inference_transformer_contract.py",
