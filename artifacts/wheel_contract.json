@@ -1,5 +1,5 @@
 {
-  "wheel_sha256": "88e551e3dd18af715dc8b8c490685ee0bb9c76ba451499208a708dac8eff7d52",
+  "wheel_sha256": "f624680c3f1ca872120dfa2e42da4d41077ab536bc1714352fbdab833025fd52",
   "installed_packages": [
     "analytics",
     "application",
@@ -43,7 +43,7 @@
     "geosync-db": "scripts.db_migrate:cli",
     "geosync-server": "application.runtime.server:main",
     "tp-kuramoto": "core.kuramoto.cli:main",
-    "geosync-research": "tools.research.research_cli:main",
+    "geosync-research": "geosync.research.research_cli:main",
     "mfn": "geosync.mfn.cli:main",
     "mfn-api": "geosync.mfn.cli:api_main",
     "mfn-validate": "geosync.mfn.cli:validate_main"
@@ -71,11 +71,11 @@
     },
     {
       "module": "geosync/neural_controller/integration/bridge.py",
-      "imports_unpackaged": "cortex_service"
+      "imports_unpackaged": "runtime"
     },
     {
       "module": "geosync/neural_controller/integration/bridge.py",
-      "imports_unpackaged": "runtime"
+      "imports_unpackaged": "cortex_service"
     },
     {
       "module": "interfaces/live_runner.py",
@@ -143,7 +143,7 @@
     },
     {
       "module": "scripts/run_fhmc_demo.py",
-      "imports_unpackaged": "rl"
+      "imports_unpackaged": "envs"
     },
     {
       "module": "scripts/run_fhmc_demo.py",
@@ -151,7 +151,7 @@
     },
     {
       "module": "scripts/run_fhmc_demo.py",
-      "imports_unpackaged": "envs"
+      "imports_unpackaged": "rl"
     },
     {
       "module": "scripts/run_kuramoto_robustness_v1.py",
@@ -291,11 +291,11 @@
     },
     {
       "module": "src/geosync/sdk/mlsdm/facade.py",
-      "imports_unpackaged": "rl"
+      "imports_unpackaged": "runtime"
     },
     {
       "module": "src/geosync/sdk/mlsdm/facade.py",
-      "imports_unpackaged": "runtime"
+      "imports_unpackaged": "rl"
     },
     {
       "module": "tools/build_disha_ba_correlation_figures.py",

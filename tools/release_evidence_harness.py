@@ -754,10 +754,10 @@ def _default_gates(python: str, clean_python: str, skip_clean_install: bool) -> 
             [
                 python,
                 "-c",
-                "import core.neuro.epistemic_audit, runtime.audit_logger, tools.architecture_audit, tools.research.research_cli",
+                "import core.neuro.epistemic_audit, runtime.audit_logger, tools.architecture_audit, geosync.research.research_cli",
             ],
         ),
-        Gate("research_entrypoint_help", [python, "-m", "tools.research.research_cli", "--help"]),
+        Gate("research_entrypoint_help", [python, "-m", "geosync.research.research_cli", "--help"]),
         Gate(
             "ricci_schema_semantic",
             [

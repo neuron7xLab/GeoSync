@@ -25,7 +25,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import NoReturn
 
-from tools.research.validate_ricci_artifact_schema import DEFAULT_SCHEMA, validate_artifact
+from geosync.research.validate_ricci_artifact_schema import DEFAULT_SCHEMA, validate_artifact
 
 DEFAULT_RUN_ID = "RFC-2026-MARKET-RICCI-V1"
 DEFAULT_TIMESTAMP_UTC = "1970-01-01T00:00:00Z"
