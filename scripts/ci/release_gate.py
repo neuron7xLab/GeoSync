@@ -333,6 +333,26 @@ def probe_p_tests(deep: bool) -> tuple[str, str]:
 
 
 # --------------------------------------------------------------------------
+# H. Executable falsification ledger
+# --------------------------------------------------------------------------
+def probe_h_falsifier_ledger(deep: bool) -> tuple[str, str]:
+    script = ROOT / "scripts" / "ci" / "check_falsifier_ledger.py"
+    if not script.exists():
+        return RED, "scripts/ci/check_falsifier_ledger.py absent (falsifier gate not installed)"
+    proc = subprocess.run(
+        [sys.executable, str(script)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    last = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "exit"
+    if proc.returncode == 0:
+        return GREEN, last
+    return RED, last
+
+
+# --------------------------------------------------------------------------
 # MANUAL gating items — require domain artifacts this gate cannot synthesise.
 # Surfaced honestly as MANUAL so they force RED until a real artifact lands.
 # --------------------------------------------------------------------------
@@ -384,11 +404,9 @@ PROBES: list[Probe] = [
     Probe(
         "H.falsification",
         "H",
-        "Null/topology/cost/factor-neutral controls + kill-condition ledger",
+        "Executable falsification ledger: every null/falsifier resolves to real code + witness",
         True,
-        _manual(
-            "controls partially present (bootstrap/surrogate/shuffle) but no null-baseline/kill-condition ledger gate"
-        ),
+        probe_h_falsifier_ledger,
     ),
     Probe(
         "K.execution",

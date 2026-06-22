@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "3f3613bf8501448a2a70deda8c4324788d31dc531052525785b1454396753dd0"
+      "sha256": "fd2fecdeae22380cd5e055c08ec16bff937e7be1dc22a4a54cb387dd191f54e8"
     },
     {
       "path": "scripts/ci/__init__.py",
@@ -64,6 +64,10 @@
     {
       "path": "scripts/ci/check_examples_manifest.py",
       "sha256": "a0e4a2d58f0d7ec3020436e654fd3397769a15c8165ec32c53eba5f1f162f187"
+    },
+    {
+      "path": "scripts/ci/check_falsifier_ledger.py",
+      "sha256": "44bf8ddb16c3cd96a4dd2258ad35fe3734e022e0680f7587591d503f6c0c0986"
     },
     {
       "path": "scripts/ci/check_governance_kernel_binding.py",
@@ -163,7 +167,7 @@
     },
     {
       "path": "scripts/ci/release_gate.py",
-      "sha256": "24e08e7ffe5d1e9ef9718f912e0c38689545954be85670729cb9abdc4d452ade"
+      "sha256": "4ef5918b6ff11888e7385f2165979e33fba2acca1ca82f379cc6210366d1a2ce"
     },
     {
       "path": "scripts/ci/run_actionlint.py",
