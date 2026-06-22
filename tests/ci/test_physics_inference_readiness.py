@@ -10,11 +10,21 @@ never promote synthetic evidence to a real-data claim.
 
 from __future__ import annotations
 
-from scripts.ci.check_physics_inference_readiness import (
-    READINESS_PATH,
-    compute_readiness,
-    main,
+import pytest
+
+# The readiness gate exercises the full Kuramoto/Ricci stack in-process, so its
+# import chain pulls the heavy scientific dependencies (jax / numba / pyarrow /
+# pydantic via core.*). The minimal-dependency repo-integrity gate runs tests/ci
+# under a sci-core-only environment; skip there rather than fail on a missing
+# optional dependency. The full coverage runs in the python-fast-shard suite.
+_check = pytest.importorskip(
+    "scripts.ci.check_physics_inference_readiness",
+    reason="physics-inference readiness gate needs the full Kuramoto/Ricci stack",
 )
+
+READINESS_PATH = _check.READINESS_PATH
+compute_readiness = _check.compute_readiness
+main = _check.main
 
 _REAL_FP = "a" * 64
 
@@ -61,7 +71,5 @@ def test_realdata_tier_with_real_fingerprint_is_ready() -> None:
 
 
 def test_unknown_declared_tier_is_rejected() -> None:
-    import pytest
-
     with pytest.raises(ValueError, match="declared_tier"):
         compute_readiness(declared_tier="WISHFUL", real_dataset_fingerprint=None)
