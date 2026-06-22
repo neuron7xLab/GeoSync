@@ -263,6 +263,62 @@ def probe_c_dep_truth(deep: bool) -> tuple[str, str]:
 
 
 # --------------------------------------------------------------------------
+# S. Security — dependency vulnerability gate (HIGH/CRITICAL, fail-closed)
+# --------------------------------------------------------------------------
+def probe_s_dep_vulns(deep: bool) -> tuple[str, str]:
+    """Run pip-audit over the runtime lock and feed it to the HIGH gate.
+
+    Reuses the canonical fail-closed gate (.github/scripts/pip_audit_high_gate.py),
+    not a new verifier. A clean audit is GREEN; a HIGH/CRITICAL finding is RED.
+    Tooling/network failure to *run* pip-audit degrades to MANUAL (never a
+    false GREEN, never a RED that blames a real vuln for a network hiccup).
+    """
+    if not deep:
+        return MANUAL, "skipped (run with --deep for pip-audit HIGH/CRITICAL gate)"
+    gate = ROOT / ".github" / "scripts" / "pip_audit_high_gate.py"
+    lock = ROOT / "requirements.lock"
+    if not gate.exists() or not lock.exists():
+        return MANUAL, "pip_audit_high_gate.py or requirements.lock absent"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        report = Path(td) / "pip-audit-runtime.json"
+        # pip-audit exit: 0 = no vulns, 1 = vulns found (still emits JSON);
+        # anything else (no JSON written) is a tooling/network failure. We gate
+        # on the JSON via the HIGH gate, so the return code itself is unused.
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pip_audit",
+                "-r",
+                str(lock),
+                "-f",
+                "json",
+                "-o",
+                str(report),
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if not report.exists():
+            return MANUAL, "pip-audit could not run (tooling/network) — audit deferred"
+        high = subprocess.run(
+            [sys.executable, str(gate), str(report)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if high.returncode == 0:
+            return GREEN, "pip-audit: no HIGH/CRITICAL dependency vulnerabilities"
+        tail = (high.stdout or high.stderr).strip().splitlines()
+        return RED, tail[-1] if tail else "HIGH/CRITICAL dependency vulnerability"
+
+
+# --------------------------------------------------------------------------
 # D. Provenance / evidence bundle
 # --------------------------------------------------------------------------
 def probe_d_manifest_coldverify(deep: bool) -> tuple[str, str]:
@@ -378,6 +434,13 @@ PROBES: list[Probe] = [
     Probe("B.wheel", "B", "Wheel ships only geosync* (clean-room)", True, probe_b_wheel),
     Probe("C.lock", "C", "requirements.lock present", True, probe_c_lock),
     Probe("C.dep_truth", "C", "Dependency-truth validator clean", True, probe_c_dep_truth),
+    Probe(
+        "S.dep_vulns",
+        "S",
+        "No HIGH/CRITICAL dependency vulnerabilities (pip-audit)",
+        True,
+        probe_s_dep_vulns,
+    ),
     Probe(
         "D.manifest", "D", "MANIFEST.sha256 cold-verify clean", True, probe_d_manifest_coldverify
     ),
