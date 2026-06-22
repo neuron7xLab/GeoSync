@@ -6,7 +6,6 @@
     "analytics",
     "application",
     "backtest",
-    "cli",
     "core",
     "domain",
     "execution",
