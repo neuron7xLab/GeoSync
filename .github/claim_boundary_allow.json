@@ -621,6 +621,21 @@
       "file": "docs/architecture/physics_v2_positioning.md",
       "match": "geosync is not an alpha engine",
       "reason": "honest-negation: explicit research-boundary statement (GeoSync is NOT an alpha engine; it is a claim-validation engine), mirrors the README 'not an alpha product' allowlist precedent"
+    },
+    {
+      "file": "DISHA_SAFE_120_WORDS_v2.md",
+      "match": "the validated findings ledger",
+      "reason": "mechanism: 'validated findings ledger' names an audit record (a ledger of validated findings), not a validated-alpha market claim"
+    },
+    {
+      "file": "docs/PHYSICS_RANK_EXTRAPOLATION_WORK_ACT.md",
+      "match": "discovered market law",
+      "reason": "forbidden-enumeration: item inside the 'GeoSync must not claim:' blocked-claims list — quotes the banned phrasing to prohibit it"
+    },
+    {
+      "file": "docs/claims/descriptor_promotion_policy.md",
+      "match": "excess return, or a profitable strategy",
+      "reason": "forbidden-enumeration: defines the banned feature-to-alpha claim ('Forbidden:' example) per the promotion policy, not an asserted profitable strategy"
     }
   ]
 }
