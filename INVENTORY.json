@@ -107,7 +107,7 @@
     },
     {
       "path": "scripts/ci/check_package_boundary.py",
-      "sha256": "0787a80d0f0ee7efb1982535b91c79605146a82d17b678a2790b50e4eaad3c5c"
+      "sha256": "a4b18d2997847f144e2b3901290e7d14dd15f25f6cb7150cd7a85d7cc275db2d"
     },
     {
       "path": "scripts/ci/check_pr_gate_contract.py",
@@ -248,6 +248,10 @@
     {
       "path": "tests/connectors/test_file_feed.py",
       "sha256": "4d1df307e2296b6564a7ff53ddef196cb9bbe07482787d58d7d6b97fd2f0493d"
+    },
+    {
+      "path": "tests/connectors/test_optional_dependency_guards.py",
+      "sha256": "39e33599408ce9a78f14af8fc110297e1e4fc602557757d7aa0db404d0fdd136"
     },
     {
       "path": "tests/connectors/test_polygon_adapter_reproducible.py",
