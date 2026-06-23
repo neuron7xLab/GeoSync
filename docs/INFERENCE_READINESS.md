@@ -3,45 +3,89 @@
 
 # GeoSync — Inference Readiness Contract
 
-> **Operational boundary for when a repository, prompt system, model context, or knowledge graph stops being a file collection and becomes a controlled execution mechanism.**
+> **Semantic-cognitive execution boundary for when a repository, prompt system, model context, or knowledge graph stops being passive storage and becomes a controlled inference mechanism.**
 
-Inference readiness is not a status label. It is the moment when the system can accept input, reject noise, preserve the semantic core, apply explicit rules, constrain hallucination, and emit a replayable answer or artifact under measurable runtime conditions.
+Inference readiness is the transition from **stored meaning** to **runtime control**.
 
-The value of the system is not its description. The value is its ability to produce stable, falsifiable, reproducible results when executed.
+A repository is not inference-ready because it contains many files, diagrams, prompts, claims, benchmarks, or explanations. It becomes inference-ready only when its context architecture can accept an input, select the right semantic core, reject noise, bind claims to evidence, execute a bounded method, emit a schema-valid artifact, and preserve enough state for replay, falsification, and improvement.
+
+The value of the system is not its description. The value is its ability to produce stable, cheap, repeatable, falsifiable results under runtime pressure.
 
 ---
 
 ## 1. First Principle
 
 ```text
-A system exits to inference only when its context architecture, agent boundaries,
-claim rules, evidence contracts, and replay paths are structured enough to make
-runtime behavior predictable, cheap, measurable, and falsifiable.
+A system exits to inference only when meaning becomes executable control.
+```
+
+Executable control means:
+
+```text
+context is discoverable
+rules are explicit
+claims are bounded
+evidence is addressable
+artifacts are schema-valid
+failure is detectable
+execution is replayable
 ```
 
 A repository that only stores files is an archive.
-A repository that controls execution is an inference surface.
+A repository that routes meaning into bounded execution is an inference surface.
 
-GeoSync therefore treats documentation, schemas, tests, artifacts, and CI as one joined control plane. Text that cannot constrain runtime behavior is not operational evidence.
+GeoSync therefore treats documentation, schemas, tests, artifacts, CI, benchmarks, and release evidence as one joined control plane. Text that does not constrain runtime behavior is not operational evidence.
 
 ---
 
-## 2. Runtime Mechanism
+## 2. Semantic-Cognitive Model
+
+Inference readiness has four cognitive layers:
+
+| Layer | Function | Runtime Question |
+| --- | --- | --- |
+| Orientation | Locate the correct system frame. | What is this input asking the system to do? |
+| Selection | Extract the minimum sufficient context. | Which committed facts are needed now? |
+| Constraint | Bind behavior to rules, evidence, and scope. | What is the agent forbidden to infer? |
+| Verification | Convert output into replayable evidence. | Can this result be checked, falsified, and repeated? |
+
+The agent must not consume the repository as a flat text pile. It must traverse it as a semantic control graph:
+
+```text
+input intent
+  -> canonical context
+  -> active constraints
+  -> allowed method
+  -> evidence tier
+  -> artifact schema
+  -> falsifier
+  -> replay record
+```
+
+If any edge is missing, the output is not inference. It is interpretation.
+
+---
+
+## 3. Runtime Mechanism
 
 The inference-ready path is:
 
 ```text
 input
   ↓
-context selection
+intent classification
   ↓
-noise rejection
+canonical context selection
+  ↓
+noise / stale-context rejection
   ↓
 semantic-core preservation
   ↓
 claim-boundary binding
   ↓
-deterministic method execution
+method and configuration selection
+  ↓
+deterministic execution
   ↓
 null baseline / falsifier check
   ↓
@@ -54,26 +98,29 @@ A result is admissible only when the system records enough information to repeat
 
 ---
 
-## 3. Readiness Gates
+## 4. Readiness Gates
 
 | Gate | Requirement | Blocking Condition |
 | --- | --- | --- |
-| Context Architecture | Canonical files are indexed, linked, and front-loaded for agents. | Critical rules are buried, duplicated, or missing. |
-| Token Economy | Context payload excludes decorative or stale material. | Runtime prompt budget is spent on non-operative text. |
-| Claim Boundary | Every claim maps to tier, evidence, falsifier, and replay path. | Claim language outruns evidence tier. |
-| Agent Control | Agent behavior is bounded by `AGENTS.md`, forbidden claims, tests, and schemas. | Agent can invent status, scope, data, or promotion level. |
-| Deterministic Execution | Method, seed, config, git state, and data hash are captured. | Output cannot be replayed from committed state. |
-| Artifact Validity | Output conforms to machine-readable schema. | Result exists only as prose, screenshot, or terminal memory. |
-| Falsification | Nulls, baselines, and failure modes are explicit. | No path exists to disprove the result. |
-| Release Evidence | CI or local evidence bundle records commands, logs, exits, checksums. | Green text exists without durable evidence. |
+| Context Addressability | Canonical files are indexed, linked, and named by role. | Critical context is buried, duplicated, stale, or discoverable only by human memory. |
+| Semantic Compression | Runtime context preserves the operational core while removing decorative mass. | Prompt budget is spent on prose that cannot change execution. |
+| Claim Boundary | Every claim maps to tier, evidence, falsifier, and replay path. | Claim language outruns evidence tier or benchmark scope. |
+| Agent Control | Agent behavior is bounded by `AGENTS.md`, forbidden claims, tests, schemas, and release rules. | Agent can invent status, scope, data, promotion level, or scientific meaning. |
+| Method Binding | Each result is tied to code path, config, dataset, seed, git state, and execution command. | Output cannot be reconstructed from committed state. |
+| Artifact Validity | Output conforms to machine-readable schema and durable file layout. | Result exists only as prose, screenshot, terminal memory, or chat memory. |
+| Falsification | Nulls, baselines, negative controls, and failure modes are explicit. | No executable path exists to disprove the result. |
+| Release Evidence | CI or local evidence bundle records commands, logs, exits, versions, checksums. | Green text exists without durable evidence. |
+
+Promotion is blocked by any failed gate.
 
 ---
 
-## 4. Operational Metrics
+## 5. Operational Metrics
 
 The inference surface should be measured by:
 
 ```text
+context_addressability_score
 context_retention_rate
 context_token_waste_ratio
 schema_validation_pass_rate
@@ -83,21 +130,24 @@ forbidden_claim_violations
 null_baseline_superiority_rate
 artifact_hash_coverage
 agent_boundary_violation_count
+manual_interpretation_dependency
 ```
 
-A system is not mature because it sounds coherent. It is mature when these measurements improve while claim inflation decreases.
+A system is not mature because it sounds coherent. It is mature when these measurements improve while claim inflation, prompt waste, and manual interpretation decrease.
 
 ---
 
-## 5. Failure Modes
+## 6. Failure Modes
 
 The repository is not inference-ready when:
 
 ```text
 critical context is not discoverable
 agent instructions conflict across files
+canonical meaning is duplicated without hierarchy
 outputs are not schema-bound
 claims cannot be traced to evidence
+evidence cannot be replayed
 null baselines are absent
 runtime artifacts are not reproducible
 manual interpretation is required to decide validity
@@ -108,7 +158,7 @@ These failures block promotion. They are not cosmetic defects.
 
 ---
 
-## 6. GeoSync Binding
+## 7. GeoSync Binding
 
 This contract binds the existing GeoSync system spine:
 
@@ -136,11 +186,32 @@ The inference-readiness claim is valid only when each lower layer has an explici
 
 ---
 
-## 7. Final Rule
+## 8. Agent Reading Order
+
+When an agent enters GeoSync, it should resolve context in this order:
+
+```text
+README.md
+  -> docs/REPOSITORY_SYSTEM.md
+  -> docs/INFERENCE_READINESS.md
+  -> AGENTS.md
+  -> forbidden-claims / doctrine files
+  -> claim registry
+  -> schemas
+  -> tests
+  -> latest release evidence
+```
+
+The agent should prefer the smallest context set that preserves correctness. More context is not better if it weakens constraint density.
+
+---
+
+## 9. Final Rule
 
 ```text
 No indexed context, no inference.
 No bounded agent, no inference.
+No evidence-bound claim, no inference.
 No schema-valid artifact, no inference.
 No falsifier, no inference.
 No replay path, no inference.
