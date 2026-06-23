@@ -173,7 +173,7 @@ def test_concurrent_calls_are_thread_safe_and_consistent() -> None:
                 r = _ollivier_worst_edge_kappa(p, instrument="EURUSD")
                 with lock:
                     results.append(r)
-        except BaseException as exc:  # noqa: BLE001 — surface any thread fault
+        except BaseException as exc:  # surface any thread fault into the test
             with lock:
                 errors.append(exc)
 
