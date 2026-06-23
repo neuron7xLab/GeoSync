@@ -35,7 +35,7 @@ def test_manifest_is_consistent_with_artifacts() -> None:
 def test_hand_edit_is_detected() -> None:
     """A tampered artifact is flagged STALE (the gate's whole reason to exist)."""
     entry = DETERMINISTIC_ARTIFACTS[0]
-    path = ROOT / str(entry["artifact"])
+    path = ROOT / entry.artifact
     original = path.read_bytes()
     try:
         path.write_bytes(original + b'\n{"hand_edited": true}\n')  # corrupt

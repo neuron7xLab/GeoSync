@@ -32,28 +32,38 @@ import json
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "artifacts" / ".manifest.json"
 
-# (artifact, generator argv relative to ROOT, source files the generator reads).
-DETERMINISTIC_ARTIFACTS: list[dict[str, object]] = [
-    {
-        "artifact": "artifacts/academy_fellow/distinguished_evidence_table.json",
-        "generator": ["scripts/ci/gen_distinguished_evidence_table.py"],
-        "sources": [".claude/neuro/NEURO_OPERATIONALIZATION_LEDGER.yaml"],
-    },
-    {
-        "artifact": "artifacts/claims_hashes.json",
-        "generator": ["scripts/generate_claim_hashes.py"],
-        "sources": ["CLAIMS.md"],
-    },
-    {
-        "artifact": "docs/architecture/claim_graph.json",
-        "generator": ["scripts/generate_claim_graph.py"],
-        "sources": ["CLAIMS.md"],
-    },
+
+@dataclass(frozen=True)
+class _ArtifactSpec:
+    """A deterministic evidence artifact + the generator that reproduces it."""
+
+    artifact: str
+    generator: list[str]  # argv (relative to ROOT) after the interpreter
+    sources: list[str]  # source files the generator reads
+
+
+DETERMINISTIC_ARTIFACTS: list[_ArtifactSpec] = [
+    _ArtifactSpec(
+        artifact="artifacts/academy_fellow/distinguished_evidence_table.json",
+        generator=["scripts/ci/gen_distinguished_evidence_table.py"],
+        sources=[".claude/neuro/NEURO_OPERATIONALIZATION_LEDGER.yaml"],
+    ),
+    _ArtifactSpec(
+        artifact="artifacts/claims_hashes.json",
+        generator=["scripts/generate_claim_hashes.py"],
+        sources=["CLAIMS.md"],
+    ),
+    _ArtifactSpec(
+        artifact="docs/architecture/claim_graph.json",
+        generator=["scripts/generate_claim_graph.py"],
+        sources=["CLAIMS.md"],
+    ),
 ]
 
 
@@ -72,12 +82,12 @@ def _run_generator(generator: list[str]) -> None:
     )
 
 
-def regenerated_sha(entry: dict[str, object]) -> tuple[str, str]:
+def regenerated_sha(entry: _ArtifactSpec) -> tuple[str, str]:
     """Return (committed_sha, regenerated_sha); restores the committed bytes."""
-    path = ROOT / str(entry["artifact"])
+    path = ROOT / entry.artifact
     committed = path.read_bytes()
     try:
-        _run_generator([str(g) for g in entry["generator"]])  # type: ignore[union-attr]
+        _run_generator(entry.generator)
         regenerated = path.read_bytes()
     finally:
         path.write_bytes(committed)  # never leave the tree dirty
@@ -87,12 +97,12 @@ def regenerated_sha(entry: dict[str, object]) -> tuple[str, str]:
 def build_manifest() -> dict[str, object]:
     rows = []
     for entry in DETERMINISTIC_ARTIFACTS:
-        path = ROOT / str(entry["artifact"])
+        path = ROOT / entry.artifact
         rows.append(
             {
-                "artifact": entry["artifact"],
-                "generator_command": "python " + " ".join(str(g) for g in entry["generator"]),  # type: ignore[union-attr]
-                "sources": entry["sources"],
+                "artifact": entry.artifact,
+                "generator_command": "python " + " ".join(entry.generator),
+                "sources": entry.sources,
                 "artifact_sha256": _sha256(path.read_bytes()),
             }
         )
@@ -106,14 +116,14 @@ def build_manifest() -> dict[str, object]:
 def check() -> list[str]:
     errors: list[str] = []
     for entry in DETERMINISTIC_ARTIFACTS:
-        path = ROOT / str(entry["artifact"])
+        path = ROOT / entry.artifact
         if not path.is_file():
-            errors.append(f"missing artifact: {entry['artifact']}")
+            errors.append(f"missing artifact: {entry.artifact}")
             continue
         committed_sha, regen_sha = regenerated_sha(entry)
         if committed_sha != regen_sha:
             errors.append(
-                f"STALE: {entry['artifact']} committed sha {committed_sha[:12]} != "
+                f"STALE: {entry.artifact} committed sha {committed_sha[:12]} != "
                 f"regenerated {regen_sha[:12]} (run its generator and commit)"
             )
     # Manifest must exist and match the committed artifacts.

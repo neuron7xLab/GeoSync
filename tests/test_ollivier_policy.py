@@ -164,4 +164,6 @@ def test_adapter_degraded_required_refuses() -> None:
     sig = _adapter_signal_under_env()
     assert sig["ollivier_status"] == OllivierStatus.PERF_BUDGET_EXCEEDED.value
     assert "ollivier_kappa" in sig
-    assert not np.isfinite(float(sig["ollivier_kappa"]))  # type: ignore[arg-type]
+    kappa = sig["ollivier_kappa"]
+    assert isinstance(kappa, float)
+    assert not np.isfinite(kappa)

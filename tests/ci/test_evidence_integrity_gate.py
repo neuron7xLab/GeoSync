@@ -12,6 +12,8 @@ ledger and asserts the violation is caught — and that the real ledger is clean
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import yaml
 
 from scripts.ci.check_evidence_integrity import (
@@ -124,7 +126,7 @@ def test_real_ledger_is_clean() -> None:
     assert integrity_errors(ledger, known_invariant_ids()) == []
 
 
-def test_registry_is_sole_authority_claude_md_token_is_not_known(tmp_path) -> None:  # type: ignore[no-untyped-def]
+def test_registry_is_sole_authority_claude_md_token_is_not_known(tmp_path: Path) -> None:
     """A stray INV-FAKE in CLAUDE.md prose must NOT become a known invariant.
 
     known_invariant_ids reads ONLY the registry — there is no CLAUDE.md parameter
