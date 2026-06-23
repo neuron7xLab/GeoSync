@@ -110,6 +110,10 @@
       "sha256": "8d1fc0d696924ea87c8355b5492f5c4f822d344da14eae4f8f3e7921e85772e2"
     },
     {
+      "path": "scripts/ci/check_neuro_claim_boundary.py",
+      "sha256": "3e75638647b9e252389a3e7fb0f03060a732f37dfacb4df4b13b0f8149fe7641"
+    },
+    {
       "path": "scripts/ci/check_package_boundary.py",
       "sha256": "a4b18d2997847f144e2b3901290e7d14dd15f25f6cb7150cd7a85d7cc275db2d"
     },
@@ -119,11 +123,11 @@
     },
     {
       "path": "scripts/ci/check_physics_inference_readiness.py",
-      "sha256": "4c597088f976da1d1e39e4bc1818eb0c112bdd1ce4a79fc73e88ac860f3a1f36"
+      "sha256": "5ff2047b0d3134ecbed0fc0b7d567a3f9d0548e761ffd21949306fa9120d3d38"
     },
     {
       "path": "scripts/ci/check_physics_law_witness_index.py",
-      "sha256": "97c488379c3fd36b31a9bce75716245030f13457141383a79fd02434f7264e01"
+      "sha256": "0c7b5b8757fbc89510337b0f82b855289247e96542933038b3f308215d4af612"
     },
     {
       "path": "scripts/ci/check_pr_gate_contract.py",
@@ -176,6 +180,10 @@
     {
       "path": "scripts/ci/gate6_sensitivity_surface_falsifier.py",
       "sha256": "c9ca39139bc360c742f06350e23c086cb8c8a9eeea4d1d09b7998d16d1d0acdf"
+    },
+    {
+      "path": "scripts/ci/gen_law_mechanism_witness_matrix.py",
+      "sha256": "f2c32d209e365562c2b7d6666320416f346094e462d3ffc4ff947b0868d2ee6e"
     },
     {
       "path": "scripts/ci/lint_forbidden_terms.py",

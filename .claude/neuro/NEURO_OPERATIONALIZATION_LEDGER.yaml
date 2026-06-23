@@ -212,10 +212,10 @@ entries:
       INV-GABA4: vol→0 with vix=0,rpe=0 not yielding inhibition≈0 ⇒ violation.
     existing_tests:
       - tests/unit/physics/test_T19_neuro_p1.py
-    missing_tests:
       - tests/unit/physics/test_T19_gaba_stdp_monotone.py
+    missing_tests: []
     runtime_path: "YES"
-    remediation_action: ADD_TEST
+    remediation_action: KEEP
     priority: P1
     reason: Mechanism is operational; STDP plasticity branch lacks dedicated test.
     inv_refs: [INV-GABA1, INV-GABA2, INV-GABA3, INV-GABA4, INV-GABA5]
@@ -264,10 +264,10 @@ entries:
       INV-K1 + INV-OA1 hold throughout; ricci_update producing κ>1 ⇒ violation.
     existing_tests:
       - tests/unit/physics/test_T18_kuramoto_p1.py
-    missing_tests:
       - tests/unit/physics/test_ricci_flow_engine_invariants.py
+    missing_tests: []
     runtime_path: "YES"
-    remediation_action: ADD_TEST
+    remediation_action: KEEP
     priority: P1
     reason: >-
       Coupling-feedback path lacks an integration invariant test combining
@@ -348,10 +348,10 @@ entries:
       INV-KELLY2: applied > cap ⇒ violation.
     existing_tests:
       - tests/unit/physics/test_T19_neuro_p1.py
-    missing_tests:
       - tests/unit/physics/test_kelly_sizing_growth.py
+    missing_tests: []
     runtime_path: "YES"
-    remediation_action: ADD_TEST
+    remediation_action: KEEP
     priority: P1
     reason: INV-KELLY3 statistical growth-rate test not localised in physics suite.
     inv_refs: [INV-KELLY1, INV-KELLY2, INV-KELLY3]
@@ -401,10 +401,10 @@ entries:
       Composite > 1 OR < 0 ⇒ aggregator violation.
     existing_tests:
       - tests/integration/test_neurostack_integration.py
-    missing_tests:
       - tests/unit/physics/test_gradient_vital_signs_invariants.py
+    missing_tests: []
     runtime_path: "YES"
-    remediation_action: ADD_TEST
+    remediation_action: KEEP
     priority: P1
     reason: Root axiom needs unit test with explicit synthetic dynamics.
     inv_refs: [INV-YV1]
@@ -429,10 +429,10 @@ entries:
     existing_tests:
       - tests/unit/physics/test_T22_lyapunov_spectral.py
       - tests/integration/test_full_pipeline_e2e.py
-    missing_tests:
       - tests/unit/physics/test_dro_ara_invariants.py
+    missing_tests: []
     runtime_path: "YES"
-    remediation_action: ADD_TEST
+    remediation_action: KEEP
     priority: P1
     reason: Algebraic γ-derivation deserves localised float-precision test.
     inv_refs: [INV-DRO1, INV-DRO2, INV-DRO3, INV-DRO4, INV-DRO5]
@@ -455,13 +455,15 @@ entries:
       Reactive vs proactive failure documented (see CLAUDE.md AC1 derivation).
     existing_tests:
       - tests/unit/physics/test_T22_lyapunov_spectral.py
-    missing_tests:
       - tests/unit/physics/test_adaptive_criticality_kappa.py
+    missing_tests: []
     runtime_path: "YES"
-    remediation_action: ADD_TEST
+    remediation_action: KEEP
     priority: P1
     reason: Adversarial-audit-derived invariant lacks dedicated unit test.
     inv_refs: [INV-AC1-rev]
+    witness_note: >-
+      kappa_critical/isolation gate is a documented derivation (CLAUDE.md + INV-AC1-rev), NOT executed source; witness anchors the closed form to the real DFAGammaEstimator lambda output. Bind to an isolate() symbol if/when the gate is implemented.
 
   - id: explosive-sync-hysteresis
     term: synchronization
@@ -505,10 +507,10 @@ entries:
       INV-HPC2: NaN/Inf output on finite input ⇒ violation.
     existing_tests:
       - tests/integration/test_full_pipeline_e2e.py
-    missing_tests:
       - tests/unit/physics/test_hpc_neuro_bridge_determinism.py
+    missing_tests: []
     runtime_path: "YES"
-    remediation_action: ADD_TEST
+    remediation_action: KEEP
     priority: P1
     reason: Determinism path needs a focused unit test (seeded round-trip).
     inv_refs: [INV-HPC1, INV-HPC2]
@@ -557,9 +559,9 @@ entries:
     falsifier: >-
       Output ∉ [−1,1] ⇒ violation. NON-CLAIM: this is NOT raw TD-error and
       MUST NOT be passed to invariants restricted to DopamineController scope.
-    existing_tests: []
-    missing_tests:
+    existing_tests:
       - tests/unit/physics/test_dopamine_execution_adapter_bounds.py
+    missing_tests: []
     runtime_path: "YES"
     remediation_action: ADD_FALSIFIER
     priority: P0
@@ -567,6 +569,8 @@ entries:
       Adapter is on hot path but lacks dedicated test and explicit non-claim;
       scope confusion with INV-DA7 is a documented hazard in CLAUDE.md.
     inv_refs: []
+    witness_note: >-
+      Witness asserts out in [-1,1], adapter != raw TD-error in saturation, and INV-DA7 (d delta/d r = 1) is scoped to DopamineController only. Classification stays PARTIAL: no INV-* binding exists in CLAUDE.md, so the repo neuro audit forbids OPERATIONAL promotion despite the added witness — promotion is blocked on defining the invariant.
 
   - id: neuro-optimizer-balance-metrics
     term: neuro
@@ -588,8 +592,8 @@ entries:
     existing_tests:
       - tests/integration/test_neurostack_integration.py
       - benchmarks/neuro_optimizer_benchmark.py
-    missing_tests:
       - tests/unit/neuro/test_neuro_optimizer_null_model.py
+    missing_tests: []
     runtime_path: "YES"
     remediation_action: ADD_NULL_MODEL
     priority: P1
@@ -597,6 +601,8 @@ entries:
       Behaviour is real but biology framing is decorative; needs null model
       and explicit non-claim that DA/5HT and E/I are arithmetic ratios.
     inv_refs: []
+    witness_note: >-
+      Null model (N=3000, seed 20260623) scores mean ~0.731 vs configured ~0.999 at T=0.95 (~2.7 sigma). DA/5HT and E/I asserted as uncited engineering ratios (no physiological clamp). Classification stays PARTIAL: no INV-* binding exists in CLAUDE.md, so the repo neuro audit forbids OPERATIONAL promotion despite the added witness — promotion is blocked on defining the invariant.
 
   - id: neuro-validation-bounds
     term: neuro
@@ -614,8 +620,8 @@ entries:
       No null-model test; no documentation tying ranges to a citation.
     existing_tests:
       - tests/test_metric_validations.py
-    missing_tests:
       - tests/unit/neuro/test_validation_bounds_provenance.py
+    missing_tests: []
     runtime_path: "YES"
     remediation_action: QUARANTINE_DOC
     priority: P2
@@ -623,6 +629,8 @@ entries:
       Sound utilities; ranges should be relabeled as engineering bounds and
       provenance recorded, not removed.
     inv_refs: []
+    witness_note: >-
+      Provenance witness pins bounds as engineering numeric guards (no biological citation). Remains PARTIAL per QUARANTINE_DOC remediation.
 
   - id: coherence-bridge-geosync-adapter
     term: coherence
@@ -641,13 +649,15 @@ entries:
       Cross-bridge invariant (R∈[0,1] AND κ≤1) violated downstream ⇒ violation.
     existing_tests:
       - coherence_bridge/test_runner.py
-    missing_tests:
       - tests/integration/test_coherence_bridge_invariants.py
+    missing_tests: []
     runtime_path: "YES"
-    remediation_action: ADD_TEST
+    remediation_action: ADD_FALSIFIER
     priority: P1
     reason: Adapter on hot path lacks an integration-level invariant assertion.
     inv_refs: [INV-K1, INV-RC1]
+    witness_note: >-
+      Witness confirms INV-K1 (R in [0,1]) and INV-RC1 on the Ollivier operator are preserved. OPEN GAP (kept PARTIAL): adapter relays out-of-band negative gamma (T3) and the exposed ricci_curvature is a Forman blend (legitimately >1, not the Ollivier kappa<=1 field) — ledger wording should name the Ollivier operator; adapter does not fail-closed on negative gamma.
 
   - id: hebbian-plasticity-update
     term: plasticity
@@ -665,9 +675,9 @@ entries:
     falsifier: >-
       Weights diverge unbounded under repeated extreme input ⇒ violation.
       Stability criterion (Lyapunov-style) not asserted in code.
-    existing_tests: []
-    missing_tests:
+    existing_tests:
       - tests/unit/neuro/test_hebbian_plasticity_bounds.py
+    missing_tests: []
     runtime_path: "YES"
     remediation_action: ADD_FALSIFIER
     priority: P1
@@ -675,6 +685,8 @@ entries:
       Plasticity update needs explicit stability criterion and bounded-input
       test before the "plasticity" naming is justified.
     inv_refs: []
+    witness_note: >-
+      BIBO-stable under adversarial input via magnitude clamp min(1,|pnl|*10); weight_floor rollback exercised. CAVEAT: caller-supplied eligibility components > 1 are unvalidated and fall outside the witnessed envelope (input-contract boundary). Classification stays PARTIAL: no INV-* binding exists in CLAUDE.md, so the repo neuro audit forbids OPERATIONAL promotion despite the added witness — promotion is blocked on defining the invariant.
 
   - id: homeostatic-stabilizer
     term: homeostasis
@@ -689,14 +701,16 @@ entries:
     output_contract: corrected state; bounded.
     falsifier: >-
       Setpoint never reached under zero-noise sustained input ⇒ violation.
-    existing_tests: []
-    missing_tests:
+    existing_tests:
       - tests/unit/neuro/test_homeostatic_stabilizer_setpoint.py
+    missing_tests: []
     runtime_path: "YES"
     remediation_action: ADD_TEST
     priority: P2
     reason: Mechanism is real; setpoint-convergence test missing.
     inv_refs: []
+    witness_note: >-
+      Convergence f(d)=d-gain*sin(d), stable for 0<gain<2 (default 1); deadband=convergence_tol; Lyapunov energy descent E_post<=E_pre. CAVEAT: scalar-mean correction converges only for coherent common-mode error (the witnessed regime). Classification stays PARTIAL: no INV-* binding exists in CLAUDE.md, so the repo neuro audit forbids OPERATIONAL promotion despite the added witness — promotion is blocked on defining the invariant.
 
   # ─────────────────────────── DECORATIVE ───────────────────────────────
   # Naming only, no algorithmic content tied to the bio/physics term.
