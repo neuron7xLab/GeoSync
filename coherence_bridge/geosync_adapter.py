@@ -56,6 +56,27 @@ _PHASE_TO_REGIME: dict[str, str] = {
 _DEFAULT_INSTRUMENTS = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"]
 
 
+def _ollivier_worst_edge_kappa(prices: np.ndarray) -> float:
+    """Worst (max) per-edge Ollivier-Ricci κ over the price graph.
+
+    This is the curvature notion INV-RC1 (κ ≤ 1) actually governs — distinct
+    from the augmented-Forman blend the adapter exposes for fragility. Computed
+    best-effort and fail-closed: any failure (empty graph, solver error) returns
+    NaN so the downstream physics-contract gate flags it rather than the adapter
+    fabricating an in-band value.
+    """
+    try:
+        from core.indicators.ricci import build_price_graph, ricci_curvature_edge
+
+        graph = build_price_graph(prices)
+        edges = list(graph.edges())
+        if not edges:
+            return float("nan")
+        return float(max(ricci_curvature_edge(graph, int(u), int(v)) for u, v in edges))
+    except Exception:  # noqa: BLE001 — fail-closed to NaN, never raise on hot path
+        return float("nan")
+
+
 class GeoSyncAdapter:
     """Adapts GeoSync physics kernel to SignalEngine interface.
 
@@ -244,11 +265,25 @@ class GeoSyncAdapter:
             seq = self._seq.get(instrument, 0)
             self._seq[instrument] = seq + 1
 
+        # 11. Ricci name split (closes the ledger OPEN GAP):
+        #   - augmented_forman_ricci: the Forman blend exposed for topology
+        #     fragility. LEGITIMATELY unbounded above; NOT the κ ≤ 1 field and
+        #     NEVER κ-bound evidence (INV-RC1 does not govern it).
+        #   - ollivier_kappa: the Ollivier-Ricci operator INV-RC1 (κ ≤ 1) DOES
+        #     govern, computed over the close-price graph (fail-closed to NaN).
+        #   - ricci_curvature: retained as a backward-compatible DISPLAY alias of
+        #     the Forman blend (verify_T5 classifies it P1/finite-only).
+        ollivier_kappa = _ollivier_worst_edge_kappa(prices)
+
         return {
             "timestamp_ns": time.time_ns(),
             "instrument": instrument,
             "gamma": round(float(gamma), 6),
             "order_parameter_R": round(float(composite.kuramoto_R), 6),
+            "augmented_forman_ricci": round(float(ricci_curvature), 6),
+            "ollivier_kappa": (
+                round(float(ollivier_kappa), 6) if math.isfinite(ollivier_kappa) else ollivier_kappa
+            ),
             "ricci_curvature": round(float(ricci_curvature), 6),
             "lyapunov_max": round(float(lyapunov_max), 6),
             "regime": regime_name,

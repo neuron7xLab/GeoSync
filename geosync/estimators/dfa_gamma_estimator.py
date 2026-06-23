@@ -19,10 +19,13 @@ Advantage over Welch PSD: no stationarity assumption.
 from __future__ import annotations
 
 import math
+import os
 import time
 from dataclasses import dataclass
+from enum import Enum
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,3 +203,264 @@ def _wavelet_check(x: np.ndarray, dfa_H: float, tol: float = 0.15) -> bool:
     H_wavelet = (slope - 1.0) / 2.0
 
     return abs(H_wavelet - dfa_H) < tol
+
+
+# ──────────────────── Adaptive-criticality membrane isolation ────────────────
+# INV-AC1-rev (CLAUDE.md): κ(node) ≥ κ_critical OR node ISOLATED.
+#
+#   κ_critical = -ln(ΔH_max / ε) / (λ_local + δ)
+#
+# This is the EXECUTED form of the gate that used to live only as a documented
+# derivation in CLAUDE.md (and as a test-local reference implementation). The
+# closed form is reproduced here verbatim — the bound is mathematically
+# identical to the contract; only its home moved from prose to source.
+#
+#   λ_local = DFAGammaEstimator.hurst_exponent (per node, DERIVED)
+#   ε       = SNR tolerance (default 0.05, env-overridable: KAPPA_EPSILON)
+#   δ       = singularity floor 1e-4 (keeps λ_local→0 finite)
+#   ΔH_max  = rolling max |ΔH| over the last `window` steps (window=256)
+#
+# Gate (the only decision): isolate(node) ⇔ κ_node < κ_critical(λ_local).
+#
+# NON-CLAIM: a criticality observer, not a predictor. It classifies the scaling
+# topology of a node; it makes no market-causality / forecasting claim.
+KAPPA_DELTA: float = 1e-4  # δ : singularity floor (INV-AC1-rev)
+KAPPA_EPSILON_DEFAULT: float = 0.05  # ε : SNR tolerance
+KAPPA_WINDOW_DEFAULT: int = 256  # rolling window for ΔH_max
+KAPPA_EPSILON_ENV: str = "KAPPA_EPSILON"
+KAPPA_WINDOW_ENV: str = "KAPPA_WINDOW"
+
+
+class IsolationReason(str, Enum):
+    """Why a node was (not) isolated — deterministic, audit-friendly enum."""
+
+    NONE = "NONE"
+    BELOW_KAPPA_CRITICAL = "BELOW_KAPPA_CRITICAL"
+    NON_FINITE_INPUT = "NON_FINITE_INPUT"
+    SINGULAR_DENOMINATOR = "SINGULAR_DENOMINATOR"
+
+
+@dataclass(frozen=True, slots=True)
+class CriticalityAssessment:
+    """Per-node adaptive-criticality verdict (INV-AC1-rev).
+
+    Every field that feeds the gate decision is exposed so the verdict is
+    fully reconstructable from the record (no hidden state).
+    """
+
+    lambda_local: float
+    delta_h_max: float
+    epsilon: float
+    kappa_critical: float
+    kappa_node: float
+    isolation_required: bool
+    isolation_reason: IsolationReason
+
+
+def resolve_kappa_epsilon(epsilon: float | None = None) -> float:
+    """ε with deterministic env override (KAPPA_EPSILON). Fail-closed on bad ε."""
+    if epsilon is not None:
+        eps = float(epsilon)
+    else:
+        raw = os.environ.get(KAPPA_EPSILON_ENV)
+        eps = KAPPA_EPSILON_DEFAULT if raw is None else float(raw)
+    if not math.isfinite(eps) or eps <= 0.0:
+        raise ValueError(f"INV-AC1-rev: ε must be finite > 0, got {eps!r}")
+    return eps
+
+
+def resolve_kappa_window(window: int | None = None) -> int:
+    """Rolling window with deterministic env override (KAPPA_WINDOW)."""
+    if window is not None:
+        w = int(window)
+    else:
+        raw = os.environ.get(KAPPA_WINDOW_ENV)
+        w = KAPPA_WINDOW_DEFAULT if raw is None else int(raw)
+    if w < 2:
+        raise ValueError(f"INV-AC1-rev: window must be >= 2, got {w}")
+    return w
+
+
+def kappa_critical(lambda_local: float, *, eps: float, dh_max: float) -> float:
+    """κ_critical = -ln(ΔH_max/ε)/(λ_local + δ) — INV-AC1-rev closed form.
+
+    Fail-closed: a structural contract violation (non-finite / non-positive ε
+    or ΔH_max, non-finite λ_local, singular denominator) raises ``ValueError``
+    rather than returning a silent fallback. The bound is mathematically
+    identical to the CLAUDE.md derivation block.
+    """
+    if not math.isfinite(eps) or eps <= 0.0:
+        raise ValueError(f"INV-AC1-rev: ε must be finite > 0, got {eps!r}")
+    if not math.isfinite(dh_max) or dh_max <= 0.0:
+        raise ValueError(f"INV-AC1-rev: ΔH_max must be finite > 0, got {dh_max!r}")
+    if not math.isfinite(lambda_local):
+        raise ValueError(f"INV-AC1-rev: λ_local must be finite, got {lambda_local!r}")
+    denom = lambda_local + KAPPA_DELTA
+    if denom <= 0.0:
+        raise ValueError(f"INV-AC1-rev: singular denominator λ_local+δ={denom!r} ≤ 0")
+    return -math.log(dh_max / eps) / denom
+
+
+def should_isolate_node(
+    kappa_node: float, lambda_local: float, *, eps: float, dh_max: float
+) -> bool:
+    """Gate: isolate iff κ_node < κ_critical(λ_local).
+
+    Fail-closed on a non-finite κ_node: a node whose curvature cannot be placed
+    relative to the threshold is excluded (True), never silently admitted.
+    """
+    if not math.isfinite(kappa_node):
+        return True
+    return kappa_node < kappa_critical(lambda_local, eps=eps, dh_max=dh_max)
+
+
+def assess_node(
+    kappa_node: float,
+    lambda_local: float,
+    dh_max: float,
+    *,
+    epsilon: float | None = None,
+) -> CriticalityAssessment:
+    """Full INV-AC1-rev verdict for one node, with the reason recorded.
+
+    Runtime-robust fail-closed semantics: a non-finite κ_node/λ_local or a
+    singular denominator isolates that single node (NON_FINITE_INPUT /
+    SINGULAR_DENOMINATOR) instead of crashing the whole ensemble. The shared
+    ensemble parameters ε and ΔH_max are validated up front and raise on
+    violation (a wrong ε/ΔH_max is a programming error, not node data).
+    """
+    eps = resolve_kappa_epsilon(epsilon)
+    if not math.isfinite(dh_max) or dh_max <= 0.0:
+        raise ValueError(f"INV-AC1-rev: ΔH_max must be finite > 0, got {dh_max!r}")
+
+    if not math.isfinite(kappa_node) or not math.isfinite(lambda_local):
+        return CriticalityAssessment(
+            lambda_local=lambda_local,
+            delta_h_max=dh_max,
+            epsilon=eps,
+            kappa_critical=math.nan,
+            kappa_node=kappa_node,
+            isolation_required=True,
+            isolation_reason=IsolationReason.NON_FINITE_INPUT,
+        )
+
+    denom = lambda_local + KAPPA_DELTA
+    if denom <= 0.0:
+        return CriticalityAssessment(
+            lambda_local=lambda_local,
+            delta_h_max=dh_max,
+            epsilon=eps,
+            kappa_critical=math.nan,
+            kappa_node=kappa_node,
+            isolation_required=True,
+            isolation_reason=IsolationReason.SINGULAR_DENOMINATOR,
+        )
+
+    k_crit = -math.log(dh_max / eps) / denom
+    isolate = kappa_node < k_crit
+    return CriticalityAssessment(
+        lambda_local=lambda_local,
+        delta_h_max=dh_max,
+        epsilon=eps,
+        kappa_critical=k_crit,
+        kappa_node=kappa_node,
+        isolation_required=isolate,
+        isolation_reason=(
+            IsolationReason.BELOW_KAPPA_CRITICAL if isolate else IsolationReason.NONE
+        ),
+    )
+
+
+def isolation_mask(
+    kappa_nodes: NDArray[np.float64] | list[float],
+    lambda_locals: NDArray[np.float64] | list[float],
+    dh_max: float,
+    *,
+    epsilon: float | None = None,
+) -> NDArray[np.bool_]:
+    """Deterministic per-node exclusion mask (True = isolated).
+
+    No node registry exists in this layer, so isolation is expressed as a
+    boolean mask the ensemble aggregator applies — not as mutation of a graph.
+    """
+    k = np.asarray(kappa_nodes, dtype=np.float64).ravel()
+    lam = np.asarray(lambda_locals, dtype=np.float64).ravel()
+    if k.shape != lam.shape:
+        raise ValueError(
+            f"kappa_nodes {k.shape} and lambda_locals {lam.shape} must align (INV-AC1-rev)."
+        )
+    return np.array(
+        [
+            assess_node(float(kn), float(ln), dh_max, epsilon=epsilon).isolation_required
+            for kn, ln in zip(k, lam, strict=True)
+        ],
+        dtype=np.bool_,
+    )
+
+
+def aggregate_excluding_isolated(
+    values: NDArray[np.float64] | list[float],
+    kappa_nodes: NDArray[np.float64] | list[float],
+    lambda_locals: NDArray[np.float64] | list[float],
+    dh_max: float,
+    *,
+    epsilon: float | None = None,
+) -> float:
+    """Mean of ``values`` over the non-isolated nodes (INV-AC1-rev exclusion).
+
+    Fail-closed: if every node is isolated there is no admissible ensemble and
+    a ``ValueError`` is raised rather than returning a fabricated aggregate.
+    """
+    vals = np.asarray(values, dtype=np.float64).ravel()
+    iso = isolation_mask(kappa_nodes, lambda_locals, dh_max, epsilon=epsilon)
+    if vals.shape != iso.shape:
+        raise ValueError(f"values {vals.shape} and node count {iso.shape} must align.")
+    keep = ~iso
+    if not bool(keep.any()):
+        raise ValueError(
+            "INV-AC1-rev: all nodes isolated — fail-closed, no admissible ensemble aggregate."
+        )
+    return float(np.mean(vals[keep]))
+
+
+class AdaptiveCriticalityGate:
+    """Executed INV-AC1-rev membrane-isolation gate over a DFA λ_local field.
+
+    Thin, deterministic wrapper binding a fixed ε to the module-level gate
+    functions. There is no node registry at this layer, so ``isolation_mask``
+    (a deterministic boolean exclusion mask) is the runtime isolation form —
+    there is no ``isolate_node`` mutation to apply.
+    """
+
+    def __init__(self, *, epsilon: float | None = None) -> None:
+        self.epsilon: float = resolve_kappa_epsilon(epsilon)
+
+    def kappa_critical(self, lambda_local: float, dh_max: float) -> float:
+        return kappa_critical(lambda_local, eps=self.epsilon, dh_max=dh_max)
+
+    def assess_node(
+        self, kappa_node: float, lambda_local: float, dh_max: float
+    ) -> CriticalityAssessment:
+        return assess_node(kappa_node, lambda_local, dh_max, epsilon=self.epsilon)
+
+    def should_isolate_node(self, kappa_node: float, lambda_local: float, dh_max: float) -> bool:
+        return should_isolate_node(kappa_node, lambda_local, eps=self.epsilon, dh_max=dh_max)
+
+    def isolation_mask(
+        self,
+        kappa_nodes: NDArray[np.float64] | list[float],
+        lambda_locals: NDArray[np.float64] | list[float],
+        dh_max: float,
+    ) -> NDArray[np.bool_]:
+        return isolation_mask(kappa_nodes, lambda_locals, dh_max, epsilon=self.epsilon)
+
+    def aggregate_excluding_isolated(
+        self,
+        values: NDArray[np.float64] | list[float],
+        kappa_nodes: NDArray[np.float64] | list[float],
+        lambda_locals: NDArray[np.float64] | list[float],
+        dh_max: float,
+    ) -> float:
+        return aggregate_excluding_isolated(
+            values, kappa_nodes, lambda_locals, dh_max, epsilon=self.epsilon
+        )

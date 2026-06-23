@@ -255,3 +255,36 @@ def test_envelope_holds_across_pnl_magnitudes(pnl: float) -> None:
     bound = _ltp_envelope(n, W0_EXCITATORY)
     assert math.isfinite(hp.weights.to_list()[0])
     assert abs(hp.weights.to_list()[0] - bound) <= SUM_EPS
+
+
+# --- Input-contract boundary: caller-supplied eligibility is fail-closed -----
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        [2.0] + [0.0] * 10,  # component > 1 — outside the witnessed envelope
+        [-0.1] + [0.0] * 10,  # negative component
+        [float("nan")] + [0.0] * 10,  # non-finite
+        [float("inf")] + [0.0] * 10,  # non-finite
+        [1.0] * 10,  # wrong length (10 ≠ 11)
+    ],
+)
+def test_out_of_envelope_eligibility_fails_closed(bad: list[float]) -> None:
+    """A caller-supplied eligibility outside [0,1]^11 raises (no silent inflation).
+
+    This closes the documented input-contract hole: previously a component > 1
+    silently amplified the weight update beyond the witnessed BIBO envelope.
+    """
+    hp = _fresh()
+    with pytest.raises(ValueError):
+        hp.update(decision="TRADE", pnl=1.0, regime="bull", eligibility=bad)
+
+
+def test_in_envelope_eligibility_is_accepted() -> None:
+    """A valid eligibility in [0,1]^11 is accepted and keeps weights bounded."""
+    hp = _fresh()
+    elig = [0.5] * 11
+    for _ in range(50):
+        hp.update(decision="TRADE", pnl=1.0, regime="bull", eligibility=elig)
+    assert all(math.isfinite(w) for w in hp.weights.to_list())

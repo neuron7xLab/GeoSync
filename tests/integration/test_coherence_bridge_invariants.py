@@ -62,6 +62,11 @@ from coherence_bridge.invariants import (
     verify_T4,
 )
 from coherence_bridge.mock_engine import MockEngine
+from coherence_bridge.physics_contract import (
+    BridgeDecision,
+    PhysicsContractStatus,
+    validate_physics_contract,
+)
 from coherence_bridge.server import _sanitize_signal
 from core.indicators.ricci import build_price_graph, ricci_curvature_edge
 
@@ -250,3 +255,116 @@ def test_non_finite_upstream_kappa_is_flagged_not_coerced() -> None:
     with pytest.raises(InvariantViolation) as exc_info:
         verify_signal(relayed)
     assert exc_info.value.theorem == "T5"
+
+
+# --- INV-CBR1: fail-closed physics-contract gate (Ollivier vs Forman split) --
+
+
+def _base_signal(**overrides: object) -> dict[str, object]:
+    """A fully in-band relayed signal; tests override one field at a time."""
+    sig: dict[str, object] = {
+        "timestamp_ns": 1_700_000_000_000_000_000,
+        "instrument": "EURUSD",
+        "gamma": 1.0,
+        "order_parameter_R": 0.5,
+        "augmented_forman_ricci": 0.2,
+        "ollivier_kappa": 0.1,
+        "ricci_curvature": 0.2,
+        "lyapunov_max": 0.0,
+        "regime": "METASTABLE",
+        "regime_confidence": 0.7,
+        "regime_duration_s": 1.0,
+        "signal_strength": 0.0,
+        "risk_scalar": 1.0,
+        "sequence_number": 0,
+    }
+    sig.update(overrides)
+    return sig
+
+
+def test_cbr1_in_band_signal_is_valid_and_passes() -> None:
+    """A fully in-band signal yields VALID / PASS with a bounded risk scalar."""
+    verdict = validate_physics_contract(_base_signal())
+    assert verdict.status is PhysicsContractStatus.VALID
+    assert verdict.decision is BridgeDecision.PASS
+    assert 0.0 <= verdict.safe_risk_scalar <= 1.0
+
+
+def test_cbr1_negative_gamma_fails_closed() -> None:
+    """Out-of-band NEGATIVE gamma (the documented relay hazard) fails closed.
+
+    gamma is a spectral exponent only meaningful on gamma ≥ 0. A negative value
+    must yield INVALID_PHYSICS_CONTRACT / NO_GO and force risk to the safe floor
+    0.0 — never a non-zero risk handed to the risk layer.
+    """
+    verdict = validate_physics_contract(_base_signal(gamma=-0.5))
+    assert verdict.status is PhysicsContractStatus.INVALID_PHYSICS_CONTRACT
+    assert verdict.decision is BridgeDecision.NO_GO
+    assert verdict.safe_risk_scalar == 0.0
+    assert any("gamma" in r and "< 0" in r for r in verdict.reasons)
+
+
+def test_cbr1_forman_above_one_with_valid_ollivier_is_valid() -> None:
+    """augmented_forman_ricci > 1 is LEGITIMATE and must NOT invalidate.
+
+    Forman curvature is unbounded above; the gate checks it for finiteness only.
+    With R, gamma and Ollivier κ all in-band, a Forman value of 5.0 is VALID.
+    """
+    verdict = validate_physics_contract(
+        _base_signal(augmented_forman_ricci=5.0, ricci_curvature=5.0, ollivier_kappa=0.3)
+    )
+    assert verdict.status is PhysicsContractStatus.VALID, verdict.reasons
+
+
+def test_cbr1_forman_above_one_does_not_trip_rc1() -> None:
+    """Direct proof: a Forman value > 1 is never reported as an INV-RC1 breach.
+
+    Even a large Forman blend produces no INV-RC1 reason (that bound governs the
+    Ollivier operator only); the only κ-bound check is against ollivier_kappa.
+    """
+    verdict = validate_physics_contract(
+        _base_signal(augmented_forman_ricci=42.0, ricci_curvature=42.0, ollivier_kappa=0.9)
+    )
+    assert not any("INV-RC1" in r for r in verdict.reasons)
+    assert verdict.status is PhysicsContractStatus.VALID
+
+
+def test_cbr1_ollivier_above_one_fails_closed() -> None:
+    """ollivier_kappa > 1 violates INV-RC1 ⇒ fail-closed (the κ-bound field).
+
+    Distinct from the Forman case: the Ollivier operator IS κ-bounded, so a
+    value above 1 + ε is a real violation and must fail closed.
+    """
+    verdict = validate_physics_contract(_base_signal(ollivier_kappa=1.5))
+    assert verdict.status is PhysicsContractStatus.INVALID_PHYSICS_CONTRACT
+    assert verdict.decision is BridgeDecision.NO_GO
+    assert verdict.safe_risk_scalar == 0.0
+    assert any("INV-RC1" in r for r in verdict.reasons)
+
+
+def test_cbr1_out_of_band_R_fails_closed() -> None:
+    """R outside [0,1] (INV-K1) fails the contract closed."""
+    verdict = validate_physics_contract(_base_signal(order_parameter_R=1.5))
+    assert verdict.status is PhysicsContractStatus.INVALID_PHYSICS_CONTRACT
+    assert any("INV-K1" in r for r in verdict.reasons)
+
+
+def test_cbr1_non_finite_gamma_fails_closed() -> None:
+    """Non-finite gamma fails closed (T3 accepted domain)."""
+    verdict = validate_physics_contract(_base_signal(gamma=float("nan")))
+    assert verdict.status is PhysicsContractStatus.INVALID_PHYSICS_CONTRACT
+    assert verdict.safe_risk_scalar == 0.0
+
+
+def test_adapter_emits_split_ricci_fields() -> None:
+    """The real adapter now emits the explicit Ollivier/Forman name split.
+
+    augmented_forman_ricci (the blend) and ollivier_kappa (the κ-bound operator)
+    are distinct fields; ricci_curvature is retained as the backward-compatible
+    display alias of the Forman blend.
+    """
+    for sig in _adapter_signals():
+        assert "augmented_forman_ricci" in sig
+        assert "ollivier_kappa" in sig
+        # Display alias equals the Forman blend (not the Ollivier field).
+        assert sig["ricci_curvature"] == sig["augmented_forman_ricci"]
