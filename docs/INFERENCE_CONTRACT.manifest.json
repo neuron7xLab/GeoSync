@@ -1,16 +1,18 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "repository": "neuron7xLab/GeoSync",
   "contract": "inference_readiness",
   "status": "canonical_control_surface",
   "purpose": "Convert repository meaning into bounded, replayable, falsifiable agent execution.",
-  "prime_rule": "Only meaning that changes execution is operational context.",
+  "prime_rule": "Only role-bound meaning that changes execution is operational context.",
+  "semantic_control_layer": "docs/SEMANTIC_CONTROL_LAYER.md",
   "authority_files": [
     "PRODUCT_CATEGORY.md",
     "FORBIDDEN_CLAIMS.md",
     "CLAIMS.md",
     "README.md",
     "docs/REPOSITORY_SYSTEM.md",
+    "docs/SEMANTIC_CONTROL_LAYER.md",
     "docs/INFERENCE_READINESS.md",
     "docs/INFERENCE_OPERATION_PROTOCOL.md",
     "docs/INFERENCE_CONTRACT.manifest.json",
@@ -22,6 +24,7 @@
     "CLAIMS.md",
     "README.md",
     "docs/REPOSITORY_SYSTEM.md",
+    "docs/SEMANTIC_CONTROL_LAYER.md",
     "docs/INFERENCE_READINESS.md",
     "docs/INFERENCE_OPERATION_PROTOCOL.md",
     "docs/INFERENCE_CONTRACT.manifest.json",
@@ -30,6 +33,18 @@
     "scripts/ci/",
     "artifacts/"
   ],
+  "file_roles": {
+    "filter": ["PRODUCT_CATEGORY.md", "FORBIDDEN_CLAIMS.md"],
+    "context": ["README.md", "docs/REPOSITORY_SYSTEM.md", "docs/SEMANTIC_CONTROL_LAYER.md"],
+    "claim": ["CLAIMS.md"],
+    "boundary": ["AGENTS.md", "FORBIDDEN_CLAIMS.md"],
+    "protocol": ["docs/INFERENCE_OPERATION_PROTOCOL.md"],
+    "manifest": ["docs/INFERENCE_CONTRACT.manifest.json"],
+    "schema": ["schemas/"],
+    "test": ["tests/", "scripts/ci/"],
+    "verdict": ["artifacts/", "release evidence"],
+    "replay": ["logs", "manifests", "checksums", "commands"]
+  },
   "operational_steps": [
     {
       "id": 1,
@@ -41,9 +56,9 @@
     {
       "id": 2,
       "name": "load_canonical_context",
-      "operation": "Read the smallest authority set needed for the intent.",
+      "operation": "Read the smallest authority set needed for the intent and preserve the role of each loaded file.",
       "required_output": "context_set",
-      "blocking_condition": "The required authority file is missing, stale, or contradicted."
+      "blocking_condition": "The required authority file is missing, stale, contradicted, or role-ambiguous."
     },
     {
       "id": 3,
@@ -82,6 +97,7 @@
     }
   ],
   "readiness_gates": [
+    "file_role_binding",
     "context_addressability",
     "semantic_compression",
     "claim_boundary",
@@ -94,6 +110,7 @@
   "required_agent_state": [
     "intent_type",
     "canonical_files_used",
+    "file_roles_used",
     "claim_tier_before",
     "claim_tier_after",
     "changed_surface_type",
@@ -123,6 +140,7 @@
     "replay_command"
   ],
   "metrics": [
+    "file_role_coverage",
     "context_addressability_score",
     "context_retention_rate",
     "context_token_waste_ratio",
@@ -136,6 +154,7 @@
     "manual_interpretation_dependency"
   ],
   "stop_conditions": [
+    "file_role_is_ambiguous",
     "claim_has_no_tier",
     "claim_has_tier_but_no_evidence",
     "artifact_has_evidence_but_no_schema",
@@ -145,5 +164,5 @@
     "result_requires_manual_interpretation",
     "agent_must_invent_missing_context"
   ],
-  "final_rule": "No bounded context, no deterministic method, no checked artifact, no falsifiable replay — no inference."
+  "final_rule": "No role-bound file, no bounded context, no deterministic method, no checked artifact, no falsifiable replay — no inference."
 }
