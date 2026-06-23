@@ -12,6 +12,8 @@ ledger and asserts the violation is caught — and that the real ledger is clean
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import yaml
 
 from scripts.ci.check_evidence_integrity import (
@@ -122,3 +124,29 @@ def test_real_ledger_is_clean() -> None:
     """The shipped ledger passes the gate with the real known-invariant set."""
     ledger = yaml.safe_load(LEDGER.read_text(encoding="utf-8"))
     assert integrity_errors(ledger, known_invariant_ids()) == []
+
+
+def test_registry_is_sole_authority_claude_md_token_is_not_known(tmp_path: Path) -> None:
+    """A stray INV-FAKE in CLAUDE.md prose must NOT become a known invariant.
+
+    known_invariant_ids reads ONLY the registry — there is no CLAUDE.md parameter
+    anymore. A registry that lacks INV-FAKE yields a known-set without it even if
+    CLAUDE.md elsewhere mentions the token.
+    """
+    reg = tmp_path / "INVARIANTS.yaml"
+    reg.write_text("    id: INV-REAL\n", encoding="utf-8")
+    known = known_invariant_ids(registry=reg)
+    assert known == {"INV-REAL"}
+    assert "INV-FAKE" not in known
+
+
+def test_operational_citing_claude_only_fake_inv_is_rejected_without_naming_claude() -> None:
+    """ledger cites INV-FAKE (the kind a CLAUDE.md mention used to legitimise) ⇒
+    the gate rejects it, and the error names the registry — NOT CLAUDE.md as an
+    authority."""
+    errs = integrity_errors(_ledger(_operational(inv_refs=["INV-FAKE"])), KNOWN)
+    assert errs, "fabricated INV-FAKE must be rejected"
+    assert any("unknown invariant" in e for e in errs)
+    assert all("CLAUDE.md" not in e for e in errs), (
+        f"error must not present CLAUDE.md as authority: {errs}"
+    )

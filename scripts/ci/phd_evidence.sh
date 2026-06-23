@@ -47,6 +47,8 @@ run "neuro_claim_boundary"      "$PYTHON" scripts/ci/check_neuro_claim_boundary.
 run "neuro_symbolic_audit"      "$PYTHON" tools/audit/neuro_symbolic_audit.py
 # 5b. Evidence integrity (teeth: INV/test references must RESOLVE; no fake promotion).
 run "evidence_integrity"        "$PYTHON" scripts/ci/check_evidence_integrity.py
+# 5c. Artifact freshness (deterministic evidence artifacts == regenerated; no hand-edits).
+run "artifact_freshness"        "$PYTHON" scripts/ci/check_artifact_freshness.py
 # 6. Regenerate machine-readable evidence artifacts (matrix + traceability + table).
 run "witness_matrix"            "$PYTHON" scripts/ci/gen_law_mechanism_witness_matrix.py
 run "distinguished_evidence"    "$PYTHON" scripts/ci/gen_distinguished_evidence_table.py

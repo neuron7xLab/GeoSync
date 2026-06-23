@@ -33,8 +33,11 @@ def test_critical_regime_always_blocked() -> None:
     from unittest.mock import MagicMock
 
     mock_engine = MagicMock()
+    # in-band signal so the INV-CBR1 contract passes and the CRITICAL regime
+    # branch is what blocks (not the contract).
     mock_engine.get_signal.return_value = {
         "regime": "CRITICAL",
+        "gamma": 1.05,
         "risk_scalar": 0.9,
         "order_parameter_R": 0.95,
     }
@@ -42,14 +45,19 @@ def test_critical_regime_always_blocked() -> None:
     d = gate_crit.apply("EURUSD", 1.0)
     assert not d.allowed
     assert d.regime == "CRITICAL"
+    assert "CRITICAL" in d.reason
 
 
 def test_decoherent_regime_blocked() -> None:
     from unittest.mock import MagicMock
 
     mock_engine = MagicMock()
+    # Complete, in-band signal (gamma drives risk; R in [0,1]) so the INV-CBR1
+    # contract passes and the DECOHERENT regime branch is what blocks.
     mock_engine.get_signal.return_value = {
         "regime": "DECOHERENT",
+        "gamma": 1.6,
+        "order_parameter_R": 0.2,
         "risk_scalar": 0.1,
     }
     gate = CoherenceRiskGate(mock_engine)
@@ -62,8 +70,11 @@ def test_metastable_high_risk_passes() -> None:
     from unittest.mock import MagicMock
 
     mock_engine = MagicMock()
+    # gamma=0.95 ⇒ safe_risk_scalar = 1-|0.95-1| = 0.95 (≥ metastable threshold).
     mock_engine.get_signal.return_value = {
         "regime": "METASTABLE",
+        "gamma": 0.95,
+        "order_parameter_R": 0.5,
         "risk_scalar": 0.95,
     }
     gate = CoherenceRiskGate(mock_engine)
@@ -77,8 +88,11 @@ def test_coherent_applies_size_reduction() -> None:
     from unittest.mock import MagicMock
 
     mock_engine = MagicMock()
+    # gamma=1.2 ⇒ safe_risk_scalar = 1-|1.2-1| = 0.8 (≥ coherent threshold).
     mock_engine.get_signal.return_value = {
         "regime": "COHERENT",
+        "gamma": 1.2,
+        "order_parameter_R": 0.5,
         "risk_scalar": 0.8,
     }
     gate = CoherenceRiskGate(mock_engine, coherent_size_factor=0.6)
@@ -97,3 +111,85 @@ def test_gate_decision_fields() -> None:
     assert isinstance(d.reason, str)
     assert isinstance(d.regime, str)
     assert isinstance(d.risk_scalar, float)
+
+
+# ── INV-CBR1 RUNTIME ENFORCEMENT at the real consumer (not just the unit gate) ──
+# These prove the physics contract is wired into CoherenceRiskGate.apply: an
+# out-of-band signal is HARD-BLOCKED by the order-sizing consumer itself.
+
+
+def _gate_with_signal(sig: dict[str, object]) -> CoherenceRiskGate:
+    from unittest.mock import MagicMock
+
+    eng = MagicMock()
+    eng.get_signal.return_value = sig
+    return CoherenceRiskGate(eng)
+
+
+def _otherwise_passing(**overrides: object) -> dict[str, object]:
+    """A METASTABLE signal that WOULD pass — overrides poison one physics field."""
+    sig: dict[str, object] = {
+        "regime": "METASTABLE",
+        "gamma": 1.0,
+        "order_parameter_R": 0.5,
+        "ollivier_kappa": 0.1,
+        "risk_scalar": 1.0,
+    }
+    sig.update(overrides)
+    return sig
+
+
+def test_consumer_refuses_negative_gamma() -> None:
+    """Negative out-of-band gamma is refused by the CONSUMER, not just the gate."""
+    d = _gate_with_signal(_otherwise_passing(gamma=-0.5)).apply("EURUSD", 1.0)
+    assert not d.allowed
+    assert d.adjusted_size == 0.0
+    assert "INVALID_PHYSICS_CONTRACT" in d.reason
+    assert d.risk_scalar == 0.0
+
+
+def test_consumer_refuses_ollivier_above_one() -> None:
+    """Ollivier κ > 1 (INV-RC1) is refused by the consumer."""
+    d = _gate_with_signal(_otherwise_passing(ollivier_kappa=1.5)).apply("EURUSD", 1.0)
+    assert not d.allowed
+    assert d.adjusted_size == 0.0
+    assert "INV-RC1" in d.reason
+
+
+def test_consumer_refuses_non_finite_R() -> None:
+    """Non-finite / out-of-band R (INV-K1) is refused by the consumer."""
+    d = _gate_with_signal(_otherwise_passing(order_parameter_R=float("nan"))).apply("EURUSD", 1.0)
+    assert not d.allowed
+    assert d.adjusted_size == 0.0
+    assert "INV-K1" in d.reason
+
+
+def test_consumer_uses_verdict_risk_not_raw() -> None:
+    """Sizing uses the contract's safe_risk_scalar (from gamma), NOT raw risk_scalar.
+
+    The raw field is poisoned high (0.99) while gamma=1.4 ⇒ safe risk = 0.6.
+    A consumer that trusted the raw field would size on 0.99; the wired consumer
+    sizes on the verdict's 0.6.
+    """
+    sig = _otherwise_passing(gamma=1.4, risk_scalar=0.99, regime="COHERENT")
+    d = _gate_with_signal(sig).apply("EURUSD", 1.0)
+    # COHERENT: size = 1 * safe_risk(0.6) * coherent_factor(0.6) = 0.36, not 0.99-driven.
+    assert d.allowed
+    assert abs(d.risk_scalar - 0.6) < 1e-6
+    assert abs(d.adjusted_size - 0.36) < 0.01
+
+
+def test_decision_surface_never_reads_raw_signal_risk_scalar() -> None:
+    """Enforce-by-construction: the order-sizing decision surface must derive risk
+    from the physics-contract verdict, never from the relayed raw signal field.
+
+    Guards against a regression that re-introduces ``sig["risk_scalar"]`` /
+    ``sig.get("risk_scalar")`` into the consumer's decision path (the raw field is
+    advisory telemetry only; the authoritative value is verdict.safe_risk_scalar).
+    """
+    import pathlib
+    import re
+
+    src = pathlib.Path("coherence_bridge/risk_gate.py").read_text(encoding="utf-8")
+    raw_reads = re.findall(r"""(?:sig|signal)(?:\.get\(\s*["']risk_scalar["']|\[\s*["']risk_scalar["']\])""", src)
+    assert raw_reads == [], f"decision surface reads raw signal risk_scalar: {raw_reads}"

@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 
@@ -5,21 +6,15 @@ import pytest
 
 from tools.ci import pr_preflight
 
-
-# Durable governance-section anchors REPOSITORY_SYSTEM.md must carry, asserted by
-# NAME and number-agnostically (matched as a "## <n>. <name>" heading). The doc
-# is actively renumbered/expanded by the etalon line (sections are inserted), so
-# coupling the contract to exact ordinals is brittle drift, not a real guarantee.
-# This is the stable CORE every version must keep; new sections may be added.
-REQUIRED_REPOSITORY_SYSTEM_SECTIONS = [
-    "Canonical Surfaces",
-    "System Layers",
-    "Claim Promotion Automaton",
-    "Evidence-Bearing Artifact Requirements",
-    "Inference Operation Boundary",
-    "Ricci Microstructure Boundary",
-    "MFN Gateway Boundary",
-]
+# Manifest-driven governance contract (MEDIUM-5): the required sections are NOT
+# hardcoded here — they are derived from docs/REPOSITORY_SYSTEM.contract.json
+# (number-agnostic heading regexes). Section ordinals may change; the semantic
+# contract may not. One canonical manifest, two tests derive from it.
+_REPO_SYSTEM_CONTRACT = json.loads(
+    (Path(__file__).resolve().parents[2] / "docs" / "REPOSITORY_SYSTEM.contract.json").read_text(
+        encoding="utf-8"
+    )
+)
 
 
 def _valid_report() -> dict:
@@ -130,8 +125,8 @@ def test_repository_system_map_retains_canonical_sections():
     repo_root = Path(__file__).resolve().parents[2]
     text = (repo_root / "docs" / "REPOSITORY_SYSTEM.md").read_text(encoding="utf-8")
 
-    for section in REQUIRED_REPOSITORY_SYSTEM_SECTIONS:
-        assert re.search(rf"^##\s+\d+\.\s+{re.escape(section)}\s*$", text, re.MULTILINE), (
-            f"REPOSITORY_SYSTEM.md missing required governance section heading: {section!r}"
+    for section in _REPO_SYSTEM_CONTRACT["required_sections"]:
+        assert re.search(section["heading_regex"], text, re.MULTILINE), (
+            f"REPOSITORY_SYSTEM.md missing required governance section: {section['id']}"
         )
     assert "docs/PR_PREFLIGHT_RUNBOOK.md" in text

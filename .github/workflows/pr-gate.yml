@@ -792,14 +792,15 @@ jobs:
             exit 0
           fi
 
-          # synthetic_plumbing_v1, ricci_microstructure_v1, reproducible_capsules
-          # and wheel_contract.json are generated artifacts whose SHA-256 digests
-          # (e.g. wheel_sha256) are public content hashes by design, never
-          # credentials. Excluded so the hex-entropy plugin does not
-          # false-positive on reproducible/build provenance.
+          # synthetic_plumbing_v1, ricci_microstructure_v1, reproducible_capsules,
+          # wheel_contract.json and the evidence-artifact freshness manifest
+          # (artifacts/.manifest.json) are generated artifacts whose SHA-256
+          # digests are public content hashes by design, never credentials.
+          # Excluded so the hex-entropy plugin does not false-positive on
+          # reproducible/build provenance.
           .venv/bin/detect-secrets-hook \
             --baseline .github/detect-secrets.baseline \
-            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline|artifacts/wheel_contract\.json|figures/disha_ba_correlation/repro_capsule/.*|artifacts/runs/synthetic_plumbing_v1/.*|artifacts/runs/ricci_microstructure_v1/.*|artifacts/reproducible_capsules/.*)$' \
+            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline|artifacts/wheel_contract\.json|artifacts/\.manifest\.json|figures/disha_ba_correlation/repro_capsule/.*|artifacts/runs/synthetic_plumbing_v1/.*|artifacts/runs/ricci_microstructure_v1/.*|artifacts/reproducible_capsules/.*)$' \
             "${existing_changed_files[@]}"
 
   go-workspace-integrity:

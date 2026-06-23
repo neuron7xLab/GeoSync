@@ -160,13 +160,15 @@ CI: `make phd-evidence` (now includes `evidence_integrity`),
 
 ## 9. Remaining open counterexamples / gaps
 
-- **Enforcement status (NOT runtime-enforced yet).** `validate_physics_contract`
-  (INV-CBR1) and `AdaptiveCriticalityGate` (INV-AC1-rev) are **source-available,
-  fail-closed, and unit/integration-tested**, but they are **not yet invoked by a
-  production risk consumer / ensemble caller** — no live code path calls them
-  before a decision. The honest claim tier is "executed, tested source", NOT
-  "runtime-enforced gate". Wiring them into the actual risk/ensemble path (and an
-  enforcement test that exercises the caller refusing a bad signal) is the next step.
+- **Enforcement status (split).** `validate_physics_contract` (INV-CBR1) is now
+  **RUNTIME-ENFORCED**: `coherence_bridge/risk_gate.py::CoherenceRiskGate.apply`
+  calls it FIRST and HARD-BLOCKS an out-of-band signal (negative/non-finite
+  gamma, R∉[0,1], Ollivier κ>1) before any regime/order-sizing logic, and sizes
+  on `verdict.safe_risk_scalar` not the raw field (consumer-level refusal tests
+  in `tests/test_risk_gate.py`). `AdaptiveCriticalityGate` (INV-AC1-rev) remains
+  **source-available / fail-closed / unit-tested but NOT yet wired** into a
+  production ensemble consumer (there is no live ensemble-aggregation caller yet);
+  its claim tier stays "executed, tested source", not "runtime-enforced".
 - **Hebbian global stability.** There is no global (cumulative) upper bound under
   sustained LTP with `lr_floor > 0`; this UNBOUNDEDNESS is characterized by an
   executable negative witness (`test_hebbian_global_stability.py`). Hebbian stays

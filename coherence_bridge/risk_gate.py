@@ -22,6 +22,8 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from coherence_bridge.physics_contract import BridgeDecision, validate_physics_contract
+
 if TYPE_CHECKING:
     from coherence_bridge.engine_interface import SignalEngine
 
@@ -102,7 +104,28 @@ class CoherenceRiskGate:
             )
 
         regime = str(sig.get("regime", "UNKNOWN"))
-        risk_scalar = float(sig.get("risk_scalar", 0.0) or 0.0)  # type: ignore[arg-type]
+
+        # ── INV-CBR1 enforced FIRST (runtime, not just unit-tested source) ──
+        # The physics-contract gate is the authoritative fail-closed boundary:
+        # an out-of-band signal (R∉[0,1], negative/non-finite gamma, Ollivier
+        # κ>1) is HARD-BLOCKED here, at the real order-sizing consumer, before
+        # any regime logic. Sizing then uses the verdict's safe_risk_scalar —
+        # never the relayed raw risk-scalar field (which is advisory telemetry).
+        verdict = validate_physics_contract(sig)
+        if verdict.decision is BridgeDecision.NO_GO:
+            logger.warning(
+                "RISK GATE BLOCK: %s INVALID_PHYSICS_CONTRACT %s",
+                instrument,
+                verdict.reasons,
+            )
+            return GateDecision(
+                allowed=False,
+                adjusted_size=0.0,
+                reason="INVALID_PHYSICS_CONTRACT: " + "; ".join(verdict.reasons),
+                regime=regime,
+                risk_scalar=0.0,
+            )
+        risk_scalar = verdict.safe_risk_scalar
 
         # CRITICAL → block, alert
         if regime == "CRITICAL":
