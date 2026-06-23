@@ -28,6 +28,9 @@ PRODUCT_CATEGORY.md
 CLAIMS.md
 FORBIDDEN_CLAIMS.md
 docs/REPOSITORY_SYSTEM.md
+docs/INFERENCE_READINESS.md
+docs/INFERENCE_OPERATION_PROTOCOL.md
+docs/INFERENCE_CONTRACT.manifest.json
 schemas/
 scripts/ci/
 ```
@@ -47,7 +50,39 @@ Agents must:
 6. Leave a deterministic command that verifies the modified surface.
 7. Prefer minimal coherent changes over broad rewrites.
 8. Preserve failed, blocked, retired, or negative results when they carry evidence value.
+9. Follow the inference operation protocol before emitting a final result.
 ```
+
+## Inference Operation Rule
+
+Before producing an answer, commit, PR, or artifact, resolve the seven-step runtime in `docs/INFERENCE_OPERATION_PROTOCOL.md`:
+
+```text
+1. resolve intent
+2. load canonical context
+3. compress semantic core
+4. bind claims to evidence
+5. select executable path
+6. verify and falsify
+7. emit replayable artifact
+```
+
+The required agent state is:
+
+```text
+intent_type
+canonical_files_used
+claim_tier_before
+claim_tier_after
+changed_surface_type
+allowed_method
+blocked_claims
+verification_command
+evidence_artifact_path
+remaining_blocker
+```
+
+If this state cannot be resolved, return a blocked result. Do not invent context.
 
 ## Forbidden Behavior
 
@@ -63,6 +98,7 @@ Agents must not:
 - introduce dependency-heavy paths into the MFN gateway
 - call a release complete without generated evidence
 - rewrite the repository identity into a product promise
+- skip the inference operation protocol when changing claim-facing surfaces
 ```
 
 ## Evidence-Bearing Artifact Minimum
@@ -110,6 +146,7 @@ For documentation-only changes:
 3. Avoid forbidden status language from FORBIDDEN_CLAIMS.md.
 4. Link new conceptual docs from README.md or an existing canonical surface.
 5. Do not create parallel doctrine files unless they reduce ambiguity.
+6. Bind inference-facing documentation to docs/INFERENCE_READINESS.md and docs/INFERENCE_OPERATION_PROTOCOL.md.
 ```
 
 ## Code Change Rule
@@ -148,9 +185,11 @@ When finishing work, report:
 ```text
 Changed files:
 Commit SHA:
+Intent type:
+Claim tier impact:
 Verification command:
 Evidence artifact path:
-Claim tier impact:
+Blocked claims:
 Remaining blocker:
 ```
 
