@@ -12,6 +12,10 @@
     "docs/phd/08_evaluation_protocol.md",
     "docs/phd/09_threats_to_validity.md",
     "docs/phd/10_artifact_reproducibility_package.md",
+    "docs/phd/11_distinguished_contribution_map.md",
+    "docs/phd/12_negative_evidence.md",
+    "docs/phd/13_physics_runtime_hardening.md",
+    "docs/phd/13_reference_inference_standard.md",
     "docs/phd/README.md"
   ],
   "claims_with_artifacts": [
@@ -26,6 +30,10 @@
     "docs/phd/08_evaluation_protocol.md",
     "docs/phd/09_threats_to_validity.md",
     "docs/phd/10_artifact_reproducibility_package.md",
+    "docs/phd/11_distinguished_contribution_map.md",
+    "docs/phd/12_negative_evidence.md",
+    "docs/phd/13_physics_runtime_hardening.md",
+    "docs/phd/13_reference_inference_standard.md",
     "docs/phd/README.md"
   ],
   "unbound_claims": [],

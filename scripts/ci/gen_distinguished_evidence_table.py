@@ -113,6 +113,20 @@ def limitation_for(e: dict) -> str:
 
 
 def main() -> None:
+    # Fail-closed integrity gate FIRST: derive tiers only from a ledger with no
+    # fake promotion (OPERATIONAL w/o a resolving INV+test+falsifier; PARTIAL
+    # claiming an INV binding; un-quarantined DECORATIVE on a runtime path).
+    # Refuse to emit an evidence table built on a contradictory ledger.
+    from scripts.ci.check_evidence_integrity import integrity_errors, known_invariant_ids
+
+    ledger_doc = yaml.safe_load(LEDGER.read_text())
+    violations = integrity_errors(ledger_doc, known_invariant_ids())
+    if violations:
+        raise SystemExit(
+            "evidence-integrity FAIL — refusing to emit table on a contradictory ledger:\n  "
+            + "\n  ".join(violations)
+        )
+
     acc = entries()
     rows = []
     for e in acc:

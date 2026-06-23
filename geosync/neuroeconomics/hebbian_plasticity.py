@@ -26,6 +26,32 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+# Number of plastic weights (see PlasticWeights). The eligibility trace must
+# match this dimension exactly.
+N_PLASTIC_WEIGHTS = 11
+
+
+def _validate_eligibility(eligibility: list[float]) -> None:
+    """Fail-closed input-contract check for a caller-supplied eligibility trace.
+
+    The per-step weight update is bounded by ``lr · magnitude · eligibility[i]``
+    with ``magnitude ≤ 1``; that envelope holds ONLY while each eligibility
+    component is finite and in ``[0, 1]``. A component > 1 (or non-finite) falls
+    outside the witnessed envelope, so it is rejected here rather than silently
+    inflating the update. Closes the documented input-contract boundary
+    (ledger ``hebbian-plasticity-update`` witness_note).
+    """
+    if len(eligibility) != N_PLASTIC_WEIGHTS:
+        raise ValueError(
+            f"eligibility must have {N_PLASTIC_WEIGHTS} components, got {len(eligibility)}"
+        )
+    for i, e in enumerate(eligibility):
+        if not math.isfinite(e) or not (0.0 <= e <= 1.0):
+            raise ValueError(
+                f"eligibility[{i}]={e!r} outside the input contract [0, 1] (finite); "
+                "Hebbian update fails closed on out-of-envelope eligibility."
+            )
+
 
 @dataclass(slots=True)
 class PlasticWeights:
@@ -177,9 +203,13 @@ class HebbianPlasticity:
         # Track rolling Sharpe window
         self._pnl_window.append(pnl)
 
-        # Auto eligibility: which weights were "active" for this decision
+        # Auto eligibility: which weights were "active" for this decision.
+        # A caller-supplied trace is validated fail-closed against the input
+        # contract [0, 1]^11 (auto traces are 0/1 by construction).
         if eligibility is None:
             eligibility = self._auto_eligibility(decision)
+        else:
+            _validate_eligibility(eligibility)
 
         # RPE: simple sign → direction of update
         if decision == "TRADE":

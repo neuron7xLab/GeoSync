@@ -62,6 +62,10 @@
       "sha256": "59b4843e29dfd2bc77e8150ba08b99f3b19517fc8d321520dc6f01f8b0b18fb9"
     },
     {
+      "path": "scripts/ci/check_evidence_integrity.py",
+      "sha256": "09ecc0844716e8680d519cb57fb02c43377a1c70c2611c456bca4dc3db41151d"
+    },
+    {
       "path": "scripts/ci/check_examples_manifest.py",
       "sha256": "a0e4a2d58f0d7ec3020436e654fd3397769a15c8165ec32c53eba5f1f162f187"
     },
@@ -171,7 +175,7 @@
     },
     {
       "path": "scripts/ci/evidence_gate.sh",
-      "sha256": "180f2d8691e160229f51c3ec74bcc90e952b80cbe3114eb6605aaf0bf933aadf"
+      "sha256": "39a1697a8d92dd16100ccda40af41deb64b0563f1c1d0a26e941e2715f9cce42"
     },
     {
       "path": "scripts/ci/external_run_intake.py",
@@ -183,7 +187,7 @@
     },
     {
       "path": "scripts/ci/gen_distinguished_evidence_table.py",
-      "sha256": "550571151a0b61cabd0e90ad0b9a7121ccb56057528c3ae64d56e7f4ae5649db"
+      "sha256": "3385e1bb6a8334234d715c6944eed815c22f161591e3220273f8a4d3bdce1aad"
     },
     {
       "path": "scripts/ci/gen_law_mechanism_witness_matrix.py",
@@ -199,7 +203,7 @@
     },
     {
       "path": "scripts/ci/phd_evidence.sh",
-      "sha256": "d1f0144eab06124a7828821a7c9633b4830923000610164698fd88562206642c"
+      "sha256": "eef8b2e39da1e031c47f7b5d450c4c5d56b44fe6befc02d4d7bd3d1aaa72119c"
     },
     {
       "path": "scripts/ci/pr_quality_sentinel.py",
@@ -207,7 +211,7 @@
     },
     {
       "path": "scripts/ci/prove_repo_integrity.sh",
-      "sha256": "967fba067542beaab1b9eb087219a253eb69072a13f4f6d980887275ff905936"
+      "sha256": "e30c193b523fb7b38cce78c07c7f710693a201459371afa28c968ecef3de90a5"
     },
     {
       "path": "scripts/ci/release_gate.py",

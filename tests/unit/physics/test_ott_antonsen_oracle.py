@@ -30,7 +30,7 @@ import math
 import numpy as np
 import pytest
 
-from core.kuramoto.ott_antonsen import ORACLE_TOL, OttAntonsenEngine
+from core.kuramoto.ott_antonsen import R0_MIN, ORACLE_TOL, OttAntonsenEngine
 
 # Closed-form steady-state recovery ceiling for a converged, stable run. The
 # exact fixed point is reproduced to ~1e-12 by RK4 at dt ≤ 0.05; 1e-4 is a
@@ -210,3 +210,52 @@ def test_oracle_tol_is_documented_module_constant() -> None:
     """The oracle tolerance is an importable, documented module constant — not
     an inline magic number — so the contract is auditable from outside."""
     assert ORACLE_TOL == 1e-3
+
+
+# ---------------------------------------------------------------------------
+# INV-OA2 repeller-domain restriction (Task 3 — counterexample closure)
+# ---------------------------------------------------------------------------
+
+
+def test_repeller_counterexample_raises_under_convergence_claim() -> None:
+    """REGRESSION (the known counterexample): a supercritical run seeded at the
+    unstable fixed point R0 = 0 stalls at R ≈ 0 ≠ R_∞. With an explicit
+    convergence claim (require_convergence=True) this is refused with a
+    ValueError naming the repeller domain — no silently-wrong is_supercritical
+    result, no silent repair."""
+    engine = OttAntonsenEngine(K=2.0, delta=0.25)  # supercritical, K_c = 0.5
+    with pytest.raises(ValueError, match="repeller domain"):
+        engine.integrate(T=30.0, dt=0.01, R0=0.0, require_convergence=True)
+    # The whole float neighbourhood of the repeller is refused, not just 0.0.
+    with pytest.raises(ValueError, match="repeller domain"):
+        engine.integrate(T=30.0, dt=0.01, R0=R0_MIN, require_convergence=True)
+
+
+def test_convergence_claim_holds_above_floor() -> None:
+    """Just above R0_MIN the convergence claim is admitted (domain is tight):
+    a normal small-perturbation seed reaches the closed-form attractor."""
+    engine = OttAntonsenEngine(K=2.0, delta=0.25)
+    res = engine.integrate(T=200.0, dt=0.01, R0=0.05, require_convergence=True)
+    assert math.isclose(float(res.R[-1]), engine.R_steady, abs_tol=RECOVERY_TOL)
+
+
+def test_default_integrate_still_abstains_on_repeller() -> None:
+    """CONTRACT PRESERVED: without require_convergence, R0 = 0 supercritical is
+    still a valid unstable-branch trajectory that stalls at R = 0 (the oracle
+    abstains). Task 3 must not break this enshrined behaviour."""
+    res = OttAntonsenEngine(K=2.0, delta=0.25).integrate(T=30.0, dt=0.01, R0=0.0)
+    assert float(res.R[-1]) == 0.0
+
+
+def test_subcritical_convergence_unaffected_by_domain_floor() -> None:
+    """INV-OA3: subcritical (K < 2Δ) converges to 0 from ANY seed, so even
+    R0 = 0 with require_convergence=True is admitted (no repeller there)."""
+    engine = OttAntonsenEngine(K=0.4, delta=0.5)  # subcritical, K_c = 1.0
+    res = engine.integrate(T=80.0, dt=0.01, R0=0.0, require_convergence=True)
+    assert float(res.R[-1]) < 1e-3
+
+
+def test_r0_min_is_machine_epsilon_derived() -> None:
+    """R0_MIN is a machine-epsilon-derived floor, not a tuned constant."""
+    assert R0_MIN == 4.0 * float(np.finfo(np.float64).eps)
+    assert R0_MIN < 1e-12  # far below any legitimate perturbation seed

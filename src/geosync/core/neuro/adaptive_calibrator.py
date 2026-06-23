@@ -133,11 +133,19 @@ class CalibrationState:
 
 
 class AdaptiveCalibrator:
-    """Adaptive calibration system for neuromodulator parameters.
+    """Simulated-annealing parameter calibrator.
+
+    NON-CLAIM (ledger ``adaptive-calibrator-annealing``, DECORATIVE): the
+    algorithm is standard simulated annealing — perturb, Metropolis
+    accept/reject, temperature decay. The "neuromodulator" label on the
+    parameters it tunes is DECORATIVE: SA correctness is not a neuroscience
+    claim, and these are ordinary configuration parameters, not modelled
+    neurotransmitter dynamics. The class name is already neutral; this docstring
+    quarantines the residual decorative parameter labelling.
 
     This class implements a gradient-free optimization algorithm that adapts
-    neuromodulator parameters based on observed performance. It uses a combination
-    of simulated annealing and Bayesian optimization principles.
+    the (decoratively named) parameters based on observed performance, combining
+    simulated annealing and Bayesian optimization principles.
 
     The calibrator operates in two modes:
     1. Exploration: Widely sample parameter space when performance is suboptimal

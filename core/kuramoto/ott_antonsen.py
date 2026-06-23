@@ -80,6 +80,20 @@ _EPS: float = sys.float_info.epsilon  # ≈ 2.22e-16
 # void separates the two regimes. Documented bound, not a magic number.
 ORACLE_TOL: float = 1e-3
 
+# Repeller-domain floor for asymptotic-convergence claims (INV-OA2 / Task 3).
+# The incoherent state z = 0 is the UNSTABLE fixed point of the supercritical OA
+# ODE (dz/dt = 0 there). A trajectory seeded EXACTLY on it never leaves: it
+# settles at R = 0 ≠ R_∞, so a convergence claim is unreachable from that seed.
+# The smallest seed that is numerically DISTINGUISHABLE from the exact repeller
+# in IEEE-754 float64 is a few ULPs of 1.0; below that, R0 *is* the repeller and
+# its float neighbourhood. R0_MIN = 4·ε_mach is therefore machine-epsilon-
+# derived, not a tuned constant: it rejects only seeds indistinguishable from
+# z = 0, and leaves every legitimate "small perturbation" seed (e.g. the 0.01
+# default) untouched. Plain integrate() still ABSTAINS on R0 = 0 (the unstable
+# branch is a valid trajectory); the floor is enforced ONLY when the caller
+# explicitly claims convergence via require_convergence=True.
+R0_MIN: float = 4.0 * _EPS  # ≈ 8.88e-16
+
 
 @dataclass(frozen=True, slots=True)
 class OttAntonsenResult:
@@ -186,6 +200,8 @@ class OttAntonsenEngine:
         dt: float = 0.01,
         R0: float = 0.01,
         psi0: float = 0.0,
+        *,
+        require_convergence: bool = False,
     ) -> OttAntonsenResult:
         """Integrate the Ott-Antonsen ODE via RK4.
 
@@ -199,10 +215,26 @@ class OttAntonsenEngine:
             Initial order parameter magnitude (default: small perturbation).
         psi0 : float
             Initial mean phase (default: 0).
+        require_convergence : bool
+            When True the caller CLAIMS the supercritical run converges to the
+            closed-form attractor R_∞ = √(1 − 2Δ/K). That claim is only valid on
+            the STABLE branch, which is reached from R0 > R0_MIN. Seeding a
+            supercritical run at/below R0_MIN (the unstable incoherent fixed
+            point z = 0 and its float neighbourhood) makes the attractor
+            UNREACHABLE — the trajectory stalls on the repeller — so this raises
+            ``ValueError`` instead of returning a spurious is_supercritical
+            result whose R never reaches R_∞. When False (default) the run is a
+            plain trajectory and R0 = 0 is a valid (unstable-branch) request.
 
         Returns
         -------
         OttAntonsenResult
+
+        Domain
+        ------
+        Subcritical (K ≤ 2Δ): R(t→∞) → 0 for any R0 (INV-OA3). Supercritical
+        (K > 2Δ): R(t→∞) → √(1 − 2Δ/K) from R0 > R0_MIN; the measure-zero seed
+        R0 ∈ [0, R0_MIN] lies on the unstable branch and does NOT converge.
         """
         # Fail-closed integration contract (no silent numeric repair).
         if not (math.isfinite(dt) and dt > 0):
@@ -213,6 +245,21 @@ class OttAntonsenEngine:
             raise ValueError(f"R0 must be finite, got {R0}")
         if not math.isfinite(psi0):
             raise ValueError(f"psi0 must be finite, got {psi0}")
+
+        # Repeller-domain restriction for an explicit convergence claim. The
+        # supercritical attractor R_∞ is unreachable from a seed on/below the
+        # unstable fixed point z = 0; refuse the claim rather than return a
+        # stalled trajectory mislabelled is_supercritical. Subcritical runs
+        # converge to 0 from any seed, so the restriction binds only K > K_c.
+        if require_convergence and self.K > self.K_c and R0 <= R0_MIN:
+            raise ValueError(
+                f"INV-OA2 repeller domain: supercritical convergence to "
+                f"R_∞=√(1−2Δ/K)={self.R_steady:.6f} cannot be claimed from "
+                f"R0={R0:.3e} ≤ R0_MIN={R0_MIN:.3e} (the unstable incoherent "
+                f"fixed point z=0). Seed R0 > R0_MIN, or call integrate() "
+                f"without require_convergence to obtain the unstable-branch "
+                f"trajectory (K={self.K}, delta={self.delta})."
+            )
 
         n_steps = int(T / dt)
         if n_steps < 1:
@@ -308,14 +355,18 @@ class OttAntonsenEngine:
         # relaxing run is left to the per-step |z| gate above (true blow-up) and
         # to the caller's T/dt choice.
         #
-        # R0 = 0 exactly is excluded: the incoherent state z = 0 is the UNSTABLE
-        # fixed point of the supercritical ODE (dz/dt = 0 there). Seeded exactly
-        # on the repeller, the deterministic trajectory never leaves it, so it
-        # settles at R = 0 ≠ R_∞ legitimately — that is the unstable branch, not
-        # a CFL failure. The closed-form attractor R_∞ is reached only from
-        # R0 > 0 (the documented "small perturbation" seed), so the oracle binds
-        # the stable branch and abstains on the measure-zero R0 = 0 equilibrium.
-        if self.K > self.K_c and R0 > 0.0:
+        # The repeller NEIGHBOURHOOD R0 ≤ R0_MIN is excluded (not just R0 = 0):
+        # the incoherent state z = 0 is the UNSTABLE fixed point of the
+        # supercritical ODE (dz/dt = 0 there). Seeded on it — or so close that
+        # the exponential escape time exceeds the run length T — the trajectory
+        # is still sitting on the unstable branch at R ≈ 0 ≠ R_∞. Its tail is
+        # stationary at ~0 by the SAME physics as a CFL failure, so the
+        # stationarity discriminator cannot tell them apart; the oracle must
+        # therefore ABSTAIN on R0 ≤ R0_MIN (the unstable branch / sub-escape
+        # seed) and bind the stable branch only, reached from R0 > R0_MIN (the
+        # documented "small perturbation" seed). Convergence FROM that domain is
+        # the caller's explicit claim via require_convergence (guarded above).
+        if self.K > self.K_c and R0 > R0_MIN:
             # bounds: tail window is the last 20% of samples, floored at 2 points
             # so peak-to-peak drift is well-defined (not a physics clamp).
             tail_n = max(2, (n_steps + 1) // 5)
@@ -325,7 +376,17 @@ class OttAntonsenEngine:
             R_closed_form = self.R_steady  # = √(1 − 2Δ/K)
             oracle_residual = abs(R_converged - R_closed_form)
             tail_is_stationary = tail_drift <= ORACLE_TOL / 10.0
-            if tail_is_stationary and oracle_residual > ORACLE_TOL:
+            # Repeller-stall guard: a finite-but-tiny R0 (above R0_MIN) whose
+            # exponential escape time exceeds T sits STATIONARY near the unstable
+            # fixed point R ≈ 0. That is the unstable branch, NOT a CFL failure —
+            # a genuine CFL failure settles on a non-zero wrong PLATEAU near the
+            # attractor (e.g. R≈0.71 vs R_∞≈0.866), never collapsed onto the
+            # analytically-unstable R=0. The oracle therefore only condemns a
+            # stationary mismatch once the trajectory has ESCAPED the repeller
+            # basin (R_converged past the basin midpoint ½·R_∞); below that it is
+            # under-escaped (finite-T / unstable-branch) and the oracle abstains.
+            escaped_repeller = R_converged > 0.5 * R_closed_form
+            if tail_is_stationary and escaped_repeller and oracle_residual > ORACLE_TOL:
                 raise FloatingPointError(
                     f"INV-OA2 VIOLATED: settled steady state R={R_converged:.6e} "
                     f"(tail drift {tail_drift:.3e}) disagrees with the exact closed "

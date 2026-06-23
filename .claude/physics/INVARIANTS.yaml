@@ -336,6 +336,9 @@ dopamine:
     falsification: "DopamineExecutionAdapter.compute_rpe returns |δ| > 1, or a non-finite δ, for some finite (realized_pnl, predicted_return, slippage) input."
     scope_note: "Distinct from and complementary to INV-DA7: INV-DA7 governs the RAW controller (∂δ/∂r = 1, unbounded linear TD); INV-DA8 governs the ADAPTER output bound that the tanh squashing provides. The adapter is deliberately NOT linear-in-reward — that non-linearity is precisely why it needs its own bound invariant rather than inheriting INV-DA7."
     priority: P0
+    provenance: ANCHORED
+    source: core/neuro/dopamine_execution_adapter.py
+    tests: tests/unit/physics/test_dopamine_execution_adapter_bounds.py
 
 # ═══════════════════════════════════════════════════
 # GABA INHIBITION GATE
@@ -1349,3 +1352,48 @@ api_contract:
       - "Hatfield-Dodds, Z. et al. Schemathesis: property-based API testing. https://schemathesis.readthedocs.io"
       - "IERD-PAI-FPS-UX-001 §5 (this repository): Phase-3 EXIT contract for the HTTP API."
     related: []
+
+# ═══════════════════════════════════════════════════
+# COHERENCE-BRIDGE RELAY CONTRACT (physics core → risk layer)
+# ═══════════════════════════════════════════════════
+# Closes the ledger OPEN GAP for `coherence-bridge-geosync-adapter`: the
+# advisory relay must hand the risk layer a fail-closed verdict, distinguishing
+# the Ollivier κ (INV-RC1, κ ≤ 1) from the augmented-Forman blend (legitimately
+# unbounded above; never κ-bound evidence). NON-CLAIM: contract gate, not a
+# trading signal — VALID means "physics contract preserved", not "trade".
+
+coherence_bridge:
+  relay_contract:
+    id: INV-CBR1
+    type: universal
+    statement: "The CoherenceBridge → risk handoff is VALID iff order_parameter_R ∈ [0,1] (INV-K1) ∧ (ollivier_kappa ≤ 1 when present, INV-RC1) ∧ gamma finite ∧ gamma ≥ 0 (accepted spectral domain). On any violation the verdict is status=INVALID_PHYSICS_CONTRACT, decision=NO_GO, safe_risk_scalar=0.0. The augmented_forman_ricci field is checked for FINITENESS ONLY — it may exceed 1 and is never compared against the κ ≤ 1 bound nor accepted as κ-bound evidence."
+    test_type: property_test
+    falsification: "validate_physics_contract returns VALID for a signal with R∉[0,1], a negative/non-finite gamma, or an Ollivier κ>1+ε; OR it returns INVALID for an augmented-Forman value >1 whose R, gamma and Ollivier κ are all in-band; OR an INVALID verdict carries a non-zero safe_risk_scalar."
+    priority: P0
+    provenance: ANCHORED
+    source: coherence_bridge/physics_contract.py::validate_physics_contract
+    tests: tests/integration/test_coherence_bridge_invariants.py
+    scope_note: "Forman vs Ollivier are DISTINCT operators. INV-RC1 (κ ≤ 1) governs the Ollivier operator only (core/indicators/ricci.py). Forman/augmented-Forman curvature is unbounded above by construction; treating a Forman value > 1 as an INV-RC1 violation is a category error, and passing it as κ-bound evidence downstream is forbidden."
+    related: [INV-K1, INV-RC1]
+
+# ═══════════════════════════════════════════════════
+# NEURO-HOMEOSTATIC STABILIZER (engineering control contract)
+# ═══════════════════════════════════════════════════
+# Engineering invariant (NOT a neurophysiology claim): the decentralized reset
+# wave is a Lyapunov-energy descent under the COMMON-MODE regime it is witnessed
+# in. The scalar-mean correction provably descends energy only for coherent
+# (common-mode) phase error; that scope restriction is the non-claim.
+
+neuro_homeostatic:
+  reset_wave_energy_descent:
+    id: INV-HOM1
+    type: conditional
+    statement: "For a common-mode phase error (all node phase-diffs equal) the NeuroHomeostaticStabilizer reset wave is Lyapunov-energy non-increasing: post_reset_energy ≤ pre_reset_energy (energy E = gain·mean(1−cos Δφ), corrected by the scalar reset_energy = gain·mean(sin Δφ)). Every input-contract violation (unequal/empty phase lists, gain ≤ 0, max_phase_error ≤ 0) raises ValueError; |Δφ| > max_phase_error fail-closes to safety_lock=True with no state advance."
+    test_type: property_test
+    falsification: "re_adaptation_to_baseline returns post_reset_energy > pre_reset_energy + ε for a common-mode error within max_phase_error; OR a contract violation does not raise; OR an over-threshold error does not safety_lock."
+    priority: P1
+    provenance: ANCHORED
+    source: geosync/neuroeconomics/homeostatic_stabilizer.py::NeuroHomeostaticStabilizer
+    tests: tests/unit/neuro/test_homeostatic_stabilizer_setpoint.py
+    scope_note: "ENGINEERING analogue, not neuroscience. Energy descent is proven ONLY for the common-mode (coherent) regime — for heterogeneous phase error the scalar-mean correction is not a guaranteed descent direction. E/I ratio, 'serotonin', 'GABA tone' are arithmetic proxies, not modelled neurotransmitter dynamics."
+    related: [INV-K1]

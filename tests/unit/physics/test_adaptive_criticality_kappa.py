@@ -55,7 +55,18 @@ from contextlib import contextmanager
 import numpy as np
 import pytest
 
-from geosync.estimators.dfa_gamma_estimator import DFAGammaEstimator
+from geosync.estimators.dfa_gamma_estimator import (
+    AdaptiveCriticalityGate,
+    DFAGammaEstimator,
+    IsolationReason,
+    aggregate_excluding_isolated,
+    assess_node,
+    isolation_mask,
+    kappa_critical,
+    resolve_kappa_epsilon as _resolved_eps,
+    resolve_kappa_window as _resolved_window,
+    should_isolate_node as isolate,
+)
 
 # ── Contract constants (CLAUDE.md → INV-AC1-rev derivation block) ─────────────
 EPS_DEFAULT = 0.05  # ε : SNR tolerance
@@ -74,31 +85,15 @@ DH_OVER_EPS = math.e**3
 DH_MAX_DEFAULT = EPS_DEFAULT * DH_OVER_EPS
 
 
-# ── Pure reference implementation of the contract gate ────────────────────────
-# Source has no isolate() symbol (ADD_TEST entry: the gate lives in the
-# INV-AC1-rev derivation, applied on top of hurst_exponent). The closed form is
-# transcribed here verbatim from the contract so the witness exercises the
-# decision boundary against the REAL λ_local produced by DFAGammaEstimator.
-def kappa_critical(lambda_local: float, *, eps: float, dh_max: float) -> float:
-    """κ_critical = -ln(ΔH_max/ε)/(λ_local + δ) — contract closed form."""
-    return -math.log(dh_max / eps) / (lambda_local + DELTA)
-
-
-def isolate(kappa_node: float, lambda_local: float, *, eps: float, dh_max: float) -> bool:
-    """Gate: isolate iff κ_node < κ_critical(λ_local)."""
-    return kappa_node < kappa_critical(lambda_local, eps=eps, dh_max=dh_max)
-
-
-def _resolved_eps() -> float:
-    """ε with deterministic env override (``KAPPA_EPSILON``)."""
-    raw = os.environ.get(KAPPA_EPSILON_ENV)
-    return EPS_DEFAULT if raw is None else float(raw)
-
-
-def _resolved_window() -> int:
-    """Rolling window with deterministic env override (``KAPPA_WINDOW``)."""
-    raw = os.environ.get(KAPPA_WINDOW_ENV)
-    return WINDOW_DEFAULT if raw is None else int(raw)
+# ── Executed-source gate (no longer a test-local reference) ───────────────────
+# The contract gate is now EXECUTED SOURCE in
+# geosync.estimators.dfa_gamma_estimator: kappa_critical / should_isolate_node
+# (imported above as ``isolate``) / resolve_kappa_epsilon / resolve_kappa_window.
+# This file is the witness that the imported source reproduces the CLAUDE.md
+# INV-AC1-rev closed form against the REAL λ_local from DFAGammaEstimator. The
+# constants below (EPS_DEFAULT, DELTA, DH_MAX_DEFAULT, WINDOW_DEFAULT) are an
+# INDEPENDENT recomputation kept here so the witness still fails if the source
+# constants drift away from the contract.
 
 
 @contextmanager
@@ -301,3 +296,100 @@ def test_isolation_decision_stable_under_repeated_eval(estimator: DFAGammaEstima
     v1 = isolate(node, lam1, eps=EPS_DEFAULT, dh_max=DH_MAX_DEFAULT)
     v2 = isolate(node, lam2, eps=EPS_DEFAULT, dh_max=DH_MAX_DEFAULT)
     assert v1 == v2 is True
+
+
+# ── INV-AC1-rev (fail-closed): non-finite / singular inputs isolate ───────────
+def test_non_finite_kappa_node_fails_closed_to_isolation() -> None:
+    """A non-finite κ_node cannot be placed vs the threshold ⇒ fail-closed isolate.
+
+    The danger this kills: silently admitting (NOT isolating) a node whose
+    curvature is NaN/Inf would let a broken node into the ensemble. INV-AC1-rev
+    fail-closes: should_isolate_node returns True and assess_node records the
+    reason NON_FINITE_INPUT.
+    """
+    for bad in (math.nan, math.inf, -math.inf):
+        assert isolate(bad, 0.5, eps=EPS_DEFAULT, dh_max=DH_MAX_DEFAULT) is True
+        verdict = assess_node(bad, 0.5, DH_MAX_DEFAULT)
+        assert verdict.isolation_required is True
+        assert verdict.isolation_reason is IsolationReason.NON_FINITE_INPUT
+
+
+def test_non_finite_lambda_local_fails_closed_to_isolation() -> None:
+    """A non-finite λ_local (a failed DFA) ⇒ κ_critical uncomputable ⇒ isolate."""
+    verdict = assess_node(-3.0, math.nan, DH_MAX_DEFAULT)
+    assert verdict.isolation_required is True
+    assert verdict.isolation_reason is IsolationReason.NON_FINITE_INPUT
+
+
+def test_singular_denominator_fails_closed_to_isolation() -> None:
+    """λ_local + δ ≤ 0 is a singularity of the closed form ⇒ fail-closed isolate.
+
+    A λ_local below −δ makes the denominator non-positive; assess_node refuses to
+    divide and isolates with reason SINGULAR_DENOMINATOR instead of returning a
+    sign-flipped κ_critical.
+    """
+    verdict = assess_node(-3.0, -1.0, DH_MAX_DEFAULT)  # λ+δ = -0.9999 < 0
+    assert verdict.isolation_required is True
+    assert verdict.isolation_reason is IsolationReason.SINGULAR_DENOMINATOR
+
+
+def test_invalid_shared_params_raise_not_fallback() -> None:
+    """ε ≤ 0 or ΔH_max ≤ 0 are shared-parameter contract errors ⇒ ValueError.
+
+    These are not per-node data faults but a mis-wired gate; the source raises
+    (loud fail-closed) rather than returning a silent fallback κ_critical.
+    """
+    with pytest.raises(ValueError, match="ΔH_max"):
+        kappa_critical(0.5, eps=EPS_DEFAULT, dh_max=0.0)
+    with pytest.raises(ValueError, match="ε"):
+        kappa_critical(0.5, eps=0.0, dh_max=DH_MAX_DEFAULT)
+    with pytest.raises(ValueError, match="ΔH_max"):
+        assess_node(-3.0, 0.5, 0.0)
+
+
+# ── INV-AC1-rev (ensemble exclusion): isolated nodes leave aggregation ────────
+def test_isolation_mask_excludes_only_fragile_nodes() -> None:
+    """The exclusion mask isolates exactly the sub-threshold nodes (no more)."""
+    lam = 0.5
+    k_crit = kappa_critical(lam, eps=EPS_DEFAULT, dh_max=DH_MAX_DEFAULT)
+    kappa_nodes = [k_crit + ATOL_KAPPA, k_crit - ATOL_KAPPA, k_crit + 1.0, math.nan]
+    lambdas = [lam, lam, lam, lam]
+    mask = isolation_mask(kappa_nodes, lambdas, DH_MAX_DEFAULT)
+    # safe, safe? no — index1 fragile, index0/2 safe, index3 non-finite.
+    assert list(mask) == [False, True, False, True]
+
+
+def test_aggregate_excludes_isolated_nodes_from_mean() -> None:
+    """Ensemble mean is taken over surviving nodes only (fragile node removed).
+
+    A fragile node carrying an extreme value must NOT pollute the aggregate; the
+    mean over the kept nodes differs from the naive all-node mean.
+    """
+    lam = 0.5
+    k_crit = kappa_critical(lam, eps=EPS_DEFAULT, dh_max=DH_MAX_DEFAULT)
+    kappa_nodes = [k_crit + ATOL_KAPPA, k_crit + ATOL_KAPPA, k_crit - ATOL_KAPPA]
+    lambdas = [lam, lam, lam]
+    values = [1.0, 1.0, 100.0]  # the fragile node (index 2) carries the outlier
+    agg = aggregate_excluding_isolated(values, kappa_nodes, lambdas, DH_MAX_DEFAULT)
+    assert agg == 1.0  # outlier excluded
+    assert agg != float(np.mean(values))  # ≠ naive 34.0
+
+
+def test_aggregate_all_isolated_fails_closed() -> None:
+    """If every node is isolated there is no admissible ensemble ⇒ ValueError."""
+    lam = 0.5
+    k_crit = kappa_critical(lam, eps=EPS_DEFAULT, dh_max=DH_MAX_DEFAULT)
+    kappa_nodes = [k_crit - ATOL_KAPPA, k_crit - ATOL_KAPPA]
+    with pytest.raises(ValueError, match="all nodes isolated"):
+        aggregate_excluding_isolated([1.0, 2.0], kappa_nodes, [lam, lam], DH_MAX_DEFAULT)
+
+
+def test_gate_class_matches_module_functions() -> None:
+    """AdaptiveCriticalityGate binds ε once and matches the free functions."""
+    gate = AdaptiveCriticalityGate(epsilon=EPS_DEFAULT)
+    lam = 0.5
+    assert gate.kappa_critical(lam, DH_MAX_DEFAULT) == kappa_critical(
+        lam, eps=EPS_DEFAULT, dh_max=DH_MAX_DEFAULT
+    )
+    node = gate.kappa_critical(lam, DH_MAX_DEFAULT) - ATOL_KAPPA
+    assert gate.should_isolate_node(node, lam, DH_MAX_DEFAULT) is True

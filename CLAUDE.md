@@ -56,7 +56,7 @@ GeoSync is a verification-first quantitative research platform with neuroscience
 
 ---
 
-## INVARIANT REGISTRY — 108 invariants loaded by kernel self-check
+## INVARIANT REGISTRY — 110 invariants loaded by kernel self-check
 
 > **Single source of truth:** `.claude/physics/INVARIANTS.yaml` (`python scripts/count_invariants.py`). The 2026-04-30 external audit corrected a four-way drift (`57 / 66 / 67 / 87`); CI gate `invariant-count-sync` now fail-closes on any future divergence between this header, README badges, BASELINE.md, and the registry.
 
@@ -232,6 +232,11 @@ INV-DA4 | asymptotic  | V stabilizes with fixed reward                 | P1
 INV-DA5 | statistical | At equilibrium E[δ] ≈ 0                       | P1
 INV-DA6 | qualitative | Larger α → faster + more variance              | P2
 INV-DA7 | algebraic   | ∂δ/∂r = 1 (raw TD, not tanh adapter)          | P0
+INV-DA8 | universal   | DopamineExecutionAdapter: |δ|=|tanh(·)| ≤ 1,  | P0
+         finite ∀ finite input. Scope: the ADAPTER (tanh-squashed),
+         NOT INV-DA7 (raw controller). ∂δ/∂r = sech²(·) ≠ 1 by design.
+         Source: core/neuro/dopamine_execution_adapter.py
+         Tests:  tests/unit/physics/test_dopamine_execution_adapter_bounds.py
 ```
 
 ### GABA Inhibition Gate
@@ -438,6 +443,35 @@ INV-DRO5 | universal    | NaN/Inf/constant/rank/short input → ValueError | P0
          Fail-closed; no silent numeric repair.
 ```
 
+### Coherence-Bridge Relay Contract (physics core → risk layer)
+
+```
+INV-CBR1 | universal   | VALID handoff iff R∈[0,1] (INV-K1) ∧            | P0
+                       | ollivier_kappa ≤ 1 when present (INV-RC1) ∧
+                       | gamma finite ∧ gamma ≥ 0. Else
+                       | status=INVALID_PHYSICS_CONTRACT, decision=NO_GO,
+                       | safe_risk_scalar=0.0 (fail-closed). The
+                       | augmented_forman_ricci field is finite-only — it
+                       | may exceed 1 and is NEVER κ-bound evidence
+                       | (Forman ≠ Ollivier; category-error guard).
+         Source: coherence_bridge/physics_contract.py
+         Tests:  tests/integration/test_coherence_bridge_invariants.py
+```
+
+### Neuro-Homeostatic Stabilizer (engineering control contract)
+
+```
+INV-HOM1 | conditional | Common-mode reset wave is Lyapunov-energy        | P1
+                       | non-increasing: E_post ≤ E_pre, E=gain·mean(1−cosΔφ).
+                       | Contract violations (unequal/empty phases, gain≤0,
+                       | max_phase_error≤0) → ValueError; |Δφ|>max_phase_error
+                       | → safety_lock (no advance). NON-CLAIM: engineering
+                       | analogue; descent proven for common-mode only;
+                       | E/I/'serotonin' are arithmetic proxies.
+         Source: geosync/neuroeconomics/homeostatic_stabilizer.py
+         Tests:  tests/unit/neuro/test_homeostatic_stabilizer_setpoint.py
+```
+
 ---
 
 ## TEST TAXONOMY
@@ -524,6 +558,9 @@ assert result.order > 0      # no INV, no context
 | `*cryptobiosis*`, `*dormant*` | INV-CB1..8 |
 | `*dfa*`, `*hurst*`, `*criticality*` | INV-AC1-rev |
 | `*dro_ara*`, `*regime_observer*` | INV-DRO1..5 |
+| `coherence_bridge/physics_contract*`, `*geosync_adapter*` | INV-CBR1, INV-K1, INV-RC1 |
+| `*homeostatic_stabilizer*` | INV-HOM1 |
+| `*dopamine_execution_adapter*` | INV-DA8 |
 | `application/`, `cli/`, `ui/` | No physics |
 
 ---

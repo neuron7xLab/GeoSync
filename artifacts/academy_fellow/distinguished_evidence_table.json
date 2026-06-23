@@ -18,14 +18,14 @@
   "summary": {
     "total": 32,
     "by_tier": {
-      "OPERATIONAL": 18,
-      "PARTIAL": 6,
+      "OPERATIONAL": 21,
+      "PARTIAL": 3,
       "DECORATIVE": 3,
       "OVERCLAIM": 2,
       "LEGACY": 2,
       "REJECTED": 1
     },
-    "promotion_allowed": 18
+    "promotion_allowed": 21
   },
   "rows": [
     {
@@ -262,7 +262,7 @@
       ],
       "gate": "scripts/ci/check_invariant_source_binding.py + check_falsifier_ledger.py",
       "falsifier": "INV-AC1-rev: κ(node) < κ_critical without isolation event ⇒ violation. Reactive vs proactive failure documented (see CLAUDE.md AC1 derivation).",
-      "limitation": "kappa_critical/isolation gate is a documented derivation (CLAUDE.md + INV-AC1-rev), NOT executed source; witness anchors the closed form to the real DFAGammaEstimator lambda output. Bind to an isolate() symbol if/when the gate is implemented.",
+      "limitation": "EXECUTED SOURCE: the κ_critical/isolation gate now lives in geosync/estimators/dfa_gamma_estimator.py (kappa_critical, should_isolate_node, assess_node, isolation_mask, aggregate_excluding_isolated, AdaptiveCriticalityGate) — no longer a test-local reference. The INV-AC1-rev closed form is mathematically identical to the CLAUDE.md derivation; the gate fail-closes on non-finite κ_node/λ_local (NON_FINITE_INPUT), singular denominator (SINGULAR_DENOMINATOR) and all-isolated ensembles, and raises on invalid shared ε/ΔH_max. Witness tests/unit/physics/test_adaptive_criticality_kappa.py now imports the source symbols (threshold crossing, equality boundary, non-finite input, ensemble exclusion). NON-CLAIM: criticality observer, not a predictor; synthetic-only.",
       "replay": "PYTHONPATH=. python -m pytest tests/unit/physics/test_T22_lyapunov_spectral.py tests/unit/physics/test_adaptive_criticality_kappa.py",
       "promotion_allowed": true
     },
@@ -315,17 +315,17 @@
     {
       "contribution": "dopamine-execution-adapter-tanh",
       "domain": "neuroscience",
-      "standard_anchor": "Admissibility only (ACM 'Functional' tier): witnessed but NOT claim-tier promoted — open remediation; no INV-* binding or open gap.",
-      "claim_tier": "PARTIAL",
+      "standard_anchor": "Popperian falsifiability + executable witness (ACM 'Results Reproduced' tier): invariant-bound, INV-* referenced, fail-closed CI gate.",
+      "claim_tier": "OPERATIONAL",
       "file": "core/neuro/dopamine_execution_adapter.py",
       "test": [
         "tests/unit/physics/test_dopamine_execution_adapter_bounds.py"
       ],
       "gate": "scripts/ci/check_neuro_claim_boundary.py + tools/audit/neuro_symbolic_audit.py",
-      "falsifier": "Output ∉ [−1,1] ⇒ violation. NON-CLAIM: this is NOT raw TD-error and MUST NOT be passed to invariants restricted to DopamineController scope.",
-      "limitation": "Witness asserts out in [-1,1], adapter != raw TD-error in saturation, and INV-DA7 (d delta/d r = 1) is scoped to DopamineController only. Classification stays PARTIAL: no INV-* binding exists in CLAUDE.md, so the repo neuro audit forbids OPERATIONAL promotion despite the added witness — promotion is blocked on defining the invariant.",
+      "falsifier": "INV-DA8: |δ|=|tanh(scale·raw)| > 1 or non-finite δ on finite input ⇒ violation. NON-CLAIM: this is NOT raw TD-error and MUST NOT be passed to invariants restricted to DopamineController scope (∂δ/∂r = sech²(·) ≠ 1).",
+      "limitation": "PROMOTED PARTIAL→OPERATIONAL. The blocking gap (no INV-* binding) is closed: INV-DA8 (DopamineExecutionAdapter |δ|=|tanh(·)|≤1, finite ∀ finite input; ∂δ/∂r=sech²≠1, scope-distinct from INV-DA7) is now in CLAUDE.md + INVARIANTS.yaml with source/tests bindings. The |δ|≤1 bound is structural (tanh range) and witnessed by tests/unit/physics/test_dopamine_execution_adapter_bounds.py. NON-CLAIM: bounded engineering normaliser, NOT raw TD-error; never an INV-DA7-scoped quantity.",
       "replay": "PYTHONPATH=. python -m pytest tests/unit/physics/test_dopamine_execution_adapter_bounds.py",
-      "promotion_allowed": false
+      "promotion_allowed": true
     },
     {
       "contribution": "neuro-optimizer-balance-metrics",
@@ -340,7 +340,7 @@
       ],
       "gate": "tools/audit/neuro_symbolic_audit.py",
       "falsifier": "Hardcoded ranges have no neuroscience citation; null-model needed (random params should produce score below threshold by construction).",
-      "limitation": "Null model (N=3000, seed 20260623) scores mean ~0.731 vs configured ~0.999 at T=0.95 (~2.7 sigma). DA/5HT and E/I asserted as uncited engineering ratios (no physiological clamp). Classification stays PARTIAL: no INV-* binding exists in CLAUDE.md, so the repo neuro audit forbids OPERATIONAL promotion despite the added witness — promotion is blocked on defining the invariant.",
+      "limitation": "KEPT PARTIAL BY DESIGN (no promotion). Null model (N=3000, seed 20260623) scores mean ~0.731 vs configured ~0.999 at T=0.95 (~2.7σ) — this is a statistical SEPARATION (admissibility evidence), NOT a falsifiable per-input hard contract, so it does not warrant an operational INV. DA/5HT and E/I are uncited engineering ratios with no physiological clamp (QUARANTINE_DOC: relabel as arithmetic ratios, do not promote). Promotion is DECLINED on epistemic grounds (no honest hard invariant exists), not merely pending an INV name.",
       "replay": "PYTHONPATH=. python -m pytest tests/integration/test_neurostack_integration.py benchmarks/neuro_optimizer_benchmark.py tests/unit/neuro/test_neuro_optimizer_null_model.py",
       "promotion_allowed": false
     },
@@ -363,18 +363,18 @@
     {
       "contribution": "coherence-bridge-geosync-adapter",
       "domain": "runtime-governance",
-      "standard_anchor": "Admissibility only (ACM 'Functional' tier): witnessed but NOT claim-tier promoted — open remediation; no INV-* binding or open gap.",
-      "claim_tier": "PARTIAL",
+      "standard_anchor": "Popperian falsifiability + executable witness (ACM 'Results Reproduced' tier): invariant-bound, INV-* referenced, fail-closed CI gate.",
+      "claim_tier": "OPERATIONAL",
       "file": "coherence_bridge/geosync_adapter.py",
       "test": [
         "coherence_bridge/test_runner.py",
         "tests/integration/test_coherence_bridge_invariants.py"
       ],
       "gate": "scripts/ci/check_phd_traceability.py + tools/audit/neuro_symbolic_audit.py",
-      "falsifier": "Cross-bridge invariant (R∈[0,1] AND κ≤1) violated downstream ⇒ violation.",
-      "limitation": "Witness confirms INV-K1 (R in [0,1]) and INV-RC1 on the Ollivier operator are preserved. OPEN GAP (kept PARTIAL): adapter relays out-of-band negative gamma (T3) and the exposed ricci_curvature is a Forman blend (legitimately >1, not the Ollivier kappa<=1 field) — ledger wording should name the Ollivier operator; adapter does not fail-closed on negative gamma.",
+      "falsifier": "INV-CBR1: VALID for R∉[0,1], negative/non-finite gamma, or Ollivier κ>1+ε; OR INVALID for a Forman blend >1 with in-band R/gamma/Ollivier; OR INVALID verdict with non-zero safe_risk_scalar ⇒ violation.",
+      "limitation": "PROMOTED PARTIAL→OPERATIONAL. OPEN GAP closed: (1) the adapter now emits an explicit name split — ollivier_kappa (the κ≤1 operator INV-RC1 governs) vs augmented_forman_ricci (Forman blend, legitimately >1, never κ-bound evidence; ricci_curvature kept as display alias); (2) coherence_bridge/physics_contract.py::validate_physics_contract fail-closes a NEGATIVE/non-finite gamma and an Ollivier κ>1 to status=INVALID_PHYSICS_CONTRACT, decision=NO_GO, safe_risk_scalar=0.0, while a Forman value >1 is VALID. Bound to INV-CBR1 (CLAUDE.md + INVARIANTS.yaml). NON-CLAIM: contract gate, not a trading signal; synthetic-only; advisory relay is still read-only (the gate is a separate downstream verdict).",
       "replay": "PYTHONPATH=. python -m pytest coherence_bridge/test_runner.py tests/integration/test_coherence_bridge_invariants.py",
-      "promotion_allowed": false
+      "promotion_allowed": true
     },
     {
       "contribution": "hebbian-plasticity-update",
@@ -383,28 +383,29 @@
       "claim_tier": "PARTIAL",
       "file": "geosync/neuroeconomics/hebbian_plasticity.py",
       "test": [
-        "tests/unit/neuro/test_hebbian_plasticity_bounds.py"
+        "tests/unit/neuro/test_hebbian_plasticity_bounds.py",
+        "tests/unit/neuro/test_hebbian_global_stability.py"
       ],
       "gate": "scripts/ci/check_neuro_claim_boundary.py + tools/audit/neuro_symbolic_audit.py",
-      "falsifier": "Weights diverge unbounded under repeated extreme input ⇒ violation. Stability criterion (Lyapunov-style) not asserted in code.",
-      "limitation": "BIBO-stable under adversarial input via magnitude clamp min(1,|pnl|*10); weight_floor rollback exercised. CAVEAT: caller-supplied eligibility components > 1 are unvalidated and fall outside the witnessed envelope (input-contract boundary). Classification stays PARTIAL: no INV-* binding exists in CLAUDE.md, so the repo neuro audit forbids OPERATIONAL promotion despite the added witness — promotion is blocked on defining the invariant.",
-      "replay": "PYTHONPATH=. python -m pytest tests/unit/neuro/test_hebbian_plasticity_bounds.py",
+      "falsifier": "Per-step update exceeds lr·magnitude·eligibility envelope, OR weight falls below weight_floor, OR out-of-[0,1] eligibility is silently accepted ⇒ violation. NOTE: global (cumulative) upper bound is NOT claimed.",
+      "limitation": "INPUT-CONTRACT HOLE CLOSED (this PR): caller-supplied eligibility is now validated fail-closed to [0,1]^11 finite (geosync/neuroeconomics/hebbian_plasticity.py::_validate_eligibility) — a component > 1 / non-finite / wrong-length now raises instead of silently inflating the update. Per-step growth matches the lr·magnitude·eligibility envelope (magnitude clamp min(1,|pnl|*10); weight_floor lower bound). REMAINS PARTIAL — NO promotion: the learning-rate floor (lr_floor) means sustained LTP grows weights LINEARLY without a global upper bound (the docstring's \"renormalize/sum preserved\" is NOT implemented), so global BIBO stability is unproven. That UNBOUNDEDNESS is now an executable negative witness (tests/unit/neuro/test_hebbian_global_stability.py: sustained LTP grows ~lr_floor/step without ceiling, monotone in horizon). Promotion is declined on epistemic grounds (no global bound exists), NOT merely pending an INV name.",
+      "replay": "PYTHONPATH=. python -m pytest tests/unit/neuro/test_hebbian_plasticity_bounds.py tests/unit/neuro/test_hebbian_global_stability.py",
       "promotion_allowed": false
     },
     {
       "contribution": "homeostatic-stabilizer",
       "domain": "neuroscience",
-      "standard_anchor": "Admissibility only (ACM 'Functional' tier): witnessed but NOT claim-tier promoted — open remediation; no INV-* binding or open gap.",
-      "claim_tier": "PARTIAL",
+      "standard_anchor": "Popperian falsifiability + executable witness (ACM 'Results Reproduced' tier): invariant-bound, INV-* referenced, fail-closed CI gate.",
+      "claim_tier": "OPERATIONAL",
       "file": "geosync/neuroeconomics/homeostatic_stabilizer.py",
       "test": [
         "tests/unit/neuro/test_homeostatic_stabilizer_setpoint.py"
       ],
       "gate": "scripts/ci/check_neuro_claim_boundary.py + tools/audit/neuro_symbolic_audit.py",
-      "falsifier": "Setpoint never reached under zero-noise sustained input ⇒ violation.",
-      "limitation": "Convergence f(d)=d-gain*sin(d), stable for 0<gain<2 (default 1); deadband=convergence_tol; Lyapunov energy descent E_post<=E_pre. CAVEAT: scalar-mean correction converges only for coherent common-mode error (the witnessed regime). Classification stays PARTIAL: no INV-* binding exists in CLAUDE.md, so the repo neuro audit forbids OPERATIONAL promotion despite the added witness — promotion is blocked on defining the invariant.",
+      "falsifier": "INV-HOM1: post_reset_energy > pre_reset_energy + ε for a common-mode error within max_phase_error; OR a contract violation does not raise; OR an over-threshold error does not safety_lock ⇒ violation.",
+      "limitation": "PROMOTED PARTIAL→OPERATIONAL. INV-HOM1 (conditional): the common-mode reset wave is Lyapunov-energy non-increasing (E_post ≤ E_pre, E=gain·mean(1−cosΔφ)); contract violations raise; over-threshold |Δφ| fail-closes to safety_lock. Bound to INV-HOM1 in CLAUDE.md + INVARIANTS.yaml. SCOPE/NON-CLAIM (kept explicit): ENGINEERING analogue, not neuroscience — energy descent is proven ONLY for coherent common-mode phase error; for heterogeneous error the scalar-mean correction is not a guaranteed descent direction. E/I, 'serotonin', 'GABA tone' are arithmetic proxies.",
       "replay": "PYTHONPATH=. python -m pytest tests/unit/neuro/test_homeostatic_stabilizer_setpoint.py",
-      "promotion_allowed": false
+      "promotion_allowed": true
     },
     {
       "contribution": "neuro-orchestrator-scenario-builder",
@@ -418,7 +419,7 @@
       ],
       "gate": "scripts/ci/check_phd_traceability.py + tools/audit/neuro_symbolic_audit.py",
       "falsifier": "None: labels carry no algorithmic content. NON-CLAIM required: this is a configuration layer, not basal-ganglia simulation.",
-      "limitation": "Decorative neuroscience naming on a configuration aggregator; rename to ScenarioConfigurator and add explicit non-claim block.",
+      "limitation": "QUARANTINED (this PR): explicit NON-CLAIM docstring added to NeuroOrchestrator stating it is a pure configuration aggregator (no striatum dynamics / pathways / gating); the bio labels name parameter bundles only. Neutral canonical alias ScenarioConfigurator = NeuroOrchestrator added to src/geosync/core/neuro/neuro_orchestrator.py __all__ — preferred for new code; legacy name retained for backward compatibility (imports unchanged). Stays DECORATIVE (correct tier; not a runtime mechanism).",
       "replay": "PYTHONPATH=. python -m pytest tests/core/test_neuro_training.py examples/neuro_orchestrator_demo.py",
       "promotion_allowed": false
     },
@@ -431,7 +432,7 @@
       "test": [],
       "gate": "scripts/ci/check_phd_traceability.py + tools/audit/neuro_symbolic_audit.py",
       "falsifier": "Algorithm is SA-correct; \"neuromodulator\" label is decorative.",
-      "limitation": "SA correctness ≠ neuroscience claim; rename to AdaptiveCalibrator.",
+      "limitation": "QUARANTINED (this PR): class name AdaptiveCalibrator is already neutral; explicit NON-CLAIM docstring added stating the algorithm is standard simulated annealing and the \"neuromodulator\" parameter labels are decorative (SA correctness is not a neuroscience claim). Stays DECORATIVE.",
       "replay": "(no executable witness — admissibility entry only)",
       "promotion_allowed": false
     },
@@ -446,7 +447,7 @@
       ],
       "gate": "scripts/ci/check_phd_traceability.py + tools/audit/neuro_symbolic_audit.py",
       "falsifier": "None — no biological mechanism modelled. NON-CLAIM required.",
-      "limitation": "Legacy compatibility shim labelled basal ganglia; rename or quarantine. The composite BasalGangliaDecisionStack remains operational via its children (DopamineController, SerotoninController, GABAInhibitionGate).",
+      "limitation": "QUARANTINED (this PR): explicit NON-CLAIM docstring added to BasalGangliaPolicy stating it is a deterministic three-branch lookup (no striatal dynamics / pathways). Neutral canonical alias ActionSelectionPolicy = BasalGangliaPolicy added to src/geosync/policy/basal_ganglia.py __all__ — preferred for new code; legacy name retained for backward compatibility (imports unchanged). Stays DECORATIVE.",
       "replay": "PYTHONPATH=. python -m pytest tests/integration/test_neurostack_integration.py",
       "promotion_allowed": false
     },

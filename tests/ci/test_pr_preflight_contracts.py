@@ -10,12 +10,11 @@ REQUIRED_REPOSITORY_SYSTEM_SECTIONS = [
     "## 2. System Layers",
     "## 3. Claim Promotion Automaton",
     "## 4. Evidence-Bearing Artifact Requirements",
-    "## 5. Ricci Microstructure Boundary",
-    "## 6. MFN Gateway Boundary",
-    "## 7. Release Evidence Boundary",
-    "## 8. Reviewer Protocol",
-    "## 9. Implementation-Agent Rules",
-    "## 10. Definition of Repository Completion",
+    "## 5. Inference Operation Boundary",
+    "## 6. Ricci Microstructure Boundary",
+    "## 7. MFN Gateway Boundary",
+    "## 8. Release Evidence Boundary",
+    "## 9. Reviewer Protocol",
 ]
 
 
