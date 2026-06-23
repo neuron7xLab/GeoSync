@@ -28,6 +28,7 @@ PRODUCT_CATEGORY.md
 CLAIMS.md
 FORBIDDEN_CLAIMS.md
 docs/REPOSITORY_SYSTEM.md
+docs/SEMANTIC_CONTROL_LAYER.md
 docs/INFERENCE_READINESS.md
 docs/INFERENCE_OPERATION_PROTOCOL.md
 docs/INFERENCE_CONTRACT.manifest.json
@@ -44,13 +45,14 @@ Agents must:
 ```text
 1. Identify the exact research line or subsystem being changed.
 2. State whether the change is documentation, schema, gate, artifact, code, or release evidence.
-3. Preserve existing evidence tiers unless qualifying artifacts justify promotion.
-4. Keep placeholder artifacts explicitly marked as placeholders.
-5. Add or update validation when introducing new contract fields.
-6. Leave a deterministic command that verifies the modified surface.
-7. Prefer minimal coherent changes over broad rewrites.
-8. Preserve failed, blocked, retired, or negative results when they carry evidence value.
-9. Follow the inference operation protocol before emitting a final result.
+3. Classify the role of every changed canonical surface: filter, context, claim, boundary, protocol, manifest, schema, test, verdict, or replay.
+4. Preserve existing evidence tiers unless qualifying artifacts justify promotion.
+5. Keep placeholder artifacts explicitly marked as placeholders.
+6. Add or update validation when introducing new contract fields.
+7. Leave a deterministic command that verifies the modified surface.
+8. Prefer minimal coherent changes over broad rewrites.
+9. Preserve failed, blocked, retired, or negative results when they carry evidence value.
+10. Follow the inference operation protocol before emitting a final result.
 ```
 
 ## Inference Operation Rule
@@ -72,6 +74,7 @@ The required agent state is:
 ```text
 intent_type
 canonical_files_used
+file_roles_used
 claim_tier_before
 claim_tier_after
 changed_surface_type
@@ -99,6 +102,7 @@ Agents must not:
 - call a release complete without generated evidence
 - rewrite the repository identity into a product promise
 - skip the inference operation protocol when changing claim-facing surfaces
+- treat an unclassified file as operational context
 ```
 
 ## Evidence-Bearing Artifact Minimum
@@ -146,7 +150,7 @@ For documentation-only changes:
 3. Avoid forbidden status language from FORBIDDEN_CLAIMS.md.
 4. Link new conceptual docs from README.md or an existing canonical surface.
 5. Do not create parallel doctrine files unless they reduce ambiguity.
-6. Bind inference-facing documentation to docs/INFERENCE_READINESS.md and docs/INFERENCE_OPERATION_PROTOCOL.md.
+6. Bind inference-facing documentation to docs/SEMANTIC_CONTROL_LAYER.md, docs/INFERENCE_READINESS.md, and docs/INFERENCE_OPERATION_PROTOCOL.md.
 ```
 
 ## Code Change Rule
