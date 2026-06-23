@@ -194,6 +194,8 @@ When an agent enters GeoSync, it should resolve context in this order:
 README.md
   -> docs/REPOSITORY_SYSTEM.md
   -> docs/INFERENCE_READINESS.md
+  -> docs/INFERENCE_OPERATION_PROTOCOL.md
+  -> docs/INFERENCE_CONTRACT.manifest.json
   -> AGENTS.md
   -> forbidden-claims / doctrine files
   -> claim registry
@@ -206,7 +208,42 @@ The agent should prefer the smallest context set that preserves correctness. Mor
 
 ---
 
-## 9. Final Rule
+## 9. Integral Operation Protocol
+
+The readiness contract is executed through the seven-step operational closure in [`docs/INFERENCE_OPERATION_PROTOCOL.md`](INFERENCE_OPERATION_PROTOCOL.md) and mirrored as machine-readable control data in [`docs/INFERENCE_CONTRACT.manifest.json`](INFERENCE_CONTRACT.manifest.json):
+
+```text
+1. resolve intent
+2. load canonical context
+3. compress semantic core
+4. bind claims to evidence
+5. select executable path
+6. verify and falsify
+7. emit replayable artifact
+```
+
+This converts inference readiness from an architectural definition into an agent-runnable protocol. A repository surface is inference-ready only when an agent can traverse this path without inventing hidden context, weakening claim boundaries, or relying on manual interpretation.
+
+Operational closure requires the agent to preserve:
+
+```text
+intent_type
+canonical_files_used
+claim_tier_before
+claim_tier_after
+changed_surface_type
+allowed_method
+blocked_claims
+verification_command
+evidence_artifact_path
+remaining_blocker
+```
+
+If these fields cannot be resolved, the correct result is a blocked state, not a confident output.
+
+---
+
+## 10. Final Rule
 
 ```text
 No indexed context, no inference.
