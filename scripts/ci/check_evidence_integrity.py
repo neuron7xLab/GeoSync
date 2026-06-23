@@ -10,9 +10,9 @@ non-existent ``INV-FOO`` and a test file that was never written would pass the
 structural audit. This gate closes that hole. It verifies, fail-closed:
 
   * OPERATIONAL → ≥1 inv_ref AND every inv_ref resolves to a real invariant id
-    (registry ``.claude/physics/INVARIANTS.yaml`` OR ``CLAUDE.md``); ≥1
-    existing_test AND every existing_test path exists on disk; non-empty
-    falsifier.
+    in the registry ``.claude/physics/INVARIANTS.yaml`` (the SOLE authority —
+    CLAUDE.md prose is a doc mirror, not an authority); ≥1 existing_test AND
+    every existing_test path exists on disk; non-empty falsifier.
   * PARTIAL → inv_refs MUST be empty. A PARTIAL that cites an INV is claiming an
     operational binding while sitting at admissibility tier — that is exactly
     the "described as promoted" contradiction. Promote it or drop the binding.
@@ -42,9 +42,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 LEDGER = ROOT / ".claude" / "neuro" / "NEURO_OPERATIONALIZATION_LEDGER.yaml"
 REGISTRY = ROOT / ".claude" / "physics" / "INVARIANTS.yaml"
-CLAUDE_MD = ROOT / "CLAUDE.md"
 
-_INV_TOKEN = re.compile(r"INV-[A-Za-z0-9_-]+")
 _REGISTRY_ID = re.compile(r"^\s*id:\s*(INV-[A-Za-z0-9_-]+)\s*$")
 _QUARANTINE_ACTIONS = frozenset({"RENAME", "QUARANTINE_DOC"})
 
@@ -112,7 +110,7 @@ def integrity_errors(
                 if ref not in known_invs:
                     errors.append(
                         f"[{eid}] OPERATIONAL cites unknown invariant {ref!r} "
-                        f"(not in INVARIANTS.yaml or CLAUDE.md)."
+                        f"(not in the INVARIANTS.yaml registry)."
                     )
             if not tests:
                 errors.append(f"[{eid}] OPERATIONAL has no existing_test (fake promotion).")
