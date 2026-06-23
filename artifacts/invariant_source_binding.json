@@ -1,0 +1,6 @@
+{
+  "verdict": "PASS",
+  "invariants": 107,
+  "bindings_checked": 57,
+  "broken": []
+}
