@@ -38,7 +38,41 @@ GeoSync therefore treats documentation, schemas, tests, artifacts, CI, benchmark
 
 ---
 
-## 2. Semantic-Cognitive Model
+## 2. Semantic Control Foundation
+
+Inference readiness depends on the semantic control layer defined in [`docs/SEMANTIC_CONTROL_LAYER.md`](SEMANTIC_CONTROL_LAYER.md).
+
+The repository enters inference only when each canonical surface has a role:
+
+```text
+filter
+context
+claim
+boundary
+protocol
+manifest
+schema
+test
+verdict
+replay
+```
+
+This role binding matters because LLMs, Copilot, Claude Code, search agents, reviewers, and external evaluators do not receive the repository as a human-held memory. They reconstruct intent from reachable tokens. If those tokens are noisy, duplicated, stale, or claim-inflated, the agent can confuse status, overstate claims, waste context, or emit unverifiable output.
+
+The valid path is therefore:
+
+```text
+role-bound file
+  -> compact semantic core
+  -> bounded agent action
+  -> checked artifact
+  -> falsifiable verdict
+  -> replayable state
+```
+
+---
+
+## 3. Semantic-Cognitive Model
 
 Inference readiness has four cognitive layers:
 
@@ -66,7 +100,7 @@ If any edge is missing, the output is not inference. It is interpretation.
 
 ---
 
-## 3. Runtime Mechanism
+## 4. Runtime Mechanism
 
 The inference-ready path is:
 
@@ -98,10 +132,11 @@ A result is admissible only when the system records enough information to repeat
 
 ---
 
-## 4. Readiness Gates
+## 5. Readiness Gates
 
 | Gate | Requirement | Blocking Condition |
 | --- | --- | --- |
+| File Role Binding | Canonical files are assigned operational roles: filter, context, claim, boundary, protocol, manifest, schema, test, verdict, replay. | The agent must guess why a file exists or how it constrains output. |
 | Context Addressability | Canonical files are indexed, linked, and named by role. | Critical context is buried, duplicated, stale, or discoverable only by human memory. |
 | Semantic Compression | Runtime context preserves the operational core while removing decorative mass. | Prompt budget is spent on prose that cannot change execution. |
 | Claim Boundary | Every claim maps to tier, evidence, falsifier, and replay path. | Claim language outruns evidence tier or benchmark scope. |
@@ -115,11 +150,12 @@ Promotion is blocked by any failed gate.
 
 ---
 
-## 5. Operational Metrics
+## 6. Operational Metrics
 
 The inference surface should be measured by:
 
 ```text
+file_role_coverage
 context_addressability_score
 context_retention_rate
 context_token_waste_ratio
@@ -131,17 +167,19 @@ null_baseline_superiority_rate
 artifact_hash_coverage
 agent_boundary_violation_count
 manual_interpretation_dependency
+external_agent_misclassification_rate
 ```
 
 A system is not mature because it sounds coherent. It is mature when these measurements improve while claim inflation, prompt waste, and manual interpretation decrease.
 
 ---
 
-## 6. Failure Modes
+## 7. Failure Modes
 
 The repository is not inference-ready when:
 
 ```text
+canonical files have no operational role
 critical context is not discoverable
 agent instructions conflict across files
 canonical meaning is duplicated without hierarchy
@@ -158,7 +196,7 @@ These failures block promotion. They are not cosmetic defects.
 
 ---
 
-## 7. GeoSync Binding
+## 8. GeoSync Binding
 
 This contract binds the existing GeoSync system spine:
 
@@ -170,6 +208,8 @@ CLAIM REGISTRY
 MACHINE-CHECKABLE INVARIANTS
         ↓
 DATA CONTRACT
+        ↓
+SEMANTIC CONTROL LAYER
         ↓
 INFERENCE CONTRACT
         ↓
@@ -186,13 +226,14 @@ The inference-readiness claim is valid only when each lower layer has an explici
 
 ---
 
-## 8. Agent Reading Order
+## 9. Agent Reading Order
 
 When an agent enters GeoSync, it should resolve context in this order:
 
 ```text
 README.md
   -> docs/REPOSITORY_SYSTEM.md
+  -> docs/SEMANTIC_CONTROL_LAYER.md
   -> docs/INFERENCE_READINESS.md
   -> docs/INFERENCE_OPERATION_PROTOCOL.md
   -> docs/INFERENCE_CONTRACT.manifest.json
@@ -208,7 +249,7 @@ The agent should prefer the smallest context set that preserves correctness. Mor
 
 ---
 
-## 9. Integral Operation Protocol
+## 10. Integral Operation Protocol
 
 The readiness contract is executed through the seven-step operational closure in [`docs/INFERENCE_OPERATION_PROTOCOL.md`](INFERENCE_OPERATION_PROTOCOL.md) and mirrored as machine-readable control data in [`docs/INFERENCE_CONTRACT.manifest.json`](INFERENCE_CONTRACT.manifest.json):
 
@@ -243,9 +284,10 @@ If these fields cannot be resolved, the correct result is a blocked state, not a
 
 ---
 
-## 10. Final Rule
+## 11. Final Rule
 
 ```text
+No role-bound file, no indexed context.
 No indexed context, no inference.
 No bounded agent, no inference.
 No evidence-bound claim, no inference.
