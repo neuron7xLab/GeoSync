@@ -72,7 +72,9 @@ echo "[12/13] autonomy cycle"
   --out artifacts/validation/autonomy_cycle.json >/dev/null
 
 echo "[13/13] gate + contract tests"
-"$PY" -m pytest tests/research_lines tests/ci \
-  -q -p no:cacheprovider >/dev/null
+# Do NOT suppress pytest output: a hidden failure here is undiagnosable (a gate
+# that fails with no FAILED/ERROR line reads as a vacuous pass). Show short
+# tracebacks so the failing node id is always visible in CI logs.
+"$PY" -m pytest tests/research_lines tests/ci -q -p no:cacheprovider --tb=short
 
 echo "REPO_INTEGRITY: PROVEN"

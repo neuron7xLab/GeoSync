@@ -15,7 +15,6 @@ from scripts.ci.check_artifact_freshness import (
     ROOT,
     build_manifest,
     check,
-    regenerated_sha,
 )
 
 
@@ -33,16 +32,20 @@ def test_manifest_is_consistent_with_artifacts() -> None:
 
 
 def test_hand_edit_is_detected() -> None:
-    """A tampered artifact is flagged STALE (the gate's whole reason to exist)."""
+    """A tampered artifact is flagged STALE by check() (the gate's reason to exist).
+
+    Uses a single check() pass (one regeneration of the deterministic set) rather
+    than repeated regenerations, to keep this off the hot path of the repo's
+    contract-test step.
+    """
     entry = DETERMINISTIC_ARTIFACTS[0]
     path = ROOT / entry.artifact
     original = path.read_bytes()
     try:
         path.write_bytes(original + b'\n{"hand_edited": true}\n')  # corrupt
-        committed_sha, regen_sha = regenerated_sha(entry)  # restores to corrupted bytes
-        assert committed_sha != regen_sha, "tampered artifact must differ from regeneration"
+        errors = check()
+        assert any("STALE" in e and entry.artifact in e for e in errors), (
+            f"tampered artifact must be flagged STALE; got {errors}"
+        )
     finally:
         path.write_bytes(original)  # leave the tree clean
-    # And the original is genuinely fresh again.
-    again_committed, again_regen = regenerated_sha(entry)
-    assert again_committed == again_regen
