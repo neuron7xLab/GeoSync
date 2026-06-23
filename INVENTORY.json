@@ -111,7 +111,7 @@
     },
     {
       "path": "scripts/ci/check_neuro_claim_boundary.py",
-      "sha256": "3e75638647b9e252389a3e7fb0f03060a732f37dfacb4df4b13b0f8149fe7641"
+      "sha256": "7f9d79e30ac2840e3f43943179eeebf6ffe06a104d9f8789999f4f477ac95ef5"
     },
     {
       "path": "scripts/ci/check_package_boundary.py",
@@ -182,12 +182,20 @@
       "sha256": "c9ca39139bc360c742f06350e23c086cb8c8a9eeea4d1d09b7998d16d1d0acdf"
     },
     {
+      "path": "scripts/ci/gen_distinguished_evidence_table.py",
+      "sha256": "550571151a0b61cabd0e90ad0b9a7121ccb56057528c3ae64d56e7f4ae5649db"
+    },
+    {
       "path": "scripts/ci/gen_law_mechanism_witness_matrix.py",
       "sha256": "f2c32d209e365562c2b7d6666320416f346094e462d3ffc4ff947b0868d2ee6e"
     },
     {
       "path": "scripts/ci/lint_forbidden_terms.py",
       "sha256": "d65c2bc782e1223dbd1c8379fad5bdcf92ad8fd6775cb37978e53b0f3e2da7b2"
+    },
+    {
+      "path": "scripts/ci/phd_evidence.sh",
+      "sha256": "7e3fad6f6851130331e24def06bf2a1549f9aabee7a5cb113cb77f1a9d51b152"
     },
     {
       "path": "scripts/ci/pr_quality_sentinel.py",
