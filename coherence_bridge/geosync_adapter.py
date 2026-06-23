@@ -121,7 +121,7 @@ def _ollivier_compute(prices: np.ndarray) -> tuple[float, OllivierStatus]:
     """
     try:
         from core.indicators.ricci import build_price_graph, ricci_curvature_edge
-    except Exception as exc:
+    except ImportError as exc:
         logger.warning("ollivier IMPORT_ERROR: %s: %s", type(exc).__name__, exc)
         return float("nan"), OllivierStatus.IMPORT_ERROR
     try:
