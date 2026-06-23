@@ -129,9 +129,9 @@ def build_manifest() -> dict[str, object]:
             {
                 "artifact": spec.artifact,
                 "determinism_class": spec.determinism_class,
-                "generator_command": ("python " + " ".join(spec.generator))
-                if spec.generator
-                else "",
+                "generator_command": (
+                    ("python " + " ".join(spec.generator)) if spec.generator else ""
+                ),
                 "sources": spec.sources,
                 "artifact_sha256": _sha256(path.read_bytes()) if path.is_file() else None,
             }

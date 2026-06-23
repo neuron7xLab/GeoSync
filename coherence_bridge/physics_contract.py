@@ -113,9 +113,9 @@ class BridgeSignal:
             gamma=_as_float(sig.get("gamma")),
             order_parameter_R=_as_float(sig.get("order_parameter_R")),
             augmented_forman_ricci=_as_float(forman),
-            ollivier_kappa=_as_float(sig.get("ollivier_kappa"))
-            if "ollivier_kappa" in sig
-            else None,
+            ollivier_kappa=(
+                _as_float(sig.get("ollivier_kappa")) if "ollivier_kappa" in sig else None
+            ),
             telemetry={"raw_risk_scalar": sig.get("risk_scalar"), "regime": sig.get("regime")},
         )
 
