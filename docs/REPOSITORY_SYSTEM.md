@@ -25,6 +25,7 @@ The repository is not optimized for persuasive language. It is optimized for con
 | [`FORBIDDEN_CLAIMS.md`](../FORBIDDEN_CLAIMS.md) | Status-language firewall and promotion invariants. |
 | [`AGENTS.md`](../AGENTS.md) | Root implementation contract for Claude, Codex, and automation agents. |
 | [`docs/PR_PREFLIGHT_RUNBOOK.md`](PR_PREFLIGHT_RUNBOOK.md) | Operational contract for the structured local PR preflight runner and its evidence report. |
+| [`docs/INFERENCE_READINESS.md`](INFERENCE_READINESS.md) | Runtime-readiness contract for context architecture, agent boundaries, artifact validity, and falsification control. |
 | [`docs/MFN_VERIFICATION_ROADMAP.json`](MFN_VERIFICATION_ROADMAP.json) | MFN gateway machine-readable verification roadmap contract. |
 | [`BASELINE.md`](../BASELINE.md) | Baseline evidence and comparison reference when present. |
 | [`schemas/`](../schemas) | Machine-readable contracts for artifacts and governance records. |
@@ -209,76 +210,12 @@ A reviewer should inspect the repository in this order:
 3. FORBIDDEN_CLAIMS.md
 4. README.md
 5. docs/REPOSITORY_SYSTEM.md
-6. docs/PR_PREFLIGHT_RUNBOOK.md
-7. AGENTS.md
-8. schemas/
-9. scripts/ci/
-10. artifacts/
+6. docs/INFERENCE_READINESS.md
+7. docs/PR_PREFLIGHT_RUNBOOK.md
+8. AGENTS.md
+9. schemas/
+10. scripts/ci/
+11. artifacts/
 ```
 
 Then ask five questions:
-
-```text
-What exactly is claimed?
-What tier is the claim assigned?
-Which artifact supports it?
-Which falsifier can reject it?
-Can the artifact be replayed from the recorded command?
-```
-
-If any answer is missing, the claim does not move upward.
-
----
-
-## 9. Implementation-Agent Rules
-
-Any implementation agent modifying this repository must obey:
-
-```text
-Do not promote claim language without updating CLAIMS.md.
-Do not create placeholder evidence that pretends to be measured evidence.
-Do not hide negative outcomes.
-Do not weaken schema requirements to make a run pass.
-Do not bypass claim-boundary checks by moving language to another document.
-Do not introduce dependency-heavy paths into the MFN gateway.
-Do not call a release valid without an evidence bundle.
-```
-
-For the full root contract, see:
-
-```text
-AGENTS.md
-```
-
-Expected modification pattern:
-
-```text
-read canonical surface
-make minimal coherent change
-update schema or claim ledger when required
-add or update validation
-record evidence path
-leave replay command
-```
-
----
-
-## 10. Definition of Repository Completion
-
-GeoSync is complete for a given research line only when:
-
-```text
-claim tier is declared
-input data is immutable
-method version is pinned
-artifact validates against schema
-nulls and falsifiers are executed
-baseline is recorded
-replay command succeeds
-CI gate passes
-release evidence is emitted
-CLAIMS.md is updated
-retired or failed states are preserved
-```
-
-Anything less is not completion. It is a folder with ambition.
