@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from coherence_bridge.mock_engine import MockEngine
-from coherence_bridge.risk_gate import CoherenceRiskGate
+from coherence_bridge.risk_gate import CoherenceRiskGate, UnsafeCoherenceRiskGateHarness
 
 
 def test_unknown_instrument_blocked_fail_closed() -> None:
@@ -193,3 +193,60 @@ def test_decision_surface_never_reads_raw_signal_risk_scalar() -> None:
     src = pathlib.Path("coherence_bridge/risk_gate.py").read_text(encoding="utf-8")
     raw_reads = re.findall(r"""(?:sig|signal)(?:\.get\(\s*["']risk_scalar["']|\[\s*["']risk_scalar["']\])""", src)
     assert raw_reads == [], f"decision surface reads raw signal risk_scalar: {raw_reads}"
+
+
+# ── Production fail-open is forbidden by construction (Task 2) ────────────────
+
+
+def test_production_fail_open_is_rejected_at_construction() -> None:
+    """fail_closed=False without the test env flag raises RuntimeError."""
+    import os
+
+    import pytest
+
+    os.environ.pop(CoherenceRiskGate.FAIL_OPEN_TEST_ENV, None)
+    with pytest.raises(RuntimeError, match="fail-open"):
+        CoherenceRiskGate(MockEngine(), fail_closed=False)
+
+
+def test_fail_open_only_via_unsafe_harness() -> None:
+    """The fail-open branch is reachable ONLY through the loud test harness:
+    a missing signal returns allowed=True (fail-open) inside the harness."""
+    from unittest.mock import MagicMock
+
+    eng = MagicMock()
+    eng.get_signal.return_value = None
+    with UnsafeCoherenceRiskGateHarness(eng) as gate:
+        assert gate.fail_closed is False
+        d = gate.apply("EURUSD", 1.0)
+    assert d.allowed is True
+    assert "fail-open" in d.reason
+
+
+def test_harness_restores_env_flag() -> None:
+    """The harness restores the env flag, so fail-open does not leak."""
+    import os
+
+    os.environ.pop(CoherenceRiskGate.FAIL_OPEN_TEST_ENV, None)
+    with UnsafeCoherenceRiskGateHarness(MockEngine()):
+        pass
+    assert CoherenceRiskGate.FAIL_OPEN_TEST_ENV not in os.environ
+
+
+def test_no_production_path_instantiates_fail_open() -> None:
+    """grep-gate: no production CONSUMER module enables fail-open.
+
+    risk_gate.py is the home of CoherenceRiskGate AND the sanctioned test-only
+    UnsafeCoherenceRiskGateHarness (the single allowed fail_closed=False), so it
+    is excluded; every OTHER coherence_bridge module must not construct a
+    fail-open gate.
+    """
+    import pathlib
+
+    offenders: list[str] = []
+    for path in pathlib.Path("coherence_bridge").rglob("*.py"):
+        if "test" in path.name or path.name == "risk_gate.py":
+            continue
+        if "fail_closed=False" in path.read_text(encoding="utf-8"):
+            offenders.append(str(path))
+    assert offenders == [], f"production consumer enables fail-open: {offenders}"

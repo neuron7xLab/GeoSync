@@ -28,6 +28,8 @@ import os
 import sys
 import threading
 import time
+from collections import OrderedDict
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
@@ -70,17 +72,38 @@ class OllivierStatus(str, Enum):
     IMPORT_ERROR = "IMPORT_ERROR"
     SOLVER_ERROR = "SOLVER_ERROR"
     PERF_BUDGET_EXCEEDED = "PERF_BUDGET_EXCEEDED"  # |edges| > max-edges budget
-    TIMEOUT = "TIMEOUT"  # measured wall-clock > max-ms budget (post-hoc)
+    TIMEOUT = "TIMEOUT"  # monotonic deadline crossed mid-solve (pre-empted)
+    CIRCUIT_OPEN = "CIRCUIT_OPEN"  # breaker tripped — skipped without computing
 
 
-# Policy defaults (env-overridable, all deterministic except the post-hoc
-# wall-clock guard which only DOWNGRADES, never fabricates).
+@dataclass(frozen=True)
+class OllivierResult:
+    """Ollivier-κ outcome + runtime telemetry (P0 operational hardening)."""
+
+    value: float
+    status: OllivierStatus
+    edges_seen: int = 0
+    edges_budget: int = 0
+    elapsed_ms: float = 0.0
+    cache_hit: bool = False
+    circuit_state: str = "closed"
+
+
+# Policy defaults (env-overridable). The deadline guard PRE-EMPTS the solve
+# (checked before each edge), never post-hoc; it only ever DOWNGRADES to NaN.
 _OLLIVIER_MAX_EDGES_DEFAULT = 4000
 _OLLIVIER_MAX_MS_DEFAULT = 750.0
 _OLLIVIER_CACHE_MAX = 256
-# Deterministic cache keyed by price-array content hash (bounded; cleared whole
-# when full so it never grows unbounded and stays reproducible).
-_OLLIVIER_CACHE: dict[str, tuple[float, OllivierStatus]] = {}
+_OLLIVIER_MAX_CONSECUTIVE_TIMEOUTS_DEFAULT = 3
+_OLLIVIER_COOLDOWN_MS_DEFAULT = 30_000.0
+
+# Thread-safe state: a single RLock guards the bounded-LRU cache AND the
+# per-instrument circuit-breaker. The heavy solve runs OUTSIDE the lock (a
+# duplicate concurrent solve is deterministic, so correctness holds without
+# serialising every consumer).
+_OLLIVIER_LOCK = threading.RLock()
+_OLLIVIER_CACHE: "OrderedDict[str, OllivierResult]" = OrderedDict()
+_OLLIVIER_CIRCUIT: dict[str, dict[str, int]] = {}  # instrument -> {consecutive, open_until_ns}
 
 
 def _env_int(name: str, default: int) -> int:
@@ -102,6 +125,13 @@ def ollivier_required() -> bool:
     return os.environ.get("COHERENCE_REQUIRE_OLLIVIER", "0").strip().lower() in {"1", "true", "yes"}
 
 
+def reset_ollivier_runtime_state() -> None:
+    """Clear cache + circuit-breaker state (test hook; thread-safe)."""
+    with _OLLIVIER_LOCK:
+        _OLLIVIER_CACHE.clear()
+        _OLLIVIER_CIRCUIT.clear()
+
+
 def _prices_key(prices: np.ndarray) -> str:
     arr = np.ascontiguousarray(prices, dtype=np.float64)
     h = hashlib.sha256()
@@ -110,64 +140,108 @@ def _prices_key(prices: np.ndarray) -> str:
     return h.hexdigest()
 
 
-def _ollivier_compute(prices: np.ndarray) -> tuple[float, OllivierStatus]:
-    """Worst (max) per-edge Ollivier-Ricci κ + typed status. Never raises.
+def _ollivier_compute(prices: np.ndarray) -> OllivierResult:
+    """Worst (max) per-edge Ollivier-Ricci κ + typed result. Never raises.
 
-    INV-RC1 (κ ≤ 1) governs THIS operator (distinct from the augmented-Forman
-    blend the adapter also exposes). O(E) optimal-transport solves — the heaviest
-    term in ``_compute_signal`` — so it is bounded by a deterministic max-edges
-    budget and a post-hoc max-ms wall-clock guard; both downgrade to a typed NaN
-    status rather than risk a silent slow path or a fabricated value.
+    INV-RC1 (κ ≤ 1) governs THIS operator. O(E) optimal-transport solves — the
+    heaviest term in ``_compute_signal`` — so it is bounded by a deterministic
+    max-edges budget AND a monotonic deadline checked BEFORE EACH EDGE: a slow
+    solver is pre-empted mid-loop (TIMEOUT) instead of being timed post-hoc, so a
+    latency spike cannot stall the risk loop.
     """
     try:
         from core.indicators.ricci import build_price_graph, ricci_curvature_edge
     except ImportError as exc:
         logger.warning("ollivier IMPORT_ERROR: %s: %s", type(exc).__name__, exc)
-        return float("nan"), OllivierStatus.IMPORT_ERROR
+        return OllivierResult(float("nan"), OllivierStatus.IMPORT_ERROR)
     try:
         graph = build_price_graph(prices)
         edges = list(graph.edges())
     except Exception as exc:
         logger.warning("ollivier SOLVER_ERROR (graph build): %s: %s", type(exc).__name__, exc)
-        return float("nan"), OllivierStatus.SOLVER_ERROR
+        return OllivierResult(float("nan"), OllivierStatus.SOLVER_ERROR)
     if not edges:
         logger.warning("ollivier EMPTY_GRAPH (NaN)")
-        return float("nan"), OllivierStatus.EMPTY_GRAPH
+        return OllivierResult(float("nan"), OllivierStatus.EMPTY_GRAPH)
     max_edges = _env_int("COHERENCE_OLLIVIER_MAX_EDGES", _OLLIVIER_MAX_EDGES_DEFAULT)
     if len(edges) > max_edges:
         logger.warning("ollivier PERF_BUDGET_EXCEEDED: %d > %d edges", len(edges), max_edges)
-        return float("nan"), OllivierStatus.PERF_BUDGET_EXCEEDED
+        return OllivierResult(
+            float("nan"), OllivierStatus.PERF_BUDGET_EXCEEDED, edges_budget=max_edges
+        )
+    budget_ms = _env_float("COHERENCE_OLLIVIER_MAX_MS", _OLLIVIER_MAX_MS_DEFAULT)
+    deadline_ns = time.monotonic_ns() + int(budget_ms * 1_000_000)
     t0 = time.perf_counter()
+    worst = float("-inf")
+    seen = 0
     try:
-        worst = float(max(ricci_curvature_edge(graph, int(u), int(v)) for u, v in edges))
+        for u, v in edges:
+            if time.monotonic_ns() > deadline_ns:
+                elapsed = (time.perf_counter() - t0) * 1000.0
+                logger.warning("ollivier TIMEOUT: pre-empted after %d/%d edges", seen, len(edges))
+                return OllivierResult(
+                    float("nan"),
+                    OllivierStatus.TIMEOUT,
+                    edges_seen=seen,
+                    edges_budget=max_edges,
+                    elapsed_ms=elapsed,
+                )
+            worst = max(worst, float(ricci_curvature_edge(graph, int(u), int(v))))
+            seen += 1
     except Exception as exc:
         logger.warning("ollivier SOLVER_ERROR (edge solve): %s: %s", type(exc).__name__, exc)
-        return float("nan"), OllivierStatus.SOLVER_ERROR
-    elapsed_ms = (time.perf_counter() - t0) * 1000.0
-    if elapsed_ms > _env_float("COHERENCE_OLLIVIER_MAX_MS", _OLLIVIER_MAX_MS_DEFAULT):
-        logger.warning("ollivier TIMEOUT: %.1fms over budget (value discarded)", elapsed_ms)
-        return float("nan"), OllivierStatus.TIMEOUT
-    return worst, OllivierStatus.OK
+        return OllivierResult(float("nan"), OllivierStatus.SOLVER_ERROR, edges_seen=seen)
+    elapsed = (time.perf_counter() - t0) * 1000.0
+    return OllivierResult(
+        worst, OllivierStatus.OK, edges_seen=seen, edges_budget=max_edges, elapsed_ms=elapsed
+    )
 
 
-def _ollivier_worst_edge_kappa(prices: np.ndarray) -> tuple[float, OllivierStatus]:
-    """Cached wrapper around :func:`_ollivier_compute` (deterministic by content).
+def _ollivier_worst_edge_kappa(prices: np.ndarray, instrument: str = "") -> OllivierResult:
+    """Thread-safe cached + circuit-broken Ollivier κ.
 
-    The cache key folds in the perf-budget policy so a budget change is honoured
-    rather than masked by a stale entry. (The required-mode flag affects emission,
-    not the computation, so it is intentionally not part of the key.)
+    Cache: bounded LRU (OrderedDict) keyed by price content + perf policy, under
+    an RLock — no whole-cache clear as eviction. Circuit breaker: after
+    max-consecutive TIMEOUTs on an instrument the operator is skipped
+    (CIRCUIT_OPEN) for a cooldown window, so a persistently-slow solver cannot
+    keep stalling the loop. The heavy solve runs outside the lock.
     """
     max_edges = _env_int("COHERENCE_OLLIVIER_MAX_EDGES", _OLLIVIER_MAX_EDGES_DEFAULT)
     max_ms = _env_float("COHERENCE_OLLIVIER_MAX_MS", _OLLIVIER_MAX_MS_DEFAULT)
     key = f"{_prices_key(prices)}|{max_edges}|{max_ms}"
-    hit = _OLLIVIER_CACHE.get(key)
-    if hit is not None:
-        return hit
-    result = _ollivier_compute(prices)
-    if len(_OLLIVIER_CACHE) >= _OLLIVIER_CACHE_MAX:
-        _OLLIVIER_CACHE.clear()
-    _OLLIVIER_CACHE[key] = result
-    return result
+
+    with _OLLIVIER_LOCK:
+        circ = _OLLIVIER_CIRCUIT.get(instrument)
+        if circ is not None and circ["open_until_ns"] > time.monotonic_ns():
+            return OllivierResult(float("nan"), OllivierStatus.CIRCUIT_OPEN, circuit_state="open")
+        cached = _OLLIVIER_CACHE.get(key)
+        if cached is not None:
+            _OLLIVIER_CACHE.move_to_end(key)
+            return replace(cached, cache_hit=True)
+
+    result = _ollivier_compute(prices)  # heavy work outside the lock
+
+    max_consec = _env_int(
+        "COHERENCE_OLLIVIER_MAX_CONSECUTIVE_TIMEOUTS", _OLLIVIER_MAX_CONSECUTIVE_TIMEOUTS_DEFAULT
+    )
+    cooldown_ns = int(
+        _env_float("COHERENCE_OLLIVIER_COOLDOWN_MS", _OLLIVIER_COOLDOWN_MS_DEFAULT) * 1e6
+    )
+    with _OLLIVIER_LOCK:
+        circ = _OLLIVIER_CIRCUIT.setdefault(instrument, {"consecutive": 0, "open_until_ns": 0})
+        if result.status is OllivierStatus.TIMEOUT:
+            circ["consecutive"] += 1
+            if circ["consecutive"] >= max_consec:
+                circ["open_until_ns"] = time.monotonic_ns() + cooldown_ns
+                logger.warning("ollivier CIRCUIT OPEN for %r (cooldown)", instrument)
+        else:
+            circ["consecutive"] = 0
+        circuit_state = "open" if circ["open_until_ns"] > time.monotonic_ns() else "closed"
+        _OLLIVIER_CACHE[key] = result
+        _OLLIVIER_CACHE.move_to_end(key)
+        while len(_OLLIVIER_CACHE) > _OLLIVIER_CACHE_MAX:
+            _OLLIVIER_CACHE.popitem(last=False)  # evict least-recently-used
+    return replace(result, circuit_state=circuit_state)
 
 
 class GeoSyncAdapter:
@@ -366,7 +440,7 @@ class GeoSyncAdapter:
         #     govern, computed over the close-price graph (fail-closed to NaN).
         #   - ricci_curvature: retained as a backward-compatible DISPLAY alias of
         #     the Forman blend (verify_T5 classifies it P1/finite-only).
-        ollivier_kappa, ollivier_status = _ollivier_worst_edge_kappa(prices)
+        ollivier = _ollivier_worst_edge_kappa(prices, instrument)
 
         sig: dict[str, Any] = {
             "timestamp_ns": time.time_ns(),
@@ -382,14 +456,20 @@ class GeoSyncAdapter:
             "signal_strength": round(float(signal_strength), 4),
             "risk_scalar": round(float(risk_scalar), 4),
             "sequence_number": seq,
-            "ollivier_status": ollivier_status.value,  # typed telemetry, always present
+            # Ollivier runtime telemetry (always present, diagnosable):
+            "ollivier_status": ollivier.status.value,
+            "ollivier_elapsed_ms": round(ollivier.elapsed_ms, 3),
+            "ollivier_edges_seen": ollivier.edges_seen,
+            "ollivier_edges_budget": ollivier.edges_budget,
+            "ollivier_cache_hit": ollivier.cache_hit,
+            "ollivier_circuit_state": ollivier.circuit_state,
         }
         # Ollivier-κ emission policy (degraded ⇒ ABSTAIN, never fake PASS):
         #   OK            → emit the trusted finite κ (contract checks ≤ 1).
         #   degraded+req  → emit NaN ⇒ contract INVALID ⇒ NO_GO (refuse).
         #   degraded+!req → OMIT the field ⇒ contract abstains on the κ leg.
-        if ollivier_status is OllivierStatus.OK:
-            sig["ollivier_kappa"] = round(float(ollivier_kappa), 6)
+        if ollivier.status is OllivierStatus.OK:
+            sig["ollivier_kappa"] = round(float(ollivier.value), 6)
         elif ollivier_required():
             sig["ollivier_kappa"] = float("nan")
         return sig

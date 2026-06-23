@@ -19,6 +19,7 @@ Invariants (enforced, never relaxed):
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -58,6 +59,10 @@ class CoherenceRiskGate:
         Size multiplier applied in COHERENT regime (reduced vs full).
     """
 
+    #: Env flag that opts INTO the test-only fail-open harness. Production code
+    #: must never set it; without it, fail_closed=False raises at construction.
+    FAIL_OPEN_TEST_ENV = "GEOSYNC_ALLOW_FAIL_OPEN_TEST_ONLY"
+
     def __init__(
         self,
         engine: SignalEngine,
@@ -67,6 +72,18 @@ class CoherenceRiskGate:
         coherent_threshold: float = 0.5,
         coherent_size_factor: float = 0.6,
     ) -> None:
+        # Fail-open is forbidden by construction in production: a missing signal
+        # must always block the order. fail_closed=False is a TEST-ONLY harness
+        # mode and is rejected unless the explicit test env flag is set (see
+        # UnsafeCoherenceRiskGateHarness). This makes the safety property a
+        # constructor invariant, not a matter of caller discipline.
+        if not fail_closed and os.environ.get(self.FAIL_OPEN_TEST_ENV) != "1":
+            raise RuntimeError(
+                "CoherenceRiskGate fail-open mode (fail_closed=False) is forbidden "
+                "in production — a missing signal must block the order. It is a "
+                f"test-only harness: set {self.FAIL_OPEN_TEST_ENV}=1 (or use "
+                "UnsafeCoherenceRiskGateHarness) to use it deliberately in a test."
+            )
         self.engine = engine
         self.fail_closed = fail_closed
         self.metastable_threshold = metastable_threshold
@@ -215,3 +232,36 @@ class CoherenceRiskGate:
             regime=regime,
             risk_scalar=risk_scalar,
         )
+
+
+class UnsafeCoherenceRiskGateHarness:
+    """TEST-ONLY context manager that constructs a fail-OPEN risk gate.
+
+    Fail-open is forbidden in production (a missing signal must block the order),
+    so :class:`CoherenceRiskGate` raises on ``fail_closed=False`` unless the
+    ``GEOSYNC_ALLOW_FAIL_OPEN_TEST_ONLY`` env flag is set. This harness sets that
+    flag for the duration of a ``with`` block and restores it afterwards, so the
+    only way to obtain a fail-open gate is through this loudly-named, scoped
+    helper — never silently in a production code path.
+
+    Usage (tests only)::
+
+        with UnsafeCoherenceRiskGateHarness(engine) as gate:
+            decision = gate.apply("EURUSD", 1.0)
+    """
+
+    def __init__(self, engine: SignalEngine, **kwargs: float) -> None:
+        self._engine = engine
+        self._kwargs = kwargs
+        self._prev: str | None = None
+
+    def __enter__(self) -> CoherenceRiskGate:
+        self._prev = os.environ.get(CoherenceRiskGate.FAIL_OPEN_TEST_ENV)
+        os.environ[CoherenceRiskGate.FAIL_OPEN_TEST_ENV] = "1"
+        return CoherenceRiskGate(self._engine, fail_closed=False, **self._kwargs)
+
+    def __exit__(self, *exc: object) -> None:
+        if self._prev is None:
+            os.environ.pop(CoherenceRiskGate.FAIL_OPEN_TEST_ENV, None)
+        else:
+            os.environ[CoherenceRiskGate.FAIL_OPEN_TEST_ENV] = self._prev
