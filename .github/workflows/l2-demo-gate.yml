@@ -52,9 +52,13 @@ jobs:
 
       - name: Install test dependencies
         run: |
+          # Install from the pip-compiled, exact-pinned lockfiles (the same
+          # surface the shared setup-geosync action uses). Resolving the
+          # unpinned requirements*.txt here makes pip's backtracker explode
+          # with "resolution-too-deep"; the locks cannot backtrack.
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
+          python -m pip install -c constraints/security.txt -r requirements.lock
+          python -m pip install -c constraints/security.txt -r requirements-dev.lock
 
       - name: Run full L2 test suite
         run: make l2-test
@@ -79,9 +83,13 @@ jobs:
 
       - name: Install test dependencies
         run: |
+          # Install from the pip-compiled, exact-pinned lockfiles (the same
+          # surface the shared setup-geosync action uses). Resolving the
+          # unpinned requirements*.txt here makes pip's backtracker explode
+          # with "resolution-too-deep"; the locks cannot backtrack.
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install -r requirements-dev.txt
+          python -m pip install -c constraints/security.txt -r requirements.lock
+          python -m pip install -c constraints/security.txt -r requirements-dev.lock
 
       - name: Demo-readiness smoke gate
         run: make l2-smoke
