@@ -48,6 +48,9 @@ run "neuro_symbolic_audit"      "$PYTHON" tools/audit/neuro_symbolic_audit.py
 # 6. Regenerate machine-readable evidence artifacts (matrix + traceability + table).
 run "witness_matrix"            "$PYTHON" scripts/ci/gen_law_mechanism_witness_matrix.py
 run "distinguished_evidence"    "$PYTHON" scripts/ci/gen_distinguished_evidence_table.py
+# 7. Reference-standard conformance certificate (the reference-standard gate —
+#    derives the seven invariant laws from actual repo state; non-zero on any fail).
+run "reference_conformance"     "$PYTHON" scripts/ci/gen_reference_conformance.py
 
 echo ""
 echo "──────────── phd-evidence summary ────────────"
