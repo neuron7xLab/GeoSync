@@ -46,7 +46,7 @@ DOCTRINE / FORBIDDEN CLAIMS
         ↓
 CLAIM REGISTRY
         ↓
-110 MACHINE-CHECKABLE INVARIANTS
+111 MACHINE-CHECKABLE INVARIANTS
         ↓
 DATA CONTRACT
         ↓
@@ -81,3 +81,8 @@ GeoSync treats research as engineered infrastructure, not as a decorative chart 
 | [`docs/INFERENCE_READINESS.md`](docs/INFERENCE_READINESS.md) | Runtime-readiness contract for context, agent, artifact, and falsification control. |
 | [`docs/INFERENCE_OPERATION_PROTOCOL.md`](docs/INFERENCE_OPERATION_PROTOCOL.md) | Seven-step agent runbook for converting repository meaning into bounded execution. |
 | [`docs/INFERENCE_CONTRACT.manifest.json`](docs/INFERENCE_CONTRACT.manifest.json) | Machine-readable manifest for authority files, reading order, gates, stop conditions, and required agent state. |
+| [`AGENTS.md`](AGENTS.md) | Implementation-agent contract: prime directive, canonical files, required/forbidden behavior, and the evidence-bearing artifact minimum. |
+
+## Research boundary
+
+GeoSync is `HYPOTHESIS`/`INSTRUMENTED`-first: a green terminal line is `NOT EVIDENCE-BEARING` until an artifact carries it. Synthetic data may exercise a mechanism and bound its failure modes, but it never promotes a claim about real markets. Schema validity proves shape, not truth. Promotion happens only through the [`CLAIMS.md`](CLAIMS.md) tier ledger under the gates in [`docs/REPOSITORY_SYSTEM.md`](docs/REPOSITORY_SYSTEM.md).

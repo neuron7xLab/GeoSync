@@ -681,10 +681,13 @@ entries:
     classification: PARTIAL
     claimed_role: STDP-flavoured parameter learning.
     actual_algorithmic_role: >-
-      Weight delta proportional to pre×post activations with bounds and
-      decay; rollback on instability not explicit.
-    input_contract: pre, post finite; weights bounded by config.
-    output_contract: updated weights; bounded.
+      Weight delta proportional to pre×post activations; PER-STEP bounded
+      (magnitude clamp + weight_floor), but cumulatively UNBOUNDED under
+      sustained LTP (lr_floor > 0 ⇒ linear growth, no renormalization).
+    input_contract: pre, post finite; eligibility ∈ [0,1]^11 (fail-closed).
+    output_contract: >-
+      updated weights; PER-STEP bounded only (cumulative upper bound NOT
+      claimed — see test_hebbian_global_stability.py).
     falsifier: >-
       Per-step update exceeds lr·magnitude·eligibility envelope, OR weight falls
       below weight_floor, OR out-of-[0,1] eligibility is silently accepted ⇒
