@@ -448,6 +448,10 @@ phd-evidence:
 .PHONY: regenerate-evidence
 regenerate-evidence:
 	@PYTHONPATH=. $(PYTHON) scripts/ci/gen_distinguished_evidence_table.py
+	@PYTHONPATH=. $(PYTHON) scripts/ci/gen_law_mechanism_witness_matrix.py
+	@PYTHONPATH=. $(PYTHON) scripts/ci/gen_reference_conformance.py
+	@PYTHONPATH=. $(PYTHON) scripts/ci/check_physics_law_witness_index.py --write
+	@PYTHONPATH=. $(PYTHON) scripts/ci/check_physics_inference_readiness.py --write
 	@PYTHONPATH=. $(PYTHON) scripts/generate_claim_hashes.py
 	@PYTHONPATH=. $(PYTHON) scripts/generate_claim_graph.py
 	@PYTHONPATH=. $(PYTHON) scripts/ci/check_artifact_freshness.py --write

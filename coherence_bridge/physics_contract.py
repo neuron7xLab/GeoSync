@@ -89,6 +89,68 @@ class ContractVerdict:
         return self.status is PhysicsContractStatus.VALID
 
 
+@dataclass(frozen=True, slots=True)
+class BridgeSignal:
+    """Typed parse of a relayed bridge signal at the DECISION boundary.
+
+    The raw ``risk_scalar`` is intentionally absent from the typed decision
+    surface — it lives only in ``telemetry`` (advisory), so it is impossible to
+    type a raw-risk value into a sizing decision. Use :meth:`from_relayed` to
+    parse a transport dict; the wire format stays a dict, the decision boundary
+    is typed.
+    """
+
+    gamma: float | None
+    order_parameter_R: float | None
+    augmented_forman_ricci: float | None
+    ollivier_kappa: float | None
+    telemetry: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_relayed(cls, sig: dict[str, object]) -> "BridgeSignal":
+        forman = sig.get("augmented_forman_ricci", sig.get("ricci_curvature"))
+        return cls(
+            gamma=_as_float(sig.get("gamma")),
+            order_parameter_R=_as_float(sig.get("order_parameter_R")),
+            augmented_forman_ricci=_as_float(forman),
+            ollivier_kappa=(
+                _as_float(sig.get("ollivier_kappa")) if "ollivier_kappa" in sig else None
+            ),
+            telemetry={"raw_risk_scalar": sig.get("risk_scalar"), "regime": sig.get("regime")},
+        )
+
+    def to_contract_dict(self) -> dict[str, object]:
+        """The minimal field set ``validate_physics_contract`` needs (no raw risk)."""
+        out: dict[str, object] = {
+            "gamma": self.gamma,
+            "order_parameter_R": self.order_parameter_R,
+            "augmented_forman_ricci": self.augmented_forman_ricci,
+        }
+        if self.ollivier_kappa is not None:
+            out["ollivier_kappa"] = self.ollivier_kappa
+        return out
+
+
+@dataclass(frozen=True, slots=True)
+class ValidatedBridgeSignal:
+    """A bridge signal that has passed (or failed) the contract — the ONLY type
+    a sizing consumer should accept. Carries the verdict + the safe risk; there
+    is no raw-risk field to misuse."""
+
+    verdict: ContractVerdict
+    safe_risk_scalar: float
+    regime: str
+
+    @classmethod
+    def of(cls, signal: BridgeSignal) -> "ValidatedBridgeSignal":
+        verdict = validate_physics_contract(signal.to_contract_dict())
+        return cls(
+            verdict=verdict,
+            safe_risk_scalar=verdict.safe_risk_scalar,
+            regime=str(signal.telemetry.get("regime", "UNKNOWN")),
+        )
+
+
 def _as_float(value: object) -> float | None:
     """Coerce to float, or None if not a real finite-capable number."""
     if isinstance(value, bool):  # bool is an int subclass — reject explicitly
