@@ -691,17 +691,18 @@ entries:
       violation. NOTE: global (cumulative) upper bound is NOT claimed.
     existing_tests:
       - tests/unit/neuro/test_hebbian_plasticity_bounds.py
-    missing_tests:
       - tests/unit/neuro/test_hebbian_global_stability.py
+    missing_tests: []
     runtime_path: "YES"
     remediation_action: ADD_FALSIFIER
     priority: P1
     reason: >-
-      Per-step envelope + eligibility input-contract now fail-closed, but global
-      cumulative stability remains unproven — STAYS PARTIAL (honest, no promotion).
+      Per-step envelope + eligibility input-contract now fail-closed; the global
+      cumulative UNBOUNDEDNESS is now characterized by an executable negative
+      witness — STAYS PARTIAL (honest, no promotion: there is no global bound).
     inv_refs: []
     witness_note: >-
-      INPUT-CONTRACT HOLE CLOSED (this PR): caller-supplied eligibility is now validated fail-closed to [0,1]^11 finite (geosync/neuroeconomics/hebbian_plasticity.py::_validate_eligibility) — a component > 1 / non-finite / wrong-length now raises instead of silently inflating the update. Per-step growth matches the lr·magnitude·eligibility envelope (magnitude clamp min(1,|pnl|*10); weight_floor lower bound). REMAINS PARTIAL — NO promotion: the learning-rate floor (lr_floor) means sustained LTP grows weights LINEARLY without a global upper bound (the docstring's "renormalize/sum preserved" is NOT implemented), so global BIBO stability is unproven. Promotion is blocked on a global-stability proof + falsifier (missing_tests), NOT merely on an INV name.
+      INPUT-CONTRACT HOLE CLOSED (this PR): caller-supplied eligibility is now validated fail-closed to [0,1]^11 finite (geosync/neuroeconomics/hebbian_plasticity.py::_validate_eligibility) — a component > 1 / non-finite / wrong-length now raises instead of silently inflating the update. Per-step growth matches the lr·magnitude·eligibility envelope (magnitude clamp min(1,|pnl|*10); weight_floor lower bound). REMAINS PARTIAL — NO promotion: the learning-rate floor (lr_floor) means sustained LTP grows weights LINEARLY without a global upper bound (the docstring's "renormalize/sum preserved" is NOT implemented), so global BIBO stability is unproven. That UNBOUNDEDNESS is now an executable negative witness (tests/unit/neuro/test_hebbian_global_stability.py: sustained LTP grows ~lr_floor/step without ceiling, monotone in horizon). Promotion is declined on epistemic grounds (no global bound exists), NOT merely pending an INV name.
 
   - id: homeostatic-stabilizer
     term: homeostasis

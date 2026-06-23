@@ -23,6 +23,7 @@ diff_scope:
     - path: "src/geosync/core/neuro/neuro_orchestrator.py"
     - path: "src/geosync/policy/basal_ganglia.py"
     - path: "tests/ci/test_evidence_integrity_gate.py"
+    - path: "tests/unit/neuro/test_hebbian_global_stability.py"
     - path: "docs/phd/13_physics_runtime_hardening.md"
     - path: "docs/architecture/claim_graph.json"
     - path: "scripts/ci/evidence_gate.sh"

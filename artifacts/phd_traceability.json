@@ -15,6 +15,7 @@
     "docs/phd/11_distinguished_contribution_map.md",
     "docs/phd/12_negative_evidence.md",
     "docs/phd/13_physics_runtime_hardening.md",
+    "docs/phd/13_reference_inference_standard.md",
     "docs/phd/README.md"
   ],
   "claims_with_artifacts": [
@@ -32,6 +33,7 @@
     "docs/phd/11_distinguished_contribution_map.md",
     "docs/phd/12_negative_evidence.md",
     "docs/phd/13_physics_runtime_hardening.md",
+    "docs/phd/13_reference_inference_standard.md",
     "docs/phd/README.md"
   ],
   "unbound_claims": [],
