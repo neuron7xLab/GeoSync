@@ -160,15 +160,24 @@ CI: `make phd-evidence` (now includes `evidence_integrity`),
 
 ## 9. Remaining open counterexamples / gaps
 
-- **Hebbian global stability.** No proof / falsifier that cumulative weights stay
-  bounded under unbounded LTP with `lr_floor > 0`. Tracked as a missing test in
-  the ledger entry.
+- **Enforcement status (NOT runtime-enforced yet).** `validate_physics_contract`
+  (INV-CBR1) and `AdaptiveCriticalityGate` (INV-AC1-rev) are **source-available,
+  fail-closed, and unit/integration-tested**, but they are **not yet invoked by a
+  production risk consumer / ensemble caller** — no live code path calls them
+  before a decision. The honest claim tier is "executed, tested source", NOT
+  "runtime-enforced gate". Wiring them into the actual risk/ensemble path (and an
+  enforcement test that exercises the caller refusing a bad signal) is the next step.
+- **Hebbian global stability.** There is no global (cumulative) upper bound under
+  sustained LTP with `lr_floor > 0`; this UNBOUNDEDNESS is characterized by an
+  executable negative witness (`test_hebbian_global_stability.py`). Hebbian stays
+  PARTIAL by design.
 - **Homeostatic heterogeneous error.** Energy descent is not guaranteed for
   non-common-mode phase error; INV-HOM1 is explicitly conditional.
 - **Ott–Antonsen near-onset finite-T.** For K just above K_c the relaxation time
   diverges (~1/(K−K_c)); the oracle deliberately abstains on under-converged
   runs, so a finite-T run may legitimately not have reached R_∞ — this is a
   caller T/dt responsibility, not a runtime guarantee.
-- **INV-AC1-rev** lives in CLAUDE.md but not in `.claude/physics/INVARIANTS.yaml`
-  (it has an executable witness and source binding; registry membership is a
-  documentation-consistency follow-up, intentionally out of scope here).
+- **Invariant authority.** `INV-AC1-rev` is now a registry entry in
+  `.claude/physics/INVARIANTS.yaml` (count 110→111); the evidence-integrity gate
+  treats ONLY the registry as authoritative (CLAUDE.md prose is a doc mirror, not
+  an authority).

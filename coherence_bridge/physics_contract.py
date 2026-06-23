@@ -70,7 +70,14 @@ class BridgeDecision(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class ContractVerdict:
-    """Fail-closed verdict the risk layer consumes instead of a raw signal."""
+    """Fail-closed verdict the risk layer consumes instead of a raw signal.
+
+    CONTRACT FOR DOWNSTREAM: the risk layer MUST act on ``decision`` /
+    ``safe_risk_scalar`` from this verdict, NOT on the relayed signal's raw
+    ``risk_scalar``. The raw field is advisory telemetry and is left intact for
+    observability; reading it past an INVALID_PHYSICS_CONTRACT verdict defeats
+    the fail-closed design (``safe_risk_scalar`` is 0.0 on any violation).
+    """
 
     status: PhysicsContractStatus
     decision: BridgeDecision

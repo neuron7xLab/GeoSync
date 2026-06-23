@@ -570,9 +570,9 @@
       "domain": "neuroscience",
       "file": "geosync/neuroeconomics/hebbian_plasticity.py",
       "formula": "Hebbian-style weight update used in neuroeconomics layer.",
-      "validity": "pre, post finite; weights bounded by config.",
-      "input_contract": "pre, post finite; weights bounded by config.",
-      "output_contract": "updated weights; bounded.",
+      "validity": "pre, post finite; eligibility ∈ [0,1]^11 (fail-closed).",
+      "input_contract": "pre, post finite; eligibility ∈ [0,1]^11 (fail-closed).",
+      "output_contract": "updated weights; PER-STEP bounded only (cumulative upper bound NOT claimed — see test_hebbian_global_stability.py).",
       "falsifier": "Per-step update exceeds lr·magnitude·eligibility envelope, OR weight falls below weight_floor, OR out-of-[0,1] eligibility is silently accepted ⇒ violation. NOTE: global (cumulative) upper bound is NOT claimed.",
       "existing_tests": [
         "tests/unit/neuro/test_hebbian_plasticity_bounds.py",

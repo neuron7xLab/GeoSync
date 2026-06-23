@@ -1397,3 +1397,25 @@ neuro_homeostatic:
     tests: tests/unit/neuro/test_homeostatic_stabilizer_setpoint.py
     scope_note: "ENGINEERING analogue, not neuroscience. Energy descent is proven ONLY for the common-mode (coherent) regime — for heterogeneous phase error the scalar-mean correction is not a guaranteed descent direction. E/I ratio, 'serotonin', 'GABA tone' are arithmetic proxies, not modelled neurotransmitter dynamics."
     related: [INV-K1]
+
+# ═══════════════════════════════════════════════════
+# ADAPTIVE CRITICALITY (membrane isolation) — registry binding
+# ═══════════════════════════════════════════════════
+# INV-AC1-rev previously lived only in CLAUDE.md prose. Registered here so it is
+# an authoritative registry entry: the evidence-integrity gate now treats ONLY
+# this file as the invariant authority, never CLAUDE.md prose tokens. The
+# adversarial-audit derivation stays in CLAUDE.md as the doc mirror.
+
+adaptive_criticality:
+  membrane_isolation:
+    id: INV-AC1-rev
+    type: universal
+    statement: "κ(node) ≥ κ_critical OR the node is ISOLATED, where κ_critical = -ln(ΔH_max/ε)/(λ_local+δ) (λ_local = DFA Hurst per node, ε SNR tolerance, δ singularity floor 1e-4). The executed gate fail-closes: a non-finite κ_node/λ_local or singular denominator isolates the node; an all-isolated ensemble raises; invalid shared ε/ΔH_max raise (no silent fallback)."
+    test_type: property_test
+    falsification: "should_isolate_node returns False for κ_node < κ_critical, OR isolates a node with κ_node ≥ κ_critical; OR a non-finite/singular input is silently admitted instead of isolated; OR aggregate_excluding_isolated returns a value when every node is isolated."
+    priority: P0
+    provenance: ANCHORED
+    source: geosync/estimators/dfa_gamma_estimator.py::AdaptiveCriticalityGate
+    tests: tests/unit/physics/test_adaptive_criticality_kappa.py
+    scope_note: "Criticality OBSERVER, not predictor; synthetic-only. Source-available, fail-closed, unit-tested gate — NOT yet wired into a production ensemble consumer (no live caller). Original INV-AC1 (κ_critical = -dH/dt·τ) is REJECTED (Pesin-identity failure in non-ergodic systems); this revised form supersedes it."
+    related: [INV-CRITICALITY, INV-DRO1]

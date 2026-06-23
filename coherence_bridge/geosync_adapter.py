@@ -64,6 +64,14 @@ def _ollivier_worst_edge_kappa(prices: np.ndarray) -> float:
     best-effort and fail-closed: any failure (empty graph, solver error) returns
     NaN so the downstream physics-contract gate flags it rather than the adapter
     fabricating an in-band value.
+
+    Cost / policy: this is O(E) optimal-transport solves over the price graph and
+    is the heaviest term in ``_compute_signal``. The reason for every fail-closed
+    NaN is logged (never silently swallowed) so a dependency/perf fault is
+    diagnosable rather than mistaken for a physics violation. ``ollivier_kappa``
+    is OPTIONAL in INV-CBR1 (a NaN ⇒ the gate refuses the signal on the κ-bound
+    leg); set env ``COHERENCE_REQUIRE_OLLIVIER=0`` semantics are out of scope here
+    — the field is always emitted and the contract gate decides admissibility.
     """
     try:
         from core.indicators.ricci import build_price_graph, ricci_curvature_edge
@@ -71,11 +79,19 @@ def _ollivier_worst_edge_kappa(prices: np.ndarray) -> float:
         graph = build_price_graph(prices)
         edges = list(graph.edges())
         if not edges:
+            logger.warning("ollivier_kappa fail-closed: empty price graph (NaN emitted)")
             return float("nan")
         return float(max(ricci_curvature_edge(graph, int(u), int(v)) for u, v in edges))
-    except Exception:
+    except Exception as exc:
         # Fail-closed to NaN — never raise on the hot path; the downstream
-        # physics-contract gate flags a non-finite Ollivier κ.
+        # physics-contract gate flags a non-finite Ollivier κ. The reason is
+        # logged (typed by exception class) so a dependency/perf fault is
+        # diagnosable rather than a silent physics NO_GO.
+        logger.warning(
+            "ollivier_kappa fail-closed (NaN emitted): %s: %s",
+            type(exc).__name__,
+            exc,
+        )
         return float("nan")
 
 

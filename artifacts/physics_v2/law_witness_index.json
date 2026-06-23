@@ -733,6 +733,17 @@
       "test_witnesses": []
     },
     {
+      "falsifier": "should_isolate_node returns False for κ_node < κ_critical, OR isolates a node with κ_node ≥ κ_critical; OR a non-finite/singular input is silently admitted instead of isolated; OR aggregate_excluding_isolated returns a value when every node is isolated.",
+      "id": "INV-AC1-rev",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "geosync/estimators/dfa_gamma_estimator.py::AdaptiveCriticalityGate",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_adaptive_criticality_kappa.py"
+      ]
+    },
+    {
       "falsifier": "A substrate where both ingredient invariants pass independently but the composite gate reports inadmissible, OR where one ingredient fails but the composite reports admissible. Composition must be the AND of the two ANCHORED axes.",
       "id": "INV-ANCHORED-SUBSTRATE-GATE",
       "priority": "P0",
@@ -1732,7 +1743,7 @@
     "blocking_covered": 31,
     "blocking_laws": 31,
     "catalog_laws": 41,
-    "invariants": 110,
-    "invariants_covered": 32
+    "invariants": 111,
+    "invariants_covered": 33
   }
 }

@@ -49,11 +49,14 @@ _REGISTRY_ID = re.compile(r"^\s*id:\s*(INV-[A-Za-z0-9_-]+)\s*$")
 _QUARANTINE_ACTIONS = frozenset({"RENAME", "QUARANTINE_DOC"})
 
 
-def known_invariant_ids(registry: Path = REGISTRY, claude_md: Path = CLAUDE_MD) -> set[str]:
-    """All invariant ids the ledger may legitimately reference.
+def known_invariant_ids(registry: Path = REGISTRY) -> set[str]:
+    """Authoritative invariant ids — the YAML registry ONLY.
 
-    The ledger schema permits an inv_ref drawn from CLAUDE.md, so the union of
-    the YAML registry ids and the CLAUDE.md ``INV-*`` tokens is authoritative.
+    The registry (``.claude/physics/INVARIANTS.yaml``) is the single source of
+    truth. CLAUDE.md is a doc mirror, NOT an authority: scanning its prose for
+    ``INV-*`` tokens would let a stray ``INV-FAKE`` mention in documentation be
+    accepted as a known invariant, defeating the gate. An OPERATIONAL ledger
+    entry must therefore cite an inv_ref that resolves in the registry.
     """
     known: set[str] = set()
     if registry.is_file():
@@ -61,8 +64,6 @@ def known_invariant_ids(registry: Path = REGISTRY, claude_md: Path = CLAUDE_MD) 
             m = _REGISTRY_ID.match(line)
             if m:
                 known.add(m.group(1))
-    if claude_md.is_file():
-        known.update(_INV_TOKEN.findall(claude_md.read_text(encoding="utf-8")))
     return known
 
 
@@ -145,13 +146,14 @@ def integrity_errors(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("ledger", nargs="?", type=Path, default=LEDGER)
-    parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    ledger_path: Path = args.ledger
 
-    if not LEDGER.is_file():
-        print(f"ERROR: ledger not found at {LEDGER}", file=sys.stderr)
+    if not ledger_path.is_file():
+        print(f"ERROR: ledger not found at {ledger_path}", file=sys.stderr)
         return 2
     try:
-        ledger = yaml.safe_load(LEDGER.read_text(encoding="utf-8"))
+        ledger = yaml.safe_load(ledger_path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
         print(f"ERROR: failed to parse ledger: {exc}", file=sys.stderr)
         return 2
