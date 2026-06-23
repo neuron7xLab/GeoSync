@@ -441,6 +441,10 @@ evidence:
 	$(PYTHON) scripts/ci/emit_verdict.py --output artifacts/audit/VERDICT.json
 	@echo "✅ release/no-release verdict → artifacts/audit/VERDICT.json"
 
+.PHONY: phd-evidence
+phd-evidence:
+	@PYTHON=$(PYTHON) bash scripts/ci/phd_evidence.sh
+
 # ============================================================================
 # Specialized Targets (Legacy/Advanced)
 # ============================================================================

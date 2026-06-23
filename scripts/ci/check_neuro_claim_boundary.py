@@ -69,6 +69,8 @@ FORBIDDEN_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"basal ganglia simulation", "basal-ganglia-simulation claim"),
     (r"active inference validated", "active-inference-validated claim"),
     (r"neuro[ -]derived optimality", "neuro-derived-optimality claim"),
+    (r"validated neuroscience", "validated-neuroscience claim"),
+    (r"biological equivalence", "biological-equivalence claim"),
 )
 _COMPILED: tuple[tuple[re.Pattern[str], str], ...] = tuple(
     (re.compile(p), why) for p, why in FORBIDDEN_PATTERNS

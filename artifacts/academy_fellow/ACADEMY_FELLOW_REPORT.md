@@ -10,10 +10,15 @@ solver, no new neuroscience** — existing mechanisms only.
 - **13 witness tests** (12 unit + 1 integration), all tolerances formula-derived
   (no magic numbers), each with an explicit engineering-analog NON-CLAIM.
 - **Ledger reconciliation**: `missing_tests` → `existing_tests` across 13 entries;
-  4 PARTIAL → OPERATIONAL (dopamine adapter, neuro-optimizer null model, hebbian,
-  homeostatic) where test + falsifier + non-claim now co-exist.
-- **2 PARTIAL kept honestly**: `neuro-validation-bounds` (QUARANTINE_DOC) and
-  `coherence-bridge-geosync-adapter` (open fail-closed gap on out-of-band negative gamma).
+  **no** claim-tier promotions. An initial promotion of 4 PARTIAL→OPERATIONAL
+  (dopamine adapter, neuro-optimizer null model, hebbian, homeostatic) was
+  **rejected by the repo's own neuro audit** (`tools/audit/neuro_symbolic_audit.py`):
+  OPERATIONAL requires ≥1 `INV-*` binding and these have none. Reverted to PARTIAL —
+  witness admissible, promotion blocked on defining the invariant (admissibility ≠ promotion).
+- **Final ledger: 18 OPERATIONAL / 6 PARTIAL** (every PARTIAL with an active
+  non-KEEP remediation); 0 open `missing_tests`. The 6 PARTIAL:
+  `neuro-validation-bounds` (QUARANTINE_DOC), `coherence-bridge-geosync-adapter`
+  (open fail-closed gap on out-of-band negative gamma), and the 4 above.
 - **`scripts/ci/check_neuro_claim_boundary.py`**: fail-closed gate against
   biological-equivalence overclaim in runtime source (0 violations today; falsifier-verified).
 - **`scripts/ci/gen_law_mechanism_witness_matrix.py`** → machine-readable
