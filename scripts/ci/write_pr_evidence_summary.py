@@ -36,13 +36,28 @@ def build_summary(
     """Pure: fold a list of check rows into an attestation record.
 
     ``checks`` rows use the ``gh pr checks --json`` shape: each has at least a
-    ``state`` (e.g. SUCCESS / FAILURE / PENDING / SKIPPED).
+    Rows follow the ``gh pr view --json statusCheckRollup`` shape: a CheckRun
+    carries ``status`` (COMPLETED/IN_PROGRESS/QUEUED) + ``conclusion``
+    (SUCCESS/FAILURE/SKIPPED/...); a StatusContext carries ``state`` (SUCCESS/
+    PENDING/...). Normalise to the most specific available signal.
     """
-    norm = [str(c.get("state", "")).upper() for c in checks]
+
+    def _norm(c: dict[str, Any]) -> str:
+        status = str(c.get("status", "")).upper()
+        # An incomplete CheckRun has no meaningful conclusion yet ⇒ pending.
+        if status in {"IN_PROGRESS", "QUEUED", "WAITING", "PENDING", "REQUESTED"}:
+            return status
+        return str(c.get("conclusion") or c.get("state") or status or "").upper()
+
+    norm = [_norm(c) for c in checks]
     passed = sum(1 for s in norm if s == "SUCCESS")
-    failed = sum(1 for s in norm if s in {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT"})
-    pending = sum(1 for s in norm if s in {"PENDING", "IN_PROGRESS", "QUEUED", "WAITING", ""})
-    skipped = sum(1 for s in norm if s == "SKIPPED")
+    failed = sum(
+        1 for s in norm if s in {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "STARTUP_FAILURE"}
+    )
+    pending = sum(
+        1 for s in norm if s in {"PENDING", "IN_PROGRESS", "QUEUED", "WAITING", "REQUESTED", ""}
+    )
+    skipped = sum(1 for s in norm if s in {"SKIPPED", "NEUTRAL"})
     attested = failed == 0 and pending == 0 and passed > 0
     return {
         "schema": "pr_release_evidence_attestation@v1",

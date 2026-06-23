@@ -39,6 +39,27 @@ def test_empty_checks_not_attested() -> None:
     assert s["pass_count"] == 0
 
 
+def test_checkrun_shape_conclusion_is_counted() -> None:
+    """gh statusCheckRollup CheckRun rows use status+conclusion, not state."""
+    checks = [
+        {"status": "COMPLETED", "conclusion": "SUCCESS"},
+        {"status": "COMPLETED", "conclusion": "SUCCESS"},
+        {"status": "COMPLETED", "conclusion": "SKIPPED"},
+        {"state": "SUCCESS"},  # StatusContext shape
+    ]
+    s = build_summary(1316, "sha", checks, "t")
+    assert s["pass_count"] == 3
+    assert s["skipped_count"] == 1
+    assert s["pending_count"] == 0
+    assert s["attested"] is True
+
+
+def test_incomplete_checkrun_is_pending_not_success() -> None:
+    s = build_summary(1, "h", [{"status": "IN_PROGRESS", "conclusion": None}], "t")
+    assert s["pending_count"] == 1
+    assert s["attested"] is False
+
+
 def test_render_comment_marks_state_and_sha() -> None:
     attested = render_comment(build_summary(7, "deadbeef", _checks("SUCCESS"), "t"))
     assert "ATTESTED" in attested
