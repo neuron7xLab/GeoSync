@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Deterministic evidence-artifact freshness gate (P0-7).
+"""Evidence-artifact provenance + freshness gate (P0-7 / Task 6).
 
-A governance repo must PROVE that committed evidence artifacts were regenerated
-from their sources, not hand-edited. This gate regenerates each DETERMINISTIC
-evidence artifact with its declared generator and asserts the result is
-byte-identical to the committed file (the equivalent of a CI `git diff
---exit-code` over those paths) — and that ``artifacts/.manifest.json`` records
-the matching sha256.
+A governance repo must PROVE its committed evidence artifacts were regenerated
+from their sources, not hand-edited, and that EVERY evidence artifact carries a
+determinism class (uniform trust, not mixed). Driven by
+``artifacts/evidence_provenance.contract.json``:
 
-Only artifacts whose generators are byte-deterministic (no wall-clock, no RNG)
-are covered. Nondeterministic artifacts (wheel_contract.json embeds a per-build
-wheel hash; financial_verification_manifest.json regenerates with differing
-structure) are DELIBERATELY excluded — covering them would make the gate flaky,
-the opposite of its purpose.
+  * every ``deterministic`` artifact is regenerated with its declared generator
+    and asserted byte-identical to the committed file (CI ``git diff`` equivalent),
+    with a matching ``artifacts/.manifest.json`` (sha256 / generator / sources);
+  * ``nondeterministic`` / ``external-data-bound`` / ``generated-but-excluded``
+    artifacts require an ``exclusion_reason`` and are not byte-compared;
+  * any ``*.json`` under a declared evidence surface that is NOT classified in
+    the contract fails the gate (no silently-unclassified evidence).
+
+Multi-output generators are handled by snapshotting ALL deterministic artifacts,
+running each unique generator once, comparing, then restoring — so the working
+tree is never left dirty.
 
 Usage::
 
     python scripts/ci/check_artifact_freshness.py            # verify (fail-closed)
     python scripts/ci/check_artifact_freshness.py --write     # regenerate manifest
 
-Exit codes: 0 fresh; 1 a committed artifact != regenerated, or manifest drift.
+Exit codes: 0 fresh + fully classified; 1 stale / manifest drift / unclassified.
 """
 
 from __future__ import annotations
@@ -34,37 +38,46 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[2]
+CONTRACT = ROOT / "artifacts" / "evidence_provenance.contract.json"
 MANIFEST = ROOT / "artifacts" / ".manifest.json"
 
 
 @dataclass(frozen=True)
 class _ArtifactSpec:
-    """A deterministic evidence artifact + the generator that reproduces it."""
-
     artifact: str
-    generator: list[str]  # argv (relative to ROOT) after the interpreter
-    sources: list[str]  # source files the generator reads
+    generator: list[str]
+    sources: list[str]
+    determinism_class: str
 
 
-DETERMINISTIC_ARTIFACTS: list[_ArtifactSpec] = [
-    _ArtifactSpec(
-        artifact="artifacts/academy_fellow/distinguished_evidence_table.json",
-        generator=["scripts/ci/gen_distinguished_evidence_table.py"],
-        sources=[".claude/neuro/NEURO_OPERATIONALIZATION_LEDGER.yaml"],
-    ),
-    _ArtifactSpec(
-        artifact="artifacts/claims_hashes.json",
-        generator=["scripts/generate_claim_hashes.py"],
-        sources=["CLAIMS.md"],
-    ),
-    _ArtifactSpec(
-        artifact="docs/architecture/claim_graph.json",
-        generator=["scripts/generate_claim_graph.py"],
-        sources=["CLAIMS.md"],
-    ),
-]
+def _load_contract() -> dict[str, object]:
+    return json.loads(CONTRACT.read_text(encoding="utf-8"))
+
+
+def _all_specs() -> list[_ArtifactSpec]:
+    contract = _load_contract()
+    rows: list[_ArtifactSpec] = []
+    for a in cast("list[dict[str, Any]]", contract["artifacts"]):
+        rows.append(
+            _ArtifactSpec(
+                artifact=str(a["artifact"]),
+                generator=[str(g) for g in a.get("generator", [])],
+                sources=[str(s) for s in a.get("sources", [])],
+                determinism_class=str(a["determinism_class"]),
+            )
+        )
+    return rows
+
+
+def _deterministic_specs() -> list[_ArtifactSpec]:
+    return [s for s in _all_specs() if s.determinism_class == "deterministic"]
+
+
+# Public alias kept for tests / external callers.
+DETERMINISTIC_ARTIFACTS = _deterministic_specs()
 
 
 def _sha256(data: bytes) -> str:
@@ -74,36 +87,53 @@ def _sha256(data: bytes) -> str:
 def _run_generator(generator: list[str]) -> None:
     full_env = {**os.environ, "PYTHONPATH": str(ROOT)}
     subprocess.run(
-        [sys.executable, *generator],
-        cwd=ROOT,
-        env=full_env,
-        check=True,
-        capture_output=True,
+        [sys.executable, *generator], cwd=ROOT, env=full_env, check=True, capture_output=True
     )
 
 
-def regenerated_sha(entry: _ArtifactSpec) -> tuple[str, str]:
-    """Return (committed_sha, regenerated_sha); restores the committed bytes."""
-    path = ROOT / entry.artifact
-    committed = path.read_bytes()
+def _snapshot(specs: list[_ArtifactSpec]) -> dict[str, bytes]:
+    return {
+        s.artifact: (ROOT / s.artifact).read_bytes() for s in specs if (ROOT / s.artifact).is_file()
+    }
+
+
+def _regenerate_all(specs: list[_ArtifactSpec]) -> dict[str, str]:
+    """Snapshot → run each unique generator once → return regenerated sha per
+    artifact → restore the committed bytes (tree left clean)."""
+    snapshot = _snapshot(specs)
+    unique_gens = {tuple(s.generator) for s in specs if s.generator}
+    regenerated: dict[str, str] = {}
     try:
-        _run_generator(entry.generator)
-        regenerated = path.read_bytes()
+        for gen in unique_gens:
+            _run_generator(list(gen))
+        for art in snapshot:
+            regenerated[art] = _sha256((ROOT / art).read_bytes())
     finally:
-        path.write_bytes(committed)  # never leave the tree dirty
-    return _sha256(committed), _sha256(regenerated)
+        for art, committed in snapshot.items():
+            (ROOT / art).write_bytes(committed)
+    return regenerated
+
+
+def regenerated_sha(entry: _ArtifactSpec) -> tuple[str, str]:
+    """(committed_sha, regenerated_sha) for one artifact; tree restored."""
+    committed = _sha256((ROOT / entry.artifact).read_bytes())
+    regenerated = _regenerate_all(_deterministic_specs()).get(entry.artifact, "")
+    return committed, regenerated
 
 
 def build_manifest() -> dict[str, object]:
     rows = []
-    for entry in DETERMINISTIC_ARTIFACTS:
-        path = ROOT / entry.artifact
+    for spec in _all_specs():
+        path = ROOT / spec.artifact
         rows.append(
             {
-                "artifact": entry.artifact,
-                "generator_command": "python " + " ".join(entry.generator),
-                "sources": entry.sources,
-                "artifact_sha256": _sha256(path.read_bytes()),
+                "artifact": spec.artifact,
+                "determinism_class": spec.determinism_class,
+                "generator_command": ("python " + " ".join(spec.generator))
+                if spec.generator
+                else "",
+                "sources": spec.sources,
+                "artifact_sha256": _sha256(path.read_bytes()) if path.is_file() else None,
             }
         )
     return {
@@ -113,26 +143,40 @@ def build_manifest() -> dict[str, object]:
     }
 
 
+def _unclassified(contract: dict[str, object]) -> list[str]:
+    classified = {str(a["artifact"]) for a in cast("list[dict[str, Any]]", contract["artifacts"])}
+    errors: list[str] = []
+    for surface in cast("list[str]", contract.get("evidence_surfaces", [])):
+        for path in (ROOT / str(surface)).rglob("*.json"):
+            rel = path.relative_to(ROOT).as_posix()
+            if rel not in classified:
+                errors.append(f"unclassified evidence artifact (add to provenance contract): {rel}")
+    return errors
+
+
 def check() -> list[str]:
     errors: list[str] = []
-    for entry in DETERMINISTIC_ARTIFACTS:
-        path = ROOT / entry.artifact
-        if not path.is_file():
-            errors.append(f"missing artifact: {entry.artifact}")
-            continue
-        committed_sha, regen_sha = regenerated_sha(entry)
-        if committed_sha != regen_sha:
+    contract = _load_contract()
+    errors.extend(_unclassified(contract))
+
+    det = _deterministic_specs()
+    for spec in det:
+        if not (ROOT / spec.artifact).is_file():
+            errors.append(f"missing deterministic artifact: {spec.artifact}")
+    present = [s for s in det if (ROOT / s.artifact).is_file()]
+    committed = {s.artifact: _sha256((ROOT / s.artifact).read_bytes()) for s in present}
+    regenerated = _regenerate_all(present)
+    for art, committed_sha in committed.items():
+        if regenerated.get(art) != committed_sha:
             errors.append(
-                f"STALE: {entry.artifact} committed sha {committed_sha[:12]} != "
-                f"regenerated {regen_sha[:12]} (run its generator and commit)"
+                f"STALE: {art} committed {committed_sha[:12]} != regenerated "
+                f"{(regenerated.get(art) or '<none>')[:12]} (run `make regenerate-evidence`)"
             )
-    # Manifest must exist and match the committed artifacts.
+
     if not MANIFEST.is_file():
         errors.append(f"missing {MANIFEST.relative_to(ROOT)} (run --write)")
-    else:
-        committed_manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        if committed_manifest != build_manifest():
-            errors.append("artifacts/.manifest.json drift — regenerate with --write")
+    elif json.loads(MANIFEST.read_text(encoding="utf-8")) != build_manifest():
+        errors.append("artifacts/.manifest.json drift — regenerate with --write")
     return errors
 
 
@@ -148,12 +192,13 @@ def main(argv: list[str] | None = None) -> int:
 
     errors = check()
     if errors:
-        print("ARTIFACT FRESHNESS FAIL:", file=sys.stderr)
+        print("ARTIFACT FRESHNESS/PROVENANCE FAIL:", file=sys.stderr)
         for e in errors:
             print(f"  {e}", file=sys.stderr)
         return 1
     print(
-        f"ARTIFACT FRESHNESS: PASS — {len(DETERMINISTIC_ARTIFACTS)} deterministic artifacts fresh."
+        f"ARTIFACT FRESHNESS: PASS — {len(_deterministic_specs())} deterministic artifacts fresh, "
+        "all evidence artifacts classified."
     )
     return 0
 
