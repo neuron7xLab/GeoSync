@@ -9,6 +9,7 @@
 <img src="https://img.shields.io/badge/status-research_kernel-111111?style=for-the-badge" />
 <img src="https://img.shields.io/badge/claims-falsifiable-111111?style=for-the-badge" />
 <img src="https://img.shields.io/badge/evidence-machine_checkable-111111?style=for-the-badge" />
+<img src="https://img.shields.io/badge/inference-bounded_runtime-111111?style=for-the-badge" />
 <img src="https://img.shields.io/badge/ricci-hypothesis_tier-111111?style=for-the-badge" />
 
 <br/><br/>
@@ -49,7 +50,9 @@ CLAIM REGISTRY
         ↓
 DATA CONTRACT
         ↓
-INFERENCE CONTRACT
+INFERENCE READINESS CONTRACT
+        ↓
+INFERENCE OPERATION PROTOCOL
         ↓
 NULL BASELINES / FALSIFIERS
         ↓
@@ -73,6 +76,8 @@ GeoSync treats research as engineered infrastructure, not as a decorative chart 
 | [`FORBIDDEN_CLAIMS.md`](FORBIDDEN_CLAIMS.md) | Status-language firewall and promotion invariants. |
 | [`docs/REPOSITORY_SYSTEM.md`](docs/REPOSITORY_SYSTEM.md) | Operational map for reviewers, auditors, and implementation agents. |
 | [`docs/INFERENCE_READINESS.md`](docs/INFERENCE_READINESS.md) | Runtime-readiness contract for context, agent, artifact, and falsification control. |
+| [`docs/INFERENCE_OPERATION_PROTOCOL.md`](docs/INFERENCE_OPERATION_PROTOCOL.md) | Seven-step agent runbook for converting repository meaning into bounded execution. |
+| [`docs/INFERENCE_CONTRACT.manifest.json`](docs/INFERENCE_CONTRACT.manifest.json) | Machine-readable manifest for authority files, reading order, gates, stop conditions, and required agent state. |
 | [`docs/MFN_VERIFICATION_ROADMAP.json`](docs/MFN_VERIFICATION_ROADMAP.json) | MFN gateway machine-readable verification roadmap contract. |
 | [`AGENTS.md`](AGENTS.md) | Root implementation contract for Claude, Codex, and automation agents. |
 
