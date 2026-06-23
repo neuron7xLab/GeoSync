@@ -24,6 +24,9 @@ diff_scope:
     - path: "src/geosync/policy/basal_ganglia.py"
     - path: "tests/ci/test_evidence_integrity_gate.py"
     - path: "docs/phd/13_physics_runtime_hardening.md"
+    - path: "docs/architecture/claim_graph.json"
+    - path: "scripts/ci/evidence_gate.sh"
+    - path: "scripts/ci/prove_repo_integrity.sh"
     - path: ".claude/commit_acceptors/physics-runtime-hardening-after-1309.yaml"
   forbidden_paths:
     - "core/execution/"

@@ -152,7 +152,7 @@ CI: `make phd-evidence` (now includes `evidence_integrity`),
 - No alpha, no edge, no profitability.
 - No market law, no universal physics of markets; observers are not predictors.
 - No biological equivalence — every neuro term is an engineering analogue.
-- No live-trading claim; all witnesses are synthetic-only.
+- No live-venue execution claim; all witnesses are synthetic-only.
 - Homeostatic energy descent is common-mode only (§5).
 - The dopamine adapter is a bounded normaliser, not raw TD-error (never an
   INV-DA7-scoped quantity).
