@@ -73,7 +73,9 @@ def _ollivier_worst_edge_kappa(prices: np.ndarray) -> float:
         if not edges:
             return float("nan")
         return float(max(ricci_curvature_edge(graph, int(u), int(v)) for u, v in edges))
-    except Exception:  # noqa: BLE001 — fail-closed to NaN, never raise on hot path
+    except Exception:
+        # Fail-closed to NaN — never raise on the hot path; the downstream
+        # physics-contract gate flags a non-finite Ollivier κ.
         return float("nan")
 
 

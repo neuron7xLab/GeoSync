@@ -1,5 +1,5 @@
 {
-  "wheel_sha256": "9943ce620b11e83f19d855d97e9a387bbed05dc68d9b67e0e4138fd600536616",
+  "wheel_sha256": "d5b28549242601298eb3b62a0f182848d2760f6c4b5bc385ac237399410d3852",
   "installed_packages": [
     "analytics",
     "application",
@@ -69,11 +69,11 @@
     },
     {
       "module": "geosync/neural_controller/integration/bridge.py",
-      "imports_unpackaged": "runtime"
+      "imports_unpackaged": "cortex_service"
     },
     {
       "module": "geosync/neural_controller/integration/bridge.py",
-      "imports_unpackaged": "cortex_service"
+      "imports_unpackaged": "runtime"
     },
     {
       "module": "interfaces/live_runner.py",
@@ -272,6 +272,10 @@
       "imports_unpackaged": "governance"
     },
     {
+      "module": "scripts/ci/check_physics_inference_readiness.py",
+      "imports_unpackaged": "physics_contracts"
+    },
+    {
       "module": "scripts/ci/gate6_sensitivity_surface_falsifier.py",
       "imports_unpackaged": "research"
     },
@@ -329,7 +333,23 @@
     }
   ],
   "script_failures": [],
-  "dynamic_smoke": [],
+  "dynamic_smoke": [
+    {
+      "target": "geosync-scripts",
+      "kind": "NEEDS_EXTRA",
+      "detail": "yaml"
+    },
+    {
+      "target": "geosync-sync",
+      "kind": "NEEDS_EXTRA",
+      "detail": "numpy"
+    },
+    {
+      "target": "geosync-db",
+      "kind": "NEEDS_EXTRA",
+      "detail": "click"
+    }
+  ],
   "new_import_debt": [],
   "new_legacy_packages": [],
   "verdict": "PASS"

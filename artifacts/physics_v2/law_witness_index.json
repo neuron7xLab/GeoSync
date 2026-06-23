@@ -849,6 +849,17 @@
       "test_witnesses": []
     },
     {
+      "falsifier": "validate_physics_contract returns VALID for a signal with R∉[0,1], a negative/non-finite gamma, or an Ollivier κ>1+ε; OR it returns INVALID for an augmented-Forman value >1 whose R, gamma and Ollivier κ are all in-band; OR an INVALID verdict carries a non-zero safe_risk_scalar.",
+      "id": "INV-CBR1",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "coherence_bridge/physics_contract.py::validate_physics_contract",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/integration/test_coherence_bridge_invariants.py"
+      ]
+    },
+    {
       "falsifier": "A reproducible measurement of useful quantum computation inside a causal diamond exceeding the holographic ceiling A / (4 · ℓ_p² · ln 2).",
       "id": "INV-COSMOLOGICAL-COMPUTE",
       "priority": "P1",
@@ -937,10 +948,12 @@
       "falsifier": "DopamineExecutionAdapter.compute_rpe returns |δ| > 1, or a non-finite δ, for some finite (realized_pnl, predicted_return, slippage) input.",
       "id": "INV-DA8",
       "priority": "P0",
-      "provenance": "UNSPECIFIED",
-      "source_module": "",
-      "status": "WARN_ONLY",
-      "test_witnesses": []
+      "provenance": "ANCHORED",
+      "source_module": "core/neuro/dopamine_execution_adapter.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_dopamine_execution_adapter_bounds.py"
+      ]
     },
     {
       "falsifier": "derive_gamma returns γ, H with |γ − (2·H + 1)| ≥ 1e-5",
@@ -1105,6 +1118,17 @@
       "source_module": "",
       "status": "WARN_ONLY",
       "test_witnesses": []
+    },
+    {
+      "falsifier": "re_adaptation_to_baseline returns post_reset_energy > pre_reset_energy + ε for a common-mode error within max_phase_error; OR a contract violation does not raise; OR an over-threshold error does not safety_lock.",
+      "id": "INV-HOM1",
+      "priority": "P1",
+      "provenance": "ANCHORED",
+      "source_module": "geosync/neuroeconomics/homeostatic_stabilizer.py::NeuroHomeostaticStabilizer",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/neuro/test_homeostatic_stabilizer_setpoint.py"
+      ]
     },
     {
       "falsifier": "two identical invocations on the same hardware differ by any ULP",
@@ -1708,7 +1732,7 @@
     "blocking_covered": 31,
     "blocking_laws": 31,
     "catalog_laws": 41,
-    "invariants": 108,
-    "invariants_covered": 29
+    "invariants": 110,
+    "invariants_covered": 32
   }
 }

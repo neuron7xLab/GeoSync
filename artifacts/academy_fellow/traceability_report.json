@@ -1,7 +1,7 @@
 {
   "schema": "academy-fellow/traceability_report@v1",
   "gate": "every OPERATIONAL mechanism is invariant/contract/falsifier/test-bound; every PARTIAL has remediation; every quarantine entry is classified",
-  "verdict": "PASS",
+  "verdict": "BLOCKED",
   "rationale": "0 open missing_tests across the ledger; PARTIAL entries carry explicit remediation_action and cannot promote claim tier.",
   "rows": [
     {
@@ -133,16 +133,16 @@
     {
       "id": "dopamine-execution-adapter-tanh",
       "domain": "neuroscience",
-      "verdict": "PARTIAL",
-      "claim_status": "PARTIAL",
-      "remediation": "ADD_FALSIFIER"
+      "verdict": "PASS",
+      "claim_status": "OPERATIONAL",
+      "remediation": "KEEP"
     },
     {
       "id": "neuro-optimizer-balance-metrics",
       "domain": "neuroeconomics",
       "verdict": "PARTIAL",
       "claim_status": "PARTIAL",
-      "remediation": "ADD_NULL_MODEL"
+      "remediation": "QUARANTINE_DOC"
     },
     {
       "id": "neuro-validation-bounds",
@@ -154,9 +154,9 @@
     {
       "id": "coherence-bridge-geosync-adapter",
       "domain": "runtime-governance",
-      "verdict": "PARTIAL",
-      "claim_status": "PARTIAL",
-      "remediation": "ADD_FALSIFIER"
+      "verdict": "PASS",
+      "claim_status": "OPERATIONAL",
+      "remediation": "KEEP"
     },
     {
       "id": "hebbian-plasticity-update",
@@ -168,9 +168,9 @@
     {
       "id": "homeostatic-stabilizer",
       "domain": "neuroscience",
-      "verdict": "PARTIAL",
-      "claim_status": "PARTIAL",
-      "remediation": "ADD_TEST"
+      "verdict": "PASS",
+      "claim_status": "OPERATIONAL",
+      "remediation": "KEEP"
     },
     {
       "id": "neuro-orchestrator-scenario-builder",

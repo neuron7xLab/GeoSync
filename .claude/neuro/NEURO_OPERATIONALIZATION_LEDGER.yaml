@@ -765,8 +765,10 @@ entries:
     priority: P1
     reason: >-
       Decorative neuroscience naming on a configuration aggregator;
-      rename to ScenarioConfigurator and add explicit non-claim block.
+      neutral alias added + explicit non-claim block (this PR).
     inv_refs: []
+    witness_note: >-
+      QUARANTINED (this PR): explicit NON-CLAIM docstring added to NeuroOrchestrator stating it is a pure configuration aggregator (no striatum dynamics / pathways / gating); the bio labels name parameter bundles only. Neutral canonical alias ScenarioConfigurator = NeuroOrchestrator added to src/geosync/core/neuro/neuro_orchestrator.py __all__ — preferred for new code; legacy name retained for backward compatibility (imports unchanged). Stays DECORATIVE (correct tier; not a runtime mechanism).
 
   - id: adaptive-calibrator-annealing
     term: neuromod
@@ -787,8 +789,10 @@ entries:
     runtime_path: "UNKNOWN"
     remediation_action: RENAME
     priority: P2
-    reason: SA correctness ≠ neuroscience claim; rename to AdaptiveCalibrator.
+    reason: SA correctness ≠ neuroscience claim; class already neutral, labels quarantined.
     inv_refs: []
+    witness_note: >-
+      QUARANTINED (this PR): class name AdaptiveCalibrator is already neutral; explicit NON-CLAIM docstring added stating the algorithm is standard simulated annealing and the "neuromodulator" parameter labels are decorative (SA correctness is not a neuroscience claim). Stays DECORATIVE.
 
   - id: basal-ganglia-policy-legacy
     term: basal_ganglia
@@ -811,10 +815,12 @@ entries:
     remediation_action: RENAME
     priority: P2
     reason: >-
-      Legacy compatibility shim labelled basal ganglia; rename or quarantine.
-      The composite BasalGangliaDecisionStack remains operational via its
-      children (DopamineController, SerotoninController, GABAInhibitionGate).
+      Legacy compatibility shim labelled basal ganglia; neutral alias added +
+      explicit non-claim docstring (this PR). Composite BasalGangliaDecisionStack
+      remains operational via its children (Dopamine/Serotonin/GABA controllers).
     inv_refs: []
+    witness_note: >-
+      QUARANTINED (this PR): explicit NON-CLAIM docstring added to BasalGangliaPolicy stating it is a deterministic three-branch lookup (no striatal dynamics / pathways). Neutral canonical alias ActionSelectionPolicy = BasalGangliaPolicy added to src/geosync/policy/basal_ganglia.py __all__ — preferred for new code; legacy name retained for backward compatibility (imports unchanged). Stays DECORATIVE.
 
   # ─────────────────────────── OVERCLAIM ────────────────────────────────
   # Docs claim biological/physical validity stronger than evidence.

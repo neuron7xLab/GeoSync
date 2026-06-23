@@ -25,6 +25,7 @@ __all__ = [
     "LearningLoop",
     "OrchestrationOutput",
     "NeuroOrchestrator",
+    "ScenarioConfigurator",
 ]
 
 
@@ -177,17 +178,25 @@ class OrchestrationOutput:
 
 
 class NeuroOrchestrator:
-    """Neuro-Orchestrator Agent for biologically-inspired module coordination.
+    """Scenario → module-sequence configuration builder.
 
-    This orchestrator implements the mapping between trading scenarios and
-    GeoSync's neuroscience-inspired architecture:
+    NON-CLAIM (ledger ``neuro-orchestrator-scenario-builder``, DECORATIVE):
+    this class is a PURE CONFIGURATION AGGREGATOR — it maps a TradingScenario to
+    a deterministic module sequence and parameter bundles. The neuroscience
+    labels below ("basal ganglia", "dopamine loop", "TACL") name parameter
+    bundles for readability; there is NO striatum dynamics, NO direct/indirect
+    pathway, NO actual neural gating. The name carries no biological mechanism.
+    The neutral alias :data:`ScenarioConfigurator` is preferred for new code;
+    ``NeuroOrchestrator`` is retained for backward compatibility.
 
-    - Basal ganglia → action selection module
-    - Dopamine loop → learning_loop (TD-based reinforcement)
-    - Threat contour → risk_contour (risk management)
-    - TACL → free-energy monitoring and protocol hot-swapping
+    Mapping (labels → engineering role, not biology):
 
-    The orchestrator ensures all proposed actions maintain TACL's monotonic
+    - "Basal ganglia"  → action-selection configuration block
+    - "Dopamine loop"  → learning_loop parameter bundle (TD-based)
+    - "Threat contour" → risk_contour parameter bundle
+    - "TACL"           → free-energy monitoring / protocol hot-swap config
+
+    The orchestrator ensures all proposed actions maintain the monotonic
     free-energy descent constraint: no action can increase system free energy
     without human override.
     """
@@ -681,3 +690,10 @@ def create_orchestration_from_scenario(
     )
 
     return orchestrator.orchestrate(scenario)
+
+
+# Neutral canonical alias (preferred for new code). NON-CLAIM: this is a
+# configuration aggregator, not a basal-ganglia simulation; the "Neuro"
+# prefix on the legacy name carries no biological mechanism. The legacy
+# ``NeuroOrchestrator`` symbol is retained for backward compatibility.
+ScenarioConfigurator = NeuroOrchestrator

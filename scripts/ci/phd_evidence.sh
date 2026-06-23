@@ -45,6 +45,8 @@ run "physics_inference"         "$PYTHON" scripts/ci/check_physics_inference_rea
 run "neuro_claim_boundary"      "$PYTHON" scripts/ci/check_neuro_claim_boundary.py
 # 5. Neuro ledger audit (OPERATIONAL needs INV-* binding; PARTIAL needs remediation).
 run "neuro_symbolic_audit"      "$PYTHON" tools/audit/neuro_symbolic_audit.py
+# 5b. Evidence integrity (teeth: INV/test references must RESOLVE; no fake promotion).
+run "evidence_integrity"        "$PYTHON" scripts/ci/check_evidence_integrity.py
 # 6. Regenerate machine-readable evidence artifacts (matrix + traceability + table).
 run "witness_matrix"            "$PYTHON" scripts/ci/gen_law_mechanism_witness_matrix.py
 run "distinguished_evidence"    "$PYTHON" scripts/ci/gen_distinguished_evidence_table.py

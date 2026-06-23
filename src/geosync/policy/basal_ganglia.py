@@ -198,7 +198,17 @@ class PolicyResult:
 
 
 class BasalGangliaPolicy:
-    """Legacy policy wrapper keeping backward compatible API."""
+    """Legacy three-branch decision lookup (KILL/BREACH→NO_GO; EMERGENT+OK→GO; else HOLD).
+
+    NON-CLAIM (ledger ``basal-ganglia-policy-legacy``, DECORATIVE): this is a
+    deterministic lookup over (ews_state, risk_state, R) — there is NO
+    basal-ganglia mechanism, NO striatal dynamics, NO direct/indirect pathway.
+    The name is a legacy label and carries no biological claim. The neutral
+    alias :data:`ActionSelectionPolicy` is preferred for new code; this symbol is
+    retained for backward compatibility. (The composite
+    ``BasalGangliaDecisionStack`` remains operational via its real children —
+    DopamineController, SerotoninController, GABAInhibitionGate.)
+    """
 
     def __init__(self, hold_size_hint: float = 0.2) -> None:
         self.hold_size_hint = hold_size_hint
@@ -218,7 +228,14 @@ class BasalGangliaPolicy:
         return "HOLD", self.hold_size_hint
 
 
+# Neutral canonical alias (preferred for new code). NON-CLAIM: deterministic
+# action-selection lookup, not a basal-ganglia simulation. Legacy
+# ``BasalGangliaPolicy`` symbol retained for backward compatibility.
+ActionSelectionPolicy = BasalGangliaPolicy
+
+
 __all__ = [
+    "ActionSelectionPolicy",
     "BasalGangliaDecisionStack",
     "BasalGangliaPolicy",
     "DecisionResult",

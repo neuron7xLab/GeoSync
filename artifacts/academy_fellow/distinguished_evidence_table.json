@@ -418,7 +418,7 @@
       ],
       "gate": "scripts/ci/check_phd_traceability.py + tools/audit/neuro_symbolic_audit.py",
       "falsifier": "None: labels carry no algorithmic content. NON-CLAIM required: this is a configuration layer, not basal-ganglia simulation.",
-      "limitation": "Decorative neuroscience naming on a configuration aggregator; rename to ScenarioConfigurator and add explicit non-claim block.",
+      "limitation": "QUARANTINED (this PR): explicit NON-CLAIM docstring added to NeuroOrchestrator stating it is a pure configuration aggregator (no striatum dynamics / pathways / gating); the bio labels name parameter bundles only. Neutral canonical alias ScenarioConfigurator = NeuroOrchestrator added to src/geosync/core/neuro/neuro_orchestrator.py __all__ — preferred for new code; legacy name retained for backward compatibility (imports unchanged). Stays DECORATIVE (correct tier; not a runtime mechanism).",
       "replay": "PYTHONPATH=. python -m pytest tests/core/test_neuro_training.py examples/neuro_orchestrator_demo.py",
       "promotion_allowed": false
     },
@@ -431,7 +431,7 @@
       "test": [],
       "gate": "scripts/ci/check_phd_traceability.py + tools/audit/neuro_symbolic_audit.py",
       "falsifier": "Algorithm is SA-correct; \"neuromodulator\" label is decorative.",
-      "limitation": "SA correctness ≠ neuroscience claim; rename to AdaptiveCalibrator.",
+      "limitation": "QUARANTINED (this PR): class name AdaptiveCalibrator is already neutral; explicit NON-CLAIM docstring added stating the algorithm is standard simulated annealing and the \"neuromodulator\" parameter labels are decorative (SA correctness is not a neuroscience claim). Stays DECORATIVE.",
       "replay": "(no executable witness — admissibility entry only)",
       "promotion_allowed": false
     },
@@ -446,7 +446,7 @@
       ],
       "gate": "scripts/ci/check_phd_traceability.py + tools/audit/neuro_symbolic_audit.py",
       "falsifier": "None — no biological mechanism modelled. NON-CLAIM required.",
-      "limitation": "Legacy compatibility shim labelled basal ganglia; rename or quarantine. The composite BasalGangliaDecisionStack remains operational via its children (DopamineController, SerotoninController, GABAInhibitionGate).",
+      "limitation": "QUARANTINED (this PR): explicit NON-CLAIM docstring added to BasalGangliaPolicy stating it is a deterministic three-branch lookup (no striatal dynamics / pathways). Neutral canonical alias ActionSelectionPolicy = BasalGangliaPolicy added to src/geosync/policy/basal_ganglia.py __all__ — preferred for new code; legacy name retained for backward compatibility (imports unchanged). Stays DECORATIVE.",
       "replay": "PYTHONPATH=. python -m pytest tests/integration/test_neurostack_integration.py",
       "promotion_allowed": false
     },
