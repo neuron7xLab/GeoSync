@@ -25,6 +25,7 @@ The repository is not optimized for persuasive language. It is optimized for con
 | [`FORBIDDEN_CLAIMS.md`](../FORBIDDEN_CLAIMS.md) | Status-language firewall and promotion invariants. |
 | [`AGENTS.md`](../AGENTS.md) | Root implementation contract for Claude, Codex, and automation agents. |
 | [`docs/PR_PREFLIGHT_RUNBOOK.md`](PR_PREFLIGHT_RUNBOOK.md) | Operational contract for the structured local PR preflight runner and its evidence report. |
+| [`docs/SEMANTIC_CONTROL_LAYER.md`](SEMANTIC_CONTROL_LAYER.md) | File-role taxonomy and semantic-control model for external LLM, Copilot, Claude Code, search, reviewer, and evaluation agents. |
 | [`docs/INFERENCE_READINESS.md`](INFERENCE_READINESS.md) | Runtime-readiness contract for context architecture, agent boundaries, artifact validity, and falsification control. |
 | [`docs/INFERENCE_OPERATION_PROTOCOL.md`](INFERENCE_OPERATION_PROTOCOL.md) | Seven-step runbook for converting repository meaning into bounded, replayable, falsifiable execution. |
 | [`docs/INFERENCE_CONTRACT.manifest.json`](INFERENCE_CONTRACT.manifest.json) | Machine-readable control manifest for authority files, reading order, gates, stop conditions, and required agent state. |
@@ -44,13 +45,14 @@ All other documents must conform to these surfaces. New text that upgrades a cla
 L0  Doctrine / boundary language
 L1  Claim registry / evidence tier
 L2  Data contract / immutable hashes
-L3  Inference readiness / semantic control graph
-L4  Inference operation protocol / seven-step runtime
-L5  Inference method / deterministic transform
-L6  Nulls / falsifiers / alternative hypotheses
-L7  Artifact schema / validation
-L8  CI gate / release evidence
-L9  External reproduction capsule
+L3  Semantic control layer / file-role routing
+L4  Inference readiness / semantic control graph
+L5  Inference operation protocol / seven-step runtime
+L6  Inference method / deterministic transform
+L7  Nulls / falsifiers / alternative hypotheses
+L8  Artifact schema / validation
+L9  CI gate / release evidence
+L10 External reproduction capsule
 ```
 
 A layer may depend only on validated lower layers. A higher layer cannot repair a broken lower layer by sounding confident. Human civilization keeps trying this. GeoSync does not.
@@ -132,7 +134,30 @@ Schema validity proves shape. It does not prove truth.
 
 ---
 
-## 5. Inference Operation Boundary
+## 5. Semantic Control Boundary
+
+GeoSync is a managed inference object only when each canonical file has a runtime role:
+
+```text
+filter
+context
+claim
+boundary
+protocol
+manifest
+schema
+test
+verdict
+replay
+```
+
+The detailed role taxonomy is defined in [`docs/SEMANTIC_CONTROL_LAYER.md`](SEMANTIC_CONTROL_LAYER.md). A file that does not constrain intent, scope, claim tier, method, schema, falsifier, or replay state is repository mass, not operational context.
+
+This boundary exists because external agents reconstruct repository intent from reachable tokens. If the token surface is noisy or unbounded, the repository identity becomes guesswork.
+
+---
+
+## 6. Inference Operation Boundary
 
 Inference readiness becomes operational only when the agent can traverse the committed seven-step path:
 
@@ -167,7 +192,7 @@ If the agent cannot resolve this state, it must return a blocked result instead 
 
 ---
 
-## 6. Ricci Microstructure Boundary
+## 7. Ricci Microstructure Boundary
 
 The active line is:
 
@@ -195,7 +220,7 @@ This supports graph-level structural computation. It does not by itself establis
 
 ---
 
-## 7. MFN Gateway Boundary
+## 8. MFN Gateway Boundary
 
 The MFN path is a dependency-light operational gateway:
 
@@ -217,56 +242,3 @@ local reproducibility
 It may produce `INSTRUMENTED` artifacts. It may not promote a research statement beyond its evidence tier.
 
 ---
-
-## 8. Release Evidence Boundary
-
-A release gate is valid only when it leaves machine-readable evidence:
-
-```text
-commands
-raw_logs
-exit_codes
-manifest
-checksums
-schema_validation
-CI_status
-SBOM_when_available
-telemetry_exports_when_available
-environment_drift_result
-```
-
-A green terminal line is an observation. A release evidence bundle is an artifact.
-
----
-
-## 9. Reviewer Protocol
-
-A reviewer should inspect the repository in this order:
-
-```text
-1. PRODUCT_CATEGORY.md
-2. CLAIMS.md
-3. FORBIDDEN_CLAIMS.md
-4. README.md
-5. docs/REPOSITORY_SYSTEM.md
-6. docs/INFERENCE_READINESS.md
-7. docs/INFERENCE_OPERATION_PROTOCOL.md
-8. docs/INFERENCE_CONTRACT.manifest.json
-9. docs/PR_PREFLIGHT_RUNBOOK.md
-10. AGENTS.md
-11. schemas/
-12. scripts/ci/
-13. artifacts/
-```
-
-Then ask five questions:
-
-```text
-1. What claim is being made?
-2. What tier permits that claim?
-3. What artifact supports it?
-4. What falsifier can defeat it?
-5. What command replays it?
-```
-
-If any answer is missing, the claim does not promote.
