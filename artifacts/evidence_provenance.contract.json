@@ -38,15 +38,17 @@
     },
     {
       "artifact": "artifacts/physics_v2/law_witness_index.json",
-      "determinism_class": "deterministic",
+      "determinism_class": "generated-but-excluded",
       "generator": ["scripts/ci/check_physics_law_witness_index.py", "--write"],
-      "sources": [".claude/physics/INVARIANTS.yaml"]
+      "sources": [".claude/physics/INVARIANTS.yaml"],
+      "exclusion_reason": "Produced by a VERDICT GATE (check_physics_law_witness_index.py), not a pure generator: --write is coupled to mutable on-disk state and can exit non-zero mid-pipeline. Byte-freshness is enforced by its own dedicated gate step in phd_evidence.sh, not by re-running the gate as a generator here."
     },
     {
       "artifact": "artifacts/physics_v2/inference_readiness.json",
-      "determinism_class": "deterministic",
+      "determinism_class": "generated-but-excluded",
       "generator": ["scripts/ci/check_physics_inference_readiness.py", "--write"],
-      "sources": ["artifacts/physics_v2/law_witness_index.json"]
+      "sources": ["artifacts/physics_v2/law_witness_index.json"],
+      "exclusion_reason": "Produced by a VERDICT GATE (check_physics_inference_readiness.py) that recomputes from the law-witness index; re-running it as a generator is order/state-coupled and can exit non-zero. Byte-freshness is enforced by its own dedicated gate step in phd_evidence.sh."
     },
     {
       "artifact": "artifacts/claims_hashes.json",

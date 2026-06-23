@@ -51,6 +51,7 @@ class _ArtifactSpec:
     generator: list[str]
     sources: list[str]
     determinism_class: str
+    exclusion_reason: str = ""
 
 
 def _load_contract() -> dict[str, object]:
@@ -67,6 +68,7 @@ def _all_specs() -> list[_ArtifactSpec]:
                 generator=[str(g) for g in a.get("generator", [])],
                 sources=[str(s) for s in a.get("sources", [])],
                 determinism_class=str(a["determinism_class"]),
+                exclusion_reason=str(a.get("exclusion_reason", "")),
             )
         )
     return rows
@@ -133,6 +135,7 @@ def build_manifest() -> dict[str, object]:
                     ("python " + " ".join(spec.generator)) if spec.generator else ""
                 ),
                 "sources": spec.sources,
+                "exclusion_reason": spec.exclusion_reason,
                 "artifact_sha256": _sha256(path.read_bytes()) if path.is_file() else None,
             }
         )
@@ -158,6 +161,14 @@ def check() -> list[str]:
     errors: list[str] = []
     contract = _load_contract()
     errors.extend(_unclassified(contract))
+
+    # Every non-deterministic class must justify why it is not byte-compared.
+    for spec in _all_specs():
+        if spec.determinism_class != "deterministic" and not spec.exclusion_reason.strip():
+            errors.append(
+                f"{spec.artifact}: determinism_class {spec.determinism_class!r} requires an "
+                f"exclusion_reason"
+            )
 
     det = _deterministic_specs()
     for spec in det:
