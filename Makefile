@@ -445,6 +445,14 @@ evidence:
 phd-evidence:
 	@PYTHON=$(PYTHON) bash scripts/ci/phd_evidence.sh
 
+.PHONY: regenerate-evidence
+regenerate-evidence:
+	@PYTHONPATH=. $(PYTHON) scripts/ci/gen_distinguished_evidence_table.py
+	@PYTHONPATH=. $(PYTHON) scripts/generate_claim_hashes.py
+	@PYTHONPATH=. $(PYTHON) scripts/generate_claim_graph.py
+	@PYTHONPATH=. $(PYTHON) scripts/ci/check_artifact_freshness.py --write
+	@echo "regenerated deterministic evidence artifacts + artifacts/.manifest.json"
+
 # ============================================================================
 # Specialized Targets (Legacy/Advanced)
 # ============================================================================

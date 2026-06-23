@@ -26,6 +26,10 @@
       "sha256": "02e7509bc4f3bea8f6576aea0b8b297baf71ce5c829e8ff382de0737a0f667c8"
     },
     {
+      "path": "scripts/ci/check_artifact_freshness.py",
+      "sha256": "f2cae44818a6f3c83167cf709e857a18aa58f83a3be62968c17dde04119ff5e9"
+    },
+    {
       "path": "scripts/ci/check_calibration_drift.py",
       "sha256": "e2ffd3ad4aa8e4c2969687fb60ccb0ca0cb56d6e95d06e42d1faa14d7d531e30"
     },
@@ -63,7 +67,7 @@
     },
     {
       "path": "scripts/ci/check_evidence_integrity.py",
-      "sha256": "5f4c9f62f0aa78b90e650ec41ad55466d518624bd4acec0625a9d23eb987f293"
+      "sha256": "3600ded04a7e0a8ba01d55cb902ce41f0d90dd15afa3a66014ea69adeef8f571"
     },
     {
       "path": "scripts/ci/check_examples_manifest.py",
@@ -203,7 +207,7 @@
     },
     {
       "path": "scripts/ci/phd_evidence.sh",
-      "sha256": "eef8b2e39da1e031c47f7b5d450c4c5d56b44fe6befc02d4d7bd3d1aaa72119c"
+      "sha256": "4e604ff1bf5aee21cf570150065f54873c4d50052a1986bd9414ad9c1126f4bb"
     },
     {
       "path": "scripts/ci/pr_quality_sentinel.py",

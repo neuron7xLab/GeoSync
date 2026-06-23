@@ -4,9 +4,13 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+_REPO_SYSTEM_CONTRACT = json.loads(
+    (ROOT / "docs" / "REPOSITORY_SYSTEM.contract.json").read_text(encoding="utf-8")
+)
 
 
 def _read(rel_path: str) -> str:
@@ -39,22 +43,23 @@ def test_readme_links_repository_governance_files() -> None:
 
 
 def test_repository_system_has_review_and_completion_contracts() -> None:
+    """Manifest-driven (docs/REPOSITORY_SYSTEM.contract.json): the doc must carry
+    every required section (number-agnostic), governance link, semantic phrase and
+    verb the contract pins — including the Reviewer Protocol / Completion
+    Definition / replay / RETIRED-preservation semantics."""
+    import re
+
     doc = _read("docs/REPOSITORY_SYSTEM.md")
-    # Durable governance anchors (the etalon line renames the review/completion
-    # SECTIONS over time — Reviewer Protocol / Release Evidence Boundary /
-    # Definition of Repository Completion came and went — so assert the stable
-    # CONTRACT primitives instead: the canonical governance file links and the
-    # promotion / replay / retirement vocabulary that the contract is built on).
-    for phrase in [
-        "PRODUCT_CATEGORY.md",
-        "CLAIMS.md",
-        "FORBIDDEN_CLAIMS.md",
-        "AGENTS.md",
-        "promotion",
-        "replay",
-        "RETIRED",
-    ]:
-        assert phrase in doc
+    for section in _REPO_SYSTEM_CONTRACT["required_sections"]:
+        assert re.search(section["heading_regex"], doc, re.MULTILINE), (
+            f"missing required section {section['id']}"
+        )
+    for link in _REPO_SYSTEM_CONTRACT["required_links"]:
+        assert link in doc, f"missing required governance link: {link}"
+    for phrase in _REPO_SYSTEM_CONTRACT["required_semantics"]:
+        assert phrase in doc, f"missing required semantic phrase: {phrase!r}"
+    for verb in _REPO_SYSTEM_CONTRACT["required_verbs"]:
+        assert verb in doc, f"missing required verb: {verb!r}"
 
 
 def test_agents_contract_has_required_sections() -> None:

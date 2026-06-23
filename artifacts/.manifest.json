@@ -1,0 +1,30 @@
+{
+  "schema": "evidence_artifact_freshness@v1",
+  "generated_at_policy": "deterministic; no wall-clock, no RNG",
+  "artifacts": [
+    {
+      "artifact": "artifacts/academy_fellow/distinguished_evidence_table.json",
+      "generator_command": "python scripts/ci/gen_distinguished_evidence_table.py",
+      "sources": [
+        ".claude/neuro/NEURO_OPERATIONALIZATION_LEDGER.yaml"
+      ],
+      "artifact_sha256": "b29085df06962833b43263256a41e86936825f1661a3db11dd6891303e154264"
+    },
+    {
+      "artifact": "artifacts/claims_hashes.json",
+      "generator_command": "python scripts/generate_claim_hashes.py",
+      "sources": [
+        "CLAIMS.md"
+      ],
+      "artifact_sha256": "a474b359559e05ae64610bfeb52710ecdf4d6b766a39a67c56ef16ddd4b42cf0"
+    },
+    {
+      "artifact": "docs/architecture/claim_graph.json",
+      "generator_command": "python scripts/generate_claim_graph.py",
+      "sources": [
+        "CLAIMS.md"
+      ],
+      "artifact_sha256": "9aec3d71230289c8e0f8e728d78c23519a533fed604c6f07289e9d6b030b6f4b"
+    }
+  ]
+}

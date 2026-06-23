@@ -241,4 +241,32 @@ local reproducibility
 
 It may produce `INSTRUMENTED` artifacts. It may not promote a research statement beyond its evidence tier.
 
+## 9. Reviewer Protocol
+
+A reviewer inspects the repository in a fixed order so that nothing claim-bearing is accepted on impression:
+
+```text
+1. PRODUCT_CATEGORY.md — is the claim inside the allowed category?
+2. CLAIMS.md / FORBIDDEN_CLAIMS.md — is the tier honest, the wording permitted?
+3. invariant + data + method + artifact + falsifier + replay — all six present?
+4. replay command succeeds on a clean checkout (not "looks right").
+5. AGENTS.md — did the change follow the implementation-agent contract?
+```
+
+A green terminal line is an observation; a reviewer accepts only a replayable artifact.
+
+## 10. Definition of Repository Completion
+
+The repository is complete for a claim only when every leg below holds, and not before:
+
+```text
+- the claim sits at an honest tier in CLAIMS.md
+- a falsifier exists and a reviewer can run it
+- the replay command succeeds from a clean checkout
+- retired or failed states are preserved (RETIRED, never silently deleted)
+- no FORBIDDEN_CLAIMS.md status-language leaks into the public surface
+```
+
+Incomplete proof stops at the boundary; it does not promote.
+
 ---
