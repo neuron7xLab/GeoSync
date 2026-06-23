@@ -26,6 +26,8 @@ The repository is not optimized for persuasive language. It is optimized for con
 | [`AGENTS.md`](../AGENTS.md) | Root implementation contract for Claude, Codex, and automation agents. |
 | [`docs/PR_PREFLIGHT_RUNBOOK.md`](PR_PREFLIGHT_RUNBOOK.md) | Operational contract for the structured local PR preflight runner and its evidence report. |
 | [`docs/INFERENCE_READINESS.md`](INFERENCE_READINESS.md) | Runtime-readiness contract for context architecture, agent boundaries, artifact validity, and falsification control. |
+| [`docs/INFERENCE_OPERATION_PROTOCOL.md`](INFERENCE_OPERATION_PROTOCOL.md) | Seven-step runbook for converting repository meaning into bounded, replayable, falsifiable execution. |
+| [`docs/INFERENCE_CONTRACT.manifest.json`](INFERENCE_CONTRACT.manifest.json) | Machine-readable control manifest for authority files, reading order, gates, stop conditions, and required agent state. |
 | [`docs/MFN_VERIFICATION_ROADMAP.json`](MFN_VERIFICATION_ROADMAP.json) | MFN gateway machine-readable verification roadmap contract. |
 | [`BASELINE.md`](../BASELINE.md) | Baseline evidence and comparison reference when present. |
 | [`schemas/`](../schemas) | Machine-readable contracts for artifacts and governance records. |
@@ -42,11 +44,13 @@ All other documents must conform to these surfaces. New text that upgrades a cla
 L0  Doctrine / boundary language
 L1  Claim registry / evidence tier
 L2  Data contract / immutable hashes
-L3  Inference method / deterministic transform
-L4  Nulls / falsifiers / alternative hypotheses
-L5  Artifact schema / validation
-L6  CI gate / release evidence
-L7  External reproduction capsule
+L3  Inference readiness / semantic control graph
+L4  Inference operation protocol / seven-step runtime
+L5  Inference method / deterministic transform
+L6  Nulls / falsifiers / alternative hypotheses
+L7  Artifact schema / validation
+L8  CI gate / release evidence
+L9  External reproduction capsule
 ```
 
 A layer may depend only on validated lower layers. A higher layer cannot repair a broken lower layer by sounding confident. Human civilization keeps trying this. GeoSync does not.
@@ -128,7 +132,42 @@ Schema validity proves shape. It does not prove truth.
 
 ---
 
-## 5. Ricci Microstructure Boundary
+## 5. Inference Operation Boundary
+
+Inference readiness becomes operational only when the agent can traverse the committed seven-step path:
+
+```text
+resolve intent
+  -> load canonical context
+  -> compress semantic core
+  -> bind claims to evidence
+  -> select executable path
+  -> verify and falsify
+  -> emit replayable artifact
+```
+
+The machine-readable mirror is [`docs/INFERENCE_CONTRACT.manifest.json`](INFERENCE_CONTRACT.manifest.json). The human-readable runbook is [`docs/INFERENCE_OPERATION_PROTOCOL.md`](INFERENCE_OPERATION_PROTOCOL.md).
+
+Minimum required agent state:
+
+```text
+intent_type
+canonical_files_used
+claim_tier_before
+claim_tier_after
+changed_surface_type
+allowed_method
+blocked_claims
+verification_command
+evidence_artifact_path
+remaining_blocker
+```
+
+If the agent cannot resolve this state, it must return a blocked result instead of inventing context.
+
+---
+
+## 6. Ricci Microstructure Boundary
 
 The active line is:
 
@@ -156,7 +195,7 @@ This supports graph-level structural computation. It does not by itself establis
 
 ---
 
-## 6. MFN Gateway Boundary
+## 7. MFN Gateway Boundary
 
 The MFN path is a dependency-light operational gateway:
 
@@ -179,7 +218,7 @@ It may produce `INSTRUMENTED` artifacts. It may not promote a research statement
 
 ---
 
-## 7. Release Evidence Boundary
+## 8. Release Evidence Boundary
 
 A release gate is valid only when it leaves machine-readable evidence:
 
@@ -200,7 +239,7 @@ A green terminal line is an observation. A release evidence bundle is an artifac
 
 ---
 
-## 8. Reviewer Protocol
+## 9. Reviewer Protocol
 
 A reviewer should inspect the repository in this order:
 
@@ -211,11 +250,23 @@ A reviewer should inspect the repository in this order:
 4. README.md
 5. docs/REPOSITORY_SYSTEM.md
 6. docs/INFERENCE_READINESS.md
-7. docs/PR_PREFLIGHT_RUNBOOK.md
-8. AGENTS.md
-9. schemas/
-10. scripts/ci/
-11. artifacts/
+7. docs/INFERENCE_OPERATION_PROTOCOL.md
+8. docs/INFERENCE_CONTRACT.manifest.json
+9. docs/PR_PREFLIGHT_RUNBOOK.md
+10. AGENTS.md
+11. schemas/
+12. scripts/ci/
+13. artifacts/
 ```
 
 Then ask five questions:
+
+```text
+1. What claim is being made?
+2. What tier permits that claim?
+3. What artifact supports it?
+4. What falsifier can defeat it?
+5. What command replays it?
+```
+
+If any answer is missing, the claim does not promote.
