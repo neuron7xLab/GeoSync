@@ -24,14 +24,21 @@ Genuinely met today and asserted **fail-closed**:
 * The Grafana latency dashboard is structurally validated against the
   §5 budgets and the real Prometheus series.
 
-Honest gap (``LayerCoverage`` = 0.75, informational at Phase-4):
-``network_TTFB`` has no regression-gated budget assertion — Web Vitals
-TTFB is instrumented client-side but a real-network/real-Lighthouse
-budget run needs infra not exercised in unit CI. The "all 4 layers
-regression-gated" criterion (#531) is therefore red by design and
-env-gated (``GEOSYNC_LATENCY_LAYER_GATE``) so the global lanes stay
-green; Phase-4 EXIT lands the Lighthouse-CI budget run + OTel trace
-propagation and flips it fail-closed (claim ANCHORED).
+All four layers are now regression-gated (``LayerCoverage`` = 1.0):
+``network_TTFB`` is closed by the Lighthouse-CI budget run
+(``.github/workflows/lighthouse-ci.yml`` + ``apps/web/lighthouserc.json``)
+which builds the REAL Next app, serves it, and drives headless Chrome
+against ``/signin``, asserting ``server-response-time`` (origin TTFB)
+< 300 ms and ``first-contentful-paint`` < 1.0 s **fail-closed** (any
+``error``-level budget violation exits the build non-zero). The gate is
+proven non-decorative by an in-workflow falsifier that tightens the
+TTFB budget to 1 ms and asserts the run FAILS. The cited regression
+target ``test_lighthouse_network_ttfb_gate.py`` statically verifies
+both the workflow and the budget config carry the fail-closed TTFB
+assertion. The "all 4 layers regression-gated" criterion (#531) is
+therefore met and genuinely fail-closed; the env-gated
+(``GEOSYNC_LATENCY_LAYER_GATE``) check
+``test_all_four_layers_regression_gated`` now passes.
 
 Tracks claim ``e2e-latency-budget-compliance`` and issue IERD-Q6
 (#531).
@@ -67,10 +74,14 @@ _LAYER_COVERAGE: Final[dict[str, str | None]] = {
     "db_io": (
         "tests/unit/test_metrics_collector.py::test_database_metrics_track_size_growth_and_latency"
     ),
-    # network_TTFB → UNCOVERED: no regression-gated budget run; Web
-    # Vitals TTFB is instrumented but not CI-asserted against a real
-    # network. Phase-4 EXIT (Lighthouse CI + OTel).
-    "network_TTFB": None,
+    # network_TTFB → COVERED by the Lighthouse-CI budget run
+    # (.github/workflows/lighthouse-ci.yml + apps/web/lighthouserc.json):
+    # real Next build + headless-Chrome TTFB/FCP budgets asserted
+    # fail-closed, with a 1 ms-budget falsifier. The cited test
+    # statically verifies the workflow and config enforce the gate.
+    "network_TTFB": (
+        "tests/observability/test_lighthouse_network_ttfb_gate.py::test_lighthouse_ttfb_budget_fail_closed"
+    ),
 }
 
 _DASHBOARD: Final[Path] = _REPO_ROOT / "observability" / "grafana" / "latency_budget_dashboard.json"
@@ -137,6 +148,36 @@ def test_client_render_instrumented_fail_closed() -> None:
     ), "Web Vitals reporter must wire next/web-vitals and pin the §5 budget table."
 
 
+def test_network_ttfb_layer_gated_fail_closed() -> None:
+    """network_TTFB Lighthouse-CI budget run is genuinely gated.
+
+    The cited regression test must resolve, and the Lighthouse workflow
+    + budget config must exist and carry the fail-closed TTFB assertion.
+    This is the Phase-4 EXIT increment that lifts LayerCoverage to 1.0.
+    """
+    target = _LAYER_COVERAGE["network_TTFB"]
+    assert target is not None and _target_exists(target), (
+        "IERD-Q6: the network_TTFB Lighthouse budget gate "
+        f"({target}) must exist — it closes the final §531 latency layer."
+    )
+    workflow = _REPO_ROOT / ".github" / "workflows" / "lighthouse-ci.yml"
+    config = _REPO_ROOT / "apps" / "web" / "lighthouserc.json"
+    assert workflow.is_file(), f"missing Lighthouse CI workflow at {workflow}"
+    assert config.is_file(), f"missing Lighthouse budget config at {config}"
+    wf_src = workflow.read_text(encoding="utf-8")
+    assert "lhci autorun" in wf_src, "Lighthouse workflow must invoke `lhci autorun`."
+    assert (
+        "Falsifier" in wf_src and "1 ms" in wf_src
+    ), "Lighthouse workflow must carry the 1 ms-TTFB falsifier proving the gate is non-decorative."
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    assertions = cfg["ci"]["assert"]["assertions"]
+    ttfb = assertions["server-response-time"]
+    assert ttfb[0] == "error" and ttfb[1]["maxNumericValue"] == LAYER_BUDGETS_MS["network_TTFB"], (
+        "network_TTFB budget must be an error-level (fail-closed) "
+        f"server-response-time assertion at §5 {LAYER_BUDGETS_MS['network_TTFB']} ms."
+    )
+
+
 def test_grafana_latency_dashboard_well_formed() -> None:
     """The latency dashboard covers all 4 layers at the §5 budgets."""
     assert _DASHBOARD.is_file(), f"missing dashboard at {_DASHBOARD}"
@@ -160,17 +201,17 @@ def test_grafana_latency_dashboard_well_formed() -> None:
 _layer_gate_only = pytest.mark.skipif(
     os.environ.get(_LAYER_GATE_ENV) != "1",
     reason=(
-        "IERD-Q6 Phase-4 'all 4 layers regression-gated' check; runs only "
-        f"in the dedicated latency-layer-coverage workflow ({_LAYER_GATE_ENV}"
-        "=1, continue-on-error). Phase-4 EXIT lifts this when network_TTFB "
-        "lands a regression-gated budget run."
+        "IERD-Q6 'all 4 layers regression-gated' check; runs only in the "
+        f"dedicated latency-layer-coverage workflow ({_LAYER_GATE_ENV}=1). "
+        "Phase-4 EXIT landed the network_TTFB Lighthouse-CI budget run, so "
+        "this is now fail-closed (continue-on-error removed) and green."
     ),
 )
 
 
 @_layer_gate_only
 def test_all_four_layers_regression_gated() -> None:
-    """LayerCoverage == 1.0. Informational at Phase-4 (workflow continue-on-error)."""
+    """LayerCoverage == 1.0 — fail-closed at Phase-4 EXIT (#531)."""
     covered = _covered_layers()
     total = len(_LAYER_COVERAGE)
     score = len(covered) / total
@@ -181,6 +222,7 @@ def test_all_four_layers_regression_gated() -> None:
     assert score >= 1.0, (
         f"IERD-Q6 §531: not all four latency layers are regression-gated "
         f"(LayerCoverage={score:.4f}; covered={sorted(covered)}). "
-        f"network_TTFB needs a real-network/Lighthouse-CI budget run — "
-        f"Phase-4 EXIT. Do NOT cite a non-asserting test to inflate this."
+        f"network_TTFB is gated by the Lighthouse-CI budget run "
+        f"(.github/workflows/lighthouse-ci.yml). Do NOT cite a non-asserting "
+        f"test to inflate this."
     )
