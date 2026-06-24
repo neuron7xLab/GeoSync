@@ -58,11 +58,13 @@ def _all_framework_files() -> list[Path]:
 
 
 def test_framework_files_exist() -> None:
+    """NON_PHYSICS: filesystem inventory guard (no physical quantity)."""
     files = _all_framework_files()
     assert len(files) >= 10, f"expected at least 10 framework .py files, found {len(files)}"
 
 
 def test_no_forbidden_imports() -> None:
+    """NON_PHYSICS: import-isolation guard via static AST scan (no physics)."""
     for script in _all_framework_files():
         tree = ast.parse(script.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
@@ -74,7 +76,10 @@ def test_no_forbidden_imports() -> None:
 
 
 def test_no_writes_to_forbidden_paths() -> None:
-    """Flag any write token co-located with a forbidden-path substring."""
+    """NON_PHYSICS: filesystem write-isolation guard (no physical quantity).
+
+    Flags any write token co-located with a forbidden-path substring.
+    """
     offenders: list[str] = []
     for script in _all_framework_files():
         for lineno, line in enumerate(script.read_text(encoding="utf-8").splitlines(), 1):
@@ -85,8 +90,11 @@ def test_no_writes_to_forbidden_paths() -> None:
 
 
 def test_all_result_path_literals_point_to_robustness_v1() -> None:
-    """Every results/cross_asset_kuramoto/ literal must route to robustness_v1/
-    (writes) or to a read-only input (reads)."""
+    """NON_PHYSICS: output-path-routing guard (no physical quantity).
+
+    Every results/cross_asset_kuramoto/ literal must route to robustness_v1/
+    (writes) or to a read-only input (reads).
+    """
     path_re = re.compile(r"[\"'](results/cross_asset_kuramoto/[^\"']+)[\"']")
     read_only_allowed = (
         "results/cross_asset_kuramoto/PARAMETER_LOCK.json",
