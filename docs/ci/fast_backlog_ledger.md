@@ -44,28 +44,35 @@ clusters that the import failures (and, before them, the vacuum) had hidden.
 They were latent, not absent — exactly the backlog the restored oracle exists
 to expose. None is a flaky/env failure; each is tracked and drained per cluster.
 
-### cli_import_shadowing
+### cli_import_shadowing — RESOLVED (#1158)
 
-`cli/` (repo root, holds `amm_cli.py` / `geosync_cli.py`) is not declared in
-`[tool.setuptools.packages.find]`, while `scripts` is. The same-named module
-`scripts/cli.py` (`scripts.cli`) shadows the `cli` package under the CI editable
-install, so top-level `cli` resolves to `scripts/cli.py` and four test modules
-fail to import. `--collect-only` resolves `cli` correctly; the explicit-node-id
-run step does not — an invocation-dependent sys.path/rootdir difference. Adding
-`cli/__init__.py` alone did not fix CI, so the real fix is an import-architecture
-change (declare `cli`, or de-collide `scripts/cli.py`) tracked in #1158 as a
-separate PR, outside this CI-oracle PR's boundary.
+`cli/` (repo root, holds `amm_cli.py` / `geosync_cli.py`) was not declared in
+`[tool.setuptools.packages.find]`, while `scripts` was. Because no top-level
+`cli` package was emitted into the editable-install finder (the `MAPPING` table
+listed `scripts`/`scripts.*` but no `cli`), `import cli` from a neutral
+cwd raised `ModuleNotFoundError`, and the explicit-node-id run step resolved the
+name against `scripts/cli.py` (the only `cli`-named module the finder knew),
+yielding `ImportError: cannot import name 'amm_cli' from 'cli'`. The
+`--collect-only` step happened to add the rootdir to `sys.path` and resolved
+`cli` correctly — an invocation-dependent difference. Adding `cli/__init__.py`
+alone did not fix CI because the package still was not packaged/mapped.
 
-Quarantined files (`tests/ci/fast_quarantine.txt`):
+**Fix (#1158):** declared `cli` / `cli.*` in `[tool.setuptools.packages.find]`
+(same remedy as `analytics_import_shadowing` #1171). A fresh `pip install -e .`
+now emits `'cli': '<repo>/cli'` in the editable finder, so `import cli` resolves
+to `cli/__init__.py` and `from cli import amm_cli` to `cli/amm_cli.py` from any
+cwd — ahead of `scripts/cli.py` (`scripts.cli`), which is a distinct dotted name
+and no longer collides with the top-level `cli`.
+
+Formerly quarantined files (now un-quarantined, collecting + green):
 - `tests/unit/cli/test_amm_cli.py`
 - `tests/unit/cli/test_cli_golden.py`
 - `tests/unit/cli/test_fete_backtest_cli.py`
 - `tests/unit/test_geosync_cli.py`
 
-**Expiry:** when `from cli import amm_cli` resolves to `cli/amm_cli.py` in CI,
-remove the entries and re-enable the tests (the gate enforces that the
-post-subtraction collection stays non-empty and that every quarantine entry
-carries an issue ref).
+**Expiry met:** `from cli import amm_cli` resolves to `cli/amm_cli.py` under a
+clean editable install; the four entries were removed from
+`tests/ci/fast_quarantine.txt` and the tests re-enabled.
 
 ### acceptor_corpus_legacy_mapping
 

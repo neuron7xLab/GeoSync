@@ -148,6 +148,8 @@ where = ["."]
 include = [
     "analytics",
     "analytics.*",
+    "cli",
+    "cli.*",
     "application",
     "application.*",
     "backtest",

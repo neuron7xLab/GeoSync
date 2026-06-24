@@ -29,7 +29,13 @@
 # under the editable install) is still OPEN. Dropping them re-exposed their
 # collection ERROR (pytest rc=4), which reddened every test-surface shard.
 # Restored until #1158 lands. Surfaced by pr-gate instrumentation (PR #1238).
-tests/unit/cli/test_amm_cli.py            cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=cli-package-importable-in-CI
-tests/unit/cli/test_cli_golden.py         cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=cli-package-importable-in-CI
-tests/unit/cli/test_fete_backtest_cli.py  cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=cli-package-importable-in-CI
-tests/unit/test_geosync_cli.py            cluster=cli_import_shadowing issue=#1158 lane=ci-import-architecture expiry=cli-package-importable-in-CI
+#
+# RESOLVED & UN-QUARANTINED 2026-06-24 (#1158): declared `cli`/`cli.*` in
+# [tool.setuptools.packages.find] (pyproject.toml). A fresh `pip install -e .`
+# now maps top-level `cli` to `cli/__init__.py` in the editable finder, so
+# `from cli import amm_cli` resolves to `cli/amm_cli.py` (not scripts/cli.py)
+# from any cwd. The four formerly-quarantined modules
+# (tests/unit/cli/test_amm_cli.py, tests/unit/cli/test_cli_golden.py,
+# tests/unit/cli/test_fete_backtest_cli.py, tests/unit/test_geosync_cli.py)
+# now collect + pass. Quarantine expiry condition
+# (cli-package-importable-in-CI) is met. See docs/ci/fast_backlog_ledger.md.

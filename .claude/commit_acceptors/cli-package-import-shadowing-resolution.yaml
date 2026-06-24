@@ -1,0 +1,80 @@
+# Diff-bound acceptor — resolve the cli/ vs scripts.cli import-shadowing
+# quarantine cluster (#1158) for real, under a CI-faithful editable install.
+#
+# Root cause: `cli/` (repo root, holds amm_cli.py / geosync_cli.py) was NOT
+# declared in [tool.setuptools.packages.find], while `scripts`/`scripts.*` was.
+# A fresh `pip install -e .` therefore emitted an editable finder whose MAPPING
+# table had no top-level `cli` entry, so `import cli` from a neutral cwd raised
+# ModuleNotFoundError and the explicit-node-id run step resolved the name
+# against `scripts/cli.py` (`scripts.cli`) — yielding
+# `ImportError: cannot import name 'amm_cli' from 'cli'`. Adding cli/__init__.py
+# alone did NOT fix it because the package was still not packaged/mapped.
+#
+# Fix (narrow, reversible): declare `cli`/`cli.*` in
+# [tool.setuptools.packages.find] (same remedy as analytics #1171). A fresh
+# editable install now maps `'cli': '<repo>/cli'`, so `import cli` resolves to
+# cli/__init__.py and `from cli import amm_cli` to cli/amm_cli.py from any cwd —
+# ahead of scripts/cli.py (a distinct dotted name). The four quarantined CLI
+# test modules are un-quarantined; ledger updated. No production / physics
+# behaviour change, no sys.path mutation (import-architecture ratchet held).
+
+id: cli-package-import-shadowing-resolution
+status: ACTIVE
+claim_type: governance
+promise: >-
+  The cli_import_shadowing cluster (#1158) is resolved by declaring `cli`/`cli.*`
+  in [tool.setuptools.packages.find] (pyproject.toml), so a fresh
+  `pip install -e .` maps top-level `cli` to cli/__init__.py and
+  `from cli import amm_cli` resolves to cli/amm_cli.py (not scripts/cli.py) from
+  any cwd. The four formerly-quarantined modules
+  (tests/unit/cli/test_amm_cli.py, tests/unit/cli/test_cli_golden.py,
+  tests/unit/cli/test_fete_backtest_cli.py, tests/unit/test_geosync_cli.py) are
+  removed from tests/ci/fast_quarantine.txt and now collect + pass; the cluster
+  is marked resolved in docs/ci/fast_backlog_ledger.md. Every remaining
+  quarantine entry still carries an issue ref and the post-subtraction fast
+  collection stays non-empty, so the pr-gate quarantine invariants hold. No
+  production code, runtime, or physics behaviour changes and no sys.path
+  mutation — packaging declaration + quarantine/ledger shrink only.
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/cli-package-import-shadowing-resolution.yaml"
+    - path: "pyproject.toml"
+    - path: "tests/ci/fast_quarantine.txt"
+    - path: "docs/ci/fast_backlog_ledger.md"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols: []
+expected_signal: >-
+  pytest passes for tests/unit/cli/test_amm_cli.py, tests/unit/cli/test_cli_golden.py,
+  tests/unit/cli/test_fete_backtest_cli.py and tests/unit/test_geosync_cli.py;
+  cli_import_shadowing is absent from tests/ci/fast_quarantine.txt; every active
+  quarantine line still carries issue=#<digits>.
+measurement_command: >-
+  bash -c 'set -e; mkdir -p tmp;
+  python -m pytest tests/unit/cli/test_amm_cli.py tests/unit/cli/test_cli_golden.py
+  tests/unit/cli/test_fete_backtest_cli.py tests/unit/test_geosync_cli.py -q
+  | tee tmp/cli_import_shadowing_resolution.log;
+  ! grep -qE "cli_import_shadowing" <(grep -vE "^[[:space:]]*#|^[[:space:]]*$" tests/ci/fast_quarantine.txt);
+  ! grep -E "^tests/" tests/ci/fast_quarantine.txt | grep -qvE "issue=#[0-9]+";
+  echo cli-import-shadowing-resolved | tee -a tmp/cli_import_shadowing_resolution.log'
+signal_artifact: "tmp/cli_import_shadowing_resolution.log"
+falsifier:
+  command: >-
+    bash -c 'if grep -vE "^[[:space:]]*#|^[[:space:]]*$" tests/ci/fast_quarantine.txt | grep -qE "cli_import_shadowing"; then exit 0; else exit 1; fi'
+  description: >-
+    Exits 0 (falsification) iff cli_import_shadowing is still an ACTIVE
+    (non-comment) entry in the quarantine list — i.e. the cluster was not
+    actually drained. On the green path it is absent so this exits 1, proving the
+    resolution is real and falsifiable.
+rollback_command: >-
+  git checkout HEAD~1 -- pyproject.toml tests/ci/fast_quarantine.txt
+  docs/ci/fast_backlog_ledger.md
+  .claude/commit_acceptors/cli-package-import-shadowing-resolution.yaml
+rollback_verification_command: "git diff --exit-code pyproject.toml tests/ci/fast_quarantine.txt"
+memory_update_type: append
+ledger_path: "docs/ci/fast_backlog_ledger.md"
+report_path: "docs/ci/fast_backlog_ledger.md"
+evidence: []
