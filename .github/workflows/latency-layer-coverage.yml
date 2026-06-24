@@ -12,16 +12,19 @@
 #
 # Phase status (per ADR 0020):
 #   * Phase-4 ENTRY (#550, prior) — only server_compute gated.
-#   * Phase-4 progress (this workflow) — client_render Web Vitals
-#     instrumentation + db_io collector gate + Grafana dashboard land
-#     and are asserted fail-closed in the global lanes; the "all four
-#     layers regression-gated" check is informational
-#     (continue-on-error: true) because network_TTFB needs a
-#     real-network / Lighthouse-CI budget run.
-#   * Phase-4 EXIT (follow-up) — Lighthouse CI FCP/LCP/CLS budget run
-#     + OTel trace propagation frontend→API→DB lift LayerCoverage to
-#     1.0; the run step flips fail-closed and the claim re-classifies
-#     ANCHORED.
+#   * Phase-4 progress — client_render Web Vitals instrumentation +
+#     db_io collector gate + Grafana dashboard landed fail-closed in
+#     the global lanes; the "all four layers regression-gated" check
+#     was informational because network_TTFB lacked a real-network
+#     budget run.
+#   * Phase-4 EXIT (#531, this change) — the network_TTFB Lighthouse-CI
+#     budget run landed (.github/workflows/lighthouse-ci.yml +
+#     apps/web/lighthouserc.json): a real Next build is served and
+#     headless Chrome asserts TTFB < 300 ms / FCP < 1.0 s fail-closed,
+#     with a 1 ms-TTFB falsifier. LayerCoverage = 1.0 and this gate is
+#     now fail-closed (continue-on-error removed). OTel trace
+#     propagation remains separate follow-up work and the composite
+#     claim tier is unchanged here.
 #
 # Tracked by GitHub issue IERD-Q6 (#531) and claim
 # `e2e-latency-budget-compliance` in `docs/CLAIMS.yaml`.
@@ -32,9 +35,12 @@ on:
     branches: [main]
     paths:
       - 'tests/observability/test_latency_layer_coverage.py'
+      - 'tests/observability/test_lighthouse_network_ttfb_gate.py'
       - 'observability/grafana/latency_budget_dashboard.json'
       - 'apps/web/app/_components/web-vitals-reporter.tsx'
+      - 'apps/web/lighthouserc.json'
       - 'tests/api/test_latency_budget_server_compute.py'
+      - '.github/workflows/lighthouse-ci.yml'
       - 'pyproject.toml'
       - '.github/workflows/latency-layer-coverage.yml'
   merge_group:
@@ -82,16 +88,16 @@ jobs:
 
       - name: Run latency layer coverage gate
         id: run
-        # Phase-4 progress: the "all four layers" check is
-        # informational so the Lighthouse-CI / OTel work can land
-        # under the same claim without flipping gate strictness
-        # mid-phase. Phase-4 EXIT removes this and makes the gate
-        # fail-closed, at which point the claim re-classifies ANCHORED.
-        continue-on-error: true
+        # Phase-4 EXIT (#531): network_TTFB now has a real
+        # regression-gated Lighthouse-CI budget run, so LayerCoverage =
+        # 1.0 and this gate is fail-closed (continue-on-error removed).
+        # Both the per-layer fail-closed tests and the env-gated
+        # all-four-layers check must pass.
         run: |
           set -o pipefail
           mkdir -p artifacts/latency-layer-coverage
           pytest tests/observability/test_latency_layer_coverage.py \
+            tests/observability/test_lighthouse_network_ttfb_gate.py \
             -q -s --tb=short \
             --junitxml=artifacts/latency-layer-coverage/junit.xml \
             2>&1 | tee artifacts/latency-layer-coverage/run.log
@@ -114,4 +120,4 @@ jobs:
             grep -E "^\[layer\] AGGREGATE" artifacts/latency-layer-coverage/run.log >> "$GITHUB_STEP_SUMMARY" || true
           fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Phase status: **Phase-4 progress** — server_compute + client_render + db_io + Grafana dashboard fail-closed; network_TTFB (Lighthouse CI / OTel) is Phase-4 EXIT." >> "$GITHUB_STEP_SUMMARY"
+          echo "Phase status: **Phase-4 EXIT (#531)** — all four layers regression-gated fail-closed (server_compute + client_render + db_io + network_TTFB Lighthouse-CI). LayerCoverage = 1.0." >> "$GITHUB_STEP_SUMMARY"
