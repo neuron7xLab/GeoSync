@@ -33,6 +33,9 @@ diff_scope:
     # Bibliography + claim-source matrix entries backing the new CLAIMS.md claim.
     - path: "docs/BIBLIOGRAPHY.md"
     - path: "docs/claim_source_matrix.json"
+    # Dataset provenance sidecar for the committed Binance public-depth substrate
+    # (honest origin/forbidden-use record; required by the dataset-metadata gate).
+    - path: "data/raw/binance_btcusdt_depth10.csv.meta.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
