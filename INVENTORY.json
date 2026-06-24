@@ -11,7 +11,7 @@
   "files": [
     {
       "path": ".github/workflows/pr-gate.yml",
-      "sha256": "43b5d641bc930d4f82f273a140767ee70490f7438577921c587878745d535756"
+      "sha256": "84fa21d572119e8a1beef15e8e9f425a80071bfd53d1297223c600f12399ba81"
     },
     {
       "path": "scripts/ci/__init__.py",
@@ -183,7 +183,7 @@
     },
     {
       "path": "scripts/ci/evidence_gate.sh",
-      "sha256": "d1319f9b46016dac818e95471d4e62309ceee92e8501cf19ccccdda23eadb8ce"
+      "sha256": "0f7cb42ded3954d70958ef38862a74741bd8c8c5174d272daaf465da28da8a31"
     },
     {
       "path": "scripts/ci/execution_contract.py",
@@ -226,6 +226,10 @@
       "sha256": "4e604ff1bf5aee21cf570150065f54873c4d50052a1986bd9414ad9c1126f4bb"
     },
     {
+      "path": "scripts/ci/physics_grounding_batch_823_falsifier.py",
+      "sha256": "944b8f07c6e2f1bdf12779ec4ecbbfd5fd0c0d5572ea2ea821852e63441e6b4e"
+    },
+    {
       "path": "scripts/ci/pr_quality_sentinel.py",
       "sha256": "47e975016c3a2cf56b43c6e5c99ca04a0d9bdedbceacdd9fd61056cf18d75d47"
     },
@@ -239,7 +243,7 @@
     },
     {
       "path": "scripts/ci/prove_repo_integrity.sh",
-      "sha256": "8cac64a9ec9daf4118faa74e698e6ceded57b4a986d7efba26d0506f3e44da11"
+      "sha256": "17854f7b64005acd08cee4f3e6ff6b80b54cf0bd2e422f5d12979d08067d2c8b"
     },
     {
       "path": "scripts/ci/real_data_probe.py",
