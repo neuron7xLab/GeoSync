@@ -26,6 +26,10 @@ diff_scope:
     - path: "docs/NEGATIVE_RESULTS.md"
     - path: "docs/REPRODUCIBILITY.md"
     - path: "docs/RICCI_MICROSTRUCTURE.md"
+    # Claim-derived artifacts regenerated from the CLAIMS.md entry above
+    # (HYPOTHESIS tier) by the artifact-freshness gate; bound with their source.
+    - path: "docs/architecture/claim_graph.json"
+    - path: "artifacts/.manifest.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
