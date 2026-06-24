@@ -88,7 +88,7 @@ def test_inv_k2_finite_size_floor(N: int, k_ratio: float, seed: int) -> None:
 
 @pytest.mark.heavy_math
 def test_inv_k2_floor_scales_with_one_over_sqrt_n() -> None:
-    """Verify the 1/√N scaling: R_final at N=128 ≈ 2× R_final at N=512.
+    """INV-K2: verify the 1/√N scaling, R_final(N=128) ≈ 2× R_final(N=512).
 
     This is a stronger property than any individual cell — it tests
     the *scaling law* itself. The ratio of tail-means across N
