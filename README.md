@@ -82,6 +82,7 @@ GeoSync treats research as engineered infrastructure, not as a decorative chart 
 | [`docs/INFERENCE_OPERATION_PROTOCOL.md`](docs/INFERENCE_OPERATION_PROTOCOL.md) | Seven-step agent runbook for converting repository meaning into bounded execution. |
 | [`docs/INFERENCE_CONTRACT.manifest.json`](docs/INFERENCE_CONTRACT.manifest.json) | Machine-readable manifest for authority files, reading order, gates, stop conditions, and required agent state. |
 | [`AGENTS.md`](AGENTS.md) | Implementation-agent contract: prime directive, canonical files, required/forbidden behavior, and the evidence-bearing artifact minimum. |
+| [`docs/governance/AUTONOMOUS_AGENT_EXECUTION_PROTOCOL.md`](docs/governance/AUTONOMOUS_AGENT_EXECUTION_PROTOCOL.md) | Autonomous-agent execution contract: delegated authority, owner-only merge, frozen-artifact protection, and the mandatory perturbation matrix beyond green tests. |
 
 ## Research boundary
 
