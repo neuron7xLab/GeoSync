@@ -1,0 +1,114 @@
+# Diff-bound commit acceptor (1 of 3) for PR #1242 ricci_microstructure_v1.
+#
+# Scope: the EXECUTABLE inference logic of the lane (kernel + graph builder +
+# ingest contract + null baselines + statistical gate + runner + determinism +
+# artifact validator + collector + CLI + the colocated test suite).
+#
+# The single original 19-file acceptor exceeded the correctness cap (12). It is
+# split into three claim-scoped acceptors so each respects its policy cap and so
+# every changed code file is bound: this one (correctness, source+tests),
+# `-scaffolding` (governance: CI/config/schema/package init), and `-docs`
+# (documentation: CLAIMS.md + lane docs). No inference behaviour is widened.
+
+id: ricci-microstructure-v1-kernel
+status: ACTIVE
+claim_type: correctness
+promise: >-
+  The Ollivier-Ricci microstructure kernel is microstructure-SENSITIVE (not the
+  vacuous constant-curvature v1): holding graph topology fixed while changing
+  per-level order-book sizes or prices MUST change the mean curvature, while
+  changing only the timestamp MUST NOT; every kernel-consuming null
+  (iaaft / volume_neutral / size_permutation_within_side / block_bootstrap)
+  moves the mean curvature off the observed value; the L2 ingest contract fails
+  closed via a single-message DataFrameSchemaError on missing column / negative
+  size / non-monotonic timestamp (never a TypeError); the runner stamps the
+  artifact data_sha256 from the ingest manifest (the raw substrate hash), never
+  a re-hash of the derived parquet; the source is carried through verbatim and
+  never relabelled. No alpha / market-law / production / physics promotion: the
+  only terminal statuses are SUPPORTED | HYPOTHESIS_NOT_SUPPORTED | INVALID.
+
+diff_scope:
+  changed_files:
+    - path: "geosync_research/lines/ricci_microstructure_v1/ricci_kernel.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/graph_builder.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/ingest.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/synthetic_controls.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/runner.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/determinism.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/stability.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/artifact.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/nobi.py"
+    - path: "geosync_research/lines/ricci_microstructure_v1/collect_binance_l2.py"
+    - path: "tools/research/research_cli.py"
+    - path: "tests/research_lines/test_ricci_microstructure_v1.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+
+required_python_symbols:
+  - "geosync_research/lines/ricci_microstructure_v1/ricci_kernel.py::compute_ricci_curvature"
+  - "geosync_research/lines/ricci_microstructure_v1/synthetic_controls.py::evaluate_null_gate"
+  - "geosync_research/lines/ricci_microstructure_v1/ingest.py::validate_l2_frame"
+  - "geosync_research/lines/ricci_microstructure_v1/runner.py::run_pipeline"
+
+expected_signal: >-
+  pytest tests/research_lines/test_ricci_microstructure_v1.py reports all tests
+  passed, including the anti-vacuity invariants (size/price change curvature,
+  timestamp-only does not), the four null-moves-the-statistic cases, and the
+  source-honesty passthrough.
+
+measurement_command: >-
+  bash -c '
+    PYTHONPATH=. python -m pytest tests/research_lines/test_ricci_microstructure_v1.py -q -p no:cacheprovider
+  '
+
+signal_artifact: "tmp/ricci_microstructure_v1_kernel.log"
+
+falsifier:
+  command: >-
+    bash -c 'PYTHONPATH=. python -c "
+    import sys, numpy as np, pandas as pd;
+    from geosync_research.lines.ricci_microstructure_v1.graph_builder import build_l2_graph;
+    from geosync_research.lines.ricci_microstructure_v1.ricci_kernel import (
+        RicciKernelConfig, compute_ricci_curvature, edge_curvature_records);
+    rows=[{(\"timestamp\"):\"2026-01-01T00:00:00Z\",\"price\":100.0,
+      \"bid_px_1\":99.9,\"ask_px_1\":100.1,\"bid_sz_1\":10.0,\"ask_sz_1\":9.0,
+      \"bid_px_2\":99.8,\"ask_px_2\":100.2,\"bid_sz_2\":11.0,\"ask_sz_2\":8.0,
+      \"bid_px_3\":99.7,\"ask_px_3\":100.3,\"bid_sz_3\":12.0,\"ask_sz_3\":7.0,
+      \"bid_px_4\":99.6,\"ask_px_4\":100.4,\"bid_sz_4\":13.0,\"ask_sz_4\":6.0,
+      \"bid_px_5\":99.5,\"ask_px_5\":100.5,\"bid_sz_5\":14.0,\"ask_sz_5\":5.0}];
+    base=pd.DataFrame(rows).iloc[0];
+    def mc(r):
+      g=build_l2_graph(r,depth=5);
+      c=compute_ricci_curvature(g,config=RicciKernelConfig(alpha=0.5,n_min_edges=2));
+      return float(np.mean([x[\"ricciCurvature\"] for x in edge_curvature_records(c)]));
+    pert=base.copy();
+    [pert.__setitem__(f\"bid_sz_{i}\", base[f\"bid_sz_{i}\"]*(1.0+0.5*i)) for i in range(1,6)];
+    assert abs(mc(base)-mc(pert))>1e-6, \"kernel vacuous: size change did not move curvature\";
+    sys.exit(0)"'
+  description: >-
+    Inverts the anti-vacuity contract: with topology fixed, scaling per-level
+    sizes MUST change the mean Ollivier-Ricci curvature. The pre-repair v1 kernel
+    used a uniform/topology-only measure and produced constant curvature; that
+    regression makes the difference 0 and flips this command to a non-zero exit.
+
+rollback_command: >-
+  bash -c '
+    git checkout origin/feat/ricci-microstructure-v1 --
+      geosync_research/lines/ricci_microstructure_v1/ricci_kernel.py
+      geosync_research/lines/ricci_microstructure_v1/synthetic_controls.py
+      geosync_research/lines/ricci_microstructure_v1/runner.py
+      geosync_research/lines/ricci_microstructure_v1/ingest.py
+      tools/research/research_cli.py
+  '
+
+rollback_verification_command: >-
+  bash -c '
+    ! grep -q "v2-weighted-sizemeasure" geosync_research/lines/ricci_microstructure_v1/ricci_kernel.py
+  '
+
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/ricci-microstructure-v1-kernel.yaml"
+report_path: "docs/RICCI_MICROSTRUCTURE.md"

@@ -86,6 +86,14 @@ def run_pipeline(
     if not data_manifest_path.is_file():
         raise RuntimeError("data_manifest.json missing; run ingest before run")
     data_manifest = json.loads(data_manifest_path.read_text(encoding="utf-8"))
+    # The artifact's data_sha256 is the RAW substrate hash recorded at ingest
+    # (sha256 of the committed Binance CSV), NOT the hash of the derived parquet
+    # we read here. Verify / capsule both compare artifact.data_sha256 against
+    # sha256(raw file); deriving it from a re-hash of the parquet would break that
+    # chain (parquet bytes != csv bytes). Fail closed if ingest never stamped it.
+    raw_data_sha256 = str(data_manifest.get("data_sha256", ""))
+    if len(raw_data_sha256) != 64:
+        raise RuntimeError("data_manifest.json missing data_sha256; re-run ingest")
     status = str(stats["falsification_status"])
     forbidden = {"ALPHA_FOUND", "MARKET_SIGNAL_PROVEN", "PRODUCTION_READY", "PHYSICS_CONFIRMED"}
     payload = {
@@ -95,7 +103,7 @@ def run_pipeline(
         "source": str(data_manifest.get("source", "")),
         "config_hash": sha256_path(config_path),
         "config_sha256": sha256_path(config_path),
-        "data_sha256": sha256_path(data_path),
+        "data_sha256": raw_data_sha256,
         "collector_sha256": str(data_manifest.get("collector_sha256", "")),
         "git_sha": git_sha(),
         "dirty_git": _git_dirty(),

@@ -1,18 +1,35 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import networkx as nx
+import numpy as np
 import pandas as pd
 import pytest
 
 from geosync_research.lines.ricci_microstructure_v1.artifact import validate_artifact_payload
 from geosync_research.lines.ricci_microstructure_v1.graph_builder import build_l2_graph
-from geosync_research.lines.ricci_microstructure_v1.ingest import DataFrameSchemaError, validate_l2_frame
+from geosync_research.lines.ricci_microstructure_v1.ingest import (
+    DataFrameSchemaError,
+    ingest_manifest,
+    load_manifest,
+    validate_l2_frame,
+)
 from geosync_research.lines.ricci_microstructure_v1.ricci_kernel import (
     RicciKernelConfig,
     compute_ricci_curvature,
     edge_curvature_records,
 )
-from geosync_research.lines.ricci_microstructure_v1.synthetic_controls import effect_size_class
+from geosync_research.lines.ricci_microstructure_v1.stability import (
+    bonferroni,
+    seed_stability,
+)
+from geosync_research.lines.ricci_microstructure_v1.synthetic_controls import (
+    curvature_series,
+    effect_size_class,
+    surrogate_frame,
+)
 
 
 def frame(depth: int = 5) -> pd.DataFrame:
@@ -68,16 +85,26 @@ def test_synthetic_cycle_curvature_near_zero_and_complete_positive() -> None:
     for u, v in nx.cycle_graph(6).edges():
         cycle.add_edge(u, v, edge_weight=1.0, weight=1.0)
         cycle.add_edge(v, u, edge_weight=1.0, weight=1.0)
-    cycle_curved = compute_ricci_curvature(cycle, config=RicciKernelConfig(alpha=0.5, n_min_edges=2))
-    cycle_mean = sum(r["ricciCurvature"] for r in edge_curvature_records(cycle_curved)) / cycle_curved.number_of_edges()
+    cycle_curved = compute_ricci_curvature(
+        cycle, config=RicciKernelConfig(alpha=0.5, n_min_edges=2)
+    )
+    cycle_mean = (
+        sum(r["ricciCurvature"] for r in edge_curvature_records(cycle_curved))
+        / cycle_curved.number_of_edges()
+    )
     assert abs(cycle_mean) < 1e-9
 
     complete = nx.complete_graph(5).to_directed()
     for src, dst in complete.edges:
         complete[src][dst]["edge_weight"] = 1.0
         complete[src][dst]["weight"] = 1.0
-    complete_curved = compute_ricci_curvature(complete, config=RicciKernelConfig(alpha=0.5, n_min_edges=2))
-    complete_mean = sum(r["ricciCurvature"] for r in edge_curvature_records(complete_curved)) / complete_curved.number_of_edges()
+    complete_curved = compute_ricci_curvature(
+        complete, config=RicciKernelConfig(alpha=0.5, n_min_edges=2)
+    )
+    complete_mean = (
+        sum(r["ricciCurvature"] for r in edge_curvature_records(complete_curved))
+        / complete_curved.number_of_edges()
+    )
     assert complete_mean > 0.0
 
 
@@ -116,20 +143,6 @@ def test_artifact_schema_forbids_market_mythology() -> None:
 
 
 # --------------------------- V2: kernel must be microstructure-sensitive --------
-
-import json  # noqa: E402
-from pathlib import Path  # noqa: E402
-
-import numpy as np  # noqa: E402
-
-from geosync_research.lines.ricci_microstructure_v1.ingest import (  # noqa: E402
-    ingest_manifest,
-    load_manifest,
-)
-from geosync_research.lines.ricci_microstructure_v1.synthetic_controls import (  # noqa: E402
-    curvature_series,
-    surrogate_frame,
-)
 
 
 def _mean_curv(row: pd.Series) -> float:
@@ -179,6 +192,7 @@ def test_nulls_modify_consumed_variables(null_model: str) -> None:
 
 # --------------------------- V2: source honesty ---------------------------------
 
+
 def _write_manifest(tmp_path: Path, source: str) -> Path:
     raw = tmp_path / "raw.csv"
     f = frame()
@@ -206,7 +220,9 @@ def test_manifest_rejects_unknown_source(tmp_path: Path) -> None:
 
 
 def test_binance_source_passes_through_verbatim(tmp_path: Path) -> None:
-    out = ingest_manifest(_write_manifest(tmp_path, "BINANCE_FUTURES_DEPTH"), out_dir=tmp_path / "o")
+    out = ingest_manifest(
+        _write_manifest(tmp_path, "BINANCE_FUTURES_DEPTH"), out_dir=tmp_path / "o"
+    )
     manifest = json.loads(out["data_manifest"].read_text())
     assert manifest["source"] == "BINANCE_FUTURES_DEPTH"  # never relabelled to LOBSTER
 
@@ -218,6 +234,7 @@ def test_lobster_licensed_source_passes_through_verbatim(tmp_path: Path) -> None
 
 
 # --------------------------- V2: artifact hardening -----------------------------
+
 
 def _hardened_payload() -> dict[str, object]:
     return {
@@ -268,14 +285,15 @@ def test_forbidden_claims_absent_must_be_true() -> None:
 
 # --------------------------- V2 task 6: seed stability + correction -------------
 
-from geosync_research.lines.ricci_microstructure_v1.stability import (  # noqa: E402
-    bonferroni,
-    seed_stability,
-)
-
 
 def _seed_artifact(seed: int, status: str, p: float, delta: float) -> dict[str, object]:
-    return {"seed": seed, "falsification_status": status, "p_value": p, "cliffs_delta": delta, "mean_curvature": -0.1}
+    return {
+        "seed": seed,
+        "falsification_status": status,
+        "p_value": p,
+        "cliffs_delta": delta,
+        "mean_curvature": -0.1,
+    }
 
 
 def test_bonferroni_correction() -> None:

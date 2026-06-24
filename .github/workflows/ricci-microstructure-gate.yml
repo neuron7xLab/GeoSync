@@ -43,6 +43,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.lock || pip install -r requirements.txt
           pip install -r requirements-dev.lock || pip install -r requirements-dev.txt
+          # POT (optimal transport) backs the Ollivier-Ricci kernel. It lives in
+          # the pyproject `neuro_advanced` optional group, which is deliberately
+          # excluded from the pip-compiled base/dev locks, so neither lock file
+          # installs `ot`. Install it explicitly (matching pyproject's floor) so
+          # the lane runs the REAL kernel — never importorskip, which would
+          # vacuously skip the core falsification lane.
+          pip install "POT>=0.9.5"
       - name: Quality (ruff + mypy --strict)
         run: |
           python -m ruff check geosync_research tools/research/research_cli.py
