@@ -44,28 +44,43 @@ clusters that the import failures (and, before them, the vacuum) had hidden.
 They were latent, not absent — exactly the backlog the restored oracle exists
 to expose. None is a flaky/env failure; each is tracked and drained per cluster.
 
-### cli_import_shadowing
+### cli_import_shadowing — RESOLVED (#1158)
 
-`cli/` (repo root, holds `amm_cli.py` / `geosync_cli.py`) is not declared in
-`[tool.setuptools.packages.find]`, while `scripts` is. The same-named module
-`scripts/cli.py` (`scripts.cli`) shadows the `cli` package under the CI editable
-install, so top-level `cli` resolves to `scripts/cli.py` and four test modules
-fail to import. `--collect-only` resolves `cli` correctly; the explicit-node-id
-run step does not — an invocation-dependent sys.path/rootdir difference. Adding
-`cli/__init__.py` alone did not fix CI, so the real fix is an import-architecture
-change (declare `cli`, or de-collide `scripts/cli.py`) tracked in #1158 as a
-separate PR, outside this CI-oracle PR's boundary.
+`cli/` (repo root, held `amm_cli.py` / `geosync_cli.py`) was not declared in
+`[tool.setuptools.packages.find]`, while `scripts`/`scripts.*` was. Because no
+top-level `cli` package was emitted into the editable-install finder, the
+explicit-node-id run step resolved top-level `cli` against `scripts/cli.py`
+(`scripts.cli`), and four test modules failed to import. `--collect-only`
+resolved `cli` correctly; the node-id run step did not — an invocation-dependent
+`sys.path`/rootdir difference. Adding `cli/__init__.py` alone did not fix CI
+because the package was still not packaged.
 
-Quarantined files (`tests/ci/fast_quarantine.txt`):
+**Why not "declare `cli` in `packages.find`":** that would add `cli` as a NEW
+non-`geosync` top-level package in the distributable wheel, which both the
+package-boundary ratchet (`.github/package_boundary_baseline.json`,
+`tests/ci/test_package_boundary.py`) and the wheel-contract ratchet
+(`.github/bwheel_baseline.json`) forbid — the non-`geosync` leak set may only
+shrink (ADR-0024). Patching the baselines to grow that set would weaken the gate.
+
+**Fix (#1158):** re-home the package into the canonical wheel namespace —
+`cli/` → `geosync/cli/`. As `geosync.cli` it is packaged by the existing
+`geosync`/`geosync.*` `packages.find` entry with **zero** package-boundary debt,
+and the public import path `geosync.cli` cannot be shadowed by `scripts.cli`
+(different dotted root). Importers updated to
+`from geosync.cli[.geosync_cli] import ...` (4 quarantined tests, the e2e
+pipeline test, and the CLI-docs generator).
+
+Formerly quarantined files (now un-quarantined, collecting + green):
 - `tests/unit/cli/test_amm_cli.py`
 - `tests/unit/cli/test_cli_golden.py`
 - `tests/unit/cli/test_fete_backtest_cli.py`
 - `tests/unit/test_geosync_cli.py`
 
-**Expiry:** when `from cli import amm_cli` resolves to `cli/amm_cli.py` in CI,
-remove the entries and re-enable the tests (the gate enforces that the
-post-subtraction collection stays non-empty and that every quarantine entry
-carries an issue ref).
+**Expiry met:** the CLI package is importable under a clean editable install as
+`geosync.cli` (`from geosync.cli import amm_cli` → `geosync/cli/amm_cli.py`); the
+four entries were removed from `tests/ci/fast_quarantine.txt` and the tests
+re-enabled. The post-subtraction collection stays non-empty and every remaining
+quarantine entry carries an issue ref.
 
 ### acceptor_corpus_legacy_mapping
 

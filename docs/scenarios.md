@@ -28,7 +28,7 @@ Use the [Scenario Template](scenario_template.md) alongside the web-based **Scen
 - **Auto-generated JSON snippets** – copy the preview directly into documentation or configuration files once all warnings clear.
 - **Template presets** – choose from breakout, mean-reversion, or volatility archetypes as a starting point.
 
-> 🛡️ Pair these guardrails with the CLI sanity checks (`cli/amm_cli.py`) so malformed CSV feeds or unsafe metrics never reach production pipelines.
+> 🛡️ Pair these guardrails with the CLI sanity checks (`geosync/cli/amm_cli.py`) so malformed CSV feeds or unsafe metrics never reach production pipelines.
 
 ---
 

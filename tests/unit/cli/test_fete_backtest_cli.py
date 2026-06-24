@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 from click.testing import CliRunner
 
-from cli.geosync_cli import cli
+from geosync.cli.geosync_cli import cli
 
 
 def _write_sample_csv(path: Path) -> None:

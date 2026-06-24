@@ -77,7 +77,7 @@ python -c "from core.indicators.kuramoto import compute_phase; import numpy as n
 The GeoSync CLI provides two main entry points:
 
 1. **Research CLI** (`interfaces/cli.py`) - For analysis and backtesting
-2. **Orchestration CLI** (`cli/geosync_cli.py`) - For production workflows
+2. **Orchestration CLI** (`geosync/cli/geosync_cli.py`) - For production workflows
 
 ### CLI Installation & Setup
 
@@ -107,7 +107,7 @@ python -m interfaces.cli --help
 | `backtest` | Run walk-forward backtesting with indicator signals |
 | `live` | Launch live trading with risk management |
 
-#### Orchestration CLI (`cli/geosync_cli.py`)
+#### Orchestration CLI (`geosync/cli/geosync_cli.py`)
 
 | Command | Description |
 |---------|-------------|
@@ -182,22 +182,22 @@ python -m interfaces.cli backtest \
 
 ```bash
 # Generate configuration template
-python cli/geosync_cli.py backtest \
+python geosync/cli/geosync_cli.py backtest \
     --generate-config \
     --template-output configs/my_backtest.yaml
 
 # Run backtest with configuration
-python cli/geosync_cli.py backtest \
+python geosync/cli/geosync_cli.py backtest \
     --config configs/my_backtest.yaml \
     --output jsonl
 
 # Run parameter optimization
-python cli/geosync_cli.py optimize \
+python geosync/cli/geosync_cli.py optimize \
     --config configs/optimize.yaml \
     --output table
 
 # Execute FETE backtest
-python cli/geosync_cli.py fete-backtest \
+python geosync/cli/geosync_cli.py fete-backtest \
     --csv prices.csv \
     --price-col close \
     --out equity_curve.csv

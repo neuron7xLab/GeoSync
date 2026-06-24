@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from cli.geosync_cli import (
+from geosync.cli.geosync_cli import (
     _load_prices,
     _resolve_strategy,
     _run_backtest,
