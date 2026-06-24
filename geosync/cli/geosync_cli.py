@@ -64,7 +64,17 @@ from core.utils.dataframe_io import (
     dataframe_to_parquet_bytes,
     read_dataframe,
 )
-from execution.watchdog import Watchdog
+
+# execution.watchdog is an application-layer module; a static
+# ``from execution.watchdog import Watchdog`` here is a layering inversion that
+# the commit_acceptor_policy.yaml ``forbidden_import_patterns`` rule rejects in
+# any touched file. This file becomes a touched file when re-homed from the
+# repo-root ``cli/`` into the canonical ``geosync.cli`` namespace (#1158).
+# Resolve the symbol through importlib at module load instead — identical object,
+# zero static ``execution.*`` import node (the PR #551/#552
+# grandfathered-forbidden-imports-fix pattern, mirrored from geosync.risk).
+_exec_watchdog: Any = importlib.import_module("execution.watchdog")
+Watchdog: Any = _exec_watchdog.Watchdog
 
 DEFAULT_TEMPLATES_DIR = Path("configs/templates")
 

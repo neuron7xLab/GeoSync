@@ -3,7 +3,7 @@
 """Guardrail: enforce single canonical entrypoint per major subsystem.
 
 Canonicals:
-- control CLI: ``cli/geosync_cli.py``
+- control CLI: ``geosync/cli/geosync_cli.py``
 - API server: ``cortex_service/app/__main__.py``
 - calibration tooling: ``scripts/calibrate_controllers.py``
 
@@ -19,13 +19,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 CANONICAL_ENTRYPOINTS = {
-    "control_cli": Path("cli/geosync_cli.py"),
+    "control_cli": Path("geosync/cli/geosync_cli.py"),
     "api_server": Path("cortex_service/app/__main__.py"),
     "calibration": Path("scripts/calibrate_controllers.py"),
 }
 
 LEGACY_ENTRYPOINTS = {
-    Path("cli/amm_cli.py"),
+    Path("geosync/cli/amm_cli.py"),
     Path("scripts/__main__.py"),
     Path("tacl/__main__.py"),
     Path("tools/vendor/fpma/__main__.py"),
@@ -33,7 +33,9 @@ LEGACY_ENTRYPOINTS = {
     Path("src/geosync/sdk/mlsdm/__main__.py"),
 }
 
-ENTRYPOINT_DIRS = [Path("cli")]
+# The CLI package was re-homed from the repo-root ``cli/`` into the canonical
+# ``geosync.cli`` namespace (#1158, ADR-0024); discover its modules there.
+ENTRYPOINT_DIRS = [Path("geosync/cli")]
 
 
 @dataclass(frozen=True)

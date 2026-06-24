@@ -11,7 +11,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from cli.geosync_cli import cli
+from geosync.cli.geosync_cli import cli
 from core.config.cli_models import IngestConfig, VersioningConfig
 from core.config.template_manager import ConfigTemplateManager
 from core.data.feature_catalog import FeatureCatalog

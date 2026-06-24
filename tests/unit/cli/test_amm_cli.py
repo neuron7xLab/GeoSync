@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from cli import amm_cli
+from geosync.cli import amm_cli
 
 
 @pytest.fixture

@@ -11,10 +11,10 @@
   any new one.
 
 ## Entrypoints
-- **Control CLI (canonical):** `cli/geosync_cli.py`
+- **Control CLI (canonical):** `geosync/cli/geosync_cli.py`
 - **API server (canonical):** `cortex_service/app/__main__.py`
 - **Calibration (canonical):** `scripts/calibrate_controllers.py`
-- Legacy/utility entrypoints (kept for backward compatibility): `cli/amm_cli.py`, `tacl/__main__.py`, `scripts/__main__.py`, `tools/vendor/fpma/__main__.py`, `src/geosync/sdk/mlsdm/__main__.py`
+- Legacy/utility entrypoints (kept for backward compatibility): `geosync/cli/amm_cli.py`, `tacl/__main__.py`, `scripts/__main__.py`, `tools/vendor/fpma/__main__.py`, `src/geosync/sdk/mlsdm/__main__.py`
 
 ## Configuration Sources
 - Canonical configs: `config/default_config.yaml`, `config/dopamine.yaml`, `config/thermo_config.yaml`
