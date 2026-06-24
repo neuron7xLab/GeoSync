@@ -64,6 +64,12 @@ Ollivier 2009.
 ### BIB-GEOM-002
 Forman 2003.
 
+### BIB-GEOM-003
+Sandhu, Georgiou, Tannenbaum 2016, "Ricci curvature: An economic indicator for market fragility and systemic risk", Science Advances 2(5):e1501495.
+
+### BIB-GEOM-004
+Ni, Lin, Gao, Gu, Saucan 2015, "Ricci curvature of the Internet topology", IEEE INFOCOM (Ollivier-Ricci on weighted graphs via optimal transport).
+
 ### BIB-STOCH-001
 Karatzas and Shreve 1991.
 

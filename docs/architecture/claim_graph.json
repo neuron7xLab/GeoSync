@@ -40,6 +40,14 @@
       "evidence": [
         "`python scripts/validate_epistemic_rhombus_manifest.py`, `.github/workflows/epistemic-rhombus-gate.yml`, and `tests/scripts/test_validate_epistemic_rhombus_manifest.py` validate `governance/epistemic_rhombus_manifest.jsonl` against `schemas/governance/epistemic_rhombus_manifest.schema.json`."
       ]
+    },
+    {
+      "id": "C-RICCI-MICROSTRUCTURE-V1",
+      "tier": "HYPOTHESIS",
+      "claim": "Ollivier-Ricci curvature on real L2 order-book microstructure may contain falsifiable signal beyond null baselines",
+      "evidence": [
+        "`ricci_microstructure_v1`; T3 / NOVEL / EXPLORATORY / FALSIFIABLE \u2014 it is NOT alpha, NOT a production system, NOT proven market physics, NOT a trading signal; it is only a falsification lane. Source is recorded honestly in `data_manifest.json` from the `ALLOWED_SOURCES` allowlist (`BINANCE_FUTURES_DEPTH` public REST depth, or `LOBSTER_LICENSED_L2`) and is NEVER relabelled; the committed substrate is real Binance USD-M depth. Falsifier is `p_value >= 0.01 OR abs(cliffs_delta) < 0.147 OR invalid schema/provenance`; allowed falsification_status values are `SUPPORTED`, `HYPOTHESIS_NOT_SUPPORTED`, `INVALID`; the canonical run is `HYPOTHESIS_NOT_SUPPORTED` and that negative result must be preserved."
+      ]
     }
   ],
   "edges": [
@@ -51,7 +59,7 @@
   ],
   "constraints": {
     "dangling_nodes": 0,
-    "isolated_nodes": 3,
+    "isolated_nodes": 4,
     "max_derived_depth": 3
   }
 }

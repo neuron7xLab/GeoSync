@@ -1,6 +1,6 @@
 {
   "algorithm": "sha256",
-  "count": 5,
+  "count": 6,
   "encoding": "hex_chunks_8",
   "hashes": {
     "C-EPI-RHOMBUS": [
@@ -32,6 +32,16 @@
       "0c2dff14",
       "e4040a38",
       "698cf2c4"
+    ],
+    "C-RICCI-MICROSTRUCTURE-V1": [
+      "98b4d9f0",
+      "798e3bbd",
+      "25f8867a",
+      "02c5bc73",
+      "beae87da",
+      "197c7500",
+      "de2b6db0",
+      "52b101c6"
     ],
     "C-SYSRISK-PHASE": [
       "6f9137f9",

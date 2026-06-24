@@ -438,6 +438,12 @@ pluggy==1.6.0
     # via
     #   pytest
     #   pytest-cov
+pot==0.9.6.post1
+    # via geosync (pyproject.toml) — neuro_advanced optional group; pinned here
+    #   so the shared dev install (setup-geosync / fast-shard) can collect+run
+    #   tests/research_lines/test_ricci_microstructure_v1.py, which imports the
+    #   POT-backed Ollivier-Ricci kernel. NOT auto-emitted by `pip-compile`
+    #   (optional extra); re-add after a relock. Floor: pyproject POT>=0.9.5.
 prometheus-client==0.25.0
     # via geosync (pyproject.toml)
 propcache==0.4.1

@@ -70,7 +70,7 @@
         "CLAIMS.md"
       ],
       "exclusion_reason": "",
-      "artifact_sha256": "a474b359559e05ae64610bfeb52710ecdf4d6b766a39a67c56ef16ddd4b42cf0"
+      "artifact_sha256": "bcefd3563f26939b8da425ee46b7b3eaa8d82ca928788642adc5fc7f1c9b1493"
     },
     {
       "artifact": "docs/architecture/claim_graph.json",
@@ -80,7 +80,7 @@
         "CLAIMS.md"
       ],
       "exclusion_reason": "",
-      "artifact_sha256": "9aec3d71230289c8e0f8e728d78c23519a533fed604c6f07289e9d6b030b6f4b"
+      "artifact_sha256": "1622bd083a7cb5cf4ca12435607fdb5cfb5b643ad74eca0718d6022ec1dc9434"
     }
   ]
 }

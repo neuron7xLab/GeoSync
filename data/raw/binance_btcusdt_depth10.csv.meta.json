@@ -1,0 +1,10 @@
+{
+  "dataset_id": "binance-btcusdt-depth10-2026-06-20-v1",
+  "origin": "external",
+  "description": "Frozen Binance USD-M futures BTCUSDT level-2 depth-10 snapshots (public REST /fapi/v1/depth, no authentication), substrate for the ricci_microstructure_v1 falsification lane. Recorded honestly as BINANCE_PUBLIC_DEPTH; NEVER relabelled as LOBSTER.",
+  "creation_method": "python -m geosync_research.lines.ricci_microstructure_v1.collect_binance_l2 (public REST depth poller); 615 snapshots over a ~15-min session window 2026-06-20T03:57Z..04:12Z",
+  "temporal_coverage": "615 L2 depth-10 snapshots, 2026-06-20T03:57:36Z to 2026-06-20T04:12:36Z (UTC)",
+  "schema_version": "1.0.0",
+  "intended_use": "research",
+  "forbidden_use": "not for live trading; not alpha; not a market-edge claim — T3 exploratory falsification substrate only"
+}

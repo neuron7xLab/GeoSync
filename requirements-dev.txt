@@ -51,3 +51,10 @@ setuptools-scm>=8.0.0
 
 # Pytest plugins consumed by repo Makefile targets (l2-test uses --timeout=60)
 pytest-timeout>=2.3.0
+
+# Optional research dep needed at test time: the ricci_microstructure_v1 lane
+# (tests/research_lines/test_ricci_microstructure_v1.py) imports the POT-backed
+# Ollivier-Ricci kernel. POT is in the pyproject neuro_advanced optional group;
+# declare it in the dev fallback so a lock-less dev install can still collect+run
+# that test instead of ImportError-ing on `import ot`.
+POT>=0.9.5

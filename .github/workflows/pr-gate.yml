@@ -804,7 +804,7 @@ jobs:
           # plugin does not false-positive on reproducible/build provenance.
           .venv/bin/detect-secrets-hook \
             --baseline .github/detect-secrets.baseline \
-            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline|artifacts/wheel_contract\.json|artifacts/\.manifest\.json|figures/disha_ba_correlation/repro_capsule/.*|artifacts/runs/synthetic_plumbing_v1/.*|artifacts/runs/ricci_microstructure_v1/.*|artifacts/reproducible_capsules/.*|artifacts/release_gate/.*|artifacts/falsification/.*|artifacts/execution/.*|artifacts/benchmarks/.*|artifacts/evidence/.*|artifacts/replication/.*)$' \
+            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline|artifacts/wheel_contract\.json|artifacts/\.manifest\.json|figures/disha_ba_correlation/repro_capsule/.*|artifacts/runs/synthetic_plumbing_v1/.*|artifacts/runs/ricci_microstructure_v1/.*|geosync_research/lines/ricci_microstructure_v1/canonical/.*|artifacts/reproducible_capsules/.*|artifacts/release_gate/.*|artifacts/falsification/.*|artifacts/execution/.*|artifacts/benchmarks/.*|artifacts/evidence/.*|artifacts/replication/.*)$' \
             "${existing_changed_files[@]}"
 
   go-workspace-integrity:

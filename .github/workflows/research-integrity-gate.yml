@@ -104,6 +104,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install pytest hypothesis pyyaml mypy ruff black
+          # POT (optimal transport) backs the Ollivier-Ricci kernel imported by
+          # tests/research_lines/test_ricci_microstructure_v1.py. It is in the
+          # pyproject neuro_advanced optional group (excluded from requirements.txt),
+          # so install it explicitly; otherwise the research-line contract pytest
+          # step ImportErrors on `import ot`.
+          python -m pip install "POT>=0.9.5"
 
       - name: Public-symbol matrix audit
         run: python tools/check_public_symbol_matrix.py
