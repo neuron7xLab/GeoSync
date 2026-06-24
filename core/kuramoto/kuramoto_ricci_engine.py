@@ -181,9 +181,18 @@ def _symmetrise_zero_diag(kappa: Array) -> Array:
 
 
 def _negative_audit_fields(sym_off_diag: Array) -> tuple[int, float]:
-    """Count negative off-diagonal edges and their absolute curvature mass."""
-    negative_edges = int(jnp.sum(sym_off_diag < 0.0))
-    negative_mass = float(jnp.sum(jnp.abs(jnp.minimum(sym_off_diag, 0.0))))
+    """Count negative off-diagonal edges and their absolute curvature mass.
+
+    This is a pure AUDIT measurement, not a value clamp: it does not repair or
+    saturate any entry. ``negative_mass`` is the absolute sum over the strictly
+    negative entries (``Σ |κ| where κ < 0``), computed via a boolean mask so the
+    discarded signed information is MEASURED rather than silently truncated.
+    """
+    negative_mask = sym_off_diag < 0.0
+    negative_edges = int(jnp.sum(negative_mask))
+    # Sum |κ| only where κ < 0 (mask × |κ|); no jnp.minimum/clip — nothing is
+    # repaired, the magnitude of the negative part is reported for the audit.
+    negative_mass = float(jnp.sum(jnp.where(negative_mask, jnp.abs(sym_off_diag), 0.0)))
     return negative_edges, negative_mass
 
 

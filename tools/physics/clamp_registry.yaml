@@ -115,7 +115,7 @@ clamps:
   - core/indicators/trading.py:192
   - core/kuramoto/coupling_estimator.py:166
   - core/kuramoto/coupling_estimator.py:458
-  - core/kuramoto/kuramoto_ricci_engine.py:144
+  - core/kuramoto/kuramoto_ricci_engine.py:236
   - core/kuramoto/metrics.py:255
   - core/kuramoto/metrics.py:256
   - core/kuramoto/phase_extractor.py:384
@@ -254,8 +254,8 @@ clamps:
   metadata_field: 0.5*(A+A.T); symmetry separately asserted by engine validators
   sites:
   - core/kuramoto/capital_weighted.py:443
-  - core/kuramoto/kuramoto_ricci_engine.py:143
-  - core/kuramoto/kuramoto_ricci_engine.py:187
+  - core/kuramoto/kuramoto_ricci_engine.py:179
+  - core/kuramoto/kuramoto_ricci_engine.py:372
   - core/kuramoto/metrics.py:320
   - core/kuramoto/metrics.py:339
   - core/kuramoto/ricci_flow.py:213
