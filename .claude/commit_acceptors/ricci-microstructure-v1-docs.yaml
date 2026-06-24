@@ -30,6 +30,9 @@ diff_scope:
     # (HYPOTHESIS tier) by the artifact-freshness gate; bound with their source.
     - path: "docs/architecture/claim_graph.json"
     - path: "artifacts/.manifest.json"
+    # Bibliography + claim-source matrix entries backing the new CLAIMS.md claim.
+    - path: "docs/BIBLIOGRAPHY.md"
+    - path: "docs/claim_source_matrix.json"
   forbidden_paths:
     - "trading/"
     - "execution/"
