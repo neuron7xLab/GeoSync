@@ -12,9 +12,12 @@ promise: >-
   every Dockerfile-installed requirements manifest, genuinely closing the C2
   scanner-path-mismatch false-confidence finding on the live tree (the audit
   test is realigned to assert closure; the detector mechanism stays proven by its
-  synthetic fire/silent cases). BLOCKED.md documents the honest RED-by-design
-  status (G.real_data blocked; pre-existing B/C/D blockers out of scope). No new
-  physics or neuroscience; no alpha; synthetic only.
+  synthetic fire/silent cases). The wheel-contract import-debt baseline records
+  one new sanctioned latent import (falsification_ledger imports research.* /
+  core.* first-party modules that are not shipped in the geosync wheel, the same
+  accepted pattern as the existing scripts/ci CI generators). BLOCKED.md documents
+  the honest RED-by-design status (G.real_data blocked; pre-existing B/C/D blockers
+  out of scope). No new physics or neuroscience; no alpha; synthetic only.
 diff_scope:
   changed_files:
     - path: "artifacts/release_gate/clean_clone.json"
@@ -31,6 +34,7 @@ diff_scope:
     - path: ".github/claim_boundary_allow.json"
     - path: "tools/deps/validate_dependency_truth.py"
     - path: "tests/audit/test_false_confidence_detector.py"
+    - path: ".github/bwheel_baseline.json"
     - path: ".claude/commit_acceptors/proof-gate-evidence-artifacts.yaml"
   forbidden_paths:
     - "trading/"
@@ -53,8 +57,8 @@ falsifier:
     artifact_sha256 self-hash matches its canonical body and promotion_allowed is
     true); flips to pass (exit 0) only if the committed artifact was tampered with
     or the controls regressed so the self-hash no longer attests the body.
-rollback_command: "git checkout -- artifacts/ BLOCKED.md .github/workflows/service-manifest-audit.yml .github/claim_boundary_allow.json tools/deps/validate_dependency_truth.py tests/audit/test_false_confidence_detector.py"
-rollback_verification_command: "git diff --exit-code artifacts/ BLOCKED.md .github/workflows/service-manifest-audit.yml .github/claim_boundary_allow.json tools/deps/validate_dependency_truth.py tests/audit/test_false_confidence_detector.py"
+rollback_command: "git checkout -- artifacts/ BLOCKED.md .github/workflows/service-manifest-audit.yml .github/claim_boundary_allow.json .github/bwheel_baseline.json tools/deps/validate_dependency_truth.py tests/audit/test_false_confidence_detector.py"
+rollback_verification_command: "git diff --exit-code artifacts/ BLOCKED.md .github/workflows/service-manifest-audit.yml .github/claim_boundary_allow.json .github/bwheel_baseline.json tools/deps/validate_dependency_truth.py tests/audit/test_false_confidence_detector.py"
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/proof-gate-evidence-artifacts.yaml"
 report_path: "BLOCKED.md"
