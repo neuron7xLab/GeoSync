@@ -730,7 +730,7 @@ ricci-capsule:
 .PHONY: ricci-release-gate
 ricci-release-gate:
 	@echo "🚦 ricci_microstructure_v1 release gate (locally-verifiable subset)..."
-	$(PYTHON) -m ruff check geosync_research tools/research/research_cli.py
+	$(PYTHON) -m ruff check geosync_research tools/research/ricci_microstructure_cli.py
 	$(PYTHON) -m mypy --strict geosync_research/lines/ricci_microstructure_v1
 	$(PYTEST) -q tests/research_lines/test_ricci_microstructure_v1.py
 	$(MAKE) ricci-capsule

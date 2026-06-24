@@ -39,7 +39,7 @@ diff_scope:
     - path: "geosync_research/lines/ricci_microstructure_v1/artifact.py"
     - path: "geosync_research/lines/ricci_microstructure_v1/nobi.py"
     - path: "geosync_research/lines/ricci_microstructure_v1/collect_binance_l2.py"
-    - path: "tools/research/research_cli.py"
+    - path: "tools/research/ricci_microstructure_cli.py"
     - path: "tests/research_lines/test_ricci_microstructure_v1.py"
   forbidden_paths:
     - "trading/"
@@ -82,7 +82,7 @@ rollback_command: >-
       geosync_research/lines/ricci_microstructure_v1/synthetic_controls.py
       geosync_research/lines/ricci_microstructure_v1/runner.py
       geosync_research/lines/ricci_microstructure_v1/ingest.py
-      tools/research/research_cli.py
+      tools/research/ricci_microstructure_cli.py
   '
 
 rollback_verification_command: >-

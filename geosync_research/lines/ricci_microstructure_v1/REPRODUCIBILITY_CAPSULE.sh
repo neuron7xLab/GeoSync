@@ -19,7 +19,7 @@ CONFIG="${2:-configs/research/ricci_microstructure_v1.json}"
 SEED="${3:-1337}"
 INGEST_DIR="data/processed/ricci_microstructure_v1"
 OUT_ROOT="artifacts/runs/ricci_microstructure_v1"
-CLI="python -m tools.research.research_cli"
+CLI="python -m tools.research.ricci_microstructure_cli"
 
 echo "==> [1/4] ingest (L2 contract + provenance stamp, honest source)"
 $CLI ingest --data "$MANIFEST" --out "$INGEST_DIR"

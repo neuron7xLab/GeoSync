@@ -9,7 +9,7 @@ on:
     branches: [main]
     paths:
       - "geosync_research/**"
-      - "tools/research/research_cli.py"
+      - "tools/research/ricci_microstructure_cli.py"
       - "tests/research_lines/test_ricci_microstructure_v1.py"
       - "schemas/research/ricci_microstructure_artifact.schema.json"
       - "configs/research/ricci_microstructure_v1.json"
@@ -20,7 +20,7 @@ on:
     branches: [main]
     paths:
       - "geosync_research/**"
-      - "tools/research/research_cli.py"
+      - "tools/research/ricci_microstructure_cli.py"
       - ".github/workflows/ricci-microstructure-gate.yml"
 
 permissions:
@@ -57,13 +57,13 @@ jobs:
           pip install "typer>=0.20.0,<1.0.0"
       - name: Quality (ruff + mypy --strict)
         run: |
-          python -m ruff check geosync_research tools/research/research_cli.py
+          python -m ruff check geosync_research tools/research/ricci_microstructure_cli.py
           python -m mypy --strict geosync_research/lines/ricci_microstructure_v1
       - name: Lane tests
         run: PYTHONPATH=. python -m pytest -q tests/research_lines/test_ricci_microstructure_v1.py
       - name: Ingest committed frozen data (fast, no network)
         run: |
-          PYTHONPATH=. python -m tools.research.research_cli ingest \
+          PYTHONPATH=. python -m tools.research.ricci_microstructure_cli ingest \
             --data data/l2_manifest.json --out data/processed/ricci_microstructure_v1
       - name: Verify committed canonical artifact + SHA integrity (fast; the full 1000-surrogate run is the offline reproducibility capsule)
         # The 1000-surrogate battery takes ~25 min on a single core, which would
@@ -94,7 +94,7 @@ jobs:
           assert actual == ingested["data_sha256"] == art["data_sha256"], "committed artifact does not match committed data"
           print("verified:", art["run_id"], art["falsification_status"], "source", ingested["source"])
           PY
-          PYTHONPATH=. python -m tools.research.research_cli verify \
+          PYTHONPATH=. python -m tools.research.ricci_microstructure_cli verify \
             geosync_research/lines/ricci_microstructure_v1/canonical/artifact.json
       - name: Upload evidence bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
