@@ -22,6 +22,7 @@ abstraction half of the issue.
 
 from __future__ import annotations
 
+import dataclasses
 import inspect
 import re
 from pathlib import Path
@@ -137,7 +138,7 @@ def test_empty_set_is_not_run_and_blocks() -> None:
     ],
 )
 def test_invalid_artifact_yields_partial(kwargs: dict[str, object], code: str) -> None:
-    report = validate_abstraction([_artifact(**kwargs)])  # type: ignore[arg-type]
+    report = validate_abstraction([dataclasses.replace(_artifact(), **kwargs)])
     assert report.status is AbstractionStatus.PARTIAL
     assert any(f.code == code for f in report.findings)
     assert guard_abstraction_claim(report).promoted is False
