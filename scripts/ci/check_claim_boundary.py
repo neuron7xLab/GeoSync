@@ -74,6 +74,7 @@ EXCLUDE_FILES: frozenset[str] = frozenset(
         "FORBIDDEN_CLAIMS.md",
         "CLAIMS.md",
         "PRODUCT_CATEGORY.md",  # canonical boundary statement (declares the boundary)
+        "BLOCKED.md",  # fail-closed release-gate record: quotes banned phrasing as evidence
     }
 )
 
@@ -90,6 +91,64 @@ BOUNDARY_PATTERNS: tuple[tuple[str, str], ...] = (
 )
 _COMPILED: tuple[tuple[re.Pattern[str], str], ...] = tuple(
     (re.compile(p), why) for p, why in BOUNDARY_PATTERNS
+)
+
+# ---------------------------------------------------------------------------
+# VII — claim firewall hardening. Strong product claims (alpha/edge/profit/
+# predictor/guarantee) are forbidden on the canonical surface UNLESS the line
+# is a disclaimer, a negation, a citation, or a policy enumeration of the very
+# phrasing it bans. Single-word scanning (``edge``, ``validated``) is
+# deliberately NOT used — it floods on "edge case", "not yet validated",
+# "prove_repo_integrity" and would make the firewall dishonest noise. Only
+# assertive *constructions* fire, and each is escapable by an evidence/
+# disclaimer marker so the gate flags claims, not English.
+# ---------------------------------------------------------------------------
+STRONG_CLAIM_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"validated[ -].{0,20}(alpha|edge|signal|profit|strateg|predictor)", "validated-alpha claim"),
+    (r"proven[ -].{0,20}(alpha|edge|profit|strateg|predictor|market law)", "proven-edge claim"),
+    (r"guaranteed[ -].{0,20}(profit|return|edge|alpha|win|gain)", "guaranteed-return claim"),
+    (r"profitable[ -].{0,20}(strateg|signal|system|model|trading)", "profitable-strategy claim"),
+    (r"deployable[ -].{0,20}(alpha|strateg|signal|trading|edge)", "deployable-alpha claim"),
+    (r"(price|market|return|alpha)[ -]predictor", "market-predictor claim"),
+    (r"discovered[ -].{0,20}market law", "discovered-market-law claim"),
+    (r"live[ -]trading[ -]signal", "live-trading-signal claim"),
+)
+_STRONG_COMPILED: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+    (re.compile(p), why) for p, why in STRONG_CLAIM_PATTERNS
+)
+
+# An assertive match is exempt when the line is plainly NOT asserting the
+# claim: a negation, an explicit out-of-scope boundary, a bibliographic
+# citation, a tier disclaimer, or a forbidden-phrasing enumeration.
+_DISCLAIMER_MARKERS = re.compile(
+    r"\b(not|no|never|without|outside|forbid|forbidden|excluded?|exclude|"
+    r"speculative|hypothesis|research-tier|not[ -]yet|do(es)?[ -]not|"
+    r"out[ -]of[ -]scope|boundary|disclaim|illustrat|example|"
+    r"unprofitable|reject|must[ -]not[ -]claim|blocked[ -]claim)\b"
+    r"|≠|\(\d{4}\)"  # not-equal sign, or a (YYYY) citation year
+    r"|edge[ -]cases?"  # software "edge case(s)" is never a market-edge claim
+    r"|below[ -]the[ -]detection[ -]floor"  # honest underpowered-result framing
+)
+
+# VII — canonical claim-status vocabulary. Any explicit ``claim_status:`` /
+# ``claim-status:`` token on the canonical surface must be one of these tiers.
+CLAIM_STATUS_ENUM: frozenset[str] = frozenset(
+    {
+        "HYPOTHESIS",
+        "OBSERVE",
+        "INSTRUMENTED",
+        "MEASURED_SINGLE",
+        "MEASURED_MULTI",
+        "BLOCKED",
+        "REJECTED",
+    }
+)
+# Anchored to the canonical standalone declaration token: a non-identifier
+# char (or line start) must precede ``claim`` so domain analysis fields such as
+# ``ba_claim_status`` (a model-vs-null comparison variable, not a repository
+# claim-tier declaration) are not governed by the tier enum.
+_CLAIM_STATUS_RE = re.compile(
+    r"(?<![a-z0-9_])claim[_-]status\s*[:=]\s*['\"]?([a-z_]+)", re.IGNORECASE
 )
 
 _UNICODE_DASHES = dict.fromkeys((0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212), ord("-"))
@@ -161,11 +220,43 @@ def _scan() -> list[Violation]:
         rel = path.relative_to(ROOT).as_posix()
         for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             norm = _normalise(raw)
+            matched = False
             for pattern, why in _COMPILED:
                 if pattern.search(norm):
                     violations.append(Violation(file=rel, lineno=lineno, why=why, text=norm))
+                    matched = True
                     break  # one finding per line is enough to require review
+            if matched:
+                continue
+            # VII strong-claim tier: assertive constructions, escapable by a
+            # disclaimer/negation/citation marker on the same line.
+            if _DISCLAIMER_MARKERS.search(norm):
+                continue
+            for pattern, why in _STRONG_COMPILED:
+                if pattern.search(norm):
+                    violations.append(Violation(file=rel, lineno=lineno, why=why, text=norm))
+                    break
     return violations
+
+
+def _scan_claim_status() -> list[Violation]:
+    """Flag any explicit claim-status token outside the canonical tier enum."""
+    bad: list[Violation] = []
+    for path in _iter_surface():
+        rel = path.relative_to(ROOT).as_posix()
+        for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            for m in _CLAIM_STATUS_RE.finditer(raw):
+                token = m.group(1).upper()
+                if token not in CLAIM_STATUS_ENUM:
+                    bad.append(
+                        Violation(
+                            file=rel,
+                            lineno=lineno,
+                            why=f"claim_status '{token}' not in tier enum {sorted(CLAIM_STATUS_ENUM)}",
+                            text=_normalise(raw),
+                        )
+                    )
+    return bad
 
 
 def main() -> int:
@@ -185,6 +276,14 @@ def main() -> int:
             used_allow.add(matched)
 
     stale = [e for e in allow if e not in used_allow]
+
+    bad_status = _scan_claim_status()
+    if bad_status:
+        print("ERROR: claim-status tokens outside the canonical tier enum.")
+        print(f"Allowed tiers: {sorted(CLAIM_STATUS_ENUM)}\n")
+        for v in bad_status:
+            print(f"  {v.file}:{v.lineno}: {v.why}")
+        return 1
 
     if unreviewed:
         print("ERROR: unreviewed product-category claims on the canonical surface.")
