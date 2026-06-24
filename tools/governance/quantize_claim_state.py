@@ -39,6 +39,39 @@ REQUIRED_KEYS = {
     "negative_evidence",
 }
 
+# Prose that is NOT an allowed discrete claim state. Declaring any of these is an
+# attempt to promote a claim by wording rather than by proof chain (#1123).
+FORBIDDEN_PROSE_STATES = frozenset(
+    {
+        "almost ready",
+        "mostly verified",
+        "probably fine",
+        "green enough",
+        "looks correct",
+        "ship it",
+        "ready",
+    }
+)
+
+# Domain-validity assertions that a claim_boundary may NOT place in scope unless a
+# full validation artifact (scientific evidence vector) backs them. Falsification
+# target #7: a boundary that implies physics/market/predictive/trading validity
+# without a validation artifact must not promote.
+FORBIDDEN_DOMAIN_VALIDITY_TERMS = (
+    "physics-confirmed",
+    "physics confirmed",
+    "physics validity",
+    "market",
+    "alpha",
+    "predictive",
+    "prediction",
+    "forecast",
+    "trading",
+    "tradeable",
+    "investment advice",
+    "financial advice",
+)
+
 
 def _nonempty(value: Any) -> bool:
     if value is None:
@@ -70,6 +103,40 @@ def _scientific_vector_complete(envelope: dict[str, Any]) -> bool:
     )
 
 
+def _commands_have_recorded_output(envelope: dict[str, Any]) -> bool:
+    """LOCAL_VERIFIED requires command OUTPUT, not merely a command string
+    (falsification target #2: local verification claimed without command output)."""
+    commands = envelope.get("commands")
+    if not isinstance(commands, list) or not commands:
+        return False
+    for command in commands:
+        if not isinstance(command, dict):
+            return False
+        if not _nonempty(command.get("output_ref")):
+            return False
+        if "exit_code" not in command:
+            return False
+    return True
+
+
+def boundary_implies_unvalidated_domain_validity(envelope: dict[str, Any]) -> bool:
+    """True when the claim_boundary ALLOWS physics/market/predictive/trading
+    validity but no validation artifact (complete scientific vector) backs it
+    (falsification target #7). The blocked-side of a boundary listing these terms
+    to EXCLUDE them is fine — only the allowed-side asserting them is guarded."""
+    boundary = envelope.get("claim_boundary")
+    if not isinstance(boundary, dict):
+        return False
+    allowed = boundary.get("allowed", [])
+    if not isinstance(allowed, (list, tuple)):
+        return False
+    allowed_blob = " ".join(str(item) for item in allowed).lower()
+    asserts_domain_validity = any(term in allowed_blob for term in FORBIDDEN_DOMAIN_VALIDITY_TERMS)
+    if not asserts_domain_validity:
+        return False
+    return not _scientific_vector_complete(envelope)
+
+
 def missing_required_links(envelope: dict[str, Any]) -> list[str]:
     """Return missing proof-chain links in stable order."""
 
@@ -92,6 +159,16 @@ def quantize_claim_state(envelope: dict[str, Any]) -> ClaimState:
     if missing:
         return ClaimState.PARTIAL
 
+    # Fail-closed promotion blocks (all required links present, but the proof is
+    # not strong enough to leave PARTIAL):
+    #  - #7: boundary asserts physics/market/predictive/trading validity with no
+    #        validation artifact;
+    #  - #2: local verification asserted without recorded command output.
+    if boundary_implies_unvalidated_domain_validity(envelope):
+        return ClaimState.PARTIAL
+    if not _commands_have_recorded_output(envelope):
+        return ClaimState.PARTIAL
+
     same_sha_ci_green = _same_sha_ci_green(envelope)
     scientific_vector_complete = _scientific_vector_complete(envelope)
 
@@ -111,16 +188,26 @@ def validate_declared_state(envelope: dict[str, Any]) -> dict[str, Any]:
     declared = envelope.get("declared_state")
     allowed_order = list(ClaimState)
     upward_drift = False
+    forbidden_prose_state = False
     if declared:
-        try:
-            upward_drift = allowed_order.index(ClaimState(declared)) > allowed_order.index(actual)
-        except ValueError:
+        if isinstance(declared, str) and declared.strip().lower() in FORBIDDEN_PROSE_STATES:
+            # Prose promotion (#1: "ready"/"ship it"/"green enough" …) is never a
+            # legitimate declared state — fail closed.
+            forbidden_prose_state = True
             upward_drift = True
+        else:
+            try:
+                upward_drift = allowed_order.index(ClaimState(declared)) > allowed_order.index(
+                    actual
+                )
+            except ValueError:
+                upward_drift = True
     return {
         "claim_id": envelope.get("claim_id", "UNKNOWN"),
         "state": actual.value,
         "declared_state": declared,
         "upward_drift": upward_drift,
+        "forbidden_prose_state": forbidden_prose_state,
         "missing_links": missing_required_links(envelope),
     }
 
