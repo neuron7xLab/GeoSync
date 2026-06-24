@@ -1,6 +1,15 @@
 # PHYSICS_PROOF v3.0 — GeoSync / CoherenceBridge / OTS Capital
 
-## PROVEN (full derivations, invariant-enforced)
+> **Non-claim preamble.** The derivations below are **computational-invariant
+> derivations**: they prove that the implementation respects the mathematics it
+> implements, within stated validity domains. They are **not** proof of market
+> physics, **not** a proven predictor, and **not** validated alpha. Nothing here
+> asserts profitability, out-of-sample edge, or deployment readiness. For the
+> canonical classification and maturity of each result see
+> `docs/PHYSICS_CANON.md` and `docs/PHYSICS_MATURITY_MATRIX.md`; for the banned
+> framings see `FORBIDDEN_CLAIMS.md`.
+
+## DERIVED / INVARIANT-BOUND (full derivations, invariant-enforced)
 
 ### 1. DFA Hurst to gamma (Peng et al. 1994)
 

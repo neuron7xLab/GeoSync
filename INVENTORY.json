@@ -138,6 +138,10 @@
       "sha256": "85708a51dd51f7e6e9423f0b43366e4fafef7096e451ddf8c3d750977ec328f3"
     },
     {
+      "path": "scripts/ci/check_physics_docs_canon.py",
+      "sha256": "eb14f7b04f7675d1d88ffb982988d7065e17c3cf6a66b91f0634265db8825457"
+    },
+    {
       "path": "scripts/ci/check_physics_inference_readiness.py",
       "sha256": "5ff2047b0d3134ecbed0fc0b7d567a3f9d0548e761ffd21949306fa9120d3d38"
     },
@@ -247,7 +251,7 @@
     },
     {
       "path": "scripts/ci/prove_repo_integrity.sh",
-      "sha256": "17854f7b64005acd08cee4f3e6ff6b80b54cf0bd2e422f5d12979d08067d2c8b"
+      "sha256": "b5338f5ccc72748bd167668521ac2bd0f076ae262ea715257506bb718b807799"
     },
     {
       "path": "scripts/ci/real_data_probe.py",
