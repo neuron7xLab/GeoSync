@@ -55,20 +55,26 @@ def test_live_repo_no_longer_surfaces_c1_coverage_omission(fcd: ModuleType) -> N
     """F02 closed: .coveragerc no longer hides declared source via omit."""
     report = fcd.collect(REPO_ROOT, exemption_manifest=_MISSING_MANIFEST)
     c1 = [f for f in report.findings if f.false_confidence_type == "C1"]
-    assert (
-        not c1
-    ), "C1 (.coveragerc omit-erases-declared-source) fired on live tree:\n  " + "\n  ".join(
-        f"{x.actual_evidence}" for x in c1
+    assert not c1, (
+        "C1 (.coveragerc omit-erases-declared-source) fired on live tree:\n  "
+        + "\n  ".join(f"{x.actual_evidence}" for x in c1)
     )
 
 
-def test_live_repo_surfaces_c2_scanner_path_mismatch(fcd: ModuleType) -> None:
-    """F01-class: Dockerfiles install requirements.txt but only the lockfile
-    is pip-audited. Test bypasses the exemption manifest to confirm the
-    detector still sees the underlying historical state."""
+def test_live_repo_no_longer_surfaces_c2_scanner_path_mismatch(fcd: ModuleType) -> None:
+    """F01-class closed: the service-manifest-audit workflow now runs pip-audit
+    against every Dockerfile-installed requirements manifest (coherence_bridge,
+    sandbox, root requirements.txt), so no Dockerfile installs a manifest that a
+    CI scanner never audits. This bypasses the exemption manifest to confirm the
+    closure is real on the live tree (not a waiver). The detector's underlying
+    C2 mechanism remains proven by the synthetic tests
+    test_c2_synthetic_dockerfile_unscanned (fires) and
+    test_c2_no_finding_when_workflow_audits_manifest (silent once audited)."""
     report = fcd.collect(REPO_ROOT, exemption_manifest=_MISSING_MANIFEST)
     c2 = [f for f in report.findings if f.false_confidence_type == "C2"]
-    assert c2, "C2 (scanner path mismatch) not detected on live tree"
+    assert not c2, "C2 (scanner path mismatch) fired on live tree:\n  " + "\n  ".join(
+        f"{x.finding_id}: {x.actual_evidence}" for x in c2
+    )
 
 
 def test_live_repo_surfaces_at_least_five_classes_unfiltered(fcd: ModuleType) -> None:

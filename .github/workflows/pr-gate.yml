@@ -796,11 +796,15 @@ jobs:
           # wheel_contract.json and the evidence-artifact freshness manifest
           # (artifacts/.manifest.json) are generated artifacts whose SHA-256
           # digests are public content hashes by design, never credentials.
-          # Excluded so the hex-entropy plugin does not false-positive on
-          # reproducible/build provenance.
+          # The executable proof-gate tribunals (release_gate --deep) likewise
+          # emit content-addressable evidence under artifacts/{release_gate,
+          # falsification,execution,benchmarks,evidence,replication}/ whose
+          # artifact_sha256 / input_sha256 / output_sha256 fields are public
+          # provenance hashes, not credentials. Excluded so the hex-entropy
+          # plugin does not false-positive on reproducible/build provenance.
           .venv/bin/detect-secrets-hook \
             --baseline .github/detect-secrets.baseline \
-            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline|artifacts/wheel_contract\.json|artifacts/\.manifest\.json|figures/disha_ba_correlation/repro_capsule/.*|artifacts/runs/synthetic_plumbing_v1/.*|artifacts/runs/ricci_microstructure_v1/.*|artifacts/reproducible_capsules/.*)$' \
+            --exclude-files '^(INVENTORY\.json|\.github/detect-secrets\.baseline|artifacts/wheel_contract\.json|artifacts/\.manifest\.json|figures/disha_ba_correlation/repro_capsule/.*|artifacts/runs/synthetic_plumbing_v1/.*|artifacts/runs/ricci_microstructure_v1/.*|artifacts/reproducible_capsules/.*|artifacts/release_gate/.*|artifacts/falsification/.*|artifacts/execution/.*|artifacts/benchmarks/.*|artifacts/evidence/.*|artifacts/replication/.*)$' \
             "${existing_changed_files[@]}"
 
   go-workspace-integrity:
