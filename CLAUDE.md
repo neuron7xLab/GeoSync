@@ -56,7 +56,7 @@ GeoSync is a verification-first quantitative research platform with neuroscience
 
 ---
 
-## INVARIANT REGISTRY — 111 invariants loaded by kernel self-check
+## INVARIANT REGISTRY — 112 invariants loaded by kernel self-check
 
 > **Single source of truth:** `.claude/physics/INVARIANTS.yaml` (`python scripts/count_invariants.py`). The 2026-04-30 external audit corrected a four-way drift (`57 / 66 / 67 / 87`); CI gate `invariant-count-sync` now fail-closes on any future divergence between this header, README badges, BASELINE.md, and the registry.
 
@@ -159,9 +159,25 @@ INV-KR2 | qualitative  | variational MLE crosses zero through Φ = 0    | P0
 INV-KR3 | conservation | with ω_i = 0, coupling potential V is         | P0
                        | non-increasing along midpoint trajectories
                        | (max dV/dt ≤ 1e-9).
+INV-KR4 | universal    | Signed Ricci curvature is never SILENTLY      | P0
+                       | lost (FP-2). Negative κ clipped ONLY on the
+                       | named ricci_to_positive_adjacency path and
+                       | ONLY with RicciAdjacencyAudit metadata
+                       | (clipped_for_threshold, negative_edges_count,
+                       | negative_mass; roh_compatible=True). The
+                       | ricci_to_signed_coupling path preserves every
+                       | negative value (roh_compatible=False). A signed
+                       | matrix at the Restrepo-Ott-Hunt onset boundary
+                       | (assert_roh_compatible / phase_transition_
+                       | boundary) is rejected fail-closed; roh_compatible
+                       | and signed_dynamics_compatible are mutually
+                       | exclusive when negatives are present.
          Source: core/kuramoto/kuramoto_ricci_engine.py
          Tests:  tests/unit/physics/test_T1_kuramoto_ricci_boundary.py
+                 tests/unit/physics/test_KR4_ricci_semantics_split.py
+                 tests/physics_contracts/test_kuramoto_ricci_semantics_split_witness.py
          Law:    docs/laws/T1_kuramoto_ricci_boundary.md
+                 physics_contracts/catalog.yaml (kuramoto_ricci.semantics_split)
 ```
 
 ### Full Lyapunov Spectrum (Law T2 — Benettin QR on variational flow)
@@ -537,7 +553,7 @@ assert result.order > 0      # no INV, no context
 | `*ott_antonsen*`, `*chimera*` | INV-OA1..3 |
 | `*lyapunov_exponent*`, `*mle*` | INV-LE1..3 |
 | `*lyapunov_spectrum*`, `*benettin*`, `*law_T2*` | INV-LY1..3 |
-| `*kuramoto_ricci*`, `*law_T1*`, `*sync_onset*` | INV-KR1..3 |
+| `*kuramoto_ricci*`, `*law_T1*`, `*sync_onset*` | INV-KR1..4 |
 | `*lyapunov_calibration*`, `*law_T3*`, `*calibrate_coupling*` | INV-CAL1..3 |
 | `*predictability_horizon*`, `*law_T5*` | INV-TAU1..3 |
 | `*spectral_graph*`, `*laplacian*`, `*fiedler*` | INV-SG1..2 |

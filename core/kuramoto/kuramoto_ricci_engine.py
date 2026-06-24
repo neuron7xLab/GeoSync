@@ -26,9 +26,32 @@ This module ships:
 1. ``kuramoto_ricci_rhs(omega, A)``   — JAX RHS factory (jit-friendly).
 2. ``kuramoto_ricci_step(state, …)``  — single midpoint step on (θ).
 3. ``phase_transition_boundary(…)``   — analytic Φ value.
-4. ``ricci_to_adjacency(kappa)``      — A_κ = max(κ, 0), zero diag.
-5. ``order_parameter(theta)``         — R(t) = |⟨e^{iθ}⟩|.
-6. ``coupling_potential(theta, A)``   — V(θ) = Σ A_ij (1 − cos(θ_i−θ_j))/2.
+4. ``ricci_to_positive_adjacency``    — A_κ = max(κ, 0), zero diag + audit (FP-2).
+5. ``ricci_to_signed_coupling``       — full signed descriptor, sign preserved (FP-2).
+6. ``ricci_to_adjacency(kappa)``      — back-compat alias of the positive path.
+7. ``order_parameter(theta)``         — R(t) = |⟨e^{iθ}⟩|.
+8. ``coupling_potential(theta, A)``   — V(θ) = Σ A_ij (1 − cos(θ_i−θ_j))/2.
+
+FP-2 "No silent physics loss" (issue #1096, Lane B)
+---------------------------------------------------
+The Ollivier-Ricci κ-matrix carries SIGNED information: ``κ_ij < 0`` means
+anti-correlated random walks (an anti-synchronising / repulsive edge). The
+Restrepo-Ott-Hunt onset boundary Φ = K·λ_max(A_κ) − 2γ is derived for
+NON-NEGATIVE weights, so feeding signed κ through it is a category error. Two
+NAMED paths make the loss-or-preservation of sign explicit and auditable:
+
+* ``ricci_to_positive_adjacency`` — the threshold/onset-safe path. It clips
+  negative curvature to zero ONLY here, and only with explicit
+  :class:`RicciAdjacencyAudit` metadata recording how many edges and how much
+  curvature mass were discarded. ROH-compatible; NOT signed-dynamics-compatible.
+* ``ricci_to_signed_coupling`` — the full signed-descriptor path. It preserves
+  every negative value. NOT ROH-compatible: it carries no onset-threshold claim
+  and must never be passed to ``phase_transition_boundary``.
+
+INV-KR4 (P0) makes this fail-closed: a signed matrix sent to the ROH boundary
+is rejected, and the positive path can only discard negative curvature while
+emitting metadata that says so (``clipped_for_threshold=True``). A test fails if
+signed curvature is silently dropped while claiming full physical dynamics.
 
 Constitutional invariants (P0)
 ------------------------------
@@ -68,6 +91,8 @@ from jax import Array
 
 __all__ = [
     "BoundaryReport",
+    "RicciAdjacencyAudit",
+    "assert_roh_compatible",
     "coupling_potential",
     "kuramoto_ricci_rhs",
     "kuramoto_ricci_step",
@@ -75,6 +100,8 @@ __all__ = [
     "order_parameter",
     "phase_transition_boundary",
     "ricci_to_adjacency",
+    "ricci_to_positive_adjacency",
+    "ricci_to_signed_coupling",
 ]
 
 
@@ -102,47 +129,205 @@ class BoundaryReport(NamedTuple):
     lorentzian_half_width: float
 
 
+class RicciAdjacencyAudit(NamedTuple):
+    """Audit trail for a κ → adjacency / coupling transform (FP-2, INV-KR4).
+
+    Emitted by both named Ricci paths so that any loss of signed curvature
+    is observable rather than silent. ``clipped_for_threshold`` is the
+    load-bearing honesty bit: it is ``True`` iff a negative curvature was
+    discarded, and it is ``False`` for the signed path (which preserves sign).
+
+    Attributes
+    ----------
+    negative_edges_count:
+        Number of off-diagonal entries in the symmetrised κ with value
+        ``< 0`` (counts each undirected edge twice — the symmetric matrix
+        has both ``(i, j)`` and ``(j, i)``).
+    negative_mass:
+        Total absolute curvature mass that was negative on the symmetrised
+        off-diagonal, ``Σ |min(κ_sym, 0)|`` over off-diagonal entries. This
+        is exactly the signed information the positive path discards.
+    clipped_for_threshold:
+        ``True`` iff at least one negative edge was clipped to zero for the
+        threshold/onset-safe (ROH) path. ``False`` for the signed path.
+    roh_compatible:
+        ``True`` iff the returned matrix is safe to pass to the Restrepo-
+        Ott-Hunt boundary ``phase_transition_boundary`` (non-negative).
+    signed_dynamics_compatible:
+        ``True`` iff the returned matrix preserves signed (repulsive)
+        curvature for full signed dynamics. Mutually exclusive with
+        ``roh_compatible`` whenever any negative curvature was present.
+    """
+
+    negative_edges_count: int
+    negative_mass: float
+    clipped_for_threshold: bool
+    roh_compatible: bool
+    signed_dynamics_compatible: bool
+
+
 # Adjacency / spectral radius -----------------------------------------------
 
 
-def ricci_to_adjacency(kappa: Array) -> Array:
-    """Map an Ollivier-Ricci edge-curvature matrix to a sync adjacency.
+def _symmetrise_zero_diag(kappa: Array) -> Array:
+    """Return ``½(κ + κᵀ)`` with the diagonal forced to zero (no self-coupling)."""
+    if kappa.ndim != 2:
+        raise ValueError(f"INV-KR4: kappa must be 2-D, got shape {kappa.shape}")
+    n: int = int(kappa.shape[0])
+    if int(kappa.shape[1]) != n:
+        raise ValueError(f"INV-KR4: kappa must be square, got shape {kappa.shape}")
+    sym = 0.5 * (kappa + kappa.T)
+    return sym - jnp.diag(jnp.diag(sym))
 
-    Negative curvatures are rejected (set to zero) — by Ollivier's
-    construction, ``κ_ij < 0`` indicates *anti-correlated* random walks
-    and therefore an *anti-synchronising* coupling. The Restrepo-Ott-
-    Hunt threshold is derived for non-negative weights; sending a
-    signed κ-matrix unfiltered through ``Φ`` would be a category error.
 
-    The diagonal is forced to zero (no self-coupling). The matrix is
-    symmetrised on the assumption the coupling graph is undirected
-    (the audit trail flags asymmetric inputs by simply averaging).
+def _negative_audit_fields(sym_off_diag: Array) -> tuple[int, float]:
+    """Count negative off-diagonal edges and their absolute curvature mass.
 
-    INV-KR3 is preserved under this transformation: ``A_ij ≥ 0`` for
-    all ``i, j`` ⇒ ``V`` is a valid Lyapunov function.
+    This is a pure AUDIT measurement, not a value clamp: it does not repair or
+    saturate any entry. ``negative_mass`` is the absolute sum over the strictly
+    negative entries (``Σ |κ| where κ < 0``), computed via a boolean mask so the
+    discarded signed information is MEASURED rather than silently truncated.
+    """
+    negative_mask = sym_off_diag < 0.0
+    negative_edges = int(jnp.sum(negative_mask))
+    # Sum |κ| only where κ < 0 (mask × |κ|); no jnp.minimum/clip — nothing is
+    # repaired, the magnitude of the negative part is reported for the audit.
+    negative_mass = float(jnp.sum(jnp.where(negative_mask, jnp.abs(sym_off_diag), 0.0)))
+    return negative_edges, negative_mass
+
+
+def ricci_to_positive_adjacency(
+    kappa: Array, *, audit: bool = True
+) -> tuple[Array, RicciAdjacencyAudit]:
+    """Threshold/onset-safe κ → adjacency: clip negatives, EMIT audit (FP-2).
+
+    This is the **named threshold-only path** (issue #1096 Lane B / INV-KR4).
+    Negative curvature is the ONLY thing it discards, and it discards it ONLY
+    here, ALWAYS with explicit :class:`RicciAdjacencyAudit` metadata recording
+    how many edges and how much curvature mass were clipped. By Ollivier's
+    construction ``κ_ij < 0`` is an anti-synchronising edge; the Restrepo-Ott-
+    Hunt boundary Φ is derived for non-negative weights, so this path produces
+    the ROH-compatible adjacency ``A_κ = max(κ_sym, 0)`` and the audit declares
+    ``roh_compatible=True``, ``signed_dynamics_compatible=False``.
+
+    INV-KR3 is preserved: ``A_ij ≥ 0`` ⇒ ``V`` is a valid Lyapunov function.
 
     Parameters
     ----------
     kappa:
-        Square matrix of edge curvatures. ``shape = (N, N)``.
-        Off-diagonal entries in ``[-1, 1]`` (Ollivier bounds, on a
-        combinatorial price-graph; theoretical upper bound 1 holds
-        generally per INV-RC1).
+        Square ``(N, N)`` matrix of edge curvatures. Off-diagonal entries in
+        ``[-1, 1]`` (Ollivier; INV-RC1 upper bound κ ≤ 1 universal).
+    audit:
+        Retained for call-site readability/symmetry with the signed path; the
+        audit is always computed (it is free) and always returned, because the
+        contract (INV-KR4) forbids a SILENT clip. Passing ``audit=False`` does
+        NOT suppress the metadata — it merely documents that the caller does
+        not intend to inspect it.
 
     Returns
     -------
-    Array
-        Adjacency matrix ``A_κ ∈ R^{N×N}`` with non-negative
-        entries, zero diagonal, symmetric.
+    tuple[Array, RicciAdjacencyAudit]
+        The non-negative, symmetric, zero-diagonal adjacency and its audit.
     """
-    if kappa.ndim != 2:
-        raise ValueError(f"INV-KR3: kappa must be 2-D, got shape {kappa.shape}")
-    n: int = int(kappa.shape[0])
-    if int(kappa.shape[1]) != n:
-        raise ValueError(f"INV-KR3: kappa must be square, got shape {kappa.shape}")
-    sym = 0.5 * (kappa + kappa.T)
+    sym = _symmetrise_zero_diag(kappa)
+    negative_edges, negative_mass = _negative_audit_fields(sym)
+    # INV-KR4: negative curvature may be clipped ONLY on this named threshold
+    # path, and ONLY with the audit below making the loss observable.
     pos = jnp.maximum(sym, 0.0)
-    return pos - jnp.diag(jnp.diag(pos))
+    audit_report = RicciAdjacencyAudit(
+        negative_edges_count=negative_edges,
+        negative_mass=negative_mass,
+        clipped_for_threshold=negative_edges > 0,
+        roh_compatible=True,
+        signed_dynamics_compatible=False,
+    )
+    _ = audit  # documented no-op: the audit is never suppressed (INV-KR4).
+    return pos, audit_report
+
+
+def ricci_to_signed_coupling(
+    kappa: Array, *, symmetrize: bool = True
+) -> tuple[Array, RicciAdjacencyAudit]:
+    """Full signed κ → coupling: PRESERVE sign, NO ROH threshold claim (FP-2).
+
+    This is the **signed-descriptor path** (issue #1096 Lane B / INV-KR4). It
+    keeps every negative curvature (anti-synchronising / repulsive edges) and
+    therefore carries the full signed interaction descriptor. It makes NO
+    synchronisation-onset claim: the Restrepo-Ott-Hunt boundary Φ is undefined
+    for signed weights, so the returned matrix is ``roh_compatible=False`` and
+    must never be passed to :func:`phase_transition_boundary` (that path is
+    fail-closed via :func:`assert_roh_compatible` and the boundary's own
+    non-negativity guard).
+
+    Parameters
+    ----------
+    kappa:
+        Square ``(N, N)`` matrix of edge curvatures.
+    symmetrize:
+        When ``True`` (default) the coupling is symmetrised to ``½(κ + κᵀ)``
+        (undirected coupling graph). When ``False`` the off-diagonal is kept
+        as supplied (diagonal still zeroed); use only for genuinely directed
+        descriptors.
+
+    Returns
+    -------
+    tuple[Array, RicciAdjacencyAudit]
+        The sign-preserving, zero-diagonal coupling and its audit
+        (``clipped_for_threshold=False``, ``signed_dynamics_compatible=True``).
+    """
+    if symmetrize:
+        coupling = _symmetrise_zero_diag(kappa)
+    else:
+        if kappa.ndim != 2:
+            raise ValueError(f"INV-KR4: kappa must be 2-D, got shape {kappa.shape}")
+        if int(kappa.shape[1]) != int(kappa.shape[0]):
+            raise ValueError(f"INV-KR4: kappa must be square, got shape {kappa.shape}")
+        coupling = kappa - jnp.diag(jnp.diag(kappa))
+    negative_edges, negative_mass = _negative_audit_fields(coupling)
+    audit_report = RicciAdjacencyAudit(
+        negative_edges_count=negative_edges,
+        negative_mass=negative_mass,
+        clipped_for_threshold=False,
+        roh_compatible=False,
+        signed_dynamics_compatible=True,
+    )
+    return coupling, audit_report
+
+
+def assert_roh_compatible(A: Array) -> None:
+    """Fail closed if ``A`` is not safe for the Restrepo-Ott-Hunt boundary (INV-KR4).
+
+    A signed coupling (any ``A_ij < 0``) cannot be passed to the ROH onset
+    boundary: Φ = K·λ_max(A) − 2γ is derived for non-negative weights, and a
+    negative entry is an anti-synchronising edge with no onset-threshold
+    semantics. This guard makes the misuse explicit and fail-closed rather than
+    silently returning a meaningless Φ.
+    """
+    if A.ndim != 2 or A.shape[0] != A.shape[1]:
+        raise ValueError(f"INV-KR4: A must be square 2-D, got shape {A.shape}")
+    if not bool(jnp.all(A >= 0.0)):
+        raise ValueError(
+            "INV-KR4: a SIGNED Ricci coupling matrix (κ_ij < 0 present) cannot be used "
+            "on the Restrepo-Ott-Hunt sync-onset boundary — Φ = K·λ_max(A) − 2γ is "
+            "defined only for non-negative weights. Use ricci_to_positive_adjacency() "
+            "for the threshold path (with audit metadata), or keep the signed coupling "
+            "for full signed dynamics and make no onset-threshold claim."
+        )
+
+
+def ricci_to_adjacency(kappa: Array) -> Array:
+    """Back-compat alias of the positive (threshold) Ricci path (FP-2).
+
+    Pre-#1096 callers used this to obtain the non-negative, symmetric,
+    zero-diagonal adjacency ``A_κ = max(κ_sym, 0)``. That behaviour is
+    UNCHANGED: this now delegates to :func:`ricci_to_positive_adjacency` and
+    returns only the adjacency, discarding the audit. New code SHOULD call
+    :func:`ricci_to_positive_adjacency` (to inspect the clip audit) or
+    :func:`ricci_to_signed_coupling` (to preserve sign). The name is retained
+    so existing imports and trajectories keep working bit-for-bit.
+    """
+    adjacency, _audit = ricci_to_positive_adjacency(kappa, audit=False)
+    return adjacency
 
 
 def phase_transition_boundary(K: float, lorentzian_half_width: float, A: Array) -> BoundaryReport:

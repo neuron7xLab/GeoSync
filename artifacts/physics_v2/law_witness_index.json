@@ -321,6 +321,24 @@
       "validity_domain": "K ≤ 0.8·K_c, N ≥ 256, equilibration time t > 20/γ (γ = Lorentzian half-width)"
     },
     {
+      "falsifier": "An observation violating 'A_pos = max(½(κ+κᵀ), 0), zero diag  (roh_compatible, clipped_for_threshold = (#neg>0));  C_signed = ½(κ+κᵀ), zero diag  (sign preserved, NOT roh_compatible);  assert_roh_compatible(A): any A_ij < 0 ⇒ ValueError' beyond the declared tolerance ('structural/exact: the positive path's clipped_for_threshold bit equals (#negative_edges > 0); the signed path retains every κ_ij < 0 bit-for-bit (atol 1e-12); a signed matrix raises ValueError at the boundary — no numeric slack, the contract is a fail-closed predicate not a measured quantity') in the validity domain 'square (N×N) curvature matrices; the ROH onset claim is valid only on the non-negative (positive-path) adjacency; the signed path carries no onset-threshold claim by construction'.",
+      "formula": "A_pos = max(½(κ+κᵀ), 0), zero diag  (roh_compatible, clipped_for_threshold = (#neg>0));  C_signed = ½(κ+κᵀ), zero diag  (sign preserved, NOT roh_compatible);  assert_roh_compatible(A): any A_ij < 0 ⇒ ValueError",
+      "law_id": "kuramoto_ricci.semantics_split",
+      "ledger_reason": "",
+      "module": "ricci",
+      "severity": "block",
+      "source": "Restrepo, Ott, Hunt PRE 2005 (Φ threshold); Ollivier J. Funct. Anal. 2009 (signed κ); .claude/physics/INVARIANTS.yaml kuramoto_ricci_semantics (INV-KR4); core/kuramoto/kuramoto_ricci_engine.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/physics_contracts/test_kuramoto_ricci_semantics_split_witness.py::test_positive_path_clips_only_with_audit",
+        "tests/physics_contracts/test_kuramoto_ricci_semantics_split_witness.py::test_signed_matrix_rejected_at_onset_boundary",
+        "tests/physics_contracts/test_kuramoto_ricci_semantics_split_witness.py::test_signed_path_preserves_every_negative_bit"
+      ],
+      "tolerance": "structural/exact: the positive path's clipped_for_threshold bit equals (#negative_edges > 0); the signed path retains every κ_ij < 0 bit-for-bit (atol 1e-12); a signed matrix raises ValueError at the boundary — no numeric slack, the contract is a fail-closed predicate not a measured quantity",
+      "tolerance_derivation": "Tolerance derived from the law formula 'A_pos = max(½(κ+κᵀ), 0), zero diag  (roh_compatible, clipped_for_threshold = (#neg>0));  C_signed = ½(κ+κᵀ), zero diag  (sign preserved, NOT roh_compatible);  assert_roh_compatible(A): any A_ij < 0 ⇒ ValueError' and the catalog tolerance clause 'structural/exact: the positive path's clipped_for_threshold bit equals (#negative_edges > 0); the signed path retains every κ_ij < 0 bit-for-bit (atol 1e-12); a signed matrix raises ValueError at the boundary — no numeric slack, the contract is a fail-closed predicate not a measured quantity'.",
+      "validity_domain": "square (N×N) curvature matrices; the ROH onset claim is valid only on the non-negative (positive-path) adjacency; the signed path carries no onset-threshold claim by construction"
+    },
+    {
       "falsifier": "An observation violating 'causal_cutoff_seconds ≥ latency_floor_seconds ≥ 0 ∧ ∀ t_event: t_event ≤ timestamp_end' beyond the declared tolerance ('strict — negative latency, cutoff below floor, or look-ahead event raises ValueError') in the validity domain 'relativistic-INSPIRED causal cutoff only; NOT a relativistic market law (architecture doc §5)'.",
       "formula": "causal_cutoff_seconds ≥ latency_floor_seconds ≥ 0 ∧ ∀ t_event: t_event ≤ timestamp_end",
       "law_id": "manifold.causal_cutoff",
@@ -1347,6 +1365,15 @@
       "test_witnesses": []
     },
     {
+      "falsifier": "ricci_to_signed_coupling drops a negative κ; ricci_to_positive_adjacency clips without clipped_for_threshold=True or with negative_mass=0 while negatives were present; an all-positive κ trips clipped_for_threshold=True; a signed matrix passes assert_roh_compatible or yields a finite Φ from phase_transition_boundary; or any audit claims both roh_compatible and signed_dynamics_compatible.",
+      "id": "INV-KR4",
+      "priority": "P0",
+      "provenance": "UNSPECIFIED",
+      "source_module": "",
+      "status": "WARN_ONLY",
+      "test_witnesses": []
+    },
+    {
       "falsifier": "Any pair of irreversible/reversible actions with identical (token, latency, entropy) where C_irr < C_rev",
       "id": "INV-LANDAUER-PROXY",
       "priority": "P0",
@@ -1740,10 +1767,10 @@
   ],
   "schema_version": 1,
   "summary": {
-    "blocking_covered": 31,
-    "blocking_laws": 31,
-    "catalog_laws": 41,
-    "invariants": 111,
+    "blocking_covered": 32,
+    "blocking_laws": 32,
+    "catalog_laws": 42,
+    "invariants": 112,
     "invariants_covered": 33
   }
 }

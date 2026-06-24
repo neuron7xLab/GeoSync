@@ -94,6 +94,19 @@ laws:
     source: "Knill O., 'A graph theoretical Gauss-Bonnet theorem', arXiv:1111.5395 (2011); core/indicators/gauss_bonnet.py"
     severity: block
 
+  - id: kuramoto_ricci.semantics_split
+    module: ricci
+    statement: "Signed Ollivier-Ricci curvature is never silently destroyed (FP-2, issue #1096). Negative curvature is clipped ONLY on the named threshold path ricci_to_positive_adjacency and ONLY with audit metadata; ricci_to_signed_coupling preserves every negative value; a signed matrix passed to the Restrepo-Ott-Hunt onset boundary is rejected fail-closed."
+    formula: "A_pos = max(½(κ+κᵀ), 0), zero diag  (roh_compatible, clipped_for_threshold = (#neg>0));  C_signed = ½(κ+κᵀ), zero diag  (sign preserved, NOT roh_compatible);  assert_roh_compatible(A): any A_ij < 0 ⇒ ValueError"
+    variables:
+      kappa_ij: "Ollivier-Ricci edge curvature; κ_ij < 0 = anti-synchronising / repulsive edge (Ollivier 2009)"
+      negative_mass: "Σ |min(½(κ+κᵀ), 0)| over off-diagonal entries — the signed information the positive path discards"
+      Phi: "Restrepo-Ott-Hunt onset scalar Φ = K·λ_max(A) − 2γ, defined for non-negative weights only"
+    tolerance: "structural/exact: the positive path's clipped_for_threshold bit equals (#negative_edges > 0); the signed path retains every κ_ij < 0 bit-for-bit (atol 1e-12); a signed matrix raises ValueError at the boundary — no numeric slack, the contract is a fail-closed predicate not a measured quantity"
+    validity: "square (N×N) curvature matrices; the ROH onset claim is valid only on the non-negative (positive-path) adjacency; the signed path carries no onset-threshold claim by construction"
+    source: "Restrepo, Ott, Hunt PRE 2005 (Φ threshold); Ollivier J. Funct. Anal. 2009 (signed κ); .claude/physics/INVARIANTS.yaml kuramoto_ricci_semantics (INV-KR4); core/kuramoto/kuramoto_ricci_engine.py"
+    severity: block
+
   # ────────────────────── Thermodynamics / ECS ──────────────────────
   - id: thermo.second_law_closed
     module: ecs

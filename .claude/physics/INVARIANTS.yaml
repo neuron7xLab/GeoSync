@@ -577,6 +577,35 @@ ricci:
     priority: P1
 
 # ═══════════════════════════════════════════════════
+# KURAMOTO-RICCI SEMANTICS SPLIT (FP-2 — "No silent physics loss")
+# Issue #1096 Lane B. The Ollivier-Ricci κ-matrix is SIGNED (κ_ij < 0 = an
+# anti-synchronising / repulsive edge). Two NAMED paths keep the loss or
+# preservation of that sign explicit and auditable; a signed matrix may never
+# be passed to the Restrepo-Ott-Hunt onset boundary (Φ defined for κ ≥ 0 only).
+# Two-layer contract: this file is the assistant-facing layer; the runtime
+# layer is physics_contracts/catalog.yaml (kuramoto_ricci.semantics_split).
+# Both updated atomically in this commit.
+# Source: core/kuramoto/kuramoto_ricci_engine.py
+#         (ricci_to_positive_adjacency / ricci_to_signed_coupling /
+#          assert_roh_compatible).
+# Tests:  tests/unit/physics/test_KR4_ricci_semantics_split.py
+# ═══════════════════════════════════════════════════
+
+kuramoto_ricci_semantics:
+  positive_signed_split:
+    id: INV-KR4
+    type: universal
+    statement: "Ollivier-Ricci negative curvature is discarded ONLY on the named threshold path ricci_to_positive_adjacency, and ONLY with RicciAdjacencyAudit metadata (clipped_for_threshold=True, roh_compatible=True, signed_dynamics_compatible=False) recording negative_edges_count and negative_mass; ricci_to_signed_coupling preserves every negative value (clipped_for_threshold=False, roh_compatible=False, signed_dynamics_compatible=True); and a signed matrix passed to the Restrepo-Ott-Hunt onset boundary (assert_roh_compatible / phase_transition_boundary) is rejected fail-closed. No transform silently destroys signed curvature while claiming full physical dynamics."
+    test_type: property_test
+    parameters:
+      negative_edge: "κ_ij < 0 — an anti-correlated random walk (Ollivier 2009), i.e. an anti-synchronising / repulsive coupling edge"
+      roh_boundary: "Φ = K · λ_max(A_κ) − 2γ (Restrepo-Ott-Hunt 2005); derived for non-negative weights, so signed κ is a category error there"
+      audit_mass: "negative_mass = Σ |min(κ_sym, 0)| over off-diagonal entries — exactly the signed information the positive path discards"
+      mutual_exclusion: "with any negative curvature present, roh_compatible and signed_dynamics_compatible are mutually exclusive — a single matrix can never claim both"
+    falsification: "ricci_to_signed_coupling drops a negative κ; ricci_to_positive_adjacency clips without clipped_for_threshold=True or with negative_mass=0 while negatives were present; an all-positive κ trips clipped_for_threshold=True; a signed matrix passes assert_roh_compatible or yields a finite Φ from phase_transition_boundary; or any audit claims both roh_compatible and signed_dynamics_compatible."
+    priority: P0
+
+# ═══════════════════════════════════════════════════
 # KELLY SIZING
 # Physics: log-optimal betting in the small-edge continuous limit.
 # Source: Kelly 1956; Thorp 2006; core/neuro/kuramoto_kelly.py
