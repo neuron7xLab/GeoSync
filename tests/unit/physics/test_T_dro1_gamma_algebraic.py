@@ -55,33 +55,40 @@ def _assert_gamma_equals_2h_plus_1(label: str, gamma: float, H: float, **params:
 
 @pytest.mark.parametrize("seed", [0, 1, 7, 42, 101, 314, 2024, 9999])
 def test_inv_dro1_random_walk_input(seed: int) -> None:
-    """INV-DRO1 on random-walk inputs: γ and H must satisfy 2H+1."""
+    """INV-DRO1 on random-walk inputs: γ = 2H + 1 over a length sweep.
+
+    Property-style: the algebraic identity is asserted for every length in
+    a per-seed sweep, so the contract is pinned across input sizes, not at
+    a single n.
+    """
     rng = np.random.default_rng(seed=seed)
-    n = 1024
-    series = np.cumsum(rng.normal(0.0, 1.0, size=n))
-    gamma, H, r2 = derive_gamma(series)
-    assert math.isfinite(gamma) and math.isfinite(H), (
-        f"derive_gamma returned non-finite (γ={gamma}, H={H}) at seed={seed}; "
-        "DFA on a random walk must yield finite γ and H."
-    )
-    _assert_gamma_equals_2h_plus_1("random_walk", gamma, H, seed=seed, n=n)
+    for n in (512, 1024, 2048):
+        series = np.cumsum(rng.normal(0.0, 1.0, size=n))
+        gamma, H, _r2 = derive_gamma(series)
+        assert math.isfinite(gamma) and math.isfinite(H), (
+            f"INV-DRO1 VIOLATED: derive_gamma returned non-finite observed "
+            f"(γ={gamma}, H={H}) at seed={seed} with n={n}; DFA on a random "
+            "walk must yield finite γ and H."
+        )
+        _assert_gamma_equals_2h_plus_1("random_walk", gamma, H, seed=seed, n=n)
 
 
 @pytest.mark.parametrize("slope", [0.001, 0.01, 0.05, 0.1])
 def test_inv_dro1_linear_trend_input(slope: float) -> None:
-    """INV-DRO1 on a deterministic linear trend.
+    """INV-DRO1 on a deterministic linear trend over a length sweep.
 
     Linear trend yields trivial DFA fluctuation; whatever (H, γ) the
-    estimator returns, the algebraic identity must hold.
+    estimator returns, the algebraic identity γ = 2H + 1 must hold for
+    every sampled length where both fields are finite.
     """
-    n = 1024
-    series = slope * np.arange(n, dtype=np.float64)
-    gamma, H, r2 = derive_gamma(series)
-    if not (math.isfinite(gamma) and math.isfinite(H)):
-        # A degenerate input may produce a sentinel; that is acceptable.
-        # The invariant is conditional on finiteness of both fields.
-        return
-    _assert_gamma_equals_2h_plus_1("linear_trend", gamma, H, slope=slope, n=n)
+    for n in (512, 1024, 2048):
+        series = slope * np.arange(n, dtype=np.float64)
+        gamma, H, _r2 = derive_gamma(series)
+        if not (math.isfinite(gamma) and math.isfinite(H)):
+            # A degenerate input may produce a sentinel; that is acceptable.
+            # The invariant is conditional on finiteness of both fields.
+            continue
+        _assert_gamma_equals_2h_plus_1("linear_trend", gamma, H, slope=slope, n=n)
 
 
 @given(
@@ -105,17 +112,24 @@ def test_inv_dro1_hypothesis_random_walk_invariance(seed: int, n: int, sigma: fl
 
 
 def test_inv_dro1_known_exact_relation_for_pure_brownian() -> None:
-    """Pure Brownian motion has H = 0.5 ⟹ γ = 2.
+    """INV-DRO1: pure Brownian motion has H ≈ 0.5 ⟹ γ = 2H + 1 ≈ 2.
 
     The DFA estimator on a long enough Brownian path should
     recover H ≈ 0.5 ± ~0.1 for n=4096; whatever H it returns,
     γ must equal 2H+1 within the spec tolerance.
     """
-    rng = np.random.default_rng(seed=12345)
-    n = 4096
-    increments = rng.normal(0.0, 1.0, size=n)
-    series = np.cumsum(increments)
-    gamma, H, r2 = derive_gamma(series)
-    _assert_gamma_equals_2h_plus_1("pure_brownian_n4096", gamma, H, n=n)
-    # Sanity: r2 should indicate a clean linear fit on Brownian.
-    assert math.isfinite(r2)
+    # Property-style: sweep several independent Brownian realizations; the
+    # algebraic identity must hold on every one (a single path could pass
+    # by luck of the estimator's rounding).
+    for seed in (12345, 222, 7, 90909):
+        rng = np.random.default_rng(seed=seed)
+        n = 4096
+        series = np.cumsum(rng.normal(0.0, 1.0, size=n))
+        gamma, H, r2 = derive_gamma(series)
+        _assert_gamma_equals_2h_plus_1("pure_brownian_n4096", gamma, H, seed=seed, n=n)
+        # Sanity: r2 should indicate a clean linear DFA fit on Brownian.
+        assert math.isfinite(r2), (
+            f"INV-DRO1 / INV-HPC2 VIOLATED: at seed={seed} with n={n} observed "
+            f"r2={r2!r} non-finite; the DFA log-log fit quality must be a finite "
+            "number for a well-formed Brownian path."
+        )
