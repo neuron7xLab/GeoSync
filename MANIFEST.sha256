@@ -4119,6 +4119,7 @@ a1e290bbeb8ef79a3daca1c88dc08d70e9c47452eae26ef543751e5e018a0fe9  ./tests/script
 a1f4cc49b916a9f7bfd84a6d8d7b39ac86ebdca24bad0ae654c047ee5e392a05  ./research/ctc_falsify/c4/phase_offset.py
 a1f6612bd2e3e732083bb097bf43d51ae34930c93540255f2bafbdf2c3297595  ./geosync/neural_controller/tests/test_integration.py
 a20a525d7bf8eea04c425e46eb617a9fe12d3ce4f5b24c5bfc32a37a7da6e744  ./docs/security/architecture.md
+a20ef42739a8c7091397b62e48358997c7c9f67bb0b232e1d918f0b107493c27  ./.claude/commit_acceptors/proof-gate-evidence-artifacts.yaml
 a2104f808a086e3c602124b34d7c1573bfbf178dc4bec08fe00792bec55236f3  ./apps/web/app/(protected)/layout.tsx
 a21ae0beda169a249063bf76ad48578fb22b91d73d49aced82dfd50accb1663c  ./scripts/ci/run_actionlint.py
 a233bce0f87de57b7da4de93e78882dec762832393f1f9905c56cd98027bc259  ./.claude/commit_acceptors/lyapunov-negative-control-illposed.yaml
@@ -4618,7 +4619,6 @@ b6ce082c8515b795c0cdabcfc3de0cac1bebcec016b67fa939991d33ff6e770e  ./tests/proper
 b6d07536660b7071f4e60dd97549cd4a34ef8ee2264b0d4ea59c652760eca178  ./.claude/commit_acceptors/claims-falsifier-gate-fail-closed.yaml
 b6dca88881ff173d53a601272dbe22e64b8686bbf6a2f27011634f6a707ceed0  ./src/geosync/core/neuro/serotonin/profiler/behavioral_profiler.py
 b6e56eb254cc91561f2dff618d12b8d1aebca645a0f4994a3f7713aea0b7c242  ./.github/dependabot.yml
-b6e66135a05ec212f13840e4028b201a349f8091d84cfdac13642ff5327c144f  ./.github/bwheel_baseline.json
 b6f3631d6b23209857a5585097911d0c357d0e45bf3ea1f747c16b627cc7bd20  ./docs/phd/05_next_empirical_chapter.md
 b6f9253f21ada03f8ae158b4bed612e37263ca50138390a65010538d1612f805  ./tests/tacl/test_self_diagnosis_adaptation.py
 b7048f8fa68f89ea1ac4d6993ae087115d9e7ed8d9d05b46f458236c17646bcd  ./tests/core/test_data_quality_control_new.py
@@ -4629,6 +4629,7 @@ b72eee75dfb91956e757a908f3afd9fc40f33ac334a1191159b53c747049d99a  ./tests/unit/p
 b7380b4a11def269d60c95ccd7453adae2fa031ad973294ab86caf5a26d4c878  ./tests/tools/test_production_readiness_riee.py
 b7450b8ea6e7f3ecdaecfeaabb91b503e2d0d7d2619100c25f178c3a8d66a70e  ./docs/cognitive_dynamics/BENCHMARKS.md
 b7709310ec8cfbfac279068b98a3812d6c5783294b9f44e78835b0ab8e8f3a92  ./.github/agents/example-output.md
+b78f9e0ddda5b8dee9cee6e8d7e81b88f4f4f7e3966bae35ed64abcdc9cb337a  ./.github/bwheel_baseline.json
 b7914762e8d5701b76c6a4b3dfeb209ee87e3267227600cffbde0636f7044916  ./figures/disha_ba_correlation/DISHA_ARTICLE_SUMMARY.md
 b7979f40134bf6a5a76c7ada58fb03b3ee2f87d22fafd1e59595d879fbd1329e  ./.github/workflows/connectome-gate.yml
 b797a9e215ebe8618af1e1a4debb2a5c2fd5a40e0215ec24bbaaf9b2fbef96e9  ./tests/test_signal_dataclass.py
@@ -5914,7 +5915,6 @@ e7a021e2cd0429cf2cdb937651dfd8b094115349f7671a92359b026152a0b089  ./core/messagi
 e7a757f569ec28f8decc870b2df4c67f2bf26fca91e4f5a5d2c0e37592f38160  ./.github/PR_WORKFLOW_2025.md
 e7b5c0ade5f6160974f036cf9c1a64c0ef66edcf8177d9eba7678140d73850d2  ./docs/physics/reliability_contract.md
 e7bd4400011b3e9bb9407de88bd4dd482e10393e3922fe490968a5905dda0f84  ./tests/test_l2_headline_metrics.py
-e7c6bf573fd1278e6f43e41207b51fdb965880eb99b5b6613b5d027ea6b309de  ./.claude/commit_acceptors/proof-gate-evidence-artifacts.yaml
 e7c7216083910158522459e334845faec8ae64db7bddb8254775aec3425b47a0  ./configs/quality/release_90.coveragerc
 e7da2862bae23129393bbf558b4c89baea0a034b444787cf2d2525e01c1da5b9  ./tests/integration/test_market_feed_recordings.py
 e7df514c5dae8380a6f19a48bceaaff25ec41dd0fad8f9742661003e433f8058  ./deploy/systemd/geosync-l2-collector.service
