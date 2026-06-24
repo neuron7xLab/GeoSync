@@ -14,23 +14,21 @@ import argparse
 import json
 import os
 import subprocess
-import sys
 from pathlib import Path
 from typing import Iterable, List
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
 os.environ.setdefault("GEOSYNC_LIGHT_DATA_IMPORT", "1")
 
-# E402: imports must follow the ``sys.path`` insertion above so they
-# resolve against the repository root regardless of cwd.
-from core.data.dataset_contracts import DatasetContract, iter_contracts  # noqa: E402
-from core.data.fingerprint import (  # noqa: E402
+# Packaged import (``scripts.validate_datasets``): core.data resolves from the
+# installed wheel, not an accidental repo-root sys.path insert (#945). The
+# os.environ side effect above is an E402-exempt pre-import hook (ruff).
+from core.data.dataset_contracts import DatasetContract, iter_contracts
+from core.data.fingerprint import (
     compute_dataset_fingerprint,
     write_fingerprint_artifact,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_FIELDS = {
     "dataset_id",

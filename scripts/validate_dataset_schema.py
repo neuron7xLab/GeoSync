@@ -7,16 +7,13 @@ from __future__ import annotations
 import argparse
 import csv
 import os
-import sys
 from datetime import datetime
-from pathlib import Path
 from typing import List
 
+# Resolve the canonical light-import flag before pulling in core.data so the
+# dataset contract loader stays cheap. The module imports as a packaged target
+# (``scripts.validate_dataset_schema``) — no repo-root sys.path mutation (#945).
 os.environ.setdefault("GEOSYNC_LIGHT_DATA_IMPORT", "1")
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
 
 from core.data.dataset_contracts import DatasetContract, iter_contracts
 

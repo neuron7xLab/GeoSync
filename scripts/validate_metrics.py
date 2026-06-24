@@ -16,16 +16,16 @@ from typing import Mapping
 
 from fastapi.testclient import TestClient
 
+# Packaged import (``scripts.validate_metrics``): tools.observability resolves
+# from the installed wheel, not an accidental repo-root sys.path insert (#945).
+from tools.observability.builder import MetricDefinition, validate_metrics
+
 try:
     from prometheus_client.parser import text_string_to_metric_families
 except ImportError:  # pragma: no cover - fallback for older prometheus_client versions
     text_string_to_metric_families = None
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from tools.observability.builder import MetricDefinition, validate_metrics  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location(
     "metrics_validation", ROOT / "observability" / "metrics_validation.py"
