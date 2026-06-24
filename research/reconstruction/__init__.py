@@ -18,6 +18,11 @@ from research.reconstruction.cimini_squartini import (
     fit_cimini_squartini,
     p_link,
 )
+from research.reconstruction.data_contract import (
+    DataContractError,
+    InputWindowContract,
+    validate_input_window,
+)
 from research.reconstruction.density_calibration import (
     DENSITY_LOWER,
     DENSITY_UPPER,
@@ -89,10 +94,12 @@ from research.reconstruction.weighted_allocation import (
 __all__ = [
     "DENSITY_LOWER",
     "DENSITY_UPPER",
+    "DataContractError",
     "DomainCheck",
     "DomainOfValidityStatus",
     "GroundTruthRecoveryCertificate",
     "HiddenFitness",
+    "InputWindowContract",
     "KuramotoRecoveryCertificate",
     "MIN_PRECURSOR_GAP",
     "NegFalsePositiveError",
@@ -139,4 +146,5 @@ __all__ = [
     "run_recovery_on_substrate",
     "sample_adjacency_bernoulli",
     "serialise_reconstruction_capsule",
+    "validate_input_window",
 ]

@@ -298,6 +298,10 @@
       "sha256": "d89c09e58a6b1d0fdd30fd1b710f8ce55e15b7de4dc8c8455c68aa06253d0d07"
     },
     {
+      "path": "scripts/ci/x10r_lane_d_data_contract_falsifier.py",
+      "sha256": "c1461623064b876db40b553c886d751f30612cbee30c5fe68ff150c8de3a9c5a"
+    },
+    {
       "path": "scripts/generate_stakeholder_assets.py",
       "sha256": "ba5b8ad1e8b05f950d009553a6f5141468f7c278676964bd37d5a41d538f9dab"
     },
