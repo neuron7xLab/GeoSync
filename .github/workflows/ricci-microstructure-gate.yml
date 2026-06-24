@@ -50,6 +50,11 @@ jobs:
           # the lane runs the REAL kernel — never importorskip, which would
           # vacuously skip the core falsification lane.
           pip install "POT>=0.9.5"
+          # typer is a pyproject base dependency but is currently absent from the
+          # pip-compiled requirements*.lock (pre-existing lock gap). The research
+          # CLI (ingest / run / verify) imports it, so install it explicitly to
+          # match pyproject; otherwise the ingest step dies "Typer is required".
+          pip install "typer>=0.20.0,<1.0.0"
       - name: Quality (ruff + mypy --strict)
         run: |
           python -m ruff check geosync_research tools/research/research_cli.py

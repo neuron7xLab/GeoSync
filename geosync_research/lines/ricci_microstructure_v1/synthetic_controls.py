@@ -87,7 +87,9 @@ def surrogate_frame(
         # arrangement — not just gross imbalance — drives curvature.
         for side in ("bid", "ask"):
             cols = [f"{side}_sz_{idx}" for idx in range(1, depth + 1)]
-            block = out[cols].to_numpy(dtype=float)
+            # .to_numpy() may return a read-only view under newer pandas/numpy;
+            # copy() guarantees a writable buffer for the in-place permutation.
+            block = out[cols].to_numpy(dtype=float).copy()
             for r in range(block.shape[0]):
                 block[r] = block[r][rng.permutation(block.shape[1])]
             out.loc[:, cols] = block
@@ -105,7 +107,8 @@ def surrogate_frame(
         return resampled
     if null_model == "volume_neutral":
         columns = _size_columns(out, depth)
-        flat = out[columns].to_numpy(dtype=float).reshape(-1)
+        # copy() before reshape/shuffle: .to_numpy() may be a read-only view.
+        flat = out[columns].to_numpy(dtype=float).copy().reshape(-1)
         rng.shuffle(flat)
         out.loc[:, columns] = flat.reshape(out[columns].shape)
         return out
