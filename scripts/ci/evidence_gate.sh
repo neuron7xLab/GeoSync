@@ -57,7 +57,7 @@ run_layer() {
   fi
 }
 
-invariant_witness() { test "$("$PY" scripts/count_invariants.py)" = "111"; }
+invariant_witness() { test "$("$PY" scripts/count_invariants.py)" = "112"; }
 
 run_layer "01 invariant witness"            invariant_witness
 run_layer "02 python version matrix"        "$PY" scripts/check_python_matrix.py

@@ -17,6 +17,8 @@ diff_scope:
     - path: "artifacts/claims_hashes.json"
     - path: "artifacts/physics_v2/law_witness_index.json"
     - path: "docs/architecture/claim_graph.json"
+    - path: "scripts/ci/prove_repo_integrity.sh"
+    - path: "scripts/ci/evidence_gate.sh"
   forbidden_paths:
     - "trading/"
     - "execution/"
