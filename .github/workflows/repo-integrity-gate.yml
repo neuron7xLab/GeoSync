@@ -67,6 +67,11 @@ jobs:
           set -euo pipefail
           python -m pip install --upgrade pip
           python -m pip install numpy scipy pandas networkx pyyaml jsonschema pytest
+          # prove_repo_integrity.sh runs `pytest tests/research_lines`, whose
+          # ricci_microstructure_v1 lane imports the POT-backed Ollivier-Ricci
+          # kernel (`import ot`). POT lives in the pyproject neuro_advanced
+          # optional group, so install it explicitly here too.
+          python -m pip install "POT>=0.9.5"
 
       - name: Prove repository integrity
         run: bash scripts/ci/prove_repo_integrity.sh
