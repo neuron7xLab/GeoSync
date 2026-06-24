@@ -104,15 +104,17 @@ measurement_command: >-
 signal_artifact: "tmp/ierd_q6_latency_layer_coverage_gate.log"
 falsifier:
   command: >-
-    bash -c 'python -c "import yaml,sys; spec=yaml.safe_load(open(\".github/workflows/latency-layer-coverage.yml\")); steps=spec[\"jobs\"][\"latency-layer-coverage\"][\"steps\"]; run_step=next(s for s in steps if s.get(\"id\")==\"run\"); sys.exit(0 if run_step.get(\"continue-on-error\") is True else 1)"'
+    bash -c 'python -c "import yaml,sys; spec=yaml.safe_load(open(\".github/workflows/latency-layer-coverage.yml\")); steps=spec[\"jobs\"][\"latency-layer-coverage\"][\"steps\"]; run_step=next(s for s in steps if s.get(\"id\")==\"run\"); sys.exit(0 if run_step.get(\"continue-on-error\") is None else 1)"'
   description: >-
-    Probes the workflow YAML for the Phase-4 progress contract
-    `continue-on-error: true` on the latency-layer-coverage run step.
-    If a future change flips the gate to fail-closed without
-    re-classifying the claim ANCHORED in docs/CLAIMS.yaml, the
-    falsifier exits non-zero, signalling that Phase-4 EXIT promotion
-    must be co-shipped with the strictness flip — identical to the
-    Q4/Q5/Q7 guarantees.
+    SUPERSEDED by ierd-q6-network-ttfb-lighthouse-gate (Phase-4 EXIT,
+    #531): the latency-layer-coverage run step is now genuinely
+    fail-closed (no continue-on-error) because all four layers —
+    including network_TTFB via the Lighthouse-CI budget run — are
+    regression-gated. This falsifier now asserts the run step carries
+    NO continue-on-error key; a regression that re-adds it (silencing
+    the all-four-layers check) exits non-zero. The Phase-4 progress
+    contract this acceptor originally pinned (continue-on-error: true)
+    no longer holds.
 rollback_command: >-
   git checkout HEAD~1 --
   .claude/commit_acceptors/ierd-q6-latency-layer-coverage-gate.yaml
