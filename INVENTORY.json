@@ -34,6 +34,10 @@
       "sha256": "03f13da10bd7158f3379d2420a555699940d3afe333bb1ee010ed3872d55e3ac"
     },
     {
+      "path": "scripts/ci/check_audit_report_paths.py",
+      "sha256": "a02f43ae1a3f7c41ae742b23cd24135f5800a26b256c35733641f5afb9fe19a4"
+    },
+    {
       "path": "scripts/ci/check_calibration_drift.py",
       "sha256": "e2ffd3ad4aa8e4c2969687fb60ccb0ca0cb56d6e95d06e42d1faa14d7d531e30"
     },
