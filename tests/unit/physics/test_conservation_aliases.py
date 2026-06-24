@@ -31,6 +31,13 @@ from core.physics.conservation import (
 
 
 def test_compute_market_energy_alias_matches_proxy() -> None:
+    """NON_PHYSICS: deprecated-alias equivalence + DeprecationWarning.
+
+    This is a migration/refactor contract, not a physics witness: it asserts the
+    alias returns bit-identical output to its ``*_proxy`` replacement and warns.
+    It makes no claim about any registered conservation invariant (INV-TH1/TH2),
+    so grounding it to an INV would be a category error per Rule Zero.
+    """
     prices = np.array([100.0, 102.0, 105.0, 104.0, 107.0])
     volumes = np.array([1000.0, 800.0, 1200.0, 900.0, 1100.0])
     expected = compute_volatility_energy_proxy(prices, volumes)
@@ -42,6 +49,11 @@ def test_compute_market_energy_alias_matches_proxy() -> None:
 
 
 def test_compute_market_momentum_alias_matches_proxy() -> None:
+    """NON_PHYSICS: deprecated-alias equivalence + DeprecationWarning.
+
+    Migration/refactor contract only — asserts alias == ``*_proxy`` output and
+    warns; no registered physics invariant is witnessed.
+    """
     prices = np.array([100.0, 102.0, 105.0])
     volumes = np.array([10.0, 20.0, 30.0])
     expected = compute_flow_momentum_proxy(prices, volumes)
@@ -53,6 +65,11 @@ def test_compute_market_momentum_alias_matches_proxy() -> None:
 
 
 def test_check_energy_conservation_alias_matches_drift() -> None:
+    """NON_PHYSICS: deprecated-alias equivalence to ``check_proxy_drift``.
+
+    Migration/refactor contract only — asserts the alias routes to
+    ``check_proxy_drift`` identically and warns; not a conservation-law witness.
+    """
     expected = check_proxy_drift(100.0, 100.5, tolerance=0.01)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always", DeprecationWarning)
@@ -62,6 +79,11 @@ def test_check_energy_conservation_alias_matches_drift() -> None:
 
 
 def test_check_momentum_conservation_alias_matches_drift() -> None:
+    """NON_PHYSICS: deprecated-alias equivalence to ``check_proxy_drift``.
+
+    Migration/refactor contract only — asserts the alias routes to
+    ``check_proxy_drift`` identically and warns; not a conservation-law witness.
+    """
     expected = check_proxy_drift(50.0, 50.5, tolerance=0.02)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always", DeprecationWarning)

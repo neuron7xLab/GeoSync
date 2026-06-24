@@ -117,26 +117,46 @@ def test_inv_rc1_barabasi_albert_scale_free(n: int, m: int, seed: int) -> None:
 
 
 def test_inv_rc1_path_graph_extremal_case() -> None:
-    """Path graph: degree-2 interior nodes, degree-1 endpoints.
+    """INV-RC1: κ ≤ 1 on every edge of a path graph (degree-1 endpoints).
 
     Endpoint edges are the extremal case for INV-RC1 — high
-    asymmetry in neighborhood structure. Verify κ ≤ 1 holds.
+    asymmetry in neighborhood structure. The universal bound must
+    hold for *all* edges, asserted explicitly over the edge set.
     """
     G = nx.path_graph(20)
     _assert_all_edges_bounded("path_graph_20", G, n=20)
+    kappas = [ricci_curvature_edge(G, u, v) for u, v in G.edges()]
+    assert all(k <= 1.0 + _UPPER_BOUND_SLACK for k in kappas), (
+        f"INV-RC1 VIOLATED on path_graph_20: max κ={max(kappas):.6e} > "
+        f"1 + ε; κ ≤ 1 must hold for every edge (W₁ ≥ 0, d > 0). "
+        f"n=20, edges={G.number_of_edges()}."
+    )
 
 
 def test_inv_rc1_complete_graph_uniform_curvature() -> None:
-    """Complete K_n: every edge has identical κ; bound must hold."""
+    """INV-RC1: κ ≤ 1 on every edge of complete K_n (uniform curvature)."""
     G = nx.complete_graph(8)
     _assert_all_edges_bounded("complete_graph_8", G, n=8)
+    kappas = [ricci_curvature_edge(G, u, v) for u, v in G.edges()]
+    assert all(k <= 1.0 + _UPPER_BOUND_SLACK for k in kappas), (
+        f"INV-RC1 VIOLATED on complete_graph_8: max κ={max(kappas):.6e} > "
+        f"1 + ε; the universal upper bound κ ≤ 1 must hold for every edge. "
+        f"n=8, edges={G.number_of_edges()}."
+    )
 
 
 def test_inv_rc1_star_graph_extremal_hub_curvature() -> None:
-    """Star graph K_{1,n}: maximally asymmetric degree distribution.
+    """INV-RC1: κ ≤ 1 on every edge of star K_{1,n} (max degree asymmetry).
 
     Center node is degree n; leaves are degree 1. The center–leaf
-    edges stress the W₁ kernel hardest.
+    edges stress the W₁ kernel hardest, yet κ ≤ 1 must still hold
+    for every edge.
     """
     G = nx.star_graph(15)
     _assert_all_edges_bounded("star_graph_15", G, n=15)
+    kappas = [ricci_curvature_edge(G, u, v) for u, v in G.edges()]
+    assert all(k <= 1.0 + _UPPER_BOUND_SLACK for k in kappas), (
+        f"INV-RC1 VIOLATED on star_graph_15: max κ={max(kappas):.6e} > "
+        f"1 + ε; the universal upper bound κ ≤ 1 must hold for every "
+        f"center–leaf edge. n=15, edges={G.number_of_edges()}."
+    )

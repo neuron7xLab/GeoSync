@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import struct
 
-import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
@@ -94,7 +93,8 @@ def test_inv_cb1_property_every_dormant_tick_exactly_zero(
         if ctrl.state == CryptobiosisState.DORMANT:
             assert result["multiplier"] == 0.0, (
                 f"INV-CB1 VIOLATED at tick {tick}: state=DORMANT but "
-                f"multiplier={result['multiplier']!r} ≠ 0.0. "
+                f"multiplier={result['multiplier']!r} ≠ 0.0; DORMANT must "
+                f"yield exactly 0.0 (tun state has zero metabolism). "
                 f"Observed at seed={seed}, n_ticks={n_ticks}, "
                 f"high_distress_prob={high_distress_prob}, T={T}."
             )
@@ -113,30 +113,44 @@ def test_inv_cb1_property_every_dormant_tick_exactly_zero(
 
 
 def test_inv_cb1_re_entry_after_rehydration_preserves_exact_zero() -> None:
-    """Drive DORMANT → REHYDRATING → DORMANT; second DORMANT also exact zero."""
+    """INV-CB1 (with INV-CB8): re-entered DORMANT also yields exact +0.0.
+
+    Drives the deterministic path DORMANT → REHYDRATING → DORMANT and
+    asserts the multiplier is bitwise +0.0 on *both* DORMANT visits. The
+    re-entry is forced by INV-CB8 (T ≥ entry during rehydration aborts
+    straight back to DORMANT), so no probabilistic ``skip`` is needed: the
+    state machine guarantees the transition for ``T < exit`` then
+    ``T ≥ entry``.
+    """
     cfg = CryptobiosisConfig()
     ctrl = CryptobiosisController(cfg)
 
-    # First entry into DORMANT
+    # First entry into DORMANT: ACTIVE → VITRIFYING → DORMANT (INV-CB2 O(1)).
     ctrl.update(T=0.95)  # VITRIFYING
     result = ctrl.update(T=0.95)  # DORMANT
-    assert ctrl.state == CryptobiosisState.DORMANT
-    _assert_exact_positive_zero("first_dormant", result["multiplier"])
-
-    # Begin rehydration with low distress
-    ctrl.update(T=0.0)  # REHYDRATING (or ACTIVE depending on hysteresis)
-
-    # Force re-entry: high distress again
-    for _ in range(3):
-        result = ctrl.update(T=0.99)
-        if ctrl.state == CryptobiosisState.DORMANT:
-            _assert_exact_positive_zero("re_entered_dormant", result["multiplier"])
-            return
-
-    pytest.skip(
-        "Could not force re-entry to DORMANT under default config; "
-        "test is conditional on hysteresis/rehydration parameters."
+    assert ctrl.state == CryptobiosisState.DORMANT, (
+        f"INV-CB1 SETUP: expected DORMANT after VITRIFYING, "
+        f"got {ctrl.state.value} at entry={cfg.entry_threshold} with T=0.95."
     )
+    _assert_exact_positive_zero("first_dormant", result["multiplier"], entry=cfg.entry_threshold)
+
+    # Begin rehydration: T < exit ⟹ DORMANT → REHYDRATING (INV-CB7 hysteresis).
+    ctrl.update(T=0.0)
+    assert ctrl.state == CryptobiosisState.REHYDRATING, (
+        f"INV-CB1 SETUP: expected REHYDRATING after T < exit, "
+        f"got {ctrl.state.value} at exit={cfg.exit_threshold} with T=0.0."
+    )
+
+    # Force re-entry deterministically: INV-CB8 aborts REHYDRATING → DORMANT
+    # when T ≥ entry. One tick is sufficient; this is not probabilistic.
+    result = ctrl.update(T=0.99)
+    assert ctrl.state == CryptobiosisState.DORMANT, (
+        f"INV-CB8 VIOLATED: with T=0.99 at entry={cfg.entry_threshold} during "
+        f"REHYDRATING must abort to DORMANT, got {ctrl.state.value}. "
+        "Physical reasoning: returning distress must re-enter the tun state, "
+        "not continue ramping risk back up."
+    )
+    _assert_exact_positive_zero("re_entered_dormant", result["multiplier"], entry=cfg.entry_threshold)
 
 
 # ---------------------------------------------------------------------------
@@ -145,36 +159,53 @@ def test_inv_cb1_re_entry_after_rehydration_preserves_exact_zero() -> None:
 
 
 def test_inv_cb1_property_returns_canonical_positive_zero_when_dormant() -> None:
-    """The :attr:`multiplier` property must return canonical +0.0 in DORMANT."""
+    """INV-CB1: both the property and update() dict return +0.0 in DORMANT.
+
+    Universal probe: drives several DORMANT ticks and asserts the
+    multiplier is canonical +0.0 via *both* surfaces (the
+    :attr:`multiplier` property and the public ``update()`` payload)
+    on every tick. Two independent surfaces times many ticks gives a
+    property-style witness, not a single-point check.
+    """
     ctrl = CryptobiosisController()
     ctrl.update(T=0.99)  # VITRIFYING
     ctrl.update(T=0.99)  # DORMANT
-    assert ctrl.state == CryptobiosisState.DORMANT
-    multiplier = ctrl.multiplier
-    _assert_exact_positive_zero("property_access_in_dormant", multiplier)
-    # Sanity: also check via the dict that the public update() returns.
-    state_dict = ctrl.update(T=0.99)
-    if ctrl.state == CryptobiosisState.DORMANT:
-        _assert_exact_positive_zero("update_dict_in_dormant", state_dict["multiplier"])
+    assert ctrl.state == CryptobiosisState.DORMANT, (
+        f"INV-CB1 SETUP: expected DORMANT, got {ctrl.state.value} "
+        "with T=0.99 (high distress must reach the tun state)."
+    )
+    for tick in range(5):
+        state_dict = ctrl.update(T=0.99)
+        assert ctrl.state == CryptobiosisState.DORMANT, (
+            f"INV-CB1 SETUP: tick {tick} left DORMANT unexpectedly "
+            f"({ctrl.state.value}) with T=0.99 during sustained distress."
+        )
+        # Surface 1: the property accessor.
+        _assert_exact_positive_zero("property_access_in_dormant", ctrl.multiplier, tick=tick)
+        # Surface 2: the update() return payload.
+        _assert_exact_positive_zero("update_dict_in_dormant", state_dict["multiplier"], tick=tick)
 
 
 def test_inv_cb1_zero_is_immutable_under_repeated_dormant_updates() -> None:
-    """20 repeated high-distress updates from inside DORMANT keep multiplier == +0.0."""
+    """INV-CB1: 20 repeated high-distress DORMANT updates keep multiplier +0.0."""
     ctrl = CryptobiosisController()
     ctrl.update(T=0.99)
     ctrl.update(T=0.99)
-    assert ctrl.state == CryptobiosisState.DORMANT
+    assert ctrl.state == CryptobiosisState.DORMANT, (
+        f"INV-CB1 SETUP: expected DORMANT, got {ctrl.state.value} with T=0.99."
+    )
     for tick in range(20):
         result = ctrl.update(T=0.99)
-        # Even if state transitions out, the contract is conditional
-        # on DORMANT — only check there.
-        if ctrl.state == CryptobiosisState.DORMANT:
-            assert result["multiplier"] == 0.0, (
-                f"INV-CB1 VIOLATED at tick {tick}: repeated high-distress "
-                f"update produced multiplier={result['multiplier']!r}."
-            )
-            _assert_exact_positive_zero(
-                "repeated_dormant_update",
-                result["multiplier"],
-                tick=tick,
-            )
+        # The contract is conditional on DORMANT — only check there.
+        assert ctrl.state == CryptobiosisState.DORMANT, (
+            f"INV-CB1 SETUP: tick {tick} must remain DORMANT under sustained "
+            f"distress, got {ctrl.state.value} with T=0.99."
+        )
+        # Bit-pattern check is strictly stronger than `== 0.0`: it rejects
+        # -0.0 and denormals that would compare equal but break downstream
+        # products. No magic-number threshold is used (exact +0.0 contract).
+        _assert_exact_positive_zero(
+            "repeated_dormant_update",
+            result["multiplier"],
+            tick=tick,
+        )

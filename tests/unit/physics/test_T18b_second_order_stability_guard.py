@@ -335,6 +335,15 @@ def test_invalid_rocof_max_rejected(bad_bound: float) -> None:
     with pytest.raises(ValueError, match="rocof_max"):
         SecondOrderKuramotoEngine(cfg, rocof_max=bad_bound)
 
+    # Property-style: every member of the invalid-bound family must be rejected
+    # at construction (a single parametrized value could pass while a sibling
+    # silently slips through a partial validation branch).
+    for invalid in (bad_bound, bad_bound, 0.0, -abs(bad_bound) - 1.0):
+        if math.isfinite(invalid) and invalid > 0.0:
+            continue  # only assert rejection on genuinely-invalid bounds
+        with pytest.raises(ValueError, match="rocof_max"):
+            SecondOrderKuramotoEngine(cfg, rocof_max=invalid)
+
 
 # ---------------------------------------------------------------------------
 # Issue #1107 — the guard is PARTIAL, and says so. Passing CI must not be read
@@ -348,6 +357,12 @@ def _run_small() -> object:
 
 
 def test_second_order_audit_scope_is_partial() -> None:
+    """NON_PHYSICS: honesty/metadata contract on the engine's audit scope.
+
+    Asserts the engine *declares* a partial audit scope rather than claiming a
+    full stability audit. Enforcement-honesty contract (issue #1107), not a
+    witness of any registered physics invariant, so no INV-*.
+    """
     result = _run_small()
     assert result.audit_scope == "nonfinite_and_rocof_only"
     # It must NOT advertise itself as a full stability audit.
@@ -355,6 +370,12 @@ def test_second_order_audit_scope_is_partial() -> None:
 
 
 def test_second_order_remaining_gaps_are_declared() -> None:
+    """NON_PHYSICS: honesty/metadata contract — declared unclosed audit gaps.
+
+    Asserts the engine keeps its remaining stability-audit gaps declared so a
+    green CI is not misread as a complete numerical audit. Enforcement-honesty
+    contract, not a physics-invariant witness.
+    """
     result = _run_small()
     gaps = result.remaining_audit_gaps
     for gap in (
