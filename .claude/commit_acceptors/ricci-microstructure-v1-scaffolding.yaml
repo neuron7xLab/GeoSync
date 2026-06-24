@@ -55,34 +55,16 @@ expected_signal: >-
   a HYPOTHESIS_NOT_SUPPORTED T3 payload and rejects ALPHA_FOUND / dirty_git /
   forbidden_claims_absent==false.
 
-measurement_command: >-
-  bash -c '
-    PYTHONPATH=. python -m pytest tests/research_lines/test_ricci_microstructure_v1.py
-    -q -p no:cacheprovider
-    -k "artifact_schema or hardened or forbidden_claims or dirty_git"
-  '
+measurement_command: |-
+  bash -c 'PYTHONPATH=. python -m pytest tests/research_lines/test_ricci_microstructure_v1.py -q -p no:cacheprovider -k "artifact_schema or hardened or forbidden_claims or dirty_git or source_class or substrate"'
 
 signal_artifact: "tmp/ricci_microstructure_v1_scaffolding.log"
 
 falsifier:
-  command: >-
-    bash -c 'PYTHONPATH=. python -c "
-    import sys;
-    from geosync_research.lines.ricci_microstructure_v1.artifact import validate_artifact_payload;
-    payload={
-      \"run_id\":\"x\",\"schema_version\":\"ricci_microstructure_artifact.v1\",
-      \"kernel_version\":\"ricci_kernel.v2-weighted-sizemeasure\",
-      \"source\":\"BINANCE_FUTURES_DEPTH\",\"config_hash\":\"a\"*64,\"config_sha256\":\"a\"*64,
-      \"data_sha256\":\"b\"*64,\"collector_sha256\":\"e\"*64,\"git_sha\":\"c\"*40,
-      \"dirty_git\":False,\"seed\":1337,\"mean_curvature\":-0.1,\"observed_count\":600,
-      \"null_mean\":-0.2,\"null_std\":0.1,\"p_value\":0.4,\"cliffs_delta\":0.2,
-      \"effect_size_class\":\"small\",\"null_model_type\":\"iaaft\",\"n_surrogates\":1000,
-      \"falsification_status\":\"ALPHA_FOUND\",\"forbidden_claims_absent\":False,
-      \"replay_command\":\"geosync-research run --line ricci_microstructure_v1 --config c --data d --out o\",
-      \"timestamp_utc\":\"2026-01-01T00:00:00Z\",\"claim_tier\":\"T3/NOVEL/EXPLORATORY/FALSIFIABLE\"};
-    errors=validate_artifact_payload(payload);
-    assert errors, \"schema accepted a forbidden ALPHA_FOUND artifact\";
-    sys.exit(0)"'
+  # Extracted to a committed single-purpose script (reflow-proof; see the
+  # commit-acceptor command-syntax gate).
+  command: |-
+    bash -c 'PYTHONPATH=. python scripts/ci/ricci_microstructure_scaffolding_falsifier.py'
   description: >-
     Inverts the no-overclaim contract: the artifact schema MUST reject a payload
     whose falsification_status is ALPHA_FOUND (a forbidden market-mythology

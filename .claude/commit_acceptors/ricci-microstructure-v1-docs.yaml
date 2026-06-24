@@ -47,23 +47,16 @@ expected_signal: >-
   forbidden promotion token (ALPHA_FOUND / MARKET_SIGNAL_PROVEN / PRODUCTION_READY
   / PHYSICS_CONFIRMED).
 
-measurement_command: >-
-  bash -c '
-    grep -q "p_value < 0.01" docs/NEGATIVE_RESULTS.md
-    && grep -qi "successful falsification" docs/NEGATIVE_RESULTS.md
-  '
+measurement_command: |-
+  bash -c 'grep -q "p_value < 0.01" docs/NEGATIVE_RESULTS.md && grep -qi "successful falsification" docs/NEGATIVE_RESULTS.md'
 
 signal_artifact: "tmp/ricci_microstructure_v1_docs.log"
 
 falsifier:
-  command: >-
-    bash -c '
-      if grep -Eq "ALPHA_FOUND|MARKET_SIGNAL_PROVEN|PRODUCTION_READY|PHYSICS_CONFIRMED" \
-        docs/NEGATIVE_RESULTS.md docs/RICCI_MICROSTRUCTURE.md docs/REPRODUCIBILITY.md; then
-        exit 1;
-      fi;
-      grep -q "successful falsification" docs/NEGATIVE_RESULTS.md && exit 0 || exit 1
-    '
+  # Extracted to a committed single-purpose script (reflow-proof; see the
+  # commit-acceptor command-syntax gate).
+  command: |-
+    bash -c 'PYTHONPATH=. python scripts/ci/ricci_microstructure_docs_falsifier.py'
   description: >-
     Inverts the honesty contract: the lane docs MUST keep the negative-result
     framing ("successful falsification") and MUST NOT contain any forbidden
