@@ -197,6 +197,10 @@ def calibrate(
     if len(weights) != len(stages):
         raise ValueError(f"weights length {len(weights)} != stage count {len(stages)}")
     weighted_support = sum(w * s.support for w, s in zip(weights, stages))
+    # bounds: weighted support is mathematically in [0, 1] (simplex weights x
+    # support in [0, 1]); this clamp only absorbs float round-off so confidence
+    # never escapes [0, 1]. No information is hidden — a true out-of-range value
+    # is impossible given the validated inputs.
     weighted_support = min(1.0, max(0.0, weighted_support))
     return weighted_support ** (1.0 / calibration.temperature)
 

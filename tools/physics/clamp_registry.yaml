@@ -81,6 +81,7 @@ clamps:
   - core/indicators/temporal_ricci.py:90
   - core/indicators/trading.py:500
   - core/indicators/trading.py:556
+  - core/indicators/value_inference_pipeline.py:204
   - core/kuramoto/identifiability.py:338
   - core/kuramoto/identifiability.py:414
   - core/kuramoto/metrics.py:167
