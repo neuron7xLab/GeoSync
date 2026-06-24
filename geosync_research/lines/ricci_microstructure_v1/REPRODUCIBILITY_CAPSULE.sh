@@ -48,4 +48,13 @@ assert data_manifest["source"] != "LOBSTER" or "lobster" in raw.name.lower(), "s
 print(f"OK  data_sha256={actual[:16]}...  source={data_manifest['source']}  status={artifact['falsification_status']}")
 PY
 
+# Publish the freshly-reproduced artifact as the committed canonical evidence the
+# CI gate verifies. Re-running this capsule on a clean tree with the same frozen
+# CSV + seed reproduces a bit-identical artifact (determinism contract), so the
+# committed copy and a fresh run agree byte-for-byte.
+CANON="geosync_research/lines/ricci_microstructure_v1/canonical"
+mkdir -p "$CANON"
+cp "$ARTIFACT" "$CANON/artifact.json"
+echo "==> published canonical artifact -> $CANON/artifact.json"
+
 echo "==> capsule complete"

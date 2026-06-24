@@ -60,13 +60,18 @@ jobs:
         run: |
           PYTHONPATH=. python -m tools.research.research_cli ingest \
             --data data/l2_manifest.json --out data/processed/ricci_microstructure_v1
-      - name: Verify committed artifact + SHA integrity (fast; full 1000-surrogate run is the capsule)
+      - name: Verify committed canonical artifact + SHA integrity (fast; the full 1000-surrogate run is the offline reproducibility capsule)
+        # The 1000-surrogate battery takes ~25 min on a single core, which would
+        # blow the 20-min gate cap, so it is NOT run live here. Instead the lane
+        # commits a clean-tree canonical artifact under the package tree and this
+        # step verifies it (schema + allowed-status + honesty + SHA chain). The
+        # offline capsule (REPRODUCIBILITY_CAPSULE.sh) regenerates it bit-for-bit.
         run: |
           PYTHONPATH=. python - <<'PY'
-          import hashlib, json, sys
+          import hashlib, json
           from pathlib import Path
-          run = next(Path("artifacts/runs/ricci_microstructure_v1").glob("ricci_microstructure_v1_*"))
-          art = json.loads((run / "artifact.json").read_text())
+          art_path = Path("geosync_research/lines/ricci_microstructure_v1/canonical/artifact.json")
+          art = json.loads(art_path.read_text())
           forbidden = {"ALPHA_FOUND", "MARKET_SIGNAL_PROVEN", "PRODUCTION_READY", "PHYSICS_CONFIRMED"}
           assert art["falsification_status"] in {"SUPPORTED", "HYPOTHESIS_NOT_SUPPORTED", "INVALID"}, art["falsification_status"]
           assert art["falsification_status"] not in forbidden
@@ -85,12 +90,12 @@ jobs:
           print("verified:", art["run_id"], art["falsification_status"], "source", ingested["source"])
           PY
           PYTHONPATH=. python -m tools.research.research_cli verify \
-            "$(ls -d artifacts/runs/ricci_microstructure_v1/ricci_microstructure_v1_*/artifact.json | head -1)"
+            geosync_research/lines/ricci_microstructure_v1/canonical/artifact.json
       - name: Upload evidence bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ricci-microstructure-evidence
-          path: artifacts/runs/ricci_microstructure_v1/**/evidence_bundle*
+          path: geosync_research/lines/ricci_microstructure_v1/canonical/**
           if-no-files-found: warn
 
   supply-chain:

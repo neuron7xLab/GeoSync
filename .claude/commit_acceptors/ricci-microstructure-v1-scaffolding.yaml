@@ -35,6 +35,7 @@ diff_scope:
     - path: "data/l2_manifest.json"
     - path: "schemas/research/ricci_microstructure_artifact.schema.json"
     - path: "geosync_research/lines/ricci_microstructure_v1/REPRODUCIBILITY_CAPSULE.sh"
+    - path: "geosync_research/lines/ricci_microstructure_v1/canonical/artifact.json"
     - path: "artifacts/claims_hashes.json"
     - path: "geosync_research/__init__.py"
     - path: "geosync_research/lines/__init__.py"
