@@ -18,10 +18,22 @@
     "assert": {
       "//": "§5 latency budgets. server-response-time IS the network_TTFB layer (origin TTFB) and MUST fail the build on violation (< 300 ms). first-contentful-paint is the client_render budget (< 1.0 s). LCP/CLS optional (warn). The TTFB / FCP assertions are the load-bearing, fail-closed gate for issue #531.",
       "assertions": {
-        "server-response-time": ["error", { "maxNumericValue": 300, "aggregationMethod": "median" }],
-        "first-contentful-paint": ["error", { "maxNumericValue": 1000, "aggregationMethod": "median" }],
-        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500, "aggregationMethod": "median" }],
-        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1, "aggregationMethod": "median" }]
+        "server-response-time": [
+          "error",
+          { "maxNumericValue": 300, "aggregationMethod": "median" }
+        ],
+        "first-contentful-paint": [
+          "error",
+          { "maxNumericValue": 1000, "aggregationMethod": "median" }
+        ],
+        "largest-contentful-paint": [
+          "warn",
+          { "maxNumericValue": 2500, "aggregationMethod": "median" }
+        ],
+        "cumulative-layout-shift": [
+          "warn",
+          { "maxNumericValue": 0.1, "aggregationMethod": "median" }
+        ]
       }
     },
     "upload": {
