@@ -1,5 +1,8 @@
 {
   "source": "BINANCE_FUTURES_DEPTH",
+  "source_class": "BINANCE_PUBLIC_DEPTH",
+  "license_status": "PUBLIC_NO_LICENSE",
+  "source_uri_policy": "public-rest-no-auth",
   "venue": "binance-usdm-futures",
   "symbol": "BTCUSDT",
   "date": "2026-06-20",

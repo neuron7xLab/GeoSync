@@ -31,6 +31,23 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "null_model_type": "iaaft",
 }
 
+# NC-06 substrate-class binding. Each honest `source` maps to exactly one
+# (source_class, license_status). A Binance public-depth session can NEVER be
+# emitted with a LOBSTER-licensed class — the mapping is the single source of
+# truth and is fail-closed (unknown source -> RuntimeError, no silent default).
+SOURCE_CLASS_BINDING: dict[str, tuple[str, str]] = {
+    "BINANCE_FUTURES_DEPTH": ("BINANCE_PUBLIC_DEPTH", "PUBLIC_NO_LICENSE"),
+    "LOBSTER_LICENSED_L2": ("LOBSTER_LICENSED", "LICENSED"),
+}
+
+
+def resolve_source_class(source: str) -> tuple[str, str]:
+    """Return (source_class, license_status) for an honest source, fail-closed."""
+    binding = SOURCE_CLASS_BINDING.get(source)
+    if binding is None:
+        raise RuntimeError(f"unmapped source class for source={source!r} (NC-06)")
+    return binding
+
 
 def load_config(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -96,11 +113,15 @@ def run_pipeline(
         raise RuntimeError("data_manifest.json missing data_sha256; re-run ingest")
     status = str(stats["falsification_status"])
     forbidden = {"ALPHA_FOUND", "MARKET_SIGNAL_PROVEN", "PRODUCTION_READY", "PHYSICS_CONFIRMED"}
+    source = str(data_manifest.get("source", ""))
+    source_class, license_status = resolve_source_class(source)
     payload = {
         "run_id": run_id,
         "schema_version": "ricci_microstructure_artifact.v1",
         "kernel_version": KERNEL_VERSION,
-        "source": str(data_manifest.get("source", "")),
+        "source": source,
+        "source_class": source_class,
+        "license_status": license_status,
         "config_hash": sha256_path(config_path),
         "config_sha256": sha256_path(config_path),
         "data_sha256": raw_data_sha256,

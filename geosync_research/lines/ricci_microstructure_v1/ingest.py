@@ -32,6 +32,13 @@ REQUIRED_MANIFEST_VERSION = "l2_manifest.v1"
 # substrate is BINANCE_FUTURES_DEPTH (public REST depth, no key). Binance data
 # must NEVER be rewritten into a LOBSTER label.
 ALLOWED_SOURCES = {"LOBSTER_LICENSED_L2", "BINANCE_FUTURES_DEPTH"}
+# NC-06 substrate-class binding (single source of truth, fail-closed). A Binance
+# public-depth session is BINANCE_PUBLIC_DEPTH / PUBLIC_NO_LICENSE and can never
+# be relabelled as a licensed LOBSTER substrate.
+SOURCE_CLASS_BINDING = {
+    "BINANCE_FUTURES_DEPTH": ("BINANCE_PUBLIC_DEPTH", "PUBLIC_NO_LICENSE"),
+    "LOBSTER_LICENSED_L2": ("LOBSTER_LICENSED", "LICENSED"),
+}
 
 
 def _raise_schema(message: str) -> None:
@@ -55,6 +62,22 @@ def load_manifest(path: Path) -> dict[str, Any]:
         raise ValueError(f"manifest schema_version must be {REQUIRED_MANIFEST_VERSION}")
     if int(payload["depth"]) < 1:
         raise ValueError("manifest depth must be >= 1")
+    # NC-06: if the manifest self-declares a substrate class / license, it MUST
+    # match the binding for its source. This rejects, fail-closed, a Binance
+    # session mislabelled as a licensed LOBSTER substrate.
+    expected_class, expected_license = SOURCE_CLASS_BINDING[payload["source"]]
+    declared_class = payload.get("source_class")
+    if declared_class is not None and declared_class != expected_class:
+        raise ValueError(
+            f"source_class {declared_class!r} does not match source "
+            f"{payload['source']!r} (expected {expected_class!r}) — relabel rejected"
+        )
+    declared_license = payload.get("license_status")
+    if declared_license is not None and declared_license != expected_license:
+        raise ValueError(
+            f"license_status {declared_license!r} does not match source "
+            f"{payload['source']!r} (expected {expected_license!r}) — relabel rejected"
+        )
     return payload
 
 
@@ -127,8 +150,12 @@ def ingest_manifest(manifest_path: Path, *, out_dir: Path | None = None) -> dict
 
     ts = pd.to_datetime(validated["timestamp"], utc=True)
     collector = Path(__file__).with_name("collect_binance_l2.py")
+    source_class, license_status = SOURCE_CLASS_BINDING[str(manifest["source"])]
     manifest_out = {
         "source": str(manifest["source"]),  # honest passthrough — never relabelled
+        "source_class": source_class,  # NC-06: substrate class bound to source
+        "license_status": license_status,
+        "source_uri_policy": str(manifest.get("source_uri_policy", "unknown")),
         "venue": str(manifest.get("venue", manifest["source"])),
         "symbol": str(manifest["symbol"]),
         "date": str(manifest["date"]),

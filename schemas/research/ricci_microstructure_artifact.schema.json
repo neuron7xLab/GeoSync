@@ -22,6 +22,8 @@
     "claim_tier",
     "kernel_version",
     "source",
+    "source_class",
+    "license_status",
     "config_sha256",
     "collector_sha256",
     "dirty_git",
@@ -36,6 +38,8 @@
     "schema_version": {"const": "ricci_microstructure_artifact.v1"},
     "kernel_version": {"type": "string", "minLength": 1},
     "source": {"enum": ["LOBSTER_LICENSED_L2", "BINANCE_FUTURES_DEPTH"]},
+    "source_class": {"enum": ["LOBSTER_LICENSED", "BINANCE_PUBLIC_DEPTH", "SYNTHETIC_CONTROL", "EXTERNAL_OPERATOR_SUPPLIED"]},
+    "license_status": {"enum": ["PUBLIC_NO_LICENSE", "LICENSED", "SYNTHETIC", "OPERATOR_ATTESTED"]},
     "config_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "data_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -57,5 +61,17 @@
     "replay_command": {"type": "string", "pattern": "^geosync-research run --line ricci_microstructure_v1"},
     "timestamp_utc": {"type": "string", "format": "date-time"},
     "claim_tier": {"const": "T3/NOVEL/EXPLORATORY/FALSIFIABLE"}
-  }
+  },
+  "allOf": [
+    {
+      "comment": "NC-06 substrate-class binding: a Binance public-depth session must be tagged BINANCE_PUBLIC_DEPTH / PUBLIC_NO_LICENSE and can NEVER be relabelled as a licensed LOBSTER substrate.",
+      "if": {"properties": {"source": {"const": "BINANCE_FUTURES_DEPTH"}}},
+      "then": {"properties": {"source_class": {"const": "BINANCE_PUBLIC_DEPTH"}, "license_status": {"const": "PUBLIC_NO_LICENSE"}}}
+    },
+    {
+      "comment": "NC-06: a LOBSTER-grade result requires the licensed substrate class + LICENSED status.",
+      "if": {"properties": {"source": {"const": "LOBSTER_LICENSED_L2"}}},
+      "then": {"properties": {"source_class": {"const": "LOBSTER_LICENSED"}, "license_status": {"const": "LICENSED"}}}
+    }
+  ]
 }

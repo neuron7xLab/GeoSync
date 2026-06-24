@@ -242,6 +242,8 @@ def _hardened_payload() -> dict[str, object]:
         "schema_version": "ricci_microstructure_artifact.v1",
         "kernel_version": "ricci_kernel.v2-weighted-sizemeasure",
         "source": "BINANCE_FUTURES_DEPTH",
+        "source_class": "BINANCE_PUBLIC_DEPTH",
+        "license_status": "PUBLIC_NO_LICENSE",
         "config_hash": "a" * 64,
         "config_sha256": "a" * 64,
         "data_sha256": "b" * 64,
@@ -326,3 +328,113 @@ def test_seed_stability_supported_only_if_all_pass() -> None:
     arts = [_seed_artifact(s, "SUPPORTED", 0.001, 0.5) for s in (1337, 2026, 7719)]
     v = seed_stability(arts)
     assert v["aggregate_status"] == "SUPPORTED"
+
+
+# --------------------------- NC-06: substrate / source-class enforcement --------
+
+
+def _write_manifest_with(tmp_path: Path, **overrides: object) -> Path:
+    """Manifest writer that allows injecting (mis)labelled provenance fields."""
+    raw = tmp_path / "binance_raw.csv"
+    f = frame()
+    f["timestamp"] = [f"2026-01-01T00:00:0{t}Z" for t in range(len(f))]
+    f.to_csv(raw, index=False)
+    payload: dict[str, object] = {
+        "source": "BINANCE_FUTURES_DEPTH",
+        "symbol": "BTCUSDT",
+        "date": "2026-06-20",
+        "depth": 5,
+        "data_path": "binance_raw.csv",
+        "schema_version": "l2_manifest.v1",
+    }
+    payload.update(overrides)
+    manifest = tmp_path / "l2_manifest.json"
+    manifest.write_text(json.dumps(payload))
+    return manifest
+
+
+def test_ingest_stamps_source_class_for_binance(tmp_path: Path) -> None:
+    """NC-06: a Binance session is stamped BINANCE_PUBLIC_DEPTH / PUBLIC_NO_LICENSE."""
+    out = ingest_manifest(_write_manifest_with(tmp_path), out_dir=tmp_path / "o")
+    manifest = json.loads(out["data_manifest"].read_text())
+    assert manifest["source"] == "BINANCE_FUTURES_DEPTH"
+    assert manifest["source_class"] == "BINANCE_PUBLIC_DEPTH"
+    assert manifest["license_status"] == "PUBLIC_NO_LICENSE"
+
+
+def test_ingest_rejects_binance_relabelled_as_lobster_class(tmp_path: Path) -> None:
+    """NC-06: Binance data declaring a LOBSTER substrate class is rejected."""
+    bad = _write_manifest_with(tmp_path, source_class="LOBSTER_LICENSED")
+    with pytest.raises(ValueError, match="relabel rejected"):
+        ingest_manifest(bad, out_dir=tmp_path / "o")
+
+
+def test_ingest_rejects_binance_relabelled_license(tmp_path: Path) -> None:
+    """NC-06: Binance data declaring a LICENSED status is rejected (no fake license)."""
+    bad = _write_manifest_with(tmp_path, license_status="LICENSED")
+    with pytest.raises(ValueError, match="relabel rejected"):
+        ingest_manifest(bad, out_dir=tmp_path / "o")
+
+
+def test_artifact_schema_rejects_lobster_grade_on_binance_substrate() -> None:
+    """NC-06 claim-boundary: a Binance source cannot carry a LOBSTER source_class.
+
+    This is the machine-enforced 'no LOBSTER-grade result without licensed
+    provenance' boundary: the artifact schema's source<->source_class binding
+    rejects the relabel.
+    """
+    payload = _hardened_payload()
+    payload["source_class"] = "LOBSTER_LICENSED"
+    payload["license_status"] = "LICENSED"
+    assert validate_artifact_payload(payload)  # schema rejects the mismatch
+
+
+def test_artifact_schema_accepts_honest_binance_substrate() -> None:
+    """NC-06: the honest Binance public-depth substrate validates."""
+    assert validate_artifact_payload(_hardened_payload()) == []
+
+
+# --------------------------- NC-10: negative-result preservation ----------------
+
+
+def test_negative_result_round_trips_through_schema() -> None:
+    """NC-10: HYPOTHESIS_NOT_SUPPORTED is a legitimate terminal result, preserved."""
+    payload = _hardened_payload()
+    payload["falsification_status"] = "HYPOTHESIS_NOT_SUPPORTED"
+    assert validate_artifact_payload(payload) == []  # not coerced to a pass
+
+
+def test_invalid_status_round_trips_through_schema() -> None:
+    """NC-10: INVALID (a blocked/honest non-result) is also a legitimate terminal."""
+    payload = _hardened_payload()
+    payload["falsification_status"] = "INVALID"
+    assert validate_artifact_payload(payload) == []
+
+
+@pytest.mark.parametrize(
+    "overclaim",
+    ["ALPHA_FOUND", "MARKET_SIGNAL_PROVEN", "PRODUCTION_READY", "PHYSICS_CONFIRMED"],
+)
+def test_forbidden_overclaim_status_rejected(overclaim: str) -> None:
+    """NC-10: no artifact may ever carry an overclaim falsification_status."""
+    payload = _hardened_payload()
+    payload["falsification_status"] = overclaim
+    assert validate_artifact_payload(payload)  # schema/forbidden-status guard fails it
+
+
+def test_committed_canonical_artifact_is_honest_negative() -> None:
+    """NC-10: the committed canonical artifact is a preserved honest negative.
+
+    Guards against a future edit silently promoting the committed evidence to a
+    SUPPORTED/overclaim status or relabelling its substrate.
+    """
+    canon = Path("geosync_research/lines/ricci_microstructure_v1/canonical/artifact.json")
+    art = json.loads(canon.read_text())
+    assert art["falsification_status"] == "HYPOTHESIS_NOT_SUPPORTED"
+    assert art["forbidden_claims_absent"] is True
+    assert art["dirty_git"] is False
+    assert art["source"] == "BINANCE_FUTURES_DEPTH"
+    assert art["source_class"] == "BINANCE_PUBLIC_DEPTH"
+    assert art["license_status"] == "PUBLIC_NO_LICENSE"
+    assert art["claim_tier"] == "T3/NOVEL/EXPLORATORY/FALSIFIABLE"
+    assert validate_artifact_payload(art) == []
