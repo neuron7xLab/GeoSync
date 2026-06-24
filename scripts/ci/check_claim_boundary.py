@@ -57,6 +57,7 @@ SCAN_GLOBS: tuple[str, ...] = ("*.md", "docs/**/*.md")
 # below — only prose like "actionable trading signals" does — so the public
 # API is unaffected by this gate.
 CODE_SURFACE_FILES: tuple[str, ...] = (
+    "core/indicators/value_inference_pipeline.py",
     "core/indicators/kuramoto_ricci_composite.py",
     "core/indicators/market_state_contract.py",
     "core/indicators/normalization_contract.py",
