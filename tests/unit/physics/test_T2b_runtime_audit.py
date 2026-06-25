@@ -1,6 +1,7 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 # mypy: ignore-errors
+# CI lane: integration-sweep regressions run in the heavy_math lane.
 """Runtime debt regressions for issue #1358."""
 
 from __future__ import annotations
