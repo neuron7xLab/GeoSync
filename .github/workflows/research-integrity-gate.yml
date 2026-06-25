@@ -104,12 +104,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install pytest hypothesis pyyaml mypy ruff black
-          # POT (optimal transport) backs the Ollivier-Ricci kernel imported by
-          # tests/research_lines/test_ricci_microstructure_v1.py. It is in the
-          # pyproject neuro_advanced optional group (excluded from requirements.txt),
-          # so install it explicitly; otherwise the research-line contract pytest
-          # step ImportErrors on `import ot`.
-          python -m pip install "POT>=0.9.5"
+          # The research-line contract pytest imports the POT-backed
+          # Ollivier-Ricci kernel, materialises parquet during L2 ingest, and
+          # imports the research CLI. These deps are deliberately explicit here
+          # so push-time integrity does not depend on optional extras resolution.
+          python -m pip install "POT>=0.9.5" "pyarrow>=15.0.0" "typer>=0.20.0,<1.0.0"
 
       - name: Public-symbol matrix audit
         run: python tools/check_public_symbol_matrix.py
