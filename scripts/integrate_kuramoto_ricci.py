@@ -17,9 +17,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_ENV = "KURAMOTO_RICCI_CONFIG"
 DEFAULT_OUTPUT_ENV = "KURAMOTO_RICCI_OUTPUT_DIR"
 
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
 
 def _resolve_path(candidate: Path, *, allow_missing: bool = False) -> Path:
     """Resolve *candidate* relative to the repository root when not absolute."""

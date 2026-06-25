@@ -25,8 +25,6 @@ import yaml
 
 # Add repository root to path for imports
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "src"))
 
 # Import directly using importlib to avoid triggering parent __init__.py
 import importlib.util
