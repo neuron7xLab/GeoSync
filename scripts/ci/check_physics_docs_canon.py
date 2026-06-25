@@ -142,6 +142,13 @@ SECTION_TO_BUCKET: dict[str, str] = {
     "lyapunov_exponent": "nonlinear_synchronization",
     "stuart_landau_es": "nonlinear_synchronization",
     "spectral_gap": "nonlinear_synchronization",
+    # Seven-Law Constitutional Physics Act (Laws T1–T7): synchronization-side
+    # laws (Kuramoto-Ricci onset, Lyapunov spectrum, coupling calibration,
+    # pinning control of chaos) are formal nonlinear-synchronization results.
+    "law_t1_kuramoto_ricci_sync_onset": "nonlinear_synchronization",
+    "law_t2_lyapunov_full_spectrum": "nonlinear_synchronization",
+    "law_t3_coupling_calibration": "nonlinear_synchronization",
+    "law_t7_pinning_control": "nonlinear_synchronization",
     "ricci": "graph_geometry",
     "ricci_flow": "graph_geometry",
     "kuramoto_ricci_semantics": "graph_geometry",
@@ -150,6 +157,9 @@ SECTION_TO_BUCKET: dict[str, str] = {
     "free_energy": "computational_physics_contract",
     "robust_free_energy": "computational_physics_contract",
     "gabor_uncertainty": "computational_physics_contract",
+    # Law T5 predictability horizon under a Landauer energy budget is a
+    # thermodynamic/computational-physics contract, not a market claim.
+    "law_t5_predictability_landauer": "computational_physics_contract",
     "dro_ara": "market_microstructure_hypothesis",
     "coherence_bridge": "market_microstructure_hypothesis",
     "adaptive_criticality": "market_microstructure_hypothesis",
@@ -164,6 +174,9 @@ SECTION_TO_BUCKET: dict[str, str] = {
     "hpc": "execution_infrastructure",
     "api_contract": "execution_infrastructure",
     "rebus": "execution_infrastructure",
+    # Law T6 bit-identical reproducibility kit is a determinism/reproducibility
+    # infrastructure contract (sibling of hpc seeded reproducibility).
+    "law_t6_determinism_kit": "execution_infrastructure",
 }
 
 # Law dotted-id prefix -> bucket. Order matters: longer/more specific first.

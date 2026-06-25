@@ -18,7 +18,7 @@ formalizes synchronization, graph curvature, energy-like constraints, and
 evidence-bound invariants as **executable checks** over the system's own
 computation.
 
-It binds **42 laws** and **112 invariants** into seven classified domains. Every
+It binds **42 laws** and **132 invariants** into seven classified domains. Every
 law and every invariant is assigned to exactly one domain in
 `docs/PHYSICS_CANON.manifest.json`; the gate fails closed if any law or
 invariant is unclassified, double-counted, or drifts from the substrates.
@@ -46,11 +46,11 @@ the manifest; the table below is the human summary.
 | Domain | Kind | Maturity | Laws | Inv. |
 |---|---|---|---:|---:|
 | `graph_geometry` | physics law | `FORMAL_LAW` | 5 | 5 |
-| `nonlinear_synchronization` | physics law | `FORMAL_LAW` | 5 | 26 |
-| `computational_physics_contract` | derived property | `DERIVED_COMPUTATIONAL_PROPERTY` | 4 | 11 |
+| `nonlinear_synchronization` | physics law | `FORMAL_LAW` | 5 | 40 |
+| `computational_physics_contract` | derived property | `DERIVED_COMPUTATIONAL_PROPERTY` | 4 | 14 |
 | `market_microstructure_hypothesis` | research hypothesis | `HYPOTHESIS` | 9 | 7 |
 | `neuro_symbolic_analogy` | non-claim analogy | `NON_CLAIM_ANALOGY` | 6 | 29 |
-| `execution_infrastructure` | execution contract | `INVARIANT` | 10 | 22 |
+| `execution_infrastructure` | execution contract | `INVARIANT` | 10 | 25 |
 | `personal_research_ontology` | research ontology | `NON_CLAIM_ANALOGY` | 3 | 12 |
 
 **Classification rules (enforced):**
@@ -85,9 +85,9 @@ Representative laws by domain:
 
 ## 5. Invariant registry
 
-The 112 invariants live in `.claude/physics/INVARIANTS.yaml`, organized by
+The 132 invariants live in `.claude/physics/INVARIANTS.yaml`, organized by
 section, and are counted canonically by `python scripts/count_invariants.py`
-(must read `112`). The header in `CLAUDE.md`, the README badge, and `BASELINE.md`
+(must read `132`). The header in `CLAUDE.md`, the README badge, and `BASELINE.md`
 mirror that count; the `invariant-count-sync` gate fails closed on divergence.
 The canonical per-domain membership is the `domains.<domain>.invariants` list of
 the manifest.

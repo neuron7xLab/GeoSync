@@ -147,7 +147,7 @@
     },
     {
       "path": "scripts/ci/check_physics_docs_canon.py",
-      "sha256": "eb14f7b04f7675d1d88ffb982988d7065e17c3cf6a66b91f0634265db8825457"
+      "sha256": "a3900a98e2605bad8183dcb182ec05f5a917ba08b93bef9828948bed926ab58e"
     },
     {
       "path": "scripts/ci/check_physics_inference_readiness.py",
