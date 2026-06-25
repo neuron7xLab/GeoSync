@@ -32,11 +32,14 @@ Exit codes::
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+INVARIANTS_PATH = ROOT / ".claude" / "physics" / "INVARIANTS.yaml"
+ID_LINE_RE = re.compile(r"^\s*id:\s*(INV-[A-Za-z0-9_-]+)\s*$")
 
 # The twenty constitutional invariants registered by this reconciliation.
 RECONCILED_IDS: tuple[str, ...] = (
@@ -66,6 +69,23 @@ RECONCILED_IDS: tuple[str, ...] = (
 EXPECTED_COUNT = 132
 
 
+def _collect_invariant_ids(path: Path = INVARIANTS_PATH) -> list[str]:
+    if not path.is_file():
+        raise FileNotFoundError(f"INVARIANTS registry not found at {path}")
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        match = ID_LINE_RE.match(raw_line)
+        if match is None:
+            continue
+        invariant_id = match.group(1)
+        if invariant_id in seen:
+            continue
+        seen.add(invariant_id)
+        ordered.append(invariant_id)
+    return ordered
+
+
 def _run(argv: list[str]) -> tuple[int, str]:
     proc = subprocess.run(
         [sys.executable, *argv],
@@ -80,17 +100,17 @@ def main() -> int:
     failures: list[str] = []
 
     # 1. registry membership + canonical count (zero-dependency authority).
-    sys.path.insert(0, str(ROOT))
     try:
-        from scripts.count_invariants import collect_invariant_ids
-    except Exception as exc:  # pragma: no cover - import guard
-        print(f"ERROR: cannot import count_invariants: {exc}", file=sys.stderr)
+        invariant_ids = _collect_invariant_ids()
+    except Exception as exc:  # pragma: no cover - filesystem guard
+        print(f"ERROR: cannot read invariants registry: {exc}", file=sys.stderr)
         return 2
-    registered = set(collect_invariant_ids())
+
+    registered = set(invariant_ids)
     missing = [inv for inv in RECONCILED_IDS if inv not in registered]
     if missing:
         failures.append(f"unregistered Law T1-T7 invariants: {missing}")
-    count = len(collect_invariant_ids())
+    count = len(invariant_ids)
     if count != EXPECTED_COUNT:
         failures.append(f"registry count {count} != expected {EXPECTED_COUNT}")
 
