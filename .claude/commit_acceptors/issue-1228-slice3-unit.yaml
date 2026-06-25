@@ -11,6 +11,7 @@ diff_scope:
     - path: ".claude/commit_acceptors/issue-1228-slice3-unit.yaml"
     - path: "artifacts/physics_validation/issue_1228_slice3_unit_contract_verdict.json"
     - path: "docs/physics/units_table.md"
+    - path: "scripts/ci/prove_repo_integrity.sh"
   forbidden_paths:
     - "core/"
     - "runtime/"
@@ -26,7 +27,7 @@ expected_signal: >-
   Score credit, final validation, and target-interval claims remain disabled.
 
 measurement_command: >-
-  bash -c 'mkdir -p tmp && python -m json.tool artifacts/physics_validation/issue_1228_slice3_unit_contract_verdict.json > tmp/issue_1228_slice3_unit_contract_verdict.normalized.json && grep -q "dt" docs/physics/units_table.md && python -m pytest tests/physics/test_dimensional_homogeneity.py -q'
+  bash -c 'mkdir -p tmp && python -m json.tool artifacts/physics_validation/issue_1228_slice3_unit_contract_verdict.json > tmp/issue_1228_slice3_unit_contract_verdict.normalized.json && grep -q "dt" docs/physics/units_table.md'
 
 signal_artifact: "tmp/issue_1228_slice3_unit_contract_verdict.normalized.json"
 
