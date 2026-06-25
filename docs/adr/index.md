@@ -27,6 +27,7 @@ This directory captures significant technical and governance decisions for GeoSy
 - [ADR 0021: Falsifier-required ANCHORED claims (Phase 1 entry gate)](0021-falsifier-required-anchored-claims.md)
 - [ADR 0022: Reset-Wave as Engineering Numerical Model (FACT/MODEL/ANALOGY)](0022-reset-wave-engineering-model.md)
 - [ADR 0023: Reset-Wave Distributed-Resilience Adapter (5 Async Failure Modes)](0023-reset-wave-distributed-resilience.md)
+- [ADR 0025: Code-hygiene ratchet](0025-code-hygiene-ratchet.md)
 
 ## Contributing
 

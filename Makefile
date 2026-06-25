@@ -116,6 +116,15 @@ eval-tick:
 	@test -s results/shadow_live.json || { echo "❌ results/shadow_live.json not produced or empty"; exit 1; }
 	@echo "✅ shadow_live.json refreshed at $$(stat -c %Y results/shadow_live.json)"
 
+.PHONY: code-quality
+code-quality:
+	@echo "🔎 Code-hygiene ratchets (fail-closed, monotone-down)..."
+	python -m compileall -q scripts/ci/check_code_hygiene.py scripts/ci/check_skip_ratchet.py
+	python scripts/ci/check_import_architecture.py
+	python scripts/ci/check_code_hygiene.py
+	python scripts/ci/check_skip_ratchet.py
+	@echo "✅ Code-quality ratchets held"
+
 .PHONY: lint
 lint: lint-python lint-go lint-shell
 	@echo "✅ All linters passed"

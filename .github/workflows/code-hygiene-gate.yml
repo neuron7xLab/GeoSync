@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: MIT
+#
+# Code-hygiene ratchet — fail-closed, monotone-down. Sibling of the
+# import-architecture gate (ADR 0024): freezes intra-module debt
+# (god functions/classes, cyclomatic complexity, broad excepts, runtime
+# print, ambient nondeterminism) plus test skip/xfail debt, and fails on
+# any NEW violator or any stale ledger entry. See ADR 0025. Stdlib-only; fast.
+#
+# Path-filtered: a PR touching no Python, the checkers, the manifest or the
+# baselines skips entirely.
+name: Code Hygiene Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/*.py"
+      - "docs/CODE_QUALITY_MANIFEST.json"
+      - "docs/CODE_DEBT_BASELINE.json"
+      - "docs/SKIP_RATCHET_BASELINE.json"
+      - "scripts/ci/check_code_hygiene.py"
+      - "scripts/ci/check_skip_ratchet.py"
+      - ".github/workflows/code-hygiene-gate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**/*.py"
+      - "docs/CODE_QUALITY_MANIFEST.json"
+      - "docs/CODE_DEBT_BASELINE.json"
+      - "docs/SKIP_RATCHET_BASELINE.json"
+      - "scripts/ci/check_code_hygiene.py"
+      - "scripts/ci/check_skip_ratchet.py"
+      - ".github/workflows/code-hygiene-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: code-hygiene-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Enforce code-hygiene ratchet
+        run: python scripts/ci/check_code_hygiene.py
+
+      - name: Enforce test skip/xfail ratchet
+        run: python scripts/ci/check_skip_ratchet.py
