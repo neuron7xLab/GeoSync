@@ -63,6 +63,7 @@ CODE_SURFACE_FILES: tuple[str, ...] = (
     "core/indicators/market_state_contract.py",
     "core/indicators/normalization_contract.py",
     "core/indicators/aggregation_contract.py",
+    "core/indicators/value_target_contract.py",
     "core/indicators/hurst.py",
     "core/indicators/entropy.py",
 )
