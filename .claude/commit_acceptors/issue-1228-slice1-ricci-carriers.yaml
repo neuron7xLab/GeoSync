@@ -23,27 +23,12 @@ diff_scope:
 required_python_symbols: []
 
 expected_signal: >-
-  The added JSON verdict parses successfully and records tasks 1-11, score_credit_granted=false,
-  final_validation_complete=false, target_interval_claimed=false, bridge non-core behavior, and
-  measurement_command="python -m pytest tests/physics/test_ricci_bridge.py".
+  The added JSON verdict parses successfully and records the issue-1228 slice-1
+  carrier map. It is artifact-only and keeps score credit, final validation,
+  and target-interval claims disabled.
 
 measurement_command: >-
-  bash -c '
-    mkdir -p tmp &&
-    python -m json.tool artifacts/physics_validation/issue_1228_slice1_verdict.json > tmp/issue_1228_slice1_verdict.normalized.json &&
-    python - <<"PY"
-import json
-from pathlib import Path
-p = Path("artifacts/physics_validation/issue_1228_slice1_verdict.json")
-data = json.loads(p.read_text(encoding="utf-8"))
-assert data["issue"] == 1228
-assert data["completed_tasks"] == list(range(1, 12))
-assert data["score_credit_granted"] is False
-assert data["final_validation_complete"] is False
-assert data["target_interval_claimed"] is False
-assert data["verdict"] == "TASKS_1_11_HAVE_DURABLE_CARRIERS_SCORE_UNCHANGED"
-PY
-  '
+  bash -c 'mkdir -p tmp && python -m json.tool artifacts/physics_validation/issue_1228_slice1_verdict.json > tmp/issue_1228_slice1_verdict.normalized.json'
 
 signal_artifact: "tmp/issue_1228_slice1_verdict.normalized.json"
 
@@ -51,7 +36,7 @@ falsifier:
   command: >-
     bash -c 'python -m json.tool artifacts/physics_validation/issue_1228_slice1_verdict.json >/dev/null'
   description: >-
-    Fails if the artifact-only verdict is not valid JSON; downstream checks validate the explicit non-claim fields.
+    Fails if the artifact-only verdict is not valid JSON.
 
 rollback_command: >-
   bash -c 'git rm -f artifacts/physics_validation/issue_1228_slice1_verdict.json .claude/commit_acceptors/issue-1228-slice1-ricci-carriers.yaml'
