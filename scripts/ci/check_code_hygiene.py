@@ -157,14 +157,16 @@ def _is_broad(handler: ast.ExceptHandler) -> bool:
     return any(isinstance(n, ast.Name) and n.id in _BROAD_NAMES for n in names)
 
 
-def _scan_file(rel: str, source: str, thr: dict[str, int]) -> dict[str, object]:
+def _scan_file(
+    rel: str, source: str, thr: dict[str, int]
+) -> tuple[dict[str, set[str]], dict[str, int]]:
     """Return this file's contribution to every debt dimension."""
     syms: dict[str, set[str]] = {d: set() for d in SYMBOL_DIMS}
-    counts = {d: 0 for d in COUNT_DIMS}
+    counts: dict[str, int] = {d: 0 for d in COUNT_DIMS}
     try:
         tree = ast.parse(source, filename=rel)
     except SyntaxError:
-        return {"syms": syms, "counts": counts}  # compileall gate owns syntax
+        return syms, counts  # compileall gate owns syntax
 
     file_loc = len(source.splitlines())
     if file_loc > thr["max_file_loc"]:
@@ -200,7 +202,7 @@ def _scan_file(rel: str, source: str, thr: dict[str, int]) -> dict[str, object]:
             walk(child, qual)
 
     walk(tree, "")
-    return {"syms": syms, "counts": counts}
+    return syms, counts
 
 
 def _scan() -> tuple[dict[str, set[str]], dict[str, dict[str, int]]]:
@@ -210,11 +212,11 @@ def _scan() -> tuple[dict[str, set[str]], dict[str, dict[str, int]]]:
     for path in _iter_py(roots, tuple(excluded)):
         rel = path.relative_to(ROOT).as_posix()
         source = path.read_text(encoding="utf-8", errors="replace")
-        contrib = _scan_file(rel, source, thr)
+        syms_part, counts_part = _scan_file(rel, source, thr)
         for dim in SYMBOL_DIMS:
-            syms[dim] |= contrib["syms"][dim]  # type: ignore[index]
+            syms[dim] |= syms_part[dim]
         for dim in COUNT_DIMS:
-            n = contrib["counts"][dim]  # type: ignore[index]
+            n = counts_part[dim]
             if n:
                 counts[dim][rel] = n
     return syms, counts
