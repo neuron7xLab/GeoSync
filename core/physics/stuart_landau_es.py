@@ -382,7 +382,9 @@ def fit_stuart_landau(
         z0=fitted_z0,
     )
     # bounds: public ES proximity is a [0, 1] scalar; raw area is retained.
-    es_proximity = float(min(max(area, 0.0), 1.0))
+    es_proximity = float(max(area, 0.0))
+    if es_proximity > 1.0:
+        es_proximity = 1.0
 
     return StuartLandauResult(
         amplitude=np.abs(amplitude),
