@@ -1,14 +1,15 @@
 {
   "schema_version": "2026.06.25",
   "issue": 1228,
-  "slice_id": "issue_1228_tasks_12_18_unit_rows",
+  "slice_id": "issue_1228_tasks_12_17_unit_rows",
   "status": "ARTIFACT_ONLY_UNIT_ROW_VERDICT",
   "score_credit_granted": false,
   "final_validation_complete": false,
   "target_interval_claimed": false,
   "canonical_score_before_slice": 81.5,
   "score_behavior": "unchanged; unit-row carrier binding does not grant score credit",
-  "completed_tasks": [12, 13, 14, 15, 16, 17, 18],
+  "completed_tasks": [12, 13, 14, 15, 16, 17],
+  "explicitly_open_tasks": [18],
   "source_document": "docs/physics/units_table.md",
   "unit_contract_test": "tests/physics/test_dimensional_homogeneity.py",
   "unit_rows": {
@@ -65,16 +66,10 @@
       "guard": "finite",
       "carrier_type": "documentation_row",
       "path": "docs/physics/units_table.md"
-    },
-    "18_dt_unit_row": {
-      "symbol": "dt",
-      "meaning": "time step / simulation increment",
-      "dimension": "time",
-      "implementation_carrier": "dt",
-      "guard": "positive finite when used by an integrator",
-      "carrier_type": "test_contract_field",
-      "path": "tests/physics/test_dimensional_homogeneity.py::UNIT_STATE"
     }
+  },
+  "open_task_reason": {
+    "18_dt_unit_row": "Task 18 is deliberately not closed in this PR because docs/physics/units_table.md does not yet contain an explicit dt row. The existing UNIT_STATE test field is a static contract carrier, not a unit-row carrier. A later dedicated PR must add the dt row or change the task semantics."
   },
   "test_coverage": {
     "static_contract": "tests/physics/test_dimensional_homogeneity.py::test_unit_state_contract_is_complete",
@@ -82,14 +77,14 @@
     "equation_contract": "tests/physics/test_dimensional_homogeneity.py::test_equation_unit_contract_is_complete",
     "non_physics_boundary": "tests explicitly mark this as static unit-label bookkeeping, not a physics-invariant witness"
   },
-  "measurement_command": "python -m pytest tests/physics/test_dimensional_homogeneity.py",
+  "measurement_command": "python -m json.tool artifacts/physics_validation/issue_1228_slice2_units_verdict.json",
   "non_claims": [
     "Does not claim score increase beyond 81.5.",
     "Does not claim final physics validation.",
     "Does not claim target interval reached.",
     "Does not treat static unit labels as a physics-invariant witness.",
-    "Does not replace later homogeneity, artifact, or pass-fail summary tasks 19-22."
+    "Does not close task 18 until an explicit dt unit row carrier exists."
   ],
-  "next_open_tasks": [19, 20, 21, 22, 23, 24, 25],
-  "verdict": "TASKS_12_18_HAVE_UNIT_ROW_CARRIERS_SCORE_UNCHANGED"
+  "next_open_tasks": [18, 19, 20, 21, 22, 23, 24, 25],
+  "verdict": "TASKS_12_17_HAVE_UNIT_ROW_CARRIERS_SCORE_UNCHANGED"
 }
