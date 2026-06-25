@@ -20,6 +20,7 @@ on:
       - "docs/SKIP_RATCHET_BASELINE.json"
       - "scripts/ci/check_code_hygiene.py"
       - "scripts/ci/check_skip_ratchet.py"
+      - "scripts/ci/check_debt_baseline_monotonic.py"
       - ".github/workflows/code-hygiene-gate.yml"
   push:
     branches: [main]
@@ -30,6 +31,7 @@ on:
       - "docs/SKIP_RATCHET_BASELINE.json"
       - "scripts/ci/check_code_hygiene.py"
       - "scripts/ci/check_skip_ratchet.py"
+      - "scripts/ci/check_debt_baseline_monotonic.py"
       - ".github/workflows/code-hygiene-gate.yml"
 
 permissions:
@@ -43,14 +45,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0 # meta-gate diffs baseline totals against origin/main
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.12"
 
+      - name: Fetch base ref
+        run: git fetch --no-tags origin main:refs/remotes/origin/main || true
+
       - name: Enforce code-hygiene ratchet
         run: python scripts/ci/check_code_hygiene.py
 
       - name: Enforce test skip/xfail ratchet
         run: python scripts/ci/check_skip_ratchet.py
+
+      - name: Enforce debt-baseline monotonicity (anti-laundering meta-gate)
+        run: python scripts/ci/check_debt_baseline_monotonic.py --base-ref origin/main

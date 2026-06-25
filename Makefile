@@ -123,6 +123,7 @@ code-quality:
 	python scripts/ci/check_import_architecture.py
 	python scripts/ci/check_code_hygiene.py
 	python scripts/ci/check_skip_ratchet.py
+	python scripts/ci/check_debt_baseline_monotonic.py
 	@echo "✅ Code-quality ratchets held"
 
 .PHONY: lint

@@ -28,6 +28,7 @@ This directory captures significant technical and governance decisions for GeoSy
 - [ADR 0022: Reset-Wave as Engineering Numerical Model (FACT/MODEL/ANALOGY)](0022-reset-wave-engineering-model.md)
 - [ADR 0023: Reset-Wave Distributed-Resilience Adapter (5 Async Failure Modes)](0023-reset-wave-distributed-resilience.md)
 - [ADR 0025: Code-hygiene ratchet](0025-code-hygiene-ratchet.md)
+- [ADR 0026: Code-hygiene keystone (anti-laundering, coverage, fail-closed parse)](0026-code-hygiene-keystone.md)
 
 ## Contributing
 

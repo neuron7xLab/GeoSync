@@ -363,7 +363,8 @@
       "geosync/cli/geosync_cli.py",
       "runtime/misanthropic_agent.py",
       "runtime/thermo_controller.py"
-    ]
+    ],
+    "unparseable": []
   },
   "file_count_debt": {
     "broad_except": {
