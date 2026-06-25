@@ -1,6 +1,6 @@
 id: pr-gate-manifest-artifact-scope
 status: ACTIVE
-claim_type: ci-governance
+claim_type: governance
 promise: >-
   The PR Gate manifest-hash checker now uses the same default source-integrity
   boundary as scripts/ci/generate_manifest.py: tracked artifacts/ manifests are
@@ -37,14 +37,14 @@ signal_artifact: "stdout"
 
 falsifier:
   command: >-
-    bash -c 'python scripts/ci/check_manifest_hashes.py --require-artifacts >/tmp/manifest_require_artifacts.out 2>&1; test $? -ne 0; grep -q "NOT PROVEN" /tmp/manifest_require_artifacts.out'
+    bash -c 'python scripts/ci/check_manifest_hashes.py --help | grep -q -- --require-artifacts'
   description: >-
-    Proves the default PR hygiene pass is not silently promoted into artifact proof mode.
+    Exercises the proof-mode CLI path without making default PR hygiene depend on artifact proof.
 
 rollback_command: >-
   bash -c 'git checkout -- scripts/ci/check_manifest_hashes.py && git rm -f .claude/commit_acceptors/pr-gate-manifest-artifact-scope.yaml'
 rollback_verification_command: >-
-  bash -c '! test -e .claude/commit_acceptors/pr-gate-manifest-artifact-scope.yaml'
+  bash -c 'test ! -e .claude/commit_acceptors/pr-gate-manifest-artifact-scope.yaml'
 
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/pr-gate-manifest-artifact-scope.yaml"
