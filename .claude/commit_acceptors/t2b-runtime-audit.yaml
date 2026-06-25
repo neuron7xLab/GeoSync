@@ -48,4 +48,4 @@ memory_update_type: append
 ledger_path: ".claude/commit_acceptors/t2b-runtime-audit.yaml"
 report_path: "results/cross_asset_kuramoto/SL_ES_PREREGISTRATION.md"
 evidence:
-  - "tests/unit/physics/test_T2b_runtime_audit.py"
+  - path: "tests/unit/physics/test_T2b_runtime_audit.py"
