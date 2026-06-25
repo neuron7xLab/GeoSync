@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 export PYTHONPATH="${PYTHONPATH:-.}:."
 PY="${PYTHON:-python3}"
 
-"$PY" - <<'PY'
+if ! "$PY" - <<'PY' 2>/dev/null
 import importlib.util as u
 missing = [m for m in ("numpy", "scipy", "pandas", "networkx", "yaml", "jsonschema", "pytest") if u.find_spec(m) is None]
-if missing:
-    raise SystemExit("missing required dependency set")
+raise SystemExit(1 if missing else 0)
 PY
+then
+  echo "MISSING DEPENDENCIES. This proof needs only the sci-core stack:" >&2
+  echo "  pip install numpy scipy pandas networkx pyyaml jsonschema pytest" >&2
+  exit 2
+fi
 
 echo "[1/14] invariant witness"
 test "$("$PY" scripts/count_invariants.py)" = "132"
@@ -41,24 +47,37 @@ echo "[8/14] mfn surface sensor"
 
 echo "[9/14] json artifact contract"
 for fixture in candidate blocked; do
-  "$PY" tools/validate_json_artifact_contract.py "examples/json_artifact_contract.${fixture}.json" --out "artifacts/validation/json_artifact_contract_${fixture}.result.json" >/dev/null
-  "$PY" tools/check_json_contract_evidence_policy.py "examples/json_artifact_contract.${fixture}.json" --out "artifacts/validation/json_artifact_policy_${fixture}.result.json" >/dev/null
+  "$PY" tools/validate_json_artifact_contract.py \
+    "examples/json_artifact_contract.${fixture}.json" \
+    --out "artifacts/validation/json_artifact_contract_${fixture}.result.json" >/dev/null
+  "$PY" tools/check_json_contract_evidence_policy.py \
+    "examples/json_artifact_contract.${fixture}.json" \
+    --out "artifacts/validation/json_artifact_policy_${fixture}.result.json" >/dev/null
 done
 
 echo "[10/14] json evidence policy"
-"$PY" tools/validate_json_artifact_contract.py examples/json_artifact_contract.candidate.json --out artifacts/validation/json_artifact_contract.result.json >/dev/null
-"$PY" tools/check_json_contract_evidence_policy.py examples/json_artifact_contract.candidate.json --out artifacts/validation/json_artifact_policy.result.json >/dev/null
+"$PY" tools/validate_json_artifact_contract.py \
+  examples/json_artifact_contract.candidate.json \
+  --out artifacts/validation/json_artifact_contract.result.json >/dev/null
+"$PY" tools/check_json_contract_evidence_policy.py \
+  examples/json_artifact_contract.candidate.json \
+  --out artifacts/validation/json_artifact_policy.result.json >/dev/null
 
 echo "[11/14] json contract receipt"
-"$PY" tools/json_contract_receipt.py --out artifacts/validation/json_contract_receipt.json >/dev/null
+"$PY" tools/json_contract_receipt.py \
+  --out artifacts/validation/json_contract_receipt.json >/dev/null
 
 echo "[12/14] autonomy cycle"
-"$PY" tools/run_autonomy_cycle.py --out artifacts/validation/autonomy_cycle.json >/dev/null
+"$PY" tools/run_autonomy_cycle.py \
+  --out artifacts/validation/autonomy_cycle.json >/dev/null
 
 echo "[13/14] physics docs canon"
 "$PY" scripts/ci/check_physics_docs_canon.py >/dev/null
 
 echo "[14/14] gate + contract tests"
+# Do NOT suppress pytest output: a hidden failure here is undiagnosable (a gate
+# that fails with no FAILED/ERROR line reads as a vacuous pass). Show short
+# tracebacks so the failing node id is always visible in CI logs.
 "$PY" -m pytest tests/research_lines tests/ci -q -p no:cacheprovider --tb=short
 
 echo "REPO_INTEGRITY: PROVEN"
