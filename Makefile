@@ -126,6 +126,12 @@ code-quality:
 	python scripts/ci/check_debt_baseline_monotonic.py
 	@echo "✅ Code-quality ratchets held"
 
+.PHONY: mutation-ratchet
+mutation-ratchet:
+	@echo "🧬 Mutation-kill ratchet (re-probes claim-critical physics on change)..."
+	python scripts/ci/check_mutation_kill_ratchet.py --base-ref origin/main
+	@echo "✅ Mutation-kill ratchet held"
+
 .PHONY: lint
 lint: lint-python lint-go lint-shell
 	@echo "✅ All linters passed"
