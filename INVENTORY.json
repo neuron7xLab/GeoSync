@@ -75,7 +75,7 @@
     },
     {
       "path": "scripts/ci/check_debt_baseline_monotonic.py",
-      "sha256": "927a7770810d20de19743e592d604fed102603ce489a44b1027259219794a6d7"
+      "sha256": "aa67b98e8be4d75626a0dc04447485697d068cf83902eed32f28807dbe887e00"
     },
     {
       "path": "scripts/ci/check_docs_consistency.py",
