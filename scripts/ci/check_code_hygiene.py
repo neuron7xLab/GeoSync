@@ -144,6 +144,23 @@ def _dotted(func: ast.expr) -> str | None:
     return ".".join(reversed(parts)) if parts else None
 
 
+def _alias_map(tree: ast.AST) -> dict[str, str]:
+    """Map a file's local import names to their canonical dotted target, so an
+    aliased ambient call survives detection (V7): ``import datetime as DT`` makes
+    ``DT.now()`` resolve to ``datetime.now``; ``from time import time as t`` makes
+    ``t()`` resolve to ``time.time``."""
+    out: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                local = a.asname or a.name.split(".")[0]
+                out[local] = a.name if a.asname else a.name.split(".")[0]
+        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+            for a in node.names:
+                out[a.asname or a.name] = f"{node.module}.{a.name}"
+    return out
+
+
 def _complexity(node: ast.AST) -> int:
     """McCabe cyclomatic complexity: 1 + count of decision points."""
     score = 1
@@ -196,6 +213,8 @@ def _scan_file(
     if file_loc > thr["max_file_loc"]:
         syms["god_file"].add(rel)
 
+    aliases = _alias_map(tree)
+
     def walk(node: ast.AST, prefix: str) -> None:
         for child in ast.iter_child_nodes(node):
             qual = prefix
@@ -220,6 +239,9 @@ def _scan_file(
                     counts["runtime_print"] += 1
                 elif target is not None:
                     bits = target.split(".")
+                    canonical = aliases.get(bits[0])
+                    if canonical:  # V7: rewrite an aliased base to its canonical
+                        bits = canonical.split(".") + bits[1:]
                     suffix2 = ".".join(bits[-2:])
                     if suffix2 in _AMBIENT_SUFFIX_2 or bits[-1] in _AMBIENT_NAME_1:
                         counts["ambient_nondeterminism"] += 1
