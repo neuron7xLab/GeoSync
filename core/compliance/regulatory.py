@@ -155,7 +155,38 @@ class RegulatoryComplianceValidator:
             raise TypeError("metadata must be a mapping")
 
         issues: list[ComplianceIssue] = []
+        privacy_values = self._check_privacy(metadata, issues)
+        iso_values = self._check_iso(metadata, issues)
+        nist_values = self._check_nist(metadata, issues)
+        owner = self._check_ownership(metadata, issues)
+        confidentiality = self._check_confidentiality(metadata, issues)
+        retention_days = self._check_retention(metadata, issues)
+        training_restrictions = self._check_training(metadata, issues)
+        license_name = self._check_license(metadata, issues)
+        self._check_domains(metadata, issues)
+        user_request_process = self._check_user_requests(metadata, issues)
+        self._check_consent(metadata, issues)
+        audit_frequency = self._check_audit(metadata, issues)
+        self._check_remediation(metadata, issues)
 
+        metadata_view = {
+            "privacy_regimes": ", ".join(sorted(value.upper() for value in privacy_values)),
+            "iso_controls": ", ".join(sorted(value.upper() for value in iso_values)),
+            "nist_controls": ", ".join(sorted(value.upper() for value in nist_values)),
+            "license": license_name or "unspecified",
+            "confidentiality": confidentiality or "unspecified",
+            "owner": owner or "unspecified",
+            "retention_days": str(retention_days or "unspecified"),
+            "training_restrictions": ", ".join(sorted(training_restrictions)),
+            "user_request_process": user_request_process or "unspecified",
+            "audit_frequency_days": str(audit_frequency or "unspecified"),
+        }
+        compliant = not any(issue.severity == "error" for issue in issues)
+        return ComplianceReport(compliant, tuple(issues), metadata_view)
+
+    def _check_privacy(
+        self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]
+    ) -> set[str]:
         privacy_values = _collect_strings(
             _lookup_value(
                 metadata,
@@ -214,7 +245,9 @@ class RegulatoryComplianceValidator:
                         f"Missing attestation for {regime.upper()} compliance",
                     )
                 )
+        return privacy_values
 
+    def _check_iso(self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]) -> set[str]:
         iso_values = _collect_strings(
             _lookup_value(
                 metadata,
@@ -232,7 +265,9 @@ class RegulatoryComplianceValidator:
                     "ISO alignment missing required certifications",
                 )
             )
+        return iso_values
 
+    def _check_nist(self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]) -> set[str]:
         nist_values = _collect_strings(
             _lookup_value(
                 metadata,
@@ -250,7 +285,11 @@ class RegulatoryComplianceValidator:
                     "NIST alignment missing required control frameworks",
                 )
             )
+        return nist_values
 
+    def _check_ownership(
+        self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]
+    ) -> str | None:
         owner = _normalise_string(
             _lookup_value(
                 metadata,
@@ -263,7 +302,11 @@ class RegulatoryComplianceValidator:
         )
         if not owner:
             issues.append(ComplianceIssue("error", "Data ownership is unspecified"))
+        return owner
 
+    def _check_confidentiality(
+        self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]
+    ) -> str | None:
         confidentiality = _normalise_string(
             _lookup_value(
                 metadata,
@@ -283,7 +326,11 @@ class RegulatoryComplianceValidator:
                     f"Confidentiality level '{confidentiality}' is not permitted",
                 )
             )
+        return confidentiality
 
+    def _check_retention(
+        self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]
+    ) -> int | None:
         retention_days = _normalise_positive_int(
             _lookup_value(
                 metadata,
@@ -319,7 +366,11 @@ class RegulatoryComplianceValidator:
                     "Retention policy lacks documented legal basis or reference",
                 )
             )
+        return retention_days
 
+    def _check_training(
+        self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]
+    ) -> set[str]:
         training_restrictions = _collect_strings(
             _lookup_value(
                 metadata,
@@ -337,7 +388,11 @@ class RegulatoryComplianceValidator:
                     "Training restrictions are incomplete or missing",
                 )
             )
+        return training_restrictions
 
+    def _check_license(
+        self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]
+    ) -> str | None:
         license_name = _normalise_string(
             _lookup_value(
                 metadata,
@@ -357,7 +412,9 @@ class RegulatoryComplianceValidator:
                     f"License {license_name} is restricted from use",
                 )
             )
+        return license_name
 
+    def _check_domains(self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]) -> None:
         intended_domains = _collect_strings(
             _lookup_value(
                 metadata,
@@ -378,6 +435,9 @@ class RegulatoryComplianceValidator:
                 )
             )
 
+    def _check_user_requests(
+        self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]
+    ) -> str | None:
         user_request_process = _normalise_string(
             _lookup_value(
                 metadata,
@@ -413,7 +473,9 @@ class RegulatoryComplianceValidator:
                     "User request SLA exceeds one week; review regulatory commitments",
                 )
             )
+        return user_request_process
 
+    def _check_consent(self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]) -> None:
         consent_logging = _normalise_bool(
             _lookup_value(
                 metadata,
@@ -432,6 +494,9 @@ class RegulatoryComplianceValidator:
                 )
             )
 
+    def _check_audit(
+        self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]
+    ) -> int | None:
         audit_section = _lookup_value(
             metadata,
             [
@@ -473,7 +538,11 @@ class RegulatoryComplianceValidator:
                     "Audit frequency exceeds configured maximum interval",
                 )
             )
+        return audit_frequency
 
+    def _check_remediation(
+        self, metadata: Mapping[str, Any], issues: list[ComplianceIssue]
+    ) -> None:
         remediation_section = _lookup_value(
             metadata,
             [
@@ -508,22 +577,6 @@ class RegulatoryComplianceValidator:
                     "Remediation plan reference is missing",
                 )
             )
-
-        metadata_view = {
-            "privacy_regimes": ", ".join(sorted(value.upper() for value in privacy_values)),
-            "iso_controls": ", ".join(sorted(value.upper() for value in iso_values)),
-            "nist_controls": ", ".join(sorted(value.upper() for value in nist_values)),
-            "license": license_name or "unspecified",
-            "confidentiality": confidentiality or "unspecified",
-            "owner": owner or "unspecified",
-            "retention_days": str(retention_days or "unspecified"),
-            "training_restrictions": ", ".join(sorted(training_restrictions)),
-            "user_request_process": user_request_process or "unspecified",
-            "audit_frequency_days": str(audit_frequency or "unspecified"),
-        }
-
-        compliant = not any(issue.severity == "error" for issue in issues)
-        return ComplianceReport(compliant, tuple(issues), metadata_view)
 
 
 __all__ = ["RegulatoryComplianceValidator"]
