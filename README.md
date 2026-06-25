@@ -69,6 +69,30 @@ GeoSync treats research as engineered infrastructure, not as a decorative chart 
 
 ---
 
+## Quickstart
+
+Python 3.11–3.12. All dependencies are installed from pinned locks — the same way CI does it.
+
+```bash
+git clone https://github.com/neuron7xLab/GeoSync
+cd GeoSync
+make dev-install        # dev + runtime deps, from the lock files
+make golden-path        # demo workflow: data → analysis → backtest
+```
+
+Reproduce the gates locally — a PR sees nothing the terminal can't show you first:
+
+```bash
+make test               # core suite (fast, CI-safe)
+make verify             # local mirror of the PR gate battery
+make phd-evidence       # build the evidence-bearing artifact bundle
+```
+
+`make help` lists every target. A green terminal line is **not** a claim: promotion
+happens only through the [`CLAIMS.md`](CLAIMS.md) tier ledger — see [Research boundary](#research-boundary).
+
+---
+
 ## Repository Map
 
 | Surface | Purpose |
@@ -87,3 +111,9 @@ GeoSync treats research as engineered infrastructure, not as a decorative chart 
 ## Research boundary
 
 GeoSync is `HYPOTHESIS`/`INSTRUMENTED`-first: a green terminal line is `NOT EVIDENCE-BEARING` until an artifact carries it. Synthetic data may exercise a mechanism and bound its failure modes, but it never promotes a claim about real markets. Schema validity proves shape, not truth. Promotion happens only through the [`CLAIMS.md`](CLAIMS.md) tier ledger under the gates in [`docs/REPOSITORY_SYSTEM.md`](docs/REPOSITORY_SYSTEM.md).
+
+---
+
+## License
+
+[MIT](LICENSE) © 2023–2026 Yaroslav Vasylenko (neuron7xLab)
