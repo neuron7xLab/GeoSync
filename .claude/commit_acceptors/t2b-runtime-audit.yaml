@@ -5,12 +5,14 @@ promise: >-
   Close the runtime/model debt slice for Stuart-Landau T2b without changing
   score, shadow-rail status, or the rejected real-data validation verdict.
   The fitted-state sweep initializes from observed analytic state
-  z0=A*exp(i*theta) by default, mu clipping is auditable, and rolling evidence
-  can fail closed.
+  z0=A*exp(i*theta) by default, mu clipping is auditable, rolling evidence
+  can fail closed, and the numerical-policy clamp registry is refreshed to the
+  live Stuart-Landau source lines.
 diff_scope:
   changed_files:
     - path: "core/physics/stuart_landau_es.py"
     - path: "tests/unit/physics/test_T2b_runtime_audit.py"
+    - path: "tools/physics/clamp_registry.yaml"
     - path: ".claude/commit_acceptors/t2b-runtime-audit.yaml"
   forbidden_paths:
     - "trading/"
@@ -27,10 +29,11 @@ expected_signal: >-
   and rolling fail-closed mode raises with a window index instead of hiding
   evidence failures as NaN. The slice makes no score increase, no shadow-rail
   promotion, no final validation claim, and no trading/execution/forecast/policy
-  change.
+  change. Numerical-policy registry sites are refreshed only for live line-number
+  drift caused by the Stuart-Landau runtime refactor.
 measurement_command: >-
   python -m pytest tests/unit/physics/test_T2b_runtime_audit.py
-  tests/unit/physics/test_T2b_stuart_landau_es.py -q
+  tests/unit/physics/test_T2b_stuart_landau_es.py tests/tools/test_numerical_policy.py -q
 signal_artifact: "tmp/t2b_runtime_audit_pytest.log"
 falsifier:
   command: >-
@@ -41,6 +44,7 @@ falsifier:
 rollback_command: >-
   git checkout HEAD~1 -- core/physics/stuart_landau_es.py
   tests/unit/physics/test_T2b_runtime_audit.py
+  tools/physics/clamp_registry.yaml
   .claude/commit_acceptors/t2b-runtime-audit.yaml
 rollback_verification_command: >-
   git diff --exit-code core/physics/stuart_landau_es.py
@@ -49,3 +53,4 @@ ledger_path: ".claude/commit_acceptors/t2b-runtime-audit.yaml"
 report_path: "results/cross_asset_kuramoto/SL_ES_PREREGISTRATION.md"
 evidence:
   - path: "tests/unit/physics/test_T2b_runtime_audit.py"
+  - path: "tools/physics/clamp_registry.yaml"
