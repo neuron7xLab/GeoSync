@@ -18,6 +18,13 @@ diff_scope:
     - path: "scripts/ci/check_physics_docs_canon.py"
     - path: "tests/unit/test_check_physics_docs_canon.py"
     - path: "docs/PHYSICS_CANON.manifest.json"
+    - path: "docs/PHYSICS_CANON.md"
+    - path: "docs/PHYSICS_GLOSSARY.md"
+    - path: "docs/PHYSICS_MATURITY_MATRIX.md"
+    - path: "docs/PHYSICS_VERIFICATION_RUNBOOK.md"
+    - path: "docs/DOCUMENTATION_INDEX.manifest.json"
+    - path: "docs/PHYSICS_PROOF.md"
+    - path: "docs/research/RICCI_MICROSTRUCTURE_STATUS.md"
     - path: ".claude/commit_acceptors/physics-docs-canon-gate.yaml"
   forbidden_paths:
     - "trading/"
