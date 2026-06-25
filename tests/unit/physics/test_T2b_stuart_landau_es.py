@@ -12,6 +12,7 @@ INV-T2b   rolling ES peak precedes R(t) peak by τ ≥ 1 bar  (qualitative)
 from __future__ import annotations
 
 import numpy as np
+import pytest
 from numpy.typing import NDArray
 from scipy.signal import hilbert
 
@@ -23,6 +24,8 @@ from core.physics.stuart_landau_es import (
     fit_stuart_landau,
     rolling_es_proximity,
 )
+
+pytestmark = pytest.mark.heavy_math
 
 
 def _envelope_oscillator_prices(
