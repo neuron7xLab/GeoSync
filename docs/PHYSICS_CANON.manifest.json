@@ -12,6 +12,9 @@
         "INV-ST1",
         "INV-ST2",
         "INV-ST3",
+        "INV-TAU1",
+        "INV-TAU2",
+        "INV-TAU3",
         "INV-TH1",
         "INV-TH2",
         "INV-TH3"
@@ -31,6 +34,9 @@
       "forbidden_claim": "Not a claim of profitability or live-venue readiness.",
       "invariants": [
         "INV-API-CONTRACT",
+        "INV-DET1",
+        "INV-DET2",
+        "INV-DET3",
         "INV-HPC1",
         "INV-HPC2",
         "INV-HPC3",
@@ -167,6 +173,9 @@
       "allowed_claim": "Kuramoto / Ott-Antonsen / Lyapunov results hold for the stated coupling model and finite-size regime.",
       "forbidden_claim": "No claim that asset returns synchronize as a market law.",
       "invariants": [
+        "INV-CAL1",
+        "INV-CAL2",
+        "INV-CAL3",
         "INV-ES1",
         "INV-ES2",
         "INV-HO-SPARSE",
@@ -181,12 +190,23 @@
         "INV-K8",
         "INV-K9",
         "INV-KBETA",
+        "INV-KR1",
+        "INV-KR2",
+        "INV-KR3",
         "INV-LE1",
         "INV-LE2",
         "INV-LE3",
+        "INV-LY1",
+        "INV-LY2",
+        "INV-LY3",
+        "INV-LY4",
         "INV-OA1",
         "INV-OA2",
         "INV-OA3",
+        "INV-PIN1",
+        "INV-PIN2",
+        "INV-PIN3",
+        "INV-PIN4",
         "INV-SAK1",
         "INV-SG1",
         "INV-SG2",
@@ -246,7 +266,7 @@
     "laws": "physics_contracts/catalog.yaml"
   },
   "totals": {
-    "invariants": 112,
+    "invariants": 132,
     "laws": 42
   }
 }

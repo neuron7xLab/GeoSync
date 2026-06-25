@@ -1448,3 +1448,336 @@ adaptive_criticality:
     tests: tests/unit/physics/test_adaptive_criticality_kappa.py
     scope_note: "Criticality OBSERVER, not predictor; synthetic-only. Source-available, fail-closed, unit-tested gate — NOT yet wired into a production ensemble consumer (no live caller). Original INV-AC1 (κ_critical = -dH/dt·τ) is REJECTED (Pesin-identity failure in non-ergodic systems); this revised form supersedes it."
     related: [INV-CRITICALITY, INV-DRO1]
+
+# ═══════════════════════════════════════════════════
+# SEVEN-LAW CONSTITUTIONAL PHYSICS ACT (Laws T1–T7) — registry reconciliation
+# ═══════════════════════════════════════════════════
+# These invariants were authored as the constitutional GeoSync Physics Law Act
+# (CLAUDE.md §Laws T1–T7) and bound to diff-scoped commit acceptors
+# (.claude/commit_acceptors/law-T*.yaml) with executable witnesses, but they
+# were never mirrored into THIS authoritative registry. The validator
+# (.claude/physics/validate_tests.py) and the evidence-integrity gate treat
+# ONLY this file as the invariant authority, so the T-series witnesses raised
+# L2 "INV-* not found in INVARIANTS.yaml" and could not be honestly grounded
+# (issue #823 follow-up note: "registry/header drift … separate
+# registry-reconciliation task"). Each statement/type/falsification below is
+# copied verbatim-in-substance from CLAUDE.md and cross-checked against the
+# law doc (docs/laws/T*.md), the source module, and the law-T* acceptor. No
+# new physics is introduced; this is a pure registry-authority reconciliation.
+
+law_t1_kuramoto_ricci_sync_onset:
+  phi_sign_regime:
+    id: INV-KR1
+    type: algebraic
+    statement: "sign(Φ) determines the asymptotic order-parameter regime, where Φ = K·λ_max(A_κ) − 2γ on the non-negative sync-adjacency built from Ollivier-Ricci curvatures (Restrepo-Ott-Hunt 2005). Subcritical (Φ < 0): ⟨R⟩ ≤ 1.5·3/√N. Supercritical (Φ > 0): ⟨R⟩ > 0.5."
+    test_type: property_test
+    parameters:
+      phi: "Φ = K·λ_max(A_κ) − 2γ — the Restrepo-Ott-Hunt synchronisation-onset functional on the curvature graph"
+      finite_size_band: "⟨R⟩ ≤ 1.5·3/√N is the finite-N incoherent fluctuation band; complete-graph limit reproduces K_c = 2γ/(N−1) (Strogatz 2000)"
+    falsification: "A subcritical ensemble (Φ < 0) settles to ⟨R⟩ > 1.5·3/√N, or a supercritical ensemble (Φ > 0) fails to reach ⟨R⟩ > 0.5, at the documented N and γ."
+    priority: P0
+    provenance: ANCHORED
+    source: core/kuramoto/kuramoto_ricci_engine.py
+    tests: tests/unit/physics/test_T1_kuramoto_ricci_boundary.py
+    references:
+      - "Restrepo, J. G., Ott, E. & Hunt, B. R. (2005). Onset of synchronization in large networks of coupled oscillators. Phys. Rev. E 71, 036151."
+      - "Ollivier, Y. (2009). Ricci curvature of Markov chains on metric spaces. J. Funct. Anal. 256, 810–864."
+      - "Strogatz, S. H. (2000). From Kuramoto to Crawford. Physica D 143, 1–20."
+    related: [INV-KR4, INV-RC1, INV-K1]
+
+  mle_zero_crossing:
+    id: INV-KR2
+    type: qualitative
+    statement: "The variational maximal Lyapunov exponent crosses zero through the onset boundary Φ = 0 — the synchronised manifold becomes attracting exactly where the algebraic regime functional changes sign. Verified via the Law T2 lyapunov_spectrum estimator."
+    test_type: sweep_test
+    falsification: "The sign of the variational MLE does not change across Φ = 0 over a coupling sweep bracketing the onset, contradicting the INV-KR1 regime split."
+    priority: P0
+    provenance: ANCHORED
+    source: core/kuramoto/kuramoto_ricci_engine.py
+    tests: tests/unit/physics/test_T1_kuramoto_ricci_boundary.py
+    references:
+      - "Restrepo, J. G., Ott, E. & Hunt, B. R. (2005). Onset of synchronization in large networks of coupled oscillators. Phys. Rev. E 71, 036151."
+    related: [INV-KR1, INV-LY1]
+
+  identical_frequency_potential_descent:
+    id: INV-KR3
+    type: conservation
+    statement: "With ω_i = 0 the Kuramoto coupling potential V is non-increasing along midpoint (RK2) trajectories: max dV/dt ≤ 1e-9. The phase-locked state is a Lyapunov-stable energy minimum when frequency heterogeneity is removed."
+    test_type: conservation
+    parameters:
+      potential: "V = −Σ_{i<j} A_ij cos(θ_i − θ_j) — the gradient potential whose −∇V is the identical-frequency Kuramoto flow"
+      tolerance: "max dV/dt ≤ 1e-9 — midpoint-integrator discretisation floor, not a tunable knob"
+    falsification: "A run with ω_i = 0 shows dV/dt > 1e-9 at any midpoint step, i.e. the coupling potential increases along the gradient flow."
+    priority: P0
+    provenance: ANCHORED
+    source: core/kuramoto/kuramoto_ricci_engine.py
+    tests: tests/unit/physics/test_T1_kuramoto_ricci_boundary.py
+    references:
+      - "Strogatz, S. H. (2000). From Kuramoto to Crawford. Physica D 143, 1–20."
+    related: [INV-KR1]
+
+law_t2_lyapunov_full_spectrum:
+  linear_flow_recovers_eigenvalues:
+    id: INV-LY1
+    type: algebraic
+    statement: "For a linear flow ẋ = A x the Benettin QR spectrum recovers the real parts of the eigenvalues: sort_desc(spectrum) == sort_desc(Re(eigvals(A))) to 1e-3 at T = 50. The variational estimator reduces to spectral theory on its exactly-solvable limit."
+    test_type: property_test
+    falsification: "sort_desc(spectrum) deviates from sort_desc(Re(eigvals(A))) by more than 1e-3 for a linear flow integrated to T = 50."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/lyapunov_spectrum.py
+    tests: tests/unit/physics/test_T2_lyapunov_full_spectrum.py
+    references:
+      - "Benettin, G., Galgani, L., Giorgilli, A. & Strelcyn, J.-M. (1980). Lyapunov characteristic exponents for smooth dynamical systems; a method for computing all of them. Meccanica 15, 9–30."
+    related: [INV-LY2, INV-LY3, INV-LY4, INV-KR2]
+
+  hamiltonian_sum_zero_when_resolved:
+    id: INV-LY2
+    type: conditional
+    statement: "RESOLVED Hamiltonian flow ⇒ Σ λ_k = 0 to 1e-3 (harmonic oscillator, ≈16 periods, ω·dt ≲ 0.05). NOT universal: the tangent integrator is non-symplectic, so the Σλ error grows as O((ω·dt)⁴) (measured slope 3.998); the conservation bound holds ONLY when the fastest mode is time-resolved. Corrected from false-universal 2026-06 (cf. INV-RC3 #1023)."
+    test_type: property_test
+    parameters:
+      resolution_condition: "ω·dt ≲ 0.05 — fastest-mode time-resolution precondition; outside it the non-symplectic tangent flow breaks the sum rule as O((ω·dt)⁴)"
+    falsification: "A time-resolved Hamiltonian flow yields |Σ λ_k| > 1e-3, OR the breakdown of the sum away from resolution does not scale as the fourth power of ω·dt."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/lyapunov_spectrum.py
+    tests: tests/unit/physics/test_T2_lyapunov_full_spectrum.py
+    references:
+      - "Benettin, G., Galgani, L., Giorgilli, A. & Strelcyn, J.-M. (1980). Lyapunov characteristic exponents for smooth dynamical systems. Meccanica 15, 9–30."
+      - "Sandri, M. (1996). Numerical calculation of Lyapunov exponents. Mathematica J. 6, 78–84."
+    related: [INV-LY1, INV-RC3]
+
+  fail_closed_contract:
+    id: INV-LY3
+    type: universal
+    statement: "Every contract violation (dt ≤ 0, n_steps ≤ 0, qr_every ∤ n_steps, n_exp ∉ [1, n], non-1-D x0) raises ValueError. Fail-closed; no silent repair of an ill-posed spectrum request."
+    test_type: property_test
+    falsification: "Any of the enumerated contract violations returns a spectrum (or a repaired result) instead of raising ValueError."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/lyapunov_spectrum.py
+    tests: tests/unit/physics/test_T2_lyapunov_full_spectrum.py
+    references:
+      - "Benettin, G., Galgani, L., Giorgilli, A. & Strelcyn, J.-M. (1980). Lyapunov characteristic exponents for smooth dynamical systems. Meccanica 15, 9–30."
+    related: [INV-LY4]
+
+  qr_conditioning_fail_closed:
+    id: INV-LY4
+    type: universal
+    statement: "QR conditioning is fail-closed. If at ANY reorthonormalisation step the tangent frame loses orthonormality (max|QᵀQ − I| > _ORTHO_TOL ≈ 1e6·eps_f64) or a direction collapses below float64 relative resolution (min|R_kk| / max|R_kk| ≤ eps_f64), or either metric is non-finite, the run raises FloatingPointError(INV-LY4) instead of flooring |R_kk| with 1e-30 and returning a ≈ −69-bit garbage exponent. Both thresholds are tied to float64, not tunable. Orthonormal Q is the Benettin (1980) precondition; well-conditioned systems are byte-unchanged."
+    test_type: property_test
+    parameters:
+      ortho_tol: "_ORTHO_TOL ≈ 1e6·numpy.finfo(float64).eps — orthonormality residual ceiling on max|QᵀQ − I|"
+      rdiag_floor: "_RDIAG_REL_FLOOR = numpy.finfo(float64).eps — minimum admissible min|R_kk|/max|R_kk| before rank collapse"
+    falsification: "A rank-collapsing or blow-up-dt run returns a floored finite spectrum instead of raising FloatingPointError tagged INV-LY4, OR a well-conditioned run's accumulated log is altered by the guard."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/lyapunov_spectrum.py
+    tests: tests/unit/physics/test_T2_lyapunov_full_spectrum.py
+    references:
+      - "Benettin, G., Galgani, L., Giorgilli, A. & Strelcyn, J.-M. (1980). Lyapunov characteristic exponents for smooth dynamical systems. Meccanica 15, 9–30."
+      - "IEEE 754-2019 — IEEE Standard for Floating-Point Arithmetic."
+    related: [INV-LY1, INV-LY3]
+
+law_t3_coupling_calibration:
+  feasible_target_residual:
+    id: INV-CAL1
+    type: algebraic
+    statement: "A feasible target λ_1 ⇒ residual ≤ tolerance (default 5e-2). On the round-trip (synthesise λ from K_truth via Law T2, calibrate K back via SciPy bounded Brent) the calibrator recovers λ to ≤ 1e-12 — limited only by SciPy xatol and the T2 estimator finite-T noise."
+    test_type: property_test
+    parameters:
+      objective: "minimise |λ_1(K·A; ω) − target|² on a bounded interval (K_min, K_max) with Brent's derivative-free method"
+      tolerance: "default residual tolerance 5e-2; round-trip recovery ≤ 1e-12"
+    falsification: "A feasible target reports CONVERGED with residual > tolerance, OR the K_truth→λ→K* round-trip recovers λ to worse than 1e-12 on the documented synthetic input."
+    priority: P0
+    provenance: ANCHORED
+    source: core/kuramoto/lyapunov_calibration.py
+    tests: tests/unit/physics/test_T3_lyapunov_calibration.py
+    references:
+      - "Brent, R. P. (1973). Algorithms for Minimization Without Derivatives. Prentice-Hall."
+      - "Pyragas, K. (1992). Continuous control of chaos by self-controlling feedback. Phys. Lett. A 170, 421–428."
+    related: [INV-CAL2, INV-CAL3, INV-LY1]
+
+  infeasible_target_status:
+    id: INV-CAL2
+    type: conditional
+    statement: "An infeasible target ⇒ status INFEASIBLE, never a silent best-effort. Tested: target λ = 5.0 (physically out of reach for N = 6 supercritical Kuramoto) correctly reports INFEASIBLE rather than returning a spurious K*."
+    test_type: property_test
+    falsification: "A target known to be out of reach returns status CONVERGED with a fabricated K* instead of INFEASIBLE."
+    priority: P0
+    provenance: ANCHORED
+    source: core/kuramoto/lyapunov_calibration.py
+    tests: tests/unit/physics/test_T3_lyapunov_calibration.py
+    references:
+      - "Brent, R. P. (1973). Algorithms for Minimization Without Derivatives. Prentice-Hall."
+    related: [INV-CAL1]
+
+  positivity_hard_bound:
+    id: INV-CAL3
+    type: universal
+    statement: "K* > 0 always — positivity is a hard search bound (K_min > 0 enforced), never a soft penalty. Every contract violation (NaN/inf target, K_min ≤ 0, K_max ≤ K_min, tolerance ≤ 0, max_iter ≤ 0, signed adjacency, shape mismatch) raises ValueError; fail-closed."
+    test_type: property_test
+    falsification: "The calibrator returns K* ≤ 0, OR admits any enumerated contract violation instead of raising ValueError."
+    priority: P0
+    provenance: ANCHORED
+    source: core/kuramoto/lyapunov_calibration.py
+    tests: tests/unit/physics/test_T3_lyapunov_calibration.py
+    references:
+      - "Brent, R. P. (1973). Algorithms for Minimization Without Derivatives. Prentice-Hall."
+    related: [INV-CAL1, INV-CAL2]
+
+law_t5_predictability_landauer:
+  lorenz_horizon_formula:
+    id: INV-TAU1
+    type: algebraic
+    statement: "Predictability horizon τ(λ_1) = (1/λ_1)·ln(δ_tol/δ_0) (Lorenz 1969). τ → +∞ when λ_1 ≤ 0 (no exponential divergence), and τ halves under a doubled λ_1 (a twice-as-chaotic system is predictable half as long)."
+    test_type: property_test
+    parameters:
+      formula: "τ = (1/λ_1)·ln(δ_tol/δ_0) — error-doubling horizon for an exponentially separating flow"
+    falsification: "τ deviates from (1/λ_1)·ln(δ_tol/δ_0) on analytic inputs, fails to return +∞ for λ_1 ≤ 0, or does not halve when λ_1 is doubled."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/predictability_horizon.py
+    tests: tests/unit/physics/test_T5_predictability_landauer.py
+    references:
+      - "Lorenz, E. N. (1969). The predictability of a flow which possesses many scales of motion. Tellus 21, 289–307."
+    related: [INV-TAU2, INV-TAU3]
+
+  landauer_energy_floor:
+    id: INV-TAU2
+    type: conservation
+    statement: "Landauer floor E_min = k_B·T·ln(Δ/δ_0) sets the physical energy cost of initialising the state to precision δ_0 over dynamic range Δ (Landauer 1961). An over-budget δ_0 request raises a 'physically unaffordable' ValueError — no silent repair to an affordable precision."
+    test_type: conservation
+    parameters:
+      floor: "E_min = k_B·T·ln(Δ/δ_0) — the per-initialisation Landauer energy budget; this reuses k_B·T·ln 2 as a predictability-horizon budget, distinct from INV-LANDAUER bit-erasure"
+    falsification: "A precision request whose E_min exceeds the supplied energy budget is silently honoured instead of raising ValueError, OR the computed floor deviates from k_B·T·ln(Δ/δ_0)."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/predictability_horizon.py
+    tests: tests/unit/physics/test_T5_predictability_landauer.py
+    references:
+      - "Landauer, R. (1961). Irreversibility and heat generation in the computing process. IBM J. Res. Dev. 5, 183–191."
+      - "Bennett, C. H. (2003). Notes on Landauer's principle, reversible computation, and Maxwell's Demon. Stud. Hist. Phil. Mod. Phys. 34, 501–510."
+    related: [INV-TAU1, INV-LANDAUER]
+
+  fail_closed_contract:
+    id: INV-TAU3
+    type: universal
+    statement: "Every contract violation (non-finite λ_1, non-positive δ_0/δ_tol/Δ/T, δ_tol ≤ δ_0, over-budget request) raises ValueError. Fail-closed through the master formula; no NaN/inf horizon is ever returned as a number."
+    test_type: property_test
+    falsification: "Any enumerated contract violation returns a finite-or-NaN horizon instead of raising ValueError."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/predictability_horizon.py
+    tests: tests/unit/physics/test_T5_predictability_landauer.py
+    references:
+      - "Lorenz, E. N. (1969). The predictability of a flow which possesses many scales of motion. Tellus 21, 289–307."
+    related: [INV-TAU1, INV-TAU2]
+
+law_t6_determinism_kit:
+  identical_inputs_identical_hash:
+    id: INV-DET1
+    type: universal
+    statement: "Identical canonical inputs ⇒ identical hash. All NaN bit-patterns collapse to one canonical NaN; +0 and −0 unify; subnormals flush to +0. Canonicalisation removes the float64 representations that are numerically equal but bitwise distinct before hashing (FIPS 180-4)."
+    test_type: property_test
+    falsification: "Two numerically-identical canonical inputs (differing only in NaN payload, signed zero, or subnormal representation) produce different hashes."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/determinism_kit.py
+    tests: tests/unit/physics/test_T6_determinism_kit.py
+    references:
+      - "IEEE 754-2019 — IEEE Standard for Floating-Point Arithmetic."
+      - "FIPS 180-4 (2015). Secure Hash Standard (SHS). NIST."
+    related: [INV-DET2, INV-DET3, INV-HPC1]
+
+  ulp_perturbation_distinct_hash:
+    id: INV-DET2
+    type: universal
+    statement: "A 1-ULP perturbation ⇒ a different hash. dtype, shape, and trajectory-order aliasing are blocked, so two genuinely different states can never collide under the canonical hash. The kit is sensitive at the floating-point resolution limit."
+    test_type: property_test
+    falsification: "A 1-ULP perturbation, a dtype/shape change, or a trajectory reordering produces the same hash as the unperturbed input."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/determinism_kit.py
+    tests: tests/unit/physics/test_T6_determinism_kit.py
+    references:
+      - "IEEE 754-2019 — IEEE Standard for Floating-Point Arithmetic."
+    related: [INV-DET1]
+
+  fail_closed_contract:
+    id: INV-DET3
+    type: universal
+    statement: "Every contract violation (unsupported dtype, ragged/object array, non-array input) raises ValueError. Fail-closed; the kit never hashes an input it cannot canonicalise deterministically."
+    test_type: property_test
+    falsification: "Any unsupported or non-canonicalisable input is hashed instead of raising ValueError."
+    priority: P0
+    provenance: ANCHORED
+    source: core/physics/determinism_kit.py
+    tests: tests/unit/physics/test_T6_determinism_kit.py
+    references:
+      - "IEEE 754-2019 — IEEE Standard for Floating-Point Arithmetic."
+    related: [INV-DET1, INV-DET2]
+
+law_t7_pinning_control:
+  pinning_set_stabilises_or_insufficient:
+    id: INV-PIN1
+    type: universal
+    statement: "The returned pinning set P satisfies λ_2(L + Γ_P) > ε_pin (the pinned Laplacian gains a strictly positive algebraic connectivity margin) OR the call returns status INSUFFICIENT. Fail-closed: it never claims control it did not achieve."
+    test_type: property_test
+    parameters:
+      pinned_laplacian: "L + Γ_P — graph Laplacian plus diagonal pinning gain on the selected nodes; λ_2 > ε_pin is the controllability margin (Wang-Chen 2002)"
+    falsification: "A returned set P reports success while λ_2(L + Γ_P) ≤ ε_pin, or an uncontrollable configuration returns success instead of INSUFFICIENT."
+    priority: P0
+    provenance: ANCHORED
+    source: runtime/pinning_control.py
+    tests: tests/unit/physics/test_T7_pinning_control.py
+    references:
+      - "Wang, X. F. & Chen, G. (2002). Pinning control of scale-free dynamical networks. Physica A 310, 521–531."
+      - "Sorrentino, F. et al. (2007). Controllability of complex networks via pinning. Phys. Rev. E 75, 046103."
+    related: [INV-PIN2, INV-PIN3, INV-PIN4, INV-SG1]
+
+  contractive_in_linearised_regime:
+    id: INV-PIN2
+    type: conditional
+    statement: "pinning_step is contractive in the linearised regime when target = 0, λ_2(L + Γ_P) > 0, and dt < 2/λ_max(L + Γ_P). The explicit-Euler stability window ties the admissible step to the largest pinned-Laplacian eigenvalue."
+    test_type: property_test
+    parameters:
+      step_bound: "dt < 2/λ_max(L + Γ_P) — explicit-Euler stability ceiling for the linearised pinned flow"
+    falsification: "A step taken with dt < 2/λ_max(L + Γ_P) under the stated conditions fails to contract the error toward the pinned target."
+    priority: P0
+    provenance: ANCHORED
+    source: runtime/pinning_control.py
+    tests: tests/unit/physics/test_T7_pinning_control.py
+    references:
+      - "Sorrentino, F. et al. (2007). Controllability of complex networks via pinning. Phys. Rev. E 75, 046103."
+      - "Olfati-Saber, R. & Murray, R. M. (2004). Consensus problems in networks of agents. IEEE Trans. Autom. Control 49, 1520–1533."
+    related: [INV-PIN1]
+
+  topology_preservation:
+    id: INV-PIN3
+    type: universal
+    statement: "The adjacency matrix A is never mutated by pinning selection or stepping — topology is preserved. Pinning acts through the additive gain Γ_P on the diagonal, never by rewiring the underlying graph."
+    test_type: property_test
+    falsification: "Any pinning call mutates the input adjacency A (an edge is added, removed, or reweighted)."
+    priority: P0
+    provenance: ANCHORED
+    source: runtime/pinning_control.py
+    tests: tests/unit/physics/test_T7_pinning_control.py
+    references:
+      - "Wang, X. F. & Chen, G. (2002). Pinning control of scale-free dynamical networks. Physica A 310, 521–531."
+    related: [INV-PIN1]
+
+  fail_closed_contract:
+    id: INV-PIN4
+    type: universal
+    statement: "Every contract violation (non-square/asymmetric A, negative pinning gain, ε_pin ≤ 0, dt ≤ 0, empty graph) raises ValueError. Fail-closed; an ill-posed control request is never silently accepted."
+    test_type: property_test
+    falsification: "Any enumerated contract violation returns a pinning result instead of raising ValueError."
+    priority: P0
+    provenance: ANCHORED
+    source: runtime/pinning_control.py
+    tests: tests/unit/physics/test_T7_pinning_control.py
+    references:
+      - "Wang, X. F. & Chen, G. (2002). Pinning control of scale-free dynamical networks. Physica A 310, 521–531."
+    related: [INV-PIN1, INV-PIN2, INV-PIN3]

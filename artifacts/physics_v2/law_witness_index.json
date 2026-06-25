@@ -806,6 +806,39 @@
       ]
     },
     {
+      "falsifier": "A feasible target reports CONVERGED with residual > tolerance, OR the K_truth→λ→K* round-trip recovers λ to worse than 1e-12 on the documented synthetic input.",
+      "id": "INV-CAL1",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/kuramoto/lyapunov_calibration.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T3_lyapunov_calibration.py"
+      ]
+    },
+    {
+      "falsifier": "A target known to be out of reach returns status CONVERGED with a fabricated K* instead of INFEASIBLE.",
+      "id": "INV-CAL2",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/kuramoto/lyapunov_calibration.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T3_lyapunov_calibration.py"
+      ]
+    },
+    {
+      "falsifier": "The calibrator returns K* ≤ 0, OR admits any enumerated contract violation instead of raising ValueError.",
+      "id": "INV-CAL3",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/kuramoto/lyapunov_calibration.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T3_lyapunov_calibration.py"
+      ]
+    },
+    {
       "falsifier": "CryptobiosisController in DORMANT state returns multiplier != 0.0",
       "id": "INV-CB1",
       "priority": "P0",
@@ -982,6 +1015,39 @@
       "status": "COVERED",
       "test_witnesses": [
         "tests/unit/physics/test_dopamine_execution_adapter_bounds.py"
+      ]
+    },
+    {
+      "falsifier": "Two numerically-identical canonical inputs (differing only in NaN payload, signed zero, or subnormal representation) produce different hashes.",
+      "id": "INV-DET1",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/determinism_kit.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T6_determinism_kit.py"
+      ]
+    },
+    {
+      "falsifier": "A 1-ULP perturbation, a dtype/shape change, or a trajectory reordering produces the same hash as the unperturbed input.",
+      "id": "INV-DET2",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/determinism_kit.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T6_determinism_kit.py"
+      ]
+    },
+    {
+      "falsifier": "Any unsupported or non-canonicalisable input is hashed instead of raising ValueError.",
+      "id": "INV-DET3",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/determinism_kit.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T6_determinism_kit.py"
       ]
     },
     {
@@ -1365,6 +1431,39 @@
       "test_witnesses": []
     },
     {
+      "falsifier": "A subcritical ensemble (Φ < 0) settles to ⟨R⟩ > 1.5·3/√N, or a supercritical ensemble (Φ > 0) fails to reach ⟨R⟩ > 0.5, at the documented N and γ.",
+      "id": "INV-KR1",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/kuramoto/kuramoto_ricci_engine.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py"
+      ]
+    },
+    {
+      "falsifier": "The sign of the variational MLE does not change across Φ = 0 over a coupling sweep bracketing the onset, contradicting the INV-KR1 regime split.",
+      "id": "INV-KR2",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/kuramoto/kuramoto_ricci_engine.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py"
+      ]
+    },
+    {
+      "falsifier": "A run with ω_i = 0 shows dV/dt > 1e-9 at any midpoint step, i.e. the coupling potential increases along the gradient flow.",
+      "id": "INV-KR3",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/kuramoto/kuramoto_ricci_engine.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T1_kuramoto_ricci_boundary.py"
+      ]
+    },
+    {
       "falsifier": "ricci_to_signed_coupling drops a negative κ; ricci_to_positive_adjacency clips without clipped_for_threshold=True or with negative_mass=0 while negatives were present; an all-positive κ trips clipped_for_threshold=True; a signed matrix passes assert_roh_compatible or yields a finite Φ from phase_transition_boundary; or any audit claims both roh_compatible and signed_dynamics_compatible.",
       "id": "INV-KR4",
       "priority": "P0",
@@ -1410,6 +1509,50 @@
       "source_module": "",
       "status": "WARN_ONLY",
       "test_witnesses": []
+    },
+    {
+      "falsifier": "sort_desc(spectrum) deviates from sort_desc(Re(eigvals(A))) by more than 1e-3 for a linear flow integrated to T = 50.",
+      "id": "INV-LY1",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/lyapunov_spectrum.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T2_lyapunov_full_spectrum.py"
+      ]
+    },
+    {
+      "falsifier": "A time-resolved Hamiltonian flow yields |Σ λ_k| > 1e-3, OR the breakdown of the sum away from resolution does not scale as the fourth power of ω·dt.",
+      "id": "INV-LY2",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/lyapunov_spectrum.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T2_lyapunov_full_spectrum.py"
+      ]
+    },
+    {
+      "falsifier": "Any of the enumerated contract violations returns a spectrum (or a repaired result) instead of raising ValueError.",
+      "id": "INV-LY3",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/lyapunov_spectrum.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T2_lyapunov_full_spectrum.py"
+      ]
+    },
+    {
+      "falsifier": "A rank-collapsing or blow-up-dt run returns a floored finite spectrum instead of raising FloatingPointError tagged INV-LY4, OR a well-conditioned run's accumulated log is altered by the guard.",
+      "id": "INV-LY4",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/lyapunov_spectrum.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T2_lyapunov_full_spectrum.py"
+      ]
     },
     {
       "falsifier": "AST-grep over core/, tacl/, runtime/, geosync/ returns >=1 naked violation in non-test source",
@@ -1489,6 +1632,50 @@
       "source_module": "",
       "status": "WARN_ONLY",
       "test_witnesses": []
+    },
+    {
+      "falsifier": "A returned set P reports success while λ_2(L + Γ_P) ≤ ε_pin, or an uncontrollable configuration returns success instead of INSUFFICIENT.",
+      "id": "INV-PIN1",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "runtime/pinning_control.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T7_pinning_control.py"
+      ]
+    },
+    {
+      "falsifier": "A step taken with dt < 2/λ_max(L + Γ_P) under the stated conditions fails to contract the error toward the pinned target.",
+      "id": "INV-PIN2",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "runtime/pinning_control.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T7_pinning_control.py"
+      ]
+    },
+    {
+      "falsifier": "Any pinning call mutates the input adjacency A (an edge is added, removed, or reweighted).",
+      "id": "INV-PIN3",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "runtime/pinning_control.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T7_pinning_control.py"
+      ]
+    },
+    {
+      "falsifier": "Any enumerated contract violation returns a pinning result instead of raising ValueError.",
+      "id": "INV-PIN4",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "runtime/pinning_control.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T7_pinning_control.py"
+      ]
     },
     {
       "falsifier": "Any AR(1) fixture with ρ > 0 yielding n_eff ≥ n; OR ρ = 0 yielding n_eff ≠ n; OR ρ < 0 yielding n_eff ≤ n; OR an auto-bandwidth output that is negative or non-integer.",
@@ -1727,6 +1914,39 @@
       ]
     },
     {
+      "falsifier": "τ deviates from (1/λ_1)·ln(δ_tol/δ_0) on analytic inputs, fails to return +∞ for λ_1 ≤ 0, or does not halve when λ_1 is doubled.",
+      "id": "INV-TAU1",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/predictability_horizon.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T5_predictability_landauer.py"
+      ]
+    },
+    {
+      "falsifier": "A precision request whose E_min exceeds the supplied energy budget is silently honoured instead of raising ValueError, OR the computed floor deviates from k_B·T·ln(Δ/δ_0).",
+      "id": "INV-TAU2",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/predictability_horizon.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T5_predictability_landauer.py"
+      ]
+    },
+    {
+      "falsifier": "Any enumerated contract violation returns a finite-or-NaN horizon instead of raising ValueError.",
+      "id": "INV-TAU3",
+      "priority": "P0",
+      "provenance": "ANCHORED",
+      "source_module": "core/physics/predictability_horizon.py",
+      "status": "COVERED",
+      "test_witnesses": [
+        "tests/unit/physics/test_T5_predictability_landauer.py"
+      ]
+    },
+    {
       "falsifier": "",
       "id": "INV-TH1",
       "priority": "P1",
@@ -1770,7 +1990,7 @@
     "blocking_covered": 32,
     "blocking_laws": 32,
     "catalog_laws": 42,
-    "invariants": 112,
-    "invariants_covered": 33
+    "invariants": 132,
+    "invariants_covered": 53
   }
 }
