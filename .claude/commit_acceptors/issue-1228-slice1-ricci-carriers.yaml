@@ -14,7 +14,6 @@ diff_scope:
     - path: ".claude/commit_acceptors/issue-1228-slice2-unit-carriers.yaml"
     - path: "artifacts/physics_validation/issue_1228_slice1_verdict.json"
     - path: "artifacts/physics_validation/issue_1228_slice2_units_verdict.json"
-    - path: "docs/physics/units_table.md"
   forbidden_paths:
     - "core/"
     - "runtime/"
