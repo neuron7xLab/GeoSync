@@ -1,17 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Verify SHA-256 integrity for contract manifests with artifact digests.
-
-Repository-level PR policy must not make unrelated pull requests fail because a
-historical generated artifact capsule drifted. This checker therefore follows
-the same source-integrity boundary as ``scripts/ci/generate_manifest.py``:
-tracked ``artifacts/`` files are excluded by default because artifact integrity
-is carried by artifact-specific verification commands and self-hashes.
-
-Use ``--include-artifacts`` together with ``--require-artifacts`` for an explicit
-artifact-audit run that proves at least one artifact digest instead of a PR-gate
-hygiene pass.
-"""
+"""Verify SHA-256 integrity for contract manifests with artifact digests."""
 
 from __future__ import annotations
 
@@ -24,7 +13,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-EXCLUDE_PREFIXES: tuple[str, ...] = ("artifacts/",)
 
 
 def _is_tracked(path: Path) -> bool:
@@ -39,17 +27,10 @@ def _is_tracked(path: Path) -> bool:
     return result.returncode == 0
 
 
-def _is_in_default_scope(path: Path) -> bool:
-    rel = path.relative_to(ROOT).as_posix()
-    return not any(rel.startswith(prefix) for prefix in EXCLUDE_PREFIXES)
-
-
-def _discover_manifest_paths(*, include_artifacts: bool = False) -> list[Path]:
+def _discover_manifest_paths() -> list[Path]:
     manifests: list[Path] = []
     for path in ROOT.rglob("manifest.json"):
         if ".git/" in path.as_posix():
-            continue
-        if not include_artifacts and not _is_in_default_scope(path):
             continue
         if _is_tracked(path):
             manifests.append(path)
@@ -78,18 +59,13 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Shorthand for --min-artifacts 1.",
     )
-    parser.add_argument(
-        "--include-artifacts",
-        action="store_true",
-        help="Include tracked artifacts/ manifests. Intended for explicit artifact-audit jobs, not default PR hygiene.",
-    )
     args = parser.parse_args(argv)
     min_artifacts = max(args.min_artifacts, 1 if args.require_artifacts else 0)
 
     failures: list[str] = []
     checked = 0
 
-    for manifest in _discover_manifest_paths(include_artifacts=args.include_artifacts):
+    for manifest in _discover_manifest_paths():
         if not manifest.exists():
             failures.append(f"missing manifest: {manifest.relative_to(ROOT).as_posix()}")
             continue
