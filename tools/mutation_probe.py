@@ -178,7 +178,9 @@ def _run_tests(selector: str) -> bool:
     return proc.returncode == 0
 
 
-def probe(module: str, tests: str, max_mutants: int | None) -> Report:
+def probe(
+    module: str, tests: str, max_mutants: int | None, kinds: frozenset[str] | None = None
+) -> Report:
     path = ROOT / module
     original = path.read_text(encoding="utf-8")
     tree = ast.parse(original)
@@ -201,6 +203,8 @@ def probe(module: str, tests: str, max_mutants: int | None) -> Report:
     try:
         for i in indices:
             mutant_tree, lineno, kind, detail = _apply(tree, i)
+            if kinds is not None and kind not in kinds:
+                continue  # skip the (expensive) test run for filtered-out kinds
             path.write_text(ast.unparse(mutant_tree) + "\n", encoding="utf-8")
             killed = not _run_tests(tests)  # a failing suite KILLS the mutant
             report.mutants.append(
@@ -219,6 +223,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--tests", required=True, help="pytest selector run against each mutant")
     ap.add_argument("--max", type=int, default=None, help="cap number of mutants")
     ap.add_argument("--fail-under", type=float, default=None, help="exit 1 if kill-rate below this")
+    ap.add_argument(
+        "--only-logic",
+        action="store_true",
+        help="probe ONLY compare/boolop sites (the behaviour-logic gaps), skipping "
+        "constant/arithmetic mutations — much faster on numeric-heavy physics modules "
+        "where tuning constants dominate and are mostly equivalent.",
+    )
     ap.add_argument("--json", dest="json_out", default=None)
     args = ap.parse_args(argv)
 
@@ -226,7 +237,8 @@ def main(argv: list[str] | None = None) -> int:
         print("ERROR: baseline test selector does not pass on unmutated code.", file=sys.stderr)
         return 2
 
-    report = probe(args.module, args.tests, args.max)
+    kinds = frozenset({"compare", "boolop"}) if args.only_logic else None
+    report = probe(args.module, args.tests, args.max, kinds)
     print(f"\nMutation probe: {report.module}  (tests: {report.tests})")
     print(
         f"  mutants: {report.total} | killed: {report.killed} | kill-rate: {report.kill_rate:.1%}"
