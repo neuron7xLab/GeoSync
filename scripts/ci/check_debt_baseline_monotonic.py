@@ -85,12 +85,73 @@ def _read_base(rel: str, base_ref: str) -> dict[str, object] | None:
     return json.loads(proc.stdout)
 
 
+# A baseline total may legitimately GROW only when the measurement itself
+# changed (a better detector or a widened gated scope) and NO runtime code was
+# touched in the same diff. This is the metric/policy split: recalibrate the
+# instrument in isolation, never alongside a code change (which is where debt —
+# or a laundering attempt — would hide). These files define the measurement.
+_DETECTOR_FILES = frozenset(
+    {
+        "scripts/ci/check_code_hygiene.py",
+        "scripts/ci/check_skip_ratchet.py",
+        "docs/CODE_QUALITY_MANIFEST.json",
+    }
+)
+
+
+def _is_test_path(rel: str) -> bool:
+    if "/tests/" in rel or "/test/" in rel:
+        return True
+    name = rel.rsplit("/", 1)[-1]
+    return name == "conftest.py" or name.startswith("test_") or name.endswith("_test.py")
+
+
+def _changed_files(base_ref: str) -> list[str] | None:
+    proc = subprocess.run(
+        ["git", "diff", "--name-only", f"{base_ref}...HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return None
+    return [f.strip() for f in proc.stdout.splitlines() if f.strip()]
+
+
+def _runtime_roots() -> list[str]:
+    payload = json.loads((ROOT / "docs" / "CODE_QUALITY_MANIFEST.json").read_text(encoding="utf-8"))
+    return list(payload["runtime_roots"])
+
+
+def _recalibration_allowed(changed: list[str], runtime_roots: list[str]) -> bool:
+    """Pure decision: growth is a recalibration iff the detector/manifest changed
+    and NO runtime (non-test) code did. Any runtime edit alongside growth is real
+    debt or laundering, so it must NOT qualify."""
+    if not any(f in _DETECTOR_FILES for f in changed):
+        return False
+    roots = tuple(r + "/" for r in runtime_roots)
+    runtime_code_changed = any(
+        f.endswith(".py") and f.startswith(roots) and not _is_test_path(f) for f in changed
+    )
+    return not runtime_code_changed
+
+
+def _is_recalibration(base_ref: str) -> bool:
+    """True iff the diff is a pure measurement change (detector/manifest) with
+    no runtime-code edit — the only context in which a total may grow."""
+    changed = _changed_files(base_ref)
+    if changed is None:
+        return False  # cannot prove isolation -> fail closed (growth blocks)
+    return _recalibration_allowed(changed, _runtime_roots())
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Debt-baseline monotonicity meta-gate.")
     parser.add_argument("--base-ref", default="origin/main")
     args = parser.parse_args(argv)
 
-    failed = False
+    grew: list[tuple[str, str, int, int]] = []
     for rel, reducer in _REDUCERS.items():
         base_payload = _read_base(rel, args.base_ref)
         if base_payload is None:
@@ -106,19 +167,34 @@ def main(argv: list[str] | None = None) -> int:
         for dim, cur in sorted(cur_totals.items()):
             base = base_totals.get(dim, 0)
             if cur > base:
-                failed = True
-                print(f"ERROR: {rel} [{dim}] grew {base} -> {cur} (baseline totals only shrink).")
+                grew.append((rel, dim, base, cur))
 
-    if failed:
+    if not grew:
+        print(f"Debt-baseline monotonicity held: no baseline total grew vs {args.base_ref}.")
+        return 0
+
+    # A total grew. Allowed ONLY as an isolated recalibration (the metric/policy
+    # split): the detector/manifest changed and no runtime code did. Any runtime
+    # edit alongside growth is real debt or a laundering attempt — fail closed.
+    recalibration = _is_recalibration(args.base_ref)
+    tag = "RECALIBRATION" if recalibration else "ERROR"
+    for rel, dim, base, cur in grew:
+        print(f"{tag}: {rel} [{dim}] grew {base} -> {cur}.")
+
+    if recalibration:
         print(
-            "A baseline total increased. New debt must be refactored away, not "
-            "frozen: do NOT --write to admit it. If this is a legitimate scope "
-            "expansion, it needs explicit review, not a silent re-baseline."
+            "Allowed: this diff changes the measurement (detector/manifest) with "
+            "no runtime-code edit, so the growth is a recalibration, not new debt. "
+            "Review the metric change deliberately."
         )
-        return 1
+        return 0
 
-    print(f"Debt-baseline monotonicity held: no baseline total grew vs {args.base_ref}.")
-    return 0
+    print(
+        "A baseline total increased alongside (or without) a runtime change. New "
+        "debt must be refactored away, not frozen: do NOT --write to admit it. A "
+        "genuine detector/scope change must land ALONE (no runtime-code edit)."
+    )
+    return 1
 
 
 if __name__ == "__main__":
