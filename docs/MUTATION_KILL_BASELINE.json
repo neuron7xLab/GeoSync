@@ -1,5 +1,5 @@
 {
-  "_doc": "Mutation-kill ratchet for claim-critical modules — the falsification loop's K operator as ENFORCED infrastructure, not a one-off measurement. floor = the logic (compare/boolop) mutation kill-rate the module's tests currently achieve. scripts/ci/check_mutation_kill_ratchet.py RE-PROBES a module (tools/mutation_probe.py --only-logic) whenever its source or its tests change, and FAILS if the kill-rate drops below floor — so a PR that weakens the tests for these modules cannot merge. floors may only RISE (monotone-up): closing a survivor and raising the floor is the only sanctioned direction. See docs/meta/FALSIFICATION_LOOP.md.",
+  "_doc": "Mutation-kill ratchet for claim-critical modules — the falsification loop's K operator as ENFORCED infrastructure, not a one-off measurement. floor = the logic (compare/boolop) mutation kill-rate the module's tests currently achieve. scripts/ci/check_mutation_kill_ratchet.py RE-PROBES a module (tools/mutation_probe.py --only-logic) whenever its source or its tests change, and FAILS if the kill-rate drops below floor — so a PR that weakens the tests for these modules cannot merge. floors may only RISE (monotone-up): closing a survivor and raising the floor is the only sanctioned direction. See docs/meta/FALSIFICATION_LOOP.md. RECURSION (K applied to K): the ratchet's own verifier scripts/ci/check_mutation_kill_ratchet.py is enrolled here too, so changing it re-probes it with its own test suite — the output of the gate is fed back as the gate's input. Its lone surviving mutant (the cosmetic 'ok'/'REGRESSED' status label, printed but never asserted) is a proven-equivalent mutant; floor 0.88 = 8/9 non-equivalent sites killed.",
   "schema_version": "1.0",
   "modules": {
     "core/cross_asset_kuramoto/invariants.py": {
@@ -19,6 +19,12 @@
       "killed": 13,
       "total": 14,
       "tests": "tests/unit/physics/test_T2b_stuart_landau_es.py"
+    },
+    "scripts/ci/check_mutation_kill_ratchet.py": {
+      "floor": 0.88,
+      "killed": 8,
+      "total": 9,
+      "tests": "tests/ci/test_mutation_kill_ratchet.py"
     }
   }
 }

@@ -96,3 +96,28 @@ def test_baseline_failure_is_fail_closed(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(gate, "_changed_files", lambda ref: {mod})
     monkeypatch.setattr(gate, "_probe_module", lambda *a: (2, {}))
     assert gate.main(["--base-ref", "HEAD"]) == 2
+
+
+# --- recursion K(K): the verifier probed by itself surfaced these gaps --- #
+
+
+def test_base_ledger_reads_committed_ledger() -> None:
+    # Exercises the real git boundary the hermetic tests mock away: a valid ref
+    # yields the committed ledger (non-empty); a bogus ref yields {} so there is
+    # no spurious monotone-up base. Kills the L102 `!= 0`->`== 0` survivor, under
+    # which a successful `git show` would wrongly return an empty base ledger.
+    assert gate._base_ledger("HEAD") != {}
+    assert gate._base_ledger("nonexistent-ref-zzzzzz") == {}
+
+
+def test_broken_probe_report_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The probe ran (rc=1, a regression exit) but emitted no parseable report.
+    # The gate must fail closed (exit 2), not crash on a missing key. Kills the
+    # L151 `rc == 2 or "kill_rate" not in report`->`and` survivor: under `and`
+    # this (rc!=2, empty report) case slips through to a KeyError.
+    ledger = gate._load_ledger()
+    mod = sorted(ledger)[0]
+    monkeypatch.setattr(gate, "_base_ledger", lambda ref: ledger)
+    monkeypatch.setattr(gate, "_changed_files", lambda ref: {mod})
+    monkeypatch.setattr(gate, "_probe_module", lambda *a: (1, {}))
+    assert gate.main(["--base-ref", "HEAD"]) == 2
