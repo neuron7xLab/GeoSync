@@ -46,13 +46,18 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = ROOT / "docs" / "CODE_QUALITY_MANIFEST.json"
 BASELINE_PATH = ROOT / "docs" / "CODE_DEBT_BASELINE.json"
 
-SYMBOL_DIMS = ("god_function", "god_class", "complexity", "god_file")
+# ``unparseable`` is the fail-closed guard (V4): a runtime file that won't
+# AST-parse — e.g. newer syntax under an older runner — must surface as
+# visible debt, never silently contribute zero. SYMBOL_DIMS are keyed by
+# ``path::qualname`` (``path`` alone for god_file/unparseable).
+SYMBOL_DIMS = ("god_function", "god_class", "complexity", "god_file", "unparseable")
 COUNT_DIMS = ("broad_except", "runtime_print", "ambient_nondeterminism")
 
 # Ambient nondeterminism, matched on the trailing dotted components of a call
@@ -166,7 +171,8 @@ def _scan_file(
     try:
         tree = ast.parse(source, filename=rel)
     except SyntaxError:
-        return syms, counts  # compileall gate owns syntax
+        syms["unparseable"].add(rel)  # V4: fail-closed, never silent zero
+        return syms, counts
 
     file_loc = len(source.splitlines())
     if file_loc > thr["max_file_loc"]:
@@ -203,6 +209,25 @@ def _scan_file(
 
     walk(tree, "")
     return syms, counts
+
+
+def _classification_gaps() -> list[str]:
+    """V5: top-level packages with .py that are in neither runtime nor excluded.
+
+    Forces every new top-level package to be deliberately classified, so the
+    gated surface cannot silently shrink as the repo grows. Dot-prefixed
+    directories (``.github``, ``.claude``) are tooling, not packages.
+    """
+    roots, excluded, _ = _load_manifest()
+    classified = set(roots) | {e.split("/", 1)[0] for e in excluded}
+    proc = subprocess.run(
+        ["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True, text=True, check=False
+    )
+    top: set[str] = set()
+    for line in proc.stdout.splitlines():
+        if "/" in line and not line.startswith("."):
+            top.add(line.split("/", 1)[0])
+    return sorted(top - classified)
 
 
 def _scan() -> tuple[dict[str, set[str]], dict[str, dict[str, int]]]:
@@ -274,6 +299,17 @@ def main(argv: list[str] | None = None) -> int:
 
     base_syms, base_counts = _load_baseline()
     failed = False
+
+    gaps = _classification_gaps()
+    if gaps:
+        failed = True
+        print(
+            "ERROR: unclassified top-level package(s) with .py — the gated surface "
+            "may not silently shrink. Add each to runtime_roots (gated) or "
+            "excluded_roots (deliberately ungated) in docs/CODE_QUALITY_MANIFEST.json:"
+        )
+        for g in gaps:
+            print(f"  ? {g}")
 
     for dim in SYMBOL_DIMS:
         new = sorted(cur_syms[dim] - base_syms[dim])

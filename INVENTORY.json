@@ -67,11 +67,15 @@
     },
     {
       "path": "scripts/ci/check_code_hygiene.py",
-      "sha256": "7128b7db6fe78f3c1c07ef7bdcd8ab6c668854776eaf9550555813a3e98d7699"
+      "sha256": "3e946d1880fa05f8a0df13f0828155bc11255752ac1779ae8b24de0109c93b9c"
     },
     {
       "path": "scripts/ci/check_config_sprawl.py",
       "sha256": "0da684ef26189993918c8ef0611dc305e2a2ab5de7997b9ffa48d259e2fa93c5"
+    },
+    {
+      "path": "scripts/ci/check_debt_baseline_monotonic.py",
+      "sha256": "927a7770810d20de19743e592d604fed102603ce489a44b1027259219794a6d7"
     },
     {
       "path": "scripts/ci/check_docs_consistency.py",
