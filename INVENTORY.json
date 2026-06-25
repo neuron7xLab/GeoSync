@@ -67,7 +67,7 @@
     },
     {
       "path": "scripts/ci/check_code_hygiene.py",
-      "sha256": "3e946d1880fa05f8a0df13f0828155bc11255752ac1779ae8b24de0109c93b9c"
+      "sha256": "98d5c2980767afd4d461c1ff3be341389586ea8e313e628417cdbc14754d9666"
     },
     {
       "path": "scripts/ci/check_config_sprawl.py",
