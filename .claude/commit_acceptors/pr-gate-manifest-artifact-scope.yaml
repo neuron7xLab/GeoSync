@@ -1,6 +1,6 @@
 id: pr-gate-manifest-artifact-scope
 status: ACTIVE
-claim_type: ci-governance
+claim_type: governance
 promise: >-
   The PR Gate manifest-hash checker now uses the same default source-integrity
   boundary as scripts/ci/generate_manifest.py: tracked artifacts/ manifests are
