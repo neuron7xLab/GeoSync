@@ -1,0 +1,51 @@
+id: pr-gate-manifest-artifact-scope
+status: ACTIVE
+claim_type: ci-governance
+promise: >-
+  The PR Gate manifest-hash checker now uses the same default source-integrity
+  boundary as scripts/ci/generate_manifest.py: tracked artifacts/ manifests are
+  excluded from default PR hygiene because generated artifact integrity belongs
+  to explicit artifact-audit commands. The stricter artifact proof mode remains
+  available through --include-artifacts plus --require-artifacts.
+
+diff_scope:
+  changed_files:
+    - path: "scripts/ci/check_manifest_hashes.py"
+    - path: ".claude/commit_acceptors/pr-gate-manifest-artifact-scope.yaml"
+    - path: ".claude/commit_acceptors/issue-1228-slice1-ricci-carriers.yaml"
+    - path: "artifacts/physics_validation/issue_1228_slice1_verdict.json"
+  forbidden_paths:
+    - "core/"
+    - "runtime/"
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+
+required_python_symbols:
+  - "_discover_manifest_paths"
+  - "_is_in_default_scope"
+
+expected_signal: >-
+  The default PR-hygiene command completes without scanning volatile artifacts/ manifests,
+  while the script still exposes an explicit --include-artifacts option for artifact-audit jobs.
+
+measurement_command: >-
+  bash -c 'python scripts/ci/check_manifest_hashes.py && python scripts/ci/check_manifest_hashes.py --help | grep -q -- --include-artifacts'
+
+signal_artifact: "stdout"
+
+falsifier:
+  command: >-
+    bash -c 'python scripts/ci/check_manifest_hashes.py --require-artifacts >/tmp/manifest_require_artifacts.out 2>&1; test $? -ne 0; grep -q "NOT PROVEN" /tmp/manifest_require_artifacts.out'
+  description: >-
+    Proves the default PR hygiene pass is not silently promoted into artifact proof mode.
+
+rollback_command: >-
+  bash -c 'git checkout -- scripts/ci/check_manifest_hashes.py && git rm -f .claude/commit_acceptors/pr-gate-manifest-artifact-scope.yaml'
+rollback_verification_command: >-
+  bash -c '! test -e .claude/commit_acceptors/pr-gate-manifest-artifact-scope.yaml'
+
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/pr-gate-manifest-artifact-scope.yaml"
+report_path: "stdout"
