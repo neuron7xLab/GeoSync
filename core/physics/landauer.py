@@ -30,6 +30,9 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from numpy.typing import ArrayLike
+
+from core.physics.reversible_gate import irreversibility_score
 
 # Physical constants (SI units)
 K_BOLTZMANN: float = 1.380649e-23  # J/K (exact, 2019 SI redefinition)
@@ -192,4 +195,133 @@ class LandauerInferenceProfiler:
         }
 
 
-__all__ = ["LandauerInferenceProfiler", "K_BOLTZMANN", "ROOM_TEMPERATURE", "LANDAUER_ENERGY"]
+# ───────────────────────── Executable falsification facade ─────────────────────────
+# Action-cost accounting that binds the Landauer floor and Bennett reversibility
+# to the falsification catalog (laws: landauer_nonzero_erasure_cost,
+# irreversible_cost_dominance). Irreversibility scoring reuses
+# core.physics.reversible_gate.irreversibility_score; the Boltzmann constant
+# reuses K_BOLTZMANN above. Nothing here reimplements the existing profiler.
+
+# Proxy penalty (same dimensionless units as base_cost) per unit of
+# irreversibility score. Explicit constant, not a magic threshold.
+_IRREVERSIBILITY_PENALTY: float = 1.0
+
+
+def bit_erasure_cost(bits: float, temperature: float) -> float:
+    """Landauer floor for erasing ``bits`` bits at ``temperature`` kelvin.
+
+    cost = k_B * T * ln2 * bits. Fails closed on a non-positive/non-finite
+    temperature (an undefined thermal context) and on negative bits. For
+    ``bits > 0`` and ``T > 0`` the cost is strictly positive — no free erasure.
+    """
+    if not math.isfinite(temperature) or temperature <= 0.0:
+        raise ValueError(
+            f"temperature must be finite and > 0 K (undefined thermal context "
+            f"otherwise), got {temperature!r}; fail-closed"
+        )
+    if not math.isfinite(bits) or bits < 0.0:
+        raise ValueError(f"bits must be finite and >= 0, got {bits!r}; fail-closed")
+    return K_BOLTZMANN * temperature * math.log(2.0) * bits
+
+
+def action_entropy_delta(before: ArrayLike, after: ArrayLike) -> float:
+    """Shannon-entropy change H(after) - H(before) in bits over two distributions.
+
+    Each argument is coerced to a probability vector (non-negative, normalised to
+    sum 1). Fails closed on negative mass or zero total mass.
+    """
+    return _shannon_entropy_bits("after", after) - _shannon_entropy_bits("before", before)
+
+
+def reversible_baseline(action: dict[str, object]) -> float:
+    """Reversible-alternative cost: the action's declared base cost alone."""
+    return _base_cost(action)
+
+
+def irreversible_cost(action: dict[str, object]) -> float:
+    """Total irreversible cost = base cost + penalty * irreversibility score.
+
+    The score comes from :func:`reversible_gate.irreversibility_score` over the
+    action's ``action_kind`` / ``payload_size`` / ``side_effects``.
+    """
+    return _base_cost(action) + _IRREVERSIBILITY_PENALTY * _score(action)
+
+
+def assert_irreversible_dominance(
+    irr_cost: float,
+    rev_cost: float,
+    irreversibility_score_value: float,
+) -> None:
+    """Fail closed unless ``irr_cost >= rev_cost`` (strict when score > 0).
+
+    Takes the two costs explicitly so a fabricated "free rollback" (a reversible
+    baseline claimed below an irreversible cost it could not really achieve) is
+    caught: any pair with ``rev_cost > irr_cost``, or an equal pair while the
+    irreversibility score is positive, violates.
+    """
+    for name, value in (("irr_cost", irr_cost), ("rev_cost", rev_cost)):
+        if not math.isfinite(value) or value < 0.0:
+            raise ValueError(f"{name} must be finite and >= 0, got {value!r}; fail-closed")
+    if not math.isfinite(irreversibility_score_value) or not (
+        0.0 <= irreversibility_score_value <= 1.0
+    ):
+        raise ValueError(
+            f"irreversibility_score must be in [0,1], got {irreversibility_score_value!r}"
+        )
+    if rev_cost > irr_cost:
+        raise ValueError(
+            f"IRREVERSIBLE-COST VIOLATED: reversible baseline {rev_cost} exceeds irreversible "
+            f"cost {irr_cost} — a fake free rollback. Required: irr >= rev. Fail-closed."
+        )
+    if irreversibility_score_value > 0.0 and irr_cost <= rev_cost:
+        raise ValueError(
+            f"IRREVERSIBLE-COST VIOLATED: score={irreversibility_score_value} > 0 but "
+            f"irr_cost {irr_cost} <= rev_cost {rev_cost}; an irreversible action must cost "
+            f"strictly more than its reversible baseline. Fail-closed."
+        )
+
+
+def _base_cost(action: dict[str, object]) -> float:
+    raw = action.get("base_cost", 0.0)
+    value = float(raw) if isinstance(raw, (int, float)) else float("nan")
+    if not math.isfinite(value) or value < 0.0:
+        raise ValueError(f"action['base_cost'] must be finite and >= 0, got {raw!r}; fail-closed")
+    return value
+
+
+def _score(action: dict[str, object]) -> float:
+    kind = action.get("action_kind", "")
+    payload = action.get("payload_size", 0)
+    side = action.get("side_effects", 0)
+    if not isinstance(kind, str):
+        raise ValueError("action['action_kind'] must be a string; fail-closed")
+    if not isinstance(payload, int) or not isinstance(side, int):
+        raise ValueError("action payload_size/side_effects must be ints; fail-closed")
+    return irreversibility_score(kind, payload, side)
+
+
+def _shannon_entropy_bits(name: str, distribution: ArrayLike) -> float:
+    probs = np.asarray(distribution, dtype=np.float64)
+    if probs.ndim != 1 or probs.size == 0:
+        raise ValueError(f"{name} must be a non-empty 1-D distribution; fail-closed")
+    if not np.all(np.isfinite(probs)) or np.any(probs < 0.0):
+        raise ValueError(f"{name} must be finite and non-negative; fail-closed")
+    total = float(probs.sum())
+    if total <= 0.0:
+        raise ValueError(f"{name} has zero total mass; fail-closed")
+    normalised = probs / total
+    nonzero = normalised[normalised > 0.0]
+    return float(-np.sum(nonzero * np.log2(nonzero)))
+
+
+__all__ = [
+    "LandauerInferenceProfiler",
+    "K_BOLTZMANN",
+    "ROOM_TEMPERATURE",
+    "LANDAUER_ENERGY",
+    "bit_erasure_cost",
+    "action_entropy_delta",
+    "irreversible_cost",
+    "reversible_baseline",
+    "assert_irreversible_dominance",
+]

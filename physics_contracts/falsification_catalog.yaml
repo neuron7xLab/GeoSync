@@ -1,0 +1,139 @@
+# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
+# SPDX-License-Identifier: MIT
+#
+# EXECUTABLE FALSIFICATION CONTRACT LAYER
+# =======================================
+# This file is the rich-format, evidence-bearing falsification layer. It is
+# SEPARATE from and DOES NOT replace the canonical 112-invariant source of truth
+# (`.claude/physics/INVARIANTS.yaml` / `physics_contracts/catalog.yaml`). It adds
+# one thing the canonical catalog does not enforce machine-side: every blocking
+# law here must carry BOTH a positive witness AND a negative control, and the
+# governance meta-law (LF10) makes that requirement itself a falsifiable law.
+#
+# Each law binds: hypothesis -> formal_invariant -> measured_quantity ->
+# threshold -> {positive_witness, negative_control} -> evidence_output.
+# The validator (tools/validate_physics_contracts.py) fails closed if any
+# blocking law lacks a collected positive witness, lacks a collected negative
+# control, or fails to emit its evidence artifact.
+schema_version: 1
+canonical_catalog_untouched: true
+laws:
+  - id: ricci_energy_nonincrease
+    domain: ricci_kuramoto
+    claim: "Discrete Ricci-flow smoothing never increases curvature-dispersion energy."
+    formal_invariant: "E(curv_{t+1}) <= E(curv_t) * (1 + tol), E(c) = sum_i (c_i - mean(c))^2"
+    measured_quantity: "max over a seeded flow trajectory of E(t+1) - E(t)*(1+tol)"
+    threshold: "tol = 1e-9 (relative); any positive excess violates"
+    positive_witness: "tests/physics/test_ricci_kuramoto.py::test_ricci_energy_nonincreases"
+    negative_control: "tests/physics/test_ricci_kuramoto.py::test_energy_injection_flow_is_rejected"
+    blocking: true
+    failure_message: "RICCI-ENERGY VIOLATED: dispersion energy increased under a contraction flow."
+    evidence_output: "evidence/physics/ricci_kuramoto_report.json"
+
+  - id: kuramoto_order_parameter_bounds
+    domain: ricci_kuramoto
+    claim: "The Kuramoto order parameter R(t) stays in [0, 1] for every step."
+    formal_invariant: "0 <= R(t) <= 1 for all t (INV-K1)"
+    measured_quantity: "min and max of R over a seeded mean-field trajectory"
+    threshold: "R in [0.0, 1.0]; any R<0 or R>1 violates"
+    positive_witness: "tests/physics/test_ricci_kuramoto.py::test_order_parameter_within_unit_interval"
+    negative_control: "tests/physics/test_ricci_kuramoto.py::test_out_of_range_order_parameter_is_rejected"
+    blocking: true
+    failure_message: "KURAMOTO-R VIOLATED: order parameter left [0,1]."
+    evidence_output: "evidence/physics/ricci_kuramoto_report.json"
+
+  - id: metric_distortion_bound
+    domain: metric_consistency
+    claim: "An embedding is admitted only if its bi-Lipschitz distortion stays within an explicit bound."
+    formal_invariant: "distortion(D_orig, D_emb) - 1 <= max_distortion"
+    measured_quantity: "multiplicative bi-Lipschitz distortion of the embedded distance matrix"
+    threshold: "max_distortion explicit per call (no magic constant); default probe 0.05"
+    positive_witness: "tests/physics/test_metric_consistency.py::test_isometric_embedding_passes"
+    negative_control: "tests/physics/test_metric_consistency.py::test_distorted_embedding_is_rejected"
+    blocking: true
+    failure_message: "METRIC-DISTORTION VIOLATED: embedding distortion exceeds declared bound."
+    evidence_output: "evidence/physics/metric_consistency_report.json"
+
+  - id: causal_no_lookahead
+    domain: causality
+    claim: "No read may consume a source observed after the read time."
+    formal_invariant: "source_time <= read_time for every admitted read"
+    measured_quantity: "max(source_time - read_time) over admitted reads"
+    threshold: "<= 0; any positive lookahead violates"
+    positive_witness: "tests/physics/test_causality.py::test_past_read_passes"
+    negative_control: "tests/physics/test_causality.py::test_future_read_is_rejected"
+    blocking: true
+    failure_message: "CAUSAL-LOOKAHEAD VIOLATED: a read consumed a future source."
+    evidence_output: "evidence/physics/causality_report.json"
+
+  - id: provenance_identity
+    domain: causality
+    claim: "A payload's provenance hash is identical iff its bytes are identical."
+    formal_invariant: "provenance_hash(observed) == expected <=> bytes unchanged"
+    measured_quantity: "equality of recomputed vs declared provenance hash"
+    threshold: "exact SHA-256 equality; any mismatch violates and tombstones"
+    positive_witness: "tests/physics/test_causality.py::test_provenance_identity_holds"
+    negative_control: "tests/physics/test_causality.py::test_rewritten_payload_breaks_provenance"
+    blocking: true
+    failure_message: "PROVENANCE VIOLATED: payload bytes changed without matching hash."
+    evidence_output: "evidence/physics/causality_report.json"
+
+  - id: landauer_nonzero_erasure_cost
+    domain: landauer
+    claim: "Erasing a positive number of bits at positive temperature has strictly positive cost."
+    formal_invariant: "bits > 0 and T > 0 => cost = k_B*T*ln2*bits > 0"
+    measured_quantity: "bit_erasure_cost(bits, T) for bits>0, T>0"
+    threshold: "> 0 strictly; a zero/negative cost violates"
+    positive_witness: "tests/physics/test_landauer.py::test_bit_erasure_cost_is_positive"
+    negative_control: "tests/physics/test_landauer.py::test_zero_cost_erasure_claim_is_rejected"
+    blocking: true
+    failure_message: "LANDAUER VIOLATED: claimed free erasure of information."
+    evidence_output: "evidence/physics/landauer_report.json"
+
+  - id: irreversible_cost_dominance
+    domain: landauer
+    claim: "An irreversible action costs at least its reversible baseline; strictly more when the irreversibility score is positive."
+    formal_invariant: "C_irr >= C_rev, strict when irreversibility_score > 0"
+    measured_quantity: "C_irr - C_rev over a seeded action sweep"
+    threshold: ">= 0 always; > 0 when score>0"
+    positive_witness: "tests/physics/test_landauer.py::test_irreversible_dominates_reversible"
+    negative_control: "tests/physics/test_landauer.py::test_fake_free_rollback_is_rejected"
+    blocking: true
+    failure_message: "IRREVERSIBLE-COST VIOLATED: reversible baseline exceeded irreversible cost."
+    evidence_output: "evidence/physics/landauer_report.json"
+
+  - id: empirical_synthetic_only_rejection
+    domain: falsification
+    claim: "A synthetic-only witness can never validate an empirical claim, and leaked/shuffled/unprovenanced data is rejected."
+    formal_invariant: "validate_empirical(witness) is True => witness.data_source == 'empirical' and provenance present and not leaked"
+    measured_quantity: "verdict of rejection_report on synthetic / shuffled / leaked / unprovenanced witnesses"
+    threshold: "all four adversarial witnesses must be REJECTED; only a clean provenanced empirical witness passes"
+    positive_witness: "tests/physics/test_falsification.py::test_clean_empirical_witness_passes"
+    negative_control: "tests/physics/test_falsification.py::test_synthetic_only_cannot_validate_empirical"
+    blocking: true
+    failure_message: "FALSIFICATION VIOLATED: an unverified/synthetic/leaked claim was admitted."
+    evidence_output: "evidence/physics/falsification_report.json"
+
+  - id: numerical_drift_bound
+    domain: precision
+    claim: "Seeded numerical pipelines are bit-reproducible and reject NaN/Inf and ill-conditioned inputs."
+    formal_invariant: "deterministic_hash(run(seed)) constant; assert_numerical_stability fails on NaN/Inf or cond(A) > kappa_max"
+    measured_quantity: "hash equality across repeats; cond(A) vs kappa_max; finiteness"
+    threshold: "hash identical; cond(A) <= kappa_max (explicit); no NaN/Inf"
+    positive_witness: "tests/physics/test_precision.py::test_seeded_hash_is_stable"
+    negative_control: "tests/physics/test_precision.py::test_ill_conditioned_input_is_rejected"
+    blocking: true
+    failure_message: "NUMERICAL-DRIFT VIOLATED: nondeterminism, NaN/Inf, or unbounded conditioning."
+    evidence_output: "evidence/physics/precision_report.json"
+
+  - id: law_requires_positive_and_negative_witness
+    domain: governance
+    claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
+    formal_invariant: "for each blocking law L: collected(L.positive_witness) and collected(L.negative_control) and exists(L.evidence_output)"
+    measured_quantity: "count of blocking laws missing a witness, a negative control, or evidence"
+    threshold: "0 missing; any missing fails promotion"
+    positive_witness: "tests/physics/test_governance.py::test_full_catalog_passes_promotion_gate"
+    negative_control: "tests/physics/test_governance.py::test_law_without_negative_control_fails_gate"
+    blocking: true
+    failure_message: "GOVERNANCE VIOLATED: a blocking law lacks a witness, a negative control, or evidence."
+    evidence_output: "evidence/physics/governance_report.json"
