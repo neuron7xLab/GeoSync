@@ -1,0 +1,24 @@
+{
+  "_doc": "Mutation-kill ratchet for claim-critical modules — the falsification loop's K operator as ENFORCED infrastructure, not a one-off measurement. floor = the logic (compare/boolop) mutation kill-rate the module's tests currently achieve. scripts/ci/check_mutation_kill_ratchet.py RE-PROBES a module (tools/mutation_probe.py --only-logic) whenever its source or its tests change, and FAILS if the kill-rate drops below floor — so a PR that weakens the tests for these modules cannot merge. floors may only RISE (monotone-up): closing a survivor and raising the floor is the only sanctioned direction. See docs/meta/FALSIFICATION_LOOP.md.",
+  "schema_version": "1.0",
+  "modules": {
+    "core/cross_asset_kuramoto/invariants.py": {
+      "floor": 1.0,
+      "killed": 10,
+      "total": 10,
+      "tests": "tests/core/cross_asset_kuramoto/test_invariants.py"
+    },
+    "core/kuramoto/second_order.py": {
+      "floor": 0.76,
+      "killed": 16,
+      "total": 21,
+      "tests": "tests/unit/physics/test_T18b_second_order_stability_guard.py tests/unit/physics/test_second_order_stability_audit.py"
+    },
+    "core/physics/stuart_landau_es.py": {
+      "floor": 0.92,
+      "killed": 13,
+      "total": 14,
+      "tests": "tests/unit/physics/test_T2b_stuart_landau_es.py"
+    }
+  }
+}

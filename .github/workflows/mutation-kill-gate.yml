@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: MIT
+#
+# Mutation-kill ratchet — the falsification loop's K operator as an enforced
+# gate. For every claim-critical module in docs/MUTATION_KILL_BASELINE.json,
+# when that module's SOURCE or its TESTS change in a PR, this RE-PROBES it with
+# tools/mutation_probe.py --only-logic and fails if the comparison/boolean
+# logic kill-rate dropped below the frozen floor. Floors are monotone-up.
+#
+# No path filter: this is a (to-be) branch-protection REQUIRED check, so it
+# must report on every PR — a path-filtered required check that never runs is
+# reported "Expected" forever and dead-locks the merge. The checker is cheap by
+# construction: when no ledgered module changed it returns immediately without
+# probing; it pays the probe cost only when a claim-critical module is edited.
+name: Mutation Kill Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: mutation-kill-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0 # the ratchet diffs changed files + floors against origin/main
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install probe + physics test runtime
+        run: |
+          set -euo pipefail
+          # The ratchet re-runs claim-critical physics tests under mutation, so
+          # it needs the same minimal runtime as the physics suites (pinned to
+          # the requirements.txt contract).
+          python -m pip install --upgrade pip
+          python -m pip install \
+            'pytest>=8.4' \
+            'numpy>=2.3.3' \
+            'pandas>=2.3.3' \
+            'PyYAML>=6.0.3'
+
+      - name: Mutation-kill ratchet
+        run: |
+          set -euo pipefail
+          git fetch origin main --quiet || true
+          python scripts/ci/check_mutation_kill_ratchet.py --base-ref origin/main
