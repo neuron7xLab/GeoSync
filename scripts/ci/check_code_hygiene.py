@@ -98,6 +98,22 @@ def _load_manifest() -> tuple[list[str], list[str], dict[str, int]]:
     )
 
 
+def _is_test_path(rel: str) -> bool:
+    """pytest-convention test file nested anywhere under a runtime root.
+
+    The manifest's ``excluded_roots`` only catches top-level ``tests/``; test
+    files living *inside* a runtime package (``core/neuro/tests/...``,
+    ``geosync/dp3_test.py``) were being miscounted as runtime debt — tests
+    legitimately use ``random``/``time`` and broad excepts. Match the same
+    surface pytest collects: a ``/tests/`` or ``/test/`` segment, or a
+    ``test_*.py`` / ``*_test.py`` / ``conftest.py`` basename.
+    """
+    if "/tests/" in rel or "/test/" in rel:
+        return True
+    name = rel.rsplit("/", 1)[-1]
+    return name == "conftest.py" or name.startswith("test_") or name.endswith("_test.py")
+
+
 def _iter_py(roots: list[str], excluded: tuple[str, ...]) -> list[Path]:
     out: list[Path] = []
     for root in roots:
@@ -107,6 +123,8 @@ def _iter_py(roots: list[str], excluded: tuple[str, ...]) -> list[Path]:
         for path in base.rglob("*.py"):
             rel = path.relative_to(ROOT).as_posix()
             if any(rel == e or rel.startswith(e + "/") for e in excluded):
+                continue
+            if _is_test_path(rel):
                 continue
             out.append(path)
     return sorted(out)
