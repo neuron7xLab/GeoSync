@@ -1,7 +1,6 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
 # mypy: ignore-errors
-# CI trigger note: runtime logic is in core/physics/stuart_landau_es.py.
 """Runtime debt regressions for issue #1358."""
 
 from __future__ import annotations
@@ -16,6 +15,8 @@ from core.physics.stuart_landau_es import (
     rolling_es_proximity,
 )
 
+pytestmark = pytest.mark.heavy_math
+
 
 def _synthetic_prices(
     T: int = 40,
@@ -25,7 +26,9 @@ def _synthetic_prices(
     rng = np.random.default_rng(seed)
     rets = rng.standard_normal((T, N)) * 0.004
     cumulative = np.cumsum(rets, axis=0)
-    prices: NDArray[np.float64] = (100.0 * np.exp(cumulative)).astype(np.float64)
+    prices: NDArray[np.float64] = (100.0 * np.exp(cumulative)).astype(
+        np.float64
+    )
     return prices
 
 
@@ -51,7 +54,9 @@ def test_mu_clamp_audit_surface_is_visible() -> None:
     n_t, n_assets = 8, 3
     t = np.arange(n_t, dtype=np.float64)
     envelope = np.tile(np.exp(2.0 * t)[:, None], (1, n_assets))
-    mu_raw, mu_clamped, clipped, count, mass = _estimate_growth_rate_audit(envelope)
+    mu_raw, mu_clamped, clipped, count, mass = _estimate_growth_rate_audit(
+        envelope
+    )
     assert np.all(mu_raw > 1.0)
     assert np.allclose(mu_clamped, 1.0)
     assert np.all(clipped)
