@@ -55,7 +55,7 @@
     },
     {
       "path": "scripts/ci/check_claim_boundary.py",
-      "sha256": "3109fb69fcb91a944da0add876a4df2b96dba1c20e48bf5ff1fb90ce4d669e08"
+      "sha256": "e385d80a2505ccdbdf6b7d89fdcf4bdab23bd37088e467e1197705b841c63d4d"
     },
     {
       "path": "scripts/ci/check_claim_maturity.py",
