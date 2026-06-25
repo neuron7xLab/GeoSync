@@ -11,28 +11,15 @@
 name: Code Hygiene Gate
 
 on:
+  # No path filter: this gate is a (to-be) branch-protection REQUIRED check, so
+  # it must report on every PR. A path-filtered required check that never runs
+  # is reported as "Expected" forever and dead-locks the merge. The ratchets
+  # are stdlib-only and finish in a few seconds even when nothing relevant
+  # changed.
   pull_request:
     branches: [main]
-    paths:
-      - "**/*.py"
-      - "docs/CODE_QUALITY_MANIFEST.json"
-      - "docs/CODE_DEBT_BASELINE.json"
-      - "docs/SKIP_RATCHET_BASELINE.json"
-      - "scripts/ci/check_code_hygiene.py"
-      - "scripts/ci/check_skip_ratchet.py"
-      - "scripts/ci/check_debt_baseline_monotonic.py"
-      - ".github/workflows/code-hygiene-gate.yml"
   push:
     branches: [main]
-    paths:
-      - "**/*.py"
-      - "docs/CODE_QUALITY_MANIFEST.json"
-      - "docs/CODE_DEBT_BASELINE.json"
-      - "docs/SKIP_RATCHET_BASELINE.json"
-      - "scripts/ci/check_code_hygiene.py"
-      - "scripts/ci/check_skip_ratchet.py"
-      - "scripts/ci/check_debt_baseline_monotonic.py"
-      - ".github/workflows/code-hygiene-gate.yml"
 
 permissions:
   contents: read
