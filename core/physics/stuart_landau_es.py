@@ -152,7 +152,8 @@ def _validate_sweep_config(
         )
     if not np.isfinite(dt) or dt <= 0.0:
         raise ValueError(
-            f"INV-SL contract VIOLATED: finite dt>0 required, got {dt}. Source: {source}."
+            "INV-SL contract VIOLATED: finite dt>0 required, "
+            f"got {dt}. Source: {source}."
         )
 
 
@@ -214,9 +215,13 @@ def _extract_amplitude_phase_omega_mu_audit(
     phase_last = np.angle(analytic[-1, :]).astype(np.float64)
     phase_unwrapped = np.unwrap(np.angle(analytic), axis=0)
     omega = np.diff(phase_unwrapped, axis=0).mean(axis=0).astype(np.float64)
-    mu_raw, mu_clamped, mu_was_clipped, mu_clip_count, mu_clip_mass = _estimate_growth_rate_audit(
-        amplitude_envelope
-    )
+    (
+        mu_raw,
+        mu_clamped,
+        mu_was_clipped,
+        mu_clip_count,
+        mu_clip_mass,
+    ) = _estimate_growth_rate_audit(amplitude_envelope)
     return (
         amplitude_last,
         phase_last,
@@ -284,7 +289,10 @@ def _initial_state_from_seed(n: int, seed: int) -> ComplexArray:
 def _validate_z0(z0: ComplexArray, n: int) -> ComplexArray:
     """Validate and copy an externally supplied fitted complex state."""
     if z0.shape != (n,):
-        raise ValueError(f"INV-SL contract VIOLATED: z0 shape {(n,)} required, got {z0.shape}.")
+        raise ValueError(
+            f"INV-SL contract VIOLATED: z0 shape {(n,)} required, "
+            f"got {z0.shape}."
+        )
     if not np.all(np.isfinite(z0.real)) or not np.all(np.isfinite(z0.imag)):
         raise ValueError("INV-SL contract VIOLATED: z0 must be finite.")
     return z0.astype(np.complex128, copy=True)
