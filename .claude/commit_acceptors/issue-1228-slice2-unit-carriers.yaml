@@ -1,0 +1,63 @@
+id: issue-1228-slice2-unit-carriers
+status: ACTIVE
+claim_type: governance
+promise: >-
+  Issue #1228 tasks 12-18 are bound to durable unit-row carriers without granting score credit:
+  theta, omega, K, A, R, Phi, and dt are mapped to the existing units table and unit-state
+  test contract. This does not promote static unit labels into physics-invariant witnesses.
+
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/issue-1228-slice2-unit-carriers.yaml"
+    - path: "artifacts/physics_validation/issue_1228_slice2_units_verdict.json"
+  forbidden_paths:
+    - "core/"
+    - "runtime/"
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+
+required_python_symbols: []
+
+expected_signal: >-
+  The added JSON verdict parses successfully and records tasks 12-18, source_document=docs/physics/units_table.md,
+  unit_contract_test=tests/physics/test_dimensional_homogeneity.py, score_credit_granted=false,
+  final_validation_complete=false, and target_interval_claimed=false.
+
+measurement_command: >-
+  bash -c '
+    mkdir -p tmp &&
+    python -m json.tool artifacts/physics_validation/issue_1228_slice2_units_verdict.json > tmp/issue_1228_slice2_units_verdict.normalized.json &&
+    python - <<"PY"
+import json
+from pathlib import Path
+p = Path("artifacts/physics_validation/issue_1228_slice2_units_verdict.json")
+data = json.loads(p.read_text(encoding="utf-8"))
+assert data["issue"] == 1228
+assert data["completed_tasks"] == list(range(12, 19))
+assert data["score_credit_granted"] is False
+assert data["final_validation_complete"] is False
+assert data["target_interval_claimed"] is False
+assert data["source_document"] == "docs/physics/units_table.md"
+assert data["unit_contract_test"] == "tests/physics/test_dimensional_homogeneity.py"
+assert data["verdict"] == "TASKS_12_18_HAVE_UNIT_ROW_CARRIERS_SCORE_UNCHANGED"
+PY
+  '
+
+signal_artifact: "tmp/issue_1228_slice2_units_verdict.normalized.json"
+
+falsifier:
+  command: >-
+    bash -c 'python -m json.tool artifacts/physics_validation/issue_1228_slice2_units_verdict.json >/dev/null'
+  description: >-
+    Fails if the unit-row artifact-only verdict is not valid JSON; downstream checks validate non-claim fields.
+
+rollback_command: >-
+  bash -c 'git rm -f artifacts/physics_validation/issue_1228_slice2_units_verdict.json .claude/commit_acceptors/issue-1228-slice2-unit-carriers.yaml'
+rollback_verification_command: >-
+  bash -c '! test -e artifacts/physics_validation/issue_1228_slice2_units_verdict.json'
+
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/issue-1228-slice2-unit-carriers.yaml"
+report_path: "tmp/issue_1228_slice2_units_verdict.normalized.json"
