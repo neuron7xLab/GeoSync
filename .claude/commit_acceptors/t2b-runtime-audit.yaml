@@ -7,15 +7,16 @@ promise: >-
   score, shadow-rail status, or the rejected real-data validation verdict.
   The fitted-state sweep initializes from observed analytic state
   z0=A*exp(i*theta) by default, mu clipping is auditable, rolling evidence
-  can fail closed, numerical-policy clamp registry sites stay current, and
+  can fail closed, numerical-policy clamp registry sites stay current,
   Stuart-Landau sweep-heavy tests run in the heavy_math CI lane rather than
-  the fast shard lane.
+  the fast shard lane, and fast-shard diagnostics can persist node/log evidence.
 diff_scope:
   changed_files:
     - path: "core/physics/stuart_landau_es.py"
     - path: "tests/unit/physics/test_T2b_runtime_audit.py"
     - path: "tests/unit/physics/test_T2b_stuart_landau_es.py"
     - path: "tools/physics/clamp_registry.yaml"
+    - path: ".github/workflows/pr-fast-diagnostics.yml"
     - path: ".claude/commit_acceptors/t2b-runtime-audit.yaml"
   forbidden_paths:
     - "trading/"
@@ -33,10 +34,10 @@ expected_signal: >-
   evidence failures as NaN. The legacy Stuart-Landau T2b test module is marked
   heavy_math because it runs repeated fitted sweeps and rolling crisis windows;
   this preserves coverage in the heavy lane while keeping fast shards bounded.
-  The slice makes no score increase, no shadow-rail promotion, no final
-  validation claim, and no trading/execution/forecast/policy change.
-  Numerical-policy registry sites are refreshed only for live line-number drift
-  caused by the Stuart-Landau runtime refactor.
+  The diagnostic workflow records fast-shard node ids and pytest logs only;
+  it does not change runtime behavior or PR Gate pass/fail semantics. The slice
+  makes no score increase, no shadow-rail promotion, no final validation claim,
+  and no trading/execution/forecast/policy change.
 measurement_command: >-
   python -m pytest tests/unit/physics/test_T2b_runtime_audit.py
   tests/unit/physics/test_T2b_stuart_landau_es.py tests/tools/test_numerical_policy.py -q
@@ -54,6 +55,7 @@ rollback_command: >-
   tests/unit/physics/test_T2b_runtime_audit.py
   tests/unit/physics/test_T2b_stuart_landau_es.py
   tools/physics/clamp_registry.yaml
+  .github/workflows/pr-fast-diagnostics.yml
   .claude/commit_acceptors/t2b-runtime-audit.yaml
 rollback_verification_command: >-
   git diff --exit-code core/physics/stuart_landau_es.py
@@ -64,3 +66,4 @@ evidence:
   - path: "tests/unit/physics/test_T2b_runtime_audit.py"
   - path: "tests/unit/physics/test_T2b_stuart_landau_es.py"
   - path: "tools/physics/clamp_registry.yaml"
+  - path: ".github/workflows/pr-fast-diagnostics.yml"
