@@ -88,6 +88,9 @@ class StuartLandauResult:
         Default ``False`` at the single-snapshot fit. Set to ``True``
         only by higher-level rolling/OOS analysers when an ES peak has
         been observed to precede the most recent R peak by τ ≥ 1 bar.
+    mu_raw, mu_clamped, mu_was_clipped, mu_clip_count, mu_clip_mass
+        Audit surface for the Euler-stability clamp. Clipped windows are
+        valid bounded numerical fits, not unmodified physical-rate evidence.
     """
 
     amplitude: NDArray[np.float64]
@@ -96,6 +99,11 @@ class StuartLandauResult:
     hysteresis_area: float
     es_proximity: float
     leads_r_peak: bool
+    mu_raw: NDArray[np.float64]
+    mu_clamped: NDArray[np.float64]
+    mu_was_clipped: NDArray[np.bool_]
+    mu_clip_count: int
+    mu_clip_mass: float
 
     def __post_init__(self) -> None:
         if np.any(self.amplitude < _AMPLITUDE_FLOOR):
@@ -111,6 +119,26 @@ class StuartLandauResult:
                 f"outside [0, 1]. hysteresis_area={self.hysteresis_area:.6e}. "
                 f"Source: stuart_landau_es.fit_stuart_landau. "
                 f"Reference: Lee et al. PNAS 2025."
+            )
+        if self.mu_raw.shape != self.mu_clamped.shape:
+            raise ValueError(
+                "INV-SL μ audit VIOLATED: mu_raw and mu_clamped shape mismatch. "
+                f"raw={self.mu_raw.shape}, clamped={self.mu_clamped.shape}."
+            )
+        if self.mu_was_clipped.shape != self.mu_raw.shape:
+            raise ValueError(
+                "INV-SL μ audit VIOLATED: mu_was_clipped shape mismatch. "
+                f"mask={self.mu_was_clipped.shape}, raw={self.mu_raw.shape}."
+            )
+        if self.mu_clip_count != int(np.count_nonzero(self.mu_was_clipped)):
+            raise ValueError(
+                "INV-SL μ audit VIOLATED: mu_clip_count does not match mask. "
+                f"count={self.mu_clip_count}, mask={int(np.count_nonzero(self.mu_was_clipped))}."
+            )
+        if self.mu_clip_mass < 0.0 or not np.isfinite(self.mu_clip_mass):
+            raise ValueError(
+                "INV-SL μ audit VIOLATED: mu_clip_mass must be finite and non-negative. "
+                f"got {self.mu_clip_mass!r}."
             )
 
 
@@ -148,6 +176,73 @@ def _validate_prices(prices: NDArray[np.float64], min_T: int = 8) -> None:
         )
 
 
+def _validate_sweep_config(
+    *,
+    K_low: float,
+    K_high: float,
+    K_steps: int,
+    int_steps: int,
+    dt: float,
+    source: str,
+) -> None:
+    """Validate sweep/integration parameters fail-closed before simulation."""
+    if not np.isfinite(K_low) or not np.isfinite(K_high):
+        raise ValueError(
+            f"INV-SL contract VIOLATED: K_low/K_high must be finite, "
+            f"got K_low={K_low}, K_high={K_high}. Source: {source}."
+        )
+    if K_low >= K_high:
+        raise ValueError(
+            f"INV-SL contract VIOLATED: K_low<K_high required, "
+            f"got K_low={K_low}, K_high={K_high}. Source: {source}."
+        )
+    if not isinstance(K_steps, int) or K_steps < 2:
+        raise ValueError(
+            f"INV-SL contract VIOLATED: integer K_steps≥2 required, "
+            f"got {K_steps!r}. Source: {source}."
+        )
+    if not isinstance(int_steps, int) or int_steps < 1:
+        raise ValueError(
+            f"INV-SL contract VIOLATED: integer int_steps≥1 required, "
+            f"got {int_steps!r}. Source: {source}."
+        )
+    if not np.isfinite(dt) or dt <= 0.0:
+        raise ValueError(
+            f"INV-SL contract VIOLATED: finite dt>0 required, got {dt}. "
+            f"Source: {source}."
+        )
+
+
+def _estimate_growth_rate_audit(
+    amplitude_envelope: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.bool_], int, float]:
+    """Return raw μ, clamped μ, clipped mask/count/mass for auditability."""
+    n_t = amplitude_envelope.shape[0]
+    t = np.arange(n_t, dtype=np.float64)
+    t_centred = t - t.mean()
+    t_var = float((t_centred * t_centred).sum())
+    if t_var <= 0.0:
+        raise ValueError(
+            "INV-SL contract VIOLATED: growth-rate regression needs T≥3 "
+            f"envelope points with nonzero time variance, got n_t={n_t}. "
+            "Source: stuart_landau_es._estimate_growth_rate."
+        )
+    # ln of a strictly positive floored envelope; floor keeps the regression
+    # finite if the analytic amplitude touches zero on a bar.
+    # bounds: 1e-12 floor only guards log(0); does not bias the slope.
+    log_amp = np.log(np.maximum(amplitude_envelope, 1e-12))
+    log_amp_centred = log_amp - log_amp.mean(axis=0)
+    mu_raw = (t_centred[:, None] * log_amp_centred).sum(axis=0) / t_var
+    mu_raw = mu_raw.astype(np.float64)
+    mu_clamped = np.clip(  # bounds: Euler-stable ±1; μ=0 stays Hopf
+        mu_raw, -_MU_GROWTH_CLAMP, _MU_GROWTH_CLAMP
+    ).astype(np.float64)
+    mu_was_clipped = (mu_raw != mu_clamped).astype(np.bool_)
+    mu_clip_count = int(np.count_nonzero(mu_was_clipped))
+    mu_clip_mass = float(np.abs(mu_raw - mu_clamped).sum())
+    return mu_raw, mu_clamped, mu_was_clipped, mu_clip_count, mu_clip_mass
+
+
 def _estimate_growth_rate(
     amplitude_envelope: NDArray[np.float64],
 ) -> NDArray[np.float64]:
@@ -178,37 +273,23 @@ def _estimate_growth_rate(
 
     Reference: Stuart (1960); Landau (1944); Kuramoto (1984) §A.
     """
-    n_t = amplitude_envelope.shape[0]
-    t = np.arange(n_t, dtype=np.float64)
-    t_centred = t - t.mean()
-    t_var = float((t_centred * t_centred).sum())
-    if t_var <= 0.0:
-        raise ValueError(
-            "INV-SL contract VIOLATED: growth-rate regression needs T≥3 "
-            f"envelope points with nonzero time variance, got n_t={n_t}. "
-            "Source: stuart_landau_es._estimate_growth_rate."
-        )
-    # ln of a strictly positive floored envelope; floor keeps the regression
-    # finite if the analytic amplitude touches zero on a bar.
-    # bounds: 1e-12 floor only guards log(0); does not bias the slope.
-    log_amp = np.log(np.maximum(amplitude_envelope, 1e-12))
-    log_amp_centred = log_amp - log_amp.mean(axis=0)
-    mu = (t_centred[:, None] * log_amp_centred).sum(axis=0) / t_var
-    mu_clamped = np.clip(  # bounds: Euler-stable ±1 (see _MU_GROWTH_CLAMP); μ=0 stays Hopf
-        mu, -_MU_GROWTH_CLAMP, _MU_GROWTH_CLAMP
-    )
-    return mu_clamped.astype(np.float64)
+    _, mu_clamped, _, _, _ = _estimate_growth_rate_audit(amplitude_envelope)
+    return mu_clamped
 
 
-def _extract_amplitude_phase_omega(
+def _extract_amplitude_phase_omega_mu_audit(
     prices: NDArray[np.float64],
-) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-    """Hilbert analytic signal of demeaned log-returns → amplitude, phase, ω, μ.
-
-    Returns last-bar amplitude / phase, per-asset mean instantaneous frequency,
-    and the per-asset linear growth rate μ estimated as the OLS slope of the
-    log analytic-amplitude envelope (see ``_estimate_growth_rate``).
-    """
+) -> tuple[
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.float64],
+    NDArray[np.bool_],
+    int,
+    float,
+]:
+    """Hilbert analytic signal → fitted state plus auditable μ clamp surface."""
     log_returns = np.diff(np.log(prices), axis=0)
     centred = log_returns - log_returns.mean(axis=0)
     z = hilbert(centred, axis=0)
@@ -217,8 +298,35 @@ def _extract_amplitude_phase_omega(
     phase_last = np.angle(z[-1, :]).astype(np.float64)
     phase_unwrapped = np.unwrap(np.angle(z), axis=0)
     omega = np.diff(phase_unwrapped, axis=0).mean(axis=0).astype(np.float64)
-    mu_signed = _estimate_growth_rate(amplitude_envelope)
-    return amplitude_last, phase_last, omega, mu_signed
+    mu_raw, mu_clamped, mu_was_clipped, mu_clip_count, mu_clip_mass = (
+        _estimate_growth_rate_audit(amplitude_envelope)
+    )
+    return (
+        amplitude_last,
+        phase_last,
+        omega,
+        mu_raw,
+        mu_clamped,
+        mu_was_clipped,
+        mu_clip_count,
+        mu_clip_mass,
+    )
+
+
+def _extract_amplitude_phase_omega(
+    prices: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+    """Hilbert analytic signal of demeaned log-returns → amplitude, phase, ω, μ.
+
+    Returns last-bar amplitude / phase, per-asset mean instantaneous frequency,
+    and the per-asset CLAMPED linear growth rate μ. Use
+    ``_extract_amplitude_phase_omega_mu_audit`` when raw/clamped audit fields
+    are required.
+    """
+    amplitude, phase, omega, _, mu_clamped, _, _, _ = _extract_amplitude_phase_omega_mu_audit(
+        prices
+    )
+    return amplitude, phase, omega, mu_clamped
 
 
 def _stuart_landau_step(
@@ -264,15 +372,41 @@ def _hysteresis_sweep(
     int_steps: int,
     dt: float,
     seed: int,
+    z0: NDArray[np.complex128] | None = None,
 ) -> tuple[float, NDArray[np.float64], NDArray[np.float64]]:
-    """Forward + backward K-sweep; return (area_normalized, R_fwd, R_bwd)."""
-    rng = np.random.default_rng(seed)
-    n = mu.shape[0]
-    K_grid = np.linspace(K_low, K_high, K_steps)
-    z: NDArray[np.complex128] = np.empty(n, dtype=np.complex128)
-    z.real = rng.standard_normal(n) * 0.1
-    z.imag = rng.standard_normal(n) * 0.1
+    """Forward + backward K-sweep; return (area_normalized, R_fwd, R_bwd).
 
+    Default execution uses the fitted analytic state from the observed window.
+    Seeded random initialization is retained only as an explicit fallback path.
+    """
+    _validate_sweep_config(
+        K_low=K_low,
+        K_high=K_high,
+        K_steps=K_steps,
+        int_steps=int_steps,
+        dt=dt,
+        source="stuart_landau_es._hysteresis_sweep",
+    )
+    n = mu.shape[0]
+    if z0 is None:
+        rng = np.random.default_rng(seed)
+        z = np.empty(n, dtype=np.complex128)
+        z.real = rng.standard_normal(n) * 0.1
+        z.imag = rng.standard_normal(n) * 0.1
+    else:
+        if z0.shape != (n,):
+            raise ValueError(
+                f"INV-SL contract VIOLATED: z0 shape {(n,)} required, "
+                f"got {z0.shape}. Source: stuart_landau_es._hysteresis_sweep."
+            )
+        if not np.all(np.isfinite(z0.real)) or not np.all(np.isfinite(z0.imag)):
+            raise ValueError(
+                "INV-SL contract VIOLATED: z0 must be finite complex state. "
+                "Source: stuart_landau_es._hysteresis_sweep."
+            )
+        z = z0.astype(np.complex128, copy=True)
+
+    K_grid = np.linspace(K_low, K_high, K_steps)
     R_fwd = np.zeros(K_steps, dtype=np.float64)
     for i, K in enumerate(K_grid):
         R_fwd[i], z = _r_at_K(mu, omega, float(K), z, int_steps, dt)
@@ -303,7 +437,8 @@ def fit_stuart_landau(
         2. μ_i = OLS slope of ln(amplitude envelope) vs bar index = the
            Stuart-Landau linear growth rate (μ<0 stable focus, μ>0 limit
            cycle, μ=0 Hopf); clamped to ±1 for Euler stability
-        3. K-sweep hysteresis on the fitted ensemble (forward + backward)
+        3. K-sweep hysteresis on the fitted analytic ensemble state
+           z0 = A·exp(iθ), not a seeded random state
         4. ES proximity = clip(area / K_range, 0, 1)
 
     Parameters
@@ -311,35 +446,39 @@ def fit_stuart_landau(
     prices
         Shape ``(T, N)``, strictly positive, finite. T ≥ 8, N ≥ 2.
     K_low, K_high, K_steps, int_steps, dt, seed
-        K-sweep configuration.
+        K-sweep configuration. ``seed`` is preserved only for the explicit
+        fallback path inside ``_hysteresis_sweep``; the default fitted-state
+        path is seed-invariant.
 
     Raises
     ------
     ValueError
-        On any contract violation (shape, finiteness, positivity).
+        On any contract violation (shape, finiteness, positivity, sweep config).
     """
     _validate_prices(prices, min_T=8)
-    if K_steps < 2:
-        raise ValueError(
-            f"INV-SL contract VIOLATED: K_steps≥2 required, got {K_steps}. "
-            f"Source: stuart_landau_es.fit_stuart_landau."
-        )
-    if int_steps < 1:
-        raise ValueError(
-            f"INV-SL contract VIOLATED: int_steps≥1 required, got {int_steps}. "
-            f"Source: stuart_landau_es.fit_stuart_landau."
-        )
-    if K_low >= K_high:
-        raise ValueError(
-            f"INV-SL contract VIOLATED: K_low<K_high required, "
-            f"got K_low={K_low}, K_high={K_high}. "
-            f"Source: stuart_landau_es.fit_stuart_landau."
-        )
+    _validate_sweep_config(
+        K_low=K_low,
+        K_high=K_high,
+        K_steps=K_steps,
+        int_steps=int_steps,
+        dt=dt,
+        source="stuart_landau_es.fit_stuart_landau",
+    )
 
-    amplitude, phase, omega, mu = _extract_amplitude_phase_omega(prices)
+    (
+        amplitude,
+        phase,
+        omega,
+        mu_raw,
+        mu_clamped,
+        mu_was_clipped,
+        mu_clip_count,
+        mu_clip_mass,
+    ) = _extract_amplitude_phase_omega_mu_audit(prices)
     R_now = float(np.abs(np.mean(np.exp(1j * phase))))
+    fitted_z0 = (amplitude * np.exp(1j * phase)).astype(np.complex128)
     area, _, _ = _hysteresis_sweep(
-        mu,
+        mu_clamped,
         omega,
         K_low=K_low,
         K_high=K_high,
@@ -347,6 +486,7 @@ def fit_stuart_landau(
         int_steps=int_steps,
         dt=dt,
         seed=seed,
+        z0=fitted_z0,
     )
     es_proximity = float(min(max(area, 0.0), 1.0))
 
@@ -357,6 +497,11 @@ def fit_stuart_landau(
         hysteresis_area=area,
         es_proximity=es_proximity,
         leads_r_peak=False,
+        mu_raw=mu_raw,
+        mu_clamped=mu_clamped,
+        mu_was_clipped=mu_was_clipped,
+        mu_clip_count=mu_clip_count,
+        mu_clip_mass=mu_clip_mass,
     )
 
 
@@ -371,12 +516,14 @@ def rolling_es_proximity(
     int_steps: int = _DEFAULT_INT_STEPS,
     dt: float = _DEFAULT_DT,
     seed: int = 42,
+    fail_closed: bool = False,
 ) -> NDArray[np.float64]:
     """Causal rolling ES proximity series, one fit per window endpoint.
 
     Output is shape ``(T,)``; indices ``[0, window-1)`` are NaN
-    (insufficient lookback). Failed windows (rare contract violations
-    on edge segments) are also NaN. Walks left→right with stride ``step``.
+    (insufficient lookback). Failed windows are NaN in exploratory mode.
+    With ``fail_closed=True``, the first failed window raises with index and
+    root cause so evidence-generation paths cannot hide contract breaches.
     """
     _validate_prices(prices, min_T=window)
     if window < 8:
@@ -404,7 +551,12 @@ def rolling_es_proximity(
                 seed=seed,
             )
             out[t] = res.es_proximity
-        except (ValueError, FloatingPointError):
+        except (ValueError, FloatingPointError) as exc:
+            if fail_closed:
+                raise RuntimeError(
+                    f"INV-SL rolling fail-closed: window_end={t}, "
+                    f"window={window}, cause={exc}"
+                ) from exc
             out[t] = np.nan
     return out
 
