@@ -44,6 +44,8 @@ def test_helper_normalisation_functions() -> None:
     assert reg._normalise_bool("maybe") is None
 
     assert reg._normalise_positive_int(5) == 5
+    assert reg._normalise_positive_int(1) == 1  # boundary: > 0, not > 1
+    assert reg._normalise_positive_int("1") == 1  # str path boundary
     assert reg._normalise_positive_int("10") == 10
     assert reg._normalise_positive_int(0) is None
     assert reg._normalise_positive_int("  ") is None
