@@ -1,12 +1,12 @@
 id: t2b-runtime-audit
 status: ACTIVE
 claim_type: fail_closed
-issue: 1358
 promise: >-
   Close the runtime/model debt slice for Stuart-Landau T2b without changing
-  score, shadow-rail status, or rejected real-data validation verdict. The
-  fitted-state sweep initializes from observed analytic state z0=A*exp(i*theta)
-  by default, mu clipping is auditable, and rolling evidence can fail closed.
+  score, shadow-rail status, or the rejected real-data validation verdict.
+  The fitted-state sweep initializes from observed analytic state
+  z0=A*exp(i*theta) by default, mu clipping is auditable, and rolling evidence
+  can fail closed.
 diff_scope:
   changed_files:
     - path: "core/physics/stuart_landau_es.py"
@@ -23,19 +23,29 @@ required_python_symbols:
   - "rolling_es_proximity"
 expected_signal: >-
   Regression tests prove default fitted sweep is seed-invariant, mu clamp audit
-  fields are visible, fit results expose raw/clamped/clipped mu diagnostics, and
-  rolling fail-closed mode raises with a window index instead of hiding evidence
-  failures as NaN.
+  fields are visible, fit results expose raw/clamped/clipped mu diagnostics,
+  and rolling fail-closed mode raises with a window index instead of hiding
+  evidence failures as NaN. The slice makes no score increase, no shadow-rail
+  promotion, no final validation claim, and no trading/execution/forecast/policy
+  change.
 measurement_command: >-
-  python -m pytest tests/unit/physics/test_T2b_runtime_audit.py tests/unit/physics/test_T2b_stuart_landau_es.py -q
+  python -m pytest tests/unit/physics/test_T2b_runtime_audit.py
+  tests/unit/physics/test_T2b_stuart_landau_es.py -q
+signal_artifact: "tmp/t2b_runtime_audit_pytest.log"
 falsifier:
   command: >-
     python -m pytest tests/unit/physics/test_T2b_runtime_audit.py -q
   description: >-
     Fails if fitted-state sweep depends on seed, mu clipping is hidden, or
     rolling evidence mode silently converts contract failures into NaN.
-non_claims:
-  - "No physics score increase"
-  - "No shadow-rail promotion"
-  - "No final validation claim"
-  - "No trading or execution change"
+rollback_command: >-
+  git checkout HEAD~1 -- core/physics/stuart_landau_es.py
+  tests/unit/physics/test_T2b_runtime_audit.py
+  .claude/commit_acceptors/t2b-runtime-audit.yaml
+rollback_verification_command: >-
+  git diff --exit-code core/physics/stuart_landau_es.py
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/t2b-runtime-audit.yaml"
+report_path: "results/cross_asset_kuramoto/SL_ES_PREREGISTRATION.md"
+evidence:
+  - "tests/unit/physics/test_T2b_runtime_audit.py"
