@@ -545,46 +545,13 @@ def _schema_digest(model: type[BaseModel] | None) -> str | None:
 # Default registry configuration
 
 
-@lru_cache(maxsize=1)
-def default_contract_registry() -> IntegrationContractRegistry:
-    registry = IntegrationContractRegistry()
-
-    service_jwt = AuthorizationScheme(
-        name="service-jwt",
-        description="Signed JWT issued by the platform identity provider.",
-        scopes=("features:read", "predictions:read"),
-        audience="geosync.api",
-    )
-
-    internal_service = AuthorizationScheme(
-        name="internal-service",
-        description="Mutual TLS service identity propagated via SPIFFE.",
-        scopes=("system:internal",),
-    )
-
-    api_idempotency = IdempotencyPolicy(key="Idempotency-Key", ttl_seconds=3600)
-    api_retry = RetryPolicy(max_attempts=1)
-    api_sla = ServiceLevelAgreement(
-        name="api.v1.latency",
-        indicators=(
-            ServiceLevelIndicator(
-                name="p95_latency",
-                metric="p95_latency_ms",
-                target=350.0,
-                threshold_type="lte",
-                description="95th percentile latency must remain under 350ms.",
-            ),
-            ServiceLevelIndicator(
-                name="success_rate",
-                metric="success_rate",
-                target=0.995,
-                threshold_type="gte",
-                description="Successful responses must exceed 99.5% per rolling hour.",
-            ),
-        ),
-        description="Online inference latency and availability objectives.",
-    )
-
+def _register_api_contracts(
+    registry: IntegrationContractRegistry,
+    service_jwt: AuthorizationScheme,
+    api_idempotency: IdempotencyPolicy,
+    api_retry: RetryPolicy,
+    api_sla: ServiceLevelAgreement,
+) -> None:
     features_contract = ApiContract(
         name="geosync.api.v1.features",
         method="POST",
@@ -635,7 +602,10 @@ def default_contract_registry() -> IntegrationContractRegistry:
     )
     registry.register_api(predictions_contract)
 
-    # Event contracts ------------------------------------------------------
+
+def _register_market_event_contracts(
+    registry: IntegrationContractRegistry, internal_service: AuthorizationScheme
+) -> None:
     registry.register_event(
         EventContract(
             name="geosync.events.market-ticks",
@@ -687,6 +657,10 @@ def default_contract_registry() -> IntegrationContractRegistry:
         )
     )
 
+
+def _register_execution_event_contracts(
+    registry: IntegrationContractRegistry, internal_service: AuthorizationScheme
+) -> None:
     registry.register_event(
         EventContract(
             name="geosync.events.orders",
@@ -721,7 +695,10 @@ def default_contract_registry() -> IntegrationContractRegistry:
         )
     )
 
-    # Queue contract -------------------------------------------------------
+
+def _register_queue_contracts(
+    registry: IntegrationContractRegistry, internal_service: AuthorizationScheme
+) -> None:
     registry.register_queue(
         QueueContract(
             name="geosync.queues.execution-requests",
@@ -740,7 +717,10 @@ def default_contract_registry() -> IntegrationContractRegistry:
         )
     )
 
-    # Service interaction contracts ---------------------------------------
+
+def _register_data_service_contracts(
+    registry: IntegrationContractRegistry, internal_service: AuthorizationScheme
+) -> None:
     ingest_sla = ServiceLevelAgreement(
         name="market-data.ingest",
         indicators=(
@@ -801,6 +781,10 @@ def default_contract_registry() -> IntegrationContractRegistry:
         )
     )
 
+
+def _register_backtest_service_contract(
+    registry: IntegrationContractRegistry, internal_service: AuthorizationScheme
+) -> None:
     registry.register_service(
         ServiceInteractionContract(
             name="geosync.service.backtesting.run",
@@ -830,6 +814,10 @@ def default_contract_registry() -> IntegrationContractRegistry:
         )
     )
 
+
+def _register_execution_service_contracts(
+    registry: IntegrationContractRegistry, internal_service: AuthorizationScheme
+) -> None:
     registry.register_service(
         ServiceInteractionContract(
             name="geosync.service.execution.submit",
@@ -898,6 +886,54 @@ def default_contract_registry() -> IntegrationContractRegistry:
         )
     )
 
+
+@lru_cache(maxsize=1)
+def default_contract_registry() -> IntegrationContractRegistry:
+    registry = IntegrationContractRegistry()
+
+    service_jwt = AuthorizationScheme(
+        name="service-jwt",
+        description="Signed JWT issued by the platform identity provider.",
+        scopes=("features:read", "predictions:read"),
+        audience="geosync.api",
+    )
+
+    internal_service = AuthorizationScheme(
+        name="internal-service",
+        description="Mutual TLS service identity propagated via SPIFFE.",
+        scopes=("system:internal",),
+    )
+
+    api_idempotency = IdempotencyPolicy(key="Idempotency-Key", ttl_seconds=3600)
+    api_retry = RetryPolicy(max_attempts=1)
+    api_sla = ServiceLevelAgreement(
+        name="api.v1.latency",
+        indicators=(
+            ServiceLevelIndicator(
+                name="p95_latency",
+                metric="p95_latency_ms",
+                target=350.0,
+                threshold_type="lte",
+                description="95th percentile latency must remain under 350ms.",
+            ),
+            ServiceLevelIndicator(
+                name="success_rate",
+                metric="success_rate",
+                target=0.995,
+                threshold_type="gte",
+                description="Successful responses must exceed 99.5% per rolling hour.",
+            ),
+        ),
+        description="Online inference latency and availability objectives.",
+    )
+
+    _register_api_contracts(registry, service_jwt, api_idempotency, api_retry, api_sla)
+    _register_market_event_contracts(registry, internal_service)
+    _register_execution_event_contracts(registry, internal_service)
+    _register_queue_contracts(registry, internal_service)
+    _register_data_service_contracts(registry, internal_service)
+    _register_backtest_service_contract(registry, internal_service)
+    _register_execution_service_contracts(registry, internal_service)
     return registry
 
 

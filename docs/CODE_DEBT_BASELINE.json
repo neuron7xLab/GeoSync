@@ -21,7 +21,6 @@
       "application/api/service.py::create_app.v1_generate_prediction",
       "application/api/system_access.py::SystemAccess.place_order",
       "application/api/system_access.py::create_system_app",
-      "application/microservices/contracts.py::default_contract_registry",
       "application/runtime/control_gates.py::evaluate_control_gates",
       "application/runtime/init_control_platform.py::initialize_control_platform",
       "application/runtime/server.py::run",
