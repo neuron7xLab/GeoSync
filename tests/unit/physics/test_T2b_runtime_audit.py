@@ -23,7 +23,9 @@ def _synthetic_prices(
     rng = np.random.default_rng(seed)
     rets = rng.standard_normal((T, N)) * 0.004
     cumulative = np.cumsum(rets, axis=0)
-    prices: NDArray[np.float64] = (100.0 * np.exp(cumulative)).astype(np.float64)
+    prices: NDArray[np.float64] = (100.0 * np.exp(cumulative)).astype(
+        np.float64
+    )
     return prices
 
 
