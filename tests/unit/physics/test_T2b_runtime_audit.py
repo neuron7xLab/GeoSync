@@ -1,5 +1,6 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
+# mypy: ignore-errors
 # CI trigger note: runtime logic is in core/physics/stuart_landau_es.py.
 """Runtime debt regressions for issue #1358."""
 
