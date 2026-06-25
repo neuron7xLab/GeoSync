@@ -55,7 +55,7 @@
     },
     {
       "path": "scripts/ci/check_claim_boundary.py",
-      "sha256": "ca735ed42aa9b1c250d44eda96bf3c255e7e4c0e5a6681909175df34e5a2a379"
+      "sha256": "3109fb69fcb91a944da0add876a4df2b96dba1c20e48bf5ff1fb90ce4d669e08"
     },
     {
       "path": "scripts/ci/check_claim_maturity.py",
@@ -64,6 +64,10 @@
     {
       "path": "scripts/ci/check_claims.py",
       "sha256": "a665d6d250a1512d93db0df5512693514f453a0c07882e9d8c22f95863cee1fa"
+    },
+    {
+      "path": "scripts/ci/check_code_hygiene.py",
+      "sha256": "2861e40814cb39deb78aeae2974b5a7e9a15cc5b25169f6d765463d92bc7ac77"
     },
     {
       "path": "scripts/ci/check_config_sprawl.py",
@@ -164,6 +168,10 @@
     {
       "path": "scripts/ci/check_revalidation_ledger.py",
       "sha256": "da7161c99bb1ebe86e028cf64465a622c37858aedc738d210f606be6e1b11744"
+    },
+    {
+      "path": "scripts/ci/check_skip_ratchet.py",
+      "sha256": "fe6fbb23ae5812ff5fe086a857e1a6a3e5a8fc4ae62ee62f06c0a684967eeef2"
     },
     {
       "path": "scripts/ci/check_tombstone_preservation.py",

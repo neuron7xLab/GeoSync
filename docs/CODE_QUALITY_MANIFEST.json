@@ -1,0 +1,35 @@
+{
+  "_doc": "Code-quality scope + thresholds consumed by scripts/ci/check_code_hygiene.py. runtime_roots are the first-party packages held to the complexity/exception/determinism budget; excluded_roots are scanned-out (drafts, archives, vendored). Thresholds are the TARGET; today's reality is frozen in docs/CODE_DEBT_BASELINE.json as a monotone-down ledger. See docs/adr/0025-code-hygiene-ratchet.md.",
+  "schema_version": "1.0",
+  "runtime_roots": [
+    "geosync",
+    "execution",
+    "application",
+    "runtime",
+    "core",
+    "coherence_bridge",
+    "physics_contracts"
+  ],
+  "excluded_roots": [
+    "tests",
+    "test",
+    "docs",
+    "examples",
+    "bench",
+    "benchmarks",
+    "experiments",
+    "sandbox",
+    "spikes",
+    "demos",
+    "loadtests",
+    "tools/vendor",
+    "build",
+    "dist"
+  ],
+  "thresholds": {
+    "max_function_loc": 80,
+    "max_class_loc": 400,
+    "max_complexity": 15,
+    "max_file_loc": 800
+  }
+}
