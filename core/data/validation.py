@@ -205,6 +205,17 @@ def validate_ohlcv(
             raise TimeSeriesValidationError(f"Required column '{price_col}' not found")
         return result
 
+    _check_price_series(df, price_col, result)
+    _check_ohlc_relationships(df, open_col, high_col, low_col, price_col, result)
+    _check_volume(df, volume_col, result)
+
+    if raise_on_error and not result.valid:
+        raise TimeSeriesValidationError("; ".join(result.issues))
+
+    return result
+
+
+def _check_price_series(df: pd.DataFrame, price_col: str, result: OHLCVValidationResult) -> None:
     # Validate price column
     price_series = df[price_col]
     nan_count = price_series.isna().sum()
@@ -232,7 +243,15 @@ def validate_ohlcv(
         result.valid = False
         result.issues.append(f"All values in {price_col} are identical")
 
-    # Validate OHLC relationships if all columns present
+
+def _check_ohlc_relationships(
+    df: pd.DataFrame,
+    open_col: str | None,
+    high_col: str | None,
+    low_col: str | None,
+    price_col: str,
+    result: OHLCVValidationResult,
+) -> None:
     ohlc_cols = [
         (open_col, "open"),
         (high_col, "high"),
@@ -242,32 +261,43 @@ def validate_ohlcv(
     available_cols = {name: label for name, label in ohlc_cols if name and name in df.columns}
 
     if len(available_cols) == 4 and high_col and low_col:
-        # Check high >= low
         violations = (df[high_col] < df[low_col]).sum()
         if violations > 0:
             result.valid = False
             result.issues.append(f"{violations} rows where high < low")
+        _check_ohlc_bands(df, open_col, high_col, low_col, price_col, result)
 
-        # Check high >= close, open
-        if open_col and open_col in df.columns:
-            high_open_violations = (df[high_col] < df[open_col]).sum()
-            if high_open_violations > 0:
-                result.warnings.append(f"{high_open_violations} rows where high < open")
 
-        high_close_violations = (df[high_col] < df[price_col]).sum()
-        if high_close_violations > 0:
-            result.warnings.append(f"{high_close_violations} rows where high < close")
+def _check_ohlc_bands(
+    df: pd.DataFrame,
+    open_col: str | None,
+    high_col: str,
+    low_col: str,
+    price_col: str,
+    result: OHLCVValidationResult,
+) -> None:
+    # Check high >= close, open
+    if open_col and open_col in df.columns:
+        high_open_violations = (df[high_col] < df[open_col]).sum()
+        if high_open_violations > 0:
+            result.warnings.append(f"{high_open_violations} rows where high < open")
 
-        # Check low <= close, open
-        if open_col and open_col in df.columns:
-            low_open_violations = (df[low_col] > df[open_col]).sum()
-            if low_open_violations > 0:
-                result.warnings.append(f"{low_open_violations} rows where low > open")
+    high_close_violations = (df[high_col] < df[price_col]).sum()
+    if high_close_violations > 0:
+        result.warnings.append(f"{high_close_violations} rows where high < close")
 
-        low_close_violations = (df[low_col] > df[price_col]).sum()
-        if low_close_violations > 0:
-            result.warnings.append(f"{low_close_violations} rows where low > close")
+    # Check low <= close, open
+    if open_col and open_col in df.columns:
+        low_open_violations = (df[low_col] > df[open_col]).sum()
+        if low_open_violations > 0:
+            result.warnings.append(f"{low_open_violations} rows where low > open")
 
+    low_close_violations = (df[low_col] > df[price_col]).sum()
+    if low_close_violations > 0:
+        result.warnings.append(f"{low_close_violations} rows where low > close")
+
+
+def _check_volume(df: pd.DataFrame, volume_col: str | None, result: OHLCVValidationResult) -> None:
     # Validate volume if present
     if volume_col and volume_col in df.columns:
         vol_series = df[volume_col]
@@ -275,11 +305,6 @@ def validate_ohlcv(
         if neg_volume > 0:
             result.valid = False
             result.issues.append(f"{neg_volume} negative volume values")
-
-    if raise_on_error and not result.valid:
-        raise TimeSeriesValidationError("; ".join(result.issues))
-
-    return result
 
 
 class ValueColumnConfig(BaseModel):
