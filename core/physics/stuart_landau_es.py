@@ -17,7 +17,7 @@ visible, and evidence paths can fail closed.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -28,7 +28,9 @@ _DEFAULT_K_HIGH: Final[float] = 4.0
 _DEFAULT_K_STEPS: Final[int] = 16
 _DEFAULT_INT_STEPS: Final[int] = 200
 _DEFAULT_DT: Final[float] = 0.05
+# bounds: amplitude is |analytic signal| and must never be negative.
 _AMPLITUDE_FLOOR: Final[float] = 0.0
+# bounds: Euler-stable growth-rate band; mu=0 remains the Hopf threshold.
 _MU_GROWTH_CLAMP: Final[float] = 1.0
 
 __all__ = [
@@ -39,9 +41,9 @@ __all__ = [
 ]
 
 
-FloatArray = NDArray[np.float64]
-BoolArray = NDArray[np.bool_]
-ComplexArray = NDArray[np.complex128]
+FloatArray: TypeAlias = NDArray[np.float64]
+BoolArray: TypeAlias = NDArray[np.bool_]
+ComplexArray: TypeAlias = NDArray[np.complex128]
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,10 +173,12 @@ def _estimate_growth_rate_audit(
             f"nonzero time variance, got n_t={n_t}."
         )
 
+    # bounds: log floor prevents log(0) without hiding the raw fitted mu.
     log_amp = np.log(np.maximum(amplitude_envelope, 1e-12))
     log_amp_centred = log_amp - log_amp.mean(axis=0)
     mu_raw = (t_centred[:, None] * log_amp_centred).sum(axis=0) / t_var
     mu_raw = mu_raw.astype(np.float64)
+    # bounds: clamp only caps explicit-Euler blow-up; raw mu is retained.
     mu_clamped = np.clip(
         mu_raw,
         -_MU_GROWTH_CLAMP,
@@ -248,8 +252,11 @@ def _stuart_landau_step(
     n = z.shape[0]
     coupling = (K / n) * (z.sum() - n * z)
     self_term = (mu + 1j * omega) * z - (np.abs(z) ** 2) * z
-    out = z + dt * (self_term + coupling)
-    return out.astype(np.complex128, copy=False)
+    out: ComplexArray = (z + dt * (self_term + coupling)).astype(
+        np.complex128,
+        copy=False,
+    )
+    return out
 
 
 def _r_at_K(
@@ -311,7 +318,10 @@ def _hysteresis_sweep(
         source="stuart_landau_es._hysteresis_sweep",
     )
     n = mu.shape[0]
-    z = _initial_state_from_seed(n, seed) if z0 is None else _validate_z0(z0, n)
+    if z0 is None:
+        z = _initial_state_from_seed(n, seed)
+    else:
+        z = _validate_z0(z0, n)
 
     K_grid = np.linspace(K_low, K_high, K_steps)
     R_fwd = np.zeros(K_steps, dtype=np.float64)
@@ -323,6 +333,7 @@ def _hysteresis_sweep(
         out_index = K_steps - 1 - index
         R_bwd[out_index], z = _r_at_K(mu, omega, float(K), z, int_steps, dt)
 
+    # bounds: avoid zero-width K normalization while preserving a zero area.
     K_range = max(K_high - K_low, 1e-12)
     area = float(np.trapezoid(np.abs(R_fwd - R_bwd), K_grid)) / K_range
     return area, R_fwd, R_bwd
@@ -372,6 +383,7 @@ def fit_stuart_landau(
         seed=seed,
         z0=fitted_z0,
     )
+    # bounds: public ES proximity is a [0, 1] scalar; raw area is retained.
     es_proximity = float(min(max(area, 0.0), 1.0))
 
     return StuartLandauResult(
