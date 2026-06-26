@@ -10,8 +10,9 @@ promise: >-
   can fail closed, numerical-policy clamp registry sites stay current,
   Stuart-Landau sweep-heavy tests run in the heavy_math CI lane rather than
   the fast shard lane, fast-shard diagnostics can persist node/log evidence,
-  and the invariant schema gate resolves the legacy Landauer alias to its
-  canonical executable registry row.
+  the invariant schema gate resolves the legacy Landauer alias to its
+  canonical executable registry row, and deterministic evidence artifacts stay
+  byte-fresh against CLAIMS.md.
 diff_scope:
   changed_files:
     - path: "core/physics/stuart_landau_es.py"
@@ -20,6 +21,8 @@ diff_scope:
     - path: "tools/physics/clamp_registry.yaml"
     - path: "scripts/check_invariant_registry_schema.py"
     - path: ".github/workflows/pr-fast-diagnostics.yml"
+    - path: "docs/architecture/claim_graph.json"
+    - path: "artifacts/.manifest.json"
     - path: ".claude/commit_acceptors/t2b-runtime-audit.yaml"
   forbidden_paths:
     - "trading/"
@@ -40,13 +43,15 @@ expected_signal: >-
   The diagnostic workflow records fast-shard node ids and pytest logs only;
   it does not change runtime behavior or PR Gate pass/fail semantics. The
   invariant schema gate keeps missing related IDs fail-closed while resolving
-  the historical INV-LANDAUER spelling to INV-LANDAUER-PROXY. The slice makes
-  no score increase, no shadow-rail promotion, no final validation claim, and
-  no trading/execution/forecast/policy change.
+  the historical INV-LANDAUER spelling to INV-LANDAUER-PROXY. The claim graph
+  and evidence manifest are refreshed only to close deterministic artifact
+  freshness drift from CLAIMS.md. The slice makes no score increase, no
+  shadow-rail promotion, no final validation claim, and no
+  trading/execution/forecast/policy change.
 measurement_command: >-
   python -m pytest tests/unit/physics/test_T2b_runtime_audit.py
   tests/unit/physics/test_T2b_stuart_landau_es.py tests/tools/test_numerical_policy.py
-  tests/ci/test_invariant_registry_schema.py -q
+  tests/ci/test_invariant_registry_schema.py tests/ci/test_artifact_freshness_gate.py -q
 signal_artifact: "tmp/t2b_runtime_audit_pytest.log"
 falsifier:
   command: >-
@@ -63,6 +68,8 @@ rollback_command: >-
   tools/physics/clamp_registry.yaml
   scripts/check_invariant_registry_schema.py
   .github/workflows/pr-fast-diagnostics.yml
+  docs/architecture/claim_graph.json
+  artifacts/.manifest.json
   .claude/commit_acceptors/t2b-runtime-audit.yaml
 rollback_verification_command: >-
   git diff --exit-code core/physics/stuart_landau_es.py
@@ -75,3 +82,5 @@ evidence:
   - path: "tools/physics/clamp_registry.yaml"
   - path: "scripts/check_invariant_registry_schema.py"
   - path: ".github/workflows/pr-fast-diagnostics.yml"
+  - path: "docs/architecture/claim_graph.json"
+  - path: "artifacts/.manifest.json"
