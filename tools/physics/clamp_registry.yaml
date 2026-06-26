@@ -260,3 +260,11 @@ clamps:
   - core/kuramoto/metrics.py:320
   - core/kuramoto/metrics.py:339
   - core/kuramoto/ricci_flow.py:213
+  - core/kuramoto/ricci_flow.py:454
+  - core/kuramoto/ricci_flow_engine.py:447
+  - core/kuramoto/second_order.py:431
+  - core/kuramoto/synthetic.py:174
+  - core/physics/diffusion_predictor.py:163
+  - core/physics/gravitational_coupling.py:145
+  - core/physics/lyapunov_exponent.py:450
+  - core/physics/wave_propagation.py:100
