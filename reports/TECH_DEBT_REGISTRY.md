@@ -51,8 +51,9 @@ _Оновлення 2026-06-10 (друга ітерація): 5 PARTIAL закр
 | TD-020 | P0 | ✅ RESOLVED | 0 приватних ключів: усі `configs/tls/dev/*.pem` = CERTIFICATE з `# REDACTED`; `.gitignore:42-44` блокує `*.key`; detect-secrets у `pr-gate.yml` |
 | TD-021 | P0 | ✅ RESOLVED | Bandit MEDIUM=0: 2 `0.0.0.0` лише в docstring/help (`nlca_core.py:825`, `mlsdm/__main__.py:68`), реального bind немає; `bandit -ll` у CI |
 | TD-022 | — | ✅ RESOLVED | 0 реальних code-debt TODO; решта — патерни сканерів/шаблони; lint-guard `tools/docs/lint_docs.py:165` блокує `TODO/FIXME/TBD` |
+| TD-023 | P2 | 🟡 TRACKED (partial paydown) | **Coverage Intelligence Gate (non-required) червоний: release-line coverage 85.03% < 90%** — standing-дефіцит, не регрес. Гейт сам рапортує: critical_surface (явний список) **задоволено** (next_tests.md §1 _none_); дірка — у 16 повністю-непокритих production-файлах + агрегатних таргетах (`execution` 87.74/95, `backtest` 68.55/98, `risk` 90.68/98, `core` 86.92/95, `ingestion` 89.60/95, `analytics` 75.99/90). **Цей PR** закриває 2/16 непокритих core-файлів до ~100%: `core/indicators/novelty.py` (KL/cosine, 10 falsifiable-тестів) + `core/metrics/fractal_dimension.py` (box-counting, 5 тестів). Решта 14 файлів + surface-гепи лишаються тут як свідомий, виміряний борг (потребує окремої scoped test-кампанії, не bug-fix). |
 
-**Залишковий код-борг:** немає. Усі 22 пункти кодового реєстру закрито (TD-001…022).
+**Залишковий код-борг:** один трекнутий пункт — TD-023 (coverage-дефіцит 85.03%<90%, non-required gate, partial paydown цим PR). Решта 22 пункти кодового реєстру закрито (TD-001…022).
 П'ять колишніх PARTIAL (TD-002/003/005/009/017) закрито у другій ітерації додаванням
 закриваючих артефактів (log-warn, constant-series guard+тест, cache-invariant тест,
 jitter+log тест, warn-path тест). Поза цим реєстром лишаються нетехнічні readiness-гепи
