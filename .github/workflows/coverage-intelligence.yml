@@ -140,6 +140,18 @@ jobs:
           # as incomplete.
           python -m pip install -e ".[dev,contract]"
           python -m pip install pytest pytest-cov pyyaml
+          # POT (optimal transport) backs the Ollivier-Ricci kernel imported by
+          # tests/research_lines/test_ricci_microstructure_v1.py, which THIS gate
+          # collects as part of the full suite. POT lives in the pyproject
+          # `neuro_advanced` optional group, deliberately excluded from the
+          # pip-compiled base/dev locks AND from [dev,contract], so neither path
+          # installs `ot`. Without it the module ImportErrors at COLLECTION
+          # (pytest exit 2) — and, worse for this gate's purpose, a missing
+          # dependency would silently shrink the measured surface and INFLATE the
+          # coverage ratio. Install it explicitly (matching pyproject's floor),
+          # mirroring repo-integrity-gate / ricci-microstructure-gate; never
+          # importorskip, which would vacuously drop the kernel from coverage.
+          python -m pip install "POT>=0.9.5"
           # Dependency-consistency gate: surface any broken or incompatible
           # requirement set BEFORE measurement, complementing the import
           # preflight below.
