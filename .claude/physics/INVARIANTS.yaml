@@ -1659,7 +1659,7 @@ law_t5_predictability_landauer:
     references:
       - "Landauer, R. (1961). Irreversibility and heat generation in the computing process. IBM J. Res. Dev. 5, 183–191."
       - "Bennett, C. H. (2003). Notes on Landauer's principle, reversible computation, and Maxwell's Demon. Stud. Hist. Phil. Mod. Phys. 34, 501–510."
-    related: [INV-TAU1, INV-LANDAUER]
+    related: [INV-TAU1, INV-LANDAUER-PROXY]
 
   fail_closed_contract:
     id: INV-TAU3

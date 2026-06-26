@@ -50,7 +50,7 @@
         ".claude/physics/INVARIANTS.yaml"
       ],
       "exclusion_reason": "Produced by a VERDICT GATE (check_physics_law_witness_index.py), not a pure generator: --write is coupled to mutable on-disk state and can exit non-zero mid-pipeline. Byte-freshness is enforced by its own dedicated gate step in phd_evidence.sh, not by re-running the gate as a generator here.",
-      "artifact_sha256": "667e4cac14cab14092bcb4c8527deb78b74aabe2a8b47a2d11930f189be9da64"
+      "artifact_sha256": "204c93d94f1eb786fe9941a9441ccd61d9913d718a7039f1f0ad8fde65f4622e"
     },
     {
       "artifact": "artifacts/physics_v2/inference_readiness.json",
@@ -70,7 +70,7 @@
         "CLAIMS.md"
       ],
       "exclusion_reason": "",
-      "artifact_sha256": "9be9c0816abaeefaa3411694bb89a9ac84e307c1b6b76ea3ed7377881a7da6da"
+      "artifact_sha256": "da3862905f42d2a457c6b1650a4da3400c77b0504aee1fc3869986b1e44f28da"
     },
     {
       "artifact": "docs/architecture/claim_graph.json",
@@ -80,7 +80,7 @@
         "CLAIMS.md"
       ],
       "exclusion_reason": "",
-      "artifact_sha256": "fd5170e743bf9ac84ede4ffdb6a467f252aaf6dd9a3a388220460716e20062a8"
+      "artifact_sha256": "5c635f3dd12b1502ebd8bb3ad1689a0bd46b354316cb46b136ca6843fd53a6d0"
     }
   ]
 }

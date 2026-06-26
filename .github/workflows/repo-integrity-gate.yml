@@ -51,7 +51,9 @@ permissions:
 
 concurrency:
   group: repo-integrity-gate-${{ github.ref }}
-  cancel-in-progress: true
+  # PR retries may be superseded; main push evidence must finish instead of
+  # being cancelled by the next merge before the integrity proof can emit truth.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   repo-integrity-gate:

@@ -78,7 +78,9 @@ permissions:
 
 concurrency:
   group: research-integrity-gate-${{ github.ref }}
-  cancel-in-progress: true
+  # PR retries may be superseded; main push evidence must finish instead of
+  # being cancelled by the next merge before research truth gates emit verdicts.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   research-integrity-gate:
