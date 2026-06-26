@@ -201,8 +201,8 @@ clamps:
   - core/indicators/kuramoto_ricci_composite.py:151
   - core/indicators/kuramoto_ricci_composite.py:170
   - core/indicators/market_state_contract.py:172
-  - core/indicators/multiscale_kuramoto.py:373
-  - core/indicators/multiscale_kuramoto.py:574
+  - core/indicators/multiscale_kuramoto.py:383
+  - core/indicators/multiscale_kuramoto.py:584
   - core/indicators/novelty.py:11
   - core/indicators/novelty.py:12
   - core/indicators/ricci.py:1074

@@ -59,6 +59,36 @@ def test_hilbert_phase_fallback_matches_scipy_on_sloped_signal(
     assert order_fft == pytest.approx(order_scipy, rel=FLOAT_REL_TOL, abs=FLOAT_ABS_TOL)
 
 
+def test_hilbert_phase_accepts_readonly_buffer_without_mutating_caller() -> None:
+    """Regression: a read-only / caller-owned series must not crash or be mutated.
+
+    ``_hilbert_phase`` works in place (putmask on non-finite fill, in-place
+    detrend + Hilbert multiplier). A read-only input previously raised
+    "putmask: output array is read-only", which silently degraded
+    GeoSyncCompositeEngine to its fallback feature set. A writable input was
+    additionally mutated in place — an aliasing side effect. The function must
+    instead own a private copy: no crash, caller bytes preserved, and the result
+    identical to the writable-input path.
+    """
+    base = np.linspace(1.0, 10.0, 256)
+    base[7] = np.nan  # force the putmask branch (non-finite fill)
+
+    read_only = base.copy()
+    read_only.setflags(write=False)
+    snapshot = read_only.copy()
+
+    phases_ro = kuramoto_mod._hilbert_phase(read_only)
+
+    assert np.array_equal(read_only, snapshot, equal_nan=True), "caller buffer mutated"
+
+    writable = base.copy()
+    writable_snapshot = writable.copy()
+    phases_w = kuramoto_mod._hilbert_phase(writable)
+    assert np.array_equal(writable, writable_snapshot, equal_nan=True), "writable caller mutated"
+
+    assert np.allclose(phases_ro, phases_w, rtol=1e-12, atol=1e-12, equal_nan=True)
+
+
 def test_fractal_gcl_handles_torch_loader_error(monkeypatch: pytest.MonkeyPatch) -> None:
     import core.indicators.fractal_gcl as fractal_gcl
 
