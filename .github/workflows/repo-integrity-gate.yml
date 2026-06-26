@@ -50,7 +50,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: repo-integrity-gate-${{ github.ref }}
+  # PR runs group by ref (a new push to the PR supersedes the old run — cheap
+  # retries). Main-push runs group by the EXACT commit SHA, never by the shared
+  # `refs/heads/main` ref: a shared main group lets a later merge supersede an
+  # earlier SHA's still-QUEUED integrity run (cancel-in-progress=false stops
+  # eviction of the in-progress run, but GitHub still drops superseded *pending*
+  # runs), so that intermediate SHA would never emit a terminal verdict. A
+  # per-SHA group guarantees every main commit reaches a terminal integrity
+  # result.
+  group: repo-integrity-gate-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   # PR retries may be superseded; main push evidence must finish instead of
   # being cancelled by the next merge before the integrity proof can emit truth.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
