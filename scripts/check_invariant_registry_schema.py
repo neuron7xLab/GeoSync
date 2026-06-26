@@ -24,6 +24,11 @@ DEFAULT_REGISTRY = REPO_ROOT / ".claude/physics/INVARIANTS.yaml"
 REQUIRED = ("id", "type", "statement", "test_type", "priority")
 PRIORITIES = {"P0", "P1", "P2", "P3"}
 ID_RE = re.compile(r"^INV-[A-Za-z0-9][A-Za-z0-9-]*$")
+# Historical prose used INV-LANDAUER for the bit-erasure / irreversible-action
+# floor. The executable PNCC registry later anchored that contract as
+# INV-LANDAUER-PROXY. Keep the live gate fail-closed for truly missing IDs while
+# resolving this one legacy alias to its canonical registry row.
+RELATED_ALIASES = {"INV-LANDAUER": "INV-LANDAUER-PROXY"}
 
 
 def _walk(node: Any, path: str = "$") -> list[tuple[str, dict[str, Any]]]:
@@ -38,9 +43,15 @@ def _walk(node: Any, path: str = "$") -> list[tuple[str, dict[str, Any]]]:
     if isinstance(node, list):
         rows = []
         for idx, value in enumerate(node):
-            rows.extend(_walk(value, f"{path}[{idx}]"))
+            rows.extend(_walk(value, f"{path}[{idx}]") )
         return rows
     return []
+
+
+def _resolve_related(ref: Any) -> Any:
+    if isinstance(ref, str):
+        return RELATED_ALIASES.get(ref, ref)
+    return ref
 
 
 def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
@@ -78,7 +89,8 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
                 errors.append(f"{row_path}: {inv_id}: related must be a list or string")
             else:
                 for ref in related:
-                    if ref not in ids:
+                    resolved_ref = _resolve_related(ref)
+                    if resolved_ref not in ids:
                         errors.append(
                             f"{row_path}: {inv_id}: " f"unresolved related invariant {ref!r}"
                         )
