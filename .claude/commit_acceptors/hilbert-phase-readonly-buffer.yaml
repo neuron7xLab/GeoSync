@@ -21,6 +21,10 @@ diff_scope:
     - path: ".claude/commit_acceptors/hilbert-phase-readonly-buffer.yaml"
     - path: "core/indicators/multiscale_kuramoto.py"
     - path: "tests/unit/test_indicators_kuramoto_multiscale.py"
+    # The 10-line read-only-copy insertion shifts two pre-existing np.clip
+    # saturate_clip sites down; the line-pinned numerical-policy clamp registry
+    # is re-synced to their new positions (373->383, 574->584).
+    - path: "tools/physics/clamp_registry.yaml"
   forbidden_paths:
     - "backtest/"
     - "execution/"
