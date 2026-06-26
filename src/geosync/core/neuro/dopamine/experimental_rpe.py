@@ -49,7 +49,7 @@ def _require_finite(name: str, value: float) -> float:
 def _clamp(value: float, lower: float, upper: float) -> float:
     if lower > upper:
         raise ValueError("lower bound must be <= upper bound")
-    return min(upper, max(lower, value))
+    return min(upper, max(lower, _require_finite("clamp value", value)))
 
 
 def canonical_td_error(
@@ -66,7 +66,10 @@ def canonical_td_error(
     discount_gamma = _require_finite("discount_gamma", float(discount_gamma))
     if not 0.0 < discount_gamma <= 1.0:
         raise ValueError("discount_gamma must be in (0, 1]")
-    return reward + discount_gamma * next_value - value
+    return _require_finite(
+        "canonical_delta",
+        reward + discount_gamma * next_value - value,
+    )
 
 
 def risk_adjusted_reward(
@@ -86,7 +89,10 @@ def risk_adjusted_reward(
     drawdown_penalty = _require_finite("drawdown_penalty", float(drawdown_penalty))
     if volatility_penalty < 0.0 or drawdown_penalty < 0.0:
         raise ValueError("risk penalties must be non-negative")
-    return reward - volatility_penalty * volatility - drawdown_penalty * drawdown
+    return _require_finite(
+        "risk_adjusted_reward",
+        reward - volatility_penalty * volatility - drawdown_penalty * drawdown,
+    )
 
 
 def distributional_td_error(
@@ -118,7 +124,7 @@ def asymmetric_value_update(
     if positive_alpha < 0.0 or negative_alpha < 0.0:
         raise ValueError("learning rates must be non-negative")
     alpha = positive_alpha if canonical_delta >= 0.0 else negative_alpha
-    return alpha * canonical_delta
+    return _require_finite("asymmetric_value_update", alpha * canonical_delta)
 
 
 def average_reward_vigor(
