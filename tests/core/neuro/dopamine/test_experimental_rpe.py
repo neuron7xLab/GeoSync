@@ -7,6 +7,7 @@ import pytest
 from geosync.core.neuro.dopamine.experimental_rpe import (
     RPEExtensionConfig,
     asymmetric_value_update,
+    average_reward_vigor,
     canonical_td_error,
     compute_rpe_extension_surface,
     distributional_td_error,
@@ -105,3 +106,30 @@ def test_configured_surface_combines_layers_without_mutating_canonical_delta() -
     assert surface.risk_adjusted_delta == pytest.approx(risk_reward + 0.90 * 0.20 - 0.10)
     assert surface.asymmetric_value_update == pytest.approx(cfg.positive_alpha * canonical)
     assert surface.average_reward_vigor == pytest.approx(1.0 + 0.50 * (0.40 - 0.20))
+
+
+def test_canonical_td_error_rejects_overflowed_output() -> None:
+    with pytest.raises(ValueError, match="canonical_delta must be finite"):
+        canonical_td_error(1.0e200, -1.0e200, 1.0e200, 1.0)
+
+
+def test_risk_adjusted_reward_rejects_overflowed_output() -> None:
+    with pytest.raises(ValueError, match="risk_adjusted_reward must be finite"):
+        risk_adjusted_reward(
+            reward=0.0,
+            volatility=1.0e200,
+            drawdown=1.0e200,
+            volatility_penalty=1.0e200,
+            drawdown_penalty=0.0,
+        )
+
+
+def test_average_reward_vigor_rejects_overflow_before_clamp() -> None:
+    with pytest.raises(ValueError, match="clamp value must be finite"):
+        average_reward_vigor(
+            reward=1.0e200,
+            average_reward=-1.0e200,
+            gain=1.0e200,
+            lower=0.1,
+            upper=2.0,
+        )
