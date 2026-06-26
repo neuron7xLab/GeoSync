@@ -8,7 +8,7 @@
 # risk-adjusted reward, average-reward vigor) is a pure function over it.
 #
 # Locally verified on origin/main base:
-#   * pytest tests/core/neuro/dopamine/test_experimental_rpe.py: 5 passed
+#   * pytest tests/core/neuro/dopamine/test_experimental_rpe.py: 8 passed
 #   * ruff check on both files: clean
 #   * mypy --strict src/geosync/core/neuro/dopamine/experimental_rpe.py: 0 issues
 id: dopamine-rpe-extension-surface
@@ -22,8 +22,9 @@ promise: >-
   asymmetric_value_update, risk_adjusted_reward, average_reward_vigor,
   compute_rpe_extension_surface) are pure functions that mutate no controller
   state and route no production decision. tests/core/neuro/dopamine/
-  test_experimental_rpe.py binds these behaviors; the change touches no
-  trading, execution, forecast, or policy path and promotes no market claim.
+  test_experimental_rpe.py binds these behaviors, including non-finite output
+  rejection after arithmetic; the change touches no trading, execution,
+  forecast, or policy path and promotes no market claim.
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/dopamine-rpe-extension-surface.yaml"
@@ -49,13 +50,13 @@ required_python_symbols:
   - "compute_rpe_extension_surface"
 expected_signal: >-
   `python -m pytest tests/core/neuro/dopamine/test_experimental_rpe.py`
-  reports 5 passed; ruff check on the source and test files is clean; mypy
+  reports 8 passed; ruff check on the source and test files is clean; mypy
   --strict on the source file exits 0 with no issues.
 measurement_command: >-
   bash -c 'mkdir -p tmp && python -m pytest
   tests/core/neuro/dopamine/test_experimental_rpe.py
   > tmp/dopamine_rpe_extension_surface.log 2>&1
-  && grep -q "5 passed" tmp/dopamine_rpe_extension_surface.log'
+  && grep -q "8 passed" tmp/dopamine_rpe_extension_surface.log'
 signal_artifact: "tmp/dopamine_rpe_extension_surface.log"
 falsifier:
   command: |-
