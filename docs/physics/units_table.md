@@ -14,6 +14,7 @@ Radians are dimensionless in SI algebra, but this contract keeps `rad` labels fo
 | symbol | meaning | dimension | implementation carrier | guard |
 |---|---|---|---|---|
 | `theta_i` | phase | rad | `theta` | finite real |
+| `dt` | time step / simulation increment | time | `dt` | positive finite when used by an integrator |
 | `d theta_i / dt` | phase velocity | rad / time | RHS output | finite real |
 | `omega_i` | intrinsic angular frequency | rad / time | `omega` | finite real |
 | `A_ij` | graph edge weight | dimensionless in canonical lane | `A` | non-negative, symmetric, zero diagonal |
