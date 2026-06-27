@@ -1,0 +1,13 @@
+{
+  "audited_utc": "2026-06-27T22:00:12Z",
+  "scoreboard_sha256": "5f991a47e10ed3c332c40c6242157afa622e747ab1c9e791d88138fa8db41c0d",
+  "continuous": false,
+  "max_bar_step": 5,
+  "violations": [
+    "conflicting rows for eval_date=2026-04-21 bar=6: duplicate appends are not idempotent (distinct metric tuples for one bar)",
+    "conflicting rows for eval_date=2026-05-06 bar=15: duplicate appends are not idempotent (distinct metric tuples for one bar)",
+    "bar-count stall: 2026-04-21=6 -> 2026-05-05=13 (+7 > MAX_BAR_STEP=5; 6 un-evaluated bars \u2014 G1 daily-run gap)",
+    "bar-count stall: 2026-05-06=15 -> 2026-06-13=37 (+22 > MAX_BAR_STEP=5; 21 un-evaluated bars \u2014 G1 daily-run gap)",
+    "bar-count stall: 2026-06-13=37 -> 2026-06-27=46 (+9 > MAX_BAR_STEP=5; 8 un-evaluated bars \u2014 G1 daily-run gap)"
+  ]
+}

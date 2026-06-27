@@ -1,12 +1,19 @@
 {
-  "last_eval_utc": "2026-05-06T22:00:33Z",
-  "live_bars": 15,
-  "cumulative_net_return": -0.040063,
-  "sharpe_live": -6.5606,
-  "max_dd_live": 0.046421,
+  "last_eval_utc": "2026-06-27T22:00:12Z",
+  "live_bars": 46,
+  "cumulative_net_return": -0.053901,
+  "sharpe_live": -3.9105,
+  "max_dd_live": 0.087766,
   "predictive_envelope_quantile": "p05_p25",
-  "status_label": "BUILDING_SAMPLE",
-  "gate_decision": "CONTINUE_SHADOW",
+  "status_label": "OPERATIONALLY_UNSAFE",
+  "gate_decision": "ESCALATE_REVIEW",
   "operationally_unsafe": false,
-  "any_invariant_fail": false
+  "any_invariant_fail": false,
+  "continuity_breach": true,
+  "continuity_gaps": 7,
+  "continuity_critical_gaps": 2,
+  "continuity_max_gap_bdays": 3,
+  "continuity_total_missing_bdays": 10,
+  "ledger_continuous": false,
+  "ledger_continuity_violations": 5
 }
