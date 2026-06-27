@@ -114,7 +114,12 @@ def select_plan(
 ) -> dict[str, Any]:
     errors = validate_matrix(matrix_path, repo_root)
     if errors:
-        return {"status": "invalid_matrix", "errors": errors, "components": [], "selectors": []}
+        return {
+            "status": "invalid_matrix",
+            "errors": errors,
+            "components": [],
+            "selectors": [],
+        }
 
     matrix = _load_matrix(matrix_path)
     matched_components: list[dict[str, Any]] = []
