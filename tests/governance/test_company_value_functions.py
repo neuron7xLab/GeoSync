@@ -10,6 +10,7 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 GATE_PATH = ROOT / "tools" / "governance" / "check_company_value_functions.py"
@@ -26,11 +27,11 @@ def _load_gate() -> ModuleType:
     return module
 
 
-def _manifest() -> dict[str, object]:
+def _manifest() -> dict[str, Any]:
     return json.loads(MANIFEST.read_text(encoding="utf-8"))
 
 
-def _write(path: Path, payload: dict[str, object]) -> None:
+def _write(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
