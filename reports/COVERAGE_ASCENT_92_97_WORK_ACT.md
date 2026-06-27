@@ -57,18 +57,22 @@ Every coverage PR must be test-only unless a test exposes a real bug; bug fixes 
 
 A weak test only imports, snapshots output, asserts type shape, or exercises a happy path. A strong test protects an invariant, rejects a bad state, checks a boundary, or proves monotonic behavior. An elite test fails when a small mutation of the production logic violates the real contract.
 
-## 7. Definition of done
+## 7. Cognitive test economics
+
+Prefer tests with high defect-yield per line: one compact fixture should exercise several meaningful states without becoming opaque. Prefer property-style invariants over brittle literal outputs when the contract is mathematical. Prefer table-driven cases when the module has many boundary states. Prefer explicit negative cases over passive execution. Prefer local deterministic data over external datasets.
+
+## 8. Definition of done
 
 A PR is done only when new tests pass, the full release coverage measurement completes, the coverage intelligence report is valid, the release-line number moves or the zero movement is explained, and the PR body names the exact targeted files and behaviors. Evidence must include coverage summary, gap map, next-tests report, and the test command used.
 
-## 8. Review contract
+## 9. Review contract
 
 Reject coverage PRs that raise the percentage by hiding source, weakening thresholds, broad-skipping dependencies, snapshotting incidental output, or testing mocks instead of production behavior. Approve only when the new test would fail for at least one realistic bad implementation.
 
-## 9. Evidence checklist
+## 10. Evidence checklist
 
 Each follow-up coverage PR must state targeted files, targeted behaviors, old release-line value, new release-line value, surface movement, exact command, and artifact paths.
 
-## 10. Immediate next unit
+## 11. Immediate next unit
 
 Open a test-only PR for `backtest/walk_forward.py` and `backtest/geosync_equity_curve.py`. The goal is not cosmetic coverage. The goal is to convert backtest replay logic into a falsifiable, deterministic, failure-resistant surface on the path from 85.03 percent to 92-97 percent.
