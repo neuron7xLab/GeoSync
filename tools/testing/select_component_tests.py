@@ -12,7 +12,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from component_test_planner import (
+from tools.testing.component_test_planner import (
     BLOCKING_STATUSES,
     MATRIX,
     ROOT,
