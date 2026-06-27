@@ -14,7 +14,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Literal, Mapping, NotRequired, TypedDict
+from typing import Any, Literal, Mapping, NotRequired, TypedDict, cast
 
 ROOT = Path(__file__).resolve().parents[2]
 MATRIX = ROOT / "data" / "testing" / "component_test_matrix.json"
@@ -89,7 +89,7 @@ class Plan(TypedDict, total=False):
 
 
 def load_matrix(path: Path = MATRIX) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
 def selector_path(selector: str) -> str:
@@ -115,7 +115,9 @@ def transition(transitions: list[Transition], event: TransitionEvent, **state: A
     transitions.append(entry)
 
 
-def validate_router_policy(matrix: dict[str, Any], path: Path, errors: list[str]) -> RouterPolicy:
+def validate_router_policy(
+    matrix: dict[str, Any], path: Path, errors: list[str]
+) -> RouterPolicy:
     policy = matrix.get("router_policy")
     default_policy: RouterPolicy = {
         "default_max_run_selectors": 1,
@@ -128,7 +130,10 @@ def validate_router_policy(matrix: dict[str, Any], path: Path, errors: list[str]
 
     max_run = policy.get("default_max_run_selectors")
     if not isinstance(max_run, int) or not (1 <= max_run <= 64):
-        errors.append(f"{path}: router_policy.default_max_run_selectors must be an int in [1, 64]")
+        errors.append(
+            f"{path}: router_policy.default_max_run_selectors must be "
+            "an int in [1, 64]"
+        )
     else:
         default_policy["default_max_run_selectors"] = max_run
 
@@ -142,7 +147,10 @@ def validate_router_policy(matrix: dict[str, Any], path: Path, errors: list[str]
 
     env_name = policy.get("python_executable_env", DEFAULT_PYTHON_ENV)
     if not isinstance(env_name, str) or not env_name.strip():
-        errors.append(f"{path}: router_policy.python_executable_env must be a non-empty string")
+        errors.append(
+            f"{path}: router_policy.python_executable_env must be "
+            "a non-empty string"
+        )
     else:
         default_policy["python_executable_env"] = env_name
 
@@ -289,7 +297,7 @@ def prioritize_selectors(
     return priority
 
 
-def plan_status(plan: Plan) -> str:
+def plan_status(plan: Plan) -> PlanStatus:
     return plan["status"]
 
 
