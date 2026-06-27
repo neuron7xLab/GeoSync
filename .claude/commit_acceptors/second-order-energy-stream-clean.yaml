@@ -1,0 +1,26 @@
+id: second-order-energy-stream-clean
+status: ACTIVE
+claim_type: performance
+promise: "Stream second-order audit swing-energy evaluation with O(N^2) peak pairwise memory while preserving the existing formula."
+diff_scope:
+  changed_files:
+    - path: "core/kuramoto/second_order.py"
+    - path: "docs/ENGINEERING_RESEARCH_QUALITY_CODE.md"
+    - path: "docs/PR_1400_VERIFICATION_MATRIX.md"
+    - path: ".claude/commit_acceptors/second-order-energy-stream-clean.yaml"
+  forbidden_paths: []
+required_python_symbols:
+  - "SecondOrderKuramotoEngine"
+  - "SecondOrderStabilityReport"
+expected_signal: "Physics and mutation gates pass without lowering floors."
+measurement_command: "python -m pytest tests/unit/physics/test_second_order_stability_audit.py -q"
+signal_artifact: "tmp/second_order_energy_stream_clean_pytest.log"
+falsifier:
+  command: "python scripts/ci/check_mutation_kill_ratchet.py --base-ref origin/main"
+  description: "Reject if mutation ratchet fails or mutation floors are lowered."
+rollback_command: "git checkout -- core/kuramoto/second_order.py docs/ENGINEERING_RESEARCH_QUALITY_CODE.md docs/PR_1400_VERIFICATION_MATRIX.md .claude/commit_acceptors/second-order-energy-stream-clean.yaml"
+rollback_verification_command: "git diff --exit-code"
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/second-order-energy-stream-clean.yaml"
+report_path: "docs/PR_1400_VERIFICATION_MATRIX.md"
+evidence: []
