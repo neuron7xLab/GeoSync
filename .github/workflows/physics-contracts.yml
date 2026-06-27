@@ -77,6 +77,11 @@ jobs:
             evidence/physics/metric_consistency_report.json \
             evidence/physics/causality_report.json \
             evidence/physics/landauer_report.json \
+            evidence/physics/thermodynamics_report.json \
+            evidence/physics/ecs_lyapunov_report.json \
+            evidence/physics/dro_ara_gamma_report.json \
+            evidence/physics/dynamical_systems_report.json \
+            evidence/physics/neuromodulation_report.json \
             evidence/physics/falsification_report.json \
             evidence/physics/precision_report.json \
             evidence/physics/governance_report.json \

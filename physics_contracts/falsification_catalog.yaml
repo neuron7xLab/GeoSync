@@ -258,6 +258,102 @@ laws:
     failure_message: "ECS-LYAPUNOV-DESCENT VIOLATED: free-energy Lyapunov V increased along a trajectory inside the operating set (dV/dt > 0)."
     evidence_output: "evidence/physics/ecs_lyapunov_report.json"
 
+  - id: "dro_ara_gamma_derivation"
+    domain: "dynamical_systems"
+    claim: "The DRO-ARA scaling exponent gamma is DERIVED from the DFA Hurst exponent H (gamma = 2*H + 1), never assigned independently."
+    formal_invariant: "gamma = 2*H + 1 with H = DFA-1 Hurst on diff(log(price)) (INV-DRO1); fail-closed on degenerate input (INV-DRO5)"
+    measured_quantity: "residual |gamma - (2*H+1)| from core.dro_ara.engine.derive_gamma over a seeded random-walk sweep"
+    threshold: "|gamma - (2*H+1)| < 1e-5; an independently-assigned gamma outside tolerance is rejected"
+    positive_witness: "tests/physics/test_dro_ara_gamma.py::test_gamma_derived_from_hurst_positive_witness"
+    negative_control: "tests/physics/test_dro_ara_gamma.py::test_independent_gamma_assignment_is_rejected"
+    blocking: true
+    failure_message: "DRO-ARA-GAMMA VIOLATED: gamma decoupled from H (|gamma-(2H+1)| >= 1e-5) or degenerate input did not fail closed (Peng et al. 1994; INV-DRO1/INV-DRO5)."
+    evidence_output: "evidence/physics/dro_ara_gamma_report.json"
+
+  - id: "kelly_optimal_fraction"
+    domain: "dynamical_systems"
+    claim: "The log-optimal betting fraction equals mean / variance in the small-edge continuous-return limit."
+    formal_invariant: "f* = mu / sigma^2 (INV-KELLY1, exact algebraic identity) and applied fraction <= configured cap (INV-KELLY2)"
+    measured_quantity: "max |kelly_from_edge_variance(mu, sigma^2) - mu/sigma^2| over a (mu, sigma) sweep; max(applied - cap); off-Kelly log-growth deficit"
+    threshold: "|residual| <= 1e-12 (machine-exact); applied - cap <= 0 always; E[log(1+f*X)] >= E[log(1+f'X)]"
+    positive_witness: "tests/physics/test_kelly_optimal_fraction.py::test_optimal_fraction_equals_mu_over_sigma_squared"
+    negative_control: "tests/physics/test_kelly_optimal_fraction.py::test_overbet_is_capped_and_degenerate_input_fails_closed"
+    blocking: true
+    failure_message: "KELLY-OPTIMAL VIOLATED: f* != mu/sigma^2, or an over-bet/degenerate input bypassed the INV-KELLY2 cap (Kelly 1956; Thorp 2006)."
+    evidence_output: "evidence/physics/dynamical_systems_report.json"
+
+  - id: "serotonin_level_bounds"
+    domain: "neuromodulation"
+    claim: "The serotonin (5-HT) ODE keeps level(t) in the biological range [0, 1] for every integration step, and the bound is enforced by the integrator guard rather than incidental to the dynamics."
+    formal_invariant: "0 <= level(t) <= 1 for all t (INV-5HT2); the step() clamp is load-bearing"
+    measured_quantity: "min and max of level over seeded zero-and-stress RK4 trajectories; and raw unclamped RK4 level vs the guarded level under extreme stress"
+    threshold: "level in [0.0, 1.0]; any level<0 or level>1 violates. Negative control: raw unclamped step exceeds 1 while guarded step stays <=1"
+    positive_witness: "tests/physics/test_serotonin_laws.py::test_level_stays_in_unit_interval"
+    negative_control: "tests/physics/test_serotonin_laws.py::test_unclamped_dynamics_would_leave_unit_interval"
+    blocking: true
+    failure_message: "SEROTONIN-LEVEL VIOLATED: 5-HT level left [0,1] (INV-5HT2)."
+    evidence_output: "evidence/physics/neuromodulation_report.json"
+
+  - id: "serotonin_lyapunov_stability"
+    domain: "neuromodulation"
+    claim: "Under zero exogenous stress the serotonin ODE is Lyapunov-stable about (level=target, desens=0): V is non-increasing along trajectories from perturbed states; a non-zero driving stress that raises V is detected."
+    formal_invariant: "V(l,d)=0.5*(l-target)^2 + lambda*d^2; dV/dt <= 0 with zero input (INV-5HT1)"
+    measured_quantity: "worst positive increment V(t+1)-V(t) over seeded zero-stress trajectories; and V increase under a non-zero driving stress"
+    threshold: "worst zero-stress increment <= 1e-9. Negative control: stress=1.0 from target raises V (verify_lyapunov is False)"
+    positive_witness: "tests/physics/test_serotonin_laws.py::test_lyapunov_nonincreasing_zero_stress"
+    negative_control: "tests/physics/test_serotonin_laws.py::test_driving_stress_violates_lyapunov_descent"
+    blocking: true
+    failure_message: "SEROTONIN-LYAPUNOV VIOLATED: V increased under zero input, or a V-raising drive went undetected (INV-5HT1)."
+    evidence_output: "evidence/physics/neuromodulation_report.json"
+
+  - id: "dopamine_rpe_zero_steady_state"
+    domain: "neuromodulation"
+    claim: "Expected reward-prediction error converges to zero in a stationary reward environment (TD(0) reaches V* = r/(1-gamma); E[delta] -> 0 by Robbins-Monro)."
+    formal_invariant: "E[delta_t] -> 0 where delta_t = r_t + gamma*V(s') - V(s), single recurrent state V(s')=V(s) (INV-DA5, INV-DA2)"
+    measured_quantity: "absolute tail running mean |mean(delta_t)| over the last 1500 of 6000 TD steps of the RAW DopamineController.compute_rpe (stationary vs non-stationary reward)"
+    threshold: "stationary: |E[delta]| < 5e-3 (measured 1.9e-4); non-stationary drift keeps |E[delta]| > 5e-3 (measured ~1.0)"
+    positive_witness: "tests/physics/test_dopamine_laws.py::test_rpe_converges_to_zero_under_stationary_reward"
+    negative_control: "tests/physics/test_dopamine_laws.py::test_nonstationary_reward_keeps_rpe_biased"
+    blocking: true
+    failure_message: "DOPAMINE-RPE-STEADY-STATE VIOLATED (INV-DA5): E[delta] did not converge to zero under a stationary reward, or a non-stationary reward failed to falsify the steady-state claim."
+    evidence_output: "evidence/physics/neuromodulation_report.json"
+
+  - id: "dopamine_bounded_signal"
+    domain: "neuromodulation"
+    claim: "The emitted dopamine signal is bounded per spec: the tanh-squashed DopamineExecutionAdapter keeps |DA(t)| <= DA_max for every finite input."
+    formal_invariant: "|DA(t)| = |tanh(scale*((pnl-pred)-|slippage|))| <= DA_max=1, finite for all finite input (INV-DA8); the RAW controller (d delta/d r = 1, INV-DA7) is unbounded by design"
+    measured_quantity: "max |DA| over a multi-decade finite fuzz of (realized_pnl, predicted_return, slippage) through the adapter, vs the raw TD delta magnitude for the same reward"
+    threshold: "|DA| <= 1.0 for all finite inputs (measured max 1.0); raw TD delta for r=50 overshoots to 50.0 > 1.0, so the bound is non-vacuous"
+    positive_witness: "tests/physics/test_dopamine_laws.py::test_adapter_signal_bounded_under_finite_fuzz"
+    negative_control: "tests/physics/test_dopamine_laws.py::test_unbounded_raw_signal_falsifies_bound_adapter_enforces"
+    blocking: true
+    failure_message: "DOPAMINE-BOUNDED-SIGNAL VIOLATED (INV-DA8): the adapter emitted |DA| > DA_max for a finite input, or the raw unbounded signal failed to demonstrate the tanh bound is load-bearing."
+    evidence_output: "evidence/physics/neuromodulation_report.json"
+
+  - id: "gaba_gate_bounds"
+    domain: "neuromodulation"
+    claim: "The GABA position gate multiplier lies in [0, 1] for every inhibition input."
+    formal_invariant: "0 <= gate(inhibition) <= 1 (INV-GABA1); gate = effective/base, effective clamped to [0, base] in gate_position_size"
+    measured_quantity: "min and max of the real GABAPositionGate.gate_position_size multiplier over a wide inhibition fuzz, plus the published fail-closed boundary"
+    threshold: "gate in [0.0, 1.0]; any multiplier < 0, > 1, or non-finite violates"
+    positive_witness: "tests/physics/test_gaba_laws.py::test_gate_multiplier_within_unit_interval"
+    negative_control: "tests/physics/test_gaba_laws.py::test_out_of_range_inhibition_fails_closed"
+    blocking: true
+    failure_message: "GABA-GATE-BOUNDS VIOLATED: position gate multiplier left [0,1] (INV-GABA1; Mink 1996)."
+    evidence_output: "evidence/physics/neuromodulation_report.json"
+
+  - id: "gaba_monotone_inhibition"
+    domain: "neuromodulation"
+    claim: "The GABA position gate is monotonically non-increasing in inhibition (more inhibition -> smaller size)."
+    formal_invariant: "gate(i_1) >= gate(i_2) for all i_1 <= i_2 (INV-GABA3; Mink 1996)"
+    measured_quantity: "worst positive jump max_k (gate(i_{k+1}) - gate(i_k)) over a dense increasing inhibition grid"
+    threshold: "worst positive jump <= 1e-12; any larger increase violates non-increase"
+    positive_witness: "tests/physics/test_gaba_laws.py::test_gate_monotone_nonincreasing_in_inhibition"
+    negative_control: "tests/physics/test_gaba_laws.py::test_fabricated_increasing_gate_is_detected"
+    blocking: true
+    failure_message: "GABA-MONOTONE VIOLATED: gate increased with inhibition (INV-GABA3; Mink 1996)."
+    evidence_output: "evidence/physics/neuromodulation_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
