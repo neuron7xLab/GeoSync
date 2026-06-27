@@ -79,6 +79,7 @@
       "id": "controlled_component_test_router",
       "description": "Deterministic router that maps changed files to isolated component test selectors.",
       "patterns": [
+        ".github/workflows/component-test-router.yml",
         "data/testing/component_test_matrix.json",
         "tools/testing/select_component_tests.py",
         "tests/testing/test_select_component_tests.py"
