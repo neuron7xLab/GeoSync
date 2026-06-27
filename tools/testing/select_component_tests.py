@@ -43,6 +43,12 @@ def _string_list(value: object, label: str, errors: list[str]) -> list[str]:
     return out
 
 
+def _transition(
+    transitions: list[dict[str, Any]], event: str, **state: Any
+) -> None:
+    transitions.append({"seq": len(transitions) + 1, "event": event, **state})
+
+
 def validate_matrix(path: Path = MATRIX, repo_root: Path = ROOT) -> list[str]:
     errors: list[str] = []
     try:
@@ -156,15 +162,24 @@ def _prioritize_selectors(
 def select_plan(
     changed_files: list[str], matrix_path: Path = MATRIX, repo_root: Path = ROOT
 ) -> dict[str, Any]:
+    transitions: list[dict[str, Any]] = []
     errors = validate_matrix(matrix_path, repo_root)
     if errors:
+        _transition(
+            transitions,
+            "matrix_validation_failed",
+            status="invalid_matrix",
+            error_count=len(errors),
+        )
         return {
             "status": "invalid_matrix",
             "errors": errors,
             "components": [],
             "selectors": [],
+            "transitions": transitions,
         }
 
+    _transition(transitions, "matrix_validated", status="ok")
     matrix = _load_matrix(matrix_path)
     matched_components: list[dict[str, Any]] = []
     selectors: list[str] = []
@@ -172,6 +187,13 @@ def select_plan(
     mapped_paths: set[str] = set()
 
     normalized = [_normalize_path(path) for path in changed_files if path.strip()]
+    _transition(
+        transitions,
+        "paths_normalized",
+        input_count=len(changed_files),
+        normalized_count=len(normalized),
+        changed_files=normalized,
+    )
     for component in matrix["components"]:
         matched_paths = [
             path
@@ -196,12 +218,30 @@ def select_plan(
                 seen_selectors.add(selector)
                 selectors.append(selector)
 
+    _transition(
+        transitions,
+        "components_matched",
+        component_ids=[component["id"] for component in matched_components],
+        selector_count=len(selectors),
+    )
     missing_routes = [
         path
         for path in normalized
         if path not in mapped_paths and _is_required_mapping(path, matrix)
     ]
+    _transition(
+        transitions,
+        "required_surface_checked",
+        missing_route_count=len(missing_routes),
+        missing_routes=missing_routes,
+    )
     if missing_routes:
+        _transition(
+            transitions,
+            "plan_blocked",
+            status="unmapped_required_surface",
+            cause="missing required component-test route",
+        )
         return {
             "status": "unmapped_required_surface",
             "changed_files": normalized,
@@ -213,15 +253,25 @@ def select_plan(
                 for path in missing_routes
             ],
             "pytest_command": [],
+            "transitions": transitions,
         }
 
     selectors = _prioritize_selectors(selectors, matched_components)
+    status = "ready" if selectors else "empty"
+    _transition(
+        transitions,
+        "selectors_prioritized",
+        selector_count=len(selectors),
+        selectors=selectors,
+    )
+    _transition(transitions, "plan_finalized", status=status)
     return {
-        "status": "ready" if selectors else "empty",
+        "status": status,
         "changed_files": normalized,
         "components": matched_components,
         "selectors": selectors,
         "pytest_command": [sys.executable, "-m", "pytest", *selectors] if selectors else [],
+        "transitions": transitions,
     }
 
 
