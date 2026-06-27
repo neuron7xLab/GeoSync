@@ -26,6 +26,7 @@ diff_scope:
     - path: "tools/deps/check_operational_dependency_determinism.py"
     - path: "tools/governance/check_company_value_functions.py"
     - path: "scripts/ci/check_manifest_hashes.py"
+    - path: ".claude/commit_acceptors/t2b-ci-governance-binding.yaml"
   forbidden_paths:
     - "trading/"
     - "execution/"
