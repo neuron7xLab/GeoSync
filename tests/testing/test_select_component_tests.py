@@ -9,7 +9,6 @@ import json
 import sys
 from copy import deepcopy
 from pathlib import Path
-from types import ModuleType
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,7 +16,7 @@ PLANNER = ROOT / "tools" / "testing" / "component_test_planner.py"
 MATRIX = ROOT / "data" / "testing" / "component_test_matrix.json"
 
 
-def _load_tool() -> ModuleType:
+def _load_tool() -> Any:
     spec = importlib.util.spec_from_file_location("component_test_planner", PLANNER)
     assert spec is not None
     module = importlib.util.module_from_spec(spec)
