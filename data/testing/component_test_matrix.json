@@ -9,7 +9,7 @@
     "allow_empty_plan_for_unmapped_docs": true
   },
   "router_policy": {
-    "default_max_run_selectors": 1,
+    "default_max_run_selectors": 64,
     "priority_component_ids": ["controlled_component_test_router"],
     "python_executable_env": "COMPONENT_ROUTER_PYTHON"
   },
@@ -34,7 +34,10 @@
     {
       "id": "stuart_landau_runtime",
       "description": "Stuart-Landau runtime component.",
-      "patterns": ["core/physics/stuart_landau_es.py", "tests/unit/physics/test_T2b_stuart_landau_es.py"],
+      "patterns": [
+        "core/physics/stuart_landau_es.py",
+        "tests/unit/physics/test_T2b_stuart_landau_es.py"
+      ],
       "selectors": ["tests/unit/physics/test_T2b_stuart_landau_es.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
@@ -43,7 +46,12 @@
     {
       "id": "stuart_landau_runtime_audit",
       "description": "Stuart-Landau runtime audit component.",
-      "patterns": [".github/workflows/mutation-kill-gate.yml", "docs/MUTATION_KILL_BASELINE.json", "tests/unit/physics/test_T2b_runtime_audit.py", "tools/physics/clamp_registry.yaml"],
+      "patterns": [
+        ".github/workflows/mutation-kill-gate.yml",
+        "docs/MUTATION_KILL_BASELINE.json",
+        "tests/unit/physics/test_T2b_runtime_audit.py",
+        "tools/physics/clamp_registry.yaml"
+      ],
       "selectors": ["tests/unit/physics/test_T2b_runtime_audit.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
@@ -52,8 +60,20 @@
     {
       "id": "dependency_operational_determinism",
       "description": "Dependency determinism component.",
-      "patterns": [".github/actions/setup-geosync/action.yml", ".github/workflows/dependency-operational-determinism.yml", "constraints/security.txt", "requirements*.txt", "requirements*.lock", "tools/deps/check_operational_dependency_determinism.py", "tests/deps/test_operational_dependency_determinism.py", "tests/ci/test_setup_geosync_toolchain.py"],
-      "selectors": ["tests/deps/test_operational_dependency_determinism.py", "tests/ci/test_setup_geosync_toolchain.py"],
+      "patterns": [
+        ".github/actions/setup-geosync/action.yml",
+        ".github/workflows/dependency-operational-determinism.yml",
+        "constraints/security.txt",
+        "requirements*.txt",
+        "requirements*.lock",
+        "tools/deps/check_operational_dependency_determinism.py",
+        "tests/deps/test_operational_dependency_determinism.py",
+        "tests/ci/test_setup_geosync_toolchain.py"
+      ],
+      "selectors": [
+        "tests/deps/test_operational_dependency_determinism.py",
+        "tests/ci/test_setup_geosync_toolchain.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 120
@@ -61,7 +81,13 @@
     {
       "id": "company_value_functions",
       "description": "Company value-function component.",
-      "patterns": [".github/workflows/company-value-functions.yml", "data/governance/company_value_functions.json", "docs/governance/company_value_functions.md", "tools/governance/check_company_value_functions.py", "tests/governance/test_company_value_functions.py"],
+      "patterns": [
+        ".github/workflows/company-value-functions.yml",
+        "data/governance/company_value_functions.json",
+        "docs/governance/company_value_functions.md",
+        "tools/governance/check_company_value_functions.py",
+        "tests/governance/test_company_value_functions.py"
+      ],
       "selectors": ["tests/governance/test_company_value_functions.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
@@ -70,7 +96,12 @@
     {
       "id": "artifact_freshness",
       "description": "Artifact freshness component.",
-      "patterns": [".github/workflows/pr-gate.yml", "artifacts/manifest.json", "scripts/ci/check_artifact_freshness.py", "tests/ci/test_artifact_freshness_gate.py"],
+      "patterns": [
+        ".github/workflows/pr-gate.yml",
+        "artifacts/manifest.json",
+        "scripts/ci/check_artifact_freshness.py",
+        "tests/ci/test_artifact_freshness_gate.py"
+      ],
       "selectors": ["tests/ci/test_artifact_freshness_gate.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
@@ -79,7 +110,11 @@
     {
       "id": "manifest_hash_gate",
       "description": "Manifest hash component.",
-      "patterns": ["scripts/ci/check_manifest_hashes.py", "tests/ci/test_manifest_hash_gate.py", "tests/ci/test_manifest_hashes.py"],
+      "patterns": [
+        "scripts/ci/check_manifest_hashes.py",
+        "tests/ci/test_manifest_hash_gate.py",
+        "tests/ci/test_manifest_hashes.py"
+      ],
       "selectors": ["tests/ci/test_manifest_hashes.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
@@ -88,7 +123,10 @@
     {
       "id": "invariant_registry_schema",
       "description": "Invariant registry schema component.",
-      "patterns": ["scripts/check_invariant_registry_schema.py", "tests/ci/test_invariant_registry_schema.py"],
+      "patterns": [
+        "scripts/check_invariant_registry_schema.py",
+        "tests/ci/test_invariant_registry_schema.py"
+      ],
       "selectors": ["tests/ci/test_invariant_registry_schema.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
@@ -106,7 +144,13 @@
     {
       "id": "controlled_component_test_router",
       "description": "Component test router.",
-      "patterns": [".github/workflows/component-test-router.yml", "data/testing/component_test_matrix.json", "tools/testing/select_component_tests.py", "tools/testing/component_test_planner.py", "tests/testing/test_select_component_tests.py"],
+      "patterns": [
+        ".github/workflows/component-test-router.yml",
+        "data/testing/component_test_matrix.json",
+        "tools/testing/select_component_tests.py",
+        "tools/testing/component_test_planner.py",
+        "tests/testing/test_select_component_tests.py"
+      ],
       "selectors": ["tests/testing/test_select_component_tests.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
