@@ -34,6 +34,19 @@ def _selector_path(selector: str) -> str:
     return selector.split("::", 1)[0]
 
 
+def _string_list(value: object, label: str, errors: list[str]) -> list[str]:
+    if not isinstance(value, list) or not value:
+        errors.append(f"{label} must be a non-empty list")
+        return []
+    out: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            errors.append(f"{label} must contain non-empty strings")
+            continue
+        out.append(item)
+    return out
+
+
 def validate_matrix(path: Path = MATRIX, repo_root: Path = ROOT) -> list[str]:
     errors: list[str] = []
     try:
@@ -56,6 +69,19 @@ def validate_matrix(path: Path = MATRIX, repo_root: Path = ROOT) -> list[str]:
             errors.append(f"{path}: decision_rule.expected_output is invalid")
         if rule.get("fail_closed_on_invalid_matrix") is not True:
             errors.append(f"{path}: fail_closed_on_invalid_matrix must be true")
+        if rule.get("fail_closed_on_unmapped_required_surface") is not True:
+            errors.append(
+                f"{path}: fail_closed_on_unmapped_required_surface must be true"
+            )
+
+    required_patterns = _string_list(
+        matrix.get("required_mapping_patterns"),
+        f"{path}: required_mapping_patterns",
+        errors,
+    )
+    for pattern in required_patterns:
+        if pattern.startswith("docs/"):
+            errors.append(f"{path}: docs/* cannot be a required mapping pattern")
 
     components = matrix.get("components")
     if not isinstance(components, list) or not components:
@@ -75,22 +101,9 @@ def validate_matrix(path: Path = MATRIX, repo_root: Path = ROOT) -> list[str]:
         else:
             seen_ids.add(component_id)
 
-        patterns = component.get("patterns")
-        selectors = component.get("selectors")
-        if not isinstance(patterns, list) or not patterns:
-            errors.append(f"{prefix}: patterns must be a non-empty list")
-            patterns = []
-        if not isinstance(selectors, list) or not selectors:
-            errors.append(f"{prefix}: selectors must be a non-empty list")
-            selectors = []
-
-        for pattern in patterns:
-            if not isinstance(pattern, str) or not pattern.strip():
-                errors.append(f"{prefix}: patterns must contain non-empty strings")
+        patterns = _string_list(component.get("patterns"), f"{prefix}: patterns", errors)
+        selectors = _string_list(component.get("selectors"), f"{prefix}: selectors", errors)
         for selector in selectors:
-            if not isinstance(selector, str) or not selector.strip():
-                errors.append(f"{prefix}: selectors must contain non-empty strings")
-                continue
             selector_file = repo_root / _selector_path(selector)
             if not selector_file.exists():
                 errors.append(f"{prefix}: selector path does not exist: {selector}")
@@ -109,6 +122,15 @@ def _matches(path: str, pattern: str) -> bool:
     return fnmatch.fnmatchcase(path, pattern)
 
 
+def _path_matches_any(path: str, patterns: list[str]) -> bool:
+    return any(_matches(path, pattern) for pattern in patterns)
+
+
+def _is_required_mapping(path: str, matrix: dict[str, Any]) -> bool:
+    patterns = matrix.get("required_mapping_patterns", [])
+    return isinstance(patterns, list) and _path_matches_any(path, patterns)
+
+
 def select_plan(
     changed_files: list[str], matrix_path: Path = MATRIX, repo_root: Path = ROOT
 ) -> dict[str, Any]:
@@ -125,6 +147,7 @@ def select_plan(
     matched_components: list[dict[str, Any]] = []
     selectors: list[str] = []
     seen_selectors: set[str] = set()
+    mapped_paths: set[str] = set()
 
     normalized = [path.strip().lstrip("./") for path in changed_files if path.strip()]
     for component in matrix["components"]:
@@ -135,6 +158,7 @@ def select_plan(
         ]
         if not matched_paths:
             continue
+        mapped_paths.update(matched_paths)
         matched_components.append(
             {
                 "id": component["id"],
@@ -149,6 +173,23 @@ def select_plan(
             if selector not in seen_selectors:
                 seen_selectors.add(selector)
                 selectors.append(selector)
+
+    unmapped_required = [
+        path for path in normalized if path not in mapped_paths and _is_required_mapping(path, matrix)
+    ]
+    if unmapped_required:
+        return {
+            "status": "unmapped_required_surface",
+            "changed_files": normalized,
+            "components": matched_components,
+            "selectors": selectors,
+            "unmapped_required": unmapped_required,
+            "errors": [
+                "required mapping surface has no component-test route: " + path
+                for path in unmapped_required
+            ],
+            "pytest_command": [],
+        }
 
     return {
         "status": "ready" if selectors else "empty",
@@ -193,10 +234,12 @@ def main(argv: list[str] | None = None) -> int:
 
     plan = select_plan(_read_changed_files(args), args.matrix, args.repo_root)
     if args.print_pytest:
-        print(" ".join(plan["pytest_command"]))
+        print(" ".join(plan.get("pytest_command", [])))
     else:
         print(json.dumps(plan, indent=2, sort_keys=True))
 
+    if plan["status"] in {"invalid_matrix", "unmapped_required_surface"}:
+        return 2
     if args.run and plan["pytest_command"]:
         return subprocess.run(plan["pytest_command"], cwd=args.repo_root).returncode
     return 0
