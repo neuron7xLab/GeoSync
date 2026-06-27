@@ -36,6 +36,58 @@ architecture is a two-tier design:
 | Average-reward vigor | `average_reward_vigor` | Converts reward-above-baseline into bounded execution vigor. |
 | Unified surface | `compute_rpe_extension_surface` | Returns all extension outputs without mutating controller state. |
 
+## The unified estimator: `ExpectileEnsembleValue`
+
+The functions above are stateless probes. `expectile_value.py` promotes them
+into one coherent **online distributional value learner** — the part that makes
+the surface a real system rather than a set of disconnected helpers.
+
+The key result from the verified literature (Dabney et al. 2020, *Nature*
+577:671) is that asymmetric learning rates are not a free heuristic: a channel
+with positive/negative rates `(alpha_pos, alpha_neg)` converges on the
+**expectile** at level
+
+```text
+tau = alpha_pos / (alpha_pos + alpha_neg)
+```
+
+So an ensemble of channels with spread `tau in (0, 1)` *is* the distributional
+code. This single mechanism unifies four of the layers:
+
+| Need | How the ensemble provides it |
+| --- | --- |
+| Canonical anchor (mean) | the `tau = 0.5` channel — the 0.5-expectile *is* the mean, so it reproduces scalar TD(0) exactly (`canonical_value`). |
+| Distributional RPE (L1) | the full `(tau, value)` expectile curve (`expectile_curve`). |
+| Asymmetric learning (L2) | each channel's `(alpha_pos, alpha_neg)` ⇒ its `tau`. |
+| Risk-adjusted value (L4) | a low-`tau` expectile is risk-averse; `risk_adjusted_value(tau)` reads it off directly — risk emerges from the ensemble, not an ad-hoc penalty. |
+| Variance / dispersion | `dispersion()` = top minus bottom expectile, the variance-rescale signal of adaptive coding (Tobler 2005). |
+
+Average-reward vigor (L3) then consumes `canonical_value()` as its baseline.
+
+**Non-invasiveness is structural, not promised.** A symmetric single channel
+reduces *exactly* to the canonical TD(0) target — the P0 anchor is a special
+case of the estimator, proven in
+`tests/.../test_expectile_value.py::test_symmetric_channel_recovers_canonical_mean`.
+The estimator is fully deterministic (no RNG; identical inputs ⇒ bit-identical
+state) and every contract violation fails closed with `ValueError`.
+
+### Invariants and the falsifier
+
+| ID | Type | Statement |
+| --- | --- | --- |
+| INV-EXP1 | algebraic | `tau == alpha_pos / (alpha_pos + alpha_neg)` to 1e-12. |
+| INV-EXP2 | algebraic | the `0.5`-expectile equals the arithmetic mean. |
+| INV-EXP3 | asymptotic | a symmetric channel converges to the sample mean (recovers canonical TD(0)). |
+| INV-EXP4 | monotonic | `tau_a < tau_b ⇒ V_a ≤ V_b` at convergence. |
+| INV-EXP5 | universal | every `V_i` stays inside the convex hull of the targets. |
+
+The **falsifier** is two-part: (A) the analytic expectile is an exact fixed
+point of the asymmetric-weighted residual (`Σ w_i (x_i − e) = 0` to 1e-9); (B)
+the online learner converges into the `O(√eta)` stationary neighbourhood of that
+fixed point. Part B's tolerance is the genuine constant-rate fluctuation band,
+not a slackened bound — it still separates an expectile from a quantile (for
+`tau = 0.9` on `N(0,1)` the quantile ≈ 1.28 vs expectile ≈ 0.94).
+
 ## Neuroscience provenance
 
 Each extension layer mirrors a published result in dopamine / value
@@ -109,13 +161,29 @@ rodent midbrain and cortex, not from a P&L process.
   phasic signal does not increase response vigor, the link fails.
 
 ### Layer 4 — Risk-adjusted reward (`risk_adjusted_reward`)
-- **[pending verification]** Candidate anchors — Stauffer, Lak & Schultz 2014
-  (*Current Biology*, DA RPE reflects **marginal utility**); Fiorillo, Tobler &
-  Schultz 2003 (*Science*, dopamine coding of reward **uncertainty / variance**)
-  — were located but **not yet adversarially verified** (a dedicated
-  risk-layer research pass is in flight). Until it lands, this layer's
-  neuroscience grounding is **unconfirmed**; keep `risk_adjusted_reward`
-  strictly research-tier.
+- **[established]** Phasic DA RPE encodes **marginal utility** (the first
+  derivative of a nonlinear, S-shaped utility), not raw magnitude: convex /
+  risk-seeking at low juice volumes, concave / risk-averse at high (2 rhesus
+  monkeys, certainty-equivalent utilities, p < 0.001 to 1e-7). Stauffer, Lak &
+  Schultz 2014, *Current Biology* 24(20):2491 (PMC4228052). 3-vote verified.
+- **[established]** DA carries an integrated scalar **subjective value**; risk
+  enters the signal *only to the extent it changes choice* (~63% of neurons
+  match each animal's risk weighting). Lak, Stauffer & Schultz 2014, *PNAS*
+  111:2343 (PMC3926061). 3-vote verified.
+- **[established phenomenon]** A distinct **sustained ramp** covaries with
+  reward **variance**, maximal at P=0.5 (Bernoulli P(1−P)), dissociating a
+  variance term from the monotonic value signal. Fiorillo, Tobler & Schultz
+  2003, *Science* 299:1898. **[contested mechanism]** the ramp may be a
+  TD-averaging artifact or emergent state-uncertainty signal (Niv, Duff &
+  Dayan 2005) — existence robust, interpretation open.
+- **[established]** DA uses **adaptive / efficient coding**: the RPE zero-point
+  shifts to expected reward and the gain rescales to the reward variance
+  (Tobler, Fiorillo & Schultz 2005, *Science* 307:1642) — the mean-baseline +
+  variance-rescale structure this estimator reproduces.
+- *Boundary (numbers do NOT transfer):* prospect-theory probability weighting is
+  real but species-specific — monkeys show **concave** weighting (δ ≈ 0.57),
+  **not** the human inverse-S. Use the functional form, never the fitted
+  parameters.
 - *Falsifier:* if DA RPE responses scale with raw reward magnitude rather than a
   concave / risk-weighted utility, the risk-coding rationale is unsupported.
 
