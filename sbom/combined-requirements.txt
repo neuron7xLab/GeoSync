@@ -10,7 +10,7 @@ aiohappyeyeballs==2.6.1
     # via aiohttp
 aiohttp==3.14.1
     # via ccxt
-aiokafka==0.12.0
+aiokafka==0.14.0
     # via geosync (pyproject.toml)
 aiolimiter==1.2.1
     # via geosync (pyproject.toml)
