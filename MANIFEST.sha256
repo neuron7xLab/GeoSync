@@ -734,6 +734,7 @@
 1b894a76392f9c51e6653f9d24ecfa563170e2da446dc90b94e8f1a77cfaec11  ./geosync_pro/validate/validate.py
 1b8c38bd8bcb064c87f00d74ad452b6dfd712a0e43e7784f07c4d78f71ba4ac9  ./geosync_hpc/ledger.py
 1b8c407e41955ab0365776c0d801e53e160b17a52883e8df3673dbe1d5412083  ./docs/api/webhooks.md
+1b96f55b413b1762bddd57186766cc9c59e0bb0fa96965eebfe9336d0d91142c  ./.github/workflows/feature-debt-lock.yml
 1b97f07bdeb26c2cbce8e0239eea52ea59a29f401a929a223157a6da4f03d184  ./docs/risk_ml_observability.md
 1b9add2b48e0721fded2a7b19c66df3b1761827a050a5c05b0cac69ee38ab643  ./docs/production-readiness.md
 1bb3a185c67e7909203842f33f97995e8811d647f72e1745d72fb6bf6bc0c7ff  ./commitlint.config.cjs
@@ -4518,7 +4519,6 @@ ad6d8d4932460e44bb23c2465ae63a71a1137b97d923d22f4789b67e171bec8a  ./runtime/cogn
 ad7284c1280740bd7a6591a0e87e402353080887fd25ebd8ba61ccb2eb486988  ./tests/unit/metrics/test_regression_metrics.py
 ad7a2e1292ab641a08330d0eafc57636d589b5d4af0d151a68df1be5b8444d39  ./schemas/events/avro/v1.0.0/signal.avsc
 ad81b54af0dc93e5fe3d43a3b2685b3189a3bf15590a911c71cabc3bae721fc7  ./schemas/inference/examples/context_manifest.example.json
-ad84bb8ead32564261b9da424640e010e4f0400dd42403e042413ed702e574e5  ./.github/workflows/feature-debt-lock.yml
 ad8f8299fcbe242fdcae57dc67473c9ee0d20a3246b0627b7851fe6eb8d969ef  ./data/governance/neuron7x_value_functions_v2026_5.json
 ada8d7e4c67fd13c7e7b22b7baa7d307a90b730adf866ca847c22110f6d10bd3  ./.claude/commit_acceptors/security-constraints-bump-relock.yaml
 adbc6ae73cc1c25450d012e7ea25343e8895f9c24c103c96bc7ca822ec4be846  ./.github/agents/validate.py

@@ -34,12 +34,4 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin "$BASE_REF"
           PYTHONPATH=. python scripts/ci/check_feature_debt_lock.py \
-            --base-ref "origin/$BASE_REF" \
-            --json reports/feature_debt_lock.json
-      - name: Upload verdict
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: feature-debt-lock-verdict
-          path: reports/feature_debt_lock.json
-          if-no-files-found: ignore
+            --base-ref "origin/$BASE_REF"
