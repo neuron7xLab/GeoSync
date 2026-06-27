@@ -14,10 +14,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from numpy.typing import NDArray
-from scipy.signal import hilbert
 
 from core.physics.stuart_landau_es import (
     StuartLandauResult,
+    _analytic_signal,
     _estimate_growth_rate,
     _extract_amplitude_phase_omega,
     crisis_signal_sl,
@@ -50,7 +50,9 @@ def _envelope_oscillator_prices(
     env = np.exp(growth_rate * t)
     log_rets = np.zeros((T - 1, N), dtype=np.float64)
     for j in range(N):
-        log_rets[:, j] = amp0 * env * np.sin(freq * t + j) + rng.standard_normal(T - 1) * 1e-5
+        log_rets[:, j] = (
+            amp0 * env * np.sin(freq * t + j) + rng.standard_normal(T - 1) * 1e-5
+        )
     prices: NDArray[np.float64] = np.empty((T, N), dtype=np.float64)
     prices[0, :] = 100.0
     prices[1:, :] = 100.0 * np.exp(np.cumsum(log_rets, axis=0))
@@ -144,7 +146,9 @@ def _synthetic_prices(
         rets = (common[:, None] + 0.1 * rng.standard_normal((T, N))) * 0.01
     else:
         raise ValueError(f"unknown regime {regime!r}")
-    prices: NDArray[np.float64] = (100.0 * np.exp(np.cumsum(rets, axis=0))).astype(np.float64)
+    prices: NDArray[np.float64] = (100.0 * np.exp(np.cumsum(rets, axis=0))).astype(
+        np.float64
+    )
     return prices
 
 
@@ -232,14 +236,14 @@ def test_crisis_signal_api() -> None:
 
 
 def _rolling_R(prices: NDArray[np.float64], window: int) -> NDArray[np.float64]:
-    """Rolling Kuramoto order parameter via Hilbert phases."""
+    """Rolling Kuramoto order parameter via analytic phases."""
     T = prices.shape[0]
     out = np.full(T, np.nan, dtype=np.float64)
     log_prices = np.log(prices)
     for t in range(window, T):
         slab = np.diff(log_prices[t - window : t + 1], axis=0)
         centred = slab - slab.mean(axis=0)
-        z = hilbert(centred, axis=0)
+        z = _analytic_signal(centred, axis=0)
         phase_last = np.angle(z[-1, :])
         out[t] = float(np.abs(np.mean(np.exp(1j * phase_last))))
     return out
@@ -271,7 +275,13 @@ def test_leads_r_peak_on_synthetic_crisis() -> None:
         rets = factor[:, None] + rng.standard_normal((T, N)) * 0.003
         prices = 100.0 * np.exp(np.cumsum(rets, axis=0))
 
-        es_raw = rolling_es_proximity(prices, window=W, K_steps=12, int_steps=120, seed=seed)
+        es_raw = rolling_es_proximity(
+            prices,
+            window=W,
+            K_steps=12,
+            int_steps=120,
+            seed=seed,
+        )
         r_raw = _rolling_R(prices, window=W)
         if np.all(np.isnan(es_raw[W:])) or np.all(np.isnan(r_raw[W:])):
             continue
