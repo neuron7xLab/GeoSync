@@ -21,7 +21,7 @@ def _ensure_yfinance_stub() -> None:
     def _download(*_args: object, **_kwargs: object) -> pd.DataFrame:
         raise AssertionError("tests must monkeypatch yfinance.download; live network is forbidden")
 
-    module.download = _download  # type: ignore[attr-defined]
+    setattr(module, "download", _download)
     sys.modules["yfinance"] = module
 
 
@@ -45,11 +45,67 @@ def _market_frame(ticker: str, close: np.ndarray) -> pd.DataFrame:
     return pd.DataFrame(close.reshape(-1, 1), index=index, columns=columns)
 
 
+def _install_walk_forward_fixture(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    cost_bps: float,
+) -> dict[str, np.ndarray]:
+    ticker = "WF"
+    close = np.array([100.0, 101.0, 102.0, 101.5, 103.0, 104.0, 103.0, 105.0, 106.0])
+    observed: dict[str, np.ndarray] = {}
+
+    monkeypatch.setattr(wf, "SIGNAL_WINDOW", 2)
+    monkeypatch.setattr(wf, "TRAIN_WINDOW", 3)
+    monkeypatch.setattr(wf, "TEST_WINDOW", 3)
+    monkeypatch.setattr(wf, "MAX_POSITION", 0.25)
+    monkeypatch.setattr(wf, "COST_BPS", cost_bps)
+    monkeypatch.setattr(wf, "MONTE_CARLO_N", 16)
+    monkeypatch.setattr(wf.yf, "download", lambda *_args, **_kwargs: _market_frame(ticker, close))
+
+    def fake_compute_signals(close_input: np.ndarray):
+        n = len(close_input)
+        gamma = np.full(n, np.nan)
+        r = np.zeros(n, dtype=np.float64)
+        risk = np.zeros(n, dtype=np.float64)
+        momentum = np.zeros(n, dtype=np.float64)
+        regimes = ["UNKNOWN"] * n
+
+        r[4], risk[4], momentum[4], regimes[4] = 0.9, 0.8, 0.1, "COHERENT"
+        r[5], risk[5], momentum[5], regimes[5] = 0.1, 0.9, -0.1, "DECOHERENT"
+        r[6], risk[6], momentum[6], regimes[6] = np.nan, np.nan, np.nan, "COHERENT"
+        return gamma, r, risk, momentum, regimes
+
+    def fake_calibrate_thresholds(
+        returns: np.ndarray,
+        r_series: np.ndarray,
+        risk_series: np.ndarray,
+        mom_series: np.ndarray,
+        regimes: list[str],
+    ) -> dict[str, float]:
+        observed["returns"] = returns.copy()
+        observed["r_series"] = r_series.copy()
+        observed["risk_series"] = risk_series.copy()
+        observed["mom_series"] = mom_series.copy()
+        observed["regimes"] = np.asarray(regimes, dtype=object)
+        return {"r_thr": 0.7, "risk_thr": 0.6}
+
+    monkeypatch.setattr(wf, "compute_signals", fake_compute_signals)
+    monkeypatch.setattr(wf, "calibrate_thresholds", fake_calibrate_thresholds)
+    observed["close"] = close
+    return observed
+
+
 def test_classify_regime_pins_all_public_regime_contracts() -> None:
     assert eq.classify_regime(gamma=1.0, r_val=0.71) == "COHERENT"
     assert eq.classify_regime(gamma=0.55, r_val=0.60) == "METASTABLE"
     assert eq.classify_regime(gamma=2.0, r_val=0.90) == "CRITICAL"
     assert eq.classify_regime(gamma=2.0, r_val=0.20) == "DECOHERENT"
+
+
+def test_classify_regime_thresholds_are_strict_not_accidentally_inclusive() -> None:
+    assert eq.classify_regime(gamma=1.4, r_val=0.70) != "COHERENT"
+    assert eq.classify_regime(gamma=1.6, r_val=0.50) == "DECOHERENT"
+    assert eq.classify_regime(gamma=1.7, r_val=0.85) == "DECOHERENT"
 
 
 def test_kuramoto_order_parameter_is_deterministic_finite_and_bounded() -> None:
@@ -62,6 +118,16 @@ def test_kuramoto_order_parameter_is_deterministic_finite_and_bounded() -> None:
     assert np.all(np.isfinite(r_first))
     assert np.all((0.0 <= r_first) & (r_first <= 1.0 + 1e-12))
     np.testing.assert_allclose(r_first, r_second, rtol=0.0, atol=0.0)
+
+
+def test_walk_forward_kuramoto_handles_zero_and_negative_prices_safely() -> None:
+    prices = np.array([100.0, 0.0, -5.0, 101.0, 102.0, 0.0, 103.0, 104.0, 105.0])
+
+    r = wf.compute_kuramoto_r(prices)
+
+    assert r.shape == prices.shape
+    assert np.all(np.isfinite(r))
+    assert np.all((0.0 <= r) & (r <= 1.0 + 1e-12))
 
 
 def test_walk_forward_threshold_calibration_is_grid_bound_and_deterministic() -> None:
@@ -145,13 +211,48 @@ def test_monte_carlo_sharpe_interval_is_seeded_and_ordered(
     assert np.all(np.isfinite(first))
 
 
+def test_run_walk_forward_uses_train_window_and_previous_bar_signals(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed = _install_walk_forward_fixture(monkeypatch, cost_bps=0.0)
+
+    result = wf.run_walk_forward("WF")
+
+    assert result is not None
+    assert result.train_params == [{"r_thr": 0.7, "risk_thr": 0.6}]
+    assert result.positions[5] == pytest.approx(0.25)
+    assert result.positions[6] == pytest.approx(-0.1)
+    assert result.positions[7] == 0.0
+    assert result.oos_returns.shape == (3,)
+
+    close = observed["close"]
+    daily_ret = np.zeros(len(close))
+    daily_ret[1:] = np.diff(close) / close[:-1]
+    np.testing.assert_allclose(observed["returns"], daily_ret[2:5])
+    np.testing.assert_allclose(observed["r_series"], np.array([0.0, 0.0, 0.9]))
+    np.testing.assert_array_equal(observed["regimes"], np.array(["UNKNOWN", "UNKNOWN", "COHERENT"]))
+
+
+def test_run_walk_forward_transaction_costs_are_monotone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_walk_forward_fixture(monkeypatch, cost_bps=0.0)
+    zero_cost = wf.run_walk_forward("WF")
+    _install_walk_forward_fixture(monkeypatch, cost_bps=100.0)
+    high_cost = wf.run_walk_forward("WF")
+
+    assert zero_cost is not None
+    assert high_cost is not None
+    assert high_cost.equity[-1] < zero_cost.equity[-1]
+
+
 def test_equity_curve_empty_download_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(eq.yf, "download", lambda *_args, **_kwargs: pd.DataFrame())
 
     assert eq.run_backtest("EMPTY") is None
 
 
-def test_equity_curve_uses_prior_bar_signal_and_no_live_data(
+def test_equity_curve_uses_prior_bar_signal_and_holds_through_metastable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     ticker = "TEST"
@@ -164,7 +265,7 @@ def test_equity_curve_uses_prior_bar_signal_and_no_live_data(
     monkeypatch.setattr(
         eq,
         "compute_kuramoto_r",
-        lambda _prices, _timeframes: np.array([0.0, 0.0, 0.0, 0.8, 0.8, 0.2, 0.2, 0.2]),
+        lambda _prices, _timeframes: np.array([0.0, 0.0, 0.0, 0.8, 0.6, 0.2, 0.2, 0.2]),
     )
 
     class FixedGammaEstimator:
