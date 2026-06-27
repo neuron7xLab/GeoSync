@@ -99,6 +99,11 @@ def test_live_repo_dependency_determinism_gate_is_clean() -> None:
     assert gate.check(ROOT) == []
 
 
+def test_live_repo_dependency_determinism_self_test_is_clean() -> None:
+    gate = _load()
+    assert gate.self_test(ROOT) == []
+
+
 def test_gate_rejects_stale_bootstrap_toolchain(tmp_path: Path) -> None:
     gate = _load()
     _seed_repo(
