@@ -402,6 +402,102 @@ laws:
     failure_message: "COGNITIVE-CORE RUNTIME-ENFORCEMENT VIOLATED: actuation was allowed outside the invariant manifold, or the core source regressed below its mutation-kill floor."
     evidence_output: "evidence/physics/governance_report.json"
 
+  - id: property_based_order_parameter_bounds
+    domain: falsification
+    claim: "The Kuramoto order parameter stays in [0,1] over a WIDE Hypothesis-fuzzed distribution of finite phase arrays, not just hand-picked seeds."
+    formal_invariant: "for all finite theta arrays: 0 <= compute_order_parameter(theta) <= 1 (INV-K1, property-based)"
+    measured_quantity: "Hypothesis-drawn min/max of R = |mean(exp(i*theta))| over varied-N finite phase arrays (120 examples); plus fail-closed rejection of non-finite draws"
+    threshold: "R in [0.0, 1.0 + 1e-9]; any draw with R<0 or R>1+1e-9 violates, and the [0,1] predicate must reject a fabricated R=1.5"
+    positive_witness: "tests/physics/test_property_based_invariants.py::test_property_order_parameter_in_unit_interval"
+    negative_control: "tests/physics/test_property_based_invariants.py::test_negative_control_order_parameter_predicate"
+    blocking: true
+    failure_message: "PROPERTY-K1 VIOLATED: a fuzzed phase array drove the order parameter outside [0,1]."
+    evidence_output: "evidence/physics/falsification_report.json"
+
+  - id: property_based_kelly_fraction
+    domain: falsification
+    claim: "The applied Kelly fraction never exceeds its configured cap and the full optimum equals mu/sigma^2, over a WIDE Hypothesis-fuzzed distribution of finite mu, positive sigma^2, fraction and cap."
+    formal_invariant: "for all finite edge, sigma^2>0, frac in [0,1], cap>0: 0 <= kelly_from_edge_variance(...) <= cap (INV-KELLY2) and full f* == edge/sigma^2 (INV-KELLY1)"
+    measured_quantity: "Hypothesis-drawn applied fraction vs cap, and |full_kelly - edge/variance|, over 120 examples reusing kelly_from_edge_variance"
+    threshold: "applied in [0, cap] for every draw; |full_kelly - edge/variance| <= 1e-12 (rel); the cap predicate must reject a fabricated f=0.6 over cap=0.3"
+    positive_witness: "tests/physics/test_property_based_invariants.py::test_property_kelly_fraction_within_cap"
+    negative_control: "tests/physics/test_property_based_invariants.py::test_negative_control_kelly_fraction_predicate"
+    blocking: true
+    failure_message: "PROPERTY-KELLY VIOLATED: a fuzzed edge/variance/cap draw exceeded the sizing cap or broke f*=mu/sigma^2."
+    evidence_output: "evidence/physics/falsification_report.json"
+
+  - id: metamorphic_order_parameter_rotation_invariance
+    domain: falsification
+    claim: "The Kuramoto order parameter R is invariant under a global phase rotation of its inputs."
+    formal_invariant: "R = |mean(exp(i*theta))| satisfies R(theta) == R(theta + c) for any constant c (rotation factors out of the modulus; metamorphic strengthening of INV-K1)."
+    measured_quantity: "max over seeds/constants of |compute_order_parameter(phases) - compute_order_parameter(phases + c)|"
+    threshold: "<= 1e-12 (machine tolerance); any larger residual violates rotation invariance"
+    positive_witness: "tests/physics/test_metamorphic_relations.py::test_order_parameter_rotation_invariance_holds"
+    negative_control: "tests/physics/test_metamorphic_relations.py::test_order_parameter_rotation_with_amplitude_corruption_is_rejected"
+    blocking: true
+    failure_message: "METAMORPHIC ROTATION-INVARIANCE VIOLATED: order parameter R changed under a pure global phase shift."
+    evidence_output: "evidence/physics/falsification_report.json"
+
+  - id: metamorphic_landauer_temperature_linearity
+    domain: falsification
+    claim: "The Landauer erasure cost is exactly linear in temperature and additive in bits under input scaling."
+    formal_invariant: "cost = k_B*T*ln2*bits implies cost(1, a*T) == a*cost(1, T) for a>0 and cost(n, T) == n*cost(1, T) (metamorphic strengthening of the Landauer floor, INV-TAU2)."
+    measured_quantity: "max relative residual of |bit_erasure_cost(1, a*T) - a*bit_erasure_cost(1, T)| and |bit_erasure_cost(n, T) - n*bit_erasure_cost(1, T)|"
+    threshold: "<= 1e-12 relative (costs live at the k_B ~1e-23 scale; pure float-rounding budget); any larger residual violates linearity"
+    positive_witness: "tests/physics/test_metamorphic_relations.py::test_landauer_temperature_linearity_holds"
+    negative_control: "tests/physics/test_metamorphic_relations.py::test_landauer_wrong_scaling_factor_is_rejected"
+    blocking: true
+    failure_message: "METAMORPHIC LANDAUER-LINEARITY VIOLATED: erasure cost is not linear in temperature / additive in bits."
+    evidence_output: "evidence/physics/falsification_report.json"
+
+  - id: convergence_order_ott_antonsen_rk4
+    domain: precision
+    claim: "The Ott-Antonsen RK4 integrator converges to the true trajectory at its theoretical fourth order; a first-order Euler step on the same ODE does not."
+    formal_invariant: "Richardson order p of OttAntonsenEngine.integrate satisfies p in [3.5, 4.5] (RK4 global error O(dt^4)); Euler on the same RHS gives p in [0.6, 1.5]."
+    measured_quantity: "log-log slope of |z(T;dt) - z(T;dt/2)| vs dt over a 6-point dt ladder on the real OA RK4 integrator (and the Euler control on engine._dz_dt)"
+    threshold: "RK4 order in [3.5, 4.5]; Euler control strictly below 3.5 and within [0.6, 1.5]"
+    positive_witness: "tests/physics/test_convergence_order.py::test_ott_antonsen_rk4_is_fourth_order"
+    negative_control: "tests/physics/test_convergence_order.py::test_ott_antonsen_euler_is_not_fourth_order"
+    blocking: true
+    failure_message: "CONVERGENCE-ORDER VIOLATED: OA integrator order departed from RK4 (~4), or a first-order Euler step passed as fourth-order."
+    evidence_output: "evidence/physics/precision_report.json"
+
+  - id: convergence_order_lyapunov_benettin
+    domain: precision
+    claim: "The Benettin Sum(lambda) error obeys the exact law omega^4*dt^3/4, fixing an omega-refinement order ~4 (INV-LY2 O((omega*dt)^4)) and a dt-refinement step-size order ~3; a damped non-Hamiltonian system shows no such convergence to zero."
+    formal_invariant: "For the harmonic oscillator |Sum(lambda)| = omega^4*dt^3/4: omega-refine slope in [3.5, 4.5] AND dt-refine slope in [2.6, 3.4]; damped (trace=-2c) dt-slope < 2.6 with |Sum| -> 2c."
+    measured_quantity: "log-log slopes of |Sum(lambda)| vs omega*dt (fixed dt) and vs dt (fixed omega) from the real lyapunov_spectrum, plus the analytic-law ratio"
+    threshold: "omega order in [3.5, 4.5]; dt order in [2.6, 3.4]; measured |Sum| within 2% of omega^4*dt^3/4; damped control dt-slope < 2.6 and |Sum|->2c within 1e-3"
+    positive_witness: "tests/physics/test_convergence_order.py::test_lyapunov_sum_lambda_obeys_omega4_dt3_law"
+    negative_control: "tests/physics/test_convergence_order.py::test_lyapunov_damped_sum_does_not_converge_to_zero"
+    blocking: true
+    failure_message: "CONVERGENCE-ORDER VIOLATED: Benettin Sum(lambda) order departed from the omega^4*dt^3/4 law, or a non-Hamiltonian system showed spurious convergence to Sum=0."
+    evidence_output: "evidence/physics/precision_report.json"
+
+  - id: oracle_crossval_gauss_bonnet_vs_networkx
+    domain: falsification
+    claim: "The repo discrete Gauss-Bonnet Euler characteristic agrees EXACTLY with an independent networkx clique-enumeration f-vector, on a battery of graphs."
+    formal_invariant: "euler_characteristic(G) == sum_k (-1)^(k-1)*|k-cliques(G)| (independent networkx oracle) for every G; exact integer equality"
+    measured_quantity: "per-graph integer difference repo euler_characteristic - networkx f-vector chi over cycles/complete/petersen/path/tree"
+    threshold: "exact equality (residual == 0) on every graph; a cycle (chi=0) vs tree (chi=1) must be distinguished by the cross-check"
+    positive_witness: "tests/physics/test_independent_oracle_crossvalidation.py::test_gauss_bonnet_euler_matches_networkx_oracle"
+    negative_control: "tests/physics/test_independent_oracle_crossvalidation.py::test_gauss_bonnet_oracle_disagrees_on_different_graph"
+    blocking: true
+    failure_message: "ORACLE-CROSSVAL GAUSS-BONNET VIOLATED: repo Euler characteristic disagreed with the independent networkx oracle."
+    evidence_output: "evidence/physics/falsification_report.json"
+
+  - id: oracle_crossval_landauer_vs_scipy_constants
+    domain: falsification
+    claim: "The repo Landauer per-bit floor matches an independent scipy.constants Boltzmann-based k_B*T*ln2 to machine tolerance across a temperature sweep."
+    formal_invariant: "bit_erasure_cost(1,T) / (scipy.constants.Boltzmann * T * ln2) == 1 to 1e-12; repo K_BOLTZMANN == scipy.constants.Boltzmann (independent k_B source)"
+    measured_quantity: "ratio repo bit_erasure_cost(1,T) to scipy_constants Boltzmann*T*ln2 over T in {4.2,77,300,600,1000}"
+    threshold: "|ratio - 1| <= 1e-12 for every T; repo cost(T) vs oracle cost(2T) must diverge by > 0.1 (discriminating)"
+    positive_witness: "tests/physics/test_independent_oracle_crossvalidation.py::test_landauer_floor_matches_scipy_constants_oracle"
+    negative_control: "tests/physics/test_independent_oracle_crossvalidation.py::test_landauer_oracle_disagrees_on_different_temperature"
+    blocking: true
+    failure_message: "ORACLE-CROSSVAL LANDAUER VIOLATED: repo per-bit floor disagreed with the independent scipy.constants Boltzmann oracle."
+    evidence_output: "evidence/physics/falsification_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."

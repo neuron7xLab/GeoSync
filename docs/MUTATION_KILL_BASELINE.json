@@ -8,6 +8,12 @@
       "total": 10,
       "tests": "tests/core/cross_asset_kuramoto/test_invariants.py"
     },
+    "core/indicators/gauss_bonnet.py": {
+      "floor": 1.0,
+      "killed": 3,
+      "total": 3,
+      "tests": "tests/physics/test_gauss_bonnet.py"
+    },
     "core/kuramoto/second_order.py": {
       "floor": 0.76,
       "killed": 16,
