@@ -12,7 +12,7 @@
       "floor": 0.76,
       "killed": 16,
       "total": 21,
-      "tests": "tests/unit/physics/test_T18b_second_order_stability_guard.py tests/unit/physics/test_second_order_stability_audit.py"
+      "tests": "tests/unit/physics/test_T18b_second_order_stability_guard.py tests/unit/physics/test_second_order_stability_audit.py tests/unit/physics/test_second_order_streamed_energy_audit.py"
     },
     "core/physics/stuart_landau_es.py": {
       "floor": 0.92,
