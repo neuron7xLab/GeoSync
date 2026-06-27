@@ -20,7 +20,7 @@ alembic==1.17.0
     # via
     #   geosync (pyproject.toml)
     #   optuna
-altair==6.2.1
+altair==6.2.2
     # via streamlit
 annotated-doc==0.0.4
     # via fastapi
