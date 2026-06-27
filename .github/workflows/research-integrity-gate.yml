@@ -77,8 +77,17 @@ permissions:
   contents: read
 
 concurrency:
-  group: research-integrity-gate-${{ github.ref }}
-  cancel-in-progress: true
+  # PR runs group by ref (a new push supersedes the old run). Main-push runs
+  # group by the EXACT commit SHA, never the shared `refs/heads/main` ref: a
+  # shared main group lets a later merge supersede an earlier SHA's still-QUEUED
+  # research-truth run (cancel-in-progress=false stops eviction of the
+  # in-progress run, but GitHub still drops superseded *pending* runs), leaving
+  # that SHA without a terminal verdict. A per-SHA group guarantees every main
+  # commit reaches a terminal research-integrity result.
+  group: research-integrity-gate-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  # PR retries may be superseded; main push evidence must finish instead of
+  # being cancelled by the next merge before research truth gates emit verdicts.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   research-integrity-gate:

@@ -227,3 +227,53 @@ def test_asymmetric_or_signed_adjacency_invalidates_energy_claim() -> None:
     assert report.metric_validity_flags["energy_model_valid"] is False
     assert report.audit_passed is False
     assert "energy_conservation_claimed_on_invalid_model" in report.failure_reason
+
+
+def _symmetric_signed_engine() -> SecondOrderKuramotoEngine:
+    """Conservative regime, adjacency SYMMETRIC but SIGNED.
+
+    Complements _signed_asymmetric_engine (which is both signed AND asymmetric).
+    Here adjacency_symmetric is True yet adjacency_unsigned is False, so the
+    energy-model validity is the AND of one True and one False operand — the
+    case that distinguishes ``symmetric and unsigned`` from ``symmetric or
+    unsigned`` (mutation_probe survivor, second_order.py L493).
+    """
+    n = 4
+    adj = np.array(
+        [
+            [0.0, 1.0, -0.5, 0.0],
+            [1.0, 0.0, 1.0, 0.0],
+            [-0.5, 1.0, 0.0, 1.0],  # == adj.T (symmetric) but contains -0.5 (signed)
+            [0.0, 0.0, 1.0, 0.0],
+        ]
+    )
+    cfg = KuramotoConfig(
+        N=n,
+        K=1.0,
+        omega=np.zeros(n),
+        theta0=np.linspace(0.0, 1.0, n),
+        adjacency=adj,
+        claim_boundary=CLAIM_SIGNED,
+        dt=0.005,
+        steps=200,
+        seed=0,
+    )
+    return SecondOrderKuramotoEngine(cfg, mass=1.0, damping=0.0, velocity0=0.05 * np.ones(n))
+
+
+def test_symmetric_signed_adjacency_invalidates_energy_model() -> None:
+    """Symmetric BUT signed coupling: energy_model_valid must be False.
+
+    energy_model_valid = adjacency_symmetric AND adjacency_unsigned. Here
+    symmetric is True and unsigned is False, so AND gives False (the swing-energy
+    potential is conserved only for symmetric *and* unsigned adjacency). This
+    kills the L493 `and`->`or` mutant, under which symmetric=True alone would
+    wrongly mark the energy model valid and run a meaningless drift check.
+    """
+    report = _symmetric_signed_engine().audit()
+    assert report.metric_validity_flags["adjacency_symmetric"] is True
+    assert report.metric_validity_flags["adjacency_unsigned"] is False
+    assert report.metric_validity_flags["energy_model_valid"] is False
+    assert report.audit_passed is False
+    assert "energy_conservation_claimed_on_invalid_model" in report.failure_reason
+    assert "energy_drift_exceeds_tol" not in report.failure_reason

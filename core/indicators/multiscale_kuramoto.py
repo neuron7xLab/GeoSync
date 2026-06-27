@@ -259,7 +259,17 @@ def _hilbert_phase(series: np.ndarray) -> np.ndarray:
     Optimized with reduced array allocations and in-place operations.
     """
 
-    x = np.ascontiguousarray(series, dtype=np.float64)
+    # Private, writable, C-contiguous working buffer. ``ascontiguousarray`` can
+    # return the caller's array UNCHANGED when it is already C-contiguous
+    # float64 — including read-only / caller-owned buffers. This routine then
+    # mutates x in place (putmask below, in-place detrend + Hilbert multiplier),
+    # which raises "putmask: output array is read-only" on a read-only input —
+    # silently degrading GeoSyncCompositeEngine to its fallback feature set — or
+    # corrupts the caller's data through aliasing. Copy once up front; every
+    # in-place op below is then both safe and allocation-free.
+    x = np.array(series, dtype=np.float64, copy=True)
+    if not x.flags.c_contiguous:
+        x = np.ascontiguousarray(x)
     n = x.size
     if n == 0:
         raise ValueError("phase extraction requires at least one sample")
