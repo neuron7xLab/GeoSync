@@ -26,6 +26,8 @@ REQUIRED_DECISION_FLAGS = (
     "forbid_unmeasured_success_claims",
     "fail_closed_on_missing_evidence",
 )
+EXECUTABLE_PREFIXES = ("tools/", "scripts/", ".github/")
+CI_PREFIX = ".github/workflows/"
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -40,7 +42,20 @@ def _is_non_empty_list(value: Any) -> bool:
     return isinstance(value, list) and bool(value)
 
 
-def check(path: Path = MANIFEST) -> list[str]:
+def _surface_path(repo_root: Path, surface: str) -> Path:
+    return repo_root / surface.rstrip("/")
+
+
+def _surface_exists(repo_root: Path, surface: str) -> bool:
+    return _surface_path(repo_root, surface).exists()
+
+
+def _has_surface_prefix(vf: dict[str, Any], prefixes: tuple[str, ...]) -> bool:
+    surfaces = vf.get("evidence_surfaces", [])
+    return any(str(surface).startswith(prefixes) for surface in surfaces)
+
+
+def check(path: Path = MANIFEST, repo_root: Path = ROOT) -> list[str]:
     errors: list[str] = []
     try:
         data = _load(path)
@@ -60,11 +75,11 @@ def check(path: Path = MANIFEST) -> list[str]:
         if decision_rule.get(flag) is not True:
             errors.append(f"{path}: decision_rule.{flag} must be true")
     minimum_total = decision_rule.get("minimum_total_score")
-    if not isinstance(minimum_total, float | int) or minimum_total < 0.90:
-        errors.append(f"{path}: minimum_total_score must be >= 0.90")
+    if not isinstance(minimum_total, float | int) or minimum_total < 0.92:
+        errors.append(f"{path}: minimum_total_score must be >= 0.92")
     minimum_individual = decision_rule.get("minimum_individual_score")
-    if not isinstance(minimum_individual, float | int) or minimum_individual < 0.75:
-        errors.append(f"{path}: minimum_individual_score must be >= 0.75")
+    if not isinstance(minimum_individual, float | int) or minimum_individual < 0.80:
+        errors.append(f"{path}: minimum_individual_score must be >= 0.80")
 
     value_functions = data.get("value_functions")
     if not isinstance(value_functions, list):
@@ -92,7 +107,8 @@ def check(path: Path = MANIFEST) -> list[str]:
             errors.append(f"{prefix}: weight must be positive")
         else:
             total_weight += float(weight)
-        if vf.get("hard_constraint") is True:
+        is_hard_constraint = vf.get("hard_constraint") is True
+        if is_hard_constraint:
             hard_constraints += 1
         elif vf.get("hard_constraint") is not False:
             errors.append(f"{prefix}: hard_constraint must be boolean")
@@ -106,17 +122,22 @@ def check(path: Path = MANIFEST) -> list[str]:
             if not _is_non_empty_list(values):
                 errors.append(f"{prefix}: {key} must be a non-empty list")
                 continue
+            if len(values) < 3:
+                errors.append(f"{prefix}: {key} must contain at least three entries")
             if not all(_is_non_empty_str(item) for item in values):
                 errors.append(f"{prefix}: {key} must contain only non-empty strings")
-        if not vf.get("evidence_surfaces"):
+        surfaces = vf.get("evidence_surfaces")
+        if not isinstance(surfaces, list):
             continue
-        executable_prefixes = ("tools/", "scripts/", ".github/")
-        has_executable_surface = any(
-            str(surface).startswith(executable_prefixes)
-            for surface in vf["evidence_surfaces"]
-        )
-        if not has_executable_surface:
+        for surface in surfaces:
+            if not isinstance(surface, str) or not surface.strip():
+                continue
+            if not _surface_exists(repo_root, surface):
+                errors.append(f"{prefix}: evidence surface does not exist: {surface}")
+        if not _has_surface_prefix(vf, EXECUTABLE_PREFIXES):
             errors.append(f"{prefix}: at least one evidence surface must be executable/CI")
+        if is_hard_constraint and not _has_surface_prefix(vf, (CI_PREFIX,)):
+            errors.append(f"{prefix}: hard constraints must include a CI workflow surface")
 
     if tuple(ids) != REQUIRED_IDS:
         errors.append(f"{path}: value function ids must be ordered {REQUIRED_IDS}")
@@ -133,9 +154,10 @@ def check(path: Path = MANIFEST) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=MANIFEST)
+    parser.add_argument("--repo-root", type=Path, default=ROOT)
     args = parser.parse_args(argv)
 
-    errors = check(args.manifest)
+    errors = check(args.manifest, args.repo_root)
     if errors:
         print("COMPANY VALUE FUNCTION GATE: FAIL", file=sys.stderr)
         for error in errors:
