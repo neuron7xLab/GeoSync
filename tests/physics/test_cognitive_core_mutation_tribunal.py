@@ -196,7 +196,9 @@ def test_kill_rate_metric_is_honest() -> None:
         )
 
     # 2. A rubber-stamp predicate kills NONE of the genuine mutants.
-    rubber_stamp: Callable[[float], bool] = lambda _m: True  # noqa: E731
+    def rubber_stamp(_m: float) -> bool:
+        return True
+
     rubber_killed = 0
     rubber_total = 0
     for law in laws:

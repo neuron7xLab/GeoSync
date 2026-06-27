@@ -145,8 +145,11 @@ def test_soundness_operator_rejects_rubber_stamp_gate() -> None:
     soundness operator scored the rubber stamp as sound, the whole core-integrity
     proof would be vacuous.
     """
-    vacuous: Callable[[float], bool] = lambda _m: True  # noqa: E731 - rubber stamp
-    sound: Callable[[float], bool] = lambda m: abs(m) < 1e-9  # noqa: E731
+    def vacuous(_m: float) -> bool:
+        return True  # rubber stamp: accepts everything
+
+    def sound(m: float) -> bool:
+        return abs(m) < 1e-9
 
     assert not _gate_fires(vacuous, 0.0, 999.0), (
         "COGNITIVE-CORE META VIOLATED: a vacuous always-satisfied gate was scored "
@@ -159,7 +162,9 @@ def test_soundness_operator_rejects_rubber_stamp_gate() -> None:
     )
     # A gate that rejects EVERYTHING (always-violated) is also not a detector:
     # it would reject reality itself, so it must not be counted sound either.
-    always_violated: Callable[[float], bool] = lambda _m: False  # noqa: E731
+    def always_violated(_m: float) -> bool:
+        return False  # rejects everything, including reality
+
     assert not _gate_fires(always_violated, 0.0, 1.0), (
         "COGNITIVE-CORE META VIOLATED: an always-reject gate was scored as sound; "
         "a gate that rejects reality is not a controllability-preserving detector."
