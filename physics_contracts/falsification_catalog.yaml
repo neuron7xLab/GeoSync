@@ -354,6 +354,18 @@ laws:
     failure_message: "GABA-MONOTONE VIOLATED: gate increased with inhibition (INV-GABA3; Mink 1996)."
     evidence_output: "evidence/physics/neuromodulation_report.json"
 
+  - id: cognitive_core_soundness
+    domain: governance
+    claim: "The falsification core is a sound reality-detector: for the exact-law spine, each law's own predicate accepts the real solver output and FIRES (flips to violated) the instant the measured value leaves the invariant band; the soundness operator itself rejects rubber-stamp and always-reject gates."
+    formal_invariant: "for each exact gate P: P(real_measured)=True AND P(perturbed_measured)=False (perturbation beyond threshold); gate_fires(P,r,q)=P(r) and not P(q) is True for >=5 independent laws (gauss_bonnet, landauer, kelly, dro_ara, ott_antonsen) and False for a vacuous always-True or always-False predicate"
+    measured_quantity: "per-gate (predicate(real), predicate(perturbed)) over the exact-law spine, and gate_fires on planted vacuous/always-reject controls"
+    threshold: "every exact gate fires (accepts real, rejects divergence); no rubber-stamp or always-reject gate is scored sound; spine >= 5 laws"
+    positive_witness: "tests/physics/test_cognitive_core_soundness.py::test_exact_law_gates_fire_on_reality_divergence"
+    negative_control: "tests/physics/test_cognitive_core_soundness.py::test_soundness_operator_rejects_rubber_stamp_gate"
+    blocking: true
+    failure_message: "COGNITIVE-CORE SOUNDNESS VIOLATED: an exact-law gate failed to fire on reality-divergence, or the soundness operator was fooled by a vacuous gate."
+    evidence_output: "evidence/physics/governance_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
