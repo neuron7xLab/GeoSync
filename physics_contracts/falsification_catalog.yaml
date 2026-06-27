@@ -378,6 +378,18 @@ laws:
     failure_message: "COGNITIVE-CORE ADMISSIBILITY VIOLATED: the value function admitted an out-of-manifold snapshot, vacuously approved, or a gate was not load-bearing."
     evidence_output: "evidence/physics/governance_report.json"
 
+  - id: cognitive_core_mutation_robustness
+    domain: governance
+    claim: "The cognitive core kills 100% of a taxonomy of real-solver physics mutations: for each exact law, every parameter/input/formula corruption of the real solver is rejected by the law's predicate (mutation kill-rate == 1.0), while a null mutant survives and a rubber-stamp predicate kills nothing."
+    formal_invariant: "kill_rate = killed/total == 1.0 over >= 15 mutants spanning ott_antonsen, landauer, kelly, dro_ara, gauss_bonnet; null mutant (==real) survives every predicate; rubber-stamp predicate kills 0; real predicates kill all (1.0 vs 0.0 separation)"
+    measured_quantity: "mutation kill-rate over real-solver parameter/input/formula corruptions, plus null-mutant survival and rubber-stamp kill-count"
+    threshold: "kill_rate == 1.0 (>= 15 mutants); null mutant not killed; rubber-stamp kills 0; any survivor is an undetected physics corruption"
+    positive_witness: "tests/physics/test_cognitive_core_mutation_tribunal.py::test_mutation_tribunal_kills_every_physics_corruption"
+    negative_control: "tests/physics/test_cognitive_core_mutation_tribunal.py::test_kill_rate_metric_is_honest"
+    blocking: true
+    failure_message: "COGNITIVE-CORE MUTATION-ROBUSTNESS VIOLATED: a real-solver physics mutation survived (kill-rate < 1.0), or the kill-rate metric was dishonest."
+    evidence_output: "evidence/physics/governance_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
