@@ -12,11 +12,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-CURRENT_DIR = Path(__file__).resolve().parent
-if str(CURRENT_DIR) not in sys.path:
-    sys.path.insert(0, str(CURRENT_DIR))
-
-from component_test_planner import (  # noqa: E402
+from component_test_planner import (
     BLOCKING_STATUSES,
     MATRIX,
     ROOT,
