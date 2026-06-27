@@ -8,6 +8,11 @@
     "fail_closed_on_unmapped_required_surface": true,
     "allow_empty_plan_for_unmapped_docs": true
   },
+  "router_policy": {
+    "default_max_run_selectors": 1,
+    "priority_component_ids": ["controlled_component_test_router"],
+    "python_executable_env": "COMPONENT_ROUTER_PYTHON"
+  },
   "required_mapping_patterns": [
     ".github/actions/*",
     ".github/workflows/*.yml",
@@ -101,7 +106,7 @@
     {
       "id": "controlled_component_test_router",
       "description": "Component test router.",
-      "patterns": [".github/workflows/component-test-router.yml", "data/testing/component_test_matrix.json", "tools/testing/select_component_tests.py", "tests/testing/test_select_component_tests.py"],
+      "patterns": [".github/workflows/component-test-router.yml", "data/testing/component_test_matrix.json", "tools/testing/select_component_tests.py", "tools/testing/component_test_planner.py", "tests/testing/test_select_component_tests.py"],
       "selectors": ["tests/testing/test_select_component_tests.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
