@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ACTION = ROOT / ".github" / "actions" / "setup-geosync" / "action.yml"
 CONSTRAINTS = ROOT / "constraints" / "security.txt"
 REQ_DEV = ROOT / "requirements-dev.txt"
+_VERSION = r"([0-9][0-9A-Za-z.+\-_!]*)"
 
 
 def _version_tuple(text: str) -> tuple[int, ...]:
@@ -19,14 +20,17 @@ def _version_tuple(text: str) -> tuple[int, ...]:
 
 def _action_exact_pin(name: str) -> str:
     text = ACTION.read_text(encoding="utf-8")
-    matches = re.findall(rf"\b{name}==([0-9][0-9A-Za-z.+\-_!]*)", text)
+    matches = re.findall(rf"\b{name}=={_VERSION}", text)
     assert matches, f"{ACTION}: missing exact bootstrap pin for {name}"
     assert len(set(matches)) == 1, f"{ACTION}: inconsistent {name} pins: {matches}"
     return matches[0]
 
 
 def _constraint_floor(name: str) -> str:
-    pattern = re.compile(rf"^\s*{re.escape(name)}\s*(?:==|>=)\s*([0-9][0-9A-Za-z.+\-_!]*)", re.I)
+    pattern = re.compile(
+        rf"^\s*{re.escape(name)}\s*(?:==|>=)\s*{_VERSION}",
+        re.I,
+    )
     for raw in CONSTRAINTS.read_text(encoding="utf-8").splitlines():
         line = raw.split("#", 1)[0].strip()
         match = pattern.match(line)
@@ -36,7 +40,10 @@ def _constraint_floor(name: str) -> str:
 
 
 def _dev_floor(name: str) -> str:
-    pattern = re.compile(rf"^\s*{re.escape(name)}\s*>=\s*([0-9][0-9A-Za-z.+\-_!]*)", re.I)
+    pattern = re.compile(
+        rf"^\s*{re.escape(name)}\s*>=\s*{_VERSION}",
+        re.I,
+    )
     for raw in REQ_DEV.read_text(encoding="utf-8").splitlines():
         line = raw.split("#", 1)[0].strip()
         match = pattern.match(line)
