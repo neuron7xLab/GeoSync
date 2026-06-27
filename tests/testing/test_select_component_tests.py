@@ -77,6 +77,21 @@ def test_router_change_selects_self_tests() -> None:
         assert plan["selectors"] == ["tests/testing/test_select_component_tests.py"]
 
 
+def test_router_self_tests_are_prioritized_in_wide_diff() -> None:
+    tool = _load_tool()
+    plan = tool.select_plan(
+        [
+            "core/physics/stuart_landau_es.py",
+            "tools/testing/select_component_tests.py",
+        ],
+        MATRIX,
+        ROOT,
+    )
+    assert plan["status"] == "ready"
+    assert plan["selectors"][0] == "tests/testing/test_select_component_tests.py"
+    assert "tests/unit/physics/test_T2b_stuart_landau_es.py" in plan["selectors"]
+
+
 def test_docs_only_unmapped_change_is_empty_not_invalid() -> None:
     tool = _load_tool()
     plan = tool.select_plan(["docs/notes/unmapped.md"], MATRIX, ROOT)
