@@ -70,6 +70,11 @@ def main(argv: list[str] | None = None) -> int:
             failures.append(f"missing manifest: {manifest.relative_to(ROOT).as_posix()}")
             continue
         payload = json.loads(manifest.read_text(encoding="utf-8"))
+        # Evidence-freshness manifests use the artifact/artifact_sha256 schema and
+        # are verified by scripts/ci/check_artifact_freshness.py, not this contract
+        # hash gate. Skip them so their entries are not misread as path-missing.
+        if str(payload.get("schema", "")).startswith("evidence_artifact_freshness"):
+            continue
         artifacts = payload.get("artifacts", [])
         if not artifacts:
             continue
