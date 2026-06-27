@@ -40,5 +40,5 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Run dependency operational determinism gate
-        run: python tools/deps/check_operational_dependency_determinism.py
+      - name: Validate and self-test dependency operational determinism gate
+        run: python tools/deps/check_operational_dependency_determinism.py --self-test
