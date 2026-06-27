@@ -1,0 +1,40 @@
+id: backtest-coverage-paydown-1
+status: ACTIVE
+claim_type: correctness
+promise: >-
+  Adds deterministic, offline contract tests for the first TD-023 backtest
+  coverage slice. The tests target behavior, not cosmetic execution: regime
+  classification, Kuramoto bounded determinism, walk-forward calibration
+  determinism, non-finite signal fail-closed behavior, metric drawdown/trade
+  accounting, seeded Monte Carlo intervals, empty market-data fail-closed
+  behavior, and previous-bar trading semantics with no live network.
+
+diff_scope:
+  changed_files:
+    - path: tests/unit/backtest/test_backtest_contracts.py
+    - path: .claude/commit_acceptors/backtest-coverage-paydown-1.yaml
+  forbidden_paths:
+    - configs/quality/release_90.coveragerc
+    - configs/quality/coverage_targets.toml
+    - configs/quality/critical_surface.toml
+    - pyproject.toml
+
+required_python_symbols:
+  - backtest/walk_forward.py::calibrate_thresholds
+  - backtest/walk_forward.py::compute_metrics
+  - backtest/walk_forward.py::_monte_carlo_sharpe
+  - backtest/geosync_equity_curve.py::classify_regime
+  - backtest/geosync_equity_curve.py::compute_kuramoto_r
+  - backtest/geosync_equity_curve.py::run_backtest
+
+measurement_command: >-
+  PYTHONPATH=. python -m pytest tests/unit/backtest/test_backtest_contracts.py -q
+
+expected_signal: >-
+  The targeted test slice collects and passes without external market data,
+  without live network, and without weakening coverage gates.
+
+falsifier: >-
+  Mutating regime thresholds, allowing same-bar lookahead, making Monte Carlo
+  unseeded, accepting non-finite calibration signals as valid trade signals, or
+  hiding coverage surfaces must fail either the tests or review contract.
