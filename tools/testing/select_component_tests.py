@@ -142,6 +142,13 @@ def _normalize_path(path: str) -> str:
     return normalized
 
 
+def _execution_python(repo_root: Path) -> str:
+    venv_python = repo_root / ".venv" / "bin" / "python"
+    if venv_python.exists():
+        return str(venv_python)
+    return sys.executable
+
+
 def _prioritize_selectors(
     selectors: list[str], matched_components: list[dict[str, Any]]
 ) -> list[str]:
@@ -290,7 +297,14 @@ def select_plan(
         "changed_files": normalized,
         "components": matched_components,
         "selectors": selectors,
-        "pytest_command": ([sys.executable, "-m", "pytest", *selectors] if selectors else []),
+        "pytest_command": [
+            _execution_python(repo_root),
+            "-m",
+            "pytest",
+            *selectors,
+        ]
+        if selectors
+        else [],
         "transitions": transitions,
     }
 
@@ -349,7 +363,7 @@ def main(argv: list[str] | None = None) -> int:
         limit = _max_run_selectors(os.environ.get("COMPONENT_ROUTER_MAX_SELECTORS"))
         selectors = plan["selectors"][:limit]
         print(f"COMPONENT_ROUTER_SELECTED {len(selectors)}/{len(plan['selectors'])}")
-        command = [sys.executable, "-m", "pytest", *selectors]
+        command = [_execution_python(args.repo_root), "-m", "pytest", *selectors]
         return subprocess.run(command, cwd=args.repo_root, check=False).returncode
     return 0
 
