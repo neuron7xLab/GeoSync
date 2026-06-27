@@ -11,15 +11,20 @@ INV-T2b   rolling ES peak precedes R(t) peak by τ ≥ 1 bar  (qualitative)
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 from numpy.typing import NDArray
 
+import core.physics.stuart_landau_es as sl
 from core.physics.stuart_landau_es import (
     StuartLandauResult,
     _analytic_signal,
     _estimate_growth_rate,
     _extract_amplitude_phase_omega,
+    _hysteresis_sweep,
+    _validate_prices,
     _validate_sweep_config,
     _validate_z0,
     crisis_signal_sl,
@@ -133,6 +138,140 @@ def test_mu_clamped_finite_and_bounded() -> None:
     )
 
 
+def test_price_contract_rejects_shape_finiteness_and_positivity() -> None:
+    """Price contract guards every low-level shape/value branch explicitly."""
+    with pytest.raises(ValueError, match="prices shape"):
+        _validate_prices(np.ones(8, dtype=np.float64), min_T=8)
+    with pytest.raises(ValueError, match="T>=8"):
+        _validate_prices(np.ones((7, 2), dtype=np.float64), min_T=8)
+    with pytest.raises(ValueError, match="N>=2"):
+        _validate_prices(np.ones((8, 1), dtype=np.float64), min_T=8)
+
+    nonfinite = np.ones((8, 2), dtype=np.float64)
+    nonfinite[0, 0] = np.inf
+    with pytest.raises(ValueError, match="prices must be finite"):
+        _validate_prices(nonfinite, min_T=8)
+
+    nonpositive = np.ones((8, 2), dtype=np.float64)
+    nonpositive[0, 0] = 0.0
+    with pytest.raises(ValueError, match="strictly positive"):
+        _validate_prices(nonpositive, min_T=8)
+
+
+def test_sweep_config_rejects_invalid_bounds_counts_and_dt() -> None:
+    """Sweep config guards finite K, ordered range, counts, and positive dt."""
+    kwargs = dict(K_low=0.0, K_high=1.0, K_steps=3, int_steps=2, dt=0.05)
+    _validate_sweep_config(**kwargs, source="test")
+
+    for bad_low, bad_high in ((np.inf, 1.0), (0.0, np.inf), (2.0, 1.0)):
+        with pytest.raises(ValueError, match="K_low|K_low<K_high"):
+            _validate_sweep_config(
+                K_low=bad_low,
+                K_high=bad_high,
+                K_steps=3,
+                int_steps=2,
+                dt=0.05,
+                source="test",
+            )
+
+    with pytest.raises(ValueError, match="K_steps>=2"):
+        _validate_sweep_config(**{**kwargs, "K_steps": 1}, source="test")
+    with pytest.raises(ValueError, match="int_steps>=1"):
+        _validate_sweep_config(**{**kwargs, "int_steps": 0}, source="test")
+    for bad_dt in (np.inf, 0.0, -0.1):
+        with pytest.raises(ValueError, match="dt>0"):
+            _validate_sweep_config(**{**kwargs, "dt": bad_dt}, source="test")
+
+
+def _result(
+    *,
+    amplitude: NDArray[np.float64] | None = None,
+    es_proximity: float = 0.5,
+    mu_raw: NDArray[np.float64] | None = None,
+    mu_clamped: NDArray[np.float64] | None = None,
+    mu_was_clipped: NDArray[np.bool_] | None = None,
+    mu_clip_count: int = 0,
+    mu_clip_mass: float = 0.0,
+) -> StuartLandauResult:
+    base_amp = np.array([1.0, 0.5], dtype=np.float64)
+    base_mu = np.array([0.1, 0.2], dtype=np.float64)
+    base_mask = np.array([False, False], dtype=np.bool_)
+    return StuartLandauResult(
+        amplitude=base_amp if amplitude is None else amplitude,
+        phase=np.zeros(2, dtype=np.float64),
+        order_parameter=0.5,
+        hysteresis_area=0.1,
+        es_proximity=es_proximity,
+        leads_r_peak=False,
+        mu_raw=base_mu if mu_raw is None else mu_raw,
+        mu_clamped=base_mu.copy() if mu_clamped is None else mu_clamped,
+        mu_was_clipped=base_mask if mu_was_clipped is None else mu_was_clipped,
+        mu_clip_count=mu_clip_count,
+        mu_clip_mass=mu_clip_mass,
+    )
+
+
+def test_result_audit_rejects_bounds_and_mu_inconsistency() -> None:
+    """Result audit branches are non-decorative invariants."""
+    _result()
+    with pytest.raises(ValueError, match="amplitude below floor"):
+        _result(amplitude=np.array([-1.0, 0.5], dtype=np.float64))
+    for bad_es in (-0.1, 1.1):
+        with pytest.raises(ValueError, match="es_proximity outside"):
+            _result(es_proximity=bad_es)
+    with pytest.raises(ValueError, match="raw/clamped shape mismatch"):
+        _result(mu_clamped=np.array([0.1], dtype=np.float64))
+    with pytest.raises(ValueError, match="clipped mask shape mismatch"):
+        _result(mu_was_clipped=np.array([False], dtype=np.bool_))
+    with pytest.raises(ValueError, match="clip count does not match"):
+        _result(
+            mu_was_clipped=np.array([True, False], dtype=np.bool_),
+            mu_clip_count=0,
+        )
+    for bad_mass in (-0.1, np.inf):
+        with pytest.raises(ValueError, match="clip mass"):
+            _result(mu_clip_mass=bad_mass)
+
+
+def test_z0_validation_rejects_shape_and_nonfinite_components() -> None:
+    """Fitted-state validation must reject wrong shape and either non-finite axis."""
+    good = np.array([1.0 + 0.0j, 0.5 + 0.25j], dtype=np.complex128)
+    copied = _validate_z0(good, 2)
+    assert copied.shape == (2,)
+    assert copied.dtype == np.complex128
+    assert copied is not good
+
+    with pytest.raises(ValueError, match="z0 shape"):
+        _validate_z0(good, 3)
+
+    bad_real = np.array([np.nan + 0.0j, 1.0 + 0.0j], dtype=np.complex128)
+    with pytest.raises(ValueError, match="z0 must be finite"):
+        _validate_z0(bad_real, 2)
+
+    bad_imag = np.array([complex(1.0, np.inf), 1.0 + 0.0j], dtype=np.complex128)
+    with pytest.raises(ValueError, match="z0 must be finite"):
+        _validate_z0(bad_imag, 2)
+
+
+def test_hysteresis_sweep_uses_validated_external_z0() -> None:
+    """External fitted state must enter the sweep through the same z0 guard."""
+    mu = np.array([0.1, 0.2], dtype=np.float64)
+    omega = np.array([0.3, 0.4], dtype=np.float64)
+    bad_z0 = np.array([1.0 + 0.0j, np.nan + 0.0j], dtype=np.complex128)
+    with pytest.raises(ValueError, match="z0 must be finite"):
+        _hysteresis_sweep(
+            mu,
+            omega,
+            K_low=0.0,
+            K_high=1.0,
+            K_steps=3,
+            int_steps=2,
+            dt=0.05,
+            seed=0,
+            z0=bad_z0,
+        )
+
+
 def _synthetic_prices(
     T: int = 64,
     N: int = 5,
@@ -235,6 +374,31 @@ def test_crisis_signal_api() -> None:
     amin = sig["amplitude_min"]
     assert isinstance(amax, float) and isinstance(amin, float)
     assert amax >= amin >= 0.0
+
+
+def test_crisis_signal_uses_strict_es_threshold(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Crisis boolean is strictly es_proximity > threshold, not >= or inverted."""
+
+    def fake_fit_stuart_landau(
+        *_args: object,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
+        return SimpleNamespace(
+            es_proximity=0.3,
+            hysteresis_area=0.3,
+            order_parameter=0.5,
+            amplitude=np.array([1.0, 2.0], dtype=np.float64),
+            leads_r_peak=False,
+        )
+
+    monkeypatch.setattr(sl, "fit_stuart_landau", fake_fit_stuart_landau)
+    prices = np.ones((8, 2), dtype=np.float64)
+    at_threshold = sl.crisis_signal_sl(prices, es_threshold=0.3)
+    below_threshold = sl.crisis_signal_sl(prices, es_threshold=0.31)
+    above_threshold = sl.crisis_signal_sl(prices, es_threshold=0.29)
+    assert at_threshold["is_explosive"] is False
+    assert below_threshold["is_explosive"] is False
+    assert above_threshold["is_explosive"] is True
 
 
 def _rolling_R(prices: NDArray[np.float64], window: int) -> NDArray[np.float64]:
