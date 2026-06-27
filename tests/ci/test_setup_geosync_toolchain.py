@@ -18,8 +18,12 @@ def _version_tuple(text: str) -> tuple[int, ...]:
     return tuple(int(part) for part in re.findall(r"\d+", text)[:4])
 
 
+def _action_text() -> str:
+    return ACTION.read_text(encoding="utf-8")
+
+
 def _action_exact_pin(name: str) -> str:
-    text = ACTION.read_text(encoding="utf-8")
+    text = _action_text()
     matches = re.findall(rf"\b{name}=={_VERSION}", text)
     assert matches, f"{ACTION}: missing exact bootstrap pin for {name}"
     assert len(set(matches)) == 1, f"{ACTION}: inconsistent {name} pins: {matches}"
@@ -69,3 +73,15 @@ def test_setup_geosync_pip_matches_dev_security_floor() -> None:
         f"{ACTION}: pip=={action_pin} is below dev/security floor {dev_floor} "
         f"from {REQ_DEV}"
     )
+
+
+def test_setup_geosync_reasserts_packaging_pins_after_lock_install() -> None:
+    text = _action_text()
+    dev_lock_install = text.index("requirements-dev.lock")
+    for package in ("pip", "setuptools", "wheel"):
+        pin = _action_exact_pin(package)
+        reassert_index = text.rindex(f"{package}=={pin}")
+        assert reassert_index > dev_lock_install, (
+            f"{ACTION}: {package}=={pin} must be reasserted after lock install "
+            "so transitive lock side effects cannot change the trusted toolchain"
+        )
