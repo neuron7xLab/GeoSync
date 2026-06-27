@@ -43,10 +43,10 @@ def _string_list(value: object, label: str, errors: list[str]) -> list[str]:
     return out
 
 
-def _transition(
-    transitions: list[dict[str, Any]], event: str, **state: Any
-) -> None:
-    transitions.append({"seq": len(transitions) + 1, "event": event, **state})
+def _transition(transitions: list[dict[str, Any]], event: str, **state: Any) -> None:
+    entry: dict[str, Any] = {"seq": len(transitions) + 1, "event": event}
+    entry.update(state)
+    transitions.append(entry)
 
 
 def validate_matrix(path: Path = MATRIX, repo_root: Path = ROOT) -> list[str]:
@@ -159,25 +159,57 @@ def _prioritize_selectors(
     return priority
 
 
+def _invalid_plan(errors: list[str], transitions: list[dict[str, Any]]) -> dict[str, Any]:
+    _transition(
+        transitions,
+        "matrix_validation_failed",
+        status="invalid_matrix",
+        error_count=len(errors),
+    )
+    return {
+        "status": "invalid_matrix",
+        "errors": errors,
+        "components": [],
+        "selectors": [],
+        "transitions": transitions,
+    }
+
+
+def _blocked_plan(
+    normalized: list[str],
+    matched_components: list[dict[str, Any]],
+    selectors: list[str],
+    missing_routes: list[str],
+    transitions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    _transition(
+        transitions,
+        "plan_blocked",
+        status="unmapped_required_surface",
+        cause="missing required component-test route",
+    )
+    return {
+        "status": "unmapped_required_surface",
+        "changed_files": normalized,
+        "components": matched_components,
+        "selectors": selectors,
+        "unmapped_required": missing_routes,
+        "errors": [
+            "required mapping surface has no component-test route: " + path
+            for path in missing_routes
+        ],
+        "pytest_command": [],
+        "transitions": transitions,
+    }
+
+
 def select_plan(
     changed_files: list[str], matrix_path: Path = MATRIX, repo_root: Path = ROOT
 ) -> dict[str, Any]:
     transitions: list[dict[str, Any]] = []
     errors = validate_matrix(matrix_path, repo_root)
     if errors:
-        _transition(
-            transitions,
-            "matrix_validation_failed",
-            status="invalid_matrix",
-            error_count=len(errors),
-        )
-        return {
-            "status": "invalid_matrix",
-            "errors": errors,
-            "components": [],
-            "selectors": [],
-            "transitions": transitions,
-        }
+        return _invalid_plan(errors, transitions)
 
     _transition(transitions, "matrix_validated", status="ok")
     matrix = _load_matrix(matrix_path)
@@ -236,25 +268,13 @@ def select_plan(
         missing_routes=missing_routes,
     )
     if missing_routes:
-        _transition(
+        return _blocked_plan(
+            normalized,
+            matched_components,
+            selectors,
+            missing_routes,
             transitions,
-            "plan_blocked",
-            status="unmapped_required_surface",
-            cause="missing required component-test route",
         )
-        return {
-            "status": "unmapped_required_surface",
-            "changed_files": normalized,
-            "components": matched_components,
-            "selectors": selectors,
-            "unmapped_required": missing_routes,
-            "errors": [
-                "required mapping surface has no component-test route: " + path
-                for path in missing_routes
-            ],
-            "pytest_command": [],
-            "transitions": transitions,
-        }
 
     selectors = _prioritize_selectors(selectors, matched_components)
     status = "ready" if selectors else "empty"
@@ -270,7 +290,7 @@ def select_plan(
         "changed_files": normalized,
         "components": matched_components,
         "selectors": selectors,
-        "pytest_command": [sys.executable, "-m", "pytest", *selectors] if selectors else [],
+        "pytest_command": ([sys.executable, "-m", "pytest", *selectors] if selectors else []),
         "transitions": transitions,
     }
 
