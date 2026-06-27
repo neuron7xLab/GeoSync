@@ -6,11 +6,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from tools.coverage import calibrate_coverage_ascent as cca
 
 
-def _summary(*, evidence_valid: bool = True, release: float = 85.03) -> dict[str, object]:
+def _summary(*, evidence_valid: bool = True, release: float = 85.03) -> dict[str, Any]:
     return {
         "schema_version": "2.0",
         "verdict": "MACHINE_ASSISTED",
@@ -56,7 +57,11 @@ def _summary(*, evidence_valid: bool = True, release: float = 85.03) -> dict[str
 
 
 def test_next_band_moves_from_current_release_to_next_goal() -> None:
-    plan = cca.build_plan(_summary(release=85.03), (90.0, 92.0, 95.0, 97.0), max_surfaces=6)
+    plan = cca.build_plan(
+        _summary(release=85.03),
+        (90.0, 92.0, 95.0, 97.0),
+        max_surfaces=6,
+    )
 
     assert plan.next_global_band == 90.0
     assert plan.global_gap_to_next_band == 4.97
@@ -130,4 +135,4 @@ def test_written_markdown_contains_acceptance_discipline(tmp_path: Path) -> None
     assert rc == cca.EXIT_OK
     md = (out_dir / "coverage_calibration_plan.md").read_text(encoding="utf-8")
     assert "Do not lower coverage thresholds" in md
-    assert "risk-weighted" not in md.lower() or "weighted deficit" in md
+    assert "weighted deficit" in md
