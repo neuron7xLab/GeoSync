@@ -109,8 +109,12 @@ def test_configured_surface_combines_layers_without_mutating_canonical_delta() -
 
 
 def test_canonical_td_error_rejects_overflowed_output() -> None:
+    # canonical_delta = reward + gamma*next_value - value is ADDITIVE, so the
+    # summands must each be near the float64 ceiling for the sum to overflow to
+    # +inf (1e200 only reaches 3e200, which is finite — the prior magnitude did
+    # not exercise the guard at all). 1e308 forces the addition to inf.
     with pytest.raises(ValueError, match="canonical_delta must be finite"):
-        canonical_td_error(1.0e200, -1.0e200, 1.0e200, 1.0)
+        canonical_td_error(1.0e308, -1.0e308, 1.0e308, 1.0)
 
 
 def test_risk_adjusted_reward_rejects_overflowed_output() -> None:
