@@ -21,6 +21,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[2]
 ACTION = ROOT / ".github" / "actions" / "setup-geosync" / "action.yml"
@@ -139,12 +140,143 @@ def check(repo_root: Path = ROOT) -> list[str]:
     return errors
 
 
+def _seed_repo(
+    root: Path,
+    *,
+    action: str,
+    constraints: str,
+    requirements_dev: str,
+    requirements_scan: str,
+) -> None:
+    action_path = root / ".github" / "actions" / "setup-geosync"
+    action_path.mkdir(parents=True)
+    (action_path / "action.yml").write_text(action, encoding="utf-8")
+    constraints_path = root / "constraints"
+    constraints_path.mkdir()
+    (constraints_path / "security.txt").write_text(constraints, encoding="utf-8")
+    (root / "requirements-dev.txt").write_text(requirements_dev, encoding="utf-8")
+    (root / "requirements-scan.txt").write_text(requirements_scan, encoding="utf-8")
+
+
+def _action_pins(pip: str = "26.1.1", setuptools: str = "78.1.1") -> str:
+    return f"pip=={pip}\nsetuptools=={setuptools}\nwheel==0.46.2\n"
+
+
+def _constraints() -> str:
+    return "\n".join(
+        (
+            "aiohttp==3.14.1",
+            "cryptography==49.0.0",
+            "fastapi>=0.138.0,<1.0.0",
+            "Jinja2==3.1.6",
+            "pandera==0.31.1",
+            "pyarrow==24.0.0",
+            "pydantic==2.13.4",
+            "pydantic-settings==2.14.2",
+            "PyJWT==2.13.0",
+            "python-multipart==0.0.32",
+            "PyYAML==6.0.3",
+            "requests==2.34.2",
+            "SQLAlchemy==2.0.51",
+            "setuptools>=78.1.1",
+            "starlette>=1.3.1",
+            "strawberry-graphql==0.318.1",
+            "tornado>=6.5.7",
+            "wheel>=0.46.2",
+        )
+    )
+
+
+def _scan() -> str:
+    return "\n".join(
+        (
+            "aiohttp>=3.14.1",
+            "cryptography>=49.0.0",
+            "fastapi>=0.138.0,<1.0.0",
+            "Jinja2>=3.1.6",
+            "pandera>=0.31.1,<1.0.0",
+            "pyarrow>=24.0.0",
+            "pydantic>=2.13.4,<3.0.0",
+            "pydantic-settings>=2.14.2,<3.0.0",
+            "PyJWT[crypto]>=2.13.0",
+            "python-multipart>=0.0.32",
+            "PyYAML>=6.0.3",
+            "requests>=2.34.2",
+            "SQLAlchemy>=2.0.51",
+            "starlette>=1.3.1",
+            "strawberry-graphql[fastapi]>=0.318.1",
+            "tornado>=6.5.7",
+        )
+    )
+
+
+def _self_test_case(
+    *, action: str, constraints: str, requirements_dev: str, requirements_scan: str
+) -> list[str]:
+    with TemporaryDirectory() as temp_dir:
+        root = Path(temp_dir)
+        _seed_repo(
+            root,
+            action=action,
+            constraints=constraints,
+            requirements_dev=requirements_dev,
+            requirements_scan=requirements_scan,
+        )
+        return check(root)
+
+
+def _expect_error(observed: list[str], expected_fragment: str, name: str) -> list[str]:
+    if any(expected_fragment in error for error in observed):
+        return []
+    return [
+        f"self-test {name!r} did not trigger expected error fragment "
+        f"{expected_fragment!r}; observed={observed!r}"
+    ]
+
+
+def self_test(repo_root: Path = ROOT) -> list[str]:
+    errors: list[str] = []
+    control_errors = check(repo_root)
+    if control_errors:
+        return [f"self-test positive control failed: {control_errors!r}"]
+
+    observed = _self_test_case(
+        action=_action_pins(pip="25.0.1", setuptools="75.8.0"),
+        constraints=_constraints(),
+        requirements_dev="pip>=26.1.1\n",
+        requirements_scan=_scan(),
+    )
+    errors.extend(_expect_error(observed, "pip==25.0.1", "stale pip bootstrap"))
+    errors.extend(_expect_error(observed, "setuptools==75.8.0", "stale setuptools bootstrap"))
+
+    observed = _self_test_case(
+        action=_action_pins(),
+        constraints=_constraints(),
+        requirements_dev="pip>=26.1.1\n",
+        requirements_scan=_scan().replace("requests>=2.34.2", "requests>=2.32.5"),
+    )
+    errors.extend(_expect_error(observed, "requests>=2.32.5", "weak scan floor"))
+
+    observed = _self_test_case(
+        action=_action_pins(),
+        constraints=_constraints(),
+        requirements_dev="pip>=26.1.1\n",
+        requirements_scan=_scan().replace("python-multipart>=0.0.32", ""),
+    )
+    errors.extend(_expect_error(observed, "python-multipart", "missing critical scan floor"))
+
+    return errors
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", type=Path, default=ROOT)
+    parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args(argv)
 
     errors = check(args.repo_root)
+    if not errors and args.self_test:
+        errors = self_test(args.repo_root)
     if errors:
         print("DEPENDENCY OPERATIONAL DETERMINISM FAIL:", file=sys.stderr)
         for error in errors:
