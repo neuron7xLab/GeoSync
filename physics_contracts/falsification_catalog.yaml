@@ -390,6 +390,18 @@ laws:
     failure_message: "COGNITIVE-CORE MUTATION-ROBUSTNESS VIOLATED: a real-solver physics mutation survived (kill-rate < 1.0), or the kill-rate metric was dishonest."
     evidence_output: "evidence/physics/governance_report.json"
 
+  - id: cognitive_core_runtime_enforcement
+    domain: governance
+    claim: "The cognitive core has runtime teeth: require_admissible returns the verdict for an in-manifold snapshot and raises InadmissibleStateError (fail-closed) for any violated, empty, or non-finite snapshot, naming the binding constraint; and the core's own source is mutation-ratcheted at a 100% logic kill-rate."
+    formal_invariant: "require_admissible(GO snapshot)->verdict; require_admissible(NO_GO/empty/non-finite)->raises InadmissibleStateError carrying the verdict with binding_constraint surfaced; a passed custom core is honoured (not the default); cognitive_core.py logic mutation kill-rate == 1.0 (floor in docs/MUTATION_KILL_BASELINE.json)"
+    measured_quantity: "decision of require_admissible over in-manifold / violated / empty / non-finite snapshots, the raised error's binding_constraint, custom-vs-default core routing, and the AST logic-mutation kill-rate of core/physics/cognitive_core.py"
+    threshold: "GO passes; every NO_GO raises (no silent actuation); error names the binding constraint; mutation kill-rate == 1.0 (12/12)"
+    positive_witness: "tests/physics/test_cognitive_core_runtime_gate.py::test_require_admissible_passes_in_manifold_state"
+    negative_control: "tests/physics/test_cognitive_core_runtime_gate.py::test_require_admissible_refuses_out_of_manifold_and_empty_states"
+    blocking: true
+    failure_message: "COGNITIVE-CORE RUNTIME-ENFORCEMENT VIOLATED: actuation was allowed outside the invariant manifold, or the core source regressed below its mutation-kill floor."
+    evidence_output: "evidence/physics/governance_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."

@@ -144,3 +144,25 @@ def test_core_never_vacuously_approves_and_fails_closed() -> None:
         f"COGNITIVE-CORE ROUTING VIOLATED: planted INV-RC1 violation (ollivier_kappa=2.0) "
         f"gave decision={verdict.decision}, binding_constraint={verdict.binding_constraint}."
     )
+
+    # INV-FE2 structural fail-closed: the composite gate must reject a non-triple,
+    # a wrong-length triple, and a triple with ANY non-finite component (each of
+    # U, T, S independently). These exercise both disjunctive guards in the gate.
+    fe2_malformed: list[object] = [
+        3.0,  # not a sequence at all
+        (1.0, 0.5),  # wrong length (2 != 3)
+        (1.0, 0.5, 0.2, 0.1),  # wrong length (4 != 3)
+        (math.nan, 0.5, 0.2),  # U non-finite
+        (1.0, math.inf, 0.2),  # T non-finite
+        (1.0, 0.5, "x"),  # S non-scalar
+    ]
+    for bad_components in fe2_malformed:
+        snap = dict(_NOMINAL)
+        snap["free_energy_components"] = bad_components
+        verdict = core.admissibility(snap)
+        assert verdict.decision is Decision.NO_GO and "INV-FE2" in verdict.violations, (
+            f"COGNITIVE-CORE FAIL-CLOSED VIOLATED: malformed free_energy_components="
+            f"{bad_components!r} was not rejected (decision={verdict.decision}, "
+            f"violations={verdict.violations}). A non-triple, wrong-length, or "
+            f"non-finite component must fail closed under INV-FE2."
+        )

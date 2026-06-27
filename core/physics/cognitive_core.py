@@ -183,6 +183,10 @@ _GATES: Final[tuple[_Gate, ...]] = (
 
 GATED_FIELDS: Final[frozenset[str]] = frozenset(g.field_name for g in _GATES)
 
+# Public, immutable view of the default invariant spine so callers can build a
+# restricted core (a subset of gates) without reaching into private state.
+DEFAULT_GATES: Final[tuple[_Gate, ...]] = _GATES
+
 
 class CognitiveCore:
     """The active invariant centre: one fail-closed admissibility value function."""
@@ -233,3 +237,41 @@ class CognitiveCore:
             violations=(),
             binding_constraint=None,
         )
+
+
+class InadmissibleStateError(RuntimeError):
+    """Raised when actuation is attempted on a snapshot outside the invariant manifold.
+
+    Carries the full :class:`CoreVerdict` so the caller can log the binding
+    constraint. This is the runtime teeth of the cognitive core: the value
+    function does not merely *report* NO_GO, it *prevents* the action.
+    """
+
+    def __init__(self, verdict: CoreVerdict) -> None:
+        self.verdict = verdict
+        constraint = verdict.binding_constraint or verdict.status.value
+        super().__init__(
+            f"INADMISSIBLE: actuation refused — snapshot left the invariant manifold "
+            f"(status={verdict.status.value}, binding_constraint={constraint}, "
+            f"violations={list(verdict.violations)}). Fail-closed."
+        )
+
+
+_DEFAULT_CORE: Final[CognitiveCore] = CognitiveCore()
+
+
+def require_admissible(
+    snapshot: Mapping[str, object], core: CognitiveCore | None = None
+) -> CoreVerdict:
+    """Runtime enforcement gate: return the verdict iff GO, else raise (fail-closed).
+
+    Actuation paths call this to REFUSE to act on a state outside the invariant
+    manifold. It is the live wiring of the value function into control: a GO
+    snapshot passes through with its verdict; any NO_GO (a fired gate or an
+    insufficient/empty snapshot) raises :class:`InadmissibleStateError`. There is
+    no silent path to action.
+    """
+    verdict = (core or _DEFAULT_CORE).admissibility(snapshot)
+    if not verdict.admissible:
+        raise InadmissibleStateError(verdict)
+    return verdict
