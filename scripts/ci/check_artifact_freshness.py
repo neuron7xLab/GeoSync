@@ -99,9 +99,7 @@ def _run_generator(generator: list[str]) -> None:
 
 def _snapshot(specs: list[_ArtifactSpec]) -> dict[str, bytes]:
     return {
-        s.artifact: (ROOT / s.artifact).read_bytes()
-        for s in specs
-        if (ROOT / s.artifact).is_file()
+        s.artifact: (ROOT / s.artifact).read_bytes() for s in specs if (ROOT / s.artifact).is_file()
     }
 
 
@@ -153,18 +151,13 @@ def build_manifest() -> dict[str, object]:
 
 
 def _unclassified(contract: dict[str, object]) -> list[str]:
-    classified = {
-        str(a["artifact"])
-        for a in cast("list[dict[str, Any]]", contract["artifacts"])
-    }
+    classified = {str(a["artifact"]) for a in cast("list[dict[str, Any]]", contract["artifacts"])}
     errors: list[str] = []
     for surface in cast("list[str]", contract.get("evidence_surfaces", [])):
         for path in (ROOT / str(surface)).rglob("*.json"):
             rel = path.relative_to(ROOT).as_posix()
             if rel not in classified:
-                errors.append(
-                    f"unclassified evidence artifact (add to provenance contract): {rel}"
-                )
+                errors.append(f"unclassified evidence artifact (add to provenance contract): {rel}")
     return errors
 
 
