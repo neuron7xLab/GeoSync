@@ -413,11 +413,9 @@ class SecondOrderKuramotoEngine:
         m, d, omega, adj = self._mass, self._damping, self._omega, self._adj
 
         # --- energy-like drift: swing energy over the trajectory ---
-        kinetic = 0.5 * (m * vel * vel).sum(axis=1)
-        drive = -(omega * theta).sum(axis=1)
-        delta = theta[:, None, :] - theta[:, :, None]
-        v_coup = -0.5 * np.einsum("ij,tij->t", adj, np.cos(delta))
-        energy = kinetic + drive + v_coup
+        # Physics is unchanged: E = T + V_drive + V_pairwise. The evaluator is
+        # optimized for audit memory by avoiding a full T×N×N delta tensor.
+        energy = self._swing_energy_trajectory(theta, vel, m, omega, adj)
         e_scale = float(np.abs(energy).max()) + 1e-12
         energy_like_drift = float((energy.max() - energy.min()) / e_scale)
         conservative = bool(np.allclose(omega, 0.0) and np.allclose(d, 0.0))
@@ -482,6 +480,8 @@ class SecondOrderKuramotoEngine:
             "mass_max": float(m.max()),
             "damping_min": float(d.min()),
             "damping_max": float(d.max()),
+            "energy_evaluator": "streamed_pairwise_potential",
+            "energy_peak_memory": "O(N^2)",
         }
 
         # --- metric validity: the swing-energy conservation diagnostic is only
@@ -540,6 +540,34 @@ class SecondOrderKuramotoEngine:
             promotion_allowed=promotion_allowed,
             remaining_gaps=remaining_gaps,
         )
+
+    @staticmethod
+    def _swing_energy_trajectory(
+        theta: NDArray[np.float64],
+        vel: NDArray[np.float64],
+        mass: NDArray[np.float64],
+        omega: NDArray[np.float64],
+        adj: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
+        """Compute swing energy without materializing a T×N×N delta tensor.
+
+        The audit needs one scalar energy value per time step. Materializing
+        ``theta[:, None, :] - theta[:, :, None]`` spends O(T·N²) peak memory for
+        a value that can be evaluated snapshot-by-snapshot with identical physics.
+        This keeps the pairwise potential exact while bounding peak working
+        memory to one N×N phase-difference matrix.
+        """
+        if theta.ndim != 2 or vel.shape != theta.shape:
+            raise ValueError(
+                "theta and velocity trajectories must be 2-D arrays with equal shape."
+            )
+        kinetic = 0.5 * (mass * vel * vel).sum(axis=1)
+        drive = -(omega * theta).sum(axis=1)
+        coupling = np.empty(theta.shape[0], dtype=np.float64)
+        for idx, theta_t in enumerate(theta):
+            delta = theta_t[np.newaxis, :] - theta_t[:, np.newaxis]
+            coupling[idx] = -0.5 * float(np.sum(adj * np.cos(delta)))
+        return kinetic + drive + coupling
 
     def _rk4_trajectory(self, steps: int) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Independent explicit RK4 integration of the same IVP (cross-check).
