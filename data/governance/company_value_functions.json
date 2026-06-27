@@ -115,7 +115,8 @@
         "requirements-dev.lock",
         "requirements-scan.lock",
         "artifacts/manifest.json",
-        "scripts/ci/check_artifact_freshness.py"
+        "scripts/ci/check_artifact_freshness.py",
+        ".github/workflows/pr-fast-diagnostics.yml"
       ],
       "score_inputs": [
         "lock_constraint_consistency",
