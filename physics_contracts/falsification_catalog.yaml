@@ -498,6 +498,30 @@ laws:
     failure_message: "ORACLE-CROSSVAL LANDAUER VIOLATED: repo per-bit floor disagreed with the independent scipy.constants Boltzmann oracle."
     evidence_output: "evidence/physics/falsification_report.json"
 
+  - id: numerical_calibration_certificate
+    domain: precision
+    claim: "Every exact law passes not merely within tolerance but CALIBRATED: the measured residual sits strictly inside its threshold with strictly positive margin (orders of magnitude of headroom), recorded as a deterministic certificate."
+    formal_invariant: "for each exact law: measured_residual < threshold AND margin_decades = log10(threshold/measured) > 0 (>= 5 laws); a measurement at the threshold has margin 0 and past it has margin < 0, both flagged NOT calibrated"
+    measured_quantity: "per-law (measured residual, threshold, margin_decades) for ott_antonsen/landauer/kelly/dro_ara/gauss_bonnet from the real solvers, emitted to evidence/physics/calibration_certificate.json"
+    threshold: "every law margin_decades > 0 (worst observed ~1.0 decade, dro_ara); the margin metric must score at-threshold as 0 and past-threshold as negative"
+    positive_witness: "tests/physics/test_calibration_certificate.py::test_every_exact_law_is_calibrated_with_positive_margin"
+    negative_control: "tests/physics/test_calibration_certificate.py::test_margin_metric_flags_uncalibrated_measurements"
+    blocking: true
+    failure_message: "CALIBRATION VIOLATED: an exact law sat at or past its tolerance (non-positive margin), or the margin metric mis-scored an uncalibrated measurement."
+    evidence_output: "evidence/physics/precision_report.json"
+
+  - id: cognitive_core_meta_gate
+    domain: governance
+    claim: "A single self-verifying meta-gate composes the whole invariant centre into one deterministic content-addressed GREEN/RED verdict (every blocking law witnessed + mutation floors well-formed + cognitive core at a 1.0 code-mutation floor), and it cannot rubber-stamp an incompletely-witnessed catalog."
+    formal_invariant: "verify_cognitive_core.verify() returns verdict==GREEN with all checks True and a reproducible verdict_sha256 across calls; a catalog with a stripped negative control makes promotion_gate FAIL (the meta-gate's load-bearing check)"
+    measured_quantity: "the composed verdict (GREEN/RED), the per-check booleans, the verdict_sha256 determinism across two calls, and the tampered-catalog promotion-gate status"
+    threshold: "verdict==GREEN, all checks True, identical sha256 across calls; tampered catalog -> promotion_gate status FAIL, intact -> PASS"
+    positive_witness: "tests/physics/test_cognitive_core_meta_gate.py::test_meta_gate_is_green_and_deterministic"
+    negative_control: "tests/physics/test_cognitive_core_meta_gate.py::test_meta_gate_rejects_a_tampered_catalog"
+    blocking: true
+    failure_message: "COGNITIVE-CORE META-GATE VIOLATED: the composed verdict was not GREEN/deterministic, or the gate rubber-stamped an incompletely-witnessed catalog."
+    evidence_output: "evidence/physics/governance_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
