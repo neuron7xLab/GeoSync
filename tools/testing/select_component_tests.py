@@ -21,8 +21,6 @@ from component_test_planner import (  # noqa: E402
     MATRIX,
     ROOT,
     Plan,
-    TRANSITION_EVENTS,
-    TransitionEvent,
     execution_python,
     max_run_selectors,
     plan_pytest_command,
