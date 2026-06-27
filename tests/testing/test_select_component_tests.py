@@ -65,12 +65,16 @@ def test_setup_action_change_selects_dependency_and_setup_tests() -> None:
 
 def test_router_change_selects_self_tests() -> None:
     tool = _load_tool()
-    plan = tool.select_plan(["tools/testing/select_component_tests.py"], MATRIX, ROOT)
-    assert plan["status"] == "ready"
-    assert [component["id"] for component in plan["components"]] == [
-        "controlled_component_test_router"
-    ]
-    assert plan["selectors"] == ["tests/testing/test_select_component_tests.py"]
+    for changed_path in (
+        "tools/testing/select_component_tests.py",
+        ".github/workflows/component-test-router.yml",
+    ):
+        plan = tool.select_plan([changed_path], MATRIX, ROOT)
+        assert plan["status"] == "ready"
+        assert [component["id"] for component in plan["components"]] == [
+            "controlled_component_test_router"
+        ]
+        assert plan["selectors"] == ["tests/testing/test_select_component_tests.py"]
 
 
 def test_docs_only_unmapped_change_is_empty_not_invalid() -> None:
