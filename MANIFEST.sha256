@@ -2026,6 +2026,7 @@
 4d85f2543e4240ae40fd22e92bc66b838a5b980cd33659f92aa20aef365bacc2  ./.claude/commit_acceptors/kuramoto-feature-proxy-honesty.yaml
 4d881e2e4e493d07cfa6c5035d7ea869008a80a887c4524deda5ff5b3c42599e  ./audit/artifacts/grep_secrets.txt
 4d9a469ef7945a348a66a4984e4bc65be87706c067fa2e52745531864ac706ca  ./tests/agents/test_prompt_injection_fixtures.py
+4d9edf5c2c6cc85e14a7ed1cf1af435db3833880cc9614192e3224918538045f  ./core/physics/cognitive_core.py
 4dc103ca8dce57d99b9728f26ef6bcabb2e9573111bfc0ec0df6d74861bf20fe  ./.claude/commit_acceptors/systemic-risk-governance-gates.yaml
 4dc5b18766674e0afd44ad6341ee325bead5a2327cdb2d6dfc6ba2e4cb4a08ee  ./.claude/commit_acceptors/gaba-gate-law-witnesses.yaml
 4dc9533e6a95cf0c65a9d00a0b1b30d13b3671846ea913f08646fdf04f6db111  ./results/cross_asset_kuramoto/demo/equity_curve.csv
@@ -2618,7 +2619,6 @@
 65036a5642a51276196dfe87b3746cf3063b5548c4baee9dac3abb43160e0c6e  ./tests/integration/control/test_aar_pro_smoke_script.py
 6505d2dead4415e8db2ec2daf283085bc45326c0581754a5c4a8eaf326941b73  ./tests/unit/physics/test_second_order_stability_audit.py
 650f1ee49f3433253dd97225bf32bc909825fe1c638b845469256c73577e0d10  ./docs/architecture/technical_order_01.md
-651c3964ed3596c169068d81245345177c18b07782df7437e3a0b75c5543def8  ./core/physics/cognitive_core.py
 65232a9b883bbe554cba1e2ce6a7dfe3f12e27c695c9432462ddab5813400b2e  ./figures/disha_ba_correlation/correlation_validity_summary.csv
 652c66da35cfa19caa3515bef4d25bccd7d468caf9ebca048ffce6c70915573f  ./migrations/alembic/script.py.mako
 6533b57979ee1366c8647edf35fdbcf02c12b9b3fcaaed9bd63555866c12c042  ./sandbox/audit.py

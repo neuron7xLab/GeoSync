@@ -24,6 +24,7 @@ Each gate cites the invariant it enforces. The bounds are the same ones proven
 elsewhere in the executable falsification catalog (physics_contracts/), so the
 core is the live-state composition of laws that are individually witnessed.
 """
+
 from __future__ import annotations
 
 import math
@@ -83,11 +84,14 @@ class _Gate:
 
 
 def _finite(x: object) -> float | None:
-    """Coerce to a finite float, or None if not a finite real scalar."""
-    try:
-        v = float(x)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
+    """Coerce to a finite float, or None if not a finite real scalar.
+
+    ``bool`` is rejected as an ambiguous scalar; ``int``/``float`` (and numpy
+    float subclasses) are accepted. Strings, ``None`` and anything else -> None.
+    """
+    if isinstance(x, bool) or not isinstance(x, (int, float)):
         return None
+    v = float(x)
     return v if math.isfinite(v) else None
 
 
@@ -151,12 +155,11 @@ def _free_energy_components(invariant: str) -> Callable[[object], tuple[bool, st
     """Gate factory: INV-FE2 — each of (U, T, S_q) >= 0 (the composite F may be negative)."""
 
     def check(x: object) -> tuple[bool, str]:
-        try:
-            u, t, s = (float(v) for v in x)  # type: ignore[misc]
-        except (TypeError, ValueError):
-            return False, f"{invariant}: components not a finite (U, T, S) triple (fail-closed)"
-        if not all(math.isfinite(v) for v in (u, t, s)):
-            return False, f"{invariant}: non-finite component (fail-closed)"
+        if not isinstance(x, (tuple, list)) or len(x) != 3:
+            return False, f"{invariant}: components not a (U, T, S) triple (fail-closed)"
+        u, t, s = _finite(x[0]), _finite(x[1]), _finite(x[2])
+        if u is None or t is None or s is None:
+            return False, f"{invariant}: non-finite or non-scalar component (fail-closed)"
         if min(u, t, s) < 0.0:
             return False, f"{invariant}: a component < 0 (U={u:.4g}, T={t:.4g}, S={s:.4g})"
         return True, f"{invariant}: U={u:.4g}, T={t:.4g}, S={s:.4g} all >= 0"
