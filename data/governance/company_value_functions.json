@@ -1,0 +1,216 @@
+{
+  "schema": "geosync.company_value_functions.v1",
+  "status": "normative",
+  "scope": "repo-wide engineering, security, evidence, and release decisions",
+  "non_affiliation": "OpenAI is used only as a public benchmark for safety-oriented company-grade rigor; this repository is not affiliated with or endorsed by OpenAI.",
+  "decision_rule": {
+    "hard_constraints_first": true,
+    "minimum_total_score": 0.92,
+    "minimum_individual_score": 0.80,
+    "forbid_green_by_vacuum": true,
+    "forbid_unmeasured_success_claims": true,
+    "fail_closed_on_missing_evidence": true
+  },
+  "value_functions": [
+    {
+      "id": "VF-01",
+      "name": "Safety before capability",
+      "weight": 0.18,
+      "hard_constraint": true,
+      "principle": "No capability, speed, or benchmark improvement is allowed to bypass security, misuse, dependency, or fail-closed gates.",
+      "measurable_invariants": [
+        "security-critical dependency floors are explicit and checked before trusted install",
+        "dangerous drift between scan, runtime, lock, and bootstrap surfaces fails CI",
+        "high/critical dependency vulnerabilities block release"
+      ],
+      "evidence_surfaces": [
+        "constraints/security.txt",
+        "requirements-scan.txt",
+        "requirements.lock",
+        "requirements-dev.lock",
+        "tools/deps/check_operational_dependency_determinism.py",
+        ".github/workflows/dependency-operational-determinism.yml",
+        ".github/workflows/pr-gate.yml"
+      ],
+      "score_inputs": [
+        "dependency_operational_determinism_pass",
+        "pip_audit_high_gate_pass",
+        "dependency_review_pass"
+      ],
+      "failure_modes": [
+        "scanner sees a weaker dependency universe than production",
+        "CI bootstraps with vulnerable installer tooling",
+        "security floor exists in prose but not in machine-verifiable manifest"
+      ]
+    },
+    {
+      "id": "VF-02",
+      "name": "Truthfulness over presentation",
+      "weight": 0.17,
+      "hard_constraint": true,
+      "principle": "A green check is valid only when it measures the relevant risk; decorative, skipped, or vacuum-green signals are treated as failures.",
+      "measurable_invariants": [
+        "changed risk surfaces have a matching automated verifier",
+        "zero collected tests on a touched test surface is a failure",
+        "positive claims cite executable evidence or artifact hashes"
+      ],
+      "evidence_surfaces": [
+        ".github/workflows/pr-gate.yml",
+        "scripts/ci/check_artifact_freshness.py",
+        "tools/deps/validate_dependency_truth.py",
+        "tools/deps/check_operational_dependency_determinism.py"
+      ],
+      "score_inputs": [
+        "non_vacuous_test_collection",
+        "artifact_freshness_pass",
+        "dependency_truth_pass"
+      ],
+      "failure_modes": [
+        "test lane passes with zero relevant tests",
+        "manifest drift hidden behind stale artifact metadata",
+        "claim says verified while verifier never ran"
+      ]
+    },
+    {
+      "id": "VF-03",
+      "name": "User and operator value",
+      "weight": 0.13,
+      "hard_constraint": false,
+      "principle": "Every merged change must reduce operator uncertainty, reduce manual recovery cost, or increase validated decision quality.",
+      "measurable_invariants": [
+        "failure output names the broken surface and next corrective command",
+        "new gates explain failure in action language, not opaque stack noise",
+        "docs distinguish product claims from experimental claims"
+      ],
+      "evidence_surfaces": [
+        "docs/",
+        "tools/",
+        "scripts/ci/",
+        ".github/workflows/"
+      ],
+      "score_inputs": [
+        "diagnostic_specificity",
+        "manual_recovery_steps_removed",
+        "operator_time_saved"
+      ],
+      "failure_modes": [
+        "red CI without actionable root cause",
+        "automation increases noise but not decision quality",
+        "operator has to infer hidden policy by reading multiple files"
+      ]
+    },
+    {
+      "id": "VF-04",
+      "name": "Reproducibility and provenance",
+      "weight": 0.15,
+      "hard_constraint": true,
+      "principle": "Results, artifacts, locks, and claims must be reproducible from declared inputs and content-addressable evidence.",
+      "measurable_invariants": [
+        "lockfiles agree with security constraints",
+        "artifact manifests match current artifact hashes",
+        "generated evidence is separated from source intent"
+      ],
+      "evidence_surfaces": [
+        "requirements.lock",
+        "requirements-dev.lock",
+        "requirements-scan.lock",
+        "artifacts/manifest.json",
+        "scripts/ci/check_artifact_freshness.py"
+      ],
+      "score_inputs": [
+        "lock_constraint_consistency",
+        "artifact_hash_freshness",
+        "deterministic_report_generation"
+      ],
+      "failure_modes": [
+        "relock required but not committed",
+        "artifact hash drift",
+        "manual evidence file edited without regeneration"
+      ]
+    },
+    {
+      "id": "VF-05",
+      "name": "Technical leadership through falsification",
+      "weight": 0.14,
+      "hard_constraint": false,
+      "principle": "The repo should lead by creating better falsifiers, not by expanding claims faster than tests can kill them.",
+      "measurable_invariants": [
+        "claim-critical modules have mutation or invariant probes",
+        "new capability claims include a failure-mode test",
+        "quality gates can detect deliberately planted regressions"
+      ],
+      "evidence_surfaces": [
+        "docs/MUTATION_KILL_BASELINE.json",
+        "tools/mutation_probe.py",
+        "tests/",
+        "tools/deps/check_operational_dependency_determinism.py"
+      ],
+      "score_inputs": [
+        "mutation_floor_satisfied",
+        "negative_controls_present",
+        "regression_tests_for_new_gates"
+      ],
+      "failure_modes": [
+        "new detector has no synthetic failing case",
+        "mutation floor cannot establish baseline",
+        "claim expands without a kill path"
+      ]
+    },
+    {
+      "id": "VF-06",
+      "name": "Cooperative auditability",
+      "weight": 0.10,
+      "hard_constraint": false,
+      "principle": "A competent external reviewer should be able to reconstruct what changed, why it matters, and how failure is detected.",
+      "measurable_invariants": [
+        "new governance gates are documented by executable tests",
+        "failure messages identify manifest, package, version, and violated floor",
+        "policy is stored in repo data, not only in chat or PR prose"
+      ],
+      "evidence_surfaces": [
+        "data/governance/company_value_functions.json",
+        "tools/governance/check_company_value_functions.py",
+        "tests/governance/test_company_value_functions.py",
+        "docs/governance/company_value_functions.md"
+      ],
+      "score_inputs": [
+        "reviewer_reconstructability",
+        "policy_machine_readability",
+        "diagnostic_completeness"
+      ],
+      "failure_modes": [
+        "policy exists only as narrative",
+        "failure cannot be mapped to violated value function",
+        "reviewer cannot tell whether a green run is meaningful"
+      ]
+    },
+    {
+      "id": "VF-07",
+      "name": "Minimal power concentration in automation",
+      "weight": 0.13,
+      "hard_constraint": false,
+      "principle": "Automation may accelerate execution but must preserve human falsifier authority and make override points explicit.",
+      "measurable_invariants": [
+        "automation emits verdicts, not unverifiable authority claims",
+        "hard constraints require evidence, not trust in agent output",
+        "manual override requires an explicit documented risk acceptance"
+      ],
+      "evidence_surfaces": [
+        "docs/",
+        "tools/",
+        ".github/workflows/",
+        "data/governance/company_value_functions.json"
+      ],
+      "score_inputs": [
+        "human_reviewability",
+        "override_traceability",
+        "agent_claim_containment"
+      ],
+      "failure_modes": [
+        "agent-created green status without external evidence",
+        "implicit override hidden in config",
+        "automation collapses policy into unreviewed prompt text"
+      ]
+    }
+  ]
+}
