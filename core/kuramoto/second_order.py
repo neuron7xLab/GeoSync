@@ -413,10 +413,15 @@ class SecondOrderKuramotoEngine:
         m, d, omega, adj = self._mass, self._damping, self._omega, self._adj
 
         # --- energy-like drift: swing energy over the trajectory ---
+        # Physics is unchanged: E = T + V_drive + V_pairwise. The pairwise
+        # potential is evaluated one snapshot at a time to avoid materializing a
+        # full T×N×N phase-delta tensor while keeping the exact same formula.
         kinetic = 0.5 * (m * vel * vel).sum(axis=1)
         drive = -(omega * theta).sum(axis=1)
-        delta = theta[:, None, :] - theta[:, :, None]
-        v_coup = -0.5 * np.einsum("ij,tij->t", adj, np.cos(delta))
+        v_coup = np.empty(theta.shape[0], dtype=np.float64)
+        for idx, theta_t in enumerate(theta):
+            delta = theta_t[np.newaxis, :] - theta_t[:, np.newaxis]
+            v_coup[idx] = -0.5 * float(np.sum(adj * np.cos(delta)))
         energy = kinetic + drive + v_coup
         e_scale = float(np.abs(energy).max()) + 1e-12
         energy_like_drift = float((energy.max() - energy.min()) / e_scale)
@@ -482,6 +487,8 @@ class SecondOrderKuramotoEngine:
             "mass_max": float(m.max()),
             "damping_min": float(d.min()),
             "damping_max": float(d.max()),
+            "energy_evaluator": "streamed_pairwise_potential",
+            "energy_peak_memory": "O(N^2)",
         }
 
         # --- metric validity: the swing-energy conservation diagnostic is only
