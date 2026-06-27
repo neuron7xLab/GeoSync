@@ -14,7 +14,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from copy import deepcopy
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,6 +34,10 @@ CI_PREFIX = ".github/workflows/"
 
 def _load(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _write(path: Path, payload: dict[str, Any]) -> None:
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def _is_non_empty_str(value: Any) -> bool:
@@ -151,13 +157,100 @@ def check(path: Path = MANIFEST, repo_root: Path = ROOT) -> list[str]:
     return errors
 
 
+def _check_mutation(
+    payload: dict[str, Any], repo_root: Path, expected_fragment: str, name: str
+) -> list[str]:
+    with TemporaryDirectory() as temp_dir:
+        manifest = Path(temp_dir) / "company_value_functions.json"
+        _write(manifest, payload)
+        observed = check(manifest, repo_root)
+    if any(expected_fragment in error for error in observed):
+        return []
+    return [
+        f"self-test {name!r} did not trigger expected error fragment "
+        f"{expected_fragment!r}; observed={observed!r}"
+    ]
+
+
+def self_test(path: Path = MANIFEST, repo_root: Path = ROOT) -> list[str]:
+    errors: list[str] = []
+    try:
+        base = _load(path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"{path}: cannot load value-function manifest for self-test: {exc}"]
+
+    control_errors = check(path, repo_root)
+    if control_errors:
+        errors.append(f"self-test positive control failed: {control_errors!r}")
+        return errors
+
+    payload = deepcopy(base)
+    payload["value_functions"][0]["weight"] = 0.50
+    errors.extend(_check_mutation(payload, repo_root, "weights must sum to 1.0", "weight drift"))
+
+    payload = deepcopy(base)
+    payload["decision_rule"]["fail_closed_on_missing_evidence"] = False
+    errors.extend(
+        _check_mutation(
+            payload,
+            repo_root,
+            "fail_closed_on_missing_evidence",
+            "fail-closed softening",
+        )
+    )
+
+    payload = deepcopy(base)
+    payload["value_functions"][0]["evidence_surfaces"].append(
+        "tools/missing_value_gate.py"
+    )
+    errors.extend(
+        _check_mutation(
+            payload,
+            repo_root,
+            "evidence surface does not exist",
+            "missing evidence surface",
+        )
+    )
+
+    payload = deepcopy(base)
+    payload["value_functions"][0]["evidence_surfaces"] = [
+        "constraints/security.txt",
+        "requirements-scan.txt",
+        "tools/deps/check_operational_dependency_determinism.py",
+    ]
+    errors.extend(
+        _check_mutation(
+            payload,
+            repo_root,
+            "hard constraints must include a CI workflow surface",
+            "hard constraint without CI surface",
+        )
+    )
+
+    payload = deepcopy(base)
+    payload["value_functions"][1]["failure_modes"] = []
+    errors.extend(
+        _check_mutation(
+            payload,
+            repo_root,
+            "failure_modes must be a non-empty list",
+            "missing failure modes",
+        )
+    )
+
+    return errors
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=MANIFEST)
     parser.add_argument("--repo-root", type=Path, default=ROOT)
+    parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args(argv)
 
     errors = check(args.manifest, args.repo_root)
+    if not errors and args.self_test:
+        errors = self_test(args.manifest, args.repo_root)
     if errors:
         print("COMPANY VALUE FUNCTION GATE: FAIL", file=sys.stderr)
         for error in errors:
