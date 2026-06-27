@@ -1,0 +1,94 @@
+{
+  "schema": "geosync.component_test_matrix.v1",
+  "status": "normative",
+  "decision_rule": {
+    "controlled_input": "changed repository path",
+    "expected_output": "deterministic pytest selector plan",
+    "fail_closed_on_invalid_matrix": true,
+    "allow_empty_plan_for_unmapped_docs": true
+  },
+  "components": [
+    {
+      "id": "stuart_landau_runtime",
+      "description": "Stuart-Landau explosive-synchronization runtime and invariant tests.",
+      "patterns": [
+        "core/physics/stuart_landau_es.py",
+        "tests/unit/physics/test_T2b_stuart_landau_es.py"
+      ],
+      "selectors": [
+        "tests/unit/physics/test_T2b_stuart_landau_es.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 300
+    },
+    {
+      "id": "dependency_operational_determinism",
+      "description": "Dependency bootstrap, scan-floor, and operational determinism gates.",
+      "patterns": [
+        ".github/actions/setup-geosync/action.yml",
+        ".github/workflows/dependency-operational-determinism.yml",
+        "constraints/security.txt",
+        "requirements*.txt",
+        "requirements*.lock",
+        "tools/deps/check_operational_dependency_determinism.py",
+        "tests/deps/test_operational_dependency_determinism.py",
+        "tests/ci/test_setup_geosync_toolchain.py"
+      ],
+      "selectors": [
+        "tests/deps/test_operational_dependency_determinism.py",
+        "tests/ci/test_setup_geosync_toolchain.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 120
+    },
+    {
+      "id": "company_value_functions",
+      "description": "Company value-function manifest, validator, documentation, and CI workflow.",
+      "patterns": [
+        ".github/workflows/company-value-functions.yml",
+        "data/governance/company_value_functions.json",
+        "docs/governance/company_value_functions.md",
+        "tools/governance/check_company_value_functions.py",
+        "tests/governance/test_company_value_functions.py"
+      ],
+      "selectors": [
+        "tests/governance/test_company_value_functions.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 60
+    },
+    {
+      "id": "artifact_freshness",
+      "description": "Artifact freshness manifest and stable freshness gate.",
+      "patterns": [
+        "artifacts/manifest.json",
+        "scripts/ci/check_artifact_freshness.py",
+        "tests/ci/test_artifact_freshness_gate.py"
+      ],
+      "selectors": [
+        "tests/ci/test_artifact_freshness_gate.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 60
+    },
+    {
+      "id": "controlled_component_test_router",
+      "description": "Deterministic router that maps changed files to isolated component test selectors.",
+      "patterns": [
+        "data/testing/component_test_matrix.json",
+        "tools/testing/select_component_tests.py",
+        "tests/testing/test_select_component_tests.py"
+      ],
+      "selectors": [
+        "tests/testing/test_select_component_tests.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 60
+    }
+  ]
+}
