@@ -254,19 +254,11 @@ def _swing_energy_trajectory(
     """
     kinetic = 0.5 * (mass * vel * vel).sum(axis=1)
     drive = -(omega * theta).sum(axis=1)
-    pairwise = np.fromiter(
-        (
-            -0.5
-            * float(
-                np.sum(
-                    adj * np.cos(theta_t[np.newaxis, :] - theta_t[:, np.newaxis])
-                )
-            )
-            for theta_t in theta
-        ),
-        dtype=np.float64,
-        count=theta.shape[0],
-    )
+    pairwise_terms: list[float] = []
+    for theta_t in theta:
+        delta = theta_t[np.newaxis, :] - theta_t[:, np.newaxis]
+        pairwise_terms.append(-0.5 * float(np.sum(adj * np.cos(delta))))
+    pairwise = np.asarray(pairwise_terms, dtype=np.float64)
     return kinetic + drive + pairwise
 
 
