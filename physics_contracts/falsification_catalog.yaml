@@ -522,6 +522,30 @@ laws:
     failure_message: "COGNITIVE-CORE META-GATE VIOLATED: the composed verdict was not GREEN/deterministic, or the gate rubber-stamped an incompletely-witnessed catalog."
     evidence_output: "evidence/physics/governance_report.json"
 
+  - id: exhaustive_gauss_bonnet_atlas
+    domain: falsification
+    claim: "Discrete Gauss-Bonnet Sum_x K(x) == chi(G) holds EXACTLY (over Q) for EVERY non-isomorphic graph on up to 7 nodes — a finite exhaustive proof over the whole networkx Graph Atlas, not a sample."
+    formal_invariant: "for all G in graph_atlas_g() with n>=1: gauss_bonnet_residual(G) == Fraction(0); >= 1200 graphs checked; >= 5 distinct Euler characteristics present"
+    measured_quantity: "max |Sum_x K(x) - chi(G)| over all ~1252 atlas graphs (exact Fraction), and the count of distinct chi"
+    threshold: "residual == 0 EXACTLY for every atlas graph; a planted rational perturbation of a residual must be detected as non-zero"
+    positive_witness: "tests/physics/test_exhaustive_gauss_bonnet_atlas.py::test_gauss_bonnet_holds_exactly_over_entire_atlas"
+    negative_control: "tests/physics/test_exhaustive_gauss_bonnet_atlas.py::test_perturbed_curvature_breaks_exhaustive_identity"
+    blocking: true
+    failure_message: "EXHAUSTIVE-GAUSS-BONNET VIOLATED: a graph in the atlas broke Sum_x K(x)==chi(G), or the exact-zero check was vacuous."
+    evidence_output: "evidence/physics/falsification_report.json"
+
+  - id: stateful_cognitive_core_admissibility
+    domain: governance
+    claim: "Over arbitrary SEQUENCES of field mutations, the cognitive core's admissibility verdict always equals an independent model (admissible iff non-empty and no out-of-manifold field), with correct status and binding constraint."
+    formal_invariant: "for every Hypothesis-generated sequence of set_valid/set_invalid/clear operations: core.admissibility(snapshot).admissible == (snapshot non-empty AND model_violated empty); NO_GO status is INADMISSIBLE iff violated else INSUFFICIENT; binding_constraint in the model-violated set"
+    measured_quantity: "agreement of the cognitive core verdict with the model oracle after every transition of a RuleBasedStateMachine (120 examples x 24 steps)"
+    threshold: "verdict matches model on every transition; an out-of-manifold field must flip admissibility (discriminating control)"
+    positive_witness: "tests/physics/test_stateful_cognitive_core.py::test_stateful_admissibility_holds_over_sequences"
+    negative_control: "tests/physics/test_stateful_cognitive_core.py::test_stateful_model_oracle_is_discriminating"
+    blocking: true
+    failure_message: "STATEFUL-CORE VIOLATED: the admissibility verdict diverged from the model over a mutation sequence, or the model oracle could not discriminate states."
+    evidence_output: "evidence/physics/governance_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
