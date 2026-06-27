@@ -92,6 +92,24 @@ def test_router_self_tests_are_prioritized_in_wide_diff() -> None:
     assert "tests/unit/physics/test_T2b_stuart_landau_es.py" in plan["selectors"]
 
 
+def test_plan_contains_reconstructable_transition_trace() -> None:
+    tool = _load_tool()
+    plan = tool.select_plan(["tools/testing/select_component_tests.py"], MATRIX, ROOT)
+    events = [entry["event"] for entry in plan["transitions"]]
+    assert [entry["seq"] for entry in plan["transitions"]] == list(
+        range(1, len(plan["transitions"]) + 1)
+    )
+    assert events == [
+        "matrix_validated",
+        "paths_normalized",
+        "components_matched",
+        "required_surface_checked",
+        "selectors_prioritized",
+        "plan_finalized",
+    ]
+    assert plan["transitions"][-1]["status"] == "ready"
+
+
 def test_docs_only_unmapped_change_is_empty_not_invalid() -> None:
     tool = _load_tool()
     plan = tool.select_plan(["docs/notes/unmapped.md"], MATRIX, ROOT)
@@ -99,6 +117,7 @@ def test_docs_only_unmapped_change_is_empty_not_invalid() -> None:
     assert plan["components"] == []
     assert plan["selectors"] == []
     assert plan["pytest_command"] == []
+    assert plan["transitions"][-1]["status"] == "empty"
 
 
 def test_required_core_surface_without_route_is_blocked() -> None:
@@ -107,6 +126,7 @@ def test_required_core_surface_without_route_is_blocked() -> None:
     assert plan["status"] == "unmapped_required_surface"
     assert plan["selectors"] == []
     assert plan["unmapped_required"] == ["core/future_component.py"]
+    assert plan["transitions"][-1]["event"] == "plan_blocked"
 
 
 def test_matrix_rejects_missing_selector_path(tmp_path: Path) -> None:
