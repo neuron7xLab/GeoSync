@@ -109,10 +109,10 @@ def string_list(value: object, label: str, errors: list[str]) -> list[str]:
     return out
 
 
-def transition(transitions: list[Transition], event: TransitionEvent, **state: Any) -> None:
-    entry: Transition = {"seq": len(transitions) + 1, "event": event}
+def transition(transitions: list[Transition], event: TransitionEvent, **state: object) -> None:
+    entry: dict[str, object] = {"seq": len(transitions) + 1, "event": event}
     entry.update(state)
-    transitions.append(entry)
+    transitions.append(cast(Transition, entry))
 
 
 def validate_router_policy(
