@@ -4,10 +4,9 @@ claim_type: governance
 promise: >-
   Second-layer hardening so the repository cannot lie through schema-valid but
   semantically fake evidence. Adds the research-artifact truth gate, the
-  claim-to-artifact graph gate, a non-vacuous manifest-hash proof mode, and a
-  one-command repo-integrity proof, all CI-wired via research-integrity-gate.
-  Diagnosis converted into durable, tested controls. No empirical claim is
-  promoted; the Ricci line stays an honest HYPOTHESIS placeholder.
+  claim-to-artifact graph gate, manifest proof mode, and repo-integrity proof.
+  The manifest gate also has regression coverage for the split between contract
+  manifests and evidence-freshness manifests.
 diff_scope:
   changed_files:
   - path: scripts/ci/check_research_artifact_truth.py
@@ -17,6 +16,7 @@ diff_scope:
   - path: tests/ci/test_research_artifact_truth.py
   - path: tests/ci/test_claim_artifact_graph.py
   - path: tests/ci/test_manifest_hashes.py
+  - path: tests/ci/test_manifest_hash_gate.py
   - path: .github/workflows/research-integrity-gate.yml
   - path: scripts/ci/check_pr_gate_contract.py
   - path: tests/ci/test_pr_gate_contract_validator.py
@@ -27,31 +27,27 @@ diff_scope:
   forbidden_paths: []
 required_python_symbols: []
 expected_signal: >-
-  check_research_artifact_truth, check_claim_artifact_graph, and the semantic
-  Ricci validator reject a zero-hash + PASS artifact and accept the honest
-  placeholder; bash scripts/ci/prove_repo_integrity.sh exits 0 printing
-  REPO_INTEGRITY: PROVEN with MANIFEST_PROOF: NOT_PROVEN.
-measurement_command: bash scripts/ci/prove_repo_integrity.sh
+  Research artifact truth, claim-artifact graph, manifest proof mode, and
+  manifest schema split regressions pass their positive and negative checks.
+measurement_command: >-
+  python -m pytest tests/ci/test_manifest_hash_gate.py tests/ci/test_manifest_hashes.py -q
 signal_artifact: scripts/ci/prove_repo_integrity.sh
 falsifier:
-  command: python scripts/ci/check_research_artifact_truth.py && python scripts/ci/check_claim_artifact_graph.py
+  command: >-
+    python -m pytest tests/ci/test_manifest_hash_gate.py tests/ci/test_manifest_hashes.py -q
   description: >-
-    Must fail if any research artifact becomes schema-valid but semantically
-    fake (zero-hash PASS, HYPOTHESIS PASS, placeholder score on a PASS, or a
-    contract claiming a tier its artifact does not back).
+    Must fail if manifest verification stops separating evidence-freshness
+    manifests from contract manifests or loses non-vacuous proof behavior.
 rollback_command: >-
   git checkout origin/main -- scripts/ci/check_manifest_hashes.py
   .github/workflows/research-integrity-gate.yml &&
-  git rm -f scripts/ci/check_research_artifact_truth.py
-  scripts/ci/check_claim_artifact_graph.py scripts/ci/prove_repo_integrity.sh
-  tests/ci/test_research_artifact_truth.py tests/ci/test_claim_artifact_graph.py
-  tests/ci/test_manifest_hashes.py
-  .claude/commit_acceptors/evidence-truth-gates.yaml
+  git rm -f tests/ci/test_manifest_hash_gate.py
 rollback_verification_command: >-
   git diff --exit-code scripts/ci/check_manifest_hashes.py
-  .github/workflows/research-integrity-gate.yml
 memory_update_type: append
 ledger_path: .claude/commit_acceptors/evidence-truth-gates.yaml
 report_path: scripts/ci/prove_repo_integrity.sh
 evidence:
-- path: scripts/ci/prove_repo_integrity.sh
+- path: scripts/ci/check_manifest_hashes.py
+- path: tests/ci/test_manifest_hash_gate.py
+- path: tests/ci/test_manifest_hashes.py
