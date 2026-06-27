@@ -20,6 +20,8 @@ from core.physics.stuart_landau_es import (
     _analytic_signal,
     _estimate_growth_rate,
     _extract_amplitude_phase_omega,
+    _hysteresis_sweep,
+    _validate_z0,
     crisis_signal_sl,
     fit_stuart_landau,
     rolling_es_proximity,
@@ -129,6 +131,45 @@ def test_mu_clamped_finite_and_bounded() -> None:
         f"μ clamp = ±1 (Euler-stable, |z|*=√μ≤1). "
         f"Tested raw rates (-2,-0.05,0,0.05,2) × {n_assets} assets, n_t={n_t}."
     )
+
+
+def test_z0_validation_rejects_shape_and_nonfinite_components() -> None:
+    """Fitted-state validation must reject wrong shape and either non-finite axis."""
+    good = np.array([1.0 + 0.0j, 0.5 + 0.25j], dtype=np.complex128)
+    copied = _validate_z0(good, 2)
+    assert copied.shape == (2,)
+    assert copied.dtype == np.complex128
+    assert copied is not good
+
+    with pytest.raises(ValueError, match="z0 shape"):
+        _validate_z0(good, 3)
+
+    bad_real = np.array([np.nan + 0.0j, 1.0 + 0.0j], dtype=np.complex128)
+    with pytest.raises(ValueError, match="z0 must be finite"):
+        _validate_z0(bad_real, 2)
+
+    bad_imag = np.array([1.0 + np.inf * 1j, 1.0 + 0.0j], dtype=np.complex128)
+    with pytest.raises(ValueError, match="z0 must be finite"):
+        _validate_z0(bad_imag, 2)
+
+
+def test_hysteresis_sweep_uses_validated_external_z0() -> None:
+    """External fitted state must enter the sweep through the same z0 guard."""
+    mu = np.array([0.1, 0.2], dtype=np.float64)
+    omega = np.array([0.3, 0.4], dtype=np.float64)
+    bad_z0 = np.array([1.0 + 0.0j, np.nan + 0.0j], dtype=np.complex128)
+    with pytest.raises(ValueError, match="z0 must be finite"):
+        _hysteresis_sweep(
+            mu,
+            omega,
+            K_low=0.0,
+            K_high=1.0,
+            K_steps=3,
+            int_steps=2,
+            dt=0.05,
+            seed=0,
+            z0=bad_z0,
+        )
 
 
 def _synthetic_prices(
