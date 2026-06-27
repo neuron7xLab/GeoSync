@@ -474,7 +474,7 @@ typing-inspection==0.4.2
     #   fastapi
     #   pydantic
     #   pydantic-settings
-tzdata==2025.2
+tzdata==2026.2
     # via
     #   exchange-calendars
     #   pandas
