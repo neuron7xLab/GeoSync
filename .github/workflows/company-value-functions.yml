@@ -37,5 +37,5 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Validate company value functions
-        run: python tools/governance/check_company_value_functions.py
+      - name: Validate and self-test company value functions
+        run: python tools/governance/check_company_value_functions.py --self-test
