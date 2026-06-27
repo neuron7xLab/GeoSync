@@ -379,7 +379,7 @@ requests==2.34.2
     #   geosync (pyproject.toml)
     #   opentelemetry-exporter-otlp-proto-http
     #   streamlit
-rpds-py==0.27.1
+rpds-py==2026.5.1
     # via
     #   jsonschema
     #   referencing
