@@ -12,7 +12,7 @@ A value is not a slogan. A value is an optimization target with a falsifier.
 In this repository every company-level value must compile into:
 
 ```text
-value -> measurable invariant -> evidence surface -> automated verdict -> regression test
+value -> measurable invariant -> evidence surface -> automated verdict -> regression test -> self-test
 ```
 
 If any link is missing, the value is decorative and must not be counted as quality.
@@ -35,7 +35,8 @@ A change is acceptable only when:
 6. each individual value score is at least 0.80;
 7. every value has at least three measurable invariants, evidence surfaces, score inputs, and failure modes;
 8. every evidence surface exists in the repository;
-9. every hard constraint has an executable evidence surface and a CI workflow surface.
+9. every hard constraint has an executable evidence surface and a CI workflow surface;
+10. the validator proves its own falsifiers through `--self-test`.
 
 ## Value functions
 
@@ -54,7 +55,7 @@ A change is acceptable only when:
 Validator:
 
 ```text
-tools/governance/check_company_value_functions.py
+tools/governance/check_company_value_functions.py --self-test
 ```
 
 Regression tests:
@@ -79,6 +80,7 @@ The value-function gate must reject:
 - hard constraints without CI evidence;
 - references to missing evidence surfaces;
 - value functions without failure modes;
+- validators that cannot prove their own negative controls;
 - soft policy hidden as prose;
 - green-by-vacuum;
 - claims without measurable evidence;
