@@ -54,7 +54,14 @@ runs:
       if: steps.venv-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        .venv/bin/python -m pip install pip==25.0.1 setuptools==75.8.0 wheel==0.45.1
+        set -euo pipefail
+        # Bootstrap tooling is part of the trusted supply chain. Keep these pins
+        # aligned with constraints/security.txt so CI never installs a known
+        # vulnerable installer/build backend before applying the constraints.
+        .venv/bin/python -m pip install \
+          pip==26.1.1 \
+          setuptools==78.1.1 \
+          wheel==0.46.2
         .venv/bin/python -m pip install -c constraints/security.txt -r requirements.lock
         if [ "${{ inputs.install-dev }}" = "true" ]; then
           .venv/bin/python -m pip install -c constraints/security.txt -r requirements-dev.lock
@@ -67,10 +74,19 @@ runs:
         from pathlib import Path
         import importlib.metadata as metadata
 
-        expected_pip = "25.0.1"
-        pip_version = metadata.version("pip")
-        if pip_version != expected_pip:
-            raise SystemExit(f"pip version mismatch: {pip_version} != {expected_pip}")
+        expected_pip = "26.1.1"
+        expected_setuptools = "78.1.1"
+        expected_wheel = "0.46.2"
+
+        for dist_name, expected in (
+            ("pip", expected_pip),
+            ("setuptools", expected_setuptools),
+            ("wheel", expected_wheel),
+        ):
+            actual = metadata.version(dist_name)
+            if actual != expected:
+                raise SystemExit(f"{dist_name} version mismatch: {actual} != {expected}")
+            print(f"{dist_name} pinned: {actual}")
 
         if "${{ inputs.install-dev }}" == "true":
             expected_pytest = None
@@ -86,5 +102,4 @@ runs:
                     f"pytest version mismatch: {pytest_version} != {expected_pytest}"
                 )
             print(f"pytest pinned: {pytest_version}")
-        print(f"pip pinned: {pip_version}")
         PY
