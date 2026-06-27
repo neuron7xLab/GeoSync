@@ -115,9 +115,7 @@ def transition(transitions: list[Transition], event: TransitionEvent, **state: o
     transitions.append(cast(Transition, entry))
 
 
-def validate_router_policy(
-    matrix: dict[str, Any], path: Path, errors: list[str]
-) -> RouterPolicy:
+def validate_router_policy(matrix: dict[str, Any], path: Path, errors: list[str]) -> RouterPolicy:
     policy = matrix.get("router_policy")
     default_policy: RouterPolicy = {
         "default_max_run_selectors": 1,
@@ -281,7 +279,9 @@ def execution_python(
 
 
 def prioritize_selectors(
-    selectors: list[str], matched_components: list[MatchedComponent], policy: RouterPolicy
+    selectors: list[str],
+    matched_components: list[MatchedComponent],
+    policy: RouterPolicy,
 ) -> list[str]:
     priority: list[str] = []
     seen: set[str] = set()
