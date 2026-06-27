@@ -73,6 +73,10 @@ Every coverage PR must be test-only unless a test exposes a real bug; bug fixes 
 
 A PR is done only when new tests pass, the full release coverage measurement completes, the coverage intelligence report is valid, the release-line number moves or the zero movement is explained, and the PR body names the exact targeted files and behaviors. Evidence must include coverage summary, gap map, next-tests report, and the test command used.
 
-## 7. Immediate next unit
+## 7. Review contract
+
+A reviewer must reject any coverage PR that raises the percentage by hiding source, weakening thresholds, broad-skipping dependencies, snapshotting incidental output, or testing mocks instead of production behavior. A reviewer should approve only when the new test would fail for at least one realistic bad implementation.
+
+## 8. Immediate next unit
 
 Open a test-only PR for `backtest/walk_forward.py` and `backtest/geosync_equity_curve.py`. The goal is not cosmetic coverage. The goal is to convert backtest replay logic into a falsifiable, deterministic, failure-resistant surface on the path from 85.03 percent to 92-97 percent.
