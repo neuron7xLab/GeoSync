@@ -20,6 +20,8 @@ from core.physics.stuart_landau_es import (
     _analytic_signal,
     _estimate_growth_rate,
     _extract_amplitude_phase_omega,
+    _validate_sweep_config,
+    _validate_z0,
     crisis_signal_sl,
     fit_stuart_landau,
     rolling_es_proximity,
@@ -307,4 +309,184 @@ def test_leads_r_peak_on_synthetic_crisis() -> None:
     assert leads_count >= max(4, len(taus) // 2), (
         f"INV-T2b weak: only {leads_count}/{len(taus)} seeds had ES leading R. "
         f"Per-seed taus: {taus}."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Fail-closed contract guards (INV-SL contract / mu-audit).
+#
+# These tests pin the *disjunctive* structure of the fail-closed guards: each
+# guard rejects an input when ANY one of two independent contract violations
+# holds (logical OR). A blind spot would let a guard collapse to a conjunction
+# (AND), silently admitting inputs that violate exactly one clause — the
+# classic "boolop Or->And" mutation. Every assertion below isolates ONE clause
+# so the guard must fire on it alone; an AND-collapsed guard would not raise
+# and the test would fail. This is the falsification of the fail-closed promise,
+# not a coverage decoration.
+# ---------------------------------------------------------------------------
+
+
+def _valid_result_kwargs() -> dict[str, object]:
+    """Minimal kwargs that satisfy every StuartLandauResult.__post_init__ guard.
+
+    Built so each individual field can be perturbed in isolation: amplitude ≥ 0,
+    es_proximity ∈ [0, 1], raw/clamped/mask shapes agree, clip_count matches the
+    mask, clip_mass finite and ≥ 0. Mutating exactly one field then probes the
+    single guard responsible for it.
+    """
+    mu = np.array([0.1, 0.2], dtype=np.float64)
+    mask = np.array([False, False], dtype=np.bool_)
+    return {
+        "amplitude": np.array([1.0, 2.0], dtype=np.float64),
+        "phase": np.array([0.0, 0.0], dtype=np.float64),
+        "order_parameter": 0.5,
+        "hysteresis_area": 0.1,
+        "es_proximity": 0.1,
+        "leads_r_peak": False,
+        "mu_raw": mu,
+        "mu_clamped": mu.copy(),
+        "mu_was_clipped": mask,
+        "mu_clip_count": 0,
+        "mu_clip_mass": 0.0,
+    }
+
+
+def test_valid_result_constructs() -> None:
+    """Baseline: the canonical valid kwargs must construct without raising.
+
+    Anchors the perturbation tests below — they are only meaningful if the
+    unperturbed kwargs pass every __post_init__ guard.
+    """
+    res = StuartLandauResult(**_valid_result_kwargs())  # type: ignore[arg-type]
+    assert res.mu_clip_count == 0
+    assert res.mu_clip_mass == 0.0
+
+
+def test_mu_clip_mass_guard_rejects_nonfinite_or_negative() -> None:
+    """INV-SL mu audit: clip mass must be finite AND ≥ 0 (disjunctive guard).
+
+    The guard is ``mass < 0.0 OR not isfinite(mass)``. It must reject a value
+    that violates EITHER clause alone: a finite-but-negative mass (clause 1
+    only) and a non-negative-but-non-finite mass (clause 2 only, +inf and NaN).
+    If the OR degenerated to AND, none of these single-clause violations would
+    raise — clip mass is the integral of |mu_raw - mu_clamped|, so a negative or
+    non-finite value is structurally impossible and must fail closed.
+    """
+    for bad_mass in (-1.0, np.inf, np.nan):
+        kwargs = _valid_result_kwargs()
+        kwargs["mu_clip_mass"] = float(bad_mass)
+        with pytest.raises(ValueError, match="INV-SL mu audit VIOLATED: clip mass"):
+            StuartLandauResult(**kwargs)  # type: ignore[arg-type]
+
+
+def test_sweep_config_rejects_nonfinite_K_either_endpoint() -> None:
+    """INV-SL contract: finite K_low AND finite K_high required (disjunctive).
+
+    Guard ``not isfinite(K_low) OR not isfinite(K_high)``. Isolate each endpoint:
+    a non-finite K_high with finite K_low (clause 2 only) and a non-finite K_low
+    with finite K_high (clause 1 only). An AND-collapsed guard would accept a
+    sweep with exactly one infinite bound, which linspace would turn into an
+    inf-laced K-grid and corrupt the integration silently.
+    """
+    base = dict(K_steps=16, int_steps=200, dt=0.05, source="test")
+    with pytest.raises(ValueError, match="finite K_low/K_high required"):
+        _validate_sweep_config(K_low=0.0, K_high=np.inf, **base)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="finite K_low/K_high required"):
+        _validate_sweep_config(K_low=-np.inf, K_high=4.0, **base)  # type: ignore[arg-type]
+
+
+def test_sweep_config_rejects_bad_K_steps() -> None:
+    """INV-SL contract: K_steps must be an int AND ≥ 2 (disjunctive guard).
+
+    Guard ``not isinstance(K_steps, int) OR K_steps < 2``. K_steps=1 is an int
+    that violates only the magnitude clause; if the OR became AND it would pass
+    (it IS an int), yielding a degenerate single-point sweep with no forward /
+    backward branch and an undefined hysteresis area.
+    """
+    with pytest.raises(ValueError, match="integer K_steps>=2 required"):
+        _validate_sweep_config(
+            K_low=0.0, K_high=4.0, K_steps=1, int_steps=200, dt=0.05, source="test"
+        )
+
+
+def test_sweep_config_rejects_bad_int_steps() -> None:
+    """INV-SL contract: int_steps must be an int AND ≥ 1 (disjunctive guard).
+
+    Guard ``not isinstance(int_steps, int) OR int_steps < 1``. int_steps=0 is an
+    int violating only the magnitude clause; under AND it would pass and the
+    Euler integrator would take zero steps, leaving z at its initial state and
+    fabricating a meaningless order parameter.
+    """
+    with pytest.raises(ValueError, match="integer int_steps>=1 required"):
+        _validate_sweep_config(
+            K_low=0.0, K_high=4.0, K_steps=16, int_steps=0, dt=0.05, source="test"
+        )
+
+
+def test_sweep_config_rejects_nonpositive_or_nonfinite_dt() -> None:
+    """INV-SL contract: dt must be finite AND > 0 (disjunctive guard).
+
+    Guard ``not isfinite(dt) OR dt <= 0.0``. dt=-1.0 is finite but non-positive
+    (clause 2 only); dt=+inf is positive but non-finite (clause 1 only). An
+    AND-collapsed guard would admit either, and an explicit-Euler step with a
+    non-positive or infinite dt is numerically meaningless — must fail closed.
+    """
+    for bad_dt in (-1.0, np.inf):
+        with pytest.raises(ValueError, match="finite dt>0 required"):
+            _validate_sweep_config(
+                K_low=0.0,
+                K_high=4.0,
+                K_steps=16,
+                int_steps=200,
+                dt=float(bad_dt),
+                source="test",
+            )
+
+
+def test_validate_z0_rejects_nonfinite_real_or_imag() -> None:
+    """INV-SL contract: z0 finite in BOTH real and imaginary parts (disjunctive).
+
+    Guard ``not all(isfinite(z0.real)) OR not all(isfinite(z0.imag))``. Isolate
+    each part: a finite real with an infinite imaginary component (clause 2
+    only) and an infinite real with a finite imaginary component (clause 1
+    only). If the OR became AND, a fitted state with one non-finite quadrature
+    would be accepted and the Stuart-Landau RHS would propagate NaN/Inf silently.
+    """
+    z_bad_imag = np.array([1.0 + np.inf * 1j], dtype=np.complex128)
+    with pytest.raises(ValueError, match="z0 must be finite"):
+        _validate_z0(z_bad_imag, 1)
+    z_bad_real = np.array([np.inf + 1.0j], dtype=np.complex128)
+    with pytest.raises(ValueError, match="z0 must be finite"):
+        _validate_z0(z_bad_real, 1)
+
+
+def test_is_explosive_strictly_above_threshold() -> None:
+    """INV-SL2 alarm: is_explosive flags es_proximity STRICTLY ABOVE threshold.
+
+    crisis_signal_sl reports ``is_explosive = es_proximity > es_threshold``. The
+    direction is load-bearing: a strict-greater comparison flipped to
+    less-than-or-equal would invert the alarm, calling quiet regimes explosive
+    and vice-versa. Anchor both sides on the SAME measured es_proximity: a
+    threshold just below it must flag explosive, a threshold just above it must
+    not. The 0.05 offsets keep both comparisons strict (no boundary equality).
+    """
+    prices = _synthetic_prices(T=32, N=5, seed=0, regime="crisis")
+    es = fit_stuart_landau(prices, K_steps=6, int_steps=60, seed=0).es_proximity
+    below = crisis_signal_sl(
+        prices, es_threshold=es - 0.05, K_steps=6, int_steps=60, seed=0
+    )
+    above = crisis_signal_sl(
+        prices, es_threshold=es + 0.05, K_steps=6, int_steps=60, seed=0
+    )
+    assert below["is_explosive"] is True, (
+        f"INV-SL2 alarm VIOLATED: es_proximity={es:.6f} above threshold "
+        f"{es - 0.05:.6f} must flag is_explosive=True; "
+        f"is_explosive = es_proximity > es_threshold (strict). Got "
+        f"{below['is_explosive']!r}."
+    )
+    assert above["is_explosive"] is False, (
+        f"INV-SL2 alarm VIOLATED: es_proximity={es:.6f} below threshold "
+        f"{es + 0.05:.6f} must flag is_explosive=False; "
+        f"is_explosive = es_proximity > es_threshold (strict). Got "
+        f"{above['is_explosive']!r}."
     )

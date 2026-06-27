@@ -15,9 +15,9 @@
       "tests": "tests/unit/physics/test_T18b_second_order_stability_guard.py tests/unit/physics/test_second_order_stability_audit.py"
     },
     "core/physics/stuart_landau_es.py": {
-      "floor": 0.92,
-      "killed": 13,
-      "total": 14,
+      "floor": 1.0,
+      "killed": 26,
+      "total": 26,
       "tests": "tests/unit/physics/test_T2b_stuart_landau_es.py"
     },
     "scripts/ci/check_mutation_kill_ratchet.py": {
