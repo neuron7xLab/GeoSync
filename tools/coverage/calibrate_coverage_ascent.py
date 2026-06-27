@@ -199,9 +199,7 @@ def build_plan(
         ),
         reverse=True,
     )[:max_surfaces]
-    ranked_with_priority = [
-        replace(item, priority=index + 1) for index, item in enumerate(ranked)
-    ]
+    ranked_with_priority = [replace(item, priority=index + 1) for index, item in enumerate(ranked)]
     return CalibrationPlan(
         schema_version="1.0",
         evidence_valid=evidence_valid,
