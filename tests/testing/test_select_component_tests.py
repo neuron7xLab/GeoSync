@@ -13,15 +13,15 @@ from types import ModuleType
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools" / "testing" / "select_component_tests.py"
+PLANNER = ROOT / "tools" / "testing" / "component_test_planner.py"
 MATRIX = ROOT / "data" / "testing" / "component_test_matrix.json"
 
 
 def _load_tool() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("component_tests", TOOL)
+    spec = importlib.util.spec_from_file_location("component_test_planner", PLANNER)
     assert spec is not None
     module = importlib.util.module_from_spec(spec)
-    sys.modules["component_tests"] = module
+    sys.modules["component_test_planner"] = module
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
@@ -66,6 +66,7 @@ def test_setup_action_change_selects_dependency_and_setup_tests() -> None:
 def test_router_change_selects_self_tests() -> None:
     tool = _load_tool()
     for changed_path in (
+        "tools/testing/component_test_planner.py",
         "tools/testing/select_component_tests.py",
         ".github/workflows/component-test-router.yml",
     ):
