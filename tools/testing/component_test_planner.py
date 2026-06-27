@@ -77,7 +77,7 @@ class RouterPolicy(TypedDict):
     python_executable_env: str
 
 
-class Plan(TypedDict, total=False):
+class Plan(TypedDict):
     status: PlanStatus
     changed_files: list[str]
     components: list[MatchedComponent]
@@ -302,11 +302,11 @@ def plan_status(plan: Plan) -> PlanStatus:
 
 
 def plan_selectors(plan: Plan) -> list[str]:
-    return plan.get("selectors", [])
+    return plan["selectors"]
 
 
 def plan_pytest_command(plan: Plan) -> list[str]:
-    return plan.get("pytest_command", [])
+    return plan["pytest_command"]
 
 
 def invalid_plan(errors: list[str], transitions: list[Transition]) -> Plan:
@@ -318,10 +318,12 @@ def invalid_plan(errors: list[str], transitions: list[Transition]) -> Plan:
     )
     return {
         "status": "invalid_matrix",
-        "errors": errors,
+        "changed_files": [],
         "components": [],
         "selectors": [],
+        "pytest_command": [],
         "transitions": transitions,
+        "errors": errors,
     }
 
 
