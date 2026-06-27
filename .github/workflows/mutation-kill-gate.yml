@@ -42,14 +42,23 @@ jobs:
         run: |
           set -euo pipefail
           # The ratchet re-runs claim-critical physics tests under mutation, so
-          # it needs the same minimal runtime as the physics suites (pinned to
-          # the requirements.txt contract).
+          # it needs the same runtime as the physics suites (pinned to the
+          # requirements.txt contract). Importing ANY core.physics submodule
+          # (e.g. core.physics.stuart_landau_es, the T2b baseline) executes
+          # core/physics/__init__.py, which eagerly imports scipy-backed
+          # siblings (diffusion_predictor -> scipy.linalg.expm, wave_propagation,
+          # tsallis_gate). scipy is therefore a hard import-time dependency of
+          # the physics test runtime, not an optional extra: without it the
+          # mutation_probe baseline cannot even import the module and the gate
+          # fails closed (exit 2) on a pure environment defect. Pinned to the
+          # requirements.txt floor (scipy>=1.16.2).
           python -m pip install --upgrade pip
           python -m pip install \
             'pytest>=8.4' \
             'numpy>=2.3.3' \
             'pandas>=2.3.3' \
-            'PyYAML>=6.0.3'
+            'PyYAML>=6.0.3' \
+            'scipy>=1.16.2'
 
       - name: Mutation-kill ratchet
         run: |
