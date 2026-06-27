@@ -79,8 +79,12 @@ jobs:
         run: |
           set -euo pipefail
           python tools/testing/select_component_tests.py --validate-only
+          set +e
           python tools/testing/select_component_tests.py \
             --changed-files-from /tmp/changed_files.txt > /tmp/component_test_plan.json
+          plan_rc=$?
+          set -e
+          echo "---- component test plan ----"
           cat /tmp/component_test_plan.json
           python - <<'PY' >> "$GITHUB_OUTPUT"
           import json
@@ -90,6 +94,10 @@ jobs:
           print(f"status={plan['status']}")
           print(f"has_selectors={'true' if plan['selectors'] else 'false'}")
           PY
+          if [[ "$plan_rc" -ne 0 ]]; then
+            echo "component-test-router refused plan with rc=$plan_rc"
+            exit "$plan_rc"
+          fi
 
       - name: Setup Python environment for selected component tests
         if: steps.route.outputs.has_selectors == 'true'
