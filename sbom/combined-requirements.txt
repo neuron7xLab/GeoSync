@@ -243,7 +243,7 @@ nvidia-nvshmem-cu13==3.4.5
     # via torch
 nvidia-nvtx==13.0.85
     # via cuda-toolkit
-omegaconf==2.3.0
+omegaconf==2.3.1
     # via
     #   geosync (pyproject.toml)
     #   hydra-core
