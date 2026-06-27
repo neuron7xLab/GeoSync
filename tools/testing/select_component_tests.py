@@ -166,6 +166,25 @@ def _prioritize_selectors(
     return priority
 
 
+def _plan_status(plan: dict[str, Any]) -> str:
+    status = plan.get("status", "")
+    return status if isinstance(status, str) else ""
+
+
+def _plan_selectors(plan: dict[str, Any]) -> list[str]:
+    selectors = plan.get("selectors", [])
+    if not isinstance(selectors, list):
+        return []
+    return [selector for selector in selectors if isinstance(selector, str)]
+
+
+def _plan_pytest_command(plan: dict[str, Any]) -> list[str]:
+    command = plan.get("pytest_command", [])
+    if not isinstance(command, list):
+        return []
+    return [part for part in command if isinstance(part, str)]
+
+
 def _invalid_plan(errors: list[str], transitions: list[dict[str, Any]]) -> dict[str, Any]:
     _transition(
         transitions,
@@ -353,17 +372,19 @@ def main(argv: list[str] | None = None) -> int:
 
     plan = select_plan(_read_changed_files(args), args.matrix, args.repo_root)
     if args.print_pytest:
-        print(" ".join(plan.get("pytest_command", [])))
+        print(" ".join(_plan_pytest_command(plan)))
     else:
         print(json.dumps(plan, indent=2, sort_keys=True))
 
-    if plan["status"] in BLOCKING_STATUSES:
+    status = _plan_status(plan)
+    if status in BLOCKING_STATUSES:
         return 2
-    if args.run and plan["selectors"]:
+    selectors = _plan_selectors(plan)
+    if args.run and selectors:
         limit = _max_run_selectors(os.environ.get("COMPONENT_ROUTER_MAX_SELECTORS"))
-        selectors = plan["selectors"][:limit]
-        print(f"COMPONENT_ROUTER_SELECTED {len(selectors)}/{len(plan['selectors'])}")
-        command = [_execution_python(args.repo_root), "-m", "pytest", *selectors]
+        selected = selectors[:limit]
+        print(f"COMPONENT_ROUTER_SELECTED {len(selected)}/{len(selectors)}")
+        command = [_execution_python(args.repo_root), "-m", "pytest", *selected]
         return subprocess.run(command, cwd=args.repo_root, check=False).returncode
     return 0
 
