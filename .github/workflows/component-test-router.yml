@@ -14,6 +14,7 @@ on:
     paths:
       - '.github/workflows/component-test-router.yml'
       - 'data/testing/component_test_matrix.json'
+      - 'tools/testing/component_test_planner.py'
       - 'tools/testing/select_component_tests.py'
       - 'tests/testing/test_select_component_tests.py'
       - 'core/physics/stuart_landau_es.py'
@@ -78,9 +79,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/testing/select_component_tests.py --validate-only
+          python -m tools.testing.select_component_tests --validate-only
           set +e
-          python tools/testing/select_component_tests.py \
+          python -m tools.testing.select_component_tests \
             --changed-files-from /tmp/changed_files.txt > /tmp/component_test_plan.json
           plan_rc=$?
           set -e
@@ -111,7 +112,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/testing/select_component_tests.py \
+          python -m tools.testing.select_component_tests \
             --changed-files-from /tmp/changed_files.txt \
             --run
 
