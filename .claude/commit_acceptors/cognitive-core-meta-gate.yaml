@@ -19,6 +19,8 @@ diff_scope:
     - path: "tests/physics/test_calibration_certificate.py"
     - path: "tests/physics/test_cognitive_core_meta_gate.py"
     - path: "Makefile"
+    - path: "INVENTORY.json"
+    - path: ".github/workflows/mutation-kill-gate.yml"
   forbidden_paths:
     - "trading/"
     - "execution/"
