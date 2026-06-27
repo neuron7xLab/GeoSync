@@ -115,12 +115,13 @@ def test_gate_rejects_stale_bootstrap_toolchain(tmp_path: Path) -> None:
 
 def test_gate_rejects_scan_manifest_below_security_constraint(tmp_path: Path) -> None:
     gate = _load()
+    weak_scan = _scan().replace("requests>=2.34.2", "requests>=2.32.5")
     _seed_repo(
         tmp_path,
         action=_action_pins(),
         constraints=_constraints(),
         requirements_dev="pip>=26.1.1\n",
-        requirements_scan=_scan().replace("requests>=2.34.2", "requests>=2.32.5"),
+        requirements_scan=weak_scan,
     )
     errors = gate.check(tmp_path)
     assert any("requests>=2.32.5" in error for error in errors)
@@ -129,12 +130,13 @@ def test_gate_rejects_scan_manifest_below_security_constraint(tmp_path: Path) ->
 
 def test_gate_rejects_missing_critical_scan_floor(tmp_path: Path) -> None:
     gate = _load()
+    missing_scan = _scan().replace("python-multipart>=0.0.32\n", "")
     _seed_repo(
         tmp_path,
         action=_action_pins(),
         constraints=_constraints(),
         requirements_dev="pip>=26.1.1\n",
-        requirements_scan=_scan().replace("python-multipart>=0.0.32\n", ""),
+        requirements_scan=missing_scan,
     )
     errors = gate.check(tmp_path)
     assert any("missing explicit scan floor" in error for error in errors)
