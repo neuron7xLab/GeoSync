@@ -65,18 +65,22 @@ Prefer tests with high defect-yield per line: one compact fixture should exercis
 
 Reject tests that only import a module, only assert that a function returns something, only pin incidental formatting, only monkeypatch the decision logic, or only duplicate the implementation in the assertion. Reject coverage gains created by hiding files, lowering targets, adding broad skips, or moving code outside the release surface.
 
-## 9. Definition of done
+## 9. Excellence bar
+
+A test suite is solid only when it can explain what production promise it protects. It must make future refactors safer, not harder. It must reduce ambiguity for a human reviewer and for an automated agent. It must produce evidence that is reproducible, local, and tied to the canonical release surface.
+
+## 10. Definition of done
 
 A PR is done only when new tests pass, the full release coverage measurement completes, the coverage intelligence report is valid, the release-line number moves or the zero movement is explained, and the PR body names the exact targeted files and behaviors. Evidence must include coverage summary, gap map, next-tests report, and the test command used.
 
-## 10. Review contract
+## 11. Review contract
 
 Reject coverage PRs that raise the percentage by hiding source, weakening thresholds, broad-skipping dependencies, snapshotting incidental output, or testing mocks instead of production behavior. Approve only when the new test would fail for at least one realistic bad implementation.
 
-## 11. Evidence checklist
+## 12. Evidence checklist
 
 Each follow-up coverage PR must state targeted files, targeted behaviors, old release-line value, new release-line value, surface movement, exact command, and artifact paths.
 
-## 12. Immediate next unit
+## 13. Immediate next unit
 
 Open a test-only PR for `backtest/walk_forward.py` and `backtest/geosync_equity_curve.py`. The goal is not cosmetic coverage. The goal is to convert backtest replay logic into a falsifiable, deterministic, failure-resistant surface on the path from 85.03 percent to 92-97 percent.
