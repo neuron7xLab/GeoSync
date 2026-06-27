@@ -65,7 +65,7 @@
     {
       "id": "artifact_freshness",
       "description": "Artifact freshness component.",
-      "patterns": ["artifacts/manifest.json", "scripts/ci/check_artifact_freshness.py", "tests/ci/test_artifact_freshness_gate.py"],
+      "patterns": [".github/workflows/pr-gate.yml", "artifacts/manifest.json", "scripts/ci/check_artifact_freshness.py", "tests/ci/test_artifact_freshness_gate.py"],
       "selectors": ["tests/ci/test_artifact_freshness_gate.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",

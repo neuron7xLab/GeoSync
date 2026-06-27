@@ -171,8 +171,7 @@ def _validate_sweep_config(
         )
     if not np.isfinite(dt) or dt <= 0.0:
         raise ValueError(
-            "INV-SL contract VIOLATED: finite dt>0 required, "
-            f"got {dt}. Source: {source}."
+            "INV-SL contract VIOLATED: finite dt>0 required, " f"got {dt}. Source: {source}."
         )
 
 
@@ -308,9 +307,7 @@ def _initial_state_from_seed(n: int, seed: int) -> ComplexArray:
 def _validate_z0(z0: ComplexArray, n: int) -> ComplexArray:
     """Validate and copy an externally supplied fitted complex state."""
     if z0.shape != (n,):
-        raise ValueError(
-            f"INV-SL contract VIOLATED: z0 shape {(n,)} required, got {z0.shape}."
-        )
+        raise ValueError(f"INV-SL contract VIOLATED: z0 shape {(n,)} required, got {z0.shape}.")
     if not np.all(np.isfinite(z0.real)) or not np.all(np.isfinite(z0.imag)):
         raise ValueError("INV-SL contract VIOLATED: z0 must be finite.")
     return z0.astype(np.complex128, copy=True)
