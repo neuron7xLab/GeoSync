@@ -33,7 +33,9 @@ A change is acceptable only when:
 4. green-by-vacuum is forbidden;
 5. total value-function score is at least 0.92;
 6. each individual value score is at least 0.80;
-7. every value has failure modes and executable or CI evidence.
+7. every value has at least three measurable invariants, evidence surfaces, score inputs, and failure modes;
+8. every evidence surface exists in the repository;
+9. every hard constraint has an executable evidence surface and a CI workflow surface.
 
 ## Value functions
 
@@ -74,6 +76,8 @@ The value-function gate must reject:
 - weight drift away from a normalized value function;
 - disabling fail-closed policy;
 - value functions without executable evidence;
+- hard constraints without CI evidence;
+- references to missing evidence surfaces;
 - value functions without failure modes;
 - soft policy hidden as prose;
 - green-by-vacuum;
