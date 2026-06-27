@@ -19,22 +19,19 @@ diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/t2b-ci-governance-binding.yaml"
     - path: ".github/actions/setup-geosync/action.yml"
+    - path: ".github/workflows/pr-gate.yml"
     - path: ".github/workflows/company-value-functions.yml"
-    - path: ".github/workflows/component-test-router.yml"
     - path: ".github/workflows/dependency-operational-determinism.yml"
     - path: "artifacts/manifest.json"
     - path: "data/governance/company_value_functions.json"
-    - path: "data/testing/component_test_matrix.json"
     - path: "scripts/ci/check_artifact_freshness.py"
     - path: "scripts/ci/check_manifest_hashes.py"
     - path: "tests/ci/test_artifact_freshness_gate.py"
     - path: "tests/ci/test_setup_geosync_toolchain.py"
     - path: "tests/deps/test_operational_dependency_determinism.py"
     - path: "tests/governance/test_company_value_functions.py"
-    - path: "tests/testing/test_select_component_tests.py"
     - path: "tools/deps/check_operational_dependency_determinism.py"
     - path: "tools/governance/check_company_value_functions.py"
-    - path: "tools/testing/select_component_tests.py"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -57,7 +54,6 @@ measurement_command: >-
   tests/ci/test_setup_geosync_toolchain.py
   tests/deps/test_operational_dependency_determinism.py
   tests/governance/test_company_value_functions.py
-  tests/testing/test_select_component_tests.py -q
 signal_artifact: "tmp/t2b_ci_governance_binding_pytest.log"
 falsifier:
   command: >-
@@ -65,7 +61,6 @@ falsifier:
     tests/ci/test_setup_geosync_toolchain.py
     tests/deps/test_operational_dependency_determinism.py
     tests/governance/test_company_value_functions.py
-    tests/testing/test_select_component_tests.py -q
   description: >-
     Fails if the artifact-freshness gate, setup-geosync toolchain bootstrap,
     operational dependency-determinism gate, company-value-function governance
@@ -74,38 +69,31 @@ falsifier:
     detection.
 rollback_command: >-
   git checkout origin/main --
+  .github/workflows/pr-gate.yml
   .github/actions/setup-geosync/action.yml
   .github/workflows/company-value-functions.yml
-  .github/workflows/component-test-router.yml
   .github/workflows/dependency-operational-determinism.yml
   artifacts/manifest.json
   data/governance/company_value_functions.json
-  data/testing/component_test_matrix.json
   scripts/ci/check_artifact_freshness.py
   scripts/ci/check_manifest_hashes.py
   tests/ci/test_artifact_freshness_gate.py
   tests/ci/test_setup_geosync_toolchain.py
   tests/deps/test_operational_dependency_determinism.py
   tests/governance/test_company_value_functions.py
-  tests/testing/test_select_component_tests.py
   tools/deps/check_operational_dependency_determinism.py
   tools/governance/check_company_value_functions.py
-  tools/testing/select_component_tests.py
 rollback_verification_command: >-
-  git diff --exit-code tools/testing/select_component_tests.py
+  git diff --exit-code tools/governance/check_company_value_functions.py
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/t2b-ci-governance-binding.yaml"
 report_path: ".claude/commit_acceptors/t2b-ci-governance-binding.yaml"
 evidence:
-  - path: ".github/workflows/component-test-router.yml"
-  - path: "data/testing/component_test_matrix.json"
   - path: "scripts/ci/check_artifact_freshness.py"
   - path: "scripts/ci/check_manifest_hashes.py"
   - path: "tests/ci/test_artifact_freshness_gate.py"
   - path: "tests/ci/test_setup_geosync_toolchain.py"
   - path: "tests/deps/test_operational_dependency_determinism.py"
   - path: "tests/governance/test_company_value_functions.py"
-  - path: "tests/testing/test_select_component_tests.py"
   - path: "tools/deps/check_operational_dependency_determinism.py"
   - path: "tools/governance/check_company_value_functions.py"
-  - path: "tools/testing/select_component_tests.py"

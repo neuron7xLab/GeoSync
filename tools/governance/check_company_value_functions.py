@@ -148,9 +148,7 @@ def check(path: Path = MANIFEST, repo_root: Path = ROOT) -> list[str]:
     if tuple(ids) != REQUIRED_IDS:
         errors.append(f"{path}: value function ids must be ordered {REQUIRED_IDS}")
     if abs(total_weight - 1.0) > 0.000001:
-        errors.append(
-            f"{path}: value function weights must sum to 1.0, got {total_weight:.6f}"
-        )
+        errors.append(f"{path}: value function weights must sum to 1.0, got {total_weight:.6f}")
     if hard_constraints < 3:
         errors.append(f"{path}: at least three value functions must be hard constraints")
 
@@ -186,9 +184,7 @@ def self_test(path: Path = MANIFEST, repo_root: Path = ROOT) -> list[str]:
 
     payload = deepcopy(base)
     payload["value_functions"][0]["weight"] = 0.50
-    errors.extend(
-        _check_mutation(payload, repo_root, "weights must sum to 1.0", "weight drift")
-    )
+    errors.extend(_check_mutation(payload, repo_root, "weights must sum to 1.0", "weight drift"))
 
     payload = deepcopy(base)
     payload["decision_rule"]["fail_closed_on_missing_evidence"] = False
@@ -202,9 +198,7 @@ def self_test(path: Path = MANIFEST, repo_root: Path = ROOT) -> list[str]:
     )
 
     payload = deepcopy(base)
-    payload["value_functions"][0]["evidence_surfaces"].append(
-        "tools/missing_value_gate.py"
-    )
+    payload["value_functions"][0]["evidence_surfaces"].append("tools/missing_value_gate.py")
     errors.extend(
         _check_mutation(
             payload,

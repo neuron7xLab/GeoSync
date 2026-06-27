@@ -63,9 +63,7 @@ def validate_matrix(path: Path = MATRIX, repo_root: Path = ROOT) -> list[str]:
         if rule.get("fail_closed_on_invalid_matrix") is not True:
             errors.append(f"{path}: fail_closed_on_invalid_matrix must be true")
         if rule.get("fail_closed_on_unmapped_required_surface") is not True:
-            errors.append(
-                f"{path}: fail_closed_on_unmapped_required_surface must be true"
-            )
+            errors.append(f"{path}: fail_closed_on_unmapped_required_surface must be true")
 
     required_patterns = _string_list(
         matrix.get("required_mapping_patterns"),
@@ -128,6 +126,16 @@ def _is_required_mapping(path: str, matrix: dict[str, Any]) -> bool:
     return isinstance(patterns, list) and _path_matches_any(path, patterns)
 
 
+def _normalize_path(path: str) -> str:
+    # Strip only a leading "./" PREFIX. str.lstrip("./") strips a char SET and
+    # would eat the leading dot of dotfiles (".github/..." -> "github/..."),
+    # breaking pattern matches for workflow/action carriers.
+    normalized = path.strip()
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized
+
+
 def select_plan(
     changed_files: list[str], matrix_path: Path = MATRIX, repo_root: Path = ROOT
 ) -> dict[str, Any]:
@@ -146,7 +154,7 @@ def select_plan(
     seen_selectors: set[str] = set()
     mapped_paths: set[str] = set()
 
-    normalized = [path.strip().lstrip("./") for path in changed_files if path.strip()]
+    normalized = [_normalize_path(path) for path in changed_files if path.strip()]
     for component in matrix["components"]:
         matched_paths = [
             path
@@ -195,9 +203,7 @@ def select_plan(
         "changed_files": normalized,
         "components": matched_components,
         "selectors": selectors,
-        "pytest_command": [sys.executable, "-m", "pytest", *selectors]
-        if selectors
-        else [],
+        "pytest_command": [sys.executable, "-m", "pytest", *selectors] if selectors else [],
     }
 
 

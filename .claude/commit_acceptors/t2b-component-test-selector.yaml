@@ -12,6 +12,7 @@ promise: >-
 diff_scope:
   changed_files:
     - path: ".claude/commit_acceptors/t2b-component-test-selector.yaml"
+    - path: ".github/workflows/component-test-router.yml"
     - path: "data/testing/component_test_matrix.json"
     - path: "tests/testing/test_select_component_tests.py"
     - path: "tools/testing/select_component_tests.py"
@@ -40,6 +41,7 @@ falsifier:
     rejection path.
 rollback_command: >-
   git checkout origin/main --
+  .github/workflows/component-test-router.yml
   data/testing/component_test_matrix.json
   tests/testing/test_select_component_tests.py
   tools/testing/select_component_tests.py
