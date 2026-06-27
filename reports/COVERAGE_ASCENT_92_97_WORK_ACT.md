@@ -61,18 +61,22 @@ A weak test only imports, snapshots output, asserts type shape, or exercises a h
 
 Prefer tests with high defect-yield per line: one compact fixture should exercise several meaningful states without becoming opaque. Prefer property-style invariants over brittle literal outputs when the contract is mathematical. Prefer table-driven cases when the module has many boundary states. Prefer explicit negative cases over passive execution. Prefer local deterministic data over external datasets.
 
-## 8. Definition of done
+## 8. Anti-patterns
+
+Reject tests that only import a module, only assert that a function returns something, only pin incidental formatting, only monkeypatch the decision logic, or only duplicate the implementation in the assertion. Reject coverage gains created by hiding files, lowering targets, adding broad skips, or moving code outside the release surface.
+
+## 9. Definition of done
 
 A PR is done only when new tests pass, the full release coverage measurement completes, the coverage intelligence report is valid, the release-line number moves or the zero movement is explained, and the PR body names the exact targeted files and behaviors. Evidence must include coverage summary, gap map, next-tests report, and the test command used.
 
-## 9. Review contract
+## 10. Review contract
 
 Reject coverage PRs that raise the percentage by hiding source, weakening thresholds, broad-skipping dependencies, snapshotting incidental output, or testing mocks instead of production behavior. Approve only when the new test would fail for at least one realistic bad implementation.
 
-## 10. Evidence checklist
+## 11. Evidence checklist
 
 Each follow-up coverage PR must state targeted files, targeted behaviors, old release-line value, new release-line value, surface movement, exact command, and artifact paths.
 
-## 11. Immediate next unit
+## 12. Immediate next unit
 
 Open a test-only PR for `backtest/walk_forward.py` and `backtest/geosync_equity_curve.py`. The goal is not cosmetic coverage. The goal is to convert backtest replay logic into a falsifiable, deterministic, failure-resistant surface on the path from 85.03 percent to 92-97 percent.
