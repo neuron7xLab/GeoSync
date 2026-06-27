@@ -5,8 +5,26 @@
     "controlled_input": "changed repository path",
     "expected_output": "deterministic pytest selector plan",
     "fail_closed_on_invalid_matrix": true,
+    "fail_closed_on_unmapped_required_surface": true,
     "allow_empty_plan_for_unmapped_docs": true
   },
+  "required_mapping_patterns": [
+    ".github/actions/*",
+    ".github/workflows/*.yml",
+    "constraints/*",
+    "core/*",
+    "core/*/*",
+    "data/governance/*",
+    "data/testing/*",
+    "requirements*.lock",
+    "requirements*.txt",
+    "scripts/*",
+    "scripts/*/*",
+    "tests/*",
+    "tests/*/*",
+    "tools/*",
+    "tools/*/*"
+  ],
   "components": [
     {
       "id": "stuart_landau_runtime",
