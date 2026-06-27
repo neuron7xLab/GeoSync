@@ -546,6 +546,18 @@ laws:
     failure_message: "STATEFUL-CORE VIOLATED: the admissibility verdict diverged from the model over a mutation sequence, or the model oracle could not discriminate states."
     evidence_output: "evidence/physics/governance_report.json"
 
+  - id: adversarial_counterexample_search
+    domain: falsification
+    claim: "A global optimizer actively hunting for a counterexample cannot drive any bounded law past its bound: maximising max|z| (OA1) and the order parameter R (K1) over the input space stays <= 1; the same adversary DOES breach a deliberately-too-tight fake bound (so the search is a real falsifier)."
+    formal_invariant: "differential_evolution maximising the violation of INV-OA1 (max|z|<=1) and INV-K1 (R<=1) yields worst <= 1 + 1e-6; against a fake bound 0.5 on max|z| the optimizer finds worst > 0.5"
+    measured_quantity: "the worst (maximal) bound value found by scipy.optimize.differential_evolution over (K,delta,R0) for OA1 and over a phase vector for K1, and over the fake-bound control"
+    threshold: "adversarial worst <= 1 + 1e-6 for the real bounds; adversarial worst > 0.5 for the planted fake bound (capability proof)"
+    positive_witness: "tests/physics/test_adversarial_counterexample_search.py::test_adversary_cannot_break_ott_antonsen_unit_disk"
+    negative_control: "tests/physics/test_adversarial_counterexample_search.py::test_adversary_is_capable_of_finding_a_planted_violation"
+    blocking: true
+    failure_message: "ADVERSARIAL-SEARCH VIOLATED: a global optimizer drove a bounded law past its bound, or the adversary could not breach a planted-too-tight bound (vacuous search)."
+    evidence_output: "evidence/physics/falsification_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
