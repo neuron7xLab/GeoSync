@@ -1,15 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Select isolated component tests from changed repository paths.
-
-Operational contract:
-controlled input (changed path) -> deterministic pytest selector plan.
-
-The tool is intentionally lightweight and stdlib-only. It does not replace the
-full CI suite; it provides a calibrated, fault-tolerant first response that is
-always ready to route a changed component to the smallest relevant falsifier.
-"""
+"""Select isolated component tests from changed repository paths."""
 
 from __future__ import annotations
 
@@ -24,6 +16,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 MATRIX = ROOT / "data" / "testing" / "component_test_matrix.json"
 SCHEMA = "geosync.component_test_matrix.v1"
+BLOCKING_STATUSES = {"invalid_matrix", "unmapped_required_surface"}
 
 
 def _load_matrix(path: Path = MATRIX) -> dict[str, Any]:
@@ -101,8 +94,12 @@ def validate_matrix(path: Path = MATRIX, repo_root: Path = ROOT) -> list[str]:
         else:
             seen_ids.add(component_id)
 
-        patterns = _string_list(component.get("patterns"), f"{prefix}: patterns", errors)
-        selectors = _string_list(component.get("selectors"), f"{prefix}: selectors", errors)
+        selectors = _string_list(
+            component.get("selectors"),
+            f"{prefix}: selectors",
+            errors,
+        )
+        _string_list(component.get("patterns"), f"{prefix}: patterns", errors)
         for selector in selectors:
             selector_file = repo_root / _selector_path(selector)
             if not selector_file.exists():
@@ -174,19 +171,21 @@ def select_plan(
                 seen_selectors.add(selector)
                 selectors.append(selector)
 
-    unmapped_required = [
-        path for path in normalized if path not in mapped_paths and _is_required_mapping(path, matrix)
+    missing_routes = [
+        path
+        for path in normalized
+        if path not in mapped_paths and _is_required_mapping(path, matrix)
     ]
-    if unmapped_required:
+    if missing_routes:
         return {
             "status": "unmapped_required_surface",
             "changed_files": normalized,
             "components": matched_components,
             "selectors": selectors,
-            "unmapped_required": unmapped_required,
+            "unmapped_required": missing_routes,
             "errors": [
                 "required mapping surface has no component-test route: " + path
-                for path in unmapped_required
+                for path in missing_routes
             ],
             "pytest_command": [],
         }
@@ -196,7 +195,9 @@ def select_plan(
         "changed_files": normalized,
         "components": matched_components,
         "selectors": selectors,
-        "pytest_command": [sys.executable, "-m", "pytest", *selectors] if selectors else [],
+        "pytest_command": [sys.executable, "-m", "pytest", *selectors]
+        if selectors
+        else [],
     }
 
 
@@ -238,7 +239,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(json.dumps(plan, indent=2, sort_keys=True))
 
-    if plan["status"] in {"invalid_matrix", "unmapped_required_surface"}:
+    if plan["status"] in BLOCKING_STATUSES:
         return 2
     if args.run and plan["pytest_command"]:
         return subprocess.run(plan["pytest_command"], cwd=args.repo_root).returncode
