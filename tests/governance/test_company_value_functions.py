@@ -86,3 +86,32 @@ def test_gate_rejects_missing_failure_modes(tmp_path: Path) -> None:
     _write(manifest, data)
     errors = gate.check(manifest)
     assert any("failure_modes must be a non-empty list" in error for error in errors)
+
+
+def test_gate_rejects_missing_evidence_surface(tmp_path: Path) -> None:
+    gate = _load_gate()
+    data = deepcopy(_manifest())
+    value_functions = data["value_functions"]
+    assert isinstance(value_functions, list)
+    value_functions[0]["evidence_surfaces"].append("tools/missing_value_gate.py")
+    manifest = tmp_path / "company_value_functions.json"
+    _write(manifest, data)
+    errors = gate.check(manifest)
+    assert any("evidence surface does not exist" in error for error in errors)
+    assert any("tools/missing_value_gate.py" in error for error in errors)
+
+
+def test_gate_rejects_hard_constraint_without_ci_surface(tmp_path: Path) -> None:
+    gate = _load_gate()
+    data = deepcopy(_manifest())
+    value_functions = data["value_functions"]
+    assert isinstance(value_functions, list)
+    value_functions[0]["evidence_surfaces"] = [
+        "constraints/security.txt",
+        "requirements-scan.txt",
+        "tools/deps/check_operational_dependency_determinism.py",
+    ]
+    manifest = tmp_path / "company_value_functions.json"
+    _write(manifest, data)
+    errors = gate.check(manifest)
+    assert any("hard constraints must include a CI workflow surface" in error for error in errors)
