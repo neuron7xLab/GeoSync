@@ -12,6 +12,7 @@ INV-T2b   rolling ES peak precedes R(t) peak by τ ≥ 1 bar  (qualitative)
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import TypedDict
 
 import numpy as np
 import pytest
@@ -490,7 +491,28 @@ def test_leads_r_peak_on_synthetic_crisis() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _valid_result_kwargs() -> dict[str, object]:
+class _ResultKwargs(TypedDict):
+    """Statically-typed constructor kwargs for ``StuartLandauResult``.
+
+    Mirrors the dataclass fields exactly so ``StuartLandauResult(**kwargs)``
+    type-checks under ``mypy --strict`` without an ``arg-type`` suppression,
+    while individual fields can still be perturbed to runtime-invalid values.
+    """
+
+    amplitude: NDArray[np.float64]
+    phase: NDArray[np.float64]
+    order_parameter: float
+    hysteresis_area: float
+    es_proximity: float
+    leads_r_peak: bool
+    mu_raw: NDArray[np.float64]
+    mu_clamped: NDArray[np.float64]
+    mu_was_clipped: NDArray[np.bool_]
+    mu_clip_count: int
+    mu_clip_mass: float
+
+
+def _valid_result_kwargs() -> _ResultKwargs:
     """Minimal kwargs that satisfy every StuartLandauResult.__post_init__ guard.
 
     Built so each individual field can be perturbed in isolation: amplitude ≥ 0,
@@ -521,7 +543,7 @@ def test_valid_result_constructs() -> None:
     Anchors the perturbation tests below — they are only meaningful if the
     unperturbed kwargs pass every __post_init__ guard.
     """
-    res = StuartLandauResult(**_valid_result_kwargs())  # type: ignore[arg-type]
+    res = StuartLandauResult(**_valid_result_kwargs())
     assert res.mu_clip_count == 0
     assert res.mu_clip_mass == 0.0
 
@@ -540,7 +562,7 @@ def test_mu_clip_mass_guard_rejects_nonfinite_or_negative() -> None:
         kwargs = _valid_result_kwargs()
         kwargs["mu_clip_mass"] = float(bad_mass)
         with pytest.raises(ValueError, match="INV-SL mu audit VIOLATED: clip mass"):
-            StuartLandauResult(**kwargs)  # type: ignore[arg-type]
+            StuartLandauResult(**kwargs)
 
 
 def test_sweep_config_rejects_nonfinite_K_either_endpoint() -> None:
@@ -552,11 +574,14 @@ def test_sweep_config_rejects_nonfinite_K_either_endpoint() -> None:
     sweep with exactly one infinite bound, which linspace would turn into an
     inf-laced K-grid and corrupt the integration silently.
     """
-    base = dict(K_steps=16, int_steps=200, dt=0.05, source="test")
     with pytest.raises(ValueError, match="finite K_low/K_high required"):
-        _validate_sweep_config(K_low=0.0, K_high=np.inf, **base)  # type: ignore[arg-type]
+        _validate_sweep_config(
+            K_low=0.0, K_high=np.inf, K_steps=16, int_steps=200, dt=0.05, source="test"
+        )
     with pytest.raises(ValueError, match="finite K_low/K_high required"):
-        _validate_sweep_config(K_low=-np.inf, K_high=4.0, **base)  # type: ignore[arg-type]
+        _validate_sweep_config(
+            K_low=-np.inf, K_high=4.0, K_steps=16, int_steps=200, dt=0.05, source="test"
+        )
 
 
 def test_sweep_config_rejects_bad_K_steps() -> None:
