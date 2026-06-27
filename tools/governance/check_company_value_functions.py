@@ -110,13 +110,20 @@ def check(path: Path = MANIFEST) -> list[str]:
                 errors.append(f"{prefix}: {key} must contain only non-empty strings")
         if not vf.get("evidence_surfaces"):
             continue
-        if not any(str(surface).startswith(("tools/", "scripts/", ".github/")) for surface in vf["evidence_surfaces"]):
+        executable_prefixes = ("tools/", "scripts/", ".github/")
+        has_executable_surface = any(
+            str(surface).startswith(executable_prefixes)
+            for surface in vf["evidence_surfaces"]
+        )
+        if not has_executable_surface:
             errors.append(f"{prefix}: at least one evidence surface must be executable/CI")
 
     if tuple(ids) != REQUIRED_IDS:
         errors.append(f"{path}: value function ids must be ordered {REQUIRED_IDS}")
     if abs(total_weight - 1.0) > 0.000001:
-        errors.append(f"{path}: value function weights must sum to 1.0, got {total_weight:.6f}")
+        errors.append(
+            f"{path}: value function weights must sum to 1.0, got {total_weight:.6f}"
+        )
     if hard_constraints < 3:
         errors.append(f"{path}: at least three value functions must be hard constraints")
 
