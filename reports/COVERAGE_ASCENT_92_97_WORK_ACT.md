@@ -41,46 +41,34 @@ For every targeted file, derive tests from contracts:
 
 ## 4. Required protocols
 
-### Backtest protocol
+Backtest protocol: cover split-boundary determinism, no look-ahead leakage, empty input, non-finite input, duplicate and unsorted timestamps, signal/price length mismatch, fee and slippage monotonicity, equity accounting, constant-price cases, and single-row cases.
 
-Target files: `backtest/walk_forward.py`, `backtest/geosync_equity_curve.py`, `backtest/run_live_backtest.py`.
+Risk and execution protocol: cover invalid order rejection, duplicate order identity, stale transitions, idempotent ledger updates, explicit compliance rejection, gross exposure accounting, position-sizing monotonicity, circuit-breaker states, stale quotes, deterministic arbitrage ranking, and fee-aware profitability.
 
-Required behaviors: split-boundary determinism, no look-ahead leakage, empty input handling, non-finite input handling, duplicate and unsorted timestamp handling, signal/price length mismatch, fee and slippage monotonicity, start equity, final equity, cumulative return, drawdown, constant-price edge cases, single-row edge cases.
+Core protocol: cover model validation, deterministic serialization, invalid configuration rejection, normalization boundaries, mathematical invariants, safe error redaction, and local fixtures only.
 
-### Risk and execution protocol
-
-Target files: `execution/oms.py`, `execution/order_lifecycle.py`, `execution/position_sizer.py`, `execution/compliance.py`, `execution/order_ledger.py`, `execution/resilience/circuit_breaker.py`, `execution/arbitrage/engine.py`, `execution/arbitrage/models.py`, `execution/arbitrage/metrics.py`, `execution/arbitrage/capital.py`.
-
-Required behaviors: invalid order rejection, duplicate order identity, stale transition rejection, idempotent ledger updates, explicit compliance rejection, gross exposure accounting, position-sizing monotonicity, circuit-breaker state transitions, stale quote rejection, deterministic arbitrage ranking, fee-aware profitability.
-
-### Core protocol
-
-Target examples: `core/agent/prompting/manager.py`, `core/agent/prompting/pqf_pscs.py`, `core/agent/prompting/library.py`, `core/agent/prompting/models.py`, `core/utils/secure_errors.py`, `core/neuro/advanced/divergence.py`, `core/altdata/news.py`, `core/cross_asset_kuramoto/signal.py`.
-
-Required behaviors: model validation, deterministic serialization, invalid configuration rejection, normalization boundaries, mathematical invariants, safe error redaction, and local fixtures only.
-
-### Analytics and market protocol
-
-Target examples: `analytics/code_health/analyzers.py`, `analytics/code_health/aggregator.py`, `analytics/regime/src/adapters/local.py`, `analytics/regime/src/core/_sklearn_compat.py`, `markets/orderbook/src/core/lob.py`, `markets/orderbook/src/ingest/state.py`, `markets/orderbook/src/ingest/ingester.py`, `markets/orderbook/src/ingest/consistency.py`.
-
-Required behaviors: empty-tree handling, malformed-file handling, deterministic aggregation, invalid adapter configuration, order-book bid/ask invariants, crossed-book rejection, idempotent depth updates, sequence-gap detection, stale event rejection.
+Analytics and market protocol: cover empty-tree handling, malformed-file handling, deterministic aggregation, invalid adapter configuration, order-book bid/ask invariants, crossed-book rejection, idempotent depth updates, sequence-gap detection, and stale event rejection.
 
 ## 5. Quality requirements
 
 Every coverage PR must be test-only unless a test exposes a real bug; bug fixes must be split or explicitly justified. Tests must be deterministic, offline, small, readable, and tied to a production responsibility. Tests must include at least one failure-mode assertion when the module has reject paths. Tests must not depend on external services, live data, wall-clock randomness, or broad monkeypatching that bypasses the unit under test.
 
-## 6. Definition of done
+## 6. Maturity gates
+
+A weak test only imports, snapshots output, asserts type shape, or exercises a happy path. A strong test protects an invariant, rejects a bad state, checks a boundary, or proves monotonic behavior. An elite test fails when a small mutation of the production logic violates the real contract.
+
+## 7. Definition of done
 
 A PR is done only when new tests pass, the full release coverage measurement completes, the coverage intelligence report is valid, the release-line number moves or the zero movement is explained, and the PR body names the exact targeted files and behaviors. Evidence must include coverage summary, gap map, next-tests report, and the test command used.
 
-## 7. Review contract
+## 8. Review contract
 
-A reviewer must reject any coverage PR that raises the percentage by hiding source, weakening thresholds, broad-skipping dependencies, snapshotting incidental output, or testing mocks instead of production behavior. A reviewer should approve only when the new test would fail for at least one realistic bad implementation.
+Reject coverage PRs that raise the percentage by hiding source, weakening thresholds, broad-skipping dependencies, snapshotting incidental output, or testing mocks instead of production behavior. Approve only when the new test would fail for at least one realistic bad implementation.
 
-## 8. Evidence checklist
+## 9. Evidence checklist
 
 Each follow-up coverage PR must state targeted files, targeted behaviors, old release-line value, new release-line value, surface movement, exact command, and artifact paths.
 
-## 9. Immediate next unit
+## 10. Immediate next unit
 
 Open a test-only PR for `backtest/walk_forward.py` and `backtest/geosync_equity_curve.py`. The goal is not cosmetic coverage. The goal is to convert backtest replay logic into a falsifiable, deterministic, failure-resistant surface on the path from 85.03 percent to 92-97 percent.
