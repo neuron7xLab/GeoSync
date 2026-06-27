@@ -40,7 +40,9 @@ class ManifestGateBehaviour(unittest.TestCase):
         for i in range(n_artifacts):
             payload = f"artifact-{i}".encode()
             (tmp / f"a{i}.bin").write_bytes(payload)
-            artifacts.append({"path": f"a{i}.bin", "sha256": hashlib.sha256(payload).hexdigest()})
+            artifacts.append(
+                {"path": f"a{i}.bin", "sha256": hashlib.sha256(payload).hexdigest()}
+            )
         manifest = tmp / "manifest.json"
         manifest.write_text(json.dumps({"artifacts": artifacts}), encoding="utf-8")
         gate._discover_manifest_paths = lambda: [manifest]
@@ -85,6 +87,48 @@ class ManifestGateBehaviour(unittest.TestCase):
             self._seed_manifest(root, 1)
             (root / "a0.bin").write_bytes(b"tampered")  # corrupt the artifact
             self.assertEqual(gate.main(["--min-artifacts", "1"]), 1)
+
+    def test_evidence_freshness_manifest_schema_is_skipped(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            gate.ROOT = root
+            manifest = root / "manifest.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "schema": "evidence_artifact_freshness.v1",
+                        "artifacts": [
+                            {"path": "missing.json", "sha256": "0" * 64}
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            gate._discover_manifest_paths = lambda: [manifest]
+            self.assertEqual(gate.main([]), 0)
+
+    def test_contract_manifest_missing_artifact_fails(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            gate.ROOT = root
+            manifest = root / "manifest.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "schema": "contract_manifest.v1",
+                        "artifacts": [
+                            {"path": "missing.json", "sha256": "0" * 64}
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            gate._discover_manifest_paths = lambda: [manifest]
+            self.assertEqual(gate.main([]), 1)
 
 
 if __name__ == "__main__":
