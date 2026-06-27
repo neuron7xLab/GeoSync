@@ -21,7 +21,6 @@ from typing import Final, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
-from scipy.signal import hilbert
 
 _DEFAULT_K_LOW: Final[float] = 0.0
 _DEFAULT_K_HIGH: Final[float] = 4.0
@@ -44,6 +43,26 @@ __all__ = [
 FloatArray: TypeAlias = NDArray[np.float64]
 BoolArray: TypeAlias = NDArray[np.bool_]
 ComplexArray: TypeAlias = NDArray[np.complex128]
+
+
+def _analytic_signal(values: FloatArray, axis: int = 0) -> ComplexArray:
+    """Return a NumPy-only analytic signal along ``axis``.
+
+    This mirrors the FFT-domain Hilbert transform used only to obtain an
+    amplitude envelope and phase. Keeping it local removes a hidden SciPy
+    dependency from the mutation gate's minimal physics runtime.
+    """
+    arr = np.asarray(values, dtype=np.float64)
+    n = arr.shape[axis]
+    spectrum = np.fft.fft(arr, axis=axis)
+    freq = np.fft.fftfreq(n)
+    multiplier = (1.0 + np.sign(freq)).astype(np.float64)
+    multiplier[np.isclose(freq, 0.0)] = 1.0
+    multiplier[np.isclose(np.abs(freq), 0.5)] = 1.0
+    shape = [1] * arr.ndim
+    shape[axis] = n
+    analytic = np.fft.ifft(spectrum * multiplier.reshape(shape), axis=axis)
+    return analytic.astype(np.complex128, copy=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,7 +171,8 @@ def _validate_sweep_config(
         )
     if not np.isfinite(dt) or dt <= 0.0:
         raise ValueError(
-            "INV-SL contract VIOLATED: finite dt>0 required, " f"got {dt}. Source: {source}."
+            "INV-SL contract VIOLATED: finite dt>0 required, "
+            f"got {dt}. Source: {source}."
         )
 
 
@@ -208,7 +228,7 @@ def _extract_amplitude_phase_omega_mu_audit(
     """Convert a price panel into fitted state plus mu audit surface."""
     log_returns = np.diff(np.log(prices), axis=0)
     centred = log_returns - log_returns.mean(axis=0)
-    analytic = hilbert(centred, axis=0)
+    analytic = _analytic_signal(centred, axis=0)
     amplitude_envelope = np.abs(analytic).astype(np.float64)
     amplitude_last = amplitude_envelope[-1, :]
     phase_last = np.angle(analytic[-1, :]).astype(np.float64)
@@ -288,7 +308,9 @@ def _initial_state_from_seed(n: int, seed: int) -> ComplexArray:
 def _validate_z0(z0: ComplexArray, n: int) -> ComplexArray:
     """Validate and copy an externally supplied fitted complex state."""
     if z0.shape != (n,):
-        raise ValueError(f"INV-SL contract VIOLATED: z0 shape {(n,)} required, " f"got {z0.shape}.")
+        raise ValueError(
+            f"INV-SL contract VIOLATED: z0 shape {(n,)} required, got {z0.shape}."
+        )
     if not np.all(np.isfinite(z0.real)) or not np.all(np.isfinite(z0.imag)):
         raise ValueError("INV-SL contract VIOLATED: z0 must be finite.")
     return z0.astype(np.complex128, copy=True)
