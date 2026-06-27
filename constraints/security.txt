@@ -133,4 +133,4 @@ pygments>=2.20.0
 # jaraco-context: GHSA-58pv-8j8x-9vj2
 jaraco-context>=6.1.2
 # wheel: GHSA-8rrh-rw8j-w5fx
-wheel>=0.46.2
+wheel>=0.47.0
