@@ -74,8 +74,8 @@
     {
       "id": "manifest_hash_gate",
       "description": "Manifest hash component.",
-      "patterns": ["scripts/ci/check_manifest_hashes.py", "tests/ci/test_manifest_hash_gate.py"],
-      "selectors": ["tests/ci/test_manifest_hash_gate.py"],
+      "patterns": ["scripts/ci/check_manifest_hashes.py", "tests/ci/test_manifest_hash_gate.py", "tests/ci/test_manifest_hashes.py"],
+      "selectors": ["tests/ci/test_manifest_hashes.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
