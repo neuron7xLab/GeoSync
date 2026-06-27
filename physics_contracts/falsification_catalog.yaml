@@ -126,6 +126,66 @@ laws:
     failure_message: "NUMERICAL-DRIFT VIOLATED: nondeterminism, NaN/Inf, or unbounded conditioning."
     evidence_output: "evidence/physics/precision_report.json"
 
+  - id: kuramoto_critical_scaling
+    domain: ricci_kuramoto
+    claim: "Above onset (K > K_c = 2*delta) the Kuramoto order parameter converges to the exact Ott-Antonsen fixed point R_inf = sqrt(1 - 2*delta/K), with mean-field critical exponent beta = 1/2 near onset."
+    formal_invariant: "for K > 2*delta: |R_integrated(inf) - sqrt(1 - 2*delta/K)| <= 1e-9; and beta(log R vs log(K - K_c)) -> 1/2 +/- 0.05"
+    measured_quantity: "max over a supercritical K-sweep of |integrated R_inf - closed-form sqrt(1 - 2*delta/K)|"
+    threshold: "1e-9 absolute (supercritical); subcritical K <= K_c must decay to R < 1e-3"
+    positive_witness: "tests/physics/test_kuramoto_critical_scaling.py::test_supercritical_R_matches_closed_form"
+    negative_control: "tests/physics/test_kuramoto_critical_scaling.py::test_subcritical_and_invalid_are_rejected"
+    blocking: true
+    failure_message: "KURAMOTO CRITICAL-SCALING VIOLATED: integrated supercritical R_inf departs from the exact Ott-Antonsen fixed point sqrt(1 - 2*delta/K)."
+    evidence_output: "evidence/physics/kuramoto_critical_scaling_report.json"
+
+  - id: kuramoto_subcritical_finite_size
+    domain: ricci_kuramoto
+    claim: "Below the critical coupling the Kuramoto order parameter sits on a finite-size noise floor that scales as <r> ~ c/sqrt(N) (incoherent state) with c = O(1) for Lorentzian omega."
+    formal_invariant: "K < K_c => <r> = c/sqrt(N), c = O(1) (INV-K5); equivalently r < 3/sqrt(N) with p >= 0.99 over M >= 200 trials (INV-K2 finite-size bound)"
+    measured_quantity: "ensemble+time-averaged order parameter <r> at N in {256,384,512}, K=0.3*K_c, Lorentzian half-width gamma (K_c=2*gamma); coefficient c=<r>*sqrt(N) and the log<r>-vs-logN slope, after equilibration t=21 > 20/gamma"
+    threshold: "per-N c=<r>*sqrt(N) in [0.5, 1.8] with max/min < 2.0 (constant c <=> r ~ 1/sqrt(N)); P(r < 3/sqrt(N)) >= 0.99 over M >= 200; <r> strictly decreasing in N; log-log slope in [-1.45, -0.15]. Falsified supercritically (K=1.5*K_c): r=O(1) and c grows with N."
+    positive_witness: "tests/physics/test_kuramoto_subcritical_finite_size.py::test_subcritical_order_parameter_obeys_inverse_sqrt_n_noise_floor"
+    negative_control: "tests/physics/test_kuramoto_subcritical_finite_size.py::test_supercritical_breaks_noise_floor_and_invalid_inputs_fail_closed"
+    blocking: true
+    failure_message: "SUBCRITICAL-NOISE-FLOOR VIOLATED: a K<K_c order parameter departed the c/sqrt(N) finite-size floor (INV-K2 / INV-K5)."
+    evidence_output: "evidence/physics/kuramoto_subcritical_finite_size_report.json"
+
+  - id: kuramoto_frequency_entrainment
+    domain: ricci_kuramoto
+    claim: "Above K_c a macroscopic Kuramoto cluster locks to a common mean frequency Omega."
+    formal_invariant: "K > K_c => exists Omega : |<dtheta_j/dt>_t - Omega| -> 0 for j in locked set (INV-K3; Lorentzian K_c = 2*gamma)"
+    measured_quantity: "locked fraction, detuned-locked fraction, common-frequency spread, and Omega of the finite-N RK4 trajectory at K=3*K_c vs K=0.3*K_c (N=256, T>50/gamma)"
+    threshold: "supercritical: locked_fraction>0.5 AND detuned(|omega|>0.5*gamma)-locked>0.5 AND locked-set spread<0.05*gamma AND |Omega|<0.2*gamma; subcritical: detuned-locked<0.05 AND corr(<dtheta/dt>,omega_nat)>0.9"
+    positive_witness: "tests/physics/test_kuramoto_frequency_entrainment.py::test_supercritical_locks_detuned_oscillators_to_common_frequency"
+    negative_control: "tests/physics/test_kuramoto_frequency_entrainment.py::test_subcritical_entrainment_claim_is_falsified"
+    blocking: true
+    failure_message: "ENTRAINMENT VIOLATED: no macroscopic common-frequency cluster locked above K_c, or an entrainment claim survived below K_c."
+    evidence_output: "evidence/physics/kuramoto_frequency_entrainment_report.json"
+
+  - id: ollivier_ricci_universal_upper_bound
+    domain: ricci_kuramoto
+    claim: "Ollivier-Ricci edge curvature obeys the universal upper bound kappa <= 1; the symmetric band kappa in [-1, 1] holds ONLY for build_price_graph output, not arbitrary topologies."
+    formal_invariant: "kappa(x,y) = 1 - W_1(m_x,m_y)/d(x,y) => kappa <= 1 always (W_1 >= 0) [INV-RC1]; kappa >= -1 only when the positional embedding matches the combinatorial metric [INV-RC3, build_price_graph only]"
+    measured_quantity: "max kappa over a connected-graph fuzz; kappa range over build_price_graph edges; the 12-node-cycle wrap-around edge curvature"
+    threshold: "max kappa <= 1 + 1e-9 universally; price-graph kappa in [-1-1e-9, 1+1e-9]; the 12-cycle wrap edge kappa < -1 (measured ~ -2) refutes a universal symmetric band"
+    positive_witness: "tests/physics/test_ollivier_ricci_bounds.py::test_ollivier_upper_bound_is_universal"
+    negative_control: "tests/physics/test_ollivier_ricci_bounds.py::test_symmetric_band_is_not_universal"
+    blocking: true
+    failure_message: "OLLIVIER-RICCI VIOLATED: an edge curvature exceeded the universal upper bound kappa <= 1, or the price-graph-only symmetric band was asserted as universal."
+    evidence_output: "evidence/physics/ricci_kuramoto_report.json"
+
+  - id: ricci_flow_monotonicity
+    domain: ricci_kuramoto
+    claim: "Under discrete Ricci flow on a closed weighted graph, the Perelman F-functional F = sum_e kappa_e^2 * w_e is monotonically non-increasing (dF/dt <= 0)."
+    formal_invariant: "F(w_{t+1}) <= F(w_t) * (1 + tol), F(w) = sum_e kappa_e^2 * w_e; flow w_e^{n+1} = w_e^n - eta*kappa_e*w_e^n"
+    measured_quantity: "max over a seeded positive-curvature flow trajectory of F(t+1) - F(t)*(1+tol)"
+    threshold: "tol = 1e-9 (relative); any positive excess violates. Validity: positive Ricci curvature, no external rewiring of the curvature field during the step."
+    positive_witness: "tests/physics/test_ricci_flow_monotonicity.py::test_f_functional_nonincreases_under_positive_ricci_flow"
+    negative_control: "tests/physics/test_ricci_flow_monotonicity.py::test_negative_curvature_rewiring_injects_f_energy_is_rejected"
+    blocking: true
+    failure_message: "RICCI-F VIOLATED: Perelman F-functional Sum kappa^2 w increased under discrete Ricci flow (dF/dt > 0)."
+    evidence_output: "evidence/physics/ricci_flow_monotonicity_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
