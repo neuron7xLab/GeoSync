@@ -40,6 +40,11 @@ def test_live_company_value_function_manifest_is_valid() -> None:
     assert gate.check(MANIFEST) == []
 
 
+def test_live_company_value_function_self_test_is_clean() -> None:
+    gate = _load_gate()
+    assert gate.self_test(MANIFEST, ROOT) == []
+
+
 def test_gate_rejects_weight_drift(tmp_path: Path) -> None:
     gate = _load_gate()
     data = deepcopy(_manifest())
