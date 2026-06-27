@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -17,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MATRIX = ROOT / "data" / "testing" / "component_test_matrix.json"
 SCHEMA = "geosync.component_test_matrix.v1"
 BLOCKING_STATUSES = {"invalid_matrix", "unmapped_required_surface"}
+DEFAULT_MAX_RUN_SELECTORS = 3
 
 
 def _load_matrix(path: Path = MATRIX) -> dict[str, Any]:
@@ -127,9 +129,6 @@ def _is_required_mapping(path: str, matrix: dict[str, Any]) -> bool:
 
 
 def _normalize_path(path: str) -> str:
-    # Strip only a leading "./" PREFIX. str.lstrip("./") strips a char SET and
-    # would eat the leading dot of dotfiles (".github/..." -> "github/..."),
-    # breaking pattern matches for workflow/action carriers.
     normalized = path.strip()
     while normalized.startswith("./"):
         normalized = normalized[2:]
@@ -218,6 +217,16 @@ def _read_changed_files(args: argparse.Namespace) -> list[str]:
     return changed
 
 
+def _max_run_selectors(value: str | None) -> int:
+    if not value:
+        return DEFAULT_MAX_RUN_SELECTORS
+    try:
+        parsed = int(value)
+    except ValueError:
+        return DEFAULT_MAX_RUN_SELECTORS
+    return parsed if parsed > 0 else DEFAULT_MAX_RUN_SELECTORS
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--matrix", type=Path, default=MATRIX)
@@ -247,8 +256,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if plan["status"] in BLOCKING_STATUSES:
         return 2
-    if args.run and plan["pytest_command"]:
-        return subprocess.run(plan["pytest_command"], cwd=args.repo_root).returncode
+    if args.run and plan["selectors"]:
+        limit = _max_run_selectors(os.environ.get("COMPONENT_ROUTER_MAX_SELECTORS"))
+        selectors = plan["selectors"][:limit]
+        print(f"COMPONENT_ROUTER_SELECTED {len(selectors)}/{len(plan['selectors'])}")
+        command = [sys.executable, "-m", "pytest", *selectors]
+        return subprocess.run(command, cwd=args.repo_root, check=False).returncode
     return 0
 
 
