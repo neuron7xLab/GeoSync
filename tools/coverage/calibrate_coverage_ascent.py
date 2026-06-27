@@ -18,9 +18,9 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 EXIT_OK = 0
 EXIT_EVIDENCE_INVALID = 3
@@ -75,7 +75,7 @@ def _load_json(path: Path) -> dict[str, Any]:
         raise ValueError(f"coverage summary malformed: {exc}") from exc
     if not isinstance(payload, dict):
         raise ValueError("coverage summary must be a JSON object")
-    return payload
+    return cast(dict[str, Any], payload)
 
 
 def _parse_bands(raw: str) -> tuple[float, ...]:
@@ -108,25 +108,37 @@ def _missing_statements(statements: int, line_rate: float, target: float) -> int
     return max(0, math.ceil(required - covered - 1e-9))
 
 
-def _protocol_for(surface: str, risk: str, branch_gap: float, untested_file_count: int) -> str:
+def _protocol_for(
+    surface: str,
+    risk: str,
+    branch_gap: float,
+    untested_file_count: int,
+) -> str:
     name = surface.lower()
     risk_l = risk.lower()
     if untested_file_count > 0 and risk_l in {"critical", "high"}:
         return "start with fully untested production files, then add invariant and rejection-path tests"
     if name == "backtest":
-        return "replay determinism, no-lookahead, fee/slippage monotonicity, empty/non-finite input, accounting invariants"
+        return (
+            "replay determinism, no-lookahead, fee/slippage monotonicity, "
+            "empty/non-finite input, accounting invariants"
+        )
     if name in {"execution", "risk"} or risk_l == "critical":
-        return "invalid-state rejection, idempotency, exposure accounting, transition guards, fail-closed behavior"
+        return "invalid-state rejection, idempotency, exposure accounting, transition guards"
     if branch_gap >= 20.0:
-        return "branch-completion campaign: negative paths, boundary branches, malformed inputs, explicit rejects"
+        return "branch-completion campaign: negative paths, boundary branches, explicit rejects"
     if name in {"ingestion", "data"}:
-        return "schema drift, malformed files, duplicate/stale events, deterministic normalization, adapter fail-closed paths"
+        return "schema drift, duplicate/stale events, deterministic normalization, fail-closed paths"
     if name == "analytics":
-        return "mathematical invariants, empty structures, deterministic aggregation, malformed input handling"
-    return "target invariant-bearing functions and boundary failures before cosmetic line execution"
+        return "mathematical invariants, empty structures, deterministic aggregation"
+    return "target invariant-bearing functions and boundary failures before cosmetic execution"
 
 
-def build_plan(summary: dict[str, Any], bands: tuple[float, ...], max_surfaces: int) -> CalibrationPlan:
+def build_plan(
+    summary: dict[str, Any],
+    bands: tuple[float, ...],
+    max_surfaces: int,
+) -> CalibrationPlan:
     evidence_valid = bool(summary.get("evidence_valid", False))
     release_cov = float(summary.get("release_line_coverage", 0.0))
     risk_score = float(summary.get("risk_weighted_score", 0.0))
@@ -168,7 +180,12 @@ def build_plan(summary: dict[str, Any], bands: tuple[float, ...], max_surfaces: 
                 missing_statements_to_final_target=missing_final,
                 weighted_deficit=round(weighted_deficit, 2),
                 priority=0,
-                recommended_protocol=_protocol_for(str(surface), claim_risk, branch_gap, untested_count),
+                recommended_protocol=_protocol_for(
+                    str(surface),
+                    claim_risk,
+                    branch_gap,
+                    untested_count,
+                ),
             )
         )
 
@@ -182,9 +199,8 @@ def build_plan(summary: dict[str, Any], bands: tuple[float, ...], max_surfaces: 
         ),
         reverse=True,
     )[:max_surfaces]
-    ranked = [
-        SurfaceCalibration(**{**asdict(item), "priority": index + 1})
-        for index, item in enumerate(ranked)
+    ranked_with_priority = [
+        replace(item, priority=index + 1) for index, item in enumerate(ranked)
     ]
     return CalibrationPlan(
         schema_version="1.0",
@@ -195,7 +211,7 @@ def build_plan(summary: dict[str, Any], bands: tuple[float, ...], max_surfaces: 
         next_global_band=next_band,
         global_gap_to_next_band=round(max(0.0, next_band - release_cov), 2),
         untested_file_count=untested_count,
-        recommended_surfaces=ranked,
+        recommended_surfaces=ranked_with_priority,
     )
 
 
@@ -203,7 +219,8 @@ def _write_json(plan: CalibrationPlan, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     payload = asdict(plan)
     (out_dir / "coverage_calibration_plan.json").write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
 
@@ -227,11 +244,12 @@ def _write_markdown(plan: CalibrationPlan, out_dir: Path) -> None:
     for item in plan.recommended_surfaces:
         lines.append(
             "| "
-            f"{item.priority} | `{item.surface}` | {item.claim_risk} | {item.line_rate:.2f} | "
-            f"{item.branch_rate:.2f} | {item.target_final:.0f} | "
+            f"{item.priority} | `{item.surface}` | {item.claim_risk} | "
+            f"{item.line_rate:.2f} | {item.branch_rate:.2f} | "
+            f"{item.target_final:.0f} | "
             f"{item.missing_statements_to_effective_target} | "
-            f"{item.missing_statements_to_final_target} | {item.weighted_deficit:.2f} | "
-            f"{item.recommended_protocol} |"
+            f"{item.missing_statements_to_final_target} | "
+            f"{item.weighted_deficit:.2f} | {item.recommended_protocol} |"
         )
     if not plan.recommended_surfaces:
         lines.append("| 0 | _none_ | - | - | - | - | - | - | - | - |")
@@ -245,7 +263,10 @@ def _write_markdown(plan: CalibrationPlan, out_dir: Path) -> None:
         "- Prefer tests that kill plausible wrong implementations over tests that only execute lines.",
         "- Every slice must state the protected production contract and the mutation it would catch.",
     ]
-    (out_dir / "coverage_calibration_plan.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (out_dir / "coverage_calibration_plan.md").write_text(
+        "\n".join(lines) + "\n",
+        encoding="utf-8",
+    )
 
 
 def run(args: argparse.Namespace) -> int:
