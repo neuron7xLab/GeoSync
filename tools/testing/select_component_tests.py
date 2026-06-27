@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[2]
 MATRIX = ROOT / "data" / "testing" / "component_test_matrix.json"
 SCHEMA = "geosync.component_test_matrix.v1"
 BLOCKING_STATUSES = {"invalid_matrix", "unmapped_required_surface"}
-DEFAULT_MAX_RUN_SELECTORS = 3
+DEFAULT_MAX_RUN_SELECTORS = 1
+PRIORITY_COMPONENT_IDS = ("controlled_component_test_router",)
 
 
 def _load_matrix(path: Path = MATRIX) -> dict[str, Any]:
@@ -135,6 +136,23 @@ def _normalize_path(path: str) -> str:
     return normalized
 
 
+def _prioritize_selectors(
+    selectors: list[str], matched_components: list[dict[str, Any]]
+) -> list[str]:
+    priority: list[str] = []
+    seen: set[str] = set()
+    for component_id in PRIORITY_COMPONENT_IDS:
+        for component in matched_components:
+            if component["id"] != component_id:
+                continue
+            for selector in component["selectors"]:
+                if selector not in seen:
+                    priority.append(selector)
+                    seen.add(selector)
+    priority.extend(selector for selector in selectors if selector not in seen)
+    return priority
+
+
 def select_plan(
     changed_files: list[str], matrix_path: Path = MATRIX, repo_root: Path = ROOT
 ) -> dict[str, Any]:
@@ -197,6 +215,7 @@ def select_plan(
             "pytest_command": [],
         }
 
+    selectors = _prioritize_selectors(selectors, matched_components)
     return {
         "status": "ready" if selectors else "empty",
         "changed_files": normalized,
