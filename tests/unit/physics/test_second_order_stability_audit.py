@@ -19,6 +19,7 @@ from core.kuramoto.coupling_spec import CLAIM_SIGNED
 from core.kuramoto.second_order import (
     SecondOrderKuramotoEngine,
     SecondOrderStabilityReport,
+    _swing_energy_trajectory,
 )
 
 
@@ -37,6 +38,47 @@ def _conservative_engine() -> SecondOrderKuramotoEngine:
     return SecondOrderKuramotoEngine(
         cfg, mass=1.0, damping=0.0, velocity0=0.1 * np.ones(n)
     )
+
+
+def test_streamed_swing_energy_matches_dense_formula() -> None:
+    """Streamed O(N²) evaluator must preserve the previous dense formula."""
+    theta = np.array(
+        [
+            [0.0, 0.2, 0.7, 1.1],
+            [0.3, -0.4, 0.5, 1.4],
+            [1.2, 0.1, -0.6, 0.8],
+        ],
+        dtype=np.float64,
+    )
+    vel = np.array(
+        [
+            [0.1, -0.2, 0.3, -0.4],
+            [0.5, 0.0, -0.3, 0.2],
+            [-0.1, 0.4, 0.2, -0.5],
+        ],
+        dtype=np.float64,
+    )
+    mass = np.array([1.0, 2.0, 1.5, 0.75], dtype=np.float64)
+    omega = np.array([0.2, -0.1, 0.3, -0.4], dtype=np.float64)
+    adj = np.array(
+        [
+            [0.0, 0.7, 0.2, 0.0],
+            [0.7, 0.0, 0.5, 0.1],
+            [0.2, 0.5, 0.0, 0.4],
+            [0.0, 0.1, 0.4, 0.0],
+        ],
+        dtype=np.float64,
+    )
+
+    streamed = _swing_energy_trajectory(theta, vel, mass, omega, adj)
+
+    kinetic = 0.5 * (mass * vel * vel).sum(axis=1)
+    drive = -(omega * theta).sum(axis=1)
+    delta = theta[:, np.newaxis, :] - theta[:, :, np.newaxis]
+    dense_pairwise = -0.5 * np.einsum("ij,tij->t", adj, np.cos(delta))
+    expected = kinetic + drive + dense_pairwise
+
+    np.testing.assert_allclose(streamed, expected, rtol=0.0, atol=1e-12)
 
 
 def test_energy_like_drift_bound() -> None:
@@ -123,7 +165,13 @@ def test_damped_run_loses_energy_monotonically() -> None:
     """
     n = 6
     cfg = KuramotoConfig(
-        N=n, K=2.0, omega=np.zeros(n), theta0=np.linspace(0.0, 1.0, n), dt=0.005, steps=300, seed=0
+        N=n,
+        K=2.0,
+        omega=np.zeros(n),
+        theta0=np.linspace(0.0, 1.0, n),
+        dt=0.005,
+        steps=300,
+        seed=0,
     )
     report = SecondOrderKuramotoEngine(
         cfg, mass=1.0, damping=0.3, velocity0=0.5 * np.ones(n)
@@ -172,7 +220,9 @@ def _signed_asymmetric_engine() -> SecondOrderKuramotoEngine:
         steps=200,
         seed=0,
     )
-    return SecondOrderKuramotoEngine(cfg, mass=1.0, damping=0.0, velocity0=0.05 * np.ones(n))
+    return SecondOrderKuramotoEngine(
+        cfg, mass=1.0, damping=0.0, velocity0=0.05 * np.ones(n)
+    )
 
 
 def test_failed_audit_blocks_stability_promotion() -> None:
@@ -243,7 +293,7 @@ def _symmetric_signed_engine() -> SecondOrderKuramotoEngine:
         [
             [0.0, 1.0, -0.5, 0.0],
             [1.0, 0.0, 1.0, 0.0],
-            [-0.5, 1.0, 0.0, 1.0],  # == adj.T (symmetric) but contains -0.5 (signed)
+            [-0.5, 1.0, 0.0, 1.0],  # == adj.T but contains -0.5 (signed)
             [0.0, 0.0, 1.0, 0.0],
         ]
     )
@@ -258,7 +308,9 @@ def _symmetric_signed_engine() -> SecondOrderKuramotoEngine:
         steps=200,
         seed=0,
     )
-    return SecondOrderKuramotoEngine(cfg, mass=1.0, damping=0.0, velocity0=0.05 * np.ones(n))
+    return SecondOrderKuramotoEngine(
+        cfg, mass=1.0, damping=0.0, velocity0=0.05 * np.ones(n)
+    )
 
 
 def test_symmetric_signed_adjacency_invalidates_energy_model() -> None:
