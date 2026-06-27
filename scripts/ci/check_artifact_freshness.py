@@ -10,7 +10,7 @@ determinism class (uniform trust, not mixed). Driven by
 
   * every ``deterministic`` artifact is regenerated with its declared generator
     and asserted byte-identical to the committed file (CI ``git diff`` equivalent),
-    with a matching ``artifacts/.manifest.json`` (sha256 / generator / sources);
+    with a matching ``artifacts/manifest.json`` (sha256 / generator / sources);
   * ``nondeterministic`` / ``external-data-bound`` / ``generated-but-excluded``
     artifacts require an ``exclusion_reason`` and are not byte-compared;
   * any ``*.json`` under a declared evidence surface that is NOT classified in
@@ -42,7 +42,7 @@ from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT = ROOT / "artifacts" / "evidence_provenance.contract.json"
-MANIFEST = ROOT / "artifacts" / ".manifest.json"
+MANIFEST = ROOT / "artifacts" / "manifest.json"
 
 
 @dataclass(frozen=True)
@@ -89,13 +89,19 @@ def _sha256(data: bytes) -> str:
 def _run_generator(generator: list[str]) -> None:
     full_env = {**os.environ, "PYTHONPATH": str(ROOT)}
     subprocess.run(
-        [sys.executable, *generator], cwd=ROOT, env=full_env, check=True, capture_output=True
+        [sys.executable, *generator],
+        cwd=ROOT,
+        env=full_env,
+        check=True,
+        capture_output=True,
     )
 
 
 def _snapshot(specs: list[_ArtifactSpec]) -> dict[str, bytes]:
     return {
-        s.artifact: (ROOT / s.artifact).read_bytes() for s in specs if (ROOT / s.artifact).is_file()
+        s.artifact: (ROOT / s.artifact).read_bytes()
+        for s in specs
+        if (ROOT / s.artifact).is_file()
     }
 
 
@@ -147,13 +153,18 @@ def build_manifest() -> dict[str, object]:
 
 
 def _unclassified(contract: dict[str, object]) -> list[str]:
-    classified = {str(a["artifact"]) for a in cast("list[dict[str, Any]]", contract["artifacts"])}
+    classified = {
+        str(a["artifact"])
+        for a in cast("list[dict[str, Any]]", contract["artifacts"])
+    }
     errors: list[str] = []
     for surface in cast("list[str]", contract.get("evidence_surfaces", [])):
         for path in (ROOT / str(surface)).rglob("*.json"):
             rel = path.relative_to(ROOT).as_posix()
             if rel not in classified:
-                errors.append(f"unclassified evidence artifact (add to provenance contract): {rel}")
+                errors.append(
+                    f"unclassified evidence artifact (add to provenance contract): {rel}"
+                )
     return errors
 
 
@@ -166,8 +177,8 @@ def check() -> list[str]:
     for spec in _all_specs():
         if spec.determinism_class != "deterministic" and not spec.exclusion_reason.strip():
             errors.append(
-                f"{spec.artifact}: determinism_class {spec.determinism_class!r} requires an "
-                f"exclusion_reason"
+                f"{spec.artifact}: determinism_class {spec.determinism_class!r} "
+                "requires an exclusion_reason"
             )
 
     det = _deterministic_specs()
@@ -181,13 +192,15 @@ def check() -> list[str]:
         if regenerated.get(art) != committed_sha:
             errors.append(
                 f"STALE: {art} committed {committed_sha[:12]} != regenerated "
-                f"{(regenerated.get(art) or '<none>')[:12]} (run `make regenerate-evidence`)"
+                f"{(regenerated.get(art) or '<none>')[:12]} "
+                "(run `make regenerate-evidence`)"
             )
 
     if not MANIFEST.is_file():
         errors.append(f"missing {MANIFEST.relative_to(ROOT)} (run --write)")
     elif json.loads(MANIFEST.read_text(encoding="utf-8")) != build_manifest():
-        errors.append("artifacts/.manifest.json drift — regenerate with --write")
+        rel = MANIFEST.relative_to(ROOT).as_posix()
+        errors.append(f"{rel} drift — regenerate with --write")
     return errors
 
 
@@ -208,7 +221,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {e}", file=sys.stderr)
         return 1
     print(
-        f"ARTIFACT FRESHNESS: PASS — {len(_deterministic_specs())} deterministic artifacts fresh, "
+        "ARTIFACT FRESHNESS: PASS — "
+        f"{len(_deterministic_specs())} deterministic artifacts fresh, "
         "all evidence artifacts classified."
     )
     return 0
