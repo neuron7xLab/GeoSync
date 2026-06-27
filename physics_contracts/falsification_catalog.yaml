@@ -366,6 +366,18 @@ laws:
     failure_message: "COGNITIVE-CORE SOUNDNESS VIOLATED: an exact-law gate failed to fire on reality-divergence, or the soundness operator was fooled by a vacuous gate."
     evidence_output: "evidence/physics/governance_report.json"
 
+  - id: cognitive_core_admissibility
+    domain: governance
+    claim: "The cognitive core is one deterministic fail-closed value function over the invariant manifold: a nominal in-manifold snapshot is admissible (GO), every invariant gate is load-bearing (a single-invariant violation is rejected for that invariant alone), and the core never vacuously approves (empty/non-finite/violating snapshots yield NO_GO with the binding constraint named)."
+    formal_invariant: "V(snapshot)=GO iff snapshot in invariant manifold; for each gated field f, violating only f gives NO_GO with violations==(INV(f),) and binding_constraint==INV(f); empty->INSUFFICIENT->NO_GO; non-finite field->fail-closed NO_GO"
+    measured_quantity: "decision/status/violations/binding_constraint of CognitiveCore.admissibility over the nominal snapshot, the nine single-invariant violations, and empty/non-finite controls"
+    threshold: "nominal->GO with all gates active; each single violation->NO_GO with exactly that invariant; empty->INSUFFICIENT; non-finite->NO_GO (fail-closed); zero vacuous approvals"
+    positive_witness: "tests/physics/test_cognitive_core_admissibility.py::test_nominal_snapshot_is_admissible_and_every_gate_is_load_bearing"
+    negative_control: "tests/physics/test_cognitive_core_admissibility.py::test_core_never_vacuously_approves_and_fails_closed"
+    blocking: true
+    failure_message: "COGNITIVE-CORE ADMISSIBILITY VIOLATED: the value function admitted an out-of-manifold snapshot, vacuously approved, or a gate was not load-bearing."
+    evidence_output: "evidence/physics/governance_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
