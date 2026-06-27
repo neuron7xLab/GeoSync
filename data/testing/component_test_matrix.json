@@ -28,83 +28,81 @@
   "components": [
     {
       "id": "stuart_landau_runtime",
-      "description": "Stuart-Landau explosive-synchronization runtime and invariant tests.",
-      "patterns": [
-        "core/physics/stuart_landau_es.py",
-        "tests/unit/physics/test_T2b_stuart_landau_es.py"
-      ],
-      "selectors": [
-        "tests/unit/physics/test_T2b_stuart_landau_es.py"
-      ],
+      "description": "Stuart-Landau runtime component.",
+      "patterns": ["core/physics/stuart_landau_es.py", "tests/unit/physics/test_T2b_stuart_landau_es.py"],
+      "selectors": ["tests/unit/physics/test_T2b_stuart_landau_es.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 300
     },
     {
+      "id": "stuart_landau_runtime_audit",
+      "description": "Stuart-Landau runtime audit component.",
+      "patterns": [".github/workflows/mutation-kill-gate.yml", "docs/MUTATION_KILL_BASELINE.json", "tests/unit/physics/test_T2b_runtime_audit.py", "tools/physics/clamp_registry.yaml"],
+      "selectors": ["tests/unit/physics/test_T2b_runtime_audit.py"],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 120
+    },
+    {
       "id": "dependency_operational_determinism",
-      "description": "Dependency bootstrap, scan-floor, and operational determinism gates.",
-      "patterns": [
-        ".github/actions/setup-geosync/action.yml",
-        ".github/workflows/dependency-operational-determinism.yml",
-        "constraints/security.txt",
-        "requirements*.txt",
-        "requirements*.lock",
-        "tools/deps/check_operational_dependency_determinism.py",
-        "tests/deps/test_operational_dependency_determinism.py",
-        "tests/ci/test_setup_geosync_toolchain.py"
-      ],
-      "selectors": [
-        "tests/deps/test_operational_dependency_determinism.py",
-        "tests/ci/test_setup_geosync_toolchain.py"
-      ],
+      "description": "Dependency determinism component.",
+      "patterns": [".github/actions/setup-geosync/action.yml", ".github/workflows/dependency-operational-determinism.yml", "constraints/security.txt", "requirements*.txt", "requirements*.lock", "tools/deps/check_operational_dependency_determinism.py", "tests/deps/test_operational_dependency_determinism.py", "tests/ci/test_setup_geosync_toolchain.py"],
+      "selectors": ["tests/deps/test_operational_dependency_determinism.py", "tests/ci/test_setup_geosync_toolchain.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 120
     },
     {
       "id": "company_value_functions",
-      "description": "Company value-function manifest, validator, documentation, and CI workflow.",
-      "patterns": [
-        ".github/workflows/company-value-functions.yml",
-        "data/governance/company_value_functions.json",
-        "docs/governance/company_value_functions.md",
-        "tools/governance/check_company_value_functions.py",
-        "tests/governance/test_company_value_functions.py"
-      ],
-      "selectors": [
-        "tests/governance/test_company_value_functions.py"
-      ],
+      "description": "Company value-function component.",
+      "patterns": [".github/workflows/company-value-functions.yml", "data/governance/company_value_functions.json", "docs/governance/company_value_functions.md", "tools/governance/check_company_value_functions.py", "tests/governance/test_company_value_functions.py"],
+      "selectors": ["tests/governance/test_company_value_functions.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
     },
     {
       "id": "artifact_freshness",
-      "description": "Artifact freshness manifest and stable freshness gate.",
-      "patterns": [
-        "artifacts/manifest.json",
-        "scripts/ci/check_artifact_freshness.py",
-        "tests/ci/test_artifact_freshness_gate.py"
-      ],
-      "selectors": [
-        "tests/ci/test_artifact_freshness_gate.py"
-      ],
+      "description": "Artifact freshness component.",
+      "patterns": ["artifacts/manifest.json", "scripts/ci/check_artifact_freshness.py", "tests/ci/test_artifact_freshness_gate.py"],
+      "selectors": ["tests/ci/test_artifact_freshness_gate.py"],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 60
+    },
+    {
+      "id": "manifest_hash_gate",
+      "description": "Manifest hash component.",
+      "patterns": ["scripts/ci/check_manifest_hashes.py", "tests/ci/test_manifest_hash_gate.py"],
+      "selectors": ["tests/ci/test_manifest_hash_gate.py"],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 60
+    },
+    {
+      "id": "invariant_registry_schema",
+      "description": "Invariant registry schema component.",
+      "patterns": ["scripts/check_invariant_registry_schema.py", "tests/ci/test_invariant_registry_schema.py"],
+      "selectors": ["tests/ci/test_invariant_registry_schema.py"],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 60
+    },
+    {
+      "id": "pr_fast_diagnostics",
+      "description": "PR fast diagnostics component.",
+      "patterns": [".github/workflows/pr-fast-diagnostics.yml"],
+      "selectors": ["tests/ci/test_setup_geosync_toolchain.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
     },
     {
       "id": "controlled_component_test_router",
-      "description": "Deterministic router that maps changed files to isolated component test selectors.",
-      "patterns": [
-        ".github/workflows/component-test-router.yml",
-        "data/testing/component_test_matrix.json",
-        "tools/testing/select_component_tests.py",
-        "tests/testing/test_select_component_tests.py"
-      ],
-      "selectors": [
-        "tests/testing/test_select_component_tests.py"
-      ],
+      "description": "Component test router.",
+      "patterns": [".github/workflows/component-test-router.yml", "data/testing/component_test_matrix.json", "tools/testing/select_component_tests.py", "tests/testing/test_select_component_tests.py"],
+      "selectors": ["tests/testing/test_select_component_tests.py"],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
