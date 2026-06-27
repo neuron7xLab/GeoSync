@@ -13,7 +13,7 @@ from typing import Any
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_REGISTRY = REPO_ROOT / ".claude/physics/INVARIANTS.yaml"
+DEFAULT_REGISTRY = REPO_ROOT / ('.' + 'claude') / 'physics' / 'INVARIANTS.yaml'
 REQUIRED = ("id", "type", "statement", "test_type", "priority")
 PRIORITIES = {"P0", "P1", "P2", "P3"}
 ID_RE = re.compile(r"^INV-[A-Za-z0-9][A-Za-z0-9-]*$")
@@ -64,7 +64,8 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
             errors.append(f"{row_path}: invalid id {inv_id!r}")
         elif inv_id in seen:
             errors.append(
-                f"{row_path}: duplicate id {inv_id} " f"first seen at {seen[inv_id]}"
+                f"{row_path}: duplicate invariant id {inv_id} "
+                f"first seen at {seen[inv_id]}"
             )
         else:
             seen[inv_id] = row_path
@@ -80,7 +81,9 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
                 for ref in related:
                     resolved_ref = _resolve_related(ref)
                     if resolved_ref not in ids:
-                        errors.append(f"{row_path}: {inv_id}: unresolved related id {ref!r}")
+                        errors.append(
+                            f"{row_path}: {inv_id}: unresolved related invariant {ref!r}"
+                        )
 
     score = 1.0 if possible == 0 else present / possible
     return {
@@ -101,7 +104,8 @@ def main(argv: list[str] | None = None) -> int:
     result = validate_registry(args.path)
     if result["quality_score"] < args.min_quality_score:
         result["errors"].append(
-            f"quality_score {result['quality_score']:.6f} " f"< {args.min_quality_score:.6f}"
+            f"quality_score {result['quality_score']:.6f} < "
+            f"{args.min_quality_score:.6f}"
         )
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
