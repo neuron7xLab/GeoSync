@@ -56,8 +56,8 @@ runs:
       run: |
         set -euo pipefail
         # Bootstrap tooling is part of the trusted supply chain. Keep these pins
-        # aligned with constraints/security.txt so CI never installs a known
-        # vulnerable installer/build backend before applying the constraints.
+        # aligned with constraints/security.txt so CI never starts from a known
+        # vulnerable installer/build backend.
         .venv/bin/python -m pip install \
           pip==26.1.1 \
           setuptools==78.1.1 \
@@ -66,6 +66,14 @@ runs:
         if [ "${{ inputs.install-dev }}" = "true" ]; then
           .venv/bin/python -m pip install -c constraints/security.txt -r requirements-dev.lock
         fi
+        # Runtime/dev locks can legitimately pull packaging tooling as transitive
+        # build/test support. Re-assert the trusted bootstrap pins after lock
+        # installation so every downstream gate runs with the audited toolchain
+        # rather than whatever the resolver last touched.
+        .venv/bin/python -m pip install \
+          pip==26.1.1 \
+          setuptools==78.1.1 \
+          wheel==0.46.2
 
     - name: Verify pinned pip and pytest versions
       shell: bash
