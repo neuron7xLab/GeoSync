@@ -224,7 +224,10 @@ def test_result_audit_rejects_bounds_and_mu_inconsistency() -> None:
     with pytest.raises(ValueError, match="clipped mask shape mismatch"):
         _result(mu_was_clipped=np.array([False], dtype=np.bool_))
     with pytest.raises(ValueError, match="clip count does not match"):
-        _result(mu_was_clipped=np.array([True, False], dtype=np.bool_), mu_clip_count=0)
+        _result(
+            mu_was_clipped=np.array([True, False], dtype=np.bool_),
+            mu_clip_count=0,
+        )
     for bad_mass in (-0.1, np.inf):
         with pytest.raises(ValueError, match="clip mass"):
             _result(mu_clip_mass=bad_mass)
@@ -376,7 +379,10 @@ def test_crisis_signal_api() -> None:
 def test_crisis_signal_uses_strict_es_threshold(monkeypatch: pytest.MonkeyPatch) -> None:
     """Crisis boolean is strictly es_proximity > threshold, not >= or inverted."""
 
-    def fake_fit_stuart_landau(*_args: object, **_kwargs: object) -> SimpleNamespace:
+    def fake_fit_stuart_landau(
+        *_args: object,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         return SimpleNamespace(
             es_proximity=0.3,
             hysteresis_area=0.3,
