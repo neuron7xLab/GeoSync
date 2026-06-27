@@ -66,7 +66,7 @@ charset-normalizer==3.4.4
     # via
     #   -c constraints/security.txt
     #   requests
-click==8.3.0
+click==8.4.2
     # via
     #   geosync (pyproject.toml)
     #   streamlit
