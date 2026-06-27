@@ -186,6 +186,78 @@ laws:
     failure_message: "RICCI-F VIOLATED: Perelman F-functional Sum kappa^2 w increased under discrete Ricci flow (dF/dt > 0)."
     evidence_output: "evidence/physics/ricci_flow_monotonicity_report.json"
 
+  - id: ricci_gauss_bonnet_exact
+    domain: ricci_kuramoto
+    claim: "For the clique complex of any finite simple graph, the sum of Knill vertex curvatures equals the Euler characteristic (discrete Gauss-Bonnet), exactly over the rationals."
+    formal_invariant: "sum_{x in V} K(x) - chi(G) == 0 exactly; K(x) = sum_k (-1)^k V_k(x)/(k+1); chi(G) = sum_k (-1)^k v_k (carried as fractions.Fraction, no float slack)"
+    measured_quantity: "exact rational residual Sum_x K(x) - chi(G) over a battery of finite simple graphs (trees, cycles, complete K_n, Petersen, small-world)"
+    threshold: "residual == 0 EXACTLY (over Q); any nonzero rational residual violates and is rejected fail-closed"
+    positive_witness: "tests/physics/test_gauss_bonnet.py::test_gauss_bonnet_residual_is_exactly_zero"
+    negative_control: "tests/physics/test_gauss_bonnet.py::test_gauss_bonnet_detects_corruption_and_rejects_bad_input"
+    blocking: true
+    failure_message: "GAUSS-BONNET VIOLATED: Sum_x K(x) - chi(G) != 0, or a non-simple graph was not refused."
+    evidence_output: "evidence/physics/ricci_kuramoto_report.json"
+
+  - id: ricci_semantics_split
+    domain: ricci_kuramoto
+    claim: "Signed Ollivier-Ricci curvature is never silently destroyed: it is preserved on the signed path, clipped ONLY with audit metadata on the threshold path, and a signed matrix is rejected fail-closed at the Restrepo-Ott-Hunt onset boundary."
+    formal_invariant: "ricci_to_signed_coupling preserves every kappa_ij<0 (roh_compatible=False); ricci_to_positive_adjacency clips with clipped_for_threshold=(#neg>0), negative_edges_count>0, negative_mass>0, roh_compatible=True; assert_roh_compatible(signed) raises; roh_compatible XOR signed_dynamics_compatible when negatives present (INV-KR4)"
+    measured_quantity: "preservation of negative entries on the signed path, audit fields on the positive path, and the fail-closed rejection of a signed matrix at the ROH boundary"
+    threshold: "exact/structural: signed path preserves negatives bit-for-bit (atol 0); positive path emits clipped_for_threshold=True with negative_mass>0; signed matrix at the ROH boundary raises ValueError"
+    positive_witness: "tests/physics/test_ricci_semantics_split.py::test_signed_curvature_split_preserves_and_audits"
+    negative_control: "tests/physics/test_ricci_semantics_split.py::test_signed_curvature_rejected_at_roh_boundary_fail_closed"
+    blocking: true
+    failure_message: "RICCI-SEMANTICS-SPLIT VIOLATED: signed curvature was silently dropped, clipped without audit, or a signed matrix was accepted at the ROH boundary."
+    evidence_output: "evidence/physics/ricci_kuramoto_report.json"
+
+  - id: second_law_closed
+    domain: thermodynamics
+    claim: "A closed subsystem with no external work has non-decreasing entropy (dS/dt >= 0); injected external work / negentropy that lowers entropy is detected."
+    formal_invariant: "free relaxation (dk=0, dW=0) of an overdamped Langevin ensemble in V=1/2 k x^2 has Gibbs entropy S=1/2 ln(2 pi e Var(x)) with dS/dt >= 0 (INV-TH2 / INV-ST3)"
+    measured_quantity: "min over a seeded relaxation trajectory of the block-to-block Gibbs-entropy increment dS"
+    threshold: "dS >= -tol, tol = 0.02 nats (~4x the 1/sqrt(M) finite-ensemble entropy-difference SE at M=40000); compression with injected work must breach -tol"
+    positive_witness: "tests/physics/test_second_law_closed.py::test_closed_subsystem_entropy_nondecreases"
+    negative_control: "tests/physics/test_second_law_closed.py::test_external_work_injection_is_detected"
+    blocking: true
+    failure_message: "SECOND-LAW VIOLATED: a closed (no-external-work) subsystem showed dS/dt < 0, or injected-work negentropy was not detected."
+    evidence_output: "evidence/physics/thermodynamics_report.json"
+
+  - id: free_energy_descent
+    domain: thermodynamics
+    claim: "Without external forcing, the free energy F = U - T*S of the trading gate is non-increasing."
+    formal_invariant: "dF/dt <= 0 for every unforced step (INV-FE1); components U>=0, T>=0, S_q>=0 (INV-FE2). F itself may be negative (Helmholtz)."
+    measured_quantity: "worst single-step F-increment over seeded unforced relaxation trajectories; plus delta_F and admission of a forced (leverage-growth) step"
+    threshold: "worst dF <= 1e-9 (float slack); a forced step must yield delta_F>0 AND allowed=False"
+    positive_witness: "tests/physics/test_free_energy_descent.py::test_unforced_free_energy_is_nonincreasing"
+    negative_control: "tests/physics/test_free_energy_descent.py::test_external_forcing_raising_free_energy_is_rejected"
+    blocking: true
+    failure_message: "FREE-ENERGY-DESCENT VIOLATED: unforced free energy increased, or a forcing step that raises F was admitted."
+    evidence_output: "evidence/physics/thermodynamics_report.json"
+
+  - id: landauer_bit_floor
+    domain: landauer
+    claim: "Erasing one bit of information costs at least k_B*T*ln2 of free energy, with equality at the reversible floor and linear scaling in temperature."
+    formal_invariant: "Delta_F_erase(n bits) = n*k_B*T*ln2; cost >= n*k_B*T*ln2 with equality at the reversible floor (INV-TAU2)"
+    measured_quantity: "bit_erasure_cost(n, T)/(n*k_B*T*ln2) over a T-sweep, and the floor/T slope vs k_B*ln2"
+    threshold: "ratio == 1.0 to 1e-12 (machine, equality at floor); any cost < n*k_B*T*ln2 violates"
+    positive_witness: "tests/physics/test_landauer_bit_floor.py::test_per_bit_erasure_floor_equals_kT_ln2"
+    negative_control: "tests/physics/test_landauer_bit_floor.py::test_sub_landauer_erasure_is_rejected"
+    blocking: true
+    failure_message: "LANDAUER-BIT-FLOOR VIOLATED: erasure cost fell below k_B*T*ln2 per bit or a sub-Landauer demand was admitted."
+    evidence_output: "evidence/physics/landauer_report.json"
+
+  - id: ecs_lyapunov_descent
+    domain: thermodynamics
+    claim: "The ECS free-energy regulator admits a Lyapunov function V(x) that is non-increasing along trajectories inside its operating set."
+    formal_invariant: "for V = 0.5*FE^2 + lambda*CF^2 + mu*SI^2: V_before > V_floor => V_after <= V_before (dV/dt <= 0); the corrected RK4 step fails closed to descent."
+    measured_quantity: "max over seeded autonomous trajectories of V(t+1) - V(t) for steps with V_before > V_floor"
+    threshold: "<= 1e-9 (V_floor = 1e-12); any larger increment violates descent"
+    positive_witness: "tests/physics/test_ecs_lyapunov_descent.py::test_ecs_lyapunov_monotone_descent_across_seeds"
+    negative_control: "tests/physics/test_ecs_lyapunov_descent.py::test_ecs_lyapunov_energy_injection_is_rejected"
+    blocking: true
+    failure_message: "ECS-LYAPUNOV-DESCENT VIOLATED: free-energy Lyapunov V increased along a trajectory inside the operating set (dV/dt > 0)."
+    evidence_output: "evidence/physics/ecs_lyapunov_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."

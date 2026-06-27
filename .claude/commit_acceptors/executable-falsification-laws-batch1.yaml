@@ -31,9 +31,9 @@ diff_scope:
     - "policy/"
 required_python_symbols: []
 expected_signal: >-
-  tools/validate_physics_contracts.py reports 15 blocking laws fully witnessed
-  (was 10) with every positive witness and negative control collected and
-  per-law evidence emitted. Each new witness test passes: positive witnesses
+  tools/validate_physics_contracts.py reports these 5 added laws fully
+  witnessed (catalog total >= 15; further batches raise it) with every
+  positive witness and negative control collected and per-law evidence emitted. Each new witness test passes: positive witnesses
   confirm the law numerically against the real Kuramoto/Ricci solvers, and
   negative controls confirm the instrument refutes a planted violation or
   fails closed on invalid input. No score increase, no canonical catalog
