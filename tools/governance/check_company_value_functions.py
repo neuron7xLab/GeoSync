@@ -186,7 +186,9 @@ def self_test(path: Path = MANIFEST, repo_root: Path = ROOT) -> list[str]:
 
     payload = deepcopy(base)
     payload["value_functions"][0]["weight"] = 0.50
-    errors.extend(_check_mutation(payload, repo_root, "weights must sum to 1.0", "weight drift"))
+    errors.extend(
+        _check_mutation(payload, repo_root, "weights must sum to 1.0", "weight drift")
+    )
 
     payload = deepcopy(base)
     payload["decision_rule"]["fail_closed_on_missing_evidence"] = False
