@@ -86,6 +86,14 @@ def test_docs_only_unmapped_change_is_empty_not_invalid() -> None:
     assert plan["pytest_command"] == []
 
 
+def test_required_core_surface_without_route_is_blocked() -> None:
+    tool = _load_tool()
+    plan = tool.select_plan(["core/future_component.py"], MATRIX, ROOT)
+    assert plan["status"] == "unmapped_required_surface"
+    assert plan["selectors"] == []
+    assert plan["unmapped_required"] == ["core/future_component.py"]
+
+
 def test_matrix_rejects_missing_selector_path(tmp_path: Path) -> None:
     tool = _load_tool()
     data = deepcopy(_matrix())
