@@ -523,6 +523,7 @@
 13e19ac7ea5c3a4c46e2a0df94aed804118fd5c3964d3f2a642facf4ffa0d53a  ./Makefile
 13ec854897b31aebf3a403d4933e4b5263acca3736c27a771c0bf61c3cb4a8a2  ./analytics/regime/tests/test_ricci_flow.py
 13ef8dd11b36263e1d9f0bc68f7d65dbc4932ab90ea375a5f046148f2d29b66d  ./tests/ci/test_phd_traceability.py
+13f840fba2f1ef3fd8bd52e6d7001136835cf4178902465cd296b49381ae6327  ./.claude/commit_acceptors/interval-enclosure-certificate.yaml
 13fc6061691ca8012d8a2fe6b136d6480011eefbbf45d794c128dcb96d78a4d5  ./geosync_research/lines/__init__.py
 13fdcbd44f1de2bb2cb06114c916a0464e180c562e4604e60149e0a817b7649b  ./tests/unit/markets/test_regime_detector.py
 140185e2dd97d6cd628bd1f4cce4e27132d965508b43ee5522467de883ee93d3  ./tests/test_http_server.py
@@ -628,6 +629,7 @@
 179c03be2e0e94e320641b6b56a8a85b05ef32869b69777286381a38549b5137  ./docs/api/examples/get-market-signal-200.json
 179c28433af5e1c363e89adbe01a753b04c88993e9b33ffd608654d8dda9b188  ./examples/go-client/kuramoto.go
 17a1aba393b53f07e0cc8165568b2576ac4e22bc23ee45a7fe93f2490e4dca5d  ./BBB_NVU_Cognitive_Noise_Gate_2026/tests/test_vectors.md
+17a8218c3ac10486e3e8e4d2b3af5b44e7dda4132fd6ffa9e31d6d3fdbb9a966  ./physics_contracts/falsification_catalog.yaml
 17c11143586d3ba6585a16fdfac500ab6e686fb86790121d62c07f4fb16b2936  ./research/ctc_falsify/c_real/open_data/schema/open_data_manifest.schema.json
 17c7bbd686b8faf48127d70224f4502cd28a5e8e354e3ef43b0739b7aa5ea0b2  ./geosync_research/lines/ricci_microstructure_v1/runner.py
 17f6e89da1654a2fe147251a088274e393ef909019e94b51466f7b8a6f787444  ./.claude/commit_acceptors/physics-inference-readiness-wheel-ledger.yaml
@@ -876,6 +878,7 @@
 218789611fab25612cda58d2ad6c732f9e44ba03fd906db068fc54f2fd1bdef7  ./application/runtime/__init__.py
 218e324c3f6b5ae844b2b27d3edc84975c338aeabc24c38b6c037a8d455b4d83  ./execution/resilience/circuit_breaker.py
 21997b0dbee35a82e4c305327ec18508299a9196a51888bd5e7b1ea4dc97b760  ./docs/deployment.md
+219ae6df58f6a446060b859af806d988472cba539e34edbcf4a4d62540583c45  ./tests/physics/test_interval_enclosure_certificate.py
 21acb50d9990e682cb1465cdf904ecfec3e7713ff9896e96ba945d4b77decf88  ./research/ctc_falsify/l2/surrogate.py
 21b54f9eae9afeed4dd70a7e9db3065b9859047d875697f151fa5a7d01e348d7  ./src/geosync/protocol/__init__.py
 21b6194dd1d08e65c3f1e2defd1e7082b9c8deda5b7315fe3e9df5c65e834078  ./.claude/commit_acceptors/ricci-commensurate-gate.yaml
@@ -2700,6 +2703,7 @@
 67f34db7f1c887abc5324792ce2bad80de46be9a326943b80a7600f38c198d7d  ./data/raw/binance_btcusdt_depth10.csv.meta.json
 67fd61350cef6840cace8af6ceb00be7dea9773679754f486e8adb94e4b8e9cd  ./docs/readiness_note.md
 6809da32fb89d2187e9db16a53bee6026e79e5dea569cfa667870c81ba13852e  ./apps/web/app/layout.tsx
+68209a918aac15d81b075db0ba519a05724f59d2b9980ffb4dba15cd29223b58  ./tests/physics/test_governance.py
 68325f589fd488ed8d40d4a2c545cf7489008a7f603fb29aeb4075d397c79872  ./.claude/commit_acceptors/945-remove-redundant-path-hacks.yaml
 683b437006aafcebeaa1206a5fd01acec1611ab9b0b5f87b9f7dccb4837f6133  ./.claude/commit_acceptors/physics-reliability-contract.yaml
 6840071840b75af0061acd4975cefcbbc142e96532d1fa382bb36e2d35507486  ./docs/indicators/amm.md
@@ -2986,7 +2990,6 @@
 72c722757afdb4e78ded8b60797da103aa9b73addecb9d4bb032b534006e8f45  ./.claude/commit_acceptors/x10r-d002c-c2-4-a2-null-audit-data-contract.yaml
 72d8fb9363a3e5159da68c7a0a92a5339a0ea3e6b386a33858dc2ac1179dba98  ./ui/dashboard/src/styles/neuron7xLab_overrides.css.js
 72e8678470eca38a2a9214314cc517eacb8d32f440659432ca6206bcfcea5429  ./docs/MODULE_INTERACTION_ORCHESTRATOR.md
-72eb4bb44d79fdf5ba678b8a4b0be072eb4102486dced7e49da81b42ec430f38  ./physics_contracts/falsification_catalog.yaml
 72efe97609095d4bcde0ca39a3428deeb881ffd6247578b03ea14afba01280f7  ./research/systemic_risk/verdict_lattice.py
 73082abfefd3068b4f4f066503670db49bfdf190642484b1e071e63d27c6e458  ./research/microstructure/cv.py
 73199bd3634a25fdf207eb9dfc697c8a628d1e0758a2a318b6954bb9f0c37121  ./tests/test_l2_full_cycle_manifest.py
@@ -6154,7 +6157,6 @@ ea12ec43b3a635a2585897eb6fcca11ddfc60b9389b1819fb1197ffec7024f8f  ./tests/disha_
 ea1a483b354db9742b1863a7ddb2944345d2187ce01661be23fd678264d59dea  ./docs/geosync_protocol.md
 ea1d7dc4efb15e9f683e89319e2efbb59376f65eccabb875d4af049efd4bea59  ./src/geosync/risk/__init__.py
 ea1f872aca173487e900b006dd311202313d0d36555dda82b46a6d0e0b61e3e2  ./docs/quality_gates.md
-ea4d5dc9796be259d0db7a8af64302b5a233eba7b6525a78d2858d554ed38473  ./tests/physics/test_governance.py
 ea5b1957f8714581ab37876e1c3b1b227d7fff5dc151537ebaadd85056c4aa13  ./.claude/commit_acceptors/x10r-d002c-null-audit-aggregator.yaml
 ea6c996e3698663a463e45bd6ac84701f3c394a2cbbb395d9a7292b6bb4f5203  ./tests/core/indicators/test_ensemble_divergence.py
 ea777317744b6f7d37b41414435b6cb018d06817a01c0ca035a0fe6766f2898b  ./formal/tla/CapitalWeightedKuramoto.tla

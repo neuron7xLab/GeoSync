@@ -37,7 +37,7 @@ def test_full_catalog_passes_promotion_gate() -> None:
     assert check_negative_controls(catalog, REPO_ROOT) == []
     gate = promotion_gate(catalog, REPO_ROOT, require_evidence=False)
     assert gate["status"] == "PASS", gate
-    assert gate["n_blocking"] == 46
+    assert gate["n_blocking"] == 47
 
 
 def test_law_without_negative_control_fails_gate() -> None:

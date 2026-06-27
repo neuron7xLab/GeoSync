@@ -558,6 +558,18 @@ laws:
     failure_message: "ADVERSARIAL-SEARCH VIOLATED: a global optimizer drove a bounded law past its bound, or the adversary could not breach a planted-too-tight bound (vacuous search)."
     evidence_output: "evidence/physics/falsification_report.json"
 
+  - id: interval_enclosure_certificate
+    domain: precision
+    claim: "The algebraic laws are certified by VERIFIED COMPUTING: an outward-rounded interval brackets the true mathematical value (mu/sigma^2, k_B*T*ln2), the repo float result lies inside, and the enclosure is tight (few ULP) — a machine-checked guarantee, not an arbitrary tolerance."
+    formal_invariant: "directed-rounding Interval (math.nextafter outward) for Kelly mu/sigma^2 and Landauer k_B*T*ln2 CONTAINS the repo result; relative enclosure width < 1e-12; a value shifted by 1e-9 (>> width) is provably NOT contained"
+    measured_quantity: "for each algebraic law: whether the repo float lies in the outward-rounded enclosure of the true value, the relative enclosure width, and exclusion of a planted wrong value"
+    threshold: "repo result in [lo,hi] for every case; relative width < 1e-12; a 1e-9-perturbed value excluded"
+    positive_witness: "tests/physics/test_interval_enclosure_certificate.py::test_kelly_value_is_certified_by_interval_enclosure"
+    negative_control: "tests/physics/test_interval_enclosure_certificate.py::test_enclosure_excludes_a_wrong_value"
+    blocking: true
+    failure_message: "INTERVAL-ENCLOSURE VIOLATED: a repo result fell outside its certified enclosure, the enclosure was not tight, or it failed to exclude a wrong value."
+    evidence_output: "evidence/physics/precision_report.json"
+
   - id: law_requires_positive_and_negative_witness
     domain: governance
     claim: "Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise."
