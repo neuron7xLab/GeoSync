@@ -26,7 +26,7 @@ _spec.loader.exec_module(gate)
 
 def _no_probe(monkeypatch: pytest.MonkeyPatch) -> None:
     # If any probe runs in these tests the boundary mock is wrong — make it loud.
-    def _boom(*_a: Any, **_k: Any) -> tuple[int, dict[str, Any]]:
+    def _boom(*_a: Any, **_k: Any) -> tuple[int, dict[str, Any], str, str]:
         raise AssertionError("ratchet probed despite no claim-critical change")
 
     monkeypatch.setattr(gate, "_probe_module", _boom)
@@ -61,13 +61,18 @@ def test_regression_below_floor_fails(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(gate, "_base_ledger", lambda ref: ledger)
     monkeypatch.setattr(gate, "_changed_files", lambda ref: {mod})
 
-    def _regressed(module: str, tests: str, floor: float) -> tuple[int, dict[str, Any]]:
-        return 1, {
-            "kill_rate": floor - 0.1,
-            "killed": 0,
-            "total": 1,
-            "survivors": [{"lineno": 1, "kind": "boolop", "detail": "And->Or"}],
-        }
+    def _regressed(module: str, tests: str, floor: float) -> tuple[int, dict[str, Any], str, str]:
+        return (
+            1,
+            {
+                "kill_rate": floor - 0.1,
+                "killed": 0,
+                "total": 1,
+                "survivors": [{"lineno": 1, "kind": "boolop", "detail": "And->Or"}],
+            },
+            "",
+            "",
+        )
 
     monkeypatch.setattr(gate, "_probe_module", _regressed)
     assert gate.main(["--base-ref", "HEAD"]) == 1
@@ -80,8 +85,8 @@ def test_meeting_floor_on_change_holds(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(gate, "_base_ledger", lambda ref: ledger)
     monkeypatch.setattr(gate, "_changed_files", lambda ref: {mod})
 
-    def _ok(module: str, tests: str, floor: float) -> tuple[int, dict[str, Any]]:
-        return 0, {"kill_rate": floor, "killed": 1, "total": 1, "survivors": []}
+    def _ok(module: str, tests: str, floor: float) -> tuple[int, dict[str, Any], str, str]:
+        return 0, {"kill_rate": floor, "killed": 1, "total": 1, "survivors": []}, "", ""
 
     monkeypatch.setattr(gate, "_probe_module", _ok)
     assert gate.main(["--base-ref", "HEAD"]) == 0
@@ -94,7 +99,7 @@ def test_baseline_failure_is_fail_closed(monkeypatch: pytest.MonkeyPatch) -> Non
     mod = sorted(ledger)[0]
     monkeypatch.setattr(gate, "_base_ledger", lambda ref: ledger)
     monkeypatch.setattr(gate, "_changed_files", lambda ref: {mod})
-    monkeypatch.setattr(gate, "_probe_module", lambda *a: (2, {}))
+    monkeypatch.setattr(gate, "_probe_module", lambda *a: (2, {}, "", "baseline failed"))
     assert gate.main(["--base-ref", "HEAD"]) == 2
 
 
@@ -119,5 +124,5 @@ def test_broken_probe_report_fails_closed(monkeypatch: pytest.MonkeyPatch) -> No
     mod = sorted(ledger)[0]
     monkeypatch.setattr(gate, "_base_ledger", lambda ref: ledger)
     monkeypatch.setattr(gate, "_changed_files", lambda ref: {mod})
-    monkeypatch.setattr(gate, "_probe_module", lambda *a: (1, {}))
+    monkeypatch.setattr(gate, "_probe_module", lambda *a: (1, {}, "", ""))
     assert gate.main(["--base-ref", "HEAD"]) == 2
