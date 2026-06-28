@@ -76,8 +76,8 @@ laws:
     formula: "dF/dt ≤ 0  where  F = Σ_e κ_e² · w_e"
     variables: {kappa_e: edge curvature, w_e: edge weight, F: Perelman-like functional}
     tolerance: "F(t+1) ≤ F(t) · (1 + 1e-9) — numerical slack only"
-    validity: "closed graph, no external rewiring during the flow step"
-    source: "Perelman 2002; Ni–Lin–Luo 2019"
+    validity: "closed graph, no external rewiring during the flow step, and positive Ricci curvature on active edges. Negative-curvature rewiring is an out-of-domain energy-injection regime and must be rejected by the executable witness, not counted as a valid monotonicity case."
+    source: "Perelman 2002; Ni–Lin–Luo 2019; core/kuramoto/ricci_flow.py::discrete_ricci_flow_step"
     severity: block
 
   - id: ricci.gauss_bonnet

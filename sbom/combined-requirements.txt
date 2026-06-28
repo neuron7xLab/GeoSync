@@ -20,7 +20,7 @@ alembic==1.17.0
     # via
     #   geosync (pyproject.toml)
     #   optuna
-altair==6.2.1
+altair==6.2.2
     # via streamlit
 annotated-doc==0.0.4
     # via fastapi
@@ -66,7 +66,7 @@ charset-normalizer==3.4.4
     # via
     #   -c constraints/security.txt
     #   requests
-click==8.3.0
+click==8.4.2
     # via
     #   geosync (pyproject.toml)
     #   streamlit
@@ -94,7 +94,7 @@ exchange-calendars==4.11.1
     # via geosync (pyproject.toml)
 extra-streamlit-components==0.1.81
     # via streamlit-authenticator
-fastapi==0.138.0
+fastapi==0.138.1
     # via
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
@@ -243,7 +243,7 @@ nvidia-nvshmem-cu13==3.4.5
     # via torch
 nvidia-nvtx==13.0.85
     # via cuda-toolkit
-omegaconf==2.3.0
+omegaconf==2.3.1
     # via
     #   geosync (pyproject.toml)
     #   hydra-core
@@ -474,7 +474,7 @@ typing-inspection==0.4.2
     #   fastapi
     #   pydantic
     #   pydantic-settings
-tzdata==2025.2
+tzdata==2026.2
     # via
     #   exchange-calendars
     #   pandas

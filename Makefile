@@ -751,3 +751,7 @@ ricci-release-gate:
 	$(PYTEST) -q tests/research_lines/test_ricci_microstructure_v1.py
 	$(MAKE) ricci-capsule
 	@echo "✅ ricci lane gate green (signed SLSA/cosign provenance runs in CI)"
+
+.PHONY: verify-cognitive-core
+verify-cognitive-core: ## Self-verifying cognitive-core meta-gate (one signed verdict)
+	PYTHONPATH=. python scripts/ci/verify_cognitive_core.py

@@ -1,1 +1,412 @@
-{"version":1,"description":"Managed inventory for connector fail-closed and hygiene CI surface.","scopes":[".github/workflows/pr-gate.yml","scripts/ci","scripts/generate_stakeholder_assets.py","src/mycelium_fractal_net/connectors","tests/connectors"],"files":[{"path":".github/workflows/pr-gate.yml","sha256":"84fa21d572119e8a1beef15e8e9f425a80071bfd53d1297223c600f12399ba81"},{"path":"scripts/ci/__init__.py","sha256":"120122f1da54c908eb859877e383324e7c284fc3f03f73c221b59de9c9e83954"},{"path":"scripts/ci/benchmark_spine.py","sha256":"e253c4bfa0ba7f3ed491cc83d1903b5b4931cb75df7654fc3139f317596789d3"},{"path":"scripts/ci/capsule_verification_report.py","sha256":"b2a4f9f0eb7679aecd9b0236519ec9d4c7edc9cdc00a0755909859b2de65df3e"},{"path":"scripts/ci/check_acceptor_command_syntax.py","sha256":"02e7509bc4f3bea8f6576aea0b8b297baf71ce5c829e8ff382de0737a0f667c8"},{"path":"scripts/ci/check_artifact_freshness.py","sha256":"03f13da10bd7158f3379d2420a555699940d3afe333bb1ee010ed3872d55e3ac"},{"path":"scripts/ci/check_audit_report_paths.py","sha256":"a02f43ae1a3f7c41ae742b23cd24135f5800a26b256c35733641f5afb9fe19a4"},{"path":"scripts/ci/check_calibration_drift.py","sha256":"e2ffd3ad4aa8e4c2969687fb60ccb0ca0cb56d6e95d06e42d1faa14d7d531e30"},{"path":"scripts/ci/check_capsule_schema.py","sha256":"3a7fcff1179b37db7006df3fb9f9c52e6227895d2333718233308c94c02adec6"},{"path":"scripts/ci/check_central_files_touched.py","sha256":"c5506dbb167eaa14a97f4f8b96aebc9365d4d54e2cbba9f96aeb6f404a20f5b8"},{"path":"scripts/ci/check_claim_artifact_graph.py","sha256":"353444b91b90b2018c3c09ace911051597b884851e8677e55ddabec0a9a20b62"},{"path":"scripts/ci/check_claim_boundary.py","sha256":"e385d80a2505ccdbdf6b7d89fdcf4bdab23bd37088e467e1197705b841c63d4d"},{"path":"scripts/ci/check_claim_maturity.py","sha256":"a806ff3b73ed908990e7f8255bb4c80695475592ba7cdf59f5c6d9aee8f56f0a"},{"path":"scripts/ci/check_claims.py","sha256":"a665d6d250a1512d93db0df5512693514f453a0c07882e9d8c22f95863cee1fa"},{"path":"scripts/ci/check_code_hygiene.py","sha256":"ae68e6dec4861a12bb343249789cd89c6a2e2a224c69b32ef39a91377b5e587c"},{"path":"scripts/ci/check_config_sprawl.py","sha256":"0da684ef26189993918c8ef0611dc305e2a2ab5de7997b9ffa48d259e2fa93c5"},{"path":"scripts/ci/check_debt_baseline_monotonic.py","sha256":"aa67b98e8be4d75626a0dc04447485697d068cf83902eed32f28807dbe887e00"},{"path":"scripts/ci/check_docs_consistency.py","sha256":"59b4843e29dfd2bc77e8150ba08b99f3b19517fc8d321520dc6f01f8b0b18fb9"},{"path":"scripts/ci/check_evidence_integrity.py","sha256":"3600ded04a7e0a8ba01d55cb902ce41f0d90dd15afa3a66014ea69adeef8f571"},{"path":"scripts/ci/check_examples_manifest.py","sha256":"a0e4a2d58f0d7ec3020436e654fd3397769a15c8165ec32c53eba5f1f162f187"},{"path":"scripts/ci/check_falsifier_ledger.py","sha256":"44bf8ddb16c3cd96a4dd2258ad35fe3734e022e0680f7587591d503f6c0c0986"},{"path":"scripts/ci/check_governance_kernel_binding.py","sha256":"eea202a181002cf72f8dccf7da1133a7e62cd5d6bc511fd1b470964bbeda153d"},{"path":"scripts/ci/check_import_architecture.py","sha256":"d025c4ef24b437274284db4e3e0b6bff599a7e81cd66c22252186591a8f0ddf2"},{"path":"scripts/ci/check_inference_transformer_contract.py","sha256":"1d85e018a5fc97d1e68d99a01cffe7b359986a9020da7efe09a5cb69bfef8ca0"},{"path":"scripts/ci/check_instrument_evidence_chain.py","sha256":"50caf2f64e0c12ad18eed19bd44e1c2cd8be23da9058441cf8e5700b158a5de4"},{"path":"scripts/ci/check_invariant_source_binding.py","sha256":"dcf7290f6c2b3503d7f25140d04a6fca4785c0089f6e056d0aaa453018fdc09f"},{"path":"scripts/ci/check_inventory_sync.py","sha256":"d07faf335bfd1085912d862e74a2b657251efb428956430f82a85f65e7fa6801"},{"path":"scripts/ci/check_manifest_hashes.py","sha256":"5b2afe9b355891c3e4f9bd65ee3faed9d20d2c6406db811841c7ee8953a09c76"},{"path":"scripts/ci/check_math_boundaries.py","sha256":"317000852fa2c3482cbe8a2a1f48f41073b17cf07d34632f35f85d2f121fb095"},{"path":"scripts/ci/check_mutation_kill_ratchet.py","sha256":"28844a3d33a70a3c4a93abab5c0dbfc8993e96e85dbdda0643262fcd5758ea91"},{"path":"scripts/ci/check_n7x_value_functions.py","sha256":"9e461d0dc18942ab2fba792f6dfec773b0ceeed66b6e1aca83b52307e5bd3d59"},{"path":"scripts/ci/check_negative_evidence.py","sha256":"8d1fc0d696924ea87c8355b5492f5c4f822d344da14eae4f8f3e7921e85772e2"},{"path":"scripts/ci/check_neuro_claim_boundary.py","sha256":"7f9d79e30ac2840e3f43943179eeebf6ffe06a104d9f8789999f4f477ac95ef5"},{"path":"scripts/ci/check_package_boundary.py","sha256":"a4b18d2997847f144e2b3901290e7d14dd15f25f6cb7150cd7a85d7cc275db2d"},{"path":"scripts/ci/check_phd_traceability.py","sha256":"85708a51dd51f7e6e9423f0b43366e4fafef7096e451ddf8c3d750977ec328f3"},{"path":"scripts/ci/check_physics_docs_canon.py","sha256":"a3900a98e2605bad8183dcb182ec05f5a917ba08b93bef9828948bed926ab58e"},{"path":"scripts/ci/check_physics_inference_readiness.py","sha256":"5ff2047b0d3134ecbed0fc0b7d567a3f9d0548e761ffd21949306fa9120d3d38"},{"path":"scripts/ci/check_physics_law_witness_index.py","sha256":"0c7b5b8757fbc89510337b0f82b855289247e96542933038b3f308215d4af612"},{"path":"scripts/ci/check_pr_gate_contract.py","sha256":"d474e8af748173b26158e1dba6d0846ff03a44c985dc2b5a14ca24d8a7de2ba4"},{"path":"scripts/ci/check_research_artifact_truth.py","sha256":"98e90c6aa0a2677e968be5efbf7c72fb488bd79f66aeef843ca197f7f9180f42"},{"path":"scripts/ci/check_research_standard_contract.py","sha256":"eb6ee56702cca09591489f9e645418acdd8334361eb9be5b0356a96ab92ce8a2"},{"path":"scripts/ci/check_revalidation_ledger.py","sha256":"da7161c99bb1ebe86e028cf64465a622c37858aedc738d210f606be6e1b11744"},{"path":"scripts/ci/check_skip_ratchet.py","sha256":"fe6fbb23ae5812ff5fe086a857e1a6a3e5a8fc4ae62ee62f06c0a684967eeef2"},{"path":"scripts/ci/check_tombstone_preservation.py","sha256":"cf13aba1ea21c88342178ddad96672043fe5cef5312b71f8cc2018521c3de4e2"},{"path":"scripts/ci/check_wheel_contract.py","sha256":"f45db0e80136ada6cbb8db33d4e068ea80284479108464e89fd63f805742502c"},{"path":"scripts/ci/compute_fps_audit.py","sha256":"e35b695eb92648ce61d04318bdfd27e76a7ea9222316f8e244f87b43c6a4f06c"},{"path":"scripts/ci/compute_pai.py","sha256":"7c687cd68ac5a79898cb8caebf6c3742390e719fd2f249992ba88ae4acbf052e"},{"path":"scripts/ci/emit_pyo3_env.py","sha256":"dbebaf4c7a76f3adc16f7cb3553a8bd837de674f03424810735f86b2d7f30247"},{"path":"scripts/ci/emit_verdict.py","sha256":"04f38224ea2cea2f008ae9ba97fae5c2d7ab429df54382bc296c02fdd4f04615"},{"path":"scripts/ci/evidence_gate.sh","sha256":"0f7cb42ded3954d70958ef38862a74741bd8c8c5174d272daaf465da28da8a31"},{"path":"scripts/ci/execution_contract.py","sha256":"4a830cedb569429bdd585c4250894037026bb06299bb67c4c8a6bbc98431151d"},{"path":"scripts/ci/external_run_intake.py","sha256":"2f384ef49ee8051cb157a24387985a54361d8402db5ff01880bfdac64f7dbb22"},{"path":"scripts/ci/falsification_ledger.py","sha256":"1eec045f0ba16f330e7a7a1446b194b9277b39e012f3af412c1ad1a6615cbc9c"},{"path":"scripts/ci/gate6_sensitivity_surface_falsifier.py","sha256":"c9ca39139bc360c742f06350e23c086cb8c8a9eeea4d1d09b7998d16d1d0acdf"},{"path":"scripts/ci/gen_distinguished_evidence_table.py","sha256":"3385e1bb6a8334234d715c6944eed815c22f161591e3220273f8a4d3bdce1aad"},{"path":"scripts/ci/gen_law_mechanism_witness_matrix.py","sha256":"f2c32d209e365562c2b7d6666320416f346094e462d3ffc4ff947b0868d2ee6e"},{"path":"scripts/ci/gen_reference_conformance.py","sha256":"f2da38fe408e1830515b70fbb54cfa05b9ee0f9860727cd4ae65deecfd119f06"},{"path":"scripts/ci/generate_manifest.py","sha256":"e99ef38a6683fc2cdc3ba87337fe0482900fcf080f12a2c782388a4d76f81fe7"},{"path":"scripts/ci/lint_forbidden_terms.py","sha256":"d65c2bc782e1223dbd1c8379fad5bdcf92ad8fd6775cb37978e53b0f3e2da7b2"},{"path":"scripts/ci/phd_evidence.sh","sha256":"4e604ff1bf5aee21cf570150065f54873c4d50052a1986bd9414ad9c1126f4bb"},{"path":"scripts/ci/physics_grounding_batch_823_falsifier.py","sha256":"944b8f07c6e2f1bdf12779ec4ecbbfd5fd0c0d5572ea2ea821852e63441e6b4e"},{"path":"scripts/ci/pr_quality_sentinel.py","sha256":"47e975016c3a2cf56b43c6e5c99ca04a0d9bdedbceacdd9fd61056cf18d75d47"},{"path":"scripts/ci/probe_clean_clone.py","sha256":"55464bf1cdf4cc3ea97cea13ddf22535ba3e51af75112ed2d321d1b49115b130"},{"path":"scripts/ci/proof_common.py","sha256":"797c8b991ee844a5aceb14f4abcec24e7b89c1f124f2defbfaaaf2728791b958"},{"path":"scripts/ci/prove_repo_integrity.sh","sha256":"b5338f5ccc72748bd167668521ac2bd0f076ae262ea715257506bb718b807799"},{"path":"scripts/ci/real_data_probe.py","sha256":"18e98b3bf68e9401956decd3bda50ea75f38f157b4eb429cbea230f31198e35f"},{"path":"scripts/ci/registry_reconcile_law_T1_T7_falsifier.py","sha256":"82508c3096f0305c5dbb27e4e73ee6fa146b8e115abb636bb2c9fb9d5ce02a5a"},{"path":"scripts/ci/release_gate.py","sha256":"ecb8b78b2dc6e9d19485cf4a265a7c0bddb1379eb9d6e2524027f615ea3deeb1"},{"path":"scripts/ci/replication_packet.py","sha256":"4b13f69b3fe66341aec7f5a31e82446aa901b78cb26baf1f55a0ab1bdda1e8e2"},{"path":"scripts/ci/ricci_microstructure_docs_falsifier.py","sha256":"1b80211ecc571ea80e4d99a73743b347850f43bf58544764a408ec8828fcab90"},{"path":"scripts/ci/ricci_microstructure_kernel_falsifier.py","sha256":"6c5e024262e045ffe81e1a90b4cb18afe84549d19f035e6299b053fe15491518"},{"path":"scripts/ci/ricci_microstructure_scaffolding_falsifier.py","sha256":"56359f0f9377d39fdb128e28079b64b079aab57607b18bbab14dfc462ca177ab"},{"path":"scripts/ci/run_actionlint.py","sha256":"a21ae0beda169a249063bf76ad48578fb22b91d73d49aced82dfd50accb1663c"},{"path":"scripts/ci/run_rust_accel_contract.py","sha256":"f15af48197435f3257b418a69742f494dc754643175004c35989c12eaff0a680"},{"path":"scripts/ci/update_inventory.py","sha256":"177334d75a0a0eecfc8ab02b302ce173b5ede84d9030e934cb732a2963cfefa2"},{"path":"scripts/ci/verify_changeset.py","sha256":"6ef1463d0f6328ee2da921de07f1c2e13332aa04c0e937cd068dcfbbdcda36c5"},{"path":"scripts/ci/verify_claims.py","sha256":"e1d15056c8ec4f938f5461585ed24777fd32fc5185d11f55978f56f2c802c148"},{"path":"scripts/ci/write_pr_evidence_summary.py","sha256":"d89c09e58a6b1d0fdd30fd1b710f8ce55e15b7de4dc8c8455c68aa06253d0d07"},{"path":"scripts/ci/x10r_lane_d_data_contract_falsifier.py","sha256":"c1461623064b876db40b553c886d751f30612cbee30c5fe68ff150c8de3a9c5a"},{"path":"scripts/generate_stakeholder_assets.py","sha256":"ba5b8ad1e8b05f950d009553a6f5141468f7c278676964bd37d5a41d538f9dab"},{"path":"src/mycelium_fractal_net/connectors/__init__.py","sha256":"2f50d6965a50c3877cb06ad9ffc567d2dd8d5cebc5322aaa4d61e0f4a6a95cff"},{"path":"src/mycelium_fractal_net/connectors/base.py","sha256":"4558c679e660e5f5776b8c3ebb78816dae61e78acc954be3fdaedf1be4179d2a"},{"path":"src/mycelium_fractal_net/connectors/config.py","sha256":"f36b0a96ea99889fca997c101c781805e88d2bdd6359d9b139f8087264240b75"},{"path":"src/mycelium_fractal_net/connectors/file_feed.py","sha256":"4fa5576ded0b1a21642d3a55d5507e73edc54d1eb14cf77f6e5ca59fbf8b0a19"},{"path":"src/mycelium_fractal_net/connectors/kafka_source.py","sha256":"7c797b76e2d1b22e905481b6918b5630064a942796919c79b3a915bfa13fe6f5"},{"path":"src/mycelium_fractal_net/connectors/metrics.py","sha256":"8f6fd8549473efb207d0ce32a509d8a7f7232205a7af7fed1670922573a78baf"},{"path":"src/mycelium_fractal_net/connectors/rest_source.py","sha256":"26ddedba40e564c703f07cf675a282b2d11c4e42b07add7400d8a68849af4910"},{"path":"src/mycelium_fractal_net/connectors/runner.py","sha256":"d067339b3d3c689e1d49813e263cbacda42695aeb78433c3c9e536e061eb4ac9"},{"path":"src/mycelium_fractal_net/connectors/transform.py","sha256":"dcaee54248cea8e314a37707d32e71f6f698c0dc134c40154059f4f2e5d0c765"},{"path":"tests/connectors/__init__.py","sha256":"7a05869ac8f30dc24c9c46e20293c4b4786e431da6bcbb66cb39e9702364a2cc"},{"path":"tests/connectors/test_base_interface.py","sha256":"2adaceaac94ac9ae43d364c0b3efd64dd0ebcb0068da4d4c0656ac03b8a24efb"},{"path":"tests/connectors/test_fail_closed_connectors.py","sha256":"5b5d7422480b03eef742f77641ab5ab2ae83c570d9be0f7e5f080e4cd162e3c6"},{"path":"tests/connectors/test_file_feed.py","sha256":"4d1df307e2296b6564a7ff53ddef196cb9bbe07482787d58d7d6b97fd2f0493d"},{"path":"tests/connectors/test_optional_dependency_guards.py","sha256":"39e33599408ce9a78f14af8fc110297e1e4fc602557757d7aa0db404d0fdd136"},{"path":"tests/connectors/test_polygon_adapter_reproducible.py","sha256":"d9c42cb198e52cd5f2045b61553b90fb49d83835ce70d443cdc7e5c27407ae93"},{"path":"tests/connectors/test_rest_source.py","sha256":"02aec7d139bc9cb2985e0c1445f40277382736693ed4157490bc3d246fcf0591"},{"path":"tests/connectors/test_runner_backend_local.py","sha256":"bd51df1de21cb76b4f7c9406fb69f365e46d3e7923858626976d3dd5ec46b800"},{"path":"tests/connectors/test_transform_mapping.py","sha256":"ee53c4ca0507a086ea2d6afca35fc382e00c58e06555867eb0ec46913b8fac58"}],"relaxed_scopes":["scripts/tests"]}
+{
+  "version": 1,
+  "description": "Managed inventory for connector fail-closed and hygiene CI surface.",
+  "scopes": [
+    ".github/workflows/pr-gate.yml",
+    "scripts/ci",
+    "scripts/generate_stakeholder_assets.py",
+    "src/mycelium_fractal_net/connectors",
+    "tests/connectors"
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/pr-gate.yml",
+      "sha256": "84fa21d572119e8a1beef15e8e9f425a80071bfd53d1297223c600f12399ba81"
+    },
+    {
+      "path": "scripts/ci/__init__.py",
+      "sha256": "120122f1da54c908eb859877e383324e7c284fc3f03f73c221b59de9c9e83954"
+    },
+    {
+      "path": "scripts/ci/benchmark_spine.py",
+      "sha256": "e253c4bfa0ba7f3ed491cc83d1903b5b4931cb75df7654fc3139f317596789d3"
+    },
+    {
+      "path": "scripts/ci/capsule_verification_report.py",
+      "sha256": "b2a4f9f0eb7679aecd9b0236519ec9d4c7edc9cdc00a0755909859b2de65df3e"
+    },
+    {
+      "path": "scripts/ci/check_acceptor_command_syntax.py",
+      "sha256": "02e7509bc4f3bea8f6576aea0b8b297baf71ce5c829e8ff382de0737a0f667c8"
+    },
+    {
+      "path": "scripts/ci/check_artifact_freshness.py",
+      "sha256": "03f13da10bd7158f3379d2420a555699940d3afe333bb1ee010ed3872d55e3ac"
+    },
+    {
+      "path": "scripts/ci/check_audit_report_paths.py",
+      "sha256": "a02f43ae1a3f7c41ae742b23cd24135f5800a26b256c35733641f5afb9fe19a4"
+    },
+    {
+      "path": "scripts/ci/check_calibration_drift.py",
+      "sha256": "e2ffd3ad4aa8e4c2969687fb60ccb0ca0cb56d6e95d06e42d1faa14d7d531e30"
+    },
+    {
+      "path": "scripts/ci/check_capsule_schema.py",
+      "sha256": "3a7fcff1179b37db7006df3fb9f9c52e6227895d2333718233308c94c02adec6"
+    },
+    {
+      "path": "scripts/ci/check_central_files_touched.py",
+      "sha256": "c5506dbb167eaa14a97f4f8b96aebc9365d4d54e2cbba9f96aeb6f404a20f5b8"
+    },
+    {
+      "path": "scripts/ci/check_claim_artifact_graph.py",
+      "sha256": "353444b91b90b2018c3c09ace911051597b884851e8677e55ddabec0a9a20b62"
+    },
+    {
+      "path": "scripts/ci/check_claim_boundary.py",
+      "sha256": "e385d80a2505ccdbdf6b7d89fdcf4bdab23bd37088e467e1197705b841c63d4d"
+    },
+    {
+      "path": "scripts/ci/check_claim_maturity.py",
+      "sha256": "a806ff3b73ed908990e7f8255bb4c80695475592ba7cdf59f5c6d9aee8f56f0a"
+    },
+    {
+      "path": "scripts/ci/check_claims.py",
+      "sha256": "a665d6d250a1512d93db0df5512693514f453a0c07882e9d8c22f95863cee1fa"
+    },
+    {
+      "path": "scripts/ci/check_code_hygiene.py",
+      "sha256": "ae68e6dec4861a12bb343249789cd89c6a2e2a224c69b32ef39a91377b5e587c"
+    },
+    {
+      "path": "scripts/ci/check_config_sprawl.py",
+      "sha256": "0da684ef26189993918c8ef0611dc305e2a2ab5de7997b9ffa48d259e2fa93c5"
+    },
+    {
+      "path": "scripts/ci/check_debt_baseline_monotonic.py",
+      "sha256": "aa67b98e8be4d75626a0dc04447485697d068cf83902eed32f28807dbe887e00"
+    },
+    {
+      "path": "scripts/ci/check_docs_consistency.py",
+      "sha256": "59b4843e29dfd2bc77e8150ba08b99f3b19517fc8d321520dc6f01f8b0b18fb9"
+    },
+    {
+      "path": "scripts/ci/check_evidence_integrity.py",
+      "sha256": "3600ded04a7e0a8ba01d55cb902ce41f0d90dd15afa3a66014ea69adeef8f571"
+    },
+    {
+      "path": "scripts/ci/check_examples_manifest.py",
+      "sha256": "a0e4a2d58f0d7ec3020436e654fd3397769a15c8165ec32c53eba5f1f162f187"
+    },
+    {
+      "path": "scripts/ci/check_falsifier_ledger.py",
+      "sha256": "44bf8ddb16c3cd96a4dd2258ad35fe3734e022e0680f7587591d503f6c0c0986"
+    },
+    {
+      "path": "scripts/ci/check_governance_kernel_binding.py",
+      "sha256": "eea202a181002cf72f8dccf7da1133a7e62cd5d6bc511fd1b470964bbeda153d"
+    },
+    {
+      "path": "scripts/ci/check_import_architecture.py",
+      "sha256": "d025c4ef24b437274284db4e3e0b6bff599a7e81cd66c22252186591a8f0ddf2"
+    },
+    {
+      "path": "scripts/ci/check_inference_transformer_contract.py",
+      "sha256": "1d85e018a5fc97d1e68d99a01cffe7b359986a9020da7efe09a5cb69bfef8ca0"
+    },
+    {
+      "path": "scripts/ci/check_instrument_evidence_chain.py",
+      "sha256": "50caf2f64e0c12ad18eed19bd44e1c2cd8be23da9058441cf8e5700b158a5de4"
+    },
+    {
+      "path": "scripts/ci/check_invariant_source_binding.py",
+      "sha256": "dcf7290f6c2b3503d7f25140d04a6fca4785c0089f6e056d0aaa453018fdc09f"
+    },
+    {
+      "path": "scripts/ci/check_inventory_sync.py",
+      "sha256": "d07faf335bfd1085912d862e74a2b657251efb428956430f82a85f65e7fa6801"
+    },
+    {
+      "path": "scripts/ci/check_manifest_hashes.py",
+      "sha256": "5b2afe9b355891c3e4f9bd65ee3faed9d20d2c6406db811841c7ee8953a09c76"
+    },
+    {
+      "path": "scripts/ci/check_math_boundaries.py",
+      "sha256": "317000852fa2c3482cbe8a2a1f48f41073b17cf07d34632f35f85d2f121fb095"
+    },
+    {
+      "path": "scripts/ci/check_mutation_kill_ratchet.py",
+      "sha256": "28844a3d33a70a3c4a93abab5c0dbfc8993e96e85dbdda0643262fcd5758ea91"
+    },
+    {
+      "path": "scripts/ci/check_n7x_value_functions.py",
+      "sha256": "9e461d0dc18942ab2fba792f6dfec773b0ceeed66b6e1aca83b52307e5bd3d59"
+    },
+    {
+      "path": "scripts/ci/check_negative_evidence.py",
+      "sha256": "8d1fc0d696924ea87c8355b5492f5c4f822d344da14eae4f8f3e7921e85772e2"
+    },
+    {
+      "path": "scripts/ci/check_neuro_claim_boundary.py",
+      "sha256": "7f9d79e30ac2840e3f43943179eeebf6ffe06a104d9f8789999f4f477ac95ef5"
+    },
+    {
+      "path": "scripts/ci/check_package_boundary.py",
+      "sha256": "a4b18d2997847f144e2b3901290e7d14dd15f25f6cb7150cd7a85d7cc275db2d"
+    },
+    {
+      "path": "scripts/ci/check_phd_traceability.py",
+      "sha256": "85708a51dd51f7e6e9423f0b43366e4fafef7096e451ddf8c3d750977ec328f3"
+    },
+    {
+      "path": "scripts/ci/check_physics_docs_canon.py",
+      "sha256": "a3900a98e2605bad8183dcb182ec05f5a917ba08b93bef9828948bed926ab58e"
+    },
+    {
+      "path": "scripts/ci/check_physics_inference_readiness.py",
+      "sha256": "5ff2047b0d3134ecbed0fc0b7d567a3f9d0548e761ffd21949306fa9120d3d38"
+    },
+    {
+      "path": "scripts/ci/check_physics_law_witness_index.py",
+      "sha256": "0c7b5b8757fbc89510337b0f82b855289247e96542933038b3f308215d4af612"
+    },
+    {
+      "path": "scripts/ci/check_pr_gate_contract.py",
+      "sha256": "d474e8af748173b26158e1dba6d0846ff03a44c985dc2b5a14ca24d8a7de2ba4"
+    },
+    {
+      "path": "scripts/ci/check_research_artifact_truth.py",
+      "sha256": "98e90c6aa0a2677e968be5efbf7c72fb488bd79f66aeef843ca197f7f9180f42"
+    },
+    {
+      "path": "scripts/ci/check_research_standard_contract.py",
+      "sha256": "eb6ee56702cca09591489f9e645418acdd8334361eb9be5b0356a96ab92ce8a2"
+    },
+    {
+      "path": "scripts/ci/check_revalidation_ledger.py",
+      "sha256": "da7161c99bb1ebe86e028cf64465a622c37858aedc738d210f606be6e1b11744"
+    },
+    {
+      "path": "scripts/ci/check_skip_ratchet.py",
+      "sha256": "fe6fbb23ae5812ff5fe086a857e1a6a3e5a8fc4ae62ee62f06c0a684967eeef2"
+    },
+    {
+      "path": "scripts/ci/check_tombstone_preservation.py",
+      "sha256": "cf13aba1ea21c88342178ddad96672043fe5cef5312b71f8cc2018521c3de4e2"
+    },
+    {
+      "path": "scripts/ci/check_wheel_contract.py",
+      "sha256": "f45db0e80136ada6cbb8db33d4e068ea80284479108464e89fd63f805742502c"
+    },
+    {
+      "path": "scripts/ci/compute_fps_audit.py",
+      "sha256": "e35b695eb92648ce61d04318bdfd27e76a7ea9222316f8e244f87b43c6a4f06c"
+    },
+    {
+      "path": "scripts/ci/compute_pai.py",
+      "sha256": "7c687cd68ac5a79898cb8caebf6c3742390e719fd2f249992ba88ae4acbf052e"
+    },
+    {
+      "path": "scripts/ci/emit_pyo3_env.py",
+      "sha256": "dbebaf4c7a76f3adc16f7cb3553a8bd837de674f03424810735f86b2d7f30247"
+    },
+    {
+      "path": "scripts/ci/emit_verdict.py",
+      "sha256": "04f38224ea2cea2f008ae9ba97fae5c2d7ab429df54382bc296c02fdd4f04615"
+    },
+    {
+      "path": "scripts/ci/evidence_gate.sh",
+      "sha256": "0f7cb42ded3954d70958ef38862a74741bd8c8c5174d272daaf465da28da8a31"
+    },
+    {
+      "path": "scripts/ci/execution_contract.py",
+      "sha256": "4a830cedb569429bdd585c4250894037026bb06299bb67c4c8a6bbc98431151d"
+    },
+    {
+      "path": "scripts/ci/external_run_intake.py",
+      "sha256": "2f384ef49ee8051cb157a24387985a54361d8402db5ff01880bfdac64f7dbb22"
+    },
+    {
+      "path": "scripts/ci/falsification_ledger.py",
+      "sha256": "1eec045f0ba16f330e7a7a1446b194b9277b39e012f3af412c1ad1a6615cbc9c"
+    },
+    {
+      "path": "scripts/ci/gate6_sensitivity_surface_falsifier.py",
+      "sha256": "c9ca39139bc360c742f06350e23c086cb8c8a9eeea4d1d09b7998d16d1d0acdf"
+    },
+    {
+      "path": "scripts/ci/gen_distinguished_evidence_table.py",
+      "sha256": "3385e1bb6a8334234d715c6944eed815c22f161591e3220273f8a4d3bdce1aad"
+    },
+    {
+      "path": "scripts/ci/gen_law_mechanism_witness_matrix.py",
+      "sha256": "f2c32d209e365562c2b7d6666320416f346094e462d3ffc4ff947b0868d2ee6e"
+    },
+    {
+      "path": "scripts/ci/gen_reference_conformance.py",
+      "sha256": "f2da38fe408e1830515b70fbb54cfa05b9ee0f9860727cd4ae65deecfd119f06"
+    },
+    {
+      "path": "scripts/ci/generate_manifest.py",
+      "sha256": "e99ef38a6683fc2cdc3ba87337fe0482900fcf080f12a2c782388a4d76f81fe7"
+    },
+    {
+      "path": "scripts/ci/lint_forbidden_terms.py",
+      "sha256": "d65c2bc782e1223dbd1c8379fad5bdcf92ad8fd6775cb37978e53b0f3e2da7b2"
+    },
+    {
+      "path": "scripts/ci/phd_evidence.sh",
+      "sha256": "4e604ff1bf5aee21cf570150065f54873c4d50052a1986bd9414ad9c1126f4bb"
+    },
+    {
+      "path": "scripts/ci/physics_grounding_batch_823_falsifier.py",
+      "sha256": "944b8f07c6e2f1bdf12779ec4ecbbfd5fd0c0d5572ea2ea821852e63441e6b4e"
+    },
+    {
+      "path": "scripts/ci/pr_quality_sentinel.py",
+      "sha256": "47e975016c3a2cf56b43c6e5c99ca04a0d9bdedbceacdd9fd61056cf18d75d47"
+    },
+    {
+      "path": "scripts/ci/probe_clean_clone.py",
+      "sha256": "55464bf1cdf4cc3ea97cea13ddf22535ba3e51af75112ed2d321d1b49115b130"
+    },
+    {
+      "path": "scripts/ci/proof_common.py",
+      "sha256": "797c8b991ee844a5aceb14f4abcec24e7b89c1f124f2defbfaaaf2728791b958"
+    },
+    {
+      "path": "scripts/ci/prove_repo_integrity.sh",
+      "sha256": "b5338f5ccc72748bd167668521ac2bd0f076ae262ea715257506bb718b807799"
+    },
+    {
+      "path": "scripts/ci/real_data_probe.py",
+      "sha256": "18e98b3bf68e9401956decd3bda50ea75f38f157b4eb429cbea230f31198e35f"
+    },
+    {
+      "path": "scripts/ci/registry_reconcile_law_T1_T7_falsifier.py",
+      "sha256": "82508c3096f0305c5dbb27e4e73ee6fa146b8e115abb636bb2c9fb9d5ce02a5a"
+    },
+    {
+      "path": "scripts/ci/release_gate.py",
+      "sha256": "ecb8b78b2dc6e9d19485cf4a265a7c0bddb1379eb9d6e2524027f615ea3deeb1"
+    },
+    {
+      "path": "scripts/ci/replication_packet.py",
+      "sha256": "4b13f69b3fe66341aec7f5a31e82446aa901b78cb26baf1f55a0ab1bdda1e8e2"
+    },
+    {
+      "path": "scripts/ci/ricci_microstructure_docs_falsifier.py",
+      "sha256": "1b80211ecc571ea80e4d99a73743b347850f43bf58544764a408ec8828fcab90"
+    },
+    {
+      "path": "scripts/ci/ricci_microstructure_kernel_falsifier.py",
+      "sha256": "6c5e024262e045ffe81e1a90b4cb18afe84549d19f035e6299b053fe15491518"
+    },
+    {
+      "path": "scripts/ci/ricci_microstructure_scaffolding_falsifier.py",
+      "sha256": "56359f0f9377d39fdb128e28079b64b079aab57607b18bbab14dfc462ca177ab"
+    },
+    {
+      "path": "scripts/ci/run_actionlint.py",
+      "sha256": "a21ae0beda169a249063bf76ad48578fb22b91d73d49aced82dfd50accb1663c"
+    },
+    {
+      "path": "scripts/ci/run_rust_accel_contract.py",
+      "sha256": "f15af48197435f3257b418a69742f494dc754643175004c35989c12eaff0a680"
+    },
+    {
+      "path": "scripts/ci/update_inventory.py",
+      "sha256": "177334d75a0a0eecfc8ab02b302ce173b5ede84d9030e934cb732a2963cfefa2"
+    },
+    {
+      "path": "scripts/ci/verify_changeset.py",
+      "sha256": "6ef1463d0f6328ee2da921de07f1c2e13332aa04c0e937cd068dcfbbdcda36c5"
+    },
+    {
+      "path": "scripts/ci/verify_claims.py",
+      "sha256": "e1d15056c8ec4f938f5461585ed24777fd32fc5185d11f55978f56f2c802c148"
+    },
+    {
+      "path": "scripts/ci/verify_cognitive_core.py",
+      "sha256": "792bd5123a8bcbcf79726788b0d7b8e5b5e8b524c2eaf584b131f2909bb16a41"
+    },
+    {
+      "path": "scripts/ci/write_pr_evidence_summary.py",
+      "sha256": "d89c09e58a6b1d0fdd30fd1b710f8ce55e15b7de4dc8c8455c68aa06253d0d07"
+    },
+    {
+      "path": "scripts/ci/x10r_lane_d_data_contract_falsifier.py",
+      "sha256": "c1461623064b876db40b553c886d751f30612cbee30c5fe68ff150c8de3a9c5a"
+    },
+    {
+      "path": "scripts/generate_stakeholder_assets.py",
+      "sha256": "ba5b8ad1e8b05f950d009553a6f5141468f7c278676964bd37d5a41d538f9dab"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/__init__.py",
+      "sha256": "2f50d6965a50c3877cb06ad9ffc567d2dd8d5cebc5322aaa4d61e0f4a6a95cff"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/base.py",
+      "sha256": "4558c679e660e5f5776b8c3ebb78816dae61e78acc954be3fdaedf1be4179d2a"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/config.py",
+      "sha256": "f36b0a96ea99889fca997c101c781805e88d2bdd6359d9b139f8087264240b75"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/file_feed.py",
+      "sha256": "4fa5576ded0b1a21642d3a55d5507e73edc54d1eb14cf77f6e5ca59fbf8b0a19"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/kafka_source.py",
+      "sha256": "7c797b76e2d1b22e905481b6918b5630064a942796919c79b3a915bfa13fe6f5"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/metrics.py",
+      "sha256": "8f6fd8549473efb207d0ce32a509d8a7f7232205a7af7fed1670922573a78baf"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/rest_source.py",
+      "sha256": "26ddedba40e564c703f07cf675a282b2d11c4e42b07add7400d8a68849af4910"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/runner.py",
+      "sha256": "d067339b3d3c689e1d49813e263cbacda42695aeb78433c3c9e536e061eb4ac9"
+    },
+    {
+      "path": "src/mycelium_fractal_net/connectors/transform.py",
+      "sha256": "dcaee54248cea8e314a37707d32e71f6f698c0dc134c40154059f4f2e5d0c765"
+    },
+    {
+      "path": "tests/connectors/__init__.py",
+      "sha256": "7a05869ac8f30dc24c9c46e20293c4b4786e431da6bcbb66cb39e9702364a2cc"
+    },
+    {
+      "path": "tests/connectors/test_base_interface.py",
+      "sha256": "2adaceaac94ac9ae43d364c0b3efd64dd0ebcb0068da4d4c0656ac03b8a24efb"
+    },
+    {
+      "path": "tests/connectors/test_fail_closed_connectors.py",
+      "sha256": "5b5d7422480b03eef742f77641ab5ab2ae83c570d9be0f7e5f080e4cd162e3c6"
+    },
+    {
+      "path": "tests/connectors/test_file_feed.py",
+      "sha256": "4d1df307e2296b6564a7ff53ddef196cb9bbe07482787d58d7d6b97fd2f0493d"
+    },
+    {
+      "path": "tests/connectors/test_optional_dependency_guards.py",
+      "sha256": "39e33599408ce9a78f14af8fc110297e1e4fc602557757d7aa0db404d0fdd136"
+    },
+    {
+      "path": "tests/connectors/test_polygon_adapter_reproducible.py",
+      "sha256": "d9c42cb198e52cd5f2045b61553b90fb49d83835ce70d443cdc7e5c27407ae93"
+    },
+    {
+      "path": "tests/connectors/test_rest_source.py",
+      "sha256": "02aec7d139bc9cb2985e0c1445f40277382736693ed4157490bc3d246fcf0591"
+    },
+    {
+      "path": "tests/connectors/test_runner_backend_local.py",
+      "sha256": "bd51df1de21cb76b4f7c9406fb69f365e46d3e7923858626976d3dd5ec46b800"
+    },
+    {
+      "path": "tests/connectors/test_transform_mapping.py",
+      "sha256": "ee53c4ca0507a086ea2d6afca35fc382e00c58e06555867eb0ec46913b8fac58"
+    }
+  ],
+  "relaxed_scopes": [
+    "scripts/tests"
+  ]
+}
