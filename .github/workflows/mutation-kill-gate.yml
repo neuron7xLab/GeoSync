@@ -54,5 +54,21 @@ jobs:
       - name: Mutation-kill ratchet
         run: |
           set -euo pipefail
+          mkdir -p artifacts/mutation-kill
           git fetch origin main --quiet || true
-          python scripts/ci/check_mutation_kill_ratchet.py --base-ref origin/main
+          set +e
+          python scripts/ci/check_mutation_kill_ratchet.py --base-ref origin/main \
+            > artifacts/mutation-kill/stdout.log \
+            2> artifacts/mutation-kill/stderr.log
+          rc=$?
+          set -e
+          echo "$rc" > artifacts/mutation-kill/exit_code.txt
+          exit "$rc"
+
+      - name: Upload mutation diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: mutation-kill-diagnostics
+          path: artifacts/mutation-kill/
+          if-no-files-found: warn
