@@ -24,7 +24,7 @@ signal_artifact: "tmp/second_order_energy_stream_clean_pytest.log"
 falsifier:
   command: "python scripts/ci/check_mutation_kill_ratchet.py --base-ref origin/main"
   description: "Reject if mutation ratchet fails, mutation floors are lowered, baseline tests fail, or the probe emits no parseable report."
-rollback_command: "git checkout -- .claude/commit_acceptors/second-order-energy-stream-clean.yaml .github/workflows/mutation-kill-gate.yml core/kuramoto/second_order.py docs/ENGINEERING_RESEARCH_QUALITY_CODE.md docs/PR_1400_VERIFICATION_MATRIX.md scripts/ci/check_mutation_kill_ratchet.py tests/ci/test_mutation_kill_ratchet.py tests/unit/physics/test_second_order_stability_audit.py tools/mutation_probe.py"
+rollback_command: "git checkout -- .claude/commit_acceptors/second-order-energy-stream-clean.yaml .github/workflows/mutation-kill-gate.yml core/kuramoto/second_order.py docs/ENGINEERING_RESEARCH_QUALITY_CODE.md docs/PR_1400_VERIFICATION_MATRIX.md pyproject.toml scripts/ci/check_mutation_kill_ratchet.py tests/ci/test_mutation_kill_ratchet.py tests/unit/physics/test_second_order_stability_audit.py tools/mutation_probe.py"
 rollback_verification_command: "git diff --exit-code"
 memory_update_type: append
 ledger_path: ".claude/commit_acceptors/second-order-energy-stream-clean.yaml"
