@@ -42,13 +42,15 @@ jobs:
         run: |
           set -euo pipefail
           # The ratchet re-runs claim-critical physics tests under mutation, so
-          # it needs the same minimal runtime as the physics suites (pinned to
-          # the requirements.txt contract).
+          # it needs the same runtime import closure as the physics suites.
+          # scipy is required because core.kuramoto imports adaptive.py, which
+          # imports scipy.integrate.solve_ivp during enrolled test collection.
           python -m pip install --upgrade pip
           python -m pip install \
             'pytest>=8.4' \
             'numpy>=2.3.3' \
             'pandas>=2.3.3' \
+            'scipy>=1.16' \
             'PyYAML>=6.0.3'
 
       - name: Mutation-kill ratchet
