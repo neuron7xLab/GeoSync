@@ -259,9 +259,7 @@ def probe(
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Mutation probe.")
     ap.add_argument("module")
-    ap.add_argument(
-        "--tests", required=True, help="pytest selector run against each mutant"
-    )
+    ap.add_argument("--tests", required=True, help="pytest selector run against each mutant")
     ap.add_argument("--max", type=int, default=None, help="cap number of mutants")
     ap.add_argument(
         "--fail-under",
