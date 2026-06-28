@@ -116,7 +116,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - name: SBOM (Syft, CycloneDX)
-        uses: anchore/sbom-action@e11c554f704a0b820cbf8c51673f6945e0731532 # v0.20.0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           path: geosync_research/lines/ricci_microstructure_v1
           format: cyclonedx-json
