@@ -97,7 +97,11 @@ def test_baseline_failure_is_fail_closed(monkeypatch: pytest.MonkeyPatch) -> Non
     mod = sorted(ledger)[0]
     monkeypatch.setattr(gate, "_base_ledger", lambda ref: ledger)
     monkeypatch.setattr(gate, "_changed_files", lambda ref: {mod})
-    monkeypatch.setattr(gate, "_probe_module", lambda *a: (2, {}, "", "baseline failed"))
+    monkeypatch.setattr(
+        gate,
+        "_probe_module",
+        lambda *a: (2, {}, "", "baseline failed"),
+    )
     assert gate.main(["--base-ref", "HEAD"]) == 2
 
 
