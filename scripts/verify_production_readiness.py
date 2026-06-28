@@ -7,12 +7,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
-import json
-import subprocess
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+import hashlib
+import json
 from pathlib import Path
+import subprocess
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
