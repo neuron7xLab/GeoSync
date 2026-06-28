@@ -73,7 +73,9 @@ def expectile_of_samples(samples: npt.ArrayLike, tau: float) -> float:
             scaled_e + weighted_residual / denom,
         )
         new_e = _require_finite("expectile", new_scaled_e * scale)
-        if abs(new_scaled_e - scaled_e) <= _EXPECTILE_TOL * (1.0 + abs(scaled_e)):
+        if abs(new_scaled_e - scaled_e) <= _EXPECTILE_TOL * (
+            1.0 + abs(scaled_e)
+        ):
             e = new_e
             break
         e = new_e
@@ -130,7 +132,9 @@ class ExpectileEnsembleValue:
         if len(set(taus)) != len(taus):
             raise ValueError("channel tau levels must be unique")
         order = sorted(range(len(channels)), key=lambda i: channels[i].tau)
-        self._channels: tuple[ExpectileChannel, ...] = tuple(channels[i] for i in order)
+        self._channels: tuple[ExpectileChannel, ...] = tuple(
+            channels[i] for i in order
+        )
         self._values: FloatArray = cast(
             FloatArray,
             np.full(len(channels), init_value, dtype=np.float64),
@@ -160,7 +164,10 @@ class ExpectileEnsembleValue:
     ) -> ExpectileEnsembleValue:
         """Build an ensemble from explicit expectile levels."""
         levels = cast(FloatArray, np.asarray(taus, dtype=np.float64).ravel())
-        channels = [ExpectileChannel(tau=float(t), learning_rate=learning_rate) for t in levels]
+        channels = [
+            ExpectileChannel(tau=float(t), learning_rate=learning_rate)
+            for t in levels
+        ]
         return cls(channels, init_value=init_value)
 
     @classmethod
@@ -174,7 +181,9 @@ class ExpectileEnsembleValue:
         """Build evenly spaced levels across (0, 1)."""
         if n_channels < 1:
             raise ValueError("n_channels must be >= 1")
-        levels = np.arange(1, n_channels + 1, dtype=np.float64) / (n_channels + 1)
+        levels = np.arange(1, n_channels + 1, dtype=np.float64) / (
+            n_channels + 1
+        )
         return cls.from_levels(levels, learning_rate=learning_rate, init_value=init_value)
 
     def observe_return(self, target: float) -> FloatArray:
@@ -216,7 +225,10 @@ class ExpectileEnsembleValue:
     @property
     def taus(self) -> FloatArray:
         """Expectile levels, ascending."""
-        return cast(FloatArray, np.array([c.tau for c in self._channels], dtype=np.float64))
+        return cast(
+            FloatArray,
+            np.array([c.tau for c in self._channels], dtype=np.float64),
+        )
 
     @property
     def values(self) -> FloatArray:
