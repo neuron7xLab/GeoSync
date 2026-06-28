@@ -9,6 +9,7 @@ diff_scope:
     - path: "core/kuramoto/second_order.py"
     - path: "docs/ENGINEERING_RESEARCH_QUALITY_CODE.md"
     - path: "docs/PR_1400_VERIFICATION_MATRIX.md"
+    - path: "pyproject.toml"
     - path: "scripts/ci/check_mutation_kill_ratchet.py"
     - path: "tests/ci/test_mutation_kill_ratchet.py"
     - path: "tests/unit/physics/test_second_order_stability_audit.py"
