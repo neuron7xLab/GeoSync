@@ -59,6 +59,7 @@ Role:
 Non-role:
 
 - not a production policy component;
+- not a market-output component;
 - not an evidence artifact;
 - not a claim-promotion mechanism.
 
@@ -74,7 +75,7 @@ Role:
 
 Non-role:
 
-- not a trading signal;
+- not a market-output component;
 - not an execution gate;
 - not a claim registry entry;
 - not evidence of performance.
