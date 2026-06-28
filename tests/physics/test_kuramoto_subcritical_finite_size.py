@@ -16,24 +16,16 @@ EMPIRICAL CALIBRATION (this file's regime, engine = core.kuramoto.engine RK4
 all-to-all, Lorentzian omega via standard_cauchy, gamma = 1.0, K_c = 2.0):
   * The clean ``1/sqrt(N)`` floor lives DEEP subcritical. At ``K = 0.8*K_c``
     (the validity edge) critical susceptibility enhances the floor and the
-    coefficient grows with N (measured c = 1.75/1.97/2.39 at N = 256/512/1024,
-    log-log slope ~ -0.27) -- the bare floor is masked. We therefore witness at
-    ``K = 0.3*K_c`` (well inside ``K <= 0.8*K_c``), where a high-statistics
-    ensemble (16/10/5 seeds, t = 12.5) gives slope = -0.46 and a FLAT
-    coefficient c = R*sqrt(N) = 1.01/1.14/1.07 -- the signature of r ~ 1/sqrt(N).
-  * The in-budget ensemble used by this test (4/2/2 seeds, t = 21) is more
-    lightly sampled, so the per-fit log-log slope is seed-sensitive
-    (-0.46 high-stat -> -0.88 this fixed ensemble). The ROBUST, sampling-stable
-    evidence is therefore the canonical ``r < 3/sqrt(N)`` tolerance plus the
-    bounded, near-constant coefficient ``c = <r>*sqrt(N)`` (c constant <=> r ~
-    1/sqrt(N)); the slope carries only a wide corroborating band. Tolerances
-    below are set from observation, not invented.
-
-Measured (deterministic, fixed seeds, t = 21 > 20/gamma):
-    N=256  <r>=0.06657  c=1.065  P(r<3/sqrt(N))=1.0000  M=840
-    N=384  <r>=0.05248  c=1.028  P(r<3/sqrt(N))=1.0000  M=420
-    N=512  <r>=0.03554  c=0.804  P(r<3/sqrt(N))=1.0000  M=420
-    slope(log<r> vs logN) = -0.88 ; c in [0.80, 1.07], max/min = 1.32 ; monotone.
+    coefficient grows with N, so the bare finite-size floor is masked. This
+    executable witness therefore runs at ``K = 0.3*K_c`` (well inside
+    ``K <= 0.8*K_c``), where the finite-size floor is the active regime.
+  * The test now slices ONLY samples with ``t > 20/gamma``. Earlier versions
+    averaged the last half of a ``t=21`` trajectory, which included samples from
+    ``t=10.5`` and could certify transient behavior. The current default uses
+    ``t=31`` with a 210-sample post-equilibration tail beginning at ``t=20.5``.
+    The robust anchors are the canonical ``r < 3/sqrt(N)`` tolerance plus the
+    bounded, near-constant coefficient ``c = <r>*sqrt(N)`` (c constant <=>
+    r ~ 1/sqrt(N)); the slope carries only a wide corroborating band.
 """
 
 from __future__ import annotations
@@ -54,8 +46,10 @@ K_SUB: float = 0.3 * K_C  # deep subcritical, well inside validity K <= 0.8*K_c
 K_SUPER: float = 1.5 * K_C  # supercritical, for the negative control
 
 DT: float = 0.05
-STEPS: int = 420  # t = STEPS*DT = 21.0 > 20/gamma (equilibration validity)
-TAIL: int = 210  # average over the equilibrated second half, t in [10.5, 21.0]
+EQUILIBRATION_TIME: float = 20.0 / GAMMA
+POST_EQUILIBRATION_STEP: int = int(np.floor(EQUILIBRATION_TIME / DT)) + 1
+STEPS: int = 620  # t = 31.0; with TAIL=210 the returned slice starts at t=20.5
+TAIL: int = 210  # post-equilibration tail only: t in [20.5, 31.0]
 BASE_SEED: int = 20240617
 
 # N >= 256 (validity). Time-averaging over the tail yields M = n_seeds*TAIL
@@ -66,8 +60,8 @@ SUBCRITICAL_PLAN: dict[int, int] = {256: 4, 384: 2, 512: 2}
 C_LO: float = 0.5  # noise-floor coefficient band, c = <r>*sqrt(N)
 C_HI: float = 1.8
 C_RATIO_MAX: float = 2.0  # c ~ const <=> r ~ 1/sqrt(N) (observed ratio 1.47)
-SLOPE_LO: float = -1.45  # log-log slope corroboration band (observed -1.04;
-SLOPE_HI: float = -0.15  # high-statistics reference -0.46) -- excludes flat/supercritical
+SLOPE_LO: float = -1.45  # wide corroboration band; excludes flat/supercritical
+SLOPE_HI: float = -0.15  # high-statistics reference is close to -0.5
 FLOOR_P: float = 0.99  # canonical catalog tolerance: P(r < 3/sqrt(N)) >= 0.99
 M_MIN: int = 200  # canonical catalog tolerance: M >= 200 trials
 SOURCE: str = "Strogatz 2000; Daido 1990; Hong et al. PRE 2007"
@@ -76,27 +70,41 @@ SOURCE: str = "Strogatz 2000; Daido 1990; Hong et al. PRE 2007"
 def _equilibrated_order_parameter(
     n_osc: int, seed: int, coupling: float, steps: int = STEPS
 ) -> NDArray[np.float64]:
-    """Return the equilibrated-tail order parameter R(t) for one Lorentzian ensemble.
+    """Return only post-equilibration order-parameter samples for one ensemble.
 
     Uses the canonical RK4 all-to-all integrator (``core.kuramoto.engine``) and a
     Lorentzian (Cauchy) natural-frequency draw of half-width ``GAMMA``; no bespoke
-    physics is implemented here. The returned slice is the last ``TAIL`` steps,
-    i.e. the asymptotic incoherent state after ``t > 20/gamma`` equilibration.
+    physics is implemented here. The returned slice is fail-closed: every sample
+    starts strictly after ``t > 20/gamma`` and the caller still receives at least
+    ``TAIL`` samples for the witness budget.
     """
+    if steps <= POST_EQUILIBRATION_STEP + TAIL - 1:
+        raise ValueError(
+            "Kuramoto finite-size witness under-sampled: steps must leave a full "
+            f"post-equilibration tail after t>{EQUILIBRATION_TIME:.1f}; "
+            f"got steps={steps}, required >= {POST_EQUILIBRATION_STEP + TAIL}."
+        )
     rng = np.random.default_rng(BASE_SEED + 1009 * seed + n_osc)
     omega: NDArray[np.float64] = (rng.standard_cauchy(n_osc) * GAMMA).astype(np.float64)
     theta0: NDArray[np.float64] = rng.uniform(0.0, 2.0 * np.pi, n_osc).astype(np.float64)
     cfg = KuramotoConfig(
         N=n_osc, K=coupling, omega=omega, theta0=theta0, dt=DT, steps=steps, seed=seed
     )
-    order_parameter = KuramotoEngine(cfg).run().order_parameter
-    return np.asarray(order_parameter[-TAIL:], dtype=np.float64)
+    order_parameter = np.asarray(KuramotoEngine(cfg).run().order_parameter, dtype=np.float64)
+    start = max(POST_EQUILIBRATION_STEP, int(order_parameter.size) - TAIL)
+    samples = order_parameter[start:]
+    assert samples.size >= TAIL, (
+        "INV-K5 UNDER-SAMPLED: post-equilibration slice returned "
+        f"{samples.size} samples < required tail {TAIL}; steps={steps}, "
+        f"post_equilibration_step={POST_EQUILIBRATION_STEP}."
+    )
+    return np.asarray(samples, dtype=np.float64)
 
 
 def _ensemble_tail(
     n_osc: int, n_seeds: int, coupling: float, steps: int = STEPS
 ) -> NDArray[np.float64]:
-    """Concatenate equilibrated-tail samples across ``n_seeds`` seeds for one N."""
+    """Concatenate post-equilibration tail samples across ``n_seeds`` seeds for one N."""
     return np.concatenate(
         [_equilibrated_order_parameter(n_osc, s, coupling, steps) for s in range(n_seeds)]
     )
@@ -124,7 +132,7 @@ def test_subcritical_order_parameter_obeys_inverse_sqrt_n_noise_floor() -> None:
 
         assert n_trials >= M_MIN, (
             f"INV-K5 UNDER-SAMPLED: M={n_trials} < {M_MIN} trials at N={n_osc}. "
-            f"Catalog requires M >= 200 asymptotic samples. "
+            f"Catalog requires M >= 200 asymptotic samples after t>{EQUILIBRATION_TIME:.1f}. "
             f"K={K_SUB:.3f}, K_c={K_C:.3f}, gamma={GAMMA}, t={STEPS * DT:.1f}. "
             f"Source: {SOURCE}"
         )
@@ -133,7 +141,7 @@ def test_subcritical_order_parameter_obeys_inverse_sqrt_n_noise_floor() -> None:
             f"INV-K2 VIOLATED: P(r < 3/sqrt(N))={p_below:.4f} < required {FLOOR_P} "
             f"expected the subcritical order parameter under the 3/sqrt(N)={floor:.4f} "
             f"finite-size floor. K={K_SUB:.3f}, K_c={K_C:.3f}, N={n_osc}, M={n_trials}, "
-            f"t={STEPS * DT:.1f}. Source: {SOURCE}"
+            f"post-equilibration t>{EQUILIBRATION_TIME:.1f}, end_t={STEPS * DT:.1f}. Source: {SOURCE}"
         )
         # Noise-floor magnitude: c = <r>*sqrt(N) is O(1) (~sqrt(pi/2)=1.2533).
         assert C_LO <= coeff <= C_HI, (
@@ -187,8 +195,8 @@ def test_supercritical_breaks_noise_floor_and_invalid_inputs_fail_closed() -> No
     r_super: list[float] = []
     c_super: list[float] = []
     for n_osc in (256, 512):
-        samples = _equilibrated_order_parameter(n_osc, 0, K_SUPER, steps=250)
-        r_mean = float(samples[-150:].mean())
+        samples = _equilibrated_order_parameter(n_osc, 0, K_SUPER)
+        r_mean = float(samples.mean())
         floor = 3.0 / np.sqrt(n_osc)
         # Supercritical r is O(1) -- a coherent state, not a vanishing floor.
         assert r_mean > 0.3, (
