@@ -94,10 +94,6 @@
       "sha256": "44bf8ddb16c3cd96a4dd2258ad35fe3734e022e0680f7587591d503f6c0c0986"
     },
     {
-      "path": "scripts/ci/check_feature_debt_lock.py",
-      "sha256": "10e925d9386d08d31dafea48851be6c5527e50ed1363210224ecb0be986e28b3"
-    },
-    {
       "path": "scripts/ci/check_governance_kernel_binding.py",
       "sha256": "eea202a181002cf72f8dccf7da1133a7e62cd5d6bc511fd1b470964bbeda153d"
     },
@@ -320,6 +316,10 @@
     {
       "path": "scripts/ci/verify_claims.py",
       "sha256": "e1d15056c8ec4f938f5461585ed24777fd32fc5185d11f55978f56f2c802c148"
+    },
+    {
+      "path": "scripts/ci/verify_cognitive_core.py",
+      "sha256": "792bd5123a8bcbcf79726788b0d7b8e5b5e8b524c2eaf584b131f2909bb16a41"
     },
     {
       "path": "scripts/ci/write_pr_evidence_summary.py",

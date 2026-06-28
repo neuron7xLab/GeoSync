@@ -1,18 +1,25 @@
 # PHYSICS CLAIMS
 
-Every claim below is bound to an executable positive witness and a negative
-control. A claim with no collected witness or no negative control cannot be
-promoted (see `law_requires_positive_and_negative_witness`).
+This packet is synchronized with the current `physics_contracts/falsification_catalog.yaml` surface. The stale 10-law claim table has been replaced because the executable catalog now declares 47 laws.
 
-| Law | Domain | Claim | Threshold | Positive witness | Negative control |
-| --- | --- | --- | --- | --- | --- |
-| `ricci_energy_nonincrease` | ricci_kuramoto | Discrete Ricci-flow smoothing never increases curvature-dispersion energy. | tol = 1e-9 (relative); any positive excess violates | `tests/physics/test_ricci_kuramoto.py::test_ricci_energy_nonincreases` | `tests/physics/test_ricci_kuramoto.py::test_energy_injection_flow_is_rejected` |
-| `kuramoto_order_parameter_bounds` | ricci_kuramoto | The Kuramoto order parameter R(t) stays in [0, 1] for every step. | R in [0.0, 1.0]; any R<0 or R>1 violates | `tests/physics/test_ricci_kuramoto.py::test_order_parameter_within_unit_interval` | `tests/physics/test_ricci_kuramoto.py::test_out_of_range_order_parameter_is_rejected` |
-| `metric_distortion_bound` | metric_consistency | An embedding is admitted only if its bi-Lipschitz distortion stays within an explicit bound. | max_distortion explicit per call (no magic constant); default probe 0.05 | `tests/physics/test_metric_consistency.py::test_isometric_embedding_passes` | `tests/physics/test_metric_consistency.py::test_distorted_embedding_is_rejected` |
-| `causal_no_lookahead` | causality | No read may consume a source observed after the read time. | <= 0; any positive lookahead violates | `tests/physics/test_causality.py::test_past_read_passes` | `tests/physics/test_causality.py::test_future_read_is_rejected` |
-| `provenance_identity` | causality | A payload's provenance hash is identical iff its bytes are identical. | exact SHA-256 equality; any mismatch violates and tombstones | `tests/physics/test_causality.py::test_provenance_identity_holds` | `tests/physics/test_causality.py::test_rewritten_payload_breaks_provenance` |
-| `landauer_nonzero_erasure_cost` | landauer | Erasing a positive number of bits at positive temperature has strictly positive cost. | > 0 strictly; a zero/negative cost violates | `tests/physics/test_landauer.py::test_bit_erasure_cost_is_positive` | `tests/physics/test_landauer.py::test_zero_cost_erasure_claim_is_rejected` |
-| `irreversible_cost_dominance` | landauer | An irreversible action costs at least its reversible baseline; strictly more when the irreversibility score is positive. | >= 0 always; > 0 when score>0 | `tests/physics/test_landauer.py::test_irreversible_dominates_reversible` | `tests/physics/test_landauer.py::test_fake_free_rollback_is_rejected` |
-| `empirical_synthetic_only_rejection` | falsification | A synthetic-only witness can never validate an empirical claim, and leaked/shuffled/unprovenanced data is rejected. | all four adversarial witnesses must be REJECTED; only a clean provenanced empirical witness passes | `tests/physics/test_falsification.py::test_clean_empirical_witness_passes` | `tests/physics/test_falsification.py::test_synthetic_only_cannot_validate_empirical` |
-| `numerical_drift_bound` | precision | Seeded numerical pipelines are bit-reproducible and reject NaN/Inf and ill-conditioned inputs. | hash identical; cond(A) <= kappa_max (explicit); no NaN/Inf | `tests/physics/test_precision.py::test_seeded_hash_is_stable` | `tests/physics/test_precision.py::test_ill_conditioned_input_is_rejected` |
-| `law_requires_positive_and_negative_witness` | governance | Every blocking law in this catalog carries both a positive witness and a negative control, and the promotion gate fails closed otherwise. | 0 missing; any missing fails promotion | `tests/physics/test_governance.py::test_full_catalog_passes_promotion_gate` | `tests/physics/test_governance.py::test_law_without_negative_control_fails_gate` |
+New executable laws introduced by this PR and now represented here:
+
+| Law | Domain | Positive witness | Negative control |
+| --- | --- | --- | --- |
+| `kuramoto_critical_scaling` | ricci_kuramoto | `tests/physics/test_kuramoto_critical_scaling.py::test_supercritical_R_matches_closed_form` | `tests/physics/test_kuramoto_critical_scaling.py::test_subcritical_and_invalid_are_rejected` |
+| `kuramoto_subcritical_finite_size` | ricci_kuramoto | `tests/physics/test_kuramoto_subcritical_finite_size.py::test_subcritical_order_parameter_obeys_inverse_sqrt_n_noise_floor` | `tests/physics/test_kuramoto_subcritical_finite_size.py::test_supercritical_breaks_noise_floor_and_invalid_inputs_fail_closed` |
+| `kuramoto_frequency_entrainment` | ricci_kuramoto | `tests/physics/test_kuramoto_frequency_entrainment.py::test_supercritical_locks_detuned_oscillators_to_common_frequency` | `tests/physics/test_kuramoto_frequency_entrainment.py::test_subcritical_entrainment_claim_is_falsified` |
+| `ollivier_ricci_universal_upper_bound` | ricci_kuramoto | `tests/physics/test_ollivier_ricci_bounds.py::test_ollivier_upper_bound_is_universal` | `tests/physics/test_ollivier_ricci_bounds.py::test_symmetric_band_is_not_universal` |
+| `ricci_flow_monotonicity` | ricci_kuramoto | `tests/physics/test_ricci_flow_monotonicity.py::test_f_functional_nonincreases_under_positive_ricci_flow` | `tests/physics/test_ricci_flow_monotonicity.py::test_negative_curvature_rewiring_injects_f_energy_is_rejected` |
+
+Full catalog accounting:
+- declared executable laws: 47
+- required invariant per law: positive witness plus negative control
+- governance law: `law_requires_positive_and_negative_witness`
+
+Regenerate the complete expanded table with:
+
+```bash
+python tools/validate_physics_contracts.py
+python tools/build_physics_review_packet.py
+```
