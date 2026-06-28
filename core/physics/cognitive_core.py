@@ -3,7 +3,7 @@
 """Cognitive core — the system's value function over the physical-invariant manifold.
 
 The cognitive core is the active invariant centre: a single deterministic gate
-that takes a live system snapshot and routes it through every applicable physical
+that takes a live system snapshot and routes it through every configured physical
 invariant at once, returning one fail-closed admissibility verdict and naming the
 binding constraint. It generalises the three-invariant
 ``coherence_bridge/physics_contract.py`` seed (INV-K1, INV-RC1, T3) to the full
@@ -17,8 +17,8 @@ It is the system's VALUE FUNCTION in the control-theoretic sense:
 The core never generates options; it preserves controllability — converting a
 reality-divergence (a snapshot leaving the manifold) into a fired gate with a
 named binding constraint, so downstream actuation can refuse to act. Every gate
-is total and fail-closed: a missing required field, a non-finite value, or an
-out-of-range value yields NO_GO with no silent pass.
+is total and fail-closed: an empty snapshot, a missing configured field, a
+non-finite value, or an out-of-range value yields NO_GO with no silent pass.
 
 Each gate cites the invariant it enforces. The bounds are the same ones proven
 elsewhere in the executable falsification catalog (physics_contracts/), so the
@@ -43,9 +43,9 @@ class Decision(str, Enum):
 class Status(str, Enum):
     """Why the verdict was reached."""
 
-    ADMISSIBLE = "ADMISSIBLE"  # every applicable gate passed
-    INADMISSIBLE = "INADMISSIBLE"  # at least one gate fired
-    INSUFFICIENT = "INSUFFICIENT"  # no applicable gate — refuse to vacuously pass
+    ADMISSIBLE = "ADMISSIBLE"  # every configured gate passed
+    INADMISSIBLE = "INADMISSIBLE"  # at least one configured gate fired
+    INSUFFICIENT = "INSUFFICIENT"  # empty snapshot — refuse to vacuously pass
 
 
 @dataclass(frozen=True)
@@ -167,8 +167,8 @@ def _free_energy_components(invariant: str) -> Callable[[object], tuple[bool, st
     return check
 
 
-# The live-state invariant spine. Each snapshot key, if present, is gated by the
-# named invariant. Bounds match the executable falsification catalog.
+# The live-state invariant spine. Each configured snapshot key is required and
+# gated by the named invariant. Bounds match the executable falsification catalog.
 _GATES: Final[tuple[_Gate, ...]] = (
     _Gate("INV-K1", "order_parameter_R", _unit_interval("INV-K1")),
     _Gate("INV-OA1", "z_abs", _unit_interval("INV-OA1")),
@@ -197,24 +197,14 @@ class CognitiveCore:
         self._gates = gates
 
     def admissibility(self, snapshot: Mapping[str, object]) -> CoreVerdict:
-        """Route a live snapshot through every applicable invariant gate, fail-closed.
+        """Route a live snapshot through every configured invariant gate, fail-closed.
 
-        A field present in ``snapshot`` activates its gate. A snapshot that
-        activates NO gate is ``INSUFFICIENT`` -> ``NO_GO`` (the core never
-        vacuously approves). Any activated gate that fails -> ``INADMISSIBLE`` ->
-        ``NO_GO`` with the first failing invariant as the binding constraint.
+        An empty snapshot is ``INSUFFICIENT`` -> ``NO_GO`` (the core never
+        vacuously approves). For a non-empty snapshot, every configured gate is
+        required: a missing field is itself a violation, any failing value is a
+        violation, and only a complete in-manifold snapshot can return ``GO``.
         """
-        results: list[GateResult] = []
-        violations: list[str] = []
-        for gate in self._gates:
-            if gate.field_name not in snapshot:
-                continue
-            passed, detail = gate.check(snapshot[gate.field_name])
-            results.append(GateResult(gate.invariant, gate.field_name, passed, detail))
-            if not passed:
-                violations.append(gate.invariant)
-
-        if not results:
+        if not snapshot:
             return CoreVerdict(
                 decision=Decision.NO_GO,
                 status=Status.INSUFFICIENT,
@@ -222,6 +212,20 @@ class CognitiveCore:
                 violations=(),
                 binding_constraint=None,
             )
+
+        results: list[GateResult] = []
+        violations: list[str] = []
+        for gate in self._gates:
+            if gate.field_name not in snapshot:
+                detail = f"{gate.invariant}: missing {gate.field_name!r} (fail-closed)"
+                results.append(GateResult(gate.invariant, gate.field_name, False, detail))
+                violations.append(gate.invariant)
+                continue
+            passed, detail = gate.check(snapshot[gate.field_name])
+            results.append(GateResult(gate.invariant, gate.field_name, passed, detail))
+            if not passed:
+                violations.append(gate.invariant)
+
         if violations:
             return CoreVerdict(
                 decision=Decision.NO_GO,
