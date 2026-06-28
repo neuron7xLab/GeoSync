@@ -65,7 +65,7 @@ def test_asymmetric_value_update_keeps_raw_delta_outside_learning_rate() -> None
     assert canonical_td_error(0.50, 0.0, 0.0, 1.0) == pytest.approx(0.50)
 
 
-def test_risk_adjusted_reward_never_increases_reward_under_non_negative_penalty() -> None:
+def test_risk_penalty_does_not_increase_reward() -> None:
     adjusted = risk_adjusted_reward(
         reward=0.10,
         volatility=0.20,
@@ -78,7 +78,7 @@ def test_risk_adjusted_reward_never_increases_reward_under_non_negative_penalty(
     assert adjusted == pytest.approx(0.10 - 0.40 * 0.20 - 0.50 * 0.30)
 
 
-def test_configured_surface_combines_layers_without_mutating_canonical_delta() -> None:
+def test_configured_surface_keeps_canonical_delta_unchanged() -> None:
     cfg = RPEExtensionConfig(
         positive_alpha=0.30,
         negative_alpha=0.10,
@@ -103,21 +103,23 @@ def test_configured_surface_combines_layers_without_mutating_canonical_delta() -
     canonical = 0.40 + 0.90 * 0.20 - 0.10
     risk_reward = 0.40 - 0.20 * 0.50 - 0.30 * 0.25
     assert surface.canonical_delta == pytest.approx(canonical)
-    assert surface.risk_adjusted_delta == pytest.approx(risk_reward + 0.90 * 0.20 - 0.10)
-    assert surface.asymmetric_value_update == pytest.approx(cfg.positive_alpha * canonical)
-    assert surface.average_reward_vigor == pytest.approx(1.0 + 0.50 * (0.40 - 0.20))
+    assert surface.risk_adjusted_delta == pytest.approx(
+        risk_reward + 0.90 * 0.20 - 0.10,
+    )
+    assert surface.asymmetric_value_update == pytest.approx(
+        cfg.positive_alpha * canonical,
+    )
+    assert surface.average_reward_vigor == pytest.approx(
+        1.0 + 0.50 * (0.40 - 0.20),
+    )
 
 
-def test_canonical_td_error_rejects_overflowed_output() -> None:
-    # canonical_delta = reward + gamma*next_value - value is ADDITIVE, so the
-    # summands must each be near the float64 ceiling for the sum to overflow to
-    # +inf (1e200 only reaches 3e200, which is finite — the prior magnitude did
-    # not exercise the guard at all). 1e308 forces the addition to inf.
+def test_canonical_td_error_rejects_nonfinite_output() -> None:
     with pytest.raises(ValueError, match="canonical_delta must be finite"):
         canonical_td_error(1.0e308, -1.0e308, 1.0e308, 1.0)
 
 
-def test_risk_adjusted_reward_rejects_overflowed_output() -> None:
+def test_risk_adjusted_reward_rejects_nonfinite_output() -> None:
     with pytest.raises(ValueError, match="risk_adjusted_reward must be finite"):
         risk_adjusted_reward(
             reward=0.0,
@@ -128,7 +130,7 @@ def test_risk_adjusted_reward_rejects_overflowed_output() -> None:
         )
 
 
-def test_average_reward_vigor_rejects_overflow_before_clamp() -> None:
+def test_average_reward_vigor_rejects_nonfinite_preclamp() -> None:
     with pytest.raises(ValueError, match="clamp value must be finite"):
         average_reward_vigor(
             reward=1.0e200,
