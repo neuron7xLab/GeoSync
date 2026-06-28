@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-28T13:12:00Z",
-  "commit_sha": "4e9049d8eca67457d476d1558a4efaf202639d6a",
+  "generated_at": "seed-artifact",
+  "commit_sha": "REGENERATE_ON_BRANCH",
   "release_ready": false,
   "verdict": "BLOCKED",
   "counts": {
@@ -16,7 +16,7 @@
       "check_command": "test -f docs/PRODUCTION_READINESS_STACK.md",
       "expected_artifact": "docs/PRODUCTION_READINESS_STACK.md",
       "artifact_hash": "seed",
-      "commit_sha": "4e9049d8eca67457d476d1558a4efaf202639d6a",
+      "commit_sha": "REGENERATE_ON_BRANCH",
       "verdict": "PASS",
       "detail": "artifact present"
     },
@@ -26,7 +26,7 @@
       "check_command": "test -f docs/RELEASE_VERDICT_PROTOCOL.md",
       "expected_artifact": "docs/RELEASE_VERDICT_PROTOCOL.md",
       "artifact_hash": "seed",
-      "commit_sha": "4e9049d8eca67457d476d1558a4efaf202639d6a",
+      "commit_sha": "REGENERATE_ON_BRANCH",
       "verdict": "PASS",
       "detail": "artifact present"
     },
@@ -36,7 +36,7 @@
       "check_command": "python scripts/verify_production_readiness.py --write-results",
       "expected_artifact": "scripts/verify_production_readiness.py",
       "artifact_hash": "seed",
-      "commit_sha": "4e9049d8eca67457d476d1558a4efaf202639d6a",
+      "commit_sha": "REGENERATE_ON_BRANCH",
       "verdict": "BLOCKED",
       "detail": "command-backed claim must be regenerated locally or in CI"
     },
@@ -46,7 +46,7 @@
       "check_command": "test -f .claude/commit_acceptors/production-readiness-stack.yaml",
       "expected_artifact": ".claude/commit_acceptors/production-readiness-stack.yaml",
       "artifact_hash": "seed",
-      "commit_sha": "4e9049d8eca67457d476d1558a4efaf202639d6a",
+      "commit_sha": "REGENERATE_ON_BRANCH",
       "verdict": "PASS",
       "detail": "artifact present"
     },
@@ -56,7 +56,7 @@
       "check_command": "python -m pytest -q",
       "expected_artifact": "results/production_readiness/READINESS_SUMMARY.json",
       "artifact_hash": "seed",
-      "commit_sha": "4e9049d8eca67457d476d1558a4efaf202639d6a",
+      "commit_sha": "REGENERATE_ON_BRANCH",
       "verdict": "BLOCKED",
       "detail": "not executed in seed artifact"
     },
@@ -66,7 +66,7 @@
       "check_command": "ruff check .",
       "expected_artifact": "results/production_readiness/READINESS_SUMMARY.json",
       "artifact_hash": "seed",
-      "commit_sha": "4e9049d8eca67457d476d1558a4efaf202639d6a",
+      "commit_sha": "REGENERATE_ON_BRANCH",
       "verdict": "BLOCKED",
       "detail": "not executed in seed artifact"
     },
@@ -76,7 +76,7 @@
       "check_command": "python -m mypy src tests --strict",
       "expected_artifact": "results/production_readiness/READINESS_SUMMARY.json",
       "artifact_hash": "seed",
-      "commit_sha": "4e9049d8eca67457d476d1558a4efaf202639d6a",
+      "commit_sha": "REGENERATE_ON_BRANCH",
       "verdict": "BLOCKED",
       "detail": "not executed in seed artifact"
     },
@@ -86,7 +86,7 @@
       "check_command": "test -f results/production_readiness/RELEASE_VERDICT.md",
       "expected_artifact": "results/production_readiness/RELEASE_VERDICT.md",
       "artifact_hash": "seed",
-      "commit_sha": "4e9049d8eca67457d476d1558a4efaf202639d6a",
+      "commit_sha": "REGENERATE_ON_BRANCH",
       "verdict": "PASS",
       "detail": "artifact present in seed set"
     }
