@@ -46,10 +46,10 @@ jobs:
             'pytest>=8.4' \
             'numpy>=2.3.3' \
             'pandas>=2.3.3' \
-            'scipy>=1.16' \
+            'PyYAML>=6.0.3' \
+            'scipy>=1.16.2' \
             'pydantic>=2.0' \
-            'networkx>=3.0' \
-            'PyYAML>=6.0.3'
+            'networkx>=3.0'
 
       - name: Mutation-kill ratchet
         run: |
