@@ -40,13 +40,16 @@ def expectile_of_samples(samples: npt.ArrayLike, tau: float) -> float:
     _require_finite_array("samples", arr)
 
     e = _require_finite("expectile seed", float(np.median(arr)))
-    scale = max(1.0, _require_finite("sample scale", float(np.max(np.abs(arr)))))
+    sample_scale = _require_finite("sample scale", float(np.max(np.abs(arr))))
+    scale = max(1.0, sample_scale)
 
     for _ in range(_EXPECTILE_MAX_ITERS):
         scaled_arr = cast(FloatArray, arr / scale)
         scaled_e = e / scale
         upper = scaled_arr >= scaled_e
-        denom = tau * np.count_nonzero(upper) + (1.0 - tau) * np.count_nonzero(~upper)
+        upper_count = float(np.count_nonzero(upper))
+        lower_count = float(np.count_nonzero(~upper))
+        denom = tau * upper_count + (1.0 - tau) * lower_count
         if denom <= 0.0:  # pragma: no cover
             break
 
@@ -65,9 +68,8 @@ def expectile_of_samples(samples: npt.ArrayLike, tau: float) -> float:
             scaled_e + weighted_residual / denom,
         )
         new_e = _require_finite("expectile", new_scaled_e * scale)
-        if abs(new_scaled_e - scaled_e) <= _EXPECTILE_TOL * (
-            1.0 + abs(scaled_e)
-        ):
+        threshold = _EXPECTILE_TOL * (1.0 + abs(scaled_e))
+        if abs(new_scaled_e - scaled_e) <= threshold:
             e = new_e
             break
         e = new_e
@@ -128,12 +130,24 @@ class ExpectileEnsembleValue:
         self._channels: tuple[ExpectileChannel, ...] = tuple(
             channels[i] for i in order
         )
+        self._taus: FloatArray = cast(
+            FloatArray,
+            np.array([c.tau for c in self._channels], dtype=np.float64),
+        )
+        self._alpha_pos: FloatArray = cast(
+            FloatArray,
+            np.array([c.alpha_pos for c in self._channels], dtype=np.float64),
+        )
+        self._alpha_neg: FloatArray = cast(
+            FloatArray,
+            np.array([c.alpha_neg for c in self._channels], dtype=np.float64),
+        )
         self._values: FloatArray = cast(
             FloatArray,
             np.full(len(channels), init_value, dtype=np.float64),
         )
         _require_finite_array("initial values", self._values)
-        self._n_updates = 0
+        self._n_updates: int = 0
 
     @classmethod
     def symmetric(
@@ -190,11 +204,7 @@ class ExpectileEnsembleValue:
         deltas = _require_finite_array("distributional deltas", raw_deltas)
         rates = cast(
             FloatArray,
-            np.where(
-                deltas > 0.0,
-                np.array([c.alpha_pos for c in self._channels], dtype=np.float64),
-                np.array([c.alpha_neg for c in self._channels], dtype=np.float64),
-            ),
+            np.where(deltas > 0.0, self._alpha_pos, self._alpha_neg),
         )
         raw_updated = cast(FloatArray, self._values + rates * deltas)
         self._values = _require_finite_array("updated values", raw_updated)
@@ -222,10 +232,7 @@ class ExpectileEnsembleValue:
     @property
     def taus(self) -> FloatArray:
         """Expectile levels, ascending."""
-        return cast(
-            FloatArray,
-            np.array([c.tau for c in self._channels], dtype=np.float64),
-        )
+        return cast(FloatArray, self._taus.copy())
 
     @property
     def values(self) -> FloatArray:
@@ -238,13 +245,12 @@ class ExpectileEnsembleValue:
 
     def canonical_value(self) -> float:
         """Return the tau=0.5 value or linear interpolation."""
-        taus = self.taus
-        exact = np.isclose(taus, 0.5)
+        exact = np.isclose(self._taus, 0.5)
         if bool(np.any(exact)):
             return _require_finite("canonical_value", float(self._values[exact][0]))
         return _require_finite(
             "canonical_value",
-            float(np.interp(0.5, taus, self._values)),
+            float(np.interp(0.5, self._taus, self._values)),
         )
 
     def risk_adjusted_value(self, tau: float) -> float:
@@ -254,7 +260,7 @@ class ExpectileEnsembleValue:
             raise ValueError(f"tau must be in (0, 1), got {tau!r}")
         return _require_finite(
             "risk_adjusted_value",
-            float(np.interp(tau, self.taus, self._values)),
+            float(np.interp(tau, self._taus, self._values)),
         )
 
     def dispersion(self) -> float:
