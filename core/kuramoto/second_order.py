@@ -237,6 +237,31 @@ class SecondOrderStabilityReport:
     remaining_gaps: tuple[str, ...]
 
 
+def _swing_energy_trajectory(
+    theta: NDArray[np.float64],
+    vel: NDArray[np.float64],
+    mass: NDArray[np.float64],
+    omega: NDArray[np.float64],
+    adj: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Evaluate swing energy with O(N^2) peak pairwise working memory.
+
+    This helper keeps :meth:`SecondOrderKuramotoEngine.audit` as an orchestration
+    method while preserving the same energy expression:
+    ``T + V_drive + V_pairwise``. Each pairwise potential snapshot materializes
+    only one ``N×N`` phase-delta matrix, never the full trajectory-wide
+    ``T×N×N`` tensor.
+    """
+    kinetic = 0.5 * (mass * vel * vel).sum(axis=1)
+    drive = -(omega * theta).sum(axis=1)
+    pairwise_terms: list[float] = []
+    for theta_t in theta:
+        delta = theta_t[np.newaxis, :] - theta_t[:, np.newaxis]
+        pairwise_terms.append(-0.5 * float(np.sum(adj * np.cos(delta))))
+    pairwise = np.asarray(pairwise_terms, dtype=np.float64)
+    return kinetic + drive + pairwise
+
+
 class SecondOrderKuramotoEngine:
     """Second-order Kuramoto (swing equation) integrator.
 
@@ -413,11 +438,9 @@ class SecondOrderKuramotoEngine:
         m, d, omega, adj = self._mass, self._damping, self._omega, self._adj
 
         # --- energy-like drift: swing energy over the trajectory ---
-        kinetic = 0.5 * (m * vel * vel).sum(axis=1)
-        drive = -(omega * theta).sum(axis=1)
-        delta = theta[:, None, :] - theta[:, :, None]
-        v_coup = -0.5 * np.einsum("ij,tij->t", adj, np.cos(delta))
-        energy = kinetic + drive + v_coup
+        # Physics is unchanged: E = T + V_drive + V_pairwise. The evaluator keeps
+        # audit() componentized while avoiding a trajectory-wide T×N×N tensor.
+        energy = _swing_energy_trajectory(theta, vel, m, omega, adj)
         e_scale = float(np.abs(energy).max()) + 1e-12
         energy_like_drift = float((energy.max() - energy.min()) / e_scale)
         conservative = bool(np.allclose(omega, 0.0) and np.allclose(d, 0.0))
@@ -482,6 +505,8 @@ class SecondOrderKuramotoEngine:
             "mass_max": float(m.max()),
             "damping_min": float(d.min()),
             "damping_max": float(d.max()),
+            "energy_evaluator": "streamed_pairwise_potential",
+            "energy_peak_memory": "O(N^2)",
         }
 
         # --- metric validity: the swing-energy conservation diagnostic is only
