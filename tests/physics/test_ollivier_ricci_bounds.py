@@ -104,6 +104,16 @@ def test_ollivier_upper_bound_is_universal() -> None:
                 pg_max = max(pg_max, kappa)
                 n_pg_edges += 1
 
+    assert n_pg_edges > 0, (
+        "INV-RC3 VACUOUS WITNESS: build_price_graph produced no finite curvature "
+        "edges across the seeded price-path ensemble; the symmetric-band leg must "
+        "fail closed instead of passing with pg_min=inf and pg_max=-inf. "
+        "Source: core/indicators/ricci.py::build_price_graph; seed=7"
+    )
+    assert np.isfinite(pg_min) and np.isfinite(pg_max), (
+        "INV-RC3 VACUOUS WITNESS: price-graph curvature bounds remained non-finite "
+        f"after {n_pg_edges} counted edges; fail closed before checking the band."
+    )
     assert -1.0 - _TOL <= pg_min and pg_max <= 1.0 + _TOL, (
         f"INV-RC3 VIOLATED: build_price_graph kappa range "
         f"[{pg_min:.6f}, {pg_max:.6f}] left the symmetric band [-1, 1]. "
