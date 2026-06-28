@@ -71,9 +71,7 @@ CLAIMS: tuple[ReadinessClaim, ...] = (
     ReadinessClaim(
         claim_id="commit-acceptor",
         scope="repository",
-        check_command=(
-            "test -f .claude/commit_acceptors/production-readiness-stack.yaml"
-        ),
+        check_command="test -f .claude/commit_acceptors/production-readiness-stack.yaml",
         expected_artifact=".claude/commit_acceptors/production-readiness-stack.yaml",
         command_backed=False,
     ),
