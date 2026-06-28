@@ -10,6 +10,7 @@ falsifier: the online learner must converge to the offline analytic expectile.
 from __future__ import annotations
 
 import math
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -34,6 +35,18 @@ def test_tau_recovered_from_asymmetric_rates(tau: float) -> None:
     )
 
 
+def test_channel_normalizes_validated_scalar_fields() -> None:
+    ch = ExpectileChannel(
+        tau=cast(Any, "0.5"),
+        learning_rate=cast(Any, "0.1"),
+    )
+
+    assert isinstance(ch.tau, float)
+    assert isinstance(ch.learning_rate, float)
+    assert ch.alpha_pos == pytest.approx(0.05)
+    assert ch.recovered_tau() == pytest.approx(0.5)
+
+
 # ----------------------------------------------------------------------
 # INV-EXP2 (algebraic): tau=0.5 expectile IS the mean
 # ----------------------------------------------------------------------
@@ -41,6 +54,13 @@ def test_half_expectile_equals_mean() -> None:
     rng = np.random.default_rng(0)
     samples = rng.normal(2.0, 3.0, size=5000)
     assert abs(expectile_of_samples(samples, 0.5) - float(samples.mean())) < 1e-9
+
+
+def test_expectile_solver_handles_large_finite_constant_samples() -> None:
+    learned = expectile_of_samples([1.0e308, 1.0e308, 1.0e308], 0.5)
+
+    assert math.isfinite(learned)
+    assert learned == pytest.approx(1.0e308)
 
 
 # ----------------------------------------------------------------------
@@ -124,6 +144,20 @@ def test_analytic_expectile_is_a_true_fixed_point(tau: float) -> None:
     )
 
 
+@pytest.mark.parametrize("tau", [0.1, 0.3, 0.7, 0.9])
+def test_quantile_substitution_fails_expectile_fixed_point(tau: float) -> None:
+    rng = np.random.default_rng(int(tau * 1000))
+    x = rng.normal(0.0, 1.0, size=800)
+    fake_quantile = float(np.quantile(x, tau))
+    w = np.where(x > fake_quantile, tau, 1.0 - tau)
+    residual = abs(float(np.sum(w * (x - fake_quantile))))
+
+    assert residual > 1.0, (
+        f"FALSIFIER MISSING: quantile substitution residual {residual:.2e} "
+        f"looked expectile-valid for tau={tau}."
+    )
+
+
 # ----------------------------------------------------------------------
 # FALSIFIER part B (dynamics): the online learner converges into the O(sqrt(eta))
 # stationary neighbourhood of the analytic expectile. The 0.05 tolerance is the
@@ -165,6 +199,41 @@ def test_risk_adjusted_value_orders_by_tau() -> None:
     assert risk_averse < neutral < risk_seeking
 
 
+def test_alpha_swap_falsifier_reverses_risk_ordering() -> None:
+    correct = ExpectileEnsembleValue.from_levels([0.1, 0.9], learning_rate=0.02)
+    swapped = ExpectileEnsembleValue.from_levels([0.9, 0.1], learning_rate=0.02)
+    rng = np.random.default_rng(17)
+    samples = rng.normal(0.0, 1.0, size=20000)
+    for s in samples:
+        correct.observe_return(float(s))
+        swapped.observe_return(float(s))
+
+    assert correct.values[0] < correct.values[1]
+    assert swapped.values[0] > swapped.values[1]
+
+
+def test_constant_stream_collapses_dispersion() -> None:
+    ens = ExpectileEnsembleValue.spread(n_channels=9, learning_rate=0.05)
+    for _ in range(4000):
+        ens.observe_return(3.25)
+
+    assert ens.dispersion() <= 1e-9
+
+
+def test_extreme_tau_stability_and_hull_bounds() -> None:
+    ens = ExpectileEnsembleValue.from_levels([0.01, 0.05, 0.95, 0.99], learning_rate=0.01)
+    rng = np.random.default_rng(23)
+    samples = rng.uniform(-4.0, 7.0, size=12000)
+    for s in samples:
+        ens.observe_return(float(s))
+
+    values = ens.values
+    assert np.all(np.isfinite(values))
+    assert np.all(values >= float(samples.min()) - 1e-9)
+    assert np.all(values <= float(samples.max()) + 1e-9)
+    assert np.all(np.diff(values) >= -1e-9)
+
+
 # ----------------------------------------------------------------------
 # Fail-closed contract guards
 # ----------------------------------------------------------------------
@@ -195,6 +264,25 @@ def test_observe_rejects_nonfinite_and_bad_gamma() -> None:
         ens.observe_td_target(1.0, 1.0, 0.0)
     with pytest.raises(ValueError):
         ens.observe_td_target(1.0, 1.0, 1.5)
+
+
+def test_observe_return_rejects_overflowed_delta_without_mutating_state() -> None:
+    ens = ExpectileEnsembleValue.symmetric(init_value=-1.0e308)
+
+    with pytest.raises(ValueError, match="distributional deltas must be finite"):
+        ens.observe_return(1.0e308)
+
+    assert ens.n_updates == 0
+    assert ens.values[0] == pytest.approx(-1.0e308)
+
+
+def test_observe_td_target_rejects_overflowed_target() -> None:
+    ens = ExpectileEnsembleValue.symmetric()
+
+    with pytest.raises(ValueError, match="td_target must be finite"):
+        ens.observe_td_target(1.0e308, 1.0e308, 1.0)
+
+    assert ens.n_updates == 0
 
 
 def test_expectile_solver_rejects_empty_and_bad_tau() -> None:
