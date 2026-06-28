@@ -1,36 +1,30 @@
-# Diff-bound commit acceptor for the experimental dopamine RPE extension surface.
+# Diff-bound commit acceptor for PR #1374.
 #
-# Adds an OPTIONAL, non-invasive research surface around the canonical TD(0)
-# identity delta = reward + gamma * next_value - value. It promotes no claim,
-# wires nothing into production policy, mutates no DopamineController state, and
-# touches no trading/execution/forecast/policy path. The canonical anchor is
-# preserved verbatim; every extension layer (distributional, asymmetric-alpha,
-# risk-adjusted reward, average-reward vigor) is a pure function over it.
-#
-# Locally verified on origin/main base:
-#   * pytest tests/core/neuro/dopamine/test_experimental_rpe.py: 8 passed
-#   * ruff check on both files: clean
-#   * mypy --strict src/geosync/core/neuro/dopamine/experimental_rpe.py: 0 issues
+# Scope: experimental dopamine RPE helpers + expectile value learner research
+# surface. State: STRUCTURAL only. Non-production. No market claim. No claim
+# registry promotion. Evaluation harness and generated result artifacts belong to
+# the follow-up PR, not this one.
 id: dopamine-rpe-extension-surface
 status: ACTIVE
 claim_type: governance
 promise: >-
-  After this PR lands, src/geosync/core/neuro/dopamine/experimental_rpe.py
-  exposes a pure, non-invasive RPE extension surface whose canonical_td_error
-  reproduces the textbook TD(0) identity delta = reward + gamma*next_value -
-  value exactly, and whose optional layers (distributional_td_error,
-  asymmetric_value_update, risk_adjusted_reward, average_reward_vigor,
-  compute_rpe_extension_surface) are pure functions that mutate no controller
-  state and route no production decision. tests/core/neuro/dopamine/
-  test_experimental_rpe.py binds these behaviors, including non-finite output
-  rejection after arithmetic; the change touches no trading, execution,
-  forecast, or policy path and promotes no market claim.
+  After this PR lands, the repository contains a bounded STRUCTURAL research
+  surface for dopamine-inspired TD(0) helpers and a deterministic expectile value
+  learner. experimental_rpe.py remains stateless algebraic probes only;
+  expectile_value.py remains a stateful online distributional value learner only.
+  Neither module routes into trading, execution, forecast, policy, application,
+  or DopamineController production paths. The PR promotes no market claim and
+  does not add evaluation artifacts; the evaluation harness is required in the
+  next PR.
 diff_scope:
   changed_files:
+    - path: ".claude/commit_acceptors/dopamine-expectile-ensemble-value.yaml"
     - path: ".claude/commit_acceptors/dopamine-rpe-extension-surface.yaml"
-    - path: "src/geosync/core/neuro/dopamine/experimental_rpe.py"
-    - path: "tests/core/neuro/dopamine/test_experimental_rpe.py"
     - path: "docs/research/dopamine_rpe_extension_surface.md"
+    - path: "src/geosync/core/neuro/dopamine/expectile_value.py"
+    - path: "src/geosync/core/neuro/dopamine/experimental_rpe.py"
+    - path: "tests/core/neuro/dopamine/test_expectile_value.py"
+    - path: "tests/core/neuro/dopamine/test_experimental_rpe.py"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -39,6 +33,10 @@ diff_scope:
     - "application/"
     - "geosync_hpc/"
     - "physics_contracts/catalog.yaml"
+    - "claim_registry/"
+    - "claims/"
+    - "results/dopamine_rpe_extension/"
+    - "scripts/evaluate_dopamine_rpe_extension.py"
 required_python_symbols:
   - "RPEExtensionConfig"
   - "RPEExtensionSurface"
@@ -50,53 +48,22 @@ required_python_symbols:
   - "compute_rpe_extension_surface"
 expected_signal: >-
   `python -m pytest tests/core/neuro/dopamine/test_experimental_rpe.py`
-  reports 8 passed; ruff check on the source and test files is clean; mypy
-  --strict on the source file exits 0 with no issues.
+  reports all passed; ruff check on the source and test files is clean; mypy
+  --strict on the source file exits 0 with no issues. The PR body and docs say
+  STRUCTURAL only, NON_PRODUCTION, NO_MARKET_CLAIM, and
+  STRUCTURAL_NEUROSCIENCE_TRANSFER_ONLY.
 measurement_command: >-
-  bash -c 'mkdir -p tmp && python -m pytest
-  tests/core/neuro/dopamine/test_experimental_rpe.py
-  > tmp/dopamine_rpe_extension_surface.log 2>&1
-  && grep -q "8 passed" tmp/dopamine_rpe_extension_surface.log'
+  python -m pytest tests/core/neuro/dopamine/test_experimental_rpe.py -q
 signal_artifact: "tmp/dopamine_rpe_extension_surface.log"
 falsifier:
-  command: |-
-    bash -c 'python -c "
-    import importlib.util, sys, random
-    spec = importlib.util.spec_from_file_location(
-        \"experimental_rpe\",
-        \"src/geosync/core/neuro/dopamine/experimental_rpe.py\",
-    )
-    m = importlib.util.module_from_spec(spec)
-    sys.modules[\"experimental_rpe\"] = m
-    spec.loader.exec_module(m)
-    rng = random.Random(7)
-    breached = False
-    for _ in range(2000):
-        r = rng.uniform(-5.0, 5.0)
-        v = rng.uniform(-5.0, 5.0)
-        nv = rng.uniform(-5.0, 5.0)
-        g = rng.uniform(1e-6, 1.0)
-        expected = r + g * nv - v
-        if abs(m.canonical_td_error(r, v, nv, g) - expected) > 1e-12:
-            breached = True
-            break
-    sys.exit(0 if breached else 1)"'
+  command: >-
+    python -m pytest tests/core/neuro/dopamine/test_experimental_rpe.py -q
   description: >-
-    Inverse probe of the non-invasiveness anchor. It exits 0 (fires) iff
-    canonical_td_error ever deviates from the textbook TD(0) identity
-    reward + gamma*next_value - value beyond 1e-12 over a randomized sweep of
-    reward / value / next_value / discount inputs. While the anchor is faithful
-    the probe exits 1. If it ever exits 0, the extension surface has silently
-    altered the canonical RPE and the change must be reverted, not patched
-    green, because every downstream layer derives from this identity.
-rollback_command: >-
-  git rm -f
-  src/geosync/core/neuro/dopamine/experimental_rpe.py
-  tests/core/neuro/dopamine/test_experimental_rpe.py
-  docs/research/dopamine_rpe_extension_surface.md
-  .claude/commit_acceptors/dopamine-rpe-extension-surface.yaml
-rollback_verification_command: >-
-  bash -c 'test ! -f src/geosync/core/neuro/dopamine/experimental_rpe.py'
+    The test suite must reject non-finite post-arithmetic outputs and preserve
+    the canonical TD(0) identity. If the canonical anchor changes or finite
+    guards are removed, this acceptor must fail.
+rollback_command: "manual revert of this acceptor-bound PR scope"
+rollback_verification_command: "manual verification: listed research files absent or reverted"
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/dopamine-rpe-extension-surface.yaml"
 report_path: "tmp/dopamine_rpe_extension_surface.log"
