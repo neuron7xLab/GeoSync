@@ -41,11 +41,6 @@ jobs:
       - name: Install probe + physics test runtime
         run: |
           set -euo pipefail
-          # The ratchet re-runs claim-critical physics tests under mutation, so
-          # it needs the same runtime import closure as the physics suites.
-          # scipy is required because core.kuramoto imports adaptive.py, which
-          # imports scipy.integrate.solve_ivp during enrolled test collection.
-          # pydantic is required by core.kuramoto.config during the same import path.
           python -m pip install --upgrade pip
           python -m pip install \
             'pytest>=8.4' \
@@ -53,6 +48,7 @@ jobs:
             'pandas>=2.3.3' \
             'scipy>=1.16' \
             'pydantic>=2.0' \
+            'networkx>=3.0' \
             'PyYAML>=6.0.3'
 
       - name: Mutation-kill ratchet
