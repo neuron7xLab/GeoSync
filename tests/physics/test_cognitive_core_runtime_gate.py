@@ -31,10 +31,14 @@ from core.physics.cognitive_core import (
 
 _NOMINAL: dict[str, object] = {
     "order_parameter_R": 0.5,
+    "z_abs": 0.4,
     "ollivier_kappa": 0.2,
     "gamma": 1.5,
     "serotonin_level": 0.3,
+    "gaba_gate": 0.8,
+    "dopamine_signal": 0.5,
     "kelly_fraction": 0.25,
+    "free_energy_components": (1.0, 0.5, 0.2),
 }
 
 
