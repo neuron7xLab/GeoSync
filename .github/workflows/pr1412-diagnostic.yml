@@ -40,46 +40,85 @@ jobs:
           .venv/bin/python -m pip install -r requirements.txt
           .venv/bin/python -m pip install pytest hypothesis pyyaml mypy ruff black "POT>=0.9.5" "pyarrow>=15.0.0" "typer>=0.20.0,<1.0.0"
 
-      - name: Execute fast-lane diagnostic
+      - name: Execute diagnostic collector
         run: |
           set +e
           mkdir -p tmp/pr1412-diagnostic
-          MARK="not slow and not heavy_math and not nightly and not flaky"
-          .venv/bin/pytest tests/ -m "$MARK" --collect-only \
-            | grep -E '^tests/.*::' > tmp/pr1412-diagnostic/all_nodeids.txt
-          collect_rc=${PIPESTATUS[0]}
-          grep -vE '^\s*#|^\s*$' tests/ci/fast_quarantine.txt \
-            | awk '{print $1}' > tmp/pr1412-diagnostic/quarantine_paths.txt || true
-          grep -vFf tmp/pr1412-diagnostic/quarantine_paths.txt \
-            tmp/pr1412-diagnostic/all_nodeids.txt \
-            > tmp/pr1412-diagnostic/all_nodeids.kept || true
-          echo "collect_rc=${collect_rc}" | tee tmp/pr1412-diagnostic/fast_summary.txt
-          echo "all_nodeids=$(wc -l < tmp/pr1412-diagnostic/all_nodeids.txt | tr -d ' ')" | tee -a tmp/pr1412-diagnostic/fast_summary.txt
-          echo "kept_nodeids=$(wc -l < tmp/pr1412-diagnostic/all_nodeids.kept | tr -d ' ')" | tee -a tmp/pr1412-diagnostic/fast_summary.txt
-          .venv/bin/pytest -m "$MARK" \
-            $(cat tmp/pr1412-diagnostic/all_nodeids.kept) \
-            --maxfail=20 -rA -q \
-            > tmp/pr1412-diagnostic/fast_pytest.log 2>&1
-          fast_rc=$?
-          echo "fast_rc=${fast_rc}" | tee -a tmp/pr1412-diagnostic/fast_summary.txt
-          grep -aE '^(FAILED|ERROR)' tmp/pr1412-diagnostic/fast_pytest.log \
-            > tmp/pr1412-diagnostic/fast_failures.txt || true
-          tail -n 200 tmp/pr1412-diagnostic/fast_pytest.log \
-            > tmp/pr1412-diagnostic/fast_tail.txt || true
-          exit 0
+          .venv/bin/python - <<'PY'
+          from __future__ import annotations
 
-      - name: Execute research diagnostic
-        run: |
-          set +e
-          mkdir -p tmp/pr1412-diagnostic
-          .venv/bin/python -m pytest tests/ci tests/research_lines -q --maxfail=5 -rA \
-            > tmp/pr1412-diagnostic/research_pytest.log 2>&1
-          research_rc=$?
-          echo "research_rc=${research_rc}" | tee tmp/pr1412-diagnostic/research_summary.txt
-          grep -aE '^(FAILED|ERROR)' tmp/pr1412-diagnostic/research_pytest.log \
-            > tmp/pr1412-diagnostic/research_failures.txt || true
-          tail -n 200 tmp/pr1412-diagnostic/research_pytest.log \
-            > tmp/pr1412-diagnostic/research_tail.txt || true
+          import subprocess
+          from pathlib import Path
+
+          out = Path('tmp/pr1412-diagnostic')
+          out.mkdir(parents=True, exist_ok=True)
+          mark = 'not slow and not heavy_math and not nightly and not flaky'
+
+          collect = subprocess.run(
+              ['.venv/bin/pytest', 'tests/', '-m', mark, '--collect-only'],
+              check=False,
+              capture_output=True,
+              text=True,
+          )
+          nodeids = [line.strip() for line in collect.stdout.splitlines() if line.startswith('tests/') and '::' in line]
+          (out / 'all_nodeids.txt').write_text('\n'.join(nodeids) + ('\n' if nodeids else ''), encoding='utf-8')
+          (out / 'collect_stderr.log').write_text(collect.stderr, encoding='utf-8')
+
+          quarantine_paths: list[str] = []
+          for raw in Path('tests/ci/fast_quarantine.txt').read_text(encoding='utf-8').splitlines():
+              line = raw.strip()
+              if not line or line.startswith('#'):
+                  continue
+              quarantine_paths.append(line.split()[0])
+          (out / 'quarantine_paths.txt').write_text('\n'.join(quarantine_paths) + ('\n' if quarantine_paths else ''), encoding='utf-8')
+
+          kept = [nodeid for nodeid in nodeids if not any(nodeid.startswith(path) for path in quarantine_paths)]
+          (out / 'all_nodeids.kept').write_text('\n'.join(kept) + ('\n' if kept else ''), encoding='utf-8')
+
+          summary = [
+              f'collect_rc={collect.returncode}',
+              f'all_nodeids={len(nodeids)}',
+              f'quarantine_paths={len(quarantine_paths)}',
+              f'kept_nodeids={len(kept)}',
+          ]
+
+          if kept:
+              fast = subprocess.run(
+                  ['.venv/bin/pytest', '-m', mark, *kept, '--maxfail=20', '-rA', '-q'],
+                  check=False,
+                  capture_output=True,
+                  text=True,
+              )
+              fast_text = fast.stdout + fast.stderr
+              fast_rc = fast.returncode
+          else:
+              fast_text = 'No kept nodeids after quarantine.\n'
+              fast_rc = 99
+          (out / 'fast_pytest.log').write_text(fast_text, encoding='utf-8')
+          fast_lines = fast_text.splitlines()
+          fast_failures = [line for line in fast_lines if line.startswith(('FAILED', 'ERROR'))]
+          (out / 'fast_failures.txt').write_text('\n'.join(fast_failures) + ('\n' if fast_failures else ''), encoding='utf-8')
+          (out / 'fast_tail.txt').write_text('\n'.join(fast_lines[-200:]) + ('\n' if fast_lines else ''), encoding='utf-8')
+          summary.append(f'fast_rc={fast_rc}')
+          (out / 'fast_summary.txt').write_text('\n'.join(summary) + '\n', encoding='utf-8')
+
+          research = subprocess.run(
+              ['.venv/bin/python', '-m', 'pytest', 'tests/ci', 'tests/research_lines', '-q', '--maxfail=5', '-rA'],
+              check=False,
+              capture_output=True,
+              text=True,
+          )
+          research_text = research.stdout + research.stderr
+          (out / 'research_pytest.log').write_text(research_text, encoding='utf-8')
+          research_lines = research_text.splitlines()
+          research_failures = [line for line in research_lines if line.startswith(('FAILED', 'ERROR'))]
+          (out / 'research_failures.txt').write_text('\n'.join(research_failures) + ('\n' if research_failures else ''), encoding='utf-8')
+          (out / 'research_tail.txt').write_text('\n'.join(research_lines[-200:]) + ('\n' if research_lines else ''), encoding='utf-8')
+          (out / 'research_summary.txt').write_text(f'research_rc={research.returncode}\n', encoding='utf-8')
+
+          print('\n'.join(summary))
+          print(f'research_rc={research.returncode}')
+          PY
           exit 0
 
       - name: Upload diagnostic evidence
