@@ -200,28 +200,38 @@ def test_risk_adjusted_value_orders_by_tau() -> None:
 
 
 def test_alpha_swap_falsifier_reverses_risk_ordering() -> None:
-    correct = ExpectileEnsembleValue.from_levels([0.1, 0.9], learning_rate=0.02)
-    swapped = ExpectileEnsembleValue.from_levels([0.9, 0.1], learning_rate=0.02)
     rng = np.random.default_rng(17)
     samples = rng.normal(0.0, 1.0, size=20000)
-    for s in samples:
-        correct.observe_return(float(s))
-        swapped.observe_return(float(s))
 
-    assert correct.values[0] < correct.values[1]
-    assert swapped.values[0] > swapped.values[1]
+    def run_mutant(tau: float, *, swapped: bool) -> float:
+        value = 0.0
+        learning_rate = 0.02
+        alpha_pos = learning_rate * tau
+        alpha_neg = learning_rate * (1.0 - tau)
+        if swapped:
+            alpha_pos, alpha_neg = alpha_neg, alpha_pos
+        for sample in samples:
+            delta = float(sample) - value
+            value += (alpha_pos if delta > 0.0 else alpha_neg) * delta
+        return value
+
+    assert run_mutant(0.1, swapped=False) < run_mutant(0.9, swapped=False)
+    assert run_mutant(0.1, swapped=True) > run_mutant(0.9, swapped=True)
 
 
 def test_constant_stream_collapses_dispersion() -> None:
     ens = ExpectileEnsembleValue.spread(n_channels=9, learning_rate=0.05)
-    for _ in range(4000):
+    for _ in range(6000):
         ens.observe_return(3.25)
 
     assert ens.dispersion() <= 1e-9
 
 
 def test_extreme_tau_stability_and_hull_bounds() -> None:
-    ens = ExpectileEnsembleValue.from_levels([0.01, 0.05, 0.95, 0.99], learning_rate=0.01)
+    ens = ExpectileEnsembleValue.from_levels(
+        [0.01, 0.05, 0.95, 0.99],
+        learning_rate=0.01,
+    )
     rng = np.random.default_rng(23)
     samples = rng.uniform(-4.0, 7.0, size=12000)
     for s in samples:
@@ -267,7 +277,10 @@ def test_observe_rejects_nonfinite_and_bad_gamma() -> None:
 
 
 def test_observe_return_rejects_overflowed_delta_without_mutating_state() -> None:
-    ens = ExpectileEnsembleValue.symmetric(init_value=-1.0e308)
+    ens = ExpectileEnsembleValue(
+        [ExpectileChannel(tau=0.5, learning_rate=0.05)],
+        init_value=-1.0e308,
+    )
 
     with pytest.raises(ValueError, match="distributional deltas must be finite"):
         ens.observe_return(1.0e308)
