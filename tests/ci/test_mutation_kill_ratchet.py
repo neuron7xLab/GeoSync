@@ -18,7 +18,7 @@ _MOD_PATH = (
 )
 _spec = importlib.util.spec_from_file_location("check_mutation_kill_ratchet", _MOD_PATH)
 assert _spec and _spec.loader
-gate = importlib.util.module_from_spec(_spec)
+gate: Any = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
 
