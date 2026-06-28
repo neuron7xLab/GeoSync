@@ -19,6 +19,21 @@ Status: draft gate matrix for `second-order-energy-stream-clean`.
 | Import architecture intact | must hold | Import Architecture Gate |
 | Physics behavior intact | must hold | Physics Invariants / Kernel / Reliability |
 
+## Audited file scope
+
+Actual PR scope contains ten files:
+
+- `.claude/commit_acceptors/second-order-energy-stream-clean.yaml`
+- `.github/workflows/mutation-kill-gate.yml`
+- `core/kuramoto/second_order.py`
+- `docs/ENGINEERING_RESEARCH_QUALITY_CODE.md`
+- `docs/PR_1400_VERIFICATION_MATRIX.md`
+- `pyproject.toml`
+- `scripts/ci/check_mutation_kill_ratchet.py`
+- `tests/ci/test_mutation_kill_ratchet.py`
+- `tests/unit/physics/test_second_order_stability_audit.py`
+- `tools/mutation_probe.py`
+
 ## Gate policy
 
 Draft remains draft until all required gates are green:
