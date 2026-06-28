@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: MIT
 """Generate a repository readiness verdict from explicit evidence rows.
 
-The verifier is intentionally conservative: a readiness row is PASS only when the
-required file artifact exists and can be hashed. Command execution is optional for
-local use because CI already owns many heavy gates; use --execute to run commands
-and --enforce to return non-zero unless every required row is PASS.
+A row is PASS only when the expected artifact exists and, for command-backed
+repository checks, the command has actually been executed with --execute. This
+keeps report-only mode useful for artifact discovery while preventing command
+claims from being treated as complete evidence.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ class ReadinessClaim:
     scope: str
     check_command: str
     expected_artifact: str
-    required: bool = True
+    command_backed: bool = True
 
 
 @dataclass
@@ -58,12 +58,14 @@ CLAIMS: tuple[ReadinessClaim, ...] = (
         "docs",
         "test -f docs/PRODUCTION_READINESS_STACK.md",
         "docs/PRODUCTION_READINESS_STACK.md",
+        command_backed=False,
     ),
     ReadinessClaim(
         "release-verdict-protocol",
         "docs",
         "test -f docs/RELEASE_VERDICT_PROTOCOL.md",
         "docs/RELEASE_VERDICT_PROTOCOL.md",
+        command_backed=False,
     ),
     ReadinessClaim(
         "readiness-verifier",
@@ -76,6 +78,7 @@ CLAIMS: tuple[ReadinessClaim, ...] = (
         "repository",
         "test -f .claude/commit_acceptors/production-readiness-stack.yaml",
         ".claude/commit_acceptors/production-readiness-stack.yaml",
+        command_backed=False,
     ),
     ReadinessClaim(
         "test-suite-command",
@@ -100,18 +103,13 @@ CLAIMS: tuple[ReadinessClaim, ...] = (
         "artifact",
         "test -f results/production_readiness/RELEASE_VERDICT.md",
         "results/production_readiness/RELEASE_VERDICT.md",
+        command_backed=False,
     ),
 )
 
 
 def _run(cmd: list[str]) -> tuple[int, str]:
-    proc = subprocess.run(
-        cmd,
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, check=False)
     return proc.returncode, (proc.stdout + proc.stderr).strip()
 
 
@@ -146,6 +144,17 @@ def evaluate_claim(claim: ReadinessClaim, *, commit_sha: str, execute: bool) -> 
 
     artifact_hash = sha256_file(artifact)
     if not execute:
+        if claim.command_backed:
+            return ReadinessRow(
+                claim.claim_id,
+                claim.scope,
+                claim.check_command,
+                claim.expected_artifact,
+                artifact_hash,
+                commit_sha,
+                BLOCKED,
+                "command-backed claim was not executed in report-only mode",
+            )
         return ReadinessRow(
             claim.claim_id,
             claim.scope,
@@ -153,8 +162,8 @@ def evaluate_claim(claim: ReadinessClaim, *, commit_sha: str, execute: bool) -> 
             claim.expected_artifact,
             artifact_hash,
             commit_sha,
-            PASS if claim.scope in {"docs", "artifact", "repository"} else BLOCKED,
-            "artifact present; command not executed in report-only mode",
+            PASS,
+            "artifact present",
         )
 
     code, output = _run(claim.check_command.split())
@@ -206,13 +215,12 @@ def write_outputs(summary: dict[str, object], rows: list[ReadinessRow]) -> None:
         writer.writeheader()
         for row in rows:
             writer.writerow(asdict(row))
-    verdict = summary["verdict"]
     lines = [
         "# Release Verdict",
         "",
         f"Commit: `{summary['commit_sha']}`",
         f"Generated: `{summary['generated_at']}`",
-        f"Verdict: **{verdict}**",
+        f"Verdict: **{summary['verdict']}**",
         f"Release ready: `{summary['release_ready']}`",
         "",
         "| Claim | Scope | Verdict | Artifact |",
