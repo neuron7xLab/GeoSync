@@ -48,13 +48,13 @@ LEDGER_PATH = ROOT / "docs" / "MUTATION_KILL_BASELINE.json"
 _PROBE_PATH = ROOT / "tools" / "mutation_probe.py"
 
 
-def _probe_module(module: str, tests: str, floor: float) -> tuple[int, dict[str, Any]]:
+def _probe_module(module: str, tests: str, floor: float) -> tuple[int, dict[str, Any], str, str]:
     """Run mutation_probe as a CLI (its own --fail-under does the floor check).
 
     Black-box on purpose: the gate verifies the tool the same way a developer
     invokes it, so it cannot drift from the tool's real behaviour. Returns the
-    probe's exit code (non-zero on baseline-fail or below --fail-under) and the
-    parsed JSON report.
+    probe's exit code (non-zero on baseline-fail or below --fail-under), the
+    parsed JSON report, and captured stdout/stderr for fail-closed diagnostics.
     """
     with tempfile.NamedTemporaryFile("r", suffix=".json", delete=False) as fh:
         out_path = fh.name
@@ -81,7 +81,19 @@ def _probe_module(module: str, tests: str, floor: float) -> tuple[int, dict[str,
     except (OSError, json.JSONDecodeError):
         report = {}
     Path(out_path).unlink(missing_ok=True)
-    return proc.returncode, report
+    return proc.returncode, report, proc.stdout, proc.stderr
+
+
+def _emit_probe_failure(module: str, rc: int, stdout: str, stderr: str) -> None:
+    print(f"ERROR: could not establish baseline for {module} (probe exit {rc}); cannot verify floor.")
+    if stdout:
+        print("---- mutation_probe stdout ----")
+        print(stdout, end="" if stdout.endswith("\n") else "\n")
+        print("---- end mutation_probe stdout ----")
+    if stderr:
+        print("---- mutation_probe stderr ----")
+        print(stderr, end="" if stderr.endswith("\n") else "\n")
+        print("---- end mutation_probe stderr ----")
 
 
 def _load_ledger(text: str | None = None) -> dict[str, dict[str, Any]]:
@@ -147,11 +159,9 @@ def main(argv: list[str] | None = None) -> int:
     for mod, spec in to_probe:
         tests = str(spec["tests"])
         floor = float(spec["floor"])
-        rc, report = _probe_module(mod, tests, floor)
+        rc, report, probe_stdout, probe_stderr = _probe_module(mod, tests, floor)
         if rc == 2 or "kill_rate" not in report:
-            print(
-                f"ERROR: could not establish baseline for {mod} (probe exit {rc}); cannot verify floor."
-            )
+            _emit_probe_failure(mod, rc, probe_stdout, probe_stderr)
             return 2
         rate = float(report["kill_rate"])
         status = "ok" if rate >= floor else "REGRESSED"
