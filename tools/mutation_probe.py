@@ -113,7 +113,9 @@ def _apply(tree: ast.AST, target: int) -> tuple[ast.AST, int, str, str]:
     counter = [0]
     info: dict[str, object] = {}
 
-    def mutate_op(node: ast.AST, op: ast.AST, swap: dict[type, type], kind: str) -> ast.AST:
+    def mutate_op(
+        node: ast.AST, op: ast.AST, swap: dict[type, type], kind: str
+    ) -> ast.AST:
         if type(op) in swap:
             if counter[0] == target:
                 info["lineno"] = getattr(node, "lineno", -1)
@@ -170,7 +172,16 @@ def _apply(tree: ast.AST, target: int) -> tuple[ast.AST, int, str, str]:
 def _run_tests(selector: str) -> subprocess.CompletedProcess[str]:
     """Run selector and return the completed pytest process."""
     return subprocess.run(
-        [sys.executable, "-m", "pytest", "-x", "-q", "-p", "no:cacheprovider", *selector.split()],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-x",
+            "-q",
+            "-p",
+            "no:cacheprovider",
+            *selector.split(),
+        ],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -180,20 +191,34 @@ def _run_tests(selector: str) -> subprocess.CompletedProcess[str]:
 
 def _emit_baseline_failure(proc: subprocess.CompletedProcess[str]) -> None:
     """Surface the hidden pytest output that made baseline establishment fail."""
-    print("ERROR: baseline test selector does not pass on unmutated code.", file=sys.stderr)
+    print(
+        "ERROR: baseline test selector does not pass on unmutated code.",
+        file=sys.stderr,
+    )
     print(f"baseline pytest exit code: {proc.returncode}", file=sys.stderr)
     if proc.stdout:
         print("---- baseline pytest stdout ----", file=sys.stderr)
-        print(proc.stdout, file=sys.stderr, end="" if proc.stdout.endswith("\n") else "\n")
+        print(
+            proc.stdout,
+            file=sys.stderr,
+            end="" if proc.stdout.endswith("\n") else "\n",
+        )
         print("---- end baseline pytest stdout ----", file=sys.stderr)
     if proc.stderr:
         print("---- baseline pytest stderr ----", file=sys.stderr)
-        print(proc.stderr, file=sys.stderr, end="" if proc.stderr.endswith("\n") else "\n")
+        print(
+            proc.stderr,
+            file=sys.stderr,
+            end="" if proc.stderr.endswith("\n") else "\n",
+        )
         print("---- end baseline pytest stderr ----", file=sys.stderr)
 
 
 def probe(
-    module: str, tests: str, max_mutants: int | None, kinds: frozenset[str] | None = None
+    module: str,
+    tests: str,
+    max_mutants: int | None,
+    kinds: frozenset[str] | None = None,
 ) -> Report:
     path = ROOT / module
     original = path.read_text(encoding="utf-8")
@@ -220,7 +245,7 @@ def probe(
             if kinds is not None and kind not in kinds:
                 continue  # skip the (expensive) test run for filtered-out kinds
             path.write_text(ast.unparse(mutant_tree) + "\n", encoding="utf-8")
-            killed = _run_tests(tests).returncode != 0  # a failing suite KILLS the mutant
+            killed = _run_tests(tests).returncode != 0
             report.mutants.append(
                 Mutant(index=i, lineno=lineno, kind=kind, detail=detail, killed=killed)
             )
@@ -236,7 +261,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("module")
     ap.add_argument("--tests", required=True, help="pytest selector run against each mutant")
     ap.add_argument("--max", type=int, default=None, help="cap number of mutants")
-    ap.add_argument("--fail-under", type=float, default=None, help="exit 1 if kill-rate below this")
+    ap.add_argument(
+        "--fail-under",
+        type=float,
+        default=None,
+        help="exit 1 if kill-rate below this",
+    )
     ap.add_argument(
         "--only-logic",
         action="store_true",
@@ -256,10 +286,14 @@ def main(argv: list[str] | None = None) -> int:
     report = probe(args.module, args.tests, args.max, kinds)
     print(f"\nMutation probe: {report.module}  (tests: {report.tests})")
     print(
-        f"  mutants: {report.total} | killed: {report.killed} | kill-rate: {report.kill_rate:.1%}"
+        f"  mutants: {report.total} | killed: {report.killed} | "
+        f"kill-rate: {report.kill_rate:.1%}"
     )
     if report.survived:
-        print(f"  SURVIVED ({len(report.survived)}) — behaviour changes the suite cannot detect:")
+        print(
+            f"  SURVIVED ({len(report.survived)}) — behaviour changes the suite "
+            "cannot detect:"
+        )
         for m in report.survived:
             print(f"    {report.module}:{m.lineno}  [{m.kind}] {m.detail}")
     else:
@@ -273,10 +307,14 @@ def main(argv: list[str] | None = None) -> int:
             "killed": report.killed,
             "kill_rate": report.kill_rate,
             "survivors": [
-                {"lineno": m.lineno, "kind": m.kind, "detail": m.detail} for m in report.survived
+                {"lineno": m.lineno, "kind": m.kind, "detail": m.detail}
+                for m in report.survived
             ],
         }
-        Path(args.json_out).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        Path(args.json_out).write_text(
+            json.dumps(payload, indent=2) + "\n",
+            encoding="utf-8",
+        )
 
     if args.fail_under is not None and report.kill_rate < args.fail_under:
         print(
