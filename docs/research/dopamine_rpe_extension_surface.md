@@ -1,232 +1,235 @@
-# Dopamine RPE Extension Surface
+# Dopamine RPE / Expectile Value Research Surface
 
-Status: experimental research layer, not a canonical public claim.
+Status labels:
 
-## Boundary
+- `P2_RESEARCH_SURFACE`
+- `NON_PRODUCTION`
+- `NO_MARKET_CLAIM`
+- `STRUCTURAL_NEUROSCIENCE_TRANSFER_ONLY`
 
-The canonical dopamine invariant remains:
+Current claim state: `STRUCTURAL`.
+
+This PR establishes a bounded research substrate only. It does not claim market
+edge, cognitive value, production intelligence, or brain-level function.
+
+## Core boundary
+
+The canonical dopamine invariant remains the TD(0) anchor:
 
 ```text
 delta = reward + gamma * next_value - value
 ```
 
-This PR does not replace `DopamineController.compute_rpe` and does not rewrite
-INV-DA1 / INV-DA3 / INV-DA7. It adds a separate optional surface for testing
-whether richer reward-processing layers improve decision quality without
-corrupting the anchored TD(0) axis.
+This PR does not replace `DopamineController.compute_rpe`, does not rewrite
+INV-DA1 / INV-DA3 / INV-DA7, and does not route any output into trading,
+execution, forecast, policy, application, or production controller paths.
 
-## Why this shape
+Science licenses architecture only:
 
-The repository already treats dopamine as a P0-anchored algebraic control path.
-Changing that path directly would weaken the falsifier surface. The safer mature
-architecture is a two-tier design:
+- TD(0) anchor;
+- expectile distributional value;
+- asymmetric learning;
+- average-reward baseline;
+- risk-sensitive readout.
 
-1. Canonical TD(0) remains the proof anchor.
-2. Experimental extensions are computed around the anchor and must earn promotion
-   through tests, backtests, and claim-registry evidence.
+Science does **not** license:
 
-## Added extension layers
+- copied neural parameters;
+- cosmetic neuroscience language;
+- trading claims;
+- production policy wiring;
+- intelligence claims without falsification.
 
-| Layer | Function | Role |
-| --- | --- | --- |
-| Canonical anchor | `canonical_td_error` | Recomputes raw TD(0) without hidden nonlinear processing. |
-| Distributional RPE | `distributional_td_error` | Pushes reward quantiles through the same affine TD(0) map. |
-| Asymmetric learning | `asymmetric_value_update` | Allows different update magnitudes for positive and negative deltas. |
-| Risk-adjusted reward | `risk_adjusted_reward` | Penalizes volatility/drawdown before secondary RPE evaluation. |
-| Average-reward vigor | `average_reward_vigor` | Converts reward-above-baseline into bounded execution vigor. |
-| Unified surface | `compute_rpe_extension_surface` | Returns all extension outputs without mutating controller state. |
+Dopamine neuron reversal points, p-values, alphas, and R² are not market
+parameters.
 
-## The unified estimator: `ExpectileEnsembleValue`
+## Module roles
 
-The functions above are stateless probes. `expectile_value.py` promotes them
-into one coherent **online distributional value learner** — the part that makes
-the surface a real system rather than a set of disconnected helpers.
+### `experimental_rpe.py`
 
-The key result from the verified literature (Dabney et al. 2020, *Nature*
-577:671) is that asymmetric learning rates are not a free heuristic: a channel
-with positive/negative rates `(alpha_pos, alpha_neg)` converges on the
-**expectile** at level
+Role:
 
-```text
-tau = alpha_pos / (alpha_pos + alpha_neg)
-```
+- stateless algebraic probes;
+- pure TD(0)-anchored helper functions;
+- finite-output rejection after arithmetic;
+- no learner state;
+- no market claim;
+- no controller integration.
 
-So an ensemble of channels with spread `tau in (0, 1)` *is* the distributional
-code. This single mechanism unifies four of the layers:
+Non-role:
 
-| Need | How the ensemble provides it |
-| --- | --- |
-| Canonical anchor (mean) | the `tau = 0.5` channel — the 0.5-expectile *is* the mean, so it reproduces scalar TD(0) exactly (`canonical_value`). |
-| Distributional RPE (L1) | the full `(tau, value)` expectile curve (`expectile_curve`). |
-| Asymmetric learning (L2) | each channel's `(alpha_pos, alpha_neg)` ⇒ its `tau`. |
-| Risk-adjusted value (L4) | a low-`tau` expectile is risk-averse; `risk_adjusted_value(tau)` reads it off directly — risk emerges from the ensemble, not an ad-hoc penalty. |
-| Variance / dispersion | `dispersion()` = top minus bottom expectile, the variance-rescale signal of adaptive coding (Tobler 2005). |
+- not a production policy component;
+- not an evidence artifact;
+- not a claim-promotion mechanism.
 
-Average-reward vigor (L3) then consumes `canonical_value()` as its baseline.
+### `expectile_value.py`
 
-**Non-invasiveness is structural, not promised.** A symmetric single channel
-reduces *exactly* to the canonical TD(0) target — the P0 anchor is a special
-case of the estimator, proven in
-`tests/.../test_expectile_value.py::test_symmetric_channel_recovers_canonical_mean`.
-The estimator is fully deterministic (no RNG; identical inputs ⇒ bit-identical
-state) and every contract violation fails closed with `ValueError`.
+Role:
 
-### Invariants and the falsifier
+- deterministic online distributional value learner;
+- expectile ensemble with sorted tau channels;
+- deterministic replay from input sequence alone;
+- finite-output rejection on deltas, TD targets, updated values, and readouts;
+- no controller integration.
+
+Non-role:
+
+- not a trading signal;
+- not an execution gate;
+- not a claim registry entry;
+- not evidence of performance.
+
+## Layer taxonomy
+
+| Layer | Current component | Claim class | Boundary |
+| --- | --- | --- | --- |
+| Canonical TD(0) | `canonical_td_error` | structural | identity anchor only |
+| Distributional RPE | `distributional_td_error` | structural | affine TD projection over reward quantiles |
+| Expectile value | `ExpectileEnsembleValue` | structural | online learner, no production routing |
+| Asymmetric learning | `ExpectileChannel.alpha_pos/alpha_neg` | structural | defines tau; no copied biological alpha |
+| Risk-sensitive readout | `risk_adjusted_value(tau)` | structural | primary risk mechanism via low-tau expectile |
+| Risk penalty helper | `risk_adjusted_reward` | engineering baseline | control helper, not neuroscience-primary |
+| Vigor helper | `average_reward_vigor` | placeholder control transform | no tonic-dopamine maturity claim |
+
+The primary risk mechanism is the low-`tau` expectile readout. The linear
+volatility/drawdown penalty is an engineering baseline used for comparison and
+control, not a biological risk mechanism.
+
+`average_reward_vigor` is a placeholder control transform. It is not a model of
+tonic dopamine. Promotion requires future latency/vigor evaluation before any
+claim stronger than `STRUCTURAL`.
+
+## Structural neuroscience transfer only
+
+Each neuroscience statement below is a structural-transfer statement only. It
+licenses form, not parameter values and not performance claims.
+
+- Scalar TD(0)-like reward prediction error supports the anchor form.
+- Distributional dopamine coding supports a multi-channel value form.
+- Asymmetric learning supports expectile channels.
+- Average-reward theory supports a baseline/vigor hypothesis to test later.
+- Utility/risk dopamine literature supports risk-sensitive readouts to test later.
+
+Dopamine neuron reversal points, p-values, alphas, and R² are not market
+parameters.
+
+## Invariants and falsifiers
 
 | ID | Type | Statement |
 | --- | --- | --- |
 | INV-EXP1 | algebraic | `tau == alpha_pos / (alpha_pos + alpha_neg)` to 1e-12. |
-| INV-EXP2 | algebraic | the `0.5`-expectile equals the arithmetic mean. |
-| INV-EXP3 | asymptotic | a symmetric channel converges to the sample mean (recovers canonical TD(0)). |
-| INV-EXP4 | monotonic | `tau_a < tau_b ⇒ V_a ≤ V_b` at convergence. |
-| INV-EXP5 | universal | every `V_i` stays inside the convex hull of the targets. |
+| INV-EXP2 | algebraic | the `0.5` expectile equals the arithmetic mean. |
+| INV-EXP3 | asymptotic | a symmetric channel converges to the sample mean. |
+| INV-EXP4 | monotonic | `tau_a < tau_b` implies `V_a <= V_b` at convergence. |
+| INV-EXP5 | universal | every value estimate stays inside the target hull. |
+| FIN-EXP1 | fail-closed | overflowed deltas, TD targets, and updated values are rejected. |
+| MUT-EXP1 | mutation | quantile substitution fails the expectile residual. |
+| MUT-EXP2 | mutation | alpha swap reverses risk ordering. |
+| COLLAPSE-EXP1 | dynamics | constant target stream collapses dispersion to ~0. |
+| EXTREME-EXP1 | stability | tau in `{0.01, 0.05, 0.95, 0.99}` stays finite and ordered. |
 
-The **falsifier** is two-part: (A) the analytic expectile is an exact fixed
-point of the asymmetric-weighted residual (`Σ w_i (x_i − e) = 0` to 1e-9); (B)
-the online learner converges into the `O(√eta)` stationary neighbourhood of that
-fixed point. Part B's tolerance is the genuine constant-rate fluctuation band,
-not a slackened bound — it still separates an expectile from a quantile (for
-`tau = 0.9` on `N(0,1)` the quantile ≈ 1.28 vs expectile ≈ 0.94).
+## Claim state machine
 
-## Neuroscience provenance
+Allowed states:
 
-Each extension layer mirrors a published result in dopamine / value
-neuroscience. Tiers below reflect the consensus of the cited *primary*
-sources, adversarially verified (3-vote refute-or-confirm). The neuroscience
-licenses the architectural *form* of each layer — **not** any numeric
-parameter. Neuro-to-market transfer of effect sizes, learning rates, or
-reversal points is explicitly **not** licensed: the data come from primate /
-rodent midbrain and cortex, not from a P&L process.
+1. `DECORATIVE`
+2. `STRUCTURAL`
+3. `TESTED`
+4. `EXTRAPOLATED`
+5. `ANCHORED`
 
-### Anchor — scalar TD(0) error
-- **[established]** Phasic dopamine encodes a quantitative reward-prediction
-  error `delta = r + gamma*V' - V`. Schultz, Dayan & Montague 1997
-  (*Science* 275:1593); Bayer & Glimcher 2005 (*Neuron*, DA firing ∝ RPE
-  magnitude). This is the empirical justification for the P0 anchor (INV-DA1,
-  INV-DA7).
-- **[contested / refinement]** Within-trial dopamine may track the temporal
-  derivative of an evolving value signal `V(s)` more tightly than the scalar
-  `delta` (Hamid et al. 2016, *Nat. Neurosci.* nn.4173). *Not independently
-  confirmed in our verification pass — treat as open.*
-- *Falsifier:* if measured DA responses do not scale monotonically with
-  `r + gamma*V' - V` under controlled cue/reward manipulation, the anchor is
-  wrong.
+Current PR state: `STRUCTURAL`.
 
-### Layer 1 — Distributional RPE (`distributional_td_error`)
-- **[established]** Dopamine neurons collectively encode a *distribution* over
-  future reward, not a scalar mean. Dabney, Kurth-Nelson, Uchida et al. 2020,
-  *Nature* 577:671 (mouse VTA: 40 cells/6 mice magnitude task, 31 cells/5
-  probability task). Diverse, reliable reversal points: split-half
-  **R = 0.58, p = 1.8e-5**.
-- **[established]** Replicated outside midbrain: macaque ACC reversal-point
-  diversity **R = 0.44, P = 0.003** (n = 41), *Nat. Neurosci.*
-  s41593-023-01535-w.
-- *Boundary:* "distributional" at the **single-neuron expectile** level
-  (Dabney) is distinct from **population / projection-defined** heterogeneity
-  (Avvisati et al. 2024, *Cell Reports* S221112472400408X). Do not conflate.
-- *Falsifier:* if reversal points are not reproducible across data splits
-  (R -> 0), or the decoded density fails to recover ground-truth modes, the
-  distributional code collapses to a scalar.
+Acceptance for `TESTED`:
 
-### Layer 2 — Asymmetric learning / expectile (`asymmetric_value_update`)
-- **[established]** Asymmetric scaling of positive vs negative RPEs is real and
-  diverse cell-to-cell. The encoded statistic is an **expectile** with quantile
-  level
+- unit tests;
+- falsifier tests;
+- deterministic evaluation script.
 
-  ```text
-  tau_i = alpha_i+ / (alpha_i+ + alpha_i-)
-  ```
+Acceptance for `EXTRAPOLATED`:
 
-  (Dabney 2020 supplement, linear response `f(delta)=delta`). This makes the
-  module's `positive_alpha` / `negative_alpha` a principled expectile selector,
-  not a free heuristic — an ensemble with spread `tau in (0,1)` *is* the
-  Layer-1 distributional code.
-- **[established]** Diversity is data-justified: a per-cell asymmetry model
-  lowered cross-validated MSE by **3.4% (p = 1.4e-11)**; that 3.4% in
-  firing-rate space ≈ **50%** in distribution space. Asymmetry <-> reversal
-  point correlation **p = 8.1e-5**, robust to a convex-Hill control (r = 0.41,
-  p = 0.006). Separate `alpha+ != alpha-` learning rates beat single-rate fits
-  on ACC data (n = 94, R = 0.62, P = 0.0001).
-- *Falsifier:* if `tau = alpha+/(alpha+ + alpha-)` does not predict which
-  quantile a unit encodes, the expectile interpretation is dead.
+- walk-forward improvement;
+- null-model survival;
+- parameter lock.
 
-### Layer 3 — Average-reward / tonic dopamine -> vigor (`average_reward_vigor`)
-- **[established as theory]** Tonic dopamine encodes the long-run average reward
-  rate, which acts as the opportunity cost of time and sets response vigor /
-  latency. Niv, Daw, Joel & Dayan 2007, *Psychopharmacology* 191:507.
-- **[contested]** Direct causal vigor evidence (slow mesolimbic DA ∝ reward
-  rate; Hamid 2016) was **not confirmed** in our verification pass — the theory
-  is strong, the causal empirics remain open here.
-- *Falsifier:* if raising tonic DA (pharmacological / optogenetic) at fixed
-  phasic signal does not increase response vigor, the link fails.
+Acceptance for `ANCHORED`:
 
-### Layer 4 — Risk-adjusted reward (`risk_adjusted_reward`)
-- **[established]** Phasic DA RPE encodes **marginal utility** (the first
-  derivative of a nonlinear, S-shaped utility), not raw magnitude: convex /
-  risk-seeking at low juice volumes, concave / risk-averse at high (2 rhesus
-  monkeys, certainty-equivalent utilities, p < 0.001 to 1e-7). Stauffer, Lak &
-  Schultz 2014, *Current Biology* 24(20):2491 (PMC4228052). 3-vote verified.
-- **[established]** DA carries an integrated scalar **subjective value**; risk
-  enters the signal *only to the extent it changes choice* (~63% of neurons
-  match each animal's risk weighting). Lak, Stauffer & Schultz 2014, *PNAS*
-  111:2343 (PMC3926061). 3-vote verified.
-- **[established phenomenon]** A distinct **sustained ramp** covaries with
-  reward **variance**, maximal at P=0.5 (Bernoulli P(1−P)), dissociating a
-  variance term from the monotonic value signal. Fiorillo, Tobler & Schultz
-  2003, *Science* 299:1898. **[contested mechanism]** the ramp may be a
-  TD-averaging artifact or emergent state-uncertainty signal (Niv, Duff &
-  Dayan 2005) — existence robust, interpretation open.
-- **[established]** DA uses **adaptive / efficient coding**: the RPE zero-point
-  shifts to expected reward and the gain rescales to the reward variance
-  (Tobler, Fiorillo & Schultz 2005, *Science* 307:1642) — the mean-baseline +
-  variance-rescale structure this estimator reproduces.
-- *Boundary (numbers do NOT transfer):* prospect-theory probability weighting is
-  real but species-specific — monkeys show **concave** weighting (δ ≈ 0.57),
-  **not** the human inverse-S. Use the functional form, never the fitted
-  parameters.
-- *Falsifier:* if DA RPE responses scale with raw reward magnitude rather than a
-  concave / risk-weighted utility, the risk-coding rationale is unsupported.
+- repeated independent runs;
+- stable regime performance;
+- claim registry entry;
+- rollback plan.
 
-> **Engineering boundary.** The licensed transfer is *structural only*:
-> expectile ensemble (Layers 1+2), average-reward baseline (Layer 3), and
-> risk-penalized reward (Layer 4). Specific neural `alpha+/-`, reversal points,
-> and R^2 values are **not** valid market-model parameters and must be
-> fit/locked on in-domain data through the promotion gates below.
+This PR must not add a claim registry entry. Claim promotion belongs to a later
+evidence PR.
 
-## Promotion gates
+## Required next PR
 
-Do not promote this layer into `DopamineController.step` until all gates pass:
-
-1. Unit tests prove the canonical TD(0) identity is untouched.
-2. Distributional output preserves affine reward differences.
-3. Risk penalties are monotone and never increase reward under non-negative risk.
-4. Asymmetric learning changes only update size, not raw delta.
-5. Backtest evidence shows stable improvement against the current dopamine TD
-   baseline across walk-forward folds.
-6. A new claim entry is added only after evidence paths and falsifier tests exist.
-
-## Suggested next PR
-
-Add an evaluation harness that compares:
+Title:
 
 ```text
-canonical_td0
-canonical_td0 + distributional_rpe
-canonical_td0 + asymmetric_alpha
-canonical_td0 + risk_adjusted_reward
-canonical_td0 + average_reward_vigor
-combined_extension_surface
+Add dopamine RPE extension evaluation harness and falsifier reports
 ```
 
-Required output:
+Required paths:
 
 ```text
+scripts/evaluate_dopamine_rpe_extension.py
 results/dopamine_rpe_extension/EVAL_SUMMARY.json
 results/dopamine_rpe_extension/WALKFORWARD_REPORT.md
 results/dopamine_rpe_extension/PARAMETER_LOCK.json
+results/dopamine_rpe_extension/ABLATION_MATRIX.csv
+results/dopamine_rpe_extension/NULL_MODEL_REPORT.md
+results/dopamine_rpe_extension/FALSIFIER_REPORT.md
 ```
 
-Promotion rule: if the combined surface beats canonical TD(0) only in-sample, it
-stays research. If it survives walk-forward, null/spike, and parameter-lock tests,
-it can become an EXTRAPOLATED claim. Only after a dedicated falsifier block should
-it become ANCHORED.
+Required model comparison:
+
+- `canonical_td0`
+- `td0_plus_distributional_helper`
+- `td0_plus_asymmetric_alpha`
+- `td0_plus_risk_penalty`
+- `td0_plus_vigor_helper`
+- `expectile_ensemble_low_tau`
+- `expectile_ensemble_mid_tau`
+- `expectile_ensemble_high_tau`
+- `combined_surface`
+
+Required protocol:
+
+- at least 5 chronological walk-forward folds;
+- fixed seed;
+- fail-closed if data are unavailable;
+- IC, Sharpe, MaxDD, turnover, hit-rate, calibration error, regime stability,
+  null-model delta, and parameter sensitivity;
+- null baselines: shuffled returns, sign-flipped reward, random tau assignment,
+  constant reward, lagged reward, no-RPE baseline;
+- parameter grids: `[0.1, 0.3, 0.5, 0.7, 0.9]`,
+  `[0.05, 0.25, 0.5, 0.75, 0.95]`,
+  `[0.01, 0.1, 0.5, 0.9, 0.99]`.
+
+`PARAMETER_LOCK.json` must contain gamma, tau levels, learning rate, risk penalty
+coefficients, vigor gain/bounds, data window, seed, commit SHA, timestamp,
+promotion status, and config hash.
+
+Dopamine neuron reversal points, p-values, alphas, and R² are not market
+parameters. This sentence must also appear in the next evaluation report.
+
+## Merge boundary for this PR
+
+Merge is forbidden if this PR:
+
+- claims intelligence without evidence;
+- frames risk/vigor helpers as mature neuroscience;
+- wires the learner into production;
+- modifies a claim registry;
+- adds evaluation artifacts but implies performance before null survival.
+
+Merge can be considered only if:
+
+- the PR is explicitly non-production;
+- scope is exactly the seven research-surface files;
+- docs separate stateless helper surface from stateful learner;
+- tests cover algebra, dynamics, finite guards, and falsifiers;
+- CI is green;
+- no trading/policy/execution route is touched;
+- no market claim is promoted.
