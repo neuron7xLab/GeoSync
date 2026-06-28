@@ -40,6 +40,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -129,17 +130,20 @@ def _apply(tree: ast.AST, target: int) -> tuple[ast.AST, int, str, str]:
     class T(ast.NodeTransformer):
         def visit_Compare(self, node: ast.Compare) -> ast.AST:
             self.generic_visit(node)
-            node.ops = [mutate_op(node, op, _CMP_SWAP, "compare") for op in node.ops]
+            node.ops = [
+                cast(ast.cmpop, mutate_op(node, op, _CMP_SWAP, "compare"))
+                for op in node.ops
+            ]
             return node
 
         def visit_BoolOp(self, node: ast.BoolOp) -> ast.AST:
             self.generic_visit(node)
-            node.op = mutate_op(node, node.op, _BOOL_SWAP, "boolop")
+            node.op = cast(ast.boolop, mutate_op(node, node.op, _BOOL_SWAP, "boolop"))
             return node
 
         def visit_BinOp(self, node: ast.BinOp) -> ast.AST:
             self.generic_visit(node)
-            node.op = mutate_op(node, node.op, _BIN_SWAP, "binop")
+            node.op = cast(ast.operator, mutate_op(node, node.op, _BIN_SWAP, "binop"))
             return node
 
         def visit_Constant(self, node: ast.Constant) -> ast.AST:
@@ -161,9 +165,12 @@ def _apply(tree: ast.AST, target: int) -> tuple[ast.AST, int, str, str]:
 
     new = T().visit(copy.deepcopy(tree))
     ast.fix_missing_locations(new)
+    lineno = info.get("lineno", -1)
+    if not isinstance(lineno, int):
+        lineno = -1
     return (
         new,
-        int(info.get("lineno", -1)),
+        lineno,
         str(info.get("kind", "?")),
         str(info.get("detail", "?")),
     )
