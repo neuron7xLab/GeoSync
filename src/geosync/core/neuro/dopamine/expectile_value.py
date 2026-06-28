@@ -1,11 +1,6 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Deterministic expectile-ensemble value learner.
-
-This module is a structural research surface only. It provides an online
-expectile learner with deterministic replay and finite-output guards. It does
-not modify DopamineController or claim evaluated performance.
-"""
+"""Deterministic structural expectile-ensemble value learner."""
 
 from __future__ import annotations
 
@@ -17,7 +12,6 @@ import numpy as np
 import numpy.typing as npt
 
 FloatArray = npt.NDArray[np.float64]
-
 _EXPECTILE_MAX_ITERS = 256
 _EXPECTILE_TOL = 1e-13
 
@@ -39,30 +33,28 @@ def expectile_of_samples(samples: npt.ArrayLike, tau: float) -> float:
     tau = _require_finite("tau", float(tau))
     if not 0.0 < tau < 1.0:
         raise ValueError(f"tau must be in (0, 1), got {tau!r}")
+
     arr = cast(FloatArray, np.asarray(samples, dtype=np.float64).ravel())
     if arr.size == 0:
         raise ValueError("samples must be non-empty")
     _require_finite_array("samples", arr)
 
     e = _require_finite("expectile seed", float(np.median(arr)))
-    max_abs = _require_finite("sample scale", float(np.max(np.abs(arr))))
-    scale = max(1.0, max_abs)
+    scale = max(1.0, _require_finite("sample scale", float(np.max(np.abs(arr)))))
 
     for _ in range(_EXPECTILE_MAX_ITERS):
         scaled_arr = cast(FloatArray, arr / scale)
         scaled_e = e / scale
         upper = scaled_arr >= scaled_e
-        w_upper = tau * np.count_nonzero(upper)
-        w_lower = (1.0 - tau) * np.count_nonzero(~upper)
-        denom = w_upper + w_lower
-        if denom <= 0.0:  # pragma: no cover - guarded by arr.size > 0
+        denom = tau * np.count_nonzero(upper) + (1.0 - tau) * np.count_nonzero(~upper)
+        if denom <= 0.0:  # pragma: no cover
             break
 
         upper_residual = scaled_arr[upper] - scaled_e
         lower_residual = scaled_arr[~upper] - scaled_e
         weighted_residual = (
-            tau * upper_residual.sum(dtype=np.float64)
-            + (1.0 - tau) * lower_residual.sum(dtype=np.float64)
+            tau * upper_residual.sum()
+            + (1.0 - tau) * lower_residual.sum()
         )
         weighted_residual = _require_finite(
             "expectile weighted residual",
@@ -111,7 +103,7 @@ class ExpectileChannel:
         return self.learning_rate * (1.0 - self.tau)
 
     def recovered_tau(self) -> float:
-        """Recover tau from the asymmetric learning rates."""
+        """Recover tau from asymmetric learning rates."""
         total = _require_finite("alpha_total", self.alpha_pos + self.alpha_neg)
         return _require_finite("recovered_tau", self.alpha_pos / total)
 
@@ -131,6 +123,7 @@ class ExpectileEnsembleValue:
         taus = [c.tau for c in channels]
         if len(set(taus)) != len(taus):
             raise ValueError("channel tau levels must be unique")
+
         order = sorted(range(len(channels)), key=lambda i: channels[i].tau)
         self._channels: tuple[ExpectileChannel, ...] = tuple(
             channels[i] for i in order
@@ -140,7 +133,7 @@ class ExpectileEnsembleValue:
             np.full(len(channels), init_value, dtype=np.float64),
         )
         _require_finite_array("initial values", self._values)
-        self._n_updates: int = 0
+        self._n_updates = 0
 
     @classmethod
     def symmetric(
@@ -184,13 +177,16 @@ class ExpectileEnsembleValue:
         levels = np.arange(1, n_channels + 1, dtype=np.float64) / (
             n_channels + 1
         )
-        return cls.from_levels(levels, learning_rate=learning_rate, init_value=init_value)
+        return cls.from_levels(
+            levels,
+            learning_rate=learning_rate,
+            init_value=init_value,
+        )
 
     def observe_return(self, target: float) -> FloatArray:
-        """Update every channel toward a realised or bootstrapped target."""
+        """Update all channels toward a realised or bootstrapped target."""
         target = _require_finite("target", float(target))
-        with np.errstate(over="ignore", invalid="ignore"):
-            raw_deltas = cast(FloatArray, target - self._values)
+        raw_deltas = cast(FloatArray, target - self._values)
         deltas = _require_finite_array("distributional deltas", raw_deltas)
         rates = cast(
             FloatArray,
@@ -200,10 +196,8 @@ class ExpectileEnsembleValue:
                 np.array([c.alpha_neg for c in self._channels], dtype=np.float64),
             ),
         )
-        with np.errstate(over="ignore", invalid="ignore"):
-            raw_updated = cast(FloatArray, self._values + rates * deltas)
-        updated = _require_finite_array("updated values", raw_updated)
-        self._values = updated
+        raw_updated = cast(FloatArray, self._values + rates * deltas)
+        self._values = _require_finite_array("updated values", raw_updated)
         self._n_updates += 1
         return cast(FloatArray, deltas.copy())
 
@@ -213,13 +207,16 @@ class ExpectileEnsembleValue:
         next_value: float,
         discount_gamma: float,
     ) -> FloatArray:
-        """Update from the TD target reward + gamma * next_value."""
+        """Update from reward + gamma * next_value."""
         reward = _require_finite("reward", float(reward))
         next_value = _require_finite("next_value", float(next_value))
         discount_gamma = _require_finite("discount_gamma", float(discount_gamma))
         if not 0.0 < discount_gamma <= 1.0:
             raise ValueError("discount_gamma must be in (0, 1]")
-        td_target = _require_finite("td_target", reward + discount_gamma * next_value)
+        td_target = _require_finite(
+            "td_target",
+            reward + discount_gamma * next_value,
+        )
         return self.observe_return(td_target)
 
     @property
@@ -232,7 +229,7 @@ class ExpectileEnsembleValue:
 
     @property
     def values(self) -> FloatArray:
-        """Current per-channel estimates, aligned with taus."""
+        """Current estimates aligned with taus."""
         return cast(FloatArray, self._values.copy())
 
     def expectile_curve(self) -> tuple[FloatArray, FloatArray]:
@@ -240,7 +237,7 @@ class ExpectileEnsembleValue:
         return self.taus, self.values
 
     def canonical_value(self) -> float:
-        """Return the tau=0.5 value or its interpolation."""
+        """Return the tau=0.5 value or linear interpolation."""
         taus = self.taus
         exact = np.isclose(taus, 0.5)
         if bool(np.any(exact)):
@@ -255,15 +252,17 @@ class ExpectileEnsembleValue:
         tau = _require_finite("tau", float(tau))
         if not 0.0 < tau < 1.0:
             raise ValueError(f"tau must be in (0, 1), got {tau!r}")
-        taus = self.taus
         return _require_finite(
             "risk_adjusted_value",
-            float(np.interp(tau, taus, self._values)),
+            float(np.interp(tau, self.taus, self._values)),
         )
 
     def dispersion(self) -> float:
         """Return the top-minus-bottom channel spread."""
-        return _require_finite("dispersion", float(self._values[-1] - self._values[0]))
+        return _require_finite(
+            "dispersion",
+            float(self._values[-1] - self._values[0]),
+        )
 
     @property
     def n_updates(self) -> int:
