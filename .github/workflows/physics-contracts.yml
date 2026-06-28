@@ -14,6 +14,10 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'analytics/**'
+      - 'core/indicators/**'
+      - 'core/kuramoto/**'
+      - 'core/neuro/**'
       - 'core/physics/**'
       - 'core/data/leakage.py'
       - 'physics_contracts/falsification_catalog.yaml'
