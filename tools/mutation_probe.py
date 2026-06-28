@@ -167,15 +167,29 @@ def _apply(tree: ast.AST, target: int) -> tuple[ast.AST, int, str, str]:
     )
 
 
-def _run_tests(selector: str) -> bool:
-    """Return True iff the selector passes (exit 0)."""
-    proc = subprocess.run(
+def _run_tests(selector: str) -> subprocess.CompletedProcess[str]:
+    """Run selector and return the completed pytest process."""
+    return subprocess.run(
         [sys.executable, "-m", "pytest", "-x", "-q", "-p", "no:cacheprovider", *selector.split()],
         cwd=ROOT,
         capture_output=True,
         text=True,
+        check=False,
     )
-    return proc.returncode == 0
+
+
+def _emit_baseline_failure(proc: subprocess.CompletedProcess[str]) -> None:
+    """Surface the hidden pytest output that made baseline establishment fail."""
+    print("ERROR: baseline test selector does not pass on unmutated code.", file=sys.stderr)
+    print(f"baseline pytest exit code: {proc.returncode}", file=sys.stderr)
+    if proc.stdout:
+        print("---- baseline pytest stdout ----", file=sys.stderr)
+        print(proc.stdout, file=sys.stderr, end="" if proc.stdout.endswith("\n") else "\n")
+        print("---- end baseline pytest stdout ----", file=sys.stderr)
+    if proc.stderr:
+        print("---- baseline pytest stderr ----", file=sys.stderr)
+        print(proc.stderr, file=sys.stderr, end="" if proc.stderr.endswith("\n") else "\n")
+        print("---- end baseline pytest stderr ----", file=sys.stderr)
 
 
 def probe(
@@ -206,7 +220,7 @@ def probe(
             if kinds is not None and kind not in kinds:
                 continue  # skip the (expensive) test run for filtered-out kinds
             path.write_text(ast.unparse(mutant_tree) + "\n", encoding="utf-8")
-            killed = not _run_tests(tests)  # a failing suite KILLS the mutant
+            killed = _run_tests(tests).returncode != 0  # a failing suite KILLS the mutant
             report.mutants.append(
                 Mutant(index=i, lineno=lineno, kind=kind, detail=detail, killed=killed)
             )
@@ -233,8 +247,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", dest="json_out", default=None)
     args = ap.parse_args(argv)
 
-    if not _run_tests(args.tests):
-        print("ERROR: baseline test selector does not pass on unmutated code.", file=sys.stderr)
+    baseline = _run_tests(args.tests)
+    if baseline.returncode != 0:
+        _emit_baseline_failure(baseline)
         return 2
 
     kinds = frozenset({"compare", "boolop"}) if args.only_logic else None
