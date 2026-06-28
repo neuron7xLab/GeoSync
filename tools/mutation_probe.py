@@ -114,9 +114,7 @@ def _apply(tree: ast.AST, target: int) -> tuple[ast.AST, int, str, str]:
     counter = [0]
     info: dict[str, object] = {}
 
-    def mutate_op(
-        node: ast.AST, op: ast.AST, swap: dict[type, type], kind: str
-    ) -> ast.AST:
+    def mutate_op(node: ast.AST, op: ast.AST, swap: dict[type, type], kind: str) -> ast.AST:
         if type(op) in swap:
             if counter[0] == target:
                 info["lineno"] = getattr(node, "lineno", -1)
@@ -131,8 +129,7 @@ def _apply(tree: ast.AST, target: int) -> tuple[ast.AST, int, str, str]:
         def visit_Compare(self, node: ast.Compare) -> ast.AST:
             self.generic_visit(node)
             node.ops = [
-                cast(ast.cmpop, mutate_op(node, op, _CMP_SWAP, "compare"))
-                for op in node.ops
+                cast(ast.cmpop, mutate_op(node, op, _CMP_SWAP, "compare")) for op in node.ops
             ]
             return node
 
@@ -266,9 +263,7 @@ def probe(
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Mutation probe.")
     ap.add_argument("module")
-    ap.add_argument(
-        "--tests", required=True, help="pytest selector run against each mutant"
-    )
+    ap.add_argument("--tests", required=True, help="pytest selector run against each mutant")
     ap.add_argument("--max", type=int, default=None, help="cap number of mutants")
     ap.add_argument(
         "--fail-under",
@@ -300,8 +295,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     if report.survived:
         print(
-            f"  SURVIVED ({len(report.survived)}) — behaviour changes the suite "
-            "cannot detect:"
+            f"  SURVIVED ({len(report.survived)}) — behaviour changes the suite " "cannot detect:"
         )
         for m in report.survived:
             print(f"    {report.module}:{m.lineno}  [{m.kind}] {m.detail}")
@@ -316,8 +310,7 @@ def main(argv: list[str] | None = None) -> int:
             "killed": report.killed,
             "kill_rate": report.kill_rate,
             "survivors": [
-                {"lineno": m.lineno, "kind": m.kind, "detail": m.detail}
-                for m in report.survived
+                {"lineno": m.lineno, "kind": m.kind, "detail": m.detail} for m in report.survived
             ],
         }
         Path(args.json_out).write_text(
