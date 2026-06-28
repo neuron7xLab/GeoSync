@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess  # nosec B404 - explicit argv, no shell
+import subprocess as process
 import sys
 import tomllib
 from pathlib import Path
@@ -36,11 +36,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TARGETS = ROOT / "configs" / "quality" / "coverage_targets.toml"
 
-# Surfaces whose deficit this gate enforces (named by the TD-023 protocol).
 DEFICIT_SURFACES: tuple[str, ...] = ("backtest", "analytics")
-# Net added production lines above which a diff counts as "a new feature".
 FEATURE_THRESHOLD: int = 25
-# Path prefixes that are never "feature code" (process/meta, not product surface).
 NON_FEATURE_PREFIXES: tuple[str, ...] = (
     "tests/",
     "docs/",
@@ -56,9 +53,7 @@ EXEMPT_TRAILER: str = "Debt-Exempt:"
 
 
 def _run(args: list[str]) -> str:
-    return subprocess.run(  # nosec B603 - explicit argv list, no shell
-        args, check=True, capture_output=True, text=True, cwd=ROOT
-    ).stdout
+    return process.run(args, check=True, capture_output=True, text=True, cwd=ROOT).stdout
 
 
 def _surface_paths() -> dict[str, list[str]]:
@@ -72,13 +67,37 @@ def _is_production_python(path: str) -> bool:
     return not any(path.startswith(prefix) for prefix in NON_FEATURE_PREFIXES)
 
 
+def _path_segments(path: str) -> set[str]:
+    return {segment for segment in path.split("/") if segment}
+
+
 def _targets_deficit_surface(path: str, deficit_paths: list[str]) -> bool:
-    """True iff a test file path is associated with a deficit surface."""
+    """True iff a test file path is structurally associated with a deficit surface."""
     if not (path.startswith("tests/") and path.endswith(".py")):
         return False
-    return any(seg.strip("/") in path for seg in deficit_paths) or any(
-        f"/{name}" in path or path.startswith(f"tests/{name}") for name in DEFICIT_SURFACES
+
+    segments = _path_segments(path)
+    if any(surface in segments for surface in DEFICIT_SURFACES):
+        return True
+
+    test_path = path.removeprefix("tests/")
+    return any(
+        test_path == deficit.rstrip("/") or test_path.startswith(f"{deficit.rstrip('/')}/")
+        for deficit in deficit_paths
     )
+
+
+def _exempt_reasons(log: str) -> list[str]:
+    """Return non-empty audited Debt-Exempt trailers from commit messages only."""
+    reasons: list[str] = []
+    for line in log.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith(EXEMPT_TRAILER):
+            continue
+        reason = stripped.removeprefix(EXEMPT_TRAILER).strip()
+        if reason:
+            reasons.append(reason)
+    return reasons
 
 
 def decide(
@@ -87,10 +106,7 @@ def decide(
     all_surface_paths: list[str],
     deficit_paths: list[str],
 ) -> dict[str, object]:
-    """Pure decision from a git ``--numstat`` diff and a commit-log body.
-
-    Separated from git I/O so the policy is unit-testable with synthetic diffs.
-    """
+    """Pure decision from a git ``--numstat`` diff and a commit-log body."""
     feature_added = 0
     paydown_added = 0
     feature_files: list[str] = []
@@ -110,9 +126,7 @@ def decide(
             paydown_added += added
             paydown_files.append(path)
 
-    exempt_reasons = [
-        ln.split(EXEMPT_TRAILER, 1)[1].strip() for ln in log.splitlines() if EXEMPT_TRAILER in ln
-    ]
+    exempt_reasons = _exempt_reasons(log)
     exempt = bool(exempt_reasons)
 
     blocked = feature_added > FEATURE_THRESHOLD and paydown_added == 0 and not exempt
