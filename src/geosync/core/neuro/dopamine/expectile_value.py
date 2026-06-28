@@ -34,21 +34,21 @@ def expectile_of_samples(samples: npt.ArrayLike, tau: float) -> float:
     _finite_array("samples", arr)
     scale = max(1.0, _finite("sample scale", float(np.max(np.abs(arr)))))
     scaled = cast(FloatArray, arr / scale)
-    est = _finite("expectile seed", float(np.median(scaled)))
+    estimate = _finite("expectile seed", float(np.median(scaled)))
     for _ in range(256):
-        upper = scaled >= est
+        upper = scaled >= estimate
         denom = tau * float(np.count_nonzero(upper))
         denom += (1.0 - tau) * float(np.count_nonzero(~upper))
         if denom <= 0.0:
             break
-        residual = tau * float(np.sum(scaled[upper] - est))
-        residual += (1.0 - tau) * float(np.sum(scaled[~upper] - est))
-        nxt = _finite("scaled expectile", est + residual / denom)
-        if abs(nxt - est) <= 1e-13 * (1.0 + abs(est)):
-            est = nxt
+        residual = tau * float(np.sum(scaled[upper] - estimate))
+        residual += (1.0 - tau) * float(np.sum(scaled[~upper] - estimate))
+        next_estimate = _finite("scaled expectile", estimate + residual / denom)
+        if abs(next_estimate - estimate) <= 1e-13 * (1.0 + abs(estimate)):
+            estimate = next_estimate
             break
-        est = nxt
-    return _finite("expectile", float(est * scale))
+        estimate = next_estimate
+    return _finite("expectile", float(estimate * scale))
 
 
 @dataclass(frozen=True)
@@ -95,20 +95,20 @@ class ExpectileEnsembleValue:
         if not channels:
             raise ValueError("ensemble requires at least one channel")
         init_value = _finite("init_value", float(init_value))
-        ordered = tuple(sorted(channels, key=lambda c: c.tau))
-        if len({c.tau for c in ordered}) != len(ordered):
+        ordered = tuple(sorted(channels, key=lambda item: item.tau))
+        if len({item.tau for item in ordered}) != len(ordered):
             raise ValueError("channel tau levels must be unique")
         self._taus = cast(
             FloatArray,
-            np.array([c.tau for c in ordered], dtype=np.float64),
+            np.array([item.tau for item in ordered], dtype=np.float64),
         )
         self._alpha_pos = cast(
             FloatArray,
-            np.array([c.alpha_pos for c in ordered], dtype=np.float64),
+            np.array([item.alpha_pos for item in ordered], dtype=np.float64),
         )
         self._alpha_neg = cast(
             FloatArray,
-            np.array([c.alpha_neg for c in ordered], dtype=np.float64),
+            np.array([item.alpha_neg for item in ordered], dtype=np.float64),
         )
         self._values = cast(
             FloatArray,
@@ -126,7 +126,7 @@ class ExpectileEnsembleValue:
     ) -> ExpectileEnsembleValue:
         if n_channels != 1:
             raise ValueError("symmetric ensemble is the single tau=0.5 channel")
-        return cls([ExpectileChannel(tau=0.5, learning_rate=learning_rate)])
+        return cls([ExpectileChannel(0.5, learning_rate)])
 
     @classmethod
     def from_levels(
@@ -137,10 +137,7 @@ class ExpectileEnsembleValue:
         init_value: float = 0.0,
     ) -> ExpectileEnsembleValue:
         levels = cast(FloatArray, np.asarray(taus, dtype=np.float64).ravel())
-        channels = [
-            ExpectileChannel(tau=float(level), learning_rate=learning_rate)
-            for level in levels
-        ]
+        channels = [ExpectileChannel(float(level), learning_rate) for level in levels]
         return cls(channels, init_value=init_value)
 
     @classmethod
