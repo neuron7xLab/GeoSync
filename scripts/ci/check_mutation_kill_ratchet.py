@@ -48,9 +48,7 @@ LEDGER_PATH = ROOT / "docs" / "MUTATION_KILL_BASELINE.json"
 _PROBE_PATH = ROOT / "tools" / "mutation_probe.py"
 
 
-def _probe_module(
-    module: str, tests: str, floor: float
-) -> tuple[int, dict[str, Any], str, str]:
+def _probe_module(module: str, tests: str, floor: float) -> tuple[int, dict[str, Any], str, str]:
     """Run mutation_probe as a CLI (its own --fail-under does the floor check).
 
     Black-box on purpose: the gate verifies the tool the same way a developer
@@ -102,9 +100,7 @@ def _emit_probe_failure(module: str, rc: int, stdout: str, stderr: str) -> None:
 
 
 def _load_ledger(text: str | None = None) -> dict[str, dict[str, Any]]:
-    payload = json.loads(
-        text if text is not None else LEDGER_PATH.read_text(encoding="utf-8")
-    )
+    payload = json.loads(text if text is not None else LEDGER_PATH.read_text(encoding="utf-8"))
     modules = payload.get("modules", {})
     assert isinstance(modules, dict)
     return modules
@@ -179,10 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         if rate < floor:
             failed = True
             for m in report.get("survivors", []):
-                print(
-                    f"      survivor {mod}:{m['lineno']} "
-                    f"[{m['kind']}] {m['detail']}"
-                )
+                print(f"      survivor {mod}:{m['lineno']} " f"[{m['kind']}] {m['detail']}")
 
     if failed:
         print(
@@ -191,10 +184,7 @@ def main(argv: list[str] | None = None) -> int:
             "floor, or this cannot merge."
         )
         return 1
-    print(
-        "Mutation-kill ratchet held: every changed claim-critical module "
-        "meets its floor."
-    )
+    print("Mutation-kill ratchet held: every changed claim-critical module " "meets its floor.")
     return 0
 
 
