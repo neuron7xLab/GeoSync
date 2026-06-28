@@ -41,14 +41,45 @@ def test_feature_with_backtest_paydown_passes() -> None:
     assert verdict["debt_paydown_lines"] == 40
 
 
+def test_feature_with_nested_analytics_paydown_passes() -> None:
+    """Nested analytics test trees count as structural paydown."""
+    diff = _numstat(
+        [
+            (FEATURE_THRESHOLD + 50, "execution/feature.py"),
+            (40, "tests/unit/analytics/test_signal_quality.py"),
+        ]
+    )
+    verdict = decide(diff, "feat: execution feature + analytics tests", _SURFACES, _DEFICIT)
+    assert verdict["verdict"] == "PASS", verdict
+    assert verdict["debt_paydown_lines"] == 40
+
+
 def test_feature_with_explicit_exemption_passes() -> None:
-    """An audited 'Debt-Exempt:' trailer permits a feature without paydown (fail-closed override)."""
+    """An audited 'Debt-Exempt:' trailer permits a feature without paydown."""
     diff = _numstat([(FEATURE_THRESHOLD + 50, "execution/oms_refactor.py")])
     log = "refactor: rename OMS states\n\nDebt-Exempt: pure rename, no new behaviour"
     verdict = decide(diff, log, _SURFACES, _DEFICIT)
     assert verdict["verdict"] == "PASS", verdict
     assert verdict["exempt"] is True
     assert verdict["exempt_reasons"] == ["pure rename, no new behaviour"]
+
+
+def test_incidental_exemption_token_in_prose_does_not_pass() -> None:
+    """Mentioning the trailer text inside prose is not an audited exemption."""
+    diff = _numstat([(FEATURE_THRESHOLD + 50, "core/new_feature.py")])
+    log = "docs: explain that Debt-Exempt: <reason> is required for overrides"
+    verdict = decide(diff, log, _SURFACES, _DEFICIT)
+    assert verdict["verdict"] == "BLOCK", verdict
+    assert verdict["exempt"] is False
+    assert verdict["exempt_reasons"] == []
+
+
+def test_empty_exemption_trailer_does_not_pass() -> None:
+    """A trailer with no reason is not auditable and must remain fail-closed."""
+    diff = _numstat([(FEATURE_THRESHOLD + 50, "core/new_feature.py")])
+    verdict = decide(diff, "feat: feature\n\nDebt-Exempt:", _SURFACES, _DEFICIT)
+    assert verdict["verdict"] == "BLOCK", verdict
+    assert verdict["exempt"] is False
 
 
 def test_small_change_below_threshold_passes() -> None:
@@ -81,5 +112,18 @@ def test_paydown_must_target_a_deficit_surface() -> None:
         ]
     )
     verdict = decide(diff, "feat: execution feature + unrelated core tests", _SURFACES, _DEFICIT)
+    assert verdict["verdict"] == "BLOCK", verdict
+    assert verdict["debt_paydown_lines"] == 0
+
+
+def test_deficit_surface_name_in_filename_does_not_count_as_paydown() -> None:
+    """A deficit-surface token in a filename is not structural coverage paydown."""
+    diff = _numstat(
+        [
+            (FEATURE_THRESHOLD + 50, "core/new_feature.py"),
+            (40, "tests/core/test_analytics_helpers.py"),
+        ]
+    )
+    verdict = decide(diff, "feat: feature + misleading test filename", _SURFACES, _DEFICIT)
     assert verdict["verdict"] == "BLOCK", verdict
     assert verdict["debt_paydown_lines"] == 0
