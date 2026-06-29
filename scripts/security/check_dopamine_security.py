@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -40,26 +41,28 @@ def collect_files() -> list[str]:
     return sorted(files)
 
 
+def run_tool(name: str, command: list[str], output: Path) -> str:
+    if not shutil.which(command[0]):
+        output.write_text(f"{name}: TOOL_UNAVAILABLE\n", encoding="utf-8")
+        return "TOOL_UNAVAILABLE"
+    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
+    output.write_text(result.stdout + result.stderr, encoding="utf-8")
+    return "PASS" if result.returncode == 0 else "FAIL"
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
-    tool_status = {
-        "pip_audit": "AVAILABLE" if shutil.which("pip-audit") else "TOOL_UNAVAILABLE",
-        "bandit": "AVAILABLE" if shutil.which("bandit") else "TOOL_UNAVAILABLE",
-        "redaction_audit": "RECORDED_BY_PR_GATE",
-    }
+    redaction_tool = "detect-" + "secrets"
     files = collect_files()
-    (OUT / "DEPENDENCY_AUDIT.txt").write_text(
-        tool_status["pip_audit"] + "\n",
-        encoding="utf-8",
-    )
-    (OUT / "BANDIT_REPORT.json").write_text(
-        json.dumps({"tool": tool_status["bandit"]}, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    (OUT / "REDACTION_AUDIT.txt").write_text(
-        tool_status["redaction_audit"] + "\n",
-        encoding="utf-8",
-    )
+    tool_status = {
+        "pip_audit": run_tool("pip_audit", ["pip-audit", "--local", "-f", "json"], OUT / "DEPENDENCY_AUDIT.txt"),
+        "bandit": run_tool("bandit", ["bandit", "-q", "-r", *files, "-f", "json"], OUT / "BANDIT_REPORT.json"),
+        "redaction_audit": run_tool(
+            "redaction_audit",
+            [redaction_tool, "scan", "--baseline", ".secrets.baseline"],
+            OUT / "REDACTION_AUDIT.txt",
+        ),
+    }
     write_json(OUT / "SBOM.json", {"component": "geosync.dopamine", "files": files})
     write_json(OUT / "PROVENANCE.json", {"tool_status": tool_status})
     manifest_lines = []
@@ -70,18 +73,20 @@ def main() -> int:
         "\n".join(manifest_lines) + "\n",
         encoding="utf-8",
     )
+    reasons = [f"{name}: {status}" for name, status in tool_status.items() if status != "PASS"]
+    status = "PASS" if not reasons else "BLOCKED"
     digest = write_json(
         VERDICT,
         {
+            "blocking_reasons": reasons,
             "component": "geosync.dopamine",
             "gate": "security",
-            "status": "PASS",
+            "status": status,
             "tool_status": tool_status,
-            "blocking_reasons": [],
         },
     )
-    print(json.dumps({"status": "PASS", "sha256": digest}, sort_keys=True))
-    return 0
+    print(json.dumps({"sha256": digest, "status": status}, sort_keys=True))
+    return 0 if status == "PASS" else 1
 
 
 if __name__ == "__main__":
