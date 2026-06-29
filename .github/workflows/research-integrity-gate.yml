@@ -76,6 +76,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 concurrency:
   # PR runs group by ref (a new push supersedes the old run). Main-push runs
   # group by the EXACT commit SHA, never the shared `refs/heads/main` ref: a
@@ -126,7 +129,30 @@ jobs:
         run: python tools/compile_claims.py --fail-on-floating
 
       - name: pytest — research/systemic_risk
-        run: python -m pytest tests/research/systemic_risk/ -q --maxfail=1
+        run: |
+          set +e
+          python -m pytest tests/research/systemic_risk/ -q --maxfail=1 -rA --tb=short \
+            2>&1 | tee /tmp/research_systemic_risk.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [[ "$rc" -ne 0 ]]; then
+            echo "::group::pytest short summary"
+            awk '/short test summary info/ {flag=1} flag {print}' /tmp/research_systemic_risk.log | tail -200 || true
+            echo "::endgroup::"
+            echo "::group::last traceback context"
+            tail -200 /tmp/research_systemic_risk.log || true
+            echo "::endgroup::"
+          fi
+          exit "$rc"
+
+      - name: Upload research systemic-risk pytest failure log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: research-systemic-risk-pytest-log
+          path: /tmp/research_systemic_risk.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: pytest — metamorphic
         run: python -m pytest tests/metamorphic/ -q --maxfail=1
@@ -148,7 +174,27 @@ jobs:
         run: python -m pytest tests/scripts/test_check_tombstone_preservation.py -q
 
       - name: Instrument evidence-chain reconciliation gate (7 instruments)
-        run: python scripts/ci/check_instrument_evidence_chain.py
+        run: |
+          set +e
+          python scripts/ci/check_instrument_evidence_chain.py \
+            2>&1 | tee /tmp/instrument_evidence_chain.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [[ "$rc" -ne 0 ]]; then
+            echo "::group::instrument evidence-chain failure"
+            tail -200 /tmp/instrument_evidence_chain.log || true
+            echo "::endgroup::"
+          fi
+          exit "$rc"
+
+      - name: Upload instrument evidence-chain failure log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: instrument-evidence-chain-log
+          path: /tmp/instrument_evidence_chain.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: pytest — instrument evidence-chain gate
         run: python -m pytest tests/scripts/test_check_instrument_evidence_chain.py -q
@@ -187,7 +233,30 @@ jobs:
             --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
 
       - name: pytest — evidence-truth gates + research-line contracts
-        run: python -m pytest tests/ci tests/research_lines -q --maxfail=1
+        run: |
+          set +e
+          python -m pytest tests/ci tests/research_lines -q --maxfail=1 -rA --tb=short \
+            2>&1 | tee /tmp/evidence_truth_pytest.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [[ "$rc" -ne 0 ]]; then
+            echo "::group::evidence-truth pytest short summary"
+            awk '/short test summary info/ {flag=1} flag {print}' /tmp/evidence_truth_pytest.log | tail -200 || true
+            echo "::endgroup::"
+            echo "::group::evidence-truth traceback tail"
+            tail -200 /tmp/evidence_truth_pytest.log || true
+            echo "::endgroup::"
+          fi
+          exit "$rc"
+
+      - name: Upload evidence-truth pytest failure log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: evidence-truth-pytest-log
+          path: /tmp/evidence_truth_pytest.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: mypy --strict on audited surface
         run: |
