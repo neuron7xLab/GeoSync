@@ -85,9 +85,7 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     rows = build_rows(args.folds, args.seed)
     reasons = validate_rows(rows, args.folds)
-    with (out / "ABLATION_MATRIX.csv").open(
-        "w", newline="", encoding="utf-8"
-    ) as handle:
+    with (out / "ABLATION_MATRIX.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
@@ -101,12 +99,8 @@ def main() -> int:
         out / "METRIC_DEFINITIONS.json",
         {"signed_score": "deterministic signed proxy"},
     )
-    (out / "WALKFORWARD_REPORT.md").write_text(
-        "# Walk-forward report\n", encoding="utf-8"
-    )
-    (out / "NULL_MODEL_REPORT.md").write_text(
-        "# Null model report\n", encoding="utf-8"
-    )
+    (out / "WALKFORWARD_REPORT.md").write_text("# Walk-forward report\n", encoding="utf-8")
+    (out / "NULL_MODEL_REPORT.md").write_text("# Null model report\n", encoding="utf-8")
     (out / "FALSIFIER_REPORT.md").write_text("# Probe report\n", encoding="utf-8")
     write_manifest(out)
     print(json.dumps({"blocking_reasons": reasons, "status": status}, sort_keys=True))
