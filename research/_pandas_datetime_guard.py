@@ -16,12 +16,13 @@ provided. All other inputs are delegated to pandas unchanged.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any
 
 import pandas as pd
 
-_ORIGINAL_TO_DATETIME = pd.to_datetime
+_ORIGINAL_TO_DATETIME: Callable[..., Any] = pd.to_datetime
 _INSTALLED = False
 
 
@@ -36,10 +37,12 @@ def _is_supported_date_series(value: object) -> bool:
 
 
 def _convert_date_series(value: pd.Series) -> pd.Series:
-    converted = [
-        pd.NaT if v is None or v is pd.NaT else pd.Timestamp(v)
-        for v in value.to_list()
-    ]
+    converted = []
+    for item in value.to_list():
+        if item is None or item is pd.NaT:
+            converted.append(pd.NaT)
+        else:
+            converted.append(pd.Timestamp(item))
     return pd.Series(converted, index=value.index, name=value.name)
 
 
