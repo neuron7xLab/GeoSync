@@ -1,6 +1,6 @@
 id: dopamine-component-hardening-v2
 status: DRAFT
-claim_type: governance
+claim_type: refactor
 promise: "Dopamine component changes are bound to semantic contract and evidence artifacts."
 diff_scope:
   changed_files:
