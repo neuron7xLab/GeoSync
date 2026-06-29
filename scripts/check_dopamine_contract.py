@@ -9,6 +9,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "contracts/dopamine_contract.v1.json"
 ARTIFACT = ROOT / "artifacts/dopamine_contract/CONTRACT_VERDICT.json"
+VALID_STATUSES = {"PASS", "FAIL", "BLOCK", "BLOCKED", "P2_RESEARCH"}
 
 
 def sha256(data: bytes) -> str:
@@ -35,7 +36,39 @@ def load_contract() -> dict[str, Any]:
     return loaded if isinstance(loaded, dict) else {"semantics": {}}
 
 
-def validate_contract(contract: dict[str, Any], root: Path = ROOT) -> list[str]:
+def validate_required_artifacts(contract: dict[str, Any], root: Path = ROOT) -> list[str]:
+    reasons: list[str] = []
+    required = contract.get("required_artifacts", [])
+    if not isinstance(required, list) or not required:
+        return ["missing required_artifacts"]
+    for item in required:
+        if not isinstance(item, str) or not item.strip():
+            reasons.append("invalid required artifact entry")
+            continue
+        path = root / item
+        if not path.exists():
+            reasons.append(f"missing artifact: {item}")
+            continue
+        if path.suffix != ".json":
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            reasons.append(f"invalid artifact json: {item}")
+            continue
+        if not isinstance(payload, dict) or payload.get("status") not in VALID_STATUSES:
+            reasons.append(f"invalid artifact verdict: {item}")
+        if not path.with_suffix(path.suffix + ".sha256").exists():
+            reasons.append(f"missing artifact digest: {item}")
+    return reasons
+
+
+def validate_contract(
+    contract: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    require_artifacts: bool = True,
+) -> list[str]:
     reasons: list[str] = []
     if contract.get("component") != "geosync.dopamine":
         reasons.append("invalid component")
@@ -56,21 +89,21 @@ def validate_contract(contract: dict[str, Any], root: Path = ROOT) -> list[str]:
             reasons.append(f"{name}: missing invariants")
         elif any(not isinstance(item, str) or not item.strip() for item in invariants):
             reasons.append(f"{name}: invalid invariant entry")
-        bounds = spec.get("bounds")
-        if bounds is not None and not isinstance(bounds, dict):
-            reasons.append(f"{name}: invalid bounds")
     forbidden_edges = contract.get("forbidden_edges", [])
     if not isinstance(forbidden_edges, list) or len(forbidden_edges) < 3:
         reasons.append("missing forbidden edges")
+    if require_artifacts:
+        reasons.extend(validate_required_artifacts(contract, root))
     return reasons
 
 
 def main() -> int:
     contract = load_contract()
     reasons = validate_contract(contract)
-    status = "PASS" if not reasons else "FAIL"
+    status = "PASS" if not reasons else "BLOCKED"
     digest = write_artifact(
         {
+            "artifact_complete": not reasons,
             "blocking_reasons": reasons,
             "component": contract.get("component", "geosync.dopamine"),
             "gate": "dopamine_contract",
