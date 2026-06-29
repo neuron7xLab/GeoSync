@@ -15,6 +15,7 @@ these; the live ``pytest --collect-only`` link is what gives it teeth.
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -56,7 +57,12 @@ def _valid_instrument(live_registry: dict[str, Any], iid: str = "null-baseline")
     raise AssertionError(f"{iid} not in live registry")
 
 
-def _write_registry(tmp_path: Path, instruments: list[dict[str, Any]], *, boundary: str = "descriptor_only_not_predictor") -> Path:
+def _write_registry(
+    tmp_path: Path,
+    instruments: list[dict[str, Any]],
+    *,
+    boundary: str = "descriptor_only_not_predictor",
+) -> Path:
     reg = {"schema_version": 1, "claim_boundary_required": boundary, "instruments": instruments}
     p = tmp_path / "INSTRUMENTS.yaml"
     p.write_text(yaml.safe_dump(reg, sort_keys=False), encoding="utf-8")
@@ -80,10 +86,29 @@ def test_live_registry_passes_static_links(gate: Any) -> None:
     assert _run(gate, REGISTRY_PATH, skip_collect=True) == 0
 
 
-def test_live_registry_passes_with_live_collection(gate: Any, live_registry: dict[str, Any], tmp_path: Path) -> None:
+def test_live_registry_passes_with_live_collection(
+    gate: Any, live_registry: dict[str, Any], tmp_path: Path
+) -> None:
     # The full chain INCLUDING live pytest --collect-only for one instrument.
     reg = _write_registry(tmp_path, [_valid_instrument(live_registry, "null-baseline")])
     assert _run(gate, reg, skip_collect=False) == 0
+
+
+def test_collect_nonzero_after_exact_node_resolution_is_not_dangling(
+    gate: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node = "tests/unit/analytics/test_null_baseline.py::test_gaussian_deterministic_for_same_seed"
+
+    def fake_run(*_args: Any, **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=["pytest"],
+            returncode=139,
+            stdout=f"{node}\n",
+            stderr="Fatal Python error: Segmentation fault\nExtension modules: numpy._core\n",
+        )
+
+    monkeypatch.setattr(gate.subprocess, "run", fake_run)
+    assert gate._node_is_collectable(node) == (True, "collectable")
 
 
 # --------------------------------------------------------------------------
@@ -109,7 +134,9 @@ def test_unknown_merge_commit_fails(gate: Any, live_registry: dict[str, Any], tm
     assert _run(gate, _write_registry(tmp_path, [inst])) == 1
 
 
-def test_commit_not_touching_module_fails(gate: Any, live_registry: dict[str, Any], tmp_path: Path) -> None:
+def test_commit_not_touching_module_fails(
+    gate: Any, live_registry: dict[str, Any], tmp_path: Path
+) -> None:
     # A real, existing commit that did NOT touch null_baseline.py:
     # borrow another instrument's merge commit.
     inst = _valid_instrument(live_registry, "null-baseline")
@@ -124,7 +151,9 @@ def test_missing_test_file_fails(gate: Any, live_registry: dict[str, Any], tmp_p
     assert _run(gate, _write_registry(tmp_path, [inst])) == 1
 
 
-def test_acceptor_not_binding_module_fails(gate: Any, live_registry: dict[str, Any], tmp_path: Path) -> None:
+def test_acceptor_not_binding_module_fails(
+    gate: Any, live_registry: dict[str, Any], tmp_path: Path
+) -> None:
     inst = _valid_instrument(live_registry, "null-baseline")
     other = _valid_instrument(live_registry, "descriptor-metadata")
     inst["acceptor"] = other["acceptor"]  # exists but binds a different module
@@ -137,7 +166,9 @@ def test_wrong_claim_boundary_fails(gate: Any, live_registry: dict[str, Any], tm
     assert _run(gate, _write_registry(tmp_path, [inst])) == 1
 
 
-def test_uncollectable_falsifier_node_fails(gate: Any, live_registry: dict[str, Any], tmp_path: Path) -> None:
+def test_uncollectable_falsifier_node_fails(
+    gate: Any, live_registry: dict[str, Any], tmp_path: Path
+) -> None:
     # THE teeth: real file, nonexistent test function. A string-only gate
     # would pass this. Live pytest --collect-only must reject it.
     inst = _valid_instrument(live_registry)
