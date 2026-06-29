@@ -6,7 +6,7 @@ import json
 import time
 from pathlib import Path
 
-from geosync.core.neuro.dopamine.telemetry import bounded_value, bounded_value_delta
+from src.geosync.core.neuro.dopamine.telemetry import bounded_value, bounded_value_delta
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "artifacts/dopamine_performance/PERFORMANCE_REPORT.json"
