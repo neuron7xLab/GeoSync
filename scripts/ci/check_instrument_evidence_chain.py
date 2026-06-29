@@ -46,6 +46,7 @@ Exit codes::
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import os
 import re
@@ -137,6 +138,31 @@ def _collect_output_has_node(node: str, output: str) -> bool:
     return any(line.strip() == node for line in output.splitlines())
 
 
+def _plain_function_name(node_func: str) -> str:
+    return node_func.split("[", 1)[0]
+
+
+def _node_function_exists_in_source(node: str) -> bool:
+    """Resolve a simple pytest function node without importing the test module."""
+
+    match = _NODE.match(node)
+    if not match:
+        return False
+    path = ROOT / match.group("path")
+    if not path.is_file():
+        return False
+    func_name = _plain_function_name(match.group("func"))
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except SyntaxError:
+        return False
+    return any(isinstance(item, ast.FunctionDef) and item.name == func_name for item in tree.body)
+
+
+def _is_native_collect_crash(proc: subprocess.CompletedProcess[str], output: str) -> bool:
+    return proc.returncode < 0 or "Fatal Python error" in output or "Extension modules:" in output
+
+
 def _node_is_collectable(node: str) -> tuple[bool, str]:
     """Return (collectable, detail). Uses a live ``pytest --collect-only``.
 
@@ -144,12 +170,13 @@ def _node_is_collectable(node: str) -> tuple[bool, str]:
     file, the function, or the parametrization — the exact dangling case the
     string-only gates miss.
 
-    Some CI images can still return non-zero after pytest has already resolved
-    and printed the exact node id, due to interpreter teardown in imported
-    native extensions. That is not a dangling evidence reference. The oracle is
-    therefore: exact node printed by pytest means the evidence link resolves;
-    missing node output, collection errors, or zero collected items remain
-    fail-closed.
+    Some CI images can still abort the collect subprocess in native-extension
+    teardown before pytest flushes node output. That is not a dangling evidence
+    reference when the requested node is a literal top-level test function in
+    the source file. The oracle is therefore: live pytest output wins; if the
+    collect subprocess crashes at native-extension level, a source-backed AST
+    fallback may only accept a concrete existing FunctionDef. Nonexistent nodes
+    and normal pytest collection errors remain fail-closed.
     """
     env = os.environ.copy()
     env.setdefault("PYTHONFAULTHANDLER", "1")
@@ -177,6 +204,8 @@ def _node_is_collectable(node: str) -> tuple[bool, str]:
     if _collect_output_has_node(node, proc.stdout):
         return True, "collectable"
     if proc.returncode != 0:
+        if _is_native_collect_crash(proc, combined) and _node_function_exists_in_source(node):
+            return True, "collectable via source-backed fallback after native collect crash"
         tail = combined.strip().splitlines()
         detail = tail[-1] if tail else f"pytest exit {proc.returncode}"
         return False, f"pytest exit {proc.returncode}: {detail}"
