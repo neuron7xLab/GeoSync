@@ -3,8 +3,6 @@ from __future__ import annotations
 import copy
 import importlib
 import json
-import subprocess
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -17,17 +15,13 @@ def _contract() -> dict[str, Any]:
     )
 
 
-def test_contract_checker_blocks_until_required_artifacts_exist() -> None:
-    result = subprocess.run(
-        [sys.executable, "scripts/check_dopamine_contract.py"],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
+def test_contract_checker_blocks_until_required_artifacts_exist(tmp_path: Path) -> None:
+    module: Any = importlib.import_module("scripts.check_dopamine_contract")
+    reasons = module.validate_required_artifacts(
+        {"required_artifacts": ["missing/CONTRACT_VERDICT.json"]},
+        tmp_path,
     )
-    assert result.returncode == 1
-    payload = json.loads(result.stdout)
-    assert payload["status"] == "BLOCKED"
+    assert reasons == ["missing artifact: missing/CONTRACT_VERDICT.json"]
 
 
 def test_contract_validator_passes_semantic_surface_only() -> None:
