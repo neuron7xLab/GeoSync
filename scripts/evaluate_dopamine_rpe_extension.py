@@ -20,7 +20,10 @@ def sha(data: bytes) -> str:
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def write_manifest(out: Path) -> None:
@@ -28,7 +31,10 @@ def write_manifest(out: Path) -> None:
     for path in sorted(out.iterdir()):
         if path.is_file() and path.name != "ARTIFACT_MANIFEST.sha256":
             lines.append(f"{sha(path.read_bytes())}  {path.name}")
-    (out / "ARTIFACT_MANIFEST.sha256").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (out / "ARTIFACT_MANIFEST.sha256").write_text(
+        "\n".join(lines) + "\n",
+        encoding="utf-8",
+    )
 
 
 def build_rows(folds: int, seed: int) -> list[dict[str, Any]]:
@@ -84,9 +90,15 @@ def main() -> int:
         writer.writeheader()
         writer.writerows(rows)
     status = "PASS" if not reasons else "FAIL"
-    write_json(out / "EVAL_SUMMARY.json", {"blocking_reasons": reasons, "folds": args.folds, "status": status})
+    write_json(
+        out / "EVAL_SUMMARY.json",
+        {"blocking_reasons": reasons, "folds": args.folds, "status": status},
+    )
     write_json(out / "PARAMETER_LOCK.json", {"folds": args.folds, "seed": args.seed})
-    write_json(out / "METRIC_DEFINITIONS.json", {"signed_score": "deterministic signed proxy"})
+    write_json(
+        out / "METRIC_DEFINITIONS.json",
+        {"signed_score": "deterministic signed proxy"},
+    )
     (out / "WALKFORWARD_REPORT.md").write_text("# Walk-forward report\n", encoding="utf-8")
     (out / "NULL_MODEL_REPORT.md").write_text("# Null model report\n", encoding="utf-8")
     (out / "FALSIFIER_REPORT.md").write_text("# Probe report\n", encoding="utf-8")
