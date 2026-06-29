@@ -67,7 +67,11 @@ def evaluate_text(text: str, *, eval_exists: bool, manifest_exists: bool) -> lis
     reasons: list[str] = []
     for block in dopamine_blocks(text):
         lowered = block.lower()
-        reasons.extend(f"blocked claim term: {term}" for term in BLOCKED_TERMS if term in lowered)
+        reasons.extend(
+            f"blocked claim term: {term}"
+            for term in BLOCKED_TERMS
+            if term in lowered
+        )
         if "anchored" in lowered and ("rollback" not in lowered or not manifest_exists):
             reasons.append("unsupported anchored wording")
         if "extrapolated" in lowered and not manifest_exists:
