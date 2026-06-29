@@ -25,8 +25,7 @@ METRIC_NAMES = (
 
 def metric_catalog() -> dict[str, dict[str, str]]:
     return {
-        name: {"owner": "geosync.dopamine", "unit": "ratio|count|ms|MiB"}
-        for name in METRIC_NAMES
+        name: {"owner": "geosync.dopamine", "unit": "ratio|count|ms|MiB"} for name in METRIC_NAMES
     }
 
 
