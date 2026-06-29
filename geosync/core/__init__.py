@@ -1,6 +1,4 @@
 # SPDX-License-Identifier: MIT
-from __future__ import annotations
-
 """Canonical GeoSync core namespace.
 
 The top-level :mod:`geosync` package is a lightweight compatibility shim whose
@@ -9,6 +7,8 @@ the dopamine canonical surface must preserve that namespace behavior; otherwise
 legacy imports such as ``geosync.core.compat`` stop resolving through the
 ``src/geosync/core`` rail.
 """
+
+from __future__ import annotations
 
 from pathlib import Path
 from typing import cast

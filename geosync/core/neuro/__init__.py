@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
-from __future__ import annotations
-
 """Canonical neuro namespace with src-layout compatibility."""
+
+from __future__ import annotations
 
 from pathlib import Path
 from typing import cast
