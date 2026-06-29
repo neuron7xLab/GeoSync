@@ -16,6 +16,13 @@ CLAIM_FILES = [
 ]
 EVAL = ROOT / "results/dopamine_rpe_extension/EVAL_SUMMARY.json"
 MANIFEST = ROOT / "results/dopamine_rpe_extension/ARTIFACT_MANIFEST.sha256"
+BLOCKED_TERMS = (
+    "market edge",
+    "biological dopamine replication",
+    "autonomous financial intelligence",
+    "anchored alpha",
+    "empirical superiority",
+)
 
 
 def write(payload: dict[str, Any]) -> str:
@@ -31,34 +38,46 @@ def write(payload: dict[str, Any]) -> str:
     return digest
 
 
+def evaluate_text(text: str, *, eval_exists: bool, manifest_exists: bool) -> list[str]:
+    lowered = text.lower()
+    if "dopamine" not in lowered:
+        return []
+    reasons = [f"blocked claim term: {term}" for term in BLOCKED_TERMS if term in lowered]
+    if "anchored" in lowered and ("rollback" not in lowered or not manifest_exists):
+        reasons.append("unsupported anchored wording")
+    if "extrapolated" in lowered and not manifest_exists:
+        reasons.append("unsupported extrapolated wording")
+    if "tested" in lowered and not eval_exists:
+        reasons.append("unsupported tested wording")
+    return reasons
+
+
 def main() -> int:
     reasons: list[str] = []
     for path in CLAIM_FILES:
         if not path.exists():
             continue
-        text = path.read_text(encoding="utf-8", errors="ignore").lower()
-        if "dopamine" not in text:
-            continue
-        if "anchored" in text and ("rollback" not in text or not MANIFEST.exists()):
-            reasons.append(f"unsupported anchored wording: {path.relative_to(ROOT)}")
-        if "extrapolated" in text and not MANIFEST.exists():
-            reasons.append(f"unsupported extrapolated wording: {path.relative_to(ROOT)}")
-        if "tested" in text and not EVAL.exists():
-            reasons.append(f"unsupported tested wording: {path.relative_to(ROOT)}")
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        reasons.extend(
+            f"{path.relative_to(ROOT)}: {reason}"
+            for reason in evaluate_text(
+                text,
+                eval_exists=EVAL.exists(),
+                manifest_exists=MANIFEST.exists(),
+            )
+        )
     status = "PASS" if not reasons else "FAIL"
     digest = write(
         {
-            "component": "geosync.dopamine",
-            "gate": "claim_promotion",
-            "status": status,
-            "experimental_surface_status": "P2_RESEARCH"
-            if not MANIFEST.exists()
-            else "TESTED",
-            "market_claim_allowed": False,
             "blocking_reasons": reasons,
+            "component": "geosync.dopamine",
+            "experimental_surface_status": "TESTED" if MANIFEST.exists() else "P2_RESEARCH",
+            "gate": "claim_promotion",
+            "market_claim_allowed": False,
+            "status": status,
         }
     )
-    print(json.dumps({"status": status, "sha256": digest}, sort_keys=True))
+    print(json.dumps({"sha256": digest, "status": status}, sort_keys=True))
     return 0 if status == "PASS" else 1
 
 
