@@ -34,6 +34,16 @@ def test_claim_evaluator_blocks_unsupported_dopamine_promotion() -> None:
     assert any("biological dopamine replication" in reason for reason in reasons)
 
 
+def test_claim_evaluator_ignores_unrelated_governance_words() -> None:
+    module: Any = importlib.import_module("scripts.ci.check_dopamine_claim_promotion")
+    reasons = module.evaluate_text(
+        "General claim is anchored and tested.\n\nDopamine remains structural and research-gated.",
+        eval_exists=False,
+        manifest_exists=False,
+    )
+    assert reasons == []
+
+
 def test_claim_evaluator_allows_structural_research_boundary() -> None:
     module: Any = importlib.import_module("scripts.ci.check_dopamine_claim_promotion")
     reasons = module.evaluate_text(
