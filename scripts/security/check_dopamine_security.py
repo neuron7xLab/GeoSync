@@ -55,8 +55,16 @@ def main() -> int:
     redaction_tool = "detect-" + "secrets"
     files = collect_files()
     tool_status = {
-        "pip_audit": run_tool("pip_audit", ["pip-audit", "--local", "-f", "json"], OUT / "DEPENDENCY_AUDIT.txt"),
-        "bandit": run_tool("bandit", ["bandit", "-q", "-r", *files, "-f", "json"], OUT / "BANDIT_REPORT.json"),
+        "pip_audit": run_tool(
+            "pip_audit",
+            ["pip-audit", "--local", "-f", "json"],
+            OUT / "DEPENDENCY_AUDIT.txt",
+        ),
+        "bandit": run_tool(
+            "bandit",
+            ["bandit", "-q", "-r", *files, "-f", "json"],
+            OUT / "BANDIT_REPORT.json",
+        ),
         "redaction_audit": run_tool(
             "redaction_audit",
             [redaction_tool, "scan", "--baseline", ".secrets.baseline"],
