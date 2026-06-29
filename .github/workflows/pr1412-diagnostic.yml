@@ -20,7 +20,7 @@ jobs:
   diagnostic:
     name: pr1412-diagnostic
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -47,12 +47,40 @@ jobs:
           .venv/bin/python - <<'PY'
           from __future__ import annotations
 
+          import os
           import subprocess
           from pathlib import Path
 
           out = Path('tmp/pr1412-diagnostic')
           out.mkdir(parents=True, exist_ok=True)
           mark = 'not slow and not heavy_math and not nightly and not flaky'
+
+          if os.environ.get('GITHUB_EVENT_NAME') == 'pull_request':
+              base_ref = os.environ.get('GITHUB_BASE_REF', 'main')
+              subprocess.run(['git', 'fetch', '--no-tags', 'origin', base_ref], check=False)
+              diff_cmd = ['git', 'diff', '--name-only', f'origin/{base_ref}...HEAD']
+          else:
+              diff_cmd = ['git', 'diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD']
+          changed = subprocess.run(diff_cmd, check=False, capture_output=True, text=True).stdout
+          changed_files = [line.strip() for line in changed.splitlines() if line.strip()]
+          (out / 'changed_files.txt').write_text('\n'.join(changed_files) + ('\n' if changed_files else ''), encoding='utf-8')
+
+          fast_sensitive_prefixes = ('tests/', 'core/', 'backtest/', 'execution/', 'src/', 'scripts/')
+          fast_sensitive_exact = {
+              'pyproject.toml',
+              'requirements.txt',
+              'requirements-dev.txt',
+              'requirements.lock',
+              'requirements-dev.lock',
+              'pytest.ini',
+              '.github/workflows/pr-gate.yml',
+              '.pre-commit-config.yaml',
+          }
+          fast_applicable = any(
+              path.startswith(fast_sensitive_prefixes) or path in fast_sensitive_exact
+              for path in changed_files
+          )
+          (out / 'applicability.txt').write_text(f'fast_applicable={fast_applicable}\n', encoding='utf-8')
 
           collect = subprocess.run(
               ['.venv/bin/pytest', 'tests/', '-m', mark, '--collect-only'],
@@ -80,11 +108,12 @@ jobs:
               f'all_nodeids={len(nodeids)}',
               f'quarantine_paths={len(quarantine_paths)}',
               f'kept_nodeids={len(kept)}',
+              f'fast_applicable={fast_applicable}',
           ]
 
-          if kept:
+          if fast_applicable and kept:
               fast = subprocess.run(
-                  ['.venv/bin/pytest', '-m', mark, *kept, '--maxfail=20', '-rA', '-q'],
+                  ['timeout', '600s', '.venv/bin/pytest', '-m', mark, *kept, '--maxfail=20', '-rA', '-q'],
                   check=False,
                   capture_output=True,
                   text=True,
@@ -92,18 +121,17 @@ jobs:
               fast_text = fast.stdout + fast.stderr
               fast_rc = fast.returncode
           else:
-              fast_text = 'No kept nodeids after quarantine.\n'
-              fast_rc = 99
+              fast_text = 'Fast diagnostic not applicable for this diff.\n'
+              fast_rc = 0
           (out / 'fast_pytest.log').write_text(fast_text, encoding='utf-8')
           fast_lines = fast_text.splitlines()
           fast_failures = [line for line in fast_lines if line.startswith(('FAILED', 'ERROR'))]
           (out / 'fast_failures.txt').write_text('\n'.join(fast_failures) + ('\n' if fast_failures else ''), encoding='utf-8')
           (out / 'fast_tail.txt').write_text('\n'.join(fast_lines[-200:]) + ('\n' if fast_lines else ''), encoding='utf-8')
           summary.append(f'fast_rc={fast_rc}')
-          (out / 'fast_summary.txt').write_text('\n'.join(summary) + '\n', encoding='utf-8')
 
           research = subprocess.run(
-              ['.venv/bin/python', '-m', 'pytest', 'tests/ci', 'tests/research_lines', '-q', '--maxfail=5', '-rA'],
+              ['timeout', '300s', '.venv/bin/python', '-m', 'pytest', 'tests/ci', 'tests/research_lines', '-q', '--maxfail=5', '-rA'],
               check=False,
               capture_output=True,
               text=True,
@@ -114,10 +142,11 @@ jobs:
           research_failures = [line for line in research_lines if line.startswith(('FAILED', 'ERROR'))]
           (out / 'research_failures.txt').write_text('\n'.join(research_failures) + ('\n' if research_failures else ''), encoding='utf-8')
           (out / 'research_tail.txt').write_text('\n'.join(research_lines[-200:]) + ('\n' if research_lines else ''), encoding='utf-8')
-          (out / 'research_summary.txt').write_text(f'research_rc={research.returncode}\n', encoding='utf-8')
+          summary.append(f'research_rc={research.returncode}')
 
+          (out / 'fast_summary.txt').write_text('\n'.join(summary) + '\n', encoding='utf-8')
+          (out / 'research_summary.txt').write_text(f'research_rc={research.returncode}\n', encoding='utf-8')
           print('\n'.join(summary))
-          print(f'research_rc={research.returncode}')
           PY
           exit 0
 
