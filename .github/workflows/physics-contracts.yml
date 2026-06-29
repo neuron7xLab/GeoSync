@@ -41,6 +41,10 @@ jobs:
   physics-contracts:
     name: validate-witness-evidence
     runs-on: ubuntu-latest
+    env:
+      GEOSYNC_LIGHT_DATA_IMPORT: '1'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
