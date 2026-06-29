@@ -233,7 +233,30 @@ jobs:
             --artifact artifacts/runs/ricci_microstructure_v1/example_artifact.json
 
       - name: pytest — evidence-truth gates + research-line contracts
-        run: python -m pytest tests/ci tests/research_lines -q --maxfail=1
+        run: |
+          set +e
+          python -m pytest tests/ci tests/research_lines -q --maxfail=1 -rA --tb=short \
+            2>&1 | tee /tmp/evidence_truth_pytest.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [[ "$rc" -ne 0 ]]; then
+            echo "::group::evidence-truth pytest short summary"
+            awk '/short test summary info/ {flag=1} flag {print}' /tmp/evidence_truth_pytest.log | tail -200 || true
+            echo "::endgroup::"
+            echo "::group::evidence-truth traceback tail"
+            tail -200 /tmp/evidence_truth_pytest.log || true
+            echo "::endgroup::"
+          fi
+          exit "$rc"
+
+      - name: Upload evidence-truth pytest failure log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: evidence-truth-pytest-log
+          path: /tmp/evidence_truth_pytest.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: mypy --strict on audited surface
         run: |
