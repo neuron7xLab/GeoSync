@@ -33,4 +33,6 @@ rollback_verification_command: "true"
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/null-comparison-harness.yaml"
 report_path: "tmp/null_comparison_pytest.log"
-evidence: []
+evidence:
+  - path: "tmp/null_comparison_pytest.log"
+    sha256: "34f997c3678c72addbe931af1f6917378f3c83a625f14a891e91a37e7ab1632c"
