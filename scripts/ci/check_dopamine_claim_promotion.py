@@ -72,7 +72,9 @@ def evaluate_text(text: str, *, eval_exists: bool, manifest_exists: bool) -> lis
             for term in BLOCKED_TERMS
             if term in lowered
         )
-        if "anchored" in lowered and ("rollback" not in lowered or not manifest_exists):
+        if "anchored" in lowered and (
+            "rollback" not in lowered or not manifest_exists
+        ):
             reasons.append("unsupported anchored wording")
         if "extrapolated" in lowered and not manifest_exists:
             reasons.append("unsupported extrapolated wording")
@@ -92,13 +94,17 @@ def main() -> int:
             eval_exists=EVAL.exists(),
             manifest_exists=MANIFEST.exists(),
         )
-        reasons.extend(f"{path.relative_to(ROOT)}: {reason}" for reason in scoped_reasons)
+        reasons.extend(
+            f"{path.relative_to(ROOT)}: {reason}" for reason in scoped_reasons
+        )
     status = "PASS" if not reasons else "FAIL"
     digest = write(
         {
             "blocking_reasons": reasons,
             "component": "geosync.dopamine",
-            "experimental_surface_status": "TESTED" if MANIFEST.exists() else "P2_RESEARCH",
+            "experimental_surface_status": (
+                "TESTED" if MANIFEST.exists() else "P2_RESEARCH"
+            ),
             "gate": "claim_promotion",
             "market_claim_allowed": False,
             "status": status,
