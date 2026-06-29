@@ -6,11 +6,21 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Callable, Optional, Protocol
 
 from geosync.core.neuro.numeric_config import STABILITY_EPSILON
 
-from .dopamine_controller import DopamineController
+
+class TemperatureBoundsProvider(Protocol):
+    """Structural boundary required by ActionGate.
+
+    ActionGate only needs temperature bounds. It MUST NOT depend on a concrete
+    dopamine controller implementation, constructor, configuration shape, or
+    mutable controller state.
+    """
+
+    def temperature_bounds(self) -> tuple[float, float]:
+        """Return inclusive lower/upper temperature bounds."""
 
 
 @dataclass(frozen=True)
@@ -60,11 +70,11 @@ class ActionGate:
 
     def __init__(
         self,
-        dopamine_ctrl: DopamineController,
+        dopamine_ctrl: TemperatureBoundsProvider,
         *,
         logger: Optional[Callable[[str, float], None]] = None,
     ) -> None:
-        self._dopamine = dopamine_ctrl
+        self._temperature_bounds = dopamine_ctrl.temperature_bounds
         if logger is None:
             logger = getattr(dopamine_ctrl, "_log", None)
         self._logger = logger or (lambda name, value: None)
@@ -128,7 +138,7 @@ class ActionGate:
         temperature *= temp_scale
         if serotonin_floor > 0.0:
             temperature = max(temperature, serotonin_floor)
-        t_bounds = self._dopamine.temperature_bounds()
+        t_bounds = self._temperature_bounds()
         temperature = min(t_bounds[1], max(t_bounds[0], temperature))
 
         self._log("tacl.bg.score", score)
