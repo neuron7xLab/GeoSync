@@ -111,6 +111,26 @@ def test_collect_nonzero_after_exact_node_resolution_is_not_dangling(
     assert gate._node_is_collectable(node) == (True, "collectable")
 
 
+def test_native_collect_crash_uses_source_backed_fallback(
+    gate: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    node = "tests/unit/analytics/test_null_baseline.py::test_gaussian_deterministic_for_same_seed"
+
+    def fake_run(*_args: Any, **_kwargs: Any) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            args=["pytest"],
+            returncode=-11,
+            stdout="",
+            stderr="Fatal Python error: Segmentation fault\nExtension modules: numpy._core\n",
+        )
+
+    monkeypatch.setattr(gate.subprocess, "run", fake_run)
+    assert gate._node_is_collectable(node) == (
+        True,
+        "collectable via source-backed fallback after native collect crash",
+    )
+
+
 # --------------------------------------------------------------------------
 # Negative: every single dangling link must flip the verdict to FAIL.
 # --------------------------------------------------------------------------
