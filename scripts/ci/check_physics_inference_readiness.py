@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+from importlib import import_module
 from pathlib import Path
 from typing import Any, cast
 
 from physics_contracts.manifold.contracts import LicensedDataStatus, resolve_data_status
-from scripts.ci.check_physics_law_witness_index import build_index, verify as verify_law_index
 
 ROOT = Path(__file__).resolve().parents[2]
 READINESS_PATH = ROOT / "artifacts" / "physics_v2" / "inference_readiness.json"
@@ -40,11 +40,19 @@ def _declared_tier(value: object) -> str:
     return value
 
 
+def _live_law_index_errors() -> list[str]:
+    module = import_module("scripts.ci.check_physics_law_witness_index")
+    live_index = module.build_index()
+    raw_errors = module.verify(live_index)
+    if not isinstance(raw_errors, list):
+        raise ValueError("law witness verifier returned a non-list error payload")
+    return [str(error) for error in raw_errors]
+
+
 def _check_live_witness_index() -> tuple[bool, str]:
     if not INDEX_PATH.exists():
         return False, f"{INDEX_PATH.relative_to(ROOT)} (missing)"
-    live_index = build_index()
-    errors = verify_law_index(live_index)
+    errors = _live_law_index_errors()
     blocking = [err for err in errors if "blocking law without witness" in err]
     if blocking:
         return False, blocking[0]
