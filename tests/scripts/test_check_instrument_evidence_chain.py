@@ -94,6 +94,12 @@ def test_live_registry_passes_with_live_collection(
     assert _run(gate, reg, skip_collect=False) == 0
 
 
+def test_collect_output_accepts_parametrized_instances(gate: Any) -> None:
+    node = "tests/unit/analytics/test_descriptor_capsule.py::test_fail_closed_on_bad_config"
+    output = f"{node}[bad0]\n{node}[bad1]\n"
+    assert gate._collect_output_has_node(node, output) is True
+
+
 def test_collect_nonzero_after_exact_node_resolution_is_not_dangling(
     gate: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
