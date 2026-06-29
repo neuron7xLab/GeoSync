@@ -4,21 +4,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
 
 _PACKAGE_ROOT = Path(__file__).resolve().parent
 _SRC_NEURO = _PACKAGE_ROOT.parents[2] / "src" / "geosync" / "core" / "neuro"
 
-_package_path = cast(list[str], globals().setdefault("__path__", [str(_PACKAGE_ROOT)]))
+_package_path = [str(_PACKAGE_ROOT)]
+_existing_path = globals().get("__path__")
+if isinstance(_existing_path, list):
+    _package_path = [str(item) for item in _existing_path]
 if str(_PACKAGE_ROOT) not in _package_path:
     _package_path.insert(0, str(_PACKAGE_ROOT))
-
-if _SRC_NEURO.exists():
-    src_neuro_path = str(_SRC_NEURO)
-    if src_neuro_path not in _package_path:
-        _package_path.append(src_neuro_path)
-    if __spec__ is not None and __spec__.submodule_search_locations is not None:
-        locations = list(__spec__.submodule_search_locations)
-        if src_neuro_path not in locations:
-            locations.append(src_neuro_path)
-            __spec__.submodule_search_locations = locations
+if _SRC_NEURO.exists() and str(_SRC_NEURO) not in _package_path:
+    _package_path.append(str(_SRC_NEURO))
+globals()["__path__"] = _package_path
