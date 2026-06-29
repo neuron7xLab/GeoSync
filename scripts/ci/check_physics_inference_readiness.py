@@ -24,6 +24,22 @@ def _load_json_object(path: Path) -> dict[str, Any]:
     return cast(dict[str, Any], payload)
 
 
+def _optional_string(value: object) -> str | None:
+    if value is None or value == "":
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"expected string-or-empty readiness field, got {type(value).__name__}")
+    return value
+
+
+def _declared_tier(value: object) -> str:
+    if value is None:
+        return "SYNTHETIC_ONLY"
+    if not isinstance(value, str):
+        raise ValueError(f"declared_tier must be a string, got {type(value).__name__}")
+    return value
+
+
 def _check_live_witness_index() -> tuple[bool, str]:
     if not INDEX_PATH.exists():
         return False, f"{INDEX_PATH.relative_to(ROOT)} (missing)"
@@ -83,8 +99,8 @@ def _serialise(payload: dict[str, Any]) -> str:
 
 def _recompute_from(committed: dict[str, Any]) -> dict[str, Any]:
     return compute_readiness(
-        declared_tier=str(committed.get("declared_tier", "SYNTHETIC_ONLY")),
-        real_dataset_fingerprint=cast(str | None, committed.get("real_dataset_fingerprint") or None),
+        declared_tier=_declared_tier(committed.get("declared_tier")),
+        real_dataset_fingerprint=_optional_string(committed.get("real_dataset_fingerprint")),
     )
 
 
@@ -97,8 +113,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.write:
         existing = _load_json_object(READINESS_PATH) if READINESS_PATH.exists() else {}
         payload = compute_readiness(
-            declared_tier=args.declared_tier or str(existing.get("declared_tier", "SYNTHETIC_ONLY")),
-            real_dataset_fingerprint=cast(str | None, existing.get("real_dataset_fingerprint") or None),
+            declared_tier=args.declared_tier or _declared_tier(existing.get("declared_tier")),
+            real_dataset_fingerprint=_optional_string(existing.get("real_dataset_fingerprint")),
         )
         READINESS_PATH.parent.mkdir(parents=True, exist_ok=True)
         READINESS_PATH.write_text(_serialise(payload), encoding="utf-8")
@@ -112,7 +128,10 @@ def main(argv: list[str] | None = None) -> int:
     recomputed = _recompute_from(committed)
     if _serialise(committed) != _serialise(recomputed):
         print("PHYSICS INFERENCE READINESS: FAIL — artifact is stale")
-        print(f"  committed verdict={committed.get('verdict')!r} != live {recomputed['verdict']!r}")
+        print(
+            f"  committed verdict={committed.get('verdict')!r} != live "
+            f"{recomputed['verdict']!r}"
+        )
         return 1
     verdict = recomputed["verdict"]
     if verdict in _READY_STATES:
