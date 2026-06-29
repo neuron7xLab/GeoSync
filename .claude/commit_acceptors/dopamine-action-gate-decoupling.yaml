@@ -7,6 +7,7 @@ diff_scope:
     - path: ".claude/commit_acceptors/dopamine-action-gate-decoupling.yaml"
     - path: "src/geosync/core/neuro/dopamine/action_gate.py"
     - path: "tests/core/neuro/dopamine/test_action_gate.py"
+    - path: "tests/core/neuro/dopamine/test_action_gate_import_boundary.py"
   forbidden_paths:
     - "trading/"
     - "execution/"
@@ -15,15 +16,15 @@ diff_scope:
 required_python_symbols:
   - "src/geosync/core/neuro/dopamine/action_gate.py::TemperatureBoundsProvider"
   - "src/geosync/core/neuro/dopamine/action_gate.py::ActionGate"
-expected_signal: "A non-DopamineController structural provider can drive ActionGate without importing or subclassing the concrete controller."
-measurement_command: "python -m pytest tests/core/neuro/dopamine/test_action_gate.py -q"
-signal_artifact: "tests/core/neuro/dopamine/test_action_gate.py"
+expected_signal: "ActionGate accepts a non-DopamineController structural provider and its module source contains no concrete DopamineController import boundary."
+measurement_command: "python -m pytest tests/core/neuro/dopamine/test_action_gate.py tests/core/neuro/dopamine/test_action_gate_import_boundary.py -q"
+signal_artifact: "tests/core/neuro/dopamine/test_action_gate_import_boundary.py"
 falsifier:
-  command: "python -m pytest tests/core/neuro/dopamine/test_action_gate.py::test_gate_decouples_from_concrete_dopamine_controller -q"
-  description: "If ActionGate still requires DopamineController internals, the structural provider witness fails."
-rollback_command: "git checkout -- src/geosync/core/neuro/dopamine/action_gate.py tests/core/neuro/dopamine/test_action_gate.py .claude/commit_acceptors/dopamine-action-gate-decoupling.yaml"
+  command: "python -m pytest tests/core/neuro/dopamine/test_action_gate_import_boundary.py tests/core/neuro/dopamine/test_action_gate.py::test_gate_decouples_from_concrete_dopamine_controller -q"
+  description: "If ActionGate re-imports the concrete DopamineController or stops accepting a structural provider, the import-boundary/source witness or structural provider witness fails."
+rollback_command: "git checkout -- src/geosync/core/neuro/dopamine/action_gate.py tests/core/neuro/dopamine/test_action_gate.py tests/core/neuro/dopamine/test_action_gate_import_boundary.py .claude/commit_acceptors/dopamine-action-gate-decoupling.yaml"
 rollback_verification_command: "git diff --exit-code"
 memory_update_type: none
 ledger_path: ".claude/commit_acceptors/dopamine-action-gate-decoupling.yaml"
-report_path: "tests/core/neuro/dopamine/test_action_gate.py"
+report_path: "tests/core/neuro/dopamine/test_action_gate_import_boundary.py"
 evidence: []
