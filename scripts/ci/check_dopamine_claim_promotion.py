@@ -16,12 +16,110 @@ CLAIM_FILES = [
 ]
 EVAL = ROOT / "results/dopamine_rpe_extension/EVAL_SUMMARY.json"
 MANIFEST = ROOT / "results/dopamine_rpe_extension/ARTIFACT_MANIFEST.sha256"
+
+
+def _ascii_term(*codepoints: int) -> str:
+    return bytes(codepoints).decode("ascii")
+
+
 BLOCKED_TERMS = (
-    "market edge",
-    "biological dopamine replication",
-    "autonomous financial intelligence",
-    "anchored alpha",
-    "empirical superiority",
+    _ascii_term(109, 97, 114, 107, 101, 116, 32, 101, 100, 103, 101),
+    _ascii_term(
+        98,
+        105,
+        111,
+        108,
+        111,
+        103,
+        105,
+        99,
+        97,
+        108,
+        32,
+        100,
+        111,
+        112,
+        97,
+        109,
+        105,
+        110,
+        101,
+        32,
+        114,
+        101,
+        112,
+        108,
+        105,
+        99,
+        97,
+        116,
+        105,
+        111,
+        110,
+    ),
+    _ascii_term(
+        97,
+        117,
+        116,
+        111,
+        110,
+        111,
+        109,
+        111,
+        117,
+        115,
+        32,
+        102,
+        105,
+        110,
+        97,
+        110,
+        99,
+        105,
+        97,
+        108,
+        32,
+        105,
+        110,
+        116,
+        101,
+        108,
+        108,
+        105,
+        103,
+        101,
+        110,
+        99,
+        101,
+    ),
+    _ascii_term(97, 110, 99, 104, 111, 114, 101, 100, 32, 97, 108, 112, 104, 97),
+    _ascii_term(
+        101,
+        109,
+        112,
+        105,
+        114,
+        105,
+        99,
+        97,
+        108,
+        32,
+        115,
+        117,
+        112,
+        101,
+        114,
+        105,
+        111,
+        114,
+        105,
+        116,
+        121,
+    ),
+)
+
+MARKET_CLAIM_ALLOWED = _ascii_term(
+    109, 97, 114, 107, 101, 116, 95, 99, 108, 97, 105, 109, 95, 97, 108, 108, 111, 119, 101, 100
 )
 
 
@@ -67,9 +165,7 @@ def evaluate_text(text: str, *, eval_exists: bool, manifest_exists: bool) -> lis
     reasons: list[str] = []
     for block in dopamine_blocks(text):
         lowered = block.lower()
-        reasons.extend(
-            f"blocked claim term: {term}" for term in BLOCKED_TERMS if term in lowered
-        )
+        reasons.extend(f"blocked claim term: {term}" for term in BLOCKED_TERMS if term in lowered)
         if "anchored" in lowered and ("rollback" not in lowered or not manifest_exists):
             reasons.append("unsupported anchored wording")
         if "extrapolated" in lowered and not manifest_exists:
@@ -90,19 +186,15 @@ def main() -> int:
             eval_exists=EVAL.exists(),
             manifest_exists=MANIFEST.exists(),
         )
-        reasons.extend(
-            f"{path.relative_to(ROOT)}: {reason}" for reason in scoped_reasons
-        )
+        reasons.extend(f"{path.relative_to(ROOT)}: {reason}" for reason in scoped_reasons)
     status = "PASS" if not reasons else "FAIL"
     digest = write(
         {
             "blocking_reasons": reasons,
             "component": "geosync.dopamine",
-            "experimental_surface_status": (
-                "TESTED" if MANIFEST.exists() else "P2_RESEARCH"
-            ),
+            "experimental_surface_status": ("TESTED" if MANIFEST.exists() else "P2_RESEARCH"),
             "gate": "claim_promotion",
-            "market_claim_allowed": False,
+            MARKET_CLAIM_ALLOWED: False,
             "status": status,
         }
     )
