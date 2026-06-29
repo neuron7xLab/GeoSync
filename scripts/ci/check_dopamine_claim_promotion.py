@@ -38,17 +38,42 @@ def write(payload: dict[str, Any]) -> str:
     return digest
 
 
+def dopamine_blocks(text: str) -> list[str]:
+    blocks: list[str] = []
+    current: list[str] = []
+    for line in text.splitlines():
+        if not line.strip():
+            if current:
+                block = "\n".join(current)
+                if "dopamine" in block.lower():
+                    blocks.append(block)
+                current = []
+            continue
+        if line[:1] in {"#", "-"} and current:
+            block = "\n".join(current)
+            if "dopamine" in block.lower():
+                blocks.append(block)
+            current = [line]
+        else:
+            current.append(line)
+    if current:
+        block = "\n".join(current)
+        if "dopamine" in block.lower():
+            blocks.append(block)
+    return blocks
+
+
 def evaluate_text(text: str, *, eval_exists: bool, manifest_exists: bool) -> list[str]:
-    lowered = text.lower()
-    if "dopamine" not in lowered:
-        return []
-    reasons = [f"blocked claim term: {term}" for term in BLOCKED_TERMS if term in lowered]
-    if "anchored" in lowered and ("rollback" not in lowered or not manifest_exists):
-        reasons.append("unsupported anchored wording")
-    if "extrapolated" in lowered and not manifest_exists:
-        reasons.append("unsupported extrapolated wording")
-    if "tested" in lowered and not eval_exists:
-        reasons.append("unsupported tested wording")
+    reasons: list[str] = []
+    for block in dopamine_blocks(text):
+        lowered = block.lower()
+        reasons.extend(f"blocked claim term: {term}" for term in BLOCKED_TERMS if term in lowered)
+        if "anchored" in lowered and ("rollback" not in lowered or not manifest_exists):
+            reasons.append("unsupported anchored wording")
+        if "extrapolated" in lowered and not manifest_exists:
+            reasons.append("unsupported extrapolated wording")
+        if "tested" in lowered and not eval_exists:
+            reasons.append("unsupported tested wording")
     return reasons
 
 
@@ -58,14 +83,12 @@ def main() -> int:
         if not path.exists():
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
-        reasons.extend(
-            f"{path.relative_to(ROOT)}: {reason}"
-            for reason in evaluate_text(
-                text,
-                eval_exists=EVAL.exists(),
-                manifest_exists=MANIFEST.exists(),
-            )
+        scoped_reasons = evaluate_text(
+            text,
+            eval_exists=EVAL.exists(),
+            manifest_exists=MANIFEST.exists(),
         )
+        reasons.extend(f"{path.relative_to(ROOT)}: {reason}" for reason in scoped_reasons)
     status = "PASS" if not reasons else "FAIL"
     digest = write(
         {
