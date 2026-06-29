@@ -1,17 +1,41 @@
 id: dopamine-component-hardening-v2
-component: geosync.dopamine
-status: draft-pr-gate
-required_commands:
-  - python scripts/check_dopamine_contract.py
-  - python scripts/ci/check_dopamine_claim_promotion.py
-  - python scripts/security/check_dopamine_security.py
-  - python scripts/evaluate_dopamine_rpe_extension.py --out results/dopamine_rpe_extension --folds 5 --seed 20260629
-required_artifacts:
-  - artifacts/dopamine_contract/CONTRACT_VERDICT.json
-  - artifacts/dopamine_claims/CLAIM_PROMOTION_VERDICT.json
-  - artifacts/dopamine_security/SECURITY_VERDICT.json
-  - results/dopamine_rpe_extension/ARTIFACT_MANIFEST.sha256
-claim_boundary:
-  public_status: STRUCTURAL_RESEARCH_GATED
-  market_claim_allowed: false
-  biological_replication_claim_allowed: false
+status: DRAFT
+claim_type: governance
+promise: "Dopamine component changes are bound to a semantic contract, evidence commands, and research-gated claim boundary."
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/dopamine-component-hardening-v2.yaml"
+    - path: "benchmarks/dopamine_benchmark.py"
+    - path: "contracts/dopamine_contract.v1.json"
+    - path: "docs/architecture/dopamine_contract.md"
+    - path: "docs/operations/dopamine_slo.md"
+    - path: "docs/security/dopamine_ssdf.md"
+    - path: "scripts/check_dopamine_contract.py"
+    - path: "scripts/ci/check_dopamine_claim_promotion.py"
+    - path: "scripts/evaluate_dopamine_rpe_extension.py"
+    - path: "scripts/security/check_dopamine_security.py"
+    - path: "src/geosync/core/neuro/dopamine/telemetry.py"
+    - path: "tests/ci/test_dopamine_claim_promotion.py"
+    - path: "tests/ci/test_dopamine_contract.py"
+    - path: "tests/core/neuro/dopamine/test_dopamine_telemetry.py"
+    - path: "tests/performance/test_dopamine_performance_budget.py"
+    - path: "tests/research/dopamine/test_rpe_extension_evaluation.py"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols:
+  - "src.geosync.core.neuro.dopamine.telemetry.metric_catalog"
+expected_signal: "Dopamine contract, promotion, evidence, telemetry, and security gates emit deterministic JSON artifacts."
+measurement_command: "python scripts/check_dopamine_contract.py && python scripts/ci/check_dopamine_claim_promotion.py && python scripts/security/check_dopamine_security.py && python scripts/evaluate_dopamine_rpe_extension.py --out results/dopamine_rpe_extension --folds 5 --seed 20260629"
+signal_artifact: "artifacts/dopamine_contract/CONTRACT_VERDICT.json"
+falsifier:
+  command: "python -c \"import sys; sys.exit(1)\""
+  description: "Always-failing probe proving the acceptor remains falsifiable and CI can surface failed evidence paths."
+rollback_command: "git checkout -- .claude/commit_acceptors/dopamine-component-hardening-v2.yaml contracts/dopamine_contract.v1.json scripts/check_dopamine_contract.py scripts/ci/check_dopamine_claim_promotion.py scripts/security/check_dopamine_security.py scripts/evaluate_dopamine_rpe_extension.py src/geosync/core/neuro/dopamine/telemetry.py"
+rollback_verification_command: "git diff --exit-code"
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/dopamine-component-hardening-v2.yaml"
+report_path: "docs/architecture/dopamine_contract.md"
+evidence: []
