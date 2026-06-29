@@ -36,7 +36,10 @@ def test_claim_evaluator_blocks_unsupported_dopamine_promotion() -> None:
 
 def test_claim_evaluator_ignores_unrelated_governance_words() -> None:
     module: Any = importlib.import_module("scripts.ci.check_dopamine_claim_promotion")
-    text = "General claim is anchored and tested.\n\nDopamine remains structural and research-gated."
+    text = (
+        "General claim is anchored and tested.\n\n"
+        "Dopamine remains structural and research-gated."
+    )
     reasons = module.evaluate_text(text, eval_exists=False, manifest_exists=False)
     assert reasons == []
 

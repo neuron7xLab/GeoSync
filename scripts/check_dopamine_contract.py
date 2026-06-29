@@ -36,7 +36,9 @@ def load_contract() -> dict[str, Any]:
     return loaded if isinstance(loaded, dict) else {"semantics": {}}
 
 
-def validate_required_artifacts(contract: dict[str, Any], root: Path = ROOT) -> list[str]:
+def validate_required_artifacts(
+    contract: dict[str, Any], root: Path = ROOT
+) -> list[str]:
     reasons: list[str] = []
     required = contract.get("required_artifacts", [])
     if not isinstance(required, list) or not required:

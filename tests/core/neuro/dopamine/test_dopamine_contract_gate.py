@@ -12,7 +12,9 @@ ROOT = Path(__file__).resolve().parents[4]
 
 
 def _contract() -> dict[str, Any]:
-    return json.loads((ROOT / "contracts/dopamine_contract.v1.json").read_text(encoding="utf-8"))
+    return json.loads(
+        (ROOT / "contracts/dopamine_contract.v1.json").read_text(encoding="utf-8")
+    )
 
 
 def test_contract_checker_blocks_until_required_artifacts_exist() -> None:
