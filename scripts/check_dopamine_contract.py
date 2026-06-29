@@ -35,37 +35,50 @@ def load_contract() -> dict[str, Any]:
     return loaded if isinstance(loaded, dict) else {"semantics": {}}
 
 
-def main() -> int:
+def validate_contract(contract: dict[str, Any], root: Path = ROOT) -> list[str]:
     reasons: list[str] = []
-    contract = load_contract()
+    if contract.get("component") != "geosync.dopamine":
+        reasons.append("invalid component")
     semantics = contract.get("semantics", {})
     if not isinstance(semantics, dict) or not semantics:
-        reasons.append("missing semantics")
-        semantics = {}
+        return reasons + ["missing semantics"]
     for name, spec in semantics.items():
         if not isinstance(spec, dict):
             reasons.append(f"{name}: invalid semantic spec")
             continue
         owner = str(spec.get("owner", ""))
-        if not owner or not (ROOT / owner).exists():
+        if not owner or not (root / owner).exists():
             reasons.append(f"{name}: missing owner {owner}")
         if spec.get("market_claim_allowed") is not False:
             reasons.append(f"{name}: promotion boundary must stay false")
-        if not spec.get("required_invariants"):
+        invariants = spec.get("required_invariants")
+        if not isinstance(invariants, list) or not invariants:
             reasons.append(f"{name}: missing invariants")
-    if len(contract.get("forbidden_edges", [])) < 3:
+        elif any(not isinstance(item, str) or not item.strip() for item in invariants):
+            reasons.append(f"{name}: invalid invariant entry")
+        bounds = spec.get("bounds")
+        if bounds is not None and not isinstance(bounds, dict):
+            reasons.append(f"{name}: invalid bounds")
+    forbidden_edges = contract.get("forbidden_edges", [])
+    if not isinstance(forbidden_edges, list) or len(forbidden_edges) < 3:
         reasons.append("missing forbidden edges")
+    return reasons
+
+
+def main() -> int:
+    contract = load_contract()
+    reasons = validate_contract(contract)
     status = "PASS" if not reasons else "FAIL"
     digest = write_artifact(
         {
+            "blocking_reasons": reasons,
             "component": contract.get("component", "geosync.dopamine"),
             "gate": "dopamine_contract",
+            "semantic_count": len(contract.get("semantics", {})),
             "status": status,
-            "blocking_reasons": reasons,
-            "semantic_count": len(semantics),
         }
     )
-    print(json.dumps({"status": status, "sha256": digest}, sort_keys=True))
+    print(json.dumps({"sha256": digest, "status": status}, sort_keys=True))
     return 0 if status == "PASS" else 1
 
 
