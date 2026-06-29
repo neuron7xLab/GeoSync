@@ -36,38 +36,38 @@ def test_committed_artifact_is_ready_synthetic_only() -> None:
 
 def test_synthetic_tier_is_ready_and_honest() -> None:
     result = compute_readiness(declared_tier="SYNTHETIC_ONLY", real_dataset_fingerprint=None)
-    assert result["verdict"] == "READY_SYNTHETIC_ONLY"
-    assert result["blocker_path"] == ""
+    assert result["verdict"] == "READY_SYNTHETIC_ONLY", result
+    assert result["blocker_path"] == "", result
 
 
 def test_all_fail_closed_guards_are_live() -> None:
     result = compute_readiness(declared_tier="SYNTHETIC_ONLY", real_dataset_fingerprint=None)
     checks = result["checks"]
-    assert checks["witness_index"]["ok"] is True
-    assert checks["causality"]["ok"] is True
-    assert checks["capsule_integrity"]["ok"] is True
-    assert checks["synthetic_promotion"]["ok"] is True
+    assert checks["witness_index"]["ok"] is True, result
+    assert checks["causality"]["ok"] is True, result
+    assert checks["capsule_integrity"]["ok"] is True, result
+    assert checks["synthetic_promotion"]["ok"] is True, result
 
 
 def test_realdata_tier_without_real_data_is_blocked_promotion() -> None:
     result = compute_readiness(declared_tier="REALDATA_REPLAY", real_dataset_fingerprint=None)
-    assert result["verdict"] == "BLOCKED_SYNTHETIC_PROMOTION"
-    assert "false promotion" in result["blocker_path"]
+    assert result["verdict"] == "BLOCKED_SYNTHETIC_PROMOTION", result
+    assert "false promotion" in result["blocker_path"], result
 
 
 def test_realdata_tier_with_synthetic_fingerprint_is_blocked() -> None:
     result = compute_readiness(
         declared_tier="REALDATA_REPLAY", real_dataset_fingerprint="synthetic:00000001"
     )
-    assert result["verdict"] == "BLOCKED_SYNTHETIC_PROMOTION"
+    assert result["verdict"] == "BLOCKED_SYNTHETIC_PROMOTION", result
 
 
 def test_realdata_tier_with_real_fingerprint_is_ready() -> None:
     result = compute_readiness(
         declared_tier="REALDATA_REPLAY", real_dataset_fingerprint=_REAL_FP
     )
-    assert result["verdict"] == "READY_REALDATA_REPLAY"
-    assert result["blocker_path"] == ""
+    assert result["verdict"] == "READY_REALDATA_REPLAY", result
+    assert result["blocker_path"] == "", result
 
 
 def test_unknown_declared_tier_is_rejected() -> None:
