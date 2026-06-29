@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.geosync.core.neuro.dopamine.telemetry import (
+from geosync.core.neuro.dopamine.telemetry import (
     METRIC_NAMES,
     bounded_value,
     bounded_value_delta,
