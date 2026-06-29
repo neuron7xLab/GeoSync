@@ -36,7 +36,12 @@ def _unit(value: float) -> float:
     return min(1.0, max(0.0, value))
 
 
-def bounded_value(human: float, system: float, repository: float, research: float) -> float:
+def bounded_value(
+    human: float,
+    system: float,
+    repository: float,
+    research: float,
+) -> float:
     return (
         0.35 * _unit(human)
         + 0.30 * _unit(system)
@@ -45,7 +50,10 @@ def bounded_value(human: float, system: float, repository: float, research: floa
     )
 
 
-def bounded_value_delta(previous_score: float, current_score: float) -> dict[str, float]:
+def bounded_value_delta(
+    previous_score: float,
+    current_score: float,
+) -> dict[str, float]:
     previous = _unit(previous_score)
     current = _unit(current_score)
     delta = current - previous
