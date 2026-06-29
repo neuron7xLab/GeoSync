@@ -11,17 +11,11 @@ reuses :mod:`core.data.leakage`.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
-from typing import Any
 
 import numpy as np
 from numpy.typing import ArrayLike
 
-# The physics falsification contract needs only the arithmetic leakage guard.
-# core.data.__init__ supports this flag to avoid importing the heavyweight
-# feature-store stack during narrow governance/contract imports.
-os.environ.setdefault("GEOSYNC_LIGHT_DATA_IMPORT", "1")
 from core.data.leakage import LeakageError, assert_no_train_test_leakage
 
 __all__ = [
@@ -114,7 +108,7 @@ def leakage_detector(
     return False
 
 
-def rejection_report(witness: Witness, *, min_effect: float) -> dict[str, Any]:
+def rejection_report(witness: Witness, *, min_effect: float) -> dict[str, object]:
     """Adjudicate a witness against the empirical-admission contract.
 
     A claim is ADMITTED only if it is an empirical witness, carries a non-empty
