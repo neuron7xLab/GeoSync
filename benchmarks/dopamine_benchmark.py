@@ -48,7 +48,12 @@ def main() -> int:
         f"{digest}  {OUT.name}\n",
         encoding="utf-8",
     )
-    print(json.dumps({"sha256": digest, "status": status, "step_ms": step_ms}, sort_keys=True))
+    print(
+        json.dumps(
+            {"sha256": digest, "status": status, "step_ms": step_ms},
+            sort_keys=True,
+        )
+    )
     return 0 if status == "PASS" else 1
 
 
