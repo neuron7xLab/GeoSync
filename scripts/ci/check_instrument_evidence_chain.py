@@ -133,9 +133,13 @@ def _acceptor_has_provenance(acceptor_path: Path) -> bool:
 
 
 def _collect_output_has_node(node: str, output: str) -> bool:
-    """Return true only when pytest printed the exact node id as collected."""
+    """Return true when pytest printed the node or its parametrized instances."""
 
-    return any(line.strip() == node for line in output.splitlines())
+    param_prefix = f"{node}["
+    return any(
+        (line := raw.strip()) == node or line.startswith(param_prefix)
+        for raw in output.splitlines()
+    )
 
 
 def _plain_function_name(node_func: str) -> str:
