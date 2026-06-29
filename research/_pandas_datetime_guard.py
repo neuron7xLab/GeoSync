@@ -55,5 +55,5 @@ def install_safe_to_datetime_guard() -> None:
             return _convert_date_series(arg)
         return _ORIGINAL_TO_DATETIME(arg, *args, **kwargs)
 
-    pd.to_datetime = guarded_to_datetime  # type: ignore[assignment]
+    setattr(pd, "to_datetime", guarded_to_datetime)
     _INSTALLED = True
