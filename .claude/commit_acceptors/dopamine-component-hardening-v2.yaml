@@ -10,6 +10,7 @@ diff_scope:
     - path: "docs/architecture/dopamine_contract.md"
     - path: "docs/operations/dopamine_slo.md"
     - path: "docs/security/dopamine_ssdf.md"
+    - path: "geosync/core/neuro/dopamine/telemetry.pyi"
     - path: "scripts/check_dopamine_contract.py"
     - path: "scripts/ci/check_dopamine_claim_promotion.py"
     - path: "scripts/evaluate_dopamine_rpe_extension.py"
