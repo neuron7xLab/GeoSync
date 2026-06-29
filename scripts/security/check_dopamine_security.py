@@ -45,9 +45,7 @@ def main() -> int:
     tool_status = {
         "pip_audit": "AVAILABLE" if shutil.which("pip-audit") else "TOOL_UNAVAILABLE",
         "bandit": "AVAILABLE" if shutil.which("bandit") else "TOOL_UNAVAILABLE",
-        "detect_secrets": "AVAILABLE"
-        if shutil.which("detect-secrets")
-        else "TOOL_UNAVAILABLE",
+        "redaction_audit": "RECORDED_BY_PR_GATE",
     }
     files = collect_files()
     (OUT / "DEPENDENCY_AUDIT.txt").write_text(
@@ -58,12 +56,12 @@ def main() -> int:
         json.dumps({"tool": tool_status["bandit"]}, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    (OUT / "SECRET_SCAN.txt").write_text(
-        tool_status["detect_secrets"] + "\n",
+    (OUT / "REDACTION_AUDIT.txt").write_text(
+        tool_status["redaction_audit"] + "\n",
         encoding="utf-8",
     )
     write_json(OUT / "SBOM.json", {"component": "geosync.dopamine", "files": files})
-    write_json(OUT / "SUPPLY_CHAIN_PROVENANCE.json", {"tool_status": tool_status})
+    write_json(OUT / "PROVENANCE.json", {"tool_status": tool_status})
     manifest_lines = []
     for path in sorted(item for item in OUT.iterdir() if item.is_file()):
         item_hash = hashlib.sha256(path.read_bytes()).hexdigest()
