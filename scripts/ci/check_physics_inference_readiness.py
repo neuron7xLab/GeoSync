@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from physics_contracts.manifold.contracts import LicensedDataStatus, resolve_data_status
 from scripts.ci.check_physics_law_witness_index import build_index, verify as verify_law_index
@@ -15,6 +15,13 @@ READINESS_PATH = ROOT / "artifacts" / "physics_v2" / "inference_readiness.json"
 INDEX_PATH = ROOT / "artifacts" / "physics_v2" / "law_witness_index.json"
 _READY_STATES = frozenset({"READY_SYNTHETIC_ONLY", "READY_REALDATA_REPLAY"})
 _DECLARED_TIERS = frozenset({"SYNTHETIC_ONLY", "REALDATA_REPLAY"})
+
+
+def _load_json_object(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{path.relative_to(ROOT)} must contain a JSON object")
+    return cast(dict[str, Any], payload)
 
 
 def _check_live_witness_index() -> tuple[bool, str]:
@@ -76,8 +83,8 @@ def _serialise(payload: dict[str, Any]) -> str:
 
 def _recompute_from(committed: dict[str, Any]) -> dict[str, Any]:
     return compute_readiness(
-        declared_tier=committed.get("declared_tier", "SYNTHETIC_ONLY"),
-        real_dataset_fingerprint=committed.get("real_dataset_fingerprint") or None,
+        declared_tier=str(committed.get("declared_tier", "SYNTHETIC_ONLY")),
+        real_dataset_fingerprint=cast(str | None, committed.get("real_dataset_fingerprint") or None),
     )
 
 
@@ -88,10 +95,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.write:
-        existing = json.loads(READINESS_PATH.read_text(encoding="utf-8")) if READINESS_PATH.exists() else {}
+        existing = _load_json_object(READINESS_PATH) if READINESS_PATH.exists() else {}
         payload = compute_readiness(
-            declared_tier=args.declared_tier or existing.get("declared_tier", "SYNTHETIC_ONLY"),
-            real_dataset_fingerprint=existing.get("real_dataset_fingerprint") or None,
+            declared_tier=args.declared_tier or str(existing.get("declared_tier", "SYNTHETIC_ONLY")),
+            real_dataset_fingerprint=cast(str | None, existing.get("real_dataset_fingerprint") or None),
         )
         READINESS_PATH.parent.mkdir(parents=True, exist_ok=True)
         READINESS_PATH.write_text(_serialise(payload), encoding="utf-8")
@@ -101,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     if not READINESS_PATH.exists():
         print(f"ERROR: missing readiness artifact: {READINESS_PATH}")
         return 1
-    committed = json.loads(READINESS_PATH.read_text(encoding="utf-8"))
+    committed = _load_json_object(READINESS_PATH)
     recomputed = _recompute_from(committed)
     if _serialise(committed) != _serialise(recomputed):
         print("PHYSICS INFERENCE READINESS: FAIL — artifact is stale")
