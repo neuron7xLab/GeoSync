@@ -15,7 +15,7 @@ def _contract() -> dict[str, Any]:
     return json.loads((ROOT / "contracts/dopamine_contract.v1.json").read_text(encoding="utf-8"))
 
 
-def test_contract_checker_requires_terminal_pass() -> None:
+def test_contract_checker_blocks_until_required_artifacts_exist() -> None:
     result = subprocess.run(
         [sys.executable, "scripts/check_dopamine_contract.py"],
         cwd=ROOT,
@@ -23,16 +23,21 @@ def test_contract_checker_requires_terminal_pass() -> None:
         capture_output=True,
         check=False,
     )
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 1
     payload = json.loads(result.stdout)
-    assert payload["status"] == "PASS"
+    assert payload["status"] == "BLOCKED"
+
+
+def test_contract_validator_passes_semantic_surface_only() -> None:
+    module: Any = importlib.import_module("scripts.check_dopamine_contract")
+    assert module.validate_contract(_contract(), ROOT, require_artifacts=False) == []
 
 
 def test_contract_validator_rejects_claim_promotion_mutation() -> None:
     module: Any = importlib.import_module("scripts.check_dopamine_contract")
     mutated = copy.deepcopy(_contract())
     mutated["semantics"]["RAW_TD_RPE"]["market_claim_allowed"] = True
-    reasons = module.validate_contract(mutated, ROOT)
+    reasons = module.validate_contract(mutated, ROOT, require_artifacts=False)
     assert any("promotion boundary" in reason for reason in reasons)
 
 
@@ -41,6 +46,6 @@ def test_contract_validator_rejects_missing_owner_and_empty_invariants() -> None
     mutated = copy.deepcopy(_contract())
     mutated["semantics"]["RAW_TD_RPE"]["owner"] = "missing/dopamine_surface.py"
     mutated["semantics"]["RAW_TD_RPE"]["required_invariants"] = []
-    reasons = module.validate_contract(mutated, ROOT)
+    reasons = module.validate_contract(mutated, ROOT, require_artifacts=False)
     assert any("missing owner" in reason for reason in reasons)
     assert any("missing invariants" in reason for reason in reasons)
