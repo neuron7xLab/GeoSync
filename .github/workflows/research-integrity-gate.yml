@@ -174,7 +174,27 @@ jobs:
         run: python -m pytest tests/scripts/test_check_tombstone_preservation.py -q
 
       - name: Instrument evidence-chain reconciliation gate (7 instruments)
-        run: python scripts/ci/check_instrument_evidence_chain.py
+        run: |
+          set +e
+          python scripts/ci/check_instrument_evidence_chain.py \
+            2>&1 | tee /tmp/instrument_evidence_chain.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [[ "$rc" -ne 0 ]]; then
+            echo "::group::instrument evidence-chain failure"
+            tail -200 /tmp/instrument_evidence_chain.log || true
+            echo "::endgroup::"
+          fi
+          exit "$rc"
+
+      - name: Upload instrument evidence-chain failure log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: instrument-evidence-chain-log
+          path: /tmp/instrument_evidence_chain.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: pytest — instrument evidence-chain gate
         run: python -m pytest tests/scripts/test_check_instrument_evidence_chain.py -q
