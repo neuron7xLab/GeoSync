@@ -1,0 +1,17 @@
+id: dopamine-component-hardening-v2
+component: geosync.dopamine
+status: draft-pr-gate
+required_commands:
+  - python scripts/check_dopamine_contract.py
+  - python scripts/ci/check_dopamine_claim_promotion.py
+  - python scripts/security/check_dopamine_security.py
+  - python scripts/evaluate_dopamine_rpe_extension.py --out results/dopamine_rpe_extension --folds 5 --seed 20260629
+required_artifacts:
+  - artifacts/dopamine_contract/CONTRACT_VERDICT.json
+  - artifacts/dopamine_claims/CLAIM_PROMOTION_VERDICT.json
+  - artifacts/dopamine_security/SECURITY_VERDICT.json
+  - results/dopamine_rpe_extension/ARTIFACT_MANIFEST.sha256
+claim_boundary:
+  public_status: STRUCTURAL_RESEARCH_GATED
+  market_claim_allowed: false
+  biological_replication_claim_allowed: false
