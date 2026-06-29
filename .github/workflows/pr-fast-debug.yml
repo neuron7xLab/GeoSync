@@ -1,0 +1,136 @@
+# SPDX-License-Identifier: MIT
+#
+# Non-required diagnostic mirror for PR Gate fast shards.
+# It preserves fail-closed behavior while uploading the exact shard payload
+# needed to repair terminal PR Gate failures when GitHub log tails are hidden
+# behind truncated connector output.
+name: PR Fast Debug
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+concurrency:
+  group: pr-fast-debug-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  fast-debug:
+    name: pr-fast-debug (${{ matrix.group }})
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [1, 2, 3, 4]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-geosync
+        with:
+          python-version: '3.11'
+          cache-prefix: pr-fast-debug
+
+      - name: Run instrumented fast shard
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            git fetch --no-tags origin "${{ github.base_ref }}"
+            base_ref="origin/${{ github.base_ref }}"
+            changed_files=$(git diff --name-only "$base_ref...$GITHUB_SHA")
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+          fi
+
+          if ! printf '%s\n' "$changed_files" | awk '
+            /^tests\// || /^core\// || /^backtest\// || /^execution\// || /^src\// ||
+            /^scripts\// || /^pyproject\.toml$/ || /^requirements(-dev)?\.(txt|lock)$/ ||
+            /^pytest\.ini$/ || /^\.github\/workflows\/pr-gate\.yml$/ || /^\.pre-commit-config\.yaml$/ {
+              found=1; exit
+            }
+            END { exit !found }
+          '; then
+            echo "No Python runtime/test surface changes detected; shard passes." | tee /tmp/fast_debug_summary.log
+            exit 0
+          fi
+
+          [[ -x .venv/bin/pytest ]] || { echo ".venv/bin/pytest missing" | tee /tmp/fast_debug_summary.log; exit 1; }
+          export PYTHONUTF8=1
+          export PYTHONIOENCODING=utf-8
+          MARK="not slow and not heavy_math and not nightly and not flaky"
+
+          set +e
+          .venv/bin/pytest tests/ -m "$MARK" --collect-only > /tmp/collect_stdout.log 2> /tmp/collect_stderr.log
+          collect_rc=$?
+          set -e
+          grep -E '^tests/.*::' /tmp/collect_stdout.log > /tmp/all_nodeids.txt || true
+
+          QUARANTINE="tests/ci/fast_quarantine.txt"
+          if [[ -f "$QUARANTINE" ]]; then
+            grep -vE '^\s*#|^\s*$' "$QUARANTINE" | awk '{print $1}' > /tmp/quarantine_paths.txt || true
+            before=$(wc -l < /tmp/all_nodeids.txt | tr -d ' ')
+            grep -vFf /tmp/quarantine_paths.txt /tmp/all_nodeids.txt > /tmp/all_nodeids.kept || true
+            mv /tmp/all_nodeids.kept /tmp/all_nodeids.txt
+            after=$(wc -l < /tmp/all_nodeids.txt | tr -d ' ')
+            echo "quarantine: subtracted $((before - after)) node ids ($(wc -l < /tmp/quarantine_paths.txt | tr -d ' ') quarantined files)" | tee -a /tmp/fast_debug_summary.log
+          fi
+
+          total_ids=$(wc -l < /tmp/all_nodeids.txt | tr -d ' ')
+          echo "collect_rc=$collect_rc" | tee -a /tmp/fast_debug_summary.log
+          echo "total_ids=$total_ids" | tee -a /tmp/fast_debug_summary.log
+          if [[ "$collect_rc" -ne 0 || "$total_ids" -eq 0 ]]; then
+            echo "collection failed or produced zero runnable ids" | tee -a /tmp/fast_debug_summary.log
+            tail -n 120 /tmp/collect_stderr.log | tee -a /tmp/fast_debug_summary.log || true
+            exit 1
+          fi
+
+          .venv/bin/python -c "import binascii,pathlib; ids=[l.strip() for l in pathlib.Path('/tmp/all_nodeids.txt').read_text().splitlines() if l.strip()]; g=${{ matrix.group }}-1; sh=[n for n in ids if binascii.crc32(n.encode())%4==g]; pathlib.Path('/tmp/shard_nodeids.txt').write_text(chr(10).join(sh)); print(f'shard {g+1}/4: {len(sh)}/{len(ids)} selected tests')" | tee -a /tmp/fast_debug_summary.log
+
+          if [[ ! -s /tmp/shard_nodeids.txt ]]; then
+            echo "empty shard" | tee -a /tmp/fast_debug_summary.log
+            exit 0
+          fi
+
+          mapfile -t SHARD_IDS < /tmp/shard_nodeids.txt
+          set +e
+          timeout 1200s .venv/bin/pytest \
+            -m "$MARK" \
+            "${SHARD_IDS[@]}" \
+            --maxfail=10 \
+            --tb=short \
+            -rA \
+            -vv | tee /tmp/shard_run.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "pytest_rc=$rc" | tee -a /tmp/fast_debug_summary.log
+          grep -aE '^(FAILED|ERROR)' /tmp/shard_run.log > /tmp/failed_nodeids.txt || true
+          tail -n 200 /tmp/shard_run.log > /tmp/shard_tail.log || true
+          exit "$rc"
+
+      - name: Upload fast debug artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pr-fast-debug-${{ matrix.group }}
+          path: |
+            /tmp/fast_debug_summary.log
+            /tmp/collect_stdout.log
+            /tmp/collect_stderr.log
+            /tmp/all_nodeids.txt
+            /tmp/quarantine_paths.txt
+            /tmp/shard_nodeids.txt
+            /tmp/shard_run.log
+            /tmp/failed_nodeids.txt
+            /tmp/shard_tail.log
+          if-no-files-found: warn
