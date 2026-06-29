@@ -2,24 +2,28 @@ from __future__ import annotations
 
 import importlib
 import json
-import subprocess
-import sys
 from pathlib import Path
 from typing import Any
+
 
 ROOT = Path(__file__).resolve().parents[4]
 
 
-def test_claim_gate_requires_terminal_pass() -> None:
-    result = subprocess.run(
-        [sys.executable, "scripts/ci/check_dopamine_claim_promotion.py"],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
+def test_claim_gate_requires_terminal_pass(monkeypatch: Any, tmp_path: Path) -> None:
+    module: Any = importlib.import_module("scripts.ci.check_dopamine_claim_promotion")
+    claim_file = tmp_path / "CLAIMS.md"
+    claim_file.write_text(
+        "Dopamine remains structural and research-gated with bounded telemetry.\n",
+        encoding="utf-8",
     )
-    assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
+    artifact = tmp_path / "CLAIM_PROMOTION_VERDICT.json"
+    monkeypatch.setattr(module, "CLAIM_FILES", [claim_file])
+    monkeypatch.setattr(module, "ARTIFACT", artifact)
+    monkeypatch.setattr(module, "EVAL", tmp_path / "EVAL_SUMMARY.json")
+    monkeypatch.setattr(module, "MANIFEST", tmp_path / "ARTIFACT_MANIFEST.sha256")
+
+    assert module.main() == 0
+    payload = json.loads(artifact.read_text(encoding="utf-8"))
     assert payload["status"] == "PASS"
 
 
