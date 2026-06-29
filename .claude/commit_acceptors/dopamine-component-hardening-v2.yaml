@@ -16,6 +16,7 @@ diff_scope:
     - path: "geosync/core/neuro/dopamine/telemetry.pyi"
     - path: "scripts/check_dopamine_contract.py"
     - path: "scripts/ci/check_dopamine_claim_promotion.py"
+    - path: "scripts/dopamine_contract_core.py"
     - path: "scripts/evaluate_dopamine_rpe_extension.py"
     - path: "scripts/security/check_dopamine_security.py"
     - path: "src/geosync/core/neuro/dopamine/telemetry.py"
