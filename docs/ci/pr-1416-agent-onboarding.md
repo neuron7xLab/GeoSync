@@ -64,6 +64,40 @@ If security or dependency review fails, fix the real finding or the baseline pat
 
 If repo-policy fails, fix the policy or acceptor binding. Do not bypass the policy.
 
+## Transition logging
+
+Every transition must be recorded with these fields:
+
+- event id
+- UTC time
+- PR head SHA
+- merge SHA
+- trigger
+- observed state
+- decision
+- action
+- changed paths
+- evidence
+- next check
+- merge status
+
+Rules:
+
+- append new events only
+- never overwrite prior events
+- do not guess missing data
+- if Commit Acceptor fails, pause downstream conclusions until binding is fixed
+
+Current state snapshot:
+
+- head: `63aa75a4a1804909121a9ac0df18765a98048ba0`
+- merge: `9436575b6399d95c55b116ef5a013bafb2062266`
+- Commit Acceptor Gate: success
+- Research Integrity Gate: in progress
+- PR Gate: in progress
+- Repo Integrity Gate: in progress
+- merge status: blocked until all required checks are terminal green
+
 ## Non-negotiable prohibitions
 
 - no deleted tests
