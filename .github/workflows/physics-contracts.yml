@@ -65,7 +65,8 @@ jobs:
       - name: Run physics witnesses + negative controls
         run: |
           set -euo pipefail
-          PYTHONPATH=. python -m pytest tests/physics -q
+          mkdir -p tmp
+          PYTHONPATH=. python -m pytest tests/physics -q -rA 2>&1 | tee tmp/physics_contracts_pytest.log
 
       - name: Build review packet
         run: |
@@ -106,4 +107,5 @@ jobs:
             docs/PHYSICS_VERDICT.md
             docs/PHYSICS_REVIEW_PACKET.md
             docs/PHYSICS_CLAIMS.md
+            tmp/physics_contracts_pytest.log
           if-no-files-found: error
