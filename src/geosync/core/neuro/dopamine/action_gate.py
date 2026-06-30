@@ -74,6 +74,11 @@ class ActionGate:
         *,
         logger: Optional[Callable[[str, float], None]] = None,
     ) -> None:
+        # Backward-compatible structural provider alias: legacy integration and
+        # invariant probes may inspect ``_dopamine``. The type boundary remains
+        # structural; no concrete controller import, subclass, or constructor is
+        # required by ActionGate.
+        self._dopamine = dopamine_ctrl
         self._temperature_bounds = dopamine_ctrl.temperature_bounds
         if logger is None:
             logger = getattr(dopamine_ctrl, "_log", None)
