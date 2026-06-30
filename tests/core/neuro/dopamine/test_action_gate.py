@@ -42,6 +42,19 @@ SEROTONIN_TEST_CONFIG = {
 }
 
 
+class _BoundsOnlyController:
+    """Minimal structural provider that is intentionally not DopamineController."""
+
+    def __init__(self) -> None:
+        self.events: List[tuple[str, float]] = []
+
+    def temperature_bounds(self) -> tuple[float, float]:
+        return (0.2, 0.6)
+
+    def _log(self, name: str, value: float) -> None:
+        self.events.append((name, value))
+
+
 def _make_dopamine_snapshot(
     controller: DopamineController,
     level: float,
@@ -90,6 +103,26 @@ def controller(tmp_path: Path) -> DopamineController:
     ctrl = DopamineController(str(cfg_target))
     ctrl.dopamine_level = 0.7
     return ctrl
+
+
+def test_gate_decouples_from_concrete_dopamine_controller() -> None:
+    bounds_only = _BoundsOnlyController()
+    gate = ActionGate(bounds_only)
+
+    evaluation = gate.evaluate(
+        dopamine=DopamineSnapshot(
+            level=0.9,
+            temperature=9.0,
+            go_threshold=0.2,
+            hold_threshold=0.1,
+            no_go_threshold=0.05,
+            release_gate_open=True,
+        ),
+    )
+
+    assert evaluation.decision == "GO"
+    assert evaluation.temperature == pytest.approx(0.6)
+    assert any(name == "tacl.ag.decision" for name, _ in bounds_only.events)
 
 
 def test_gate_respects_release_serotonin_and_gaba(
