@@ -43,7 +43,9 @@ jobs:
           set -euo pipefail
           # The ratchet re-runs claim-critical physics tests under mutation, so
           # it needs the same minimal runtime as the physics suites (pinned to
-          # the requirements.txt contract).
+          # the requirements.txt contract). KuramotoConfig is Pydantic-backed,
+          # so pydantic is part of the baseline import/runtime contract here,
+          # not an optional dependency.
           python -m pip install --upgrade pip
           python -m pip install \
             'pytest>=8.4' \
@@ -51,7 +53,8 @@ jobs:
             'pandas>=2.3.3' \
             'PyYAML>=6.0.3' \
             'scipy>=1.16.2' \
-            'networkx>=3.0'
+            'networkx>=3.5' \
+            'pydantic>=2.12.4,<3.0.0'
 
       - name: Mutation-kill ratchet
         run: |
