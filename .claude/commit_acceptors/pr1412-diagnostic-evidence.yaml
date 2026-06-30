@@ -1,0 +1,42 @@
+id: pr1412-diagnostic-evidence
+status: ACTIVE
+claim_type: governance
+promise: >-
+  Add a pull-request diagnostic workflow that runs the PR 1412 fast-lane and
+  research-line reproduction commands inside GitHub Actions and uploads the
+  resulting node-id lists plus pytest logs as artifacts without changing required
+  PR Gate pass/fail semantics.
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/pr1412-diagnostic-evidence.yaml"
+    - path: ".github/workflows/pr1412-diagnostic.yml"
+  forbidden_paths:
+    - "core/"
+    - "src/"
+    - "runtime/"
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+required_python_symbols: []
+expected_signal: >-
+  The diagnostic workflow is pinned, read-only, uploads pr1412-diagnostic-evidence,
+  and exits its diagnostic collection steps without masking required PR Gate jobs.
+measurement_command: >-
+  bash -c 'grep -q "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" .github/workflows/pr1412-diagnostic.yml && grep -q "pr1412-diagnostic-evidence" .github/workflows/pr1412-diagnostic.yml && grep -q "permissions:" .github/workflows/pr1412-diagnostic.yml'
+signal_artifact: "tmp/pr1412_diagnostic_evidence.log"
+falsifier:
+  command: >-
+    bash -c '! grep -q "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" .github/workflows/pr1412-diagnostic.yml'
+  description: >-
+    Fails the promise if the diagnostic workflow stops uploading evidence through
+    the pinned artifact action.
+rollback_command: >-
+  git rm -f .github/workflows/pr1412-diagnostic.yml .claude/commit_acceptors/pr1412-diagnostic-evidence.yaml
+rollback_verification_command: >-
+  bash -c 'test ! -e .github/workflows/pr1412-diagnostic.yml && test ! -e .claude/commit_acceptors/pr1412-diagnostic-evidence.yaml'
+memory_update_type: none
+ledger_path: ".claude/commit_acceptors/pr1412-diagnostic-evidence.yaml"
+report_path: "tmp/pr1412_diagnostic_evidence.log"
+evidence:
+  - path: ".github/workflows/pr1412-diagnostic.yml"

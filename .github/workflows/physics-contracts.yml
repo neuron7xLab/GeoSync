@@ -14,6 +14,10 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'analytics/**'
+      - 'core/indicators/**'
+      - 'core/kuramoto/**'
+      - 'core/neuro/**'
       - 'core/physics/**'
       - 'core/data/leakage.py'
       - 'physics_contracts/falsification_catalog.yaml'
@@ -37,6 +41,10 @@ jobs:
   physics-contracts:
     name: validate-witness-evidence
     runs-on: ubuntu-latest
+    env:
+      GEOSYNC_LIGHT_DATA_IMPORT: '1'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -61,7 +69,8 @@ jobs:
       - name: Run physics witnesses + negative controls
         run: |
           set -euo pipefail
-          PYTHONPATH=. python -m pytest tests/physics -q
+          mkdir -p tmp
+          PYTHONPATH=. python -m pytest tests/physics -q -rA 2>&1 | tee tmp/physics_contracts_pytest.log
 
       - name: Build review packet
         run: |
@@ -102,4 +111,5 @@ jobs:
             docs/PHYSICS_VERDICT.md
             docs/PHYSICS_REVIEW_PACKET.md
             docs/PHYSICS_CLAIMS.md
+            tmp/physics_contracts_pytest.log
           if-no-files-found: error
