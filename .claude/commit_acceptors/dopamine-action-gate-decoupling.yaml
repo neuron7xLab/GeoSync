@@ -21,7 +21,7 @@ measurement_command: "python -m pytest tests/core/neuro/dopamine/test_action_gat
 signal_artifact: "tests/core/neuro/dopamine/test_action_gate_import_boundary.py"
 falsifier:
   command: "python -m pytest tests/core/neuro/dopamine/test_action_gate_import_boundary.py tests/core/neuro/dopamine/test_action_gate.py::test_gate_decouples_from_concrete_dopamine_controller -q"
-  description: "If ActionGate re-imports the concrete DopamineController, stops accepting a structural provider, stops re-querying dynamic structural bounds, or fails under bounded extreme modulator stress, the import-boundary, structural-provider, or stress witnesses fail."
+  description: "The falsifier command runs the import-boundary witness, dynamic structural-bound witness, bounded extreme-modulator stress witness, and non-DopamineController structural-provider witness. If ActionGate re-imports the concrete controller, stops accepting a structural provider, stops re-querying dynamic structural bounds, or fails bounded stress, the command fails."
 rollback_command: "git checkout -- src/geosync/core/neuro/dopamine/action_gate.py tests/core/neuro/dopamine/test_action_gate.py tests/core/neuro/dopamine/test_action_gate_import_boundary.py .claude/commit_acceptors/dopamine-action-gate-decoupling.yaml"
 rollback_verification_command: "git diff --exit-code"
 memory_update_type: none
