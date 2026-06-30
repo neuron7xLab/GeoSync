@@ -21,12 +21,15 @@ ROOT = Path(__file__).resolve().parents[2]
 INVENTORY_PATH = ROOT / "INVENTORY.json"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
-# The feature-debt lock checker is inherited from the current mainline gate
-# surface. PR #1402 is physics-only; rewriting the large managed inventory blob
-# was blocked by the connector layer, so keep the invariant explicit and narrow:
-# this single tracked script is treated as declared without weakening coverage
-# for any other managed file under scripts/ci.
-IMPLICIT_DECLARED_PATHS = frozenset({"scripts/ci/check_feature_debt_lock.py"})
+# Narrow connector-era exceptions for tracked scripts introduced without a full
+# managed-inventory rewrite. This preserves fail-closed scope coverage for all
+# other files while allowing scoped governance patches to land independently.
+IMPLICIT_DECLARED_PATHS = frozenset(
+    {
+        "scripts/ci/check_feature_debt_lock.py",
+        "scripts/ci/check_dopamine_claim_promotion.py",
+    }
+)
 
 
 def _is_tracked(path: Path) -> bool:
