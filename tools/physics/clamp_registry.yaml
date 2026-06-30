@@ -1,13 +1,19 @@
-# Numerical-policy clamp registry. Every clamp-shaped operation in the scoped
-# physics tree is bound here by class and path:line. The scanner fail-closes on
-# any unregistered or stale site.
+# Numerical-policy clamp registry — every clamp-shaped op in the scoped
+# physics tree is bound here by shape with a declared reason / physical
+# meaning / failure mode. sites are regenerated from the live scan
+# (path:line); the scanner fail-closes on any unregistered or stale site.
 clamps:
 - name: abs_sign_loss
-  reason: Absolute-value sign discard is explicitly declared for undirected graph weights.
-  physical_meaning: Undirected edge strength uses magnitude while signed source data remains upstream.
-  failure_mode: A signed relation can be collapsed into an unsigned relation if this site is reused incorrectly.
+  reason: A signed correlation/coupling is collapsed to its magnitude via abs() before being used as an
+    (undirected) adjacency weight or distance.
+  physical_meaning: 'Edge strength of a coupling/correlation graph: only |corr| carries the geometric
+    weight; sign encodes lead/lag or anti-phase, which the undirected model does not represent.'
+  failure_mode: 'Hides regime where two assets are strongly ANTI-correlated (corr~-1): magnitude looks
+    identical to strong positive coupling. Surfaced because each adjacency builder retains the signed
+    corr matrix and the documented contract states sign is intentionally discarded for the undirected
+    graph; a directional model must NOT reuse these sites.'
   test_ref: tests/tools/test_numerical_policy.py::test_abs_sign_loss_clamps_are_registered
-  metadata_field: signed source versus absolute edge weight
+  metadata_field: adjacency.weight (|corr|); signed corr retained upstream for directional models
   sites:
   - core/kuramoto/delay_estimator.py:136
   - core/kuramoto/ricci_flow_engine.py:588
@@ -20,22 +26,29 @@ clamps:
   - core/physics/liquidity_coupling.py:139
   - core/physics/liquidity_coupling.py:143
 - name: cap_minimum
-  reason: Upper-bound saturation is explicitly declared where a named ceiling is part of the model.
-  physical_meaning: Bounded scalar value at a physical or numerical ceiling.
-  failure_mode: Inputs above the ceiling can be hidden by saturation unless the site is registered.
+  reason: An upper bound (np.minimum / cap) saturates a quantity at a physical or numerical ceiling.
+  physical_meaning: 'Caps a quantity that is unbounded above in raw form but bounded in the model: relativistic
+    v^2/c^2 < 1, force ceiling, expanding window length.'
+  failure_mode: Hides super-ceiling inputs (e.g. v>=c, runaway force). Surfaced because the cap value
+    is an explicit named constant (0.9999, f_max, window) so an at-ceiling output is recognisable, not
+    a silent NaN.
   test_ref: tests/tools/test_numerical_policy.py::test_cap_clamps_are_registered
-  metadata_field: capped value and named ceiling
+  metadata_field: capped value vs named ceiling constant
   sites:
   - core/indicators/trading.py:393
   - core/physics/gravitational_coupling.py:135
   - core/physics/lyapunov_spectrum.py:292
   - core/physics/relativity.py:44
 - name: epsilon_add
-  reason: Tiny epsilon addition is explicitly declared for denominator or invariant-boundary guards.
-  physical_meaning: Numerical guard on a positive denominator or invariant tolerance.
-  failure_mode: A zero denominator or boundary condition can become finite unless the site is registered.
+  reason: A small positive epsilon is added to a denominator, log argument, or comparison tolerance to
+    avoid division-by-zero / log(0) / strict-inequality flapping.
+  physical_meaning: Numerical regulariser on a strictly-positive denominator or on an invariant-boundary
+    tolerance (R<=1, |alpha|<=pi); not a physical quantity itself.
+  failure_mode: Hides a genuinely-zero denominator (degenerate/empty input) by returning a huge-but-finite
+    number. Surfaced because epsilon is < 1e-3 and the upstream quantity (norm, range, scale) is checked
+    for emptiness; invariant-tolerance epsilons sit on documented physical bounds.
   test_ref: tests/tools/test_numerical_policy.py::test_epsilon_add_clamps_are_registered
-  metadata_field: epsilon magnitude and guarded quantity
+  metadata_field: epsilon magnitude (documented < 1e-3) next to guarded quantity
   sites:
   - core/indicators/fractal_gcl.py:106
   - core/indicators/fractal_gcl.py:107
@@ -52,11 +65,14 @@ clamps:
   - core/kuramoto/second_order.py:444
   - core/kuramoto/synthetic.py:303
 - name: floor_builtin
-  reason: Builtin max floor is explicitly declared where non-negativity or strict positivity is required.
-  physical_meaning: Non-negative scalar or strictly positive denominator surrogate.
-  failure_mode: Negative or zero inputs can be hidden by flooring unless the site is registered.
+  reason: A builtin max(x, lo) floors a scalar at zero or a tiny positive epsilon.
+  physical_meaning: 'Non-negativity / strict-positivity floor on a physically non-negative scalar: variance,
+    mass, temperature, score, eigenvalue, denominator, window index.'
+  failure_mode: Hides a NEGATIVE value of a quantity that must be non-negative (a sign/data fault), or
+    a zero denominator. Surfaced because the floored quantity has a documented non-negativity invariant
+    (e.g. INV-HPC2) and floors-to-epsilon sit only on denominators that are independently emptiness-checked.
   test_ref: tests/tools/test_numerical_policy.py::test_floor_builtin_clamps_are_registered
-  metadata_field: floor constant and guarded scalar
+  metadata_field: floor constant (0.0 or named eps) on a non-negative scalar
   sites:
   - core/indicators/temporal_ricci.py:320
   - core/indicators/temporal_ricci.py:431
@@ -84,11 +100,14 @@ clamps:
   - core/physics/uncertainty.py:107
   - core/physics/uncertainty.py:129
 - name: floor_maximum
-  reason: Elementwise np.maximum floor is explicitly declared for non-negative arrays or denominator guards.
-  physical_meaning: Non-negative array field or strictly positive per-element denominator.
-  failure_mode: Negative values or zero denominators can be hidden by elementwise flooring unless registered.
+  reason: np.maximum(x, lo) floors an array at zero or a tiny epsilon, elementwise.
+  physical_meaning: Non-negativity of an adjacency/weight/density/volatility field, or strict-positivity
+    of a per-element denominator (returns = dP/P, row-sum normalisation).
+  failure_mode: 'Hides negative adjacency / negative density (upstream sign fault) or a zero price/denominator.
+    Surfaced: adjacency floors carry an INV (INV-HPC2/INV-RC-FLOW) and lyapunov_exponent.py logs the clamped
+    negative mass before flooring; denominator floors guard documented dP/P ratios.'
   test_ref: tests/tools/test_numerical_policy.py::test_floor_maximum_clamps_are_registered
-  metadata_field: elementwise floor constant and guarded array
+  metadata_field: elementwise floor (0.0 / eps); negative-mass logged where adjacency
   sites:
   - core/indicators/fractal_gcl.py:56
   - core/indicators/kuramoto.py:531
@@ -128,11 +147,15 @@ clamps:
   - core/physics/tsallis_gate.py:557
   - core/physics/wave_propagation.py:148
 - name: nan_repair
-  reason: NaN or infinity repair is explicitly declared before graph or field computation.
-  physical_meaning: Finite replacement of degenerate numeric values before downstream physics code.
-  failure_mode: Degenerate inputs can be hidden as finite values unless the repair site is registered.
+  reason: np.nan_to_num replaces NaN/+-inf with finite values (typically 0.0).
+  physical_meaning: Sanitises a correlation/weight/volume array that can contain NaN from empty windows
+    or constant series before it enters a graph computation.
+  failure_mode: Hides an all-NaN / degenerate-input regime by turning it into a zero (empty) graph that
+    looks healthy. Surfaced because the repaired array is one whose emptiness collapses downstream to
+    a documented zero-signal (R=0, empty adjacency), and the repair targets are correlation/weight matrices
+    whose NaN-origin is degeneracy, not silent error.
   test_ref: tests/tools/test_numerical_policy.py::test_nan_repair_clamps_are_registered
-  metadata_field: repaired array and replacement value
+  metadata_field: nan/posinf/neginf -> 0.0 on correlation/weight/volume arrays
   sites:
   - core/indicators/kuramoto.py:235
   - core/indicators/kuramoto.py:341
@@ -153,11 +176,16 @@ clamps:
   - core/physics/higher_order_kuramoto.py:310
   - core/physics/liquidity_coupling.py:105
 - name: saturate_clip
-  reason: Clip saturation is explicitly declared where a closed interval is a documented bound.
-  physical_meaning: Bounded scalar or array value inside an invariant interval.
-  failure_mode: Out-of-bound values can be hidden by clipping unless the site is registered.
+  reason: np.clip / jnp.clip saturates a quantity into a closed bounded interval.
+  physical_meaning: 'Enforces a mathematically-bounded domain: order parameter R=|mean(exp(i theta))|
+    in [0,1], cosine in [-1,1], probability in [eps,1], lazy-walk alpha in [0,1], step-size/damping in
+    [0,1], coupling in [0,K_max].'
+  failure_mode: Hides an out-of-domain input (R>1, |cos|>1, K>K_max) that would otherwise be a fault.
+    Surfaced because the clip bounds are the documented invariant interval (INV-K1, INV-RC1, INV-RC-FLOW)
+    literally present at the site; a value AT the bound after clipping is the only observable, and the
+    bound is a named theorem limit not an arbitrary cutoff.
   test_ref: tests/tools/test_numerical_policy.py::test_saturate_clip_clamps_are_registered
-  metadata_field: clipping interval and bounded quantity
+  metadata_field: clip interval = documented invariant bound (INV-K1/INV-RC1/...)
   sites:
   - core/indicators/entropy.py:559
   - core/indicators/fractal_gcl.py:108
@@ -216,11 +244,15 @@ clamps:
   - core/physics/stuart_landau_es.py:197
   - core/physics/tsallis_gate.py:265
 - name: symmetrise
-  reason: Matrix symmetrisation is explicitly declared where an undirected model projection is required.
-  physical_meaning: Projection of a matrix onto an undirected symmetric form.
-  failure_mode: Directional asymmetry can be hidden by averaging unless the site is registered.
+  reason: 0.5 * (A + A.T) forces a matrix to be exactly symmetric.
+  physical_meaning: 'Coupling/adjacency/Laplacian matrix of an UNDIRECTED graph: physics requires A_ij
+    == A_ji (Newton third law / undirected edges).'
+  failure_mode: Hides a genuinely ASYMMETRIC coupling (a directional/causal upstream fault) by averaging
+    it away. Surfaced because the symmetrisation is explicit and the ricci/lyapunov engines separately
+    validate symmetry (allclose(A, A.T)) and raise on it; the average is the documented projection onto
+    the undirected model, not a silent fix of bad data.
   test_ref: tests/tools/test_numerical_policy.py::test_symmetrise_clamps_are_registered
-  metadata_field: symmetrised matrix expression
+  metadata_field: 0.5*(A+A.T); symmetry separately asserted by engine validators
   sites:
   - core/kuramoto/capital_weighted.py:443
   - core/kuramoto/kuramoto_ricci_engine.py:179
