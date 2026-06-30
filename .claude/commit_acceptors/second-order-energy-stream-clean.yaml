@@ -8,6 +8,7 @@ diff_scope:
     - path: ".github/workflows/mutation-kill-gate.yml"
     - path: "core/kuramoto/second_order.py"
     - path: "docs/ENGINEERING_RESEARCH_QUALITY_CODE.md"
+    - path: "docs/PR_1400_COGNITIVE_RECOVERY_KERNEL.md"
     - path: "docs/PR_1400_VERIFICATION_MATRIX.md"
     - path: "pyproject.toml"
     - path: "scripts/ci/check_mutation_kill_ratchet.py"
