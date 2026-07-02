@@ -19,7 +19,7 @@ numba>=0.60.0
 # Data validation
 pydantic>=2.13.4,<3.0.0
 pydantic-settings>=2.14.2,<3.0.0
-pandera>=0.31.1,<1.0.0
+pandera>=0.32.0,<1.0.0
 exchange-calendars>=4.11.1
 
 # Configuration & instrumentation
@@ -38,8 +38,8 @@ websockets>=15.0.1
 ccxt>=4.5.12
 tenacity>=9.1.2
 aiolimiter>=1.2.1
-fastapi>=0.138.0,<1.0.0
-strawberry-graphql[fastapi]>=0.318.1
+fastapi>=0.138.1,<1.0.0
+strawberry-graphql[fastapi]>=0.319.0
 alembic>=1.14.0
 psycopg[binary]>=3.2.3
 
