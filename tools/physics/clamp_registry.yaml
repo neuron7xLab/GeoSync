@@ -95,7 +95,7 @@ clamps:
   - core/physics/lyapunov_exponent.py:481
   - core/physics/newtonian_dynamics.py:65
   - core/physics/newtonian_dynamics.py:81
-  - core/physics/stuart_landau_es.py:357
+  - core/physics/stuart_landau_es.py:354
   - core/physics/uncertainty.py:107
   - core/physics/uncertainty.py:129
 - name: floor_maximum
@@ -141,7 +141,7 @@ clamps:
   - core/physics/lyapunov_spectrum.py:283
   - core/physics/lyapunov_spectrum.py:290
   - core/physics/lyapunov_spectrum.py:291
-  - core/physics/stuart_landau_es.py:194
+  - core/physics/stuart_landau_es.py:193
   - core/physics/tsallis_gate.py:553
   - core/physics/tsallis_gate.py:557
   - core/physics/wave_propagation.py:148
@@ -240,8 +240,8 @@ clamps:
   - core/physics/higher_order_kuramoto.py:295
   - core/physics/higher_order_kuramoto.py:525
   - core/physics/liquidity_coupling.py:150
-  - core/physics/stuart_landau_es.py:199
-  - core/physics/stuart_landau_es.py:407
+  - core/physics/stuart_landau_es.py:198
+  - core/physics/stuart_landau_es.py:404
   - core/physics/tsallis_gate.py:265
 - name: symmetrise
   reason: 0.5 * (A + A.T) forces a matrix to be exactly symmetric.
