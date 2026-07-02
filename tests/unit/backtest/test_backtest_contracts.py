@@ -25,8 +25,26 @@ def _ensure_yfinance_stub() -> None:
     sys.modules["yfinance"] = module
 
 
+def _ensure_matplotlib_stub() -> None:
+    if "matplotlib" in sys.modules:
+        return
+    matplotlib_module = types.ModuleType("matplotlib")
+    pyplot_module = types.ModuleType("matplotlib.pyplot")
+
+    def _forbidden(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("contract tests must not touch plotting paths")
+
+    setattr(matplotlib_module, "use", lambda *_args, **_kwargs: None)
+    setattr(matplotlib_module, "pyplot", pyplot_module)
+    for name in ("subplots", "tight_layout", "close", "savefig", "figure"):
+        setattr(pyplot_module, name, _forbidden)
+    sys.modules["matplotlib"] = matplotlib_module
+    sys.modules["matplotlib.pyplot"] = pyplot_module
+
+
 def _load_module(module_name: str, relative_path: str):
     _ensure_yfinance_stub()
+    _ensure_matplotlib_stub()
     spec = importlib.util.spec_from_file_location(module_name, ROOT / relative_path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
