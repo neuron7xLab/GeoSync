@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from scripts.ci.check_artifact_freshness import (
     DETERMINISTIC_ARTIFACTS,
+    MANIFEST,
     ROOT,
     build_manifest,
     check,
@@ -24,10 +25,10 @@ def test_committed_artifacts_are_fresh() -> None:
 
 
 def test_manifest_is_consistent_with_artifacts() -> None:
-    """artifacts/.manifest.json equals the freshly-built manifest (no drift)."""
+    """Tracked manifest equals the freshly-built manifest (no drift)."""
     import json
 
-    committed = json.loads((ROOT / "artifacts" / ".manifest.json").read_text(encoding="utf-8"))
+    committed = json.loads(MANIFEST.read_text(encoding="utf-8"))
     assert committed == build_manifest()
 
 

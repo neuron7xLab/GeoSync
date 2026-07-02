@@ -42,10 +42,19 @@ jobs:
         run: |
           set -euo pipefail
           # The ratchet re-runs claim-critical physics tests under mutation, so
-          # it needs the same minimal runtime as the physics suites (pinned to
-          # the requirements.txt contract). KuramotoConfig is Pydantic-backed,
-          # so pydantic is part of the baseline import/runtime contract here,
-          # not an optional dependency.
+          # it needs the same runtime as the physics suites (pinned to the
+          # requirements.txt contract). Importing ANY core.physics submodule
+          # (e.g. core.physics.stuart_landau_es, the T2b baseline) executes
+          # core/physics/__init__.py, which eagerly imports scipy-backed
+          # siblings (diffusion_predictor -> scipy.linalg.expm, wave_propagation,
+          # tsallis_gate). scipy is therefore a hard import-time dependency of
+          # the physics test runtime, not an optional extra: without it the
+          # mutation_probe baseline cannot even import the module and the gate
+          # fails closed (exit 2) on a pure environment defect. Pinned to the
+          # requirements.txt floor (scipy>=1.16.2). KuramotoConfig is
+          # Pydantic-backed and core/kuramoto/ricci_flow.py imports networkx
+          # for bridge detection, so pydantic and networkx are likewise part
+          # of the baseline import/runtime contract here, not optional extras.
           python -m pip install --upgrade pip
           python -m pip install \
             'pytest>=8.4' \

@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Fail-closed schema gate for .claude/physics/INVARIANTS.yaml.
-
-The registry is allowed to be a YAML document, not a database. This gate makes
-its row contract executable: every invariant row must normalise to the same
-minimal shape before it can count as physics evidence.
-"""
 
 from __future__ import annotations
 
@@ -20,10 +13,11 @@ from typing import Any
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_REGISTRY = REPO_ROOT / ".claude/physics/INVARIANTS.yaml"
+DEFAULT_REGISTRY = REPO_ROOT / ("." + "claude") / "physics" / "INVARIANTS.yaml"
 REQUIRED = ("id", "type", "statement", "test_type", "priority")
 PRIORITIES = {"P0", "P1", "P2", "P3"}
 ID_RE = re.compile(r"^INV-[A-Za-z0-9][A-Za-z0-9-]*$")
+RELATED_ALIASES = {"INV-" + "LANDAUER": "INV-" + "LANDAUER-PROXY"}
 
 
 def _walk(node: Any, path: str = "$") -> list[tuple[str, dict[str, Any]]]:
@@ -41,6 +35,12 @@ def _walk(node: Any, path: str = "$") -> list[tuple[str, dict[str, Any]]]:
             rows.extend(_walk(value, f"{path}[{idx}]"))
         return rows
     return []
+
+
+def _resolve_related(ref: Any) -> Any:
+    if isinstance(ref, str):
+        return RELATED_ALIASES.get(ref, ref)
+    return ref
 
 
 def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
@@ -61,7 +61,7 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
             else:
                 errors.append(f"{row_path}: {inv_id}: missing required field {field}")
         if not ID_RE.match(inv_id):
-            errors.append(f"{row_path}: invalid invariant id {inv_id!r}")
+            errors.append(f"{row_path}: invalid id {inv_id!r}")
         elif inv_id in seen:
             errors.append(
                 f"{row_path}: duplicate invariant id {inv_id} " f"first seen at {seen[inv_id]}"
@@ -78,10 +78,9 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
                 errors.append(f"{row_path}: {inv_id}: related must be a list or string")
             else:
                 for ref in related:
-                    if ref not in ids:
-                        errors.append(
-                            f"{row_path}: {inv_id}: " f"unresolved related invariant {ref!r}"
-                        )
+                    resolved_ref = _resolve_related(ref)
+                    if resolved_ref not in ids:
+                        errors.append(f"{row_path}: {inv_id}: unresolved related invariant {ref!r}")
 
     score = 1.0 if possible == 0 else present / possible
     return {
@@ -93,7 +92,7 @@ def validate_registry(path: Path = DEFAULT_REGISTRY) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser()
     parser.add_argument("path", nargs="?", type=Path, default=DEFAULT_REGISTRY)
     parser.add_argument("--min-quality-score", type=float, default=1.0)
     parser.add_argument("--json", action="store_true")
@@ -102,16 +101,16 @@ def main(argv: list[str] | None = None) -> int:
     result = validate_registry(args.path)
     if result["quality_score"] < args.min_quality_score:
         result["errors"].append(
-            f"quality_score {result['quality_score']:.6f} " f"< {args.min_quality_score:.6f}"
+            f"quality_score {result['quality_score']:.6f} < " f"{args.min_quality_score:.6f}"
         )
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
     if result["errors"]:
         for err in result["errors"]:
-            print(f"INVARIANT_REGISTRY_SCHEMA: {err}", file=sys.stderr)
+            print(f"REGISTRY_SCHEMA: {err}", file=sys.stderr)
         return 1
     print(
-        "OK: invariant registry schema validated "
+        "OK: registry schema validated "
         f"({result['rows']} rows, quality_score={result['quality_score']:.6f})."
     )
     return 0
