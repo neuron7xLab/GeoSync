@@ -199,9 +199,9 @@ stuart_landau_es:
   es_proximity_leads_r_peak:
     id: INV-T2b
     type: qualitative
-    statement: "Rolling ES proximity peak precedes R(t) peak by τ ≥ 1 bar in crisis episodes"
+    statement: "REJECTED_DO_NOT_PROMOTE empirical hypothesis (NOT an active physics invariant): rolling ES proximity peak was hypothesized to precede R(t) peak by τ ≥ 1 bar in crisis episodes. The pre-registered 2026-04-10 OOS test REFUTED it (p_value 0.765 > 0.05); it is retained only for provenance and remains falsified unless a new pre-registration overturns it."
     test_type: sweep_test
-    falsification: "leads_rate < 0.6 OR p_value > 0.05 across OOS crisis episodes"
+    falsification: "REFUTED on the pre-registered 2026-04-10 OOS window: the criterion leads_rate < 0.6 OR p_value > 0.05 FIRED (p_value = 0.765 > 0.05). Claim is REJECTED_DO_NOT_PROMOTE; re-promotion requires a new pre-registration and independent OOS evidence."
     priority: P1
     source: core/physics/stuart_landau_es.py
     tests: tests/unit/physics/test_T2b_stuart_landau_es.py
