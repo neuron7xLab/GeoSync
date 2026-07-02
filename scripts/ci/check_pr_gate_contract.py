@@ -39,7 +39,7 @@ REQUIRED_JOB_FLOOR: tuple[str, ...] = (
     "go-workspace-integrity",
 )
 
-PINNED_SETUP_PYTHON = "actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405"
+PINNED_SETUP_PYTHON = "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1"
 RUST_ACCEL_CLIPPY = (
     "cargo clippy --locked --manifest-path rust/geosync-accel/Cargo.toml "
     "--all-targets --all-features -- -D warnings"
