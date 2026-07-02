@@ -4,13 +4,13 @@ gate decisions only; no marketing language.
 
 ## Current live bar count
 
-- Live bars completed: **15**
+- Live bars completed: **50**
 - Spike paper-trader start date: 2026-04-11 (day-90 gate ≈ 2026-07-10)
 
 ## Operational health
 
 - Predictive envelope built: **True**
-- Operational incidents logged: **1**
+- Operational incidents logged: **8**
 - Operationally unsafe (latest): **False**
 - Any invariant fail: **False**
 
@@ -18,22 +18,22 @@ gate decisions only; no marketing language.
 
 | metric | value |
 |---|---:|
-| cumulative_net_return | -0.0401 |
-| annualized_return_live | -0.6869 |
-| annualized_vol_live | 0.1047 |
-| sharpe_live | -6.5606 |
-| max_dd_live | 0.0464 |
-| hit_rate_live | 0.1333 |
-| turnover_ann_live | 2.6999 |
-| cost_drag_bps_live | 27.0000 |
+| cumulative_net_return | -0.0495 |
+| annualized_return_live | -0.2561 |
+| annualized_vol_live | 0.0756 |
+| sharpe_live | -3.3860 |
+| max_dd_live | 0.0878 |
+| hit_rate_live | 0.1000 |
+| turnover_ann_live | 0.9462 |
+| cost_drag_bps_live | 9.4600 |
 
 ## Benchmark comparison
 
 | metric | value |
 |---|---:|
-| benchmark_cum_return | 0.1170 |
-| benchmark_sharpe_live | 5.6228 |
-| relative_return_vs_benchmark | -0.1571 |
+| benchmark_cum_return | -0.1563 |
+| benchmark_sharpe_live | -1.7603 |
+| relative_return_vs_benchmark | 0.1067 |
 
 ## Envelope position
 
@@ -61,8 +61,8 @@ paper-trader's own per-bar cost slot, cumulated over live bars.
 
 ## Current recommendation
 
-- **status_label:** `BUILDING_SAMPLE`
-- **gate_decision:** `CONTINUE_SHADOW`
+- **status_label:** `OPERATIONALLY_UNSAFE`
+- **gate_decision:** `ESCALATE_REVIEW`
 
 Claude Code does not authorize capital deployment. The gate is
 advisory and computed from `ACCEPTANCE_GATES.md`. At 90 live bars
