@@ -25,7 +25,9 @@ alembic==1.17.0
 altair==5.5.0
     # via streamlit
 annotated-doc==0.0.4
-    # via fastapi
+    # via
+    #   fastapi
+    #   typer
 annotated-types==0.7.0
     # via pydantic
 antlr4-python3-runtime==4.9.3
@@ -128,7 +130,7 @@ execnet==2.1.1
     # via pytest-xdist
 extra-streamlit-components==0.1.81
     # via streamlit-authenticator
-fastapi==0.138.0
+fastapi==0.139.0
     # via
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
@@ -601,6 +603,7 @@ rich==14.2.0
     #   scalene
     #   textual
     #   twine
+    #   typer
 rpds-py==0.27.1
     # via
     #   jsonschema
@@ -621,6 +624,8 @@ secretstorage==3.4.0
     # via keyring
 setproctitle==1.3.7
     # via mutmut
+shellingham==1.5.4
+    # via typer
 six==1.17.0
     # via
     #   pytest-profiling
@@ -684,6 +689,8 @@ twine==6.2.0
     # via geosync (pyproject.toml)
 typeguard==4.4.4
     # via pandera
+typer==0.26.8
+    # via geosync (pyproject.toml)
 types-pyyaml==6.0.12.20260408
     # via geosync (pyproject.toml)
 typing-extensions==4.15.0
