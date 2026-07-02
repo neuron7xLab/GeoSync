@@ -172,9 +172,7 @@ def build_plan(
         ),
         reverse=True,
     )[:max_surfaces]
-    ranked_with_priority = [
-        replace(item, priority=index + 1) for index, item in enumerate(ranked)
-    ]
+    ranked_with_priority = [replace(item, priority=index + 1) for index, item in enumerate(ranked)]
     return CalibrationPlan(
         schema_version="1.0",
         evidence_valid=evidence_valid,
@@ -270,9 +268,7 @@ def run(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Calibrate coverage-ascent work from evidence"
-    )
+    parser = argparse.ArgumentParser(description="Calibrate coverage-ascent work from evidence")
     parser.add_argument("--summary", default="reports/coverage/coverage_summary.json")
     parser.add_argument("--out", default="reports/coverage")
     parser.add_argument(
