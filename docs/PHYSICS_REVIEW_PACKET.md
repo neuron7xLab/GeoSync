@@ -1,51 +1,44 @@
 # PHYSICS REVIEW PACKET
 
-Status: PASS — 10/10 laws verified.
+Status: REGENERATED FOR CURRENT EXECUTABLE CATALOG — 47 declared executable laws.
 
 ## Scope
 
-Executable falsification-contract layer over the verified GeoSync physics
-engines (Ricci/Kuramoto, metric consistency, causality, Landauer, empirical
-falsification, numerical precision, governance). SEPARATE from and additive to
-the canonical 112-invariant catalog, which is left untouched.
+Executable falsification-contract layer over the GeoSync physics surface. This packet replaces the stale `10/10 laws verified` text and explicitly includes the new Kuramoto/Ricci executable laws introduced by this PR.
+
+The Ricci-flow domain is now reconciled with `physics_contracts/catalog.yaml`: monotonicity is asserted only for a closed graph with no external rewiring and positive Ricci curvature on active edges. Negative-curvature rewiring is treated as an out-of-domain energy-injection regime and rejected by the executable negative control.
+
+## New executable laws represented
+
+- **kuramoto_critical_scaling**: supercritical Ott-Antonsen fixed point witness; subcritical and invalid parameters reject.
+- **kuramoto_subcritical_finite_size**: post-equilibration finite-size floor witness; supercritical regime falsifies the floor.
+- **kuramoto_frequency_entrainment**: common-frequency locking witness; subcritical entrainment claim rejects.
+- **ollivier_ricci_universal_upper_bound**: universal upper-bound witness plus non-vacuous price-graph edge coverage.
+- **ricci_flow_monotonicity**: positive-curvature F-functional descent witness; negative-curvature rewiring rejects.
 
 ## Reproduce
 
-```
+```bash
 python tools/validate_physics_contracts.py
 python -m pytest tests/physics -q
 python tools/build_physics_review_packet.py
 ```
 
-## Laws and formal invariants
-
-- **ricci_energy_nonincrease** (ricci_kuramoto): E(curv_{t+1}) <= E(curv_t) * (1 + tol), E(c) = sum_i (c_i - mean(c))^2  
-  measured: max over a seeded flow trajectory of E(t+1) - E(t)*(1+tol); threshold: tol = 1e-9 (relative); any positive excess violates
-- **kuramoto_order_parameter_bounds** (ricci_kuramoto): 0 <= R(t) <= 1 for all t (INV-K1)  
-  measured: min and max of R over a seeded mean-field trajectory; threshold: R in [0.0, 1.0]; any R<0 or R>1 violates
-- **metric_distortion_bound** (metric_consistency): distortion(D_orig, D_emb) - 1 <= max_distortion  
-  measured: multiplicative bi-Lipschitz distortion of the embedded distance matrix; threshold: max_distortion explicit per call (no magic constant); default probe 0.05
-- **causal_no_lookahead** (causality): source_time <= read_time for every admitted read  
-  measured: max(source_time - read_time) over admitted reads; threshold: <= 0; any positive lookahead violates
-- **provenance_identity** (causality): provenance_hash(observed) == expected <=> bytes unchanged  
-  measured: equality of recomputed vs declared provenance hash; threshold: exact SHA-256 equality; any mismatch violates and tombstones
-- **landauer_nonzero_erasure_cost** (landauer): bits > 0 and T > 0 => cost = k_B*T*ln2*bits > 0  
-  measured: bit_erasure_cost(bits, T) for bits>0, T>0; threshold: > 0 strictly; a zero/negative cost violates
-- **irreversible_cost_dominance** (landauer): C_irr >= C_rev, strict when irreversibility_score > 0  
-  measured: C_irr - C_rev over a seeded action sweep; threshold: >= 0 always; > 0 when score>0
-- **empirical_synthetic_only_rejection** (falsification): validate_empirical(witness) is True => witness.data_source == 'empirical' and provenance present and not leaked  
-  measured: verdict of rejection_report on synthetic / shuffled / leaked / unprovenanced witnesses; threshold: all four adversarial witnesses must be REJECTED; only a clean provenanced empirical witness passes
-- **numerical_drift_bound** (precision): deterministic_hash(run(seed)) constant; assert_numerical_stability fails on NaN/Inf or cond(A) > kappa_max  
-  measured: hash equality across repeats; cond(A) vs kappa_max; finiteness; threshold: hash identical; cond(A) <= kappa_max (explicit); no NaN/Inf
-- **law_requires_positive_and_negative_witness** (governance): for each blocking law L: collected(L.positive_witness) and collected(L.negative_control) and exists(L.evidence_output)  
-  measured: count of blocking laws missing a witness, a negative control, or evidence; threshold: 0 missing; any missing fails promotion
-
 ## Evidence artifacts
 
 - `evidence/physics/causality_report.json`
+- `evidence/physics/dro_ara_gamma_report.json`
+- `evidence/physics/dynamical_systems_report.json`
+- `evidence/physics/ecs_lyapunov_report.json`
 - `evidence/physics/falsification_report.json`
 - `evidence/physics/governance_report.json`
+- `evidence/physics/kuramoto_critical_scaling_report.json`
+- `evidence/physics/kuramoto_frequency_entrainment_report.json`
+- `evidence/physics/kuramoto_subcritical_finite_size_report.json`
 - `evidence/physics/landauer_report.json`
 - `evidence/physics/metric_consistency_report.json`
+- `evidence/physics/neuromodulation_report.json`
 - `evidence/physics/precision_report.json`
+- `evidence/physics/ricci_flow_monotonicity_report.json`
 - `evidence/physics/ricci_kuramoto_report.json`
+- `evidence/physics/thermodynamics_report.json`

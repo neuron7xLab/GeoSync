@@ -80,6 +80,8 @@ def _probe_module(module: str, tests: str, floor: float) -> tuple[int, dict[str,
         report = json.loads(Path(out_path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         report = {}
+    report["_probe_stdout_tail"] = proc.stdout[-4000:]
+    report["_probe_stderr_tail"] = proc.stderr[-4000:]
     Path(out_path).unlink(missing_ok=True)
     return proc.returncode, report
 
@@ -152,6 +154,11 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"ERROR: could not establish baseline for {mod} (probe exit {rc}); cannot verify floor."
             )
+            print("---- mutation probe stdout tail ----")
+            print(str(report.get("_probe_stdout_tail", "")).strip())
+            print("---- mutation probe stderr tail ----")
+            print(str(report.get("_probe_stderr_tail", "")).strip())
+            print("---- end mutation probe diagnostics ----")
             return 2
         rate = float(report["kill_rate"])
         status = "ok" if rate >= floor else "REGRESSED"
