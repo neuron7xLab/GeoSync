@@ -129,8 +129,7 @@ def validate_router_policy(matrix: dict[str, Any], path: Path, errors: list[str]
     max_run = policy.get("default_max_run_selectors")
     if not isinstance(max_run, int) or not (1 <= max_run <= 64):
         errors.append(
-            f"{path}: router_policy.default_max_run_selectors must be "
-            "an int in [1, 64]"
+            f"{path}: router_policy.default_max_run_selectors must be " "an int in [1, 64]"
         )
     else:
         default_policy["default_max_run_selectors"] = max_run
@@ -145,10 +144,7 @@ def validate_router_policy(matrix: dict[str, Any], path: Path, errors: list[str]
 
     env_name = policy.get("python_executable_env", DEFAULT_PYTHON_ENV)
     if not isinstance(env_name, str) or not env_name.strip():
-        errors.append(
-            f"{path}: router_policy.python_executable_env must be "
-            "a non-empty string"
-        )
+        errors.append(f"{path}: router_policy.python_executable_env must be " "a non-empty string")
     else:
         default_policy["python_executable_env"] = env_name
 
@@ -446,14 +442,16 @@ def select_plan(
         "changed_files": normalized,
         "components": matched_components,
         "selectors": selectors,
-        "pytest_command": [
-            execution_python(repo_root, matrix_path, python_executable, env),
-            "-m",
-            "pytest",
-            *selectors,
-        ]
-        if selectors
-        else [],
+        "pytest_command": (
+            [
+                execution_python(repo_root, matrix_path, python_executable, env),
+                "-m",
+                "pytest",
+                *selectors,
+            ]
+            if selectors
+            else []
+        ),
         "transitions": transitions,
     }
 
