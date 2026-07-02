@@ -61,7 +61,7 @@ runs:
         .venv/bin/python -m pip install \
           pip==26.1.1 \
           setuptools==78.1.1 \
-          wheel==0.46.2
+          wheel==0.47.0
         .venv/bin/python -m pip install -c constraints/security.txt -r requirements.lock
         if [ "${{ inputs.install-dev }}" = "true" ]; then
           .venv/bin/python -m pip install -c constraints/security.txt -r requirements-dev.lock
@@ -73,7 +73,7 @@ runs:
         .venv/bin/python -m pip install \
           pip==26.1.1 \
           setuptools==78.1.1 \
-          wheel==0.46.2
+          wheel==0.47.0
 
     - name: Verify pinned pip and pytest versions
       shell: bash
@@ -84,7 +84,7 @@ runs:
 
         expected_pip = "26.1.1"
         expected_setuptools = "78.1.1"
-        expected_wheel = "0.46.2"
+        expected_wheel = "0.47.0"
 
         for dist_name, expected in (
             ("pip", expected_pip),
