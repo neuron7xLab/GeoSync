@@ -414,7 +414,7 @@ pandas==2.3.3
     #   exchange-calendars
     #   geosync (pyproject.toml)
     #   streamlit
-pandera==0.31.1
+pandera==0.32.0
     # via
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
