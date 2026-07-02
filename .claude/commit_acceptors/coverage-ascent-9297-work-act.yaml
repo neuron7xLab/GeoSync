@@ -43,3 +43,4 @@ memory_update_type: append
 ledger_path: .claude/commit_acceptors/coverage-ascent-9297-work-act.yaml
 report_path: tmp/coverage_ascent_9297_work_act.log
 evidence: []
+# icde-trigger: 2026-07-02
