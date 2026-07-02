@@ -58,7 +58,7 @@ def workflow_text(
     runs-on: ubuntu-latest
     continue-on-error: false
     steps:
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
       - run: |
