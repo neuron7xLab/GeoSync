@@ -114,7 +114,6 @@ clamps:
   - core/indicators/trading.py:169
   - core/indicators/trading.py:192
   - core/kuramoto/coupling_estimator.py:166
-  - core/kuramoto/coupling_estimator.py:458
   - core/kuramoto/kuramoto_ricci_engine.py:236
   - core/kuramoto/metrics.py:255
   - core/kuramoto/metrics.py:256
