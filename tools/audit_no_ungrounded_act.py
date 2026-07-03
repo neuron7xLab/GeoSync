@@ -20,6 +20,7 @@ circularity). A FORBIDDEN verdict exits non-zero unless --report-only.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -29,6 +30,27 @@ from core.neuro.epistemic_audit import advance_entry
 from core.neuro.epistemic_validation import EpistemicPhase, EpistemicState
 
 SCHEMA_ID = "geosync.no_ungrounded_act.v1"
+_HERE = Path(__file__).resolve().parent
+
+
+def _rederive_final_verdict(root: Path) -> bool:
+    """H4, re-derived: re-run the aggregator over the substrate rather than trust
+    the committed final_inference_verdict.json verdict field.
+
+    An adversary who forges the final verdict to PASS while a substrate artifact
+    is FAIL/missing/report-only cannot fool the apex, because the aggregate is
+    recomputed from the substrate here.
+    """
+
+    spec = importlib.util.spec_from_file_location(
+        "_afiv_apex", _HERE / "audit_final_inference_verdict.py"
+    )
+    if spec is None or spec.loader is None:  # pragma: no cover - defensive
+        return False
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    report = module.build_verdict(root, release=False)
+    return bool(report.get("verdict") == "PASS")
 
 
 def budget_monotone_under_real_audit() -> bool:
@@ -76,24 +98,28 @@ def build_apex(root: Path) -> dict[str, Any]:
     """Evaluate H1..H4 over the committed artifacts + the real budget register."""
 
     homeostasis = _load(root / "artifacts/neuro/homeostasis_contract.json")
-    final_verdict = _load(root / "artifacts/inference/final_inference_verdict.json")
 
-    # H1 homeostasis: allostatic load within its clamp, and the contract passed.
+    # A report-only (non-enforcing) contract cannot ground an action.
+    homeostasis_enforcing = homeostasis is not None and not homeostasis.get("report_only", False)
+
+    # H1 homeostasis: re-check the NUMERIC clamp (not just the verdict field), so a
+    # forged verdict=PASS with an out-of-bound load is still caught.
     h1 = bool(
-        homeostasis is not None
+        homeostasis_enforcing
         and homeostasis.get("verdict") == "PASS"
         and homeostasis.get("worst_allostatic_load", float("inf"))
         <= homeostasis.get("allostatic_bound", 0.0) + 1e-9
     )
     # H2 arrow-of-time: real budget register is monotone non-increasing.
     h2 = budget_monotone_under_real_audit()
-    # H3 synchrony: Kuramoto coherence locks above the threshold.
+    # H3 synchrony: re-check the NUMERIC coherence, not just a verdict field.
     h3 = bool(
-        homeostasis is not None
+        homeostasis_enforcing
         and homeostasis.get("coherence_locked", 0.0) >= homeostasis.get("coherence_min", 1.0)
     )
-    # H4 verification: the final inference verdict is PASS.
-    h4 = bool(final_verdict is not None and final_verdict.get("verdict") == "PASS")
+    # H4 verification: RE-DERIVE the aggregate from the substrate; do not trust a
+    # committed final verdict that an adversary could forge to PASS.
+    h4 = _rederive_final_verdict(root)
 
     grounds = [
         {"id": "H1", "name": "homeostasis (drive bounded)", "holds": h1},
