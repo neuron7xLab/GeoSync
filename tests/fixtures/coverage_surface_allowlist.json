@@ -3,14 +3,12 @@
     "reason": "research",
     "note": "Research-only modules; not production runtime. Excluded from release coverage denominator by design."
   },
-  "libs": {
-    "reason": "deferred_production",
-    "note": "Shared production libs (17 modules, partial tests). Tracked debt: fold into the release_90 coverage profile with its own runtime/property test slice.",
-    "owner": "coverage-runtime",
-    "tracking_issue": "#1407",
-    "target_profile": "configs/quality/release_90.coveragerc",
-    "created_at": "2026-07-03",
-    "max_age_days": 14,
-    "next_test_slice": "tests/unit/libs/test_*.py"
+  "scripts": {
+    "reason": "governance_tooling",
+    "note": "CI/release/governance scripts exercised by the CI gate battery and RVG harness, not the release coverage denominator. Runtime import path, not shipped-library surface."
+  },
+  "tools": {
+    "reason": "governance_tooling",
+    "note": "Governance/audit tooling (evidence verifiers, coverage-surface auditor, RVG). Exercised by dedicated tests (e.g. tests/tools/*, tests/benchmarks/*) and the RVG harness rather than the release coverage denominator."
   }
 }
