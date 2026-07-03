@@ -212,6 +212,23 @@
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
+    },
+    {
+      "id": "geosync_pro_surface",
+      "description": "geosync_pro production surface (CVaR/EMH/EKF/MPC) runtime contracts.",
+      "patterns": [
+        "geosync_pro/risk/cvar.py",
+        "geosync_pro/models/emh.py",
+        "geosync_pro/estimation/ekf.py",
+        "geosync_pro/policy/mpc.py",
+        "geosync_pro/validate/validate.py",
+        "tests/unit/geosync_pro/test_public_contracts.py",
+        "configs/quality/release_90.coveragerc"
+      ],
+      "selectors": ["tests/unit/geosync_pro/test_public_contracts.py"],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 120
     }
   ]
 }

@@ -47,6 +47,7 @@ source =
     observability
     src
     cli
+    geosync_pro
 omit =
     tests/**
     conftest.py
