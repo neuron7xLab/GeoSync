@@ -358,6 +358,21 @@
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 120
+    },
+    {
+      "id": "runtime_failure_matrix",
+      "description": "Runtime fail-closed failure matrix: each failure class bound to a real fail-closed test.",
+      "patterns": [
+        "artifacts/runtime_failure_matrix/runtime_failure_matrix.json",
+        "audit/schema/runtime_failure_matrix.schema.json",
+        "tests/ci/test_runtime_failure_matrix.py"
+      ],
+      "selectors": [
+        "tests/ci/test_runtime_failure_matrix.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 60
     }
   ]
 }
