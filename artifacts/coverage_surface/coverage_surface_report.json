@@ -4,11 +4,6 @@
       "note": "Research-only modules; not production runtime. Excluded from release coverage denominator by design.",
       "reason": "research",
       "root": "geosync_research"
-    },
-    {
-      "note": "Shared production libs (17 modules, partial tests). Tracked debt: fold into the release_90 coverage profile with its own runtime/property test slice.",
-      "reason": "deferred_production",
-      "root": "libs"
     }
   ],
   "coverage_sources": [
@@ -22,6 +17,7 @@
     "geosync",
     "geosync_pro",
     "interfaces",
+    "libs",
     "markets",
     "modules",
     "observability",
@@ -56,6 +52,7 @@
       "geosync",
       "geosync_pro",
       "interfaces",
+      "libs",
       "markets",
       "modules",
       "observability",
@@ -82,6 +79,7 @@
     "geosync",
     "geosync_pro",
     "interfaces",
+    "libs",
     "modules",
     "observability",
     "scripts",
@@ -89,8 +87,7 @@
     "tools"
   ],
   "missing_from_coverage": [
-    "geosync_research",
-    "libs"
+    "geosync_research"
   ],
   "packaged_roots": [
     "analytics",

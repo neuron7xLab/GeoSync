@@ -49,6 +49,7 @@ source =
     src
     cli
     geosync_pro
+    libs
 omit =
     tests/**
     conftest.py

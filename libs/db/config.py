@@ -4,7 +4,8 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Tuple
+from typing import Any, Iterable, Iterator, Tuple
+from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import BaseModel, Field, PositiveFloat, PositiveInt, model_validator
 
@@ -16,6 +17,29 @@ __all__ = [
     "DatabaseRuntimeConfig",
     "DatabaseSettings",
 ]
+
+
+def _redact_dsn(dsn: str) -> str:
+    """Return *dsn* with any embedded password replaced by ``***``.
+
+    The connection string is still needed verbatim to open a connection, so
+    ``model_dump``/``model_dump_json`` keep the real value; only the human /
+    log-facing representations (``repr``/``str``) are redacted. This keeps a
+    credential from leaking into logs, tracebacks, or ``repr()`` dumps.
+    """
+
+    try:
+        parts = urlsplit(dsn)
+    except ValueError:
+        return dsn
+    if parts.password is None:
+        return dsn
+    userinfo = parts.username or ""
+    host = parts.hostname or ""
+    netloc = f"{userinfo}:***@{host}"
+    if parts.port is not None:
+        netloc += f":{parts.port}"
+    return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
 
 
 class DatabasePoolConfig(BaseModel):
@@ -98,3 +122,12 @@ class DatabaseSettings(BaseModel):
         if any(is_postgres_uri(dsn) for dsn in all_dsns) and self.tls is None:
             raise ValueError("TLS credentials are required for PostgreSQL connections")
         return self
+
+    def __repr_args__(self) -> Iterator[tuple[str | None, Any]]:
+        for key, value in super().__repr_args__():
+            if key == "writer_dsn" and isinstance(value, str):
+                yield key, _redact_dsn(value)
+            elif key == "reader_dsns" and isinstance(value, tuple):
+                yield key, tuple(_redact_dsn(dsn) for dsn in value)
+            else:
+                yield key, value

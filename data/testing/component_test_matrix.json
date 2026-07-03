@@ -308,6 +308,41 @@
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 300
+    },
+    {
+      "id": "libs_surface",
+      "description": "libs/db production runtime surface (config/engine/session/retry/repository/timeseries) fail-closed contracts.",
+      "patterns": [
+        "libs/db/config.py",
+        "libs/db/engine.py",
+        "libs/db/session.py",
+        "libs/db/retry.py",
+        "libs/db/repository.py",
+        "libs/db/models.py",
+        "libs/db/exceptions.py",
+        "libs/db/monitoring.py",
+        "libs/db/timeseries/config.py",
+        "libs/db/timeseries/clickhouse.py",
+        "libs/db/timeseries/timescale.py",
+        "tests/unit/libs/test_db_config_contracts.py",
+        "tests/unit/libs/test_db_engine_session_contracts.py",
+        "tests/unit/libs/test_db_retry_contracts.py",
+        "tests/unit/libs/test_db_repository_contracts.py",
+        "tests/unit/libs/test_timeseries_backend_contracts.py",
+        "tests/unit/libs/test_db_monitoring_contracts.py",
+        "configs/quality/release_90.coveragerc"
+      ],
+      "selectors": [
+        "tests/unit/libs/test_db_config_contracts.py",
+        "tests/unit/libs/test_db_engine_session_contracts.py",
+        "tests/unit/libs/test_db_retry_contracts.py",
+        "tests/unit/libs/test_db_repository_contracts.py",
+        "tests/unit/libs/test_timeseries_backend_contracts.py",
+        "tests/unit/libs/test_db_monitoring_contracts.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 180
     }
   ]
 }
