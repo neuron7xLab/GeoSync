@@ -3,16 +3,6 @@
     "reason": "deprecated",
     "note": "Packaged in wheel but has NO source directory — stale packaging include. Cleanup: remove from [tool.setuptools.packages.find].include; surfaced as stale_packaging_roots in the audit report."
   },
-  "geosync_pro": {
-    "reason": "deferred_production",
-    "note": "Production surface (20 modules) with no coverage profile and no tests yet. Tracked debt: measure under release_90 or remove from packaging (PR-D decision).",
-    "owner": "coverage-runtime",
-    "tracking_issue": "#1407",
-    "target_profile": "configs/quality/release_90.coveragerc",
-    "created_at": "2026-07-03",
-    "max_age_days": 14,
-    "next_test_slice": "tests/unit/geosync_pro/test_*.py"
-  },
   "geosync_research": {
     "reason": "research",
     "note": "Research-only modules; not production runtime. Excluded from release coverage denominator by design."

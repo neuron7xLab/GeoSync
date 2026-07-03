@@ -6,11 +6,6 @@
       "root": "geosync_agent"
     },
     {
-      "note": "Production surface (20 modules) with no coverage profile and no tests yet. Tracked debt: measure under release_90 or remove from packaging (PR-D decision).",
-      "reason": "deferred_production",
-      "root": "geosync_pro"
-    },
-    {
       "note": "Research-only modules; not production runtime. Excluded from release coverage denominator by design.",
       "reason": "research",
       "root": "geosync_research"
@@ -45,6 +40,7 @@
     "domain",
     "execution",
     "geosync",
+    "geosync_pro",
     "interfaces",
     "markets",
     "observability",
@@ -71,6 +67,7 @@
       "domain",
       "execution",
       "geosync",
+      "geosync_pro",
       "interfaces",
       "markets",
       "observability",
@@ -95,13 +92,13 @@
     "domain",
     "execution",
     "geosync",
+    "geosync_pro",
     "interfaces",
     "observability",
     "src"
   ],
   "missing_from_coverage": [
     "geosync_agent",
-    "geosync_pro",
     "geosync_research",
     "libs",
     "modules",
