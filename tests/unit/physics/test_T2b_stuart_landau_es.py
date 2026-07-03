@@ -703,7 +703,20 @@ def test_fitted_state_distinguishes_sweep_from_amplitude_phase() -> None:
     n = 4
     mu = np.full(n, 0.2, dtype=np.float64)
     omega = np.linspace(0.1, 0.4, n).astype(np.float64)
-    kw = dict(K_low=0.0, K_high=4.0, K_steps=16, int_steps=200, dt=0.05, seed=42)
+
+    def _area(z0: NDArray[np.complex128] | None) -> float:
+        area, _, _ = _hysteresis_sweep(
+            mu,
+            omega,
+            K_low=0.0,
+            K_high=4.0,
+            K_steps=16,
+            int_steps=200,
+            dt=0.05,
+            seed=42,
+            z0=z0,
+        )
+        return area
 
     # Same mu/omega, two genuinely different fitted analytic states.
     z_low = (np.full(n, 0.2) * np.exp(1j * np.linspace(0.0, 1.0, n))).astype(
@@ -712,9 +725,9 @@ def test_fitted_state_distinguishes_sweep_from_amplitude_phase() -> None:
     z_high = (np.full(n, 1.5) * np.exp(1j * np.linspace(0.0, 3.0, n))).astype(
         np.complex128
     )
-    area_low, _, _ = _hysteresis_sweep(mu, omega, z0=z_low, **kw)  # type: ignore[arg-type]
-    area_high, _, _ = _hysteresis_sweep(mu, omega, z0=z_high, **kw)  # type: ignore[arg-type]
-    area_seed, _, _ = _hysteresis_sweep(mu, omega, z0=None, **kw)  # type: ignore[arg-type]
+    area_low = _area(z_low)
+    area_high = _area(z_high)
+    area_seed = _area(None)
 
     assert abs(area_low - area_high) > 1e-6, (
         "INV-SL fitted-state VIOLATED: same mu/omega with different fitted "
@@ -764,42 +777,42 @@ def test_pathological_mu_is_clipped_visibly_not_silently() -> None:
     )
 
 
-def test_rolling_es_proximity_fail_closed_raises_with_window_index() -> None:
+def test_rolling_es_proximity_fail_closed_raises_with_window_index(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """P1-1: evidence-mode rolling is fail-closed, not NaN-masking.
 
     When a window fit fails, ``fail_closed=False`` (exploratory) writes NaN, but
     ``fail_closed=True`` (evidence) must RAISE with the offending window index
     and the underlying cause, so physics-evidence generation cannot silently
     drop failed windows. A monkeypatched fit forces a deterministic failure at
-    one window endpoint; the two modes are asserted to diverge exactly there.
+    one window endpoint (returning a valid stub elsewhere); the two modes are
+    asserted to diverge exactly there.
     """
     prices = _synthetic_prices(T=48, N=4, seed=0)
     window, fail_at = 16, 20
-    real_fit = sl.fit_stuart_landau
     target_last = float(prices[fail_at, 0])
 
     def _failing_fit(slab: NDArray[np.float64], **kwargs: object) -> StuartLandauResult:
         if slab.shape[0] == window and abs(float(slab[-1, 0]) - target_last) < 1e-12:
             raise ValueError("synthetic degenerate window for fail-closed probe")
-        return real_fit(slab, **kwargs)  # type: ignore[arg-type]
+        return _result(es_proximity=0.5)
 
-    sl.fit_stuart_landau = _failing_fit  # type: ignore[assignment]
-    try:
-        lenient = rolling_es_proximity(prices, window=window, step=1, fail_closed=False)
-        assert np.isnan(lenient[fail_at]), (
-            "INV-SL rolling VIOLATED: lenient mode must write NaN at the failed "
-            f"window {fail_at}, got {lenient[fail_at]!r}."
-        )
-        with pytest.raises(RuntimeError, match="fail-closed") as excinfo:
-            rolling_es_proximity(prices, window=window, step=1, fail_closed=True)
-        message = str(excinfo.value)
-        assert f"window_end={fail_at}" in message, (
-            "INV-SL rolling fail-closed VIOLATED: raised error must name the "
-            f"offending window index; got {message!r}."
-        )
-        assert "synthetic degenerate window" in message, (
-            "INV-SL rolling fail-closed VIOLATED: raised error must carry the "
-            f"underlying cause; got {message!r}."
-        )
-    finally:
-        sl.fit_stuart_landau = real_fit  # type: ignore[assignment]
+    monkeypatch.setattr(sl, "fit_stuart_landau", _failing_fit)
+
+    lenient = rolling_es_proximity(prices, window=window, step=1, fail_closed=False)
+    assert np.isnan(lenient[fail_at]), (
+        "INV-SL rolling VIOLATED: lenient mode must write NaN at the failed "
+        f"window {fail_at}, got {lenient[fail_at]!r}."
+    )
+    with pytest.raises(RuntimeError, match="fail-closed") as excinfo:
+        rolling_es_proximity(prices, window=window, step=1, fail_closed=True)
+    message = str(excinfo.value)
+    assert f"window_end={fail_at}" in message, (
+        "INV-SL rolling fail-closed VIOLATED: raised error must name the "
+        f"offending window index; got {message!r}."
+    )
+    assert "synthetic degenerate window" in message, (
+        "INV-SL rolling fail-closed VIOLATED: raised error must carry the "
+        f"underlying cause; got {message!r}."
+    )
