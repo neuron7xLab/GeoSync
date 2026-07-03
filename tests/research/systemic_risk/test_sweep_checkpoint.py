@@ -618,3 +618,44 @@ def test_durable_write_atomic_replace_yields_valid_file(tmp_path: Path) -> None:
         payload = json.loads(p.read_text(encoding="utf-8"))
         assert payload["sweep_id"]
         assert k in payload["results"]
+
+
+# ---------------------------------------------------------------------------
+# duration_seconds (wall-clock) must not enter the hash / idempotency judgment
+# ---------------------------------------------------------------------------
+def test_stable_hash_ignores_duration_seconds(tmp_path: Path) -> None:
+    k = _full_grid()[0]
+    m1 = CheckpointManager(tmp_path / "a.json", _config(), code_sha="abc123")
+    m1.load_or_create()
+    m1.save_cell(k, CellResult(cell_key=k, payload={"value": 0.1}, duration_seconds=0.123))
+    m2 = CheckpointManager(tmp_path / "b.json", _config(), code_sha="abc123")
+    m2.load_or_create()
+    m2.save_cell(k, CellResult(cell_key=k, payload={"value": 0.1}, duration_seconds=99.9))
+    assert stable_ledger_sha256(m1.load_or_create()) == stable_ledger_sha256(m2.load_or_create())
+
+
+def test_idempotent_resave_ignores_duration(tmp_path: Path) -> None:
+    k = _full_grid()[0]
+    mgr = CheckpointManager(tmp_path / "c.json", _config(), code_sha="abc123")
+    mgr.load_or_create()
+    mgr.save_cell(k, CellResult(cell_key=k, payload={"value": 0.1}, duration_seconds=1.0))
+    # Re-save identical evidence but a different wall-clock duration — must be an
+    # idempotent no-op, NOT a CheckpointCellConflict.
+    mgr.save_cell(
+        k,
+        CellResult(cell_key=k, payload={"value": 0.1}, duration_seconds=42.0),
+        policy=OverwritePolicy.IDEMPOTENT_ONLY,
+    )
+
+
+def test_different_payload_still_conflicts_under_idempotent_only(tmp_path: Path) -> None:
+    k = _full_grid()[0]
+    mgr = CheckpointManager(tmp_path / "d.json", _config(), code_sha="abc123")
+    mgr.load_or_create()
+    mgr.save_cell(k, CellResult(cell_key=k, payload={"value": 0.1}, duration_seconds=1.0))
+    with pytest.raises(CheckpointCellConflict):
+        mgr.save_cell(
+            k,
+            CellResult(cell_key=k, payload={"value": 0.2}, duration_seconds=1.0),
+            policy=OverwritePolicy.IDEMPOTENT_ONLY,
+        )

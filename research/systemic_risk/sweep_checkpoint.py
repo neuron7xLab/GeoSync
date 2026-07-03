@@ -129,6 +129,19 @@ class CellResult:
             "duration_seconds": float(self.duration_seconds),
         }
 
+    def to_canonical_dict(self) -> dict[str, Any]:
+        """Evidence-only view for hashing / idempotency comparison.
+
+        Excludes ``duration_seconds`` (wall-clock, non-reproducible): the same
+        science re-run in a different time must hash identically and count as an
+        idempotent no-op, not a bit-mismatch. ``duration_seconds`` stays in
+        :meth:`to_dict` (the on-disk / human-facing form) for auditability.
+        """
+        return {
+            "cell_key": self.cell_key,
+            "payload": dict(self.payload),
+        }
+
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> CellResult:
         return cls(
@@ -256,7 +269,7 @@ def stable_ledger_sha256(checkpoint: SweepCheckpoint) -> str:
     Use this to verify two checkpoints carry the same evidence
     independent of the order in which cells were completed.
     """
-    rows = sorted((k, canonical_json(v.to_dict())) for k, v in checkpoint.results.items())
+    rows = sorted((k, canonical_json(v.to_canonical_dict())) for k, v in checkpoint.results.items())
     return hashlib.sha256(canonical_json(rows).encode("utf-8")).hexdigest()
 
 
@@ -506,7 +519,12 @@ class CheckpointManager:
         completed = set(self._checkpoint.completed_cells)
         if cell_key_str in completed:
             existing = self._checkpoint.results.get(cell_key_str)
-            identical = existing is not None and existing.to_dict() == result.to_dict()
+            # Idempotency is judged on the evidence (cell_key + payload), NOT on
+            # wall-clock duration_seconds — a re-run that took a different time is
+            # still the same result and must be a no-op, not a conflict.
+            identical = (
+                existing is not None and existing.to_canonical_dict() == result.to_canonical_dict()
+            )
             if policy is OverwritePolicy.IDEMPOTENT_ONLY:
                 if identical:
                     return  # idempotent no-op
