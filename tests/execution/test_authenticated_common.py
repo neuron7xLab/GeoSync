@@ -115,3 +115,46 @@ def test_duplicate_response_detection_marks_extension():
     assert first.extensions.get("geosync_duplicate") is False
     assert second.extensions.get("geosync_duplicate") is True
     connector.disconnect()
+
+
+def test_clock_skew_on_success_aborts_not_silently_accepted():
+    # A 2xx response with a wildly wrong server clock must NOT be accepted:
+    # raise_for_status() is a no-op on 2xx, so the skew guard has to re-raise.
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"ok": True}, headers={"X-Server-Time": "1000000000"})
+
+    connector = DummyAuthenticatedConnector(handler, max_retries=1)
+    connector.connect({"API_KEY": "key", "API_SECRET": "secret"})
+    with pytest.raises(RuntimeError, match="skew"):
+        connector._request("GET", "/skewed")
+    connector.disconnect()
+
+
+def test_successful_response_with_exhausted_quota_is_not_a_failure():
+    # HTTP 200 (order accepted) carrying `x-ratelimit-remaining: 0` must be
+    # returned as success — converting it to a RuntimeError would make the caller
+    # think the order failed and risk a double-submit.
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"filled": True}, headers={"x-ratelimit-remaining": "0"})
+
+    connector = DummyAuthenticatedConnector(handler, max_retries=2)
+    connector.connect({"API_KEY": "key", "API_SECRET": "secret"})
+    resp = connector._request("POST", "/order", body={"q": 1}, idempotency_key="quota-1")
+    assert resp.status_code == 200
+    assert resp.json()["filled"] is True
+    connector.disconnect()
+
+
+def test_actual_429_is_still_a_rate_limit_failure():
+    calls = {"n": 0}
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        return httpx.Response(429, json={"error": "slow down"})
+
+    connector = DummyAuthenticatedConnector(handler, max_retries=2)
+    connector.connect({"API_KEY": "key", "API_SECRET": "secret"})
+    with pytest.raises(httpx.HTTPStatusError):
+        connector._request("GET", "/limited")
+    assert calls["n"] >= 1
+    connector.disconnect()

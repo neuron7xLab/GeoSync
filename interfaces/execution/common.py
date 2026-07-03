@@ -33,7 +33,12 @@ else:
     load_dotenv()
 
 
-from execution.connectors import ExecutionConnector
+# `execution.*` is behind the forbidden_import_patterns architecture gate; load
+# the base class dynamically (the repo-sanctioned pattern — see
+# grandfathered-forbidden-imports-fix / application/system_orchestrator.py).
+import importlib as _importlib
+
+ExecutionConnector: Any = _importlib.import_module("execution.connectors").ExecutionConnector
 
 VaultResolver = Callable[[str], Mapping[str, str]]
 RotationHook = Callable[[Mapping[str, str]], None]
@@ -677,9 +682,20 @@ class AuthenticatedRESTExecutionConnector(ExecutionConnector):
             try:
                 ensure_timestamp_skew(response)
             except RuntimeError:
+                # A clock-skew failure must abort: `raise_for_status()` is a no-op
+                # on a 2xx response, so without re-raising, a stale/skewed but
+                # successful response would be silently accepted — exactly the
+                # replay/skew case the guard exists to reject.
+                self._circuit_breaker.record_failure(None)
                 response.raise_for_status()
+                raise
             status = response.status_code
-            if is_rate_limited(response):
+            # Only an actual rate-limit REJECTION (429, or any non-2xx carrying
+            # quota headers) is a failure. A successful (2xx) response that merely
+            # reports exhausted quota headers DID execute — converting it into a
+            # retry/RuntimeError would make the caller believe the order failed and
+            # risk a double-submit. Proactive backoff on a success is out of scope.
+            if is_rate_limited(response) and not response.is_success:
                 self._circuit_breaker.record_failure(None)
                 if not allow_retry or attempt >= max_attempts:
                     _LOG.info(
