@@ -101,7 +101,10 @@ def test_invalid_model_fails_before_write() -> None:
         with pytest.raises(IntegrityError):
             with mgr.session() as s:
                 # engaged is NOT NULL — the row must be rejected at flush time.
-                s.add(KillSwitchState(id=1, reason="missing-engaged"))  # type: ignore[call-arg]
+                # Build via **kwargs so the omitted NOT-NULL column is a runtime
+                # IntegrityError, not a static call-arg error to suppress.
+                incomplete_row: dict[str, object] = {"id": 1, "reason": "missing-engaged"}
+                s.add(KillSwitchState(**incomplete_row))
         with mgr.session(read_only=True) as s:
             assert s.get(KillSwitchState, 1) is None
     finally:

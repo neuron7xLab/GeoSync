@@ -48,8 +48,11 @@ def test_explicit_overrides_beat_defaults() -> None:
 
 
 def test_missing_writer_dsn_fails_closed() -> None:
+    # Construct via **kwargs so the required-field omission is a RUNTIME failure
+    # (ValidationError) rather than a static call-arg error to suppress.
+    no_fields: dict[str, object] = {}
     with pytest.raises(ValidationError):
-        DatabaseSettings()  # type: ignore[call-arg]
+        DatabaseSettings(**no_fields)
 
 
 def test_postgres_without_sslmode_is_rejected() -> None:
