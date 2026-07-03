@@ -161,6 +161,23 @@
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
+    },
+    {
+      "id": "coverage_surface_gate",
+      "description": "Packaged-surface to measured-coverage-surface ratchet.",
+      "patterns": [
+        "pyproject.toml",
+        "tools/audit_coverage_surface.py",
+        "tests/fixtures/coverage_surface_allowlist.json",
+        "tests/ci/test_coverage_source_matches_packaged_surface.py",
+        "artifacts/coverage_surface/coverage_surface_report.json",
+        "configs/quality/critical_surface.coveragerc",
+        "configs/quality/release_90.coveragerc"
+      ],
+      "selectors": ["tests/ci/test_coverage_source_matches_packaged_surface.py"],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 60
     }
   ]
 }
