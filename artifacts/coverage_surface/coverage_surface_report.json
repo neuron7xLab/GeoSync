@@ -56,6 +56,7 @@
       "core",
       "execution"
     ],
+    "audit/rvg.coveragerc": [],
     "configs/quality/critical_surface.coveragerc": [
       "backtest",
       "core",

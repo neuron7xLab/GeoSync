@@ -31,6 +31,8 @@ diff_scope:
     - path: "tests/fixtures/coverage_surface_allowlist.json"
     - path: "tests/ci/test_coverage_source_matches_packaged_surface.py"
     - path: "artifacts/coverage_surface/coverage_surface_report.json"
+    - path: "audit/schema/coverage_surface_report.schema.json"
+    - path: "data/testing/component_test_matrix.json"
   forbidden_paths:
     - "trading/"
     - "execution/"

@@ -25,6 +25,28 @@ import tools.audit_coverage_surface as acs
 ROOT = Path(__file__).resolve().parents[2]
 ALLOWLIST = ROOT / "tests" / "fixtures" / "coverage_surface_allowlist.json"
 REPORT = ROOT / "artifacts" / "coverage_surface" / "coverage_surface_report.json"
+SCHEMA = ROOT / "audit" / "schema" / "coverage_surface_report.schema.json"
+
+
+def test_report_conforms_to_declared_schema() -> None:
+    """No artifact without a schema: the committed report validates against its
+    declared JSON Schema (structural floor always; full jsonschema in CI)."""
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    committed = json.loads(REPORT.read_text(encoding="utf-8"))
+    # Self-declared id must match the schema file's $id.
+    assert committed.get("schema") == schema["$id"], (
+        f"report schema id {committed.get('schema')!r} != schema $id {schema['$id']!r}"
+    )
+    # Structural floor — enforced even without jsonschema installed.
+    for key in schema["required"]:
+        assert key in committed, f"report missing required key {key!r}"
+    assert committed["verdict"] in ("PASS", "FAIL")
+    # Full JSON-Schema validation when the optional dep is present (dev/CI).
+    try:
+        import jsonschema
+    except ImportError:
+        return
+    jsonschema.validate(committed, schema)
 
 
 def test_no_packaged_production_root_is_unmeasured_and_unallowlisted() -> None:
@@ -96,7 +118,14 @@ def test_committed_coverage_surface_report_is_fresh() -> None:
         pytest.fail(f"missing committed report {REPORT}; run tools/audit_coverage_surface.py --out")
     fresh = acs.audit()
     committed = json.loads(REPORT.read_text(encoding="utf-8"))
-    for key in ("packaged_roots", "coverage_sources", "forbidden_gaps", "verdict"):
+    # Compare EVERY field the auditor emits — allowlisted, missing_from_coverage,
+    # stale_packaging_roots, coverage_sources_by_profile, invalid_allowlist_entries
+    # and measured can drift silently if only the headline four are checked.
+    assert set(committed) == set(fresh), (
+        f"coverage_surface_report.json key set drifted: "
+        f"committed-only={set(committed) - set(fresh)} fresh-only={set(fresh) - set(committed)}"
+    )
+    for key in fresh:
         assert committed[key] == fresh[key], (
             f"coverage_surface_report.json is stale on {key!r}: "
             f"committed={committed[key]} fresh={fresh[key]}. Regenerate with "
