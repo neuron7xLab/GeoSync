@@ -94,3 +94,19 @@ def test_no_deferred_production_debt_is_past_its_age_bound() -> None:
         "deferred_production coverage debt is PAST its age bound — measure it, remove it "
         "from packaging, or refresh created_at with justification: " + "; ".join(overdue)
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase-3 terminal state: deferred_production is fully expired.
+# ---------------------------------------------------------------------------
+def test_deferred_production_is_fully_expired() -> None:
+    """Once libs, modules and geosync_pro are measured, NO production root may
+    remain deferred. deferred_production is a transient bootstrap category, not a
+    permanent home — every packaged production root is now measured or removed, so
+    the count must be zero and can never silently grow back.
+    """
+    deferred = [root for root, _ in _deferred_entries()]
+    assert deferred == [], (
+        "production roots are still deferred — measure them under a coverage "
+        f"profile or remove them from packaging, do not re-defer: {deferred}"
+    )
