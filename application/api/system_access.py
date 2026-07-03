@@ -5,7 +5,9 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import logging
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,10 +27,11 @@ from application.api.rate_limit import (
     SlidingWindowRateLimiter,
     build_rate_limiter,
 )
-from application.api.security import verify_request_identity
+from application.api.security import get_api_security_settings, verify_request_identity
 from application.security.rbac import AuthorizationGateway
 from application.settings import (
     ApiRateLimitSettings,
+    ApiSecuritySettings,
     BackendRuntimeSettings,
     NotificationSettings,
 )
@@ -625,20 +628,60 @@ def _get_access(request: Request) -> SystemAccess:
     return access
 
 
-def _resolve_ip(request: Request) -> str:
-    forwarded_for = request.headers.get("x-forwarded-for")
-    if forwarded_for:
-        for part in forwarded_for.split(","):
-            candidate = part.strip().split()[0]
-            if candidate:
-                return candidate
+def _peer_is_trusted_proxy(peer: str | None, trusted_proxies: Collection[str]) -> bool:
+    """Return ``True`` when *peer* matches a trusted-proxy IP or CIDR network."""
 
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip:
-        return real_ip.strip()
+    if peer is None or not trusted_proxies:
+        return False
+    try:
+        peer_addr = ipaddress.ip_address(peer)
+    except ValueError:
+        return False
+    for entry in trusted_proxies:
+        try:
+            if "/" in entry:
+                if peer_addr in ipaddress.ip_network(entry, strict=False):
+                    return True
+            elif peer_addr == ipaddress.ip_address(entry):
+                return True
+        except ValueError:
+            continue
+    return False
 
-    if request.client and request.client.host:
-        return request.client.host
+
+def _resolve_ip(request: Request, *, trusted_proxies: Collection[str] = ()) -> str:
+    """Return the originating IP address for the request.
+
+    ``X-Forwarded-For`` / ``X-Real-IP`` are only honoured when the *direct* peer
+    is a configured trusted proxy; otherwise an unauthenticated client could
+    spoof its source IP on every request to mint a fresh per-IP rate-limit
+    bucket and evade the pre-auth throttle. With no trusted proxies configured
+    (the default), the direct peer address is always used. Empty or whitespace
+    forwarded segments are skipped rather than indexed, so a malformed header
+    (e.g. ``" "`` or ``,1.2.3.4``) can no longer raise ``IndexError``.
+    """
+
+    peer = request.client.host if request.client and request.client.host else None
+
+    if _peer_is_trusted_proxy(peer, trusted_proxies):
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            for part in forwarded_for.split(","):
+                stripped = part.strip()
+                if not stripped:
+                    continue
+                candidate = stripped.split()[0]
+                if candidate:
+                    return candidate
+
+        real_ip = request.headers.get("x-real-ip")
+        if real_ip:
+            stripped_real = real_ip.strip()
+            if stripped_real:
+                return stripped_real
+
+    if peer is not None:
+        return peer
     return "unknown"
 
 
@@ -656,6 +699,7 @@ def create_system_app(
     runtime_settings: BackendRuntimeSettings | None = None,
     rate_limiter: SlidingWindowRateLimiter | None = None,
     rate_limit_settings: ApiRateLimitSettings | None = None,
+    security_settings: ApiSecuritySettings | None = None,
 ) -> FastAPI:
     """Instantiate a FastAPI app exposing GeoSync system endpoints.
 
@@ -708,6 +752,7 @@ def create_system_app(
     )
 
     resolved_rate_limit_settings = rate_limit_settings or ApiRateLimitSettings()
+    resolved_security_settings = security_settings or get_api_security_settings()
     limiter = rate_limiter or build_rate_limiter(resolved_rate_limit_settings)
 
     notifier = notification_dispatcher or _build_notification_dispatcher(notification_settings)
@@ -798,7 +843,9 @@ def create_system_app(
         async def _precheck_rate_limit(
             request: Request,
         ) -> Callable[[AdminIdentity | None], Awaitable[None]]:
-            ip_address = _resolve_ip(request)
+            ip_address = _resolve_ip(
+                request, trusted_proxies=resolved_security_settings.trusted_proxies
+            )
             await limiter.check(subject=None, ip_address=ip_address)
 
             async def _finalize(identity: AdminIdentity | None) -> None:
