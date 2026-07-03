@@ -48,6 +48,12 @@ class OMSConfig:
     ledger_path: Path | None = DEFAULT_LEDGER_PATH
     request_timeout: float | None = None
     pre_trade_timeout: float | None = 0.25
+    # When True, admit orders through the RiskManager pending-exposure reservation
+    # path (validate reserves, fills convert, terminal paths release) so the
+    # validate-before-fill cap-bypass is closed end to end. Default off: the
+    # mechanism is proven and leak-tested, but enabling it in a live venue is an
+    # operator rollout step (a reservation leak would falsely block trading).
+    reserve_risk_exposure: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.state_path, Path):
@@ -568,6 +574,9 @@ class OrderManagementSystem:
             reference_price = _risk_reference_price(
                 order, notional_cap_active=bool(_rm_cap < float("inf"))
             )
+            risk_kwargs: dict[str, object] = {}
+            if self.config.reserve_risk_exposure:
+                risk_kwargs = {"reserve": True, "reservation_id": correlation_id}
             try:
                 self._run_pre_trade_check(
                     "risk_validation",
@@ -576,6 +585,7 @@ class OrderManagementSystem:
                     order.side.value,
                     order.quantity,
                     reference_price,
+                    **risk_kwargs,
                 )
             except TimeoutError as exc:
                 order.reject("PRE_TRADE_TIMEOUT:risk_validation")
@@ -706,6 +716,7 @@ class OrderManagementSystem:
                 if item.attempts >= max_retries:
                     self._queue.popleft()
                     self._pending.pop(item.correlation_id, None)
+                    self._release_risk_reservation(item.correlation_id)
                     item.order.reject(str(exc))
                     self._record_lifecycle_event(
                         item.order,
@@ -747,6 +758,7 @@ class OrderManagementSystem:
             except OrderError as exc:
                 self._queue.popleft()
                 self._pending.pop(item.correlation_id, None)
+                self._release_risk_reservation(item.correlation_id)
                 item.order.reject(str(exc))
                 self._record_lifecycle_event(
                     item.order,
@@ -819,6 +831,7 @@ class OrderManagementSystem:
         if cancelled:
             order = self._orders[order_id]
             order.cancel()
+            self._release_risk_reservation(self._correlations.get(order_id))
             self._ack_timestamps.pop(order_id, None)
             self._update_active_order(order_id, order)
             self._record_lifecycle_event(
@@ -835,6 +848,20 @@ class OrderManagementSystem:
             )
         return cancelled
 
+    def _release_risk_reservation(self, correlation_id: str | None) -> None:
+        """Discharge any pending risk hold for ``correlation_id`` (idempotent).
+
+        A no-op unless ``reserve_risk_exposure`` is enabled. Safe to call on every
+        terminal-without-fill path (reject/cancel/timeout); releasing an id that a
+        fill already converted is a no-op, so over-release cannot corrupt pending.
+        """
+
+        if not self.config.reserve_risk_exposure or correlation_id is None:
+            return
+        release = getattr(self.risk, "release_reservation", None)
+        if callable(release):
+            release(correlation_id)
+
     def register_fill(
         self,
         order_id: str,
@@ -848,7 +875,10 @@ class OrderManagementSystem:
         order.record_fill(quantity, price)
         self._ensure_lifecycle_sequence(order_id)
         self._update_active_order(order_id, order)
-        self.risk.register_fill(order.symbol, order.side.value, quantity, price)
+        fill_kwargs: dict[str, object] = {}
+        if self.config.reserve_risk_exposure:
+            fill_kwargs = {"reservation_id": self._correlations.get(order_id)}
+        self.risk.register_fill(order.symbol, order.side.value, quantity, price, **fill_kwargs)
         if self._metrics.enabled:
             exchange = getattr(self.connector, "name", self.connector.__class__.__name__.lower())
             now = datetime.now(timezone.utc)
