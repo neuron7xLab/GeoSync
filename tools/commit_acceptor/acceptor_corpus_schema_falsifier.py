@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 """Inverse probe for the acceptor-corpus schema-repair contract.
 
-This falsifier fires (exit 0) iff the schema-repair regressed, i.e. EITHER:
+This falsifier reports the schema-repair as REGRESSED (exit 1) iff EITHER:
 
 * the corpus loader can no longer parse every ``.claude/commit_acceptors/*.yaml``
   (a re-introduced legacy ``{module, symbol}`` mapping form, a disallowed extra
@@ -13,10 +13,11 @@ This falsifier fires (exit 0) iff the schema-repair regressed, i.e. EITHER:
 * one of those eight files no longer carries an extractable inline
   ``python -c`` payload in its rollback verification command.
 
-While the contract holds the probe exits 1. An exit 0 means the corpus has
-drifted back to an unloadable / unparseable state and must be repaired, not
-patched green. Polarity matches the green-state convention enforced by the
-acceptor evidence runner: exit 0 == precondition (a clean corpus) is BROKEN.
+While the contract holds (a clean corpus) the probe exits 0. An exit 1 means the
+corpus has drifted back to an unloadable / unparseable state and must be
+repaired, not patched green. Polarity matches the green-state convention
+enforced by the acceptor evidence runner (``run_evidence.py`` ~L411):
+``falsifier exit 0 == correct/green``, ``non-zero == SIGNAL_FAILED``.
 """
 
 from __future__ import annotations
@@ -133,10 +134,10 @@ def main() -> int:
         print("FALSIFIER FIRES (schema-repair regressed):", file=sys.stderr)
         for r in regressed:
             print(f"  - {r}", file=sys.stderr)
-        return 0  # green-state precondition is BROKEN
+        return 1  # green-state precondition is BROKEN -> SIGNAL_FAILED
 
     print("OK: all 8 rollback python payloads parse cleanly (falsifier does not fire)")
-    return 1  # contract holds
+    return 0  # contract holds -> correct/green
 
 
 if __name__ == "__main__":

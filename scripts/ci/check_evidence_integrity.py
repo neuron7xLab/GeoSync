@@ -99,7 +99,12 @@ def integrity_errors(
         inv_refs = [r for r in (e.get("inv_refs") or []) if _nonempty_str(r)]
         tests = [t for t in (e.get("existing_tests") or []) if _nonempty_str(t)]
         falsifier = e.get("falsifier", "")
-        runtime = e.get("runtime_path")
+        # Unquoted `runtime_path: YES` in YAML coerces to Python bool True
+        # (`NO` -> False). Normalize back to the canonical string so the
+        # DECORATIVE-on-runtime quarantine gate cannot be defeated by dropping
+        # the quotes around YES.
+        _rt = e.get("runtime_path")
+        runtime = "YES" if _rt is True else ("NO" if _rt is False else _rt)
         remediation = e.get("remediation_action")
         reason = e.get("reason", "")
 

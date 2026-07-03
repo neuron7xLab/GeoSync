@@ -176,6 +176,14 @@ def check() -> list[str]:
 
     det = _deterministic_specs()
     for spec in det:
+        # A deterministic artifact with no generator is never regenerated, so
+        # the snapshot-vs-committed compare trivially passes and freshness is
+        # falsely "proven". Freshness cannot be established without a generator.
+        if not [g for g in spec.generator if g.strip()]:
+            errors.append(
+                f"deterministic artifact {spec.artifact} declares no generator; "
+                "freshness cannot be proven"
+            )
         if not (ROOT / spec.artifact).is_file():
             errors.append(f"missing deterministic artifact: {spec.artifact}")
     present = [s for s in det if (ROOT / s.artifact).is_file()]
