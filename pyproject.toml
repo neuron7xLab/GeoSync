@@ -168,8 +168,6 @@ include = [
     "geosync.*",
     "geosync_research",
     "geosync_research.*",
-    "geosync_agent",
-    "geosync_agent.*",
     "modules",
     "modules.*",
     "geosync_pro",
