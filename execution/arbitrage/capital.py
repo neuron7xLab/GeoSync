@@ -68,6 +68,7 @@ class AtomicCapitalMover:
             raise ValueError("transfer plan must include at least one leg")
         async with self._lock:
             legs: list[CapitalTransferLeg] = []
+            committed_count = 0
             try:
                 for (exchange_id, asset), amount in plan.legs.items():
                     gateway = self._gateways.get(exchange_id)
@@ -96,19 +97,40 @@ class AtomicCapitalMover:
                     await asyncio.wait_for(
                         gateway.commit(leg.reservation_token), timeout=self._timeout
                     )
+                    committed_count += 1
                 return TransferResult(
                     transfer_id=plan.transfer_id,
                     committed=True,
                     committed_at=datetime.now(timezone.utc),
                     reason=None,
+                    committed_legs=committed_count,
+                    partial=False,
                 )
             except Exception as exc:  # pragma: no cover - defensive branch
-                await self._rollback(legs)
+                # Roll back ONLY legs that were reserved but not yet committed —
+                # `legs` is committed in order, so `legs[committed_count:]` are the
+                # uncommitted reservations (including the one whose commit failed).
+                # A committed leg must NEVER be `release`d: that would reverse a
+                # settled transfer. If any leg already settled, this is a partial
+                # (non-atomic) failure requiring reconciliation, not a clean no-op.
+                await self._rollback(legs[committed_count:])
+                if committed_count:
+                    _LOGGER.error(
+                        "Capital transfer PARTIALLY committed — reconciliation required",
+                        extra={
+                            "transfer_id": plan.transfer_id,
+                            "committed_legs": committed_count,
+                            "total_legs": len(legs),
+                            "error": str(exc),
+                        },
+                    )
                 return TransferResult(
                     transfer_id=plan.transfer_id,
                     committed=False,
                     committed_at=datetime.now(timezone.utc),
                     reason=str(exc),
+                    committed_legs=committed_count,
+                    partial=committed_count > 0,
                 )
 
     async def _rollback(self, legs: list[CapitalTransferLeg]) -> None:
