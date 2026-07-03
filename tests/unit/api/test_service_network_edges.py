@@ -77,3 +77,19 @@ def test_resolve_ip_falls_back_to_real_ip_then_unknown() -> None:
 
     assert _resolve_ip(proxied, trusted_proxies={"10.0.0.0/8"}) == "203.0.113.42"
     assert _resolve_ip(missing_peer, trusted_proxies={"10.0.0.0/8"}) == "unknown"
+
+
+def test_resolve_ip_skips_empty_forwarded_segments_without_raising() -> None:
+    """A blank or whitespace-only forwarded segment must not raise IndexError.
+
+    ``",203.0.113.9"`` and ``"   "`` both previously indexed ``[0]`` on an empty
+    ``split()`` result, surfacing as an unhandled 500 through the rate-limit
+    precheck. The leading empty hop is now skipped and a blank header falls back
+    to the direct peer.
+    """
+
+    leading_empty = _request("10.0.0.5", {"x-forwarded-for": ",203.0.113.9"})
+    blank = _request("10.0.0.5", {"x-forwarded-for": "   ", "x-real-ip": "   "})
+
+    assert _resolve_ip(leading_empty, trusted_proxies={"10.0.0.0/8"}) == "203.0.113.9"
+    assert _resolve_ip(blank, trusted_proxies={"10.0.0.0/8"}) == "10.0.0.5"

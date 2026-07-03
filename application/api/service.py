@@ -1242,13 +1242,18 @@ def _resolve_ip(request: Request, *, trusted_proxies: Collection[str] = ()) -> s
         forwarded_for = request.headers.get("x-forwarded-for")
         if forwarded_for:
             for part in forwarded_for.split(","):
-                candidate = part.strip().split()[0]
+                stripped = part.strip()
+                if not stripped:
+                    continue
+                candidate = stripped.split()[0]
                 if candidate:
                     return candidate
 
         real_ip = request.headers.get("x-real-ip")
         if real_ip:
-            return real_ip.strip()
+            stripped_real = real_ip.strip()
+            if stripped_real:
+                return stripped_real
 
     if peer is not None:
         return peer
