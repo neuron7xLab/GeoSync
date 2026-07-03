@@ -841,6 +841,25 @@ class KillSwitch:
             raise RiskError(f"Kill-switch engaged: {self._reason or 'unspecified reason'}")
 
 
+@dataclass
+class _Reservation:
+    """A pending-exposure hold created when an order is admitted with ``reserve``.
+
+    Reservations bridge the *validation → fill* gap: exposure is counted against
+    the cap the instant an order passes ``validate_order``, not only once the fill
+    lands, so two orders that are each individually below the cap but jointly above
+    it cannot both be admitted (the reservation-lag bypass). Each hold is converted
+    to actual exposure by ``register_fill`` (partial fills reduce ``remaining_qty``)
+    or discharged by ``release_reservation`` on any terminal-without-fill path.
+    """
+
+    reservation_id: str
+    symbol: str  # canonical
+    side_sign: float
+    remaining_qty: float
+    price: float
+
+
 class RiskManager(RiskController):
     """Apply notional/position caps and order throttling.
 
@@ -867,6 +886,13 @@ class RiskManager(RiskController):
         self._state_lock = threading.RLock()
         self._positions: MutableMapping[str, float] = {}
         self._last_notional: MutableMapping[str, float] = {}
+        # Pending (reserved-but-unfilled) exposure, aggregated per canonical
+        # symbol, plus the per-reservation ledger that owns it. Guarded by
+        # _state_lock like every other exposure surface.
+        self._pending_positions: MutableMapping[str, float] = {}
+        self._pending_notional: MutableMapping[str, float] = {}
+        self._reservations: Dict[str, _Reservation] = {}
+        self._reservation_seq = 0
         self._risk_state_store = risk_state_store
         self._submissions: deque[float] = deque()
         self._logger = get_logger(__name__)
@@ -1220,9 +1246,63 @@ class RiskManager(RiskController):
             }
         )
 
+    def _reject_on_cap(
+        self,
+        *,
+        measured: float,
+        cap: float,
+        reason: str,
+        violation_type: str,
+        canonical_symbol: str,
+        side: str,
+        qty: float,
+        price: float,
+    ) -> None:
+        """Escalate a cap breach (streak, kill-switch, audit) and raise.
+
+        Shared by the position and notional checks in :meth:`validate_order`;
+        the caller holds ``_state_lock``.
+        """
+
+        self._limit_violation_streak += 1
+        severe = measured >= (cap * self.limits.kill_switch_limit_multiplier)
+        if severe or (self._limit_violation_streak >= self.limits.kill_switch_violation_threshold):
+            self._trigger_kill_switch(
+                reason, symbol=canonical_symbol, violation_type=violation_type
+            )
+        self._metrics.record_risk_validation(canonical_symbol, violation_type)
+        self._record_risk_audit(
+            symbol=canonical_symbol,
+            side=side.lower(),
+            quantity=float(qty),
+            price=float(price),
+            status="rejected",
+            reason=reason,
+            violation_type=violation_type,
+        )
+        raise LimitViolation(reason)
+
     @_synchronized
-    def validate_order(self, symbol: str, side: str, qty: float, price: float) -> None:
+    def validate_order(
+        self,
+        symbol: str,
+        side: str,
+        qty: float,
+        price: float,
+        *,
+        reserve: bool = False,
+        reservation_id: str | None = None,
+    ) -> None:
         """Apply risk checks before admitting an order to the execution stack.
+
+        Caps are evaluated against ``actual + pending`` exposure, where *pending*
+        is the sum of outstanding reservations (see :class:`_Reservation`). When
+        ``reserve`` is ``True`` and the order is admitted, the order's exposure is
+        held atomically (same locked section) under the caller-supplied
+        ``reservation_id``; the caller must later convert it via
+        :meth:`register_fill` or discharge it via :meth:`release_reservation`.
+        With ``reserve=False`` (the default) no hold is created and behaviour is
+        unchanged for legacy callers.
 
         Args:
             symbol: External instrument identifier; normalised via
@@ -1231,9 +1311,14 @@ class RiskManager(RiskController):
             qty: Order quantity expressed in base units. Must be non-negative.
             price: Reference price used for notional calculations. Must be
                 strictly positive.
+            reserve: When ``True``, atomically reserve the order's exposure on
+                admission under ``reservation_id``.
+            reservation_id: Caller-owned, traceable hold id; required when
+                ``reserve`` is ``True`` and must not already be outstanding.
 
         Raises:
-            ValueError: If ``qty`` or ``price`` fall outside allowable ranges.
+            ValueError: If ``qty``/``price`` fall outside allowable ranges, or if
+                ``reserve`` is set without a fresh ``reservation_id``.
             RiskError: When the kill-switch is already engaged.
             OrderRateExceeded: If the rate limiter blocks the submission.
             LimitViolation: When position or notional caps would be breached.
@@ -1255,6 +1340,8 @@ class RiskManager(RiskController):
         """
 
         self._validate_inputs(qty, price)
+        if reserve and (reservation_id is None or reservation_id in self._reservations):
+            raise ValueError("reserve=True requires a fresh reservation_id")
         canonical_symbol = self._canonical_symbol(symbol)
         try:
             self._kill_switch.guard()
@@ -1288,67 +1375,41 @@ class RiskManager(RiskController):
             raise
 
         side_sign = 1.0 if side.lower() == "buy" else -1.0
-        current_position = float(self._positions.get(canonical_symbol, 0.0))
+        actual_position = float(self._positions.get(canonical_symbol, 0.0))
+        pending_position = float(self._pending_positions.get(canonical_symbol, 0.0))
+        current_position = actual_position + pending_position
         new_position = current_position + side_sign * qty
 
         if abs(new_position) > self.limits.max_position:
-            reason = (
-                f"Position cap exceeded for {canonical_symbol}: "
-                f"{new_position} > {self.limits.max_position}"
-            )
-            self._limit_violation_streak += 1
-            severe = abs(new_position) >= (
-                self.limits.max_position * self.limits.kill_switch_limit_multiplier
-            )
-            if severe or (
-                self._limit_violation_streak >= self.limits.kill_switch_violation_threshold
-            ):
-                self._trigger_kill_switch(
-                    reason,
-                    symbol=canonical_symbol,
-                    violation_type="position_limit",
-                )
-            self._metrics.record_risk_validation(canonical_symbol, "position_limit")
-            self._record_risk_audit(
-                symbol=canonical_symbol,
-                side=side.lower(),
-                quantity=float(qty),
-                price=float(price),
-                status="rejected",
-                reason=reason,
+            self._reject_on_cap(
+                measured=abs(new_position),
+                cap=self.limits.max_position,
+                reason=(
+                    f"Position cap exceeded for {canonical_symbol}: "
+                    f"{new_position} > {self.limits.max_position}"
+                ),
                 violation_type="position_limit",
+                canonical_symbol=canonical_symbol,
+                side=side,
+                qty=qty,
+                price=price,
             )
-            raise LimitViolation(reason)
 
         projected_notional = abs(new_position * price)
         if projected_notional > self.limits.max_notional:
-            reason = (
-                f"Notional cap exceeded for {canonical_symbol}: "
-                f"{projected_notional} > {self.limits.max_notional}"
-            )
-            self._limit_violation_streak += 1
-            severe = projected_notional >= (
-                self.limits.max_notional * self.limits.kill_switch_limit_multiplier
-            )
-            if severe or (
-                self._limit_violation_streak >= self.limits.kill_switch_violation_threshold
-            ):
-                self._trigger_kill_switch(
-                    reason,
-                    symbol=canonical_symbol,
-                    violation_type="notional_limit",
-                )
-            self._metrics.record_risk_validation(canonical_symbol, "notional_limit")
-            self._record_risk_audit(
-                symbol=canonical_symbol,
-                side=side.lower(),
-                quantity=float(qty),
-                price=float(price),
-                status="rejected",
-                reason=reason,
+            self._reject_on_cap(
+                measured=projected_notional,
+                cap=self.limits.max_notional,
+                reason=(
+                    f"Notional cap exceeded for {canonical_symbol}: "
+                    f"{projected_notional} > {self.limits.max_notional}"
+                ),
                 violation_type="notional_limit",
+                canonical_symbol=canonical_symbol,
+                side=side,
+                qty=qty,
+                price=price,
             )
-            raise LimitViolation(reason)
 
         if self.limits.max_orders_per_interval > 0:
             self._submissions.append(now)
@@ -1365,6 +1426,69 @@ class RiskManager(RiskController):
             reason=None,
             violation_type=None,
         )
+        if reserve and reservation_id is not None:
+            self._reserve_exposure(
+                reservation_id, canonical_symbol, side_sign, float(qty), float(price)
+            )
+
+    def _reserve_exposure(
+        self,
+        reservation_id: str,
+        canonical_symbol: str,
+        side_sign: float,
+        qty: float,
+        price: float,
+    ) -> None:
+        """Create a pending-exposure hold. Caller must hold ``_state_lock``."""
+
+        self._reservation_seq += 1
+        self._reservations[reservation_id] = _Reservation(
+            reservation_id=reservation_id,
+            symbol=canonical_symbol,
+            side_sign=side_sign,
+            remaining_qty=qty,
+            price=price,
+        )
+        self._pending_positions[canonical_symbol] = (
+            self._pending_positions.get(canonical_symbol, 0.0) + side_sign * qty
+        )
+        self._pending_notional[canonical_symbol] = self._pending_notional.get(
+            canonical_symbol, 0.0
+        ) + abs(qty * price)
+        return reservation_id
+
+    @_synchronized
+    def release_reservation(self, reservation_id: str) -> None:
+        """Discharge a pending hold in full (reject/cancel/timeout paths).
+
+        Idempotent: an unknown or already-cleared id is a no-op, so a terminal
+        handler may release without first checking whether a fill already
+        converted the reservation.
+        """
+
+        reservation = self._reservations.pop(reservation_id, None)
+        if reservation is None:
+            return
+        self._discharge_pending(reservation, reservation.remaining_qty)
+
+    def _discharge_pending(self, reservation: _Reservation, qty: float) -> None:
+        """Reduce aggregate pending by ``qty`` of ``reservation``. Lock held."""
+
+        if qty <= 0.0:
+            return
+        symbol = reservation.symbol
+        remaining_pending = self._pending_positions.get(symbol, 0.0) - reservation.side_sign * qty
+        remaining_notional = self._pending_notional.get(symbol, 0.0) - abs(qty * reservation.price)
+        # Floor near-zero residue to exactly zero and drop empty keys so the
+        # pending maps never accumulate float dust or stale symbols.
+        if abs(remaining_pending) <= 1e-12:
+            self._pending_positions.pop(symbol, None)
+        else:
+            self._pending_positions[symbol] = remaining_pending
+        if remaining_notional <= 1e-12:
+            self._pending_notional.pop(symbol, None)
+        else:
+            self._pending_notional[symbol] = remaining_notional
 
     @property
     def kill_switch(self) -> KillSwitch:
@@ -1373,8 +1497,23 @@ class RiskManager(RiskController):
         return self._kill_switch
 
     @_synchronized
-    def register_fill(self, symbol: str, side: str, qty: float, price: float) -> None:
+    def register_fill(
+        self,
+        symbol: str,
+        side: str,
+        qty: float,
+        price: float,
+        *,
+        reservation_id: str | None = None,
+    ) -> None:
         """Update exposure after a confirmed fill.
+
+        When ``reservation_id`` is supplied, the filled quantity is converted from
+        pending to actual exposure: the reservation's ``remaining_qty`` and the
+        aggregate pending are reduced by ``qty`` (a partial fill leaves the
+        remainder reserved; a full fill drops the reservation). Total exposure is
+        therefore unchanged across the convert — no double counting. With
+        ``reservation_id=None`` only actual exposure is updated (legacy path).
 
         Args:
             symbol: External instrument identifier; normalised via
@@ -1382,6 +1521,7 @@ class RiskManager(RiskController):
             side: Executed direction (``"buy"`` or ``"sell"``).
             qty: Fill quantity in base units.
             price: Fill price used for notional tracking.
+            reservation_id: Optional hold to convert; see :meth:`validate_order`.
 
         Notes:
             Exposure updates feed portfolio analytics described in
@@ -1391,10 +1531,38 @@ class RiskManager(RiskController):
         self._validate_inputs(qty, price)
         canonical_symbol = self._canonical_symbol(symbol)
         side_sign = 1.0 if side.lower() == "buy" else -1.0
+        if reservation_id is not None:
+            reservation = self._reservations.get(reservation_id)
+            if reservation is not None:
+                converted = min(qty, reservation.remaining_qty)
+                reservation.remaining_qty -= converted
+                self._discharge_pending(reservation, converted)
+                if reservation.remaining_qty <= 1e-12:
+                    self._reservations.pop(reservation_id, None)
         position = float(self._positions.get(canonical_symbol, 0.0)) + side_sign * qty
         self._positions[canonical_symbol] = position
         self._last_notional[canonical_symbol] = abs(position * price)
         self._persist_risk_state()
+
+    @_synchronized
+    def pending_position(self, symbol: str) -> float:
+        """Return the signed reserved-but-unfilled position for ``symbol``."""
+
+        canonical_symbol = self._canonical_symbol(symbol)
+        return float(self._pending_positions.get(canonical_symbol, 0.0))
+
+    @_synchronized
+    def pending_notional(self, symbol: str) -> float:
+        """Return the reserved-but-unfilled notional for ``symbol``."""
+
+        canonical_symbol = self._canonical_symbol(symbol)
+        return float(self._pending_notional.get(canonical_symbol, 0.0))
+
+    @_synchronized
+    def open_reservation_count(self) -> int:
+        """Return the number of outstanding reservations (leak detector)."""
+
+        return len(self._reservations)
 
     @_synchronized
     def current_position(self, symbol: str) -> float:
@@ -1411,8 +1579,15 @@ class RiskManager(RiskController):
         return float(self._last_notional.get(canonical_symbol, 0.0))
 
     @_synchronized
-    def exposure_snapshot(self) -> dict[str, dict[str, float]]:
-        """Return a serialisable snapshot of tracked positions and notionals."""
+    def exposure_snapshot(self, *, include_pending: bool = False) -> dict[str, dict[str, float]]:
+        """Return a serialisable snapshot of tracked positions and notionals.
+
+        With ``include_pending=True`` each entry additionally carries
+        ``pending_position``/``pending_notional`` and the ``total_position``/
+        ``total_notional`` (actual + pending), and symbols that currently have
+        only a pending hold are included. The default shape (``position`` +
+        ``notional`` only) is preserved for legacy callers.
+        """
 
         snapshot: dict[str, dict[str, float]] = {}
         for symbol, position in self._positions.items():
@@ -1425,6 +1600,17 @@ class RiskManager(RiskController):
                 snapshot[symbol]["notional"] = float(notional)
                 continue
             snapshot[symbol] = {"position": 0.0, "notional": float(notional)}
+        if not include_pending:
+            return dict(sorted(snapshot.items()))
+        for symbol in set(self._pending_positions) | set(self._pending_notional):
+            snapshot.setdefault(symbol, {"position": 0.0, "notional": 0.0})
+        for symbol, entry in snapshot.items():
+            pending_pos = float(self._pending_positions.get(symbol, 0.0))
+            pending_not = float(self._pending_notional.get(symbol, 0.0))
+            entry["pending_position"] = pending_pos
+            entry["pending_notional"] = pending_not
+            entry["total_position"] = entry["position"] + pending_pos
+            entry["total_notional"] = entry["notional"] + pending_not
         return dict(sorted(snapshot.items()))
 
 
