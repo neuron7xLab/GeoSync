@@ -65,6 +65,11 @@ _PAIRS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         ("PASS",),
     ),
     (
+        "artifacts/neuro/opponency_lyapunov.json",
+        "audit/schema/opponency_lyapunov.schema.json",
+        ("PASS",),
+    ),
+    (
         "artifacts/inference/final_inference_verdict.json",
         "audit/schema/final_inference_verdict.schema.json",
         ("PASS",),
