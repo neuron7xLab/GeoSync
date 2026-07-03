@@ -227,8 +227,19 @@ class MarketRegimeAnalyzer:
             residuals = y - X_with_const @ beta
 
             # t-статистика
+            ss_x = float(np.sum((X - np.mean(X)) ** 2))
             se = np.sqrt(np.sum(residuals**2) / (len(y) - 2))
-            t_stat = beta[1] / (se / np.sqrt(np.sum((X - np.mean(X)) ** 2)))
+            # Fail closed on a degenerate design. A constant regressor (ss_x == 0,
+            # e.g. a flat/constant price series) or a zero residual scale (se == 0)
+            # makes the t-statistic a 0/0 form that silently evaluates to NaN. A
+            # NaN must never leak into RegimeMetrics.adf_statistic (artifact numeric
+            # fields are contractually finite), so a degenerate series is reported
+            # as "no evidence against a unit root": t_stat = 0.0, p_value = 1.0.
+            if ss_x <= 0.0 or se <= 0.0:
+                return 0.0, 1.0
+            t_stat = beta[1] / (se / np.sqrt(ss_x))
+            if not np.isfinite(t_stat):
+                return 0.0, 1.0
 
             # Критичні значення для ADF тесту (приблизні)
             # При 5% рівні значущості

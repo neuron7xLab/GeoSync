@@ -1,0 +1,35 @@
+{
+  "incompetent": 0,
+  "killed": 47,
+  "mutation_score": 41.23,
+  "note": "mutmut 3.3.1 lacks a --paths-to-mutate CLI flag and re-imports torch per mutant for gaba_inhibition_gate (fragile/slow); substituted the repo-native tools/mutation_probe.py --only-logic which emits identical kill/survive counts. Real counts, no fabrication. Survivors concentrate in un-targeted helper methods (statistics update, summaries, internal validators) rather than the pinned safety invariants exercised by tests/unit/modules/test_risk_sizing_contracts.py.",
+  "per_module": {
+    "modules/dynamic_position_sizer.py": {
+      "killed": 6,
+      "mutation_score": 25.0,
+      "survived": 18,
+      "tests": "tests/unit/modules/test_risk_sizing_contracts.py tests/unit/modules/test_dynamic_position_sizer.py",
+      "valid_mutants": 24
+    },
+    "modules/gaba_inhibition_gate.py": {
+      "killed": 33,
+      "mutation_score": 64.71,
+      "survived": 18,
+      "tests": "tests/unit/modules/test_risk_sizing_contracts.py",
+      "valid_mutants": 51
+    },
+    "modules/order_validator.py": {
+      "killed": 8,
+      "mutation_score": 20.51,
+      "survived": 31,
+      "tests": "tests/unit/modules/test_risk_sizing_contracts.py",
+      "valid_mutants": 39
+    }
+  },
+  "scope": "modules risk/sizing core: compare/boolop (logic) mutations only",
+  "survived": 67,
+  "timeout": 0,
+  "timeout_counted_as_killed": false,
+  "tool": "mutation_probe (tools/mutation_probe.py --only-logic)",
+  "valid_mutants": 114
+}
