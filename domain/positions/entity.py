@@ -69,14 +69,16 @@ class Position:
             if net_qty == 0:
                 self.entry_price = 0.0
                 self.unrealized_pnl = 0.0
-            elif abs(net_qty) < abs(previous_qty):
-                # Partial reduction keeps prior entry price
+            elif (net_qty > 0) == (previous_qty > 0):
+                # Same side after the fill: partial reduction keeps prior entry price.
                 pass
             else:
-                # Position flipped to opposite side; reset cost basis
-                residual = quantity - closing_qty
-                if residual > 0:
-                    self.entry_price = price
+                # Flipped THROUGH zero to the opposite side. The residual is a
+                # freshly-opened position at this fill price, so the cost basis
+                # resets — regardless of whether the residual is smaller or larger
+                # than the prior exposure (a magnitude test misclassifies a flip
+                # into a smaller opposite side as a partial reduction).
+                self.entry_price = price
 
         self.mark_to_market(price)
 
