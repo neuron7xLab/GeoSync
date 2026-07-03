@@ -113,3 +113,83 @@ def test_generated_report_validates_against_schema(tmp_path) -> None:
     except ImportError:
         return
     jsonschema.validate(report, schema)
+
+
+def test_mutation_killed_survived_mismatch_fails(tmp_path) -> None:
+    # killed + survived (70) != valid_mutants (100): the evidence is unsound.
+    cov = _coverage({"libs/db/retry.py": (90, 100, 45, 50)})
+    (tmp_path / "mutation.libs.json").write_text(
+        json.dumps({"tool": "mutmut", "killed": 50, "survived": 20, "valid_mutants": 100})
+    )
+    c = acs.build_component("libs", "p", cov, tmp_path)
+    assert c["mutation_score"] is None  # rejected, not silently scored
+    assert c["strength_class"] == "COVERAGE_ONLY"
+    assert c["verdict"] == "FAIL"
+
+
+# --------------------------------------------------------------------------- #
+# Enforcing exit code (Phase-4 I7): a FAIL report must not exit 0.
+# --------------------------------------------------------------------------- #
+def test_exit_code_pass_is_zero() -> None:
+    assert acs.exit_code({"verdict": "PASS"}, report_only=False) == 0
+
+
+def test_exit_code_fail_is_nonzero_by_default() -> None:
+    assert acs.exit_code({"verdict": "FAIL"}, report_only=False) == 1
+
+
+def test_exit_code_report_only_downgrades_fail_to_zero() -> None:
+    assert acs.exit_code({"verdict": "FAIL"}, report_only=True) == 0
+
+
+def _write_coverage(tmp_path: Path) -> Path:
+    # No measured files -> every default component is UNMEASURED -> overall FAIL.
+    cov_path = tmp_path / "coverage.json"
+    cov_path.write_text(json.dumps({"files": {}}), encoding="utf-8")
+    return cov_path
+
+
+def test_main_fail_verdict_exits_nonzero(tmp_path) -> None:
+    cov = _write_coverage(tmp_path)
+    out = tmp_path / "report.json"
+    rc = acs.main(
+        ["--coverage", str(cov), "--mutation-dir", str(tmp_path), "--out", str(out)]
+    )
+    assert rc == 1
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["verdict"] == "FAIL"
+    assert report["report_only"] is False
+
+
+def test_main_report_only_exits_zero_and_marks_artifact(tmp_path) -> None:
+    cov = _write_coverage(tmp_path)
+    out = tmp_path / "report.json"
+    rc = acs.main(
+        [
+            "--coverage",
+            str(cov),
+            "--mutation-dir",
+            str(tmp_path),
+            "--out",
+            str(out),
+            "--report-only",
+        ]
+    )
+    assert rc == 0  # non-enforcing
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["verdict"] == "FAIL"
+    assert report["report_only"] is True
+
+
+def test_report_only_artifact_still_schema_valid(tmp_path) -> None:
+    cov = _write_coverage(tmp_path)
+    out = tmp_path / "report.json"
+    acs.main(
+        ["--coverage", str(cov), "--mutation-dir", str(tmp_path), "--out", str(out), "--report-only"]
+    )
+    report = json.loads(out.read_text(encoding="utf-8"))
+    try:
+        import jsonschema
+    except ImportError:
+        return
+    jsonschema.validate(report, json.loads(SCHEMA.read_text(encoding="utf-8")))
