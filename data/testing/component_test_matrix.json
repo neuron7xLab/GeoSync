@@ -161,6 +161,34 @@
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
+    },
+    {
+      "id": "governance_gates_fail_closed",
+      "description": "Fail-closed CI/governance gate hardening component.",
+      "patterns": [
+        "scripts/ci/release_gate.py",
+        "scripts/ci/check_evidence_integrity.py",
+        "tools/governance/verdict_dag.py",
+        "tools/governance/quantize_claim_state.py",
+        "tools/commit_acceptor/acceptor_corpus_schema_falsifier.py",
+        "tests/ci/test_release_gate_regen_fail_closed.py",
+        "tests/ci/test_evidence_integrity_runtime_bool.py",
+        "tests/ci/test_artifact_freshness_no_generator.py",
+        "tests/ci/test_acceptor_corpus_falsifier_polarity.py",
+        "tests/governance/test_verdict_dag_locked_shas.py",
+        "tests/governance/test_quantize_claim_exit_code.py"
+      ],
+      "selectors": [
+        "tests/ci/test_release_gate_regen_fail_closed.py",
+        "tests/ci/test_evidence_integrity_runtime_bool.py",
+        "tests/ci/test_artifact_freshness_no_generator.py",
+        "tests/ci/test_acceptor_corpus_falsifier_polarity.py",
+        "tests/governance/test_verdict_dag_locked_shas.py",
+        "tests/governance/test_quantize_claim_exit_code.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 120
     }
   ]
 }

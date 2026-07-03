@@ -59,6 +59,7 @@ diff_scope:
     - path: "scripts/ci/check_evidence_integrity.py"
     - path: "scripts/ci/check_artifact_freshness.py"
     - path: "tools/commit_acceptor/acceptor_corpus_schema_falsifier.py"
+    - path: "data/testing/component_test_matrix.json"
     - path: "tests/ci/test_release_gate_regen_fail_closed.py"
     - path: "tests/governance/test_verdict_dag_locked_shas.py"
     - path: "tests/governance/test_quantize_claim_exit_code.py"
