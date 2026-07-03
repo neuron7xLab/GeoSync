@@ -2,13 +2,5 @@
   "geosync_research": {
     "reason": "research",
     "note": "Research-only modules; not production runtime. Excluded from release coverage denominator by design."
-  },
-  "scripts": {
-    "reason": "governance_tooling",
-    "note": "CI/release/governance scripts exercised by the CI gate battery and RVG harness, not the release coverage denominator. Runtime import path, not shipped-library surface."
-  },
-  "tools": {
-    "reason": "governance_tooling",
-    "note": "Governance/audit tooling (evidence verifiers, coverage-surface auditor, RVG). Exercised by dedicated tests (e.g. tests/tools/*, tests/benchmarks/*) and the RVG harness rather than the release coverage denominator."
   }
 }
