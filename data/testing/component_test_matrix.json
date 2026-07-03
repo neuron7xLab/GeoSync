@@ -343,6 +343,21 @@
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 180
+    },
+    {
+      "id": "component_strength_report",
+      "description": "Per-component coverage + mutation test-strength report generator.",
+      "patterns": [
+        "tools/audit_component_strength.py",
+        "audit/schema/component_strength_report.schema.json",
+        "tests/tools/test_component_strength_report.py"
+      ],
+      "selectors": [
+        "tests/tools/test_component_strength_report.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 120
     }
   ]
 }
