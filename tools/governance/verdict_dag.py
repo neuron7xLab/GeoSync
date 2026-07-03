@@ -601,6 +601,20 @@ def _cmd_check(args: argparse.Namespace) -> int:
     if orphans:
         sys.stderr.write(f"verdict_dag check FAILED: orphans={orphans}\n")
         return 2
+    import hashlib
+
+    for rel, expected in LOCKED_GOVERNANCE_SHAS.items():
+        anchor = REPO_ROOT / rel
+        if not anchor.exists():
+            sys.stderr.write(f"verdict_dag check FAILED: locked governance anchor missing: {rel}\n")
+            return 2
+        actual = hashlib.sha256(anchor.read_bytes()).hexdigest()
+        if actual != expected:
+            sys.stderr.write(
+                f"verdict_dag check FAILED: locked governance anchor tampered: {rel} "
+                f"(expected {expected}, got {actual})\n"
+            )
+            return 2
     sys.stdout.write(f"verdict_dag check PASS: {len(dag)} nodes, order={order}\n")
     if args.verbose:
         for node_id in order:

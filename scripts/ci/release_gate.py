@@ -423,14 +423,15 @@ def probe_h_falsifier_ledger(deep: bool) -> tuple[str, str]:
 # generator is re-run from scratch so the verdict reflects live machine
 # evidence at HEAD, never a stale or hand-edited artifact.
 # --------------------------------------------------------------------------
-def _regenerate(module: str, extra: tuple[str, ...] = ()) -> None:
-    subprocess.run(
+def _regenerate(module: str, extra: tuple[str, ...] = ()) -> int:
+    proc = subprocess.run(
         [sys.executable, "-m", module, *extra],
         cwd=ROOT,
         capture_output=True,
         text=True,
         check=False,
     )
+    return proc.returncode
 
 
 def _read_artifact(rel: str) -> dict[str, object] | None:
@@ -450,7 +451,8 @@ def probe_e_clean_clone(deep: bool) -> tuple[str, str]:
             MANUAL,
             "requires --deep (clean-room wheel build + isolated install + entrypoint smoke)",
         )
-    _regenerate("scripts.ci.probe_clean_clone")
+    if _regenerate("scripts.ci.probe_clean_clone") != 0:
+        return RED, "regeneration failed (stale artifact refused)"
     art = _read_artifact("artifacts/release_gate/clean_clone.json")
     if art is None:
         return RED, "clean_clone.json not produced by probe_clean_clone.py"
@@ -486,7 +488,8 @@ def probe_g_real_data(deep: bool) -> tuple[str, str]:
 def probe_h_falsification(deep: bool) -> tuple[str, str]:
     if not deep:
         return MANUAL, "requires --deep (8-control executable falsification ledger)"
-    _regenerate("scripts.ci.falsification_ledger")
+    if _regenerate("scripts.ci.falsification_ledger") != 0:
+        return RED, "regeneration failed (stale artifact refused)"
     art = _read_artifact("artifacts/falsification/ledger.json")
     if art is None:
         return RED, "ledger.json not produced by falsification_ledger.py"
@@ -503,7 +506,8 @@ def probe_h_falsification(deep: bool) -> tuple[str, str]:
 def probe_k_execution(deep: bool) -> tuple[str, str]:
     if not deep:
         return MANUAL, "requires --deep (execution-scope contract + claim-boundary enforcement)"
-    _regenerate("scripts.ci.execution_contract")
+    if _regenerate("scripts.ci.execution_contract") != 0:
+        return RED, "regeneration failed (stale artifact refused)"
     art = _read_artifact("artifacts/execution/contract.json")
     if art is None:
         return RED, "contract.json not produced by execution_contract.py"
@@ -518,7 +522,8 @@ def probe_k_execution(deep: bool) -> tuple[str, str]:
 def probe_m_benchmarks(deep: bool) -> tuple[str, str]:
     if not deep:
         return MANUAL, "requires --deep (benchmark spine: determinism + regression budget)"
-    _regenerate("scripts.ci.benchmark_spine")
+    if _regenerate("scripts.ci.benchmark_spine") != 0:
+        return RED, "regeneration failed (stale artifact refused)"
     art = _read_artifact("artifacts/benchmarks/last_run.json") or _read_artifact(
         "artifacts/benchmarks/baseline.json"
     )

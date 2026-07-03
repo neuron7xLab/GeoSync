@@ -116,6 +116,8 @@ def _commands_have_recorded_output(envelope: dict[str, Any]) -> bool:
             return False
         if "exit_code" not in command:
             return False
+        if command.get("exit_code") != 0:
+            return False
     return True
 
 
