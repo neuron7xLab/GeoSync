@@ -36,9 +36,15 @@
       "description": "Stuart-Landau runtime component.",
       "patterns": [
         "core/physics/stuart_landau_es.py",
-        "tests/unit/physics/test_T2b_stuart_landau_es.py"
+        "tests/unit/physics/test_T2b_stuart_landau_es.py",
+        "benchmarks/rolling_es_proximity_oos.py",
+        "tests/benchmarks/test_rolling_es_proximity_oos_contract.py",
+        "tools/verify_rolling_es_strict_replay.py"
       ],
-      "selectors": ["tests/unit/physics/test_T2b_stuart_landau_es.py"],
+      "selectors": [
+        "tests/unit/physics/test_T2b_stuart_landau_es.py",
+        "tests/benchmarks/test_rolling_es_proximity_oos_contract.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 300

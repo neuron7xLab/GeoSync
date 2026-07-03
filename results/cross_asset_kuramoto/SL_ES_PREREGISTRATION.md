@@ -63,15 +63,27 @@ selection: both registered up front.
 3. Drop the train portion (first 70 % of bars). Subsequent operations
    touch the OOS portion only.
 4. Compute `rolling_es_proximity(prices_oos, window=24, K_steps=12, int_steps=120, seed=20260506, fail_closed=True)`.
-   Failure policy (integrity amendment, issue #1358 P1-1, 2026-07-03): this
-   evidence path runs fail-closed — a window whose fit raises aborts the replay
-   with its index and cause rather than writing a NaN-backed result. This is
-   NOT a re-registration deviation: it changes no §6 pre-committed numeric
-   parameter, and on this frozen OOS window zero windows raise, so the produced
-   `ES_smooth` series, `leads_rate`, `p_value`, and the REJECT decision are
-   bit-identical to the original lenient replay (verified 2026-07-03). The flag
-   is a forward safety ratchet that surfaces any future masked fit failure
-   instead of silently degrading it to a quiet window.
+   Failure policy (integrity amendment, issue #1358 P1-1 / PR #1425, 2026-07-03):
+   this evidence path runs fail-closed — a window whose fit raises aborts the
+   replay with its index and cause rather than writing a NaN-backed result. This
+   is a failure-POLICY ratchet, NOT a numeric re-registration: it changes no §6
+   pre-committed parameter. `fail_closed=True` is metric-NEUTRAL — on this frozen
+   OOS window zero windows raise, and the strict rolling-ES series is bit-identical
+   to the lenient series under the *current* runtime (proven in
+   `artifacts/rolling_es_proximity_oos.strict_replay_proof.json`,
+   `metric_equality_basis = strict_vs_lenient_current_runtime`).
+
+   Model-drift disclosure (do not conflate with the flag): the frozen artifact's
+   numerics were recorded 2026-05-06 (#536). The Stuart-Landau runtime was then
+   updated *after* registration (Hilbert growth-rate μ #1208; fitted-state sweep
+   #1362). Under the current runtime, `decision`, `leads_rate`, `n_episodes` and
+   `r_peak_indices` reproduce the frozen record exactly, but `p_value` and `taus`
+   do not — that shift is caused by the post-registration model update, not by
+   `fail_closed`. The pre-registered **REJECT H1** verdict is invariant across
+   both models (p_value ≫ 0.05 in each). The committed strict-replay proof
+   artifact is the source of truth for these equalities; the flag is a forward
+   safety ratchet that surfaces any future masked fit failure rather than silently
+   degrading it to a quiet window.
 5. Compute rolling Kuramoto R via Hilbert-phase order parameter on the
    same window.
 6. Smooth both series with a box-5 mean (consistent with the unit test).

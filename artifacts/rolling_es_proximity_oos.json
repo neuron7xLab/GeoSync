@@ -1,6 +1,7 @@
 {
   "config": {
     "K_steps": 12,
+    "fail_closed": true,
     "int_steps": 120,
     "leads_rate_threshold": 0.6,
     "min_episodes": 3,
@@ -30,6 +31,14 @@
   "oos_end": "2026-04-10",
   "oos_start": "2023-09-05",
   "p_value": 0.7647647647647647,
+  "provenance": {
+    "note": "fail_closed=True is a metric-neutral integrity ratchet (strict==lenient, 0 failed windows; see strict_replay.proof). It did NOT change these numerics. Under the current runtime, decision/leads_rate/n_episodes/r_peak_indices reproduce exactly; p_value/taus differ due to the post-registration model update. The pre-registered decision REJECT (H1 stays REJECTED, no re-promotion) is invariant across both models.",
+    "numerics_frozen_model": "#536 (2026-05-06, pre-fitted-state sweep)",
+    "runtime_updated_post_registration": [
+      "#1208 Hilbert-growth mu",
+      "#1362 fitted-state sweep"
+    ]
+  },
   "r_peak_indices": [
     81,
     93,
@@ -66,6 +75,14 @@
   ],
   "ran_at_utc": "2026-05-06T07:42:02Z",
   "registered": "2026-05-06",
+  "strict_replay": {
+    "enabled": true,
+    "failed_window_count": 0,
+    "metric_neutral": true,
+    "policy": "raise on fit failure; no NaN masking in evidence mode",
+    "proof": "artifacts/rolling_es_proximity_oos.strict_replay_proof.json",
+    "reason": "#1358 P1-1 strict evidence path"
+  },
   "tau_mean": 13.46875,
   "tau_median": 13.5,
   "taus": [

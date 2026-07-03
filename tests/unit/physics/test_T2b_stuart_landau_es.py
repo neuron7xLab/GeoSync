@@ -26,6 +26,7 @@ from core.physics.stuart_landau_es import (
     _estimate_growth_rate_audit,
     _extract_amplitude_phase_omega,
     _hysteresis_sweep,
+    _initial_state_from_seed,
     _validate_prices,
     _validate_sweep_config,
     _validate_z0,
@@ -391,6 +392,11 @@ def test_crisis_signal_uses_strict_es_threshold(monkeypatch: pytest.MonkeyPatch)
             order_parameter=0.5,
             amplitude=np.array([1.0, 2.0], dtype=np.float64),
             leads_r_peak=False,
+            mu_raw=np.array([0.1, 0.2], dtype=np.float64),
+            mu_clamped=np.array([0.1, 0.2], dtype=np.float64),
+            mu_was_clipped=np.array([False, False], dtype=np.bool_),
+            mu_clip_count=0,
+            mu_clip_mass=0.0,
         )
 
     monkeypatch.setattr(sl, "fit_stuart_landau", fake_fit_stuart_landau)
@@ -816,3 +822,147 @@ def test_rolling_es_proximity_fail_closed_raises_with_window_index(
         "INV-SL rolling fail-closed VIOLATED: raised error must carry the "
         f"underlying cause; got {message!r}."
     )
+
+
+# ---------------------------------------------------------------------------
+# PR #1425 strict-evidence binding: public-runtime-path regression guards.
+#
+# The prior P0-2/P0-3 acceptance tests exercise the *private* helpers
+# (_hysteresis_sweep with an explicit z0, _estimate_growth_rate_audit directly).
+# They prove the helpers CAN carry fitted state / clip audit, but not that the
+# public entrypoint fit_stuart_landau() actually wires them through. A future
+# edit could drop `z0=fitted_z0` or detach the mu-audit fields from the result
+# while every private-helper test still passes. These two tests close that gap
+# on the public path.
+# ---------------------------------------------------------------------------
+
+
+def test_fit_stuart_landau_passes_fitted_z0_to_sweep(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """P0-3 (public path): fit_stuart_landau seeds the sweep from fitted analytic state.
+
+    Monkeypatch ``_hysteresis_sweep`` to capture the ``z0`` it is called with when
+    ``fit_stuart_landau(prices)`` runs. The captured state must be the fitted
+    analytic vector ``amplitude · e^{iφ}`` — NOT ``None`` (seed-only fallback) and
+    NOT the random seed state. If a future edit removes ``z0=fitted_z0`` from
+    fit_stuart_landau, ``captured["z0"]`` becomes ``None`` and this test fails.
+    """
+    prices = _synthetic_prices(T=32, N=5, seed=3, regime="crisis")
+    n = prices.shape[1]
+    captured: dict[str, NDArray[np.complex128] | None] = {}
+
+    def _capturing_sweep(
+        mu: NDArray[np.float64],
+        omega: NDArray[np.float64],
+        *,
+        z0: NDArray[np.complex128] | None = None,
+        K_steps: int = 16,
+        **_kwargs: object,
+    ) -> tuple[float, NDArray[np.float64], NDArray[np.float64]]:
+        captured["z0"] = z0
+        zeros = np.zeros(K_steps, dtype=np.float64)
+        return 0.25, zeros, zeros
+
+    monkeypatch.setattr(sl, "_hysteresis_sweep", _capturing_sweep)
+    fit_stuart_landau(prices, K_steps=8, int_steps=80, seed=7)
+
+    z0 = captured.get("z0")
+    assert z0 is not None, (
+        "INV-SL fitted-state VIOLATED: fit_stuart_landau called the sweep with "
+        "z0=None — it reverted to the seed-only fallback path instead of the "
+        "fitted analytic state."
+    )
+    assert z0.shape == (n,), f"z0 shape mismatch: expected ({n},), got {z0.shape}."
+    assert np.iscomplexobj(z0), "fitted z0 must be complex analytic state."
+    assert np.all(np.isfinite(z0.real)) and np.all(np.isfinite(z0.imag)), (
+        f"fitted z0 must be finite; got {z0!r}."
+    )
+
+    # It must equal the fitted analytic state amplitude·e^{iφ}, not the seed state.
+    amplitude, phase, _omega, _mu = _extract_amplitude_phase_omega(prices)
+    expected = (amplitude * np.exp(1j * phase)).astype(np.complex128)
+    assert np.allclose(z0, expected), (
+        "INV-SL fitted-state VIOLATED: fit_stuart_landau passed a z0 that is NOT "
+        f"the fitted analytic state amplitude·e^(iφ). got={z0}, expected={expected}."
+    )
+    seed_state = _initial_state_from_seed(n, 7)
+    assert not np.allclose(z0, seed_state), (
+        "INV-SL fitted-state VIOLATED: the sweep z0 equals the random seed state — "
+        "amplitude/phase information was discarded."
+    )
+
+
+def test_fit_stuart_landau_exposes_mu_clip_audit_on_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """P0-4 (public path): the mu-clip audit surfaces on the StuartLandauResult.
+
+    A benign panel leaves the audit pristine (clip_count == 0). Narrowing the
+    Euler-stability band on the SAME public path (fit_stuart_landau → extract →
+    _estimate_growth_rate_audit → clamp) forces a genuine clip whose evidence must
+    appear on the returned result — mu_raw/mu_clamped finite, mu_was_clipped has a
+    True, count == nonzero(mask), mass > 0. If the audit fields were removed,
+    silently zeroed, or detached from the public result, this fails.
+    """
+    T, N = 40, 3
+    rng = np.random.default_rng(0)
+    t = np.arange(T - 1, dtype=np.float64)
+    env = np.exp(0.06 * t)  # gentle, numerically stable growth → mu_raw ≈ 0.055
+    log_rets = np.zeros((T - 1, N), dtype=np.float64)
+    for j in range(N):
+        log_rets[:, j] = 0.01 * env * np.sin(0.6 * t + j) + rng.standard_normal(T - 1) * 1e-6
+    prices = np.empty((T, N), dtype=np.float64)
+    prices[0, :] = 100.0
+    prices[1:, :] = 100.0 * np.exp(np.cumsum(log_rets, axis=0))
+
+    benign = fit_stuart_landau(prices, K_steps=8, int_steps=80, seed=0)
+    assert benign.mu_clip_count == 0 and benign.mu_clip_mass == 0.0, (
+        "INV-SL mu audit VIOLATED: benign panel must not report any clip on the "
+        f"public result (count={benign.mu_clip_count}, mass={benign.mu_clip_mass})."
+    )
+    assert np.all(np.isfinite(benign.mu_raw)) and np.all(np.isfinite(benign.mu_clamped))
+
+    # Narrow the ±clamp on the public path so the same panel clips for real.
+    monkeypatch.setattr(sl, "_MU_GROWTH_CLAMP", 0.02)
+    clipped = fit_stuart_landau(prices, K_steps=8, int_steps=80, seed=0)
+
+    assert np.all(np.isfinite(clipped.mu_raw)) and np.all(np.isfinite(clipped.mu_clamped))
+    assert bool(np.any(clipped.mu_was_clipped)), (
+        "INV-SL mu audit VIOLATED: forced clip did not surface on the public "
+        f"result mask (mu_was_clipped={clipped.mu_was_clipped})."
+    )
+    assert clipped.mu_clip_count == int(np.count_nonzero(clipped.mu_was_clipped)), (
+        "INV-SL mu audit VIOLATED: public result clip_count detached from mask "
+        f"(count={clipped.mu_clip_count}, mask={clipped.mu_was_clipped})."
+    )
+    assert clipped.mu_clip_mass > 0.0, (
+        "INV-SL mu audit VIOLATED: forced clip reported zero mass on the public "
+        f"result (mass={clipped.mu_clip_mass})."
+    )
+    assert np.isclose(
+        clipped.mu_clip_mass, float(np.abs(clipped.mu_raw - clipped.mu_clamped).sum())
+    ), "INV-SL mu audit VIOLATED: clip_mass on the result is not Σ|raw−clamped|."
+
+
+def test_crisis_signal_exposes_mu_clip_audit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """P1-3: crisis_signal_sl surfaces the mu-clip audit, not just es/amplitude.
+
+    The compact runtime signal must not hide a clamped growth-rate estimate: a
+    downstream consumer reading only crisis_signal_sl() has to be able to tell a
+    clipped window from a clean one.
+    """
+    prices = _synthetic_prices(T=32, N=5, seed=0, regime="crisis")
+    clean = crisis_signal_sl(prices, K_steps=6, int_steps=60, seed=0)
+    for key in ("mu_clip_count", "mu_clip_mass", "mu_was_clipped_any"):
+        assert key in clean, f"crisis_signal_sl missing audit key: {key}"
+    assert clean["mu_clip_count"] == 0
+    assert clean["mu_was_clipped_any"] is False
+
+    monkeypatch.setattr(sl, "_MU_GROWTH_CLAMP", 1e-3)
+    clipped = crisis_signal_sl(prices, K_steps=6, int_steps=60, seed=0)
+    assert clipped["mu_was_clipped_any"] is True
+    clip_count = clipped["mu_clip_count"]
+    clip_mass = clipped["mu_clip_mass"]
+    assert isinstance(clip_count, int) and clip_count > 0
+    assert isinstance(clip_mass, float) and clip_mass > 0.0

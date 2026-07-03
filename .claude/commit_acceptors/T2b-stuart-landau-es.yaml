@@ -55,6 +55,10 @@ diff_scope:
     - path: "benchmarks/rolling_es_proximity_oos.py"
     - path: "results/cross_asset_kuramoto/SL_ES_PREREGISTRATION.md"
     - path: "artifacts/rolling_es_proximity_oos.json"
+    # PR #1425 strict-evidence binding (issue #1358 P0/P1 closure).
+    - path: "artifacts/rolling_es_proximity_oos.strict_replay_proof.json"
+    - path: "tools/verify_rolling_es_strict_replay.py"
+    - path: "tests/benchmarks/test_rolling_es_proximity_oos_contract.py"
   forbidden_paths:
     - "trading/"
     - "execution/"
