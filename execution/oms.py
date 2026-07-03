@@ -70,6 +70,33 @@ class OMSConfig:
         object.__setattr__(self, "ledger_path", ledger_path)
 
 
+def _risk_reference_price(order: Order, *, notional_cap_active: bool) -> float:
+    """Reference price for a pre-trade notional check — fail-closed on unknowns.
+
+    A market order carries no ``price`` pre-fill. The prior code substituted a
+    nominal ``$1`` (``max(average_price or 0.0, 1.0)``), which makes
+    ``qty * 1.0`` slip under any real notional cap — a fail-OPEN hole that
+    silently bypasses the most common order type's notional limit.
+
+    When a finite notional cap is actually in force we cannot prove the order is
+    within it without a real mark, so we fail CLOSED (reject). When no cap is
+    configured the substituted price is inert (the notional gate never fires), so
+    a nominal positive value is harmless and preserves admission of ordinary
+    market orders.
+    """
+    if order.price is not None:
+        return float(order.price)
+    avg = order.average_price or 0.0
+    if avg > 0:
+        return float(avg)
+    if notional_cap_active:
+        raise ComplianceViolation(
+            "market order lacks a reference/mark price; notional risk cannot be "
+            "verified (fail-closed)"
+        )
+    return 1.0
+
+
 class OrderManagementSystem:
     """Queue-based OMS with state recovery."""
 
@@ -446,8 +473,13 @@ class OrderManagementSystem:
                     raise ComplianceViolation(reason)
 
             if self._risk_compliance is not None:
-                reference_price = (
-                    order.price if order.price is not None else max(order.average_price or 0.0, 1.0)
+                _rc_cap = getattr(
+                    getattr(self._risk_compliance, "_config", None),
+                    "max_notional_per_order",
+                    0.0,
+                )
+                reference_price = _risk_reference_price(
+                    order, notional_cap_active=bool(_rc_cap and _rc_cap > 0)
                 )
 
                 positions = {}
@@ -532,8 +564,9 @@ class OrderManagementSystem:
                         f"Risk limit breach: {'; '.join(risk_decision.reasons)}"
                     )
 
-            reference_price = (
-                order.price if order.price is not None else max(order.average_price or 0.0, 1.0)
+            _rm_cap = getattr(getattr(self.risk, "limits", None), "max_notional", float("inf"))
+            reference_price = _risk_reference_price(
+                order, notional_cap_active=bool(_rm_cap < float("inf"))
             )
             try:
                 self._run_pre_trade_check(
