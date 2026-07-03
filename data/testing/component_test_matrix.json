@@ -202,9 +202,13 @@
         "audit/schema/coverage_surface_report.schema.json",
         ".coveragerc",
         "configs/quality/critical_surface.coveragerc",
-        "configs/quality/release_90.coveragerc"
+        "configs/quality/release_90.coveragerc",
+        "tests/ci/test_deferred_production_coverage_debt.py"
       ],
-      "selectors": ["tests/ci/test_coverage_source_matches_packaged_surface.py"],
+      "selectors": [
+        "tests/ci/test_coverage_source_matches_packaged_surface.py",
+        "tests/ci/test_deferred_production_coverage_debt.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60

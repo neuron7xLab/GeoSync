@@ -6,7 +6,7 @@
       "root": "geosync_agent"
     },
     {
-      "note": "Production surface (18 modules) with no coverage profile and no tests yet. Tracked debt: add to the release_90 profile once a test slice lands (F02: added to source when its dedicated profile arrives).",
+      "note": "Production surface (20 modules) with no coverage profile and no tests yet. Tracked debt: measure under release_90 or remove from packaging (PR-D decision).",
       "reason": "deferred_production",
       "root": "geosync_pro"
     },
@@ -16,12 +16,12 @@
       "root": "geosync_research"
     },
     {
-      "note": "Shared production libs (17 modules, partial tests). Tracked debt: fold into the release_90 coverage profile with its own test slice.",
+      "note": "Shared production libs (17 modules, partial tests). Tracked debt: fold into the release_90 coverage profile with its own runtime/property test slice.",
       "reason": "deferred_production",
       "root": "libs"
     },
     {
-      "note": "Production modules (18 files, 12 matching tests) not yet in any coverage profile. Tracked debt: add to release_90 source once the slice is stabilized.",
+      "note": "Production modules (18 files, 12 matching tests) not yet in any coverage profile. Tracked debt: add to release_90 source once the runtime/property slice is stabilized.",
       "reason": "deferred_production",
       "root": "modules"
     },
