@@ -16,6 +16,31 @@ def _order_parameter(phases: np.ndarray) -> float:
     return float(abs(np.mean(np.exp(1j * phases))))
 
 
+def _causal_phase(arr: np.ndarray, window: int) -> np.ndarray:
+    """Instantaneous analytic phase at each bar using only trailing samples.
+
+    The global-mean + whole-array ``hilbert(arr)`` phase is NON-causal: the
+    analytic signal at index ``i`` is an FFT over the entire series, so
+    ``phase[i]`` depends on future samples ``j > i``. Any downstream backtest
+    of the exported execution gate then leaks look-ahead information.
+
+    For every bar ``i`` this instead computes the analytic phase inside the
+    trailing window ``arr[i - window + 1 : i + 1]`` (an expanding window during
+    warm-up), centered by that window's own TRAILING mean, and takes the last
+    element ``hilbert(centered_window)[-1]``. ``phase[i]`` therefore depends
+    only on samples ``j <= i`` and is invariant to any change after bar ``i``.
+    """
+    n = len(arr)
+    phase = np.zeros(n, dtype=float)
+    for i in range(n):
+        start = max(0, i - window + 1)
+        w = arr[start : i + 1]
+        centered_window = w - np.mean(w)  # trailing mean: no future samples
+        analytic = hilbert(centered_window)
+        phase[i] = float(np.angle(analytic[-1]))
+    return phase
+
+
 def run(
     input_csv: Path, output_csv: Path, window: int = 256, threshold: float = 0.65
 ) -> pd.DataFrame:
@@ -24,8 +49,9 @@ def run(
     df = df.sort_values("ts").dropna(subset=["mid", "mid_returns"]).reset_index(drop=True)
 
     arr = df["mid_returns"].to_numpy(dtype=float)
-    centered = arr - np.mean(arr)
-    phase = np.angle(hilbert(centered))
+    # Causal instantaneous phase: phase[i] uses only trailing samples j <= i,
+    # so the exported execution gate carries no look-ahead (see _causal_phase).
+    phase = _causal_phase(arr, window)
 
     r_vals: list[float | None] = []
     states: list[str] = []
