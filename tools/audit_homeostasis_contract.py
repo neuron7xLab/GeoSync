@@ -123,31 +123,31 @@ def build_contract() -> dict[str, Any]:
         {
             "id": "HOMEO-1",
             "statement": "opponent-process allostatic load stays within [-1, 1] under an adversarial drive trajectory",
-            "test": "tests/ci/test_homeostasis_contract.py::test_allostatic_load_is_bounded",
+            "test": "tests/unit/neuro/test_homeostasis_contract.py::test_allostatic_load_is_bounded",
             "passed": bounded,
         },
         {
             "id": "HOMEO-2",
             "statement": "dopamine controller parameters are admissible and out-of-bound params are rejected",
-            "test": "tests/ci/test_homeostasis_contract.py::test_dopamine_parameter_invariants",
+            "test": "tests/unit/neuro/test_homeostasis_contract.py::test_dopamine_parameter_invariants",
             "passed": dopamine_ok and not dopamine_rejects,
         },
         {
             "id": "HOMEO-3",
             "statement": "serotonin controller parameters are admissible and out-of-bound params are rejected",
-            "test": "tests/ci/test_homeostasis_contract.py::test_serotonin_parameter_invariants",
+            "test": "tests/unit/neuro/test_homeostasis_contract.py::test_serotonin_parameter_invariants",
             "passed": serotonin_ok and not serotonin_rejects,
         },
         {
             "id": "HOMEO-4",
             "statement": "phase coherence is locked (r>=r_min) for synchronised phases and low for desynchronised phases",
-            "test": "tests/ci/test_homeostasis_contract.py::test_phase_coherence_gate",
+            "test": "tests/unit/neuro/test_homeostasis_contract.py::test_phase_coherence_gate",
             "passed": r_locked >= _COHERENCE_MIN and r_spread < _COHERENCE_MIN,
         },
         {
             "id": "HOMEO-5",
             "statement": "No-Ungrounded-Act: GO only when the drive is bounded, in-spec and coherent",
-            "test": "tests/ci/test_homeostasis_contract.py::test_no_ungrounded_act_gate",
+            "test": "tests/unit/neuro/test_homeostasis_contract.py::test_no_ungrounded_act_gate",
             "passed": gate == "GO",
         },
     ]
