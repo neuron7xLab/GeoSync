@@ -1,0 +1,104 @@
+# Diff-bound commit acceptor for the ⊛ RVG-1 Repository Verification Gate.
+#
+# Adds a deterministic, fail-closed audit harness (tools/rvg_*.py) that
+# computes a verified evidence vector — test pass rate, line/branch coverage,
+# mutation score, oracle_gap, verified_test_strength — plus static-quality and
+# supply-chain gates, recomputing every percentage from raw numerator/
+# denominator and failing closed on missing evidence or zero denominator.
+#
+# Additive and non-destructive: Makefile targets are namespaced rvg-* and never
+# touch the existing audit/verify/mutation-ratchet targets; runtime outputs are
+# isolated under the git-ignored artifacts/rvg/ tree; RVG thresholds are a floor
+# that never lowers coverage.report.fail_under = 98.
+
+id: rvg-1-verification-gate
+status: ACTIVE
+claim_type: governance
+promise: >-
+  After this PR lands, `tools/rvg_audit.py` emits a deterministic, fail-closed
+  RVG verdict (JSON + Markdown) whose every percentage is recomputed from raw
+  counts and independently cross-checked by `tools/rvg_verify_artifacts.py`
+  (fail on delta > 0.01). Missing evidence, zero denominator, zero valid
+  mutants, or a schema-invalid verdict force verdict == FAIL. The 21-test
+  self-verification suite in tests/tools/test_rvg_audit.py proves formula
+  correctness, fail-closed behaviour, threshold boundaries, and the recompute
+  cross-check.
+
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/rvg-1-verification-gate.yaml"
+    - path: "tools/rvg_audit.py"
+    - path: "tools/rvg_normalize_mutation.py"
+    - path: "tools/rvg_verify_artifacts.py"
+    - path: "tests/tools/test_rvg_audit.py"
+    - path: "audit/thresholds.json"
+    - path: "audit/rvg.coveragerc"
+    - path: "audit/schema/coverage.schema.json"
+    - path: "audit/schema/mutation.schema.json"
+    - path: "audit/schema/verdict.schema.json"
+    - path: ".github/workflows/rvg.yml"
+    - path: "audit/RVG_PROTOCOL.md"
+    - path: "Makefile"
+    - path: ".gitignore"
+  forbidden_paths:
+    - "trading/"
+    - "execution/"
+    - "forecast/"
+    - "policy/"
+    - "core/"
+    - "runtime/"
+    - "application/"
+
+required_python_symbols:
+  - "tools/rvg_audit.py::compute_verdict"
+  - "tools/rvg_audit.py::coverage_metrics"
+  - "tools/rvg_audit.py::mutation_metric"
+  - "tools/rvg_normalize_mutation.py::normalize"
+  - "tools/rvg_verify_artifacts.py::cross_check_recompute"
+
+expected_signal: >-
+  `python -m pytest tests/tools/test_rvg_audit.py -q` reports 21 passed; a
+  demonstration `rvg_audit.py` run over the RVG tools subsystem produces a
+  reproducible (byte-identical across two runs) fail-closed verdict.
+
+measurement_command: >-
+  bash -c '
+    python -m ruff check tools/rvg_audit.py tools/rvg_normalize_mutation.py tools/rvg_verify_artifacts.py &&
+    python -m mypy --strict tools/rvg_audit.py tools/rvg_normalize_mutation.py tools/rvg_verify_artifacts.py &&
+    python -m pytest tests/tools/test_rvg_audit.py -q
+  '
+
+signal_artifact: "tmp/rvg_1_verification_gate.log"
+
+falsifier:
+  command: |-
+    bash -c '
+      python -c "
+    import importlib.util, pathlib
+    def _load(name):
+        spec = importlib.util.spec_from_file_location(name, pathlib.Path(\"tools\")/f\"{name}.py\")
+        import sys; mod = importlib.util.module_from_spec(spec); sys.modules[name]=mod
+        spec.loader.exec_module(mod); return mod
+    a=_load(\"rvg_audit\"); v=_load(\"rvg_verify_artifacts\")
+    assert callable(a.compute_verdict) and callable(v.cross_check_recompute)
+      " 2>/dev/null && exit 1 || exit 0
+    '
+  description: >-
+    Loads the RVG tools and asserts compute_verdict + cross_check_recompute are
+    callable. The falsifier inverts: it succeeds (exit 0) only when that import
+    or assertion fails — i.e. only if the harness was rolled back.
+
+rollback_command: >-
+  bash -c '
+    git rm -f .claude/commit_acceptors/rvg-1-verification-gate.yaml
+  '
+
+rollback_verification_command: >-
+  bash -c '
+    test ! -f .claude/commit_acceptors/rvg-1-verification-gate.yaml
+  '
+
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/rvg-1-verification-gate.yaml"
+report_path: "tmp/rvg_1_verification_gate.log"
+evidence: []

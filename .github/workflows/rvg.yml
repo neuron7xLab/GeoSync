@@ -1,0 +1,91 @@
+name: RVG Repository Verification Gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: rvg-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rvg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v4
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dev deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" || pip install pytest pytest-cov ruff mypy
+          # RVG requires a dependency auditor present; fail-closed rvg-security
+          # aborts (no silent pass) if it is absent, so install it explicitly.
+          pip install pip-audit
+
+      # BLOCKING: the harness must prove itself before its verdict means anything.
+      - name: RVG self-verification (harness proves itself)
+        run: python -m pytest tests/tools/test_rvg_audit.py -q
+
+      # Compute + publish the verdict. During bootstrap the PASS/FAIL threshold
+      # verdict is REPORTED, not enforced repo-wide: a full-repo audit that meets
+      # every gate (incl. a real mutation run) is a follow-up ratchet. Enforcing
+      # thresholds now would red every PR against gates the whole repo does not
+      # yet satisfy — the opposite of an additive gate. So this step is allowed
+      # to surface a FAIL verdict without failing the job; the verdict is uploaded.
+      - name: RVG audit (verdict reported, not yet enforced repo-wide)
+        continue-on-error: true
+        run: make rvg
+
+      # BLOCKING: prove the instrument actually ran and produced a sound,
+      # hash-bound, schema-valid, internally-consistent verdict.
+      - name: Assert verdict is sound (schema-valid, hash-bound, recompute-checked)
+        run: |
+          test -f artifacts/rvg/RVG_VERDICT.json
+          test -f artifacts/rvg/audit.hashes
+          python tools/rvg_verify_artifacts.py \
+            artifacts/rvg/RVG_VERDICT.json \
+            artifacts/rvg/audit.hashes \
+            audit/schema/verdict.schema.json
+
+      # BLOCKING: determinism — a second run must be byte-identical modulo the
+      # timestamp/commit/python-version fields.
+      - name: Assert verdict reproducibility
+        run: |
+          cp artifacts/rvg/RVG_VERDICT.json /tmp/rvg_run1.json
+          make rvg-mutation rvg-verify || true
+          python - <<'PY'
+          import json, sys
+          sys.path.insert(0, "tools")
+          import rvg_verify_artifacts as v
+          a = json.load(open("/tmp/rvg_run1.json"))
+          b = json.load(open("artifacts/rvg/RVG_VERDICT.json"))
+          diffs = v.diff_reproducibility(a, b)
+          if diffs:
+              print(f"NON-DETERMINISTIC verdict fields: {diffs}")
+              sys.exit(1)
+          print("RVG verdict reproducible ✓")
+          PY
+
+      - name: Publish verdict to job summary
+        if: always()
+        run: |
+          if [ -f artifacts/rvg/RVG_VERDICT.md ]; then
+            cat artifacts/rvg/RVG_VERDICT.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: rvg-audit-artifacts
+          path: artifacts/rvg/
