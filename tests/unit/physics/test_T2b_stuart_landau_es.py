@@ -23,6 +23,7 @@ from core.physics.stuart_landau_es import (
     StuartLandauResult,
     _analytic_signal,
     _estimate_growth_rate,
+    _estimate_growth_rate_audit,
     _extract_amplitude_phase_omega,
     _hysteresis_sweep,
     _validate_prices,
@@ -679,3 +680,126 @@ def test_is_explosive_strictly_above_threshold() -> None:
         f"is_explosive = es_proximity > es_threshold (strict). Got "
         f"{above['is_explosive']!r}."
     )
+
+
+# ---------------------------------------------------------------------------
+# Issue #1358 acceptance criteria: fitted-state sweep, visible μ clip, and
+# fail-closed rolling evidence. These lock the claim boundary in place so a
+# future edit cannot silently revert to a seed-driven sweep, a silent μ clamp,
+# or a NaN-masking evidence path.
+# ---------------------------------------------------------------------------
+
+
+def test_fitted_state_distinguishes_sweep_from_amplitude_phase() -> None:
+    """P0-2: the sweep is initialised from fitted analytic state, not the seed.
+
+    Two windows with the SAME mu/omega but DIFFERENT fitted amplitude/phase must
+    produce a distinguishable hysteresis area — amplitude dynamics are physical
+    in the Stuart-Landau RHS (|z|^2 z nonlinearity), so ignoring z0 and starting
+    from ``seed`` would collapse both windows onto one identical trajectory. If
+    ``_hysteresis_sweep`` ever drops the ``z0`` argument and falls back to the
+    seed path, area_a and area_b would coincide (seed-only) and this fails.
+    """
+    n = 4
+    mu = np.full(n, 0.2, dtype=np.float64)
+    omega = np.linspace(0.1, 0.4, n).astype(np.float64)
+    kw = dict(K_low=0.0, K_high=4.0, K_steps=16, int_steps=200, dt=0.05, seed=42)
+
+    # Same mu/omega, two genuinely different fitted analytic states.
+    z_low = (np.full(n, 0.2) * np.exp(1j * np.linspace(0.0, 1.0, n))).astype(
+        np.complex128
+    )
+    z_high = (np.full(n, 1.5) * np.exp(1j * np.linspace(0.0, 3.0, n))).astype(
+        np.complex128
+    )
+    area_low, _, _ = _hysteresis_sweep(mu, omega, z0=z_low, **kw)  # type: ignore[arg-type]
+    area_high, _, _ = _hysteresis_sweep(mu, omega, z0=z_high, **kw)  # type: ignore[arg-type]
+    area_seed, _, _ = _hysteresis_sweep(mu, omega, z0=None, **kw)  # type: ignore[arg-type]
+
+    assert abs(area_low - area_high) > 1e-6, (
+        "INV-SL fitted-state VIOLATED: same mu/omega with different fitted "
+        f"amplitude/phase gave indistinguishable sweep area "
+        f"({area_low:.6e} vs {area_high:.6e}). Amplitude dynamics are physical; "
+        "z0 must drive the sweep, not the seed."
+    )
+    # The fitted paths must also differ from the seed-only fallback, proving the
+    # default evidence path does NOT silently use the random seed state.
+    assert abs(area_low - area_seed) > 1e-9 and abs(area_high - area_seed) > 1e-9, (
+        "INV-SL fitted-state VIOLATED: fitted sweep collapsed onto the seed-only "
+        f"path (low={area_low:.6e}, high={area_high:.6e}, seed={area_seed:.6e}). "
+        "The fitted z0 path must not equal the seeded fallback."
+    )
+
+
+def test_pathological_mu_is_clipped_visibly_not_silently() -> None:
+    """P0-3: an over-Euler-band growth rate is clipped through the audit surface.
+
+    A steep amplitude envelope (raw slope ≈ 2 > the ±1 Euler clamp) must surface
+    on the audit tuple: ``mu_was_clipped`` all True, ``mu_clip_count`` == N, and
+    ``mu_clip_mass`` > 0 measuring the removed growth-rate mass. A benign
+    envelope (slope 0.1) must leave the audit surface pristine. This forbids a
+    silent clamp: the clip event is observable, so downstream code cannot read a
+    clipped window as unmodified physical evidence.
+    """
+    n_t, n = 8, 3
+    t = np.arange(n_t, dtype=np.float64)
+
+    steep = np.tile(np.exp(2.0 * t)[:, None], (1, n))
+    mu_raw, mu_clamped, mask, count, mass = _estimate_growth_rate_audit(steep)
+    assert np.allclose(mu_raw, 2.0, atol=1e-6) and np.allclose(mu_clamped, 1.0), (
+        "INV-SL mu audit VIOLATED: steep envelope should give raw≈2, clamped=1; "
+        f"got raw={mu_raw}, clamped={mu_clamped}."
+    )
+    assert bool(np.all(mask)) and count == n and mass > 0.0, (
+        "INV-SL mu audit VIOLATED: pathological μ was clamped SILENTLY — audit "
+        f"surface did not flag it (mask={mask}, count={count}, mass={mass}). "
+        "Clip must be visible: mu_was_clipped all True, count==N, mass>0."
+    )
+
+    benign = np.tile(np.exp(0.1 * t)[:, None], (1, n))
+    _, _, mask0, count0, mass0 = _estimate_growth_rate_audit(benign)
+    assert not bool(np.any(mask0)) and count0 == 0 and mass0 == 0.0, (
+        "INV-SL mu audit VIOLATED: benign envelope must not report any clip "
+        f"(mask={mask0}, count={count0}, mass={mass0})."
+    )
+
+
+def test_rolling_es_proximity_fail_closed_raises_with_window_index() -> None:
+    """P1-1: evidence-mode rolling is fail-closed, not NaN-masking.
+
+    When a window fit fails, ``fail_closed=False`` (exploratory) writes NaN, but
+    ``fail_closed=True`` (evidence) must RAISE with the offending window index
+    and the underlying cause, so physics-evidence generation cannot silently
+    drop failed windows. A monkeypatched fit forces a deterministic failure at
+    one window endpoint; the two modes are asserted to diverge exactly there.
+    """
+    prices = _synthetic_prices(T=48, N=4, seed=0)
+    window, fail_at = 16, 20
+    real_fit = sl.fit_stuart_landau
+    target_last = float(prices[fail_at, 0])
+
+    def _failing_fit(slab: NDArray[np.float64], **kwargs: object) -> StuartLandauResult:
+        if slab.shape[0] == window and abs(float(slab[-1, 0]) - target_last) < 1e-12:
+            raise ValueError("synthetic degenerate window for fail-closed probe")
+        return real_fit(slab, **kwargs)  # type: ignore[arg-type]
+
+    sl.fit_stuart_landau = _failing_fit  # type: ignore[assignment]
+    try:
+        lenient = rolling_es_proximity(prices, window=window, step=1, fail_closed=False)
+        assert np.isnan(lenient[fail_at]), (
+            "INV-SL rolling VIOLATED: lenient mode must write NaN at the failed "
+            f"window {fail_at}, got {lenient[fail_at]!r}."
+        )
+        with pytest.raises(RuntimeError, match="fail-closed") as excinfo:
+            rolling_es_proximity(prices, window=window, step=1, fail_closed=True)
+        message = str(excinfo.value)
+        assert f"window_end={fail_at}" in message, (
+            "INV-SL rolling fail-closed VIOLATED: raised error must name the "
+            f"offending window index; got {message!r}."
+        )
+        assert "synthetic degenerate window" in message, (
+            "INV-SL rolling fail-closed VIOLATED: raised error must carry the "
+            f"underlying cause; got {message!r}."
+        )
+    finally:
+        sl.fit_stuart_landau = real_fit  # type: ignore[assignment]
