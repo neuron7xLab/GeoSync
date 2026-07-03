@@ -36,6 +36,7 @@ without modifying risk logic.
 
 from __future__ import annotations
 
+import functools
 import json
 import math
 import sqlite3
@@ -49,10 +50,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import (
     Callable,
+    Concatenate,
     Dict,
     Iterable,
     Mapping,
     MutableMapping,
+    ParamSpec,
     Protocol,
     TypeVar,
 )
@@ -75,6 +78,31 @@ from libs.db import (
 )
 
 from ..audit import ExecutionAuditLogger, get_execution_audit_logger
+
+_P = ParamSpec("_P")
+_RT = TypeVar("_RT")
+
+
+def _synchronized(
+    method: Callable[Concatenate["RiskManager", _P], _RT],
+) -> Callable[Concatenate["RiskManager", _P], _RT]:
+    """Serialise a :class:`RiskManager` method on the instance state lock.
+
+    The live runner drives ``RiskManager`` from three concurrent watchdog threads
+    (order-submission, fill-poller, heartbeat — see ``execution/live_loop.py``).
+    Without serialisation, ``validate_order``'s cap check and ``register_fill``'s
+    position update interleave, corrupting ``_positions``/``_last_notional`` and
+    the violation/throttle counters, and letting an unsynchronised read observe a
+    torn snapshot. The guard is a reentrant lock (``threading.RLock``) so a guarded
+    method may call another without self-deadlock.
+    """
+
+    @functools.wraps(method)
+    def _wrapper(self: "RiskManager", *args: _P.args, **kwargs: _P.kwargs) -> _RT:
+        with self._state_lock:
+            return method(self, *args, **kwargs)
+
+    return _wrapper
 
 
 class RiskError(RuntimeError):
@@ -834,6 +862,9 @@ class RiskManager(RiskController):
         self.limits = limits
         self._kill_switch = KillSwitch(store=kill_switch_store)
         self._time = time_source or time.time
+        # Reentrant so a guarded method (e.g. validate_order) may call another
+        # guarded method without self-deadlock; see _synchronized.
+        self._state_lock = threading.RLock()
         self._positions: MutableMapping[str, float] = {}
         self._last_notional: MutableMapping[str, float] = {}
         self._risk_state_store = risk_state_store
@@ -852,6 +883,7 @@ class RiskManager(RiskController):
         self._latest_neural_directive: dict[str, float | str] | None = None
         self._restore_risk_state()
 
+    @_synchronized
     def update_limits(self, **updates: object) -> RiskLimits:
         """Apply supported updates to :class:`RiskLimits` and return the result."""
 
@@ -881,6 +913,7 @@ class RiskManager(RiskController):
         self.limits = new_limits
         return self.limits
 
+    @_synchronized
     def apply_neural_directive(
         self,
         *,
@@ -996,6 +1029,7 @@ class RiskManager(RiskController):
 
         return self._kill_switch.is_triggered()
 
+    @_synchronized
     def update_portfolio_equity(
         self,
         equity: float,
@@ -1065,6 +1099,7 @@ class RiskManager(RiskController):
         else:
             self._drawdown_halt_notified = False
 
+    @_synchronized
     def hydrate_positions(
         self,
         mapping: Mapping[str, tuple[float, float]],
@@ -1185,6 +1220,7 @@ class RiskManager(RiskController):
             }
         )
 
+    @_synchronized
     def validate_order(self, symbol: str, side: str, qty: float, price: float) -> None:
         """Apply risk checks before admitting an order to the execution stack.
 
@@ -1336,6 +1372,7 @@ class RiskManager(RiskController):
 
         return self._kill_switch
 
+    @_synchronized
     def register_fill(self, symbol: str, side: str, qty: float, price: float) -> None:
         """Update exposure after a confirmed fill.
 
@@ -1359,18 +1396,21 @@ class RiskManager(RiskController):
         self._last_notional[canonical_symbol] = abs(position * price)
         self._persist_risk_state()
 
+    @_synchronized
     def current_position(self, symbol: str) -> float:
         """Return the signed position for ``symbol``."""
 
         canonical_symbol = self._canonical_symbol(symbol)
         return float(self._positions.get(canonical_symbol, 0.0))
 
+    @_synchronized
     def current_notional(self, symbol: str) -> float:
         """Return the absolute notional exposure for ``symbol``."""
 
         canonical_symbol = self._canonical_symbol(symbol)
         return float(self._last_notional.get(canonical_symbol, 0.0))
 
+    @_synchronized
     def exposure_snapshot(self) -> dict[str, dict[str, float]]:
         """Return a serialisable snapshot of tracked positions and notionals."""
 
