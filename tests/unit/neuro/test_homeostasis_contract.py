@@ -16,7 +16,7 @@ import importlib.util
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 TOOL = ROOT / "tools" / "audit_homeostasis_contract.py"
 ARTIFACT = ROOT / "artifacts" / "neuro" / "homeostasis_contract.json"
 SCHEMA = ROOT / "audit" / "schema" / "homeostasis_contract.schema.json"
