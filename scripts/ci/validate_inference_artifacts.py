@@ -69,6 +69,11 @@ _PAIRS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "audit/schema/final_inference_verdict.schema.json",
         ("PASS",),
     ),
+    (
+        "artifacts/inference/no_ungrounded_act.json",
+        "audit/schema/no_ungrounded_act.schema.json",
+        ("PASS",),
+    ),
 )
 
 
