@@ -10,7 +10,9 @@
   },
   "router_policy": {
     "default_max_run_selectors": 64,
-    "priority_component_ids": ["controlled_component_test_router"],
+    "priority_component_ids": [
+      "controlled_component_test_router"
+    ],
     "python_executable_env": "COMPONENT_ROUTER_PYTHON"
   },
   "required_mapping_patterns": [
@@ -58,7 +60,9 @@
         "tests/unit/physics/test_T2b_runtime_audit.py",
         "tools/physics/clamp_registry.yaml"
       ],
-      "selectors": ["tests/unit/physics/test_T2b_runtime_audit.py"],
+      "selectors": [
+        "tests/unit/physics/test_T2b_runtime_audit.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 120
@@ -94,7 +98,9 @@
         "tools/governance/check_company_value_functions.py",
         "tests/governance/test_company_value_functions.py"
       ],
-      "selectors": ["tests/governance/test_company_value_functions.py"],
+      "selectors": [
+        "tests/governance/test_company_value_functions.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
@@ -108,7 +114,9 @@
         "scripts/ci/check_artifact_freshness.py",
         "tests/ci/test_artifact_freshness_gate.py"
       ],
-      "selectors": ["tests/ci/test_artifact_freshness_gate.py"],
+      "selectors": [
+        "tests/ci/test_artifact_freshness_gate.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
@@ -121,7 +129,9 @@
         "tests/ci/test_manifest_hash_gate.py",
         "tests/ci/test_manifest_hashes.py"
       ],
-      "selectors": ["tests/ci/test_manifest_hashes.py"],
+      "selectors": [
+        "tests/ci/test_manifest_hashes.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
@@ -133,7 +143,9 @@
         "scripts/check_invariant_registry_schema.py",
         "tests/ci/test_invariant_registry_schema.py"
       ],
-      "selectors": ["tests/ci/test_invariant_registry_schema.py"],
+      "selectors": [
+        "tests/ci/test_invariant_registry_schema.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
@@ -141,8 +153,12 @@
     {
       "id": "pr_fast_diagnostics",
       "description": "PR fast diagnostics component.",
-      "patterns": [".github/workflows/pr-fast-diagnostics.yml"],
-      "selectors": ["tests/ci/test_setup_geosync_toolchain.py"],
+      "patterns": [
+        ".github/workflows/pr-fast-diagnostics.yml"
+      ],
+      "selectors": [
+        "tests/ci/test_setup_geosync_toolchain.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
@@ -157,7 +173,9 @@
         "tools/testing/component_test_planner.py",
         "tests/testing/test_select_component_tests.py"
       ],
-      "selectors": ["tests/testing/test_select_component_tests.py"],
+      "selectors": [
+        "tests/testing/test_select_component_tests.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
@@ -225,10 +243,26 @@
         "tests/unit/geosync_pro/test_public_contracts.py",
         "configs/quality/release_90.coveragerc"
       ],
-      "selectors": ["tests/unit/geosync_pro/test_public_contracts.py"],
+      "selectors": [
+        "tests/unit/geosync_pro/test_public_contracts.py"
+      ],
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 120
+    },
+    {
+      "id": "governance_tools_profile",
+      "description": "Governance-tooling coverage profile (tools/scripts measured off the release denominator).",
+      "patterns": [
+        "configs/quality/governance_tools.coveragerc",
+        "tests/tools/test_governance_tooling_coverage_profile.py"
+      ],
+      "selectors": [
+        "tests/tools/test_governance_tooling_coverage_profile.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 60
     }
   ]
 }
