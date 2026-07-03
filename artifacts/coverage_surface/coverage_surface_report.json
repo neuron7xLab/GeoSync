@@ -1,11 +1,6 @@
 {
   "allowlisted": [
     {
-      "note": "Packaged in wheel but has NO source directory \u2014 stale packaging include. Cleanup: remove from [tool.setuptools.packages.find].include; surfaced as stale_packaging_roots in the audit report.",
-      "reason": "deprecated",
-      "root": "geosync_agent"
-    },
-    {
       "note": "Research-only modules; not production runtime. Excluded from release coverage denominator by design.",
       "reason": "research",
       "root": "geosync_research"
@@ -98,7 +93,6 @@
     "src"
   ],
   "missing_from_coverage": [
-    "geosync_agent",
     "geosync_research",
     "libs",
     "modules",
@@ -113,7 +107,6 @@
     "domain",
     "execution",
     "geosync",
-    "geosync_agent",
     "geosync_pro",
     "geosync_research",
     "interfaces",
@@ -125,8 +118,6 @@
     "tools"
   ],
   "schema": "geosync.coverage_surface_report.v1",
-  "stale_packaging_roots": [
-    "geosync_agent"
-  ],
+  "stale_packaging_roots": [],
   "verdict": "PASS"
 }

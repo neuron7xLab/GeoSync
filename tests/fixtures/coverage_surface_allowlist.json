@@ -1,8 +1,4 @@
 {
-  "geosync_agent": {
-    "reason": "deprecated",
-    "note": "Packaged in wheel but has NO source directory — stale packaging include. Cleanup: remove from [tool.setuptools.packages.find].include; surfaced as stale_packaging_roots in the audit report."
-  },
   "geosync_research": {
     "reason": "research",
     "note": "Research-only modules; not production runtime. Excluded from release coverage denominator by design."
