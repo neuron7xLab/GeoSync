@@ -5,7 +5,13 @@
   },
   "geosync_pro": {
     "reason": "deferred_production",
-    "note": "Production surface (18 modules) with no coverage profile and no tests yet. Tracked debt: add to the release_90 profile once a test slice lands (F02: added to source when its dedicated profile arrives)."
+    "note": "Production surface (20 modules) with no coverage profile and no tests yet. Tracked debt: measure under release_90 or remove from packaging (PR-D decision).",
+    "owner": "coverage-runtime",
+    "tracking_issue": "#1407",
+    "target_profile": "configs/quality/release_90.coveragerc",
+    "created_at": "2026-07-03",
+    "max_age_days": 14,
+    "next_test_slice": "tests/unit/geosync_pro/test_*.py"
   },
   "geosync_research": {
     "reason": "research",
@@ -13,11 +19,23 @@
   },
   "libs": {
     "reason": "deferred_production",
-    "note": "Shared production libs (17 modules, partial tests). Tracked debt: fold into the release_90 coverage profile with its own test slice."
+    "note": "Shared production libs (17 modules, partial tests). Tracked debt: fold into the release_90 coverage profile with its own runtime/property test slice.",
+    "owner": "coverage-runtime",
+    "tracking_issue": "#1407",
+    "target_profile": "configs/quality/release_90.coveragerc",
+    "created_at": "2026-07-03",
+    "max_age_days": 14,
+    "next_test_slice": "tests/unit/libs/test_*.py"
   },
   "modules": {
     "reason": "deferred_production",
-    "note": "Production modules (18 files, 12 matching tests) not yet in any coverage profile. Tracked debt: add to release_90 source once the slice is stabilized."
+    "note": "Production modules (18 files, 12 matching tests) not yet in any coverage profile. Tracked debt: add to release_90 source once the runtime/property slice is stabilized.",
+    "owner": "coverage-runtime",
+    "tracking_issue": "#1407",
+    "target_profile": "configs/quality/release_90.coveragerc",
+    "created_at": "2026-07-03",
+    "max_age_days": 14,
+    "next_test_slice": "tests/unit/modules/test_*.py"
   },
   "scripts": {
     "reason": "governance_tooling",
