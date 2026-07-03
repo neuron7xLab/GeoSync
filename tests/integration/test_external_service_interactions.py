@@ -100,6 +100,28 @@ class _FakeRedis:
     def pipeline(self, *, transaction: bool = False) -> _FakeRedisPipeline:
         return _FakeRedisPipeline(self)
 
+    def register_script(self, script: str) -> Any:
+        """Model the feature-cache event_ts compare-and-set Lua script.
+
+        Mirrors ``core.features.realtime_store._CACHE_CAS_LUA``: keep a companion
+        ``<key>:ets`` holding the ISO-8601 event timestamp and reject a write whose
+        timestamp is older than the stored one (lexicographic string compare, which
+        matches event-time order for UTC-microsecond ISO timestamps).
+        """
+
+        async def _run(*, keys: list[str], args: list[Any]) -> int:
+            cache_key = keys[0]
+            ets_key = f"{cache_key}:ets"
+            payload, new_ets = args[0], str(args[1])
+            current = self.store.get(ets_key)
+            if current is not None and current > new_ets:
+                return 0
+            self.store[cache_key] = payload
+            self.store[ets_key] = new_ets
+            return 1
+
+        return _run
+
     async def get(self, key: str) -> str | None:
         return self.store.get(key)
 
