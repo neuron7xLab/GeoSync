@@ -12,6 +12,8 @@ import pandas as pd
 from numpy.typing import NDArray
 from scipy.signal import hilbert
 
+from analytics.signals.null_baseline import make_phase_shuffled_surrogate
+
 
 def _phase(arr: NDArray[np.float64]) -> NDArray[np.float64]:
     centered = arr - np.mean(arr)
@@ -36,15 +38,26 @@ def run(input_csv: Path, output_json: Path, n: int = 1000, seed: int = 42) -> di
     midr, spr = midr[:m], spr[:m]
 
     split = int(0.7 * m)
+    spread_test = spr[split:]
     phi_m = _phase(midr[split:])
-    phi_s = _phase(spr[split:])
+    phi_s = _phase(spread_test)
     obs = _plv(phi_m, phi_s)
 
+    # Autocorrelation-preserving null. An i.i.d. permutation of the Hilbert
+    # phases (`rng.permutation(phi_s)`) destroys the spread's autocorrelation,
+    # so the null PLV collapses to ~1/sqrt(N) and the test turns
+    # anti-conservative: two independent-but-autocorrelated series get flagged
+    # SIGNAL_READY. Instead each surrogate is an FFT phase-randomised copy of
+    # the spread SIGNAL (preserving its power spectrum, hence its linear
+    # autocorrelation) from which the phase is re-extracted, so the null carries
+    # the same spurious-PLV inflation as the observed statistic.
     rng = np.random.default_rng(seed)
+    surrogate_seeds = rng.integers(0, 2**31 - 1, size=n)
     count = 0
-    for _ in range(n):
-        surr = rng.permutation(phi_s)
-        if _plv(phi_m, surr) >= obs:
+    for k in range(n):
+        surr_signal, _meta = make_phase_shuffled_surrogate(spread_test, int(surrogate_seeds[k]))
+        surr_phase = _phase(surr_signal)
+        if _plv(phi_m, surr_phase) >= obs:
             count += 1
     p = (count + 1) / (n + 1)
 
