@@ -46,7 +46,10 @@ def test_stuart_landau_change_selects_only_component_selector() -> None:
     assert [component["id"] for component in plan["components"]] == [
         "stuart_landau_runtime"
     ]
-    assert plan["selectors"] == ["tests/unit/physics/test_T2b_stuart_landau_es.py"]
+    assert plan["selectors"] == [
+        "tests/unit/physics/test_T2b_stuart_landau_es.py",
+        "tests/benchmarks/test_rolling_es_proximity_oos_contract.py",
+    ]
 
 
 def test_setup_action_change_selects_dependency_and_setup_tests() -> None:

@@ -171,7 +171,7 @@ def _validate_sweep_config(
         )
     if not np.isfinite(dt) or dt <= 0.0:
         raise ValueError(
-            "INV-SL contract VIOLATED: finite dt>0 required, " f"got {dt}. Source: {source}."
+            f"INV-SL contract VIOLATED: finite dt>0 required, got {dt}. Source: {source}."
         )
 
 
@@ -474,7 +474,13 @@ def crisis_signal_sl(
     dt: float = _DEFAULT_DT,
     seed: int = 42,
 ) -> dict[str, float | bool]:
-    """Single-shot Stuart-Landau crisis signal."""
+    """Single-shot Stuart-Landau crisis signal.
+
+    Issue #1358 P1-3: the mu-clip audit is surfaced here (``mu_clip_count``,
+    ``mu_clip_mass``, ``mu_was_clipped_any``) so a downstream consumer using this
+    compact signal as evidence can still see whether the growth-rate estimate was
+    clamped — a clipped window is not silently indistinguishable from a clean one.
+    """
     res = fit_stuart_landau(
         prices,
         K_low=K_low,
@@ -492,4 +498,7 @@ def crisis_signal_sl(
         "amplitude_min": float(res.amplitude.min()),
         "is_explosive": bool(res.es_proximity > es_threshold),
         "leads_r_peak": res.leads_r_peak,
+        "mu_clip_count": res.mu_clip_count,
+        "mu_clip_mass": res.mu_clip_mass,
+        "mu_was_clipped_any": bool(np.any(res.mu_was_clipped)),
     }

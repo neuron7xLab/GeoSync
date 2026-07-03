@@ -277,6 +277,17 @@ def main() -> int:
                 "leads_rate_threshold": LEADS_RATE_THRESHOLD,
                 "p_value_threshold": P_VALUE_THRESHOLD,
                 "min_episodes": MIN_EPISODES,
+                # Issue #1358 P1-1: record the strict failure policy the ES engine
+                # was invoked with, so the artifact schema tracks the code behavior.
+                "fail_closed": True,
+            },
+            # A completed strict run means zero windows raised (any failure would
+            # have aborted the replay), so this is the fail-closed witness.
+            "strict_replay": {
+                "enabled": True,
+                "failed_window_count": 0,
+                "policy": "raise on fit failure; no NaN masking in evidence mode",
+                "reason": "#1358 P1-1 strict evidence path",
             },
             "universe": ASSETS,
             "data_sha256": hashes,
