@@ -1,0 +1,82 @@
+# Diff-bound commit acceptor: restore coverage-surface allowlist honesty.
+#
+# PR #1442 added configs/quality/governance_tools.coveragerc which MEASURES the
+# `scripts` and `tools` roots, but left their stale `deferred`/`governance_tooling`
+# entries in tests/fixtures/coverage_surface_allowlist.json. That left main RED on
+# tests/ci/test_coverage_source_matches_packaged_surface.py::
+# test_allowlist_entries_are_honest_and_non_vacuous — an allowlist entry that
+# defends an already-measured root is a lie by inclusion. This drops the two
+# now-measured roots from the allowlist and regenerates the audit artifact.
+
+id: fix-coverage-surface-allowlist-honesty
+status: ACTIVE
+claim_type: fail_closed
+promise: >-
+  After this PR, the coverage-surface allowlist no longer defends the
+  already-measured `scripts` and `tools` roots (they are measured by
+  configs/quality/governance_tools.coveragerc), so
+  test_allowlist_entries_are_honest_and_non_vacuous passes again; the only
+  remaining allowlist entry is `geosync_research` (research, not packaged
+  runtime), the audit verdict stays PASS with no forbidden gaps, and the
+  committed coverage_surface_report.json matches a fresh audit.
+
+diff_scope:
+  changed_files:
+    - path: ".claude/commit_acceptors/fix-coverage-surface-allowlist-honesty.yaml"
+    - path: "tests/fixtures/coverage_surface_allowlist.json"
+  forbidden_paths:
+    - "core/physics/"
+    - "core/kuramoto/"
+    - "execution/"
+
+required_python_symbols: []
+
+expected_signal: >-
+  `python -m pytest --import-mode=importlib -p no:cacheprovider
+  tests/ci/test_coverage_source_matches_packaged_surface.py
+  tests/ci/test_deferred_production_coverage_debt.py -q` reports all passing, and
+  the coverage-surface audit reports verdict PASS with allowlisted == ['geosync_research'].
+
+measurement_command: >-
+  bash -c '
+    python -m pytest --import-mode=importlib -p no:cacheprovider -o addopts=
+      tests/ci/test_coverage_source_matches_packaged_surface.py
+      tests/ci/test_deferred_production_coverage_debt.py -q
+  '
+
+signal_artifact: "tmp/fix_coverage_surface_allowlist_honesty.log"
+
+falsifier:
+  command: |-
+    bash -c '
+      python -c "
+    import json
+    from tools.audit_coverage_surface import audit
+    report = audit()
+    measured = set(report[\"coverage_sources\"])
+    allowlist = json.load(open(\"tests/fixtures/coverage_surface_allowlist.json\"))
+    # No allowlist entry may defend an already-measured root.
+    assert not (set(allowlist) & measured), (set(allowlist) & measured)
+    assert \"scripts\" not in allowlist and \"tools\" not in allowlist
+    assert report[\"verdict\"] == \"PASS\"
+    "
+    '
+  description: >-
+    Asserts that no allowlist entry defends a measured root and the audit verdict
+    is PASS. Per the run_evidence green-state contract it exits 0 on the correct
+    tree and non-zero if a stale (lying) allowlist entry is reintroduced.
+
+rollback_command: >-
+  bash -c '
+    git rm -f .claude/commit_acceptors/fix-coverage-surface-allowlist-honesty.yaml
+  '
+
+rollback_verification_command: >-
+  bash -c '
+    test ! -f .claude/commit_acceptors/fix-coverage-surface-allowlist-honesty.yaml
+  '
+
+memory_update_type: append
+ledger_path: ".claude/commit_acceptors/fix-coverage-surface-allowlist-honesty.yaml"
+report_path: "tmp/fix_coverage_surface_allowlist_honesty.log"
+evidence: []
