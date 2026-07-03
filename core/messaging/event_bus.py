@@ -162,7 +162,10 @@ class KafkaEventBus(BaseEventBus):
             raise ValueError("KafkaEventBus requires a Kafka backend configuration")
         super().__init__(config, idempotency_store=idempotency_store)
         self._producer = None
-        self._consumer_tasks: Dict[str, asyncio.Task[None]] = {}
+        # One topic may be subscribed more than once; keep EVERY consumer task so
+        # a later subscribe cannot orphan an earlier one (leaked socket + double
+        # delivery) and stop() can cancel all of them.
+        self._consumer_tasks: Dict[str, list[asyncio.Task[None]]] = {}
         self._security_kwargs: Dict[str, object] | None = None
 
     async def start(self) -> None:
@@ -185,8 +188,13 @@ class KafkaEventBus(BaseEventBus):
     async def stop(self) -> None:
         if self._producer:
             await self._producer.stop()
-        for task in self._consumer_tasks.values():
+        tasks = [task for group in self._consumer_tasks.values() for task in group]
+        for task in tasks:
             task.cancel()
+        # Await cancellation so each consumer's `finally: consumer.stop()` runs
+        # (closes the AIOKafkaConsumer socket) before we return.
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
         self._consumer_tasks.clear()
 
     async def publish(self, topic: EventTopic, envelope: EventEnvelope) -> None:
@@ -237,7 +245,7 @@ class KafkaEventBus(BaseEventBus):
                 await consumer.stop()
 
         task = asyncio.create_task(_consume(), name=f"kafka-consumer-{topic.metadata.name}")
-        self._consumer_tasks[topic.metadata.name] = task
+        self._consumer_tasks.setdefault(topic.metadata.name, []).append(task)
 
     def _get_security_kwargs(self) -> Dict[str, object]:
         if self._security_kwargs is None:

@@ -267,7 +267,7 @@ async def test_kafka_subscribe_processes_message_and_commits(stub_aiokafka, kafk
         received.append(envelope)
 
     await bus.subscribe(EventTopic.MARKET_TICKS, handler)
-    task = bus._consumer_tasks[EventTopic.MARKET_TICKS.metadata.name]
+    task = bus._consumer_tasks[EventTopic.MARKET_TICKS.metadata.name][0]
     await asyncio.wait_for(task, timeout=0.1)
 
     assert len(received) == 1
@@ -281,6 +281,47 @@ async def test_kafka_subscribe_processes_message_and_commits(stub_aiokafka, kafk
     assert consumer.kwargs["ssl_context"] is kafka_tls["contexts"][0]
 
     await bus.stop()
+
+
+@pytest.mark.asyncio
+async def test_kafka_repeated_subscribe_does_not_orphan_the_earlier_consumer(
+    stub_aiokafka, kafka_tls
+) -> None:
+    # Subscribing the same topic twice must keep BOTH consumer tasks — a later
+    # subscribe must not overwrite (orphan) the earlier one, leaking its socket
+    # and double-delivering. stop() must then cancel/clean all of them.
+    config = EventBusConfig(
+        backend=EventBusBackend.KAFKA,
+        bootstrap_servers="kafka:9092",
+        ssl_cafile=kafka_tls["cafile"],
+    )
+    bus = KafkaEventBus(config)
+    await bus.start()
+
+    async def handler(_: EventEnvelope) -> None:
+        return None
+
+    stub_aiokafka.AIOKafkaConsumer.instances.clear()
+    stub_aiokafka.AIOKafkaConsumer.queued_messages = []
+    await bus.subscribe(EventTopic.MARKET_TICKS, handler)
+    await bus.subscribe(EventTopic.MARKET_TICKS, handler)
+
+    name = EventTopic.MARKET_TICKS.metadata.name
+    # The core fix: BOTH consumer tasks are tracked; the second subscribe did not
+    # overwrite (orphan) the first. On the buggy code this list would be a single
+    # task and the first consumer would leak.
+    assert len(bus._consumer_tasks[name]) == 2, "second subscribe orphaned the first task"
+    assert len(stub_aiokafka.AIOKafkaConsumer.instances) == 2
+    tracked = list(bus._consumer_tasks[name])
+
+    # Let the (message-less) consume loops run to completion so each closes its
+    # consumer via `finally: consumer.stop()`.
+    await asyncio.sleep(0.05)
+    assert all(c._stopped for c in stub_aiokafka.AIOKafkaConsumer.instances)
+
+    await bus.stop()
+    assert bus._consumer_tasks == {}
+    assert all(t.done() for t in tracked)
 
 
 @pytest.mark.asyncio
