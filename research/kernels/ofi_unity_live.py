@@ -150,8 +150,12 @@ def run(source: str, input_csv: Path | None, output: Path) -> dict[str, Any]:
             raise FileNotFoundError("input_csv not provided")
         df = _load_source_csv(input_csv)
         unity = ofi_unity_kernel(df, window=WINDOW)
-        target_col = "mid_returns" if "mid_returns" in df.columns else df.columns[0]
-        verdict = validate_unity(unity, df[target_col].shift(-1))
+        if "mid_returns" not in df.columns:
+            # Silently falling back to df.columns[0] measured IC against a price
+            # LEVEL, not a forward return — a meaningless verdict presented as
+            # SIGNAL_READY/REJECT. Require the return column explicitly.
+            raise ValueError("ofi_unity_live requires a 'mid_returns' column in the input CSV")
+        verdict = validate_unity(unity, df["mid_returns"].shift(-1))
         verdict["lineage"] = lineage
     except Exception as exc:
         verdict = {
