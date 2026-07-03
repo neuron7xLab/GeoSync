@@ -87,16 +87,15 @@ falsifier:
     assert callable(nb._causal_phase)
     plv_src = pathlib.Path(\"research/kernels/plv_market_spread.py\").read_text()
     assert \"make_phase_shuffled_surrogate(spread_test\" in plv_src
-      " 2>/dev/null && exit 1 || exit 0
+      "
     '
   description: >-
     Loads neurophase_bridge and asserts the causal-phase helper (_causal_phase)
     is present, and asserts plv_market_spread wires the autocorrelation-
     preserving surrogate (make_phase_shuffled_surrogate applied to the spread
-    signal). The falsifier inverts: it succeeds (exit 0) ONLY when that
-    assertion fails — i.e. only if the fix was rolled back to the look-ahead /
-    anti-conservative kernels.
-
+    signal). It asserts the fix invariant and, per the run_evidence green-state
+    contract, exits 0 on the correct (green) tree and non-zero if the fix
+    regresses or is rolled back.
 rollback_command: >-
   bash -c '
     git checkout origin/main -- research/kernels/neurophase_bridge.py research/kernels/plv_market_spread.py &&

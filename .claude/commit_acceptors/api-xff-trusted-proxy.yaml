@@ -76,16 +76,14 @@ falsifier:
         return Request(scope)
     assert _resolve_ip(req(\"198.51.100.44\", \"203.0.113.9, 10.0.0.5\")) == \"198.51.100.44\"
     assert _resolve_ip(req(\"198.51.100.44\", \"   \")) == \"198.51.100.44\"
-      " 2>/dev/null && exit 1 || exit 0
+      "
     '
   description: >-
     Sends a spoofed X-Forwarded-For (and a whitespace-only header) from an
     untrusted peer and asserts _resolve_ip returns the DIRECT peer without
-    raising. The falsifier inverts: it succeeds (exit 0) ONLY when that
-    assertion fails or crashes -- i.e. only if the un-gated header trust or the
-    empty-segment IndexError regression is reintroduced (or the fix is rolled
-    back).
-
+    raising. It asserts the fix invariant and, per the run_evidence green-state
+    contract, exits 0 on the correct (green) tree and non-zero if the fix
+    regresses or is rolled back.
 rollback_command: >-
   bash -c '
     git rm -f .claude/commit_acceptors/api-xff-trusted-proxy.yaml

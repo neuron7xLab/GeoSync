@@ -61,13 +61,13 @@ falsifier:
     except Exception:
         raised = True
     assert raised, \"expected fail-closed rejection\"
-      " 2>/dev/null && exit 1 || exit 0
+      "
     '
   description: >-
     Asserts that a market order with no reference price and an active notional
-    cap fails closed. The falsifier inverts: it succeeds (exit 0) ONLY when that
-    assertion fails — i.e. only if the $1 fail-open floor is reintroduced.
-
+    cap fails closed. It asserts the fix invariant and, per the run_evidence green-state
+    contract, exits 0 on the correct (green) tree and non-zero if the fix
+    regresses or is rolled back.
 rollback_command: >-
   bash -c '
     git rm -f .claude/commit_acceptors/oms-notional-fail-closed.yaml
