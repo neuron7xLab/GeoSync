@@ -96,13 +96,13 @@ falsifier:
         spec.loader.exec_module(mod); return mod
     a=_load(\"rvg_audit\"); v=_load(\"rvg_verify_artifacts\")
     assert callable(a.compute_verdict) and callable(v.cross_check_recompute)
-      " 2>/dev/null && exit 1 || exit 0
+      "
     '
   description: >-
     Loads the RVG tools and asserts compute_verdict + cross_check_recompute are
-    callable. The falsifier inverts: it succeeds (exit 0) only when that import
-    or assertion fails — i.e. only if the harness was rolled back.
-
+    callable. It asserts the fix invariant and, per the run_evidence green-state
+    contract, exits 0 on the correct (green) tree and non-zero if the fix
+    regresses or is rolled back.
 rollback_command: >-
   bash -c '
     git rm -f .claude/commit_acceptors/rvg-1-verification-gate.yaml

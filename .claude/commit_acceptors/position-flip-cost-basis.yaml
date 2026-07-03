@@ -56,13 +56,12 @@ falsifier:
     p.apply_fill(OrderSide.BUY, 5, 100.0)
     p.apply_fill(OrderSide.SELL, 8, 120.0)
     assert p.quantity == -3 and p.entry_price == 120.0 and p.unrealized_pnl == 0.0
-      " 2>/dev/null && exit 1 || exit 0
+      "
     '
   description: >-
-    Flips a long-5 position to short-3 and asserts the cost basis reset. The
-    falsifier inverts: it succeeds (exit 0) ONLY when that assertion fails —
-    i.e. only if the magnitude-test regression is reintroduced.
-
+    Flips a long-5 position to short-3 and asserts the cost basis reset. It asserts the fix invariant and, per the run_evidence green-state
+    contract, exits 0 on the correct (green) tree and non-zero if the fix
+    regresses or is rolled back.
 rollback_command: >-
   bash -c '
     git rm -f .claude/commit_acceptors/position-flip-cost-basis.yaml

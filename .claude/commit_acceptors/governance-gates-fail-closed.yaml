@@ -116,15 +116,12 @@ measurement_command: >-
 signal_artifact: "tmp/governance_gates_fail_closed.log"
 falsifier:
   command: >-
-    bash -c 'test -f .claude/commit_acceptors/governance-gates-fail-closed.yaml
-    && exit 1 || exit 0'
+    bash -c 'test -f .claude/commit_acceptors/governance-gates-fail-closed.yaml'
   description: >-
-    Inverse probe matching the acceptor-runner polarity (exit 0 == rolled-back
-    precondition). It exits 0 only when this acceptor file is ABSENT — i.e. the
-    fail-closed hardening was rolled back — and exits 1 while the acceptor is
-    present. Presence of the acceptor is the load-bearing artifact for this
-    governance-hygiene change; the six code fixes it binds are AST-verified via
-    required_python_symbols.
+    Green-state probe matching the run_evidence acceptor-runner polarity
+    (exit 0 == green precondition). It exits 0 while this acceptor file is
+    PRESENT (the fail-closed hardening in force) and non-zero if it is removed.
+    The six code fixes it binds are AST-verified via required_python_symbols.
 rollback_command: >-
   bash -c 'git rm -f .claude/commit_acceptors/governance-gates-fail-closed.yaml'
 rollback_verification_command: >-
