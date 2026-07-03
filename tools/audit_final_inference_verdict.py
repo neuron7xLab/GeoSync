@@ -35,6 +35,7 @@ _SCHEMA_IDS: dict[str, str] = {
     "risk_reservation_lifecycle": "geosync.risk_reservation_lifecycle.v1",
     "feature_cache_freshness": "geosync.feature_cache_freshness_matrix.v1",
     "event_bus_lifecycle": "geosync.event_bus_lifecycle_matrix.v1",
+    "homeostasis_contract": "geosync.homeostasis_contract.v1",
     "component_strength": "geosync.component_strength_report.v1",
 }
 
@@ -89,6 +90,12 @@ INPUTS: tuple[dict[str, Any], ...] = (
         "name": "event_bus_lifecycle",
         "path": "artifacts/messaging/event_bus_lifecycle_matrix.json",
         "pass_values": _PASS,
+        "tier": "substrate",
+    },
+    {
+        "name": "homeostasis_contract",
+        "path": "artifacts/neuro/homeostasis_contract.json",
+        "pass_values": ("PASS",),
         "tier": "substrate",
     },
     {

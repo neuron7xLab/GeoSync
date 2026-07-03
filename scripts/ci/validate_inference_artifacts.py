@@ -60,6 +60,11 @@ _PAIRS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         ("PASS",),
     ),
     (
+        "artifacts/neuro/homeostasis_contract.json",
+        "audit/schema/homeostasis_contract.schema.json",
+        ("PASS",),
+    ),
+    (
         "artifacts/inference/final_inference_verdict.json",
         "audit/schema/final_inference_verdict.schema.json",
         ("PASS",),
