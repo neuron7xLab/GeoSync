@@ -170,7 +170,16 @@ class _TTLCache:
             ttl_ms = 1_000
         expiry = asyncio.get_running_loop().time() + ttl_ms / 1_000.0
         async with self._lock:
-            if len(self._data) >= self._max_size:
+            existing = self._data.get(key)
+            if existing is not None:
+                _, existing_record = existing
+                # Monotonic guard (compare-and-set on event_ts): a later-arriving
+                # OLDER tick must never overwrite a newer cached feature. Without
+                # this, an out-of-order/retried publish is last-writer-wins and
+                # serves a stale feature on the hot read path.
+                if existing_record.event_ts > record.event_ts:
+                    return
+            if len(self._data) >= self._max_size and key not in self._data:
                 # Drop the stalest entry (simple heuristic sufficient for hot cache).
                 stale_key = min(self._data.items(), key=lambda item: item[1][0])[0]
                 self._data.pop(stale_key, None)
@@ -183,6 +192,24 @@ class _TTLCache:
     async def clear(self) -> None:
         async with self._lock:
             self._data.clear()
+
+
+# Compare-and-set the feature cache on event_ts. UTC ISO-8601 timestamps with a
+# fixed microsecond precision are lexicographically ordered, so a plain string
+# compare gives event-time ordering. The value key and a companion ``:ets`` key
+# are written together only when the incoming event_ts is not older than the
+# stored one — an out-of-order/retried publish cannot clobber a newer feature
+# across processes. Returns 1 if applied, 0 if skipped as stale.
+_CACHE_CAS_LUA = """
+local ets_key = KEYS[1] .. ':ets'
+local cur = redis.call('GET', ets_key)
+if cur and cur > ARGV[2] then
+  return 0
+end
+redis.call('SET', KEYS[1], ARGV[1], 'PX', ARGV[3])
+redis.call('SET', ets_key, ARGV[2], 'PX', ARGV[3])
+return 1
+"""
 
 
 class RealTimeFeatureStore:
@@ -206,6 +233,8 @@ class RealTimeFeatureStore:
         self._microcache = _TTLCache()
         self._registered_descriptors: dict[tuple[str, str, str], FeatureDescriptor] = {}
         self._write_retry_attempts = max(1, write_retry_attempts)
+        # Lazily-registered event_ts compare-and-set script for the Redis cache.
+        self._cache_cas_script: Any = None
 
     async def initialise(self) -> None:
         """Ensure metadata tables exist in TimescaleDB."""
@@ -339,10 +368,16 @@ class RealTimeFeatureStore:
         stream_key = descriptor.stream_key
         cache_key = descriptor.cache_key(entity_id)
         payload_json = json.dumps(payload, separators=(",", ":"))
+        event_ts = str(payload["event_ts"])
+        # Stream append is history — always applied. The cache SET is compare-and-
+        # set on event_ts so an out-of-order/retried publish cannot overwrite a
+        # newer cached feature.
         async with self._redis.pipeline(transaction=False) as pipe:
             pipe.xadd(stream_key, payload, maxlen=self._stream_maxlen, approximate=True)
-            pipe.set(cache_key, payload_json, px=ttl_ms)
             await pipe.execute()
+        if self._cache_cas_script is None:
+            self._cache_cas_script = self._redis.register_script(_CACHE_CAS_LUA)
+        await self._cache_cas_script(keys=[cache_key], args=[payload_json, event_ts, ttl_ms])
 
     async def _write_to_timescale(self, record: FeatureRecord) -> bool:
         lineage_json = json.dumps(record.lineage.asdict()) if record.lineage else None
