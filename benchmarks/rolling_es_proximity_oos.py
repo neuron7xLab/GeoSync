@@ -182,12 +182,16 @@ def main() -> int:
         f"start={oos.index[0].date()}, end={oos.index[-1].date()}"
     )
 
+    # Issue #1358 P1-1: this is a physics-evidence generation path, so it runs
+    # fail-closed — a failed window must surface with its index and cause, never
+    # be silently masked as NaN (which would let a broken window count as quiet).
     es = rolling_es_proximity(
         prices,
         window=WINDOW,
         K_steps=K_STEPS,
         int_steps=INT_STEPS,
         seed=SEED_ENGINE,
+        fail_closed=True,
     )
     R = rolling_R(prices, window=WINDOW)
     es_s = smooth_box(es)

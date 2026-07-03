@@ -62,7 +62,16 @@ selection: both registered up front.
 2. ffill(limit=1); drop rows still containing NaN.
 3. Drop the train portion (first 70 % of bars). Subsequent operations
    touch the OOS portion only.
-4. Compute `rolling_es_proximity(prices_oos, window=24, K_steps=12, int_steps=120, seed=20260506)`.
+4. Compute `rolling_es_proximity(prices_oos, window=24, K_steps=12, int_steps=120, seed=20260506, fail_closed=True)`.
+   Failure policy (integrity amendment, issue #1358 P1-1, 2026-07-03): this
+   evidence path runs fail-closed — a window whose fit raises aborts the replay
+   with its index and cause rather than writing a NaN-backed result. This is
+   NOT a re-registration deviation: it changes no §6 pre-committed numeric
+   parameter, and on this frozen OOS window zero windows raise, so the produced
+   `ES_smooth` series, `leads_rate`, `p_value`, and the REJECT decision are
+   bit-identical to the original lenient replay (verified 2026-07-03). The flag
+   is a forward safety ratchet that surfaces any future masked fit failure
+   instead of silently degrading it to a quiet window.
 5. Compute rolling Kuramoto R via Hilbert-phase order parameter on the
    same window.
 6. Smooth both series with a box-5 mean (consistent with the unit test).
