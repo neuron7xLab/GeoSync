@@ -78,6 +78,21 @@ class CircuitBreaker:
                 self._half_open_calls += 1
             return True
 
+    def refund_half_open_probe(self) -> None:
+        """Return a half-open probe budget consumed by :meth:`allow_request`.
+
+        A composed profile may admit a request through the breaker (bumping the
+        half-open call count) and then reject it downstream (rate limiter /
+        bulkhead) before it ever runs. Without a refund those admitted-but-
+        never-executed probes exhaust ``half_open_max_calls`` and no
+        success/failure is ever recorded, wedging the breaker HALF_OPEN forever
+        (HALF_OPEN never re-checks recovery_timeout). Refund keeps the probe
+        budget accurate so recovery can still complete.
+        """
+        with self._lock:
+            if self._state is CircuitBreakerState.HALF_OPEN and self._half_open_calls > 0:
+                self._half_open_calls -= 1
+
     def record_success(self) -> None:
         with self._lock:
             self._recent_outcomes.append(True)
@@ -449,11 +464,17 @@ class ExchangeResilienceProfile:
             self._register_rejection("circuit_open")
             return False
 
+        # The breaker admitted the request above (bumping any half-open probe
+        # budget). If a downstream layer now rejects it, the probe never runs, so
+        # refund the budget — otherwise admitted-but-rejected probes wedge the
+        # breaker HALF_OPEN forever.
         if not self.leaky_bucket.allow():
+            self.circuit_breaker.refund_half_open_probe()
             self._register_rejection("leaky_bucket")
             return False
 
         if not self.bulkhead.acquire(timeout=0):
+            self.circuit_breaker.refund_half_open_probe()
             self._register_rejection("bulkhead")
             return False
 
@@ -461,6 +482,7 @@ class ExchangeResilienceProfile:
         token_cost = tokens * throttle_factor
         if not self.token_bucket.allow(token_cost):
             self.bulkhead.release()
+            self.circuit_breaker.refund_half_open_probe()
             self._register_rejection("token_bucket")
             return False
 
