@@ -59,6 +59,10 @@
       }
     },
     "forbidden_gaps": { "type": "array", "items": { "type": "string" } },
-    "verdict": { "type": "string", "enum": ["PASS", "FAIL"] }
+    "verdict": { "type": "string", "enum": ["PASS", "FAIL"] },
+    "report_only": {
+      "type": "boolean",
+      "description": "True when generated with --report-only (non-enforcing): the process exited 0 despite a possible FAIL verdict, so a release gate must not treat this artifact as a passing check."
+    }
   }
 }

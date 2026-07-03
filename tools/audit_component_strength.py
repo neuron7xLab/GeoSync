@@ -151,6 +151,19 @@ def build_report(
     }
 
 
+def exit_code(report: dict[str, Any], *, report_only: bool) -> int:
+    """Process exit code for a strength report.
+
+    Fail-closed: a FAIL verdict exits non-zero unless the run is explicitly
+    non-enforcing (``report_only``). This is the whole point of the gate — a
+    report that can say FAIL while the command exits 0 is epistemically unsafe.
+    """
+
+    if report["verdict"] == "FAIL" and not report_only:
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Component test-strength report")
     p.add_argument("--coverage", required=True, help="coverage.py JSON report")
@@ -158,10 +171,21 @@ def main(argv: list[str] | None = None) -> int:
         "--mutation-dir", default="artifacts/test_strength", help="dir of mutation.<name>.json"
     )
     p.add_argument("--out", help="write report JSON here (else stdout)")
+    p.add_argument(
+        "--report-only",
+        action="store_true",
+        help=(
+            "non-enforcing mode: always exit 0 but stamp the artifact "
+            "report_only=true. Without it a FAIL verdict exits non-zero."
+        ),
+    )
     args = p.parse_args(argv)
 
     coverage = json.loads(Path(args.coverage).read_text(encoding="utf-8"))
     report = build_report(coverage, Path(args.mutation_dir), DEFAULT_COMPONENTS)
+    # Record the enforcement mode ON the artifact so a downstream verdict
+    # aggregator cannot mistake a non-enforcing run for a passing gate.
+    report["report_only"] = bool(args.report_only)
     text = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.out:
         out = Path(args.out)
@@ -170,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         sys.stdout.write(text)
     print(f"component-strength verdict: {report['verdict']}", file=sys.stderr)
-    return 0
+    return exit_code(report, report_only=bool(args.report_only))
 
 
 if __name__ == "__main__":
