@@ -139,6 +139,13 @@ class PortfolioOptimizer:
         Returns:
             Результат оптимізації
         """
+        # Fail closed on non-finite input. A NaN/Inf return poisons the
+        # covariance matrix: pandas silently drops NaN pairwise (a false
+        # denominator) and an all-NaN column makes pinv/SVD raise an opaque
+        # LinAlgError deep in the solver. Reject the input explicitly so the
+        # covariance is always defined over the full, finite return surface.
+        self._reject_nonfinite_returns(returns)
+
         # Розрахунок ковариаційної матриці
         self._covariance_matrix = returns.cov().values * self.annualization_factor
 
@@ -220,6 +227,21 @@ class PortfolioOptimizer:
 
         self._last_result = result
         return result
+
+    @staticmethod
+    def _reject_nonfinite_returns(returns: pd.DataFrame) -> None:
+        """Reject a return matrix that carries NaN/Inf (fail closed).
+
+        The covariance estimate is only defined over finite observations; a
+        non-finite cell either silently biases the pairwise covariance or
+        crashes the linear-algebra solver. Rejecting here turns an opaque
+        numeric failure into an explicit, testable contract.
+        """
+        if returns.empty:
+            raise ValueError("returns must be non-empty")
+        values = returns.to_numpy(dtype=float)
+        if not np.isfinite(values).all():
+            raise ValueError("returns contains NaN or Inf; covariance is undefined")
 
     def _equal_weight(self, n_assets: int) -> np.ndarray:
         """Рівномірні ваги"""
@@ -397,6 +419,10 @@ class PortfolioOptimizer:
         Returns:
             DataFrame з точками ефективної границі
         """
+        # Same fail-closed contract as optimize(): the frontier is undefined
+        # over a non-finite return surface.
+        self._reject_nonfinite_returns(returns)
+
         # Розрахунок ковариаційної матриці
         self._covariance_matrix = returns.cov().values * self.annualization_factor
         self._expected_returns = returns.mean().values * self.annualization_factor

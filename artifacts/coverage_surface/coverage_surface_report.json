@@ -9,21 +9,6 @@
       "note": "Shared production libs (17 modules, partial tests). Tracked debt: fold into the release_90 coverage profile with its own runtime/property test slice.",
       "reason": "deferred_production",
       "root": "libs"
-    },
-    {
-      "note": "Production modules (18 files, 12 matching tests) not yet in any coverage profile. Tracked debt: add to release_90 source once the runtime/property slice is stabilized.",
-      "reason": "deferred_production",
-      "root": "modules"
-    },
-    {
-      "note": "CI/release/governance scripts exercised by the CI gate battery and RVG harness, not the release coverage denominator. Runtime import path, not shipped-library surface.",
-      "reason": "governance_tooling",
-      "root": "scripts"
-    },
-    {
-      "note": "Governance/audit tooling (evidence verifiers, coverage-surface auditor, RVG). Exercised by dedicated tests (e.g. tests/tools/*, tests/benchmarks/*) and the RVG harness rather than the release coverage denominator.",
-      "reason": "governance_tooling",
-      "root": "tools"
     }
   ],
   "coverage_sources": [
@@ -38,8 +23,11 @@
     "geosync_pro",
     "interfaces",
     "markets",
+    "modules",
     "observability",
-    "src"
+    "scripts",
+    "src",
+    "tools"
   ],
   "coverage_sources_by_profile": {
     ".coveragerc": [
@@ -53,6 +41,10 @@
       "core",
       "execution"
     ],
+    "configs/quality/governance_tools.coveragerc": [
+      "scripts",
+      "tools"
+    ],
     "configs/quality/release_90.coveragerc": [
       "analytics",
       "application",
@@ -65,6 +57,7 @@
       "geosync_pro",
       "interfaces",
       "markets",
+      "modules",
       "observability",
       "src"
     ],
@@ -89,15 +82,15 @@
     "geosync",
     "geosync_pro",
     "interfaces",
+    "modules",
     "observability",
-    "src"
+    "scripts",
+    "src",
+    "tools"
   ],
   "missing_from_coverage": [
     "geosync_research",
-    "libs",
-    "modules",
-    "scripts",
-    "tools"
+    "libs"
   ],
   "packaged_roots": [
     "analytics",

@@ -263,6 +263,51 @@
       "expected_outcome": "pass",
       "isolation_level": "component",
       "max_runtime_seconds": 60
+    },
+    {
+      "id": "modules_surface",
+      "description": "modules production surface (risk/sizing, regime, execution, coordination) runtime invariant contracts, now measured by the release_90 coverage profile.",
+      "patterns": [
+        "modules/market_regime_analyzer.py",
+        "modules/portfolio_optimizer.py",
+        "modules/order_validator.py",
+        "modules/gaba_inhibition_gate.py",
+        "modules/dynamic_position_sizer.py",
+        "modules/adaptive_risk_manager.py",
+        "modules/signal_strategy_registry.py",
+        "modules/execution_analyzer.py",
+        "modules/performance_tracker.py",
+        "modules/backtest_report_generator.py",
+        "modules/agent_coordinator.py",
+        "modules/strategy_scheduler.py",
+        "modules/system_health_dashboard.py",
+        "modules/alert_manager.py",
+        "modules/data_quality_monitor.py",
+        "tests/unit/modules/test_types_contract.py",
+        "tests/unit/modules/test_signal_strategy_registry_contract.py",
+        "tests/unit/modules/test_market_regime_analyzer_contract.py",
+        "tests/unit/modules/test_risk_sizing_contracts.py",
+        "tests/unit/modules/test_execution_performance_report_contracts.py",
+        "tests/unit/modules/test_coordination_monitoring_contracts.py",
+        "tests/property/modules/test_modules_no_future_leakage.py",
+        "tests/property/modules/__init__.py",
+        "configs/quality/release_90.coveragerc",
+        "tests/fixtures/coverage_surface_allowlist.json",
+        "artifacts/coverage_surface/coverage_surface_report.json",
+        "artifacts/test_strength/mutation.modules.json"
+      ],
+      "selectors": [
+        "tests/unit/modules/test_types_contract.py",
+        "tests/unit/modules/test_signal_strategy_registry_contract.py",
+        "tests/unit/modules/test_market_regime_analyzer_contract.py",
+        "tests/unit/modules/test_risk_sizing_contracts.py",
+        "tests/unit/modules/test_execution_performance_report_contracts.py",
+        "tests/unit/modules/test_coordination_monitoring_contracts.py",
+        "tests/property/modules/test_modules_no_future_leakage.py"
+      ],
+      "expected_outcome": "pass",
+      "isolation_level": "component",
+      "max_runtime_seconds": 300
     }
   ]
 }
