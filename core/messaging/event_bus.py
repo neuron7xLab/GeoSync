@@ -188,6 +188,9 @@ class KafkaEventBus(BaseEventBus):
     async def stop(self) -> None:
         if self._producer:
             await self._producer.stop()
+        # Drop the producer handle so stop() is idempotent and a publish after
+        # stop fails closed (RuntimeError) instead of using a stopped producer.
+        self._producer = None
         tasks = [task for group in self._consumer_tasks.values() for task in group]
         for task in tasks:
             task.cancel()
