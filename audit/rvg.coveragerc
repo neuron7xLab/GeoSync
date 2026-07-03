@@ -8,6 +8,7 @@ include =
     tools/rvg_audit.py
     tools/rvg_normalize_mutation.py
     tools/rvg_verify_artifacts.py
+    tools/rvg_assert_verdict.py
 
 [report]
 precision = 2

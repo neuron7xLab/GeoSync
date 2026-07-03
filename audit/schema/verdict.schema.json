@@ -11,6 +11,8 @@
     "line_coverage": { "type": "number", "minimum": 0, "maximum": 100 },
     "branch_coverage": { "type": "number", "minimum": 0, "maximum": 100 },
     "mutation_score": { "type": "number", "minimum": 0, "maximum": 100 },
+    "mutation_tool": { "type": "string" },
+    "mutation_bootstrap_report_only": { "type": "boolean" },
     "oracle_gap": { "type": "number" },
     "verified_test_strength": { "type": "number", "minimum": 0, "maximum": 100 },
     "test_pass_rate": { "type": "number", "minimum": 0, "maximum": 100 },

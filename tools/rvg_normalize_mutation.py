@@ -66,6 +66,26 @@ def normalize(
     }
 
 
+def bootstrap_report(tool: str = "none") -> dict[str, object]:
+    """Explicit, non-enforcing mutation evidence.
+
+    Emitted when the repo cannot yet run a real mutation campaign under RVG. It
+    claims NO mutation_score (a fabricated `tool: none` score would be placeholder
+    evidence). The verdict engine records it as non-enforcing; the enforce-mode
+    verdict assertion rejects it. See audit/RVG_PROTOCOL.md §6.
+    """
+    return {
+        "tool": tool,
+        "killed": 0,
+        "survived": 0,
+        "timeout": 0,
+        "incompetent": 0,
+        "valid_mutants": 0,
+        "mutation_score": None,
+        "bootstrap_report_only": True,
+    }
+
+
 _MUTMUT_RE = {
     "killed": re.compile(r"🎉\s*(\d+)"),
     "timeout": re.compile(r"⏰\s*(\d+)"),
@@ -97,12 +117,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="count timeout mutants as killed (assert fixed, non-hung runtime)",
     )
     p.add_argument("--from-mutmut", help="path to a captured `mutmut results` summary")
+    p.add_argument(
+        "--bootstrap-report-only",
+        action="store_true",
+        help="emit explicit non-enforcing mutation evidence (no score claimed)",
+    )
     p.add_argument("--out", required=True)
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    if args.bootstrap_report_only:
+        result: dict[str, object] = bootstrap_report()
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print("mutation: bootstrap_report_only (no score claimed)")
+        return 0
 
     if args.from_mutmut:
         counts = parse_mutmut(Path(args.from_mutmut).read_text(encoding="utf-8"))

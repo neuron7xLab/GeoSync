@@ -69,7 +69,9 @@ def _full_verdict(tmp_path: Path, thresholds=None, **overrides):
     cov = _write_coverage(tmp_path / "coverage.json", **overrides.get("cov", {}))
     junit = _write_junit(tmp_path / "junit.xml", **overrides.get("junit", {}))
     mut = _write_mutation(tmp_path / "mutation.json", **overrides.get("mut", {}))
-    (tmp_path / "sbom.json").write_text(json.dumps({"bomFormat": "CycloneDX", "components": []}))
+    (tmp_path / "sbom.json").write_text(
+        json.dumps({"bomFormat": "CycloneDX", "components": [{"name": "pkg", "version": "1.0"}]})
+    )
     (tmp_path / "ruff.json").write_text("[]")
     (tmp_path / "mypy.txt").write_text("Success: no issues found\n")
     (tmp_path / "manifest").write_text("0" * 64 + "  x\n")
@@ -323,7 +325,9 @@ def test_main_emits_artifacts_and_exit_code(tmp_path):
     junit = _write_junit(tmp_path / "junit.xml")
     mut = _write_mutation(tmp_path / "mutation.json", killed=90, survived=10)
     sbom = tmp_path / "sbom.json"
-    sbom.write_text(json.dumps({"bomFormat": "CycloneDX", "components": []}))
+    sbom.write_text(
+        json.dumps({"bomFormat": "CycloneDX", "components": [{"name": "pkg", "version": "1.0"}]})
+    )
     manifest = tmp_path / "audit.hashes"
     manifest.write_text("0" * 64 + "  file\n")
     out_json = tmp_path / "RVG_VERDICT.json"

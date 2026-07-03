@@ -1,5 +1,14 @@
 name: RVG Repository Verification Gate
 
+# BOOTSTRAP POSTURE (audit/RVG_PROTOCOL.md P1-4, Option B).
+# This job proves INSTRUMENT INTEGRITY, not a repository PASS verdict. The full
+# repo cannot yet meet the RVG thresholds, so the verdict may be FAIL — but the
+# verdict artifact must be sound: schema-valid, arithmetic-recomputed, hash-bound
+# to real files, and free of placeholder evidence. `rvg_assert_verdict.py
+# --mode bootstrap` is the single, explicit blocking gate. To flip this to an
+# enforcing gate later, switch that step to `--mode enforce` (verdict must PASS
+# and mutation must be a real run).
+
 on:
   pull_request:
   push:
@@ -15,6 +24,7 @@ permissions:
 
 jobs:
   rvg:
+    name: RVG Bootstrap Audit Report (instrument integrity)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -27,42 +37,37 @@ jobs:
       - name: Install dev deps
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" || pip install pytest pytest-cov ruff mypy
-          # RVG requires a dependency auditor present; fail-closed rvg-security
-          # aborts (no silent pass) if it is absent, so install it explicitly.
-          pip install pip-audit
+          pip install -e ".[dev]" || pip install \
+            pytest pytest-cov coverage ruff mypy mutmut cyclonedx-bom jsonschema
+          # No RVG evidence step may silently degrade because a tool is missing:
+          # pin the auditor + SBOM generator explicitly (fail-closed downstream).
+          pip install pip-audit cyclonedx-bom jsonschema
 
       # BLOCKING: the harness must prove itself before its verdict means anything.
       - name: RVG self-verification (harness proves itself)
-        run: python -m pytest tests/tools/test_rvg_audit.py -q
+        run: python -m pytest -o addopts= tests/tools/test_rvg_audit.py tests/tools/test_rvg_artifact_verifier.py -q
 
-      # Compute + publish the verdict. During bootstrap the PASS/FAIL threshold
-      # verdict is REPORTED, not enforced repo-wide: a full-repo audit that meets
-      # every gate (incl. a real mutation run) is a follow-up ratchet. Enforcing
-      # thresholds now would red every PR against gates the whole repo does not
-      # yet satisfy — the opposite of an additive gate. So this step is allowed
-      # to surface a FAIL verdict without failing the job; the verdict is uploaded.
-      - name: RVG audit (verdict reported, not yet enforced repo-wide)
+      # Compute + publish the verdict. Mutation runs in BOOTSTRAP mode: explicit,
+      # non-enforcing evidence (no fabricated score). The verdict may surface FAIL
+      # (coverage/threshold gaps); that is reported, not the job's pass/fail
+      # signal — the assert step below decides. `make rvg` exits non-zero on a
+      # FAIL verdict, so this step is allowed to continue past it.
+      - name: RVG audit (verdict reported)
         continue-on-error: true
-        run: make rvg
+        run: make rvg RVG_MUTATION_MODE=bootstrap
 
-      # BLOCKING: prove the instrument actually ran and produced a sound,
-      # hash-bound, schema-valid, internally-consistent verdict.
-      - name: Assert verdict is sound (schema-valid, hash-bound, recompute-checked)
-        run: |
-          test -f artifacts/rvg/RVG_VERDICT.json
-          test -f artifacts/rvg/audit.hashes
-          python tools/rvg_verify_artifacts.py \
-            artifacts/rvg/RVG_VERDICT.json \
-            artifacts/rvg/audit.hashes \
-            audit/schema/verdict.schema.json
+      # BLOCKING GATE: prove the instrument produced a SOUND, hash-bound,
+      # schema-valid, recompute-checked, placeholder-free verdict. A FAIL verdict
+      # is permitted in bootstrap mode; an unsound or placeholder artifact is not.
+      - name: Assert verdict (bootstrap — instrument integrity is blocking)
+        run: python tools/rvg_assert_verdict.py artifacts/rvg/RVG_VERDICT.json --mode bootstrap
 
       # BLOCKING: determinism — a second run must be byte-identical modulo the
       # timestamp/commit/python-version fields.
       - name: Assert verdict reproducibility
         run: |
           cp artifacts/rvg/RVG_VERDICT.json /tmp/rvg_run1.json
-          make rvg-mutation rvg-verify || true
+          make rvg-mutation rvg-verify RVG_MUTATION_MODE=bootstrap || true
           python - <<'PY'
           import json, sys
           sys.path.insert(0, "tools")
@@ -80,7 +85,11 @@ jobs:
         if: always()
         run: |
           if [ -f artifacts/rvg/RVG_VERDICT.md ]; then
-            cat artifacts/rvg/RVG_VERDICT.md >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "> **RVG bootstrap posture:** instrument integrity PASS; repository verdict below is REPORTED, not enforced."
+              echo ""
+              cat artifacts/rvg/RVG_VERDICT.md
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload audit artifacts

@@ -18,11 +18,17 @@ promise: >-
   After this PR lands, `tools/rvg_audit.py` emits a deterministic, fail-closed
   RVG verdict (JSON + Markdown) whose every percentage is recomputed from raw
   counts and independently cross-checked by `tools/rvg_verify_artifacts.py`
-  (fail on delta > 0.01). Missing evidence, zero denominator, zero valid
-  mutants, or a schema-invalid verdict force verdict == FAIL. The 21-test
-  self-verification suite in tests/tools/test_rvg_audit.py proves formula
-  correctness, fail-closed behaviour, threshold boundaries, and the recompute
-  cross-check.
+  (fail on delta > 0.01). `verify_hash_manifest` recomputes every sha256 digest
+  and requires the verdict file to hash-match the manifest, so a post-hoc edit
+  to RVG_VERDICT.json fails closed. SBOM evidence must carry ≥1 real component;
+  mutation evidence is real, explicit, or explicitly bootstrap_report_only
+  (never a fabricated `tool: none` score). `tools/rvg_assert_verdict.py` gates CI
+  under an explicit mode: bootstrap (sound, hash-bound, placeholder-free; FAIL
+  verdict allowed) or enforce (verdict PASS + real mutation). The
+  self-verification suites in tests/tools/test_rvg_audit.py and
+  tests/tools/test_rvg_artifact_verifier.py prove formula correctness,
+  fail-closed behaviour, hash tamper-detection, threshold boundaries, and the
+  bootstrap/enforce assertions.
 
 diff_scope:
   changed_files:
@@ -30,7 +36,9 @@ diff_scope:
     - path: "tools/rvg_audit.py"
     - path: "tools/rvg_normalize_mutation.py"
     - path: "tools/rvg_verify_artifacts.py"
+    - path: "tools/rvg_assert_verdict.py"
     - path: "tests/tools/test_rvg_audit.py"
+    - path: "tests/tools/test_rvg_artifact_verifier.py"
     - path: "audit/thresholds.json"
     - path: "audit/rvg.coveragerc"
     - path: "audit/schema/coverage.schema.json"
@@ -39,6 +47,7 @@ diff_scope:
     - path: ".github/workflows/rvg.yml"
     - path: "audit/RVG_PROTOCOL.md"
     - path: "Makefile"
+    - path: "pyproject.toml"
     - path: ".gitignore"
   forbidden_paths:
     - "trading/"
@@ -53,19 +62,25 @@ required_python_symbols:
   - "tools/rvg_audit.py::compute_verdict"
   - "tools/rvg_audit.py::coverage_metrics"
   - "tools/rvg_audit.py::mutation_metric"
+  - "tools/rvg_audit.py::sbom_present"
   - "tools/rvg_normalize_mutation.py::normalize"
+  - "tools/rvg_normalize_mutation.py::bootstrap_report"
   - "tools/rvg_verify_artifacts.py::cross_check_recompute"
+  - "tools/rvg_verify_artifacts.py::verify_hash_manifest"
+  - "tools/rvg_assert_verdict.py::assert_verdict"
 
 expected_signal: >-
-  `python -m pytest tests/tools/test_rvg_audit.py -q` reports 21 passed; a
+  `python -m pytest -o addopts= tests/tools/test_rvg_audit.py
+  tests/tools/test_rvg_artifact_verifier.py -q` reports 51 passed; a
   demonstration `rvg_audit.py` run over the RVG tools subsystem produces a
-  reproducible (byte-identical across two runs) fail-closed verdict.
+  reproducible (byte-identical across two runs) fail-closed verdict that
+  passes `rvg_assert_verdict.py --mode bootstrap` and fails `--mode enforce`.
 
 measurement_command: >-
   bash -c '
-    python -m ruff check tools/rvg_audit.py tools/rvg_normalize_mutation.py tools/rvg_verify_artifacts.py &&
-    python -m mypy --strict tools/rvg_audit.py tools/rvg_normalize_mutation.py tools/rvg_verify_artifacts.py &&
-    python -m pytest tests/tools/test_rvg_audit.py -q
+    python -m ruff check tools/rvg_audit.py tools/rvg_normalize_mutation.py tools/rvg_verify_artifacts.py tools/rvg_assert_verdict.py &&
+    python -m mypy --strict tools/rvg_audit.py tools/rvg_normalize_mutation.py tools/rvg_verify_artifacts.py tools/rvg_assert_verdict.py &&
+    python -m pytest -o addopts= tests/tools/test_rvg_audit.py tests/tools/test_rvg_artifact_verifier.py -q
   '
 
 signal_artifact: "tmp/rvg_1_verification_gate.log"

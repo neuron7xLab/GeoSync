@@ -239,13 +239,22 @@ def osv_vulns(path: Path) -> VulnCounts:
 
 
 def sbom_present(path: Path) -> bool:
+    """True only for a real CycloneDX SBOM carrying at least one component.
+
+    An empty ``components: []`` placeholder (what the Makefile used to emit when
+    cyclonedx-py was absent) is NOT a dependency inventory and must fail closed —
+    otherwise the SBOM gate passes with zero supply-chain evidence.
+    """
     if not path.is_file():
         return False
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return False
-    return bool(data.get("bomFormat") == "CycloneDX" or data.get("components") is not None)
+    if data.get("bomFormat") != "CycloneDX":
+        return False
+    components = data.get("components")
+    return isinstance(components, list) and len(components) > 0
 
 
 # --------------------------------------------------------------------------- #
@@ -349,13 +358,23 @@ def compute_verdict(
 
     try:
         mut = _load_json(mutation_path, what="mutation")
-        mutation = mutation_metric(mut)
-        mutation.cross_check(mut.get("mutation_score"), what="mutation_score")
-        f["mutation_score"] = mutation.value
-        f["mutation_score_raw"] = [mutation.numerator, mutation.denominator]
-        for extra in ("timeout", "incompetent"):
-            if extra in mut:
-                f[f"mutation_{extra}"] = mut[extra]
+        if mut.get("bootstrap_report_only"):
+            # Explicitly non-enforcing bootstrap evidence: no mutation run was
+            # performed, so NO mutation_score is claimed and the mutation gate is
+            # not applied. This is honest absence, not a fabricated `tool: none`
+            # score. `rvg_assert_verdict.py --mode enforce` rejects it; --mode
+            # bootstrap accepts it. See audit/RVG_PROTOCOL.md §6 / P1-2.
+            f["mutation_bootstrap_report_only"] = True
+            f["mutation_tool"] = str(mut.get("tool", "none"))
+        else:
+            mutation = mutation_metric(mut)
+            mutation.cross_check(mut.get("mutation_score"), what="mutation_score")
+            f["mutation_score"] = mutation.value
+            f["mutation_score_raw"] = [mutation.numerator, mutation.denominator]
+            f["mutation_tool"] = str(mut.get("tool", "unknown"))
+            for extra in ("timeout", "incompetent"):
+                if extra in mut:
+                    f[f"mutation_{extra}"] = mut[extra]
     except AuditError as exc:
         reasons.append(str(exc))
 

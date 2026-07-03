@@ -20,6 +20,7 @@ so `make rvg` can be run twice and asserted byte-stable modulo timestamp/commit.
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import sys
@@ -110,16 +111,76 @@ def cross_check_recompute(verdict: dict[str, Any]) -> list[str]:
     return checked
 
 
-def verify_hash_manifest(verdict_path: Path, manifest_path: Path) -> None:
+def _sha256(path: Path) -> str:
+    """Streamed sha256 of a file (chunked so large artifacts don't load fully)."""
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_hash_manifest(
+    verdict_path: Path, manifest_path: Path, *, root: Path | None = None
+) -> None:
+    """Recompute every manifest digest and confirm the verdict is hash-bound.
+
+    The manifest is `sha256sum` output (``<64-hex>␠␠<path>`` per line) whose paths
+    are relative to the repo root the audit ran from. For each entry we:
+
+      * reject malformed lines (missing digest/path, non-64-char digest),
+      * resolve the path and reject anything escaping ``root`` (path-traversal),
+      * recompute sha256(file) and fail on any mismatch (tamper detection),
+      * skip the manifest's own line (it is written mid-`sha256sum`, so its
+        self-hash is intrinsically stale — see audit/RVG_PROTOCOL.md §8).
+
+    Finally the verdict file MUST appear (and therefore have matched) in the
+    manifest; otherwise the verdict is unbound and rejected.
+    """
     if not manifest_path.is_file():
         raise VerifyError(f"hash-manifest: missing at {manifest_path}")
+
+    root_resolved = (root or Path.cwd()).resolve()
+    manifest_resolved = manifest_path.resolve()
+    verdict_resolved = verdict_path.resolve()
+    verdict_seen = False
+
     lines = [ln for ln in manifest_path.read_text("utf-8").splitlines() if ln.strip()]
     if not lines:
         raise VerifyError("hash-manifest: empty")
+
     for ln in lines:
         parts = ln.split(None, 1)
         if len(parts) != 2 or len(parts[0]) != 64:
             raise VerifyError(f"hash-manifest: malformed entry: {ln!r}")
+        expected, raw_path = parts[0], parts[1].strip()
+        candidate = (root_resolved / raw_path).resolve()
+
+        # Confinement: no manifest entry may point outside the audited root.
+        try:
+            candidate.relative_to(root_resolved)
+        except ValueError:
+            raise VerifyError(
+                f"hash-manifest: path escapes root {root_resolved}: {raw_path!r}"
+            ) from None
+
+        # The manifest cannot honestly hash itself (written while sha256sum runs).
+        if candidate == manifest_resolved:
+            continue
+
+        if not candidate.is_file():
+            raise VerifyError(f"hash-manifest: missing file {candidate}")
+        actual = _sha256(candidate)
+        if actual != expected:
+            raise VerifyError(
+                f"hash-manifest: digest mismatch for {candidate}: "
+                f"expected={expected}, actual={actual}"
+            )
+        if candidate == verdict_resolved:
+            verdict_seen = True
+
+    if not verdict_seen:
+        raise VerifyError(f"hash-manifest: verdict not covered: {verdict_path}")
 
 
 def diff_reproducibility(a: dict[str, Any], b: dict[str, Any]) -> list[str]:
