@@ -755,3 +755,126 @@ ricci-release-gate:
 .PHONY: verify-cognitive-core
 verify-cognitive-core: ## Self-verifying cognitive-core meta-gate (one signed verdict)
 	PYTHONPATH=. python scripts/ci/verify_cognitive_core.py
+
+# ============================================================================ #
+# ⊛ RVG-1 — Repository Verification Gate (additive; see audit/RVG_PROTOCOL.md)
+# Namespaced under rvg-* so it never clobbers the existing audit/verify targets.
+# ============================================================================ #
+RVG_ARTIFACTS := artifacts/rvg
+# Audit surface. Defaults to the RVG harness itself (self-consistent, green).
+# Widen for a repo-wide audit, e.g. `make rvg RVG_LINT_PATHS=. RVG_MYPY_TARGETS="core src"`.
+RVG_TOOLS     := tools/rvg_audit.py tools/rvg_normalize_mutation.py tools/rvg_verify_artifacts.py tools/rvg_assert_verdict.py
+RVG_LINT_PATHS   ?= $(RVG_TOOLS) tests/tools/test_rvg_audit.py tests/tools/test_rvg_artifact_verifier.py
+RVG_FORMAT_PATHS ?= $(RVG_TOOLS)
+RVG_MYPY_TARGETS ?= $(RVG_TOOLS)
+# Isolate RVG's self-tests from the repo-wide pytest addopts (-o addopts=): the
+# audit must run the same, deterministically, regardless of any --cov/-W/plugin
+# flags the repo injects. Never invoke bare `--cov` (expects an argument).
+RVG_PYTEST_ARGS  ?= -o addopts= tests/tools/test_rvg_audit.py tests/tools/test_rvg_artifact_verifier.py
+RVG_COVERAGERC   ?= audit/rvg.coveragerc
+RVG_COMMIT    := $(shell git rev-parse HEAD 2>/dev/null)
+RVG_TS        := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+RVG_PYVER     := $(shell $(PYTHON) -V 2>&1)
+
+.PHONY: rvg rvg-clean rvg-coverage rvg-lint rvg-typecheck rvg-security rvg-sbom rvg-mutation rvg-verify rvg-assert-bootstrap rvg-assert-enforce
+
+rvg-clean:
+	rm -rf $(RVG_ARTIFACTS)
+	mkdir -p $(RVG_ARTIFACTS)
+	$(PYTHON) -V > $(RVG_ARTIFACTS)/python-version.txt
+
+rvg-coverage:
+	$(PYTHON) -m coverage run --rcfile=$(RVG_COVERAGERC) \
+	  -m pytest --junitxml=$(RVG_ARTIFACTS)/junit.xml $(RVG_PYTEST_ARGS)
+	$(PYTHON) -m coverage json --rcfile=$(RVG_COVERAGERC) -o $(RVG_ARTIFACTS)/coverage.json
+	$(PYTHON) -m coverage xml  --rcfile=$(RVG_COVERAGERC) -o $(RVG_ARTIFACTS)/coverage.xml
+	-$(PYTHON) -m coverage report --rcfile=$(RVG_COVERAGERC)
+
+rvg-lint:
+	$(PYTHON) -m ruff check $(RVG_LINT_PATHS) --output-format=json > $(RVG_ARTIFACTS)/ruff.json || true
+	# Format-check only the RVG surface: the repo's canonical formatter is black,
+	# so `ruff format --check .` would false-fail on black-formatted files.
+	$(PYTHON) -m ruff format --check $(RVG_FORMAT_PATHS)
+
+rvg-typecheck:
+	$(PYTHON) -m mypy $(RVG_MYPY_TARGETS) --show-error-codes --no-error-summary \
+	  > $(RVG_ARTIFACTS)/mypy.txt || true
+
+rvg-security:
+	# pip-audit is NEVER masked with `|| true` (repo policy — see
+	# tests/ci/test_makefile_audit_fail_closed.py). It writes the JSON report to
+	# --output and then exits non-zero when advisories are present. The `-`
+	# prefix lets Make continue PAST that findings-exit so the pipeline reaches
+	# the verdict — which is RVG's actual fail-closed gate: rvg_audit.py FAILs on
+	# high/critical advisories AND on a missing pip-audit.json (absent auditor →
+	# missing evidence → FAIL). Nothing goes green while a real finding exists.
+	-$(PYTHON) -m pip_audit --format=json --output=$(RVG_ARTIFACTS)/pip-audit.json
+	command -v osv-scanner >/dev/null && osv-scanner --format=json --output=$(RVG_ARTIFACTS)/osv.json . || true
+	command -v semgrep >/dev/null && semgrep scan --config=p/owasp-top-ten --json > $(RVG_ARTIFACTS)/semgrep.json || true
+
+rvg-sbom:
+	# Fail closed: a real CycloneDX SBOM or nothing. The previous empty-components
+	# placeholder is NOT a dependency inventory (sbom_present() now rejects it), so
+	# masking a missing generator would ship zero supply-chain evidence as "green".
+	command -v cyclonedx-py >/dev/null || { echo "rvg-sbom: cyclonedx-py missing (pip install cyclonedx-bom)"; exit 1; }
+	cyclonedx-py environment --output-format JSON --output-file $(RVG_ARTIFACTS)/sbom.cdx.json
+	test -s $(RVG_ARTIFACTS)/sbom.cdx.json
+
+# Mutation evidence. Three explicit modes — never a fabricated `tool: none` score:
+#   real      run mutmut, normalize its results (default; real oracle signal)
+#   explicit  pass measured counts via RVG_MUTATION_ARGS (deterministic re-runs)
+#   bootstrap emit explicit non-enforcing evidence (no score claimed) — for the
+#             bootstrap CI posture where the full repo cannot yet run a campaign
+# See audit/RVG_PROTOCOL.md §6.
+RVG_MUTATION_MODE    ?= real
+RVG_MUTATION_ARGS    ?= --tool mutmut --killed 0 --survived 0
+RVG_MUTATION_SUMMARY := $(RVG_ARTIFACTS)/mutmut-results.txt
+rvg-mutation:
+ifeq ($(RVG_MUTATION_MODE),real)
+	command -v mutmut >/dev/null || { echo "rvg-mutation: mutmut missing"; exit 1; }
+	-mutmut run
+	mutmut results > $(RVG_MUTATION_SUMMARY)
+	$(PYTHON) tools/rvg_normalize_mutation.py --from-mutmut $(RVG_MUTATION_SUMMARY) \
+	  --out $(RVG_ARTIFACTS)/mutation.json
+else ifeq ($(RVG_MUTATION_MODE),explicit)
+	$(PYTHON) tools/rvg_normalize_mutation.py $(RVG_MUTATION_ARGS) \
+	  --out $(RVG_ARTIFACTS)/mutation.json
+else ifeq ($(RVG_MUTATION_MODE),bootstrap)
+	$(PYTHON) tools/rvg_normalize_mutation.py --bootstrap-report-only \
+	  --out $(RVG_ARTIFACTS)/mutation.json
+else
+	@echo "rvg-mutation: invalid RVG_MUTATION_MODE=$(RVG_MUTATION_MODE) (real|explicit|bootstrap)"; exit 1
+endif
+
+rvg-verify:
+	# Bind source + evidence artifacts first so the verdict is hash-provable.
+	find src tests pyproject.toml audit tools $(RVG_ARTIFACTS) -type f 2>/dev/null | sort | xargs sha256sum > $(RVG_ARTIFACTS)/audit.hashes
+	# `-` prefix: a FAIL verdict (exit 1) must NOT abort the recipe before the
+	# manifest is re-bound to include the emitted verdict. Soundness (the re-bind +
+	# verifier below) is the blocking step; the PASS/FAIL policy is enforced
+	# separately by rvg-assert-bootstrap / rvg-assert-enforce.
+	-$(PYTHON) tools/rvg_audit.py \
+	  --coverage $(RVG_ARTIFACTS)/coverage.json \
+	  --junit $(RVG_ARTIFACTS)/junit.xml \
+	  --mutation $(RVG_ARTIFACTS)/mutation.json \
+	  --ruff $(RVG_ARTIFACTS)/ruff.json \
+	  --mypy $(RVG_ARTIFACTS)/mypy.txt \
+	  --pip-audit $(RVG_ARTIFACTS)/pip-audit.json \
+	  --sbom $(RVG_ARTIFACTS)/sbom.cdx.json \
+	  --thresholds audit/thresholds.json \
+	  --hash-manifest $(RVG_ARTIFACTS)/audit.hashes \
+	  --repo neuron7xLab/GeoSync --commit "$(RVG_COMMIT)" \
+	  --timestamp "$(RVG_TS)" --python-version "$(RVG_PYVER)" \
+	  --out-json $(RVG_ARTIFACTS)/RVG_VERDICT.json \
+	  --out-md $(RVG_ARTIFACTS)/RVG_VERDICT.md
+	# Re-bind to include the emitted verdict itself.
+	find src tests pyproject.toml audit tools $(RVG_ARTIFACTS) -type f 2>/dev/null | sort | xargs sha256sum > $(RVG_ARTIFACTS)/audit.hashes
+	$(PYTHON) tools/rvg_verify_artifacts.py $(RVG_ARTIFACTS)/RVG_VERDICT.json $(RVG_ARTIFACTS)/audit.hashes audit/schema/verdict.schema.json
+
+# Explicit CI enforcement gates (choose ONE in the workflow — never ambiguous).
+rvg-assert-bootstrap:
+	$(PYTHON) tools/rvg_assert_verdict.py $(RVG_ARTIFACTS)/RVG_VERDICT.json --mode bootstrap
+rvg-assert-enforce:
+	$(PYTHON) tools/rvg_assert_verdict.py $(RVG_ARTIFACTS)/RVG_VERDICT.json --mode enforce
+
+rvg: rvg-clean rvg-coverage rvg-lint rvg-typecheck rvg-security rvg-sbom rvg-mutation rvg-verify
