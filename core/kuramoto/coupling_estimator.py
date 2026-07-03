@@ -430,8 +430,12 @@ def complementary_pairs_stability(
         raise ValueError(f"Subsample half size {half} too small; increase T or subsample_fraction")
 
     selection_count = np.zeros((len(lam_grid), N, N), dtype=np.int64)
-    weight_sum = np.zeros((N, N), dtype=np.float64)
-    weight_n = np.zeros((N, N), dtype=np.int64)
+    # Per-edge pool of active (non-zero) coupling estimates across every
+    # bootstrap half AND every λ in the grid. We keep the full pool rather
+    # than a running sum because the contract (docstring + variable name)
+    # is the MEDIAN of the non-zero edge estimates — a robust, outlier-
+    # resistant statistic — and the median cannot be computed incrementally.
+    estimates: list[list[list[float]]] = [[[] for _ in range(N)] for _ in range(N)]
     n_halves = 0  # count of independent halves processed
 
     for _ in range(cfg.n_subsamples):
@@ -445,19 +449,27 @@ def complementary_pairs_stability(
                 K_hat = _estimate_K_single(theta_sub, float(lam), cfg)
                 active = np.abs(K_hat) > 1e-10
                 selection_count[li] += active
-                weight_sum += np.where(active, K_hat, 0.0)
-                weight_n += active
+                # Pool the signed estimate of every edge that survived the
+                # penalty at this (half, λ) into its per-edge collection.
+                act_i, act_j = np.nonzero(active)
+                for i, j in zip(act_i.tolist(), act_j.tolist(), strict=True):
+                    estimates[i][j].append(float(K_hat[i, j]))
     # Selection probability per (λ, edge): fraction of halves in which
     # the edge was selected at that regularisation level
     probs = selection_count / max(n_halves, 1)
     stability = probs.max(axis=0).astype(np.float64)
     np.fill_diagonal(stability, 0.0)
 
-    K_median = np.where(
-        weight_n > 0,
-        weight_sum / np.maximum(weight_n, 1),
-        0.0,
-    )
+    # Bias-reduced per-edge weight: the MEDIAN of the pooled non-zero
+    # estimates (0.0 when an edge was never selected). The median is
+    # deliberately robust — a single outlier fit cannot drag the weight,
+    # matching the "median of the non-zero edge estimates" contract above.
+    K_median = np.zeros((N, N), dtype=np.float64)
+    for i in range(N):
+        for j in range(N):
+            pool = estimates[i][j]
+            if pool:
+                K_median[i, j] = float(np.median(np.asarray(pool, dtype=np.float64)))
     np.fill_diagonal(K_median, 0.0)
     return K_median, stability
 

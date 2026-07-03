@@ -341,6 +341,103 @@ class TestCouplingEstimatorAPI:
 
 
 # ---------------------------------------------------------------------------
+# Median-contract regression for complementary_pairs_stability
+# ---------------------------------------------------------------------------
+
+
+class TestComplementaryPairsMedianContract:
+    """K_median must be the MEDIAN of the pooled non-zero edge estimates.
+
+    The docstring, the ``K_median`` variable name, and the consuming
+    ``CouplingEstimator.estimate`` docstring all promise the median — a
+    robust statistic. A prior implementation returned the arithmetic MEAN
+    (``weight_sum / weight_n``), which an outlier fit drags away from the
+    contracted value. These tests pin the median semantics by feeding a
+    crafted, fully deterministic pool of per-edge fits through a stub row
+    solver so the expected statistic is exact (no float tolerance slack on
+    the median value itself).
+    """
+
+    def test_median_not_mean_on_crafted_pool(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from core.kuramoto import coupling_estimator as ce
+
+        # 2 subsamples × 2 halves × 1 λ  →  exactly 4 fits per edge.
+        # Edge (0, 1) receives the pool {0.1, 0.1, 0.1, 5.0}:
+        #   contracted median = 0.1   (robust to the 5.0 outlier)
+        #   buggy mean         = 1.325 (dragged up by the outlier)
+        pool = iter([0.1, 0.1, 0.1, 5.0])
+
+        def _fake_single(
+            theta_sub: np.ndarray, lam: float, cfg: CouplingEstimationConfig
+        ) -> np.ndarray:
+            K_hat = np.zeros((2, 2), dtype=np.float64)
+            K_hat[0, 1] = next(pool)
+            return K_hat
+
+        monkeypatch.setattr(ce, "_estimate_K_single", _fake_single)
+
+        cfg = CouplingEstimationConfig(
+            stability_selection=True,
+            lambda_grid=(0.01,),
+            n_subsamples=2,
+            subsample_fraction=0.5,
+            random_state=0,
+        )
+        theta = np.zeros((100, 2), dtype=np.float64)
+        K_median, stability = ce.complementary_pairs_stability(theta, cfg)
+
+        # MEDIAN contract: exact on the crafted pool.
+        assert K_median[0, 1] == pytest.approx(0.1, abs=1e-12), (
+            f"K_median must be the MEDIAN of {{0.1, 0.1, 0.1, 5.0}} = 0.1, "
+            f"got {K_median[0, 1]!r}. A value near the mean (1.325) means the "
+            "outlier-biased mean bug regressed."
+        )
+        # The 5.0 outlier must NOT drag the estimate toward the mean.
+        assert K_median[0, 1] < 1.0, (
+            f"K_median={K_median[0, 1]!r} shows outlier contamination; the "
+            "median of {0.1,0.1,0.1,5.0} is 0.1, well below the mean 1.325."
+        )
+        # Never-selected edges stay exactly zero; diagonal is zeroed.
+        assert K_median[1, 0] == 0.0
+        assert K_median[0, 0] == 0.0 and K_median[1, 1] == 0.0
+        assert 0.0 <= float(stability[0, 1]) <= 1.0
+
+    def test_median_even_pool_averages_two_central(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Even-sized pool → mean of the two central order statistics."""
+        from core.kuramoto import coupling_estimator as ce
+
+        # Pool {1.0, 2.0, 3.0, 100.0}: median = (2.0 + 3.0) / 2 = 2.5.
+        pool = iter([1.0, 2.0, 3.0, 100.0])
+
+        def _fake_single(
+            theta_sub: np.ndarray, lam: float, cfg: CouplingEstimationConfig
+        ) -> np.ndarray:
+            K_hat = np.zeros((2, 2), dtype=np.float64)
+            K_hat[0, 1] = next(pool)
+            return K_hat
+
+        monkeypatch.setattr(ce, "_estimate_K_single", _fake_single)
+
+        cfg = CouplingEstimationConfig(
+            stability_selection=True,
+            lambda_grid=(0.01,),
+            n_subsamples=2,
+            subsample_fraction=0.5,
+            random_state=1,
+        )
+        theta = np.zeros((100, 2), dtype=np.float64)
+        K_median, _ = ce.complementary_pairs_stability(theta, cfg)
+        assert K_median[0, 1] == pytest.approx(2.5, abs=1e-12), (
+            f"Median of {{1,2,3,100}} is 2.5 (mean would be 26.5), "
+            f"got {K_median[0, 1]!r}."
+        )
+
+
+# ---------------------------------------------------------------------------
 # Config validation
 # ---------------------------------------------------------------------------
 
