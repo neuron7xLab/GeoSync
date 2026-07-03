@@ -1,0 +1,135 @@
+{
+  "allowlisted": [
+    {
+      "note": "Packaged in wheel but has NO source directory \u2014 stale packaging include. Cleanup: remove from [tool.setuptools.packages.find].include; surfaced as stale_packaging_roots in the audit report.",
+      "reason": "deprecated",
+      "root": "geosync_agent"
+    },
+    {
+      "note": "Production surface (18 modules) with no coverage profile and no tests yet. Tracked debt: add to the release_90 profile once a test slice lands (F02: added to source when its dedicated profile arrives).",
+      "reason": "deferred_production",
+      "root": "geosync_pro"
+    },
+    {
+      "note": "Research-only modules; not production runtime. Excluded from release coverage denominator by design.",
+      "reason": "research",
+      "root": "geosync_research"
+    },
+    {
+      "note": "Shared production libs (17 modules, partial tests). Tracked debt: fold into the release_90 coverage profile with its own test slice.",
+      "reason": "deferred_production",
+      "root": "libs"
+    },
+    {
+      "note": "Production modules (18 files, 12 matching tests) not yet in any coverage profile. Tracked debt: add to release_90 source once the slice is stabilized.",
+      "reason": "deferred_production",
+      "root": "modules"
+    },
+    {
+      "note": "CI/release/governance scripts exercised by the CI gate battery and RVG harness, not the release coverage denominator. Runtime import path, not shipped-library surface.",
+      "reason": "governance_tooling",
+      "root": "scripts"
+    },
+    {
+      "note": "Governance/audit tooling (evidence verifiers, coverage-surface auditor, RVG). Exercised by dedicated tests (e.g. tests/tools/*, tests/benchmarks/*) and the RVG harness rather than the release coverage denominator.",
+      "reason": "governance_tooling",
+      "root": "tools"
+    }
+  ],
+  "coverage_sources": [
+    "analytics",
+    "application",
+    "backtest",
+    "cli",
+    "core",
+    "domain",
+    "execution",
+    "geosync",
+    "interfaces",
+    "markets",
+    "observability",
+    "src"
+  ],
+  "coverage_sources_by_profile": {
+    ".coveragerc": [
+      "backtest",
+      "core",
+      "execution"
+    ],
+    "audit/rvg.coveragerc": [],
+    "configs/quality/critical_surface.coveragerc": [
+      "backtest",
+      "core",
+      "execution"
+    ],
+    "configs/quality/release_90.coveragerc": [
+      "analytics",
+      "application",
+      "backtest",
+      "cli",
+      "core",
+      "domain",
+      "execution",
+      "geosync",
+      "interfaces",
+      "markets",
+      "observability",
+      "src"
+    ],
+    "pyproject": [
+      "analytics",
+      "backtest",
+      "core",
+      "execution",
+      "geosync",
+      "src"
+    ]
+  },
+  "forbidden_gaps": [],
+  "invalid_allowlist_entries": [],
+  "measured": [
+    "analytics",
+    "application",
+    "backtest",
+    "core",
+    "domain",
+    "execution",
+    "geosync",
+    "interfaces",
+    "observability",
+    "src"
+  ],
+  "missing_from_coverage": [
+    "geosync_agent",
+    "geosync_pro",
+    "geosync_research",
+    "libs",
+    "modules",
+    "scripts",
+    "tools"
+  ],
+  "packaged_roots": [
+    "analytics",
+    "application",
+    "backtest",
+    "core",
+    "domain",
+    "execution",
+    "geosync",
+    "geosync_agent",
+    "geosync_pro",
+    "geosync_research",
+    "interfaces",
+    "libs",
+    "modules",
+    "observability",
+    "scripts",
+    "src",
+    "tools"
+  ],
+  "schema": "geosync.coverage_surface_report.v1",
+  "stale_packaging_roots": [
+    "geosync_agent"
+  ],
+  "verdict": "PASS"
+}

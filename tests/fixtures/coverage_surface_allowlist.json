@@ -1,0 +1,30 @@
+{
+  "geosync_agent": {
+    "reason": "deprecated",
+    "note": "Packaged in wheel but has NO source directory — stale packaging include. Cleanup: remove from [tool.setuptools.packages.find].include; surfaced as stale_packaging_roots in the audit report."
+  },
+  "geosync_pro": {
+    "reason": "deferred_production",
+    "note": "Production surface (18 modules) with no coverage profile and no tests yet. Tracked debt: add to the release_90 profile once a test slice lands (F02: added to source when its dedicated profile arrives)."
+  },
+  "geosync_research": {
+    "reason": "research",
+    "note": "Research-only modules; not production runtime. Excluded from release coverage denominator by design."
+  },
+  "libs": {
+    "reason": "deferred_production",
+    "note": "Shared production libs (17 modules, partial tests). Tracked debt: fold into the release_90 coverage profile with its own test slice."
+  },
+  "modules": {
+    "reason": "deferred_production",
+    "note": "Production modules (18 files, 12 matching tests) not yet in any coverage profile. Tracked debt: add to release_90 source once the slice is stabilized."
+  },
+  "scripts": {
+    "reason": "governance_tooling",
+    "note": "CI/release/governance scripts exercised by the CI gate battery and RVG harness, not the release coverage denominator. Runtime import path, not shipped-library surface."
+  },
+  "tools": {
+    "reason": "governance_tooling",
+    "note": "Governance/audit tooling (evidence verifiers, coverage-surface auditor, RVG). Exercised by dedicated tests (e.g. tests/tools/*, tests/benchmarks/*) and the RVG harness rather than the release coverage denominator."
+  }
+}
