@@ -28,7 +28,16 @@ def _coerce(value: Any) -> Any:
         return value.astimezone(timezone.utc).isoformat()
     if isinstance(value, Mapping):
         return {str(key): _coerce(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple, set)):
+    if isinstance(value, (set, frozenset)):
+        # Sets have no intrinsic order; Python's set iteration is salted
+        # (PYTHONHASHSEED), so iterating one into the tamper-evident state hash
+        # would make the digest vary run-to-run for identical evidence. Coerce
+        # each element, then sort by canonical JSON for a stable order.
+        return sorted(
+            (_coerce(item) for item in value),
+            key=lambda item: json.dumps(item, sort_keys=True, default=str),
+        )
+    if isinstance(value, (list, tuple)):
         return [_coerce(item) for item in value]
     if isinstance(value, Path):
         return str(value)

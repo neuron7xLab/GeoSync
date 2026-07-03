@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from datetime import time as dtime
@@ -14,6 +15,32 @@ from typing import Any, Iterable, Mapping
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 _CANONICAL_NAMESPACE = uuid5(NAMESPACE_URL, "https://geosync/idempotency")
+
+
+def _canonical_temporal(value: datetime | date | dtime) -> str:
+    """UTC-normalised ISO-8601 string for a datetime/date/time value."""
+
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        value = value.astimezone(timezone.utc)
+    elif isinstance(value, date):
+        value = datetime.combine(value, dtime.min, tzinfo=timezone.utc)
+    elif value.tzinfo is None:  # dtime
+        value = value.replace(tzinfo=timezone.utc)
+    return value.isoformat().replace("+00:00", "Z")
+
+
+def _canonical_float(value: float) -> float:
+    """Collapse -0.0 to +0.0 and reject non-finite floats (fail-closed).
+
+    Logically-identical dedupe payloads must share one key: a signed-zero
+    numeric field must not fingerprint differently, and NaN/Inf have no valid
+    canonical JSON representation.
+    """
+    if not math.isfinite(value):
+        raise ValueError(f"non-finite float is not a valid idempotency payload: {value!r}")
+    return 0.0 if value == 0.0 else value
 
 
 def _normalise(value: Any) -> Any:
@@ -31,24 +58,16 @@ def _normalise(value: Any) -> Any:
             (_normalise(item) for item in value),
             key=lambda item: json.dumps(item, sort_keys=True),
         )
-    if isinstance(value, (datetime, date)):
-        if isinstance(value, datetime):
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
-            value = value.astimezone(timezone.utc)
-        else:
-            value = datetime.combine(value, dtime.min, tzinfo=timezone.utc)
-        return value.isoformat().replace("+00:00", "Z")
-    if isinstance(value, dtime):
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=timezone.utc)
-        return value.isoformat().replace("+00:00", "Z")
+    if isinstance(value, (datetime, date, dtime)):
+        return _canonical_temporal(value)
     if isinstance(value, Decimal):
         return format(value, "f")
     if isinstance(value, bytes):
         return value.hex()
     if isinstance(value, UUID):
         return str(value)
+    if isinstance(value, float):
+        return _canonical_float(value)
     return value
 
 
@@ -56,7 +75,9 @@ def canonical_dumps(payload: Any) -> str:
     """Return a canonical JSON representation for hashing purposes."""
 
     normalised = _normalise(payload)
-    return json.dumps(normalised, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+    return json.dumps(
+        normalised, separators=(",", ":"), sort_keys=True, ensure_ascii=False, allow_nan=False
+    )
 
 
 def fingerprint_payload(payload: Any, *, digest_size: int = 16) -> str:
