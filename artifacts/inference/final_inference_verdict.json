@@ -79,6 +79,16 @@
       "report_only": false,
       "tier": "substrate",
       "verdict": "PASS"
+    },
+    {
+      "name": "homeostasis_contract",
+      "passed": true,
+      "path": "artifacts/neuro/homeostasis_contract.json",
+      "present": true,
+      "reason": "",
+      "report_only": false,
+      "tier": "substrate",
+      "verdict": "PASS"
     }
   ],
   "release": false,
