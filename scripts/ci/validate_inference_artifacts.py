@@ -80,6 +80,11 @@ _PAIRS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         ("PASS",),
     ),
     (
+        "artifacts/provenance/inference_provenance.json",
+        "audit/schema/inference_provenance.schema.json",
+        ("PASS",),
+    ),
+    (
         "artifacts/inference/final_inference_verdict.json",
         "audit/schema/final_inference_verdict.schema.json",
         ("PASS",),
