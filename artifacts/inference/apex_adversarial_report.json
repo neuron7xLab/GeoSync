@@ -4,23 +4,23 @@
   "attacks": [
     {
       "id": "ADV-1",
-      "vector": "forge homeostasis verdict=PASS with out-of-bound allostatic load",
+      "vector": "forge homeostasis allostatic load; apex ignores it (re-derives from real controllers)",
       "target_ground": "H1",
-      "test": "tests/unit/neuro/test_apex_adversarial.py::test_forged_h1_numeric_is_caught",
+      "test": "tests/unit/neuro/test_apex_adversarial.py::test_forged_h1_numeric_is_ignored",
       "defeated": true
     },
     {
       "id": "ADV-2",
-      "vector": "forge homeostasis verdict=PASS with zero phase coherence",
+      "vector": "forge homeostasis coherence; apex ignores it (re-derives from real controllers)",
       "target_ground": "H3",
-      "test": "tests/unit/neuro/test_apex_adversarial.py::test_forged_h3_coherence_is_caught",
+      "test": "tests/unit/neuro/test_apex_adversarial.py::test_forged_h3_coherence_is_ignored",
       "defeated": true
     },
     {
       "id": "ADV-3",
-      "vector": "smuggle a report-only (non-enforcing) homeostasis contract",
-      "target_ground": "H1",
-      "test": "tests/unit/neuro/test_apex_adversarial.py::test_report_only_homeostasis_cannot_ground",
+      "vector": "forge a report-only flag on the homeostasis artifact; defeated by H4 (aggregator rejects report-only)",
+      "target_ground": "H4",
+      "test": "tests/unit/neuro/test_apex_adversarial.py::test_report_only_homeostasis_is_still_defeated",
       "defeated": true
     },
     {

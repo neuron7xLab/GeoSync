@@ -16,7 +16,7 @@
       "generator": null,
       "path": "artifacts/inference/apex_adversarial_report.json",
       "reproducible": null,
-      "sha256": "7887c3a67fd6eebb12778e52e3c6502569f74b5b2a27cfca565b881117b27bd4"
+      "sha256": "fd94b155cc321ed6213d81f6916c3962c8c0237fe1ec4e50db8d3c9b26e3fff4"
     },
     {
       "generator": null,
@@ -28,7 +28,7 @@
       "generator": "tools/audit_final_inference_verdict.py",
       "path": "artifacts/inference/final_inference_verdict.json",
       "reproducible": true,
-      "sha256": "ea56cef4e7b7458d379ce25171ccc0af49e6e1196bca9902f9619e1443fcfb7a"
+      "sha256": "f30aa7886276ed5f425f4cfdd81c43558878314864520c8e386b4080fb2e0443"
     },
     {
       "generator": "tools/audit_no_ungrounded_act.py",
@@ -74,7 +74,7 @@
     }
   ],
   "boundary": "Content-addressed tamper-evident provenance (SLSA/in-toto style hash chain), not a PKI signature. A KMS-backed signature over provenance_root is a deploy-time step, out of repo scope.",
-  "provenance_root": "68926442f42677f50af740ef1aee6993746d55386ef9157188defabf477b065c",
+  "provenance_root": "2fa19cf37f34d7f0eb28aa21353ae64af003af140e60739d325e809e96b9b4d0",
   "report_only": false,
   "schema": "geosync.inference_provenance.v1",
   "verdict": "PASS"

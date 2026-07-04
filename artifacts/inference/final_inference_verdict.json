@@ -89,6 +89,16 @@
       "report_only": false,
       "tier": "substrate",
       "verdict": "PASS"
+    },
+    {
+      "name": "inference_provenance",
+      "passed": true,
+      "path": "artifacts/provenance/inference_provenance.json",
+      "present": true,
+      "reason": "",
+      "report_only": false,
+      "tier": "substrate",
+      "verdict": "PASS"
     }
   ],
   "release": false,
