@@ -492,7 +492,7 @@ yarl==1.24.2
     # via
     #   aiohttp
     #   ccxt
-zipp==3.23.0
+zipp==4.1.0
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
