@@ -70,6 +70,16 @@ _PAIRS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         ("PASS",),
     ),
     (
+        "artifacts/physics/kuramoto_synchrony.json",
+        "audit/schema/kuramoto_synchrony.schema.json",
+        ("PASS",),
+    ),
+    (
+        "artifacts/inference/apparatus_transfer_report.json",
+        "audit/schema/apparatus_transfer_report.schema.json",
+        ("PASS",),
+    ),
+    (
         "artifacts/inference/final_inference_verdict.json",
         "audit/schema/final_inference_verdict.schema.json",
         ("PASS",),
