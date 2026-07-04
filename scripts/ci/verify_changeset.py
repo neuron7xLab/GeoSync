@@ -63,6 +63,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 _DETECT_SECRETS_EXCLUDE = (
     r"^(INVENTORY\.json|\.github/detect-secrets\.baseline"
+    r"|artifacts/provenance/inference_provenance\.json"
     r"|figures/disha_ba_correlation/repro_capsule/.*)$"
 )
 # CI's bandit job only scans security-critical first-party trees.
