@@ -36,6 +36,7 @@ _SCHEMA_IDS: dict[str, str] = {
     "feature_cache_freshness": "geosync.feature_cache_freshness_matrix.v1",
     "event_bus_lifecycle": "geosync.event_bus_lifecycle_matrix.v1",
     "homeostasis_contract": "geosync.homeostasis_contract.v1",
+    "inference_provenance": "geosync.inference_provenance.v1",
     "component_strength": "geosync.component_strength_report.v1",
 }
 
@@ -95,6 +96,12 @@ INPUTS: tuple[dict[str, Any], ...] = (
     {
         "name": "homeostasis_contract",
         "path": "artifacts/neuro/homeostasis_contract.json",
+        "pass_values": ("PASS",),
+        "tier": "substrate",
+    },
+    {
+        "name": "inference_provenance",
+        "path": "artifacts/provenance/inference_provenance.json",
         "pass_values": ("PASS",),
         "tier": "substrate",
     },

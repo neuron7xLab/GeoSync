@@ -11,10 +11,11 @@ Everything below converges here. An action is admissible iff, simultaneously:
 
     ACT-ADMISSIBLE  ⇔  H1 ∧ H2 ∧ H3 ∧ H4       otherwise FORBIDDEN (fail-closed)
 
-H1/H3 are read from the homeostasis contract, H4 from the final inference verdict,
-and H2 is computed here by driving the REAL epistemic-audit budget register. This
-sits ABOVE the aggregator: it consumes system truth, it is not part of it (no
-circularity). A FORBIDDEN verdict exits non-zero unless --report-only.
+Every ground is RE-DERIVED, never trusted from a forgeable artifact: H1/H3 by
+driving the real homeostasis controllers, H2 by driving the real epistemic-audit
+budget register, H4 by re-running the aggregator over the substrate. This sits
+ABOVE the aggregator: it consumes system truth, it is not part of it. A FORBIDDEN
+verdict exits non-zero unless --report-only.
 """
 
 from __future__ import annotations
@@ -51,6 +52,25 @@ def _rederive_final_verdict(root: Path) -> bool:
     spec.loader.exec_module(module)
     report = module.build_verdict(root, release=False)
     return bool(report.get("verdict") == "PASS")
+
+
+def _rederive_homeostasis(root: Path) -> dict[str, Any]:
+    """Re-run the REAL homeostasis controllers rather than read the artifact.
+
+    Closes the within-bound forgery: an adversary who edits
+    homeostasis_contract.json to report a plausible-but-false allostatic load or
+    coherence is ignored, because the apex drives the real AllostaticRegulator and
+    Kuramoto order parameter here instead of trusting the file's numbers.
+    """
+
+    spec = importlib.util.spec_from_file_location(
+        "_homeo_apex", _HERE / "audit_homeostasis_contract.py"
+    )
+    if spec is None or spec.loader is None:  # pragma: no cover - defensive
+        return {"verdict": "FAIL", "worst_allostatic_load": float("inf"), "coherence_locked": 0.0}
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.build_contract()
 
 
 def budget_monotone_under_real_audit() -> bool:
@@ -97,26 +117,21 @@ def _load(path: Path) -> dict[str, Any] | None:
 def build_apex(root: Path) -> dict[str, Any]:
     """Evaluate H1..H4 over the committed artifacts + the real budget register."""
 
-    homeostasis = _load(root / "artifacts/neuro/homeostasis_contract.json")
+    # H1/H3 are RE-DERIVED from the real controllers, not read from the artifact,
+    # so a forged homeostasis number (even a within-bound lie) cannot ground an act.
+    homeostasis = _rederive_homeostasis(root)
 
-    # A report-only (non-enforcing) contract cannot ground an action.
-    homeostasis_enforcing = homeostasis is not None and not homeostasis.get("report_only", False)
-
-    # H1 homeostasis: re-check the NUMERIC clamp (not just the verdict field), so a
-    # forged verdict=PASS with an out-of-bound load is still caught.
+    # H1 homeostasis: the real allostatic load is within its clamp and the real
+    # contract (bounded ∧ in-spec ∧ coherent) passed.
     h1 = bool(
-        homeostasis_enforcing
-        and homeostasis.get("verdict") == "PASS"
+        homeostasis.get("verdict") == "PASS"
         and homeostasis.get("worst_allostatic_load", float("inf"))
         <= homeostasis.get("allostatic_bound", 0.0) + 1e-9
     )
     # H2 arrow-of-time: real budget register is monotone non-increasing.
     h2 = budget_monotone_under_real_audit()
-    # H3 synchrony: re-check the NUMERIC coherence, not just a verdict field.
-    h3 = bool(
-        homeostasis_enforcing
-        and homeostasis.get("coherence_locked", 0.0) >= homeostasis.get("coherence_min", 1.0)
-    )
+    # H3 synchrony: the real Kuramoto coherence locks above the threshold.
+    h3 = bool(homeostasis.get("coherence_locked", 0.0) >= homeostasis.get("coherence_min", 1.0))
     # H4 verification: RE-DERIVE the aggregate from the substrate; do not trust a
     # committed final verdict that an adversary could forge to PASS.
     h4 = _rederive_final_verdict(root)
