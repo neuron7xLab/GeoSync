@@ -19,11 +19,11 @@ gate decisions only; no marketing language.
 | metric | value |
 |---|---:|
 | cumulative_net_return | -0.0495 |
-| annualized_return_live | -0.2510 |
+| annualized_return_live | -0.2511 |
 | annualized_vol_live | 0.0749 |
-| sharpe_live | -3.3515 |
+| sharpe_live | -3.3518 |
 | max_dd_live | 0.0878 |
-| hit_rate_live | 0.1176 |
+| hit_rate_live | 0.0980 |
 | turnover_ann_live | 0.9277 |
 | cost_drag_bps_live | 9.2800 |
 
@@ -31,9 +31,9 @@ gate decisions only; no marketing language.
 
 | metric | value |
 |---|---:|
-| benchmark_cum_return | -0.1400 |
-| benchmark_sharpe_live | -1.5388 |
-| relative_return_vs_benchmark | 0.0905 |
+| benchmark_cum_return | -0.1423 |
+| benchmark_sharpe_live | -1.5673 |
+| relative_return_vs_benchmark | 0.0927 |
 
 ## Envelope position
 
