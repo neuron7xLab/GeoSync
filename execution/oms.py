@@ -50,9 +50,11 @@ class OMSConfig:
     pre_trade_timeout: float | None = 0.25
     # When True, admit orders through the RiskManager pending-exposure reservation
     # path (validate reserves, fills convert, terminal paths release) so the
-    # validate-before-fill cap-bypass is closed end to end. Default off: the
-    # mechanism is proven and leak-tested, but enabling it in a live venue is an
-    # operator rollout step (a reservation leak would falsely block trading).
+    # validate-before-fill cap-bypass is closed end to end. Every terminal path is
+    # now audited and leak-tested — submit failure/timeout, placement reject, cancel,
+    # venue-reported cancel/reject via sync_remote_state, and requeue all release the
+    # hold (idempotently), and fills convert it. Default off remains an operator
+    # rollout choice (soak + open_reservation_count monitoring), not a safety gap.
     reserve_risk_exposure: bool = False
 
     def __post_init__(self) -> None:
@@ -599,6 +601,10 @@ class OrderManagementSystem:
                 raise ComplianceViolation("Risk validation timed out") from exc
         except Exception:
             self._fingerprints.pop(correlation_id, None)
+            # A pre-trade check may time out AFTER validate_order reserved (the
+            # timeout races the underlying call); release defensively so a rejected
+            # submission never leaves a hold behind. Idempotent when nothing reserved.
+            self._release_risk_reservation(correlation_id)
             raise
 
         queued_order = QueuedOrder(correlation_id, order)
@@ -977,6 +983,8 @@ class OrderManagementSystem:
                 metadata={"source": "sync_remote_state"},
             )
             self._lifecycle_sequences.pop(order.order_id, None)
+            # Venue-reported terminal state: discharge any pending risk hold.
+            self._release_risk_reservation(base_correlation)
         elif stored.status is OrderStatus.REJECTED and previous_status is not OrderStatus.REJECTED:
             metadata: Dict[str, object] = {"source": "sync_remote_state"}
             if stored.rejection_reason:
@@ -988,6 +996,7 @@ class OrderManagementSystem:
                 metadata=metadata,
             )
             self._lifecycle_sequences.pop(order.order_id, None)
+            self._release_risk_reservation(base_correlation)
         else:
             if stored.status in {OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED}:
                 if stored.filled_quantity > previous_filled + 1e-9 or (
@@ -1179,6 +1188,10 @@ class OrderManagementSystem:
         if correlation is None:
             correlation = f"requeue-{order_id}"
         self._processed.pop(correlation, None)
+        # The prior order instance is discarded; discharge any hold it still owns
+        # so requeuing never orphans a reservation. The re-queued order re-reserves
+        # on its next admission. Idempotent when nothing is held.
+        self._release_risk_reservation(correlation)
         resubmittable = replace(
             original,
             order_id=None,
