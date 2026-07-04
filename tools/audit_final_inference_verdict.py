@@ -113,6 +113,43 @@ INPUTS: tuple[dict[str, Any], ...] = (
 )
 
 
+def _item_passes(item: dict[str, Any]) -> bool:
+    """Whether one nested row/invariant/check/ground/attack is passing."""
+
+    verdict = item.get("verdict")
+    if verdict is not None and verdict not in (
+        "PASS",
+        "BOUND",
+        "ADMISSIBLE",
+        "STABLE",
+        "SYNCHRONISING",
+        "GO",
+    ):
+        return False
+    for boolean_field in ("passed", "holds", "defeated"):
+        if boolean_field in item and item[boolean_field] is not True:
+            return False
+    return True
+
+
+def _internally_consistent(data: dict[str, Any]) -> bool:
+    """A PASS artifact must not hide a failing internal row/invariant/check.
+
+    Closes the forge-the-top-verdict attack: an adversary who sets the top-level
+    verdict to PASS while an internal item (matrix row, invariant, ground, attack)
+    is FAIL/not-passed is caught here, because the aggregate re-reads the internal
+    items rather than trusting the headline verdict.
+    """
+
+    for value in data.values():
+        if not isinstance(value, list):
+            continue
+        for item in value:
+            if isinstance(item, dict) and not _item_passes(item):
+                return False
+    return True
+
+
 def _evaluate_input(spec: dict[str, Any], root: Path) -> dict[str, Any]:
     path = root / spec["path"]
     entry: dict[str, Any] = {
@@ -144,6 +181,9 @@ def _evaluate_input(spec: dict[str, Any], root: Path) -> dict[str, Any]:
         return entry
     if entry["verdict"] not in spec["pass_values"]:
         entry["reason"] = f"verdict {entry['verdict']!r} not in {spec['pass_values']}"
+        return entry
+    if not _internally_consistent(data):
+        entry["reason"] = "internal inconsistency: a nested item fails while the verdict is PASS"
         return entry
     entry["passed"] = True
     return entry
