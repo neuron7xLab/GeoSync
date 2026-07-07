@@ -1,22 +1,16 @@
 # Copyright (c) 2023-2026 Yaroslav Vasylenko (neuron7xLab)
 # SPDX-License-Identifier: MIT
-"""Five-minute GeoSync proof pipeline: D -> H -> T -> F -> V.
-
-Stdlib-only: tests one explicit hypothesis on one deterministic fixture and
-writes one verdict artifact.
-"""
+"""Five-minute GeoSync proof pipeline: D -> H -> T -> F -> V."""
 
 from __future__ import annotations
 
 import csv
 import json
 import os
-import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "geosync" / "proof" / "fixtures" / "market_fixture.csv"
@@ -64,22 +58,7 @@ def _utc_timestamp() -> str:
 
 
 def _code_version() -> str:
-    override = os.environ.get("GEOSYNC_PROOF_CODE_VERSION")
-    if override:
-        return override
-    try:
-        proc = subprocess.run(
-            ["git", "rev-parse", "--short=12", "HEAD"],
-            cwd=str(ROOT),
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=2,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    version = proc.stdout.strip()
-    return version if proc.returncode == 0 and version else "unknown"
+    return os.environ.get("GEOSYNC_PROOF_CODE_VERSION", "unknown")
 
 
 def load_market_data(path: Path = FIXTURE) -> list[MarketBar]:
@@ -96,24 +75,18 @@ def load_market_data(path: Path = FIXTURE) -> list[MarketBar]:
             close = float(close_raw)
             if close <= 0:
                 raise ValueError("close must be positive")
-            rows.append(MarketBar(timestamp=timestamp, close=close))
+            rows.append(MarketBar(timestamp, close))
     if len(rows) < TRAIN_RETURNS + 4:
         raise ValueError("fixture must contain enough bars for train and test windows")
     return rows
 
 
-def return_signs(bars: Iterable[MarketBar]) -> list[int]:
-    values = [bar.close for bar in bars]
+def return_signs(bars: list[MarketBar]) -> list[int]:
     signs: list[int] = []
-    for prev, cur in zip(values, values[1:]):
-        diff = cur - prev
-        if diff > 0:
-            signs.append(1)
-        elif diff < 0:
-            signs.append(-1)
-        else:
-            signs.append(0)
-    if any(s == 0 for s in signs):
+    for prev, cur in zip(bars, bars[1:]):
+        diff = cur.close - prev.close
+        signs.append(1 if diff > 0 else -1 if diff < 0 else 0)
+    if any(sign == 0 for sign in signs):
         raise ValueError("zero-return bars are unsupported in this proof fixture")
     return signs
 
@@ -122,12 +95,10 @@ def _score_rule(signs: list[int], start: int, stop: int, rule: str) -> TestResul
     hits = 0
     samples = 0
     for idx in range(start, stop):
-        prev = signs[idx - 1]
-        actual = signs[idx]
-        predicted = prev if rule == "continuation" else -prev
-        hits += int(predicted == actual)
+        predicted = signs[idx - 1] if rule == "continuation" else -signs[idx - 1]
+        hits += int(predicted == signs[idx])
         samples += 1
-    return TestResult(hit_rate=(hits / samples if samples else None), hits=hits, samples=samples)
+    return TestResult(hits / samples if samples else None, hits, samples)
 
 
 def generate_hypothesis(signs: list[int]) -> Hypothesis:
@@ -143,7 +114,7 @@ def generate_hypothesis(signs: list[int]) -> Hypothesis:
         "On the training slice of the fixture, the prior return sign is hypothesized "
         f"to predict the next return sign by {rule}."
     )
-    return Hypothesis(rule=rule, train_hit_rate=chosen.hit_rate, train_samples=chosen.samples, text=text)
+    return Hypothesis(rule, chosen.hit_rate, chosen.samples, text)
 
 
 def run_test(signs: list[int], hypothesis: Hypothesis) -> TestResult:
@@ -151,8 +122,7 @@ def run_test(signs: list[int], hypothesis: Hypothesis) -> TestResult:
 
 
 def build_verdict(dataset: Path = FIXTURE) -> dict[str, object]:
-    bars = load_market_data(dataset)
-    signs = return_signs(bars)
+    signs = return_signs(load_market_data(dataset))
     hypothesis = generate_hypothesis(signs)
     result = run_test(signs, hypothesis)
     if result.hit_rate is None or result.samples < 3:
@@ -176,7 +146,10 @@ def build_verdict(dataset: Path = FIXTURE) -> dict[str, object]:
             "training_samples": hypothesis.train_samples,
         },
         "verdict": verdict,
-        "failure_condition": "Reject if holdout_hit_rate is below 0.60; inconclusive if fewer than 3 holdout samples.",
+        "failure_condition": (
+            "Reject if holdout_hit_rate is below 0.60; "
+            "inconclusive if fewer than 3 holdout samples."
+        ),
         "repro_command": "python -m geosync.proof.run",
         "timestamp_utc": _utc_timestamp(),
         "code_version": _code_version(),
