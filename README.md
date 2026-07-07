@@ -93,6 +93,18 @@ happens only through the [`CLAIMS.md`](CLAIMS.md) tier ledger — see [Research 
 
 ---
 
+## Five-minute proof: D → H → T → F → V
+
+One minimal outsider-runnable proof command exists for auditing a single mechanism without trusting repository narrative:
+
+```bash
+python -m geosync.proof.run
+```
+
+It loads `geosync/proof/fixtures/market_fixture.csv`, generates one lag-1 directional hypothesis from the training slice, tests holdout hit rate, applies the falsifier `holdout_hit_rate >= 0.60`, writes `artifacts/geosync_proof/verdict.json`, and prints one verdict line. The default fixture verdict is `REJECT`; that only means the fixture-level hypothesis failed its threshold. It does not claim market alpha, profitability, predictive edge, or real-market truth. Details: [`docs/GEOSYNC_PROOF.md`](docs/GEOSYNC_PROOF.md).
+
+---
+
 ## Repository Map
 
 | Surface | Purpose |
