@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Five-minute GeoSync proof pipeline: D -> H -> T -> F -> V.
 
-This module is intentionally stdlib-only. It does not claim predictive edge,
-profitability, market physics, or production readiness. It tests one explicit
-hypothesis on one deterministic fixture and writes one verdict artifact.
+Stdlib-only: tests one explicit hypothesis on one deterministic fixture and
+writes one verdict artifact.
 """
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ import csv
 import json
 import os
 import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -76,7 +76,7 @@ def _code_version() -> str:
             text=True,
             timeout=2,
         )
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return "unknown"
     version = proc.stdout.strip()
     return version if proc.returncode == 0 and version else "unknown"
@@ -203,9 +203,9 @@ def main() -> int:
         f"metric={verdict['metric']} "
         f"value={result['holdout_hit_rate']} "
         f"threshold='{verdict['threshold']}' "
-        f"artifact={_relpath(ARTIFACT)}"
+        f"artifact={_relpath(ARTIFACT)}\n"
     )
-    print(line)
+    sys.stdout.write(line)
     return 0
 
 
