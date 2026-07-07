@@ -47,6 +47,13 @@ class TestResult:
     samples: int
 
 
+def _relpath(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def _utc_timestamp() -> str:
     raw = os.environ.get("SOURCE_DATE_EPOCH", "1700000000")
     try:
@@ -156,7 +163,7 @@ def build_verdict(dataset: Path = FIXTURE) -> dict[str, object]:
         verdict = "REJECT"
     return {
         "mechanism": MECHANISM,
-        "input_dataset": str(dataset.as_posix()),
+        "input_dataset": _relpath(dataset),
         "hypothesis": hypothesis.text,
         "metric": "holdout_hit_rate",
         "threshold": f">= {THRESHOLD:.2f}",
@@ -196,7 +203,7 @@ def main() -> int:
         f"metric={verdict['metric']} "
         f"value={result['holdout_hit_rate']} "
         f"threshold='{verdict['threshold']}' "
-        f"artifact={ARTIFACT.as_posix()}"
+        f"artifact={_relpath(ARTIFACT)}"
     )
     print(line)
     return 0
