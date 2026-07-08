@@ -115,7 +115,7 @@ googleapis-common-protos==1.70.0
     # via
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
-graphql-core==3.2.8
+graphql-core==3.2.11
     # via strawberry-graphql
 greenlet==3.2.4
     # via sqlalchemy
