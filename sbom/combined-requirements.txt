@@ -418,7 +418,7 @@ streamlit-authenticator==0.4.2
     # via geosync (pyproject.toml)
 sympy==1.14.0
     # via torch
-tenacity==9.1.2
+tenacity==9.1.4
     # via
     #   geosync (pyproject.toml)
     #   streamlit
