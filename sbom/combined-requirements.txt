@@ -324,7 +324,7 @@ pyarrow==23.0.1
     #   streamlit
 pycares==4.11.0
     # via aiodns
-pycparser==2.23
+pycparser==3.0
     # via cffi
 pydantic==2.13.4
     # via
