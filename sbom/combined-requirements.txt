@@ -438,7 +438,7 @@ triton==3.6.0
     # via torch
 typeguard==4.4.4
     # via pandera
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   aiokafka
     #   aiosignal
