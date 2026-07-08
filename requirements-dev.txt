@@ -16,11 +16,11 @@ pytest-benchmark==5.2.3
 pytest-cov==7.1.0
 pytest-asyncio==1.4.0
 pytest-httpx==0.36.2
-hypothesis==6.155.7
+hypothesis==6.156.1
 pytest-html==4.2.0
 pytest-xdist==3.8.0
 pytest-split==0.11.0
-pytest-rerunfailures==16.3
+pytest-rerunfailures==16.4
 pytest-profiling==1.8.1; python_version < "3.13"
 mutmut==3.5.0
 pactman==2.31.0

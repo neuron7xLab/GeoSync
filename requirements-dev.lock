@@ -458,7 +458,7 @@ pathspec==1.0.0
     # via
     #   black
     #   mypy
-pillow==12.2.0
+pillow==12.3.0
     # via
     #   -c constraints/security.txt
     #   captcha
