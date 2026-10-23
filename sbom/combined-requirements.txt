@@ -298,7 +298,7 @@ pandera==0.31.1
     # via
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
-pillow==12.2.0
+pillow==13.0.0
     # via
     #   -c constraints/security.txt
     #   captcha
