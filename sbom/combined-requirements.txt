@@ -99,7 +99,7 @@ fastapi==0.139.0
     #   -c constraints/security.txt
     #   geosync (pyproject.toml)
     #   strawberry-graphql
-filelock==3.29.5
+filelock==4.2.1
     # via torch
 frozenlist==1.8.0
     # via
